@@ -43,13 +43,14 @@
 
 #pragma once
 
-#include <px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <drivers/drv_hrt.h>
-#include <lib/perf/perf_counter.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-
 #include <termios.h>
+
+#include <drivers/drv_hrt.h>
+#include <drivers/rangefinder/PX4Rangefinder.hpp>
+#include <perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
 
 using namespace time_literals;
 

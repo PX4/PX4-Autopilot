@@ -37,11 +37,11 @@
  * High-resolution timer with callouts and timekeeping.
  */
 
-#include <px4_time.h>
-#include <px4_posix.h>
-#include <px4_defines.h>
-#include <px4_workqueue.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/tasks.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
 #include <time.h>
@@ -72,10 +72,8 @@ static LockstepScheduler *lockstep_scheduler = new LockstepScheduler();
 #endif
 
 
-hrt_abstime hrt_absolute_time_offset();
 static void hrt_call_reschedule();
 static void hrt_call_invoke();
-__EXPORT hrt_abstime hrt_reset();
 
 hrt_abstime hrt_absolute_time_offset()
 {
@@ -462,11 +460,6 @@ void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callo
 {
 	hrt_call_internal(entry, calltime, 0, callout, arg);
 }
-
-/*
- * Convert absolute time to a timespec.
- */
-void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
 
 static void
 hrt_call_invoke()

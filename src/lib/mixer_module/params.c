@@ -13,6 +13,23 @@
  * @value 0 Disabled
  * @value 1 Roll/Pitch
  * @value 2 Roll/Pitch/Yaw
- * @group Multicopter Attitude Control
+ * @group Mixer Output
  */
 PARAM_DEFINE_INT32(MC_AIRMODE, 0);
+
+/**
+ * Motor Ordering
+ *
+ * Determines the motor ordering. This can be used for example in combination with
+ * a 4-in-1 ESC that assumes a motor ordering which is different from PX4.
+ *
+ * ONLY supported for Quads.
+ *
+ * When changing this, make sure to test the motor response without props first.
+ *
+ * @value 0 PX4
+ * @value 1 Betaflight / Cleanflight
+ *
+ * @group Mixer Output
+ */
+PARAM_DEFINE_INT32(MOT_ORDERING, 0);

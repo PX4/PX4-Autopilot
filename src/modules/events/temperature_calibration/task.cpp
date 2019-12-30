@@ -42,9 +42,9 @@
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_gyro.h>
 #include <mathlib/mathlib.h>
-#include <px4_log.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
 

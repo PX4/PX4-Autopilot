@@ -38,9 +38,9 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_time.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>
@@ -62,12 +62,38 @@
 #include "calibration_messages.h"
 #include "commander_helper.h"
 
-static int run_lm_sphere_fit(const float x[], const float y[], const float z[],
-			     float &fitness_in, float &sphere_lambda_in, unsigned int size,
-			     float *offset_x, float *offset_y, float *offset_z,
-			     float *sphere_radius,
-			     float *diag_x, float *diag_y, float *diag_z,
-			     float *offdiag_x, float *offdiag_y, float *offdiag_z)
+int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
+				unsigned int size, int max_iterations, float *offset_x, float *offset_y, float *offset_z,
+				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z,
+				float *offdiag_x, float *offdiag_y, float *offdiag_z, bool sphere_fit_only)
+{
+	float fitness = 1.0e30f;
+	float sphere_lambda = 1.0f;
+	float ellipsoid_lambda = 1.0f;
+
+	for (int i = 0; i < max_iterations; i++) {
+		run_lm_sphere_fit(x, y, z, fitness, sphere_lambda,
+				  size, offset_x, offset_y, offset_z,
+				  sphere_radius, diag_x, diag_y, diag_z, offdiag_x, offdiag_y, offdiag_z);
+
+	}
+
+	if (!sphere_fit_only) {
+		fitness = 1.0e30f;
+
+		for (int i = 0; i < max_iterations; i++) {
+			run_lm_ellipsoid_fit(x, y, z, fitness, ellipsoid_lambda,
+					     size, offset_x, offset_y, offset_z,
+					     sphere_radius, diag_x, diag_y, diag_z, offdiag_x, offdiag_y, offdiag_z);
+		}
+	}
+
+	return 0;
+}
+
+int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &fitness_in, float &sphere_lambda_in,
+		      unsigned int size, float *offset_x, float *offset_y, float *offset_z,
+		      float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
 {
 	//Run Sphere Fit using Levenberg Marquardt LSq Fit
 	const float lma_damping = 10.0f;
@@ -190,10 +216,10 @@ static int run_lm_sphere_fit(const float x[], const float y[], const float z[],
 	}
 }
 
-static int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], float &fitness_in,
-				float &sphere_lambda_in,
-				unsigned int size, float *offset_x, float *offset_y, float *offset_z,
-				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
+int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], float &fitness_in,
+			 float &sphere_lambda_in,
+			 unsigned int size, float *offset_x, float *offset_y, float *offset_z,
+			 float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
 {
 	//Run Sphere Fit using Levenberg Marquardt LSq Fit
 	const float lma_damping = 10.0f;
@@ -326,51 +352,20 @@ static int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[
 	}
 }
 
-int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
-				unsigned int size, int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
-				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
+enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, int cancel_sub, int accel_sub,
+		bool lenient_still_position)
 {
-	float fitness = 1.0e30f;
-	float sphere_lambda = 1.0f;
-	float ellipsoid_lambda = 1.0f;
 
-	for (int i = 0; i < max_iterations; i++) {
-		run_lm_sphere_fit(x, y, z,
-				  fitness, sphere_lambda, size,
-				  offset_x, offset_y, offset_z,
-				  sphere_radius,
-				  diag_x, diag_y, diag_z,
-				  offdiag_x, offdiag_y, offdiag_z);
-
-	}
-
-	fitness = 1.0e30f;
-
-	for (int i = 0; i < max_iterations; i++) {
-		run_lm_ellipsoid_fit(x, y, z,
-				     fitness, ellipsoid_lambda, size,
-				     offset_x, offset_y, offset_z,
-				     sphere_radius,
-				     diag_x, diag_y, diag_z,
-				     offdiag_x, offdiag_y, offdiag_z);
-	}
-
-	return 0;
-}
-
-enum detect_orientation_return
-detect_orientation(orb_advert_t *mavlink_log_pub, int cancel_sub, int accel_sub, bool lenient_still_position) {
 	static constexpr unsigned ndim = 3;
-
-	float accel_ema[ndim]{};	// exponential moving average of accel
-	float accel_disp[3]{};	// max-hold dispersion of accel
+	float accel_ema[ndim] {};	// exponential moving average of accel
+	float accel_disp[3] {};	// max-hold dispersion of accel
 	static constexpr float ema_len = 0.5f;				// EMA time constant in seconds
 	static constexpr float normal_still_thr = 0.25;		// normal still threshold
 	float still_thr2 = powf(lenient_still_position ? (normal_still_thr * 3) : normal_still_thr, 2);
 	static constexpr float accel_err_thr = 5.0f;			// set accel error threshold to 5m/s^2
 	const hrt_abstime still_time = lenient_still_position ? 500000 : 1300000;	// still time required in us
 
-	px4_pollfd_struct_t fds[1]{};
+	px4_pollfd_struct_t fds[1] {};
 	fds[0].fd = accel_sub;
 	fds[0].events = POLLIN;
 
@@ -386,8 +381,7 @@ detect_orientation(orb_advert_t *mavlink_log_pub, int cancel_sub, int accel_sub,
 
 	unsigned poll_errcount = 0;
 
-	while (true)
-	{
+	while (true) {
 		/* wait blocking for new data */
 		int poll_ret = px4_poll(fds, 1, 1000);
 
@@ -465,49 +459,37 @@ detect_orientation(orb_advert_t *mavlink_log_pub, int cancel_sub, int accel_sub,
 
 	if (fabsf(accel_ema[0] - CONSTANTS_ONE_G) < accel_err_thr &&
 	    fabsf(accel_ema[1]) < accel_err_thr &&
-	    fabsf(accel_ema[2]) < accel_err_thr)
-	{
-
+	    fabsf(accel_ema[2]) < accel_err_thr) {
 		return DETECT_ORIENTATION_TAIL_DOWN;        // [ g, 0, 0 ]
 	}
 
 	if (fabsf(accel_ema[0] + CONSTANTS_ONE_G) < accel_err_thr &&
 	    fabsf(accel_ema[1]) < accel_err_thr &&
-	    fabsf(accel_ema[2]) < accel_err_thr)
-	{
-
+	    fabsf(accel_ema[2]) < accel_err_thr) {
 		return DETECT_ORIENTATION_NOSE_DOWN;        // [ -g, 0, 0 ]
 	}
 
 	if (fabsf(accel_ema[0]) < accel_err_thr &&
 	    fabsf(accel_ema[1] - CONSTANTS_ONE_G) < accel_err_thr &&
-	    fabsf(accel_ema[2]) < accel_err_thr)
-	{
-
+	    fabsf(accel_ema[2]) < accel_err_thr) {
 		return DETECT_ORIENTATION_LEFT;        // [ 0, g, 0 ]
 	}
 
 	if (fabsf(accel_ema[0]) < accel_err_thr &&
 	    fabsf(accel_ema[1] + CONSTANTS_ONE_G) < accel_err_thr &&
-	    fabsf(accel_ema[2]) < accel_err_thr)
-	{
-
+	    fabsf(accel_ema[2]) < accel_err_thr) {
 		return DETECT_ORIENTATION_RIGHT;        // [ 0, -g, 0 ]
 	}
 
 	if (fabsf(accel_ema[0]) < accel_err_thr &&
 	    fabsf(accel_ema[1]) < accel_err_thr &&
-	    fabsf(accel_ema[2] - CONSTANTS_ONE_G) < accel_err_thr)
-	{
-
+	    fabsf(accel_ema[2] - CONSTANTS_ONE_G) < accel_err_thr) {
 		return DETECT_ORIENTATION_UPSIDE_DOWN;        // [ 0, 0, g ]
 	}
 
 	if (fabsf(accel_ema[0]) < accel_err_thr &&
 	    fabsf(accel_ema[1]) < accel_err_thr &&
-	    fabsf(accel_ema[2] + CONSTANTS_ONE_G) < accel_err_thr)
-	{
-
+	    fabsf(accel_ema[2] + CONSTANTS_ONE_G) < accel_err_thr) {
 		return DETECT_ORIENTATION_RIGHTSIDE_UP;        // [ 0, 0, -g ]
 	}
 
@@ -579,7 +561,8 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		/* inform user which orientations are still needed */
-		char pendingStr[80] {};
+		char pendingStr[80];
+		pendingStr[0] = 0;
 
 		for (unsigned int cur_orientation = 0; cur_orientation < detect_orientation_side_count; cur_orientation++) {
 			if (!side_data_collected[cur_orientation]) {

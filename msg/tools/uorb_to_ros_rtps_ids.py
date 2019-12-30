@@ -3,16 +3,18 @@
 Script to read an yaml file containing the RTPS message IDs and update the naming convention to PascalCase
 """
 
+import errno
 import os
 import yaml
 import sys
 import argparse
+import six
 
 __author__ = 'PX4 Development Team'
 __copyright__ = \
     '''
      '
-     '   Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+     '   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
      '
      ' Redistribution and use in source and binary forms, or without
      ' modification, permitted provided that the following conditions
@@ -91,14 +93,8 @@ def update_dict(list):
     if verbose:
         num_of_msgs = 0
     for i, dictionary in enumerate(list["rtps"]):
-        # implementation depends on the Python version being used
-        if sys.version_info[0] < 3:
-            dict = {k: v.title().replace('_', '') if isinstance(
-                v, basestring) else v for k, v in dictionary.iteritems()}
-        else:
-            dict = {k: v.title().replace('_', '') if isinstance(
-                v, str) else v for k, v in dictionary.items()}
-        list["rtps"][i] = dict
+        list["rtps"][i] = {k: v.title().replace('_', '') if isinstance(
+            v, six.string_types) else v for k, v in six.iteritems(dictionary)}
         if verbose:
             num_of_msgs += 1
     if verbose:

@@ -39,22 +39,15 @@
  */
 #pragma once
 
-#include <px4_app.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/workqueue.h>
 #include <string.h>
 
 class WQueueTest
 {
 public:
-	WQueueTest() :
-		_lpwork_done(false),
-		_hpwork_done(false)
-	{
-		memset(&_lpwork, 0, sizeof(_lpwork));
-		memset(&_hpwork, 0, sizeof(_hpwork));
-	};
-
-	~WQueueTest() {}
+	WQueueTest() = default;
+	~WQueueTest() = default;
 
 	int main();
 
@@ -66,8 +59,8 @@ private:
 	void do_lp_work(void);
 	void do_hp_work(void);
 
-	bool _lpwork_done;
-	bool _hpwork_done;
-	work_s _lpwork;
-	work_s _hpwork;
+	bool _lpwork_done {false};
+	bool _hpwork_done {false};
+	work_s _lpwork {};
+	work_s _hpwork {};
 };

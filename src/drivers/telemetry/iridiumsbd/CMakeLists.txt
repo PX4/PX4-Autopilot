@@ -37,7 +37,6 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		IridiumSBD.cpp
-		iridiumsbd_params.c
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

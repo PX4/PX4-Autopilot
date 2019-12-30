@@ -2,7 +2,8 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform/gpio.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -46,7 +47,7 @@ static const uint32_t spi1selects_gpio[] = PX4_FLOW_BUS_CS_GPIO;
 __EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
-	board_gpio_init(spi1selects_gpio, arraySize(spi1selects_gpio));
+	px4_gpio_init(spi1selects_gpio, arraySize(spi1selects_gpio));
 #endif
 
 }

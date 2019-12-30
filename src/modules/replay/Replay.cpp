@@ -41,11 +41,12 @@
 */
 
 #include <drivers/drv_hrt.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
-#include <px4_shutdown.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/shutdown.h>
+#include <lib/parameters/param.h>
 
 #include <cstring>
 #include <float.h>
@@ -954,6 +955,84 @@ Replay::custom_command(int argc, char *argv[])
 }
 
 int
+Replay::task_spawn(int argc, char *argv[])
+{
+	// check if a log file was found
+	if (!isSetup()) {
+		if (argc > 0 && strncmp(argv[0], "try", 3) == 0) {
+			return 0;
+		}
+
+		PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);
+		return -1;
+	}
+
+	_task_id = px4_task_spawn_cmd("replay",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX - 5,
+				      4000,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
+
+	if (_task_id < 0) {
+		_task_id = -1;
+		return -errno;
+	}
+
+	return 0;
+}
+
+int
+Replay::applyParams(bool quiet)
+{
+	if (!isSetup()) {
+		if (quiet) {
+			return 0;
+		}
+
+		PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);
+		return -1;
+	}
+
+	int ret = 0;
+	Replay *r = new Replay();
+
+	if (r == nullptr) {
+		PX4_ERR("alloc failed");
+		return -ENOMEM;
+	}
+
+	ifstream replay_file(_replay_file, ios::in | ios::binary);
+
+	if (!r->readDefinitionsAndApplyParams(replay_file)) {
+		ret = -1;
+	}
+
+	delete r;
+
+	return ret;
+}
+
+Replay *
+Replay::instantiate(int argc, char *argv[])
+{
+	// check the replay mode
+	const char *replay_mode = getenv(replay::ENV_MODE);
+
+	Replay *instance = nullptr;
+
+	if (replay_mode && strcmp(replay_mode, "ekf2") == 0) {
+		PX4_INFO("Ekf2 replay mode");
+		instance = new ReplayEkf2();
+
+	} else {
+		instance = new Replay();
+	}
+
+	return instance;
+}
+
+int
 Replay::print_usage(const char *reason)
 {
 	if (reason) {
@@ -987,81 +1066,6 @@ page.
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
-}
-
-int
-Replay::task_spawn(int argc, char *argv[])
-{
-	// check if a log file was found
-	if (!isSetup()) {
-		if (argc > 0 && strncmp(argv[0], "try", 3)==0) {
-			return 0;
-		}
-		PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);
-		return -1;
-	}
-
-	_task_id = px4_task_spawn_cmd("replay",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX - 5,
-				      4000,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
-
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
-	}
-
-	return 0;
-}
-
-int
-Replay::applyParams(bool quiet)
-{
-	if (!isSetup()) {
-		if (quiet) {
-			return 0;
-		}
-		PX4_ERR("no log file given (via env variable %s)", replay::ENV_FILENAME);
-		return -1;
-	}
-
-	int ret = 0;
-	Replay *r = new Replay();
-
-	if (r == nullptr) {
-		PX4_ERR("alloc failed");
-		return -ENOMEM;
-	}
-
-	ifstream replay_file(_replay_file, ios::in | ios::binary);
-
-	if (!r->readDefinitionsAndApplyParams(replay_file)) {
-		ret = -1;
-	}
-
-	delete r;
-
-	return ret;
-}
-
-Replay *
-Replay::instantiate(int argc, char *argv[])
-{
-	// check the replay mode
-	const char *replay_mode = getenv(replay::ENV_MODE);
-
-	Replay *instance = nullptr;
-	if (replay_mode && strcmp(replay_mode, "ekf2") == 0) {
-		PX4_INFO("Ekf2 replay mode");
-		instance = new ReplayEkf2();
-
-	} else {
-		instance = new Replay();
-	}
-
-	return instance;
 }
 
 } //namespace px4

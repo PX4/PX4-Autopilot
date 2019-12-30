@@ -40,7 +40,7 @@
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
-#include <px4_sem.hpp>
+#include <px4_platform_common/sem.hpp>
 #include <systemlib/px4_macros.h>
 
 uORB::DeviceMaster::DeviceMaster()
@@ -55,7 +55,7 @@ uORB::DeviceMaster::~DeviceMaster()
 }
 
 int
-uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, int priority)
+uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, int priority)
 {
 	int ret = PX4_ERROR;
 
@@ -119,22 +119,45 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 			delete node;
 
 			if (ret == -EEXIST) {
-				/* if the node exists already, get the existing one and check if
-				 * something has been published yet. */
+				/* if the node exists already, get the existing one and check if it's advertised. */
 				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
 
-				if ((existing_node != nullptr) && !(existing_node->is_published())) {
-					/* nothing has been published yet, lets claim it */
-					existing_node->set_priority(priority);
+				/*
+				 * We can claim an existing node in these cases:
+				 * - The node is not advertised (yet). It means there is already one or more subscribers or it was
+				 *   unadvertised.
+				 * - We are a single-instance advertiser requesting the first instance.
+				 *   (Usually we don't end up here, but we might in case of a race condition between 2
+				 *   advertisers).
+				 * - We are a subscriber requesting a certain instance.
+				 *   (Also we usually don't end up in that case, but we might in case of a race condtion
+				 *   between an advertiser and subscriber).
+				 */
+				bool is_single_instance_advertiser = is_advertiser && !instance;
+
+				if (existing_node != nullptr &&
+				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
+					if (is_advertiser) {
+						existing_node->set_priority(priority);
+						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
+						 * could get the same instance).
+						 */
+						existing_node->mark_as_advertised();
+					}
+
 					ret = PX4_OK;
 
 				} else {
-					/* otherwise: data has already been published, keep looking */
+					/* otherwise: already advertised, keep looking */
 				}
 			}
 
 		} else {
-			// add to the node map;.
+			if (is_advertiser) {
+				node->mark_as_advertised();
+			}
+
+			// add to the node map.
 			_node_list.add(node);
 		}
 

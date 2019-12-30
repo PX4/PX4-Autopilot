@@ -36,10 +36,22 @@
 
 #pragma once
 
+#include <mathlib/math/matrix_alg.h>
+
 int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
-				unsigned int size, int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
+				unsigned int size, int max_iterations, float *offset_x, float *offset_y, float *offset_z,
 				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y,
-				float *offdiag_z);
+				float *offdiag_z, bool sphere_fit_only);
+
+int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
+		      unsigned int size, float *offset_x, float *offset_y, float *offset_z,
+		      float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y,
+		      float *offdiag_z);
+
+int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
+			 unsigned int size, float *offset_x, float *offset_y, float *offset_z,
+			 float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y,
+			 float *offdiag_z);
 
 // The order of these cannot change since the calibration calculations depend on them in this order
 enum detect_orientation_return {
@@ -51,7 +63,7 @@ enum detect_orientation_return {
 	DETECT_ORIENTATION_RIGHTSIDE_UP,
 	DETECT_ORIENTATION_ERROR
 };
-static const unsigned detect_orientation_side_count = 6;
+static constexpr unsigned detect_orientation_side_count = 6;
 
 /// Wait for vehicle to become still and detect it's orientation
 ///	@return Returns detect_orientation_return according to orientation when vehicle

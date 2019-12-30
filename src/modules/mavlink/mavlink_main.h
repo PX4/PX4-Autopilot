@@ -62,13 +62,13 @@
 #include <drivers/device/ringbuffer.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <px4_cli.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_posix.h>
+#include <px4_platform_common/cli.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/uthash/utlist.h>
 #include <uORB/PublicationQueued.hpp>
@@ -163,8 +163,6 @@ public:
 	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
-
-	static int		get_uart_fd(unsigned index);
 
 	int			get_uart_fd() const { return _uart_fd; }
 
@@ -532,6 +530,8 @@ public:
 	 */
 	struct ping_statistics_s &get_ping_statistics() { return _ping_stats; }
 
+	static hrt_abstime &get_first_start_time() { return _first_start_time; }
+
 protected:
 	Mavlink			*next{nullptr};
 
@@ -687,6 +687,8 @@ private:
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
 	static constexpr unsigned RADIO_BUFFER_HALF_PERCENTAGE = 50;
+
+	static hrt_abstime _first_start_time;
 
 	/**
 	 * Configure a single stream.

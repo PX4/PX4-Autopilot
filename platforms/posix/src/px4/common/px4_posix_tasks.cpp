@@ -37,8 +37,8 @@
  * Implementation of existing task API for Linux
  */
 
-#include <px4_log.h>
-#include <px4_defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/defines.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,8 +56,8 @@
 #include <sys/types.h>
 #include <string>
 
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 #include <systemlib/err.h>
 
 #define MAX_CMD_LEN 100
@@ -204,7 +204,11 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	rv = pthread_attr_setschedpolicy(&attr, SCHED_RR);
+#else
 	rv = pthread_attr_setschedpolicy(&attr, scheduler);
+#endif
 
 	if (rv != 0) {
 		PX4_ERR("px4_task_spawn_cmd: failed to set sched policy");

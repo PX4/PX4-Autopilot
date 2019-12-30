@@ -35,16 +35,22 @@
 if (NOT ${PX4_BOARD} MATCHES "px4_io")
 
 	add_library(px4_layer
+		board_crashdump.c
+		board_dma_alloc.c
+		board_fat_dma_alloc.c
 		console_buffer.cpp
+		gpio.c
 		px4_nuttx_tasks.c
 		px4_nuttx_impl.cpp
 		px4_init.cpp
 	)
 	target_link_libraries(px4_layer
 		PRIVATE
+			arch_board_reset
+			arch_board_critmon
+			arch_version
 			nuttx_apps # up_cxxinitialize
 			nuttx_sched
-			drivers_boards_common_arch
 			px4_work_queue
 		)
 else()

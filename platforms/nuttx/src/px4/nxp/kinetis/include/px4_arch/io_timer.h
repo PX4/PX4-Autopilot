@@ -36,7 +36,7 @@
  *
  * stm32-specific PWM output data.
  */
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
@@ -45,7 +45,11 @@
 #pragma once
 __BEGIN_DECLS
 /* configuration limits */
-#define MAX_IO_TIMERS			4
+#ifdef BOARD_NUM_IO_TIMERS
+#define MAX_IO_TIMERS			BOARD_NUM_IO_TIMERS
+#else
+#define MAX_IO_TIMERS			2
+#endif
 #define MAX_TIMER_IO_CHANNELS	16
 
 #define MAX_LED_TIMERS			2

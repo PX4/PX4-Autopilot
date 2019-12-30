@@ -52,10 +52,10 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <systemlib/mavlink_log.h>
 
 /**
@@ -107,6 +107,7 @@ Navigator::Navigator() :
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	reset_triplets();
 }
@@ -114,6 +115,7 @@ Navigator::Navigator() :
 Navigator::~Navigator()
 {
 	orb_unsubscribe(_local_pos_sub);
+	orb_unsubscribe(_vehicle_status_sub);
 }
 
 void
@@ -147,11 +149,13 @@ Navigator::run()
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1] = {};
+	px4_pollfd_struct_t fds[2] {};
 
 	/* Setup of loop */
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
+	fds[1].fd = _vehicle_status_sub;
+	fds[1].events = POLLIN;
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -181,6 +185,8 @@ Navigator::run()
 
 		perf_begin(_loop_perf);
 
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
+
 		/* gps updated */
 		if (_gps_pos_sub.updated()) {
 			_gps_pos_sub.copy(&_gps_pos);
@@ -209,7 +215,6 @@ Navigator::run()
 			params_update();
 		}
 
-		_vstatus_sub.update(&_vstatus);
 		_land_detected_sub.update(&_land_detected);
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
@@ -263,8 +268,8 @@ Navigator::run()
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 
 					// Position change with optional altitude change
-					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
-					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+					rep->current.lat = cmd.param5;
+					rep->current.lon = cmd.param6;
 
 					if (PX4_ISFINITE(cmd.param7)) {
 						rep->current.alt = cmd.param7;
@@ -318,8 +323,8 @@ Navigator::run()
 				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
-					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+					rep->current.lat = cmd.param5;
+					rep->current.lon = cmd.param6;
 
 				} else {
 					// If one of them is non-finite, reset both
@@ -490,9 +495,16 @@ Navigator::run()
 				const bool rtl_activated = _previous_nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 				switch (rtl_type()) {
-				case RTL::RTL_LAND:
+				case RTL::RTL_LAND: // use mission landing
+				case RTL::RTL_CLOSEST:
 					if (rtl_activated) {
-						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+						if (rtl_type() == RTL::RTL_LAND) {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+
+						} else {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Closest landing point activated");
+						}
+
 					}
 
 					// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION to fly there directly
@@ -570,6 +582,7 @@ Navigator::run()
 
 					navigation_mode_new = &_rtl;
 					break;
+
 				}
 
 				break;
@@ -589,11 +602,6 @@ Navigator::run()
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_precland;
 			_precland.set_mode(PrecLandMode::Required);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_land;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
@@ -620,11 +628,11 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
 		default:
-			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = nullptr;
 			_can_loiter_at_sp = false;
 			break;
@@ -661,9 +669,11 @@ Navigator::run()
 
 			_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 			_pos_sp_triplet.current.valid = true;
-			_pos_sp_triplet.previous.valid = false;
-			_pos_sp_triplet.next.valid = false;
+			_pos_sp_triplet.current.timestamp = hrt_absolute_time();
 
+			_pos_sp_triplet.previous.valid = false;
+
+			_pos_sp_triplet.next.valid = false;
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid once */
@@ -724,16 +734,8 @@ Navigator::print_status()
 void
 Navigator::publish_position_setpoint_triplet()
 {
-	// do not publish an invalid setpoint
-	if (!_pos_sp_triplet.current.valid) {
-		return;
-	}
-
 	_pos_sp_triplet.timestamp = hrt_absolute_time();
-
-	/* lazily publish the position setpoint triplet only once available */
 	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
-
 	_pos_sp_triplet_updated = false;
 }
 
@@ -860,7 +862,9 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 
 	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
-	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && pos_ctrl_status.acceptance_radius > radius) {
+	if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    && (pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp)
+	    && pos_ctrl_status.acceptance_radius > radius) {
 		radius = pos_ctrl_status.acceptance_radius;
 	}
 

@@ -39,8 +39,8 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/device/i2c.h>
 #include <systemlib/err.h>
@@ -191,7 +191,7 @@ static BST *g_bst = nullptr;
 
 BST::BST(int bus) :
 	I2C("bst", nullptr, bus, BST_ADDR, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 }
 

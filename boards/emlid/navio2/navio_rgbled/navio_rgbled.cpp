@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <drivers/drv_led.h>
 
 #include <string.h>

@@ -49,7 +49,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 REQUIREMENTS_FILE="requirements.txt"
 if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
 	echo "FAILED: ${REQUIREMENTS_FILE} needed in same directory as ubuntu.sh (${DIR})."
-        return 1
+	return 1
 fi
 
 
@@ -107,7 +107,7 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 
 
 if [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
-	echo "Installing Ubuntu 16.04 PX4-compatible cmake"
+	echo "Installing Ubuntu 16.04 PX4-compatible ccache version"
 	wget -O /tmp/ccache_3.4.1-1_amd64.deb http://launchpadlibrarian.net/356662933/ccache_3.4.1-1_amd64.deb
 	sudo dpkg -i /tmp/ccache_3.4.1-1_amd64.deb
 fi
@@ -148,8 +148,8 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	# add user to dialout group (serial port access)
 	sudo usermod -a -G dialout $USER
-	
-	# Remove modem manager (interferes with PX4 serial port/USB serial usage). 
+
+	# Remove modem manager (interferes with PX4 serial port/USB serial usage).
 	sudo apt-get remove modemmanager -y
 
 	# arm-none-eabi-gcc
@@ -216,5 +216,5 @@ fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
-	echo "Reboot computer before attempting to build NUTTX targets"
+	echo "Reboot or logout, login computer before attempting to build NuttX targets"
 fi

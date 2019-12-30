@@ -40,8 +40,8 @@
 #ifndef _CDEV_HPP
 #define _CDEV_HPP
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/posix.h>
 
 #ifdef __PX4_NUTTX
 #include "nuttx/cdev_platform.hpp"
@@ -64,7 +64,13 @@ public:
 	 * @param name		Driver name
 	 * @param devname	Device node name
 	 */
-	CDev(const char *devname);
+	explicit CDev(const char *devname);
+
+	// no copy, assignment, move, move assignment
+	CDev(const CDev &) = delete;
+	CDev &operator=(const CDev &) = delete;
+	CDev(CDev &&) = delete;
+	CDev &operator=(CDev &&) = delete;
 
 	virtual ~CDev();
 
@@ -301,9 +307,6 @@ private:
 	 */
 	inline int	remove_poll_waiter(px4_pollfd_struct_t *fds);
 
-	/* do not allow copying this class */
-	CDev(const CDev &);
-	CDev operator=(const CDev &);
 };
 
 } // namespace cdev

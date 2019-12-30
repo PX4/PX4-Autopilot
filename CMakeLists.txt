@@ -146,17 +146,19 @@ include(${PX4_CONFIG_FILE})
 message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
-if (ENABLE_LOCKSTEP_SCHEDULER)
-	add_definitions(-DENABLE_LOCKSTEP_SCHEDULER)
-	message(STATUS "PX4 lockstep: enabled")
-else()
-	message(STATUS "PX4 lockstep: disabled")
+if(${PX4_PLATFORM} STREQUAL "posix")
+	if(ENABLE_LOCKSTEP_SCHEDULER)
+		add_definitions(-DENABLE_LOCKSTEP_SCHEDULER)
+		message(STATUS "PX4 lockstep: enabled")
+	else()
+		message(STATUS "PX4 lockstep: disabled")
+	endif()
 endif()
 
 # external modules
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
-if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
@@ -170,8 +172,8 @@ if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
 endif()
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
-if (NOT CMAKE_BUILD_TYPE)
-	if (${PX4_PLATFORM} STREQUAL "nuttx")
+if(NOT CMAKE_BUILD_TYPE)
+	if(${PX4_PLATFORM} STREQUAL "nuttx")
 		set(PX4_BUILD_TYPE "MinSizeRel")
 	else()
 		set(PX4_BUILD_TYPE "RelWithDebInfo")
@@ -208,9 +210,27 @@ endif()
 
 #=============================================================================
 
-# Setup install paths
-if (${PX4_PLATFORM} STREQUAL "posix")
+# gold linker - use if available
+include(CMakeDependentOption)
+CMAKE_DEPENDENT_OPTION(USE_LD_GOLD
+                      "Use GNU gold linker" ON
+                      "NOT WIN32;NOT APPLE" OFF
+)
 
+if(USE_LD_GOLD)
+	execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version ERROR_QUIET OUTPUT_VARIABLE LD_VERSION)
+	if("${LD_VERSION}" MATCHES "GNU gold")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold")
+	else()
+		set(USE_LD_GOLD OFF)
+	endif()
+endif()
+
+#=============================================================================
+
+# Setup install paths
+if(${PX4_PLATFORM} STREQUAL "posix")
 	# This makes it possible to dynamically load code which depends on symbols
 	# inside the px4 executable.
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -276,6 +296,13 @@ px4_add_common_flags()
 px4_os_add_flags()
 
 #=============================================================================
+# board cmake init (optional)
+#
+if(EXISTS ${PX4_BOARD_DIR}/init.cmake)
+	include(${PX4_BOARD_DIR}/init.cmake)
+endif()
+
+#=============================================================================
 # message, and airframe generation
 #
 include(px4_metadata)
@@ -310,11 +337,13 @@ set(ep_base ${PX4_BINARY_DIR}/external)
 set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
 
 # add external project install folders to build
-link_directories(${ep_base}/Install/lib)
-include_directories(${ep_base}/Install/include)
 # add the directories so cmake won't warn
-execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/lib)
-execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${ep_base})
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${ep_base}/Install)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${ep_base}/Install/lib)
+link_directories(${ep_base}/Install/lib)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${ep_base}/Install/include)
+include_directories(${ep_base}/Install/include)
 
 #=============================================================================
 # external modules
@@ -336,7 +365,7 @@ endif()
 
 # optionally enable cmake testing (supported only on posix)
 option(CMAKE_TESTING "Configure test targets" OFF)
-if (${PX4_CONFIG} STREQUAL "px4_sitl_test")
+if(${PX4_CONFIG} STREQUAL "px4_sitl_test")
 	set(CMAKE_TESTING ON)
 endif()
 if(CMAKE_TESTING)
@@ -364,6 +393,9 @@ add_custom_target(test_results
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
+# Integration testing using MAVSDK
+add_subdirectory(test/mavsdk_tests)
+
 #=============================================================================
 # subdirectories
 #
@@ -375,7 +407,6 @@ add_subdirectory(src/lib EXCLUDE_FROM_ALL)
 add_subdirectory(platforms/${PX4_PLATFORM}/src/px4)
 add_subdirectory(platforms EXCLUDE_FROM_ALL)
 add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
-add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
 
 if(EXISTS "${PX4_BOARD_DIR}/CMakeLists.txt")
 	add_subdirectory(${PX4_BOARD_DIR})
@@ -404,7 +435,7 @@ endforeach()
 
 add_custom_command(OUTPUT ${uorb_graph_config}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
-		${module_list}
+		${graph_module_list}
 		--exclude-path src/examples
 		--file ${PX4_SOURCE_DIR}/Tools/uorb_graph/graph_${uorb_graph_config}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}

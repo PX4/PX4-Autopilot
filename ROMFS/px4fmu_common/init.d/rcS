@@ -27,7 +27,6 @@ set FAILSAFE none
 set FAILSAFE_AUX none
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
-set FMU_ARGS ""
 set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
@@ -153,8 +152,8 @@ else
 	then
 		if param compare SYS_AUTOCONFIG 1
 		then
-			# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal
-			param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
+			# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
+			param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
 		fi
 
 		set AUTOCNF yes
@@ -299,7 +298,7 @@ else
 	#
 	# Set USE_IO flag.
 	#
-	if param compare SYS_USE_IO 1
+	if param compare -s SYS_USE_IO 1
 	then
 		set USE_IO yes
 	fi
@@ -310,6 +309,12 @@ else
 		# Error tune.
 		tune_control play -t 2
 	fi
+
+	#
+	# RC update (map raw RC input to calibrate manual control)
+	#  start before commander
+	#
+	rc_update start
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
@@ -341,13 +346,14 @@ else
 		fi
 		unset BOARD_RC_SENSORS
 
-
 		sh /etc/init.d/rc.sensors
+
+		battery_status start
 		commander start
 	fi
 
 	# Sensors on the PWM interface bank.
-	if param compare SENS_EN_LL40LS 1
+	if param compare -s SENS_EN_LL40LS 1
 	then
 		# Clear pins 5 and 6.
 		set FMU_MODE pwm4
@@ -374,7 +380,7 @@ else
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
-	if param greater UAVCAN_ENABLE 0
+	if param greater -s UAVCAN_ENABLE 0
 	then
 		# Start core UAVCAN module.
 		if uavcan start
@@ -426,7 +432,7 @@ else
 	sh /etc/init.d/rc.vehicle_setup
 
 	# Camera capture driver
-	if param greater CAM_CAP_FBACK 0
+	if param greater -s CAM_CAP_FBACK 0
 	then
 		if camera_capture start
 		then
@@ -521,7 +527,6 @@ unset FAILSAFE
 unset FAILSAFE_AUX
 unset FCONFIG
 unset FEXTRAS
-unset FMU_ARGS
 unset FMU_MODE
 unset FRC
 unset IO_PRESENT

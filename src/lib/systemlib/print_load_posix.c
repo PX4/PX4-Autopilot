@@ -39,7 +39,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 
 #include <unistd.h>
 #include <string.h>

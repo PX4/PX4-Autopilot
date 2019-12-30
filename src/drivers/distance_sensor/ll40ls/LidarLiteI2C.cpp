@@ -44,7 +44,7 @@
 LidarLiteI2C::LidarLiteI2C(const int bus, const uint8_t rotation, const int address) :
 	LidarLite(rotation),
 	I2C("LL40LS", nullptr, bus, address, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 	// up the retries since the device misses the first measure attempts
 	_retries = 3;
@@ -150,7 +150,7 @@ LidarLiteI2C::probe()
 			}
 
 			_retries = 3;
-			return reset_sensor();
+			return OK;
 		}
 
 		PX4_DEBUG("probe failed unit_id=0x%02x hw_version=0x%02x sw_version=0x%02x",

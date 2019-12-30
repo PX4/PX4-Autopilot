@@ -88,12 +88,12 @@ bool ListTest::test_add()
 	// verify full size (100)
 	ut_assert_true(list1.size() == 100);
 
-	int i = 99;
+	int i = 0;
 
 	for (auto t : list1) {
 		// verify all elements were inserted in order
 		ut_compare("stored i", i, t->i);
-		i--;
+		i++;
 	}
 
 	// delete all elements
@@ -136,7 +136,7 @@ bool ListTest::test_remove()
 		for (auto t : list1) {
 			if (t->i == remove_i) {
 				ut_assert_true(list1.remove(t));
-				t = removed;
+				removed = t;
 			}
 		}
 
@@ -182,27 +182,27 @@ bool ListTest::test_range_based_for()
 		ut_assert_true(!list1.empty());
 	}
 
-	// first element should be 0
-	ut_compare("first 0", list1.getHead()->i, 0);
+	// first element should be 99 (first added)
+	ut_compare("first 0", list1.getHead()->i, 99);
 
 	// verify all elements were inserted in order
-	int i = 0;
+	int i = 99;
 	auto t1 = list1.getHead();
 
 	while (t1 != nullptr) {
 		ut_compare("check count", i, t1->i);
 		t1 = t1->getSibling();
-		i++;
+		i--;
 	}
 
 	// verify full size (100)
 	ut_compare("size check", list1.size(), 100);
 
-	i = 0;
+	i = 99;
 
 	for (auto t2 : list1) {
 		ut_compare("range based for i", i, t2->i);
-		i++;
+		i--;
 	}
 
 	// verify full size (100)

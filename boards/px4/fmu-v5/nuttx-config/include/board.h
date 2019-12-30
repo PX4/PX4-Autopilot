@@ -355,8 +355,8 @@
 /* UART RX DMA configurations */
 
 #define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
+#define DMAMAP_USART3_TX DMAMAP_USART3_TX_1
 #define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
-
 /* CAN
  *
  * CAN1 is routed to transceiver.

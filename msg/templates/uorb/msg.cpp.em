@@ -15,6 +15,7 @@
 @#  - md5sum (String) MD5Sum of the .msg specification
 @#  - search_path (dict) search paths for genmsg
 @#  - topics (List of String) multi-topic names
+@#  - constrained_flash set to true if flash is constrained
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 /****************************************************************************
@@ -66,8 +67,8 @@ topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in so
 }@
 
 #include <inttypes.h>
-#include <px4_log.h>
-#include <px4_defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/defines.h>
 #include <uORB/topics/@(topic_name).h>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>
@@ -82,9 +83,14 @@ ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), _
 
 void print_message(const @uorb_struct& message)
 {
+@[if constrained_flash]
+	(void)message;
+	PX4_INFO_RAW("Not implemented on flash constrained hardware\n");
+@[else]
 	PX4_INFO_RAW(" @(uorb_struct)\n");
 @[for field in sorted_fields]@
 	@( print_field(field) )@
 @[end for]@
+@[end if]@
 
 }

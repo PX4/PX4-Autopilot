@@ -61,7 +61,7 @@ uorb_struct = '%s_s'%spec.short_name
 topic_name = spec.short_name
 }@
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <ucdr/microcdr.h>
 #include <uORB/topics/@(topic_name).h>
 #include <uORB_microcdr/topics/@(topic_name).h>

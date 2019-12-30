@@ -38,6 +38,14 @@
 find_program(FASTRTPSGEN fastrtpsgen PATHS $ENV{FASTRTPSGEN_DIR})
 if(NOT FASTRTPSGEN)
 	message(FATAL_ERROR "Unable to find fastrtpsgen")
+else()
+	execute_process(
+		COMMAND $ENV{FASTRTPSGEN_DIR}fastrtpsgen -version
+		OUTPUT_VARIABLE FASTRTPSGEN_VERSION
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		ERROR_QUIET
+	)
+	message(STATUS "${FASTRTPSGEN_VERSION}")
 endif()
 
 if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml")
@@ -79,10 +87,6 @@ if (FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
 endif()
 
 if (GENERATE_RTPS_BRIDGE)
-
-	# temporarily set to OFF
-	option(CHECK_ENDIANNESS OFF)
-
 	add_subdirectory(micrortps_client)
 
 	###############################################################################
@@ -90,6 +94,8 @@ if (GENERATE_RTPS_BRIDGE)
 	###############################################################################
 	include(px4_git)
 	px4_add_git_submodule(TARGET git_micro_cdr PATH micro-CDR)
+
+	set(UCDR_SUPERBUILD CACHE BOOL "Disable micro-CDR superbuild compilation.")
 	add_subdirectory(micro-CDR)
 
 	set(msg_out_path_microcdr ${PX4_BINARY_DIR}/uORB_microcdr/topics)

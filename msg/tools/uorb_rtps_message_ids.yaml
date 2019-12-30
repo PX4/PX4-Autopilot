@@ -3,8 +3,6 @@ rtps:
     id: 0
   - msg: actuator_controls
     id: 1
-  - msg: actuator_direct
-    id: 2
   - msg: actuator_outputs
     id: 3
   - msg: adc_report
@@ -47,7 +45,7 @@ rtps:
   - msg: distance_sensor
     id: 17
     send: true
-  - msg: ekf2_innovations
+  - msg: estimator_innovations
     id: 18
   - msg: ekf2_timestamps
     id: 19
@@ -262,6 +260,18 @@ rtps:
     id: 114
   - msg: airspeed_validated
     id: 115
+  - msg: onboard_computer_status
+    id: 116
+  - msg: cellular_status
+    id: 117
+  - msg: sensor_accel_fifo
+    id: 118
+  - msg: sensor_accel_status
+    id: 119
+  - msg: sensor_gyro_fifo
+    id: 120
+  - msg: sensor_gyro_status
+    id: 121
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
@@ -322,7 +332,13 @@ rtps:
   - msg: vehicle_angular_velocity_groundtruth
     id: 168
     alias: vehicle_angular_velocity
-    msg: vehicle_visual_odometry_aligned
+  - msg: vehicle_visual_odometry_aligned
     id: 169
     alias: vehicle_odometry
+  - msg: estimator_innovation_variances
+    id: 170
+    alias: estimator_innovations
+  - msg: estimator_innovation_test_ratios
+    id: 171
+    alias: estimator_innovations
   ########## multi topics: end ##########

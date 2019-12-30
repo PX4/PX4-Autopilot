@@ -36,8 +36,8 @@
  * Driver for the Bosch BMA 180 MEMS accelerometer connected via SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 #include <ecl/geo/geo.h>
 
 #include <sys/types.h>
@@ -223,7 +223,7 @@ private:
 
 BMA180::BMA180(int bus, uint32_t device) :
 	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, 8000000),
-	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
 	_call_interval(0),
 	_reports(nullptr),
 	_accel_range_scale(0.0f),

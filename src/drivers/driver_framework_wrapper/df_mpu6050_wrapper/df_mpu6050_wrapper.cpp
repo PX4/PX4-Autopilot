@@ -36,7 +36,7 @@
  * Lightweight driver to access the MPU6050 of the DriverFramework.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -46,10 +46,11 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <errno.h>
 
 #include <systemlib/err.h>
+#include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
 #include <systemlib/mavlink_log.h>
 
@@ -185,9 +186,6 @@ DfMPU6050Wrapper::DfMPU6050Wrapper(enum Rotation rotation) :
 	_accel_calibration.y_offset = 0.0f;
 	_accel_calibration.z_offset = 0.0f;
 
-	_gyro_calibration.x_scale = 1.0f;
-	_gyro_calibration.y_scale = 1.0f;
-	_gyro_calibration.z_scale = 1.0f;
 	_gyro_calibration.x_offset = 0.0f;
 	_gyro_calibration.y_offset = 0.0f;
 	_gyro_calibration.z_offset = 0.0f;
@@ -285,27 +283,6 @@ void DfMPU6050Wrapper::_update_gyro_calibration()
 			continue;
 		}
 
-		(void)sprintf(str, "CAL_GYRO%u_XSCALE", i);
-		res = param_get(param_find(str), &_gyro_calibration.x_scale);
-
-		if (res != OK) {
-			PX4_ERR("Could not access param %s", str);
-		}
-
-		(void)sprintf(str, "CAL_GYRO%u_YSCALE", i);
-		res = param_get(param_find(str), &_gyro_calibration.y_scale);
-
-		if (res != OK) {
-			PX4_ERR("Could not access param %s", str);
-		}
-
-		(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
-		res = param_get(param_find(str), &_gyro_calibration.z_scale);
-
-		if (res != OK) {
-			PX4_ERR("Could not access param %s", str);
-		}
-
 		(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
 		res = param_get(param_find(str), &_gyro_calibration.x_offset);
 
@@ -331,9 +308,6 @@ void DfMPU6050Wrapper::_update_gyro_calibration()
 		return;
 	}
 
-	_gyro_calibration.x_scale = 1.0f;
-	_gyro_calibration.y_scale = 1.0f;
-	_gyro_calibration.z_scale = 1.0f;
 	_gyro_calibration.x_offset = 0.0f;
 	_gyro_calibration.y_offset = 0.0f;
 	_gyro_calibration.z_offset = 0.0f;
@@ -453,9 +427,9 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 	// apply sensor rotation on the gyro measurement
 	gyro_val = _rotation_matrix * gyro_val;
 
-	gyro_val(0) = (gyro_val(0) - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
-	gyro_val(1) = (gyro_val(1) - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
-	gyro_val(2) = (gyro_val(2) - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
+	gyro_val(0) = gyro_val(0) - _gyro_calibration.x_offset;
+	gyro_val(1) = gyro_val(1) - _gyro_calibration.y_offset;
+	gyro_val(2) = gyro_val(2) - _gyro_calibration.z_offset;
 
 	_gyro_int.put(now,
 		      gyro_val,

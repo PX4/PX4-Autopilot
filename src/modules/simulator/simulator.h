@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,13 +51,16 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <perf/perf_counter.h>
-#include <px4_module_params.h>
-#include <px4_posix.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -72,6 +75,7 @@
 
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
+#include <lib/battery/battery.h>
 
 namespace simulator
 {
@@ -172,6 +176,10 @@ public:
 	void set_ip(InternetProtocol ip);
 	void set_port(unsigned port);
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	bool has_initialized() {return _has_initialized.load(); }
+#endif
+
 private:
 	Simulator() :
 		ModuleParams(nullptr)
@@ -181,8 +189,6 @@ private:
 		gps_data.epv = UINT16_MAX;
 
 		_gps.writeData(&gps_data);
-
-		_battery_status.timestamp = hrt_absolute_time();
 
 		_px4_accel.set_sample_rate(250);
 		_px4_gyro.set_sample_rate(250);
@@ -214,17 +220,17 @@ private:
 
 	simulator::Report<simulator::RawGPSData>	_gps{1};
 
-	perf_counter_t _perf_gps{perf_alloc_once(PC_ELAPSED, "sim_gps_delay")};
-	perf_counter_t _perf_sim_delay{perf_alloc_once(PC_ELAPSED, "sim_network_delay")};
-	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, "sim_network_interval")};
+	perf_counter_t _perf_gps{perf_alloc(PC_ELAPSED, MODULE_NAME": gps delay")};
+	perf_counter_t _perf_sim_delay{perf_alloc(PC_ELAPSED, MODULE_NAME": network delay")};
+	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
 
 	// uORB publisher handlers
-	orb_advert_t _battery_pub{nullptr};
-	orb_advert_t _differential_pressure_pub{nullptr};
-	orb_advert_t _dist_pub{nullptr};
-	orb_advert_t _flow_pub{nullptr};
-	orb_advert_t _irlock_report_pub{nullptr};
-	orb_advert_t _visual_odometry_pub{nullptr};
+	uORB::Publication<battery_status_s>		_battery_pub{ORB_ID(battery_status)};
+	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::PublicationMulti<distance_sensor_s>	_dist_pub{ORB_ID(distance_sensor)};
+	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
+	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
+	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
@@ -236,15 +242,32 @@ private:
 
 	hrt_abstime _last_sim_timestamp{0};
 	hrt_abstime _last_sitl_timestamp{0};
+	hrt_abstime _last_battery_timestamp{0};
 
-	// Lib used to do the battery calculations.
-	Battery _battery {};
-	battery_status_s _battery_status{};
+	class SimulatorBattery : public Battery
+	{
+	public:
+		SimulatorBattery() : Battery(1, nullptr) {}
+
+		virtual void updateParams() override
+		{
+			Battery::updateParams();
+			_params.v_empty = 3.5f;
+			_params.v_charged = 4.05f;
+			_params.n_cells = 4;
+			_params.capacity = 10.0f;
+			_params.v_load_drop = 0.0f;
+			_params.r_internal = 0.0f;
+			_params.low_thr = 0.15f;
+			_params.crit_thr = 0.07f;
+			_params.emergen_thr = 0.05f;
+			_params.source = 0;
+		}
+	} _battery;
 
 #ifndef __PX4_QURT
 
-	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
-
+	void run();
 	void handle_message(const mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_gps(const mavlink_message_t *msg);
@@ -257,7 +280,6 @@ private:
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
-	void poll_topics();
 	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
@@ -269,16 +291,21 @@ private:
 
 	static void *sending_trampoline(void *);
 
+	mavlink_hil_actuator_controls_t actuator_controls_from_outputs();
+
+
 	// uORB publisher handlers
-	orb_advert_t _vehicle_angular_velocity_pub{nullptr};
-	orb_advert_t _attitude_pub{nullptr};
-	orb_advert_t _gpos_pub{nullptr};
-	orb_advert_t _lpos_pub{nullptr};
-	orb_advert_t _rc_channels_pub{nullptr};
+	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
+	uORB::Publication<vehicle_attitude_s>		_attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
+	uORB::Publication<vehicle_global_position_s>	_gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
-	int _vehicle_status_sub{-1};
+	actuator_outputs_s _actuator_outputs{};
+
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// hil map_ref data
 	struct map_projection_reference_s _hil_local_proj_ref {};
@@ -291,10 +318,19 @@ private:
 	uint64_t _hil_ref_timestamp{0};
 
 	// uORB data containers
-	input_rc_s _rc_input {};
-	manual_control_setpoint_s _manual {};
-	vehicle_attitude_s _attitude {};
-	vehicle_status_s _vehicle_status {};
+	vehicle_status_s _vehicle_status{};
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	px4::atomic<bool> _has_initialized {false};
+
+	int _ekf2_timestamps_sub{-1};
+
+	enum class State {
+		WaitingForFirstEkf2Timestamp = 0,
+		WaitingForActuatorControls = 1,
+		WaitingForEkf2Timestamp = 2,
+	};
+#endif
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval

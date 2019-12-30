@@ -49,6 +49,7 @@ if("${CONFIG_SHMEM}" STREQUAL "1")
 endif()
 
 add_library(px4_layer
+	adc.cpp
 	px4_posix_impl.cpp
 	px4_posix_tasks.cpp
 	px4_sem.cpp
@@ -67,13 +68,12 @@ if(ENABLE_LOCKSTEP_SCHEDULER)
 endif()
 
 
-if (EXTRA_DEPENDS)
+if(EXTRA_DEPENDS)
 	add_dependencies(px4_layer ${EXTRA_DEPENDS})
 endif()
 
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
 	add_subdirectory(test_stubs)
 	add_subdirectory(gtest_runner)
 endif()
-

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4_app.h>
+#include <px4_platform_common/app.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <string.h>
 
@@ -42,7 +42,7 @@ using namespace px4;
 class WQueueScheduledTest : public px4::ScheduledWorkItem
 {
 public:
-	WQueueScheduledTest() : px4::ScheduledWorkItem(px4::wq_configurations::test2) {}
+	WQueueScheduledTest() : px4::ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test2) {}
 	~WQueueScheduledTest() = default;
 
 	int main();

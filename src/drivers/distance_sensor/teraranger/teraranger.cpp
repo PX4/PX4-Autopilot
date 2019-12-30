@@ -39,12 +39,13 @@
  */
 
 #include <drivers/device/i2c.h>
+#include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_module.h>
+#include <px4_platform_common/module.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/uORB.h>
 
@@ -192,7 +193,7 @@ static uint8_t crc8(uint8_t *p, uint8_t len)
 
 TERARANGER::TERARANGER(const int bus, const uint8_t orientation, const int address) :
 	I2C("TERARANGER", TERARANGER_DEVICE_PATH, bus, address, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_orientation(orientation)
 {
 	// up the retries since the device misses the first measure attempts

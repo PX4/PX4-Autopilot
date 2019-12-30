@@ -43,7 +43,8 @@
 
 #include <drivers/device/i2c.h>
 #include <lib/led/led.h>
-#include <px4_getopt.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
@@ -105,7 +106,7 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[]);
 
 RGBLED_NPC5623C::RGBLED_NPC5623C(int bus, int rgbled) :
 	I2C("rgbled1", RGBLED1_DEVICE_PATH, bus, rgbled, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 }
 

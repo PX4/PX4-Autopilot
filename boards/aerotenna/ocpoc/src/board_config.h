@@ -56,5 +56,9 @@
 #define ADC_BATTERY_CURRENT_CHANNEL     ((uint8_t)(-1))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL    11
 
+// SPI
+#define PX4_SPI_BUS_SENSORS		1
+#define PX4_SPIDEV_MPU			PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+
 #include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>

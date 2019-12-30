@@ -37,7 +37,7 @@
  * Servo driver supporting PWM servos connected to Kinetis FTM timer blocks.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <systemlib/px4_macros.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
@@ -59,8 +59,8 @@
 #include <px4_arch/io_timer.h>
 
 #include <kinetis.h>
-#include "chip/kinetis_sim.h"
-#include "chip/kinetis_ftm.h"
+#include "hardware/kinetis_sim.h"
+#include "hardware/kinetis_ftm.h"
 
 /* The FTM pre-scalers are limited to Divide by 2^n where n={1-7}
  * Therefore we use Y1 at 16 Mhz to drive FTM_CLKIN0 (PCT12)
@@ -525,7 +525,7 @@ void io_timer_trigger(void)
 
 	irqstate_t flags = px4_enter_critical_section();
 
-	for (actions = 0; action_cache[actions] != 0 &&  actions < MAX_IO_TIMERS; actions++) {
+	for (actions = 0; actions < MAX_IO_TIMERS && action_cache[actions] != 0; actions++) {
 		_REG32(action_cache[actions], KINETIS_FTM_SYNC_OFFSET) |= FTM_SYNC;
 	}
 

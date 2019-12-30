@@ -39,12 +39,12 @@
  * Based on the hmc5883 driver.
  */
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include "lis3mdl.h"
 
 LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("LIS3MDL", path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_reports(nullptr),
 	_scale{},

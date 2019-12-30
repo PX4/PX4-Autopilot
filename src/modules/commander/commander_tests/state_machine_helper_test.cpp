@@ -42,19 +42,19 @@
 
 #include "../state_machine_helper.h"
 #include <unit_test.h>
+#include "../Arming/PreFlightCheck/PreFlightCheck.hpp"
 
 class StateMachineHelperTest : public UnitTest
 {
 public:
 	StateMachineHelperTest() = default;
-	virtual ~StateMachineHelperTest() = default;
+	~StateMachineHelperTest() override = default;
 
-	virtual bool run_tests();
+	bool run_tests() override;
 
 private:
 	bool armingStateTransitionTest();
 	bool mainStateTransitionTest();
-	bool isSafeTest();
 };
 
 bool StateMachineHelperTest::armingStateTransitionTest()
@@ -286,7 +286,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 	for (size_t i = 0; i < cArmingTransitionTests; i++) {
 		const ArmingTransitionTest_t *test = &rgArmingTransitionTests[i];
 
-		const bool check_gps = false;
+		PreFlightCheck::arm_requirements_t arm_req{};
 
 		// Setup initial machine state
 		status.arming_state = test->current_state.arming_state;
@@ -304,7 +304,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 					     true /* enable pre-arm checks */,
 					     nullptr /* no mavlink_log_pub */,
 					     &status_flags,
-					     (check_gps ? ARM_REQ_GPS_BIT : 0),
+					     arm_req,
 					     2e6 /* 2 seconds after boot, everything should be checked */
 								    );
 
@@ -535,49 +535,10 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 	return true;
 }
 
-bool StateMachineHelperTest::isSafeTest()
-{
-	struct safety_s safety = {};
-	struct actuator_armed_s armed = {};
-
-	armed.armed = false;
-	armed.lockdown = false;
-	safety.safety_switch_available = true;
-	safety.safety_off = false;
-	ut_compare("is safe: not armed", is_safe(safety, armed), true);
-
-	armed.armed = false;
-	armed.lockdown = true;
-	safety.safety_switch_available = true;
-	safety.safety_off = true;
-	ut_compare("is safe: software lockdown", is_safe(safety, armed), true);
-
-	armed.armed = true;
-	armed.lockdown = false;
-	safety.safety_switch_available = true;
-	safety.safety_off = true;
-	ut_compare("not safe: safety off", is_safe(safety, armed), false);
-
-	armed.armed = true;
-	armed.lockdown = false;
-	safety.safety_switch_available = true;
-	safety.safety_off = false;
-	ut_compare("is safe: safety off", is_safe(safety, armed), true);
-
-	armed.armed = true;
-	armed.lockdown = false;
-	safety.safety_switch_available = false;
-	safety.safety_off = false;
-	ut_compare("not safe: no safety switch", is_safe(safety, armed), false);
-
-	return true;
-}
-
 bool StateMachineHelperTest::run_tests()
 {
 	ut_run_test(armingStateTransitionTest);
 	ut_run_test(mainStateTransitionTest);
-	ut_run_test(isSafeTest);
 
 	return (_tests_failed == 0);
 }

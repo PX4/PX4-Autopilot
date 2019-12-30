@@ -274,9 +274,7 @@ private:
 	unsigned		_call_mag_interval{1000000 / LSM303D_MAG_DEFAULT_RATE};
 
 	perf_counter_t		_accel_sample_perf;
-	perf_counter_t		_accel_sample_interval_perf;
 	perf_counter_t		_mag_sample_perf;
-	perf_counter_t		_mag_sample_interval_perf;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_bad_values;
 	perf_counter_t		_accel_duplicates;

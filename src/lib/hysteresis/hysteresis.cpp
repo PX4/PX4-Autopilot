@@ -45,7 +45,7 @@ namespace systemlib
 void
 Hysteresis::set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us)
 {
-	if (from_state == true) {
+	if (from_state) {
 		_time_from_true_us = new_hysteresis_time_us;
 
 	} else {

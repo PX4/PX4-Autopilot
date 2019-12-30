@@ -37,10 +37,10 @@
 
 #include <circuit_breaker/circuit_breaker.h>
 #include <drivers/drv_hrt.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -50,7 +50,7 @@
 class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
 {
 public:
-	SafetyButton() : ScheduledWorkItem(px4::wq_configurations::hp_default) {}
+	SafetyButton() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {}
 	virtual ~SafetyButton();
 
 	/** @see ModuleBase */
@@ -61,9 +61,6 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
 
 	void Run() override;
 

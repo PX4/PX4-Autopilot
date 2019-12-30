@@ -6,11 +6,9 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
-
 	SERIAL_PORTS
 		TEL2:/dev/ttyS1
 		URT6:/dev/ttyS2
-
 	DRIVERS
 		adc
 		#barometer # all available barometer drivers
@@ -19,6 +17,7 @@ px4_add_board(
 		#camera_trigger
 		#differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
+		dshot
 		gps
 		#heater
 		#imu # all available imu drivers
@@ -30,6 +29,7 @@ px4_add_board(
 		magnetometer/hmc5883
 		#mkblctrl
 		optical_flow/px4flow
+		osd
 		#pca9685
 		#pwm_input
 		#pwm_out_sim
@@ -39,10 +39,10 @@ px4_add_board(
 		#telemetry # all available telemetry drivers
 		telemetry/frsky_telemetry
 		#test_ppm
-		osd
-
 	MODULES
+		#airspeed_selector
 		attitude_estimator_q
+		battery_status
 		#camera_feedback
 		commander
 		dataman
@@ -50,7 +50,6 @@ px4_add_board(
 		events
 		#fw_att_control
 		#fw_pos_control_l1
-		#rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -59,17 +58,18 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
+		mc_rate_control
 		navigator
+		rc_update
+		#rover_pos_control
 		sensors
-		sih
+		#sih
 		#vmount
 		#vtol_att_control
-		#airspeed_selector
-
 	SYSTEMCMDS
 		#bl_update
-		dmesg
 		config
+		dmesg
 		dumpfile
 		esc_calib
 		hardfault_log
@@ -93,15 +93,15 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
-
+		work_queue
 	EXAMPLES
 		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
 		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
 		#uuv_example_app
-
 	)

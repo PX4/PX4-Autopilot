@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -80,6 +80,10 @@
 /* SPI 1 CS */
 #define GPIO_SPI1_CS1_ICM20602	/* PC2 */	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
 #define GPIO_SPI1_CS2_ICM20948	/* PE15 */	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
+
+/*  Define the SPI1 Data Ready interrupts */
+#define GPIO_SPI1_DRDY1_ICM20602    /* PD15  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN15)
+#define GPIO_SPI1_DRDY2_ICM20948    /* PE12  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTE|GPIO_PIN12)
 
 /* SPI 2 CS */
 #define GPIO_SPI2_CS1_FRAM	/* PD10 */	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
@@ -253,7 +257,7 @@
 #define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
-#define HRT_TIMER               8  /* use timer8 for the HRT */
+#define HRT_TIMER               3  /* use timer3 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
 #define HRT_PPM_CHANNEL         /* T3C2 */  2  /* use capture/compare channel 1 */
@@ -328,13 +332,11 @@
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_SAFETY_SWITCH_IN,            \
-		GPIO_DRDY_BMI088_INT1_ACCEL,      \
-		GPIO_DRDY_BMI088_INT2_ACCEL,      \
-		GPIO_DRDY_BMI088_INT3_GYRO,       \
-		GPIO_DRDY_BMI088_INT4_GYRO,       \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
+
+#define BOARD_NUM_IO_TIMERS 3
 
 __BEGIN_DECLS
 
@@ -370,27 +372,7 @@ extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
-
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
-
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

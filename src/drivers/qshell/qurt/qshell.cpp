@@ -40,10 +40,10 @@
 
 #include "qshell.h"
 
-#include <px4_log.h>
-#include <px4_time.h>
-#include <px4_posix.h>
-#include <px4_defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/defines.h>
 #include <dspal_platform.h>
 
 #include <unistd.h>
@@ -83,8 +83,6 @@ int QShell::main()
 	fds[0].fd = sub_qshell_req;
 	fds[0].events = POLLIN;
 
-	orb_advert_t qshell_pub = nullptr;
-
 	while (!appState.exitRequested()) {
 
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
@@ -114,7 +112,7 @@ int QShell::main()
 
 			appargs.push_back(arg);  // push last argument
 
-			struct qshell_retval_s retval;
+			qshell_retval_s retval{};
 			retval.return_value = run_cmd(appargs);
 			retval.return_sequence = m_qshell_req.request_sequence;
 
@@ -125,8 +123,8 @@ int QShell::main()
 				PX4_INFO("Ok executing command: %s", m_qshell_req.cmd);
 			}
 
-			int instance;
-			orb_publish_auto(ORB_ID(qshell_retval), &qshell_pub, &retval, &instance, ORB_PRIO_DEFAULT);
+			retval.timestamp = hrt_absolute_time();
+			_qshell_retval_pub.publish(retval);
 
 		} else if (pret == 0) {
 			// Timing out is fine.

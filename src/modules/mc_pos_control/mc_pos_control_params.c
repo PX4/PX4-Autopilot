@@ -351,6 +351,17 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
+ * Maximum horizontal velocity during landing
+ * Set the value higher than the otherwise expected maximum to disable any slowdown.
+ *
+ * @unit m/s
+ * @min 0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_VEL_XY, 2.f);
+
+/**
  * Enable user assisted descent speed for autonomous land routine.
  * When enabled, descent speed will be equal to MPC_LAND_SPEED at half throttle,
  * MPC_Z_VEL_MAX_DN at zero throttle, and 0.5 * MPC_LAND_SPEED at full throttle.
@@ -394,6 +405,18 @@ PARAM_DEFINE_FLOAT(MPC_MAN_TILT_MAX, 35.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 150.0f);
+
+/**
+ * Manual yaw rate input filter time constant
+ * Setting this parameter to 0 disables the filter
+ *
+ * @unit s
+ * @min 0.0
+ * @max 5.0
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MAN_Y_TAU, 0.08f);
 
 /**
  * Deadzone of sticks where position hold is enabled
@@ -481,21 +504,6 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 5.0f);
-
-/**
- * Horizontal acceleration in manual modes when te estimator speed limit is removed.
- * If full stick is being applied and the estimator stops demanding a speed limit,
- * which it had been before (e.g if GPS is gained while flying on optical flow/vision only),
- * the vehicle will accelerate at this rate until the normal position control speed is achieved.
- *
- * @unit m/s/s
- * @min 0.2
- * @max 2.0
- * @increment 0.1
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_ESTM, 0.5f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes upward
@@ -670,9 +678,12 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
 /**
  * Altitude for 1. step of slow landing (descend)
  *
- * Below this altitude descending velocity gets limited
- * to a value between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
- * to enable a smooth descent experience
+ * Below this altitude:
+ * - descending velocity gets limited to a value
+ * between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
+ * - horizontal velocity gets limited to a value
+ * between "MPC_VEL_MANUAL" and "MPC_LAND_VEL_XY"
+ * for a smooth descent and landing experience.
  * Value needs to be higher than "MPC_LAND_ALT2"
  *
  * @unit m
@@ -686,7 +697,8 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
 /**
  * Altitude for 2. step of slow landing (landing)
  *
- * Below this altitude descending velocity gets limited to "MPC_LAND_SPEED"
+ * Below this altitude descending and horizontal velocities get
+ * limited to "MPC_LAND_SPEED" and "MPC_LAND_VEL_XY", respectively.
  * Value needs to be lower than "MPC_LAND_ALT1"
  *
  * @unit m

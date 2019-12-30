@@ -36,11 +36,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cmath>
+#include <math.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
@@ -51,7 +51,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_load.h>
 #include <parameters/param.h>
 #include <output_limit/output_limit.h>
@@ -155,12 +155,12 @@ int initialize_mixer(const char *mixer_filename)
 	unsigned buflen = sizeof(buf);
 	memset(buf, '\0', buflen);
 
-	_mixer_group = new MixerGroup(mixer_control_callback, (uintptr_t) &_controls);
+	_mixer_group = new MixerGroup();
 
 	// PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
 	if (load_mixer_file(mixer_filename, buf, buflen) == 0) {
-		if (_mixer_group->load_from_buf(buf, buflen) == 0) {
+		if (_mixer_group->load_from_buf(mixer_control_callback, (uintptr_t) &_controls, buf, buflen) == 0) {
 			PX4_INFO("Loaded mixer from file %s", mixer_filename);
 			return 0;
 

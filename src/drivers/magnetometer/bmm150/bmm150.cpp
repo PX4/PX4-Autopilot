@@ -37,7 +37,7 @@
  */
 
 #include "bmm150.hpp"
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int bmm150_main(int argc, char *argv[]); }
@@ -251,7 +251,7 @@ usage()
 
 BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
 	I2C("BMM150", path, bus, BMM150_SLAVE_ADDRESS, BMM150_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_running(false),
 	_call_interval(0),
 	_reports(nullptr),
@@ -275,12 +275,12 @@ BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
 	dig_xy1(0),
 	dig_xy2(0),
 	dig_xyz1(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "bmm150_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "bmm150_bad_transfers")),
-	_good_transfers(perf_alloc(PC_COUNT, "bmm150_good_transfers")),
-	_measure_perf(perf_alloc(PC_ELAPSED, "bmp280_measure")),
-	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
-	_duplicates(perf_alloc(PC_COUNT, "bmm150_duplicates")),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
+	_good_transfers(perf_alloc(PC_COUNT, MODULE_NAME": good transfers")),
+	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors")),
+	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicates")),
 	_rotation(rotation),
 	_got_duplicate(false)
 {
@@ -295,7 +295,7 @@ BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
 	_scale.z_scale = 1.0f;
 }
 
-BMM150 :: ~BMM150()
+BMM150::~BMM150()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -322,7 +322,6 @@ BMM150 :: ~BMM150()
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
 	perf_free(_duplicates);
-
 }
 
 int BMM150::init()

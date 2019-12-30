@@ -37,8 +37,8 @@
  */
 
 #include <sys/types.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -53,13 +53,12 @@
 #include <math.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/satellite_info.h>
 
 #include <simulator/simulator.h>
 
@@ -74,24 +73,15 @@ using namespace DriverFramework;
 #define TIMEOUT_100MS 100000
 #define RATE_MEASUREMENT_PERIOD 5000000
 
-/* class for dynamic allocation of satellite info data */
-class GPS_Sat_Info
-{
-public:
-	struct satellite_info_s 	_data;
-};
-
-
 class GPSSIM : public VirtDevObj
 {
 public:
-	GPSSIM(bool fake_gps, bool enable_sat_info,
-	       int fix_type, int num_sat, int noise_multiplier);
-	virtual ~GPSSIM();
+	GPSSIM(bool fake_gps, bool enable_sat_info, int fix_type, int num_sat, int noise_multiplier);
+	~GPSSIM() override;
 
-	virtual int			init();
+	int		init() override;
 
-	virtual int			devIOCTL(unsigned long cmd, unsigned long arg);
+	int		devIOCTL(unsigned long cmd, unsigned long arg) override;
 
 	void set(int fix_type, int num_sat, int noise_multiplier);
 
@@ -101,21 +91,18 @@ public:
 	void				print_info();
 
 protected:
-	virtual void			_measure() {}
+	void		_measure() override {}
 
 private:
 
-	bool				_task_should_exit;				///< flag to make the main worker task exit
-	volatile int			_task;						///< worker task
-	GPS_Sat_Info			*_Sat_Info;					///< instance of GPS sat info data object
-	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
-	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
-	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
-	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
+	bool				_task_should_exit{false};			///< flag to make the main worker task exit
+	volatile int			_task{-1};						///< worker task
+	vehicle_gps_position_s		_report_gps_pos{};				///< uORB topic for gps position
+	uORB::PublicationMulti<vehicle_gps_position_s>	_report_gps_pos_pub{ORB_ID(vehicle_gps_position)};				///< uORB pub for gps position
 	SyncObj				_sync;
-	int _fix_type;
-	int _num_sat;
-	int _noise_multiplier;
+	int _fix_type{0};
+	int _num_sat{0};
+	int _noise_multiplier{0};
 
 	std::default_random_engine _gen;
 
@@ -162,15 +149,8 @@ GPSSIM	*g_dev = nullptr;
 }
 
 
-GPSSIM::GPSSIM(bool fake_gps, bool enable_sat_info,
-	       int fix_type, int num_sat, int noise_multiplier) :
+GPSSIM::GPSSIM(bool fake_gps, bool enable_sat_info, int fix_type, int num_sat, int noise_multiplier) :
 	VirtDevObj("gps", GPSSIM_DEVICE_PATH, nullptr, 1e6 / 10),
-	_task_should_exit(false),
-	_Sat_Info(nullptr),
-	_report_gps_pos{},
-	_report_gps_pos_pub(nullptr),
-	_p_report_sat_info(nullptr),
-	_report_sat_info_pub(nullptr),
 	_fix_type(fix_type),
 	_num_sat(num_sat),
 	_noise_multiplier(noise_multiplier)
@@ -179,19 +159,10 @@ GPSSIM::GPSSIM(bool fake_gps, bool enable_sat_info,
 	g_dev = this;
 	_report_gps_pos.heading = NAN;
 	_report_gps_pos.heading_offset = NAN;
-
-	/* create satellite info data object if requested */
-	if (enable_sat_info) {
-		_Sat_Info = new (GPS_Sat_Info);
-		_p_report_sat_info = &_Sat_Info->_data;
-		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
-	}
 }
 
 GPSSIM::~GPSSIM()
 {
-	delete _Sat_Info;
-
 	/* tell the task we want it to go away */
 	_task_should_exit = true;
 
@@ -316,32 +287,9 @@ GPSSIM::task_main()
 		int recv_ret = receive(TIMEOUT_100MS);
 
 		if (recv_ret > 0) {
-
 			/* opportunistic publishing - else invalid data would end up on the bus */
-			if (_report_gps_pos_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-			} else {
-				_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-			}
-
-			if (_p_report_sat_info) {
-				if (_report_sat_info_pub != nullptr) {
-					orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
-
-				} else {
-					_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info);
-				}
-			}
+			_report_gps_pos_pub.publish(_report_gps_pos);
 		}
-	}
-
-	if (_report_gps_pos_pub) {
-		orb_unadvertise(_report_gps_pos_pub);
-	}
-
-	if (_report_sat_info_pub) {
-		orb_unadvertise(_report_sat_info_pub);
 	}
 
 	PX4_INFO("exiting");
@@ -360,13 +308,8 @@ GPSSIM::cmd_reset()
 void
 GPSSIM::print_info()
 {
-	//GPS Mode
+	// GPS Mode
 	PX4_INFO("protocol: SIM");
-
-	PX4_INFO("sat info: %s, noise: %d, jamming detected: %s",
-		 (_p_report_sat_info != nullptr) ? "enabled" : "disabled",
-		 _report_gps_pos.noise_per_ms,
-		 _report_gps_pos.jamming_indicator == 255 ? "YES" : "NO");
 
 	if (_report_gps_pos.timestamp != 0) {
 		print_message(_report_gps_pos);

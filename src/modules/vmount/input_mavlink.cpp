@@ -44,9 +44,9 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
-
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 #include <errno.h>
 #include <math.h>
 
@@ -303,7 +303,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 						break;
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-						control_data_set_lon_lat((double)vehicle_command.param2, (double)vehicle_command.param1, vehicle_command.param3);
+						control_data_set_lon_lat((double)vehicle_command.param6, (double)vehicle_command.param5, vehicle_command.param4);
 
 						*control_data = &_control_data;
 						break;

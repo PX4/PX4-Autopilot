@@ -45,7 +45,10 @@ px4_add_board(
 	LABEL qurt-default
 
 	DRIVERS
+		barometer/bmp280
 		gps
+		imu/mpu9250
+		magnetometer/hmc5883
 		spektrum_rc
 		qshell/qurt
 		snapdragon_pwm_out
@@ -71,7 +74,9 @@ px4_add_board(
 		landing_target_estimator
 		local_position_estimator
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
+		rc_update
 		sensors
 		#sih
 		vmount

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@
 #include <math.h>
 
 #include <uORB/topics/vehicle_command.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 
 namespace vmount
@@ -91,6 +91,7 @@ int OutputMavlink::update(const ControlData *control_data)
 	vehicle_command.param1 = (_angle_outputs[1] + _config.pitch_offset) * M_RAD_TO_DEG_F;
 	vehicle_command.param2 = (_angle_outputs[0] + _config.roll_offset) * M_RAD_TO_DEG_F;
 	vehicle_command.param3 = (_angle_outputs[2] + _config.yaw_offset) * M_RAD_TO_DEG_F;
+	vehicle_command.param7 = 2.0f; // MAV_MOUNT_MODE_MAVLINK_TARGETING;
 
 	_vehicle_command_pub.publish(vehicle_command);
 

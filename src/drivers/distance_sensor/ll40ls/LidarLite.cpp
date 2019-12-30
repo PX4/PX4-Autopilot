@@ -52,7 +52,6 @@ LidarLite::LidarLite(const uint8_t rotation) :
 LidarLite::~LidarLite()
 {
 	perf_free(_sample_perf);
-	perf_free(_sample_interval_perf);
 	perf_free(_comms_errors);
 	perf_free(_sensor_resets);
 	perf_free(_sensor_zero_resets);
@@ -62,7 +61,6 @@ void
 LidarLite::print_info()
 {
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_sample_interval_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
 	perf_print_counter(_sensor_zero_resets);
