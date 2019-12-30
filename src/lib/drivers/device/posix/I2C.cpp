@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,26 +73,42 @@ I2C::~I2C()
 int
 I2C::init()
 {
-	// Assume the driver set the desired bus frequency. There is no standard
-	// way to set it from user space.
-
-	// do base class init, which will create device node, etc
-	int ret = CDev::init();
-
-	if (ret != PX4_OK) {
-		DEVICE_DEBUG("CDev::init failed");
-		return ret;
-	}
+	int ret = PX4_ERROR;
 
 	// Open the actual I2C device
-	char dev_path[16];
+	char dev_path[16] {};
 	snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", get_device_bus());
 	_fd = ::open(dev_path, O_RDWR);
 
 	if (_fd < 0) {
-		PX4_ERR("could not open %s", dev_path);
-		px4_errno = errno;
-		return PX4_ERROR;
+		DEVICE_DEBUG("failed to init I2C");
+		ret = -ENOENT;
+		goto out;
+	}
+
+	// call the probe function to check whether the device is present
+	ret = probe();
+
+	if (ret != OK) {
+		DEVICE_DEBUG("probe failed");
+		goto out;
+	}
+
+	// do base class init, which will create device node, etc
+	ret = CDev::init();
+
+	if (ret != OK) {
+		DEVICE_DEBUG("cdev init failed");
+		goto out;
+	}
+
+	// tell the world where we are
+	DEVICE_LOG("on I2C bus %d at 0x%02x", get_device_bus(), get_device_address());
+
+out:
+
+	if ((ret != OK) && !(_fd < 0)) {
+		::close(_fd);
 	}
 
 	return ret;
