@@ -55,20 +55,18 @@
  * @author David Sidrane
  */
 
-#include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
+#include <lib/conversion/rotation.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/device/i2c.h>
 #include <lib/drivers/device/spi.h>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_time.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
+
 
 /*
   we set the timer interrupt to run a bit faster than the desired
@@ -99,25 +97,6 @@ enum MPU_DEVICE_TYPE {
 
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
-
-#define MPU_DEVICE_PATH		"/dev/mpu6000"
-#define MPU_DEVICE_PATH1		"/dev/mpu6000_1"
-#define MPU_DEVICE_PATH_EXT	"/dev/mpu6000_ext"
-#define MPU_DEVICE_PATH_EXT1	"/dev/mpu6000_ext1"
-#define MPU_DEVICE_PATH_EXT2	"/dev/mpu6000_ext2"
-
-
-#define ICM20602_DEVICE_PATH		"/dev/icm20602"
-#define ICM20602_DEVICE_PATH1		"/dev/icm20602_1"
-#define ICM20602_DEVICE_PATH_EXT	"/dev/icm20602_ext"
-#define ICM20602_DEVICE_PATH_EXT1	"/dev/icm20602_ext1"
-
-#define ICM20608_DEVICE_PATH		"/dev/icm20608"
-#define ICM20608_DEVICE_PATH1		"/dev/icm20608_1"
-#define ICM20608_DEVICE_PATH_EXT	"/dev/icm20608_ext"
-#define ICM20608_DEVICE_PATH_EXT1	"/dev/icm20608_ext1"
-
-#define ICM20689_DEVICE_PATH		"/dev/icm20689"
 
 // MPU 6000 registers
 #define MPUREG_WHOAMI			0x75
@@ -220,7 +199,8 @@ enum MPU_DEVICE_TYPE {
 // Product ID Description for ICM20689
 
 #define ICM20689_REV_FE		0xfe
-#define ICM20689_REV_03		0x03
+#define ICM20689_REV_03   0x03
+#define ICM20689_REV_04   0x04
 
 // Product ID Description for MPU6000
 // high 4 bits 	low 4 bits
@@ -302,10 +282,10 @@ enum MPU6000_BUS {
 	MPU6000_BUS_SPI_EXTERNAL2
 };
 
-class MPU6000 : public cdev::CDev
+class MPU6000 : public px4::ScheduledWorkItem
 {
 public:
-	MPU6000(device::Device *interface, const char *path, enum Rotation rotation, int device_type);
+	MPU6000(device::Device *interface, enum Rotation rotation, int device_type);
 
 	virtual ~MPU6000();
 
@@ -318,12 +298,14 @@ public:
 
 	void			print_registers();
 
+#ifndef CONSTRAINED_FLASH
 	/**
 	 * Test behaviour against factory offsets
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
 	int 			factory_self_test();
+#endif
 
 	// deliberately cause a sensor error
 	void 			test_error();
@@ -346,19 +328,12 @@ protected:
 	virtual int		probe();
 
 private:
+
+	void Run() override;
+
 	int 			_device_type;
 	uint8_t			_product{0};	/** product code */
 
-#if defined(USE_I2C)
-	/*
-	 * SPI bus based device use hrt
-	 * I2C bus needs to use work queue
-	 */
-	work_s			_work{};
-#endif
-	bool 			_use_hrt;
-
-	struct hrt_call		_call {};
 	unsigned		_call_interval{1000};
 
 	PX4Accelerometer	_px4_accel;
@@ -367,7 +342,6 @@ private:
 	unsigned		_sample_rate{1000};
 
 	perf_counter_t		_sample_perf;
-	perf_counter_t		_measure_interval;
 	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_reset_retries;
@@ -419,50 +393,6 @@ private:
 	 * is_mpu_device
 	 */
 	bool 		is_mpu_device() { return _device_type == MPU_DEVICE_TYPE_MPU6000; }
-
-
-#if defined(USE_I2C)
-	/**
-	 * When the I2C interfase is on
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-	 * previous measurement.
-	 *
-	 * When the interval between measurements is greater than the minimum
-	 * measurement interval, a gap is inserted between collection
-	 * and measurement to provide the most recent measurement possible
-	 * at the next interval.
-	 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	void use_i2c(bool on_true) { _use_hrt = !on_true; }
-
-#endif
-
-	bool is_i2c(void) { return !_use_hrt; }
-
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.

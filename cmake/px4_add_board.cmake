@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_board
@@ -48,6 +46,7 @@ include(px4_base)
 #			[ TOOLCHAIN <string> ]
 #			[ ARCHITECTURE <string> ]
 #			[ ROMFSROOT <string> ]
+#			[ BUILD_BOOTLOADER ]
 #			[ IO <string> ]
 #			[ BOOTLOADER <string> ]
 #			[ UAVCAN_INTERFACES <string> ]
@@ -69,6 +68,7 @@ include(px4_base)
 #		TOOLCHAIN		: cmake toolchain
 #		ARCHITECTURE		: name of the CPU CMake is building for (used by the toolchain)
 #		ROMFSROOT		: relative path to the ROMFS root directory (currently NuttX only)
+#		BUILD_BOOTLOADER	: flag to enable building and including the bootloader config
 #		IO			: name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
 #		BOOTLOADER		: bootloader file to include for flashing via bl_update (currently NuttX only)
 #		UAVCAN_INTERFACES	: number of interfaces for UAVCAN
@@ -150,6 +150,7 @@ function(px4_add_board)
 			SERIAL_PORTS
 			DF_DRIVERS
 		OPTIONS
+			BUILD_BOOTLOADER
 			CONSTRAINED_FLASH
 			TESTING
 		REQUIRED
@@ -183,6 +184,9 @@ function(px4_add_board)
 	set(PX4_PLATFORM ${PLATFORM} CACHE STRING "PX4 board OS" FORCE)
 	list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
 
+	# platform-specific include path
+	include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include)
+
 	if(ARCHITECTURE)
 		set(CMAKE_SYSTEM_PROCESSOR ${ARCHITECTURE} CACHE INTERNAL "system processor" FORCE)
 	endif()
@@ -203,6 +207,10 @@ function(px4_add_board)
 	if(ROMFSROOT)
 		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
 
+		if(BUILD_BOOTLOADER)
+			set(config_build_bootloader "1" CACHE INTERNAL "build bootloader" FORCE)
+		endif()
+
 		# IO board (placed in ROMFS)
 		if(IO)
 			set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
@@ -217,6 +225,7 @@ function(px4_add_board)
 
 	if(CONSTRAINED_FLASH)
 		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
+		add_definitions(-DCONSTRAINED_FLASH)
 	endif()
 
 	if(TESTING)
@@ -261,8 +270,8 @@ function(px4_add_board)
 		foreach(driver ${DF_DRIVERS})
 			list(APPEND config_df_driver_list ${driver})
 
-			if(EXISTS "${PX4_SOURCE_DIR}/src/platforms/posix/drivers/df_${driver}_wrapper")
-				list(APPEND config_module_list platforms/posix/drivers/df_${driver}_wrapper)
+			if(EXISTS "${PX4_SOURCE_DIR}/src/drivers/driver_framework_wrapper/df_${driver}_wrapper")
+				list(APPEND config_module_list drivers/driver_framework_wrapper/df_${driver}_wrapper)
 			endif()
 		endforeach()
 		set(config_df_driver_list ${config_df_driver_list} PARENT_SCOPE)

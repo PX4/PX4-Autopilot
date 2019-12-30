@@ -36,7 +36,6 @@ set(srcs
 	test_autodeclination.cpp
 	test_bezierQuad.cpp
 	test_bson.cpp
-	test_controlmath.cpp
 	test_conv.cpp
 	test_dataman.c
 	test_file.c
@@ -44,7 +43,6 @@ set(srcs
 	test_float.cpp
 	test_hott_telemetry.c
 	test_hrt.cpp
-	test_hysteresis.cpp
 	test_int.cpp
 	test_IntrusiveQueue.cpp
 	test_jig_voltages.c
@@ -65,7 +63,6 @@ set(srcs
 	test_ppm_loopback.c
 	test_rc.c
 	test_search_min.cpp
-	test_sensors.c
 	test_servo.c
 	test_sleep.c
 	test_smooth_z.cpp
@@ -103,7 +100,7 @@ px4_add_module(
 	DEPENDS
 		git_ecl
 		ecl_geo_lookup # TODO: move this
-		pwm_limit
+		output_limit
 		version
 	)
 

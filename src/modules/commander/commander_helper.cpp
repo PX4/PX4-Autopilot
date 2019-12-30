@@ -41,8 +41,8 @@
  *
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -67,9 +67,11 @@
 
 using namespace DriverFramework;
 
+#define VEHICLE_TYPE_FIXED_WING 1
 #define VEHICLE_TYPE_QUADROTOR 2
 #define VEHICLE_TYPE_COAXIAL 3
 #define VEHICLE_TYPE_HELICOPTER 4
+#define VEHICLE_TYPE_GROUND_ROVER 10
 #define VEHICLE_TYPE_HEXAROTOR 13
 #define VEHICLE_TYPE_OCTOROTOR 14
 #define VEHICLE_TYPE_TRICOPTER 15
@@ -108,23 +110,36 @@ bool is_vtol(const struct vehicle_status_s *current_status)
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
 }
 
-static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
-static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for repeating tunes or silence
-static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be interrupted after tune_end
-static unsigned int tune_durations[TONE_NUMBER_OF_TUNES];
+bool is_vtol_tailsitter(const struct vehicle_status_s *current_status)
+{
+	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
+}
+
+bool is_fixed_wing(const struct vehicle_status_s *current_status)
+{
+	return current_status->system_type == VEHICLE_TYPE_FIXED_WING;
+}
+
+bool is_ground_rover(const struct vehicle_status_s *current_status)
+{
+	return current_status->system_type == VEHICLE_TYPE_GROUND_ROVER;
+}
+
+static hrt_abstime blink_msg_end = 0; // end time for currently blinking LED message, 0 if no blink message
+static hrt_abstime tune_end = 0; // end time of currently played tune, 0 for repeating tunes or silence
+static int tune_current = TONE_STOP_TUNE; // currently playing tune, can be interrupted after tune_end
+static unsigned int tune_durations[TONE_NUMBER_OF_TUNES] {};
 
 static DevHandle h_leds;
 static DevHandle h_buzzer;
-static led_control_s led_control = {};
+static led_control_s led_control {};
 static orb_advert_t led_control_pub = nullptr;
-static tune_control_s tune_control = {};
+static tune_control_s tune_control {};
 static orb_advert_t tune_control_pub = nullptr;
 
 int buzzer_init()
 {
-	tune_end = 0;
-	tune_current = 0;
-	memset(tune_durations, 0, sizeof(tune_durations));
 	tune_durations[TONE_NOTIFY_POSITIVE_TUNE] = 800000;
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
@@ -133,7 +148,7 @@ int buzzer_init()
 	tune_durations[TONE_BATTERY_WARNING_FAST_TUNE] = 800000;
 	tune_durations[TONE_BATTERY_WARNING_SLOW_TUNE] = 800000;
 	tune_durations[TONE_SINGLE_BEEP_TUNE] = 300000;
-	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, tune_control_s::ORB_QUEUE_LENGTH);
 	return PX4_OK;
 }
 
@@ -278,7 +293,7 @@ int led_init()
 	led_control.mode = led_control_s::MODE_OFF;
 	led_control.priority = 0;
 	led_control.timestamp = hrt_absolute_time();
-	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
+	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, led_control_s::ORB_QUEUE_LENGTH);
 
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);

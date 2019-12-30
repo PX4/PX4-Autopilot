@@ -68,7 +68,7 @@ void BlockLocalPositionEstimator::baroCorrect()
 
 	// residual
 	Matrix<float, n_y_baro, n_y_baro> S_I =
-		inv<float, n_y_baro>((C * _P * C.transpose()) + R);
+		inv<float, n_y_baro>((C * m_P * C.transpose()) + R);
 	Vector<float, n_y_baro> r = y - (C * _x);
 
 	// fault detection
@@ -87,10 +87,10 @@ void BlockLocalPositionEstimator::baroCorrect()
 	}
 
 	// kalman filter correction always
-	Matrix<float, n_x, n_y_baro> K = _P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_baro> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 }
 
 void BlockLocalPositionEstimator::baroCheckTimeout()

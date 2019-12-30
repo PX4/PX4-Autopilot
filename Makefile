@@ -248,6 +248,7 @@ px4fmu_firmware: \
 	check_px4_fmu-v4_default \
 	check_px4_fmu-v4pro_default \
 	check_px4_fmu-v5_default \
+	check_px4_fmu-v5x_default \
 	sizes
 
 misc_qgc_extra_firmware: \
@@ -262,9 +263,6 @@ misc_qgc_extra_firmware: \
 # Other NuttX firmware
 alt_firmware: \
 	check_px4_cannode-v1_default \
-	check_px4_esc-v1_default \
-	check_auav_esc35-v1_default \
-	check_thiemar_s2740vc-v1_default \
 	sizes
 
 # builds with RTPS
@@ -344,7 +342,6 @@ format:
 .PHONY: rostest python_coverage
 
 tests:
-	$(eval CMAKE_ARGS += -DCMAKE_TESTING=ON)
 	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
 	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
 	$(eval ARGS += test_results)
@@ -359,6 +356,16 @@ tests_coverage:
 
 rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+
+tests_integration: px4_sitl_default
+	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 100
+
+tests_integration_coverage:
+	@$(MAKE) clean
+	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo PX4_CMAKE_BUILD_TYPE=Coverage
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --iterations 1 --fail-early
 
 tests_mission: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test
@@ -380,6 +387,7 @@ tests_offboard: rostest
 
 tests_avoidance: rostest
 	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_avoidance.test
+	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_safe_landing.test
 
 python_coverage:
 	@mkdir -p "$(SRC_DIR)"/build/python_coverage
@@ -413,7 +421,7 @@ px4_sitl_default-clang:
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/px4_sitl_default-clang
 
 clang-tidy: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .

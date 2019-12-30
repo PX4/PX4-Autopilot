@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,8 +52,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
-#include <px4_defines.h>
-#include <px4_tasks.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/tasks.h>
 
 #include "input_mavlink.h"
 #include "input_rc.h"
@@ -61,11 +62,11 @@
 #include "output_rc.h"
 #include "output_mavlink.h"
 
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 
-#include <px4_config.h>
-#include <px4_module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
 
 using namespace vmount;
 
@@ -153,42 +154,12 @@ static bool get_params(ParameterHandles &param_handles, Parameters &params);
 static int vmount_thread_main(int argc, char *argv[]);
 extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
 
-static void usage()
-{
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Mount (Gimbal) control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
-output (eg. AUX channels or MAVLink).
-
-Documentation how to use it is on the [gimbal_control](https://dev.px4.io/en/advanced/gimbal_control.html) page.
-
-### Implementation
-Each method is implemented in its own class, and there is a common base class for inputs and outputs.
-They are connected via an API, defined by the `ControlData` data structure. This makes sure that each input method
-can be used with each output method and new inputs/outputs can be added with minimal effort.
-
-### Examples
-Test the output by setting a fixed yaw angle (and the other axes to 0):
-$ vmount stop
-$ vmount test yaw 30
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("vmount", "driver");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one axis (vmount must not be running)");
-	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
 static int vmount_thread_main(int argc, char *argv[])
 {
 	ParameterHandles param_handles;
-	Parameters params;
+	Parameters params {};
 	OutputConfig output_config;
 	ThreadData thread_data;
-	memset(&params, 0, sizeof(params));
-
 
 	InputTest *test_input = nullptr;
 
@@ -244,7 +215,7 @@ static int vmount_thread_main(int argc, char *argv[])
 		return -1;
 	}
 
-	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 	thread_running = true;
 	ControlData *control_data = nullptr;
 	g_thread_data = &thread_data;
@@ -283,13 +254,15 @@ static int vmount_thread_main(int argc, char *argv[])
 					// RC is on purpose last here so that if there are any mavlink
 					// messages, they will take precedence over RC.
 					// This logic is done further below while update() is called.
-					thread_data.input_objs[2] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+					thread_data.input_objs[2] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch,
+										params.mnt_man_yaw);
 					thread_data.input_objs_len = 3;
 
 					break;
 
 				case 1: //RC
-					thread_data.input_objs[0] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+					thread_data.input_objs[0] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch,
+										params.mnt_man_yaw);
 					break;
 
 				case 2: //MAVLINK_ROI
@@ -384,7 +357,12 @@ static int vmount_thread_main(int argc, char *argv[])
 				break;
 			}
 
-			thread_data.output_obj->publish();
+			//only publish the mount orientation if the mode is not mavlink
+			//if the gimbal speaks mavlink it publishes its own orientation
+			if (params.mnt_mode_out != 1) { // 1 = MAVLINK
+				thread_data.output_obj->publish();
+			}
+
 
 		} else {
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
@@ -396,13 +374,14 @@ static int vmount_thread_main(int argc, char *argv[])
 			break;
 		}
 
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		//check for parameter changes
-		bool updated;
-
-		if (orb_check(parameter_update_sub, &updated) == 0 && updated) {
-			parameter_update_s param_update;
-			orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_update);
+			// update parameters from storage
+			bool updated = false;
 			update_params(param_handles, params, updated);
 
 			if (updated) {
@@ -427,8 +406,6 @@ static int vmount_thread_main(int argc, char *argv[])
 	}
 
 	g_thread_data = nullptr;
-
-	orb_unsubscribe(parameter_update_sub);
 
 	for (int i = 0; i < input_objs_len_max; ++i) {
 		if (thread_data.input_objs[i]) {
@@ -460,12 +437,21 @@ int vmount_main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (!strcmp(argv[1], "start") || !strcmp(argv[1], "test")) {
+	const bool found_start = !strcmp(argv[1], "start");
+	const bool found_test = !strcmp(argv[1], "test");
+
+	if (found_start || found_test) {
 
 		/* this is not an error */
 		if (thread_running) {
-			PX4_WARN("mount driver already running");
-			return 0;
+			if (found_start) {
+				PX4_WARN("mount driver already running");
+				return 0;
+
+			} else {
+				PX4_WARN("mount driver already running, run vmount stop before 'vmount test'");
+				return 1;
+			}
 		}
 
 		thread_should_exit = false;
@@ -592,17 +578,45 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_man_pitch == PARAM_INVALID ||
 	    param_handles.mnt_man_roll == PARAM_INVALID ||
 	    param_handles.mnt_man_yaw == PARAM_INVALID ||
-		param_handles.mnt_do_stab == PARAM_INVALID ||
-		param_handles.mnt_range_pitch == PARAM_INVALID ||
-		param_handles.mnt_range_roll == PARAM_INVALID ||
-		param_handles.mnt_range_yaw == PARAM_INVALID ||
-		param_handles.mnt_off_pitch == PARAM_INVALID ||
-		param_handles.mnt_off_roll == PARAM_INVALID ||
-		param_handles.mnt_off_yaw == PARAM_INVALID) {
+	    param_handles.mnt_do_stab == PARAM_INVALID ||
+	    param_handles.mnt_range_pitch == PARAM_INVALID ||
+	    param_handles.mnt_range_roll == PARAM_INVALID ||
+	    param_handles.mnt_range_yaw == PARAM_INVALID ||
+	    param_handles.mnt_off_pitch == PARAM_INVALID ||
+	    param_handles.mnt_off_roll == PARAM_INVALID ||
+	    param_handles.mnt_off_yaw == PARAM_INVALID) {
 		return false;
 	}
 
 	bool dummy;
 	update_params(param_handles, params, dummy);
 	return true;
+}
+
+static void usage()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Mount (Gimbal) control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
+output (eg. AUX channels or MAVLink).
+
+Documentation how to use it is on the [gimbal_control](https://dev.px4.io/en/advanced/gimbal_control.html) page.
+
+### Implementation
+Each method is implemented in its own class, and there is a common base class for inputs and outputs.
+They are connected via an API, defined by the `ControlData` data structure. This makes sure that each input method
+can be used with each output method and new inputs/outputs can be added with minimal effort.
+
+### Examples
+Test the output by setting a fixed yaw angle (and the other axes to 0):
+$ vmount stop
+$ vmount test yaw 30
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("vmount", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one axis (vmount must not be running)");
+	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }

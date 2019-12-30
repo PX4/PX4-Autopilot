@@ -608,6 +608,8 @@ PARAM_DEFINE_INT32(PWM_AUX_DIS8, -1);
  * Invert direction of auxiliary output channel 1
  *
  * Enable to invert the channel.
+ * Warning: Use this parameter when connected to a servo only.
+ * For a brushless motor, invert manually two phases to reverse the direction.
  *
  * @boolean
  * @group PWM Outputs
@@ -618,6 +620,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
  * Invert direction of auxiliary output channel 2
  *
  * Enable to invert the channel.
+ * Warning: Use this parameter when connected to a servo only.
+ * For a brushless motor, invert manually two phases to reverse the direction.
  *
  * @boolean
  * @group PWM Outputs
@@ -628,6 +632,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
  * Invert direction of auxiliary output channel 3
  *
  * Enable to invert the channel.
+ * Warning: Use this parameter when connected to a servo only.
+ * For a brushless motor, invert manually two phases to reverse the direction.
  *
  * @boolean
  * @group PWM Outputs
@@ -638,6 +644,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
  * Invert direction of auxiliary output channel 4
  *
  * Enable to invert the channel.
+ * Warning: Use this parameter when connected to a servo only.
+ * For a brushless motor, invert manually two phases to reverse the direction.
  *
  * @boolean
  * @group PWM Outputs
@@ -648,6 +656,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
  * Invert direction of auxiliary output channel 5
  *
  * Enable to invert the channel.
+ * Warning: Use this parameter when connected to a servo only.
+ * For a brushless motor, invert manually two phases to reverse the direction.
  *
  * @boolean
  * @group PWM Outputs
@@ -658,6 +668,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
  * Invert direction of auxiliary output channel 6
  *
  * Enable to invert the channel.
+ * Warning: Use this parameter when connected to a servo only.
+ * For a brushless motor, invert manually two phases to reverse the direction.
  *
  * @boolean
  * @group PWM Outputs
@@ -668,6 +680,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
  * Invert direction of auxiliary output channel 7
  *
  * Enable to invert the channel.
+ * Warning: Use this parameter when connected to a servo only.
+ * For a brushless motor, invert manually two phases to reverse the direction.
  *
  * @boolean
  * @group PWM Outputs
@@ -678,6 +692,8 @@ PARAM_DEFINE_INT32(PWM_AUX_REV7, 0);
  * Invert direction of auxiliary output channel 8
  *
  * Enable to invert the channel.
+ * Warning: Use this parameter when connected to a servo only.
+ * For a brushless motor, invert manually two phases to reverse the direction.
  *
  * @boolean
  * @group PWM Outputs

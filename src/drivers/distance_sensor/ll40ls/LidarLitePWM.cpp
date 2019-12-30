@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,217 +43,75 @@
  */
 
 #include "LidarLitePWM.h"
-#include <stdio.h>
-#include <string.h>
-#include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_pwm_input.h>
 
-LidarLitePWM::LidarLitePWM(const char *path, uint8_t rotation) :
-	CDev(path),
-	_rotation(rotation),
-	_work{},
-	_reports(nullptr),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_pwmSub(-1),
-	_pwm{},
-	_distance_sensor_topic(nullptr),
-	_range{},
-	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls_pwm_read")),
-	_read_errors(perf_alloc(PC_COUNT, "ll40ls_pwm_read_errors")),
-	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls_pwm_zero_resets"))
+LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
+	LidarLite(rotation),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 }
 
 LidarLitePWM::~LidarLitePWM()
 {
 	stop();
-
-	/* free any existing reports */
-	if (_reports != nullptr) {
-		delete _reports;
-	}
-
-	if (_class_instance != -1) {
-		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
-	}
-
-	/* free perf counters */
-	perf_free(_sample_perf);
-	perf_free(_sensor_zero_resets);
 }
 
-
-int LidarLitePWM::init()
+int
+LidarLitePWM::init()
 {
-	/* do regular cdev init */
-	int ret = CDev::init();
-
-	if (ret != PX4_OK) {
-		return PX4_ERROR;
-	}
-
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(struct distance_sensor_s));
-
-	if (_reports == nullptr) {
-		return PX4_ERROR;
-	}
-
-	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
-
-	/* get a publish handle on the distance_sensor topic */
-	struct distance_sensor_s ds_report = {};
-	measure();
-	_reports->get(&ds_report);
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_LOW);
-
-	if (_distance_sensor_topic == nullptr) {
-		PX4_DEBUG("failed to create distance_sensor object. Did you start uOrb?");
-	}
+	start();
 
 	return PX4_OK;
 }
 
-void LidarLitePWM::print_info()
+void
+LidarLitePWM::start()
 {
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_read_errors);
-	perf_print_counter(_sensor_zero_resets);
-	PX4_INFO("poll interval:  %u ticks", getMeasureTicks());
-
-	print_message(_range);
+	ScheduleOnInterval(get_measure_interval());
 }
 
-void LidarLitePWM::print_registers()
+void
+LidarLitePWM::stop()
 {
-	printf("Not supported in PWM mode\n");
+	ScheduleClear();
 }
 
-void LidarLitePWM::start()
-{
-	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&LidarLitePWM::cycle_trampoline, this, 1);
-}
-
-void LidarLitePWM::stop()
-{
-	work_cancel(HPWORK, &_work);
-}
-
-void LidarLitePWM::cycle_trampoline(void *arg)
-{
-	LidarLitePWM *dev = (LidarLitePWM *)arg;
-
-	dev->cycle();
-}
-
-void LidarLitePWM::cycle()
+void
+LidarLitePWM::Run()
 {
 	measure();
-
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&LidarLitePWM::cycle_trampoline,
-		   this,
-		   getMeasureTicks());
 }
 
-int LidarLitePWM::measure()
+int
+LidarLitePWM::measure()
 {
 	perf_begin(_sample_perf);
 
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
 	if (PX4_OK != collect()) {
 		PX4_DEBUG("collection error");
-		perf_count(_read_errors);
+		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return PX4_ERROR;
 	}
 
-	_range.timestamp = hrt_absolute_time();
-	_range.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	_range.max_distance = get_maximum_distance();
-	_range.min_distance = get_minimum_distance();
-	_range.current_distance = float(_pwm.pulse_width) * 1e-3f;   /* 10 usec = 1 cm distance for LIDAR-Lite */
-	_range.variance = 0.0f;
-	_range.orientation = _rotation;
-	/* TODO: set proper ID */
-	_range.id = 0;
+	const float current_distance = float(_pwm.pulse_width) * 1e-3f;   /* 10 usec = 1 cm distance for LIDAR-Lite */
 
 	/* Due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0) */
-	if (_range.current_distance <= 0.0f) {
+	if (current_distance <= 0.0f) {
 		perf_count(_sensor_zero_resets);
 		perf_end(_sample_perf);
 		return reset_sensor();
 	}
 
-	if (_distance_sensor_topic != nullptr) {
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
-	}
+	_px4_rangefinder.update(timestamp_sample, current_distance);
 
-	_reports->force(&_range);
-
-	poll_notify(POLLIN);
 	perf_end(_sample_perf);
 	return PX4_OK;
 }
 
-ssize_t LidarLitePWM::read(device::file_t *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(struct distance_sensor_s);
-	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
-	int ret = 0;
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is enabled */
-	if (getMeasureTicks() > 0) {
-		/*
-		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the workq thread while we are doing this;
-		 * we are careful to avoid racing with them.
-		 */
-		while (count--) {
-			if (_reports->get(rbuf)) {
-				ret += sizeof(*rbuf);
-				rbuf++;
-			}
-		}
-
-		/* if there was no data, warn the caller */
-		return ret ? ret : -EAGAIN;
-
-	} else {
-
-		_reports->flush();
-		measure();
-
-		if (_reports->get(rbuf)) {
-			ret = sizeof(*rbuf);
-		}
-	}
-
-	return ret;
-}
-
 int
-LidarLitePWM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	/* no custom ioctls implemented for now */
-	default:
-		/* give it to the superclass */
-		return LidarLite::ioctl(filp, cmd, arg);
-	}
-}
-
-int LidarLitePWM::collect()
+LidarLitePWM::collect()
 {
 	int fd = ::open(PWMIN0_DEVICE_PATH, O_RDONLY);
 
@@ -268,23 +126,4 @@ int LidarLitePWM::collect()
 
 	::close(fd);
 	return EAGAIN;
-}
-
-int LidarLitePWM::reset_sensor()
-{
-
-	int fd = ::open(PWMIN0_DEVICE_PATH, O_RDONLY);
-
-	if (fd == -1) {
-		return PX4_ERROR;
-	}
-
-	int ret = ::ioctl(fd, SENSORIOCRESET, 0);
-	::close(fd);
-	return ret;
-}
-
-const char *LidarLitePWM::get_dev_name()
-{
-	return get_devname();
 }

@@ -42,9 +42,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 
 #include "video_device.h"
 #include "dump_pgm.h"
@@ -77,8 +77,7 @@ void task_main(int argc, char *argv[])
 {
 	_is_running = true;
 	int ret = 0;
-	struct frame_data frame;
-	memset(&frame, 0, sizeof(frame));
+	struct frame_data frame {};
 	uint32_t timeout_cnt = 0;
 
 	// Main loop

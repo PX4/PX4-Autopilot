@@ -152,9 +152,10 @@ void BlockLocalPositionEstimator::flowCorrect()
 	// compute polynomial value
 	float flow_vxy_stddev = p[0] * h + p[1] * h * h + p[2] * v + p[3] * v * h + p[4] * v * h * h;
 
-	float rotrate_sq = _sub_att.get().rollspeed * _sub_att.get().rollspeed
-			   + _sub_att.get().pitchspeed * _sub_att.get().pitchspeed
-			   + _sub_att.get().yawspeed * _sub_att.get().yawspeed;
+	const Vector3f rates{_sub_angular_velocity.get().xyz};
+	float rotrate_sq = rates(0) * rates(0)
+			   + rates(1) * rates(1)
+			   + rates(2) * rates(2);
 
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
 	float rot_sq = euler.phi() * euler.phi() + euler.theta() * euler.theta();
@@ -168,13 +169,13 @@ void BlockLocalPositionEstimator::flowCorrect()
 	Vector<float, 2> r = y - C * _x;
 
 	// residual covariance
-	Matrix<float, n_y_flow, n_y_flow> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_flow, n_y_flow> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
-	_pub_innov.get().flow_innov[0] = r(0);
-	_pub_innov.get().flow_innov[1] = r(1);
-	_pub_innov.get().flow_innov_var[0] = S(0, 0);
-	_pub_innov.get().flow_innov_var[1] = S(1, 1);
+	_pub_innov.get().flow[0] = r(0);
+	_pub_innov.get().flow[1] = r(1);
+	_pub_innov_var.get().flow[0] = S(0, 0);
+	_pub_innov_var.get().flow[1] = S(1, 1);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_flow, n_y_flow> S_I = inv<float, n_y_flow>(S);
@@ -195,10 +196,10 @@ void BlockLocalPositionEstimator::flowCorrect()
 
 	if (!(_sensorFault & SENSOR_FLOW)) {
 		Matrix<float, n_x, n_y_flow> K =
-			_P * C.transpose() * S_I;
+			m_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
-		_P -= K * C * _P;
+		m_P -= K * C * m_P;
 	}
 }
 

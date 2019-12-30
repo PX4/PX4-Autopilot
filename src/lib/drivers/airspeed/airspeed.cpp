@@ -38,7 +38,7 @@
  *
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <drivers/device/device.h>
 
 #include <drivers/device/i2c.h>
@@ -58,22 +58,17 @@
 
 Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char *path) :
 	I2C("Airspeed", path, bus, address, 100000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sensor_ok(false),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
-	_airspeed_pub(nullptr),
 	_airspeed_orb_class_instance(-1),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "aspd_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "aspd_com_err"))
 {
-	// enable debug() calls
-	_debug_enabled = false;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 Airspeed::~Airspeed()
@@ -84,8 +79,6 @@ Airspeed::~Airspeed()
 	if (_class_instance != -1) {
 		unregister_class_devname(AIRSPEED_BASE_DEVICE_PATH, _class_instance);
 	}
-
-	orb_unadvertise(_airspeed_pub);
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -105,15 +98,6 @@ Airspeed::init()
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	measure();
-	differential_pressure_s arp = {};
-
-	/* measurement will have generated a report, publish */
-	_airspeed_pub = orb_advertise_multi(ORB_ID(differential_pressure), &arp, &_airspeed_orb_class_instance,
-					    ORB_PRIO_HIGH - _class_instance);
-
-	if (_airspeed_pub == nullptr) {
-		PX4_WARN("uORB started?");
-	}
 
 	return PX4_OK;
 }
@@ -148,10 +132,10 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_conversion_interval);
+					_measure_interval = USEC2TICK(_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -164,18 +148,18 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_conversion_interval)) {
+					if (interval < _conversion_interval) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -207,18 +191,11 @@ Airspeed::start()
 	_collect_phase = false;
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 Airspeed::stop()
 {
-	work_cancel(HPWORK, &_work);
-}
-
-void
-Airspeed::cycle_trampoline(void *arg)
-{
-	Airspeed *dev = (Airspeed *)arg;
-	dev->cycle();
+	ScheduleClear();
 }

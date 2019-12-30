@@ -38,7 +38,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include "platform/cxxinitialize.h"
 
 #include <stdio.h>	// required for task_create
@@ -55,7 +55,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <perf/perf_counter.h>
-#include <pwm_limit/pwm_limit.h>
+#include <output_limit/output_limit.h>
 
 #include <stm32_uart.h>
 
@@ -68,7 +68,7 @@ struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
 
-pwm_limit_t pwm_limit;
+output_limit_t pwm_limit;
 
 float dt;
 
@@ -91,6 +91,27 @@ static char msg[NUM_MSG][CONFIG_USART1_TXBUFSIZE];
 static void heartbeat_blink(void);
 static void ring_blink(void);
 static void update_mem_usage(void);
+
+void atomic_modify_or(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target | modification) != *target) {
+		PX4_CRITICAL_SECTION(*target |= modification);
+	}
+}
+
+void atomic_modify_clear(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target & ~modification) != *target) {
+		PX4_CRITICAL_SECTION(*target &= ~modification);
+	}
+}
+
+void atomic_modify_and(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target & modification) != *target) {
+		PX4_CRITICAL_SECTION(*target &= modification);
+	}
+}
 
 /*
  * add a debug message to be printed on the console
@@ -338,7 +359,7 @@ user_start(int argc, char *argv[])
 	syslog(LOG_INFO, "MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* initialize PWM limit lib */
-	pwm_limit_init(&pwm_limit);
+	output_limit_init(&pwm_limit);
 
 	/*
 	 *    P O L I C E    L I G H T S
@@ -353,7 +374,7 @@ user_start(int argc, char *argv[])
 	 * documented in the dev guide.
 	 *
 	 */
-	if (minfo.mxordblk < 600) {
+	if (minfo.mxordblk < 550) {
 
 		syslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;

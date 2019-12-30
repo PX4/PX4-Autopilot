@@ -42,10 +42,10 @@
 
 #include <float.h>
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -166,7 +166,7 @@ private:
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
 	)
 
-	uORB::Subscription<vehicle_air_data_s>	_sub_airdata;
+	uORB::SubscriptionData<vehicle_air_data_s>	_sub_airdata;
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated

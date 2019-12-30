@@ -55,9 +55,21 @@ fi
 
 
 uorb start
-if [ -f eeprom/parameters ]
+
+# Load parameters
+set PARAM_FILE eeprom/parameters_"$REQUESTED_AUTOSTART"
+param select $PARAM_FILE
+
+if [ -f $PARAM_FILE ]
 then
-	param load
+	if param load
+	then
+		echo "[param] Loaded: $PARAM_FILE"
+	else
+		echo "[param] FAILED loading $PARAM_FILE"
+	fi
+else
+	echo "[param] parameter file not found, creating $PARAM_FILE"
 fi
 
 # exit early when the minimal shell is requested
@@ -65,7 +77,9 @@ fi
 
 
 # Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" = "ekf2" ]; then
+if [ "$PX4_ESTIMATOR" = "q" ]; then
+	param set SYS_MC_EST_GROUP 3
+elif [ "$PX4_ESTIMATOR" = "ekf2" ]; then
 	param set SYS_MC_EST_GROUP 2
 elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
 	param set SYS_MC_EST_GROUP 1
@@ -78,6 +92,15 @@ then
 	set AUTOCNF no
 else
 	set AUTOCNF yes
+	param set SYS_AUTOCONFIG 1
+fi
+
+if param compare SYS_AUTOCONFIG 1
+then
+	set AUTOCNF yes
+
+	# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
+	param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
 fi
 
 # multi-instance setup
@@ -94,15 +117,16 @@ then
 
 	param set BAT_N_CELLS 3
 
-	param set CAL_ACC0_ID 1376264
-	param set CAL_ACC1_ID 1310728
-	param set CAL_ACC_PRIME 1376264
+	param set CAL_ACC0_ID 1311244
+	param set CAL_ACC_PRIME 1311244
 
-	param set CAL_GYRO0_ID 2293768
-	param set CAL_GYRO_PRIME 2293768
+	param set CAL_GYRO0_ID 2294028
+	param set CAL_GYRO_PRIME 2294028
 
-	param set CAL_MAG0_ID 196616
-	param set CAL_MAG_PRIME 196616
+	param set CAL_MAG0_ID 197388
+	param set CAL_MAG_PRIME 197388
+
+	param set CAL_BARO_PRIME 6620172
 
 	param set CBRK_AIRSPD_CHK 0
 
@@ -117,10 +141,14 @@ then
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
 
+	# Prevent high accel bias
+	param set COM_ARM_EKF_AB 0.005
+
+	# Speedup SITL startup
+	param set EKF2_REQ_GPS_H 0.5
+
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
-
-	param set MIS_TAKEOFF_ALT 2.5
 
 	param set MC_PITCH_P 6
 	param set MC_PITCHRATE_P 0.2
@@ -157,7 +185,23 @@ then
 	param set SENS_DPRES_OFF 0.001
 	param set SYS_RESTART_TYPE 2
 
-	param set WEST_EN 0
+	param set TRIG_INTERFACE 3
+
+fi
+
+# Adapt timeout parameters if simulation runs faster or slower than realtime.
+if [ ! -z $PX4_SIM_SPEED_FACTOR ]; then
+	COM_DL_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 2))
+	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
+	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
+
+	COM_RC_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 2))
+	echo "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
+	param set COM_RC_LOSS_T $COM_RC_LOSS_T_LONGER
+
+	COM_OF_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 2))
+	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
+	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
 fi
 
 # Autostart ID
@@ -181,47 +225,39 @@ fi
 
 sh "$autostart_file"
 
+#
+# If autoconfig parameter was set, reset it and save parameters.
+#
+if [ $AUTOCNF = yes ]
+then
+	param set SYS_AUTOCONFIG 0
+fi
 
 dataman start
 replay tryapplyparams
-simulator start -s -c $simulator_tcp_port
+simulator start -c $simulator_tcp_port
 tone_alarm start
-gyrosim start
-accelsim start
-barosim start
 gpssim start
+rc_update start
 sensors start
 commander start
 navigator start
 
-if param compare WEST_EN 1
-then
-	wind_estimator start
-fi
 
-if ! param compare MNT_MODE_IN -1
+if ! param compare -s MNT_MODE_IN -1
 then
 	vmount start
 fi
 
-if param greater TRIG_MODE 0
+if param greater -s TRIG_MODE 0
 then
 	camera_trigger start
 	camera_feedback start
 fi
 
-
-if [ ${VEHICLE_TYPE} = fw -o ${VEHICLE_TYPE} = vtol ]
-then
-	if param compare CBRK_AIRSPD_CHK 0
-	then
-		measairspeedsim start
-	fi
-fi
-
 # Configure vehicle type specific parameters.
 # Note: rc.vehicle_setup is the entry point for rc.interface,
-#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 #
 sh etc/init.d/rc.vehicle_setup
 

@@ -17,7 +17,6 @@ Testing/
 Packages/*
 build/*
 build_*/
-core
 cscope.out
 cscope.in.out
 cscope.po.out
@@ -64,3 +63,7 @@ posix-configs/SITL/init/test/*_generated
 *.gcov
 .coverage
 .coverage.*
+
+# KDevelop ignores
+.kdev4/*
+*.kdev4

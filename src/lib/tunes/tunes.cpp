@@ -37,7 +37,7 @@
 
 #include "tunes.h"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <math.h>
 #include <ctype.h>
 #include <errno.h>
@@ -178,7 +178,7 @@ int Tunes::get_next_note(unsigned &frequency, unsigned &duration,
 		duration  = _duration;
 		frequency = _frequency;
 		silence   = _silence;
-		return TUNE_STOP;
+		return TUNE_CONTINUE;
 	}
 
 	// Make sure we still have a tune.

@@ -10,12 +10,10 @@ set(tests
 	commander
 	controllib
 	conv
-	ctlmath
 	dataman
 	file2
 	float
 	hrt
-	hysteresis
 	int
 	IntrusiveQueue
 	List
@@ -32,7 +30,7 @@ set(tests
 	rc
 	search_min
 	servo
-	sf0x
+	#sf0x
 	sleep
 	uorb
 	versioning
@@ -40,7 +38,6 @@ set(tests
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	list(REMOVE_ITEM tests
-		hysteresis
 		mixer
 		uorb
 	)
@@ -48,7 +45,6 @@ endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 	list(REMOVE_ITEM tests
-		hysteresis # Intermittent timing fails.
 		uorb
 	)
 endif()
@@ -145,20 +141,10 @@ foreach(cmd_name ${test_cmds})
 	set_tests_properties(posix_${cmd_name} PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
 endforeach()
 
-if (CMAKE_BUILD_TYPE STREQUAL Coverage)
+if(CMAKE_BUILD_TYPE STREQUAL Coverage)
 	setup_target_for_coverage(test_coverage "${CMAKE_CTEST_COMMAND} --output-on-failure -T Test" tests)
 	setup_target_for_coverage(generate_coverage "${CMAKE_COMMAND} -E echo" generic)
+
+	# TODO:
+	#setup_target_for_coverage(mavsdk_coverage "${PX4_SOURCE_DIR}/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --iterations 1 --fail-early" mavsdk)
 endif()
-
-add_custom_target(test_results_junit
-		COMMAND xsltproc ${PX4_SOURCE_DIR}/Tools/CTest2JUnit.xsl Testing/`head -n 1 < Testing/TAG`/Test.xml > JUnitTestResults.xml
-		DEPENDS test_results
-		COMMENT "Converting ctest output to junit xml"
-		WORKING_DIRECTORY ${PX4_BINARY_DIR})
-set_target_properties(test_results_junit PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-add_custom_target(test_cdash_submit
-		COMMAND ${CMAKE_CTEST_COMMAND} -D Experimental
-		USES_TERMINAL
-		WORKING_DIRECTORY ${PX4_BINARY_DIR})
-set_target_properties(test_cdash_submit PROPERTIES EXCLUDE_FROM_ALL TRUE)

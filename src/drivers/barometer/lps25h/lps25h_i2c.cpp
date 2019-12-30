@@ -37,27 +37,7 @@
  * I2C interface for LPS25H
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <debug.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/device/i2c.h>
-#include <drivers/drv_mag.h>
-#include <drivers/drv_device.h>
-
 #include "lps25h.h"
-
-#include "board_config.h"
 
 #define LPS25H_ADDRESS		0x5D
 

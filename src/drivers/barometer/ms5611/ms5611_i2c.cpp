@@ -37,25 +37,7 @@
  * I2C interface for MS5611
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_time.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/device/i2c.h>
-
 #include "ms5611.h"
-
-#include "board_config.h"
 
 #define MS5611_ADDRESS_1		0x76	/* address select pins pulled high (PX4FMU series v1.6+) */
 #define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */

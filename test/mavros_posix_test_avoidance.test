@@ -6,9 +6,9 @@
     <arg name="gui" default="false"/>
     <arg name="interactive" default="false"/>
     <arg name="mission" default="avoidance"/>
-    <arg name="sdf" default="$(find local_planner)/../sim/models/iris_depth_camera_3/iris_depth_camera.sdf"/>
+    <arg name="sdf" default="$(find avoidance)/sim/models/iris_depth_camera_3/iris_depth_camera.sdf"/>
     <arg name="vehicle" default="iris_obs_avoid"/>
-    <arg name="world" default="$(find local_planner)/../sim/worlds/boxes1.world"/>
+    <arg name="world" default="$(find avoidance)/sim/worlds/boxes1.world"/>
     <!-- PX4 SITL and Gazebo -->
     <include file="$(find px4)/launch/posix_sitl.launch">
         <arg name="est" value="$(arg est)"/>

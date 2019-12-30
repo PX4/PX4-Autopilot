@@ -37,7 +37,7 @@
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 
 #define HRES_STR "320"
 #define VRES_STR "240"

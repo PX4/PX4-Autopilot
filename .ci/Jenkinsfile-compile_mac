@@ -18,7 +18,8 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'ccache -s'
             sh 'make px4_sitl_default'
             sh 'ccache -s'
           }
@@ -39,7 +40,8 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'ccache -s'
             sh 'make px4_fmu-v5_default'
             sh 'ccache -s'
           }
@@ -60,7 +62,8 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'ccache -s'
             sh 'make tests'
             sh 'ccache -s'
           }
@@ -81,7 +84,7 @@ pipeline {
     CI = true
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '20'))
     timeout(time: 120, unit: 'MINUTES')
   }
 }

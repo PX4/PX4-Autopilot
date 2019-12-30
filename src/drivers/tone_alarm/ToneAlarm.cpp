@@ -37,10 +37,11 @@
 
 #include "ToneAlarm.h"
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 
 ToneAlarm::ToneAlarm() :
-	CDev(TONE_ALARM0_DEVICE_PATH)
+	CDev(TONE_ALARM0_DEVICE_PATH),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 }
 
@@ -65,24 +66,17 @@ int ToneAlarm::init()
 	ToneAlarmInterface::init();
 
 	_running = true;
-	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, 0);
+
+	ScheduleNow();
+
 	return OK;
 }
 
 void ToneAlarm::next_note()
 {
 	if (!_should_run) {
-		if (_tune_control_sub >= 0) {
-			orb_unsubscribe(_tune_control_sub);
-		}
-
 		_running = false;
 		return;
-	}
-
-	// Subscribe to tune_control.
-	if (_tune_control_sub < 0) {
-		_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
 	}
 
 	// Check for updates
@@ -122,23 +116,19 @@ void ToneAlarm::next_note()
 	}
 
 	// Schedule a callback when the note should stop.
-	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, USEC2TICK(duration));
+	ScheduleDelayed(duration);
 }
 
-void ToneAlarm::next_trampoline(void *argv)
+void ToneAlarm::Run()
 {
-	ToneAlarm *toneAlarm = (ToneAlarm *)argv;
-	toneAlarm->next_note();
+	next_note();
 }
 
 void ToneAlarm::orb_update()
 {
 	// Check for updates
-	bool updated = false;
-	orb_check(_tune_control_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
+	if (_tune_control_sub.updated()) {
+		_tune_control_sub.copy(&_tune);
 
 		if (_tune.timestamp > 0) {
 			_play_tone = _tunes.set_control(_tune) == 0;
@@ -176,9 +166,6 @@ void ToneAlarm::stop_note()
 	// NOTE: Implement hardware specific detail in the ToneAlarmInterface class implementation.
 	ToneAlarmInterface::stop_note();
 }
-
-
-struct work_s ToneAlarm::_work = {};
 
 /**
  * Local functions in support of the shell command.

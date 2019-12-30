@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__fxos8701cq
+	MODULE drivers__imu__fxos8701cq
 	MAIN fxos8701cq
-	STACK_MAIN 1500
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		fxos8701cq.cpp
+		FXOS8701CQ.cpp
+		FXOS8701CQ.hpp
+		fxos8701cq_main.cpp
 	)

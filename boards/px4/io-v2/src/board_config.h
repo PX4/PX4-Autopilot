@@ -43,11 +43,11 @@
  * Included Files
  ******************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 /******************************************************************************
  * Definitions
@@ -162,3 +162,5 @@
 #define LED_SIGNAL        5  /* LED? + LED? */
 #define LED_ASSERTION     6  /* LED? + LED? + LED? */
 #define LED_PANIC         7  /* N/C  + N/C  + N/C + LED? */
+
+#define BOARD_NUM_IO_TIMERS 3

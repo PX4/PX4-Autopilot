@@ -39,9 +39,12 @@
 
 #pragma once
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 
 #include "mission_block.h"
+
+#include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 
 class Navigator;
 
@@ -72,8 +75,8 @@ private:
 
 	hrt_abstime _timestamp_activation{0}; //*< timestamp when this mode was activated */
 
-	orb_advert_t	_att_sp_pub{nullptr};
-
+	uORB::Publication<vehicle_attitude_setpoint_s>	_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vehicle_attitude_setpoint_s>	_fw_virtual_att_sp_pub{ORB_ID(fw_virtual_attitude_setpoint)};
 	/**
 	 * Set the GPSF item
 	 */

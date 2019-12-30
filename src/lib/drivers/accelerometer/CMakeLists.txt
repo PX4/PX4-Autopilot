@@ -32,3 +32,8 @@
 ############################################################################
 
 px4_add_library(drivers_accelerometer PX4Accelerometer.cpp)
+target_link_libraries(drivers_accelerometer
+	PRIVATE
+		drivers__device
+		mathlib
+	)

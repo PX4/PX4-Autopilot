@@ -46,12 +46,12 @@ class ListNode
 {
 public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
+	void setSibling(T sibling) { _list_node_sibling = sibling; }
+	const T getSibling() const { return _list_node_sibling; }
 
 protected:
 
-	T _sibling{nullptr};
+	T _list_node_sibling{nullptr};
 
 };
 
@@ -62,15 +62,39 @@ public:
 
 	void add(T newNode)
 	{
-		newNode->setSibling(getHead());
-		_head = newNode;
+		if (_head == nullptr) {
+			// list is empty, add as head
+			_head = newNode;
+			return;
+
+		} else {
+			// find last node and add to end
+			T node = _head;
+
+			while (node != nullptr) {
+				if (node->getSibling() == nullptr) {
+					// found last node, now add newNode
+					node->setSibling(newNode);
+					return;
+				}
+
+				node = node->getSibling();
+			}
+		}
 	}
 
 	bool remove(T removeNode)
 	{
+		if (removeNode == nullptr) {
+			return false;
+		}
+
 		// base case
 		if (removeNode == _head) {
-			_head = nullptr;
+			if (_head != nullptr) {
+				_head = _head->getSibling();
+			}
+
 			return true;
 		}
 
@@ -94,7 +118,7 @@ public:
 
 	struct Iterator {
 		T node;
-		Iterator(T v) : node(v) {}
+		explicit Iterator(T v) : node(v) {}
 
 		operator T() const { return node; }
 		operator T &() { return node; }
