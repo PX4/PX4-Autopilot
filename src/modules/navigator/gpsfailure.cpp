@@ -85,7 +85,6 @@ GpsFailure::on_active()
 			 * navigator has to publish an attitude setpoint */
 
 			struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-			struct vehicle_status_s *stat = _navigator->get_vstatus();
 
 			vehicle_attitude_setpoint_s att_sp = {};
 			att_sp.timestamp = hrt_absolute_time();
@@ -93,9 +92,8 @@ GpsFailure::on_active()
 			//This determines if the fixedwing vehicle is landing or not, and if so it forces the wings level
 			//Otherwise the plane goes to the parameter set fixed bank loiter setting
 
-			if (stat->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL
-			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-				att_sp.roll_body = 0;
+			if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+				att_sp.roll_body = 0.0f;
 
 			} else {
 				att_sp.roll_body = math::radians(_param_nav_gpsf_r.get());
