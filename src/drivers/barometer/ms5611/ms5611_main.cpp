@@ -115,7 +115,7 @@ start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
 		if (bus.dev->init() != OK) {
 			PX4_ERR("MS5611 start failed");
 			delete bus.dev;
-			bus.dev = NULL;
+			bus.dev = nullptr;
 			return false;
 		}
 
