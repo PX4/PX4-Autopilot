@@ -28,7 +28,6 @@ px4_add_board(
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
 		hmc5883
 		mpu9250
-		ms5611
 	MODULES
 		airspeed_selector
 		attitude_estimator_q

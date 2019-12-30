@@ -27,7 +27,6 @@ px4_add_board(
 		isl29501
 		lsm9ds1
 		mpu9250
-		ms5611
 		trone
 	MODULES
 		airspeed_selector
