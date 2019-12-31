@@ -50,9 +50,11 @@ namespace ControlMath
  * @param thr_sp desired 3D thrust vector
  * @param yaw_sp the desired yaw
  * @param att_sp attitude setpoint to fill
- * @param omni_att_mode attitude mode for omnidirectional vehicles: 0-tilted 1-daisy-chain 2-zero-tilt
+ * @param omni_att_mode attitude mode for omnidirectional vehicles: 0-tilted 1-min-tilt 2-zero-tilt
+ * @param omni_dfc_max_thrust maximum direct-force (horizontal) scaled thrust for omnidirectional vehicles
  */
 void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const int omni_att_mode,
+		      const float omni_dfc_max_thrust,
 		      vehicle_attitude_setpoint_s &att_sp);
 /**
  * Converts a body z vector and yaw set-point to a desired attitude.
@@ -74,9 +76,11 @@ void thrustToZeroTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp
  * Converts thrust vector and yaw set-point to a minimum-tilt attitude for an omni-directional multirotor.
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
+ * @param omni_dfc_max_thrust maximum direct-force (horizontal) scaled thrust for omnidirectional vehicles
  * @param att_sp attitude setpoint to fill
  */
-void thrustToMinTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp);
+void thrustToMinTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const float omni_dfc_max_thrust,
+			     vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Outputs the sum of two vectors but respecting the limits and priority.

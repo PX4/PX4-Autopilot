@@ -46,8 +46,9 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	Vector3f thr{0.f, 0.f, -1.f};
 	float yaw = 0.f;
 	int omni_att_mode = 0;
+	float omni_dfc_max_thrust = 0.0f;
 	vehicle_attitude_setpoint_s att{};
-	thrustToAttitude(thr, yaw, omni_att_mode, att);
+	thrustToAttitude(thr, yaw, omni_att_mode, omni_dfc_max_thrust, att);
 	EXPECT_FLOAT_EQ(att.roll_body, 0.f);
 	EXPECT_FLOAT_EQ(att.pitch_body, 0.f);
 	EXPECT_FLOAT_EQ(att.yaw_body, 0.f);
@@ -56,7 +57,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	/* expected: same as before but with 90 yaw
 	 * reason: only yaw changed */
 	yaw = M_PI_2_F;
-	thrustToAttitude(thr, yaw, omni_att_mode, att);
+	thrustToAttitude(thr, yaw, omni_att_mode, omni_dfc_max_thrust, att);
 	EXPECT_FLOAT_EQ(att.roll_body, 0.f);
 	EXPECT_FLOAT_EQ(att.pitch_body, 0.f);
 	EXPECT_FLOAT_EQ(att.yaw_body, M_PI_2_F);
@@ -66,7 +67,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	 * reason: thrust points straight down and order Euler
 	 * order is: 1. roll, 2. pitch, 3. yaw */
 	thr = Vector3f(0.f, 0.f, 1.f);
-	thrustToAttitude(thr, yaw, omni_att_mode, att);
+	thrustToAttitude(thr, yaw, omni_att_mode, omni_dfc_max_thrust, att);
 	EXPECT_FLOAT_EQ(att.roll_body, -M_PI_F);
 	EXPECT_FLOAT_EQ(att.pitch_body, 0.f);
 	EXPECT_FLOAT_EQ(att.yaw_body, M_PI_2_F);

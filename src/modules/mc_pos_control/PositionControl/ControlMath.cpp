@@ -45,7 +45,7 @@ using namespace matrix;
 namespace ControlMath
 {
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni_att_mode,
-		      vehicle_attitude_setpoint_s &att_sp)
+		      const float omni_dfc_max_thrust, vehicle_attitude_setpoint_s &att_sp)
 {
 	// Print an error if the omni_att_mode parameter is out of range
 	if (omni_att_mode > 2 || omni_att_mode < 0) {
@@ -54,7 +54,7 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni
 
 	switch (omni_att_mode) {
 	case 1: // Attitude is set to the minimum roll and pitch (used for omnidirectional vehicles)
-		thrustToMinTiltAttitude(thr_sp, yaw_sp, att_sp);
+		thrustToMinTiltAttitude(thr_sp, yaw_sp, omni_dfc_max_thrust, att_sp);
 		break;
 
 	case 2: // Attitude is set to the fixed zero roll and pitch (used for omnidirectional vehicles)
@@ -157,31 +157,40 @@ void thrustToZeroTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicl
 	att_sp.thrust_body[2] = thr_sp(2);
 }
 
-void thrustToMinTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
+void thrustToMinTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const float omni_dfc_max_thrust,
+			     vehicle_attitude_setpoint_s &att_sp)
 {
-	// TEMP: Define the maximum dfc horizontal thrust
-	const float omni_dfc_max_thrust = 0.15f;
+	Vector3f body_z;
+	float lambda = 0.f;
 
-	// Check if the horizontal force is less than the maximum possible
-	Vector2f thr_sp_h(thr_sp(0), thr_sp(1));
-	if (thr_sp_h.norm() <= omni_dfc_max_thrust) {
-		return thrustToAttitude(thr_sp, yaw_sp, 2, att_sp);
+	// zero vector, no direction, set safe level value
+	if (thr_sp.norm_squared() < FLT_EPSILON) {
+		body_z(2) = 1.f;
+
+	} else {
+		// Check if the horizontal force is less than the maximum possible
+		Vector2f thr_sp_h(thr_sp(0), thr_sp(1));
+
+		if (thr_sp_h.norm() <= omni_dfc_max_thrust) {
+			thrustToAttitude(thr_sp, yaw_sp, 2, omni_dfc_max_thrust, att_sp);
+			return;
+		}
+
+		// Calculate the tilt angle
+		float thr_sp_norm = thr_sp.norm();
+		float xi = asinf(Vector2f(thr_sp(0),
+					  thr_sp(1)).norm() / thr_sp_norm); // angle between upward direction and the desired thrust
+		float mu = asinf(omni_dfc_max_thrust / thr_sp_norm); // angle between the Z thrust and the desired thrust
+		lambda = xi - mu; // the desired tilt angle
+
+		// Calculate the direction of the body Z axis
+		Vector3f v_hat(0.f, 0.f, -1.f); // upward direction
+		Vector3f p_hat = v_hat % thr_sp; // the axis of rotation for lambda
+		p_hat.normalize();
+		body_z = -(1 - cosf(lambda)) * p_hat * (p_hat.dot(v_hat)) + cosf(lambda) * v_hat - sinf(lambda) *
+			 (v_hat % p_hat); // Rodrigues' rotation formula
+		body_z = -body_z;
 	}
-
-	// Calculate the tilt angle
-	float thr_sp_norm = thr_sp.norm();
-	float xi = asinf(Vector2f(thr_sp(0),
-					thr_sp(1)).norm() / thr_sp_norm); // angle between upward direction and the desired thrust
-	float mu = asinf(omni_dfc_max_thrust / thr_sp_norm); // angle between the Z thrust and the desired thrust
-	float lambda = xi - mu; // the desired tilt angle
-
-	// Calculate the direction of the body Z axis
-	Vector3f v_hat(0.f, 0.f, -1.f); // upward direction
-	Vector3f p_hat = v_hat % thr_sp; // the axis of rotation for lambda
-	p_hat.normalize();
-	Vector3f body_z = -(1 - cosf(lambda)) * p_hat * (p_hat.dot(v_hat)) + cosf(lambda) * v_hat - sinf(lambda) *
-			(v_hat % p_hat); // Rodrigues' rotation formula
-	body_z = -body_z;
 
 	// vector of desired yaw direction in XY plane, rotated by PI/2
 	Vector3f y_C(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);

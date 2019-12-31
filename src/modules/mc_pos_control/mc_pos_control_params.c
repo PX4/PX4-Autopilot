@@ -745,25 +745,3 @@ PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
-
-/**
- * Omni-directional attitude setpoint mode
- *
- * Specifies the type of attitude setpoint sent to the attitude controller.
- * The parameter can be set to a normal attitude setpoint, where the tilt
- * of the vehicle (roll and pitch) are calculated from the desired thrust
- * vector. This should be the behavior for the non-omnidirectional vehicles,
- * such as quadrotors and other multirotors with coplanar rotors.
- * The "constant zero tilt" mode enforces zero roll and pitch and can only be
- * used for omnidirectional vehicles. The daisy-chain mode enforces zero tilt
- * up to a maximum set acceleration (thrust) and tilts the vehicle as small
- * as possible if the thrust vector is larger than the maximum.
- *
- * @min 0
- * @max 2
- * @value 0 tilted attitude
- * @value 1 daisy-chain tilt/no-tilt attitude
- * @value 2 constant zero tilt
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_INT32(OMNI_ATT_MODE, 0);

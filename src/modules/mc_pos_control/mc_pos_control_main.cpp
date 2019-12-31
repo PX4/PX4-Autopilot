@@ -173,7 +173,8 @@ private:
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd, /**< maximum tilt for landing and smooth takeoff */
 		(ParamFloat<px4::params::MPC_THR_MIN>) _param_mpc_thr_min,
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
-		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode
+		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode,
+		(ParamFloat<px4::params::OMNI_DFC_MAX_THR>) _param_omni_dfc_max_thr
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -656,7 +657,7 @@ MulticopterPositionControl::Run()
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
-			_control.getAttitudeSetpoint(_param_omni_att_mode.get(), attitude_setpoint);
+			_control.getAttitudeSetpoint(_param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(), attitude_setpoint);
 
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.

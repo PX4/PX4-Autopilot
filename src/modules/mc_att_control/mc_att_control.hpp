@@ -161,7 +161,7 @@ private:
 
 		/* Omnidirectional vehicle params */
 		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode,
-		(ParamFloat<px4::params::OMNI_MAX_HOR_THR>) _param_omni_max_hor_thr
+		(ParamFloat<px4::params::OMNI_DFC_MAX_THR>) _param_omni_dfc_max_thr
 	)
 
 	bool _is_tailsitter{false};
