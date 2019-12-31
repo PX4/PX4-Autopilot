@@ -235,10 +235,18 @@ else:
 if args.fastrtpsgen is None or args.fastrtpsgen == '':
     # Assume fastrtpsgen is in PATH
     fastrtpsgen_path = 'fastrtpsgen'
+    for dirname in os.environ['PATH'].split(':') :
+        candidate = os.path.join(dirname, 'fastrtpsgen')
+        if os.path.isfile(candidate) :
+            fastrtpsgen_path = candidate
 else:
     # Path to fastrtpsgen is explicitly specified
-    fastrtpsgen_path = os.path.join(
-        os.path.abspath(args.fastrtpsgen), 'fastrtpsgen')
+    if os.path.isdir(args.fastrtpsgen) :
+        fastrtpsgen_path = os.path.join(
+            os.path.abspath(args.fastrtpsgen), 'fastrtpsgen')
+    else :
+        fastrtpsgen_path = args.fastrtpsgen
+
 fastrtpsgen_include = args.fastrtpsgen_include
 if fastrtpsgen_include is not None and fastrtpsgen_include != '':
     fastrtpsgen_include = "-I " + \
