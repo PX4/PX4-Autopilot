@@ -226,13 +226,15 @@ private:
 	 */
 	void update_params();
 
+	uint64_t sync_timestamp(uint64_t timestamp);
+
 	Mavlink				*_mavlink;
 
-	MavlinkFTP			_mavlink_ftp;
-	MavlinkLogHandler		_mavlink_log_handler;
-	MavlinkMissionManager		_mission_manager;
-	MavlinkParametersManager	_parameters_manager;
-	MavlinkTimesync			_mavlink_timesync;
+	MavlinkFTP			*_mavlink_ftp{nullptr};
+	MavlinkLogHandler		*_mavlink_log_handler{nullptr};
+	MavlinkMissionManager		*_mission_manager{nullptr};
+	MavlinkParametersManager	*_parameters_manager{nullptr};
+	MavlinkTimesync			*_mavlink_timesync{nullptr};
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 
@@ -289,7 +291,6 @@ private:
 	uORB::PublicationQueued<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
 
 	// ORB subscriptions
-	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription	_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -341,6 +342,8 @@ private:
 	hrt_abstime _heartbeat_component_pairing_manager{0};
 	hrt_abstime _heartbeat_component_udp_bridge{0};
 	hrt_abstime _heartbeat_component_uart_bridge{0};
+
+	bool _armed{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
