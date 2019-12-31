@@ -80,13 +80,17 @@ using matrix::wrap_2pi;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	ModuleParams(nullptr),
-	_mavlink(parent),
-	_mavlink_ftp(parent),
-	_mavlink_log_handler(parent),
-	_mission_manager(parent),
-	_parameters_manager(parent),
-	_mavlink_timesync(parent)
+	_mavlink(parent)
 {
+}
+
+MavlinkReceiver::~MavlinkReceiver()
+{
+	delete _mavlink_ftp;
+	delete _mavlink_log_handler;
+	delete _mavlink_timesync;
+	delete _mission_manager;
+	delete _parameters_manager;
 }
 
 void
@@ -257,6 +261,79 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_STATUSTEXT:
 		handle_message_statustext(msg);
+		break;
+
+	case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
+		if (_mavlink->ftp_enabled()) {
+			if (_mavlink_ftp == nullptr) {
+				_mavlink_ftp = new MavlinkFTP(_mavlink);
+			}
+
+			if (_mavlink_ftp != nullptr) {
+				_mavlink_ftp->handle_message(msg);
+			}
+		}
+
+		break;
+
+	case MAVLINK_MSG_ID_MISSION_ACK:
+	case MAVLINK_MSG_ID_MISSION_SET_CURRENT:
+	case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
+	case MAVLINK_MSG_ID_MISSION_REQUEST:
+	case MAVLINK_MSG_ID_MISSION_REQUEST_INT:
+	case MAVLINK_MSG_ID_MISSION_COUNT:
+	case MAVLINK_MSG_ID_MISSION_ITEM:
+	case MAVLINK_MSG_ID_MISSION_ITEM_INT:
+	case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
+		if (_mission_manager == nullptr) {
+			_mission_manager = new MavlinkMissionManager(_mavlink);
+		}
+
+		if (_mission_manager != nullptr) {
+			_mission_manager->handle_message(msg);
+		}
+
+		break;
+
+
+	case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
+	case MAVLINK_MSG_ID_LOG_REQUEST_DATA:
+	case MAVLINK_MSG_ID_LOG_ERASE:
+	case MAVLINK_MSG_ID_LOG_REQUEST_END:
+		if (_mavlink_log_handler == nullptr) {
+			_mavlink_log_handler = new MavlinkLogHandler(_mavlink);
+		}
+
+		if (_mavlink_log_handler != nullptr) {
+			_mavlink_log_handler->handle_message(msg);
+		}
+
+		break;
+
+	case MAVLINK_MSG_ID_TIMESYNC:
+	case MAVLINK_MSG_ID_SYSTEM_TIME:
+		if (_mavlink_timesync == nullptr) {
+			_mavlink_timesync = new MavlinkTimesync(_mavlink);
+		}
+
+		if (_mavlink_timesync != nullptr) {
+			_mavlink_timesync->handle_message(msg);
+		}
+
+		break;
+
+	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
+	case MAVLINK_MSG_ID_PARAM_SET:
+	case MAVLINK_MSG_ID_PARAM_REQUEST_READ:
+	case MAVLINK_MSG_ID_PARAM_MAP_RC:
+		if (_parameters_manager == nullptr) {
+			_parameters_manager = new MavlinkParametersManager(_mavlink);
+		}
+
+		if (_parameters_manager != nullptr) {
+			_parameters_manager->handle_message(msg);
+		}
+
 		break;
 
 	default:
@@ -732,7 +809,7 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 
 	vehicle_odometry_s mocap_odom{};
 
-	mocap_odom.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
+	mocap_odom.timestamp = sync_timestamp(mocap.time_usec);
 	mocap_odom.x = mocap.x;
 	mocap_odom.y = mocap.y;
 	mocap_odom.z = mocap.z;
@@ -1210,7 +1287,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 
 	vehicle_odometry_s visual_odom{};
 
-	visual_odom.timestamp = _mavlink_timesync.sync_stamp(ev.usec);
+	visual_odom.timestamp = sync_timestamp(ev.usec);
 	visual_odom.x = ev.x;
 	visual_odom.y = ev.y;
 	visual_odom.z = ev.z;
@@ -1250,7 +1327,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 	vehicle_odometry_s odometry{};
 
-	odometry.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
+	odometry.timestamp = sync_timestamp(odom.time_usec);
 
 	/* The position is in a local FRD frame */
 	odometry.x = odom.x;
@@ -2206,7 +2283,7 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 	if (landing_target.position_valid && landing_target.frame == MAV_FRAME_LOCAL_NED) {
 		landing_target_pose_s landing_target_pose{};
 
-		landing_target_pose.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
+		landing_target_pose.timestamp = sync_timestamp(landing_target.time_usec);
 		landing_target_pose.abs_pos_valid = true;
 		landing_target_pose.x_abs = landing_target.x;
 		landing_target_pose.y_abs = landing_target.y;
@@ -2644,6 +2721,15 @@ void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
 	}
 }
 
+uint64_t MavlinkReceiver::sync_timestamp(uint64_t timestamp)
+{
+	if (_mavlink_timesync != nullptr) {
+		return _mavlink_timesync->sync_stamp(timestamp);
+	}
+
+	return hrt_absolute_time();
+}
+
 /**
  * Receive data from UART/UDP
  */
@@ -2769,24 +2855,6 @@ MavlinkReceiver::Run()
 						/* handle generic messages and commands */
 						handle_message(&msg);
 
-						/* handle packet with mission manager */
-						_mission_manager.handle_message(&msg);
-
-
-						/* handle packet with parameter component */
-						_parameters_manager.handle_message(&msg);
-
-						if (_mavlink->ftp_enabled()) {
-							/* handle packet with ftp component */
-							_mavlink_ftp.handle_message(&msg);
-						}
-
-						/* handle packet with log component */
-						_mavlink_log_handler.handle_message(&msg);
-
-						/* handle packet with timesync component */
-						_mavlink_timesync.handle_message(&msg);
-
 						/* handle packet with parent object */
 						_mavlink->handle_message(&msg);
 					}
@@ -2806,19 +2874,25 @@ MavlinkReceiver::Run()
 		hrt_abstime t = hrt_absolute_time();
 
 		if (t - last_send_update > timeout * 1000) {
-			_mission_manager.check_active_mission();
-			_mission_manager.send(t);
-
-			_parameters_manager.send(t);
-
-			if (_mavlink->ftp_enabled()) {
-				_mavlink_ftp.send(t);
+			if (_mission_manager != nullptr) {
+				_mission_manager->check_active_mission();
+				_mission_manager->send(t);
 			}
 
-			_mavlink_log_handler.send(t);
+			if (_parameters_manager != nullptr) {
+				_parameters_manager->send(t);
+			}
+
+			if (_mavlink->ftp_enabled() && (_mavlink_ftp != nullptr)) {
+				_mavlink_ftp->send(t);
+			}
+
+			if (_mavlink_log_handler != nullptr) {
+				_mavlink_log_handler->send(t);
+			}
+
 			last_send_update = t;
 		}
-
 	}
 }
 

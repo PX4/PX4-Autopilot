@@ -107,7 +107,7 @@ class MavlinkReceiver : public ModuleParams
 {
 public:
 	MavlinkReceiver(Mavlink *parent);
-	~MavlinkReceiver() = default;
+	~MavlinkReceiver() override;
 
 	/**
 	 * Start the receiver thread
@@ -210,13 +210,15 @@ private:
 	 */
 	void update_params();
 
+	uint64_t sync_timestamp(uint64_t timestamp);
+
 	Mavlink				*_mavlink;
 
-	MavlinkFTP			_mavlink_ftp;
-	MavlinkLogHandler		_mavlink_log_handler;
-	MavlinkMissionManager		_mission_manager;
-	MavlinkParametersManager	_parameters_manager;
-	MavlinkTimesync			_mavlink_timesync;
+	MavlinkFTP			*_mavlink_ftp{nullptr};
+	MavlinkLogHandler		*_mavlink_log_handler{nullptr};
+	MavlinkMissionManager		*_mission_manager{nullptr};
+	MavlinkParametersManager	*_parameters_manager{nullptr};
+	MavlinkTimesync			*_mavlink_timesync{nullptr};
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 
