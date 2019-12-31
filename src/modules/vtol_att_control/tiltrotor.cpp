@@ -47,7 +47,7 @@
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
-	_vtol_schedule.flight_mode = MC_MODE;
+	_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 	_vtol_schedule.transition_start = 0;
 
 	_mc_roll_weight = 1.0f;
@@ -96,29 +96,29 @@ void Tiltrotor::update_vtol_state()
 
 		// plane is in multicopter mode
 		switch (_vtol_schedule.flight_mode) {
-		case MC_MODE:
+		case vtol_mode::MC_MODE:
 			break;
 
-		case FW_MODE:
-			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
+		case vtol_mode::FW_MODE:
+			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_BACK;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 			break;
 
-		case TRANSITION_FRONT_P1:
+		case vtol_mode::TRANSITION_FRONT_P1:
 			// failsafe into multicopter mode
-			_vtol_schedule.flight_mode = MC_MODE;
+			_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			break;
 
-		case TRANSITION_FRONT_P2:
+		case vtol_mode::TRANSITION_FRONT_P2:
 			// failsafe into multicopter mode
-			_vtol_schedule.flight_mode = MC_MODE;
+			_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			break;
 
-		case TRANSITION_BACK:
+		case vtol_mode::TRANSITION_BACK:
 			float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
 			if (_tilt_control <= _params_tiltrotor.tilt_mc && time_since_trans_start > _params->back_trans_duration) {
-				_vtol_schedule.flight_mode = MC_MODE;
+				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			}
 
 			break;
@@ -127,73 +127,78 @@ void Tiltrotor::update_vtol_state()
 	} else {
 
 		switch (_vtol_schedule.flight_mode) {
-		case MC_MODE:
+		case vtol_mode::MC_MODE:
 			// initialise a front transition
-			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
+			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_FRONT_P1;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 			break;
 
-		case FW_MODE:
+		case vtol_mode::FW_MODE:
 			break;
 
-		case TRANSITION_FRONT_P1: {
-				// allow switch if we are not armed for the sake of bench testing
-				bool transition_to_p2 = can_transition_on_ground();
+		case vtol_mode::TRANSITION_FRONT_P1: {
 
 				float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
-				// check if we have reached airspeed to switch to fw mode
-				transition_to_p2 |= !_params->airspeed_disabled &&
-						    _airspeed->indicated_airspeed_m_s >= _params->transition_airspeed &&
-						    time_since_trans_start > _params->front_trans_time_min;
+				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)
+						&& !_params->airspeed_disabled;
 
-				// check if airspeed is invalid and transition by time
-				transition_to_p2 |= _params->airspeed_disabled &&
-						    _tilt_control >= _params_tiltrotor.tilt_transition &&
-						    time_since_trans_start > _params->front_trans_time_openloop;
+				bool transition_to_p2 = false;
+
+				if (time_since_trans_start > _params->front_trans_time_min) {
+					if (airspeed_triggers_transition) {
+						transition_to_p2 = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
+
+					} else {
+						transition_to_p2 = _tilt_control >= _params_tiltrotor.tilt_transition &&
+								   time_since_trans_start > _params->front_trans_time_openloop;;
+					}
+				}
+
+				transition_to_p2 |= can_transition_on_ground();
 
 				if (transition_to_p2) {
-					_vtol_schedule.flight_mode = TRANSITION_FRONT_P2;
+					_vtol_schedule.flight_mode = vtol_mode::TRANSITION_FRONT_P2;
 					_vtol_schedule.transition_start = hrt_absolute_time();
 				}
 
 				break;
 			}
 
-		case TRANSITION_FRONT_P2:
+		case vtol_mode::TRANSITION_FRONT_P2:
 
 			// if the rotors have been tilted completely we switch to fw mode
 			if (_tilt_control >= _params_tiltrotor.tilt_fw) {
-				_vtol_schedule.flight_mode = FW_MODE;
+				_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
 				_tilt_control = _params_tiltrotor.tilt_fw;
 			}
 
 			break;
 
-		case TRANSITION_BACK:
+		case vtol_mode::TRANSITION_BACK:
 			// failsafe into fixed wing mode
-			_vtol_schedule.flight_mode = FW_MODE;
+			_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
 			break;
 		}
 	}
 
 	// map tiltrotor specific control phases to simple control modes
 	switch (_vtol_schedule.flight_mode) {
-	case MC_MODE:
-		_vtol_mode = ROTARY_WING;
+	case vtol_mode::MC_MODE:
+		_vtol_mode = mode::ROTARY_WING;
 		break;
 
-	case FW_MODE:
-		_vtol_mode = FIXED_WING;
+	case vtol_mode::FW_MODE:
+		_vtol_mode = mode::FIXED_WING;
 		break;
 
-	case TRANSITION_FRONT_P1:
-	case TRANSITION_FRONT_P2:
-		_vtol_mode = TRANSITION_TO_FW;
+	case vtol_mode::TRANSITION_FRONT_P1:
+	case vtol_mode::TRANSITION_FRONT_P2:
+		_vtol_mode = mode::TRANSITION_TO_FW;
 		break;
 
-	case TRANSITION_BACK:
-		_vtol_mode = TRANSITION_TO_MC;
+	case vtol_mode::TRANSITION_BACK:
+		_vtol_mode = mode::TRANSITION_TO_MC;
 		break;
 	}
 }
@@ -225,10 +230,10 @@ void Tiltrotor::update_transition_state()
 		_flag_was_in_trans_mode = true;
 	}
 
-	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
+	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P1) {
 		// for the first part of the transition the rear rotors are enabled
-		if (_motor_state != ENABLED) {
-			_motor_state = set_motor_state(_motor_state, ENABLED);
+		if (_motor_state != motor_state::ENABLED) {
+			_motor_state = set_motor_state(_motor_state, motor_state::ENABLED);
 		}
 
 		// tilt rotors forward up to certain angle
@@ -244,18 +249,20 @@ void Tiltrotor::update_transition_state()
 		_mc_yaw_weight = 1.0f;
 
 		// reduce MC controls once the plane has picked up speed
-		if (!_params->airspeed_disabled && _airspeed->indicated_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
+		if (!_params->airspeed_disabled && PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s) &&
+		    _airspeed_validated->equivalent_airspeed_m_s > ARSP_YAW_CTRL_DISABLE) {
 			_mc_yaw_weight = 0.0f;
 		}
 
-		if (!_params->airspeed_disabled && _airspeed->indicated_airspeed_m_s >= _params->airspeed_blend) {
-			_mc_roll_weight = 1.0f - (_airspeed->indicated_airspeed_m_s - _params->airspeed_blend) /
+		if (!_params->airspeed_disabled && PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s) &&
+		    _airspeed_validated->equivalent_airspeed_m_s >= _params->airspeed_blend) {
+			_mc_roll_weight = 1.0f - (_airspeed_validated->equivalent_airspeed_m_s - _params->airspeed_blend) /
 					  (_params->transition_airspeed - _params->airspeed_blend);
 		}
 
 		// without airspeed do timed weight changes
-		if (_params->airspeed_disabled
-		    && time_since_trans_start > _params->front_trans_time_min) {
+		if ((_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)) &&
+		    time_since_trans_start > _params->front_trans_time_min) {
 			_mc_roll_weight = 1.0f - (time_since_trans_start - _params->front_trans_time_min) /
 					  (_params->front_trans_time_openloop - _params->front_trans_time_min);
 			_mc_yaw_weight = _mc_roll_weight;
@@ -263,7 +270,7 @@ void Tiltrotor::update_transition_state()
 
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P2) {
+	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_tilt_control = _params_tiltrotor.tilt_transition +
 				fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition) * time_since_trans_start /
@@ -277,14 +284,14 @@ void Tiltrotor::update_transition_state()
 				 (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) + PWM_DEFAULT_MIN;
 
 
-		_motor_state = set_motor_state(_motor_state, VALUE, rear_value);
+		_motor_state = set_motor_state(_motor_state, motor_state::VALUE, rear_value);
 
 
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
-		if (_motor_state != ENABLED) {
-			_motor_state = set_motor_state(_motor_state, ENABLED);
+	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
+		if (_motor_state != motor_state::ENABLED) {
+			_motor_state = set_motor_state(_motor_state, motor_state::ENABLED);
 		}
 
 
@@ -345,7 +352,7 @@ void Tiltrotor::fill_actuator_outputs()
 	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] =
 		_actuators_mc_in->control[actuator_controls_s::INDEX_YAW] * _mc_yaw_weight;
 
-	if (_vtol_schedule.flight_mode == FW_MODE) {
+	if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 
@@ -366,14 +373,14 @@ void Tiltrotor::fill_actuator_outputs()
 
 	_actuators_out_1->control[4] = _tilt_control;
 
-	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == MC_MODE) {
+	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0.0f;
 		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
 
 	} else {
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
+			_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
 		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =

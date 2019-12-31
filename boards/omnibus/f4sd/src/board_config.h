@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -167,6 +167,7 @@
 #define GPIO_SPI3_MOSI_OFF           _PIN_OFF(GPIO_SPI3_MOSI)
 /* SPI 3 CS's  off */
 #define GPIO_SPI3_CS_BARO_OFF        _PIN_OFF(GPIO_SPI3_CS_BARO)
+#define GPIO_SPI3_CS_OSD_OFF        _PIN_OFF(GPIO_SPI3_CS_OSD)
 
 // One device per bus
 #define PX4_SPI_BUS_SENSORS         1
@@ -174,6 +175,7 @@
 #define PX4_SPIDEV_ICM_20602        1
 #define PX4_SPIDEV_BARO_BUS         3
 #define PX4_SPIDEV_BARO             1
+#define PX4_SPIDEV_OSD              2
 
 /* USB OTG FS
  *
@@ -186,6 +188,7 @@
 /*----------------------------------------------------------*/
 
 #define PX4_SPI_BUS_BARO         3
+#define PX4_SPI_BUS_OSD			 3
 
 #define PX4_I2C_BUS_EXPANSION    2
 #define PX4_I2C_BUS_LED          PX4_I2C_BUS_EXPANSION
@@ -261,6 +264,11 @@
 
 #define BOARD_HAS_ON_RESET 1
 
+#define BOARD_ENABLE_CONSOLE_BUFFER
+#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
+
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {2, 3, 1, 0};
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -305,7 +313,7 @@ extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

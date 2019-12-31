@@ -41,7 +41,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <lib/tunes/tunes.h>
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <uORB/topics/tune_control.h>
 
 #include "tests_main.h"
@@ -52,11 +52,12 @@ int test_tone(int argc, char *argv[])
 	tune_control_s tune_control = {};
 	tune_control.tune_id = static_cast<int>(TuneID::NOTIFY_NEGATIVE);
 
-	orb_advert_t tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	orb_advert_t tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control,
+					tune_control_s::ORB_QUEUE_LENGTH);
 
 	if (argc == 1) {
 		PX4_INFO("Volume silenced for testing predefined tunes 0-20.");
-		tune_control.strength = 0;
+		tune_control.volume = tune_control_s::VOLUME_LEVEL_MIN;
 
 		for (size_t i = 0; i <= 20; i++) {
 			tune_control.tune_id = i;
@@ -80,13 +81,13 @@ int test_tone(int argc, char *argv[])
 	}
 
 	if (argc == 3) {
-		int volume = 40;
+		int volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 		Tunes tunes{};
 		tunes.set_string(argv[2], volume);
 		PX4_INFO("Custom tune.");
 	}
 
-	tune_control.strength = 40;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 	result = orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
 
 	orb_unadvertise(tune_control_pub);

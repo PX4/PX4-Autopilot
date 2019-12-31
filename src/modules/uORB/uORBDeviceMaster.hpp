@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #include "uORBCommon.hpp"
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 
 namespace uORB
 {
@@ -60,7 +60,7 @@ class uORB::DeviceMaster
 {
 public:
 
-	int advertise(const struct orb_metadata *meta, int *instance, int priority);
+	int advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, int priority);
 
 	/**
 	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.
@@ -98,8 +98,8 @@ private:
 		DeviceNodeStatisticsData *next = nullptr;
 	};
 
-	void addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics, size_t &max_topic_name_length,
-			       char **topic_filter, int num_filters);
+	int addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics, size_t &max_topic_name_length,
+			      char **topic_filter, int num_filters);
 
 	friend class uORB::Manager;
 

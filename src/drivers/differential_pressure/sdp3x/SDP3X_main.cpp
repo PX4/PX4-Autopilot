@@ -33,10 +33,6 @@
 
 #include "SDP3X.hpp"
 
-#include <px4_getopt.h>
-
-#include <stdlib.h>
-
 // Driver 'main' command.
 extern "C" __EXPORT int sdp3x_airspeed_main(int argc, char *argv[]);
 

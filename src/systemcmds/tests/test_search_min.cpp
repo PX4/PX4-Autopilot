@@ -38,8 +38,9 @@
 
 #include <unit_test.h>
 #include <float.h>
+#include <math.h>
 
-#include "../../lib/mathlib/math/SearchMin.hpp"
+#include <mathlib/math/SearchMin.hpp>
 
 // linear function
 float _linear_function(float x)

@@ -37,6 +37,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Sander Smeets <sander@droneslab.com>
+ * @author Nuno Marques <nuno.marques@dronesolutions.io>
  */
 
 #pragma once
@@ -62,13 +63,18 @@ private:
 	bool checkDistanceToFirstWaypoint(const mission_s &mission, float max_distance);
 	bool checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance);
 
+	bool checkTakeoff(const mission_s &mission, float home_alt);
+
 	/* Checks specific to fixedwing airframes */
-	bool checkFixedwing(const mission_s &mission, float home_alt, bool home_alt_valid, bool land_start_req);
-	bool checkFixedWingTakeoff(const mission_s &mission, float home_alt, bool home_alt_valid);
+	bool checkFixedwing(const mission_s &mission, float home_alt, bool land_start_req);
 	bool checkFixedWingLanding(const mission_s &mission, bool land_start_req);
 
 	/* Checks specific to rotarywing airframes */
-	bool checkRotarywing(const mission_s &mission, float home_alt, bool home_alt_valid);
+	bool checkRotarywing(const mission_s &mission, float home_alt);
+
+	/* Checks specific to VTOL airframes */
+	bool checkVTOL(const mission_s &mission, float home_alt, bool land_start_req);
+	bool checkVTOLLanding(const mission_s &mission, bool land_start_req);
 
 public:
 	MissionFeasibilityChecker(Navigator *navigator) : _navigator(navigator) {}

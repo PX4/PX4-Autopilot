@@ -45,11 +45,13 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/mount_orientation.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <lib/ecl/geo/geo.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+
+using matrix::wrap_pi;
 
 namespace vmount
 {
@@ -60,49 +62,16 @@ OutputBase::OutputBase(const OutputConfig &output_config)
 	_last_update = hrt_absolute_time();
 }
 
-OutputBase::~OutputBase()
-{
-	if (_vehicle_attitude_sub >= 0) {
-		orb_unsubscribe(_vehicle_attitude_sub);
-	}
-
-	if (_vehicle_global_position_sub >= 0) {
-		orb_unsubscribe(_vehicle_global_position_sub);
-	}
-
-	if (_mount_orientation_pub) {
-		orb_unadvertise(_mount_orientation_pub);
-	}
-}
-
-int OutputBase::initialize()
-{
-	if ((_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude))) < 0) {
-		return -errno;
-	}
-
-	if ((_vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position))) < 0) {
-		return -errno;
-	}
-
-	return 0;
-}
-
 void OutputBase::publish()
 {
-	int instance;
-	mount_orientation_s mount_orientation;
+	mount_orientation_s mount_orientation{};
 
 	for (unsigned i = 0; i < 3; ++i) {
 		mount_orientation.attitude_euler_angle[i] = _angle_outputs[i];
 	}
 
-	//PX4_INFO("roll: %.2f, pitch: %.2f, yaw: %.2f",
-	//		(double)_angle_outputs[0],
-	//		(double)_angle_outputs[1],
-	//		(double)_angle_outputs[2]);
-
-	orb_publish_auto(ORB_ID(mount_orientation), &_mount_orientation_pub, &mount_orientation, &instance, ORB_PRIO_DEFAULT);
+	mount_orientation.timestamp = hrt_absolute_time();
+	_mount_orientation_pub.publish(mount_orientation);
 }
 
 float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
@@ -158,42 +127,46 @@ void OutputBase::_set_angle_setpoints(const ControlData *control_data)
 
 void OutputBase::_handle_position_update(bool force_update)
 {
-	bool need_update = force_update;
-
 	if (!_cur_control_data || _cur_control_data->type != ControlData::Type::LonLat) {
 		return;
 	}
 
-	if (!force_update) {
-		orb_check(_vehicle_global_position_sub, &need_update);
-	}
+	vehicle_global_position_s vehicle_global_position{};
 
-	if (!need_update) {
-		return;
-	}
-
-	vehicle_global_position_s vehicle_global_position;
-	orb_copy(ORB_ID(vehicle_global_position), _vehicle_global_position_sub, &vehicle_global_position);
-
-	float pitch;
-	const double &lon = _cur_control_data->type_data.lonlat.lon;
-	const double &lat = _cur_control_data->type_data.lonlat.lat;
-	const float &alt = _cur_control_data->type_data.lonlat.altitude;
-
-	if (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
-		pitch = _cur_control_data->type_data.lonlat.pitch_fixed_angle;
+	if (force_update) {
+		_vehicle_global_position_sub.copy(&vehicle_global_position);
 
 	} else {
-		pitch = _calculate_pitch(lon, lat, alt, vehicle_global_position);
+		if (!_vehicle_global_position_sub.update(&vehicle_global_position)) {
+			return;
+		}
 	}
 
-	float roll = _cur_control_data->type_data.lonlat.roll_angle;
-	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
-		    - vehicle_global_position.yaw;
+	const double &vlat = vehicle_global_position.lat;
+	const double &vlon = vehicle_global_position.lon;
 
-	_angle_setpoints[0] = roll;
-	_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;
-	_angle_setpoints[2] = yaw + _cur_control_data->type_data.lonlat.yaw_angle_offset;
+	const double &lat = _cur_control_data->type_data.lonlat.lat;
+	const double &lon = _cur_control_data->type_data.lonlat.lon;
+	const float &alt = _cur_control_data->type_data.lonlat.altitude;
+
+	_angle_setpoints[0] = _cur_control_data->type_data.lonlat.roll_angle;
+
+	// interface: use fixed pitch value > -pi otherwise consider ROI altitude
+	if (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
+		_angle_setpoints[1] = _cur_control_data->type_data.lonlat.pitch_fixed_angle;
+
+	} else {
+		_angle_setpoints[1] = _calculate_pitch(lon, lat, alt, vehicle_global_position);
+	}
+
+	_angle_setpoints[2] = get_bearing_to_next_waypoint(vlat, vlon, lat, lon) - vehicle_global_position.yaw;
+
+	// add offsets from VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET
+	_angle_setpoints[1] += _cur_control_data->type_data.lonlat.pitch_angle_offset;
+	_angle_setpoints[2] += _cur_control_data->type_data.lonlat.yaw_angle_offset;
+
+	// make sure yaw is wrapped correctly for the output
+	_angle_setpoints[2] = wrap_pi(_angle_setpoints[2]);
 }
 
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)
@@ -206,11 +179,11 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 	}
 
 	//get the output angles and stabilize if necessary
-	vehicle_attitude_s vehicle_attitude;
+	vehicle_attitude_s vehicle_attitude{};
 	matrix::Eulerf euler;
 
 	if (_stabilize[0] || _stabilize[1] || _stabilize[2]) {
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude);
+		_vehicle_attitude_sub.copy(&vehicle_attitude);
 		euler = matrix::Quatf(vehicle_attitude.q);
 	}
 

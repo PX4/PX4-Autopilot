@@ -5,14 +5,6 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-# LPE
-if param compare SYS_MC_EST_GROUP 1
-then
-	echo "ERROR [init] Estimator LPE not supported on fixed wing. Using EKF2"
-	param set SYS_MC_EST_GROUP 2
-	param save
-fi
-
 #
 # Start the attitude and position estimator.
 #
@@ -23,9 +15,8 @@ ekf2 start
 #
 fw_att_control start
 fw_pos_control_l1 start
-
+airspeed_selector start
 #
 # Start Land Detector.
 #
 land_detector start fixedwing
-

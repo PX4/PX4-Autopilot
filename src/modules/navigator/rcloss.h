@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -58,7 +58,7 @@ public:
 
 private:
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_RCL_LT>) _param_loitertime
+		(ParamFloat<px4::params::NAV_RCL_LT>) _param_nav_gpsf_lt
 	)
 
 	enum RCLState {

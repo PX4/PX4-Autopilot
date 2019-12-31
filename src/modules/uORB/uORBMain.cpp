@@ -37,8 +37,8 @@
 #include "uORB.h"
 #include "uORBCommon.hpp"
 
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
@@ -78,6 +78,7 @@ $ uorb top
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print topic statistics");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("top", "Monitor topic publication rates");
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "print all instead of only currently publishing topics", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('1', "run only once, then exit", true);
 	PRINT_MODULE_USAGE_ARG("<filter1> [<filter2>]", "topic(s) to match (implies -a)", true);
 }
 

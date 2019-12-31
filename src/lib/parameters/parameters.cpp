@@ -51,11 +51,11 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_sem.h>
-#include <px4_shutdown.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/sem.h>
+#include <px4_platform_common/shutdown.h>
 #include <systemlib/uthash/utarray.h>
 
 using namespace time_literals;
@@ -66,6 +66,8 @@ using namespace time_literals;
 #if !defined(PARAM_NO_ORB)
 # include "uORB/uORB.h"
 # include "uORB/topics/parameter_update.h"
+# include <uORB/topics/actuator_armed.h>
+# include <uORB/Subscription.hpp>
 #endif
 
 #if defined(FLASH_BASED_PARAMS)
@@ -89,7 +91,7 @@ static char *param_user_file = nullptr;
 #endif
 
 #ifndef PARAM_NO_AUTOSAVE
-#include <px4_workqueue.h>
+#include <px4_platform_common/workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 static struct work_s autosave_work {};
@@ -499,7 +501,7 @@ param_value_is_default(param_t param)
 	param_lock_reader();
 	s = param_find_changed(param);
 	param_unlock_reader();
-	return s ? false : true;
+	return s == nullptr;
 }
 
 bool
@@ -613,6 +615,21 @@ static void
 autosave_worker(void *arg)
 {
 	bool disabled = false;
+
+#if !defined(PARAM_NO_ORB)
+
+	if (!param_get_default_file()) {
+		// In case we save to FLASH, defer param writes until disarmed,
+		// as writing to FLASH can stall the entire CPU (in rare cases around 300ms on STM32F7)
+		uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
+
+		if (armed_sub.get().armed) {
+			work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(1_s));
+			return;
+		}
+	}
+
+#endif
 
 	param_lock_writer();
 	last_autosave_timestamp = hrt_absolute_time();
@@ -961,9 +978,11 @@ param_save_default()
 	const char *filename = param_get_default_file();
 
 	if (!filename) {
+		perf_begin(param_export_perf);
 		param_lock_writer();
 		res = flash_param_save(false);
 		param_unlock_writer();
+		perf_end(param_export_perf);
 		return res;
 	}
 

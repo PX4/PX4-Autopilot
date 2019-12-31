@@ -45,36 +45,24 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
   * Communication Architecture
     * [Beat Kueng](https://github.com/bkueng)
     * [Julian Oes](https://github.com/JulianOes)
-  * UI / UX
-    * [Donald Gagne](https://github.com/DonLakeFlyer)
+  * UI in QGroundControl
     * [Gus Grubba](https://github.com/dogmaphobic)
   * [Multicopter Flight Control](https://github.com/PX4/Firmware/labels/multicopter)
-    * [Dennis Mannhart](https://github.com/Stifael)
+    * [Mathieu Bresciani](https://github.com/bresch)
+  * [Multicopter Software Architecture](https://github.com/PX4/Firmware/labels/multicopter)
     * [Matthias Grob](https://github.com/MaEtUgR)
   * [VTOL Flight Control](https://github.com/PX4/Firmware/labels/vtol)
-    * [Daniel Agar](https://github.com/dagar)
-    * [Mathieu Bresciani](https://github.com/bresch)
-    * [Sander Smeets](https://github.com/sanderux)
-    * [Roman Bapst](https://github.com/tumbili)
-    * [Andreas Antener](https://github.com/AndreasAntener)
+    * [Roman Bapst](https://github.com/RomanBapst)
   * [Fixed Wing Flight Control](https://github.com/PX4/Firmware/labels/fixedwing)
-    * [Daniel Agar](https://github.com/dagar)
-    * [Paul Riseborough](https://github.com/priseborough)
-  * Racers - [Matthias Grob](https://github.com/MaEtUgR)
-  * OS / drivers - [David Sidrane](https://github.com/davids5)
-  * [UAVCAN](https://github.com/PX4/Firmware/labels/uavcan) / Industrial - [Pavel Kirienko](https://github.com/pavel-kirienko)
-  * [State Estimation](https://github.com/PX4/Firmware/issues?q=is%3Aopen+is%3Aissue+label%3A%22state+estimation%22) - [James Goppert](https://github.com/jgoppert), [Paul Riseborough](https://github.com/priseborough)
+    * [Roman Bapst](https://github.com/RomanBapst)
+  * OS / NuttX [David Sidrane](https://github.com/davids5)
+  * Driver Architecture [Daniel Agar](https://github.com/dagar)
+  * Commander Architecture [Julian Oes](https://github.com/julianoes)
+  * [UAVCAN](https://github.com/PX4/Firmware/labels/uavcan) [Daniel Agar](https://github.com/dagar)
+  * [State Estimation](https://github.com/PX4/Firmware/issues?q=is%3Aopen+is%3Aissue+label%3A%22state+estimation%22) - [Paul Riseborough](https://github.com/priseborough)
   * Vision based navigation
-    * [Christoph Tobler](https://github.com/ChristophTobler)
-    * [Mohammed Kabir](https://github.com/mhkabir)
+    * [Julian Kent](https://github.com/jkflying)
   * Obstacle Avoidance - [Martina Rivizzigno](https://github.com/mrivi)
-  * [Snapdragon](https://github.com/PX4/Firmware/labels/snapdragon)
-    * [Christoph Tobler](https://github.com/ChristophTobler)
-  * [Intel Aero](https://github.com/PX4/Firmware/labels/intel%20aero)
-    * [Sugnan Prabhu](https://github.com/sugnanprabhu)
-    * [José Roberto de Souza](https://github.com/zehortigoza)
-  * [Raspberry Pi / Navio](https://github.com/PX4/Firmware/labels/raspberry_pi) - [Beat Kueng](https://github.com/bkueng)
-  * [Airmind MindPX / MindRacer](https://github.com/PX4/Firmware/labels/mindpx) - [Henry Zhang](https://github.com/iZhangHui)
   * RTPS/ROS2 Interface - [Nuno Marques](https://github.com/TSC21)
 
 See also [About Us](http://px4.io/about-us/#development_team) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
@@ -82,26 +70,34 @@ See also [About Us](http://px4.io/about-us/#development_team) (px4.io) and the [
 ## Supported Hardware
 
 This repository contains code supporting these boards:
-  * [Snapdragon Flight](https://docs.px4.io/en/flight_controller/snapdragon_flight.html)
-  * [Intel Aero](https://docs.px4.io/en/flight_controller/intel_aero.html)
-  * [Raspberry PI with Navio 2](https://docs.px4.io/en/flight_controller/raspberry_pi_navio2.html)
-  * [Parrot Bebop 2](https://dev.px4.io/en/advanced/parrot_bebop.html)
-  * FMUv2.x
-    * [Pixhawk](https://docs.px4.io/en/flight_controller/pixhawk.html)
-    * [Pixhawk Mini](https://docs.px4.io/en/flight_controller/pixhawk_mini.html)
-    * [Pixfalcon](https://docs.px4.io/en/flight_controller/pixfalcon.html)
-  * FMUv3.x [Pixhawk 2](https://docs.px4.io/en/flight_controller/pixhawk-2.html)
-  * FMUv4.x
-    * [Pixracer](https://docs.px4.io/en/flight_controller/pixracer.html)
-    * [Pixhawk 3 Pro](https://docs.px4.io/en/flight_controller/pixhawk3_pro.html)
-  * FMUv5.x (ARM Cortex M7)
-    * [Pixhawk 4](https://docs.px4.io/en/flight_controller/pixhawk4.html)
-    * [Pixhawk 4 mini](https://docs.px4.io/en/flight_controller/pixhawk4_mini.html)  
+  * [Snapdragon Flight](https://docs.px4.io/master/en/flight_controller/snapdragon_flight.html)
+  * [Intel Aero](https://docs.px4.io/master/en/flight_controller/intel_aero.html)
+  * [Raspberry PI with Navio 2](https://docs.px4.io/master/en/flight_controller/raspberry_pi_navio2.html)
+  * [Parrot Bebop 2](https://dev.px4.io/master/en/advanced/parrot_bebop.html)
+  * FMUv2
+    * [Pixhawk](https://docs.px4.io/master/en/flight_controller/pixhawk.html)
+    * [Pixfalcon](https://docs.px4.io/master/en/flight_controller/pixfalcon.html)
+  * FMUv3
+    * [Pixhawk 2](https://docs.px4.io/master/en/flight_controller/pixhawk-2.html)
+    * [Pixhawk Mini](https://docs.px4.io/master/en/flight_controller/pixhawk_mini.html)
+    * [CUAV Pixhack v3](https://docs.px4.io/master/en/flight_controller/pixhack_v3.html)
+  * FMUv4
+    * [Pixracer](https://docs.px4.io/master/en/flight_controller/pixracer.html)
+    * [Pixhawk 3 Pro](https://docs.px4.io/master/en/flight_controller/pixhawk3_pro.html)
+  * FMUv5 (ARM Cortex M7)
+    * [Pixhawk 4](https://docs.px4.io/master/en/flight_controller/pixhawk4.html)
+    * [Pixhawk 4 mini](https://docs.px4.io/master/en/flight_controller/pixhawk4_mini.html)
+    * [CUAV V5+](https://docs.px4.io/master/en/flight_controller/cuav_v5_plus.html)
+    * [CUAV V5 nano](https://docs.px4.io/master/en/flight_controller/cuav_v5_nano.html)
   * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
   * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
-  * [Bitcraze Crazyflie 2.0](https://docs.px4.io/en/flight_controller/crazyflie2.html)
+  * [Bitcraze Crazyflie 2.0](https://docs.px4.io/master/en/flight_controller/crazyflie2.html)
+  * [Omnibus F4 SD](https://docs.px4.io/master/en/flight_controller/omnibus_f4_sd.html)
+  * [BeagleBone Blue](https://docs.px4.io/master/en/flight_controller/beaglebone_blue.html)
+  * [Holybro Durandal](https://docs.px4.io/master/en/flight_controller/durandal.html)
+  * [Holybro Kakute F7](https://docs.px4.io/master/en/flight_controller/kakutef7.html)
 
-Additional information about supported hardware can be found in [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/en/flight_controller/).
+Additional information about supported hardware can be found in [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/master/en/flight_controller/).
 
 ## Project Roadmap
 

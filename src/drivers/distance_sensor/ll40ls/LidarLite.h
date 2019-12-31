@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,68 +41,60 @@
 #pragma once
 
 #include <drivers/device/device.h>
-#include <drivers/drv_range_finder.h>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <perf/perf_counter.h>
 
-/* Device limits */
-#define LL40LS_MIN_DISTANCE (0.05f)
-#define LL40LS_MAX_DISTANCE_V3 (35.00f)
-#define LL40LS_MAX_DISTANCE_V1 (25.00f)
+using namespace time_literals;
 
-// normal conversion wait time
-#define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
+// Device limits
+static constexpr float LL40LS_MIN_DISTANCE{0.05f};
+static constexpr float LL40LS_MAX_DISTANCE{25.00f};
+static constexpr float LL40LS_MAX_DISTANCE_V2{35.00f};
 
-// maximum time to wait for a conversion to complete.
-#define LL40LS_CONVERSION_TIMEOUT 100*1000UL /* 100ms */
+// Normal conversion wait time.
+static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
+
+// Maximum time to wait for a conversion to complete.
+static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};
 
 class LidarLite
 {
 public:
-	LidarLite();
-
-	virtual ~LidarLite() = default;
+	LidarLite(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	virtual ~LidarLite();
 
 	virtual int init() = 0;
-
-	virtual int ioctl(device::file_t *filp, int cmd, unsigned long arg);
-
 	virtual void start() = 0;
-
 	virtual void stop() = 0;
 
 	/**
-	* @brief
-	*   Diagnostics - print some basic information about the driver.
-	*/
-	virtual void print_info() = 0;
+	 * @brief Diagnostics - print some basic information about the driver.
+	 */
+	void print_info();
 
 	/**
-	 * @brief
-	 *   print registers to console
+	 * @brief print registers to console.
 	 */
-	virtual void print_registers() = 0;
-
-	virtual const char *get_dev_name() = 0;
+	virtual void print_registers() {};
 
 protected:
-	/**
-	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults LL40LS_MIN_DISTANCE
-	* and LL40LS_MAX_DISTANCE_V3
-	*/
-	void                set_minimum_distance(const float min);
-	void                set_maximum_distance(const float max);
-	float               get_minimum_distance() const;
-	float               get_maximum_distance() const;
 
-	uint32_t            getMeasureTicks() const;
+	uint32_t get_measure_interval() const { return _measure_interval; };
 
-	virtual int         measure() = 0;
-	virtual int         collect() = 0;
+	virtual int collect() = 0;
 
-	virtual int         reset_sensor() = 0;
+	virtual int measure() = 0;
+
+	virtual int reset_sensor() { return PX4_ERROR; };
+
+	PX4Rangefinder	_px4_rangefinder;
+
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "ll40ls: comms errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ll40ls: read")};
+	perf_counter_t _sensor_resets{perf_alloc(PC_COUNT, "ll40ls: resets")};
+	perf_counter_t _sensor_zero_resets{perf_alloc(PC_COUNT, "ll40ls: zero resets")};
 
 private:
-	float               _min_distance;
-	float               _max_distance;
-	uint32_t            _measure_ticks;
+
+	uint32_t  _measure_interval{LL40LS_CONVERSION_INTERVAL};
 };

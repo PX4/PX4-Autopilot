@@ -33,12 +33,15 @@
 px4_add_module(
 	MODULE drivers__hmc5883
 	MAIN hmc5883
-	STACK_MAIN 1500
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
+		HMC5883.cpp
+		HMC5883.hpp
 		hmc5883_i2c.cpp
 		hmc5883_spi.cpp
-		hmc5883.cpp
+		hmc5883_main.cpp
 	DEPENDS
+		px4_work_queue
 	)
 

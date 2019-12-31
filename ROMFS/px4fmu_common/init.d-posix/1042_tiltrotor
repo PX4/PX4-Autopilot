@@ -33,15 +33,13 @@ then
 	param set NAV_ACC_RAD 5
 	param set NAV_LOITER_RAD 80
 
-	param set VT_F_TRANS_DUR 1.5
+	param set VT_F_TRANS_DUR 5.0
 	param set VT_F_TRANS_THR 0.75
-	param set VT_MOT_COUNT 4
 	param set VT_TILT_FW 3.1415
 	param set VT_TILT_TRANS 1.2
 	param set VT_ELEV_MC_LOCK 0
 	param set VT_TYPE 1
 
-	param set WEST_EN 1
 fi
 
 set MAV_TYPE 21

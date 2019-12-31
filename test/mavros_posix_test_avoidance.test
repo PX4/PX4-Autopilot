@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Posix SITL MAVROS integration tests -->
+    <!-- Test a mission -->
+    <arg name="est" default="ekf2"/>
+    <arg name="gui" default="false"/>
+    <arg name="interactive" default="false"/>
+    <arg name="mission" default="avoidance"/>
+    <arg name="sdf" default="$(find avoidance)/sim/models/iris_depth_camera_3/iris_depth_camera.sdf"/>
+    <arg name="vehicle" default="iris_obs_avoid"/>
+    <arg name="world" default="$(find avoidance)/sim/worlds/boxes1.world"/>
+    <!-- PX4 SITL and Gazebo -->
+    <include file="$(find px4)/launch/posix_sitl.launch">
+        <arg name="est" value="$(arg est)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="interactive" value="$(arg interactive)"/>
+        <arg name="respawn_gazebo" value="true"/>
+        <arg name="sdf" value="$(arg sdf)"/>
+        <arg name="vehicle" value="$(arg vehicle)"/>
+        <arg name="verbose" value="true"/>
+        <arg name="world" value="$(arg world)"/>
+    </include>
+    <!-- MAVROS -->
+    <include file="$(find mavros)/launch/node.launch">
+        <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml"/>
+        <arg name="config_yaml" value="$(find local_planner)/resource/px4_config.yaml"/>
+        <arg name="gcs_url" value=""/>
+        <arg name="fcu_url" value="udp://:14540@localhost:14557"/>
+        <arg name="tgt_system" value="1"/>
+        <arg name="tgt_component" value="1"/>
+        <arg name="respawn_mavros" value="true"/>
+    </include>
+    <!-- Transformation Publishers -->
+    <node pkg="tf" type="static_transform_publisher" name="tf_front_camera"
+          args="0 0 0 -1.57 0 -1.57 fcu front_camera_link 10"/>
+    <node pkg="tf" type="static_transform_publisher" name="tf_right_camera"
+          args="0 0 0 -3.14 0 -1.57 fcu right_camera_link 10"/>
+    <node pkg="tf" type="static_transform_publisher" name="tf_left_camera"
+          args="0 0 0 0 0 -1.57 fcu left_camera_link 10"/>
+    <!-- Suppress console outputs -->
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find local_planner)/resource/custom_rosconsole.conf"/>
+    <!-- Launch Local Planner -->
+    <arg name="pointcloud_topics" default="[/camera_front/depth/points,/camera_left/depth/points,/camera_right/depth/points]"/>
+    <node name="local_planner_node" pkg="local_planner" type="local_planner_node" output="screen">
+        <param name="goal_x_param" value="17" />
+        <param name="goal_y_param" value="15"/>
+        <param name="goal_z_param" value="3" />
+        <rosparam param="pointcloud_topics" subst_value="True">$(arg pointcloud_topics)</rosparam>
+    </node>
+    <!-- ROStest -->
+    <test test-name="$(arg mission)" pkg="px4" type="mission_test.py" time-limit="300.0" args="$(arg mission).plan"/>
+</launch>

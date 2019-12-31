@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
-#include "SDP3X.hpp"
-
 /**
  * @file SDP3X.hpp
  *
  * Driver for Sensirion SDP3X Differential Pressure Sensor
  *
  */
+
+#include "SDP3X.hpp"
 
 int
 SDP3X::probe()
@@ -147,7 +147,7 @@ SDP3X::collect()
 	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
-	differential_pressure_s report;
+	differential_pressure_s report{};
 
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -156,9 +156,7 @@ SDP3X::collect()
 	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
 	report.device_id = _device_id.devid;
 
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
-	}
+	_airspeed_pub.publish(report);
 
 	ret = OK;
 
@@ -168,7 +166,7 @@ SDP3X::collect()
 }
 
 void
-SDP3X::cycle()
+SDP3X::Run()
 {
 	int ret = PX4_ERROR;
 
@@ -181,7 +179,7 @@ SDP3X::cycle()
 	}
 
 	// schedule a fresh cycle call when the measurement is done
-	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, USEC2TICK(CONVERSION_INTERVAL));
+	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
 bool SDP3X::crc(const uint8_t data[], unsigned size, uint8_t checksum)

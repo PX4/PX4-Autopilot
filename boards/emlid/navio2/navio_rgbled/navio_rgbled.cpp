@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <drivers/drv_led.h>
 
 #include <string.h>
@@ -53,13 +53,6 @@ RGBLED::RGBLED(const char *name)
 	, _gpioG(27)
 	, _gpioB(6)
 {
-};
-
-RGBLED::~RGBLED()
-{
-	if (_led_controller.led_control_subscription() >= 0) {
-		orb_unsubscribe(_led_controller.led_control_subscription());
-	}
 };
 
 int RGBLED::start()
@@ -133,15 +126,14 @@ cleanup:
 	return res;
 }
 
-int RGBLED::stop()
+int
+RGBLED::stop()
 {
-	int res;
-
 	_gpioR.unexportPin();
 	_gpioG.unexportPin();
 	_gpioB.unexportPin();
 
-	res = DevObj::stop();
+	int res = DevObj::stop();
 
 	if (res < 0) {
 		DF_LOG_ERR("could not stop DevObj");
@@ -152,13 +144,9 @@ int RGBLED::stop()
 	return 0;
 }
 
-void RGBLED::_measure()
+void
+RGBLED::_measure()
 {
-	if (!_led_controller.is_init()) {
-		int led_control_sub = orb_subscribe(ORB_ID(led_control));
-		_led_controller.init(led_control_sub);
-	}
-
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {

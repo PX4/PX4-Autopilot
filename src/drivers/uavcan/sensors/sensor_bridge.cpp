@@ -41,6 +41,8 @@
 #include "gnss.hpp"
 #include "mag.hpp"
 #include "baro.hpp"
+#include "flow.hpp"
+#include "battery.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -50,6 +52,8 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanBarometerBridge(node));
 	list.add(new UavcanMagnetometerBridge(node));
 	list.add(new UavcanGnssBridge(node));
+	list.add(new UavcanFlowBridge(node));
+	list.add(new UavcanBatteryBridge(node));
 }
 
 /*
@@ -66,10 +70,9 @@ UavcanCDevSensorBridgeBase::~UavcanCDevSensorBridgeBase()
 	delete [] _channels;
 }
 
-void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
+void
+UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 {
-	assert(report != nullptr);
-
 	Channel *channel = nullptr;
 
 	// Checking if such channel already exists
@@ -137,7 +140,8 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
 }
 
-unsigned UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
+unsigned
+UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 {
 	unsigned out = 0;
 
@@ -150,7 +154,8 @@ unsigned UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 	return out;
 }
 
-void UavcanCDevSensorBridgeBase::print_status() const
+void
+UavcanCDevSensorBridgeBase::print_status() const
 {
 	printf("devname: %s\n", _class_devname);
 

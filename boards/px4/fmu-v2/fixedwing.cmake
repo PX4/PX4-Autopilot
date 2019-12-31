@@ -10,17 +10,17 @@ px4_add_board(
 	IO px4_io-v2_default
 	#TESTING
 	#UAVCAN_INTERFACES 2
-
+	CONSTRAINED_FLASH
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
-
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
-		batt_smbus
+		#batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
@@ -29,25 +29,24 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		px4fmu
 		px4io
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		#telemetry # all available telemetry drivers
 		telemetry/iridiumsbd
+		tone_alarm
 		#uavcan
-
 	MODULES
+		airspeed_selector
+		battery_status
 		camera_feedback
 		commander
 		dataman
 		ekf2
-		events
+		#events
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
@@ -55,16 +54,16 @@ px4_add_board(
 		logger
 		mavlink
 		navigator
+		rc_update
 		sensors
 		vmount
-		wind_estimator
-
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		#config
 		#dumpfile
 		#esc_calib
 		hardfault_log
+		#i2cdetect
 		#led_control
 		mixer
 		#motor_ramp
@@ -79,6 +78,7 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
-		usb_connected
+		#usb_connected
 		ver
+		#work_queue
 	)

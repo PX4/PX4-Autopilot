@@ -41,57 +41,93 @@
 #include "FailureDetector.hpp"
 
 FailureDetector::FailureDetector(ModuleParams *parent) :
-	ModuleParams(parent),
-	_sub_vehicle_attitude_setpoint(ORB_ID(vehicle_attitude_setpoint)),
-	_sub_vehicule_attitude(ORB_ID(vehicle_attitude))
+	ModuleParams(parent)
 {
 }
 
+bool FailureDetector::resetStatus()
+{
+	bool status_changed = _status != FAILURE_NONE;
+	_status = FAILURE_NONE;
+
+	return status_changed;
+}
+
 bool
-FailureDetector::update()
+FailureDetector::update(const vehicle_status_s &vehicle_status)
 {
 	bool updated(false);
 
-	updated = update_attitude_status();
+	if (isAttitudeStabilized(vehicle_status)) {
+		updated = updateAttitudeStatus();
+
+	} else {
+		updated = resetStatus();
+	}
 
 	return updated;
 }
 
 bool
-FailureDetector::update_attitude_status()
+FailureDetector::isAttitudeStabilized(const vehicle_status_s &vehicle_status)
+{
+	bool attitude_is_stabilized{false};
+	const uint8_t vehicle_type = vehicle_status.vehicle_type;
+	const uint8_t nav_state = vehicle_status.nav_state;
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO &&
+					  nav_state != vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
+
+	} else if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_MANUAL &&
+					  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO &&
+					  nav_state != vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
+	}
+
+	return attitude_is_stabilized;
+}
+
+bool
+FailureDetector::updateAttitudeStatus()
 {
 	bool updated(false);
+	vehicle_attitude_s attitude;
 
-	if (_sub_vehicule_attitude.update()) {
-		const vehicle_attitude_s &attitude = _sub_vehicule_attitude.get();
+	if (_sub_vehicule_attitude.update(&attitude)) {
 
 		const matrix::Eulerf euler(matrix::Quatf(attitude.q));
 		const float roll(euler.phi());
 		const float pitch(euler.theta());
 
-		const float max_roll_deg = _fail_trig_roll.get();
-		const float max_pitch_deg = _fail_trig_pitch.get();
+		const float max_roll_deg = _param_fd_fail_r.get();
+		const float max_pitch_deg = _param_fd_fail_p.get();
 		const float max_roll(fabsf(math::radians(max_roll_deg)));
 		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
 
 		const bool roll_status = (max_roll > 0.0f) && (fabsf(roll) > max_roll);
 		const bool pitch_status = (max_pitch > 0.0f) && (fabsf(pitch) > max_pitch);
 
+		hrt_abstime time_now = hrt_absolute_time();
+
+		// Update hysteresis
+		_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_fd_fail_r_ttri.get()));
+		_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_fd_fail_p_ttri.get()));
+		_roll_failure_hysteresis.set_state_and_update(roll_status, time_now);
+		_pitch_failure_hysteresis.set_state_and_update(pitch_status, time_now);
+
 		// Update bitmask
 		_status &= ~(FAILURE_ROLL | FAILURE_PITCH);
 
-		if (roll_status) {
+		if (_roll_failure_hysteresis.get_state()) {
 			_status |= FAILURE_ROLL;
 		}
 
-		if (pitch_status) {
+		if (_pitch_failure_hysteresis.get_state()) {
 			_status |= FAILURE_PITCH;
 		}
 
 		updated = true;
-
-	} else {
-		updated = false;
 	}
 
 	return updated;

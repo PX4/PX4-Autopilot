@@ -1,3 +1,4 @@
+check_id,threshold
 mag_fail_pct,0.0
 yaw_fail_pct,0.0
 vel_fail_pct,0.0

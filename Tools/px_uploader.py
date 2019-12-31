@@ -205,7 +205,7 @@ class uploader(object):
         self.window_max = 256
         self.window_per = 2  # Sync,<result>
         self.ackWindowedMode = False  # Assume Non Widowed mode for all USB CDC
-        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
+        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0)
         self.otp = b''
         self.sn = b''
         self.baudrate_bootloader = baudrate_bootloader
@@ -247,14 +247,7 @@ class uploader(object):
 
     def __send(self, c):
         # print("send " + binascii.hexlify(c))
-        while True:
-            try:
-                self.port.write(c)
-                break
-            except serial.SerialTimeoutException as e:
-                print("Write timeout (%s), trying again" % e)
-                time.sleep(0.04)
-                continue
+        self.port.write(c)
 
     def __recv(self, count=1):
         c = self.port.read(count)
@@ -412,10 +405,10 @@ class uploader(object):
         deadline = time.time() + 30.0
         while time.time() < deadline:
 
-            # Draw progress bar (erase usually takes about 9 seconds to complete)
+            usualEraseDuration = 15.0
             estimatedTimeRemaining = deadline-time.time()
-            if estimatedTimeRemaining >= 9.0:
-                self.__drawProgressBar(label, 30.0-estimatedTimeRemaining, 9.0)
+            if estimatedTimeRemaining >= usualEraseDuration:
+                self.__drawProgressBar(label, 30.0-estimatedTimeRemaining, usualEraseDuration)
             else:
                 self.__drawProgressBar(label, 10.0, 10.0)
                 sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()))
@@ -440,7 +433,7 @@ class uploader(object):
         self.__send(data)
         self.__send(uploader.EOC)
         if (not windowMode):
-            self.__getSync()
+            self.__getSync(False)
         else:
             # The following is done to have minimum delay on the transmission
             # of the ne fw. The per block cost of __getSync was about 16 mS per.
@@ -731,6 +724,26 @@ def main():
         print("==========================================================================================================")
         print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
         print("==========================================================================================================")
+
+    # We need to check for pyserial because the import itself doesn't
+    # seem to fail, at least not on macOS.
+    pyserial_installed = False
+    try:
+        if serial.__version__:
+            pyserial_installed = True
+    except:
+        pass
+
+    try:
+        if serial.VERSION:
+            pyserial_installed = True
+    except:
+        pass
+
+    if not pyserial_installed:
+        print("Error: pyserial not installed!")
+        print("    (Install using: sudo pip install pyserial)")
+        sys.exit(1)
 
     # Load the firmware file
     fw = firmware(args.firmware)

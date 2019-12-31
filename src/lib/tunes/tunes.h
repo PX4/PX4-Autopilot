@@ -45,7 +45,6 @@
 #define TUNE_DEFAULT_OCTAVE 4
 #define TUNE_DEFAULT_TEMPO 120
 
-#define TUNE_MAX_STRENGTH 100
 #define TUNE_MAX_UPDATE_INTERVAL_US 100000
 
 
@@ -90,7 +89,7 @@ public:
 	 *
 	 * @param  string    tune input string
 	 */
-	void set_string(const char *const string, uint8_t strength);
+	void set_string(const char *const string, uint8_t volume);
 
 	/**
 	 * Get next note in the current tune, which has been provided by either
@@ -100,19 +99,19 @@ public:
 	 * @param  silence   return silence duration (us)
 	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
-	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence);
+	int get_next_note(unsigned &frequency, unsigned &duration, unsigned &silence);
 
 	/**
 	 * Get next note in the current tune, which has been provided by either
 	 * set_control or play_string
 	 * @param  frequency return frequency value (Hz)
-	 * @param  duration  return duration of the tone (us)
+	 * @param  duration  return duration of the note (us)
 	 * @param  silence   return silence duration (us)
-	 * @param  strength  return the strength of the note (between 0-100)
-	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
+	 * @param  volume    return the volume level of the note (between 0-100)
+	 * @return           -1 for no tune available/error, 0 to not play anything and 1 to play
 	 */
-	int get_next_tune(unsigned &frequency, unsigned &duration,
-			  unsigned &silence, uint8_t &strength);
+	int get_next_note(unsigned &frequency, unsigned &duration,
+			  unsigned &silence, uint8_t &volume);
 
 	/**
 	 *  Get the number of default tunes. This is useful for when a tune is
@@ -213,7 +212,7 @@ private:
 	unsigned int _duration  = 0;
 	unsigned int _frequency = 0;
 	unsigned int _silence   = 0;
-	uint8_t      _strength  = 0;
+	uint8_t      _volume    = 0;
 
 	bool  _using_custom_msg = false;
 };

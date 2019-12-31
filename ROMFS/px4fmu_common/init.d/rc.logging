@@ -4,7 +4,7 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-if param greater UAVCAN_ENABLE 1
+if param greater -s UAVCAN_ENABLE 1
 then
 	# Reduce logger buffer to free up some RAM for UAVCAN servers.
 	set LOGGER_BUF 6
@@ -24,4 +24,12 @@ then
 	set LOGGER_ARGS "-f"
 fi
 
-logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
+if param compare SDLOG_MODE 3
+then
+	set LOGGER_ARGS "-x"
+fi
+
+if ! param compare SDLOG_MODE -1
+then
+	logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
+fi

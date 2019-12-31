@@ -18,22 +18,34 @@ do
   fi
 done
 
+# install Homebrew
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" < /dev/null
+
+# confirm Homebrew installed correctly
+brew doctor
+
 # Install px4-dev formula
-brew tap PX4/px4
-if [ brew ls --versions px4-dev > /dev/null ]; then
-  brew install px4-dev
-elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
+echo
+echo "Installing PX4 general dependencies (homebrew px4-dev)"
+
+if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
+  brew tap PX4/px4
   brew reinstall px4-dev
+elif brew ls --versions px4-dev > /dev/null; then
+  brew tap PX4/px4
+  brew install px4-dev
 fi
 
-# Python dependencies
-sudo easy_install pip
-sudo -H pip install --upgrade --force-reinstall pip
-sudo -H pip install -I -r ${DIR}/requirements.txt
+# Python3 dependencies
+echo
+echo "Installing PX4 Python3 dependencies"
+brew install python3
+sudo -H python3 -m pip install --upgrade pip
+sudo -H python3 -m pip install -r ${DIR}/requirements.txt
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
-  if [ brew ls --versions px4-sim > /dev/null ]; then
+  if brew ls --versions px4-sim > /dev/null; then
     brew install px4-sim
   elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
     brew reinstall px4-sim

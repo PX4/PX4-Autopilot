@@ -87,12 +87,12 @@ fi
 #
 # UGV setup.
 #
-if [ $VEHICLE_TYPE = ugv ]
+if [ $VEHICLE_TYPE = rover ]
 then
 	if [ $MIXER = none ]
 	then
 		# Set default mixer for UGV if not defined.
-		set MIXER ugv_generic
+		set MIXER rover_generic
 	fi
 
 	if [ $MAV_TYPE = none ]
@@ -108,7 +108,7 @@ then
 	sh /etc/init.d/rc.interface
 
 	# Start standard UGV apps.
-	sh /etc/init.d/rc.ugv_apps
+	sh /etc/init.d/rc.rover_apps
 fi
 
 #

@@ -39,11 +39,12 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
 #include <math.h>
+#include <float.h>
 #include <mathlib/math/test/test.hpp>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 
@@ -65,10 +66,10 @@ public:
 // methods
 	BlockLowPass(SuperBlock *parent, const char *name) :
 		Block(parent, name),
-		_state(0.0f / 0.0f /* initialize to invalid val, force into is_finite() check on first call */),
+		_state(NAN /* initialize to invalid val, force into is_finite() check on first call */),
 		_fCut(this, "") // only one parameter, no need to name
 	{}
-	virtual ~BlockLowPass() {}
+	virtual ~BlockLowPass() = default;
 	float update(float input);
 // accessors
 	float getState() { return _state; }

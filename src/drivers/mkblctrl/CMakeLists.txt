@@ -36,7 +36,6 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		mkblctrl.cpp
-		mkblctrl_params.c
 	DEPENDS
 		mixer
 	)

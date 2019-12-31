@@ -2,8 +2,8 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_config.h>
-#include <px4_log.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform/gpio.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -47,7 +47,7 @@ static const uint32_t spi1selects_gpio[] = PX4_FLOW_BUS_CS_GPIO;
 __EXPORT void stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
-	board_gpio_init(spi1selects_gpio, arraySize(spi1selects_gpio));
+	px4_gpio_init(spi1selects_gpio, arraySize(spi1selects_gpio));
 #endif
 
 }
@@ -69,7 +69,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_expansion = stm32_spibus_initialize(PX4_SPI_BUS_EXPANSION);
 
 	if (!spi_expansion) {
-		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXPANSION);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXPANSION);
 		return -ENODEV;
 	}
 
@@ -77,7 +77,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	int ret = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_expansion);
 
 	if (ret != OK) {
-		PX4_ERR("[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
+		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
 		return -ENODEV;
 	}
 

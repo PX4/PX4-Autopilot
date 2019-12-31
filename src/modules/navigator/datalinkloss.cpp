@@ -97,15 +97,15 @@ DataLinkLoss::set_dll_item()
 
 	switch (_dll_state) {
 	case DLL_STATE_FLYTOCOMMSHOLDWP: {
-			_mission_item.lat = (double)(_param_commsholdlat.get()) * 1.0e-7;
-			_mission_item.lon = (double)(_param_commsholdlon.get()) * 1.0e-7;
+			_mission_item.lat = (double)(_param_nav_dll_ch_lat.get()) * 1.0e-7;
+			_mission_item.lon = (double)(_param_nav_dll_ch_lon.get()) * 1.0e-7;
 			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = _param_commsholdalt.get();
+			_mission_item.altitude = _param_nav_dll_ch_alt.get();
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = _param_commsholdwaittime.get() < 0.0f ? 0.0f : _param_commsholdwaittime.get();
+			_mission_item.time_inside = _param_nav_dll_ch_t.get() < 0.0f ? 0.0f : _param_nav_dll_ch_t.get();
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
@@ -114,14 +114,14 @@ DataLinkLoss::set_dll_item()
 		}
 
 	case DLL_STATE_FLYTOAIRFIELDHOMEWP: {
-			_mission_item.lat = (double)(_param_airfieldhomelat.get()) * 1.0e-7;
-			_mission_item.lon = (double)(_param_airfieldhomelon.get()) * 1.0e-7;
+			_mission_item.lat = (double)(_param_nav_ah_lat.get()) * 1.0e-7;
+			_mission_item.lon = (double)(_param_nav_ah_lon.get()) * 1.0e-7;
 			_mission_item.altitude_is_relative = false;
-			_mission_item.altitude = _param_airfieldhomealt.get();
+			_mission_item.altitude = _param_nav_ah_alt.get();
 			_mission_item.yaw = NAN;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
-			_mission_item.time_inside = _param_airfieldhomewaittime.get() < 0.0f ? 0.0f : _param_airfieldhomewaittime.get();
+			_mission_item.time_inside = _param_nav_dll_ah_t.get() < 0.0f ? 0.0f : _param_nav_dll_ah_t.get();
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
@@ -163,9 +163,9 @@ DataLinkLoss::advance_dll()
 
 		/* Check the number of data link losses. If above home fly home directly */
 		/* if number of data link losses limit is not reached fly to comms hold wp */
-		if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
+		if (_navigator->get_vstatus()->data_link_lost_counter > _param_nav_dll_n.get()) {
 			warnx("%d data link losses, limit is %d, fly to airfield home",
-			      _navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
+			      _navigator->get_vstatus()->data_link_lost_counter, _param_nav_dll_n.get());
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "too many DL losses, fly to airfield home");
 			_navigator->get_mission_result()->stay_in_failsafe = true;
 			_navigator->set_mission_result_updated();
@@ -173,7 +173,7 @@ DataLinkLoss::advance_dll()
 			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 
 		} else {
-			if (!_param_skipcommshold.get()) {
+			if (!_param_nav_dll_chsk.get()) {
 				warnx("fly to comms hold, datalink loss counter: %d", _navigator->get_vstatus()->data_link_lost_counter);
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "fly to comms hold");
 				_dll_state = DLL_STATE_FLYTOCOMMSHOLDWP;

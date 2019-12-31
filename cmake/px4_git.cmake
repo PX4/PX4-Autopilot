@@ -31,7 +31,11 @@
 #
 ############################################################################
 
-include(px4_base)
+# cmake include guard
+if(px4_git_included)
+	return()
+endif(px4_git_included)
+set(px4_git_included true)
 
 #=============================================================================
 #

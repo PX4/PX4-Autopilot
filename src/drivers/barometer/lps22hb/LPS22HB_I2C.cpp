@@ -39,15 +39,6 @@
 
 #include "LPS22HB.hpp"
 
-#include <cstring>
-
-#include <px4_config.h>
-
-#include <drivers/device/i2c.h>
-#include <drivers/drv_device.h>
-
-#include "board_config.h"
-
 #define LPS22HB_ADDRESS		0x5D
 
 device::Device *LPS22HB_I2C_interface(int bus);

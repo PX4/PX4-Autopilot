@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE systemcmds__ver
 	MAIN ver
-	STACK_MAIN 1024
 	COMPILE_FLAGS
 	SRCS
 		ver.c

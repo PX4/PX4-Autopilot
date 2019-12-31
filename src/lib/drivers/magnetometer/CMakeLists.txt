@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-px4_add_library(drivers__magnetometer PX4Magnetometer.cpp)
+px4_add_library(drivers_magnetometer PX4Magnetometer.cpp)

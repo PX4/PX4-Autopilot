@@ -3,39 +3,37 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR intel
 	MODEL aerofc-v1
-	LABEL rtsp
+	LABEL rtps
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
-
 	SERIAL_PORTS
 		GPS1:/dev/ttyS5
 		TEL1:/dev/ttyS3
 		TEL2:/dev/ttyS1
-
 	DRIVERS
 		barometer/ms5611
 		#camera_trigger
 		#differential_pressure # all available differential pressure drivers
 		distance_sensor
 		gps
-		#irlock
 		imu/mpu9250
+		#irlock
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		magnetometer/ist8310
+		#optical_flow/px4flow
 		protocol_splitter
 		pwm_out_sim
-		#px4flow
 		px4fmu
 		rc_input
-		stm32
 		tap_esc
 		#telemetry # all available telemetry drivers
 		#uavcan
-
 	MODULES
+		#airspeed_selector
 		attitude_estimator_q
+		battery_status
 		#camera_feedback
 		commander
 		dataman
@@ -43,8 +41,6 @@ px4_add_board(
 		events
 		#fw_att_control
 		#fw_pos_control_l1
-		#gnd_att_control
-		#gnd_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -53,19 +49,23 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
+		mc_rate_control
 		micrortps_bridge
 		navigator
+		rc_update
+		#rover_pos_control
 		sensors
+		#sih
 		vmount
 		#vtol_att_control
-		#wind_estimator
-
 	SYSTEMCMDS
 		bl_update
 		config
+		#dmesg
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp
@@ -84,16 +84,15 @@ px4_add_board(
 		#topic_listener
 		tune_control
 		ver
-
+		work_queue
 	EXAMPLES
 		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
-		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
-		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
-		#segway
 		#uuv_example_app
-
 	)

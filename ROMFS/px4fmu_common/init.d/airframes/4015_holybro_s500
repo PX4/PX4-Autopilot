@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# @name Holybro S500
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_x
+set PWM_OUT 1234
+
+if [ $AUTOCNF = yes ]
+then
+	param set IMU_GYRO_CUTOFF 80
+	param set MC_DTERM_CUTOFF 40
+	param set MC_ROLLRATE_P 0.14
+	param set MC_PITCHRATE_P 0.14
+	param set MC_ROLLRATE_I 0.3
+	param set MC_PITCHRATE_I 0.3
+	param set MC_ROLLRATE_D 0.004
+	param set MC_PITCHRATE_D 0.004
+fi

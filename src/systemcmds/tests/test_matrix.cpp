@@ -68,6 +68,7 @@ private:
 	bool vector3Tests();
 	bool vectorAssignmentTests();
 	bool dcmRenormTests();
+	bool pseudoInverseTests();
 };
 
 bool MatrixTest::run_tests()
@@ -89,17 +90,13 @@ bool MatrixTest::run_tests()
 	ut_run_test(vector3Tests);
 	ut_run_test(vectorAssignmentTests);
 	ut_run_test(dcmRenormTests);
+	ut_run_test(pseudoInverseTests);
 
 	return (_tests_failed == 0);
 }
 
 
 ut_declare_test_c(test_matrix, MatrixTest)
-
-using matrix::Dcmf;
-using matrix::Quatf;
-using matrix::Eulerf;
-using matrix::Vector3f;
 
 using std::fabs;
 
@@ -392,8 +389,6 @@ bool MatrixTest::integrationTests()
 	return true;
 }
 
-template class matrix::SquareMatrix<float, 3>;
-
 bool MatrixTest::inverseTests()
 {
 	float data[9] = {0, 2, 3,
@@ -438,8 +433,10 @@ bool MatrixTest::matrixAssignmentTests()
 
 	double eps = 1e-6f;
 
-	for (int i = 0; i < 9; i++) {
-		ut_test(fabs(data[i] - m2.data()[i]) < eps);
+	for (size_t i = 0; i < 3; i++) {
+		for (size_t j = 0; j < 3; j++) {
+			ut_test(fabs(data[i * 3 + j] - m2(i, j)) < eps);
+		}
 	}
 
 	float data_times_2[9] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
@@ -493,8 +490,8 @@ bool MatrixTest::matrixAssignmentTests()
 	ut_test(fabs(m5(0, 0) - s) < 1e-5);
 
 	Matrix<float, 2, 2> m6;
-	m6.setRow(0, Vector2f(1, 1));
-	m6.setCol(0, Vector2f(1, 1));
+	m6.row(0) = Vector2f(1, 1);
+	m6.col(0) = Vector2f(1, 1);
 
 	return true;
 }
@@ -578,7 +575,7 @@ bool MatrixTest::sliceTests()
 	};
 
 	Matrix<float, 2, 2> C(data_2);
-	A.set(C, 1, 1);
+	A.slice<2, 2>(1, 1) = C;
 
 	float data_2_check[9] = {
 		0, 2, 3,
@@ -644,7 +641,7 @@ bool MatrixTest::vectorTests()
 	ut_test(isEqual(v2, v3));
 	float data1_sq[] = {1, 4, 9, 16, 25};
 	Vector<float, 5> v4(data1_sq);
-	ut_test(isEqual(v1, v4.pow(0.5)));
+	ut_test(isEqual(v1, v4.sqrt()));
 
 	return true;
 }
@@ -737,7 +734,7 @@ bool MatrixTest::dcmRenormTests()
 
 	if (verbose) {
 		for (int row = 0; row < 3; row++) {
-			matrix::Vector3f rvec(A._data[row]);
+			Vector3f rvec(Matrix<float, 1, 3>(A.row(row)).transpose());
 			err += fabsf(1.0f - rvec.length());
 		}
 
@@ -749,7 +746,7 @@ bool MatrixTest::dcmRenormTests()
 	err = 0.0f;
 
 	for (int row = 0; row < 3; row++) {
-		matrix::Vector3f rvec(A._data[row]);
+		Vector3f rvec(Matrix<float, 1, 3>(A.row(row)).transpose());
 		err += fabsf(1.0f - rvec.length());
 	}
 
@@ -761,4 +758,96 @@ bool MatrixTest::dcmRenormTests()
 	ut_test(err < eps);
 
 	return true;
+}
+
+bool MatrixTest::pseudoInverseTests()
+{
+	// 3x4 Matrix test
+	float data0[12] = {
+		0.f, 1.f,  2.f,  3.f,
+		4.f, 5.f,  6.f,  7.f,
+		8.f, 9.f, 10.f, 11.f
+	};
+
+	float data0_check[12] = {-0.3375f, -0.1f,  0.1375f,
+				 -0.13333333f, -0.03333333f,  0.06666667f,
+				 0.07083333f,  0.03333333f, -0.00416667f,
+				 0.275f, 0.1f, -0.075f
+				};
+
+	Matrix<float, 3, 4> A0(data0);
+	Matrix<float, 4, 3> A0_I = geninv(A0);
+	Matrix<float, 4, 3> A0_I_check(data0_check);
+
+	ut_test((A0_I - A0_I_check).abs().max() < 1e-5);
+
+	// 4x3 Matrix test
+	float data1[12] = {
+		0.f, 4.f, 8.f,
+		1.f, 5.f, 9.f,
+		2.f, 6.f, 10.f,
+		3.f, 7.f, 11.f
+	};
+
+	float data1_check[12] = {-0.3375f, -0.13333333f,  0.07083333f,  0.275f,
+				 -0.1f, -0.03333333f,  0.03333333f,  0.1f,
+				 0.1375f,  0.06666667f, -0.00416667f, -0.075f
+				};
+
+	Matrix<float, 4, 3> A1(data1);
+	Matrix<float, 3, 4> A1_I = geninv(A1);
+	Matrix<float, 3, 4> A1_I_check(data1_check);
+
+	ut_test((A1_I - A1_I_check).abs().max() < 1e-5);
+
+	// Square matrix test
+	float data2[9] = {
+		0, 2, 3,
+		4, 5, 6,
+		7, 8, 10
+	};
+	float data2_check[9] = {-0.4f, -0.8f,  0.6f,
+				-0.4f,  4.2f, -2.4f,
+				0.6f, -2.8f,  1.6f
+			       };
+
+	SquareMatrix<float, 3> A2(data2);
+	SquareMatrix<float, 3> A2_I = inv(A2);
+	SquareMatrix<float, 3> A2_I_check(data2_check);
+	ut_test((A2_I - A2_I_check).abs().max() < 1e-5);
+
+	// Mock-up effectiveness matrix
+	const float B_quad_w[6][16] = {
+		{-0.5717536f,  0.43756646f,  0.5717536f, -0.43756646f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{ 0.35355328f, -0.35355328f,  0.35355328f, -0.35355328f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{ 0.28323701f,  0.28323701f, -0.28323701f, -0.28323701f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+	};
+	Matrix<float, 6, 16> B(B_quad_w);
+	const float A_quad_w[16][6] = {
+		{ -0.495383f,  0.707107f,  0.765306f,  0.0f, 0.0f, -1.000000f },
+		{  0.495383f, -0.707107f,  1.000000f,  0.0f, 0.0f, -1.000000f },
+		{  0.495383f,  0.707107f, -0.765306f,  0.0f, 0.0f, -1.000000f },
+		{ -0.495383f, -0.707107f, -1.000000f,  0.0f, 0.0f, -1.000000f },
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
+	};
+	Matrix<float, 16, 6> A_check(A_quad_w);
+	Matrix<float, 16, 6> A = geninv(B);
+	ut_test((A - A_check).abs().max() < 1e-5);
+
+	return true;
+
 }

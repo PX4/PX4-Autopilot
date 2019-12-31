@@ -8,7 +8,7 @@ static const uint64_t 	TARGET_TIMEOUT =   2000000; // [us]
 
 void BlockLocalPositionEstimator::landingTargetInit()
 {
-	if (_target_mode.get() == Target_Moving) {
+	if (_param_ltest_mode.get() == Target_Moving) {
 		// target is in moving mode, do not initialize
 		return;
 	}
@@ -24,7 +24,7 @@ void BlockLocalPositionEstimator::landingTargetInit()
 
 int BlockLocalPositionEstimator::landingTargetMeasure(Vector<float, n_y_target> &y)
 {
-	if (_target_mode.get() == Target_Stationary) {
+	if (_param_ltest_mode.get() == Target_Stationary) {
 		if (_sub_landing_target_pose.get().rel_vel_valid) {
 			y(0) = _sub_landing_target_pose.get().vx_rel;
 			y(1) = _sub_landing_target_pose.get().vy_rel;
@@ -43,7 +43,7 @@ int BlockLocalPositionEstimator::landingTargetMeasure(Vector<float, n_y_target> 
 
 void BlockLocalPositionEstimator::landingTargetCorrect()
 {
-	if (_target_mode.get() == Target_Moving) {
+	if (_param_ltest_mode.get() == Target_Moving) {
 		// nothing to do in this mode
 		return;
 	}
@@ -58,9 +58,9 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 	float cov_vy = _sub_landing_target_pose.get().cov_vy_rel;
 
 	// use sensor value only if reasoanble
-	if (cov_vx < _target_min_cov.get() || cov_vy < _target_min_cov.get()) {
-		cov_vx = _target_min_cov.get();
-		cov_vy = _target_min_cov.get();
+	if (cov_vx < _param_lpe_lt_cov.get() || cov_vy < _param_lpe_lt_cov.get()) {
+		cov_vx = _param_lpe_lt_cov.get();
+		cov_vy = _param_lpe_lt_cov.get();
 	}
 
 	// target measurement matrix and noise matrix
@@ -82,7 +82,7 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_target, n_y_target> S_I =
-		inv<float, n_y_target>(C * _P * C.transpose() + R);
+		inv<float, n_y_target>(C * m_P * C.transpose() + R);
 
 	// fault detection
 	float beta = (r.transpose()  * (S_I * r))(0, 0);
@@ -103,10 +103,10 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 
 	// kalman filter correction
 	Matrix<float, n_x, n_y_target> K =
-		_P * C.transpose() * S_I;
+		m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 
 }
 

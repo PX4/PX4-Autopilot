@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_init.c
+ * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
@@ -45,8 +45,8 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -73,7 +73,8 @@
 
 #include <systemlib/px4_macros.h>
 
-#include <px4_init.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -206,7 +207,6 @@ stm32_boardinitialize(void)
 
 	// Safety - led on in led driver.
 	stm32_configgpio(GPIO_BTN_SAFETY);
-	stm32_configgpio(GPIO_RSSI_IN);
 	stm32_configgpio(GPIO_PPM_IN);
 
 	int spi_init_mask = SPI_BUS_INIT_MASK;
@@ -324,7 +324,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_HMC, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);

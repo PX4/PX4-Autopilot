@@ -45,6 +45,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
@@ -127,10 +129,11 @@ protected:
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
+	bool _waypoint_position_reached_previously{false};
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
-	orb_advert_t    _actuator_pub{nullptr};
+	uORB::Publication<actuator_controls_s>	_actuator_pub{ORB_ID(actuator_controls_2)};
 };

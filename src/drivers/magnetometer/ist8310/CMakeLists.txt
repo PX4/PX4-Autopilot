@@ -33,8 +33,10 @@
 px4_add_module(
 	MODULE drivers__ist8310
 	MAIN ist8310
-	STACK_MAIN 1500
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		ist8310.cpp
+	DEPENDS
+		px4_work_queue
 	)
-

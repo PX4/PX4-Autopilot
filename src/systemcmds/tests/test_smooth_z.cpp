@@ -37,8 +37,9 @@
  */
 
 #include <unit_test.h>
-#include <lib/FlightTasks/tasks/Utility/ManualSmoothingZ.hpp>
+#include <lib/flight_tasks/tasks/Utility/ManualSmoothingZ.hpp>
 #include <float.h>
+#include <math.h>
 
 class SmoothZTest : public UnitTest
 {

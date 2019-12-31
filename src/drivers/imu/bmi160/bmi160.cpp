@@ -1,6 +1,37 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
 #include "bmi160.hpp"
-#include "bmi160_gyro.hpp"
-#include <ecl/geo/geo.h>
 
 /*
   list of registers that will be checked in check_registers(). Note
@@ -18,26 +49,11 @@ const uint8_t BMI160::_checked_registers[BMI160_NUM_CHECKED_REGISTERS] = {    BM
 									      BMIREG_NV_CONF
 									 };
 
-BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation) :
-	SPI("BMI160", path_accel, bus, device, SPIDEV_MODE3, BMI160_BUS_SPEED),
-	_gyro(new BMI160_gyro(this, path_gyro)),
-	_whoami(0),
-	_call{},
-	_call_interval(0),
-	_accel_reports(nullptr),
-	_accel_scale{},
-	_accel_range_scale(0.0f),
-	_accel_range_m_s2(0.0f),
-	_accel_topic(nullptr),
-	_accel_orb_class_instance(-1),
-	_accel_class_instance(-1),
-	_gyro_reports(nullptr),
-	_gyro_scale{},
-	_gyro_range_scale(0.0f),
-	_gyro_range_rad_s(0.0f),
-	_dlpf_freq(0),
-	_accel_sample_rate(BMI160_ACCEL_DEFAULT_RATE),
-	_gyro_sample_rate(BMI160_GYRO_DEFAULT_RATE),
+BMI160::BMI160(int bus, uint32_t device, enum Rotation rotation) :
+	SPI("BMI160", nullptr, bus, device, SPIDEV_MODE3, BMI160_BUS_SPEED),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
+	_px4_accel(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
+	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_accel_reads(perf_alloc(PC_COUNT, "bmi160_accel_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "bmi160_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi160_read")),
@@ -45,72 +61,19 @@ BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t 
 	_bad_registers(perf_alloc(PC_COUNT, "bmi160_bad_registers")),
 	_good_transfers(perf_alloc(PC_COUNT, "bmi160_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "bmi160_reset_retries")),
-	_duplicates(perf_alloc(PC_COUNT, "bmi160_duplicates")),
-	_register_wait(0),
-	_reset_wait(0),
-	_accel_filter_x(BMI160_ACCEL_DEFAULT_RATE, BMI160_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_y(BMI160_ACCEL_DEFAULT_RATE, BMI160_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_z(BMI160_ACCEL_DEFAULT_RATE, BMI160_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_x(BMI160_GYRO_DEFAULT_RATE, BMI160_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_y(BMI160_GYRO_DEFAULT_RATE, BMI160_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(BMI160_GYRO_DEFAULT_RATE, BMI160_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_int(1000000 / BMI160_ACCEL_MAX_PUBLISH_RATE),
-	_gyro_int(1000000 / BMI160_GYRO_MAX_PUBLISH_RATE, true),
-	_rotation(rotation),
-	_checked_next(0),
-	_last_temperature(0),
-	_last_accel{},
-	_got_duplicate(false)
+	_duplicates(perf_alloc(PC_COUNT, "bmi160_duplicates"))
 {
-	// disable debug() calls
-	_debug_enabled = false;
+	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_BMI160);
+	_px4_accel.set_sample_rate(BMI160_ACCEL_DEFAULT_RATE);
 
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_BMI160;
-
-	/* Prime _gyro with parents devid. */
-	_gyro->_device_id.devid = _device_id.devid;
-	_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_BMI160;
-
-	// default accel scale factors
-	_accel_scale.x_offset = 0;
-	_accel_scale.x_scale  = 1.0f;
-	_accel_scale.y_offset = 0;
-	_accel_scale.y_scale  = 1.0f;
-	_accel_scale.z_offset = 0;
-	_accel_scale.z_scale  = 1.0f;
-
-	// default gyro scale factors
-	_gyro_scale.x_offset = 0;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
-	_gyro_scale.z_scale  = 1.0f;
-
-	memset(&_call, 0, sizeof(_call));
+	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_BMI160);
+	_px4_accel.set_sample_rate(BMI160_GYRO_DEFAULT_RATE);
 }
-
 
 BMI160::~BMI160()
 {
 	/* make sure we are truly inactive */
 	stop();
-
-	/* delete the gyro subdriver */
-	delete _gyro;
-
-	/* free any existing reports */
-	if (_accel_reports != nullptr) {
-		delete _accel_reports;
-	}
-
-	if (_gyro_reports != nullptr) {
-		delete _gyro_reports;
-	}
-
-	if (_accel_class_instance != -1) {
-		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
-	}
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -126,10 +89,8 @@ BMI160::~BMI160()
 int
 BMI160::init()
 {
-	int ret;
-
 	/* do SPI init (and probe) first */
-	ret = SPI::init();
+	int ret = SPI::init();
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
@@ -137,80 +98,16 @@ BMI160::init()
 		return ret;
 	}
 
-	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
+	ret = reset();
 
-	if (_accel_reports == nullptr) {
-		goto out;
-	}
-
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
-
-	if (_gyro_reports == nullptr) {
-		goto out;
-	}
-
-	if (reset() != OK) {
-		goto out;
-	}
-
-	/* Initialize offsets and scales */
-	_accel_scale.x_offset = 0;
-	_accel_scale.x_scale  = 1.0f;
-	_accel_scale.y_offset = 0;
-	_accel_scale.y_scale  = 1.0f;
-	_accel_scale.z_offset = 0;
-	_accel_scale.z_scale  = 1.0f;
-
-	_gyro_scale.x_offset = 0;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
-	_gyro_scale.z_scale  = 1.0f;
-
-
-	/* do CDev init for the gyro device node, keep it optional */
-	ret = _gyro->init();
-
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+	if (ret != PX4_OK) {
 		return ret;
 	}
 
-	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
+	start();
 
-	measure();
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	sensor_accel_s arp;
-	_accel_reports->get(&arp);
-
-	/* measurement will have generated a report, publish */
-	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, (external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-
-	if (_accel_topic == nullptr) {
-		warnx("ADVERT FAIL");
-	}
-
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	sensor_gyro_s grp;
-	_gyro_reports->get(&grp);
-
-	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, (external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-
-	if (_gyro->_gyro_topic == nullptr) {
-		warnx("ADVERT FAIL");
-	}
-
-out:
 	return ret;
 }
-
 
 int BMI160::reset()
 {
@@ -441,57 +338,6 @@ BMI160::_set_dlpf_filter(uint16_t bandwidth)
 	modify_reg(CTRL_REG6_XL, clearbits, setbits);*/
 }
 
-ssize_t
-BMI160::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(sensor_accel_s);
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_call_interval == 0) {
-		_accel_reports->flush();
-		measure();
-	}
-
-	/* if no data, error (we could block here) */
-	if (_accel_reports->empty()) {
-		return -EAGAIN;
-	}
-
-	perf_count(_accel_reads);
-
-	/* copy reports out of our buffer to the caller */
-	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
-	int transferred = 0;
-
-	while (count--) {
-		if (!_accel_reports->get(arp)) {
-			break;
-		}
-
-		transferred++;
-		arp++;
-	}
-
-	/* return the number of bytes transferred */
-	return (transferred * sizeof(sensor_accel_s));
-}
-
-int
-BMI160::self_test()
-{
-	if (perf_event_count(_sample_perf) == 0) {
-		measure();
-	}
-
-	/* return 0 on success, 1 else */
-	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
-}
-
 /*
   deliberately trigger an error in the sensor to trigger recovery
  */
@@ -501,161 +347,6 @@ BMI160::test_error()
 	write_reg(BMIREG_CMD, BMI160_SOFT_RESET);
 	::printf("error triggered\n");
 	print_registers();
-}
-
-ssize_t
-BMI160::gyro_read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(sensor_gyro_s);
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_call_interval == 0) {
-		_gyro_reports->flush();
-		measure();
-	}
-
-	/* if no data, error (we could block here) */
-	if (_gyro_reports->empty()) {
-		return -EAGAIN;
-	}
-
-	perf_count(_gyro_reads);
-
-	/* copy reports out of our buffer to the caller */
-	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
-	int transferred = 0;
-
-	while (count--) {
-		if (!_gyro_reports->get(grp)) {
-			break;
-		}
-
-		transferred++;
-		grp++;
-	}
-
-	/* return the number of bytes transferred */
-	return (transferred * sizeof(sensor_gyro_s));
-}
-
-
-int
-BMI160::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCRESET:
-		return reset();
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				if (BMI160_GYRO_DEFAULT_RATE > BMI160_ACCEL_DEFAULT_RATE) {
-					return ioctl(filp, SENSORIOCSPOLLRATE, BMI160_GYRO_DEFAULT_RATE);
-
-				} else {
-					return ioctl(filp, SENSORIOCSPOLLRATE,
-						     BMI160_ACCEL_DEFAULT_RATE); //Polling at the highest frequency. We may get duplicate values on the sensors
-				}
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
-					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
-
-					/* check against maximum sane rate */
-					if (ticks < 1000) {
-						return -EINVAL;
-					}
-
-					// adjust filters
-					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / ticks;
-					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-
-
-					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-
-					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_interval = ticks;
-
-					/*
-					  set call interval faster then the sample time. We
-					  then detect when we have duplicate samples and reject
-					  them. This prevents aliasing due to a beat between the
-					  stm32 clock and the bmi160 clock
-					 */
-					_call.period = _call_interval - BMI160_TIMER_REDUCTION;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	case ACCELIOCSSCALE: {
-			/* copy scale, but only if off by a few percent */
-			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
-			float sum = s->x_scale + s->y_scale + s->z_scale;
-
-			if (sum > 2.0f && sum < 4.0f) {
-				memcpy(&_accel_scale, s, sizeof(_accel_scale));
-				return OK;
-
-			} else {
-				return -EINVAL;
-			}
-		}
-
-	default:
-		/* give it to the superclass */
-		return SPI::ioctl(filp, cmd, arg);
-	}
-}
-
-int
-BMI160::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	/* these are shared with the accel side */
-	case SENSORIOCSPOLLRATE:
-	case SENSORIOCRESET:
-		return ioctl(filp, cmd, arg);
-
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
-		return OK;
-
-	default:
-		/* give it to the superclass */
-		return SPI::ioctl(filp, cmd, arg);
-	}
 }
 
 uint8_t
@@ -719,29 +410,28 @@ BMI160::set_accel_range(unsigned max_g)
 	uint8_t setbits = 0;
 	uint8_t clearbits = BMI_ACCEL_RANGE_2_G | BMI_ACCEL_RANGE_16_G;
 	float lsb_per_g;
-	float max_accel_g;
 
 	if (max_g == 0) {
 		max_g = 16;
 	}
 
 	if (max_g <= 2) {
-		max_accel_g = 2;
+		//max_accel_g = 2;
 		setbits |= BMI_ACCEL_RANGE_2_G;
 		lsb_per_g = 16384;
 
 	} else if (max_g <= 4) {
-		max_accel_g = 4;
+		//max_accel_g = 4;
 		setbits |= BMI_ACCEL_RANGE_4_G;
 		lsb_per_g = 8192;
 
 	} else if (max_g <= 8) {
-		max_accel_g = 8;
+		//max_accel_g = 8;
 		setbits |= BMI_ACCEL_RANGE_8_G;
 		lsb_per_g = 4096;
 
 	} else if (max_g <= 16) {
-		max_accel_g = 16;
+		//max_accel_g = 16;
 		setbits |= BMI_ACCEL_RANGE_16_G;
 		lsb_per_g = 2048;
 
@@ -749,8 +439,7 @@ BMI160::set_accel_range(unsigned max_g)
 		return -EINVAL;
 	}
 
-	_accel_range_scale = (CONSTANTS_ONE_G / lsb_per_g);
-	_accel_range_m_s2 = max_accel_g * CONSTANTS_ONE_G;
+	_px4_accel.set_scale(CONSTANTS_ONE_G / lsb_per_g);
 
 	modify_reg(BMIREG_ACC_RANGE, clearbits, setbits);
 
@@ -763,34 +452,34 @@ BMI160::set_gyro_range(unsigned max_dps)
 	uint8_t setbits = 0;
 	uint8_t clearbits = BMI_GYRO_RANGE_125_DPS | BMI_GYRO_RANGE_250_DPS;
 	float lsb_per_dps;
-	float max_gyro_dps;
+	//float max_gyro_dps;
 
 	if (max_dps == 0) {
 		max_dps = 2000;
 	}
 
 	if (max_dps <= 125) {
-		max_gyro_dps = 125;
+		//max_gyro_dps = 125;
 		lsb_per_dps = 262.4;
 		setbits |= BMI_GYRO_RANGE_125_DPS;
 
 	} else if (max_dps <= 250) {
-		max_gyro_dps = 250;
+		//max_gyro_dps = 250;
 		lsb_per_dps = 131.2;
 		setbits |= BMI_GYRO_RANGE_250_DPS;
 
 	} else if (max_dps <= 500) {
-		max_gyro_dps = 500;
+		//max_gyro_dps = 500;
 		lsb_per_dps = 65.6;
 		setbits |= BMI_GYRO_RANGE_500_DPS;
 
 	} else if (max_dps <= 1000) {
-		max_gyro_dps = 1000;
+		//max_gyro_dps = 1000;
 		lsb_per_dps = 32.8;
 		setbits |= BMI_GYRO_RANGE_1000_DPS;
 
 	} else if (max_dps <= 2000) {
-		max_gyro_dps = 2000;
+		//max_gyro_dps = 2000;
 		lsb_per_dps = 16.4;
 		setbits |= BMI_GYRO_RANGE_2000_DPS;
 
@@ -798,8 +487,7 @@ BMI160::set_gyro_range(unsigned max_dps)
 		return -EINVAL;
 	}
 
-	_gyro_range_rad_s = (max_gyro_dps / 180.0f * M_PI_F);
-	_gyro_range_scale = (M_PI_F / (180.0f * lsb_per_dps));
+	_px4_gyro.set_scale(M_PI_F / (180.0f * lsb_per_dps));
 
 	modify_reg(BMIREG_GYR_RANGE, clearbits, setbits);
 
@@ -812,31 +500,23 @@ BMI160::start()
 	/* make sure we are stopped first */
 	stop();
 
-	/* discard any stale data in the buffers */
-	_accel_reports->flush();
-	_gyro_reports->flush();
-
 	/* start polling at the specified rate */
-	hrt_call_every(&_call,
-		       1000,
-		       _call_interval - BMI160_TIMER_REDUCTION,
-		       (hrt_callout)&BMI160::measure_trampoline, this);
+	ScheduleOnInterval((1_s / BMI160_GYRO_DEFAULT_RATE) - BMI160_TIMER_REDUCTION, 1000);
+
 	reset();
 }
 
 void
 BMI160::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
-BMI160::measure_trampoline(void *arg)
+BMI160::Run()
 {
-	BMI160 *dev = reinterpret_cast<BMI160 *>(arg);
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void
@@ -890,7 +570,7 @@ BMI160::measure()
 		return;
 	}
 
-	struct BMIReport bmi_report;
+	struct BMIReport bmi_report {};
 
 	struct Report {
 		int16_t		accel_x;
@@ -911,6 +591,8 @@ BMI160::measure()
 	bmi_report.cmd = BMIREG_GYR_X_L | DIR_READ;
 
 	uint8_t		status = read_reg(BMIREG_STATUS);
+
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	if (OK != transfer((uint8_t *)&bmi_report, ((uint8_t *)&bmi_report), sizeof(bmi_report))) {
 		return;
@@ -935,6 +617,8 @@ BMI160::measure()
 
 	report.temp = ((temp_h << 8) + temp_l);
 
+
+
 	report.accel_x = bmi_report.accel_x;
 	report.accel_y = bmi_report.accel_y;
 	report.accel_z = bmi_report.accel_z;
@@ -950,6 +634,7 @@ BMI160::measure()
 	    report.gyro_x == 0 &&
 	    report.gyro_y == 0 &&
 	    report.gyro_z == 0) {
+
 		// all zero data - probably a SPI bus error
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
@@ -970,22 +655,17 @@ BMI160::measure()
 		return;
 	}
 
-	/*
-	 * Report buffers.
-	 */
-	sensor_accel_s arb{};
-	sensor_gyro_s grb{};
-
-	/*
-	 * Adjust and scale results to m/s^2.
-	 */
-	grb.timestamp = arb.timestamp = hrt_absolute_time();
-
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
 	// whether it has had failures
-	grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+	const uint64_t error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+	_px4_accel.set_error_count(error_count);
+	_px4_gyro.set_error_count(error_count);
+
+	const float temperature = 23.0f + report.temp * 1.0f / 512.0f;
+	_px4_accel.set_temperature(temperature);
+	_px4_gyro.set_temperature(temperature);
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1005,97 +685,8 @@ BMI160::measure()
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-	arb.x_raw = report.accel_x;
-	arb.y_raw = report.accel_y;
-	arb.z_raw = report.accel_z;
-
-	float xraw_f = report.accel_x;
-	float yraw_f = report.accel_y;
-	float zraw_f = report.accel_z;
-
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-
-	arb.x = _accel_filter_x.apply(x_in_new);
-	arb.y = _accel_filter_y.apply(y_in_new);
-	arb.z = _accel_filter_z.apply(z_in_new);
-
-	matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
-	matrix::Vector3f aval_integrated;
-
-	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
-	arb.x_integral = aval_integrated(0);
-	arb.y_integral = aval_integrated(1);
-	arb.z_integral = aval_integrated(2);
-
-	arb.scaling = _accel_range_scale;
-
-	_last_temperature = 23 + report.temp * 1.0f / 512.0f;
-
-	arb.temperature = _last_temperature;
-
-	/* return device ID */
-	arb.device_id = _device_id.devid;
-
-	grb.x_raw = report.gyro_x;
-	grb.y_raw = report.gyro_y;
-	grb.z_raw = report.gyro_z;
-
-	xraw_f = report.gyro_x;
-	yraw_f = report.gyro_y;
-	zraw_f = report.gyro_z;
-
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
-
-	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
-	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
-	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
-
-	matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
-	matrix::Vector3f gval_integrated;
-
-	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
-	grb.x_integral = gval_integrated(0);
-	grb.y_integral = gval_integrated(1);
-	grb.z_integral = gval_integrated(2);
-
-	grb.scaling = _gyro_range_scale;
-
-	grb.temperature = _last_temperature;
-
-	/* return device ID */
-	grb.device_id = _gyro->_device_id.devid;
-
-	_accel_reports->force(&arb);
-	_gyro_reports->force(&grb);
-
-	/* notify anyone waiting for data */
-	if (accel_notify) {
-		poll_notify(POLLIN);
-	}
-
-	if (gyro_notify) {
-		_gyro->parent_poll_notify();
-	}
-
-	if (accel_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
-	}
-
-	if (gyro_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
-	}
+	_px4_accel.update(timestamp_sample, bmi_report.accel_x, bmi_report.accel_y, bmi_report.accel_z);
+	_px4_gyro.update(timestamp_sample, bmi_report.gyro_x, bmi_report.gyro_y, bmi_report.gyro_z);
 
 	/* stop measuring */
 	perf_end(_sample_perf);
@@ -1112,8 +703,7 @@ BMI160::print_info()
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
-	_accel_reports->print_info("accel queue");
-	_gyro_reports->print_info("gyro queue");
+
 	::printf("checked_next: %u\n", _checked_next);
 
 	for (uint8_t i = 0; i < BMI160_NUM_CHECKED_REGISTERS; i++) {
@@ -1134,7 +724,8 @@ BMI160::print_info()
 		}
 	}
 
-	::printf("temperature: %.1f\n", (double)_last_temperature);
+	_px4_accel.print_status();
+	_px4_gyro.print_status();
 }
 
 void

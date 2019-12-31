@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,16 +44,19 @@
 #include <lib/ecl/EKF/ekf.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/ekf2_innovations.h>
+#include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_position.h>
 #include <uORB/topics/estimator_status.h>
@@ -75,6 +78,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 
+#include "Utility/PreFlightChecker.hpp"
+
 // defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
 #define BLEND_MASK_USE_SPD_ACC      1
 #define BLEND_MASK_USE_HPOS_ACC     2
@@ -87,19 +92,14 @@
 using math::constrain;
 using namespace time_literals;
 
-extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
-
-class Ekf2 final : public ModuleBase<Ekf2>, public ModuleParams
+class Ekf2 final : public ModuleBase<Ekf2>, public ModuleParams, public px4::WorkItem
 {
 public:
-	Ekf2();
+	explicit Ekf2(bool replay_mode = false);
 	~Ekf2() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static Ekf2 *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -107,22 +107,28 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
+	void Run() override;
 
-	void set_replay_mode(bool replay) { _replay_mode = replay; }
-
-	static void	task_main_trampoline(int argc, char *argv[]);
+	bool init();
 
 	int print_status() override;
 
 private:
-	int getRangeSubIndex(const int *subs); ///< get subscription index of first downward-facing range sensor
+	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
+	void fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data);
+
+	PreFlightChecker _preflt_checker;
+	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
+				const vehicle_status_s &vehicle_status,
+				const estimator_innovations_s &innov);
+	void resetPreFlightChecks();
 
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
+
 	template<typename Param>
 	bool update_mag_decl(Param &mag_decl_param);
+
 	bool publish_attitude(const sensor_combined_s &sensors, const hrt_abstime &now);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
 
@@ -165,15 +171,14 @@ private:
 	 */
 	float filter_altitude_ellipsoid(float amsl_hgt);
 
-	bool 	_replay_mode = false;			///< true when we use replay data from a log
+	const bool 	_replay_mode;			///< true when we use replay data from a log
 
 	// time slip monitoring
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
-	perf_counter_t _perf_update_data;
-	perf_counter_t _perf_ekf_update;
+	perf_counter_t _ekf_update_perf;
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
@@ -202,27 +207,6 @@ private:
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
-	// Used to filter velocity innovations during pre-flight checks
-	bool _preflt_horiz_fail = false;	///< true if preflight horizontal innovation checks are failed
-	bool _preflt_vert_fail = false;		///< true if preflight vertical innovation checks are failed
-	bool _preflt_fail = false;		///< true if any preflight innovation checks are failed
-	Vector2f _vel_ne_innov_lpf = {};	///< Preflight low pass filtered NE axis velocity innovations (m/sec)
-	float _vel_d_innov_lpf = {};		///< Preflight low pass filtered D axis velocity innovations (m/sec)
-	float _hgt_innov_lpf = 0.0f;		///< Preflight low pass filtered height innovation (m)
-	float _yaw_innov_magnitude_lpf = 0.0f;	///< Preflight low pass filtered yaw innovation magntitude (rad)
-
-	static constexpr float _innov_lpf_tau_inv = 0.2f;	///< Preflight low pass filter time constant inverse (1/sec)
-	static constexpr float _vel_innov_test_lim =
-		0.5f;	///< Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
-	static constexpr float _hgt_innov_test_lim =
-		1.5f;	///< Maximum permissible height innovation to pass pre-flight checks (m)
-	static constexpr float _nav_yaw_innov_test_lim =
-		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
-	static constexpr float _yaw_innov_test_lim =
-		0.52f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
-	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
-	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
-
 	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
 	// TODO: the user should be allowed to set these values by a parameter
 	static constexpr float ep_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated position
@@ -247,43 +231,56 @@ private:
 	uint8_t _gps_slowest_index = 0;			///< index of the physical receiver with the slowest update rate
 	float _gps_dt[GPS_MAX_RECEIVERS] = {};		///< average time step in seconds.
 	bool  _gps_new_output_data = false;		///< true if there is new output data for the EKF
+	bool _had_valid_terrain = false;		///< true if at any time there was a valid terrain estimate
 
 	int32_t _gps_alttitude_ellipsoid[GPS_MAX_RECEIVERS] {};	///< altitude in 1E-3 meters (millimeters) above ellipsoid
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp[GPS_MAX_RECEIVERS] {}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
-	int _airdata_sub{-1};
-	int _airspeed_sub{-1};
-	int _ev_odom_sub{-1};
-	int _landing_target_pose_sub{-1};
-	int _magnetometer_sub{-1};
-	int _optical_flow_sub{-1};
-	int _params_sub{-1};
-	int _sensor_selection_sub{-1};
-	int _sensors_sub{-1};
-	int _status_sub{-1};
-	int _vehicle_land_detected_sub{-1};
+	bool _imu_bias_reset_request{false};
+
+	// republished aligned external visual odometry
+	bool new_ev_data_received = false;
+	vehicle_odometry_s _ev_odom{};
+
+	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
+	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
+	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
+	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
+	uORB::Subscription _optical_flow_sub{ORB_ID(optical_flow)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
+	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+
+	uORB::SubscriptionCallbackWorkItem _sensors_sub{this, ORB_ID(sensor_combined)};
 
 	// because we can have several distance sensor instances with different orientations
-	int _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {};
+	uORB::Subscription _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
 	// because we can have multiple GPS instances
-	int _gps_subs[GPS_MAX_RECEIVERS] {};
-	int _gps_orb_instance{-1};
+	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}};
 
-	orb_advert_t _att_pub{nullptr};
-	orb_advert_t _wind_pub{nullptr};
-	orb_advert_t _estimator_status_pub{nullptr};
-	orb_advert_t _ekf_gps_drift_pub{nullptr};
-	orb_advert_t _estimator_innovations_pub{nullptr};
-	orb_advert_t _ekf2_timestamps_pub{nullptr};
-	orb_advert_t _sensor_bias_pub{nullptr};
-	orb_advert_t _blended_gps_pub{nullptr};
+	sensor_selection_s		_sensor_selection{};
+	vehicle_land_detected_s		_vehicle_land_detected{};
+	vehicle_status_s		_vehicle_status{};
 
-	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
-	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
-	uORB::Publication<vehicle_odometry_s> _vehicle_odometry_pub;
+	uORB::Publication<estimator_innovations_s>			_estimator_innovations_pub{ORB_ID(estimator_innovations)};
+	uORB::Publication<estimator_innovations_s>			_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
+	uORB::Publication<estimator_innovations_s>			_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
+	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
+	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
+	uORB::Publication<ekf_gps_position_s>			_blended_gps_pub{ORB_ID(ekf_gps_position)};
+	uORB::Publication<estimator_status_s>			_estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::Publication<sensor_bias_s>			_sensor_bias_pub{ORB_ID(sensor_bias)};
+	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
+	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
+	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
+	uORB::PublicationData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
 
 	Ekf _ekf;
 
@@ -291,367 +288,372 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamExtInt<px4::params::EKF2_MIN_OBS_DT>)
-		_obs_dt_min_ms,	///< Maximum time delay of any sensor used to increase buffer length to handle large timing jitter (mSec)
+		_param_ekf2_min_obs_dt,	///< Maximum time delay of any sensor used to increase buffer length to handle large timing jitter (mSec)
 		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>)
-		_mag_delay_ms,	///< magnetometer measurement delay relative to the IMU (mSec)
+		_param_ekf2_mag_delay,	///< magnetometer measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>)
-		_baro_delay_ms,	///< barometer height measurement delay relative to the IMU (mSec)
-		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>) _gps_delay_ms,	///< GPS measurement delay relative to the IMU (mSec)
+		_param_ekf2_baro_delay,	///< barometer height measurement delay relative to the IMU (mSec)
+		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>)
+		_param_ekf2_gps_delay,	///< GPS measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)
-		_flow_delay_ms,	///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
+		_param_ekf2_of_delay,	///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 		(ParamExtFloat<px4::params::EKF2_RNG_DELAY>)
-		_rng_delay_ms,	///< range finder measurement delay relative to the IMU (mSec)
+		_param_ekf2_rng_delay,	///< range finder measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_ASP_DELAY>)
-		_airspeed_delay_ms,	///< airspeed measurement delay relative to the IMU (mSec)
+		_param_ekf2_asp_delay,	///< airspeed measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
-		_ev_delay_ms,	///< off-board vision measurement delay relative to the IMU (mSec)
+		_param_ekf2_ev_delay,	///< off-board vision measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
-		_auxvel_delay_ms,	///< auxillary velocity measurement delay relative to the IMU (mSec)
+		_param_ekf2_avel_delay,	///< auxillary velocity measurement delay relative to the IMU (mSec)
 
 		(ParamExtFloat<px4::params::EKF2_GYR_NOISE>)
-		_gyro_noise,	///< IMU angular rate noise used for covariance prediction (rad/sec)
+		_param_ekf2_gyr_noise,	///< IMU angular rate noise used for covariance prediction (rad/sec)
 		(ParamExtFloat<px4::params::EKF2_ACC_NOISE>)
-		_accel_noise,	///< IMU acceleration noise use for covariance prediction (m/sec**2)
+		_param_ekf2_acc_noise,	///< IMU acceleration noise use for covariance prediction (m/sec**2)
 
 		// process noise
 		(ParamExtFloat<px4::params::EKF2_GYR_B_NOISE>)
-		_gyro_bias_p_noise,	///< process noise for IMU rate gyro bias prediction (rad/sec**2)
+		_param_ekf2_gyr_b_noise,	///< process noise for IMU rate gyro bias prediction (rad/sec**2)
 		(ParamExtFloat<px4::params::EKF2_ACC_B_NOISE>)
-		_accel_bias_p_noise,///< process noise for IMU accelerometer bias prediction (m/sec**3)
+		_param_ekf2_acc_b_noise,///< process noise for IMU accelerometer bias prediction (m/sec**3)
 		(ParamExtFloat<px4::params::EKF2_MAG_E_NOISE>)
-		_mage_p_noise,	///< process noise for earth magnetic field prediction (Gauss/sec)
+		_param_ekf2_mag_e_noise,	///< process noise for earth magnetic field prediction (Gauss/sec)
 		(ParamExtFloat<px4::params::EKF2_MAG_B_NOISE>)
-		_magb_p_noise,	///< process noise for body magnetic field prediction (Gauss/sec)
+		_param_ekf2_mag_b_noise,	///< process noise for body magnetic field prediction (Gauss/sec)
 		(ParamExtFloat<px4::params::EKF2_WIND_NOISE>)
-		_wind_vel_p_noise,	///< process noise for wind velocity prediction (m/sec**2)
-		(ParamExtFloat<px4::params::EKF2_TERR_NOISE>) _terrain_p_noise,	///< process noise for terrain offset (m/sec)
+		_param_ekf2_wind_noise,	///< process noise for wind velocity prediction (m/sec**2)
+		(ParamExtFloat<px4::params::EKF2_TERR_NOISE>) _param_ekf2_terr_noise,	///< process noise for terrain offset (m/sec)
 		(ParamExtFloat<px4::params::EKF2_TERR_GRAD>)
-		_terrain_gradient,	///< gradient of terrain used to estimate process noise due to changing position (m/m)
+		_param_ekf2_terr_grad,	///< gradient of terrain used to estimate process noise due to changing position (m/m)
 
 		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>)
-		_gps_vel_noise,	///< minimum allowed observation noise for gps velocity fusion (m/sec)
+		_param_ekf2_gps_v_noise,	///< minimum allowed observation noise for gps velocity fusion (m/sec)
 		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>)
-		_gps_pos_noise,	///< minimum allowed observation noise for gps position fusion (m)
+		_param_ekf2_gps_p_noise,	///< minimum allowed observation noise for gps position fusion (m)
 		(ParamExtFloat<px4::params::EKF2_NOAID_NOISE>)
-		_pos_noaid_noise,	///< observation noise for non-aiding position fusion (m)
-		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>) _baro_noise,	///< observation noise for barometric height fusion (m)
+		_param_ekf2_noaid_noise,	///< observation noise for non-aiding position fusion (m)
+		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>)
+		_param_ekf2_baro_noise,	///< observation noise for barometric height fusion (m)
 		(ParamExtFloat<px4::params::EKF2_BARO_GATE>)
-		_baro_innov_gate,	///< barometric height innovation consistency gate size (STD)
+		_param_ekf2_baro_gate,	///< barometric height innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_GND_EFF_DZ>)
+		_param_ekf2_gnd_eff_dz,	///< barometric deadzone range for negative innovations (m)
+		(ParamExtFloat<px4::params::EKF2_GND_MAX_HGT>)
+		_param_ekf2_gnd_max_hgt,	///< maximum height above the ground level for expected negative baro innovations (m)
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>)
-		_posNE_innov_gate,	///< GPS horizontal position innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _vel_innov_gate,	///< GPS velocity innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_TAS_GATE>) _tas_innov_gate,	///< True Airspeed innovation consistency gate size (STD)
+		_param_ekf2_gps_p_gate,	///< GPS horizontal position innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>)
+		_param_ekf2_gps_v_gate,	///< GPS velocity innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_TAS_GATE>)
+		_param_ekf2_tas_gate,	///< True Airspeed innovation consistency gate size (STD)
 
 		// control of magnetometer fusion
 		(ParamExtFloat<px4::params::EKF2_HEAD_NOISE>)
-		_mag_heading_noise,	///< measurement noise used for simple heading fusion (rad)
+		_param_ekf2_head_noise,	///< measurement noise used for simple heading fusion (rad)
 		(ParamExtFloat<px4::params::EKF2_MAG_NOISE>)
-		_mag_noise,		///< measurement noise used for 3-axis magnetoemeter fusion (Gauss)
-		(ParamExtFloat<px4::params::EKF2_EAS_NOISE>) _eas_noise,		///< measurement noise used for airspeed fusion (m/sec)
+		_param_ekf2_mag_noise,		///< measurement noise used for 3-axis magnetoemeter fusion (Gauss)
+		(ParamExtFloat<px4::params::EKF2_EAS_NOISE>)
+		_param_ekf2_eas_noise,		///< measurement noise used for airspeed fusion (m/sec)
 		(ParamExtFloat<px4::params::EKF2_BETA_GATE>)
-		_beta_innov_gate, ///< synthetic sideslip innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _beta_noise,	///< synthetic sideslip noise (rad)
-		(ParamExtFloat<px4::params::EKF2_MAG_DECL>) _mag_declination_deg,///< magnetic declination (degrees)
+		_param_ekf2_beta_gate, ///< synthetic sideslip innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _param_ekf2_beta_noise,	///< synthetic sideslip noise (rad)
+		(ParamExtFloat<px4::params::EKF2_MAG_DECL>) _param_ekf2_mag_decl,///< magnetic declination (degrees)
 		(ParamExtFloat<px4::params::EKF2_HDG_GATE>)
-		_heading_innov_gate,///< heading fusion innovation consistency gate size (STD)
+		_param_ekf2_hdg_gate,///< heading fusion innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_MAG_GATE>)
-		_mag_innov_gate,	///< magnetometer fusion innovation consistency gate size (STD)
+		_param_ekf2_mag_gate,	///< magnetometer fusion innovation consistency gate size (STD)
 		(ParamExtInt<px4::params::EKF2_DECL_TYPE>)
-		_mag_decl_source,	///< bitmask used to control the handling of declination data
+		_param_ekf2_decl_type,	///< bitmask used to control the handling of declination data
 		(ParamExtInt<px4::params::EKF2_MAG_TYPE>)
-		_mag_fuse_type,	///< integer used to specify the type of magnetometer fusion used
+		_param_ekf2_mag_type,	///< integer used to specify the type of magnetometer fusion used
 		(ParamExtFloat<px4::params::EKF2_MAG_ACCLIM>)
-		_mag_acc_gate,	///< integer used to specify the type of magnetometer fusion used
+		_param_ekf2_mag_acclim,	///< integer used to specify the type of magnetometer fusion used
 		(ParamExtFloat<px4::params::EKF2_MAG_YAWLIM>)
-		_mag_yaw_rate_gate,	///< yaw rate threshold used by mode select logic (rad/sec)
+		_param_ekf2_mag_yawlim,	///< yaw rate threshold used by mode select logic (rad/sec)
 
 		(ParamExtInt<px4::params::EKF2_GPS_CHECK>)
-		_gps_check_mask,	///< bitmask used to control which GPS quality checks are used
-		(ParamExtFloat<px4::params::EKF2_REQ_EPH>) _requiredEph,	///< maximum acceptable horiz position error (m)
-		(ParamExtFloat<px4::params::EKF2_REQ_EPV>) _requiredEpv,	///< maximum acceptable vert position error (m)
-		(ParamExtFloat<px4::params::EKF2_REQ_SACC>) _requiredSacc,	///< maximum acceptable speed error (m/s)
-		(ParamExtInt<px4::params::EKF2_REQ_NSATS>) _requiredNsats,	///< minimum acceptable satellite count
-		(ParamExtFloat<px4::params::EKF2_REQ_GDOP>) _requiredGDoP,	///< maximum acceptable geometric dilution of precision
-		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>) _requiredHdrift,	///< maximum acceptable horizontal drift speed (m/s)
-		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _requiredVdrift,	///< maximum acceptable vertical drift speed (m/s)
+		_param_ekf2_gps_check,	///< bitmask used to control which GPS quality checks are used
+		(ParamExtFloat<px4::params::EKF2_REQ_EPH>) _param_ekf2_req_eph,	///< maximum acceptable horiz position error (m)
+		(ParamExtFloat<px4::params::EKF2_REQ_EPV>) _param_ekf2_req_epv,	///< maximum acceptable vert position error (m)
+		(ParamExtFloat<px4::params::EKF2_REQ_SACC>) _param_ekf2_req_sacc,	///< maximum acceptable speed error (m/s)
+		(ParamExtInt<px4::params::EKF2_REQ_NSATS>) _param_ekf2_req_nsats,	///< minimum acceptable satellite count
+		(ParamExtFloat<px4::params::EKF2_REQ_PDOP>)
+		_param_ekf2_req_pdop,	///< maximum acceptable position dilution of precision
+		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>)
+		_param_ekf2_req_hdrift,	///< maximum acceptable horizontal drift speed (m/s)
+		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,	///< maximum acceptable vertical drift speed (m/s)
 
 		// measurement source control
 		(ParamExtInt<px4::params::EKF2_AID_MASK>)
-		_fusion_mode,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
-		(ParamExtInt<px4::params::EKF2_HGT_MODE>) _vdist_sensor_type,	///< selects the primary source for height data
+		_param_ekf2_aid_mask,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
+		(ParamExtInt<px4::params::EKF2_HGT_MODE>) _param_ekf2_hgt_mode,	///< selects the primary source for height data
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
-		_valid_timeout_max,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
+		_param_ekf2_noaid_tout,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
 
 		// range finder fusion
-		(ParamExtFloat<px4::params::EKF2_RNG_NOISE>) _range_noise,	///< observation noise for range finder measurements (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_SFE>) _range_noise_scaler, ///< scale factor from range to range noise (m/m)
+		(ParamExtFloat<px4::params::EKF2_RNG_NOISE>)
+		_param_ekf2_rng_noise,	///< observation noise for range finder measurements (m)
+		(ParamExtFloat<px4::params::EKF2_RNG_SFE>) _param_ekf2_rng_sfe, ///< scale factor from range to range noise (m/m)
 		(ParamExtFloat<px4::params::EKF2_RNG_GATE>)
-		_range_innov_gate,	///< range finder fusion innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _rng_gnd_clearance,	///< minimum valid value for range when on ground (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _rng_pitch_offset,	///< range sensor pitch offset (rad)
+		_param_ekf2_rng_gate,	///< range finder fusion innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _param_ekf2_min_rng,	///< minimum valid value for range when on ground (m)
+		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,	///< range sensor pitch offset (rad)
 		(ParamExtInt<px4::params::EKF2_RNG_AID>)
-		_rng_aid,		///< enables use of a range finder even if primary height source is not range finder
+		_param_ekf2_rng_aid,		///< enables use of a range finder even if primary height source is not range finder
 		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>)
-		_rng_aid_hor_vel_max,	///< maximum allowed horizontal velocity for range aid (m/s)
+		_param_ekf2_rng_a_vmax,	///< maximum allowed horizontal velocity for range aid (m/s)
 		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>)
-		_rng_aid_height_max,	///< maximum allowed absolute altitude (AGL) for range aid (m)
+		_param_ekf2_rng_a_hmax,	///< maximum allowed absolute altitude (AGL) for range aid (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>)
-		_rng_aid_innov_gate,	///< gate size used for innovation consistency checks for range aid fusion (STD)
+		_param_ekf2_rng_a_igate,	///< gate size used for innovation consistency checks for range aid fusion (STD)
 
 		// vision estimate fusion
+		(ParamInt<px4::params::EKF2_EV_NOISE_MD>)
+		_param_ekf2_ev_noise_md,	///< determine source of vision observation noise
 		(ParamFloat<px4::params::EKF2_EVP_NOISE>)
-		_ev_pos_noise,	///< default position observation noise for exernal vision measurements (m)
+		_param_ekf2_evp_noise,	///< default position observation noise for exernal vision measurements (m)
+		(ParamFloat<px4::params::EKF2_EVV_NOISE>)
+		_param_ekf2_evv_noise,	///< default velocity observation noise for exernal vision measurements (m/s)
 		(ParamFloat<px4::params::EKF2_EVA_NOISE>)
-		_ev_ang_noise,	///< default angular observation noise for exernal vision measurements (rad)
-		(ParamExtFloat<px4::params::EKF2_EV_GATE>)
-		_ev_innov_gate,	///< external vision position innovation consistency gate size (STD)
+		_param_ekf2_eva_noise,	///< default angular observation noise for exernal vision measurements (rad)
+		(ParamExtFloat<px4::params::EKF2_EVV_GATE>)
+		_param_ekf2_evv_gate,	///< external vision velocity innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_EVP_GATE>)
+		_param_ekf2_evp_gate,	///< external vision position innovation consistency gate size (STD)
 
 		// optical flow fusion
 		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
-		_flow_noise,	///< best quality observation noise for optical flow LOS rate measurements (rad/sec)
+		_param_ekf2_of_n_min,	///< best quality observation noise for optical flow LOS rate measurements (rad/sec)
 		(ParamExtFloat<px4::params::EKF2_OF_N_MAX>)
-		_flow_noise_qual_min,	///< worst quality observation noise for optical flow LOS rate measurements (rad/sec)
-		(ParamExtInt<px4::params::EKF2_OF_QMIN>) _flow_qual_min,	///< minimum acceptable quality integer from  the flow sensor
+		_param_ekf2_of_n_max,	///< worst quality observation noise for optical flow LOS rate measurements (rad/sec)
+		(ParamExtInt<px4::params::EKF2_OF_QMIN>)
+		_param_ekf2_of_qmin,	///< minimum acceptable quality integer from  the flow sensor
 		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
-		_flow_innov_gate,	///< optical flow fusion innovation consistency gate size (STD)
+		_param_ekf2_of_gate,	///< optical flow fusion innovation consistency gate size (STD)
 
 		// sensor positions in body frame
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _imu_pos_x,		///< X position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_Y>) _imu_pos_y,		///< Y position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_Z>) _imu_pos_z,		///< Z position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _gps_pos_x,		///< X position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _gps_pos_y,		///< Y position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _gps_pos_z,		///< Z position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>) _rng_pos_x,		///< X position of range finder in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>) _rng_pos_y,		///< Y position of range finder in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _rng_pos_z,		///< Z position of range finder in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_IMU_POS_Y>) _param_ekf2_imu_pos_y,		///< Y position of IMU in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_IMU_POS_Z>) _param_ekf2_imu_pos_z,		///< Z position of IMU in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,		///< X position of GPS antenna in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,		///< Y position of GPS antenna in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,		///< Z position of GPS antenna in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>) _param_ekf2_rng_pos_x,		///< X position of range finder in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>) _param_ekf2_rng_pos_y,		///< Y position of range finder in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,		///< Z position of range finder in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_OF_POS_X>)
-		_flow_pos_x,	///< X position of optical flow sensor focal point in body frame (m)
+		_param_ekf2_of_pos_x,	///< X position of optical flow sensor focal point in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_OF_POS_Y>)
-		_flow_pos_y,	///< Y position of optical flow sensor focal point in body frame (m)
+		_param_ekf2_of_pos_y,	///< Y position of optical flow sensor focal point in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_OF_POS_Z>)
-		_flow_pos_z,	///< Z position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_X>) _ev_odom_x,		///< X position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>) _ev_odom_y,		///< Y position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>) _ev_odom_z,		///< Z position of VI sensor focal point in body frame (m)
+		_param_ekf2_of_pos_z,	///< Z position of optical flow sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_X>)
+		_param_ekf2_ev_pos_x,		///< X position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>)
+		_param_ekf2_ev_pos_y,		///< Y position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
+		_param_ekf2_ev_pos_z,		///< Z position of VI sensor focal point in body frame (m)
 
 		// control of airspeed and sideslip fusion
 		(ParamFloat<px4::params::EKF2_ARSP_THR>)
-		_arspFusionThreshold, 	///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
-		(ParamInt<px4::params::EKF2_FUSE_BETA>) _fuseBeta,		///< Controls synthetic sideslip fusion, 0 disables, 1 enables
+		_param_ekf2_arsp_thr, 	///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
+		(ParamInt<px4::params::EKF2_FUSE_BETA>)
+		_param_ekf2_fuse_beta,		///< Controls synthetic sideslip fusion, 0 disables, 1 enables
 
 		// output predictor filter time constants
 		(ParamExtFloat<px4::params::EKF2_TAU_VEL>)
-		_tau_vel,		///< time constant used by the output velocity complementary filter (sec)
+		_param_ekf2_tau_vel,		///< time constant used by the output velocity complementary filter (sec)
 		(ParamExtFloat<px4::params::EKF2_TAU_POS>)
-		_tau_pos,		///< time constant used by the output position complementary filter (sec)
+		_param_ekf2_tau_pos,		///< time constant used by the output position complementary filter (sec)
 
 		// IMU switch on bias parameters
-		(ParamExtFloat<px4::params::EKF2_GBIAS_INIT>) _gyr_bias_init,	///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
+		(ParamExtFloat<px4::params::EKF2_GBIAS_INIT>)
+		_param_ekf2_gbias_init,	///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
 		(ParamExtFloat<px4::params::EKF2_ABIAS_INIT>)
-		_acc_bias_init,	///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
+		_param_ekf2_abias_init,	///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
 		(ParamExtFloat<px4::params::EKF2_ANGERR_INIT>)
-		_ang_err_init,	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
+		_param_ekf2_angerr_init,	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 		// EKF saved XYZ magnetometer bias values
-		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _mag_bias_x,		///< X magnetometer bias (mGauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _mag_bias_y,		///< Y magnetometer bias (mGauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _mag_bias_z,		///< Z magnetometer bias (mGauss)
-		(ParamInt<px4::params::EKF2_MAGBIAS_ID>) _mag_bias_id,		///< ID of the magnetometer sensor used to learn the bias values
+		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _param_ekf2_magbias_x,		///< X magnetometer bias (mGauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _param_ekf2_magbias_y,		///< Y magnetometer bias (mGauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z,		///< Z magnetometer bias (mGauss)
+		(ParamInt<px4::params::EKF2_MAGBIAS_ID>)
+		_param_ekf2_magbias_id,		///< ID of the magnetometer sensor used to learn the bias values
 		(ParamFloat<px4::params::EKF2_MAGB_VREF>)
-		_mag_bias_saved_variance, ///< Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
+		_param_ekf2_magb_vref, ///< Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
 		(ParamFloat<px4::params::EKF2_MAGB_K>)
-		_mag_bias_alpha,	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
+		_param_ekf2_magb_k,	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
 		// EKF accel bias learning control
-		(ParamExtFloat<px4::params::EKF2_ABL_LIM>) _acc_bias_lim,	///< Accelerometer bias learning limit (m/s**2)
+		(ParamExtFloat<px4::params::EKF2_ABL_LIM>) _param_ekf2_abl_lim,	///< Accelerometer bias learning limit (m/s**2)
 		(ParamExtFloat<px4::params::EKF2_ABL_ACCLIM>)
-		_acc_bias_learn_acc_lim,	///< Maximum IMU accel magnitude that allows IMU bias learning (m/s**2)
+		_param_ekf2_abl_acclim,	///< Maximum IMU accel magnitude that allows IMU bias learning (m/s**2)
 		(ParamExtFloat<px4::params::EKF2_ABL_GYRLIM>)
-		_acc_bias_learn_gyr_lim,	///< Maximum IMU gyro angular rate magnitude that allows IMU bias learning (m/s**2)
+		_param_ekf2_abl_gyrlim,	///< Maximum IMU gyro angular rate magnitude that allows IMU bias learning (m/s**2)
 		(ParamExtFloat<px4::params::EKF2_ABL_TAU>)
-		_acc_bias_learn_tc,	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
+		_param_ekf2_abl_tau,	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
 
 		// Multi-rotor drag specific force fusion
 		(ParamExtFloat<px4::params::EKF2_DRAG_NOISE>)
-		_drag_noise,	///< observation noise variance for drag specific force measurements (m/sec**2)**2
-		(ParamExtFloat<px4::params::EKF2_BCOEF_X>) _bcoef_x,		///< ballistic coefficient along the X-axis (kg/m**2)
-		(ParamExtFloat<px4::params::EKF2_BCOEF_Y>) _bcoef_y,		///< ballistic coefficient along the Y-axis (kg/m**2)
+		_param_ekf2_drag_noise,	///< observation noise variance for drag specific force measurements (m/sec**2)**2
+		(ParamExtFloat<px4::params::EKF2_BCOEF_X>) _param_ekf2_bcoef_x,		///< ballistic coefficient along the X-axis (kg/m**2)
+		(ParamExtFloat<px4::params::EKF2_BCOEF_Y>) _param_ekf2_bcoef_y,		///< ballistic coefficient along the Y-axis (kg/m**2)
 
 		// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
 		// Coef = Ps_error / Pdynamic, where Pdynamic = 1/2 * density * TAS**2
-		(ParamFloat<px4::params::EKF2_ASPD_MAX>) _aspd_max,		///< upper limit on airspeed used for correction  (m/s**2)
+		(ParamFloat<px4::params::EKF2_ASPD_MAX>)
+		_param_ekf2_aspd_max,		///< upper limit on airspeed used for correction  (m/s**2)
 		(ParamFloat<px4::params::EKF2_PCOEF_XP>)
-		_K_pstatic_coef_xp,	///< static pressure position error coefficient along the positive X body axis
+		_param_ekf2_pcoef_xp,	///< static pressure position error coefficient along the positive X body axis
 		(ParamFloat<px4::params::EKF2_PCOEF_XN>)
-		_K_pstatic_coef_xn,	///< static pressure position error coefficient along the negative X body axis
-		(ParamFloat<px4::params::EKF2_PCOEF_Y>)
-		_K_pstatic_coef_y,	///< static pressure position error coefficient along the Y body axis
+		_param_ekf2_pcoef_xn,	///< static pressure position error coefficient along the negative X body axis
+		(ParamFloat<px4::params::EKF2_PCOEF_YP>)
+		_param_ekf2_pcoef_yp,	///< static pressure position error coefficient along the positive Y body axis
+		(ParamFloat<px4::params::EKF2_PCOEF_YN>)
+		_param_ekf2_pcoef_yn,	///< static pressure position error coefficient along the negative Y body axis
 		(ParamFloat<px4::params::EKF2_PCOEF_Z>)
-		_K_pstatic_coef_z,	///< static pressure position error coefficient along the Z body axis
+		_param_ekf2_pcoef_z,	///< static pressure position error coefficient along the Z body axis
 
 		// GPS blending
 		(ParamInt<px4::params::EKF2_GPS_MASK>)
-		_gps_blend_mask,	///< mask defining when GPS accuracy metrics are used to calculate the blend ratio
+		_param_ekf2_gps_mask,	///< mask defining when GPS accuracy metrics are used to calculate the blend ratio
 		(ParamFloat<px4::params::EKF2_GPS_TAU>)
-		_gps_blend_tau,		///< time constant controlling how rapidly the offset used to bring GPS solutions together is allowed to change (sec)
+		_param_ekf2_gps_tau,		///< time constant controlling how rapidly the offset used to bring GPS solutions together is allowed to change (sec)
 
 		// Test used to determine if the vehicle is static or moving
 		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)
-		_is_moving_scaler	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
+		_param_ekf2_move_test,	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
+
+		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
+		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check ///< Mag field strength check
 
 	)
 
 };
 
-Ekf2::Ekf2():
+Ekf2::Ekf2(bool replay_mode):
 	ModuleParams(nullptr),
-	_perf_update_data(perf_alloc_once(PC_ELAPSED, "EKF2 data acquisition")),
-	_perf_ekf_update(perf_alloc_once(PC_ELAPSED, "EKF2 update")),
-	_vehicle_local_position_pub(ORB_ID(vehicle_local_position)),
-	_vehicle_global_position_pub(ORB_ID(vehicle_global_position)),
-	_vehicle_odometry_pub(ORB_ID(vehicle_odometry)),
+	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	_replay_mode(replay_mode),
+	_ekf_update_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": update")),
 	_params(_ekf.getParamHandle()),
-	_obs_dt_min_ms(_params->sensor_interval_min_ms),
-	_mag_delay_ms(_params->mag_delay_ms),
-	_baro_delay_ms(_params->baro_delay_ms),
-	_gps_delay_ms(_params->gps_delay_ms),
-	_flow_delay_ms(_params->flow_delay_ms),
-	_rng_delay_ms(_params->range_delay_ms),
-	_airspeed_delay_ms(_params->airspeed_delay_ms),
-	_ev_delay_ms(_params->ev_delay_ms),
-	_auxvel_delay_ms(_params->auxvel_delay_ms),
-	_gyro_noise(_params->gyro_noise),
-	_accel_noise(_params->accel_noise),
-	_gyro_bias_p_noise(_params->gyro_bias_p_noise),
-	_accel_bias_p_noise(_params->accel_bias_p_noise),
-	_mage_p_noise(_params->mage_p_noise),
-	_magb_p_noise(_params->magb_p_noise),
-	_wind_vel_p_noise(_params->wind_vel_p_noise),
-	_terrain_p_noise(_params->terrain_p_noise),
-	_terrain_gradient(_params->terrain_gradient),
-	_gps_vel_noise(_params->gps_vel_noise),
-	_gps_pos_noise(_params->gps_pos_noise),
-	_pos_noaid_noise(_params->pos_noaid_noise),
-	_baro_noise(_params->baro_noise),
-	_baro_innov_gate(_params->baro_innov_gate),
-	_posNE_innov_gate(_params->posNE_innov_gate),
-	_vel_innov_gate(_params->vel_innov_gate),
-	_tas_innov_gate(_params->tas_innov_gate),
-	_mag_heading_noise(_params->mag_heading_noise),
-	_mag_noise(_params->mag_noise),
-	_eas_noise(_params->eas_noise),
-	_beta_innov_gate(_params->beta_innov_gate),
-	_beta_noise(_params->beta_noise),
-	_mag_declination_deg(_params->mag_declination_deg),
-	_heading_innov_gate(_params->heading_innov_gate),
-	_mag_innov_gate(_params->mag_innov_gate),
-	_mag_decl_source(_params->mag_declination_source),
-	_mag_fuse_type(_params->mag_fusion_type),
-	_mag_acc_gate(_params->mag_acc_gate),
-	_mag_yaw_rate_gate(_params->mag_yaw_rate_gate),
-	_gps_check_mask(_params->gps_check_mask),
-	_requiredEph(_params->req_hacc),
-	_requiredEpv(_params->req_vacc),
-	_requiredSacc(_params->req_sacc),
-	_requiredNsats(_params->req_nsats),
-	_requiredGDoP(_params->req_gdop),
-	_requiredHdrift(_params->req_hdrift),
-	_requiredVdrift(_params->req_vdrift),
-	_fusion_mode(_params->fusion_mode),
-	_vdist_sensor_type(_params->vdist_sensor_type),
-	_valid_timeout_max(_params->valid_timeout_max),
-	_range_noise(_params->range_noise),
-	_range_noise_scaler(_params->range_noise_scaler),
-	_range_innov_gate(_params->range_innov_gate),
-	_rng_gnd_clearance(_params->rng_gnd_clearance),
-	_rng_pitch_offset(_params->rng_sens_pitch),
-	_rng_aid(_params->range_aid),
-	_rng_aid_hor_vel_max(_params->max_vel_for_range_aid),
-	_rng_aid_height_max(_params->max_hagl_for_range_aid),
-	_rng_aid_innov_gate(_params->range_aid_innov_gate),
-	_ev_innov_gate(_params->ev_innov_gate),
-	_flow_noise(_params->flow_noise),
-	_flow_noise_qual_min(_params->flow_noise_qual_min),
-	_flow_qual_min(_params->flow_qual_min),
-	_flow_innov_gate(_params->flow_innov_gate),
-	_imu_pos_x(_params->imu_pos_body(0)),
-	_imu_pos_y(_params->imu_pos_body(1)),
-	_imu_pos_z(_params->imu_pos_body(2)),
-	_gps_pos_x(_params->gps_pos_body(0)),
-	_gps_pos_y(_params->gps_pos_body(1)),
-	_gps_pos_z(_params->gps_pos_body(2)),
-	_rng_pos_x(_params->rng_pos_body(0)),
-	_rng_pos_y(_params->rng_pos_body(1)),
-	_rng_pos_z(_params->rng_pos_body(2)),
-	_flow_pos_x(_params->flow_pos_body(0)),
-	_flow_pos_y(_params->flow_pos_body(1)),
-	_flow_pos_z(_params->flow_pos_body(2)),
-	_ev_odom_x(_params->ev_pos_body(0)),
-	_ev_odom_y(_params->ev_pos_body(1)),
-	_ev_odom_z(_params->ev_pos_body(2)),
-	_tau_vel(_params->vel_Tau),
-	_tau_pos(_params->pos_Tau),
-	_gyr_bias_init(_params->switch_on_gyro_bias),
-	_acc_bias_init(_params->switch_on_accel_bias),
-	_ang_err_init(_params->initial_tilt_err),
-	_acc_bias_lim(_params->acc_bias_lim),
-	_acc_bias_learn_acc_lim(_params->acc_bias_learn_acc_lim),
-	_acc_bias_learn_gyr_lim(_params->acc_bias_learn_gyr_lim),
-	_acc_bias_learn_tc(_params->acc_bias_learn_tc),
-	_drag_noise(_params->drag_noise),
-	_bcoef_x(_params->bcoef_x),
-	_bcoef_y(_params->bcoef_y),
-	_is_moving_scaler(_params->is_moving_scaler)
+	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
+	_param_ekf2_mag_delay(_params->mag_delay_ms),
+	_param_ekf2_baro_delay(_params->baro_delay_ms),
+	_param_ekf2_gps_delay(_params->gps_delay_ms),
+	_param_ekf2_of_delay(_params->flow_delay_ms),
+	_param_ekf2_rng_delay(_params->range_delay_ms),
+	_param_ekf2_asp_delay(_params->airspeed_delay_ms),
+	_param_ekf2_ev_delay(_params->ev_delay_ms),
+	_param_ekf2_avel_delay(_params->auxvel_delay_ms),
+	_param_ekf2_gyr_noise(_params->gyro_noise),
+	_param_ekf2_acc_noise(_params->accel_noise),
+	_param_ekf2_gyr_b_noise(_params->gyro_bias_p_noise),
+	_param_ekf2_acc_b_noise(_params->accel_bias_p_noise),
+	_param_ekf2_mag_e_noise(_params->mage_p_noise),
+	_param_ekf2_mag_b_noise(_params->magb_p_noise),
+	_param_ekf2_wind_noise(_params->wind_vel_p_noise),
+	_param_ekf2_terr_noise(_params->terrain_p_noise),
+	_param_ekf2_terr_grad(_params->terrain_gradient),
+	_param_ekf2_gps_v_noise(_params->gps_vel_noise),
+	_param_ekf2_gps_p_noise(_params->gps_pos_noise),
+	_param_ekf2_noaid_noise(_params->pos_noaid_noise),
+	_param_ekf2_baro_noise(_params->baro_noise),
+	_param_ekf2_baro_gate(_params->baro_innov_gate),
+	_param_ekf2_gnd_eff_dz(_params->gnd_effect_deadzone),
+	_param_ekf2_gnd_max_hgt(_params->gnd_effect_max_hgt),
+	_param_ekf2_gps_p_gate(_params->gps_pos_innov_gate),
+	_param_ekf2_gps_v_gate(_params->gps_vel_innov_gate),
+	_param_ekf2_tas_gate(_params->tas_innov_gate),
+	_param_ekf2_head_noise(_params->mag_heading_noise),
+	_param_ekf2_mag_noise(_params->mag_noise),
+	_param_ekf2_eas_noise(_params->eas_noise),
+	_param_ekf2_beta_gate(_params->beta_innov_gate),
+	_param_ekf2_beta_noise(_params->beta_noise),
+	_param_ekf2_mag_decl(_params->mag_declination_deg),
+	_param_ekf2_hdg_gate(_params->heading_innov_gate),
+	_param_ekf2_mag_gate(_params->mag_innov_gate),
+	_param_ekf2_decl_type(_params->mag_declination_source),
+	_param_ekf2_mag_type(_params->mag_fusion_type),
+	_param_ekf2_mag_acclim(_params->mag_acc_gate),
+	_param_ekf2_mag_yawlim(_params->mag_yaw_rate_gate),
+	_param_ekf2_gps_check(_params->gps_check_mask),
+	_param_ekf2_req_eph(_params->req_hacc),
+	_param_ekf2_req_epv(_params->req_vacc),
+	_param_ekf2_req_sacc(_params->req_sacc),
+	_param_ekf2_req_nsats(_params->req_nsats),
+	_param_ekf2_req_pdop(_params->req_pdop),
+	_param_ekf2_req_hdrift(_params->req_hdrift),
+	_param_ekf2_req_vdrift(_params->req_vdrift),
+	_param_ekf2_aid_mask(_params->fusion_mode),
+	_param_ekf2_hgt_mode(_params->vdist_sensor_type),
+	_param_ekf2_noaid_tout(_params->valid_timeout_max),
+	_param_ekf2_rng_noise(_params->range_noise),
+	_param_ekf2_rng_sfe(_params->range_noise_scaler),
+	_param_ekf2_rng_gate(_params->range_innov_gate),
+	_param_ekf2_min_rng(_params->rng_gnd_clearance),
+	_param_ekf2_rng_pitch(_params->rng_sens_pitch),
+	_param_ekf2_rng_aid(_params->range_aid),
+	_param_ekf2_rng_a_vmax(_params->max_vel_for_range_aid),
+	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
+	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
+	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
+	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
+	_param_ekf2_of_n_min(_params->flow_noise),
+	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
+	_param_ekf2_of_qmin(_params->flow_qual_min),
+	_param_ekf2_of_gate(_params->flow_innov_gate),
+	_param_ekf2_imu_pos_x(_params->imu_pos_body(0)),
+	_param_ekf2_imu_pos_y(_params->imu_pos_body(1)),
+	_param_ekf2_imu_pos_z(_params->imu_pos_body(2)),
+	_param_ekf2_gps_pos_x(_params->gps_pos_body(0)),
+	_param_ekf2_gps_pos_y(_params->gps_pos_body(1)),
+	_param_ekf2_gps_pos_z(_params->gps_pos_body(2)),
+	_param_ekf2_rng_pos_x(_params->rng_pos_body(0)),
+	_param_ekf2_rng_pos_y(_params->rng_pos_body(1)),
+	_param_ekf2_rng_pos_z(_params->rng_pos_body(2)),
+	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
+	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
+	_param_ekf2_of_pos_z(_params->flow_pos_body(2)),
+	_param_ekf2_ev_pos_x(_params->ev_pos_body(0)),
+	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
+	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
+	_param_ekf2_tau_vel(_params->vel_Tau),
+	_param_ekf2_tau_pos(_params->pos_Tau),
+	_param_ekf2_gbias_init(_params->switch_on_gyro_bias),
+	_param_ekf2_abias_init(_params->switch_on_accel_bias),
+	_param_ekf2_angerr_init(_params->initial_tilt_err),
+	_param_ekf2_abl_lim(_params->acc_bias_lim),
+	_param_ekf2_abl_acclim(_params->acc_bias_learn_acc_lim),
+	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
+	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
+	_param_ekf2_drag_noise(_params->drag_noise),
+	_param_ekf2_bcoef_x(_params->bcoef_x),
+	_param_ekf2_bcoef_y(_params->bcoef_y),
+	_param_ekf2_move_test(_params->is_moving_scaler),
+	_param_ekf2_mag_check(_params->check_mag_strength)
 {
-	_airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_ev_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
-	_landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
-	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
-	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
-	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-
-	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		_gps_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_gps_position), i);
-	}
-
-	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		_range_finder_subs[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
-	}
-
 	// initialise parameter cache
 	updateParams();
+
+	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 }
 
 Ekf2::~Ekf2()
 {
-	perf_free(_perf_update_data);
-	perf_free(_perf_ekf_update);
+	perf_free(_ekf_update_perf);
+}
 
-	orb_unsubscribe(_airdata_sub);
-	orb_unsubscribe(_airspeed_sub);
-	orb_unsubscribe(_ev_odom_sub);
-	orb_unsubscribe(_landing_target_pose_sub);
-	orb_unsubscribe(_magnetometer_sub);
-	orb_unsubscribe(_optical_flow_sub);
-	orb_unsubscribe(_params_sub);
-	orb_unsubscribe(_sensor_selection_sub);
-	orb_unsubscribe(_sensors_sub);
-	orb_unsubscribe(_status_sub);
-	orb_unsubscribe(_vehicle_land_detected_sub);
-
-	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		orb_unsubscribe(_range_finder_subs[i]);
+bool
+Ekf2::init()
+{
+	if (!_sensors_sub.registerCallback()) {
+		PX4_ERR("sensor combined callback registration failed!");
+		return false;
 	}
 
-	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		orb_unsubscribe(_gps_subs[i]);
-	}
+	return true;
 }
 
 int Ekf2::print_status()
@@ -661,8 +663,7 @@ int Ekf2::print_status()
 
 	PX4_INFO("time slip: %" PRId64 " us", _last_time_slip_us);
 
-	perf_print_counter(_perf_update_data);
-	perf_print_counter(_perf_ekf_update);
+	perf_print_counter(_ekf_update_perf);
 
 	return 0;
 }
@@ -673,8 +674,8 @@ void Ekf2::update_mag_bias(Param &mag_bias_param, int axis_index)
 	if (_valid_cal_available[axis_index]) {
 
 		// calculate weighting using ratio of variances and update stored bias values
-		const float weighting = constrain(_mag_bias_saved_variance.get() / (_mag_bias_saved_variance.get() +
-						  _last_valid_variance[axis_index]), 0.0f, _mag_bias_alpha.get());
+		const float weighting = constrain(_param_ekf2_magb_vref.get() / (_param_ekf2_magb_vref.get() +
+						  _last_valid_variance[axis_index]), 0.0f, _param_ekf2_magb_k.get());
 		const float mag_bias_saved = mag_bias_param.get();
 
 		_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
@@ -701,56 +702,30 @@ bool Ekf2::update_mag_decl(Param &mag_decl_param)
 	return false;
 }
 
-void Ekf2::run()
+void Ekf2::Run()
 {
-	bool imu_bias_reset_request = false;
+	if (should_exit()) {
+		_sensors_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}
 
-	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _sensors_sub;
-	fds[0].events = POLLIN;
+	sensor_combined_s sensors;
 
-	// initialize data structures outside of loop
-	// because they will else not always be
-	// properly populated
-	sensor_combined_s sensors = {};
-	vehicle_land_detected_s vehicle_land_detected = {};
-	vehicle_status_s vehicle_status = {};
-	sensor_selection_s sensor_selection = {};
+	if (_sensors_sub.update(&sensors)) {
 
-	while (!should_exit()) {
-		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-		if (!(fds[0].revents & POLLIN)) {
-			// no new data
-			continue;
-		}
-
-		if (ret < 0) {
-			// Poll error, sleep and try again
-			px4_usleep(10000);
-			continue;
-
-		} else if (ret == 0) {
-			// Poll timeout or no new data, do nothing
-			continue;
-		}
-
-		perf_begin(_perf_update_data);
-
-		bool params_updated = false;
-		orb_check(_params_sub, &params_updated);
-
-		if (params_updated) {
-			// read from param to clear updated flag
-			parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			// update parameters from storage
 			updateParams();
 		}
 
-		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
-
 		// ekf2_timestamps (using 0.1 ms relative timestamps)
-		ekf2_timestamps_s ekf2_timestamps = {};
+		ekf2_timestamps_s ekf2_timestamps{};
 		ekf2_timestamps.timestamp = sensors.timestamp;
 
 		ekf2_timestamps.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
@@ -762,47 +737,39 @@ void Ekf2::run()
 		ekf2_timestamps.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
 		// update all other topics if they have new data
+		if (_status_sub.update(&_vehicle_status)) {
 
-		bool vehicle_status_updated = false;
+			const bool is_fixed_wing = (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
-		orb_check(_status_sub, &vehicle_status_updated);
+			// only fuse synthetic sideslip measurements if conditions are met
+			_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
 
-		if (vehicle_status_updated) {
-			if (orb_copy(ORB_ID(vehicle_status), _status_sub, &vehicle_status) == PX4_OK) {
-				// only fuse synthetic sideslip measurements if conditions are met
-				_ekf.set_fuse_beta_flag(!vehicle_status.is_rotary_wing && (_fuseBeta.get() == 1));
-
-				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
-				_ekf.set_is_fixed_wing(!vehicle_status.is_rotary_wing);
-			}
+			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
+			_ekf.set_is_fixed_wing(is_fixed_wing);
 		}
 
-		bool sensor_selection_updated = false;
-
-		orb_check(_sensor_selection_sub, &sensor_selection_updated);
-
 		// Always update sensor selction first time through if time stamp is non zero
-		if (sensor_selection_updated || (sensor_selection.timestamp == 0)) {
-			sensor_selection_s sensor_selection_prev = sensor_selection;
+		if (_sensor_selection_sub.updated() || (_sensor_selection.timestamp == 0)) {
+			const sensor_selection_s sensor_selection_prev = _sensor_selection;
 
-			if (orb_copy(ORB_ID(sensor_selection), _sensor_selection_sub, &sensor_selection) == PX4_OK) {
-				if ((sensor_selection_prev.timestamp > 0) && (sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
-					if (sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
+			if (_sensor_selection_sub.copy(&_sensor_selection)) {
+				if ((sensor_selection_prev.timestamp > 0) && (_sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
+					if (_sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
 						PX4_WARN("accel id changed, resetting IMU bias");
-						imu_bias_reset_request = true;
+						_imu_bias_reset_request = true;
 					}
 
-					if (sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
+					if (_sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
 						PX4_WARN("gyro id changed, resetting IMU bias");
-						imu_bias_reset_request = true;
+						_imu_bias_reset_request = true;
 					}
 				}
 			}
 		}
 
 		// attempt reset until successful
-		if (imu_bias_reset_request) {
-			imu_bias_reset_request = !_ekf.reset_imu_bias();
+		if (_imu_bias_reset_request) {
+			_imu_bias_reset_request = !_ekf.reset_imu_bias();
 		}
 
 		const hrt_abstime now = sensors.timestamp;
@@ -821,18 +788,17 @@ void Ekf2::run()
 		publish_attitude(sensors, now);
 
 		// read mag data
-		bool magnetometer_updated = false;
-		orb_check(_magnetometer_sub, &magnetometer_updated);
-
-		if (magnetometer_updated) {
+		if (_magnetometer_sub.updated()) {
 			vehicle_magnetometer_s magnetometer;
 
-			if (orb_copy(ORB_ID(vehicle_magnetometer), _magnetometer_sub, &magnetometer) == PX4_OK) {
+			if (_magnetometer_sub.copy(&magnetometer)) {
 				// Reset learned bias parameters if there has been a persistant change in magnetometer ID
 				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
 				// and notification events
 				// Check if there has been a persistant change in magnetometer ID
-				if (sensor_selection.mag_device_id != 0 && sensor_selection.mag_device_id != (uint32_t)_mag_bias_id.get()) {
+				if (_sensor_selection.mag_device_id != 0
+				    && (_sensor_selection.mag_device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
+
 					if (_invalid_mag_id_count < 200) {
 						_invalid_mag_id_count++;
 					}
@@ -843,21 +809,21 @@ void Ekf2::run()
 					}
 				}
 
-				if ((vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
+				if ((_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
 					// this means we need to reset the learned bias values to zero
-					_mag_bias_x.set(0.f);
-					_mag_bias_x.commit_no_notification();
-					_mag_bias_y.set(0.f);
-					_mag_bias_y.commit_no_notification();
-					_mag_bias_z.set(0.f);
-					_mag_bias_z.commit_no_notification();
-					_mag_bias_id.set(sensor_selection.mag_device_id);
-					_mag_bias_id.commit();
+					_param_ekf2_magbias_x.set(0.f);
+					_param_ekf2_magbias_x.commit_no_notification();
+					_param_ekf2_magbias_y.set(0.f);
+					_param_ekf2_magbias_y.commit_no_notification();
+					_param_ekf2_magbias_z.set(0.f);
+					_param_ekf2_magbias_z.commit_no_notification();
+					_param_ekf2_magbias_id.set(_sensor_selection.mag_device_id);
+					_param_ekf2_magbias_id.commit();
 
 					_invalid_mag_id_count = 0;
 
-					PX4_INFO("Mag sensor ID changed to %i", _mag_bias_id.get());
+					PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
 				}
 
 				// If the time last used by the EKF is less than specified, then accumulate the
@@ -872,9 +838,9 @@ void Ekf2::run()
 				if ((mag_time_ms - _mag_time_ms_last_used) > _params->sensor_interval_min_ms) {
 					const float mag_sample_count_inv = 1.0f / _mag_sample_count;
 					// calculate mean of measurements and correct for learned bias offsets
-					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv - _mag_bias_x.get(),
-								    _mag_data_sum[1] *mag_sample_count_inv - _mag_bias_y.get(),
-								    _mag_data_sum[2] *mag_sample_count_inv - _mag_bias_z.get()
+					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv - _param_ekf2_magbias_x.get(),
+								    _mag_data_sum[1] *mag_sample_count_inv - _param_ekf2_magbias_y.get(),
+								    _mag_data_sum[2] *mag_sample_count_inv - _param_ekf2_magbias_z.get()
 								   };
 
 					_ekf.setMagData(1000 * (uint64_t)mag_time_ms, mag_data_avg_ga);
@@ -893,13 +859,10 @@ void Ekf2::run()
 		}
 
 		// read baro data
-		bool airdata_updated = false;
-		orb_check(_airdata_sub, &airdata_updated);
-
-		if (airdata_updated) {
+		if (_airdata_sub.updated()) {
 			vehicle_air_data_s airdata;
 
-			if (orb_copy(ORB_ID(vehicle_air_data), _airdata_sub, &airdata) == PX4_OK) {
+			if (_airdata_sub.copy(&airdata)) {
 				// If the time last used by the EKF is less than specified, then accumulate the
 				// data and push the average when the specified interval is reached.
 				_balt_time_sum_ms += airdata.timestamp / 1000;
@@ -914,25 +877,35 @@ void Ekf2::run()
 					_ekf.set_air_density(airdata.rho);
 
 					// calculate static pressure error = Pmeas - Ptruth
-					// model position error sensitivity as a body fixed ellipse with different scale in the positive and negtive X direction
-					const float max_airspeed_sq = _aspd_max.get() * _aspd_max.get();
-					float K_pstatic_coef_x;
-
+					// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
+					// negative X and Y directions
 					const Vector3f vel_body_wind = get_vel_body_wind();
 
+					float K_pstatic_coef_x;
+
 					if (vel_body_wind(0) >= 0.0f) {
-						K_pstatic_coef_x = _K_pstatic_coef_xp.get();
+						K_pstatic_coef_x = _param_ekf2_pcoef_xp.get();
 
 					} else {
-						K_pstatic_coef_x = _K_pstatic_coef_xn.get();
+						K_pstatic_coef_x = _param_ekf2_pcoef_xn.get();
 					}
 
+					float K_pstatic_coef_y;
+
+					if (vel_body_wind(1) >= 0.0f) {
+						K_pstatic_coef_y = _param_ekf2_pcoef_yp.get();
+
+					} else {
+						K_pstatic_coef_y = _param_ekf2_pcoef_yn.get();
+					}
+
+					const float max_airspeed_sq = _param_ekf2_aspd_max.get() * _param_ekf2_aspd_max.get();
 					const float x_v2 = fminf(vel_body_wind(0) * vel_body_wind(0), max_airspeed_sq);
 					const float y_v2 = fminf(vel_body_wind(1) * vel_body_wind(1), max_airspeed_sq);
 					const float z_v2 = fminf(vel_body_wind(2) * vel_body_wind(2), max_airspeed_sq);
 
-					const float pstatic_err = 0.5f * airdata.rho *
-								  (K_pstatic_coef_x * x_v2) + (_K_pstatic_coef_y.get() * y_v2) + (_K_pstatic_coef_z.get() * z_v2);
+					const float pstatic_err = 0.5f * airdata.rho * (
+									  K_pstatic_coef_x * x_v2 + K_pstatic_coef_y * y_v2 + _param_ekf2_pcoef_z.get() * z_v2);
 
 					// correct baro measurement using pressure error estimate and assuming sea level gravity
 					balt_data_avg += pstatic_err / (airdata.rho * CONSTANTS_ONE_G);
@@ -952,31 +925,13 @@ void Ekf2::run()
 		}
 
 		// read gps1 data if available
-		bool gps1_updated = false;
-		orb_check(_gps_subs[0], &gps1_updated);
+		bool gps1_updated = _gps_subs[0].updated();
 
 		if (gps1_updated) {
 			vehicle_gps_position_s gps;
 
-			if (orb_copy(ORB_ID(vehicle_gps_position), _gps_subs[0], &gps) == PX4_OK) {
-				_gps_state[0].time_usec = gps.timestamp;
-				_gps_state[0].lat = gps.lat;
-				_gps_state[0].lon = gps.lon;
-				_gps_state[0].alt = gps.alt;
-				_gps_state[0].yaw = gps.heading;
-				_gps_state[0].yaw_offset = gps.heading_offset;
-				_gps_state[0].fix_type = gps.fix_type;
-				_gps_state[0].eph = gps.eph;
-				_gps_state[0].epv = gps.epv;
-				_gps_state[0].sacc = gps.s_variance_m_s;
-				_gps_state[0].vel_m_s = gps.vel_m_s;
-				_gps_state[0].vel_ned[0] = gps.vel_n_m_s;
-				_gps_state[0].vel_ned[1] = gps.vel_e_m_s;
-				_gps_state[0].vel_ned[2] = gps.vel_d_m_s;
-				_gps_state[0].vel_ned_valid = gps.vel_ned_valid;
-				_gps_state[0].nsats = gps.satellites_used;
-				//TODO: add gdop to gps topic
-				_gps_state[0].gdop = 0.0f;
+			if (_gps_subs[0].copy(&gps)) {
+				fillGpsMsgWithVehicleGpsPosData(_gps_state[0], gps);
 				_gps_alttitude_ellipsoid[0] = gps.alt_ellipsoid;
 
 				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
@@ -984,40 +939,22 @@ void Ekf2::run()
 		}
 
 		// check for second GPS receiver data
-		bool gps2_updated = false;
-		orb_check(_gps_subs[1], &gps2_updated);
+		bool gps2_updated = _gps_subs[1].updated();
 
 		if (gps2_updated) {
 			vehicle_gps_position_s gps;
 
-			if (orb_copy(ORB_ID(vehicle_gps_position), _gps_subs[1], &gps) == PX4_OK) {
-				_gps_state[1].time_usec = gps.timestamp;
-				_gps_state[1].lat = gps.lat;
-				_gps_state[1].lon = gps.lon;
-				_gps_state[1].alt = gps.alt;
-				_gps_state[1].yaw = gps.heading;
-				_gps_state[1].yaw_offset = gps.heading_offset;
-				_gps_state[1].fix_type = gps.fix_type;
-				_gps_state[1].eph = gps.eph;
-				_gps_state[1].epv = gps.epv;
-				_gps_state[1].sacc = gps.s_variance_m_s;
-				_gps_state[1].vel_m_s = gps.vel_m_s;
-				_gps_state[1].vel_ned[0] = gps.vel_n_m_s;
-				_gps_state[1].vel_ned[1] = gps.vel_e_m_s;
-				_gps_state[1].vel_ned[2] = gps.vel_d_m_s;
-				_gps_state[1].vel_ned_valid = gps.vel_ned_valid;
-				_gps_state[1].nsats = gps.satellites_used;
-				//TODO: add gdop to gps topic
-				_gps_state[1].gdop = 0.0f;
+			if (_gps_subs[1].copy(&gps)) {
+				fillGpsMsgWithVehicleGpsPosData(_gps_state[1], gps);
 				_gps_alttitude_ellipsoid[1] = gps.alt_ellipsoid;
 			}
 		}
 
-		if ((_gps_blend_mask.get() == 0) && gps1_updated) {
+		if ((_param_ekf2_gps_mask.get() == 0) && gps1_updated) {
 			// When GPS blending is disabled we always use the first receiver instance
-			_ekf.setGpsData(_gps_state[0].time_usec, &_gps_state[0]);
+			_ekf.setGpsData(_gps_state[0].time_usec, _gps_state[0]);
 
-		} else if ((_gps_blend_mask.get() > 0) && (gps1_updated || gps2_updated)) {
+		} else if ((_param_ekf2_gps_mask.get() > 0) && (gps1_updated || gps2_updated)) {
 			// blend dual receivers if available
 
 			// calculate blending weights
@@ -1042,12 +979,8 @@ void Ekf2::run()
 				}
 
 				// Only use selected receiver data if it has been updated
-				if ((gps1_updated && _gps_select_index == 0) || (gps2_updated && _gps_select_index == 1)) {
-					_gps_new_output_data = true;
-
-				} else {
-					_gps_new_output_data = false;
-				}
+				_gps_new_output_data = (gps1_updated && _gps_select_index == 0) ||
+						       (gps2_updated && _gps_select_index == 1);
 			}
 
 			if (_gps_new_output_data) {
@@ -1060,7 +993,7 @@ void Ekf2::run()
 				}
 
 				// write selected GPS to EKF
-				_ekf.setGpsData(_gps_output[_gps_select_index].time_usec, &_gps_output[_gps_select_index]);
+				_ekf.setGpsData(_gps_output[_gps_select_index].time_usec, _gps_output[_gps_select_index]);
 
 				// log blended solution as a third GPS instance
 				ekf_gps_position_s gps;
@@ -1083,22 +1016,19 @@ void Ekf2::run()
 				gps.selected = _gps_select_index;
 
 				// Publish to the EKF blended GPS topic
-				orb_publish_auto(ORB_ID(ekf_gps_position), &_blended_gps_pub, &gps, &_gps_orb_instance, ORB_PRIO_LOW);
+				_blended_gps_pub.publish(gps);
 
 				// clear flag to avoid re-use of the same data
 				_gps_new_output_data = false;
 			}
 		}
 
-		bool airspeed_updated = false;
-		orb_check(_airspeed_sub, &airspeed_updated);
-
-		if (airspeed_updated) {
+		if (_airspeed_sub.updated()) {
 			airspeed_s airspeed;
 
-			if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
+			if (_airspeed_sub.copy(&airspeed)) {
 				// only set airspeed data if condition for airspeed fusion are met
-				if ((_arspFusionThreshold.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _arspFusionThreshold.get())) {
+				if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
 					const float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
 					_ekf.setAirspeedData(airspeed.timestamp, airspeed.true_airspeed_m_s, eas2tas);
@@ -1109,14 +1039,10 @@ void Ekf2::run()
 			}
 		}
 
-		bool optical_flow_updated = false;
-
-		orb_check(_optical_flow_sub, &optical_flow_updated);
-
-		if (optical_flow_updated) {
+		if (_optical_flow_sub.updated()) {
 			optical_flow_s optical_flow;
 
-			if (orb_copy(ORB_ID(optical_flow), _optical_flow_sub, &optical_flow) == PX4_OK) {
+			if (_optical_flow_sub.copy(&optical_flow)) {
 				flow_message flow;
 				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
 				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
@@ -1142,27 +1068,12 @@ void Ekf2::run()
 		}
 
 		if (_range_finder_sub_index >= 0) {
-			bool range_finder_updated = false;
 
-			orb_check(_range_finder_subs[_range_finder_sub_index], &range_finder_updated);
-
-			if (range_finder_updated) {
+			if (_range_finder_subs[_range_finder_sub_index].updated()) {
 				distance_sensor_s range_finder;
 
-				if (orb_copy(ORB_ID(distance_sensor), _range_finder_subs[_range_finder_sub_index], &range_finder) == PX4_OK) {
-					// check distance sensor data quality
-					// TODO - move this check inside the ecl library
-					if (range_finder.signal_quality == 0) {
-						// use rng_gnd_clearance if on ground
-						if (_ekf.get_in_air_status()) {
-							range_finder_updated = false;
-
-						} else {
-							range_finder.current_distance = _rng_gnd_clearance.get();
-						}
-					}
-
-					if (range_finder_updated) { _ekf.setRangeData(range_finder.timestamp, range_finder.current_distance); }
+				if (_range_finder_subs[_range_finder_sub_index].copy(&range_finder)) {
+					_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance, range_finder.signal_quality);
 
 					// Save sensor limits reported by the rangefinder
 					_ekf.set_rangefinder_limits(range_finder.min_distance, range_finder.max_distance);
@@ -1173,98 +1084,111 @@ void Ekf2::run()
 			}
 
 		} else {
-			_range_finder_sub_index = getRangeSubIndex(_range_finder_subs);
+			_range_finder_sub_index = getRangeSubIndex();
 		}
 
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
-		bool visual_odometry_updated = false;
-		orb_check(_ev_odom_sub, &visual_odometry_updated);
+		new_ev_data_received = false;
 
-		if (visual_odometry_updated) {
+		if (_ev_odom_sub.updated()) {
+			new_ev_data_received = true;
+
 			// copy both attitude & position, we need both to fill a single ext_vision_message
-			vehicle_odometry_s ev_odom;
-			orb_copy(ORB_ID(vehicle_visual_odometry), _ev_odom_sub, &ev_odom);
+			_ev_odom_sub.copy(&_ev_odom);
 
 			ext_vision_message ev_data;
 
-			// check for valid position data
-			if (PX4_ISFINITE(ev_odom.x) && PX4_ISFINITE(ev_odom.y) && PX4_ISFINITE(ev_odom.z)) {
-				ev_data.posNED(0) = ev_odom.x;
-				ev_data.posNED(1) = ev_odom.y;
-				ev_data.posNED(2) = ev_odom.z;
+			// check for valid velocity data
+			if (PX4_ISFINITE(_ev_odom.vx) && PX4_ISFINITE(_ev_odom.vy) && PX4_ISFINITE(_ev_odom.vz)) {
+				ev_data.vel(0) = _ev_odom.vx;
+				ev_data.vel(1) = _ev_odom.vy;
+				ev_data.vel(2) = _ev_odom.vz;
 
-				// position measurement error from parameters
-				if (PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
-					ev_data.posErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE],
-							       ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])));
-					ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), sqrtf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]));
+				// velocity measurement error from ev_data or parameters
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])) {
+					ev_data.velErr = fmaxf(_param_ekf2_evv_noise.get(),
+							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE],
+									   fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE],
+											   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]))));
 
 				} else {
-					ev_data.posErr = _ev_pos_noise.get();
-					ev_data.hgtErr = _ev_pos_noise.get();
+					ev_data.velErr = _param_ekf2_evv_noise.get();
+				}
+			}
+
+			// check for valid position data
+			if (PX4_ISFINITE(_ev_odom.x) && PX4_ISFINITE(_ev_odom.y) && PX4_ISFINITE(_ev_odom.z)) {
+				ev_data.pos(0) = _ev_odom.x;
+				ev_data.pos(1) = _ev_odom.y;
+				ev_data.pos(2) = _ev_odom.z;
+
+				// position measurement error from ev_data or parameters
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
+					ev_data.posErr = fmaxf(_param_ekf2_evp_noise.get(),
+							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE],
+									   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])));
+					ev_data.hgtErr = fmaxf(_param_ekf2_evp_noise.get(),
+							       sqrtf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]));
+
+				} else {
+					ev_data.posErr = _param_ekf2_evp_noise.get();
+					ev_data.hgtErr = _param_ekf2_evp_noise.get();
 				}
 			}
 
 			// check for valid orientation data
-			if (PX4_ISFINITE(ev_odom.q[0])) {
-				ev_data.quat = matrix::Quatf(ev_odom.q);
+			if (PX4_ISFINITE(_ev_odom.q[0])) {
+				ev_data.quat = matrix::Quatf(_ev_odom.q);
 
-				// orientation measurement error from parameters
-				if (PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE])) {
-					ev_data.angErr = fmaxf(_ev_ang_noise.get(),
-							       sqrtf(fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE],
-									   fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_PITCH_VARIANCE],
-											   ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]))));
+				// orientation measurement error from ev_data or parameters
+				if (!_param_ekf2_ev_noise_md.get()
+				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE])) {
+					ev_data.angErr = fmaxf(_param_ekf2_eva_noise.get(),
+							       sqrtf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]));
 
 				} else {
-					ev_data.angErr = _ev_ang_noise.get();
+					ev_data.angErr = _param_ekf2_eva_noise.get();
 				}
 			}
 
 			// only set data if all positions and orientation are valid
 			if (ev_data.posErr < ep_max_std_dev && ev_data.angErr < eo_max_std_dev) {
 				// use timestamp from external computer, clocks are synchronized when using MAVROS
-				_ekf.setExtVisionData(ev_odom.timestamp, &ev_data);
+				_ekf.setExtVisionData(_ev_odom.timestamp, &ev_data);
 			}
 
-			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
+			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)_ev_odom.timestamp / 100 -
 					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
-		bool vehicle_land_detected_updated = false;
-		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
+		bool vehicle_land_detected_updated = _vehicle_land_detected_sub.updated();
 
 		if (vehicle_land_detected_updated) {
-			if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
-				_ekf.set_in_air_status(!vehicle_land_detected.landed);
+			if (_vehicle_land_detected_sub.copy(&_vehicle_land_detected)) {
+				_ekf.set_in_air_status(!_vehicle_land_detected.landed);
 			}
 		}
 
 		// use the landing target pose estimate as another source of velocity data
-		bool landing_target_pose_updated = false;
-		orb_check(_landing_target_pose_sub, &landing_target_pose_updated);
-
-		if (landing_target_pose_updated) {
+		if (_landing_target_pose_sub.updated()) {
 			landing_target_pose_s landing_target_pose;
 
-			if (orb_copy(ORB_ID(landing_target_pose), _landing_target_pose_sub, &landing_target_pose) == PX4_OK) {
+			if (_landing_target_pose_sub.copy(&landing_target_pose)) {
 				// we can only use the landing target if it has a fixed position and  a valid velocity estimate
 				if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 					// velocity of vehicle relative to target has opposite sign to target relative to vehicle
-					float velocity[2] = {-landing_target_pose.vx_rel, -landing_target_pose.vy_rel};
+					float velocity[2] = { -landing_target_pose.vx_rel, -landing_target_pose.vy_rel};
 					float variance[2] = {landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel};
 					_ekf.setAuxVelData(landing_target_pose.timestamp, velocity, variance);
 				}
 			}
 		}
 
-		perf_end(_perf_update_data);
-
 		// run the EKF update and output
-		perf_begin(_perf_ekf_update);
+		perf_begin(_ekf_update_perf);
 		const bool updated = _ekf.update();
-		perf_end(_perf_ekf_update);
+		perf_end(_ekf_update_perf);
 
 		// integrate time to monitor time slippage
 		if (_start_time_us == 0) {
@@ -1287,7 +1211,7 @@ void Ekf2::run()
 				vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
 
 				// generate vehicle odometry data
-				vehicle_odometry_s &odom = _vehicle_odometry_pub.get();
+				vehicle_odometry_s odom{};
 
 				lpos.timestamp = now;
 				odom.timestamp = lpos.timestamp;
@@ -1331,10 +1255,10 @@ void Ekf2::run()
 				lpos.az = vel_deriv[2];
 
 				// TODO: better status reporting
-				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-				lpos.z_valid = !_preflt_vert_fail;
-				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-				lpos.v_z_valid = !_preflt_vert_fail;
+				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+				lpos.z_valid = !_preflt_checker.hasVertFailed();
+				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+				lpos.v_z_valid = !_preflt_checker.hasVertFailed();
 
 				// Position of local NED origin in GPS / WGS84 frame
 				map_projection_reference_s ekf_origin;
@@ -1352,8 +1276,7 @@ void Ekf2::run()
 				}
 
 				// The rotation of the tangent plane vs. geographical north
-				matrix::Quatf q;
-				_ekf.copy_quaternion(q.data());
+				matrix::Quatf q = _ekf.get_quaternion();
 
 				lpos.yaw = matrix::Eulerf(q).psi();
 
@@ -1374,8 +1297,31 @@ void Ekf2::run()
 				lpos.dist_bottom = terrain_vpos - lpos.z; // Distance to bottom surface (ground) in meters
 
 				// constrain the distance to ground to _rng_gnd_clearance
-				if (lpos.dist_bottom < _rng_gnd_clearance.get()) {
-					lpos.dist_bottom = _rng_gnd_clearance.get();
+				if (lpos.dist_bottom < _param_ekf2_min_rng.get()) {
+					lpos.dist_bottom = _param_ekf2_min_rng.get();
+				}
+
+				if (!_had_valid_terrain) {
+					_had_valid_terrain = lpos.dist_bottom_valid;
+				}
+
+				// only consider ground effect if compensation is configured and the vehicle is armed (props spinning)
+				if (_param_ekf2_gnd_eff_dz.get() > 0.0f && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+					// set ground effect flag if vehicle is closer than a specified distance to the ground
+					if (lpos.dist_bottom_valid) {
+						_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
+
+						// if we have no valid terrain estimate and never had one then use ground effect flag from land detector
+						// _had_valid_terrain is used to make sure that we don't fall back to using this option
+						// if we temporarily lose terrain data due to the distance sensor getting out of range
+
+					} else if (vehicle_land_detected_updated && !_had_valid_terrain) {
+						// update ground effect flag based on land detector state
+						_ekf.set_gnd_effect_flag(_vehicle_land_detected.in_ground_effect);
+					}
+
+				} else {
+					_ekf.set_gnd_effect_flag(false);
 				}
 
 				lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
@@ -1411,7 +1357,7 @@ void Ekf2::run()
 
 				// Get covariances to vehicle odometry
 				float covariances[24];
-				_ekf.get_covariances(covariances);
+				_ekf.covariances_diagonal().copyTo(covariances);
 
 				// get the covariance matrix size
 				const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
@@ -1444,9 +1390,39 @@ void Ekf2::run()
 				_vehicle_local_position_pub.update();
 
 				// publish vehicle odometry data
-				_vehicle_odometry_pub.update();
+				_vehicle_odometry_pub.publish(odom);
 
-				if (_ekf.global_position_is_valid() && !_preflt_fail) {
+				// publish external visual odometry after fixed frame alignment if new odometry is received
+				if (new_ev_data_received) {
+					float q_ev2ekf[4];
+					_ekf.get_ev2ekf_quaternion(q_ev2ekf); // rotates from EV to EKF navigation frame
+					Quatf quat_ev2ekf(q_ev2ekf);
+					Dcmf ev_rot_mat(quat_ev2ekf);
+
+					vehicle_odometry_s aligned_ev_odom = _ev_odom;
+
+					// Rotate external position and velocity into EKF navigation frame
+					Vector3f aligned_pos = ev_rot_mat * Vector3f(_ev_odom.x, _ev_odom.y, _ev_odom.z);
+					aligned_ev_odom.x = aligned_pos(0);
+					aligned_ev_odom.y = aligned_pos(1);
+					aligned_ev_odom.z = aligned_pos(2);
+
+					Vector3f aligned_vel = ev_rot_mat * Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
+					aligned_ev_odom.vx = aligned_vel(0);
+					aligned_ev_odom.vy = aligned_vel(1);
+					aligned_ev_odom.vz = aligned_vel(2);
+
+					// Compute orientation in EKF navigation frame
+					Quatf ev_quat_aligned = quat_ev2ekf * matrix::Quatf(_ev_odom.q) ;
+					ev_quat_aligned.normalize();
+
+					ev_quat_aligned.copyTo(aligned_ev_odom.q);
+					quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
+
+					_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
+				}
+
+				if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
 					// generate and publish global position data
 					vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
 
@@ -1489,38 +1465,19 @@ void Ekf2::run()
 
 			{
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
-				sensor_bias_s bias;
+				sensor_bias_s bias{};
 
 				bias.timestamp = now;
 
 				// In-run bias estimates
-				float gyro_bias[3];
-				_ekf.get_gyro_bias(gyro_bias);
-				bias.gyro_x_bias = gyro_bias[0];
-				bias.gyro_y_bias = gyro_bias[1];
-				bias.gyro_z_bias = gyro_bias[2];
+				_ekf.get_gyro_bias(bias.gyro_bias);
+				_ekf.get_accel_bias(bias.accel_bias);
 
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-				bias.accel_x_bias = accel_bias[0];
-				bias.accel_y_bias = accel_bias[1];
-				bias.accel_z_bias = accel_bias[2];
+				bias.mag_bias[0] = _last_valid_mag_cal[0];
+				bias.mag_bias[1] = _last_valid_mag_cal[1];
+				bias.mag_bias[2] = _last_valid_mag_cal[2];
 
-				bias.mag_x_bias = _last_valid_mag_cal[0];
-				bias.mag_y_bias = _last_valid_mag_cal[1];
-				bias.mag_z_bias = _last_valid_mag_cal[2];
-
-				// TODO: remove from sensor_bias?
-				bias.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
-				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
-				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
-
-				if (_sensor_bias_pub == nullptr) {
-					_sensor_bias_pub = orb_advertise(ORB_ID(sensor_bias), &bias);
-
-				} else {
-					orb_publish(ORB_ID(sensor_bias), _sensor_bias_pub, &bias);
-				}
+				_sensor_bias_pub.publish(bias);
 			}
 
 			// publish estimator status
@@ -1528,17 +1485,18 @@ void Ekf2::run()
 			status.timestamp = now;
 			_ekf.get_state_delayed(status.states);
 			status.n_states = 24;
-			_ekf.get_covariances(status.covariances);
+			_ekf.covariances_diagonal().copyTo(status.covariances);
+			_ekf.get_output_tracking_error(&status.output_tracking_error[0]);
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
 			// the GPS Fix bit, which is always checked)
 			status.gps_check_fail_flags &= ((uint16_t)_params->gps_check_mask << 1) | 1;
 			status.control_mode_flags = control_status.value;
 			_ekf.get_filter_fault_status(&status.filter_fault_flags);
-			_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
-							&status.vel_test_ratio, &status.pos_test_ratio,
-							&status.hgt_test_ratio, &status.tas_test_ratio,
-							&status.hagl_test_ratio, &status.beta_test_ratio);
+			_ekf.get_innovation_test_status(status.innovation_check_flags, status.mag_test_ratio,
+							status.vel_test_ratio, status.pos_test_ratio,
+							status.hgt_test_ratio, status.tas_test_ratio,
+							status.hagl_test_ratio, status.beta_test_ratio);
 
 			status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
 			status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
@@ -1547,14 +1505,13 @@ void Ekf2::run()
 			status.time_slip = _last_time_slip_us / 1e6f;
 			status.health_flags = 0.0f; // unused
 			status.timeout_flags = 0.0f; // unused
-			status.pre_flt_fail = _preflt_fail;
+			status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
+			status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
+			status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
+			status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
+			status.pre_flt_fail_mag_field_disturbed = control_status.flags.mag_field_disturbed;
 
-			if (_estimator_status_pub == nullptr) {
-				_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
-
-			} else {
-				orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
-			}
+			_estimator_status_pub.publish(status);
 
 			// publish GPS drift data only when updated to minimise overhead
 			float gps_drift[3];
@@ -1568,20 +1525,15 @@ void Ekf2::run()
 				drift_data.hspd = gps_drift[2];
 				drift_data.blocked = blocked;
 
-				if (_ekf_gps_drift_pub == nullptr) {
-					_ekf_gps_drift_pub = orb_advertise(ORB_ID(ekf_gps_drift), &drift_data);
-
-				} else {
-					orb_publish(ORB_ID(ekf_gps_drift), _ekf_gps_drift_pub, &drift_data);
-				}
+				_ekf_gps_drift_pub.publish(drift_data);
 			}
 
 			{
 				/* Check and save learned magnetometer bias estimates */
 
 				// Check if conditions are OK for learning of magnetometer bias values
-				if (!vehicle_land_detected.landed && // not on ground
-				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
+				if (!_vehicle_land_detected.landed && // not on ground
+				    (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
 				    !status.filter_fault_flags && // there are no filter faults
 				    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
 
@@ -1607,8 +1559,8 @@ void Ekf2::run()
 				if (_total_cal_time_us > 120_s) {
 					// we have sufficient accumulated valid flight time to form a reliable bias estimate
 					// check that the state variance for each axis is within a range indicating filter convergence
-					const float max_var_allowed = 100.0f * _mag_bias_saved_variance.get();
-					const float min_var_allowed = 0.01f * _mag_bias_saved_variance.get();
+					const float max_var_allowed = 100.0f * _param_ekf2_magb_vref.get();
+					const float min_var_allowed = 0.01f * _param_ekf2_magb_vref.get();
 
 					// Declare all bias estimates invalid if any variances are out of range
 					bool all_estimates_invalid = false;
@@ -1631,13 +1583,13 @@ void Ekf2::run()
 				}
 
 				// Check and save the last valid calibration when we are disarmed
-				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+				if ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				    && (status.filter_fault_flags == 0)
-				    && (sensor_selection.mag_device_id == (uint32_t)_mag_bias_id.get())) {
+				    && (_sensor_selection.mag_device_id == (uint32_t)_param_ekf2_magbias_id.get())) {
 
-					update_mag_bias(_mag_bias_x, 0);
-					update_mag_bias(_mag_bias_y, 1);
-					update_mag_bias(_mag_bias_z, 2);
+					update_mag_bias(_param_ekf2_magbias_x, 0);
+					update_mag_bias(_param_ekf2_magbias_y, 1);
+					update_mag_bias(_param_ekf2_magbias_z, 2);
 
 					// reset to prevent data being saved too frequently
 					_total_cal_time_us = 0;
@@ -1647,127 +1599,146 @@ void Ekf2::run()
 
 			publish_wind_estimate(now);
 
-			if (!_mag_decl_saved && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
-				_mag_decl_saved = update_mag_decl(_mag_declination_deg);
+			if (!_mag_decl_saved && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
+				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
 			}
 
 			{
 				// publish estimator innovation data
-				ekf2_innovations_s innovations;
+				estimator_innovations_s innovations;
 				innovations.timestamp = now;
-				_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
-				_ekf.get_aux_vel_innov(&innovations.aux_vel_innov[0]);
-				_ekf.get_mag_innov(&innovations.mag_innov[0]);
-				_ekf.get_heading_innov(&innovations.heading_innov);
-				_ekf.get_airspeed_innov(&innovations.airspeed_innov);
-				_ekf.get_beta_innov(&innovations.beta_innov);
-				_ekf.get_flow_innov(&innovations.flow_innov[0]);
-				_ekf.get_hagl_innov(&innovations.hagl_innov);
-				_ekf.get_drag_innov(&innovations.drag_innov[0]);
+				_ekf.getGpsVelPosInnov(&innovations.gps_hvel[0], innovations.gps_vvel, &innovations.gps_hpos[0],
+						       innovations.gps_vpos);
+				_ekf.getEvVelPosInnov(&innovations.ev_hvel[0], innovations.ev_vvel, &innovations.ev_hpos[0], innovations.ev_vpos);
+				_ekf.getBaroHgtInnov(innovations.baro_vpos);
+				_ekf.getRngHgtInnov(innovations.rng_vpos);
+				_ekf.getAuxVelInnov(&innovations.aux_hvel[0]);
+				_ekf.getFlowInnov(&innovations.flow[0]);
+				_ekf.getHeadingInnov(innovations.heading);
+				_ekf.getMagInnov(innovations.mag_field);
+				_ekf.getDragInnov(&innovations.drag[0]);
+				_ekf.getAirspeedInnov(innovations.airspeed);
+				_ekf.getBetaInnov(innovations.beta);
+				_ekf.getHaglInnov(innovations.hagl);
+				// Not yet supported
+				innovations.aux_vvel = NAN;
+				innovations.fake_hpos[0] = innovations.fake_hpos[1] = innovations.fake_vpos = NAN;
+				innovations.fake_hvel[0] = innovations.fake_hvel[1] = innovations.fake_vvel = NAN;
 
-				_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
-				_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
-				_ekf.get_heading_innov_var(&innovations.heading_innov_var);
-				_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
-				_ekf.get_beta_innov_var(&innovations.beta_innov_var);
-				_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
-				_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
-				_ekf.get_drag_innov_var(&innovations.drag_innov_var[0]);
+				// publish estimator innovation variance data
+				estimator_innovations_s innovation_var;
+				innovation_var.timestamp = now;
+				_ekf.getGpsVelPosInnovVar(&innovation_var.gps_hvel[0], innovation_var.gps_vvel, &innovation_var.gps_hpos[0],
+							  innovation_var.gps_vpos);
+				_ekf.getEvVelPosInnovVar(&innovation_var.ev_hvel[0], innovation_var.ev_vvel, &innovation_var.ev_hpos[0],
+							 innovation_var.ev_vpos);
+				_ekf.getBaroHgtInnovVar(innovation_var.baro_vpos);
+				_ekf.getRngHgtInnovVar(innovation_var.rng_vpos);
+				_ekf.getAuxVelInnovVar(&innovation_var.aux_hvel[0]);
+				_ekf.getFlowInnovVar(&innovation_var.flow[0]);
+				_ekf.getHeadingInnovVar(innovation_var.heading);
+				_ekf.getMagInnovVar(&innovation_var.mag_field[0]);
+				_ekf.getDragInnovVar(&innovation_var.drag[0]);
+				_ekf.getAirspeedInnovVar(innovation_var.airspeed);
+				_ekf.getBetaInnovVar(innovation_var.beta);
+				_ekf.getHaglInnovVar(innovation_var.hagl);
+				// Not yet supported
+				innovation_var.aux_vvel = NAN;
+				innovation_var.fake_hpos[0] = innovation_var.fake_hpos[1] = innovation_var.fake_vpos = NAN;
+				innovation_var.fake_hvel[0] = innovation_var.fake_hvel[1] = innovation_var.fake_vvel = NAN;
 
-				_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
+
+				// publish estimator innovation test ratio data
+				estimator_innovations_s test_ratios;
+				test_ratios.timestamp = now;
+				_ekf.getGpsVelPosInnovRatio(test_ratios.gps_hvel[0], test_ratios.gps_vvel, test_ratios.gps_hpos[0],
+							    test_ratios.gps_vpos);
+				_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0],
+							   test_ratios.ev_vpos);
+				_ekf.getBaroHgtInnovRatio(test_ratios.baro_vpos);
+				_ekf.getRngHgtInnovRatio(test_ratios.rng_vpos);
+				_ekf.getAuxVelInnovRatio(test_ratios.aux_hvel[0]);
+				_ekf.getFlowInnovRatio(test_ratios.flow[0]);
+				_ekf.getHeadingInnovRatio(test_ratios.heading);
+				_ekf.getMagInnovRatio(test_ratios.mag_field[0]);
+				_ekf.getDragInnovRatio(&test_ratios.drag[0]);
+				_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
+				_ekf.getBetaInnovRatio(test_ratios.beta);
+				_ekf.getHaglInnovRatio(test_ratios.hagl);
+				// Not yet supported
+				test_ratios.aux_vvel = NAN;
+				test_ratios.fake_hpos[0] = test_ratios.fake_hpos[1] = test_ratios.fake_vpos = NAN;
+				test_ratios.fake_hvel[0] = test_ratios.fake_hvel[1] = test_ratios.fake_vvel = NAN;
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
-				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-					// calculate coefficients for LPF applied to innovation sequences
-					float alpha = constrain(sensors.accelerometer_integral_dt / 1.e6f * _innov_lpf_tau_inv, 0.0f, 1.0f);
-					float beta = 1.0f - alpha;
-
-					// filter the velocity and innvovations
-					_vel_ne_innov_lpf(0) = beta * _vel_ne_innov_lpf(0) + alpha * constrain(innovations.vel_pos_innov[0],
-							       -_vel_innov_spike_lim, _vel_innov_spike_lim);
-					_vel_ne_innov_lpf(1) = beta * _vel_ne_innov_lpf(1) + alpha * constrain(innovations.vel_pos_innov[1],
-							       -_vel_innov_spike_lim, _vel_innov_spike_lim);
-					_vel_d_innov_lpf = beta * _vel_d_innov_lpf + alpha * constrain(innovations.vel_pos_innov[2],
-							   -_vel_innov_spike_lim, _vel_innov_spike_lim);
-
-					// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
-					// observations in the NE reference frame.
-					bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
-
-					float yaw_test_limit;
-
-					if (doing_ne_aiding && vehicle_status.is_rotary_wing) {
-						// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
-						// vehicle which cannot use GPS course to realign heading in flight
-						yaw_test_limit = _nav_yaw_innov_test_lim;
-
-					} else {
-						// use a larger tolerance when not doing NE inertial frame aiding or
-						// if a fixed wing vehicle which can realign heading using GPS course
-						yaw_test_limit = _yaw_innov_test_lim;
-					}
-
-					// filter the yaw innovations
-					_yaw_innov_magnitude_lpf = beta * _yaw_innov_magnitude_lpf + alpha * constrain(innovations.heading_innov,
-								   -2.0f * yaw_test_limit, 2.0f * yaw_test_limit);
-
-					_hgt_innov_lpf = beta * _hgt_innov_lpf + alpha * constrain(innovations.vel_pos_innov[5], -_hgt_innov_spike_lim,
-							 _hgt_innov_spike_lim);
-
-					// check the yaw and horizontal velocity innovations
-					float vel_ne_innov_length = sqrtf(innovations.vel_pos_innov[0] * innovations.vel_pos_innov[0] +
-									  innovations.vel_pos_innov[1] * innovations.vel_pos_innov[1]);
-					_preflt_horiz_fail = (_vel_ne_innov_lpf.norm() > _vel_innov_test_lim)
-							     || (vel_ne_innov_length > 2.0f * _vel_innov_test_lim)
-							     || (_yaw_innov_magnitude_lpf > yaw_test_limit);
-
-					// check the vertical velocity and position innovations
-					_preflt_vert_fail = (fabsf(_vel_d_innov_lpf) > _vel_innov_test_lim)
-							    || (fabsf(innovations.vel_pos_innov[2]) > 2.0f * _vel_innov_test_lim)
-							    || (fabsf(_hgt_innov_lpf) > _hgt_innov_test_lim);
-
-					// master pass-fail status
-					_preflt_fail = _preflt_horiz_fail || _preflt_vert_fail;
+				if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+					float dt_seconds = sensors.accelerometer_integral_dt * 1e-6f;
+					runPreFlightChecks(dt_seconds, control_status, _vehicle_status, innovations);
 
 				} else {
-					_vel_ne_innov_lpf.zero();
-					_vel_d_innov_lpf = 0.0f;
-					_hgt_innov_lpf = 0.0f;
-					_preflt_horiz_fail = false;
-					_preflt_vert_fail = false;
-					_preflt_fail = false;
+					resetPreFlightChecks();
 				}
 
-				if (_estimator_innovations_pub == nullptr) {
-					_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
+				_estimator_innovations_pub.publish(innovations);
+				_estimator_innovation_variances_pub.publish(innovation_var);
+				_estimator_innovation_test_ratios_pub.publish(test_ratios);
 
-				} else {
-					orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
-				}
 			}
-
 		}
 
 		// publish ekf2_timestamps
-		if (_ekf2_timestamps_pub == nullptr) {
-			_ekf2_timestamps_pub = orb_advertise(ORB_ID(ekf2_timestamps), &ekf2_timestamps);
-
-		} else {
-			orb_publish(ORB_ID(ekf2_timestamps), _ekf2_timestamps_pub, &ekf2_timestamps);
-		}
+		_ekf2_timestamps_pub.publish(ekf2_timestamps);
 	}
 }
 
-int Ekf2::getRangeSubIndex(const int *subs)
+void Ekf2::fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data)
+{
+	msg.time_usec = data.timestamp;
+	msg.lat = data.lat;
+	msg.lon = data.lon;
+	msg.alt = data.alt;
+	msg.yaw = data.heading;
+	msg.yaw_offset = data.heading_offset;
+	msg.fix_type = data.fix_type;
+	msg.eph = data.eph;
+	msg.epv = data.epv;
+	msg.sacc = data.s_variance_m_s;
+	msg.vel_m_s = data.vel_m_s;
+	msg.vel_ned[0] = data.vel_n_m_s;
+	msg.vel_ned[1] = data.vel_e_m_s;
+	msg.vel_ned[2] = data.vel_d_m_s;
+	msg.vel_ned_valid = data.vel_ned_valid;
+	msg.nsats = data.satellites_used;
+	msg.pdop = sqrtf(data.hdop * data.hdop + data.vdop * data.vdop);
+}
+
+void Ekf2::runPreFlightChecks(const float dt,
+			      const filter_control_status_u &control_status,
+			      const vehicle_status_s &vehicle_status,
+			      const estimator_innovations_s &innov)
+{
+	const bool can_observe_heading_in_flight = (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+
+	_preflt_checker.setVehicleCanObserveHeadingInFlight(can_observe_heading_in_flight);
+	_preflt_checker.setUsingGpsAiding(control_status.flags.gps);
+	_preflt_checker.setUsingFlowAiding(control_status.flags.opt_flow);
+	_preflt_checker.setUsingEvPosAiding(control_status.flags.ev_pos);
+	_preflt_checker.setUsingEvVelAiding(control_status.flags.ev_vel);
+
+	_preflt_checker.update(dt, innov);
+}
+
+void Ekf2::resetPreFlightChecks()
+{
+	_preflt_checker.reset();
+}
+
+int Ekf2::getRangeSubIndex()
 {
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		bool updated = false;
-		orb_check(subs[i], &updated);
+		distance_sensor_s report{};
 
-		if (updated) {
-			distance_sensor_s report;
-			orb_copy(ORB_ID(distance_sensor), subs[i], &report);
-
+		if (_range_finder_subs[i].update(&report)) {
 			// only use the first instace which has the correct orientation
 			if (report.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 				PX4_INFO("Found range finder with instance %d", i);
@@ -1791,25 +1762,15 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-		// In-run bias estimates
-		float gyro_bias[3];
-		_ekf.get_gyro_bias(gyro_bias);
-		att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
-		att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
-		att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
-
-		int instance;
-		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &instance, ORB_PRIO_HIGH);
+		_att_pub.publish(att);
 
 		return true;
 
 	}  else if (_replay_mode) {
 		// in replay mode we have to tell the replay module not to wait for an update
 		// we do this by publishing an attitude with zero timestamp
-		vehicle_attitude_s att = {};
-
-		int instance;
-		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &instance, ORB_PRIO_HIGH);
+		vehicle_attitude_s att{};
+		_att_pub.publish(att);
 	}
 
 	return false;
@@ -1818,22 +1779,24 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
+		// Publish wind estimate only if ekf declares them valid
+		wind_estimate_s wind_estimate{};
 		float velNE_wind[2];
-		_ekf.get_wind_velocity(velNE_wind);
-
 		float wind_var[2];
+		_ekf.get_wind_velocity(velNE_wind);
 		_ekf.get_wind_velocity_var(wind_var);
-
-		// Publish wind estimate
-		wind_estimate_s wind_estimate;
+		_ekf.getAirspeedInnov(wind_estimate.tas_innov);
+		_ekf.getAirspeedInnovVar(wind_estimate.tas_innov_var);
+		_ekf.getBetaInnov(wind_estimate.beta_innov);
+		_ekf.getBetaInnovVar(wind_estimate.beta_innov_var);
 		wind_estimate.timestamp = timestamp;
 		wind_estimate.windspeed_north = velNE_wind[0];
 		wind_estimate.windspeed_east = velNE_wind[1];
 		wind_estimate.variance_north = wind_var[0];
 		wind_estimate.variance_east = wind_var[1];
+		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 
-		int instance;
-		orb_publish_auto(ORB_ID(wind_estimate), &_wind_pub, &wind_estimate, &instance, ORB_PRIO_DEFAULT);
+		_wind_pub.publish(wind_estimate);
 
 		return true;
 	}
@@ -1845,8 +1808,7 @@ const Vector3f Ekf2::get_vel_body_wind()
 {
 	// Used to correct baro data for positional errors
 
-	matrix::Quatf q;
-	_ekf.copy_quaternion(q.data());
+	matrix::Quatf q = _ekf.get_quaternion();
 	matrix::Dcmf R_to_body(q.inversed());
 
 	// Calculate wind-compensated velocity in body frame
@@ -1951,7 +1913,7 @@ bool Ekf2::blend_gps_data()
 		// calculate the sum squared speed accuracy across all GPS sensors
 		float speed_accuracy_sum_sq = 0.0f;
 
-		if (_gps_blend_mask.get() & BLEND_MASK_USE_SPD_ACC) {
+		if (_param_ekf2_gps_mask.get() & BLEND_MASK_USE_SPD_ACC) {
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 				if (_gps_state[i].fix_type >= 3 && _gps_state[i].sacc > 0.0f) {
 					speed_accuracy_sum_sq += _gps_state[i].sacc * _gps_state[i].sacc;
@@ -1967,7 +1929,7 @@ bool Ekf2::blend_gps_data()
 		// calculate the sum squared horizontal position accuracy across all GPS sensors
 		float horizontal_accuracy_sum_sq = 0.0f;
 
-		if (_gps_blend_mask.get() & BLEND_MASK_USE_HPOS_ACC) {
+		if (_param_ekf2_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC) {
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 				if (_gps_state[i].fix_type >= 2 && _gps_state[i].eph > 0.0f) {
 					horizontal_accuracy_sum_sq += _gps_state[i].eph * _gps_state[i].eph;
@@ -1983,7 +1945,7 @@ bool Ekf2::blend_gps_data()
 		// calculate the sum squared vertical position accuracy across all GPS sensors
 		float vertical_accuracy_sum_sq = 0.0f;
 
-		if (_gps_blend_mask.get() & BLEND_MASK_USE_VPOS_ACC) {
+		if (_param_ekf2_gps_mask.get() & BLEND_MASK_USE_VPOS_ACC) {
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 				if (_gps_state[i].fix_type >= 3 && _gps_state[i].epv > 0.0f) {
 					vertical_accuracy_sum_sq += _gps_state[i].epv * _gps_state[i].epv;
@@ -2010,7 +1972,7 @@ bool Ekf2::blend_gps_data()
 		// calculate a weighting using the reported speed accuracy
 		float spd_blend_weights[GPS_MAX_RECEIVERS] = {};
 
-		if (speed_accuracy_sum_sq > 0.0f && (_gps_blend_mask.get() & BLEND_MASK_USE_SPD_ACC)) {
+		if (speed_accuracy_sum_sq > 0.0f && (_param_ekf2_gps_mask.get() & BLEND_MASK_USE_SPD_ACC)) {
 			// calculate the weights using the inverse of the variances
 			float sum_of_spd_weights = 0.0f;
 
@@ -2034,7 +1996,7 @@ bool Ekf2::blend_gps_data()
 		// calculate a weighting using the reported horizontal position
 		float hpos_blend_weights[GPS_MAX_RECEIVERS] = {};
 
-		if (horizontal_accuracy_sum_sq > 0.0f && (_gps_blend_mask.get() & BLEND_MASK_USE_HPOS_ACC)) {
+		if (horizontal_accuracy_sum_sq > 0.0f && (_param_ekf2_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC)) {
 			// calculate the weights using the inverse of the variances
 			float sum_of_hpos_weights = 0.0f;
 
@@ -2058,7 +2020,7 @@ bool Ekf2::blend_gps_data()
 		// calculate a weighting using the reported vertical position accuracy
 		float vpos_blend_weights[GPS_MAX_RECEIVERS] = {};
 
-		if (vertical_accuracy_sum_sq > 0.0f && (_gps_blend_mask.get() & BLEND_MASK_USE_VPOS_ACC)) {
+		if (vertical_accuracy_sum_sq > 0.0f && (_param_ekf2_gps_mask.get() & BLEND_MASK_USE_VPOS_ACC)) {
 			// calculate the weights using the inverse of the variances
 			float sum_of_vpos_weights = 0.0f;
 
@@ -2118,7 +2080,7 @@ void Ekf2::update_gps_blend_states()
 	_gps_blended_state.vel_ned[2] = 0.0f;
 	_gps_blended_state.vel_ned_valid = true;
 	_gps_blended_state.nsats = 0;
-	_gps_blended_state.gdop = FLT_MAX;
+	_gps_blended_state.pdop = FLT_MAX;
 
 	_blended_antenna_offset.zero();
 
@@ -2157,9 +2119,9 @@ void Ekf2::update_gps_blend_states()
 				_gps_blended_state.sacc = _gps_state[i].sacc;
 			}
 
-			if (_gps_state[i].gdop > 0
-			    && _gps_state[i].gdop < _gps_blended_state.gdop) {
-				_gps_blended_state.gdop = _gps_state[i].gdop;
+			if (_gps_state[i].pdop > 0
+			    && _gps_state[i].pdop < _gps_blended_state.pdop) {
+				_gps_blended_state.pdop = _gps_state[i].pdop;
 			}
 
 			if (_gps_state[i].nsats > 0
@@ -2259,7 +2221,7 @@ void Ekf2::update_gps_offsets()
 	// Increase the filter time constant proportional to the inverse of the weighting
 	// A weighting of 1 will make the offset adjust the slowest, a weighting of 0 will make it adjust with zero filtering
 	float alpha[GPS_MAX_RECEIVERS] = {};
-	float omega_lpf = 1.0f / fmaxf(_gps_blend_tau.get(), 1.0f);
+	float omega_lpf = 1.0f / fmaxf(_param_ekf2_gps_tau.get(), 1.0f);
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		if (_gps_state[i].time_usec - _time_prev_us[i] > 0) {
@@ -2343,7 +2305,7 @@ void Ekf2::apply_gps_offsets()
 		_gps_output[i].eph		= _gps_state[i].eph;
 		_gps_output[i].epv		= _gps_state[i].epv;
 		_gps_output[i].sacc		= _gps_state[i].sacc;
-		_gps_output[i].gdop		= _gps_state[i].gdop;
+		_gps_output[i].pdop		= _gps_state[i].pdop;
 		_gps_output[i].nsats		= _gps_state[i].nsats;
 		_gps_output[i].vel_ned_valid	= _gps_state[i].vel_ned_valid;
 		_gps_output[i].yaw		= _gps_state[i].yaw;
@@ -2405,7 +2367,7 @@ void Ekf2::calc_gps_blend_output()
 	_gps_output[GPS_BLENDED_INSTANCE].eph		= _gps_blended_state.eph;
 	_gps_output[GPS_BLENDED_INSTANCE].epv		= _gps_blended_state.epv;
 	_gps_output[GPS_BLENDED_INSTANCE].sacc		= _gps_blended_state.sacc;
-	_gps_output[GPS_BLENDED_INSTANCE].gdop		= _gps_blended_state.gdop;
+	_gps_output[GPS_BLENDED_INSTANCE].pdop		= _gps_blended_state.pdop;
 	_gps_output[GPS_BLENDED_INSTANCE].nsats		= _gps_blended_state.nsats;
 	_gps_output[GPS_BLENDED_INSTANCE].vel_ned_valid	= _gps_blended_state.vel_ned_valid;
 	_gps_output[GPS_BLENDED_INSTANCE].yaw		= _gps_blended_state.yaw;
@@ -2435,22 +2397,39 @@ float Ekf2::filter_altitude_ellipsoid(float amsl_hgt)
 	return amsl_hgt + _wgs84_hgt_offset;
 }
 
-Ekf2 *Ekf2::instantiate(int argc, char *argv[])
-{
-	Ekf2 *instance = new Ekf2();
-
-	if (instance) {
-		if (argc >= 2 && !strcmp(argv[1], "-r")) {
-			instance->set_replay_mode(true);
-		}
-	}
-
-	return instance;
-}
-
 int Ekf2::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
+}
+
+int Ekf2::task_spawn(int argc, char *argv[])
+{
+	bool replay_mode = false;
+
+	if (argc > 1 && !strcmp(argv[1], "-r")) {
+		PX4_INFO("replay mode enabled");
+		replay_mode = true;
+	}
+
+	Ekf2 *instance = new Ekf2(replay_mode);
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
 int Ekf2::print_usage(const char *reason)
@@ -2464,7 +2443,7 @@ int Ekf2::print_usage(const char *reason)
 ### Description
 Attitude and position estimator using an Extended Kalman Filter. It is used for Multirotors and Fixed-Wing.
 
-The documentation can be found on the [tuning_the_ecl_ekf](https://dev.px4.io/en/tutorials/tuning_the_ecl_ekf.html) page.
+The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/en/advanced_config/tuning_the_ecl_ekf.html) page.
 
 ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
 timestamps from the sensor topics.
@@ -2479,24 +2458,7 @@ timestamps from the sensor topics.
 	return 0;
 }
 
-int Ekf2::task_spawn(int argc, char *argv[])
-{
-	_task_id = px4_task_spawn_cmd("ekf2",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_ESTIMATOR,
-				      6600,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
-
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
-	}
-
-	return 0;
-}
-
-int ekf2_main(int argc, char *argv[])
+extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 {
 	return Ekf2::main(argc, argv);
 }

@@ -40,17 +40,6 @@
  */
 
 /**
- * VTOL number of engines
- *
- * @min 0
- * @max 8
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_MOT_COUNT, 0);
-
-/**
  * Idle speed of VTOL when in multicopter mode
  *
  * @unit us
@@ -82,6 +71,7 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
  * @min 0
  * @max 2
  * @decimal 0
+ * @reboot_required true
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_TYPE, 0);
@@ -289,6 +279,17 @@ PARAM_DEFINE_FLOAT(VT_F_TR_OL_TM, 6.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);
+
+/**
+ * The channel number of motors which provide lift during hover.
+ *
+ * @min 0
+ * @max 12345678
+ * @increment 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_MOT_ID, 0);
 
 /**
  * Differential thrust in forwards flight.

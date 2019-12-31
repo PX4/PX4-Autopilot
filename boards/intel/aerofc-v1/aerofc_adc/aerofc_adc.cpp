@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 
 #include <cstring>
 
@@ -55,6 +55,13 @@
 
 // 10Hz
 #define CYCLE_TICKS_DELAY MSEC2TICK(100)
+
+
+uint32_t px4_arch_adc_dn_fullcount(void)
+{
+	return 1 << 12; // 12 bit ADC
+}
+
 
 enum AEROFC_ADC_BUS {
 	AEROFC_ADC_BUS_ALL = 0,
@@ -291,7 +298,7 @@ ssize_t AEROFC_ADC::read(file *filp, char *buffer, size_t len)
 
 void AEROFC_ADC::cycle_trampoline(void *arg)
 {
-	AEROFC_ADC *dev = reinterpret_cast<AEROFC_ADC * >(arg);
+	AEROFC_ADC *dev = static_cast<AEROFC_ADC * >(arg);
 	dev->cycle();
 }
 

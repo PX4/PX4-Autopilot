@@ -1,6 +1,5 @@
 [
-        {
-                "name": "PX4 default",
-                "preferredGenerator": "Ninja"
-        }
+	{
+		"name": "PX4 detect"
+	}
 ]

@@ -2,6 +2,8 @@ import sys
 import re
 import math
 import textwrap
+from functools import reduce
+
 
 class ModuleDocumentation(object):
     """
@@ -11,7 +13,7 @@ class ModuleDocumentation(object):
     # If you add categories or subcategories, they also need to be added to the
     # TOC in https://github.com/PX4/Devguide/blob/master/en/SUMMARY.md
     valid_categories = ['driver', 'estimator', 'controller', 'system',
-                        'communication', 'command', 'template']
+                        'communication', 'command', 'template', 'simulation']
     valid_subcategories = ['', 'distance_sensor']
 
     max_line_length = 80 # wrap lines that are longer than this
