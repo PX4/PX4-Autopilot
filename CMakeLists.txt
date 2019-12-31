@@ -59,12 +59,22 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(COV_HTML "Display html for coverage" OFF)
 option(ECL_ASAN "Enable ECL address sanitizer" OFF)
 
-set(CMAKE_CXX_FLAGS_COVERAGE
-	"--coverage -fprofile-arcs -ftest-coverage -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
-	CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
-set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
-	"--coverage -ftest-coverage -lgcov"
-	CACHE STRING "Flags used for linking binaries during coverage builds" FORCE)
+if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
+	set(CMAKE_CXX_FLAGS_COVERAGE
+		"--coverage -ftest-coverage -fdiagnostics-absolute-paths -O0 -fprofile-arcs -fno-inline-functions -fno-elide-constructors"
+		CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
+	set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
+		"-ftest-coverage -fdiagnostics-absolute-paths"
+		CACHE STRING "Flags used for linking binaries during coverage builds" FORCE)
+else()
+	set(CMAKE_CXX_FLAGS_COVERAGE
+		"--coverage -fprofile-arcs -ftest-coverage -fprofile-abs-path -O0 -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
+		CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
+	set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
+		"--coverage -ftest-coverage -lgcov"
+		CACHE STRING "Flags used for linking binaries during coverage builds" FORCE)
+endif()
+
 mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE CMAKE_C_FLAGS_COVERAGE CMAKE_EXE_LINKER_FLAGS_COVERAGE)
 
 
