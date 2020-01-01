@@ -9,15 +9,15 @@ matrix:
   fast_finish: true
   include:
     - os: linux
-      dist: trusty
-      compiler: gcc
+      dist: bionic
+      compiler: gcc-8
       env: CMAKE_BUILD_TYPE=Coverage FORMAT=ON
     - os: linux
-      dist: trusty
+      dist: bionic
       compiler: clang
       env: CMAKE_BUILD_TYPE=Release CC=clang CXX=clang++ FORMAT=OFF
     - os: osx
-      osx_image: xcode10.1
+      osx_image: xcode11.3
       env: CMAKE_BUILD_TYPE=Release FORMAT=OFF
 
 addons:
