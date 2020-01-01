@@ -117,8 +117,7 @@ class GzserverRunner(Runner):
                     workspace_dir + "/Tools/sitl_gazebo/models",
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.cmd = "gzserver"
-        self.args = ["--verbose",
-                     workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
+        self.args = [workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
         self.log_prefix = "gzserver"
 
 
@@ -133,7 +132,6 @@ class GzclientRunner(Runner):
                     workspace_dir + "/Tools/sitl_gazebo/models",
                     "DISPLAY": ":0"}
         self.cmd = "gzclient"
-        self.args = ["--verbose"]
         self.log_prefix = "gzclient"
 
 
