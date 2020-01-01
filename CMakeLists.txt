@@ -68,7 +68,8 @@ if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" 
 		CACHE STRING "Flags used for linking binaries during coverage builds" FORCE)
 else()
 	set(CMAKE_CXX_FLAGS_COVERAGE
-		"--coverage -fprofile-arcs -ftest-coverage -fprofile-abs-path -O0 -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
+		# Bring back -fprofile-abs-path when GCC 9 is available on Ubuntu LTS
+		"--coverage -fprofile-arcs -ftest-coverage -O0 -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
 		CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
 	set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
 		"--coverage -ftest-coverage -lgcov"
