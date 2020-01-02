@@ -16,8 +16,20 @@ jobs:
       run: pip3 install psutil
     - name: Run simulation tests
       run: make tests_integration_coverage
-    - name: Upload coverage to Codecov
+    # - name: Download newer mavsdk
+    #   run: git clone https://github.com/mavlink/MAVSDK.git && cd MAVSDK && git submodule init && git submodule update
+    # - name: Build newer mavsdk
+    #   run: mkdir -p MAVSDK/build/default && cd MAVSDK/build/default && cmake ../.. && make -j4 && make install
+    - name: Run Coverage Tests
+      run: make tests_integration_coverage
+    - name: Upload coverage information to Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        path-to-lcov: coverage/lcov.info
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload coverage information to Codecov
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: mavsdk
+        file: coverage/lcov.info
