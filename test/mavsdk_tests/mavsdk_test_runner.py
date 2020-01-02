@@ -140,13 +140,13 @@ class TestRunner(Runner):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
-            "/build/px4_sitl_default/mavsdk_tests"
+            "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
         self.args = [test]
         self.log_prefix = "test_runner"
 
 
 def determine_tests(workspace_dir, filter):
-    cmd = workspace_dir + "/build/px4_sitl_default/mavsdk_tests"
+    cmd = workspace_dir + "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
     args = ["--list-test-names-only", filter]
     p = subprocess.Popen(
         [cmd] + args,
@@ -183,7 +183,7 @@ def is_everything_ready():
               "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
         result = False
-    if not os.path.isfile('build/px4_sitl_default/mavsdk_tests'):
+    if not os.path.isfile('build/px4_sitl_default/mavsdk_tests/mavsdk_tests'):
         print("Test runner is not built\n"
               "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
