@@ -49,6 +49,7 @@
 #include <uORB/uORBTopics.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/battery_status.h>
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
@@ -374,6 +375,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_log_dirs_max = param_find("SDLOG_DIRS_MAX");
 	_sdlog_profile_handle = param_find("SDLOG_PROFILE");
 	_mission_log = param_find("SDLOG_MISSION");
+	_boot_bat_only = param_find("SDLOG_BOOT_BAT");
 
 	if (poll_topic_name) {
 		const orb_metadata *const *topics = orb_get_topics();
@@ -518,6 +520,29 @@ void Logger::run()
 {
 	PX4_INFO("logger started (mode=%s)", configured_backend_mode());
 
+	bool boot_logging_bat_only = false;
+	bool disable_boot_logging = false;
+
+	if (_boot_bat_only != PARAM_INVALID) {
+		param_get(_boot_bat_only, &boot_logging_bat_only);
+	}
+
+	if (boot_logging_bat_only) {
+		uORB::Subscription battery_status_sub{ORB_ID(battery_status)};
+
+		if (battery_status_sub.updated()) {
+			battery_status_s battery_status;
+			battery_status_sub.copy(&battery_status);
+
+			if (!battery_status.connected) {
+				disable_boot_logging = true;
+			}
+
+		} else {
+			PX4_WARN("battery_status not published. Logging anyway");
+		}
+	}
+
 	if (_writer.backend() & LogWriter::BackendFile) {
 		int mkdir_ret = mkdir(LOG_ROOT[(int)LogType::Full], S_IRWXU | S_IRWXG | S_IRWXO);
 
@@ -602,7 +627,7 @@ void Logger::run()
 
 	px4_register_shutdown_hook(&Logger::request_stop_static);
 
-	if (_log_mode == LogMode::boot_until_disarm || _log_mode == LogMode::boot_until_shutdown) {
+	if ((_log_mode == LogMode::boot_until_disarm || _log_mode == LogMode::boot_until_shutdown) && !disable_boot_logging) {
 		start_log_file(LogType::Full);
 	}
 
