@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
  * Library calls for battery functionality.
  *
  * @author Julian Oes <julian@oes.ch>
+ * @author Timothy Scott <timothy@auterion.com>
  */
 
 #include "battery.h"
@@ -44,39 +45,92 @@
 #include <cstring>
 #include <px4_platform_common/defines.h>
 
-Battery::Battery() :
-	ModuleParams(nullptr),
+Battery::Battery(int index, ModuleParams *parent) :
+	ModuleParams(parent),
+	_index(index < 1 || index > 9 ? 1 : index),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
+	if (index > 9 || index < 1) {
+		PX4_ERR("Battery index must be between 1 and 9 (inclusive). Received %d. Defaulting to 1.", index);
+	}
+
+	// 16 chars for parameter name + null terminator
+	char param_name[17];
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_V_EMPTY", _index);
+	_param_handles.v_empty = param_find(param_name);
+
+	if (_param_handles.v_empty == PARAM_INVALID) {
+		PX4_ERR("Could not find parameter with name %s", param_name);
+	}
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_V_CHARGED", _index);
+	_param_handles.v_charged = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_N_CELLS", _index);
+	_param_handles.n_cells = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_CAPACITY", _index);
+	_param_handles.capacity = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_V_LOAD_DROP", _index);
+	_param_handles.v_load_drop = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_R_INTERNAL", _index);
+	_param_handles.r_internal = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_SOURCE", _index);
+	_param_handles.source = param_find(param_name);
+
+	_param_handles.low_thr = param_find("BAT_LOW_THR");
+	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
+	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
+
+	_param_handles.v_empty_old = param_find("BAT_V_EMPTY");
+	_param_handles.v_charged_old = param_find("BAT_V_CHARGED");
+	_param_handles.n_cells_old = param_find("BAT_N_CELLS");
+	_param_handles.capacity_old = param_find("BAT_CAPACITY");
+	_param_handles.v_load_drop_old = param_find("BAT_V_LOAD_DROP");
+	_param_handles.r_internal_old = param_find("BAT_R_INTERNAL");
+	_param_handles.source_old = param_find("BAT_SOURCE");
+
+	updateParams();
+}
+
+Battery::~Battery()
+{
+	orb_unadvertise(_orb_advert);
 }
 
 void
-Battery::reset(battery_status_s *battery_status)
+Battery::reset()
 {
-	memset(battery_status, 0, sizeof(*battery_status));
-	battery_status->current_a = -1.f;
-	battery_status->remaining = 1.f;
-	battery_status->scale = 1.f;
-	battery_status->cell_count = _param_bat_n_cells.get();
+	memset(&_battery_status, 0, sizeof(_battery_status));
+	_battery_status.current_a = -1.f;
+	_battery_status.remaining = 1.f;
+	_battery_status.scale = 1.f;
+	_battery_status.cell_count = _params.n_cells;
 	// TODO: check if it is sane to reset warning to NONE
-	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
-	battery_status->connected = false;
+	_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
+	_battery_status.connected = false;
+	_battery_status.capacity = _params.capacity;
+	_battery_status.temperature = NAN;
+	_battery_status.id = (uint8_t) _index;
 }
 
 void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
 			     bool connected, bool selected_source, int priority,
-			     float throttle_normalized,
-			     bool armed, battery_status_s *battery_status)
+			     float throttle_normalized, bool should_publish)
 {
-	reset(battery_status);
-	battery_status->timestamp = timestamp;
+	reset();
+	_battery_status.timestamp = timestamp;
 	filterVoltage(voltage_v);
 	filterThrottle(throttle_normalized);
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered, armed);
+	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered);
 	computeScale();
 
 	if (_battery_initialized) {
@@ -85,20 +139,38 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 
 	if (_voltage_filtered_v > 2.1f) {
 		_battery_initialized = true;
-		battery_status->voltage_v = voltage_v;
-		battery_status->voltage_filtered_v = _voltage_filtered_v;
-		battery_status->scale = _scale;
-		battery_status->current_a = current_a;
-		battery_status->current_filtered_a = _current_filtered_a;
-		battery_status->discharged_mah = _discharged_mah;
-		battery_status->warning = _warning;
-		battery_status->remaining = _remaining;
-		battery_status->connected = connected;
-		battery_status->system_source = selected_source;
-		battery_status->priority = priority;
+		_battery_status.voltage_v = voltage_v;
+		_battery_status.voltage_filtered_v = _voltage_filtered_v;
+		_battery_status.scale = _scale;
+		_battery_status.current_a = current_a;
+		_battery_status.current_filtered_a = _current_filtered_a;
+		_battery_status.discharged_mah = _discharged_mah;
+		_battery_status.warning = _warning;
+		_battery_status.remaining = _remaining;
+		_battery_status.connected = connected;
+		_battery_status.system_source = selected_source;
+		_battery_status.priority = priority;
 	}
 
-	battery_status->temperature = NAN;
+	_battery_status.timestamp = timestamp;
+
+	if (should_publish) {
+		publish();
+	}
+}
+
+void
+Battery::publish()
+{
+	orb_publish_auto(ORB_ID(battery_status), &_orb_advert, &_battery_status, &_orb_instance, ORB_PRIO_DEFAULT);
+}
+
+void
+Battery::swapUorbAdvert(Battery &other)
+{
+	orb_advert_t tmp = _orb_advert;
+	_orb_advert = other._orb_advert;
+	other._orb_advert = tmp;
 }
 
 void
@@ -167,24 +239,24 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 }
 
 void
-Battery::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
+Battery::estimateRemaining(float voltage_v, float current_a, float throttle)
 {
 	// remaining battery capacity based on voltage
-	float cell_voltage = voltage_v / _param_bat_n_cells.get();
+	float cell_voltage = voltage_v / _params.n_cells;
 
 	// correct battery voltage locally for load drop to avoid estimation fluctuations
-	if (_param_bat_r_internal.get() >= 0.f) {
-		cell_voltage += _param_bat_r_internal.get() * current_a;
+	if (_params.r_internal >= 0.f) {
+		cell_voltage += _params.r_internal * current_a;
 
 	} else {
 		// assume linear relation between throttle and voltage drop
-		cell_voltage += throttle * _param_bat_v_load_drop.get();
+		cell_voltage += throttle * _params.v_load_drop;
 	}
 
-	_remaining_voltage = math::gradual(cell_voltage, _param_bat_v_empty.get(), _param_bat_v_charged.get(), 0.f, 1.f);
+	_remaining_voltage = math::gradual(cell_voltage, _params.v_empty, _params.v_charged, 0.f, 1.f);
 
 	// choose which quantity we're using for final reporting
-	if (_param_bat_capacity.get() > 0.f) {
+	if (_params.capacity > 0.f) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		if (!_battery_initialized) {
 			// initialization of the estimation state
@@ -195,7 +267,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle, boo
 			const float weight_v = 3e-4f * (1 - _remaining_voltage);
 			_remaining = (1 - weight_v) * _remaining + weight_v * _remaining_voltage;
 			// directly apply current capacity slope calculated using current
-			_remaining -= _discharged_mah_loop / _param_bat_capacity.get();
+			_remaining -= _discharged_mah_loop / _params.capacity;
 			_remaining = math::max(_remaining, 0.f);
 		}
 
@@ -210,14 +282,17 @@ Battery::determineWarning(bool connected)
 {
 	if (connected) {
 		// propagate warning state only if the state is higher, otherwise remain in current warning state
-		if (_remaining < _param_bat_emergen_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
+		if (_remaining < _params.emergen_thr) {
 			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (_remaining < _param_bat_crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		} else if (_remaining < _params.crit_thr) {
 			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (_remaining < _param_bat_low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		} else if (_remaining < _params.low_thr) {
 			_warning = battery_status_s::BATTERY_WARNING_LOW;
+
+		} else {
+			_warning = battery_status_s::BATTERY_WARNING_NONE;
 		}
 	}
 }
@@ -225,12 +300,12 @@ Battery::determineWarning(bool connected)
 void
 Battery::computeScale()
 {
-	const float voltage_range = (_param_bat_v_charged.get() - _param_bat_v_empty.get());
+	const float voltage_range = (_params.v_charged - _params.v_empty);
 
 	// reusing capacity calculation to get single cell voltage before drop
-	const float bat_v = _param_bat_v_empty.get() + (voltage_range * _remaining_voltage);
+	const float bat_v = _params.v_empty + (voltage_range * _remaining_voltage);
 
-	_scale = _param_bat_v_charged.get() / bat_v;
+	_scale = _params.v_charged / bat_v;
 
 	if (_scale > 1.3f) { // Allow at most 30% compensation
 		_scale = 1.3f;
@@ -238,4 +313,41 @@ Battery::computeScale()
 	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
 		_scale = 1.f;
 	}
+}
+
+void Battery::updateParams()
+{
+	if (_index == 1) {
+		migrateParam<float>(_param_handles.v_empty_old, _param_handles.v_empty, &_params.v_empty_old, &_params.v_empty,
+				    _first_parameter_update);
+		migrateParam<float>(_param_handles.v_charged_old, _param_handles.v_charged, &_params.v_charged_old, &_params.v_charged,
+				    _first_parameter_update);
+		migrateParam<int>(_param_handles.n_cells_old, _param_handles.n_cells, &_params.n_cells_old, &_params.n_cells,
+				  _first_parameter_update);
+		migrateParam<float>(_param_handles.capacity_old, _param_handles.capacity, &_params.capacity_old, &_params.capacity,
+				    _first_parameter_update);
+		migrateParam<float>(_param_handles.v_load_drop_old, _param_handles.v_load_drop, &_params.v_load_drop_old,
+				    &_params.v_load_drop, _first_parameter_update);
+		migrateParam<float>(_param_handles.r_internal_old, _param_handles.r_internal, &_params.r_internal_old,
+				    &_params.r_internal, _first_parameter_update);
+		migrateParam<int>(_param_handles.source_old, _param_handles.source, &_params.source_old, &_params.source,
+				  _first_parameter_update);
+
+	} else {
+		param_get(_param_handles.v_empty, &_params.v_empty);
+		param_get(_param_handles.v_charged, &_params.v_charged);
+		param_get(_param_handles.n_cells, &_params.n_cells);
+		param_get(_param_handles.capacity, &_params.capacity);
+		param_get(_param_handles.v_load_drop, &_params.v_load_drop);
+		param_get(_param_handles.r_internal, &_params.r_internal);
+		param_get(_param_handles.source, &_params.source);
+	}
+
+	param_get(_param_handles.low_thr, &_params.low_thr);
+	param_get(_param_handles.crit_thr, &_params.crit_thr);
+	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
+
+	ModuleParams::updateParams();
+
+	_first_parameter_update = false;
 }

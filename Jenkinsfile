@@ -94,6 +94,38 @@ pipeline {
           }
         }
 
+        stage('px4_io-v2 (bloaty)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -s'
+            sh 'git fetch --tags'
+            sh 'make px4_io-v2_default'
+            sh 'make px4_io-v2_default bloaty_compileunits'
+            sh 'make px4_io-v2_default bloaty_inlines'
+            sh 'make px4_io-v2_default bloaty_segments'
+            sh 'make px4_io-v2_default bloaty_symbols'
+            sh 'make px4_io-v2_default bloaty_templates'
+            sh 'make px4_io-v2_default bloaty_compare_master'
+            sh 'make sizes'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+          environment {
+            CCACHE_DISABLE = 1
+          }
+        }
+
         stage('px4_fmu-v2 (bloaty)') {
           agent {
             docker {
@@ -104,12 +136,11 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_fmu-v2_default'
             sh 'make px4_fmu-v2_default bloaty_compileunits'
             sh 'make px4_fmu-v2_default bloaty_inlines'
-            sh 'make px4_fmu-v2_default bloaty_sections'
             sh 'make px4_fmu-v2_default bloaty_segments'
             sh 'make px4_fmu-v2_default bloaty_symbols'
             sh 'make px4_fmu-v2_default bloaty_templates'
@@ -137,12 +168,11 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_fmu-v5_default'
             sh 'make px4_fmu-v5_default bloaty_compileunits'
             sh 'make px4_fmu-v5_default bloaty_inlines'
-            sh 'make px4_fmu-v5_default bloaty_sections'
             sh 'make px4_fmu-v5_default bloaty_segments'
             sh 'make px4_fmu-v5_default bloaty_symbols'
             sh 'make px4_fmu-v5_default bloaty_templates'
@@ -170,12 +200,11 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_sitl_default'
             sh 'make px4_sitl_default bloaty_compileunits'
             sh 'make px4_sitl_default bloaty_inlines'
-            sh 'make px4_sitl_default bloaty_sections'
             sh 'make px4_sitl_default bloaty_segments'
             sh 'make px4_sitl_default bloaty_symbols'
             sh 'make px4_sitl_default bloaty_templates'
@@ -203,7 +232,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_fmu-v5_default'
             sh 'make sizes'
@@ -229,7 +258,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_sitl_default'
             sh 'make sizes'
@@ -255,7 +284,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make tests'
             sh 'ccache -s'
@@ -644,7 +673,7 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              //branch 'master' // TODO: fix and re-enable
               branch 'pr-jenkins' // for testing
             }
           }
@@ -660,7 +689,7 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_ros_com.git -b ${BRANCH_NAME}")
               // deploy uORB RTPS ID map
-              sh('python msg/tools/uorb_to_ros_rtps_ids.py -i msg/tools/uorb_rtps_message_ids.yaml -o px4_ros_com/templates/uorb_rtps_message_ids.yaml')
+              sh('./msg/tools/uorb_to_ros_rtps_ids.py -i msg/tools/uorb_rtps_message_ids.yaml -o px4_ros_com/templates/uorb_rtps_message_ids.yaml')
               sh('cd px4_ros_com; git status; git add .; git commit -a -m "Update uORB RTPS ID map `date`" || true')
               sh('cd px4_ros_com; git push origin ${BRANCH_NAME} || true')
               // deploy uORB RTPS required tools
@@ -685,7 +714,7 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              //branch 'master'
               branch 'pr-jenkins' // for testing
             }
           }

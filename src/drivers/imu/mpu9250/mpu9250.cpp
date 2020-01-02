@@ -94,7 +94,6 @@ MPU9250::~MPU9250()
 
 	// delete the perf counter
 	perf_free(_sample_perf);
-	perf_free(_interval_perf);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 	perf_free(_good_transfers);
@@ -620,7 +619,6 @@ void
 MPU9250::measure()
 {
 	perf_begin(_sample_perf);
-	perf_count(_interval_perf);
 
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete

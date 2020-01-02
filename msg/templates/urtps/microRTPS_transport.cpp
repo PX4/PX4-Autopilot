@@ -161,10 +161,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		return -1;
 	}
 
-	/*
-	 * [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
-	 */
-
+	// [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
 	struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
 	uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
 
@@ -216,7 +213,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	return len;
 }
 
-ssize_t Transport_node::get_header_length()
+size_t Transport_node::get_header_length()
 {
     return sizeof(struct Header);
 }
@@ -241,7 +238,6 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	static uint8_t seq = 0;
 
 	// [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
-
 	uint16_t crc = crc16((uint8_t *)&buffer[sizeof(header)], length);
 
 	header.topic_ID = topic_ID;
@@ -252,7 +248,7 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	header.crc_l = crc & 0xff;
 
 	/* Headroom for header is created in client */
-	/*Fill in the header in the same payload buffer to call a single node_write */
+	/* Fill in the header in the same payload buffer to call a single node_write */
 	memcpy(buffer, &header, sizeof(header));
 	ssize_t len = node_write(buffer, length + sizeof(header));
 	if (len != ssize_t(length + sizeof(header))) {
@@ -380,11 +376,11 @@ int UART_node::init()
  * According to px4_time.h, px4_usleep() is only defined when lockstep is set
  * to be used
  */
-#ifndef ENABLE_LOCKSTEP_SCHEDULER
+#ifndef px4_usleep
 		usleep(1000);
 #else
 		px4_usleep(1000);
-#endif /* ENABLE_LOCKSTEP_SCHEDULER */
+#endif /* px4_usleep */
 	}
 
 	if (flush) {

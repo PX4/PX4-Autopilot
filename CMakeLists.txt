@@ -296,6 +296,13 @@ px4_add_common_flags()
 px4_os_add_flags()
 
 #=============================================================================
+# board cmake init (optional)
+#
+if(EXISTS ${PX4_BOARD_DIR}/init.cmake)
+	include(${PX4_BOARD_DIR}/init.cmake)
+endif()
+
+#=============================================================================
 # message, and airframe generation
 #
 include(px4_metadata)
@@ -358,7 +365,7 @@ endif()
 
 # optionally enable cmake testing (supported only on posix)
 option(CMAKE_TESTING "Configure test targets" OFF)
-if (${PX4_CONFIG} STREQUAL "px4_sitl_test")
+if(${PX4_CONFIG} STREQUAL "px4_sitl_test")
 	set(CMAKE_TESTING ON)
 endif()
 if(CMAKE_TESTING)

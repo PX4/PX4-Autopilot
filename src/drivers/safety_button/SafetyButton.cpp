@@ -200,14 +200,6 @@ SafetyButton::custom_command(int argc, char *argv[])
 }
 
 int
-SafetyButton::print_status()
-{
-	PX4_INFO("Safety State (from button): %s", _safety_btn_off ? "off" : "on");
-
-	return 0;
-}
-
-int
 SafetyButton::print_usage(const char *reason)
 {
 	if (reason) {

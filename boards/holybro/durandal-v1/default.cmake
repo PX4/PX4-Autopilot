@@ -24,12 +24,13 @@ px4_add_board(
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		# dshot -- todo needslooking at
+		dshot
 		gps
 		heater
-		imu/adis16448
-		imu/adis16497
 		#imu # all available imu drivers
+		imu/adis16448
+		imu/adis16477
+		imu/adis16497
 		imu/bmi088
 		imu/mpu6000
 		imu/mpu9250
@@ -38,9 +39,9 @@ px4_add_board(
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
-		#md25
 		mkblctrl
 		optical_flow # all available optical flow drivers
+		#osd
 		pca9685
 		power_monitor/ina226
 		#protocol_splitter
@@ -74,7 +75,9 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
+		mc_rate_control
 		navigator
+		rc_update
 		rover_pos_control
 		sensors
 		sih

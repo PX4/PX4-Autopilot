@@ -174,11 +174,11 @@ void up_dshot_trigger(void)
 
 			first_motor += motors_number;
 
-			stm32_dmasetup(dshot_handler[timer].dma_handle,
-				       io_timers[timer].base + STM32_GTIM_DMAR_OFFSET,
-				       (uint32_t)(dshot_burst_buffer[timer]),
-				       dshot_handler[timer].dma_size,
-				       DSHOT_DMA_SCR);
+			px4_stm32_dmasetup(dshot_handler[timer].dma_handle,
+					   io_timers[timer].base + STM32_GTIM_DMAR_OFFSET,
+					   (uint32_t)(dshot_burst_buffer[timer]),
+					   dshot_handler[timer].dma_size,
+					   DSHOT_DMA_SCR);
 
 			// Clean UDE flag before DMA is started
 			io_timer_update_dma_req(timer, false);

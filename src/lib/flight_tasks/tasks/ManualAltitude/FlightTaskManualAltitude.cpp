@@ -45,8 +45,6 @@ bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTaskManual::updateInitialize();
 
-	_sub_home_position.update();
-
 	// in addition to manual require valid position and velocity in D-direction and valid yaw
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
 }
@@ -85,11 +83,21 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 
 void FlightTaskManualAltitude::_scaleSticks()
 {
-	// Use sticks input with deadzone and exponential curve for vertical velocity and yawspeed
-	_yawspeed_setpoint = _sticks_expo(3) * math::radians(_param_mpc_man_y_max.get());
+	// Use stick input with deadzone, exponential curve and first order lpf for yawspeed
+	const float yawspeed_target = _sticks_expo(3) * math::radians(_param_mpc_man_y_max.get());
+	_yawspeed_setpoint = _applyYawspeedFilter(yawspeed_target);
 
+	// Use sticks input with deadzone and exponential curve for vertical velocity
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
+}
+
+float FlightTaskManualAltitude::_applyYawspeedFilter(float yawspeed_target)
+{
+	const float den = math::max(_param_mpc_man_y_tau.get() + _deltatime, 0.001f);
+	const float alpha = _deltatime / den;
+	_yawspeed_filter_state = (1.f - alpha) * _yawspeed_filter_state + alpha * yawspeed_target;
+	return _yawspeed_filter_state;
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()
@@ -257,22 +265,12 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 
 void FlightTaskManualAltitude::_respectGroundSlowdown()
 {
-	float dist_to_ground = NAN;
-
-	// if there is a valid distance to bottom or vertical distance to home
-	if (PX4_ISFINITE(_dist_to_bottom)) {
-		dist_to_ground = _dist_to_bottom;
-
-	} else if (_sub_home_position.get().valid_alt) {
-		dist_to_ground = -(_position(2) - _sub_home_position.get().z);
-	}
-
 	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
-	if (PX4_ISFINITE(dist_to_ground)) {
-		const float limit_down = math::gradual(dist_to_ground,
+	if (PX4_ISFINITE(_dist_to_ground)) {
+		const float limit_down = math::gradual(_dist_to_ground,
 						       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
 						       _param_mpc_land_speed.get(), _constraints.speed_down);
-		const float limit_up = math::gradual(dist_to_ground,
+		const float limit_up = math::gradual(_dist_to_ground,
 						     _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
 						     _param_mpc_tko_speed.get(), _constraints.speed_up);
 		_velocity_setpoint(2) = math::constrain(_velocity_setpoint(2), -limit_up, limit_down);
@@ -289,18 +287,35 @@ void FlightTaskManualAltitude::_rotateIntoHeadingFrame(Vector2f &v)
 
 void FlightTaskManualAltitude::_updateHeadingSetpoints()
 {
-	/* Yaw-lock depends on stick input. If not locked,
-	 * yaw_sp is set to NAN.
-	 * TODO: add yawspeed to get threshold.*/
-	if (fabsf(_yawspeed_setpoint) > FLT_EPSILON) {
-		// no fixed heading when rotating around yaw by stick
-		_yaw_setpoint = NAN;
+	if (_isYawInput()) {
+		_unlockYaw();
 
 	} else {
-		// hold the current heading when no more rotation commanded
-		if (!PX4_ISFINITE(_yaw_setpoint)) {
-			_yaw_setpoint = _yaw;
-		}
+		_lockYaw();
+	}
+}
+
+bool FlightTaskManualAltitude::_isYawInput()
+{
+	/*
+	 * A threshold larger than FLT_EPSILON is required because the
+	 * _yawspeed_setpoint comes from an IIR filter and takes too much
+	 * time to reach zero.
+	 */
+	return fabsf(_yawspeed_setpoint) > 0.001f;
+}
+
+void FlightTaskManualAltitude::_unlockYaw()
+{
+	// no fixed heading when rotating around yaw by stick
+	_yaw_setpoint = NAN;
+}
+
+void FlightTaskManualAltitude::_lockYaw()
+{
+	// hold the current heading when no more rotation commanded
+	if (!PX4_ISFINITE(_yaw_setpoint)) {
+		_yaw_setpoint = _yaw;
 	}
 }
 

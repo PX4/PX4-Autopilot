@@ -1,0 +1,102 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#pragma once
+
+#include <battery/battery.h>
+#include <parameters/param.h>
+
+class AnalogBattery : public Battery
+{
+public:
+	AnalogBattery(int index, ModuleParams *parent);
+
+	/**
+	 * Update current battery status message.
+	 *
+	 * @param voltage_raw Battery voltage read from ADC, in raw ADC counts
+	 * @param current_raw Voltage of current sense resistor, in raw ADC counts
+	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
+	 * @param selected_source This battery is on the brick that the selected source for selected_source
+	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
+	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
+	 */
+	void updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_raw, int32_t current_raw,
+				       bool selected_source, int priority, float throttle_normalized);
+
+	/**
+	 * Whether the ADC channel for the voltage of this battery is valid.
+	 * Corresponds to BOARD_BRICK_VALID_LIST
+	 */
+	bool is_valid();
+
+	/**
+	 * Which ADC channel is used for voltage reading of this battery
+	 */
+	int get_voltage_channel();
+
+	/**
+	 * Which ADC channel is used for current reading of this battery
+	 */
+	int get_current_channel();
+
+protected:
+
+	struct {
+		param_t cnt_v_volt;
+		param_t cnt_v_curr;
+		param_t v_offs_cur;
+		param_t v_div;
+		param_t a_per_v;
+		param_t adc_channel;
+
+		param_t v_div_old;
+		param_t a_per_v_old;
+		param_t adc_channel_old;
+	} _analog_param_handles;
+
+	struct {
+		float cnt_v_volt;
+		float cnt_v_curr;
+		float v_offs_cur;
+		float v_div;
+		float a_per_v;
+		int adc_channel;
+
+		float v_div_old;
+		float a_per_v_old;
+		int adc_channel_old;
+	} _analog_params;
+
+	virtual void updateParams() override;
+};

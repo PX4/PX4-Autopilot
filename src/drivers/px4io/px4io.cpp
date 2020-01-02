@@ -35,7 +35,7 @@
  * @file px4io.cpp
  * Driver for the PX4IO board.
  *
- * PX4IO is connected via I2C or DMA enabled high-speed UART.
+ * PX4IO is connected via DMA enabled high-speed UART.
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -70,7 +70,8 @@
 #include <rc/dsm.h>
 
 #include <lib/mathlib/mathlib.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
@@ -2809,10 +2810,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 		break;
 
-	case MIXERIOCGETOUTPUTCOUNT:
-		*(unsigned *)arg = _max_actuators;
-		break;
-
 	case MIXERIOCRESET:
 		ret = 0;	/* load always resets */
 		break;
@@ -3012,7 +3009,7 @@ start(int argc, char *argv[])
 		if (!strcmp(argv[extra_args], "norc")) {
 			rc_handling_disabled = true;
 
-		} else if (!strcmp(argv[1], "hil")) {
+		} else if (!strcmp(argv[extra_args], "hil")) {
 			hitl_mode = true;
 
 		} else {

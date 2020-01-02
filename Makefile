@@ -263,8 +263,6 @@ misc_qgc_extra_firmware: \
 # Other NuttX firmware
 alt_firmware: \
 	check_px4_cannode-v1_default \
-	check_px4_esc-v1_default \
-	check_thiemar_s2740vc-v1_default \
 	sizes
 
 # builds with RTPS
@@ -358,6 +356,18 @@ tests_coverage:
 
 rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+
+tests_integration: px4_sitl_default
+	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 100
+
+tests_integration_coverage:
+	@$(MAKE) clean
+	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --iterations 1 --fail-early
 
 tests_mission: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test

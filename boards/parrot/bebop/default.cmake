@@ -7,12 +7,12 @@ px4_add_board(
 	TOOLCHAIN arm-linux-gnueabihf
 
 	DRIVERS
+		barometer/ms5611
 		gps
 		linux_sbus
 		pwm_out_sim
 
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		ms5607
 		mpu6050
 		ak8963
 		bebop_bus
@@ -21,7 +21,7 @@ px4_add_board(
 
 	MODULES
 		attitude_estimator_q
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		ekf2
@@ -36,8 +36,10 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
 		navigator
+		rc_update
 		sensors
 		sih
 		#vtol_att_control

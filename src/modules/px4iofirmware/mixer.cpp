@@ -51,7 +51,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
-#include <mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <output_limit/output_limit.h>
 #include <rc/sbus.h>
 
@@ -96,7 +96,7 @@ static volatile mixer_source source;
 static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
 static int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits);
 
-static MixerGroup mixer_group(mixer_callback, 0);
+static MixerGroup mixer_group;
 
 int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits)
 {
@@ -114,7 +114,7 @@ int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits)
 }
 
 void
-mixer_tick(void)
+mixer_tick()
 {
 	/* check if the mixer got modified */
 	mixer_handle_text_create_mixer();
@@ -540,7 +540,7 @@ mixer_handle_text_create_mixer()
 
 	/* process the text buffer, adding new mixers as their descriptions can be parsed */
 	unsigned resid = mixer_text_length;
-	mixer_group.load_from_buf(&mixer_text[0], resid);
+	mixer_group.load_from_buf(mixer_callback, 0, &mixer_text[0], resid);
 
 	/* if anything was parsed */
 	if (resid != mixer_text_length) {
