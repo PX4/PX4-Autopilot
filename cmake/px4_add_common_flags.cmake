@@ -96,8 +96,6 @@ function(px4_add_common_flags)
 
 		# force color for clang (needed for clang + ccache)
 		add_compile_options(-fcolor-diagnostics)
-		# force absolute paths
-		add_compile_options(-fdiagnostics-absolute-paths)
 
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT "${PX4_PLATFORM}" STREQUAL "qurt")
@@ -107,6 +105,7 @@ function(px4_add_common_flags)
 				-Wno-unknown-warning-option
 				-Wno-unused-const-variable
 				-Wno-varargs
+				-fdiagnostics-absolute-paths
 			)
 		endif()
 
