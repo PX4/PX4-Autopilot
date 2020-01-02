@@ -92,7 +92,7 @@ GpsFailure::on_active()
 			//This determines if the fixedwing vehicle is landing or not, and if so it forces the wings level
 			//Otherwise the plane goes to the parameter set fixed bank loiter setting
 
-			if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 				att_sp.roll_body = 0.0f;
 
 			} else {
