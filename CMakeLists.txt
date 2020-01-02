@@ -393,9 +393,6 @@ add_custom_target(test_results
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
-# Integration testing using MAVSDK
-add_subdirectory(test/mavsdk_tests)
-
 #=============================================================================
 # subdirectories
 #
