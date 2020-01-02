@@ -92,10 +92,12 @@ function(px4_add_common_flags)
 		)
 
 	# compiler specific flags
-	if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+	if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
 
 		# force color for clang (needed for clang + ccache)
 		add_compile_options(-fcolor-diagnostics)
+		# force absolute paths
+		add_compile_options(-fdiagnostics-absolute-paths)
 
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT "${PX4_PLATFORM}" STREQUAL "qurt")
