@@ -338,6 +338,7 @@ private:
 	param_t						_log_utc_offset{PARAM_INVALID};
 	param_t						_log_dirs_max{PARAM_INVALID};
 	param_t						_mission_log{PARAM_INVALID};
+	param_t						_boot_bat_only{PARAM_INVALID};
 };
 
 } //namespace logger
