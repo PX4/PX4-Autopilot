@@ -61,6 +61,8 @@ GpsFailure::GpsFailure(Navigator *navigator) :
 void
 GpsFailure::on_inactive()
 {
+	was_landing = _navigator->on_mission_landing();
+
 	/* reset GPSF state only if setpoint moved */
 	if (!_navigator->get_can_loiter_at_sp()) {
 		_gpsf_state = GPSF_STATE_NONE;
@@ -92,7 +94,7 @@ GpsFailure::on_active()
 			//This determines if the fixedwing vehicle is landing or not, and if so it forces the wings level
 			//Otherwise the plane goes to the parameter set fixed bank loiter setting
 
-			if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND && was_landing) {
 				att_sp.roll_body = 0.0f;
 
 			} else {
