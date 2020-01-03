@@ -45,6 +45,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <drivers/drv_hrt.h>
+#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 
 #include "sf0x_parser.h"
@@ -78,7 +79,7 @@ private:
 	enum SF0X_PARSE_STATE		_parse_state {SF0X_PARSE_STATE0_UNSYNC};
 	hrt_abstime			_last_read{0};
 
-	unsigned			_consecutive_fail_count{0};
+	unsigned			_consecutive_fail_count;
 
 	perf_counter_t			_sample_perf;
 	perf_counter_t			_comms_errors;

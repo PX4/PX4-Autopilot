@@ -35,10 +35,6 @@
 
 #include <termios.h>
 
-#include <lib/parameters/param.h>
-
-using namespace time_literals;
-
 /* Configuration Constants */
 #define SF0X_TAKE_RANGE_REG		'd'
 
@@ -65,35 +61,32 @@ SF0X::~SF0X()
 	perf_free(_comms_errors);
 }
 
-int SF0X::init()
+int
+SF0X::init()
 {
 	int32_t hw_model = 0;
 	param_get(param_find("SENS_EN_SF0X"), &hw_model);
 
 	switch (hw_model) {
-	case 1:
-		/* SF02 (40m, 12 Hz)*/
+	case 1: /* SF02 (40m, 12 Hz)*/
 		_px4_rangefinder.set_min_distance(0.30f);
 		_px4_rangefinder.set_max_distance(40.0f);
 		_interval = 83334;
 		break;
 
-	case 2:
-		/* SF10/a (25m 32Hz) */
+	case 2:  /* SF10/a (25m 32Hz) */
 		_px4_rangefinder.set_min_distance(0.01f);
 		_px4_rangefinder.set_max_distance(25.0f);
 		_interval = 31250;
 		break;
 
-	case 3:
-		/* SF10/b (50m 32Hz) */
+	case 3:  /* SF10/b (50m 32Hz) */
 		_px4_rangefinder.set_min_distance(0.01f);
 		_px4_rangefinder.set_max_distance(50.0f);
 		_interval = 31250;
 		break;
 
-	case 4:
-		/* SF10/c (100m 16Hz) */
+	case 4:  /* SF10/c (100m 16Hz) */
 		_px4_rangefinder.set_min_distance(0.01f);
 		_px4_rangefinder.set_max_distance(100.0f);
 		_interval = 62500;
@@ -270,7 +263,7 @@ void SF0X::Run()
 		if (OK != collect_ret) {
 
 			/* we know the sensor needs about four seconds to initialize */
-			if (hrt_absolute_time() > 5_s && _consecutive_fail_count < 5) {
+			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
 				PX4_ERR("collection error #%u", _consecutive_fail_count);
 			}
 
