@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,59 @@
  *
  ****************************************************************************/
 
+/**
+ * @file SF0X.hpp
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Greg Hulands
+ *
+ * Driver for the Lightware SF0x laser rangefinder series
+ */
+
 #pragma once
 
-#include <drivers/drv_baro.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
-#include <lib/conversion/rotation.h>
-#include <uORB/uORB.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 
-class PX4Barometer : public cdev::CDev
+#include "sf0x_parser.h"
+
+class SF0X : public px4::ScheduledWorkItem
 {
-
 public:
-	PX4Barometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT);
-	~PX4Barometer() override;
+	SF0X(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	~SF0X() override;
 
-	const sensor_baro_s &get() { return _sensor_baro_pub.get(); }
-
-	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_baro_pub.get().error_count = error_count; }
-
-	void set_temperature(float temperature) { _sensor_baro_pub.get().temperature = temperature; }
-
-	void update(hrt_abstime timestamp, float pressure);
-
-	void print_status();
+	int 			init();
+	void				print_info();
 
 private:
 
-	uORB::PublicationMultiData<sensor_baro_s>	_sensor_baro_pub;
+	void				start();
+	void				stop();
+	void				Run() override;
+	int				measure();
+	int				collect();
 
-	int			_class_device_instance{-1};
+
+	PX4Rangefinder                  _px4_rangefinder;
+
+	char 				_port[20] {};
+	int         		        _interval{100000};
+	bool				_collect_phase{false};
+	int				_fd{-1};
+	char				_linebuf[10] {};
+	unsigned			_linebuf_index{0};
+	enum SF0X_PARSE_STATE		_parse_state {SF0X_PARSE_STATE0_UNSYNC};
+	hrt_abstime			_last_read{0};
+
+	unsigned			_consecutive_fail_count;
+
+	perf_counter_t			_sample_perf;
+	perf_counter_t			_comms_errors;
+
+
 
 };

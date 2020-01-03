@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,14 +37,12 @@
  * I2C interface for MS5611
  */
 
+#include <drivers/device/i2c.h>
+
 #include "ms5611.h"
 
 #define MS5611_ADDRESS_1		0x76	/* address select pins pulled high (PX4FMU series v1.6+) */
 #define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
-
-
-
-device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf);
 
 class MS5611_I2C : public device::I2C
 {
