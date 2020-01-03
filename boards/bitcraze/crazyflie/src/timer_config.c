@@ -65,9 +65,6 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM2EN,
 		.clock_freq = TIM2_CLKIN,
-		.first_channel_index = 0,
-		.last_channel_index = 2,
-		.handler = io_timer_handler0,
 		.vectorno =  STM32_IRQ_TIM2,
 	},
 	{
@@ -75,10 +72,19 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM4EN,
 		.clock_freq = TIM4_CLKIN,
-		.first_channel_index = 3,
-		.last_channel_index = 3,
-		.handler = io_timer_handler1,
 		.vectorno =  STM32_IRQ_TIM4,
+	}
+};
+__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = {
+	.element = {
+		{
+			.first_channel_index = 0,
+			.channel_count = 3,
+		},
+		{
+			.first_channel_index = 3,
+			.channel_count = 1,
+		}
 	}
 };
 

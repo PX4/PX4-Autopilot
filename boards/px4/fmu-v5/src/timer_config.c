@@ -56,15 +56,10 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB2ENR,
 		.clock_bit = RCC_APB2ENR_TIM1EN,
 		.clock_freq = STM32_APB2_TIM1_CLKIN,
-		.first_channel_index = 0,
-		.last_channel_index = 3,
-		.handler = io_timer_handler0,
 		.vectorno = STM32_IRQ_TIM1CC,
 		.dshot = {
 			.dma_base = STM32_DMA2_BASE,
 			.dmamap = DMAMAP_TIM1_UP,
-			.start_ccr_register = TIM_DMABASE_CCR1,
-			.channels_number = 4u /* CCR1, CCR2, CCR3 and CCR4 */
 		}
 	},
 	{
@@ -72,9 +67,6 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM4EN,
 		.clock_freq = STM32_APB1_TIM4_CLKIN,
-		.first_channel_index = 4,
-		.last_channel_index = 5,
-		.handler = io_timer_handler1,
 		.vectorno = STM32_IRQ_TIM4,
 	},
 	{
@@ -82,9 +74,6 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM12EN,
 		.clock_freq = STM32_APB1_TIM12_CLKIN,
-		.first_channel_index = 6,
-		.last_channel_index = 7,
-		.handler = io_timer_handler2,
 		.vectorno = STM32_IRQ_TIM12,
 	},
 	{
@@ -92,9 +81,6 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM2EN,
 		.clock_freq = STM32_APB1_TIM2_CLKIN,
-		.first_channel_index = 8,
-		.last_channel_index = 10,
-		.handler = io_timer_handler3,
 		.vectorno = STM32_IRQ_TIM2,
 	},
 	{
@@ -102,10 +88,32 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB2ENR,
 		.clock_bit = RCC_APB2ENR_TIM9EN,
 		.clock_freq = STM32_APB2_TIM9_CLKIN,
-		.first_channel_index = 11,
-		.last_channel_index = 11,
-		.handler = io_timer_handler4,
 		.vectorno = STM32_IRQ_TIM9,
+	}
+};
+
+__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = {
+	.element = {
+		{
+			.first_channel_index = 0,
+			.channel_count = 4,
+		},
+		{
+			.first_channel_index = 4,
+			.channel_count = 2,
+		},
+		{
+			.first_channel_index = 6,
+			.channel_count = 2,
+		},
+		{
+			.first_channel_index = 8,
+			.channel_count = 3,
+		},
+		{
+			.first_channel_index = 11,
+			.channel_count = 1,
+		}
 	}
 };
 
@@ -185,8 +193,6 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 		.clock_bit 			= RCC_APB1ENR_TIM5EN,
 		.clock_freq 		= STM32_APB1_TIM5_CLKIN,
 		.vectorno 			=  0,
-		.first_channel_index = 0,
-		.last_channel_index = 2,
 	},
 #  endif
 #  if defined(BOARD_HAS_LED_PWM) && !defined(BOARD_HAS_CONTROL_STATUS_LEDS)
@@ -196,13 +202,6 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 		.clock_bit      = RCC_APB1ENR_TIM3EN,
 		.clock_freq     = STM32_APB1_TIM3_CLKIN,
 		.vectorno       =  0,
-#  if defined(BOARD_HAS_UI_LED_PWM)
-		.first_channel_index = 3,
-		.last_channel_index = 5,
-#  else
-		.first_channel_index = 0,
-		.last_channel_index = 2,
-#  endif
 	},
 #  endif
 };

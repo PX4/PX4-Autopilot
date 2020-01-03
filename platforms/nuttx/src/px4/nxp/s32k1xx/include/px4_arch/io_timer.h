@@ -82,10 +82,17 @@ typedef struct io_timers_t {
 	uint32_t	clock_register;      /* SIM_SCGCn */
 	uint32_t	clock_bit;           /* SIM_SCGCn bit pos */
 	uint32_t	vectorno;            /* IRQ number */
-	uint32_t    first_channel_index; /* 0 based index in timer_io_channels */
-	uint32_t    last_channel_index;  /* 0 based index in timer_io_channels */
-	xcpt_t      handler;
 } io_timers_t;
+
+typedef struct io_timers_channel_mapping_element_t {
+	uint32_t first_channel_index;
+	uint32_t channel_count;
+} io_timers_channel_mapping_element_t;
+
+/* mapping for each io_timers to timer_io_channels */
+typedef struct io_timers_channel_mapping_t {
+	io_timers_channel_mapping_element_t element[MAX_IO_TIMERS];
+} io_timers_channel_mapping_t;
 
 /* array of channels in logical order */
 typedef struct timer_io_channels_t {
@@ -104,16 +111,13 @@ typedef void (*channel_handler_t)(void *context, const io_timers_t *timer, uint3
 
 /* supplied by board-specific code */
 __EXPORT extern const io_timers_t io_timers[MAX_IO_TIMERS];
+__EXPORT extern const io_timers_channel_mapping_t io_timers_channel_mapping;
 __EXPORT extern const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS];
 
 __EXPORT extern const io_timers_t led_pwm_timers[MAX_LED_TIMERS];
 __EXPORT extern const timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS];
 
 __EXPORT extern io_timer_channel_allocation_t allocations[IOTimerChanModeSize];
-__EXPORT int io_timer_handler0(int irq, void *context, void *arg);
-__EXPORT int io_timer_handler1(int irq, void *context, void *arg);
-__EXPORT int io_timer_handler2(int irq, void *context, void *arg);
-__EXPORT int io_timer_handler3(int irq, void *context, void *arg);
 
 __EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 				   channel_handler_t channel_handler, void *context);
@@ -133,5 +137,17 @@ __EXPORT int io_timer_free_channel(unsigned channel);
 __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
 __EXPORT extern void io_timer_trigger(void);
+/**
+ * Returns the pin configuration for a specific channel, to be used as GPIO output.
+ * 0 is returned if the channel is not valid.
+ */
+__EXPORT uint32_t io_timer_channel_get_gpio_output(unsigned channel);
+/**
+ * Returns the pin configuration for a specific channel, to be used as PWM input.
+ * 0 is returned if the channel is not valid.
+ */
+__EXPORT uint32_t io_timer_channel_get_as_pwm_input(unsigned channel);
+
 
 __END_DECLS
+
