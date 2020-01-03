@@ -58,6 +58,8 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = { };
 // Invalidate all channels (timer_channel == 0): we don't have any
 __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = { };
 
+__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = { };
+
 // Invalidate all timers (base == 0): we don't have any
 __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = { };
 

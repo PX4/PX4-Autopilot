@@ -56,9 +56,6 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.base = KINETIS_FTM0_BASE,
 		.clock_register = KINETIS_SIM_SCGC6,
 		.clock_bit = SIM_SCGC6_FTM0,
-		.first_channel_index = 0,
-		.last_channel_index = 3,
-		.handler = io_timer_handler0,
 		.vectorno =  KINETIS_IRQ_FTM0,
 
 	},
@@ -66,19 +63,30 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.base = KINETIS_FTM3_BASE,
 		.clock_register = KINETIS_SIM_SCGC3,
 		.clock_bit = SIM_SCGC3_FTM3,
-		.first_channel_index = 4,
-		.last_channel_index = 5,
-		.handler = io_timer_handler1,
 		.vectorno =  KINETIS_IRQ_FTM3,
 	},
 	{
 		.base = KINETIS_FTM2_BASE,
 		.clock_register = KINETIS_SIM_SCGC3,
 		.clock_bit = SIM_SCGC3_FTM2,
-		.first_channel_index = 6,
-		.last_channel_index = 7,
-		.handler = io_timer_handler2,
 		.vectorno =  KINETIS_IRQ_FTM2,
+	}
+};
+
+__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = {
+	.element = {
+		{
+			.first_channel_index = 0,
+			.channel_count = 4,
+		},
+		{
+			.first_channel_index = 4,
+			.channel_count = 3,
+		},
+		{
+			.first_channel_index = 6,
+			.channel_count = 1,
+		}
 	}
 };
 
@@ -138,8 +146,6 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 		.base = KINETIS_FTM3_BASE,
 		.clock_register = KINETIS_SIM_SCGC3,
 		.clock_bit = SIM_SCGC3_FTM3,
-		.first_channel_index = 0,
-		.last_channel_index = 2,
 		.vectorno =  0,
 	},
 };

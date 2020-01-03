@@ -56,15 +56,10 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM2EN,
 		.clock_freq = STM32_APB1_TIM2_CLKIN,
-		.first_channel_index = 0,
-		.last_channel_index = 1,
-		.handler = io_timer_handler1,
 		.vectorno =  STM32_IRQ_TIM2,
 		.dshot = {
 			.dma_base = STM32_DMA1_BASE,
 			.dmamap = DMAMAP_TIM2_UP_1,
-			.start_ccr_register = TIM_DMABASE_CCR3,
-			.channels_number = 2u /* CCR3 and CCR4 */
 		}
 	},
 	{
@@ -72,18 +67,27 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM3EN,
 		.clock_freq = STM32_APB1_TIM3_CLKIN,
-		.first_channel_index = 2,
-		.last_channel_index = 3,
-		.handler = io_timer_handler2,
 		.vectorno =  STM32_IRQ_TIM3,
 		.dshot = {
 			.dma_base = STM32_DMA1_BASE,
 			.dmamap = DMAMAP_TIM3_UP,
-			.start_ccr_register = TIM_DMABASE_CCR3,
-			.channels_number = 2u /* CCR3 and CCR4 */
 		}
 	}
 };
+
+__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = {
+	.element = {
+		{
+			.first_channel_index = 0,
+			.channel_count = 2,
+		},
+		{
+			.first_channel_index = 2,
+			.channel_count = 2,
+		}
+	}
+};
+
 
 /*
  * OUTPUTS:
