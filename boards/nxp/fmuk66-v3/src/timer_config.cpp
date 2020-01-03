@@ -47,101 +47,31 @@
 #include "hardware/kinetis_ftm.h"
 
 #include <drivers/drv_pwm_output.h>
-#include <px4_arch/io_timer.h>
+#include <px4_arch/io_timer_hw_description.h>
 
 #include "board_config.h"
 
-__EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
-	{
-		.base = KINETIS_FTM0_BASE,
-		.clock_register = KINETIS_SIM_SCGC6,
-		.clock_bit = SIM_SCGC6_FTM0,
-		.vectorno =  KINETIS_IRQ_FTM0,
-
-	},
-	{
-		.base = KINETIS_FTM3_BASE,
-		.clock_register = KINETIS_SIM_SCGC3,
-		.clock_bit = SIM_SCGC3_FTM3,
-		.vectorno =  KINETIS_IRQ_FTM3,
-	},
-	{
-		.base = KINETIS_FTM2_BASE,
-		.clock_register = KINETIS_SIM_SCGC3,
-		.clock_bit = SIM_SCGC3_FTM2,
-		.vectorno =  KINETIS_IRQ_FTM2,
-	}
+constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
+	initIOTimer(Timer::FTM0),
+	initIOTimer(Timer::FTM3),
+	initIOTimer(Timer::FTM2),
 };
 
-__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = {
-	.element = {
-		{
-			.first_channel_index = 0,
-			.channel_count = 4,
-		},
-		{
-			.first_channel_index = 4,
-			.channel_count = 3,
-		},
-		{
-			.first_channel_index = 6,
-			.channel_count = 1,
-		}
-	}
+constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel0}, {GPIO::PortC, GPIO::Pin1}),
+	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel3}, {GPIO::PortA, GPIO::Pin6}),
+	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel4}, {GPIO::PortD, GPIO::Pin4}),
+	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel5}, {GPIO::PortD, GPIO::Pin5}),
+	initIOTimerChannel(io_timers, {Timer::FTM3, Timer::Channel6}, {GPIO::PortE, GPIO::Pin11}),
+	initIOTimerChannel(io_timers, {Timer::FTM3, Timer::Channel7}, {GPIO::PortE, GPIO::Pin12}),
+	initIOTimerChannel(io_timers, {Timer::FTM3, Timer::Channel0}, {GPIO::PortD, GPIO::Pin0}),
+	initIOTimerChannel(io_timers, {Timer::FTM2, Timer::Channel0}, {GPIO::PortA, GPIO::Pin10}),
 };
 
-__EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	{
-		.gpio_out = GPIO_FTM0_CH0OUT, // FMU_CH1
-		.gpio_in  = GPIO_FTM0_CH0IN,
-		.timer_index = 0,
-		.timer_channel = 1,           // physical channel number +1
-	},
-	{
-		.gpio_out = GPIO_FTM0_CH3OUT, // FMU_CH2
-		.gpio_in  = GPIO_FTM0_CH3IN,
-		.timer_index = 0,
-		.timer_channel = 4,
-	},
-	{
-		.gpio_out = GPIO_FTM0_CH4OUT, // FMU_CH3
-		.gpio_in  = GPIO_FTM0_CH4IN,
-		.timer_index = 0,
-		.timer_channel = 5,
-	},
-	{
-		.gpio_out = GPIO_FTM0_CH5OUT, // FMU_CH4
-		.gpio_in  = GPIO_FTM0_CH5IN,
-		.timer_index = 0,
-		.timer_channel = 6,
-	},
-	{
-		.gpio_out = GPIO_FTM3_CH6OUT, // FMU_CH5
-		.gpio_in  = GPIO_FTM3_CH6IN,
-		.timer_index = 1,
-		.timer_channel = 7,
-	},
-	{
-		.gpio_out = GPIO_FTM3_CH7OUT, // FMU_CH6
-		.gpio_in  = GPIO_FTM3_CH7IN,
-		.timer_index = 1,
-		.timer_channel = 8,
-	},
-	{
-		.gpio_out = GPIO_FTM3_CH0OUT, // U_TRI
-		.gpio_in  = GPIO_FTM3_CH0IN,
-		.timer_index = 1,
-		.timer_channel = 1,
-	},
-	{
-		.gpio_out = GPIO_FTM2_CH0OUT,
-		.gpio_in  = GPIO_FTM2_CH0IN, // U_ECH
-		.timer_index = 2,
-		.timer_channel = 1,
-	},
-};
+constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
+	initIOTimerChannelMapping(io_timers, timer_io_channels);
 
-__EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
+const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 	{
 		.base = KINETIS_FTM3_BASE,
 		.clock_register = KINETIS_SIM_SCGC3,
@@ -150,7 +80,7 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 	},
 };
 
-__EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
+const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 	{
 		.gpio_out = LED_TIM3_CH1OUT, // RGB_R
 		.gpio_in  = 0,
@@ -223,7 +153,7 @@ __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNEL
 #endif
 
 
-__EXPORT void fmuk66_timer_initialize(void)
+void fmuk66_timer_initialize(void)
 {
 
 

@@ -39,7 +39,7 @@ add_library(drivers_board
 	led.c
 	sdhc.c
 	spi.c
-	timer_config.c
+	timer_config.cpp
 	usb.c
 )
 
