@@ -31,98 +31,32 @@
  *
  ****************************************************************************/
 
-/*
- * @file crazyflie_timer_config.c
- *
- * Configuration data for the stm32 pwm_servo driver.
- *
- * Note that these arrays must always be fully-sized.
- */
-
-#include <stdint.h>
-
-#include <stm32.h>
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
-
-#include "board_config.h"
-
-#include <drivers/drv_pwm_output.h>
-#include <px4_arch/io_timer.h>
-
+#include <px4_arch/io_timer_hw_description.h>
 
 /* IO Timers normally free-run at 1MHz
  * Here we make adjustments to the Frequency that sets the timer's prescale
  * so that the prescale is set to 0
  */
+#define TIMx_CLKIN 1000000
 
-#define TIM2_CLKIN 1000000
-#define TIM4_CLKIN 1000000
+static inline constexpr io_timers_t initIOTimerOverrideClockFreq(Timer::Timer timer)
+{
+	io_timers_t ret = initIOTimer(timer);
+	ret.clock_freq = TIMx_CLKIN;
+	return ret;
+}
 
-__EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
-	{
-		.base = STM32_TIM2_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM2EN,
-		.clock_freq = TIM2_CLKIN,
-		.vectorno =  STM32_IRQ_TIM2,
-	},
-	{
-		.base = STM32_TIM4_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM4EN,
-		.clock_freq = TIM4_CLKIN,
-		.vectorno =  STM32_IRQ_TIM4,
-	}
-};
-__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = {
-	.element = {
-		{
-			.first_channel_index = 0,
-			.channel_count = 3,
-		},
-		{
-			.first_channel_index = 3,
-			.channel_count = 1,
-		}
-	}
+constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
+	initIOTimerOverrideClockFreq(Timer::Timer2),
+	initIOTimerOverrideClockFreq(Timer::Timer4),
 };
 
-__EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	{
-		// M1
-		.gpio_out = GPIO_TIM2_CH2OUT,
-		.gpio_in = GPIO_TIM2_CH2IN,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.ccr_offset = STM32_GTIM_CCR2_OFFSET,
-		.masks  = GTIM_SR_CC2IF | GTIM_SR_CC2OF
-	},
-	{
-		// M2
-		.gpio_out = GPIO_TIM2_CH4OUT,
-		.gpio_in = GPIO_TIM2_CH4IN,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
-		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
-	},
-	{
-		// M3
-		.gpio_out = GPIO_TIM2_CH1OUT,
-		.gpio_in = GPIO_TIM2_CH1IN,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.ccr_offset = STM32_GTIM_CCR1_OFFSET,
-		.masks  = GTIM_SR_CC1IF | GTIM_SR_CC1OF
-	},
-	{
-		// M4
-		.gpio_out = GPIO_TIM4_CH4OUT,
-		.gpio_in = GPIO_TIM4_CH4IN,
-		.timer_index = 1,
-		.timer_channel = 4,
-		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
-		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
-	},
+constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
+	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel4}, {GPIO::PortB, GPIO::Pin11}),
+	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin15}),
+	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel4}, {GPIO::PortB, GPIO::Pin9}),
 };
+
+constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
+	initIOTimerChannelMapping(io_timers, timer_io_channels);
