@@ -13,6 +13,7 @@ ImuDownSampler::~ImuDownSampler()
 }
 
 // integrate imu samples until target dt reached
+// assumes that dt of the gyroscope is close to the dt of the accelerometer
 // returns true if target dt is reached
 bool ImuDownSampler::update(imuSample imu_sample_new)
 {
