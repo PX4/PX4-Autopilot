@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,33 +31,25 @@
  *
  ****************************************************************************/
 
-#include "SF0X.hpp"
-
-#include <termios.h>
+#include "SF1XX.hpp"
 
 #include <lib/parameters/param.h>
 
 using namespace time_literals;
 
 /* Configuration Constants */
-#define SF0X_TAKE_RANGE_REG		'd'
+#define SF1XX_TAKE_RANGE_REG		0
 
-SF0X::SF0X(const char *port, uint8_t rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
+SF1XX::SF1XX(int bus, int address, uint8_t rotation) :
+	I2C("SF1XX", nullptr, bus, address, 400000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
-	/* store port name */
-	strncpy(_port, port, sizeof(_port) - 1);
-
-	/* enforce null termination */
-	_port[sizeof(_port) - 1] = '\0';
-
-	_px4_rangefinder.set_device_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 }
 
-SF0X::~SF0X()
+SF1XX::~SF1XX()
 {
 	stop();
 
@@ -65,45 +57,52 @@ SF0X::~SF0X()
 	perf_free(_comms_errors);
 }
 
-int SF0X::init()
+int SF1XX::init()
 {
 	int32_t hw_model = 0;
-	param_get(param_find("SENS_EN_SF0X"), &hw_model);
+	param_get(param_find("SENS_EN_SF1XX"), &hw_model);
 
 	switch (hw_model) {
 	case 1:
-		/* SF02 (40m, 12 Hz)*/
-		_px4_rangefinder.set_min_distance(0.30f);
-		_px4_rangefinder.set_max_distance(40.0f);
-		_interval = 83334;
-		break;
-
-	case 2:
 		/* SF10/a (25m 32Hz) */
 		_px4_rangefinder.set_min_distance(0.01f);
 		_px4_rangefinder.set_max_distance(25.0f);
 		_interval = 31250;
 		break;
 
-	case 3:
+	case 2:
 		/* SF10/b (50m 32Hz) */
 		_px4_rangefinder.set_min_distance(0.01f);
 		_px4_rangefinder.set_max_distance(50.0f);
 		_interval = 31250;
 		break;
 
-	case 4:
+	case 3:
 		/* SF10/c (100m 16Hz) */
 		_px4_rangefinder.set_min_distance(0.01f);
 		_px4_rangefinder.set_max_distance(100.0f);
 		_interval = 62500;
 		break;
 
-	case 5:
+	case 4:
 		/* SF11/c (120m 20Hz) */
 		_px4_rangefinder.set_min_distance(0.01f);
 		_px4_rangefinder.set_max_distance(120.0f);
 		_interval = 50000;
+		break;
+
+	case 5:
+		/* SF/LW20/b (50m 48-388Hz) */
+		_px4_rangefinder.set_min_distance(0.001f);
+		_px4_rangefinder.set_max_distance(50.0f);
+		_interval = 20834;
+		break;
+
+	case 6:
+		/* SF/LW20/c (100m 48-388Hz) */
+		_px4_rangefinder.set_min_distance(0.001f);
+		_px4_rangefinder.set_max_distance(100.0f);
+		_interval = 20834;
 		break;
 
 	default:
@@ -111,40 +110,40 @@ int SF0X::init()
 		return -1;
 	}
 
-	start();
+	/* do I2C init (and probe) first */
+	if (I2C::init() != OK) {
+		return PX4_ERROR;
+	}
 
 	return PX4_OK;
 }
 
-int SF0X::measure()
+int SF1XX::measure()
 {
 	// Send the command to begin a measurement.
-	char cmd = SF0X_TAKE_RANGE_REG;
-	int ret = ::write(_fd, &cmd, 1);
+	uint8_t cmd = SF1XX_TAKE_RANGE_REG;
+	int ret = transfer(&cmd, 1, nullptr, 0);
 
-	if (ret != sizeof(cmd)) {
+	if (OK != ret) {
 		perf_count(_comms_errors);
-		PX4_DEBUG("write fail %d", ret);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
 	return PX4_OK;
 }
 
-int SF0X::collect()
+int SF1XX::collect()
 {
 	perf_begin(_sample_perf);
 
 	/* clear buffer if last read was too long ago */
 	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 
-	/* the buffer for read chars is buflen minus null termination */
-	char readbuf[sizeof(_linebuf)];
-	unsigned readlen = sizeof(readbuf) - 1;
-
-	/* read from the sensor (uart buffer) */
+	/* read from the sensor (i2c) */
+	uint8_t val[2] {};
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	int ret = ::read(_fd, &readbuf[0], readlen);
+	int ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
 		PX4_DEBUG("read err: %d", ret);
@@ -165,20 +164,8 @@ int SF0X::collect()
 
 	_last_read = hrt_absolute_time();
 
-	float distance_m = -1.0f;
-	bool valid = false;
-
-	for (int i = 0; i < ret; i++) {
-		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
-			valid = true;
-		}
-	}
-
-	if (!valid) {
-		return -EAGAIN;
-	}
-
-	PX4_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
+	uint16_t distance_cm = val[0] << 8 | val[1];
+	float distance_m = float(distance_cm) * 1e-2f;
 
 	_px4_rangefinder.update(timestamp_sample, distance_m);
 
@@ -187,7 +174,7 @@ int SF0X::collect()
 	return PX4_OK;
 }
 
-void SF0X::start()
+void SF1XX::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
@@ -196,64 +183,13 @@ void SF0X::start()
 	ScheduleNow();
 }
 
-void SF0X::stop()
+void SF1XX::stop()
 {
 	ScheduleClear();
 }
 
-void SF0X::Run()
+void SF1XX::Run()
 {
-	/* fds initialized? */
-	if (_fd < 0) {
-		/* open fd */
-		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
-
-		if (_fd < 0) {
-			PX4_ERR("open failed (%i)", errno);
-			return;
-		}
-
-		struct termios uart_config;
-
-		int termios_state;
-
-		/* fill the struct for the new configuration */
-		tcgetattr(_fd, &uart_config);
-
-		/* clear ONLCR flag (which appends a CR for every LF) */
-		uart_config.c_oflag &= ~ONLCR;
-
-		/* no parity, one stop bit */
-		uart_config.c_cflag &= ~(CSTOPB | PARENB);
-
-		/* if distance sensor model is SF11/C, then set baudrate 115200, else 9600 */
-		int32_t hw_model = 0;
-
-		param_get(param_find("SENS_EN_SF0X"), &hw_model);
-
-		unsigned speed;
-
-		if (hw_model == 5) {
-			speed = B115200;
-
-		} else {
-			speed = B9600;
-		}
-
-		/* set baud rate */
-		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-			PX4_ERR("CFG: %d ISPD", termios_state);
-		}
-
-		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-			PX4_ERR("CFG: %d OSPD", termios_state);
-		}
-
-		if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-			PX4_ERR("baud %d ATTR", termios_state);
-		}
-	}
-
 	/* collection phase? */
 	if (_collect_phase) {
 
@@ -301,7 +237,7 @@ void SF0X::Run()
 	ScheduleDelayed(_interval);
 }
 
-void SF0X::print_info()
+void SF1XX::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
