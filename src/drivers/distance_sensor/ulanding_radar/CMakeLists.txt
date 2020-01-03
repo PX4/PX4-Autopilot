@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,15 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__ulanding
+	MODULE drivers__distance_sensor__ulanding_radar
 	MAIN ulanding_radar
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		ulanding.cpp
+		AerotennaULanding.cpp
+		AerotennaULanding.hpp
+		ulanding_radar_main.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
+		drivers_rangefinder
+		px4_work_queue
 	)
-
