@@ -40,6 +40,8 @@ using namespace ST_ISM330DLC;
 
 static constexpr int16_t combine(uint8_t lsb, uint8_t msb) { return (msb << 8u) | lsb; }
 
+static constexpr uint32_t FIFO_INTERVAL{1000}; // 1000 us / 1000 Hz interval
+
 ISM330DLC::ISM330DLC(int bus, uint32_t device, enum Rotation rotation) :
 	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
@@ -53,8 +55,8 @@ ISM330DLC::ISM330DLC(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_accel.set_sample_rate(ST_ISM330DLC::LA_ODR);
 	_px4_gyro.set_sample_rate(ST_ISM330DLC::G_ODR);
 
-	_px4_accel.set_update_rate(1000000 / _fifo_interval);
-	_px4_gyro.set_update_rate(1000000 / _fifo_interval);
+	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
+	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);
 }
 
 ISM330DLC::~ISM330DLC()
@@ -227,8 +229,7 @@ void ISM330DLC::Start()
 	RegisterWrite(Register::INT1_CTRL, INT1_CTRL_BIT::INT1_FULL_FLAG | INT1_CTRL_BIT::INT1_FIFO_OVR |
 		      INT1_CTRL_BIT::INT1_FTH);
 #else
-
-	ScheduleOnInterval(_fifo_interval, _fifo_interval);
+	ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
 #endif
 }
 
@@ -248,8 +249,12 @@ void ISM330DLC::Run()
 {
 	perf_count(_interval_perf);
 
+	// use timestamp from the data ready interrupt if available,
+	//  otherwise use the time now roughly corresponding with the last sample we'll pull from the FIFO
+	const hrt_abstime timestamp_sample = (hrt_elapsed_time(&_time_data_ready) < FIFO_INTERVAL) ? _time_data_ready :
+					     hrt_absolute_time();
+
 	// Number of unread words (16-bit axes) stored in FIFO.
-	const hrt_abstime timestamp_fifo_level = hrt_absolute_time();
 	const uint8_t fifo_words = RegisterRead(Register::FIFO_STATUS1);
 
 	// check for FIFO status
@@ -311,19 +316,15 @@ void ISM330DLC::Run()
 
 	perf_end(_transfer_perf);
 
-	static constexpr uint32_t gyro_dt = 1000000 / ST_ISM330DLC::G_ODR;
-	// estimate timestamp of first sample in the FIFO from number of samples and fill rate
-	const hrt_abstime timestamp_sample = timestamp_fifo_level - ((samples - 1) * gyro_dt);
-
-	PX4Accelerometer::FIFOSample accel{};
+	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = samples;
-	accel.dt = gyro_dt;
+	accel.dt = 1000000 / ST_ISM330DLC::LA_ODR;
 
-	PX4Gyroscope::FIFOSample gyro{};
+	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
-	gyro.dt = gyro_dt;
+	gyro.dt = 1000000 / ST_ISM330DLC::G_ODR;
 
 	for (int i = 0; i < samples; i++) {
 		const FIFO::DATA &fifo_sample = report->f[i];
@@ -366,6 +367,8 @@ void ISM330DLC::PrintInfo()
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
+	perf_print_counter(_drdy_count_perf);
+	perf_print_counter(_drdy_interval_perf);
 
 	_px4_accel.print_status();
 	_px4_gyro.print_status();
