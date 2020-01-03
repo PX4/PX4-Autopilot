@@ -136,6 +136,8 @@
 #define GPIO_PWM7 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN0)
 #define GPIO_PWM8 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
 
+#define DIRECT_PWM_OUTPUT_CHANNELS 8
+
 /* SBUS pins  *************************************************************/
 
 /* XXX these should be UART pins */
