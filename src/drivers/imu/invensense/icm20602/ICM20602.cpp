@@ -300,6 +300,11 @@ void ICM20602::Run()
 {
 	perf_count(_interval_perf);
 
+	// use timestamp from the data ready interrupt if available,
+	//  otherwise use the time now roughly corresponding with the last sample we'll pull from the FIFO
+	const hrt_abstime timestamp_sample = (hrt_elapsed_time(&_time_data_ready) < FIFO_INTERVAL) ? _time_data_ready :
+					     hrt_absolute_time();
+
 	// read FIFO count
 	uint8_t fifo_count_buf[3] {};
 	fifo_count_buf[0] = static_cast<uint8_t>(Register::FIFO_COUNTH) | DIR_READ;
@@ -351,15 +356,11 @@ void ICM20602::Run()
 
 	perf_end(_transfer_perf);
 
-	static constexpr uint32_t gyro_dt = FIFO_INTERVAL / FIFO_GYRO_SAMPLES;
-	// estimate timestamp of first sample in the FIFO from number of samples and fill rate
-	const hrt_abstime timestamp_sample = _time_data_ready - ((samples - 1) * gyro_dt);
-
-	PX4Accelerometer::FIFOSample accel{};
+	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = FIFO_INTERVAL / FIFO_ACCEL_SAMPLES;
 
-	PX4Gyroscope::FIFOSample gyro{};
+	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = FIFO_INTERVAL / FIFO_GYRO_SAMPLES;

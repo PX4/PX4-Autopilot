@@ -61,9 +61,9 @@ public:
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint64_t error_count) { _error_count += error_count; }
-	void set_range(float range) { _range = range; }
+	void set_range(float range) { _range = range; UpdateClipLimit(); }
 	void set_sample_rate(uint16_t rate);
-	void set_scale(float scale) { _scale = scale; }
+	void set_scale(float scale) { _scale = scale; UpdateClipLimit(); }
 	void set_temperature(float temperature) { _temperature = temperature; }
 	void set_update_rate(uint16_t rate);
 
@@ -92,6 +92,7 @@ private:
 	void ConfigureNotchFilter(float notch_freq, float bandwidth);
 	void PublishStatus();
 	void ResetIntegrator();
+	void UpdateClipLimit();
 	void UpdateVibrationMetrics(const matrix::Vector3f &delta_angle);
 
 	uORB::PublicationMulti<sensor_gyro_s>            _sensor_pub;
@@ -111,20 +112,23 @@ private:
 
 	Integrator		_integrator{4000, true};
 
-	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+	matrix::Vector3f	_calibration_offset{0.f, 0.f, 0.f};
 
-	matrix::Vector3f _delta_angle_prev{0.0f, 0.0f, 0.0f};	// delta angle from the previous IMU measurement
-	float _vibration_metric{0.0f};	// high frequency vibration level in the IMU delta angle data (rad)
-	float _coning_vibration{0.0f};	// Level of coning vibration in the IMU delta angles (rad^2)
+	matrix::Vector3f _delta_angle_prev{0.f, 0.f, 0.f};	// delta angle from the previous IMU measurement
+	float _vibration_metric{0.f};	// high frequency vibration level in the IMU delta angle data (rad)
+	float _coning_vibration{0.f};	// Level of coning vibration in the IMU delta angles (rad^2)
 
 	int			_class_device_instance{-1};
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
+	const matrix::Dcmf	_rotation_dcm;
 
-	float			_range{math::radians(2000.0f)};
-	float			_scale{1.0f};
-	float			_temperature{0.0f};
+	float			_range{math::radians(2000.f)};
+	float			_scale{1.f};
+	float			_temperature{0.f};
+
+	int16_t			_clip_limit{(int16_t)(_range / _scale)};
 
 	uint64_t		_error_count{0};
 
@@ -134,9 +138,9 @@ private:
 	uint16_t		_update_rate{1000};
 
 	// integrator
-	hrt_abstime		_integrator_timestamp_sample{0};
 	hrt_abstime		_timestamp_sample_prev{0};
-	float			_integrator_accum[3] {};
+	matrix::Vector3f	_integration_raw{};
+	int16_t			_last_sample[3] {};
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};
