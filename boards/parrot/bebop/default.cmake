@@ -7,12 +7,12 @@ px4_add_board(
 	TOOLCHAIN arm-linux-gnueabihf
 
 	DRIVERS
+		barometer/ms5611
 		gps
 		linux_sbus
 		pwm_out_sim
 
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		ms5607
 		mpu6050
 		ak8963
 		bebop_bus
