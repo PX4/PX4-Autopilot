@@ -398,17 +398,6 @@ MPU9250::read_reg_range(unsigned start_reg, uint32_t speed, uint8_t *buf, uint16
 	return _interface->read(MPU9250_SET_SPEED(start_reg, speed), buf, count);
 }
 
-uint16_t
-MPU9250::read_reg16(unsigned reg)
-{
-	uint8_t buf[2] {};
-
-	// general register transfer at low clock speed
-	_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
-
-	return (uint16_t)(buf[0] << 8) | buf[1];
-}
-
 void
 MPU9250::write_reg(unsigned reg, uint8_t value)
 {
