@@ -60,8 +60,11 @@
 /*
  * I2C busses
  */
-#define PX4_I2C_BUS_EXPANSION	1
+#define PX4_I2C_BUS_EXPANSION	2
 #define PX4_NUMBER_I2C_BUSES    1
+
+#define PX4_I2C_OBDEV_MPU9250   0x69
+#define PX4_I2C_OBDEV_BMP280    0x76
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
