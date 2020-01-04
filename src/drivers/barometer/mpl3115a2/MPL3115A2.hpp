@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,80 +32,52 @@
  ****************************************************************************/
 
 /**
- * @file mpl3115a2.h
+ * @file MPL3115A2.hpp
  *
- * Shared defines for the mpl3115a2 driver.
+ * Driver for the MPL3115A2 barometric pressure sensor connected via I2C.
  */
 
 #pragma once
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <semaphore.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <math.h>
-#include <unistd.h>
 
-#include <arch/board/board.h>
-#include <board_config.h>
-#include <drivers/device/device.h>
-#include <drivers/device/Device.hpp>
 #include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/err.h>
 
-#include "board_config.h"
+class MPL3115A2 : public device::I2C, public px4::ScheduledWorkItem
+{
+public:
+	MPL3115A2(const int bus);
+	~MPL3115A2() override;
 
-#define MPL3115A2_REG_WHO_AM_I   0x0c
-#define MPL3115A2_WHO_AM_I       0xC4
+	int init() override;
+	int probe() override;
 
-#define OUT_P_MSB                0x01
+	void print_info();
 
-#define MPL3115A2_CTRL_REG1      0x26
-#  define CTRL_REG1_ALT          (1 << 7)
-#  define CTRL_REG1_RAW          (1 << 6)
-#  define CTRL_REG1_OS_SHIFTS    (3)
-#  define CTRL_REG1_OS_MASK      (0x7 << CTRL_REG1_OS_SHIFTS)
-#  define CTRL_REG1_OS(n)        (((n)& 0x7) << CTRL_REG1_OS_SHIFTS)
-#  define CTRL_REG1_RST          (1 << 2)
-#  define CTRL_REG1_OST          (1 << 1)
-#  define CTRL_REG1_SBYB         (1 << 0)
+private:
 
-/* interface ioctls */
-#define IOCTL_RESET         1
-#define IOCTL_MEASURE       2
+	void start();
+	void stop();
+	int  reset();
 
-typedef begin_packed_struct struct MPL3115A2_data_t {
-	union {
-		uint32_t q;
-		uint16_t w[sizeof(q) / sizeof(uint16_t)];
-		uint8_t  b[sizeof(q) / sizeof(uint8_t)];
-	} pressure;
+	void Run() override;
 
-	union {
-		uint16_t w;
-		uint8_t  b[sizeof(w)];
-	} temperature;
-} end_packed_struct MPL3115A2_data_t;
+	int measure();
+	int collect();
 
-/* interface factories */
-extern device::Device *MPL3115A2_i2c_interface(uint8_t busnum);
-extern device::Device *MPL3115A2_sim_interface(uint8_t busnum);
-typedef device::Device *(*MPL3115A2_constructor)(uint8_t busnum);
+	int RegisterRead(uint8_t reg, void *data, unsigned count = 1);
+	int RegisterWrite(uint8_t reg, uint8_t data);
+
+	PX4Barometer _px4_barometer;
+
+	bool _collect_phase{false};
+
+	perf_counter_t _sample_perf;
+	perf_counter_t _measure_perf;
+	perf_counter_t _comms_errors;
+};
