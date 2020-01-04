@@ -19,10 +19,12 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/mpu9250
+		imu/st/lsm9ds1
 		linux_pwm_out
 		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
+		magnetometer/lsm9ds1_mag
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
