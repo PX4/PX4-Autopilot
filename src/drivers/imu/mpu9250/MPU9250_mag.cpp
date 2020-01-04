@@ -80,6 +80,7 @@ MPU9250_mag::measure()
 	int ret = _interface->read(AK8963REG_ST1, &st1, sizeof(st1));
 
 	if (ret != OK) {
+		perf_count(_mag_errors);
 		_px4_mag.set_error_count(perf_event_count(_mag_errors));
 		return;
 	}
@@ -107,15 +108,14 @@ MPU9250_mag::measure()
 	}
 
 	/* Monitor magnetic sensor overflow flag. */
-	if (data.st2 & 0x08) {
+	if (data.ST2 & 0x08) {
 		perf_count(_mag_overflows);
 	}
 
 	_measure(timestamp_sample, data);
 }
 
-void
-MPU9250_mag::_measure(hrt_abstime timestamp_sample, ak8963_regs data)
+bool MPU9250_mag::_measure(const hrt_abstime &timestamp_sample, const ak8963_regs &data)
 {
 	/* Check if data ready is set.
 	 * This is not described to be set in continuous mode according to the
@@ -128,8 +128,14 @@ MPU9250_mag::_measure(hrt_abstime timestamp_sample, ak8963_regs data)
 	 * is not set. This has lead to intermittent spikes when the data was
 	 * being updated while getting read.
 	 */
-	if (!(data.st1 & AK09916_ST1_DRDY)) {
-		return;
+	if (!(data.ST1 & AK09916_ST1_DRDY)) {
+		return false;
+	}
+
+	/* Monitor magnetic sensor overflow flag. */
+	if (data.ST2 & 0x08) {
+		perf_count(_mag_overflows);
+		return false;
 	}
 
 	_px4_mag.set_external(_parent->is_external());
@@ -139,7 +145,12 @@ MPU9250_mag::_measure(hrt_abstime timestamp_sample, ak8963_regs data)
 	 * Align axes - note the accel & gyro are also re-aligned so this
 	 *              doesn't look obvious with the datasheet
 	 */
-	_px4_mag.update(timestamp_sample, data.x, -data.y, -data.z);
+	int16_t x = combine(data.HXH, data.HXL);
+	int16_t y = -combine(data.HYH, data.HYL);
+	int16_t z = -combine(data.HZH, data.HZL);
+	_px4_mag.update(timestamp_sample, x, y, z);
+
+	return true;
 }
 
 void
@@ -217,8 +228,7 @@ MPU9250_mag::ak8963_reset()
 bool
 MPU9250_mag::ak8963_read_adjustments()
 {
-	uint8_t response[3];
-	float ak8963_ASA[3];
+	uint8_t response[3] {};
 
 	write_reg_through_mpu9250(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
 	px4_usleep(200);
@@ -233,6 +243,8 @@ MPU9250_mag::ak8963_read_adjustments()
 	}
 
 	write_reg_through_mpu9250(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
+
+	float ak8963_ASA[3] {};
 
 	for (int i = 0; i < 3; i++) {
 		if (0 != response[i] && 0xff != response[i]) {
@@ -256,10 +268,8 @@ MPU9250_mag::ak8963_setup_master_i2c()
 	 * in master mode (SPI to I2C bridge)
 	 */
 	if (_interface == nullptr) {
-		if (_parent->_whoami == MPU_WHOAMI_9250) {
-			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
-			_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
-		}
+		_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
+		_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
 
 	} else {
 		_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
@@ -312,15 +322,11 @@ MPU9250_mag::ak8963_setup()
 		return -EIO;
 	}
 
-	if (_parent->_whoami == MPU_WHOAMI_9250) {
-		write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
-	}
+	write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 
 	if (_interface == nullptr) {
 		// Configure mpu' I2C Master interface to read ak8963 data into to fifo
-		if (_parent->_whoami == MPU_WHOAMI_9250) {
-			set_passthrough(AK8963REG_ST1, sizeof(ak8963_regs));
-		}
+		set_passthrough(AK8963REG_ST1, sizeof(ak8963_regs));
 	}
 
 	return OK;
@@ -349,17 +355,14 @@ void MPU9250_mag::write_imu_reg_verified(int reg, uint8_t val, uint8_t mask)
 
 void MPU9250_mag::read_reg_through_mpu9250(uint8_t reg, uint8_t *val)
 {
-	uint8_t b = 0;
-
 	// Read operation on the mag using the slave 4 registers.
-	write_imu_reg_verified(MPUREG_I2C_SLV4_ADDR,
-			       AK8963_I2C_ADDR | BIT_I2C_READ_FLAG, 0xff);
+	write_imu_reg_verified(MPUREG_I2C_SLV4_ADDR, AK8963_I2C_ADDR | BIT_I2C_READ_FLAG, 0xff);
 
 	// Set the mag register to read from.
 	write_imu_reg_verified(MPUREG_I2C_SLV4_REG, reg, 0xff);
 
 	// Read the existing value of the SLV4 control register.
-	b = _parent->read_reg(MPUREG_I2C_SLV4_CTRL);
+	uint8_t b = _parent->read_reg(MPUREG_I2C_SLV4_CTRL);
 
 	// Set the I2C_SLV4_EN bit in I2C_SL4_CTRL register without overwriting other
 	// bits. Enable data transfer, a read transfer as configured above.
@@ -390,11 +393,8 @@ void MPU9250_mag::read_reg_through_mpu9250(uint8_t reg, uint8_t *val)
 
 void MPU9250_mag::write_reg_through_mpu9250(uint8_t reg, uint8_t val)
 {
-	uint8_t b = 0;
-
 	// Configure a write operation to the mag using Slave 4.
-	write_imu_reg_verified(MPUREG_I2C_SLV4_ADDR,
-			       AK8963_I2C_ADDR, 0xff);
+	write_imu_reg_verified(MPUREG_I2C_SLV4_ADDR, AK8963_I2C_ADDR, 0xff);
 
 	// Set the mag register address to write to using Slave 4.
 	write_imu_reg_verified(MPUREG_I2C_SLV4_REG, reg, 0xff);
@@ -403,7 +403,7 @@ void MPU9250_mag::write_reg_through_mpu9250(uint8_t reg, uint8_t val)
 	write_imu_reg_verified(MPUREG_I2C_SLV4_DO, val, 0xff);
 
 	// Read the current value of the Slave 4 control register.
-	b = _parent->read_reg(MPUREG_I2C_SLV4_CTRL);
+	uint8_t b = _parent->read_reg(MPUREG_I2C_SLV4_CTRL);
 
 	// Set I2C_SLV4_EN bit in I2C_SL4_CTRL register without overwriting other
 	// bits.
