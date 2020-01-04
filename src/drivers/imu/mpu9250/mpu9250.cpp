@@ -49,7 +49,7 @@
   accelerometer values. This time reduction is enough to cope with
   worst case timing jitter due to other timers
  */
-#define MPU9250_TIMER_REDUCTION                200
+#define MPU9250_TIMER_REDUCTION				200
 
 /* Set accel range used */
 #define ACCEL_RANGE_G  16
@@ -57,17 +57,17 @@
   list of registers that will be checked in check_registers(). Note
   that MPUREG_PRODUCT_ID must be first in the list.
  */
-const uint16_t MPU9250::_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = {MPUREG_WHOAMI,
-										     MPUREG_PWR_MGMT_1,
-										     MPUREG_PWR_MGMT_2,
-										     MPUREG_USER_CTRL,
-										     MPUREG_SMPLRT_DIV,
-										     MPUREG_CONFIG,
-										     MPUREG_GYRO_CONFIG,
-										     MPUREG_ACCEL_CONFIG,
-										     MPUREG_ACCEL_CONFIG2,
-										     MPUREG_INT_ENABLE,
-										     MPUREG_INT_PIN_CFG
+const uint16_t MPU9250::_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPUREG_WHOAMI,
+										      MPUREG_PWR_MGMT_1,
+										      MPUREG_PWR_MGMT_2,
+										      MPUREG_USER_CTRL,
+										      MPUREG_SMPLRT_DIV,
+										      MPUREG_CONFIG,
+										      MPUREG_GYRO_CONFIG,
+										      MPUREG_ACCEL_CONFIG,
+										      MPUREG_ACCEL_CONFIG2,
+										      MPUREG_INT_ENABLE,
+										      MPUREG_INT_PIN_CFG
 										    };
 
 MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, enum Rotation rotation) :
@@ -383,9 +383,7 @@ MPU9250::read_reg(unsigned reg, uint32_t speed)
 {
 	uint8_t buf{};
 
-	if (_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1) < 0) {
-		PX4_DEBUG("MPU9250::read_reg failed");
-	}
+	_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1);
 
 	return buf;
 }
@@ -404,15 +402,13 @@ void
 MPU9250::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
-	if (_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1) < 0) {
-		PX4_DEBUG("MPU9250::write_reg failed");
-	}
+	_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
 }
 
 void
 MPU9250::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t val = read_reg(reg);
+	uint8_t	val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_reg(reg, val);
@@ -421,7 +417,7 @@ MPU9250::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 void
 MPU9250::modify_checked_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t val = read_reg(reg);
+	uint8_t	val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
@@ -622,13 +618,13 @@ MPU9250::measure()
 	MPUReport mpu_report{};
 
 	struct Report {
-		int16_t accel_x;
-		int16_t accel_y;
-		int16_t accel_z;
-		int16_t temp;
-		int16_t gyro_x;
-		int16_t gyro_y;
-		int16_t gyro_z;
+		int16_t		accel_x;
+		int16_t		accel_y;
+		int16_t		accel_z;
+		int16_t		temp;
+		int16_t		gyro_x;
+		int16_t		gyro_y;
+		int16_t		gyro_z;
 	} report{};
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
@@ -636,8 +632,7 @@ MPU9250::measure()
 	// Fetch the full set of measurements from the ICM20948 in one pass
 	if (_mag.is_passthrough() && _register_wait == 0) {
 		if (_whoami == MPU_WHOAMI_9250 || _whoami == MPU_WHOAMI_6500) {
-			if (OK != read_reg_range(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED, (uint8_t *) &mpu_report,
-						 sizeof(mpu_report))) {
+			if (OK != read_reg_range(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&mpu_report, sizeof(mpu_report))) {
 				perf_end(_sample_perf);
 				return;
 			}
@@ -678,12 +673,12 @@ MPU9250::measure()
 		report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
 		report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
 		report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
-		report.temp = int16_t_from_bytes(mpu_report.temp);
-		report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
-		report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
-		report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
+		report.temp    = int16_t_from_bytes(mpu_report.temp);
+		report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
+		report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
+		report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
 
-		if (check_null_data((uint16_t *) &report, sizeof(report) / 2)) {
+		if (check_null_data((uint16_t *)&report, sizeof(report) / 2)) {
 			return;
 		}
 	}

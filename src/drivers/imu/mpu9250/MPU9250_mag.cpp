@@ -168,7 +168,6 @@ MPU9250_mag::read_reg(unsigned int reg)
 	uint8_t buf{};
 
 	if (_interface == nullptr) {
-		//passthrough_read(reg, &buf, 0x01);
 		read_reg_through_mpu9250(reg, &buf);
 
 	} else {
@@ -222,7 +221,7 @@ MPU9250_mag::ak8963_read_adjustments()
 	float ak8963_ASA[3];
 
 	write_reg_through_mpu9250(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
-	px4_usleep(1000);
+	px4_usleep(200);
 
 	if (_interface != nullptr) {
 		_interface->read(AK8963REG_ASAX, response, 3);
@@ -259,8 +258,7 @@ MPU9250_mag::ak8963_setup_master_i2c()
 	if (_interface == nullptr) {
 		if (_parent->_whoami == MPU_WHOAMI_9250) {
 			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
-			_parent->write_reg(MPUREG_I2C_MST_CTRL,
-					   BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+			_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
 		}
 
 	} else {
@@ -273,12 +271,12 @@ MPU9250_mag::ak8963_setup_master_i2c()
 int
 MPU9250_mag::ak8963_setup()
 {
-	int retries = 10; // actually should be executed only once without any retry.
+	int retries = 10;
 
 	do {
 		ak8963_setup_master_i2c();
 		write_reg(AK8963REG_CNTL2, AK8963_RESET);
-		px4_usleep(1000);
+		px4_usleep(100);
 
 		uint8_t id = 0;
 
