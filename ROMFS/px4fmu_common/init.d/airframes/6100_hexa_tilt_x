@@ -47,7 +47,7 @@ then
 	param set BAT_N_CELLS 4
 
 	param set OMNI_ATT_MODE 2
-	param set OMNI_MAX_HOR_THR 0.15
+	param set OMNI_DFC_MAX_THR 0.15
 fi
 
 # Set mixer
