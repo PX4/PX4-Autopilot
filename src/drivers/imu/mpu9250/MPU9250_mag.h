@@ -94,11 +94,14 @@ class MPU9250;
 
 #pragma pack(push, 1)
 struct ak8963_regs {
-	uint8_t st1;
-	int16_t x;
-	int16_t y;
-	int16_t z;
-	uint8_t st2;
+	uint8_t ST1;
+	uint8_t HXL;
+	uint8_t HXH;
+	uint8_t HYL;
+	uint8_t HYH;
+	uint8_t HZL;
+	uint8_t HZH;
+	uint8_t ST2;
 };
 #pragma pack(pop)
 
@@ -131,7 +134,7 @@ protected:
 	friend class MPU9250;
 
 	void measure();
-	void _measure(hrt_abstime timestamp_sample, ak8963_regs data);
+	bool _measure(const hrt_abstime &timestamp_sample, const ak8963_regs &data);
 
 	uint8_t read_reg(unsigned reg);
 	void write_reg(unsigned reg, uint8_t value);
