@@ -125,7 +125,7 @@ MPU9250::init()
 
 	if (reset_mpu() != OK) {
 		PX4_ERR("Exiting! Device failed to take initialization");
-		return ret;
+		return PX4_ERROR;
 	}
 
 	/* Magnetometer setup */
