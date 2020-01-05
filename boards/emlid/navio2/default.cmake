@@ -25,7 +25,6 @@ px4_add_board(
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		hmc5883
 		isl29501
 		lsm9ds1
 		mpu9250
