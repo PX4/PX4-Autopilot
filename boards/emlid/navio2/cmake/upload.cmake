@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,3 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+if($ENV{AUTOPILOT_HOST})
+	set(AUTOPILOT_HOST $ENV{AUTOPILOT_HOST})
+else()
+	set(AUTOPILOT_HOST "navio")
+endif()
+
+add_custom_target(upload
+	COMMAND rsync -arh --progress
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS # source
+			pi@${AUTOPILOT_HOST}:/home/pi/px4 # destination
+	DEPENDS px4
+	COMMENT "uploading px4"
+	USES_TERMINAL
+)
