@@ -50,6 +50,9 @@
 #include <uORB/topics/pwm_input.h>
 #include <uORB/Subscription.hpp>
 
+#ifdef GPIO_GPIO5_OUTPUT
+
+#define LIDAR_LITE_PWM_SUPPORTED
 #define GPIO_VDD_RANGEFINDER_EN GPIO_GPIO5_OUTPUT
 
 class LidarLitePWM : public LidarLite, public px4::ScheduledWorkItem
@@ -75,3 +78,5 @@ private:
 
 	pwm_input_s _pwm{};
 };
+
+#endif

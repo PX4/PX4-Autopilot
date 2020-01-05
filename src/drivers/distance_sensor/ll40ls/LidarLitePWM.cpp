@@ -44,6 +44,8 @@
 
 #include "LidarLitePWM.h"
 
+#ifdef LIDAR_LITE_PWM_SUPPORTED
+
 LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
 	LidarLite(rotation),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -125,3 +127,5 @@ LidarLitePWM::collect()
 
 	return EAGAIN;
 }
+
+#endif
