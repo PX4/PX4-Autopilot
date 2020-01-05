@@ -52,7 +52,6 @@ px4_add_board(
 		snapdragon_pwm_out
 		spektrum_rc
 	DF_DRIVERS
-		hmc5883
 		isl29501
 		ltc2946
 		mpu9250
