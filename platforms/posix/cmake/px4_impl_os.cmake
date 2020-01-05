@@ -304,7 +304,6 @@ function(px4_os_add_flags)
 			# For DriverFramework
 			-D__DF_LINUX
 			-D__DF_BBBLUE
-			-D__DF_BBBLUE_USE_RC_BMP280_IMP # optional
 
 			-DRC_AUTOPILOT_EXT  # Enable extensions in Robotics Cape Library, TODO: remove
 		)

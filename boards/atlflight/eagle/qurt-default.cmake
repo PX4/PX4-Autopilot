@@ -43,46 +43,48 @@ px4_add_board(
 	VENDOR atlflight
 	MODEL eagle
 	LABEL qurt-default
-
 	DRIVERS
 		barometer/bmp280
 		gps
 		imu/mpu9250
 		magnetometer/hmc5883
-		spektrum_rc
 		qshell/qurt
 		snapdragon_pwm_out
-
+		spektrum_rc
 	DF_DRIVERS
-		mpu9250
-		bmp280
 		hmc5883
-		trone
 		isl29501
 		ltc2946
-
+		mpu9250
+		trone
 	MODULES
-		muorb/adsp
-
+		airspeed_selector
 		attitude_estimator_q
 		commander
 		ekf2
 		fw_att_control
 		fw_pos_control_l1
-		rover_pos_control
 		land_detector
 		landing_target_estimator
 		local_position_estimator
 		mc_att_control
-		mc_rate_control
 		mc_pos_control
+		mc_rate_control
+		muorb/adsp
 		rc_update
+		rover_pos_control
 		sensors
-		#sih
 		vmount
 		vtol_att_control
-		airspeed_selector
-
 	SYSTEMCMDS
+		led_control
+		mixer
+		#motor_ramp
+		motor_test
 		param
+		perf
+		#pwm
+		#topic_listener
+		ver
+		work_queue
 	)
