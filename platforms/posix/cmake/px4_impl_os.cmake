@@ -269,19 +269,6 @@ function(px4_os_add_flags)
 			-D__DF_RPI
 		)
 
-	elseif ("${PX4_BOARD}" MATCHES "bebop")
-
-		#TODO: move to board support
-
-		add_definitions(
-			-D__PX4_LINUX
-			-D__PX4_POSIX_BEBOP # TODO: remove
-
-			# For DriverFramework
-			-D__DF_LINUX
-			-D__DF_BEBOP
-		)
-
 	elseif ("${PX4_BOARD}" MATCHES "aerotenna_ocpoc")
 
 		#TODO: move to board support
