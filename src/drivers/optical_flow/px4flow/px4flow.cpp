@@ -487,9 +487,6 @@ start(int argc, char *argv[])
 	while (1) {
 		const int busses_to_try[] = {
 			PX4_I2C_BUS_EXPANSION,
-#ifdef PX4_I2C_BUS_ESC
-			PX4_I2C_BUS_ESC,
-#endif
 #ifdef PX4_I2C_BUS_ONBOARD
 			PX4_I2C_BUS_ONBOARD,
 #endif

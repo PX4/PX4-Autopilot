@@ -23,7 +23,6 @@ px4_add_board(
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		bmp280
 		mpu9250
 	MODULES
 		airspeed_selector
