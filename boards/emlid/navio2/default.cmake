@@ -2,8 +2,10 @@
 px4_add_board(
 	VENDOR emlid
 	MODEL navio2
-	LABEL native
+	LABEL default
 	PLATFORM posix
+	ARCHITECTURE cortex-a53
+	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 	DRIVERS
 		#barometer # all available barometer drivers
@@ -48,6 +50,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
@@ -84,4 +87,5 @@ px4_add_board(
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
+		uuv_example_app
 	)
