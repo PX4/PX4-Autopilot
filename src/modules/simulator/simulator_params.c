@@ -38,7 +38,6 @@
  *
  * @author Mohamed Abdelkader <mohamedashraf123@gmail.com>
  */
-#include <parameters/param.h>
 
 /**
  * Simulator Battery drain interval
@@ -65,3 +64,15 @@ PARAM_DEFINE_FLOAT(SIM_BAT_DRAIN, 60);
  * @group SITL
  */
 PARAM_DEFINE_FLOAT(SIM_BAT_MIN_PCT, 50.0f);
+
+/**
+ * Simulator GPS noise multiplier.
+ *
+ * @min 0
+ * @max 10
+ * @increment 0.1
+ * @unit %
+ *
+ * @group SITL
+ */
+PARAM_DEFINE_FLOAT(SIM_GPS_NOISE_X, 0.0f);
