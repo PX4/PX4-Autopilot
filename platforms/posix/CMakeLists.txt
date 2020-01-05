@@ -67,8 +67,8 @@ else()
 			parameters
 	)
 
-	if (NOT APPLE)
-		target_link_libraries(px4 PRIVATE rt)
+	if(NOT APPLE)
+		target_link_libraries(px4 PRIVATE atomic rt)
 	endif()
 
 	target_link_libraries(px4 PRIVATE modules__uORB)
