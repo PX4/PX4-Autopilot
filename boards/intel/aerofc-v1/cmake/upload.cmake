@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,3 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_custom_target(upload
+	COMMAND ${PX4_BOARD_DIR}/scripts/aero_upload.sh $<TARGET_FILE:px4>
+	DEPENDS px4 ${PX4_BOARD_DIR}/scripts/aero_upload.sh
+	COMMENT "uploading px4"
+	USES_TERMINAL
+)

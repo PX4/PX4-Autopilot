@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,3 +30,35 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+if("${PX4_PLATFORM}" MATCHES "qurt")
+
+	add_custom_target(upload
+		COMMAND ${PX4_BOARD_DIR}/scripts/adb_upload.sh
+				${PX4_BINARY_DIR}/platforms/qurt/libpx4.so ${PX4_BINARY_DIR}/platforms/qurt/libpx4muorb_skel.so ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config # source
+				/usr/share/data/adsp # destination
+		DEPENDS px4 px4muorb_skel ${PX4_BOARD_DIR}/scripts/adb_upload.sh
+		COMMENT "uploading px4"
+		USES_TERMINAL
+	)
+
+else()
+
+	add_custom_target(upload
+		COMMAND ${PX4_BOARD_DIR}/scripts/adb_upload.sh
+				${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config ${PX4_SOURCE_DIR}/ROMFS # source
+				/home/linaro # destination
+		DEPENDS px4 ${PX4_BOARD_DIR}/scripts/adb_upload.sh
+		COMMENT "uploading px4"
+		USES_TERMINAL
+	)
+
+	add_custom_target(sanity
+		COMMAND ./px4_snapflight_sanitytest.sh -i -t
+		DEPENDS px4
+		WORKING_DIRECTORY ${PX4_BOARD_DIR}/scripts
+		COMMENT "uploading px4"
+		USES_TERMINAL
+	)
+
+endif()

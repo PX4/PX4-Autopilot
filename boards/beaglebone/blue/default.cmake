@@ -1,15 +1,15 @@
 
 px4_add_board(
-	VENDOR emlid
-	MODEL navio2
-	LABEL cross
+	VENDOR beaglebone
+	MODEL blue
+	LABEL default
 	PLATFORM posix
-	ARCHITECTURE cortex-a53
+	ARCHITECTURE cortex-a8
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 	DRIVERS
 		#barometer # all available barometer drivers
-		barometer/ms5611
+		barometer/bmp280
 		batt_smbus
 		camera_capture
 		camera_trigger
@@ -25,11 +25,7 @@ px4_add_board(
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		hmc5883
-		isl29501
-		lsm9ds1
 		mpu9250
-		trone
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -50,6 +46,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
@@ -86,4 +83,5 @@ px4_add_board(
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
+		uuv_example_app
 	)

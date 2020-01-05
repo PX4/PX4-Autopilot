@@ -1,15 +1,15 @@
 
 px4_add_board(
-	VENDOR beaglebone
-	MODEL blue
-	LABEL cross
+	VENDOR px4
+	MODEL raspberrypi
+	LABEL default
 	PLATFORM posix
-	ARCHITECTURE cortex-a8
+	ARCHITECTURE cortex-a53
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 	DRIVERS
 		#barometer # all available barometer drivers
-		barometer/bmp280
+		barometer/ms5611
 		batt_smbus
 		camera_capture
 		camera_trigger
@@ -23,9 +23,8 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		pwm_out_sim
+		rpi_rc_in
 		#telemetry # all available telemetry drivers
-	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		mpu9250
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -46,6 +45,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
@@ -82,4 +82,5 @@ px4_add_board(
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
+		uuv_example_app
 	)
