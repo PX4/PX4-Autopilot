@@ -13,6 +13,7 @@ if(MAVSDK_FOUND)
         test_main.cpp
         autopilot_tester.cpp
         test_mission_multicopter.cpp
+        test_mission_plane.cpp
     )
 
     target_link_libraries(mavsdk_tests

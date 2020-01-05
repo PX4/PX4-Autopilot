@@ -367,7 +367,7 @@ tests_integration_coverage:
 	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
 	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
-	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --iterations 1 --fail-early
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 15
 
 tests_mission: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test
