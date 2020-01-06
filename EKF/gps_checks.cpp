@@ -146,11 +146,11 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	if (!_control_status.flags.in_air && _vehicle_at_rest) {
 		// Calculate position movement since last measurement
 		float delta_posN = 0.0f;
-		float delta_posE = 0.0f;
+		float delta_pos_e = 0.0f;
 
 		// calculate position movement since last GPS fix
 		if (_gps_pos_prev.timestamp > 0) {
-			map_projection_project(&_gps_pos_prev, lat, lon, &delta_posN, &delta_posE);
+			map_projection_project(&_gps_pos_prev, lat, lon, &delta_posN, &delta_pos_e);
 
 		} else {
 			// no previous position has been set
@@ -159,23 +159,23 @@ bool Ekf::gps_is_good(const gps_message &gps)
 		}
 
 		// Calculate the horizontal and vertical drift velocity components and limit to 10x the threshold
-		const Vector3f vel_limit{_params.req_hdrift, _params.req_hdrift, _params.req_vdrift};
-		Vector3f pos_derived{delta_posN, delta_posE, (_gps_alt_prev - 1e-3f * (float)gps.alt)};
+		const Vector3f vel_limit(_params.req_hdrift, _params.req_hdrift, _params.req_vdrift);
+		Vector3f pos_derived(delta_posN, delta_pos_e, (_gps_alt_prev - 1e-3f * (float)gps.alt));
 		pos_derived = matrix::constrain(pos_derived / dt, -10.0f * vel_limit, 10.0f * vel_limit);
 
 		// Apply a low pass filter
-		_gps_pos_derived_filt = pos_derived * filter_coef + _gps_pos_derived_filt * (1.0f-filter_coef);
+		_gps_pos_deriv_filt = pos_derived * filter_coef + _gps_pos_deriv_filt * (1.0f - filter_coef);
 
 		// Calculate the horizontal drift speed and fail if too high
-		_gps_drift_metrics[0] = Vector2f{_gps_pos_derived_filt.xy()}.norm();
+		_gps_drift_metrics[0] = Vector2f(_gps_pos_deriv_filt.xy()).norm();
 		_gps_check_fail_status.flags.hdrift = (_gps_drift_metrics[0] > _params.req_hdrift);
 
 		// Fail if the vertical drift speed is too high
-		_gps_drift_metrics[1] = fabsf(_gps_pos_derived_filt(2));
+		_gps_drift_metrics[1] = fabsf(_gps_pos_deriv_filt(2));
 		_gps_check_fail_status.flags.vdrift = (_gps_drift_metrics[1] > _params.req_vdrift);
 
 		// Check the magnitude of the filtered horizontal GPS velocity
-		Vector2f gps_velNE = matrix::constrain(Vector2f{gps.vel_ned[0], gps.vel_ned[1]}, // TODO: when vel_ned vector3f use .xy()
+		Vector2f gps_velNE = matrix::constrain(Vector2f(gps.vel_ned[0], gps.vel_ned[1]), // TODO: when vel_ned vector3f use .xy()
 								-10.0f * _params.req_hdrift,
 								 10.0f * _params.req_hdrift);
 		_gps_velNE_filt = gps_velNE * filter_coef + _gps_velNE_filt * (1.0f - filter_coef);
