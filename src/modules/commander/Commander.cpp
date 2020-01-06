@@ -1741,7 +1741,7 @@ Commander::run()
 
 		// abort auto mode or geofence reaction if sticks are moved significantly
 		// but only if not in a low battery handling action
-		const bool low_battery_reaction = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
+		const bool low_battery_reaction = _battery_warning >= battery_status_s::BATTERY_WARNING_CRITICAL;
 		const bool is_rotary_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 		const bool in_auto_mode =
 			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
