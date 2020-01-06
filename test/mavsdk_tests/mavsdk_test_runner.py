@@ -201,7 +201,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-dir",
                         help="Directory for log files, stdout if not provided")
-    parser.add_argument("--speed-factor", type=int, default=1,
+    parser.add_argument("--speed-factor", default=1,
                         help="How fast to run the simulation")
     parser.add_argument("--iterations", type=int, default=1,
                         help="How often to run the simulation")
