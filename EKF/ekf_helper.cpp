@@ -97,7 +97,7 @@ bool Ekf::resetVelocity()
 		ECL_INFO_TIMESTAMPED("reset velocity to ev velocity");
 		Vector3f _ev_vel = _ev_sample_delayed.vel;
 		if(_params.fusion_mode & MASK_ROTATE_EV){
-			_ev_vel = _ev_rot_mat *_ev_sample_delayed.vel;
+			_ev_vel = _R_ev_to_ekf *_ev_sample_delayed.vel;
 		}
 		_state.vel = _ev_vel;
 		P.uncorrelateCovarianceSetVariance<3>(4, sq(_ev_sample_delayed.velErr));
@@ -159,7 +159,7 @@ bool Ekf::resetPosition()
 		// this reset is only called if we have new ev data at the fusion time horizon
 		Vector3f _ev_pos = _ev_sample_delayed.pos;
 		if(_params.fusion_mode & MASK_ROTATE_EV){
-			_ev_pos = _ev_rot_mat *_ev_sample_delayed.pos;
+			_ev_pos = _R_ev_to_ekf *_ev_sample_delayed.pos;
 		}
 		_state.pos(0) = _ev_pos(0);
 		_state.pos(1) = _ev_pos(1);
@@ -403,10 +403,10 @@ bool Ekf::realignYawGPS()
 		const float gpsCOG = atan2f(_gps_sample_delayed.vel(1), _gps_sample_delayed.vel(0));
 
 		// calculate course yaw angle
-		const float ekfGOG = atan2f(_state.vel(1), _state.vel(0));
+		const float ekfCOG = atan2f(_state.vel(1), _state.vel(0));
 
 		// Check the EKF and GPS course over ground for consistency
-		const float courseYawError = gpsCOG - ekfGOG;
+		const float courseYawError = gpsCOG - ekfCOG;
 
 		// If the angles disagree and horizontal GPS velocity innovations are large or no previous yaw alignment, we declare the magnetic yaw as bad
 		const bool badYawErr = fabsf(courseYawError) > 0.5f;
@@ -629,7 +629,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		// calculate the observed yaw angle
 		if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
-			const Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			const Dcmf R_to_earth_ev(_ev_sample_delayed.quat);
 			// calculate the yaw angle for a 312 sequence
 			euler312(0) = atan2f(-R_to_earth_ev(0, 1), R_to_earth_ev(1, 1));
 
@@ -686,7 +686,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 
 	// calculate the amount that the quaternion has changed by
-	const Quatf q_error( (quat_after_reset * quat_before_reset.inversed()).normalized() );
+	const Quatf q_error((quat_after_reset * quat_before_reset.inversed()).normalized());
 
 	// update quaternion states
 	_state.quat_nominal = quat_after_reset;
@@ -790,9 +790,9 @@ void Ekf::constrainStates()
 // calculate the earth rotation vector
 Vector3f Ekf::calcEarthRateNED(float lat_rad) const
 {
-	return Vector3f{CONSTANTS_EARTH_SPIN_RATE * cosf(lat_rad),
+	return Vector3f(CONSTANTS_EARTH_SPIN_RATE * cosf(lat_rad),
 			0.0f,
-			-CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad)};
+			-CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad));
 }
 
 void Ekf::getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2],  float &vpos)
@@ -1634,7 +1634,7 @@ void Ekf::startMag3DFusion()
 void Ekf::calcExtVisRotMat()
 {
 	// Calculate the quaternion delta that rotates from the EV to the EKF reference frame at the EKF fusion time horizon.
-	const Quatf q_error( (_state.quat_nominal * _ev_sample_delayed.quat.inversed()).normalized() );
+	const Quatf q_error((_state.quat_nominal * _ev_sample_delayed.quat.inversed()).normalized());
 
 	// convert to a delta angle and apply a spike and low pass filter
 	AxisAnglef rot_vec(q_error);
@@ -1657,7 +1657,7 @@ void Ekf::calcExtVisRotMat()
 
 	}
 
-	_ev_rot_mat = Dcmf(_ev_rot_vec_filt); // rotation from EV reference to EKF reference
+	_R_ev_to_ekf = Dcmf(_ev_rot_vec_filt);
 
 }
 
@@ -1680,7 +1680,7 @@ void Ekf::resetExtVisRotMat()
 		_ev_rot_vec_filt.zero();
 	}
 
-	_ev_rot_mat = Dcmf(q_error); // rotation from EV reference to EKF reference
+	_R_ev_to_ekf = Dcmf(q_error);
 }
 
 // return the quaternions for the rotation from External Vision system reference frame to the EKF reference frame

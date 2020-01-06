@@ -208,10 +208,10 @@ void Ekf::controlExternalVisionFusion()
 				}
 
 				if ((_params.fusion_mode & MASK_ROTATE_EV) && !(_params.fusion_mode & MASK_USE_EVYAW)
-					&& !_ev_rot_mat_initialised)  {
+					&& !_R_ev_to_ekf_initialised)  {
 					// Reset transformation between EV and EKF navigation frames when starting fusion
 					resetExtVisRotMat();
-					_ev_rot_mat_initialised = true;
+					_R_ev_to_ekf_initialised = true;
 					ECL_INFO_TIMESTAMPED("external vision aligned");
 				}
 			}
@@ -300,7 +300,7 @@ void Ekf::controlExternalVisionFusion()
 					Vector3f ev_delta_pos = _ev_sample_delayed.pos - _pos_meas_prev;
 
 					// rotate measurement into body frame is required when fusing with GPS
-					ev_delta_pos = _ev_rot_mat * ev_delta_pos;
+					ev_delta_pos = _R_ev_to_ekf * ev_delta_pos;
 
 					// use the change in position since the last measurement
 					_ev_pos_innov(0) = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
@@ -319,7 +319,7 @@ void Ekf::controlExternalVisionFusion()
 				// use the absolute position
 				Vector3f ev_pos_meas = _ev_sample_delayed.pos;
 				if (_params.fusion_mode & MASK_ROTATE_EV) {
-					ev_pos_meas = _ev_rot_mat * ev_pos_meas;
+					ev_pos_meas = _R_ev_to_ekf * ev_pos_meas;
 				}
 				_ev_pos_innov(0) = _state.pos(0) - ev_pos_meas(0);
 				_ev_pos_innov(1) = _state.pos(1) - ev_pos_meas(1);
@@ -353,7 +353,7 @@ void Ekf::controlExternalVisionFusion()
 
 			// rotate measurement into correct earth frame if required
 			if (_params.fusion_mode & MASK_ROTATE_EV) {
-				vel_aligned = _ev_rot_mat * _ev_sample_delayed.vel;
+				vel_aligned = _R_ev_to_ekf * _ev_sample_delayed.vel;
 			}
 
 			// correct velocity for offset relative to IMU
@@ -807,7 +807,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
 			const bool reset_to_gps = !_gps_hgt_intermittent &&
-					    ( (gps_hgt_accurate && !prev_bad_vert_accel) || !baro_data_available );
+					    ((gps_hgt_accurate && !prev_bad_vert_accel) || !baro_data_available);
 
 			if (reset_to_gps) {
 				// set height sensor health
@@ -844,8 +844,8 @@ void Ekf::controlHeightSensorTimeouts()
 
 			// if baro data is acceptable and GPS data is inaccurate, reset height to baro
 			const bool reset_to_baro = baro_data_fresh &&
-						   ( (baro_data_consistent && !_baro_hgt_faulty && !gps_hgt_accurate) ||
-						     _gps_hgt_intermittent );
+						   ((baro_data_consistent && !_baro_hgt_faulty && !gps_hgt_accurate) ||
+						     _gps_hgt_intermittent);
 
 			if (reset_to_baro) {
 				// set height sensor health
