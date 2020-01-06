@@ -164,7 +164,7 @@ int NavioADC::init()
 
 	for (int i = 0; i < ADC_MAX_CHAN; i++) {
 		char channel_path[sizeof(ADC_SYSFS_PATH)];
-		strncpy(channel_path, ADC_SYSFS_PATH, sizeof(ADC_SYSFS_PATH));
+		strncpy(channel_path, ADC_SYSFS_PATH, sizeof(channel_path));
 		channel_path[sizeof(ADC_SYSFS_PATH) - 2] += i;
 
 		_fd[i] = ::open(channel_path, O_RDONLY);
