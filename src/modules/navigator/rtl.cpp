@@ -263,7 +263,7 @@ RTL::set_rtl_item()
 
 
 // Otherwise use regular RTL.
-	if (rtl_type() == 3) {
+	if (rtl_type() == 1) {
 		rtl_failed = true;
 		rtl_failure_time = hrt_absolute_time();
 
