@@ -44,7 +44,6 @@ px4_add_board(
 	LABEL default
 	#TESTING
 	TOOLCHAIN arm-linux-gnueabihf
-
 	DRIVERS
 		#barometer # all available barometer drivers
 		batt_smbus
@@ -53,17 +52,14 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
-		lights/rgbled
+		#lights/rgbled
 		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		qshell/posix
 		#telemetry # all available telemetry drivers
-
 	MODULES
-		muorb/krait
-		muorb/test
-
+		airspeed_selector
 		attitude_estimator_q
 		camera_feedback
 		commander
@@ -72,7 +68,6 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -80,17 +75,19 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
-		mc_rate_control
 		mc_pos_control
+		mc_rate_control
+		#micrortps_bridge
+		muorb/krait
+		muorb/test
 		navigator
 		rc_update
+		rover_pos_control
 		sensors
 		#sih
 		simulator
 		vmount
 		vtol_att_control
-		airspeed_selector
-
 	SYSTEMCMDS
 		#bl_update
 		#config
@@ -100,6 +97,7 @@ px4_add_board(
 		led_control
 		mixer
 		motor_ramp
+		motor_test
 		#mtd
 		#nshterm
 		param
@@ -114,12 +112,14 @@ px4_add_board(
 		tune_control
 		ver
 		work_queue
-
 	EXAMPLES
 		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
 		#hwtest # Hardware test
+		#matlab_csv_serial
 		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
+		#uuv_example_app
 	)

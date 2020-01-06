@@ -38,6 +38,8 @@
  */
 #pragma once
 
+#include <inttypes.h>
+
 #define BMP280_ADDR_CAL		0x88	/* address of 12x 2 bytes calibration data */
 #define BMP280_ADDR_DATA	0xF7	/* address of 2x 3 bytes p-t data */
 

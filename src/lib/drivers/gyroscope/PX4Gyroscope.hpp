@@ -41,7 +41,6 @@
 #include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
-#include <lib/mathlib/math/filter/NotchFilterArray.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gyro.h>
@@ -93,6 +92,7 @@ private:
 	void ConfigureFilter(float cutoff_freq);
 	void ConfigureNotchFilter(float notch_freq, float bandwidth);
 	void ResetIntegrator();
+	void UpdateVibrationMetrics(const matrix::Vector3f &delta_angle);
 
 	uORB::PublicationMulti<sensor_gyro_s>			_sensor_pub;		// legacy message
 	uORB::PublicationMulti<sensor_gyro_control_s>		_sensor_control_pub;
@@ -107,13 +107,14 @@ private:
 	math::LowPassFilter2pArray _filterArrayX{8000, 100};
 	math::LowPassFilter2pArray _filterArrayY{8000, 100};
 	math::LowPassFilter2pArray _filterArrayZ{8000, 100};
-	math::NotchFilterArray<float> _notchFilterArrayX{};
-	math::NotchFilterArray<float> _notchFilterArrayY{};
-	math::NotchFilterArray<float> _notchFilterArrayZ{};
 
 	Integrator		_integrator{4000, true};
 
 	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+
+	matrix::Vector3f _delta_angle_prev{0.0f, 0.0f, 0.0f};	// delta angle from the previous IMU measurement
+	float _vibration_metric{0.0f};	// high frequency vibration level in the IMU delta angle data (rad)
+	float _coning_vibration{0.0f};	// Level of coning vibration in the IMU delta angles (rad^2)
 
 	int			_class_device_instance{-1};
 
@@ -134,7 +135,7 @@ private:
 	// integrator
 	hrt_abstime		_integrator_timestamp_sample{0};
 	hrt_abstime		_timestamp_sample_prev{0};
-	int32_t			_integrator_accum[3] {};
+	float			_integrator_accum[3] {};
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};

@@ -48,6 +48,9 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	bool present = true;
 	float test_limit = 1.0f; // pass limit re-used for each test
 
+	int32_t mag_strength_check_enabled = 1;
+	param_get(param_find("COM_ARM_MAG_STR"), &mag_strength_check_enabled);
+
 	bool gps_success = true;
 	bool gps_present = true;
 
@@ -65,8 +68,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	if (status.pre_flt_fail_innov_heading ||
 	    status.pre_flt_fail_innov_vel_horiz ||
 	    status.pre_flt_fail_innov_vel_vert ||
-	    status.pre_flt_fail_innov_height ||
-	    status.pre_flt_fail_mag_field_disturbed) {
+	    status.pre_flt_fail_innov_height) {
 		if (report_fail) {
 			if (status.pre_flt_fail_innov_heading) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: heading estimate not stable");
@@ -79,10 +81,16 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 			} else if (status.pre_flt_fail_innov_height) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: height estimate not stable");
-
-			} else if (status.pre_flt_fail_mag_field_disturbed) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: strong magnetic interference detected");
 			}
+		}
+
+		success = false;
+		goto out;
+	}
+
+	if ((mag_strength_check_enabled == 1) && status.pre_flt_fail_mag_field_disturbed) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: strong magnetic interference detected");
 		}
 
 		success = false;
@@ -146,6 +154,9 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 		float test_uncertainty = 3.0f * sqrtf(fmaxf(status.covariances[index], 0.0f));
 
 		if (fabsf(status.states[index]) > test_limit + test_uncertainty) {
+			PX4_ERR("state %d: |%.8f| > %.8f + %.8f", index, (double)status.states[index], (double)test_limit,
+				(double)test_uncertainty);
+
 			if (report_fail) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
 			}
