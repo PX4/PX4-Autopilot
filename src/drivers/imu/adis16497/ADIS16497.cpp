@@ -59,9 +59,9 @@ static constexpr uint8_t FILTR_BNK_1   	= 0x18; // Filter selection
 
 static constexpr uint16_t PROD_ID_ADIS16497 = 0x4071; // ADIS16497 device number
 
-static constexpr uint16_t RANG_MDL_1BMLZ = 0x03; // ADIS16497 model number
-static constexpr uint16_t RANG_MDL_2BMLZ = 0x07; // ADIS16497 model number
-static constexpr uint16_t RANG_MDL_3BMLZ = 0x0F; // ADIS16497 model number
+static constexpr uint16_t RANG_MDL_1BMLZ = 0b0011; // ADIS16497-1 (±125°/sec)
+static constexpr uint16_t RANG_MDL_2BMLZ = 0b0111; // ADIS16497-2 (±450°/sec)
+static constexpr uint16_t RANG_MDL_3BMLZ = 0b1111; // ADIS16497-3 (±2000°/sec)
 
 // Stall time between SPI transfers
 static constexpr uint8_t T_STALL = 2;
