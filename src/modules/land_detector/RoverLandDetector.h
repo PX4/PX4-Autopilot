@@ -60,8 +60,8 @@ protected:
 
 private:
 	// Program crashes when Subscriptor declared here
-	//uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	//vehicle_status_s _vehicle_status{};		/**< vehicle status */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	vehicle_status_s _vehicle_status{};		/**< vehicle status */
 
 };
 
