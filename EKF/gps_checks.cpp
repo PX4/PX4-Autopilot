@@ -145,12 +145,12 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	double lon = gps.lon * 1.0e-7;
 	if (!_control_status.flags.in_air && _vehicle_at_rest) {
 		// Calculate position movement since last measurement
-		float delta_posN = 0.0f;
+		float delta_pos_n = 0.0f;
 		float delta_pos_e = 0.0f;
 
 		// calculate position movement since last GPS fix
 		if (_gps_pos_prev.timestamp > 0) {
-			map_projection_project(&_gps_pos_prev, lat, lon, &delta_posN, &delta_pos_e);
+			map_projection_project(&_gps_pos_prev, lat, lon, &delta_pos_n, &delta_pos_e);
 
 		} else {
 			// no previous position has been set
@@ -160,7 +160,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 		// Calculate the horizontal and vertical drift velocity components and limit to 10x the threshold
 		const Vector3f vel_limit(_params.req_hdrift, _params.req_hdrift, _params.req_vdrift);
-		Vector3f pos_derived(delta_posN, delta_pos_e, (_gps_alt_prev - 1e-3f * (float)gps.alt));
+		Vector3f pos_derived(delta_pos_n, delta_pos_e, (_gps_alt_prev - 1e-3f * (float)gps.alt));
 		pos_derived = matrix::constrain(pos_derived / dt, -10.0f * vel_limit, 10.0f * vel_limit);
 
 		// Apply a low pass filter
