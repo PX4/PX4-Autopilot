@@ -192,7 +192,7 @@ bool Ekf::initialiseFilter()
 		setControlBaroHeight();
 
 		// reset variables that are shared with post alignment GPS checks
-		_gps_pos_derived_filt(2) = 0.0f;
+		_gps_pos_deriv_filt(2) = 0.0f;
 		_gps_alt_ref = 0.0f;
 
 		if(!initialiseTilt()){
