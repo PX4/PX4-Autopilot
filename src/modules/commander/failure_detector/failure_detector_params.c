@@ -112,7 +112,7 @@ PARAM_DEFINE_FLOAT(FD_FAIL_P_TTRI, 0.3);
  *
  * @boolean
  * @reboot_required true
- * @group Commander
+ * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_EXT_ATS_EN, 0);
 
@@ -121,8 +121,9 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_EN, 0);
  *
  * External ATS is required by ASTM F3322-18.
  *
- * @boolean
- * @reboot_required true
- * @group Commander
+ * @unit microseconds
+ * @decimal 2
+ *
+ * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
