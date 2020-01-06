@@ -53,18 +53,16 @@ bool RoverLandDetector::_get_ground_contact_state()
 bool RoverLandDetector::_get_landed_state()
 {
 
-_vehicle_status_sub.update(&_vehicle_status);
+	_vehicle_status_sub.update(&_vehicle_status);
 
-if(_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
-{
-	return true; // If Landing has been requested then say we have landed
-}
-else
-{
-	return !_actuator_armed.armed;  // If we are armed we are not landed
-					// This doesn't work very well because once it's armed it will stay armed
-					// so when requesting land it never detects it has landed.
-}
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+		return true; // If Landing has been requested then say we have landed
+
+	} else {
+		return !_actuator_armed.armed;  // If we are armed we are not landed
+		// This doesn't work very well because once it's armed it will stay armed
+		// so when requesting land it never detects it has landed.
+	}
 }
 
 } // namespace land_detector
