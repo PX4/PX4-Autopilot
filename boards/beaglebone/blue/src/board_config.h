@@ -60,8 +60,13 @@
 /*
  * I2C busses
  */
-#define PX4_I2C_BUS_EXPANSION	1
-#define PX4_NUMBER_I2C_BUSES    1
+#define PX4_I2C_BUS_EXPANSION   1 // i2c-1: pins P9 17,18
+#define PX4_I2C_BUS_ONBOARD     2 // i2c-2: pins P9 19,20 - bmp280, mpu9250
+
+#define PX4_NUMBER_I2C_BUSES    2
+
+#define PX4_I2C_OBDEV_MPU9250 0x68
+#define PX4_I2C_OBDEV_BMP280  0x76
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
@@ -82,8 +87,6 @@ void rc_cleaning(void);
 #define rc_i2c_unlock_bus	rc_i2c_release_bus
 #define rc_i2c_get_lock		rc_i2c_get_in_use_state
 
-#define rc_bmp_init			rc_initialize_barometer
-
 #define rc_adc_read_raw		rc_adc_raw
 
 #define rc_servo_send_pulse_us			rc_send_servo_pulse_us
@@ -93,25 +96,6 @@ void rc_cleaning(void);
 #define rc_filter_prefill_inputs		rc_prefill_filter_inputs
 #define rc_filter_prefill_outputs		rc_prefill_filter_outputs
 #define rc_filter_butterworth_lowpass	rc_butterworth_lowpass
-
-/**
- * struct to hold the data retreived during one read of the barometer.
- */
-typedef struct rc_bmp_data_t {
-	float temp_c;		///< temperature in degrees celcius
-	float alt_m;		///< altitude in meters
-	float pressure_pa;	///< current pressure in pascals
-} rc_bmp_data_t;
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
-int rc_bmp_read(rc_bmp_data_t *data);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

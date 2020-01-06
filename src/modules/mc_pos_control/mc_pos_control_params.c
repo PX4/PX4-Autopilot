@@ -260,32 +260,6 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
 
 /**
- * Proportional gain for vertical trajectory position error
- *
- * @min 0.1
- * @max 1.0
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_Z_TRAJ_P, 0.3f);
-
-/**
- * Cruise speed when angle prev-current/current-next setpoint
- * is 90 degrees. It should be lower than MPC_XY_CRUISE.
- *
- * Applies only in AUTO modes (includes
- * also RTL / hold / etc.)
- *
- * @unit m/s
- * @min 1.0
- * @max 20.0
- * @increment 1
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
-
-/**
  * Maximum horizontal velocity setpoint for manual controlled mode
  * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
  * the setpoint will be capped to MPC_XY_VEL_MAX
@@ -349,6 +323,17 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
+
+/**
+ * Maximum horizontal velocity during landing
+ * Set the value higher than the otherwise expected maximum to disable any slowdown.
+ *
+ * @unit m/s
+ * @min 0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_VEL_XY, 2.f);
 
 /**
  * Enable user assisted descent speed for autonomous land routine.
@@ -453,8 +438,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 /**
  * Maximum horizontal acceleration for auto mode and for manual mode
  *
- * Manual mode: Maximum deceleration for MPC_POS_MODE 1 and 2. Maximum acceleration and deceleration for MPC_POS_MODE 3.
- * Auto mode: Used with MPC_AUTO_MODE 0 only. For MPC_AUTO_MODE 1, MPC_ACC_HOR is always used.
+ * Maximum deceleration for MPC_POS_MODE 1 and 2. Maximum acceleration and deceleration for MPC_POS_MODE 3.
  *
  * @unit m/s/s
  * @min 2.0
@@ -493,21 +477,6 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 5.0f);
-
-/**
- * Horizontal acceleration in manual modes when te estimator speed limit is removed.
- * If full stick is being applied and the estimator stops demanding a speed limit,
- * which it had been before (e.g if GPS is gained while flying on optical flow/vision only),
- * the vehicle will accelerate at this rate until the normal position control speed is achieved.
- *
- * @unit m/s/s
- * @min 0.2
- * @max 2.0
- * @increment 0.1
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_ESTM, 0.5f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes upward
@@ -582,8 +551,6 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
  * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
  * A lower value leads to smoother vehicle motions, but it also limits its
  * agility.
- *
- * Note: This is only used in jerk-limited trajectory mode (MPC_AUTO_MODE 1)
  *
  * @unit m/s/s/s
  * @min 5.0
@@ -682,9 +649,12 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
 /**
  * Altitude for 1. step of slow landing (descend)
  *
- * Below this altitude descending velocity gets limited
- * to a value between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
- * to enable a smooth descent experience
+ * Below this altitude:
+ * - descending velocity gets limited to a value
+ * between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
+ * - horizontal velocity gets limited to a value
+ * between "MPC_VEL_MANUAL" and "MPC_LAND_VEL_XY"
+ * for a smooth descent and landing experience.
  * Value needs to be higher than "MPC_LAND_ALT2"
  *
  * @unit m
@@ -698,7 +668,8 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
 /**
  * Altitude for 2. step of slow landing (landing)
  *
- * Below this altitude descending velocity gets limited to "MPC_LAND_SPEED"
+ * Below this altitude descending and horizontal velocities get
+ * limited to "MPC_LAND_SPEED" and "MPC_LAND_VEL_XY", respectively.
  * Value needs to be lower than "MPC_LAND_ALT1"
  *
  * @unit m
@@ -742,15 +713,6 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_POS_MODE, 3);
-
-/**
- * Auto sub-mode
- *
- * @value 0 Default line tracking
- * @value 1 Jerk-limited trajectory
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_INT32(MPC_AUTO_MODE, 1);
 
 /**
  * Enforced delay between arming and takeoff

@@ -33,8 +33,10 @@ bool FlightTask::updateInitialize()
 
 	_sub_vehicle_local_position.update();
 	_sub_attitude.update();
+	_sub_home_position.update();
 
 	_evaluateVehicleLocalPosition();
+	_evaluateDistanceToGround();
 	_checkEkfResetCounters();
 	return true;
 }
@@ -81,7 +83,7 @@ void FlightTask::_checkEkfResetCounters()
 const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 {
 	/* fill position setpoint message */
-	vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
+	vehicle_local_position_setpoint_s vehicle_local_position_setpoint{};
 	vehicle_local_position_setpoint.timestamp = hrt_absolute_time();
 
 	vehicle_local_position_setpoint.x = _position_setpoint(0);
@@ -103,11 +105,11 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 
 void FlightTask::_resetSetpoints()
 {
-	_position_setpoint.setAll(NAN);
-	_velocity_setpoint.setAll(NAN);
-	_acceleration_setpoint.setAll(NAN);
-	_jerk_setpoint.setAll(NAN);
-	_thrust_setpoint.setAll(NAN);
+	_position_setpoint.setNaN();
+	_velocity_setpoint.setNaN();
+	_acceleration_setpoint.setNaN();
+	_jerk_setpoint.setNaN();
+	_thrust_setpoint.setNaN();
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
 }
 
@@ -157,6 +159,19 @@ void FlightTask::_evaluateVehicleLocalPosition()
 			globallocalconverter_init(_sub_vehicle_local_position.get().ref_lat, _sub_vehicle_local_position.get().ref_lon,
 						  _sub_vehicle_local_position.get().ref_alt, _sub_vehicle_local_position.get().ref_timestamp);
 		}
+	}
+}
+
+void FlightTask::_evaluateDistanceToGround()
+{
+	// Altitude above ground is local z-position or altitude above home or distance sensor altitude depending on what's available
+	_dist_to_ground = -_position(2);
+
+	if (PX4_ISFINITE(_dist_to_bottom)) {
+		_dist_to_ground = _dist_to_bottom;
+
+	} else if (_sub_home_position.get().valid_alt) {
+		_dist_to_ground = -(_position(2) - _sub_home_position.get().z);
 	}
 }
 

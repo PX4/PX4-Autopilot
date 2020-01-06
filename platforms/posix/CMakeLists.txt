@@ -67,8 +67,8 @@ else()
 			parameters
 	)
 
-	if (NOT APPLE)
-		target_link_libraries(px4 PRIVATE rt)
+	if(NOT APPLE)
+		target_link_libraries(px4 PRIVATE atomic rt)
 	endif()
 
 	target_link_libraries(px4 PRIVATE modules__uORB)
@@ -108,7 +108,9 @@ endif()
 
 
 if ("${PX4_BOARD}" MATCHES "beaglebone_blue")
-	target_link_libraries(px4 PRIVATE robotcontrol)
+	target_link_libraries(px4 PRIVATE robotics_cape)
+	add_dependencies(df_driver_framework librobotcontrol)
+	add_dependencies(df_mpu9250 librobotcontrol)
 
 elseif ("${PX4_BOARD}" MATCHES "sitl")
 
