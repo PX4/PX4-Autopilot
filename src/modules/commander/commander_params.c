@@ -518,7 +518,6 @@ PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
  * Maximum EKF position innovation test ratio that will allow arming
  *
  * @group Commander
- * @unit m
  * @min 0.1
  * @max 1.0
  * @decimal 2
@@ -530,7 +529,6 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_POS, 0.5f);
  * Maximum EKF velocity innovation test ratio that will allow arming
  *
  * @group Commander
- * @unit m/s
  * @min 0.1
  * @max 1.0
  * @decimal 2
@@ -542,7 +540,6 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_VEL, 0.5f);
  * Maximum EKF height innovation test ratio that will allow arming
  *
  * @group Commander
- * @unit m
  * @min 0.1
  * @max 1.0
  * @decimal 2
@@ -554,7 +551,6 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_HGT, 1.0f);
  * Maximum EKF yaw innovation test ratio that will allow arming
  *
  * @group Commander
- * @unit rad
  * @min 0.1
  * @max 1.0
  * @decimal 2
