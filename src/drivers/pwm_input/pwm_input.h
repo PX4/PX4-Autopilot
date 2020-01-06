@@ -146,6 +146,6 @@ private:
 
 	pwm_input_s _pwm {};
 
-	uORB::PublicationData<pwm_input_s> _pwm_input_pub { ORB_ID(pwm_input) };
+	uORB::PublicationData<pwm_input_s> _pwm_input_pub{ORB_ID(pwm_input)};
 
 };
