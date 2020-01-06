@@ -198,9 +198,19 @@ void
 PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 {
 	// filtered data (control)
-	float x_filtered = _filterArrayX.apply(sample.x, sample.samples);
-	float y_filtered = _filterArrayY.apply(sample.y, sample.samples);
-	float z_filtered = _filterArrayZ.apply(sample.z, sample.samples);
+	float sample_x[sample.samples];
+	float sample_y[sample.samples];
+	float sample_z[sample.samples];
+
+	for (uint8_t n = 0; n < sample.samples; n++) {
+		sample_x[n] = (float)sample.x[n];
+		sample_y[n] = (float)sample.y[n];
+		sample_z[n] = (float)sample.z[n];
+	}
+
+	float x_filtered = _filterArrayX.apply(sample_x, sample.samples);
+	float y_filtered = _filterArrayY.apply(sample_y, sample.samples);
+	float z_filtered = _filterArrayZ.apply(sample_z, sample.samples);
 
 	// Apply rotation (before scaling)
 	rotate_3f(_rotation, x_filtered, y_filtered, z_filtered);

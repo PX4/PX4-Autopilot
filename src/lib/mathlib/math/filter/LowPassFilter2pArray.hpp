@@ -54,7 +54,7 @@ public:
 	 *
 	 * @return retrieve the filtered result
 	 */
-	inline float apply(const int16_t samples[], uint8_t num_samples)
+	inline float apply(const float samples[], uint8_t num_samples)
 	{
 		float output = 0.0f;
 

@@ -41,6 +41,7 @@
 #include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
+#include <lib/mathlib/math/filter/NotchFilterArray.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gyro.h>
@@ -107,6 +108,9 @@ private:
 	math::LowPassFilter2pArray _filterArrayX{8000, 100};
 	math::LowPassFilter2pArray _filterArrayY{8000, 100};
 	math::LowPassFilter2pArray _filterArrayZ{8000, 100};
+	math::NotchFilterArray<float> _notchFilterArrayX{};
+	math::NotchFilterArray<float> _notchFilterArrayY{};
+	math::NotchFilterArray<float> _notchFilterArrayZ{};
 
 	Integrator		_integrator{4000, true};
 
