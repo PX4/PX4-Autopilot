@@ -60,8 +60,6 @@ bool RoverLandDetector::_get_landed_state()
 
 	} else {
 		return !_actuator_armed.armed;  // If we are armed we are not landed
-		// This doesn't work very well because once it's armed it will stay armed
-		// so when requesting land it never detects it has landed.
 	}
 }
 
