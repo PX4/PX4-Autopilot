@@ -141,11 +141,15 @@
                     "PX4_SIM_SPEED_FACTOR": "1"
                 }
             },
-            "command": "gzserver --verbose ${workspaceRoot}/Tools/sitl_gazebo/worlds/hexa_x_tilt.world & gzclient",
+            "command": "gzserver --verbose ${workspaceRoot}/Tools/sitl_gazebo/worlds/hexa_x_tilt.world",
             "isBackground": true,
             "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
             },
             "problemMatcher": [
                 {
@@ -328,7 +332,7 @@
         {
             "label": "gazebo kill",
             "type": "shell",
-            "command": "killall gzserver; killall gzclient",
+            "command": "killall gzserver",
             "presentation": {
                 "echo": false,
                 "reveal": "never",
