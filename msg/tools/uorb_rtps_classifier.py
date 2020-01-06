@@ -35,6 +35,7 @@
 import sys
 import os
 import argparse
+import errno
 import yaml
 import re
 import difflib

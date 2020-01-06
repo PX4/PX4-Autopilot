@@ -2717,18 +2717,8 @@ MavlinkReceiver::Run()
 
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == Protocol::SERIAL) {
-
-				/*
-				 * to avoid reading very small chunks wait for data before reading
-				 * this is designed to target one message, so >20 bytes at a time
-				 */
-				const unsigned character_count = 20;
-
 				/* non-blocking read. read may return negative values */
-				if ((nread = ::read(fds[0].fd, buf, sizeof(buf))) < (ssize_t)character_count) {
-					const unsigned sleeptime = character_count * 1000000 / (_mavlink->get_baudrate() / 10);
-					px4_usleep(sleeptime);
-				}
+				nread = ::read(fds[0].fd, buf, sizeof(buf));
 			}
 
 #if defined(MAVLINK_UDP)

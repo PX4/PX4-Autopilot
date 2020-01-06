@@ -303,10 +303,7 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
  * If parameter set button gets handled like stick arming.
  *
  * @group Commander
- * @min 0
- * @max 1
- * @value 0 Arm switch is a switch that stays on when armed
- * @value 1 Arm switch is a button that only triggers arming and disarming
+ * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 
@@ -624,6 +621,17 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
  * @max 180
  */
 PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 30);
+
+/**
+ * Enable mag strength preflight check
+ *
+ * Deny arming if the estimator detects a strong magnetic
+ * disturbance (check enabled by EKF2_MAG_CHECK)
+ *
+ * @boolean
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
 
 /**
  * Enable RC stick override of auto modes

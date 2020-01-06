@@ -2,6 +2,8 @@ import sys
 import re
 import math
 import textwrap
+from functools import reduce
+
 
 class ModuleDocumentation(object):
     """

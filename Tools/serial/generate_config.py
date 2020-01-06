@@ -107,6 +107,11 @@ serial_ports = {
         "index": 202,
         "default_baudrate": 0,
         },
+    "GPS3": {
+        "label": "GPS 3",
+        "index": 203,
+        "default_baudrate": 0,
+        },
 
     # RC Port
     "RC": {

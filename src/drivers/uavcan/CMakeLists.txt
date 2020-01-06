@@ -102,7 +102,6 @@ px4_add_module(
 	MAIN uavcan
 	INCLUDES
 		${DSDLC_OUTPUT}
-		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 		libuavcan/libuavcan/include
 		libuavcan/libuavcan/include/dsdlc_generated
 		libuavcan/libuavcan_drivers/posix/include
