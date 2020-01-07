@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,7 +68,7 @@ public:
 
 	int		init() override;
 
-	ssize_t		read(file *filp, char *buffer, size_t len) override;
+	ssize_t		read(cdev::file_t *filp, char *buffer, size_t len) override;
 
 private:
 	void		Run() override;
@@ -170,7 +170,7 @@ ADC::init()
 }
 
 ssize_t
-ADC::read(file *filp, char *buffer, size_t len)
+ADC::read(cdev::file_t *filp, char *buffer, size_t len)
 {
 	const size_t maxsize = sizeof(px4_adc_msg_t) * _channel_count;
 
@@ -179,9 +179,9 @@ ADC::read(file *filp, char *buffer, size_t len)
 	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
-	irqstate_t flags = px4_enter_critical_section();
+	lock();
 	memcpy(buffer, _samples, len);
-	px4_leave_critical_section(flags);
+	unlock();
 
 	return len;
 }
@@ -189,6 +189,7 @@ ADC::read(file *filp, char *buffer, size_t len)
 void
 ADC::Run()
 {
+	lock();
 	hrt_abstime now = hrt_absolute_time();
 
 	/* scan the channel set and sample each */
@@ -198,6 +199,7 @@ ADC::Run()
 
 	update_adc_report(now);
 	update_system_power(now);
+	unlock();
 }
 
 void
@@ -215,7 +217,6 @@ ADC::update_adc_report(hrt_abstime now)
 	for (unsigned i = 0; i < max_num; i++) {
 		adc.channel_id[i] = _samples[i].am_channel;
 		adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
-		;
 	}
 
 	_to_adc_report.publish(adc);
@@ -332,7 +333,7 @@ int
 test(void)
 {
 
-	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("can't open ADC device %d", errno);
@@ -341,7 +342,7 @@ test(void)
 
 	for (unsigned i = 0; i < 20; i++) {
 		px4_adc_msg_t data[ADC_TOTAL_CHANNELS];
-		ssize_t count = read(fd, data, sizeof(data));
+		ssize_t count = px4_read(fd, data, sizeof(data));
 
 		if (count < 0) {
 			PX4_ERR("read error");
@@ -357,6 +358,8 @@ test(void)
 		printf("\n");
 		px4_usleep(500000);
 	}
+
+	px4_close(fd);
 
 	return 0;
 }
