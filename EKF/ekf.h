@@ -795,7 +795,7 @@ private:
 
 	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
 	// sensor measurement
-	float calculate_synthetic_mag_z_measurement(Vector3f mag_meas, Vector3f mag_earth_predicted);
+	float calculate_synthetic_mag_z_measurement(const Vector3f& mag_meas, const Vector3f& mag_earth_predicted);
 
 	void stopGpsFusion();
 
