@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,53 +31,68 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * Emlid Navio2 internal definitions
- */
+#include <board_config.h>
 
-#pragma once
+#include <drivers/drv_adc.h>
 
-#define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
+#include <px4_platform_common/log.h>
 
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
+#include <fcntl.h>
+#include <stdint.h>
+#include <unistd.h>
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
+#define ADC_SYSFS_PATH "/sys/bus/iio/devices/iio:device0"
+#define ADC_MAX_CHAN 9
+int _channels_fd[ADC_MAX_CHAN];
 
-#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
+int px4_arch_adc_init(uint32_t base_address)
+{
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		_channels_fd[i] = -1;
+	}
 
+	return 0;
+}
 
-// I2C
-#define PX4_I2C_BUS_EXPANSION   1
+void px4_arch_adc_uninit(uint32_t base_address)
+{
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		::close(_channels_fd[i]);
+		_channels_fd[i] = -1;
+	}
+}
 
-#define PX4_NUMBER_I2C_BUSES    1
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
+{
+	if (channel > ADC_MAX_CHAN) {
+		PX4_ERR("channel %d out of range: %d", channel, ADC_MAX_CHAN);
+		return UINT32_MAX; // error
+	}
 
+	// open channel if necessary
+	if (_channels_fd[channel] == -1) {
+		// ADC_SYSFS_PATH
+		char channel_path[strlen(ADC_SYSFS_PATH) + 20] {};
 
-// SPI
-#define PX4_SPI_BUS_SENSORS    0
-#define PX4_SPIDEV_UBLOX       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0) // spidev0.0 - ublox m8n
-#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1) // spidev0.1 - mpu9250
-#define PX4_SPIDEV_LSM9DS1_M   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2) // spidev0.2 - lsm9ds1 mag
-#define PX4_SPIDEV_LSM9DS1_AG  PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3) // spidev0.3 - lsm9ds1 accel/gyro
+		if (sprintf(channel_path, "%s/in_voltage%d_raw", ADC_SYSFS_PATH, channel) == -1) {
+			PX4_ERR("adc channel: %d\n", channel);
+			return UINT32_MAX; // error
+		}
 
+		_channels_fd[channel] = ::open(channel_path, O_RDONLY);
+	}
 
-// ADC channels:
-// A0 - board voltage (shows 5V)
-// A1 - servo rail voltage
-// A2 - power module voltage (ADC0, POWER port)
-// A3 - power module current (ADC1, POWER port)
-// A4 - ADC2 (ADC port)
-// A5 - ADC3 (ADC port)
-#define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5)
+	char buffer[10] {};
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  2
-#define ADC_BATTERY_CURRENT_CHANNEL  3
-#define ADC_5V_RAIL_SENSE            0
+	if (::pread(_channels_fd[channel], buffer, sizeof(buffer), 0) < 0) {
+		PX4_ERR("read channel %d failed", channel);
+		return UINT32_MAX; // error
+	}
 
+	return atoi(buffer);
+}
 
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+uint32_t px4_arch_adc_dn_fullcount()
+{
+	return 1 << 12; // 12 bit ADC
+}
