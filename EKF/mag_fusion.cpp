@@ -997,7 +997,7 @@ void Ekf::limitDeclination()
 	}
 }
 
-float Ekf::calculate_synthetic_mag_z_measurement(Vector3f mag_meas, Vector3f mag_earth_predicted)
+float Ekf::calculate_synthetic_mag_z_measurement(const Vector3f& mag_meas, const Vector3f& mag_earth_predicted)
 {
 	// theoretical magnitude of the magnetometer Z component value given X and Y sensor measurement and our knowledge
 	// of the earth magnetic field vector at the current location
