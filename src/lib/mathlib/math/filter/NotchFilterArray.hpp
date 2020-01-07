@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,40 +31,58 @@
  *
  ****************************************************************************/
 
-/**
- * @file FlightTaskAutoLine.hpp
+/*
+ * @file NotchFilter.hpp
  *
- * Flight task for autonomous, gps driven mode. The vehicle flies
- * along a straight line in between waypoints.
+ * @brief Notch filter with array input/output
+ *
+ * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  */
 
 #pragma once
 
-#include "FlightTaskAutoMapper.hpp"
+#include "NotchFilter.hpp"
 
-class FlightTaskAutoLine : public FlightTaskAutoMapper
+namespace math
 {
+template<typename T>
+class NotchFilterArray : public NotchFilter<T>
+{
+	using NotchFilter<T>::_delay_element_1;
+	using NotchFilter<T>::_delay_element_2;
+	using NotchFilter<T>::_a1;
+	using NotchFilter<T>::_a2;
+	using NotchFilter<T>::_b0;
+	using NotchFilter<T>::_b1;
+	using NotchFilter<T>::_b2;
+
 public:
-	FlightTaskAutoLine() = default;
-	virtual ~FlightTaskAutoLine() = default;
 
-protected:
+	NotchFilterArray() = default;
+	~NotchFilterArray() = default;
 
-	void _generateSetpoints() override; /**< Generate setpoints along line. */
+	/**
+	 * Add new raw values to the filter
+	 *
+	 * @return retrieve the filtered result
+	 */
+	inline void apply(T samples[], uint8_t num_samples)
+	{
+		for (int n = 0; n < num_samples; n++) {
+			// Direct Form II implementation
+			T delay_element_0{samples[n] - _delay_element_1 *_a1 - _delay_element_2 * _a2};
 
-	void _generateHeadingAlongTrack(); /**< Generates heading along track. */
-	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
-	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
+			// don't allow bad values to propagate via the filter
+			if (!isFinite(delay_element_0)) {
+				delay_element_0 = samples[n];
+			}
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
-					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
-				       );
+			samples[n] = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
 
-
-private:
-	void _setSpeedAtTarget(); /**< Sets desiered speed at target */
-	float _speed_at_target{0.0f};
-	bool _position_locked{false};
+			_delay_element_2 = _delay_element_1;
+			_delay_element_1 = delay_element_0;
+		}
+	}
 };
+
+} // namespace math
