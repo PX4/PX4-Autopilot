@@ -298,8 +298,8 @@ px4_os_add_flags()
 #=============================================================================
 # board cmake init (optional)
 #
-if(EXISTS ${PX4_BOARD_DIR}/init.cmake)
-	include(${PX4_BOARD_DIR}/init.cmake)
+if(EXISTS ${PX4_BOARD_DIR}/cmake/init.cmake)
+	include(${PX4_BOARD_DIR}/cmake/init.cmake)
 endif()
 
 #=============================================================================

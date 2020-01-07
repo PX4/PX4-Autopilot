@@ -138,17 +138,3 @@ void rc_cleaning(void)
 #endif
 #endif
 }
-
-
-#ifdef __RC_V0_3
-int rc_bmp_read(rc_bmp_data_t *data)
-{
-	int rtn = rc_read_barometer();
-
-	data->temp_c 		= rc_bmp_get_temperature();
-	data->alt_m  		= rc_bmp_get_altitude_m();
-	data->pressure_pa	= rc_bmp_get_pressure_pa();
-
-	return rtn;
-}
-#endif

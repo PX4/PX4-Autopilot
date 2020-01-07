@@ -7,6 +7,14 @@ px4_add_board(
 	ARCHITECTURE cortex-a9
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
+	SERIAL_PORTS
+		GPS1:/dev/ttyS3  # GPS/Compass #1           (OcPoC Port 6)
+		GPS2:/dev/ttyS7  # GPS/Compass #2           (OcPoC Port 7)
+		GPS3:/dev/ttyS1  # GPS/Compass #3           (OcPoC Port 9)
+		TEL1:/dev/ttyPS1 # Radio Telemetry          (OcPoC Port 4)
+		TEL2:/dev/ttyS6  # uLanding Radar Altimeter (OcPoC Port 8)
+		TEL3:/dev/ttyS2  #                          (OcPoC Port 2)
+		TEL4:/dev/ttyS0  # uSharp-Patch             (OcPoC Port 5)
 	DRIVERS
 		#barometer # all available barometer drivers
 		barometer/ms5611
@@ -26,7 +34,6 @@ px4_add_board(
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		hmc5883
 		mpu9250
 	MODULES
 		airspeed_selector

@@ -14,12 +14,17 @@ test_matrix = [
     {
         "model": "iris",
         "test_filter": "[multicopter]",
-        "timeout_min": 10,
+        "timeout_min": 20,
     },
     {
         "model": "standard_vtol",
         "test_filter": "[vtol]",
-        "timeout_min": 10,
+        "timeout_min": 20,
+    },
+    {
+        "model": "standard_plane",
+        "test_filter": "[plane]",
+        "timeout_min": 25,
     }
 ]
 
@@ -215,7 +220,7 @@ def main():
         print("Test iterations: %d" % (x + 1))
         for group in test_matrix:
             print("Running test group for '{}' with filter '{}'"
-                .format(group['model'], group['test_filter']))
+                  .format(group['model'], group['test_filter']))
 
             tests = determine_tests(os.getcwd(), group['test_filter'])
 
@@ -236,7 +241,8 @@ def main():
                         os.getcwd(), args.log_dir)
                     gzclient_runner.start(group)
 
-                test_runner = TestRunner(os.getcwd(), args.log_dir, group, test)
+                test_runner = TestRunner(
+                    os.getcwd(), args.log_dir, group, test)
                 test_runner.start(group)
 
                 returncode = test_runner.wait(group['timeout_min'])
@@ -254,9 +260,10 @@ def main():
 
                 # Test run results
                 print("Test '{}': {}".
-                    format(test, "Success" if was_success else "Fail"))
+                      format(test, "Success" if was_success else "Fail"))
 
-                # Flag it as group test failure, but finish the rest of the test targets
+                # Flag it as group test failure, but finish the rest of the
+                # test targets.
                 if not was_success:
                     overall_success = False
 
@@ -272,6 +279,7 @@ def main():
         print("Test iterations: %d" % (x + 1))
 
     sys.exit(0 if overall_success else 1)
+
 
 if __name__ == '__main__':
     main()
