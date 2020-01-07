@@ -86,8 +86,6 @@ int Simulator::start(int argc, char *argv[])
 	_instance = new Simulator();
 
 	if (_instance) {
-		drv_led_start();
-
 		if (argc == 4 && strcmp(argv[2], "-u") == 0) {
 			_instance->set_ip(InternetProtocol::UDP);
 			_instance->set_port(atoi(argv[3]));

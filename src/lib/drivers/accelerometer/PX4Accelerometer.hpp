@@ -129,7 +129,7 @@ private:
 	// integrator
 	hrt_abstime		_integrator_timestamp_sample{0};
 	hrt_abstime		_timestamp_sample_prev{0};
-	int32_t			_integrator_accum[3] {};
+	float			_integrator_accum[3] {};
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};
