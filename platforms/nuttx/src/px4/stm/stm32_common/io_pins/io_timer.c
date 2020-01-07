@@ -150,7 +150,7 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 #define TIM_DMABURSTLENGTH_4TRANSFERS	0x00000300U
 
 //												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger Dshot
-io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0, 0, 0, 0 };
+io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0,  0,  0, 0, 0, 0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
 

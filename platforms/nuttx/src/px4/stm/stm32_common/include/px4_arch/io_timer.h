@@ -49,7 +49,11 @@ __BEGIN_DECLS
 #else
 #define MAX_IO_TIMERS			2
 #endif
+#if DIRECT_PWM_OUTPUT_CHANNELS > 8
+#define MAX_TIMER_IO_CHANNELS	DIRECT_PWM_OUTPUT_CHANNELS
+#else
 #define MAX_TIMER_IO_CHANNELS	8
+#endif
 
 #define MAX_LED_TIMERS			2
 #define MAX_TIMER_LED_CHANNELS	6
@@ -73,7 +77,7 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
-typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_IO_CHANNELS */
+typedef uint16_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_IO_CHANNELS */
 
 /* array of timers dedicated to PWM in and out and capture use
  *** Note that the clock_freq is set to the source in the clock tree that
