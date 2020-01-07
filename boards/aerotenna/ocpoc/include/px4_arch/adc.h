@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,53 +31,8 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * Emlid Navio2 internal definitions
- */
-
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
+#define SYSTEM_ADC_BASE 0 // not used
 
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
-
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-
-#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
-
-
-// I2C
-#define PX4_I2C_BUS_EXPANSION   1
-
-#define PX4_NUMBER_I2C_BUSES    1
-
-
-// SPI
-#define PX4_SPI_BUS_SENSORS    0
-#define PX4_SPIDEV_UBLOX       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0) // spidev0.0 - ublox m8n
-#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1) // spidev0.1 - mpu9250
-#define PX4_SPIDEV_LSM9DS1_M   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2) // spidev0.2 - lsm9ds1 mag
-#define PX4_SPIDEV_LSM9DS1_AG  PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3) // spidev0.3 - lsm9ds1 accel/gyro
-
-
-// ADC channels:
-// A0 - board voltage (shows 5V)
-// A1 - servo rail voltage
-// A2 - power module voltage (ADC0, POWER port)
-// A3 - power module current (ADC1, POWER port)
-// A4 - ADC2 (ADC port)
-// A5 - ADC3 (ADC port)
-#define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5)
-
-#define ADC_BATTERY_VOLTAGE_CHANNEL  2
-#define ADC_BATTERY_CURRENT_CHANNEL  3
-#define ADC_5V_RAIL_SENSE            0
-
-
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+#define px4_arch_adc_temp_sensor_mask() (0)
