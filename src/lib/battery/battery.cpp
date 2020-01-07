@@ -98,6 +98,11 @@ Battery::Battery(int index, ModuleParams *parent) :
 	updateParams();
 }
 
+Battery::~Battery()
+{
+	orb_unadvertise(_orb_advert);
+}
+
 void
 Battery::reset()
 {

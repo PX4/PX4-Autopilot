@@ -54,6 +54,7 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	// set software low pass filter for controllers
 	updateParams();
 	ConfigureFilter(_param_imu_gyro_cutoff.get());
+	ConfigureNotchFilter(_param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
 }
 
 PX4Gyroscope::~PX4Gyroscope()
@@ -105,6 +106,7 @@ PX4Gyroscope::set_sample_rate(uint16_t rate)
 	_sample_rate = rate;
 
 	ConfigureFilter(_filter.get_cutoff_freq());
+	ConfigureNotchFilter(_notch_filter.getNotchFreq(), _notch_filter.getBandwidth());
 }
 
 void
@@ -123,12 +125,23 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 
 	const Vector3f raw{x, y, z};
 
+	// Clipping
+	sensor_gyro_status_s &status = _sensor_status_pub.get();
+	const float clip_limit = (_range / _scale) * 0.95f;
+
+	for (int i = 0; i < 3; i++) {
+		if (fabsf(raw(i)) > clip_limit) {
+			status.clipping[i]++;
+			_integrator_clipping++;
+		}
+	}
+
 	// Apply range scale and the calibrating offset/scale
 	const Vector3f val_calibrated{((raw * _scale) - _calibration_offset)};
 
-	// Filtered values
-	const Vector3f val_filtered{_filter.apply(val_calibrated)};
-
+	// Filtered values: apply notch and then low-pass
+	Vector3f val_filtered{_notch_filter.apply(val_calibrated)};
+	val_filtered = _filter.apply(val_filtered);
 
 	// publish control data (filtered) immediately
 	bool publish_control = true;
@@ -157,6 +170,8 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 	Vector3f integrated_value;
 	uint32_t integral_dt = 0;
 
+	_integrator_samples++;
+
 	if (_integrator.put(timestamp, val_calibrated, integrated_value, integral_dt)) {
 
 		sensor_gyro_s report{};
@@ -176,12 +191,34 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 		report.z = val_filtered(2);
 
 		report.integral_dt = integral_dt;
+		report.integral_samples = _integrator_samples;
 		report.x_integral = integrated_value(0);
 		report.y_integral = integrated_value(1);
 		report.z_integral = integrated_value(2);
+		report.integral_clip_count = _integrator_clipping;
 
 		_sensor_pub.publish(report);
+
+		// reset integrator
+		ResetIntegrator();
+
+		// update vibration metrics
+		const Vector3f delta_angle = integrated_value * (integral_dt * 1.e-6f);
+		UpdateVibrationMetrics(delta_angle);
 	}
+
+	// publish status
+	status.device_id = _device_id;
+	status.error_count = _error_count;
+	status.full_scale_range = _range;
+	status.rotation = _rotation;
+	status.measure_rate = _update_rate;
+	status.sample_rate = _sample_rate;
+	status.temperature = _temperature;
+	status.vibration_metric = _vibration_metric;
+	status.coning_vibration = _coning_vibration;
+	status.timestamp = hrt_absolute_time();
+	_sensor_status_pub.publish(status);
 }
 
 void
@@ -342,6 +379,9 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			report.timestamp = _integrator_timestamp_sample;
 			_sensor_pub.publish(report);
 
+			// update vibration metrics
+			const Vector3f delta_angle = val_int_calibrated * (integrator_dt_us * 1.e-6f);
+			UpdateVibrationMetrics(delta_angle);
 
 			// reset integrator
 			ResetIntegrator();
@@ -391,11 +431,33 @@ PX4Gyroscope::ConfigureFilter(float cutoff_freq)
 }
 
 void
+PX4Gyroscope::ConfigureNotchFilter(float notch_freq, float bandwidth)
+{
+	_notch_filter.setParameters(_sample_rate, notch_freq, bandwidth);
+}
+
+void
+PX4Gyroscope::UpdateVibrationMetrics(const Vector3f &delta_angle)
+{
+	// Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
+	const Vector3f delta_angle_diff = delta_angle - _delta_angle_prev;
+	_vibration_metric = 0.99f * _vibration_metric + 0.01f * delta_angle_diff.norm();
+
+	// Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
+	const Vector3f coning_metric = delta_angle % _delta_angle_prev;
+	_coning_vibration = 0.99f * _coning_vibration + 0.01f * coning_metric.norm();
+
+	_delta_angle_prev = delta_angle;
+}
+
+void
 PX4Gyroscope::print_status()
 {
 	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 	PX4_INFO("sample rate: %d Hz", _sample_rate);
 	PX4_INFO("filter cutoff: %.3f Hz", (double)_filter.get_cutoff_freq());
+	PX4_INFO("notch filter freq: %.3f Hz\tbandwidth: %.3f Hz", (double)_notch_filter.getNotchFreq(),
+		 (double)_notch_filter.getBandwidth());
 
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));

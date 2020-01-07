@@ -296,6 +296,13 @@ px4_add_common_flags()
 px4_os_add_flags()
 
 #=============================================================================
+# board cmake init (optional)
+#
+if(EXISTS ${PX4_BOARD_DIR}/cmake/init.cmake)
+	include(${PX4_BOARD_DIR}/cmake/init.cmake)
+endif()
+
+#=============================================================================
 # message, and airframe generation
 #
 include(px4_metadata)
@@ -385,9 +392,6 @@ add_custom_target(test_results
 		COMMENT "Running tests"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-# Integration testing using MAVSDK
-add_subdirectory(test/mavsdk_tests)
 
 #=============================================================================
 # subdirectories
