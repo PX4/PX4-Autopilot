@@ -149,11 +149,13 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 	}
 
+	// This requires a valid takeodd waypoint to be set
 	uORB::Subscription setpoint_sub(ORB_ID(position_setpoint_triplet));
 	position_setpoint_triplet_s setpoint = {};
 	setpoint_sub.update(&setpoint);
 
-	if (setpoint.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF && tkoff_check == 1) {
+	if ((setpoint.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF || !setpoint.current.valid)
+	    && tkoff_check == 1) {
 		mavlink_log_critical(mavlink_log_pub, "Arming denied! Takeoff not active");
 		prearm_ok = false;
 	}
