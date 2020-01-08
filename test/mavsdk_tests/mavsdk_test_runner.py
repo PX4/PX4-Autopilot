@@ -16,16 +16,16 @@ test_matrix = [
         "test_filter": "[multicopter]",
         "timeout_min": 20,
     },
-    {
-        "model": "standard_vtol",
-        "test_filter": "[vtol]",
-        "timeout_min": 20,
-    },
-    {
-        "model": "standard_plane",
-        "test_filter": "[plane]",
-        "timeout_min": 25,
-    }
+    #{
+    #    "model": "standard_vtol",
+    #    "test_filter": "[vtol]",
+    #    "timeout_min": 20,
+    #},
+    # {
+    #     "model": "standard_plane",
+    #     "test_filter": "[plane]",
+    #     "timeout_min": 25,
+    # }
 ]
 
 
@@ -93,7 +93,7 @@ class Runner:
 
 
 class Px4Runner(Runner):
-    def __init__(self, workspace_dir, log_dir, speed_factor):
+    def __init__(self, model, workspace_dir, log_dir, speed_factor):
         super().__init__(log_dir)
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
@@ -106,13 +106,13 @@ class Px4Runner(Runner):
                 "-d"
             ]
         self.env = {"PATH": os.environ['PATH'],
-                    "PX4_SIM_MODEL": "iris",
+                    "PX4_SIM_MODEL": model,
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.log_prefix = "px4"
 
 
 class GzserverRunner(Runner):
-    def __init__(self, workspace_dir, log_dir, speed_factor):
+    def __init__(self, model, workspace_dir, log_dir, speed_factor):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
@@ -122,7 +122,8 @@ class GzserverRunner(Runner):
                     workspace_dir + "/Tools/sitl_gazebo/models",
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.cmd = "gzserver"
-        self.args = [workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
+        self.args = [workspace_dir + "/Tools/sitl_gazebo/worlds/" +
+                     model + ".world"]
         self.log_prefix = "gzserver"
 
 
@@ -265,11 +266,11 @@ def run_test_group(args):
 
 def run_test(test, group, args):
     px4_runner = Px4Runner(
-        os.getcwd(), args.log_dir, args.speed_factor)
+        group['model'], os.getcwd(), args.log_dir, args.speed_factor)
     px4_runner.start(group)
 
     gzserver_runner = GzserverRunner(
-        os.getcwd(), args.log_dir, args.speed_factor)
+        group['model'], os.getcwd(), args.log_dir, args.speed_factor)
     gzserver_runner.start(group)
 
     if args.gui:
