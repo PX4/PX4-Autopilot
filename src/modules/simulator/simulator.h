@@ -238,6 +238,12 @@ private:
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //< minimum battery percentage
 		(ParamFloat<px4::params::SIM_GPS_NOISE_X>) _param_sim_gps_noise_x,
+		(ParamBool<px4::params::SIM_GPS_BLOCK>) _param_sim_gps_block,
+		(ParamBool<px4::params::SIM_ACCEL_BLOCK>) _param_sim_accel_block,
+		(ParamBool<px4::params::SIM_GYRO_BLOCK>) _param_sim_gyro_block,
+		(ParamBool<px4::params::SIM_BARO_BLOCK>) _param_sim_baro_block,
+		(ParamBool<px4::params::SIM_MAG_BLOCK>) _param_sim_mag_block,
+		(ParamBool<px4::params::SIM_DPRES_BLOCK>) _param_sim_dpres_block,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
