@@ -44,7 +44,7 @@ then
 	# enable high-rate logging profile (helps with tuning)
 	param set SDLOG_PROFILE 19
 
-	# use thrust curve factor (instead of TPA)
+	# use thrust curve factor
 	param set THR_MDL_FAC 0.3
 fi
 
