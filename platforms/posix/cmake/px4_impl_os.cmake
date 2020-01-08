@@ -269,19 +269,6 @@ function(px4_os_add_flags)
 			-D__DF_RPI
 		)
 
-	elseif ("${PX4_BOARD}" MATCHES "bebop")
-
-		#TODO: move to board support
-
-		add_definitions(
-			-D__PX4_LINUX
-			-D__PX4_POSIX_BEBOP # TODO: remove
-
-			# For DriverFramework
-			-D__DF_LINUX
-			-D__DF_BEBOP
-		)
-
 	elseif ("${PX4_BOARD}" MATCHES "aerotenna_ocpoc")
 
 		#TODO: move to board support
@@ -304,21 +291,9 @@ function(px4_os_add_flags)
 			# For DriverFramework
 			-D__DF_LINUX
 			-D__DF_BBBLUE
-			-D__DF_BBBLUE_USE_RC_BMP280_IMP # optional
 
 			-DRC_AUTOPILOT_EXT  # Enable extensions in Robotics Cape Library, TODO: remove
 		)
-
-		set(LIBROBOTCONTROL_INSTALL_DIR $ENV{LIBROBOTCONTROL_INSTALL_DIR})
-
-		# On cross compile host system and native build system:
-		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that
-		#      other unwanted headers will not be included
-		#   b) install robotcontrol.h and rc/* into $LIBROBOTCONTROL_INSTALL_DIR/include
-		#   c) install pre-built native (ARM) version of librobotcontrol.* into $LIBROBOTCONTROL_INSTALL_DIR/lib
-		add_compile_options(-I${LIBROBOTCONTROL_INSTALL_DIR}/include)
-
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LIBROBOTCONTROL_INSTALL_DIR}/lib")
 
 	endif()
 
