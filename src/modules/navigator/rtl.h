@@ -131,8 +131,8 @@ private:
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
 
-	bool rtl_failed{false};
-	bool warned{false};
+	bool _rtl_failed{false};
+	bool _warned{false};
 	hrt_abstime rtl_failure_time{0};
 
 	DEFINE_PARAMETERS(

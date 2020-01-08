@@ -58,7 +58,7 @@ RTL::on_inactive()
 	// Reset RTL state.
 	_rtl_state = RTL_STATE_NONE;
 
-	warned = false;
+	_warned = false;
 
 	find_RTL_destination();
 
@@ -194,7 +194,7 @@ RTL::on_activation()
 		break;
 	}
 
-	rtl_failed = false;
+	_rtl_failed = false;
 	rtl_failure_time = 0;
 
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
@@ -230,7 +230,7 @@ RTL::on_active()
 		set_rtl_item();
 	}
 
-	if (rtl_failed && !_navigator -> get_land_detected() -> landed) {
+	if (_rtl_failed && !_navigator->get_land_detected()->landed) {
 		if (hrt_elapsed_time(&rtl_failure_time) > 30e6) {
 
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Upload a valid mission to use mission landing");
@@ -255,21 +255,21 @@ RTL::set_rtl_item()
 	if (_destination.type == RTL_DESTINATION_MISSION_LANDING && _rtl_state > RTL_STATE_CLIMB
 	    && _navigator->start_mission_landing()) {
 		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");
-		rtl_failed = false;
+		_rtl_failed = false;
 		return;
 
 	}
 
 
 
-// Otherwise use regular RTL.
+	// Otherwise use regular RTL.
 	if (rtl_type() == 1) {
-		rtl_failed = true;
+		_rtl_failed = true;
 		rtl_failure_time = hrt_absolute_time();
 
-		if (!warned) {
+		if (!_warned) {
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unable to use mission landing");
-			warned = true;
+			_warned = true;
 		}
 	}
 
@@ -279,10 +279,10 @@ RTL::set_rtl_item()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-// Check if we are pretty close to the destination already.
+	// Check if we are pretty close to the destination already.
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
 
-// Compute the loiter altitude.
+	// Compute the loiter altitude.
 	const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
 
 	switch (_rtl_state) {
