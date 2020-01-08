@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,9 +31,58 @@
  *
  ****************************************************************************/
 
-extern int do_test();
+/*
+ * @file NotchFilter.hpp
+ *
+ * @brief Notch filter with array input/output
+ *
+ * @author Mathieu Bresciani <brescianimathieu@gmail.com>
+ */
 
-int main()
+#pragma once
+
+#include "NotchFilter.hpp"
+
+namespace math
 {
-	return do_test();
-}
+template<typename T>
+class NotchFilterArray : public NotchFilter<T>
+{
+	using NotchFilter<T>::_delay_element_1;
+	using NotchFilter<T>::_delay_element_2;
+	using NotchFilter<T>::_a1;
+	using NotchFilter<T>::_a2;
+	using NotchFilter<T>::_b0;
+	using NotchFilter<T>::_b1;
+	using NotchFilter<T>::_b2;
+
+public:
+
+	NotchFilterArray() = default;
+	~NotchFilterArray() = default;
+
+	/**
+	 * Add new raw values to the filter
+	 *
+	 * @return retrieve the filtered result
+	 */
+	inline void apply(T samples[], uint8_t num_samples)
+	{
+		for (int n = 0; n < num_samples; n++) {
+			// Direct Form II implementation
+			T delay_element_0{samples[n] - _delay_element_1 *_a1 - _delay_element_2 * _a2};
+
+			// don't allow bad values to propagate via the filter
+			if (!isFinite(delay_element_0)) {
+				delay_element_0 = samples[n];
+			}
+
+			samples[n] = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
+
+			_delay_element_2 = _delay_element_1;
+			_delay_element_1 = delay_element_0;
+		}
+	}
+};
+
+} // namespace math

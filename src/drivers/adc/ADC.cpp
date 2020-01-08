@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,71 +31,7 @@
  *
  ****************************************************************************/
 
-/**
- * @file adc.cpp
- *
- * Driver for an ADC.
- *
- */
-#include <stdint.h>
-#include <drivers/drv_adc.h>
-#include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
-#include <lib/perf/perf_counter.h>
-#include <px4_arch/adc.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/adc_report.h>
-#include <uORB/topics/system_power.h>
-
-
-using namespace time_literals;
-
-#ifndef ADC_CHANNELS
-#error "board needs to define ADC_CHANNELS to use this driver"
-#endif
-
-#define ADC_TOTAL_CHANNELS 		32
-
-
-class ADC : public cdev::CDev, public px4::ScheduledWorkItem
-{
-public:
-	ADC(uint32_t base_address, uint32_t channels);
-	~ADC() override;
-
-	int		init() override;
-
-	ssize_t		read(file *filp, char *buffer, size_t len) override;
-
-private:
-	void		Run() override;
-
-	/**
-	 * Sample a single channel and return the measured value.
-	 *
-	 * @param channel		The channel to sample.
-	 * @return			The sampled value, or UINT32_MAX if sampling failed.
-	 */
-	uint32_t		sample(unsigned channel);
-
-	void			update_adc_report(hrt_abstime now);
-	void			update_system_power(hrt_abstime now);
-
-
-	static const hrt_abstime	kINTERVAL{10_ms};	/**< 100Hz base rate */
-
-	perf_counter_t			_sample_perf;
-
-	unsigned			_channel_count{0};
-	const uint32_t			_base_address;
-	px4_adc_msg_t			*_samples{nullptr};	/**< sample buffer */
-
-	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
-	uORB::Publication<system_power_s>	_to_system_power{ORB_ID(system_power)};
-};
+#include "ADC.hpp"
 
 ADC::ADC(uint32_t base_address, uint32_t channels) :
 	CDev(ADC0_DEVICE_PATH),
@@ -145,8 +81,7 @@ ADC::~ADC()
 	px4_arch_adc_uninit(_base_address);
 }
 
-int
-ADC::init()
+int ADC::init()
 {
 	int ret_init = px4_arch_adc_init(_base_address);
 
@@ -169,8 +104,7 @@ ADC::init()
 	return PX4_OK;
 }
 
-ssize_t
-ADC::read(file *filp, char *buffer, size_t len)
+ssize_t ADC::read(cdev::file_t *filp, char *buffer, size_t len)
 {
 	const size_t maxsize = sizeof(px4_adc_msg_t) * _channel_count;
 
@@ -179,16 +113,16 @@ ADC::read(file *filp, char *buffer, size_t len)
 	}
 
 	/* block interrupts while copying samples to avoid racing with an update */
-	irqstate_t flags = px4_enter_critical_section();
+	lock();
 	memcpy(buffer, _samples, len);
-	px4_leave_critical_section(flags);
+	unlock();
 
 	return len;
 }
 
-void
-ADC::Run()
+void ADC::Run()
 {
+	lock();
 	hrt_abstime now = hrt_absolute_time();
 
 	/* scan the channel set and sample each */
@@ -198,10 +132,10 @@ ADC::Run()
 
 	update_adc_report(now);
 	update_system_power(now);
+	unlock();
 }
 
-void
-ADC::update_adc_report(hrt_abstime now)
+void ADC::update_adc_report(hrt_abstime now)
 {
 	adc_report_s adc = {};
 	adc.timestamp = now;
@@ -215,14 +149,12 @@ ADC::update_adc_report(hrt_abstime now)
 	for (unsigned i = 0; i < max_num; i++) {
 		adc.channel_id[i] = _samples[i].am_channel;
 		adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
-		;
 	}
 
 	_to_adc_report.publish(adc);
 }
 
-void
-ADC::update_system_power(hrt_abstime now)
+void ADC::update_system_power(hrt_abstime now)
 {
 #if defined (BOARD_ADC_USB_CONNECTED)
 	system_power_s system_power {};
@@ -305,8 +237,7 @@ ADC::update_system_power(hrt_abstime now)
 #endif // BOARD_ADC_USB_CONNECTED
 }
 
-uint32_t
-ADC::sample(unsigned channel)
+uint32_t ADC::sample(unsigned channel)
 {
 	perf_begin(_sample_perf);
 	uint32_t result = px4_arch_adc_sample(_base_address, channel);
@@ -319,20 +250,9 @@ ADC::sample(unsigned channel)
 	return result;
 }
 
-/*
- * Driver 'main' command.
- */
-extern "C" __EXPORT int adc_main(int argc, char *argv[]);
-
-namespace
+int ADC::test()
 {
-ADC	*g_adc{nullptr};
-
-int
-test(void)
-{
-
-	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("can't open ADC device %d", errno);
@@ -341,7 +261,7 @@ test(void)
 
 	for (unsigned i = 0; i < 20; i++) {
 		px4_adc_msg_t data[ADC_TOTAL_CHANNELS];
-		ssize_t count = read(fd, data, sizeof(data));
+		ssize_t count = px4_read(fd, data, sizeof(data));
 
 		if (count < 0) {
 			PX4_ERR("read error");
@@ -355,36 +275,74 @@ test(void)
 		}
 
 		printf("\n");
-		px4_usleep(500000);
+		px4_usleep(100000);
 	}
+
+	px4_close(fd);
 
 	return 0;
 }
-}
 
-int
-adc_main(int argc, char *argv[])
+int ADC::custom_command(int argc, char *argv[])
 {
-	if (g_adc == nullptr) {
-		g_adc = new ADC(SYSTEM_ADC_BASE, ADC_CHANNELS);
+	const char *verb = argv[0];
 
-		if (g_adc == nullptr) {
-			PX4_ERR("couldn't allocate the ADC driver");
-			return 1;
+	if (!strcmp(verb, "test")) {
+		if (is_running()) {
+			return _object.load()->test();
 		}
 
-		if (g_adc->init() != OK) {
-			delete g_adc;
-			PX4_ERR("ADC init failed");
-			return 1;
-		}
+		return PX4_ERROR;
 	}
 
-	if (argc > 1) {
-		if (!strcmp(argv[1], "test")) {
-			return test();
+	return print_usage("unknown command");
+}
+
+int ADC::task_spawn(int argc, char *argv[])
+{
+	ADC *instance = new ADC(SYSTEM_ADC_BASE, ADC_CHANNELS);
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init() == PX4_OK) {
+			return PX4_OK;
 		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+int ADC::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+ADC driver.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("adc", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND("test");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+}
+
+extern "C" __EXPORT int adc_main(int argc, char *argv[])
+{
+	return ADC::main(argc, argv);
 }

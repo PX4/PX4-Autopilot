@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,19 +33,51 @@
 
 #pragma once
 
-#include <sys/types.h>
-#include <stdbool.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#include <time.h>
-#include <queue.h>
+#include <lib/led/led.h>
 
-#define PWMIN0_DEVICE_PATH		"/dev/pwmin0"
+class NavioRGBLed : public ModuleBase<NavioRGBLed>, public px4::ScheduledWorkItem
+{
+public:
+	NavioRGBLed();
+	~NavioRGBLed() override;
 
-__BEGIN_DECLS
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-/*
- * Initialise the timer
- */
-__EXPORT extern int	pwm_input_main(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-__END_DECLS
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	int init();
+
+private:
+
+	void Run() override;
+
+	LedController _led_controller;
+
+
+	class SysRGBLED
+	{
+	public:
+		explicit SysRGBLED(const char *path) : _fd(open(path, O_WRONLY)) {}
+		~SysRGBLED() { close(_fd); }
+
+		bool on() { return (write(_fd, "0", 1) > 0); }
+		bool off() { return (write(_fd, "1", 1) > 0); }
+
+	private:
+		int _fd{-1};
+	};
+
+	SysRGBLED _ledR{"/sys/class/leds/rgb_led0/brightness"};
+	SysRGBLED _ledG{"/sys/class/leds/rgb_led1/brightness"};
+	SysRGBLED _ledB{"/sys/class/leds/rgb_led2/brightness"};
+};

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,9 +32,15 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__bbblue_adc
-	MAIN bbblue_adc
-	COMPILE_FLAGS
+	MODULE drivers__imu__st__lsm9ds1
+	MAIN lsm9ds1
 	SRCS
-		bbblue_adc.cpp
-)
+		lsm9ds1_main.cpp
+		LSM9DS1.cpp
+		LSM9DS1.hpp
+		ST_LSM9DS1_Registers.hpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
+	)

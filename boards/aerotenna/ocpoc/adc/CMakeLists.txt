@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-include_directories(..)
 
-add_executable(navio_rgbled_test
-	main.cpp
-	test.cpp
-	)
-
-target_link_libraries(navio_rgbled_test
-	drivers__navio_rgbled
-	drivers__navio_gpio
-	df_driver_framework
-	)
+px4_add_library(arch_adc
+	adc.cpp
+)

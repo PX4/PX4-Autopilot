@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,41 +31,68 @@
  *
  ****************************************************************************/
 
-/**
- * @file linux_gpio.h
- *
- * Linux sysfs GPIO Interface
- *
- * This interface allows manipulation of sysfs GPIOs on Linux
- *
- * @author Nicolae Rosia <nicolae.rosia@gmail.com>
- */
+#include <board_config.h>
 
-#pragma once
+#include <drivers/drv_adc.h>
 
-class LinuxGPIO
+#include <px4_platform_common/log.h>
+
+#include <fcntl.h>
+#include <stdint.h>
+#include <unistd.h>
+
+#define ADC_SYSFS_PATH "/sys/bus/iio/devices/iio:device0"
+#define ADC_MAX_CHAN 9
+int _channels_fd[ADC_MAX_CHAN];
+
+int px4_arch_adc_init(uint32_t base_address)
 {
-public:
-	LinuxGPIO(unsigned int pin);
-	~LinuxGPIO();
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		_channels_fd[i] = -1;
+	}
 
-	enum class Direction {
-		IN = 0,
-		OUT = 1,
-	};
+	return 0;
+}
 
-	enum class Value {
-		LOW = 0,
-		HIGH = 1,
-	};
+void px4_arch_adc_uninit(uint32_t base_address)
+{
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		::close(_channels_fd[i]);
+		_channels_fd[i] = -1;
+	}
+}
 
-	int exportPin();
-	int unexportPin();
-	int setDirection(LinuxGPIO::Direction dir);
-	int readValue();
-	int writeValue(LinuxGPIO::Value value);
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
+{
+	if (channel > ADC_MAX_CHAN) {
+		PX4_ERR("channel %d out of range: %d", channel, ADC_MAX_CHAN);
+		return UINT32_MAX; // error
+	}
 
-private:
-	int _pin;
-	int _fd;
-};
+	// open channel if necessary
+	if (_channels_fd[channel] == -1) {
+		// ADC_SYSFS_PATH
+		char channel_path[strlen(ADC_SYSFS_PATH) + 20] {};
+
+		if (sprintf(channel_path, "%s/in_voltage%d_raw", ADC_SYSFS_PATH, channel) == -1) {
+			PX4_ERR("adc channel: %d\n", channel);
+			return UINT32_MAX; // error
+		}
+
+		_channels_fd[channel] = ::open(channel_path, O_RDONLY);
+	}
+
+	char buffer[10] {};
+
+	if (::pread(_channels_fd[channel], buffer, sizeof(buffer), 0) < 0) {
+		PX4_ERR("read channel %d failed", channel);
+		return UINT32_MAX; // error
+	}
+
+	return atoi(buffer);
+}
+
+uint32_t px4_arch_adc_dn_fullcount()
+{
+	return 1 << 12; // 12 bit ADC
+}

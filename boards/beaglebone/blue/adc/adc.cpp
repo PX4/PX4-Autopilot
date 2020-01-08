@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,28 +30,69 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-#include <lib/drivers/linux_gpio/linux_gpio.h>
-#include <DevObj.hpp>
+#include <board_config.h>
 
-#include <lib/led/led.h>
+#include <drivers/drv_adc.h>
 
-class RGBLED : public DriverFramework::DevObj
+#include <px4_platform_common/log.h>
+
+#include <fcntl.h>
+#include <stdint.h>
+#include <unistd.h>
+
+#define ADC_SYSFS_PATH "/sys/bus/iio/devices/iio:device0"
+#define ADC_MAX_CHAN 8
+int _channels_fd[ADC_MAX_CHAN];
+
+int px4_arch_adc_init(uint32_t base_address)
 {
-public:
-	RGBLED(const char *name);
-	virtual ~RGBLED() = default;
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		_channels_fd[i] = -1;
+	}
 
-	int start();
-	int stop();
+	return 0;
+}
 
-protected:
-	void _measure();
+void px4_arch_adc_uninit(uint32_t base_address)
+{
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		::close(_channels_fd[i]);
+		_channels_fd[i] = -1;
+	}
+}
 
-private:
-	LedController _led_controller;
-	LinuxGPIO _gpioR;
-	LinuxGPIO _gpioG;
-	LinuxGPIO _gpioB;
-};
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
+{
+	if (channel > ADC_MAX_CHAN) {
+		PX4_ERR("channel %d out of range: %d", channel, ADC_MAX_CHAN);
+		return UINT32_MAX; // error
+	}
+
+	// open channel if necessary
+	if (_channels_fd[channel] == -1) {
+		// ADC_SYSFS_PATH
+		char channel_path[strlen(ADC_SYSFS_PATH) + 20] {};
+
+		if (sprintf(channel_path, "%s/in_voltage%d_raw", ADC_SYSFS_PATH, channel) == -1) {
+			PX4_ERR("adc channel: %d\n", channel);
+			return UINT32_MAX; // error
+		}
+
+		_channels_fd[channel] = ::open(channel_path, O_RDONLY);
+	}
+
+	char buffer[10] {};
+
+	if (::pread(_channels_fd[channel], buffer, sizeof(buffer), 0) < 0) {
+		PX4_ERR("read channel %d failed", channel);
+		return UINT32_MAX; // error
+	}
+
+	return atoi(buffer);
+}
+
+uint32_t px4_arch_adc_dn_fullcount()
+{
+	return 1 << 12; // 12 bit ADC
+}
