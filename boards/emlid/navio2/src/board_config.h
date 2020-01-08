@@ -50,12 +50,12 @@
 
 #define BOARD_MAX_LEDS 1 // Number of external LED's this board has
 
-/*
- * I2C busses
- */
+
+// I2C
 #define PX4_I2C_BUS_EXPANSION   1
 
 #define PX4_NUMBER_I2C_BUSES    1
+
 
 // SPI
 #define PX4_SPI_BUS_SENSORS    0
@@ -64,9 +64,20 @@
 #define PX4_SPIDEV_LSM9DS1_M   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2) // spidev0.2 - lsm9ds1 mag
 #define PX4_SPIDEV_LSM9DS1_AG  PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3) // spidev0.3 - lsm9ds1 accel/gyro
 
-// Battery ADC channels
-#define ADC_BATTERY_VOLTAGE_CHANNEL 2
-#define ADC_BATTERY_CURRENT_CHANNEL 3
+
+// ADC channels:
+// A0 - board voltage (shows 5V)
+// A1 - servo rail voltage
+// A2 - power module voltage (ADC0, POWER port)
+// A3 - power module current (ADC1, POWER port)
+// A4 - ADC2 (ADC port)
+// A5 - ADC3 (ADC port)
+#define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5)
+
+#define ADC_BATTERY_VOLTAGE_CHANNEL  2
+#define ADC_BATTERY_CURRENT_CHANNEL  3
+#define ADC_5V_RAIL_SENSE            0
+
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
