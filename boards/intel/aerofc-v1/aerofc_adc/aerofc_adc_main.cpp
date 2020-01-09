@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016  Intel Corporation. All rights reserved.
+ *   Copyright (C) 2016 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,35 +32,9 @@
  ****************************************************************************/
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 
-#include <cstring>
-
-#include <arch/board/board.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-
-#include <board_config.h>
-
-#include <drivers/device/i2c.h>
-#include <drivers/drv_adc.h>
-
-#include <systemlib/err.h>
-
-#define SLAVE_ADDR 0x50
-#define ADC_ENABLE_REG 0x00
-#define ADC_CHANNEL_REG 0x05
-#define MAX_CHANNEL 5
-
-// 10Hz
-#define CYCLE_TICKS_DELAY MSEC2TICK(100)
-
-
-uint32_t px4_arch_adc_dn_fullcount()
-{
-	return 1 << 12; // 12 bit ADC
-}
+#include "AEROFC_ADC.hpp"
 
 enum AEROFC_ADC_BUS {
 	AEROFC_ADC_BUS_ALL = 0,
@@ -85,42 +59,24 @@ static constexpr struct aerofc_adc_bus_option {
 
 extern "C" { __EXPORT int aerofc_adc_main(int argc, char *argv[]); }
 
-class AEROFC_ADC : public device::I2C
-{
-public:
-	AEROFC_ADC(uint8_t bus);
-	virtual ~AEROFC_ADC();
-
-	virtual int init();
-	virtual int ioctl(file *filp, int cmd, unsigned long arg);
-	virtual ssize_t read(file *filp, char *buffer, size_t len);
-
-private:
-	virtual int probe();
-
-	void cycle();
-	static void cycle_trampoline(void *arg);
-
-	struct work_s _work;
-	px4_adc_msg_t _sample;
-	pthread_mutex_t _sample_mutex;
-};
-
 static AEROFC_ADC *instance = nullptr;
 
-static void test()
+static int test()
 {
-	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "can't open ADC device");
+		PX4_ERR("can't open ADC device");
+		return PX4_ERROR;
 	}
 
 	px4_adc_msg_t data[MAX_CHANNEL];
-	ssize_t count = read(fd, data, sizeof(data));
+	ssize_t count = px4_read(fd, data, sizeof(data));
 
 	if (count < 0) {
-		errx(1, "read error");
+		PX4_ERR("read error");
+		px4_close(fd);
+		return PX4_ERROR;
 	}
 
 	unsigned channels = count / sizeof(data[0]);
@@ -130,8 +86,9 @@ static void test()
 	}
 
 	printf("\n");
+	px4_close(fd);
 
-	exit(0);
+	return 0;
 }
 
 static void help()
@@ -172,7 +129,7 @@ int aerofc_adc_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		if (instance) {
-			warn("AEROFC_ADC was already started");
+			PX4_WARN("AEROFC_ADC was already started");
 			return PX4_OK;
 		}
 
@@ -184,7 +141,7 @@ int aerofc_adc_main(int argc, char *argv[])
 			instance = new AEROFC_ADC(bus_options[i].busnum);
 
 			if (!instance) {
-				warn("No memory to instance AEROFC_ADC");
+				PX4_WARN("No memory to instance AEROFC_ADC");
 				return PX4_ERROR;
 			}
 
@@ -192,134 +149,24 @@ int aerofc_adc_main(int argc, char *argv[])
 				break;
 			}
 
-			warn("AEROFC_ADC not found on busnum=%u", bus_options[i].busnum);
+			PX4_WARN("AEROFC_ADC not found on busnum=%u", bus_options[i].busnum);
 			delete instance;
 			instance = nullptr;
 		}
 
 		if (!instance) {
-			warn("AEROFC_ADC not found");
+			PX4_WARN("AEROFC_ADC not found");
 			return PX4_ERROR;
 		}
 
 	} else if (!strcmp(verb, "test")) {
-		test();
+		return test();
 
 	} else {
-		warn("Action not supported");
+		PX4_WARN("Action not supported");
 		help();
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
-}
-
-AEROFC_ADC::AEROFC_ADC(uint8_t bus) :
-	I2C("AEROFC_ADC", ADC0_DEVICE_PATH, bus, SLAVE_ADDR, 400000),
-	_sample{}
-{
-	_sample.am_channel = 1;
-	pthread_mutex_init(&_sample_mutex, NULL);
-}
-
-AEROFC_ADC::~AEROFC_ADC()
-{
-	work_cancel(HPWORK, &_work);
-}
-
-int AEROFC_ADC::init()
-{
-	int ret = I2C::init();
-
-	if (ret != PX4_OK) {
-		return ret;
-	}
-
-	work_queue(HPWORK, &_work, (worker_t)&AEROFC_ADC::cycle_trampoline, this,
-		   CYCLE_TICKS_DELAY);
-
-	return PX4_OK;
-}
-
-int AEROFC_ADC::probe()
-{
-	uint8_t buffer[2];
-	int ret;
-
-	_retries = 3;
-
-	/* Enable ADC */
-	buffer[0] = ADC_ENABLE_REG;
-	buffer[1] = 0x01;
-	ret = transfer(buffer, 2, NULL, 0);
-
-	if (ret != PX4_OK) {
-		goto error;
-	}
-
-	usleep(10000);
-
-	/* Read ADC value */
-	buffer[0] = ADC_CHANNEL_REG;
-	ret = transfer(buffer, 1, buffer, 2);
-
-	if (ret != PX4_OK) {
-		goto error;
-	}
-
-	return PX4_OK;
-
-error:
-	return -EIO;
-}
-
-int AEROFC_ADC::ioctl(file *filp, int cmd, unsigned long arg)
-{
-	return -ENOTTY;
-}
-
-ssize_t AEROFC_ADC::read(file *filp, char *buffer, size_t len)
-{
-	if (len < sizeof(_sample)) {
-		return -ENOSPC;
-	}
-
-	if (len > sizeof(_sample)) {
-		len = sizeof(_sample);
-	}
-
-	pthread_mutex_lock(&_sample_mutex);
-	memcpy(buffer, &_sample, len);
-	pthread_mutex_unlock(&_sample_mutex);
-
-	return len;
-}
-
-void AEROFC_ADC::cycle_trampoline(void *arg)
-{
-	AEROFC_ADC *dev = static_cast<AEROFC_ADC * >(arg);
-	dev->cycle();
-}
-
-void AEROFC_ADC::cycle()
-{
-	uint8_t buffer[2];
-	int ret;
-
-	buffer[0] = ADC_CHANNEL_REG;
-	ret = transfer(buffer, 1, buffer, sizeof(buffer));
-
-	if (ret != PX4_OK) {
-		warn("Error reading sample");
-		return;
-	}
-
-	pthread_mutex_lock(&_sample_mutex);
-
-	_sample.am_data = (buffer[0] | (buffer[1] << 8));
-
-	pthread_mutex_unlock(&_sample_mutex);
-
-	work_queue(HPWORK, &_work, (worker_t)&AEROFC_ADC::cycle_trampoline, this,
-		   CYCLE_TICKS_DELAY);
 }
