@@ -91,18 +91,20 @@ GpsFailure::on_active()
 			vehicle_attitude_setpoint_s att_sp = {};
 			att_sp.timestamp = hrt_absolute_time();
 
-			//This determines if the fixedwing vehicle is landing or not, and if so it forces the wings level
+			//This determines if the fixedwing vehicle is landing or not, and if so it forces the wings level and
+			//throttle to
 			//Otherwise the plane goes to the parameter set fixed bank loiter setting
 
 			if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND && was_landing) {
 				att_sp.roll_body = 0.0f;
+				att_sp.thrust_body[0] = 0.0f;
 
 			} else {
 				att_sp.roll_body = math::radians(_param_nav_gpsf_r.get());
+				att_sp.thrust_body[0] = _param_nav_gpsf_tr.get();
 			}
 
 			att_sp.pitch_body = math::radians(_param_nav_gpsf_p.get());
-			att_sp.thrust_body[0] = _param_nav_gpsf_tr.get();
 
 			Quatf q(Eulerf(att_sp.roll_body, att_sp.pitch_body, 0.0f));
 			q.copyTo(att_sp.q_d);
