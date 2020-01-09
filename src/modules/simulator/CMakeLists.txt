@@ -76,5 +76,3 @@ px4_add_module(
 		drivers_magnetometer
 	)
 target_include_directories(modules__simulator INTERFACE ${PX4_SOURCE_DIR}/mavlink/include/mavlink)
-
-add_subdirectory(gpssim)

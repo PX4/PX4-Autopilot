@@ -223,7 +223,7 @@ private:
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
 
-		(ParamBool<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
+		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_rc_in_off,
 		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_min_stick_change,
@@ -256,6 +256,12 @@ private:
 		DISABLED = 0,
 		SAFETY_BUTTON = 1,
 		ALWAYS = 2
+	};
+
+	enum OverrideMode {
+		OVERRIDE_DISABLED = 0,
+		OVERRIDE_AUTO_MODE_BIT = (1 << 0),
+		OVERRIDE_OFFBOARD_MODE_BIT = (1 << 1)
 	};
 
 	/* Decouple update interval and hysteresis counters, all depends on intervals */

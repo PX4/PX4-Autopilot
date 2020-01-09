@@ -71,7 +71,6 @@ static unsigned _addrlen = sizeof(_srcaddr);
 const unsigned mode_flag_armed = 128;
 const unsigned mode_flag_custom = 1;
 
-using namespace simulator;
 using namespace time_literals;
 
 mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
@@ -192,7 +191,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	}
 
 	// gyro
-	{
+	if (!_param_sim_gyro_block.get()) {
 		static constexpr float scaling = 1000.0f;
 		_px4_gyro.set_scale(1 / scaling);
 		_px4_gyro.set_temperature(imu.temperature);
@@ -200,7 +199,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	}
 
 	// accel
-	{
+	if (!_param_sim_accel_block.get()) {
 		static constexpr float scaling = 1000.0f;
 		_px4_accel.set_scale(1 / scaling);
 		_px4_accel.set_temperature(imu.temperature);
@@ -208,7 +207,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	}
 
 	// magnetometer
-	{
+	if (!_param_sim_mag_block.get()) {
 		static constexpr float scaling = 1000.0f;
 		_px4_mag.set_scale(1 / scaling);
 		_px4_mag.set_temperature(imu.temperature);
@@ -216,13 +215,13 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	}
 
 	// baro
-	{
+	if (!_param_sim_baro_block.get()) {
 		_px4_baro.set_temperature(imu.temperature);
 		_px4_baro.update(time, imu.abs_pressure);
 	}
 
 	// differential pressure
-	{
+	if (!_param_sim_dpres_block.get()) {
 		differential_pressure_s report{};
 		report.timestamp = time;
 		report.temperature = imu.temperature;
@@ -231,26 +230,6 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 		_differential_pressure_pub.publish(report);
 	}
-}
-
-void Simulator::update_gps(const mavlink_hil_gps_t *gps_sim)
-{
-	RawGPSData gps = {};
-	gps.timestamp = hrt_absolute_time();
-	gps.lat = gps_sim->lat;
-	gps.lon = gps_sim->lon;
-	gps.alt = gps_sim->alt;
-	gps.eph = gps_sim->eph;
-	gps.epv = gps_sim->epv;
-	gps.vel = gps_sim->vel;
-	gps.vn = gps_sim->vn;
-	gps.ve = gps_sim->ve;
-	gps.vd = gps_sim->vd;
-	gps.cog = gps_sim->cog;
-	gps.fix_type = gps_sim->fix_type;
-	gps.satellites_visible = gps_sim->satellites_visible;
-
-	write_gps_data((void *)&gps);
 }
 
 void Simulator::handle_message(const mavlink_message_t *msg)
@@ -303,10 +282,37 @@ void Simulator::handle_message_distance_sensor(const mavlink_message_t *msg)
 
 void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 {
-	mavlink_hil_gps_t gps_sim;
-	mavlink_msg_hil_gps_decode(msg, &gps_sim);
+	mavlink_hil_gps_t hil_gps;
+	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	update_gps(&gps_sim);
+	if (!_param_sim_gps_block.get()) {
+		vehicle_gps_position_s gps{};
+
+		gps.timestamp = hrt_absolute_time();
+		gps.time_utc_usec = hil_gps.time_usec;
+		gps.fix_type = hil_gps.fix_type;
+		gps.lat = hil_gps.lat;
+		gps.lon = hil_gps.lon;
+		gps.alt = hil_gps.alt;
+		gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+		gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
+		gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+		gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+		gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+		gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+		gps.cog_rad = math::radians((float)(hil_gps.cog) / 100.0f); // cdeg -> rad
+		gps.satellites_used = hil_gps.satellites_visible;
+		gps.s_variance_m_s = 0.25f;
+
+		// use normal distribution for noise
+		if (_param_sim_gps_noise_x.get() > 0.0f) {
+			std::normal_distribution<float> normal_distribution(0.0f, 1.0f);
+			gps.lat += (int32_t)(_param_sim_gps_noise_x.get() * normal_distribution(_gen));
+			gps.lon += (int32_t)(_param_sim_gps_noise_x.get() * normal_distribution(_gen));
+		}
+
+		_vehicle_gps_position_pub.publish(gps);
+	}
 }
 
 void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
