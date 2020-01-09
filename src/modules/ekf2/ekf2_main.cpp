@@ -132,8 +132,6 @@ private:
 	bool publish_attitude(const sensor_combined_s &sensors, const hrt_abstime &now);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
 
-	const Vector3f get_vel_body_wind();
-
 	/*
 	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical
 	 * receiver solutions. This internal state cannot be used directly by estimators because if physical receivers
@@ -190,13 +188,6 @@ private:
 	uint64_t _mag_time_sum_ms = 0;		///< summed magnetoemter time stamps (mSec)
 	uint8_t _mag_sample_count = 0;		///< number of magnetometer measurements summed during downsampling
 	int32_t _mag_time_ms_last_used = 0;	///< time stamp of the last averaged magnetometer measurement sent to the EKF (mSec)
-
-	// Used to down sample barometer data
-	float _balt_data_sum = 0.0f;			///< summed pressure altitude readings (m)
-	uint64_t _balt_time_sum_ms = 0;		///< summed pressure altitude time stamps (mSec)
-	uint8_t _balt_sample_count = 0;		///< number of barometric altitude measurements summed
-	uint32_t _balt_time_ms_last_used =
-		0;	///< time stamp of the last averaged barometric altitude measurement sent to the EKF (mSec)
 
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _last_magcal_us = 0;	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
@@ -504,17 +495,17 @@ private:
 
 		// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
 		// Coef = Ps_error / Pdynamic, where Pdynamic = 1/2 * density * TAS**2
-		(ParamFloat<px4::params::EKF2_ASPD_MAX>)
+		(ParamExtFloat<px4::params::EKF2_ASPD_MAX>)
 		_param_ekf2_aspd_max,		///< upper limit on airspeed used for correction  (m/s**2)
-		(ParamFloat<px4::params::EKF2_PCOEF_XP>)
+		(ParamExtFloat<px4::params::EKF2_PCOEF_XP>)
 		_param_ekf2_pcoef_xp,	///< static pressure position error coefficient along the positive X body axis
-		(ParamFloat<px4::params::EKF2_PCOEF_XN>)
+		(ParamExtFloat<px4::params::EKF2_PCOEF_XN>)
 		_param_ekf2_pcoef_xn,	///< static pressure position error coefficient along the negative X body axis
-		(ParamFloat<px4::params::EKF2_PCOEF_YP>)
+		(ParamExtFloat<px4::params::EKF2_PCOEF_YP>)
 		_param_ekf2_pcoef_yp,	///< static pressure position error coefficient along the positive Y body axis
-		(ParamFloat<px4::params::EKF2_PCOEF_YN>)
+		(ParamExtFloat<px4::params::EKF2_PCOEF_YN>)
 		_param_ekf2_pcoef_yn,	///< static pressure position error coefficient along the negative Y body axis
-		(ParamFloat<px4::params::EKF2_PCOEF_Z>)
+		(ParamExtFloat<px4::params::EKF2_PCOEF_Z>)
 		_param_ekf2_pcoef_z,	///< static pressure position error coefficient along the Z body axis
 
 		// GPS blending
@@ -633,6 +624,12 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
+	_param_ekf2_aspd_max(_params->max_correction_airspeed),
+	_param_ekf2_pcoef_xp(_params->static_pressure_coef_xp),
+	_param_ekf2_pcoef_xn(_params->static_pressure_coef_xn),
+	_param_ekf2_pcoef_yp(_params->static_pressure_coef_yp),
+	_param_ekf2_pcoef_yn(_params->static_pressure_coef_yn),
+	_param_ekf2_pcoef_z(_params->static_pressure_coef_z),
 	_param_ekf2_move_test(_params->is_moving_scaler),
 	_param_ekf2_mag_check(_params->check_mag_strength)
 {
@@ -865,62 +862,8 @@ void Ekf2::Run()
 			vehicle_air_data_s airdata;
 
 			if (_airdata_sub.copy(&airdata)) {
-				// If the time last used by the EKF is less than specified, then accumulate the
-				// data and push the average when the specified interval is reached.
-				_balt_time_sum_ms += airdata.timestamp / 1000;
-				_balt_sample_count++;
-				_balt_data_sum += airdata.baro_alt_meter;
-				uint32_t balt_time_ms = _balt_time_sum_ms / _balt_sample_count;
-
-				if (balt_time_ms - _balt_time_ms_last_used > (uint32_t)_params->sensor_interval_min_ms) {
-					// take mean across sample period
-					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
-
-					_ekf.set_air_density(airdata.rho);
-
-					// calculate static pressure error = Pmeas - Ptruth
-					// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
-					// negative X and Y directions
-					const Vector3f vel_body_wind = get_vel_body_wind();
-
-					float K_pstatic_coef_x;
-
-					if (vel_body_wind(0) >= 0.0f) {
-						K_pstatic_coef_x = _param_ekf2_pcoef_xp.get();
-
-					} else {
-						K_pstatic_coef_x = _param_ekf2_pcoef_xn.get();
-					}
-
-					float K_pstatic_coef_y;
-
-					if (vel_body_wind(1) >= 0.0f) {
-						K_pstatic_coef_y = _param_ekf2_pcoef_yp.get();
-
-					} else {
-						K_pstatic_coef_y = _param_ekf2_pcoef_yn.get();
-					}
-
-					const float max_airspeed_sq = _param_ekf2_aspd_max.get() * _param_ekf2_aspd_max.get();
-					const float x_v2 = fminf(vel_body_wind(0) * vel_body_wind(0), max_airspeed_sq);
-					const float y_v2 = fminf(vel_body_wind(1) * vel_body_wind(1), max_airspeed_sq);
-					const float z_v2 = fminf(vel_body_wind(2) * vel_body_wind(2), max_airspeed_sq);
-
-					const float pstatic_err = 0.5f * airdata.rho * (
-									  K_pstatic_coef_x * x_v2 + K_pstatic_coef_y * y_v2 + _param_ekf2_pcoef_z.get() * z_v2);
-
-					// correct baro measurement using pressure error estimate and assuming sea level gravity
-					balt_data_avg += pstatic_err / (airdata.rho * CONSTANTS_ONE_G);
-
-					// push to estimator
-					_ekf.setBaroData(1000 * (uint64_t)balt_time_ms, balt_data_avg);
-
-					_balt_time_ms_last_used = balt_time_ms;
-					_balt_time_sum_ms = 0;
-					_balt_sample_count = 0;
-					_balt_data_sum = 0.0f;
-				}
-
+				_ekf.set_air_density(airdata.rho);
+				_ekf.setBaroData((uint64_t)airdata.timestamp, airdata.baro_alt_meter);
 				ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
 						(int64_t)ekf2_timestamps.timestamp / 100);
 			}
@@ -1807,26 +1750,6 @@ bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 	}
 
 	return false;
-}
-
-const Vector3f Ekf2::get_vel_body_wind()
-{
-	// Used to correct baro data for positional errors
-
-	matrix::Quatf q = _ekf.get_quaternion();
-	matrix::Dcmf R_to_body(q.inversed());
-
-	// Calculate wind-compensated velocity in body frame
-	// Velocity of body origin in local NED frame (m/s)
-	float velocity[3];
-	_ekf.get_velocity(velocity);
-
-	float velNE_wind[2];
-	_ekf.get_wind_velocity(velNE_wind);
-
-	Vector3f v_wind_comp = {velocity[0] - velNE_wind[0], velocity[1] - velNE_wind[1], velocity[2]};
-
-	return R_to_body * v_wind_comp;
 }
 
 bool Ekf2::blend_gps_data()
