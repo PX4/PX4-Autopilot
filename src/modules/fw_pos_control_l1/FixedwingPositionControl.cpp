@@ -854,7 +854,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			float loiter_radius = pos_sp_curr.loiter_radius;
 			uint8_t loiter_direction = pos_sp_curr.loiter_direction;
 
-			if (pos_sp_curr.loiter_radius < 0.01f || pos_sp_curr.loiter_radius > -0.01f) {
+			if (fabsf(pos_sp_curr.loiter_radius) < FLT_EPSILON) {
 				loiter_radius = _parameters.loiter_radius;
 				loiter_direction = (loiter_radius > 0) ? 1 : -1;
 

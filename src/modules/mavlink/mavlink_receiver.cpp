@@ -47,6 +47,7 @@
 #include <drivers/drv_tone_alarm.h>
 #include <ecl/geo/geo.h>
 #include <systemlib/px4_macros.h>
+#include <math.h>
 
 #ifdef CONFIG_NET
 #include <net/if.h>
@@ -453,7 +454,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		const vehicle_command_s &vehicle_command)
 {
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
-
 	bool send_ack = true;
 	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
@@ -474,19 +474,37 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		if (set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3)) {
+		if (set_message_interval((int)roundf(cmd_mavlink.param1), cmd_mavlink.param2, cmd_mavlink.param3)) {
 			result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		get_message_interval((int)cmd_mavlink.param1);
+		get_message_interval((int)roundf(cmd_mavlink.param1));
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
 		send_flight_information();
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
-		if ((int)(cmd_mavlink.param2 + 0.5f) == 1) {
-			send_storage_information(cmd_mavlink.param1 + 0.5f);
+		if ((int)roundf(cmd_mavlink.param1) == 1) {
+			send_storage_information((int)roundf(cmd_mavlink.param1));
+		}
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
+		uint16_t message_id = (uint16_t)roundf(cmd_mavlink.param1);
+		bool stream_found = false;
+
+		for (const auto &stream : _mavlink->get_streams()) {
+			if (stream->get_id() == message_id) {
+				stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
+							vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+				stream_found = true;
+				break;
+			}
+		}
+
+		// TODO: Handle the case where a message is requested which could be sent, but for which there is no stream.
+		if (!stream_found) {
+			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 		}
 
 	} else {
@@ -1246,10 +1264,9 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	q_body_to_local.copyTo(odometry.q);
 
 	// TODO:
-	// - add a MAV_FRAME_*_OTHER to the Mavlink MAV_FRAME enum IOT define
-	// a frame of reference which is not aligned with NED or ENU
-	// - add usage on the estimator side
-	odometry.local_frame = odometry.LOCAL_FRAME_NED;
+	// add usage of this information on the estimator side
+	// The heading of the local frame is not aligned with north
+	odometry.local_frame = odometry.LOCAL_FRAME_FRD;
 
 	// pose_covariance
 	static constexpr size_t POS_URT_SIZE = sizeof(odometry.pose_covariance) / sizeof(odometry.pose_covariance[0]);
@@ -1261,7 +1278,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	static_assert(VEL_URT_SIZE == (sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0])),
 		      "Odometry Velocity Covariance matrix URT array size mismatch");
 
-	// create a method to simplify covariance copy
+	// TODO: create a method to simplify covariance copy
 	for (size_t i = 0; i < POS_URT_SIZE; i++) {
 		odometry.pose_covariance[i] = odom.pose_covariance[i];
 	}
@@ -1277,7 +1294,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		 * Angular velocities are already in the right body frame  */
 		const matrix::Dcmf R_body_to_local = matrix::Dcmf(q_body_to_local);
 
-		/* the linear velocities needs to be transformed to the local NED frame */
+		/* the linear velocities needs to be transformed to the local frame FRD*/
 		matrix::Vector3<float> linvel_local(R_body_to_local * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 
 		odometry.vx = linvel_local(0);
@@ -1288,10 +1305,24 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odometry.pitchspeed = odom.pitchspeed;
 		odometry.yawspeed = odom.yawspeed;
 
-		//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
+		/* the linear velocity's covariance needs to be transformed to the local frame FRD*/
+		matrix::Matrix3f lin_vel_cov_body;
+		lin_vel_cov_body(0, 0) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VX_VARIANCE];
+		lin_vel_cov_body(0, 1) = lin_vel_cov_body(1, 0) = odom.velocity_covariance[1];
+		lin_vel_cov_body(0, 2) = lin_vel_cov_body(2, 0) = odom.velocity_covariance[2];
+		lin_vel_cov_body(1, 1) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VY_VARIANCE];
+		lin_vel_cov_body(1, 2) = lin_vel_cov_body(2, 1) = odom.velocity_covariance[7];
+		lin_vel_cov_body(2, 2) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VZ_VARIANCE];
+		matrix::Matrix3f lin_vel_cov_local = R_body_to_local * lin_vel_cov_body * R_body_to_local.transpose();
+
+		/* Only the linear velocity variance elements are used */
 		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-			odometry.velocity_covariance[i] = odom.velocity_covariance[i];
+			odometry.velocity_covariance[i] = NAN;
 		}
+
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VX_VARIANCE] = lin_vel_cov_local(0, 0);
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VY_VARIANCE] = lin_vel_cov_local(1, 1);
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VZ_VARIANCE] = lin_vel_cov_local(2, 2);
 
 	} else {
 		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
@@ -2712,18 +2743,8 @@ MavlinkReceiver::Run()
 
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == Protocol::SERIAL) {
-
-				/*
-				 * to avoid reading very small chunks wait for data before reading
-				 * this is designed to target one message, so >20 bytes at a time
-				 */
-				const unsigned character_count = 20;
-
 				/* non-blocking read. read may return negative values */
-				if ((nread = ::read(fds[0].fd, buf, sizeof(buf))) < (ssize_t)character_count) {
-					const unsigned sleeptime = character_count * 1000000 / (_mavlink->get_baudrate() / 10);
-					px4_usleep(sleeptime);
-				}
+				nread = ::read(fds[0].fd, buf, sizeof(buf));
 			}
 
 #if defined(MAVLINK_UDP)

@@ -268,8 +268,8 @@ Navigator::run()
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 
 					// Position change with optional altitude change
-					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
-					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+					rep->current.lat = cmd.param5;
+					rep->current.lon = cmd.param6;
 
 					if (PX4_ISFINITE(cmd.param7)) {
 						rep->current.alt = cmd.param7;
@@ -323,8 +323,8 @@ Navigator::run()
 				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-					rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
-					rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+					rep->current.lat = cmd.param5;
+					rep->current.lon = cmd.param6;
 
 				} else {
 					// If one of them is non-finite, reset both
@@ -862,7 +862,9 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 
 	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
-	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && pos_ctrl_status.acceptance_radius > radius) {
+	if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    && (pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp)
+	    && pos_ctrl_status.acceptance_radius > radius) {
 		radius = pos_ctrl_status.acceptance_radius;
 	}
 

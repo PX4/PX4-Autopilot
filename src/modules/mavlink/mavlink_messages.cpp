@@ -58,7 +58,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/camera_capture.h>
@@ -1398,7 +1398,7 @@ private:
 	MavlinkOrbSubscription *_act0_sub;
 	MavlinkOrbSubscription *_act1_sub;
 
-	MavlinkOrbSubscription *_airspeed_sub;
+	MavlinkOrbSubscription *_airspeed_validated_sub;
 	uint64_t _airspeed_time;
 
 	MavlinkOrbSubscription *_air_data_sub;
@@ -1415,7 +1415,7 @@ protected:
 		_armed_time(0),
 		_act0_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
 		_act1_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_1))),
-		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
+		_airspeed_validated_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed_validated))),
 		_airspeed_time(0),
 		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data)))
 	{}
@@ -1424,16 +1424,16 @@ protected:
 	{
 		vehicle_local_position_s pos = {};
 		actuator_armed_s armed = {};
-		airspeed_s airspeed = {};
+		airspeed_validated_s airspeed_validated = {};
 
 		bool updated = false;
 		updated |= _pos_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
-		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
+		updated |= _airspeed_validated_sub->update(&_airspeed_time, &airspeed_validated);
 
 		if (updated) {
-			mavlink_vfr_hud_t msg = {};
-			msg.airspeed = airspeed.indicated_airspeed_m_s;
+			mavlink_vfr_hud_t msg{};
+			msg.airspeed = airspeed_validated.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vx * pos.vx + pos.vy * pos.vy);
 			msg.heading = math::degrees(wrap_2pi(pos.yaw));
 

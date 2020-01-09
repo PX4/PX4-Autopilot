@@ -313,7 +313,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 		if (i < 6) {
 			// THEN: If the data is new enough, the velocity setpoint should stay the same as the input
 			// Note: direction will change slightly due to guidance
-			EXPECT_EQ(original_setpoint.norm(), modified_setpoint.norm());
+			EXPECT_FLOAT_EQ(original_setpoint.norm(), modified_setpoint.norm());
 
 		} else {
 			// THEN: If the data is expired, the velocity setpoint should be cut down to zero because there is no data
@@ -381,7 +381,7 @@ TEST_F(CollisionPreventionTest, testNoRangeData)
 		if (i < 5) {
 			// THEN: If the data is new enough, the velocity setpoint should stay the same as the input
 			// Note: direction will change slightly due to guidance
-			EXPECT_EQ(original_setpoint.norm(), modified_setpoint.norm());
+			EXPECT_FLOAT_EQ(original_setpoint.norm(), modified_setpoint.norm());
 
 		} else {
 			// THEN: If the data is expired, the velocity setpoint should be cut down to zero because there is no data
@@ -1008,8 +1008,8 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
 
 	//THEN: the setpoint direction should be modified correctly
 	EXPECT_EQ(sp_index, 2);
-	EXPECT_FLOAT_EQ(setpoint_dir(0), 0.93969262);
-	EXPECT_FLOAT_EQ(setpoint_dir(1), 0.34202012);
+	EXPECT_FLOAT_EQ(setpoint_dir(0), 0.93969262f);
+	EXPECT_FLOAT_EQ(setpoint_dir(1), 0.34202012f);
 }
 
 TEST_F(CollisionPreventionTest, overlappingSensors)
