@@ -55,7 +55,6 @@
 #			[ SYSTEMCMDS <list> ]
 #			[ EXAMPLES <list> ]
 #			[ SERIAL_PORTS <list> ]
-#			[ DF_DRIVERS <list> ]
 #			[ CONSTRAINED_FLASH ]
 #			[ TESTING ]
 #			)
@@ -77,7 +76,6 @@
 #		SYSTEMCMDS		: list of system commands to build for this board (relative to src/systemcmds)
 #		EXAMPLES		: list of example modules to build for this board (relative to src/examples)
 #		SERIAL_PORTS		: mapping of user configurable serial ports and param facing name
-#		DF_DRIVERS		: list of DriverFramework device drivers (includes DriverFramework driver and wrapper)
 #		CONSTRAINED_FLASH	: flag to enable constrained flash options (eg limit init script status text)
 #		TESTING			: flag to enable automatic inclusion of PX4 testing modules
 #
@@ -148,7 +146,6 @@ function(px4_add_board)
 			SYSTEMCMDS
 			EXAMPLES
 			SERIAL_PORTS
-			DF_DRIVERS
 		OPTIONS
 			BUILD_BOOTLOADER
 			CONSTRAINED_FLASH
@@ -262,19 +259,6 @@ function(px4_add_board)
 		foreach(example ${EXAMPLES})
 			list(APPEND config_module_list examples/${example})
 		endforeach()
-	endif()
-
-	# DriverFramework drivers
-	if(DF_DRIVERS)
-		set(config_df_driver_list)
-		foreach(driver ${DF_DRIVERS})
-			list(APPEND config_df_driver_list ${driver})
-
-			if(EXISTS "${PX4_SOURCE_DIR}/src/drivers/driver_framework_wrapper/df_${driver}_wrapper")
-				list(APPEND config_module_list drivers/driver_framework_wrapper/df_${driver}_wrapper)
-			endif()
-		endforeach()
-		set(config_df_driver_list ${config_df_driver_list} PARENT_SCOPE)
 	endif()
 
 	# add board config directory src to build modules

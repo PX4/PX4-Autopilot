@@ -33,21 +33,24 @@
  *
  ****************************************************************************/
 
-#include <termios.h>
+#include "simulator.h"
+#include <simulator_config.h>
+
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/tasks.h>
-#include "simulator.h"
-#include <simulator_config.h>
-#include "errno.h"
 #include <lib/ecl/geo/geo.h>
 #include <drivers/drv_pwm_output.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <pthread.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
+
+#include <errno.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <poll.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <termios.h>
 
 #include <limits>
 
@@ -957,7 +960,7 @@ int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink
 
 	_flow_pub.publish(flow);
 
-	return OK;
+	return PX4_OK;
 }
 
 int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
@@ -1062,7 +1065,7 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 	/** @note: frame_id == MAV_FRAME_VISION_NED) */
 	_visual_odometry_pub.publish(odom);
 
-	return OK;
+	return PX4_OK;
 }
 
 int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavlink)
@@ -1087,5 +1090,5 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 
 	_dist_pub.publish(dist);
 
-	return OK;
+	return PX4_OK;
 }

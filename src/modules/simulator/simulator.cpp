@@ -64,6 +64,21 @@ void Simulator::parameters_update(bool force)
 	}
 }
 
+void Simulator::print_status()
+{
+	PX4_INFO("accelerometer");
+	_px4_accel.print_status();
+
+	PX4_INFO("gyroscope");
+	_px4_gyro.print_status();
+
+	PX4_INFO("magnetometer");
+	_px4_mag.print_status();
+
+	PX4_INFO("barometer");
+	_px4_baro.print_status();
+}
+
 int Simulator::start(int argc, char *argv[])
 {
 	_instance = new Simulator();
@@ -79,9 +94,8 @@ int Simulator::start(int argc, char *argv[])
 			_instance->set_port(atoi(argv[3]));
 		}
 
-#ifndef __PX4_QURT
 		_instance->run();
-#endif
+
 		return 0;
 
 	} else {
@@ -92,7 +106,7 @@ int Simulator::start(int argc, char *argv[])
 
 static void usage()
 {
-	PX4_INFO("Usage: simulator {start -[spt] [-u udp_port / -c tcp_port] |stop}");
+	PX4_INFO("Usage: simulator {start -[spt] [-u udp_port / -c tcp_port] |stop|status}");
 	PX4_INFO("Start simulator:     simulator start");
 	PX4_INFO("Connect using UDP: simulator start -u udp_port");
 	PX4_INFO("Connect using TCP: simulator start -c tcp_port");
@@ -119,7 +133,7 @@ int simulator_main(int argc, char *argv[])
 						Simulator::start,
 						argv);
 
-#if !defined(__PX4_QURT) && defined(ENABLE_LOCKSTEP_SCHEDULER)
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 		// We want to prevent the rest of the startup script from running until time
 		// is initialized by the HIL_SENSOR messages from the simulator.
@@ -141,6 +155,15 @@ int simulator_main(int argc, char *argv[])
 		} else {
 			px4_task_delete(g_sim_task);
 			g_sim_task = -1;
+		}
+
+	} else if (argc == 2 && strcmp(argv[1], "status") == 0) {
+		if (g_sim_task < 0) {
+			PX4_WARN("Simulator not running");
+			return 1;
+
+		} else {
+			Simulator::getInstance()->print_status();
 		}
 
 	} else {

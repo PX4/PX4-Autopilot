@@ -54,7 +54,7 @@
 #include <sys/ioctl.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/actuator_controls.h>
