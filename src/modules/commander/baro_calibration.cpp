@@ -38,7 +38,6 @@
 
 #include "baro_calibration.h"
 
-#include <poll.h>
 #include <math.h>
 #include <fcntl.h>
 #include <px4_platform_common/defines.h>

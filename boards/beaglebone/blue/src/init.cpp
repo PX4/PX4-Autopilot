@@ -49,7 +49,6 @@ int rc_init(void)
 #ifdef __RC_V0_3
 	return rc_initialize();
 #else
-#ifdef __DF_BBBLUE
 
 	if (rc_get_state() == RUNNING) {  return 0; }
 
@@ -111,7 +110,6 @@ int rc_init(void)
 	//i2c, barometer and mpu will be initialized later
 
 	rc_set_state(RUNNING);
-#endif
 
 	return 0;
 #endif
@@ -123,7 +121,6 @@ void rc_cleaning(void)
 #ifdef __RC_V0_3
 	rc_cleanup();  return ;
 #else
-#ifdef __DF_BBBLUE
 
 	if (rc_get_state() == EXITING) { return; }
 
@@ -135,6 +132,5 @@ void rc_cleaning(void)
 	rc_servo_cleanup();
 
 	rc_remove_pid_file();
-#endif
 #endif
 }
