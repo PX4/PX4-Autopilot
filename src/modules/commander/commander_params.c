@@ -630,7 +630,6 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 30);
 PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
 
 /**
- * Enable RC stick override of auto modes
  * Enable RC stick override of auto or offboard modes
  *
  * Moving the RC sticks gives control back to the pilot in manual position mode immediately when:
