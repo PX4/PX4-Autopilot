@@ -59,21 +59,15 @@ RCInput::RCInput(const char *device) :
 		_raw_rc_values[i] = UINT16_MAX;
 	}
 
-#ifdef RC_SERIAL_PORT
-
 	if (device) {
 		strncpy(_device, device, sizeof(_device));
 		_device[sizeof(_device) - 1] = '\0';
 	}
-
-#endif
 }
 
 RCInput::~RCInput()
 {
-#ifdef RC_SERIAL_PORT
 	dsm_deinit();
-#endif
 
 	delete _crsf_telemetry;
 
@@ -84,12 +78,10 @@ RCInput::~RCInput()
 int
 RCInput::init()
 {
-#ifdef RC_SERIAL_PORT
-
-#  ifdef RF_RADIO_POWER_CONTROL
+#ifdef RF_RADIO_POWER_CONTROL
 	// power radio on
 	RF_RADIO_POWER_CONTROL(true);
-#  endif
+#endif // RF_RADIO_POWER_CONTROL
 
 	// dsm_init sets some file static variables and returns a file descriptor
 	_rcs_fd = dsm_init(_device);
@@ -99,18 +91,20 @@ RCInput::init()
 	}
 
 	if (board_rc_swap_rxtx(_device)) {
+#if defined(TIOCSSWAP)
 		ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+#endif // TIOCSSWAP
 	}
 
 	// assume SBUS input and immediately switch it to
 	// so that if Single wire mode on TX there will be only
 	// a short contention
 	sbus_config(_rcs_fd, board_rc_singlewire(_device));
-#  ifdef GPIO_PPM_IN
+
+#ifdef GPIO_PPM_IN
 	// disable CPPM input by mapping it away from the timer capture input
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
-#  endif
-#endif
+#endif // GPIO_PPM_IN
 
 	return 0;
 }
@@ -123,7 +117,10 @@ RCInput::task_spawn(int argc, char *argv[])
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
-	const char *device = RC_SERIAL_PORT;
+	const char *device = nullptr;
+#if defined(RC_SERIAL_PORT)
+	device = RC_SERIAL_PORT;
+#endif // RC_SERIAL_PORT
 
 	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -144,6 +141,11 @@ RCInput::task_spawn(int argc, char *argv[])
 
 	if (error_flag) {
 		return -1;
+	}
+
+	if (device == nullptr) {
+		PX4_ERR("valid device required");
+		return PX4_ERROR;
 	}
 
 	RCInput *instance = new RCInput(device);
@@ -226,7 +228,6 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 	_rc_in.rc_total_frame_count = 0;
 }
 
-#ifdef RC_SERIAL_PORT
 void RCInput::set_rc_scan_state(RC_SCAN newState)
 {
 	PX4_DEBUG("RCscan: %s failed, trying %s", RCInput::RC_SCAN_STRING[_rc_scan_state], RCInput::RC_SCAN_STRING[newState]);
@@ -239,10 +240,11 @@ void RCInput::rc_io_invert(bool invert)
 	// First check if the board provides a board-specific inversion method (e.g. via GPIO),
 	// and if not use an IOCTL
 	if (!board_rc_invert_input(_device, invert)) {
+#if defined(TIOCSINVERT)
 		ioctl(_rcs_fd, TIOCSINVERT, invert ? (SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX) : 0);
+#endif // TIOCSINVERT
 	}
 }
-#endif
 
 void RCInput::Run()
 {
@@ -329,7 +331,6 @@ void RCInput::Run()
 
 		bool rc_updated = false;
 
-#ifdef RC_SERIAL_PORT
 		// This block scans for a supported serial RC input and locks onto the first one found
 		// Scan for 300 msec, then switch protocol
 		constexpr hrt_abstime rc_scan_max = 300_ms;
@@ -589,21 +590,6 @@ void RCInput::Run()
 
 			break;
 		}
-
-#else  // RC_SERIAL_PORT not defined
-#ifdef HRT_PPM_CHANNEL
-
-		// see if we have new PPM input data
-		if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) && ppm_decoded_channels > 3) {
-			// we have a new PPM frame. Publish it.
-			rc_updated = true;
-			fill_rc_in(ppm_decoded_channels, ppm_buffer, cycle_timestamp, false, false, 0);
-			_rc_in.rc_ppm_frame_length = ppm_frame_length;
-			_rc_in.timestamp_last_signal = ppm_last_valid_decode;
-		}
-
-#endif  // HRT_PPM_CHANNEL
-#endif  // RC_SERIAL_PORT
 
 		perf_end(_cycle_perf);
 

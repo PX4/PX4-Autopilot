@@ -26,6 +26,7 @@ px4_add_board(
 		magnetometer/hmc5883
 		magnetometer/lsm9ds1_mag
 		pwm_out_sim
+		rc_input
 		#telemetry # all available telemetry drivers
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
 		isl29501
