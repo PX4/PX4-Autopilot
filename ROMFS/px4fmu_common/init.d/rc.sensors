@@ -58,6 +58,12 @@ then
 	fi
 fi
 
+# External automatic trigger system
+if param compare FD_EXT_ATS_EN 1
+then
+	pwm_input start
+fi
+
 # Lidar-Lite on I2C
 if param compare -s SENS_EN_LL40LS 2
 then

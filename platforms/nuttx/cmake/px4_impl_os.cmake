@@ -78,9 +78,11 @@ function(px4_os_add_flags)
 	if("${CONFIG_ARMV7M_STACKCHECK}" STREQUAL "y")
 		message(STATUS "NuttX Stack Checking (CONFIG_ARMV7M_STACKCHECK) enabled")
 		add_compile_options(
-			-finstrument-functions
 			-ffixed-r10
-			)
+			-finstrument-functions
+			# instrumenting PX4 Matrix and Param methods is too burdensome
+			-finstrument-functions-exclude-file-list=matrix/Matrix.hpp,px4_platform_common/param.h
+		)
 	endif()
 
 endfunction()

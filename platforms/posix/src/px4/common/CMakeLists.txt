@@ -49,7 +49,6 @@ if("${CONFIG_SHMEM}" STREQUAL "1")
 endif()
 
 add_library(px4_layer
-	adc.cpp
 	px4_posix_impl.cpp
 	px4_posix_tasks.cpp
 	px4_sem.cpp

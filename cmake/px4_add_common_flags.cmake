@@ -180,7 +180,10 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		${PX4_SOURCE_DIR}/src/lib/matrix
 		${PX4_SOURCE_DIR}/src/modules
-		)
+	)
+	if(EXISTS ${PX4_BOARD_DIR}/include)
+		include_directories(${PX4_BOARD_DIR}/include)
+	endif()
 
 	add_definitions(
 		-DCONFIG_ARCH_BOARD_${PX4_BOARD_NAME}

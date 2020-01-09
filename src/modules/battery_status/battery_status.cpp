@@ -63,39 +63,13 @@
 #include <uORB/topics/battery_status.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#include <DevMgr.hpp>
-
 #include "analog_battery.h"
 
-using namespace DriverFramework;
 using namespace time_literals;
 
 /**
- * Analog layout:
- * FMU:
- * IN2 - battery voltage
- * IN3 - battery current
- * IN4 - 5V sense
- * IN10 - spare (we could actually trim these from the set)
- * IN11 - spare on FMUv2 & v3, RC RSSI on FMUv4
- * IN12 - spare (we could actually trim these from the set)
- * IN13 - aux1 on FMUv2, unavaible on v3 & v4
- * IN14 - aux2 on FMUv2, unavaible on v3 & v4
- * IN15 - pressure sensor on FMUv2, unavaible on v3 & v4
- *
- * IO:
- * IN4 - servo supply rail
- * IN5 - analog RSSI on FMUv2 & v3
- *
  * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
  */
-
-/**
- * Battery status app start / stop handling function
- *
- * @ingroup apps
- */
-extern "C" __EXPORT int battery_status_main(int argc, char *argv[]);
 
 #ifndef BOARD_NUMBER_BRICKS
 #error "battery_status module requires power bricks"
@@ -123,11 +97,8 @@ public:
 	void Run() override;
 	bool init();
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 private:
-	DevHandle 	_h_adc;				/**< ADC driver handle */
+	int  _adc_fd{-1};			/**< ADC file handle */
 
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
@@ -150,11 +121,6 @@ private:
 #endif /* BOARD_NUMBER_BRICKS > 1 */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
-	/**
-	 * Do adc-related initialisation.
-	 */
-	int		adc_init();
 
 	/**
 	 * Check for changes in parameters.
@@ -187,19 +153,6 @@ BatteryStatus::~BatteryStatus()
 	ScheduleClear();
 }
 
-int
-BatteryStatus::adc_init()
-{
-	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
-
-	if (!_h_adc.isValid()) {
-		PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
-		return PX4_ERROR;
-	}
-
-	return OK;
-}
-
 void
 BatteryStatus::parameter_update_poll(bool forced)
 {
@@ -221,7 +174,7 @@ BatteryStatus::adc_poll()
 	px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
 
 	/* read all channels available */
-	int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+	int ret = px4_read(_adc_fd, &buf_adc, sizeof(buf_adc));
 
 	/* For legacy support we publish the battery_status for the Battery that is
 	 * associated with the Brick that is the selected source for VDD_5V_IN
@@ -307,11 +260,16 @@ BatteryStatus::Run()
 		return;
 	}
 
-	if (!_h_adc.isValid()) {
-		adc_init();
-	}
-
 	perf_begin(_loop_perf);
+
+	if (_adc_fd < 0) {
+		_adc_fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
+
+		if (_adc_fd < 0) {
+			PX4_ERR("unable to open ADC: %s", ADC0_DEVICE_PATH);
+			return;
+		}
+	}
 
 	/* check parameters for updates */
 	parameter_update_poll();
@@ -354,11 +312,6 @@ BatteryStatus::init()
 	return true;
 }
 
-int BatteryStatus::print_status()
-{
-	return 0;
-}
-
 int BatteryStatus::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
@@ -390,7 +343,7 @@ It runs in its own thread and polls on the currently selected gyro topic.
 	return 0;
 }
 
-int battery_status_main(int argc, char *argv[])
+extern "C" __EXPORT int battery_status_main(int argc, char *argv[])
 {
 	return BatteryStatus::main(argc, argv);
 }
