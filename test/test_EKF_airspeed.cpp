@@ -32,62 +32,71 @@
  ****************************************************************************/
 
 /**
- * Wrapper class for Ekf object to set behavior or check status
+ * Test the fusion of airspeed data
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
-#pragma once
 
-#include <memory>
+#include <gtest/gtest.h>
 #include "EKF/ekf.h"
-#include "EKF/estimator_interface.h"
+#include "sensor_simulator/sensor_simulator.h"
+#include "sensor_simulator/ekf_wrapper.h"
 
-class EkfWrapper
-{
-public:
-	EkfWrapper(std::shared_ptr<Ekf> ekf);
-	~EkfWrapper();
 
-	void enableGpsFusion();
-	void disableGpsFusion();
-	bool isIntendingGpsFusion() const;
+class EkfAirspeedTest : public ::testing::Test {
+ public:
 
-	void enableFlowFusion();
-	void disableFlowFusion();
-	bool isIntendingFlowFusion() const;
+	EkfAirspeedTest(): ::testing::Test(),
+	_ekf{std::make_shared<Ekf>()},
+	_sensor_simulator(_ekf),
+	_ekf_wrapper(_ekf) {};
 
-	void enableExternalVisionPositionFusion();
-	void disableExternalVisionPositionFusion();
-	bool isIntendingExternalVisionPositionFusion() const;
-
-	void enableExternalVisionVelocityFusion();
-	void disableExternalVisionVelocityFusion();
-	bool isIntendingExternalVisionVelocityFusion() const;
-
-	void enableExternalVisionHeadingFusion();
-	void disableExternalVisionHeadingFusion();
-	bool isIntendingExternalVisionHeadingFusion() const;
-
-	void enableExternalVisionAlignment();
-	void disableExternalVisionAlignment();
-
-	Vector3f getPosition() const;
-	Vector3f getVelocity() const;
-	Vector3f getAccelBias() const;
-	Vector3f getGyroBias() const;
-	Quatf getQuaternion() const;
-	Eulerf getEulerAngles() const;
-	matrix::Vector<float, 24> getState() const;
-	matrix::Vector<float, 4> getQuaternionVariance() const;
-	Vector3f getPositionVariance() const;
-	Vector3f getVelocityVariance() const;
-	Vector2f getWindVelocity() const;
-
-	Quatf getVisionAlignmentQuaternion() const;
-
-private:
 	std::shared_ptr<Ekf> _ekf;
+	SensorSimulator _sensor_simulator;
+	EkfWrapper _ekf_wrapper;
 
-	// Pointer to Ekf internal param struct
-	parameters* _ekf_params;
+	// Setup the Ekf with synthetic measurements
+	void SetUp() override
+	{
+		_ekf->init(0);
+		_sensor_simulator.runSeconds(2);
+	}
 
+	// Use this method to clean up any memory, network etc. after each test
+	void TearDown() override
+	{
+	}
 };
+
+TEST_F(EkfAirspeedTest, temp)
+{
+	const Vector3f simulated_velocity(1.5f,0.0f,0.0f);
+	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_sensor_simulator._vio.setVelocity(simulated_velocity);
+	_sensor_simulator.startExternalVision();
+
+	_ekf->set_in_air_status(true);
+	_sensor_simulator.startAirspeedSensor();
+	_sensor_simulator._airspeed.setData(0.1f,0.1f);
+
+	_sensor_simulator.runSeconds(40);
+
+
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	EXPECT_TRUE(control_status.flags.wind);
+
+	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
+
+	EXPECT_TRUE(_ekf->local_position_is_valid());
+	EXPECT_FALSE(_ekf->global_position_is_valid());
+
+	const Vector3f vel = _ekf_wrapper.getVelocity();
+	const Vector2f vel_wind = _ekf_wrapper.getWindVelocity();
+
+
+	EXPECT_TRUE(matrix::isEqual(vel, simulated_velocity));
+	EXPECT_TRUE(matrix::isEqual(vel_wind, Vector2f{1.4f, 0.0f}));
+
+}
