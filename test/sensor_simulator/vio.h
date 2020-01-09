@@ -63,7 +63,7 @@ public:
 private:
 	ext_vision_message _vio_data;
 
-	void send(uint32_t time) override;
+	void send(uint64_t time) override;
 
 };
 

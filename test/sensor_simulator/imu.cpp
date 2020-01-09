@@ -13,7 +13,7 @@ Imu::~Imu()
 {
 }
 
-void Imu::send(uint32_t time)
+void Imu::send(uint64_t time)
 {
 	imuSample imu_sample;
 	imu_sample.time_us = time;

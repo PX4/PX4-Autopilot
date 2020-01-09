@@ -13,7 +13,7 @@ Baro::~Baro()
 {
 }
 
-void Baro::send(uint32_t time)
+void Baro::send(uint64_t time)
 {
 	_ekf->setBaroData(time,_baro_data);
 }

@@ -55,7 +55,7 @@ public:
 private:
 	Vector3f _mag_data;
 
-	void send(uint32_t time) override;
+	void send(uint64_t time) override;
 
 };
 

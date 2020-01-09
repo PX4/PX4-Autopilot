@@ -43,6 +43,7 @@ set(SRCS
 	flow.cpp
 	range_finder.cpp
 	vio.cpp
+	airspeed.cpp
    )
 
 add_library(ecl_sensor_sim ${SRCS})

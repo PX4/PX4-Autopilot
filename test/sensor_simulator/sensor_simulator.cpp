@@ -9,7 +9,8 @@ _baro(ekf),
 _gps(ekf),
 _flow(ekf),
 _rng(ekf),
-_vio(ekf)
+_vio(ekf),
+_airspeed(ekf)
 {
 	setSensorDataToDefault();
 	setSensorRateToDefault();
@@ -30,6 +31,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_flow.setRateHz(50);
 	_rng.setRateHz(30);
 	_vio.setRateHz(30);
+	_airspeed.setRateHz(30); // TODO: check this rate
 }
 void SensorSimulator::setSensorRateToDefault()
 {
@@ -41,6 +43,7 @@ void SensorSimulator::setSensorRateToDefault()
 	_flow.setData(_flow.dataAtRest());
 	_rng.setData(0.2f, 100);
 	_vio.setData(_vio.dataAtRest());
+	_airspeed.setData(0.0f, 0.0f);
 }
 void SensorSimulator::startBasicSensor()
 {
@@ -57,20 +60,26 @@ void SensorSimulator::runSeconds(float duration_seconds)
 void SensorSimulator::runMicroseconds(uint32_t duration)
 {
 	// simulate in 1000us steps
-	const uint32_t start_time = _time;
+	const uint64_t start_time = _time;
 
-	for(;_time < start_time + duration; _time+=1000)
+	for(;_time < start_time + (uint64_t)duration; _time+=1000)
 	{
-		_imu.update(_time);
-		_mag.update(_time);
-		_baro.update(_time);
-		_gps.update(_time);
-		_flow.update(_time);
-		_rng.update(_time);
-		_vio.update(_time);
+		updateSensors();
 
 		_ekf->update();
 	}
+}
+
+void SensorSimulator::updateSensors()
+{
+	_imu.update(_time);
+	_mag.update(_time);
+	_baro.update(_time);
+	_gps.update(_time);
+	_flow.update(_time);
+	_rng.update(_time);
+	_vio.update(_time);
+	_airspeed.update(_time);
 }
 
 void SensorSimulator::setImuBias(Vector3f accel_bias, Vector3f gyro_bias)

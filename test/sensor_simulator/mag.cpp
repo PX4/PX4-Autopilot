@@ -13,7 +13,7 @@ Mag::~Mag()
 {
 }
 
-void Mag::send(uint32_t time)
+void Mag::send(uint64_t time)
 {
 	float mag[3];
 	_mag_data.copyTo(mag);

@@ -13,8 +13,9 @@ Flow::~Flow()
 {
 }
 
-void Flow::send(uint32_t time)
+void Flow::send(uint64_t time)
 {
+	_flow_data.dt = time - _time_last_data_sent;
 	_ekf->setOpticalFlowData(time, &_flow_data);
 }
 
