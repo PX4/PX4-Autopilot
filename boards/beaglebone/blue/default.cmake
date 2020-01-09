@@ -24,6 +24,7 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		pwm_out_sim
+		rc_input
 		#telemetry # all available telemetry drivers
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
 		mpu9250

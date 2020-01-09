@@ -57,6 +57,7 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		qshell/posix
+		rc_input
 		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector

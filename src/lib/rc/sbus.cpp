@@ -56,7 +56,7 @@ using namespace time_literals;
 
 #define SBUS_DEBUG_LEVEL 	0 /* Set debug output level */
 
-#if defined(__PX4_POSIX_OCPOC)
+#if defined(__PX4_LINUX)
 #include <sys/ioctl.h>
 #include <linux/serial_core.h>
 #endif
@@ -152,7 +152,7 @@ sbus_init(const char *device, bool singlewire)
 int
 sbus_config(int sbus_fd, bool singlewire)
 {
-#if defined(__PX4_POSIX_OCPOC)
+#if defined(__PX4_LINUX)
 	struct termios options;
 
 	if (tcgetattr(sbus_fd, &options) != 0) {
