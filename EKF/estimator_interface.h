@@ -549,6 +549,10 @@ protected:
 	uint8_t _mag_sample_count {0};
 	uint64_t _mag_timestamp_sum {0};
 
+	// Used to down sample barometer data
+	float _baro_alt_sum {0.0f};			///< summed pressure altitude readings (m)
+	uint8_t _baro_sample_count {0};		///< number of barometric altitude measurements summed
+
 	fault_status_u _fault_status{};
 
 	// allocate data buffers and initialize interface variables
@@ -574,6 +578,8 @@ protected:
 
 	inline void computeVibrationMetric();
 	inline bool checkIfVehicleAtRest(float dt);
+
+	virtual float compensateBaroForDynamicPressure(const float baro_alt_uncompensated) = 0;
 
 	void printBufferAllocationFailed(const char * buffer_name);
 };
