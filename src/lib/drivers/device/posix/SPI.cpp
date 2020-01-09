@@ -140,10 +140,10 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 
 	if (result != (int)len) {
 		PX4_ERR("write failed. Reported %d bytes written (%s)", result, strerror(errno));
-		return -1;
+		return PX4_ERROR;
 	}
 
-	return 0;
+	return PX4_OK;
 }
 
 int
@@ -183,10 +183,10 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 
 	if (result != (int)(len * 2)) {
 		PX4_ERR("write failed. Reported %d bytes written (%s)", result, strerror(errno));
-		return -1;
+		return PX4_ERROR;
 	}
 
-	return 0;
+	return PX4_OK;
 }
 
 } // namespace device
