@@ -1264,10 +1264,9 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	q_body_to_local.copyTo(odometry.q);
 
 	// TODO:
-	// - add a MAV_FRAME_*_OTHER to the Mavlink MAV_FRAME enum IOT define
-	// a frame of reference which is not aligned with NED or ENU
-	// - add usage on the estimator side
-	odometry.local_frame = odometry.LOCAL_FRAME_NED;
+	// add usage of this information on the estimator side
+	// The heading of the local frame is not aligned with north
+	odometry.local_frame = odometry.LOCAL_FRAME_FRD;
 
 	// pose_covariance
 	static constexpr size_t POS_URT_SIZE = sizeof(odometry.pose_covariance) / sizeof(odometry.pose_covariance[0]);
@@ -1279,7 +1278,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	static_assert(VEL_URT_SIZE == (sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0])),
 		      "Odometry Velocity Covariance matrix URT array size mismatch");
 
-	// create a method to simplify covariance copy
+	// TODO: create a method to simplify covariance copy
 	for (size_t i = 0; i < POS_URT_SIZE; i++) {
 		odometry.pose_covariance[i] = odom.pose_covariance[i];
 	}
@@ -1295,7 +1294,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		 * Angular velocities are already in the right body frame  */
 		const matrix::Dcmf R_body_to_local = matrix::Dcmf(q_body_to_local);
 
-		/* the linear velocities needs to be transformed to the local NED frame */
+		/* the linear velocities needs to be transformed to the local frame FRD*/
 		matrix::Vector3<float> linvel_local(R_body_to_local * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 
 		odometry.vx = linvel_local(0);
@@ -1306,10 +1305,24 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odometry.pitchspeed = odom.pitchspeed;
 		odometry.yawspeed = odom.yawspeed;
 
-		//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
+		/* the linear velocity's covariance needs to be transformed to the local frame FRD*/
+		matrix::Matrix3f lin_vel_cov_body;
+		lin_vel_cov_body(0, 0) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VX_VARIANCE];
+		lin_vel_cov_body(0, 1) = lin_vel_cov_body(1, 0) = odom.velocity_covariance[1];
+		lin_vel_cov_body(0, 2) = lin_vel_cov_body(2, 0) = odom.velocity_covariance[2];
+		lin_vel_cov_body(1, 1) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VY_VARIANCE];
+		lin_vel_cov_body(1, 2) = lin_vel_cov_body(2, 1) = odom.velocity_covariance[7];
+		lin_vel_cov_body(2, 2) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VZ_VARIANCE];
+		matrix::Matrix3f lin_vel_cov_local = R_body_to_local * lin_vel_cov_body * R_body_to_local.transpose();
+
+		/* Only the linear velocity variance elements are used */
 		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-			odometry.velocity_covariance[i] = odom.velocity_covariance[i];
+			odometry.velocity_covariance[i] = NAN;
 		}
+
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VX_VARIANCE] = lin_vel_cov_local(0, 0);
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VY_VARIANCE] = lin_vel_cov_local(1, 1);
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VZ_VARIANCE] = lin_vel_cov_local(2, 2);
 
 	} else {
 		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);

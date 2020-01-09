@@ -712,7 +712,7 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 PARAM_DEFINE_INT32(EKF2_EV_NOISE_MD, 0);
 
 /**
- * Measurement noise for vision position observations used when the vision system does not supply error estimates
+ * Measurement noise for vision position observations used to lower bound or replace the uncertainty included in the message
  *
  * @group EKF2
  * @min 0.01
@@ -722,7 +722,7 @@ PARAM_DEFINE_INT32(EKF2_EV_NOISE_MD, 0);
 PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.1f);
 
 /**
- * Measurement noise for vision velocity observations used when the vision system does not supply error estimates
+ * Measurement noise for vision velocity observations used to lower bound or replace the uncertainty included in the message
  *
  * @group EKF2
  * @min 0.01
@@ -732,7 +732,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
 
 /**
- * Measurement noise for vision angle observations used when the vision system does not supply error estimates
+ * Measurement noise for vision angle observations used to lower bound or replace the uncertainty included in the message
  *
  * @group EKF2
  * @min 0.01

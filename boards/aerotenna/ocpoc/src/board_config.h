@@ -49,15 +49,14 @@
 
 #define BOARD_MAX_LEDS 1 // Number of external LED's this board has
 
-/*
- * I2C busses
- */
+
+// I2C
 #define PX4_I2C_BUS_EXPANSION  2 // i2c-2: Air Data Probe or I2C Splitter
 #define PX4_I2C_BUS_EXPANSION1 4 // i2c-4: GPS/Compass #1
 #define PX4_I2C_BUS_EXPANSION2 5 // i2c-5: GPS/Compass #2
 #define PX4_I2C_BUS_EXPANSION3 3 // i2c-3: GPS/Compass #3
 
-#define PX4_NUMBER_I2C_BUSES 4
+#define PX4_NUMBER_I2C_BUSES   4
 
 #define PX4_I2C_BUS_LED 1
 
@@ -69,10 +68,13 @@
 
 #define PX4_SPI_BUS_BARO PX4_SPI_BUS_SENSORS
 
-// Battery ADC channels
-#define ADC_BATTERY_VOLTAGE_CHANNEL     10
-#define ADC_BATTERY_CURRENT_CHANNEL     ((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL    11
+
+// ADC channels:
+#define ADC_CHANNELS (1 << 8)
+
+#define ADC_BATTERY_VOLTAGE_CHANNEL  8
+#define ADC_BATTERY_CURRENT_CHANNEL  ((uint8_t)(-1))
+
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
