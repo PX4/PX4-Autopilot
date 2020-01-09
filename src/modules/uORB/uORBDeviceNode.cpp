@@ -480,7 +480,7 @@ int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta, int prior
 */
 #endif /* ORB_COMMUNICATOR */
 
-pollevent_t
+px4_pollevent_t
 uORB::DeviceNode::poll_state(cdev::file_t *filp)
 {
 	SubscriberData *sd = filp_to_sd(filp);
@@ -496,7 +496,7 @@ uORB::DeviceNode::poll_state(cdev::file_t *filp)
 }
 
 void
-uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
+uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events)
 {
 	SubscriberData *sd = filp_to_sd((cdev::file_t *)fds->priv);
 

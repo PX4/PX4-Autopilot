@@ -33,11 +33,13 @@
  ****************************************************************************/
 
 /**
- * @file px4_nuttx_tasks.c
+ * @file tasks.cpp
  * Implementation of existing task API for NuttX
  */
 
-#include <nuttx/config.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 
 #include <sys/wait.h>
 #include <stdbool.h>
@@ -49,10 +51,6 @@
 #include <sched.h>
 #include <errno.h>
 #include <stdbool.h>
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/tasks.h>
 
 void
 px4_systemreset(bool to_bootloader)

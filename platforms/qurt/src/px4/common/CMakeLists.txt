@@ -38,7 +38,7 @@ include_directories(${HEXAGON_8074_INCLUDES})
 
 set(QURT_LAYER_SRCS
 	px4_qurt_impl.cpp
-	px4_qurt_tasks.cpp
+	tasks.cpp
 	lib_crc32.c
 	drv_hrt.cpp
 	qurt_stubs.c

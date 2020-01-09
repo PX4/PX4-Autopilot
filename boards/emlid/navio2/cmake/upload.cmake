@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-if($ENV{AUTOPILOT_HOST})
+if(DEFINED ENV{AUTOPILOT_HOST})
 	set(AUTOPILOT_HOST $ENV{AUTOPILOT_HOST})
 else()
 	set(AUTOPILOT_HOST "navio")
