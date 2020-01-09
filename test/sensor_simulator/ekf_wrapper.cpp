@@ -163,6 +163,13 @@ Vector3f EkfWrapper::getVelocityVariance() const
 	return Vector3f(_ekf->velocity_covariances().diag());
 }
 
+Vector2f EkfWrapper::getWindVelocity() const
+{
+	float temp[2];
+	_ekf->get_wind_velocity(temp);
+	return Vector2f(temp);
+}
+
 Quatf EkfWrapper::getVisionAlignmentQuaternion() const
 {
 	float temp[4];

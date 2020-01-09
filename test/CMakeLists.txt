@@ -44,6 +44,7 @@ set(SRCS
 	test_EKF_fusionLogic.cpp
 	test_EKF_initialization.cpp
 	test_EKF_externalVision.cpp
+	test_EKF_airspeed.cpp
    )
 add_executable(ECL_GTESTS ${SRCS})
 
