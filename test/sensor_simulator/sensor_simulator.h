@@ -51,6 +51,7 @@
 #include "flow.h"
 #include "range_finder.h"
 #include "vio.h"
+#include "airspeed.h"
 #include "EKF/ekf.h"
 
 using namespace sensor_simulator::sensor;
@@ -61,15 +62,18 @@ class SensorSimulator
 private:
 	std::shared_ptr<Ekf> _ekf;
 
-	uint32_t _time {0};	// in microseconds
+	uint64_t _time {0};	// in microseconds
 
 	void setSensorDataToDefault();
 	void setSensorRateToDefault();
 	void startBasicSensor();
+	void updateSensors();
 
 public:
 	SensorSimulator(std::shared_ptr<Ekf> ekf);
 	~SensorSimulator();
+
+	uint64_t getTime() const{ return _time; };
 
 	void runSeconds(float duration_seconds);
 	void runMicroseconds(uint32_t duration);
@@ -86,6 +90,9 @@ public:
 	void startExternalVision(){ _vio.start(); }
 	void stopExternalVision(){ _vio.stop(); }
 
+	void startAirspeedSensor(){ _airspeed.start(); }
+	void stopAirspeedSensor(){ _airspeed.stop(); }
+
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 	void simulateOrientation(Quatf orientation);
 
@@ -96,4 +103,5 @@ public:
 	Flow _flow;
 	RangeFinder _rng;
 	Vio _vio;
+	Airspeed _airspeed;
 };

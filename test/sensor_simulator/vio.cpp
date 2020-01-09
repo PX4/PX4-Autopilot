@@ -13,7 +13,7 @@ Vio::~Vio()
 {
 }
 
-void Vio::send(uint32_t time)
+void Vio::send(uint64_t time)
 {
 	_ekf->setExtVisionData(time, &_vio_data);
 }

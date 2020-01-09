@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Feeds Ekf with range finder data
+ * Feeds Ekf with Mag data
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
 #pragma once
@@ -44,18 +44,17 @@ namespace sensor_simulator
 namespace sensor
 {
 
-class RangeFinder: public Sensor
+class Airspeed: public Sensor
 {
 public:
-	RangeFinder(std::shared_ptr<Ekf> ekf);
-	~RangeFinder();
+	Airspeed(std::shared_ptr<Ekf> ekf);
+	~Airspeed();
 
-	void setData(float range_data, int8_t range_quality);
-	flow_message dataAtRest();
+	void setData(float true_airspeed, float eas2tas);
 
 private:
-	float _range_data;
-	int8_t _range_quality;
+	float _true_airspeed_data;
+	float _indicated_airspeed_data;
 
 	void send(uint64_t time) override;
 

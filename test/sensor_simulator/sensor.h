@@ -52,7 +52,7 @@ public:
 	Sensor(std::shared_ptr<Ekf> ekf);
 	virtual ~Sensor();
 
-	void update(uint32_t time);
+	void update(uint64_t time);
 
 	void setRateHz(uint32_t rate){ _update_period = uint32_t(1000000)/rate; }
 
@@ -67,17 +67,17 @@ protected:
 	std::shared_ptr<Ekf> _ekf;
 	// time in microseconds
 	uint32_t _update_period;
-	uint32_t _time_last_data_sent{0};
+	uint64_t _time_last_data_sent{0};
 
 	bool _is_running{false};
 
-	bool should_send(uint32_t time) const;
+	bool should_send(uint64_t time) const;
 
 	// Checks that the right amount time passed since last send data to fulfill rate
-	bool is_time_to_send(uint32_t time) const;
+	bool is_time_to_send(uint64_t time) const;
 
 	// call set*Data function of Ekf
-	virtual void send(uint32_t time) = 0;
+	virtual void send(uint64_t time) = 0;
 
 };
 

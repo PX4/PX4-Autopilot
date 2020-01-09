@@ -13,7 +13,7 @@ RangeFinder::~RangeFinder()
 {
 }
 
-void RangeFinder::send(uint32_t time)
+void RangeFinder::send(uint64_t time)
 {
 	_ekf->setRangeData(time, _range_data, _range_quality);
 }

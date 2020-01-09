@@ -1,6 +1,8 @@
 *.DS_Store
 *.gcov
 *~
+*.orig
+
 .cache/
 build/
 
