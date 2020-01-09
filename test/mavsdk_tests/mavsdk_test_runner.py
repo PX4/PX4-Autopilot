@@ -14,12 +14,17 @@ test_matrix = [
     {
         "model": "iris",
         "test_filter": "[multicopter]",
-        "timeout_min": 10,
+        "timeout_min": 20,
     },
     {
         "model": "standard_vtol",
         "test_filter": "[vtol]",
-        "timeout_min": 10,
+        "timeout_min": 20,
+    },
+    {
+        "model": "standard_plane",
+        "test_filter": "[plane]",
+        "timeout_min": 25,
     }
 ]
 
@@ -117,8 +122,7 @@ class GzserverRunner(Runner):
                     workspace_dir + "/Tools/sitl_gazebo/models",
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.cmd = "gzserver"
-        self.args = ["--verbose",
-                     workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
+        self.args = [workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
         self.log_prefix = "gzserver"
 
 
@@ -133,7 +137,6 @@ class GzclientRunner(Runner):
                     workspace_dir + "/Tools/sitl_gazebo/models",
                     "DISPLAY": ":0"}
         self.cmd = "gzclient"
-        self.args = ["--verbose"]
         self.log_prefix = "gzclient"
 
 
@@ -142,13 +145,13 @@ class TestRunner(Runner):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
-            "/build/px4_sitl_default/mavsdk_tests"
+            "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
         self.args = [test]
         self.log_prefix = "test_runner"
 
 
 def determine_tests(workspace_dir, filter):
-    cmd = workspace_dir + "/build/px4_sitl_default/mavsdk_tests"
+    cmd = workspace_dir + "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
     args = ["--list-test-names-only", filter]
     p = subprocess.Popen(
         [cmd] + args,
@@ -185,7 +188,7 @@ def is_everything_ready():
               "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
         result = False
-    if not os.path.isfile('build/px4_sitl_default/mavsdk_tests'):
+    if not os.path.isfile('build/px4_sitl_default/mavsdk_tests/mavsdk_tests'):
         print("Test runner is not built\n"
               "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
@@ -217,7 +220,7 @@ def main():
         print("Test iterations: %d" % (x + 1))
         for group in test_matrix:
             print("Running test group for '{}' with filter '{}'"
-                .format(group['model'], group['test_filter']))
+                  .format(group['model'], group['test_filter']))
 
             tests = determine_tests(os.getcwd(), group['test_filter'])
 
@@ -238,7 +241,8 @@ def main():
                         os.getcwd(), args.log_dir)
                     gzclient_runner.start(group)
 
-                test_runner = TestRunner(os.getcwd(), args.log_dir, group, test)
+                test_runner = TestRunner(
+                    os.getcwd(), args.log_dir, group, test)
                 test_runner.start(group)
 
                 returncode = test_runner.wait(group['timeout_min'])
@@ -256,9 +260,10 @@ def main():
 
                 # Test run results
                 print("Test '{}': {}".
-                    format(test, "Success" if was_success else "Fail"))
+                      format(test, "Success" if was_success else "Fail"))
 
-                # Flag it as group test failure, but finish the rest of the test targets
+                # Flag it as group test failure, but finish the rest of the
+                # test targets.
                 if not was_success:
                     overall_success = False
 
@@ -274,6 +279,7 @@ def main():
         print("Test iterations: %d" % (x + 1))
 
     sys.exit(0 if overall_success else 1)
+
 
 if __name__ == '__main__':
     main()

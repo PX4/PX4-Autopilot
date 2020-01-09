@@ -167,7 +167,7 @@ CollisionPrevention::_enterData(int map_index, float sensor_range, float sensor_
 	//3. this sensor data is out of range, the last reading was as well and this is the sensor with longest range
 	//4. this sensor data is out of range, the last reading was valid and coming from the same sensor
 
-	uint16_t sensor_range_cm = (int)(100 * sensor_range); //convert to cm
+	uint16_t sensor_range_cm = static_cast<uint16_t>(100.0f * sensor_range + 0.5f); //convert to cm
 
 	if (sensor_reading < sensor_range) {
 		if ((_obstacle_map_body_frame.distances[map_index] < _data_maxranges[map_index]
@@ -272,13 +272,13 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 			distance_reading = distance_reading * sensor_dist_scale;
 		}
 
-		uint16_t sensor_range = (int)(100 * distance_sensor.max_distance); // convert to cm
+		uint16_t sensor_range = static_cast<uint16_t>(100.0f * distance_sensor.max_distance + 0.5f); // convert to cm
 
 		for (int bin = lower_bound; bin <= upper_bound; ++bin) {
 			int wrapped_bin = wrap_bin(bin);
 
 			if (_enterData(wrapped_bin, distance_sensor.max_distance, distance_reading)) {
-				_obstacle_map_body_frame.distances[wrapped_bin] = (int)(100 * distance_reading);
+				_obstacle_map_body_frame.distances[wrapped_bin] = static_cast<uint16_t>(100.0f * distance_reading + 0.5f);
 				_data_timestamps[wrapped_bin] = _obstacle_map_body_frame.timestamp;
 				_data_maxranges[wrapped_bin] = sensor_range;
 			}
