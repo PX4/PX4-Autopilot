@@ -53,7 +53,7 @@ public:
 	void setData(float baro);
 
 private:
-	float _baro_data;
+	float _baro_data{0.0f};
 
 	void send(uint64_t time) override;
 

@@ -67,7 +67,7 @@ class EkfAirspeedTest : public ::testing::Test {
 	}
 };
 
-TEST_F(EkfAirspeedTest, temp)
+TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 {
 	const Vector3f simulated_velocity(1.5f,0.0f,0.0f);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
