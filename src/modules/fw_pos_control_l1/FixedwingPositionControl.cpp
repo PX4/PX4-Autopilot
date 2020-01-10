@@ -94,6 +94,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_parameter_handles.land_early_config_change = param_find("FW_LND_EARLYCFG");
 	_parameter_handles.land_airspeed_scale = param_find("FW_LND_AIRSPD_SC");
 	_parameter_handles.land_throtTC_scale = param_find("FW_LND_THRTC_SC");
+	_parameter_handles.land_goaround_threshold = param_find("FW_GOAROUND_THR");
 
 	_parameter_handles.time_const = param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = param_find("FW_T_THRO_CONST");
@@ -173,6 +174,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_early_config_change, &(_parameters.land_early_config_change));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 	param_get(_parameter_handles.land_throtTC_scale, &(_parameters.land_throtTC_scale));
+	param_get(_parameter_handles.land_goaround_threshold, &(_parameters.land_goaround_threshold));
 	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
 
 	// VTOL parameter VT_ARSP_TRANS
@@ -325,6 +327,15 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 				reset_landing_state();
 			}
 		}
+	}
+}
+
+void
+FixedwingPositionControl::vehicle_manual_poll()
+{
+	if (_manual_control_sub.updated()) {
+		_manual_control_sub.copy(&_manual);
+		handle_manual();
 	}
 }
 
@@ -1624,9 +1635,31 @@ FixedwingPositionControl::get_tecs_thrust()
 }
 
 void
+FixedwingPositionControl::handle_manual()
+{
+	if (_control_mode.flag_control_auto_enabled &&
+	    _pos_sp_triplet.next.valid &&
+	    _pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		_throttle_before_land = _manual.z;
+	}
+
+	if (_control_mode.flag_control_auto_enabled &&
+	    _pos_sp_triplet.current.valid &&
+	    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		if (_manual.z > _parameters.land_goaround_threshold &&
+		    _throttle_before_land < _parameters.land_goaround_threshold) {
+			abort_landing(true);
+
+		} else if (_manual.z < _parameters.land_goaround_threshold) {
+			_throttle_before_land = _manual.z;
+		}
+	}
+}
+
+void
 FixedwingPositionControl::handle_command()
 {
-	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
+	if (_vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND || _manual.r > 0.9f) {
 		// only abort landing before point of no return (horizontal and vertical)
 		if (_control_mode.flag_control_auto_enabled &&
 		    _pos_sp_triplet.current.valid &&
@@ -1685,8 +1718,9 @@ FixedwingPositionControl::Run()
 		_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
 		airspeed_poll();
-		_manual_control_sub.update(&_manual);
+
 		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
+		vehicle_manual_poll();
 		vehicle_attitude_poll();
 		vehicle_command_poll();
 		vehicle_control_mode_poll();

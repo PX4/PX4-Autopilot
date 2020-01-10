@@ -250,6 +250,8 @@ private:
 
 	bool _vtol_tailsitter{false};
 
+	float _throttle_before_land;
+
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position
 	uint8_t _alt_reset_counter{0};				///< captures the number of times the estimator has reset the altitude state
@@ -301,6 +303,7 @@ private:
 		int32_t land_early_config_change;
 		float land_airspeed_scale;
 		float land_throtTC_scale;
+		float land_goaround_threshold;
 
 		// VTOL
 		float airspeed_trans;
@@ -365,6 +368,7 @@ private:
 		param_t land_early_config_change;
 		param_t land_airspeed_scale;
 		param_t land_throtTC_scale;
+		param_t	land_goaround_threshold;
 		param_t loiter_radius;
 	} _parameter_handles {};				///< handles for interesting parameters
 
@@ -378,6 +382,7 @@ private:
 	// Update subscriptions
 	void		airspeed_poll();
 	void		control_update();
+	void		vehicle_manual_poll();
 	void		vehicle_attitude_poll();
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
@@ -442,6 +447,7 @@ private:
 	 * Handle incoming vehicle commands
 	 */
 	void		handle_command();
+	void		handle_manual();
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
