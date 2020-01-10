@@ -265,8 +265,14 @@ if (CATKIN_DEVEL_PREFIX)
 endif()
 
 # python
+# If using catkin, Python 2 is found since it points
+# to the Python libs installed with the ROS distro
 include(px4_find_python_module)
-find_package(PythonInterp 3 REQUIRED)
+if (NOT CATKIN_DEVEL_PREFIX)
+	find_package(PythonInterp 3 REQUIRED)
+else()
+	find_package(PythonInterp REQUIRED)
+endif()
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
