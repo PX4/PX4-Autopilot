@@ -31,7 +31,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_flow.setRateHz(50);
 	_rng.setRateHz(30);
 	_vio.setRateHz(30);
-	_airspeed.setRateHz(30); // TODO: check this rate
+	_airspeed.setRateHz(100);
 }
 void SensorSimulator::setSensorRateToDefault()
 {

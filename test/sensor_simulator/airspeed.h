@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Feeds Ekf with Mag data
+ * Feeds Ekf with airspeed data
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
 #pragma once
@@ -53,8 +53,8 @@ public:
 	void setData(float true_airspeed, float eas2tas);
 
 private:
-	float _true_airspeed_data;
-	float _indicated_airspeed_data;
+	float _true_airspeed_data{0.0f};
+	float _indicated_airspeed_data{0.0f};
 
 	void send(uint64_t time) override;
 
