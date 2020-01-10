@@ -268,6 +268,12 @@ private:
 	bool initialize_topics(MissionLogType mission_log_mode);
 
 	/**
+	 * Determines if log-from-boot should be disabled, based on the value of SDLOG_BOOT_BAT and the battery status.
+	 * @return true if log-from-boot should be disabled
+	 */
+	bool get_disable_boot_logging();
+
+	/**
 	 * check current arming state or aux channel and start/stop logging if state changed and according to
 	 * configured params.
 	 * @param vehicle_status_sub
