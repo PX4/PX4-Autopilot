@@ -490,8 +490,15 @@ int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const uns
 	}
 
 	// returns the 2 bytes of addr + data[]
-	result = _interface->block_read(code, data, length + 2, true);
-	memcpy(data, &((uint8_t *)data)[2], length);
+	size_t len = length + 2;
+	uint8_t buf[len] = {};
+	result = _interface->block_read(code, buf, len, true);
+
+	if (result != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	memcpy(data, &((uint8_t *)buf)[2], length);
 
 	return result;
 }
