@@ -256,7 +256,7 @@ int DfLsm9ds1Wrapper::start()
 	}
 
 	if (_mag_enabled) {
-		mag_report mag_report = {};
+		sensor_mag_s mag_report = {};
 		_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report,
 						 &_mag_orb_class_instance, ORB_PRIO_DEFAULT);
 
@@ -593,7 +593,7 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 
 	sensor_accel_s accel_report = {};
 	sensor_gyro_s gyro_report = {};
-	mag_report mag_report = {};
+	sensor_mag_s mag_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 	mag_report.timestamp = accel_report.timestamp;
