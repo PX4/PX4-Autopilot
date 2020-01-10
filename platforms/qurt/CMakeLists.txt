@@ -46,7 +46,13 @@ else()
 			modules__muorb__adsp
 			${module_libraries}
 			${df_driver_libs}
+			df_driver_framework
 			m
 		)
 
+endif()
+
+# board defined upload helper
+if(EXISTS "${PX4_BOARD_DIR}/cmake/upload.cmake")
+	include(${PX4_BOARD_DIR}/cmake/upload.cmake)
 endif()

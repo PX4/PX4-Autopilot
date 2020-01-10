@@ -223,10 +223,10 @@ posix_sitl_default:
 .PHONY: all posix px4_sitl_default all_config_targets all_default_targets
 
 # Multi- config targets.
-eagle_default: atlflight_eagle_default atlflight_eagle_qurt-default
+eagle_default: atlflight_eagle_default atlflight_eagle_qurt
 eagle_rtps: atlflight_eagle_rtps atlflight_eagle_qurt-rtps
 
-excelsior_default: atlflight_excelsior_default atlflight_excelsior_qurt-default
+excelsior_default: atlflight_excelsior_default atlflight_excelsior_qurt
 excelsior_rtps: atlflight_excelsior_rtps atlflight_excelsior_qurt-rtps
 
 .PHONY: eagle_default eagle_rtps

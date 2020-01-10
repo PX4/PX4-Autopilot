@@ -42,7 +42,7 @@ px4_add_board(
 	PLATFORM qurt
 	VENDOR atlflight
 	MODEL eagle
-	LABEL qurt-default
+	LABEL qurt
 	DRIVERS
 		barometer/bmp280
 		gps

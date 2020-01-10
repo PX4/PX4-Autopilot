@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,20 +32,49 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/init.h>
+#pragma once
+
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/input_rc.h>
 
-int px4_platform_init()
+namespace navio_sysfs_rc_in
 {
-	hrt_init();
 
-	param_init();
+class NavioSysRCInput : public px4::ScheduledWorkItem
+{
+public:
+	NavioSysRCInput();
+	~NavioSysRCInput() override;
 
-	px4::WorkQueueManagerStart();
+	/* @return 0 on success, -errno on failure */
+	int start();
 
-	return PX4_OK;
-}
+	/* @return 0 on success, -errno on failure */
+	void stop();
+
+	bool isRunning() { return _isRunning; }
+
+private:
+	void Run() override;
+
+	int navio_rc_init();
+
+	px4::atomic_bool _should_exit{false};
+
+	bool _isRunning{false};
+
+	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
+
+	int _channels{8};	// D8R-II plus
+	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
+
+	input_rc_s _data{};
+
+};
+
+}; // namespace navio_sysfs_rc_in
