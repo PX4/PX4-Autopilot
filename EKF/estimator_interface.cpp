@@ -264,6 +264,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float baro_alt_meter)
 	// by baro data by taking the average of incoming sample
 	_baro_sample_count++;
 	_baro_alt_sum += baro_alt_meter;
+	_baro_timestamp_sum += time_usec;
 
 	// limit data rate to prevent data being lost
 	if ((time_usec - _time_last_baro) > _min_obs_interval_us) {
@@ -274,7 +275,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float baro_alt_meter)
 		baro_sample_new.hgt = compensateBaroForDynamicPressure(baro_alt_avg);
 
 		// Use the time in the middle of the downsampling interval for the sample
-		baro_sample_new.time_us = _time_last_baro + (time_usec - _time_last_baro) / 2;
+		baro_sample_new.time_us = _baro_timestamp_sum / _baro_sample_count;
 		baro_sample_new.time_us -= _params.baro_delay_ms * 1000;
 		baro_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 		baro_sample_new.time_us = math::max(baro_sample_new.time_us, _imu_sample_delayed.time_us);
@@ -284,6 +285,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float baro_alt_meter)
 		_time_last_baro = time_usec;
 		_baro_sample_count = 0;
 		_baro_alt_sum = 0.0f;
+		_baro_timestamp_sum = 0;
 	}
 }
 
