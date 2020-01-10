@@ -587,7 +587,7 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 
 	sensor_accel_s accel_report = {};
 	sensor_gyro_s gyro_report = {};
-	mag_report mag_report = {};
+	sensor_mag_s mag_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 
