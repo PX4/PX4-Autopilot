@@ -48,16 +48,19 @@ class EkfAirspeedTest : public ::testing::Test {
 	EkfAirspeedTest(): ::testing::Test(),
 	_ekf{std::make_shared<Ekf>()},
 	_sensor_simulator(_ekf),
-	_ekf_wrapper(_ekf) {};
+	_ekf_wrapper(_ekf),
+	_quat_sim(Eulerf(0.0f, 0.0f, math::radians(45.0f))) {};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
+	const Quatf _quat_sim;
 
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
 		_ekf->init(0);
+		_sensor_simulator.simulateOrientation(_quat_sim);
 		_sensor_simulator.runSeconds(2);
 	}
 
@@ -69,34 +72,47 @@ class EkfAirspeedTest : public ::testing::Test {
 
 TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 {
-	const Vector3f simulated_velocity(1.5f,0.0f,0.0f);
+
+	const Vector3f simulated_velocity_earth(0.0f,1.5f,0.0f);
+	const Vector2f airspeed_body(0.4f, 0.0f);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
-	_sensor_simulator._vio.setVelocity(simulated_velocity);
+	_sensor_simulator._vio.setVelocity(simulated_velocity_earth);
 	_sensor_simulator.startExternalVision();
 
 	_ekf->set_in_air_status(true);
 	_sensor_simulator.startAirspeedSensor();
-	_sensor_simulator._airspeed.setData(0.1f,0.1f);
+	_sensor_simulator._airspeed.setData(airspeed_body(0), airspeed_body(0));
 
-	_sensor_simulator.runSeconds(40);
+	// Wind estimation is rather slow
+	_sensor_simulator.runSeconds(15);
 
-
-	filter_control_status_u control_status;
-	_ekf->get_control_mode(&control_status.value);
-	EXPECT_TRUE(control_status.flags.wind);
-
-	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
-	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
-
-	EXPECT_TRUE(_ekf->local_position_is_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf_wrapper.isWindVelocityEstimated());
 
 	const Vector3f vel = _ekf_wrapper.getVelocity();
-	const Vector2f vel_wind = _ekf_wrapper.getWindVelocity();
+	const Vector2f vel_wind_earth = _ekf_wrapper.getWindVelocity();
+	const float height_before_pressure_correction = _ekf_wrapper.getPosition()(2);
 
+	const Dcmf R_to_earth_sim(_quat_sim);
+	EXPECT_TRUE(matrix::isEqual(vel, simulated_velocity_earth));
+ 	const Vector3f vel_wind_expected = simulated_velocity_earth - R_to_earth_sim * (Vector3f(airspeed_body(0), airspeed_body(1), 0.0f));
+	EXPECT_TRUE(matrix::isEqual(vel_wind_earth, Vector2f(vel_wind_expected.slice<2,1>(0,0))));
+	EXPECT_FLOAT_EQ(height_before_pressure_correction, 0.0f);
 
-	EXPECT_TRUE(matrix::isEqual(vel, simulated_velocity));
-	EXPECT_TRUE(matrix::isEqual(vel_wind, Vector2f{1.4f, 0.0f}));
+	// Apply height correction
+	const float static_pressure_coef_xp = 1.0f;
+	const float static_pressure_coef_yp = -1.0f;	// not used as wind direction is along x axis
+	parameters* _params = _ekf->getParamHandle();
+	_params->static_pressure_coef_xp = static_pressure_coef_xp;
+	_params->static_pressure_coef_yp = static_pressure_coef_yp;
+	float expected_height_difference = 0.5f * static_pressure_coef_xp * airspeed_body(0) * airspeed_body(0) / CONSTANTS_ONE_G;
+
+	_sensor_simulator.runSeconds(20);
+
+	const float height_after_pressure_correction = _ekf_wrapper.getPosition()(2);
+	// height increase means that state z decrease due to z axis pointing down
+	const float expected_height_after_pressure_correction = height_before_pressure_correction -
+								expected_height_difference;
+
+	EXPECT_NEAR(height_after_pressure_correction, expected_height_after_pressure_correction, 1e-5f);
 
 }
