@@ -417,7 +417,7 @@ void VotedSensorsUpdate::parametersUpdate()
 	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX
 	     && topic_instance < _mag.subscription_count; ++topic_instance) {
 
-		struct mag_report report;
+		sensor_mag_s report;
 
 		if (orb_copy(ORB_ID(sensor_mag), _mag.subscription[topic_instance], &report) != 0) {
 			continue;
@@ -779,7 +779,7 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 		orb_check(_mag.subscription[uorb_index], &mag_updated);
 
 		if (mag_updated) {
-			struct mag_report mag_report;
+			sensor_mag_s mag_report{};
 
 			int ret = orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
 

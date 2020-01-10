@@ -462,7 +462,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 				prev_count[cur_mag] = worker_data->calibration_counter_total[cur_mag];
 
 				if (worker_data->sub_mag[cur_mag] >= 0) {
-					struct mag_report mag;
+					sensor_mag_s mag{};
 
 					orb_copy(ORB_ID(sensor_mag), worker_data->sub_mag[cur_mag], &mag);
 
@@ -606,7 +606,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			for (unsigned i = 0; i < orb_mag_count && !found_cur_mag; i++) {
 				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), i);
 
-				struct mag_report report;
+				sensor_mag_s report{};
 				orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &report);
 
 #ifdef __PX4_NUTTX

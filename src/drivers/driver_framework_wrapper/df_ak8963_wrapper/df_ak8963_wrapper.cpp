@@ -276,7 +276,7 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 	/* Publish mag first. */
 	perf_begin(_mag_sample_perf);
 
-	mag_report mag_report = {};
+	sensor_mag_s mag_report = {};
 	mag_report.timestamp = hrt_absolute_time();
 	mag_report.is_external = true;
 
