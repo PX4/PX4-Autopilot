@@ -105,6 +105,13 @@ void EkfWrapper::disableExternalVisionAlignment()
 	_ekf_params->fusion_mode &= ~MASK_ROTATE_EV;
 }
 
+bool EkfWrapper::isWindVelocityEstimated() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.wind;
+}
+
 Vector3f EkfWrapper::getPosition() const
 {
 	float temp[3];

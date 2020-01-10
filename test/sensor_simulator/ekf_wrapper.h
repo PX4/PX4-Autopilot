@@ -70,6 +70,8 @@ public:
 	void enableExternalVisionAlignment();
 	void disableExternalVisionAlignment();
 
+	bool isWindVelocityEstimated() const;
+
 	Vector3f getPosition() const;
 	Vector3f getVelocity() const;
 	Vector3f getAccelBias() const;
