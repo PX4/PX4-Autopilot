@@ -520,29 +520,6 @@ void Logger::run()
 {
 	PX4_INFO("logger started (mode=%s)", configured_backend_mode());
 
-	bool boot_logging_bat_only = false;
-	bool disable_boot_logging = false;
-
-	if (_boot_bat_only != PARAM_INVALID) {
-		param_get(_boot_bat_only, &boot_logging_bat_only);
-	}
-
-	if (boot_logging_bat_only) {
-		uORB::Subscription battery_status_sub{ORB_ID(battery_status)};
-
-		if (battery_status_sub.updated()) {
-			battery_status_s battery_status;
-			battery_status_sub.copy(&battery_status);
-
-			if (!battery_status.connected) {
-				disable_boot_logging = true;
-			}
-
-		} else {
-			PX4_WARN("battery_status not published. Logging anyway");
-		}
-	}
-
 	if (_writer.backend() & LogWriter::BackendFile) {
 		int mkdir_ret = mkdir(LOG_ROOT[(int)LogType::Full], S_IRWXU | S_IRWXG | S_IRWXO);
 
@@ -626,6 +603,8 @@ void Logger::run()
 	uint32_t	total_bytes = 0;
 
 	px4_register_shutdown_hook(&Logger::request_stop_static);
+
+	const bool disable_boot_logging = get_disable_boot_logging();
 
 	if ((_log_mode == LogMode::boot_until_disarm || _log_mode == LogMode::boot_until_shutdown) && !disable_boot_logging) {
 		start_log_file(LogType::Full);
@@ -921,6 +900,31 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 	}
 
 #endif /* DBGPRINT */
+}
+
+bool Logger::get_disable_boot_logging()
+{
+	int32_t boot_logging_bat_only = 0;
+
+	if (_boot_bat_only != PARAM_INVALID) {
+		param_get(_boot_bat_only, &boot_logging_bat_only);
+	}
+
+	if (boot_logging_bat_only) {
+		battery_status_s battery_status;
+		uORB::Subscription battery_status_sub{ORB_ID(battery_status)};
+
+		if (battery_status_sub.copy(&battery_status)) {
+			if (!battery_status.connected) {
+				return true;
+			}
+
+		} else {
+			PX4_WARN("battery_status not published. Logging anyway");
+		}
+	}
+
+	return false;
 }
 
 bool Logger::start_stop_logging(MissionLogType mission_log_type)
