@@ -714,7 +714,7 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              //branch 'master'
               branch 'pr-jenkins' // for testing
             }
           }
