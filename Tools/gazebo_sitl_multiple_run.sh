@@ -31,7 +31,7 @@ export PX4_SIM_MODEL=${VEHICLE_MODEL:=iris}
 
 if [ "$PX4_SIM_MODEL" != "iris" ] & [ "$PX4_SIM_MODEL" != "plane" ]
 then
-	echo "Currently only iris vehicle model is supported!"
+	echo "Currently only iris and plane vehicle model is supported!"
 	exit 1
 fi
 
