@@ -29,9 +29,9 @@ done
 num_vehicles=${NUM_VEHICLES:=3}
 export PX4_SIM_MODEL=${VEHICLE_MODEL:=iris}
 
-if [ "$PX4_SIM_MODEL" != "iris" ]
+if [ "$PX4_SIM_MODEL" != "iris" ] & [ "$PX4_SIM_MODEL" != "plane" ]
 then
-	echo "Currently only iris vehicle model is supported!"
+	echo "Currently only iris and plane vehicle model is supported!"
 	exit 1
 fi
 
@@ -66,9 +66,10 @@ while [ $n -lt $num_vehicles ]; do
 		rotors_description_dir:=${src_path}/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(($mavlink_udp_port+$n)) \
 		mavlink_tcp_port:=$(($mavlink_tcp_port+$n))  -o /tmp/${PX4_SIM_MODEL}_${n}.urdf
 
+	gz sdf -p  /tmp/${PX4_SIM_MODEL}_${n}.urdf > /tmp/${PX4_SIM_MODEL}_${n}.sdf
 	echo "Spawning ${PX4_SIM_MODEL}_${n}"
 
-	gz model --spawn-file=/tmp/${PX4_SIM_MODEL}_${n}.urdf --model-name=${PX4_SIM_MODEL}_${n} -x 0.0 -y ${n} -z 0.0
+	gz model --spawn-file=/tmp/${PX4_SIM_MODEL}_${n}.sdf --model-name=${PX4_SIM_MODEL}_${n} -x 0.0 -y $((2*${n})) -z 0.0
 
 	popd &>/dev/null
 
