@@ -550,8 +550,9 @@ protected:
 	uint64_t _mag_timestamp_sum {0};
 
 	// Used to down sample barometer data
-	float _baro_alt_sum {0.0f};			///< summed pressure altitude readings (m)
-	uint8_t _baro_sample_count {0};		///< number of barometric altitude measurements summed
+	float _baro_alt_sum {0.0f};			// summed pressure altitude readings (m)
+	uint8_t _baro_sample_count {0};		// number of barometric altitude measurements summed
+	uint64_t _baro_timestamp_sum {0};	// summed timestamp to provide the timestamp of the averaged sample
 
 	fault_status_u _fault_status{};
 
