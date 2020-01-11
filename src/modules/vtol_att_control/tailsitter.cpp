@@ -314,7 +314,7 @@ void Tailsitter::fill_actuator_outputs()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE) {	
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
+			_actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
 			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
 
