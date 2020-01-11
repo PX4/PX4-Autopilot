@@ -462,13 +462,7 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 		_vel_y_deriv.update(0.0f);
 	}
 
-	if (_param_mpc_alt_mode.get() && _local_pos.dist_bottom_valid && PX4_ISFINITE(_local_pos.dist_bottom_rate)) {
-		// terrain following
-		_states.velocity(2) = -_local_pos.dist_bottom_rate;
-		_states.acceleration(2) = _vel_z_deriv.update(-_states.velocity(2));
-
-	} else if (PX4_ISFINITE(_local_pos.vz)) {
-
+	if (PX4_ISFINITE(_local_pos.vz)) {
 		_states.velocity(2) = _local_pos.vz;
 
 		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
