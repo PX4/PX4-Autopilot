@@ -104,7 +104,7 @@ void Ekf::updateRangeDataValidity()
 
 	updateRangeDataStuck();
 
-	_rng_hgt_valid = !_control_status.flags.rng_stuck;
+	_rng_hgt_valid = _rng_hgt_valid && !_control_status.flags.rng_stuck;
 }
 
 void Ekf::updateRangeDataStuck()
