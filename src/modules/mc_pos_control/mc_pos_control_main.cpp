@@ -462,7 +462,7 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 		_vel_y_deriv.update(0.0f);
 	}
 
-	if (PX4_ISFINITE(_local_pos.vz)) {
+	if (PX4_ISFINITE(_local_pos.vz) && _local_pos.v_z_valid) {
 		_states.velocity(2) = _local_pos.vz;
 
 		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
