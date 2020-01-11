@@ -456,10 +456,9 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 	} else {
 		_states.velocity(0) = _states.velocity(1) = NAN;
 		_states.acceleration(0) = _states.acceleration(1) = NAN;
-
-		// since no valid velocity, update derivate with 0
-		_vel_x_deriv.update(0.0f);
-		_vel_y_deriv.update(0.0f);
+		// reset derivatives to prevent acceleration spikes when regaining velocity
+		_vel_x_deriv.reset();
+		_vel_y_deriv.reset();
 	}
 
 	if (PX4_ISFINITE(_local_pos.vz) && _local_pos.v_z_valid) {
@@ -476,9 +475,8 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 
 	} else {
 		_states.velocity(2) = _states.acceleration(2) = NAN;
-		// since no valid velocity, update derivate with 0
-		_vel_z_deriv.update(0.0f);
-
+		// reset derivative to prevent acceleration spikes when regaining velocity
+		_vel_z_deriv.reset();
 	}
 }
 
