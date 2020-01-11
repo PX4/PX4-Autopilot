@@ -113,7 +113,7 @@ static void start();
 
 static void stop();
 
-static void task_main_trampoline(int argc, char *argv[]);
+static int task_main_trampoline(int argc, char *argv[]);
 
 static void subscribe();
 
@@ -452,9 +452,10 @@ void task_main(int argc, char *argv[])
 
 }
 
-void task_main_trampoline(int argc, char *argv[])
+int task_main_trampoline(int argc, char *argv[])
 {
 	task_main(argc, argv);
+	return 0;
 }
 
 void start()
@@ -526,15 +527,15 @@ int linux_pwm_out_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "d:m:p:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
-			strncpy(linux_pwm_out::_device, myoptarg, sizeof(linux_pwm_out::_device));
+			strncpy(linux_pwm_out::_device, myoptarg, sizeof(linux_pwm_out::_device) - 1);
 			break;
 
 		case 'm':
-			strncpy(linux_pwm_out::_mixer_filename, myoptarg, sizeof(linux_pwm_out::_mixer_filename));
+			strncpy(linux_pwm_out::_mixer_filename, myoptarg, sizeof(linux_pwm_out::_mixer_filename) - 1);
 			break;
 
 		case 'p':
-			strncpy(linux_pwm_out::_protocol, myoptarg, sizeof(linux_pwm_out::_protocol));
+			strncpy(linux_pwm_out::_protocol, myoptarg, sizeof(linux_pwm_out::_protocol) - 1);
 			break;
 
 		case 'n': {

@@ -169,7 +169,6 @@ private:
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< downwards speed limited below this altitude */
 		(ParamInt<px4::params::MPC_POS_MODE>) _param_mpc_pos_mode,
-		(ParamInt<px4::params::MPC_AUTO_MODE>) _param_mpc_auto_mode,
 		(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd, /**< maximum tilt for landing and smooth takeoff */
 		(ParamFloat<px4::params::MPC_THR_MIN>) _param_mpc_thr_min,
@@ -784,15 +783,7 @@ MulticopterPositionControl::start_flight_task()
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		switch (_param_mpc_auto_mode.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
-			break;
-
-		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
-			break;
-		}
+		error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {

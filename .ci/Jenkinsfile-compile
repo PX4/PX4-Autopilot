@@ -16,7 +16,7 @@ pipeline {
           ]
 
           def armhf_builds = [
-            target: ["aerotenna_ocpoc_default", "beaglebone_blue_cross", "emlid_navio2_cross", "parrot_bebop_default", "px4_raspberrypi_cross"],
+            target: ["aerotenna_ocpoc_default", "beaglebone_blue_default", "emlid_navio2_default", "px4_raspberrypi_default"],
             image: docker_images.armhf,
             archive: false
           ]
@@ -44,7 +44,7 @@ pipeline {
           ]
 
           def snapdragon_builds = [
-            target: ["atlflight_eagle_qurt-default", "atlflight_eagle_default"],
+            target: ["atlflight_eagle_qurt", "atlflight_eagle_default"],
             image: docker_images.snapdragon,
             archive: false
           ]

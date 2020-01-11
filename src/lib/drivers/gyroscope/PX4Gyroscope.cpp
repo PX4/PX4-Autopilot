@@ -54,6 +54,7 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	// set software low pass filter for controllers
 	updateParams();
 	ConfigureFilter(_param_imu_gyro_cutoff.get());
+	ConfigureNotchFilter(_param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
 }
 
 PX4Gyroscope::~PX4Gyroscope()
@@ -105,6 +106,7 @@ PX4Gyroscope::set_sample_rate(uint16_t rate)
 	_sample_rate = rate;
 
 	ConfigureFilter(_filter.get_cutoff_freq());
+	ConfigureNotchFilter(_notch_filter.getNotchFreq(), _notch_filter.getBandwidth());
 }
 
 void
@@ -137,9 +139,9 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 	// Apply range scale and the calibrating offset/scale
 	const Vector3f val_calibrated{((raw * _scale) - _calibration_offset)};
 
-	// Filtered values
-	const Vector3f val_filtered{_filter.apply(val_calibrated)};
-
+	// Filtered values: apply notch and then low-pass
+	Vector3f val_filtered{_notch_filter.apply(val_calibrated)};
+	val_filtered = _filter.apply(val_filtered);
 
 	// publish control data (filtered) immediately
 	bool publish_control = true;
@@ -429,6 +431,12 @@ PX4Gyroscope::ConfigureFilter(float cutoff_freq)
 }
 
 void
+PX4Gyroscope::ConfigureNotchFilter(float notch_freq, float bandwidth)
+{
+	_notch_filter.setParameters(_sample_rate, notch_freq, bandwidth);
+}
+
+void
 PX4Gyroscope::UpdateVibrationMetrics(const Vector3f &delta_angle)
 {
 	// Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
@@ -448,6 +456,8 @@ PX4Gyroscope::print_status()
 	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 	PX4_INFO("sample rate: %d Hz", _sample_rate);
 	PX4_INFO("filter cutoff: %.3f Hz", (double)_filter.get_cutoff_freq());
+	PX4_INFO("notch filter freq: %.3f Hz\tbandwidth: %.3f Hz", (double)_notch_filter.getNotchFreq(),
+		 (double)_notch_filter.getBandwidth());
 
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));

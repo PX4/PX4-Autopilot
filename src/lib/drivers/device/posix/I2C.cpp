@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file i2c.cpp
+ * @file I2C.cpp
  *
  * Base class for devices attached via the I2C bus.
  *
@@ -109,6 +109,7 @@ out:
 
 	if ((ret != OK) && !(_fd < 0)) {
 		::close(_fd);
+		_fd = -1;
 	}
 
 	return ret;
@@ -117,19 +118,19 @@ out:
 int
 I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
 {
-	struct i2c_msg msgv[2];
-	unsigned msgs;
 	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
 	if (_fd < 0) {
 		PX4_ERR("I2C device not opened");
-		return 1;
+		return PX4_ERROR;
 	}
 
 	do {
 		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
-		msgs = 0;
+
+		unsigned msgs = 0;
+		struct i2c_msg msgv[2] {};
 
 		if (send_len > 0) {
 			msgv[msgs].addr = get_device_address();
@@ -151,24 +152,19 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 			return -EINVAL;
 		}
 
-		struct i2c_rdwr_ioctl_data packets;
-
+		i2c_rdwr_ioctl_data packets{};
 		packets.msgs  = msgv;
-
 		packets.nmsgs = msgs;
 
-		ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
+		int ret_ioctl = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
 
-		if (ret == -1) {
+		if (ret_ioctl == -1) {
 			DEVICE_DEBUG("I2C transfer failed");
 			ret = PX4_ERROR;
 
 		} else {
+			// success
 			ret = PX4_OK;
-		}
-
-		/* success */
-		if (ret == PX4_OK) {
 			break;
 		}
 

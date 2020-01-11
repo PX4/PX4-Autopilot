@@ -94,7 +94,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 	int num_missed = 0;
 
 	// timings has to be on the heap to keep frame size below 2048 bytes
-	unsigned *timings = new unsigned[maxruns];
+	unsigned *timings = new unsigned[maxruns] {};
 	unsigned timing_min = 9999999, timing_max = 0;
 
 	for (unsigned i = 0; i < maxruns; i++) {
