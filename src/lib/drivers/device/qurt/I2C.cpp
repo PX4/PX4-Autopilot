@@ -75,7 +75,7 @@ I2C::init()
 
 	// Open the actual I2C device
 	char dev_path[16] {};
-	snprintf(dev_path, sizeof(dev_path), "/dev/iic-%i", get_device_bus());
+	snprintf(dev_path, sizeof(dev_path), DEV_FS_I2C_DEVICE_TYPE_STRING"%i", get_device_bus());
 	_fd = ::open(dev_path, O_RDWR);
 
 	if (_fd < 0) {

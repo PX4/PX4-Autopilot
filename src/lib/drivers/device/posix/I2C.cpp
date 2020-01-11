@@ -142,7 +142,7 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 
 		if (recv_len > 0) {
 			msgv[msgs].addr = get_device_address();
-			msgv[msgs].flags = I2C_M_READ;
+			msgv[msgs].flags = I2C_M_RD;
 			msgv[msgs].buf = recv;
 			msgv[msgs].len = recv_len;
 			msgs++;
