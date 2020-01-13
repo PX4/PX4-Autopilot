@@ -31,14 +31,6 @@
  *
  ****************************************************************************/
 
-/*
- * @file timer_config.c
- *
- * Configuration data for the imxrt pwm_servo, input capture and pwm input driver.
- *
- * Note that these arrays must always be fully-sized.
- */
-
 // TODO:Stubbed out for now
 #include <stdint.h>
 
@@ -52,7 +44,7 @@
 #include "imxrt_periphclks.h"
 
 #include <drivers/drv_pwm_output.h>
-#include <px4_arch/io_timer.h>
+#include <px4_arch/io_timer_hw_description.h>
 
 #include "board_config.h"
 
@@ -83,127 +75,34 @@
 #define rDMA          REG(IMXRT_TMR_DMA_OFFSET)
 #define rENBL         REG(IMXRT_TMR_ENBL_OFFSET)
 
-__EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
-	{
-		.base = IMXRT_FLEXPWM2_BASE,
-	},
-	{
-		.base = IMXRT_FLEXPWM3_BASE,
-	},
-	{
-		.base = IMXRT_FLEXPWM4_BASE,
-	},
+constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
+	initIOPWM(PWM::FlexPWM2),
+	initIOPWM(PWM::FlexPWM3),
+	initIOPWM(PWM::FlexPWM4),
 };
 
-__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = {
-	.element = {
-		{
-			.first_channel_index = 0,
-			.channel_count = 4,
-		},
-		{
-			.first_channel_index = 4,
-			.channel_count = 2,
-		},
-		{
-			.first_channel_index = 6,
-			.channel_count = 2,
-		}
-	}
+constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+	initIOTimerChannel(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule0}, IOMUX::Pad::GPIO_B0_06),
+	initIOTimerChannel(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule1}, IOMUX::Pad::GPIO_EMC_08),
+	initIOTimerChannel(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule2}, IOMUX::Pad::GPIO_EMC_10),
+	initIOTimerChannel(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule3}, IOMUX::Pad::GPIO_AD_B0_09),
+	initIOTimerChannel(io_timers, {PWM::PWM3_PWM_A, PWM::Submodule2}, IOMUX::Pad::GPIO_EMC_33),
+	initIOTimerChannel(io_timers, {PWM::PWM3_PWM_B, PWM::Submodule0}, IOMUX::Pad::GPIO_EMC_30),
+	initIOTimerChannel(io_timers, {PWM::PWM4_PWM_A, PWM::Submodule2}, IOMUX::Pad::GPIO_EMC_04),
+	initIOTimerChannel(io_timers, {PWM::PWM4_PWM_B, PWM::Submodule0}, IOMUX::Pad::GPIO_EMC_01),
 };
 
-__EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	{
-		/* FMU_CH1 : GPIO_B0_06    GPIO2 Pin 6  FLEXPWM2_PWMA0 */
-		.gpio_out         = PIN_FLEXPWM2_PWMA00,
-		.gpio_portpin     = GPIO_PORT2 | GPIO_PIN6,
-		.timer_index      = 0,
-		.val_offset       = PWMA_VAL,
-		.sub_module       = SM0,
-		.sub_module_bits  = MCTRL_LDOK(1 << SM0),
+constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
+	initIOTimerChannelMapping(io_timers, timer_io_channels);
 
-	},
-	{
-		/* FMU_CH2 : GPIO_EMC_08   GPIO4 Pin 8  FLEXPWM2_PWMA1 */
-		.gpio_out         = PIN_FLEXPWM2_PWMA01,
-		.gpio_portpin     = GPIO_PORT4 | GPIO_PIN8,
-		.timer_index      = 0,
-		.val_offset       = PWMA_VAL,
-		.sub_module       = SM1,
-		.sub_module_bits  =  MCTRL_LDOK(1 << SM1),
-
-	},
-	{
-		/* FMU_CH3 : GPIO_EMC_10   GPIO4 Pin 10 FLEXPWM2_PWMA2 */
-		.gpio_out         = PIN_FLEXPWM2_PWMA02,
-		.gpio_portpin     = GPIO_PORT4 | GPIO_PIN10,
-		.timer_index      = 0,
-		.val_offset       = PWMA_VAL,
-		.sub_module       = SM2,
-		.sub_module_bits  = MCTRL_LDOK(1 << SM2),
-
-	},
-	{
-		/* FMU_CH4 : GPIO_AD_B0_09 GPIO1 Pin 9  FLEXPWM2_PWMA3 */
-		.gpio_out         = PIN_FLEXPWM2_PWMA03,
-		.gpio_portpin     = GPIO_PORT1 | GPIO_PIN9,
-		.timer_index      = 0,
-		.val_offset       = PWMA_VAL,
-		.sub_module       = SM3,
-		.sub_module_bits  = MCTRL_LDOK(1 << SM3),
-	},
-
-	{
-		/* FMU_CH5 : GPIO_EMC_33   GPIO3 Pin 19 FLEXPWM3_PWMA2 */
-		.gpio_out         = PIN_FLEXPWM3_PWMA02,
-		.gpio_portpin     = GPIO_PORT3 | GPIO_PIN19,
-		.timer_index      = 1,
-		.val_offset       = PWMA_VAL,
-		.sub_module       = SM2,
-		.sub_module_bits  =  MCTRL_LDOK(1 << SM2),
-	},
-	{
-		/* FMU_CH6 : GPIO_EMC_30   GPIO4 Pin 30 FLEXPWM3_PWMB0 */
-		.gpio_out         = PIN_FLEXPWM3_PWMB00,
-		.gpio_portpin     = GPIO_PORT4 | GPIO_PIN30,
-		.timer_index      = 1,
-		.val_offset       = PWMB_VAL,
-		.sub_module       = SM0,
-		.sub_module_bits  = MCTRL_LDOK(1 << SM0),
-
-	},
-
-	{
-		/* FMU_CH7 : GPIO_EMC_04   GPIO4 Pin 4  FLEXPWM4_PWMA2 */
-		.gpio_out         = PIN_FLEXPWM4_PWMA02,
-		.gpio_portpin     = GPIO_PORT4 | GPIO_PIN4,
-		.timer_index      = 2,
-		.val_offset       = PWMA_VAL,
-		.sub_module       = SM2,
-		.sub_module_bits  = MCTRL_LDOK(1 << SM2),
-
-	},
-	{
-		/* FMU_CH8 : GPIO_EMC_01   GPIO4 Pin 1  FLEXPWM4_PWMB0 */
-		.gpio_out         = PIN_FLEXPWM4_PWMB00,
-		.gpio_portpin     = GPIO_PORT4 | GPIO_PIN1,
-		.timer_index      = 2,
-		.val_offset       = PWMB_VAL,
-		.sub_module       = SM0,
-		.sub_module_bits  = MCTRL_LDOK(1 << SM0),
-
-	},
-
+constexpr io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 };
 
-__EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
-};
-
-__EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
+constexpr timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 };
 
 
-__EXPORT void fmurt1062_timer_initialize(void)
+void fmurt1062_timer_initialize(void)
 {
 	/* We must configure Qtimer 3 as the IPG divide by to yield 16 Mhz
 	 * and deliver that clock to the eFlexPWM234 via XBAR
