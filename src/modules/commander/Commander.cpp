@@ -1660,13 +1660,14 @@ Commander::run()
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
 
+		const bool in_low_battery_failsafe = _battery_warning > battery_status_s::BATTERY_WARNING_LOW;
+
 		// Geofence actions
 		const bool geofence_action_enabled = _geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
-		const bool not_in_battery_failsafe = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
 
 		if (armed.armed
 		    && geofence_action_enabled
-		    && not_in_battery_failsafe) {
+		    && !in_low_battery_failsafe) {
 
 			// check for geofence violation transition
 			if (_geofence_result.geofence_violated && !_geofence_violated_prev) {
@@ -1741,7 +1742,6 @@ Commander::run()
 
 		// abort auto mode or geofence reaction if sticks are moved significantly
 		// but only if not in a low battery handling action
-		const bool low_battery_reaction = _battery_warning >= battery_status_s::BATTERY_WARNING_CRITICAL;
 		const bool is_rotary_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 		const bool override_auto_mode =
@@ -1756,7 +1756,7 @@ Commander::run()
 			_internal_state.main_state == commander_state_s::MAIN_STATE_OFFBOARD;
 
 		if ((override_auto_mode || override_offboard_mode) && is_rotary_wing
-		    && !low_battery_reaction && !_geofence_warning_action_on) {
+		    && !in_low_battery_failsafe && !_geofence_warning_action_on) {
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != _sp_man.timestamp) &&
 			    ((fabsf(_sp_man.x - _last_sp_man.x) > _min_stick_change) ||
@@ -1766,7 +1766,7 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &_internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Autonomy off! Returned control to pilot");
+				mavlink_log_info(&mavlink_log_pub, "Autonomy off! Returned control to pilot");
 			}
 		}
 
