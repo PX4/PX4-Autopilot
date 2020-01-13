@@ -459,7 +459,7 @@
 #define HRT_PPM_CHANNEL         /* GPIO_B1_06 GPT1_CAPTURE2 */  2  /* use capture/compare channel 2 */
 #define GPIO_PPM_IN             /* GPIO_B1_06 GPT1_CAPTURE2 */ (GPIO_GPT1_CAPTURE2_2 | GENERAL_INPUT_IOMUX)
 
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
+#define RC_SERIAL_PORT          "/dev/ttyS5"
 
 /* PWM input driver. Use FMU AUX5 pins attached to GPIO_EMC_33 GPIO3_IO19 FLEXPWM3_PWMA2 */
 
