@@ -116,14 +116,14 @@ fi
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-pip3 install --user --upgrade setuptools wheel
+pip3 install --user --upgrade pip setuptools wheel
 pip3 install --user -r ${DIR}/requirements.txt
 
 
 # Python2 dependencies
 echo
 echo "Installing PX4 Python2 dependencies"
-pip install --user --upgrade setuptools wheel
+pip install --user --upgrade pip setuptools wheel
 pip install --user -r ${DIR}/requirements.txt
 
 
