@@ -1027,22 +1027,15 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 		mavlink_odometry_t odom_msg;
 		mavlink_msg_odometry_decode(odom_mavlink, &odom_msg);
 
-		/* The quaternion of the ODOMETRY msg represents a rotation from
-		 * FRD body frame to the NED local frame */
-		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
-		q.normalize();
-		q.copyTo(odom.q);
-
-		/* Dcm rotation matrix from body frame to local NED frame */
-		const matrix::Dcmf R_body_to_local(q);
-
-		/* since odom.child_frame_id == MAV_FRAME_BODY_FRD, WRT to estimated vehicle body-fixed frame */
-		/* No need to transform the covariance matrices since the non-diagonal values are all zero */
-
 		/* The position in the local NED frame */
 		odom.x = odom_msg.x;
 		odom.y = odom_msg.y;
 		odom.z = odom_msg.z;
+		
+		/* The quaternion of the ODOMETRY msg represents a rotation from
+		 * NED earth/local frame to XYZ body frame */
+		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
+		q.copyTo(odom.q);
 
 		odom.local_frame = odom.LOCAL_FRAME_FRD;
 
@@ -1054,14 +1047,12 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 			odom.pose_covariance[i] = odom_msg.pose_covariance[i];
 		}
 
-		/* the linear velocities needs to be transformed from the body frame to the local frame */
-		const matrix::Vector3<float> linvel_local(R_body_to_local *
-				matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
+		/* The velocity in the body-fixed frame */
+		odom.velocity_frame = odom.BODY_FRAME_FRD;
+		odom.vx = odom_msg.vx;
+		odom.vy = odom_msg.vy;
+		odom.vz = odom_msg.vz;
 
-		/* The velocity in the local NED frame */
-		odom.vx = linvel_local(0);
-		odom.vy = linvel_local(1);
-		odom.vz = linvel_local(2);
 		/* The angular velocity in the body-fixed frame */
 		odom.rollspeed = odom_msg.rollspeed;
 		odom.pitchspeed = odom_msg.pitchspeed;

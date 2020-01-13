@@ -1117,18 +1117,28 @@ void Ekf2::Run()
 				ev_data.vel(1) = _ev_odom.vy;
 				ev_data.vel(2) = _ev_odom.vz;
 
+				if (_ev_odom.velocity_frame == _ev_odom.BODY_FRAME_FRD) {
+					ev_data.vel_frame = estimator::BODY_FRAME_FRD;
+
+				} else {
+					ev_data.vel_frame = estimator::LOCAL_FRAME_FRD;
+				}
+
 				// velocity measurement error from ev_data or parameters
 				float param_evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
 				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])
 				    && PX4_ISFINITE(_ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE])
 				    && PX4_ISFINITE(_ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE])) {
-					ev_data.velVar(0) = fmaxf(param_evv_noise_var, _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE]);
-					ev_data.velVar(1) = fmaxf(param_evv_noise_var, _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE]);
-					ev_data.velVar(2) = fmaxf(param_evv_noise_var, _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]);
+					ev_data.velCov(0, 0) = _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE];
+					ev_data.velCov(0, 1) = ev_data.velCov(1, 0) = _ev_odom.velocity_covariance[1];
+					ev_data.velCov(0, 2) = ev_data.velCov(2, 0) = _ev_odom.velocity_covariance[2];
+					ev_data.velCov(1, 1) = _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE];
+					ev_data.velCov(1, 2) = ev_data.velCov(2, 1) = _ev_odom.velocity_covariance[7];
+					ev_data.velCov(2, 2) = _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE];
 
 				} else {
-					ev_data.velVar.setAll(param_evv_noise_var);
+					ev_data.velCov = matrix::eye<float, 3>() * param_evv_noise_var;
 				}
 			}
 
@@ -1256,6 +1266,7 @@ void Ekf2::Run()
 				lpos.vz = velocity(2);
 
 				// Vehicle odometry linear velocity
+				odom.velocity_frame = odom.LOCAL_FRAME_FRD;
 				odom.vx = lpos.vx;
 				odom.vy = lpos.vy;
 				odom.vz = lpos.vz;
@@ -1417,10 +1428,20 @@ void Ekf2::Run()
 					aligned_ev_odom.y = aligned_pos(1);
 					aligned_ev_odom.z = aligned_pos(2);
 
-					const Vector3f aligned_vel = ev_rot_mat * Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
-					aligned_ev_odom.vx = aligned_vel(0);
-					aligned_ev_odom.vy = aligned_vel(1);
-					aligned_ev_odom.vz = aligned_vel(2);
+					if (_ev_odom.velocity_frame == _ev_odom.BODY_FRAME_FRD) {
+						Vector3f aligned_vel = Dcmf(_ekf.getQuaternion()) * Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
+						aligned_ev_odom.vx = aligned_vel(0);
+						aligned_ev_odom.vy = aligned_vel(1);
+						aligned_ev_odom.vz = aligned_vel(2);
+
+					} else { // _ev_odom.velocity_frame == _ev_odom.LOCAL_FRAME_FRD
+						Vector3f aligned_vel = ev_rot_mat * Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
+						aligned_ev_odom.vx = aligned_vel(0);
+						aligned_ev_odom.vy = aligned_vel(1);
+						aligned_ev_odom.vz = aligned_vel(2);
+					}
+
+					aligned_ev_odom.velocity_frame = aligned_ev_odom.LOCAL_FRAME_NED;
 
 					// Compute orientation in EKF navigation frame
 					Quatf ev_quat_aligned = quat_ev2ekf * matrix::Quatf(_ev_odom.q) ;

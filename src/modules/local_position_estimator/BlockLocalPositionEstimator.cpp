@@ -656,6 +656,7 @@ void BlockLocalPositionEstimator::publishOdom()
 		q.copyTo(_pub_odom.get().q);
 
 		// linear velocity
+		_pub_odom.get().velocity_frame = _pub_odom.get().LOCAL_FRAME_FRD;
 		_pub_odom.get().vx = xLP(X_vx);		// vel north
 		_pub_odom.get().vy = xLP(X_vy);		// vel east
 		_pub_odom.get().vz = xLP(X_vz);		// vel down
