@@ -136,13 +136,4 @@ __EXPORT const char 	*px4_get_device_names(unsigned int *handle);
 __EXPORT void		px4_show_topics(void);
 __EXPORT const char 	*px4_get_topic_names(unsigned int *handle);
 
-#ifndef __PX4_QURT
-/*
- * The UNIX epoch system time following the system clock
- */
-__EXPORT uint64_t	hrt_system_time(void);
-
-
-#endif
-
 __END_DECLS
