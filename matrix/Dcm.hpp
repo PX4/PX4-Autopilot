@@ -104,13 +104,13 @@ public:
         const Type cd = c * d;
         const Type dd = d * d;
         dcm(0, 0) = aa + bb - cc - dd;
-        dcm(0, 1) = 2 * (bc - ad);
-        dcm(0, 2) = 2 * (ac + bd);
-        dcm(1, 0) = 2 * (bc + ad);
+        dcm(0, 1) = Type(2) * (bc - ad);
+        dcm(0, 2) = Type(2) * (ac + bd);
+        dcm(1, 0) = Type(2) * (bc + ad);
         dcm(1, 1) = aa - bb + cc - dd;
-        dcm(1, 2) = 2 * (cd - ab);
-        dcm(2, 0) = 2 * (bd - ac);
-        dcm(2, 1) = 2 * (ab + cd);
+        dcm(1, 2) = Type(2) * (cd - ab);
+        dcm(2, 0) = Type(2) * (bd - ac);
+        dcm(2, 1) = Type(2) * (ab + cd);
         dcm(2, 2) = aa - bb - cc + dd;
     }
 
