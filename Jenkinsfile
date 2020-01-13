@@ -674,7 +674,7 @@ pipeline {
           }
           when {
             anyOf {
-              //branch 'master' // TODO: fix and re-enable
+              branch 'master'
               branch 'pr-jenkins' // for testing
             }
           }
@@ -715,7 +715,7 @@ pipeline {
           }
           when {
             anyOf {
-              //branch 'master'
+              branch 'master'
               branch 'pr-jenkins' // for testing
             }
           }
