@@ -10,7 +10,7 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2019-11-25"
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
-		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2018-09-12"
+		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2020-01-13"
 	elif [[ $@ =~ .*ocpoc.* ]] || [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*bebop.* ]]; then
 		# aerotenna_ocpoc_default, posix_rpi_cross, posix_bebop_default
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2019-11-25"
