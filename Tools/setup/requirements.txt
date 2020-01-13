@@ -10,6 +10,7 @@ psutil
 pyserial>=3.0
 pyulog>=0.5.0
 pyyaml
+pygments
 setuptools>=39.2.0
 six>=1.12.0
 toml>=0.9

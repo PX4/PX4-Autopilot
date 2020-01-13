@@ -92,11 +92,12 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	lcov \
 	make \
 	ninja-build \
+	python3 \
+	python3-dev \
 	python3-pip \
-	python3-pygments \
-	python3-setuptools \
-	python-pip \
+	python \
 	python-dev \
+	python-pip \
 	rsync \
 	shellcheck \
 	unzip \
@@ -115,15 +116,15 @@ fi
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-sudo python3 -m pip install --upgrade pip setuptools wheel
-sudo python3 -m pip install -r ${DIR}/requirements.txt
+pip3 install --user --upgrade setuptools wheel
+pip3 install --user -r ${DIR}/requirements.txt
 
 
 # Python2 dependencies
 echo
 echo "Installing PX4 Python2 dependencies"
-sudo python2 -m pip install --upgrade pip setuptools wheel
-sudo python2 -m pip install -r ${DIR}/requirements.txt
+pip install --user --upgrade setuptools wheel
+pip install --user -r ${DIR}/requirements.txt
 
 
 # NuttX toolchain (arm-none-eabi-gcc)
