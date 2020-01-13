@@ -31,8 +31,10 @@
  *
  ****************************************************************************/
 
-/*
- * @file drv_io_timer.c
+/**
+ * @file io_timer.c
+ *
+ * Servo driver supporting PWM servos connected to STM32 timer blocks.
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -368,6 +370,30 @@ int io_timer_validate_channel_index(unsigned channel)
 	}
 
 	return rv;
+}
+
+uint32_t io_timer_channel_get_gpio_output(unsigned channel)
+{
+	if (io_timer_validate_channel_index(channel) != 0) {
+		return 0;
+	}
+
+#ifdef CONFIG_STM32_STM32F10XX
+	return (timer_io_channels[channel].gpio_out & (GPIO_PORT_MASK | GPIO_PIN_MASK)) |
+	       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_OUTPUT_CLEAR);
+#else
+	return (timer_io_channels[channel].gpio_out & (GPIO_PORT_MASK | GPIO_PIN_MASK)) |
+	       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR);
+#endif
+}
+
+uint32_t io_timer_channel_get_as_pwm_input(unsigned channel)
+{
+	if (io_timer_validate_channel_index(channel) != 0) {
+		return 0;
+	}
+
+	return timer_io_channels[channel].gpio_in;
 }
 
 int io_timer_get_mode_channels(io_timer_channel_mode_t mode)

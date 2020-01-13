@@ -149,4 +149,15 @@ __EXPORT void io_timer_update_dma_req(uint8_t timer, bool enable);
 
 __EXPORT extern int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_rate, uint8_t dma_burst_length);
 
+/**
+ * Returns the pin configuration for a specific channel, to be used as GPIO output.
+ * 0 is returned if the channel is not valid.
+ */
+__EXPORT uint32_t io_timer_channel_get_gpio_output(unsigned channel);
+/**
+ * Returns the pin configuration for a specific channel, to be used as PWM input.
+ * 0 is returned if the channel is not valid.
+ */
+__EXPORT uint32_t io_timer_channel_get_as_pwm_input(unsigned channel);
+
 __END_DECLS
