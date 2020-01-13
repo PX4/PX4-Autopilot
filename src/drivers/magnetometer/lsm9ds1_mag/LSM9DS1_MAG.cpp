@@ -194,10 +194,11 @@ void LSM9DS1_MAG::Run()
 	if (mreport.STATUS_REG_M & STATUS_REG_M_BIT::ZYXDA) {
 		// X, Y and Z-axis new data available.
 
-		// sensor X is left, Y is back, and Z is up
-		int16_t x = -combine(mreport.OUT_Y_L_M, mreport.OUT_Y_H_M); // X := -Y
-		int16_t y = -combine(mreport.OUT_X_L_M, mreport.OUT_X_H_M); // Y := -X
-		int16_t z = -combine(mreport.OUT_Z_L_M, mreport.OUT_Z_H_M); // Z := -Z
+		// sensor Z is up (RHC), flip z for publication
+		// sensor X is aligned with -X of lsm9ds1 accel/gyro
+		int16_t x = -combine(mreport.OUT_X_L_M, mreport.OUT_X_H_M);
+		int16_t y = combine(mreport.OUT_Y_L_M, mreport.OUT_Y_H_M);
+		int16_t z = -combine(mreport.OUT_Z_L_M, mreport.OUT_Z_H_M);
 
 		_px4_mag.update(timestamp_sample, x, y, z);
 	}
