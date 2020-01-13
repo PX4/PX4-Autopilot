@@ -860,6 +860,33 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Y, 0.0f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Z, 0.0f);
 
 /**
+ * X position of GPS2 antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS2_POS_X, 0.0f);
+
+/**
+ * Y position of GPS2 antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS2_POS_Y, 0.0f);
+
+/**
+ * Z position of GPS2 antenna in body frame
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS2_POS_Z, 0.0f);
+
+/**
  * X position of range finder origin in body frame
  *
  * @group EKF2

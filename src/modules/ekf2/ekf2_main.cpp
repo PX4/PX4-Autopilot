@@ -221,6 +221,8 @@ private:
 	gps_message _gps_output[GPS_MAX_RECEIVERS + 1] {}; ///< output state data for the physical and blended GPS
 	Vector2f _NE_pos_offset_m[GPS_MAX_RECEIVERS] = {}; ///< Filtered North,East position offset from GPS instance to blended solution in _output_state.location (m)
 	float _hgt_offset_mm[GPS_MAX_RECEIVERS] = {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (mm)
+	Vector3f _gps1_pos_body = {};		///< GPS1 antenna offset
+	Vector3f _gps2_pos_body = {};		///< GPS2 antenna offset
 	Vector3f _blended_antenna_offset = {};		///< blended antenna offset
 	float _blend_weights[GPS_MAX_RECEIVERS] = {};	///< blend weight for each GPS. The blend weights must sum to 1.0 across all instances.
 	uint64_t _time_prev_us[GPS_MAX_RECEIVERS] = {};	///< the previous value of time_us for that GPS instance - used to detect new data.
@@ -437,9 +439,12 @@ private:
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_Y>) _param_ekf2_imu_pos_y,		///< Y position of IMU in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_Z>) _param_ekf2_imu_pos_z,		///< Z position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,		///< X position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,		///< Y position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,		///< Z position of GPS antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps1_pos_x,		///< X position of GPS1 antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps1_pos_y,		///< Y position of GPS1 antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps1_pos_z,		///< Z position of GPS1 antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS2_POS_X>) _param_ekf2_gps2_pos_x,		///< X position of GPS2 antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS2_POS_Y>) _param_ekf2_gps2_pos_y,		///< Y position of GPS2 antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS2_POS_Z>) _param_ekf2_gps2_pos_z,		///< Z position of GPS2 antenna in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>) _param_ekf2_rng_pos_x,		///< X position of range finder in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>) _param_ekf2_rng_pos_y,		///< Y position of range finder in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,		///< Z position of range finder in body frame (m)
@@ -609,9 +614,6 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_imu_pos_x(_params->imu_pos_body(0)),
 	_param_ekf2_imu_pos_y(_params->imu_pos_body(1)),
 	_param_ekf2_imu_pos_z(_params->imu_pos_body(2)),
-	_param_ekf2_gps_pos_x(_params->gps_pos_body(0)),
-	_param_ekf2_gps_pos_y(_params->gps_pos_body(1)),
-	_param_ekf2_gps_pos_z(_params->gps_pos_body(2)),
 	_param_ekf2_rng_pos_x(_params->rng_pos_body(0)),
 	_param_ekf2_rng_pos_y(_params->rng_pos_body(1)),
 	_param_ekf2_rng_pos_z(_params->rng_pos_body(2)),
@@ -640,6 +642,9 @@ Ekf2::Ekf2(bool replay_mode):
 	updateParams();
 
 	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+
+	_gps1_pos_body = {_param_ekf2_gps1_pos_x.get(), _param_ekf2_gps1_pos_y.get(), _param_ekf2_gps1_pos_z.get()};
+	_gps2_pos_body = {_param_ekf2_gps2_pos_x.get(), _param_ekf2_gps2_pos_y.get(), _param_ekf2_gps2_pos_z.get()};
 }
 
 Ekf2::~Ekf2()
@@ -724,6 +729,9 @@ void Ekf2::Run()
 
 			// update parameters from storage
 			updateParams();
+
+			_gps1_pos_body = {_param_ekf2_gps1_pos_x.get(), _param_ekf2_gps1_pos_y.get(), _param_ekf2_gps1_pos_z.get()};
+			_gps2_pos_body = {_param_ekf2_gps2_pos_x.get(), _param_ekf2_gps2_pos_y.get(), _param_ekf2_gps2_pos_z.get()};
 		}
 
 		// ekf2_timestamps (using 0.1 ms relative timestamps)
@@ -954,6 +962,7 @@ void Ekf2::Run()
 
 		if ((_param_ekf2_gps_mask.get() == 0) && gps1_updated) {
 			// When GPS blending is disabled we always use the first receiver instance
+			_ekf.set_GPS_pos_body(_gps1_pos_body);
 			_ekf.setGpsData(_gps_state[0].time_usec, _gps_state[0]);
 
 		} else if ((_param_ekf2_gps_mask.get() > 0) && (gps1_updated || gps2_updated)) {
@@ -989,12 +998,19 @@ void Ekf2::Run()
 				// correct the _gps_state data for steady state offsets and write to _gps_output
 				apply_gps_offsets();
 
-				// calculate a blended output from the offset corrected receiver data
-				if (_gps_select_index == 2) {
+				if (_gps_select_index == 0) {
+					_blended_antenna_offset = _gps1_pos_body;
+
+				} else if (_gps_select_index == 1) {
+					_blended_antenna_offset = _gps2_pos_body;
+
+				} else {
+					// calculate a blended output from the offset corrected receiver data
 					calc_gps_blend_output();
 				}
 
 				// write selected GPS to EKF
+				_ekf.set_GPS_pos_body(_blended_antenna_offset);
 				_ekf.setGpsData(_gps_output[_gps_select_index].time_usec, _gps_output[_gps_select_index]);
 
 				// log blended solution as a third GPS instance
@@ -2085,8 +2101,6 @@ void Ekf2::update_gps_blend_states()
 	_gps_blended_state.nsats = 0;
 	_gps_blended_state.pdop = FLT_MAX;
 
-	_blended_antenna_offset.zero();
-
 	// combine the the GPS states into a blended solution using the weights calculated in calc_blend_weights()
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		// blend the timing data
@@ -2135,14 +2149,7 @@ void Ekf2::update_gps_blend_states()
 			if (!_gps_state[i].vel_ned_valid) {
 				_gps_blended_state.vel_ned_valid = false;
 			}
-
 		}
-
-		// TODO read parameters for individual GPS antenna positions and blend
-		// Vector3f temp_antenna_offset = _antenna_offset[i];
-		// temp_antenna_offset *= _blend_weights[i];
-		// _blended_antenna_offset += temp_antenna_offset;
-
 	}
 
 	/*
@@ -2375,6 +2382,9 @@ void Ekf2::calc_gps_blend_output()
 	_gps_output[GPS_BLENDED_INSTANCE].vel_ned_valid	= _gps_blended_state.vel_ned_valid;
 	_gps_output[GPS_BLENDED_INSTANCE].yaw		= _gps_blended_state.yaw;
 	_gps_output[GPS_BLENDED_INSTANCE].yaw_offset	= _gps_blended_state.yaw_offset;
+
+	// Calculate blended GPS position offset
+	_blended_antenna_offset = _blend_weights[0] * _gps1_pos_body +  _blend_weights[1] * _gps2_pos_body;
 
 }
 
