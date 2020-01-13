@@ -64,7 +64,6 @@ static inline unsigned clipping(const int16_t samples[16], int16_t clip_limit, u
 }
 
 PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
-	CDev(nullptr),
 	_sensor_pub{ORB_ID(sensor_gyro), priority},
 	_sensor_fifo_pub{ORB_ID(sensor_gyro_fifo), priority},
 	_sensor_integrated_pub{ORB_ID(sensor_gyro_integrated), priority},
@@ -73,35 +72,6 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	_rotation{rotation},
 	_rotation_dcm{get_rot_matrix(rotation)}
 {
-	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
-}
-
-PX4Gyroscope::~PX4Gyroscope()
-{
-	if (_class_device_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_device_instance);
-	}
-}
-
-int PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case GYROIOCSSCALE: {
-			// Copy offsets and scale factors in
-			gyro_calibration_s cal{};
-			memcpy(&cal, (gyro_calibration_s *) arg, sizeof(cal));
-
-			_calibration_offset = Vector3f{cal.x_offset, cal.y_offset, cal.z_offset};
-		}
-
-		return PX4_OK;
-
-	case DEVIOCGDEVICEID:
-		return _device_id;
-
-	default:
-		return -ENOTTY;
-	}
 }
 
 void PX4Gyroscope::set_device_type(uint8_t devtype)
@@ -367,7 +337,10 @@ void PX4Gyroscope::UpdateVibrationMetrics(const Vector3f &delta_angle)
 
 void PX4Gyroscope::print_status()
 {
-	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
+	char device_id_buffer[80] {};
+	device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), _device_id);
+	PX4_INFO("device id: %d (%s)", _device_id, device_id_buffer);
+	PX4_INFO("rotation: %d", _rotation);
 
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));

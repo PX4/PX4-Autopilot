@@ -33,8 +33,9 @@
 
 #pragma once
 
+#include "../sensor_corrections/SensorCorrections.hpp"
+
 #include <containers/List.hpp>
-#include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
@@ -67,17 +68,8 @@ private:
 	void Run() override;
 
 	void ParametersUpdate(bool force = false);
-	void SensorCorrectionsUpdate(bool force = false);
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_BOARD_ROT>) _param_sens_board_rot,
-
-		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _param_sens_board_x_off,
-		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _param_sens_board_y_off,
-		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _param_sens_board_z_off
-	)
 
 	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
 
@@ -87,17 +79,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_integrated_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_integrated_sub;
 
-	matrix::Dcmf _board_rotation;
-
-	matrix::Vector3f _accel_offset{0.f, 0.f, 0.f};
-	matrix::Vector3f _gyro_offset{0.f, 0.f, 0.f};
-	matrix::Vector3f _accel_scale{1.f, 1.f, 1.f};
-	matrix::Vector3f _gyro_scale{1.f, 1.f, 1.f};
-
-	char *_name{nullptr};
-
-	int8_t _corrections_selected_accel_instance{-1};
-	int8_t _corrections_selected_gyro_instance{-1};
+	SensorCorrections _accel_corrections;
+	SensorCorrections _gyro_corrections;
 
 	uint32_t _accel_device_id{0};
 	uint32_t _gyro_device_id{0};

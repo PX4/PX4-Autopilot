@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE systemcmds__config
-	MAIN config
-	STACK_MAIN 4096
-	COMPILE_FLAGS
-	SRCS
-		config.c
-	DEPENDS
-	)
 
+px4_add_library(sensor_corrections
+	SensorCorrections.cpp
+	SensorCorrections.hpp
+)
+
+target_include_directories(sensor_corrections PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)

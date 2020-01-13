@@ -37,11 +37,11 @@
 
 using namespace matrix;
 using namespace time_literals;
-using math::radians;
 
 VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_corrections(this, SensorCorrections::SensorType::Gyroscope)
 {
 	_lowpass_filter.set_cutoff_frequency(kInitialRateHz, _param_imu_gyro_cutoff.get());
 	_notch_filter.setParameters(kInitialRateHz, _param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
@@ -141,46 +141,6 @@ void VehicleAngularVelocity::SensorBiasUpdate(bool force)
 	}
 }
 
-void VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
-{
-	// check if the selected sensor has updated
-	if (_sensor_correction_sub.updated() || force) {
-
-		sensor_correction_s corrections{};
-		_sensor_correction_sub.copy(&corrections);
-
-		// selected sensor has changed, find updated index
-		if ((_corrections_selected_instance < 0) || force) {
-			_corrections_selected_instance = -1;
-
-			// find sensor_corrections index
-			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-				if (corrections.gyro_device_ids[i] == _selected_sensor_device_id) {
-					_corrections_selected_instance = i;
-				}
-			}
-		}
-
-		switch (_corrections_selected_instance) {
-		case 0:
-			_offset = Vector3f{corrections.gyro_offset_0};
-			_scale = Vector3f{corrections.gyro_scale_0};
-			break;
-		case 1:
-			_offset = Vector3f{corrections.gyro_offset_1};
-			_scale = Vector3f{corrections.gyro_scale_1};
-			break;
-		case 2:
-			_offset = Vector3f{corrections.gyro_offset_2};
-			_scale = Vector3f{corrections.gyro_scale_2};
-			break;
-		default:
-			_offset = Vector3f{0.f, 0.f, 0.f};
-			_scale = Vector3f{1.f, 1.f, 1.f};
-		}
-	}
-}
-
 bool VehicleAngularVelocity::SensorSelectionUpdate(bool force)
 {
 	if (_sensor_selection_sub.updated() || (_selected_sensor_device_id == 0) || force) {
@@ -207,14 +167,14 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(bool force)
 
 						// clear bias and corrections
 						_bias.zero();
-						_offset = Vector3f{0.f, 0.f, 0.f};
-						_scale = Vector3f{1.f, 1.f, 1.f};
 
 						// force corrections reselection
 						_corrections_selected_instance = -1;
 
 						// reset sample rate monitor
 						_sample_rate_incorrect_count = 0;
+
+						_corrections.set_device_id(report.device_id);
 
 						return true;
 					}
@@ -240,31 +200,20 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 
 		updateParams();
 
-		// get transformation matrix from sensor/board to body frame
-		const Dcmf board_rotation = get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
-
-		// fine tune the rotation
-		const Dcmf board_rotation_offset(Eulerf(
-				radians(_param_sens_board_x_off.get()),
-				radians(_param_sens_board_y_off.get()),
-				radians(_param_sens_board_z_off.get())));
-
-		_board_rotation = board_rotation_offset * board_rotation;
+		_corrections.ParametersUpdate();
 	}
 }
 
 void VehicleAngularVelocity::Run()
 {
 	// update corrections first to set _selected_sensor
-	bool selection_updated = SensorSelectionUpdate();
-
-	SensorCorrectionsUpdate(selection_updated);
-	SensorBiasUpdate(selection_updated);
+	bool sensor_select_update = SensorSelectionUpdate();
+	SensorBiasUpdate(sensor_select_update);
 	ParametersUpdate();
 
 	bool sensor_updated = _sensor_sub[_selected_sensor_sub_index].updated();
 
-	if (sensor_updated || selection_updated) {
+	if (sensor_updated || sensor_select_update) {
 		sensor_gyro_s sensor_data;
 
 		if (_sensor_sub[_selected_sensor_sub_index].copy(&sensor_data)) {
@@ -276,14 +225,8 @@ void VehicleAngularVelocity::Run()
 			// get the sensor data and correct for thermal errors (apply offsets and scale)
 			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
 
-			// apply offsets and scale
-			Vector3f rates{(val - _offset).emult(_scale)};
-
-			// rotate corrected measurements from sensor to body frame
-			rates = _board_rotation * rates;
-
 			// correct for in-run bias errors
-			rates -= _bias;
+			Vector3f rates = _corrections.Correct(val) - _bias;
 
 			// Filter: apply notch and then low-pass
 			CheckFilters(rates);
@@ -319,8 +262,6 @@ void VehicleAngularVelocity::PrintStatus()
 {
 	PX4_INFO("selected sensor: %d (%d)", _selected_sensor_device_id, _selected_sensor_sub_index);
 	PX4_INFO("bias: [%.3f %.3f %.3f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
-	PX4_INFO("offset: [%.3f %.3f %.3f]", (double)_offset(0), (double)_offset(1), (double)_offset(2));
-	PX4_INFO("scale: [%.3f %.3f %.3f]", (double)_scale(0), (double)_scale(1), (double)_scale(2));
 
 	PX4_INFO("sample rate: %.3f Hz", (double)_update_rate_hz);
 	PX4_INFO("low-pass filter cutoff: %.3f Hz", (double)_lowpass_filter.get_cutoff_freq());
@@ -329,4 +270,6 @@ void VehicleAngularVelocity::PrintStatus()
 		PX4_INFO("notch filter freq: %.3f Hz\tbandwidth: %.3f Hz", (double)_notch_filter.getNotchFreq(),
 			 (double)_notch_filter.getBandwidth());
 	}
+
+	_corrections.PrintStatus();
 }

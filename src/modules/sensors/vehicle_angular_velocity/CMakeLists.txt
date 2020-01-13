@@ -35,4 +35,4 @@ px4_add_library(vehicle_angular_velocity
 	VehicleAngularVelocity.cpp
 	VehicleAngularVelocity.hpp
 )
-target_link_libraries(vehicle_angular_velocity PRIVATE px4_work_queue)
+target_link_libraries(vehicle_angular_velocity PRIVATE sensor_corrections px4_work_queue)

@@ -138,19 +138,11 @@ void VotedSensorsUpdate::parametersUpdate()
 	unsigned gyro_count = 0;
 	unsigned gyro_cal_found_count = 0;
 
-	for (unsigned driver_index = 0; driver_index < GYRO_COUNT_MAX; driver_index++) {
+	for (uint8_t driver_index = 0; driver_index < GYRO_COUNT_MAX; driver_index++) {
+		uORB::SubscriptionData<sensor_gyro_integrated_s> report{ORB_ID(sensor_gyro_integrated), driver_index};
 		_gyro.enabled[driver_index] = true;
 
-		char str[30] {};
-		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, driver_index);
-
-		int fd = px4_open(str, O_RDWR);
-
-		if (fd < 0) {
-			continue;
-		}
-
-		uint32_t driver_device_id = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+		uint32_t driver_device_id = report.get().device_id;
 		bool config_ok = false;
 
 		/* run through all stored calibrations that are applied at the driver level*/
@@ -158,8 +150,9 @@ void VotedSensorsUpdate::parametersUpdate()
 			/* initially status is ok per config */
 			failed = false;
 
+			char str[30] {};
 			(void)sprintf(str, "CAL_GYRO%u_ID", i);
-			int32_t device_id = 0;
+			int32_t device_id = -1;
 			failed = failed || (PX4_OK != param_get(param_find(str), &device_id));
 
 			(void)sprintf(str, "CAL_GYRO%u_EN", i);
@@ -182,29 +175,6 @@ void VotedSensorsUpdate::parametersUpdate()
 					_gyro.priority[driver_index] = 0;
 				}
 
-				gyro_calibration_s gscale{};
-
-				(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &gscale.x_offset));
-
-				(void)sprintf(str, "CAL_GYRO%u_YOFF", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &gscale.y_offset));
-
-				(void)sprintf(str, "CAL_GYRO%u_ZOFF", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &gscale.z_offset));
-
-				if (failed) {
-					PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
-
-				} else {
-					/* apply new scaling and offsets */
-					config_ok = (px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale) == 0);
-
-					if (!config_ok) {
-						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "gyro ", i);
-					}
-				}
-
 				break;
 			}
 		}
@@ -212,41 +182,17 @@ void VotedSensorsUpdate::parametersUpdate()
 		if (config_ok) {
 			gyro_count++;
 		}
-
-		px4_close(fd);
-	}
-
-	// There are fewer gyros than calibrations
-	// reset the board calibration and fail the initial load
-	if (gyro_count < gyro_cal_found_count) {
-		PX4_ERR("fewer accels than calibrations, resetting all CAL_GYROx_ID");
-
-		// run through all stored calibrations and reset them
-		for (unsigned i = 0; i < GYRO_COUNT_MAX; i++) {
-			char str[30] {};
-			(void)sprintf(str, "CAL_GYRO%u_ID", i);
-			int32_t device_id = 0;
-			(void)param_set(param_find(str), &device_id);
-		}
 	}
 
 	/* run through all accel sensors */
 	unsigned accel_count = 0;
 	unsigned accel_cal_found_count = 0;
 
-	for (unsigned driver_index = 0; driver_index < ACCEL_COUNT_MAX; driver_index++) {
+	for (uint8_t driver_index = 0; driver_index < ACCEL_COUNT_MAX; driver_index++) {
+		uORB::SubscriptionData<sensor_accel_integrated_s> report{ORB_ID(sensor_accel_integrated), driver_index};
 		_accel.enabled[driver_index] = true;
 
-		char str[30] {};
-		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, driver_index);
-
-		int fd = px4_open(str, O_RDWR);
-
-		if (fd < 0) {
-			continue;
-		}
-
-		uint32_t driver_device_id = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
+		uint32_t driver_device_id = report.get().device_id;
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -254,8 +200,9 @@ void VotedSensorsUpdate::parametersUpdate()
 			/* initially status is ok per config */
 			failed = false;
 
+			char str[30] {};
 			(void)sprintf(str, "CAL_ACC%u_ID", i);
-			int32_t device_id = 0;
+			int32_t device_id = -1;
 			failed = failed || (PX4_OK != param_get(param_find(str), &device_id));
 
 			(void)sprintf(str, "CAL_ACC%u_EN", i);
@@ -278,60 +225,12 @@ void VotedSensorsUpdate::parametersUpdate()
 					_accel.priority[driver_index] = 0;
 				}
 
-				accel_calibration_s ascale{};
-
-				(void)sprintf(str, "CAL_ACC%u_XOFF", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &ascale.x_offset));
-
-				(void)sprintf(str, "CAL_ACC%u_YOFF", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &ascale.y_offset));
-
-				(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &ascale.z_offset));
-
-				(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &ascale.x_scale));
-
-				(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &ascale.y_scale));
-
-				(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
-				failed = failed || (PX4_OK != param_get(param_find(str), &ascale.z_scale));
-
-				if (failed) {
-					PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "accel", i);
-
-				} else {
-					/* apply new scaling and offsets */
-					config_ok = (px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale) == 0);
-
-					if (!config_ok) {
-						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "accel ", i);
-					}
-				}
-
 				break;
 			}
 		}
 
 		if (config_ok) {
 			accel_count++;
-		}
-
-		px4_close(fd);
-	}
-
-	// There are fewer accels than calibrations
-	// reset the board calibration and fail the initial load
-	if (accel_count < accel_cal_found_count) {
-		PX4_ERR("fewer accels than calibrations, resetting all CAL_ACCx_ID");
-
-		// run through all stored calibrations and reset them
-		for (unsigned i = 0; i < ACCEL_COUNT_MAX; i++) {
-			char str[30] {};
-			(void)sprintf(str, "CAL_ACC%u_ID", i);
-			int32_t device_id = 0;
-			(void)param_set(param_find(str), &device_id);
 		}
 	}
 

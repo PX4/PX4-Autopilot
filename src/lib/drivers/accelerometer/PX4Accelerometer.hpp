@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,9 +33,7 @@
 
 #pragma once
 
-#include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/device/integrator.h>
 #include <lib/ecl/geo/geo.h>
@@ -48,13 +46,11 @@
 #include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_accel_status.h>
 
-class PX4Accelerometer : public cdev::CDev, public ModuleParams
+class PX4Accelerometer : public ModuleParams
 {
 public:
 	PX4Accelerometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
-	~PX4Accelerometer() override;
-
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	~PX4Accelerometer() override = default;
 
 	uint32_t get_device_id() const { return _device_id; }
 
@@ -114,8 +110,6 @@ private:
 
 	matrix::Vector3f _delta_velocity_prev{0.f, 0.f, 0.f};	// delta velocity from the previous IMU measurement
 	float _vibration_metric{0.f};	// high frequency vibration level in the IMU delta velocity data (m/s)
-
-	int			_class_device_instance{-1};
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;

@@ -64,7 +64,6 @@
 #include <board_config.h>
 
 #include <drivers/device/spi.h>
-#include <drivers/drv_accel.h>
 #include <drivers/device/ringbuffer.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
@@ -424,15 +423,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCRESET:
-		/* XXX implement */
-		return -EINVAL;
-
-	case ACCELIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_accel_scale, (struct accel_calibration_s *) arg, sizeof(_accel_scale));
-		return OK;
 
 	default:
 		/* give it to the superclass */

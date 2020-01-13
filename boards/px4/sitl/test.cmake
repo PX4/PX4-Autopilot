@@ -49,7 +49,6 @@ px4_add_board(
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		#config
 		#dumpfile
 		dyn
 		esc_calib

@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+add_subdirectory(sensor_corrections) # used by vehicle_{acceleration, angular_velocity, imu}
+
 add_subdirectory(vehicle_acceleration)
 add_subdirectory(vehicle_angular_velocity)
 add_subdirectory(vehicle_imu)

@@ -33,7 +33,8 @@
 
 #pragma once
 
-#include <lib/conversion/rotation.h>
+#include "../sensor_corrections/SensorCorrections.hpp"
+
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
@@ -48,7 +49,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -71,29 +71,23 @@ private:
 	void CheckFilters(const matrix::Vector3f &rates);
 	void ParametersUpdate(bool force = false);
 	void SensorBiasUpdate(bool force = false);
-	void SensorCorrectionsUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
+
+	SensorCorrections _corrections;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
 		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,
 		(ParamFloat<px4::params::IMU_GYRO_NF_BW>) _param_imu_gyro_nf_bw,
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max,
-
-		(ParamInt<px4::params::SENS_BOARD_ROT>) _param_sens_board_rot,
-
-		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _param_sens_board_x_off,
-		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _param_sens_board_y_off,
-		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _param_sens_board_z_off
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
 	)
 
 	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
-	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
@@ -104,11 +98,7 @@ private:
 
 	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 
-	matrix::Dcmf _board_rotation;
-
 	matrix::Vector3f _bias{0.f, 0.f, 0.f};
-	matrix::Vector3f _offset{0.f, 0.f, 0.f};
-	matrix::Vector3f _scale{1.f, 1.f, 1.f};
 
 	hrt_abstime _last_publish{0};
 	hrt_abstime _filter_check_last{0};

@@ -52,14 +52,13 @@
 #include <math.h>
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_tone_alarm.h>
+#include <matrix/math.hpp>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 
 static const char *sensor_name = "mag";
 static constexpr unsigned max_mags = 4;
@@ -369,17 +368,15 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 	hrt_abstime detection_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds * 5;
 	hrt_abstime last_gyro = 0;
-	float gyro_x_integral = 0.0f;
-	float gyro_y_integral = 0.0f;
-	float gyro_z_integral = 0.0f;
+	matrix::Vector3f gyro_integral{0.0f, 0.0f, 0.0f};
 
 	const float gyro_int_thresh_rad = 0.5f;
 
-	int sub_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+	int sub_gyro = orb_subscribe(ORB_ID(vehicle_angular_velocity));
 
-	while (fabsf(gyro_x_integral) < gyro_int_thresh_rad &&
-	       fabsf(gyro_y_integral) < gyro_int_thresh_rad &&
-	       fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
+	while (fabsf(gyro_integral(0)) < gyro_int_thresh_rad &&
+	       fabsf(gyro_integral(1)) < gyro_int_thresh_rad &&
+	       fabsf(gyro_integral(2)) < gyro_int_thresh_rad) {
 
 		/* abort on request */
 		if (calibrate_cancel_check(worker_data->mavlink_log_pub, cancel_sub)) {
@@ -391,7 +388,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		/* abort with timeout */
 		if (hrt_absolute_time() > detection_deadline) {
 			result = calibrate_return_error;
-			warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_x_integral, (double)gyro_y_integral, (double)gyro_z_integral);
+			warnx("int: %8.4f, %8.4f, %8.4f", (double)gyro_integral(0), (double)gyro_integral(1), (double)gyro_integral(2));
 			calibration_log_critical(worker_data->mavlink_log_pub, "Failed: This calibration requires rotation.");
 			break;
 		}
@@ -405,17 +402,14 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		int poll_ret = px4_poll(fds, fd_count, 1000);
 
 		if (poll_ret > 0) {
-			sensor_gyro_s gyro{};
-			orb_copy(ORB_ID(sensor_gyro), sub_gyro, &gyro);
+			vehicle_angular_velocity_s gyro{};
+			orb_copy(ORB_ID(vehicle_angular_velocity), sub_gyro, &gyro);
 
 			/* ensure we have a valid first timestamp */
 			if (last_gyro > 0) {
-
-				/* integrate */
+				// integrate
 				float delta_t = (gyro.timestamp - last_gyro) / 1e6f;
-				gyro_x_integral += gyro.x * delta_t;
-				gyro_y_integral += gyro.y * delta_t;
-				gyro_z_integral += gyro.z * delta_t;
+				gyro_integral += matrix::Vector3f{gyro.xyz} * delta_t;
 			}
 
 			last_gyro = gyro.timestamp;
