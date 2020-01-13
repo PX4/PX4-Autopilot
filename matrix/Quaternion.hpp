@@ -436,7 +436,7 @@ public:
 
         if (theta < Type(1e-10)) {
             q(0) = Type(1);
-            q(1) = q(2) = q(3) = 0;
+            q(1) = q(2) = q(3) = Type(0);
             return;
         }
 
