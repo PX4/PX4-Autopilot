@@ -453,7 +453,7 @@ void Ekf::controlOpticalFlowFusion()
 		if (!_inhibit_flow_use && _control_status.flags.opt_flow) {
 			// inhibit use of optical flow if motion is unsuitable and we are not reliant on it for flight navigation
 			bool preflight_motion_not_ok = !_control_status.flags.in_air && ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5);
-			bool flight_motion_not_ok = _control_status.flags.in_air && !isRangeAidSuitable();
+			bool flight_motion_not_ok = _control_status.flags.in_air && !isTerrainEstimateValid();
 			if ((preflight_motion_not_ok || flight_motion_not_ok) && !flow_required) {
 				_inhibit_flow_use = true;
 			}
