@@ -10,7 +10,7 @@ extra_args=
 baudrate=921600
 device=
 ip="127.0.0.1"
-while getopts ":b:d:p:qsr:f:i:l" opt; do
+while getopts ":b:d:p:qsr:f:i:l:o" opt; do
 	case $opt in
 		b)
 			baudrate=$OPTARG
@@ -35,6 +35,9 @@ while getopts ":b:d:p:qsr:f:i:l" opt; do
 			;;
 		l)
 			extra_args="$extra_args -lockstep"
+			;;
+		o)
+			extra_args="$extra_args -disponly"
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
