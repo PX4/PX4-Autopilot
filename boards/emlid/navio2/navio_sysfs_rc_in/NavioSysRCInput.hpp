@@ -39,6 +39,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/input_rc.h>
 
@@ -57,6 +58,8 @@ public:
 	/* @return 0 on success, -errno on failure */
 	void stop();
 
+	int print_status();
+
 	bool isRunning() { return _isRunning; }
 
 private:
@@ -70,11 +73,13 @@ private:
 
 	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
 
-	int _channels{8};	// D8R-II plus
-	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
+	static constexpr int CHANNELS{14};
+	int _channel_fd[CHANNELS] {};
+	int _connected_fd{-1};
 
-	input_rc_s _data{};
+	bool _connected{false};
 
+	perf_counter_t _publish_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval")};
 };
 
 }; // namespace navio_sysfs_rc_in
