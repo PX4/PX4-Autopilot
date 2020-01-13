@@ -11,6 +11,7 @@
 ## Not Installs:
 ## - FastRTPS and FastCDR
 
+set -e
 
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
