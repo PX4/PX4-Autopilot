@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-/*
- * @file drv_io_timer.c
+/**
+ * @file io_timer.c
  *
  * Servo driver supporting PWM servos connected to Kinetis FTM timer blocks.
  */
@@ -361,6 +361,25 @@ int io_timer_validate_channel_index(unsigned channel)
 
 	return rv;
 }
+
+uint32_t io_timer_channel_get_gpio_output(unsigned channel)
+{
+	if (io_timer_validate_channel_index(channel) != 0) {
+		return 0;
+	}
+
+	return (timer_io_channels[channel].gpio_out & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) | GPIO_HIGHDRIVE;
+}
+
+uint32_t io_timer_channel_get_as_pwm_input(unsigned channel)
+{
+	if (io_timer_validate_channel_index(channel) != 0) {
+		return 0;
+	}
+
+	return timer_io_channels[channel].gpio_in;
+}
+
 
 int io_timer_get_mode_channels(io_timer_channel_mode_t mode)
 {
