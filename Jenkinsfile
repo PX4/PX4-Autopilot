@@ -25,6 +25,7 @@ pipeline {
               git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
               git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
               source /opt/ros/melodic/setup.bash;
+              export PYTHONPATH=/opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages;
               catkin init;
               catkin build -j$(nproc) -l$(nproc);
             '''
