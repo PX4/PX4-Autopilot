@@ -107,7 +107,6 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	zip \
 	;
 
-
 if [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 	echo "Installing Ubuntu 16.04 PX4-compatible ccache version"
 	wget -O /tmp/ccache_3.4.1-1_amd64.deb http://launchpadlibrarian.net/356662933/ccache_3.4.1-1_amd64.deb
@@ -118,6 +117,7 @@ fi
 echo
 echo "Installing PX4 Python3 dependencies"
 pip3 install --user --upgrade pip setuptools wheel
+hash -d pip3 # Needed to prevent ImportError: cannot import name 'main'
 pip3 install --user -r ${DIR}/requirements.txt
 
 
@@ -125,6 +125,7 @@ pip3 install --user -r ${DIR}/requirements.txt
 echo
 echo "Installing PX4 Python2 dependencies"
 pip install --user --upgrade pip setuptools wheel
+hash -d pip3 # Needed to prevent ImportError: cannot import name 'main'
 pip install --user -r ${DIR}/requirements.txt
 
 
