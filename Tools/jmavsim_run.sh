@@ -10,7 +10,7 @@ extra_args=
 baudrate=921600
 device=
 ip="127.0.0.1"
-while getopts ":b:d:p:qsr:f:i:l" opt; do
+while getopts ":b:d:p:qsr:f:i:lo" opt; do
 	case $opt in
 		b)
 			baudrate=$OPTARG
@@ -35,6 +35,9 @@ while getopts ":b:d:p:qsr:f:i:l" opt; do
 			;;
 		l)
 			extra_args="$extra_args -lockstep"
+			;;
+		o)
+			extra_args="$extra_args -disponly"
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
@@ -75,4 +78,3 @@ if [ $ret -ne 0 -a $ret -ne 130 ]; then # 130 is Ctrl-C
 	# understood. Try starting without it
 	java -Djava.ext.dirs= -Djavax.accessibility.assistive_technologies=" " -jar jmavsim_run.jar $device $extra_args
 fi
-
