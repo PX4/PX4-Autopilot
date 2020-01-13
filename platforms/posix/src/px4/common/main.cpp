@@ -71,7 +71,6 @@
 #include <px4_platform_common/posix.h>
 
 #include "apps.h"
-#include "DriverFramework.hpp"
 #include "px4_daemon/client.h"
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
@@ -280,8 +279,6 @@ int main(int argc, char **argv)
 		if (ret != PX4_OK) {
 			return ret;
 		}
-
-		DriverFramework::Framework::initialize();
 
 		px4::init_once();
 		px4::init(argc, argv, "px4");

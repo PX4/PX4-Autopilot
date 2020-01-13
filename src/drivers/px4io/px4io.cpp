@@ -58,7 +58,7 @@
 #include <math.h>
 #include <crc32.h>
 
-#include <arch/board/board.h>
+
 
 #include <drivers/device/device.h>
 #include <drivers/drv_rc_input.h>

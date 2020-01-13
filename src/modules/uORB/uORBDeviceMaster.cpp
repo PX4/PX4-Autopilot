@@ -43,6 +43,10 @@
 #include <px4_platform_common/sem.hpp>
 #include <systemlib/px4_macros.h>
 
+#ifndef __PX4_QURT // QuRT has no poll()
+#include <poll.h>
+#endif // PX4_QURT
+
 uORB::DeviceMaster::DeviceMaster()
 {
 	px4_sem_init(&_lock, 0, 1);
@@ -330,7 +334,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
 	}
 
-#ifdef __PX4_QURT //QuRT has no poll()
+#ifdef __PX4_QURT // QuRT has no poll()
 	only_once = true;
 #else
 	const int stdin_fileno = 0;

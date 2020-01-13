@@ -47,7 +47,9 @@
 #include <drivers/drv_tone_alarm.h>
 #include <ecl/geo/geo.h>
 #include <systemlib/px4_macros.h>
+
 #include <math.h>
+#include <poll.h>
 
 #ifdef CONFIG_NET
 #include <net/if.h>
