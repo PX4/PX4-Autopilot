@@ -378,7 +378,7 @@ pipeline {
         stage('Cppcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base-bionic:2020-01-13'
+              image 'px4io/px4-dev-ros-melodic:2020-01-13'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
