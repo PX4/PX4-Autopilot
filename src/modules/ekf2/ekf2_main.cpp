@@ -183,12 +183,6 @@ private:
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
 
-	// Used to down sample magnetometer data
-	float _mag_data_sum[3] = {};			///< summed magnetometer readings (Gauss)
-	uint64_t _mag_time_sum_ms = 0;		///< summed magnetoemter time stamps (mSec)
-	uint8_t _mag_sample_count = 0;		///< number of magnetometer measurements summed during downsampling
-	int32_t _mag_time_ms_last_used = 0;	///< time stamp of the last averaged magnetometer measurement sent to the EKF (mSec)
-
 	// Used to check, save and use learned magnetometer biases
 	hrt_abstime _last_magcal_us = 0;	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
 	hrt_abstime _total_cal_time_us = 0;	///< accumulated calibration time since the last save
@@ -825,33 +819,7 @@ void Ekf2::Run()
 					PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
 				}
 
-				// If the time last used by the EKF is less than specified, then accumulate the
-				// data and push the average when the specified interval is reached.
-				_mag_time_sum_ms += magnetometer.timestamp / 1000;
-				_mag_sample_count++;
-				_mag_data_sum[0] += magnetometer.magnetometer_ga[0];
-				_mag_data_sum[1] += magnetometer.magnetometer_ga[1];
-				_mag_data_sum[2] += magnetometer.magnetometer_ga[2];
-				int32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
-
-				if ((mag_time_ms - _mag_time_ms_last_used) > _params->sensor_interval_min_ms) {
-					const float mag_sample_count_inv = 1.0f / _mag_sample_count;
-					// calculate mean of measurements and correct for learned bias offsets
-					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv - _param_ekf2_magbias_x.get(),
-								    _mag_data_sum[1] *mag_sample_count_inv - _param_ekf2_magbias_y.get(),
-								    _mag_data_sum[2] *mag_sample_count_inv - _param_ekf2_magbias_z.get()
-								   };
-
-					_ekf.setMagData(1000 * (uint64_t)mag_time_ms, mag_data_avg_ga);
-
-					_mag_time_ms_last_used = mag_time_ms;
-					_mag_time_sum_ms = 0;
-					_mag_sample_count = 0;
-					_mag_data_sum[0] = 0.0f;
-					_mag_data_sum[1] = 0.0f;
-					_mag_data_sum[2] = 0.0f;
-				}
-
+				_ekf.setMagData(magnetometer.timestamp, magnetometer.magnetometer_ga);
 				ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
 						(int64_t)ekf2_timestamps.timestamp / 100);
 			}
