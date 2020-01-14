@@ -544,6 +544,10 @@ protected:
 	//last time the baro ground effect compensation was turned on externally (uSec)
 	uint64_t _time_last_gnd_effect_on{0};
 
+	// Used to downsample magnetometer data
+	Vector3f _mag_data_sum;
+	uint8_t _mag_sample_count {0};
+	uint64_t _mag_timestamp_sum {0};
 
 	fault_status_u _fault_status{};
 

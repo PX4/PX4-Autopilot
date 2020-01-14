@@ -155,18 +155,30 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 		}
 	}
 
+	// downsample to highest possible sensor rate
+	// by taking the average of incoming sample
+	_mag_sample_count++;
+	_mag_data_sum += Vector3f(data);
+	_mag_timestamp_sum += time_usec / 1000; // Dividing by 1000 to avoid overflow
+
 	// limit data rate to prevent data being lost
 	if ((time_usec - _time_last_mag) > _min_obs_interval_us) {
 
 		magSample mag_sample_new;
-		mag_sample_new.time_us = time_usec - _params.mag_delay_ms * 1000;
 
+		// Use the time in the middle of the downsampling interval for the sample
+		mag_sample_new.time_us = 1000 * (_mag_timestamp_sum / _mag_sample_count);
+		mag_sample_new.time_us -= _params.mag_delay_ms * 1000;
 		mag_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
-		_time_last_mag = time_usec;
 
-		mag_sample_new.mag = Vector3f(data);
+		mag_sample_new.mag = _mag_data_sum / _mag_sample_count;
 
 		_mag_buffer.push(mag_sample_new);
+
+		_time_last_mag = time_usec;
+		_mag_sample_count = 0;
+		_mag_data_sum.setZero();
+		_mag_timestamp_sum = 0;
 	}
 }
 
