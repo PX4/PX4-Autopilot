@@ -129,9 +129,9 @@ MPU9250_SPI::read(unsigned reg_speed, void *data, unsigned count)
 	 */
 	uint8_t cmd[3] {};
 
-	uint8_t *pbuff  =  count < sizeof(MPUReport) ? cmd : (uint8_t *) data ;
+	uint8_t *pbuff = count < 4 ? cmd : (uint8_t *) data ;
 
-	if (count < sizeof(MPUReport))  {
+	if (count < 4)  {
 		/* add command */
 		count++;
 	}

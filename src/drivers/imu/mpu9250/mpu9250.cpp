@@ -57,18 +57,16 @@
   list of registers that will be checked in check_registers(). Note
   that MPUREG_PRODUCT_ID must be first in the list.
  */
-const uint16_t MPU9250::_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPUREG_WHOAMI,
-										      MPUREG_PWR_MGMT_1,
-										      MPUREG_PWR_MGMT_2,
-										      MPUREG_USER_CTRL,
-										      MPUREG_SMPLRT_DIV,
-										      MPUREG_CONFIG,
-										      MPUREG_GYRO_CONFIG,
-										      MPUREG_ACCEL_CONFIG,
-										      MPUREG_ACCEL_CONFIG2,
-										      MPUREG_INT_ENABLE,
-										      MPUREG_INT_PIN_CFG
-										    };
+const uint16_t MPU9250::_checked_registers[MPU9250_NUM_CHECKED_REGISTERS] = { MPUREG_PWR_MGMT_1,
+									      MPUREG_USER_CTRL,
+									      MPUREG_SMPLRT_DIV,
+									      MPUREG_CONFIG,
+									      MPUREG_GYRO_CONFIG,
+									      MPUREG_ACCEL_CONFIG,
+									      MPUREG_ACCEL_CONFIG2
+									    };
+
+using namespace time_literals;
 
 MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, enum Rotation rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
@@ -78,6 +76,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, enum 
 	_mag(this, mag_interface, rotation),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag read")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": dupe"))
 {
@@ -92,6 +91,7 @@ MPU9250::~MPU9250()
 
 	// delete the perf counter
 	perf_free(_sample_perf);
+	perf_free(_mag_sample_perf);
 	perf_free(_bad_registers);
 	perf_free(_duplicates);
 }
@@ -177,19 +177,24 @@ MPU9250::reset()
 int
 MPU9250::reset_mpu()
 {
-	switch (_whoami) {
-	case MPU_WHOAMI_9250:
-	case MPU_WHOAMI_6500:
-		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
-		write_checked_reg(MPUREG_PWR_MGMT_2, 0);
-		px4_usleep(1000);
-		break;
+	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+
+	for (int i = 0; i < 20; i++) {
+		// wait for reset
+		px4_usleep(100);
+
+		if (read_reg(MPUREG_PWR_MGMT_1) == 0) {
+			break;
+		}
 	}
 
+	modify_checked_reg(MPUREG_PWR_MGMT_1, 0, MPU_CLK_SEL_AUTO);
+	px4_usleep(1);
+
 	// Enable I2C bus or Disable I2C bus (recommended on data sheet)
-	const bool is_i2c = (_interface->get_device_bus_type() == device::Device::DeviceBusType_I2C);
-	write_checked_reg(MPUREG_USER_CTRL, is_i2c ? 0 : BIT_I2C_IF_DIS);
+	if (_interface->get_device_bus_type() != device::Device::DeviceBusType_I2C) {
+		modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_IF_DIS);
+	}
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
@@ -200,7 +205,7 @@ MPU9250::reset_mpu()
 	switch (_whoami) {
 	case MPU_WHOAMI_9250:
 	case MPU_WHOAMI_6500:
-		write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
+		modify_checked_reg(MPUREG_GYRO_CONFIG, 0, BITS_FS_2000DPS);
 		break;
 	}
 
@@ -214,12 +219,17 @@ MPU9250::reset_mpu()
 	set_accel_range(ACCEL_RANGE_G);
 
 	// INT CFG => Interrupt on Data Ready
-	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
+	write_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
+
+
+	bool bypass = false;
 
 #ifdef USE_I2C
-	bool bypass = !_mag.is_passthrough();
-#else
-	bool bypass = false;
+
+	if (_whoami == MPU_WHOAMI_9250) {
+		bypass = !_mag.is_passthrough();
+	}
+
 #endif
 
 	/* INT: Clear on any read.
@@ -231,11 +241,11 @@ MPU9250::reset_mpu()
 	 * so bypass is true if the mag has an i2c non null interfaces.
 	 */
 
-	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
+	modify_reg(MPUREG_INT_PIN_CFG, 0, BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
 
-	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
+	modify_checked_reg(MPUREG_ACCEL_CONFIG2, 0, BITS_ACCEL_CONFIG2_41HZ);
 
-	uint8_t retries = 3;
+	uint8_t retries = 10;
 	bool all_ok = false;
 
 	while (!all_ok && retries--) {
@@ -249,6 +259,7 @@ MPU9250::reset_mpu()
 
 				write_reg(_checked_registers[i], _checked_values[i]);
 				PX4_ERR("Reg %d is:%d s/b:%d Tries:%d", _checked_registers[i], reg, _checked_values[i], retries);
+				px4_usleep(100);
 				all_ok = false;
 			}
 		}
@@ -266,14 +277,9 @@ MPU9250::probe()
 	_whoami = read_reg(MPUREG_WHOAMI);
 
 	if (_whoami == MPU_WHOAMI_9250 || _whoami == MPU_WHOAMI_6500) {
-
-		_num_checked_registers = MPU9250_NUM_CHECKED_REGISTERS;
-		_checked_registers = _mpu9250_checked_registers;
 		memset(_checked_values, 0, MPU9250_NUM_CHECKED_REGISTERS);
 		ret = PX4_OK;
 	}
-
-	_checked_values[0] = _whoami;
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("unexpected whoami 0x%02x", _whoami);
@@ -385,7 +391,7 @@ MPU9250::read_reg(unsigned reg, uint32_t speed)
 uint8_t
 MPU9250::read_reg_range(unsigned start_reg, uint32_t speed, uint8_t *buf, uint16_t count)
 {
-	if (buf == NULL) {
+	if (buf == nullptr) {
 		return PX4_ERROR;
 	}
 
@@ -461,7 +467,7 @@ MPU9250::set_accel_range(unsigned max_g_in)
 	switch (_whoami) {
 	case MPU_WHOAMI_9250:
 	case MPU_WHOAMI_6500:
-		write_checked_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
+		modify_checked_reg(MPUREG_ACCEL_CONFIG, 0, afs_sel << 3);
 		break;
 	}
 
@@ -524,28 +530,12 @@ MPU9250::check_registers()
 		  fix one per loop to prevent a bad sensor hogging the
 		  bus.
 		 */
-		if (_register_wait == 0 || _checked_next == 0) {
-			// if the product_id is wrong then reset the sensor completely
-			write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-			write_reg(MPUREG_PWR_MGMT_2, MPU_CLK_SEL_AUTO);
+		write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
 
-			// after doing a reset we need to wait a long
-			// time before we do any other register writes
-			// or we will end up with the mpu9250 in a
-			// bizarre state where it has all correct
-			// register values but large offsets on the
-			// accel axes
-			_reset_wait = hrt_absolute_time() + 10000;
-			_checked_next = 0;
-
-		} else {
-			write_reg(_checked_registers[_checked_next], _checked_values[_checked_next]);
-
-			// waiting 3ms between register writes seems
-			// to raise the chance of the sensor
-			// recovering considerably
-			_reset_wait = hrt_absolute_time() + 3000;
-		}
+		// waiting 3ms between register writes seems
+		// to raise the chance of the sensor
+		// recovering considerably
+		_reset_wait = hrt_absolute_time() + 3000;
 
 		_register_wait = 20;
 	}
@@ -593,6 +583,7 @@ MPU9250::measure()
 
 	// Fetch the full set of measurements from the ICM20948 in one pass
 	if (_mag.is_passthrough() && _register_wait == 0) {
+
 		if (OK != read_reg_range(MPUREG_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&mpu_report, sizeof(mpu_report))) {
 			perf_end(_sample_perf);
 			return;
@@ -607,30 +598,12 @@ MPU9250::measure()
 		}
 	}
 
-	/*
-	 * In case of a mag passthrough read, hand the magnetometer data over to _mag. Else,
-	 * try to read a magnetometer report.
-	 */
-
-#   ifdef USE_I2C
-
-	if (_mag.is_passthrough()) {
-#   endif
-
-		if (_register_wait == 0) {
-			_mag._measure(timestamp_sample, mpu_report.mag);
-		}
-
-#   ifdef USE_I2C
-
-	} else {
-		_mag.measure();
-	}
-
-#   endif
-
-	if (_register_wait != 0) {
-		// We are waiting for some good transfers before using the sensor again
+	// Continue evaluating gyro and accelerometer results
+	if (_register_wait > 0) {
+		/*
+		 * We are waiting for some good transfers before using the sensor again.
+		 * We still increment _good_transfers, but don't return any data yet.
+		*/
 		_register_wait--;
 
 		perf_end(_sample_perf);
@@ -638,26 +611,25 @@ MPU9250::measure()
 	}
 
 	// Convert from big to little endian
-	int16_t accel_x = combine(mpu_report.ACCEL_XOUT_H, mpu_report.ACCEL_XOUT_L);
-	int16_t accel_y = combine(mpu_report.ACCEL_YOUT_H, mpu_report.ACCEL_YOUT_L);
-	int16_t accel_z = combine(mpu_report.ACCEL_ZOUT_H, mpu_report.ACCEL_ZOUT_L);
-	int16_t temp    = combine(mpu_report.TEMP_OUT_H, mpu_report.TEMP_OUT_L);
-	int16_t gyro_x  = combine(mpu_report.GYRO_XOUT_H, mpu_report.GYRO_XOUT_L);
-	int16_t gyro_y  = combine(mpu_report.GYRO_YOUT_H, mpu_report.GYRO_YOUT_L);
-	int16_t gyro_z  = combine(mpu_report.GYRO_ZOUT_H, mpu_report.GYRO_ZOUT_L);
+	int16_t ACCEL_XOUT = combine(mpu_report.ACCEL_XOUT_H, mpu_report.ACCEL_XOUT_L);
+	int16_t ACCEL_YOUT = combine(mpu_report.ACCEL_YOUT_H, mpu_report.ACCEL_YOUT_L);
+	int16_t ACCEL_ZOUT = combine(mpu_report.ACCEL_ZOUT_H, mpu_report.ACCEL_ZOUT_L);
+	int16_t TEMP_OUT = combine(mpu_report.TEMP_OUT_H, mpu_report.TEMP_OUT_L);
+	int16_t GYRO_XOUT = combine(mpu_report.GYRO_XOUT_H, mpu_report.GYRO_XOUT_L);
+	int16_t GYRO_YOUT = combine(mpu_report.GYRO_YOUT_H, mpu_report.GYRO_YOUT_L);
+	int16_t GYRO_ZOUT = combine(mpu_report.GYRO_ZOUT_H, mpu_report.GYRO_ZOUT_L);
 
 	// Get sensor temperature
-	_last_temperature = temp / 333.87f + 21.0f;
-
-	_px4_accel.set_temperature(_last_temperature);
-	_px4_gyro.set_temperature(_last_temperature);
+	const float temperature = (float)TEMP_OUT / 333.87f + 21.0f;
+	_px4_accel.set_temperature(temperature);
+	_px4_gyro.set_temperature(temperature);
 
 	// Swap axes and negate y
-	int16_t accel_xt = accel_y;
-	int16_t accel_yt = ((accel_x == -32768) ? 32767 : -accel_x);
+	int16_t accel_xt = ACCEL_YOUT;
+	int16_t accel_yt = ((ACCEL_XOUT == -32768) ? 32767 : -ACCEL_XOUT);
 
-	int16_t gyro_xt = gyro_y;
-	int16_t gyro_yt = ((gyro_x == -32768) ? 32767 : -gyro_x);
+	int16_t gyro_xt = GYRO_YOUT;
+	int16_t gyro_yt = ((GYRO_XOUT == -32768) ? 32767 : -GYRO_XOUT);
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
@@ -668,21 +640,63 @@ MPU9250::measure()
 	_px4_gyro.set_error_count(error_count);
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
-	_px4_accel.update(timestamp_sample, accel_xt, accel_yt, accel_z);
-	_px4_gyro.update(timestamp_sample, gyro_xt, gyro_yt, gyro_z);
+	_px4_accel.update(timestamp_sample, accel_xt, accel_yt, ACCEL_ZOUT);
+	_px4_gyro.update(timestamp_sample, gyro_xt, gyro_yt, GYRO_ZOUT);
 
 	/* stop measuring */
 	perf_end(_sample_perf);
+
+	// only mpu9250 has mag
+	if (_whoami == MPU_WHOAMI_9250) {
+		/*
+		 * In case of a mag passthrough read, hand the magnetometer data over to _mag. Else,
+		 * try to read a magnetometer report.
+		 */
+#   ifdef USE_I2C
+		if (_mag.is_passthrough()) {
+#   endif
+
+			if (hrt_elapsed_time(&_last_mag_update) >= 10_ms) {
+				perf_begin(_mag_sample_perf);
+
+				struct ak8963_report {
+					uint8_t cmd;
+					struct ak8963_regs mag;
+				} mag_report{};
+
+				if (read_reg_range(MPUREG_EXT_SENS_DATA_00, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&mag_report,
+						   sizeof(mag_report)) == PX4_OK) {
+
+					if (_mag._measure(timestamp_sample, mag_report.mag)) {
+						_last_mag_update = hrt_absolute_time();
+					}
+				}
+
+				perf_end(_mag_sample_perf);
+			}
+
+#   ifdef USE_I2C
+
+		} else {
+			_mag.measure();
+		}
+
+#   endif
+	}
 }
 
 void
 MPU9250::print_info()
 {
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);
 
 	_px4_accel.print_status();
 	_px4_gyro.print_status();
-	_mag.print_status();
+
+	if (_whoami == MPU_WHOAMI_9250) {
+		_mag.print_status();
+	}
 }

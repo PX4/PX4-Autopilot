@@ -62,6 +62,8 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotati
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MPU9250);
 	_px4_mag.set_scale(MPU9250_MAG_RANGE_GA);
+
+	_px4_mag.set_temperature(NAN);
 }
 
 MPU9250_mag::~MPU9250_mag()
@@ -139,7 +141,6 @@ bool MPU9250_mag::_measure(const hrt_abstime &timestamp_sample, const ak8963_reg
 	}
 
 	_px4_mag.set_external(_parent->is_external());
-	_px4_mag.set_temperature(_parent->_last_temperature);
 
 	/*
 	 * Align axes - note the accel & gyro are also re-aligned so this
@@ -186,14 +187,6 @@ MPU9250_mag::read_reg(unsigned int reg)
 	}
 
 	return buf;
-}
-
-bool
-MPU9250_mag::ak8963_check_id(uint8_t &deviceid)
-{
-	deviceid = read_reg(AK8963REG_WIA);
-
-	return (AK8963_DEVICE_ID == deviceid);
 }
 
 void
@@ -286,11 +279,11 @@ MPU9250_mag::ak8963_setup()
 	do {
 		ak8963_setup_master_i2c();
 		write_reg(AK8963REG_CNTL2, AK8963_RESET);
-		px4_usleep(100);
+		px4_usleep(1000);
 
-		uint8_t id = 0;
+		uint8_t id = read_reg(AK8963REG_WIA);
 
-		if (ak8963_check_id(id)) {
+		if (AK8963_DEVICE_ID == id) {
 			break;
 		}
 
