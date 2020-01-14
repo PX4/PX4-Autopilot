@@ -39,6 +39,7 @@ set(SRCS
 	main.cpp
 	test_EKF_basics.cpp
 	test_EKF_ringbuffer.cpp
+	test_EKF_measurementSampling.cpp
 	test_EKF_imuSampling.cpp
 	test_AlphaFilter.cpp
 	test_EKF_fusionLogic.cpp
