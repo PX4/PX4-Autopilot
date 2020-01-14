@@ -60,7 +60,7 @@ fi
 if [ "$(uname)" == "Darwin" ]; then
     bold=$(tput bold)
     normal=$(tput sgr0)
-    if ! /usr/libexec/java_home -V 2>&1 | grep --quiet "Java SE 8" ; then
+    if ! /usr/libexec/java_home -V 2>&1 | grep --quiet "1.8\|Java SE 8" ; then
         echo "${bold}You need to have Java 8 installed for macOS, for more info, see:${normal}"
         echo "${bold}https://github.com/PX4/jMAVSim/issues/81${normal}"
         exit 1
