@@ -49,26 +49,18 @@ VehicleAngularVelocity::~VehicleAngularVelocity()
 	Stop();
 }
 
-bool
-VehicleAngularVelocity::Start()
+bool VehicleAngularVelocity::Start()
 {
-	// initialize thermal corrections as we might not immediately get a topic update (only non-zero values)
-	_scale = Vector3f{1.0f, 1.0f, 1.0f};
-	_offset.zero();
-	_bias.zero();
-
 	// force initial updates
 	ParametersUpdate(true);
 	SensorBiasUpdate(true);
+	SensorCorrectionsUpdate(true);
 
 	// needed to change the active sensor if the primary stops updating
-	_sensor_selection_sub.registerCallback();
-
-	return SensorCorrectionsUpdate(true);
+	return _sensor_selection_sub.registerCallback() && SensorSelectionUpdate(true);
 }
 
-void
-VehicleAngularVelocity::Stop()
+void VehicleAngularVelocity::Stop()
 {
 	Deinit();
 
@@ -80,110 +72,106 @@ VehicleAngularVelocity::Stop()
 	_sensor_selection_sub.unregisterCallback();
 }
 
-void
-VehicleAngularVelocity::SensorBiasUpdate(bool force)
+void VehicleAngularVelocity::SensorBiasUpdate(bool force)
 {
 	if (_sensor_bias_sub.updated() || force) {
 		sensor_bias_s bias;
 
 		if (_sensor_bias_sub.copy(&bias)) {
-			// TODO: should be checking device ID
-			_bias = Vector3f{bias.gyro_bias};
+			if (bias.gyro_device_id == _selected_sensor_device_id) {
+				_bias = Vector3f{bias.gyro_bias};
+
+			} else {
+				_bias.zero();
+			}
 		}
 	}
 }
 
-bool
-VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
+void VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 {
-	if (_sensor_selection_sub.updated() || force) {
-		sensor_selection_s sensor_selection;
-
-		if (_sensor_selection_sub.copy(&sensor_selection)) {
-			if (_selected_sensor_device_id != sensor_selection.gyro_device_id) {
-				_selected_sensor_device_id = sensor_selection.gyro_device_id;
-				force = true;
-			}
-		}
-	}
-
 	// check if the selected sensor has updated
 	if (_sensor_correction_sub.updated() || force) {
 
 		sensor_correction_s corrections{};
 		_sensor_correction_sub.copy(&corrections);
 
-		// TODO: should be checking device ID
-		if (_selected_sensor == 0) {
+		// selected sensor has changed, find updated index
+		if ((_corrections_selected_instance != corrections.selected_gyro_instance) || force) {
+			_corrections_selected_instance = -1;
+
+			// find sensor_corrections index
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+				if (corrections.gyro_device_ids[i] == _selected_sensor_device_id) {
+					_corrections_selected_instance = i;
+				}
+			}
+		}
+
+		switch (_corrections_selected_instance) {
+		case 0:
 			_offset = Vector3f{corrections.gyro_offset_0};
 			_scale = Vector3f{corrections.gyro_scale_0};
-
-		} else if (_selected_sensor == 1) {
+			break;
+		case 1:
 			_offset = Vector3f{corrections.gyro_offset_1};
 			_scale = Vector3f{corrections.gyro_scale_1};
-
-		} else if (_selected_sensor == 2) {
+			break;
+		case 2:
 			_offset = Vector3f{corrections.gyro_offset_2};
 			_scale = Vector3f{corrections.gyro_scale_2};
-
-		} else {
+			break;
+		default:
 			_offset = Vector3f{0.0f, 0.0f, 0.0f};
 			_scale = Vector3f{1.0f, 1.0f, 1.0f};
 		}
+	}
+}
 
-		// update the latest sensor selection
-		if ((_selected_sensor != corrections.selected_gyro_instance) || force) {
-			if (corrections.selected_gyro_instance < MAX_SENSOR_COUNT) {
-				// clear all registered callbacks
-				for (auto &sub : _sensor_control_sub) {
-					sub.unregisterCallback();
-				}
+bool VehicleAngularVelocity::SensorSelectionUpdate(bool force)
+{
+	if (_sensor_selection_sub.updated() || (_selected_sensor_device_id == 0) || force) {
+		sensor_selection_s sensor_selection{};
+		_sensor_selection_sub.copy(&sensor_selection);
 
-				for (auto &sub : _sensor_sub) {
-					sub.unregisterCallback();
-				}
+		if (_selected_sensor_device_id != sensor_selection.gyro_device_id) {
+			// clear all registered callbacks
+			for (auto &sub : _sensor_sub) {
+				sub.unregisterCallback();
+			}
 
-				const int sensor_new = corrections.selected_gyro_instance;
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+				sensor_gyro_s report{};
+				_sensor_sub[i].copy(&report);
 
-				// subscribe to sensor_gyro_control if available
-				//  currently not all drivers (eg df_*) provide sensor_gyro_control
-				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-					sensor_gyro_control_s report{};
-					_sensor_control_sub[i].copy(&report);
+				if ((report.device_id != 0) && (report.device_id == sensor_selection.gyro_device_id)) {
+					if (_sensor_sub[i].registerCallback()) {
+						PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor_sub_index, i);
 
-					if ((report.device_id != 0) && (report.device_id == _selected_sensor_device_id)) {
-						if (_sensor_control_sub[i].registerCallback()) {
-							PX4_DEBUG("selected sensor (control) changed %d -> %d", _selected_sensor, i);
-							_selected_sensor_control = i;
+						// record selected sensor (array index)
+						_selected_sensor_sub_index = i;
+						_selected_sensor_device_id = sensor_selection.gyro_device_id;
 
-							_sensor_control_available = true;
+						// clear bias and corrections
+						_bias.zero();
+						_offset = Vector3f{0.0f, 0.0f, 0.0f};
+						_scale = Vector3f{1.0f, 1.0f, 1.0f};
 
-							// record selected sensor (sensor_gyro orb index)
-							_selected_sensor = sensor_new;
-
-							return true;
-						}
+						return true;
 					}
 				}
-
-				// otherwise fallback to using sensor_gyro (legacy that will be removed)
-				_sensor_control_available = false;
-
-				if (_sensor_sub[sensor_new].registerCallback()) {
-					PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
-					_selected_sensor = sensor_new;
-
-					return true;
-				}
 			}
+
+			PX4_ERR("unable to find or subscribe to selected sensor (%d)", sensor_selection.gyro_device_id);
+			_selected_sensor_device_id = 0;
+			_selected_sensor_sub_index = 0;
 		}
 	}
 
 	return false;
 }
 
-void
-VehicleAngularVelocity::ParametersUpdate(bool force)
+void VehicleAngularVelocity::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
 	if (_params_sub.updated() || force) {
@@ -206,78 +194,45 @@ VehicleAngularVelocity::ParametersUpdate(bool force)
 	}
 }
 
-void
-VehicleAngularVelocity::Run()
+void VehicleAngularVelocity::Run()
 {
 	// update corrections first to set _selected_sensor
-	bool sensor_select_update = SensorCorrectionsUpdate();
+	bool sensor_select_update = SensorSelectionUpdate();
+	SensorCorrectionsUpdate(sensor_select_update);
+	SensorBiasUpdate(sensor_select_update);
+	ParametersUpdate();
 
-	if (_sensor_control_available) {
-		//  using sensor_gyro_control is preferred, but currently not all drivers (eg df_*) provide sensor_gyro_control
-		if (_sensor_control_sub[_selected_sensor].updated() || sensor_select_update) {
-			sensor_gyro_control_s sensor_data;
-			_sensor_control_sub[_selected_sensor].copy(&sensor_data);
+	if (_sensor_sub[_selected_sensor_sub_index].updated() || sensor_select_update) {
+		sensor_gyro_s sensor_data;
+		_sensor_sub[_selected_sensor_sub_index].copy(&sensor_data);
 
-			ParametersUpdate();
-			SensorBiasUpdate();
+		// get the sensor data and correct for thermal errors (apply offsets and scale)
+		const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
 
-			// get the sensor data and correct for thermal errors (apply offsets and scale)
-			Vector3f rates{(Vector3f{sensor_data.xyz} - _offset).emult(_scale)};
+		// apply offsets and scale
+		Vector3f rates{(val - _offset).emult(_scale)};
 
-			// rotate corrected measurements from sensor to body frame
-			rates = _board_rotation * rates;
+		// rotate corrected measurements from sensor to body frame
+		rates = _board_rotation * rates;
 
-			// correct for in-run bias errors
-			rates -= _bias;
+		// correct for in-run bias errors
+		rates -= _bias;
 
-			vehicle_angular_velocity_s angular_velocity;
-			angular_velocity.timestamp_sample = sensor_data.timestamp_sample;
-			rates.copyTo(angular_velocity.xyz);
-			angular_velocity.timestamp = hrt_absolute_time();
+		// publish
+		vehicle_angular_velocity_s out;
 
-			_vehicle_angular_velocity_pub.publish(angular_velocity);
-		}
+		out.timestamp_sample = sensor_data.timestamp_sample;
+		rates.copyTo(out.xyz);
+		out.timestamp = hrt_absolute_time();
 
-	} else {
-		// otherwise fallback to using sensor_gyro (legacy that will be removed)
-		if (_sensor_sub[_selected_sensor].updated() || sensor_select_update) {
-			sensor_gyro_s sensor_data;
-			_sensor_sub[_selected_sensor].copy(&sensor_data);
-
-			ParametersUpdate();
-			SensorBiasUpdate();
-
-			// get the sensor data and correct for thermal errors
-			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
-
-			// apply offsets and scale
-			Vector3f rates{(val - _offset).emult(_scale)};
-
-			// rotate corrected measurements from sensor to body frame
-			rates = _board_rotation * rates;
-
-			// correct for in-run bias errors
-			rates -= _bias;
-
-			vehicle_angular_velocity_s angular_velocity;
-			angular_velocity.timestamp_sample = sensor_data.timestamp;
-			rates.copyTo(angular_velocity.xyz);
-			angular_velocity.timestamp = hrt_absolute_time();
-
-			_vehicle_angular_velocity_pub.publish(angular_velocity);
-		}
+		_vehicle_angular_velocity_pub.publish(out);
 	}
 }
 
-void
-VehicleAngularVelocity::PrintStatus()
+void VehicleAngularVelocity::PrintStatus()
 {
-	PX4_INFO("selected sensor: %d", _selected_sensor);
-
-	if (_selected_sensor_device_id != 0) {
-		PX4_INFO("using sensor_gyro_control: %d (%d)", _selected_sensor_device_id, _selected_sensor_control);
-
-	} else {
-		PX4_WARN("sensor_gyro_control unavailable for selected sensor: %d (%d)", _selected_sensor_device_id,  _selected_sensor);
-	}
+	PX4_INFO("selected sensor: %d (%d)", _selected_sensor_device_id, _selected_sensor_sub_index);
+	PX4_INFO("bias: [%.3f %.3f %.3f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
+	PX4_INFO("offset: [%.3f %.3f %.3f]", (double)_offset(0), (double)_offset(1), (double)_offset(2));
+	PX4_INFO("scale: [%.3f %.3f %.3f]", (double)_scale(0), (double)_scale(1), (double)_scale(2));
 }

@@ -55,3 +55,7 @@ uint8 selected_baro_instance	# barometric pressure uORB topic instance for the v
 uint8[3] gyro_mapping
 uint8[3] accel_mapping
 uint8[3] baro_mapping
+
+uint32[3] gyro_device_ids
+uint32[3] accel_device_ids
+uint32[3] baro_device_ids

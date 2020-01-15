@@ -45,7 +45,7 @@ class PX4Magnetometer : public cdev::CDev
 {
 
 public:
-	PX4Magnetometer(uint32_t device_id, uint8_t priority, enum Rotation rotation);
+	PX4Magnetometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Magnetometer() override;
 
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
@@ -57,7 +57,7 @@ public:
 	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
 	void set_sensitivity(float x, float y, float z) { _sensitivity = matrix::Vector3f{x, y, z}; }
 
-	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
+	void update(hrt_abstime timestamp_sample, float x, float y, float z);
 
 	void print_status();
 

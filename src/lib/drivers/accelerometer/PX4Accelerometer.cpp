@@ -44,6 +44,7 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Ro
 	ModuleParams(nullptr),
 	_sensor_pub{ORB_ID(sensor_accel), priority},
 	_sensor_fifo_pub{ORB_ID(sensor_accel_fifo), priority},
+	_sensor_integrated_pub{ORB_ID(sensor_accel_integrated), priority},
 	_sensor_status_pub{ORB_ID(sensor_accel_status), priority},
 	_device_id{device_id},
 	_rotation{rotation}
@@ -62,8 +63,7 @@ PX4Accelerometer::~PX4Accelerometer()
 	}
 }
 
-int
-PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
+int PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case ACCELIOCSSCALE: {
@@ -85,8 +85,7 @@ PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 	}
 }
 
-void
-PX4Accelerometer::set_device_type(uint8_t devtype)
+void PX4Accelerometer::set_device_type(uint8_t devtype)
 {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
@@ -95,41 +94,36 @@ PX4Accelerometer::set_device_type(uint8_t devtype)
 	// update to new device type
 	device_id.devid_s.devtype = devtype;
 
-	// copy back to report
+	// copy back
 	_device_id = device_id.devid;
 }
 
-void
-PX4Accelerometer::set_sample_rate(uint16_t rate)
+void PX4Accelerometer::set_sample_rate(uint16_t rate)
 {
 	_sample_rate = rate;
 
 	ConfigureFilter(_filter.get_cutoff_freq());
 }
 
-void
-PX4Accelerometer::set_update_rate(uint16_t rate)
+void PX4Accelerometer::set_update_rate(uint16_t rate)
 {
 	const uint32_t update_interval = 1000000 / rate;
-
 	_integrator_reset_samples = 4000 / update_interval;
 }
 
-void
-PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
+void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, float z)
 {
 	// Apply rotation (before scaling)
 	rotate_3f(_rotation, x, y, z);
 
 	const Vector3f raw{x, y, z};
 
-	// Clipping
-	sensor_accel_status_s &status = _sensor_status_pub.get();
+	// Clipping (check unscaled raw values)
 	const float clip_limit = (_range / _scale) * 0.95f;
 
 	for (int i = 0; i < 3; i++) {
 		if (fabsf(raw(i)) > clip_limit) {
-			status.clipping[i]++;
+			_clipping[i]++;
 			_integrator_clipping++;
 		}
 	}
@@ -140,62 +134,61 @@ PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 	// Filtered values
 	const Vector3f val_filtered{_filter.apply(val_calibrated)};
 
+
 	// Integrated values
-	Vector3f integrated_value;
+	Vector3f delta_velocity;
 	uint32_t integral_dt = 0;
+
+	if (_integrator_samples == 0) {
+		_integrator_timestamp_sample = timestamp_sample;
+	}
 
 	_integrator_samples++;
 
-	if (_integrator.put(timestamp, val_calibrated, integrated_value, integral_dt)) {
+	if (_integrator.put(timestamp_sample, val_calibrated, delta_velocity, integral_dt)) {
 
-		sensor_accel_s report{};
-		report.timestamp = timestamp;
+		// publish control data (filtered)
+		{
+			sensor_accel_s report{};
+
+			report.timestamp_sample = timestamp_sample;
+			report.device_id = _device_id;
+			report.temperature = _temperature;
+			report.x = val_filtered(0);
+			report.y = val_filtered(1);
+			report.z = val_filtered(2);
+			report.timestamp = hrt_absolute_time();
+
+			_sensor_pub.publish(report);
+		}
+
+		// fill sensor_accel_integrated and publish
+		sensor_accel_integrated_s report{};
+
+		report.timestamp_sample = _integrator_timestamp_sample;
+		report.error_count = _error_count;
 		report.device_id = _device_id;
 		report.temperature = _temperature;
-		report.scaling = _scale;
-		report.error_count = _error_count;
+		delta_velocity.copyTo(report.delta_velocity);
+		report.dt = integral_dt;
+		report.samples = _integrator_samples;
+		report.clip_count = _integrator_clipping;
+		report.timestamp = hrt_absolute_time();
 
-		// Raw values (ADC units 0 - 65535)
-		report.x_raw = x;
-		report.y_raw = y;
-		report.z_raw = z;
+		_sensor_integrated_pub.publish(report);
 
-		report.x = val_filtered(0);
-		report.y = val_filtered(1);
-		report.z = val_filtered(2);
-
-		report.integral_dt = integral_dt;
-		report.integral_samples = _integrator_samples;
-		report.x_integral = integrated_value(0);
-		report.y_integral = integrated_value(1);
-		report.z_integral = integrated_value(2);
-		report.integral_clip_count = _integrator_clipping;
-
-		_sensor_pub.publish(report);
 
 		// reset integrator
 		ResetIntegrator();
 
 		// update vibration metrics
-		const Vector3f delta_velocity = integrated_value * (integral_dt * 1.e-6f);
 		UpdateVibrationMetrics(delta_velocity);
 	}
 
-	// publish status
-	status.device_id = _device_id;
-	status.error_count = _error_count;
-	status.full_scale_range = _range;
-	status.rotation = _rotation;
-	status.measure_rate = _update_rate;
-	status.sample_rate = _sample_rate;
-	status.temperature = _temperature;
-	status.vibration_metric = _vibration_metric;
-	status.timestamp = hrt_absolute_time();
-	_sensor_status_pub.publish(status);
+	PublishStatus();
 }
 
-void
-PX4Accelerometer::updateFIFO(const FIFOSample &sample)
+void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 {
 	// filtered data (control)
 	float x_filtered = _filterArrayX.apply(sample.x, sample.samples);
@@ -211,45 +204,31 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 	const Vector3f val_calibrated{(((raw * _scale) - _calibration_offset).emult(_calibration_scale))};
 
 
-	// status
-	{
-		sensor_accel_status_s &status = _sensor_status_pub.get();
+	// clipping
+	const int16_t clip_limit = (_range / _scale) * 0.95f;
 
-		const int16_t clip_limit = (_range / _scale) * 0.95f;
-
-		// x clipping
-		for (int n = 0; n < sample.samples; n++) {
-			if (abs(sample.x[n]) > clip_limit) {
-				status.clipping[0]++;
-				_integrator_clipping++;
-			}
+	// x clipping
+	for (int n = 0; n < sample.samples; n++) {
+		if (abs(sample.x[n]) > clip_limit) {
+			_clipping[0]++;
+			_integrator_clipping++;
 		}
+	}
 
-		// y clipping
-		for (int n = 0; n < sample.samples; n++) {
-			if (abs(sample.y[n]) > clip_limit) {
-				status.clipping[1]++;
-				_integrator_clipping++;
-			}
+	// y clipping
+	for (int n = 0; n < sample.samples; n++) {
+		if (abs(sample.y[n]) > clip_limit) {
+			_clipping[1]++;
+			_integrator_clipping++;
 		}
+	}
 
-		// z clipping
-		for (int n = 0; n < sample.samples; n++) {
-			if (abs(sample.z[n]) > clip_limit) {
-				status.clipping[2]++;
-				_integrator_clipping++;
-			}
+	// z clipping
+	for (int n = 0; n < sample.samples; n++) {
+		if (abs(sample.z[n]) > clip_limit) {
+			_clipping[2]++;
+			_integrator_clipping++;
 		}
-
-		status.device_id = _device_id;
-		status.error_count = _error_count;
-		status.full_scale_range = _range;
-		status.rotation = _rotation;
-		status.measure_rate = _update_rate;
-		status.sample_rate = _sample_rate;
-		status.temperature = _temperature;
-		status.timestamp = hrt_absolute_time();
-		_sensor_status_pub.publish(status);
 	}
 
 
@@ -284,6 +263,22 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 
 		if (_integrator_fifo_samples > 0 && (_integrator_samples >= _integrator_reset_samples)) {
 
+			// publish control data (filtered)
+			{
+				sensor_accel_s report{};
+
+				report.timestamp_sample = sample.timestamp_sample + ((sample.samples - 1) * sample.dt); // timestamp of last sample
+				report.device_id = _device_id;
+				report.temperature = _temperature;
+				report.x = val_calibrated(0);
+				report.y = val_calibrated(1);
+				report.z = val_calibrated(2);
+				report.timestamp = hrt_absolute_time();
+
+				_sensor_pub.publish(report);
+			}
+
+
 			const uint32_t integrator_dt_us = _integrator_fifo_samples * sample.dt; // time span in microseconds
 
 			// average integrated values to apply calibration
@@ -297,37 +292,25 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			const Vector3f raw_int{x_int_avg, y_int_avg, z_int_avg};
 
 			// Apply range scale and the calibrating offset/scale
-			Vector3f val_int_calibrated{(((raw_int * _scale) - _calibration_offset).emult(_calibration_scale))};
-			val_int_calibrated *= (_integrator_fifo_samples * sample.dt * 1e-6f);	// restore
+			Vector3f delta_velocity{(((raw_int * _scale) - _calibration_offset).emult(_calibration_scale))};
+			delta_velocity *= (_integrator_fifo_samples * sample.dt * 1e-6f);	// restore
 
-			// publish
-			sensor_accel_s report{};
+			// fill sensor_accel_integrated and publish
+			sensor_accel_integrated_s report{};
+
+			report.timestamp_sample = _integrator_timestamp_sample;
+			report.error_count = _error_count;
 			report.device_id = _device_id;
 			report.temperature = _temperature;
-			report.scaling = _scale;
-			report.error_count = _error_count;
+			delta_velocity.copyTo(report.delta_velocity);
+			report.dt = integrator_dt_us;
+			report.samples = _integrator_fifo_samples;
+			report.clip_count = _integrator_clipping;
 
-			// Raw values (ADC units 0 - 65535)
-			report.x_raw = sample.x[0];
-			report.y_raw = sample.y[0];
-			report.z_raw = sample.z[0];
-
-			report.x = val_calibrated(0);
-			report.y = val_calibrated(1);
-			report.z = val_calibrated(2);
-
-			report.integral_dt = integrator_dt_us;
-			report.integral_samples = _integrator_fifo_samples;
-			report.x_integral = val_int_calibrated(0);
-			report.y_integral = val_int_calibrated(1);
-			report.z_integral = val_int_calibrated(2);
-			report.integral_clip_count = _integrator_clipping;
-
-			report.timestamp = _integrator_timestamp_sample;
-			_sensor_pub.publish(report);
+			report.timestamp = hrt_absolute_time();
+			_sensor_integrated_pub.publish(report);
 
 			// update vibration metrics
-			const Vector3f delta_velocity = val_int_calibrated * (integrator_dt_us * 1.e-6f);
 			UpdateVibrationMetrics(delta_velocity);
 
 			// reset integrator
@@ -337,6 +320,7 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 		_timestamp_sample_prev = sample.timestamp_sample;
 	}
 
+	// publish sensor fifo
 	sensor_accel_fifo_s fifo{};
 
 	fifo.device_id = _device_id;
@@ -351,10 +335,36 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 
 	fifo.timestamp = hrt_absolute_time();
 	_sensor_fifo_pub.publish(fifo);
+
+
+	PublishStatus();
 }
 
-void
-PX4Accelerometer::ResetIntegrator()
+void PX4Accelerometer::PublishStatus()
+{
+	// publish sensor status
+	if (hrt_elapsed_time(&_status_last_publish) >= 100_ms) {
+		sensor_accel_status_s status{};
+
+		status.device_id = _device_id;
+		status.error_count = _error_count;
+		status.full_scale_range = _range;
+		status.rotation = _rotation;
+		status.measure_rate = _update_rate;
+		status.sample_rate = _sample_rate;
+		status.temperature = _temperature;
+		status.vibration_metric = _vibration_metric;
+		status.clipping[0] = _clipping[0];
+		status.clipping[1] = _clipping[1];
+		status.clipping[2] = _clipping[2];
+		status.timestamp = hrt_absolute_time();
+		_sensor_status_pub.publish(status);
+
+		_status_last_publish = status.timestamp;
+	}
+}
+
+void PX4Accelerometer::ResetIntegrator()
 {
 	_integrator_samples = 0;
 	_integrator_fifo_samples = 0;
@@ -367,8 +377,7 @@ PX4Accelerometer::ResetIntegrator()
 	_timestamp_sample_prev = 0;
 }
 
-void
-PX4Accelerometer::ConfigureFilter(float cutoff_freq)
+void PX4Accelerometer::ConfigureFilter(float cutoff_freq)
 {
 	_filter.set_cutoff_frequency(_sample_rate, cutoff_freq);
 
@@ -377,8 +386,7 @@ PX4Accelerometer::ConfigureFilter(float cutoff_freq)
 	_filterArrayZ.set_cutoff_frequency(_sample_rate, cutoff_freq);
 }
 
-void
-PX4Accelerometer::UpdateVibrationMetrics(const Vector3f &delta_velocity)
+void PX4Accelerometer::UpdateVibrationMetrics(const Vector3f &delta_velocity)
 {
 	// Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 	const Vector3f delta_velocity_diff = delta_velocity - _delta_velocity_prev;
@@ -387,8 +395,7 @@ PX4Accelerometer::UpdateVibrationMetrics(const Vector3f &delta_velocity)
 	_delta_velocity_prev = delta_velocity;
 }
 
-void
-PX4Accelerometer::print_status()
+void PX4Accelerometer::print_status()
 {
 	PX4_INFO(ACCEL_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 	PX4_INFO("sample rate: %d Hz", _sample_rate);
@@ -398,5 +405,4 @@ PX4Accelerometer::print_status()
 		 (double)_calibration_scale(2));
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));
-
 }
