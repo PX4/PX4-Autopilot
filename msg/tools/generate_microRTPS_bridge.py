@@ -47,18 +47,16 @@ from uorb_rtps_classifier import Classifier
 import subprocess
 import glob
 import errno
-try:
-    import yaml
-except ImportError:
-    raise ImportError(
-        "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml'")
+
 try:
     from six.moves import input
-except ImportError:
-    try:
-        input = raw_input  # Python 2
-    except NameError:
-        pass  # Python 3
+except ImportError as e:
+    print("Failed to import six: " + e)
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user six")
+    print("")
+    sys.exit(1)
 
 
 def check_rtps_id_uniqueness(classifier):
