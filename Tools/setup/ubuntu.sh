@@ -97,6 +97,7 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	python3-dev \
 	python3-pip \
 	python3-setuptools \
+	python3-wheel \
 	rsync \
 	shellcheck \
 	unzip \
