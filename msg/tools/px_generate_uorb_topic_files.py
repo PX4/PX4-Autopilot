@@ -47,24 +47,28 @@ import errno
 
 try:
     import em
-    import genmsg.template_tools
 except ImportError as e:
-    print("python import error: ", e)
+    print("Python import error: ", e)
     print('''
-Required python packages not installed.
+Required python package empy not installed.
 
-On a Debian/Ubuntu system please run:
-
-  sudo apt-get install python3-empy
-  sudo pip3 install pyros-genmsg
-
-On MacOS please run:
-  sudo pip3 install empy pyros-genmsg
-
-On Windows please run:
-  easy_install empy pyros-genmsg
+Please run:
+    pip3 install --user empy
 ''')
     exit(1)
+
+try:
+    import genmsg.template_tools
+except ImportError as e:
+    print("Python import error: ", e)
+    print('''
+Required python package pyros-genmsg not installed.
+
+Please run:
+    pip3 install --user pyros-genmsg
+''')
+    exit(1)
+
 
 __author__ = "Sergey Belash, Thomas Gubler, Beat Kueng"
 __copyright__ = "Copyright (C) 2013-2016 PX4 Development Team."
