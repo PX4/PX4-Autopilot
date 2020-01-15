@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 """ Script to generate Serial (UART) parameters and the ROMFS startup script """
 
 from __future__ import print_function
@@ -11,11 +11,13 @@ from jinja2 import Environment, FileSystemLoader
 
 try:
     import yaml
-except:
-    print("Failed to import yaml.")
-    print("You may need to install it with 'sudo pip install pyyaml'")
+except ImportError as e:
+    print("Failed to import yaml: " + e)
     print("")
-    raise
+    print("You may need to install it using:")
+    print("    pip3 install --user pyyaml")
+    print("")
+    sys.exit(1)
 
 
 ## Configuration
