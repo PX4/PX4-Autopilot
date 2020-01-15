@@ -195,26 +195,20 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 	// gyro
 	if (!_param_sim_gyro_block.get()) {
-		static constexpr float scaling = 1000.0f;
-		_px4_gyro.set_scale(1 / scaling);
 		_px4_gyro.set_temperature(imu.temperature);
-		_px4_gyro.update(time, imu.xgyro * scaling, imu.ygyro * scaling, imu.zgyro * scaling);
+		_px4_gyro.update(time, imu.xgyro, imu.ygyro, imu.zgyro);
 	}
 
 	// accel
 	if (!_param_sim_accel_block.get()) {
-		static constexpr float scaling = 1000.0f;
-		_px4_accel.set_scale(1 / scaling);
 		_px4_accel.set_temperature(imu.temperature);
-		_px4_accel.update(time, imu.xacc * scaling, imu.yacc * scaling, imu.zacc * scaling);
+		_px4_accel.update(time, imu.xacc, imu.yacc, imu.zacc);
 	}
 
 	// magnetometer
 	if (!_param_sim_mag_block.get()) {
-		static constexpr float scaling = 1000.0f;
-		_px4_mag.set_scale(1 / scaling);
 		_px4_mag.set_temperature(imu.temperature);
-		_px4_mag.update(time, imu.xmag * scaling, imu.ymag * scaling, imu.zmag * scaling);
+		_px4_mag.update(time, imu.xmag, imu.ymag, imu.zmag);
 	}
 
 	// baro
