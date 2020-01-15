@@ -61,6 +61,16 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 
 	_constraints.tilt = math::radians(_param_mpc_man_tilt_max.get());
 
+	_updateConstraintsFromEstimator();
+
+	_max_speed_up = _constraints.speed_up;
+	_min_speed_down = _constraints.speed_down;
+
+	return ret;
+}
+
+void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
+{
 	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_min)) {
 		_constraints.min_distance_to_ground = _sub_vehicle_local_position.get().hagl_min;
 
@@ -74,11 +84,6 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 	} else {
 		_constraints.max_distance_to_ground = INFINITY;
 	}
-
-	_max_speed_up = _constraints.speed_up;
-	_min_speed_down = _constraints.speed_down;
-
-	return ret;
 }
 
 void FlightTaskManualAltitude::_scaleSticks()
@@ -357,6 +362,7 @@ bool FlightTaskManualAltitude::_checkTakeoff()
 
 bool FlightTaskManualAltitude::update()
 {
+	_updateConstraintsFromEstimator();
 	_scaleSticks();
 	_updateSetpoints();
 	_constraints.want_takeoff = _checkTakeoff();
