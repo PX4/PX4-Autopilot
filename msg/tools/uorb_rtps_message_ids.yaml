@@ -262,6 +262,7 @@ rtps:
     id: 115
   - msg: onboard_computer_status
     id: 116
+    receive: true
   - msg: cellular_status
     id: 117
   - msg: sensor_accel_fifo
