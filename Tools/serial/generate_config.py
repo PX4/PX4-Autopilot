@@ -7,7 +7,15 @@ import argparse
 import os
 import sys
 
-from jinja2 import Environment, FileSystemLoader
+try:
+    from jinja2 import Environment, FileSystemLoader
+except ImportError as e:
+    print("Failed to import jinja2: " + e)
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user jinja2")
+    print("")
+    sys.exit(1)
 
 try:
     import yaml
