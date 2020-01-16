@@ -143,10 +143,12 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"
 
+if [ $(which arm-none-eabi-gc) ]; then
 	GCC_VER_STR=$(arm-none-eabi-gcc --version)
-	STATUSRETVAL=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
+	GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
+fi
 
-	if [ $STATUSRETVAL -eq "1" ]; then
+	if [ ! ${GCC_FOUND_VER+x} && $GCC_FOUND_VER -eq "1" ]; then
 		echo "arm-none-eabi-gcc-${NUTTX_GCC_VERSION} found, skipping installation"
 
 	else
