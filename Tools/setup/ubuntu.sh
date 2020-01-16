@@ -34,9 +34,7 @@ if [ -f /.dockerenv ]; then
 	echo "Running within docker, installing initial dependencies";
 	apt-get --quiet -y update && apt-get --quiet -y install \
 		ca-certificates \
-		curl \
 		gnupg \
-		gosu \
 		lsb-core \
 		sudo \
 		wget \
