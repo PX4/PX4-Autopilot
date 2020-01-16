@@ -99,7 +99,6 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	rsync \
 	shellcheck \
 	unzip \
-	wget \
 	xsltproc \
 	zip \
 	;
