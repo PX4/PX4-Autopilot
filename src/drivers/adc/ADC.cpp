@@ -209,8 +209,8 @@ void ADC::update_system_power(hrt_abstime now)
 	system_power.usb_valid  = system_power.usb_connected;
 #endif
 
+#if defined(BOARD_BRICK_VALID_LIST)
 	/* The valid signals (HW dependent) are associated with each brick */
-#if !defined(BOARD_NUMBER_DIGITAL_BRICKS)
 	bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
 	system_power.brick_valid = 0;
 
