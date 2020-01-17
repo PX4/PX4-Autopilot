@@ -210,7 +210,7 @@ void LSM9DS1::Run()
 		perf_count(_fifo_empty_perf);
 		return;
 
-	} else if (samples > 32) {
+	} else if (samples > 16) {
 		// not technically an overflow, but more samples than we expected
 		perf_count(_fifo_overflow_perf);
 		ResetFIFO();
