@@ -134,6 +134,13 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 	}
 
+	if (status.is_vtol && status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		if (prearm_ok) {
+			mavlink_log_critical(mavlink_log_pub, "Arming denied! Vehicle is not in multicopter mode");
+			prearm_ok = false;
+		}
+	}
+
 	// Arm Requirements: authorization
 	// check last, and only if everything else has passed
 	if (arm_requirements.arm_authorization && prearm_ok) {
