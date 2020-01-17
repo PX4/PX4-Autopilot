@@ -55,7 +55,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
@@ -113,6 +115,9 @@ private:
 	uORB::Subscription		_mocap_odom_sub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Subscription		_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 
+	uORB::SubscriptionData<sensor_selection_s> _sensor_selection_sub{ORB_ID(sensor_selection)};
+
+	uORB::Publication<sensor_bias_s>	_sensor_bias_pub{ORB_ID(sensor_bias)};
 	uORB::Publication<vehicle_attitude_s>	_att_pub{ORB_ID(vehicle_attitude)};
 
 	float		_mag_decl{0.0f};
@@ -198,6 +203,8 @@ AttitudeEstimatorQ::Run()
 	sensor_combined_s sensors;
 
 	if (_sensors_sub.update(&sensors)) {
+
+		_sensor_selection_sub.update();
 
 		update_parameters();
 
@@ -506,6 +513,11 @@ AttitudeEstimatorQ::update(float dt)
 			_gyro_bias(i) = math::constrain(_gyro_bias(i), -_bias_max, _bias_max);
 		}
 
+		sensor_bias_s bias{};
+		bias.gyro_device_id = _sensor_selection_sub.get().gyro_device_id;
+		_gyro_bias.copyTo(bias.gyro_bias);
+		bias.timestamp = hrt_absolute_time();
+		_sensor_bias_pub.publish(bias);
 	}
 
 	_rates = _gyro + _gyro_bias;
