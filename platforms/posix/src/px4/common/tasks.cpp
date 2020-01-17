@@ -204,11 +204,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	rv = pthread_attr_setschedpolicy(&attr, SCHED_RR);
-#else
 	rv = pthread_attr_setschedpolicy(&attr, scheduler);
-#endif
 
 	if (rv != 0) {
 		PX4_ERR("px4_task_spawn_cmd: failed to set sched policy");
