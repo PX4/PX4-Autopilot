@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python3
 ################################################################################
 #
 # Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
@@ -48,18 +47,16 @@ from uorb_rtps_classifier import Classifier
 import subprocess
 import glob
 import errno
-try:
-    import yaml
-except ImportError:
-    raise ImportError(
-        "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml'")
+
 try:
     from six.moves import input
-except ImportError:
-    try:
-        input = raw_input  # Python 2
-    except NameError:
-        pass  # Python 3
+except ImportError as e:
+    print("Failed to import six: " + e)
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user six")
+    print("")
+    sys.exit(1)
 
 
 def check_rtps_id_uniqueness(classifier):
@@ -69,69 +66,49 @@ def check_rtps_id_uniqueness(classifier):
 
     repeated_ids = dict()
 
-    if sys.version_info[0] < 3:
-        full_send_list = dict(list(msg for msg in classifier.msgs_to_send.items(
-        )) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_send))
-        full_receive_list = dict(list(msg for msg in classifier.msgs_to_receive.items(
-        )) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_receive))
-        full_ignore_list = dict(list(msg for msg in classifier.msgs_to_ignore.items(
-        )) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_ignore))
-    else:
-        full_send_list = dict(list(msg for msg in classifier.msgs_to_send.items(
-        )) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_send))
-        full_receive_list = dict(list(msg for msg in classifier.msgs_to_receive.items(
-        )) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_receive))
-        full_ignore_list = dict(list(msg for msg in classifier.msgs_to_ignore.items(
-        )) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_ignore))
+    full_send_list = dict(list(msg for msg in list(classifier.msgs_to_send.items(
+    ))) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_send))
+    full_receive_list = dict(list(msg for msg in list(classifier.msgs_to_receive.items(
+    ))) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_receive))
+    full_ignore_list = dict(list(msg for msg in list(classifier.msgs_to_ignore.items(
+    ))) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_ignore))
 
     # check if there are repeated ID's on the messages to send
-    for key, value in full_send_list.items():
-        if sys.version_info[0] < 3:
-            if full_send_list.values().count(value) > 1:
-                repeated_ids.update({key: value})
-        else:
-            if list(full_send_list.values()).count(value) > 1:
-                repeated_ids.update({key: value})
+    for key, value in list(full_send_list.items()):
+        if list(full_send_list.values()).count(value) > 1:
+            repeated_ids.update({key: value})
 
     # check if there are repeated ID's on the messages to receive
-    for key, value in full_receive_list.items():
-        if sys.version_info[0] < 3:
-            if full_receive_list.values().count(value) > 1:
-                repeated_ids.update({key: value})
-        else:
-            if list(full_receive_list.values()).count(value) > 1:
-                repeated_ids.update({key: value})
+    for key, value in list(full_receive_list.items()):
+        if list(full_receive_list.values()).count(value) > 1:
+            repeated_ids.update({key: value})
 
     # check if there are repeated ID's on the messages to ignore
-    for key, value in full_ignore_list.items():
-        if sys.version_info[0] < 3:
-            if full_ignore_list.values().count(value) > 1:
-                repeated_ids.update({key: value})
-        else:
-            if list(full_ignore_list.values()).count(value) > 1:
-                repeated_ids.update({key: value})
+    for key, value in list(full_ignore_list.items()):
+        if list(full_ignore_list.values()).count(value) > 1:
+            repeated_ids.update({key: value})
 
     # check if there are repeated IDs between classified and unclassified msgs
     # check send and ignore lists
     send_ignore_common_ids = list(set(full_ignore_list.values(
-    )).intersection(full_send_list.values()))
-    for item in full_send_list.items():
+    )).intersection(list(full_send_list.values())))
+    for item in list(full_send_list.items()):
         for repeated in send_ignore_common_ids:
             if item[1] == repeated:
                 repeated_ids.update({item[0]: item[1]})
-    for item in full_ignore_list.items():
+    for item in list(full_ignore_list.items()):
         for repeated in send_ignore_common_ids:
             if item[1] == repeated:
                 repeated_ids.update({item[0]: item[1]})
 
     # check receive and ignore lists
     receive_ignore_common_ids = list(set(full_ignore_list.values(
-    )).intersection(full_receive_list.values()))
-    for item in full_receive_list.items():
+    )).intersection(list(full_receive_list.values())))
+    for item in list(full_receive_list.items()):
         for repeated in receive_ignore_common_ids:
             if item[1] == repeated:
                 repeated_ids.update({item[0]: item[1]})
-    for item in full_ignore_list.items():
+    for item in list(full_ignore_list.items()):
         for repeated in receive_ignore_common_ids:
             if item[1] == repeated:
                 repeated_ids.update({item[0]: item[1]})
@@ -141,16 +118,13 @@ def check_rtps_id_uniqueness(classifier):
     all_msgs.update(full_receive_list)
     all_msgs.update(full_ignore_list)
     all_ids = list()
-    if sys.version_info[0] < 3:
-        all_ids = all_msgs.values()
-    else:
-        all_ids = list(all_msgs.values())
+    all_ids = list(all_msgs.values())
     all_ids.sort()
 
     if not repeated_ids:
         print("All good. RTPS ID's are unique")
     else:
-        raise AssertionError(", ".join('%s' % msgs for msgs in repeated_ids.keys()) +
+        raise AssertionError(", ".join('%s' % msgs for msgs in list(repeated_ids.keys())) +
                              " have their ID's repeated. Please choose from the following pool:\n" +
                              ", ".join('%d' % id for id in px_generate_uorb_topic_helper.check_available_ids(all_ids)))
 
@@ -235,10 +209,18 @@ else:
 if args.fastrtpsgen is None or args.fastrtpsgen == '':
     # Assume fastrtpsgen is in PATH
     fastrtpsgen_path = 'fastrtpsgen'
+    for dirname in os.environ['PATH'].split(':') :
+        candidate = os.path.join(dirname, 'fastrtpsgen')
+        if os.path.isfile(candidate) :
+            fastrtpsgen_path = candidate
 else:
     # Path to fastrtpsgen is explicitly specified
-    fastrtpsgen_path = os.path.join(
-        os.path.abspath(args.fastrtpsgen), 'fastrtpsgen')
+    if os.path.isdir(args.fastrtpsgen) :
+        fastrtpsgen_path = os.path.join(
+            os.path.abspath(args.fastrtpsgen), 'fastrtpsgen')
+    else :
+        fastrtpsgen_path = args.fastrtpsgen
+
 fastrtpsgen_include = args.fastrtpsgen_include
 if fastrtpsgen_include is not None and fastrtpsgen_include != '':
     fastrtpsgen_include = "-I " + \
@@ -290,7 +272,7 @@ if del_tree:
     if agent:
         _continue = str(input("\nFiles in " + agent_out_dir +
                               " will be erased, continue?[Y/n]\n"))
-        if _continue.strip() in ("N", "n"):
+        if _continue == "N" or _continue == "n":
             print("Aborting execution...")
             exit(-1)
         else:
@@ -356,10 +338,7 @@ def generate_agent(out_dir):
 
     if classifier.alias_msgs_to_send:
         for msg_file in classifier.alias_msgs_to_send:
-            if sys.version_info[0] < 3:
-                msg_alias = msg_file[0].keys()[0]
-            else:
-                msg_alias = list(msg_file[0].keys())[0]
+            msg_alias = list(msg_file[0].keys())[0]
             msg_name = msg_file[1]
             if gen_idl:
                 if out_dir != agent_out_dir:
@@ -389,10 +368,7 @@ def generate_agent(out_dir):
 
     if classifier.alias_msgs_to_receive:
         for msg_file in classifier.alias_msgs_to_receive:
-            if sys.version_info[0] < 3:
-                msg_alias = msg_file[0].keys()[0]
-            else:
-                msg_alias = list(msg_file[0].keys())[0]
+            msg_alias = list(msg_file[0].keys())[0]
             msg_name = msg_file[1]
             if gen_idl:
                 if out_dir != agent_out_dir:
@@ -496,8 +472,8 @@ def generate_client(out_dir):
 
 if agent:
     generate_agent(agent_out_dir)
-    print("\nAgent created in: " + agent_out_dir)
+    print(("\nAgent created in: " + agent_out_dir))
 
 if client:
     generate_client(client_out_dir)
-    print("\nClient created in: " + client_out_dir)
+    print(("\nClient created in: " + client_out_dir))

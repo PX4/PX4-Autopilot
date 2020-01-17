@@ -26,12 +26,8 @@ px4_add_board(
 		magnetometer/hmc5883
 		magnetometer/lsm9ds1_mag
 		pwm_out_sim
+		rc_input
 		#telemetry # all available telemetry drivers
-	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		isl29501
-		lsm9ds1
-		mpu9250
-		trone
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -45,7 +41,7 @@ px4_add_board(
 		fw_pos_control_l1
 		land_detector
 		landing_target_estimator
-		load_mon
+		#load_mon
 		local_position_estimator
 		logger
 		mavlink
@@ -74,7 +70,7 @@ px4_add_board(
 		sd_bench
 		shutdown
 		tests # tests and test runner
-		top
+		#top
 		topic_listener
 		tune_control
 		ver

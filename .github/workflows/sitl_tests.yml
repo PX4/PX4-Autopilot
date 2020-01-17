@@ -5,13 +5,11 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-simulation-bionic:2019-12-18
+    container: px4io/px4-dev-simulation-bionic:2020-01-13
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
-    - name: Set Python 3 as default
-      run: update-alternatives --install /usr/bin/python python /usr/bin/python3 10
     - name: Install psutil
       run: pip3 install psutil
     - name: Build PX4 in SITL integration test mode

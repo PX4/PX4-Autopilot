@@ -50,7 +50,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/ecl/geo/geo.h>
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
@@ -68,99 +68,21 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/uORB.h>
+
+#include <random>
 
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
 #include <lib/battery/battery.h>
 
-namespace simulator
-{
-
-#pragma pack(push, 1)
-struct RawGPSData {
-	uint64_t timestamp;
-	int32_t lat;
-	int32_t lon;
-	int32_t alt;
-	uint16_t eph;
-	uint16_t epv;
-	uint16_t vel;
-	int16_t vn;
-	int16_t ve;
-	int16_t vd;
-	uint16_t cog;
-	uint8_t fix_type;
-	uint8_t satellites_visible;
-};
-#pragma pack(pop)
-
-template <typename RType> class Report
-{
-public:
-	Report(int readers) :
-		_readidx(0),
-		_max_readers(readers),
-		_report_len(sizeof(RType))
-	{
-		memset(_buf, 0, sizeof(_buf));
-		px4_sem_init(&_lock, 0, _max_readers);
-	}
-
-	~Report() {}
-
-	bool copyData(void *outbuf, int len)
-	{
-		if (len != _report_len) {
-			return false;
-		}
-
-		read_lock();
-		memcpy(outbuf, &_buf[_readidx], _report_len);
-		read_unlock();
-		return true;
-	}
-	void writeData(void *inbuf)
-	{
-		write_lock();
-		memcpy(&_buf[!_readidx], inbuf, _report_len);
-		_readidx = !_readidx;
-		write_unlock();
-	}
-
-protected:
-	void read_lock() { px4_sem_wait(&_lock); }
-	void read_unlock() { px4_sem_post(&_lock); }
-	void write_lock()
-	{
-		for (int i = 0; i < _max_readers; i++) {
-			px4_sem_wait(&_lock);
-		}
-	}
-	void write_unlock()
-	{
-		for (int i = 0; i < _max_readers; i++) {
-			px4_sem_post(&_lock);
-		}
-	}
-
-	int _readidx;
-	px4_sem_t _lock;
-	const int _max_readers;
-	const int _report_len;
-	RType _buf[2];
-};
-
-} // namespace simulator
-
-
 class Simulator : public ModuleParams
 {
 public:
-	static Simulator *getInstance();
+	static Simulator *getInstance() { return _instance; }
 
 	enum class InternetProtocol {
 		TCP,
@@ -169,27 +91,18 @@ public:
 
 	static int start(int argc, char *argv[]);
 
-	bool getGPSSample(uint8_t *buf, int len);
-
-	void write_gps_data(void *buf);
-
-	void set_ip(InternetProtocol ip);
-	void set_port(unsigned port);
+	void set_ip(InternetProtocol ip) { _ip = ip; }
+	void set_port(unsigned port) { _port = port; }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	bool has_initialized() {return _has_initialized.load(); }
+	bool has_initialized() { return _has_initialized.load(); }
 #endif
 
+	void print_status();
+
 private:
-	Simulator() :
-		ModuleParams(nullptr)
+	Simulator() : ModuleParams(nullptr)
 	{
-		simulator::RawGPSData gps_data{};
-		gps_data.eph = UINT16_MAX;
-		gps_data.epv = UINT16_MAX;
-
-		_gps.writeData(&gps_data);
-
 		_px4_accel.set_sample_rate(250);
 		_px4_gyro.set_sample_rate(250);
 	}
@@ -197,7 +110,6 @@ private:
 	~Simulator()
 	{
 		// free perf counters
-		perf_free(_perf_gps);
 		perf_free(_perf_sim_delay);
 		perf_free(_perf_sim_interval);
 
@@ -218,9 +130,6 @@ private:
 	PX4Magnetometer		_px4_mag{197388, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	PX4Barometer		_px4_baro{6620172, ORB_PRIO_DEFAULT}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 
-	simulator::Report<simulator::RawGPSData>	_gps{1};
-
-	perf_counter_t _perf_gps{perf_alloc(PC_ELAPSED, MODULE_NAME": gps delay")};
 	perf_counter_t _perf_sim_delay{perf_alloc(PC_ELAPSED, MODULE_NAME": network delay")};
 	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
 
@@ -265,8 +174,6 @@ private:
 		}
 	} _battery;
 
-#ifndef __PX4_QURT
-
 	void run();
 	void handle_message(const mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
@@ -287,7 +194,6 @@ private:
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
 	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu);
-	void update_gps(const mavlink_hil_gps_t *gps_sim);
 
 	static void *sending_trampoline(void *);
 
@@ -300,6 +206,10 @@ private:
 	uORB::Publication<vehicle_global_position_s>	_gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
+
+	// HIL GPS
+	uORB::Publication<vehicle_gps_position_s>	_vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
@@ -322,23 +232,20 @@ private:
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
-
-	int _ekf2_timestamps_sub{-1};
-
-	enum class State {
-		WaitingForFirstEkf2Timestamp = 0,
-		WaitingForActuatorControls = 1,
-		WaitingForEkf2Timestamp = 2,
-	};
 #endif
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //< minimum battery percentage
+		(ParamFloat<px4::params::SIM_GPS_NOISE_X>) _param_sim_gps_noise_x,
+		(ParamBool<px4::params::SIM_GPS_BLOCK>) _param_sim_gps_block,
+		(ParamBool<px4::params::SIM_ACCEL_BLOCK>) _param_sim_accel_block,
+		(ParamBool<px4::params::SIM_GYRO_BLOCK>) _param_sim_gyro_block,
+		(ParamBool<px4::params::SIM_BARO_BLOCK>) _param_sim_baro_block,
+		(ParamBool<px4::params::SIM_MAG_BLOCK>) _param_sim_mag_block,
+		(ParamBool<px4::params::SIM_DPRES_BLOCK>) _param_sim_dpres_block,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
 	)
-
-#endif
 };

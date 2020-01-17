@@ -49,6 +49,7 @@
 #include <uORB/uORBTopics.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/battery_status.h>
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
@@ -374,6 +375,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_log_dirs_max = param_find("SDLOG_DIRS_MAX");
 	_sdlog_profile_handle = param_find("SDLOG_PROFILE");
 	_mission_log = param_find("SDLOG_MISSION");
+	_boot_bat_only = param_find("SDLOG_BOOT_BAT");
 
 	if (poll_topic_name) {
 		const orb_metadata *const *topics = orb_get_topics();
@@ -602,7 +604,9 @@ void Logger::run()
 
 	px4_register_shutdown_hook(&Logger::request_stop_static);
 
-	if (_log_mode == LogMode::boot_until_disarm || _log_mode == LogMode::boot_until_shutdown) {
+	const bool disable_boot_logging = get_disable_boot_logging();
+
+	if ((_log_mode == LogMode::boot_until_disarm || _log_mode == LogMode::boot_until_shutdown) && !disable_boot_logging) {
 		start_log_file(LogType::Full);
 	}
 
@@ -898,78 +902,89 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 #endif /* DBGPRINT */
 }
 
+bool Logger::get_disable_boot_logging()
+{
+	int32_t boot_logging_bat_only = 0;
+
+	if (_boot_bat_only != PARAM_INVALID) {
+		param_get(_boot_bat_only, &boot_logging_bat_only);
+	}
+
+	if (boot_logging_bat_only) {
+		battery_status_s battery_status;
+		uORB::Subscription battery_status_sub{ORB_ID(battery_status)};
+
+		if (battery_status_sub.copy(&battery_status)) {
+			if (!battery_status.connected) {
+				return true;
+			}
+
+		} else {
+			PX4_WARN("battery_status not published. Logging anyway");
+		}
+	}
+
+	return false;
+}
+
 bool Logger::start_stop_logging(MissionLogType mission_log_type)
 {
-	bool bret = false;
-	bool want_start = false;
-	bool want_stop = false;
+	bool updated = false;
+	bool desired_state = false;
 
 	if (_log_mode == LogMode::rc_aux1) {
-
 		// aux1-based logging
 		manual_control_setpoint_s manual_sp;
 
 		if (_manual_control_sp_sub.update(&manual_sp)) {
 
-			bool should_start = ((manual_sp.aux1 > 0.3f) || _manually_logging_override);
-
-			if (_prev_state != should_start) {
-				_prev_state = should_start;
-
-				if (should_start) {
-					want_start = true;
-
-				} else {
-					want_stop = true;
-				}
-			}
+			desired_state = (manual_sp.aux1 > 0.3f);
+			updated = true;
 		}
 
-	} else {
+	} else if (_log_mode != LogMode::boot_until_shutdown) {
 		// arming-based logging
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 
-			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _manually_logging_override;
+			desired_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			updated = true;
+		}
+	}
 
-			if (_prev_state != armed && _log_mode != LogMode::boot_until_shutdown) {
-				_prev_state = armed;
+	desired_state = desired_state || _manually_logging_override;
 
-				if (armed) {
-					want_start = true;
+	// only start/stop if this is a state transition
+	if (updated && _prev_state != desired_state) {
+		_prev_state = desired_state;
 
-				} else {
-					want_stop = true;
-				}
+		if (desired_state) {
+			if (_should_stop_file_log) { // happens on quick stop/start toggling
+				_should_stop_file_log = false;
+				stop_log_file(LogType::Full);
+			}
+
+			start_log_file(LogType::Full);
+
+			if (mission_log_type != MissionLogType::Disabled) {
+				start_log_file(LogType::Mission);
+			}
+
+			return true;
+
+		} else {
+			// delayed stop: we measure the process loads and then stop
+			initialize_load_output(PrintLoadReason::Postflight);
+			_should_stop_file_log = true;
+
+			if (mission_log_type != MissionLogType::Disabled) {
+				stop_log_file(LogType::Mission);
 			}
 		}
 	}
 
-	if (want_start) {
-		if (_should_stop_file_log) { // happens on quick stop/start toggling
-			_should_stop_file_log = false;
-			stop_log_file(LogType::Full);
-		}
-
-		start_log_file(LogType::Full);
-		bret = true;
-
-		if (mission_log_type != MissionLogType::Disabled) {
-			start_log_file(LogType::Mission);
-		}
-
-	} else if (want_stop) {
-		// delayed stop: we measure the process loads and then stop
-		initialize_load_output(PrintLoadReason::Postflight);
-		_should_stop_file_log = true;
-
-		if (mission_log_type != MissionLogType::Disabled) {
-			stop_log_file(LogType::Mission);
-		}
-	}
-
-	return bret;
+	return false;
 }
 
 void Logger::handle_vehicle_command_update()

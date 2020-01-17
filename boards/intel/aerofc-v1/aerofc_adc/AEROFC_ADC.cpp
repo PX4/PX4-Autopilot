@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,67 +31,104 @@
  *
  ****************************************************************************/
 
-/**
- * @file CDev.cpp
- *
- * Character device base class.
- */
+#include "AEROFC_ADC.hpp"
 
-#include "CDev.hpp"
+using namespace time_literals;
 
-#include <cstring>
-
-#include <px4_platform_common/posix.h>
-#include <drivers/drv_device.h>
-
-namespace device
+AEROFC_ADC::AEROFC_ADC(uint8_t bus) :
+	I2C("AEROFC_ADC", ADC0_DEVICE_PATH, bus, SLAVE_ADDR, 400000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample"))
 {
-
-CDev::CDev(const char *name, const char *devname) :
-	Device(name),
-	cdev::CDev(devname)
-{
+	_sample.am_channel = 1;
+	pthread_mutex_init(&_sample_mutex, nullptr);
 }
 
-int CDev::init()
+AEROFC_ADC::~AEROFC_ADC()
 {
-	PX4_DEBUG("CDev::init");
+	ScheduleClear();
+	perf_free(_sample_perf);
+}
 
-	// base class init first
-	int ret = Device::init();
+int AEROFC_ADC::init()
+{
+	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
-		goto out;
+		return ret;
 	}
 
-	// now register the driver
-	if (get_devname() != nullptr) {
-		ret = cdev::CDev::init();
+	ScheduleOnInterval(100_ms); // 10 Hz
 
-		if (ret != PX4_OK) {
-			goto out;
-		}
-	}
-
-out:
-	return ret;
+	return PX4_OK;
 }
 
-int CDev::ioctl(file_t *filep, int cmd, unsigned long arg)
+int AEROFC_ADC::probe()
 {
-	PX4_DEBUG("CDev::ioctl");
-	int ret = -ENOTTY;
+	uint8_t buffer[2];
+	int ret;
 
-	switch (cmd) {
-	case DEVIOCGDEVICEID:
-		ret = (int)_device_id.devid;
-		break;
+	_retries = 3;
 
-	default:
-		break;
+	/* Enable ADC */
+	buffer[0] = ADC_ENABLE_REG;
+	buffer[1] = 0x01;
+	ret = transfer(buffer, 2, NULL, 0);
+
+	if (ret != PX4_OK) {
+		goto error;
 	}
 
-	return ret;
+	usleep(10000);
+
+	/* Read ADC value */
+	buffer[0] = ADC_CHANNEL_REG;
+	ret = transfer(buffer, 1, buffer, 2);
+
+	if (ret != PX4_OK) {
+		goto error;
+	}
+
+	return PX4_OK;
+
+error:
+	return -EIO;
 }
 
-} // namespace device
+ssize_t AEROFC_ADC::read(file *filp, char *buffer, size_t len)
+{
+	if (len < sizeof(_sample)) {
+		return -ENOSPC;
+	}
+
+	if (len > sizeof(_sample)) {
+		len = sizeof(_sample);
+	}
+
+	pthread_mutex_lock(&_sample_mutex);
+	memcpy(buffer, &_sample, len);
+	pthread_mutex_unlock(&_sample_mutex);
+
+	return len;
+}
+
+void AEROFC_ADC::Run()
+{
+	uint8_t buffer[2] {};
+	buffer[0] = ADC_CHANNEL_REG;
+	int ret = transfer(buffer, 1, buffer, sizeof(buffer));
+
+	if (ret != PX4_OK) {
+		PX4_ERR("Error reading sample");
+		return;
+	}
+
+	pthread_mutex_lock(&_sample_mutex);
+	_sample.am_data = (buffer[0] | (buffer[1] << 8));
+	pthread_mutex_unlock(&_sample_mutex);
+}
+
+uint32_t px4_arch_adc_dn_fullcount()
+{
+	return 1 << 12; // 12 bit ADC
+}

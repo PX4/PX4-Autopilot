@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """ Script to validate YAML file(s) against a YAML schema file """
 
 from __future__ import print_function
@@ -9,19 +9,23 @@ import sys
 
 try:
     import yaml
-except:
-    print("Failed to import yaml.")
-    print("You may need to install it with 'sudo pip install pyyaml'")
+except ImportError as e:
+    print("Failed to import yaml: " + e)
     print("")
-    raise
+    print("You may need to install it using:")
+    print("    pip3 install --user pyyaml")
+    print("")
+    sys.exit(1)
 
 try:
     import cerberus
-except:
-    print("Failed to import cerberus.")
-    print("You may need to install it with 'sudo pip install cerberus'")
+except ImportError as e:
+    print("Failed to import cerberus: " + e)
     print("")
-    raise
+    print("You may need to install it using:")
+    print("    pip3 install --user cerberus")
+    print("")
+    sys.exit(1)
 
 
 parser = argparse.ArgumentParser(description='Validate YAML file(s) against a schema')

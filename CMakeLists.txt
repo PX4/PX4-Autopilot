@@ -138,7 +138,6 @@ set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 
 include(px4_add_module)
 set(config_module_list)
-set(config_df_driver_list)
 
 include(px4_config)
 include(px4_add_board)
@@ -264,17 +263,25 @@ if (CATKIN_DEVEL_PREFIX)
 	endif()
 endif()
 
-# python
-include(px4_find_python_module)
-find_package(PythonInterp REQUIRED)
+# Python
+# If using catkin, Python 2 is found since it points
+# to the Python libs installed with the ROS distro
+if (NOT CATKIN_DEVEL_PREFIX)
+	find_package(PythonInterp 3)
+	# We have a custom error message to tell users how to install python3.
+	if (NOT PYTHONINTERP_FOUND)
+		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
+			"    Ubuntu: sudo apt install python3 python3-devel python3-pip\n"
+			"    macOS: brew install python")
+	endif()
+else()
+	find_package(PythonInterp REQUIRED)
+endif()
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
 	message(STATUS "python coverage enabled")
 	set(PYTHON_EXECUTABLE coverage run -p)
-else()
-	# run normally (broken under coveragepy)
-	px4_find_python_module(jinja2 REQUIRED)
 endif()
 
 #=============================================================================
@@ -310,25 +317,6 @@ include(px4_metadata)
 add_subdirectory(msg EXCLUDE_FROM_ALL)
 
 px4_generate_airframes_xml(BOARD ${PX4_BOARD})
-
-#=============================================================================
-# DriverFramework
-#
-px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
-set(OS ${PX4_PLATFORM})
-add_subdirectory(src/lib/DriverFramework/framework)
-
-# List the DriverFramework drivers
-if (DEFINED config_df_driver_list)
-	message("DF Drivers: ${config_df_driver_list}")
-endif()
-
-set(df_driver_libs)
-foreach(driver ${config_df_driver_list})
-	add_subdirectory(src/lib/DriverFramework/drivers/${driver})
-	list(APPEND df_driver_libs df_${driver})
-	message("Adding DF driver: ${driver}")
-endforeach()
 
 #=============================================================================
 # external projects

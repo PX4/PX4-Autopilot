@@ -114,6 +114,7 @@ Navigator::Navigator() :
 
 Navigator::~Navigator()
 {
+	perf_free(_loop_perf);
 	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_vehicle_status_sub);
 }

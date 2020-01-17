@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Script to read an yaml file containing the RTPS message IDs and update the naming convention to PascalCase
 """
@@ -75,7 +75,7 @@ def load_yaml_file(file):
     try:
         with open(file, 'r') as f:
             if verbose:
-                print("--\t[Step 1] %s yaml file loaded!" % file)
+                print(("--\t[Step 1] %s yaml file loaded!" % file))
             return yaml.safe_load(f)
     except OSError as e:
         if e.errno == errno.ENOENT:
@@ -98,7 +98,7 @@ def update_dict(list):
         if verbose:
             num_of_msgs += 1
     if verbose:
-        print("--\t[Step 2] List: %d msg names updated!" % num_of_msgs)
+        print(("--\t[Step 2] List: %d msg names updated!" % num_of_msgs))
 
 
 def update_yaml_file(list, file):
@@ -117,9 +117,9 @@ def update_yaml_file(list, file):
             yaml.dump(list, f, Dumper=IndenterDumper, default_flow_style=False)
             if verbose:
                 if in_file == out_file:
-                    print("--\t[Step 3] %s updated!" % in_file)
+                    print(("--\t[Step 3] %s updated!" % in_file))
                 else:
-                    print("--\t[Step 3] %s created!" % out_file)
+                    print(("--\t[Step 3] %s created!" % out_file))
 
     except OSError as e:
         if e.errno == errno.ENOENT:

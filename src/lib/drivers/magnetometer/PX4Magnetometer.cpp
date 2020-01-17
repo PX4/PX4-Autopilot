@@ -131,7 +131,6 @@ PX4Magnetometer::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z)
 	report.y = val_calibrated(1);
 	report.z = val_calibrated(2);
 
-	poll_notify(POLLIN);
 	_sensor_mag_pub.update();
 }
 

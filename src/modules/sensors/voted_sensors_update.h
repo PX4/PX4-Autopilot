@@ -62,8 +62,6 @@
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/subsystem_info.h>
 
-#include <DevMgr.hpp>
-
 #include "temperature_compensation.h"
 #include "common.h"
 
@@ -210,37 +208,6 @@ private:
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
-
-	/**
-	 * Apply a gyro calibration.
-	 *
-	 * @param h: reference to the DevHandle in use
-	 * @param gscale: the calibration data.
-	 * @param device: the device id of the sensor.
-	 * @return: true if config is ok
-	 */
-	bool applyGyroCalibration(DriverFramework::DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id);
-
-	/**
-	 * Apply a accel calibration.
-	 *
-	 * @param h: reference to the DevHandle in use
-	 * @param ascale: the calibration data.
-	 * @param device: the device id of the sensor.
-	 * @return: true if config is ok
-	 */
-	bool applyAccelCalibration(DriverFramework::DevHandle &h, const struct accel_calibration_s *acal,
-				   const int device_id);
-
-	/**
-	 * Apply a mag calibration.
-	 *
-	 * @param h: reference to the DevHandle in use
-	 * @param gscale: the calibration data.
-	 * @param device: the device id of the sensor.
-	 * @return: true if config is ok
-	 */
-	bool applyMagCalibration(DriverFramework::DevHandle &h, const struct mag_calibration_s *mcal, const int device_id);
 
 	SensorData _accel {};
 	SensorData _gyro {};

@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,24 +32,96 @@
  *
  ****************************************************************************/
 
-/**
- * @file hello_example.h
- * Example app for Linux
- *
- * @author Mark Charlebois <charlebm@gmail.com>
- */
-#pragma once
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
 
-#include <px4_platform_common/app.h>
+#include "NavioSysRCInput.hpp"
 
-class HelloExample
+namespace navio_sysfs_rc_in
 {
-public:
-	HelloExample() {}
 
-	~HelloExample() {}
+static void usage(const char *reason)
+{
+	if (reason) {
+		PX4_ERR("%s", reason);
+	}
 
-	int main();
+	PX4_INFO("usage: navio_sysfs_rc_in {start|stop|status}");
+}
 
-	static px4::AppState appState; /* track requests to terminate app */
-};
+static NavioSysRCInput *rc_input = nullptr;
+
+extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[])
+{
+	if (argc < 2) {
+		usage("missing command");
+		return 1;
+	}
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (rc_input != nullptr && rc_input->isRunning()) {
+			PX4_WARN("already running");
+			/* this is not an error */
+			return 0;
+		}
+
+		rc_input = new NavioSysRCInput();
+
+		// Check if alloc worked.
+		if (rc_input == nullptr) {
+			PX4_ERR("alloc failed");
+			return -1;
+		}
+
+		int ret = rc_input->start();
+
+		if (ret != 0) {
+			PX4_ERR("start failed");
+		}
+
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+
+		if (rc_input == nullptr || !rc_input->isRunning()) {
+			PX4_WARN("not running");
+			/* this is not an error */
+			return 0;
+		}
+
+		rc_input->stop();
+
+		// Wait for task to die
+		int i = 0;
+
+		do {
+			/* wait up to 3s */
+			usleep(100000);
+
+		} while (rc_input->isRunning() && ++i < 30);
+
+		delete rc_input;
+		rc_input = nullptr;
+
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (rc_input != nullptr) {
+			rc_input->print_status();
+
+		} else {
+			PX4_INFO("not running");
+		}
+
+		return 0;
+	}
+
+	usage("unrecognized command");
+	return 1;
+
+}
+
+}; // namespace navio_sysfs_rc_in
