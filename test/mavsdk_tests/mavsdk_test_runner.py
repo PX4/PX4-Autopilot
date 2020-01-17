@@ -207,12 +207,12 @@ def is_everything_ready():
         result = False
     if not os.path.isfile('build/px4_sitl_default/bin/px4'):
         print("PX4 SITL is not built\n"
-              "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
+              "run `DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
         result = False
     if not os.path.isfile('build/px4_sitl_default/mavsdk_tests/mavsdk_tests'):
         print("Test runner is not built\n"
-              "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
+              "run `DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
         result = False
     return result
