@@ -32,7 +32,7 @@ done
 # detect if running in docker
 if [ -f /.dockerenv ]; then
 	echo "Running within docker, installing initial dependencies";
-	apt-get --quiet -y update && apt-get --quiet -y install \
+	apt-get --quiet -y update && DEBIAN_FRONTEND=noninteractive apt-get --quiet -y install \
 		ca-certificates \
 		gnupg \
 		lsb-core \
@@ -67,14 +67,11 @@ elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 fi
 
 
-
-export DEBIAN_FRONTEND=noninteractive
-
 echo
 echo "Installing PX4 general dependencies"
 
-sudo apt-get update -yy --quiet
-sudo apt-get -yy --quiet --no-install-recommends install \
+sudo apt-get update -y --quiet
+sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 	astyle \
 	build-essential \
 	ccache \
@@ -120,7 +117,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
 	echo "Installing NuttX dependencies"
 
-	sudo apt-get -yy --quiet --no-install-recommends install \
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		autoconf \
 		automake \
 		bison \
@@ -176,7 +173,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	echo "Installing PX4 simulation dependencies"
 
 	# java (jmavsim or fastrtps)
-	sudo apt-get -yy --quiet --no-install-recommends install \
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		ant \
 		openjdk-8-jre \
 		openjdk-8-jdk \
@@ -185,8 +182,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	# Gazebo
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
 	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-	sudo apt-get update -yy --quiet
-	sudo DEBIAN_FRONTEND=noninteractive apt-get -yy --quiet --no-install-recommends install \
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		gazebo9 \
 		gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-base \
