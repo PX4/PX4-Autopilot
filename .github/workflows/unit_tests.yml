@@ -1,0 +1,26 @@
+name: Unit Tests
+
+on: [push]
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-bionic:2020-01-13
+    steps:
+    - uses: actions/checkout@v1
+    - name: main test
+      run: make test
+  coverage:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-bionic:2020-01-13
+    steps:
+    - uses: actions/checkout@v1
+    - name: coverage
+      run: make coverage
+    - name: coverage_html
+      run: make coverage_html
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        flags: ecl
