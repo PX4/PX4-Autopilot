@@ -1081,7 +1081,15 @@ Mission::set_mission_items()
 		if (has_next_position_item) {
 			/* got next mission item, update setpoint triplet */
 			mission_apply_limitation(mission_item_next_position);
-			mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->next);
+
+			if (pos_sp_triplet->current.valid) {
+				mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->next);
+
+			} else {
+				mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->current);
+				/* next mission item is not available */
+				pos_sp_triplet->next.valid = false;
+			}
 
 		} else {
 			/* next mission item is not available */
