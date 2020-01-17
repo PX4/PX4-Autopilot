@@ -37,6 +37,7 @@
 
 #include "Takeoff.hpp"
 #include <mathlib/mathlib.h>
+#include <px4_defines.h>
 
 void Takeoff::generateInitialRampValue(const float hover_thrust, float velocity_p_gain)
 {
@@ -115,6 +116,10 @@ float Takeoff::updateRamp(const float dt, const float takeoff_desired_vz)
 	}
 
 	if (_takeoff_state == TakeoffState::rampup) {
+		if (!PX4_ISFINITE(takeoff_desired_vz)) {
+			return _takeoff_ramp_vz;
+		}
+
 		if (_takeoff_ramp_time > dt) {
 			_takeoff_ramp_vz += (takeoff_desired_vz - _takeoff_ramp_vz_init) * dt / _takeoff_ramp_time;
 
