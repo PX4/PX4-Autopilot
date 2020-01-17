@@ -1,0 +1,43 @@
+
+name: Build Tests
+
+on: [push]
+
+jobs:
+  Linux-GCC:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-bionic:2020-01-13
+    steps:
+    - uses: actions/checkout@v1
+    - name: main build
+      run: make
+    - name: clean build
+      run: make clean
+    - name: main test
+      run: make test
+  Linux-Clang:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-clang:2019-10-24
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v1
+      - name: main build
+        run: make
+      - name: clean build
+        run: make clean
+      # TODO: This is not running at the moment
+      #- name: main test
+      #  run: make test
+  Mac-OS:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: main build
+        run: make
+      - name: clean build
+        run: make clean
+      # TODO: This is not running at the moment
+      #- name: main test
+      #  run: make test

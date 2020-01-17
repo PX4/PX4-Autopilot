@@ -1,0 +1,33 @@
+name: Firmware Build Test
+
+on: [push]
+
+jobs:
+  Firmware-build:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-bionic:2020-01-13
+    env:
+      GIT_COMMITTER_EMAIL: bot@px4.io
+      GIT_COMMITTER_NAME: PX4BuildBot
+    steps:
+    - name: Checkout Firmware master
+      uses: actions/checkout@v1
+      with:
+        repository: PX4/Firmware
+        ref: master
+        submodules: recurvise
+    - run: git submodule update --init --recursive
+      working-directory: ../Firmware
+    - name: Configure Firmware to include current ECL version
+      working-directory: ../Firmware/src/lib/ecl
+      run: git checkout ${{ github.sha }}
+    - name: Add and commit new ECL version
+      run: |
+        git config --global user.email "${GIT_COMMITTER_EMAIL}"
+        git config --global user.name "${GIT_COMMITTER_NAME}"
+        git add src/lib/ecl
+        git commit -m "Update ECL"
+      working-directory: ../Firmware
+    - name: Build Firmware
+      working-directory: ../Firmware
+      run: make
