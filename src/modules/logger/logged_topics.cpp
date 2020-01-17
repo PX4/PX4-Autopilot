@@ -230,10 +230,11 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 			continue;
 		}
 
-		// read line with format: <topic_name>[, <interval>]
+		// read line with format: <topic_name>[ <interval>[ <instance>]]
 		char topic_name[80];
 		uint32_t interval_ms = 0;
-		int nfields = sscanf(line, "%s %u", topic_name, &interval_ms);
+		uint32_t instance = 0;
+		int nfields = sscanf(line, "%s %u %u", topic_name, &interval_ms, &instance);
 
 		if (nfields > 0) {
 			int name_len = strlen(topic_name);
@@ -243,7 +244,8 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 			}
 
 			/* add topic with specified interval_ms */
-			if (add_topic(topic_name, interval_ms)) {
+			if ((nfields > 2 && add_topic(topic_name, interval_ms, instance))
+			    || add_topic_multi(topic_name, interval_ms)) {
 				ntopics++;
 
 			} else {
