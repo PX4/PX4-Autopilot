@@ -222,11 +222,15 @@ public:
 	 */
 	void		reset_cruising_speed();
 
-
 	/**
 	 *  Set triplets to invalid
 	 */
 	void 		reset_triplets();
+
+	/**
+	 *  Set position setpoint to safe defaults
+	 */
+	void		reset_position_setpoint(position_setpoint_s &sp);
 
 	/**
 	 * Get the target throttle
