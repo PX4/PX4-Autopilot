@@ -819,7 +819,12 @@ void Ekf2::Run()
 					PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
 				}
 
-				_ekf.setMagData(magnetometer.timestamp, magnetometer.magnetometer_ga);
+				float magnetometer_ga [3];
+				magnetometer_ga[0] = magnetometer.magnetometer_ga[0] - _param_ekf2_magbias_x.get();
+				magnetometer_ga[1] = magnetometer.magnetometer_ga[1] - _param_ekf2_magbias_y.get();
+				magnetometer_ga[2] = magnetometer.magnetometer_ga[2] - _param_ekf2_magbias_z.get();
+
+				_ekf.setMagData(magnetometer.timestamp, magnetometer_ga);
 				ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
 						(int64_t)ekf2_timestamps.timestamp / 100);
 			}
