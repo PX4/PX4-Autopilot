@@ -70,7 +70,6 @@
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
 #include <px4_platform_common/init.h>
-#include <px4_platform_common/i2c.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
 
@@ -217,7 +216,7 @@ static int configure_switch(void)
 	// ethernet switch enable
 	uint8_t txdata[] = {0x51, 0x00, 0x21, 0x00}; //0x5100, 0x2100 MSB to LSB here.
 
-	struct px4_i2c_msg_t msgv;
+	struct i2c_msg_s msgv;
 
 	msgv.frequency = 100000;
 	msgv.addr = 0x5F;

@@ -264,6 +264,7 @@ WorkQueueManagerRun(int, char **)
 			}
 
 #ifndef __PX4_QURT
+
 			// schedule policy FIFO
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -318,7 +319,7 @@ WorkQueueManagerStart()
 
 		int task_id = px4_task_spawn_cmd("wq:manager",
 						 SCHED_DEFAULT,
-						 PX4_WQ_HP_BASE,
+						 SCHED_PRIORITY_MAX,
 						 1280,
 						 (px4_main_t)&WorkQueueManagerRun,
 						 nullptr);

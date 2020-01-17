@@ -325,7 +325,6 @@ private:
 		param_t throttle_damp;
 		param_t integrator_gain;
 		param_t vertical_accel_limit;
-		param_t height_comp_filter_omega;
 		param_t speed_comp_filter_omega;
 		param_t roll_throttle_compensation;
 		param_t speed_weight;

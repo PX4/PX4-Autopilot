@@ -47,7 +47,9 @@
 #include <drivers/drv_tone_alarm.h>
 #include <ecl/geo/geo.h>
 #include <systemlib/px4_macros.h>
+
 #include <math.h>
+#include <poll.h>
 
 #ifdef CONFIG_NET
 #include <net/if.h>
@@ -1264,10 +1266,9 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	q_body_to_local.copyTo(odometry.q);
 
 	// TODO:
-	// - add a MAV_FRAME_*_OTHER to the Mavlink MAV_FRAME enum IOT define
-	// a frame of reference which is not aligned with NED or ENU
-	// - add usage on the estimator side
-	odometry.local_frame = odometry.LOCAL_FRAME_NED;
+	// add usage of this information on the estimator side
+	// The heading of the local frame is not aligned with north
+	odometry.local_frame = odometry.LOCAL_FRAME_FRD;
 
 	// pose_covariance
 	static constexpr size_t POS_URT_SIZE = sizeof(odometry.pose_covariance) / sizeof(odometry.pose_covariance[0]);
@@ -1279,7 +1280,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	static_assert(VEL_URT_SIZE == (sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0])),
 		      "Odometry Velocity Covariance matrix URT array size mismatch");
 
-	// create a method to simplify covariance copy
+	// TODO: create a method to simplify covariance copy
 	for (size_t i = 0; i < POS_URT_SIZE; i++) {
 		odometry.pose_covariance[i] = odom.pose_covariance[i];
 	}
@@ -1295,7 +1296,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		 * Angular velocities are already in the right body frame  */
 		const matrix::Dcmf R_body_to_local = matrix::Dcmf(q_body_to_local);
 
-		/* the linear velocities needs to be transformed to the local NED frame */
+		/* the linear velocities needs to be transformed to the local frame FRD*/
 		matrix::Vector3<float> linvel_local(R_body_to_local * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 
 		odometry.vx = linvel_local(0);
@@ -1306,10 +1307,24 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odometry.pitchspeed = odom.pitchspeed;
 		odometry.yawspeed = odom.yawspeed;
 
-		//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
+		/* the linear velocity's covariance needs to be transformed to the local frame FRD*/
+		matrix::Matrix3f lin_vel_cov_body;
+		lin_vel_cov_body(0, 0) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VX_VARIANCE];
+		lin_vel_cov_body(0, 1) = lin_vel_cov_body(1, 0) = odom.velocity_covariance[1];
+		lin_vel_cov_body(0, 2) = lin_vel_cov_body(2, 0) = odom.velocity_covariance[2];
+		lin_vel_cov_body(1, 1) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VY_VARIANCE];
+		lin_vel_cov_body(1, 2) = lin_vel_cov_body(2, 1) = odom.velocity_covariance[7];
+		lin_vel_cov_body(2, 2) = odom.velocity_covariance[odometry.COVARIANCE_MATRIX_VZ_VARIANCE];
+		matrix::Matrix3f lin_vel_cov_local = R_body_to_local * lin_vel_cov_body * R_body_to_local.transpose();
+
+		/* Only the linear velocity variance elements are used */
 		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-			odometry.velocity_covariance[i] = odom.velocity_covariance[i];
+			odometry.velocity_covariance[i] = NAN;
 		}
+
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VX_VARIANCE] = lin_vel_cov_local(0, 0);
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VY_VARIANCE] = lin_vel_cov_local(1, 1);
+		odometry.velocity_covariance[odometry.COVARIANCE_MATRIX_VZ_VARIANCE] = lin_vel_cov_local(2, 2);
 
 	} else {
 		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
@@ -2284,63 +2299,76 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 	mavlink_utm_global_position_t utm_pos;
 	mavlink_msg_utm_global_position_decode(msg, &utm_pos);
 
-	// Convert cm/s to m/s
-	float vx = utm_pos.vx / 100.0f;
-	float vy = utm_pos.vy / 100.0f;
-	float vz = utm_pos.vz / 100.0f;
+	px4_guid_t px4_guid;
+#ifndef BOARD_HAS_NO_UUID
+	board_get_px4_guid(px4_guid);
+#else
+	// TODO Fill ID with something reasonable
+	memset(&px4_guid[0], 0, sizeof(px4_guid));
+#endif /* BOARD_HAS_NO_UUID */
 
-	transponder_report_s t{};
-	t.timestamp = hrt_absolute_time();
-	// TODO: ID
-	t.lat = utm_pos.lat * 1e-7;
-	t.lon = utm_pos.lon * 1e-7;
-	t.altitude = utm_pos.alt / 1000.0f;
-	t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
-	// UTM_GLOBAL_POSIION uses NED (north, east, down) coordinates for velocity, in cm / s.
-	t.heading = atan2f(vy, vx);
-	t.hor_velocity = sqrtf(vy * vy + vx * vx);
-	t.ver_velocity = -vz;
-	// TODO: Callsign
-	// For now, set it to all 0s. This is a null-terminated string, so not explicitly giving it a null
-	// terminator could cause problems.
-	memset(&t.callsign[0], 0, sizeof(t.callsign));
-	t.emitter_type = ADSB_EMITTER_TYPE_NO_INFO;  // TODO: Is this correct?
 
-	// The Mavlink docs do not specify what to do if tslc (time since last communication) is out of range of
-	// an 8-bit int, or if this is the first communication.
-	// Here, I assume that if this is the first communication, tslc = 0.
-	// If tslc > 255, then tslc = 255.
-	unsigned long time_passed = (t.timestamp - _last_utm_global_pos_com) / 1000000;
+	//Ignore selfpublished UTM messages
+	if (sizeof(px4_guid) == sizeof(utm_pos.uas_id) && memcmp(px4_guid, utm_pos.uas_id, sizeof(px4_guid_t)) != 0) {
 
-	if (_last_utm_global_pos_com == 0) {
-		time_passed = 0;
+		// Convert cm/s to m/s
+		float vx = utm_pos.vx / 100.0f;
+		float vy = utm_pos.vy / 100.0f;
+		float vz = utm_pos.vz / 100.0f;
 
-	} else if (time_passed > UINT8_MAX) {
-		time_passed = UINT8_MAX;
+		transponder_report_s t{};
+		t.timestamp = hrt_absolute_time();
+		mav_array_memcpy(t.uas_id, utm_pos.uas_id, sizeof(px4_guid_t));
+		t.lat = utm_pos.lat * 1e-7;
+		t.lon = utm_pos.lon * 1e-7;
+		t.altitude = utm_pos.alt / 1000.0f;
+		t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
+		// UTM_GLOBAL_POSIION uses NED (north, east, down) coordinates for velocity, in cm / s.
+		t.heading = atan2f(vy, vx);
+		t.hor_velocity = sqrtf(vy * vy + vx * vx);
+		t.ver_velocity = -vz;
+		// TODO: Callsign
+		// For now, set it to all 0s. This is a null-terminated string, so not explicitly giving it a null
+		// terminator could cause problems.
+		memset(&t.callsign[0], 0, sizeof(t.callsign));
+		t.emitter_type = ADSB_EMITTER_TYPE_UAV;  // TODO: Is this correct?x2?
+
+		// The Mavlink docs do not specify what to do if tslc (time since last communication) is out of range of
+		// an 8-bit int, or if this is the first communication.
+		// Here, I assume that if this is the first communication, tslc = 0.
+		// If tslc > 255, then tslc = 255.
+		unsigned long time_passed = (t.timestamp - _last_utm_global_pos_com) / 1000000;
+
+		if (_last_utm_global_pos_com == 0) {
+			time_passed = 0;
+
+		} else if (time_passed > UINT8_MAX) {
+			time_passed = UINT8_MAX;
+		}
+
+		t.tslc = (uint8_t) time_passed;
+
+		t.flags = 0;
+
+		if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE) {
+			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
+		}
+
+		if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE) {
+			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+		}
+
+		if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_HORIZONTAL_VELO_AVAILABLE) {
+			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
+			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+		}
+
+		// Note: t.flags has deliberately NOT set VALID_CALLSIGN or VALID_SQUAWK, because UTM_GLOBAL_POSITION does not
+		// provide these.
+		_transponder_report_pub.publish(t);
+
+		_last_utm_global_pos_com = t.timestamp;
 	}
-
-	t.tslc = (uint8_t) time_passed;
-
-	t.flags = 0;
-
-	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE) {
-		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
-	}
-
-	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE) {
-		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-	}
-
-	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_HORIZONTAL_VELO_AVAILABLE) {
-		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
-		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
-	}
-
-	// Note: t.flags has deliberately NOT set VALID_CALLSIGN or VALID_SQUAWK, because UTM_GLOBAL_POSITION does not
-	// provide these.
-	_transponder_report_pub.publish(t);
-
-	_last_utm_global_pos_com = t.timestamp;
 }
 
 void

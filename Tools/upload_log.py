@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Upload an ULog file to the logs.px4.io web server.
@@ -16,11 +16,13 @@ import sys
 
 try:
     import requests
-except:
-    print("Failed to import requests.")
-    print("You may need to install it with 'pip install requests'")
+except ImportError as e:
+    print("Failed to import requests: " + e)
     print("")
-    raise
+    print("You may need to install it using:")
+    print("    pip3 install --user requests")
+    print("")
+    sys.exit(1)
 
 
 SERVER = 'https://logs.px4.io'

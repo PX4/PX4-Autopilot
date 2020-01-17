@@ -360,6 +360,15 @@ else
 		set AUX_MODE pwm4
 	fi
 
+
+	# Check if ATS is enabled
+	if param compare FD_EXT_ATS_EN 1
+	then
+		# Clear pins 5 and 6.
+		set FMU_MODE pwm4
+		set AUX_MODE pwm4
+	fi
+
 	if param greater TRIG_MODE 0
 	then
 		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output.

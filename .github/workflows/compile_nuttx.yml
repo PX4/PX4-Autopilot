@@ -5,7 +5,7 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx:2019-10-24
+    container: px4io/px4-dev-nuttx:2020-01-13
     strategy:
       matrix:
         config: [
