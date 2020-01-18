@@ -44,13 +44,12 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_gyro_control.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_gyro_status.h>
 
 class PX4Gyroscope : public cdev::CDev, public ModuleParams
 {
-
 public:
 	PX4Gyroscope(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Gyroscope() override;
@@ -68,7 +67,7 @@ public:
 	void set_temperature(float temperature) { _temperature = temperature; }
 	void set_update_rate(uint16_t rate);
 
-	void update(hrt_abstime timestamp, float x, float y, float z);
+	void update(hrt_abstime timestamp_sample, float x, float y, float z);
 
 	void print_status();
 
@@ -77,9 +76,9 @@ public:
 		uint8_t samples; // number of samples
 		float dt; // in microseconds
 
-		int16_t x[8];
-		int16_t y[8];
-		int16_t z[8];
+		int16_t x[16];
+		int16_t y[16];
+		int16_t z[16];
 	};
 	static_assert(sizeof(FIFOSample::x) == sizeof(sensor_gyro_fifo_s::x), "FIFOSample.x invalid size");
 	static_assert(sizeof(FIFOSample::y) == sizeof(sensor_gyro_fifo_s::y), "FIFOSample.y invalid size");
@@ -91,18 +90,20 @@ private:
 
 	void ConfigureFilter(float cutoff_freq);
 	void ConfigureNotchFilter(float notch_freq, float bandwidth);
+	void PublishStatus();
 	void ResetIntegrator();
 	void UpdateVibrationMetrics(const matrix::Vector3f &delta_angle);
 
-	uORB::PublicationMulti<sensor_gyro_s>			_sensor_pub;		// legacy message
-	uORB::PublicationMulti<sensor_gyro_control_s>		_sensor_control_pub;
-	uORB::PublicationMulti<sensor_gyro_fifo_s>		_sensor_fifo_pub;
-	uORB::PublicationMultiData<sensor_gyro_status_s>	_sensor_status_pub;
+	uORB::PublicationMulti<sensor_gyro_s>            _sensor_pub;
+	uORB::PublicationMulti<sensor_gyro_fifo_s>       _sensor_fifo_pub;
+	uORB::PublicationMulti<sensor_gyro_integrated_s> _sensor_integrated_pub;
+	uORB::PublicationMulti<sensor_gyro_status_s>     _sensor_status_pub;
 
 	math::LowPassFilter2pVector3f _filter{1000, 100};
 	math::NotchFilter<matrix::Vector3f> _notch_filter{};
 
 	hrt_abstime	_control_last_publish{0};
+	hrt_abstime	_status_last_publish{0};
 
 	math::LowPassFilter2pArray _filterArrayX{8000, 100};
 	math::LowPassFilter2pArray _filterArrayY{8000, 100};
@@ -118,9 +119,7 @@ private:
 
 	int			_class_device_instance{-1};
 
-
 	uint32_t		_device_id{0};
-
 	const enum Rotation	_rotation;
 
 	float			_range{math::radians(2000.0f)};
@@ -128,6 +127,8 @@ private:
 	float			_temperature{0.0f};
 
 	uint64_t		_error_count{0};
+
+	uint32_t		_clipping[3] {};
 
 	uint16_t		_sample_rate{1000};
 	uint16_t		_update_rate{1000};
@@ -147,5 +148,4 @@ private:
 		(ParamFloat<px4::params::IMU_GYRO_NF_BW>) _param_imu_gyro_nf_bw,
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
 	)
-
 };

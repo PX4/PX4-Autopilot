@@ -256,12 +256,11 @@ rtps:
     id: 112
   - msg: vehicle_acceleration
     id: 113
-  - msg: sensor_gyro_control
-    id: 114
   - msg: airspeed_validated
     id: 115
   - msg: onboard_computer_status
     id: 116
+    receive: true
   - msg: cellular_status
     id: 117
   - msg: sensor_accel_fifo
@@ -272,6 +271,10 @@ rtps:
     id: 120
   - msg: sensor_gyro_status
     id: 121
+  - msg: sensor_accel_integrated
+    id: 122
+  - msg: sensor_gyro_integrated
+    id: 123
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150

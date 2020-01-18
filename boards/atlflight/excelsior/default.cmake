@@ -32,9 +32,6 @@ add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
 add_definitions(
 	-D__PX4_POSIX_EXCELSIOR
 	-D__PX4_LINUX
-
-	# For DriverFramework
-	-D__DF_LINUX
 )
 
 px4_add_board(
@@ -71,7 +68,7 @@ px4_add_board(
 		fw_pos_control_l1
 		land_detector
 		landing_target_estimator
-		load_mon
+		#load_mon
 		local_position_estimator
 		logger
 		mavlink
@@ -108,7 +105,7 @@ px4_add_board(
 		sd_bench
 		shutdown
 		#tests # tests and test runner
-		top
+		#top
 		topic_listener
 		tune_control
 		ver

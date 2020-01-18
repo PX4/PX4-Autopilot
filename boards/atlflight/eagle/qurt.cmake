@@ -47,15 +47,10 @@ px4_add_board(
 		barometer/bmp280
 		gps
 		imu/mpu9250
-		magnetometer/hmc5883
+		#magnetometer/hmc5883
 		qshell/qurt
 		snapdragon_pwm_out
 		spektrum_rc
-	DF_DRIVERS
-		isl29501
-		ltc2946
-		mpu9250
-		trone
 	MODULES
 		airspeed_selector
 		attitude_estimator_q

@@ -60,13 +60,14 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/camera_capture.h>
+#include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/collision_report.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/debug_array.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/debug_vect.h>
-#include <uORB/topics/debug_array.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
@@ -75,18 +76,22 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/mount_orientation.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_accel_status.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_gyro_integrated.h>
+#include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -97,21 +102,16 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
-#include <uORB/topics/mount_orientation.h>
-#include <uORB/topics/collision_report.h>
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_mag.h>
-#include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_magnetometer.h>
-#include <uORB/uORB.h>
 
+using matrix::Vector3f;
 using matrix::wrap_2pi;
 
 static uint16_t cm_uint16_from_m_float(float m);
@@ -737,10 +737,12 @@ protected:
 				}
 
 				static constexpr int mavlink_cells_max = (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0]));
+				static constexpr int uorb_cells_max =
+					(sizeof(battery_status.voltage_cell_v) / sizeof(battery_status.voltage_cell_v[0]));
 
 				for (int cell = 0; cell < mavlink_cells_max; cell++) {
-					if ((battery_status.cell_count > 0) && (cell < battery_status.cell_count) && battery_status.connected) {
-						bat_msg.voltages[cell] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
+					if (battery_status.connected && (cell < battery_status.cell_count) && (cell < uorb_cells_max)) {
+						bat_msg.voltages[cell] = battery_status.voltage_cell_v[cell] * 1000.0f;
 
 					} else {
 						bat_msg.voltages[cell] = UINT16_MAX;
@@ -950,8 +952,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 0)),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 0)),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_integrated), 0)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro_integrated), 0)),
 		_raw_mag_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_mag), 0)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0),
@@ -960,9 +962,9 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		sensor_accel_s sensor_accel = {};
-		sensor_gyro_s sensor_gyro = {};
-		sensor_mag_s sensor_mag = {};
+		sensor_accel_integrated_s sensor_accel{};
+		sensor_gyro_integrated_s sensor_gyro{};
+		sensor_mag_s sensor_mag{};
 
 		bool updated = false;
 		updated |= _raw_accel_sub->update(&_raw_accel_time, &sensor_accel);
@@ -970,19 +972,27 @@ protected:
 		updated |= _raw_mag_sub->update(&_raw_mag_time, &sensor_mag);
 
 		if (updated) {
-
-			mavlink_scaled_imu_t msg = {};
+			mavlink_scaled_imu_t msg{};
 
 			msg.time_boot_ms = sensor_accel.timestamp / 1000;
-			msg.xacc = (int16_t)(sensor_accel.x_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.yacc = (int16_t)(sensor_accel.y_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.zacc = (int16_t)(sensor_accel.z_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.xgyro = sensor_gyro.x_raw;					// [milli rad/s]
-			msg.ygyro = sensor_gyro.y_raw;					// [milli rad/s]
-			msg.zgyro = sensor_gyro.z_raw;					// [milli rad/s]
-			msg.xmag = sensor_mag.x_raw;					// [milli tesla]
-			msg.ymag = sensor_mag.y_raw;					// [milli tesla]
-			msg.zmag = sensor_mag.z_raw;					// [milli tesla]
+
+			// Accelerometer in mG
+			const float accel_dt_inv = 1.e6f / (float)sensor_accel.dt;
+			const Vector3f accel = Vector3f{sensor_accel.delta_velocity} * accel_dt_inv * 1000.0f / CONSTANTS_ONE_G;
+
+			// Gyroscope in mrad/s
+			const float gyro_dt_inv = 1.e6f / (float)sensor_gyro.dt;
+			const Vector3f gyro = Vector3f{sensor_gyro.delta_angle} * gyro_dt_inv * 1000.0f;
+
+			msg.xacc = (int16_t)accel(0);
+			msg.yacc = (int16_t)accel(1);
+			msg.zacc = (int16_t)accel(2);
+			msg.xgyro = gyro(0);
+			msg.ygyro = gyro(1);
+			msg.zgyro = gyro(2);
+			msg.xmag = sensor_mag.x * 1000.0f; // Gauss -> MilliGauss
+			msg.ymag = sensor_mag.y * 1000.0f; // Gauss -> MilliGauss
+			msg.zmag = sensor_mag.z * 1000.0f; // Gauss -> MilliGauss
 
 			mavlink_msg_scaled_imu_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1042,8 +1052,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU2(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 1)),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 1)),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_integrated), 1)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro_integrated), 1)),
 		_raw_mag_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_mag), 1)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0),
@@ -1052,9 +1062,9 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		sensor_accel_s sensor_accel = {};
-		sensor_gyro_s sensor_gyro = {};
-		sensor_mag_s sensor_mag = {};
+		sensor_accel_integrated_s sensor_accel{};
+		sensor_gyro_integrated_s sensor_gyro{};
+		sensor_mag_s sensor_mag{};
 
 		bool updated = false;
 		updated |= _raw_accel_sub->update(&_raw_accel_time, &sensor_accel);
@@ -1062,19 +1072,27 @@ protected:
 		updated |= _raw_mag_sub->update(&_raw_mag_time, &sensor_mag);
 
 		if (updated) {
-
-			mavlink_scaled_imu2_t msg = {};
+			mavlink_scaled_imu2_t msg{};
 
 			msg.time_boot_ms = sensor_accel.timestamp / 1000;
-			msg.xacc = (int16_t)(sensor_accel.x_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.yacc = (int16_t)(sensor_accel.y_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.zacc = (int16_t)(sensor_accel.z_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.xgyro = sensor_gyro.x_raw;					// [milli rad/s]
-			msg.ygyro = sensor_gyro.y_raw;					// [milli rad/s]
-			msg.zgyro = sensor_gyro.z_raw;					// [milli rad/s]
-			msg.xmag = sensor_mag.x_raw;					// [milli tesla]
-			msg.ymag = sensor_mag.y_raw;					// [milli tesla]
-			msg.zmag = sensor_mag.z_raw;					// [milli tesla]
+
+			// Accelerometer in mG
+			const float accel_dt_inv = 1.e6f / (float)sensor_accel.dt;
+			const Vector3f accel = Vector3f{sensor_accel.delta_velocity} * accel_dt_inv * 1000.0f / CONSTANTS_ONE_G;
+
+			// Gyroscope in mrad/s
+			const float gyro_dt_inv = 1.e6f / (float)sensor_gyro.dt;
+			const Vector3f gyro = Vector3f{sensor_gyro.delta_angle} * gyro_dt_inv * 1000.0f;
+
+			msg.xacc = (int16_t)accel(0);
+			msg.yacc = (int16_t)accel(1);
+			msg.zacc = (int16_t)accel(2);
+			msg.xgyro = gyro(0);
+			msg.ygyro = gyro(1);
+			msg.zgyro = gyro(2);
+			msg.xmag = sensor_mag.x * 1000.0f; // Gauss -> MilliGauss
+			msg.ymag = sensor_mag.y * 1000.0f; // Gauss -> MilliGauss
+			msg.zmag = sensor_mag.z * 1000.0f; // Gauss -> MilliGauss
 
 			mavlink_msg_scaled_imu2_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1133,8 +1151,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU3(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 2)),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 2)),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_integrated), 2)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro_integrated), 2)),
 		_raw_mag_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_mag), 2)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0),
@@ -1143,9 +1161,9 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		sensor_accel_s sensor_accel = {};
-		sensor_gyro_s sensor_gyro = {};
-		sensor_mag_s sensor_mag = {};
+		sensor_accel_integrated_s sensor_accel{};
+		sensor_gyro_integrated_s sensor_gyro{};
+		sensor_mag_s sensor_mag{};
 
 		bool updated = false;
 		updated |= _raw_accel_sub->update(&_raw_accel_time, &sensor_accel);
@@ -1153,19 +1171,27 @@ protected:
 		updated |= _raw_mag_sub->update(&_raw_mag_time, &sensor_mag);
 
 		if (updated) {
-
-			mavlink_scaled_imu3_t msg = {};
+			mavlink_scaled_imu3_t msg{};
 
 			msg.time_boot_ms = sensor_accel.timestamp / 1000;
-			msg.xacc = (int16_t)(sensor_accel.x_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.yacc = (int16_t)(sensor_accel.y_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.zacc = (int16_t)(sensor_accel.z_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.xgyro = sensor_gyro.x_raw;					// [milli rad/s]
-			msg.ygyro = sensor_gyro.y_raw;					// [milli rad/s]
-			msg.zgyro = sensor_gyro.z_raw;					// [milli rad/s]
-			msg.xmag = sensor_mag.x_raw;					// [milli tesla]
-			msg.ymag = sensor_mag.y_raw;					// [milli tesla]
-			msg.zmag = sensor_mag.z_raw;					// [milli tesla]
+
+			// Accelerometer in mG
+			const float accel_dt_inv = 1.e6f / (float)sensor_accel.dt;
+			const Vector3f accel = Vector3f{sensor_accel.delta_velocity} * accel_dt_inv * 1000.0f / CONSTANTS_ONE_G;
+
+			// Gyroscope in mrad/s
+			const float gyro_dt_inv = 1.e6f / (float)sensor_gyro.dt;
+			const Vector3f gyro = Vector3f{sensor_gyro.delta_angle} * gyro_dt_inv * 1000.0f;
+
+			msg.xacc = (int16_t)accel(0);
+			msg.yacc = (int16_t)accel(1);
+			msg.zacc = (int16_t)accel(2);
+			msg.xgyro = gyro(0);
+			msg.ygyro = gyro(1);
+			msg.zgyro = gyro(2);
+			msg.xmag = sensor_mag.x * 1000.0f; // Gauss -> MilliGauss
+			msg.ymag = sensor_mag.y * 1000.0f; // Gauss -> MilliGauss
+			msg.zmag = sensor_mag.z * 1000.0f; // Gauss -> MilliGauss
 
 			mavlink_msg_scaled_imu3_send_struct(_mavlink->get_channel(), &msg);
 

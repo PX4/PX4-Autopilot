@@ -100,7 +100,6 @@ Author: Siddharth Bharat Purohit
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
-#include <poll.h>
 #include <time.h>
 #include <float.h>
 #include <matrix/math.hpp>

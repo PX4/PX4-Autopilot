@@ -68,14 +68,11 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
-#include <DevMgr.hpp>
-
 #include "parameters.h"
 #include "voted_sensors_update.h"
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 
-using namespace DriverFramework;
 using namespace sensors;
 using namespace time_literals;
 
@@ -128,7 +125,7 @@ private:
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	DevHandle 	_h_adc;				/**< ADC driver handle */
+	int	_adc_fd {-1};				/**< ADC driver handle */
 
 	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
 
@@ -219,16 +216,12 @@ Sensors::adc_init()
 {
 	if (!_hil_enabled) {
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+		_adc_fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
 
-
-
-		DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
-
-		if (!_h_adc.isValid()) {
-			PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
+		if (_adc_fd == -1) {
+			PX4_ERR("no ADC found: %s", ADC0_DEVICE_PATH);
 			return PX4_ERROR;
 		}
-
 
 #endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 	}
@@ -345,7 +338,7 @@ Sensors::adc_poll()
 			/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
 			px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
 			/* read all channels available */
-			int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+			int ret = px4_read(_adc_fd, &buf_adc, sizeof(buf_adc));
 
 			if (ret >= (int)sizeof(buf_adc[0])) {
 

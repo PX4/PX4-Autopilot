@@ -12,7 +12,7 @@
 @###############################################
 @{
 import genmsg.msgs
-import gencpp
+
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 topic = alias if alias else spec.short_name
@@ -132,12 +132,12 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
     if (info.status == MATCHED_MATCHING)
     {
         n_matched++;
-        std::cout << "Subscriber matched" << std::endl;
+        std::cout << " - @(topic) subscriber matched" << std::endl;
     }
     else
     {
         n_matched--;
-        std::cout << "Subscriber unmatched" << std::endl;
+        std::cout << " - @(topic) subscriber unmatched" << std::endl;
     }
 }
 

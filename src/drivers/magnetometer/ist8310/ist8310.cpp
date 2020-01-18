@@ -874,9 +874,6 @@ IST8310::collect()
 	/* post a report to the ring */
 	_reports->force(&new_report);
 
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-
 	/*
 	  periodically check the range register and configuration
 	  registers. With a bad I2C cable it is possible for the

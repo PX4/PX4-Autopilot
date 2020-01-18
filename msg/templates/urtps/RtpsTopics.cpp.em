@@ -13,7 +13,7 @@
 import os
 
 import genmsg.msgs
-import gencpp
+
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
@@ -65,27 +65,31 @@ bool RtpsTopics::init(std::condition_variable* t_send_queue_cv, std::mutex* t_se
 {
 @[if recv_topics]@
     // Initialise subscribers
+    std::cout << "--- Subscribers ---" << std::endl;
 @[for topic in recv_topics]@
     if (_@(topic)_sub.init(@(rtps_message_id(ids, topic)), t_send_queue_cv, t_send_queue_mutex, t_send_queue)) {
-        std::cout << "@(topic) subscriber started" << std::endl;
+        std::cout << "- @(topic) subscriber started" << std::endl;
     } else {
-        std::cout << "ERROR starting @(topic) subscriber" << std::endl;
+        std::cerr << "Failed starting @(topic) subscriber" << std::endl;
         return false;
     }
 
 @[end for]@
+    std::cout << "--------------------" << std::endl << std::endl;
 @[end if]@
 @[if send_topics]@
     // Initialise publishers
+    std::cout << "---- Publishers ----" << std::endl;
 @[for topic in send_topics]@
     if (_@(topic)_pub.init()) {
-        std::cout << "@(topic) publisher started" << std::endl;
+        std::cout << "- @(topic) publisher started" << std::endl;
     } else {
-        std::cout << "ERROR starting @(topic) publisher" << std::endl;
+        std::cerr << "ERROR starting @(topic) publisher" << std::endl;
         return false;
     }
 
 @[end for]@
+    std::cout << "--------------------" << std::endl;
 @[end if]@
     return true;
 }
