@@ -1327,8 +1327,6 @@ void Ekf2::Run()
 					_ekf.set_gnd_effect_flag(false);
 				}
 
-				lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
-
 				_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
 				_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
 
