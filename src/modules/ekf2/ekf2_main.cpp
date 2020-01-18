@@ -1472,6 +1472,10 @@ void Ekf2::Run()
 
 				bias.timestamp = now;
 
+				bias.gyro_device_id = _sensor_selection.gyro_device_id;
+				bias.accel_device_id = _sensor_selection.accel_device_id;
+				bias.mag_device_id = _sensor_selection.mag_device_id;
+
 				// In-run bias estimates
 				_ekf.get_gyro_bias(bias.gyro_bias);
 				_ekf.get_accel_bias(bias.accel_bias);
