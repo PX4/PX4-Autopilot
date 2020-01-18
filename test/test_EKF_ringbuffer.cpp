@@ -155,6 +155,6 @@ TEST_F(EkfRingBufferTest, reallocateBuffer)
 	// WHEN: do another allocate call
 	_buffer->allocate(3);
 	// THEN: its length should update
-	EXPECT_EQ(3,_buffer->get_length());
+	EXPECT_EQ(3, _buffer->get_length());
 
 }
