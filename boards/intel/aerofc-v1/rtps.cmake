@@ -24,7 +24,7 @@ px4_add_board(
 		magnetometer/ist8310
 		#optical_flow/px4flow
 		protocol_splitter
-		pwm_out_sim
+		pwm_output/pwm_out_sim
 		px4fmu
 		rc_input
 		tap_esc

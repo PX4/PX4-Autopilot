@@ -38,7 +38,7 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		optical_flow # all available optical flow drivers
 		pwm_input
-		pwm_out_sim
+		pwm_output/pwm_out_sim
 		px4fmu
 		px4io
 		rc_input

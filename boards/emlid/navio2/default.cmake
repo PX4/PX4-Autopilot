@@ -25,7 +25,7 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		magnetometer/lsm9ds1_mag
-		pwm_out_sim
+		pwm_output/pwm_out_sim
 		rc_input
 		#telemetry # all available telemetry drivers
 	MODULES

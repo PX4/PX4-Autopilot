@@ -45,7 +45,7 @@ px4_add_board(
 		power_monitor/ina226
 		protocol_splitter
 		pwm_input
-		pwm_out_sim
+		pwm_output/pwm_out_sim
 		px4fmu
 		px4io
 		rc_input

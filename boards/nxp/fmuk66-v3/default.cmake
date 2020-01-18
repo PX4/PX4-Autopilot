@@ -43,7 +43,7 @@ px4_add_board(
 		pca9685
 		power_monitor/ina226
 		#protocol_splitter
-		pwm_out_sim
+		pwm_output/pwm_out_sim
 		px4fmu
 		rc_input
 		roboclaw

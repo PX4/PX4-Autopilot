@@ -48,7 +48,7 @@ px4_add_board(
 		#protocol_splitter
 #		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
 #					   all arch dependant code there
-		pwm_out_sim
+		pwm_output/pwm_out_sim
 		px4fmu
 		px4io
 		#roboclaw

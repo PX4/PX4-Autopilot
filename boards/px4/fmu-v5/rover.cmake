@@ -35,7 +35,7 @@ px4_add_board(
 		optical_flow # all available optical flow drivers
 		pca9685
 		pwm_input
-		pwm_out_sim
+		pwm_output/pwm_out_sim
 		px4fmu
 		px4io
 		rc_input

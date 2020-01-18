@@ -49,7 +49,7 @@ px4_add_board(
 		imu/mpu9250
 		magnetometer/hmc5883
 		qshell/qurt
-		snapdragon_pwm_out
+		pwm_output/snapdragon_pwm_out
 		spektrum_rc
 	MODULES
 		airspeed_selector

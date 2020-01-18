@@ -78,4 +78,3 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 };
-
