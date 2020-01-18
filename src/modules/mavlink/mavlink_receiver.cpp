@@ -2088,9 +2088,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		sensor_gyro_s gyro{};
 
 		gyro.timestamp = timestamp;
-		gyro.x_raw = imu.xgyro * 1000.0f;
-		gyro.y_raw = imu.ygyro * 1000.0f;
-		gyro.z_raw = imu.zgyro * 1000.0f;
 		gyro.x = imu.xgyro;
 		gyro.y = imu.ygyro;
 		gyro.z = imu.zgyro;
@@ -2104,9 +2101,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		sensor_accel_s accel{};
 
 		accel.timestamp = timestamp;
-		accel.x_raw = imu.xacc / (CONSTANTS_ONE_G / 1000.0f);
-		accel.y_raw = imu.yacc / (CONSTANTS_ONE_G / 1000.0f);
-		accel.z_raw = imu.zacc / (CONSTANTS_ONE_G / 1000.0f);
 		accel.x = imu.xacc;
 		accel.y = imu.yacc;
 		accel.z = imu.zacc;
@@ -2507,9 +2501,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		sensor_accel_s accel{};
 
 		accel.timestamp = timestamp;
-		accel.x_raw = hil_state.xacc / CONSTANTS_ONE_G * 1e3f;
-		accel.y_raw = hil_state.yacc / CONSTANTS_ONE_G * 1e3f;
-		accel.z_raw = hil_state.zacc / CONSTANTS_ONE_G * 1e3f;
 		accel.x = hil_state.xacc;
 		accel.y = hil_state.yacc;
 		accel.z = hil_state.zacc;
@@ -2523,9 +2514,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		sensor_gyro_s gyro{};
 
 		gyro.timestamp = timestamp;
-		gyro.x_raw = hil_state.rollspeed * 1e3f;
-		gyro.y_raw = hil_state.pitchspeed * 1e3f;
-		gyro.z_raw = hil_state.yawspeed * 1e3f;
 		gyro.x = hil_state.rollspeed;
 		gyro.y = hil_state.pitchspeed;
 		gyro.z = hil_state.yawspeed;

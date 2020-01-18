@@ -56,7 +56,7 @@ class VehicleAcceleration : public ModuleParams, public px4::WorkItem
 public:
 
 	VehicleAcceleration();
-	virtual ~VehicleAcceleration();
+	~VehicleAcceleration() override;
 
 	void	Run() override;
 
@@ -66,10 +66,10 @@ public:
 	void	PrintStatus();
 
 private:
-
-	void	ParametersUpdate(bool force = false);
-	void	SensorBiasUpdate(bool force = false);
-	bool	SensorCorrectionsUpdate(bool force = false);
+	void ParametersUpdate(bool force = false);
+	void SensorBiasUpdate(bool force = false);
+	void SensorCorrectionsUpdate(bool force = false);
+	bool SensorSelectionUpdate(bool force = false);
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
@@ -96,10 +96,11 @@ private:
 
 	matrix::Dcmf				_board_rotation;				/**< rotation matrix for the orientation that the board is mounted */
 
-	matrix::Vector3f			_offset;
-	matrix::Vector3f			_scale;
-	matrix::Vector3f			_bias;
+	matrix::Vector3f			_offset{0.f, 0.f, 0.f};
+	matrix::Vector3f			_scale{1.f, 1.f, 1.f};
+	matrix::Vector3f			_bias{0.f, 0.f, 0.f};
 
-	uint8_t					_selected_sensor{0};
-
+	uint32_t				_selected_sensor_device_id{0};
+	uint8_t					_selected_sensor_sub_index{0};
+	int8_t					_corrections_selected_instance{-1};
 };
