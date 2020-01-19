@@ -155,7 +155,7 @@ void PositionControl::_velocityControl(const float dt)
 	}
 
 	// Saturate thrust setpoint in vertical direction
-	_thr_sp(2) = math::constrain(_thr_sp(2), _lim_thr_min, _lim_thr_max);
+	_thr_sp(2) = math::max(_thr_sp(2), _lim_thr_min);
 
 	// Get allowed horizontal thrust limit based on excess thrust
 	const float thrust_xy_min_squared = _lim_thr_min * _lim_thr_min;
@@ -193,6 +193,7 @@ void PositionControl::_accelerationControl()
 	float collective_thrust = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
 	// Project thrust to planned body attitude
 	collective_thrust /= (Vector3f(0, 0, 1).dot(body_z));
+	collective_thrust = math::min(collective_thrust, _lim_thr_max);
 	_thr_sp = body_z * collective_thrust;
 }
 

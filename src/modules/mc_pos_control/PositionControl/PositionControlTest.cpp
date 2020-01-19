@@ -205,17 +205,40 @@ TEST_F(PositionControlBasicTest, PositionControlMaxVelocity)
 	EXPECT_LE(abs(_output_setpoint.vz), 1.f);
 }
 
-TEST_F(PositionControlBasicTest, PositionControlThrustLimit)
+TEST_F(PositionControlBasicTest, PositionControlMaxThrustLimit)
 {
 	_input_setpoint.x = 10.f;
 	_input_setpoint.y = 10.f;
 	_input_setpoint.z = -10.f;
 
 	runController();
+	Vector3f thrust(_output_setpoint.thrust);
+	EXPECT_FLOAT_EQ(thrust(0), 0.f);
+	EXPECT_FLOAT_EQ(thrust(1), 0.f);
+	EXPECT_FLOAT_EQ(thrust(2), -0.9f);
+
 	EXPECT_EQ(_attitude.thrust_body[0], 0.f);
 	EXPECT_EQ(_attitude.thrust_body[1], 0.f);
-	EXPECT_LT(_attitude.thrust_body[2], -.1f);
-	EXPECT_GE(_attitude.thrust_body[2], -0.9f);
+	EXPECT_FLOAT_EQ(_attitude.thrust_body[2], -0.9f);
+
+	EXPECT_FLOAT_EQ(_attitude.roll_body, 0.f);
+	EXPECT_FLOAT_EQ(_attitude.pitch_body, 0.f);
+}
+
+TEST_F(PositionControlBasicTest, PositionControlMinThrustLimit)
+{
+	_input_setpoint.x = 10.f;
+	_input_setpoint.y = 0.f;
+	_input_setpoint.z = 10.f;
+
+	runController();
+	Vector3f thrust(_output_setpoint.thrust);
+	EXPECT_FLOAT_EQ(thrust.length(), 0.1f);
+
+	EXPECT_FLOAT_EQ(_attitude.thrust_body[2], -0.1f);
+
+	EXPECT_FLOAT_EQ(_attitude.roll_body, 0.f);
+	EXPECT_FLOAT_EQ(_attitude.pitch_body, -1.f);
 }
 
 TEST_F(PositionControlBasicTest, PositionControlFailsafeInput)
