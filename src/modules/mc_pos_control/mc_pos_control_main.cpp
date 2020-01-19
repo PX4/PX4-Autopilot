@@ -45,6 +45,7 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/weather_vane/WeatherVane.hpp>
+#include <lib/hover_thrust_estimator/hover_thrust_estimator.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -183,6 +184,8 @@ private:
 	PositionControl _control; /**< class for core PID position control */
 	PositionControlStates _states{}; /**< structure containing vehicle state information for position control */
 
+	HoverThrustEstimator _hover_thrust_estimator;
+
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
@@ -280,6 +283,7 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_hover_thrust_estimator(this),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time"))
 {
 	if (vtol) {
@@ -590,6 +594,15 @@ MulticopterPositionControl::Run()
 				_control.resetIntegral();
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
+				_hover_thrust_estimator.reset();
+
+			} else if (_takeoff.getTakeoffState() >= TakeoffState::flight) {
+				// Inform the hover thrust estimator about the measured vertical acceleration (positive acceleration is up)
+				if (PX4_ISFINITE(_local_pos.az)) {
+					_hover_thrust_estimator.setAccel(-_local_pos.az);
+				}
+
+				_hover_thrust_estimator.update(_dt);
 			}
 
 			if (_takeoff.getTakeoffState() < TakeoffState::flight && !PX4_ISFINITE(setpoint.thrust[2])) {
@@ -635,6 +648,9 @@ MulticopterPositionControl::Run()
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
 			_flight_tasks.updateVelocityControllerIO(Vector3f(local_pos_sp.vx, local_pos_sp.vy, local_pos_sp.vz),
 					Vector3f(local_pos_sp.thrust));
+
+			// Inform the hover thrust estimator about the current thrust (positive thrust is up)
+			_hover_thrust_estimator.setThrust(-local_pos_sp.thrust[2]);
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
