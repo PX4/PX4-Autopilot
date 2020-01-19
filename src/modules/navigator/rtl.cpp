@@ -177,6 +177,14 @@ void
 RTL::on_activation()
 {
 
+	// Disable camera trigger
+	vehicle_command_s cmd = {};
+	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
+	// Pause trigger
+	cmd.param1 = -1.0f;
+	cmd.param3 = 1.0f;
+	_navigator->publish_vehicle_cmd(&cmd);
+	
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:
