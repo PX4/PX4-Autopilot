@@ -29,9 +29,9 @@ done
 num_vehicles=${NUM_VEHICLES:=3}
 export PX4_SIM_MODEL=${VEHICLE_MODEL:=iris}
 
-if [ "$PX4_SIM_MODEL" != "iris" ] & [ "$PX4_SIM_MODEL" != "plane" ]
+if [ "$PX4_SIM_MODEL" != "iris" ] && [ "$PX4_SIM_MODEL" != "plane" ] && [ "$PX4_SIM_MODEL" != "standard_vtol" ]
 then
-	echo "Currently only iris and plane vehicle model is supported!"
+	echo "Currently only the following vehicle models are supported! [iris, plane, standard_vtol]"
 	exit 1
 fi
 
@@ -69,7 +69,7 @@ while [ $n -lt $num_vehicles ]; do
 	gz sdf -p  /tmp/${PX4_SIM_MODEL}_${n}.urdf > /tmp/${PX4_SIM_MODEL}_${n}.sdf
 	echo "Spawning ${PX4_SIM_MODEL}_${n}"
 
-	gz model --spawn-file=/tmp/${PX4_SIM_MODEL}_${n}.sdf --model-name=${PX4_SIM_MODEL}_${n} -x 0.0 -y $((2*${n})) -z 0.0
+	gz model --spawn-file=/tmp/${PX4_SIM_MODEL}_${n}.sdf --model-name=${PX4_SIM_MODEL}_${n} -x 0.0 -y $((3*${n})) -z 0.0
 
 	popd &>/dev/null
 
