@@ -170,7 +170,6 @@ void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float 
 		report.timestamp_sample = _integrator_timestamp_sample;
 		report.error_count = _error_count;
 		report.device_id = _device_id;
-		report.temperature = _temperature;
 		delta_angle.copyTo(report.delta_angle);
 		report.dt = integral_dt;
 		report.samples = _integrator_samples;
@@ -317,7 +316,6 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			report.timestamp_sample = _integrator_timestamp_sample;
 			report.error_count = _error_count;
 			report.device_id = _device_id;
-			report.temperature = _temperature;
 			delta_angle.copyTo(report.delta_angle);
 			report.dt = integrator_dt_us;
 			report.samples = _integrator_fifo_samples;
