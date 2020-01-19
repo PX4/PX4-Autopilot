@@ -68,6 +68,7 @@ set(msg_files
 	gps_dump.msg
 	gps_inject_data.msg
 	home_position.msg
+	hover_thrust_estimate.msg
 	input_rc.msg
 	iridiumsbd_status.msg
 	irlock_report.msg
