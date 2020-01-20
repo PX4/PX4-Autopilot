@@ -1429,13 +1429,25 @@ Commander::run()
 			const bool previous_safety_off = _safety.safety_off;
 
 			if (_safety_sub.copy(&_safety)) {
+				// disarm if safety is now on and still armed
+				if (armed.armed && _safety.safety_switch_available && !_safety.safety_off) {
 
-				/* disarm if safety is now on and still armed */
-				if (armed.armed && (status.hil_state == vehicle_status_s::HIL_STATE_OFF)
-				    && _safety.safety_switch_available && !_safety.safety_off) {
+					bool safety_disarm_allowed = (status.hil_state == vehicle_status_s::HIL_STATE_OFF);
 
-					if (TRANSITION_CHANGED == arm_disarm(false, true, &mavlink_log_pub, "Safety button")) {
-						_status_changed = true;
+					// if land detector is available then prevent disarming via safety button if not landed
+					if (hrt_elapsed_time(&_land_detector.timestamp) < 1_s) {
+
+						bool maybe_landing = (_land_detector.landed || _land_detector.maybe_landed);
+
+						if (!maybe_landing) {
+							safety_disarm_allowed = false;
+						}
+					}
+
+					if (safety_disarm_allowed) {
+						if (TRANSITION_CHANGED == arm_disarm(false, true, &mavlink_log_pub, "Safety button")) {
+							_status_changed = true;
+						}
 					}
 				}
 
