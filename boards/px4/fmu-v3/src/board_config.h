@@ -496,7 +496,6 @@ __BEGIN_DECLS
 
 extern void stm32_spiinitialize(void);
 
-
 /****************************************************************************************************
  * Name: board_spi_reset board_peripheral_reset
  *
