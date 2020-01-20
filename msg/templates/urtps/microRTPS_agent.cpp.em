@@ -253,7 +253,9 @@ int main(int argc, char** argv)
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 @[end if]@
 
+@[if recv_topics]@
     topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue);
+@[end if]@
 
     running = true;
 @[if recv_topics]@
