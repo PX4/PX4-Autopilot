@@ -1434,10 +1434,7 @@ Commander::run()
 				if (armed.armed && (status.hil_state == vehicle_status_s::HIL_STATE_OFF)
 				    && _safety.safety_switch_available && !_safety.safety_off) {
 
-					if (TRANSITION_CHANGED == arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_STANDBY,
-							&armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
-							&status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp))
-					   ) {
+					if (TRANSITION_CHANGED == arm_disarm(false, true, &mavlink_log_pub, "Safety button")) {
 						_status_changed = true;
 					}
 				}
