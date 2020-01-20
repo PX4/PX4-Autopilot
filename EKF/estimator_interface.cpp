@@ -403,7 +403,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 }
 
 // set attitude and position data derived from an external vision system
-void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message *evdata)
+void EstimatorInterface::setExtVisionData(const extVisionSample& evdata)
 {
 	if (!_initialised || _ev_buffer_fail) {
 		return;
@@ -421,19 +421,13 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_ext_vision) > _min_obs_interval_us) {
-		extVisionSample ev_sample_new;
+	if ((evdata.time_us - _time_last_ext_vision) > _min_obs_interval_us) {
+		_time_last_ext_vision = evdata.time_us;
+
+		extVisionSample ev_sample_new = evdata;
 		// calculate the system time-stamp for the mid point of the integration period
-		ev_sample_new.time_us = time_usec - _params.ev_delay_ms * 1000;
-
-		ev_sample_new.angVar = evdata->angVar;
-		ev_sample_new.posVar = evdata->posVar;
-		ev_sample_new.velVar = evdata->velVar;
-		ev_sample_new.quat = evdata->quat;
-		ev_sample_new.pos = evdata->pos;
-		ev_sample_new.vel = evdata->vel;
-
-		_time_last_ext_vision = time_usec;
+		ev_sample_new.time_us -= _params.ev_delay_ms * 1000;
+		ev_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		_ext_vision_buffer.push(ev_sample_new);
 	}

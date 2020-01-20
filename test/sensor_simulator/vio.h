@@ -50,7 +50,7 @@ public:
 	Vio(std::shared_ptr<Ekf> ekf);
 	~Vio();
 
-	void setData(const ext_vision_message& vio_data);
+	void setData(const extVisionSample& vio_data);
 	void setVelocityVariance(const Vector3f& velVar);
 	void setPositionVariance(const Vector3f& posVar);
 	void setAngularVariance(float angVar);
@@ -58,10 +58,10 @@ public:
 	void setPosition(const Vector3f& pos);
 	void setOrientation(const Quatf& quat);
 
-	ext_vision_message dataAtRest();
+	extVisionSample dataAtRest();
 
 private:
-	ext_vision_message _vio_data;
+	extVisionSample _vio_data;
 
 	void send(uint64_t time) override;
 

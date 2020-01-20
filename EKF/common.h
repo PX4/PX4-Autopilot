@@ -80,15 +80,6 @@ struct flow_message {
 	uint32_t dt;		///< integration time of flow samples (microseconds)
 };
 
-struct ext_vision_message {
-	Vector3f pos;	///< XYZ position in external vision's local reference frame (m) - Z must be aligned with down axis
-	Vector3f vel;	///< XYZ velocity in external vision's local reference frame (m/sec) - Z must be aligned with down axis
-	Quatf quat;		///< quaternion defining rotation from body to earth frame
-	Vector3f posVar;	///< XYZ position variances (m**2)
-	Vector3f velVar;	///< XYZ velocity variances ((m/sec)**2)
-	float angVar;		///< angular heading variance (rad**2)
-};
-
 struct outputSample {
 	Quatf  quat_nominal;	///< nominal quaternion describing vehicle attitude
 	Vector3f    vel;	///< NED velocity estimate in earth frame (m/sec)
