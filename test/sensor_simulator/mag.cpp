@@ -15,9 +15,7 @@ Mag::~Mag()
 
 void Mag::send(uint64_t time)
 {
-	magSample mag_sample;
-	mag_sample.mag = _mag_data;
-	mag_sample.time_us = time;
+	const magSample mag_sample {_mag_data, time};
 	_ekf->setMagData(mag_sample);
 }
 
