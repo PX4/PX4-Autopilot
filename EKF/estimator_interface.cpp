@@ -291,7 +291,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 	}
 }
 
-void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed, float eas2tas)
+void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 {
 	if (!_initialised || _airspeed_buffer_fail) {
 		return;
@@ -309,13 +309,13 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_airspeed) > _min_obs_interval_us) {
-		airspeedSample airspeed_sample_new;
-		airspeed_sample_new.true_airspeed = true_airspeed;
-		airspeed_sample_new.eas2tas = eas2tas;
-		airspeed_sample_new.time_us = time_usec - _params.airspeed_delay_ms * 1000;
+	if ((airspeed_sample.time_us - _time_last_airspeed) > _min_obs_interval_us) {
+		_time_last_airspeed = airspeed_sample.time_us;
+
+		airspeedSample airspeed_sample_new = airspeed_sample;
+
+		airspeed_sample_new.time_us -= _params.airspeed_delay_ms * 1000;
 		airspeed_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
-		_time_last_airspeed = time_usec;
 
 		_airspeed_buffer.push(airspeed_sample_new);
 	}

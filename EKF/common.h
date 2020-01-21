@@ -140,7 +140,7 @@ struct rangeSample {
 
 struct airspeedSample {
 	float       true_airspeed;	///< true airspeed measurement (m/sec)
-	float 		eas2tas;	///< equivalent to true airspeed factor
+	float       eas2tas;		///< equivalent to true airspeed factor
 	uint64_t    time_us;		///< timestamp of the measurement (uSec)
 };
 
