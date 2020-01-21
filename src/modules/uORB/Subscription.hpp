@@ -137,6 +137,7 @@ public:
 
 	uint8_t		get_instance() const { return _instance; }
 	orb_id_t	get_topic() const { return get_orb_meta(_orb_id); }
+	ORB_PRIO	get_priority() { return advertised() ? _node->get_priority() : ORB_PRIO_UNINITIALIZED; }
 
 protected:
 

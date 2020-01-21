@@ -142,7 +142,7 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertise
 				if (existing_node != nullptr &&
 				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
 					if (is_advertiser) {
-						existing_node->set_priority(priority);
+						existing_node->set_priority((ORB_PRIO)priority);
 						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
 						 * could get the same instance).
 						 */

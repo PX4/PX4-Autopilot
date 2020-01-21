@@ -911,7 +911,7 @@ void Ekf2::Run()
 
 			if (_airdata_sub.copy(&airdata)) {
 				_ekf.set_air_density(airdata.rho);
-				const baroSample baro_sample {airdata.baro_alt_meter, airdata.timestamp};
+				const baroSample baro_sample {airdata.baro_alt_meter, airdata.timestamp_sample};
 				_ekf.setBaroData(baro_sample);
 				ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
 						(int64_t)ekf2_timestamps.timestamp / 100);
