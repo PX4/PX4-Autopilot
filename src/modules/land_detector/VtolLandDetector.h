@@ -59,6 +59,7 @@ protected:
 	void _update_topics() override;
 	bool _get_landed_state() override;
 	bool _get_maybe_landed_state() override;
+	bool _get_freefall_state() override;
 
 private:
 
