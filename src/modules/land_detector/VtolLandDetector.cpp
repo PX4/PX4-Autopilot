@@ -49,7 +49,7 @@ namespace land_detector
 void VtolLandDetector::_update_topics()
 {
 	MulticopterLandDetector::_update_topics();
-	_airspeed_sub.update(&_airspeed);
+	_airspeed_validated_sub.update(&_airspeed_validated);
 	_vehicle_status_sub.update(&_vehicle_status);
 }
 
@@ -74,10 +74,9 @@ bool VtolLandDetector::_get_landed_state()
 	bool landed = MulticopterLandDetector::_get_landed_state();
 
 	// for vtol we additionally consider airspeed
-	if (hrt_elapsed_time(&_airspeed.timestamp) < 1_s && _airspeed.confidence > 0.99f
-	    && PX4_ISFINITE(_airspeed.indicated_airspeed_m_s)) {
+	if (hrt_elapsed_time(&_airspeed_validated.timestamp) < 1_s && PX4_ISFINITE(_airspeed_validated.true_airspeed_m_s)) {
 
-		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.indicated_airspeed_m_s;
+		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed_validated.true_airspeed_m_s;
 
 	} else {
 		// if airspeed does not update, set it to zero and rely on multicopter land detector
