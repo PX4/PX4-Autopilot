@@ -183,7 +183,7 @@ public:
 
 	void setBaroData(const baroSample &baro_sample);
 
-	void setAirspeedData(uint64_t time_usec, float true_airspeed, float eas2tas);
+	void setAirspeedData(const airspeedSample &airspeed_sample);
 
 	void setRangeData(uint64_t time_usec, float data, int8_t quality);
 

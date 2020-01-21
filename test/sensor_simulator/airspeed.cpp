@@ -17,8 +17,11 @@ void Airspeed::send(uint64_t time)
 {
 	if(_true_airspeed_data > FLT_EPSILON && _indicated_airspeed_data > FLT_EPSILON)
 	{
-		float eas2tas = _true_airspeed_data / _indicated_airspeed_data;
-		_ekf->setAirspeedData(time, _true_airspeed_data, eas2tas);
+		airspeedSample airspeed_sample;
+		airspeed_sample.time_us = time;
+		airspeed_sample.eas2tas = _true_airspeed_data / _indicated_airspeed_data;
+		airspeed_sample.true_airspeed = _true_airspeed_data;
+		_ekf->setAirspeedData(airspeed_sample);
 	}
 }
 
