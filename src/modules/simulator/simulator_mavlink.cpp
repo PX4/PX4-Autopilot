@@ -654,7 +654,8 @@ void Simulator::send()
 			}
 
 			if (fds_ekf2_timestamps[0].revents & POLLIN) {
-				orb_copy(ORB_ID(ekf2_timestamps), _ekf2_timestamps_sub, nullptr);
+				ekf2_timestamps_s timestamps;
+				orb_copy(ORB_ID(ekf2_timestamps), _ekf2_timestamps_sub, &timestamps);
 				state = State::WaitingForActuatorControls;
 			}
 		}
