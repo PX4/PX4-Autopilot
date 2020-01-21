@@ -452,7 +452,7 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 	}
 }
 
-void EstimatorInterface::setAuxVelData(uint64_t time_usec, const Vector3f &velocity, const Vector3f &variance)
+void EstimatorInterface::setAuxVelData(const auxVelSample& auxvel_sample)
 {
 	if (!_initialised || _auxvel_buffer_fail) {
 		return;
@@ -470,16 +470,13 @@ void EstimatorInterface::setAuxVelData(uint64_t time_usec, const Vector3f &veloc
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_auxvel) > _min_obs_interval_us) {
+	if ((auxvel_sample.time_us - _time_last_auxvel) > _min_obs_interval_us) {
+		_time_last_auxvel = auxvel_sample.time_us;
 
-		auxVelSample auxvel_sample_new;
-		auxvel_sample_new.time_us = time_usec - _params.auxvel_delay_ms * 1000;
+		auxVelSample auxvel_sample_new = auxvel_sample;
 
+		auxvel_sample_new.time_us -= _params.auxvel_delay_ms * 1000;
 		auxvel_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
-		_time_last_auxvel = time_usec;
-
-		auxvel_sample_new.vel = velocity;
-		auxvel_sample_new.velVar = variance;
 
 		_auxvel_buffer.push(auxvel_sample_new);
 	}
