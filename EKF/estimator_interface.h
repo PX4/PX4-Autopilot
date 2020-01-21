@@ -193,7 +193,7 @@ public:
 	// set external vision position and attitude data
 	void setExtVisionData(uint64_t time_usec, ext_vision_message *evdata);
 
-	void setAuxVelData(uint64_t time_usec, const Vector3f &vel, const Vector3f &variance);
+	void setAuxVelData(const auxVelSample& auxvel_sample);
 
 	// return a address to the parameters struct
 	// in order to give access to the application
