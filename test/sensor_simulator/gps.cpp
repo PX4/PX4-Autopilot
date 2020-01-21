@@ -16,7 +16,7 @@ Gps::~Gps()
 void Gps::send(uint64_t time)
 {
 	_gps_data.time_usec = time;
-	_ekf->setGpsData(time, _gps_data);
+	_ekf->setGpsData(_gps_data);
 }
 
 void Gps::setData(const gps_message& gps)
@@ -41,9 +41,7 @@ void Gps::setLongitude(int32_t lon)
 
 void Gps::setVelocity(const Vector3f& vel)
 {
-	_gps_data.vel_ned[0] = vel(0);
-	_gps_data.vel_ned[1] = vel(1);
-	_gps_data.vel_ned[2] = vel(2);
+	_gps_data.vel_ned = vel;
 }
 
 void Gps::stepHeightByMeters(float hgt_change)
@@ -79,9 +77,7 @@ gps_message Gps::getDefaultGpsData()
 	gps_data.epv = 0.8f;
 	gps_data.sacc = 0.2f;
 	gps_data.vel_m_s = 0.0;
-	gps_data.vel_ned[0] = 0.0f;
-	gps_data.vel_ned[1] = 0.0f;
-	gps_data.vel_ned[2] = 0.0f;
+	gps_data.vel_ned.setZero();
 	gps_data.vel_ned_valid = 1;
 	gps_data.nsats = 16;
 	gps_data.pdop = 0.0f;

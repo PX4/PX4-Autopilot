@@ -182,7 +182,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 	}
 }
 
-void EstimatorInterface::setGpsData(uint64_t time_usec, const gps_message &gps)
+void EstimatorInterface::setGpsData(const gps_message &gps)
 {
 	if (!_initialised || _gps_buffer_fail) {
 		return;
@@ -202,15 +202,17 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, const gps_message &gps)
 	// limit data rate to prevent data being lost
 	bool need_gps = (_params.fusion_mode & MASK_USE_GPS) || (_params.vdist_sensor_type == VDIST_SENSOR_GPS);
 
-	if (((time_usec - _time_last_gps) > _min_obs_interval_us) && need_gps && gps.fix_type > 2) {
+	// TODO: remove checks that are not timing related
+	if (((gps.time_usec - _time_last_gps) > _min_obs_interval_us) && need_gps && gps.fix_type > 2) {
+		_time_last_gps = gps.time_usec;
+
 		gpsSample gps_sample_new;
+
 		gps_sample_new.time_us = gps.time_usec - _params.gps_delay_ms * 1000;
-
 		gps_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
-		_time_last_gps = time_usec;
-
 		gps_sample_new.time_us = math::max(gps_sample_new.time_us, _imu_sample_delayed.time_us);
-		gps_sample_new.vel = Vector3f(gps.vel_ned);
+
+		gps_sample_new.vel = gps.vel_ned;
 
 		_gps_speed_valid = gps.vel_ned_valid;
 		gps_sample_new.sacc = gps.sacc;

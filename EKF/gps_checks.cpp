@@ -175,9 +175,9 @@ bool Ekf::gps_is_good(const gps_message &gps)
 		_gps_check_fail_status.flags.vdrift = (_gps_drift_metrics[1] > _params.req_vdrift);
 
 		// Check the magnitude of the filtered horizontal GPS velocity
-		Vector2f gps_velNE = matrix::constrain(Vector2f(gps.vel_ned[0], gps.vel_ned[1]), // TODO: when vel_ned vector3f use .xy()
-								-10.0f * _params.req_hdrift,
-								 10.0f * _params.req_hdrift);
+		Vector2f gps_velNE = matrix::constrain(Vector2f(gps.vel_ned.xy()),
+							-10.0f * _params.req_hdrift,
+							 10.0f * _params.req_hdrift);
 		_gps_velNE_filt = gps_velNE * filter_coef + _gps_velNE_filt * (1.0f - filter_coef);
 		_gps_drift_metrics[2] = _gps_velNE_filt.norm();
 		_gps_check_fail_status.flags.hspeed = (_gps_drift_metrics[2] > _params.req_hdrift);
@@ -204,7 +204,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 	// Check  the filtered difference between GPS and EKF vertical velocity
 	float vz_diff_limit = 10.0f * _params.req_vdrift;
-	float vertVel = fminf(fmaxf((gps.vel_ned[2] - _state.vel(2)), -vz_diff_limit), vz_diff_limit);
+	float vertVel = fminf(fmaxf((gps.vel_ned(2) - _state.vel(2)), -vz_diff_limit), vz_diff_limit);
 	_gps_velD_diff_filt = vertVel * filter_coef + _gps_velD_diff_filt * (1.0f - filter_coef);
 	_gps_check_fail_status.flags.vspeed = (fabsf(_gps_velD_diff_filt) > _params.req_vdrift);
 
