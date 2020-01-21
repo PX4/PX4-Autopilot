@@ -275,6 +275,8 @@ rtps:
     id: 122
   - msg: sensor_gyro_integrated
     id: 123
+  - msg: vehicle_imu
+    id: 124
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
