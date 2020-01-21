@@ -179,7 +179,7 @@ public:
 
 	void setMagData(uint64_t time_usec, float (&data)[3]);
 
-	void setGpsData(uint64_t time_usec, const gps_message &gps);
+	void setGpsData(const gps_message &gps);
 
 	void setBaroData(uint64_t time_usec, float data);
 
