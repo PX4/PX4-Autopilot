@@ -668,13 +668,10 @@ Navigator::run()
 		    !((_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)
 		      || (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) {
 
+			reset_triplets();
 			_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 			_pos_sp_triplet.current.valid = true;
 			_pos_sp_triplet.current.timestamp = hrt_absolute_time();
-
-			_pos_sp_triplet.previous.valid = false;
-
-			_pos_sp_triplet.next.valid = false;
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid once */
@@ -837,6 +834,10 @@ Navigator::reset_triplets()
 	_pos_sp_triplet.previous.valid = false;
 	_pos_sp_triplet.next.valid = false;
 	_pos_sp_triplet_updated = true;
+	_pos_sp_triplet.previous.acceptance_radius = get_default_acceptance_radius();
+	_pos_sp_triplet.current.acceptance_radius = get_default_acceptance_radius();
+	_pos_sp_triplet.next.acceptance_radius = get_default_acceptance_radius();
+
 }
 
 float
