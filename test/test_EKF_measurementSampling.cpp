@@ -66,7 +66,8 @@ TEST_F(EkfMeasurementSamplingTest, baroDownSampling)
 			imu_sample.time_us = time;
 			_ekf->setIMUData(imu_sample);
 		}
-		_ekf->setBaroData(time, baro_data);
+		const baroSample baro_sample {baro_data, time};
+		_ekf->setBaroData(baro_sample);
 		baro_data *= -1.0f;
 		time += 1000000 / baro_rate_Hz;
 	}

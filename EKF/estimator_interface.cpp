@@ -245,7 +245,7 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 	}
 }
 
-void EstimatorInterface::setBaroData(uint64_t time_usec, float baro_alt_meter)
+void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 {
 	if (!_initialised || _baro_buffer_fail) {
 		return;
@@ -265,11 +265,12 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float baro_alt_meter)
 	// downsample to highest possible sensor rate
 	// by baro data by taking the average of incoming sample
 	_baro_sample_count++;
-	_baro_alt_sum += baro_alt_meter;
-	_baro_timestamp_sum += time_usec / 1000; // Dividing by 1000 to avoid overflow
+	_baro_alt_sum += baro_sample.hgt;
+	_baro_timestamp_sum += baro_sample.time_us / 1000; // Dividing by 1000 to avoid overflow
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_baro) > _min_obs_interval_us) {
+	if ((baro_sample.time_us - _time_last_baro) > _min_obs_interval_us) {
+		_time_last_baro = baro_sample.time_us;
 
 		const float baro_alt_avg = _baro_alt_sum / (float)_baro_sample_count;
 
@@ -284,7 +285,6 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float baro_alt_meter)
 
 		_baro_buffer.push(baro_sample_new);
 
-		_time_last_baro = time_usec;
 		_baro_sample_count = 0;
 		_baro_alt_sum = 0.0f;
 		_baro_timestamp_sum = 0;
