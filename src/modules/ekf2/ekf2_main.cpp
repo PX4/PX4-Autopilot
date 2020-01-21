@@ -1024,8 +1024,11 @@ void Ekf2::Run()
 				// only set airspeed data if condition for airspeed fusion are met
 				if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
-					const float eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
-					_ekf.setAirspeedData(airspeed.timestamp, airspeed.true_airspeed_m_s, eas2tas);
+					airspeedSample airspeed_sample;
+					airspeed_sample.time_us = airspeed.timestamp;
+					airspeed_sample.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
+					airspeed_sample.true_airspeed = airspeed.true_airspeed_m_s;
+					_ekf.setAirspeedData(airspeed_sample);
 				}
 
 				ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
