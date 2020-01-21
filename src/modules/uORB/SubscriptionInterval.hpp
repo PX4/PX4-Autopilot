@@ -132,6 +132,7 @@ public:
 
 	uint8_t		get_instance() const { return _subscription.get_instance(); }
 	orb_id_t	get_topic() const { return _subscription.get_topic(); }
+	ORB_PRIO	get_priority() { return _subscription.get_priority(); }
 
 	/**
 	 * Set the interval in microseconds
