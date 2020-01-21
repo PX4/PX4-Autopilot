@@ -130,7 +130,7 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 	imu_sample_new.delta_ang = Vector3f(delta_ang);
 	imu_sample_new.delta_vel = Vector3f(delta_vel);
 
-	// convert time from us to secs
+void EstimatorInterface::setMagData(const magSample &mag_sample)
 	imu_sample_new.delta_ang_dt = delta_ang_dt / 1e6f;
 	imu_sample_new.delta_vel_dt = delta_vel_dt / 1e6f;
 	imu_sample_new.time_us = time_usec;
@@ -138,7 +138,6 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 	setIMUData(imu_sample_new);
 }
 
-void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 {
 	if (!_initialised || _mag_buffer_fail) {
 		return;
@@ -158,11 +157,12 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 	// downsample to highest possible sensor rate
 	// by taking the average of incoming sample
 	_mag_sample_count++;
-	_mag_data_sum += Vector3f(data);
-	_mag_timestamp_sum += time_usec / 1000; // Dividing by 1000 to avoid overflow
+	_mag_data_sum += mag_sample.mag;
+	_mag_timestamp_sum += mag_sample.time_us / 1000; // Dividing by 1000 to avoid overflow
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_mag) > _min_obs_interval_us) {
+	if ((mag_sample.time_us - _time_last_mag) > _min_obs_interval_us) {
+		_time_last_mag = mag_sample.time_us;
 
 		magSample mag_sample_new;
 
@@ -175,7 +175,6 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 
 		_mag_buffer.push(mag_sample_new);
 
-		_time_last_mag = time_usec;
 		_mag_sample_count = 0;
 		_mag_data_sum.setZero();
 		_mag_timestamp_sum = 0;
