@@ -15,7 +15,8 @@ Baro::~Baro()
 
 void Baro::send(uint64_t time)
 {
-	_ekf->setBaroData(time,_baro_data);
+	const baroSample baro_sample {_baro_data, time};
+	_ekf->setBaroData(baro_sample);
 }
 
 void Baro::setData(float baro)

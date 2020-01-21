@@ -181,7 +181,7 @@ public:
 
 	void setGpsData(const gps_message &gps);
 
-	void setBaroData(uint64_t time_usec, float data);
+	void setBaroData(const baroSample &baro_sample);
 
 	void setAirspeedData(uint64_t time_usec, float true_airspeed, float eas2tas);
 

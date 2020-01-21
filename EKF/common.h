@@ -128,8 +128,8 @@ struct magSample {
 };
 
 struct baroSample {
-	float       hgt{0.0f};	///< pressure altitude above sea level (m)
-	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
+	float       hgt;	///< pressure altitude above sea level (m)
+	uint64_t    time_us;	///< timestamp of the measurement (uSec)
 };
 
 struct rangeSample {
