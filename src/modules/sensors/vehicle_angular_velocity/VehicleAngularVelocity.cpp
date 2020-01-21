@@ -37,6 +37,7 @@
 
 using namespace matrix;
 using namespace time_literals;
+using math::radians;
 
 VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
@@ -53,11 +54,15 @@ bool VehicleAngularVelocity::Start()
 {
 	// force initial updates
 	ParametersUpdate(true);
-	SensorBiasUpdate(true);
-	SensorCorrectionsUpdate(true);
 
-	// needed to change the active sensor if the primary stops updating
-	return _sensor_selection_sub.registerCallback() && SensorSelectionUpdate(true);
+	// sensor_selection needed to change the active sensor if the primary stops updating
+	if (!_sensor_selection_sub.registerCallback()) {
+		PX4_ERR("sensor_selection callback registration failed");
+		return false;
+	}
+
+	ScheduleNow();
+	return true;
 }
 
 void VehicleAngularVelocity::Stop()
@@ -97,7 +102,7 @@ void VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 		_sensor_correction_sub.copy(&corrections);
 
 		// selected sensor has changed, find updated index
-		if ((_corrections_selected_instance != corrections.selected_gyro_instance) || force) {
+		if ((_corrections_selected_instance < 0) || force) {
 			_corrections_selected_instance = -1;
 
 			// find sensor_corrections index
@@ -122,8 +127,8 @@ void VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 			_scale = Vector3f{corrections.gyro_scale_2};
 			break;
 		default:
-			_offset = Vector3f{0.0f, 0.0f, 0.0f};
-			_scale = Vector3f{1.0f, 1.0f, 1.0f};
+			_offset = Vector3f{0.f, 0.f, 0.f};
+			_scale = Vector3f{1.f, 1.f, 1.f};
 		}
 	}
 }
@@ -154,8 +159,11 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(bool force)
 
 						// clear bias and corrections
 						_bias.zero();
-						_offset = Vector3f{0.0f, 0.0f, 0.0f};
-						_scale = Vector3f{1.0f, 1.0f, 1.0f};
+						_offset = Vector3f{0.f, 0.f, 0.f};
+						_scale = Vector3f{1.f, 1.f, 1.f};
+
+						// force corrections reselection
+						_corrections_selected_instance = -1;
 
 						return true;
 					}
@@ -182,13 +190,13 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 		updateParams();
 
 		// get transformation matrix from sensor/board to body frame
-		const matrix::Dcmf board_rotation = get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
+		const Dcmf board_rotation = get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
 
 		// fine tune the rotation
 		const Dcmf board_rotation_offset(Eulerf(
-				math::radians(_param_sens_board_x_off.get()),
-				math::radians(_param_sens_board_y_off.get()),
-				math::radians(_param_sens_board_z_off.get())));
+				radians(_param_sens_board_x_off.get()),
+				radians(_param_sens_board_y_off.get()),
+				radians(_param_sens_board_z_off.get())));
 
 		_board_rotation = board_rotation_offset * board_rotation;
 	}
@@ -204,28 +212,29 @@ void VehicleAngularVelocity::Run()
 
 	if (_sensor_sub[_selected_sensor_sub_index].updated() || sensor_select_update) {
 		sensor_gyro_s sensor_data;
-		_sensor_sub[_selected_sensor_sub_index].copy(&sensor_data);
 
-		// get the sensor data and correct for thermal errors (apply offsets and scale)
-		const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
+		if (_sensor_sub[_selected_sensor_sub_index].copy(&sensor_data)) {
+			// get the sensor data and correct for thermal errors (apply offsets and scale)
+			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
 
-		// apply offsets and scale
-		Vector3f rates{(val - _offset).emult(_scale)};
+			// apply offsets and scale
+			Vector3f rates{(val - _offset).emult(_scale)};
 
-		// rotate corrected measurements from sensor to body frame
-		rates = _board_rotation * rates;
+			// rotate corrected measurements from sensor to body frame
+			rates = _board_rotation * rates;
 
-		// correct for in-run bias errors
-		rates -= _bias;
+			// correct for in-run bias errors
+			rates -= _bias;
 
-		// publish
-		vehicle_angular_velocity_s out;
+			// publish
+			vehicle_angular_velocity_s out;
 
-		out.timestamp_sample = sensor_data.timestamp_sample;
-		rates.copyTo(out.xyz);
-		out.timestamp = hrt_absolute_time();
+			out.timestamp_sample = sensor_data.timestamp_sample;
+			rates.copyTo(out.xyz);
+			out.timestamp = hrt_absolute_time();
 
-		_vehicle_angular_velocity_pub.publish(out);
+			_vehicle_angular_velocity_pub.publish(out);
+		}
 	}
 }
 

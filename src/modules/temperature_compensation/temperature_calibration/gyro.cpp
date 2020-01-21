@@ -53,7 +53,6 @@ TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_ris
 	}
 
 	_num_sensor_instances = num_gyros;
-
 }
 
 void TemperatureCalibrationGyro::reset_calibration()
@@ -79,7 +78,7 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 		return finished ? 0 : 1;
 	}
 
-	sensor_gyro_s gyro_data;
+	sensor_gyro_s gyro_data{};
 	orb_copy(ORB_ID(sensor_gyro), sensor_sub, &gyro_data);
 
 	if (finished) {
@@ -128,7 +127,7 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 		return 1;
 	}
 
-	//TODO: Detect when temperature has stopped rising for more than TBD seconds
+	// TODO: Detect when temperature has stopped rising for more than TBD seconds
 	if (data.hot_soak_sat == 10 || (data.high_temp - data.low_temp) > _min_temperature_rise) {
 		data.hot_soaked = true;
 	}
@@ -171,7 +170,7 @@ int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int 
 		return 0;
 	}
 
-	double res[3][4] = {};
+	double res[3][4] {};
 	data.P[0].fit(res[0]);
 	PX4_INFO("Result Gyro %d Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1],
 		 (double)res[0][2],
@@ -186,7 +185,7 @@ int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int 
 		 (double)res[2][3]);
 	data.tempcal_complete = true;
 
-	char str[30];
+	char str[30] {};
 	float param = 0.0f;
 	int result = PX4_OK;
 
@@ -207,5 +206,6 @@ int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int 
 	set_parameter("TC_G%d_TMAX", sensor_index, &data.high_temp);
 	set_parameter("TC_G%d_TMIN", sensor_index, &data.low_temp);
 	set_parameter("TC_G%d_TREF", sensor_index, &data.ref_temp);
+
 	return 0;
 }

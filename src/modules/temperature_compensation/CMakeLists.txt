@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,15 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__events
-	MAIN send_event
-	COMPILE_FLAGS
+	MODULE modules__temperature_compensation
+	MAIN temperature_compensation
 	SRCS
-		rc_loss_alarm.cpp
-		send_event.cpp
-		set_leds.cpp
-		status_display.cpp
+		TemperatureCompensationModule.cpp
+		TemperatureCompensation.cpp
+		temperature_calibration/accel.cpp
+		temperature_calibration/baro.cpp
+		temperature_calibration/gyro.cpp
+		temperature_calibration/task.cpp
 	DEPENDS
-		modules__uORB
+		mathlib
 	)

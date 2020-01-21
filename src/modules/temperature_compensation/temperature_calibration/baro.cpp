@@ -49,8 +49,7 @@ TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_ris
 		float max_start_temperature)
 	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
 {
-
-	//init subscriptions
+	// init subscriptions
 	_num_sensor_instances = orb_group_count(ORB_ID(sensor_baro));
 
 	if (_num_sensor_instances > SENSOR_COUNT_MAX) {
@@ -71,7 +70,7 @@ TemperatureCalibrationBaro::~TemperatureCalibrationBaro()
 
 void TemperatureCalibrationBaro::reset_calibration()
 {
-	//nothing to do
+	// nothing to do
 }
 
 int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int sensor_sub)
@@ -133,7 +132,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 		return 1;
 	}
 
-	//TODO: Detect when temperature has stopped rising for more than TBD seconds
+	// TODO: Detect when temperature has stopped rising for more than TBD seconds
 	if (data.hot_soak_sat == 10 || (data.high_temp - data.low_temp) > _min_temperature_rise) {
 		data.hot_soaked = true;
 	}
@@ -144,7 +143,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 			 (double)(data.high_temp - data.low_temp));
 	}
 
-	//update linear fit matrices
+	// update linear fit matrices
 	double relative_temperature = (double)data.sensor_sample_filt[1] - (double)data.ref_temp;
 	data.P[0].update(relative_temperature, (double)data.sensor_sample_filt[0]);
 
@@ -173,7 +172,7 @@ int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int 
 		return 0;
 	}
 
-	double res[POLYFIT_ORDER + 1] = {};
+	double res[POLYFIT_ORDER + 1] {};
 	data.P[0].fit(res);
 	res[POLYFIT_ORDER] =
 		0.0; // normalise the correction to be zero at the reference temperature by setting the X^0 coefficient to zero

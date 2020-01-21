@@ -42,8 +42,6 @@ px4_add_module(
 		voted_sensors_update.cpp
 		sensors.cpp
 		parameters.cpp
-		temperature_compensation.cpp
-
 	DEPENDS
 		airspeed
 		conversion

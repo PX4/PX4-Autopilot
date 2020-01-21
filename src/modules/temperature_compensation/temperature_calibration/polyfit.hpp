@@ -93,15 +93,9 @@ Author: Siddharth Bharat Purohit
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <time.h>
+
 #include <float.h>
+
 #include <matrix/math.hpp>
 
 #define DEBUG 0
