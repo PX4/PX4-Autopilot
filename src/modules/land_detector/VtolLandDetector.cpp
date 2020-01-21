@@ -40,6 +40,7 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <matrix/math.hpp>
 
 #include "VtolLandDetector.h"
 
@@ -92,6 +93,15 @@ bool VtolLandDetector::_get_landed_state()
 	_was_in_air = !landed;
 
 	return landed;
+}
+
+bool VtolLandDetector::_get_freefall_state()
+{
+	bool free_fall_detected =
+		MulticopterLandDetector::_get_freefall_state(); // true if falling or in a parabolic flight (low gravity)
+
+	// only return a positive free fall detected if not in fixed-wing mode
+	return _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING && free_fall_detected;
 }
 
 } // namespace land_detector
