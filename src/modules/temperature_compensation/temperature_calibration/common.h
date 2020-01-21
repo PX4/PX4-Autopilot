@@ -62,7 +62,7 @@ public:
 		: _min_temperature_rise(min_temperature_rise), _min_start_temperature(min_start_temperature),
 		  _max_start_temperature(max_start_temperature) {}
 
-	virtual ~TemperatureCalibrationBase() {}
+	virtual ~TemperatureCalibrationBase() = default;
 
 	/**
 	 * check & update new sensor data.
@@ -97,11 +97,9 @@ protected:
 	float _max_start_temperature; ///< maximum temperature above which the process does not start and an error is declared
 };
 
-
-
 int TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned index, const void *value)
 {
-	char param_str[30];
+	char param_str[30] {};
 	(void)sprintf(param_str, format_str, index);
 	int result = param_set_no_notification(param_find(param_str), value);
 

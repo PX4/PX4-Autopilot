@@ -3,8 +3,6 @@ uint64 timestamp_sample
 
 uint32 device_id          # unique device ID for the sensor that does not change between power cycles
 
-float32 temperature       # temperature in degrees celsius
-
 uint64 error_count
 
 float32[3] delta_velocity # delta velocity in the NED board axis in m/s over the integration time frame (dt)

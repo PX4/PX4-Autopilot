@@ -49,8 +49,7 @@ TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_r
 		float max_start_temperature)
 	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
 {
-
-	//init subscriptions
+	// init subscriptions
 	_num_sensor_instances = orb_group_count(ORB_ID(sensor_accel));
 
 	if (_num_sensor_instances > SENSOR_COUNT_MAX) {

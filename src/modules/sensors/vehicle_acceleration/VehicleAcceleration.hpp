@@ -96,9 +96,9 @@ private:
 
 	matrix::Dcmf				_board_rotation;				/**< rotation matrix for the orientation that the board is mounted */
 
+	matrix::Vector3f			_bias{0.f, 0.f, 0.f};
 	matrix::Vector3f			_offset{0.f, 0.f, 0.f};
 	matrix::Vector3f			_scale{1.f, 1.f, 1.f};
-	matrix::Vector3f			_bias{0.f, 0.f, 0.f};
 
 	uint32_t				_selected_sensor_device_id{0};
 	uint8_t					_selected_sensor_sub_index{0};
