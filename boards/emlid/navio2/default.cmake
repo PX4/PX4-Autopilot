@@ -55,6 +55,7 @@ px4_add_board(
 		sensors
 		sih
 		#simulator
+		temperature_compensation
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
