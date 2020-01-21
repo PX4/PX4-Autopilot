@@ -320,7 +320,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 	}
 }
 
-void EstimatorInterface::setRangeData(uint64_t time_usec, float data, int8_t quality)
+void EstimatorInterface::setRangeData(const rangeSample& range_sample)
 {
 	if (!_initialised || _range_buffer_fail) {
 		return;
@@ -338,12 +338,12 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float data, int8_t qua
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_range) > _min_obs_interval_us) {
+	if ((range_sample.time_us - _time_last_range) > _min_obs_interval_us) {
+		_time_last_range = range_sample.time_us;
+
 		rangeSample range_sample_new;
-		range_sample_new.rng = data;
-		range_sample_new.time_us = time_usec - _params.range_delay_ms * 1000;
-		range_sample_new.quality = quality;
-		_time_last_range = time_usec;
+		range_sample_new.time_us -= _params.range_delay_ms * 1000;
+		range_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		_range_buffer.push(range_sample_new);
 	}

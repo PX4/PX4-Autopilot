@@ -54,8 +54,7 @@ public:
 	flow_message dataAtRest();
 
 private:
-	float _range_data{0.0f};
-	int8_t _range_quality;
+	rangeSample _range_sample {};
 
 	void send(uint64_t time) override;
 
