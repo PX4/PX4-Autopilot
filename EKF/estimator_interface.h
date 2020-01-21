@@ -177,7 +177,7 @@ public:
 	// legacy interface for compatibility (2018-09-14)
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float (&delta_ang)[3], float (&delta_vel)[3]);
 
-	void setMagData(uint64_t time_usec, float (&data)[3]);
+	void setMagData(const magSample &mag_sample);
 
 	void setGpsData(const gps_message &gps);
 
