@@ -946,7 +946,7 @@ void Ekf2::Run()
 
 		if ((_param_ekf2_gps_mask.get() == 0) && gps1_updated) {
 			// When GPS blending is disabled we always use the first receiver instance
-			_ekf.setGpsData(_gps_state[0].time_usec, _gps_state[0]);
+			_ekf.setGpsData(_gps_state[0]);
 
 		} else if ((_param_ekf2_gps_mask.get() > 0) && (gps1_updated || gps2_updated)) {
 			// blend dual receivers if available
@@ -987,7 +987,7 @@ void Ekf2::Run()
 				}
 
 				// write selected GPS to EKF
-				_ekf.setGpsData(_gps_output[_gps_select_index].time_usec, _gps_output[_gps_select_index]);
+				_ekf.setGpsData(_gps_output[_gps_select_index]);
 
 				// log blended solution as a third GPS instance
 				ekf_gps_position_s gps;
@@ -1000,9 +1000,9 @@ void Ekf2::Run()
 				gps.epv = _gps_output[_gps_select_index].epv;
 				gps.s_variance_m_s = _gps_output[_gps_select_index].sacc;
 				gps.vel_m_s = _gps_output[_gps_select_index].vel_m_s;
-				gps.vel_n_m_s = _gps_output[_gps_select_index].vel_ned[0];
-				gps.vel_e_m_s = _gps_output[_gps_select_index].vel_ned[1];
-				gps.vel_d_m_s = _gps_output[_gps_select_index].vel_ned[2];
+				gps.vel_n_m_s = _gps_output[_gps_select_index].vel_ned(0);
+				gps.vel_e_m_s = _gps_output[_gps_select_index].vel_ned(1);
+				gps.vel_d_m_s = _gps_output[_gps_select_index].vel_ned(2);
 				gps.vel_ned_valid = _gps_output[_gps_select_index].vel_ned_valid;
 				gps.satellites_used = _gps_output[_gps_select_index].nsats;
 				gps.heading = _gps_output[_gps_select_index].yaw;
@@ -1704,9 +1704,9 @@ void Ekf2::fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_p
 	msg.epv = data.epv;
 	msg.sacc = data.s_variance_m_s;
 	msg.vel_m_s = data.vel_m_s;
-	msg.vel_ned[0] = data.vel_n_m_s;
-	msg.vel_ned[1] = data.vel_e_m_s;
-	msg.vel_ned[2] = data.vel_d_m_s;
+	msg.vel_ned(0) = data.vel_n_m_s;
+	msg.vel_ned(1) = data.vel_e_m_s;
+	msg.vel_ned(2) = data.vel_d_m_s;
 	msg.vel_ned_valid = data.vel_ned_valid;
 	msg.nsats = data.satellites_used;
 	msg.pdop = sqrtf(data.hdop * data.hdop + data.vdop * data.vdop);
@@ -2055,9 +2055,7 @@ void Ekf2::update_gps_blend_states()
 	_gps_blended_state.epv = FLT_MAX;
 	_gps_blended_state.sacc = FLT_MAX;
 	_gps_blended_state.vel_m_s = 0.0f;
-	_gps_blended_state.vel_ned[0] = 0.0f;
-	_gps_blended_state.vel_ned[1] = 0.0f;
-	_gps_blended_state.vel_ned[2] = 0.0f;
+	_gps_blended_state.vel_ned.setZero();
 	_gps_blended_state.vel_ned_valid = true;
 	_gps_blended_state.nsats = 0;
 	_gps_blended_state.pdop = FLT_MAX;
@@ -2076,9 +2074,7 @@ void Ekf2::update_gps_blend_states()
 
 		// calculate a blended average speed and velocity vector
 		_gps_blended_state.vel_m_s += _gps_state[i].vel_m_s * _blend_weights[i];
-		_gps_blended_state.vel_ned[0] += _gps_state[i].vel_ned[0] * _blend_weights[i];
-		_gps_blended_state.vel_ned[1] += _gps_state[i].vel_ned[1] * _blend_weights[i];
-		_gps_blended_state.vel_ned[2] += _gps_state[i].vel_ned[2] * _blend_weights[i];
+		_gps_blended_state.vel_ned += _gps_state[i].vel_ned * _blend_weights[i];
 
 		// Assume blended error magnitude, DOP and sat count is equal to the best value from contributing receivers
 		// If any receiver contributing has an invalid velocity, then report blended velocity as invalid
@@ -2279,9 +2275,7 @@ void Ekf2::apply_gps_offsets()
 		_gps_output[i].time_usec	= _gps_state[i].time_usec;
 		_gps_output[i].fix_type		= _gps_state[i].fix_type;
 		_gps_output[i].vel_m_s		= _gps_state[i].vel_m_s;
-		_gps_output[i].vel_ned[0]	= _gps_state[i].vel_ned[0];
-		_gps_output[i].vel_ned[1]	= _gps_state[i].vel_ned[1];
-		_gps_output[i].vel_ned[2]	= _gps_state[i].vel_ned[2];
+		_gps_output[i].vel_ned		= _gps_state[i].vel_ned;
 		_gps_output[i].eph		= _gps_state[i].eph;
 		_gps_output[i].epv		= _gps_state[i].epv;
 		_gps_output[i].sacc		= _gps_state[i].sacc;
@@ -2341,9 +2335,7 @@ void Ekf2::calc_gps_blend_output()
 	_gps_output[GPS_BLENDED_INSTANCE].time_usec	= _gps_blended_state.time_usec;
 	_gps_output[GPS_BLENDED_INSTANCE].fix_type	= _gps_blended_state.fix_type;
 	_gps_output[GPS_BLENDED_INSTANCE].vel_m_s	= _gps_blended_state.vel_m_s;
-	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[0]	= _gps_blended_state.vel_ned[0];
-	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[1]	= _gps_blended_state.vel_ned[1];
-	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[2]	= _gps_blended_state.vel_ned[2];
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned	= _gps_blended_state.vel_ned;
 	_gps_output[GPS_BLENDED_INSTANCE].eph		= _gps_blended_state.eph;
 	_gps_output[GPS_BLENDED_INSTANCE].epv		= _gps_blended_state.epv;
 	_gps_output[GPS_BLENDED_INSTANCE].sacc		= _gps_blended_state.sacc;
