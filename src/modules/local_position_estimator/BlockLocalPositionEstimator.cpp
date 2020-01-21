@@ -604,7 +604,6 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
 		_pub_lpos.get().ref_alt = _altOrigin;
 		_pub_lpos.get().dist_bottom = _aglLowPass.getState();
-		_pub_lpos.get().dist_bottom_rate = -xLP(X_vz);
 		// we estimate agl even when we don't have terrain info
 		// if you are in terrain following mode this is important
 		// so that if terrain estimation fails there isn't a

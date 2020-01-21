@@ -66,7 +66,7 @@ bool FixedwingLandDetector::_get_landed_state()
 
 	bool landDetected = false;
 
-	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 500_ms) {
+	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
 
 		// Horizontal velocity complimentary filter.
 		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +

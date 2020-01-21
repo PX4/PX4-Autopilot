@@ -65,7 +65,6 @@ public:
 	void PrintInfo();
 
 private:
-
 	int probe() override;
 
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);

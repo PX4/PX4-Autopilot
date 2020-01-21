@@ -132,12 +132,12 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
     if (info.status == MATCHED_MATCHING)
     {
         n_matched++;
-        std::cout << "Subscriber matched" << std::endl;
+        std::cout << " - @(topic) subscriber matched" << std::endl;
     }
     else
     {
         n_matched--;
-        std::cout << "Subscriber unmatched" << std::endl;
+        std::cout << " - @(topic) subscriber unmatched" << std::endl;
     }
 }
 

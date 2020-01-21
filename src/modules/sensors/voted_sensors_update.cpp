@@ -84,7 +84,6 @@ int VotedSensorsUpdate::init(sensor_combined_s &raw)
 
 	initializeSensors();
 
-	_corrections_changed = true; //make sure to initially publish the corrections topic
 	_selection_changed = true;
 
 	return 0;
@@ -92,9 +91,9 @@ int VotedSensorsUpdate::init(sensor_combined_s &raw)
 
 void VotedSensorsUpdate::initializeSensors()
 {
-	initSensorClass(ORB_ID(sensor_gyro), _gyro, GYRO_COUNT_MAX);
+	initSensorClass(ORB_ID(sensor_gyro_integrated), _gyro, GYRO_COUNT_MAX);
 	initSensorClass(ORB_ID(sensor_mag), _mag, MAG_COUNT_MAX);
-	initSensorClass(ORB_ID(sensor_accel), _accel, ACCEL_COUNT_MAX);
+	initSensorClass(ORB_ID(sensor_accel_integrated), _accel, ACCEL_COUNT_MAX);
 	initSensorClass(ORB_ID(sensor_baro), _baro, BARO_COUNT_MAX);
 }
 
@@ -131,73 +130,6 @@ void VotedSensorsUpdate::parametersUpdate()
 	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX; ++topic_instance) {
 		_mag_rotation[topic_instance] = _board_rotation;
 	}
-
-	/* Load & apply the sensor calibrations.
-	 * IMPORTANT: we assume all sensor drivers are running and published sensor data at this point
-	 */
-
-	/* temperature compensation */
-	_temperature_compensation.parameters_update(_hil_enabled);
-
-	/* gyro */
-	for (uint8_t topic_instance = 0; topic_instance < _gyro.subscription_count; ++topic_instance) {
-
-		uORB::SubscriptionData<sensor_gyro_s> report{ORB_ID(sensor_gyro), topic_instance};
-
-		int temp = _temperature_compensation.set_sensor_id_gyro(report.get().device_id, topic_instance);
-
-		if (temp < 0) {
-			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "gyro", report.get().device_id,
-				topic_instance);
-
-			_corrections.gyro_mapping[topic_instance] = 0;
-
-		} else {
-			_corrections.gyro_mapping[topic_instance] = temp;
-
-		}
-	}
-
-
-	/* accel */
-	for (uint8_t topic_instance = 0; topic_instance < _accel.subscription_count; ++topic_instance) {
-
-		uORB::SubscriptionData<sensor_accel_s> report{ORB_ID(sensor_accel), topic_instance};
-
-		int temp = _temperature_compensation.set_sensor_id_accel(report.get().device_id, topic_instance);
-
-		if (temp < 0) {
-			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "accel", report.get().device_id,
-				topic_instance);
-
-			_corrections.accel_mapping[topic_instance] = 0;
-
-		} else {
-			_corrections.accel_mapping[topic_instance] = temp;
-
-		}
-	}
-
-
-	/* baro */
-	for (uint8_t topic_instance = 0; topic_instance < _baro.subscription_count; ++topic_instance) {
-
-		uORB::SubscriptionData<sensor_baro_s> report{ORB_ID(sensor_baro), topic_instance};
-
-		int temp = _temperature_compensation.set_sensor_id_baro(report.get().device_id, topic_instance);
-
-		if (temp < 0) {
-			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "baro", report.get().device_id,
-				topic_instance);
-
-			_corrections.baro_mapping[topic_instance] = 0;
-
-		} else {
-			_corrections.baro_mapping[topic_instance] = temp;
-
-		}
-	}
-
 
 	/* set offset parameters to new values */
 	bool failed = false;
@@ -565,9 +497,9 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 		orb_check(_accel.subscription[uorb_index], &accel_updated);
 
 		if (accel_updated) {
-			sensor_accel_s accel_report;
+			sensor_accel_integrated_s accel_report;
 
-			int ret = orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
+			int ret = orb_copy(ORB_ID(sensor_accel_integrated), _accel.subscription[uorb_index], &accel_report);
 
 			if (ret != PX4_OK || accel_report.timestamp == 0) {
 				continue; //ignore invalid data
@@ -586,46 +518,22 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 
 			_accel_device_id[uorb_index] = accel_report.device_id;
 
-			Vector3f accel_data;
+			/*
+			 * Correct the raw sensor data for scale factor errors
+			 * and offsets due to temperature variation. It is assumed that any filtering of input
+			 * data required is performed in the sensor driver, preferably before downsampling.
+			*/
 
-			if (accel_report.integral_dt != 0) {
-				/*
-				 * Using data that has been integrated in the driver before downsampling is preferred
-				 * becasue it reduces aliasing errors. Correct the raw sensor data for scale factor errors
-				 * and offsets due to temperature variation. It is assumed that any filtering of input
-				 * data required is performed in the sensor driver, preferably before downsampling.
-				*/
+			// convert the delta velocities to an equivalent acceleration before application of corrections
+			const float dt_inv = 1.e6f / (float)accel_report.dt;
+			Vector3f accel_data = Vector3f{accel_report.delta_velocity} * dt_inv;
 
-				// convert the delta velocities to an equivalent acceleration before application of corrections
-				float dt_inv = 1.e6f / accel_report.integral_dt;
-				accel_data = Vector3f(accel_report.x_integral * dt_inv,
-						      accel_report.y_integral * dt_inv,
-						      accel_report.z_integral * dt_inv);
+			_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.dt;
 
-				_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.integral_dt;
-
-			} else {
-				// using the value instead of the integral (the integral is the prefered choice)
-
-				// Correct each sensor for temperature effects
-				// Filtering and/or downsampling of temperature should be performed in the driver layer
-				accel_data = Vector3f(accel_report.x, accel_report.y, accel_report.z);
-
-				// handle the cse where this is our first output
-				if (_last_accel_timestamp[uorb_index] == 0) {
-					_last_accel_timestamp[uorb_index] = accel_report.timestamp - 1000;
-				}
-
-				// approximate the  delta time using the difference in accel data time stamps
-				_last_sensor_data[uorb_index].accelerometer_integral_dt =
-					(accel_report.timestamp - _last_accel_timestamp[uorb_index]);
-			}
-
-			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, accel_report.temperature,
-					offsets[uorb_index], scales[uorb_index]) == 2) {
-				_corrections_changed = true;
-			}
+			// apply temperature compensation
+			accel_data(0) = (accel_data(0) - offsets[uorb_index][0]) * scales[uorb_index][0]; // X
+			accel_data(1) = (accel_data(1) - offsets[uorb_index][1]) * scales[uorb_index][1]; // Y
+			accel_data(2) = (accel_data(2) - offsets[uorb_index][2]) * scales[uorb_index][2]; // Z
 
 			// rotate corrected measurements from sensor to body frame
 			accel_data = _board_rotation * accel_data;
@@ -651,8 +559,6 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 
 		if (best_index != _accel.last_best_vote) {
 			_accel.last_best_vote = (uint8_t)best_index;
-			_corrections.selected_accel_instance = (uint8_t)best_index;
-			_corrections_changed = true;
 		}
 
 		if (_selection.accel_device_id != _accel_device_id[best_index]) {
@@ -672,9 +578,9 @@ void VotedSensorsUpdate::gyroPoll(struct sensor_combined_s &raw)
 		orb_check(_gyro.subscription[uorb_index], &gyro_updated);
 
 		if (gyro_updated) {
-			sensor_gyro_s gyro_report;
+			sensor_gyro_integrated_s gyro_report;
 
-			int ret = orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
+			int ret = orb_copy(ORB_ID(sensor_gyro_integrated), _gyro.subscription[uorb_index], &gyro_report);
 
 			if (ret != PX4_OK || gyro_report.timestamp == 0) {
 				continue; //ignore invalid data
@@ -693,46 +599,22 @@ void VotedSensorsUpdate::gyroPoll(struct sensor_combined_s &raw)
 
 			_gyro_device_id[uorb_index] = gyro_report.device_id;
 
-			Vector3f gyro_rate;
+			/*
+			 * Correct the raw sensor data for scale factor errors
+			 * and offsets due to temperature variation. It is assumed that any filtering of input
+			 * data required is performed in the sensor driver, preferably before downsampling.
+			*/
 
-			if (gyro_report.integral_dt != 0) {
-				/*
-				 * Using data that has been integrated in the driver before downsampling is preferred
-				 * becasue it reduces aliasing errors. Correct the raw sensor data for scale factor errors
-				 * and offsets due to temperature variation. It is assumed that any filtering of input
-				 * data required is performed in the sensor driver, preferably before downsampling.
-				*/
+			// convert the delta angles to an equivalent angular rate before application of corrections
+			const float dt_inv = 1.e6f / (float)gyro_report.dt;
+			Vector3f gyro_rate = Vector3f{gyro_report.delta_angle} * dt_inv;
 
-				// convert the delta angles to an equivalent angular rate before application of corrections
-				float dt_inv = 1.e6f / gyro_report.integral_dt;
-				gyro_rate = Vector3f(gyro_report.x_integral * dt_inv,
-						     gyro_report.y_integral * dt_inv,
-						     gyro_report.z_integral * dt_inv);
+			_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.dt;
 
-				_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.integral_dt;
-
-			} else {
-				//using the value instead of the integral (the integral is the prefered choice)
-
-				// Correct each sensor for temperature effects
-				// Filtering and/or downsampling of temperature should be performed in the driver layer
-				gyro_rate = Vector3f(gyro_report.x, gyro_report.y, gyro_report.z);
-
-				// handle the case where this is our first output
-				if (_last_sensor_data[uorb_index].timestamp == 0) {
-					_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp - 1000;
-				}
-
-				// approximate the delta time using the difference in gyro data time stamps
-				_last_sensor_data[uorb_index].gyro_integral_dt =
-					(gyro_report.timestamp - _last_sensor_data[uorb_index].timestamp);
-			}
-
-			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, gyro_report.temperature,
-					offsets[uorb_index], scales[uorb_index]) == 2) {
-				_corrections_changed = true;
-			}
+			// apply temperature compensation
+			gyro_rate(0) = (gyro_rate(0) - offsets[uorb_index][0]) * scales[uorb_index][0]; // X
+			gyro_rate(1) = (gyro_rate(1) - offsets[uorb_index][1]) * scales[uorb_index][1]; // Y
+			gyro_rate(2) = (gyro_rate(2) - offsets[uorb_index][2]) * scales[uorb_index][2]; // Z
 
 			// rotate corrected measurements from sensor to body frame
 			gyro_rate = _board_rotation * gyro_rate;
@@ -759,8 +641,6 @@ void VotedSensorsUpdate::gyroPoll(struct sensor_combined_s &raw)
 
 		if (_gyro.last_best_vote != best_index) {
 			_gyro.last_best_vote = (uint8_t)best_index;
-			_corrections.selected_gyro_instance = (uint8_t)best_index;
-			_corrections_changed = true;
 		}
 
 		if (_selection.gyro_device_id != _gyro_device_id[best_index]) {
@@ -857,11 +737,8 @@ void VotedSensorsUpdate::baroPoll(vehicle_air_data_s &airdata)
 			// Convert from millibar to Pa
 			float corrected_pressure = 100.0f * baro_report.pressure;
 
-			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, baro_report.temperature,
-					offsets[uorb_index], scales[uorb_index]) == 2) {
-				_corrections_changed = true;
-			}
+			// apply temperature compensation
+			corrected_pressure = (corrected_pressure - *offsets[uorb_index]) * *scales[uorb_index];
 
 			// First publication with data
 			if (_baro.priority[uorb_index] == 0) {
@@ -893,8 +770,6 @@ void VotedSensorsUpdate::baroPoll(vehicle_air_data_s &airdata)
 
 			if (_baro.last_best_vote != best_index) {
 				_baro.last_best_vote = (uint8_t)best_index;
-				_corrections.selected_baro_instance = (uint8_t)best_index;
-				_corrections_changed = true;
 			}
 
 			if (_selection.baro_device_id != _baro_device_id[best_index]) {
@@ -1044,26 +919,17 @@ void VotedSensorsUpdate::printStatus()
 	_mag.voter.print();
 	PX4_INFO("baro status:");
 	_baro.voter.print();
-
-	_temperature_compensation.print_status();
 }
 
 void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s &airdata,
 				     vehicle_magnetometer_s &magnetometer)
 {
+	_corrections_sub.update(&_corrections);
+
 	accelPoll(raw);
 	gyroPoll(raw);
 	magPoll(magnetometer);
 	baroPoll(airdata);
-
-	// publish sensor corrections if necessary
-	if (_corrections_changed) {
-		_corrections.timestamp = hrt_absolute_time();
-
-		_sensor_correction_pub.publish(_corrections);
-
-		_corrections_changed = false;
-	}
 
 	// publish sensor selection if changed
 	if (_selection_changed) {
