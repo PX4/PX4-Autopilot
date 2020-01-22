@@ -65,14 +65,14 @@ public:
 	void start() override;
 	void stop() override;
 
-	void Run() override;
-
 protected:
 
 	int collect() override;
 	int measure() override;
 
 private:
+
+	void Run() override;
 
 	uORB::Subscription _sub_pwm_input{ORB_ID(pwm_input)};
 

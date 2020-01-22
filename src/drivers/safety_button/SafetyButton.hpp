@@ -55,7 +55,7 @@ class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkI
 {
 public:
 	SafetyButton();
-	virtual ~SafetyButton();
+	~SafetyButton() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -69,11 +69,10 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	void Run() override;
-
 	int Start();
 
 private:
+	void Run() override;
 
 	void CheckButton();
 	void FlashButton();

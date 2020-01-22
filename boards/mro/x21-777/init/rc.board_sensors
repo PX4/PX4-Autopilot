@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# AUAV/mRO x21 specific board sensors init
+# mRo x21-777 specific board sensors init
 #------------------------------------------------------------------------------
 
 adc start
@@ -9,7 +9,6 @@ adc start
 hmc5883 -C -T -X start
 lis3mdl -X start
 ist8310 -C start
-qmc5883 -X start
 
 # Internal SPI bus ICM-20608-G is rotated 90 deg yaw
 mpu6000 -R 2 -T 20608 start
@@ -20,5 +19,9 @@ mpu6000 -R 2 -T 20602 start
 # Internal SPI bus mpu9250 is rotated 90 deg yaw
 mpu9250 -R 2 start
 
-# Internal SPI
-ms5611 -s start
+# Possible external compasses
+ist8310 -C -b 1 start
+ist8310 -C -b 2 start
+hmc5883 -C -T -X start
+qmc5883 -X start
+lis3mdl -X start

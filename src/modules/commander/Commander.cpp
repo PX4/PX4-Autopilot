@@ -81,7 +81,6 @@
 #include <cstring>
 
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/mission.h>
 
 typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
@@ -1192,17 +1191,12 @@ Commander::run()
 {
 	bool sensor_fail_tune_played = false;
 
-	param_t _param_airmode = param_find("MC_AIRMODE");
-	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
+	const param_t param_airmode = param_find("MC_AIRMODE");
+	const param_t param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
 	/* initialize */
-	if (led_init() != OK) {
-		PX4_WARN("LED init failed");
-	}
-
-	if (buzzer_init() != OK) {
-		PX4_WARN("Buzzer init failed");
-	}
+	led_init();
+	buzzer_init();
 
 	{
 		// we need to do an initial publication to make sure uORB allocates the buffer, which cannot happen
@@ -1221,9 +1215,6 @@ Commander::run()
 
 
 	get_circuit_breaker_params();
-
-	/* command ack */
-
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
@@ -1364,13 +1355,13 @@ Commander::run()
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
-			if (_param_airmode != PARAM_INVALID && _param_rc_map_arm_switch != PARAM_INVALID) {
-				param_get(_param_airmode, &airmode);
-				param_get(_param_rc_map_arm_switch, &rc_map_arm_switch);
+			if (param_airmode != PARAM_INVALID && param_rc_map_arm_switch != PARAM_INVALID) {
+				param_get(param_airmode, &airmode);
+				param_get(param_rc_map_arm_switch, &rc_map_arm_switch);
 
 				if (airmode == 2 && rc_map_arm_switch == 0) {
 					airmode = 1; // change to roll/pitch airmode
-					param_set(_param_airmode, &airmode);
+					param_set(param_airmode, &airmode);
 					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch")
 				}
 			}
@@ -3508,7 +3499,7 @@ void Commander::enable_hil()
 void Commander::mission_init()
 {
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	mission_s mission{};
+	mission_s mission;
 
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
@@ -3525,8 +3516,7 @@ void Commander::mission_init()
 			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
 		}
 
-		uORB::Publication<mission_s> mission_pub{ORB_ID(mission)};
-		mission_pub.publish(mission);
+		_mission_pub.publish(mission);
 	}
 }
 

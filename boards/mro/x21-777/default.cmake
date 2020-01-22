@@ -1,11 +1,11 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR auav
-	MODEL x21
+	VENDOR mro
+	MODEL x21-777
 	LABEL default
 	TOOLCHAIN arm-none-eabi
-	ARCHITECTURE cortex-m4
+	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	TESTING
@@ -24,22 +24,19 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		#dshot
 		gps
-		#heater
 		#imu # all available imu drivers
 		imu/mpu6000
 		imu/mpu9250
 		irlock
 		lights/blinkm
 		lights/rgbled
-		#lights/rgbled_ncp5623c
-		#lights/rgbled_pwm
+		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		mkblctrl
 		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
 		#osd
 		pca9685
-		#power_monitor/ina226
+		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
@@ -71,6 +68,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
@@ -82,7 +80,7 @@ px4_add_board(
 	SYSTEMCMDS
 		bl_update
 		config
-		#dmesg
+		dmesg
 		dumpfile
 		esc_calib
 		hardfault_log

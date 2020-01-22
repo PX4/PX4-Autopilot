@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,19 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file auav_led.c
+ * @file led.c
  *
- * PX4FMU LED backend.
+ * LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>
 
 #include <stdbool.h>
 
-#include "stm32.h"
-#include <arch/board/board.h>
-
+#include "chip.h"
+#include "stm32_gpio.h"
 #include "board_config.h"
+
+#include <nuttx/board.h>
+#include <arch/board/board.h>
 
 /*
  * Ideally we'd be able to get these from up_internal.h,

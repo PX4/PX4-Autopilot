@@ -107,13 +107,13 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
-
 	bool init();
 
 	int print_status() override;
 
 private:
+	void Run() override;
+
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
 	void fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data);
 

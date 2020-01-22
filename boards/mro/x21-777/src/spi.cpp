@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file auav_spi.c
+ * @file spi.cpp
  *
  * Board-specific SPI functions.
  */
@@ -41,7 +41,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
+#include <board_config.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -50,16 +50,12 @@
 
 #include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
+#include <systemlib/px4_macros.h>
 
 #include <up_arch.h>
 #include <chip.h>
-#include <stm32.h>
+#include <stm32_gpio.h>
 #include "board_config.h"
-
-
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
 
 /************************************************************************************
  * Name: stm32_spiinitialize
@@ -71,19 +67,18 @@
 
 __EXPORT void stm32_spiinitialize(void)
 {
-#ifdef CONFIG_STM32_SPI1
-
+#ifdef CONFIG_STM32F7_SPI1
 	px4_arch_configgpio(GPIO_SPI_CS_ICM_2060X);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU);
 
 	px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
 	px4_arch_configgpio(GPIO_EXTI_ICM_2060X_DRDY);
-#endif
+#endif /* CONFIG_STM32F7_SPI1 */
 
-#ifdef CONFIG_STM32_SPI2
+#ifdef CONFIG_STM32F7_SPI2
 	px4_arch_configgpio(GPIO_SPI_CS_FRAM);
-#endif
+#endif /* CONFIG_STM32F7_SPI2 */
 
 }
 
@@ -128,8 +123,7 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 	return SPI_STATUS_PRESENT;
 }
 
-
-#ifdef CONFIG_STM32_SPI2
+#ifdef CONFIG_STM32F7_SPI2
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* there can only be one device on this bus, so always select it */
@@ -141,7 +135,7 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 	/* FRAM is always present */
 	return SPI_STATUS_PRESENT;
 }
-#endif
+#endif /* CONFIG_STM32F7_SPI2 */
 
 
 __EXPORT void board_spi_reset(int ms)
@@ -186,7 +180,7 @@ __EXPORT void board_spi_reset(int ms)
 	usleep(100);
 
 	/* reconfigure the SPI pins */
-#ifdef CONFIG_STM32_SPI1
+#ifdef CONFIG_STM32F7_SPI1
 	px4_arch_configgpio(GPIO_SPI_CS_ICM_2060X);
 	px4_arch_configgpio(GPIO_SPI_CS_BARO);
 	px4_arch_configgpio(GPIO_SPI_CS_MPU);
@@ -199,5 +193,5 @@ __EXPORT void board_spi_reset(int ms)
 	// px4_arch_configgpio(GPIO_EXTI_MPU_DRDY);
 	// px4_arch_configgpio(GPIO_EXTI_ICM_2060X_DRDY);
 
-#endif
+#endif /* CONFIG_STM32F7_SPI1 */
 }
