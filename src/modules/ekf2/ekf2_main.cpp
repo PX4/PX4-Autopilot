@@ -307,6 +307,7 @@ private:
 		_param_ekf2_gyr_noise,	///< IMU angular rate noise used for covariance prediction (rad/sec)
 		(ParamExtFloat<px4::params::EKF2_ACC_NOISE>)
 		_param_ekf2_acc_noise,	///< IMU acceleration noise use for covariance prediction (m/sec**2)
+		(ParamExtFloat<px4::params::EKF2_ACC_CLPFACT>) _param_ekf2_acc_clpfact,
 
 		// process noise
 		(ParamExtFloat<px4::params::EKF2_GYR_B_NOISE>)
@@ -548,6 +549,7 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_avel_delay(_params->auxvel_delay_ms),
 	_param_ekf2_gyr_noise(_params->gyro_noise),
 	_param_ekf2_acc_noise(_params->accel_noise),
+	_param_ekf2_acc_clpfact(_params->accel_noise_clipping_factor),
 	_param_ekf2_gyr_b_noise(_params->gyro_bias_p_noise),
 	_param_ekf2_acc_b_noise(_params->accel_bias_p_noise),
 	_param_ekf2_mag_e_noise(_params->mage_p_noise),
@@ -765,6 +767,8 @@ void Ekf2::Run()
 		imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
 		imu_sample_new.delta_vel_dt = imu.dt * 1.e-6f;
 		imu_sample_new.delta_vel = Vector3f{imu.delta_velocity};
+		imu_sample_new.delta_vel_clip_count = imu.clip_count;
+		imu_sample_new.delta_vel_samples = imu.integrated_samples;
 
 		imu_dt = imu.dt;
 
@@ -780,6 +784,8 @@ void Ekf2::Run()
 		imu_sample_new.delta_ang = Vector3f{sensor_combined.gyro_rad} * imu_sample_new.delta_ang_dt;
 		imu_sample_new.delta_vel_dt = sensor_combined.accelerometer_integral_dt * 1.e-6f;
 		imu_sample_new.delta_vel = Vector3f{sensor_combined.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
+		imu_sample_new.delta_vel_clip_count = sensor_combined.accelerometer_clip_count;
+		imu_sample_new.delta_vel_samples = sensor_combined.accelerometer_integral_samples;
 
 		imu_dt = sensor_combined.gyro_integral_dt;
 	}
