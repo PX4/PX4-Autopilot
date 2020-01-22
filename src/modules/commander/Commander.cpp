@@ -1196,13 +1196,8 @@ Commander::run()
 	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
 	/* initialize */
-	if (led_init() != OK) {
-		PX4_WARN("LED init failed");
-	}
-
-	if (buzzer_init() != OK) {
-		PX4_WARN("Buzzer init failed");
-	}
+	led_init();
+	buzzer_init();
 
 	{
 		// we need to do an initial publication to make sure uORB allocates the buffer, which cannot happen
