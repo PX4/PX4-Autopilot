@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# AUAV/mRO x21 specific board sensors init
+# mRo x21 specific board sensors init
 #------------------------------------------------------------------------------
 
 adc start

@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * AUAVX2.1 internal definitions
+ * mRo X2.1 internal definitions
  */
 
 #pragma once
