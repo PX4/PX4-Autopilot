@@ -1,7 +1,7 @@
 
 px4_add_board(
 	PLATFORM nuttx
-	VENDOR auav
+	VENDOR mro
 	MODEL x21
 	LABEL default
 	TOOLCHAIN arm-none-eabi
@@ -71,6 +71,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
