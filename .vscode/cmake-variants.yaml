@@ -71,11 +71,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: modalai_fc-v1_default
-    mro_ctrl-zero-f7_default:
-      short: mro_ctrl-zero-f7_default
+    mro_ctrl-zero-f7_experimental:
+      short: mro_ctrl-zero-f7_experimental
       buildType: MinSizeRel
       settings:
-        CONFIG: mro_ctrl-zero-f7_default
+        CONFIG: mro_ctrl-zero-f7_experimental
     nxp_fmuk66-v3_default:
       short: nxp_fmuk66-v3
       buildType: MinSizeRel

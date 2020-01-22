@@ -38,7 +38,7 @@ px4_add_board(
 	PLATFORM posix
 	VENDOR atlflight
 	MODEL excelsior
-	LABEL default
+	LABEL experimental
 	#TESTING
 	TOOLCHAIN arm-oemllib32-linux-gnueabi
 	DRIVERS

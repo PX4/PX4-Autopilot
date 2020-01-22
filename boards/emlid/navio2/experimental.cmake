@@ -1,21 +1,14 @@
 
 px4_add_board(
-	VENDOR aerotenna
-	MODEL ocpoc
-	LABEL default
+	VENDOR emlid
+	MODEL navio2
+	LABEL experimental
 	PLATFORM posix
-	ARCHITECTURE cortex-a9
+	ARCHITECTURE cortex-a53
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
-	SERIAL_PORTS
-		GPS1:/dev/ttyS3  # GPS/Compass #1           (OcPoC Port 6)
-		GPS2:/dev/ttyS7  # GPS/Compass #2           (OcPoC Port 7)
-		GPS3:/dev/ttyS1  # GPS/Compass #3           (OcPoC Port 9)
-		TEL1:/dev/ttyPS1 # Radio Telemetry          (OcPoC Port 4)
-		TEL2:/dev/ttyS6  # uLanding Radar Altimeter (OcPoC Port 8)
-		TEL3:/dev/ttyS2  #                          (OcPoC Port 2)
-		TEL4:/dev/ttyS0  # uSharp-Patch             (OcPoC Port 5)
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		batt_smbus
@@ -26,10 +19,11 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/mpu9250
-		lights/rgbled
+		imu/st/lsm9ds1
 		linux_pwm_out
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
+		magnetometer/lsm9ds1_mag
 		pwm_out_sim
 		rc_input
 		#telemetry # all available telemetry drivers
@@ -58,12 +52,13 @@ px4_add_board(
 		rc_update
 		rover_pos_control
 		sensors
-		temperature_compensation
 		sih
 		#simulator
+		temperature_compensation
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
+		dyn
 		esc_calib
 		led_control
 		mixer
@@ -82,6 +77,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		bottle_drop # OBC challenge
+		dyn_hello # dynamically loading modules example
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
@@ -89,4 +85,5 @@ px4_add_board(
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
+		uuv_example_app
 	)

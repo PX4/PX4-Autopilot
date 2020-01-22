@@ -38,7 +38,7 @@ px4_add_board(
 	PLATFORM posix
 	VENDOR atlflight
 	MODEL eagle
-	LABEL default
+	LABEL experimental
 	#TESTING
 	TOOLCHAIN arm-linux-gnueabihf
 	DRIVERS

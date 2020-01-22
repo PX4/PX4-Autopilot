@@ -1,59 +1,38 @@
 
 px4_add_board(
-	PLATFORM nuttx
-	VENDOR mro
-	MODEL ctrl-zero-f7
-	LABEL default
-	TOOLCHAIN arm-none-eabi
-	ARCHITECTURE cortex-m7
-	ROMFSROOT px4fmu_common
+	VENDOR aerotenna
+	MODEL ocpoc
+	LABEL experimental
+	PLATFORM posix
+	ARCHITECTURE cortex-a9
+	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
-	UAVCAN_INTERFACES 1
 	SERIAL_PORTS
-		TEL1:/dev/ttyS0
-		TEL2:/dev/ttyS1
-		GPS1:/dev/ttyS2
-		#RC:/dev/ttyS3
-		#CONSOLE:/dev/ttyS4
-		#FRSKY:/dev/ttyS5
+		GPS1:/dev/ttyS3  # GPS/Compass #1           (OcPoC Port 6)
+		GPS2:/dev/ttyS7  # GPS/Compass #2           (OcPoC Port 7)
+		GPS3:/dev/ttyS1  # GPS/Compass #3           (OcPoC Port 9)
+		TEL1:/dev/ttyPS1 # Radio Telemetry          (OcPoC Port 4)
+		TEL2:/dev/ttyS6  # uLanding Radar Altimeter (OcPoC Port 8)
+		TEL3:/dev/ttyS2  #                          (OcPoC Port 2)
+		TEL4:/dev/ttyS0  # uSharp-Patch             (OcPoC Port 5)
 	DRIVERS
-		adc
 		#barometer # all available barometer drivers
-		barometer/dps310
+		barometer/ms5611
 		batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		#dshot
 		gps
-		#heater
 		#imu # all available imu drivers
-		imu/bmi088
-		imu/mpu6000
-		imu/icm20948
-		irlock
-		lights/blinkm
+		imu/mpu9250
 		lights/rgbled
-		lights/rgbled_ncp5623c
-		magnetometer # all available magnetometer drivers
-		mkblctrl
-		#optical_flow # all available optical flow drivers
-		#osd
-		pca9685
-		power_monitor/ina226
-		#protocol_splitter
-		#pwm_input
+		linux_pwm_out
+		#magnetometer # all available magnetometer drivers
+		magnetometer/hmc5883
 		pwm_out_sim
-		px4fmu
 		rc_input
-		roboclaw
-		safety_button
-		tap_esc
-		telemetry # all available telemetry drivers
-		test_ppm
-		tone_alarm
-		uavcan
+		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -67,7 +46,7 @@ px4_add_board(
 		fw_pos_control_l1
 		land_detector
 		landing_target_estimator
-		load_mon
+		#load_mon
 		local_position_estimator
 		logger
 		mavlink
@@ -79,46 +58,35 @@ px4_add_board(
 		rc_update
 		rover_pos_control
 		sensors
-		sih
 		temperature_compensation
+		sih
+		#simulator
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
-		config
-		dmesg
-		dumpfile
 		esc_calib
-		hardfault_log
-		i2cdetect
 		led_control
 		mixer
 		motor_ramp
-		motor_test
-		mtd
-		nshterm
 		param
 		perf
 		pwm
 		reboot
-		reflect
 		sd_bench
 		shutdown
 		tests # tests and test runner
-		top
+		#top
 		topic_listener
 		tune_control
-		usb_connected
 		ver
 		work_queue
 	EXAMPLES
 		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
-		hwtest # Hardware test
+		#hwtest # Hardware test
 		#matlab_csv_serial
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
-		uuv_example_app
 	)

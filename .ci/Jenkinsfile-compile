@@ -16,7 +16,7 @@ pipeline {
           ]
 
           def armhf_builds = [
-            target: ["aerotenna_ocpoc_default", "beaglebone_blue_default", "emlid_navio2_default", "px4_raspberrypi_default"],
+            target: ["aerotenna_ocpoc_experimental", "beaglebone_blue_experimental", "emlid_navio2_experimental", "px4_raspberrypi_experimental"],
             image: docker_images.armhf,
             archive: false
           ]
@@ -35,10 +35,10 @@ pipeline {
                      "holybro_kakutef7", "holybro_durandal-v1_default", "holybro_durandal-v1_stackcheck",
                      "intel_aerofc-v1_default",
                      "modalai_fc-v1_default",
-                     "mro_x21_default", "mro_ctrl-zero-f7_default", "mro_x21-777_default",
+                     "mro_x21_default", "mro_ctrl-zero-f7_experimental", "mro_x21-777_experimental",
                      "nxp_fmuk66-v3_default",
                      "nxp_fmurt1062-v1_default",
-                     "omnibus_f4sd_default",
+                     "omnibus_f4sd_experimental",
                      "px4_fmu-v2_default", "px4_fmu-v2_fixedwing", "px4_fmu-v2_lpe", "px4_fmu-v2_multicopter", "px4_fmu-v2_rover", "px4_fmu-v2_test",
                      "px4_fmu-v3_default",
                      "px4_fmu-v4_default",

@@ -171,6 +171,10 @@ function(px4_add_board)
 
 	if(LABEL)
 		set(PX4_BOARD_LABEL ${LABEL} CACHE STRING "PX4 board label" FORCE)
+
+		if(${LABEL} MATCHES "experimental")
+			message(WARNING "${PX4_BOARD_NAME} is experimental and not officially supported")
+		endif()
 	else()
 		set(PX4_BOARD_LABEL "default" CACHE STRING "PX4 board label" FORCE)
 	endif()

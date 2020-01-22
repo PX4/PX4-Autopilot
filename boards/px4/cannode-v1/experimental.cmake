@@ -38,20 +38,17 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL cannode-v1
+	LABEL experimental
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m3
-
 	DRIVERS
 		bootloaders
 		uavcannode
-
 	MODULES
-
 	SYSTEMCMDS
 		config
 		reboot
 		top
 		ver
 		work_queue
-
 	)
