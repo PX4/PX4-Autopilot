@@ -204,6 +204,7 @@ SafetyButton::Run()
 {
 	if (should_exit()) {
 		exit_and_cleanup();
+		return;
 	}
 
 	CheckButton();
