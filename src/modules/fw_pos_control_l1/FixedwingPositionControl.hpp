@@ -141,11 +141,11 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
-
 	bool init();
 
 private:
+	void Run() override;
+
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionCallbackWorkItem _global_pos_sub{this, ORB_ID(vehicle_global_position)};

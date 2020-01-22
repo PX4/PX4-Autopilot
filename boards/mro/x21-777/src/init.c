@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file auav_init.c
+ * @file init.c
  *
- * PX4FMU-specific early startup code.  This file implements the
+ * mRO x2.1 777 specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -45,8 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/tasks.h>
+#include "board_config.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -54,30 +53,30 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-
-#include <stm32.h>
-#include "board_config.h"
+#include <nuttx/mm/gran.h>
+#include <chip.h>
 #include <stm32_uart.h>
-
 #include <arch/board/board.h>
+#include "up_internal.h"
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
-
 #include <systemlib/px4_macros.h>
-
 #include <px4_platform_common/init.h>
+#include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+
+/* Configuration ************************************************************/
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -92,12 +91,74 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-/****************************************************************************
- * Protected Functions
- ****************************************************************************/
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+
+/************************************************************************************
+ * Name: board_rc_input
+ *
+ * Description:
+ *   All boards my optionally provide this API to invert the Serial RC input.
+ *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
+ *   and external XOR controlled by a GPIO
+ *
+ ************************************************************************************/
+
+__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
+{
+
+	irqstate_t irqstate = px4_enter_critical_section();
+
+	uint32_t cr1 =	getreg32(STM32_USART_CR1_OFFSET + uxart_base);
+	uint32_t cr2 =	getreg32(STM32_USART_CR2_OFFSET + uxart_base);
+	uint32_t regval = cr1;
+
+	/* {R|T}XINV bit fields can only be written when the USART is disabled (UE=0). */
+
+	regval &= ~USART_CR1_UE;
+
+	putreg32(regval, STM32_USART_CR1_OFFSET + uxart_base);
+
+	if (invert_on) {
+#if defined(BOARD_HAS_RX_TX_SWAP) &&	RC_SERIAL_PORT_IS_SWAPED == 1
+
+		/* This is only ever turned on */
+
+		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV | USART_CR2_SWAP);
+#else
+		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV);
+#endif
+
+	} else {
+		cr2 &= ~(USART_CR2_RXINV | USART_CR2_TXINV);
+	}
+
+	putreg32(cr2, STM32_USART_CR2_OFFSET + uxart_base);
+	putreg32(cr1, STM32_USART_CR1_OFFSET + uxart_base);
+
+	leave_critical_section(irqstate);
+}
+
+/************************************************************************************
+ * Name: board_peripheral_reset
+ *
+ * Description:
+ *
+ ************************************************************************************/
+__EXPORT void board_peripheral_reset(int ms)
+{
+	/* set the peripheral rails off */
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+}
+
 /************************************************************************************
  * Name: board_on_reset
  *
@@ -125,38 +186,41 @@ __EXPORT void board_on_reset(int status)
 	 */
 
 	if (status >= 0) {
-		up_mdelay(400);
+		up_mdelay(6);
 	}
 }
 
-/************************************************************************************
- * Name: board_peripheral_reset
+/****************************************************************************
+ * Name: board_app_finalinitialize
  *
  * Description:
+ *   Perform application specific initialization.  This function is never
+ *   called directly from application code, but only indirectly via the
+ *   (non-standard) boardctl() interface using the command
+ *   BOARDIOC_FINALINIT.
  *
- ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
+ * Input Parameters:
+ *   arg - The argument has no meaning.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARDCTL_FINALINIT
+int board_app_finalinitialize(uintptr_t arg)
 {
-	/* set the peripheral rails off */
-	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
-
-	/* wait for the peripheral rail to reach GND */
-	usleep(ms * 1000);
-	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
-
-	/* re-enable power */
-
-	/* switch the peripheral rail back on */
-	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
+	return 0;
 }
+#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
@@ -164,16 +228,15 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
-	// Reset all PWM to Low outputs.
-
-	board_on_reset(-1);
+	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
 
 	board_autoled_initialize();
 
-	/* configure ADC pins */
+	/* configure pins */
 
+	/* configure ADC pins */
 	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
@@ -188,15 +251,14 @@ stm32_boardinitialize(void)
 	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
 	/* configure CAN interface */
-
-	stm32_configgpio(GPIO_CAN1_RX);
-	stm32_configgpio(GPIO_CAN1_TX);
+	px4_arch_configgpio(GPIO_CAN1_RX);
+	px4_arch_configgpio(GPIO_CAN1_TX);
 
 	/* configure SPI interfaces */
 
 	stm32_spiinitialize();
 
-	/* configure USB interface */
+	/* configure USB interfaces */
 
 	stm32_usbinitialize();
 
@@ -228,19 +290,14 @@ stm32_boardinitialize(void)
  ****************************************************************************/
 
 
-static struct spi_dev_s *spi1;
-static struct spi_dev_s *spi2;
-static struct sdio_dev_s *sdio;
-
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-
 	px4_platform_init();
 
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		syslog(LOG_ERR, "DMA alloc FAILED\n");
+		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
 	/* set up the serial DMA polling */
@@ -260,6 +317,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
+
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_AMBER);
@@ -268,70 +326,15 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_AMBER);
 	}
 
-	/* Configure SPI-based devices */
-
-	spi1 = px4_spibus_initialize(1);
-
-	if (!spi1) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
-		led_on(LED_AMBER);
-		return -ENODEV;
-	}
-
-	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi1, 10000000);
-	SPI_SETBITS(spi1, 8);
-	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_ICM_20608, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
-	up_udelay(20);
-
-	/* Get the SPI port for the FRAM */
-
-	spi2 = px4_spibus_initialize(2);
-
-	if (!spi2) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
-		led_on(LED_AMBER);
-		return -ENODEV;
-	}
-
-	/* Default SPI2 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
-	 * and de-assert the known chip selects. */
-
-	// XXX start with 10.4 MHz in FRAM usage and go up to 37.5 once validated
-	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
-	SPI_SETBITS(spi2, 8);
-	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	SPI_SELECT(spi2, SPIDEV_FLASH(0), false);
-
-
 #ifdef CONFIG_MMCSD
-	/* First, get an instance of the SDIO interface */
-
-	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
-
-	if (!sdio) {
-		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
-		       CONFIG_NSH_MMCSDSLOTNO);
-		led_on(LED_AMBER);
-		return -ENODEV;
-	}
-
-	/* Now bind the SDIO interface to the MMC/SD driver */
-	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
+	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
-		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
-		led_on(LED_AMBER);
+		led_on(LED_RED);
 		return ret;
 	}
 
-	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
-	sdio_mediachange(sdio, true);
-
-#endif
+#endif /* CONFIG_MMCSD */
 
 	return OK;
 }

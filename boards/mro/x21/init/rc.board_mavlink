@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# AUAV/mRO x21 specific board MAVLink startup script.
+# mRo x21 specific board MAVLink startup script.
 #------------------------------------------------------------------------------
 
 # Start MAVLink on the USB port

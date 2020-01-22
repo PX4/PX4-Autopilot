@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * AUAVX2.1 internal definitions
+ * mRo x2.1 777 internal definitions
  */
 
 #pragma once
@@ -47,24 +47,26 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
+#include <stm32_gpio.h>
+
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
-/* Configuration ************************************************************************************/
 
 /* PX4IO connection configuration */
+
 #define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE	"/dev/ttyS4"
-#define PX4IO_SERIAL_TX_GPIO	GPIO_USART6_TX
-#define PX4IO_SERIAL_RX_GPIO	GPIO_USART6_RX
-#define PX4IO_SERIAL_BASE	STM32_USART6_BASE	/* hardwired on the board */
-#define PX4IO_SERIAL_VECTOR	STM32_IRQ_USART6
-#define PX4IO_SERIAL_TX_DMAMAP	DMAMAP_USART6_TX_2
-#define PX4IO_SERIAL_RX_DMAMAP	DMAMAP_USART6_RX_2
-#define PX4IO_SERIAL_RCC_REG	STM32_RCC_APB2ENR
-#define PX4IO_SERIAL_RCC_EN	RCC_APB2ENR_USART6EN
-#define PX4IO_SERIAL_CLOCK	STM32_PCLK2_FREQUENCY
-#define PX4IO_SERIAL_BITRATE	1500000			/* 1.5Mbps -> max rate for IO */
+#define PX4IO_SERIAL_DEVICE            "/dev/ttyS4"
+#define PX4IO_SERIAL_TX_GPIO           GPIO_USART6_TX
+#define PX4IO_SERIAL_RX_GPIO           GPIO_USART6_RX
+#define PX4IO_SERIAL_BASE              STM32_USART6_BASE
+#define PX4IO_SERIAL_VECTOR            STM32_IRQ_USART6
+#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_USART6_TX_2
+#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_USART6_RX_2
+#define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB2ENR
+#define PX4IO_SERIAL_RCC_EN            RCC_APB2ENR_USART6EN
+#define PX4IO_SERIAL_CLOCK             STM32_PCLK2_FREQUENCY
+#define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
 
 
 /* PX4FMU GPIOs ***********************************************************************************/
@@ -222,43 +224,31 @@
 
 #define BOARD_HAS_ON_RESET 1
 
-#define BOARD_HAS_STATIC_MANIFEST 1
+
+#define SDIO_SLOTNO                    0  /* Only one slot */
+#define SDIO_MINOR                     0
+
+#define BOARD_ENABLE_CONSOLE_BUFFER
+
+#define BOARD_NUM_IO_TIMERS 3
 
 __BEGIN_DECLS
-
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Public data
- ****************************************************************************************************/
 
 #ifndef __ASSEMBLY__
 
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
-/****************************************************************************************************
- * Name: board_spi_reset board_peripheral_reset
+
+/****************************************************************************
+ * Name: stm32_sdio_initialize
  *
  * Description:
- *   Called to reset SPI and the perferal bus
+ *   Initialize SDIO-based MMC/SD card support
  *
- ****************************************************************************************************/
+ ****************************************************************************/
 
-extern void board_spi_reset(int ms);
-extern void board_peripheral_reset(int ms);
-
-/****************************************************************************************************
- * Name: stm32_usbinitialize
- *
- * Description:
- *   Called to configure USB IO.
- *
- ****************************************************************************************************/
-
-extern void stm32_usbinitialize(void);
+int stm32_sdio_initialize(void);
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize
@@ -270,7 +260,14 @@ extern void stm32_usbinitialize(void);
 
 extern void stm32_spiinitialize(void);
 
+void board_spi_reset(int ms);
+
+extern void stm32_usbinitialize(void);
+
+extern void board_peripheral_reset(int ms);
+
 #include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
+
 __END_DECLS
