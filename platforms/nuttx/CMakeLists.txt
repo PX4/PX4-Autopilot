@@ -220,15 +220,19 @@ if(NOT PX4_BOARD MATCHES "px4_io-v2")
 	elseif(CONFIG_ARCH_CHIP_STM32H743ZI)
 		set(DEBUG_DEVICE "STM32H743ZI")
 		set(DEBUG_SVD_FILE "STM32H7x3.svd")
+	else()
+		set(DEBUG_DEVICE "")
+		set(DEBUG_SVD_FILE "unknown")
 	endif()
 
-	file(GLOB_RECURSE DEBUG_SVD_FILE_PATH ${CMAKE_SOURCE_DIR}/../cmsis-svd/*/${DEBUG_SVD_FILE})
-	if(DEBUG_SVD_FILE-NOTFOUND)
-		set(DEBUG_SVD_FILE "")
-	else()
+	file(GLOB_RECURSE DEBUG_SVD_FILE_PATH
+		LIST_DIRECTORIES false
+		${CMAKE_SOURCE_DIR}/../cmsis-svd/data/*/${DEBUG_SVD_FILE}
+	)
+	if(DEBUG_SVD_FILE)
 		message(STATUS "Found SVD: ${DEBUG_SVD_FILE_PATH}")
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 	endif()
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 endif()
 
 add_custom_target(debug
