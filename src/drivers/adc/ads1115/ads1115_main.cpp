@@ -6,7 +6,7 @@ class ADS1115_Drv : public device::I2C, public I2C_Interface
 {
 public:
 	ADS1115_Drv(uint8_t bus, uint8_t address, const char *devname);
-	~ADS1115_Drv() override;
+	~ADS1115_Drv() override = default;
 	int init() override;
 
 	void readReg(uint8_t addr, uint8_t *buf, size_t len) override;
@@ -28,11 +28,6 @@ ADS1115_Drv::ADS1115_Drv(uint8_t bus, uint8_t address, const char *devname) :
 	if (_ads1115 == nullptr) {
 		PX4_ERR("ads1115 logical driver alloc failed");
 	}
-}
-
-ADS1115_Drv::~ADS1115_Drv()
-{
-	delete _ads1115;
 }
 
 int ADS1115_Drv::init()
