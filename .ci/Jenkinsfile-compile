@@ -50,7 +50,7 @@ pipeline {
           ]
 
           def docker_builds = [
-            armhf_builds, base_builds, nuttx_builds_archive, snapdragon_builds
+            armhf_builds, base_builds, nuttx_builds_archive//, snapdragon_builds
           ]
 
           for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
