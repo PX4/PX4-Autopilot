@@ -505,12 +505,34 @@ TEST_F(CollisionPreventionTest, goNoData)
 	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 
+	// AND: an obstacle message
+	obstacle_distance_s message;
+	memset(&message, 0xDEAD, sizeof(message));
+	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
+	message.min_distance = 100;
+	message.max_distance = 2000;
+	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
+	message.increment = 360.f / distances_array_size;
+
+	//fov from 0deg to 20deg
+	for (int i = 0; i < distances_array_size; i++) {
+		float angle = i * message.increment;
+
+		if (angle > 0.f && angle < 40.f) {
+			message.distances[i] = 700;
+
+		} else {
+			message.distances[i] = UINT16_MAX;
+		}
+	}
+
 	// AND: a parameter handle
 	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 5; // try to keep 5m distance
 	param_set(param, &value);
 	cp.paramsChanged();
 
+	// AND: a setpoint outside the field of view
 	matrix::Vector2f original_setpoint = {-5, 0};
 	matrix::Vector2f modified_setpoint = original_setpoint;
 
@@ -524,10 +546,20 @@ TEST_F(CollisionPreventionTest, goNoData)
 	param_set(param_allow, &value_allow);
 	cp.paramsChanged();
 
-	//THEN: the modified setpoint should stay the same as the input
+	//THEN: When all bins contain UINT_16MAX the setpoint should be zero even if CP_GO_NO_DATA=1
+	modified_setpoint = original_setpoint;
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	EXPECT_FLOAT_EQ(modified_setpoint.norm(), 0.f);
+
+	//THEN: As soon as the range data contains any valid number, flying outside the FOV is allowed
+	message.timestamp = hrt_absolute_time();
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+
 	modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 	EXPECT_FLOAT_EQ(modified_setpoint.norm(), original_setpoint.norm());
+	orb_unadvertise(obstacle_distance_pub);
 }
 
 TEST_F(CollisionPreventionTest, jerkLimit)

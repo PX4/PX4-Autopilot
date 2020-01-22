@@ -397,6 +397,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 	const float setpoint_length = setpoint.norm();
 
 	const hrt_abstime constrain_time = getTime();
+	int num_fov_bins = 0;
 
 	if ((constrain_time - _obstacle_map_body_frame.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		if (setpoint_length > 0.001f) {
@@ -433,6 +434,11 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 				// get direction of current bin
 				const Vector2f bin_direction = {cosf(angle), sinf(angle)};
 
+				//count number of bins in the field of valid_new
+				if (_obstacle_map_body_frame.distances[i] < UINT16_MAX) {
+					num_fov_bins ++;
+				}
+
 				if (_obstacle_map_body_frame.distances[i] > _obstacle_map_body_frame.min_distance
 				    && _obstacle_map_body_frame.distances[i] < UINT16_MAX) {
 
@@ -464,6 +470,16 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 
 				} else if (_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == sp_index && (!move_no_data)) {
 					vel_max = 0.f;
+				}
+			}
+
+			//if the sensor field of view is zero, never allow to move (even if move_no_data=1)
+			if (num_fov_bins == 0) {
+				vel_max = 0.f;
+
+				if (getElapsedTime(&_last_timeout_warning) > 1_s) {
+					mavlink_log_critical(&_mavlink_log_pub, "Range sensor data invalid, no movement allowed.");
+					_last_timeout_warning = getTime();
 				}
 			}
 
