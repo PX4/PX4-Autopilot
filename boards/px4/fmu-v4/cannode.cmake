@@ -59,7 +59,7 @@ px4_add_board(
 	MODULES
 		#ekf2
 		#load_mon
-		#sensors
+		sensors
 		#temperature_compensation
 	SYSTEMCMDS
 		#bl_update
