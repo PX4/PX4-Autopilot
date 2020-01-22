@@ -379,7 +379,7 @@ int BMM150::init()
 
 	/* measurement will have generated a report, publish */
 	_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrb,
-				     &_orb_class_instance, (external()) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
+				     &_orb_class_instance, (external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
