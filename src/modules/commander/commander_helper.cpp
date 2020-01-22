@@ -296,8 +296,9 @@ int led_init()
 	fd_leds = px4_open(LED0_DEVICE_PATH, O_RDWR);
 
 	if (fd_leds < 0) {
-		PX4_ERR("LED: open %s failed", LED0_DEVICE_PATH);
-		return PX4_ERROR;
+		// there might not be an LED available, so don't make this an error
+		PX4_INFO("LED: open %s failed (%i)", LED0_DEVICE_PATH, errno);
+		return -errno;
 	}
 
 	/* the green LED is only available on FMUv5 */
