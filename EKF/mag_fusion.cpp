@@ -460,26 +460,64 @@ void Ekf::fuseHeading()
 		float t5 = q2*q2;
 		float t6 = q3*q3;
 		float t7 = t3+t4-t5-t6;
-		float t8 = t7*t7;
-		if (t8 > 1e-6f) {
-			t8 = 1.0f/t8;
-		} else {
-			return;
-		}
-		float t11 = t2*t2;
-		float t12 = t8*t11*4.0f;
-		float t13 = t12+1.0f;
-		float t14;
-		if (fabsf(t13) > 1e-6f) {
-			t14 = 1.0f/t13;
-		} else {
-			return;
-		}
 
-		H_YAW[0] = t8*t14*(q3*t3-q3*t4+q3*t5+q3*t6+q0*q1*q2*2.0f)*-2.0f;
-		H_YAW[1] = t8*t14*(-q2*t3+q2*t4+q2*t5+q2*t6+q0*q1*q3*2.0f)*-2.0f;
-		H_YAW[2] = t8*t14*(q1*t3+q1*t4+q1*t5-q1*t6+q0*q2*q3*2.0f)*2.0f;
-		H_YAW[3] = t8*t14*(q0*t3+q0*t4-q0*t5+q0*t6+q1*q2*q3*2.0f)*2.0f;
+		float t16 = q3*t3;
+		float t17 = q3*t5;
+		float t18 = q0*q1*q2*2.0f;
+		float t19 = t16+t17+t18-q3*t4+q3*t6;
+
+		float t24 = q2*t4;
+		float t25 = q2*t6;
+		float t26 = q0*q1*q3*2.0f;
+		float t27 = t24+t25+t26-q2*t3+q2*t5;
+		float t28 = q1*t3;
+		float t29 = q1*t5;
+		float t30 = q0*q2*q3*2.0f;
+		float t31 = t28+t29+t30+q1*t4-q1*t6;
+		float t32 = q0*t4;
+		float t33 = q0*t6;
+		float t34 = q1*q2*q3*2.0f;
+		float t35 = t32+t33+t34+q0*t3-q0*t5;
+
+		// two computational paths are provided to work around singularities in calculation of the Jacobians
+		float t8 = t7*t7;
+		float t15 = t2*t2;
+		if (t8 > t15 && t8 > 1E-6f) {
+			// this path has a singularities at yaw = +-90 degrees
+			t8 = 1.0f/t8;
+			float t11 = t2*t2;
+			float t12 = t8*t11*4.0f;
+			float t13 = t12+1.0f;
+			float t14 = 1.0f/t13;
+
+			H_YAW[0] = t8*t14*t19*(-2.0f);
+			H_YAW[1] = t8*t14*t27*(-2.0f);
+			H_YAW[2] = t8*t14*t31*2.0f;
+			H_YAW[3] = t8*t14*t35*2.0f;
+
+		} else if (t15 > 1E-6f) {
+			// this path has singularities at yaw = 0 and +-180 deg
+			t15 = 1.0f/t15;
+			float t20 = t7*t7;
+			float t21 = t15*t20*0.25f;
+			float t22 = t21+1.0f;
+
+			if (fabsf(t22) > 1E-6f) {
+				float t23 = 1.0f/t22;
+
+				H_YAW[0] = t15*t19*t23*(-0.5f);
+				H_YAW[1] = t15*t23*t27*(-0.5f);
+				H_YAW[2] = t15*t23*t31*0.5f;
+				H_YAW[3] = t15*t23*t35*0.5f;
+
+			} else {
+				return;
+
+			}
+		} else {
+			return;
+
+		}
 
 		// rotate the magnetometer measurement into earth frame
 		Eulerf euler321(_state.quat_nominal);
@@ -531,27 +569,62 @@ void Ekf::fuseHeading()
 		float t5 = q2*q2;
 		float t6 = q3*q3;
 		float t7 = t3-t4+t5-t6;
+
+		float t16 = q3*t3;
+		float t17 = q3*t4;
+		float t18 = t16+t17-q3*t5+q3*t6-q0*q1*q2*2.0f;
+		float t23 = q2*t3;
+		float t24 = q2*t4;
+		float t25 = t23+t24+q2*t5-q2*t6-q0*q1*q3*2.0f;
+		float t26 = q1*t5;
+		float t27 = q1*t6;
+		float t28 = t26+t27-q1*t3+q1*t4-q0*q2*q3*2.0f;
+		float t29 = q0*t5;
+		float t30 = q0*t6;
+		float t31 = t29+t30+q0*t3-q0*t4-q1*q2*q3*2.0f;
+
+		// two computational paths are provided to work around singularities in calculation of the Jacobians
 		float t8 = t7*t7;
-		if (t8 > 1e-6f) {
+		float t15 = t2*t2;
+		if (t8 > t15 && t8 > 1E-6f) {
+			// this path has a singularities at yaw = +-90 degrees
 			t8 = 1.0f/t8;
+			float t11 = t2*t2;
+			float t12 = t8*t11*4.0f;
+			float t13 = t12+1.0f;
+			float t14 = 1.0f/t13;
+
+			H_YAW[0] = t8*t14*t18*(-2.0f);
+			H_YAW[1] = t8*t14*t25*(-2.0f);
+			H_YAW[2] = t8*t14*t28*2.0f;
+			H_YAW[3] = t8*t14*t31*2.0f;
+
+		} else if (t15 > 1E-6f) {
+			// this path has singularities at yaw = 0 and +-180 deg
+			t15 = 1.0f/t15;
+			float t19 = t7*t7;
+			float t20 = t15*t19*0.25f;
+			float t21 = t20+1.0f;
+
+			if (fabsf(t21) > 1E-6f) {
+				float t22 = 1.0f/t21;
+
+				H_YAW[0] = t15*t18*t22*(-0.5f);
+				H_YAW[1] = t15*t22*t25*(-0.5f);
+				H_YAW[2] = t15*t22*t28*0.5f;
+				H_YAW[3] = t15*t22*t31*0.5f;
+
+			} else {
+				return;
+
+			}
+
 		} else {
 			return;
-		}
-		float t11 = t2*t2;
-		float t12 = t8*t11*4.0f;
-		float t13 = t12+1.0f;
-		float t14;
 
-		if (fabsf(t13) > 1e-6f) {
-			t14 = 1.0f/t13;
-		} else {
-			return;
 		}
 
-		H_YAW[0] = t8*t14*(q3*t3+q3*t4-q3*t5+q3*t6-q0*q1*q2*2.0f)*-2.0f;
-		H_YAW[1] = t8*t14*(q2*t3+q2*t4+q2*t5-q2*t6-q0*q1*q3*2.0f)*-2.0f;
-		H_YAW[2] = t8*t14*(-q1*t3+q1*t4+q1*t5+q1*t6-q0*q2*q3*2.0f)*2.0f;
-		H_YAW[3] = t8*t14*(q0*t3-q0*t4+q0*t5+q0*t6-q1*q2*q3*2.0f)*2.0f;
+
 
 		/* Calculate the 312 sequence euler angles that rotate from earth to body frame
 		 * Derived from https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
