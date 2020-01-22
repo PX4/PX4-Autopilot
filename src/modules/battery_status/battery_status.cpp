@@ -94,10 +94,11 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
 	bool init();
 
 private:
+	void Run() override;
+
 	int  _adc_fd{-1};			/**< ADC file handle */
 
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */

@@ -242,11 +242,10 @@ public:
 
 	void resume();
 
-protected:
+private:
 
 	void Run() override;
 
-private:
 	SMBus *_interface;
 
 	perf_counter_t _cycle{perf_alloc(PC_ELAPSED, "batt_smbus_cycle")};
