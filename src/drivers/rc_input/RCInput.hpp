@@ -77,15 +77,15 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void Run() override;
-
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
 	int	init();
 
 private:
+
+	void Run() override;
+
 	enum RC_SCAN {
 		RC_SCAN_PPM = 0,
 		RC_SCAN_SBUS,
