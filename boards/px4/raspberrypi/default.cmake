@@ -23,7 +23,7 @@ px4_add_board(
 		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		pwm_output/pwm_out_sim
+		pwm_out_sim
 		rc_input
 		rpi_rc_in
 		#telemetry # all available telemetry drivers

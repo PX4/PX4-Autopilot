@@ -23,7 +23,7 @@ px4_add_board(
 		magnetometer
 		optical_flow/px4flow
 		osd
-		pwm_output/pwm_out_sim
+		pwm_out_sim
 		px4fmu
 		rc_input
 		telemetry

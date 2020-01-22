@@ -52,7 +52,7 @@ px4_add_board(
 		#lights/rgbled
 		linux_sbus
 		#magnetometer # all available magnetometer drivers
-		pwm_output/pwm_out_sim
+		pwm_out_sim
 		qshell/posix
 		rc_input
 		#telemetry # all available telemetry drivers

@@ -15,7 +15,7 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
-		pwm_output/pwm_out_sim
+		pwm_out_sim
 		#telemetry # all available telemetry drivers
 		tone_alarm
 		#uavcan

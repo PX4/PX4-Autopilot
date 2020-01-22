@@ -34,7 +34,7 @@ px4_add_board(
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		pwm_input
-		pwm_output/pwm_out_sim
+		pwm_out_sim
 		px4fmu
 		px4io
 		rc_input
