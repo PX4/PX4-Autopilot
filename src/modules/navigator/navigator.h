@@ -129,9 +129,10 @@ public:
 	 * @param altitude_diff Altitude difference, positive is up
 	 * @param hor_velocity Horizontal velocity of traffic, in m/s
 	 * @param ver_velocity Vertical velocity of traffic, in m/s
+	 * @param emitter_type, Type of vehicle, as a number
 	 */
 	void		fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
-				     float hor_velocity, float ver_velocity);
+				     float hor_velocity, float ver_velocity, int emitter_type);
 
 	/**
 	 * Check nearby traffic for potential collisions
@@ -258,6 +259,7 @@ public:
 	 */
 	float 		get_yaw_acceptance(float mission_item_yaw);
 
+
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
@@ -305,6 +307,8 @@ private:
 		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
 
 		// non-navigator parameters
 		// Mission (MIS_*)

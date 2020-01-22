@@ -14,7 +14,7 @@ px4_add_board(
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS6
 		TEL2:/dev/ttyS4
-		TEL3:/dev/ttyS2
+		TEL3:/dev/ttyS1
 		GPS2:/dev/ttyS7
 	DRIVERS
 		adc
@@ -76,11 +76,13 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
 		sensors
 		sih
+		temperature_compensation
 		vmount
 		vtol_att_control
 	SYSTEMCMDS

@@ -263,12 +263,17 @@ if (CATKIN_DEVEL_PREFIX)
 	endif()
 endif()
 
-# python
+# Python
 # If using catkin, Python 2 is found since it points
 # to the Python libs installed with the ROS distro
-include(px4_find_python_module)
 if (NOT CATKIN_DEVEL_PREFIX)
-	find_package(PythonInterp 3 REQUIRED)
+	find_package(PythonInterp 3)
+	# We have a custom error message to tell users how to install python3.
+	if (NOT PYTHONINTERP_FOUND)
+		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
+			"    Ubuntu: sudo apt install python3 python3-devel python3-pip\n"
+			"    macOS: brew install python")
+	endif()
 else()
 	find_package(PythonInterp REQUIRED)
 endif()
@@ -277,9 +282,6 @@ option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
 	message(STATUS "python coverage enabled")
 	set(PYTHON_EXECUTABLE coverage run -p)
-else()
-	# run normally (broken under coveragepy)
-	px4_find_python_module(jinja2 REQUIRED)
 endif()
 
 #=============================================================================

@@ -122,21 +122,22 @@ bool @(topic)_Publisher::init()
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener*>(&m_listener));
     if(mp_publisher == nullptr)
         return false;
-    //std::cout << "Publisher created, waiting for Subscribers." << std::endl;
     return true;
 }
 
 void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, MatchingInfo& info)
 {
+    (void)pub;
+
     if (info.status == MATCHED_MATCHING)
     {
         n_matched++;
-        std::cout << "Publisher matched" << std::endl;
+        std::cout << " - @(topic) publisher matched" << std::endl;
     }
     else
     {
         n_matched--;
-        std::cout << "Publisher unmatched" << std::endl;
+        std::cout << " - @(topic) publisher unmatched" << std::endl;
     }
 }
 
