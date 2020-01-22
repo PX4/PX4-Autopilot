@@ -91,7 +91,7 @@ class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::
 public:
 
 	VtolAttitudeControl();
-	~VtolAttitudeControl();
+	~VtolAttitudeControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -101,8 +101,6 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-
-	void Run() override;
 
 	bool init();
 
@@ -129,6 +127,8 @@ public:
 	struct Params 					*get_params() {return &_params;}
 
 private:
+
+	void Run() override;
 
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};

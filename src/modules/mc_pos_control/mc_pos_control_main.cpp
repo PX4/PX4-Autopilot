@@ -95,14 +95,14 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
-
 	bool init();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
 private:
+	void Run() override;
+
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub;
