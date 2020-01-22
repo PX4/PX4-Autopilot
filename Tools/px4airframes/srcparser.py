@@ -88,6 +88,8 @@ class ParameterGroup(object):
             return "YMinus"
         elif (self.name == "Tricopter Y+"):
             return "YPlus"
+        elif (self.name == "Autogyro"):
+            return "Autogyro"
         elif (self.name == "Rover"):
             return "Rover"
         elif (self.name == "Boat"):
