@@ -50,7 +50,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-using InvenSense_ICM20602::Register;
+using namespace InvenSense_ICM20602;
 
 class ICM20602 : public device::SPI, public px4::ScheduledWorkItem
 {
@@ -65,6 +65,13 @@ public:
 	void PrintInfo();
 
 private:
+
+	struct register_config_t {
+		Register reg;
+		uint8_t set_bits{0};
+		uint8_t clear_bits{0};
+	};
+
 	int probe() override;
 
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
@@ -72,8 +79,16 @@ private:
 
 	void Run() override;
 
+	void ConfigureSampleRate(int sample_rate);
+	bool CheckRegister(const register_config_t &reg_cfg, bool notify = true);
+	bool Configure(bool notify = true);
+
+	void ConfigureAccel();
+	void ConfigureGyro();
+
 	uint8_t RegisterRead(Register reg);
 	void RegisterWrite(Register reg, uint8_t value);
+	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 	void RegisterSetBits(Register reg, uint8_t setbits);
 	void RegisterClearBits(Register reg, uint8_t clearbits);
 
@@ -85,10 +100,41 @@ private:
 	PX4Gyroscope _px4_gyro;
 
 	perf_counter_t _transfer_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": transfer")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": fifo empty")};
 	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": fifo overflow")};
 	perf_counter_t _fifo_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": fifo reset")};
 	perf_counter_t _drdy_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": drdy interval")};
 
-	hrt_abstime _time_data_ready{0};
+	hrt_abstime _last_config_check{0};
+
+	uint8_t _checked_register{0};
+
+	bool _using_data_ready_interrupt_enabled{false};
+
+	// Sensor Configuration
+	static constexpr uint32_t GYRO_RATE{8000};  // 8 kHz gyro
+	static constexpr uint32_t ACCEL_RATE{4000}; // 4 kHz accel
+	static constexpr uint32_t FIFO_MAX_SAMPLES{ math::min(FIFO::SIZE / sizeof(FIFO::DATA) + 1, sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
+
+	uint16_t _fifo_empty_interval_us{1000}; // 1000 us / 1000 Hz transfer interval
+	uint8_t _fifo_gyro_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
+	uint8_t _fifo_accel_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / ACCEL_RATE))};
+
+	static constexpr uint8_t size_register_cfg{11};
+	register_config_t _register_cfg[size_register_cfg] {
+		// Register               | Set bits, Clear bits
+		{ Register::PWR_MGMT_1,    PWR_MGMT_1_BIT::CLKSEL_0, PWR_MGMT_1_BIT::DEVICE_RESET | PWR_MGMT_1_BIT::SLEEP },
+		{ Register::I2C_IF,        I2C_IF_BIT::I2C_IF_DIS, 0 },
+		{ Register::ACCEL_CONFIG,  ACCEL_CONFIG_BIT::ACCEL_FS_SEL_16G, 0 },
+		{ Register::ACCEL_CONFIG2, ACCEL_CONFIG2_BIT::ACCEL_FCHOICE_B_BYPASS_DLPF, 0 },
+		{ Register::GYRO_CONFIG,   GYRO_CONFIG_BIT::FS_SEL_2000_DPS, GYRO_CONFIG_BIT::FCHOICE_B_8KHZ_BYPASS_DLPF },
+		{ Register::CONFIG,        CONFIG_BIT::DLPF_CFG_BYPASS_DLPF_8KHZ, Bit7 | CONFIG_BIT::FIFO_MODE },
+		{ Register::FIFO_WM_TH1,   0, 0 }, // FIFO_WM_TH[9:8]
+		{ Register::FIFO_WM_TH2,   0, 0 }, // FIFO_WM_TH[7:0]
+		{ Register::USER_CTRL,     USER_CTRL_BIT::FIFO_EN, 0 },
+		{ Register::FIFO_EN,       FIFO_EN_BIT::GYRO_FIFO_EN | FIFO_EN_BIT::ACCEL_FIFO_EN, 0 },
+		{ Register::INT_ENABLE,    INT_ENABLE_BIT::FIFO_OFLOW_EN, INT_ENABLE_BIT::DATA_RDY_INT_EN }
+	};
 };
