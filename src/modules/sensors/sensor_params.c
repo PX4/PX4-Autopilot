@@ -260,7 +260,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 /**
 * Gyro control data maximum publication rate
 *
-* This is the maximum rate the gyro control data (sensor_gyro_control) will be allowed to publish at.
+* This is the maximum rate the gyro control data (sensor_gyro) will be allowed to publish at.
 * Set to 0 to disable and publish at the native sensor sample rate.
 *
 * @min 0
