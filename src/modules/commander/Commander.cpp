@@ -1192,8 +1192,8 @@ Commander::run()
 {
 	bool sensor_fail_tune_played = false;
 
-	param_t _param_airmode = param_find("MC_AIRMODE");
-	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
+	const param_t param_airmode = param_find("MC_AIRMODE");
+	const param_t param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
 	/* initialize */
 	led_init();
@@ -1216,9 +1216,6 @@ Commander::run()
 
 
 	get_circuit_breaker_params();
-
-	/* command ack */
-
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
@@ -1359,13 +1356,13 @@ Commander::run()
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
-			if (_param_airmode != PARAM_INVALID && _param_rc_map_arm_switch != PARAM_INVALID) {
-				param_get(_param_airmode, &airmode);
-				param_get(_param_rc_map_arm_switch, &rc_map_arm_switch);
+			if (param_airmode != PARAM_INVALID && param_rc_map_arm_switch != PARAM_INVALID) {
+				param_get(param_airmode, &airmode);
+				param_get(param_rc_map_arm_switch, &rc_map_arm_switch);
 
 				if (airmode == 2 && rc_map_arm_switch == 0) {
 					airmode = 1; // change to roll/pitch airmode
-					param_set(_param_airmode, &airmode);
+					param_set(param_airmode, &airmode);
 					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch")
 				}
 			}
