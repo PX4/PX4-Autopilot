@@ -274,6 +274,18 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.5e-2f);
 PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 3.5e-1f);
 
 /**
+ * Accelerometer noise multiplier when clipping.
+ *
+ * EKF2_ACC_NOISE + EKF2_ACC_CLPFACT * clipping_fraction
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 10.0
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_ACC_CLPFACT, 2.0f);
+
+/**
  * Process noise for IMU rate gyro bias prediction.
  *
  * @group EKF2

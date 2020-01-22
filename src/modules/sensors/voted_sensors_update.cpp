@@ -541,6 +541,8 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 			_last_sensor_data[uorb_index].accelerometer_m_s2[0] = accel_data(0);
 			_last_sensor_data[uorb_index].accelerometer_m_s2[1] = accel_data(1);
 			_last_sensor_data[uorb_index].accelerometer_m_s2[2] = accel_data(2);
+			_last_sensor_data[uorb_index].accelerometer_integral_samples = accel_report.samples;
+			_last_sensor_data[uorb_index].accelerometer_clip_count = accel_report.clip_count;
 
 			_last_accel_timestamp[uorb_index] = accel_report.timestamp;
 			_accel.voter.put(uorb_index, accel_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
@@ -556,6 +558,8 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 	if (best_index >= 0) {
 		raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
 		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[best_index].accelerometer_m_s2, sizeof(raw.accelerometer_m_s2));
+		raw.accelerometer_integral_samples = _last_sensor_data[best_index].accelerometer_integral_samples;
+		raw.accelerometer_clip_count = _last_sensor_data[best_index].accelerometer_clip_count;
 
 		if (best_index != _accel.last_best_vote) {
 			_accel.last_best_vote = (uint8_t)best_index;
