@@ -62,7 +62,7 @@ public:
 	/**
 	 * @brief Sends a block read command.
 	 * @param cmd_code The command code.
-	 * @param data The returned data. The returned data will always contain the data[] + 2 bytes of address information.
+	 * @param data The returned data. The returned data will always contain 2 bytes of address information followed by data[length].
 	 * @param length The number of bytes being read.
 	 * @return Returns PX4_OK on success, -errno on failure.
 	 */

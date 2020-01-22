@@ -362,6 +362,11 @@ int BATT_SMBUS::dataflash_write(uint16_t &address, void *data, const unsigned le
 
 	tx_buf[0] = ((uint8_t *)&address)[0];
 	tx_buf[1] = ((uint8_t *)&address)[1];
+
+	if (length > MAC_DATA_BUFFER_SIZE) {
+		return PX4_ERROR;
+	}
+
 	memcpy(&tx_buf[2], data, length);
 
 	// code (1), byte_count (1), addr(2), data(32) + pec
@@ -484,7 +489,7 @@ int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const uns
 	}
 
 	result = _interface->block_read(code, data, length, true);
-	memcpy(data, &((uint8_t *)data)[2], length - 2); // remove the address bytes
+	memmove(data, &((uint8_t *)data)[2], length - 2); // remove the address bytes
 
 	return result;
 }
