@@ -3,6 +3,12 @@ do_format=$1
 files_to_format="""
 EKF/AlphaFilter.hpp
 EKF/RingBuffer.h
+EKF/vel_pos_fusion.cpp
+EKF/imu_down_sampler.*pp
+mathlib/*.cpp
+mathlib/*.h
+validation/*.cpp
+validation/*.h
 """
 RED='\033[0;31m'
 GREEN='\033[0;32m'

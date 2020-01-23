@@ -43,8 +43,7 @@
 
 #include "data_validator.h"
 
-class DataValidatorGroup
-{
+class DataValidatorGroup {
 public:
 	/**
 	 * @param siblings initial number of DataValidator's. Must be > 0.
@@ -67,90 +66,89 @@ public:
 	 * @param error_count	The current error count of the sensor
 	 * @param priority	The priority of the sensor
 	 */
-	void			put(unsigned index, uint64_t timestamp, const float val[3], uint64_t error_count, int priority);
+	void put(unsigned index, uint64_t timestamp, const float val[3], uint64_t error_count, int priority);
 
 	/**
 	 * Get the best data triplet of the group
 	 *
 	 * @return		pointer to the array of best values
 	 */
-	float			*get_best(uint64_t timestamp, int *index);
+	float *get_best(uint64_t timestamp, int *index);
 
 	/**
 	 * Get the RMS / vibration factor
 	 *
 	 * @return		float value representing the RMS, which a valid indicator for vibration
 	 */
-	float			get_vibration_factor(uint64_t timestamp);
+	float get_vibration_factor(uint64_t timestamp);
 
 	/**
 	 * Get the vibration offset in the sensor unit
 	 *
 	 * @return		float value representing the vibration offset
 	 */
-	float			get_vibration_offset(uint64_t timestamp, int axis);
+	float get_vibration_offset(uint64_t timestamp, int axis);
 
 	/**
 	 * Get the number of failover events
 	 *
 	 * @return		the number of failovers
 	 */
-	unsigned		failover_count() const { return _toggle_count; }
+	unsigned failover_count() const { return _toggle_count; }
 
 	/**
 	 * Get the index of the failed sensor in the group
 	 *
 	 * @return		index of the failed sensor
 	 */
-	int			failover_index();
+	int failover_index();
 
 	/**
 	 * Get the error state of the failed sensor in the group
 	 *
 	 * @return		bitmask with erro states of the failed sensor
 	 */
-	uint32_t		failover_state();
+	uint32_t failover_state();
 
 	/**
 	 * Get the error state of the sensor with the specified index
 	 *
 	 * @return		bitmask with error states of the sensor
 	 */
-	uint32_t		get_sensor_state(unsigned index);
+	uint32_t get_sensor_state(unsigned index);
 
 	/**
 	 * Print the validator value
 	 *
 	 */
-	void			print();
+	void print();
 
 	/**
 	 * Set the timeout value for the whole group
 	 *
 	 * @param timeout_interval_us The timeout interval in microseconds
 	 */
-	void			set_timeout(uint32_t timeout_interval_us);
+	void set_timeout(uint32_t timeout_interval_us);
 
 	/**
 	 * Set the equal count threshold for the whole group
 	 *
 	 * @param threshold The number of equal values before considering the sensor stale
 	 */
-	void			set_equal_value_threshold(uint32_t threshold);
-
+	void set_equal_value_threshold(uint32_t threshold);
 
 private:
-	DataValidator *_first{nullptr};		/**< first node in the group */
-	DataValidator *_last{nullptr};		/**< last node in the group */
+	DataValidator *_first{nullptr}; /**< first node in the group */
+	DataValidator *_last{nullptr};  /**< last node in the group */
 
 	uint32_t _timeout_interval_us{0}; /**< currently set timeout */
 
-	int _curr_best{-1};		/**< currently best index */
-	int _prev_best{-1};		/**< the previous best index */
+	int _curr_best{-1}; /**< currently best index */
+	int _prev_best{-1}; /**< the previous best index */
 
-	uint64_t _first_failover_time{0};	/**< timestamp where the first failover occured or zero if none occured */
+	uint64_t _first_failover_time{0}; /**< timestamp where the first failover occured or zero if none occured */
 
-	unsigned _toggle_count{0};		/**< number of back and forth switches between two sensors */
+	unsigned _toggle_count{0}; /**< number of back and forth switches between two sensors */
 
 	static constexpr float MIN_REGULAR_CONFIDENCE = 0.9f;
 
