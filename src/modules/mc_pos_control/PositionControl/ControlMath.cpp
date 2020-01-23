@@ -159,7 +159,6 @@ Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
 		// notes:
 		// 	- s (=scaling factor) needs to be positive
 		// 	- (max - ||v||) always larger than zero, otherwise it never entered this if-statement
-
 		Vector2f u1 = v1.normalized();
 		float m = u1.dot(v0);
 		float c = v0.dot(v0) - max * max;
