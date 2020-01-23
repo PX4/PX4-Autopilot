@@ -387,7 +387,6 @@ void EstimatorInterface::setOpticalFlowData(const flowSample& flow)
 
 			flowSample optflow_sample_new = flow;
 
-			// compensate time-stamp for the trailing edge of the flow data integration period
 			optflow_sample_new.time_us -= _params.flow_delay_ms * 1000;
 			optflow_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
