@@ -1769,7 +1769,7 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &_internal_state);
-				mavlink_log_info(&mavlink_log_pub, "Autonomy off! Returned control to pilot");
+				mavlink_log_info(&mavlink_log_pub, "Pilot took over control using sticks");
 			}
 		}
 
