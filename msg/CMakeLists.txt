@@ -144,6 +144,7 @@ set(msg_files
 	vehicle_control_mode.msg
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
+	vehicle_imu.msg
 	vehicle_land_detected.msg
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg

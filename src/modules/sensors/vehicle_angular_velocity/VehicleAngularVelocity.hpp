@@ -58,14 +58,14 @@ public:
 	VehicleAngularVelocity();
 	~VehicleAngularVelocity() override;
 
-	void	Run() override;
+	bool Start();
+	void Stop();
 
-	bool	Start();
-	void	Stop();
-
-	void	PrintStatus();
+	void PrintStatus();
 
 private:
+	void Run() override;
+
 	void ParametersUpdate(bool force = false);
 	void SensorBiasUpdate(bool force = false);
 	void SensorCorrectionsUpdate(bool force = false);
@@ -81,26 +81,26 @@ private:
 		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _param_sens_board_z_off
 	)
 
-	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 
-	uORB::Subscription			_params_sub{ORB_ID(parameter_update)};			/**< parameter updates subscription */
-	uORB::Subscription			_sensor_bias_sub{ORB_ID(sensor_bias)};			/**< sensor in-run bias correction subscription */
-	uORB::Subscription			_sensor_correction_sub{ORB_ID(sensor_correction)};	/**< sensor thermal correction subscription */
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 
-	uORB::SubscriptionCallbackWorkItem	_sensor_selection_sub{this, ORB_ID(sensor_selection)};	/**< selected primary sensor subscription */
-	uORB::SubscriptionCallbackWorkItem	_sensor_sub[MAX_SENSOR_COUNT] {				/**< sensor data subscription */
+	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
+	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_gyro), 0},
 		{this, ORB_ID(sensor_gyro), 1},
 		{this, ORB_ID(sensor_gyro), 2}
 	};
 
-	matrix::Dcmf				_board_rotation;				/**< rotation matrix for the orientation that the board is mounted */
+	matrix::Dcmf _board_rotation;
 
-	matrix::Vector3f			_bias{0.f, 0.f, 0.f};
-	matrix::Vector3f			_offset{0.f, 0.f, 0.f};
-	matrix::Vector3f			_scale{1.f, 1.f, 1.f};
+	matrix::Vector3f _bias{0.f, 0.f, 0.f};
+	matrix::Vector3f _offset{0.f, 0.f, 0.f};
+	matrix::Vector3f _scale{1.f, 1.f, 1.f};
 
-	uint32_t				_selected_sensor_device_id{0};
-	uint8_t					_selected_sensor_sub_index{0};
-	int8_t					_corrections_selected_instance{-1};
+	uint32_t _selected_sensor_device_id{0};
+	uint8_t _selected_sensor_sub_index{0};
+	int8_t _corrections_selected_instance{-1};
 };

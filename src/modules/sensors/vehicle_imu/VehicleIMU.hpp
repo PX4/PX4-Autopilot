@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <containers/List.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -40,23 +41,22 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_correction.h>
-#include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/sensor_gyro_integrated.h>
+#include <uORB/topics/vehicle_imu.h>
 
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/vehicle_acceleration.h>
-
-class VehicleAcceleration : public ModuleParams, public px4::WorkItem
+class VehicleIMU : public ModuleParams, public px4::WorkItem
 {
 public:
+	VehicleIMU() = delete;
+	VehicleIMU(uint8_t accel_index = 0, uint8_t gyro_index = 0);
 
-	VehicleAcceleration();
-	~VehicleAcceleration() override;
+	~VehicleIMU() override;
 
 	bool Start();
 	void Stop();
@@ -67,9 +67,7 @@ private:
 	void Run() override;
 
 	void ParametersUpdate(bool force = false);
-	void SensorBiasUpdate(bool force = false);
 	void SensorCorrectionsUpdate(bool force = false);
-	bool SensorSelectionUpdate(bool force = false);
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
@@ -81,26 +79,26 @@ private:
 		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _param_sens_board_z_off
 	)
 
-	uORB::Publication<vehicle_acceleration_s> _vehicle_acceleration_pub{ORB_ID(vehicle_acceleration)};
+	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
 
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
 	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
-	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
-		{this, ORB_ID(sensor_accel), 0},
-		{this, ORB_ID(sensor_accel), 1},
-		{this, ORB_ID(sensor_accel), 2}
-	};
+	uORB::SubscriptionCallbackWorkItem _sensor_accel_integrated_sub;
+	uORB::SubscriptionCallbackWorkItem _sensor_gyro_integrated_sub;
 
 	matrix::Dcmf _board_rotation;
 
-	matrix::Vector3f _bias{0.f, 0.f, 0.f};
-	matrix::Vector3f _offset{0.f, 0.f, 0.f};
-	matrix::Vector3f _scale{1.f, 1.f, 1.f};
+	matrix::Vector3f _accel_offset{0.f, 0.f, 0.f};
+	matrix::Vector3f _gyro_offset{0.f, 0.f, 0.f};
+	matrix::Vector3f _accel_scale{1.f, 1.f, 1.f};
+	matrix::Vector3f _gyro_scale{1.f, 1.f, 1.f};
 
-	uint32_t _selected_sensor_device_id{0};
-	uint8_t _selected_sensor_sub_index{0};
-	int8_t _corrections_selected_instance{-1};
+	char *_name{nullptr};
+
+	int8_t _corrections_selected_accel_instance{-1};
+	int8_t _corrections_selected_gyro_instance{-1};
+
+	uint32_t _accel_device_id{0};
+	uint32_t _gyro_device_id{0};
 };
