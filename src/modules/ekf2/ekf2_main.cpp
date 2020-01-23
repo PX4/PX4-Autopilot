@@ -1095,10 +1095,10 @@ void Ekf2::Run()
 		if (_ev_odom_sub.updated()) {
 			new_ev_data_received = true;
 
-			// copy both attitude & position, we need both to fill a single ext_vision_message
+			// copy both attitude & position, we need both to fill a single extVisionSample
 			_ev_odom_sub.copy(&_ev_odom);
 
-			ext_vision_message ev_data;
+			extVisionSample ev_data;
 
 			// check for valid velocity data
 			if (PX4_ISFINITE(_ev_odom.vx) && PX4_ISFINITE(_ev_odom.vy) && PX4_ISFINITE(_ev_odom.vz)) {
@@ -1158,7 +1158,8 @@ void Ekf2::Run()
 			}
 
 			// use timestamp from external computer, clocks are synchronized when using MAVROS
-			_ekf.setExtVisionData(_ev_odom.timestamp, &ev_data);
+			ev_data.time_us = _ev_odom.timestamp;
+			_ekf.setExtVisionData(ev_data);
 
 			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)_ev_odom.timestamp / 100 -
 					(int64_t)ekf2_timestamps.timestamp / 100);
