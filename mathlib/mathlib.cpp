@@ -42,34 +42,18 @@
 
 #ifdef ECL_STANDALONE
 
-namespace math
-{
+namespace math {
 
-float min(float val1, float val2)
-{
-	return (val1 < val2) ? val1 : val2;
-}
+float min(float val1, float val2) { return (val1 < val2) ? val1 : val2; }
 
-float max(float val1, float val2)
-{
-	return (val1 > val2) ? val1 : val2;
-}
+float max(float val1, float val2) { return (val1 > val2) ? val1 : val2; }
 
-float constrain(float val, float min, float max)
-{
-	return (val < min) ? min : ((val > max) ? max : val);
-}
+float constrain(float val, float min, float max) { return (val < min) ? min : ((val > max) ? max : val); }
 
-float radians(float degrees)
-{
-	return (degrees / 180.0f) * M_PI_F;
-}
+float radians(float degrees) { return (degrees / 180.0f) * M_PI_F; }
 
-float degrees(float radians)
-{
-	return (radians * 180.0f) / M_PI_F;
-}
+float degrees(float radians) { return (radians * 180.0f) / M_PI_F; }
 
-} // namespace math
+}  // namespace math
 
 #endif /* ECL_STANDALONE */

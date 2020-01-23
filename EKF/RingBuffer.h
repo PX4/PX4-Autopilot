@@ -60,6 +60,7 @@ public:
 	RingBuffer &operator=(RingBuffer &&) = delete;
 
 	bool allocate(uint8_t size) {
+
 		if (_buffer != nullptr) {
 			delete[] _buffer;
 		}
@@ -92,6 +93,7 @@ public:
 	}
 
 	void push(const data_type &sample) {
+
 		uint8_t head_new = _head;
 
 		if (!_first_write) {

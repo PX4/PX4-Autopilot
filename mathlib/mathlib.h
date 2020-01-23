@@ -51,8 +51,7 @@
 #define M_PI_2_F (M_PI / 2.0f)
 #endif
 
-namespace math
-{
+namespace math {
 // using namespace Eigen;
 
 float min(float val1, float val2);
@@ -61,10 +60,10 @@ float constrain(float val, float min, float max);
 float radians(float degrees);
 float degrees(float radians);
 
-}
+}  // namespace math
 #else
 
 #include <mathlib/mathlib.h>
 
-#endif //ECL_STANDALONE
-#endif //MATHLIB_H
+#endif  // ECL_STANDALONE
+#endif  // MATHLIB_H

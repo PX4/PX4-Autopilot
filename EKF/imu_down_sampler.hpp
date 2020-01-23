@@ -37,15 +37,14 @@
  */
 #pragma once
 
-#include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 #include "common.h"
 
 using namespace estimator;
 
-class ImuDownSampler
-{
+class ImuDownSampler {
 public:
 	ImuDownSampler(float target_dt_sec);
 	~ImuDownSampler();
@@ -56,11 +55,9 @@ public:
 private:
 	imuSample _imu_down_sampled;
 	Quatf _delta_angle_accumulated;
-	const float _target_dt; // [sec]
+	const float _target_dt;  // [sec]
 	float _imu_collection_time_adj;
 	bool _do_reset;
 
 	void reset();
-
 };
-
