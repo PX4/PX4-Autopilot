@@ -83,6 +83,7 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 	for (uint32_t i = 0 ; i < internal_bins; i++) {
 		_data_timestamps[i] = current_time;
 		_data_maxranges[i] = 0;
+		_data_fov[i] = 0;
 		_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 	}
 }
@@ -129,6 +130,7 @@ CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 					_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
 					_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
 					_data_maxranges[i] = obstacle.max_distance;
+					_data_fov[i] = 1;
 				}
 			}
 		}
@@ -148,6 +150,7 @@ CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 					_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
 					_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
 					_data_maxranges[i] = obstacle.max_distance;
+					_data_fov[i] = 1;
 				}
 			}
 		}
@@ -281,6 +284,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 				_obstacle_map_body_frame.distances[wrapped_bin] = static_cast<uint16_t>(100.0f * distance_reading + 0.5f);
 				_data_timestamps[wrapped_bin] = _obstacle_map_body_frame.timestamp;
 				_data_maxranges[wrapped_bin] = sensor_range;
+				_data_fov[wrapped_bin] = 1;
 			}
 		}
 	}
@@ -468,8 +472,10 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 						}
 					}
 
-				} else if (_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == sp_index && (!move_no_data)) {
-					vel_max = 0.f;
+				} else if (_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == sp_index) {
+					if (!move_no_data || (move_no_data && _data_fov[i])) {
+						vel_max = 0.f;
+					}
 				}
 			}
 
