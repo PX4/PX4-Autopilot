@@ -16,7 +16,11 @@ jobs:
         repository: PX4/Firmware
         ref: master
         submodules: recurvise
-    - run: git submodule update --init --recursive
+    - name: Checkout matching branch on PX4/Firmware if possible
+      run: |
+        git fetch origin
+        git checkout ${{github.head_ref}} || echo "Firmware branch: ${{github.head_ref}} not found, using master instead"
+        git submodule update --init --recursive
       working-directory: ../Firmware
     - name: Configure Firmware to include current ECL version
       working-directory: ../Firmware/src/lib/ecl
