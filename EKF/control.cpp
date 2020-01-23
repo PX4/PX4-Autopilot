@@ -133,8 +133,9 @@ void Ekf::controlFusionModes()
 	}
 
 	// We don't fuse flow data immediately because we have to wait for the mid integration point to fall behind the fusion time horizon.
-	// This means we stop looking for new data until the old data has been fused.
-	if (!_flow_data_ready) {
+	// This means we stop looking for new data until the old data has been fused, unless we are not fusing optical flow,
+	// in this case we need to empty the buffer
+	if (!_flow_data_ready || !_control_status.flags.opt_flow) {
 		_flow_data_ready = _flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
 				   && (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
 	}
@@ -525,11 +526,11 @@ void Ekf::controlOpticalFlowFusion()
 
 			if (!flow_quality_good && !_control_status.flags.in_air) {
 				// when on the ground with poor flow quality, assume zero ground relative velocity and LOS rate
-				_flowRadXYcomp.zero();
+				_flow_compensated_XY_rad.zero();
 			} else {
 				// compensate for body motion to give a LOS rate
-				_flowRadXYcomp(0) = _flow_sample_delayed.flowRadXY(0) - _flow_sample_delayed.gyroXYZ(0);
-				_flowRadXYcomp(1) = _flow_sample_delayed.flowRadXY(1) - _flow_sample_delayed.gyroXYZ(1);
+				_flow_compensated_XY_rad(0) = _flow_sample_delayed.flow_xy_rad(0) - _flow_sample_delayed.gyro_xyz(0);
+				_flow_compensated_XY_rad(1) = _flow_sample_delayed.flow_xy_rad(1) - _flow_sample_delayed.gyro_xyz(1);
 			}
 		} else {
 			// don't use this flow data and wait for the next data to arrive

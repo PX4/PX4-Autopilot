@@ -16,21 +16,22 @@ Flow::~Flow()
 void Flow::send(uint64_t time)
 {
 	_flow_data.dt = time - _time_last_data_sent;
-	_ekf->setOpticalFlowData(time, &_flow_data);
+	_flow_data.time_us = time;
+	_ekf->setOpticalFlowData(_flow_data);
 }
 
-void Flow::setData(const flow_message& flow)
+void Flow::setData(const flowSample& flow)
 {
 	_flow_data = flow;
 
 }
 
-flow_message Flow::dataAtRest()
+flowSample Flow::dataAtRest()
 {
-	flow_message _flow_at_rest;
-	_flow_at_rest.dt = 20000;
-	_flow_at_rest.flowdata = Vector2f{0.0f, 0.0f};
-	_flow_at_rest.gyrodata = Vector3f{0.0f, 0.0f, 0.0f};
+	flowSample _flow_at_rest;
+	_flow_at_rest.dt = 0.02f;
+	_flow_at_rest.flow_xy_rad = Vector2f{0.0f, 0.0f};
+	_flow_at_rest.gyro_xyz = Vector3f{0.0f, 0.0f, 0.0f};
 	_flow_at_rest.quality = 255;
 	return _flow_at_rest;
 }

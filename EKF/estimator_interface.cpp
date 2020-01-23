@@ -336,8 +336,7 @@ void EstimatorInterface::setRangeData(const rangeSample& range_sample)
 	}
 }
 
-// TODO: Change pointer to constant reference
-void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *flow)
+void EstimatorInterface::setOpticalFlowData(const flowSample& flow)
 {
 	if (!_initialised || _flow_buffer_fail) {
 		return;
@@ -355,10 +354,10 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 	}
 
 	// limit data rate to prevent data being lost
-	if ((time_usec - _time_last_optflow) > _min_obs_interval_us) {
+	if ((flow.time_us - _time_last_optflow) > _min_obs_interval_us) {
 		// check if enough integration time and fail if integration time is less than 50%
 		// of min arrival interval because too much data is being lost
-		float delta_time = 1e-6f * (float)flow->dt; // in seconds
+		float delta_time = flow.dt; // in seconds
 		const float delta_time_min = 0.5e-6f * (float)_min_obs_interval_us;
 		bool delta_time_good = delta_time >= delta_time_min;
 
@@ -368,7 +367,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			// check magnitude is within sensor limits
 			// use this to prevent use of a saturated flow sensor
 			// when there are other aiding sources available
-			const float flow_rate_magnitude = flow->flowdata.norm() / delta_time;
+			const float flow_rate_magnitude = flow.flow_xy_rad.norm() / delta_time;
 			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
 		} else {
 			// protect against overflow caused by division with very small delta_time
@@ -377,25 +376,22 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 
 		const bool relying_on_flow = !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel;
 
-		const bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
+		const bool flow_quality_good = (flow.quality >= _params.flow_qual_min);
 
 		// Check data validity and write to buffers
 		// Invalid flow data is allowed when on ground and is handled as a special case in controlOpticalFlowFusion()
 		bool use_flow_data_to_navigate = delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow);
 		if (use_flow_data_to_navigate || (!_control_status.flags.in_air && relying_on_flow)) {
-			flowSample optflow_sample_new;
-			// calculate the system time-stamp for the trailing edge of the flow data integration period
-			optflow_sample_new.time_us = time_usec - _params.flow_delay_ms * 1000;
 
-			optflow_sample_new.quality = flow->quality;
+			_time_last_optflow = flow.time_us;
 
-			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
-			// is produced by a RH rotation of the image about the sensor axis.
-			optflow_sample_new.gyroXYZ = - flow->gyrodata;
-			optflow_sample_new.flowRadXY = -flow->flowdata;
+			flowSample optflow_sample_new = flow;
+
+			// compensate time-stamp for the trailing edge of the flow data integration period
+			optflow_sample_new.time_us -= _params.flow_delay_ms * 1000;
+			optflow_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 			optflow_sample_new.dt = delta_time;
-			_time_last_optflow = time_usec;
 
 			_flow_buffer.push(optflow_sample_new);
 		}

@@ -161,8 +161,7 @@ TEST_F(EkfFusionLogicTest, doFlowFusion)
 
 	// WHEN: Flow data is not send and we enable flow fusion
 	_sensor_simulator.stopFlow();
-	_sensor_simulator.runSeconds(3); // TODO: without this line tests fail
-	// probably there are still values in the buffer.
+	_sensor_simulator.runSeconds(1); // empty buffer
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.runSeconds(3);
 
