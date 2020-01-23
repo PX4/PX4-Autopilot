@@ -1,6 +1,6 @@
 name: Firmware Build Test
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   Firmware-build:
@@ -20,7 +20,9 @@ jobs:
       working-directory: ../Firmware
     - name: Configure Firmware to include current ECL version
       working-directory: ../Firmware/src/lib/ecl
-      run: git checkout ${{ github.sha }}
+      run: |
+        git fetch origin +${{ github.ref }}
+        git checkout ${{ github.sha }}
     - name: Add and commit new ECL version
       run: |
         git config --global user.email "${GIT_COMMITTER_EMAIL}"

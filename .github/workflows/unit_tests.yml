@@ -1,6 +1,6 @@
 name: Unit Tests
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   unit_tests:
