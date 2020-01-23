@@ -10,6 +10,7 @@ px4_add_board(
 		#batt_smbus
 		camera_capture
 		camera_trigger
+		rotor_frequency
 		#differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
 		gps
