@@ -73,13 +73,6 @@ struct gps_message {
 	float pdop;		///< position dilution of precision
 };
 
-struct flow_message {
-	uint8_t quality;	///< Quality of Flow data
-	Vector2f flowdata;	///< Optical flow rates about the X and Y body axes (rad/sec)
-	Vector3f gyrodata;	///< Gyro rates about the XYZ body axes (rad/sec)
-	uint32_t dt;		///< integration time of flow samples (microseconds)
-};
-
 struct outputSample {
 	Quatf  quat_nominal;	///< nominal quaternion describing vehicle attitude
 	Vector3f    vel;	///< NED velocity estimate in earth frame (m/sec)
@@ -137,8 +130,8 @@ struct airspeedSample {
 
 struct flowSample {
 	uint8_t  quality;	///< quality indicator between 0 and 255
-	Vector2f flowRadXY;	///< measured delta angle of the image about the X and Y body axes (rad), RH rotation is positive
-	Vector3f gyroXYZ;	///< measured delta angle of the inertial frame about the body axes obtained from rate gyro measurements (rad), RH rotation is positive
+	Vector2f flow_xy_rad;	///< measured delta angle of the image about the X and Y body axes (rad), RH rotation is positive
+	Vector3f gyro_xyz;	///< measured delta angle of the inertial frame about the body axes obtained from rate gyro measurements (rad), RH rotation is positive
 	float    dt;		///< amount of integration time (sec)
 	uint64_t time_us;	///< timestamp of the integration period leading edge (uSec)
 };

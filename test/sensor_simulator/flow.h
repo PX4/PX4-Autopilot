@@ -50,11 +50,11 @@ public:
 	Flow(std::shared_ptr<Ekf> ekf);
 	~Flow();
 
-	void setData(const flow_message& flow);
-	flow_message dataAtRest();
+	void setData(const flowSample& flow);
+	flowSample dataAtRest();
 
 private:
-	flow_message _flow_data;
+	flowSample _flow_data;
 
 	void send(uint64_t time) override;
 

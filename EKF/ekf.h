@@ -429,7 +429,7 @@ private:
 	uint64_t _time_bad_motion_us{0};	///< last system time that on-ground motion exceeded limits (uSec)
 	uint64_t _time_good_motion_us{0};	///< last system time that on-ground motion was within limits (uSec)
 	bool _inhibit_flow_use{false};	///< true when use of optical flow and range finder is being inhibited
-	Vector2f _flowRadXYcomp;	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
+	Vector2f _flow_compensated_XY_rad;	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
 
 	// output predictor states
 	Vector3f _delta_angle_corr;	///< delta angle correction vector (rad)
