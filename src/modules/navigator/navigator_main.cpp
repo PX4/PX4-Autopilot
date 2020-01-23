@@ -647,6 +647,11 @@ Navigator::run()
 			break;
 		}
 
+		// Do not execute any state machine while we are disarmed
+		if (_vstatus.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+			navigation_mode_new = nullptr;
+		}
+
 		// update the vehicle status
 		_previous_nav_state = _vstatus.nav_state;
 
