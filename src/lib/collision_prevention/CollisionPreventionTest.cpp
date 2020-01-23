@@ -272,7 +272,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	cp.paramsChanged();
 
 	// AND: an obstacle message
-	obstacle_distance_s message, message_empty;
+	obstacle_distance_s message, message_lost_data;
 	memset(&message, 0xDEAD, sizeof(message));
 	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
 	message.min_distance = 100;
@@ -281,19 +281,22 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	message.timestamp = start_time;
 	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
 	message.increment = 360 / distances_array_size;
-	message_empty = message;
+	message_lost_data = message;
 
 	for (int i = 0; i < distances_array_size; i++) {
 		if (i < 10) {
 			message.distances[i] = 10001;
+			message_lost_data.distances[i] = UINT16_MAX;
+
+		} else if (i > 15 && i < 18) {
+			message.distances[i] = 10001;
+			message_lost_data.distances[i] = 10001;
 
 		} else {
 			message.distances[i] = UINT16_MAX;
+			message_lost_data.distances[i] = UINT16_MAX;
 		}
-
-		message_empty.distances[i] = UINT16_MAX;
 	}
-
 
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
@@ -307,8 +310,16 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 
 		mocked_time = mocked_time + 100000; //advance time by 0.1 seconds
-		message_empty.timestamp = mocked_time;
-		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message_empty);
+		message_lost_data.timestamp = mocked_time;
+		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message_lost_data);
+
+		//at iteration 8 change the CP_GO_NO_DATA to True
+		if (i == 8) {
+			param_t param_allow = param_handle(px4::params::CP_GO_NO_DATA);
+			float value_allow = 1;
+			param_set(param_allow, &value_allow);
+			cp.paramsChanged();
+		}
 
 		if (i < 6) {
 			// THEN: If the data is new enough, the velocity setpoint should stay the same as the input
@@ -317,6 +328,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 
 		} else {
 			// THEN: If the data is expired, the velocity setpoint should be cut down to zero because there is no data
+			//(even if CP_GO_NO_DATA is set to true, because we once had data in those bins and now lost the sensor)
 			EXPECT_FLOAT_EQ(0.f, modified_setpoint.norm()) << modified_setpoint(0) << "," << modified_setpoint(1);
 		}
 	}
