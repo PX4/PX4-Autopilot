@@ -31,7 +31,14 @@ then
 	param set FW_AIRSPD_MIN = 7
 	param set FW_AIRSPD_TRIM = 13
 	param set FW_THR_CRUISE  = 0.8
+
+	param set FW_MAN_P_MAX = 25.0
+	param set FW_MAN_R_MAX = 25.0
+	param set FW_PR_I = 0.02
 	param set FW_R_LIM = 40
+	param set FW_P_LIM_MAX = 25.0
+	param set FW_P_LIM_MIN = -5.0
+	param set FW_P_RMAX_NEG = 20.0
 fi
 
 set MIXER TF-AutoG2
