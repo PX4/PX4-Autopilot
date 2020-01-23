@@ -129,9 +129,8 @@ public:
 	 * Pass the desired setpoints
 	 * Note: NAN value means no feed forward/leave state uncontrolled if there's no higher order setpoint.
 	 * @param setpoint a vehicle_local_position_setpoint_s structure
-	 * @return true if a valid setpoint was set
 	 */
-	bool setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint);
+	void setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Pass constraints that are stricter than the global limits
@@ -147,9 +146,9 @@ public:
 	 * @see _yaw_sp
 	 * @see _yawspeed_sp
 	 * @param dt time in seconds since last iteration
-	 * @return true if output setpoint is executable, false if not
+	 * @return true if update succeeded and output setpoint is executable, false if not
 	 */
-	void update(const float dt);
+	bool update(const float dt);
 
 	/**
 	 * Set the integral term in xy to 0.
@@ -174,11 +173,7 @@ public:
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 private:
-	/**
-	 * Maps setpoints to internal-setpoints.
-	 * @return true if mapping succeeded.
-	 */
-	bool _interfaceMapping();
+	bool _updateSuccessful();
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
@@ -215,6 +210,4 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
-
-	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
 };

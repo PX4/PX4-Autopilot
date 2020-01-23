@@ -71,7 +71,7 @@ void PositionControl::setState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
-bool PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint)
+void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
@@ -79,14 +79,6 @@ bool PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &
 	_thr_sp = Vector3f(setpoint.thrust);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
-	bool mapping_succeeded = _interfaceMapping();
-
-	// If full manual is required (thrust already generated), don't run position/velocity
-	// controller and just return thrust.
-	_skip_controller = PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))
-			   && PX4_ISFINITE(_thr_sp(2));
-
-	return mapping_succeeded;
 }
 
 void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
@@ -110,132 +102,20 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 	// ignore _constraints.speed_xy TODO: remove it completely as soon as no task uses it anymore to avoid confusion
 }
 
-void PositionControl::update(const float dt)
+bool PositionControl::update(const float dt)
 {
-	if (_skip_controller) {
-		// Already received a valid thrust set-point.
-		// Limit the thrust vector.
-		float thr_mag = _thr_sp.length();
-
-		if (thr_mag > _lim_thr_max) {
-			_thr_sp = _thr_sp.normalized() * _lim_thr_max;
-
-		} else if (thr_mag < _lim_thr_min && thr_mag > FLT_EPSILON) {
-			_thr_sp = _thr_sp.normalized() * _lim_thr_min;
-		}
-
-		// Just set the set-points equal to the current vehicle state.
-		_pos_sp = _pos;
-		_vel_sp = _vel;
-		_acc_sp = _vel_dot;
-		return;
-	}
+	// x and y input setpoints always have to come in pairs
+	const bool valid = (PX4_ISFINITE(_pos_sp(0)) == PX4_ISFINITE(_pos_sp(1)))
+			   && (PX4_ISFINITE(_vel_sp(0)) == PX4_ISFINITE(_vel_sp(1)))
+			   && (PX4_ISFINITE(_thr_sp(0)) == PX4_ISFINITE(_thr_sp(1)));
 
 	_positionControl();
 	_velocityControl(dt);
 
 	_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
 	_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
-}
 
-bool PositionControl::_interfaceMapping()
-{
-	// if nothing is valid, then apply failsafe landing
-	bool failsafe = false;
-
-	// Respects FlightTask interface, where NAN-set-points are of no interest
-	// and do not require control. A valid position and velocity setpoint will
-	// be mapped to a desired position setpoint with a feed-forward term.
-	// States and setpoints which are integrals of the reference setpoint are set to 0.
-	// For instance: reference is velocity-setpoint -> position and position-setpoint = 0
-	//               reference is thrust-setpoint -> position, velocity, position-/velocity-setpoint = 0
-	for (int i = 0; i <= 2; i++) {
-
-		if (PX4_ISFINITE(_pos_sp(i))) {
-			// Position control is required
-
-			if (!PX4_ISFINITE(_vel_sp(i))) {
-				// Velocity is not used as feedforward term.
-				_vel_sp(i) = 0.0f;
-			}
-
-			// thrust setpoint is not supported in position control
-			_thr_sp(i) = NAN;
-
-			// to run position control, we require valid position and velocity
-			if (!PX4_ISFINITE(_pos(i)) || !PX4_ISFINITE(_vel(i))) {
-				failsafe = true;
-			}
-
-		} else if (PX4_ISFINITE(_vel_sp(i))) {
-
-			// Velocity controller is active without position control.
-			// Set integral states and setpoints to 0
-			_pos_sp(i) = _pos(i) = 0.0f;
-
-			// thrust setpoint is not supported in velocity control
-			_thr_sp(i) = NAN;
-
-			// to run velocity control, we require valid velocity
-			if (!PX4_ISFINITE(_vel(i))) {
-				failsafe = true;
-			}
-
-		} else if (PX4_ISFINITE(_thr_sp(i))) {
-
-			// Thrust setpoint was generated from sticks directly.
-			// Set all integral states and setpoints to 0
-			_pos_sp(i) = _pos(i) = 0.0f;
-			_vel_sp(i) = _vel(i) = 0.0f;
-
-			// Reset the Integral term.
-			_vel_int(i) = 0.0f;
-			// Don't require velocity derivative.
-			_vel_dot(i) = 0.0f;
-
-		} else {
-			// nothing is valid. do failsafe
-			failsafe = true;
-		}
-	}
-
-	// ensure that vel_dot is finite, otherwise set to 0
-	if (!PX4_ISFINITE(_vel_dot(0)) || !PX4_ISFINITE(_vel_dot(1))) {
-		_vel_dot(0) = _vel_dot(1) = 0.0f;
-	}
-
-	if (!PX4_ISFINITE(_vel_dot(2))) {
-		_vel_dot(2) = 0.0f;
-	}
-
-	if (!PX4_ISFINITE(_yawspeed_sp)) {
-		// Set the yawspeed to 0 since not used.
-		_yawspeed_sp = 0.0f;
-	}
-
-	if (!PX4_ISFINITE(_yaw_sp)) {
-		// Set the yaw-sp equal the current yaw.
-		// That is the best we can do and it also
-		// agrees with FlightTask-interface definition.
-		if (PX4_ISFINITE(_yaw)) {
-			_yaw_sp = _yaw;
-
-		} else {
-			failsafe = true;
-		}
-	}
-
-	// check failsafe
-	if (failsafe) {
-		// point the thrust upwards
-		_thr_sp(0) = _thr_sp(1) = 0.0f;
-		// throttle down such that vehicle goes down with
-		// 70% of throttle range between min and hover
-		_thr_sp(2) = -(_lim_thr_min + (_hover_thrust - _lim_thr_min) * 0.7f);
-		// position and velocity control-loop is currently unused (flag only for logging purpose)
-	}
-
-	return !(failsafe);
+	return valid && _updateSuccessful();
 }
 
 void PositionControl::_positionControl()
@@ -336,6 +216,26 @@ void PositionControl::_velocityControl(const float dt)
 	_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * math::sign(_vel_int(2));
 }
 
+bool PositionControl::_updateSuccessful()
+{
+	bool valid = true;
+
+	// For each controlled state the estimate has to be valid
+	for (int i = 0; i <= 2; i++) {
+		if (PX4_ISFINITE(_pos_sp(i))) {
+			valid = valid && PX4_ISFINITE(_pos(i));
+		}
+
+		if (PX4_ISFINITE(_vel_sp(i))) {
+			valid = valid && PX4_ISFINITE(_vel(i)) && PX4_ISFINITE(_vel_dot(i));
+		}
+	}
+
+	// There has to be a valid output thrust setpoint otherwise there was no
+	// setpoint-state pair for each axis that can get controlled
+	valid = valid && PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(_thr_sp(2));
+	return valid;
+}
 
 void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
 {
