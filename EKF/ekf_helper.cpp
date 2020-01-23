@@ -696,11 +696,6 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	// record the state change
 	_state_reset_status.quat_change = q_error;
 
-	// reset the rotation from the EV to EKF frame of reference if it is being used
-	if ((_params.fusion_mode & MASK_ROTATE_EV) && !_control_status.flags.ev_yaw) {
-		resetExtVisRotMat();
-	}
-
 	if (increase_yaw_var) {
 		// update the yaw angle variance using the variance of the measurement
 		if (_control_status.flags.ev_yaw) {
@@ -1657,64 +1652,18 @@ void Ekf::startMag3DFusion()
 	}
 }
 
-// update the estimated misalignment between the EV navigation frame and the EKF navigation frame
-// and calculate a rotation matrix which rotates EV measurements into the EKF's navigation frame
+// update the rotation matrix which rotates EV measurements into the EKF's navigation frame
 void Ekf::calcExtVisRotMat()
 {
 	// Calculate the quaternion delta that rotates from the EV to the EKF reference frame at the EKF fusion time horizon.
 	const Quatf q_error((_state.quat_nominal * _ev_sample_delayed.quat.inversed()).normalized());
-
-	// convert to a delta angle and apply a spike and low pass filter
-	AxisAnglef rot_vec(q_error);
-
-	if (rot_vec.norm() > 1e-6f) {
-
-		// apply an input limiter to protect from spikes
-		const Vector3f _input_delta_vec = rot_vec - _ev_rot_vec_filt;
-		const float input_delta_len = _input_delta_vec.norm();
-
-		if (input_delta_len > 0.1f) {
-			rot_vec = _ev_rot_vec_filt + _input_delta_vec * (0.1f / input_delta_len);
-		}
-
-		// Apply a first order IIR low pass filter
-		const float omega_lpf_us = 0.2e-6f; // cutoff frequency in rad/uSec
-		float alpha = math::constrain(omega_lpf_us * (float)(_time_last_imu - _ev_rot_last_time_us), 0.0f, 1.0f);
-		_ev_rot_last_time_us = _time_last_imu;
-		_ev_rot_vec_filt = _ev_rot_vec_filt * (1.0f - alpha) + rot_vec * alpha;
-
-	}
-
-	_R_ev_to_ekf = Dcmf(_ev_rot_vec_filt);
-
-}
-
-// reset the estimated misalignment between the EV navigation frame and the EKF navigation frame
-// and update the rotation matrix which rotates EV measurements into the EKF's navigation frame
-void Ekf::resetExtVisRotMat()
-{
-	// Calculate the quaternion delta that rotates from the EV to the EKF reference frame at the EKF fusion time horizon.
-	Quatf q_error = _state.quat_nominal * _ev_sample_delayed.quat.inversed();
-	q_error.normalize();
-
-	AxisAnglef rot_vec(q_error);
-
-	float rot_vec_norm = rot_vec.norm();
-
-	if (rot_vec_norm > 1e-9f) {
-		_ev_rot_vec_filt = rot_vec;
-
-	} else {
-		_ev_rot_vec_filt.zero();
-	}
-
 	_R_ev_to_ekf = Dcmf(q_error);
 }
 
 // return the quaternions for the rotation from External Vision system reference frame to the EKF reference frame
 void Ekf::get_ev2ekf_quaternion(float *quat)
 {
-	const Quatf quat_ev2ekf(_ev_rot_vec_filt);
+	const Quatf quat_ev2ekf(_R_ev_to_ekf);
 
 	for (unsigned i = 0; i < 4; i++) {
 		quat[i] = quat_ev2ekf(i);
