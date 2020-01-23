@@ -35,3 +35,4 @@ then
 fi
 
 set MIXER TF-AutoG2
+set MIXER_AUX pass
