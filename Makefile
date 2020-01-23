@@ -39,6 +39,8 @@
 FIRST_ARG := $(firstword $(MAKECMDGOALS))
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 j ?= 4
+BLUE='\033[1;36m'
+NC='\033[0m' # No Color
 
 NINJA_BIN := ninja
 ifndef NO_NINJA_BUILD
@@ -95,7 +97,7 @@ doxygen:
 # Testing
 # --------------------------------------------------------------------
 
-.PHONY: test_build test test_EKF
+.PHONY: test_build test
 
 test_build:
 	@$(call cmake-build,$@,$(SRC_DIR), "-DBUILD_TESTING=ON")
@@ -123,6 +125,22 @@ coverage_html: coverage_build
 
 coverage_html_view: coverage_build
 	@cmake --build $(SRC_DIR)/build/coverage_build --target coverage_html_view
+
+# Code formatting
+# --------------------------------------------------------------------
+.PHONY: check_format format clang-format
+
+clang-format:
+	@echo -e ${BLUE}Check clang-format-6.0 installation${NC}
+	@if ! hash clang-format-6.0; then sudo apt install clang-format-6.0 -y; fi
+
+check_format: clang-format
+	@echo -e ${BLUE}Checking formatting with clang-format${NC}
+	@$(SRC_DIR)/tools/format.sh 0
+
+format: clang-format
+	@echo -e ${BLUE}Formatting with clang-format${NC}
+	@$(SRC_DIR)/tools/format.sh 1
 
 # Cleanup
 # --------------------------------------------------------------------

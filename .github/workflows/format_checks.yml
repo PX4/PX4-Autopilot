@@ -1,0 +1,15 @@
+name: Format Checks
+
+on: [push, pull_request]
+
+jobs:
+  format_checks:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-clang:2019-10-24
+    steps:
+    - uses: actions/checkout@v1
+    - name: install clang-format-6.0
+      run: apt install -y clang-format-6.0
+    - name: check_format
+      run: ./tools/format.sh 0
+
