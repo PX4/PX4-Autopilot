@@ -563,19 +563,6 @@ MulticopterPositionControl::Run()
 				constraints = _flight_tasks.getConstraints();
 
 				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_now);
-
-				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
-				if (!(PX4_ISFINITE(setpoint.x) && PX4_ISFINITE(setpoint.y)) &&
-				    !(PX4_ISFINITE(setpoint.vx) && PX4_ISFINITE(setpoint.vy)) &&
-				    !(PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1]))) {
-					failsafe(setpoint, _states, true, !was_in_failsafe);
-				}
-
-				// Check if altitude, climbrate or thrust in D-direction are valid -> trigger failsafe if none
-				// of these setpoints are valid
-				if (!PX4_ISFINITE(setpoint.z) && !PX4_ISFINITE(setpoint.vz) && !PX4_ISFINITE(setpoint.thrust[2])) {
-					failsafe(setpoint, _states, true, !was_in_failsafe);
-				}
 			}
 
 			// publish trajectory setpoint
@@ -617,15 +604,15 @@ MulticopterPositionControl::Run()
 			// Run position control
 			_control.setState(_states);
 			_control.setConstraints(constraints);
+			_control.setInputSetpoint(setpoint);
 
-			if (!_control.setInputSetpoint(setpoint)) {
+			if (!_control.update(_dt)) {
 				warn_rate_limited("PositionControl: invalid setpoints");
 				failsafe(setpoint, _states, true, !was_in_failsafe);
 				_control.setInputSetpoint(setpoint);
 				constraints = FlightTask::empty_constraints;
+				_control.update(_dt);
 			}
-
-			_control.update(_dt);
 
 			// Fill local position, velocity and thrust setpoint.
 			// This message contains setpoints where each type of setpoint is either the input to the PositionController
