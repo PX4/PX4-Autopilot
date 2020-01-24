@@ -71,9 +71,9 @@
 
 
 //loaded parameters defaluts
-#define PCF8583_BASEADDR_DEFAULT 	            0x51     //ROTROFREQ_ADDR param default value
+#define PCF8583_BASEADDR_DEFAULT 	            0x52     //ROTROFREQ_ADDR param default value
 #define PCF8583_POOL_INTERVAL_DAFAULT	         1000000  //ROTORFREQ_POOL param defalut value
-#define PCF8583_MAGNET_COUNT_DEFAULT           1        //ROTORFREQ_MAGNET param defalut value
+#define PCF8583_MAGNET_COUNT_DEFAULT           3        //ROTORFREQ_MAGNET param defalut value
 #define PCF8583_RESET_COUNT_DEFAULT            0 //0 - reset after every measurement
 
 #define PCF8583_POOL_INTERVAL_MAX              10000000 //10s max - limiter for setting by ioctl
