@@ -23,4 +23,4 @@ jobs:
     - name: Build PX4 in SITL integration test mode
       run: DONT_RUN=1 make px4_sitl gazebo mavsdk_tests
     - name: Run simulation tests
-      run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --iterations 1 --fail-early
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris --speed-factor 20 --iterations 1 --fail-early

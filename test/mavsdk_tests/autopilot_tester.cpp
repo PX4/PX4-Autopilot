@@ -2,9 +2,6 @@
 #include <iostream>
 #include <future>
 
-using namespace mavsdk;
-using namespace mavsdk::geometry;
-
 std::string connection_url {"udp://"};
 
 void AutopilotTester::connect(const std::string uri)
@@ -21,6 +18,7 @@ void AutopilotTester::connect(const std::string uri)
     _telemetry.reset(new Telemetry(system));
     _action.reset(new Action(system));
     _mission.reset(new Mission(system));
+    _offboard.reset(new Offboard(system));
 }
 
 void AutopilotTester::wait_until_ready()
@@ -28,6 +26,20 @@ void AutopilotTester::wait_until_ready()
     std::cout << "Waiting for system to be ready" << std::endl;
     CHECK(poll_condition_with_timeout(
         [this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(20)));
+}
+
+void AutopilotTester::wait_until_ready_local_position_only()
+{
+    std::cout << "Waiting for system to be ready" << std::endl;
+    CHECK(poll_condition_with_timeout(
+        [this]() {
+	return
+	    (_telemetry->health().gyrometer_calibration_ok &&
+	     _telemetry->health().accelerometer_calibration_ok &&
+	     _telemetry->health().magnetometer_calibration_ok &&
+	     _telemetry->health().level_calibration_ok &&
+	     _telemetry->health().local_position_ok);
+	}, std::chrono::seconds(20)));
 }
 
 void AutopilotTester::set_takeoff_altitude(const float altitude_m)
@@ -144,4 +156,38 @@ std::shared_ptr<MissionItem>  AutopilotTester::_create_mission_item(
 void AutopilotTester::execute_rtl()
 {
     REQUIRE(Action::Result::SUCCESS == _action->return_to_launch());
+}
+
+void AutopilotTester::offboard_goto(const Offboard::PositionNEDYaw& target, float acceptance_radius, std::chrono::seconds timeout_duration)
+{
+    _offboard->set_position_ned(target);
+    REQUIRE(_offboard->start() == Offboard::Result::SUCCESS);
+    REQUIRE(poll_condition_with_timeout(
+        [=]() { return estimated_position_close_to(target, acceptance_radius); }, timeout_duration));
+    std::cout << "Target position reached" << std::endl;
+}
+
+void AutopilotTester::offboard_land()
+{
+    Offboard::VelocityNEDYaw land_velocity;
+    land_velocity.north_m_s = 0.0f;
+    land_velocity.east_m_s = 0.0f;
+    land_velocity.down_m_s = 1.0f;
+    land_velocity.yaw_deg = 0.0f;
+    _offboard->set_velocity_ned(land_velocity);
+}
+
+bool AutopilotTester::estimated_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius)
+{
+    Telemetry::PositionNED est_pos = _telemetry->position_velocity_ned().position;
+    return (est_pos.north_m - target_pos.north_m) * (est_pos.north_m - target_pos.north_m) +
+           (est_pos.east_m - target_pos.east_m) * (est_pos.east_m - target_pos.east_m) +
+           (est_pos.down_m - target_pos.down_m) * (est_pos.down_m - target_pos.down_m) < acceptance_radius * acceptance_radius;
+}
+
+bool AutopilotTester::estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius)
+{
+    Telemetry::PositionNED est_pos = _telemetry->position_velocity_ned().position;
+    return (est_pos.north_m - target_pos.north_m) * (est_pos.north_m - target_pos.north_m) +
+           (est_pos.east_m - target_pos.east_m) * (est_pos.east_m - target_pos.east_m) < acceptance_radius * acceptance_radius;
 }
