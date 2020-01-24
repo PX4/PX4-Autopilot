@@ -22,7 +22,7 @@ There are multiple checks run on a submitted PR:
 | - **Build tests**         | Checks if the submitted code is building on various platforms. |
 | - **Unit tests**          | Run checks if the code is satisfying test cases in `tests/` and report code coverage. |
 | - **Format checks**       | Check if the files specified in `/tools/format.sh` match the style specified in `.clang-format`. Run [auto-formatting](#Auto-Formatting) |
-| - **Firmware build tests**| Loads current `PX4/Firmware/master` and checks if ECL compiles with it. This test can fail if you change the ECL interface.As this can be necessary from time to time, this test is not required for | merging. But keep in mind to adapt the interface in `PX4/Firmware`
+| - **Firmware build tests**| Load Firmware and checks if ECL compiles with it. It tries to checkout to a branch on PX4/Firmware with the same name as the branch name on ECL. If it can not find a branch with the same name, it will checkout to master. |
 
 ## Unit tests
 # How to run the tests
