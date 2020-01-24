@@ -59,7 +59,8 @@ void PositionControl::setVelocityLimits(const float vel_horizontal, const float 
 
 void PositionControl::setThrustLimits(const float min, const float max)
 {
-	_lim_thr_min = min;
+	// make sure there's always enough thrust vector length to infer the attitude
+	_lim_thr_min = math::max(min, 10e-4f);
 	_lim_thr_max = max;
 }
 
@@ -179,21 +180,14 @@ void PositionControl::_velocityControl(const float dt)
 	// Velocity and feed-forward thrust setpoints or velocity states being NAN results in them not having an influence
 	ControlMath::addIfNotNanVector3f(_thr_sp, thr_sp_velocity);
 
-	// The Thrust limits are negated and swapped due to NED-frame.
-	float uMax = -_lim_thr_min;
-	float uMin = -_lim_thr_max;
-
-	// make sure there's always enough thrust vector length to infer the attitude
-	uMax = math::min(uMax, -10e-4f);
-
-	// Apply Anti-Windup in D-direction.
-	if ((_thr_sp(2) >= uMax && vel_error(2) >= 0.0f) ||
-	    (_thr_sp(2) <= uMin && vel_error(2) <= 0.0f)) {
+	// Integrator anti-windup in vertical direction
+	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.0f) ||
+	    (_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.0f)) {
 		vel_error(2) = 0.f;
 	}
 
 	// Saturate thrust setpoint in D-direction.
-	_thr_sp(2) = math::constrain(_thr_sp(2), uMin, uMax);
+	_thr_sp(2) = math::constrain(_thr_sp(2), -_lim_thr_max, -_lim_thr_min);
 
 	// Get maximum allowed thrust in NE based on tilt and excess thrust.
 	float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
