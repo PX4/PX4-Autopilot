@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name TF:AutoG2
+# @name ThunderFly Auto-G2
 #
 # @type Autogyro
 # @class Autogyro
@@ -13,8 +13,8 @@
 # @output MAIN6 throttle
 # @output MAIN7 wheel
 #
-# @output AUX1 prerotator (optional)
-# @output AUX2 release_device (optional)
+# @output AUX1 feed-through of RC AUX1 channel for prerotator (optional)
+# @output AUX2 feed-through of RC AUX2 channel for release device (optional)
 #
 # @url https://github.com/ThunderFly-aerospace/Auto-G2/
 # @maintainer ThunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
