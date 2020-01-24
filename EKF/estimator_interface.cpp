@@ -328,7 +328,7 @@ void EstimatorInterface::setRangeData(const rangeSample& range_sample)
 	if ((range_sample.time_us - _time_last_range) > _min_obs_interval_us) {
 		_time_last_range = range_sample.time_us;
 
-		rangeSample range_sample_new;
+		rangeSample range_sample_new = range_sample;
 		range_sample_new.time_us -= _params.range_delay_ms * 1000;
 		range_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
