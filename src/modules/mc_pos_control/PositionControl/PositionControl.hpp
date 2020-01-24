@@ -154,7 +154,7 @@ public:
 	 * Set the integral term in xy to 0.
 	 * @see _vel_int
 	 */
-	void resetIntegral() { _vel_int = matrix::Vector3f(); }
+	void resetIntegral() { _vel_int.setZero(); }
 
 	/**
 	 * Get the controllers output local position setpoint
@@ -172,12 +172,6 @@ public:
 	 */
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
-	/** adds to the setpoint but handles NAN cases correctly */
-	void _addIfNotNan(float &setpoint, const float addition) const;
-	/** same but bulk for Vector3f */
-	void _addIfNotNanVector(matrix::Vector3f &setpoint, const matrix::Vector3f &addition) const;
-	/** overwrites elements of a Vector3f which are NaN with zero */
-	void _setZeroIfNanVector(matrix::Vector3f &vector) const;
 private:
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control

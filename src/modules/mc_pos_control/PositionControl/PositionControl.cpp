@@ -101,7 +101,7 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 		_constraints.speed_down = _lim_vel_down;
 	}
 
-	// ignore _constraints.speed_xy TODO: remove it completely to avoid confusion
+	// ignore _constraints.speed_xy TODO: remove it completely as soon as no task uses it anymore to avoid confusion
 }
 
 bool PositionControl::update(const float dt)
@@ -123,8 +123,8 @@ bool PositionControl::update(const float dt)
 void PositionControl::_positionControl()
 {
 	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
-	_addIfNotNanVector(_vel_sp, vel_sp_position);
-	_setZeroIfNanVector(vel_sp_position);
+	ControlMath::addIfNotNanVector(_vel_sp, vel_sp_position);
+	ControlMath::setZeroIfNanVector(vel_sp_position);
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
@@ -144,7 +144,7 @@ void PositionControl::_velocityControl(const float dt)
 	// For backwards compatibility of the gains
 	acc_sp_velocity *= hover_scale;
 	// No control input from setpoints or corresponding states which are NAN
-	_addIfNotNanVector(_acc_sp, acc_sp_velocity);
+	ControlMath::addIfNotNanVector(_acc_sp, acc_sp_velocity);
 
 	_accelerationControl();
 
@@ -181,7 +181,7 @@ void PositionControl::_velocityControl(const float dt)
 	// Update integral part of velocity control
 	_vel_int += vel_error * _gain_vel_i * dt;
 	// Make sure integral doesn't stay NAN
-	_setZeroIfNanVector(_vel_int);
+	ControlMath::setZeroIfNanVector(_vel_int);
 }
 
 void PositionControl::_accelerationControl()
@@ -213,34 +213,7 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 
 void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
 {
-	ControlMath::bodyzToAttitude(attitude_setpoint, -_thr_sp, _yaw_sp);
+	ControlMath::bodyzToAttitude(-_thr_sp, _yaw_sp, attitude_setpoint);
 	attitude_setpoint.thrust_body[2] = -_thr_sp.length();
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
-}
-
-void PositionControl::_addIfNotNan(float &setpoint, const float addition) const
-{
-	if (PX4_ISFINITE(setpoint) && PX4_ISFINITE(addition)) {
-		// No NAN, add to the setpoint
-		setpoint += addition;
-
-	} else if (!PX4_ISFINITE(setpoint)) {
-		// Setpoint NAN, take addition
-		setpoint = addition;
-	}
-
-	// Addition is NAN or both are NAN, nothing to do
-}
-
-void PositionControl::_addIfNotNanVector(Vector3f &setpoint, const Vector3f &addition) const
-{
-	for (int i = 0; i < 3; i++) {
-		_addIfNotNan(setpoint(i), addition(i));
-	}
-}
-
-void PositionControl::_setZeroIfNanVector(Vector3f &vector) const
-{
-	// Adding zero vector overwrites elements that are NaN with zero
-	_addIfNotNanVector(vector, Vector3f());
 }

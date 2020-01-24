@@ -46,7 +46,7 @@ namespace ControlMath
 {
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
-	bodyzToAttitude(att_sp, -thr_sp, yaw_sp);
+	bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
 	att_sp.thrust_body[2] = -thr_sp.length();
 }
 
@@ -56,7 +56,7 @@ void accelerationToAttitude(const Vector3f &acc_sp, const float yaw_sp, const fl
 	// Assume standard acceleration due to gravity in vertical direction for attitude generation
 	Vector3f body_z_unit = Vector3f(-acc_sp(0), -acc_sp(1), CONSTANTS_ONE_G).unit();
 	limitTilt(body_z_unit, Vector3f(0, 0, 1), tilt_max);
-	bodyzToAttitude(att_sp, body_z_unit, yaw_sp);
+	bodyzToAttitude(body_z_unit, yaw_sp, att_sp);
 	// Scale thrust assuming hover thrust produces standard gravity
 	att_sp.thrust_body[2] = acc_sp(2) * (hover_thrust / CONSTANTS_ONE_G) - hover_thrust;
 	// Project thrust to planned body attitude
@@ -80,7 +80,7 @@ void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_
 	body_unit = cosf(angle) * world_unit + sinf(angle) * rejection.unit();
 }
 
-void bodyzToAttitude(vehicle_attitude_setpoint_s &att_sp, Vector3f body_z, const float yaw_sp)
+void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
 	// zero vector, no direction, set safe level value
 	if (body_z.norm_squared() < FLT_EPSILON) {
@@ -189,7 +189,6 @@ Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
 		// notes:
 		// 	- s (=scaling factor) needs to be positive
 		// 	- (max - ||v||) always larger than zero, otherwise it never entered this if-statement
-
 		Vector2f u1 = v1.normalized();
 		float m = u1.dot(v0);
 		float c = v0.dot(v0) - max * max;
@@ -245,4 +244,32 @@ bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
 		return false;
 	}
 }
+
+void addIfNotNan(float &setpoint, const float addition)
+{
+	if (PX4_ISFINITE(setpoint) && PX4_ISFINITE(addition)) {
+		// No NAN, add to the setpoint
+		setpoint += addition;
+
+	} else if (!PX4_ISFINITE(setpoint)) {
+		// Setpoint NAN, take addition
+		setpoint = addition;
+	}
+
+	// Addition is NAN or both are NAN, nothing to do
 }
+
+void addIfNotNanVector(Vector3f &setpoint, const Vector3f &addition)
+{
+	for (int i = 0; i < 3; i++) {
+		addIfNotNan(setpoint(i), addition(i));
+	}
+}
+
+void setZeroIfNanVector(Vector3f &vector)
+{
+	// Adding zero vector overwrites elements that are NaN with zero
+	addIfNotNanVector(vector, Vector3f());
+}
+
+} // ControlMath

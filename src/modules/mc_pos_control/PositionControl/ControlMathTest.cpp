@@ -33,7 +33,7 @@
 
 #include <gtest/gtest.h>
 #include <ControlMath.hpp>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 using namespace matrix;
 using namespace ControlMath;
@@ -235,4 +235,22 @@ TEST(ControlMathTest, CrossSphereLine)
 	retval = ControlMath::cross_sphere_line(matrix::Vector3f(0.f, 2.f, 2.5f), 1.f, prev, curr, res);
 	EXPECT_FALSE(retval);
 	EXPECT_EQ(res, Vector3f(0.f, 0.f, 2.f));
+}
+
+TEST(ControlMathTest, addIfNotNan)
+{
+	float v = 1.f;
+	// regular addition
+	ControlMath::addIfNotNan(v, 2.f);
+	EXPECT_EQ(v, 3.f);
+	// addition is NAN and has no influence
+	ControlMath::addIfNotNan(v, NAN);
+	EXPECT_EQ(v, 3.f);
+	v = NAN;
+	// both summands are NAN
+	ControlMath::addIfNotNan(v, NAN);
+	EXPECT_TRUE(isnan(v));
+	// regular value gets added to NAN and overwrites it
+	ControlMath::addIfNotNan(v, 3.f);
+	EXPECT_EQ(v, 3.f);
 }

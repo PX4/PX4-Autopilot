@@ -37,21 +37,6 @@
 
 using namespace matrix;
 
-TEST(PositionControlTest, addIfNotNan)
-{
-	PositionControl position_control;
-	float v = 1.f;
-	position_control._addIfNotNan(v, 2.f);
-	EXPECT_EQ(v, 3.f);
-	position_control._addIfNotNan(v, NAN);
-	EXPECT_EQ(v, 3.f);
-	v = NAN;
-	position_control._addIfNotNan(v, NAN);
-	EXPECT_TRUE(isnan(v));
-	position_control._addIfNotNan(v, 3.f);
-	EXPECT_EQ(v, 3.f);
-}
-
 TEST(PositionControlTest, EmptySetpoint)
 {
 	PositionControl position_control;
