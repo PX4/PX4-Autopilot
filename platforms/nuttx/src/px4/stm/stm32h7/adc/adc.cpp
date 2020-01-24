@@ -309,7 +309,7 @@ uint32_t px4_arch_adc_temp_sensor_mask()
 	return 1 << 16;
 }
 
-uint32_t px4_arch_adc_dn_fullcount(void)
+uint32_t px4_arch_adc_dn_fullcount()
 {
 	return 1 << 16; // 16 bit ADC
 }

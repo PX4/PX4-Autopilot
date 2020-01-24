@@ -33,6 +33,7 @@
 
 add_subdirectory(vehicle_acceleration)
 add_subdirectory(vehicle_angular_velocity)
+add_subdirectory(vehicle_imu)
 
 px4_add_module(
 	MODULE modules__sensors
@@ -42,8 +43,6 @@ px4_add_module(
 		voted_sensors_update.cpp
 		sensors.cpp
 		parameters.cpp
-		temperature_compensation.cpp
-
 	DEPENDS
 		airspeed
 		conversion
@@ -53,4 +52,5 @@ px4_add_module(
 		mathlib
 		vehicle_acceleration
 		vehicle_angular_velocity
+		vehicle_imu
 	)

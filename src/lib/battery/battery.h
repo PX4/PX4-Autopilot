@@ -65,6 +65,8 @@ class Battery : public ModuleParams
 public:
 	Battery(int index, ModuleParams *parent);
 
+	~Battery();
+
 	/**
 	 * Reset all battery stats and report invalid/nothing.
 	 */

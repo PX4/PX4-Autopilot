@@ -12,7 +12,7 @@
 @###############################################
 @{
 import genmsg.msgs
-import gencpp
+
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
@@ -168,7 +168,7 @@ std::condition_variable t_send_queue_cv;
 std::mutex t_send_queue_mutex;
 std::queue<uint8_t> t_send_queue;
 
-void t_send(void *data)
+void t_send(void*)
 {
     char data_buffer[BUFFER_SIZE] = {};
     uint32_t length = 0;
@@ -212,19 +212,22 @@ int main(int argc, char** argv)
     // register signal SIGINT and signal handler
     signal(SIGINT, signal_handler);
 
+    printf("--- MicroRTPS Agent ---\n");
+    printf("- Starting link...\n");
+
     switch (_options.transport)
     {
         case options::eTransports::UART:
         {
             transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms);
-            printf("\nUART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms\n\n",
+            printf("- UART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms\n",
                    _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms);
         }
         break;
         case options::eTransports::UDP:
         {
             transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port);
-            printf("\nUDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n\n",
+            printf("- UDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n",
                     _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
         }
         break;
@@ -250,7 +253,9 @@ int main(int argc, char** argv)
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 @[end if]@
 
+@[if recv_topics]@
     topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue);
+@[end if]@
 
     running = true;
 @[if recv_topics]@

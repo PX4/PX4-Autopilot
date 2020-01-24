@@ -1,0 +1,22 @@
+name: SITL Tests (Code Coverage)
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-simulation-bionic:2020-01-13
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+    - name: Install psutil
+      run: pip3 install psutil
+# TODO: disabled 2019-01-09 due to failures
+#    - name: Run simulation tests
+#      run: make tests_integration_coverage
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        flags: mavsdk

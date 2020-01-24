@@ -164,7 +164,12 @@ start_pwm(const uint8_t rotation)
 		return PX4_OK;
 	}
 
+#ifdef LIDAR_LITE_PWM_SUPPORTED
 	instance = new LidarLitePWM(rotation);
+#else
+	instance = nullptr;
+	PX4_ERR("PWM input not supported.");
+#endif
 
 	if (instance == nullptr) {
 		PX4_ERR("Failed to instantiate the driver");

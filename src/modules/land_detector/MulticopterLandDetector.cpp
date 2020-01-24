@@ -147,7 +147,6 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		vertical_movement = fabsf(_vehicle_local_position.vz) > _param_lndmc_z_vel_max.get()  * 2.5f;
 
 	} else {
-
 		// Adjust max_climb_rate if land_speed is lower than 2x max_climb_rate
 		float max_climb_rate = ((land_speed_threshold * 0.5f) < _param_lndmc_z_vel_max.get()) ? (0.5f * land_speed_threshold) :
 				       _param_lndmc_z_vel_max.get();
@@ -171,9 +170,6 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 bool MulticopterLandDetector::_get_maybe_landed_state()
 {
-	// Time base for this function
-	const hrt_abstime now = hrt_absolute_time();
-
 	// When not armed, consider to be maybe-landed
 	if (!_actuator_armed.armed) {
 		return true;
@@ -181,7 +177,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 	if (_has_minimal_thrust()) {
 		if (_min_trust_start == 0) {
-			_min_trust_start = now;
+			_min_trust_start = hrt_absolute_time();
 		}
 
 	} else {
@@ -224,19 +220,15 @@ bool MulticopterLandDetector::_get_landed_state()
 
 	// reset the landed_time
 	if (!_maybe_landed_hysteresis.get_state()) {
-
 		_landed_time = 0;
 
 	} else if (_landed_time == 0) {
-
 		_landed_time = hrt_absolute_time();
-
 	}
 
 	// if we have maybe_landed, the mc_pos_control goes into idle (thrust_sp = 0.0)
 	// therefore check if all other condition of the landed state remain true
 	return _maybe_landed_hysteresis.get_state();
-
 }
 
 float MulticopterLandDetector::_get_max_altitude()
@@ -265,9 +257,7 @@ float MulticopterLandDetector::_get_max_altitude()
 
 bool MulticopterLandDetector::_has_altitude_lock()
 {
-	return _vehicle_local_position.timestamp != 0 &&
-	       hrt_elapsed_time(&_vehicle_local_position.timestamp) < 500_ms &&
-	       _vehicle_local_position.z_valid;
+	return (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) && _vehicle_local_position.z_valid;
 }
 
 bool MulticopterLandDetector::_has_position_lock()
@@ -277,8 +267,7 @@ bool MulticopterLandDetector::_has_position_lock()
 
 bool MulticopterLandDetector::_is_climb_rate_enabled()
 {
-	bool has_updated = (_vehicle_local_position_setpoint.timestamp != 0)
-			   && (hrt_elapsed_time(&_vehicle_local_position_setpoint.timestamp) < 500_ms);
+	bool has_updated = (hrt_elapsed_time(&_vehicle_local_position_setpoint.timestamp) < 1_s);
 
 	return (_vehicle_control_mode.flag_control_climb_rate_enabled && has_updated
 		&& PX4_ISFINITE(_vehicle_local_position_setpoint.vz));

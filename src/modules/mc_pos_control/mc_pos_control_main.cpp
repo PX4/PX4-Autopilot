@@ -95,14 +95,14 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
-
 	bool init();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
 private:
+	void Run() override;
+
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub;
@@ -169,7 +169,6 @@ private:
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< downwards speed limited below this altitude */
 		(ParamInt<px4::params::MPC_POS_MODE>) _param_mpc_pos_mode,
-		(ParamInt<px4::params::MPC_AUTO_MODE>) _param_mpc_auto_mode,
 		(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd, /**< maximum tilt for landing and smooth takeoff */
 		(ParamFloat<px4::params::MPC_THR_MIN>) _param_mpc_thr_min,
@@ -248,7 +247,7 @@ private:
 	 * to true, the failsafe will be initiated immediately.
 	 */
 	void failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states, const bool force,
-		      const bool warn);
+		      bool warn);
 
 	/**
 	 * Reset setpoints to NAN
@@ -450,19 +449,12 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 	} else {
 		_states.velocity(0) = _states.velocity(1) = NAN;
 		_states.acceleration(0) = _states.acceleration(1) = NAN;
-
-		// since no valid velocity, update derivate with 0
-		_vel_x_deriv.update(0.0f);
-		_vel_y_deriv.update(0.0f);
+		// reset derivatives to prevent acceleration spikes when regaining velocity
+		_vel_x_deriv.reset();
+		_vel_y_deriv.reset();
 	}
 
-	if (_param_mpc_alt_mode.get() && _local_pos.dist_bottom_valid && PX4_ISFINITE(_local_pos.dist_bottom_rate)) {
-		// terrain following
-		_states.velocity(2) = -_local_pos.dist_bottom_rate;
-		_states.acceleration(2) = _vel_z_deriv.update(-_states.velocity(2));
-
-	} else if (PX4_ISFINITE(_local_pos.vz)) {
-
+	if (PX4_ISFINITE(_local_pos.vz) && _local_pos.v_z_valid) {
 		_states.velocity(2) = _local_pos.vz;
 
 		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
@@ -476,9 +468,8 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 
 	} else {
 		_states.velocity(2) = _states.acceleration(2) = NAN;
-		// since no valid velocity, update derivate with 0
-		_vel_z_deriv.update(0.0f);
-
+		// reset derivative to prevent acceleration spikes when regaining velocity
+		_vel_z_deriv.reset();
 	}
 }
 
@@ -748,15 +739,7 @@ MulticopterPositionControl::start_flight_task()
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		switch (_param_mpc_auto_mode.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
-			break;
-
-		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
-			break;
-		}
+		error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
@@ -892,8 +875,13 @@ MulticopterPositionControl::start_flight_task()
 
 void
 MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states,
-				     const bool force, const bool warn)
+				     const bool force, bool warn)
 {
+	// do not warn while we are disarmed, as we might not have valid setpoints yet
+	if (!_control_mode.flag_armed) {
+		warn = false;
+	}
+
 	_failsafe_land_hysteresis.set_state_and_update(true, hrt_absolute_time());
 
 	if (!_failsafe_land_hysteresis.get_state() && !force) {

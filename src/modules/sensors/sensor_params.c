@@ -214,6 +214,36 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 
 /**
+* Driver level notch frequency for gyro
+*
+* The center frequency for the 2nd order notch filter on the gyro driver.
+* This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
+* This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
+* See "IMU_GYRO_NF_BW" to set the bandwidth of the filter.
+*
+* @min 0
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_NF_FREQ, 0.0f);
+
+/**
+* Driver level notch bandwidth for gyro
+*
+* The frequency width of the stop band for the 2nd order notch filter on the gyro driver.
+* See "IMU_GYRO_NF_FREQ" to activate the filter and to set the notch frequency.
+*
+* @min 0
+* @max 100
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
+
+/**
 * Driver level cutoff frequency for gyro
 *
 * The cutoff frequency for the 2nd order butterworth filter on the gyro driver.
@@ -230,7 +260,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 /**
 * Gyro control data maximum publication rate
 *
-* This is the maximum rate the gyro control data (sensor_gyro_control) will be allowed to publish at.
+* This is the maximum rate the gyro control data (sensor_gyro) will be allowed to publish at.
 * Set to 0 to disable and publish at the native sensor sample rate.
 *
 * @min 0

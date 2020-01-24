@@ -104,7 +104,6 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_parameter_handles.throttle_damp = param_find("FW_T_THR_DAMP");
 	_parameter_handles.integrator_gain = param_find("FW_T_INTEG_GAIN");
 	_parameter_handles.vertical_accel_limit = param_find("FW_T_VERT_ACC");
-	_parameter_handles.height_comp_filter_omega = param_find("FW_T_HGT_OMEGA");
 	_parameter_handles.speed_comp_filter_omega = param_find("FW_T_SPD_OMEGA");
 	_parameter_handles.roll_throttle_compensation = param_find("FW_T_RLL2THR");
 	_parameter_handles.speed_weight = param_find("FW_T_SPDWEIGHT");
@@ -242,10 +241,6 @@ FixedwingPositionControl::parameters_update()
 
 	if (param_get(_parameter_handles.vertical_accel_limit, &v) == PX4_OK) {
 		_tecs.set_vertical_accel_limit(v);
-	}
-
-	if (param_get(_parameter_handles.height_comp_filter_omega, &v) == PX4_OK) {
-		_tecs.set_height_comp_filter_omega(v);
 	}
 
 	if (param_get(_parameter_handles.speed_comp_filter_omega, &v) == PX4_OK) {
@@ -854,7 +849,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			float loiter_radius = pos_sp_curr.loiter_radius;
 			uint8_t loiter_direction = pos_sp_curr.loiter_direction;
 
-			if (pos_sp_curr.loiter_radius < 0.01f || pos_sp_curr.loiter_radius > -0.01f) {
+			if (fabsf(pos_sp_curr.loiter_radius) < FLT_EPSILON) {
 				loiter_radius = _parameters.loiter_radius;
 				loiter_direction = (loiter_radius > 0) ? 1 : -1;
 
@@ -1889,7 +1884,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	/* update TECS vehicle state estimates */
 	_tecs.update_vehicle_state_estimates(_airspeed, _R_nb,
 					     accel_body, (_global_pos.timestamp > 0), in_air_alt_control,
-					     _global_pos.alt, _local_pos.v_z_valid, _local_pos.vz, _local_pos.az);
+					     _global_pos.alt, _local_pos.vz);
 
 	/* scale throttle cruise by baro pressure */
 	if (_parameters.throttle_alt_scale > FLT_EPSILON) {

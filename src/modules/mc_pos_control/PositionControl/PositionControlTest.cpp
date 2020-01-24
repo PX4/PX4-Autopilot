@@ -58,24 +58,24 @@ TEST(PositionControlTest, EmptySetpoint)
 
 	vehicle_local_position_setpoint_s output_setpoint{};
 	position_control.getLocalPositionSetpoint(output_setpoint);
-	EXPECT_EQ(output_setpoint.x, 0.f);
-	EXPECT_EQ(output_setpoint.y, 0.f);
-	EXPECT_EQ(output_setpoint.z, 0.f);
-	EXPECT_EQ(output_setpoint.yaw, 0.f);
-	EXPECT_EQ(output_setpoint.yawspeed, 0.f);
-	EXPECT_EQ(output_setpoint.vx, 0.f);
-	EXPECT_EQ(output_setpoint.vy, 0.f);
-	EXPECT_EQ(output_setpoint.vz, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.x, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.y, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.z, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.yaw, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.yawspeed, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.vx, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.vy, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.vz, 0.f);
 	EXPECT_EQ(Vector3f(output_setpoint.acceleration), Vector3f(0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(output_setpoint.jerk), Vector3f(0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(output_setpoint.thrust), Vector3f(0, 0, 0));
 
 	vehicle_attitude_setpoint_s attitude{};
 	position_control.getAttitudeSetpoint(attitude);
-	EXPECT_EQ(attitude.roll_body, 0.f);
-	EXPECT_EQ(attitude.pitch_body, 0.f);
-	EXPECT_EQ(attitude.yaw_body, 0.f);
-	EXPECT_EQ(attitude.yaw_sp_move_rate, 0.f);
+	EXPECT_FLOAT_EQ(attitude.roll_body, 0.f);
+	EXPECT_FLOAT_EQ(attitude.pitch_body, 0.f);
+	EXPECT_FLOAT_EQ(attitude.yaw_body, 0.f);
+	EXPECT_FLOAT_EQ(attitude.yaw_sp_move_rate, 0.f);
 	EXPECT_EQ(Quatf(attitude.q_d), Quatf(1.f, 0.f, 0.f, 0.f));
 	//EXPECT_EQ(attitude.q_d_valid, false); // TODO should not be true when there was no control
 	EXPECT_EQ(Vector3f(attitude.thrust_body), Vector3f(0.f, 0.f, 0.f));
@@ -83,7 +83,7 @@ TEST(PositionControlTest, EmptySetpoint)
 	EXPECT_EQ(attitude.pitch_reset_integral, false);
 	EXPECT_EQ(attitude.yaw_reset_integral, false);
 	EXPECT_EQ(attitude.fw_control_yaw, false);
-	EXPECT_EQ(attitude.apply_flaps, 0.f);//vehicle_attitude_setpoint_s::FLAPS_OFF); // TODO why no reference?
+	EXPECT_FLOAT_EQ(attitude.apply_flaps, 0.f);//vehicle_attitude_setpoint_s::FLAPS_OFF); // TODO why no reference?
 }
 
 class PositionControlBasicTest : public ::testing::Test

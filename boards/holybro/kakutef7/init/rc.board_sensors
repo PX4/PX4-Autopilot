@@ -12,7 +12,7 @@ then
 fi
 
 # Internal Baro
-bmp280 -I start
+bmp280 start
 
 # Possible external compasses
 ist8310 -C -b 1 start
