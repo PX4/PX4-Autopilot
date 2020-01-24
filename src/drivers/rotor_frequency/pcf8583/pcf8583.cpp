@@ -35,6 +35,7 @@
  * @file pcf8583.cpp
  *
  * @author ThunderFly s.r.o., Vít Hanousek <hanousekvit@thunderfly.cz>
+ * @url https://github.com/ThunderFly-aerospace/TFRPM01
  *
  * Driver for Main Rotor speed sensor using MLAB.CZ RTC003A I2C counter.
  */
