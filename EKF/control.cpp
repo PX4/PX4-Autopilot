@@ -440,7 +440,7 @@ void Ekf::controlOpticalFlowFusion()
 		// Check if we are in-air and require optical flow to control position drift
 		bool flow_required = _control_status.flags.in_air &&
 				(_is_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
-				  || (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel) // is completely reliant on optical flow
+				  || (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow))
 				  || (_control_status.flags.gps && (_gps_error_norm > gps_err_norm_lim))); // is using GPS, but GPS is bad
 
 		if (!_inhibit_flow_use && _control_status.flags.opt_flow) {
@@ -491,7 +491,7 @@ void Ekf::controlOpticalFlowFusion()
 				_time_last_of_fuse = _time_last_imu;
 
 				// if we are not using GPS or external vision aiding, then the velocity and position states and covariances need to be set
-				const bool flow_aid_only = !(_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel);
+				const bool flow_aid_only = !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow);
 				if (flow_aid_only) {
 					resetVelocity();
 					resetPosition();
@@ -506,10 +506,7 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 		// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
-		if (_control_status.flags.opt_flow
-		    && !_control_status.flags.gps
-		    && !_control_status.flags.ev_pos
-		    && !_control_status.flags.ev_vel) {
+		if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
 
 			bool do_reset = ((_time_last_imu - _time_last_of_fuse) > _params.reset_timeout_max);
 
@@ -639,7 +636,7 @@ void Ekf::controlGpsFusion()
 		}
 
 		// Handle the case where we are using GPS and another source of aiding and GPS is failing checks
-		if (_control_status.flags.gps  && gps_checks_failing && (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel)) {
+		if (_control_status.flags.gps && gps_checks_failing && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 			stopGpsFusion();
 			// Reset position state to external vision if we are going to use absolute values
 			if (_control_status.flags.ev_pos && !(_params.fusion_mode & MASK_ROTATE_EV)) {
@@ -703,7 +700,7 @@ void Ekf::controlGpsFusion()
 
 			const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 
-			if (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel) {
+			if (isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 				// if we are using other sources of aiding, then relax the upper observation
 				// noise limit which prevents bad GPS perturbing the position estimate
 				gps_pos_obs_var(0) = gps_pos_obs_var(1) = sq(fmaxf(_gps_sample_delayed.hacc, lower_limit));
@@ -738,7 +735,7 @@ void Ekf::controlGpsFusion()
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		stopGpsFusion();
 		ECL_WARN_TIMESTAMPED("GPS data stopped");
-	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel)) {
+	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		stopGpsFusion();
@@ -1109,8 +1106,6 @@ void Ekf::controlHeightFusion()
 
 	if (_fuse_height) {
 
-
-
 		if (_control_status.flags.baro_hgt) {
 			Vector2f baro_hgt_innov_gate;
 			Vector3f baro_hgt_obs_var;
@@ -1192,15 +1187,10 @@ void Ekf::controlHeightFusion()
 
 void Ekf::checkRangeAidSuitability()
 {
-	const bool horz_vel_valid = _control_status.flags.gps
-				    || _control_status.flags.ev_pos
-				    || _control_status.flags.ev_vel
-				    || _control_status.flags.opt_flow;
-
 	if (_control_status.flags.in_air
 	    && _rng_hgt_valid
 	    && isTerrainEstimateValid()
-	    && horz_vel_valid) {
+	    && isHorizontalAidingActive()) {
 		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
 		const bool is_in_range = _is_range_aid_suitable
@@ -1328,11 +1318,8 @@ void Ekf::controlFakePosFusion()
 	// if we aren't doing any aiding, fake position measurements at the last known position to constrain drift
 	// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
 
-	if (!_control_status.flags.gps &&
-	    !_control_status.flags.opt_flow &&
-	    !_control_status.flags.ev_pos &&
-	    !_control_status.flags.ev_vel &&
-	    !(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta)) {
+	if (!isHorizontalAidingActive()
+	    && !(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta)) {
 
 		// We now need to use a synthetic position observation to prevent unconstrained drift of the INS states.
 		_using_synthetic_position = true;
@@ -1383,9 +1370,8 @@ void Ekf::controlFakePosFusion()
 void Ekf::controlAuxVelFusion()
 {
 	bool data_ready = _auxvel_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
-	bool primary_aiding = _control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.opt_flow;
 
-	if (data_ready && primary_aiding) {
+	if (data_ready && isHorizontalAidingActive()) {
 
 		Vector2f aux_vel_innov_gate;
 		Vector3f aux_vel_obs_var;
