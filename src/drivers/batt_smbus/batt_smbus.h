@@ -54,7 +54,7 @@
 
 #include "board_config.h"
 
-#define DATA_BUFFER_SIZE                                32
+#define MAC_DATA_BUFFER_SIZE                            32
 
 #define BATT_CELL_VOLTAGE_THRESHOLD_RTL                 0.5f            ///< Threshold in volts to RTL if cells are imbalanced
 #define BATT_CELL_VOLTAGE_THRESHOLD_FAILED              1.5f            ///< Threshold in volts to Land if cells are imbalanced
@@ -147,7 +147,7 @@ public:
 	 * @param data The returned data.
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
-	int dataflash_read(uint16_t &address, void *data);
+	int dataflash_read(uint16_t &address, void *data, const unsigned length);
 
 	/**
 	 * @brief Writes data to flash.
