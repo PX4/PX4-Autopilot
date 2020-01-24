@@ -18,8 +18,7 @@ px4_add_board(
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
-        rotor_frequency
-		batt_smbus
+        batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
@@ -51,6 +50,7 @@ px4_add_board(
 		px4io
 		rc_input
 		roboclaw
+		rotor_frequency
 		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
