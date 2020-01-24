@@ -39,13 +39,14 @@
  * Driver for Main Rotor speed sensor using MLAB.CZ RTC003A I2C counter.
  */
 
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/workqueue.h>
+
+#include <lib/parameters/param.h>
+
 #include <board_config.h>
-
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_workqueue.h>
-
 
 #include <px4_log.h>
 
@@ -229,12 +230,12 @@ PCF8583::init()
 {
 	int ret = PX4_ERROR;
 
-   //load parameters 
+   //load parameters
 	int address=PCF8583_BASEADDR_DEFAULT;
    if(param_find("PCF8583_ADDR")!=PARAM_INVALID)
    	param_get(param_find("PCF8583_ADDR"), &address);
 
-   set_device_address(address); 
+   set_device_address(address);
 
    if(param_find("PCF8583_POOL")!=PARAM_INVALID)
       param_get(param_find("PCF8583_POOL"),&_pool_interval_default);
@@ -276,13 +277,13 @@ PCF8583::getCounter()
 
 void
 PCF8583::resetCounter()
-{	
+{
         setRegister(0x01,0x00);
         setRegister(0x02,0x00);
         setRegister(0x03,0x00);
 }
 
-void 
+void
 PCF8583::setRegister(uint8_t reg, uint8_t value)
 {
       uint8_t buff[2];
@@ -291,18 +292,18 @@ PCF8583::setRegister(uint8_t reg, uint8_t value)
       int ret=transfer(buff, 2, nullptr, 0);
 
       if (OK != ret) {
-		      PX4_DEBUG("PCF8583::setRegister : i2c::transfer returned %d", ret); 
+		      PX4_DEBUG("PCF8583::setRegister : i2c::transfer returned %d", ret);
 	      }
 }
 
-uint8_t 
+uint8_t
 PCF8583::readRegister(uint8_t reg)
 {
       uint8_t rcv;
       int ret=transfer(&reg, 1, &rcv, 1);
 
       if (OK != ret) {
-	      PX4_DEBUG("PCF8583::readRegister : i2c::transfer returned %d", ret); 
+	      PX4_DEBUG("PCF8583::readRegister : i2c::transfer returned %d", ret);
       }
 
       return rcv;
@@ -328,7 +329,7 @@ PCF8583::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = ( _pool_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-               
+
 					 _pool_interval = _pool_interval_default;
 
 					/* if we need to start the poll state machine, do it */
@@ -346,7 +347,7 @@ PCF8583::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_pool_interval == 0);
 
 					/* convert hz to interval in microseconds */
-					int interval = 1000000 / arg; 
+					int interval = 1000000 / arg;
 
 					/* check against maximum rate */
 					if (interval > 0 && interval < PCF8583_POOL_INTERVAL_MAX) {
@@ -393,23 +394,23 @@ PCF8583::read(device::file_t *filp, char *buffer, size_t buflen)
 	}*/
 
 	/* manual measurement - run one conversion */
-   //TODO:ResetCounter      
+   //TODO:ResetCounter
 	/* wait for it to complete */
 	//usleep(PCF8583_POOL_INTERVAL);
    //TODO: getCounter
-   
+
 	return ret;
 }
 
 void
 PCF8583::readSensorAndComputeFreqency()
 {
-        
+
    int oldcount=_count;
    uint64_t oldtime=_lastmeasurement_time;
 
    _count=getCounter();
-   _lastmeasurement_time=hrt_absolute_time();      
+   _lastmeasurement_time=hrt_absolute_time();
 
    int diffCount=_count-oldcount;
    uint64_t diffTime=_lastmeasurement_time-oldtime;
@@ -421,7 +422,7 @@ PCF8583::readSensorAndComputeFreqency()
    }
 
    _indicated_frequency=(float)diffCount/_magnet_count/((float)diffTime/1000000);
-   _estimated_accurancy=1/(float)_magnet_count/((float)diffTime/1000000);  
+   _estimated_accurancy=1/(float)_magnet_count/((float)diffTime/1000000);
 }
 
 void PCF8583::publish()
@@ -439,12 +440,12 @@ void PCF8583::publish()
    msg.estimated_accurancy_rpm=_estimated_accurancy*60;
    msg.count=_count;
 
-	// publish it, if we are the primary 
+	// publish it, if we are the primary
 	if (_rotor_frequency_topic != nullptr) {
 		orb_publish(ORB_ID(rotor_frequency), _rotor_frequency_topic, &msg);
 	}
 
-	// notify anyone waiting for data 
+	// notify anyone waiting for data
 	poll_notify(POLLIN);
 
 }
