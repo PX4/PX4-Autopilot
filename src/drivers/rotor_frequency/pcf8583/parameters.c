@@ -1,5 +1,5 @@
 /**
- * PCF8583 rotorfreq (i2c) pool interval 
+ * PCF8583 rotorfreq (i2c) pool interval
  *
  * @reboot_required true
  * @group Sensors
@@ -8,14 +8,14 @@
 PARAM_DEFINE_INT32(PCF8583_POOL, 1000000);
 
 /**
- * PCF8583 rotorfreq (i2c) i2c address 
+ * PCF8583 rotorfreq (i2c) i2c address
  *
  * @reboot_required true
  * @group Sensors
- * @value 81 0x51
  * @value 80 0x50
+ * @value 81 0x51
  */
-PARAM_DEFINE_INT32(PCF8583_ADDR, 81);
+PARAM_DEFINE_INT32(PCF8583_ADDR, 80);
 
 /**
  * PCF8583 rotorfreq (i2c) counter reset value
@@ -36,4 +36,4 @@ PARAM_DEFINE_INT32(PCF8583_RESET, 0);
  * @reboot_required true
  * @min 1
  */
-PARAM_DEFINE_INT32(PCF8583_MAGNET, 1);
+PARAM_DEFINE_INT32(PCF8583_MAGNET, 2);
