@@ -171,6 +171,16 @@ Battery::swapUorbAdvert(Battery &other)
 	orb_advert_t tmp = _orb_advert;
 	_orb_advert = other._orb_advert;
 	other._orb_advert = tmp;
+
+	int inst_tmp = _orb_instance;
+	_orb_instance = other._orb_instance;
+	other._orb_instance = inst_tmp;
+}
+
+int
+Battery::getUorbInstance()
+{
+	return _orb_instance;
 }
 
 void

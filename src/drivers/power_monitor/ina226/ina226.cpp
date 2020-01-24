@@ -55,6 +55,28 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 
+// This is an ugly hack, and should be removed.
+// The commander requires that the battery be healthy in order to arm. However, it is only subscribed to instance 0
+// of the battery_status uORB topic. So, if we only have 1 battery plugged in, it must publish to instance 0.
+//    (See Commander::battery_status_check() for more information. When this is fixed in Commander, it should be
+//     removed from here.)
+// To accomplish this, we have these global variables. At every iteration, each instance of INA226 will check to see
+// if it has just now become the 'selected source'. If so, it will swap uORB advertisements with the old selected source
+// (which should have had instance 0).
+//
+// The selected source is the lowest-index battery that is connected. Therefore, if there is only a battery on port 2,
+// then battery 2 is the selected source.
+
+// _selected_source is the index of the currently selected battery. SIZE_MAX indicates that no battery is currently
+// selected.
+static size_t _selected_source = SIZE_MAX;
+// Pointer to the instance of INA226 which is the currently selected source (and therefore has uORB instance 0).
+static INA226 *_index0module = nullptr;
+// Because each instance of INA226 is in a separate work queue (and therefore a separate thread), we need a
+// mutex for interacting with these global variables.
+static pthread_mutex_t _selected_source_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
 INA226::INA226(int battery_index, int bus, int address) :
 	I2C("INA226", nullptr, i2c_bus_options[bus], address, 100000),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
@@ -64,6 +86,7 @@ INA226::INA226(int battery_index, int bus, int address) :
 	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
 	_collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
 	_measure_errors(perf_alloc(PC_COUNT, "ina226_measurement_err")),
+	_mutex_wait_time(perf_alloc(PC_ELAPSED, "ina226_mutex_blocked")),
 	_battery(battery_index, this)
 {
 	float fvalue = MAX_CURRENT;
@@ -97,15 +120,17 @@ INA226::INA226(int battery_index, int bus, int address) :
 	_current_lsb = _max_current / DN_MAX;
 	_power_lsb = 25 * _current_lsb;
 
-	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
+	// Publish immediately so that every INA226 always has a definite uORB instance number.
+	// This is necessary for swapping uORB instances, as described in the comments of the global variables
+	// at the top of this file.
 	_battery.updateBatteryStatus(
 		hrt_absolute_time(),
-		0.0,
-		0.0,
+		0.0f,
+		0.0f,
 		false,
-		false, // TODO: selected source?
+		false,
 		0,
-		0.0,
+		0.0f,
 		true
 	);
 }
@@ -272,7 +297,11 @@ INA226::collect()
 	// Note: If the power module is connected backwards, then the values of _power, _current, and _shunt will
 	//  be negative but otherwise valid. This isn't important, because why should we support the case where
 	//  the power module is used incorrectly?
-	if (_bus_voltage >= 0 && _power >= 0 && _current >= 0 && _shunt >= 0) {
+	bool connected = _bus_voltage >= 0 && _power >= 0 && _current >= 0 && _shunt >= 0;
+
+	bool selected_source = updateUorbInstance(connected);
+
+	if (connected) {
 
 		_actuators_sub.copy(&_actuator_controls);
 
@@ -282,7 +311,7 @@ INA226::collect()
 			(float) _bus_voltage * INA226_VSCALE,
 			(float) _current * _current_lsb,
 			true,
-			true, // TODO: Determine if this is the selected source
+			selected_source,
 			0,
 			_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE],
 			true
@@ -296,7 +325,7 @@ INA226::collect()
 			0.0,
 			0.0,
 			false,
-			false, // TODO: selected source?
+			false,
 			0,
 			0.0,
 			true
@@ -309,7 +338,6 @@ INA226::collect()
 		PX4_DEBUG("error reading from sensor: %d", ret);
 	}
 
-	perf_count(_comms_errors);
 	perf_end(_sample_perf);
 	return ret;
 }
@@ -373,6 +401,8 @@ INA226::Run()
 		ScheduleDelayed(INA226_CONVERSION_INTERVAL);
 
 	} else {
+		updateUorbInstance(false);
+
 		_battery.updateBatteryStatus(
 			hrt_absolute_time(),
 			0.0f,
@@ -403,4 +433,37 @@ INA226::print_info()
 		PX4_INFO("Device not initialized. Retrying every %d ms until battery is plugged in.",
 			 INA226_INIT_RETRY_INTERVAL_US);
 	}
+}
+
+bool INA226::updateUorbInstance(bool connected)
+{
+	// This function does the work of swapping uORB adverts around such that the currently-selected power source is
+	// publishing to uORB instance 0. This is a blocking function! It uses a mutex on the global variables.
+	// However, it does nothing blocking inside of the critical region. Therefore, it should spend very
+	// little time waiting to lock the mutex, and very little time holding the mutex.
+	// To verify this, there is a performance counter.
+
+	perf_begin(_mutex_wait_time);
+	pthread_mutex_lock(&_selected_source_mutex);
+	perf_end(_mutex_wait_time);
+
+	// First thing's first: Ensure that _index0module is accurate
+	if (_battery.getUorbInstance() == 0) {
+		_index0module = this;
+	}
+
+	// If this battery is connected, should be the selected source, AND there is a valid _index0module to swap with:
+	if (connected && index < _selected_source && _index0module != nullptr) {
+		_battery.swapUorbAdvert(_index0module->_battery);
+		_index0module = this;
+		_selected_source = index;
+
+	} else if (!connected && _selected_source == index) {
+		// If disconnected, but this battery is still the selected source, it shouldn't be.
+		_selected_source = SIZE_MAX;
+	}
+
+	pthread_mutex_unlock(&_selected_source_mutex);
+
+	return _index0module == this;
 }

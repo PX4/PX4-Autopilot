@@ -117,6 +117,8 @@ public:
 	 */
 	void swapUorbAdvert(Battery &other);
 
+	int getUorbInstance();
+
 protected:
 	struct {
 		param_t v_empty;
