@@ -252,6 +252,27 @@ public:
 	// return true if the global position estimate is valid
 	virtual bool global_position_is_valid() = 0;
 
+	// the flags considered are opt_flow, gps, ev_vel and ev_pos
+	bool isOnlyActiveSourceOfHorizontalAiding(bool aiding_flag) const;
+
+	/*
+	 * Check if there are any other active source of horizontal aiding
+	 * Warning: does not tell if the selected source is
+	 * active, use isOnlyActiveSourceOfHorizontalAiding() for this
+	 *
+	 * The flags considered are opt_flow, gps, ev_vel and ev_pos
+	 *
+	 * @param aiding_flag a flag in _control_status.flags
+	 * @return true if an other source than aiding_flag is active
+	 */
+	bool isOtherSourceOfHorizontalAidingThan(bool aiding_flag) const;
+
+	// Return true if at least one source of horizontal aiding is active
+	// the flags considered are opt_flow, gps, ev_vel and ev_pos
+	bool isHorizontalAidingActive() const;
+
+	int getNumberOfActiveHorizontalAidingSources() const;
+
 	// return true if the EKF is dead reckoning the position using inertial data only
 	bool inertial_dead_reckoning() {return _is_dead_reckoning;}
 

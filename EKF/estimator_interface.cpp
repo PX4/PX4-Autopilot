@@ -374,7 +374,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample& flow)
 			delta_time = delta_time_min;
 		}
 
-		const bool relying_on_flow = !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel;
+		const bool relying_on_flow = !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow);
 
 		const bool flow_quality_good = (flow.quality >= _params.flow_qual_min);
 
@@ -569,6 +569,30 @@ bool EstimatorInterface::local_position_is_valid()
 {
 	// return true if we are not doing unconstrained free inertial navigation
 	return !_deadreckon_time_exceeded;
+}
+
+bool EstimatorInterface::isOnlyActiveSourceOfHorizontalAiding(const bool aiding_flag) const
+{
+	return aiding_flag && !isOtherSourceOfHorizontalAidingThan(aiding_flag);
+}
+
+bool EstimatorInterface::isOtherSourceOfHorizontalAidingThan(const bool aiding_flag) const
+{
+	const int nb_sources = getNumberOfActiveHorizontalAidingSources();
+	return aiding_flag ? nb_sources > 1 : nb_sources > 0;
+}
+
+int EstimatorInterface::getNumberOfActiveHorizontalAidingSources() const
+{
+	return int(_control_status.flags.gps)
+	+ int(_control_status.flags.opt_flow)
+	+ int(_control_status.flags.ev_pos)
+	+ int(_control_status.flags.ev_vel);
+}
+
+bool EstimatorInterface::isHorizontalAidingActive() const
+{
+	return getNumberOfActiveHorizontalAidingSources() > 0;
 }
 
 void EstimatorInterface::printBufferAllocationFailed(const char * buffer_name)
