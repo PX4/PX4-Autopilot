@@ -42,6 +42,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/workqueue.h>
 
 #include <lib/parameters/param.h>
@@ -49,28 +50,9 @@
 #include <board_config.h>
 
 #include <px4_log.h>
-
 #include <drivers/device/i2c.h>
 
-
 #include <sys/types.h>
-/*#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-
-#include <fcntl.h>
-#include <poll.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <vector>
-
-
-
-#include <perf/perf_counter.h>
-*/
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -205,8 +187,6 @@ PCF8583::PCF8583(int bus, int address) :
    _reset_count(PCF8583_RESET_COUNT_DEFAULT ),
    _magnet_count(PCF8583_MAGNET_COUNT_DEFAULT),
 	_rotor_frequency_topic(nullptr)
-	//_sample_perf(perf_alloc(PC_ELAPSED, "sf1xx_read")),
-	//_comms_errors(perf_alloc(PC_COUNT, "sf1xx_com_err"))
 
 {
 }
