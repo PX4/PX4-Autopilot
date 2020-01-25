@@ -71,216 +71,223 @@
 #define PCF8583_DEVICE_PATH                  "/dev/pcf8583"
 #define PCF8583_BASEADDR_DEFAULT             0x50
 
-class PCF8583 : public device::I2C,public px4::ScheduledWorkItem
+class PCF8583 : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
-    PCF8583(int bus = PCF8583_BUS_DEFAULT,
-            int address = PCF8583_BASEADDR_DEFAULT);
+	PCF8583(int bus = PCF8583_BUS_DEFAULT,
+		int address = PCF8583_BASEADDR_DEFAULT);
 
-    virtual        ~PCF8583();
-    virtual int    init();
-    void           print_info();
+	virtual        ~PCF8583();
+	virtual int    init();
+	void           print_info();
 
 protected:
-    virtual int    probe();
+	virtual int    probe();
 
 private:
-    int            _pool_interval;
-    float          _indicated_frequency;
-    float          _estimated_accurancy;
-    int            _count;
-    int            _reset_count;
-    int            _magnet_count;
-    uint64_t       _lastmeasurement_time;
-    orb_advert_t   _rotor_frequency_topic;
+	int            _pool_interval;
+	float          _indicated_frequency;
+	float          _estimated_accurancy;
+	int            _count;
+	int            _reset_count;
+	int            _magnet_count;
+	uint64_t       _lastmeasurement_time;
+	orb_advert_t   _rotor_frequency_topic;
 
-    virtual void   Run(); //Perform a poll cycle; overide for ScheduledWorkItem
+	virtual void   Run(); //Perform a poll cycle; overide for ScheduledWorkItem
 
-    void           readSensorAndComputeFreqency();
-    void           publish();
-    int            getCounter();
-    void           resetCounter();
+	void           readSensorAndComputeFreqency();
+	void           publish();
+	int            getCounter();
+	void           resetCounter();
 
-    uint8_t        readRegister(uint8_t reg);
-    void           setRegister(uint8_t reg, uint8_t value);
+	uint8_t        readRegister(uint8_t reg);
+	void           setRegister(uint8_t reg, uint8_t value);
 
 };
 
 
 PCF8583::PCF8583(int bus, int address) :
-   I2C("PCF8583", PCF8583_DEVICE_PATH, bus, address, 400000),
-   ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
-   _pool_interval(0),
-   _indicated_frequency(0.0),
-   _estimated_accurancy(0.0),
-   _count(0),
-   _reset_count(0),
-   _magnet_count(0),
-   _rotor_frequency_topic(nullptr)
+	I2C("PCF8583", PCF8583_DEVICE_PATH, bus, address, 400000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+	_pool_interval(0),
+	_indicated_frequency(0.0),
+	_estimated_accurancy(0.0),
+	_count(0),
+	_reset_count(0),
+	_magnet_count(0),
+	_rotor_frequency_topic(nullptr)
 {
 }
 
 PCF8583::~PCF8583()
 {
-    ScheduleClear();
-    if (_rotor_frequency_topic != nullptr) {
-        orb_unadvertise(_rotor_frequency_topic);
-    }
+	ScheduleClear();
+
+	if (_rotor_frequency_topic != nullptr) {
+		orb_unadvertise(_rotor_frequency_topic);
+	}
 }
 
 int
 PCF8583::init()
 {
-    int ret = PX4_ERROR;
+	int ret = PX4_ERROR;
 
-   //load parameters
-   int address=PCF8583_BASEADDR_DEFAULT;
-   if(param_find("PCF8583_ADDR")!=PARAM_INVALID)
-       param_get(param_find("PCF8583_ADDR"), &address);
+	//load parameters
+	int address = PCF8583_BASEADDR_DEFAULT;
 
-   set_device_address(address);
+	if (param_find("PCF8583_ADDR") != PARAM_INVALID) {
+		param_get(param_find("PCF8583_ADDR"), &address);
+	}
 
-   if(param_find("PCF8583_POOL")!=PARAM_INVALID)
-      param_get(param_find("PCF8583_POOL"),&_pool_interval);
+	set_device_address(address);
 
-   if(param_find("PCF8583_RESET")!=PARAM_INVALID)
-      param_get(param_find("PCF8583_RESET"),&_reset_count);
+	if (param_find("PCF8583_POOL") != PARAM_INVALID) {
+		param_get(param_find("PCF8583_POOL"), &_pool_interval);
+	}
 
-   if(param_find("PCF8583_MAGNET")!=PARAM_INVALID)
-      param_get(param_find("PCF8583_MAGNET"),&_magnet_count);
+	if (param_find("PCF8583_RESET") != PARAM_INVALID) {
+		param_get(param_find("PCF8583_RESET"), &_reset_count);
+	}
 
-    PX4_INFO("addr: %d, pool: %d, reset: %d, magenet: %d", address, _pool_interval, _reset_count, _magnet_count);
+	if (param_find("PCF8583_MAGNET") != PARAM_INVALID) {
+		param_get(param_find("PCF8583_MAGNET"), &_magnet_count);
+	}
 
-    if (I2C::init() != OK) {
-        return ret;
-    }
+	PX4_INFO("addr: %d, pool: %d, reset: %d, magenet: %d", address, _pool_interval, _reset_count, _magnet_count);
 
-    //set counter mode
-    setRegister(0x00,0b00100000);
+	if (I2C::init() != OK) {
+		return ret;
+	}
 
-    //start measurement
-    resetCounter();
-    _lastmeasurement_time=hrt_absolute_time();
-    ScheduleOnInterval(_pool_interval);
+	//set counter mode
+	setRegister(0x00, 0b00100000);
 
-    /* get a publish handle on the range finder topic */
-    struct rotor_frequency_s rf_report = {};
-    _rotor_frequency_topic=orb_advertise(ORB_ID(rotor_frequency), &rf_report);
+	//start measurement
+	resetCounter();
+	_lastmeasurement_time = hrt_absolute_time();
+	ScheduleOnInterval(_pool_interval);
 
-    if (_rotor_frequency_topic == nullptr) {
-        PX4_ERR("failed to create rotor_freqency object");
-    }
+	/* get a publish handle on the range finder topic */
+	struct rotor_frequency_s rf_report = {};
+	_rotor_frequency_topic = orb_advertise(ORB_ID(rotor_frequency), &rf_report);
 
-    return PX4_OK;
+	if (_rotor_frequency_topic == nullptr) {
+		PX4_ERR("failed to create rotor_freqency object");
+	}
+
+	return PX4_OK;
 }
 
 int
 PCF8583::getCounter()
 {
-   uint8_t a = readRegister(0x01);
-   uint8_t b = readRegister(0x02);
-   uint8_t c = readRegister(0x03);
+	uint8_t a = readRegister(0x01);
+	uint8_t b = readRegister(0x02);
+	uint8_t c = readRegister(0x03);
 
-   return int((a&0x0f)*1 + ((a&0xf0)>>4)*10 + (b&0x0f)*100 + ((b&0xf0)>>4)*1000+ (c&0x0f)*10000 + ((c&0xf0)>>4)*1000000);
+	return int((a & 0x0f) * 1 + ((a & 0xf0) >> 4) * 10 + (b & 0x0f) * 100 + ((b & 0xf0) >> 4) * 1000 +
+		   (c & 0x0f) * 10000 + ((c & 0xf0) >> 4) * 1000000);
 }
 
 void
 PCF8583::resetCounter()
 {
-        setRegister(0x01,0x00);
-        setRegister(0x02,0x00);
-        setRegister(0x03,0x00);
+	setRegister(0x01, 0x00);
+	setRegister(0x02, 0x00);
+	setRegister(0x03, 0x00);
 }
 
 void
 PCF8583::setRegister(uint8_t reg, uint8_t value)
 {
-      uint8_t buff[2];
-      buff[0]=reg;
-      buff[1]=value;
-      int ret=transfer(buff, 2, nullptr, 0);
+	uint8_t buff[2];
+	buff[0] = reg;
+	buff[1] = value;
+	int ret = transfer(buff, 2, nullptr, 0);
 
-      if (OK != ret) {
-              PX4_DEBUG("PCF8583::setRegister : i2c::transfer returned %d", ret);
-          }
+	if (OK != ret) {
+		PX4_DEBUG("PCF8583::setRegister : i2c::transfer returned %d", ret);
+	}
 }
 
 uint8_t
 PCF8583::readRegister(uint8_t reg)
 {
-      uint8_t rcv;
-      int ret=transfer(&reg, 1, &rcv, 1);
+	uint8_t rcv;
+	int ret = transfer(&reg, 1, &rcv, 1);
 
-      if (OK != ret) {
-          PX4_DEBUG("PCF8583::readRegister : i2c::transfer returned %d", ret);
-      }
+	if (OK != ret) {
+		PX4_DEBUG("PCF8583::readRegister : i2c::transfer returned %d", ret);
+	}
 
-      return rcv;
+	return rcv;
 }
 
 int
 PCF8583::probe()
 {
-   return PX4_OK;
+	return PX4_OK;
 }
 
 void
 PCF8583::readSensorAndComputeFreqency()
 {
 
-   int oldcount=_count;
-   uint64_t oldtime=_lastmeasurement_time;
+	int oldcount = _count;
+	uint64_t oldtime = _lastmeasurement_time;
 
-   _count=getCounter();
-   _lastmeasurement_time=hrt_absolute_time();
+	_count = getCounter();
+	_lastmeasurement_time = hrt_absolute_time();
 
-   int diffCount=_count-oldcount;
-   uint64_t diffTime=_lastmeasurement_time-oldtime;
-   if(_reset_count<_count+diffCount)
-   {
-      resetCounter();
-      _lastmeasurement_time=hrt_absolute_time();
-      _count=0;
-   }
+	int diffCount = _count - oldcount;
+	uint64_t diffTime = _lastmeasurement_time - oldtime;
 
-   _indicated_frequency=(float)diffCount/_magnet_count/((float)diffTime/1000000);
-   _estimated_accurancy=1/(float)_magnet_count/((float)diffTime/1000000);
+	if (_reset_count < _count + diffCount) {
+		resetCounter();
+		_lastmeasurement_time = hrt_absolute_time();
+		_count = 0;
+	}
+
+	_indicated_frequency = (float)diffCount / _magnet_count / ((float)diffTime / 1000000);
+	_estimated_accurancy = 1 / (float)_magnet_count / ((float)diffTime / 1000000);
 }
 
 void PCF8583::publish()
 {
 
-    struct rotor_frequency_s msg;
-    msg.timestamp = hrt_absolute_time();
-    msg.indicated_frequency_hz = _indicated_frequency;
-    msg.indicated_frequency_rpm = _indicated_frequency*60;
-    msg.estimated_accurancy_hz=_estimated_accurancy;
-    msg.estimated_accurancy_rpm=_estimated_accurancy*60;
-    msg.count=_count;
+	struct rotor_frequency_s msg;
+	msg.timestamp = hrt_absolute_time();
+	msg.indicated_frequency_hz = _indicated_frequency;
+	msg.indicated_frequency_rpm = _indicated_frequency * 60;
+	msg.estimated_accurancy_hz = _estimated_accurancy;
+	msg.estimated_accurancy_rpm = _estimated_accurancy * 60;
+	msg.count = _count;
 
-    // publish it, if we are the primary
-    if (_rotor_frequency_topic != nullptr) {
-        orb_publish(ORB_ID(rotor_frequency), _rotor_frequency_topic, &msg);
-    }
+	// publish it, if we are the primary
+	if (_rotor_frequency_topic != nullptr) {
+		orb_publish(ORB_ID(rotor_frequency), _rotor_frequency_topic, &msg);
+	}
 
-    // notify anyone waiting for data
-    poll_notify(POLLIN);
+	// notify anyone waiting for data
+	poll_notify(POLLIN);
 
 }
 
 void
 PCF8583::Run()
 {
-    /*Collect results */
-    readSensorAndComputeFreqency();
-    publish();
+	/*Collect results */
+	readSensorAndComputeFreqency();
+	publish();
 }
 
 
 void
 PCF8583::print_info()
 {
-    printf("poll interval:  %d us\n", _pool_interval);
+	printf("poll interval:  %d us\n", _pool_interval);
 }
 
 /*
@@ -296,7 +303,7 @@ namespace pcf8583
 
 PCF8583    *g_dev;
 
-int     start_bus( int i2c_bus);
+int     start_bus(int i2c_bus);
 int     stop();
 int     info();
 
@@ -310,32 +317,33 @@ int
 start_bus(int i2c_bus)
 {
 
-    if (g_dev != nullptr) {
-        PX4_ERR("already started");
-        return PX4_ERROR;
-    }
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
+		return PX4_ERROR;
+	}
 
-    /* create the driver */
-    g_dev = new PCF8583( i2c_bus);
+	/* create the driver */
+	g_dev = new PCF8583(i2c_bus);
 
-    if (g_dev == nullptr) {
-        goto fail;
-    }
+	if (g_dev == nullptr) {
+		goto fail;
+	}
 
-    if (OK != g_dev->init()) {
-        goto fail;
-    }
+	if (OK != g_dev->init()) {
+		goto fail;
+	}
 
-    PX4_INFO("pcf8583 for bus: %d started.",i2c_bus );
-    return PX4_OK;
+	PX4_INFO("pcf8583 for bus: %d started.", i2c_bus);
+	return PX4_OK;
 
 fail:
-    if (g_dev != nullptr) {
-        delete g_dev;
-        g_dev = nullptr;
-    }
 
-    return PX4_ERROR;
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+	}
+
+	return PX4_ERROR;
 }
 
 /**
@@ -344,16 +352,16 @@ fail:
 int
 stop()
 {
-    if (g_dev != nullptr) {
-        delete g_dev;
-        g_dev = nullptr;
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
 
-    } else {
-        PX4_ERR("driver not running");
-        return PX4_ERROR;
-    }
+	} else {
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
+	}
 
-    return PX4_OK;
+	return PX4_OK;
 }
 
 /**
@@ -362,15 +370,15 @@ stop()
 int
 info()
 {
-    if (g_dev == nullptr) {
-        PX4_ERR("driver not running");
-        return PX4_ERROR;
-    }
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
+	}
 
-    printf("state @ %p\n", g_dev);
-    g_dev->print_info();
+	printf("state @ %p\n", g_dev);
+	g_dev->print_info();
 
-    return PX4_OK;
+	return PX4_OK;
 }
 
 } /* namespace */
@@ -379,51 +387,51 @@ info()
 static void
 pcf8583_usage()
 {
-    PX4_INFO("usage: pcf8583 command [options]");
-    PX4_INFO("options:");
-    PX4_INFO("\t-b --bus i2cbus (%d)", PCF8583_BUS_DEFAULT);
-    PX4_INFO("command:");
-    PX4_INFO("\tstart|stop|info");
+	PX4_INFO("usage: pcf8583 command [options]");
+	PX4_INFO("options:");
+	PX4_INFO("\t-b --bus i2cbus (%d)", PCF8583_BUS_DEFAULT);
+	PX4_INFO("command:");
+	PX4_INFO("\tstart|stop|info");
 }
 
 int
 pcf8583_main(int argc, char *argv[])
 {
-    int ch;
-    int myoptind = 1;
-    const char *myoptarg = nullptr;
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
-    int i2c_bus = PCF8583_BUS_DEFAULT;
+	int i2c_bus = PCF8583_BUS_DEFAULT;
 
-    while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
-        switch (ch) {
-        case 'b':
-            i2c_bus = atoi(myoptarg);
-            break;
+	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'b':
+			i2c_bus = atoi(myoptarg);
+			break;
 
-        default:
-            PX4_WARN("Unknown option!");
-            goto out_error;
-        }
-    }
+		default:
+			PX4_WARN("Unknown option!");
+			goto out_error;
+		}
+	}
 
-    if (myoptind >= argc) {
-        goto out_error;
-    }
+	if (myoptind >= argc) {
+		goto out_error;
+	}
 
-    if (!strcmp(argv[myoptind], "start")) {
-            return pcf8583::start_bus(i2c_bus);
-    }
+	if (!strcmp(argv[myoptind], "start")) {
+		return pcf8583::start_bus(i2c_bus);
+	}
 
-    if (!strcmp(argv[myoptind], "stop")) {
-        return pcf8583::stop();
-    }
+	if (!strcmp(argv[myoptind], "stop")) {
+		return pcf8583::stop();
+	}
 
-    if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-        return pcf8583::info();
-    }
+	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
+		return pcf8583::info();
+	}
 
 out_error:
-    pcf8583_usage();
-    return PX4_ERROR;
+	pcf8583_usage();
+	return PX4_ERROR;
 }
