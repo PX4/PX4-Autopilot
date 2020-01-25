@@ -20,13 +20,15 @@ PARAM_DEFINE_INT32(PCF8583_ADDR, 80);
 /**
  * PCF8583 rotorfreq (i2c) counter reset value
  *
- * Internal device counter is reset to 0 when overun this value
+ * Internal device counter is reset to 0 when overun this value, 
+ * counter is able to store upto 6 digits
+ * reset of counter takes some time - measurement with reset has worse accurancy 
  *
  * @reboot_required true
  * @group Sensors
  * @value 0 - reset avter every measurement
  */
-PARAM_DEFINE_INT32(PCF8583_RESET, 0);
+PARAM_DEFINE_INT32(PCF8583_RESET, 500000);
 
 /**
  * PCF8583 rotorfreq (i2c) magnet count
