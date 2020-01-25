@@ -24,7 +24,7 @@ comment:
   behavior: default
   require_changes: no
 
-# fixes:
-#     - "platforms/::./platforms/"
-#     - "src/::./src/"
-#     - "mavlink/::./mavlink/"
+ignore:
+  - "src/examples"
+  - "src/modules/attitude_estimator_q"
+  - "src/modules/local_position_estimator"
