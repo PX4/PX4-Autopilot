@@ -101,9 +101,9 @@ CameraFeedback::Run()
 
 		// Fill attitude data
 		// TODO : this needs to be rotated by camera orientation or set to gimbal orientation when available
-		capture.q[0] = att.q[0];
-		capture.q[1] = att.q[1];
-		capture.q[2] = att.q[2];
+		capture.roll = att.roll_body;
+		capture.pitch = att.pitch_body;
+		capture.yaw = att.yaw_body;
 		capture.q[3] = att.q[3];
 
 		// Indicate whether capture feedback from camera is available
