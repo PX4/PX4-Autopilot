@@ -750,7 +750,7 @@ void Ekf2::Run()
 	}
 
 	bool updated = false;
-	imuSample imu_sample_new;
+	imuSample imu_sample_new {};
 
 	hrt_abstime imu_dt = 0; // for tracking time slip later
 	sensor_bias_s bias{};
@@ -893,7 +893,7 @@ void Ekf2::Run()
 					PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
 				}
 
-				magSample mag_sample;
+				magSample mag_sample {};
 				mag_sample.mag(0) = magnetometer.magnetometer_ga[0] - _param_ekf2_magbias_x.get();
 				mag_sample.mag(1) = magnetometer.magnetometer_ga[1] - _param_ekf2_magbias_y.get();
 				mag_sample.mag(2) = magnetometer.magnetometer_ga[2] - _param_ekf2_magbias_z.get();
@@ -1024,7 +1024,7 @@ void Ekf2::Run()
 				// only set airspeed data if condition for airspeed fusion are met
 				if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
-					airspeedSample airspeed_sample;
+					airspeedSample airspeed_sample {};
 					airspeed_sample.time_us = airspeed.timestamp;
 					airspeed_sample.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s;
 					airspeed_sample.true_airspeed = airspeed.true_airspeed_m_s;
@@ -1040,19 +1040,22 @@ void Ekf2::Run()
 			optical_flow_s optical_flow;
 
 			if (_optical_flow_sub.copy(&optical_flow)) {
-				flow_message flow;
-				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
-				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
+				flowSample flow {};
+				// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
+				// is produced by a RH rotation of the image about the sensor axis.
+				flow.flow_xy_rad(0) = -optical_flow.pixel_flow_x_integral;
+				flow.flow_xy_rad(1) = -optical_flow.pixel_flow_y_integral;
+				flow.gyro_xyz(0) = -optical_flow.gyro_x_rate_integral;
+				flow.gyro_xyz(1) = -optical_flow.gyro_y_rate_integral;
+				flow.gyro_xyz(2) = -optical_flow.gyro_z_rate_integral;
 				flow.quality = optical_flow.quality;
-				flow.gyrodata(0) = optical_flow.gyro_x_rate_integral;
-				flow.gyrodata(1) = optical_flow.gyro_y_rate_integral;
-				flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
-				flow.dt = optical_flow.integration_timespan;
+				flow.dt = 1e-6f * (float)optical_flow.integration_timespan;
+				flow.time_us = optical_flow.timestamp;
 
 				if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
 				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral)) {
 
-					_ekf.setOpticalFlowData(optical_flow.timestamp, &flow);
+					_ekf.setOpticalFlowData(flow);
 				}
 
 				// Save sensor limits reported by the optical flow sensor
@@ -1070,7 +1073,7 @@ void Ekf2::Run()
 				distance_sensor_s range_finder;
 
 				if (_range_finder_subs[_range_finder_sub_index].copy(&range_finder)) {
-					rangeSample range_sample;
+					rangeSample range_sample {};
 					range_sample.rng = range_finder.current_distance;
 					range_sample.quality = range_finder.signal_quality;
 					range_sample.time_us = range_finder.timestamp;
@@ -1098,7 +1101,7 @@ void Ekf2::Run()
 			// copy both attitude & position, we need both to fill a single extVisionSample
 			_ev_odom_sub.copy(&_ev_odom);
 
-			extVisionSample ev_data;
+			extVisionSample ev_data {};
 
 			// check for valid velocity data
 			if (PX4_ISFINITE(_ev_odom.vx) && PX4_ISFINITE(_ev_odom.vy) && PX4_ISFINITE(_ev_odom.vz)) {
@@ -1181,7 +1184,7 @@ void Ekf2::Run()
 				// we can only use the landing target if it has a fixed position and  a valid velocity estimate
 				if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 					// velocity of vehicle relative to target has opposite sign to target relative to vehicle
-					auxVelSample auxvel_sample;
+					auxVelSample auxvel_sample {};
 					auxvel_sample.vel = matrix::Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, 0.0f};
 					auxvel_sample.velVar = matrix::Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, 0.0f};
 					auxvel_sample.time_us = landing_target_pose.timestamp;
