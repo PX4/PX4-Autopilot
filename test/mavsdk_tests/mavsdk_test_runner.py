@@ -8,6 +8,7 @@ import os
 import psutil
 import subprocess
 import sys
+import signal
 
 
 test_matrix = [
@@ -78,6 +79,13 @@ class Runner:
         returncode = self.process.poll()
         if returncode is not None:
             return returncode
+
+        print("Sending SIGINT to {}".format(self.process.pid))
+        self.process.send_signal(signal.SIGINT)
+        try:
+            return self.process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
 
         print("Terminating {}".format(self.process.pid))
         self.process.terminate()
