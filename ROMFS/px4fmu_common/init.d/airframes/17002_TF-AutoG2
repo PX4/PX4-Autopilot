@@ -30,7 +30,7 @@ then
 	param set PWM_AUX_RATE 50
 	param set PWM_RATE 50
 
-    param set SENS_BOARD_ROT 7
+    param set SENS_BOARD_ROT 8
 
 	param set FW_AIRSPD_MAX 20
 	param set FW_AIRSPD_MIN 7
