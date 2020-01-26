@@ -61,6 +61,7 @@ set(msg_files
 	esc_report.msg
 	esc_status.msg
 	estimator_innovations.msg
+	estimator_sensor_bias.msg
 	estimator_status.msg
 	follow_target.msg
 	geofence_result.msg
@@ -108,7 +109,6 @@ set(msg_files
 	sensor_accel_integrated.msg
 	sensor_accel_status.msg
 	sensor_baro.msg
-	sensor_bias.msg
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
