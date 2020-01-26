@@ -8,3 +8,5 @@ float32 y                 # acceleration in the NED Y board axis in m/s^2
 float32 z                 # acceleration in the NED Z board axis in m/s^2
 
 float32 temperature       # temperature in degrees celsius
+
+uint8 ORB_QUEUE_LENGTH = 4

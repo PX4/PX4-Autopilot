@@ -58,8 +58,6 @@ ICM20602::ICM20602(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20602);
 	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20602);
 
-	_px4_accel.set_sample_rate(ACCEL_RATE);
-
 	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
 	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);
 }

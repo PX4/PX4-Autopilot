@@ -32,39 +32,9 @@
  ****************************************************************************/
 
 /**
-* Notch filter frequency for gyro
+* Low pass filter cutoff frequency for accel
 *
-* The center frequency for the 2nd order notch filter on the primary gyro.
-* This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
-* This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
-* See "IMU_GYRO_NF_BW" to set the bandwidth of the filter.
-*
-* @min 0
-* @max 1000
-* @unit Hz
-* @reboot_required true
-* @group Sensors
-*/
-PARAM_DEFINE_FLOAT(IMU_GYRO_NF_FREQ, 0.0f);
-
-/**
-* Notch filter bandwidth for gyro
-*
-* The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
-* See "IMU_GYRO_NF_FREQ" to activate the filter and to set the notch frequency.
-*
-* @min 0
-* @max 100
-* @unit Hz
-* @reboot_required true
-* @group Sensors
-*/
-PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
-
-/**
-* Low pass filter cutoff frequency for gyro
-*
-* The cutoff frequency for the 2nd order butterworth filter on the primary gyro.
+* The cutoff frequency for the 2nd order butterworth filter on the primary accelerometer.
 * This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
 *
 * @min 0
@@ -73,39 +43,4 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
-
-/**
-* Gyro control data maximum publication rate
-*
-* This is the maximum rate the gyro control data (sensor_gyro) will be allowed to publish at.
-* Set to 0 to disable and publish at the native sensor sample rate.
-*
-* @min 0
-* @max 2000
-* @value 0 0 (no limit)
-* @value 50 50 Hz
-* @value 250 250 Hz
-* @value 400 400 Hz
-* @value 1000 1000 Hz
-* @value 2000 2000 Hz
-* @unit Hz
-* @reboot_required true
-* @group Sensors
-*/
-PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
-
-/**
-* Cutoff frequency for angular acceleration
-*
-* The cutoff frequency for the 2nd order butterworth filter used on
-* the time derivative of the measured angular velocity.
-* Set to 0 to disable the filter.
-*
-* @min 0
-* @max 1000
-* @unit Hz
-* @reboot_required true
-* @group Sensors
-*/
-PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);
+PARAM_DEFINE_FLOAT(IMU_ACCEL_CUTOFF, 30.0f);
