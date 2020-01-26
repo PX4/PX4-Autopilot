@@ -286,7 +286,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "check")) {
-		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, status, status_flags, true, true, false, 30_s);
+		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, status, status_flags, true, true, true, 30_s);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
 		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, safety_s{},
@@ -1280,7 +1280,7 @@ Commander::run()
 	arm_auth_init(&mavlink_log_pub, &status.system_id);
 
 	// run preflight immediately to find all relevant parameters, but don't report
-	PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, _arm_requirements.global_position, false, false,
+	PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, _arm_requirements.global_position, false, true,
 				       hrt_elapsed_time(&_boot_timestamp));
 
 	while (!should_exit()) {
@@ -3355,7 +3355,7 @@ void *commander_low_prio_loop(void *arg)
 						tune_positive(true);
 
 						// time since boot not relevant here
-						if (PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, false, false, false, 30_s)) {
+						if (PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, false, false, true, 30_s)) {
 
 							status_flags.condition_system_sensors_initialized = true;
 						}
@@ -3558,11 +3558,17 @@ void Commander::data_link_check()
 			switch (telemetry.remote_type) {
 			case telemetry_status_s::MAV_TYPE_GCS:
 
-				// Recover from data link lost
+				// Initial connection or recovery from data link lost
 				if (status.data_link_lost) {
 					if (telemetry.heartbeat_time > _datalink_last_heartbeat_gcs) {
 						status.data_link_lost = false;
 						_status_changed = true;
+
+						if (!armed.armed) {
+							// make sure to report preflight check failures to a connecting GCS
+							PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags,
+										       _arm_requirements.global_position, true, true, hrt_elapsed_time(&_boot_timestamp));
+						}
 
 						if (_datalink_last_heartbeat_gcs != 0) {
 							mavlink_log_info(&mavlink_log_pub, "Data link regained");

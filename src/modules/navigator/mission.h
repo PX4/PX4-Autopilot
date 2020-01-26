@@ -218,9 +218,9 @@ private:
 	void reset_mission(struct mission_s &mission);
 
 	/**
-	 * Returns true if we need to reset the mission
+	 * Returns true if we need to reset the mission (call this only when inactive)
 	 */
-	bool need_to_reset_mission(bool active);
+	bool need_to_reset_mission();
 
 	/**
 	 * Project current location with heading to far away location and fill setpoint.

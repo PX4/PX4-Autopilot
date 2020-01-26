@@ -195,26 +195,20 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 	// gyro
 	if (!_param_sim_gyro_block.get()) {
-		static constexpr float scaling = 1000.0f;
-		_px4_gyro.set_scale(1 / scaling);
 		_px4_gyro.set_temperature(imu.temperature);
-		_px4_gyro.update(time, imu.xgyro * scaling, imu.ygyro * scaling, imu.zgyro * scaling);
+		_px4_gyro.update(time, imu.xgyro, imu.ygyro, imu.zgyro);
 	}
 
 	// accel
 	if (!_param_sim_accel_block.get()) {
-		static constexpr float scaling = 1000.0f;
-		_px4_accel.set_scale(1 / scaling);
 		_px4_accel.set_temperature(imu.temperature);
-		_px4_accel.update(time, imu.xacc * scaling, imu.yacc * scaling, imu.zacc * scaling);
+		_px4_accel.update(time, imu.xacc, imu.yacc, imu.zacc);
 	}
 
 	// magnetometer
 	if (!_param_sim_mag_block.get()) {
-		static constexpr float scaling = 1000.0f;
-		_px4_mag.set_scale(1 / scaling);
 		_px4_mag.set_temperature(imu.temperature);
-		_px4_mag.update(time, imu.xmag * scaling, imu.ymag * scaling, imu.zmag * scaling);
+		_px4_mag.update(time, imu.xmag, imu.ymag, imu.zmag);
 	}
 
 	// baro
@@ -596,28 +590,71 @@ void Simulator::send()
 	fds_actuator_outputs[0].fd = _actuator_outputs_sub;
 	fds_actuator_outputs[0].events = POLLIN;
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	px4_pollfd_struct_t fds_ekf2_timestamps[1] = {};
+	fds_ekf2_timestamps[0].fd = _ekf2_timestamps_sub;
+	fds_ekf2_timestamps[0].events = POLLIN;
+
+	State state = State::WaitingForFirstEkf2Timestamp;
+#endif
+
 	while (true) {
 
-		// Wait for up to 100ms for data.
-		int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
-		if (pret == 0) {
-			// Timed out, try again.
-			continue;
+		if (state == State::WaitingForActuatorControls) {
+#endif
+			// Wait for up to 100ms for data.
+			int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
+
+			if (pret == 0) {
+				// Timed out, try again.
+				continue;
+			}
+
+			if (pret < 0) {
+				PX4_ERR("poll error %s", strerror(errno));
+				continue;
+			}
+
+			if (fds_actuator_outputs[0].revents & POLLIN) {
+				// Got new data to read, update all topics.
+				parameters_update(false);
+				_vehicle_status_sub.update(&_vehicle_status);
+				send_controls();
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+				state = State::WaitingForEkf2Timestamp;
+#endif
+			}
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 		}
 
-		if (pret < 0) {
-			PX4_ERR("poll error %s", strerror(errno));
-			continue;
+#endif
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+		if (state == State::WaitingForFirstEkf2Timestamp || state == State::WaitingForEkf2Timestamp) {
+			int pret = px4_poll(&fds_ekf2_timestamps[0], 1, 100);
+
+			if (pret == 0) {
+				// Timed out, try again.
+				continue;
+			}
+
+			if (pret < 0) {
+				PX4_ERR("poll error %s", strerror(errno));
+				continue;
+			}
+
+			if (fds_ekf2_timestamps[0].revents & POLLIN) {
+				ekf2_timestamps_s timestamps;
+				orb_copy(ORB_ID(ekf2_timestamps), _ekf2_timestamps_sub, &timestamps);
+				state = State::WaitingForActuatorControls;
+			}
 		}
 
-		if (fds_actuator_outputs[0].revents & POLLIN) {
-			// Got new data to read, update all topics.
-			parameters_update(false);
-			_vehicle_status_sub.update(&_vehicle_status);
-			send_controls();
-		}
-
+#endif
 	}
 }
 
@@ -710,7 +747,7 @@ void Simulator::run()
 
 			} else {
 				::close(_fd);
-				system_usleep(100);
+				system_sleep(1);
 			}
 		}
 
@@ -760,6 +797,10 @@ void Simulator::run()
 	// Subscribe to topics.
 	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	_ekf2_timestamps_sub = orb_subscribe(ORB_ID(ekf2_timestamps));
+#endif
 
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
@@ -823,6 +864,9 @@ void Simulator::run()
 	}
 
 	orb_unsubscribe(_actuator_outputs_sub);
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	orb_unsubscribe(_ekf2_timestamps_sub);
+#endif
 }
 
 #ifdef ENABLE_UART_RC_INPUT
