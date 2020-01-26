@@ -79,10 +79,10 @@ void VehicleAcceleration::Stop()
 
 void VehicleAcceleration::SensorBiasUpdate(bool force)
 {
-	if (_sensor_bias_sub.updated() || force) {
-		sensor_bias_s bias;
+	if (_estimator_sensor_bias_sub.updated() || force) {
+		estimator_sensor_bias_s bias;
 
-		if (_sensor_bias_sub.copy(&bias)) {
+		if (_estimator_sensor_bias_sub.copy(&bias)) {
 			if (bias.accel_device_id == _selected_sensor_device_id) {
 				_bias = Vector3f{bias.accel_bias};
 

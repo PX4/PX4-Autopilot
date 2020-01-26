@@ -70,6 +70,7 @@
 #include <uORB/topics/debug_vect.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
@@ -84,7 +85,6 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_accel_status.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_mag.h>
@@ -816,7 +816,7 @@ protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
 		_sensor_time(0),
-		_bias_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_bias))),
+		_bias_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_sensor_bias))),
 		_differential_pressure_sub(_mavlink->add_orb_subscription(ORB_ID(differential_pressure))),
 		_magnetometer_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_magnetometer))),
 		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data))),
@@ -864,7 +864,7 @@ protected:
 				_baro_timestamp = air_data.timestamp;
 			}
 
-			sensor_bias_s bias = {};
+			estimator_sensor_bias_s bias{};
 			_bias_sub->update(&bias);
 
 			differential_pressure_s differential_pressure = {};
