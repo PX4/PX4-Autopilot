@@ -56,15 +56,15 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/ekf2_timestamps.h>
-#include <uORB/topics/ekf_gps_position.h>
-#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ekf_gps_drift.h>
+#include <uORB/topics/ekf_gps_position.h>
+#include <uORB/topics/estimator_innovations.h>
+#include <uORB/topics/estimator_sensor_bias.h>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -263,20 +263,20 @@ private:
 	vehicle_land_detected_s		_vehicle_land_detected{};
 	vehicle_status_s		_vehicle_status{};
 
-	uORB::Publication<estimator_innovations_s>			_estimator_innovations_pub{ORB_ID(estimator_innovations)};
-	uORB::Publication<estimator_innovations_s>			_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
-	uORB::Publication<estimator_innovations_s>			_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
 	uORB::Publication<ekf_gps_position_s>			_blended_gps_pub{ORB_ID(ekf_gps_position)};
+	uORB::Publication<estimator_innovations_s>		_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
+	uORB::Publication<estimator_innovations_s>		_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
+	uORB::Publication<estimator_innovations_s>		_estimator_innovations_pub{ORB_ID(estimator_innovations)};
+	uORB::Publication<estimator_sensor_bias_s>		_estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
 	uORB::Publication<estimator_status_s>			_estimator_status_pub{ORB_ID(estimator_status)};
-	uORB::Publication<sensor_bias_s>			_sensor_bias_pub{ORB_ID(sensor_bias)};
 	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
 	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::PublicationData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
+	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
 
 	Ekf _ekf;
 
@@ -753,7 +753,7 @@ void Ekf2::Run()
 	imuSample imu_sample_new {};
 
 	hrt_abstime imu_dt = 0; // for tracking time slip later
-	sensor_bias_s bias{};
+	estimator_sensor_bias_s bias{};
 
 	if (_imu_sub_index >= 0) {
 		vehicle_imu_s imu;
@@ -1490,7 +1490,7 @@ void Ekf2::Run()
 				bias.mag_bias[1] = _last_valid_mag_cal[1];
 				bias.mag_bias[2] = _last_valid_mag_cal[2];
 
-				_sensor_bias_pub.publish(bias);
+				_estimator_sensor_bias_pub.publish(bias);
 			}
 
 			// publish estimator status
