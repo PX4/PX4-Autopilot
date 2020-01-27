@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,47 +31,8 @@
 #
 ############################################################################
 
-add_subdirectory(failure_detector)
-add_subdirectory(HealthAndArmingChecks)
-add_subdirectory(Arming)
+px4_add_library(health_and_arming_checks
+	Common.cpp
+	HealthAndArmingChecks.cpp
+)
 
-px4_add_module(
-	MODULE modules__commander
-	MAIN commander
-	COMPILE_FLAGS
-	SRCS
-		accelerometer_calibration.cpp
-		airspeed_calibration.cpp
-		baro_calibration.cpp
-		calibration_routines.cpp
-		Commander.cpp
-		commander_helper.cpp
-		esc_calibration.cpp
-		factory_calibration_storage.cpp
-		gyro_calibration.cpp
-		level_calibration.cpp
-		lm_fit.cpp
-		mag_calibration.cpp
-		rc_calibration.cpp
-		Safety.cpp
-		state_machine_helper.cpp
-		worker_thread.cpp
-	DEPENDS
-		circuit_breaker
-		failure_detector
-		geo
-		health_and_arming_checks
-		hysteresis
-		PreFlightCheck
-		ArmAuthorization
-		ArmStateMachine
-		HealthFlags
-		sensor_calibration
-		world_magnetic_model
-	)
-
-if(PX4_TESTING)
-	add_subdirectory(commander_tests)
-endif()
-
-px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)

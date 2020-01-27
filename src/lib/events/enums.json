@@ -4,6 +4,207 @@
         "1": {
             "namespace": "px4",
             "enums": {
+                "navigation_mode_group_t": {
+                    "type": "uint32_t",
+                    "description": "Navigation/flight mode group bits. All modes within a group share the same arming checks. For now we directly map group == mode.",
+                    "is_bitfield": true,
+                    "entries": {
+                        "1": {
+                            "name": "manual",
+                            "description": "Fully manual mode (w/o any controller support)"
+                        },
+                        "2": {
+                            "name": "altctl",
+                            "description": "Altitude mode"
+                        },
+                        "4": {
+                            "name": "posctl",
+                            "description": "Position mode"
+                        },
+                        "8": {
+                            "name": "mission",
+                            "description": "Mission mode"
+                        },
+                        "16": {
+                            "name": "loiter",
+                            "description": "Loiter"
+                        },
+                        "32": {
+                            "name": "rtl",
+                            "description": "RTL"
+                        },
+                        "1024": {
+                            "name": "acro",
+                            "description": "Acro"
+                        },
+                        "16384": {
+                            "name": "offboard",
+                            "description": "Offboard"
+                        },
+                        "32768": {
+                            "name": "stab",
+                            "description": "Stabilized"
+                        },
+                        "131072": {
+                            "name": "takeoff",
+                            "description": "Takeoff"
+                        },
+                        "262144": {
+                            "name": "land",
+                            "description": "Land"
+                        },
+                        "524288": {
+                            "name": "follow_target",
+                            "description": "Follow Target"
+                        },
+                        "1048576": {
+                            "name": "precland",
+                            "description": "Precision Land"
+                        },
+                        "2097152": {
+                            "name": "orbit",
+                            "description": "Orbit"
+                        },
+                        "4194304": {
+                            "name": "vtol_takeoff",
+                            "description": "VTOL Takeoff"
+                        }
+                    }
+                },
+                "health_component_t": {
+                    "type": "uint32_t",
+                    "description": "Bitfield for subsystems & components",
+                    "is_bitfield": true,
+                    "entries": {
+                        "1": {
+                            "name": "none",
+                            "description": "None",
+                            "comment": "Not assigned to any component"
+                        },
+                        "2": {
+                            "name": "absolute_pressure",
+                            "description": "Absolute pressure"
+                        },
+                        "4": {
+                            "name": "differential_pressure",
+                            "description": "Differential pressure"
+                        },
+                        "8": {
+                            "name": "gps",
+                            "description": "GPS"
+                        },
+                        "16": {
+                            "name": "optical_flow",
+                            "description": "Optical flow"
+                        },
+                        "32": {
+                            "name": "vision_position",
+                            "description": "Vision position estimate"
+                        },
+                        "64": {
+                            "name": "distance_sensor",
+                            "description": "Distance sensor"
+                        },
+                        "128": {
+                            "name": "manual_control_input",
+                            "description": "RC or virtual joystick input"
+                        },
+                        "256": {
+                            "name": "motors_escs",
+                            "description": "Motors/ESCs"
+                        },
+                        "512": {
+                            "name": "utm",
+                            "description": "UTM"
+                        },
+                        "1024": {
+                            "name": "logging",
+                            "description": "Logging"
+                        },
+                        "2048": {
+                            "name": "battery",
+                            "description": "Battery"
+                        },
+                        "4096": {
+                            "name": "communication_links",
+                            "description": "Communication links"
+                        },
+                        "8192": {
+                            "name": "rate_controller",
+                            "description": "Rate controller"
+                        },
+                        "16384": {
+                            "name": "attitude_controller",
+                            "description": "Attitude controller"
+                        },
+                        "32768": {
+                            "name": "position_controller",
+                            "description": "Position controller"
+                        },
+                        "65536": {
+                            "name": "attitude_estimate",
+                            "description": "Attitude estimate"
+                        },
+                        "131072": {
+                            "name": "local_position_estimate",
+                            "description": "Local position estimate"
+                        },
+                        "262144": {
+                            "name": "mission",
+                            "description": "Mission"
+                        },
+                        "524288": {
+                            "name": "avoidance",
+                            "description": "Avoidance"
+                        },
+                        "1048576": {
+                            "name": "system",
+                            "description": "System",
+                            "comment": "e.g. CPU or RAM"
+                        },
+                        "2097152": {
+                            "name": "camera",
+                            "description": "Camera"
+                        },
+                        "4194304": {
+                            "name": "gimbal",
+                            "description": "Gimbal"
+                        },
+                        "8388608": {
+                            "name": "payload",
+                            "description": "Payload"
+                        },
+                        "16777216": {
+                            "name": "global_position_estimate",
+                            "description": "Global position estimate"
+                        },
+                        "33554432": {
+                            "name": "storage",
+                            "description": "Storage",
+                            "comment": "e.g. SD card or FRAM"
+                        },
+                        "67108864": {
+                            "name": "parachute",
+                            "description": "Parachute"
+                        },
+                        "134217728": {
+                            "name": "magnetometer",
+                            "description": "Magnetometer"
+                        },
+                        "268435456": {
+                            "name": "accel",
+                            "description": "Accelerometer"
+                        },
+                        "536870912": {
+                            "name": "gyro",
+                            "description": "Gyroscope"
+                        },
+                        "1073741824": {
+                            "name": "remote_control",
+                            "description": "Remote Control"
+                        }
+                    }
+                },
                 "sensor_type_t": {
                     "type": "uint8_t",
                     "description": "Sensor type for failover reporting",
@@ -381,7 +582,27 @@
                         }
                     }
                 }
-            }
+            },
+            "navigation_mode_groups": {
+                "groups": {
+                    "0": [65536],
+                    "1": [131072],
+                    "2": [196608],
+                    "3": [67371008],
+                    "4": [50593792],
+                    "5": [84148224],
+                    "10": [327680],
+                    "14": [393216],
+                    "15": [458752],
+                    "17": [33816576],
+                    "18": [100925440],
+                    "19": [134479872],
+                    "20": [151257088],
+                    "21": [16973824],
+                    "22": [168034304]
+                }
+            },
+            "supported_protocols": [ "health_and_arming_check" ]
         }
     }
 }
