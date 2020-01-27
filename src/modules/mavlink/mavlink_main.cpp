@@ -1551,23 +1551,25 @@ void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
 	_rstatus = radio_status;
-	set_telemetry_status_type(telemetry_status_s::LINK_TYPE_3DR_RADIO);
 
-	/* check hardware limits */
-	_radio_status_available = true;
-	_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
+	if (get_telemetry_status().type == telemetry_status_s::LINK_TYPE_3DR_RADIO) {
 
-	if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
-		/* this indicates link congestion, reduce rate by 20% */
-		_radio_status_mult *= 0.80f;
+		/* check hardware limits */
+		_radio_status_available = true;
+		_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
 
-	} else if (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
-		/* this indicates link congestion, reduce rate by 2.5% */
-		_radio_status_mult *= 0.975f;
+		if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 20% */
+			_radio_status_mult *= 0.80f;
 
-	} else if (radio_status.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
-		/* this indicates spare bandwidth, increase by 2.5% */
-		_radio_status_mult *= 1.025f;
+		} else if (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 2.5% */
+			_radio_status_mult *= 0.975f;
+
+		} else if (radio_status.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
+			/* this indicates spare bandwidth, increase by 2.5% */
+			_radio_status_mult *= 1.025f;
+		}
 	}
 }
 
