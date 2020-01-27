@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,9 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(ets)
-add_subdirectory(ms4525)
-add_subdirectory(ms5525)
-add_subdirectory(sdp3x)
-add_subdirectory(adc_dp_wrapper)
+px4_add_module(
+	MODULE drivers__adc_dp_wrapper
+	MAIN adc_dp_wrapper
+	SRCS
+		adc_dp_wrapper_main.cpp
+	DEPENDS
+		git_ecl
+		ecl_airdata
+		AirspeedValidator
+)
