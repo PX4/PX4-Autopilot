@@ -243,6 +243,7 @@ private:
 		(ParamInt<px4::params::CBRK_ENGINEFAIL>) _param_cbrk_enginefail,
 		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
 		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
+		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
 		// Geofrence
 		(ParamInt<px4::params::GF_ACTION>) _param_geofence_action,

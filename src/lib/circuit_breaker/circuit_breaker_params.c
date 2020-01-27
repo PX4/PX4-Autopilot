@@ -176,3 +176,18 @@ PARAM_DEFINE_INT32(CBRK_USB_CHK, 0);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_VELPOSERR, 0);
+
+/**
+ * Circuit breaker for arming in fixed-wing mode check
+ *
+ * Setting this parameter to 159753 will enable arming in fixed-wing
+ * mode for VTOLs.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 159753
+ * @category Developer
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_VTOLARMING, 0);
