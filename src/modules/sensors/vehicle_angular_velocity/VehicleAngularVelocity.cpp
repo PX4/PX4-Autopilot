@@ -299,15 +299,18 @@ void VehicleAngularVelocity::Run()
 			// correct for in-run bias errors
 			angular_velocity_raw -= _bias;
 
-			// Differentiate angular velocity
-			const Vector3f angular_acceleration_raw = (angular_velocity_raw - _angular_velocity_prev) / dt;
-			_angular_velocity_prev = angular_velocity_raw;
+			// Differentiate angular velocity (after notch filter)
+			const Vector3f angular_velocity_notched{_notch_filter_velocity.apply(angular_velocity_raw)};
+			const Vector3f angular_acceleration_raw = (angular_velocity_notched - _angular_velocity_prev) / dt;
+
+			_angular_velocity_prev = angular_velocity_notched;
 			_angular_acceleration_prev = angular_acceleration_raw;
 
-			// Filter: apply notch and then low-pass
 			CheckFilters();
+
+			// Filter: apply low-pass
 			const Vector3f angular_acceleration{_lp_filter_acceleration.apply(angular_acceleration_raw)};
-			const Vector3f angular_velocity{_lp_filter_velocity.apply(_notch_filter_velocity.apply(angular_velocity_raw))};
+			const Vector3f angular_velocity{_lp_filter_velocity.apply(angular_velocity_notched)};
 
 			bool publish = true;
 
