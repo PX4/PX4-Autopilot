@@ -533,6 +533,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_RANGE:
 			actuator_controls.control[actuator_controls_s::INDEX_CAMERA_ZOOM] = cmd_mavlink.param2 / 50.0f - 1.0f;
 			break;
+
 		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_STEP:
 		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_CONTINUOUS:
 		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_FOCAL_LENGTH:
