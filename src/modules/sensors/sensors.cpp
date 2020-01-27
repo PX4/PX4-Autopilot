@@ -567,11 +567,15 @@ int Sensors::print_status()
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
 
+	PX4_INFO_RAW("\n");
 	_vehicle_acceleration.PrintStatus();
+
+	PX4_INFO_RAW("\n");
 	_vehicle_angular_velocity.PrintStatus();
 
 	for (auto &i : _vehicle_imu_list) {
 		if (i != nullptr) {
+			PX4_INFO_RAW("\n");
 			i->PrintStatus();
 		}
 	}
