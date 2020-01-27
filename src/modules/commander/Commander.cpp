@@ -3564,7 +3564,7 @@ void Commander::data_link_check()
 						status.data_link_lost = false;
 						_status_changed = true;
 
-						if (!armed.armed) {
+						if (!armed.armed && !status_flags.condition_calibration_enabled) {
 							// make sure to report preflight check failures to a connecting GCS
 							PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags,
 										       _arm_requirements.global_position, true, true, hrt_elapsed_time(&_boot_timestamp));
