@@ -113,11 +113,11 @@ private:
 
 	hrt_abstime _last_publish{0};
 	hrt_abstime _filter_check_last{0};
-	static constexpr const float kINITIAL_RATE_HZ{1000.0f}; /**< sensor update rate used for initialization */
-	float _update_rate_hz{kINITIAL_RATE_HZ}; /**< current rate-controller loop update rate in [Hz] */
-	math::LowPassFilter2pVector3f _lowpass_filter{kINITIAL_RATE_HZ, 30};
+	static constexpr const float kInitialRateHz{1000.0f}; /**< sensor update rate used for initialization */
+	float _update_rate_hz{kInitialRateHz}; /**< current rate-controller loop update rate in [Hz] */
+	math::LowPassFilter2pVector3f _lowpass_filter{kInitialRateHz, 30};
 	math::NotchFilter<matrix::Vector3f> _notch_filter{};
-	float _filter_sample_rate{kINITIAL_RATE_HZ};
+	float _filter_sample_rate{kInitialRateHz};
 	int _sample_rate_incorrect_count{0};
 
 	uint32_t _selected_sensor_device_id{0};
