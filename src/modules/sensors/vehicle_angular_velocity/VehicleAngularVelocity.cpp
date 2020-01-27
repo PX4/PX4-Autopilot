@@ -43,8 +43,10 @@ VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
-	_lowpass_filter.set_cutoff_frequency(kInitialRateHz, _param_imu_gyro_cutoff.get());
-	_notch_filter.setParameters(kInitialRateHz, _param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
+	_lp_filter_velocity.set_cutoff_frequency(kInitialRateHz, _param_imu_gyro_cutoff.get());
+	_notch_filter_velocity.setParameters(kInitialRateHz, _param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
+
+	_lp_filter_acceleration.set_cutoff_frequency(kInitialRateHz, _param_imu_dgyro_cutoff.get());
 }
 
 VehicleAngularVelocity::~VehicleAngularVelocity()
@@ -81,7 +83,7 @@ void VehicleAngularVelocity::Stop()
 	_sensor_selection_sub.unregisterCallback();
 }
 
-void VehicleAngularVelocity::CheckFilters(const Vector3f &rates)
+void VehicleAngularVelocity::CheckFilters()
 {
 	if ((hrt_elapsed_time(&_filter_check_last) > 100_ms)) {
 		_filter_check_last = hrt_absolute_time();
@@ -104,20 +106,27 @@ void VehicleAngularVelocity::CheckFilters(const Vector3f &rates)
 		}
 
 		const bool sample_rate_updated = (_sample_rate_incorrect_count > 50);
-		const bool lowpass_updated = (fabsf(_lowpass_filter.get_cutoff_freq() - _param_imu_gyro_cutoff.get()) > 0.01f);
-		const bool notch_updated = ((fabsf(_notch_filter.getNotchFreq() - _param_imu_gyro_nf_freq.get()) > 0.01f)
-					    || (fabsf(_notch_filter.getBandwidth() - _param_imu_gyro_nf_bw.get()) > 0.01f));
 
-		if (sample_rate_updated || lowpass_updated || notch_updated) {
+		const bool lp_velocity_updated = (fabsf(_lp_filter_velocity.get_cutoff_freq() - _param_imu_gyro_cutoff.get()) > 0.01f);
+		const bool notch_updated = ((fabsf(_notch_filter_velocity.getNotchFreq() - _param_imu_gyro_nf_freq.get()) > 0.01f)
+					    || (fabsf(_notch_filter_velocity.getBandwidth() - _param_imu_gyro_nf_bw.get()) > 0.01f));
+
+		const bool lp_acceleration_updated = (fabsf(_lp_filter_acceleration.get_cutoff_freq() - _param_imu_dgyro_cutoff.get()) >
+						      0.01f);
+
+		if (sample_rate_updated || lp_velocity_updated || notch_updated || lp_acceleration_updated) {
 			PX4_INFO("updating filter, sample rate: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)_update_rate_hz);
 			_filter_sample_rate = _update_rate_hz;
 
 			// update software low pass filters
-			_lowpass_filter.set_cutoff_frequency(_filter_sample_rate, _param_imu_gyro_cutoff.get());
-			_lowpass_filter.reset(rates);
+			_lp_filter_velocity.set_cutoff_frequency(_filter_sample_rate, _param_imu_gyro_cutoff.get());
+			_lp_filter_velocity.reset(_angular_velocity_prev);
 
-			_notch_filter.setParameters(_filter_sample_rate, _param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
-			_notch_filter.reset(rates);
+			_notch_filter_velocity.setParameters(_filter_sample_rate, _param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
+			_notch_filter_velocity.reset(_angular_velocity_prev);
+
+			_lp_filter_acceleration.set_cutoff_frequency(_filter_sample_rate, _param_imu_dgyro_cutoff.get());
+			_lp_filter_acceleration.reset(_angular_acceleration_prev);
 
 			// reset state
 			_sample_rate_incorrect_count = 0;
@@ -273,22 +282,35 @@ void VehicleAngularVelocity::Run()
 				perf_count_interval(_interval_perf, sensor_data.timestamp_sample);
 			}
 
+			// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
+			const float dt = math::constrain(((sensor_data.timestamp_sample - _timestamp_sample_prev) / 1e6f), 0.0002f, 0.02f);
+			_timestamp_sample_prev = sensor_data.timestamp_sample;
+
+
 			// get the sensor data and correct for thermal errors (apply offsets and scale)
 			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
 
 			// apply offsets and scale
-			Vector3f rates{(val - _offset).emult(_scale)};
+			Vector3f angular_velocity_raw{(val - _offset).emult(_scale)};
 
 			// rotate corrected measurements from sensor to body frame
-			rates = _board_rotation * rates;
+			angular_velocity_raw = _board_rotation * angular_velocity_raw;
 
 			// correct for in-run bias errors
-			rates -= _bias;
+			angular_velocity_raw -= _bias;
 
-			// Filter: apply notch and then low-pass
-			CheckFilters(rates);
-			const Vector3f rates_filtered = _lowpass_filter.apply(_notch_filter.apply(rates));
+			// Differentiate angular velocity (after notch filter)
+			const Vector3f angular_velocity_notched{_notch_filter_velocity.apply(angular_velocity_raw)};
+			const Vector3f angular_acceleration_raw = (angular_velocity_notched - _angular_velocity_prev) / dt;
 
+			_angular_velocity_prev = angular_velocity_notched;
+			_angular_acceleration_prev = angular_acceleration_raw;
+
+			CheckFilters();
+
+			// Filter: apply low-pass
+			const Vector3f angular_acceleration{_lp_filter_acceleration.apply(angular_acceleration_raw)};
+			const Vector3f angular_velocity{_lp_filter_velocity.apply(angular_velocity_notched)};
 
 			bool publish = true;
 
@@ -301,15 +323,21 @@ void VehicleAngularVelocity::Run()
 			}
 
 			if (publish) {
-				vehicle_angular_velocity_s out;
+				// Publish vehicle_angular_acceleration
+				vehicle_angular_acceleration_s v_angular_acceleration;
+				v_angular_acceleration.timestamp_sample = sensor_data.timestamp_sample;
+				angular_acceleration.copyTo(v_angular_acceleration.xyz);
+				v_angular_acceleration.timestamp = hrt_absolute_time();
+				_vehicle_angular_acceleration_pub.publish(v_angular_acceleration);
 
-				out.timestamp_sample = sensor_data.timestamp_sample;
-				rates_filtered.copyTo(out.xyz);
-				out.timestamp = hrt_absolute_time();
+				// Publish vehicle_angular_velocity
+				vehicle_angular_velocity_s v_angular_velocity;
+				v_angular_velocity.timestamp_sample = sensor_data.timestamp_sample;
+				angular_velocity.copyTo(v_angular_velocity.xyz);
+				v_angular_velocity.timestamp = hrt_absolute_time();
+				_vehicle_angular_velocity_pub.publish(v_angular_velocity);
 
-				_vehicle_angular_velocity_pub.publish(out);
-
-				_last_publish = out.timestamp_sample;
+				_last_publish = v_angular_velocity.timestamp_sample;
 			}
 		}
 	}
@@ -323,10 +351,10 @@ void VehicleAngularVelocity::PrintStatus()
 	PX4_INFO("scale: [%.3f %.3f %.3f]", (double)_scale(0), (double)_scale(1), (double)_scale(2));
 
 	PX4_INFO("sample rate: %.3f Hz", (double)_update_rate_hz);
-	PX4_INFO("low-pass filter cutoff: %.3f Hz", (double)_lowpass_filter.get_cutoff_freq());
+	PX4_INFO("low-pass filter cutoff: %.3f Hz", (double)_lp_filter_velocity.get_cutoff_freq());
 
-	if (_notch_filter.getNotchFreq() > 0.0f) {
-		PX4_INFO("notch filter freq: %.3f Hz\tbandwidth: %.3f Hz", (double)_notch_filter.getNotchFreq(),
-			 (double)_notch_filter.getBandwidth());
+	if (_notch_filter_velocity.getNotchFreq() > 0.0f) {
+		PX4_INFO("notch filter freq: %.3f Hz\tbandwidth: %.3f Hz", (double)_notch_filter_velocity.getNotchFreq(),
+			 (double)_notch_filter_velocity.getBandwidth());
 	}
 }
