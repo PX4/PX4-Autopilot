@@ -23,6 +23,7 @@ class Event(object):
         self.message = None
         self.description = None
         self.group = "default"
+        self.type = None
         self._arguments = []
 
     @staticmethod
@@ -130,6 +131,8 @@ class SourceParser(object):
                 if not event.group in known_groups:
                     raise Exception("Unknown event group: '{}'\nKnown groups: {}\n" \
                         "If this is not a typo, add the new group to the script".format(event.group, known_groups))
+            elif tag == "type":
+                event.type = value.strip()
             elif tag.startswith("arg"):
                 arg_index = int(tag[3:])-1
                 arg_name = value.strip()
@@ -237,7 +240,7 @@ class SourceParser(object):
                             event.group = "health"
                         else:
                             event.group = "arming_check"
-                        event.prepend_arguments([('common::navigation_mode_category_t', 'modes'),
+                        event.prepend_arguments([('navigation_mode_group_t', 'modes'),
                                 ('uint8_t', 'health_component_index')])
                     else:
                         raise Exception("unknown event method call: {}, args: {}".format(call, args))

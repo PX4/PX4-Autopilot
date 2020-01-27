@@ -25,6 +25,8 @@ class JsonOutput():
                 event_obj = {}
                 event_obj['name'] = e.name
                 event_obj['message'] = e.message
+                if e.type is not None:
+                    event_obj['type'] = e.type
                 if e.description is not None:
                     event_obj['description'] = e.description
                 args = []
