@@ -60,7 +60,7 @@ then
 	param set RC_FLT_CUTOFF 0.00000
 
 	# Filter settings
-	param set MC_DTERM_CUTOFF 90.00000
+	param set IMU_DGYRO_CUTOFF 90.00000
 	param set IMU_GYRO_CUTOFF 100.00000
 
 	# Thrust curve (avoids the need for TPA)
@@ -106,7 +106,7 @@ then
 
 	# Filter settings
 	param set IMU_GYRO_CUTOFF 90.00000
-	param set MC_DTERM_CUTOFF 70.00000
+	param set IMU_DGYRO_CUTOFF 70.00000
 
 	# Don't try to be intelligent on RC loss: just cut the motors
 	param set NAV_RCL_ACT 6

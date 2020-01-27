@@ -53,7 +53,7 @@ then
 
 	param set IMU_GYRO_CUTOFF 40
 
-	param set MC_DTERM_CUTOFF 15
+	param set IMU_DGYRO_CUTOFF 15
 	param set MC_PITCHRATE_I	0.2
 	param set MC_PITCHRATE_MAX 60
 	param set MC_ROLLRATE_I	0.2

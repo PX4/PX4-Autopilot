@@ -29,7 +29,7 @@ then
 	param set CBRK_USB_CHK 197848
 
 	param set IMU_GYRO_CUTOFF 100
-	param set MC_DTERM_CUTOFF 60
+	param set IMU_DGYRO_CUTOFF 60
 
 	param set MC_AIRMODE 2
 	param set MC_PITCHRATE_D 0.0010
