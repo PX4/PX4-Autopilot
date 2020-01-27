@@ -64,7 +64,7 @@ void FlightTaskTransition::updateAccelerationEstimate()
 {
 	// Estimate the acceleration by filtering the raw derivative of the velocity estimate
 	// This is done to provide a good estimate of the current acceleration to the next flight task after back-transition
-	_acceleration_setpoint = 0.9f * _acceleration_setpoint + 0.1f * (_velocity - _velocity_prev) / _deltatime;
+	_acceleration_setpoint = .9f * _acceleration_setpoint + .1f * (_velocity - _velocity_prev) / _deltatime;
 
 	if (!PX4_ISFINITE(_acceleration_setpoint(0)) ||
 	    !PX4_ISFINITE(_acceleration_setpoint(1)) ||
@@ -79,7 +79,7 @@ bool FlightTaskTransition::update()
 {
 	// level wings during the transition, altitude should be controlled
 	_position_setpoint(2) = _transition_altitude;
-	_thrust_setpoint.xy() = matrix::Vector2f(0.f, 0.f);
+	_acceleration_setpoint.xy() = matrix::Vector2f(0.f, 0.f);
 
 	updateAccelerationEstimate();
 

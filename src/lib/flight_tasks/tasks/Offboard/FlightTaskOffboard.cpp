@@ -150,7 +150,9 @@ bool FlightTaskOffboard::update()
 
 	// IDLE
 	if (_sub_triplet_setpoint.get().current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-		_thrust_setpoint.zero();
+		_position_setpoint.setNaN(); // Don't require any position/velocity setpoints
+		_velocity_setpoint.setNaN();
+		_acceleration_setpoint = Vector3f(0.f, 0.f, 100.f); // High downwards acceleration to make sure there's no thrust
 		return true;
 	}
 
@@ -228,9 +230,9 @@ bool FlightTaskOffboard::update()
 	// Acceleration
 	// Note: this is not supported yet and will be mapped to normalized thrust directly.
 	if (_sub_triplet_setpoint.get().current.acceleration_valid) {
-		_thrust_setpoint(0) = _sub_triplet_setpoint.get().current.a_x;
-		_thrust_setpoint(1) = _sub_triplet_setpoint.get().current.a_y;
-		_thrust_setpoint(2) = _sub_triplet_setpoint.get().current.a_z;
+		_acceleration_setpoint(0) = _sub_triplet_setpoint.get().current.a_x;
+		_acceleration_setpoint(1) = _sub_triplet_setpoint.get().current.a_y;
+		_acceleration_setpoint(2) = _sub_triplet_setpoint.get().current.a_z;
 	}
 
 	// use default conditions of upwards position or velocity to take off
