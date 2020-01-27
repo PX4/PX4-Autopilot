@@ -17,6 +17,8 @@
 # @output AUX3 Elevon 2
 # @output AUX4 Gear
 #
+# @board px4_fmu-v2_fixedwing exclude
+#
 
 sh /etc/init.d/rc.vtol_defaults
 

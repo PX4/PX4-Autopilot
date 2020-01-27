@@ -16,6 +16,8 @@
 #
 # @maintainer Simon Wilks <simon@uaventure.com>
 #
+# @board px4_fmu-v2_fixedwing exclude
+#
 
 sh /etc/init.d/rc.mc_defaults
 

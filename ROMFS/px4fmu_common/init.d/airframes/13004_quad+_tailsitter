@@ -17,6 +17,7 @@
 # @maintainer Roman Bapst <roman@px4.io>
 #
 # @board px4_fmu-v2 exclude
+# @board px4_fmu-v2_fixedwing exclude
 #
 
 sh /etc/init.d/rc.vtol_defaults

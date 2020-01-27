@@ -17,6 +17,8 @@
 # @output AUX4 Rudder
 # @output AUX5 Throttle
 #
+# @board px4_fmu-v2_fixedwing exclude
+#
 
 sh /etc/init.d/rc.vtol_defaults
 
