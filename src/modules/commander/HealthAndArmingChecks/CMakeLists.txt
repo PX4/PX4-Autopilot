@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,40 +31,8 @@
 #
 ############################################################################
 
-add_subdirectory(failure_detector)
-add_subdirectory(HealthAndArmingChecks)
-add_subdirectory(Arming)
+px4_add_library(health_and_arming_checks
+	Common.cpp
+	HealthAndArmingChecks.cpp
+)
 
-px4_add_module(
-	MODULE modules__commander
-	MAIN commander
-	COMPILE_FLAGS
-	SRCS
-		accelerometer_calibration.cpp
-		airspeed_calibration.cpp
-		calibration_routines.cpp
-		Commander.cpp
-		commander_helper.cpp
-		esc_calibration.cpp
-		factory_calibration_storage.cpp
-		gyro_calibration.cpp
-		level_calibration.cpp
-		mag_calibration.cpp
-		rc_calibration.cpp
-		state_machine_helper.cpp
-	DEPENDS
-		circuit_breaker
-		failure_detector
-		git_ecl
-		ecl_geo
-		health_and_arming_checks
-		hysteresis
-		PreFlightCheck
-		ArmAuthorization
-		HealthFlags
-		sensor_calibration
-	)
-
-if(PX4_TESTING)
-	add_subdirectory(commander_tests)
-endif()
