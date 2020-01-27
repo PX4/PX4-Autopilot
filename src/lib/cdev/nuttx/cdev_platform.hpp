@@ -5,7 +5,7 @@
 
 #include <nuttx/arch.h>
 
-#include <px4_micro_hal.h>
+#include <px4_platform_common/micro_hal.h>
 
 #define ATOMIC_ENTER irqstate_t flags = px4_enter_critical_section()
 #define ATOMIC_LEAVE px4_leave_critical_section(flags)

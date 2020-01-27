@@ -19,7 +19,7 @@
                 "limitSymbolsToIncludedHeaders": true
             },
             "compileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
-            "configurationProvider": "vector-of-bool.cmake-tools"
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4

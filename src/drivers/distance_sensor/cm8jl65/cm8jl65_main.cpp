@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#include <px4_cli.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/cli.h>
+#include <px4_platform_common/getopt.h>
 
 #include "CM8JL65.hpp"
 

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <drivers/device/device.h>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
@@ -51,8 +51,8 @@
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	1
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/node"
 
-// we add two to allow for actuator_direct and busevent
-#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
+// we add 1 to allow for busevent
+#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+1)
 
 /**
  * A UAVCAN node.
@@ -118,12 +118,13 @@ public:
 
 private:
 	void		fill_node_info();
-	int		init(uavcan::NodeID node_id);
+	int		init(uavcan::NodeID node_id, uavcan_stm32::BusEvent &bus_events);
 	void		node_spin_once();
 	int		run();
-	int		add_poll_fd(int fd);			///< add a fd to poll list, returning index into _poll_fds[]
+	static void	busevent_signal_trampoline();
 
 
+	px4_sem_t		_sem;				///< semaphore for scheduling the task
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
 
@@ -131,9 +132,6 @@ private:
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
 	uavcan::GlobalTimeSyncSlave _time_sync_slave;
-
-	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
-	unsigned		_poll_fds_num = 0;
 
 	typedef uavcan::MethodBinder<UavcanNode *,
 		void (UavcanNode::*)(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &,

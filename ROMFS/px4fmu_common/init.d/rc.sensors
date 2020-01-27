@@ -14,9 +14,6 @@ then
 		fmu i2c 1 100000
 		fmu i2c 2 100000
 	fi
-
-
-	adc start
 fi
 
 ###############################################################################
@@ -59,6 +56,12 @@ then
 	then
 		ll40ls start pwm
 	fi
+fi
+
+# External automatic trigger system
+if param compare FD_EXT_ATS_EN 1
+then
+	pwm_input start
 fi
 
 # Lidar-Lite on I2C

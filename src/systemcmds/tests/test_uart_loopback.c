@@ -38,7 +38,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <sys/types.h>
 
@@ -48,8 +48,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-
-#include <arch/board/board.h>
 
 #include "tests_main.h"
 

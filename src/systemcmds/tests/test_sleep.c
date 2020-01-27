@@ -36,9 +36,9 @@
  * Tests the px4_usleep() method.
  */
 
-#include <px4_time.h>
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 
 #include <sys/types.h>
 
@@ -47,8 +47,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-
-#include <arch/board/board.h>
 
 #include "tests_main.h"
 

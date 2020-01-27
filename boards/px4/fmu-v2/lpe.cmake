@@ -10,6 +10,7 @@ px4_add_board(
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
 	#TESTING
+	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
@@ -74,10 +75,13 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
 		navigator
 		battery_status
+		rc_update
 		sensors
+		temperature_compensation
 		vmount
 		#vtol_att_control
 		#airspeed_selector

@@ -345,7 +345,7 @@ MissionBlock::is_mission_item_reached()
 			float yaw_err = wrap_pi(_mission_item.yaw - cog);
 
 			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
-			if (fabsf(yaw_err) < math::radians(_navigator->get_yaw_threshold())
+			if (fabsf(yaw_err) < _navigator->get_yaw_threshold()
 			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)) {
 
 				_waypoint_yaw_reached = true;
@@ -590,6 +590,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	}
 
 	sp->valid = true;
+	sp->timestamp = hrt_absolute_time();
 
 	return sp->valid;
 }

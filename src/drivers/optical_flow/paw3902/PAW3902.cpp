@@ -603,7 +603,7 @@ PAW3902::Run()
 			// LowLight -> SuperLowLight
 			changeMode(Mode::SuperLowLight);
 
-		} else if ((shutter >= 0x0BB8)) {	// AND valid for 10 consecutive frames?
+		} else if ((shutter < 0x0BB8)) {	// AND valid for 10 consecutive frames?
 			// LowLight -> Bright
 			changeMode(Mode::Bright);
 		}
@@ -613,7 +613,7 @@ PAW3902::Run()
 	case Mode::SuperLowLight:
 
 		// SuperLowLight -> LowLight
-		if ((shutter >= 0x03E8)) { // AND valid for 10 consecutive frames?
+		if ((shutter < 0x03E8)) { // AND valid for 10 consecutive frames?
 			changeMode(Mode::LowLight);
 		}
 

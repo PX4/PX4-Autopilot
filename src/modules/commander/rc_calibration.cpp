@@ -36,9 +36,9 @@
  * Remote Control calibration routine
  */
 
-#include <px4_posix.h>
-#include <px4_time.h>
-#include <px4_defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/defines.h>
 
 #include "rc_calibration.h"
 #include "commander_helper.h"

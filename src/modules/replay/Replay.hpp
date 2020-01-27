@@ -41,7 +41,7 @@
 
 #include "definitions.hpp"
 
-#include <px4_module.h>
+#include <px4_platform_common/module.h>
 #include <uORB/uORBTopics.h>
 #include <uORB/topics/ekf2_timestamps.h>
 

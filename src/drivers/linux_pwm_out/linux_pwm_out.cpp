@@ -36,11 +36,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cmath>
+#include <math.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
@@ -51,7 +51,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_load.h>
 #include <parameters/param.h>
 #include <output_limit/output_limit.h>
@@ -113,7 +113,7 @@ static void start();
 
 static void stop();
 
-static void task_main_trampoline(int argc, char *argv[]);
+static int task_main_trampoline(int argc, char *argv[]);
 
 static void subscribe();
 
@@ -155,12 +155,12 @@ int initialize_mixer(const char *mixer_filename)
 	unsigned buflen = sizeof(buf);
 	memset(buf, '\0', buflen);
 
-	_mixer_group = new MixerGroup(mixer_control_callback, (uintptr_t) &_controls);
+	_mixer_group = new MixerGroup();
 
 	// PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
 	if (load_mixer_file(mixer_filename, buf, buflen) == 0) {
-		if (_mixer_group->load_from_buf(buf, buflen) == 0) {
+		if (_mixer_group->load_from_buf(mixer_control_callback, (uintptr_t) &_controls, buf, buflen) == 0) {
 			PX4_INFO("Loaded mixer from file %s", mixer_filename);
 			return 0;
 
@@ -235,7 +235,7 @@ void task_main(int argc, char *argv[])
 		PX4_INFO("Starting PWM output in ocpoc_mmap mode");
 		pwm_out = new OcpocMmapPWMOut(_max_num_outputs);
 
-#ifdef __DF_BBBLUE
+#ifdef CONFIG_ARCH_BOARD_BEAGLEBONE_BLUE
 
 	} else if (strcmp(_protocol, "bbblue_rc") == 0) {
 		PX4_INFO("Starting PWM output in bbblue_rc mode");
@@ -452,9 +452,10 @@ void task_main(int argc, char *argv[])
 
 }
 
-void task_main_trampoline(int argc, char *argv[])
+int task_main_trampoline(int argc, char *argv[])
 {
 	task_main(argc, argv);
+	return 0;
 }
 
 void start()
@@ -526,15 +527,15 @@ int linux_pwm_out_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "d:m:p:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
-			strncpy(linux_pwm_out::_device, myoptarg, sizeof(linux_pwm_out::_device));
+			strncpy(linux_pwm_out::_device, myoptarg, sizeof(linux_pwm_out::_device) - 1);
 			break;
 
 		case 'm':
-			strncpy(linux_pwm_out::_mixer_filename, myoptarg, sizeof(linux_pwm_out::_mixer_filename));
+			strncpy(linux_pwm_out::_mixer_filename, myoptarg, sizeof(linux_pwm_out::_mixer_filename) - 1);
 			break;
 
 		case 'p':
-			strncpy(linux_pwm_out::_protocol, myoptarg, sizeof(linux_pwm_out::_protocol));
+			strncpy(linux_pwm_out::_protocol, myoptarg, sizeof(linux_pwm_out::_protocol) - 1);
 			break;
 
 		case 'n': {

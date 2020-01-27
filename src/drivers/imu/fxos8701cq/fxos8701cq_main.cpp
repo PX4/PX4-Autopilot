@@ -39,7 +39,7 @@
 
 #include "FXOS8701CQ.hpp"
 
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /**
  * Local functions in support of the shell command.

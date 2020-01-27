@@ -50,7 +50,7 @@
  */
 
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <uORB/topics/system_power.h>
 
 #include <drivers/airspeed/airspeed.h>
@@ -202,7 +202,7 @@ MEASAirspeed::collect()
 	  and bottom port is used as the static port
 	 */
 
-	struct differential_pressure_s report;
+	differential_pressure_s report{};
 
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -211,10 +211,7 @@ MEASAirspeed::collect()
 	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
 	report.device_id = _device_id.devid;
 
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
-	}
+	_airspeed_pub.publish(report);
 
 	ret = OK;
 

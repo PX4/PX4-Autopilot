@@ -251,6 +251,8 @@ private:
 	     */
 	struct BMI_GyroReport {
 		uint8_t     cmd;
+		uint8_t     chip_id;	// Read to check if bus is workig
+		uint8_t     ununsed;
 		int16_t     gyro_x;
 		int16_t     gyro_y;
 		int16_t     gyro_z;

@@ -39,9 +39,9 @@
  */
 
 #include "qshell.h"
-#include <px4_log.h>
-#include <px4_app.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/tasks.h>
 #include <stdio.h>
 #include <string.h>
 #include <sched.h>
@@ -57,6 +57,7 @@ static void usage()
 {
 	PX4_DEBUG("usage: qshell cmd [args]");
 }
+
 int qshell_main(int argc, char *argv[])
 {
 	if (argc < 2) {

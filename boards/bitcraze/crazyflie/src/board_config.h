@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -283,7 +283,7 @@ extern int stm32_spi_bus_initialize(void);
 void board_spi_reset(int ms);
 
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

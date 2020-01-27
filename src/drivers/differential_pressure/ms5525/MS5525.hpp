@@ -37,7 +37,7 @@
 #include <drivers/airspeed/airspeed.h>
 #include <math.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 static constexpr uint8_t I2C_ADDRESS_1_MS5525DSO = 0x76;

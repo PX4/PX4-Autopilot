@@ -37,7 +37,7 @@
 #include "WorkQueue.hpp"
 
 #include <containers/IntrusiveQueue.hpp>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
 #include <lib/perf/perf_counter.h>
@@ -49,7 +49,20 @@ class WorkItem : public ListNode<WorkItem *>, public IntrusiveQueueNode<WorkItem
 {
 public:
 
-	inline void ScheduleNow() { if (_wq != nullptr) _wq->Add(this); }
+	WorkItem() = delete;
+
+	// no copy, assignment, move, move assignment
+	WorkItem(const WorkItem &) = delete;
+	WorkItem &operator=(const WorkItem &) = delete;
+	WorkItem(WorkItem &&) = delete;
+	WorkItem &operator=(WorkItem &&) = delete;
+
+	inline void ScheduleNow()
+	{
+		if (_wq != nullptr) {
+			_wq->Add(this);
+		}
+	}
 
 	virtual void print_run_status() const;
 
@@ -65,7 +78,6 @@ public:
 protected:
 
 	explicit WorkItem(const char *name, const wq_config_t &config);
-	WorkItem() = delete;
 
 	virtual ~WorkItem();
 

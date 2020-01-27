@@ -30,11 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifdef __PX4_POSIX_BBBLUE
+#ifdef CONFIG_ARCH_BOARD_BEAGLEBONE_BLUE
 
 #include <fcntl.h>
 #include <errno.h>
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include <robotcontrol.h>
 #include <board_config.h>
@@ -79,4 +79,4 @@ int BBBlueRcPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
 	return ret;
 }
 
-#endif  // __PX4_POSIX_BBBLUE
+#endif  // CONFIG_ARCH_BOARD_BEAGLEBONE_BLUE

@@ -36,96 +36,34 @@
 #include <vtol_att_control/vtol_type.h>
 
 using namespace time_literals;
+using math::constrain;
+using math::gradual;
+using math::radians;
 
-/**
- * Fixedwing attitude control app start / stop handling function
- *
- * @ingroup apps
- */
-extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
-
-FixedwingAttitudeControl::FixedwingAttitudeControl() :
+FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
+	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_control: cycle"))
+	_actuators_0_pub(vtol ? ORB_ID(actuator_controls_virtual_fw) : ORB_ID(actuator_controls_0)),
+	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	// check if VTOL first
-	vehicle_status_poll();
+	if (vtol) {
+		int32_t vt_type = -1;
 
-	_parameter_handles.p_tc = param_find("FW_P_TC");
-	_parameter_handles.p_p = param_find("FW_PR_P");
-	_parameter_handles.p_i = param_find("FW_PR_I");
-	_parameter_handles.p_ff = param_find("FW_PR_FF");
-	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
-	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
-	_parameter_handles.p_integrator_max = param_find("FW_PR_IMAX");
-
-	_parameter_handles.r_tc = param_find("FW_R_TC");
-	_parameter_handles.r_p = param_find("FW_RR_P");
-	_parameter_handles.r_i = param_find("FW_RR_I");
-	_parameter_handles.r_ff = param_find("FW_RR_FF");
-	_parameter_handles.r_integrator_max = param_find("FW_RR_IMAX");
-	_parameter_handles.r_rmax = param_find("FW_R_RMAX");
-
-	_parameter_handles.y_p = param_find("FW_YR_P");
-	_parameter_handles.y_i = param_find("FW_YR_I");
-	_parameter_handles.y_ff = param_find("FW_YR_FF");
-	_parameter_handles.y_integrator_max = param_find("FW_YR_IMAX");
-	_parameter_handles.y_rmax = param_find("FW_Y_RMAX");
-	_parameter_handles.roll_to_yaw_ff = param_find("FW_RLL_TO_YAW_FF");
-
-	_parameter_handles.w_en = param_find("FW_W_EN");
-	_parameter_handles.w_p = param_find("FW_WR_P");
-	_parameter_handles.w_i = param_find("FW_WR_I");
-	_parameter_handles.w_ff = param_find("FW_WR_FF");
-	_parameter_handles.w_integrator_max = param_find("FW_WR_IMAX");
-	_parameter_handles.w_rmax = param_find("FW_W_RMAX");
-
-	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
-	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
-	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
-
-	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
-	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
-	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
-	_parameter_handles.dtrim_roll_vmin = param_find("FW_DTRIM_R_VMIN");
-	_parameter_handles.dtrim_pitch_vmin = param_find("FW_DTRIM_P_VMIN");
-	_parameter_handles.dtrim_yaw_vmin = param_find("FW_DTRIM_Y_VMIN");
-	_parameter_handles.dtrim_roll_vmax = param_find("FW_DTRIM_R_VMAX");
-	_parameter_handles.dtrim_pitch_vmax = param_find("FW_DTRIM_P_VMAX");
-	_parameter_handles.dtrim_yaw_vmax = param_find("FW_DTRIM_Y_VMAX");
-	_parameter_handles.dtrim_roll_flaps = param_find("FW_DTRIM_R_FLPS");
-	_parameter_handles.dtrim_pitch_flaps = param_find("FW_DTRIM_P_FLPS");
-	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
-	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
-
-	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
-	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
-	_parameter_handles.man_roll_scale = param_find("FW_MAN_R_SC");
-	_parameter_handles.man_pitch_scale = param_find("FW_MAN_P_SC");
-	_parameter_handles.man_yaw_scale = param_find("FW_MAN_Y_SC");
-
-	_parameter_handles.acro_max_x_rate = param_find("FW_ACRO_X_MAX");
-	_parameter_handles.acro_max_y_rate = param_find("FW_ACRO_Y_MAX");
-	_parameter_handles.acro_max_z_rate = param_find("FW_ACRO_Z_MAX");
-
-	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
-	_parameter_handles.flaps_takeoff_scale = param_find("FW_FLAPS_TO_SCL");
-	_parameter_handles.flaps_land_scale = param_find("FW_FLAPS_LND_SCL");
-	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
-
-	_parameter_handles.rattitude_thres = param_find("FW_RATT_TH");
-
-	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
-	_parameter_handles.airspeed_mode = param_find("FW_ARSP_MODE");
+		if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
+			_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
+		}
+	}
 
 	/* fetch initial parameter values */
 	parameters_update();
 
 	// set initial maximum body rate setpoints
-	_roll_ctrl.set_max_rate(_parameters.acro_max_x_rate_rad);
-	_pitch_ctrl.set_max_rate_pos(_parameters.acro_max_y_rate_rad);
-	_pitch_ctrl.set_max_rate_neg(_parameters.acro_max_y_rate_rad);
-	_yaw_ctrl.set_max_rate(_parameters.acro_max_z_rate_rad);
+	_roll_ctrl.set_max_rate(radians(_param_fw_acro_x_max.get()));
+	_pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
+	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
+	_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
@@ -147,113 +85,32 @@ FixedwingAttitudeControl::init()
 int
 FixedwingAttitudeControl::parameters_update()
 {
-	int32_t tmp = 0;
-	param_get(_parameter_handles.p_tc, &(_parameters.p_tc));
-	param_get(_parameter_handles.p_p, &(_parameters.p_p));
-	param_get(_parameter_handles.p_i, &(_parameters.p_i));
-	param_get(_parameter_handles.p_ff, &(_parameters.p_ff));
-	param_get(_parameter_handles.p_rmax_pos, &(_parameters.p_rmax_pos));
-	param_get(_parameter_handles.p_rmax_neg, &(_parameters.p_rmax_neg));
-	param_get(_parameter_handles.p_integrator_max, &(_parameters.p_integrator_max));
-
-	param_get(_parameter_handles.r_tc, &(_parameters.r_tc));
-	param_get(_parameter_handles.r_p, &(_parameters.r_p));
-	param_get(_parameter_handles.r_i, &(_parameters.r_i));
-	param_get(_parameter_handles.r_ff, &(_parameters.r_ff));
-
-	param_get(_parameter_handles.r_integrator_max, &(_parameters.r_integrator_max));
-	param_get(_parameter_handles.r_rmax, &(_parameters.r_rmax));
-
-	param_get(_parameter_handles.y_p, &(_parameters.y_p));
-	param_get(_parameter_handles.y_i, &(_parameters.y_i));
-	param_get(_parameter_handles.y_ff, &(_parameters.y_ff));
-	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
-	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
-	param_get(_parameter_handles.roll_to_yaw_ff, &(_parameters.roll_to_yaw_ff));
-
-	param_get(_parameter_handles.w_en, &tmp);
-	_parameters.w_en = (tmp == 1);
-
-	param_get(_parameter_handles.w_p, &(_parameters.w_p));
-	param_get(_parameter_handles.w_i, &(_parameters.w_i));
-	param_get(_parameter_handles.w_ff, &(_parameters.w_ff));
-	param_get(_parameter_handles.w_integrator_max, &(_parameters.w_integrator_max));
-	param_get(_parameter_handles.w_rmax, &(_parameters.w_rmax));
-
-	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
-	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
-	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
-
-	param_get(_parameter_handles.trim_roll, &(_parameters.trim_roll));
-	param_get(_parameter_handles.trim_pitch, &(_parameters.trim_pitch));
-	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
-	param_get(_parameter_handles.dtrim_roll_vmin, &(_parameters.dtrim_roll_vmin));
-	param_get(_parameter_handles.dtrim_roll_vmax, &(_parameters.dtrim_roll_vmax));
-	param_get(_parameter_handles.dtrim_pitch_vmin, &(_parameters.dtrim_pitch_vmin));
-	param_get(_parameter_handles.dtrim_pitch_vmax, &(_parameters.dtrim_pitch_vmax));
-	param_get(_parameter_handles.dtrim_yaw_vmin, &(_parameters.dtrim_yaw_vmin));
-	param_get(_parameter_handles.dtrim_yaw_vmax, &(_parameters.dtrim_yaw_vmax));
-
-	param_get(_parameter_handles.dtrim_roll_flaps, &(_parameters.dtrim_roll_flaps));
-	param_get(_parameter_handles.dtrim_pitch_flaps, &(_parameters.dtrim_pitch_flaps));
-
-	param_get(_parameter_handles.rollsp_offset_deg, &(_parameters.rollsp_offset_deg));
-	param_get(_parameter_handles.pitchsp_offset_deg, &(_parameters.pitchsp_offset_deg));
-	_parameters.rollsp_offset_rad = math::radians(_parameters.rollsp_offset_deg);
-	_parameters.pitchsp_offset_rad = math::radians(_parameters.pitchsp_offset_deg);
-	param_get(_parameter_handles.man_roll_max, &(_parameters.man_roll_max));
-	param_get(_parameter_handles.man_pitch_max, &(_parameters.man_pitch_max));
-	_parameters.man_roll_max = math::radians(_parameters.man_roll_max);
-	_parameters.man_pitch_max = math::radians(_parameters.man_pitch_max);
-	param_get(_parameter_handles.man_roll_scale, &(_parameters.man_roll_scale));
-	param_get(_parameter_handles.man_pitch_scale, &(_parameters.man_pitch_scale));
-	param_get(_parameter_handles.man_yaw_scale, &(_parameters.man_yaw_scale));
-
-	param_get(_parameter_handles.acro_max_x_rate, &(_parameters.acro_max_x_rate_rad));
-	param_get(_parameter_handles.acro_max_y_rate, &(_parameters.acro_max_y_rate_rad));
-	param_get(_parameter_handles.acro_max_z_rate, &(_parameters.acro_max_z_rate_rad));
-	_parameters.acro_max_x_rate_rad = math::radians(_parameters.acro_max_x_rate_rad);
-	_parameters.acro_max_y_rate_rad = math::radians(_parameters.acro_max_y_rate_rad);
-	_parameters.acro_max_z_rate_rad = math::radians(_parameters.acro_max_z_rate_rad);
-
-	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
-	param_get(_parameter_handles.flaps_takeoff_scale, &_parameters.flaps_takeoff_scale);
-	param_get(_parameter_handles.flaps_land_scale, &_parameters.flaps_land_scale);
-	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
-
-	param_get(_parameter_handles.rattitude_thres, &_parameters.rattitude_thres);
-
-	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
-
-	param_get(_parameter_handles.airspeed_mode, &tmp);
-	_parameters.airspeed_disabled = (tmp == 1);
-
 	/* pitch control parameters */
-	_pitch_ctrl.set_time_constant(_parameters.p_tc);
-	_pitch_ctrl.set_k_p(_parameters.p_p);
-	_pitch_ctrl.set_k_i(_parameters.p_i);
-	_pitch_ctrl.set_k_ff(_parameters.p_ff);
-	_pitch_ctrl.set_integrator_max(_parameters.p_integrator_max);
+	_pitch_ctrl.set_time_constant(_param_fw_p_tc.get());
+	_pitch_ctrl.set_k_p(_param_fw_pr_p.get());
+	_pitch_ctrl.set_k_i(_param_fw_pr_i.get());
+	_pitch_ctrl.set_k_ff(_param_fw_pr_ff.get());
+	_pitch_ctrl.set_integrator_max(_param_fw_pr_imax.get());
 
 	/* roll control parameters */
-	_roll_ctrl.set_time_constant(_parameters.r_tc);
-	_roll_ctrl.set_k_p(_parameters.r_p);
-	_roll_ctrl.set_k_i(_parameters.r_i);
-	_roll_ctrl.set_k_ff(_parameters.r_ff);
-	_roll_ctrl.set_integrator_max(_parameters.r_integrator_max);
+	_roll_ctrl.set_time_constant(_param_fw_r_tc.get());
+	_roll_ctrl.set_k_p(_param_fw_rr_p.get());
+	_roll_ctrl.set_k_i(_param_fw_rr_i.get());
+	_roll_ctrl.set_k_ff(_param_fw_rr_ff.get());
+	_roll_ctrl.set_integrator_max(_param_fw_rr_imax.get());
 
 	/* yaw control parameters */
-	_yaw_ctrl.set_k_p(_parameters.y_p);
-	_yaw_ctrl.set_k_i(_parameters.y_i);
-	_yaw_ctrl.set_k_ff(_parameters.y_ff);
-	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
+	_yaw_ctrl.set_k_p(_param_fw_yr_p.get());
+	_yaw_ctrl.set_k_i(_param_fw_yr_i.get());
+	_yaw_ctrl.set_k_ff(_param_fw_yr_ff.get());
+	_yaw_ctrl.set_integrator_max(_param_fw_yr_imax.get());
 
 	/* wheel control parameters */
-	_wheel_ctrl.set_k_p(_parameters.w_p);
-	_wheel_ctrl.set_k_i(_parameters.w_i);
-	_wheel_ctrl.set_k_ff(_parameters.w_ff);
-	_wheel_ctrl.set_integrator_max(_parameters.w_integrator_max);
-	_wheel_ctrl.set_max_rate(math::radians(_parameters.w_rmax));
+	_wheel_ctrl.set_k_p(_param_fw_wr_p.get());
+	_wheel_ctrl.set_k_i(_param_fw_wr_i.get());
+	_wheel_ctrl.set_k_ff(_param_fw_wr_ff.get());
+	_wheel_ctrl.set_integrator_max(_param_fw_wr_imax.get());
+	_wheel_ctrl.set_max_rate(radians(_param_fw_w_rmax.get()));
 
 	return PX4_OK;
 }
@@ -288,7 +145,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 
 			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			if (_vcontrol_mode.flag_control_rattitude_enabled) {
-				if (fabsf(_manual.y) > _parameters.rattitude_thres || fabsf(_manual.x) > _parameters.rattitude_thres) {
+				if (fabsf(_manual.y) > _param_fw_ratt_th.get() || fabsf(_manual.x) > _param_fw_ratt_th.get()) {
 					_vcontrol_mode.flag_control_attitude_enabled = false;
 				}
 			}
@@ -298,11 +155,15 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 					// STABILIZED mode generate the attitude setpoint from manual user inputs
-					_att_sp.timestamp = hrt_absolute_time();
-					_att_sp.roll_body = _manual.y * _parameters.man_roll_max + _parameters.rollsp_offset_rad;
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, -_parameters.man_roll_max, _parameters.man_roll_max);
-					_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max + _parameters.pitchsp_offset_rad;
-					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max, _parameters.man_pitch_max);
+
+					_att_sp.roll_body = _manual.y * radians(_param_fw_man_r_max.get()) + radians(_param_fw_rsp_off.get());
+					_att_sp.roll_body = constrain(_att_sp.roll_body,
+								      -radians(_param_fw_man_r_max.get()), radians(_param_fw_man_r_max.get()));
+
+					_att_sp.pitch_body = -_manual.x * radians(_param_fw_man_p_max.get()) + radians(_param_fw_psp_off.get());
+					_att_sp.pitch_body = constrain(_att_sp.pitch_body,
+								       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
+
 					_att_sp.yaw_body = 0.0f;
 					_att_sp.thrust_body[0] = _manual.z;
 
@@ -310,33 +171,27 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					q.copyTo(_att_sp.q_d);
 					_att_sp.q_d_valid = true;
 
-					if (_attitude_sp_pub != nullptr) {
-						/* publish the attitude rates setpoint */
-						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
+					_att_sp.timestamp = hrt_absolute_time();
 
-					} else if (_attitude_setpoint_id) {
-						/* advertise the attitude rates setpoint */
-						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-					}
+					_attitude_sp_pub.publish(_att_sp);
 
 				} else if (_vcontrol_mode.flag_control_rates_enabled &&
 					   !_vcontrol_mode.flag_control_attitude_enabled) {
 
 					// RATE mode we need to generate the rate setpoint from manual user inputs
 					_rates_sp.timestamp = hrt_absolute_time();
-					_rates_sp.roll = _manual.y * _parameters.acro_max_x_rate_rad;
-					_rates_sp.pitch = -_manual.x * _parameters.acro_max_y_rate_rad;
-					_rates_sp.yaw = _manual.r * _parameters.acro_max_z_rate_rad;
+					_rates_sp.roll = _manual.y * radians(_param_fw_acro_x_max.get());
+					_rates_sp.pitch = -_manual.x * radians(_param_fw_acro_y_max.get());
+					_rates_sp.yaw = _manual.r * radians(_param_fw_acro_z_max.get());
 					_rates_sp.thrust_body[0] = _manual.z;
 
 					_rate_sp_pub.publish(_rates_sp);
 
 				} else {
 					/* manual/direct control */
-					_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y * _parameters.man_roll_scale + _parameters.trim_roll;
-					_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x * _parameters.man_pitch_scale +
-							_parameters.trim_pitch;
-					_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r * _parameters.man_yaw_scale + _parameters.trim_yaw;
+					_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y * _param_fw_man_r_sc.get() + _param_trim_roll.get();
+					_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
+					_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 				}
 			}
@@ -367,30 +222,6 @@ FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_status_poll()
-{
-	if (_vehicle_status_sub.update(&_vehicle_status)) {
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (!_actuators_id) {
-			if (_vehicle_status.is_vtol) {
-				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
-				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
-
-				int32_t vt_type = -1;
-
-				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-					_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
-				}
-
-			} else {
-				_actuators_id = ORB_ID(actuator_controls_0);
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
-			}
-		}
-	}
-}
-
-void
 FixedwingAttitudeControl::vehicle_land_detected_poll()
 {
 	if (_vehicle_land_detected_sub.updated()) {
@@ -404,17 +235,16 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 
 float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 {
-	_airspeed_sub.update();
-	const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
-				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1_s)
-				    && !_vehicle_status.aspd_use_inhibit;
+	_airspeed_validated_sub.update();
+	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().indicated_airspeed_m_s)
+				    && (hrt_elapsed_time(&_airspeed_validated_sub.get().timestamp) < 1_s);
 
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
-	float airspeed = _parameters.airspeed_trim;
+	float airspeed = _param_fw_airspd_trim.get();
 
-	if (!_parameters.airspeed_disabled && airspeed_valid) {
+	if ((_param_fw_arsp_mode.get() == 0) && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-		airspeed = math::max(0.5f, _airspeed_sub.get().indicated_airspeed_m_s);
+		airspeed = math::max(0.5f, _airspeed_validated_sub.get().indicated_airspeed_m_s);
 
 	} else {
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
@@ -422,7 +252,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 		// than the minimum airspeed
 		if (_vehicle_status.is_vtol && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		    && !_vehicle_status.in_transition_mode) {
-			airspeed = _parameters.airspeed_min;
+			airspeed = _param_fw_airspd_min.get();
 		}
 	}
 
@@ -433,8 +263,8 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
-	const float airspeed_constrained = math::constrain(airspeed, _parameters.airspeed_min, _parameters.airspeed_max);
-	_airspeed_scaling = _parameters.airspeed_trim / airspeed_constrained;
+	const float airspeed_constrained = constrain(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_max.get());
+	_airspeed_scaling = _param_fw_airspd_trim.get() / airspeed_constrained;
 
 	return airspeed;
 }
@@ -461,12 +291,13 @@ void FixedwingAttitudeControl::Run()
 			_parameter_update_sub.copy(&pupdate);
 
 			// update parameters from storage
+			updateParams();
 			parameters_update();
 		}
 
 		/* only run controller if attitude changed */
 		static uint64_t last_run = 0;
-		float deltaT = math::constrain((hrt_elapsed_time(&last_run) / 1e6f), 0.01f, 0.1f);
+		float deltaT = constrain((hrt_elapsed_time(&last_run) / 1e6f), 0.01f, 0.1f);
 		last_run = hrt_absolute_time();
 
 		/* get current rotation matrix and euler angles from control state quaternions */
@@ -524,7 +355,10 @@ void FixedwingAttitudeControl::Run()
 		const matrix::Eulerf euler_angles(R);
 
 		vehicle_attitude_setpoint_poll();
-		vehicle_status_poll(); // this poll has to be before the control_mode_poll, otherwise rate sp are not published during whole transition
+
+		// vehicle status update must be before the vehicle_control_mode_poll(), otherwise rate sp are not published during whole transition
+		_vehicle_status_sub.update(&_vehicle_status);
+
 		vehicle_control_mode_poll();
 		vehicle_manual_poll();
 		_global_pos_sub.update(&_global_pos);
@@ -564,7 +398,7 @@ void FixedwingAttitudeControl::Run()
 			 */
 			float groundspeed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
 						  _global_pos.vel_e * _global_pos.vel_e);
-			float gspd_scaling_trim = (_parameters.airspeed_min * 0.6f);
+			float gspd_scaling_trim = (_param_fw_airspd_min.get() * 0.6f);
 			float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 
 			/* reset integrals where needed */
@@ -605,8 +439,8 @@ void FixedwingAttitudeControl::Run()
 			control_input.roll_setpoint = _att_sp.roll_body;
 			control_input.pitch_setpoint = _att_sp.pitch_body;
 			control_input.yaw_setpoint = _att_sp.yaw_body;
-			control_input.airspeed_min = _parameters.airspeed_min;
-			control_input.airspeed_max = _parameters.airspeed_max;
+			control_input.airspeed_min = _param_fw_airspd_min.get();
+			control_input.airspeed_max = _param_fw_airspd_max.get();
 			control_input.airspeed = airspeed;
 			control_input.scaler = _airspeed_scaling;
 			control_input.lock_integrator = lock_integrator;
@@ -617,46 +451,46 @@ void FixedwingAttitudeControl::Run()
 			if ((_vcontrol_mode.flag_control_attitude_enabled != _flag_control_attitude_enabled_last) || params_updated) {
 				if (_vcontrol_mode.flag_control_attitude_enabled
 				    || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
-					_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
-					_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
-					_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
+					_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
+					_pitch_ctrl.set_max_rate_pos(radians(_param_fw_p_rmax_pos.get()));
+					_pitch_ctrl.set_max_rate_neg(radians(_param_fw_p_rmax_neg.get()));
+					_yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
 
 				} else {
-					_roll_ctrl.set_max_rate(_parameters.acro_max_x_rate_rad);
-					_pitch_ctrl.set_max_rate_pos(_parameters.acro_max_y_rate_rad);
-					_pitch_ctrl.set_max_rate_neg(_parameters.acro_max_y_rate_rad);
-					_yaw_ctrl.set_max_rate(_parameters.acro_max_z_rate_rad);
+					_roll_ctrl.set_max_rate(radians(_param_fw_acro_x_max.get()));
+					_pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
+					_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
+					_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
 				}
 			}
 
 			_flag_control_attitude_enabled_last = _vcontrol_mode.flag_control_attitude_enabled;
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */
-			float trim_roll = _parameters.trim_roll;
-			float trim_pitch = _parameters.trim_pitch;
-			float trim_yaw = _parameters.trim_yaw;
+			float trim_roll = _param_trim_roll.get();
+			float trim_pitch = _param_trim_pitch.get();
+			float trim_yaw = _param_trim_yaw.get();
 
-			if (airspeed < _parameters.airspeed_trim) {
-				trim_roll += math::gradual(airspeed, _parameters.airspeed_min, _parameters.airspeed_trim, _parameters.dtrim_roll_vmin,
-							   0.0f);
-				trim_pitch += math::gradual(airspeed, _parameters.airspeed_min, _parameters.airspeed_trim, _parameters.dtrim_pitch_vmin,
-							    0.0f);
-				trim_yaw += math::gradual(airspeed, _parameters.airspeed_min, _parameters.airspeed_trim, _parameters.dtrim_yaw_vmin,
-							  0.0f);
+			if (airspeed < _param_fw_airspd_trim.get()) {
+				trim_roll += gradual(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_r_vmin.get(),
+						     0.0f);
+				trim_pitch += gradual(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_p_vmin.get(),
+						      0.0f);
+				trim_yaw += gradual(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_y_vmin.get(),
+						    0.0f);
 
 			} else {
-				trim_roll += math::gradual(airspeed, _parameters.airspeed_trim, _parameters.airspeed_max, 0.0f,
-							   _parameters.dtrim_roll_vmax);
-				trim_pitch += math::gradual(airspeed, _parameters.airspeed_trim, _parameters.airspeed_max, 0.0f,
-							    _parameters.dtrim_pitch_vmax);
-				trim_yaw += math::gradual(airspeed, _parameters.airspeed_trim, _parameters.airspeed_max, 0.0f,
-							  _parameters.dtrim_yaw_vmax);
+				trim_roll += gradual(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+						     _param_fw_dtrim_r_vmax.get());
+				trim_pitch += gradual(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+						      _param_fw_dtrim_p_vmax.get());
+				trim_yaw += gradual(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+						    _param_fw_dtrim_y_vmax.get());
 			}
 
 			/* add trim increment if flaps are deployed  */
-			trim_roll += _flaps_applied * _parameters.dtrim_roll_flaps;
-			trim_pitch += _flaps_applied * _parameters.dtrim_pitch_flaps;
+			trim_roll += _flaps_applied * _param_fw_dtrim_r_flps.get();
+			trim_pitch += _flaps_applied * _param_fw_dtrim_p_flps.get();
 
 			/* Run attitude controllers */
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
@@ -688,7 +522,7 @@ void FixedwingAttitudeControl::Run()
 
 					float yaw_u = 0.0f;
 
-					if (_parameters.w_en && _att_sp.fw_control_yaw) {
+					if (_param_fw_w_en.get() && _att_sp.fw_control_yaw) {
 						yaw_u = _wheel_ctrl.control_bodyrate(control_input);
 
 					} else {
@@ -712,7 +546,7 @@ void FixedwingAttitudeControl::Run()
 							&& !_vehicle_status.engine_failure) ? _att_sp.thrust_body[0] : 0.0f;
 
 					/* scale effort by battery status */
-					if (_parameters.bat_scale_en &&
+					if (_param_fw_bat_scale_en.get() &&
 					    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
 
 						if (_battery_status_sub.updated()) {
@@ -773,8 +607,8 @@ void FixedwingAttitudeControl::Run()
 
 		// Add feed-forward from roll control output to yaw control output
 		// This can be used to counteract the adverse yaw effect when rolling the plane
-		_actuators.control[actuator_controls_s::INDEX_YAW] += _parameters.roll_to_yaw_ff * math::constrain(
-					_actuators.control[actuator_controls_s::INDEX_ROLL], -1.0f, 1.0f);
+		_actuators.control[actuator_controls_s::INDEX_YAW] += _param_fw_rll_to_yaw_ff.get()
+				* constrain(_actuators.control[actuator_controls_s::INDEX_ROLL], -1.0f, 1.0f);
 
 		_actuators.control[actuator_controls_s::INDEX_FLAPS] = _flaps_applied;
 		_actuators.control[5] = _manual.aux1;
@@ -792,14 +626,8 @@ void FixedwingAttitudeControl::Run()
 		if (_vcontrol_mode.flag_control_rates_enabled ||
 		    _vcontrol_mode.flag_control_attitude_enabled ||
 		    _vcontrol_mode.flag_control_manual_enabled) {
-			/* publish the actuator controls */
-			if (_actuators_0_pub != nullptr) {
-				orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 
-			} else if (_actuators_id) {
-				_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
-			}
-
+			_actuators_0_pub.publish(_actuators);
 			_actuators_2_pub.publish(_actuators_airframe);
 		}
 	}
@@ -814,21 +642,23 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 	/* map flaps by default to manual if valid */
 	if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled
-	    && fabsf(_parameters.flaps_scale) > 0.01f) {
-		flap_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
+	    && fabsf(_param_fw_flaps_scl.get()) > 0.01f) {
+		flap_control = 0.5f * (_manual.flaps + 1.0f) * _param_fw_flaps_scl.get();
 
 	} else if (_vcontrol_mode.flag_control_auto_enabled
-		   && fabsf(_parameters.flaps_scale) > 0.01f) {
+		   && fabsf(_param_fw_flaps_scl.get()) > 0.01f) {
+
 		switch (_att_sp.apply_flaps) {
-		case vehicle_attitude_setpoint_s::FLAPS_OFF : flap_control = 0.0f; // no flaps
+		case vehicle_attitude_setpoint_s::FLAPS_OFF:
+			flap_control = 0.0f; // no flaps
 			break;
 
-		case vehicle_attitude_setpoint_s::FLAPS_LAND : flap_control = 1.0f * _parameters.flaps_scale *
-					_parameters.flaps_land_scale; // landing flaps
+		case vehicle_attitude_setpoint_s::FLAPS_LAND:
+			flap_control = 1.0f * _param_fw_flaps_scl.get() * _param_fw_flaps_lnd_scl.get();
 			break;
 
-		case vehicle_attitude_setpoint_s::FLAPS_TAKEOFF : flap_control = 1.0f * _parameters.flaps_scale *
-					_parameters.flaps_takeoff_scale; // take-off flaps
+		case vehicle_attitude_setpoint_s::FLAPS_TAKEOFF:
+			flap_control = 1.0f * _param_fw_flaps_scl.get() * _param_fw_flaps_to_scl.get();
 			break;
 		}
 	}
@@ -846,13 +676,19 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 	/* map flaperons by default to manual if valid */
 	if (PX4_ISFINITE(_manual.aux2) && _vcontrol_mode.flag_control_manual_enabled
-	    && fabsf(_parameters.flaperon_scale) > 0.01f) {
-		flaperon_control = 0.5f * (_manual.aux2 + 1.0f) * _parameters.flaperon_scale;
+	    && fabsf(_param_fw_flaperon_scl.get()) > 0.01f) {
+
+		flaperon_control = 0.5f * (_manual.aux2 + 1.0f) * _param_fw_flaperon_scl.get();
 
 	} else if (_vcontrol_mode.flag_control_auto_enabled
-		   && fabsf(_parameters.flaperon_scale) > 0.01f) {
-		flaperon_control = (_att_sp.apply_flaps == vehicle_attitude_setpoint_s::FLAPS_LAND) ? 1.0f *
-				   _parameters.flaperon_scale : 0.0f;
+		   && fabsf(_param_fw_flaperon_scl.get()) > 0.01f) {
+
+		if (_att_sp.apply_flaps == vehicle_attitude_setpoint_s::FLAPS_LAND) {
+			flaperon_control = _param_fw_flaperon_scl.get();
+
+		} else {
+			flaperon_control = 0.0f;
+		}
 	}
 
 	// move the actual control value continuous with time, full flap travel in 1sec
@@ -866,7 +702,15 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 int FixedwingAttitudeControl::task_spawn(int argc, char *argv[])
 {
-	FixedwingAttitudeControl *instance = new FixedwingAttitudeControl();
+	bool vtol = false;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "vtol") == 0) {
+			vtol = true;
+		}
+	}
+
+	FixedwingAttitudeControl *instance = new FixedwingAttitudeControl(vtol);
 
 	if (instance) {
 		_object.store(instance);
@@ -905,25 +749,15 @@ fw_att_control is the fixed wing attitude controller.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_COMMAND("start");
-
 	PRINT_MODULE_USAGE_NAME("fw_att_control", "controller");
-
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-int FixedwingAttitudeControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return 0;
-}
-
-int fw_att_control_main(int argc, char *argv[])
+extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[])
 {
 	return FixedwingAttitudeControl::main(argc, argv);
 }

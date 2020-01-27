@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file i2c.cpp
+ * @file I2C.cpp
  *
  * Base class for devices attached via the I2C bus.
  *
@@ -41,6 +41,8 @@
  */
 
 #include "I2C.hpp"
+
+#include <nuttx/i2c/i2c_master.h>
 
 namespace device
 {
@@ -169,19 +171,19 @@ out:
 int
 I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
 {
-	px4_i2c_msg_t msgv[2];
-	unsigned msgs;
 	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
 	if (_dev == nullptr) {
 		PX4_ERR("I2C device not opened");
-		return 1;
+		return PX4_ERROR;
 	}
 
 	do {
 		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
-		msgs = 0;
+
+		i2c_msg_s msgv[2] {};
+		unsigned msgs = 0;
 
 		if (send_len > 0) {
 			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];
@@ -205,10 +207,15 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 			return -EINVAL;
 		}
 
-		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
+		int ret_transfer = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
-		/* success */
-		if (ret == PX4_OK) {
+		if (ret_transfer != 0) {
+			DEVICE_DEBUG("I2C transfer failed, result %d", ret_transfer);
+			ret = PX4_ERROR;
+
+		} else {
+			// success
+			ret = PX4_OK;
 			break;
 		}
 

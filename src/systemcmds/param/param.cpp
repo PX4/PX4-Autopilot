@@ -39,10 +39,10 @@
  * Parameter tool.
  */
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_module.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/posix.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -55,8 +55,6 @@
 #include <math.h>
 #include <inttypes.h>
 #include <sys/stat.h>
-
-#include <arch/board/board.h>
 
 #include <parameters/param.h>
 #include "systemlib/err.h"

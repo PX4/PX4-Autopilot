@@ -42,19 +42,13 @@
 
 #include "bmp388.h"
 
-BMP388::BMP388(IBMP388 *interface, const char *path) :
-	CDev(path),
+BMP388::BMP388(IBMP388 *interface) :
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
-	_px4_baro(interface->get_device_id(), ORB_PRIO_DEFAULT),
+	_px4_baro(interface->get_device_id()),
 	_interface(interface),
-	_osr_t(BMP3_OVERSAMPLING_2X),
-	_osr_p(BMP3_OVERSAMPLING_16X),
-	_odr(BMP3_ODR_50_HZ),
-	_iir_coef(BMP3_IIR_FILTER_DISABLE),
-	_sample_perf(perf_alloc(PC_ELAPSED, "bmp388: read")),
-	_measure_perf(perf_alloc(PC_ELAPSED, "bmp388: measure")),
-	_comms_errors(perf_alloc(PC_COUNT, "bmp388: comms errors")),
-	_collect_phase(false)
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
 	_px4_baro.set_device_type(DRV_DEVTYPE_BMP388);
 }
@@ -75,13 +69,6 @@ BMP388::~BMP388()
 int
 BMP388::init()
 {
-	int ret = CDev::init();
-
-	if (ret != OK) {
-		PX4_ERR("CDev init failed");
-		return ret;
-	}
-
 	if (!soft_reset()) {
 		PX4_WARN("failed to reset baro during init");
 		return -EIO;
@@ -111,6 +98,7 @@ BMP388::init()
 
 	/* do a first measurement cycle to populate reports with valid data */
 	if (measure()) {
+		PX4_WARN("measure failed");
 		return -EIO;
 	}
 
@@ -118,6 +106,7 @@ BMP388::init()
 	px4_usleep(_measure_interval);
 
 	if (collect()) {
+		PX4_WARN("collect failed");
 		return -EIO;
 	}
 

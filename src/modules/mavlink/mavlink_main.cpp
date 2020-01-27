@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,8 +84,6 @@ static Mavlink *_mavlink_instances = nullptr;
  * @ingroup apps
  */
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
-
-extern mavlink_system_t mavlink_system;
 
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
 {
@@ -467,38 +465,20 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 				}
 			}
 
-			// We forward messages targetted at the same system, or addressed to all systems, or
-			// if not target system is set.
-			const bool target_system_id_ok =
-				(target_system_id == 0 || target_system_id == self->get_system_id());
-
-			// We forward messages that are targetting another component, or are addressed to all
-			// components, or if the target component is not set.
-			const bool target_component_id_ok =
-				(target_component_id == 0 || target_component_id != self->get_component_id());
+			// If it's a message only for us, we keep it, otherwise, we forward it.
+			const bool targeted_only_at_us =
+				(target_system_id == self->get_system_id() &&
+				 target_component_id == self->get_component_id());
 
 			// We don't forward heartbeats unless it's specifically enabled.
 			const bool heartbeat_check_ok =
 				(msg->msgid != MAVLINK_MSG_ID_HEARTBEAT || self->forward_heartbeats_enabled());
 
-			if (target_system_id_ok && target_component_id_ok && heartbeat_check_ok) {
-
+			if (!targeted_only_at_us && heartbeat_check_ok) {
 				inst->pass_message(msg);
 			}
 		}
 	}
-}
-
-int
-Mavlink::get_uart_fd(unsigned index)
-{
-	Mavlink *inst = get_instance(index);
-
-	if (inst) {
-		return inst->get_uart_fd();
-	}
-
-	return -1;
 }
 
 int
@@ -592,8 +572,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 	}
 
 	/* back off 1800 ms to avoid running into the USB setup timing */
-	while (_is_usb_uart &&
-	       hrt_absolute_time() < 1800U * 1000U) {
+	while (_is_usb_uart && hrt_absolute_time() < 1800U * 1000U) {
 		px4_usleep(50000);
 	}
 
@@ -606,7 +585,10 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 		uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
 
 		/* get the system arming state and abort on arming */
-		while (_uart_fd < 0) {
+		while (_uart_fd < 0 && !_task_should_exit) {
+
+			/* another task might have requested subscriptions: make sure we handle it */
+			check_requested_subscriptions();
 
 			/* abort if an arming topic is published and system is armed */
 			armed_sub.update();
@@ -1671,6 +1653,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
+		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
 		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
@@ -1895,6 +1878,12 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'd':
 			_device_name = myoptarg;
 			set_protocol(Protocol::SERIAL);
+
+			if (access(_device_name, F_OK) == -1) {
+				PX4_ERR("Device %s does not exist", _device_name);
+				err_flag = true;
+			}
+
 			break;
 
 		case 'n':
@@ -2062,7 +2051,7 @@ Mavlink::task_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	/* USB serial is indicated by /dev/ttyACM0*/
+	/* USB serial is indicated by /dev/ttyACMx */
 	if (strcmp(_device_name, "/dev/ttyACM0") == OK || strcmp(_device_name, "/dev/ttyACM1") == OK) {
 		if (_datarate == 0) {
 			_datarate = 800000;
@@ -2100,19 +2089,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* flush stdout in case MAVLink is about to take it over */
 		fflush(stdout);
-
-		/* default values for arguments */
-		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _force_flow_control);
-
-		if (_uart_fd < 0 && !_is_usb_uart) {
-			PX4_ERR("could not open %s", _device_name);
-			return PX4_ERROR;
-
-		} else if (_uart_fd < 0 && _is_usb_uart) {
-			/* the config link is optional */
-			return OK;
-		}
-
 	}
 
 #if defined(MAVLINK_UDP)
@@ -2211,6 +2187,20 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
+
+	/* open the UART device after setting the instance, as it might block */
+	if (get_protocol() == Protocol::SERIAL) {
+		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _force_flow_control);
+
+		if (_uart_fd < 0 && !_is_usb_uart) {
+			PX4_ERR("could not open %s", _device_name);
+			return PX4_ERROR;
+
+		} else if (_uart_fd < 0 && _is_usb_uart) {
+			/* the config link is optional */
+			return PX4_OK;
+		}
+	}
 
 #if defined(MAVLINK_UDP)
 

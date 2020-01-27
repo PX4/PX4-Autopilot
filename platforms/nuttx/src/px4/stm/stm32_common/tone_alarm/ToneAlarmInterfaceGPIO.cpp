@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <drivers/drv_tone_alarm.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <board_config.h>
 
 namespace ToneAlarmInterface

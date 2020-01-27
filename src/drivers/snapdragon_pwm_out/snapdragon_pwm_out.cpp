@@ -33,11 +33,11 @@
 
 #include <stdint.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 #include <errno.h>
-#include <cmath>	// NAN
+#include <math.h>	// NAN
 #include <string.h>
 
 #include <uORB/Subscription.hpp>
@@ -48,12 +48,13 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <mixer/mixer.h>
-#include <mixer/mixer_load.h>
-#include <mixer/mixer_multirotor_normalized.generated.h>
-#include <parameters/param.h>
-#include <perf/perf_counter.h>
-#include <output_limit/output_limit.h>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+#include <lib/mixer/MixerGroup.hpp>
+#include <lib/mixer/mixer_load.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/output_limit/output_limit.h>
+
 #include <dev_fs_lib_pwm.h>
 
 /*
@@ -174,55 +175,30 @@ void update_params(Mixer::Airmode &airmode)
 
 int initialize_mixer(const char *mixer_filename)
 {
-
 	char buf[2048];
 	size_t buflen = sizeof(buf);
 	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 	int fd_load = ::open(mixer_filename, O_RDONLY);
 
-	if (fd_load != -1) {
-		int nRead = ::read(fd_load, buf, buflen);
-		close(fd_load);
+	int nRead = ::read(fd_load, buf, buflen);
+	close(fd_load);
 
-		if (nRead > 0) {
-			_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
+	if (nRead > 0) {
+		_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
 
-			if (_mixer != nullptr) {
-				PX4_INFO("Successfully initialized mixer from config file");
-				return 0;
-
-			} else {
-				PX4_ERR("Unable to parse from mixer config file");
-				return -1;
-			}
+		if (_mixer != nullptr) {
+			PX4_INFO("Successfully initialized mixer from config file");
+			return 0;
 
 		} else {
-			PX4_WARN("Unable to read from mixer config file");
-			return -2;
-		}
-
-	} else {
-		PX4_WARN("No mixer config file found, using default mixer.");
-
-		/* Mixer file loading failed, fall back to default mixer configuration for
-		* QUAD_X airframe. */
-		float roll_scale = 1;
-		float pitch_scale = 1;
-		float yaw_scale = 1;
-		float deadband = 0;
-
-		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-					     MultirotorGeometry::QUAD_X,
-					     roll_scale, pitch_scale, yaw_scale, deadband);
-
-		if (_mixer == nullptr) {
+			PX4_ERR("Unable to parse from mixer config file");
 			return -1;
 		}
 
-		return 0;
-
+	} else {
+		PX4_WARN("Unable to read from mixer config file");
+		return -2;
 	}
-
 }
 
 void subscribe()

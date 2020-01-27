@@ -44,7 +44,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include <queue.h>
 
 __BEGIN_DECLS
@@ -184,8 +184,6 @@ __EXPORT extern void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay);
 __EXPORT extern void	hrt_init(void);
 
 #ifdef __PX4_POSIX
-
-__EXPORT extern hrt_abstime hrt_reset(void);
 
 __EXPORT extern hrt_abstime hrt_absolute_time_offset(void);
 

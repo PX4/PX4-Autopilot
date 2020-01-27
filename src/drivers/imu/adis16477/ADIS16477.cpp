@@ -301,7 +301,7 @@ ADIS16477::stop()
 int
 ADIS16477::data_ready_interrupt(int irq, void *context, void *arg)
 {
-	ADIS16477 *dev = reinterpret_cast<ADIS16477 *>(arg);
+	ADIS16477 *dev = static_cast<ADIS16477 *>(arg);
 
 	// make another measurement
 	dev->ScheduleNow();

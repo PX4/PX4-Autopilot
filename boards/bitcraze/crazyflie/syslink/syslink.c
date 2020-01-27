@@ -40,7 +40,7 @@
  */
 
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/ioctl.h>

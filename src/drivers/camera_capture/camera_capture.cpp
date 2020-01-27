@@ -48,6 +48,8 @@ namespace camera_capture
 CameraCapture *g_camera_capture{nullptr};
 }
 
+struct work_s CameraCapture::_work_publisher;
+
 CameraCapture::CameraCapture() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
@@ -67,9 +69,7 @@ CameraCapture::CameraCapture() :
 CameraCapture::~CameraCapture()
 {
 	/* free any existing reports */
-	if (_trig_buffer != nullptr) {
-		delete _trig_buffer;
-	}
+	delete _trig_buffer;
 
 	camera_capture::g_camera_capture = nullptr;
 }
@@ -88,7 +88,7 @@ CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint
 int
 CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 {
-	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
+	CameraCapture *dev = static_cast<CameraCapture *>(arg);
 
 	dev->_trigger.chan_index = 0;
 	dev->_trigger.edge_time = hrt_absolute_time();
@@ -103,7 +103,7 @@ CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 void
 CameraCapture::publish_trigger_trampoline(void *arg)
 {
-	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
+	CameraCapture *dev = static_cast<CameraCapture *>(arg);
 
 	dev->publish_trigger();
 }
@@ -229,8 +229,8 @@ CameraCapture::set_capture_control(bool enabled)
 		conf.edge = Both;
 	}
 
-	conf.callback = NULL;
-	conf.context = NULL;
+	conf.callback = nullptr;
+	conf.context = nullptr;
 
 	if (enabled) {
 
@@ -278,8 +278,6 @@ CameraCapture::set_capture_control(bool enabled)
 err_out:
 	::close(fd);
 #endif
-
-	return;
 }
 
 void
@@ -328,7 +326,7 @@ CameraCapture::status()
 {
 	PX4_INFO("Capture enabled : %s", _capture_enabled ? "YES" : "NO");
 	PX4_INFO("Frame sequence : %u", _capture_seq);
-	PX4_INFO("Last trigger timestamp : %llu", _last_trig_time);
+	PX4_INFO("Last trigger timestamp : %" PRIu64 "", _last_trig_time);
 
 	if (_camera_capture_mode != 0) {
 		PX4_INFO("Last exposure time : %0.2f ms", double(_last_exposure_time) / 1000.0);

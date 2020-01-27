@@ -40,7 +40,7 @@
 #define _SYSTEMLIB_PERF_COUNTER_H value
 
 #include <stdint.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #define LATENCY_BUCKET_COUNT 8
 

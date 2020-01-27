@@ -51,11 +51,7 @@ bool RoverLandDetector::_get_ground_contact_state()
 
 bool RoverLandDetector::_get_landed_state()
 {
-	if (!_actuator_armed.armed) {
-		return true;
-	}
-
-	return false;
+	return !_actuator_armed.armed;
 }
 
 } // namespace land_detector

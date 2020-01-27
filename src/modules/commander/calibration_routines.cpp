@@ -38,14 +38,13 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_time.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>
 #include <float.h>
-#include <poll.h>
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <lib/ecl/geo/geo.h>
@@ -238,8 +237,9 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 }
 
 int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
-				unsigned int size, int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
-				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
+				unsigned int size, int max_iterations, float *offset_x, float *offset_y, float *offset_z,
+				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z,
+				float *offdiag_x, float *offdiag_y, float *offdiag_z, bool sphere_fit_only)
 {
 	float _fitness = 1.0e30f, _sphere_lambda = 1.0f, _ellipsoid_lambda = 1.0f;
 
@@ -250,12 +250,14 @@ int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[
 
 	}
 
-	_fitness = 1.0e30f;
+	if (!sphere_fit_only) {
+		_fitness = 1.0e30f;
 
-	for (int i = 0; i < max_iterations; i++) {
-		run_lm_ellipsoid_fit(x, y, z, _fitness, _ellipsoid_lambda,
-				     size, offset_x, offset_y, offset_z,
-				     sphere_radius, diag_x, diag_y, diag_z, offdiag_x, offdiag_y, offdiag_z);
+		for (int i = 0; i < max_iterations; i++) {
+			run_lm_ellipsoid_fit(x, y, z, _fitness, _ellipsoid_lambda,
+					     size, offset_x, offset_y, offset_z,
+					     sphere_radius, diag_x, diag_y, diag_z, offdiag_x, offdiag_y, offdiag_z);
+		}
 	}
 
 	return 0;

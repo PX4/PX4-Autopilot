@@ -40,8 +40,8 @@
 #pragma once
 
 #include <board_config.h>
-#include <px4_config.h>
-#include <px4_micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/micro_hal.h>
 
 #include <perf/perf_counter.h>
 

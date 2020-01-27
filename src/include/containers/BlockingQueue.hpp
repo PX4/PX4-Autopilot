@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4_sem.h>
+#include <px4_platform_common/sem.h>
 
 #include "LockGuard.hpp"
 

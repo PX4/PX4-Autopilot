@@ -38,9 +38,9 @@
  * Driver for the pmw3901 optical flow sensor connected via SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/device/spi.h>
 #include <conversion/rotation.h>

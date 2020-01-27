@@ -33,7 +33,7 @@
 
 #include "telemetry.h"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include <unistd.h>
 #include <fcntl.h>

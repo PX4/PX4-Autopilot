@@ -51,7 +51,7 @@
 
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
-#include <arch/board/board.h>
+
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/debug_key_value.h>
@@ -228,14 +228,7 @@ void RoboClaw::taskMain()
 					_wheelEncoderMsg[i].encoder_position = _encoderCounts[i];
 					_wheelEncoderMsg[i].speed = _motorSpeeds[i];
 
-					if (_wheelEncodersAdv[i] == nullptr) {
-						int instance;
-						_wheelEncodersAdv[i] = orb_advertise_multi(ORB_ID(wheel_encoders), &_wheelEncoderMsg[i],
-								       &instance, ORB_PRIO_DEFAULT);
-
-					} else {
-						orb_publish(ORB_ID(wheel_encoders), _wheelEncodersAdv[i], &_wheelEncoderMsg[i]);
-					}
+					_wheelEncodersAdv[i].publish(_wheelEncoderMsg[i]);
 				}
 
 			} else {

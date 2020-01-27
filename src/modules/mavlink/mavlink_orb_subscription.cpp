@@ -42,7 +42,7 @@
 bool
 MavlinkOrbSubscription::is_published()
 {
-	const bool published = _sub.published();
+	const bool published = _sub.advertised();
 
 	if (published) {
 		return true;

@@ -37,9 +37,9 @@
  * PX4 Middleware Wrapper Linux Implementation
  */
 
-#include <px4_defines.h>
-#include <px4_workqueue.h>
-#include <px4_time.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/time.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -47,7 +47,7 @@
 
 #if (defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)) && !defined(__PX4_QURT)
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 
 int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 {

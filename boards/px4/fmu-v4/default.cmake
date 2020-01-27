@@ -9,12 +9,10 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 1
-
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
-
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
@@ -26,7 +24,14 @@ px4_add_board(
 		dshot
 		gps
 		heater
-		imu # all available imu drivers
+		#imu # all available imu drivers
+		imu/adis16448
+		imu/adis16477
+		imu/adis16497
+		imu/invensense/icm20602
+		imu/invensense/icm20608-g
+		imu/mpu6000
+		imu/mpu9250
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -34,18 +39,20 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		mkblctrl
 		optical_flow # all available optical flow drivers
+		#osd
 		pca9685
+		#protocol_splitter
 		pwm_input
 		pwm_out_sim
 		px4fmu
 		rc_input
+		roboclaw
 		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
 		uavcan
-
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -65,16 +72,20 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
+		mc_rate_control
+		#micrortps_bridge
 		navigator
+		rc_update
 		rover_pos_control
 		sensors
 		sih
+		temperature_compensation
 		vmount
 		vtol_att_control
-
 	SYSTEMCMDS
 		bl_update
 		config
+		#dmesg
 		dumpfile
 		esc_calib
 		hardfault_log
@@ -99,7 +110,6 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
-
 	EXAMPLES
 		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
@@ -110,5 +120,4 @@ px4_add_board(
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		uuv_example_app
-
 	)

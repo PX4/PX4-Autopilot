@@ -34,7 +34,7 @@
 find_program(BLOATY_PROGRAM bloaty)
 if (BLOATY_PROGRAM)
 
-	set(BLOATY_OPTS --demangle=short --domain=vm -s vm -n 100 -w)
+	set(BLOATY_OPTS --demangle=full --domain=vm -s vm -n 200 -w)
 
 	# bloaty compilation units
 	add_custom_target(bloaty_compileunits
@@ -50,16 +50,9 @@ if (BLOATY_PROGRAM)
 		USES_TERMINAL
 		)
 
-	# bloaty sections
-	add_custom_target(bloaty_sections
-		COMMAND ${BLOATY_PROGRAM} -d sections ${BLOATY_OPTS} $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty segments
+	# bloaty segments,sections
 	add_custom_target(bloaty_segments
-		COMMAND ${BLOATY_PROGRAM} -d segments ${BLOATY_OPTS} $<TARGET_FILE:px4>
+		COMMAND ${BLOATY_PROGRAM} -d segments,sections ${BLOATY_OPTS} $<TARGET_FILE:px4>
 		DEPENDS px4
 		USES_TERMINAL
 		)

@@ -46,7 +46,7 @@
  * claim the timer and then drive it directly.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <systemlib/px4_macros.h>
 #include <lib/perf/perf_counter.h>
 #include <nuttx/arch.h>
@@ -67,7 +67,7 @@
 
 
 #include "kinetis.h"
-#include "chip/kinetis_sim.h"
+#include "hardware/kinetis_sim.h"
 #include "kinetis_tpm.h"
 
 #undef PPM_DEBUG

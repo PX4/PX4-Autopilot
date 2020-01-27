@@ -80,7 +80,7 @@ public:
 		List<T>::clear();
 	}
 
-	LockGuard getLockGuard() { return LockGuard{_mutex}; }
+	pthread_mutex_t &mutex() { return _mutex; }
 
 private:
 

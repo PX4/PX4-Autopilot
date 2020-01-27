@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include <px4_log.h>
 #include <uORB/uORB.h>
 
 /**

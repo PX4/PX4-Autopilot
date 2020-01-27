@@ -13,7 +13,7 @@
 import os
 
 import genmsg.msgs
-import gencpp
+
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
@@ -29,7 +29,7 @@ except AttributeError:
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -61,31 +61,35 @@ except AttributeError:
 
 #include "RtpsTopics.h"
 
-bool RtpsTopics::init()
+bool RtpsTopics::init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue)
 {
 @[if recv_topics]@
     // Initialise subscribers
+    std::cout << "--- Subscribers ---" << std::endl;
 @[for topic in recv_topics]@
-    if (_@(topic)_sub.init()) {
-        std::cout << "@(topic) subscriber started" << std::endl;
+    if (_@(topic)_sub.init(@(rtps_message_id(ids, topic)), t_send_queue_cv, t_send_queue_mutex, t_send_queue)) {
+        std::cout << "- @(topic) subscriber started" << std::endl;
     } else {
-        std::cout << "ERROR starting @(topic) subscriber" << std::endl;
+        std::cerr << "Failed starting @(topic) subscriber" << std::endl;
         return false;
     }
 
 @[end for]@
+    std::cout << "--------------------" << std::endl << std::endl;
 @[end if]@
 @[if send_topics]@
     // Initialise publishers
+    std::cout << "---- Publishers ----" << std::endl;
 @[for topic in send_topics]@
     if (_@(topic)_pub.init()) {
-        std::cout << "@(topic) publisher started" << std::endl;
+        std::cout << "- @(topic) publisher started" << std::endl;
     } else {
-        std::cout << "ERROR starting @(topic) publisher" << std::endl;
+        std::cerr << "ERROR starting @(topic) publisher" << std::endl;
         return false;
     }
 
 @[end for]@
+    std::cout << "--------------------" << std::endl;
 @[end if]@
     return true;
 }
@@ -126,34 +130,6 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 @[end if]@
 @[if recv_topics]@
 
-bool RtpsTopics::hasMsg(uint8_t *topic_ID)
-{
-    if (nullptr == topic_ID) return false;
-
-    *topic_ID = 0;
-    while (_next_sub_idx < @(len(recv_topics)) && 0 == *topic_ID)
-    {
-        switch (_sub_topics[_next_sub_idx])
-        {
-@[for topic in recv_topics]@
-            case @(rtps_message_id(ids, topic)): if (_@(topic)_sub.hasMsg()) *topic_ID = @(rtps_message_id(ids, topic)); break;
-@[end for]@
-            default:
-                printf("Unexpected topic ID to check hasMsg\n");
-            break;
-        }
-        _next_sub_idx++;
-    }
-
-    if (0 == *topic_ID)
-    {
-        _next_sub_idx = 0;
-        return false;
-    }
-
-    return true;
-}
-
 bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
 {
     bool ret = false;
@@ -178,6 +154,7 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
 @[    end if]@
                 msg.serialize(scdr);
                 ret = true;
+                _@(topic)_sub.unlockMsg();
             }
         break;
 @[end for]@

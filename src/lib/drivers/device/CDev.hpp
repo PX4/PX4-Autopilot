@@ -43,8 +43,8 @@
 #include "Device.hpp"
 #include <lib/cdev/CDev.hpp>
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/posix.h>
 
 /**
  * Namespace encapsulating all device framework classes, functions and data.
@@ -75,7 +75,7 @@ public:
 	/**
 	 * Perform an ioctl operation on the device.
 	 *
-	 * The default implementation handles DIOC_GETPRIV, and otherwise
+	 * The default implementation handles DEVIOCGDEVICEID, and otherwise
 	 * returns -ENOTTY. Subclasses should call the default implementation
 	 * for any command they do not handle themselves.
 	 *

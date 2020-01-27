@@ -381,7 +381,7 @@
  * SPI1 is sensors1
  * SPI2 is sensors2
  * SPI3 is sensors3
- * SPI4 is MAG
+ * SPI4 is Not Used
  * SPI5 is FRAM
  * SPI6 is EXTERNAL1
  *
@@ -398,10 +398,6 @@
 #define GPIO_SPI3_MISO   GPIO_SPI3_MISO_2   /* PC11 */
 #define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_1   /* PB2  */
 #define GPIO_SPI3_SCK    GPIO_SPI3_SCK_2    /* PC10 */
-
-#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2   /* PE13 */
-#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1   /* PE6  */
-#define GPIO_SPI4_SCK    GPIO_SPI4_SCK_2    /* PE12 */
 
 #define GPIO_SPI5_MISO   GPIO_SPI5_MISO_1   /* PF8  */
 #define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_2   /* PF11 */

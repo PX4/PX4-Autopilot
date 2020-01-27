@@ -46,8 +46,8 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -61,7 +61,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <math.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
@@ -322,7 +322,6 @@ PCA9685::Run()
 					     (double)_actuator_controls.control[i]);
 
 				if (new_value != _current_values[i] &&
-				    isfinite(new_value) &&
 				    new_value >= PCA9685_PWMMIN &&
 				    new_value <= PCA9685_PWMMAX) {
 					/* This value was updated, send the command to adjust the PWM value */

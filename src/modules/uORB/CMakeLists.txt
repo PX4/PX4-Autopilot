@@ -48,8 +48,6 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io") # TODO: fix this hack (move uORB to plat
 			Subscription.hpp
 			SubscriptionCallback.hpp
 			SubscriptionInterval.hpp
-			SubscriptionPollable.cpp
-			SubscriptionPollable.hpp
 			uORB.cpp
 			uORB.h
 			uORBCommon.hpp

@@ -38,11 +38,11 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <px4_tasks.h>
-#include <px4_time.h>
-#include <px4_posix.h>
-#include <px4_init.h>
-#include <px4_defines.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/defines.h>
 #include <dspal_platform.h>
 #include <vector>
 #include <string>
@@ -52,7 +52,6 @@
 
 #include "get_commands.h"
 #include "apps.h"
-#include "DriverFramework.hpp"
 
 #define MAX_ARGS 8 // max number of whitespace separated args after app name
 
@@ -196,7 +195,6 @@ int dspal_entry(int argc, char *argv[])
 	PX4_INFO("In dspal_entry");
 	apps_map_type apps;
 	init_app_map(apps);
-	DriverFramework::Framework::initialize();
 	px4::init_once();
 	px4::init(argc, (char **)argv, "px4");
 	process_commands(apps, get_commands());

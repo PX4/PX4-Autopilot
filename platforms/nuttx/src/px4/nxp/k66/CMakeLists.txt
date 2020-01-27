@@ -33,10 +33,13 @@
 
 
 add_subdirectory(../kinetis/adc adc)
+add_subdirectory(../kinetis/board_reset board_reset)
+add_subdirectory(../kinetis/board_critmon board_critmon)
 add_subdirectory(../kinetis/led_pwm led_pwm)
 add_subdirectory(../kinetis/hrt hrt)
 add_subdirectory(../kinetis/io_pins io_pins)
 add_subdirectory(../kinetis/tone_alarm tone_alarm)
+add_subdirectory(../kinetis/version version)
 
 
 

@@ -46,10 +46,9 @@
 class BMP388_I2C: public device::I2C, public IBMP388
 {
 public:
-	BMP388_I2C(uint8_t bus, uint32_t device, bool external);
+	BMP388_I2C(uint8_t bus, uint32_t device);
 	virtual ~BMP388_I2C() = default;
 
-	bool is_external();
 	int init();
 
 	uint8_t get_reg(uint8_t addr);
@@ -63,23 +62,16 @@ public:
 private:
 	struct calibration_s _cal;
 	struct data_s _data;
-	bool _external;
 };
 
-IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device, bool external)
+IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device)
 {
-	return new BMP388_I2C(busnum, device, external);
+	return new BMP388_I2C(busnum, device);
 }
 
-BMP388_I2C::BMP388_I2C(uint8_t bus, uint32_t device, bool external) :
+BMP388_I2C::BMP388_I2C(uint8_t bus, uint32_t device) :
 	I2C("BMP388_I2C", nullptr, bus, device, 100 * 1000)
 {
-	_external = external;
-}
-
-bool BMP388_I2C::is_external()
-{
-	return _external;
 }
 
 int BMP388_I2C::init()

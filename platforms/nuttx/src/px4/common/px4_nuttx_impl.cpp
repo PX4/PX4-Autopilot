@@ -37,7 +37,7 @@
  * PX4 Middleware Wrapper NuttX Implementation
  */
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
 namespace px4

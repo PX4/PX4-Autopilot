@@ -39,7 +39,7 @@
  */
 
 #include "matrix_alg.h"
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 /*
  *    Does matrix multiplication of two regular/square matrices

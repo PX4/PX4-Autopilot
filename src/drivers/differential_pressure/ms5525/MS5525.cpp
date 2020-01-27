@@ -259,10 +259,7 @@ MS5525::collect()
 		.device_id = _device_id.devid
 	};
 
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &diff_pressure);
-	}
+	_airspeed_pub.publish(diff_pressure);
 
 	ret = OK;
 

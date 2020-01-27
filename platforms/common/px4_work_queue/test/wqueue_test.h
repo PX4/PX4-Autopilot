@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4_app.h>
+#include <px4_platform_common/app.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <string.h>
 
@@ -47,10 +47,11 @@ public:
 
 	int main();
 
-	void Run() override;
-
 	static px4::AppState appState; /* track requests to terminate app */
 
 private:
+
+	void Run() override;
+
 	int _iter{0};
 };

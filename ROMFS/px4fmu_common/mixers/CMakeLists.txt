@@ -36,10 +36,8 @@ px4_add_romfs_files(
 	AAVVTWFF.main.mix
 	AERT.main.mix
 	AETRFG.main.mix
-	bebop.main.mix
 	blade130.main.mix
 	caipi.main.mix
-	caipirinha_vtol.main.mix
 	CCPM.main.mix
 	claire.aux.mix
 	claire.main.mix

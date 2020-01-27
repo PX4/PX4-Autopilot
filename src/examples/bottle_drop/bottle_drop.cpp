@@ -40,8 +40,8 @@
  * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,7 +54,7 @@
 #include <sys/ioctl.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/actuator_controls.h>

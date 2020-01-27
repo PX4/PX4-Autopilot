@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,12 +37,11 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/mixer/mixer.h>
 #include <lib/mixer_module/mixer_module.hpp>
-#include <px4_config.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <uORB/topics/parameter_update.h>
 
 class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>, public OutputModuleInterface
@@ -62,14 +61,15 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	void Run() override;
-
 	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
+
+	void Run() override;
+
 	static constexpr uint16_t PWM_SIM_DISARMED_MAGIC = 900;
 	static constexpr uint16_t PWM_SIM_FAILSAFE_MAGIC = 600;
 	static constexpr uint16_t PWM_SIM_PWM_MIN_MAGIC = 1000;

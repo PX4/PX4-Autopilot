@@ -39,7 +39,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include "uORBDeviceNode.hpp"
 #include "uORBManager.hpp"
@@ -73,14 +73,14 @@ public:
 
 	bool subscribe() { return _subscription.subscribe(); }
 
-	bool published() { return _subscription.published(); }
+	bool advertised() { return _subscription.advertised(); }
 
 	/**
 	 * Check if there is a new update.
 	 * */
 	bool updated()
 	{
-		if (published() && (hrt_elapsed_time(&_last_update) >= _interval_us)) {
+		if (advertised() && (hrt_elapsed_time(&_last_update) >= _interval_us)) {
 			return _subscription.updated();
 		}
 

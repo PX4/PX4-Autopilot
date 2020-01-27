@@ -44,7 +44,7 @@ ScheduledWorkItem::~ScheduledWorkItem()
 void
 ScheduledWorkItem::schedule_trampoline(void *arg)
 {
-	ScheduledWorkItem *dev = reinterpret_cast<ScheduledWorkItem *>(arg);
+	ScheduledWorkItem *dev = static_cast<ScheduledWorkItem *>(arg);
 	dev->ScheduleNow();
 }
 

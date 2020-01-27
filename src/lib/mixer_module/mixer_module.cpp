@@ -33,8 +33,10 @@
 
 #include "mixer_module.hpp"
 
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+
 #include <uORB/PublicationQueued.hpp>
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 using namespace time_literals;
 
@@ -236,6 +238,7 @@ unsigned MixingOutput::motorTest()
 
 	while (_motor_test.test_motor_sub.update(&test_motor)) {
 		if (test_motor.driver_instance != _driver_instance ||
+		    test_motor.timestamp == 0 ||
 		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
 			continue;
 		}
@@ -542,7 +545,7 @@ void MixingOutput::resetMixer()
 int MixingOutput::loadMixer(const char *buf, unsigned len)
 {
 	if (_mixers == nullptr) {
-		_mixers = new MixerGroup(controlCallback, (uintptr_t)this);
+		_mixers = new MixerGroup();
 	}
 
 	if (_mixers == nullptr) {
@@ -550,7 +553,7 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 		return -ENOMEM;
 	}
 
-	int ret = _mixers->load_from_buf(buf, len);
+	int ret = _mixers->load_from_buf(controlCallback, (uintptr_t)this, buf, len);
 
 	if (ret != 0) {
 		PX4_ERR("mixer load failed with %d", ret);

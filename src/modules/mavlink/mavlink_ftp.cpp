@@ -57,13 +57,8 @@ MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
 
 MavlinkFTP::~MavlinkFTP()
 {
-	if (_work_buffer1) {
-		delete[] _work_buffer1;
-	}
-
-	if (_work_buffer2) {
-		delete[] _work_buffer2;
-	}
+	delete[] _work_buffer1;
+	delete[] _work_buffer2;
 }
 
 unsigned
@@ -369,7 +364,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 	// move to the requested offset
 	int requested_offset = payload->offset;
 
-	while (requested_offset-- > 0 && readdir(dp));
+	while (requested_offset-- > 0 && readdir(dp)) {}
 
 	for (;;) {
 		errno = 0;

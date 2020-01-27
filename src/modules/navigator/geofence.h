@@ -42,10 +42,10 @@
 
 #include <float.h>
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>

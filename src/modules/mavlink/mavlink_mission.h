@@ -145,7 +145,7 @@ private:
 		DM_KEY_FENCE_POINTS_MAX - 1,
 		DM_KEY_SAFE_POINTS_MAX - 1
 	};	/**< Maximum number of mission items for each type
-					(fence & save points use the first item for the stats) */
+					(fence & safe points use the first item for the stats) */
 
 	/** get the maximum number of item count for the current _mission_type */
 	uint16_t current_max_item_count();

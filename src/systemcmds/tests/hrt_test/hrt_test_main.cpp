@@ -42,8 +42,8 @@
 
 #include <stdio.h>
 
-#include <px4_app.h>
-#include <px4_init.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/init.h>
 
 int PX4_MAIN(int argc, char **argv)
 {

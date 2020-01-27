@@ -38,15 +38,15 @@
 
 #include <board_config.h>
 
-#include <px4_workqueue.h>
-#include <px4_shutdown.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/shutdown.h>
+#include <px4_platform_common/tasks.h>
 
 #ifndef MODULE_NAME
 #define MODULE_NAME "shutdown"
 #endif
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include <stdint.h>
 #include <errno.h>
@@ -94,6 +94,7 @@ int px4_register_shutdown_hook(shutdown_hook_t hook)
 {
 	return -EINVAL;
 }
+
 int px4_unregister_shutdown_hook(shutdown_hook_t hook)
 {
 	return -EINVAL;

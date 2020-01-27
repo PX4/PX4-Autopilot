@@ -65,6 +65,13 @@ namespace device __EXPORT
  */
 class __EXPORT SPI : public CDev
 {
+public:
+	// no copy, assignment, move, move assignment
+	SPI(const SPI &) = delete;
+	SPI &operator=(const SPI &) = delete;
+	SPI(SPI &&) = delete;
+	SPI &operator=(SPI &&) = delete;
+
 protected:
 	/**
 	 * Constructor
@@ -79,7 +86,16 @@ protected:
 	SPI(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency);
 	virtual ~SPI();
 
-	virtual int	init();
+	/**
+	 * Locking modes supported by the driver.
+	 */
+	enum LockMode {
+		LOCK_PREEMPTION,	/**< the default; lock against all forms of preemption. */
+		LOCK_THREADS,		/**< lock only against other threads, using SPI_LOCK */
+		LOCK_NONE		/**< perform no locking, only safe if the bus is entirely private */
+	};
+
+	virtual int	init() override;
 
 	/**
 	 * Check for the presence of the device on the bus.
@@ -140,20 +156,30 @@ protected:
 	void		set_frequency(uint32_t frequency) { _frequency = frequency; }
 	uint32_t	get_frequency() { return _frequency; }
 
-private:
-	int 			_fd{-1};
+	/**
+	 * Set the SPI bus locking mode
+	 *
+	 * This set the SPI locking mode. For devices competing with NuttX SPI
+	 * drivers on a bus the right lock mode is LOCK_THREADS.
+	 *
+	 * @param mode	Locking mode
+	 */
+	void		set_lockmode(enum LockMode mode) { _locking_mode = mode; }
 
+private:
 	uint32_t		_device;
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
+	int 			_fd{-1};
 
-	/* this class does not allow copying */
-	SPI(const SPI &);
-	SPI operator=(const SPI &);
+	LockMode		_locking_mode{LOCK_THREADS};	/**< selected locking mode */
 
 protected:
+	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
-	bool	external() { return px4_spi_bus_external(get_device_bus()); }
+	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
+
+	virtual bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
 
 };
 

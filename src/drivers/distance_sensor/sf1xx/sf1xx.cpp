@@ -41,11 +41,11 @@
  * Default I2C address 0x66 is used.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_module.h>
+#include <px4_platform_common/module.h>
 
 #include <drivers/device/i2c.h>
 
@@ -61,6 +61,7 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
 
 #include <drivers/drv_hrt.h>

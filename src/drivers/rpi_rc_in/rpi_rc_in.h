@@ -48,13 +48,13 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/input_rc.h>
 
 #define RCINPUT_MEASURE_INTERVAL_US 20000
@@ -87,9 +87,9 @@ private:
 
 	bool _should_exit = false;
 	bool _is_running = false;
-	orb_advert_t _rcinput_pub = nullptr;
+	uORB::PublicationMulti<input_rc_s>	_rcinput_pub{ORB_ID(input_rc)};
 	int _channels = 8; //D8R-II plus
-	struct input_rc_s _data = {};
+	input_rc_s _data{};
 
 	int *_mem = nullptr;
 	key_t _key = 4096; ///< shared memory key (matches the ppmdecode program's key)

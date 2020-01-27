@@ -36,7 +36,7 @@
 #include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
 
 namespace px4
@@ -100,7 +100,7 @@ WorkItem::average_rate() const
 {
 	const float rate = _run_count / elapsed_time();
 
-	if (PX4_ISFINITE(rate)) {
+	if ((_run_count > 0) && PX4_ISFINITE(rate)) {
 		return rate;
 	}
 
@@ -110,9 +110,10 @@ WorkItem::average_rate() const
 float
 WorkItem::average_interval() const
 {
-	const float interval = 1000000.0f / average_rate();
+	const float rate = average_rate();
+	const float interval = 1000000.0f / rate;
 
-	if (PX4_ISFINITE(interval)) {
+	if ((rate > 0.0f) && PX4_ISFINITE(interval)) {
 		return interval;
 	}
 

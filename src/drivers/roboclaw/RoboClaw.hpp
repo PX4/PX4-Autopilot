@@ -46,7 +46,8 @@
 #include <poll.h>
 #include <stdio.h>
 #include <termios.h>
-#include <uORB/SubscriptionPollable.hpp>
+#include <lib/parameters/param.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/actuator_armed.h>
@@ -204,7 +205,7 @@ private:
 	int _paramSub{-1};
 	parameter_update_s _paramUpdate;
 
-	orb_advert_t _wheelEncodersAdv[2] {nullptr, nullptr};
+	uORB::PublicationMulti<wheel_encoders_s> _wheelEncodersAdv[2] { ORB_ID(wheel_encoders), ORB_ID(wheel_encoders)};
 	wheel_encoders_s _wheelEncoderMsg[2];
 
 	uint32_t _lastEncoderCount[2] {0, 0};

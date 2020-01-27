@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 #include "uORBFastRpcChannel.hpp"
-#include "px4_log.h"
+#include <px4_platform_common/log.h>
 #include <algorithm>
 #include <string.h>
 #include <drivers/drv_hrt.h>

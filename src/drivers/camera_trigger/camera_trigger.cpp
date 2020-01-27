@@ -103,7 +103,7 @@ public:
 	/**
 	 * Destructor, also kills task.
 	 */
-	~CameraTrigger();
+	~CameraTrigger() override;
 
 	/**
 	 * Run intervalometer update
@@ -716,7 +716,7 @@ CameraTrigger::Run()
 void
 CameraTrigger::engage(void *arg)
 {
-	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+	CameraTrigger *trig = static_cast<CameraTrigger *>(arg);
 
 	// Trigger the camera
 	trig->_camera_interface->trigger(true);
@@ -755,7 +755,7 @@ CameraTrigger::engage(void *arg)
 void
 CameraTrigger::disengage(void *arg)
 {
-	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+	CameraTrigger *trig = static_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->trigger(false);
 }
@@ -763,7 +763,7 @@ CameraTrigger::disengage(void *arg)
 void
 CameraTrigger::engange_turn_on_off(void *arg)
 {
-	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+	CameraTrigger *trig = static_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->send_toggle_power(true);
 }
@@ -771,7 +771,7 @@ CameraTrigger::engange_turn_on_off(void *arg)
 void
 CameraTrigger::disengage_turn_on_off(void *arg)
 {
-	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+	CameraTrigger *trig = static_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->send_toggle_power(false);
 }
@@ -779,7 +779,7 @@ CameraTrigger::disengage_turn_on_off(void *arg)
 void
 CameraTrigger::keep_alive_up(void *arg)
 {
-	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+	CameraTrigger *trig = static_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->send_keep_alive(true);
 }
@@ -787,7 +787,7 @@ CameraTrigger::keep_alive_up(void *arg)
 void
 CameraTrigger::keep_alive_down(void *arg)
 {
-	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
+	CameraTrigger *trig = static_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->send_keep_alive(false);
 }

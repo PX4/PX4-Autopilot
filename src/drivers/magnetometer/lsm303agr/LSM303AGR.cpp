@@ -39,8 +39,8 @@
 
 #include "LSM303AGR.hpp"
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 #include <ecl/geo/geo.h>
 
 /* SPI protocol address bits */
@@ -423,7 +423,7 @@ LSM303AGR::collect()
 		/* start the performance counter */
 		perf_begin(_mag_sample_perf);
 
-		mag_report mag_report = {};
+		sensor_mag_s mag_report = {};
 		mag_report.timestamp = hrt_absolute_time();
 
 		// switch to right hand coordinate system in place

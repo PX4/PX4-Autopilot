@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -63,7 +63,7 @@ public:
 	ssize_t write(const uint8_t topic_ID, char buffer[], size_t length);
 
 	/** Get the Length of struct Header to make headroom for the size of struct Header along with payload */
-	ssize_t get_header_length();
+	size_t get_header_length();
 
 protected:
 	virtual ssize_t node_read(void *buffer, size_t len) = 0;
@@ -113,7 +113,7 @@ protected:
 class UDP_node: public Transport_node
 {
 public:
-	UDP_node(uint16_t udp_port_recv, uint16_t udp_port_send);
+	UDP_node(const char* _udp_ip, uint16_t udp_port_recv, uint16_t udp_port_send);
 	virtual ~UDP_node();
 
 	int init();
@@ -128,6 +128,7 @@ protected:
 
 	int sender_fd;
 	int receiver_fd;
+	char udp_ip[16] = {};
 	uint16_t udp_port_recv;
 	uint16_t udp_port_send;
 	struct sockaddr_in sender_outaddr;

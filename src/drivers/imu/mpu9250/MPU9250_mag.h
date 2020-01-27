@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +33,12 @@
 
 #pragma once
 
-#include <cdev/CDev.hpp>
 #include <perf/perf_counter.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <drivers/device/Device.hpp>
 
 /* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
 static constexpr float MPU9250_MAG_RANGE_GA{1.5e-3f};
-
-/* we are using the continuous fixed sampling rate of 100Hz */
-#define MPU9250_AK8963_SAMPLE_RATE 100
 
 /* ak8963 register address and bit definitions */
 #define AK8963_I2C_ADDR         0x0C
@@ -98,30 +94,20 @@ class MPU9250;
 
 #pragma pack(push, 1)
 struct ak8963_regs {
-	uint8_t st1;
-	int16_t x;
-	int16_t y;
-	int16_t z;
-	uint8_t st2;
+	uint8_t ST1;
+	uint8_t HXL;
+	uint8_t HXH;
+	uint8_t HYL;
+	uint8_t HYH;
+	uint8_t HZL;
+	uint8_t HZH;
+	uint8_t ST2;
 };
 #pragma pack(pop)
 
-#pragma pack(push, 1)
-struct ak09916_regs {
-	uint8_t st1;
-	int16_t x;
-	int16_t y;
-	int16_t z;
-	uint8_t tmps;
-	uint8_t st2;
-};
-#pragma pack(pop)
-
-
-extern device::Device *AK8963_I2C_interface(int bus, bool external_bus);
+extern device::Device *AK8963_I2C_interface(int bus);
 
 typedef device::Device *(*MPU9250_mag_constructor)(int, bool);
-
 
 /**
  * Helper class implementing the magnetometer driver node.
@@ -132,16 +118,13 @@ public:
 	MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotation rotation);
 	~MPU9250_mag();
 
-	void set_passthrough(uint8_t reg, uint8_t size, uint8_t *out = NULL);
-	void passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size);
-	void passthrough_write(uint8_t reg, uint8_t val);
-	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
+	void set_passthrough(uint8_t reg, uint8_t size, uint8_t *out = nullptr);
 
-	int ak8963_reset(void);
-	int ak8963_setup(void);
-	int ak8963_setup_master_i2c(void);
+	int ak8963_reset();
+	int ak8963_setup();
+	int ak8963_setup_master_i2c();
 	bool ak8963_check_id(uint8_t &id);
-	bool ak8963_read_adjustments(void);
+	bool ak8963_read_adjustments();
 
 	void print_status() { _px4_mag.print_status(); }
 
@@ -150,19 +133,18 @@ protected:
 
 	friend class MPU9250;
 
-	/* Directly measure from the _interface if possible */
 	void measure();
-
-	/* Update the state with prefetched data (internally called by the regular measure() )*/
-	void _measure(hrt_abstime timestamp, struct ak8963_regs data);
+	bool _measure(const hrt_abstime &timestamp_sample, const ak8963_regs &data);
 
 	uint8_t read_reg(unsigned reg);
 	void write_reg(unsigned reg, uint8_t value);
+	void write_imu_reg_verified(int reg, uint8_t val, uint8_t mask);
+	void read_reg_through_mpu9250(uint8_t reg, uint8_t *val);
+	void write_reg_through_mpu9250(uint8_t reg, uint8_t val);
 
 	bool is_passthrough() { return _interface == nullptr; }
 
 private:
-
 	PX4Magnetometer		_px4_mag;
 
 	MPU9250 *_parent;
@@ -171,14 +153,6 @@ private:
 
 	perf_counter_t _mag_overruns;
 	perf_counter_t _mag_overflows;
-	perf_counter_t _mag_duplicates;
+	perf_counter_t _mag_errors;
 
-	bool check_duplicate(uint8_t *mag_data);
-
-	// keep last mag reading for duplicate detection
-	uint8_t			_last_mag_data[6] {};
-
-	/* do not allow to copy this class due to pointer data members */
-	MPU9250_mag(const MPU9250_mag &);
-	MPU9250_mag operator=(const MPU9250_mag &);
 };

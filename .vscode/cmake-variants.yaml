@@ -6,6 +6,16 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_replay:
+      short: px4_sitl_replay
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_replay
+    px4_sitl_test:
+      short: px4_sitl_test
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_test
     px4_fmu-v2_default:
       short: px4_fmu-v2_default
       buildType: MinSizeRel
@@ -46,6 +56,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: av_x-v1_default
+    holybro_durandal-v1_default:
+      short: holybro_durandal-v1
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_durandal-v1_default
     intel_aerofc-v1_default:
       short: intel_aerofc-v1_default
       buildType: MinSizeRel

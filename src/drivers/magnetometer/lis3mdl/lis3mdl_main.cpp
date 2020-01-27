@@ -38,7 +38,7 @@
  */
 
 #include "lis3mdl_main.h"
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /**
  * Driver 'main' command.
@@ -160,7 +160,7 @@ lis3mdl::stop(struct lis3mdl_bus_option &bus)
 int
 lis3mdl::test(struct lis3mdl_bus_option &bus)
 {
-	struct mag_report report;
+	sensor_mag_s report;
 	ssize_t sz;
 	int ret;
 	const char *path = bus.devpath;

@@ -3,21 +3,21 @@
 # UVify UVF4 specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
+
 # Internal SPI
-ms5611 -s start
+ms5611 -T 0 -s start
 
 # Draco-R
 if param compare SYS_AUTOSTART 6002
 then
-	# Barometer
-	# Internal SPI
-	ms5611 -T 0 -s start
+	# GPS LED
+	rgbled_ncp5623c start -a 0x38
 
-	# PX4flow
-	px4flow start
-	ist8310 start
-	mpu6000 -R 2 -T 20608 start
-	mpu9250 -R 2 start
+	#mpu6000 -R 4 -T 20608 start
+	mpu9250 -R 4 start
+
+	# Default GNSS with LIS3MDL magnetometer with external i2c.
 	lis3mdl -R 2 -X start
 fi
 

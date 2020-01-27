@@ -352,7 +352,7 @@ void
 ArchPX4IOSerial::_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
 	if (arg != nullptr) {
-		ArchPX4IOSerial *ps = reinterpret_cast<ArchPX4IOSerial *>(arg);
+		ArchPX4IOSerial *ps = static_cast<ArchPX4IOSerial *>(arg);
 
 		ps->_do_rx_dma_callback(status);
 	}
@@ -387,7 +387,7 @@ int
 ArchPX4IOSerial::_interrupt(int irq, void *context, void *arg)
 {
 	if (arg != nullptr) {
-		ArchPX4IOSerial *instance = reinterpret_cast<ArchPX4IOSerial *>(arg);
+		ArchPX4IOSerial *instance = static_cast<ArchPX4IOSerial *>(arg);
 
 		instance->_do_interrupt();
 	}
