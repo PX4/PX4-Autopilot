@@ -38,17 +38,13 @@
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/device/integrator.h>
-#include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
-#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
-#include <lib/mathlib/math/filter/NotchFilter.hpp>
-#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_gyro_status.h>
 
-class PX4Gyroscope : public cdev::CDev, public ModuleParams
+class PX4Gyroscope : public cdev::CDev
 {
 public:
 	PX4Gyroscope(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
@@ -62,7 +58,6 @@ public:
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint64_t error_count) { _error_count += error_count; }
 	void set_range(float range) { _range = range; UpdateClipLimit(); }
-	void set_sample_rate(uint16_t rate);
 	void set_scale(float scale) { _scale = scale; UpdateClipLimit(); }
 	void set_temperature(float temperature) { _temperature = temperature; }
 	void set_update_rate(uint16_t rate);
@@ -88,8 +83,6 @@ public:
 
 private:
 
-	void ConfigureFilter(float cutoff_freq);
-	void ConfigureNotchFilter(float notch_freq, float bandwidth);
 	void PublishStatus();
 	void ResetIntegrator();
 	void UpdateClipLimit();
@@ -100,15 +93,7 @@ private:
 	uORB::PublicationMulti<sensor_gyro_integrated_s> _sensor_integrated_pub;
 	uORB::PublicationMulti<sensor_gyro_status_s>     _sensor_status_pub;
 
-	math::LowPassFilter2pVector3f _filter{1000, 100};
-	math::NotchFilter<matrix::Vector3f> _notch_filter{};
-
-	hrt_abstime	_control_last_publish{0};
 	hrt_abstime	_status_last_publish{0};
-
-	math::LowPassFilter2pArray _filterArrayX{8000, 100};
-	math::LowPassFilter2pArray _filterArrayY{8000, 100};
-	math::LowPassFilter2pArray _filterArrayZ{8000, 100};
 
 	Integrator		_integrator{4000, true};
 
@@ -134,7 +119,6 @@ private:
 
 	uint32_t		_clipping[3] {};
 
-	uint16_t		_sample_rate{1000};
 	uint16_t		_update_rate{1000};
 
 	// integrator
@@ -146,10 +130,4 @@ private:
 	uint8_t			_integrator_fifo_samples{0};
 	uint8_t			_integrator_clipping{0};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
-		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,
-		(ParamFloat<px4::params::IMU_GYRO_NF_BW>) _param_imu_gyro_nf_bw,
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
-	)
 };

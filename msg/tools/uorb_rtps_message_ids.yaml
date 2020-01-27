@@ -147,7 +147,7 @@ rtps:
   - msg: sensor_baro
     id: 63
     send: true
-  - msg: sensor_bias
+  - msg: estimator_sensor_bias
     id: 64
   - msg: sensor_combined
     id: 65
