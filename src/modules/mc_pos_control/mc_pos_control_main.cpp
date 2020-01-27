@@ -637,7 +637,7 @@ MulticopterPositionControl::Run()
 			if (not_taken_off || flying_but_ground_contact) {
 				// we are not flying yet and need to avoid any corrections
 				reset_setpoint_to_nan(setpoint);
-				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
+				Vector3f(0.f, 0.f, 100.f).copyTo(setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
 				// set yaw-sp to current yaw
 				// TODO: we need a clean way to disable yaw control
 				setpoint.yaw = _states.yaw;
@@ -684,7 +684,7 @@ MulticopterPositionControl::Run()
 			// Inform FlightTask about the input and output of the velocity controller
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
 			_flight_tasks.updateVelocityControllerIO(Vector3f(local_pos_sp.vx, local_pos_sp.vy, local_pos_sp.vz),
-					Vector3f(local_pos_sp.thrust));
+					Vector3f(local_pos_sp.acceleration));
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
@@ -949,7 +949,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 
 		if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
 			// don't move along xy
-			setpoint.vx = setpoint.vy = 0.0f;
+			setpoint.vx = setpoint.vy = 0.f;
 
 			if (warn) {
 				PX4_WARN("Failsafe: stop and wait");
@@ -957,7 +957,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 
 		} else {
 			// descend with land speed since we can't stop
-			setpoint.thrust[0] = setpoint.thrust[1] = 0.f;
+			setpoint.acceleration[0] = setpoint.acceleration[1] = 0.f;
 			setpoint.vz = _param_mpc_land_speed.get();
 
 			if (warn) {
@@ -974,7 +974,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 		} else {
 			// emergency descend with a bit below hover thrust
 			setpoint.vz = NAN;
-			setpoint.thrust[2] = _param_mpc_thr_hover.get() * .8f;
+			setpoint.acceleration[2] = .3f;
 
 			if (warn) {
 				PX4_WARN("Failsafe: blind descend");

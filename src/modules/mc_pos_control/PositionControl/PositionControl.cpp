@@ -40,6 +40,7 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
+#include <ecl/geo/geo.h>
 
 using namespace matrix;
 
@@ -83,7 +84,6 @@ void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
 	_acc_sp = Vector3f(setpoint.acceleration);
-	_thr_sp = Vector3f(setpoint.thrust);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
 }
@@ -114,7 +114,7 @@ bool PositionControl::update(const float dt)
 	// x and y input setpoints always have to come in pairs
 	const bool valid = (PX4_ISFINITE(_pos_sp(0)) == PX4_ISFINITE(_pos_sp(1)))
 			   && (PX4_ISFINITE(_vel_sp(0)) == PX4_ISFINITE(_vel_sp(1)))
-			   && (PX4_ISFINITE(_thr_sp(0)) == PX4_ISFINITE(_thr_sp(1)));
+			   && (PX4_ISFINITE(_acc_sp(0)) == PX4_ISFINITE(_acc_sp(1)));
 
 	_positionControl();
 	_velocityControl(dt);
@@ -143,42 +143,16 @@ void PositionControl::_positionControl()
 
 void PositionControl::_velocityControl(const float dt)
 {
-	// Generate desired thrust setpoint.
-	// PID
-	// u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral)
-	// Umin <= u_des <= Umax
-	//
-	// Anti-Windup:
-	// u_des = _thr_sp; r = _vel_sp; y = _vel
-	// u_des >= Umax and r - y >= 0 => Saturation = true
-	// u_des >= Umax and r - y <= 0 => Saturation = false
-	// u_des <= Umin and r - y <= 0 => Saturation = true
-	// u_des <= Umin and r - y >= 0 => Saturation = false
-	//
-	// 	Notes:
-	// - PID implementation is in NED-frame
-	// - control output in D-direction has priority over NE-direction
-	// - the equilibrium point for the PID is at hover-thrust
-	// - the maximum tilt cannot exceed 90 degrees. This means that it is
-	// 	 not possible to have a desired thrust direction pointing in the positive
-	// 	 D-direction (= downward)
-	// - the desired thrust in D-direction is limited by the thrust limits
-	// - the desired thrust in NE-direction is limited by the thrust excess after
-	// 	 consideration of the desired thrust in D-direction. In addition, the thrust in
-	// 	 NE-direction is also limited by the maximum tilt.
-
 	// PID velocity control
 	Vector3f vel_error = _vel_sp - _vel;
-	Vector3f thr_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int + _vel_dot.emult(_gain_vel_d);
-	thr_sp_velocity -= Vector3f(0.f, 0.f, _hover_thrust);
+	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int + _vel_dot.emult(_gain_vel_d);
 
-	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(thr_sp_velocity(2))) {
-		// Thrust set-point in NE-direction from FlightTaskManualAltitude is provided. Scaling by the maximum tilt is required.
-		_thr_sp.xy() = Vector2f(_thr_sp) * fabsf(thr_sp_velocity(2)) * tanf(_constraints.tilt);
-	}
+	// For backwards compatibility of the gains to non-acceleration based control, needs to be overcome with configuration conversion
+	acc_sp_velocity *= CONSTANTS_ONE_G / _hover_thrust;
+	// No control input from setpoints or corresponding states which are NAN
+	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
 
-	// Velocity and feed-forward thrust setpoints or velocity states being NAN results in them not having an influence
-	ControlMath::addIfNotNanVector3f(_thr_sp, thr_sp_velocity);
+	_accelerationControl();
 
 	// Integrator anti-windup in vertical direction
 	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.0f) ||
@@ -186,23 +160,23 @@ void PositionControl::_velocityControl(const float dt)
 		vel_error(2) = 0.f;
 	}
 
-	// Saturate thrust setpoint in D-direction.
-	_thr_sp(2) = math::constrain(_thr_sp(2), -_lim_thr_max, -_lim_thr_min);
+	// Saturate maximal vertical thrust
+	_thr_sp(2) = math::max(_thr_sp(2), -_lim_thr_max);
 
-	// Get maximum allowed thrust in NE based on tilt and excess thrust.
-	float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
-	float thrust_max_NE = sqrtf(_lim_thr_max * _lim_thr_max - _thr_sp(2) * _thr_sp(2));
-	thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
+	// Get allowed horizontal thrust after prioritizing vertical control
+	const float thrust_max_squared = _lim_thr_max * _lim_thr_max;
+	const float thrust_z_squared = _thr_sp(2) * _thr_sp(2);
+	float thrust_max_xy = sqrtf(thrust_max_squared - thrust_z_squared);
 
-	// Saturate thrust in NE-direction.
+	// Saturate thrust in horizontal direction
 	const Vector2f thrust_sp_xy(_thr_sp);
 	const float thrust_sp_xy_norm = thrust_sp_xy.norm();
 
-	if (thrust_sp_xy_norm > thrust_max_NE) {
-		_thr_sp.xy() = thrust_sp_xy / thrust_sp_xy_norm * thrust_max_NE;
+	if (thrust_sp_xy_norm > thrust_max_xy) {
+		_thr_sp.xy() = thrust_sp_xy / thrust_sp_xy_norm * thrust_max_xy;
 	}
 
-	// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
+	// Use tracking Anti-Windup for horizontal direction: during saturation, the integrator is used to unsaturate the output
 	// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
 	const float arw_gain = 2.f / _gain_vel_p(0);
 	vel_error.xy() = Vector2f(vel_error) - (arw_gain * (thrust_sp_xy - Vector2f(_thr_sp)));
@@ -214,6 +188,19 @@ void PositionControl::_velocityControl(const float dt)
 
 	// limit thrust integral
 	_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * sign(_vel_int(2));
+}
+
+void PositionControl::_accelerationControl()
+{
+	// Assume standard acceleration due to gravity in vertical direction for attitude generation
+	Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), CONSTANTS_ONE_G).normalized();
+	ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _constraints.tilt);
+	// Scale thrust assuming hover thrust produces standard gravity
+	float collective_thrust = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
+	// Project thrust to planned body attitude
+	collective_thrust /= (Vector3f(0, 0, 1).dot(body_z));
+	collective_thrust = math::min(collective_thrust, -_lim_thr_min);
+	_thr_sp = body_z * collective_thrust;
 }
 
 bool PositionControl::_updateSuccessful()
@@ -231,8 +218,9 @@ bool PositionControl::_updateSuccessful()
 		}
 	}
 
-	// There has to be a valid output thrust setpoint otherwise there was no
+	// There has to be a valid output accleration and thrust setpoint otherwise there was no
 	// setpoint-state pair for each axis that can get controlled
+	valid = valid && PX4_ISFINITE(_acc_sp(0)) && PX4_ISFINITE(_acc_sp(1)) && PX4_ISFINITE(_acc_sp(2));
 	valid = valid && PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(_thr_sp(2));
 	return valid;
 }
