@@ -105,7 +105,8 @@ void VehicleAngularVelocity::CheckFilters(const Vector3f &rates)
 
 		const bool sample_rate_updated = (_sample_rate_incorrect_count > 50);
 		const bool lowpass_updated = (fabsf(_lowpass_filter.get_cutoff_freq() - _param_imu_gyro_cutoff.get()) > 0.01f);
-		const bool notch_updated = (fabsf(_notch_filter.getNotchFreq() - _param_imu_gyro_nf_freq.get()) > 0.01f);
+		const bool notch_updated = ((fabsf(_notch_filter.getNotchFreq() - _param_imu_gyro_nf_freq.get()) > 0.01f)
+					 || (fabsf(_notch_filter.getBandwidth() - _param_imu_gyro_nf_bw.get()) > 0.01f));
 
 		if (sample_rate_updated || lowpass_updated || notch_updated) {
 			PX4_INFO("updating filter, sample rate: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)_update_rate_hz);
