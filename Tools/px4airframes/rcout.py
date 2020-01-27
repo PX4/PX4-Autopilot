@@ -28,6 +28,7 @@ class RCOutput():
                     "# 12000 ..  12999       Octo Cox\n"
                     "# 13000 ..  13999       VTOL\n"
                     "# 14000 ..  14999       Tri Y\n"
+                    "# 17000 ..  17999       Autogyro\n"
                     "\n")
         result += "\n"
         result += "set AIRFRAME none\n"
