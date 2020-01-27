@@ -50,6 +50,23 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitu
 	att_sp.thrust_body[2] = -thr_sp.length();
 }
 
+void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_angle)
+{
+	// determine tilt
+	const float dot_product_unit = body_unit.dot(world_unit);
+	float angle = acosf(dot_product_unit);
+	// limit tilt
+	angle = math::min(angle, max_angle);
+	Vector3f rejection = body_unit - (dot_product_unit * world_unit);
+
+	// corner case exactly parallel vectors
+	if (rejection.norm_squared() < FLT_EPSILON) {
+		rejection(0) = 1.f;
+	}
+
+	body_unit = cosf(angle) * world_unit + sinf(angle) * rejection.unit();
+}
+
 void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
 	// zero vector, no direction, set safe level value
