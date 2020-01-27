@@ -39,19 +39,18 @@
 #include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_correction.h>
-#include <uORB/topics/sensor_selection.h>
-
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 
 class VehicleAngularVelocity : public ModuleParams, public px4::WorkItem
@@ -93,7 +92,7 @@ private:
 	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
