@@ -33,49 +33,67 @@
 
 #pragma once
 
-#include <sensor_corrections/SensorCorrections.hpp>
-
-#include <lib/mathlib/math/Limits.hpp>
+#include <lib/conversion/rotation.h>
 #include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_accel_integrated.h>
-#include <uORB/topics/sensor_gyro_integrated.h>
-#include <uORB/topics/vehicle_imu.h>
+#include <uORB/topics/sensor_correction.h>
 
 namespace sensors
 {
 
-class VehicleIMU : public ModuleParams, public px4::WorkItem
+class SensorCorrections : public ModuleParams
 {
 public:
-	VehicleIMU() = delete;
-	VehicleIMU(uint8_t accel_index = 0, uint8_t gyro_index = 0);
 
-	~VehicleIMU() override;
+	enum class SensorType : uint8_t {
+		Accelerometer,
+		Gyroscope,
+	};
 
-	bool Start();
-	void Stop();
+	SensorCorrections() = delete;
+	SensorCorrections(ModuleParams *parent, SensorType type);
+	~SensorCorrections() override = default;
 
 	void PrintStatus();
 
+	void set_device_id(uint32_t device_id);
+	uint32_t get_device_id() const { return _device_id; }
+
+	// apply offsets and scale
+	// rotate corrected measurements from sensor to body frame
+	matrix::Vector3f Correct(const matrix::Vector3f &data) const { return _board_rotation * matrix::Vector3f{(data - _offset).emult(_scale)}; }
+
+	void ParametersUpdate();
+	void SensorCorrectionsUpdate(bool force = false);
+
 private:
-	void ParametersUpdate(bool force = false);
-	void Run() override;
 
-	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-	uORB::SubscriptionCallbackWorkItem _sensor_accel_integrated_sub;
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_integrated_sub;
+	static constexpr int MAX_SENSOR_COUNT = 3;
 
-	SensorCorrections _accel_corrections;
-	SensorCorrections _gyro_corrections;
+	const char *SensorString() const;
+
+	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
+
+	matrix::Dcmf _board_rotation;
+
+	matrix::Vector3f _offset{0.f, 0.f, 0.f};
+	matrix::Vector3f _scale{1.f, 1.f, 1.f};
+
+	uint32_t _device_id{0};
+	int8_t _corrections_selected_instance{-1};
+
+	const SensorType _type;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SENS_BOARD_ROT>) _param_sens_board_rot,
+
+		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _param_sens_board_x_off,
+		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _param_sens_board_y_off,
+		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _param_sens_board_z_off
+	)
 };
 
 } // namespace sensors
