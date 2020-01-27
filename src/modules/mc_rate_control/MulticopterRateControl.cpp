@@ -277,6 +277,12 @@ MulticopterRateControl::Run()
 			// run rate controller
 			const Vector3f att_control = _rate_control.update(rates, _rates_sp, dt, _maybe_landed || _landed);
 
+			// publish angular acceleration setpoint
+			vehicle_angular_acceleration_setpoint_s v_angular_accel_sp;
+			_rate_control.getAngularAccelerationSetpoint().copyTo(v_angular_accel_sp.xyz);
+			v_angular_accel_sp.timestamp = hrt_absolute_time();
+			_vehicle_angular_acceleration_setpoint_pub.publish(v_angular_accel_sp);
+
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
 			_rate_control.getRateControlStatus(rate_ctrl_status);

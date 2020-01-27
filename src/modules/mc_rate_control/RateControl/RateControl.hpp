@@ -97,6 +97,12 @@ public:
 				const bool landed);
 
 	/**
+	 * Get the desired angular acceleration
+	 * @see _angular_accel_sp
+	 */
+	const matrix::Vector3f &getAngularAccelerationSetpoint() const { return _angular_accel_sp; };
+
+	/**
 	 * Set the integral term to 0 to prevent windup
 	 * @see _rate_int
 	 */
@@ -125,4 +131,7 @@ private:
 	math::LowPassFilter2pVector3f _lp_filters_d{0.f, 0.f}; ///< low-pass filters for D-term (roll, pitch & yaw)
 	bool _mixer_saturation_positive[3] {};
 	bool _mixer_saturation_negative[3] {};
+
+	// Output
+	matrix::Vector3f _angular_accel_sp{0.f, 0.f, 0.f}; //< Angular acceleration setpoint computed using P and D gains
 };

@@ -79,9 +79,13 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 		rate_d = (rate_filtered - _rate_prev_filtered) / dt;
 	}
 
-	// PID control with feed forward
-	const Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(rate_d) + _gain_ff.emult(rate_sp);
+	// P + D control
+	_angular_accel_sp = _gain_p.emult(rate_error) - _gain_d.emult(rate_d);
 
+	// I + FF control
+	const Vector3f torque_feedforward = _rate_int + _gain_ff.emult(rate_sp);
+
+	// save states
 	_rate_prev = rate;
 	_rate_prev_filtered = rate_filtered;
 
@@ -90,7 +94,7 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 		updateIntegral(rate_error, dt);
 	}
 
-	return torque;
+	return _angular_accel_sp + torque_feedforward;
 }
 
 void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
