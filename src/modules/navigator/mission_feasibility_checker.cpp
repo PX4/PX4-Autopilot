@@ -259,6 +259,7 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 		    missionitem.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
 		    missionitem.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
 		    missionitem.nav_cmd != NAV_CMD_VIDEO_STOP_CAPTURE &&
+		    missionitem.nav_cmd != NAV_CMD_DO_CONTROL_VIDEO &&
 		    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
 		    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
@@ -384,6 +385,7 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 					  missionitem.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
 					  missionitem.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
 					  missionitem.nav_cmd != NAV_CMD_VIDEO_STOP_CAPTURE &&
+					  missionitem.nav_cmd != NAV_CMD_DO_CONTROL_VIDEO &&
 					  missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
 					  missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
 					  missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
