@@ -395,11 +395,6 @@ private:
 	bool 		is_mpu_device() { return _device_type == MPU_DEVICE_TYPE_MPU6000; }
 
 	/**
-	 * Fetch measurements from the sensor and update the report buffers.
-	 */
-	int			measure();
-
-	/**
 	 * Read a register from the MPU6000
 	 *
 	 * @param		The register to read.

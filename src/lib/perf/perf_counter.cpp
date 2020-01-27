@@ -207,47 +207,9 @@ perf_count(perf_counter_t handle)
 		((struct perf_ctr_count *)handle)->event_count++;
 		break;
 
-	case PC_INTERVAL: {
-			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			hrt_abstime now = hrt_absolute_time();
-
-			switch (pci->event_count) {
-			case 0:
-				pci->time_first = now;
-				break;
-
-			case 1:
-				pci->time_least = (uint32_t)(now - pci->time_last);
-				pci->time_most = (uint32_t)(now - pci->time_last);
-				pci->mean = pci->time_least / 1e6f;
-				pci->M2 = 0;
-				break;
-
-			default: {
-					hrt_abstime interval = now - pci->time_last;
-
-					if ((uint32_t)interval < pci->time_least) {
-						pci->time_least = (uint32_t)interval;
-					}
-
-					if ((uint32_t)interval > pci->time_most) {
-						pci->time_most = (uint32_t)interval;
-					}
-
-					// maintain mean and variance of interval in seconds
-					// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
-					float dt = interval / 1e6f;
-					float delta_intvl = dt - pci->mean;
-					pci->mean += delta_intvl / pci->event_count;
-					pci->M2 += delta_intvl * (dt - pci->mean);
-					break;
-				}
-			}
-
-			pci->time_last = now;
-			pci->event_count++;
-			break;
-		}
+	case PC_INTERVAL:
+		perf_count_interval(handle, hrt_absolute_time());
+		break;
 
 	default:
 		break;
@@ -358,6 +320,60 @@ perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 }
 
 void
+perf_count_interval(perf_counter_t handle, hrt_abstime now)
+{
+	if (handle == nullptr) {
+		return;
+	}
+
+	switch (handle->type) {
+	case PC_INTERVAL: {
+			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+
+			switch (pci->event_count) {
+			case 0:
+				pci->time_first = now;
+				break;
+
+			case 1:
+				pci->time_least = (uint32_t)(now - pci->time_last);
+				pci->time_most = (uint32_t)(now - pci->time_last);
+				pci->mean = pci->time_least / 1e6f;
+				pci->M2 = 0;
+				break;
+
+			default: {
+					hrt_abstime interval = now - pci->time_last;
+
+					if ((uint32_t)interval < pci->time_least) {
+						pci->time_least = (uint32_t)interval;
+					}
+
+					if ((uint32_t)interval > pci->time_most) {
+						pci->time_most = (uint32_t)interval;
+					}
+
+					// maintain mean and variance of interval in seconds
+					// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
+					float dt = interval / 1e6f;
+					float delta_intvl = dt - pci->mean;
+					pci->mean += delta_intvl / pci->event_count;
+					pci->M2 += delta_intvl * (dt - pci->mean);
+					break;
+				}
+			}
+
+			pci->time_last = now;
+			pci->event_count++;
+			break;
+		}
+
+	default:
+		break;
+	}
+}
+
+void
 perf_set_count(perf_counter_t handle, uint64_t count)
 {
 	if (handle == nullptr) {
@@ -395,8 +411,6 @@ perf_cancel(perf_counter_t handle)
 		break;
 	}
 }
-
-
 
 void
 perf_reset(perf_counter_t handle)
@@ -569,6 +583,31 @@ perf_event_count(perf_counter_t handle)
 	}
 
 	return 0;
+}
+
+float
+perf_mean(perf_counter_t handle)
+{
+	if (handle == nullptr) {
+		return 0;
+	}
+
+	switch (handle->type) {
+	case PC_ELAPSED: {
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+			return pce->mean;
+		}
+
+	case PC_INTERVAL: {
+			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+			return pci->mean;
+		}
+
+	default:
+		break;
+	}
+
+	return 0.0f;
 }
 
 void

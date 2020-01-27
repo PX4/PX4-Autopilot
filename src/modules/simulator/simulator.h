@@ -104,7 +104,6 @@ private:
 	Simulator() : ModuleParams(nullptr)
 	{
 		_px4_accel.set_sample_rate(250);
-		_px4_gyro.set_sample_rate(250);
 	}
 
 	~Simulator()
