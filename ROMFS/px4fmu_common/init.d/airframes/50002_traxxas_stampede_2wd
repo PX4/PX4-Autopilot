@@ -7,14 +7,13 @@
 # @type Rover
 # @class Rover
 #
-# @board px4_fmu-v2 exclude
-#
 # @output MAIN2 steering
 # @output MAIN4 throttle
 #
 # @maintainer Marco Zorzi
 #
 # @board px4_fmu-v2 exclude
+# @board px4_fmu-v2_fixedwing exclude
 #
 
 sh /etc/init.d/rc.rover_defaults
