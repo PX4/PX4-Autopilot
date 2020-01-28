@@ -203,6 +203,11 @@ __EXPORT void imxrt_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
+void imxrt_serial_dma_poll(void)
+{
+	PROBE(4, 0);
+	PROBE(4, 1);
+}
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
@@ -236,7 +241,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	/* set up the serial DMA polling */
-#ifdef SERIAL_HAVE_DMA
 	static struct hrt_call serial_dma_call;
 	struct timespec ts;
 
@@ -252,7 +256,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       ts_to_abstime(&ts),
 		       (hrt_callout)imxrt_serial_dma_poll,
 		       NULL);
-#endif
 
 	/* initial LED state */
 	drv_led_start();
