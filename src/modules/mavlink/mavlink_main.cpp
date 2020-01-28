@@ -1552,7 +1552,7 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
 	_rstatus = radio_status;
 
-	if (get_telemetry_status().type == telemetry_status_s::LINK_TYPE_3DR_RADIO) {
+	if (_use_software_mav_throttling) {
 
 		/* check hardware limits */
 		_radio_status_available = true;
@@ -1849,7 +1849,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fwxz", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxz", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -2028,6 +2028,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'f':
 			_forwarding_on = true;
+			break;
+
+		case 's':
+			_use_software_mav_throttling = true;
 			break;
 
 		case 'w':
