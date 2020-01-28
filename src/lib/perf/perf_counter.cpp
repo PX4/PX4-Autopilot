@@ -50,7 +50,7 @@
 
 /* latency histogram */
 const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
-const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
+const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000 };
 __EXPORT uint32_t	latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 
@@ -641,14 +641,35 @@ perf_print_all(int fd)
 void
 perf_print_latency(int fd)
 {
+	// this is definitely not thread safe, so the results are not exact
+	int total_counts = 0;
+
+	for (int i = 0; i < latency_bucket_count; i++) {
+		total_counts += latency_counters[i];
+	}
+
+
 	dprintf(fd, "bucket [us] : events\n");
 
 	for (int i = 0; i < latency_bucket_count; i++) {
-		dprintf(fd, "       %4i : %li\n", latency_buckets[i], (long int)latency_counters[i]);
+		dprintf(fd, "       %4i : %li (%.3f %%)\n", latency_buckets[i], (long int)latency_counters[i],
+			(double)latency_counters[i] / (double)total_counts * 100.0);
 	}
 
 	// print the overflow bucket value
 	dprintf(fd, " >%4i : %i\n", latency_buckets[latency_bucket_count - 1], latency_counters[latency_bucket_count]);
+
+	float total_time = 0.0f;
+	total_counts = 0;
+
+	for (int i = 0; i < latency_bucket_count; i++) {
+		total_time += latency_counters[i] * latency_buckets[i];
+		total_counts += latency_counters[i];
+	}
+
+	float latency_average = total_time / total_counts;
+
+	dprintf(fd, "Average : %.3f us\n", (double)latency_average);
 }
 
 void

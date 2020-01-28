@@ -42,7 +42,7 @@
 #include <stdint.h>
 #include <px4_platform_common/defines.h>
 
-#define LATENCY_BUCKET_COUNT 8
+#define LATENCY_BUCKET_COUNT 14
 
 extern const uint16_t latency_bucket_count;
 extern const uint16_t latency_buckets[LATENCY_BUCKET_COUNT];
