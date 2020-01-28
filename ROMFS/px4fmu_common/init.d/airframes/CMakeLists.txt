@@ -65,7 +65,6 @@ px4_add_romfs_files(
 	4009_qav250
 	4010_dji_f330
 	4011_dji_f450
-	4012_quad_x_can
 	4014_s500
 	4015_holybro_s500
 	4016_holybro_px4vision
