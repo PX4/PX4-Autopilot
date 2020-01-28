@@ -31,11 +31,13 @@ jobs:
     #   run: mkdir -p MAVSDK/build/default && cd MAVSDK/build/default && cmake ../.. && make -j4 && make install
     - name: Run Coverage Tests
       run: make tests_integration_coverage
-    - name: Upload coverage information to Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        path-to-lcov: coverage/lcov.info
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+    # We are not actively using coveralls, but we keep the config
+    # in case the service should be re-enabled later
+    # - name: Upload coverage information to Coveralls
+    #   uses: coverallsapp/github-action@master
+    #   with:
+    #     path-to-lcov: coverage/lcov.info
+    #     github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload coverage information to Codecov
       uses: codecov/codecov-action@v1
       with:
