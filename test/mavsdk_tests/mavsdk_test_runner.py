@@ -128,9 +128,11 @@ class GzserverRunner(Runner):
                     workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
+                    "PX4_SIM_SPEED_FACTOR": str(speed_factor),
+                    "DISPLAY": os.environ['DISPLAY']}
         self.cmd = "gzserver"
-        self.args = [workspace_dir + "/Tools/sitl_gazebo/worlds/" +
+        self.args = ["--verbose",
+                     workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      model + ".world"]
         self.log_prefix = "gzserver"
 
@@ -144,8 +146,9 @@ class GzclientRunner(Runner):
                     # workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "DISPLAY": ":0"}
+                    "DISPLAY": os.environ['DISPLAY']}
         self.cmd = "gzclient"
+        self.args = ["--verbose"]
         self.log_prefix = "gzclient"
 
 
