@@ -127,18 +127,21 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 	}
 
-	if (status.is_vtol && status.in_transition_mode) {
-		if (prearm_ok) {
-			mavlink_log_critical(mavlink_log_pub, "Arming denied! Vehicle is in transition state");
-			prearm_ok = false;
-		}
-	}
+	if (status.is_vtol) {
 
-	if (!status_flags.circuit_breaker_vtol_fw_arming_check && status.is_vtol
-	    && status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (prearm_ok) {
-			mavlink_log_critical(mavlink_log_pub, "Arming denied! Vehicle is not in multicopter mode");
-			prearm_ok = false;
+		if (status.in_transition_mode) {
+			if (prearm_ok) {
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! Vehicle is in transition state");
+				prearm_ok = false;
+			}
+		}
+
+		if (!status_flags.circuit_breaker_vtol_fw_arming_check
+		    && status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			if (prearm_ok) {
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! Vehicle is not in multicopter mode");
+				prearm_ok = false;
+			}
 		}
 	}
 
