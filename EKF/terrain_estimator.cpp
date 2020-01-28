@@ -57,7 +57,7 @@ bool Ekf::initHagl()
 		initialized = true;
 
 	} else if (_rng_hgt_valid
-		   && (_time_last_imu - latest_measurement.time_us) < (uint64_t)2e5
+		   && isRecent(latest_measurement.time_us, (uint64_t)2e5)
 		   && _R_rng_to_earth_2_2 > _params.range_cos_max_tilt) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
 		_terrain_vpos = _state.pos(2) + latest_measurement.rng * _R_rng_to_earth_2_2;
@@ -168,7 +168,7 @@ void Ekf::fuseHagl()
 
 		} else {
 			// If we have been rejecting range data for too long, reset to measurement
-			if ((_time_last_imu - _time_last_hagl_fuse) > (uint64_t)10E6) {
+			if (isTimedOut(_time_last_hagl_fuse, (uint64_t)10E6)) {
 				_terrain_vpos = _state.pos(2) + meas_hagl;
 				_terrain_var = obs_variance;
 
@@ -290,12 +290,12 @@ bool Ekf::isTerrainEstimateValid() const
 void Ekf::updateTerrainValidity()
 {
 	// we have been fusing range finder measurements in the last 5 seconds
-	const bool recent_range_fusion = (_time_last_imu - _time_last_hagl_fuse) < (uint64_t)5e6;
+	const bool recent_range_fusion = isRecent(_time_last_hagl_fuse, (uint64_t)5e6);
 
 	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds
 	// this can only be the case if the main filter does not fuse optical flow
-	const bool recent_flow_for_terrain_fusion = ((_time_last_imu - _time_last_of_fuse) < (uint64_t)5e6)
-					      && !_control_status.flags.opt_flow;
+	const bool recent_flow_for_terrain_fusion = isRecent(_time_last_of_fuse, (uint64_t)5e6)
+						    && !_control_status.flags.opt_flow;
 
 	_hagl_valid = (_terrain_initialised && (recent_range_fusion || recent_flow_for_terrain_fusion));
 }

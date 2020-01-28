@@ -331,7 +331,7 @@ private:
 	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
 
-	uint64_t _time_ins_deadreckon_start{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
+	uint64_t _time_last_aiding{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
 	bool _using_synthetic_position{false};	///< true if we are using a synthetic position to constrain drift
 
 	uint64_t _time_last_hor_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
@@ -784,6 +784,16 @@ private:
 	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
 	// sensor measurement
 	float calculate_synthetic_mag_z_measurement(const Vector3f& mag_meas, const Vector3f& mag_earth_predicted);
+
+	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
+	{
+		return last_sensor_timestamp + timeout_period < _time_last_imu;
+	}
+
+	bool isRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
+	{
+		return sensor_timestamp + acceptance_interval > _time_last_imu;
+	}
 
 	void stopGpsFusion();
 

@@ -246,7 +246,7 @@ void Ekf::resetHeight()
 		// initialize vertical position with newest baro measurement
 		const baroSample &baro_newest = _baro_buffer.get_newest();
 
-		if (_time_last_imu - baro_newest.time_us < 2 * BARO_MAX_INTERVAL) {
+		if (isRecent(baro_newest.time_us, 2 * BARO_MAX_INTERVAL)) {
 			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
 
 			// the state variance is the same as the observation
@@ -260,7 +260,7 @@ void Ekf::resetHeight()
 
 	} else if (_control_status.flags.gps_hgt) {
 		// initialize vertical position and velocity with newest gps measurement
-		if (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL) {
+		if (isRecent(gps_newest.time_us, 2 * GPS_MAX_INTERVAL)) {
 			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
 
 			// the state variance is the same as the observation
@@ -296,7 +296,7 @@ void Ekf::resetHeight()
 	}
 
 	// reset the vertical velocity state
-	if (_control_status.flags.gps && (_time_last_imu - gps_newest.time_us < 2 * GPS_MAX_INTERVAL)) {
+	if (_control_status.flags.gps && isRecent(gps_newest.time_us, 2 * GPS_MAX_INTERVAL)) {
 		// If we are using GPS, then use it to reset the vertical velocity
 		_state.vel(2) = gps_newest.vel(2);
 
@@ -1386,22 +1386,23 @@ bool Ekf::global_position_is_valid()
 void Ekf::update_deadreckoning_status()
 {
 	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel)
-			    && (((_time_last_imu - _time_last_hor_pos_fuse) <= _params.no_aid_timeout_max)
-				|| ((_time_last_imu - _time_last_hor_vel_fuse) <= _params.no_aid_timeout_max)
-				|| ((_time_last_imu - _time_last_delpos_fuse) <= _params.no_aid_timeout_max));
-	bool optFlowAiding = _control_status.flags.opt_flow && ((_time_last_imu - _time_last_of_fuse) <= _params.no_aid_timeout_max);
-	bool airDataAiding = _control_status.flags.wind && ((_time_last_imu - _time_last_arsp_fuse) <= _params.no_aid_timeout_max) && ((_time_last_imu - _time_last_beta_fuse) <= _params.no_aid_timeout_max);
+			    && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
+				|| isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max)
+				|| isRecent(_time_last_delpos_fuse, _params.no_aid_timeout_max));
+	bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_time_last_of_fuse, _params.no_aid_timeout_max);
+	bool airDataAiding = _control_status.flags.wind &&
+			     isRecent(_time_last_arsp_fuse, _params.no_aid_timeout_max) &&
+			     isRecent(_time_last_beta_fuse, _params.no_aid_timeout_max);
 
 	_is_wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
 	_is_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
 
-	// record the time we start inertial dead reckoning
 	if (!_is_dead_reckoning) {
-		_time_ins_deadreckon_start = _time_last_imu - _params.no_aid_timeout_max;
+		_time_last_aiding = _time_last_imu - _params.no_aid_timeout_max;
 	}
 
 	// report if we have been deadreckoning for too long
-	_deadreckon_time_exceeded = ((_time_last_imu - _time_ins_deadreckon_start) > (unsigned)_params.valid_timeout_max);
+	_deadreckon_time_exceeded = isTimedOut(_time_last_aiding, (uint64_t)_params.valid_timeout_max);
 }
 
 // calculate the inverse rotation matrix from a quaternion rotation
@@ -1747,7 +1748,6 @@ float Ekf::kahanSummation(float sum_previous, float input, float &accumulator) c
 	accumulator = (t - sum_previous) - y;
 	return t;
 }
-
 
 void Ekf::stopGpsFusion()
 {

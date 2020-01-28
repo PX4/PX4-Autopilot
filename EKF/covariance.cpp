@@ -811,7 +811,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 		// if we have failed for 7 seconds continuously, reset the accel bias covariances to fix bad conditioning of
 		// the covariance matrix but preserve the variances (diagonals) to allow bias learning to continue
-		if (_time_last_imu - _time_acc_bias_check > (uint64_t)7e6) {
+		if (isTimedOut(_time_acc_bias_check, (uint64_t)7e6)) {
 
 			P.uncorrelateCovariance<3>(13);
 

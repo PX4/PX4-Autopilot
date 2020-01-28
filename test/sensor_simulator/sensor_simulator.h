@@ -78,6 +78,9 @@ public:
 	void runSeconds(float duration_seconds);
 	void runMicroseconds(uint32_t duration);
 
+	void startBaro(){ _baro.start(); }
+	void stopBaro(){ _baro.stop(); }
+
 	void startGps(){ _gps.start(); }
 	void stopGps(){ _gps.stop(); }
 

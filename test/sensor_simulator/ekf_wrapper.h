@@ -47,6 +47,19 @@ public:
 	EkfWrapper(std::shared_ptr<Ekf> ekf);
 	~EkfWrapper();
 
+
+	void setBaroHeight();
+	bool isIntendingBaroHeightFusion() const;
+
+	void setGpsHeight();
+	bool isIntendingGpsHeightFusion() const;
+
+	void setRangeHeight();
+	bool isIntendingRangeHeightFusion() const;
+
+	void setVisionHeight();
+	bool isIntendingVisionHeightFusion() const;
+
 	void enableGpsFusion();
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
