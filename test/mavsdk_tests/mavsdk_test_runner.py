@@ -23,7 +23,7 @@ test_matrix = [
         "timeout_min": 20,
     },
     # {
-    #     "model": "standard_plane",
+    #     "model": "plane",
     #     "test_filter": "[plane]",
     #     "timeout_min": 25,
     # }
