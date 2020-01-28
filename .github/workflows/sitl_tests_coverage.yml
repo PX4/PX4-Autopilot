@@ -1,6 +1,12 @@
 name: SITL Tests (Code Coverage)
 
-on: [push]
+on:
+  push:
+    branches:
+    - 'master'
+  pull_request:
+    branches:
+    - '*'
 
 jobs:
   build:
