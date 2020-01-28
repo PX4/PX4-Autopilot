@@ -51,7 +51,7 @@ else()
 		manifest.c
 		sdio.c
 		spi.cpp
-		timer_config.c
+		timer_config.cpp
 		usb.c
 	)
 	add_dependencies(drivers_board arch_board_hw_info)
