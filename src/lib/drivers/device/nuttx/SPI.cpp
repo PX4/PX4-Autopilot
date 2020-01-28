@@ -159,10 +159,18 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 int
 SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
+	PROBE(5, 0);
 	SPI_SETFREQUENCY(_dev, _frequency);
+	PROBE(5, 1);
+	PROBE(5, 0);
 	SPI_SETMODE(_dev, _mode);
+	PROBE(5, 1);
+	PROBE(5, 0);
 	SPI_SETBITS(_dev, 8);
+	PROBE(5, 1);
+	PROBE(5, 0);
 	SPI_SELECT(_dev, _device, true);
+	PROBE(5, 1);
 
 	/* do the transfer */
 	SPI_EXCHANGE(_dev, send, recv, len);

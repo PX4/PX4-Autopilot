@@ -2320,5 +2320,7 @@ mixer files.
 
 extern "C" __EXPORT int fmu_main(int argc, char *argv[])
 {
-	return PX4FMU::main(argc, argv);
+	int rv = PX4FMU::main(argc, argv);
+	PROBE_INIT(0x3f);
+	return rv;
 }
