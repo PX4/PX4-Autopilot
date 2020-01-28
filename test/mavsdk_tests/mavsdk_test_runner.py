@@ -17,11 +17,11 @@ test_matrix = [
         "test_filter": "[multicopter]",
         "timeout_min": 20,
     },
-    #{
-    #    "model": "standard_vtol",
-    #    "test_filter": "[vtol]",
-    #    "timeout_min": 20,
-    #},
+    {
+        "model": "standard_vtol",
+        "test_filter": "[vtol]",
+        "timeout_min": 20,
+    },
     # {
     #     "model": "standard_plane",
     #     "test_filter": "[plane]",
