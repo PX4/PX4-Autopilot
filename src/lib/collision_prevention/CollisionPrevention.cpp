@@ -73,6 +73,7 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 
 	// initialize internal obstacle map
 	_obstacle_map_body_frame.timestamp = getTime();
+	_obstacle_map_body_frame.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
 	_obstacle_map_body_frame.increment = INTERNAL_MAP_INCREMENT_DEG;
 	_obstacle_map_body_frame.min_distance = UINT16_MAX;
 	_obstacle_map_body_frame.max_distance = 0;
