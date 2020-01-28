@@ -37,6 +37,15 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
+
+#include <time.h>
+#include <fixedmath.h>
+
+#include "dwt.h"
+#include "up_arch.h"
+
+#include <nuttx/clock.h>
+
 #include <arch/board/board.h>
 
 #if defined(CONFIG_SCHED_CRITMONITOR) || defined(CONFIG_SCHED_IRQMONITOR)
@@ -45,22 +54,26 @@
  * Public Functions
  ************************************************************************************/
 
-#error "missing implementation for up_critmon_gettime() and up_critmon_convert()"
-
 /************************************************************************************
  * Name: up_critmon_gettime
  ************************************************************************************/
 
-// uint32_t up_critmon_gettime(void)
-// {
-// }
+uint32_t up_critmon_gettime(void)
+{
+	return getreg32(DWT_CYCCNT);
+}
 
 /************************************************************************************
  * Name: up_critmon_convert
  ************************************************************************************/
 
-// void up_critmon_convert(uint32_t elapsed, FAR struct timespec *ts)
-// {
-// }
+void up_critmon_convert(uint32_t elapsed, FAR struct timespec *ts)
+{
+	b32_t b32elapsed;
+
+	b32elapsed  = itob32(elapsed) / BOARD_CPU_FREQUENCY;
+	ts->tv_sec  = b32toi(b32elapsed);
+	ts->tv_nsec = NSEC_PER_SEC * b32frac(b32elapsed) / b32ONE;
+}
 
 #endif /* CONFIG_SCHED_CRITMONITOR */
