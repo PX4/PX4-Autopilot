@@ -11,7 +11,7 @@
 #include "autopilot_tester.h"
 
 
-TEST_CASE("Takeoff, transition and RTL", "[vtol]")
+TEST_CASE("Takeoff and transition and RTL", "[vtol]")
 {
     AutopilotTester tester;
     tester.connect(connection_url);
