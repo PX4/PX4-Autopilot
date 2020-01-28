@@ -32,36 +32,18 @@
  *
  ****************************************************************************/
 
-/*
- * @file timer_config.c
- *
- * Configuration data for the stm32 pwm_servo, input capture and pwm input driver.
- *
- * Note that these arrays must always be fully-sized.
- */
-
-#include <stdint.h>
-
-#include <stm32.h>
-#include <stm32_gpio.h>
-#include <stm32_tim.h>
-
-#include <drivers/drv_pwm_output.h>
-#include <px4_arch/io_timer.h>
-
-#include "board_config.h"
-
+#include <px4_arch/io_timer_hw_description.h>
 
 // Invalidate all timers (base == 0): we don't have any
-__EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = { };
+constexpr io_timers_t io_timers[MAX_IO_TIMERS] = { };
 
 // Invalidate all channels (timer_channel == 0): we don't have any
-__EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = { };
+constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = { };
 
-__EXPORT const io_timers_channel_mapping_t io_timers_channel_mapping = { };
+constexpr io_timers_channel_mapping_t io_timers_channel_mapping = { };
 
 // Invalidate all timers (base == 0): we don't have any
-__EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = { };
+constexpr io_timers_t led_pwm_timers[MAX_LED_TIMERS] = { };
 
 // Invalidate all channels (timer_channel == 0): we don't have any
-__EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = { };
+constexpr timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = { };
