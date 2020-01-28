@@ -1530,7 +1530,6 @@ Mavlink::update_rate_mult()
 		// check for RADIO_STATUS timeout and reset
 		if (hrt_elapsed_time(&_rstatus.timestamp) > 5_s) {
 			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
-			set_telemetry_status_type(telemetry_status_s::LINK_TYPE_GENERIC);
 
 			_radio_status_available = false;
 			_radio_status_critical = false;
