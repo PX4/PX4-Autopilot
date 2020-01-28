@@ -44,6 +44,21 @@ void Gps::setVelocity(const Vector3f& vel)
 	_gps_data.vel_ned = vel;
 }
 
+void Gps::setFixType(int n)
+{
+	_gps_data.fix_type = n;
+}
+
+void Gps::setNumberOfSatellites(int n)
+{
+	_gps_data.nsats = n;
+}
+
+void Gps::setPdop(float pdop)
+{
+	_gps_data.pdop = pdop;
+}
+
 void Gps::stepHeightByMeters(float hgt_change)
 {
 	_gps_data.alt += hgt_change * 1e3f;

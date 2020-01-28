@@ -32,43 +32,54 @@
  ****************************************************************************/
 
 /**
- * Feeds Ekf with Gps data
+ * Test the gps fusion
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
-#pragma once
 
-#include "sensor.h"
+#include <gtest/gtest.h>
+#include "EKF/ekf.h"
+#include "sensor_simulator/sensor_simulator.h"
+#include "sensor_simulator/ekf_wrapper.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
 
-class Gps: public Sensor
-{
-public:
-	Gps(std::shared_ptr<Ekf> ekf);
-	~Gps();
+class EkfGpsTest : public ::testing::Test {
+ public:
 
-	void setData(const gps_message& gps);
-	void stepHeightByMeters(float hgt_change);
-	void stepHorizontalPositionByMeters(Vector2f hpos_change);
-	void setAltitude(int32_t alt);
-	void setLatitude(int32_t lat);
-	void setLongitude(int32_t lon);
-	void setVelocity(const Vector3f& vel);
-	void setFixType(int n);
-	void setNumberOfSatellites(int n);
-	void setPdop(float pdop);
+	EkfGpsTest(): ::testing::Test(),
+	_ekf{std::make_shared<Ekf>()},
+	_sensor_simulator(_ekf),
+	_ekf_wrapper(_ekf) {};
 
-	gps_message getDefaultGpsData();
+	std::shared_ptr<Ekf> _ekf;
+	SensorSimulator _sensor_simulator;
+	EkfWrapper _ekf_wrapper;
 
-private:
-	gps_message _gps_data;
+	// Setup the Ekf with synthetic measurements
+	void SetUp() override
+	{
+		_ekf->init(0);
+		_sensor_simulator.runSeconds(2);
+		_ekf_wrapper.enableGpsFusion();
+		_sensor_simulator.startGps();
+		_sensor_simulator.runSeconds(11);
+	}
 
-	void send(uint64_t time) override;
-
+	// Use this method to clean up any memory, network etc. after each test
+	void TearDown() override
+	{
+	}
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
+TEST_F(EkfGpsTest, gpsTimeout)
+{
+	// GIVEN:EKF that fuses GPS
+
+	// WHEN: setting the PDOP to high
+	_sensor_simulator._gps.setNumberOfSatellites(3);
+
+	// THEN: EKF should stop fusing GPS
+	_sensor_simulator.runSeconds(20);
+
+	// TODO: this is not happening as expected
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+}

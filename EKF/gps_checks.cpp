@@ -137,7 +137,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	const float filt_time_const = 10.0f;
-	const float dt = fminf(fmaxf(float(_time_last_imu - _gps_pos_prev.timestamp) * 1e-6f, 0.001f), filt_time_const);
+	const float dt = fminf(fmaxf(float(int64_t(_time_last_imu) - int64_t(_gps_pos_prev.timestamp)) * 1e-6f, 0.001f), filt_time_const);
 	const float filter_coef = dt / filt_time_const;
 
 	// The following checks are only valid when the vehicle is at rest
@@ -232,5 +232,5 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	}
 
 	// continuous period without fail of x seconds required to return a healthy status
-	return _time_last_imu - _last_gps_fail_us > (uint64_t)_min_gps_health_time_us;
+	return isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us);
 }

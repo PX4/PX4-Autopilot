@@ -196,7 +196,6 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 
 		gps_sample_new.time_us = gps.time_usec - _params.gps_delay_ms * 1000;
 		gps_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
-		gps_sample_new.time_us = math::max(gps_sample_new.time_us, _imu_sample_delayed.time_us);
 
 		gps_sample_new.vel = gps.vel_ned;
 
@@ -267,7 +266,6 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 		baro_sample_new.time_us = 1000 * (_baro_timestamp_sum / _baro_sample_count);
 		baro_sample_new.time_us -= _params.baro_delay_ms * 1000;
 		baro_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
-		baro_sample_new.time_us = math::max(baro_sample_new.time_us, _imu_sample_delayed.time_us);
 
 		_baro_buffer.push(baro_sample_new);
 

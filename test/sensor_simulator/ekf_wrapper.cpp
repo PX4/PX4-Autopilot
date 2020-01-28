@@ -10,6 +10,54 @@ EkfWrapper::~EkfWrapper()
 {
 }
 
+void EkfWrapper::setBaroHeight()
+{
+	_ekf_params->vdist_sensor_type = VDIST_SENSOR_BARO;
+}
+
+bool EkfWrapper::isIntendingBaroHeightFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.baro_hgt;
+}
+
+void EkfWrapper::setGpsHeight()
+{
+	_ekf_params->vdist_sensor_type = VDIST_SENSOR_GPS;
+}
+
+bool EkfWrapper::isIntendingGpsHeightFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.gps_hgt;
+}
+
+void EkfWrapper::setRangeHeight()
+{
+	_ekf_params->vdist_sensor_type = VDIST_SENSOR_RANGE;
+}
+
+bool EkfWrapper::isIntendingRangeHeightFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.rng_hgt;
+}
+
+void EkfWrapper::setVisionHeight()
+{
+	_ekf_params->vdist_sensor_type = VDIST_SENSOR_EV;
+}
+
+bool EkfWrapper::isIntendingVisionHeightFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.ev_hgt;
+}
+
 void EkfWrapper::enableGpsFusion()
 {
 	_ekf_params->fusion_mode |= MASK_USE_GPS;
