@@ -119,17 +119,6 @@ public:
 	bool update(void *dst) { return updated() ? copy(dst) : false; }
 
 	/**
-	 * Check if subscription updated based on timestamp.
-	 *
-	 * @return true only if topic was updated based on a timestamp and
-	 * copied to buffer successfully.
-	 * If topic was not updated since last check it will return false but
-	 * still copy the data.
-	 * If no data available data buffer will be filled with zeros.
-	 */
-	bool update(uint64_t *time, void *dst);
-
-	/**
 	 * Copy the struct
 	 * @param data The uORB message struct we are updating.
 	 */
