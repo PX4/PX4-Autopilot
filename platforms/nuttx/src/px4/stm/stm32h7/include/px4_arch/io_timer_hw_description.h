@@ -129,6 +129,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 
 static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dma = {})
 {
+	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
 
 	switch (timer) {
@@ -138,6 +139,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB2ENR_TIM1EN;
 		ret.clock_freq = STM32_APB2_TIM1_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIMCC;
+#ifdef CONFIG_STM32_TIM1
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer2:
@@ -146,6 +150,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM2EN;
 		ret.clock_freq = STM32_APB1_TIM2_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM2;
+#ifdef CONFIG_STM32_TIM2
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer3:
@@ -154,6 +161,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM3EN;
 		ret.clock_freq = STM32_APB1_TIM3_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM3;
+#ifdef CONFIG_STM32_TIM3
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer4:
@@ -162,6 +172,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM4EN;
 		ret.clock_freq = STM32_APB1_TIM4_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM4;
+#ifdef CONFIG_STM32_TIM4
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer5:
@@ -170,6 +183,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM5EN;
 		ret.clock_freq = STM32_APB1_TIM5_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM5;
+#ifdef CONFIG_STM32_TIM5
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer6:
@@ -178,6 +194,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM6EN;
 		ret.clock_freq = STM32_APB1_TIM6_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM6;
+#ifdef CONFIG_STM32_TIM6
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer7:
@@ -186,6 +205,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM7EN;
 		ret.clock_freq = STM32_APB1_TIM7_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM7;
+#ifdef CONFIG_STM32_TIM7
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer8:
@@ -194,6 +216,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB2ENR_TIM8EN;
 		ret.clock_freq = STM32_APB2_TIM8_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM8CC;
+#ifdef CONFIG_STM32_TIM8
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer9:
@@ -208,6 +233,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM12EN;
 		ret.clock_freq = STM32_APB1_TIM12_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM12;
+#ifdef CONFIG_STM32_TIM12
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer13:
@@ -216,6 +244,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM13EN;
 		ret.clock_freq = STM32_APB1_TIM13_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM13;
+#ifdef CONFIG_STM32_TIM13
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer14:
@@ -224,8 +255,14 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1LENR_TIM14EN;
 		ret.clock_freq = STM32_APB1_TIM14_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM14;
+#ifdef CONFIG_STM32_TIM14
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 	}
+
+	// This is not strictly required, but for consistency let's make sure NuttX timers are disabled
+	constexpr_assert(!nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be disabled (STM32_TIMx)");
 
 	// DShot
 	if (dshot_dma.index != DMA::Invalid) {

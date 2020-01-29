@@ -104,6 +104,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannelOutputClear(const 
 
 static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dma = {})
 {
+	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
 
 	switch (timer) {
@@ -113,6 +114,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB2ENR_TIM1EN;
 		ret.clock_freq = STM32_APB2_TIM1_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM1CC;
+#if defined(CONFIG_STM32_TIM1) || defined(CONFIG_STM32F7_TIM1)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer2:
@@ -121,6 +125,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1ENR_TIM2EN;
 		ret.clock_freq = STM32_APB1_TIM2_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM2;
+#if defined(CONFIG_STM32_TIM2) || defined(CONFIG_STM32F7_TIM2)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer3:
@@ -129,6 +136,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1ENR_TIM3EN;
 		ret.clock_freq = STM32_APB1_TIM3_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM3;
+#if defined(CONFIG_STM32_TIM3) || defined(CONFIG_STM32F7_TIM3)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer4:
@@ -137,6 +147,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1ENR_TIM4EN;
 		ret.clock_freq = STM32_APB1_TIM4_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM4;
+#if defined(CONFIG_STM32_TIM4) || defined(CONFIG_STM32F7_TIM4)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer5:
@@ -145,6 +158,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1ENR_TIM5EN;
 		ret.clock_freq = STM32_APB1_TIM5_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM5;
+#if defined(CONFIG_STM32_TIM5) || defined(CONFIG_STM32F7_TIM5)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer6:
@@ -153,6 +169,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1ENR_TIM6EN;
 		ret.clock_freq = STM32_APB1_TIM6_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM6;
+#if defined(CONFIG_STM32_TIM6) || defined(CONFIG_STM32F7_TIM6)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::Timer7:
@@ -161,6 +180,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1ENR_TIM7EN;
 		ret.clock_freq = STM32_APB1_TIM7_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM7;
+#if defined(CONFIG_STM32_TIM7) || defined(CONFIG_STM32F7_TIM7)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 #ifdef RCC_APB2ENR_TIM8EN
@@ -171,6 +193,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB2ENR_TIM8EN;
 		ret.clock_freq = STM32_APB2_TIM8_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM8CC;
+#if defined(CONFIG_STM32_TIM8) || defined(CONFIG_STM32F7_TIM8)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 #endif
 
@@ -182,6 +207,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB2ENR_TIM9EN;
 		ret.clock_freq = STM32_APB2_TIM9_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM9;
+#if defined(CONFIG_STM32_TIM9) || defined(CONFIG_STM32F7_TIM9)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 #endif
 
@@ -193,6 +221,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB2ENR_TIM10EN;
 		ret.clock_freq = STM32_APB2_TIM10_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM10;
+#if defined(CONFIG_STM32_TIM10) || defined(CONFIG_STM32F7_TIM10)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 #endif
 
@@ -204,6 +235,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB2ENR_TIM11EN;
 		ret.clock_freq = STM32_APB2_TIM11_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM11;
+#if defined(CONFIG_STM32_TIM11) || defined(CONFIG_STM32F7_TIM11)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 #endif
 
@@ -215,6 +249,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_bit = RCC_APB1ENR_TIM12EN;
 		ret.clock_freq = STM32_APB1_TIM12_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM12;
+#if defined(CONFIG_STM32_TIM12) || defined(CONFIG_STM32F7_TIM12)
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 #endif
 
@@ -226,6 +263,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 	default: break;
 	}
 
+	// This is not strictly required, but for consistency let's make sure NuttX timers are disabled
+	constexpr_assert(!nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be disabled (STM32_TIMx)");
+
 	// DShot
 	if (dshot_dma.index != DMA::Invalid) {
 		ret.dshot.dma_base = getDMABaseRegister(dshot_dma);
@@ -234,5 +274,4 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 
 	return ret;
 }
-
 
