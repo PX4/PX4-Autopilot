@@ -289,7 +289,7 @@ private:
 	bool		_registered{false};		/**< true if device name was registered */
 
 	uint8_t		_max_pollwaiters{0};		/**< size of the _pollset array */
-	uint16_t	_open_count{0};			/**< number of successful opens */
+	uint8_t		_open_count{0};			/**< number of successful opens */
 
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.
