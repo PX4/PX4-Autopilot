@@ -262,14 +262,14 @@ def run_test_group(args):
     overall_success = True
 
     if args.model == 'all':
-        models = test_matrix;
+        models = test_matrix
     else:
         found = False
         for elem in test_matrix:
             if elem['model'] == args.model:
                 models = [elem]
                 found = True
-        if found == False:
+        if not found:
             print("Specified model is not defined")
             models = []
 
