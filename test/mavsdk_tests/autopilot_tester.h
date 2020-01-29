@@ -43,7 +43,8 @@ public:
     void offboard_land();
     bool estimated_position_close_to(const Offboard::PositionNEDYaw& target_position, float acceptance_radius);
     bool estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius);
-
+    Telemetry::GroundTruth get_ground_truth_position();
+    bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius);
 
 
 private:

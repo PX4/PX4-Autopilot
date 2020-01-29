@@ -137,7 +137,6 @@ CoordinateTransformation AutopilotTester::_get_coordinate_transformation()
     const auto home = _telemetry->home_position();
     REQUIRE(std::isfinite(home.latitude_deg));
     REQUIRE(std::isfinite(home.longitude_deg));
-    REQUIRE(std::isfinite(home.longitude_deg));
     return CoordinateTransformation({home.latitude_deg, home.longitude_deg});
 }
 
@@ -190,4 +189,28 @@ bool AutopilotTester::estimated_horizontal_position_close_to(const Offboard::Pos
     Telemetry::PositionNED est_pos = _telemetry->position_velocity_ned().position;
     return (est_pos.north_m - target_pos.north_m) * (est_pos.north_m - target_pos.north_m) +
            (est_pos.east_m - target_pos.east_m) * (est_pos.east_m - target_pos.east_m) < acceptance_radius * acceptance_radius;
+}
+
+Telemetry::GroundTruth AutopilotTester::get_ground_truth_position()
+{
+    REQUIRE(_telemetry->set_rate_ground_truth(15) == Telemetry::Result::SUCCESS);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    return _telemetry->ground_truth();
+}
+
+bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius)
+{
+    REQUIRE(std::isfinite(target_pos.latitude_deg));
+    REQUIRE(std::isfinite(target_pos.longitude_deg));
+    using GlobalCoordinate = CoordinateTransformation::GlobalCoordinate;
+    using LocalCoordinate = CoordinateTransformation::LocalCoordinate;
+    CoordinateTransformation ct(GlobalCoordinate{target_pos.latitude_deg, target_pos.longitude_deg});
+
+    Telemetry::GroundTruth current_pos = _telemetry->ground_truth();
+    REQUIRE(std::isfinite(current_pos.latitude_deg));
+    REQUIRE(std::isfinite(current_pos.longitude_deg));
+    LocalCoordinate local_pos= ct.local_from_global(GlobalCoordinate{current_pos.latitude_deg, current_pos.longitude_deg});
+
+    return (local_pos.north_m) * (local_pos.north_m) +
+           (local_pos.east_m) * (local_pos.east_m) < acceptance_radius * acceptance_radius;
 }
