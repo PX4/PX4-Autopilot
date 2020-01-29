@@ -73,11 +73,7 @@ static uint64_t			latency_actual;
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 
-#ifndef __PX4_QURT
 static hrt_abstime px4_timestart_monotonic = 0;
-#else
-static int32_t dsp_offset = 0;
-#endif
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 static LockstepScheduler *lockstep_scheduler = new LockstepScheduler();
@@ -90,11 +86,7 @@ static void hrt_call_invoke();
 
 hrt_abstime hrt_absolute_time_offset()
 {
-#ifndef __PX4_QURT
 	return px4_timestart_monotonic;
-#else
-	return 0;
-#endif
 }
 
 static void hrt_lock()
@@ -130,34 +122,6 @@ int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
 	/* do nothing right now */
 	return 0;
 }
-
-#elif defined(__PX4_QURT)
-
-#include "dspal_time.h"
-
-int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
-{
-	/* do nothing right now */
-	return 0;
-}
-
-int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
-{
-	return clock_gettime(clk_id, tp);
-}
-
-#endif
-
-#ifndef __PX4_QURT
-/*
- * Get system time in us
- */
-uint64_t hrt_system_time()
-{
-	struct timespec ts;
-	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts_to_abstime(&ts);
-}
 #endif
 
 /*
@@ -172,28 +136,8 @@ hrt_abstime hrt_absolute_time()
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-#ifdef __PX4_QURT
-	return ts_to_abstime(&ts) + dsp_offset;
-#else
 	return ts_to_abstime(&ts);
-#endif
 #endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
-}
-
-#ifdef __PX4_QURT
-int hrt_set_absolute_time_offset(int32_t time_diff_us)
-{
-	dsp_offset = time_diff_us;
-	return 0;
-}
-#endif
-
-hrt_abstime hrt_reset()
-{
-#ifndef __PX4_QURT
-	px4_timestart_monotonic = 0;
-#endif
-	return hrt_absolute_time();
 }
 
 /*
@@ -321,7 +265,6 @@ hrt_call_enter(struct hrt_call *entry)
 {
 	struct hrt_call	*call, *next;
 
-	//PX4_INFO("hrt_call_enter");
 	call = (struct hrt_call *)sq_peek(&callout_queue);
 
 	if ((call == nullptr) || (entry->deadline < call->deadline)) {
@@ -341,8 +284,6 @@ hrt_call_enter(struct hrt_call *entry)
 			}
 		} while ((call = next) != nullptr);
 	}
-
-	//PX4_INFO("scheduled");
 }
 
 /**
@@ -562,7 +503,6 @@ void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 	ts->tv_nsec = abstime * 1000;
 }
 
-#if !defined(__PX4_QURT)
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	if (clk_id == CLOCK_MONOTONIC) {
@@ -584,7 +524,6 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 		return system_clock_gettime(clk_id, tp);
 	}
 }
-#endif // !defined(__PX4_QURT)
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)

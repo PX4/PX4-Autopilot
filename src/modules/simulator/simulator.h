@@ -95,14 +95,15 @@ public:
 	void set_port(unsigned port) { _port = port; }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	bool has_initialized() {return _has_initialized.load(); }
+	bool has_initialized() { return _has_initialized.load(); }
 #endif
+
+	void print_status();
 
 private:
 	Simulator() : ModuleParams(nullptr)
 	{
 		_px4_accel.set_sample_rate(250);
-		_px4_gyro.set_sample_rate(250);
 	}
 
 	~Simulator()
@@ -172,8 +173,6 @@ private:
 		}
 	} _battery;
 
-#ifndef __PX4_QURT
-
 	void run();
 	void handle_message(const mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
@@ -232,6 +231,14 @@ private:
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
+
+	int _ekf2_timestamps_sub{-1};
+
+	enum class State {
+		WaitingForFirstEkf2Timestamp = 0,
+		WaitingForActuatorControls = 1,
+		WaitingForEkf2Timestamp = 2,
+	};
 #endif
 
 	DEFINE_PARAMETERS(
@@ -248,6 +255,4 @@ private:
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
 	)
-
-#endif
 };

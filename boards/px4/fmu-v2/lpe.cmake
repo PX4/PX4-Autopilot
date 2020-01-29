@@ -81,6 +81,7 @@ px4_add_board(
 		battery_status
 		rc_update
 		sensors
+		temperature_compensation
 		vmount
 		#vtol_att_control
 		#airspeed_selector

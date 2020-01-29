@@ -49,7 +49,7 @@ ExternalProject_Get_Property(librobotcontrol install_dir)
 set(ROBOTCONTROL_LIB_DIR ${install_dir}/src/librobotcontrol-build/library)
 set(ROBOTCONTROL_INC_DIR ${install_dir}/src/librobotcontrol/library/include)
 
-include_directories(${ROBOTCONTROL_INC_DIR})
+include_directories(SYSTEM ${ROBOTCONTROL_INC_DIR})
 link_directories(${ROBOTCONTROL_LIB_DIR})
 
 # add to prebuild

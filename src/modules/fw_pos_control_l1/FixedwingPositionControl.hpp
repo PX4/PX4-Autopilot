@@ -141,11 +141,11 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
-
 	bool init();
 
 private:
+	void Run() override;
+
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionCallbackWorkItem _global_pos_sub{this, ORB_ID(vehicle_global_position)};
@@ -325,7 +325,6 @@ private:
 		param_t throttle_damp;
 		param_t integrator_gain;
 		param_t vertical_accel_limit;
-		param_t height_comp_filter_omega;
 		param_t speed_comp_filter_omega;
 		param_t roll_throttle_compensation;
 		param_t speed_weight;

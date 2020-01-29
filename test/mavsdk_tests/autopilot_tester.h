@@ -26,6 +26,8 @@ public:
     void arm();
     void takeoff();
     void land();
+    void transition_to_fixedwing();
+    void transition_to_multicopter();
     void wait_until_disarmed();
     void wait_until_hovering();
     void prepare_square_mission(MissionOptions mission_options);

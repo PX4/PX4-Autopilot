@@ -22,6 +22,7 @@ px4_add_board(
 		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
+		pca9685_pwm_out
 		pwm_out_sim
 		rc_input
 		rpi_rc_in
@@ -39,7 +40,7 @@ px4_add_board(
 		fw_pos_control_l1
 		land_detector
 		landing_target_estimator
-		load_mon
+		#load_mon
 		local_position_estimator
 		logger
 		mavlink
@@ -51,6 +52,7 @@ px4_add_board(
 		rc_update
 		rover_pos_control
 		sensors
+		temperature_compensation
 		sih
 		#simulator
 		vmount
@@ -68,7 +70,7 @@ px4_add_board(
 		sd_bench
 		shutdown
 		tests # tests and test runner
-		top
+		#top
 		topic_listener
 		tune_control
 		ver

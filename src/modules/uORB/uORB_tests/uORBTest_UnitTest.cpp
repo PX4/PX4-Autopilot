@@ -37,7 +37,6 @@
 #include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <errno.h>
-#include <poll.h>
 #include <math.h>
 #include <lib/cdev/CDev.hpp>
 

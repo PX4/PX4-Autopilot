@@ -12,7 +12,7 @@
 @###############################################
 @{
 import genmsg.msgs
-import gencpp
+
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 topic = alias if alias else spec.short_name
@@ -95,13 +95,20 @@ bool @(topic)_Publisher::init()
     if(mp_participant == nullptr)
         return false;
 
+@[if ros2_distro and (ros2_distro == "dashing" or ros2_distro == "eloquent")]@
+    // Type name should match the expected type name on ROS2
+    // Note: the change is being done here since the 'fastrtpsgen' example
+    // generator does not allow to change the type naming on the template
+    @(topic)DataType.setName("@(package)::msg::dds_::@(topic)_");
+@[end if]@
+
     // Register the type
-    Domain::registerType(mp_participant, static_cast<TopicDataType*>(&myType));
+    Domain::registerType(mp_participant, static_cast<TopicDataType*>(&@(topic)DataType));
 
     // Create Publisher
     PublisherAttributes Wparam;
     Wparam.topic.topicKind = NO_KEY;
-    Wparam.topic.topicDataType = myType.getName();  //This type MUST be registered
+    Wparam.topic.topicDataType = @(topic)DataType.getName();
 @[if ros2_distro]@
 @[    if ros2_distro == "ardent"]@
     Wparam.qos.m_partition.push_back("rt");
@@ -115,21 +122,22 @@ bool @(topic)_Publisher::init()
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener*>(&m_listener));
     if(mp_publisher == nullptr)
         return false;
-    //std::cout << "Publisher created, waiting for Subscribers." << std::endl;
     return true;
 }
 
 void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, MatchingInfo& info)
 {
+    (void)pub;
+
     if (info.status == MATCHED_MATCHING)
     {
         n_matched++;
-        std::cout << "Publisher matched" << std::endl;
+        std::cout << " - @(topic) publisher matched" << std::endl;
     }
     else
     {
         n_matched--;
-        std::cout << "Publisher unmatched" << std::endl;
+        std::cout << " - @(topic) publisher unmatched" << std::endl;
     }
 }
 

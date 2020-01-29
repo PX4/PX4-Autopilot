@@ -650,13 +650,6 @@ MPU6000::stop()
 }
 
 void
-MPU6000::Run()
-{
-	/* make another measurement */
-	measure();
-}
-
-void
 MPU6000::check_registers(void)
 {
 	/*
@@ -717,17 +710,16 @@ MPU6000::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU6000_NUM_CHECKED_REGISTERS;
 }
 
-int
-MPU6000::measure()
+void MPU6000::Run()
 {
 	if (_in_factory_test) {
 		// don't publish any data while in factory test mode
-		return OK;
+		return;
 	}
 
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
-		return OK;
+		return;
 	}
 
 	struct MPUReport mpu_report;
@@ -756,7 +748,8 @@ MPU6000::measure()
 	if (sizeof(mpu_report) != _interface->read(MPU6000_SET_SPEED(MPUREG_INT_STATUS, MPU6000_HIGH_BUS_SPEED),
 			(uint8_t *)&mpu_report, sizeof(mpu_report))) {
 
-		return -EIO;
+		perf_end(_sample_perf);
+		return;
 	}
 
 	check_registers();
@@ -774,8 +767,10 @@ MPU6000::measure()
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
 		_got_duplicate = true;
-		return OK;
+		return;
 	}
+
+	perf_end(_sample_perf);
 
 	memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
 	_got_duplicate = false;
@@ -804,20 +799,19 @@ MPU6000::measure()
 
 		// all zero data - probably a SPI bus error
 		perf_count(_bad_transfers);
-		perf_end(_sample_perf);
 
 		// note that we don't call reset() here as a reset()
 		// costs 20ms with interrupts disabled. That means if
 		// the mpu6k does go bad it would cause a FMU failure,
 		// regardless of whether another sensor is available,
-		return -EIO;
+		return;
 	}
 
 	if (_register_wait != 0) {
 		// we are waiting for some good transfers before using
 		// the sensor again, don't return any data yet
 		_register_wait--;
-		return OK;
+		return;
 	}
 
 
@@ -876,10 +870,6 @@ MPU6000::measure()
 
 	_px4_accel.update(timestamp_sample, report.accel_x, report.accel_y, report.accel_z);
 	_px4_gyro.update(timestamp_sample, report.gyro_x, report.gyro_y, report.gyro_z);
-
-	/* stop measuring */
-	perf_end(_sample_perf);
-	return OK;
 }
 
 void

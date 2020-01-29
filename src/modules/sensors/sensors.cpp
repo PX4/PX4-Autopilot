@@ -68,14 +68,12 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
-#include <DevMgr.hpp>
-
 #include "parameters.h"
 #include "voted_sensors_update.h"
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
+#include "vehicle_imu/VehicleIMU.hpp"
 
-using namespace DriverFramework;
 using namespace sensors;
 using namespace time_literals;
 
@@ -128,7 +126,7 @@ private:
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	DevHandle 	_h_adc;				/**< ADC driver handle */
+	int	_adc_fd {-1};				/**< ADC driver handle */
 
 	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
 
@@ -143,6 +141,9 @@ private:
 
 	VehicleAcceleration	_vehicle_acceleration;
 	VehicleAngularVelocity	_vehicle_angular_velocity;
+
+	static constexpr int MAX_SENSOR_COUNT = 3;
+	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
 
 
 	/**
@@ -176,6 +177,8 @@ private:
 	 */
 	void		adc_poll();
 
+	void		InitializeVehicleIMU();
+
 };
 
 Sensors::Sensors(bool hil_enabled) :
@@ -191,12 +194,20 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_vehicle_acceleration.Start();
 	_vehicle_angular_velocity.Start();
+
+	InitializeVehicleIMU();
 }
 
 Sensors::~Sensors()
 {
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
+
+	for (auto &i : _vehicle_imu_list) {
+		if (i != nullptr) {
+			i->Stop();
+		}
+	}
 }
 
 int
@@ -219,16 +230,12 @@ Sensors::adc_init()
 {
 	if (!_hil_enabled) {
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+		_adc_fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
 
-
-
-		DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
-
-		if (!_h_adc.isValid()) {
-			PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
+		if (_adc_fd == -1) {
+			PX4_ERR("no ADC found: %s", ADC0_DEVICE_PATH);
 			return PX4_ERROR;
 		}
-
 
 #endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 	}
@@ -345,7 +352,7 @@ Sensors::adc_poll()
 			/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
 			px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
 			/* read all channels available */
-			int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+			int ret = px4_read(_adc_fd, &buf_adc, sizeof(buf_adc));
 
 			if (ret >= (int)sizeof(buf_adc[0])) {
 
@@ -381,6 +388,37 @@ Sensors::adc_poll()
 	}
 
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+}
+
+void Sensors::InitializeVehicleIMU()
+{
+	// create a VehicleIMU instance for each accel/gyro pair
+	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		if (_vehicle_imu_list[i] == nullptr) {
+
+			uORB::Subscription accel_sub{ORB_ID(sensor_accel_integrated), i};
+			sensor_accel_integrated_s accel{};
+			accel_sub.copy(&accel);
+
+			uORB::Subscription gyro_sub{ORB_ID(sensor_gyro_integrated), i};
+			sensor_gyro_integrated_s gyro{};
+			gyro_sub.copy(&gyro);
+
+			if (accel.device_id > 0 && gyro.device_id > 0) {
+				VehicleIMU *imu = new VehicleIMU(i, i);
+
+				if (imu != nullptr) {
+					// Start VehicleIMU instance and store
+					if (imu->Start()) {
+						_vehicle_imu_list[i] = imu;
+
+					} else {
+						delete imu;
+					}
+				}
+			}
+		}
+	}
 }
 
 void
@@ -489,6 +527,7 @@ Sensors::run()
 		 */
 		if (!_armed && hrt_elapsed_time(&last_config_update) > 500_ms) {
 			_voted_sensors_update.initializeSensors();
+			InitializeVehicleIMU();
 			last_config_update = hrt_absolute_time();
 
 		} else {
@@ -530,6 +569,12 @@ int Sensors::print_status()
 
 	_vehicle_acceleration.PrintStatus();
 	_vehicle_angular_velocity.PrintStatus();
+
+	for (auto &i : _vehicle_imu_list) {
+		if (i != nullptr) {
+			i->PrintStatus();
+		}
+	}
 
 	return 0;
 }

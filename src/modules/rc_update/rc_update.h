@@ -83,10 +83,11 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
 	bool init();
 
 private:
+
+	void Run() override;
 
 	/**
 	 * Check for changes in rc_parameter_map

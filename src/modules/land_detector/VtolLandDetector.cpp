@@ -74,7 +74,7 @@ bool VtolLandDetector::_get_landed_state()
 	bool landed = MulticopterLandDetector::_get_landed_state();
 
 	// for vtol we additionally consider airspeed
-	if (hrt_elapsed_time(&_airspeed.timestamp) < 500 * 1000 && _airspeed.confidence > 0.99f
+	if (hrt_elapsed_time(&_airspeed.timestamp) < 1_s && _airspeed.confidence > 0.99f
 	    && PX4_ISFINITE(_airspeed.indicated_airspeed_m_s)) {
 
 		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.indicated_airspeed_m_s;

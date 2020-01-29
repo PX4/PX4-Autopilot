@@ -59,7 +59,6 @@ ICM20608G::ICM20608G(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20608);
 
 	_px4_accel.set_sample_rate(ACCEL_RATE);
-	_px4_gyro.set_sample_rate(GYRO_RATE);
 
 	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
 	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);
@@ -121,37 +120,31 @@ bool ICM20608G::Init()
 
 bool ICM20608G::Reset()
 {
-	for (int i = 0; i < 5; i++) {
-		// PWR_MGMT_1: Device Reset
-		// CLKSEL[2:0] must be set to 001 to achieve full gyroscope performance.
-		RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
-		usleep(1000);
+	// PWR_MGMT_1: Device Reset
+	// CLKSEL[2:0] must be set to 001 to achieve full gyroscope performance.
+	RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
+	usleep(1000);
 
-		// PWR_MGMT_1: CLKSEL[2:0] must be set to 001 to achieve full gyroscope performance.
-		RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::CLKSEL_0);
-		usleep(1000);
+	// PWR_MGMT_1: CLKSEL[2:0] must be set to 001 to achieve full gyroscope performance.
+	RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::CLKSEL_0);
+	usleep(1000);
 
-		// ACCEL_CONFIG: Accel 16 G range
-		RegisterSetBits(Register::ACCEL_CONFIG, ACCEL_CONFIG_BIT::ACCEL_FS_SEL_16G);
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048);
-		_px4_accel.set_range(16.0f * CONSTANTS_ONE_G);
+	// ACCEL_CONFIG: Accel 16 G range
+	RegisterSetBits(Register::ACCEL_CONFIG, ACCEL_CONFIG_BIT::ACCEL_FS_SEL_16G);
+	_px4_accel.set_scale(CONSTANTS_ONE_G / 2048);
+	_px4_accel.set_range(16.0f * CONSTANTS_ONE_G);
 
-		// GYRO_CONFIG: Gyro 2000 degrees/second
-		RegisterSetBits(Register::GYRO_CONFIG, GYRO_CONFIG_BIT::FS_SEL_2000_DPS);
-		_px4_gyro.set_scale(math::radians(1.0f / 16.4f));
-		_px4_gyro.set_range(math::radians(2000.0f));
+	// GYRO_CONFIG: Gyro 2000 degrees/second
+	RegisterSetBits(Register::GYRO_CONFIG, GYRO_CONFIG_BIT::FS_SEL_2000_DPS);
+	_px4_gyro.set_scale(math::radians(1.0f / 16.4f));
+	_px4_gyro.set_range(math::radians(2000.0f));
 
-		const bool reset_done = !(RegisterRead(Register::PWR_MGMT_1) & PWR_MGMT_1_BIT::DEVICE_RESET);
-		const bool clksel_done = (RegisterRead(Register::PWR_MGMT_1) & PWR_MGMT_1_BIT::CLKSEL_0);
-		const bool data_ready = (RegisterRead(Register::INT_STATUS) & INT_STATUS_BIT::DATA_RDY_INT);
+	// reset done once data is ready
+	const bool reset_done = !(RegisterRead(Register::PWR_MGMT_1) & PWR_MGMT_1_BIT::DEVICE_RESET);
+	const bool clksel_done = (RegisterRead(Register::PWR_MGMT_1) & PWR_MGMT_1_BIT::CLKSEL_0);
+	const bool data_ready = (RegisterRead(Register::INT_STATUS) & INT_STATUS_BIT::DATA_RDY_INT);
 
-		// reset done once data is ready
-		if (reset_done && clksel_done && data_ready) {
-			return true;
-		}
-	}
-
-	return false;
+	return reset_done && clksel_done && data_ready;
 }
 
 void ICM20608G::ResetFIFO()
@@ -282,6 +275,11 @@ void ICM20608G::Run()
 {
 	perf_count(_interval_perf);
 
+	// use timestamp from the data ready interrupt if available,
+	//  otherwise use the time now roughly corresponding with the last sample we'll pull from the FIFO
+	const hrt_abstime timestamp_sample = (hrt_elapsed_time(&_time_data_ready) < FIFO_INTERVAL) ? _time_data_ready :
+					     hrt_absolute_time();
+
 	// read FIFO count
 	uint8_t fifo_count_buf[3] {};
 	fifo_count_buf[0] = static_cast<uint8_t>(Register::FIFO_COUNTH) | DIR_READ;
@@ -298,8 +296,8 @@ void ICM20608G::Run()
 		perf_count(_fifo_empty_perf);
 		return;
 
-	} else if (samples > 32) {
-		// not a real overflow, but something went wrong
+	} else if (samples > 16) {
+		// not technically an overflow, but more samples than we expected
 		perf_count(_fifo_overflow_perf);
 		ResetFIFO();
 		return;
@@ -313,13 +311,13 @@ void ICM20608G::Run()
 	}
 
 	// Transfer data
-	struct ICM_Report {
+	struct TransferBuffer {
 		uint8_t cmd;
-		FIFO::DATA f[32]; // max 32 samples
+		FIFO::DATA f[16]; // max 16 samples
 	};
-	static_assert(sizeof(ICM_Report) == (sizeof(uint8_t) + 32 * sizeof(FIFO::DATA))); // ensure no struct padding
+	static_assert(sizeof(TransferBuffer) == (sizeof(uint8_t) + 16 * sizeof(FIFO::DATA))); // ensure no struct padding
 
-	ICM_Report *report = (ICM_Report *)_dma_data_buffer;
+	TransferBuffer *report = (TransferBuffer *)_dma_data_buffer;
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
 	memset(report, 0, transfer_size);
 	report->cmd = static_cast<uint8_t>(Register::FIFO_R_W) | DIR_READ;
@@ -333,15 +331,11 @@ void ICM20608G::Run()
 
 	perf_end(_transfer_perf);
 
-	static constexpr uint32_t gyro_dt = FIFO_INTERVAL / FIFO_GYRO_SAMPLES;
-	// estimate timestamp of first sample in the FIFO from number of samples and fill rate
-	const hrt_abstime timestamp_sample = _time_data_ready - ((samples - 1) * gyro_dt);
-
-	PX4Accelerometer::FIFOSample accel{};
+	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = FIFO_INTERVAL / FIFO_ACCEL_SAMPLES;
 
-	PX4Gyroscope::FIFOSample gyro{};
+	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = FIFO_INTERVAL / FIFO_GYRO_SAMPLES;

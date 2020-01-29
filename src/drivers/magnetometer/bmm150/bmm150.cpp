@@ -135,7 +135,7 @@ void test(bool external_bus)
 {
 	int fd = -1;
 	const char *path = (external_bus ? BMM150_DEVICE_PATH_MAG_EXT : BMM150_DEVICE_PATH_MAG);
-	struct mag_report m_report;
+	sensor_mag_s m_report;
 	ssize_t sz;
 
 
@@ -338,7 +338,7 @@ int BMM150::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_mag_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -374,12 +374,12 @@ int BMM150::init()
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct mag_report mrb;
+	sensor_mag_s mrb;
 	_reports->get(&mrb);
 
 	/* measurement will have generated a report, publish */
 	_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrb,
-				     &_orb_class_instance, (external()) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
+				     &_orb_class_instance, (external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
@@ -425,8 +425,8 @@ BMM150::stop()
 ssize_t
 BMM150::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(mag_report);
-	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_mag_s);
+	sensor_mag_s *mag_buf = reinterpret_cast<sensor_mag_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -443,7 +443,7 @@ BMM150::read(struct file *filp, char *buffer, size_t buflen)
 		 */
 		while (count--) {
 			if (_reports->get(mag_buf)) {
-				ret += sizeof(struct mag_report);
+				ret += sizeof(sensor_mag_s);
 				mag_buf++;
 			}
 		}
@@ -474,7 +474,7 @@ BMM150::read(struct file *filp, char *buffer, size_t buflen)
 
 
 		if (_reports->get(mag_buf)) {
-			ret = sizeof(struct mag_report);
+			ret = sizeof(sensor_mag_s);
 		}
 	} while (0);
 
@@ -540,7 +540,7 @@ BMM150::collect()
 	bool mag_notify = true;
 	uint8_t mag_data[8], status;
 	uint16_t resistance, lsb, msb, msblsb;
-	mag_report  mrb;
+	sensor_mag_s mrb{};
 
 
 	/* start collecting data */

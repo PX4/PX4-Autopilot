@@ -568,7 +568,7 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission, bool land_
 			}
 		}
 
-		if (missionitem.nav_cmd == NAV_CMD_LAND) {
+		if (missionitem.nav_cmd == NAV_CMD_LAND || missionitem.nav_cmd == NAV_CMD_VTOL_LAND) {
 			mission_item_s missionitem_previous {};
 
 			if (i > 0) {
