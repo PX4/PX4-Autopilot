@@ -35,3 +35,5 @@ px4_add_library(HoverThrustEstimator
 	hover_thrust_estimator.cpp
 	zero_order_hover_thrust_ekf.cpp
 )
+
+px4_add_unit_gtest(SRC zero_order_hover_thrust_ekf_test.cpp LINKLIBS HoverThrustEstimator)
