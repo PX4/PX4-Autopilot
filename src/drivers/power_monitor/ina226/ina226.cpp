@@ -279,14 +279,13 @@ INA226::collect()
 			0.0
 		);
 		ret = -1;
-		perf_count(_comms_errors);
 	}
 
 	if (ret != OK) {
 		PX4_DEBUG("error reading from sensor: %d", ret);
+		perf_count(_comms_errors);
 	}
 
-	perf_count(_comms_errors);
 	perf_end(_sample_perf);
 	return ret;
 }
