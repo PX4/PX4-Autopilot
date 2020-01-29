@@ -39,16 +39,14 @@
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/device/integrator.h>
 #include <lib/ecl/geo/geo.h>
-#include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
-#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
-#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/PublicationQueuedMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_fifo.h>
 #include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_accel_status.h>
 
-class PX4Accelerometer : public cdev::CDev, public ModuleParams
+class PX4Accelerometer : public cdev::CDev
 {
 public:
 	PX4Accelerometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
@@ -62,7 +60,6 @@ public:
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint64_t error_count) { _error_count += error_count; }
 	void set_range(float range) { _range = range; UpdateClipLimit(); }
-	void set_sample_rate(uint16_t rate);
 	void set_scale(float scale) { _scale = scale; UpdateClipLimit(); }
 	void set_temperature(float temperature) { _temperature = temperature; }
 	void set_update_rate(uint16_t rate);
@@ -88,24 +85,17 @@ public:
 
 private:
 
-	void ConfigureFilter(float cutoff_freq);
 	void PublishStatus();
 	void ResetIntegrator();
 	void UpdateClipLimit();
 	void UpdateVibrationMetrics(const matrix::Vector3f &delta_velocity);
 
-	uORB::PublicationMulti<sensor_accel_s>            _sensor_pub;
+	uORB::PublicationQueuedMulti<sensor_accel_s>      _sensor_pub;
 	uORB::PublicationMulti<sensor_accel_fifo_s>       _sensor_fifo_pub;
 	uORB::PublicationMulti<sensor_accel_integrated_s> _sensor_integrated_pub;
 	uORB::PublicationMulti<sensor_accel_status_s>     _sensor_status_pub;
 
-	math::LowPassFilter2pVector3f _filter{1000, 100};
-
 	hrt_abstime	_status_last_publish{0};
-
-	math::LowPassFilter2pArray _filterArrayX{4000, 100};
-	math::LowPassFilter2pArray _filterArrayY{4000, 100};
-	math::LowPassFilter2pArray _filterArrayZ{4000, 100};
 
 	Integrator		_integrator{4000, false};
 
@@ -131,7 +121,6 @@ private:
 
 	uint32_t		_clipping[3] {};
 
-	uint16_t		_sample_rate{1000};
 	uint16_t		_update_rate{1000};
 
 	// integrator
@@ -143,7 +132,4 @@ private:
 	uint8_t			_integrator_fifo_samples{0};
 	uint8_t			_integrator_clipping{0};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff
-	)
 };

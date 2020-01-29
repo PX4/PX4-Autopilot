@@ -36,6 +36,7 @@
 #include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -65,6 +66,7 @@ public:
 private:
 	void Run() override;
 
+	void CheckFilters();
 	void ParametersUpdate(bool force = false);
 	void SensorBiasUpdate(bool force = false);
 	void SensorCorrectionsUpdate(bool force = false);
@@ -73,6 +75,8 @@ private:
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff,
+
 		(ParamInt<px4::params::SENS_BOARD_ROT>) _param_sens_board_rot,
 
 		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _param_sens_board_x_off,
@@ -82,8 +86,8 @@ private:
 
 	uORB::Publication<vehicle_acceleration_s> _vehicle_acceleration_pub{ORB_ID(vehicle_acceleration)};
 
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
@@ -93,11 +97,25 @@ private:
 		{this, ORB_ID(sensor_accel), 2}
 	};
 
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+
 	matrix::Dcmf _board_rotation;
 
 	matrix::Vector3f _bias{0.f, 0.f, 0.f};
 	matrix::Vector3f _offset{0.f, 0.f, 0.f};
 	matrix::Vector3f _scale{1.f, 1.f, 1.f};
+
+	matrix::Vector3f _acceleration_prev{0.f, 0.f, 0.f};
+
+	hrt_abstime _last_publish{0};
+	hrt_abstime _filter_check_last{0};
+	static constexpr const float kInitialRateHz{1000.0f}; /**< sensor update rate used for initialization */
+	float _update_rate_hz{kInitialRateHz}; /**< current rate-controller loop update rate in [Hz] */
+
+	math::LowPassFilter2pVector3f _lp_filter{kInitialRateHz, 30.0f};
+
+	float _filter_sample_rate{kInitialRateHz};
+	int _sample_rate_incorrect_count{0};
 
 	uint32_t _selected_sensor_device_id{0};
 	uint8_t _selected_sensor_sub_index{0};
