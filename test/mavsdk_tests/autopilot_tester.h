@@ -41,10 +41,11 @@ public:
     void offboard_goto(const Offboard::PositionNEDYaw& target, float acceptance_radius = 0.3f,
                        std::chrono::seconds timeout_duration = std::chrono::seconds(60));
     void offboard_land();
-    bool estimated_position_close_to(const Offboard::PositionNEDYaw& target_position, float acceptance_radius);
-    bool estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius);
+    bool estimated_position_close_to(const Offboard::PositionNEDYaw& target_position, float acceptance_radius_m);
+    bool estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius_m);
+    void request_ground_truth();
     Telemetry::GroundTruth get_ground_truth_position();
-    bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius);
+    bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius_m);
 
 
 private:
@@ -77,3 +78,5 @@ bool poll_condition_with_timeout(
     }
     return true;
 }
+
+inline float sq(float x) { return x * x; };

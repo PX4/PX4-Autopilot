@@ -157,12 +157,12 @@ void AutopilotTester::execute_rtl()
     REQUIRE(Action::Result::SUCCESS == _action->return_to_launch());
 }
 
-void AutopilotTester::offboard_goto(const Offboard::PositionNEDYaw& target, float acceptance_radius, std::chrono::seconds timeout_duration)
+void AutopilotTester::offboard_goto(const Offboard::PositionNEDYaw& target, float acceptance_radius_m, std::chrono::seconds timeout_duration)
 {
     _offboard->set_position_ned(target);
     REQUIRE(_offboard->start() == Offboard::Result::SUCCESS);
     REQUIRE(poll_condition_with_timeout(
-        [=]() { return estimated_position_close_to(target, acceptance_radius); }, timeout_duration));
+        [=]() { return estimated_position_close_to(target, acceptance_radius_m); }, timeout_duration));
     std::cout << "Target position reached" << std::endl;
 }
 
@@ -176,29 +176,33 @@ void AutopilotTester::offboard_land()
     _offboard->set_velocity_ned(land_velocity);
 }
 
-bool AutopilotTester::estimated_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius)
+bool AutopilotTester::estimated_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius_m)
 {
     Telemetry::PositionNED est_pos = _telemetry->position_velocity_ned().position;
-    return (est_pos.north_m - target_pos.north_m) * (est_pos.north_m - target_pos.north_m) +
-           (est_pos.east_m - target_pos.east_m) * (est_pos.east_m - target_pos.east_m) +
-           (est_pos.down_m - target_pos.down_m) * (est_pos.down_m - target_pos.down_m) < acceptance_radius * acceptance_radius;
+    return sq(est_pos.north_m - target_pos.north_m) +
+           sq(est_pos.east_m - target_pos.east_m) +
+           sq(est_pos.down_m - target_pos.down_m)  < sq(acceptance_radius_m);
 }
 
-bool AutopilotTester::estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius)
+bool AutopilotTester::estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius_m)
 {
     Telemetry::PositionNED est_pos = _telemetry->position_velocity_ned().position;
-    return (est_pos.north_m - target_pos.north_m) * (est_pos.north_m - target_pos.north_m) +
-           (est_pos.east_m - target_pos.east_m) * (est_pos.east_m - target_pos.east_m) < acceptance_radius * acceptance_radius;
+    return sq(est_pos.north_m - target_pos.north_m) +
+           sq(est_pos.east_m - target_pos.east_m) < sq(acceptance_radius_m);
+}
+
+void AutopilotTester::request_ground_truth()
+{
+    REQUIRE(_telemetry->set_rate_ground_truth(15) == Telemetry::Result::SUCCESS);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 Telemetry::GroundTruth AutopilotTester::get_ground_truth_position()
 {
-    REQUIRE(_telemetry->set_rate_ground_truth(15) == Telemetry::Result::SUCCESS);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     return _telemetry->ground_truth();
 }
 
-bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius)
+bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius_m)
 {
     REQUIRE(std::isfinite(target_pos.latitude_deg));
     REQUIRE(std::isfinite(target_pos.longitude_deg));
@@ -211,6 +215,5 @@ bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry:
     REQUIRE(std::isfinite(current_pos.longitude_deg));
     LocalCoordinate local_pos= ct.local_from_global(GlobalCoordinate{current_pos.latitude_deg, current_pos.longitude_deg});
 
-    return (local_pos.north_m) * (local_pos.north_m) +
-           (local_pos.east_m) * (local_pos.east_m) < acceptance_radius * acceptance_radius;
+    return sq(local_pos.north_m) + sq(local_pos.east_m) < sq(acceptance_radius_m);
 }
