@@ -273,7 +273,10 @@ void VehicleAngularVelocity::Run()
 
 	bool sensor_updated = _sensor_sub[_selected_sensor_sub_index].updated();
 
-	if (sensor_updated || selection_updated) {
+	// process all outstanding messages
+	while (sensor_updated || selection_updated) {
+		selection_updated = false;
+
 		sensor_gyro_s sensor_data;
 
 		if (_sensor_sub[_selected_sensor_sub_index].copy(&sensor_data)) {
@@ -286,12 +289,8 @@ void VehicleAngularVelocity::Run()
 			const float dt = math::constrain(((sensor_data.timestamp_sample - _timestamp_sample_prev) / 1e6f), 0.0002f, 0.02f);
 			_timestamp_sample_prev = sensor_data.timestamp_sample;
 
-
 			// get the sensor data and correct for thermal errors (apply offsets and scale)
-			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
-
-			// apply offsets and scale
-			Vector3f angular_velocity_raw{(val - _offset).emult(_scale)};
+			Vector3f angular_velocity_raw{(Vector3f{sensor_data.x, sensor_data.y, sensor_data.z} - _offset).emult(_scale)};
 
 			// rotate corrected measurements from sensor to body frame
 			angular_velocity_raw = _board_rotation * angular_velocity_raw;
@@ -312,32 +311,38 @@ void VehicleAngularVelocity::Run()
 			const Vector3f angular_acceleration{_lp_filter_acceleration.apply(angular_acceleration_raw)};
 			const Vector3f angular_velocity{_lp_filter_velocity.apply(angular_velocity_notched)};
 
-			bool publish = true;
+			// publish once all new samples are processed
+			sensor_updated = _sensor_sub[_selected_sensor_sub_index].updated();
 
-			if (_param_imu_gyro_rate_max.get() > 0) {
-				const uint64_t interval = 1e6f / _param_imu_gyro_rate_max.get();
+			if (!sensor_updated) {
+				bool publish = true;
 
-				if (hrt_elapsed_time(&_last_publish) < interval) {
-					publish = false;
+				if (_param_imu_gyro_rate_max.get() > 0) {
+					const uint64_t interval = 1e6f / _param_imu_gyro_rate_max.get();
+
+					if (hrt_elapsed_time(&_last_publish) < interval) {
+						publish = false;
+					}
 				}
-			}
 
-			if (publish) {
-				// Publish vehicle_angular_acceleration
-				vehicle_angular_acceleration_s v_angular_acceleration;
-				v_angular_acceleration.timestamp_sample = sensor_data.timestamp_sample;
-				angular_acceleration.copyTo(v_angular_acceleration.xyz);
-				v_angular_acceleration.timestamp = hrt_absolute_time();
-				_vehicle_angular_acceleration_pub.publish(v_angular_acceleration);
+				if (publish) {
+					// Publish vehicle_angular_acceleration
+					vehicle_angular_acceleration_s v_angular_acceleration;
+					v_angular_acceleration.timestamp_sample = sensor_data.timestamp_sample;
+					angular_acceleration.copyTo(v_angular_acceleration.xyz);
+					v_angular_acceleration.timestamp = hrt_absolute_time();
+					_vehicle_angular_acceleration_pub.publish(v_angular_acceleration);
 
-				// Publish vehicle_angular_velocity
-				vehicle_angular_velocity_s v_angular_velocity;
-				v_angular_velocity.timestamp_sample = sensor_data.timestamp_sample;
-				angular_velocity.copyTo(v_angular_velocity.xyz);
-				v_angular_velocity.timestamp = hrt_absolute_time();
-				_vehicle_angular_velocity_pub.publish(v_angular_velocity);
+					// Publish vehicle_angular_velocity
+					vehicle_angular_velocity_s v_angular_velocity;
+					v_angular_velocity.timestamp_sample = sensor_data.timestamp_sample;
+					angular_velocity.copyTo(v_angular_velocity.xyz);
+					v_angular_velocity.timestamp = hrt_absolute_time();
+					_vehicle_angular_velocity_pub.publish(v_angular_velocity);
 
-				_last_publish = v_angular_velocity.timestamp_sample;
+					_last_publish = v_angular_velocity.timestamp_sample;
+					return;
+				}
 			}
 		}
 	}
