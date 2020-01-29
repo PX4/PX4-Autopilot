@@ -28,6 +28,11 @@ test_matrix = [
         "timeout_min": 20,
     },
     {
+        "model": "iris_vision",
+        "test_filter": "[multicopter_offboard]",
+        "timeout_min": 20,
+    },
+    {
        "model": "standard_vtol",
        "test_filter": "[vtol]",
        "timeout_min": 20,

@@ -26,5 +26,8 @@ jobs:
       run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris --speed-factor 20 --iterations 1 --fail-early
     - name: Run multicopter with optical flow simulation test
       run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris_opt_flow_mockup --speed-factor 1 --iterations 1 --fail-early
-    - name: Run VTOL simulation test
-      run:  test/mavsdk_tests/mavsdk_test_runner.py --model standard_vtol --speed-factor 20 --iterations 1 --fail-early
+    - name: Run multicopter with VIO sensor simulation test
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris_vision --speed-factor 1 --iterations 1 --fail-early
+
+      # - name: Run VTOL simulation test #
+    #   run:  test/mavsdk_tests/mavsdk_test_runner.py --model standard_vtol --speed-factor 20 --iterations 1 --fail-early
