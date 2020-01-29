@@ -111,6 +111,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 
 static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 {
+	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
 
 	switch (timer) {
@@ -119,6 +120,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 		ret.clock_register = KINETIS_SIM_SCGC6;
 		ret.clock_bit = SIM_SCGC6_FTM0;
 		ret.vectorno =  KINETIS_IRQ_FTM0;
+#ifdef CONFIG_KINETIS_FTM0
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::FTM1:
@@ -126,6 +130,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 		ret.clock_register = KINETIS_SIM_SCGC6;
 		ret.clock_bit = SIM_SCGC6_FTM1;
 		ret.vectorno =  KINETIS_IRQ_FTM1;
+#ifdef CONFIG_KINETIS_FTM1
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::FTM2:
@@ -133,6 +140,9 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 		ret.clock_register = KINETIS_SIM_SCGC3;
 		ret.clock_bit = SIM_SCGC3_FTM2;
 		ret.vectorno =  KINETIS_IRQ_FTM2;
+#ifdef CONFIG_KINETIS_FTM2
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 
 	case Timer::FTM3:
@@ -140,8 +150,14 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 		ret.clock_register = KINETIS_SIM_SCGC3;
 		ret.clock_bit = SIM_SCGC3_FTM3;
 		ret.vectorno =  KINETIS_IRQ_FTM3;
+#ifdef CONFIG_KINETIS_FTM3
+		nuttx_config_timer_enabled = true;
+#endif
 		break;
 	}
+
+	// This is not strictly required, but for consistency let's make sure NuttX timers are disabled
+	constexpr_assert(!nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be disabled (KINETIS_FTMx)");
 
 	return ret;
 }
