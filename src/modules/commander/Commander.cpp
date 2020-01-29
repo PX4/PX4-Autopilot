@@ -2340,6 +2340,8 @@ Commander::get_circuit_breaker_params()
 			CBRK_FLIGHTTERM_KEY);
 	status_flags.circuit_breaker_engaged_posfailure_check = circuit_breaker_enabled_by_val(_param_cbrk_velposerr.get(),
 			CBRK_VELPOSERR_KEY);
+	status_flags.circuit_breaker_vtol_fw_arming_check = circuit_breaker_enabled_by_val(_param_cbrk_vtolarming.get(),
+			CBRK_VTOLARMING_KEY);
 }
 
 void
