@@ -1550,11 +1550,11 @@ void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
 	_rstatus = radio_status;
+	_radio_status_available = true;
 
 	if (_use_software_mav_throttling) {
 
 		/* check hardware limits */
-		_radio_status_available = true;
 		_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
 
 		if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
@@ -2258,7 +2258,7 @@ Mavlink::task_main(int argc, char *argv[])
 #endif // CONFIG_NET
 		}
 
-		check_radio_config();
+		configure_3dr_radio();
 
 		if (status_sub->update(&status_time, &status)) {
 			/* switch HIL mode if required */
@@ -2608,11 +2608,10 @@ void Mavlink::publish_telemetry_status()
 	_telem_status_pub.publish(_tstatus);
 }
 
-void Mavlink::check_radio_config()
+void Mavlink::configure_3dr_radio()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _param_mav_radio_id.get() != 0
-	    && _tstatus.type == telemetry_status_s::LINK_TYPE_3DR_RADIO) {
+	if (_uart_fd >= 0 && _param_3dr_radio_id.get() != 0) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
 
@@ -2622,9 +2621,9 @@ void Mavlink::check_radio_config()
 			fprintf(fs, "+++\n");
 			px4_usleep(1200000);
 
-			if (_param_mav_radio_id.get() > 0) {
+			if (_param_3dr_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%u\n", _param_mav_radio_id.get());
+				fprintf(fs, "ATS3=%u\n", _param_3dr_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
@@ -2655,8 +2654,8 @@ void Mavlink::check_radio_config()
 		}
 
 		/* reset param and save */
-		_param_mav_radio_id.set(0);
-		_param_mav_radio_id.commit_no_notification();
+		_param_3dr_radio_id.set(0);
+		_param_3dr_radio_id.commit_no_notification();
 	}
 }
 
@@ -2755,9 +2754,8 @@ Mavlink::display_status()
 
 		printf("\ttype:\t\t");
 
-		switch (_tstatus.type) {
-		case telemetry_status_s::LINK_TYPE_3DR_RADIO:
-			printf("3DR RADIO\n");
+		if (_radio_status_available) {
+			printf("RADIO Link\n");
 			printf("\t  rssi:\t\t%d\n", _rstatus.rssi);
 			printf("\t  remote rssi:\t%u\n", _rstatus.remote_rssi);
 			printf("\t  txbuf:\t%u\n", _rstatus.txbuf);
@@ -2765,15 +2763,12 @@ Mavlink::display_status()
 			printf("\t  remote noise:\t%u\n", _rstatus.remote_noise);
 			printf("\t  rx errors:\t%u\n", _rstatus.rxerrors);
 			printf("\t  fixed:\t%u\n", _rstatus.fix);
-			break;
 
-		case telemetry_status_s::LINK_TYPE_USB:
+		} else if (_is_usb_uart) {
 			printf("USB CDC\n");
-			break;
 
-		default:
+		} else {
 			printf("GENERIC LINK OR RADIO\n");
-			break;
 		}
 
 	} else {
