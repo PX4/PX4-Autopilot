@@ -68,6 +68,7 @@ public:
 		_orb_id(id),
 		_instance(instance)
 	{
+		subscribe();
 	}
 
 	/**
@@ -80,6 +81,7 @@ public:
 		_orb_id((meta == nullptr) ? ORB_ID::INVALID : static_cast<ORB_ID>(meta->o_id)),
 		_instance(instance)
 	{
+		subscribe();
 	}
 
 	~Subscription()
@@ -111,19 +113,19 @@ public:
 	/**
 	 * Check if there is a new update.
 	 * */
-	bool updated() { return advertised() ? (_node->published_message_count() != _last_generation) : false; }
+	bool updated() { return advertised() && (_node->published_message_count() != _last_generation); }
 
 	/**
 	 * Update the struct
 	 * @param dst The uORB message struct we are updating.
 	 */
-	bool update(void *dst) { return updated() ? copy(dst) : false; }
+	bool update(void *dst) { return updated() && _node->copy(dst, _last_generation); }
 
 	/**
 	 * Copy the struct
 	 * @param dst The uORB message struct we are updating.
 	 */
-	bool copy(void *dst) { return advertised() ? _node->copy(dst, _last_generation) : false; }
+	bool copy(void *dst) { return advertised() && _node->copy(dst, _last_generation); }
 
 	uint8_t  get_instance() const { return _instance; }
 	unsigned get_last_generation() const { return _last_generation; }
