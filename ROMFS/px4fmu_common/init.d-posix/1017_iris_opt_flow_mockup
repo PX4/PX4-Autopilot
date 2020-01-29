@@ -11,8 +11,6 @@ if [ $AUTOCNF = yes ]
 then
 	# EKF2
 	param set EKF2_AID_MASK 2
-	param set EKF2_EVP_NOISE 0.05
-	param set EKF2_EVA_NOISE 0.05
 	param set SENS_FLOW_ROT 0
 
 	# LPE: Flow-only mode
