@@ -279,6 +279,8 @@ rtps:
     id: 124
   - msg: vehicle_angular_acceleration
     id: 125
+  - msg: logger_status
+    id: 126
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
