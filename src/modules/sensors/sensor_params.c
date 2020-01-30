@@ -212,17 +212,3 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
-
-/**
-* Driver level cutoff frequency for accel
-*
-* The cutoff frequency for the 2nd order butterworth filter on the accel driver.
-* This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
-*
-* @min 0
-* @max 1000
-* @unit Hz
-* @reboot_required true
-* @group Sensors
-*/
-PARAM_DEFINE_FLOAT(IMU_ACCEL_CUTOFF, 30.0f);

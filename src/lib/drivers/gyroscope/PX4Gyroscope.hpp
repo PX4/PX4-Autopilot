@@ -39,6 +39,7 @@
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/device/integrator.h>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/PublicationQueuedMulti.hpp>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
@@ -88,7 +89,7 @@ private:
 	void UpdateClipLimit();
 	void UpdateVibrationMetrics(const matrix::Vector3f &delta_angle);
 
-	uORB::PublicationMulti<sensor_gyro_s>            _sensor_pub;
+	uORB::PublicationQueuedMulti<sensor_gyro_s>      _sensor_pub;
 	uORB::PublicationMulti<sensor_gyro_fifo_s>       _sensor_fifo_pub;
 	uORB::PublicationMulti<sensor_gyro_integrated_s> _sensor_integrated_pub;
 	uORB::PublicationMulti<sensor_gyro_status_s>     _sensor_status_pub;

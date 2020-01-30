@@ -8,6 +8,7 @@ import os
 import psutil
 import subprocess
 import sys
+import signal
 
 
 test_matrix = [
@@ -16,13 +17,28 @@ test_matrix = [
         "test_filter": "[multicopter]",
         "timeout_min": 20,
     },
-    #{
-    #    "model": "standard_vtol",
-    #    "test_filter": "[vtol]",
-    #    "timeout_min": 20,
-    #},
+    {
+        "model": "iris_opt_flow",
+        "test_filter": "[multicopter_offboard]",
+        "timeout_min": 20,
+    },
+    {
+        "model": "iris_opt_flow_mockup",
+        "test_filter": "[multicopter_offboard]",
+        "timeout_min": 20,
+    },
+    {
+        "model": "iris_vision",
+        "test_filter": "[multicopter_offboard]",
+        "timeout_min": 20,
+    },
+    {
+       "model": "standard_vtol",
+       "test_filter": "[vtol]",
+       "timeout_min": 20,
+    },
     # {
-    #     "model": "standard_plane",
+    #     "model": "plane",
     #     "test_filter": "[plane]",
     #     "timeout_min": 25,
     # }
@@ -79,6 +95,13 @@ class Runner:
         if returncode is not None:
             return returncode
 
+        print("Sending SIGINT to {}".format(self.process.pid))
+        self.process.send_signal(signal.SIGINT)
+        try:
+            return self.process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
+
         print("Terminating {}".format(self.process.pid))
         self.process.terminate()
 
@@ -120,9 +143,11 @@ class GzserverRunner(Runner):
                     workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
+                    "PX4_SIM_SPEED_FACTOR": str(speed_factor),
+                    "DISPLAY": os.environ['DISPLAY']}
         self.cmd = "gzserver"
-        self.args = [workspace_dir + "/Tools/sitl_gazebo/worlds/" +
+        self.args = ["--verbose",
+                     workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      model + ".world"]
         self.log_prefix = "gzserver"
 
@@ -136,8 +161,9 @@ class GzclientRunner(Runner):
                     # workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "DISPLAY": ":0"}
+                    "DISPLAY": os.environ['DISPLAY']}
         self.cmd = "gzclient"
+        self.args = ["--verbose"]
         self.log_prefix = "gzclient"
 
 
@@ -164,6 +190,8 @@ def main():
                         help="Abort on first unsuccessful test")
     parser.add_argument("--gui", default=False, action='store_true',
                         help="Display gzclient with simulation")
+    parser.add_argument("--model", type=str, default='all',
+                        help="Specify which model to run")
     args = parser.parse_args()
 
     if not is_everything_ready():
@@ -242,7 +270,20 @@ def run(args):
 
 def run_test_group(args):
     overall_success = True
-    for group in test_matrix:
+
+    if args.model == 'all':
+        models = test_matrix
+    else:
+        found = False
+        for elem in test_matrix:
+            if elem['model'] == args.model:
+                models = [elem]
+                found = True
+        if not found:
+            print("Specified model is not defined")
+            models = []
+
+    for group in models:
         print("Running test group for '{}' with filter '{}'"
               .format(group['model'], group['test_filter']))
 

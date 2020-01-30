@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
-* Driver level notch frequency for gyro
+* Notch filter frequency for gyro
 *
-* The center frequency for the 2nd order notch filter on the gyro driver.
+* The center frequency for the 2nd order notch filter on the primary gyro.
 * This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
 * This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
 * See "IMU_GYRO_NF_BW" to set the bandwidth of the filter.
@@ -48,9 +48,9 @@
 PARAM_DEFINE_FLOAT(IMU_GYRO_NF_FREQ, 0.0f);
 
 /**
-* Driver level notch bandwidth for gyro
+* Notch filter bandwidth for gyro
 *
-* The frequency width of the stop band for the 2nd order notch filter on the gyro driver.
+* The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
 * See "IMU_GYRO_NF_FREQ" to activate the filter and to set the notch frequency.
 *
 * @min 0
@@ -62,9 +62,9 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF_FREQ, 0.0f);
 PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
 
 /**
-* Driver level cutoff frequency for gyro
+* Low pass filter cutoff frequency for gyro
 *
-* The cutoff frequency for the 2nd order butterworth filter on the gyro driver.
+* The cutoff frequency for the 2nd order butterworth filter on the primary gyro.
 * This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
 *
 * @min 0
@@ -94,3 +94,18 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 * @group Sensors
 */
 PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
+
+/**
+* Cutoff frequency for angular acceleration
+*
+* The cutoff frequency for the 2nd order butterworth filter used on
+* the time derivative of the measured angular velocity.
+* Set to 0 to disable the filter.
+*
+* @min 0
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);

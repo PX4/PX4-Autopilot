@@ -76,6 +76,7 @@ set(msg_files
 	landing_target_pose.msg
 	led_control.msg
 	log_message.msg
+	logger_status.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
 	mission.msg
@@ -135,6 +136,7 @@ set(msg_files
 	ulog_stream_ack.msg
 	vehicle_acceleration.msg
 	vehicle_air_data.msg
+	vehicle_angular_acceleration.msg
 	vehicle_angular_velocity.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
