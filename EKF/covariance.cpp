@@ -46,6 +46,8 @@
 #include <math.h>
 #include <mathlib/mathlib.h>
 
+// Sets initial values for the covariance matrix
+// Do not call before quaternion states have been initialised
 void Ekf::initialiseCovariance()
 {
 	P.zero();

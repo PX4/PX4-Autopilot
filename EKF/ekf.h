@@ -746,6 +746,7 @@ private:
 	Vector3f calcRotVecVariances();
 
 	// initialise the quaternion covariances using rotation vector variances
+	// do not call before quaternion states are initialised
 	void initialiseQuatCovariances(Vector3f &rot_vec_var);
 
 	// perform a limited reset of the magnetic field state covariances
