@@ -252,7 +252,7 @@ else:
 # get ROS 2 version, if exists
 ros2_distro = ""
 try:
-    rosversion_out = subprocess.check_output(["rosversion", "-d"])
+    rosversion_out = os.environ['ROS_DISTRO']
     rosversion_out = rosversion_out.rstrip()
     if rosversion_out not in ["<unknown>", "kinetic", "lunar", "melodic"]:
         ros2_distro = rosversion_out
