@@ -60,7 +60,7 @@
 #include <string.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/rotor_frequency.h>
+#include <uORB/topics/rpm.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_sensor.h>
@@ -92,7 +92,7 @@ private:
 	int            _reset_count;
 	int            _magnet_count;
 	uint64_t       _lastmeasurement_time;
-	orb_advert_t   _rotor_frequency_topic;
+	orb_advert_t   _rpm_topic;
 
 	virtual void   Run(); //Perform a poll cycle; overide for ScheduledWorkItem
 
@@ -116,7 +116,7 @@ PCF8583::PCF8583(int bus, int address) :
 	_count(0),
 	_reset_count(0),
 	_magnet_count(0),
-	_rotor_frequency_topic(nullptr)
+	_rpm_topic(nullptr)
 {
 }
 
@@ -124,8 +124,8 @@ PCF8583::~PCF8583()
 {
 	ScheduleClear();
 
-	if (_rotor_frequency_topic != nullptr) {
-		orb_unadvertise(_rotor_frequency_topic);
+	if (_rpm_topic != nullptr) {
+		orb_unadvertise(_rpm_topic);
 	}
 }
 
@@ -170,10 +170,10 @@ PCF8583::init()
 	ScheduleOnInterval(_pool_interval);
 
 	/* get a publish handle on the range finder topic */
-	struct rotor_frequency_s rf_report = {};
-	_rotor_frequency_topic = orb_advertise(ORB_ID(rotor_frequency), &rf_report);
+	struct rpm_s rf_report = {};
+	_rpm_topic = orb_advertise(ORB_ID(rpm), &rf_report);
 
-	if (_rotor_frequency_topic == nullptr) {
+	if (_rpm_topic == nullptr) {
 		PX4_ERR("failed to create rotor_freqency object");
 	}
 
@@ -256,18 +256,16 @@ PCF8583::readSensorAndComputeFreqency()
 
 void PCF8583::publish()
 {
-
-	struct rotor_frequency_s msg;
+	struct rpm_s msg;
 	msg.timestamp = hrt_absolute_time();
 	msg.indicated_frequency_hz = _indicated_frequency;
 	msg.indicated_frequency_rpm = _indicated_frequency * 60;
 	msg.estimated_accurancy_hz = _estimated_accurancy;
 	msg.estimated_accurancy_rpm = _estimated_accurancy * 60;
-	msg.count = _count;
 
 	// publish it, if we are the primary
-	if (_rotor_frequency_topic != nullptr) {
-		orb_publish(ORB_ID(rotor_frequency), _rotor_frequency_topic, &msg);
+	if (_rpm_topic != nullptr) {
+		orb_publish(ORB_ID(rpm), _rpm_topic, &msg);
 	}
 
 	// notify anyone waiting for data
