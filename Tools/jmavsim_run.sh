@@ -66,6 +66,12 @@ if [ "$(uname)" == "Darwin" ]; then
         exit 1
     fi
     export JAVA_HOME=`/usr/libexec/java_home -v 1.8`
+elif [ "$(uname)" == "Linux" ]; then
+    if ! java -version 2>&1 | grep --quiet "1.8" ; then
+        echo "${bold}You need to use Java 8, for more info, see:${normal}"
+        echo "${bold}https://dev.px4.io/master/en/simulation/jmavsim.html#ubuntu${normal}"
+        exit 1
+    fi
 fi
 
 ant create_run_jar copy_res
