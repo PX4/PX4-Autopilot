@@ -1480,6 +1480,7 @@ Vector3f Ekf::calcRotVecVariances()
 }
 
 // initialise the quaternion covariances using rotation vector variances
+// do not call before quaternion states are initialised
 void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
 {
 	// calculate an equivalent rotation vector from the quaternion
