@@ -317,9 +317,7 @@ void Standard::update_mc_state()
 {
 	VtolType::update_mc_state();
 
-	VtolType::pusher_assist();
-
-	_pusher_throttle = _forward_thrust;
+	_pusher_throttle = VtolType::pusher_assist();
 }
 
 void Standard::update_fw_state()

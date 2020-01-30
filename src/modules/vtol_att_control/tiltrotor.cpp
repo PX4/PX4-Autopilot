@@ -207,11 +207,9 @@ void Tiltrotor::update_mc_state()
 {
 	VtolType::update_mc_state();
 
-	VtolType::pusher_assist();
+	_tilt_control = VtolType::pusher_assist();
 
-	_tilt_control = _forward_thrust;
-
-	Tiltrotor::thrust_compensation_for_tilt();
+	_v_att_sp->thrust_body[2] = Tiltrotor::thrust_compensation_for_tilt();
 }
 
 void Tiltrotor::update_fw_state()
@@ -395,7 +393,7 @@ void Tiltrotor::fill_actuator_outputs()
  * Increase combined thrust of MC propellers if motors are tilted. Assumes that all MC motors are tilted equally.
  */
 
-void Tiltrotor::thrust_compensation_for_tilt()
+float Tiltrotor::thrust_compensation_for_tilt()
 {
 
 	// only compensate for tilt angle up to 0.5 * max tilt
@@ -403,7 +401,6 @@ void Tiltrotor::thrust_compensation_for_tilt()
 	compensated_tilt = compensated_tilt < 0.0f ? 0.0f : compensated_tilt;
 	compensated_tilt = compensated_tilt > 0.5f ? 0.5f : compensated_tilt;
 
-	float thrust_new = _v_att_sp->thrust_body[2] / cosf(compensated_tilt * M_PI_2_F);
+	return _v_att_sp->thrust_body[2] / cosf(compensated_tilt * M_PI_2_F);
 
-	_v_att_sp->thrust_body[2] = thrust_new;
 }
