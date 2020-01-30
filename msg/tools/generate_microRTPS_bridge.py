@@ -250,18 +250,19 @@ else:
         "FastRTPSGen not found. Specify the location of fastrtpsgen with the -f flag")
 
 # get ROS 2 version, if exists
-ros2_distro = ""
-try:
-    rosversion_out = os.environ['ROS_DISTRO']
-    rosversion_out = rosversion_out.rstrip()
-    if rosversion_out not in ["<unknown>", "kinetic", "lunar", "melodic"]:
-        ros2_distro = rosversion_out
-except OSError as e:
-    if e.errno == errno.ENOENT:
-        if args.ros2_distro != None:
-            ros2_distro = args.ros2_distro
-    else:
-        raise
+ros2_distro = os.environ.get('ROS_DISTRO')
+if ros2_distro is None :
+    try:
+        rosversion_out = subprocess.check_output(["rosversion", "-d"])
+        rosversion_out = rosversion_out.rstrip()
+        if rosversion_out not in ["<unknown>", "kinetic", "lunar", "melodic"]:
+            ros2_distro = rosversion_out
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            if args.ros2_distro != None:
+                ros2_distro = args.ros2_distro
+        else:
+            raise
 
 # If nothing specified it's generated both
 if agent == False and client == False:
