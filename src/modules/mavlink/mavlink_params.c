@@ -59,18 +59,18 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 PARAM_DEFINE_INT32(MAV_PROTO_VER, 0);
 
 /**
- * MAVLink 3DR Radio ID
+ * MAVLink SiK Radio ID
  *
  * When non-zero the MAVLink app will attempt to configure the
- * 3DR radio to this ID and re-set the parameter to 0. If the value
+ * SiK radio to this ID and re-set the parameter to 0. If the value
  * is negative it will reset the complete radio config to
- * factory defaults. Only applies if this mavlink instance is going through a 3DR radio
+ * factory defaults. Only applies if this mavlink instance is going through a SiK radio
  *
  * @group MAVLink
  * @min -1
  * @max 240
  */
-PARAM_DEFINE_INT32(MAV_3DR_RADIO_ID, 0);
+PARAM_DEFINE_INT32(MAV_SIK_RADIO_ID, 0);
 
 /**
  * MAVLink airframe type

@@ -2258,7 +2258,7 @@ Mavlink::task_main(int argc, char *argv[])
 #endif // CONFIG_NET
 		}
 
-		configure_3dr_radio();
+		configure_sik_radio();
 
 		if (status_sub->update(&status_time, &status)) {
 			/* switch HIL mode if required */
@@ -2608,10 +2608,10 @@ void Mavlink::publish_telemetry_status()
 	_telem_status_pub.publish(_tstatus);
 }
 
-void Mavlink::configure_3dr_radio()
+void Mavlink::configure_sik_radio()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _param_3dr_radio_id.get() != 0) {
+	if (_uart_fd >= 0 && _param_sik_radio_id.get() != 0) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
 
@@ -2621,9 +2621,9 @@ void Mavlink::configure_3dr_radio()
 			fprintf(fs, "+++\n");
 			px4_usleep(1200000);
 
-			if (_param_3dr_radio_id.get() > 0) {
+			if (_param_sik_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%u\n", _param_3dr_radio_id.get());
+				fprintf(fs, "ATS3=%u\n", _param_sik_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
@@ -2654,8 +2654,8 @@ void Mavlink::configure_3dr_radio()
 		}
 
 		/* reset param and save */
-		_param_3dr_radio_id.set(0);
-		_param_3dr_radio_id.commit_no_notification();
+		_param_sik_radio_id.set(0);
+		_param_sik_radio_id.commit_no_notification();
 	}
 }
 
