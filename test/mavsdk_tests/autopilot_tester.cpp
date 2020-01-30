@@ -2,9 +2,6 @@
 #include <iostream>
 #include <future>
 
-using namespace mavsdk;
-using namespace mavsdk::geometry;
-
 std::string connection_url {"udp://"};
 
 void AutopilotTester::connect(const std::string uri)
@@ -21,6 +18,7 @@ void AutopilotTester::connect(const std::string uri)
     _telemetry.reset(new Telemetry(system));
     _action.reset(new Action(system));
     _mission.reset(new Mission(system));
+    _offboard.reset(new Offboard(system));
 }
 
 void AutopilotTester::wait_until_ready()
@@ -28,6 +26,20 @@ void AutopilotTester::wait_until_ready()
     std::cout << "Waiting for system to be ready" << std::endl;
     CHECK(poll_condition_with_timeout(
         [this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(20)));
+}
+
+void AutopilotTester::wait_until_ready_local_position_only()
+{
+    std::cout << "Waiting for system to be ready" << std::endl;
+    CHECK(poll_condition_with_timeout(
+        [this]() {
+	return
+	    (_telemetry->health().gyrometer_calibration_ok &&
+	     _telemetry->health().accelerometer_calibration_ok &&
+	     _telemetry->health().magnetometer_calibration_ok &&
+	     _telemetry->health().level_calibration_ok &&
+	     _telemetry->health().local_position_ok);
+	}, std::chrono::seconds(20)));
 }
 
 void AutopilotTester::set_takeoff_altitude(const float altitude_m)
@@ -125,7 +137,6 @@ CoordinateTransformation AutopilotTester::_get_coordinate_transformation()
     const auto home = _telemetry->home_position();
     REQUIRE(std::isfinite(home.latitude_deg));
     REQUIRE(std::isfinite(home.longitude_deg));
-    REQUIRE(std::isfinite(home.longitude_deg));
     return CoordinateTransformation({home.latitude_deg, home.longitude_deg});
 }
 
@@ -144,4 +155,65 @@ std::shared_ptr<MissionItem>  AutopilotTester::_create_mission_item(
 void AutopilotTester::execute_rtl()
 {
     REQUIRE(Action::Result::SUCCESS == _action->return_to_launch());
+}
+
+void AutopilotTester::offboard_goto(const Offboard::PositionNEDYaw& target, float acceptance_radius_m, std::chrono::seconds timeout_duration)
+{
+    _offboard->set_position_ned(target);
+    REQUIRE(_offboard->start() == Offboard::Result::SUCCESS);
+    REQUIRE(poll_condition_with_timeout(
+        [=]() { return estimated_position_close_to(target, acceptance_radius_m); }, timeout_duration));
+    std::cout << "Target position reached" << std::endl;
+}
+
+void AutopilotTester::offboard_land()
+{
+    Offboard::VelocityNEDYaw land_velocity;
+    land_velocity.north_m_s = 0.0f;
+    land_velocity.east_m_s = 0.0f;
+    land_velocity.down_m_s = 1.0f;
+    land_velocity.yaw_deg = 0.0f;
+    _offboard->set_velocity_ned(land_velocity);
+}
+
+bool AutopilotTester::estimated_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius_m)
+{
+    Telemetry::PositionNED est_pos = _telemetry->position_velocity_ned().position;
+    return sq(est_pos.north_m - target_pos.north_m) +
+           sq(est_pos.east_m - target_pos.east_m) +
+           sq(est_pos.down_m - target_pos.down_m)  < sq(acceptance_radius_m);
+}
+
+bool AutopilotTester::estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius_m)
+{
+    Telemetry::PositionNED est_pos = _telemetry->position_velocity_ned().position;
+    return sq(est_pos.north_m - target_pos.north_m) +
+           sq(est_pos.east_m - target_pos.east_m) < sq(acceptance_radius_m);
+}
+
+void AutopilotTester::request_ground_truth()
+{
+    REQUIRE(_telemetry->set_rate_ground_truth(15) == Telemetry::Result::SUCCESS);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+Telemetry::GroundTruth AutopilotTester::get_ground_truth_position()
+{
+    return _telemetry->ground_truth();
+}
+
+bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius_m)
+{
+    REQUIRE(std::isfinite(target_pos.latitude_deg));
+    REQUIRE(std::isfinite(target_pos.longitude_deg));
+    using GlobalCoordinate = CoordinateTransformation::GlobalCoordinate;
+    using LocalCoordinate = CoordinateTransformation::LocalCoordinate;
+    CoordinateTransformation ct(GlobalCoordinate{target_pos.latitude_deg, target_pos.longitude_deg});
+
+    Telemetry::GroundTruth current_pos = _telemetry->ground_truth();
+    REQUIRE(std::isfinite(current_pos.latitude_deg));
+    REQUIRE(std::isfinite(current_pos.longitude_deg));
+    LocalCoordinate local_pos= ct.local_from_global(GlobalCoordinate{current_pos.latitude_deg, current_pos.longitude_deg});
+
+    return sq(local_pos.north_m) + sq(local_pos.east_m) < sq(acceptance_radius_m);
 }
