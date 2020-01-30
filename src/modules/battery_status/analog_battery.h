@@ -55,15 +55,19 @@ public:
 				       bool selected_source, int priority, float throttle_normalized);
 
 	/**
-	 * Whether the ADC channel for the voltage of this battery is valid.
-	 * Corresponds to BOARD_BRICK_VALID_LIST
+	 * Which ADC device is used for voltage reading of this battery
 	 */
-	bool is_valid();
+	uint32_t get_voltage_deviceid();
 
 	/**
 	 * Which ADC channel is used for voltage reading of this battery
 	 */
 	int get_voltage_channel();
+
+	/**
+	 * Which ADC device is used for current reading of this battery
+	 */
+	uint32_t get_current_deviceid();
 
 	/**
 	 * Which ADC channel is used for current reading of this battery
@@ -73,12 +77,13 @@ public:
 protected:
 
 	struct {
-		param_t cnt_v_volt;
-		param_t cnt_v_curr;
 		param_t v_offs_cur;
 		param_t v_div;
 		param_t a_per_v;
-		param_t adc_channel;
+		param_t adc_v_channel;
+		param_t adc_v_devid;
+		param_t adc_c_channel;
+		param_t adc_c_devid;
 
 		param_t v_div_old;
 		param_t a_per_v_old;
@@ -86,17 +91,18 @@ protected:
 	} _analog_param_handles;
 
 	struct {
-		float cnt_v_volt;
-		float cnt_v_curr;
 		float v_offs_cur;
 		float v_div;
 		float a_per_v;
-		int adc_channel;
+		int adc_v_channel;
+		int32_t adc_v_devid;
+		int adc_c_channel;
+		int32_t adc_c_devid;
 
 		float v_div_old;
 		float a_per_v_old;
 		int adc_channel_old;
 	} _analog_params;
 
-	virtual void updateParams() override;
+	void updateParams() override;
 };
