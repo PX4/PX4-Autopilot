@@ -70,12 +70,10 @@ ICM20602::~ICM20602()
 		board_dma_free(_dma_data_buffer, FIFO::SIZE);
 	}
 
-	perf_free(_interval_perf);
 	perf_free(_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
-	perf_free(_drdy_count_perf);
 	perf_free(_drdy_interval_perf);
 }
 
@@ -164,13 +162,17 @@ void ICM20602::ResetFIFO()
 	up_udelay(1); // bit auto clears after one clock cycle of the internal 20 MHz clock
 	RegisterSetBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_EN);
 
-	// CONFIG: should ensure that bit 7 of register 0x1A is set to 0 before using FIFO watermark feature
-	RegisterSetBits(Register::CONFIG, CONFIG_BIT::FIFO_MODE);
-	RegisterClearBits(Register::CONFIG, CONFIG_BIT::FIFO_WM);
-	RegisterSetBits(Register::CONFIG, CONFIG_BIT::DLPF_CFG_BYPASS_DLPF_8KHZ);
+	// CONFIG: User should ensure that bit 7 of register 0x1A (Register::CONFIG) is set to 0 before using watermark feature
+	RegisterClearBits(Register::CONFIG, Bit7);
+	RegisterSetBits(Register::CONFIG, CONFIG_BIT::FIFO_MODE | CONFIG_BIT::DLPF_CFG_BYPASS_DLPF_8KHZ);
+
+	// FIFO Watermark
+	static constexpr uint8_t fifo_watermark = 8 * sizeof(FIFO::DATA);
+	static_assert(fifo_watermark < UINT8_MAX);
+	RegisterWrite(Register::FIFO_WM_TH1, 0);
+	RegisterWrite(Register::FIFO_WM_TH2, fifo_watermark);
 
 	// FIFO_EN: enable both gyro and accel
-	_data_ready_count = 0;
 	RegisterWrite(Register::FIFO_EN, FIFO_EN_BIT::GYRO_FIFO_EN | FIFO_EN_BIT::ACCEL_FIFO_EN);
 	up_udelay(10);
 }
@@ -218,19 +220,12 @@ int ICM20602::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ICM20602::DataReady()
 {
-	perf_count(_drdy_count_perf);
 	perf_count(_drdy_interval_perf);
 
-	_data_ready_count++;
+	_time_data_ready = hrt_absolute_time();
 
-	if (_data_ready_count >= 8) {
-		_time_data_ready = hrt_absolute_time();
-
-		_data_ready_count = 0;
-
-		// make another measurement
-		ScheduleNow();
-	}
+	// make another measurement
+	ScheduleNow();
 }
 
 void ICM20602::Start()
@@ -243,23 +238,23 @@ void ICM20602::Start()
 #if defined(GPIO_DRDY_PORTC_PIN14)
 	// Setup data ready on rising edge
 	px4_arch_gpiosetevent(GPIO_DRDY_PORTC_PIN14, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #elif defined(GPIO_SPI1_DRDY1_ICM20602)
 	// Setup data ready on rising edge
 	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #elif defined(GPIO_SPI1_DRDY4_ICM20602)
 	// Setup data ready on rising edge
 	px4_arch_gpiosetevent(GPIO_SPI1_DRDY4_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #elif defined(GPIO_SPI1_DRDY1_ICM20602)
 	// Setup data ready on rising edge
 	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #elif defined(GPIO_DRDY_ICM_2060X)
 	// Setup data ready on rising edge
 	px4_arch_gpiosetevent(GPIO_DRDY_ICM_2060X, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #else
 	ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
 #endif
@@ -271,23 +266,23 @@ void ICM20602::Stop()
 #if defined(GPIO_DRDY_PORTC_PIN14)
 	// Disable data ready callback
 	px4_arch_gpiosetevent(GPIO_DRDY_PORTC_PIN14, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #elif defined(GPIO_SPI1_DRDY1_ICM20602)
 	// Disable data ready callback
 	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #elif defined(GPIO_SPI1_DRDY4_ICM20602)
 	// Disable data ready callback
 	px4_arch_gpiosetevent(GPIO_SPI1_DRDY4_ICM20602, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #elif defined(GPIO_SPI1_DRDY1_ICM20602)
 	// Disable data ready callback
 	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #elif defined(GPIO_DRDY_ICM_2060X)
 	// Disable data ready callback
 	px4_arch_gpiosetevent(GPIO_DRDY_ICM_2060X, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
 #else
 	ScheduleClear();
 #endif
@@ -295,8 +290,6 @@ void ICM20602::Stop()
 
 void ICM20602::Run()
 {
-	perf_count(_interval_perf);
-
 	// use timestamp from the data ready interrupt if available,
 	//  otherwise use the time now roughly corresponding with the last sample we'll pull from the FIFO
 	const hrt_abstime timestamp_sample = (hrt_elapsed_time(&_time_data_ready) < FIFO_INTERVAL) ? _time_data_ready :
@@ -320,13 +313,6 @@ void ICM20602::Run()
 
 	} else if (samples > 16) {
 		// not technically an overflow, but more samples than we expected
-		perf_count(_fifo_overflow_perf);
-		ResetFIFO();
-		return;
-	}
-
-	// check for FIFO overflow
-	if (RegisterRead(Register::INT_STATUS) & INT_STATUS_BIT::FIFO_OFLOW_INT) {
 		perf_count(_fifo_overflow_perf);
 		ResetFIFO();
 		return;
@@ -416,12 +402,10 @@ void ICM20602::Run()
 
 void ICM20602::PrintInfo()
 {
-	perf_print_counter(_interval_perf);
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
-	perf_print_counter(_drdy_count_perf);
 	perf_print_counter(_drdy_interval_perf);
 
 	_px4_accel.print_status();
