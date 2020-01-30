@@ -128,28 +128,24 @@ PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 0.8f);
 PARAM_DEFINE_INT32(NAV_TRAFF_AVOID, 1);
 
 /**
- * Set NAV TRAFFIC AVOID RADIUS MANNED
+ * Set avoidance radius/distance for manned vehicles (ADS-B/FLARM).
  *
- * Defines the Radius where NAV TRAFFIC AVOID is Called
- * For Manned Aviation
+ * Defines the avoidance radius/distance at which the avoidance action is triggered for manned vehicles (ADS-B/FLARM).
  *
  * @unit m
  * @min 500
- *
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADM, 500);
 
 /**
- * Set NAV TRAFFIC AVOID RADIUS
+ * Set avoidance radius/distance for umanned vehicles (UTM_GLOBAL_POSITION).
  *
- * Defines the Radius where NAV TRAFFIC AVOID is Called
- * For Unmanned Aviation
+ * Defines the avoidance radius/distance at which the avoidance action is triggered for umanned vehicles (UTM_GLOBAL_POSITION).
  *
  * @unit m
  * @min 10
  * @max 500
- *
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADU, 10);
