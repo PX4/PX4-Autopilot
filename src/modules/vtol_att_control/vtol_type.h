@@ -168,7 +168,7 @@ public:
 	/**
 	 * Pusher assist in hover (pusher/pull for standard VTOL, motor tilt for tiltrotor)
 	 */
-	void pusher_assist();
+	float pusher_assist();
 
 
 	mode get_mode() {return _vtol_mode;}
@@ -221,8 +221,6 @@ protected:
 	hrt_abstime _tecs_running_ts = 0;
 
 	motor_state _motor_state = motor_state::DISABLED;
-
-	float _forward_thrust = 0.0f; // normalized pusher throttle (standard VTOL) or tilt (tiltrotor)
 
 
 

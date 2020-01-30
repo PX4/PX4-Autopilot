@@ -385,28 +385,24 @@ bool VtolType::is_channel_set(const int channel, const int target)
 }
 
 
-void VtolType::pusher_assist()
+float VtolType::pusher_assist()
 {
-
-	// normalized pusher support throttle (standard VTOL) or tilt (tiltrotor), initialize to 0
-	_forward_thrust = 0.0f;
-
 	// if the thrust scale param is zero or the drone is not in some position or altitude control mode,
 	// then the pusher-for-pitch strategy is disabled and we can return
 	if (_params->forward_thrust_scale < FLT_EPSILON || !(_v_control_mode->flag_control_position_enabled
 			|| _v_control_mode->flag_control_altitude_enabled)) {
-		return;
+		return 0.0f;
 	}
 
 	// Do not engage pusher assist during a failsafe event (could be a problem with the fixed wing drive)
 	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
-		return;
+		return 0.0f;
 	}
 
 	// disable pusher assist during landing
 	if (_attc->get_pos_sp_triplet()->current.valid
 	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		return;
+		return 0.0f;
 	}
 
 	const Dcmf R(Quatf(_v_att->q));
@@ -427,16 +423,19 @@ void VtolType::pusher_assist()
 	// this value corresponds to the amount the vehicle would try to pitch down
 	float pitch_down = atan2f(body_z_sp(0), body_z_sp(2));
 
+	// normalized pusher support throttle (standard VTOL) or tilt (tiltrotor), initialize to 0
+	float forward_thrust = 0.0f;
+
 	// only allow pitching down up to threshold, the rest of the desired
 	// forward acceleration will be compensated by the pusher/tilt
 	if (pitch_down < -_params->down_pitch_max) {
 		// desired roll angle in heading frame stays the same
 		float roll_new = -asinf(body_z_sp(1));
 
-		_forward_thrust = (sinf(-pitch_down) - sinf(_params->down_pitch_max)) * _params->forward_thrust_scale;
+		forward_thrust = (sinf(-pitch_down) - sinf(_params->down_pitch_max)) * _params->forward_thrust_scale;
 		// limit forward actuation to [0, 0.9]
-		_forward_thrust = _forward_thrust < 0.0f ? 0.0f : _forward_thrust;
-		_forward_thrust = _forward_thrust > 0.9f ? 0.9f : _forward_thrust;
+		forward_thrust = forward_thrust < 0.0f ? 0.0f : forward_thrust;
+		forward_thrust = forward_thrust > 0.9f ? 0.9f : forward_thrust;
 
 		// return the vehicle to level position
 		float pitch_new = 0.0f;
@@ -459,5 +458,7 @@ void VtolType::pusher_assist()
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 	}
+
+	return forward_thrust;
 
 }
