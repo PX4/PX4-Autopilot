@@ -147,7 +147,7 @@ rtps:
   - msg: sensor_baro
     id: 63
     send: true
-  - msg: sensor_bias
+  - msg: estimator_sensor_bias
     id: 64
   - msg: sensor_combined
     id: 65
@@ -277,6 +277,10 @@ rtps:
     id: 123
   - msg: vehicle_imu
     id: 124
+  - msg: vehicle_angular_acceleration
+    id: 125
+  - msg: logger_status
+    id: 126
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150

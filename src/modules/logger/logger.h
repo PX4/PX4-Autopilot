@@ -44,8 +44,10 @@
 #include <systemlib/printload.h>
 #include <px4_platform_common/module.h>
 
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/logger_status.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -334,6 +336,9 @@ private:
 	print_load_s					_load{}; ///< process load data
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
 	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
+
+	uORB::PublicationMulti<logger_status_s>		_logger_status_pub[2] { ORB_ID(logger_status), ORB_ID(logger_status) };
+	hrt_abstime					_logger_status_last{0};
 
 	uORB::Subscription				_manual_control_sp_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};

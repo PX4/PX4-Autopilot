@@ -64,6 +64,11 @@ ifeq ($(WINTOOL),y)
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
 endif
 
+ifeq ($(CONFIG_BOARD_USE_PROBES),y)
+   ARCHINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP)
+   ARCHXXINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP)
+endif
+
 FLAGS = -Os -g2 \
 	-fdata-sections \
 	-ffunction-sections \

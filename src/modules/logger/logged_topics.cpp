@@ -58,6 +58,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_innovation_test_ratios", 200);
 	add_topic("estimator_innovation_variances", 200);
 	add_topic("estimator_innovations", 200);
+	add_topic("estimator_sensor_bias", 1000);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
@@ -70,7 +71,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 200);
 	add_topic("safety", 1000);
-	add_topic("sensor_bias", 1000);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_correction", 1000);
 	add_topic("sensor_preflight", 200);
@@ -96,6 +96,7 @@ void LoggedTopics::add_default_topics()
 
 	// multi topics
 	add_topic_multi("actuator_outputs", 100);
+	add_topic_multi("logger_status");
 	add_topic_multi("multirotor_motor_limits", 1000);
 	add_topic_multi("telemetry_status", 1000);
 	add_topic_multi("wind_estimate", 1000);

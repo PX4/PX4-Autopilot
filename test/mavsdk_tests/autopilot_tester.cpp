@@ -14,7 +14,7 @@ void AutopilotTester::connect(const std::string uri)
 
     std::cout << "Waiting for system connect" << std::endl;
     REQUIRE(poll_condition_with_timeout(
-        [this]() { return _mavsdk.is_connected(); }, std::chrono::seconds(10)));
+        [this]() { return _mavsdk.is_connected(); }, std::chrono::seconds(25)));
 
     auto& system = _mavsdk.system();
 
@@ -53,6 +53,18 @@ void AutopilotTester::takeoff()
 void AutopilotTester::land()
 {
     const auto result = _action->land();
+    REQUIRE(result == Action::Result::SUCCESS);
+}
+
+void AutopilotTester::transition_to_fixedwing()
+{
+    const auto result = _action->transition_to_fixedwing();
+    REQUIRE(result == Action::Result::SUCCESS);
+}
+
+void AutopilotTester::transition_to_multicopter()
+{
+    const auto result = _action->transition_to_multicopter();
     REQUIRE(result == Action::Result::SUCCESS);
 }
 

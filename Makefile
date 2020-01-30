@@ -253,6 +253,7 @@ px4fmu_firmware: \
 
 misc_qgc_extra_firmware: \
 	check_nxp_fmuk66-v3_default \
+	check_nxp_fmurt1062-v1_default \
 	check_intel_aerofc-v1_default \
 	check_mro_x21_default \
 	check_bitcraze_crazyflie_default \
@@ -367,7 +368,9 @@ tests_integration_coverage:
 	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
 	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
-	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 15
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 100
+	@mkdir -p coverage
+	@lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
 
 tests_mission: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test
@@ -478,7 +481,7 @@ distclean: gazeboclean
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
 %:
 	$(if $(filter $(FIRST_ARG),$@), \
-		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
+		$(error "Make target $@ not found. It either does not exist or $@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
 # Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
 help:

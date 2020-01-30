@@ -88,7 +88,7 @@ Mission::on_inactive()
 		}
 
 		/* reset the current mission if needed */
-		if (need_to_reset_mission(false)) {
+		if (need_to_reset_mission()) {
 			reset_mission(_mission);
 			update_mission();
 			_navigator->reset_cruising_speed();
@@ -195,14 +195,8 @@ Mission::on_active()
 		update_mission();
 	}
 
-	/* reset the current mission if needed */
-	if (need_to_reset_mission(true)) {
-		reset_mission(_mission);
-		_navigator->reset_triplets();
-		update_mission();
-		_navigator->reset_cruising_speed();
-		mission_sub_updated = true;
-	}
+	/* mission is running (and we are armed), need reset after disarm */
+	_need_mission_reset = true;
 
 	_mission_changed = false;
 
@@ -1723,16 +1717,12 @@ Mission::reset_mission(struct mission_s &mission)
 }
 
 bool
-Mission::need_to_reset_mission(bool active)
+Mission::need_to_reset_mission()
 {
 	/* reset mission state when disarmed */
 	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
 		_need_mission_reset = false;
 		return true;
-
-	} else if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED && active) {
-		/* mission is running, need reset after disarm */
-		_need_mission_reset = true;
 	}
 
 	return false;
