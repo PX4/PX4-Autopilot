@@ -91,7 +91,7 @@ typedef struct io_timers_channel_mapping_t {
 
 /* array of channels in logical order */
 typedef struct timer_io_channels_t {
-	uint32_t	gpio_out;            /* The timer valn_offset GPIO for PWM */
+	uint32_t	gpio_out;            /* The timer valn_offset GPIO for PWM (this is the IOMUX Pad, e.g. PWM_IOMUX | GPIO_FLEXPWM2_PWMA00_2) */
 	uint32_t	gpio_in;             /* The timer valn_offset GPIO for Capture */
 	uint32_t	gpio_portpin;        /* The GPIO Port + Pin (e.g. GPIO_PORT2 | GPIO_PIN6) */
 	uint8_t		timer_index;         /* 0 based index in the io_timers_t table */
