@@ -252,6 +252,10 @@
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
+#define HW_REV_VER_ADC_BASE STM32_ADC3_BASE
+
+#define SYSTEM_ADC_BASE STM32_ADC1_BASE
+
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* HW Version and Revision drive signals Default to 1 to detect */
