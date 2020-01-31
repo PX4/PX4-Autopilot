@@ -141,6 +141,11 @@ else
 
 endif
 
+# Pick up specific Python path if set
+ifdef PYTHON_EXECUTABLE
+	CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
