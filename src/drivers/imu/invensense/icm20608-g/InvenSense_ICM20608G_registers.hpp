@@ -67,7 +67,6 @@ enum class Register : uint8_t {
 
 	INT_STATUS    = 0x3A,
 
-	INT_PIN_CFG   = 0x37,
 	INT_ENABLE    = 0x38,
 
 	TEMP_OUT_H    = 0x41,
@@ -170,7 +169,6 @@ struct DATA {
 	uint8_t GYRO_ZOUT_H;
 	uint8_t GYRO_ZOUT_L;
 };
-static_assert(sizeof(DATA) == 12);
 }
 
 } // namespace InvenSense_ICM20608G
