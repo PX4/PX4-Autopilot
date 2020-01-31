@@ -139,9 +139,9 @@ PARAM_DEFINE_INT32(NAV_TRAFF_AVOID, 1);
 PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADM, 500);
 
 /**
- * Set avoidance radius/distance for umanned vehicles (UTM_GLOBAL_POSITION).
+ * Set avoidance radius/distance for unmanned vehicles (UTM_GLOBAL_POSITION).
  *
- * Defines the avoidance radius/distance at which the avoidance action is triggered for umanned vehicles (UTM_GLOBAL_POSITION).
+ * Defines the avoidance radius/distance at which the avoidance action is triggered for unmanned vehicles (UTM_GLOBAL_POSITION).
  *
  * @unit m
  * @min 10
