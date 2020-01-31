@@ -51,6 +51,7 @@ px4_add_board(
 		px4io
 		rc_input
 		roboclaw
+		rpm
 		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers

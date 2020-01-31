@@ -97,6 +97,7 @@ set(msg_files
 	power_button_state.msg
 	power_monitor.msg
 	pwm_input.msg
+	rpm.msg
 	qshell_req.msg
 	qshell_retval.msg
 	radio_status.msg
@@ -160,7 +161,6 @@ set(msg_files
 	vtol_vehicle_status.msg
 	wheel_encoders.msg
 	wind_estimate.msg
-	rpm.msg
 )
 
 set(deprecated_msgs
