@@ -283,6 +283,8 @@ rtps:
     id: 126
   - msg: rpm
     id: 127
+  - msg: hover_thrust_estimate
+    id: 128
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
