@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,38 @@
  *
  ****************************************************************************/
 
-#include "ICM20602.hpp"
+#include "MPU6000.hpp"
 
 #include <px4_platform/board_dma_alloc.h>
 
 using namespace time_literals;
-using namespace InvenSense_ICM20602;
+using namespace InvenSense_MPU6000;
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
 static constexpr uint32_t GYRO_RATE{8000};  // 8 kHz gyro
-static constexpr uint32_t ACCEL_RATE{4000}; // 4 kHz accel
+static constexpr uint32_t ACCEL_RATE{1000}; // 1 kHz accel
 
 static constexpr uint32_t FIFO_INTERVAL{1000}; // 1000 us / 1000 Hz interval
 
 static constexpr uint32_t FIFO_GYRO_SAMPLES{FIFO_INTERVAL / (1000000 / GYRO_RATE)};
 static constexpr uint32_t FIFO_ACCEL_SAMPLES{FIFO_INTERVAL / (1000000 / ACCEL_RATE)};
 
-ICM20602::ICM20602(int bus, uint32_t device, enum Rotation rotation) :
+MPU6000::MPU6000(int bus, uint32_t device, enum Rotation rotation) :
 	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_accel(get_device_id(), ORB_PRIO_VERY_HIGH, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_VERY_HIGH, rotation)
 {
-	set_device_type(DRV_ACC_DEVTYPE_ICM20602);
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20602);
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20602);
+	set_device_type(DRV_ACC_DEVTYPE_MPU6000);
+	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_MPU6000);
+	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_MPU6000);
 
 	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
 	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);
 }
 
-ICM20602::~ICM20602()
+MPU6000::~MPU6000()
 {
 	Stop();
 
@@ -77,7 +77,7 @@ ICM20602::~ICM20602()
 	perf_free(_drdy_interval_perf);
 }
 
-int ICM20602::probe()
+int MPU6000::probe()
 {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
@@ -89,7 +89,7 @@ int ICM20602::probe()
 	return PX4_OK;
 }
 
-bool ICM20602::Init()
+bool MPU6000::Init()
 {
 	if (SPI::init() != PX4_OK) {
 		PX4_ERR("SPI::init failed");
@@ -114,19 +114,19 @@ bool ICM20602::Init()
 	return true;
 }
 
-bool ICM20602::Reset()
+bool MPU6000::Reset()
 {
 	// PWR_MGMT_1: Device Reset
 	// CLKSEL[2:0] must be set to 001 to achieve full gyroscope performance.
 	RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
-	usleep(1000);
+	usleep(2000);
 
 	// PWR_MGMT_1: CLKSEL[2:0] must be set to 001 to achieve full gyroscope performance.
 	RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::CLKSEL_0);
-	usleep(1000);
+	usleep(100);
 
 	// ACCEL_CONFIG: Accel 16 G range
-	RegisterSetBits(Register::ACCEL_CONFIG, ACCEL_CONFIG_BIT::ACCEL_FS_SEL_16G);
+	RegisterSetBits(Register::ACCEL_CONFIG, ACCEL_CONFIG_BIT::AFS_SEL_16G);
 	_px4_accel.set_scale(CONSTANTS_ONE_G / 2048);
 	_px4_accel.set_range(16.0f * CONSTANTS_ONE_G);
 
@@ -143,41 +143,30 @@ bool ICM20602::Reset()
 	return reset_done && clksel_done && data_ready;
 }
 
-void ICM20602::ResetFIFO()
+void MPU6000::ResetFIFO()
 {
 	perf_count(_fifo_reset_perf);
 
-	// ACCEL_CONFIG2: Accel DLPF disabled for full rate (4 kHz)
-	RegisterSetBits(Register::ACCEL_CONFIG2, ACCEL_CONFIG2_BIT::ACCEL_FCHOICE_B_BYPASS_DLPF);
-
-	// GYRO_CONFIG: Gyro DLPF disabled for full rate (8 kHz)
-	RegisterClearBits(Register::GYRO_CONFIG, GYRO_CONFIG_BIT::FCHOICE_B_8KHZ_BYPASS_DLPF);
-
 	// FIFO_EN: disable FIFO
 	RegisterWrite(Register::FIFO_EN, 0);
-	RegisterClearBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_EN | USER_CTRL_BIT::FIFO_RST);
+	RegisterClearBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_EN | USER_CTRL_BIT::FIFO_RESET);
 
 	// USER_CTRL: reset FIFO then re-enable
-	RegisterSetBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_RST);
+	RegisterSetBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_RESET);
 	up_udelay(1); // bit auto clears after one clock cycle of the internal 20 MHz clock
 	RegisterSetBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_EN);
 
-	// CONFIG: User should ensure that bit 7 of register 0x1A (Register::CONFIG) is set to 0 before using watermark feature
-	RegisterClearBits(Register::CONFIG, Bit7);
-	RegisterSetBits(Register::CONFIG, CONFIG_BIT::FIFO_MODE | CONFIG_BIT::DLPF_CFG_BYPASS_DLPF_8KHZ);
-
-	// FIFO Watermark
-	static constexpr uint8_t fifo_watermark = 8 * sizeof(FIFO::DATA);
-	static_assert(fifo_watermark < UINT8_MAX);
-	RegisterWrite(Register::FIFO_WM_TH1, 0);
-	RegisterWrite(Register::FIFO_WM_TH2, fifo_watermark);
+	// CONFIG:
+	RegisterSetBits(Register::CONFIG, CONFIG_BIT::DLPF_CFG_BYPASS_DLPF);
 
 	// FIFO_EN: enable both gyro and accel
-	RegisterWrite(Register::FIFO_EN, FIFO_EN_BIT::GYRO_FIFO_EN | FIFO_EN_BIT::ACCEL_FIFO_EN);
+	_data_ready_count = 0;
+	RegisterWrite(Register::FIFO_EN, FIFO_EN_BIT::XG_FIFO_EN | FIFO_EN_BIT::YG_FIFO_EN | FIFO_EN_BIT::ZG_FIFO_EN |
+		      FIFO_EN_BIT::ACCEL_FIFO_EN);
 	up_udelay(10);
 }
 
-uint8_t ICM20602::RegisterRead(Register reg)
+uint8_t MPU6000::RegisterRead(Register reg)
 {
 	uint8_t cmd[2] {};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
@@ -185,13 +174,13 @@ uint8_t ICM20602::RegisterRead(Register reg)
 	return cmd[1];
 }
 
-void ICM20602::RegisterWrite(Register reg, uint8_t value)
+void MPU6000::RegisterWrite(Register reg, uint8_t value)
 {
 	uint8_t cmd[2] { (uint8_t)reg, value };
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
-void ICM20602::RegisterSetBits(Register reg, uint8_t setbits)
+void MPU6000::RegisterSetBits(Register reg, uint8_t setbits)
 {
 	uint8_t val = RegisterRead(reg);
 
@@ -201,7 +190,7 @@ void ICM20602::RegisterSetBits(Register reg, uint8_t setbits)
 	}
 }
 
-void ICM20602::RegisterClearBits(Register reg, uint8_t clearbits)
+void MPU6000::RegisterClearBits(Register reg, uint8_t clearbits)
 {
 	uint8_t val = RegisterRead(reg);
 
@@ -211,84 +200,58 @@ void ICM20602::RegisterClearBits(Register reg, uint8_t clearbits)
 	}
 }
 
-int ICM20602::DataReadyInterruptCallback(int irq, void *context, void *arg)
+int MPU6000::DataReadyInterruptCallback(int irq, void *context, void *arg)
 {
-	ICM20602 *dev = reinterpret_cast<ICM20602 *>(arg);
+	MPU6000 *dev = reinterpret_cast<MPU6000 *>(arg);
 	dev->DataReady();
 	return 0;
 }
 
-void ICM20602::DataReady()
+void MPU6000::DataReady()
 {
 	perf_count(_drdy_interval_perf);
 
-	_time_data_ready = hrt_absolute_time();
+	_data_ready_count++;
 
-	// make another measurement
-	ScheduleNow();
+	if (_data_ready_count >= 8) {
+		_time_data_ready = hrt_absolute_time();
+
+		_data_ready_count = 0;
+
+		// make another measurement
+		ScheduleNow();
+	}
 }
 
-void ICM20602::Start()
+void MPU6000::Start()
 {
 	Stop();
 
 	ResetFIFO();
 
 	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_DRDY_PORTC_PIN14)
+#if defined(GPIO_SPI1_EXTI_MPU_DRDY)
 	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_DRDY_PORTC_PIN14, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
-#elif defined(GPIO_SPI1_DRDY1_ICM20602)
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
-#elif defined(GPIO_SPI1_DRDY4_ICM20602)
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_SPI1_DRDY4_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
-#elif defined(GPIO_SPI1_DRDY1_ICM20602)
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
-#elif defined(GPIO_DRDY_ICM_2060X)
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_DRDY_ICM_2060X, true, false, true, &ICM20602::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
+	px4_arch_gpiosetevent(GPIO_SPI1_EXTI_MPU_DRDY, true, false, true, &MPU6000::DataReadyInterruptCallback, this);
+	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
 #else
 	ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
 #endif
 }
 
-void ICM20602::Stop()
+void MPU6000::Stop()
 {
 	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_DRDY_PORTC_PIN14)
+#if defined(GPIO_SPI1_EXTI_MPU_DRDY)
 	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_DRDY_PORTC_PIN14, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
-#elif defined(GPIO_SPI1_DRDY1_ICM20602)
-	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
-#elif defined(GPIO_SPI1_DRDY4_ICM20602)
-	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_SPI1_DRDY4_ICM20602, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
-#elif defined(GPIO_SPI1_DRDY1_ICM20602)
-	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
-#elif defined(GPIO_DRDY_ICM_2060X)
-	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_DRDY_ICM_2060X, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::FIFO_OFLOW_EN);
+	px4_arch_gpiosetevent(GPIO_SPI1_EXTI_MPU_DRDY, false, false, false, nullptr, nullptr);
+	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
 #else
 	ScheduleClear();
 #endif
 }
 
-void ICM20602::Run()
+void MPU6000::Run()
 {
 	// use timestamp from the data ready interrupt if available,
 	//  otherwise use the time now roughly corresponding with the last sample we'll pull from the FIFO
@@ -298,7 +261,6 @@ void ICM20602::Run()
 	// read FIFO count
 	uint8_t fifo_count_buf[3] {};
 	fifo_count_buf[0] = static_cast<uint8_t>(Register::FIFO_COUNTH) | DIR_READ;
-	//const hrt_abstime timestamp_fifo_check = hrt_absolute_time();
 
 	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
 		return;
@@ -307,8 +269,12 @@ void ICM20602::Run()
 	const size_t fifo_count = combine(fifo_count_buf[1], fifo_count_buf[2]);
 	const int samples = (fifo_count / sizeof(FIFO::DATA) / 2) * 2; // round down to nearest 2
 
-	if (samples < 2) {
+	if (samples < 1) {
 		perf_count(_fifo_empty_perf);
+		return;
+
+	} else if (samples < 8) {
+		// don't transfer fewer than 8 samples (1 accel + 8 gyro)
 		return;
 
 	} else if (samples > 16) {
@@ -341,6 +307,7 @@ void ICM20602::Run()
 
 	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
+	accel.samples = samples / 8;
 	accel.dt = FIFO_INTERVAL / FIFO_ACCEL_SAMPLES;
 
 	PX4Gyroscope::FIFOSample gyro;
@@ -348,23 +315,18 @@ void ICM20602::Run()
 	gyro.samples = samples;
 	gyro.dt = FIFO_INTERVAL / FIFO_GYRO_SAMPLES;
 
-	int accel_samples = 0;
-	int16_t temperature[samples] {};
+	// accel data is duplicated 8 times
+	for (int i = 0; i < accel.samples; i++) {
+		const FIFO::DATA &fifo_sample = report->f[i];
+
+		// coordinate convention (x forward, y right, z down)
+		accel.x[i] = combine(fifo_sample.ACCEL_XOUT_H, fifo_sample.ACCEL_XOUT_L);
+		accel.y[i] = -combine(fifo_sample.ACCEL_YOUT_H, fifo_sample.ACCEL_YOUT_L);
+		accel.z[i] = -combine(fifo_sample.ACCEL_ZOUT_H, fifo_sample.ACCEL_ZOUT_L);
+	}
 
 	for (int i = 0; i < samples; i++) {
 		const FIFO::DATA &fifo_sample = report->f[i];
-
-		// accel data is doubled
-		if (i % 2) {
-			// coordinate convention (x forward, y right, z down)
-			accel.x[accel_samples] = combine(fifo_sample.ACCEL_XOUT_H, fifo_sample.ACCEL_XOUT_L);
-			accel.y[accel_samples] = -combine(fifo_sample.ACCEL_YOUT_H, fifo_sample.ACCEL_YOUT_L);
-			accel.z[accel_samples] = -combine(fifo_sample.ACCEL_ZOUT_H, fifo_sample.ACCEL_ZOUT_L);
-
-			accel_samples++;
-		}
-
-		temperature[i] = combine(fifo_sample.TEMP_OUT_H, fifo_sample.TEMP_OUT_L);
 
 		// coordinate convention (x forward, y right, z down)
 		gyro.x[i] = combine(fifo_sample.GYRO_XOUT_H, fifo_sample.GYRO_XOUT_L);
@@ -372,35 +334,33 @@ void ICM20602::Run()
 		gyro.z[i] = -combine(fifo_sample.GYRO_ZOUT_H, fifo_sample.GYRO_ZOUT_L);
 	}
 
-	accel.samples = accel_samples;
 
 	// Temperature
-	int32_t temperature_sum{0};
+	if (hrt_elapsed_time(&_time_last_temperature_update) > 1_s) {
+		// read current temperature
+		uint8_t temperature_buf[3] {};
+		temperature_buf[0] = static_cast<uint8_t>(Register::TEMP_OUT_H) | DIR_READ;
 
-	for (auto t : temperature) {
-		temperature_sum += t;
-	}
-
-	const int16_t temperature_avg = temperature_sum / samples;
-
-	for (auto t : temperature) {
-		// temperature changing wildly is an indication of a transfer error
-		if (abs(t - temperature_avg) > 1000) {
+		if (transfer(temperature_buf, temperature_buf, sizeof(temperature_buf)) != PX4_OK) {
 			return;
 		}
+
+		const int16_t TEMP_OUT = combine(temperature_buf[1], temperature_buf[2]);
+
+		static constexpr float RoomTemp_Offset = 25.0f; // Room Temperature Offset 25°C
+		static constexpr float Temp_Sensitivity = 326.8f; // Sensitivity 326.8 LSB/°C
+
+		const float TEMP_degC = ((TEMP_OUT - RoomTemp_Offset) / Temp_Sensitivity) + 25.0f;
+
+		_px4_accel.set_temperature(TEMP_degC);
+		_px4_gyro.set_temperature(TEMP_degC);
 	}
-
-	// use average temperature reading
-	const float temperature_C = temperature_avg / 326.8f + 25.0f;	// 326.8 LSB/C
-	_px4_accel.set_temperature(temperature_C);
-	_px4_gyro.set_temperature(temperature_C);
-
 
 	_px4_gyro.updateFIFO(gyro);
 	_px4_accel.updateFIFO(accel);
 }
 
-void ICM20602::PrintInfo()
+void MPU6000::PrintInfo()
 {
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);

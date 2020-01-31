@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file InvenSense_MPU9250_registers.hpp
+ * @file InvenSense_MPU6000_registers.hpp
  *
- * Invensense MPU9250 registers.
+ * Invensense MPU6000 registers.
  *
  */
 
@@ -50,18 +50,17 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_MPU9250
+namespace InvenSense_MPU6000
 {
 static constexpr uint32_t SPI_SPEED = 20 * 1000 * 1000;
 static constexpr uint8_t DIR_READ = 0x80;
 
-static constexpr uint8_t WHOAMI = 0x71;
+static constexpr uint8_t WHOAMI = 0x68;
 
 enum class Register : uint8_t {
 	CONFIG        = 0x1A,
 	GYRO_CONFIG   = 0x1B,
 	ACCEL_CONFIG  = 0x1C,
-	ACCEL_CONFIG2 = 0x1D,
 
 	FIFO_EN       = 0x23,
 
@@ -83,44 +82,34 @@ enum class Register : uint8_t {
 
 // CONFIG
 enum CONFIG_BIT : uint8_t {
-	FIFO_MODE = Bit6, // when the FIFO is full, additional writes will not be written to FIFO
-
-	DLPF_CFG_BYPASS_DLPF_8KHZ = 7, // Rate 8 kHz [2:0]
+	DLPF_CFG_BYPASS_DLPF = 7, // Reserved
 };
 
 // GYRO_CONFIG
 enum GYRO_CONFIG_BIT : uint8_t {
-	// GYRO_FS_SEL [4:3]
-	GYRO_FS_SEL_250_DPS	= 0,           // 0b00000
-	GYRO_FS_SEL_500_DPS	= Bit3,        // 0b01000
-	GYRO_FS_SEL_1000_DPS	= Bit4,        // 0b10000
-	GYRO_FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
-
-	// FCHOICE_B [1:0]
-	FCHOICE_B_8KHZ_BYPASS_DLPF = Bit1 | Bit0, // 0b10 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
+	// FS_SEL [4:3]
+	FS_SEL_250_DPS	= 0,           // 0b00000
+	FS_SEL_500_DPS	= Bit3,        // 0b01000
+	FS_SEL_1000_DPS	= Bit4,        // 0b10000
+	FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
 };
 
 // ACCEL_CONFIG
 enum ACCEL_CONFIG_BIT : uint8_t {
-	// ACCEL_FS_SEL [4:3]
-	ACCEL_FS_SEL_2G  = 0,           // 0b00000
-	ACCEL_FS_SEL_4G  = Bit3,        // 0b01000
-	ACCEL_FS_SEL_8G  = Bit4,        // 0b10000
-	ACCEL_FS_SEL_16G = Bit4 | Bit3, // 0b11000
-};
-
-// ACCEL_CONFIG2
-enum ACCEL_CONFIG2_BIT : uint8_t {
-	ACCEL_FCHOICE_B_BYPASS_DLPF = Bit3,
+	// AFS_SEL [4:3]
+	AFS_SEL_2G  = 0,           // 0b00000
+	AFS_SEL_4G  = Bit3,        // 0b01000
+	AFS_SEL_8G  = Bit4,        // 0b10000
+	AFS_SEL_16G = Bit4 | Bit3, // 0b11000
 };
 
 // FIFO_EN
 enum FIFO_EN_BIT : uint8_t {
-	TEMP_OUT  = Bit7,
-	GYRO_XOUT = Bit6,
-	GYRO_YOUT = Bit5,
-	GYRO_ZOUT = Bit4,
-	ACCEL     = Bit3,
+	TEMP_FIFO_EN  = Bit7,
+	XG_FIFO_EN    = Bit6,
+	YG_FIFO_EN    = Bit5,
+	ZG_FIFO_EN    = Bit4,
+	ACCEL_FIFO_EN = Bit3,
 };
 
 // INT_ENABLE
@@ -137,13 +126,13 @@ enum INT_STATUS_BIT : uint8_t {
 
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
-	FIFO_EN  = Bit6,
-	FIFO_RST = Bit2,
+	FIFO_EN    = Bit6,
+	FIFO_RESET = Bit2,
 };
 
 // PWR_MGMT_1
 enum PWR_MGMT_1_BIT : uint8_t {
-	H_RESET    = Bit7,
+	DEVICE_RESET = Bit7,
 
 	CLKSEL_2   = Bit2,
 	CLKSEL_1   = Bit1,
@@ -153,9 +142,9 @@ enum PWR_MGMT_1_BIT : uint8_t {
 
 namespace FIFO
 {
-static constexpr size_t SIZE = 512;
+static constexpr size_t SIZE = 1024;
 
-// FIFO_DATA layout when FIFO_EN has GYRO_{X, Y, Z}OUT and ACCEL set
+// FIFO_DATA layout when FIFO_EN has {X, Y, Z}G_FIFO_EN and ACCEL set
 struct DATA {
 	uint8_t ACCEL_XOUT_H;
 	uint8_t ACCEL_XOUT_L;
@@ -172,4 +161,4 @@ struct DATA {
 };
 }
 
-} // namespace InvenSense_MPU9250
+} // namespace InvenSense_MPU6000

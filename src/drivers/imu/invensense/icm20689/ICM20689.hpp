@@ -32,15 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file MPU9250.hpp
+ * @file ICM20689.hpp
  *
- * Driver for the Invensense MPU9250 connected via SPI.
+ * Driver for the Invensense ICM20689 connected via SPI.
  *
  */
 
 #pragma once
 
-#include "InvenSense_MPU9250_registers.hpp"
+#include "InvenSense_ICM20689_registers.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
@@ -50,13 +50,13 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-using InvenSense_MPU9250::Register;
+using InvenSense_ICM20689::Register;
 
-class MPU9250 : public device::SPI, public px4::ScheduledWorkItem
+class ICM20689 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
-	MPU9250(int bus, uint32_t device, enum Rotation rotation = ROTATION_NONE);
-	~MPU9250() override;
+	ICM20689(int bus, uint32_t device, enum Rotation rotation = ROTATION_NONE);
+	~ICM20689() override;
 
 	bool Init();
 	void Start();

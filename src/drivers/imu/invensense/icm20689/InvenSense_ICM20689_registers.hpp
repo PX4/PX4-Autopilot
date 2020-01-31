@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file InvenSense_MPU9250_registers.hpp
+ * @file InvenSense_ICM20689_registers.hpp
  *
- * Invensense MPU9250 registers.
+ * Invensense ICM-20689 registers.
  *
  */
 
@@ -50,12 +50,12 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_MPU9250
+namespace InvenSense_ICM20689
 {
-static constexpr uint32_t SPI_SPEED = 20 * 1000 * 1000;
+static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8MHz SPI serial interface for communicating with all registers
 static constexpr uint8_t DIR_READ = 0x80;
 
-static constexpr uint8_t WHOAMI = 0x71;
+static constexpr uint8_t WHOAMI = 0x98;
 
 enum class Register : uint8_t {
 	CONFIG        = 0x1A,
@@ -90,11 +90,11 @@ enum CONFIG_BIT : uint8_t {
 
 // GYRO_CONFIG
 enum GYRO_CONFIG_BIT : uint8_t {
-	// GYRO_FS_SEL [4:3]
-	GYRO_FS_SEL_250_DPS	= 0,           // 0b00000
-	GYRO_FS_SEL_500_DPS	= Bit3,        // 0b01000
-	GYRO_FS_SEL_1000_DPS	= Bit4,        // 0b10000
-	GYRO_FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
+	// FS_SEL [4:3]
+	FS_SEL_250_DPS	= 0,           // 0b00000
+	FS_SEL_500_DPS	= Bit3,        // 0b01000
+	FS_SEL_1000_DPS	= Bit4,        // 0b10000
+	FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
 
 	// FCHOICE_B [1:0]
 	FCHOICE_B_8KHZ_BYPASS_DLPF = Bit1 | Bit0, // 0b10 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
@@ -111,16 +111,17 @@ enum ACCEL_CONFIG_BIT : uint8_t {
 
 // ACCEL_CONFIG2
 enum ACCEL_CONFIG2_BIT : uint8_t {
+	FIFO_SIZE = Bit7 | Bit6, // 0=512bytes,
 	ACCEL_FCHOICE_B_BYPASS_DLPF = Bit3,
 };
 
 // FIFO_EN
 enum FIFO_EN_BIT : uint8_t {
-	TEMP_OUT  = Bit7,
-	GYRO_XOUT = Bit6,
-	GYRO_YOUT = Bit5,
-	GYRO_ZOUT = Bit4,
-	ACCEL     = Bit3,
+	TEMP_FIFO_EN  = Bit7,
+	XG_FIFO_EN    = Bit6,
+	YG_FIFO_EN    = Bit5,
+	ZG_FIFO_EN    = Bit4,
+	ACCEL_FIFO_EN = Bit3,
 };
 
 // INT_ENABLE
@@ -143,19 +144,18 @@ enum USER_CTRL_BIT : uint8_t {
 
 // PWR_MGMT_1
 enum PWR_MGMT_1_BIT : uint8_t {
-	H_RESET    = Bit7,
-
-	CLKSEL_2   = Bit2,
-	CLKSEL_1   = Bit1,
-	CLKSEL_0   = Bit0,
+	DEVICE_RESET = Bit7,
+	CLKSEL_2     = Bit2,
+	CLKSEL_1     = Bit1,
+	CLKSEL_0     = Bit0,
 };
 
 
 namespace FIFO
 {
-static constexpr size_t SIZE = 512;
+static constexpr size_t SIZE = 512; // max is 4 KB, but limited in software to 512bytes via ACCEL_CONFIG2
 
-// FIFO_DATA layout when FIFO_EN has GYRO_{X, Y, Z}OUT and ACCEL set
+// FIFO_DATA layout when FIFO_EN has both {X, Y, Z}G_FIFO_EN and ACCEL_FIFO_EN set
 struct DATA {
 	uint8_t ACCEL_XOUT_H;
 	uint8_t ACCEL_XOUT_L;
@@ -172,4 +172,4 @@ struct DATA {
 };
 }
 
-} // namespace InvenSense_MPU9250
+} // namespace InvenSense_ICM20689
