@@ -19,7 +19,7 @@ uint16 average_time_to_empty   # predicted remaining battery capacity based on t
 uint16 serial_number       # serial number of the battery pack
 uint8 id                # ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed.
 
-float32[4] voltage_cell_v   # Battery individual cell voltages
+float32[10] voltage_cell_v   # Battery individual cell voltages
 float32 max_cell_voltage_delta   # Max difference between individual cell voltages
 
 bool is_powering_off		# Power off event imminent indication, false if unknown
