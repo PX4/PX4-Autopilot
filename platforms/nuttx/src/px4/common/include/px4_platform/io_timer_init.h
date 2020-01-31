@@ -61,7 +61,7 @@ static inline constexpr io_timers_channel_mapping_t initIOTimerChannelMapping(co
 		uint32_t channel_count = 0;
 
 		for (uint32_t channel = 0; channel < MAX_TIMER_IO_CHANNELS; ++channel) {
-			if (timer_io_channels_conf[channel].timer_channel == 0) {
+			if (timer_io_channels_conf[channel].gpio_in == 0 && timer_io_channels_conf[channel].gpio_out == 0) {
 				break;
 			}
 
@@ -88,7 +88,8 @@ static inline constexpr io_timers_channel_mapping_t initIOTimerChannelMapping(co
 	// validate that the number of configured channels matches DIRECT_PWM_OUTPUT_CHANNELS
 	uint32_t num_channels = 0;
 
-	while (num_channels < MAX_TIMER_IO_CHANNELS && timer_io_channels_conf[num_channels].timer_channel != 0) {
+	while (num_channels < MAX_TIMER_IO_CHANNELS &&
+	       (timer_io_channels_conf[num_channels].gpio_in != 0 || timer_io_channels_conf[num_channels].gpio_out != 0)) {
 		++num_channels;
 	}
 
