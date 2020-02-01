@@ -32,53 +32,43 @@
  ****************************************************************************/
 
 /**
- * Base class for defining the interface for simulaton of a sensor
+ * Class to write EKF state to file
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
-
 #pragma once
 
 #include "EKF/ekf.h"
-#include <math.h>
-#include <memory>
+#include "EKF/estimator_interface.h"
+#include "ekf_wrapper.h"
+#include <fstream>
+#include <iostream>
 
-namespace sensor_simulator
-{
-
-class Sensor
+class EkfLogger
 {
 public:
+	EkfLogger(std::shared_ptr<Ekf> ekf);
+	~EkfLogger();
+	void setFilePath(std::string file_path);
 
-	Sensor(std::shared_ptr<Ekf> ekf);
-	virtual ~Sensor();
+	void enableStateLogging(){ _state_logging_enabled = true; };
+	void disableStateLogging(){ _state_logging_enabled = false; };
+	void enableVarianceLogging(){ _variance_logging_enabled = true; };
+	void disableVarianceLogging(){ _variance_logging_enabled = false; };
 
-	void update(uint64_t time);
+	void writeStateToFile();
 
-	void setRateHz(uint32_t rate){ _update_period = uint32_t(1000000)/rate; }
-
-	bool isRunning() const { return _is_running; }
-
-	void start(){ _is_running = true; }
-
-	void stop(){ _is_running = false; }
-
-	bool should_send(uint64_t time) const;
-
-protected:
-
+private:
 	std::shared_ptr<Ekf> _ekf;
-	// time in microseconds
-	uint32_t _update_period;
-	uint64_t _time_last_data_sent{0};
+	EkfWrapper _ekf_wrapper;
 
-	bool _is_running{false};
+	std::string _file_path;
+	std::ofstream _file;
 
-	// Checks that the right amount time passed since last send data to fulfill rate
-	bool is_time_to_send(uint64_t time) const;
+	bool _file_opened {false};
 
-	// call set*Data function of Ekf
-	virtual void send(uint64_t time) = 0;
+	bool _state_logging_enabled {true};
+	bool _variance_logging_enabled {true};
+
+	void writeState();
 
 };
-
-} // namespace sensor_simulator

@@ -1,0 +1,15 @@
+name: Change Indicator
+
+on: [push]
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-bionic:2020-01-13
+    steps:
+    - uses: actions/checkout@v1
+    - name: main test
+      run: make test
+    - name: Check if there exists diff
+      run: git diff --exit-code
+      working-directory: test/change_indication
