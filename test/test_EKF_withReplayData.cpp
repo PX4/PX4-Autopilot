@@ -31,54 +31,42 @@
  *
  ****************************************************************************/
 
-/**
- * Base class for defining the interface for simulaton of a sensor
- * @author Kamil Ritz <ka.ritz@hotmail.com>
- */
-
-#pragma once
-
-#include "EKF/ekf.h"
+#include <gtest/gtest.h>
 #include <math.h>
 #include <memory>
+#include "EKF/ekf.h"
+#include "sensor_simulator/sensor_simulator.h"
+#include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/ekf_logger.h"
 
-namespace sensor_simulator
-{
-
-class Sensor
-{
-public:
-
-	Sensor(std::shared_ptr<Ekf> ekf);
-	virtual ~Sensor();
-
-	void update(uint64_t time);
-
-	void setRateHz(uint32_t rate){ _update_period = uint32_t(1000000)/rate; }
-
-	bool isRunning() const { return _is_running; }
-
-	void start(){ _is_running = true; }
-
-	void stop(){ _is_running = false; }
-
-	bool should_send(uint64_t time) const;
-
-protected:
+class EkfReplayTest : public ::testing::Test {
+ public:
+	EkfReplayTest(): ::testing::Test(),
+	_ekf{std::make_shared<Ekf>()},
+	_sensor_simulator(_ekf),
+	_ekf_wrapper(_ekf),
+	_ekf_logger(_ekf) {};
 
 	std::shared_ptr<Ekf> _ekf;
-	// time in microseconds
-	uint32_t _update_period;
-	uint64_t _time_last_data_sent{0};
-
-	bool _is_running{false};
-
-	// Checks that the right amount time passed since last send data to fulfill rate
-	bool is_time_to_send(uint64_t time) const;
-
-	// call set*Data function of Ekf
-	virtual void send(uint64_t time) = 0;
-
+	SensorSimulator _sensor_simulator;
+	EkfWrapper _ekf_wrapper;
+	EkfLogger _ekf_logger;
 };
 
-} // namespace sensor_simulator
+TEST_F(EkfReplayTest, replaySensorData)
+{
+	_sensor_simulator.loadSensorDataFromFile("../../../test/replay_data/iris_gps.csv");
+	_ekf_logger.setFilePath("../../../test/change_indication/iris_gps.csv");
+
+	// Start simulation and enable fusion of additional sensor types here
+	// By default the IMU, Baro and Mag sensor simulators are already running
+	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGpsFusion();
+
+	uint8_t logging_rate_hz = 10;
+	for(int i = 0; i < 35 * logging_rate_hz; ++i)
+	{
+		_sensor_simulator.runReplaySeconds(1.0f / logging_rate_hz);
+		_ekf_logger.writeStateToFile();
+	}
+}

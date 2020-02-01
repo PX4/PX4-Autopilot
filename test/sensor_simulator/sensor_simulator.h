@@ -43,6 +43,10 @@
 #pragma once
 
 #include <memory>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
 #include "imu.h"
 #include "mag.h"
@@ -56,6 +60,12 @@
 
 using namespace sensor_simulator::sensor;
 
+struct sensor_info {
+uint64_t timestamp {};
+enum measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type = IMU;
+std::array<double, 10> sensor_data {};
+};
+
 class SensorSimulator
 {
 
@@ -68,6 +78,9 @@ private:
 	void setSensorRateToDefault();
 	void startBasicSensor();
 	void updateSensors();
+	void setSensorDataFromReplayData();
+	void setSingleReplaySample(const sensor_info& sample);
+
 
 public:
 	SensorSimulator(std::shared_ptr<Ekf> ekf);
@@ -77,6 +90,9 @@ public:
 
 	void runSeconds(float duration_seconds);
 	void runMicroseconds(uint32_t duration);
+
+	void runReplaySeconds(float duration_seconds);
+	void runReplayMicroseconds(uint32_t duration);
 
 	void startBaro(){ _baro.start(); }
 	void stopBaro(){ _baro.stop(); }
@@ -99,6 +115,8 @@ public:
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 	void simulateOrientation(Quatf orientation);
 
+	void loadSensorDataFromFile(std::string filename);
+
 	Imu _imu;
 	Mag _mag;
 	Baro _baro;
@@ -107,4 +125,9 @@ public:
 	RangeFinder _rng;
 	Vio _vio;
 	Airspeed _airspeed;
+
+	bool _has_replay_data {false};
+	std::vector<sensor_info> _replay_data;
+	uint64_t _current_replay_data_index {0};
+
 };
