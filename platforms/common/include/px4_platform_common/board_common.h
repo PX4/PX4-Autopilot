@@ -384,6 +384,8 @@ typedef enum PX4_SOC_ARCH_ID_t {
 
 	PX4_SOC_ARCH_ID_STM32H7        =  0x0006,
 
+	PX4_SOC_ARCH_ID_NXPS32K146     =  0x0007,
+
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,
 	PX4_SOC_ARCH_ID_OCPOC          =  0x1003,
