@@ -257,6 +257,8 @@ if ros2_distro is None :
         rosversion_out = rosversion_out.rstrip()
         if rosversion_out not in ["<unknown>", "kinetic", "lunar", "melodic"]:
             ros2_distro = rosversion_out
+        else :
+            ros2_distro = ""
     except OSError as e:
         if e.errno == errno.ENOENT:
             if args.ros2_distro != None:
