@@ -41,10 +41,3 @@ endif()
 
 # Add googletest, defines gtest and gtest_main targets
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src ${CMAKE_CURRENT_BINARY_DIR}/googletest-build EXCLUDE_FROM_ALL)
-
-# Remove visibility.h from the compile flags for gtest because of poisoned exit()
-get_target_property(GTEST_COMPILE_FLAGS gtest COMPILE_OPTIONS)
-list(REMOVE_ITEM GTEST_COMPILE_FLAGS "-include")
-list(REMOVE_ITEM GTEST_COMPILE_FLAGS "visibility.h")
-set_target_properties(gtest PROPERTIES COMPILE_OPTIONS "${GTEST_COMPILE_FLAGS}")
-
