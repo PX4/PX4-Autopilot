@@ -47,6 +47,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <array>
 
 #include "imu.h"
 #include "mag.h"

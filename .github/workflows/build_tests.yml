@@ -27,9 +27,8 @@ jobs:
         run: make
       - name: clean build
         run: make clean
-      # TODO: This is not running at the moment
-      #- name: main test
-      #  run: make test
+      - name: main test
+        run: make test
   Mac-OS:
     runs-on: macos-latest
     steps:
@@ -38,6 +37,5 @@ jobs:
         run: make
       - name: clean build
         run: make clean
-      # TODO: This is not running at the moment
-      #- name: main test
-      #  run: make test
+      - name: main test
+        run: make test

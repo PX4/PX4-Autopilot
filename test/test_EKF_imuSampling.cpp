@@ -94,7 +94,7 @@ TEST_P(EkfImuSamplingTest, imuSamplingAtMultipleRates)
 	EXPECT_TRUE(matrix::isEqual(accel, imu_sample_buffered.delta_vel/imu_sample_buffered.delta_vel_dt, 1e-7f));
 }
 
-INSTANTIATE_TEST_CASE_P(imuSamplingAtMultipleRates,
+INSTANTIATE_TEST_SUITE_P(imuSamplingAtMultipleRates,
 			EkfImuSamplingTest,
 			::testing::Values(
 				std::make_tuple<float,float,Vector3f,Vector3f>(1.0f,  1.0f,Vector3f{0.0f,0.0f,0.0f},Vector3f{-0.46f,0.87f,0.20f}),

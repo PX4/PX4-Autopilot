@@ -96,7 +96,7 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	EXPECT_TRUE(matrix::isEqual(vel, simulated_velocity_earth));
  	const Vector3f vel_wind_expected = simulated_velocity_earth - R_to_earth_sim * (Vector3f(airspeed_body(0), airspeed_body(1), 0.0f));
 	EXPECT_TRUE(matrix::isEqual(vel_wind_earth, Vector2f(vel_wind_expected.slice<2,1>(0,0))));
-	EXPECT_FLOAT_EQ(height_before_pressure_correction, 0.0f);
+	EXPECT_NEAR(height_before_pressure_correction, 0.0f, 1e-5f);
 
 	// Apply height correction
 	const float static_pressure_coef_xp = 1.0f;
