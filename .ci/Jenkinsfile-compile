@@ -38,6 +38,7 @@ pipeline {
                      "mro_x21_default", "mro_ctrl-zero-f7_default", "mro_x21-777_default",
                      "nxp_fmuk66-v3_default",
                      "nxp_fmurt1062-v1_default",
+                     "nxp_rddrone-uavcan146_default",
                      "omnibus_f4sd_default",
                      "px4_fmu-v2_default", "px4_fmu-v2_fixedwing", "px4_fmu-v2_lpe", "px4_fmu-v2_multicopter", "px4_fmu-v2_rover", "px4_fmu-v2_test",
                      "px4_fmu-v3_default",
