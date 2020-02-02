@@ -32,43 +32,57 @@
  ****************************************************************************/
 
 /**
- * PCF8583 rotorfreq (i2c) pool interval
+ * @file PCF8583.hpp
  *
- * @reboot_required true
- * @group Sensors
- * @unit us
+ * @author ThunderFly s.r.o., Vít Hanousek <hanousekvit@thunderfly.cz>
+ * @url https://github.com/ThunderFly-aerospace/TFRPM01
+ *
+ * Driver for Main Rotor frequency sensor using PCF8583 I2C counter.
  */
-PARAM_DEFINE_INT32(PCF8583_POOL, 1000000);
 
-/**
- * PCF8583 rotorfreq (i2c) i2c address
- *
- * @reboot_required true
- * @group Sensors
- * @value 80 0x50
- * @value 81 0x51
- */
-PARAM_DEFINE_INT32(PCF8583_ADDR, 80);
+#pragma once
 
-/**
- * PCF8583 rotorfreq (i2c) counter reset value
- *
- * Internal device counter is reset to 0 when overun this value,
- * counter is able to store upto 6 digits
- * reset of counter takes some time - measurement with reset has worse accurancy
- *
- * @reboot_required true
- * @group Sensors
- * @value 0 - reset avter every measurement
- */
-PARAM_DEFINE_INT32(PCF8583_RESET, 500000);
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <drivers/device/i2c.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/rpm.h>
+#include <drivers/drv_hrt.h>
 
-/**
- * PCF8583 rotorfreq (i2c) magnet count
- *
- * Nmumber of signals per rotation of rotor
- *
- * @reboot_required true
- * @min 1
- */
-PARAM_DEFINE_INT32(PCF8583_MAGNET, 2);
+/* Configuration Constants */
+#define PCF8583_BASEADDR_DEFAULT             0x50
+
+class PCF8583 : public device::I2C, public px4::ScheduledWorkItem, public ModuleParams
+{
+public:
+	PCF8583(int bus = PX4_I2C_BUS_EXPANSION, int address = PCF8583_BASEADDR_DEFAULT);
+	~PCF8583() override;
+
+	int    init() override;
+	void   print_info();
+
+private:
+
+	int  probe() override;
+	void Run() override ; // Perform a poll cycle; overide for ScheduledWorkItem
+
+	int            getCounter();
+	void           resetCounter();
+
+	uint8_t        readRegister(uint8_t reg);
+	void           setRegister(uint8_t reg, uint8_t value);
+
+	int            _count{0};
+	hrt_abstime    _last_measurement_time{0};
+
+	uORB::Publication<rpm_s> _rpm_pub{ORB_ID(rpm)};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::PCF8583_ADDR>) _param_pcf8583_addr,
+		(ParamInt<px4::params::PCF8583_POOL>) _param_pcf8583_pool,
+		(ParamInt<px4::params::PCF8583_RESET>) _param_pcf8583_reset,
+		(ParamInt<px4::params::PCF8583_MAGNET>) _param_pcf8583_magnet
+	)
+};
