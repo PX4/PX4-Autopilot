@@ -153,12 +153,14 @@ sbus_init(const char *device, bool singlewire)
 int
 sbus_config(int sbus_fd, bool singlewire)
 {
+	int ret = -1;
+
 #if defined(__PX4_LINUX)
 
 	struct termios2 tio = {};
 
 	if (0 != ioctl(sbus_fd, TCGETS2, &tio)) {
-		return -1;
+		return ret;
 	}
 
 	/**
@@ -180,12 +182,11 @@ sbus_config(int sbus_fd, bool singlewire)
 	tio.c_cc[VTIME] = 0;
 
 	if (0 != ioctl(sbus_fd, TCSETS2, &tio)) {
-		return -1;
+		return ret;
 	}
 
-	return 0;
+	ret = 0;
 #else
-	int ret = -1;
 
 	if (sbus_fd >= 0) {
 		struct termios t;
@@ -205,16 +206,16 @@ sbus_config(int sbus_fd, bool singlewire)
 #endif
 		}
 
-		/* initialise the decoder */
-		partial_frame_count = 0;
-		last_rx_time = hrt_absolute_time();
-		sbus_frame_drops = 0;
-
 		ret = 0;
 	}
 
-	return ret;
 #endif
+	/* initialise the decoder */
+	partial_frame_count = 0;
+	last_rx_time = hrt_absolute_time();
+	sbus_frame_drops = 0;
+
+	return ret;
 }
 
 void
