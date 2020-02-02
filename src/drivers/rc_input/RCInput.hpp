@@ -48,12 +48,14 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/parameter_update.h>
 
 #include "crsf_telemetry.h"
 
@@ -61,7 +63,7 @@
 # include <systemlib/ppm_decode.h>
 #endif
 
-class RCInput : public ModuleBase<RCInput>, public px4::ScheduledWorkItem
+class RCInput : public ModuleBase<RCInput>, public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
 
@@ -112,8 +114,14 @@ private:
 
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RC_RSSI_DEVID>) _param_rssi_dev_id,
+		(ParamInt<px4::params::RC_RSSI_CH>) _param_rssi_ch
+	)
 
 	input_rc_s	_rc_in{};
 

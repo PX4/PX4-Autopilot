@@ -45,6 +45,7 @@ constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(const char *device) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
+	ModuleParams(nullptr),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval"))
 {
@@ -266,6 +267,12 @@ void RCInput::Run()
 
 		perf_begin(_cycle_perf);
 
+		parameter_update_s param_update;
+
+		if (_parameter_update_sub.update(&param_update)) {
+			updateParams();
+		}
+
 		const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
 #if defined(SPEKTRUM_POWER)
@@ -304,30 +311,40 @@ void RCInput::Run()
 #endif /* SPEKTRUM_POWER */
 
 		/* update ADC sampling */
-#ifdef ADC_RC_RSSI_CHANNEL
 		adc_report_s adc;
 
 		if (_adc_sub.update(&adc)) {
-			const unsigned adc_chans = sizeof(adc.channel_id) / sizeof(adc.channel_id[0]);
+			union {
+				int32_t i;
+				uint32_t u;
+			} u2i;
+			u2i.i = _param_rssi_dev_id.get();
 
-			for (unsigned i = 0; i < adc_chans; i++) {
-				if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
+			if (adc.device_id == u2i.u) { // device id matched
+				int target_channel = _param_rssi_ch.get();
 
-					if (_analog_rc_rssi_volt < 0.0f) {
-						_analog_rc_rssi_volt = adc.channel_value[i];
-					}
+				if (target_channel != -1) { // RSSI not disabled
+					if (adc.channel_id[target_channel] == target_channel) { // channel matched
+						float adc_volt = adc.raw_data[target_channel] *
+								 adc.v_ref[target_channel] /
+								 adc.resolution[target_channel];
 
-					_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc.channel_value[i] * 0.005f;
+						if (_analog_rc_rssi_volt < 0.0f) {
+							_analog_rc_rssi_volt = adc_volt;
+						}
 
-					/* only allow this to be used if we see a high RSSI once */
-					if (_analog_rc_rssi_volt > 2.5f) {
-						_analog_rc_rssi_stable = true;
+						_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc_volt * 0.005f;
+
+						if (_analog_rc_rssi_volt > 2.5f) {
+							_analog_rc_rssi_stable = true;
+						}
+
+					} else {
+						PX4_DEBUG("invalid RC RSSI channel: %d", target_channel);
 					}
 				}
 			}
 		}
-
-#endif /* ADC_RC_RSSI_CHANNEL */
 
 		bool rc_updated = false;
 
