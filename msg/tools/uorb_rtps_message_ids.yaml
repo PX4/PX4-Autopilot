@@ -281,6 +281,8 @@ rtps:
     id: 125
   - msg: logger_status
     id: 126
+  - msg: rpm
+    id: 127
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
