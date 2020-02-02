@@ -196,9 +196,9 @@ serial_port_to_wq(const char *serial)
 		return wq_configurations::UART8;
 	}
 
-	PX4_ERR("unknown serial port: %s", serial);
+	PX4_DEBUG("custom serial port: %s", serial);
 
-	return wq_configurations::hp_default;
+	return wq_configurations::UART_CUSTOM;
 }
 
 static void *
