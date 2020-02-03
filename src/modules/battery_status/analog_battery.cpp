@@ -22,10 +22,6 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent) :
 {
 	char param_name[17];
 
-	_analog_param_handles.cnt_v_volt = param_find("BAT_CNT_V_VOLT");
-
-	_analog_param_handles.cnt_v_curr = param_find("BAT_CNT_V_CURR");
-
 	_analog_param_handles.v_offs_cur = param_find("BAT_V_OFFS_CURR");
 
 	snprintf(param_name, sizeof(param_name), "BAT%d_V_DIV", index);
@@ -34,8 +30,11 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent) :
 	snprintf(param_name, sizeof(param_name), "BAT%d_A_PER_V", index);
 	_analog_param_handles.a_per_v = param_find(param_name);
 
-	snprintf(param_name, sizeof(param_name), "BAT%d_ADC_CHANNEL", index);
-	_analog_param_handles.adc_channel = param_find(param_name);
+	snprintf(param_name, sizeof(param_name), "BAT%d_V_CHANNEL", index);
+	_analog_param_handles.v_channel = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_I_CHANNEL", index);
+	_analog_param_handles.i_channel = param_find(param_name);
 
 	_analog_param_handles.v_div_old = param_find("BAT_V_DIV");
 	_analog_param_handles.a_per_v_old = param_find("BAT_A_PER_V");
@@ -43,12 +42,13 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent) :
 }
 
 void
-AnalogBattery::updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_raw, int32_t current_raw,
-		bool selected_source, int priority, float throttle_normalized)
+AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw,
+				      bool selected_source, int priority, float throttle_normalized)
 {
-	float voltage_v = (voltage_raw * _analog_params.cnt_v_volt) * _analog_params.v_div;
-	float current_a = ((current_raw * _analog_params.cnt_v_curr) - _analog_params.v_offs_cur) * _analog_params.a_per_v;
+	float voltage_v = voltage_raw * _analog_params.v_div;
+	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
 
+	// TODO: voltage_v should be changed to voltage_raw?
 	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
@@ -70,8 +70,8 @@ bool AnalogBattery::is_valid()
 
 int AnalogBattery::get_voltage_channel()
 {
-	if (_analog_params.adc_channel >= 0) {
-		return _analog_params.adc_channel;
+	if (_analog_params.v_channel >= 0) {
+		return _analog_params.v_channel;
 
 	} else {
 		return DEFAULT_V_CHANNEL[_index - 1];
@@ -80,8 +80,12 @@ int AnalogBattery::get_voltage_channel()
 
 int AnalogBattery::get_current_channel()
 {
-	// TODO: Possibly implement parameter for current sense channel
-	return DEFAULT_I_CHANNEL[_index - 1];
+	if (_analog_params.i_channel >= 0) {
+		return _analog_params.i_channel;
+
+	} else {
+		return DEFAULT_I_CHANNEL[_index - 1];
+	}
 }
 
 void
@@ -92,32 +96,17 @@ AnalogBattery::updateParams()
 				    &_analog_params.v_div, _first_parameter_update);
 		migrateParam<float>(_analog_param_handles.a_per_v_old, _analog_param_handles.a_per_v, &_analog_params.a_per_v_old,
 				    &_analog_params.a_per_v, _first_parameter_update);
-		migrateParam<int>(_analog_param_handles.adc_channel_old, _analog_param_handles.adc_channel,
-				  &_analog_params.adc_channel_old, &_analog_params.adc_channel, _first_parameter_update);
+		migrateParam<int>(_analog_param_handles.adc_channel_old, _analog_param_handles.v_channel,
+				  &_analog_params.adc_channel_old, &_analog_params.v_channel, _first_parameter_update);
 
 	} else {
 		param_get(_analog_param_handles.v_div, &_analog_params.v_div);
 		param_get(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
-		param_get(_analog_param_handles.adc_channel, &_analog_params.adc_channel);
+		param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
+		param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	}
 
-	param_get(_analog_param_handles.cnt_v_volt, &_analog_params.cnt_v_volt);
-	param_get(_analog_param_handles.cnt_v_curr, &_analog_params.cnt_v_curr);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
-
-	/* scaling of ADC ticks to battery voltage */
-	if (_analog_params.cnt_v_volt < 0.0f) {
-		/* apply scaling according to defaults if set to default */
-		_analog_params.cnt_v_volt = (BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN / px4_arch_adc_dn_fullcount());
-		param_set_no_notification(_analog_param_handles.cnt_v_volt, &_analog_params.cnt_v_volt);
-	}
-
-	/* scaling of ADC ticks to battery current */
-	if (_analog_params.cnt_v_curr < 0.0f) {
-		/* apply scaling according to defaults if set to default */
-		_analog_params.cnt_v_curr = (BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN / px4_arch_adc_dn_fullcount());
-		param_set_no_notification(_analog_param_handles.cnt_v_curr, &_analog_params.cnt_v_curr);
-	}
 
 	if (_analog_params.v_div <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
