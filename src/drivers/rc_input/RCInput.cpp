@@ -308,21 +308,20 @@ void RCInput::Run()
 		adc_report_s adc;
 
 		if (_adc_sub.update(&adc)) {
-			const unsigned adc_chans = sizeof(adc.channel_id) / sizeof(adc.channel_id[0]);
+			if (adc.channel_id[ADC_RC_RSSI_CHANNEL] == ADC_RC_RSSI_CHANNEL) {
+				float adc_volt = adc.raw_data[ADC_RC_RSSI_CHANNEL] *
+						 adc.v_ref[ADC_RC_RSSI_CHANNEL] /
+						 adc.resolution[ADC_RC_RSSI_CHANNEL];
 
-			for (unsigned i = 0; i < adc_chans; i++) {
-				if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
+				if (_analog_rc_rssi_volt < 0.0f) {
+					_analog_rc_rssi_volt = adc_volt;
+				}
 
-					if (_analog_rc_rssi_volt < 0.0f) {
-						_analog_rc_rssi_volt = adc.channel_value[i];
-					}
+				_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc_volt * 0.005f;
 
-					_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc.channel_value[i] * 0.005f;
-
-					/* only allow this to be used if we see a high RSSI once */
-					if (_analog_rc_rssi_volt > 2.5f) {
-						_analog_rc_rssi_stable = true;
-					}
+				/* only allow this to be used if we see a high RSSI once */
+				if (_analog_rc_rssi_volt > 2.5f) {
+					_analog_rc_rssi_stable = true;
 				}
 			}
 		}
