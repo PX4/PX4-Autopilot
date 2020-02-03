@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__linux_sbus
-	MAIN linux_sbus
+	MODULE drivers__imu__invensense__mpu6000
+	MAIN mpu6000
 	COMPILE_FLAGS
 	SRCS
-		linux_sbus.cpp
+		MPU6000.cpp
+		MPU6000.hpp
+		mpu6000_main.cpp
 	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
 	)
-

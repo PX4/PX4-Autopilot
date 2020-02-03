@@ -68,11 +68,14 @@ enum class Register : uint8_t {
 
 	INT_STATUS    = 0x3A,
 
-	INT_PIN_CFG   = 0x37,
 	INT_ENABLE    = 0x38,
+	FIFO_WM_INT_STATUS = 0x39,
 
 	TEMP_OUT_H    = 0x41,
 	TEMP_OUT_L    = 0x42,
+
+	FIFO_WM_TH1   = 0x60,
+	FIFO_WM_TH2   = 0x61,
 
 	USER_CTRL     = 0x6A,
 	PWR_MGMT_1    = 0x6B,
@@ -85,7 +88,6 @@ enum class Register : uint8_t {
 
 // CONFIG
 enum CONFIG_BIT : uint8_t {
-	FIFO_WM   = Bit7,
 	FIFO_MODE = Bit6, // when the FIFO is full, additional writes will not be written to FIFO
 
 	DLPF_CFG_BYPASS_DLPF_8KHZ = 7, // Rate 8 kHz [2:0]
@@ -171,7 +173,6 @@ struct DATA {
 	uint8_t GYRO_ZOUT_H;
 	uint8_t GYRO_ZOUT_L;
 };
-static_assert(sizeof(DATA) == 14);
 }
 
 } // namespace InvenSense_ICM20602

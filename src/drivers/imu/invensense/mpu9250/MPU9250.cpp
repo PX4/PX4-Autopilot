@@ -70,7 +70,6 @@ MPU9250::~MPU9250()
 		board_dma_free(_dma_data_buffer, FIFO::SIZE);
 	}
 
-	perf_free(_interval_perf);
 	perf_free(_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
@@ -261,8 +260,6 @@ void MPU9250::Stop()
 
 void MPU9250::Run()
 {
-	perf_count(_interval_perf);
-
 	// use timestamp from the data ready interrupt if available,
 	//  otherwise use the time now roughly corresponding with the last sample we'll pull from the FIFO
 	const hrt_abstime timestamp_sample = (hrt_elapsed_time(&_time_data_ready) < FIFO_INTERVAL) ? _time_data_ready :
@@ -370,7 +367,6 @@ void MPU9250::Run()
 
 void MPU9250::PrintInfo()
 {
-	perf_print_counter(_interval_perf);
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);

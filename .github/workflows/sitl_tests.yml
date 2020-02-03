@@ -11,20 +11,42 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-simulation-bionic:2020-01-13
+    container: px4io/px4-dev-simulation-bionic:2020-01-29
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
     - name: Download MAVSDK
-      run: wget https://github.com/mavlink/MAVSDK/releases/download/v0.23.0/mavsdk_0.23.0_ubuntu18.04_amd64.deb
+      run: wget https://github.com/mavlink/MAVSDK/releases/download/v0.24.0/mavsdk_0.24.0_ubuntu18.04_amd64.deb
     - name: Install MAVSDK
-      run: dpkg -i mavsdk_0.23.0_ubuntu18.04_amd64.deb
-    - name: Install psutil
-      run: pip3 install psutil
+      run: dpkg -i mavsdk_0.24.0_ubuntu18.04_amd64.deb
     - name: Build PX4 in SITL integration test mode
-      # Build all targets
-      run: DONT_RUN=1 make px4_sitl gazebo mavsdk_tests
-    - name: Run simulation tests
-      # Grind configuration: Change iterations to a number between 20 and 100 (30 minutes to about 3 hours runtime)
-      run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --iterations 1 --fail-early
+      run: DONT_RUN=1 make px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage gazebo mavsdk_tests
+    - name: Run multicopter simulation test
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris --speed-factor 20 --iterations 1 --fail-early
+    - name: Run multicopter with optical flow simulation test
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris_opt_flow_mockup --speed-factor 1 --iterations 1 --fail-early
+    - name: Run multicopter with VIO sensor simulation test
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris_vision --speed-factor 1 --iterations 1 --fail-early
+    - name: Run VTOL simulation test #
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --model standard_vtol --speed-factor 20 --iterations 1 --fail-early
+
+    # Report test coverage
+    - name: disable the keychain credential helper
+      run: git config --global credential.helper ""
+    - name: enable the local store credential helper
+      run: git config --global --add credential.helper store
+    - name: add credential
+      run: echo "https://x-access-token:${{ secrets.ACCESS_TOKEN }}@github.com" >> ~/.git-credentials
+    - name: tell git to use https instead of ssh whenever it encounters it
+      run: 'git config --global url."https://github.com/".insteadof git@github.com:'
+    - name: Check code coverage
+      run: |
+        mkdir -p coverage
+        lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
+    - name: Upload coverage information to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        flags: mavsdk
+        file: coverage/lcov.info

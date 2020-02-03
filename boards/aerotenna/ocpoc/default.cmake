@@ -28,7 +28,6 @@ px4_add_board(
 		imu/mpu9250
 		lights/rgbled
 		linux_pwm_out
-		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		pwm_out_sim

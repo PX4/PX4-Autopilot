@@ -252,13 +252,17 @@
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
+#define HW_REV_VER_ADC_BASE STM32_ADC3_BASE
+
+#define SYSTEM_ADC_BASE STM32_ADC1_BASE
+
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* HW Version and Revision drive signals Default to 1 to detect */
 
 #define BOARD_HAS_HW_VERSIONING
 
-#define GPIO_HW_VER_REV_DRIVE  /* PA4 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
+#define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
 #define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
 #define HW_INFO_INIT           {'V','1','x', 'x',0}
