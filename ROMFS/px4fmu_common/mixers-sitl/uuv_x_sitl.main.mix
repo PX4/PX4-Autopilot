@@ -1,3 +1,6 @@
+Mixer for Unmanned Underwater Vehicles (UUV) with X-Motor configuration
+==========================================================================
+
 # @board px4_fmu-v2 exclude
 
 M: 4
