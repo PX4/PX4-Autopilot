@@ -52,8 +52,6 @@ VehicleAcceleration::VehicleAcceleration() :
 VehicleAcceleration::~VehicleAcceleration()
 {
 	Stop();
-
-	perf_free(_interval_perf);
 }
 
 bool VehicleAcceleration::Start()
@@ -85,40 +83,40 @@ void VehicleAcceleration::Stop()
 
 void VehicleAcceleration::CheckFilters()
 {
-	if ((hrt_elapsed_time(&_filter_check_last) > 100_ms)) {
-		_filter_check_last = hrt_absolute_time();
+	// check filter periodically (roughly once every 1-3 seconds depending on sensor configuration)
+	if (_interval_count > 2500) {
+		bool sample_rate_changed = false;
 
 		// calculate sensor update rate
-		const float sample_interval_avg = perf_mean(_interval_perf);
+		const float sample_interval_avg = _interval_sum / _interval_count;
 
 		if (PX4_ISFINITE(sample_interval_avg) && (sample_interval_avg > 0.0f)) {
 
-			const float update_rate_hz = 1.0f / sample_interval_avg;
+			const float update_rate_hz = 1.e6f / sample_interval_avg;
 
 			if ((fabsf(update_rate_hz) > 0.0f) && PX4_ISFINITE(update_rate_hz)) {
 				_update_rate_hz = update_rate_hz;
 
 				// check if sample rate error is greater than 1%
 				if ((fabsf(_update_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
-					++_sample_rate_incorrect_count;
+					sample_rate_changed = true;
 				}
 			}
 		}
 
-		const bool sample_rate_updated = (_sample_rate_incorrect_count > 50);
 		const bool lp_updated = (fabsf(_lp_filter.get_cutoff_freq() - _param_imu_accel_cutoff.get()) > 0.01f);
 
-		if (sample_rate_updated || lp_updated) {
-			PX4_INFO("updating filter, sample rate: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)_update_rate_hz);
+		if (sample_rate_changed || lp_updated) {
+			PX4_DEBUG("resetting filters, sample rate: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)_update_rate_hz);
 			_filter_sample_rate = _update_rate_hz;
 
 			// update software low pass filters
 			_lp_filter.set_cutoff_frequency(_filter_sample_rate, _param_imu_accel_cutoff.get());
 			_lp_filter.reset(_acceleration_prev);
-
-			// reset state
-			_sample_rate_incorrect_count = 0;
 		}
+
+		// reset sample interval accumulator
+		_timestamp_sample_last = 0;
 	}
 }
 
@@ -167,8 +165,8 @@ bool VehicleAcceleration::SensorSelectionUpdate(bool force)
 
 						_corrections.set_device_id(report.device_id);
 
-						// reset sample rate monitor
-						_sample_rate_incorrect_count = 0;
+						// reset sample interval accumulator on sensor change
+						_timestamp_sample_last = 0;
 
 						return true;
 					}
@@ -218,7 +216,17 @@ void VehicleAcceleration::Run()
 		if (_sensor_sub[_selected_sensor_sub_index].copy(&sensor_data)) {
 
 			if (sensor_updated) {
-				perf_count_interval(_interval_perf, sensor_data.timestamp_sample);
+				// collect sample interval average for filters
+				if ((_timestamp_sample_last > 0) && (sensor_data.timestamp_sample > _timestamp_sample_last)) {
+					_interval_sum += (sensor_data.timestamp_sample - _timestamp_sample_last);
+					_interval_count++;
+
+				} else {
+					_interval_sum = 0.f;
+					_interval_count = 0.f;
+				}
+
+				_timestamp_sample_last = sensor_data.timestamp_sample;
 			}
 
 			CheckFilters();
