@@ -84,8 +84,6 @@ void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint64_
 			}
 		}
 
-		_vibe[i] = _vibe[i] * 0.99f + 0.01f * fabsf(val[i] - _lp[i]);
-
 		// XXX replace with better filter, make it auto-tune to update rate
 		_lp[i] = _lp[i] * 0.99f + 0.01f * val[i];
 

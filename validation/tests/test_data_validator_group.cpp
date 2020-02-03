@@ -72,15 +72,6 @@ DataValidatorGroup  *setup_base_group(unsigned *sibling_count)
 	assert(DataValidator::ERROR_FLAG_NO_ERROR == group->failover_state());
 	assert(-1 == group->failover_index());
 
-	//no vibration yet
-	float vibe_off =  group->get_vibration_offset(base_timestamp, 0);
-	printf("vibe_off: %f \n", (double)vibe_off);
-	assert(-1.0f == group->get_vibration_offset(base_timestamp, 0));
-
-	float vibe_fact = group->get_vibration_factor(base_timestamp);
-	printf("vibe_fact: %f \n", (double)vibe_fact);
-	assert(0.0f == vibe_fact);
-
 	//this sets the timeout on all current members of the group, as well as members added later
 	group->set_timeout(base_timeout_usec);
 	//the following sets the threshold on all CURRENT members of the group, but not any added later
@@ -91,7 +82,6 @@ DataValidatorGroup  *setup_base_group(unsigned *sibling_count)
 	*sibling_count = num_siblings;
 
 	return group;
-
 }
 
 /**
@@ -341,51 +331,6 @@ void test_simple_failover()
 }
 
 /**
- * Verify that we get expected vibration values after injecting samples.
- */
-void test_vibration()
-{
-	unsigned num_siblings = 0;
-	uint64_t timestamp = base_timestamp;
-
-	DataValidatorGroup *group =  setup_base_group(&num_siblings);
-
-	//now we add validators
-	DataValidator *validator  = add_validator_to_group(group);
-	assert(nullptr != validator);
-	num_siblings++;
-	float *vibes = validator->vibration_offset();
-	assert(nullptr != vibes);
-	//printf("val vibes: %f \n", vibes[0]);
-	//should be no vibration data yet
-	assert(0 == vibes[0]);
-
-	float vibe_o = group->get_vibration_offset(timestamp, 0);
-	//printf("group vibe_o %f \n", vibe_o);
-	// there should be no known vibe offset before samples are inserted
-	assert(-1.0f == vibe_o);
-
-	float rms_err = 0.0f;
-	//insert some swinging values
-	insert_values_around_mean(validator, 3.14159f, 1000, &rms_err, &timestamp);
-	vibes = validator->vibration_offset();
-	assert(nullptr != vibes);
-	printf("val1 vibes: %f rms_err: %f \n", vibes[0], (double)rms_err);
-
-	vibe_o = group->get_vibration_offset(timestamp, 0);
-	printf("group vibe_o %f \n", vibe_o);
-	//the one validator's vibration offset should match the group's vibration offset
-	assert(vibes[0] == vibe_o);
-
-	//this should be "The best RMS value of a non-timed out sensor"
-	float group_vibe_fact = group->get_vibration_factor(timestamp);
-	float val1_rms = (validator->rms())[0];
-	printf("group_vibe_fact: %f val1_rms: %f\n", (double)group_vibe_fact, (double)val1_rms);
-	assert(group_vibe_fact == val1_rms);
-
-}
-
-/**
  * Force once sensor to fail and ensure that we detect it
  */
 void test_sensor_failure()
@@ -434,7 +379,6 @@ int main(int argc, char *argv[])
 	test_put();
 	test_simple_failover();
 	test_priority_switch();
-	test_vibration();
 	test_sensor_failure();
 
 	return 0; //passed
