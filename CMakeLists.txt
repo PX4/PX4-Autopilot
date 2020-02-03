@@ -296,6 +296,13 @@ px4_add_common_flags()
 px4_os_add_flags()
 
 #=============================================================================
+# board cmake init (optional)
+#
+if(EXISTS ${PX4_BOARD_DIR}/init.cmake)
+	include(${PX4_BOARD_DIR}/init.cmake)
+endif()
+
+#=============================================================================
 # message, and airframe generation
 #
 include(px4_metadata)
