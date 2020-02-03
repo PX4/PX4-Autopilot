@@ -139,6 +139,7 @@ void ADC::update_adc_report(hrt_abstime now)
 {
 	adc_report_s adc = {};
 	adc.timestamp = now;
+	adc.device_id = BUILTIN_ADC_DEVID;
 
 	unsigned max_num = _channel_count;
 
@@ -148,7 +149,10 @@ void ADC::update_adc_report(hrt_abstime now)
 
 	for (unsigned i = 0; i < max_num; i++) {
 		adc.channel_id[i] = _samples[i].am_channel;
-		adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
+		adc.raw_data[i] = _samples[i].am_data;
+		adc.v_ref[i] = 3.3f;    // TODO: Is this correct? All boards have 3v3 v_ref?
+		adc.resolution[i] = px4_arch_adc_dn_fullcount();
+		//adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
 	}
 
 	_to_adc_report.publish(adc);

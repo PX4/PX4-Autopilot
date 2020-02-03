@@ -58,6 +58,8 @@ typedef struct __attribute__((packed)) px4_adc_msg_t {
 
 #define ADC0_DEVICE_PATH	"/dev/adc0"
 
+#define BUILTIN_ADC_DEVID	0xffffffff	// TODO: integrate into existing ID management
+
 
 __BEGIN_DECLS
 
