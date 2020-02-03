@@ -80,11 +80,7 @@ void test_init()
 	//verify that calling print doesn't crash tests
 	validator->print();
 
-	float *vibe_offset = validator->vibration_offset();
-	assert(0.0f == vibe_offset[0]);
-
 	delete validator; //force delete
-
 }
 
 void test_put()
@@ -129,7 +125,6 @@ void test_put()
 	assert(DataValidator::ERROR_FLAG_TIMEOUT == (DataValidator::ERROR_FLAG_TIMEOUT & validator->state()));
 
 	delete validator; //force delete
-
 }
 
 /**
@@ -160,7 +155,6 @@ void test_stale_detector()
 	assert(DataValidator::ERROR_FLAG_STALE_DATA == (DataValidator::ERROR_FLAG_STALE_DATA & state));
 
 	delete validator; //force delete
-
 }
 
 /**
@@ -188,13 +182,7 @@ void test_rms_calculation()
 	       (double)diff, (double)diff_frac);
 	assert(diff_frac < 0.03f);
 
-	float *vibe_offset = validator->vibration_offset();
-	float vibe_diff = fabsf(0.01005f - vibe_offset[0]);  //TODO calculate this vibration value
-	printf("vibe: %f", (double)vibe_offset[0]);
-	assert(vibe_diff < 1E-3f);
-
 	delete validator; //force delete
-
 }
 
 /**
@@ -309,7 +297,6 @@ int main(int argc, char *argv[])
 	test_stale_detector();
 	test_rms_calculation();
 	test_error_tracking();
-	//TODO verify vibration calculation
 
 	return 0; //passed
 }
