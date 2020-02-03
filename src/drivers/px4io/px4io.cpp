@@ -3012,8 +3012,8 @@ start(int argc, char *argv[])
 		} else if (!strcmp(argv[extra_args], "hil")) {
 			hitl_mode = true;
 
-		} else {
-			warnx("unknown argument: %s", argv[1]);
+		} else if (argv[extra_args][0] != '\0') {
+			PX4_WARN("unknown argument: %s", argv[extra_args]);
 		}
 	}
 
