@@ -95,8 +95,7 @@ ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &repl
 
 		return true;
 
-	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)
-		   || sub.orb_meta == ORB_ID(vehicle_gps_position)) {
+	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)) {
 		return publishTopic(sub, data);
 	} // else: do not publish
 
@@ -117,7 +116,10 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
 		if (sub.multi_id == 0) {
-			_gps_msg_id = msg_id;
+			_gps0_msg_id = msg_id;
+
+		} else {
+			_gps1_msg_id = msg_id;
 		}
 
 	} else if (sub.orb_meta == ORB_ID(optical_flow)) {
@@ -136,8 +138,7 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	// the main loop should only handle publication of the following topics, the sensor topics are
 	// handled separately in publishEkf2Topics()
 	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status)
-		      && sub.orb_meta != ORB_ID(vehicle_land_detected) &&
-		      (sub.orb_meta != ORB_ID(vehicle_gps_position) || sub.multi_id == 0);
+		      && sub.orb_meta != ORB_ID(vehicle_land_detected);
 }
 
 bool
@@ -153,7 +154,8 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 
 	handle_sensor_publication(ekf2_timestamps.airspeed_timestamp_rel, _airspeed_msg_id);
 	handle_sensor_publication(ekf2_timestamps.distance_sensor_timestamp_rel, _distance_sensor_msg_id);
-	handle_sensor_publication(ekf2_timestamps.gps_timestamp_rel, _gps_msg_id);
+	handle_sensor_publication(ekf2_timestamps.gps0_timestamp_rel, _gps_msg_id);
+	handle_sensor_publication(ekf2_timestamps.gps1_timestamp_rel, _gps_msg_id);
 	handle_sensor_publication(ekf2_timestamps.optical_flow_timestamp_rel, _optical_flow_msg_id);
 	handle_sensor_publication(ekf2_timestamps.vehicle_air_data_timestamp_rel, _vehicle_air_data_msg_id);
 	handle_sensor_publication(ekf2_timestamps.vehicle_magnetometer_timestamp_rel, _vehicle_magnetometer_msg_id);
@@ -234,7 +236,8 @@ ReplayEkf2::onExitMainLoop()
 
 	print_sensor_statistics(_airspeed_msg_id, "airspeed");
 	print_sensor_statistics(_distance_sensor_msg_id, "distance_sensor");
-	print_sensor_statistics(_gps_msg_id, "vehicle_gps_position");
+	print_sensor_statistics(_gps0_msg_id, "vehicle_gps_position_0");
+	print_sensor_statistics(_gps1_msg_id, "vehicle_gps_position_1");
 	print_sensor_statistics(_optical_flow_msg_id, "optical_flow");
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
 	print_sensor_statistics(_vehicle_air_data_msg_id, "vehicle_air_data");
