@@ -178,7 +178,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.g
 # vscode launch.json
 #  FIXME: hack to skip if px4_io-v2 because it's a built within another build (eg px4_fmu-v5)
 if(NOT PX4_BOARD MATCHES "px4_io-v2")
-	if(CONFIG_ARCH_CHIP_MK66FN2M0VMD18)
+	if(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
+		set(DEBUG_DEVICE "MIMXRT1062XXX6A")
+		set(DEBUG_SVD_FILE "MIMXRT1052.svd")
+	elseif(CONFIG_ARCH_CHIP_MK66FN2M0VMD18)
 		set(DEBUG_DEVICE "MK66FN2M0xxx18")
 		set(DEBUG_SVD_FILE "MK66F18.svd")
 	elseif(CONFIG_ARCH_CHIP_STM32F100C8)
@@ -220,15 +223,19 @@ if(NOT PX4_BOARD MATCHES "px4_io-v2")
 	elseif(CONFIG_ARCH_CHIP_STM32H743ZI)
 		set(DEBUG_DEVICE "STM32H743ZI")
 		set(DEBUG_SVD_FILE "STM32H7x3.svd")
+	else()
+		set(DEBUG_DEVICE "")
+		set(DEBUG_SVD_FILE "unknown")
 	endif()
 
-	file(GLOB_RECURSE DEBUG_SVD_FILE_PATH ${CMAKE_SOURCE_DIR}/../cmsis-svd/*/${DEBUG_SVD_FILE})
-	if(DEBUG_SVD_FILE-NOTFOUND)
-		set(DEBUG_SVD_FILE "")
-	else()
+	file(GLOB_RECURSE DEBUG_SVD_FILE_PATH
+		LIST_DIRECTORIES false
+		${CMAKE_SOURCE_DIR}/../cmsis-svd/data/*/${DEBUG_SVD_FILE}
+	)
+	if(DEBUG_SVD_FILE)
 		message(STATUS "Found SVD: ${DEBUG_SVD_FILE_PATH}")
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 	endif()
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 endif()
 
 add_custom_target(debug

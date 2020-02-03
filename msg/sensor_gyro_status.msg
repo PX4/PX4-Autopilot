@@ -11,7 +11,6 @@ uint8 rotation
 uint32[3] clipping        # clipping per axis
 
 uint16 measure_rate
-uint16 sample_rate
 
 float32 full_scale_range
 

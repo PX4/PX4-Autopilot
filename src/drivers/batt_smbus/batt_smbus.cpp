@@ -339,23 +339,17 @@ void BATT_SMBUS::set_undervoltage_protection(float average_current)
 }
 
 //@NOTE: Currently unused, could be helpful for debugging a parameter set though.
-int BATT_SMBUS::dataflash_read(uint16_t &address, void *data)
+int BATT_SMBUS::dataflash_read(uint16_t &address, void *data, const unsigned length)
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
-	// address is 2 bytes
 	int result = _interface->block_write(code, &address, 2, true);
 
 	if (result != PX4_OK) {
 		return result;
 	}
 
-	// @NOTE: The data buffer MUST be 32 bytes.
-	result = _interface->block_read(code, data, DATA_BUFFER_SIZE + 2, true);
-
-	// When reading a BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS the first 2 bytes will be the command code
-	// We will remove these since we do not care about the command code.
-	//memcpy(data, &((uint8_t *)data)[2], DATA_BUFFER_SIZE);
+	result = _interface->block_read(code, data, length, true);
 
 	return result;
 }
@@ -364,10 +358,15 @@ int BATT_SMBUS::dataflash_write(uint16_t &address, void *data, const unsigned le
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
-	uint8_t tx_buf[DATA_BUFFER_SIZE + 2] = {};
+	uint8_t tx_buf[MAC_DATA_BUFFER_SIZE + 2] = {};
 
 	tx_buf[0] = ((uint8_t *)&address)[0];
 	tx_buf[1] = ((uint8_t *)&address)[1];
+
+	if (length > MAC_DATA_BUFFER_SIZE) {
+		return PX4_ERROR;
+	}
+
 	memcpy(&tx_buf[2], data, length);
 
 	// code (1), byte_count (1), addr(2), data(32) + pec
@@ -489,9 +488,8 @@ int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const uns
 		return result;
 	}
 
-	// returns the 2 bytes of addr + data[]
-	result = _interface->block_read(code, data, length + 2, true);
-	memcpy(data, &((uint8_t *)data)[2], length);
+	result = _interface->block_read(code, data, length, true);
+	memmove(data, &((uint8_t *)data)[2], length - 2); // remove the address bytes
 
 	return result;
 }
@@ -504,7 +502,7 @@ int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const un
 	address[0] = ((uint8_t *)&cmd_code)[0];
 	address[1] = ((uint8_t *)&cmd_code)[1];
 
-	uint8_t tx_buf[DATA_BUFFER_SIZE + 2] = {};
+	uint8_t tx_buf[MAC_DATA_BUFFER_SIZE + 2] = {};
 	memcpy(tx_buf, address, 2);
 
 	if (data != nullptr) {
@@ -545,10 +543,10 @@ int BATT_SMBUS::lifetime_data_flush()
 
 int BATT_SMBUS::lifetime_read_block_one()
 {
+	const int buffer_size = 32 + 2; // 32 bytes of data and 2 bytes of address
+	uint8_t lifetime_block_one[buffer_size] = {};
 
-	uint8_t lifetime_block_one[32] = {};
-
-	if (PX4_OK != manufacturer_read(BATT_SMBUS_LIFETIME_BLOCK_ONE, lifetime_block_one, 32)) {
+	if (PX4_OK != manufacturer_read(BATT_SMBUS_LIFETIME_BLOCK_ONE, lifetime_block_one, buffer_size)) {
 		PX4_INFO("Failed to read lifetime block 1.");
 		return PX4_ERROR;
 	}

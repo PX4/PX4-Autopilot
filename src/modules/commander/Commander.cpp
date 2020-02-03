@@ -81,7 +81,6 @@
 #include <cstring>
 
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/mission.h>
 
 typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
@@ -287,7 +286,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "check")) {
-		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, status, status_flags, true, true, false, 30_s);
+		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, status, status_flags, true, true, true, 30_s);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
 		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, safety_s{},
@@ -1192,17 +1191,12 @@ Commander::run()
 {
 	bool sensor_fail_tune_played = false;
 
-	param_t _param_airmode = param_find("MC_AIRMODE");
-	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
+	const param_t param_airmode = param_find("MC_AIRMODE");
+	const param_t param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
 	/* initialize */
-	if (led_init() != OK) {
-		PX4_WARN("LED init failed");
-	}
-
-	if (buzzer_init() != OK) {
-		PX4_WARN("Buzzer init failed");
-	}
+	led_init();
+	buzzer_init();
 
 	{
 		// we need to do an initial publication to make sure uORB allocates the buffer, which cannot happen
@@ -1221,9 +1215,6 @@ Commander::run()
 
 
 	get_circuit_breaker_params();
-
-	/* command ack */
-
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
@@ -1289,7 +1280,7 @@ Commander::run()
 	arm_auth_init(&mavlink_log_pub, &status.system_id);
 
 	// run preflight immediately to find all relevant parameters, but don't report
-	PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, _arm_requirements.global_position, false, false,
+	PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, _arm_requirements.global_position, false, true,
 				       hrt_elapsed_time(&_boot_timestamp));
 
 	while (!should_exit()) {
@@ -1364,13 +1355,13 @@ Commander::run()
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
-			if (_param_airmode != PARAM_INVALID && _param_rc_map_arm_switch != PARAM_INVALID) {
-				param_get(_param_airmode, &airmode);
-				param_get(_param_rc_map_arm_switch, &rc_map_arm_switch);
+			if (param_airmode != PARAM_INVALID && param_rc_map_arm_switch != PARAM_INVALID) {
+				param_get(param_airmode, &airmode);
+				param_get(param_rc_map_arm_switch, &rc_map_arm_switch);
 
 				if (airmode == 2 && rc_map_arm_switch == 0) {
 					airmode = 1; // change to roll/pitch airmode
-					param_set(_param_airmode, &airmode);
+					param_set(param_airmode, &airmode);
 					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch")
 				}
 			}
@@ -1429,16 +1420,25 @@ Commander::run()
 			const bool previous_safety_off = _safety.safety_off;
 
 			if (_safety_sub.copy(&_safety)) {
+				// disarm if safety is now on and still armed
+				if (armed.armed && _safety.safety_switch_available && !_safety.safety_off) {
 
-				/* disarm if safety is now on and still armed */
-				if (armed.armed && (status.hil_state == vehicle_status_s::HIL_STATE_OFF)
-				    && _safety.safety_switch_available && !_safety.safety_off) {
+					bool safety_disarm_allowed = (status.hil_state == vehicle_status_s::HIL_STATE_OFF);
 
-					if (TRANSITION_CHANGED == arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_STANDBY,
-							&armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
-							&status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp))
-					   ) {
-						_status_changed = true;
+					// if land detector is available then prevent disarming via safety button if not landed
+					if (hrt_elapsed_time(&_land_detector.timestamp) < 1_s) {
+
+						bool maybe_landing = (_land_detector.landed || _land_detector.maybe_landed);
+
+						if (!maybe_landing) {
+							safety_disarm_allowed = false;
+						}
+					}
+
+					if (safety_disarm_allowed) {
+						if (TRANSITION_CHANGED == arm_disarm(false, true, &mavlink_log_pub, "Safety button")) {
+							_status_changed = true;
+						}
 					}
 				}
 
@@ -2340,6 +2340,8 @@ Commander::get_circuit_breaker_params()
 			CBRK_FLIGHTTERM_KEY);
 	status_flags.circuit_breaker_engaged_posfailure_check = circuit_breaker_enabled_by_val(_param_cbrk_velposerr.get(),
 			CBRK_VELPOSERR_KEY);
+	status_flags.circuit_breaker_vtol_fw_arming_check = circuit_breaker_enabled_by_val(_param_cbrk_vtolarming.get(),
+			CBRK_VTOLARMING_KEY);
 }
 
 void
@@ -3355,7 +3357,7 @@ void *commander_low_prio_loop(void *arg)
 						tune_positive(true);
 
 						// time since boot not relevant here
-						if (PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, false, false, false, 30_s)) {
+						if (PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, false, false, true, 30_s)) {
 
 							status_flags.condition_system_sensors_initialized = true;
 						}
@@ -3499,7 +3501,7 @@ void Commander::enable_hil()
 void Commander::mission_init()
 {
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	mission_s mission{};
+	mission_s mission;
 
 	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
 		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
@@ -3516,8 +3518,7 @@ void Commander::mission_init()
 			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
 		}
 
-		uORB::Publication<mission_s> mission_pub{ORB_ID(mission)};
-		mission_pub.publish(mission);
+		_mission_pub.publish(mission);
 	}
 }
 
@@ -3559,11 +3560,17 @@ void Commander::data_link_check()
 			switch (telemetry.remote_type) {
 			case telemetry_status_s::MAV_TYPE_GCS:
 
-				// Recover from data link lost
+				// Initial connection or recovery from data link lost
 				if (status.data_link_lost) {
 					if (telemetry.heartbeat_time > _datalink_last_heartbeat_gcs) {
 						status.data_link_lost = false;
 						_status_changed = true;
+
+						if (!armed.armed && !status_flags.condition_calibration_enabled) {
+							// make sure to report preflight check failures to a connecting GCS
+							PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags,
+										       _arm_requirements.global_position, true, true, hrt_elapsed_time(&_boot_timestamp));
+						}
 
 						if (_datalink_last_heartbeat_gcs != 0) {
 							mavlink_log_info(&mavlink_log_pub, "Data link regained");

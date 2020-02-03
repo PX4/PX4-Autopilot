@@ -296,7 +296,11 @@ Navigator::run()
 				}
 
 				rep->previous.valid = true;
+				rep->previous.timestamp = hrt_absolute_time();
+
 				rep->current.valid = true;
+				rep->current.timestamp = hrt_absolute_time();
+
 				rep->next.valid = false;
 
 				// CMD_DO_REPOSITION is acknowledged by commander
@@ -316,7 +320,9 @@ Navigator::run()
 
 				if (home_position_valid()) {
 					rep->current.yaw = cmd.param4;
+
 					rep->previous.valid = true;
+					rep->previous.timestamp = hrt_absolute_time();
 
 				} else {
 					rep->current.yaw = get_local_position()->yaw;
@@ -336,6 +342,8 @@ Navigator::run()
 				rep->current.alt = cmd.param7;
 
 				rep->current.valid = true;
+				rep->current.timestamp = hrt_absolute_time();
+
 				rep->next.valid = false;
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
@@ -639,6 +647,11 @@ Navigator::run()
 			break;
 		}
 
+		// Do not execute any state machine while we are disarmed
+		if (_vstatus.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+			navigation_mode_new = nullptr;
+		}
+
 		// update the vehicle status
 		_previous_nav_state = _vstatus.nav_state;
 
@@ -669,6 +682,7 @@ Navigator::run()
 		      || (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION))) {
 
 			reset_triplets();
+
 			_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 			_pos_sp_triplet.current.valid = true;
 			_pos_sp_triplet.current.timestamp = hrt_absolute_time();
@@ -830,14 +844,27 @@ Navigator::reset_cruising_speed()
 void
 Navigator::reset_triplets()
 {
-	_pos_sp_triplet.current.valid = false;
-	_pos_sp_triplet.previous.valid = false;
-	_pos_sp_triplet.next.valid = false;
-	_pos_sp_triplet_updated = true;
-	_pos_sp_triplet.previous.acceptance_radius = get_default_acceptance_radius();
-	_pos_sp_triplet.current.acceptance_radius = get_default_acceptance_radius();
-	_pos_sp_triplet.next.acceptance_radius = get_default_acceptance_radius();
+	reset_position_setpoint(_pos_sp_triplet.previous);
+	reset_position_setpoint(_pos_sp_triplet.current);
+	reset_position_setpoint(_pos_sp_triplet.next);
 
+	_pos_sp_triplet_updated = true;
+}
+
+void
+Navigator::reset_position_setpoint(position_setpoint_s &sp)
+{
+	sp = position_setpoint_s{};
+	sp.timestamp = hrt_absolute_time();
+	sp.lat = static_cast<double>(NAN);
+	sp.lon = static_cast<double>(NAN);;
+	sp.loiter_radius = get_loiter_radius();
+	sp.acceptance_radius = get_default_acceptance_radius();
+	sp.cruising_speed = get_cruising_speed();
+	sp.cruising_throttle = get_cruising_throttle();
+	sp.valid = false;
+	sp.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+	sp.disable_weather_vane = true;
 }
 
 float

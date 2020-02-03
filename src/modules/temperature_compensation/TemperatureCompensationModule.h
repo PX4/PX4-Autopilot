@@ -80,8 +80,6 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
-
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
@@ -91,6 +89,8 @@ public:
 	bool init();
 
 private:
+
+	void Run() override;
 
 	void accelPoll();
 	void gyroPoll();

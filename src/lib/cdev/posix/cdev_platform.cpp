@@ -201,6 +201,7 @@ extern "C" {
 		}
 
 		if (ret < 0) {
+			errno = -ret;
 			return -1;
 		}
 

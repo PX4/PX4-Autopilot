@@ -86,4 +86,24 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
  */
 bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r, const matrix::Vector3f &line_a,
 		       const matrix::Vector3f &line_b, matrix::Vector3f &res);
+
+/**
+ * Adds e.g. feed-forward to the setpoint making sure existing or added NANs have no influence on control.
+ * This function is udeful to support all the different setpoint combinations of position, velocity, acceleration with NAN representing an uncommited value.
+ * @param setpoint existing possibly NAN setpoint to add to
+ * @param addition value/NAN to add to the setpoint
+ */
+void addIfNotNan(float &setpoint, const float addition);
+
+/**
+ * _addIfNotNan for Vector3f treating each element individually
+ * @see _addIfNotNan
+ */
+void addIfNotNanVector3f(matrix::Vector3f &setpoint, const matrix::Vector3f &addition);
+
+/**
+ * Overwrites elements of a Vector3f which are NaN with zero
+ * @param vector possibly containing NAN elements
+ */
+void setZeroIfNanVector3f(matrix::Vector3f &vector);
 }

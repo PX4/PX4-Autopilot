@@ -8,6 +8,7 @@ import os
 import psutil
 import subprocess
 import sys
+import signal
 
 
 test_matrix = [
@@ -17,15 +18,30 @@ test_matrix = [
         "timeout_min": 20,
     },
     {
-        "model": "standard_vtol",
-        "test_filter": "[vtol]",
+        "model": "iris_opt_flow",
+        "test_filter": "[multicopter_offboard]",
         "timeout_min": 20,
     },
     {
-        "model": "standard_plane",
-        "test_filter": "[plane]",
-        "timeout_min": 25,
-    }
+        "model": "iris_opt_flow_mockup",
+        "test_filter": "[multicopter_offboard]",
+        "timeout_min": 20,
+    },
+    {
+        "model": "iris_vision",
+        "test_filter": "[multicopter_offboard]",
+        "timeout_min": 20,
+    },
+    {
+       "model": "standard_vtol",
+       "test_filter": "[vtol]",
+       "timeout_min": 20,
+    },
+    # {
+    #     "model": "plane",
+    #     "test_filter": "[plane]",
+    #     "timeout_min": 25,
+    # }
 ]
 
 
@@ -79,6 +95,13 @@ class Runner:
         if returncode is not None:
             return returncode
 
+        print("Sending SIGINT to {}".format(self.process.pid))
+        self.process.send_signal(signal.SIGINT)
+        try:
+            return self.process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
+
         print("Terminating {}".format(self.process.pid))
         self.process.terminate()
 
@@ -93,7 +116,7 @@ class Runner:
 
 
 class Px4Runner(Runner):
-    def __init__(self, workspace_dir, log_dir, speed_factor):
+    def __init__(self, model, workspace_dir, log_dir, speed_factor):
         super().__init__(log_dir)
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
@@ -106,13 +129,13 @@ class Px4Runner(Runner):
                 "-d"
             ]
         self.env = {"PATH": os.environ['PATH'],
-                    "PX4_SIM_MODEL": "iris",
+                    "PX4_SIM_MODEL": model,
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.log_prefix = "px4"
 
 
 class GzserverRunner(Runner):
-    def __init__(self, workspace_dir, log_dir, speed_factor):
+    def __init__(self, model, workspace_dir, log_dir, speed_factor):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
@@ -120,9 +143,12 @@ class GzserverRunner(Runner):
                     workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
+                    "PX4_SIM_SPEED_FACTOR": str(speed_factor),
+                    "DISPLAY": os.environ['DISPLAY']}
         self.cmd = "gzserver"
-        self.args = [workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
+        self.args = ["--verbose",
+                     workspace_dir + "/Tools/sitl_gazebo/worlds/" +
+                     model + ".world"]
         self.log_prefix = "gzserver"
 
 
@@ -135,8 +161,9 @@ class GzclientRunner(Runner):
                     # workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "DISPLAY": ":0"}
+                    "DISPLAY": os.environ['DISPLAY']}
         self.cmd = "gzclient"
+        self.args = ["--verbose"]
         self.log_prefix = "gzclient"
 
 
@@ -148,6 +175,29 @@ class TestRunner(Runner):
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
         self.args = [test]
         self.log_prefix = "test_runner"
+
+
+def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--log-dir",
+                        help="Directory for log files, stdout if not provided")
+    parser.add_argument("--speed-factor", default=1,
+                        help="How fast to run the simulation")
+    parser.add_argument("--iterations", type=int, default=1,
+                        help="How often to run all tests")
+    parser.add_argument("--fail-early", action='store_true',
+                        help="Abort on first unsuccessful test")
+    parser.add_argument("--gui", default=False, action='store_true',
+                        help="Display gzclient with simulation")
+    parser.add_argument("--model", type=str, default='all',
+                        help="Specify which model to run")
+    args = parser.parse_args()
+
+    if not is_everything_ready():
+        sys.exit(1)
+
+    run(args)
 
 
 def determine_tests(workspace_dir, filter):
@@ -185,100 +235,107 @@ def is_everything_ready():
         result = False
     if not os.path.isfile('build/px4_sitl_default/bin/px4'):
         print("PX4 SITL is not built\n"
-              "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
+              "run `DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
         result = False
     if not os.path.isfile('build/px4_sitl_default/mavsdk_tests/mavsdk_tests'):
         print("Test runner is not built\n"
-              "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
+              "run `DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
         result = False
     return result
 
 
-def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--log-dir",
-                        help="Directory for log files, stdout if not provided")
-    parser.add_argument("--speed-factor", default=1,
-                        help="How fast to run the simulation")
-    parser.add_argument("--iterations", type=int, default=1,
-                        help="How often to run the simulation")
-    parser.add_argument("--fail-early", action='store_true',
-                        help="Abort on first failure")
-    parser.add_argument("--gui", default=False, action='store_true',
-                        help="Display gzclient with")
-    args = parser.parse_args()
-
-    if not is_everything_ready():
-        sys.exit(1)
-
+def run(args):
     overall_success = True
 
-    for x in range(args.iterations):
-        print("Test iterations: %d" % (x + 1))
-        for group in test_matrix:
-            print("Running test group for '{}' with filter '{}'"
-                  .format(group['model'], group['test_filter']))
+    for iteration in range(args.iterations):
+        if args.iterations > 1:
+            print("Test iteration: {}".format(iteration + 1, args.iterations))
 
-            tests = determine_tests(os.getcwd(), group['test_filter'])
+        was_success = run_test_group(args)
 
-            for test in tests:
+        if not was_success:
+            overall_success = False
 
-                print("Running test '{}'".format(test))
-
-                px4_runner = Px4Runner(
-                    os.getcwd(), args.log_dir, args.speed_factor)
-                px4_runner.start(group)
-
-                gzserver_runner = GzserverRunner(
-                    os.getcwd(), args.log_dir, args.speed_factor)
-                gzserver_runner.start(group)
-
-                if args.gui:
-                    gzclient_runner = GzclientRunner(
-                        os.getcwd(), args.log_dir)
-                    gzclient_runner.start(group)
-
-                test_runner = TestRunner(
-                    os.getcwd(), args.log_dir, group, test)
-                test_runner.start(group)
-
-                returncode = test_runner.wait(group['timeout_min'])
-                was_success = (returncode == 0)
-
-                if args.gui:
-                    returncode = gzclient_runner.stop()
-                    print("gzclient exited with {}".format(returncode))
-
-                returncode = gzserver_runner.stop()
-                print("gzserver exited with {}".format(returncode))
-
-                px4_runner.stop()
-                print("px4 exited with {}".format(returncode))
-
-                # Test run results
-                print("Test '{}': {}".
-                      format(test, "Success" if was_success else "Fail"))
-
-                # Flag it as group test failure, but finish the rest of the
-                # test targets.
-                if not was_success:
-                    overall_success = False
-
-        # Abort after the full matrix / test group
-        if not overall_success and x > 0 and args.fail_early:
-            print("Aborting with a failure in test run %d" % (x + 1))
-            sys.exit(0 if overall_success else 1)
+        if args.iterations > 1 and not was_success and args.fail_early:
+            print("Aborting with a failure in test run {}/{}".
+                  format(iteration + 1, args.iterations))
+            break
 
     print("Overall result: {}".
           format("SUCCESS" if overall_success else "FAIL"))
-
-    if x > 0:
-        print("Test iterations: %d" % (x + 1))
-
     sys.exit(0 if overall_success else 1)
+
+
+def run_test_group(args):
+    overall_success = True
+
+    if args.model == 'all':
+        models = test_matrix
+    else:
+        found = False
+        for elem in test_matrix:
+            if elem['model'] == args.model:
+                models = [elem]
+                found = True
+        if not found:
+            print("Specified model is not defined")
+            models = []
+
+    for group in models:
+        print("Running test group for '{}' with filter '{}'"
+              .format(group['model'], group['test_filter']))
+
+        tests = determine_tests(os.getcwd(), group['test_filter'])
+
+        for test in tests:
+            print("Running test '{}'".format(test))
+            was_success = run_test(test, group, args)
+            print("Test '{}': {}".
+                  format(test, "Success" if was_success else "Fail"))
+
+            if not was_success:
+                overall_success = False
+
+            if not was_success and args.fail_early:
+                print("Aborting early")
+                return False
+
+    return overall_success
+
+
+def run_test(test, group, args):
+    px4_runner = Px4Runner(
+        group['model'], os.getcwd(), args.log_dir, args.speed_factor)
+    px4_runner.start(group)
+
+    gzserver_runner = GzserverRunner(
+        group['model'], os.getcwd(), args.log_dir, args.speed_factor)
+    gzserver_runner.start(group)
+
+    if args.gui:
+        gzclient_runner = GzclientRunner(
+            os.getcwd(), args.log_dir)
+        gzclient_runner.start(group)
+
+    test_runner = TestRunner(os.getcwd(), args.log_dir, group, test)
+    test_runner.start(group)
+
+    returncode = test_runner.wait(group['timeout_min'])
+    is_success = (returncode == 0)
+
+    if args.gui:
+        returncode = gzclient_runner.stop()
+        print("gzclient exited with {}".format(returncode))
+
+    returncode = gzserver_runner.stop()
+    print("gzserver exited with {}".format(returncode))
+
+    px4_runner.stop()
+    print("px4 exited with {}".format(returncode))
+
+    return is_success
 
 
 if __name__ == '__main__':

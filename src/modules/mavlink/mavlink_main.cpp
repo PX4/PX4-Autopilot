@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -465,22 +465,16 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 				}
 			}
 
-			// We forward messages targetted at the same system, or addressed to all systems, or
-			// if not target system is set.
-			const bool target_system_id_ok =
-				(target_system_id == 0 || target_system_id == self->get_system_id());
-
-			// We forward messages that are targetting another component, or are addressed to all
-			// components, or if the target component is not set.
-			const bool target_component_id_ok =
-				(target_component_id == 0 || target_component_id != self->get_component_id());
+			// If it's a message only for us, we keep it, otherwise, we forward it.
+			const bool targeted_only_at_us =
+				(target_system_id == self->get_system_id() &&
+				 target_component_id == self->get_component_id());
 
 			// We don't forward heartbeats unless it's specifically enabled.
 			const bool heartbeat_check_ok =
 				(msg->msgid != MAVLINK_MSG_ID_HEARTBEAT || self->forward_heartbeats_enabled());
 
-			if (target_system_id_ok && target_component_id_ok && heartbeat_check_ok) {
-
+			if (!targeted_only_at_us && heartbeat_check_ok) {
 				inst->pass_message(msg);
 			}
 		}
@@ -1659,6 +1653,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
+		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
 		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);

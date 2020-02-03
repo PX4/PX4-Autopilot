@@ -58,9 +58,6 @@ ICM20608G::ICM20608G(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20608);
 	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20608);
 
-	_px4_accel.set_sample_rate(ACCEL_RATE);
-	_px4_gyro.set_sample_rate(GYRO_RATE);
-
 	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
 	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);
 }
@@ -73,12 +70,10 @@ ICM20608G::~ICM20608G()
 		board_dma_free(_dma_data_buffer, FIFO::SIZE);
 	}
 
-	perf_free(_interval_perf);
 	perf_free(_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
-	perf_free(_drdy_count_perf);
 	perf_free(_drdy_interval_perf);
 }
 
@@ -221,7 +216,6 @@ int ICM20608G::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ICM20608G::DataReady()
 {
-	perf_count(_drdy_count_perf);
 	perf_count(_drdy_interval_perf);
 
 	_data_ready_count++;
@@ -274,7 +268,10 @@ void ICM20608G::Stop()
 
 void ICM20608G::Run()
 {
-	perf_count(_interval_perf);
+	// use timestamp from the data ready interrupt if available,
+	//  otherwise use the time now roughly corresponding with the last sample we'll pull from the FIFO
+	const hrt_abstime timestamp_sample = (hrt_elapsed_time(&_time_data_ready) < FIFO_INTERVAL) ? _time_data_ready :
+					     hrt_absolute_time();
 
 	// read FIFO count
 	uint8_t fifo_count_buf[3] {};
@@ -294,13 +291,6 @@ void ICM20608G::Run()
 
 	} else if (samples > 16) {
 		// not technically an overflow, but more samples than we expected
-		perf_count(_fifo_overflow_perf);
-		ResetFIFO();
-		return;
-	}
-
-	// check for FIFO overflow
-	if (RegisterRead(Register::INT_STATUS) & INT_STATUS_BIT::FIFO_OFLOW_INT) {
 		perf_count(_fifo_overflow_perf);
 		ResetFIFO();
 		return;
@@ -327,15 +317,11 @@ void ICM20608G::Run()
 
 	perf_end(_transfer_perf);
 
-	static constexpr uint32_t gyro_dt = FIFO_INTERVAL / FIFO_GYRO_SAMPLES;
-	// estimate timestamp of first sample in the FIFO from number of samples and fill rate
-	const hrt_abstime timestamp_sample = _time_data_ready - ((samples - 1) * gyro_dt);
-
-	PX4Accelerometer::FIFOSample accel{};
+	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = FIFO_INTERVAL / FIFO_ACCEL_SAMPLES;
 
-	PX4Gyroscope::FIFOSample gyro{};
+	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = FIFO_INTERVAL / FIFO_GYRO_SAMPLES;
@@ -390,12 +376,10 @@ void ICM20608G::Run()
 
 void ICM20608G::PrintInfo()
 {
-	perf_print_counter(_interval_perf);
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
-	perf_print_counter(_drdy_count_perf);
 	perf_print_counter(_drdy_interval_perf);
 
 	_px4_accel.print_status();

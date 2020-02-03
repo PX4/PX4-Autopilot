@@ -133,6 +133,18 @@ __EXPORT extern void		perf_end(perf_counter_t handle);
 __EXPORT extern void		perf_set_elapsed(perf_counter_t handle, int64_t elapsed);
 
 /**
+ * Register a measurement
+ *
+ * This call applies to counters that operate over ranges of time; PC_ELAPSED etc.
+ * If a call is made without a corresponding perf_begin call. It sets the
+ * value provided as argument as a new measurement.
+ *
+ * @param handle		The handle returned from perf_alloc.
+ * @param time			The time for the interval.
+ */
+__EXPORT extern void		perf_count_interval(perf_counter_t handle, uint64_t time);
+
+/**
  * Set a counter
  *
  * This call applies to counters of type PC_COUNT. It (re-)sets the count.
@@ -227,6 +239,14 @@ __EXPORT extern void		perf_reset_all(void);
  * @return			event_count
  */
 __EXPORT extern uint64_t	perf_event_count(perf_counter_t handle);
+
+/**
+ * Return current mean
+ *
+ * @param handle		The handle returned from perf_alloc.
+ * @param return		mean
+ */
+__EXPORT extern float		perf_mean(perf_counter_t handle);
 
 __END_DECLS
 
