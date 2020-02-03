@@ -543,7 +543,7 @@ int BATT_SMBUS::lifetime_data_flush()
 
 int BATT_SMBUS::lifetime_read_block_one()
 {
-	int buffer_size = 32 + 2; // 32 bytes of data and 2 bytes of address
+	const int buffer_size = 32 + 2; // 32 bytes of data and 2 bytes of address
 	uint8_t lifetime_block_one[buffer_size] = {};
 
 	if (PX4_OK != manufacturer_read(BATT_SMBUS_LIFETIME_BLOCK_ONE, lifetime_block_one, buffer_size)) {
