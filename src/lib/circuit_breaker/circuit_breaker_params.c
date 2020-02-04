@@ -90,6 +90,7 @@ PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 0);
  * Circuit breaker for airspeed sensor
  *
  * Setting this parameter to 162128 will disable the check for an airspeed sensor.
+ * The sensor driver will not be started and it cannot be calibrated.
  * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
  *
  * @reboot_required true
