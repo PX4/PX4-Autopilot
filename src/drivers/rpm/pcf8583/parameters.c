@@ -31,51 +31,44 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * PCF8583 rotorfreq (i2c) pool interval
+ *
+ * @reboot_required true
+ * @group Sensors
+ * @unit us
+ */
+PARAM_DEFINE_INT32(PCF8583_POOL, 1000000);
 
-#include <sensor_corrections/SensorCorrections.hpp>
+/**
+ * PCF8583 rotorfreq (i2c) i2c address
+ *
+ * @reboot_required true
+ * @group Sensors
+ * @value 80 0x50
+ * @value 81 0x51
+ */
+PARAM_DEFINE_INT32(PCF8583_ADDR, 80);
 
-#include <lib/mathlib/math/Limits.hpp>
-#include <lib/matrix/matrix/math.hpp>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_accel_integrated.h>
-#include <uORB/topics/sensor_gyro_integrated.h>
-#include <uORB/topics/vehicle_imu.h>
+/**
+ * PCF8583 rotorfreq (i2c) counter reset value
+ *
+ * Internal device counter is reset to 0 when overun this value,
+ * counter is able to store upto 6 digits
+ * reset of counter takes some time - measurement with reset has worse accurancy
+ *
+ * @reboot_required true
+ * @group Sensors
+ * @value 0 - reset avter every measurement
+ */
+PARAM_DEFINE_INT32(PCF8583_RESET, 500000);
 
-namespace sensors
-{
-
-class VehicleIMU : public ModuleParams, public px4::WorkItem
-{
-public:
-	VehicleIMU() = delete;
-	VehicleIMU(uint8_t accel_index = 0, uint8_t gyro_index = 0);
-
-	~VehicleIMU() override;
-
-	bool Start();
-	void Stop();
-
-	void PrintStatus();
-
-private:
-	void ParametersUpdate(bool force = false);
-	void Run() override;
-
-	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-	uORB::SubscriptionCallbackWorkItem _sensor_accel_integrated_sub;
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_integrated_sub;
-
-	SensorCorrections _accel_corrections;
-	SensorCorrections _gyro_corrections;
-};
-
-} // namespace sensors
+/**
+ * PCF8583 rotorfreq (i2c) magnet count
+ *
+ * Nmumber of signals per rotation of rotor
+ *
+ * @reboot_required true
+ * @min 1
+ */
+PARAM_DEFINE_INT32(PCF8583_MAGNET, 2);

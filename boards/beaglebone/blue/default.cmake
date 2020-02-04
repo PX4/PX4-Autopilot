@@ -20,7 +20,6 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/mpu9250
 		linux_pwm_out
-		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		pwm_out_sim

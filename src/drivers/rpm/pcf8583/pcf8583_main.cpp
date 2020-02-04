@@ -31,51 +31,112 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "PCF8583.hpp"
 
-#include <sensor_corrections/SensorCorrections.hpp>
+#include <px4_platform_common/getopt.h>
 
-#include <lib/mathlib/math/Limits.hpp>
-#include <lib/matrix/matrix/math.hpp>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_accel_integrated.h>
-#include <uORB/topics/sensor_gyro_integrated.h>
-#include <uORB/topics/vehicle_imu.h>
-
-namespace sensors
+namespace pcf8583
 {
+PCF8583 *g_dev{nullptr};
 
-class VehicleIMU : public ModuleParams, public px4::WorkItem
+static int start(int i2c_bus)
 {
-public:
-	VehicleIMU() = delete;
-	VehicleIMU(uint8_t accel_index = 0, uint8_t gyro_index = 0);
+	if (g_dev != nullptr) {
+		PX4_WARN("already started");
+		return 0;
+	}
 
-	~VehicleIMU() override;
+	// create the driver
+	g_dev = new PCF8583(i2c_bus);
 
-	bool Start();
-	void Stop();
+	if (g_dev == nullptr) {
+		PX4_ERR("driver alloc failed");
+		return -1;
+	}
 
-	void PrintStatus();
+	if (g_dev->init() != PX4_OK) {
+		PX4_ERR("driver init failed");
+		delete g_dev;
+		g_dev = nullptr;
+		return -1;
+	}
 
-private:
-	void ParametersUpdate(bool force = false);
-	void Run() override;
+	PX4_INFO("pcf8583 for bus: %d started.", i2c_bus);
 
-	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-	uORB::SubscriptionCallbackWorkItem _sensor_accel_integrated_sub;
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_integrated_sub;
+	return 0;
+}
 
-	SensorCorrections _accel_corrections;
-	SensorCorrections _gyro_corrections;
-};
+static int stop()
+{
+	if (g_dev == nullptr) {
+		PX4_WARN("driver not running");
+		return -1;
+	}
 
-} // namespace sensors
+	delete g_dev;
+	g_dev = nullptr;
+
+	return 0;
+}
+
+static int status()
+{
+	if (g_dev == nullptr) {
+		PX4_INFO("driver not running");
+		return 0;
+	}
+
+	g_dev->print_info();
+
+	return 0;
+}
+
+static int usage()
+{
+	PX4_INFO("missing command: try 'start', 'stop', 'status'");
+	PX4_INFO("options:");
+	PX4_INFO("    -b i2cbus (%d)", PX4_I2C_BUS_EXPANSION);
+
+	return 0;
+}
+
+} // namespace pcf8583
+
+extern "C" int pcf8583_main(int argc, char *argv[])
+{
+	int i2c_bus = PX4_I2C_BUS_EXPANSION;
+	int myoptind = 1;
+	int ch = 0;
+	const char *myoptarg = nullptr;
+
+	// start options
+	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'b':
+			i2c_bus = atoi(myoptarg);
+			break;
+
+		default:
+			return pcf8583::usage();
+		}
+	}
+
+	if (myoptind >= argc) {
+		pcf8583::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
+
+	if (!strcmp(verb, "start")) {
+		return pcf8583::start(i2c_bus);
+
+	} else if (!strcmp(verb, "stop")) {
+		return pcf8583::stop();
+
+	} else if (!strcmp(verb, "status")) {
+		return pcf8583::status();
+	}
+
+	return pcf8583::usage();
+}

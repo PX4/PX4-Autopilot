@@ -31,51 +31,58 @@
  *
  ****************************************************************************/
 
+/**
+ * @file PCF8583.hpp
+ *
+ * @author ThunderFly s.r.o., Vít Hanousek <hanousekvit@thunderfly.cz>
+ * @url https://github.com/ThunderFly-aerospace/TFRPM01
+ *
+ * Driver for Main Rotor frequency sensor using PCF8583 I2C counter.
+ */
+
 #pragma once
 
-#include <sensor_corrections/SensorCorrections.hpp>
-
-#include <lib/mathlib/math/Limits.hpp>
-#include <lib/matrix/matrix/math.hpp>
-#include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_accel_integrated.h>
-#include <uORB/topics/sensor_gyro_integrated.h>
-#include <uORB/topics/vehicle_imu.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <drivers/device/i2c.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/rpm.h>
+#include <drivers/drv_hrt.h>
 
-namespace sensors
-{
+/* Configuration Constants */
+#define PCF8583_BASEADDR_DEFAULT             0x50
 
-class VehicleIMU : public ModuleParams, public px4::WorkItem
+class PCF8583 : public device::I2C, public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	VehicleIMU() = delete;
-	VehicleIMU(uint8_t accel_index = 0, uint8_t gyro_index = 0);
+	PCF8583(int bus = PX4_I2C_BUS_EXPANSION, int address = PCF8583_BASEADDR_DEFAULT);
+	~PCF8583() override;
 
-	~VehicleIMU() override;
-
-	bool Start();
-	void Stop();
-
-	void PrintStatus();
+	int    init() override;
+	void   print_info();
 
 private:
-	void ParametersUpdate(bool force = false);
-	void Run() override;
 
-	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-	uORB::SubscriptionCallbackWorkItem _sensor_accel_integrated_sub;
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_integrated_sub;
+	int  probe() override;
+	void Run() override ; // Perform a poll cycle; overide for ScheduledWorkItem
 
-	SensorCorrections _accel_corrections;
-	SensorCorrections _gyro_corrections;
+	int            getCounter();
+	void           resetCounter();
+
+	uint8_t        readRegister(uint8_t reg);
+	void           setRegister(uint8_t reg, uint8_t value);
+
+	int            _count{0};
+	hrt_abstime    _last_measurement_time{0};
+
+	uORB::Publication<rpm_s> _rpm_pub{ORB_ID(rpm)};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::PCF8583_ADDR>) _param_pcf8583_addr,
+		(ParamInt<px4::params::PCF8583_POOL>) _param_pcf8583_pool,
+		(ParamInt<px4::params::PCF8583_RESET>) _param_pcf8583_reset,
+		(ParamInt<px4::params::PCF8583_MAGNET>) _param_pcf8583_magnet
+	)
 };
-
-} // namespace sensors

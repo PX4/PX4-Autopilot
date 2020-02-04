@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,28 +31,14 @@
 #
 ############################################################################
 
-add_subdirectory(sensor_corrections) # used by vehicle_{acceleration, angular_velocity, imu}
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(vehicle_acceleration)
-add_subdirectory(vehicle_angular_velocity)
-add_subdirectory(vehicle_imu)
-
 px4_add_module(
-	MODULE modules__sensors
-	MAIN sensors
-	PRIORITY "SCHED_PRIORITY_MAX-5"
+	MODULE drivers__pcf8583
+	MAIN pcf8583
 	SRCS
-		voted_sensors_update.cpp
-		sensors.cpp
-		parameters.cpp
+		PCF8583.cpp
+		PCF8583.hpp
+		pcf8583_main.cpp
 	DEPENDS
-		airspeed
-		conversion
 		drivers__device
-		git_ecl
-		ecl_validation
-		mathlib
-		vehicle_acceleration
-		vehicle_angular_velocity
-		vehicle_imu
-	)
+		px4_work_queue
+)

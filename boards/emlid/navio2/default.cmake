@@ -21,7 +21,6 @@ px4_add_board(
 		imu/mpu9250
 		imu/st/lsm9ds1
 		linux_pwm_out
-		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		magnetometer/lsm9ds1_mag
