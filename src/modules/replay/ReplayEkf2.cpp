@@ -154,8 +154,8 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 
 	handle_sensor_publication(ekf2_timestamps.airspeed_timestamp_rel, _airspeed_msg_id);
 	handle_sensor_publication(ekf2_timestamps.distance_sensor_timestamp_rel, _distance_sensor_msg_id);
-	handle_sensor_publication(ekf2_timestamps.gps0_timestamp_rel, _gps_msg_id);
-	handle_sensor_publication(ekf2_timestamps.gps1_timestamp_rel, _gps_msg_id);
+	handle_sensor_publication(ekf2_timestamps.gps0_timestamp_rel, _gps0_msg_id);
+	handle_sensor_publication(ekf2_timestamps.gps1_timestamp_rel, _gps1_msg_id);
 	handle_sensor_publication(ekf2_timestamps.optical_flow_timestamp_rel, _optical_flow_msg_id);
 	handle_sensor_publication(ekf2_timestamps.vehicle_air_data_timestamp_rel, _vehicle_air_data_msg_id);
 	handle_sensor_publication(ekf2_timestamps.vehicle_magnetometer_timestamp_rel, _vehicle_magnetometer_msg_id);
