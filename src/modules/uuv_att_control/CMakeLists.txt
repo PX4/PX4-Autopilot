@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,25 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(airframes)
-
-px4_add_romfs_files(
-	rc.fw_apps
-	rc.fw_defaults
-	rc.interface
-	rc.io
-	rc.logging
-	rc.mc_apps
-	rc.mc_defaults
-	rcS
-	rc.sensors
-	rc.thermal_cal
-	rc.rover_apps
-	rc.rover_defaults
-	rc.uuv_apps
-	rc.uuv_defaults
-	rc.vehicle_setup
-	rc.vtol_apps
-	rc.vtol_defaults
-)
+px4_add_module(
+	MODULE modules__uuv_att_control
+	MAIN uuv_att_control
+	STACK_MAIN 1200
+	COMPILE_FLAGS
+	SRCS
+		uuv_att_control.cpp
+	)

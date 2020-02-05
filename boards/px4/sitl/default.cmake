@@ -48,6 +48,8 @@ px4_add_board(
 		temperature_compensation
 		vmount
 		vtol_att_control
+		uuv_att_control
+
 	SYSTEMCMDS
 		#config
 		#dumpfile
