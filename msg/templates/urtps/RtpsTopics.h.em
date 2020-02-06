@@ -66,7 +66,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 
 class RtpsTopics {
 public:
-    bool init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue);
+    bool init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue, uint8_t sys_id);
 @[if send_topics]@
     void publish(uint8_t topic_ID, char data_buffer[], size_t len);
 @[end if]@

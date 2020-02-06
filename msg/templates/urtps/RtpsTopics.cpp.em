@@ -61,7 +61,7 @@ except AttributeError:
 
 #include "RtpsTopics.h"
 
-bool RtpsTopics::init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue)
+bool RtpsTopics::init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue, uint8_t sys_id)
 {
 @[if recv_topics]@
     // Initialise subscribers
@@ -81,7 +81,7 @@ bool RtpsTopics::init(std::condition_variable* t_send_queue_cv, std::mutex* t_se
     // Initialise publishers
     std::cout << "---- Publishers ----" << std::endl;
 @[for topic in send_topics]@
-    if (_@(topic)_pub.init()) {
+    if (_@(topic)_pub.init(sys_id)) {
         std::cout << "- @(topic) publisher started" << std::endl;
     } else {
         std::cerr << "ERROR starting @(topic) publisher" << std::endl;

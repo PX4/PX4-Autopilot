@@ -82,7 +82,7 @@ class @(topic)_Publisher
 public:
     @(topic)_Publisher();
     virtual ~@(topic)_Publisher();
-    bool init();
+    bool init(int sys_id=0);
     void run();
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
 @[    if ros2_distro]@

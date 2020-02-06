@@ -80,7 +80,7 @@ except AttributeError:
 
 @(topic)_Publisher::~@(topic)_Publisher() { Domain::removeParticipant(mp_participant);}
 
-bool @(topic)_Publisher::init()
+bool @(topic)_Publisher::init(int sys_id)
 {
     // Create RTPSParticipant
     ParticipantAttributes PParam;
@@ -109,15 +109,23 @@ bool @(topic)_Publisher::init()
     PublisherAttributes Wparam;
     Wparam.topic.topicKind = NO_KEY;
     Wparam.topic.topicDataType = @(topic)DataType.getName();
+    std::string topicName;
+    if ( sys_id == 0 ) {
+        topicName = std::string("@(topic)_PubSubTopic");
+    }
+    else {
+        topicName = std::string("agent") + std::to_string(sys_id)+ std::string("/@(topic)_PubSubTopic");
+    }
+
 @[if ros2_distro]@
 @[    if ros2_distro == "ardent"]@
     Wparam.qos.m_partition.push_back("rt");
-    Wparam.topic.topicName = "@(topic)_PubSubTopic";
+    Wparam.topic.topicName = topicName;
 @[    else]@
-    Wparam.topic.topicName = "rt/@(topic)_PubSubTopic";
+    Wparam.topic.topicName = std::string("rt/") + topicName;
 @[    end if]@
 @[else]@
-    Wparam.topic.topicName = "@(topic)_PubSubTopic";
+    Wparam.topic.topicName = std::string("rt/") + topicName;
 @[end if]@
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener*>(&m_listener));
     if(mp_publisher == nullptr)

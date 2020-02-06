@@ -165,6 +165,9 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
 	uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
 
+	// set sys id
+	this->set_sysid(header->sys_ID);
+
 	// The message won't fit the buffer.
 	if (buffer_len < header_size + payload_len) {
 		return -EMSGSIZE;
@@ -231,6 +234,7 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	uint16_t crc = crc16((uint8_t *)&buffer[sizeof(header)], length);
 
 	header.topic_ID = topic_ID;
+	header.sys_ID = this->get_sysid();
 	header.seq = seq++;
 	header.payload_len_h = (length >> 8) & 0xff;
 	header.payload_len_l = length & 0xff;

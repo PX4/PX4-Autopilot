@@ -254,7 +254,7 @@ int main(int argc, char** argv)
 @[end if]@
 
 @[if recv_topics]@
-    topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue);
+    bool inited = false;
 @[end if]@
 
     running = true;
@@ -270,6 +270,12 @@ int main(int argc, char** argv)
         // Publish messages received from UART
         while (0 < (length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE)))
         {
+            @[if recv_topics]@
+            if (!inited) {
+                inited = topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue, transport_node->get_sysid());
+            }
+            @[end if]@
+
             topics.publish(topic_ID, data_buffer, sizeof(data_buffer));
             ++received;
             total_read += length;

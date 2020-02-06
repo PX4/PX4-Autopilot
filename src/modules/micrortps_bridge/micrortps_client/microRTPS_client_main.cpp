@@ -47,6 +47,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/module_params.h>
 
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 
@@ -149,6 +150,11 @@ static int micrortps_start(int argc, char *argv[])
 		_rtps_task = -1;
 		return -1;
 	}
+
+	int32_t sys_id;
+	param_t sys_id_param = param_find("MAV_SYS_ID");
+	param_get(sys_id_param, &sys_id);
+	transport_node->set_sysid(sys_id);
 
 	struct timespec begin;
 
