@@ -297,22 +297,16 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			handle_message_hil_optical_flow(msg);
 			break;
 
-		default:
-			break;
-		}
-	}
-
-
-	if (_mavlink->get_hil_enabled() || (_mavlink->get_use_hil_gps() && msg->sysid == mavlink_system.sysid)) {
-		switch (msg->msgid) {
 		case MAVLINK_MSG_ID_HIL_GPS:
-			handle_message_hil_gps(msg);
+			if (_mavlink->get_use_hil_gps()) {
+				handle_message_hil_gps(msg);
+			}
+
 			break;
 
 		default:
 			break;
 		}
-
 	}
 
 	/* If we've received a valid message, mark the flag indicating so.
@@ -2180,6 +2174,11 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 {
+	if (msg->sysid != mavlink_system.sysid) {
+		// ignore HIL GPS coming from other systems
+		return;
+	}
+
 	mavlink_hil_gps_t gps;
 	mavlink_msg_hil_gps_decode(msg, &gps);
 
