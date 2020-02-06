@@ -793,12 +793,17 @@ void cleanupFTDI() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "umount /fs/microsd"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mkfatfs /dev/mmcsd0"'
 
+  // drop any uncommited hardfaults
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "hardfault_log rearm"'
+
   // wipe parameters
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd erase"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param reset"'
 
-  // reset safe defaults
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+  // disable buzzer
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
 
   // reboot
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'
@@ -814,12 +819,17 @@ void cleanupSEGGER() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "umount /fs/microsd"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "mkfatfs /dev/mmcsd0"'
 
+  // drop any uncommited hardfaults
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "hardfault_log rearm"'
+
   // wipe parameters
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "mtd erase"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param reset"'
 
-  // reset safe defaults
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+  // disable buzzer
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param set CBRK_BUZZER 782097"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param save"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param status"'
 
   // reboot
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "reboot"'
