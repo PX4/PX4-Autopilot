@@ -111,7 +111,7 @@ private:
 	math::NotchFilter<matrix::Vector3f> _notch_filter_velocity{};
 
 	// angular acceleration filter
-	math::LowPassFilter2pVector3f _lp_filter_acceleration{kInitialRateHz, 10.0f};
+	math::LowPassFilter2pVector3f _lp_filter_acceleration{kInitialRateHz, 30.0f};
 
 	float _filter_sample_rate{kInitialRateHz};
 	int _sample_rate_incorrect_count{0};
