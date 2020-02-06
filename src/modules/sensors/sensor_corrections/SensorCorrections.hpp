@@ -31,44 +31,69 @@
  *
  ****************************************************************************/
 
-/**
- * PCF8583 rotorfreq (i2c) pool interval
- *
- * @reboot_required true
- * @group Sensors
- * @unit us
- */
-PARAM_DEFINE_INT32(PCF8583_POOL, 1000000);
+#pragma once
 
-/**
- * PCF8583 rotorfreq (i2c) i2c address
- *
- * @reboot_required true
- * @group Sensors
- * @value 80 0x50
- * @value 81 0x51
- */
-PARAM_DEFINE_INT32(PCF8583_ADDR, 80);
+#include <lib/conversion/rotation.h>
+#include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module_params.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/sensor_correction.h>
 
-/**
- * PCF8583 rotorfreq (i2c) counter reset value
- *
- * Internal device counter is reset to 0 when overun this value,
- * counter is able to store upto 6 digits
- * reset of counter takes some time - measurement with reset has worse accurancy
- *
- * @reboot_required true
- * @group Sensors
- * @value 0 - reset avter every measurement
- */
-PARAM_DEFINE_INT32(PCF8583_RESET, 500000);
+namespace sensors
+{
 
-/**
- * PCF8583 rotorfreq (i2c) magnet count
- *
- * Nmumber of signals per rotation of rotor
- *
- * @reboot_required true
- * @min 1
- */
-PARAM_DEFINE_INT32(PCF8583_MAGNET, 2);
+class SensorCorrections : public ModuleParams
+{
+public:
+
+	enum class SensorType : uint8_t {
+		Accelerometer,
+		Gyroscope,
+	};
+
+	SensorCorrections() = delete;
+	SensorCorrections(ModuleParams *parent, SensorType type);
+	~SensorCorrections() override = default;
+
+	void PrintStatus();
+
+	void set_device_id(uint32_t device_id);
+	uint32_t get_device_id() const { return _device_id; }
+
+	// apply offsets and scale
+	// rotate corrected measurements from sensor to body frame
+	matrix::Vector3f Correct(const matrix::Vector3f &data) const { return _board_rotation * matrix::Vector3f{(data - _offset).emult(_scale)}; }
+
+	void ParametersUpdate();
+	void SensorCorrectionsUpdate(bool force = false);
+
+private:
+
+	static constexpr int MAX_SENSOR_COUNT = 3;
+
+	const char *SensorString() const;
+
+	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
+
+	matrix::Dcmf _board_rotation;
+
+	matrix::Vector3f _offset{0.f, 0.f, 0.f};
+	matrix::Vector3f _scale{1.f, 1.f, 1.f};
+
+	uint32_t _device_id{0};
+	int8_t _corrections_selected_instance{-1};
+
+	const SensorType _type;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SENS_BOARD_ROT>) _param_sens_board_rot,
+
+		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _param_sens_board_x_off,
+		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _param_sens_board_y_off,
+		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _param_sens_board_z_off
+	)
+};
+
+} // namespace sensors

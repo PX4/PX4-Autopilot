@@ -61,6 +61,16 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 
 	_constraints.tilt = math::radians(_param_mpc_man_tilt_max.get());
 
+	_updateConstraintsFromEstimator();
+
+	_max_speed_up = _constraints.speed_up;
+	_max_speed_down = _constraints.speed_down;
+
+	return ret;
+}
+
+void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
+{
 	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_min)) {
 		_constraints.min_distance_to_ground = _sub_vehicle_local_position.get().hagl_min;
 
@@ -74,11 +84,6 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 	} else {
 		_constraints.max_distance_to_ground = INFINITY;
 	}
-
-	_max_speed_up = _constraints.speed_up;
-	_min_speed_down = _constraints.speed_down;
-
-	return ret;
 }
 
 void FlightTaskManualAltitude::_scaleSticks()
@@ -241,7 +246,7 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 		// below the maximum, preserving control loop vertical position error gain.
 		if (PX4_ISFINITE(_constraints.max_distance_to_ground)) {
 			_constraints.speed_up = math::constrain(_param_mpc_z_p.get() * (_constraints.max_distance_to_ground - _dist_to_bottom),
-								-_min_speed_down, _max_speed_up);
+								-_max_speed_down, _max_speed_up);
 
 		} else {
 			_constraints.speed_up = _max_speed_up;
@@ -254,10 +259,10 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 			// set position setpoint to maximum distance to ground
 			_position_setpoint(2) = _position(2) +  delta_distance_to_max;
 			// limit speed downwards to 0.7m/s
-			_constraints.speed_down = math::min(_min_speed_down, 0.7f);
+			_constraints.speed_down = math::min(_max_speed_down, 0.7f);
 
 		} else {
-			_constraints.speed_down = _min_speed_down;
+			_constraints.speed_down = _max_speed_down;
 
 		}
 	}
@@ -357,6 +362,7 @@ bool FlightTaskManualAltitude::_checkTakeoff()
 
 bool FlightTaskManualAltitude::update()
 {
+	_updateConstraintsFromEstimator();
 	_scaleSticks();
 	_updateSetpoints();
 	_constraints.want_takeoff = _checkTakeoff();

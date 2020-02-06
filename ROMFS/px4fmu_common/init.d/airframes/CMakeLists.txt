@@ -146,4 +146,8 @@ px4_add_romfs_files(
 	50001_axialracing_ax10
 	50002_traxxas_stampede_2wd
 	50003_aion_robotics_r1_rover
+
+	# [60000, 61000] (Unmanned) Underwater Robots
+	60000_uuv_generic
+	60001_uuv_hippocampus
 )
