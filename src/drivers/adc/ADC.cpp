@@ -150,7 +150,22 @@ void ADC::update_adc_report(hrt_abstime now)
 	for (unsigned i = 0; i < max_num; i++) {
 		adc.channel_id[i] = _samples[i].am_channel;
 		adc.raw_data[i] = _samples[i].am_data;
-		adc.v_ref[i] = 3.3f;    // TODO: Is this correct? All boards have 3v3 v_ref?
+		adc.v_ref[i] = 3.3f;	// TODO: fill the true v_ref, maybe new macros for embed device?
+#ifdef ADC_BATTERY_VOLTAGE_CHANNEL
+
+		if (i == ADC_BATTERY_VOLTAGE_CHANNEL) {
+			adc.v_ref[i] = BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN;	// Overwrite
+		}
+
+#endif
+#ifdef ADC_BATTERY_CURRENT_CHANNEL
+
+		if (i == ADC_BATTERY_CURRENT_CHANNEL) {
+			adc.v_ref[i] = BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN;
+		}
+
+#endif
+
 		adc.resolution[i] = px4_arch_adc_dn_fullcount();
 		//adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
 	}
