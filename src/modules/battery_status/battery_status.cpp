@@ -166,13 +166,11 @@ BatteryStatus::parameter_update_poll(bool forced)
 void
 BatteryStatus::adc_poll()
 {
-	adc_report_s adc_report;
-
 	/* For legacy support we publish the battery_status for the Battery that is
-	 * associated with the Brick that is the selected source for VDD_5V_IN
-	 * Selection is done in HW ala a LTC4417 or similar, or may be hard coded
-	 * Like in the FMUv4
-	 */
+	* associated with the Brick that is the selected source for VDD_5V_IN
+	* Selection is done in HW ala a LTC4417 or similar, or may be hard coded
+	* Like in the FMUv4
+	*/
 
 	/* Per Brick readings with default unread channels at 0 */
 	float bat_current_adc_readings[BOARD_NUMBER_BRICKS] {};
@@ -184,6 +182,8 @@ BatteryStatus::adc_poll()
 	 */
 
 	int selected_source = -1;
+
+	adc_report_s adc_report;
 
 	if (_adc_report_sub.update(&adc_report)) {
 
