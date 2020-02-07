@@ -3711,69 +3711,102 @@ void Commander::data_link_check()
 
 void Commander::battery_status_check()
 {
-	/* update battery status */
-	if (_battery_sub.updated()) {
-		battery_status_s battery{};
+	bool battery_sub_updated = false;
 
-		if (_battery_sub.copy(&battery)) {
+	battery_status_s batteries[ORB_MULTI_MAX_INSTANCES];
+	size_t num_connected_batteries = 0;
 
 
-			bool battery_warning_level_increased_while_armed = false;
-			bool update_internal_battery_state = false;
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (_battery_subs[i].updated() && _battery_subs[i].copy(&batteries[num_connected_batteries])) {
+			// We need to update the status flag if ANY battery is updated, because the system source might have
+			// changed, or might be nothing (if there is no battery connected)
+			battery_sub_updated = true;
 
-			if (armed.armed) {
-				if (battery.warning > _battery_warning) {
-					battery_warning_level_increased_while_armed = true;
-					update_internal_battery_state = true;
-				}
-
-			} else {
-				if (_battery_warning != battery.warning) {
-					update_internal_battery_state = true;
-				}
+			if (batteries[num_connected_batteries].connected) {
+				num_connected_batteries++;
 			}
-
-			if (update_internal_battery_state) {
-				_battery_warning = battery.warning;
-			}
-
-
-			if ((hrt_elapsed_time(&battery.timestamp) < 5_s)
-			    && battery.connected
-			    && (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)) {
-
-				status_flags.condition_battery_healthy = true;
-
-			} else {
-				status_flags.condition_battery_healthy = false;
-			}
-
-			// execute battery failsafe if the state has gotten worse while we are armed
-			if (battery_warning_level_increased_while_armed) {
-				battery_failsafe(&mavlink_log_pub, status, status_flags, &_internal_state, battery.warning,
-						 (low_battery_action_t)_param_com_low_bat_act.get());
-			}
-
-			// Handle shutdown request from emergency battery action
-			if (update_internal_battery_state) {
-
-				if ((_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
-					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
-					px4_usleep(200000);
-
-					int ret_val = px4_shutdown_request(false, false);
-
-					if (ret_val) {
-						mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
-
-					} else {
-						while (1) { px4_usleep(1); }
-					}
-				}
-			}
-
-			_battery_current = battery.current_filtered_a;
 		}
+	}
+
+	/* update battery status */
+	if (battery_sub_updated) {
+
+		// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
+		// option is to check if ANY of them have a warning, and specifically find which one has the most
+		// urgent warning.
+		uint8_t worst_warning = battery_status_s::BATTERY_WARNING_NONE;
+		// Sum the total current of all connected batteries. This is used to detect engine failure.
+		float total_current = 0;
+		// To make sure that all connected batteries are being regularly reported, we check which one has the
+		// oldest timestamp.
+		hrt_abstime oldest_update = hrt_absolute_time();
+
+		// Only iterate over connected batteries. We don't care if a disconnected battery is not regularly publishing.
+		for (size_t i = 0; i < num_connected_batteries; i++) {
+			if (batteries[i].warning > worst_warning) {
+				worst_warning = batteries[i].warning;
+			}
+
+			if (hrt_elapsed_time(&batteries[i].timestamp) > hrt_elapsed_time(&oldest_update)) {
+				oldest_update = batteries[i].timestamp;
+			}
+
+			total_current += batteries[i].current_filtered_a;
+		}
+
+		bool battery_warning_level_increased_while_armed = false;
+		bool update_internal_battery_state = false;
+
+		if (armed.armed) {
+			if (worst_warning > _battery_warning) {
+				battery_warning_level_increased_while_armed = true;
+				update_internal_battery_state = true;
+			}
+
+		} else {
+			if (_battery_warning != worst_warning) {
+				update_internal_battery_state = true;
+			}
+		}
+
+		if (update_internal_battery_state) {
+			_battery_warning = worst_warning;
+		}
+
+		status_flags.condition_battery_healthy =
+			// All connected batteries are regularly being published
+			(hrt_elapsed_time(&oldest_update) < 5_s)
+			// There is at least one connected battery (in any slot)
+			&& num_connected_batteries > 0
+			// No currently-connected batteries have any warning
+			&& (_battery_warning == battery_status_s::BATTERY_WARNING_NONE);
+
+		// execute battery failsafe if the state has gotten worse while we are armed
+		if (battery_warning_level_increased_while_armed) {
+			battery_failsafe(&mavlink_log_pub, status, status_flags, &_internal_state, _battery_warning,
+					 (low_battery_action_t)_param_com_low_bat_act.get());
+		}
+
+		// Handle shutdown request from emergency battery action
+		if (update_internal_battery_state) {
+
+			if ((_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
+				mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
+				px4_usleep(200000);
+
+				int ret_val = px4_shutdown_request(false, false);
+
+				if (ret_val) {
+					mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
+
+				} else {
+					while (1) { px4_usleep(1); }
+				}
+			}
+		}
+
+		_battery_current = total_current;
 	}
 }
 
