@@ -166,7 +166,7 @@ BatteryStatus::parameter_update_poll(bool forced)
 void
 BatteryStatus::adc_poll()
 {
-	adc_report_s adc_report = {};
+	adc_report_s adc_report;
 
 	/* For legacy support we publish the battery_status for the Battery that is
 	 * associated with the Brick that is the selected source for VDD_5V_IN
