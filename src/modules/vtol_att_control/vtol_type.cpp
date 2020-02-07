@@ -434,8 +434,7 @@ float VtolType::pusher_assist()
 
 		forward_thrust = (sinf(-pitch_down) - sinf(_params->down_pitch_max)) * _params->forward_thrust_scale;
 		// limit forward actuation to [0, 0.9]
-		forward_thrust = forward_thrust < 0.0f ? 0.0f : forward_thrust;
-		forward_thrust = forward_thrust > 0.9f ? 0.9f : forward_thrust;
+		forward_thrust = math::constrain(forward_thrust, 0.0f, 0.9f);
 
 		// return the vehicle to level position
 		float pitch_new = 0.0f;
