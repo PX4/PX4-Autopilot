@@ -202,23 +202,25 @@ BatteryStatus::adc_poll()
 			}
 
 			/* look for specific channels and process the raw voltage to measurement data */
-			if (adc_report.channel_id[_analogBatteries[b]->get_voltage_channel()] == _analogBatteries[b]->get_voltage_channel()) {
-				/* Voltage in volts */
-				bat_voltage_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_voltage_channel()] *
-							      adc_report.v_ref[_analogBatteries[b]->get_voltage_channel()] /
-							      adc_report.resolution[_analogBatteries[b]->get_voltage_channel()];
+			for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+				if (adc_report.channel_id[i] == _analogBatteries[b]->get_voltage_channel()) {
+					/* Voltage in volts */
+					bat_voltage_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_voltage_channel()] *
+								      adc_report.v_ref[_analogBatteries[b]->get_voltage_channel()] /
+								      adc_report.resolution[_analogBatteries[b]->get_voltage_channel()];
 
-			}
+				}
 
-			if (_analogBatteries[b]->get_current_channel() < 0) {
-				// no current channel is valid
-				bat_current_adc_readings[b] = 0;
+				if (_analogBatteries[b]->get_current_channel() < 0) {
+					// no current channel is valid
+					bat_current_adc_readings[b] = 0;
+					break;	// jump out immediately
 
-			} else if (adc_report.channel_id[_analogBatteries[b]->get_current_channel()] ==
-				   _analogBatteries[b]->get_current_channel()) {
-				bat_current_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_current_channel()] *
-							      adc_report.v_ref[_analogBatteries[b]->get_current_channel()] /
-							      adc_report.resolution[_analogBatteries[b]->get_current_channel()];
+				} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_current_channel()) {
+					bat_current_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_current_channel()] *
+								      adc_report.v_ref[_analogBatteries[b]->get_current_channel()] /
+								      adc_report.resolution[_analogBatteries[b]->get_current_channel()];
+				}
 			}
 		}
 	}
