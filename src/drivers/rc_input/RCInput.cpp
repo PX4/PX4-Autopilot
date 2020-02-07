@@ -312,7 +312,7 @@ void RCInput::Run()
 				if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
 					float adc_volt = adc.raw_data[ADC_RC_RSSI_CHANNEL] *
 							 adc.v_ref[ADC_RC_RSSI_CHANNEL] /
-							 adc.resolution[ADC_RC_RSSI_CHANNEL];
+							 adc.resolution;
 
 					if (_analog_rc_rssi_volt < 0.0f) {
 						_analog_rc_rssi_volt = adc_volt;

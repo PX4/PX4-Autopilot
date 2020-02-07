@@ -207,7 +207,7 @@ BatteryStatus::adc_poll()
 					/* Voltage in volts */
 					bat_voltage_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_voltage_channel()] *
 								      adc_report.v_ref[_analogBatteries[b]->get_voltage_channel()] /
-								      adc_report.resolution[_analogBatteries[b]->get_voltage_channel()];
+								      adc_report.resolution;
 
 				}
 
@@ -219,7 +219,7 @@ BatteryStatus::adc_poll()
 				} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_current_channel()) {
 					bat_current_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_current_channel()] *
 								      adc_report.v_ref[_analogBatteries[b]->get_current_channel()] /
-								      adc_report.resolution[_analogBatteries[b]->get_current_channel()];
+								      adc_report.resolution;
 				}
 			}
 		}

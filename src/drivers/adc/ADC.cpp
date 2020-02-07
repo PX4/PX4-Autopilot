@@ -166,9 +166,10 @@ void ADC::update_adc_report(hrt_abstime now)
 
 #endif
 
-		adc.resolution[i] = px4_arch_adc_dn_fullcount();
 		//adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
 	}
+
+	adc.resolution = px4_arch_adc_dn_fullcount();
 
 	_to_adc_report.publish(adc);
 }
