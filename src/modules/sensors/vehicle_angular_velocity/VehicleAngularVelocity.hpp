@@ -93,8 +93,6 @@ private:
 
 	SensorCorrections _corrections;
 
-	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
-
 	matrix::Vector3f _bias{0.f, 0.f, 0.f};
 
 	matrix::Vector3f _angular_acceleration_prev{0.f, 0.f, 0.f};
@@ -102,7 +100,6 @@ private:
 	hrt_abstime _timestamp_sample_prev{0};
 
 	hrt_abstime _last_publish{0};
-	hrt_abstime _filter_check_last{0};
 	static constexpr const float kInitialRateHz{1000.0f}; /**< sensor update rate used for initialization */
 	float _update_rate_hz{kInitialRateHz}; /**< current rate-controller loop update rate in [Hz] */
 
@@ -114,10 +111,13 @@ private:
 	math::LowPassFilter2pVector3f _lp_filter_acceleration{kInitialRateHz, 10.0f};
 
 	float _filter_sample_rate{kInitialRateHz};
-	int _sample_rate_incorrect_count{0};
 
 	uint32_t _selected_sensor_device_id{0};
 	uint8_t _selected_sensor_sub_index{0};
+
+	hrt_abstime _timestamp_sample_last{0};
+	float _interval_sum{0.f};
+	float _interval_count{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
