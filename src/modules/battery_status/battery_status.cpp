@@ -214,7 +214,7 @@ BatteryStatus::adc_poll()
 				if (_analogBatteries[b]->get_current_channel() < 0) {
 					// no current channel is valid
 					bat_current_adc_readings[b] = 0;
-					break;	// jump out immediately
+					break;    // jump out immediately
 
 				} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_current_channel()) {
 					bat_current_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_current_channel()] *
@@ -223,21 +223,21 @@ BatteryStatus::adc_poll()
 				}
 			}
 		}
-	}
 
-	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-		if (_analogBatteries[b]->source() == 0) {
-			actuator_controls_s ctrl{};
-			_actuator_ctrl_0_sub.copy(&ctrl);
+		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+			if (_analogBatteries[b]->source() == 0) {
+				actuator_controls_s ctrl{};
+				_actuator_ctrl_0_sub.copy(&ctrl);
 
-			_analogBatteries[b]->updateBatteryStatusADC(
-				hrt_absolute_time(),
-				bat_voltage_adc_readings[b],
-				bat_current_adc_readings[b],
-				selected_source == b,
-				b,
-				ctrl.control[actuator_controls_s::INDEX_THROTTLE]
-			);
+				_analogBatteries[b]->updateBatteryStatusADC(
+					hrt_absolute_time(),
+					bat_voltage_adc_readings[b],
+					bat_current_adc_readings[b],
+					selected_source == b,
+					b,
+					ctrl.control[actuator_controls_s::INDEX_THROTTLE]
+				);
+			}
 		}
 	}
 }
