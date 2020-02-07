@@ -401,6 +401,7 @@ float Tiltrotor::thrust_compensation_for_tilt()
 	compensated_tilt = compensated_tilt < 0.0f ? 0.0f : compensated_tilt;
 	compensated_tilt = compensated_tilt > 0.5f ? 0.5f : compensated_tilt;
 
-	return _v_att_sp->thrust_body[2] / cosf(compensated_tilt * M_PI_2_F);
+	// increase vertical thrust by 1/cos(tilt), limmit to [0,1]
+	return math::constrain(_v_att_sp->thrust_body[2] / cosf(compensated_tilt * M_PI_2_F), 0.0f, 1.0f);
 
 }
