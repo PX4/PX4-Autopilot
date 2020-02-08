@@ -80,6 +80,9 @@
 #define ADC_BATTERY_CURRENT_CHANNEL  3
 #define ADC_5V_RAIL_SENSE            0
 
+#define BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN 4.096f
+#define BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN 4.096f
+
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
