@@ -42,6 +42,8 @@
 
 #include "bmp388.h"
 
+#include <drivers/drv_sensor.h>
+
 BMP388::BMP388(IBMP388 *interface) :
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_px4_baro(interface->get_device_id()),

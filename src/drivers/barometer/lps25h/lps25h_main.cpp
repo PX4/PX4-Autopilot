@@ -53,7 +53,9 @@ struct lps25h_bus_option {
 	uint8_t busnum;
 	LPS25H	*dev;
 } bus_options[] = {
+#if defined(PX4_I2C_BUS_EXPANSION)
 	{ LPS25H_BUS::I2C_EXTERNAL, &LPS25H_I2C_interface, PX4_I2C_BUS_EXPANSION, nullptr },
+#endif
 #if defined(PX4_I2C_BUS_EXPANSION1)
 	{ LPS25H_BUS::I2C_EXTERNAL, &LPS25H_I2C_interface, PX4_I2C_BUS_EXPANSION1, nullptr },
 #endif
@@ -214,13 +216,13 @@ extern "C" int lps25h_main(int argc, char *argv[])
 	const char *verb = argv[myoptind];
 
 	if (!strcmp(verb, "start")) {
-		lps25h::start(busid);
+		return lps25h::start(busid);
 
 	} else if (!strcmp(verb, "stop")) {
 		return lps25h::stop(busid);
 
 	} else if (!strcmp(verb, "status")) {
-		lps25h::status(busid);
+		return lps25h::status(busid);
 	}
 
 	return lps25h::usage();

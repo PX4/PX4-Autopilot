@@ -34,11 +34,11 @@ px4_add_module(
 	MODULE drivers__barometer__lps25h
 	MAIN lps25h
 	SRCS
+		lps25h_main.cpp
 		LPS25H.cpp
 		LPS25H.hpp
-		lps25h_main.cpp
-		lps25h_i2c.cpp
-		lps25h_spi.cpp
+		LPS25H_I2C.cpp
+		LPS25H_SPI.cpp
 	DEPENDS
 		drivers_barometer
 		px4_work_queue

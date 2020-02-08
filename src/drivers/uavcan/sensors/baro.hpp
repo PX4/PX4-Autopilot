@@ -38,10 +38,11 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-#include <drivers/drv_baro.h>
 
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
 #include <uavcan/equipment/air_data/StaticTemperature.hpp>
+
+#include <uORB/topics/sensor_baro.h>
 
 class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
 {

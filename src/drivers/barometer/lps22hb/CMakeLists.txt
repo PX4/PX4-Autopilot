@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -36,6 +36,10 @@ px4_add_module(
 	SRCS
 		lps22hb_main.cpp
 		LPS22HB.cpp
+		LPS22HB.hpp
 		LPS22HB_I2C.cpp
 		LPS22HB_SPI.cpp
+	DEPENDS
+		drivers_barometer
+		px4_work_queue
 	)

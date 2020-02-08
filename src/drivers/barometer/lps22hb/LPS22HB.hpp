@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,19 +33,10 @@
 
 #pragma once
 
-#include <cstring>
-
 #include <drivers/device/Device.hpp>
-#include <drivers/device/i2c.h>
-#include <drivers/device/spi.h>
-#include <drivers/drv_baro.h>
-#include <lib/cdev/CDev.hpp>
-#include <perf/perf_counter.h>
-#include <px4_platform_common/getopt.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/err.h>
-#include <uORB/uORB.h>
-
 
 static constexpr uint8_t WHO_AM_I = 0x0F;
 static constexpr uint8_t LPS22HB_ID_WHO_AM_I = 0xB1;
@@ -81,103 +72,34 @@ extern device::Device *LPS22HB_SPI_interface(int bus);
 extern device::Device *LPS22HB_I2C_interface(int bus);
 typedef device::Device *(*LPS22HB_constructor)(int);
 
-class LPS22HB : public cdev::CDev, public px4::ScheduledWorkItem
+class LPS22HB : public px4::ScheduledWorkItem
 {
 public:
-	LPS22HB(device::Device *interface, const char *path);
-	virtual ~LPS22HB();
+	LPS22HB(device::Device *interface);
+	~LPS22HB() override;
 
-	virtual int		init();
-
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void			print_info();
-
-protected:
-	device::Device			*_interface;
+	int		init();
+	void		print_info();
 
 private:
-	unsigned		_measure_interval{0};
 
-	bool			_collect_phase{false};
-
-	orb_advert_t		_baro_topic{nullptr};
-
-	int			_orb_class_instance{-1};
-	int			_class_instance{-1};
-
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-
-	sensor_baro_s	_last_report{};           /**< used for info() */
-
-	/**
-	 * Initialise the automatic measurement state machine and start it.
-	 *
-	 * @note This function is called at open and error time.  It might make sense
-	 *       to make it more aggressive about resetting the bus in case of errors.
-	 */
 	void			start();
-
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
 	void			stop();
-
-	/**
-	 * Reset the device
-	 */
 	int			reset();
-
-	/**
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-	 * previous measurement.
-	 *
-	 * When the interval between measurements is greater than the minimum
-	 * measurement interval, a gap is inserted between collection
-	 * and measurement to provide the most recent measurement possible
-	 * at the next interval.
-	 */
 	void			Run() override;
 
-	/**
-	 * Write a register.
-	 *
-	 * @param reg		The register to write.
-	 * @param val		The value to write.
-	 * @return		OK on write success.
-	 */
 	int			write_reg(uint8_t reg, uint8_t val);
-
-	/**
-	 * Read a register.
-	 *
-	 * @param reg		The register to read.
-	 * @param val		The value read.
-	 * @return		OK on read success.
-	 */
 	int			read_reg(uint8_t reg, uint8_t &val);
 
-	/**
-	 * Issue a measurement command.
-	 *
-	 * @return		OK if the measurement command was successful.
-	 */
 	int			measure();
-
-	/**
-	 * Collect the result of the most recent measurement.
-	 */
 	int			collect();
 
-	/* this class has pointer data members, do not allow copying it */
-	LPS22HB(const LPS22HB &);
-	LPS22HB operator=(const LPS22HB &);
+	PX4Barometer		_px4_barometer;
+	device::Device		*_interface;
+
+	unsigned		_measure_interval{0};
+	bool			_collect_phase{false};
+
+	perf_counter_t		_sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t		_comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": comms errors")};
 };

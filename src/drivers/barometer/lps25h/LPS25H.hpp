@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,125 +31,46 @@
  *
  ****************************************************************************/
 
-/**
- * @file lps25h.cpp
- *
- * Driver for the LPS25H barometer connected via I2C or SPI.
- */
-
 #pragma once
-
-#include "lps25h.h"
 
 #include <drivers/device/Device.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-/*
- * LPS25H internal constants and data structures.
- */
+static constexpr uint8_t WHO_AM_I = 0x0F;
+static constexpr uint8_t LPS25H_ID_WHO_AM_I = 0xBD;
 
-/* Max measurement rate is 25Hz */
-#define LPS25H_CONVERSION_INTERVAL	(1000000 / 25)	/* microseconds */
+static constexpr uint8_t CTRL_REG1 = 0x10;
+static constexpr uint8_t CTRL_REG2 = 0x11;
+static constexpr uint8_t CTRL_REG3 = 0x12;
 
-#define ADDR_REF_P_XL		0x08
-#define ADDR_REF_P_L		0x09
-#define ADDR_REF_P_H		0x0A
-#define ADDR_WHO_AM_I		0x0F
-#define ADDR_RES_CONF		0x10
-#define ADDR_CTRL_REG1		0x20
-#define ADDR_CTRL_REG2		0x21
-#define ADDR_CTRL_REG3		0x22
-#define ADDR_CTRL_REG4		0x23
-#define ADDR_INT_CFG		0x24
-#define ADDR_INT_SOURCE		0x25
+#define BOOT		(1 << 7)
+#define FIFO_EN		(1 << 6)
+#define STOP_ON_FTH	(1 << 5)
+#define IF_ADD_INC	(1 << 4)
+#define I2C_DIS		(1 << 3)
+#define SWRESET		(1 << 2)
+#define ONE_SHOT	(1 << 0)
 
-#define ADDR_STATUS_REG		0x27
-#define ADDR_P_OUT_XL		0x28
-#define ADDR_P_OUT_L		0x29
-#define ADDR_P_OUT_H		0x2A
-#define ADDR_TEMP_OUT_L		0x2B
-#define ADDR_TEMP_OUT_H		0x2C
+static constexpr uint8_t STATUS = 0x27;
 
-#define ADDR_FIFO_CTRL		0x2E
-#define ADDR_FIFO_STATUS	0x2F
-#define ADDR_THS_P_L		0x30
-#define ADDR_THS_P_H		0x31
+#define T_OR (1 << 5) // Temperature data overrun.
+#define P_OR (1 << 4) // Pressure data overrun.
+#define T_DA (1 << 1) // Temperature data available.
+#define P_DA (1 << 0) // Pressure data available.
 
-#define ADDR_RPDS_L		0x39
-#define ADDR_RPDS_H		0x3A
+static constexpr uint8_t PRESS_OUT_XL = 0x28;
+static constexpr uint8_t PRESS_OUT_L = 0x29;
+static constexpr uint8_t PRESS_OUT_H = 0x2A;
 
-/* Data sheet is ambigious if AVGT or AVGP is first */
-#define RES_CONF_AVGT_8		0x00
-#define RES_CONF_AVGT_32	0x01
-#define RES_CONF_AVGT_128	0x02
-#define RES_CONF_AVGT_512	0x03
-#define RES_CONF_AVGP_8		0x00
-#define RES_CONF_AVGP_32	0x04
-#define RES_CONF_AVGP_128	0x08
-#define RES_CONF_AVGP_512	0x0C
+static constexpr uint8_t TEMP_OUT_L = 0x2B;
+static constexpr uint8_t TEMP_OUT_H = 0x2C;
 
-#define CTRL_REG1_SIM		(1 << 0)
-#define CTRL_REG1_RESET_AZ	(1 << 1)
-#define CTRL_REG1_BDU		(1 << 2)
-#define CTRL_REG1_DIFF_EN	(1 << 3)
-#define CTRL_REG1_PD		(1 << 7)
-#define CTRL_REG1_ODR_SINGLE	(0 << 4)
-#define CTRL_REG1_ODR_1HZ	(1 << 4)
-#define CTRL_REG1_ODR_7HZ	(2 << 4)
-#define CTRL_REG1_ODR_12HZ5	(3 << 4)
-#define CTRL_REG1_ODR_25HZ	(4 << 4)
-
-#define CTRL_REG2_ONE_SHOT	(1 << 0)
-#define CTRL_REG2_AUTO_ZERO	(1 << 1)
-#define CTRL_REG2_SWRESET	(1 << 2)
-#define CTRL_REG2_FIFO_MEAN_DEC	(1 << 4)
-#define CTRL_REG2_WTM_EN	(1 << 5)
-#define CTRL_REG2_FIFO_EN	(1 << 6)
-#define CTRL_REG2_BOOT		(1 << 7)
-
-#define CTRL_REG3_INT1_S_DATA	0x0
-#define CTRL_REG3_INT1_S_P_HIGH	0x1
-#define CTRL_REG3_INT1_S_P_LOW	0x2
-#define CTRL_REG3_INT1_S_P_LIM	0x3
-#define CTRL_REG3_PP_OD		(1 << 6)
-#define CTRL_REG3_INT_H_L	(1 << 7)
-
-#define CTRL_REG4_P1_DRDY	(1 << 0)
-#define CTRL_REG4_P1_OVERRUN	(1 << 1)
-#define CTRL_REG4_P1_WTM	(1 << 2)
-#define CTRL_REG4_P1_EMPTY	(1 << 3)
-
-#define INTERRUPT_CFG_PH_E	(1 << 0)
-#define INTERRUPT_CFG_PL_E	(1 << 1)
-#define INTERRUPT_CFG_LIR	(1 << 2)
-
-#define INT_SOURCE_PH		(1 << 0)
-#define INT_SOURCE_PL		(1 << 1)
-#define INT_SOURCE_IA		(1 << 2)
-
-#define STATUS_REG_T_DA		(1 << 0)
-#define STATUS_REG_P_DA		(1 << 1)
-#define STATUS_REG_T_OR		(1 << 4)
-#define STATUS_REG_P_OR		(1 << 5)
-
-#define FIFO_CTRL_WTM_FMEAN_2	0x01
-#define FIFO_CTRL_WTM_FMEAN_4	0x03
-#define FIFO_CTRL_WTM_FMEAN_8	0x07
-#define FIFO_CTRL_WTM_FMEAN_16	0x0F
-#define FIFO_CTRL_WTM_FMEAN_32	0x1F
-#define FIFO_CTRL_F_MODE_BYPASS	(0x0 << 5)
-#define FIFO_CTRL_F_MODE_FIFO	(0x1 << 5)
-#define FIFO_CTRL_F_MODE_STREAM	(0x2 << 5)
-#define FIFO_CTRL_F_MODE_SFIFO	(0x3 << 5)
-#define FIFO_CTRL_F_MODE_BSTRM	(0x4 << 5)
-#define FIFO_CTRL_F_MODE_FMEAN	(0x6 << 5)
-#define FIFO_CTRL_F_MODE_BFIFO	(0x7 << 5)
-
-#define FIFO_STATUS_EMPTY	(1 << 5)
-#define FIFO_STATUS_FULL	(1 << 6)
-#define FIFO_STATUS_WTM		(1 << 7)
+/* interface factories */
+extern device::Device *LPS25H_SPI_interface(int bus);
+extern device::Device *LPS25H_I2C_interface(int bus);
+typedef device::Device *(*LPS25H_constructor)(int);
 
 class LPS25H : public px4::ScheduledWorkItem
 {
@@ -179,6 +100,6 @@ private:
 	unsigned		_measure_interval{0};
 	bool			_collect_phase{false};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t		_sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t		_comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": comms errors")};
 };

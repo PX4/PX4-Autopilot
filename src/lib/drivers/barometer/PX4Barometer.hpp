@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,20 +33,15 @@
 
 #pragma once
 
-#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
-#include <lib/conversion/rotation.h>
-#include <uORB/uORB.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 
-class PX4Barometer : public cdev::CDev
+class PX4Barometer
 {
-
 public:
 	PX4Barometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT);
-	~PX4Barometer() override;
+	~PX4Barometer() = default;
 
 	const sensor_baro_s &get() { return _sensor_baro_pub.get(); }
 
@@ -55,14 +50,11 @@ public:
 
 	void set_temperature(float temperature) { _sensor_baro_pub.get().temperature = temperature; }
 
-	void update(hrt_abstime timestamp, float pressure);
+	void update(const hrt_abstime &timestamp_sample, float pressure);
 
 	void print_status();
 
 private:
-
-	uORB::PublicationMultiData<sensor_baro_s>	_sensor_baro_pub;
-
-	int			_class_device_instance{-1};
+	uORB::PublicationMultiData<sensor_baro_s> _sensor_baro_pub;
 
 };

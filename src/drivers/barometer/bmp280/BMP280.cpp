@@ -33,6 +33,9 @@
 
 #include "BMP280.hpp"
 
+#include <math.h>
+#include <drivers/drv_sensor.h>
+
 BMP280::BMP280(bmp280::IBMP280 *interface) :
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_px4_baro(interface->get_device_id()),

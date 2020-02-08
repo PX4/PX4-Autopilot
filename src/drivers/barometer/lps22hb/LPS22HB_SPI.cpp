@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,11 +39,12 @@
 
 #include "LPS22HB.hpp"
 
-#ifdef PX4_SPIDEV_LPS22HB
+#include <lib/drivers/device/spi.h>
+
+#if defined(PX4_SPIDEV_LPS22HB)
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
-#define DIR_WRITE			(0<<7)
 
 device::Device *LPS22HB_SPI_interface(int bus);
 
@@ -51,27 +52,26 @@ class LPS22HB_SPI : public device::SPI
 {
 public:
 	LPS22HB_SPI(int bus, uint32_t device);
-	virtual ~LPS22HB_SPI() = default;
+	~LPS22HB_SPI() override = default;
 
-	virtual int	init();
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
+	int	init() override;
+	int	read(unsigned address, void *data, unsigned count) override;
+	int	write(unsigned address, void *data, unsigned count) override;
 
 };
 
-device::Device *
-LPS22HB_SPI_interface(int bus)
+device::Device *LPS22HB_SPI_interface(int bus)
 {
 	return new LPS22HB_SPI(bus, PX4_SPIDEV_LPS22HB);
 }
 
-LPS22HB_SPI::LPS22HB_SPI(int bus, uint32_t device) : SPI("LPS22HB_SPI", nullptr, bus, device, SPIDEV_MODE3, 10000000)
+LPS22HB_SPI::LPS22HB_SPI(int bus, uint32_t device) :
+	SPI("LPS22HB_SPI", nullptr, bus, device, SPIDEV_MODE3, 10 * 1000 * 1000)
 {
-	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_LPS22HB;
+	set_device_type(DRV_BARO_DEVTYPE_LPS22HB);
 }
 
-int
-LPS22HB_SPI::init()
+int LPS22HB_SPI::init()
 {
 	int ret = SPI::init();
 
@@ -83,7 +83,7 @@ LPS22HB_SPI::init()
 	// read WHO_AM_I value
 	uint8_t id = 0;
 
-	if (read(WHO_AM_I, &id, 1)) {
+	if (read(ADDR_WHO_AM_I, &id, 1)) {
 		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
@@ -96,8 +96,7 @@ LPS22HB_SPI::init()
 	return OK;
 }
 
-int
-LPS22HB_SPI::write(unsigned address, void *data, unsigned count)
+int LPS22HB_SPI::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -105,14 +104,13 @@ LPS22HB_SPI::write(unsigned address, void *data, unsigned count)
 		return -EIO;
 	}
 
-	buf[0] = address | DIR_WRITE;
+	buf[0] = address;
 	memcpy(&buf[1], data, count);
 
 	return transfer(&buf[0], &buf[0], count + 1);
 }
 
-int
-LPS22HB_SPI::read(unsigned address, void *data, unsigned count)
+int LPS22HB_SPI::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 

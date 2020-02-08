@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,269 +31,199 @@
  *
  ****************************************************************************/
 
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+
 #include "LPS22HB.hpp"
 
-extern "C" __EXPORT int lps22hb_main(int argc, char *argv[]);
-
-enum LPS22HB_BUS {
-	LPS22HB_BUS_ALL = 0,
-	LPS22HB_BUS_I2C_INTERNAL,
-	LPS22HB_BUS_I2C_EXTERNAL,
-	LPS22HB_BUS_SPI
+enum class LPS22HB_BUS {
+	ALL = 0,
+	I2C_INTERNAL,
+	I2C_EXTERNAL,
+	SPI_INTERNAL,
+	SPI_EXTERNAL
 };
 
-/**
- * Local functions in support of the shell command.
- */
 namespace lps22hb
 {
 
 struct lps22hb_bus_option {
-	enum LPS22HB_BUS busid;
-	const char *devpath;
+	LPS22HB_BUS busid;
 	LPS22HB_constructor interface_constructor;
 	uint8_t busnum;
 	LPS22HB	*dev;
-} bus_options[] = {
-	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
-#ifdef PX4_I2C_BUS_EXPANSION1
-	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext1", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+} bus_options[] {
+#if defined(PX4_I2C_BUS_EXPANSION)
+	{ LPS22HB_BUS::I2C_EXTERNAL, &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION, nullptr },
 #endif
-#ifdef PX4_I2C_BUS_EXPANSION2
-	{ LPS22HB_BUS_I2C_EXTERNAL, "/dev/lps22hb_ext2", &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION2, NULL },
+#if defined(PX4_I2C_BUS_EXPANSION1)
+	{ LPS22HB_BUS::I2C_EXTERNAL, &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION1, nullptr },
 #endif
-#ifdef PX4_I2C_BUS_ONBOARD
-	{ LPS22HB_BUS_I2C_INTERNAL, "/dev/lps22hb_int", &LPS22HB_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
+#if defined(PX4_I2C_BUS_EXPANSION2)
+	{ LPS22HB_BUS::I2C_EXTERNAL, &LPS22HB_I2C_interface, PX4_I2C_BUS_EXPANSION2, nullptr },
 #endif
-#ifdef PX4_SPIDEV_LPS22HB
-	{ LPS22HB_BUS_SPI, "/dev/lps22hb_spi", &LPS22HB_SPI_interface, PX4_SPI_BUS_SENSOR4, NULL },
+#if defined(PX4_I2C_BUS_ONBOARD)
+	{ LPS22HB_BUS::I2C_INTERNAL, &LPS22HB_I2C_interface, PX4_I2C_BUS_ONBOARD, nullptr },
+#endif
+#if defined(PX4_SPI_BUS_SENSOR4) && defined(PX4_SPIDEV_LPS22HB)
+	{ LPS22HB_BUS::SPI_INTERNAL, &LPS22HB_SPI_interface, PX4_SPI_BUS_SENSOR4, nullptr },
 #endif
 };
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-int		start(enum LPS22HB_BUS busid);
-bool	start_bus(struct lps22hb_bus_option &bus);
-struct lps22hb_bus_option &find_bus(enum LPS22HB_BUS busid);
-int		reset(enum LPS22HB_BUS busid);
-int		info();
-void	usage();
-
-/**
- * start driver for a specific bus option
- */
-bool
-start_bus(struct lps22hb_bus_option &bus)
+// find a bus structure for a busid
+static struct lps22hb_bus_option *find_bus(LPS22HB_BUS busid)
 {
-	PX4_INFO("starting %s", bus.devpath);
+	for (lps22hb_bus_option &bus_option : bus_options) {
+		if ((busid == LPS22HB_BUS::ALL ||
+		     busid == bus_option.busid) && bus_option.dev != nullptr) {
 
-	if (bus.dev != nullptr) {
-		PX4_WARN("bus option already started");
-		return false;
+			return &bus_option;
+		}
 	}
 
+	return nullptr;
+}
+
+static bool start_bus(lps22hb_bus_option &bus)
+{
 	device::Device *interface = bus.interface_constructor(bus.busnum);
 
 	if (interface->init() != OK) {
-		delete interface;
 		PX4_WARN("no device on bus %u", (unsigned)bus.busid);
+		delete interface;
 		return false;
 	}
 
-	bus.dev = new LPS22HB(interface, bus.devpath);
+	LPS22HB *dev = new LPS22HB(interface);
 
-	if (bus.dev != nullptr && OK != bus.dev->init()) {
-		PX4_WARN("init failed");
-		delete bus.dev;
-		bus.dev = nullptr;
+	if (dev == nullptr) {
+		PX4_ERR("alloc failed");
 		return false;
 	}
 
-	int fd = px4_open(bus.devpath, O_RDONLY);
-
-	/* set the poll rate to default, starts automatic data collection */
-	if (fd == -1) {
-		PX4_ERR("can't open baro device");
+	if (dev->init() != PX4_OK) {
+		PX4_ERR("driver start failed");
+		delete dev;
+		delete interface;
 		return false;
 	}
 
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		px4_close(fd);
-		PX4_ERR("failed setting default poll rate");
-		return false;
-	}
-
-	px4_close(fd);
+	bus.dev = dev;
 
 	return true;
 }
 
-
-/**
- * Start the driver.
- *
- * This function call only returns once the driver
- * is either successfully up and running or failed to start.
- */
-int
-start(enum LPS22HB_BUS busid)
+static int start(LPS22HB_BUS busid)
 {
-	bool started = false;
-
-	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if (busid == LPS22HB_BUS_ALL && bus_options[i].dev != NULL) {
+	for (lps22hb_bus_option &bus_option : bus_options) {
+		if (bus_option.dev != nullptr) {
 			// this device is already started
+			PX4_WARN("already started");
 			continue;
 		}
 
-		if (busid != LPS22HB_BUS_ALL && bus_options[i].busid != busid) {
+		if (busid != LPS22HB_BUS::ALL && bus_option.busid != busid) {
 			// not the one that is asked for
 			continue;
 		}
 
-		started |= start_bus(bus_options[i]);
+		if (start_bus(bus_option)) {
+			return PX4_OK;
+		}
 	}
 
-	if (!started) {
+	return PX4_ERROR;
+}
+
+static int stop(LPS22HB_BUS busid)
+{
+	lps22hb_bus_option *bus = find_bus(busid);
+
+	if (bus != nullptr && bus->dev != nullptr) {
+		delete bus->dev;
+		bus->dev = nullptr;
+
+	} else {
+		PX4_WARN("driver not running");
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-/**
- * find a bus structure for a busid
- */
-struct lps22hb_bus_option &find_bus(enum LPS22HB_BUS busid)
+static int status(LPS22HB_BUS busid)
 {
-	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if ((busid == LPS22HB_BUS_ALL ||
-		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
-			return bus_options[i];
-		}
+	lps22hb_bus_option *bus = find_bus(busid);
+
+	if (bus != nullptr && bus->dev != nullptr) {
+		bus->dev->print_info();
+		return PX4_OK;
 	}
 
-	errx(1, "bus %u not started", (unsigned)busid);
+	PX4_WARN("driver not running");
+	return PX4_ERROR;
 }
 
-/**
- * Reset the driver.
- */
-int
-reset(enum LPS22HB_BUS busid)
+static int usage()
 {
-	struct lps22hb_bus_option &bus = find_bus(busid);
-	const char *path = bus.devpath;
-
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("failed");
-		return PX4_ERROR;
-	}
-
-	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		PX4_ERR("driver reset failed");
-		return PX4_ERROR;
-	}
-
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		PX4_ERR("driver poll restart failed");
-		return PX4_ERROR;
-	}
-
-	return 0;
-}
-
-/**
- * Print a little info about the driver.
- */
-int
-info()
-{
-	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		struct lps22hb_bus_option &bus = bus_options[i];
-
-		if (bus.dev != nullptr) {
-			warnx("%s", bus.devpath);
-			bus.dev->print_info();
-		}
-	}
-
-	return 0;
-}
-
-void
-usage()
-{
-	PX4_INFO("missing command: try 'start', 'info', 'reset'");
+	PX4_INFO("missing command: try 'start', 'stop', 'status'");
 	PX4_INFO("options:");
-	PX4_INFO("    -X    (external I2C bus)");
-	PX4_INFO("    -I    (internal I2C bus)");
-	PX4_INFO("    -S    (external SPI bus)");
+	PX4_INFO("    -X    (i2c external bus)");
+	PX4_INFO("    -I    (i2c internal bus)");
+	PX4_INFO("    -s    (spi internal bus)");
+	PX4_INFO("    -S    (spi external bus)");
+
+	return 0;
 }
 
 } // namespace
 
-int
-lps22hb_main(int argc, char *argv[])
+extern "C" int lps22hb_main(int argc, char *argv[])
 {
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	enum LPS22HB_BUS busid = LPS22HB_BUS_ALL;
+	LPS22HB_BUS busid = LPS22HB_BUS::ALL;
 
-	while ((ch = px4_getopt(argc, argv, "IXS", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISs:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-#if (PX4_I2C_BUS_ONBOARD)
+		case 'X':
+			busid = LPS22HB_BUS::I2C_EXTERNAL;
+			break;
 
 		case 'I':
-			busid = LPS22HB_BUS_I2C_INTERNAL;
-			break;
-#endif /* PX4_I2C_BUS_ONBOARD */
-
-		case 'X':
-			busid = LPS22HB_BUS_I2C_EXTERNAL;
+			busid = LPS22HB_BUS::I2C_INTERNAL;
 			break;
 
 		case 'S':
-			busid = LPS22HB_BUS_SPI;
+			busid = LPS22HB_BUS::SPI_EXTERNAL;
+			break;
+
+		case 's':
+			busid = LPS22HB_BUS::SPI_INTERNAL;
 			break;
 
 		default:
-			lps22hb::usage();
-			return 0;
+			return lps22hb::usage();
 		}
 	}
 
 	if (myoptind >= argc) {
-		lps22hb::usage();
-		return -1;
+		return lps22hb::usage();
 	}
 
 	const char *verb = argv[myoptind];
 
-	/*
-	 * Start/load the driver.
-	 */
 	if (!strcmp(verb, "start")) {
 		return lps22hb::start(busid);
+
+	} else if (!strcmp(verb, "stop")) {
+		return lps22hb::stop(busid);
+
+	} else if (!strcmp(verb, "status")) {
+		return lps22hb::status(busid);
 	}
 
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(verb, "reset")) {
-		return lps22hb::reset(busid);
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(verb, "info")) {
-		return lps22hb::info();
-	}
-
-	PX4_WARN("unrecognised command, try 'start', 'reset' or 'info'");
-	return 0;
+	return lps22hb::usage();
 }

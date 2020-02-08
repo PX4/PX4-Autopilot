@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,12 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file lps22hb_i2c.cpp
+ * @file LPS22HB_I2C.cpp
  *
- * I2C interface for lps22hb
+ * I2C interface for LPS22HB
  */
 
 #include "LPS22HB.hpp"
+
+#include <lib/drivers/device/i2c.h>
 
 #define LPS22HB_ADDRESS		0x5D
 
@@ -47,18 +49,16 @@ class LPS22HB_I2C : public device::I2C
 {
 public:
 	LPS22HB_I2C(int bus);
-	virtual ~LPS22HB_I2C() = default;
+	~LPS22HB_I2C() override = default;
 
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
+	int	read(unsigned address, void *data, unsigned count) override;
+	int	write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	virtual int	probe();
-
+	int	probe() override;
 };
 
-device::Device *
-LPS22HB_I2C_interface(int bus)
+device::Device *LPS22HB_I2C_interface(int bus)
 {
 	return new LPS22HB_I2C(bus);
 }
@@ -66,16 +66,16 @@ LPS22HB_I2C_interface(int bus)
 LPS22HB_I2C::LPS22HB_I2C(int bus) :
 	I2C("LPS22HB_I2C", nullptr, bus, LPS22HB_ADDRESS, 400000)
 {
+	set_device_type(DRV_BARO_DEVTYPE_LPS22HB);
 }
 
-int
-LPS22HB_I2C::probe()
+int LPS22HB_I2C::probe()
 {
-	uint8_t id;
+	uint8_t id = 0;
 
 	_retries = 10;
 
-	if (read(WHO_AM_I, &id, 1)) {
+	if (read(ADDR_WHO_AM_I, &id, 1)) {
 		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
@@ -83,15 +83,14 @@ LPS22HB_I2C::probe()
 	_retries = 2;
 
 	if (id != LPS22HB_ID_WHO_AM_I) {
-		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", LPS22HB_ID_WHO_AM_I, id);
+		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", ID_WHO_AM_I, id);
 		return -EIO;
 	}
 
 	return OK;
 }
 
-int
-LPS22HB_I2C::write(unsigned address, void *data, unsigned count)
+int LPS22HB_I2C::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -105,8 +104,7 @@ LPS22HB_I2C::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
 
-int
-LPS22HB_I2C::read(unsigned address, void *data, unsigned count)
+int LPS22HB_I2C::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);

@@ -44,7 +44,6 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
-#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
@@ -57,6 +56,7 @@
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_accel_integrated.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_correction.h>
