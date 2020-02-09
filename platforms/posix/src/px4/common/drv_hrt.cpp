@@ -43,7 +43,6 @@
 #include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/tasks.h>
 #include <drivers/drv_hrt.h>
-#include <lib/perf/perf_counter.h>
 
 #include <semaphore.h>
 #include <time.h>
@@ -69,6 +68,11 @@ static uint64_t			latency_baseline;
 
 /* timer count at interrupt (for latency purposes) */
 static uint64_t			latency_actual;
+
+/* latency histogram */
+const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
+const uint16_t latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
+__EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
