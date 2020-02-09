@@ -78,6 +78,12 @@ typedef struct hrt_call {
 	void			*arg;
 } *hrt_call_t;
 
+
+#define LATENCY_BUCKET_COUNT 8
+extern const uint16_t latency_bucket_count;
+extern const uint16_t latency_buckets[LATENCY_BUCKET_COUNT];
+extern uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
+
 /**
  * Get absolute time in [us] (does not wrap).
  */
