@@ -42,6 +42,8 @@
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
+using namespace time_literals;
+
 #define ARSP_YAW_CTRL_DISABLE 7.0f	// airspeed at which we stop controlling yaw during a front transition
 
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
@@ -59,6 +61,7 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_params_handles_tiltrotor.tilt_mc = param_find("VT_TILT_MC");
 	_params_handles_tiltrotor.tilt_transition = param_find("VT_TILT_TRANS");
 	_params_handles_tiltrotor.tilt_fw = param_find("VT_TILT_FW");
+	_params_handles_tiltrotor.tilt_spinup = param_find("VT_TILT_SPINUP");
 	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 }
 
@@ -78,6 +81,10 @@ Tiltrotor::parameters_update()
 	/* vtol tilt mechanism position in fw mode */
 	param_get(_params_handles_tiltrotor.tilt_fw, &v);
 	_params_tiltrotor.tilt_fw = v;
+
+	/* vtol tilt mechanism position during motor spinup */
+	param_get(_params_handles_tiltrotor.tilt_spinup, &v);
+	_params_tiltrotor.tilt_spinup = v;
 
 	/* vtol front transition phase 2 duration */
 	param_get(_params_handles_tiltrotor.front_trans_dur_p2, &v);
@@ -207,9 +214,34 @@ void Tiltrotor::update_mc_state()
 {
 	VtolType::update_mc_state();
 
-	_tilt_control = VtolType::pusher_assist();
+	/*Motor spin up: define the first second after arming as motor spin up time, during which
+	* the tilt is set to the value of VT_TILT_SPINUP. This allowes the user to set a spin up
+	* tilt angle in case the propellers don't spin up smootly in full upright (MC mode) position.
+	*/
 
-	_v_att_sp->thrust_body[2] = Tiltrotor::thrust_compensation_for_tilt();
+	// reset this timestamp while disarmed
+	if (!_v_control_mode->flag_armed) {
+		_last_timestamp_disarmed = hrt_absolute_time();
+		_tilt_motors_for_startup = true;
+
+	} else if (_tilt_motors_for_startup) {
+		// leave motors tilted forward for 1 second after arming to allow them to spin up easier
+		if (hrt_absolute_time() - _last_timestamp_disarmed > 1_s) {
+			_tilt_motors_for_startup = false;
+		}
+	}
+
+	if (_tilt_motors_for_startup) {
+		_tilt_control = _params_tiltrotor.tilt_spinup;
+		_mc_yaw_weight = 0.0f;
+
+	} else {
+		// normal operation
+		_tilt_control = VtolType::pusher_assist();
+		_mc_yaw_weight = 1.0f;
+		_v_att_sp->thrust_body[2] = Tiltrotor::thrust_compensation_for_tilt();
+	}
+
 }
 
 void Tiltrotor::update_fw_state()
