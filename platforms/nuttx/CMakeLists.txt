@@ -176,8 +176,8 @@ add_custom_target(weak_symbols
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
 
 # vscode launch.json
-#  FIXME: hack to skip if px4_io-v2 because it's a built within another build (eg px4_fmu-v5)
-if(NOT PX4_BOARD MATCHES "px4_io-v2")
+#  skip if built within another cmake project (eg px4_io-v2 with px4_fmu-v5)
+if(NOT NUTTX_DIR MATCHES "external")
 	if(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
 		set(DEBUG_DEVICE "MIMXRT1062XXX6A")
 		set(DEBUG_SVD_FILE "MIMXRT1052.svd")
@@ -232,7 +232,7 @@ if(NOT PX4_BOARD MATCHES "px4_io-v2")
 		LIST_DIRECTORIES false
 		${CMAKE_SOURCE_DIR}/../cmsis-svd/data/*/${DEBUG_SVD_FILE}
 	)
-	if(DEBUG_SVD_FILE)
+	if(NOT DEBUG_SVD_FILE MATCHES "unknown")
 		message(STATUS "Found SVD: ${DEBUG_SVD_FILE_PATH}")
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 	endif()
