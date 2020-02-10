@@ -4,8 +4,8 @@
         "astyle.cpp.enable": true,
         "breadcrumbs.enabled": true,
         "cmake.autoRestartBuild": true,
-        "cmake.buildDirectory": "${workspaceFolder}/build/${variant:CONFIG}",
         "cmake.buildBeforeRun": true,
+        "cmake.buildDirectory": "${workspaceFolder}/build/${variant:CONFIG}",
         "cmake.configureOnOpen": true,
         "cmake.copyCompileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
         "cmake.debugConfig": {
@@ -53,17 +53,20 @@
                         ]
                 }
         },
-        "cortex-debug.enableTelemetry": false,
+        "C_Cpp.autoAddFileAssociations": false,
         "C_Cpp.clang_format_fallbackStyle": "none",
-        "C_Cpp.configurationWarnings": "Disabled",
+        "C_Cpp.default.browse.databaseFilename": "${workspaceRoot}/.vscode/browse.vc.db",
         "C_Cpp.default.cppStandard": "c++14",
         "C_Cpp.default.cStandard": "c11",
         "C_Cpp.default.intelliSenseMode": "gcc-x64",
-        "C_Cpp.errorSquiggles": "Disabled",
         "C_Cpp.formatting": "Disabled",
         "C_Cpp.intelliSenseEngine": "Default",
-        "C_Cpp.intelliSenseEngineFallback": "Disabled",
+        "C_Cpp.intelliSenseEngineFallback": "Enabled",
+        "C_Cpp.vcpkg.enabled": false,
+        "C_Cpp.workspaceParsingPriority": "medium",
+        "cortex-debug.enableTelemetry": false,
         "debug.toolBarLocation": "docked",
+        "editor.acceptSuggestionOnEnter": "off",
         "editor.defaultFormatter": "chiehyu.vscode-astyle",
         "editor.dragAndDrop": false,
         "editor.insertSpaces": false,
@@ -77,7 +80,7 @@
         "files.insertFinalNewline": true,
         "files.trimTrailingWhitespace": true,
         "files.watcherExclude": {
-                "**/build/*": true
+                "${workspaceFolder}/build": true
         },
         "git.detectSubmodulesLimit": 20,
         "git.ignoreLimitWarning": true,
@@ -157,13 +160,21 @@
                 "vector": "cpp"
         },
         "search.exclude": {
-                "build/**": true
+                "${workspaceFolder}/build": true
         },
         "search.showLineNumbers": true,
+        "search.smartCase": true,
+        "shellcheck.exclude": [2154],
         "telemetry.enableTelemetry": false,
+        "terminal.integrated.copyOnSelection": true,
+        "terminal.integrated.rightClickCopyPaste": true,
+        "terminal.integrated.scrollback": 5000,
         "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
         "workbench.editor.highlightModifiedTabs": true,
         "workbench.enableExperiments": false,
         "workbench.settings.enableNaturalLanguageSearch": false,
-        "workbench.statusBar.feedback.visible": false
+        "workbench.statusBar.feedback.visible": false,
+        "yaml.schemas": {
+                "${workspaceRoot}/validation/module_schema.yaml": "${workspaceRoot}/src/modules/*/module.yaml"
+        },
 }
