@@ -1306,7 +1306,7 @@ PX4IO::io_set_control_state(unsigned group)
 		controls.control[3] = 1.0f;
 	}
 
-	uint16_t regs[_max_actuators];
+	uint16_t regs[_max_controls];
 
 	for (unsigned i = 0; i < _max_controls; i++) {
 		/* ensure FLOAT_TO_REG does not produce an integer overflow */
@@ -1318,7 +1318,6 @@ PX4IO::io_set_control_state(unsigned group)
 		} else {
 			regs[i] = FLOAT_TO_REG(ctrl);
 		}
-
 
 	}
 
