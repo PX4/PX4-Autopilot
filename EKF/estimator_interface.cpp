@@ -66,7 +66,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 
 	// Do not change order of computeVibrationMetric and checkIfVehicleAtRest
 	computeVibrationMetric();
-	_vehicle_at_rest = checkIfVehicleAtRest(dt);
+	_control_status.flags.vehicle_at_rest = checkIfVehicleAtRest(dt);
 
 	const bool new_downsampled_imu_sample_ready = _imu_down_sampler.update(_newest_high_rate_imu_sample);
 	_imu_updated = new_downsampled_imu_sample_ready;

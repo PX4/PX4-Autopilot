@@ -364,7 +364,7 @@ public:
 		*val = _fault_status.value;
 	}
 
-	bool isVehicleAtRest() const { return _vehicle_at_rest; }
+	bool isVehicleAtRest() const { return _control_status.flags.vehicle_at_rest; }
 
 	// get GPS check status
 	virtual void get_gps_check_status(uint16_t *val) = 0;
@@ -521,7 +521,6 @@ protected:
 					// [0] Horizontal position drift rate (m/s)
 					// [1] Vertical position drift rate (m/s)
 					// [2] Filtered horizontal velocity (m/s)
-	bool _vehicle_at_rest{false};	// true when the vehicle is at rest
 	uint64_t _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
 	bool _gps_drift_updated{false};	// true when _gps_drift_metrics has been updated and is ready for retrieval
 

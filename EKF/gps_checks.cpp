@@ -143,7 +143,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	// The following checks are only valid when the vehicle is at rest
 	const double lat = gps.lat * 1.0e-7;
 	const double lon = gps.lon * 1.0e-7;
-	if (!_control_status.flags.in_air && _vehicle_at_rest) {
+	if (!_control_status.flags.in_air && _control_status.flags.vehicle_at_rest) {
 		// Calculate position movement since last measurement
 		float delta_pos_n = 0.0f;
 		float delta_pos_e = 0.0f;

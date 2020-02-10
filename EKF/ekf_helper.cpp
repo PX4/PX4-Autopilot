@@ -1127,7 +1127,7 @@ void Ekf::get_imu_vibe_metrics(float vibe[3])
 bool Ekf::get_gps_drift_metrics(float drift[3], bool *blocked)
 {
 	memcpy(drift, _gps_drift_metrics, 3 * sizeof(float));
-	*blocked = !_vehicle_at_rest;
+	*blocked = !_control_status.flags.vehicle_at_rest;
 	if (_gps_drift_updated) {
 		_gps_drift_updated = false;
 		return true;

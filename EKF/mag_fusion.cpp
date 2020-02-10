@@ -716,7 +716,7 @@ void Ekf::fuseHeading()
 	if (_mag_use_inhibit) {
 		// The magnetometer cannot be trusted but we need to fuse a heading to prevent a badly
 		// conditioned covariance matrix developing over time.
-		if (!_vehicle_at_rest) {
+		if (!_control_status.flags.vehicle_at_rest) {
 			// Vehicle is not at rest so fuse a zero innovation and record the
 			// predicted heading to use as an observation when movement ceases.
 			_heading_innov = 0.0f;
