@@ -785,6 +785,13 @@ void Logger::run()
 				_last_sync_time = loop_time;
 			}
 
+			// update buffer statistics
+			for (int i = 0; i < (int)LogType::Count; ++i) {
+				if (!_statistics[i].dropout_start && (_writer.get_buffer_fill_count_file((LogType)i) > _statistics[i].high_water)) {
+					_statistics[i].high_water = _writer.get_buffer_fill_count_file((LogType)i);
+				}
+			}
+
 			// publish logger status
 			if (hrt_elapsed_time(&_logger_status_last) >= 1_s) {
 				for (int i = 0; i < (int)LogType::Count; ++i) {
