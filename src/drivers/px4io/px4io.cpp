@@ -1306,9 +1306,9 @@ PX4IO::io_set_control_state(unsigned group)
 		controls.control[3] = 1.0f;
 	}
 
-	uint16_t regs[_max_controls];
+	uint16_t regs[sizeof(controls.control) / sizeof(controls.control[0])];
 
-	for (unsigned i = 0; i < _max_controls; i++) {
+	for (unsigned i = 0; (i < _max_controls) && (i < sizeof(controls.control) / sizeof(controls.control[0])); i++) {
 		/* ensure FLOAT_TO_REG does not produce an integer overflow */
 		const float ctrl = math::constrain(controls.control[i], -1.0f, 1.0f);
 
