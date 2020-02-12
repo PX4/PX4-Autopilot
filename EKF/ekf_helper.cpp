@@ -1372,7 +1372,25 @@ void Ekf::fuse(float *K, float innovation)
 
 void Ekf::uncorrelateQuatStates()
 {
+	// save 4x4 elements
+	uint32_t row;
+	uint32_t col;
+	float variances[4][4];
+	for (row = 0; row < 4; row++) {
+		for (col = 0; col < 4; col++) {
+			variances[row][col] = P(row, col);
+		}
+	}
+
+	// zero rows and columns
 	P.uncorrelateCovariance<4>(0);
+
+	// restore 4x4 elements
+	for (row = 0; row < 4; row++) {
+		for (col = 0; col < 4; col++) {
+			P(row, col) = variances[row][col];
+		}
+	}
 }
 
 bool Ekf::global_position_is_valid()
