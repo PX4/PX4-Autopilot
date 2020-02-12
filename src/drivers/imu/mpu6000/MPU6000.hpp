@@ -98,25 +98,6 @@ enum MPU_DEVICE_TYPE {
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
-#define MPU_DEVICE_PATH		"/dev/mpu6000"
-#define MPU_DEVICE_PATH1		"/dev/mpu6000_1"
-#define MPU_DEVICE_PATH_EXT	"/dev/mpu6000_ext"
-#define MPU_DEVICE_PATH_EXT1	"/dev/mpu6000_ext1"
-#define MPU_DEVICE_PATH_EXT2	"/dev/mpu6000_ext2"
-
-
-#define ICM20602_DEVICE_PATH		"/dev/icm20602"
-#define ICM20602_DEVICE_PATH1		"/dev/icm20602_1"
-#define ICM20602_DEVICE_PATH_EXT	"/dev/icm20602_ext"
-#define ICM20602_DEVICE_PATH_EXT1	"/dev/icm20602_ext1"
-
-#define ICM20608_DEVICE_PATH		"/dev/icm20608"
-#define ICM20608_DEVICE_PATH1		"/dev/icm20608_1"
-#define ICM20608_DEVICE_PATH_EXT	"/dev/icm20608_ext"
-#define ICM20608_DEVICE_PATH_EXT1	"/dev/icm20608_ext1"
-
-#define ICM20689_DEVICE_PATH		"/dev/icm20689"
-
 // MPU 6000 registers
 #define MPUREG_WHOAMI			0x75
 #define MPUREG_SMPLRT_DIV		0x19
@@ -301,10 +282,10 @@ enum MPU6000_BUS {
 	MPU6000_BUS_SPI_EXTERNAL2
 };
 
-class MPU6000 : public cdev::CDev, public px4::ScheduledWorkItem
+class MPU6000 : public px4::ScheduledWorkItem
 {
 public:
-	MPU6000(device::Device *interface, const char *path, enum Rotation rotation, int device_type);
+	MPU6000(device::Device *interface, enum Rotation rotation, int device_type);
 
 	virtual ~MPU6000();
 
@@ -412,11 +393,6 @@ private:
 	 * is_mpu_device
 	 */
 	bool 		is_mpu_device() { return _device_type == MPU_DEVICE_TYPE_MPU6000; }
-
-	/**
-	 * Fetch measurements from the sensor and update the report buffers.
-	 */
-	int			measure();
 
 	/**
 	 * Read a register from the MPU6000

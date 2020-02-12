@@ -57,6 +57,7 @@ static void usage()
 {
 	PX4_DEBUG("usage: qshell cmd [args]");
 }
+
 int qshell_main(int argc, char *argv[])
 {
 	if (argc < 2) {

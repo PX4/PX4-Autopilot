@@ -46,8 +46,6 @@
 #include <px4_platform_common/log.h>
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/vehicle_status.h>     // to get the HIL status
 
 #include <unistd.h>
 #include <string.h>
@@ -57,11 +55,6 @@
 using namespace math;
 using namespace matrix;
 
-int Sih::print_status()
-{
-	PX4_INFO("Running");
-	return 0;
-}
 
 int Sih::custom_command(int argc, char *argv[])
 {
@@ -99,16 +92,13 @@ Sih *Sih::instantiate(int argc, char *argv[])
 
 Sih::Sih() :
 	ModuleParams(nullptr),
-	_loop_perf(perf_alloc(PC_ELAPSED, "sih_execution")),
-	_sampling_perf(perf_alloc(PC_ELAPSED, "sih_sampling"))
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": execution")),
+	_sampling_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sampling"))
 {
 }
 
 void Sih::run()
 {
-	// to subscribe to (read) the actuators_out pwm
-	_actuator_out_sub = orb_subscribe(ORB_ID(actuator_outputs));
-
 	// initialize parameters
 	parameters_update_poll();
 
@@ -141,7 +131,6 @@ void Sih::run()
 
 	hrt_cancel(&_timer_call);   // close the periodic timer interruption
 	px4_sem_destroy(&_data_semaphore);
-	orb_unsubscribe(_actuator_out_sub);
 }
 
 // timer_callback() is used as a real time callback to post the semaphore
@@ -255,15 +244,9 @@ void Sih::init_sensors()
 // read the motor signals outputted from the mixer
 void Sih::read_motors()
 {
-	actuator_outputs_s actuators_out {};
+	actuator_outputs_s actuators_out;
 
-	// read the actuator outputs
-	bool updated = false;
-	orb_check(_actuator_out_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(actuator_outputs), _actuator_out_sub, &actuators_out);
-
+	if (_actuator_out_sub.update(&actuators_out)) {
 		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
 			_u[i] = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
 		}
@@ -350,34 +333,20 @@ void Sih::reconstruct_sensors_signals()
 void Sih::send_IMU()
 {
 	// gyro
-	{
-		static constexpr float scaling = 1000.0f;
-		_px4_gyro.set_scale(1 / scaling);
-		_px4_gyro.set_temperature(T1_C);
-		_px4_gyro.update(_now, _gyro(0) * scaling, _gyro(1) * scaling, _gyro(2) * scaling);
-	}
+	_px4_gyro.set_temperature(T1_C);
+	_px4_gyro.update(_now, _gyro(0), _gyro(1), _gyro(2));
 
 	// accel
-	{
-		static constexpr float scaling = 1000.0f;
-		_px4_accel.set_scale(1 / scaling);
-		_px4_accel.set_temperature(T1_C);
-		_px4_accel.update(_now, _acc(0) * scaling, _acc(1) * scaling, _acc(2) * scaling);
-	}
+	_px4_accel.set_temperature(T1_C);
+	_px4_accel.update(_now, _acc(0), _acc(1), _acc(2));
 
 	// magnetometer
-	{
-		static constexpr float scaling = 1000.0f;
-		_px4_mag.set_scale(1 / scaling);
-		_px4_mag.set_temperature(T1_C);
-		_px4_mag.update(_now, _mag(0) * scaling, _mag(1) * scaling, _mag(2) * scaling);
-	}
+	_px4_mag.set_temperature(T1_C);
+	_px4_mag.update(_now, _mag(0), _mag(1), _mag(2));
 
 	// baro
-	{
-		_px4_baro.set_temperature(_baro_temp_c);
-		_px4_baro.update(_now, _baro_p_mBar);
-	}
+	_px4_baro.set_temperature(_baro_temp_c);
+	_px4_baro.update(_now, _baro_p_mBar);
 }
 
 void Sih::send_gps()
@@ -396,12 +365,7 @@ void Sih::send_gps()
 	_vehicle_gps_pos.cog_rad = atan2(_gps_vel(1),
 					 _gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
 
-	if (_vehicle_gps_pos_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_gps_position), _vehicle_gps_pos_pub, &_vehicle_gps_pos);
-
-	} else {
-		_vehicle_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_vehicle_gps_pos);
-	}
+	_vehicle_gps_pos_pub.publish(_vehicle_gps_pos);
 }
 
 void Sih::publish_sih()
@@ -412,14 +376,7 @@ void Sih::publish_sih()
 	_vehicle_angular_velocity_gt.xyz[1] = _w_B(1); // pitchspeed;
 	_vehicle_angular_velocity_gt.xyz[2] = _w_B(2); // yawspeed;
 
-	if (_vehicle_angular_velocity_gt_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_angular_velocity_groundtruth), _vehicle_angular_velocity_gt_pub,
-			    &_vehicle_angular_velocity_gt);
-
-	} else {
-		_vehicle_angular_velocity_gt_pub = orb_advertise(ORB_ID(vehicle_angular_velocity_groundtruth),
-						   &_vehicle_angular_velocity_gt);
-	}
+	_vehicle_angular_velocity_gt_pub.publish(_vehicle_angular_velocity_gt);
 
 	// publish attitude groundtruth
 	_att_gt.timestamp = hrt_absolute_time();
@@ -428,12 +385,7 @@ void Sih::publish_sih()
 	_att_gt.q[2] = _q(2);
 	_att_gt.q[3] = _q(3);
 
-	if (_att_gt_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_attitude_groundtruth), _att_gt_pub, &_att_gt);
-
-	} else {
-		_att_gt_pub = orb_advertise(ORB_ID(vehicle_attitude_groundtruth), &_att_gt);
-	}
+	_att_gt_pub.publish(_att_gt);
 
 	_gpos_gt.timestamp = hrt_absolute_time();
 	_gpos_gt.lat = _gps_lat_noiseless;
@@ -443,12 +395,7 @@ void Sih::publish_sih()
 	_gpos_gt.vel_e = _v_I(1);
 	_gpos_gt.vel_d = _v_I(2);
 
-	if (_gpos_gt_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_global_position_groundtruth), _gpos_gt_pub, &_gpos_gt);
-
-	} else {
-		_gpos_gt_pub = orb_advertise(ORB_ID(vehicle_global_position_groundtruth), &_gpos_gt);
-	}
+	_gpos_gt_pub.publish(_gpos_gt);
 }
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1

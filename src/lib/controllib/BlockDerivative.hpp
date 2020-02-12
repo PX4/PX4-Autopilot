@@ -87,6 +87,7 @@ public:
 	float update(float input);
 // accessors
 	void setU(float u) {_u = u;}
+	void reset() { _initialized = false; };
 	float getU() {return _u;}
 	float getLP() {return _lowPass.getFCut();}
 	float getO() { return _lowPass.getState(); }

@@ -58,34 +58,40 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/camera_capture.h>
+#include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/collision_report.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/debug_array.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/debug_vect.h>
-#include <uORB/topics/debug_array.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/mount_orientation.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/sensor_accel_integrated.h>
+#include <uORB/topics/sensor_accel_status.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/sensor_gyro_integrated.h>
+#include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -96,21 +102,16 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
-#include <uORB/topics/mount_orientation.h>
-#include <uORB/topics/collision_report.h>
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_mag.h>
-#include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_magnetometer.h>
-#include <uORB/uORB.h>
 
+using matrix::Vector3f;
 using matrix::wrap_2pi;
 
 static uint16_t cm_uint16_from_m_float(float m);
@@ -692,13 +693,40 @@ protected:
 			if (_battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status)) {
 				/* battery status message with higher resolution */
 				mavlink_battery_status_t bat_msg{};
-				bat_msg.id = i;
+				// TODO: Determine how to better map between battery ID within the firmware and in MAVLink
+				bat_msg.id = battery_status.id - 1;
 				bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
 				bat_msg.type = MAV_BATTERY_TYPE_LIPO;
 				bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
 				bat_msg.energy_consumed = -1;
 				bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
 				bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
+
+				switch (battery_status.warning) {
+				case (battery_status_s::BATTERY_WARNING_NONE):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_OK;
+					break;
+
+				case (battery_status_s::BATTERY_WARNING_LOW):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_LOW;
+					break;
+
+				case (battery_status_s::BATTERY_WARNING_CRITICAL):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CRITICAL;
+					break;
+
+				case (battery_status_s::BATTERY_WARNING_EMERGENCY):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_EMERGENCY;
+					break;
+
+				case (battery_status_s::BATTERY_WARNING_FAILED):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
+					break;
+
+				default:
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNDEFINED;
+					break;
+				}
 
 				// check if temperature valid
 				if (battery_status.connected && PX4_ISFINITE(battery_status.temperature)) {
@@ -709,10 +737,12 @@ protected:
 				}
 
 				static constexpr int mavlink_cells_max = (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0]));
+				static constexpr int uorb_cells_max =
+					(sizeof(battery_status.voltage_cell_v) / sizeof(battery_status.voltage_cell_v[0]));
 
 				for (int cell = 0; cell < mavlink_cells_max; cell++) {
-					if ((battery_status.cell_count > 0) && (cell < battery_status.cell_count) && battery_status.connected) {
-						bat_msg.voltages[cell] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
+					if (battery_status.connected && (cell < battery_status.cell_count) && (cell < uorb_cells_max)) {
+						bat_msg.voltages[cell] = battery_status.voltage_cell_v[cell] * 1000.0f;
 
 					} else {
 						bat_msg.voltages[cell] = UINT16_MAX;
@@ -786,7 +816,7 @@ protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_sensor_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_combined))),
 		_sensor_time(0),
-		_bias_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_bias))),
+		_bias_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_sensor_bias))),
 		_differential_pressure_sub(_mavlink->add_orb_subscription(ORB_ID(differential_pressure))),
 		_magnetometer_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_magnetometer))),
 		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data))),
@@ -834,7 +864,7 @@ protected:
 				_baro_timestamp = air_data.timestamp;
 			}
 
-			sensor_bias_s bias = {};
+			estimator_sensor_bias_s bias{};
 			_bias_sub->update(&bias);
 
 			differential_pressure_s differential_pressure = {};
@@ -922,8 +952,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 0)),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 0)),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_integrated), 0)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro_integrated), 0)),
 		_raw_mag_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_mag), 0)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0),
@@ -932,9 +962,9 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		sensor_accel_s sensor_accel = {};
-		sensor_gyro_s sensor_gyro = {};
-		sensor_mag_s sensor_mag = {};
+		sensor_accel_integrated_s sensor_accel{};
+		sensor_gyro_integrated_s sensor_gyro{};
+		sensor_mag_s sensor_mag{};
 
 		bool updated = false;
 		updated |= _raw_accel_sub->update(&_raw_accel_time, &sensor_accel);
@@ -942,19 +972,27 @@ protected:
 		updated |= _raw_mag_sub->update(&_raw_mag_time, &sensor_mag);
 
 		if (updated) {
-
-			mavlink_scaled_imu_t msg = {};
+			mavlink_scaled_imu_t msg{};
 
 			msg.time_boot_ms = sensor_accel.timestamp / 1000;
-			msg.xacc = (int16_t)(sensor_accel.x_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.yacc = (int16_t)(sensor_accel.y_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.zacc = (int16_t)(sensor_accel.z_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.xgyro = sensor_gyro.x_raw;					// [milli rad/s]
-			msg.ygyro = sensor_gyro.y_raw;					// [milli rad/s]
-			msg.zgyro = sensor_gyro.z_raw;					// [milli rad/s]
-			msg.xmag = sensor_mag.x_raw;					// [milli tesla]
-			msg.ymag = sensor_mag.y_raw;					// [milli tesla]
-			msg.zmag = sensor_mag.z_raw;					// [milli tesla]
+
+			// Accelerometer in mG
+			const float accel_dt_inv = 1.e6f / (float)sensor_accel.dt;
+			const Vector3f accel = Vector3f{sensor_accel.delta_velocity} * accel_dt_inv * 1000.0f / CONSTANTS_ONE_G;
+
+			// Gyroscope in mrad/s
+			const float gyro_dt_inv = 1.e6f / (float)sensor_gyro.dt;
+			const Vector3f gyro = Vector3f{sensor_gyro.delta_angle} * gyro_dt_inv * 1000.0f;
+
+			msg.xacc = (int16_t)accel(0);
+			msg.yacc = (int16_t)accel(1);
+			msg.zacc = (int16_t)accel(2);
+			msg.xgyro = gyro(0);
+			msg.ygyro = gyro(1);
+			msg.zgyro = gyro(2);
+			msg.xmag = sensor_mag.x * 1000.0f; // Gauss -> MilliGauss
+			msg.ymag = sensor_mag.y * 1000.0f; // Gauss -> MilliGauss
+			msg.zmag = sensor_mag.z * 1000.0f; // Gauss -> MilliGauss
 
 			mavlink_msg_scaled_imu_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1014,8 +1052,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU2(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 1)),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 1)),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_integrated), 1)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro_integrated), 1)),
 		_raw_mag_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_mag), 1)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0),
@@ -1024,9 +1062,9 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		sensor_accel_s sensor_accel = {};
-		sensor_gyro_s sensor_gyro = {};
-		sensor_mag_s sensor_mag = {};
+		sensor_accel_integrated_s sensor_accel{};
+		sensor_gyro_integrated_s sensor_gyro{};
+		sensor_mag_s sensor_mag{};
 
 		bool updated = false;
 		updated |= _raw_accel_sub->update(&_raw_accel_time, &sensor_accel);
@@ -1034,19 +1072,27 @@ protected:
 		updated |= _raw_mag_sub->update(&_raw_mag_time, &sensor_mag);
 
 		if (updated) {
-
-			mavlink_scaled_imu2_t msg = {};
+			mavlink_scaled_imu2_t msg{};
 
 			msg.time_boot_ms = sensor_accel.timestamp / 1000;
-			msg.xacc = (int16_t)(sensor_accel.x_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.yacc = (int16_t)(sensor_accel.y_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.zacc = (int16_t)(sensor_accel.z_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.xgyro = sensor_gyro.x_raw;					// [milli rad/s]
-			msg.ygyro = sensor_gyro.y_raw;					// [milli rad/s]
-			msg.zgyro = sensor_gyro.z_raw;					// [milli rad/s]
-			msg.xmag = sensor_mag.x_raw;					// [milli tesla]
-			msg.ymag = sensor_mag.y_raw;					// [milli tesla]
-			msg.zmag = sensor_mag.z_raw;					// [milli tesla]
+
+			// Accelerometer in mG
+			const float accel_dt_inv = 1.e6f / (float)sensor_accel.dt;
+			const Vector3f accel = Vector3f{sensor_accel.delta_velocity} * accel_dt_inv * 1000.0f / CONSTANTS_ONE_G;
+
+			// Gyroscope in mrad/s
+			const float gyro_dt_inv = 1.e6f / (float)sensor_gyro.dt;
+			const Vector3f gyro = Vector3f{sensor_gyro.delta_angle} * gyro_dt_inv * 1000.0f;
+
+			msg.xacc = (int16_t)accel(0);
+			msg.yacc = (int16_t)accel(1);
+			msg.zacc = (int16_t)accel(2);
+			msg.xgyro = gyro(0);
+			msg.ygyro = gyro(1);
+			msg.zgyro = gyro(2);
+			msg.xmag = sensor_mag.x * 1000.0f; // Gauss -> MilliGauss
+			msg.ymag = sensor_mag.y * 1000.0f; // Gauss -> MilliGauss
+			msg.zmag = sensor_mag.z * 1000.0f; // Gauss -> MilliGauss
 
 			mavlink_msg_scaled_imu2_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1105,8 +1151,8 @@ private:
 
 protected:
 	explicit MavlinkStreamScaledIMU3(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel), 2)),
-		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro), 2)),
+		_raw_accel_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_integrated), 2)),
+		_raw_gyro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gyro_integrated), 2)),
 		_raw_mag_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_mag), 2)),
 		_raw_accel_time(0),
 		_raw_gyro_time(0),
@@ -1115,9 +1161,9 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		sensor_accel_s sensor_accel = {};
-		sensor_gyro_s sensor_gyro = {};
-		sensor_mag_s sensor_mag = {};
+		sensor_accel_integrated_s sensor_accel{};
+		sensor_gyro_integrated_s sensor_gyro{};
+		sensor_mag_s sensor_mag{};
 
 		bool updated = false;
 		updated |= _raw_accel_sub->update(&_raw_accel_time, &sensor_accel);
@@ -1125,19 +1171,27 @@ protected:
 		updated |= _raw_mag_sub->update(&_raw_mag_time, &sensor_mag);
 
 		if (updated) {
-
-			mavlink_scaled_imu3_t msg = {};
+			mavlink_scaled_imu3_t msg{};
 
 			msg.time_boot_ms = sensor_accel.timestamp / 1000;
-			msg.xacc = (int16_t)(sensor_accel.x_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.yacc = (int16_t)(sensor_accel.y_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.zacc = (int16_t)(sensor_accel.z_raw / CONSTANTS_ONE_G); 	// [milli g]
-			msg.xgyro = sensor_gyro.x_raw;					// [milli rad/s]
-			msg.ygyro = sensor_gyro.y_raw;					// [milli rad/s]
-			msg.zgyro = sensor_gyro.z_raw;					// [milli rad/s]
-			msg.xmag = sensor_mag.x_raw;					// [milli tesla]
-			msg.ymag = sensor_mag.y_raw;					// [milli tesla]
-			msg.zmag = sensor_mag.z_raw;					// [milli tesla]
+
+			// Accelerometer in mG
+			const float accel_dt_inv = 1.e6f / (float)sensor_accel.dt;
+			const Vector3f accel = Vector3f{sensor_accel.delta_velocity} * accel_dt_inv * 1000.0f / CONSTANTS_ONE_G;
+
+			// Gyroscope in mrad/s
+			const float gyro_dt_inv = 1.e6f / (float)sensor_gyro.dt;
+			const Vector3f gyro = Vector3f{sensor_gyro.delta_angle} * gyro_dt_inv * 1000.0f;
+
+			msg.xacc = (int16_t)accel(0);
+			msg.yacc = (int16_t)accel(1);
+			msg.zacc = (int16_t)accel(2);
+			msg.xgyro = gyro(0);
+			msg.ygyro = gyro(1);
+			msg.zgyro = gyro(2);
+			msg.xmag = sensor_mag.x * 1000.0f; // Gauss -> MilliGauss
+			msg.ymag = sensor_mag.y * 1000.0f; // Gauss -> MilliGauss
+			msg.zmag = sensor_mag.z * 1000.0f; // Gauss -> MilliGauss
 
 			mavlink_msg_scaled_imu3_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1370,7 +1424,7 @@ private:
 	MavlinkOrbSubscription *_act0_sub;
 	MavlinkOrbSubscription *_act1_sub;
 
-	MavlinkOrbSubscription *_airspeed_sub;
+	MavlinkOrbSubscription *_airspeed_validated_sub;
 	uint64_t _airspeed_time;
 
 	MavlinkOrbSubscription *_air_data_sub;
@@ -1387,7 +1441,7 @@ protected:
 		_armed_time(0),
 		_act0_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
 		_act1_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_1))),
-		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
+		_airspeed_validated_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed_validated))),
 		_airspeed_time(0),
 		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data)))
 	{}
@@ -1396,16 +1450,16 @@ protected:
 	{
 		vehicle_local_position_s pos = {};
 		actuator_armed_s armed = {};
-		airspeed_s airspeed = {};
+		airspeed_validated_s airspeed_validated = {};
 
 		bool updated = false;
 		updated |= _pos_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
-		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
+		updated |= _airspeed_validated_sub->update(&_airspeed_time, &airspeed_validated);
 
 		if (updated) {
-			mavlink_vfr_hud_t msg = {};
-			msg.airspeed = airspeed.indicated_airspeed_m_s;
+			mavlink_vfr_hud_t msg{};
+			msg.airspeed = airspeed_validated.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vx * pos.vx + pos.vy * pos.vy);
 			msg.heading = math::degrees(wrap_2pi(pos.yaw));
 
@@ -2638,6 +2692,10 @@ private:
 	MavlinkOrbSubscription *_est_sub;
 	uint64_t _est_time;
 
+	MavlinkOrbSubscription *_sensor_accel_status_0_sub;
+	MavlinkOrbSubscription *_sensor_accel_status_1_sub;
+	MavlinkOrbSubscription *_sensor_accel_status_2_sub;
+
 	/* do not allow top copying this class */
 	MavlinkStreamEstimatorStatus(MavlinkStreamEstimatorStatus &) = delete;
 	MavlinkStreamEstimatorStatus &operator = (const MavlinkStreamEstimatorStatus &) = delete;
@@ -2645,7 +2703,10 @@ private:
 protected:
 	explicit MavlinkStreamEstimatorStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
-		_est_time(0)
+		_est_time(0),
+		_sensor_accel_status_0_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_status), 0)),
+		_sensor_accel_status_1_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_status), 1)),
+		_sensor_accel_status_2_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_status), 2))
 	{}
 
 	bool send(const hrt_abstime t) override
@@ -2668,11 +2729,30 @@ protected:
 			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
 			// VIBRATION
-			mavlink_vibration_t msg = {};
+			mavlink_vibration_t msg{};
 			msg.time_usec = est.timestamp;
 			msg.vibration_x = est.vibe[0];
 			msg.vibration_y = est.vibe[1];
 			msg.vibration_z = est.vibe[2];
+
+			sensor_accel_status_s acc_status_0;
+
+			if (_sensor_accel_status_0_sub->update(&acc_status_0)) {
+				msg.clipping_0 = acc_status_0.clipping[0] + acc_status_0.clipping[1] + acc_status_0.clipping[2];
+			}
+
+			sensor_accel_status_s acc_status_1;
+
+			if (_sensor_accel_status_1_sub->update(&acc_status_1)) {
+				msg.clipping_1 = acc_status_1.clipping[0] + acc_status_1.clipping[1] + acc_status_1.clipping[2];
+			}
+
+			sensor_accel_status_s acc_status_2;
+
+			if (_sensor_accel_status_2_sub->update(&acc_status_2)) {
+				msg.clipping_2 = acc_status_2.clipping[0] + acc_status_2.clipping[1] + acc_status_2.clipping[2];
+			}
+
 			mavlink_msg_vibration_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
@@ -2870,12 +2950,6 @@ public:
 
 		case 1:
 			return "SERVO_OUTPUT_RAW_1";
-
-		case 2:
-			return "SERVO_OUTPUT_RAW_2";
-
-		case 3:
-			return "SERVO_OUTPUT_RAW_3";
 		}
 	}
 
@@ -4701,7 +4775,8 @@ public:
 
 private:
 	MavlinkOrbSubscription *_mount_orientation_sub;
-	uint64_t _mount_orientation_time;
+	MavlinkOrbSubscription *_gpos_sub;
+	uint64_t _mount_orientation_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamMountOrientation(MavlinkStreamMountOrientation &) = delete;
@@ -4710,12 +4785,12 @@ private:
 protected:
 	explicit MavlinkStreamMountOrientation(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_mount_orientation_sub(_mavlink->add_orb_subscription(ORB_ID(mount_orientation))),
-		_mount_orientation_time(0)
+		_gpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position)))
 	{}
 
 	bool send(const hrt_abstime t) override
 	{
-		struct mount_orientation_s mount_orientation;
+		mount_orientation_s mount_orientation{};
 
 		if (_mount_orientation_sub->update(&_mount_orientation_time, &mount_orientation)) {
 			mavlink_mount_orientation_t msg = {};
@@ -4723,6 +4798,10 @@ protected:
 			msg.roll = math::degrees(mount_orientation.attitude_euler_angle[0]);
 			msg.pitch = math::degrees(mount_orientation.attitude_euler_angle[1]);
 			msg.yaw = math::degrees(mount_orientation.attitude_euler_angle[2]);
+
+			vehicle_global_position_s gpos{};
+			_gpos_sub->update(&gpos);
+			msg.yaw_absolute = math::degrees(matrix::wrap_2pi(gpos.yaw + mount_orientation.attitude_euler_angle[2]));
 
 			mavlink_msg_mount_orientation_send_struct(_mavlink->get_channel(), &msg);
 
@@ -5072,8 +5151,6 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static, &MavlinkStreamHomePosition::get_id_static),
 	StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static, &MavlinkStreamServoOutputRaw<0>::get_id_static),
 	StreamListItem(&MavlinkStreamServoOutputRaw<1>::new_instance, &MavlinkStreamServoOutputRaw<1>::get_name_static, &MavlinkStreamServoOutputRaw<1>::get_id_static),
-	StreamListItem(&MavlinkStreamServoOutputRaw<2>::new_instance, &MavlinkStreamServoOutputRaw<2>::get_name_static, &MavlinkStreamServoOutputRaw<2>::get_id_static),
-	StreamListItem(&MavlinkStreamServoOutputRaw<3>::new_instance, &MavlinkStreamServoOutputRaw<3>::get_name_static, &MavlinkStreamServoOutputRaw<3>::get_id_static),
 	StreamListItem(&MavlinkStreamHILActuatorControls::new_instance, &MavlinkStreamHILActuatorControls::get_name_static, &MavlinkStreamHILActuatorControls::get_id_static),
 	StreamListItem(&MavlinkStreamPositionTargetGlobalInt::new_instance, &MavlinkStreamPositionTargetGlobalInt::get_name_static, &MavlinkStreamPositionTargetGlobalInt::get_id_static),
 	StreamListItem(&MavlinkStreamLocalPositionSetpoint::new_instance, &MavlinkStreamLocalPositionSetpoint::get_name_static, &MavlinkStreamLocalPositionSetpoint::get_id_static),
@@ -5083,9 +5160,9 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamTrajectoryRepresentationWaypoints::new_instance, &MavlinkStreamTrajectoryRepresentationWaypoints::get_name_static, &MavlinkStreamTrajectoryRepresentationWaypoints::get_id_static),
 	StreamListItem(&MavlinkStreamOpticalFlowRad::new_instance, &MavlinkStreamOpticalFlowRad::get_name_static, &MavlinkStreamOpticalFlowRad::get_id_static),
 	StreamListItem(&MavlinkStreamActuatorControlTarget<0>::new_instance, &MavlinkStreamActuatorControlTarget<0>::get_name_static, &MavlinkStreamActuatorControlTarget<0>::get_id_static),
-	StreamListItem(&MavlinkStreamActuatorControlTarget<1>::new_instance, &MavlinkStreamActuatorControlTarget<1>::get_name_static, &MavlinkStreamActuatorControlTarget<1>::get_id_static),
-	StreamListItem(&MavlinkStreamActuatorControlTarget<2>::new_instance, &MavlinkStreamActuatorControlTarget<2>::get_name_static, &MavlinkStreamActuatorControlTarget<2>::get_id_static),
-	StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static, &MavlinkStreamActuatorControlTarget<3>::get_id_static),
+	//StreamListItem(&MavlinkStreamActuatorControlTarget<1>::new_instance, &MavlinkStreamActuatorControlTarget<1>::get_name_static, &MavlinkStreamActuatorControlTarget<1>::get_id_static),
+	//StreamListItem(&MavlinkStreamActuatorControlTarget<2>::new_instance, &MavlinkStreamActuatorControlTarget<2>::get_name_static, &MavlinkStreamActuatorControlTarget<2>::get_id_static),
+	//StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static, &MavlinkStreamActuatorControlTarget<3>::get_id_static),
 	StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static, &MavlinkStreamNamedValueFloat::get_id_static),
 	StreamListItem(&MavlinkStreamDebug::new_instance, &MavlinkStreamDebug::get_name_static, &MavlinkStreamDebug::get_id_static),
 	StreamListItem(&MavlinkStreamDebugVect::new_instance, &MavlinkStreamDebugVect::get_name_static, &MavlinkStreamDebugVect::get_id_static),

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -220,7 +220,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	ControlData *control_data = nullptr;
 	g_thread_data = &thread_data;
 
-	int last_active = 0;
+	int last_active = -1;
 
 	while (!thread_should_exit) {
 
@@ -357,7 +357,12 @@ static int vmount_thread_main(int argc, char *argv[])
 				break;
 			}
 
-			thread_data.output_obj->publish();
+			//only publish the mount orientation if the mode is not mavlink
+			//if the gimbal speaks mavlink it publishes its own orientation
+			if (params.mnt_mode_out != 1) { // 1 = MAVLINK
+				thread_data.output_obj->publish();
+			}
+
 
 		} else {
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
@@ -390,7 +395,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 				thread_data.input_objs_len = 0;
 
-				last_active = 0;
+				last_active = -1;
 
 				if (thread_data.output_obj) {
 					delete (thread_data.output_obj);
@@ -432,12 +437,21 @@ int vmount_main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (!strcmp(argv[1], "start") || !strcmp(argv[1], "test")) {
+	const bool found_start = !strcmp(argv[1], "start");
+	const bool found_test = !strcmp(argv[1], "test");
+
+	if (found_start || found_test) {
 
 		/* this is not an error */
 		if (thread_running) {
-			PX4_WARN("mount driver already running");
-			return 0;
+			if (found_start) {
+				PX4_WARN("mount driver already running");
+				return 0;
+
+			} else {
+				PX4_WARN("mount driver already running, run vmount stop before 'vmount test'");
+				return 1;
+			}
 		}
 
 		thread_should_exit = false;

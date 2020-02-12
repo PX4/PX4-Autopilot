@@ -15,6 +15,7 @@ uint8 FAILURE_NONE = 0
 uint8 FAILURE_ROLL = 1 	# (1 << 0)
 uint8 FAILURE_PITCH = 2	# (1 << 1)
 uint8 FAILURE_ALT = 4 	# (1 << 2)
+uint8 FAILURE_EXT = 8 	# (1 << 3)
 
 # HIL
 uint8 HIL_STATE_OFF = 0
@@ -58,6 +59,7 @@ uint8 VEHICLE_TYPE_ROVER = 3
 # Encodes the complete system state and is set by the commander app.
 
 uint8 nav_state				# set navigation state machine to specified value
+uint64 nav_state_timestamp              # time when current nav_state activated
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
 bool failsafe				# true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
@@ -93,11 +95,3 @@ uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 
 uint32 onboard_control_sensors_present
 uint32 onboard_control_sensors_enabled
 uint32 onboard_control_sensors_health
-
-# airspeed fault and airspeed use status
-float32 arspd_check_level	# integrated airspeed inconsistency as checked against the COM_TAS_FS_INTEG parameter
-bool aspd_check_failing		# true when airspeed consistency checks are failing
-bool aspd_fault_declared	# true when an airspeed fault has been declared
-bool aspd_use_inhibit		# true if switching to a non-airspeed control mode has been requested
-bool aspd_fail_rtl		# true if airspeed failure invoked RTL has been requested
-float32 load_factor_ratio	# ratio of measured to aerodynamic load factor limit. Greater than 1 indicates airspeed low error condition.

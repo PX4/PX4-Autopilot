@@ -39,7 +39,7 @@ px4_add_romfs_files(
 	1001_rc_quad_x.hil
 	1002_standard_vtol.hil
 	1100_rc_quad_x_sih.hil
-	
+
 	# [2000, 2999] Standard planes"
 	2100_standard_plane
 	2105_maja
@@ -60,16 +60,13 @@ px4_add_romfs_files(
 
 	# [4000, 4999] Quadrotor x"
 	4001_quad_x
-	4002_quad_x_mount
 	4003_qavr5
-	4004_H4_680mm
 	4009_qav250
 	4010_dji_f330
 	4011_dji_f450
-	4012_quad_x_can
-	4013_bebop
 	4014_s500
 	4015_holybro_s500
+	4016_holybro_px4vision
 	4020_hk_micro_pcb
 	4030_3dr_solo
 	4031_3dr_quad
@@ -87,6 +84,7 @@ px4_add_romfs_files(
 	4090_nanomind
 	4100_tiltquadrotor
 	4250_teal
+	4500_clover4
 	4900_crazyflie
 
 	# [5000, 5999] Quadrotor +"
@@ -141,11 +139,15 @@ px4_add_romfs_files(
 	15001_coax_heli
 
 	16001_helicopter
-	
+
 	24001_dodeca_cox
 
 	50000_generic_ground_vehicle
 	50001_axialracing_ax10
 	50002_traxxas_stampede_2wd
 	50003_aion_robotics_r1_rover
+
+	# [60000, 61000] (Unmanned) Underwater Robots
+	60000_uuv_generic
+	60001_uuv_hippocampus
 )

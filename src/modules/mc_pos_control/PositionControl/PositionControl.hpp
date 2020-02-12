@@ -37,14 +37,12 @@
  * A cascaded position controller for position/velocity control only.
  */
 
-#include <matrix/matrix/math.hpp>
-
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_constraints.h>
-#include <px4_platform_common/module_params.h>
 #pragma once
+
+#include <matrix/matrix/math.hpp>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_constraints.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 
 struct PositionControlStates {
 	matrix::Vector3f position;
@@ -73,39 +71,73 @@ struct PositionControlStates {
  * 	If there is a position/velocity- and thrust-setpoint present, then
  *  the thrust-setpoint is ommitted and recomputed from position-velocity-PID-loop.
  */
-class PositionControl : public ModuleParams
+class PositionControl
 {
 public:
 
-	PositionControl(ModuleParams *parent);
+	PositionControl() = default;
 	~PositionControl() = default;
 
 	/**
-	 *	Overwrites certain parameters.
-	 *	Overwrites are required for unit-conversion.
-	 *	This method should only be called if parameters
-	 *	have been updated.
+	 * Set the position control gains
+	 * @param P 3D vector of proportional gains for x,y,z axis
 	 */
-	void overwriteParams();
+	void setPositionGains(const matrix::Vector3f &P) { _gain_pos_p = P; }
 
 	/**
-	 * Update the current vehicle state.
+	 * Set the velocity control gains
+	 * @param P 3D vector of proportional gains for x,y,z axis
+	 * @param I 3D vector of integral gains
+	 * @param D 3D vector of derivative gains
+	 */
+	void setVelocityGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
+
+	/**
+	 * Set the maximum velocity to execute with feed forward and position control
+	 * @param vel_horizontal horizontal velocity limit
+	 * @param vel_up upwards velocity limit
+	 * @param vel_down downwards velocity limit
+	 */
+	void setVelocityLimits(const float vel_horizontal, const float vel_up, float vel_down);
+
+	/**
+	 * Set the minimum and maximum collective normalized thrust [0,1] that can be output by the controller
+	 * @param min minimum thrust e.g. 0.1 or 0
+	 * @param max maximum thrust e.g. 0.9 or 1
+	 */
+	void setThrustLimits(const float min, const float max);
+
+	/**
+	 * Set the maximum tilt angle in radians the output attitude is allowed to have
+	 * @param tilt angle from level orientation in radians
+	 */
+	void setTiltLimit(const float tilt) { _lim_tilt = tilt; }
+
+	/**
+	 * Set the maximum tilt angle in radians the output attitude is allowed to have
+	 * @param thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation
+	 */
+	void setHoverThrust(const float thrust) { _hover_thrust = thrust; }
+
+	/**
+	 * Pass the current vehicle state to the controller
 	 * @param PositionControlStates structure
 	 */
-	void updateState(const PositionControlStates &states);
+	void setState(const PositionControlStates &states);
 
 	/**
-	 * Update the desired setpoints.
+	 * Pass the desired setpoints
+	 * Note: NAN value means no feed forward/leave state uncontrolled if there's no higher order setpoint.
 	 * @param setpoint a vehicle_local_position_setpoint_s structure
-	 * @return true if setpoint has updated correctly
 	 */
-	bool updateSetpoint(const vehicle_local_position_setpoint_s &setpoint);
+	void setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint);
 
 	/**
-	 * Set constraints that are stricter than the global limits.
+	 * Pass constraints that are stricter than the global limits
+	 * Note: NAN value means no constraint, take maximum limit of controller.
 	 * @param constraints a PositionControl structure with supported constraints
 	 */
-	void updateConstraints(const vehicle_constraints_s &constraints);
+	void setConstraints(const vehicle_constraints_s &constraints);
 
 	/**
 	 * Apply P-position and PID-velocity controller that updates the member
@@ -113,42 +145,16 @@ public:
 	 * @see _thr_sp
 	 * @see _yaw_sp
 	 * @see _yawspeed_sp
-	 * @param dt the delta-time
+	 * @param dt time in seconds since last iteration
+	 * @return true if update succeeded and output setpoint is executable, false if not
 	 */
-	void generateThrustYawSetpoint(const float dt);
+	bool update(const float dt);
 
 	/**
-	 * 	Set the integral term in xy to 0.
-	 * 	@see _thr_int
+	 * Set the integral term in xy to 0.
+	 * @see _vel_int
 	 */
-	void resetIntegralXY() { _thr_int(0) = _thr_int(1) = 0.0f; }
-
-	/**
-	 * 	Set the integral term in z to 0.
-	 * 	@see _thr_int
-	 */
-	void resetIntegralZ() { _thr_int(2) = 0.0f; }
-
-	/**
-	 * 	Get the
-	 * 	@see _vel_sp
-	 * 	@return The velocity set-point that was executed in the control-loop. Nan if velocity control-loop was skipped.
-	 */
-	const matrix::Vector3f getVelSp() const
-	{
-		matrix::Vector3f vel_sp{};
-
-		for (int i = 0; i <= 2; i++) {
-			if (_ctrl_vel[i]) {
-				vel_sp(i) = _vel_sp(i);
-
-			} else {
-				vel_sp(i) = NAN;
-			}
-		}
-
-		return vel_sp;
-	}
+	void resetIntegral() { _vel_int.setZero(); }
 
 	/**
 	 * Get the controllers output local position setpoint
@@ -166,57 +172,42 @@ public:
 	 */
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
-protected:
-
-	void updateParams() override;
-
 private:
-	/**
-	 * Maps setpoints to internal-setpoints.
-	 * @return true if mapping succeeded.
-	 */
-	bool _interfaceMapping();
+	bool _updateSuccessful();
 
-	void _positionController(); /** applies the P-position-controller */
-	void _velocityController(const float &dt); /** applies the PID-velocity-controller */
-	void _setCtrlFlag(bool value); /**< set control-loop flags (only required for logging) */
+	void _positionControl(); ///< Position proportional control
+	void _velocityControl(const float dt); ///< Velocity PID control
 
-	matrix::Vector3f _pos{}; /**< MC position */
-	matrix::Vector3f _vel{}; /**< MC velocity */
-	matrix::Vector3f _vel_dot{}; /**< MC velocity derivative */
-	matrix::Vector3f _acc{}; /**< MC acceleration */
-	float _yaw{0.0f}; /**< MC yaw */
-	matrix::Vector3f _pos_sp{}; /**< desired position */
-	matrix::Vector3f _vel_sp{}; /**< desired velocity */
-	matrix::Vector3f _acc_sp{}; /**< desired acceleration: not supported yet */
-	matrix::Vector3f _thr_sp{}; /**< desired thrust */
-	float _yaw_sp{}; /**< desired yaw */
-	float _yawspeed_sp{}; /** desired yaw-speed */
-	matrix::Vector3f _thr_int{}; /**< thrust integral term */
+	// Gains
+	matrix::Vector3f _gain_pos_p; ///< Position control proportional gain
+	matrix::Vector3f _gain_vel_p; ///< Velocity control proportional gain
+	matrix::Vector3f _gain_vel_i; ///< Velocity control integral gain
+	matrix::Vector3f _gain_vel_d; ///< Velocity control derivative gain
+
+	// Limits
+	float _lim_vel_horizontal{}; ///< Horizontal velocity limit with feed forward and position control
+	float _lim_vel_up{}; ///< Upwards velocity limit with feed forward and position control
+	float _lim_vel_down{}; ///< Downwards velocity limit with feed forward and position control
+	float _lim_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
+	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
+	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
+
+	float _hover_thrust{}; ///< Thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation
+
+	// States
+	matrix::Vector3f _pos; /**< current position */
+	matrix::Vector3f _vel; /**< current velocity */
+	matrix::Vector3f _vel_dot; /**< velocity derivative (replacement for acceleration estimate) */
+	matrix::Vector3f _vel_int; /**< integral term of the velocity controller */
+	float _yaw{}; /**< current heading */
+
 	vehicle_constraints_s _constraints{}; /**< variable constraints */
-	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
-	bool _ctrl_pos[3] = {true, true, true}; /**< True if the control-loop for position was used */
-	bool _ctrl_vel[3] = {true, true, true}; /**< True if the control-loop for velocity was used */
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
-		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
-		(ParamFloat<px4::params::MPC_THR_MIN>) _param_mpc_thr_min,
-		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _param_mpc_manthr_min,
-		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
-		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)
-		_param_mpc_tiltmax_air, // maximum tilt for any position controlled mode in degrees
-		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>)
-		_param_mpc_man_tilt_max, // maximum til for stabilized/altitude mode in degrees
-		(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
-		(ParamFloat<px4::params::MPC_Z_VEL_P>) _param_mpc_z_vel_p,
-		(ParamFloat<px4::params::MPC_Z_VEL_I>) _param_mpc_z_vel_i,
-		(ParamFloat<px4::params::MPC_Z_VEL_D>) _param_mpc_z_vel_d,
-		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p,
-		(ParamFloat<px4::params::MPC_XY_VEL_P>) _param_mpc_xy_vel_p,
-		(ParamFloat<px4::params::MPC_XY_VEL_I>) _param_mpc_xy_vel_i,
-		(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d
-	)
+	// Setpoints
+	matrix::Vector3f _pos_sp; /**< desired position */
+	matrix::Vector3f _vel_sp; /**< desired velocity */
+	matrix::Vector3f _acc_sp; /**< desired acceleration */
+	matrix::Vector3f _thr_sp; /**< desired thrust */
+	float _yaw_sp{}; /**< desired heading */
+	float _yawspeed_sp{}; /** desired yaw-speed */
 };

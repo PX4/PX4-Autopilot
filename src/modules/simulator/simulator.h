@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,14 +50,17 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/ecl/geo/geo.h>
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -65,98 +68,21 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/uORB.h>
+
+#include <random>
 
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
-
-namespace simulator
-{
-
-#pragma pack(push, 1)
-struct RawGPSData {
-	uint64_t timestamp;
-	int32_t lat;
-	int32_t lon;
-	int32_t alt;
-	uint16_t eph;
-	uint16_t epv;
-	uint16_t vel;
-	int16_t vn;
-	int16_t ve;
-	int16_t vd;
-	uint16_t cog;
-	uint8_t fix_type;
-	uint8_t satellites_visible;
-};
-#pragma pack(pop)
-
-template <typename RType> class Report
-{
-public:
-	Report(int readers) :
-		_readidx(0),
-		_max_readers(readers),
-		_report_len(sizeof(RType))
-	{
-		memset(_buf, 0, sizeof(_buf));
-		px4_sem_init(&_lock, 0, _max_readers);
-	}
-
-	~Report() {}
-
-	bool copyData(void *outbuf, int len)
-	{
-		if (len != _report_len) {
-			return false;
-		}
-
-		read_lock();
-		memcpy(outbuf, &_buf[_readidx], _report_len);
-		read_unlock();
-		return true;
-	}
-	void writeData(void *inbuf)
-	{
-		write_lock();
-		memcpy(&_buf[!_readidx], inbuf, _report_len);
-		_readidx = !_readidx;
-		write_unlock();
-	}
-
-protected:
-	void read_lock() { px4_sem_wait(&_lock); }
-	void read_unlock() { px4_sem_post(&_lock); }
-	void write_lock()
-	{
-		for (int i = 0; i < _max_readers; i++) {
-			px4_sem_wait(&_lock);
-		}
-	}
-	void write_unlock()
-	{
-		for (int i = 0; i < _max_readers; i++) {
-			px4_sem_post(&_lock);
-		}
-	}
-
-	int _readidx;
-	px4_sem_t _lock;
-	const int _max_readers;
-	const int _report_len;
-	RType _buf[2];
-};
-
-} // namespace simulator
-
+#include <lib/battery/battery.h>
 
 class Simulator : public ModuleParams
 {
 public:
-	static Simulator *getInstance();
+	static Simulator *getInstance() { return _instance; }
 
 	enum class InternetProtocol {
 		TCP,
@@ -165,33 +91,23 @@ public:
 
 	static int start(int argc, char *argv[]);
 
-	bool getGPSSample(uint8_t *buf, int len);
+	void set_ip(InternetProtocol ip) { _ip = ip; }
+	void set_port(unsigned port) { _port = port; }
 
-	void write_gps_data(void *buf);
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	bool has_initialized() { return _has_initialized.load(); }
+#endif
 
-	void set_ip(InternetProtocol ip);
-	void set_port(unsigned port);
+	void print_status();
 
 private:
-	Simulator() :
-		ModuleParams(nullptr)
+	Simulator() : ModuleParams(nullptr)
 	{
-		simulator::RawGPSData gps_data{};
-		gps_data.eph = UINT16_MAX;
-		gps_data.epv = UINT16_MAX;
-
-		_gps.writeData(&gps_data);
-
-		_battery_status.timestamp = hrt_absolute_time();
-
-		_px4_accel.set_sample_rate(250);
-		_px4_gyro.set_sample_rate(250);
 	}
 
 	~Simulator()
 	{
 		// free perf counters
-		perf_free(_perf_gps);
 		perf_free(_perf_sim_delay);
 		perf_free(_perf_sim_interval);
 
@@ -212,19 +128,16 @@ private:
 	PX4Magnetometer		_px4_mag{197388, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	PX4Barometer		_px4_baro{6620172, ORB_PRIO_DEFAULT}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 
-	simulator::Report<simulator::RawGPSData>	_gps{1};
-
-	perf_counter_t _perf_gps{perf_alloc_once(PC_ELAPSED, "sim_gps_delay")};
-	perf_counter_t _perf_sim_delay{perf_alloc_once(PC_ELAPSED, "sim_network_delay")};
-	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, "sim_network_interval")};
+	perf_counter_t _perf_sim_delay{perf_alloc(PC_ELAPSED, MODULE_NAME": network delay")};
+	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
 
 	// uORB publisher handlers
-	orb_advert_t _battery_pub{nullptr};
-	orb_advert_t _differential_pressure_pub{nullptr};
-	orb_advert_t _dist_pub{nullptr};
-	orb_advert_t _flow_pub{nullptr};
-	orb_advert_t _irlock_report_pub{nullptr};
-	orb_advert_t _visual_odometry_pub{nullptr};
+	uORB::Publication<battery_status_s>		_battery_pub{ORB_ID(battery_status)};
+	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::PublicationMulti<distance_sensor_s>	_dist_pub{ORB_ID(distance_sensor)};
+	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
+	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
+	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
@@ -236,15 +149,30 @@ private:
 
 	hrt_abstime _last_sim_timestamp{0};
 	hrt_abstime _last_sitl_timestamp{0};
+	hrt_abstime _last_battery_timestamp{0};
 
-	// Lib used to do the battery calculations.
-	Battery _battery {};
-	battery_status_s _battery_status{};
+	class SimulatorBattery : public Battery
+	{
+	public:
+		SimulatorBattery() : Battery(1, nullptr) {}
 
-#ifndef __PX4_QURT
+		virtual void updateParams() override
+		{
+			Battery::updateParams();
+			_params.v_empty = 3.5f;
+			_params.v_charged = 4.05f;
+			_params.n_cells = 4;
+			_params.capacity = 10.0f;
+			_params.v_load_drop = 0.0f;
+			_params.r_internal = 0.0f;
+			_params.low_thr = 0.15f;
+			_params.crit_thr = 0.07f;
+			_params.emergen_thr = 0.05f;
+			_params.source = 0;
+		}
+	} _battery;
 
-	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
-
+	void run();
 	void handle_message(const mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_gps(const mavlink_message_t *msg);
@@ -257,7 +185,6 @@ private:
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
-	void poll_topics();
 	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
@@ -265,20 +192,28 @@ private:
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
 	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu);
-	void update_gps(const mavlink_hil_gps_t *gps_sim);
 
 	static void *sending_trampoline(void *);
 
+	mavlink_hil_actuator_controls_t actuator_controls_from_outputs();
+
+
 	// uORB publisher handlers
-	orb_advert_t _vehicle_angular_velocity_pub{nullptr};
-	orb_advert_t _attitude_pub{nullptr};
-	orb_advert_t _gpos_pub{nullptr};
-	orb_advert_t _lpos_pub{nullptr};
-	orb_advert_t _rc_channels_pub{nullptr};
+	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
+	uORB::Publication<vehicle_attitude_s>		_attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
+	uORB::Publication<vehicle_global_position_s>	_gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
+
+	// HIL GPS
+	uORB::Publication<vehicle_gps_position_s>	_vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
-	int _vehicle_status_sub{-1};
+	actuator_outputs_s _actuator_outputs{};
+
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// hil map_ref data
 	struct map_projection_reference_s _hil_local_proj_ref {};
@@ -291,18 +226,32 @@ private:
 	uint64_t _hil_ref_timestamp{0};
 
 	// uORB data containers
-	input_rc_s _rc_input {};
-	manual_control_setpoint_s _manual {};
-	vehicle_attitude_s _attitude {};
-	vehicle_status_s _vehicle_status {};
+	vehicle_status_s _vehicle_status{};
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	px4::atomic<bool> _has_initialized {false};
+
+	int _ekf2_timestamps_sub{-1};
+
+	enum class State {
+		WaitingForFirstEkf2Timestamp = 0,
+		WaitingForActuatorControls = 1,
+		WaitingForEkf2Timestamp = 2,
+	};
+#endif
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //< minimum battery percentage
+		(ParamFloat<px4::params::SIM_GPS_NOISE_X>) _param_sim_gps_noise_x,
+		(ParamBool<px4::params::SIM_GPS_BLOCK>) _param_sim_gps_block,
+		(ParamBool<px4::params::SIM_ACCEL_BLOCK>) _param_sim_accel_block,
+		(ParamBool<px4::params::SIM_GYRO_BLOCK>) _param_sim_gyro_block,
+		(ParamBool<px4::params::SIM_BARO_BLOCK>) _param_sim_baro_block,
+		(ParamBool<px4::params::SIM_MAG_BLOCK>) _param_sim_mag_block,
+		(ParamBool<px4::params::SIM_DPRES_BLOCK>) _param_sim_dpres_block,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
 	)
-
-#endif
 };

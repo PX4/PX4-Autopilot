@@ -147,6 +147,14 @@
 #define ADC_3V3_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
+#ifndef BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN
+#define BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN (3.3f) // Reference voltage for reading out the current channel
+#endif
+
+#ifndef BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN
+#define BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN (3.3f) // Reference voltage for reading out the voltage channel
+#endif
+
 /* Provide define for Bricks and Battery */
 
 /* Define the default maximum voltage resulting from the bias on ADC termination */
@@ -372,6 +380,9 @@ typedef enum PX4_SOC_ARCH_ID_t {
 	PX4_SOC_ARCH_ID_STM32F7        =  0x0002,
 	PX4_SOC_ARCH_ID_KINETISK66     =  0x0003,
 	PX4_SOC_ARCH_ID_SAMV7          =  0x0004,
+	PX4_SOC_ARCH_ID_NXPIMXRT1062   =  0x0005,
+
+	PX4_SOC_ARCH_ID_STM32H7        =  0x0006,
 
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,

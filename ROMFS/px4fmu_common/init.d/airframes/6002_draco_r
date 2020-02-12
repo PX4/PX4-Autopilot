@@ -30,7 +30,7 @@ set PWM_OUT 12345678
 
 if [ $AUTOCNF = yes ]
 then
-	###############################################	
+	###############################################
 	# Attitude & rate gains
 	###############################################
 	# Roll
@@ -53,7 +53,7 @@ then
 	param set MC_YAW_FF 0.00000
 	param set MC_YAWRATE_MAX 700.00000
 
-	###############################################	
+	###############################################
 	# Multirotor Position Gains
 	###############################################
 	param set MPC_ACC_HOR 8.0000
@@ -138,7 +138,7 @@ then
 	param set MAV_1_FORWARD 1
 	param set MAV_1_RATE 800000
 	param set SER_TEL2_BAUD 921600
-	
+
 	# Disable internal magnetometer sensor
 	param set CAL_MAG0_EN 0
 	# Enable external magnetometer sensor

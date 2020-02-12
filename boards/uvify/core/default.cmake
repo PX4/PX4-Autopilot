@@ -8,12 +8,10 @@ px4_add_board(
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	UAVCAN_INTERFACES 1
-
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
-
 	DRIVERS
 		adc
 		barometer/ms5611
@@ -38,7 +36,6 @@ px4_add_board(
 		rc_input
 		tone_alarm
 		uavcan
-
 	MODULES
 		attitude_estimator_q
 		battery_status
@@ -55,11 +52,13 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
+		mc_rate_control
 		navigator
+		rc_update
 		sensors
 		sih
+		temperature_compensation
 		vmount
-
 	SYSTEMCMDS
 		bl_update
 		config

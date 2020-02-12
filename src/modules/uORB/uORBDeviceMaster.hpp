@@ -60,7 +60,7 @@ class uORB::DeviceMaster
 {
 public:
 
-	int advertise(const struct orb_metadata *meta, int *instance, int priority);
+	int advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, int priority);
 
 	/**
 	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.

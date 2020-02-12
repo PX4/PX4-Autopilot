@@ -464,12 +464,6 @@ void PGA460::print_diagnostics(const uint8_t diagnostic_byte)
 	}
 }
 
-int PGA460::print_status()
-{
-	PX4_INFO("Distance: %2.2f", (double)_previous_valid_report_distance);
-	return PX4_OK;
-}
-
 int PGA460::print_usage(const char *reason)
 {
 	if (reason) {

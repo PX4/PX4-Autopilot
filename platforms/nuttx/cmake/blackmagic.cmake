@@ -43,7 +43,7 @@ file(GLOB_RECURSE black_magic_probe_console_path
 if(black_magic_probe_path)
 
 	add_custom_target(blackmagic_debug
-		COMMAND ${GDB} --nh
+		COMMAND ${CMAKE_GDB} --nh
 			-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
 			-ex 'target extended-remote ${black_magic_probe_path}'
 			-ex 'monitor version'
@@ -59,7 +59,7 @@ if(black_magic_probe_path)
 		)
 
 	add_custom_target(blackmagic_upload
-		COMMAND ${GDB} --nx --batch
+		COMMAND ${CMAKE_GDB} --nx --batch
 			-ex 'target extended-remote ${black_magic_probe_path}'
 			-ex 'monitor version'
 			-ex 'monitor connect_srst enable'

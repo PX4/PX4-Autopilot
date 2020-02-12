@@ -44,12 +44,11 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io") # TODO: fix this hack (move uORB to plat
 			Publication.hpp
 			PublicationMulti.hpp
 			PublicationQueued.hpp
+			PublicationQueuedMulti.hpp
 			Subscription.cpp
 			Subscription.hpp
 			SubscriptionCallback.hpp
 			SubscriptionInterval.hpp
-			SubscriptionPollable.cpp
-			SubscriptionPollable.hpp
 			uORB.cpp
 			uORB.h
 			uORBCommon.hpp

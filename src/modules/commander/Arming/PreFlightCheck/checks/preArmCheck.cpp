@@ -38,7 +38,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 
 bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-				 const safety_s &safety, const uint8_t arm_requirements)
+				 const safety_s &safety, const arm_requirements_t &arm_requirements, const vehicle_status_s &status)
 {
 	bool prearm_ok = true;
 
@@ -70,7 +70,7 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 	}
 
 	// Arm Requirements: mission
-	if (arm_requirements & ARM_REQ_MISSION_BIT) {
+	if (arm_requirements.mission) {
 
 		if (!status_flags.condition_auto_mission_available) {
 			if (prearm_ok) {
@@ -90,7 +90,7 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 	}
 
 	// Arm Requirements: global position
-	if (arm_requirements & ARM_REQ_GPS_BIT) {
+	if (arm_requirements.global_position) {
 
 		if (!status_flags.condition_global_position_valid) {
 			if (prearm_ok) {
@@ -120,16 +120,34 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 
 	}
 
-	if (status_flags.condition_escs_error && (arm_requirements & ARM_REQ_ESCS_CHECK_BIT)) {
+	if (arm_requirements.esc_check && status_flags.condition_escs_error) {
 		if (prearm_ok) {
 			mavlink_log_critical(mavlink_log_pub, "Arming denied! One or more ESCs are offline");
 			prearm_ok = false;
 		}
 	}
 
+	if (status.is_vtol) {
+
+		if (status.in_transition_mode) {
+			if (prearm_ok) {
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! Vehicle is in transition state");
+				prearm_ok = false;
+			}
+		}
+
+		if (!status_flags.circuit_breaker_vtol_fw_arming_check
+		    && status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			if (prearm_ok) {
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! Vehicle is not in multicopter mode");
+				prearm_ok = false;
+			}
+		}
+	}
+
 	// Arm Requirements: authorization
 	// check last, and only if everything else has passed
-	if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT) && prearm_ok) {
+	if (arm_requirements.arm_authorization && prearm_ok) {
 		if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
 			// feedback provided in arm_auth_check
 			prearm_ok = false;

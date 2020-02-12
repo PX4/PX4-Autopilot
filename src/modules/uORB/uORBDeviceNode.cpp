@@ -74,35 +74,15 @@ uORB::DeviceNode::~DeviceNode()
 int
 uORB::DeviceNode::open(cdev::file_t *filp)
 {
-	int ret;
-
 	/* is this a publisher? */
 	if (filp->f_oflags == PX4_F_WRONLY) {
 
-		/* become the publisher if we can */
 		lock();
-
-		if (_publisher == 0) {
-			_publisher = px4_getpid();
-			ret = PX4_OK;
-
-		} else {
-			ret = -EBUSY;
-		}
-
+		mark_as_advertised();
 		unlock();
 
 		/* now complete the open */
-		if (ret == PX4_OK) {
-			ret = CDev::open(filp);
-
-			/* open failed - not the publisher anymore */
-			if (ret != PX4_OK) {
-				_publisher = 0;
-			}
-		}
-
-		return ret;
+		return CDev::open(filp);
 	}
 
 	/* is this a new subscriber? */
@@ -121,7 +101,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 
 		filp->f_priv = (void *)sd;
 
-		ret = CDev::open(filp);
+		int ret = CDev::open(filp);
 
 		add_internal_subscriber();
 
@@ -144,11 +124,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 int
 uORB::DeviceNode::close(cdev::file_t *filp)
 {
-	/* is this the publisher closing? */
-	if (px4_getpid() == _publisher) {
-		_publisher = 0;
-
-	} else {
+	if (filp->f_oflags == PX4_F_RDONLY) { /* subscriber */
 		SubscriberData *sd = filp_to_sd(filp);
 
 		if (sd != nullptr) {
@@ -168,14 +144,15 @@ uORB::DeviceNode::copy_locked(void *dst, unsigned &generation)
 	bool updated = false;
 
 	if ((dst != nullptr) && (_data != nullptr)) {
+		unsigned current_generation = _generation.load();
 
-		if (_generation > generation + _queue_size) {
+		if (current_generation > generation + _queue_size) {
 			// Reader is too far behind: some messages are lost
-			_lost_messages += _generation - (generation + _queue_size);
-			generation = _generation - _queue_size;
+			_lost_messages += current_generation - (generation + _queue_size);
+			generation = current_generation - _queue_size;
 		}
 
-		if ((_generation == generation) && (generation > 0)) {
+		if ((current_generation == generation) && (generation > 0)) {
 			/* The subscriber already read the latest message, but nothing new was published yet.
 			 * Return the previous message
 			 */
@@ -184,7 +161,7 @@ uORB::DeviceNode::copy_locked(void *dst, unsigned &generation)
 
 		memcpy(dst, _data + (_meta->o_size * (generation % _queue_size)), _meta->o_size);
 
-		if (generation < _generation) {
+		if (generation < current_generation) {
 			++generation;
 		}
 
@@ -297,14 +274,14 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 	/* Perform an atomic copy. */
 	ATOMIC_ENTER;
-	memcpy(_data + (_meta->o_size * (_generation % _queue_size)), buffer, _meta->o_size);
+	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
+	unsigned generation = _generation.fetch_add(1);
+
+	memcpy(_data + (_meta->o_size * (generation % _queue_size)), buffer, _meta->o_size);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
-	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
-	_generation++;
 
-	_published = true;
 
 	// callbacks
 	for (auto item : _callbacks) {
@@ -377,10 +354,12 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		*(int *)arg = get_priority();
 		return PX4_OK;
 
-	case ORBIOCSETQUEUESIZE:
-		//no need for locking here, since this is used only during the advertisement call,
-		//and only one advertiser is allowed to open the DeviceNode at the same time.
-		return update_queue_size(arg);
+	case ORBIOCSETQUEUESIZE: {
+			lock();
+			int ret = update_queue_size(arg);
+			unlock();
+			return ret;
+		}
 
 	case ORBIOCGETINTERVAL:
 		if (sd->update_interval) {
@@ -392,8 +371,8 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 
 		return OK;
 
-	case ORBIOCISPUBLISHED:
-		*(unsigned long *)arg = _published;
+	case ORBIOCISADVERTISED:
+		*(unsigned long *)arg = _advertised;
 
 		return OK;
 
@@ -471,7 +450,7 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 	 * of subscribers and publishers. But we also do not have a leak since future
 	 * publishers reuse the same DeviceNode object.
 	 */
-	devnode->_published = false;
+	devnode->_advertised = false;
 
 	return PX4_OK;
 }
@@ -501,7 +480,7 @@ int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta, int prior
 */
 #endif /* ORB_COMMUNICATOR */
 
-pollevent_t
+px4_pollevent_t
 uORB::DeviceNode::poll_state(cdev::file_t *filp)
 {
 	SubscriberData *sd = filp_to_sd(filp);
@@ -517,7 +496,7 @@ uORB::DeviceNode::poll_state(cdev::file_t *filp)
 }
 
 void
-uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
+uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events)
 {
 	SubscriberData *sd = filp_to_sd((cdev::file_t *)fds->priv);
 

@@ -129,9 +129,10 @@ public:
 	 * @param altitude_diff Altitude difference, positive is up
 	 * @param hor_velocity Horizontal velocity of traffic, in m/s
 	 * @param ver_velocity Vertical velocity of traffic, in m/s
+	 * @param emitter_type, Type of vehicle, as a number
 	 */
 	void		fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
-				     float hor_velocity, float ver_velocity);
+				     float hor_velocity, float ver_velocity, int emitter_type);
 
 	/**
 	 * Check nearby traffic for potential collisions
@@ -221,11 +222,15 @@ public:
 	 */
 	void		reset_cruising_speed();
 
-
 	/**
 	 *  Set triplets to invalid
 	 */
 	void 		reset_triplets();
+
+	/**
+	 *  Set position setpoint to safe defaults
+	 */
+	void		reset_position_setpoint(position_setpoint_s &sp);
 
 	/**
 	 * Get the target throttle
@@ -258,6 +263,7 @@ public:
 	 */
 	float 		get_yaw_acceptance(float mission_item_yaw);
 
+
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
@@ -286,7 +292,7 @@ public:
 	float		get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
 	bool		get_takeoff_required() const { return _param_mis_takeoff_req.get(); }
 	float		get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
-	float		get_yaw_threshold() const { return _param_mis_yaw_err.get(); }
+	float		get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
 
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay; }
@@ -305,6 +311,8 @@ private:
 		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
 
 		// non-navigator parameters
 		// Mission (MIS_*)
@@ -316,6 +324,7 @@ private:
 	)
 
 	int		_local_pos_sub{-1};		/**< local position subscription */
+	int		_vehicle_status_sub{-1};	/**< local position subscription */
 
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
 	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gps_position)};		/**< gps position subscription */
@@ -325,7 +334,6 @@ private:
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
-	uORB::Subscription _vstatus_sub{ORB_ID(vehicle_status)};		/**< vehicle status subscription */
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 

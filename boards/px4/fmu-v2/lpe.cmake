@@ -75,10 +75,13 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
 		navigator
 		battery_status
+		rc_update
 		sensors
+		temperature_compensation
 		vmount
 		#vtol_att_control
 		#airspeed_selector

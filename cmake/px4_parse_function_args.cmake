@@ -31,6 +31,12 @@
 #
 ############################################################################
 
+# cmake include guard
+if(px4_parse_function_args_included)
+	return()
+endif(px4_parse_function_args_included)
+set(px4_parse_function_args_included true)
+
 #=============================================================================
 #
 #	px4_parse_function_args

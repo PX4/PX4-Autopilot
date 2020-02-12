@@ -59,8 +59,8 @@
 #include <px4_arch/io_timer.h>
 
 #include <kinetis.h>
-#include "chip/kinetis_sim.h"
-#include "chip/kinetis_ftm.h"
+#include "hardware/kinetis_sim.h"
+#include "hardware/kinetis_ftm.h"
 
 #if defined(BOARD_HAS_LED_PWM) || defined(BOARD_HAS_UI_LED_PWM)
 

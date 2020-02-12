@@ -68,6 +68,7 @@ static void usage()
 {
 	PX4_INFO("usage: qshell {start|stop|status}");
 }
+
 int qshell_main(int argc, char *argv[])
 {
 	if (argc < 2) {

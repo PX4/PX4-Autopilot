@@ -54,7 +54,10 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
-#include <perf/perf_counter.h>
+#if defined(PX4IO_PERF)
+# include <lib/perf/perf_counter.h>
+#endif
+
 #include <output_limit/output_limit.h>
 
 #include <stm32_uart.h>
@@ -91,6 +94,27 @@ static char msg[NUM_MSG][CONFIG_USART1_TXBUFSIZE];
 static void heartbeat_blink(void);
 static void ring_blink(void);
 static void update_mem_usage(void);
+
+void atomic_modify_or(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target | modification) != *target) {
+		PX4_CRITICAL_SECTION(*target |= modification);
+	}
+}
+
+void atomic_modify_clear(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target & ~modification) != *target) {
+		PX4_CRITICAL_SECTION(*target &= ~modification);
+	}
+}
+
+void atomic_modify_and(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target & modification) != *target) {
+		PX4_CRITICAL_SECTION(*target &= modification);
+	}
+}
 
 /*
  * add a debug message to be printed on the console
@@ -324,6 +348,7 @@ user_start(int argc, char *argv[])
 	/* start the FMU interface */
 	interface_init();
 
+#if defined(PX4IO_PERF)
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
 
@@ -332,6 +357,7 @@ user_start(int argc, char *argv[])
 
 	/* and one for measuring the loop rate */
 	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
+#endif
 
 	struct mallinfo minfo = mallinfo();
 	r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.mxordblk;
@@ -353,7 +379,7 @@ user_start(int argc, char *argv[])
 	 * documented in the dev guide.
 	 *
 	 */
-	if (minfo.mxordblk < 600) {
+	if (minfo.mxordblk < 550) {
 
 		syslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;
@@ -397,18 +423,28 @@ user_start(int argc, char *argv[])
 			dt = 0.02f;
 		}
 
+#if defined(PX4IO_PERF)
 		/* track the rate at which the loop is running */
 		perf_count(loop_perf);
 
 		/* kick the mixer */
 		perf_begin(mixer_perf);
+#endif
+
 		mixer_tick();
+
+#if defined(PX4IO_PERF)
 		perf_end(mixer_perf);
 
 		/* kick the control inputs */
 		perf_begin(controls_perf);
+#endif
+
 		controls_tick();
+
+#if defined(PX4IO_PERF)
 		perf_end(controls_perf);
+#endif
 
 		/* some boards such as Pixhawk 2.1 made
 		   the unfortunate choice to combine the blue led channel with

@@ -47,8 +47,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <poll.h>
-#include <cmath>
+#include <math.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_airspeed.h>
 #include <uORB/topics/differential_pressure.h>
@@ -115,7 +114,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 		/* set scaling offset parameter */
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			goto error_return;
 		}
 	}
@@ -186,7 +185,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			goto error_return;
 		}
 
@@ -237,7 +236,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 					diff_pres_offset = 0.0f;
 
 					if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
+						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 						goto error_return;
 					}
 

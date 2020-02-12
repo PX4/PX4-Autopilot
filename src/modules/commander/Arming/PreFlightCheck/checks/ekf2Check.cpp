@@ -48,6 +48,9 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	bool present = true;
 	float test_limit = 1.0f; // pass limit re-used for each test
 
+	int32_t mag_strength_check_enabled = 1;
+	param_get(param_find("COM_ARM_MAG_STR"), &mag_strength_check_enabled);
+
 	bool gps_success = true;
 	bool gps_present = true;
 
@@ -79,6 +82,15 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 			} else if (status.pre_flt_fail_innov_height) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: height estimate not stable");
 			}
+		}
+
+		success = false;
+		goto out;
+	}
+
+	if ((mag_strength_check_enabled == 1) && status.pre_flt_fail_mag_field_disturbed) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: strong magnetic interference detected");
 		}
 
 		success = false;
@@ -142,6 +154,9 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 		float test_uncertainty = 3.0f * sqrtf(fmaxf(status.covariances[index], 0.0f));
 
 		if (fabsf(status.states[index]) > test_limit + test_uncertainty) {
+			PX4_ERR("state %d: |%.8f| > %.8f + %.8f", index, (double)status.states[index], (double)test_limit,
+				(double)test_uncertainty);
+
 			if (report_fail) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
 			}
@@ -182,8 +197,8 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
 					message = "Preflight%s: not enough GPS Satellites";
 
-				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP)) {
-					message = "Preflight%s: GPS GDoP too low";
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_PDOP)) {
+					message = "Preflight%s: GPS PDOP too low";
 
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
 					message = "Preflight%s: GPS Horizontal Pos Error too high";

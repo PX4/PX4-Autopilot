@@ -55,9 +55,21 @@ fi
 
 
 uorb start
-if [ -f eeprom/parameters ]
+
+# Load parameters
+set PARAM_FILE eeprom/parameters_"$REQUESTED_AUTOSTART"
+param select $PARAM_FILE
+
+if [ -f $PARAM_FILE ]
 then
-	param load
+	if param load
+	then
+		echo "[param] Loaded: $PARAM_FILE"
+	else
+		echo "[param] FAILED loading $PARAM_FILE"
+	fi
+else
+	echo "[param] parameter file not found, creating $PARAM_FILE"
 fi
 
 # exit early when the minimal shell is requested
@@ -80,6 +92,15 @@ then
 	set AUTOCNF no
 else
 	set AUTOCNF yes
+	param set SYS_AUTOCONFIG 1
+fi
+
+if param compare SYS_AUTOCONFIG 1
+then
+	set AUTOCNF yes
+
+	# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
+	param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
 fi
 
 # multi-instance setup
@@ -119,13 +140,15 @@ then
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
+
+	# Prevent high accel bias
+	param set COM_ARM_EKF_AB 0.005
+
 	# Speedup SITL startup
 	param set EKF2_REQ_GPS_H 0.5
 
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
-
-	param set MIS_TAKEOFF_ALT 2.5
 
 	param set MC_PITCH_P 6
 	param set MC_PITCHRATE_P 0.2
@@ -202,12 +225,19 @@ fi
 
 sh "$autostart_file"
 
+#
+# If autoconfig parameter was set, reset it and save parameters.
+#
+if [ $AUTOCNF = yes ]
+then
+	param set SYS_AUTOCONFIG 0
+fi
 
 dataman start
 replay tryapplyparams
 simulator start -c $simulator_tcp_port
 tone_alarm start
-gpssim start
+rc_update start
 sensors start
 commander start
 navigator start

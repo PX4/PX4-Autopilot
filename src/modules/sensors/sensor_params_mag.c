@@ -42,6 +42,11 @@ PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
 /**
  * Bitfield selecting mag sides for calibration
  *
+ * If set to two side calibration, only the offsets are estimated, the scale
+ * calibration is left unchanged. Thus an initial six side calibration is
+ * recommended.
+ *
+ * Bits:
  * DETECT_ORIENTATION_TAIL_DOWN = 1
  * DETECT_ORIENTATION_NOSE_DOWN = 2
  * DETECT_ORIENTATION_LEFT = 4

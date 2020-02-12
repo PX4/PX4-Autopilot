@@ -70,6 +70,8 @@ struct Params {
 	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 	int32_t diff_thrust;
 	float diff_thrust_scale;
+	float down_pitch_max;
+	float forward_thrust_scale;
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
@@ -163,6 +165,10 @@ public:
 	 */
 	bool can_transition_on_ground();
 
+	/**
+	 * Pusher assist in hover (pusher/pull for standard VTOL, motor tilt for tiltrotor)
+	 */
+	float pusher_assist();
 
 
 	mode get_mode() {return _vtol_mode;}
@@ -183,11 +189,11 @@ protected:
 	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
 	struct actuator_controls_s			*_actuators_out_0;			//actuator controls going to the mc mixer
 	struct actuator_controls_s			*_actuators_out_1;			//actuator controls going to the fw mixer (used for elevons)
-	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_att_control
+	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_rate_control
 	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
-	struct airspeed_s 				*_airspeed;					// airspeed
+	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 

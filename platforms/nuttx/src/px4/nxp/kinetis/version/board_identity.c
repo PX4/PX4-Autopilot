@@ -41,8 +41,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <chip/kinetis_memorymap.h>
-#include <chip/kinetis_sim.h>
+#include <hardware/kinetis_memorymap.h>
+#include <hardware/kinetis_sim.h>
 
 static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID;
 

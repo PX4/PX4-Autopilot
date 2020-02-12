@@ -332,7 +332,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_ICM, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_ICM_20602, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_LIS, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);

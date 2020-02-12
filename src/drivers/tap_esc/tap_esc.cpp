@@ -40,7 +40,7 @@
 #include <px4_platform_common/posix.h>
 #include <errno.h>
 
-#include <cmath>	// NAN
+#include <math.h>	// NAN
 #include <cstring>
 
 #include <lib/mathlib/mathlib.h>
@@ -59,7 +59,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 
 #include "tap_esc_common.h"
 
@@ -677,7 +677,7 @@ int TAP_ESC::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 			unsigned buflen = strlen(buf);
 
 			if (_mixers == nullptr) {
-				_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
+				_mixers = new MixerGroup();
 			}
 
 			if (_mixers == nullptr) {
@@ -685,8 +685,7 @@ int TAP_ESC::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 				ret = -ENOMEM;
 
 			} else {
-
-				ret = _mixers->load_from_buf(buf, buflen);
+				ret = _mixers->load_from_buf(control_callback_trampoline, (uintptr_t)this, buf, buflen);
 
 				if (ret != 0) {
 					PX4_DEBUG("mixer load failed with %d", ret);

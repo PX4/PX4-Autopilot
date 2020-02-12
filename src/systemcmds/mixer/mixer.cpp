@@ -49,7 +49,7 @@
 #include <ctype.h>
 
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_load.h>
 #include <uORB/topics/actuator_controls.h>
 

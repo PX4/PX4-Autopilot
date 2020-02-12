@@ -50,9 +50,8 @@
 #include <fcntl.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <lib/mixer/mixer.h>
 #include <version/version.h>
-#include <arch/board/board.h>
+
 #include <arch/chip/chip.h>
 
 #include <uORB/topics/esc_status.h>
@@ -827,10 +826,6 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_CLEAR_ARM_OK:
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		// these are no-ops, as no safety switch
-		break;
-
-	case MIXERIOCGETOUTPUTCOUNT:
-		*(unsigned *)arg = _output_count;
 		break;
 
 	case MIXERIOCRESET:

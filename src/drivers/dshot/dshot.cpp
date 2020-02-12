@@ -127,8 +127,6 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
-
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
@@ -165,6 +163,9 @@ public:
 	bool telemetryEnabled() const { return _telemetry != nullptr; }
 
 private:
+
+	void Run() override;
+
 	static constexpr uint16_t DISARMED_VALUE = 0;
 
 	enum class DShotConfig {
@@ -877,7 +878,6 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case PWM_SERVO_GET_COUNT:
-	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
@@ -1256,6 +1256,9 @@ DShotOutput::module_new_mode(PortMode new_mode)
 		/* select 4-pin PWM mode */
 		mode = DShotOutput::MODE_4PWM;
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 5
+		mode = DShotOutput::MODE_5PWM;
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 6
 		mode = DShotOutput::MODE_6PWM;
 #endif
@@ -1474,6 +1477,9 @@ int DShotOutput::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_pwm6")) {
 		new_mode = PORT_PWM6;
+
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
 
 	} else if (!strcmp(verb, "mode_pwm5")) {
 		new_mode = PORT_PWM5;

@@ -12,7 +12,7 @@
 @###############################################
 @{
 import genmsg.msgs
-import gencpp
+
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
@@ -22,6 +22,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -76,8 +77,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 // Default values
 #define DEVICE "/dev/ttyACM0"
 #define SLEEP_US 1
-#define BAUDRATE B460800
-#define BAUDRATE_VAL 460800
+#define BAUDRATE 460800
 #define POLL_MS 0
 #define WAIT_CNST 2
 #define DEFAULT_RECV_PORT 2020
@@ -92,23 +92,6 @@ Transport_node *transport_node = nullptr;
 RtpsTopics topics;
 uint32_t total_sent = 0, sent = 0;
 
-struct baudtype {
-    speed_t code;
-    uint32_t val;
-};
-
-const baudtype baudlist[] = {
-    [0] = {.code = B0, .val = 0},
-    [1] = {.code = B9600, .val = 9600},
-    [2] = {.code = B19200, .val = 19200},
-    [3] = {.code = B38400, .val = 38400},
-    [4] = {.code = B57600, .val = 57600},
-    [5] = {.code = B115200, .val = 115200},
-    [6] = {.code = B230400, .val = 230400},
-    [7] = {.code = B460800, .val = 460800},
-    [8] = {.code = B921600, .val = 921600},
-};
-
 struct options {
     enum class eTransports
     {
@@ -118,7 +101,7 @@ struct options {
     eTransports transport = options::eTransports::UART;
     char device[64] = DEVICE;
     int sleep_us = SLEEP_US;
-    baudtype baudrate = {.code=BAUDRATE,.val=BAUDRATE_VAL};
+    uint32_t baudrate = BAUDRATE;
     int poll_ms = POLL_MS;
     uint16_t recv_port = DEFAULT_RECV_PORT;
     uint16_t send_port = DEFAULT_SEND_PORT;
@@ -139,15 +122,6 @@ static void usage(const char *name)
              name);
 }
 
-baudtype getbaudrate(char *valstr)
-{
-    uint32_t baudval = strtoul(valstr, nullptr, 10);
-    for (unsigned int i=1; i<sizeof(baudlist)/sizeof(baudtype); i++) {
-        if (baudlist[i].val==baudval) return baudlist[i];
-    }
-    return baudlist[0];
-}
-
 static int parse_options(int argc, char **argv)
 {
     int ch;
@@ -161,7 +135,7 @@ static int parse_options(int argc, char **argv)
                                                 :options::eTransports::UART;  break;
             case 'd': if (nullptr != optarg) strcpy(_options.device, optarg); break;
             case 'w': _options.sleep_us       = strtol(optarg, nullptr, 10);  break;
-            case 'b': _options.baudrate       = getbaudrate(optarg);  break;
+            case 'b': _options.baudrate       = strtoul(optarg, nullptr, 10); break;
             case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10);  break;
             case 'r': _options.recv_port      = strtoul(optarg, nullptr, 10); break;
             case 's': _options.send_port      = strtoul(optarg, nullptr, 10); break;
@@ -191,13 +165,13 @@ void signal_handler(int signum)
 @[if recv_topics]@
 std::atomic<bool> exit_sender_thread(false);
 std::condition_variable t_send_queue_cv;
-std::mutex t_send_queue_mutex; 
+std::mutex t_send_queue_mutex;
 std::queue<uint8_t> t_send_queue;
 
-void t_send(void *data)
+void t_send(void*)
 {
     char data_buffer[BUFFER_SIZE] = {};
-    int length = 0; 
+    uint32_t length = 0;
 
     while (running && !exit_sender_thread.load())
     {
@@ -209,8 +183,8 @@ void t_send(void *data)
         uint8_t topic_ID = t_send_queue.front();
         t_send_queue.pop();
         lk.unlock();
-        
-        uint16_t header_length = transport_node->get_header_length();
+
+        size_t header_length = transport_node->get_header_length();
         /* make room for the header to fill in later */
         eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[header_length], sizeof(data_buffer)-header_length);
         eprosima::fastcdr::Cdr scdr(cdrbuffer);
@@ -238,19 +212,22 @@ int main(int argc, char** argv)
     // register signal SIGINT and signal handler
     signal(SIGINT, signal_handler);
 
+    printf("--- MicroRTPS Agent ---\n");
+    printf("- Starting link...\n");
+
     switch (_options.transport)
     {
         case options::eTransports::UART:
         {
-            transport_node = new UART_node(_options.device, _options.baudrate.code, _options.poll_ms);
-            printf("\nUART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms\n\n",
-                   _options.device, _options.baudrate.val, _options.sleep_us, _options.poll_ms);
+            transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms);
+            printf("- UART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms\n",
+                   _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms);
         }
         break;
         case options::eTransports::UDP:
         {
             transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port);
-            printf("\nUDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n\n",
+            printf("- UDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n",
                     _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
         }
         break;
@@ -276,7 +253,9 @@ int main(int argc, char** argv)
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 @[end if]@
 
+@[if recv_topics]@
     topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue);
+@[end if]@
 
     running = true;
 @[if recv_topics]@

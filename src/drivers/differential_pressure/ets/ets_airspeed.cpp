@@ -124,7 +124,7 @@ ETSAirspeed::collect()
 
 	float diff_pres_pa_raw = (float)(val[1] << 8 | val[0]);
 
-	differential_pressure_s report;
+	differential_pressure_s report{};
 	report.timestamp = hrt_absolute_time();
 
 	if (diff_pres_pa_raw < FLT_EPSILON) {
@@ -147,10 +147,7 @@ ETSAirspeed::collect()
 	report.temperature = -1000.0f;
 	report.device_id = _device_id.devid;
 
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
-	}
+	_airspeed_pub.publish(report);
 
 	ret = OK;
 

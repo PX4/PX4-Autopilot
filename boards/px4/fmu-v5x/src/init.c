@@ -220,11 +220,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
-	VDD_3V3_SENSORS1_EN(true);
-	VDD_3V3_SENSORS2_EN(true);
-	VDD_3V3_SENSORS3_EN(true);
-	VDD_3V3_SENSORS4_EN(true);
+	board_spi_reset(0xff00000A);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
+	SE050_RESET(false);
 
 	/* Need hrt running before using the ADC */
 

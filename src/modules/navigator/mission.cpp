@@ -88,7 +88,7 @@ Mission::on_inactive()
 		}
 
 		/* reset the current mission if needed */
-		if (need_to_reset_mission(false)) {
+		if (need_to_reset_mission()) {
 			reset_mission(_mission);
 			update_mission();
 			_navigator->reset_cruising_speed();
@@ -191,16 +191,12 @@ Mission::on_active()
 	bool mission_sub_updated = _mission_sub.updated();
 
 	if (mission_sub_updated) {
+		_navigator->reset_triplets();
 		update_mission();
 	}
 
-	/* reset the current mission if needed */
-	if (need_to_reset_mission(true)) {
-		reset_mission(_mission);
-		update_mission();
-		_navigator->reset_cruising_speed();
-		mission_sub_updated = true;
-	}
+	/* mission is running (and we are armed), need reset after disarm */
+	_need_mission_reset = true;
 
 	_mission_changed = false;
 
@@ -458,9 +454,6 @@ Mission::update_mission()
 
 	bool failed = true;
 
-	/* reset triplets */
-	_navigator->reset_triplets();
-
 	/* Reset vehicle_roi
 	 * Missions that do not explicitly configure ROI would not override
 	 * an existing ROI setting from previous missions */
@@ -689,9 +682,6 @@ Mission::set_mission_items()
 
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-				// allow weather vane in mission
-				pos_sp_triplet->current.allow_weather_vane = true;
-
 				/* do takeoff before going to setpoint if needed and not already in takeoff */
 				/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
 				if (do_need_vertical_takeoff() &&
@@ -774,7 +764,7 @@ Mission::set_mission_items()
 				    !_navigator->get_land_detected()->landed) {
 
 					/* disable weathervane before front transition for allowing yaw to align */
-					pos_sp_triplet->current.allow_weather_vane = false;
+					pos_sp_triplet->current.disable_weather_vane = true;
 
 					/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
 					_mission_item.yaw = get_bearing_to_next_waypoint(
@@ -795,6 +785,9 @@ Mission::set_mission_items()
 				    _work_item_type == WORK_ITEM_TYPE_ALIGN &&
 				    _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 				    !_navigator->get_land_detected()->landed) {
+
+					/* re-enable weather vane again after alignment */
+					pos_sp_triplet->current.disable_weather_vane = false;
 
 					/* check if the vtol_takeoff waypoint is on top of us */
 					if (do_need_move_to_takeoff()) {
@@ -821,7 +814,7 @@ Mission::set_mission_items()
 
 				/* move to land wp as fixed wing */
 				if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-				    && _work_item_type == WORK_ITEM_TYPE_DEFAULT
+				    && (_work_item_type == WORK_ITEM_TYPE_DEFAULT || _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF)
 				    && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
 				    && !_navigator->get_land_detected()->landed) {
 
@@ -853,6 +846,8 @@ Mission::set_mission_items()
 				    && !_navigator->get_land_detected()->landed) {
 
 					set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+					_mission_item.altitude = _navigator->get_global_position()->alt;
+					_mission_item.altitude_is_relative = false;
 
 					new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
 				}
@@ -977,7 +972,7 @@ Mission::set_mission_items()
 				    && has_next_position_item) {
 
 					/* disable weathervane before front transition for allowing yaw to align */
-					pos_sp_triplet->current.allow_weather_vane = false;
+					pos_sp_triplet->current.disable_weather_vane = true;
 
 					new_work_item_type = WORK_ITEM_TYPE_ALIGN;
 
@@ -1722,16 +1717,12 @@ Mission::reset_mission(struct mission_s &mission)
 }
 
 bool
-Mission::need_to_reset_mission(bool active)
+Mission::need_to_reset_mission()
 {
 	/* reset mission state when disarmed */
 	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
 		_need_mission_reset = false;
 		return true;
-
-	} else if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED && active) {
-		/* mission is running, need reset after disarm */
-		_need_mission_reset = true;
 	}
 
 	return false;

@@ -52,9 +52,8 @@ function(px4_os_add_flags)
 
 	include_directories(BEFORE SYSTEM
 		${PX4_BINARY_DIR}/NuttX/nuttx/include
-
 		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
-		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
 	)
 
 	include_directories(
@@ -63,22 +62,28 @@ function(px4_os_add_flags)
 		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
 
 		${PX4_BINARY_DIR}/NuttX/apps/include
-		)
+	)
 
 	# prevent using the toolchain's std c++ library
 	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>)
 
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-sized-deallocation>)
+
 	add_definitions(
 		-D__PX4_NUTTX
-		-D__DF_NUTTX
+
+		-D_SYS_CDEFS_H_ # skip toolchain's <sys/cdefs.h>
+		-D_SYS_REENT_H_	# skip toolchain's <sys/reent.h>
 		)
 
 	if("${CONFIG_ARMV7M_STACKCHECK}" STREQUAL "y")
 		message(STATUS "NuttX Stack Checking (CONFIG_ARMV7M_STACKCHECK) enabled")
 		add_compile_options(
-			-finstrument-functions
 			-ffixed-r10
-			)
+			-finstrument-functions
+			# instrumenting PX4 Matrix and Param methods is too burdensome
+			-finstrument-functions-exclude-file-list=matrix/Matrix.hpp,px4_platform_common/param.h
+		)
 	endif()
 
 endfunction()
@@ -107,9 +112,15 @@ function(px4_os_determine_build_chip)
 	elseif(CONFIG_ARCH_CHIP_STM32F7)
 		set(CHIP_MANUFACTURER "stm")
 		set(CHIP "stm32f7")
+	elseif(CONFIG_ARCH_CHIP_STM32H7)
+		set(CHIP_MANUFACTURER "stm")
+		set(CHIP "stm32h7")
 	elseif(CONFIG_ARCH_CHIP_MK66FN2M0VMD18)
 		set(CHIP_MANUFACTURER "nxp")
 		set(CHIP "k66")
+	elseif(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
+		set(CHIP_MANUFACTURER "nxp")
+		set(CHIP "rt106x")
 	else()
 		message(FATAL_ERROR "Could not determine chip architecture from NuttX config. You may have to add it.")
 	endif()
@@ -154,6 +165,6 @@ function(px4_os_prebuild_targets)
 
 	add_library(prebuild_targets INTERFACE)
 	target_link_libraries(prebuild_targets INTERFACE nuttx_xx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
-	add_dependencies(prebuild_targets DEPENDS nuttx_context uorb_headers)
+	add_dependencies(prebuild_targets DEPENDS nuttx_build uorb_headers)
 
 endfunction()

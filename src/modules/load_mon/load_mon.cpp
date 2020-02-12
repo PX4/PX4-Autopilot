@@ -84,9 +84,6 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 	void start();
 
 private:
@@ -306,13 +303,6 @@ void LoadMon::_stack_usage()
 	_stack_task_index = task_index + 1;
 }
 #endif
-
-int LoadMon::print_status()
-{
-	PX4_INFO("running");
-	perf_print_counter(_stack_perf);
-	return 0;
-}
 
 int LoadMon::print_usage(const char *reason)
 {

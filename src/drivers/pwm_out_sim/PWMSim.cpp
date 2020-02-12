@@ -207,7 +207,6 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 	case PWM_SERVO_GET_COUNT:
-	case MIXERIOCGETOUTPUTCOUNT:
 		*(unsigned *)arg = OutputModuleInterface::MAX_ACTUATORS;
 		break;
 

@@ -71,28 +71,13 @@
  *  Define the Chip Selects for SPI1
  *  CS           Devices                                 DRDY
  *  ---- ----------------------------------------------- -----
- *  PC2  MPU9250                    BMI160               PD15
- *  PC15 ICM, ICM_20602, ICM_20608  BMI055_ACCEL         PC14
- *  PE15 HMC5983                    BMI055_GYRO          PE12
+ *  PC2  MPU9250                                         PD15
+ *  PC15 ICM, ICM_20602, ICM_20608                       PC14
+ *  PE15 HMC5983                                         PE12
  *  ---- ----------------------------------------------- -----
  */
-
-/**
- * The BMI160 sensor replaces the MPU9250 on some boards. Only one is actually present and connected
- * to the second GPIO pin on port C. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
 #define GPIO_SPI1_CS_PORTC_PIN2      (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
-
-/**
- * The BMI055 acceleration sensor replaces the ICM20608G on some boards. Only one is actually present and connected
- * to the second GPIO pin on port C. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
 #define GPIO_SPI1_CS_PORTC_PIN15     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
-
-/**
- * The BMI055 gyroscope sensor replaces the LIS3MDL, HMC5983 on some boards. Only one is actually present and connected
- * to the second GPIO pin on port E. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
 #define GPIO_SPI1_CS_PORTE_PIN15     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
 
 /* Define the Data Ready interrupts On SPI 1. */
@@ -161,18 +146,11 @@
 #define SPI_BUS_INIT_MASK        (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS)
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_GYRO              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
-#define PX4_SPIDEV_ACCEL_MAG         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
 #define PX4_SPIDEV_MPU               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
 #define PX4_SPIDEV_HMC               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 5)
-#define PX4_SPIDEV_ICM               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 6)
 #define PX4_SPIDEV_LIS               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 7)
-#define PX4_SPIDEV_BMI               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 8)
-#define PX4_SPIDEV_BMA               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 9)
 #define PX4_SPIDEV_ICM_20608         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 10)
 #define PX4_SPIDEV_ICM_20602         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 11)
-#define PX4_SPIDEV_BMI055_ACC        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 12)
-#define PX4_SPIDEV_BMI055_GYR        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 13)
 #define PX4_SPIDEV_MPU2              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 14)
 
 /**
@@ -189,12 +167,6 @@
 /* I2C busses. */
 #define PX4_I2C_BUS_EXPANSION        1
 #define PX4_I2C_BUS_LED              PX4_I2C_BUS_EXPANSION
-
-/**
- * Devices on the external bus.
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_BMP280         0x76
 
 /**
  * ADC channels:
@@ -352,7 +324,7 @@
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs. */
-#define BOARD_DMA_ALLOC_POOL_SIZE    5120
+#define BOARD_DMA_ALLOC_POOL_SIZE (5120 + 512 + 1008)	// 5120 fat + 512 + 1008 spi
 
 #define BOARD_HAS_ON_RESET 1
 

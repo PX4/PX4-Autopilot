@@ -46,7 +46,6 @@
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
 
-#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 
@@ -105,7 +104,8 @@ void reset_offboard_loss_globals(actuator_armed_s *armed, const bool old_failsaf
 
 transition_result_t arming_state_transition(vehicle_status_s *status, const safety_s &safety,
 		const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
-		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const uint8_t arm_requirements,
+		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags,
+		const PreFlightCheck::arm_requirements_t &arm_requirements,
 		const hrt_abstime &time_since_boot)
 {
 	// Double check that our static arrays are still valid
@@ -130,14 +130,12 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		 */
 		bool preflight_check_ret = true;
 
-		const bool checkGNSS = (arm_requirements & PreFlightCheck::ARM_REQ_GPS_BIT);
-
 		/* only perform the pre-arm check if we have to */
 		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 		    && !hil_enabled) {
 
-			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, true, true,
-					      time_since_boot);
+			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, *status, *status_flags,
+					      arm_requirements.global_position, true, true, time_since_boot);
 
 			if (preflight_check_ret) {
 				status_flags->condition_system_sensors_initialized = true;
@@ -156,8 +154,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
 				status_flags->condition_system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, *status,
-						*status_flags,
-						checkGNSS, false, false, time_since_boot);
+						*status_flags, arm_requirements.global_position, false, status->arming_state != vehicle_status_s::ARMING_STATE_ARMED,
+						time_since_boot);
 
 				last_preflight_check = hrt_absolute_time();
 			}
@@ -178,7 +176,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 					if (fRunPreArmChecks && preflight_check_ret) {
 						// only bother running prearm if preflight was successful
-						prearm_check_ret = PreFlightCheck::preArmCheck(mavlink_log_pub, *status_flags, safety, arm_requirements);
+						prearm_check_ret = PreFlightCheck::preArmCheck(mavlink_log_pub, *status_flags, safety, arm_requirements, *status);
 					}
 
 					if (!preflight_check_ret || !prearm_check_ret) {
@@ -243,17 +241,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 	}
 
 	return ret;
-}
-
-bool is_safe(const safety_s &safety, const actuator_armed_s &armed)
-{
-	// System is safe if:
-	// 1) Not armed
-	// 2) Armed, but in software lockdown (HIL)
-	// 3) Safety switch is present AND engaged -> actuators locked
-	const bool lockdown = (armed.lockdown || armed.manual_lockdown);
-
-	return !armed.armed || (armed.armed && lockdown) || (safety.safety_switch_available && !safety.safety_off);
 }
 
 transition_result_t
@@ -407,7 +394,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act)
 {
-	navigation_state_t nav_state_old = status->nav_state;
+	const navigation_state_t nav_state_old = status->nav_state;
 
 	const bool data_link_loss_act_configured = data_link_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_loss_act_configured = rc_loss_act > link_loss_actions_t::DISABLED;

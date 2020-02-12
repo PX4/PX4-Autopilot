@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,17 +62,20 @@
 #define DRV_MAG_DEVTYPE_QMC5883  0x08
 #define DRV_MAG_DEVTYPE_AK09916  0x09
 #define DRV_DEVTYPE_ICM20948     0x0A
+
 #define DRV_ACC_DEVTYPE_LSM303D  0x11
 #define DRV_ACC_DEVTYPE_BMA180   0x12
 #define DRV_ACC_DEVTYPE_MPU6000  0x13
 #define DRV_ACC_DEVTYPE_ACCELSIM 0x14
 #define DRV_ACC_DEVTYPE_MPU9250  0x16
 #define DRV_ACC_DEVTYPE_BMI160   0x17
+
 #define DRV_GYR_DEVTYPE_MPU6000  0x21
 #define DRV_GYR_DEVTYPE_L3GD20   0x22
 #define DRV_GYR_DEVTYPE_GYROSIM  0x23
 #define DRV_GYR_DEVTYPE_MPU9250  0x24
 #define DRV_GYR_DEVTYPE_BMI160   0x25
+
 #define DRV_RNG_DEVTYPE_MB12XX   0x31
 #define DRV_RNG_DEVTYPE_LL40LS   0x32
 #define DRV_ACC_DEVTYPE_MPU6050  0x33
@@ -92,13 +95,15 @@
 #define DRV_ACC_DEVTYPE_BMI055		0x41
 #define DRV_GYR_DEVTYPE_BMI055		0x42
 #define DRV_MAG_DEVTYPE_BMM150		0x43
-#define DRV_BARO_DEVTYPE_BMP285		0x44
-#define DRV_DIFF_PRESS_DEVTYPE_ETS3	0x45
-#define DRV_DIFF_PRESS_DEVTYPE_MS4525	0x46
-#define DRV_DIFF_PRESS_DEVTYPE_MS5525	0x47
-#define DRV_DIFF_PRESS_DEVTYPE_SDP31	0x48
-#define DRV_DIFF_PRESS_DEVTYPE_SDP32	0x49
-#define DRV_DIFF_PRESS_DEVTYPE_SDP33	0x50
+#define DRV_IMU_DEVTYPE_ST_LSM9DS1_AG   0x44
+#define DRV_MAG_DEVTYPE_ST_LSM9DS1_M    0x45
+#define DRV_DIFF_PRESS_DEVTYPE_ETS3     0x46
+#define DRV_DIFF_PRESS_DEVTYPE_MS4525   0x47
+#define DRV_DIFF_PRESS_DEVTYPE_MS5525   0x48
+#define DRV_DIFF_PRESS_DEVTYPE_SDP31    0x49
+#define DRV_DIFF_PRESS_DEVTYPE_SDP32    0x4A
+#define DRV_DIFF_PRESS_DEVTYPE_SDP33    0x4B
+
 #define DRV_BARO_DEVTYPE_MPL3115A2	0x51
 #define DRV_ACC_DEVTYPE_FXOS8701C	0x52
 
@@ -108,6 +113,7 @@
 #define DRV_GYR_DEVTYPE_ADIS16448	0x57
 #define DRV_BARO_DEVTYPE_LPS22HB	0x58
 #define DRV_ACC_DEVTYPE_ADIS16477	0x59
+
 #define DRV_GYR_DEVTYPE_ADIS16477	0x60
 #define DRV_ACC_DEVTYPE_LSM303AGR	0x61
 #define DRV_MAG_DEVTYPE_LSM303AGR	0x62
@@ -116,6 +122,8 @@
 #define DRV_BARO_DEVTYPE_BAROSIM	0x65
 #define DRV_DEVTYPE_BMI088		0x66
 #define DRV_DEVTYPE_BMP388		0x67
+#define DRV_DEVTYPE_DPS310		0x68
+#define DRV_DEVTYPE_ST_ISM330DLC	0x69
 
 /*
  * ioctl() definitions
