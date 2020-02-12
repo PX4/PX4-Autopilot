@@ -136,7 +136,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 				// Adjust the setpoint to maintain the same height error to reduce control transients
 				if (PX4_ISFINITE(_dist_to_ground_lock) && PX4_ISFINITE(_dist_to_bottom)) {
-					_position_setpoint(2) = _position(2) + (_dist_to_ground_lock - _dist_to_bottom);
+					_position_setpoint(2) = _position(2) - (_dist_to_ground_lock - _dist_to_bottom);
 
 				} else {
 					_position_setpoint(2) = _position(2);
@@ -153,7 +153,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 				// Adjust the setpoint to maintain the same height error to reduce control transients
 				if (PX4_ISFINITE(_position_setpoint(2))) {
-					_dist_to_ground_lock = _dist_to_bottom + (_position_setpoint(2) - _position(2));
+					_dist_to_ground_lock = _dist_to_bottom - (_position_setpoint(2) - _position(2));
 				}
 			}
 		}
