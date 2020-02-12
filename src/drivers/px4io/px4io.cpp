@@ -1306,7 +1306,7 @@ PX4IO::io_set_control_state(unsigned group)
 		controls.control[3] = 1.0f;
 	}
 
-	uint16_t regs[sizeof(controls.control) / sizeof(controls.control[0])];
+	uint16_t regs[sizeof(controls.control) / sizeof(controls.control[0])] = {};
 
 	for (unsigned i = 0; (i < _max_controls) && (i < sizeof(controls.control) / sizeof(controls.control[0])); i++) {
 		/* ensure FLOAT_TO_REG does not produce an integer overflow */
@@ -1323,7 +1323,8 @@ PX4IO::io_set_control_state(unsigned group)
 
 	if (!_test_fmu_fail && !_motor_test.in_test_mode) {
 		/* copy values to registers in IO */
-		return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
+		return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, math::min(_max_controls,
+				  sizeof(controls.control) / sizeof(controls.control[0])));
 
 	} else {
 		return OK;
