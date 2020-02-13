@@ -385,7 +385,7 @@ bool Ekf::resetGpsAntYaw()
 		if (delta_ang_error.norm() > math::radians(15.0f) || !_control_status.flags.yaw_align) {
 			// update quaternion states
 			_state.quat_nominal = quat_after_reset;
-			uncorrelateQuatStates();
+			uncorrelateQuatFromOtherStates();
 
 			// record the state change
 			_state_reset_status.quat_change = q_error;

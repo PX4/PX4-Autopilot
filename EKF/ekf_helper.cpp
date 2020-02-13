@@ -457,7 +457,7 @@ bool Ekf::realignYawGPS()
 			// calculate new filter quaternion states using corrected yaw angle
 			_state.quat_nominal = Quatf(euler321);
 			_R_to_earth = Dcmf(_state.quat_nominal);
-			uncorrelateQuatStates();
+			uncorrelateQuatFromOtherStates();
 
 			// If heading was bad, then we also need to reset the velocity and position states
 			_velpos_reset_request = badMagYaw;
@@ -691,7 +691,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	// update quaternion states
 	_state.quat_nominal = quat_after_reset;
 	_R_to_earth = Dcmf(_state.quat_nominal);
-	uncorrelateQuatStates();
+	uncorrelateQuatFromOtherStates();
 
 	// record the state change
 	_state_reset_status.quat_change = q_error;
@@ -1368,29 +1368,10 @@ void Ekf::fuse(float *K, float innovation)
 	}
 }
 
-
-
-void Ekf::uncorrelateQuatStates()
+void Ekf::uncorrelateQuatFromOtherStates()
 {
-	// save 4x4 elements
-	uint32_t row;
-	uint32_t col;
-	float variances[4][4];
-	for (row = 0; row < 4; row++) {
-		for (col = 0; col < 4; col++) {
-			variances[row][col] = P(row, col);
-		}
-	}
-
-	// zero rows and columns
-	P.uncorrelateCovariance<4>(0);
-
-	// restore 4x4 elements
-	for (row = 0; row < 4; row++) {
-		for (col = 0; col < 4; col++) {
-			P(row, col) = variances[row][col];
-		}
-	}
+	P.slice<_k_num_states - 4, 4>(4, 0) = 0.f;	
+	P.slice<4, _k_num_states - 4>(0, 4) = 0.f;	
 }
 
 bool Ekf::global_position_is_valid()
