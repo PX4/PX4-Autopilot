@@ -98,6 +98,7 @@ px4_add_module(
 		-Wno-unused-but-set-variable
 		-Wno-unused-result
 		-Wno-unused-variable
+		-Wno-vla-larger-than
 	SRCS
 		${srcs}
 	DEPENDS
