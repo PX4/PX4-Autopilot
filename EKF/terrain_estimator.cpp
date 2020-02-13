@@ -307,7 +307,7 @@ void Ekf::updateTerrainValidity()
 }
 
 // get the estimated vertical position of the terrain relative to the NED origin
-void Ekf::getTerrainVertPos(float *ret)
+float Ekf::getTerrainVertPos() const
 {
-	memcpy(ret, &_terrain_vpos, sizeof(float));
+	return _terrain_vpos;
 }

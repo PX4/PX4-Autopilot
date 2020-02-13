@@ -135,13 +135,13 @@ public:
 	void getHaglInnovRatio(float &hagl_innov_ratio) const override;
 
 	// get the state vector at the delayed time horizon
-	void get_state_delayed(float *state) override;
+	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const override;
 
 	// get the wind velocity in m/s
-	void get_wind_velocity(float *wind) override;
+	Vector2f getWindVelocity() const override;
 
 	// get the wind velocity var
-	void get_wind_velocity_var(float *wind_var) override;
+	Vector2f getWindVelocityVariance() const override;
 
 	// get the true airspeed in m/s
 	void get_true_airspeed(float *tas) override;
@@ -187,13 +187,13 @@ public:
 	*/
 	bool reset_imu_bias() override;
 
-	void get_vel_var(Vector3f &vel_var) override;
+	Vector3f getVelocityVariance() const override;
 
-	void get_pos_var(Vector3f &pos_var) override;
+	Vector3f getPositionVariance() const override;
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/sec), (m)
-	void get_output_tracking_error(float error[3]) override;
+	Vector3f getOutputTrackingError() const override;
 
 	/*
 	Returns  following IMU vibration metrics in the following array locations
@@ -201,7 +201,7 @@ public:
 	1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 	*/
-	void get_imu_vibe_metrics(float vibe[3]) override;
+	Vector3f getImuVibrationMetrics() const override;
 
 	/*
 	First argument returns GPS drift  metrics in the following array locations
@@ -224,16 +224,16 @@ public:
 	void updateTerrainValidity();
 
 	// get the estimated terrain vertical position relative to the NED origin
-	void getTerrainVertPos(float *ret) override;
+	float getTerrainVertPos() const override;
 
 	// get the terrain variance
 	float get_terrain_var() const { return _terrain_var; }
 
-	// get the accelerometer bias in m/s/s
-	void get_accel_bias(float bias[3]) override;
+	// get the accelerometer bias in m/s**2
+	Vector3f getAccelBias() const override;
 
 	// get the gyroscope bias in rad/s
-	void get_gyro_bias(float bias[3]) override;
+	Vector3f getGyroBias() const override;
 
 	// get GPS check status
 	void get_gps_check_status(uint16_t *val) override;
@@ -276,7 +276,7 @@ public:
 	void get_ekf_soln_status(uint16_t *status) override;
 
 	// return the quaternion defining the rotation from the External Vision to the EKF reference frame
-	void get_ev2ekf_quaternion(float *quat) override;
+	matrix::Quatf getVisionAlignmentQuaternion() const override;
 
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
@@ -441,7 +441,7 @@ private:
 	Vector3f _delta_angle_corr;	///< delta angle correction vector (rad)
 	Vector3f _vel_err_integ;	///< integral of velocity tracking error (m)
 	Vector3f _pos_err_integ;	///< integral of position tracking error (m.s)
-	float _output_tracking_error[3] {}; ///< contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
+	Vector3f _output_tracking_error; ///< contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
 
 	// variables used for the GPS quality checks
 	Vector3f _gps_pos_deriv_filt;	///< GPS NED position derivative (m/sec)

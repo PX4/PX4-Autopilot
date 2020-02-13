@@ -88,9 +88,9 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 
 	EXPECT_TRUE(_ekf_wrapper.isWindVelocityEstimated());
 
-	const Vector3f vel = _ekf_wrapper.getVelocity();
-	const Vector2f vel_wind_earth = _ekf_wrapper.getWindVelocity();
-	const float height_before_pressure_correction = _ekf_wrapper.getPosition()(2);
+	const Vector3f vel = _ekf->getVelocity();
+	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
+	const float height_before_pressure_correction = _ekf->getPosition()(2);
 
 	const Dcmf R_to_earth_sim(_quat_sim);
 	EXPECT_TRUE(matrix::isEqual(vel, simulated_velocity_earth));
@@ -108,7 +108,7 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 
 	_sensor_simulator.runSeconds(20);
 
-	const float height_after_pressure_correction = _ekf_wrapper.getPosition()(2);
+	const float height_after_pressure_correction = _ekf->getPosition()(2);
 	// height increase means that state z decrease due to z axis pointing down
 	const float expected_height_after_pressure_correction = height_before_pressure_correction -
 								expected_height_difference;

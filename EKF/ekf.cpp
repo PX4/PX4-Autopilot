@@ -350,17 +350,17 @@ void Ekf::calculateOutputStates()
 	_R_to_earth_now = Dcmf(_output_new.quat_nominal);
 
 	// correct delta velocity for bias offsets
-	const Vector3f delta_vel{imu.delta_vel - _state.delta_vel_bias * dt_scale_correction};
+	const Vector3f delta_vel_body{imu.delta_vel - _state.delta_vel_bias * dt_scale_correction};
 
 	// rotate the delta velocity to earth frame
-	Vector3f delta_vel_NED{_R_to_earth_now * delta_vel};
+	Vector3f delta_vel_earth{_R_to_earth_now * delta_vel_body};
 
 	// correct for measured acceleration due to gravity
-	delta_vel_NED(2) += CONSTANTS_ONE_G * imu.delta_vel_dt;
+	delta_vel_earth(2) += CONSTANTS_ONE_G * imu.delta_vel_dt;
 
 	// calculate the earth frame velocity derivatives
 	if (imu.delta_vel_dt > 1e-4f) {
-		_vel_deriv_ned = delta_vel_NED * (1.0f / imu.delta_vel_dt);
+		_vel_deriv = delta_vel_earth * (1.0f / imu.delta_vel_dt);
 	}
 
 	// save the previous velocity so we can use trapezoidal integration
@@ -368,8 +368,8 @@ void Ekf::calculateOutputStates()
 
 	// increment the INS velocity states by the measurement plus corrections
 	// do the same for vertical state used by alternative correction algorithm
-	_output_new.vel += delta_vel_NED;
-	_output_vert_new.vel_d += delta_vel_NED(2);
+	_output_new.vel += delta_vel_earth;
+	_output_vert_new.vel_d += delta_vel_earth(2);
 
 	// use trapezoidal integration to calculate the INS position states
 	// do the same for vertical state used by alternative correction algorithm
@@ -427,13 +427,13 @@ void Ekf::calculateOutputStates()
 		_delta_angle_corr = delta_ang_error * att_gain;
 
 		// calculate velocity and position tracking errors
-		const Vector3f vel_err{_state.vel - _output_sample_delayed.vel};
-		const Vector3f pos_err{_state.pos - _output_sample_delayed.pos};
+		const Vector3f vel_err(_state.vel - _output_sample_delayed.vel);
+		const Vector3f pos_err(_state.pos - _output_sample_delayed.pos);
 
 		// collect magnitude tracking error for diagnostics
-		_output_tracking_error[0] = delta_ang_error.norm();
-		_output_tracking_error[1] = vel_err.norm();
-		_output_tracking_error[2] = pos_err.norm();
+		_output_tracking_error(0) = delta_ang_error.norm();
+		_output_tracking_error(1) = vel_err.norm();
+		_output_tracking_error(2) = pos_err.norm();
 
 		/*
 		 * Loop through the output filter state history and apply the corrections to the velocity and position states.

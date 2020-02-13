@@ -160,74 +160,12 @@ bool EkfWrapper::isWindVelocityEstimated() const
 	return control_status.flags.wind;
 }
 
-Vector3f EkfWrapper::getPosition() const
-{
-	float temp[3];
-	_ekf->get_position(temp);
-	return Vector3f(temp);
-}
-Vector3f EkfWrapper::getVelocity() const
-{
-	float temp[3];
-	_ekf->get_velocity(temp);
-	return Vector3f(temp);
-}
-Vector3f EkfWrapper::getAccelBias() const
-{
-	float temp[3];
-	_ekf->get_accel_bias(temp);
-	return Vector3f(temp);
-}
-
-Vector3f EkfWrapper::getGyroBias() const
-{
-	float temp[3];
-	_ekf->get_gyro_bias(temp);
-	return Vector3f(temp);
-}
-
-Quatf EkfWrapper::getQuaternion() const
-{
-	return _ekf->get_quaternion();
-}
-
 Eulerf EkfWrapper::getEulerAngles() const
 {
-	return Eulerf(getQuaternion());
-}
-
-matrix::Vector<float, 24> EkfWrapper::getState() const
-{
-	float state[24];
-	_ekf->get_state_delayed(state);
-	return matrix::Vector<float, 24>{state};
+	return Eulerf(_ekf->getQuaternion());
 }
 
 matrix::Vector<float, 4> EkfWrapper::getQuaternionVariance() const
 {
 	return matrix::Vector<float, 4>(_ekf->orientation_covariances().diag());
-}
-
-Vector3f EkfWrapper::getPositionVariance() const
-{
-	return Vector3f(_ekf->position_covariances().diag());
-}
-
-Vector3f EkfWrapper::getVelocityVariance() const
-{
-	return Vector3f(_ekf->velocity_covariances().diag());
-}
-
-Vector2f EkfWrapper::getWindVelocity() const
-{
-	float temp[2];
-	_ekf->get_wind_velocity(temp);
-	return Vector2f(temp);
-}
-
-Quatf EkfWrapper::getVisionAlignmentQuaternion() const
-{
-	float temp[4];
-	_ekf->get_ev2ekf_quaternion(temp);
-	return Quatf(temp);
 }

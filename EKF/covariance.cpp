@@ -101,15 +101,14 @@ void Ekf::initialiseCovariance()
 
 }
 
-void Ekf::get_pos_var(Vector3f &pos_var)
+Vector3f Ekf::getPositionVariance() const
 {
-	pos_var = P.slice<3,3>(7,7).diag();
+	return P.slice<3,3>(7,7).diag();
 }
 
-void Ekf::get_vel_var(Vector3f &vel_var)
+Vector3f Ekf::getVelocityVariance() const
 {
-	vel_var = P.slice<3,3>(4,4).diag();
-
+	return P.slice<3,3>(4,4).diag();
 }
 
 void Ekf::predictCovariance()
