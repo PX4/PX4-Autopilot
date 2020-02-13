@@ -1131,24 +1131,19 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.q[2] = dist_mavlink->quaternion[2];
 	dist.q[3] = dist_mavlink->quaternion[3];
 
-	// Create 1st publisher instance if it doesn't exist
-	if (_dist_pubs[0] == nullptr) {
-		_dist_pubs[0] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
-		_dist_sensor_ids[0] = dist.id;
-	}
-
 	// New publishers will be created based on the sensor ID's being different or not
 	for (size_t i = 0; i < sizeof(_dist_sensor_ids) / sizeof(_dist_sensor_ids[0]); i++) {
-		if (_dist_sensor_ids[i] == dist.id) {
+		if (_dist_pubs[i] && _dist_sensor_ids[i] == dist.id) {
 			_dist_pubs[i]->publish(dist);
 			break;
 
-		} else {
-			if (_dist_pubs[i] == nullptr) {
-				_dist_pubs[i] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
-				_dist_sensor_ids[i] = dist.id;
-				break;
-			}
+		}
+
+		if (_dist_pubs[i] == nullptr) {
+			_dist_pubs[i] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
+			_dist_sensor_ids[i] = dist.id;
+			_dist_pubs[i]->publish(dist);
+			break;
 		}
 	}
 

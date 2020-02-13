@@ -139,8 +139,8 @@ private:
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
-	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS];
-	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS];
+	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS] {};
+	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS] {};
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
