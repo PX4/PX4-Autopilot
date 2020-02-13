@@ -103,7 +103,7 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 
 TEST_F(EkfExternalVisionTest, visionVarianceCheck)
 {
-	const Vector3f velVar_init = _ekf_wrapper.getVelocityVariance();
+	const Vector3f velVar_init = _ekf->getVelocityVariance();
 	EXPECT_NEAR(velVar_init(0), velVar_init(1), 0.0001);
 
 	_sensor_simulator._vio.setVelocityVariance(Vector3f{2.0f,0.01f,0.01f});
@@ -111,7 +111,7 @@ TEST_F(EkfExternalVisionTest, visionVarianceCheck)
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(4);
 
-	const Vector3f velVar_new = _ekf_wrapper.getVelocityVariance();
+	const Vector3f velVar_new = _ekf->getVelocityVariance();
 	EXPECT_TRUE(velVar_new(0) > velVar_new(1));
 }
 
@@ -131,17 +131,17 @@ TEST_F(EkfExternalVisionTest, visionAlignment)
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
 
-	const Vector3f velVar_init = _ekf_wrapper.getVelocityVariance();
+	const Vector3f velVar_init = _ekf->getVelocityVariance();
 	EXPECT_NEAR(velVar_init(0), velVar_init(1), 0.0001);
 
 	_sensor_simulator.runSeconds(4);
 
 	// THEN: velocity uncertainty in y should be bigger
-	const Vector3f velVar_new = _ekf_wrapper.getVelocityVariance();
+	const Vector3f velVar_new = _ekf->getVelocityVariance();
 	EXPECT_TRUE(velVar_new(1) > velVar_new(0));
 
 	// THEN: the frame offset should be estimated correctly
-	Quatf estimatedExternalVisionFrameOffset = _ekf_wrapper.getVisionAlignmentQuaternion();
+	Quatf estimatedExternalVisionFrameOffset = _ekf->getVisionAlignmentQuaternion();
 	EXPECT_TRUE(matrix::isEqual(externalVisionFrameOffset.canonical(),
 				    estimatedExternalVisionFrameOffset.canonical()));
 }

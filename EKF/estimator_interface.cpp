@@ -91,25 +91,25 @@ void EstimatorInterface::computeVibrationMetric()
 {
 	// calculate a metric which indicates the amount of coning vibration
 	Vector3f temp = _newest_high_rate_imu_sample.delta_ang % _delta_ang_prev;
-	_vibe_metrics[0] = 0.99f * _vibe_metrics[0] + 0.01f * temp.norm();
+	_vibe_metrics(0) = 0.99f * _vibe_metrics(0) + 0.01f * temp.norm();
 
 	// calculate a metric which indicates the amount of high frequency gyro vibration
 	temp = _newest_high_rate_imu_sample.delta_ang - _delta_ang_prev;
 	_delta_ang_prev = _newest_high_rate_imu_sample.delta_ang;
-	_vibe_metrics[1] = 0.99f * _vibe_metrics[1] + 0.01f * temp.norm();
+	_vibe_metrics(1) = 0.99f * _vibe_metrics(1) + 0.01f * temp.norm();
 
 	// calculate a metric which indicates the amount of high frequency accelerometer vibration
 	temp = _newest_high_rate_imu_sample.delta_vel - _delta_vel_prev;
 	_delta_vel_prev = _newest_high_rate_imu_sample.delta_vel;
-	_vibe_metrics[2] = 0.99f * _vibe_metrics[2] + 0.01f * temp.norm();
+	_vibe_metrics(2) = 0.99f * _vibe_metrics(2) + 0.01f * temp.norm();
 }
 
 bool EstimatorInterface::checkIfVehicleAtRest(float dt)
 {
 	// detect if the vehicle is not moving when on ground
 	if (!_control_status.flags.in_air) {
-		if ((_vibe_metrics[1] * 4.0E4f > _params.is_moving_scaler)
-				|| (_vibe_metrics[2] * 2.1E2f > _params.is_moving_scaler)
+		if ((_vibe_metrics(1) * 4.0E4f > _params.is_moving_scaler)
+				|| (_vibe_metrics(2) * 2.1E2f > _params.is_moving_scaler)
 				|| ((_newest_high_rate_imu_sample.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
 
 			_time_last_move_detect_us = _newest_high_rate_imu_sample.time_us;

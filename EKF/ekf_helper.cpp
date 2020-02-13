@@ -876,59 +876,51 @@ void Ekf::get_gps_check_status(uint16_t *val)
 }
 
 // get the state vector at the delayed time horizon
-void Ekf::get_state_delayed(float *state)
+matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 {
+	matrix::Vector<float, 24> state;
 	for (int i = 0; i < 4; i++) {
-		state[i] = _state.quat_nominal(i);
+		state(i) = _state.quat_nominal(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 4] = _state.vel(i);
+		state(i + 4) = _state.vel(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 7] = _state.pos(i);
+		state(i + 7) = _state.pos(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 10] = _state.delta_ang_bias(i);
+		state(i + 10) = _state.delta_ang_bias(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 13] = _state.delta_vel_bias(i);
+		state(i + 13) = _state.delta_vel_bias(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 16] = _state.mag_I(i);
+		state(i + 16) = _state.mag_I(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 19] = _state.mag_B(i);
+		state(i + 19) = _state.mag_B(i);
 	}
 
 	for (int i = 0; i < 2; i++) {
-		state[i + 22] = _state.wind_vel(i);
+		state(i + 22) = _state.wind_vel(i);
 	}
+	return state;
 }
 
-// get the accelerometer bias
-void Ekf::get_accel_bias(float bias[3])
+Vector3f Ekf::getAccelBias() const
 {
-	float temp[3];
-	temp[0] = _state.delta_vel_bias(0) / _dt_ekf_avg;
-	temp[1] = _state.delta_vel_bias(1) / _dt_ekf_avg;
-	temp[2] = _state.delta_vel_bias(2) / _dt_ekf_avg;
-	memcpy(bias, temp, 3 * sizeof(float));
+	return _state.delta_vel_bias / _dt_ekf_avg;
 }
 
-// get the gyroscope bias in rad/s
-void Ekf::get_gyro_bias(float bias[3])
+Vector3f Ekf::getGyroBias() const
 {
-	float temp[3];
-	temp[0] = _state.delta_ang_bias(0) / _dt_ekf_avg;
-	temp[1] = _state.delta_ang_bias(1) / _dt_ekf_avg;
-	temp[2] = _state.delta_ang_bias(2) / _dt_ekf_avg;
-	memcpy(bias, temp, 3 * sizeof(float));
+	return _state.delta_ang_bias / _dt_ekf_avg;
 }
 
 // get the position and height of the ekf origin in WGS-84 coordinates and time the origin was set
@@ -941,11 +933,11 @@ bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *orig
 	return _NED_origin_initialised;
 }
 
-// return an array containing the output predictor angular, velocity and position tracking
+// return a vector containing the output predictor angular, velocity and position tracking
 // error magnitudes (rad), (m/s), (m)
-void Ekf::get_output_tracking_error(float error[3])
+Vector3f Ekf::getOutputTrackingError() const
 {
-	memcpy(error, _output_tracking_error, 3 * sizeof(float));
+	return _output_tracking_error;
 }
 
 /*
@@ -954,9 +946,9 @@ Returns  following IMU vibration metrics in the following array locations
 1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 */
-void Ekf::get_imu_vibe_metrics(float vibe[3])
+Vector3f Ekf::getImuVibrationMetrics() const
 {
-	memcpy(vibe, _vibe_metrics, 3 * sizeof(float));
+	return _vibe_metrics;
 }
 
 /*
@@ -1503,13 +1495,9 @@ void Ekf::calcExtVisRotMat()
 }
 
 // return the quaternions for the rotation from External Vision system reference frame to the EKF reference frame
-void Ekf::get_ev2ekf_quaternion(float *quat)
+matrix::Quatf Ekf::getVisionAlignmentQuaternion() const
 {
-	const Quatf quat_ev2ekf(_R_ev_to_ekf);
-
-	for (unsigned i = 0; i < 4; i++) {
-		quat[i] = quat_ev2ekf(i);
-	}
+	return Quatf(_R_ev_to_ekf);
 }
 
 // Increase the yaw error variance of the quaternions

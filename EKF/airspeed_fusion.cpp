@@ -225,16 +225,14 @@ void Ekf::fuseAirspeed()
 	}
 }
 
-void Ekf::get_wind_velocity(float *wind)
+Vector2f Ekf::getWindVelocity() const
 {
-	wind[0] = _state.wind_vel(0);
-	wind[1] = _state.wind_vel(1);
+	return _state.wind_vel;
 }
 
-void Ekf::get_wind_velocity_var(float *wind_var)
+Vector2f Ekf::getWindVelocityVariance() const
 {
-	wind_var[0] = P(22,22);
-	wind_var[1] = P(23,23);
+	return P.slice<2, 2>(22,22).diag();
 }
 
 void Ekf::get_true_airspeed(float *tas)
@@ -248,8 +246,7 @@ void Ekf::get_true_airspeed(float *tas)
 */
 void Ekf::resetWindStates()
 {
-	// get euler yaw angle
-	Eulerf euler321(_state.quat_nominal);
+	const Eulerf euler321(_state.quat_nominal);
 	const float euler_yaw = euler321(2);
 
 	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < (uint64_t)5e5)) {

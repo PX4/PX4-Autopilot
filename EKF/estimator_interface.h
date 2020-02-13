@@ -116,24 +116,17 @@ public:
 	virtual void getHaglInnovVar(float &hagl_innov_var) const = 0;
 	virtual void getHaglInnovRatio(float &hagl_innov_ratio) const = 0;
 
-	virtual void get_state_delayed(float *state) = 0;
+	virtual matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const = 0;
 
-	virtual void get_wind_velocity(float *wind) = 0;
+	virtual Vector2f getWindVelocity() const = 0;
 
-	virtual void get_wind_velocity_var(float *wind_var) = 0;
+	virtual Vector2f getWindVelocityVariance() const = 0;
 
 	virtual void get_true_airspeed(float *tas) = 0;
 
-	// gets the variances for the NED velocity states
-	virtual void get_vel_var(Vector3f &vel_var) = 0;
-
-	// gets the variances for the NED position states
-	virtual void get_pos_var(Vector3f &pos_var) = 0;
-
-
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/s), (m)
-	virtual void get_output_tracking_error(float error[3]) = 0;
+	virtual Vector3f getOutputTrackingError() const = 0;
 
 	/*
 	Returns  following IMU vibration metrics in the following array locations
@@ -141,7 +134,7 @@ public:
 	1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 	*/
-	virtual void get_imu_vibe_metrics(float vibe[3]) = 0;
+	virtual Vector3f getImuVibrationMetrics() const = 0;
 
 	/*
 	First argument returns GPS drift  metrics in the following array locations
@@ -281,58 +274,47 @@ public:
 	bool get_terrain_valid() { return isTerrainEstimateValid(); }
 
 	// get the estimated terrain vertical position relative to the NED origin
-	virtual void getTerrainVertPos(float *ret) = 0;
-	//[[deprecated("Replaced by getTerrainVertPos")]]
-	void get_terrain_vert_pos(float *ret) { getTerrainVertPos(ret); }
+	virtual float getTerrainVertPos() const = 0;
 
 	// return true if the local position estimate is valid
 	bool local_position_is_valid();
 
-	const matrix::Quatf &get_quaternion() const { return _output_new.quat_nominal; }
+	const matrix::Quatf getQuaternion() const { return _output_new.quat_nominal; }
 
 	// return the quaternion defining the rotation from the EKF to the External Vision reference frame
-	virtual void get_ev2ekf_quaternion(float *quat) = 0;
+	virtual matrix::Quatf getVisionAlignmentQuaternion() const = 0;
 
 	// get the velocity of the body frame origin in local NED earth frame
-	void get_velocity(float *vel)
+	Vector3f getVelocity() const
 	{
-		Vector3f vel_earth = _output_new.vel - _vel_imu_rel_body_ned;
-
-		for (unsigned i = 0; i < 3; i++) {
-			vel[i] = vel_earth(i);
-		}
+		const Vector3f vel_earth = _output_new.vel - _vel_imu_rel_body_ned;
+		return vel_earth;
 	}
 
-	// get the NED velocity derivative in earth frame
-	void get_vel_deriv_ned(float *vel_deriv)
+	virtual Vector3f getVelocityVariance() const = 0;
+
+	// get the velocity derivative in earth frame
+	Vector3f getVelocityDerivative() const
 	{
-		for (unsigned i = 0; i < 3; i++) {
-			vel_deriv[i] = _vel_deriv_ned(i);
-		}
+		return _vel_deriv;
 	}
 
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
-	void get_pos_d_deriv(float *pos_d_deriv)
+	float getVerticalPositionDerivative() const
 	{
-		float var = _output_vert_new.vel_d - _vel_imu_rel_body_ned(2);
-		*pos_d_deriv = var;
+		return _output_vert_new.vel_d - _vel_imu_rel_body_ned(2);
 	}
 
-	// get the position of the body frame origin in local NED earth frame
-	void get_position(float *pos)
+	// get the position of the body frame origin in local earth frame
+	Vector3f getPosition() const
 	{
 		// rotate the position of the IMU relative to the boy origin into earth frame
-		Vector3f pos_offset_earth = _R_to_earth_now * _params.imu_pos_body;
-
+		const Vector3f pos_offset_earth = _R_to_earth_now * _params.imu_pos_body;
 		// subtract from the EKF position (which is at the IMU) to get position at the body origin
-		for (unsigned i = 0; i < 3; i++) {
-			pos[i] = _output_new.pos(i) - pos_offset_earth(i);
-		}
+		return _output_new.pos - pos_offset_earth;
 	}
-	void copy_timestamp(uint64_t *time_us)
-	{
-		*time_us = _time_last_imu;
-	}
+
+	virtual Vector3f getPositionVariance() const = 0;
 
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
@@ -349,8 +331,8 @@ public:
 		}
 	}
 
-	virtual void get_accel_bias(float bias[3]) = 0;
-	virtual void get_gyro_bias(float bias[3]) = 0;
+	virtual Vector3f getAccelBias() const = 0;
+	virtual Vector3f getGyroBias() const = 0;
 
 	// get EKF mode status
 	void get_control_mode(uint32_t *val)
@@ -482,7 +464,7 @@ protected:
 	imuSample _newest_high_rate_imu_sample{};		// imu sample capturing the newest imu data
 	Matrix3f _R_to_earth_now;		// rotation matrix from body to earth frame at current time
 	Vector3f _vel_imu_rel_body_ned;		// velocity of IMU relative to body origin in NED earth frame
-	Vector3f _vel_deriv_ned;		// velocity derivative at the IMU in NED earth frame (m/s/s)
+	Vector3f _vel_deriv;		// velocity derivative at the IMU in NED earth frame (m/s/s)
 
 	bool _imu_updated{false};      // true if the ekf should update (completed downsampling process)
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
@@ -520,7 +502,7 @@ protected:
 	// IMU vibration and movement monitoring
 	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement
 	Vector3f _delta_vel_prev;	// delta velocity from the previous IMU measurement
-	float _vibe_metrics[3] {};	// IMU vibration metrics
+	Vector3f _vibe_metrics;	// IMU vibration metrics
 					// [0] Level of coning vibration in the IMU delta angles (rad^2)
 					// [1] high frequency vibration level in the IMU delta angle data (rad)
 					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
