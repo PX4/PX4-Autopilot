@@ -41,8 +41,7 @@ constexpr uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 
 MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_type, I2CSPIBusOption bus_option,
 		 int bus) :
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
-	I2CSPIInstance(bus_option, bus),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_interface(interface),
 	_device_type(device_type),
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
@@ -79,10 +78,6 @@ MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_t
 
 MPU6000::~MPU6000()
 {
-	/* make sure we are truly inactive */
-	stop();
-
-	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
@@ -711,7 +706,7 @@ MPU6000::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU6000_NUM_CHECKED_REGISTERS;
 }
 
-void MPU6000::Run()
+void MPU6000::RunImpl()
 {
 	if (_in_factory_test) {
 		// don't publish any data while in factory test mode
@@ -874,8 +869,10 @@ void MPU6000::Run()
 }
 
 void
-MPU6000::print_info()
+MPU6000::print_status()
 {
+	I2CSPIDriver<MPU6000>::print_status();
+	PX4_INFO("Device type: %i", _device_type);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);

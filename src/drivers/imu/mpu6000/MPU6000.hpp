@@ -275,19 +275,19 @@ typedef device::Device *(*MPU6000_constructor)(int, uint32_t, int, bool);
 
 #define MPU6000_TIMER_REDUCTION				200
 
-class MPU6000 : public px4::ScheduledWorkItem, public I2CSPIInstance
+
+class MPU6000 : public I2CSPIDriver<MPU6000>
 {
 public:
 	MPU6000(device::Device *interface, enum Rotation rotation, int device_type, I2CSPIBusOption bus_option, int bus);
 
+	static I2CSPIInstance *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					   int runtime_instance);
+	static void print_usage();
+
 	virtual ~MPU6000();
 
-	virtual int		init();
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void			print_info();
+	int		init();
 
 	void			print_registers();
 
@@ -313,14 +313,18 @@ public:
 	 */
 	int			reset();
 
+	void RunImpl();
+
 protected:
 	device::Device			*_interface;
 
-	virtual int		probe();
+	int probe();
+
+	void print_status() override;
+
+	void custom_method(const BusCLIArguments &cli) override;
 
 private:
-
-	void Run() override;
 
 	int 			_device_type;
 	uint8_t			_product{0};	/** product code */

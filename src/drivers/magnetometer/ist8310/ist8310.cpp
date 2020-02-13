@@ -175,21 +175,20 @@ static const int16_t IST8310_MIN_VAL_Z  = -IST8310_MAX_VAL_Z;
 #define ADDR_TEMPL              0x1c
 #define ADDR_TEMPH              0x1d
 
-class IST8310 : public device::I2C, public px4::ScheduledWorkItem, public I2CSPIInstance
+class IST8310 : public device::I2C, public I2CSPIDriver<IST8310>
 {
 public:
 	IST8310(I2CSPIBusOption bus_option, int bus_number, int address, enum Rotation rotation);
 	virtual ~IST8310();
 
+	static I2CSPIInstance *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					   int runtime_instance);
+	static void print_usage();
+
 	virtual int     init();
 
 	virtual ssize_t     read(struct file *filp, char *buffer, size_t buflen);
 	virtual int         ioctl(struct file *filp, int cmd, unsigned long arg);
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void            print_info();
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -200,17 +199,29 @@ public:
 	void		start();
 
 	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void        stop();
-
-	/**
 	 * Reset the device
 	 */
 	int         reset();
 
+	/**
+	 * Perform a poll cycle; collect from the previous measurement
+	 * and start a new one.
+	 *
+	 * This is the heart of the measurement state machine.  This function
+	 * alternately starts a measurement, or collects the data from the
+	 * previous measurement.
+	 *
+	 * When the interval between measurements is greater than the minimum
+	 * measurement interval, a gap is inserted between collection
+	 * and measurement to provide the most recent measurement possible
+	 * at the next interval.
+	 */
+	void            RunImpl();
+
 protected:
 	int probe() override;
+
+	void            print_status() override;
 
 private:
 
@@ -247,21 +258,6 @@ private:
 	 * change
 	 */
 	void            check_conf(void);
-
-	/**
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-	 * previous measurement.
-	 *
-	 * When the interval between measurements is greater than the minimum
-	 * measurement interval, a gap is inserted between collection
-	 * and measurement to provide the most recent measurement possible
-	 * at the next interval.
-	 */
-	void            Run() override;
 
 	/**
 	 * Write a register.
@@ -341,8 +337,7 @@ extern "C" __EXPORT int ist8310_main(int argc, char *argv[]);
 
 IST8310::IST8310(I2CSPIBusOption bus_option, int bus_number, int address, enum Rotation rotation) :
 	I2C("IST8310", nullptr, bus_number, address, IST8310_DEFAULT_BUS_SPEED),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
-	I2CSPIInstance(bus_option, bus_number),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus_number),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ist8310_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ist8310_com_err")),
 	_range_errors(perf_alloc(PC_COUNT, "ist8310_rng_err")),
@@ -362,12 +357,7 @@ IST8310::IST8310(I2CSPIBusOption bus_option, int bus_number, int address, enum R
 
 IST8310::~IST8310()
 {
-	/* make sure we are truly inactive */
-	stop();
-
-	if (_reports != nullptr) {
-		delete _reports;
-	}
+	delete _reports;
 
 	if (_class_instance != -1) {
 		unregister_class_devname(MAG_BASE_DEVICE_PATH, _class_instance);
@@ -622,12 +612,6 @@ IST8310::start()
 	ScheduleNow();
 }
 
-void
-IST8310::stop()
-{
-	ScheduleClear();
-}
-
 int
 IST8310::reset()
 {
@@ -668,7 +652,7 @@ IST8310::probe()
 }
 
 void
-IST8310::Run()
+IST8310::RunImpl()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -916,8 +900,9 @@ IST8310::meas_to_float(uint8_t in[2])
 }
 
 void
-IST8310::print_info()
+IST8310::print_status()
 {
+	I2CSPIDriver<IST8310>::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u interval\n", _measure_interval);
@@ -925,119 +910,29 @@ IST8310::print_info()
 	_reports->print_info("report queue");
 }
 
-/**
- * Local functions in support of the shell command.
- */
-namespace ist8310
+I2CSPIInstance *
+IST8310::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator, int runtime_instance)
 {
+	IST8310 *interface = new IST8310(iterator.configuredBusOption(), iterator.bus(), cli.custom1, cli.rotation);
 
-static const int max_num_instances = 3;
-static I2CSPIInstance *instances[max_num_instances] {};
-
-int    start(BusInstanceIterator &iterator, int address, enum Rotation rotation);
-int    stop(BusInstanceIterator &iterator);
-void    reset(BusInstanceIterator &iterator);
-int status(BusInstanceIterator &iterator);
-void    usage();
-
-int
-start(BusInstanceIterator &iterator, int address, enum Rotation rotation)
-{
-	if (iterator.configuredBusOption() == I2CSPIBusOption::All) {
-		PX4_ERR("need to specify a bus type");
-		return -1;
+	if (interface == nullptr) {
+		PX4_ERR("failed creating interface for bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		return nullptr;
 	}
 
-	bool started = false;
-
-	while (iterator.next()) {
-		if (iterator.instance()) {
-			continue; // already running
-		}
-
-		const int free_index = iterator.nextFreeInstance();
-
-		if (free_index < 0) {
-			PX4_ERR("Not enough instances");
-			return false;
-		}
-
-		IST8310 *interface = new IST8310(iterator.configuredBusOption(), iterator.bus(), address, rotation);
-
-		if (interface == nullptr) {
-			PX4_ERR("failed creating interface for bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
-			continue;
-		}
-
-		if (interface->init() != OK) {
-			delete interface;
-			PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
-			continue;
-		}
-
-		interface->start();
-
-		instances[free_index] = interface;
-
-		started = true;
+	if (interface->init() != OK) {
+		delete interface;
+		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		return nullptr;
 	}
 
-	return started ? 0 : -1;
-}
+	interface->start();
 
-int
-stop(BusInstanceIterator &iterator)
-{
-	while (iterator.next()) {
-		if (iterator.instance()) {
-			delete iterator.instance();
-			iterator.resetInstance();
-		}
-	}
-
-	return 0;
-}
-
-
-/**
- * Reset the driver.
- */
-void
-reset(BusInstanceIterator &iterator)
-{
-	while (iterator.next()) {
-		if (iterator.instance()) {
-			IST8310 *instance = (IST8310 *)iterator.instance();
-			instance->reset();
-		}
-	}
-
-	exit(0);
-}
-
-
-int
-status(BusInstanceIterator &iterator)
-{
-	bool running = false;
-
-	while (iterator.next()) {
-		if (iterator.instance()) {
-			IST8310 *instance = (IST8310 *)iterator.instance();
-			instance->print_info();
-			running = true;
-		}
-	}
-
-	if (!running) {
-		PX4_INFO("not running");
-	}
-
-	exit(0);
+	return interface;
 }
 
 void
-usage()
+IST8310::print_usage()
 {
 	PX4_INFO("try 'start', 'stop', 'status', 'reset'");
 	PX4_INFO("options:");
@@ -1048,8 +943,6 @@ usage()
 	PX4_INFO("    -b 12C bus (default=all)");
 }
 
-} // namespace
-
 int
 ist8310_main(int argc, char *argv[])
 {
@@ -1059,8 +952,8 @@ ist8310_main(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 
 	BusCLIArguments cli;
-	enum Rotation rotation = ROTATION_NONE;
-	int i2c_addr = IST8310_BUS_I2C_ADDR; /* 7bit */
+	cli.custom1 = IST8310_BUS_I2C_ADDR; /* 7bit */
+	using ThisDriver = IST8310;
 
 	while ((ch = px4_getopt(argc, argv, "XIb:R:a:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -1077,44 +970,40 @@ ist8310_main(int argc, char *argv[])
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(myoptarg);
+			cli.rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
-			i2c_addr = (int)strtol(myoptarg, NULL, 0);
+			cli.custom1 = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		default:
-			ist8310::usage();
-			exit(0);
+			ThisDriver::print_usage();
+			return 0;
 		}
 	}
 
 	if (myoptind >= argc) {
-		ist8310::usage();
+		ThisDriver::print_usage();
 		return 1;
 	}
 
 	const char *verb = argv[myoptind];
 
-	BusInstanceIterator iterator(ist8310::instances, ist8310::max_num_instances, cli, DRV_MAG_DEVTYPE_IST8310);
+	BusInstanceIterator iterator(ThisDriver::instances(), ThisDriver::max_num_instances, cli, DRV_MAG_DEVTYPE_IST8310);
 
 	if (!strcmp(verb, "start")) {
-		return ist8310::start(iterator, i2c_addr, rotation);
+		return ThisDriver::module_start(cli, iterator);
 	}
 
 	if (!strcmp(verb, "stop")) {
-		return ist8310::stop(iterator);
+		return ThisDriver::module_stop(iterator);
 	}
 
-	if (!strcmp(verb, "reset")) {
-		ist8310::reset(iterator);
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
 	}
 
-	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
-		ist8310::status(iterator);
-	}
-
-	ist8310::usage();
+	ThisDriver::print_usage();
 	return 1;
 }

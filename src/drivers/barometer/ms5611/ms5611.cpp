@@ -43,8 +43,7 @@
 
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type,
 	       I2CSPIBusOption bus_option, int bus) :
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
-	I2CSPIInstance(bus_option, bus),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_prom(prom_buf.s),
@@ -57,9 +56,6 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_
 
 MS5611::~MS5611()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
@@ -169,13 +165,7 @@ MS5611::start()
 }
 
 void
-MS5611::stop()
-{
-	ScheduleClear();
-}
-
-void
-MS5611::Run()
+MS5611::RunImpl()
 {
 	int ret;
 	unsigned dummy;
@@ -368,8 +358,9 @@ MS5611::collect()
 	return OK;
 }
 
-void MS5611::print_info()
+void MS5611::print_status()
 {
+	I2CSPIDriver<MS5611>::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 
@@ -378,9 +369,6 @@ void MS5611::print_info()
 	_px4_barometer.print_status();
 }
 
-/**
- * Local functions in support of the shell command.
- */
 namespace ms5611
 {
 

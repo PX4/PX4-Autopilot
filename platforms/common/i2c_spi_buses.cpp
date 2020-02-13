@@ -203,4 +203,120 @@ SPIBusIterator::FilterType BusInstanceIterator::spiFilter(I2CSPIBusOption bus_op
 	return SPIBusIterator::FilterType::InternalBus;
 }
 
+
+int I2CSPIDriverNoTemplate::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator,
+		void(*print_usage)(),
+		instantiate_method instantiate, I2CSPIInstance **instances)
+{
+	if (iterator.configuredBusOption() == I2CSPIBusOption::All) {
+		PX4_ERR("need to specify a bus type");
+		print_usage();
+		return -1;
+	}
+
+	bool started = false;
+
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			continue; // already running
+		}
+
+		const int free_index = iterator.nextFreeInstance();
+
+		if (free_index < 0) {
+			PX4_ERR("Not enough instances");
+			return -1;
+		}
+
+		const BusInstanceIterator &const_iterator = iterator;
+		I2CSPIInstance *instance = instantiate(cli, const_iterator, free_index);
+
+		if (!instance) {
+			PX4_DEBUG("instantiate failed (no device on bus %i (devid 0x%x)?)", iterator.bus(), iterator.devid());
+			continue;
+		}
+
+		instances[free_index] = instance;
+		started = true;
+	}
+
+	return started ? 0 : -1;
+}
+
+
+int I2CSPIDriverNoTemplate::module_stop(BusInstanceIterator &iterator)
+{
+	bool is_running = false;
+
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			I2CSPIDriverNoTemplate *instance = (I2CSPIDriverNoTemplate *)iterator.instance();
+			instance->request_stop_and_wait();
+			delete iterator.instance();
+			iterator.resetInstance();
+			is_running = true;
+		}
+	}
+
+	if (!is_running) {
+		PX4_ERR("Not running");
+		return -1;
+	}
+
+	return 0;
+}
+
+int I2CSPIDriverNoTemplate::module_status(BusInstanceIterator &iterator)
+{
+	bool is_running = false;
+
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			I2CSPIDriverNoTemplate *instance = (I2CSPIDriverNoTemplate *)iterator.instance();
+			instance->print_status();
+			is_running = true;
+		}
+	}
+
+	if (!is_running) {
+		PX4_INFO("Not running");
+		return -1;
+	}
+
+	return 0;
+}
+
+int I2CSPIDriverNoTemplate::module_custom_method(const BusCLIArguments &cli, BusInstanceIterator &iterator)
+{
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			I2CSPIDriverNoTemplate *instance = (I2CSPIDriverNoTemplate *)iterator.instance();
+			instance->custom_method(cli);
+		}
+	}
+
+	return 0;
+}
+
+void I2CSPIDriverNoTemplate::print_status()
+{
+	bool is_i2c_bus = _bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal;
+	PX4_INFO("Running on %s Bus %i", is_i2c_bus ? "I2C" : "SPI", _bus);
+}
+void I2CSPIDriverNoTemplate::request_stop_and_wait()
+{
+	_task_should_exit.store(true);
+	ScheduleNow(); // wake up the task (in case it is not scheduled anymore or just to be faster)
+	unsigned int i = 0;
+
+	do {
+		px4_usleep(20000); // 20 ms
+		// wait at most 2 sec
+	} while (++i < 100 && !_task_exited.load());
+
+	if (i >= 100) {
+		PX4_ERR("Module did not respond to stop request");
+	}
+}
+
 #endif /* BOARD_DISABLE_I2C_SPI */
