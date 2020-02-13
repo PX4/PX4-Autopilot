@@ -63,6 +63,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
@@ -92,7 +93,9 @@ enum MPU_DEVICE_TYPE {
 	MPU_DEVICE_TYPE_MPU6000	= 6000,
 	MPU_DEVICE_TYPE_ICM20602 = 20602,
 	MPU_DEVICE_TYPE_ICM20608 = 20608,
-	MPU_DEVICE_TYPE_ICM20689 = 20689
+	MPU_DEVICE_TYPE_ICM20689 = 20689,
+
+	MPU_DEVICE_TYPE_COUNT = 4
 };
 
 #define DIR_READ			0x80
@@ -263,29 +266,19 @@ struct MPUReport {
 #  define MPU6000_LOW_SPEED_OP(r)			MPU6000_REG((r))
 
 /* interface factories */
-extern device::Device *MPU6000_SPI_interface(int bus, int device_type, bool external_bus);
-extern device::Device *MPU6000_I2C_interface(int bus, int device_type, bool external_bus);
+extern device::Device *MPU6000_SPI_interface(int bus, uint32_t devid, int device_type, bool external_bus);
+extern device::Device *MPU6000_I2C_interface(int bus, uint32_t devid, int device_type, bool external_bus);
 extern int MPU6000_probe(device::Device *dev, int device_type);
 
-typedef device::Device *(*MPU6000_constructor)(int, int, bool);
+typedef device::Device *(*MPU6000_constructor)(int, uint32_t, int, bool);
 
 
 #define MPU6000_TIMER_REDUCTION				200
 
-enum MPU6000_BUS {
-	MPU6000_BUS_ALL = 0,
-	MPU6000_BUS_I2C_INTERNAL,
-	MPU6000_BUS_I2C_EXTERNAL,
-	MPU6000_BUS_SPI_INTERNAL1,
-	MPU6000_BUS_SPI_INTERNAL2,
-	MPU6000_BUS_SPI_EXTERNAL1,
-	MPU6000_BUS_SPI_EXTERNAL2
-};
-
-class MPU6000 : public px4::ScheduledWorkItem
+class MPU6000 : public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
-	MPU6000(device::Device *interface, enum Rotation rotation, int device_type);
+	MPU6000(device::Device *interface, enum Rotation rotation, int device_type, I2CSPIBusOption bus_option, int bus);
 
 	virtual ~MPU6000();
 
@@ -301,10 +294,8 @@ public:
 #ifndef CONSTRAINED_FLASH
 	/**
 	 * Test behaviour against factory offsets
-	 *
-	 * @return 0 on success, 1 on failure
 	 */
-	int 			factory_self_test();
+	void 			factory_self_test();
 #endif
 
 	// deliberately cause a sensor error

@@ -42,6 +42,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/spi.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +67,7 @@
 
 #include <board_config.h>
 
-__EXPORT int mtd_main(int argc, char *argv[]);
+extern "C" __EXPORT int mtd_main(int argc, char *argv[]);
 
 #ifndef CONFIG_MTD
 
@@ -101,10 +102,10 @@ static int	ramtron_attach(void);
 
 static int	at24xxx_attach(void);
 #endif
-static int	mtd_start(char *partition_names[], unsigned n_partitions);
-static int	mtd_erase(char *partition_names[], unsigned n_partitions);
-static int	mtd_readtest(char *partition_names[], unsigned n_partitions);
-static int	mtd_rwtest(char *partition_names[], unsigned n_partitions);
+static int	mtd_start(const char *partition_names[], unsigned n_partitions);
+static int	mtd_erase(const char *partition_names[], unsigned n_partitions);
+static int	mtd_readtest(const char *partition_names[], unsigned n_partitions);
+static int	mtd_rwtest(const char *partition_names[], unsigned n_partitions);
 static int	mtd_print_info(void);
 static int	mtd_get_geometry(unsigned long *blocksize, unsigned long *erasesize, unsigned long *neraseblocks,
 				 unsigned *blkpererase, unsigned *nblocks, unsigned *partsize, unsigned n_partitions);
@@ -115,7 +116,7 @@ static struct mtd_dev_s *mtd_dev;
 static unsigned n_partitions_current = 0;
 
 /* note, these will be equally sized */
-static char *partition_names_default[] = MTD_PARTITION_TABLE;
+static const char *partition_names_default[] = MTD_PARTITION_TABLE;
 static const int n_partitions_default = arraySize(partition_names_default);
 
 static int
@@ -153,7 +154,7 @@ int mtd_main(int argc, char *argv[])
 
 			/* start mapping according to user request */
 			if (argc >= 3) {
-				return mtd_start(argv + 2, argc - 2);
+				return mtd_start((const char **)(argv + 2), argc - 2);
 
 			} else {
 				return mtd_start(partition_names_default, n_partitions_default);
@@ -162,7 +163,7 @@ int mtd_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "readtest")) {
 			if (argc >= 3) {
-				return mtd_readtest(argv + 2, argc - 2);
+				return mtd_readtest((const char **)(argv + 2), argc - 2);
 
 			} else {
 				return mtd_readtest(partition_names_default, n_partitions_default);
@@ -171,7 +172,7 @@ int mtd_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "rwtest")) {
 			if (argc >= 3) {
-				return mtd_rwtest(argv + 2, argc - 2);
+				return mtd_rwtest((const char **)(argv + 2), argc - 2);
 
 			} else {
 				return mtd_rwtest(partition_names_default, n_partitions_default);
@@ -184,7 +185,7 @@ int mtd_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "erase")) {
 			if (argc >= 3) {
-				return mtd_erase(argv + 2, argc - 2);
+				return mtd_erase((const char **)(argv + 2), argc - 2);
 
 			} else {
 				return mtd_erase(partition_names_default, n_partitions_default);
@@ -205,9 +206,9 @@ static int
 ramtron_attach(void)
 {
 	/* initialize the right spi */
-	struct spi_dev_s *spi = px4_spibus_initialize(PX4_SPI_BUS_RAMTRON);
+	struct spi_dev_s *spi = px4_spibus_initialize(px4_find_spi_bus(SPIDEV_FLASH(0)));
 
-	if (spi == NULL) {
+	if (spi == nullptr) {
 		PX4_ERR("failed to locate spi bus");
 		return 1;
 	}
@@ -234,7 +235,7 @@ ramtron_attach(void)
 	}
 
 	/* if last attempt is still unsuccessful, abort */
-	if (mtd_dev == NULL) {
+	if (mtd_dev == nullptr) {
 		PX4_ERR("failed to initialize mtd driver");
 		return 1;
 	}
@@ -259,7 +260,7 @@ at24xxx_attach(void)
 	/* find the right I2C */
 	struct i2c_master_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_MTD);
 
-	if (i2c == NULL) {
+	if (i2c == nullptr) {
 		PX4_ERR("failed to locate I2C bus");
 		return 1;
 	}
@@ -279,7 +280,7 @@ at24xxx_attach(void)
 	}
 
 	/* if last attempt is still unsuccessful, abort */
-	if (mtd_dev == NULL) {
+	if (mtd_dev == nullptr) {
 		PX4_ERR("failed to initialize EEPROM driver");
 		return 1;
 	}
@@ -290,7 +291,7 @@ at24xxx_attach(void)
 #endif
 
 static int
-mtd_start(char *partition_names[], unsigned n_partitions)
+mtd_start(const char *partition_names[], unsigned n_partitions)
 {
 	int ret;
 
@@ -450,7 +451,7 @@ int mtd_print_info(void)
 }
 
 int
-mtd_erase(char *partition_names[], unsigned n_partitions)
+mtd_erase(const char *partition_names[], unsigned n_partitions)
 {
 	uint8_t v[64];
 	memset(v, 0xFF, sizeof(v));
@@ -482,7 +483,7 @@ mtd_erase(char *partition_names[], unsigned n_partitions)
   bad reads (the ramtron driver does return an error)
  */
 int
-mtd_readtest(char *partition_names[], unsigned n_partitions)
+mtd_readtest(const char *partition_names[], unsigned n_partitions)
 {
 	ssize_t expected_size = mtd_get_partition_size();
 
@@ -525,7 +526,7 @@ mtd_readtest(char *partition_names[], unsigned n_partitions)
   data isn't the same
  */
 int
-mtd_rwtest(char *partition_names[], unsigned n_partitions)
+mtd_rwtest(const char *partition_names[], unsigned n_partitions)
 {
 	ssize_t expected_size = mtd_get_partition_size();
 

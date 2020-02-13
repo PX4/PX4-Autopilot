@@ -45,7 +45,6 @@
 #define DIR_WRITE			(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
-#if defined(PX4_SPIDEV_BARO) || defined(PX4_SPIDEV_EXT_BARO)
 
 class MS5611_SPI : public device::SPI
 {
@@ -98,20 +97,9 @@ private:
 };
 
 device::Device *
-MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
+MS5611_spi_interface(ms5611::prom_u &prom_buf, uint32_t devid, uint8_t busnum)
 {
-#ifdef PX4_SPI_BUS_EXT
-
-	if (busnum == PX4_SPI_BUS_EXT) {
-#ifdef PX4_SPIDEV_EXT_BARO
-		return new MS5611_SPI(busnum, PX4_SPIDEV_EXT_BARO, prom_buf);
-#else
-		return nullptr;
-#endif
-	}
-
-#endif
-	return new MS5611_SPI(busnum, PX4_SPIDEV_BARO, prom_buf);
+	return new MS5611_SPI(busnum, devid, prom_buf);
 }
 
 MS5611_SPI::MS5611_SPI(uint8_t bus, uint32_t device, ms5611::prom_u &prom_buf) :
@@ -272,4 +260,3 @@ MS5611_SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	return transfer(send, recv, len);
 }
 
-#endif /* PX4_SPIDEV_BARO || PX4_SPIDEV_EXT_BARO */

@@ -33,6 +33,7 @@
 
 #include "BMI055_accel.hpp"
 #include "BMI055_gyro.hpp"
+#include <px4_platform_common/spi.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int bmi055_main(int argc, char *argv[]); }
@@ -73,6 +74,34 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 	BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
 	const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
 
+	int bus = -1;
+	uint32_t devid;
+
+	if (external_bus) {
+		// expect the device on the 1. external bus and use 1. CS signal
+		int cs_index = 1;
+		SPIBusIterator bus_iterator(SPIBusIterator::FilterType::ExternalBus, cs_index, 1);
+
+		if (bus_iterator.next()) {
+			bus = bus_iterator.bus().bus;
+			devid = bus_iterator.devid();
+		}
+
+	} else {
+		// Find the device on the internal buses
+		SPIBusIterator bus_iterator(SPIBusIterator::FilterType::InternalBus,
+					    sensor == BMI055_ACCEL ? DRV_ACC_DEVTYPE_BMI055 : DRV_GYR_DEVTYPE_BMI055);
+
+		if (bus_iterator.next()) {
+			bus = bus_iterator.bus().bus;
+			devid = bus_iterator.devid();
+		}
+	}
+
+	if (bus == -1) {
+		errx(0, "No device available");
+	}
+
 	if (sensor == BMI055_ACCEL) {
 		if (*g_dev_acc_ptr != nullptr)
 			/* if already started, the still command succeeded */
@@ -80,17 +109,7 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 			errx(0, "bmi055 accel sensor already started");
 		}
 
-		/* create the driver */
-		if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_EXT, path_accel, PX4_SPIDEV_EXT_BMI, rotation);
-#else
-			errx(0, "External SPI not available");
-#endif
-
-		} else {
-			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_SENSORS, path_accel, PX4_SPIDEV_BMI055_ACC, rotation);
-		}
+		*g_dev_acc_ptr = new BMI055_accel(bus, path_accel, devid, rotation);
 
 		if (*g_dev_acc_ptr == nullptr) {
 			goto fail_accel;
@@ -110,17 +129,7 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 			errx(0, "bmi055 gyro sensor already started");
 		}
 
-		/* create the driver */
-		if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-			*g_dev_ptr = new BMI055_gyro(PX4_SPI_BUS_EXT, path_gyro, PX4_SPIDEV_EXT_BMI, rotation);
-#else
-			errx(0, "External SPI not available");
-#endif
-
-		} else {
-			*g_dev_gyr_ptr = new BMI055_gyro(PX4_SPI_BUS_SENSORS, path_gyro, PX4_SPIDEV_BMI055_GYR, rotation);
-		}
+		*g_dev_gyr_ptr = new BMI055_gyro(bus, path_gyro, devid, rotation);
 
 		if (*g_dev_gyr_ptr == nullptr) {
 			goto fail_gyro;

@@ -43,6 +43,7 @@
 #include "../CDev.hpp"
 
 #include <nuttx/spi/spi.h>
+#include <px4_platform_common/spi.h>
 
 namespace device __EXPORT
 {

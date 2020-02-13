@@ -17,34 +17,33 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 	DRIVERS
 		adc
-		barometer # all available barometer drivers
-		batt_smbus
+		barometer/ms5611 # all available barometer drivers
+		#batt_smbus
 		camera_capture
 		camera_trigger
-		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		#differential_pressure # all available differential pressure drivers
+		#distance_sensor # all available distance sensor drivers
 		dshot
 		gps
 		#heater
 		#imu # all available imu drivers
-		imu/adis16448
-		imu/adis16477
-		imu/adis16497
+		#imu/adis16448
+		#imu/adis16477
+		#imu/adis16497
 		imu/bmi055
-		imu/invensense/icm20602
-		imu/invensense/icm20689
 		imu/mpu6000
-		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
-		lights/rgbled_pwm
-		magnetometer # all available magnetometer drivers
+		#irlock
+		#lights/blinkm
+		#lights/rgbled
+		#lights/rgbled_ncp5623c
+		#lights/rgbled_pwm
+		magnetometer/ist8310 # all available magnetometer drivers
 		mkblctrl
-		optical_flow # all available optical flow drivers
+		#optical_flow # all available optical flow drivers
+		optical_flow/pmw3901
 		#osd
-		pca9685
-		power_monitor/ina226
+		#pca9685
+		#power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
@@ -52,10 +51,10 @@ px4_add_board(
 		px4io
 		rc_input
 		roboclaw
-		rpm
+		#rpm
 		safety_button
 		tap_esc
-		telemetry # all available telemetry drivers
+		#telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
 		uavcan
@@ -109,7 +108,7 @@ px4_add_board(
 		reflect
 		sd_bench
 		shutdown
-		tests # tests and test runner
+		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control

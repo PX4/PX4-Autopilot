@@ -18,7 +18,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
-		imu/mpu9250
+		#imu/mpu9250
 		imu/st/lsm9ds1
 		linux_pwm_out
 		#magnetometer # all available magnetometer drivers

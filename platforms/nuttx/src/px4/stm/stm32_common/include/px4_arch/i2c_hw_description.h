@@ -1,20 +1,20 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -31,25 +31,25 @@
  *
  ****************************************************************************/
 
-/**
- * @file px4fmu_i2c.c
- *
- * Board-specific I2C functions.
- */
+#pragma once
 
-#include "board_config.h"
+#include <px4_arch/hw_description.h>
+#include <px4_platform_common/i2c.h>
 
-__EXPORT bool px4_i2c_bus_external(int bus)
+
+static inline constexpr px4_i2c_bus_t initI2CBusInternal(int bus)
 {
-	if (HW_VER_FMUV3 == board_get_hw_version()) {
-		/* All FMUV3 2.1 i2c buses are external */
-		return true;
-
-	} else {
-		if (bus != PX4_I2C_BUS_ONBOARD) {
-			return true;
-		}
-	}
-
-	return false;
+	px4_i2c_bus_t ret{};
+	ret.bus = bus;
+	ret.is_external = false;
+	return ret;
 }
+
+static inline constexpr px4_i2c_bus_t initI2CBusExternal(int bus)
+{
+	px4_i2c_bus_t ret{};
+	ret.bus = bus;
+	ret.is_external = true;
+	return ret;
+}
+

@@ -39,8 +39,10 @@
  */
 constexpr uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 
-MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_type) :
+MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_type, I2CSPIBusOption bus_option,
+		 int bus) :
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+	I2CSPIInstance(bus_option, bus),
 	_interface(interface),
 	_device_type(device_type),
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
@@ -379,7 +381,7 @@ MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
   about 200ms and will return OK if the current values are within 14%
   of the expected values (as per datasheet)
  */
-int
+void
 MPU6000::factory_self_test()
 {
 	_in_factory_test = true;
@@ -515,7 +517,6 @@ MPU6000::factory_self_test()
 		::printf("PASSED\n");
 	}
 
-	return ret;
 }
 #endif
 

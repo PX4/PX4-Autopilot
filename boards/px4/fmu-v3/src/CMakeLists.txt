@@ -33,10 +33,10 @@
 
 add_library(drivers_board
 	can.c
-	i2c.c
+	i2c.cpp
 	init.c
 	led.c
-	spi.c
+	spi.cpp
 	timer_config.cpp
 	usb.c
 	manifest.c

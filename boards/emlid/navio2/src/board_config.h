@@ -58,11 +58,11 @@
 
 
 // SPI
-#define PX4_SPI_BUS_SENSORS    0
-#define PX4_SPIDEV_UBLOX       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0) // spidev0.0 - ublox m8n
-#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1) // spidev0.1 - mpu9250
-#define PX4_SPIDEV_LSM9DS1_M   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2) // spidev0.2 - lsm9ds1 mag
-#define PX4_SPIDEV_LSM9DS1_AG  PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3) // spidev0.3 - lsm9ds1 accel/gyro
+//#define PX4_SPI_BUS_SENSORS    0
+//#define PX4_SPIDEV_UBLOX       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0) // spidev0.0 - ublox m8n
+//#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1) // spidev0.1 - mpu9250
+//#define PX4_SPIDEV_LSM9DS1_M   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2) // spidev0.2 - lsm9ds1 mag
+//#define PX4_SPIDEV_LSM9DS1_AG  PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3) // spidev0.3 - lsm9ds1 accel/gyro
 
 
 // ADC channels:

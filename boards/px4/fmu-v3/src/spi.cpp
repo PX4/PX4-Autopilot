@@ -31,6 +31,42 @@
  *
  ****************************************************************************/
 
+#include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
+#include <drivers/drv_sensor.h>
+
+constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+	initSPIBus(1, {
+		// Cube 2.0
+		initSPIDevice(DRV_GYR_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2}),
+
+		// Cube 2.1
+		initSPIDevice(DRV_GYR_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}),
+		initSPIDevice(DRV_MAG_DEVTYPE_HMC5883, SPI::CS{GPIO::PortC, GPIO::Pin1}), // HMC5983
+
+		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+		initSPIDevice(DRV_GYR_DEVTYPE_ICM20608, SPI::CS{GPIO::PortC, GPIO::Pin15}),
+
+		// TODO: l3dg20 (gyro), lsm303d (mag+accel), ...
+	}, true),
+	initSPIBus(2, {
+		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+	}),
+	initSPIBusExternal(4, {
+		SPI::CS{GPIO::PortC, GPIO::Pin13},
+		SPI::CS{GPIO::PortC, GPIO::Pin14},
+		SPI::CS{GPIO::PortC, GPIO::Pin15},
+		SPI::CS{GPIO::PortE, GPIO::Pin4},
+	}),
+};
+static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+
+
+static const px4_spi_bus_t *_spi_bus1;
+static const px4_spi_bus_t *_spi_bus2;
+static const px4_spi_bus_t *_spi_bus4;
+
+
 /**
  * @file px4fmu_spi.c
  *
@@ -123,6 +159,16 @@ static void stm32_spi4_initialize(void)
 
 __EXPORT void stm32_spiinitialize(void)
 {
+	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+		switch (px4_spi_buses[i].bus) {
+		case 1: _spi_bus1 = &px4_spi_buses[i]; break;
+
+		case 2: _spi_bus2 = &px4_spi_buses[i]; break;
+
+		case 4: _spi_bus4 = &px4_spi_buses[i]; break;
+		}
+	}
+
 #ifdef CONFIG_STM32_SPI1
 	stm32_spi1_initialize();
 #endif
@@ -137,6 +183,31 @@ __EXPORT void stm32_spiinitialize(void)
 }
 
 #ifdef CONFIG_STM32_SPI1
+
+static void spi1_gpiowrite(uint32_t pinset, bool value)
+{
+	uint32_t pinport = pinset & (GPIO_PORT_MASK | GPIO_PIN_MASK);
+
+	if (pinport == (GPIO_PORTC | GPIO_PIN13)) {
+		if (HW_VER_FMUV2 == board_get_hw_version()) {
+			stm32_gpiowrite(pinset, value);
+		}
+
+	} else if (pinport == (GPIO_PORTC | GPIO_PIN15)) {
+		if (HW_VER_FMUV3 != board_get_hw_version()) {
+			stm32_gpiowrite(pinset, value);
+		}
+
+	} else if (pinport == (GPIO_PORTC | GPIO_PIN1)) {
+		if (HW_VER_FMUV3 == board_get_hw_version()) {
+			stm32_gpiowrite(pinset, value);
+		}
+
+	} else {
+		stm32_gpiowrite(pinset, value);
+	}
+}
+
 __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
@@ -145,109 +216,27 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool s
 	 * driver  X   X   X                                               X       X   X
 	 * local               -   -   -  V3   a   V2   -   V2M   a    -       -
 	 */
+	int matched_dev_idx = -1;
+	const px4_spi_bus_t *bus = _spi_bus1;
 
-	switch (devid) {
-	case PX4_SPIDEV_GYRO:
-
-		/* Making sure the other peripherals are not selected */
-		if (HW_VER_FMUV2 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC13, !selected);
+	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
+		if (bus->devices[i].cs_gpio == 0) {
+			break;
 		}
 
-		if (HW_VER_FMUV3 != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC15, 1);
+		if (devid == bus->devices[i].devid) {
+			matched_dev_idx = i;
+
+		} else {
+			// Making sure the other peripherals are not selected
+			spi1_gpiowrite(bus->devices[i].cs_gpio, 1);
 		}
+	}
 
-		stm32_gpiowrite(GPIO_SPI1_CS_PD7, 1);
-		stm32_gpiowrite(GPIO_SPI1_CS_PC2, 1);
-
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC1, 1);
-		}
-
-		break;
-
-	case PX4_SPIDEV_ICM_20608:
-	case PX4_SPIDEV_ACCEL_MAG:
-
-		/* Making sure the other peripherals are not selected */
-		if (HW_VER_FMUV2 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC13, 1);
-		}
-
-		if (HW_VER_FMUV3 != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC15, !selected);
-		}
-
-		stm32_gpiowrite(GPIO_SPI1_CS_PD7, 1);
-		stm32_gpiowrite(GPIO_SPI1_CS_PC2, 1);
-
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC1, 1);
-		}
-
-		break;
-
-	case PX4_SPIDEV_BARO:
-
-		/* Making sure the other peripherals are not selected */
-		if (HW_VER_FMUV2 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC13, 1);
-		}
-
-		if (HW_VER_FMUV3 != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC15, 1);
-		}
-
-		stm32_gpiowrite(GPIO_SPI1_CS_PD7, !selected);
-		stm32_gpiowrite(GPIO_SPI1_CS_PC2, 1);
-
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC1, 1);
-		}
-
-		break;
-
-	case PX4_SPIDEV_MPU:
-
-		/* Making sure the other peripherals are not selected */
-		if (HW_VER_FMUV2 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC13, 1);
-		}
-
-		if (HW_VER_FMUV3 != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC15, 1);
-		}
-
-		stm32_gpiowrite(GPIO_SPI1_CS_PD7, 1);
-		stm32_gpiowrite(GPIO_SPI1_CS_PC2, !selected);
-
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC1, 1);
-		}
-
-		break;
-
-	case PX4_SPIDEV_HMC:
-		if (HW_VER_FMUV2 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC13, 1);
-		}
-
-		if (HW_VER_FMUV3 != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC15, 1);
-		}
-
-		stm32_gpiowrite(GPIO_SPI1_CS_PD7, 1);
-		stm32_gpiowrite(GPIO_SPI1_CS_PC2, 1);
-
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI1_CS_PC1, !selected);
-		}
-
-		break;
-
-	default:
-		break;
+	// different devices might use the same CS, so make sure to configure the one we want last
+	if (matched_dev_idx != -1) {
+		// SPI select is active low, so write !selected to select the device
+		spi1_gpiowrite(bus->devices[matched_dev_idx].cs_gpio, !selected);
 	}
 }
 
@@ -273,6 +262,24 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 
 
 #ifdef CONFIG_STM32_SPI4
+static void spi4_gpiowrite(uint32_t pinset, bool value)
+{
+	uint32_t pinport = pinset & (GPIO_PORT_MASK | GPIO_PIN_MASK);
+
+	if (pinport == (GPIO_PORTC | GPIO_PIN14)) {
+		if (HW_VER_FMUV2MINI != board_get_hw_version()) {
+			stm32_gpiowrite(pinset, value);
+		}
+
+	} else if (pinport == (GPIO_PORTC | GPIO_PIN13) || pinport == (GPIO_PORTC | GPIO_PIN15)) {
+		if (HW_VER_FMUV3 == board_get_hw_version()) {
+			stm32_gpiowrite(pinset, value);
+		}
+
+	} else {
+		stm32_gpiowrite(pinset, value);
+	}
+}
 __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 	/* SPI select is active low, so write !selected to select the device */
@@ -282,72 +289,27 @@ __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool s
 	 * local               -   -   -  -    -   V3  !V2M  V3   -   -        a
 	 */
 
-	switch (devid) {
-	case PX4_SPIDEV_EXT_MPU:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI4_NSS_PE4, !selected);
+	int matched_dev_idx = -1;
+	const px4_spi_bus_t *bus = _spi_bus4;
 
-		if (HW_VER_FMUV2MINI != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI4_GPIO_PC14, 1);
+	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
+		if (bus->devices[i].cs_gpio == 0) {
+			break;
 		}
 
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI4_CS_PC15, 1);
-			stm32_gpiowrite(GPIO_SPI4_CS_PC13, 1);
+		if (devid == bus->devices[i].devid) {
+			matched_dev_idx = i;
+
+		} else {
+			// Making sure the other peripherals are not selected
+			spi4_gpiowrite(bus->devices[i].cs_gpio, 1);
 		}
+	}
 
-		break;
-
-	case PX4_SPIDEV_EXT_BARO:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI4_NSS_PE4, 1);
-
-		if (HW_VER_FMUV2MINI != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI4_GPIO_PC14, !selected);
-		}
-
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI4_CS_PC15, 1);
-			stm32_gpiowrite(GPIO_SPI4_CS_PC13, 1);
-		}
-
-		break;
-
-	case PX4_SPIDEV_ICM_20608:
-	case PX4_SPIDEV_EXT_ACCEL_MAG:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI4_NSS_PE4, 1);
-
-		if (HW_VER_FMUV2MINI != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI4_GPIO_PC14, 1);
-		}
-
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI4_CS_PC15, !selected);
-			stm32_gpiowrite(GPIO_SPI4_CS_PC13, 1);
-		}
-
-		break;
-
-	case PX4_SPIDEV_EXT_BMI:
-	case PX4_SPIDEV_EXT_GYRO:
-		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI4_NSS_PE4, 1);
-
-		if (HW_VER_FMUV2MINI != board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI4_GPIO_PC14, 1);
-		}
-
-		if (HW_VER_FMUV3 == board_get_hw_version()) {
-			stm32_gpiowrite(GPIO_SPI4_CS_PC15, 1);
-			stm32_gpiowrite(GPIO_SPI4_CS_PC13, !selected);
-		}
-
-		break;
-
-	default:
-		break;
-
+	// different devices might use the same CS, so make sure to configure the one we want last
+	if (matched_dev_idx != -1) {
+		// SPI select is active low, so write !selected to select the device
+		spi4_gpiowrite(bus->devices[matched_dev_idx].cs_gpio, !selected);
 	}
 }
 __EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, uint32_t devid)
@@ -445,14 +407,16 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_spi1_initialize();
 }
 
-__EXPORT bool px4_spi_bus_external(int bus)
+#include <px4_platform_common/spi.h>
+
+bool px4_spi_bus_external(const px4_spi_bus_t &bus)
 {
 	if (HW_VER_FMUV3 == board_get_hw_version()) {
 		/* all FMUv3 2.1 spi buses are internal */
 		return false;
 
 	} else {
-		if (bus == PX4_SPI_BUS_EXT) {
+		if (bus.bus == 4) {
 			return true;
 		}
 	}

@@ -34,6 +34,7 @@
 #include "LSM9DS1_MAG.hpp"
 
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/spi.h>
 
 namespace lsm9ds1_mag
 {
@@ -48,9 +49,11 @@ static int start(enum Rotation rotation)
 	}
 
 	// create the driver
-#if defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_LSM9DS1_M)
-	g_dev = new LSM9DS1_MAG(PX4_SPI_BUS_SENSORS, PX4_SPIDEV_LSM9DS1_M, rotation);
-#endif // PX4_SPI_BUS_SENSORS && PX4_SPIDEV_LSM9DS1_M
+	SPIBusIterator bus_iterator(SPIBusIterator::FilterType::InternalBus, DRV_MAG_DEVTYPE_ST_LSM9DS1_M);
+
+	if (bus_iterator.next()) {
+		g_dev = new LSM9DS1_MAG(bus_iterator.bus().bus, bus_iterator.devid(), rotation);
+	}
 
 	if (g_dev == nullptr) {
 		PX4_ERR("driver start failed");

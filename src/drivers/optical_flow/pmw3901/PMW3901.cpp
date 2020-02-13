@@ -35,8 +35,8 @@
 
 static constexpr uint32_t TIME_us_TSWW = 11; //  - actually 10.5us
 
-PMW3901::PMW3901(int bus, enum Rotation yaw_rotation) :
-	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
+PMW3901::PMW3901(int bus, int devid, enum Rotation yaw_rotation) :
+	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, devid, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901: read")),
 	_comms_errors(perf_alloc(PC_COUNT, "pmw3901: com err")),

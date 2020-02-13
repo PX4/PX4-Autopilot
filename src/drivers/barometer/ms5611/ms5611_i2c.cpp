@@ -85,7 +85,7 @@ private:
 };
 
 device::Device *
-MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
+MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint32_t devid, uint8_t busnum)
 {
 	return new MS5611_I2C(busnum, prom_buf);
 }

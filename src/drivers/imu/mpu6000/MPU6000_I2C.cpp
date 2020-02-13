@@ -43,7 +43,7 @@
 
 #ifdef USE_I2C
 
-device::Device *MPU6000_I2C_interface(int bus, int device_type, bool external_bus);
+device::Device *MPU6000_I2C_interface(int bus, uint32_t devid, int device_type, bool external_bus);
 
 class MPU6000_I2C : public device::I2C
 {
@@ -64,7 +64,7 @@ private:
 
 
 device::Device *
-MPU6000_I2C_interface(int bus, int device_type, bool external_bus)
+MPU6000_I2C_interface(int bus, uint32_t devid, int device_type, bool external_bus)
 {
 	return new MPU6000_I2C(bus, device_type);
 }
@@ -112,4 +112,12 @@ MPU6000_I2C::probe()
 	return (read(MPUREG_WHOAMI, &whoami, 1) > 0 && (whoami == expected)) ? 0 : -EIO;
 
 }
+#else
+
+device::Device *
+MPU6000_I2C_interface(int bus, uint32_t devid, int device_type, bool external_bus)
+{
+	return nullptr;
+}
+
 #endif /* USE_I2C */

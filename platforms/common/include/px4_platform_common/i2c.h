@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,66 +31,70 @@
  *
  ****************************************************************************/
 
-/**
- * @file ms5611.h
- *
- * Shared defines for the ms5611 driver.
- */
-
 #pragma once
 
-#include <string.h>
+#include <board_config.h>
 
-#include <drivers/device/i2c.h>
-#include <drivers/device/device.h>
-#include <drivers/device/spi.h>
-#include <lib/cdev/CDev.hpp>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/err.h>
-#include <uORB/uORB.h>
+#define I2C_BUS_MAX_BUS_ITEMS PX4_NUMBER_I2C_BUSES
 
-#include "board_config.h"
+struct px4_i2c_bus_t {
+	int bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
+	bool is_external; ///< static external configuration. Use px4_i2c_bus_external() to check if a bus is really external
+};
 
-#define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
-#define ADDR_PROM_SETUP			0xA0	/* address of 8x 2 bytes factory and calibration data */
+__EXPORT extern const px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS]; ///< board-specific I2C bus configuration
 
-/* interface ioctls */
-#define IOCTL_RESET			2
-#define IOCTL_MEASURE			3
+/**
+ * runtime-check if a board has a specific bus as external.
+ * This can be overridden by a board to add run-time checks.
+ */
+__EXPORT bool px4_i2c_bus_external(const px4_i2c_bus_t &bus);
 
-namespace ms5611
+/**
+ * runtime-check if a board has a specific bus as external.
+ */
+static inline bool px4_i2c_bus_external(int bus)
 {
+	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
+		if (px4_i2c_buses[i].bus == bus) {
+			return px4_i2c_bus_external(px4_i2c_buses[i]);
+		}
+	}
+
+	return true;
+}
+
 
 /**
- * Calibration PROM as reported by the device.
+ * @class I2CBusIterator
+ * Iterate over configured I2C buses by the board
  */
-#pragma pack(push,1)
-struct prom_s {
-	uint16_t factory_setup;
-	uint16_t c1_pressure_sens;
-	uint16_t c2_pressure_offset;
-	uint16_t c3_temp_coeff_pres_sens;
-	uint16_t c4_temp_coeff_pres_offset;
-	uint16_t c5_reference_temp;
-	uint16_t c6_temp_coeff_temp;
-	uint16_t serial_and_crc;
+class I2CBusIterator
+{
+public:
+	enum class FilterType {
+		All, ///< specific or all buses
+		InternalBus, ///< specific or all internal buses
+		ExternalBus, ///< specific or all external buses
+	};
+
+	/**
+	 * @param bus specify bus: starts with 1, -1=all. Internal: arch-specific bus numbering is used,
+	 *             external: n-th external bus
+	 */
+	I2CBusIterator(FilterType filter, int bus = -1)
+		: _filter(filter), _bus(bus) {}
+
+	bool next();
+
+	const px4_i2c_bus_t &bus() const { return px4_i2c_buses[_index]; }
+
+	bool external() const { return px4_i2c_bus_external(bus()); }
+
+private:
+	const FilterType _filter;
+	const int _bus;
+	int _index{-1};
+	int _external_bus_counter{0};
 };
 
-/**
- * Grody hack for crc4()
- */
-union prom_u {
-	uint16_t c[8];
-	prom_s s;
-};
-#pragma pack(pop)
-
-extern bool crc4(uint16_t *n_prom);
-
-} /* namespace */
-
-/* interface factories */
-extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, uint32_t devid, uint8_t busnum);
-extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint32_t devid, uint8_t busnum);
-
-typedef device::Device *(*MS5611_constructor)(ms5611::prom_u &prom_buf, uint32_t devid, uint8_t busnum);

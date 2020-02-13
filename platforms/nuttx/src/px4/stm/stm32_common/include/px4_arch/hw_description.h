@@ -167,7 +167,8 @@ static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 namespace GPIO
 {
 enum Port {
-	PortA = 0,
+	PortInvalid = 0,
+	PortA,
 	PortB,
 	PortC,
 	PortD,
@@ -274,4 +275,17 @@ static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
 
 	return 0;
 }
+
+namespace SPI
+{
+
+using CS = GPIO::GPIOPin; ///< chip-select pin
+using DRDY = GPIO::GPIOPin; ///< data ready pin
+
+struct bus_device_external_cfg_t {
+	CS cs_gpio;
+	DRDY drdy_gpio;
+};
+
+} // namespace SPI
 

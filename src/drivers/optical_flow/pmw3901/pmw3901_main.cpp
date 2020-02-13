@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "PMW3901.hpp"
+#include <px4_platform_common/spi.h>
 
 /*
  * Driver 'main' command.
@@ -46,7 +47,7 @@ namespace pmw3901
 
 PMW3901	*g_dev;
 
-void	start(int spi_bus);
+void	start(int external_spi_bus, int cs_index);
 void	stop();
 void	test();
 void	reset();
@@ -57,14 +58,21 @@ void	usage();
  * Start the driver.
  */
 void
-start(int spi_bus)
+start(int external_spi_bus, int cs_index)
 {
 	if (g_dev != nullptr) {
 		errx(1, "already started");
 	}
 
-	/* create the driver */
-	g_dev = new PMW3901(spi_bus, (enum Rotation)0);
+	// expect the device on the n-th external bus
+	SPIBusIterator bus_iterator(SPIBusIterator::FilterType::ExternalBus, cs_index, external_spi_bus);
+
+	if (bus_iterator.next()) {
+		g_dev = new PMW3901(bus_iterator.bus().bus, bus_iterator.devid(), (enum Rotation)0);
+
+	} else {
+		PX4_ERR("No external SPI bus");
+	}
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -124,7 +132,8 @@ info()
 void usage()
 {
 	PX4_INFO("usage: pmw3901 {start|test|reset|info'}");
-	PX4_INFO("    [-b SPI_BUS]");
+	PX4_INFO("    [-b SPI_BUS] Use n-th external bus (default=1)");
+	PX4_INFO("    [-c cs] chip-select signal (default=1)");
 }
 
 } // namespace pmw3901
@@ -138,19 +147,21 @@ pmw3901_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	// don't exit from getopt loop to leave getopt global variables in consistent state,
-	// set error flag instead
 	bool err_flag = false;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
-	int spi_bus = PMW3901_BUS;
+	int external_spi_bus = 1;
+	int chipselect_index = 1;
 
-	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:c:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
-			spi_bus = (uint8_t)atoi(myoptarg);
+			external_spi_bus = (uint8_t)atoi(myoptarg);
+			break;
 
+		case 'c':
+			chipselect_index = (uint8_t)atoi(myoptarg);
 			break;
 
 		default:
@@ -168,7 +179,7 @@ pmw3901_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		pmw3901::start(spi_bus);
+		pmw3901::start(external_spi_bus, chipselect_index);
 	}
 
 	/*

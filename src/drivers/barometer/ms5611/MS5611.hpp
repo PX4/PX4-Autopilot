@@ -36,6 +36,7 @@
 #include <drivers/device/device.h>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
@@ -84,10 +85,11 @@ enum MS56XX_DEVICE_TYPES {
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
-class MS5611 : public px4::ScheduledWorkItem
+class MS5611 : public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type,
+	       I2CSPIBusOption bus_option, int bus);
 	~MS5611() override;
 
 	int		init();

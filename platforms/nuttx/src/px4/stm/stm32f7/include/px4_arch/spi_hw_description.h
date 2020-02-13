@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +32,56 @@
  ****************************************************************************/
 #pragma once
 
-#ifdef __PX4_NUTTX
-#include "nuttx/I2C.hpp"
-#elif __PX4_QURT
-#include "qurt/I2C.hpp"
-#else
-#include "posix/I2C.hpp"
-#endif
+#include "../../../stm32_common/include/px4_arch/spi_hw_description.h"
 
-#include <board_config.h>
+constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS])
+{
+	const bool nuttx_enabled_spi_buses[] = {
+#ifdef CONFIG_STM32F7_SPI1
+		true,
+#else
+		false,
+#endif
+#ifdef CONFIG_STM32F7_SPI2
+		true,
+#else
+		false,
+#endif
+#ifdef CONFIG_STM32F7_SPI3
+		true,
+#else
+		false,
+#endif
+#ifdef CONFIG_STM32F7_SPI4
+		true,
+#else
+		false,
+#endif
+#ifdef CONFIG_STM32F7_SPI5
+		true,
+#else
+		false,
+#endif
+#ifdef CONFIG_STM32F7_SPI6
+		true,
+#else
+		false,
+#endif
+	};
+
+	for (unsigned i = 0; i < sizeof(nuttx_enabled_spi_buses) / sizeof(nuttx_enabled_spi_buses[0]); ++i) {
+		bool found_bus = false;
+
+		for (int j = 0; j < SPI_BUS_MAX_BUS_ITEMS; ++j) {
+			if (spi_busses_conf[j].bus == (int)i + 1) {
+				found_bus = true;
+			}
+		}
+
+		// Either the bus is enabled in NuttX and configured in spi_busses_conf, or disabled and not configured
+		constexpr_assert(found_bus == nuttx_enabled_spi_buses[i], "SPI bus config mismatch (CONFIG_STM32F7_SPIx)");
+	}
+
+	return false;
+}
 

@@ -43,6 +43,8 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -76,7 +78,6 @@
 #include <float.h>
 #include <lib/conversion/rotation.h>
 
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 /*
  * IST8310 internal constants and data structures.
@@ -174,19 +175,10 @@ static const int16_t IST8310_MIN_VAL_Z  = -IST8310_MAX_VAL_Z;
 #define ADDR_TEMPL              0x1c
 #define ADDR_TEMPH              0x1d
 
-enum IST8310_BUS {
-	IST8310_BUS_ALL           = 0,
-	IST8310_BUS_I2C_EXTERNAL  = 1,
-	IST8310_BUS_I2C_EXTERNAL1 = 2,
-	IST8310_BUS_I2C_EXTERNAL2 = 3,
-	IST8310_BUS_I2C_EXTERNAL3 = 4,
-	IST8310_BUS_I2C_INTERNAL  = 5,
-};
-
-class IST8310 : public device::I2C, public px4::ScheduledWorkItem
+class IST8310 : public device::I2C, public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
-	IST8310(int bus_number, int address, const char *path, enum Rotation rotation);
+	IST8310(I2CSPIBusOption bus_option, int bus_number, int address, enum Rotation rotation);
 	virtual ~IST8310();
 
 	virtual int     init();
@@ -199,12 +191,30 @@ public:
 	 */
 	void            print_info();
 
+	/**
+	 * Initialise the automatic measurement state machine and start it.
+	 *
+	 * @note This function is called at open and error time.  It might make sense
+	 *       to make it more aggressive about resetting the bus in case of errors.
+	 */
+	void		start();
+
+	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void        stop();
+
+	/**
+	 * Reset the device
+	 */
+	int         reset();
+
 protected:
-	virtual int probe();
+	int probe() override;
 
 private:
 
-	unsigned        _measure_interval{0};
+	unsigned        _measure_interval{IST8310_CONVERSION_INTERVAL};
 
 	ringbuffer::RingBuffer  *_reports{nullptr};
 
@@ -228,24 +238,6 @@ private:
 
 	uint8_t 		_ctl3_reg{0};
 	uint8_t			_ctl4_reg{0};
-
-	/**
-	 * Initialise the automatic measurement state machine and start it.
-	 *
-	 * @note This function is called at open and error time.  It might make sense
-	 *       to make it more aggressive about resetting the bus in case of errors.
-	 */
-	void		start();
-
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void        stop();
-
-	/**
-	 * Reset the device
-	 */
-	int         reset();
 
 	/**
 	 * check the sensor configuration.
@@ -347,9 +339,10 @@ private:
 extern "C" __EXPORT int ist8310_main(int argc, char *argv[]);
 
 
-IST8310::IST8310(int bus_number, int address, const char *path, enum Rotation rotation) :
-	I2C("IST8310", path, bus_number, address, IST8310_DEFAULT_BUS_SPEED),
+IST8310::IST8310(I2CSPIBusOption bus_option, int bus_number, int address, enum Rotation rotation) :
+	I2C("IST8310", nullptr, bus_number, address, IST8310_DEFAULT_BUS_SPEED),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+	I2CSPIInstance(bus_option, bus_number),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ist8310_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ist8310_com_err")),
 	_range_errors(perf_alloc(PC_COUNT, "ist8310_rng_err")),
@@ -938,178 +931,71 @@ IST8310::print_info()
 namespace ist8310
 {
 
-/*
-  list of supported bus configurations
- */
-struct ist8310_bus_option {
-	enum IST8310_BUS busid;
-	const char *devpath;
-	uint8_t busnum;
-	IST8310 *dev;
-} bus_options[] = {
-	{ IST8310_BUS_I2C_EXTERNAL, "/dev/ist8310_ext", PX4_I2C_BUS_EXPANSION, NULL },
-#ifdef PX4_I2C_BUS_EXPANSION1
-	{ IST8310_BUS_I2C_EXTERNAL1, "/dev/ist8311_ext1", PX4_I2C_BUS_EXPANSION1, NULL },
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION2
-	{ IST8310_BUS_I2C_EXTERNAL2, "/dev/ist8312_ext2", PX4_I2C_BUS_EXPANSION2, NULL },
-#endif
-#ifdef PX4_I2C_BUS_ONBOARD
-	{ IST8310_BUS_I2C_INTERNAL, "/dev/ist8310_int", PX4_I2C_BUS_ONBOARD, NULL },
-#endif
-};
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+static const int max_num_instances = 3;
+static I2CSPIInstance *instances[max_num_instances] {};
 
-void    start(enum IST8310_BUS busid, int address, enum Rotation rotation);
-bool    start_bus(struct ist8310_bus_option &bus, int address, enum Rotation rotation);
-struct ist8310_bus_option &find_bus(enum IST8310_BUS busid);
-void    test(enum IST8310_BUS busid);
-void    reset(enum IST8310_BUS busid);
-int info(enum IST8310_BUS busid);
+int    start(BusInstanceIterator &iterator, int address, enum Rotation rotation);
+int    stop(BusInstanceIterator &iterator);
+void    reset(BusInstanceIterator &iterator);
+int status(BusInstanceIterator &iterator);
 void    usage();
 
-/**
- * start driver for a specific bus option
- */
-bool
-start_bus(struct ist8310_bus_option &bus, int address, enum Rotation rotation)
+int
+start(BusInstanceIterator &iterator, int address, enum Rotation rotation)
 {
-	if (bus.dev != nullptr) {
-		errx(1, "bus option already started");
+	if (iterator.configuredBusOption() == I2CSPIBusOption::All) {
+		PX4_ERR("need to specify a bus type");
+		return -1;
 	}
 
-	IST8310 *interface = new IST8310(bus.busnum, address,  bus.devpath, rotation);
-
-	if (interface->init() != OK) {
-		delete interface;
-		PX4_INFO("no device on bus %u", (unsigned)bus.busid);
-		return false;
-	}
-
-	bus.dev = interface;
-
-	int fd = open(bus.devpath, O_RDONLY);
-
-	if (fd < 0) {
-		return false;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		close(fd);
-		errx(1, "Failed to setup poll rate");
-	}
-
-	close(fd);
-
-	return true;
-}
-
-
-/**
- * Start the driver.
- *
- * This function call only returns once the driver
- * is either successfully up and running or failed to start.
- */
-void
-start(enum IST8310_BUS busid, int address, enum Rotation rotation)
-{
 	bool started = false;
 
-	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if (busid == IST8310_BUS_ALL && bus_options[i].dev != NULL) {
-			// this device is already started
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			continue; // already running
+		}
+
+		const int free_index = iterator.nextFreeInstance();
+
+		if (free_index < 0) {
+			PX4_ERR("Not enough instances");
+			return false;
+		}
+
+		IST8310 *interface = new IST8310(iterator.configuredBusOption(), iterator.bus(), address, rotation);
+
+		if (interface == nullptr) {
+			PX4_ERR("failed creating interface for bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
 			continue;
 		}
 
-		if (busid != IST8310_BUS_ALL && bus_options[i].busid != busid) {
-			// not the one that is asked for
+		if (interface->init() != OK) {
+			delete interface;
+			PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
 			continue;
 		}
 
-		started |= start_bus(bus_options[i], address, rotation);
+		interface->start();
+
+		instances[free_index] = interface;
+
+		started = true;
 	}
 
-	if (!started) {
-		exit(1);
-	}
+	return started ? 0 : -1;
 }
 
-/**
- * find a bus structure for a busid
- */
-struct ist8310_bus_option &find_bus(enum IST8310_BUS busid)
+int
+stop(BusInstanceIterator &iterator)
 {
-	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if ((busid == IST8310_BUS_ALL ||
-		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
-			return bus_options[i];
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			delete iterator.instance();
+			iterator.resetInstance();
 		}
 	}
 
-	errx(1, "bus %u not started", (unsigned)busid);
-}
-
-
-/**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-void
-test(enum IST8310_BUS busid)
-{
-	struct ist8310_bus_option &bus = find_bus(busid);
-	sensor_mag_s report {};
-	ssize_t sz;
-	int ret;
-	const char *path = bus.devpath;
-
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed (try 'ist8310 start')", path);
-	}
-
-	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
-
-	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
-	}
-
-	print_message(report);
-
-	/* check if mag is onboard or external */
-	if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0) {
-		errx(1, "failed to get if mag is onboard or external");
-	}
-
-	/* read the sensor 5x and report each value */
-	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
-
-		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
-
-		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
-		}
-
-		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
-
-		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
-		}
-
-		print_message(report);
-	}
-
-	PX4_INFO("PASS");
-	exit(0);
+	return 0;
 }
 
 
@@ -1117,52 +1003,49 @@ test(enum IST8310_BUS busid)
  * Reset the driver.
  */
 void
-reset(enum IST8310_BUS busid)
+reset(BusInstanceIterator &iterator)
 {
-	struct ist8310_bus_option &bus = find_bus(busid);
-	const char *path = bus.devpath;
-
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			IST8310 *instance = (IST8310 *)iterator.instance();
+			instance->reset();
+		}
 	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
-	}
-
-	// Relay on at_)exit to close handel
 	exit(0);
 }
 
 
-
-/**
- * Print a little info about the driver.
- */
 int
-info(enum IST8310_BUS busid)
+status(BusInstanceIterator &iterator)
 {
-	struct ist8310_bus_option &bus = find_bus(busid);
+	bool running = false;
 
-	PX4_INFO("running on bus: %u (%s)\n", (unsigned)bus.busid, bus.devpath);
-	bus.dev->print_info();
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			IST8310 *instance = (IST8310 *)iterator.instance();
+			instance->print_info();
+			running = true;
+		}
+	}
+
+	if (!running) {
+		PX4_INFO("not running");
+	}
+
 	exit(0);
 }
 
 void
 usage()
 {
-	PX4_INFO("missing command: try 'start', 'info', 'test', 'reset'");
+	PX4_INFO("try 'start', 'stop', 'status', 'reset'");
 	PX4_INFO("options:");
+	PX4_INFO("    -X    (i2c external bus)");
+	PX4_INFO("    -I    (i2c internal bus)");
 	PX4_INFO("    -R rotation");
 	PX4_INFO("    -a 12C Address (0x%02x)", IST8310_BUS_I2C_ADDR);
-	PX4_INFO("    -b 12C bus (%d-%d)", IST8310_BUS_I2C_EXTERNAL, IST8310_BUS_I2C_INTERNAL);
+	PX4_INFO("    -b 12C bus (default=all)");
 }
 
 } // namespace
@@ -1170,26 +1053,35 @@ usage()
 int
 ist8310_main(int argc, char *argv[])
 {
-	IST8310_BUS i2c_busid = IST8310_BUS_ALL;
-	int i2c_addr = IST8310_BUS_I2C_ADDR; /* 7bit */
 
-	enum Rotation rotation = ROTATION_NONE;
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "R:a:b:", &myoptind, &myoptarg)) != EOF) {
+	BusCLIArguments cli;
+	enum Rotation rotation = ROTATION_NONE;
+	int i2c_addr = IST8310_BUS_I2C_ADDR; /* 7bit */
+
+	while ((ch = px4_getopt(argc, argv, "XIb:R:a:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'X':
+			cli.bus_option = I2CSPIBusOption::I2CExternal;
+			break;
+
+		case 'I':
+			cli.bus_option = I2CSPIBusOption::I2CInternal;
+			break;
+
+		case 'b':
+			cli.requested_bus = atoi(myoptarg);
+			break;
+
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
 			i2c_addr = (int)strtol(myoptarg, NULL, 0);
-			break;
-
-		case 'b':
-			i2c_busid = (IST8310_BUS)strtol(myoptarg, NULL, 0);
 			break;
 
 		default:
@@ -1205,33 +1097,22 @@ ist8310_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 
-	/*
-	 * Start/load the driver.
-	 */
+	BusInstanceIterator iterator(ist8310::instances, ist8310::max_num_instances, cli, DRV_MAG_DEVTYPE_IST8310);
+
 	if (!strcmp(verb, "start")) {
-		ist8310::start(i2c_busid, i2c_addr, rotation);
-		return 0;
+		return ist8310::start(iterator, i2c_addr, rotation);
 	}
 
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(verb, "test")) {
-		ist8310::test(i2c_busid);
+	if (!strcmp(verb, "stop")) {
+		return ist8310::stop(iterator);
 	}
 
-	/*
-	 * Reset the driver.
-	 */
 	if (!strcmp(verb, "reset")) {
-		ist8310::reset(i2c_busid);
+		ist8310::reset(iterator);
 	}
 
-	/*
-	 * Print driver information.
-	 */
 	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
-		ist8310::info(i2c_busid);
+		ist8310::status(iterator);
 	}
 
 	ist8310::usage();

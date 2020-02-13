@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "MPU6000.hpp"
+#include <px4_platform_common/i2c_spi_buses.h>
 
 /**
  * Local functions in support of the shell command.
@@ -39,186 +40,99 @@
 namespace mpu6000
 {
 
-/*
-  list of supported bus configurations
- */
+static const int max_num_instances = 3;
+static I2CSPIInstance *instances[MPU_DEVICE_TYPE_COUNT][max_num_instances] {};
 
-struct mpu6000_bus_option {
-	enum MPU6000_BUS busid;
-	MPU_DEVICE_TYPE device_type;
-	MPU6000_constructor interface_constructor;
-	uint8_t busnum;
-	bool external;
-	MPU6000	*dev;
-} bus_options[] = {
-#if defined (USE_I2C)
-#	if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_TYPE_MPU6000,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
-#	endif
-#	if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
-#	endif
-#	if defined(PX4_I2C_BUS_EXPANSION1)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION1,  true, NULL },
-#	endif
-#	if defined(PX4_I2C_BUS_EXPANSION2)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION2,  true, NULL },
-#	endif
-#endif
-#ifdef PX4_SPIDEV_MPU
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_MPU6000, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
-#endif
-#if defined(PX4_SPI_BUS_EXT)
-	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
-#endif
-#if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_SENSORS)
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
-#endif
-#if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_SENSORS1)
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS1,  false, NULL },
-#endif
-#if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_1)
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, &MPU6000_SPI_interface, PX4_SPI_BUS_1,  false, NULL },
-#endif
-#ifdef PX4_SPIDEV_ICM_20608
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20608, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
-#endif
-#ifdef PX4_SPIDEV_ICM_20689
-	{ MPU6000_BUS_SPI_INTERNAL2, MPU_DEVICE_TYPE_ICM20689, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
-#endif
-#if defined(PX4_SPI_BUS_EXTERNAL)
-	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
-	{ MPU6000_BUS_SPI_EXTERNAL2, MPU_DEVICE_TYPE_MPU6000, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
-#endif
-};
-
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
-
-
-void	start(enum MPU6000_BUS busid, enum Rotation rotation, int device_type);
-bool 	start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int device_type);
-void	stop(enum MPU6000_BUS busid);
-static struct mpu6000_bus_option &find_bus(enum MPU6000_BUS busid);
-void	reset(enum MPU6000_BUS busid);
-void	info(enum MPU6000_BUS busid);
-void	regdump(enum MPU6000_BUS busid);
-void	testerror(enum MPU6000_BUS busid);
-#ifndef CONSTRAINED_FLASH
-void	factorytest(enum MPU6000_BUS busid);
-#endif
+void	start(BusInstanceIterator &iterator, int instance_type_idx, enum Rotation rotation, int device_type);
+void	stop(BusInstanceIterator &iterator);
+void	reset(BusInstanceIterator &iterator);
+void	call_instances(BusInstanceIterator &iterator, void (MPU6000::*method)());
 void	usage();
 
-/**
- * find a bus structure for a busid
- */
-struct mpu6000_bus_option &find_bus(enum MPU6000_BUS busid)
-{
-	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if ((busid == MPU6000_BUS_ALL ||
-		     busid == bus_options[i].busid) && bus_options[i].dev != NULL) {
-			return bus_options[i];
-		}
-	}
-
-	errx(1, "bus %u not started", (unsigned)busid);
-}
-
-/**
- * start driver for a specific bus option
- */
-bool
-start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int device_type)
-{
-	if (bus.dev != nullptr) {
-		warnx("%s SPI not available", bus.external ? "External" : "Internal");
-		return false;
-	}
-
-	device::Device *interface = bus.interface_constructor(bus.busnum, device_type, bus.external);
-
-	if (interface == nullptr) {
-		warnx("failed creating interface for bus #%u (SPI%u)", (unsigned)bus.busid, (unsigned)bus.busnum);
-		return false;
-	}
-
-	if (interface->init() != OK) {
-		delete interface;
-		warnx("no device on bus #%u (SPI%u)", (unsigned)bus.busid, (unsigned)bus.busnum);
-		return false;
-	}
-
-	bus.dev = new MPU6000(interface, rotation, device_type);
-
-	if (bus.dev == nullptr) {
-		delete interface;
-		return false;
-	}
-
-	if (OK != bus.dev->init()) {
-		goto fail;
-	}
-
-	/* set the poll rate to default, starts automatic data collection */
-
-	bus.dev->start();
-
-	return true;
-
-fail:
-
-	if (bus.dev != nullptr) {
-		delete bus.dev;
-		bus.dev = nullptr;
-	}
-
-	return false;
-}
-
-/**
- * Start the driver.
- *
- * This function only returns if the driver is up and running
- * or failed to detect the sensor.
- */
 void
-start(enum MPU6000_BUS busid, enum Rotation rotation, int device_type)
+start(BusInstanceIterator &iterator, int instance_type_idx, enum Rotation rotation, int device_type)
 {
+	if (iterator.configuredBusOption() == I2CSPIBusOption::All) {
+		PX4_ERR("need to specify a bus type");
+		usage();
+		exit(1);
+	}
+
 	bool started = false;
 
-	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if (busid == MPU6000_BUS_ALL && bus_options[i].dev != NULL) {
-			// this device is already started
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			continue; // already running
+		}
+
+		const int free_index = iterator.nextFreeInstance();
+
+		if (free_index < 0) {
+			PX4_ERR("Not enough instances");
+			return;
+		}
+
+		device::Device *interface = nullptr;
+
+		if (iterator.busType() == BOARD_I2C_BUS) {
+			interface = MPU6000_I2C_interface(iterator.bus(), iterator.devid(), device_type, iterator.external());
+
+		} else if (iterator.busType() == BOARD_SPI_BUS) {
+			interface = MPU6000_SPI_interface(iterator.bus(), iterator.devid(), device_type, iterator.external());
+		}
+
+		if (interface == nullptr) {
+			PX4_ERR("failed creating interface for bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
 			continue;
 		}
 
-		if (busid != MPU6000_BUS_ALL && bus_options[i].busid != busid) {
-			// not the one that is asked for
+		if (interface->init() != OK) {
+			delete interface;
+			PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
 			continue;
 		}
 
-		if (bus_options[i].device_type != device_type) {
-			// not the one that is asked for
+		MPU6000 *dev = new MPU6000(interface, rotation, device_type, iterator.configuredBusOption(), iterator.bus());
+
+		if (dev == nullptr) {
+			delete interface;
 			continue;
 		}
 
-		started |= start_bus(bus_options[i], rotation, device_type);
+		if (OK != dev->init()) {
+			delete dev;
+			continue;
+		}
+
+		instances[instance_type_idx][free_index] = dev;
+		dev->start();
+		started = true;
 	}
 
 	exit(started ? 0 : 1);
 }
 
 void
-stop(enum MPU6000_BUS busid)
+stop(BusInstanceIterator &iterator)
 {
-	struct mpu6000_bus_option &bus = find_bus(busid);
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			delete iterator.instance();
+			iterator.resetInstance();
+		}
+	}
 
-	if (bus.dev != nullptr) {
-		delete bus.dev;
-		bus.dev = nullptr;
+	exit(0);
+}
 
-	} else {
-		/* warn, but not an error */
-		warnx("already stopped.");
+void
+call_instances(BusInstanceIterator &iterator, void (MPU6000::*method)())
+{
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			MPU6000 *instance = (MPU6000 *)iterator.instance();
+			(instance->*method)();
+		}
 	}
 
 	exit(0);
@@ -228,32 +142,14 @@ stop(enum MPU6000_BUS busid)
  * Reset the driver.
  */
 void
-reset(enum MPU6000_BUS busid)
+reset(BusInstanceIterator &iterator)
 {
-	struct mpu6000_bus_option &bus = find_bus(busid);
-
-	if (bus.dev == nullptr) {
-		errx(1, "driver not running");
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			MPU6000 *instance = (MPU6000 *)iterator.instance();
+			instance->reset();
+		}
 	}
-
-	bus.dev->reset();
-
-	exit(0);
-}
-
-/**
- * Print a little info about the driver.
- */
-void
-info(enum MPU6000_BUS busid)
-{
-	struct mpu6000_bus_option &bus = find_bus(busid);
-
-	if (bus.dev == nullptr) {
-		errx(1, "driver not running");
-	}
-
-	bus.dev->print_info();
 
 	exit(0);
 }
@@ -262,81 +158,43 @@ info(enum MPU6000_BUS busid)
  * Dump the register information
  */
 void
-regdump(enum MPU6000_BUS busid)
+regdump(BusInstanceIterator &iterator)
 {
-	struct mpu6000_bus_option &bus = find_bus(busid);
-
-	if (bus.dev == nullptr) {
-		errx(1, "driver not running");
+	while (iterator.next()) {
+		if (iterator.instance()) {
+			MPU6000 *instance = (MPU6000 *)iterator.instance();
+			instance->print_registers();
+		}
 	}
-
-	printf("regdump @ %p\n", bus.dev);
-	bus.dev->print_registers();
 
 	exit(0);
 }
-
-/**
- * deliberately produce an error to test recovery
- */
-void
-testerror(enum MPU6000_BUS busid)
-{
-	struct mpu6000_bus_option &bus = find_bus(busid);
-
-
-	if (bus.dev == nullptr) {
-		errx(1, "driver not running");
-	}
-
-	bus.dev->test_error();
-
-	exit(0);
-}
-
-#ifndef CONSTRAINED_FLASH
-/**
- * Dump the register information
- */
-void
-factorytest(enum MPU6000_BUS busid)
-{
-	struct mpu6000_bus_option &bus = find_bus(busid);
-
-
-	if (bus.dev == nullptr) {
-		errx(1, "driver not running");
-	}
-
-	bus.dev->factory_self_test();
-
-	exit(0);
-}
-#endif
 
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'stop',\n'reset', 'regdump', 'testerror'"
+	PX4_INFO("missing command: try 'start', 'info', 'stop',\n'reset', 'regdump', 'testerror'"
 #ifndef CONSTRAINED_FLASH
-	      ", 'factorytest'"
+		 ", 'factorytest'"
 #endif
-	     );
-	warnx("options:");
-	warnx("    -X external I2C bus");
-	warnx("    -I internal I2C bus");
-	warnx("    -S external SPI bus");
-	warnx("    -s internal SPI bus");
-	warnx("    -Z external1 SPI bus");
-	warnx("    -z internal2 SPI bus");
-	warnx("    -T 6000|20608|20602 (default 6000)");
-	warnx("    -R rotation");
+		);
+	PX4_INFO("options:");
+	PX4_INFO("    -X external I2C bus");
+	PX4_INFO("    -I internal I2C bus");
+	PX4_INFO("    -S external SPI bus");
+	PX4_INFO("    -s internal SPI bus");
+	PX4_INFO("    -c chip-select index (for ext SPI, default=1)");
+	PX4_INFO("    -b specific bus (default=all)");
+	PX4_INFO("    -T 6000|20608|20602 (default 6000)");
+	PX4_INFO("    -R rotation");
 }
 
 } // namespace
 
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu6000_main(int argc, char *argv[]); }
+
+#include <px4_platform_common/spi.h>
 
 int
 mpu6000_main(int argc, char *argv[])
@@ -345,38 +203,38 @@ mpu6000_main(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	enum MPU6000_BUS busid = MPU6000_BUS_ALL;
+	BusCLIArguments cli;
 	int device_type = MPU_DEVICE_TYPE_MPU6000;
 	enum Rotation rotation = ROTATION_NONE;
 
-	while ((ch = px4_getopt(argc, argv, "T:XISsZzR:a:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "T:XISsR:b:c:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
-			busid = MPU6000_BUS_I2C_EXTERNAL;
+			cli.bus_option = I2CSPIBusOption::I2CExternal;
 			break;
 
 		case 'I':
-			busid = MPU6000_BUS_I2C_INTERNAL;
+			cli.bus_option = I2CSPIBusOption::I2CInternal;
 			break;
 
 		case 'S':
-			busid = MPU6000_BUS_SPI_EXTERNAL1;
+			cli.bus_option = I2CSPIBusOption::SPIExternal;
 			break;
 
 		case 's':
-			busid = MPU6000_BUS_SPI_INTERNAL1;
-			break;
-
-		case 'Z':
-			busid = MPU6000_BUS_SPI_EXTERNAL2;
-			break;
-
-		case 'z':
-			busid = MPU6000_BUS_SPI_INTERNAL2;
+			cli.bus_option = I2CSPIBusOption::SPIInternal;
 			break;
 
 		case 'T':
 			device_type = atoi(myoptarg);
+			break;
+
+		case 'c':
+			cli.chipselect_index = atoi(myoptarg);
+			break;
+
+		case 'b':
+			cli.requested_bus = atoi(myoptarg);
 			break;
 
 		case 'R':
@@ -396,48 +254,75 @@ mpu6000_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 
+	int instance_type_idx = 0;
+	uint16_t dev_type_driver = 0;
+
+	switch (device_type) {
+	case MPU_DEVICE_TYPE_MPU6000:
+		instance_type_idx = 0;
+		dev_type_driver = DRV_GYR_DEVTYPE_MPU6000;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20602:
+		instance_type_idx = 1;
+		dev_type_driver = DRV_GYR_DEVTYPE_ICM20602;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20608:
+		instance_type_idx = 2;
+		dev_type_driver = DRV_GYR_DEVTYPE_ICM20608;
+		break;
+
+	case MPU_DEVICE_TYPE_ICM20689:
+		instance_type_idx = 3;
+		dev_type_driver = DRV_GYR_DEVTYPE_ICM20689;
+		break;
+	}
+
+	BusInstanceIterator iterator(mpu6000::instances[instance_type_idx], mpu6000::max_num_instances, cli, dev_type_driver);
+
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu6000::start(busid, rotation, device_type);
+		mpu6000::start(iterator, instance_type_idx, rotation, device_type);
 	}
 
 	if (!strcmp(verb, "stop")) {
-		mpu6000::stop(busid);
+		mpu6000::stop(iterator);
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset")) {
-		mpu6000::reset(busid);
+		mpu6000::reset(iterator);
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
-		mpu6000::info(busid);
+		mpu6000::call_instances(iterator, &MPU6000::print_info);
 	}
 
 	/*
 	 * Print register information.
 	 */
 	if (!strcmp(verb, "regdump")) {
-		mpu6000::regdump(busid);
+		mpu6000::call_instances(iterator, &MPU6000::print_registers);
 	}
 
 #ifndef CONSTRAINED_FLASH
 
 	if (!strcmp(verb, "factorytest")) {
-		mpu6000::factorytest(busid);
+		mpu6000::call_instances(iterator, &MPU6000::factory_self_test);
 	}
 
 #endif
 
 	if (!strcmp(verb, "testerror")) {
-		mpu6000::testerror(busid);
+		mpu6000::call_instances(iterator, &MPU6000::test_error);
 	}
 
 	mpu6000::usage();

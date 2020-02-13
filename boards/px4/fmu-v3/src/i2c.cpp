@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,15 +30,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-#ifdef __PX4_NUTTX
-#include "nuttx/I2C.hpp"
-#elif __PX4_QURT
-#include "qurt/I2C.hpp"
-#else
-#include "posix/I2C.hpp"
-#endif
+/**
+ * @file px4fmu_i2c.c
+ *
+ * Board-specific I2C functions.
+ */
 
-#include <board_config.h>
+#include "board_config.h"
+#include <px4_platform_common/i2c.h>
+#include <px4_arch/i2c_hw_description.h>
 
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusExternal(1),
+	initI2CBusInternal(2),
+};
+
+
+bool px4_i2c_bus_external(const px4_i2c_bus_t &bus)
+{
+	if (HW_VER_FMUV3 == board_get_hw_version()) {
+		/* All FMUV3 2.1 i2c buses are external */
+		return true;
+
+	} else {
+		if (bus.bus != 2) {
+			return true;
+		}
+	}
+
+	return false;
+}

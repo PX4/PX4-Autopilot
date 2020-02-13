@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,15 +30,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-#ifdef __PX4_NUTTX
-#include "nuttx/I2C.hpp"
-#elif __PX4_QURT
-#include "qurt/I2C.hpp"
-#else
-#include "posix/I2C.hpp"
-#endif
+#include <px4_arch/spi_hw_description.h>
+#include <drivers/drv_sensor.h>
 
-#include <board_config.h>
-
+constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+	initSPIBus(0, {
+		// spidev0.0 - ublox m8n
+		initSPIDevice(DRV_GYR_DEVTYPE_MPU9250, 1),
+		initSPIDevice(DRV_MAG_DEVTYPE_ST_LSM9DS1_M, 2),
+		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG, 3),
+	}),
+};
