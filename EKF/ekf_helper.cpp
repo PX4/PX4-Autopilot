@@ -661,7 +661,7 @@ Vector3f Ekf::calcEarthRateNED(float lat_rad) const
 			-CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad));
 }
 
-void Ekf::getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2],  float &vpos)
+void Ekf::getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2],  float &vpos) const
 {
 	hvel[0] = _gps_vel_innov(0);
 	hvel[1] = _gps_vel_innov(1);
@@ -671,7 +671,7 @@ void Ekf::getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2],  float &v
 	vpos    = _gps_pos_innov(2);
 }
 
-void Ekf::getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos)
+void Ekf::getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos)  const
 {
 	hvel[0] = _gps_vel_innov_var(0);
 	hvel[1] = _gps_vel_innov_var(1);
@@ -681,7 +681,7 @@ void Ekf::getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float 
 	vpos    = _gps_pos_innov_var(2);
 }
 
-void Ekf::getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos)
+void Ekf::getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const
 {
 	hvel = _gps_vel_test_ratio(0);
 	vvel = _gps_vel_test_ratio(1);
@@ -689,7 +689,7 @@ void Ekf::getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &v
 	vpos = _gps_pos_test_ratio(1);
 }
 
-void Ekf::getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos)
+void Ekf::getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const
 {
 	hvel[0] = _ev_vel_innov(0);
 	hvel[1] = _ev_vel_innov(1);
@@ -699,7 +699,7 @@ void Ekf::getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpo
 	vpos    = _ev_pos_innov(2);
 }
 
-void Ekf::getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos)
+void Ekf::getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const
 {
 	hvel[0] = _ev_vel_innov_var(0);
 	hvel[1] = _ev_vel_innov_var(1);
@@ -709,7 +709,7 @@ void Ekf::getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &
 	vpos    = _ev_pos_innov_var(2);
 }
 
-void Ekf::getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos)
+void Ekf::getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const
 {
 	hvel = _ev_vel_test_ratio(0);
 	vvel = _ev_vel_test_ratio(1);
@@ -717,154 +717,154 @@ void Ekf::getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vp
 	vpos = _ev_pos_test_ratio(1);
 }
 
-void Ekf::getBaroHgtInnov(float &baro_hgt_innov)
+void Ekf::getBaroHgtInnov(float &baro_hgt_innov) const
 {
 	baro_hgt_innov = _baro_hgt_innov(2);
 }
 
-void Ekf::getBaroHgtInnovVar(float &baro_hgt_innov_var)
+void Ekf::getBaroHgtInnovVar(float &baro_hgt_innov_var) const
 {
 	baro_hgt_innov_var = _baro_hgt_innov_var(2);
 }
 
-void Ekf::getBaroHgtInnovRatio(float &baro_hgt_innov_ratio)
+void Ekf::getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const
 {
 	baro_hgt_innov_ratio = _baro_hgt_test_ratio(1);
 }
 
-void Ekf::getRngHgtInnov(float &rng_hgt_innov)
+void Ekf::getRngHgtInnov(float &rng_hgt_innov) const
 {
 	rng_hgt_innov = _rng_hgt_innov(2);
 }
 
-void Ekf::getRngHgtInnovVar(float &rng_hgt_innov_var)
+void Ekf::getRngHgtInnovVar(float &rng_hgt_innov_var) const
 {
 	rng_hgt_innov_var = _rng_hgt_innov_var(2);
 }
 
-void Ekf::getRngHgtInnovRatio(float &rng_hgt_innov_ratio)
+void Ekf::getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const
 {
 	rng_hgt_innov_ratio = _rng_hgt_test_ratio(1);
 }
 
-void Ekf::getAuxVelInnov(float aux_vel_innov[2])
+void Ekf::getAuxVelInnov(float aux_vel_innov[2]) const
 {
 	aux_vel_innov[0] = _aux_vel_innov(0);
 	aux_vel_innov[1] = _aux_vel_innov(1);
 }
 
-void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2])
+void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2]) const
 {
 	aux_vel_innov_var[0] = _aux_vel_innov_var(0);
 	aux_vel_innov_var[1] = _aux_vel_innov_var(1);
 }
 
-void Ekf::getAuxVelInnovRatio(float &aux_vel_innov_ratio)
+void Ekf::getAuxVelInnovRatio(float &aux_vel_innov_ratio) const
 {
 	aux_vel_innov_ratio = _aux_vel_test_ratio(0);
 }
 
-void Ekf::getFlowInnov(float flow_innov[2])
+void Ekf::getFlowInnov(float flow_innov[2]) const
 {
 	memcpy(flow_innov, _flow_innov, sizeof(_flow_innov));
 }
 
-void Ekf::getFlowInnovVar(float flow_innov_var[2])
+void Ekf::getFlowInnovVar(float flow_innov_var[2]) const
 {
 	memcpy(flow_innov_var, _flow_innov_var, sizeof(_flow_innov_var));
 }
 
-void Ekf::getFlowInnovRatio(float &flow_innov_ratio)
+void Ekf::getFlowInnovRatio(float &flow_innov_ratio) const
 {
 	flow_innov_ratio = _optflow_test_ratio;
 }
 
-void Ekf::getHeadingInnov(float &heading_innov)
+void Ekf::getHeadingInnov(float &heading_innov) const
 {
 	heading_innov = _heading_innov;
 }
 
-void Ekf::getHeadingInnovVar(float &heading_innov_var)
+void Ekf::getHeadingInnovVar(float &heading_innov_var) const
 {
 	heading_innov_var = _heading_innov_var;
 }
 
-void Ekf::getHeadingInnovRatio(float &heading_innov_ratio)
+void Ekf::getHeadingInnovRatio(float &heading_innov_ratio) const
 {
 	heading_innov_ratio = _yaw_test_ratio;
 }
 
-void Ekf::getMagInnov(float mag_innov[3])
+void Ekf::getMagInnov(float mag_innov[3]) const
 {
 	memcpy(mag_innov, _mag_innov, sizeof(_mag_innov));
 }
 
-void Ekf::getMagInnovVar(float mag_innov_var[3])
+void Ekf::getMagInnovVar(float mag_innov_var[3]) const
 {
 	memcpy(mag_innov_var, _mag_innov_var, sizeof(_mag_innov_var));
 }
 
-void Ekf::getMagInnovRatio(float &mag_innov_ratio)
+void Ekf::getMagInnovRatio(float &mag_innov_ratio) const
 {
 	mag_innov_ratio = math::max(math::max(_mag_test_ratio[0], _mag_test_ratio[1]), _mag_test_ratio[2]);
 }
 
-void Ekf::getDragInnov(float drag_innov[2])
+void Ekf::getDragInnov(float drag_innov[2]) const
 {
 	memcpy(drag_innov, _drag_innov, sizeof(_drag_innov));
 }
 
-void Ekf::getDragInnovVar(float drag_innov_var[2])
+void Ekf::getDragInnovVar(float drag_innov_var[2]) const
 {
 	memcpy(drag_innov_var, _drag_innov_var, sizeof(_drag_innov_var));
 }
 
-void Ekf::getDragInnovRatio(float drag_innov_ratio[2])
+void Ekf::getDragInnovRatio(float drag_innov_ratio[2]) const
 {
 	memcpy(drag_innov_ratio, &_drag_test_ratio, sizeof(_drag_test_ratio));
 }
 
-void Ekf::getAirspeedInnov(float &airspeed_innov)
+void Ekf::getAirspeedInnov(float &airspeed_innov) const
 {
 	airspeed_innov = _airspeed_innov;
 }
 
-void Ekf::getAirspeedInnovVar(float &airspeed_innov_var)
+void Ekf::getAirspeedInnovVar(float &airspeed_innov_var) const
 {
 	airspeed_innov_var = _airspeed_innov_var;
 }
 
-void Ekf::getAirspeedInnovRatio(float &airspeed_innov_ratio)
+void Ekf::getAirspeedInnovRatio(float &airspeed_innov_ratio) const
 {
 	airspeed_innov_ratio = _tas_test_ratio;
 }
 
-void Ekf::getBetaInnov(float &beta_innov)
+void Ekf::getBetaInnov(float &beta_innov) const
 {
 	beta_innov = _beta_innov;
 }
 
-void Ekf::getBetaInnovVar(float &beta_innov_var)
+void Ekf::getBetaInnovVar(float &beta_innov_var) const
 {
 	beta_innov_var = _beta_innov_var;
 }
 
-void Ekf::getBetaInnovRatio(float &beta_innov_ratio)
+void Ekf::getBetaInnovRatio(float &beta_innov_ratio) const
 {
 	beta_innov_ratio = _beta_test_ratio;
 }
 
-void Ekf::getHaglInnov(float &hagl_innov)
+void Ekf::getHaglInnov(float &hagl_innov) const
 {
 	hagl_innov = _hagl_innov;
 }
 
-void Ekf::getHaglInnovVar(float &hagl_innov_var)
+void Ekf::getHaglInnovVar(float &hagl_innov_var) const
 {
 	hagl_innov_var = _hagl_innov_var;
 }
 
-void Ekf::getHaglInnovRatio(float &hagl_innov_ratio)
+void Ekf::getHaglInnovRatio(float &hagl_innov_ratio) const
 {
 	hagl_innov_ratio = _hagl_test_ratio;
 }

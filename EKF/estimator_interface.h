@@ -68,54 +68,53 @@ public:
 
 	virtual bool update() = 0;
 
-	virtual void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
-	virtual void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
-	virtual void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) = 0;
+	virtual void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const = 0;
+	virtual void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const = 0;
+	virtual void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const = 0;
 
-	virtual void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
-	virtual void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
-	virtual void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) = 0;
+	virtual void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const = 0;
+	virtual void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const = 0;
+	virtual void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const = 0;
 
-	virtual void getBaroHgtInnov(float &baro_hgt_innov) = 0;
-	virtual void getBaroHgtInnovVar(float &baro_hgt_innov_var) = 0;
-	virtual void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) = 0;
+	virtual void getBaroHgtInnov(float &baro_hgt_innov) const = 0;
+	virtual void getBaroHgtInnovVar(float &baro_hgt_innov_var) const = 0;
+	virtual void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const = 0;
 
-	virtual void getRngHgtInnov(float &rng_hgt_innov) = 0;
-	virtual void getRngHgtInnovVar(float &rng_hgt_innov_var) = 0;
-	virtual void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) = 0;
+	virtual void getRngHgtInnov(float &rng_hgt_innov) const = 0;
+	virtual void getRngHgtInnovVar(float &rng_hgt_innov_var) const = 0;
+	virtual void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const = 0;
 
-	virtual void getAuxVelInnov(float aux_vel_innov[2]) = 0;
-	virtual void getAuxVelInnovVar(float aux_vel_innov[2]) = 0;
-	virtual void getAuxVelInnovRatio(float &aux_vel_innov_ratio) = 0;
+	virtual void getAuxVelInnov(float aux_vel_innov[2]) const = 0;
+	virtual void getAuxVelInnovVar(float aux_vel_innov[2]) const = 0;
+	virtual void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const = 0;
 
-	virtual void getFlowInnov(float flow_innov[2]) = 0;
-	virtual void getFlowInnovVar(float flow_innov_var[2]) = 0;
-	virtual void getFlowInnovRatio(float &flow_innov_ratio) = 0;
+	virtual void getFlowInnov(float flow_innov[2]) const = 0;
+	virtual void getFlowInnovVar(float flow_innov_var[2]) const = 0;
+	virtual void getFlowInnovRatio(float &flow_innov_ratio) const = 0;
 
-	virtual void getHeadingInnov(float &heading_innov) = 0;
-	virtual void getHeadingInnovVar(float &heading_innov_var) = 0;
-	virtual void getHeadingInnovRatio(float &heading_innov_ratio) = 0;
+	virtual void getHeadingInnov(float &heading_innov) const = 0;
+	virtual void getHeadingInnovVar(float &heading_innov_var) const = 0;
+	virtual void getHeadingInnovRatio(float &heading_innov_ratio) const = 0;
 
-	virtual void getMagInnov(float mag_innov[3]) = 0;
-	virtual void getMagInnovVar(float mag_innov_var[3]) = 0;
-	virtual void getMagInnovRatio(float &mag_innov_ratio) = 0;
+	virtual void getMagInnov(float mag_innov[3]) const = 0;
+	virtual void getMagInnovVar(float mag_innov_var[3]) const = 0;
+	virtual void getMagInnovRatio(float &mag_innov_ratio) const = 0;
 
-	virtual void getDragInnov(float drag_innov[2]) = 0;
-	virtual void getDragInnovVar(float drag_innov_var[2]) = 0;
-	virtual void getDragInnovRatio(float drag_innov_ratio[2]) = 0;
+	virtual void getDragInnov(float drag_innov[2]) const = 0;
+	virtual void getDragInnovVar(float drag_innov_var[2]) const = 0;
+	virtual void getDragInnovRatio(float drag_innov_ratio[2]) const = 0;
 
-	virtual void getAirspeedInnov(float &airspeed_innov) = 0;
-	virtual void getAirspeedInnovVar(float &get_airspeed_innov_var) = 0;
-	virtual void getAirspeedInnovRatio(float &airspeed_innov_ratio) = 0;
+	virtual void getAirspeedInnov(float &airspeed_innov) const = 0;
+	virtual void getAirspeedInnovVar(float &get_airspeed_innov_var) const = 0;
+	virtual void getAirspeedInnovRatio(float &airspeed_innov_ratio) const = 0;
 
-	virtual void getBetaInnov(float &beta_innov) = 0;
-	virtual void getBetaInnovVar(float &get_beta_innov_var) = 0;
-	virtual void getBetaInnovRatio(float &beta_innov_ratio) = 0;
+	virtual void getBetaInnov(float &beta_innov) const = 0;
+	virtual void getBetaInnovVar(float &get_beta_innov_var) const = 0;
+	virtual void getBetaInnovRatio(float &beta_innov_ratio) const = 0;
 
-	virtual void getHaglInnov(float &hagl_innov) = 0;
-	virtual void getHaglInnovVar(float &hagl_innov_var) = 0;
-	virtual void getHaglInnovRatio(float &hagl_innov_ratio) = 0;
-
+	virtual void getHaglInnov(float &hagl_innov) const = 0;
+	virtual void getHaglInnovVar(float &hagl_innov_var) const = 0;
+	virtual void getHaglInnovRatio(float &hagl_innov_ratio) const = 0;
 
 	virtual void get_state_delayed(float *state) = 0;
 

@@ -62,77 +62,77 @@ public:
 	// should be called every time new data is pushed into the filter
 	bool update() override;
 
-	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
+	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const override;
 
-	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
+	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const override;
 
-	void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) override;
+	void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const override;
 
-	void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
+	void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const override;
 
-	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
+	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const override;
 
-	void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) override;
+	void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const override;
 
-	void getBaroHgtInnov(float &baro_hgt_innov) override;
+	void getBaroHgtInnov(float &baro_hgt_innov) const override;
 
-	void getBaroHgtInnovVar(float &baro_hgt_innov_var) override;
+	void getBaroHgtInnovVar(float &baro_hgt_innov_var) const override;
 
-	void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) override;
+	void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const override;
 
-	void getRngHgtInnov(float &rng_hgt_innov) override;
+	void getRngHgtInnov(float &rng_hgt_innov) const override;
 
-	void getRngHgtInnovVar(float &rng_hgt_innov_var) override;
+	void getRngHgtInnovVar(float &rng_hgt_innov_var) const override;
 
-	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) override;
+	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const override;
 
-	void getAuxVelInnov(float aux_vel_innov[2]) override;
+	void getAuxVelInnov(float aux_vel_innov[2]) const override;
 
-	void getAuxVelInnovVar(float aux_vel_innov[2]) override;
+	void getAuxVelInnovVar(float aux_vel_innov[2]) const override;
 
-	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) override;
+	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const override;
 
-	void getFlowInnov(float flow_innov[2]) override;
+	void getFlowInnov(float flow_innov[2]) const override;
 
-	void getFlowInnovVar(float flow_innov_var[2]) override;
+	void getFlowInnovVar(float flow_innov_var[2]) const override;
 
-	void getFlowInnovRatio(float &flow_innov_ratio) override;
+	void getFlowInnovRatio(float &flow_innov_ratio) const override;
 
-	void getHeadingInnov(float &heading_innov) override;
+	void getHeadingInnov(float &heading_innov) const override;
 
-	void getHeadingInnovVar(float &heading_innov_var) override;
+	void getHeadingInnovVar(float &heading_innov_var) const override;
 
-	void getHeadingInnovRatio(float &heading_innov_ratio) override;
+	void getHeadingInnovRatio(float &heading_innov_ratio) const override;
 
-	void getMagInnov(float mag_innov[3]) override;
+	void getMagInnov(float mag_innov[3]) const override;
 
-	void getMagInnovVar(float mag_innov_var[3]) override;
+	void getMagInnovVar(float mag_innov_var[3]) const override;
 
-	void getMagInnovRatio(float &mag_innov_ratio) override;
+	void getMagInnovRatio(float &mag_innov_ratio) const override;
 
-	void getDragInnov(float drag_innov[2]) override;
+	void getDragInnov(float drag_innov[2]) const override;
 
-	void getDragInnovVar(float drag_innov_var[2]) override;
+	void getDragInnovVar(float drag_innov_var[2]) const override;
 
-	void getDragInnovRatio(float drag_innov_ratio[2]) override;
+	void getDragInnovRatio(float drag_innov_ratio[2]) const override;
 
-	void getAirspeedInnov(float &airspeed_innov) override;
+	void getAirspeedInnov(float &airspeed_innov) const override;
 
-	void getAirspeedInnovVar(float &airspeed_innov_var) override;
+	void getAirspeedInnovVar(float &airspeed_innov_var) const override;
 
-	void getAirspeedInnovRatio(float &airspeed_innov_ratio) override;
+	void getAirspeedInnovRatio(float &airspeed_innov_ratio) const override;
 
-	void getBetaInnov(float &beta_innov) override;
+	void getBetaInnov(float &beta_innov) const override;
 
-	void getBetaInnovVar(float &beta_innov_var) override;
+	void getBetaInnovVar(float &beta_innov_var) const override;
 
-	void getBetaInnovRatio(float &beta_innov_ratio) override;
+	void getBetaInnovRatio(float &beta_innov_ratio) const override;
 
-	void getHaglInnov(float &hagl_innov) override;
+	void getHaglInnov(float &hagl_innov) const override;
 
-	void getHaglInnovVar(float &hagl_innov_var) override;
+	void getHaglInnovVar(float &hagl_innov_var) const override;
 
-	void getHaglInnovRatio(float &hagl_innov_ratio) override;
+	void getHaglInnovRatio(float &hagl_innov_ratio) const override;
 
 	// get the state vector at the delayed time horizon
 	void get_state_delayed(float *state) override;
