@@ -1223,13 +1223,12 @@ void Ekf2::Run()
 				odom.local_frame = odom.LOCAL_FRAME_NED;
 
 				// Position of body origin in local NED frame
-				float position[3];
-				_ekf.get_position(position);
+				Vector3f position = _ekf.getPosition();
 				const float lpos_x_prev = lpos.x;
 				const float lpos_y_prev = lpos.y;
-				lpos.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
-				lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
-				lpos.z = position[2];
+				lpos.x = (_ekf.local_position_is_valid()) ? position(0) : 0.0f;
+				lpos.y = (_ekf.local_position_is_valid()) ? position(1) : 0.0f;
+				lpos.z = position(2);
 
 				// Vehicle odometry position
 				odom.x = lpos.x;
@@ -1237,11 +1236,10 @@ void Ekf2::Run()
 				odom.z = lpos.z;
 
 				// Velocity of body origin in local NED frame (m/s)
-				float velocity[3];
-				_ekf.get_velocity(velocity);
-				lpos.vx = velocity[0];
-				lpos.vy = velocity[1];
-				lpos.vz = velocity[2];
+				const Vector3f velocity = _ekf.getVelocity();
+				lpos.vx = velocity(0);
+				lpos.vy = velocity(1);
+				lpos.vz = velocity(2);
 
 				// Vehicle odometry linear velocity
 				odom.vx = lpos.vx;
@@ -1249,14 +1247,13 @@ void Ekf2::Run()
 				odom.vz = lpos.vz;
 
 				// vertical position time derivative (m/s)
-				_ekf.get_pos_d_deriv(&lpos.z_deriv);
+				lpos.z_deriv = _ekf.getVerticalPositionDerivative();
 
-				// Acceleration of body origin in local NED frame
-				float vel_deriv[3];
-				_ekf.get_vel_deriv_ned(vel_deriv);
-				lpos.ax = vel_deriv[0];
-				lpos.ay = vel_deriv[1];
-				lpos.az = vel_deriv[2];
+				// Acceleration of body origin in local frame
+				Vector3f vel_deriv = _ekf.getVelocityDerivative();
+				lpos.ax = vel_deriv(0);
+				lpos.ay = vel_deriv(1);
+				lpos.az = vel_deriv(2);
 
 				// TODO: better status reporting
 				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
@@ -1280,7 +1277,7 @@ void Ekf2::Run()
 				}
 
 				// The rotation of the tangent plane vs. geographical north
-				matrix::Quatf q = _ekf.get_quaternion();
+				const matrix::Quatf q = _ekf.getQuaternion();
 
 				lpos.yaw = matrix::Eulerf(q).psi();
 
@@ -1288,17 +1285,15 @@ void Ekf2::Run()
 				q.copyTo(odom.q);
 
 				// Vehicle odometry angular rates
-				float gyro_bias[3];
-				_ekf.get_gyro_bias(gyro_bias);
-				const Vector3f rates{imu_sample_new.delta_ang * imu_sample_new.delta_ang_dt};
-				odom.rollspeed = rates(0) - gyro_bias[0];
-				odom.pitchspeed = rates(1) - gyro_bias[1];
-				odom.yawspeed = rates(2) - gyro_bias[2];
+				const Vector3f gyro_bias = _ekf.getGyroBias();
+				const Vector3f rates(imu_sample_new.delta_ang * imu_sample_new.delta_ang_dt);
+				odom.rollspeed = rates(0) - gyro_bias(0);
+				odom.pitchspeed = rates(1) - gyro_bias(1);
+				odom.yawspeed = rates(2) - gyro_bias(2);
 
 				lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 
-				float terrain_vpos;
-				_ekf.get_terrain_vert_pos(&terrain_vpos);
+				float terrain_vpos = _ekf.getTerrainVertPos();
 				lpos.dist_bottom = terrain_vpos - lpos.z; // Distance to bottom surface (ground) in meters
 
 				// constrain the distance to ground to _rng_gnd_clearance
@@ -1397,20 +1392,18 @@ void Ekf2::Run()
 
 				// publish external visual odometry after fixed frame alignment if new odometry is received
 				if (new_ev_data_received) {
-					float q_ev2ekf[4];
-					_ekf.get_ev2ekf_quaternion(q_ev2ekf); // rotates from EV to EKF navigation frame
-					Quatf quat_ev2ekf(q_ev2ekf);
-					Dcmf ev_rot_mat(quat_ev2ekf);
+					const Quatf quat_ev2ekf = _ekf.getVisionAlignmentQuaternion(); // rotates from EV to EKF navigation frame
+					const Dcmf ev_rot_mat(quat_ev2ekf);
 
 					vehicle_odometry_s aligned_ev_odom = _ev_odom;
 
 					// Rotate external position and velocity into EKF navigation frame
-					Vector3f aligned_pos = ev_rot_mat * Vector3f(_ev_odom.x, _ev_odom.y, _ev_odom.z);
+					const Vector3f aligned_pos = ev_rot_mat * Vector3f(_ev_odom.x, _ev_odom.y, _ev_odom.z);
 					aligned_ev_odom.x = aligned_pos(0);
 					aligned_ev_odom.y = aligned_pos(1);
 					aligned_ev_odom.z = aligned_pos(2);
 
-					Vector3f aligned_vel = ev_rot_mat * Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
+					const Vector3f aligned_vel = ev_rot_mat * Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
 					aligned_ev_odom.vx = aligned_vel(0);
 					aligned_ev_odom.vy = aligned_vel(1);
 					aligned_ev_odom.vz = aligned_vel(2);
@@ -1475,8 +1468,8 @@ void Ekf2::Run()
 				bias.mag_device_id = _sensor_selection.mag_device_id;
 
 				// In-run bias estimates
-				_ekf.get_gyro_bias(bias.gyro_bias);
-				_ekf.get_accel_bias(bias.accel_bias);
+				_ekf.getGyroBias().copyTo(bias.gyro_bias);
+				_ekf.getAccelBias().copyTo(bias.accel_bias);
 
 				bias.mag_bias[0] = _last_valid_mag_cal[0];
 				bias.mag_bias[1] = _last_valid_mag_cal[1];
@@ -1488,10 +1481,10 @@ void Ekf2::Run()
 			// publish estimator status
 			estimator_status_s status;
 			status.timestamp = now;
-			_ekf.get_state_delayed(status.states);
+			_ekf.getStateAtFusionHorizonAsVector().copyTo(status.states);
 			status.n_states = 24;
 			_ekf.covariances_diagonal().copyTo(status.covariances);
-			_ekf.get_output_tracking_error(&status.output_tracking_error[0]);
+			_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
 			// the GPS Fix bit, which is always checked)
@@ -1506,8 +1499,8 @@ void Ekf2::Run()
 			status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
 			status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
 			_ekf.get_ekf_soln_status(&status.solution_status_flags);
-			_ekf.get_imu_vibe_metrics(status.vibe);
-			status.time_slip = _last_time_slip_us / 1e6f;
+			_ekf.getImuVibrationMetrics().copyTo(status.vibe);
+			status.time_slip = _last_time_slip_us * 1e-6f;
 			status.health_flags = 0.0f; // unused
 			status.timeout_flags = 0.0f; // unused
 			status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
@@ -1807,19 +1800,17 @@ void Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 	if (_ekf.get_wind_status()) {
 		// Publish wind estimate only if ekf declares them valid
 		wind_estimate_s wind_estimate{};
-		float velNE_wind[2];
-		float wind_var[2];
-		_ekf.get_wind_velocity(velNE_wind);
-		_ekf.get_wind_velocity_var(wind_var);
+		const Vector2f wind_vel = _ekf.getWindVelocity();
+		const Vector2f wind_vel_var = _ekf.getWindVelocityVariance();
 		_ekf.getAirspeedInnov(wind_estimate.tas_innov);
 		_ekf.getAirspeedInnovVar(wind_estimate.tas_innov_var);
 		_ekf.getBetaInnov(wind_estimate.beta_innov);
 		_ekf.getBetaInnovVar(wind_estimate.beta_innov_var);
 		wind_estimate.timestamp = timestamp;
-		wind_estimate.windspeed_north = velNE_wind[0];
-		wind_estimate.windspeed_east = velNE_wind[1];
-		wind_estimate.variance_north = wind_var[0];
-		wind_estimate.variance_east = wind_var[1];
+		wind_estimate.windspeed_north = wind_vel(0);
+		wind_estimate.windspeed_east = wind_vel(1);
+		wind_estimate.variance_north = wind_vel_var(0);
+		wind_estimate.variance_east = wind_vel_var(1);
 		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 
 		_wind_pub.publish(wind_estimate);
