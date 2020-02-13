@@ -16,6 +16,7 @@
 # @output AUX3 Elevator
 # @output AUX4 Rudder
 # @output AUX5 Throttle
+# @output AUX6 Pusher reverse channel
 #
 
 sh /etc/init.d/rc.vtol_defaults

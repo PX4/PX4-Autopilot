@@ -52,3 +52,9 @@ range.  Inputs below zero are treated as zero.
 M: 1
 S: 1 3      0  20000 -10000 -10000  10000
 
+Reverse thrust (brake) mixer
+-----------------
+
+M: 1
+S: 1 6      0  20000 -9000 -10000  10000
+
