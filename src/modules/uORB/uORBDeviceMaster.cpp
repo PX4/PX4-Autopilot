@@ -163,6 +163,7 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertise
 
 			// add to the node map.
 			_node_list.add(node);
+			_node_exists[node->get_instance()].set((uint8_t)node->id(), true);
 		}
 
 		group_tries++;
@@ -454,7 +455,11 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
 {
-	if (meta == nullptr) {
+	if ((meta == nullptr) || (instance > ORB_MULTI_MAX_INSTANCES - 1)) {
+		return nullptr;
+	}
+
+	if ((static_cast<ORB_ID>(meta->o_id) != ORB_ID::INVALID) && !_node_exists[instance][meta->o_id]) {
 		return nullptr;
 	}
 

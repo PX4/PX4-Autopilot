@@ -78,9 +78,10 @@ const struct {
 	{"rc",			rc_tests_main,		0},
 #endif /* __PX4_NUTTX */
 
-
+	{"atomic_bitset",	test_atomic_bitset,	0},
 	{"autodeclination",	test_autodeclination,	0},
 	{"bezier",		test_bezierQuad,	0},
+	{"bitset",		test_bitset,		0},
 	{"bson",		test_bson,		0},
 	{"conv",		test_conv,		0},
 	{"dataman",		test_dataman,		OPT_NOJIGTEST | OPT_NOALLTEST},

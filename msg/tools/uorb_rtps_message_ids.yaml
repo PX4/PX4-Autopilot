@@ -285,6 +285,12 @@ rtps:
     id: 127
   - msg: hover_thrust_estimate
     id: 128
+  - msg: orb_test
+    id: 129
+  - msg: orb_test_medium
+    id: 130
+  - msg: orb_test_large
+    id: 131
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
