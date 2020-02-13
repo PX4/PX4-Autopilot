@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
- *   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
- *           David Sidrane<david_s5@nscdg.com>
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +31,15 @@
  *
  ****************************************************************************/
 
+/**
+ * @author David Sidrane <david_s5@nscdg.com>
+ */
+
 #pragma once
-
-#include <uavcan_stm32/uavcan_stm32.hpp>
-
-int init_sim_controller(uavcan::INode &node);
+#if defined(UAVCAN_KINETIS_NUTTX)
+#  include <uavcan_kinetis/uavcan_kinetis.hpp>
+#elif defined(UAVCAN_STM32_NUTTX)
+#  include <uavcan_stm32/uavcan_stm32.hpp>
+#else
+#  error "Unsupported driver"
+#endif
