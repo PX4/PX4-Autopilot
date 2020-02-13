@@ -774,7 +774,7 @@ private:
 	void zeroMagCov();
 
 	// uncorrelate quaternion states from other states
-	void uncorrelateQuatStates();
+	void uncorrelateQuatFromOtherStates();
 
 	// Use Kahan summation algorithm to get the sum of "sum_previous" and "input".
 	// This function relies on the caller to be responsible for keeping a copy of
