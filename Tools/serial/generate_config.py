@@ -10,7 +10,7 @@ import sys
 try:
     from jinja2 import Environment, FileSystemLoader
 except ImportError as e:
-    print("Failed to import jinja2: " + e)
+    print("Failed to import jinja2: " + str(e))
     print("")
     print("You may need to install it using:")
     print("    pip3 install --user jinja2")
@@ -20,7 +20,7 @@ except ImportError as e:
 try:
     import yaml
 except ImportError as e:
-    print("Failed to import yaml: " + e)
+    print("Failed to import yaml: " + str(e))
     print("")
     print("You may need to install it using:")
     print("    pip3 install --user pyyaml")
