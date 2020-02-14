@@ -112,6 +112,10 @@ private:
 		perf_free(_perf_sim_delay);
 		perf_free(_perf_sim_interval);
 
+		for (size_t i = 0; i < sizeof(_dist_pubs) / sizeof(_dist_pubs[0]); i++) {
+			delete _dist_pubs[i];
+		}
+
 		_instance = nullptr;
 	}
 
