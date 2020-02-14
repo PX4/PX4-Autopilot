@@ -73,8 +73,8 @@ MPU6000::custom_method(const BusCLIArguments &cli)
 	}
 }
 
-I2CSPIInstance *MPU6000::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				     int runtime_instance)
+I2CSPIDriverBase *MPU6000::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				       int runtime_instance)
 {
 	device::Device *interface = nullptr;
 	int device_type = cli.custom1;

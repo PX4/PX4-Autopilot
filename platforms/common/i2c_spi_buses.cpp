@@ -204,9 +204,9 @@ SPIBusIterator::FilterType BusInstanceIterator::spiFilter(I2CSPIBusOption bus_op
 }
 
 
-int I2CSPIDriverNoTemplate::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator,
-		void(*print_usage)(),
-		instantiate_method instantiate, I2CSPIInstance **instances)
+int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator,
+				   void(*print_usage)(),
+				   instantiate_method instantiate, I2CSPIInstance **instances)
 {
 	if (iterator.configuredBusOption() == I2CSPIBusOption::All) {
 		PX4_ERR("need to specify a bus type");
@@ -244,13 +244,13 @@ int I2CSPIDriverNoTemplate::module_start(const BusCLIArguments &cli, BusInstance
 }
 
 
-int I2CSPIDriverNoTemplate::module_stop(BusInstanceIterator &iterator)
+int I2CSPIDriverBase::module_stop(BusInstanceIterator &iterator)
 {
 	bool is_running = false;
 
 	while (iterator.next()) {
 		if (iterator.instance()) {
-			I2CSPIDriverNoTemplate *instance = (I2CSPIDriverNoTemplate *)iterator.instance();
+			I2CSPIDriverBase *instance = (I2CSPIDriverBase *)iterator.instance();
 			instance->request_stop_and_wait();
 			delete iterator.instance();
 			iterator.resetInstance();
@@ -266,13 +266,13 @@ int I2CSPIDriverNoTemplate::module_stop(BusInstanceIterator &iterator)
 	return 0;
 }
 
-int I2CSPIDriverNoTemplate::module_status(BusInstanceIterator &iterator)
+int I2CSPIDriverBase::module_status(BusInstanceIterator &iterator)
 {
 	bool is_running = false;
 
 	while (iterator.next()) {
 		if (iterator.instance()) {
-			I2CSPIDriverNoTemplate *instance = (I2CSPIDriverNoTemplate *)iterator.instance();
+			I2CSPIDriverBase *instance = (I2CSPIDriverBase *)iterator.instance();
 			instance->print_status();
 			is_running = true;
 		}
@@ -286,11 +286,11 @@ int I2CSPIDriverNoTemplate::module_status(BusInstanceIterator &iterator)
 	return 0;
 }
 
-int I2CSPIDriverNoTemplate::module_custom_method(const BusCLIArguments &cli, BusInstanceIterator &iterator)
+int I2CSPIDriverBase::module_custom_method(const BusCLIArguments &cli, BusInstanceIterator &iterator)
 {
 	while (iterator.next()) {
 		if (iterator.instance()) {
-			I2CSPIDriverNoTemplate *instance = (I2CSPIDriverNoTemplate *)iterator.instance();
+			I2CSPIDriverBase *instance = (I2CSPIDriverBase *)iterator.instance();
 			instance->custom_method(cli);
 		}
 	}
@@ -298,12 +298,12 @@ int I2CSPIDriverNoTemplate::module_custom_method(const BusCLIArguments &cli, Bus
 	return 0;
 }
 
-void I2CSPIDriverNoTemplate::print_status()
+void I2CSPIDriverBase::print_status()
 {
 	bool is_i2c_bus = _bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal;
 	PX4_INFO("Running on %s Bus %i", is_i2c_bus ? "I2C" : "SPI", _bus);
 }
-void I2CSPIDriverNoTemplate::request_stop_and_wait()
+void I2CSPIDriverBase::request_stop_and_wait()
 {
 	_task_should_exit.store(true);
 	ScheduleNow(); // wake up the task (in case it is not scheduled anymore or just to be faster)

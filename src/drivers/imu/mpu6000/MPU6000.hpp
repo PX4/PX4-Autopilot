@@ -281,8 +281,8 @@ class MPU6000 : public I2CSPIDriver<MPU6000>
 public:
 	MPU6000(device::Device *interface, enum Rotation rotation, int device_type, I2CSPIBusOption bus_option, int bus);
 
-	static I2CSPIInstance *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					   int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
 	static void print_usage();
 
 	virtual ~MPU6000();

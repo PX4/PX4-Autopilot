@@ -181,8 +181,8 @@ public:
 	IST8310(I2CSPIBusOption bus_option, int bus_number, int address, enum Rotation rotation);
 	virtual ~IST8310();
 
-	static I2CSPIInstance *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					   int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
 	static void print_usage();
 
 	virtual int     init();
@@ -910,7 +910,7 @@ IST8310::print_status()
 	_reports->print_info("report queue");
 }
 
-I2CSPIInstance *
+I2CSPIDriverBase *
 IST8310::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator, int runtime_instance)
 {
 	IST8310 *interface = new IST8310(iterator.configuredBusOption(), iterator.bus(), cli.custom1, cli.rotation);

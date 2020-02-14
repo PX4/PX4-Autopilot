@@ -92,8 +92,8 @@ public:
 	       I2CSPIBusOption bus_option, int bus);
 	~MS5611() override;
 
-	static I2CSPIInstance *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					   int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
 	static void print_usage();
 
 	int		init();

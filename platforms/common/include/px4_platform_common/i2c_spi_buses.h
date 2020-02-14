@@ -65,7 +65,7 @@ public:
 
 private:
 	friend class BusInstanceIterator;
-	friend class I2CSPIDriverNoTemplate;
+	friend class I2CSPIDriverBase;
 
 	const I2CSPIBusOption _bus_option;
 	const int _bus;
@@ -116,21 +116,24 @@ private:
 };
 
 /**
- * @class I2CSPIDriverNoTemplate
+ * @class I2CSPIDriverBase
  * Base class for I2C/SPI driver modules (non-templated, used by I2CSPIDriver)
  */
-class I2CSPIDriverNoTemplate : public px4::ScheduledWorkItem, public I2CSPIInstance
+class I2CSPIDriverBase : public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
-	I2CSPIDriverNoTemplate(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus)
+	I2CSPIDriverBase(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus)
 		: ScheduledWorkItem(module_name, config),
 		  I2CSPIInstance(bus_option, bus) {}
 
 	static int module_stop(BusInstanceIterator &iterator);
 	static int module_status(BusInstanceIterator &iterator);
 	static int module_custom_method(const BusCLIArguments &cli, BusInstanceIterator &iterator);
+
+	using instantiate_method = I2CSPIDriverBase * (*)(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				   int runtime_instance);
 protected:
-	virtual ~I2CSPIDriverNoTemplate() = default;
+	virtual ~I2CSPIDriverBase() = default;
 
 	virtual void print_status();
 
@@ -139,8 +142,6 @@ protected:
 	void exit_and_cleanup() { ScheduleClear(); _task_exited.store(true); }
 	bool should_exit() const { return _task_should_exit.load(); }
 
-	using instantiate_method = I2CSPIInstance * (*)(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				   int runtime_instance);
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator, void(*print_usage)(),
 				instantiate_method instantiate, I2CSPIInstance **instances);
 
@@ -156,21 +157,21 @@ private:
  * Base class for I2C/SPI driver modules
  */
 template<class T, int MAX_NUM = 3>
-class I2CSPIDriver : public I2CSPIDriverNoTemplate
+class I2CSPIDriver : public I2CSPIDriverBase
 {
 public:
 	static constexpr int max_num_instances = MAX_NUM;
 
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator)
 	{
-		return I2CSPIDriverNoTemplate::module_start(cli, iterator, &T::print_usage, &T::instantiate, _instances);
+		return I2CSPIDriverBase::module_start(cli, iterator, &T::print_usage, &T::instantiate, _instances);
 	}
 
 	static I2CSPIInstance **instances() { return _instances; }
 
 protected:
 	I2CSPIDriver(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus)
-		: I2CSPIDriverNoTemplate(module_name, config, bus_option, bus) {}
+		: I2CSPIDriverBase(module_name, config, bus_option, bus) {}
 
 	virtual ~I2CSPIDriver() = default;
 

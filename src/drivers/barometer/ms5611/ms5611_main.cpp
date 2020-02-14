@@ -39,8 +39,8 @@
 #include "MS5611.hpp"
 #include "ms5611.h"
 
-I2CSPIInstance *MS5611::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				    int runtime_instance)
+I2CSPIDriverBase *MS5611::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
 {
 	ms5611::prom_u prom_buf;
 	device::Device *interface = nullptr;
