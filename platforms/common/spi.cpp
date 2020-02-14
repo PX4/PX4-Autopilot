@@ -60,6 +60,20 @@ int px4_find_spi_bus(uint32_t devid)
 	return -1;
 }
 
+bool px4_spi_bus_requires_locking(int bus)
+{
+	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+		const px4_spi_bus_t &bus_data = px4_spi_buses[i];
+
+		if (bus_data.bus == bus) {
+			return bus_data.requires_locking;
+		}
+	}
+
+	return true;
+}
+
+
 #ifndef BOARD_OVERRIDE_SPI_BUS_EXTERNAL
 bool px4_spi_bus_external(const px4_spi_bus_t &bus)
 {

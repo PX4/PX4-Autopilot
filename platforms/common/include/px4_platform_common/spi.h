@@ -63,6 +63,7 @@ struct px4_spi_bus_t {
 	int bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
 	bool is_external; ///< static external configuration. Use px4_spi_bus_external() to check if a bus is really external
 	bool should_be_reset; ///< whether or not the signals should be disabled during a SPI reset
+	bool requires_locking; ///< whether the bus should be locked during transfers (true if NuttX drivers access the bus)
 };
 
 __EXPORT extern const px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS]; ///< board-specific SPI bus configuration
@@ -73,6 +74,11 @@ __EXPORT extern const px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS]; ///< b
  * @return the bus or -1
  */
 __EXPORT int px4_find_spi_bus(uint32_t devid);
+
+/**
+ * Check if a bus requires locking during a SPI transfer (because it is potentially accessed by different threads)
+ */
+__EXPORT bool px4_spi_bus_requires_locking(int bus);
 
 /**
  * runtime-check if a board has a specific bus as external.

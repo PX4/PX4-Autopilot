@@ -64,6 +64,7 @@ static inline constexpr px4_spi_bus_t initSPIBus(int bus, const px4_spi_bus_devi
 		bool should_be_reset = false)
 {
 	px4_spi_bus_t ret{};
+	ret.requires_locking = true; // TODO: set this to false once all drivers are converted to use the I2CSPIDriver class
 
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		ret.devices[i] = devices.devices[i];
@@ -72,6 +73,13 @@ static inline constexpr px4_spi_bus_t initSPIBus(int bus, const px4_spi_bus_devi
 		for (int j = i + 1; j < SPI_BUS_MAX_DEVICES; ++j) {
 			if (ret.devices[j].cs_gpio != 0) {
 				constexpr_assert(ret.devices[i].devid != ret.devices[j].devid, "Same device configured multiple times");
+			}
+		}
+
+		if (ret.devices[i].cs_gpio != 0) {
+			// A bus potentially requires locking if it is accessed by non-PX4 devices (i.e. NuttX drivers)
+			if (PX4_SPI_DEVICE_ID != PX4_SPIDEVID_TYPE(ret.devices[i].devid)) {
+				ret.requires_locking = true;
 			}
 		}
 	}
@@ -102,6 +110,8 @@ static inline constexpr px4_spi_bus_t initSPIBusExternal(int bus, const bus_devi
 	ret.bus = bus;
 	ret.is_external = true;
 	ret.should_be_reset = false;
+	// TODO: set requires_locking to false once all drivers are converted to use the I2CSPIDriver class
+	ret.requires_locking = true; // external buses are never accessed by NuttX drivers
 	return ret;
 }
 

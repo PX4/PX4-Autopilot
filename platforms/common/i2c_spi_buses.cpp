@@ -38,7 +38,9 @@
 #define MODULE_NAME "SPI_I2C"
 #endif
 
+#include <lib/drivers/device/Device.hpp>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/log.h>
 
 BusInstanceIterator::BusInstanceIterator(I2CSPIInstance **instances, int max_num_instances,
 		const BusCLIArguments &cli_arguments, uint16_t devid_driver_index)
@@ -228,8 +230,22 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 			return -1;
 		}
 
-		const BusInstanceIterator &const_iterator = iterator;
-		I2CSPIInstance *instance = instantiate(cli, const_iterator, free_index);
+		device::Device::DeviceId device_id{};
+		device_id.devid_s.bus = iterator.bus();
+
+		switch (iterator.busType()) {
+		case BOARD_I2C_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_I2C; break;
+
+		case BOARD_SPI_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_SPI; break;
+
+		case BOARD_INVALID_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_UNKNOWN; break;
+		}
+
+		// initialize the object and bus on the work queue thread - this will also probe for the device
+		I2CSPIDriverInitializer initializer(px4::device_bus_to_wq(device_id.devid), cli, iterator, instantiate, free_index);
+		initializer.ScheduleNow();
+		initializer.wait();
+		I2CSPIDriverBase *instance = initializer.instance();
 
 		if (!instance) {
 			PX4_DEBUG("instantiate failed (no device on bus %i (devid 0x%x)?)", iterator.bus(), iterator.devid());
@@ -238,6 +254,23 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 
 		instances[free_index] = instance;
 		started = true;
+
+		// print some info that we are running
+		switch (iterator.busType()) {
+		case BOARD_I2C_BUS:
+			PX4_INFO_RAW("%s #%i on I2C bus %d%s\n",
+				     instance->ItemName(), free_index, iterator.bus(), iterator.external() ? " (external)" : "");
+			break;
+
+		case BOARD_SPI_BUS:
+			PX4_INFO_RAW("%s #%i on SPI bus %d (devid=0x%x)%s\n",
+				     instance->ItemName(), free_index, iterator.bus(), PX4_SPI_DEV_ID(iterator.devid()),
+				     iterator.external() ? " (external)" : "");
+			break;
+
+		case BOARD_INVALID_BUS:
+			break;
+		}
 	}
 
 	return started ? 0 : -1;
@@ -317,6 +350,30 @@ void I2CSPIDriverBase::request_stop_and_wait()
 	if (i >= 100) {
 		PX4_ERR("Module did not respond to stop request");
 	}
+}
+
+I2CSPIDriverInitializer::I2CSPIDriverInitializer(const px4::wq_config_t &config, const BusCLIArguments &cli,
+		const BusInstanceIterator &iterator, instantiate_method instantiate, int runtime_instance)
+	: px4::WorkItem("<driver_init>", config),
+	  _cli(cli), _iterator(iterator), _runtime_instance(runtime_instance), _instantiate(instantiate)
+{
+	px4_sem_init(&_sem, 0, 0);
+}
+
+I2CSPIDriverInitializer::~I2CSPIDriverInitializer()
+{
+	px4_sem_destroy(&_sem);
+}
+
+void I2CSPIDriverInitializer::wait()
+{
+	while (px4_sem_wait(&_sem) != 0) {}
+}
+
+void I2CSPIDriverInitializer::Run()
+{
+	_instance = _instantiate(_cli, _iterator, _runtime_instance);
+	px4_sem_post(&_sem);
 }
 
 #endif /* BOARD_DISABLE_I2C_SPI */
