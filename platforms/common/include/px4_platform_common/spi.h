@@ -34,6 +34,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <board_config.h>
 
 /*
  * Helper macros to handle device ID's. They are used to match drivers against SPI buses and chip-select signals.
@@ -66,7 +67,26 @@ struct px4_spi_bus_t {
 	bool requires_locking; ///< whether the bus should be locked during transfers (true if NuttX drivers access the bus)
 };
 
+
+struct px4_spi_bus_all_hw_t {
+	px4_spi_bus_t buses[SPI_BUS_MAX_BUS_ITEMS];
+	int board_hw_version; ///< 0=default, >0 for a specific revision (see board_get_hw_version)
+};
+
+#if BOARD_NUM_HW_VERSIONS > 1
+/**
+ * initialze px4_spi_buses from px4_spi_buses_all_hw and the hardware version.
+ * Call this on early boot before anything else accesses px4_spi_buses (e.g. from stm32_spiinitialize).
+ */
+__EXPORT void px4_set_spi_buses_from_hw_version();
+
+__EXPORT extern const px4_spi_bus_all_hw_t
+px4_spi_buses_all_hw[BOARD_NUM_HW_VERSIONS]; ///< board-specific SPI bus configuration all hw versions
+
+__EXPORT extern const px4_spi_bus_t *px4_spi_buses; ///< board-specific SPI bus configuration for current board revision
+#else
 __EXPORT extern const px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS]; ///< board-specific SPI bus configuration
+#endif
 
 
 /**

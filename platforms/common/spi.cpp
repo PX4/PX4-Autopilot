@@ -36,6 +36,29 @@
 
 #include <px4_platform_common/spi.h>
 
+#if BOARD_NUM_HW_VERSIONS > 1
+void px4_set_spi_buses_from_hw_version()
+{
+	int hw_version = board_get_hw_version();
+
+	for (int i = 0; i < BOARD_NUM_HW_VERSIONS; ++i) {
+		if (!px4_spi_buses && px4_spi_buses_all_hw[i].board_hw_version == 0) {
+			px4_spi_buses = px4_spi_buses_all_hw[i].buses;
+		}
+
+		if (px4_spi_buses_all_hw[i].board_hw_version == hw_version) {
+			px4_spi_buses = px4_spi_buses_all_hw[i].buses;
+		}
+	}
+
+	if (!px4_spi_buses) { // fallback
+		px4_spi_buses = px4_spi_buses_all_hw[0].buses;
+	}
+}
+
+const px4_spi_bus_t *px4_spi_buses{};
+#endif
+
 int px4_find_spi_bus(uint32_t devid)
 {
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
@@ -74,12 +97,10 @@ bool px4_spi_bus_requires_locking(int bus)
 }
 
 
-#ifndef BOARD_OVERRIDE_SPI_BUS_EXTERNAL
 bool px4_spi_bus_external(const px4_spi_bus_t &bus)
 {
 	return bus.is_external;
 }
-#endif
 
 bool SPIBusIterator::next()
 {

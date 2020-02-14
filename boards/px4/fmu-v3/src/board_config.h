@@ -60,6 +60,7 @@
 #define HW_VER_FMUV2MINI_STATE 0xA /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:0 */
 #define HW_VER_FMUV2X_STATE    0xB /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:1 */
 #define HW_VER_TYPE_INIT {'V','2',0, 0}
+#define BOARD_NUM_HW_VERSIONS 4
 
 /****************************************************************************************************
  * Definitions
@@ -220,8 +221,6 @@
 //#define PX4_SPIDEV_EXT_BARO      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 3)
 //#define PX4_SPIDEV_EXT_MPU       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 4)
 //#define PX4_SPIDEV_EXT_BMI       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 5)
-
-#define BOARD_OVERRIDE_SPI_BUS_EXTERNAL
 
 /* I2C busses */
 #define BOARD_OVERRIDE_I2C_BUS_EXTERNAL

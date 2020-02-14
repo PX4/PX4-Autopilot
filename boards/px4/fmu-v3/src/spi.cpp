@@ -35,31 +35,72 @@
 #include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(1, {
-		// Cube 2.0
-		initSPIDevice(DRV_GYR_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2}),
-
-		// Cube 2.1
-		initSPIDevice(DRV_GYR_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}),
-		initSPIDevice(DRV_MAG_DEVTYPE_HMC5883, SPI::CS{GPIO::PortC, GPIO::Pin1}), // HMC5983
-
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-		initSPIDevice(DRV_GYR_DEVTYPE_ICM20608, SPI::CS{GPIO::PortC, GPIO::Pin15}),
-
-		// TODO: l3dg20 (gyro), lsm303d (mag+accel), ...
-	}, true),
-	initSPIBus(2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_HW_VERSIONS] = {
+	initSPIHWVersion(HW_VER_FMUV2, {
+		initSPIBus(1, {
+			initSPIDevice(DRV_GYR_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+			initSPIDevice(DRV_GYR_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+			initSPIDevice(DRV_GYR_DEVTYPE_L3GD20, SPI::CS{GPIO::PortC, GPIO::Pin13}, SPI::DRDY{GPIO::PortB, GPIO::Pin0}),
+			initSPIDevice(DRV_ACC_DEVTYPE_LSM303D, SPI::CS{GPIO::PortC, GPIO::Pin15}),
+			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+		}, true),
+		initSPIBus(2, {
+			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+		}),
+		initSPIBusExternal(4, {
+			SPI::CS{GPIO::PortC, GPIO::Pin14},
+			SPI::CS{GPIO::PortE, GPIO::Pin4},
+		}),
 	}),
-	initSPIBusExternal(4, {
-		SPI::CS{GPIO::PortC, GPIO::Pin13},
-		SPI::CS{GPIO::PortC, GPIO::Pin14},
-		SPI::CS{GPIO::PortC, GPIO::Pin15},
-		SPI::CS{GPIO::PortE, GPIO::Pin4},
+
+	initSPIHWVersion(HW_VER_FMUV3, {
+		initSPIBus(1, {
+			initSPIDevice(DRV_GYR_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2}),
+			initSPIDevice(DRV_GYR_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}),
+			initSPIDevice(DRV_MAG_DEVTYPE_HMC5883, SPI::CS{GPIO::PortC, GPIO::Pin1}), // HMC5983
+			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+		}, true),
+		initSPIBus(2, {
+			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+		}),
+		initSPIBus(4, {
+			// TODO: which devices are running here?
+			initSPIDevice(DRV_ACC_DEVTYPE_ACCELSIM, SPI::CS{GPIO::PortC, GPIO::Pin13}),
+			initSPIDevice(DRV_ACC_DEVTYPE_ACCELSIM, SPI::CS{GPIO::PortC, GPIO::Pin14}),
+			initSPIDevice(DRV_ACC_DEVTYPE_ACCELSIM, SPI::CS{GPIO::PortC, GPIO::Pin15}),
+			initSPIDevice(DRV_ACC_DEVTYPE_ACCELSIM, SPI::CS{GPIO::PortE, GPIO::Pin4}),
+		}),
 	}),
+
+	initSPIHWVersion(HW_VER_FMUV2MINI, {
+		initSPIBus(1, {
+			initSPIDevice(DRV_GYR_DEVTYPE_ICM20608, SPI::CS{GPIO::PortC, GPIO::Pin15}, SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
+			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+		}, true),
+		initSPIBus(2, {
+			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+		}),
+		initSPIBusExternal(4, {
+			SPI::CS{GPIO::PortC, GPIO::Pin13},
+			SPI::CS{GPIO::PortC, GPIO::Pin15},
+			SPI::CS{GPIO::PortE, GPIO::Pin4},
+		}),
+	}),
+
+	initSPIHWVersion(HW_VER_FMUV2X, {
+		initSPIBus(1, {
+			// TODO
+		}, true),
+		initSPIBus(2, {
+			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+		}),
+		initSPIBusExternal(4, {
+			// TODO
+		}),
+	}),
+
 };
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+static constexpr bool unused = validateSPIConfig(px4_spi_buses_all_hw);
 
 
 static const px4_spi_bus_t *_spi_bus1;
@@ -159,6 +200,8 @@ static void stm32_spi4_initialize(void)
 
 __EXPORT void stm32_spiinitialize(void)
 {
+	px4_set_spi_buses_from_hw_version();
+
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		switch (px4_spi_buses[i].bus) {
 		case 1: _spi_bus1 = &px4_spi_buses[i]; break;
@@ -407,19 +450,3 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_spi1_initialize();
 }
 
-#include <px4_platform_common/spi.h>
-
-bool px4_spi_bus_external(const px4_spi_bus_t &bus)
-{
-	if (HW_VER_FMUV3 == board_get_hw_version()) {
-		/* all FMUv3 2.1 spi buses are internal */
-		return false;
-
-	} else {
-		if (bus.bus == 4) {
-			return true;
-		}
-	}
-
-	return false;
-}

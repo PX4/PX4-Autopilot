@@ -115,3 +115,27 @@ static inline constexpr px4_spi_bus_t initSPIBusExternal(int bus, const bus_devi
 	return ret;
 }
 
+struct px4_spi_bus_array_t {
+	px4_spi_bus_t item[SPI_BUS_MAX_BUS_ITEMS];
+};
+static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version, const px4_spi_bus_array_t &bus_items)
+{
+	px4_spi_bus_all_hw_t ret{};
+
+	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+		ret.buses[i] = bus_items.item[i];
+	}
+
+	ret.board_hw_version = hw_version;
+	return ret;
+}
+constexpr bool validateSPIConfig(const px4_spi_bus_t spi_buses_conf[SPI_BUS_MAX_BUS_ITEMS]);
+
+constexpr bool validateSPIConfig(const px4_spi_bus_all_hw_t spi_buses_conf[BOARD_NUM_HW_VERSIONS])
+{
+	for (int ver = 0; ver < BOARD_NUM_HW_VERSIONS; ++ver) {
+		validateSPIConfig(spi_buses_conf[ver].buses);
+	}
+
+	return false;
+}

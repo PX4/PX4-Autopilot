@@ -72,6 +72,10 @@
 #  endif
 #endif
 
+#ifndef BOARD_NUM_HW_VERSIONS
+#define BOARD_NUM_HW_VERSIONS 1
+#endif
+
 /* ADC defining tools
  * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
  */
