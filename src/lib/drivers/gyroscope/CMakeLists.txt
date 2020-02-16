@@ -35,4 +35,4 @@ px4_add_library(drivers_gyroscope
 	PX4Gyroscope.cpp
 	PX4Gyroscope.hpp
 )
-target_link_libraries(drivers_gyroscope PRIVATE drivers__device)
+target_link_libraries(drivers_gyroscope PRIVATE conversion drivers__device)

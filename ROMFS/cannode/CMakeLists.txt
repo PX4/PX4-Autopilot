@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,5 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__lis3mdl
-	MAIN lis3mdl
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
-	SRCS
-		lis3mdl_i2c.cpp
-		lis3mdl_spi.cpp
-		lis3mdl_main.cpp
-		lis3mdl.cpp
-	DEPENDS
-		conversion
-	)
+
+add_subdirectory(init.d)
