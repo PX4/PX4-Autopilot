@@ -56,8 +56,8 @@ struct mpu9250_bus_option {
 	uint8_t busnum;
 	uint32_t address;
 	MPU9250	*dev;
-    uint8_t bus_mode;
-    uint32_t bus_freq_hz;
+	uint8_t bus_mode;
+	uint32_t bus_freq_hz;
 } bus_options[] = {
 #if defined(USE_I2C)
 #  if defined(PX4_I2C_BUS_ONBOARD) && defined(PX4_I2C_OBDEV_MPU9250)
@@ -101,7 +101,7 @@ static mpu9250_bus_option *find_bus(MPU9250_BUS busid)
 static void updateBusMode(uint8_t dev_mode)
 {
 	for (mpu9250_bus_option &bus_option : bus_options) {
-        //only one option will be used, so simply update all options here
+		//only one option will be used, so simply update all options here
 		bus_option.bus_mode = dev_mode;
 	}
 }
@@ -109,7 +109,7 @@ static void updateBusMode(uint8_t dev_mode)
 static void updateBusSpeed(uint32_t freq_hz)
 {
 	for (mpu9250_bus_option &bus_option : bus_options) {
-        //only one option will be used, so simply update all options here
+        	//only one option will be used, so simply update all options here
 		bus_option.bus_freq_hz = freq_hz;
 	}
 }
@@ -217,8 +217,8 @@ static int usage()
 	PX4_INFO("    -S    (spi external bus)");
 	PX4_INFO("    -t    (spi internal bus, 2nd instance)");
 	PX4_INFO("    -R rotation");
-    PX4_INFO("    -m spi_bus_mode (0-3)");
-    PX4_INFO("    -k bus_frequency_in_kHz");
+	PX4_INFO("    -m spi_bus_mode (0-3)");
+	PX4_INFO("    -k bus_frequency_in_kHz");
 
 	return 0;
 }
@@ -261,17 +261,19 @@ extern "C" int mpu9250_main(int argc, char *argv[])
 			break;
 
 		case 'm':
-        {
+		{
 			uint8_t bus_mode = (uint8_t)atoi(myoptarg);
-            mpu9250::updateBusMode(bus_mode);
-            break;
-        }
-        case 'k':
-        {
+			mpu9250::updateBusMode(bus_mode);
+			break;
+		}
+
+		case 'k':
+		{
 			uint32_t bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
-            mpu9250::updateBusSpeed(bus_freq_hz);
-            break;
-        }
+			mpu9250::updateBusSpeed(bus_freq_hz);
+			break;
+		}
+
 		default:
 			return mpu9250::usage();
 		}

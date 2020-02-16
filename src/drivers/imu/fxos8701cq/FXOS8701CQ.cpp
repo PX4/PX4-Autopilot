@@ -142,7 +142,7 @@ FXOS8701CQ::probe()
 	uint8_t whoami = read_reg(FXOS8701CQ_WHOAMI);
 	bool success = (whoami == FXOS8700CQ_WHOAMI_VAL) || (whoami == FXOS8701CQ_WHOAMI_VAL);
 
-    PX4_INFO("FXOS8701CQ::probe: %s, whoami: 0x%02x", (success? "Succeeded" : "failed"), whoami);
+	PX4_INFO("FXOS8701CQ::probe: %s, whoami: 0x%02x", (success? "Succeeded" : "failed"), whoami);
 
 	if (success) {
 		_checked_values[0] = whoami;

@@ -178,15 +178,15 @@ extern device::Device *FXAS21002C_I2C_interface(int bus, uint32_t slave_address)
 
 typedef device::Device *(*FXAS21002C_constructor)(int, uint32_t);
 
-	/* status register and data as read back from the device */
+/* status register and data as read back from the device */
 #pragma pack(push, 1)
-	struct RawGyroReport{
-		uint8_t		cmd;
-		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
-	};
+    struct RawGyroReport{
+        uint8_t		cmd;
+        uint8_t		status;
+        int16_t		x;
+        int16_t		y;
+        int16_t		z;
+    };
 #pragma pack(pop)
 
 class FXAS21002C : public px4::ScheduledWorkItem
@@ -277,8 +277,8 @@ private:
 	 * @return		The value that was read.
 	 */
 	inline uint8_t read_reg(unsigned reg) {
-        return _interface->read_reg(reg);
-    }
+		return _interface->read_reg(reg);
+	}
 
 	/**
 	 * Write a register in the FXAS21002C
@@ -287,8 +287,8 @@ private:
 	 * @param value		The new value to write.
 	 */
 	inline void write_reg(unsigned reg, uint8_t value) {
-        _interface->write_reg(reg, value);
-    }
+		_interface->write_reg(reg, value);
+	}
 
 	/**
 	 * Modify a register in the FXAS21002C

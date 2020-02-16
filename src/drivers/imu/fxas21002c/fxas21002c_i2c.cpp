@@ -158,7 +158,7 @@ int FXAS21002C_I2C::read(unsigned reg, void *data, unsigned count) {
      */
     uint32_t offset = count < sizeof(RawGyroReport) ? 0 : offsetof(RawGyroReport, status);
     uint8_t cmd = FXAS21002C_REG(reg);
-//printf("FXAS21002C_I2C::read, starting reg address: 0x%2x, status field offset: 0x%2x\n", cmd, offset);
+
     return transfer(&cmd, 1, &((uint8_t *)data)[offset], count-offset);
     // without "-offset" -> stack smashing detected
 }

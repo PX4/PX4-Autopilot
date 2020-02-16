@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,44 +50,44 @@ public:
 	FXAS21002C_SPI(int bus, uint32_t chip_select);
 	~FXAS21002C_SPI() override = default;
 
-	/**
-	 * Read directly from the device.
-	 *
-	 * The actual size of each unit quantity is device-specific.
-	 *
-	 * @param reg	The register address at which to start reading
-	 * @param data	The buffer into which the read values should be placed.
-	 * @param count	The number of items to read.
-	 * @return		The number of items read on success, negative errno otherwise.
-	 */
+    /**
+     * Read directly from the device.
+     *
+     * The actual size of each unit quantity is device-specific.
+     *
+     * @param reg	The register address at which to start reading
+     * @param data	The buffer into which the read values should be placed.
+     * @param count	The number of items to read.
+     * @return		The number of items read on success, negative errno otherwise.
+     */
     int	read(unsigned reg, void *data, unsigned count) override;
 
-	/**
-	 * Write directly to the device.
-	 *
-	 * The actual size of each unit quantity is device-specific.
-	 *
-	 * @param reg	The register address at which to start writing.
-	 * @param data	The buffer from which values should be read.
-	 * @param count	The number of items to write.
-	 * @return		The number of items written on success, negative errno otherwise.
-	 */
+    /**
+     * Write directly to the device.
+     *
+     * The actual size of each unit quantity is device-specific.
+     *
+     * @param reg	The register address at which to start writing.
+     * @param data	The buffer from which values should be read.
+     * @param count	The number of items to write.
+     * @return		The number of items written on success, negative errno otherwise.
+     */
     int	write(unsigned reg, void *data, unsigned count) override;
 
-	/**
-	 * Read a register from the FXAS21002C
-	 *
-	 * @param		The register to read.
-	 * @return		The value that was read.
-	 */
+    /**
+     * Read a register from the FXAS21002C
+     *
+     * @param		The register to read.
+     * @return		The value that was read.
+     */
     uint8_t read_reg(unsigned reg) override;
 
-	/**
-	 * Write a register in the FXAS21002C
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
+    /**
+     * Write a register in the FXAS21002C
+     *
+     * @param reg		The register to write.
+     * @param value		The new value to write.
+     */
     void write_reg(unsigned reg, uint8_t value) override;
 
 protected:
@@ -102,7 +102,7 @@ FXAS21002C_SPI_interface(int bus, uint32_t chip_select) {
 FXAS21002C_SPI::FXAS21002C_SPI(int bus, uint32_t chip_select) :
         SPI("FXAS21002C", nullptr, bus, chip_select, SPIDEV_MODE0, FXAS21002C_SPI_BUS_SPEED)
 {
-	set_device_type(DRV_GYR_DEVTYPE_FXAS2100C);
+    set_device_type(DRV_GYR_DEVTYPE_FXAS2100C);
     PX4_INFO("FXAS21002C_SPI: spi mode: %u, bus frequency: %i KHz", SPIDEV_MODE0, FXAS21002C_SPI_BUS_SPEED/1000);
 }
 
@@ -118,24 +118,24 @@ FXAS21002C_SPI::probe()
 
 uint8_t
 FXAS21002C_SPI::read_reg(unsigned reg) {
-	uint8_t cmd[2];
+    uint8_t cmd[2];
 
-	cmd[0] = DIR_READ(reg);
-	cmd[1] = 0;
+    cmd[0] = DIR_READ(reg);
+    cmd[1] = 0;
 
-	transfer(cmd, cmd, sizeof(cmd));
+    transfer(cmd, cmd, sizeof(cmd));
 
-	return cmd[1];
+    return cmd[1];
 }
 
 void
 FXAS21002C_SPI::write_reg(unsigned reg, uint8_t value) {
-	uint8_t cmd[2];
+    uint8_t cmd[2];
 
-	cmd[0] = DIR_WRITE(reg);
-	cmd[1] = value;
+    cmd[0] = DIR_WRITE(reg);
+    cmd[1] = value;
 
-	transfer(cmd, nullptr, sizeof(cmd));
+    transfer(cmd, nullptr, sizeof(cmd));
 }
 
 /**
@@ -149,12 +149,12 @@ FXAS21002C_SPI::write_reg(unsigned reg, uint8_t value) {
  * @return		The number of items read on success, negative errno otherwise.
  */
 int FXAS21002C_SPI::read(unsigned reg, void *data, unsigned count) {
-	/* Same as in mpu9250_spi.cpp:
+    /* Same as in mpu9250_spi.cpp:
      * We want to avoid copying the data of RawGyroReport: So if the caller
-	 * supplies a buffer not RawGyroReport in size, it is assume to be a reg or reg 16 read
-	 * and we need to provied the buffer large enough for the callers data
-	 * and our command.
-	 */
+     * supplies a buffer not RawGyroReport in size, it is assume to be a reg or reg 16 read
+     * and we need to provied the buffer large enough for the callers data
+     * and our command.
+     */
 	uint8_t cmd[3] {};
 
 	uint8_t *pBuf  =  count < sizeof(RawGyroReport) ? cmd : (uint8_t *) data ;

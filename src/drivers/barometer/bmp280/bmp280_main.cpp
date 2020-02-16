@@ -54,8 +54,8 @@ struct bmp280_bus_option {
 	uint8_t busnum;
 	uint32_t address;
 	BMP280	*dev;
-    uint8_t bus_mode;
-    uint32_t bus_freq_hz;
+	uint8_t bus_mode;
+	uint32_t bus_freq_hz;
 } bus_options[] = {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BARO)
     { BMP280_BUS::SPI_EXTERNAL, &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, nullptr, 3, BMP280_SPI_SPEED },
@@ -191,8 +191,8 @@ static int usage()
 	PX4_INFO("    -I    (i2c internal bus)");
 	PX4_INFO("    -s    (spi internal bus)");
 	PX4_INFO("    -S    (spi external bus)");
-    PX4_INFO("    -m    spi_bus_mode (0-3)");
-    PX4_INFO("    -k    bus_frequency_in_kHz");
+	PX4_INFO("    -m    spi_bus_mode (0-3)");
+	PX4_INFO("    -k    bus_frequency_in_kHz");
 
 	return 0;
 }
@@ -207,7 +207,7 @@ extern "C" int bmp280_main(int argc, char *argv[])
 
 	BMP280_BUS busid = BMP280_BUS::ALL;
 
-    while ((ch = px4_getopt(argc, argv, "XISsm:k:", &myoptind, &myoptarg)) != EOF) {
+    	while ((ch = px4_getopt(argc, argv, "XISsm:k:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = BMP280_BUS::I2C_EXTERNAL;
@@ -225,18 +225,19 @@ extern "C" int bmp280_main(int argc, char *argv[])
 			busid = BMP280_BUS::SPI_INTERNAL;
 			break;
 
-        case 'm':
-        {
-            uint8_t bus_mode = (uint8_t)atoi(myoptarg);
-            bmp280::updateBusMode(bus_mode);
-            break;
-        }
-        case 'k':
-        {
-            uint32_t bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
-            bmp280::updateBusSpeed(bus_freq_hz);
-            break;
-        }
+		case 'm':
+		{
+			uint8_t bus_mode = (uint8_t)atoi(myoptarg);
+			bmp280::updateBusMode(bus_mode);
+			break;
+		}
+
+		case 'k':
+		{
+			uint32_t bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
+			bmp280::updateBusSpeed(bus_freq_hz);
+			break;
+		}
 
 		default:
 			return bmp280::usage();

@@ -61,23 +61,22 @@ struct fxos8701cq_bus_option {
 	FXOS8701CQ_constructor interface_constructor;
 	uint8_t busnum;
 	uint32_t address;
-    bool external;
 	FXOS8701CQ	*dev;
 } bus_options[] = {
 #if defined(FXOS8701CQ_USE_I2C)
 
 #  if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_FXOS8701CQ_ADDR)
-	{ FXOS8701CQ_BUS::I2C_INTERNAL, &FXOS8701CQ_I2C_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_FXOS8701CQ_ADDR, false, nullptr },
+    { FXOS8701CQ_BUS::I2C_INTERNAL, &FXOS8701CQ_I2C_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_FXOS8701CQ_ADDR, nullptr },
 #  endif
 
 #endif
 
 #if defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_ACCEL_MAG)
-	{ FXOS8701CQ_BUS::SPI_INTERNAL, &FXOS8701CQ_SPI_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_ACCEL_MAG, false, nullptr },
+    { FXOS8701CQ_BUS::SPI_INTERNAL, &FXOS8701CQ_SPI_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_ACCEL_MAG, nullptr },
 #endif
 
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_ACCEL_MAG_EXT)
-    { FXOS8701CQ_BUS::SPI_EXTERNAL, &FXOS8701CQ_SPI_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_ACCEL_MAG_EXT, true, nullptr },
+    { FXOS8701CQ_BUS::SPI_EXTERNAL, &FXOS8701CQ_SPI_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_ACCEL_MAG_EXT, nullptr },
 #endif
 };
 

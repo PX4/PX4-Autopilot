@@ -47,7 +47,7 @@
 class BMP280_I2C: public device::I2C, public bmp280::IBMP280
 {
 public:
-    BMP280_I2C(uint8_t bus, uint32_t device, uint32_t bus_freq_hz);
+	BMP280_I2C(uint8_t bus, uint32_t device, uint32_t bus_freq_hz);
 	virtual ~BMP280_I2C() override = default;
 
 	int init() override { return I2C::init(); }

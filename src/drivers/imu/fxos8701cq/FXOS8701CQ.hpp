@@ -160,7 +160,7 @@ protected:
 
 private:
     device::Device *_interface;
-    
+
 	void Run() override;
 
 	void			start();
@@ -178,19 +178,19 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-    inline uint8_t read_reg(unsigned reg) { 
-        return _interface->read_reg(reg); 
-    }
-    
+	inline uint8_t read_reg(unsigned reg) {
+		return _interface->read_reg(reg);
+	}
+
 	/**
 	 * Write a register in the FXOS8701C
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	inline void write_reg(unsigned reg, uint8_t value) { 
-        _interface->write_reg(reg, value); 
-    }
+	inline void write_reg(unsigned reg, uint8_t value) {
+		_interface->write_reg(reg, value);
+	}
 
 	/**
 	 * Modify a register in the FXOS8701C
