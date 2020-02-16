@@ -96,7 +96,7 @@ MPU9250_SPI::set_bus_frequency(unsigned &reg_speed)
 	/* Set the desired speed */
 	set_frequency(MPU9250_IS_HIGH_SPEED(reg_speed) ? MPU9250_HIGH_SPI_BUS_SPEED : MPU9250_LOW_SPI_BUS_SPEED);
 
-	/* Isoolate the register on return */
+	/* Isolate the register on return */
 	reg_speed = MPU9250_REG(reg_speed);
 }
 
