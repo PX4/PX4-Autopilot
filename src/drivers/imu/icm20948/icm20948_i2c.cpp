@@ -57,7 +57,7 @@ public:
 	int	write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	virtual int	probe();
+	virtual int	probe() override;
 
 private:
 

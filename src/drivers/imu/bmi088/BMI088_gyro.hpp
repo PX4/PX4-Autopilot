@@ -132,10 +132,11 @@
 class BMI088_gyro : public BMI088, public px4::ScheduledWorkItem
 {
 public:
-	BMI088_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation);
+    BMI088_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation,
+                enum spi_mode_e spi_mode, uint32_t bus_freq_hz);
 	virtual ~BMI088_gyro();
 
-	virtual int     init();
+	virtual int     init() override;
 
 	// Start automatic measurement.
 	void            start();
@@ -152,7 +153,7 @@ public:
 
 protected:
 
-	virtual int     probe();
+	virtual int     probe() override;
 
 private:
 

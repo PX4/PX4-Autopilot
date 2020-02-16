@@ -106,10 +106,10 @@ private:
 	int _channels;
 	int _device_fd;  /** serial port device to read SBUS; */
 	int _channels_data[16]; /** 16 channels support; */
-	uint8_t _buffer[25];
+	//uint8_t _buffer[25];
 	char _device[30];
-	bool _failsafe;
-	bool _rc_loss;
+	//bool _failsafe;
+	//bool _rc_loss;
 	int init();
 };
 

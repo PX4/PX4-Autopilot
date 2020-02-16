@@ -83,6 +83,9 @@
 #define BMP280_MT_INIT		6400	/* max measure time of initial p + t in us */
 #define BMP280_MT			2300	/* max measure time of p or t in us */
 
+#define BMP280_I2C_SPEED   100 * 1000
+#define BMP280_SPI_SPEED   10 * 1000 * 1000
+
 namespace bmp280
 {
 
@@ -157,6 +160,9 @@ public:
 
 
 /* interface factories */
-extern bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint32_t device);
-extern bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device);
-typedef bmp280::IBMP280 *(*BMP280_constructor)(uint8_t, uint32_t);
+extern bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint32_t device,
+                                             uint8_t bus_mode, uint32_t bus_freq_hz);
+extern bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device,
+                                             uint8_t bus_mode, uint32_t bus_freq_hz);
+typedef bmp280::IBMP280 *(*BMP280_constructor)(uint8_t busnum, uint32_t device,
+                                               uint8_t bus_mode, uint32_t bus_freq_hz);

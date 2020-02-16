@@ -257,7 +257,6 @@ usage()
 	PX4_INFO("    -I    (i2c internal bus)");
 	PX4_INFO("    -s    (spi internal bus)");
 	PX4_INFO("    -S    (spi external bus)");
-	PX4_INFO("    -t    (spi internal bus, 2nd instance)");
 	PX4_INFO("    -R rotation");
 
 	return PX4_OK;
@@ -275,11 +274,23 @@ icm20948_main(int argc, char *argv[])
 	enum ICM20948_BUS busid = ICM20948_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 
-	while ((ch = px4_getopt(argc, argv, "XISstMR:", &myoptind, &myoptarg)) != EOF) {
+    while ((ch = px4_getopt(argc, argv, "XISsR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = ICM20948_BUS_I2C_EXTERNAL;
 			break;
+
+        case 'I':
+            busid = ICM20948_BUS_I2C_INTERNAL;
+            break;
+
+        case 'S':
+            busid = ICM20948_BUS_SPI_EXTERNAL;
+            break;
+
+        case 's':
+            busid = ICM20948_BUS_SPI_INTERNAL;
+            break;
 
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);

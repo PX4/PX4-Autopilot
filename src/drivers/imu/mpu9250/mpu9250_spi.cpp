@@ -47,24 +47,12 @@
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
-/*
- * The MPU9250 can only handle high SPI bus speeds of 20Mhz on the sensor and
- * interrupt status registers. All other registers have a maximum 1MHz
- * SPI speed
- *
- * The Actual Value will be rounded down by the spi driver.
- * for a 168Mhz CPU this will be 10.5 Mhz and for a 180 Mhz CPU
- * it will be 11.250 Mhz
- */
-#define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
-#define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
-
-device::Device *MPU9250_SPI_interface(int bus, uint32_t cs);
+device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, uint8_t bus_mode, int32_t bus_freq_hz);
 
 class MPU9250_SPI : public device::SPI
 {
 public:
-	MPU9250_SPI(int bus, uint32_t device);
+	MPU9250_SPI(int bus, uint32_t device, uint8_t bus_mode, int32_t bus_freq_hz);
 	~MPU9250_SPI() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -74,30 +62,32 @@ protected:
 	int probe() override;
 
 private:
-
+    int32_t high_bus_speed;
 	/* Helper to set the desired speed and isolate the register on return */
 	void set_bus_frequency(unsigned &reg_speed_reg_out);
 };
 
 device::Device *
-MPU9250_SPI_interface(int bus, uint32_t cs)
+MPU9250_SPI_interface(int bus, uint32_t cs, uint8_t bus_mode, int32_t bus_freq_hz)
 {
-	return new MPU9250_SPI(bus, cs);
+	return new MPU9250_SPI(bus, cs, bus_mode, bus_freq_hz);
 }
 
-MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device) :
-	SPI("MPU9250", nullptr, bus, device, SPIDEV_MODE3, MPU9250_LOW_SPI_BUS_SPEED)
+MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device, uint8_t bus_mode, int32_t bus_freq_hz) :
+        SPI("MPU9250", nullptr, bus, device, (enum spi_mode_e)bus_mode, MPU9250_LOW_SPI_BUS_SPEED),
+        high_bus_speed(bus_freq_hz)
 {
 	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
+    PX4_INFO("MPU9250_SPI: spi mode: %u, high bus frequency: %i KHz", bus_mode, bus_freq_hz/1000);
 }
 
 void
 MPU9250_SPI::set_bus_frequency(unsigned &reg_speed)
 {
 	/* Set the desired speed */
-	set_frequency(MPU9250_IS_HIGH_SPEED(reg_speed) ? MPU9250_HIGH_SPI_BUS_SPEED : MPU9250_LOW_SPI_BUS_SPEED);
+	set_frequency(MPU9250_IS_HIGH_SPEED(reg_speed) ? high_bus_speed : MPU9250_LOW_SPI_BUS_SPEED);
 
-	/* Isoolate the register on return */
+	/* Isolate the register on return */
 	reg_speed = MPU9250_REG(reg_speed);
 }
 

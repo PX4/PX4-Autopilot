@@ -157,19 +157,20 @@
 class BMI088_accel : public BMI088, public px4::ScheduledWorkItem
 {
 public:
-	BMI088_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation);
+    BMI088_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation,
+                 enum spi_mode_e spi_mode, uint32_t bus_freq_hz);
 	virtual ~BMI088_accel();
 
-	virtual int     init();
+	virtual int     init() override;
 
 	// Start automatic measurement.
 	void            start();
 
 	// We need to override the read_reg function from the BMI088 base class, because the accelerometer requires a dummy byte read before each read operation
-	virtual uint8_t   read_reg(unsigned reg);
+	virtual uint8_t   read_reg(unsigned reg) override;
 
 	// We need to override the read_reg16 function from the BMI088 base class, because the accelerometer requires a dummy byte read before each read operation
-	virtual uint16_t read_reg16(unsigned reg);
+	virtual uint16_t read_reg16(unsigned reg) override;
 
 	/**
 	    * Diagnostics - print some basic information about the driver.
@@ -183,7 +184,7 @@ public:
 
 protected:
 
-	virtual int     probe();
+	virtual int     probe() override;
 
 private:
 

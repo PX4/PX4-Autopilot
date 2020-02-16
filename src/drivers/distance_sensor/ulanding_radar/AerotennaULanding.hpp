@@ -113,8 +113,8 @@ private:
 
 	int _file_descriptor{-1};
 
-	unsigned int _head{0};
-	unsigned int _tail{0};
+	//unsigned int _head{0};
+	//unsigned int _tail{0};
 
 	uint8_t _buffer[ULANDING_BUFFER_LENGTH] {};
 

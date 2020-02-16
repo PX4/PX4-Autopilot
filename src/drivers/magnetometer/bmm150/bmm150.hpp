@@ -23,8 +23,10 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
 
+#ifdef __PX4_NUTTX
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
+#endif
 
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
@@ -197,7 +199,7 @@ public:
 	BMM150(int bus, const char *path, enum Rotation rotation);
 	virtual ~BMM150();
 
-	virtual int             init();
+	virtual int             init() override;
 	virtual ssize_t       read(struct file *filp, char *buffer, size_t buflen);
 	virtual int       ioctl(struct file *filp, int cmd, unsigned long arg);
 
@@ -214,7 +216,7 @@ public:
 	void        print_registers();
 
 protected:
-	virtual int       probe();
+	virtual int       probe() override;
 
 private:
 

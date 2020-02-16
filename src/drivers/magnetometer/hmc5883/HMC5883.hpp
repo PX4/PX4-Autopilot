@@ -116,10 +116,10 @@ public:
 	HMC5883(device::Device *interface, const char *path, enum Rotation rotation);
 	virtual ~HMC5883();
 
-	virtual int		init();
+	virtual int		init() override;
 
-	virtual ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen) override;
+	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	 * Stop the automatic measurement state machine.

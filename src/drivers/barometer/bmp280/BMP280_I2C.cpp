@@ -47,7 +47,7 @@
 class BMP280_I2C: public device::I2C, public bmp280::IBMP280
 {
 public:
-	BMP280_I2C(uint8_t bus, uint32_t device);
+    BMP280_I2C(uint8_t bus, uint32_t device, uint32_t bus_freq_hz);
 	virtual ~BMP280_I2C() override = default;
 
 	int init() override { return I2C::init(); }
@@ -65,14 +65,16 @@ private:
 	bmp280::data_s		_data{};
 };
 
-bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device)
+bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device,
+                                      uint8_t bus_mode, uint32_t bus_freq_hz)
 {
-	return new BMP280_I2C(busnum, device);
+    return new BMP280_I2C(busnum, device, bus_freq_hz);
 }
 
-BMP280_I2C::BMP280_I2C(uint8_t bus, uint32_t device) :
-	I2C("BMP280_I2C", nullptr, bus, device, 100 * 1000)
+BMP280_I2C::BMP280_I2C(uint8_t bus, uint32_t device, uint32_t bus_freq_hz) :
+    I2C("BMP280_I2C", nullptr, bus, device, bus_freq_hz)
 {
+    PX4_INFO("BMP280_I2C: bus frequency: %i KHz", bus_freq_hz/1000);
 }
 
 uint8_t

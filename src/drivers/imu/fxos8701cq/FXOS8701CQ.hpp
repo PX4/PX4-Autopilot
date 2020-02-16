@@ -34,16 +34,21 @@
 /**
  * @file FXOS8701CQ.hpp
  * Driver for the NXP FXOS8701CQ 6-axis sensor with integrated linear accelerometer and
- * magnetometer connected via SPI.
+ * magnetometer connected via SPI or I2C.
  */
 
 #pragma once
 
+#include <drivers/device/i2c.h>
 #include <drivers/device/spi.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+#if defined(PX4_I2C_FXOS8701CQ_ADDR) && defined(PX4_I2C_BUS_EXPANSION)
+#  define FXOS8701CQ_USE_I2C
+#endif
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
@@ -55,6 +60,10 @@
 #define ADDR_7(a)                       ((a) & (1 << 7))
 #define swap16(w)                       __builtin_bswap16((w))
 #define swap16RightJustify14(w)         (((int16_t)swap16(w)) >> 2)
+
+// I2C address
+#define FXOS8701CQ_REG_MASK					0x00FF
+#define FXOS8701CQ_REG(r) 					((r) & FXOS8701CQ_REG_MASK)
 
 #define FXOS8701CQ_DR_STATUS       0x00
 #  define DR_STATUS_ZYXDR          (1 << 3)
@@ -111,10 +120,33 @@
  */
 #define FXOS8701C_TIMER_REDUCTION				240
 
-class FXOS8701CQ : public device::SPI, public px4::ScheduledWorkItem
+#pragma pack(push, 1)
+    struct RawAccelMagReport {
+#       ifdef FXOS8701CQ_USE_I2C
+            uint8_t  cmd;
+#       else
+            uint8_t	 cmd[2];
+#       endif
+
+        uint8_t		status;
+        int16_t		x;
+        int16_t		y;
+        int16_t		z;
+        int16_t		mx;
+        int16_t		my;
+        int16_t		mz;
+    };
+#pragma pack(pop)
+
+extern device::Device *FXOS8701CQ_SPI_interface(int bus, uint32_t chip_select);
+extern device::Device *FXOS8701CQ_I2C_interface(int bus, uint32_t slave_address);
+
+typedef device::Device *(*FXOS8701CQ_constructor)(int, uint32_t);
+
+class FXOS8701CQ : public px4::ScheduledWorkItem
 {
 public:
-	FXOS8701CQ(int bus, uint32_t device, enum Rotation rotation);
+    FXOS8701CQ(device::Device *interface, enum Rotation rotation);
 	virtual ~FXOS8701CQ();
 
 	virtual int		init();
@@ -124,10 +156,11 @@ public:
 	void			test_error();
 
 protected:
-	virtual int		probe();
+    virtual int		probe();
 
 private:
-
+    device::Device *_interface;
+    
 	void Run() override;
 
 	void			start();
@@ -145,15 +178,19 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg);
-
+    inline uint8_t read_reg(unsigned reg) { 
+        return _interface->read_reg(reg); 
+    }
+    
 	/**
 	 * Write a register in the FXOS8701C
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	void			write_reg(unsigned reg, uint8_t value);
+	inline void write_reg(unsigned reg, uint8_t value) { 
+        _interface->write_reg(reg, value); 
+    }
 
 	/**
 	 * Modify a register in the FXOS8701C

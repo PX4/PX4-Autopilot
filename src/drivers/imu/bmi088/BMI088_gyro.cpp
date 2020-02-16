@@ -55,15 +55,17 @@ const uint8_t BMI088_gyro::_checked_registers[BMI088_GYRO_NUM_CHECKED_REGISTERS]
 											BMI088_GYR_INT_MAP_1
 										   };
 
-BMI088_gyro::BMI088_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation) :
-	BMI088("BMI088_GYRO", path_gyro, bus, device, SPIDEV_MODE3, BMI088_BUS_SPEED, rotation),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+BMI088_gyro::BMI088_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation,
+                         enum spi_mode_e spi_mode, uint32_t bus_freq_hz) :
+        BMI088("BMI088_GYRO", path_gyro, bus, device, spi_mode, bus_freq_hz, rotation),
+        ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi088_gyro_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_registers"))
 {
 	_px4_gyro.set_device_type(DRV_DEVTYPE_BMI088);
+    PX4_INFO("BMI088_gyro: spi mode: %u, bus frequency: %i KHz", spi_mode, bus_freq_hz/1000);
 }
 
 BMI088_gyro::~BMI088_gyro()
@@ -106,7 +108,12 @@ int BMI088_gyro::reset()
 
 	//Enable Gyroscope in normal mode
 	write_reg(BMI088_GYR_LPM1, BMI088_GYRO_NORMAL);
-	up_udelay(1000);
+
+        #if defined(__PX4_POSIX)
+            px4_usleep(1000) ;
+        #else
+            up_udelay(1000);
+        #endif
 
 	uint8_t retries = 10;
 

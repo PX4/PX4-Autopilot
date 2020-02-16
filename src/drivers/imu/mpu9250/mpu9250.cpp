@@ -266,7 +266,7 @@ MPU9250::probe()
 	_whoami = read_reg(MPUREG_WHOAMI);
 
 	if (_whoami == MPU_WHOAMI_9250 || _whoami == MPU_WHOAMI_6500) {
-
+		PX4_INFO("MPU9250::probe() succeeded, whoami: 0x%02x", _whoami);
 		_num_checked_registers = MPU9250_NUM_CHECKED_REGISTERS;
 		_checked_registers = _mpu9250_checked_registers;
 		memset(_checked_values, 0, MPU9250_NUM_CHECKED_REGISTERS);
@@ -508,7 +508,7 @@ MPU9250::check_registers()
 
 	if ((v = read_reg(_checked_registers[_checked_next], MPU9250_HIGH_BUS_SPEED)) != _checked_values[_checked_next]) {
 
-		PX4_DEBUG("reg: %d = %d (should be %d) _reset_wait: %llu", _checked_registers[_checked_next], v,
+        PX4_DEBUG("reg: %d = %d (should be %d) _reset_wait: %lu", _checked_registers[_checked_next], v,
 			  _checked_values[_checked_next], _reset_wait);
 
 		/*

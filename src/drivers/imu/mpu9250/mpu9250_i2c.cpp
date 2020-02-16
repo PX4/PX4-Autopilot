@@ -43,34 +43,35 @@
 
 #ifdef USE_I2C
 
-device::Device *MPU9250_I2C_interface(int bus, uint32_t address);
+device::Device *MPU9250_I2C_interface(int bus, uint32_t address, int32_t bus_freq_hz);
 
 class MPU9250_I2C : public device::I2C
 {
 public:
-	MPU9250_I2C(int bus, uint32_t address);
+	MPU9250_I2C(int bus, uint32_t address, int32_t bus_freq_hz);
 	~MPU9250_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
 	int	write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	virtual int	probe();
+	virtual int	probe() override;
 
 private:
 
 };
 
 device::Device *
-MPU9250_I2C_interface(int bus, uint32_t address)
+MPU9250_I2C_interface(int bus, uint32_t address, uint8_t bus_mode, int32_t bus_freq_hz)
 {
-	return new MPU9250_I2C(bus, address);
+	return new MPU9250_I2C(bus, address, bus_freq_hz);
 }
 
-MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
-	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
+MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address, int32_t bus_freq_hz) :
+	I2C("MPU9250_I2C", nullptr, bus, address, bus_freq_hz)
 {
 	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
+    PX4_INFO("MPU9250_I2C: bus frequency: %i KHz", bus_freq_hz/1000);
 }
 
 int
@@ -98,7 +99,7 @@ MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	 */
 	uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, ACCEL_XOUT_H);
 	uint8_t cmd = MPU9250_REG(reg_speed);
-	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count);
+	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count-offset);
 }
 
 int

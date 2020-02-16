@@ -206,6 +206,20 @@ struct MPUReport {
 #pragma pack(pop)
 
 /*
+ * The MPU9250 can only handle high SPI bus speeds of 20Mhz on the sensor and
+ * interrupt status registers. All other registers have a maximum 1MHz
+ * SPI speed
+ *
+ * The Actual Value will be rounded down by the spi driver.
+ * for a 168Mhz CPU this will be 10.5 Mhz and for a 180 Mhz CPU
+ * it will be 11.250 Mhz
+ */
+#define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
+#define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
+
+#define MPU9250_I2C_BUS_SPEED       400 * 1000
+
+/*
   The MPU9250 can only handle high bus speeds on the sensor and
   interrupt status registers. All other registers have a maximum 1MHz
   Communication with all registers of the device is performed using either
@@ -224,11 +238,11 @@ struct MPUReport {
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
 /* interface factories */
-extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs);
-extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address);
+extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, uint8_t bus_mode, int32_t bus_freq_hz);
+extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, int32_t bus_freq_hz);
 extern int MPU9250_probe(device::Device *dev);
 
-typedef device::Device *(*MPU9250_constructor)(int, uint32_t);
+typedef device::Device *(*MPU9250_constructor)(int bus, uint32_t cs, uint8_t bus_mode, int32_t bus_freq_hz);
 
 class MPU9250_mag;
 
