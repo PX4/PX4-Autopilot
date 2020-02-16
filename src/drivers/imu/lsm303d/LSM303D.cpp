@@ -164,7 +164,7 @@ LSM303D::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-void
+int
 LSM303D::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t	cmd[2] {};
@@ -172,7 +172,7 @@ LSM303D::write_reg(unsigned reg, uint8_t value)
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-	transfer(cmd, nullptr, sizeof(cmd));
+	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
 void

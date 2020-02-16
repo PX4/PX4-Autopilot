@@ -245,13 +245,13 @@ ADIS16477::read_reg16(uint8_t reg)
 	return cmd[0];
 }
 
-void
+int
 ADIS16477::write_reg(uint8_t reg, uint8_t val)
 {
 	uint8_t cmd[2] {};
 	cmd[0] = reg | 0x8;
 	cmd[1] = val;
-	transfer(cmd, cmd, sizeof(cmd));
+	return transfer(cmd, cmd, sizeof(cmd));
 }
 
 void

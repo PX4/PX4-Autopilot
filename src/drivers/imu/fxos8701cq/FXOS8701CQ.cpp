@@ -53,13 +53,13 @@ const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = 
 	FXOS8701CQ_M_CTRL_REG2,
 };
 
-FXOS8701CQ::FXOS8701CQ(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		       spi_mode_e spi_mode) :
-	SPI(DRV_ACC_DEVTYPE_FXOS8701C, MODULE_NAME, bus, device, spi_mode, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_accel(get_device_id(), ORB_PRIO_LOW, rotation),
+FXOS8701CQ::FXOS8701CQ(device::Device *interface, I2CSPIBusOption bus_option, int bus, enum Rotation rotation,
+		       int i2c_address) :
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, i2c_address),
+	_interface(interface),
+	_px4_accel(interface->get_device_id(), ORB_PRIO_LOW, rotation),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	_px4_mag(get_device_id(), ORB_PRIO_LOW, rotation),
+	_px4_mag(interface->get_device_id(), ORB_PRIO_LOW, rotation),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag read")),
 #endif
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": acc read")),
@@ -86,11 +86,20 @@ FXOS8701CQ::~FXOS8701CQ()
 int
 FXOS8701CQ::init()
 {
-	// do SPI init (and probe) first
-	int ret = SPI::init();
+	// do SPI/I2C init (and probe) first
+	int ret = _interface->init();
 
 	if (ret != OK) {
-		PX4_ERR("SPI init failed");
+		PX4_ERR("SPI/I2C interface init failed");
+		return ret;
+	}
+
+	// There are 2 possible WHOAMI return values,
+	// so probe here again to set proper _checked_values[0]
+	ret = probe();
+
+	if (ret != OK) {
+		PX4_ERR("FXOS8701CQ::probe() failed");
 		return ret;
 	}
 
@@ -134,32 +143,6 @@ FXOS8701CQ::probe()
 	}
 
 	return -EIO;
-}
-
-uint8_t
-FXOS8701CQ::read_reg(unsigned reg)
-{
-	uint8_t cmd[3];
-
-	cmd[0] = DIR_READ(reg);
-	cmd[1] = ADDR_7(reg);
-	cmd[2] = 0;
-
-	transfer(cmd, cmd, sizeof(cmd));
-
-	return cmd[2];
-}
-
-void
-FXOS8701CQ::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t cmd[3];
-
-	cmd[0] = DIR_WRITE(reg);
-	cmd[1] = ADDR_7(reg);
-	cmd[2] = value;
-
-	transfer(cmd, nullptr, sizeof(cmd));
 }
 
 void
@@ -318,18 +301,7 @@ FXOS8701CQ::RunImpl()
 	perf_begin(_accel_sample_perf);
 
 	// status register and data as read back from the device
-#pragma pack(push, 1)
-	struct {
-		uint8_t		cmd[2];
-		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
-		int16_t		mx;
-		int16_t		my;
-		int16_t		mz;
-	} raw_accel_mag_report{};
-#pragma pack(pop)
+	RawAccelMagReport raw_accel_mag_report{};
 
 	check_registers();
 
@@ -342,10 +314,9 @@ FXOS8701CQ::RunImpl()
 	}
 
 	/* fetch data from the sensor */
-	raw_accel_mag_report.cmd[0] = DIR_READ(FXOS8701CQ_DR_STATUS);
-	raw_accel_mag_report.cmd[1] = ADDR_7(FXOS8701CQ_DR_STATUS);
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	transfer((uint8_t *)&raw_accel_mag_report, (uint8_t *)&raw_accel_mag_report, sizeof(raw_accel_mag_report));
+
+	_interface->read(FXOS8701CQ_DR_STATUS, (uint8_t *)&raw_accel_mag_report, sizeof(raw_accel_mag_report));
 
 	if (!(raw_accel_mag_report.status & DR_STATUS_ZYXDR)) {
 		perf_end(_accel_sample_perf);
