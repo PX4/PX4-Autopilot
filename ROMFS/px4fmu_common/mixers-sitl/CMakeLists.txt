@@ -37,4 +37,5 @@ px4_add_romfs_files(
 	rover_sitl.main.mix
 	standard_vtol_sitl.main.mix
 	tiltrotor_sitl.main.mix
+	uuv_x_sitl.main.mix
 )

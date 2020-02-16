@@ -38,12 +38,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+using namespace time_literals;
+
 namespace navio_sysfs_rc_in
 {
-
-#define RCINPUT_DEVICE_PATH_BASE "/sys/kernel/rcio/rcin"
-
-#define RCINPUT_MEASURE_INTERVAL_US 20000 // microseconds
 
 NavioSysRCInput::NavioSysRCInput() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -57,50 +55,44 @@ NavioSysRCInput::~NavioSysRCInput()
 
 	_isRunning = false;
 
-	for (int i = 0; i < _channels; ++i) {
-		if (_ch_fd[i] != -1) {
-			::close(_ch_fd[i]);
-		}
+	for (int i = 0; i < CHANNELS; ++i) {
+		::close(_channel_fd[i]);
 	}
+
+	::close(_connected_fd);
+
+	perf_free(_publish_interval_perf);
 }
 
 int NavioSysRCInput::navio_rc_init()
 {
-	int i;
-	char buf[64];
+	_connected_fd = ::open("/sys/kernel/rcio/rcin/connected", O_RDONLY);
 
-	for (i = 0; i < _channels; ++i) {
-		::snprintf(buf, sizeof(buf), "%s/ch%d", RCINPUT_DEVICE_PATH_BASE, i);
+	for (int i = 0; i < CHANNELS; ++i) {
+		char buf[80] {};
+		::snprintf(buf, sizeof(buf), "%s/ch%d", "/sys/kernel/rcio/rcin", i);
 		int fd = ::open(buf, O_RDONLY);
 
 		if (fd < 0) {
-			PX4_WARN("error: open %d failed", i);
+			PX4_ERR("open %s (%d) failed", buf, i);
 			break;
 		}
 
-		_ch_fd[i] = fd;
+		_channel_fd[i] = fd;
 	}
 
-	for (; i < input_rc_s::RC_INPUT_MAX_CHANNELS; ++i) {
-		_data.values[i] = UINT16_MAX;
-	}
-
-	return 0;
+	return PX4_OK;
 }
 
 int NavioSysRCInput::start()
 {
-	int result = navio_rc_init();
-
-	if (result != 0) {
-		PX4_WARN("error: RC initialization failed");
-		return -1;
-	}
+	navio_rc_init();
 
 	_should_exit.store(false);
-	ScheduleOnInterval(RCINPUT_MEASURE_INTERVAL_US);
 
-	return result;
+	ScheduleOnInterval(10_ms); // 100 Hz
+
+	return PX4_OK;
 }
 
 void NavioSysRCInput::stop()
@@ -115,38 +107,65 @@ void NavioSysRCInput::Run()
 		return;
 	}
 
-	uint64_t ts = 0;
-	char buf[12] {};
+	char connected_buf[12] {};
+	int ret_connected = ::pread(_connected_fd, connected_buf, sizeof(connected_buf) - 1, 0);
 
-	for (int i = 0; i < _channels; ++i) {
-		int res;
+	if (ret_connected < 0) {
+		return;
+	}
 
-		if ((res = ::pread(_ch_fd[i], buf, sizeof(buf) - 1, 0)) < 0) {
-			_data.values[i] = UINT16_MAX;
+	input_rc_s data{};
+
+	connected_buf[sizeof(connected_buf) - 1] = '\0';
+	_connected = (atoi(connected_buf) == 1);
+
+	data.rc_lost = !_connected;
+
+	uint64_t timestamp_sample = hrt_absolute_time();
+
+	for (int i = 0; i < CHANNELS; ++i) {
+		char buf[12] {};
+		int res = ::pread(_channel_fd[i], buf, sizeof(buf) - 1, 0);
+
+		if (res < 0) {
 			continue;
 		}
 
-		ts = hrt_absolute_time();
-
 		buf[sizeof(buf) - 1] = '\0';
 
-		_data.values[i] = atoi(buf);
+		data.values[i] = atoi(buf);
 	}
 
-	if (ts > 0) {
-		_data.timestamp_last_signal = ts;
-		_data.channel_count = _channels;
-		_data.rssi = 100;
-		_data.rc_lost_frame_count = 0;
-		_data.rc_total_frame_count = 1;
-		_data.rc_ppm_frame_length = 100;
-		_data.rc_failsafe = false;
-		_data.rc_lost = false;
-		_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
-		_data.timestamp = hrt_absolute_time();
+	// check if all channels are 0
+	bool all_zero = true;
 
-		_input_rc_pub.publish(_data);
+	for (int i = 0; i < CHANNELS; ++i) {
+		if (data.values[i] != 0) {
+			all_zero = false;
+		}
 	}
+
+	if (all_zero) {
+		return;
+	}
+
+	data.timestamp_last_signal = timestamp_sample;
+	data.channel_count = CHANNELS;
+	data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+	data.timestamp = hrt_absolute_time();
+
+	_input_rc_pub.publish(data);
+	perf_count(_publish_interval_perf);
+}
+
+int NavioSysRCInput::print_status()
+{
+	PX4_INFO("Running");
+	PX4_INFO("connected: %d", _connected);
+
+	perf_print_counter(_publish_interval_perf);
+
+	return 0;
 }
 
 }; // namespace navio_sysfs_rc_in

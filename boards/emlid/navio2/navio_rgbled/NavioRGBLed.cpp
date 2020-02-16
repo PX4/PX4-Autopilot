@@ -34,7 +34,7 @@
 #include "NavioRGBLed.hpp"
 
 NavioRGBLed::NavioRGBLed() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 };
 

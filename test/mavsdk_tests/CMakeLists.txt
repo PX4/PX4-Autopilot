@@ -12,14 +12,17 @@ if(MAVSDK_FOUND)
     add_executable(mavsdk_tests
         test_main.cpp
         autopilot_tester.cpp
+        test_multicopter_offboard.cpp
         test_mission_multicopter.cpp
         test_mission_plane.cpp
+        test_mission_vtol.cpp
     )
 
     target_link_libraries(mavsdk_tests
         MAVSDK::mavsdk
         MAVSDK::mavsdk_action
         MAVSDK::mavsdk_mission
+        MAVSDK::mavsdk_offboard
         MAVSDK::mavsdk_telemetry
     )
 

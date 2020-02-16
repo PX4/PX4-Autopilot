@@ -48,9 +48,6 @@ LSM9DS1::LSM9DS1(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG);
 	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG);
 
-	_px4_accel.set_sample_rate(ST_LSM9DS1::LA_ODR);
-	_px4_gyro.set_sample_rate(ST_LSM9DS1::G_ODR);
-
 	_px4_accel.set_update_rate(1000000 / _fifo_interval);
 	_px4_gyro.set_update_rate(1000000 / _fifo_interval);
 }
@@ -210,7 +207,7 @@ void LSM9DS1::Run()
 		perf_count(_fifo_empty_perf);
 		return;
 
-	} else if (samples > 32) {
+	} else if (samples > 16) {
 		// not technically an overflow, but more samples than we expected
 		perf_count(_fifo_overflow_perf);
 		ResetFIFO();

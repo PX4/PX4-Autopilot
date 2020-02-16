@@ -45,6 +45,7 @@
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_range_finder.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -95,14 +96,14 @@ public:
 	void set_port(unsigned port) { _port = port; }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	bool has_initialized() {return _has_initialized.load(); }
+	bool has_initialized() { return _has_initialized.load(); }
 #endif
+
+	void print_status();
 
 private:
 	Simulator() : ModuleParams(nullptr)
 	{
-		_px4_accel.set_sample_rate(250);
-		_px4_gyro.set_sample_rate(250);
 	}
 
 	~Simulator()
@@ -110,6 +111,10 @@ private:
 		// free perf counters
 		perf_free(_perf_sim_delay);
 		perf_free(_perf_sim_interval);
+
+		for (size_t i = 0; i < sizeof(_dist_pubs) / sizeof(_dist_pubs[0]); i++) {
+			delete _dist_pubs[i];
+		}
 
 		_instance = nullptr;
 	}
@@ -134,10 +139,12 @@ private:
 	// uORB publisher handlers
 	uORB::Publication<battery_status_s>		_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
-	uORB::PublicationMulti<distance_sensor_s>	_dist_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+
+	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS] {};
+	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS] {};
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
@@ -171,8 +178,6 @@ private:
 			_params.source = 0;
 		}
 	} _battery;
-
-#ifndef __PX4_QURT
 
 	void run();
 	void handle_message(const mavlink_message_t *msg);
@@ -232,6 +237,14 @@ private:
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
+
+	int _ekf2_timestamps_sub{-1};
+
+	enum class State {
+		WaitingForFirstEkf2Timestamp = 0,
+		WaitingForActuatorControls = 1,
+		WaitingForEkf2Timestamp = 2,
+	};
 #endif
 
 	DEFINE_PARAMETERS(
@@ -248,6 +261,4 @@ private:
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
 	)
-
-#endif
 };

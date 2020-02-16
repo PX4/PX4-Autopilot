@@ -58,8 +58,10 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_innovation_test_ratios", 200);
 	add_topic("estimator_innovation_variances", 200);
 	add_topic("estimator_innovations", 200);
+	add_topic("estimator_sensor_bias", 1000);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
+	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
@@ -69,6 +71,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 200);
+	add_topic("safety", 1000);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_correction", 1000);
 	add_topic("sensor_preflight", 200);
@@ -94,6 +97,7 @@ void LoggedTopics::add_default_topics()
 
 	// multi topics
 	add_topic_multi("actuator_outputs", 100);
+	add_topic_multi("logger_status");
 	add_topic_multi("multirotor_motor_limits", 1000);
 	add_topic_multi("telemetry_status", 1000);
 	add_topic_multi("wind_estimate", 1000);
@@ -227,10 +231,11 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 			continue;
 		}
 
-		// read line with format: <topic_name>[, <interval>]
+		// read line with format: <topic_name>[ <interval>[ <instance>]]
 		char topic_name[80];
 		uint32_t interval_ms = 0;
-		int nfields = sscanf(line, "%s %u", topic_name, &interval_ms);
+		uint32_t instance = 0;
+		int nfields = sscanf(line, "%s %u %u", topic_name, &interval_ms, &instance);
 
 		if (nfields > 0) {
 			int name_len = strlen(topic_name);
@@ -240,7 +245,8 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 			}
 
 			/* add topic with specified interval_ms */
-			if (add_topic(topic_name, interval_ms)) {
+			if ((nfields > 2 && add_topic(topic_name, interval_ms, instance))
+			    || add_topic_multi(topic_name, interval_ms)) {
 				ntopics++;
 
 			} else {

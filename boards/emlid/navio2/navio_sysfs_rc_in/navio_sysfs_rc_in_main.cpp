@@ -109,11 +109,11 @@ extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (rc_input != nullptr && rc_input->isRunning()) {
-			PX4_INFO("running");
+		if (rc_input != nullptr) {
+			rc_input->print_status();
 
 		} else {
-			PX4_INFO("not running\n");
+			PX4_INFO("not running");
 		}
 
 		return 0;

@@ -86,6 +86,9 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 
+	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
+	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -271,6 +274,13 @@ VtolAttitudeControl::parameters_update()
 
 	param_get(_params_handles.diff_thrust_scale, &v);
 	_params.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
+
+	/* maximum down pitch allowed */
+	param_get(_params_handles.down_pitch_max, &v);
+	_params.down_pitch_max = math::radians(v);
+
+	/* scale for fixed wing thrust used for forward acceleration in multirotor mode */
+	param_get(_params_handles.forward_thrust_scale, &_params.forward_thrust_scale);
 
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);

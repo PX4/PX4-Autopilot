@@ -35,7 +35,7 @@ add_library(drivers_board
 	init.c
 	sdio.c
 	spi.cpp
-	timer_config.c
+	timer_config.cpp
 )
 
 target_link_libraries(drivers_board

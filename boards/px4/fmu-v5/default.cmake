@@ -31,6 +31,8 @@ px4_add_board(
 		imu/adis16477
 		imu/adis16497
 		imu/bmi055
+		imu/invensense/icm20602
+		imu/invensense/icm20689
 		imu/mpu6000
 		irlock
 		lights/blinkm
@@ -50,6 +52,7 @@ px4_add_board(
 		px4io
 		rc_input
 		roboclaw
+		rpm
 		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
@@ -82,6 +85,7 @@ px4_add_board(
 		rover_pos_control
 		sensors
 		sih
+		temperature_compensation
 		vmount
 		vtol_att_control
 	SYSTEMCMDS

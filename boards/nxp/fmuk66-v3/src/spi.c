@@ -55,6 +55,8 @@
 
 #if defined(CONFIG_KINETIS_SPI0) || defined(CONFIG_KINETIS_SPI1) || defined(CONFIG_KINETIS_SPI2)
 
+#define PX4_MK_GPIO(pin_ftmx, io)    ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) |(io))
+
 /* Define CS GPIO array */
 static const uint32_t spi0selects_gpio[] = PX4_MEMORY_BUS_CS_GPIO;
 static const uint32_t spi1selects_gpio[] = PX4_SENSOR_BUS_CS_GPIO;

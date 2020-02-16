@@ -235,7 +235,7 @@ void task_main(int argc, char *argv[])
 		PX4_INFO("Starting PWM output in ocpoc_mmap mode");
 		pwm_out = new OcpocMmapPWMOut(_max_num_outputs);
 
-#ifdef __DF_BBBLUE
+#ifdef CONFIG_ARCH_BOARD_BEAGLEBONE_BLUE
 
 	} else if (strcmp(_protocol, "bbblue_rc") == 0) {
 		PX4_INFO("Starting PWM output in bbblue_rc mode");

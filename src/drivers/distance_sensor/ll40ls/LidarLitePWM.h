@@ -49,11 +49,11 @@
 
 #include <uORB/topics/pwm_input.h>
 #include <uORB/Subscription.hpp>
+#include <board_config.h>
 
-#ifdef GPIO_GPIO5_OUTPUT
-
+#if DIRECT_PWM_OUTPUT_CHANNELS >= 6
+#define GPIO_VDD_RANGEFINDER_EN_CHAN 5 // use pin 6
 #define LIDAR_LITE_PWM_SUPPORTED
-#define GPIO_VDD_RANGEFINDER_EN GPIO_GPIO5_OUTPUT
 
 class LidarLitePWM : public LidarLite, public px4::ScheduledWorkItem
 {
@@ -65,14 +65,14 @@ public:
 	void start() override;
 	void stop() override;
 
-	void Run() override;
-
 protected:
 
 	int collect() override;
 	int measure() override;
 
 private:
+
+	void Run() override;
 
 	uORB::Subscription _sub_pwm_input{ORB_ID(pwm_input)};
 

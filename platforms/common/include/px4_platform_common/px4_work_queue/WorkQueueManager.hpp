@@ -50,13 +50,13 @@ namespace wq_configurations
 {
 static constexpr wq_config_t rate_ctrl{"wq:rate_ctrl", 1600, 0}; // PX4 inner loop highest priority
 
-static constexpr wq_config_t SPI0{"wq:SPI0", 1600, -1};
-static constexpr wq_config_t SPI1{"wq:SPI1", 1600, -2};
-static constexpr wq_config_t SPI2{"wq:SPI2", 1616, -3};
-static constexpr wq_config_t SPI3{"wq:SPI3", 1600, -4};
-static constexpr wq_config_t SPI4{"wq:SPI4", 1600, -5};
-static constexpr wq_config_t SPI5{"wq:SPI5", 1600, -6};
-static constexpr wq_config_t SPI6{"wq:SPI6", 1600, -7};
+static constexpr wq_config_t SPI0{"wq:SPI0", 1900, -1};
+static constexpr wq_config_t SPI1{"wq:SPI1", 1900, -2};
+static constexpr wq_config_t SPI2{"wq:SPI2", 1900, -3};
+static constexpr wq_config_t SPI3{"wq:SPI3", 1900, -4};
+static constexpr wq_config_t SPI4{"wq:SPI4", 1900, -5};
+static constexpr wq_config_t SPI5{"wq:SPI5", 1900, -6};
+static constexpr wq_config_t SPI6{"wq:SPI6", 1900, -7};
 
 static constexpr wq_config_t I2C0{"wq:I2C0", 1400, -8};
 static constexpr wq_config_t I2C1{"wq:I2C1", 1400, -9};
@@ -79,6 +79,7 @@ static constexpr wq_config_t UART5{"wq:UART5", 1400, -21};
 static constexpr wq_config_t UART6{"wq:UART6", 1400, -22};
 static constexpr wq_config_t UART7{"wq:UART7", 1400, -23};
 static constexpr wq_config_t UART8{"wq:UART8", 1400, -24};
+static constexpr wq_config_t UART_UNKNOWN{"wq:UART_UNKNOWN", 1400, -25};
 
 static constexpr wq_config_t lp_default{"wq:lp_default", 1700, -50};
 

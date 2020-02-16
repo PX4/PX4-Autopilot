@@ -792,6 +792,36 @@ void Logger::run()
 				}
 			}
 
+			// publish logger status
+			if (hrt_elapsed_time(&_logger_status_last) >= 1_s) {
+				for (int i = 0; i < (int)LogType::Count; ++i) {
+
+					const LogType log_type = static_cast<LogType>(i);
+
+					if (_writer.is_started(log_type)) {
+
+						const size_t buffer_fill_count_file = _writer.get_buffer_fill_count_file(log_type);
+
+						const float kb_written = _writer.get_total_written_file(log_type) / 1024.0f;
+						const float seconds = hrt_elapsed_time(&_statistics[i].start_time_file) * 1e-6f;
+
+						logger_status_s status;
+						status.type = i;
+						status.backend = _writer.backend();
+						status.total_written_kb = kb_written;
+						status.write_rate_kb_s = kb_written / seconds;
+						status.dropouts = _statistics[i].write_dropouts;
+						status.buffer_used_bytes = buffer_fill_count_file;
+						status.buffer_size_bytes = _writer.get_buffer_size_file(log_type);
+						status.num_messages = _num_subscriptions;
+						status.timestamp = hrt_absolute_time();
+						_logger_status_pub[i].publish(status);
+					}
+				}
+
+				_logger_status_last = hrt_absolute_time();
+			}
+
 			/* release the log buffer */
 			_writer.unlock();
 
@@ -929,76 +959,62 @@ bool Logger::get_disable_boot_logging()
 
 bool Logger::start_stop_logging(MissionLogType mission_log_type)
 {
-	bool bret = false;
-	bool want_start = false;
-	bool want_stop = false;
+	bool updated = false;
+	bool desired_state = false;
 
 	if (_log_mode == LogMode::rc_aux1) {
-
 		// aux1-based logging
 		manual_control_setpoint_s manual_sp;
 
 		if (_manual_control_sp_sub.update(&manual_sp)) {
 
-			bool should_start = ((manual_sp.aux1 > 0.3f) || _manually_logging_override);
-
-			if (_prev_state != should_start) {
-				_prev_state = should_start;
-
-				if (should_start) {
-					want_start = true;
-
-				} else {
-					want_stop = true;
-				}
-			}
+			desired_state = (manual_sp.aux1 > 0.3f);
+			updated = true;
 		}
 
-	} else {
+	} else if (_log_mode != LogMode::boot_until_shutdown) {
 		// arming-based logging
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 
-			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _manually_logging_override;
+			desired_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			updated = true;
+		}
+	}
 
-			if (_prev_state != armed && _log_mode != LogMode::boot_until_shutdown) {
-				_prev_state = armed;
+	desired_state = desired_state || _manually_logging_override;
 
-				if (armed) {
-					want_start = true;
+	// only start/stop if this is a state transition
+	if (updated && _prev_state != desired_state) {
+		_prev_state = desired_state;
 
-				} else {
-					want_stop = true;
-				}
+		if (desired_state) {
+			if (_should_stop_file_log) { // happens on quick stop/start toggling
+				_should_stop_file_log = false;
+				stop_log_file(LogType::Full);
+			}
+
+			start_log_file(LogType::Full);
+
+			if (mission_log_type != MissionLogType::Disabled) {
+				start_log_file(LogType::Mission);
+			}
+
+			return true;
+
+		} else {
+			// delayed stop: we measure the process loads and then stop
+			initialize_load_output(PrintLoadReason::Postflight);
+			_should_stop_file_log = true;
+
+			if (mission_log_type != MissionLogType::Disabled) {
+				stop_log_file(LogType::Mission);
 			}
 		}
 	}
 
-	if (want_start) {
-		if (_should_stop_file_log) { // happens on quick stop/start toggling
-			_should_stop_file_log = false;
-			stop_log_file(LogType::Full);
-		}
-
-		start_log_file(LogType::Full);
-		bret = true;
-
-		if (mission_log_type != MissionLogType::Disabled) {
-			start_log_file(LogType::Mission);
-		}
-
-	} else if (want_stop) {
-		// delayed stop: we measure the process loads and then stop
-		initialize_load_output(PrintLoadReason::Postflight);
-		_should_stop_file_log = true;
-
-		if (mission_log_type != MissionLogType::Disabled) {
-			stop_log_file(LogType::Mission);
-		}
-	}
-
-	return bret;
+	return false;
 }
 
 void Logger::handle_vehicle_command_update()

@@ -196,9 +196,9 @@ serial_port_to_wq(const char *serial)
 		return wq_configurations::UART8;
 	}
 
-	PX4_ERR("unknown serial port: %s", serial);
+	PX4_DEBUG("unknown serial port: %s", serial);
 
-	return wq_configurations::hp_default;
+	return wq_configurations::UART_UNKNOWN;
 }
 
 static void *
@@ -266,12 +266,7 @@ WorkQueueManagerRun(int, char **)
 #ifndef __PX4_QURT
 
 			// schedule policy FIFO
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-			int ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, SCHED_RR);
-#else
 			int ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-#endif
 
 			if (ret_setschedpolicy != 0) {
 				PX4_ERR("failed to set sched policy SCHED_FIFO (%i)", ret_setschedpolicy);

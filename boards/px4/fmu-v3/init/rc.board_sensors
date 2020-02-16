@@ -8,7 +8,7 @@ adc start
 # External I2C bus
 hmc5883 -C -T -X start
 lis3mdl -X start
-ist8310 -C start
+ist8310 start
 qmc5883 -X start
 
 # Internal I2C bus

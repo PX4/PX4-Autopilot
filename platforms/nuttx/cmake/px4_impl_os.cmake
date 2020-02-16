@@ -67,9 +67,10 @@ function(px4_os_add_flags)
 	# prevent using the toolchain's std c++ library
 	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>)
 
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-sized-deallocation>)
+
 	add_definitions(
 		-D__PX4_NUTTX
-		-D__DF_NUTTX
 
 		-D_SYS_CDEFS_H_ # skip toolchain's <sys/cdefs.h>
 		-D_SYS_REENT_H_	# skip toolchain's <sys/reent.h>
@@ -117,6 +118,12 @@ function(px4_os_determine_build_chip)
 	elseif(CONFIG_ARCH_CHIP_MK66FN2M0VMD18)
 		set(CHIP_MANUFACTURER "nxp")
 		set(CHIP "k66")
+	elseif(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
+		set(CHIP_MANUFACTURER "nxp")
+		set(CHIP "rt106x")
+	elseif(CONFIG_ARCH_CHIP_S32K146)
+		set(CHIP_MANUFACTURER "nxp")
+		set(CHIP "s32k14x")
 	else()
 		message(FATAL_ERROR "Could not determine chip architecture from NuttX config. You may have to add it.")
 	endif()

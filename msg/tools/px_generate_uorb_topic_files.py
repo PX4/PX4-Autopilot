@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #############################################################################
 #
 #   Copyright (C) 2013-2018 PX4 Pro Development Team. All rights reserved.
@@ -37,39 +37,33 @@ px_generate_uorb_topic_files.py
 Generates c/cpp header/source files for uorb topics from .msg (ROS syntax)
 message files
 """
-from __future__ import print_function
+
 import os
 import shutil
 import filecmp
 import argparse
 import sys
-import errno
-
-px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(px4_tools_dir + "/genmsg/src")
-sys.path.append(px4_tools_dir + "/gencpp/src")
-px4_msg_dir = os.path.join(px4_tools_dir, "..")
 
 try:
     import em
+except ImportError as e:
+    print("Failed to import em: " + str(e))
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user empy")
+    print("")
+    sys.exit(1)
+
+try:
     import genmsg.template_tools
 except ImportError as e:
-    print("python import error: ", e)
-    print('''
-Required python packages not installed.
+    print("Failed to import genmsg: " + str(e))
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user pyros-genmsg")
+    print("")
+    sys.exit(1)
 
-On a Debian/Ubuntu system please run:
-
-  sudo apt-get install python-empy
-  sudo pip install catkin_pkg
-
-On MacOS please run:
-  sudo pip install empy catkin_pkg
-
-On Windows please run:
-  easy_install empy catkin_pkg
-''')
-    exit(1)
 
 __author__ = "Sergey Belash, Thomas Gubler, Beat Kueng"
 __copyright__ = "Copyright (C) 2013-2016 PX4 Development Team."
@@ -213,19 +207,11 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
     receive_msgs = list(os.path.join(msg_dir, msg + ".msg")
                         for msg in filename_receive_msgs)
 
-    if sys.version_info[0] < 3:
-        alias_send_msgs = list([os.path.join(
-            msg_dir, msg[1] + ".msg"), msg[0].keys()[0]] for msg in filename_alias_send_msgs)
-    else:
-        alias_send_msgs = list([os.path.join(msg_dir, msg[1] + ".msg"),
-                                list(msg[0].keys())[0]] for msg in filename_alias_send_msgs)
+    alias_send_msgs = list([os.path.join(
+        msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_send_msgs)
 
-    if sys.version_info[0] < 3:
-        alias_receive_msgs = list([os.path.join(
-            msg_dir, msg[1] + ".msg"), msg[0].keys()[0]] for msg in filename_alias_receive_msgs)
-    else:
-        alias_receive_msgs = list([os.path.join(
-            msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_receive_msgs)
+    alias_receive_msgs = list([os.path.join(
+        msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_receive_msgs)
 
     em_globals_list = []
     if send_msgs:
