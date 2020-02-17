@@ -20,7 +20,10 @@ mpu6000 -T 20608 start
 ms5611 -S start
 
 # Internal SPI (auto detect ms5611 or ms5607)
-ms5611 -T 0 -s start
+if ! ms5611 -s start
+then
+	ms5611 -T 5607 -s start
+fi
 
 set BOARD_FMUV3 0
 

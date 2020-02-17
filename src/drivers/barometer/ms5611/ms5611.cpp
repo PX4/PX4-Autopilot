@@ -68,16 +68,9 @@ int
 MS5611::init()
 {
 	int ret;
-	bool autodetect = false;
 
 	/* do a first measurement cycle to populate reports with valid data */
 	_measure_phase = 0;
-
-	if (_device_type == MS56XX_DEVICE) {
-		autodetect = true;
-		/* try first with MS5611 and fallback to MS5607 */
-		_device_type = MS5611_DEVICE;
-	}
 
 	while (true) {
 		/* do temperature first */
@@ -109,22 +102,11 @@ MS5611::init()
 		/* state machine will have generated a report, copy it out */
 		const sensor_baro_s &brp = _px4_barometer.get();
 
-		if (autodetect) {
-			if (_device_type == MS5611_DEVICE) {
-				if (brp.pressure < 520.0f) {
-					/* This is likely not this device, try again */
-					_device_type = MS5607_DEVICE;
-					_measure_phase = 0;
-
-					continue;
-				}
-
-			} else if (_device_type == MS5607_DEVICE) {
-				if (brp.pressure < 520.0f) {
-					/* Both devices returned a very low pressure;
-					 * have fun on Everest using MS5611 */
-					_device_type = MS5611_DEVICE;
-				}
+		if (_device_type == MS5611_DEVICE) {
+			if (brp.pressure < 520.0f) {
+				/* This is likely not this device, abort */
+				ret = -EINVAL;
+				break;
 			}
 		}
 
@@ -148,7 +130,9 @@ MS5611::init()
 		break;
 	}
 
-	start();
+	if (ret == 0) {
+		start();
+	}
 
 	return ret;
 }

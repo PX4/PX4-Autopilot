@@ -43,7 +43,6 @@
 #include "ms5611.h"
 
 enum MS56XX_DEVICE_TYPES {
-	MS56XX_DEVICE   = 0,
 	MS5611_DEVICE	= 5611,
 	MS5607_DEVICE	= 5607,
 };

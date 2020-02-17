@@ -6,7 +6,10 @@
 adc start
 
 # Internal SPI
-ms5611 -T 0 -s start
+if ! ms5611 -s start
+then
+	ms5611 -T 5607 -s start
+fi
 
 # Draco-R
 if param compare SYS_AUTOSTART 6002

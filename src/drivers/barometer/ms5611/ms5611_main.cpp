@@ -90,7 +90,6 @@ void MS5611::print_usage()
 	PX4_INFO("    -c    chip-select index (for ext SPI)");
 	PX4_INFO("    -b    specific bus (default=all)");
 	PX4_INFO("    -T    5611|5607 (default 5611)");
-	PX4_INFO("    -T    0 (autodetect version)");
 }
 
 extern "C" int ms5611_main(int argc, char *argv[])
@@ -139,10 +138,6 @@ extern "C" int ms5611_main(int argc, char *argv[])
 				} else if (val == 5607) {
 					cli.custom1 = MS5607_DEVICE;
 					dev_type_driver = DRV_BARO_DEVTYPE_MS5607;
-
-				} else if (val == 0) {
-					cli.custom1 = MS56XX_DEVICE;
-					// Note: On internal SPI, this will only look for MS5611 devices
 				}
 			}
 			break;
