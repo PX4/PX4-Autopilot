@@ -161,7 +161,7 @@ public:
 		     enum spi_mode_e spi_mode, uint32_t bus_freq_hz);
 	virtual ~BMI088_accel();
 
-	virtual int     init() override;
+	int     init() override;
 
 	// Start automatic measurement.
 	void            start();
