@@ -62,12 +62,12 @@ public:
 
 	bool operator[](size_t position) const
 	{
-		return _data[array_index(position)] & element_index(position);
+		return _data[array_index(position)] & element_mask(position);
 	}
 
 	void set(size_t pos, bool val = true)
 	{
-		const uint8_t bitmask = element_index(pos);
+		const uint8_t bitmask = element_mask(pos);
 
 		if (val) {
 			_data[array_index(pos)] |= bitmask;
@@ -83,7 +83,7 @@ private:
 	static constexpr size_t ALLOCATED_BITS = ARRAY_SIZE * BITS_PER_ELEMENT;
 
 	size_t array_index(size_t position) const { return position / BITS_PER_ELEMENT; }
-	uint8_t element_index(size_t position) const { return (1 << position % BITS_PER_ELEMENT); }
+	uint8_t element_mask(size_t position) const { return (1 << position % BITS_PER_ELEMENT); }
 
 	uint8_t _data[ARRAY_SIZE] {};
 };
