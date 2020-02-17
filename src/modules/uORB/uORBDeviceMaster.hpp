@@ -74,7 +74,7 @@ public:
 	uORB::DeviceNode *getDeviceNode(const char *node_name);
 	uORB::DeviceNode *getDeviceNode(const struct orb_metadata *meta, const uint8_t instance);
 
-	bool deviceNodeExists(ORB_ID id, const uint8_t instance) { return _node_exists[instance][(uint8_t)id]; }
+	bool deviceNodeExists(ORB_ID id, const uint8_t instance);
 
 	/**
 	 * Print statistics for each existing topic.
