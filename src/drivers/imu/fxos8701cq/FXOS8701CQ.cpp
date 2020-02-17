@@ -54,11 +54,11 @@ const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = 
 };
 
 FXOS8701CQ::FXOS8701CQ(device::Device *interface, enum Rotation rotation) :
-    ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
-    _interface(interface),
-    _px4_accel(interface->get_device_id(), ORB_PRIO_LOW, rotation),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+	_interface(interface),
+	_px4_accel(interface->get_device_id(), ORB_PRIO_LOW, rotation),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-    _px4_mag(interface->get_device_id(), ORB_PRIO_LOW, rotation),
+	_px4_mag(interface->get_device_id(), ORB_PRIO_LOW, rotation),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag read")),
 #endif
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": acc read")),
@@ -91,22 +91,22 @@ FXOS8701CQ::~FXOS8701CQ()
 int
 FXOS8701CQ::init()
 {
-    // do SPI/I2C init (and probe) first
-    int ret = _interface->init();
+	// do SPI/I2C init (and probe) first
+	int ret = _interface->init();
 
 	if (ret != OK) {
-        PX4_ERR("SPI/I2C interface init failed");
+		PX4_ERR("SPI/I2C interface init failed");
 		return ret;
 	}
 
-    // There are 2 possible WHOAMI return values,
-    // so probe here again to set proper _checked_values[0]
-    ret = this->probe();
+	// There are 2 possible WHOAMI return values,
+	// so probe here again to set proper _checked_values[0]
+	ret = this->probe();
 
-    if (ret != OK) {
-        PX4_ERR("FXOS8701CQ::probe() failed");
-        return ret;
-    }
+	if (ret != OK) {
+		PX4_ERR("FXOS8701CQ::probe() failed");
+		return ret;
+	}
 
 	reset();
 
@@ -142,7 +142,7 @@ FXOS8701CQ::probe()
 	uint8_t whoami = read_reg(FXOS8701CQ_WHOAMI);
 	bool success = (whoami == FXOS8700CQ_WHOAMI_VAL) || (whoami == FXOS8701CQ_WHOAMI_VAL);
 
-	PX4_INFO("FXOS8701CQ::probe: %s, whoami: 0x%02x", (success? "Succeeded" : "failed"), whoami);
+	PX4_INFO("FXOS8701CQ::probe: %s, whoami: 0x%02x", (success ? "Succeeded" : "failed"), whoami);
 
 	if (success) {
 		_checked_values[0] = whoami;
@@ -317,7 +317,7 @@ FXOS8701CQ::Run()
 	perf_begin(_accel_sample_perf);
 
 	// status register and data as read back from the device
-    RawAccelMagReport raw_accel_mag_report{};
+	RawAccelMagReport raw_accel_mag_report{};
 
 	check_registers();
 
@@ -332,7 +332,7 @@ FXOS8701CQ::Run()
 	/* fetch data from the sensor */
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-    _interface->read(FXOS8701CQ_DR_STATUS,  (uint8_t *)&raw_accel_mag_report, sizeof(raw_accel_mag_report));
+	_interface->read(FXOS8701CQ_DR_STATUS, (uint8_t *)&raw_accel_mag_report, sizeof(raw_accel_mag_report));
 
 	if (!(raw_accel_mag_report.status & DR_STATUS_ZYXDR)) {
 		perf_end(_accel_sample_perf);

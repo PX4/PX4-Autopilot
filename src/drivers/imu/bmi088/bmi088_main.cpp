@@ -85,19 +85,19 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor,
 		/* create the driver */
 		if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-            *g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_EXT, path_accel, PX4_SPIDEV_EXT_BMI, rotation,
-                                              spi_mode, bus_freq_hz);
+			*g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_EXT, path_accel, PX4_SPIDEV_EXT_BMI, rotation,
+							  spi_mode, bus_freq_hz);
 #else
 			errx(0, "External SPI not available");
 #endif
 
 		} else {
 #if defined(PX4_SPI_BUS_SENSORS3) && defined(PX4_SPIDEV_BMI088_ACC)
-            *g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_SENSORS3, path_accel, PX4_SPIDEV_BMI088_ACC, rotation,
-                                              spi_mode, bus_freq_hz);
+			*g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_SENSORS3, path_accel, PX4_SPIDEV_BMI088_ACC, rotation,
+							  spi_mode, bus_freq_hz);
 #elif defined(PX4_SPI_BUS_5) && defined(PX4_SPIDEV_BMI088_ACC)
-            *g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_5, path_accel, PX4_SPIDEV_BMI088_ACC, rotation,
-                                              spi_mode, bus_freq_hz);
+			*g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_5, path_accel, PX4_SPIDEV_BMI088_ACC, rotation,
+							  spi_mode, bus_freq_hz);
 #endif
 		}
 
@@ -122,19 +122,19 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor,
 		/* create the driver */
 		if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-            *g_dev_ptr = new BMI088_gyro(PX4_SPI_BUS_EXT, path_gyro, PX4_SPIDEV_EXT_BMI, rotation,
-                                         spi_mode, bus_freq_hz);
+			*g_dev_ptr = new BMI088_gyro(PX4_SPI_BUS_EXT, path_gyro, PX4_SPIDEV_EXT_BMI, rotation,
+						     spi_mode, bus_freq_hz);
 #else
 			errx(0, "External SPI not available");
 #endif
 
 		} else {
 #if defined(PX4_SPI_BUS_SENSORS3) && defined(PX4_SPIDEV_BMI088_GYR)
-            *g_dev_gyr_ptr = new BMI088_gyro(PX4_SPI_BUS_SENSORS3, path_gyro, PX4_SPIDEV_BMI088_GYR, rotation,
-                                             spi_mode, bus_freq_hz);
+			*g_dev_gyr_ptr = new BMI088_gyro(PX4_SPI_BUS_SENSORS3, path_gyro, PX4_SPIDEV_BMI088_GYR, rotation,
+							 spi_mode, bus_freq_hz);
 #elif defined(PX4_SPI_BUS_5) && defined(PX4_SPIDEV_BMI088_GYR)
-            *g_dev_gyr_ptr = new BMI088_gyro(PX4_SPI_BUS_5, path_gyro, PX4_SPIDEV_BMI088_GYR, rotation,
-                                             spi_mode, bus_freq_hz);
+			*g_dev_gyr_ptr = new BMI088_gyro(PX4_SPI_BUS_5, path_gyro, PX4_SPIDEV_BMI088_GYR, rotation,
+							 spi_mode, bus_freq_hz);
 #endif
 		}
 
@@ -150,7 +150,7 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor,
 		(*g_dev_gyr_ptr)->start();
 	}
 
-        return PX4_OK;
+	return PX4_OK;
 
 fail_accel:
 
@@ -160,7 +160,7 @@ fail_accel:
 	}
 
 	PX4_WARN("No BMI088 accel found");
-        return PX4_ERROR;
+	return PX4_ERROR;
 
 fail_gyro:
 
@@ -170,7 +170,7 @@ fail_gyro:
 	}
 
 	PX4_WARN("No BMI088 gyro found");
-    return PX4_ERROR;
+	return PX4_ERROR;
 }
 
 int
@@ -201,7 +201,7 @@ stop(bool external_bus, enum sensor_type sensor)
 		}
 	}
 
-    return 0;
+	return 0;
 
 }
 
@@ -232,7 +232,7 @@ info(bool external_bus, enum sensor_type sensor)
 		(*g_dev_gyr_ptr)->print_info();
 	}
 
-    return 0;
+	return 0;
 }
 
 /**
@@ -262,7 +262,7 @@ regdump(bool external_bus, enum sensor_type sensor)
 		(*g_dev_gyr_ptr)->print_registers();
 	}
 
-    return 0;
+	return 0;
 }
 
 /**
@@ -290,7 +290,7 @@ testerror(bool external_bus, enum sensor_type sensor)
 		(*g_dev_gyr_ptr)->test_error();
 	}
 
-    return 0;
+	return 0;
 }
 
 void
@@ -302,8 +302,8 @@ usage()
 	warnx("    -R    rotation");
 	warnx("    -A    (Enable Accelerometer)");
 	warnx("    -G    (Enable Gyroscope)");
-    warnx("    -m    spi_bus_mode (0-3)");
-    warnx("    -k    bus_frequency_in_kHz");
+	warnx("    -m    spi_bus_mode (0-3)");
+	warnx("    -k    bus_frequency_in_kHz");
 }
 
 }//namespace ends
@@ -357,14 +357,14 @@ bmi088_main(int argc, char *argv[])
 	bool external_bus = false;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
-	enum sensor_type sensor = BMI088_NONE;   
-    enum spi_mode_e spi_mode = SPIDEV_MODE3;
-    uint32_t        bus_freq_hz = BMI088_BUS_SPEED;
-    int myoptind = 1;
+	enum sensor_type sensor = BMI088_NONE;
+	enum spi_mode_e spi_mode = SPIDEV_MODE3;
+	uint32_t        bus_freq_hz = BMI088_BUS_SPEED;
+	int myoptind = 1;
 	const char *myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
-    while ((ch = px4_getopt(argc, argv, "XR:AGm:k:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:AGm:k:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
@@ -382,13 +382,13 @@ bmi088_main(int argc, char *argv[])
 			sensor = BMI088_GYRO;
 			break;
 
-        case 'm':
-            spi_mode = (enum spi_mode_e)atoi(myoptarg);
-            break;
+		case 'm':
+			spi_mode = (enum spi_mode_e)atoi(myoptarg);
+			break;
 
-        case 'k':
-            bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
-            break;
+		case 'k':
+			bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
+			break;
 
 		default:
 			bmi088::usage();
@@ -407,8 +407,8 @@ bmi088_main(int argc, char *argv[])
 	* Start/load the driver.
 	*/
 	if (!strcmp(verb, "start")) {
-        return bmi088::start(external_bus, rotation, sensor,
-                             spi_mode, bus_freq_hz);
+		return bmi088::start(external_bus, rotation, sensor,
+				     spi_mode, bus_freq_hz);
 	}
 
 	/*

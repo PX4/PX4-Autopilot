@@ -114,21 +114,21 @@ public:
 	 */
 	virtual int	write(unsigned address, void *data, unsigned count) { return -ENODEV; }
 
-    /**
-     * Read a register from the device.
-     *
-     * @param		The register to read.
-     * @return		The value that was read.
-     */
-    virtual uint8_t read_reg(unsigned reg) { return 0; }
+	/**
+	 * Read a register from the device.
+	 *
+	 * @param		The register to read.
+	 * @return		The value that was read.
+	 */
+	virtual uint8_t read_reg(unsigned reg) { return 0; }
 
-    /**
-     * Write a register in the device.
-     *
-     * @param reg		The register to write.
-     * @param value		The new value to write.
-     */
-    virtual void write_reg(unsigned reg, uint8_t value) {}
+	/**
+	 * Write a register in the device.
+	 *
+	 * @param reg		The register to write.
+	 * @param value		The new value to write.
+	 */
+	virtual void write_reg(unsigned reg, uint8_t value) {}
 
 	/**
 	 * Perform a device-specific operation.

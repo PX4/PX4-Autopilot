@@ -217,7 +217,7 @@ MB12XX::collect()
 	int ret_val = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret_val < 0) {
-                PX4_ERR("sensor %lu read failed, address: 0x%02X", _sensor_index, get_device_address());
+		PX4_ERR("sensor %lu read failed, address: 0x%02X", _sensor_index, get_device_address());
 		perf_count(_comms_error);
 		perf_end(_sample_perf);
 		return ret_val;
@@ -242,7 +242,7 @@ MB12XX::collect()
 
 	// Begin the next measurement.
 	if (measure() != PX4_OK) {
-                PX4_INFO("sensor %lu measurement error, address 0x%02X", _sensor_index, get_device_address());
+		PX4_INFO("sensor %lu measurement error, address 0x%02X", _sensor_index, get_device_address());
 		perf_count(_comms_error);
 		perf_end(_sample_perf);
 		return ret_val;
@@ -308,7 +308,7 @@ MB12XX::init()
 			_sensor_rotations[_sensor_count] = get_sensor_rotation(_sensor_count);
 			_sensor_count++;
 
-                        PX4_INFO("sensor %lu at address 0x%02X added", _sensor_count, get_device_address());
+			PX4_INFO("sensor %lu at address 0x%02X added", _sensor_count, get_device_address());
 
 			if (_sensor_count >= RANGE_FINDER_MAX_SENSORS) {
 				break;
@@ -329,7 +329,7 @@ MB12XX::init()
 		_measure_interval = MB12XX_INTERVAL_BETWEEN_SUCCESIVE_FIRES;
 	}
 
-        PX4_INFO("Total sensors connected: %lu", _sensor_count);
+	PX4_INFO("Total sensors connected: %lu", _sensor_count);
 	return PX4_OK;
 }
 
@@ -351,7 +351,7 @@ MB12XX::print_info()
 	PX4_INFO("poll interval:  %ums", _measure_interval / 1000);
 
 	for (size_t i = 0; i < _sensor_count; i++) {
-                PX4_INFO("sensor: %lu, address %u", i, _sensor_addresses[i]);
+		PX4_INFO("sensor: %lu, address %u", i, _sensor_addresses[i]);
 	}
 }
 

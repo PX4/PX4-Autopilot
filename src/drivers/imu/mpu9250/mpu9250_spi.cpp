@@ -62,7 +62,7 @@ protected:
 	int probe() override;
 
 private:
-    int32_t high_bus_speed;
+	int32_t high_bus_speed;
 	/* Helper to set the desired speed and isolate the register on return */
 	void set_bus_frequency(unsigned &reg_speed_reg_out);
 };
@@ -74,11 +74,11 @@ MPU9250_SPI_interface(int bus, uint32_t cs, uint8_t bus_mode, int32_t bus_freq_h
 }
 
 MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device, uint8_t bus_mode, int32_t bus_freq_hz) :
-        SPI("MPU9250", nullptr, bus, device, (enum spi_mode_e)bus_mode, MPU9250_LOW_SPI_BUS_SPEED),
-        high_bus_speed(bus_freq_hz)
+	SPI("MPU9250", nullptr, bus, device, (enum spi_mode_e)bus_mode, MPU9250_LOW_SPI_BUS_SPEED),
+	high_bus_speed(bus_freq_hz)
 {
 	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
-    PX4_INFO("MPU9250_SPI: spi mode: %u, high bus frequency: %i KHz", bus_mode, bus_freq_hz/1000);
+	PX4_INFO("MPU9250_SPI: spi mode: %u, high bus frequency: %i KHz", bus_mode, bus_freq_hz / 1000);
 }
 
 void

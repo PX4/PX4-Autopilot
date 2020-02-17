@@ -311,11 +311,11 @@ ICM20948_mag::ak09916_setup(void)
 		PX4_WARN("AK09916: bad id %d retries %d", id, retries);
 		_parent->modify_reg(ICMREG_20948_USER_CTRL, 0, BIT_I2C_MST_RST);
 
-        #if defined(__PX4_POSIX)
-            px4_usleep(100) ;
-        #else
-            up_udelay(100);
-        #endif
+#if defined(__PX4_POSIX)
+		px4_usleep(100) ;
+#else
+		up_udelay(100);
+#endif
 	} while (retries > 0);
 
 	if (retries == 0) {

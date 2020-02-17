@@ -121,21 +121,21 @@
 #define FXOS8701C_TIMER_REDUCTION				240
 
 #pragma pack(push, 1)
-    struct RawAccelMagReport {
+struct RawAccelMagReport {
 #       ifdef FXOS8701CQ_USE_I2C
-            uint8_t  cmd;
+	uint8_t  cmd;
 #       else
-            uint8_t	 cmd[2];
+	uint8_t	 cmd[2];
 #       endif
 
-        uint8_t		status;
-        int16_t		x;
-        int16_t		y;
-        int16_t		z;
-        int16_t		mx;
-        int16_t		my;
-        int16_t		mz;
-    };
+	uint8_t		status;
+	int16_t		x;
+	int16_t		y;
+	int16_t		z;
+	int16_t		mx;
+	int16_t		my;
+	int16_t		mz;
+};
 #pragma pack(pop)
 
 extern device::Device *FXOS8701CQ_SPI_interface(int bus, uint32_t chip_select);
@@ -146,7 +146,7 @@ typedef device::Device *(*FXOS8701CQ_constructor)(int, uint32_t);
 class FXOS8701CQ : public px4::ScheduledWorkItem
 {
 public:
-    FXOS8701CQ(device::Device *interface, enum Rotation rotation);
+	FXOS8701CQ(device::Device *interface, enum Rotation rotation);
 	virtual ~FXOS8701CQ();
 
 	virtual int		init();
@@ -156,10 +156,10 @@ public:
 	void			test_error();
 
 protected:
-    virtual int		probe();
+	virtual int		probe();
 
 private:
-    device::Device *_interface;
+	device::Device *_interface;
 
 	void Run() override;
 
@@ -178,7 +178,8 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	inline uint8_t read_reg(unsigned reg) {
+	inline uint8_t read_reg(unsigned reg)
+	{
 		return _interface->read_reg(reg);
 	}
 
@@ -188,7 +189,8 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	inline void write_reg(unsigned reg, uint8_t value) {
+	inline void write_reg(unsigned reg, uint8_t value)
+	{
 		_interface->write_reg(reg, value);
 	}
 

@@ -66,8 +66,8 @@ static constexpr uint8_t _checked_registers[] {
 using namespace time_literals;
 
 FXAS21002C::FXAS21002C(device::Device *interface, enum Rotation rotation) :
-    ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
-    _interface(interface),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+	_interface(interface),
 	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
@@ -92,15 +92,15 @@ FXAS21002C::~FXAS21002C()
 int
 FXAS21002C::init()
 {
-    /* do SPI/I2C init (and probe) first */
-    if (_interface->init() != OK) {
-        PX4_ERR("SPI/I2C interface init failed");
+	/* do SPI/I2C init (and probe) first */
+	if (_interface->init() != OK) {
+		PX4_ERR("SPI/I2C interface init failed");
 		return PX4_ERROR;
 	}
 
-    // passed SPI::probe or I2C::probe, which checked WHO_AM_I
-    // measurements will not start before registers are checked OK
-    _checked_values[0] = WHO_AM_I;
+	// passed SPI::probe or I2C::probe, which checked WHO_AM_I
+	// measurements will not start before registers are checked OK
+	_checked_values[0] = WHO_AM_I;
 
 	reset();
 
@@ -373,7 +373,7 @@ FXAS21002C::measure()
 	perf_begin(_sample_perf);
 
 	/* status register and data as read back from the device */
-    RawGyroReport raw_gyro_report{};
+	RawGyroReport raw_gyro_report{};
 
 	check_registers();
 
@@ -388,7 +388,7 @@ FXAS21002C::measure()
 	/* fetch data from the sensor */
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-    _interface->read(FXAS21002C_STATUS,  (uint8_t *)&raw_gyro_report, sizeof(raw_gyro_report));
+	_interface->read(FXAS21002C_STATUS, (uint8_t *)&raw_gyro_report, sizeof(raw_gyro_report));
 
 	if (!(raw_gyro_report.status & DR_STATUS_ZYXDR)) {
 		perf_end(_sample_perf);

@@ -53,9 +53,9 @@ const uint8_t BMI088_accel::_checked_registers[BMI088_ACCEL_NUM_CHECKED_REGISTER
 										     };
 
 BMI088_accel::BMI088_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation,
-                           enum spi_mode_e spi_mode, uint32_t bus_freq_hz) :
-    BMI088("BMI088_ACCEL", path_accel, bus, device, spi_mode, bus_freq_hz, rotation), // both Mode 0 & 3 worked for BMI088
-    ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+			   enum spi_mode_e spi_mode, uint32_t bus_freq_hz) :
+	BMI088("BMI088_ACCEL", path_accel, bus, device, spi_mode, bus_freq_hz, rotation), // both Mode 0 & 3 worked for BMI088
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_accel(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi088_accel_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi088_accel_bad_transfers")),
@@ -64,7 +64,7 @@ BMI088_accel::BMI088_accel(int bus, const char *path_accel, uint32_t device, enu
 	_got_duplicate(false)
 {
 	_px4_accel.set_device_type(DRV_DEVTYPE_BMI088);
-     PX4_INFO("BMI088_accel: spi mode: %u, bus frequency: %i KHz", spi_mode, bus_freq_hz/1000);
+	PX4_INFO("BMI088_accel: spi mode: %u, bus frequency: %i KHz", spi_mode, bus_freq_hz / 1000);
 }
 
 BMI088_accel::~BMI088_accel()
@@ -125,11 +125,11 @@ int BMI088_accel::reset()
 	 * Setting it to 5ms.
 	 */
 
-        #if defined(__PX4_POSIX)
-            px4_usleep(5000) ;
-        #else
-            up_udelay(5000);
-        #endif
+#if defined(__PX4_POSIX)
+	px4_usleep(5000) ;
+#else
+	up_udelay(5000);
+#endif
 
 	// Perform a dummy read here to put the accelerometer part of the BMI088 back into SPI mode after the reset
 	// The dummy read basically pulls the chip select line low and then high
@@ -143,11 +143,11 @@ int BMI088_accel::reset()
 	 * Any communication with the sensor during this time should be avoided
 	 * (see section "Power Modes: Acceleromter" in the BMI datasheet) */
 
-        #if defined(__PX4_POSIX)
-            px4_usleep(5000) ;
-        #else
-            up_udelay(5000);
-        #endif
+#if defined(__PX4_POSIX)
+	px4_usleep(5000) ;
+#else
+	up_udelay(5000);
+#endif
 
 	// Set the PWR CONF to be active
 	write_checked_reg(BMI088_ACC_PWR_CONF, BMI088_ACC_PWR_CONF_ACTIVE); // Sets the accelerometer to active mode

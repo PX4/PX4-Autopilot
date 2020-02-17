@@ -58,18 +58,18 @@ struct bmp280_bus_option {
 	uint32_t bus_freq_hz;
 } bus_options[] = {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BARO)
-    { BMP280_BUS::SPI_EXTERNAL, &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, nullptr, 3, BMP280_SPI_SPEED },
+	{ BMP280_BUS::SPI_EXTERNAL, &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, nullptr, 3, BMP280_SPI_SPEED },
 #endif
 #if defined(PX4_SPIDEV_BARO_BUS) && defined(PX4_SPIDEV_BARO)
-    { BMP280_BUS::SPI_INTERNAL, &bmp280_spi_interface, PX4_SPIDEV_BARO_BUS, PX4_SPIDEV_BARO, nullptr, 3, BMP280_SPI_SPEED },
+	{ BMP280_BUS::SPI_INTERNAL, &bmp280_spi_interface, PX4_SPIDEV_BARO_BUS, PX4_SPIDEV_BARO, nullptr, 3, BMP280_SPI_SPEED },
 #elif defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_BARO)
-    { BMP280_BUS::SPI_INTERNAL, &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, nullptr, 3, BMP280_SPI_SPEED },
+	{ BMP280_BUS::SPI_INTERNAL, &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, nullptr, 3, BMP280_SPI_SPEED },
 #endif
 #if defined(PX4_I2C_BUS_ONBOARD) && defined(PX4_I2C_OBDEV_BMP280)
-    { BMP280_BUS::I2C_INTERNAL, &bmp280_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, nullptr, 0, BMP280_I2C_SPEED },
+	{ BMP280_BUS::I2C_INTERNAL, &bmp280_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, nullptr, 0, BMP280_I2C_SPEED },
 #endif
 #if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_OBDEV_BMP280)
-    { BMP280_BUS::I2C_EXTERNAL, &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP280, nullptr, 0, BMP280_I2C_SPEED },
+	{ BMP280_BUS::I2C_EXTERNAL, &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP280, nullptr, 0, BMP280_I2C_SPEED },
 #endif
 };
 
@@ -89,23 +89,23 @@ static struct bmp280_bus_option *find_bus(BMP280_BUS busid)
 
 static void updateBusMode(uint8_t dev_mode)
 {
-    for (bmp280_bus_option &bus_option : bus_options) {
-        //only one option will be used, so simply update all options here
-        bus_option.bus_mode = dev_mode;
-    }
+	for (bmp280_bus_option &bus_option : bus_options) {
+		//only one option will be used, so simply update all options here
+		bus_option.bus_mode = dev_mode;
+	}
 }
 
 static void updateBusSpeed(uint32_t freq_hz)
 {
-    for (bmp280_bus_option &bus_option : bus_options) {
-        //only one option will be used, so simply update all options here
-        bus_option.bus_freq_hz = freq_hz;
-    }
+	for (bmp280_bus_option &bus_option : bus_options) {
+		//only one option will be used, so simply update all options here
+		bus_option.bus_freq_hz = freq_hz;
+	}
 }
 
 static bool start_bus(bmp280_bus_option &bus)
 {
-    bmp280::IBMP280 *interface = bus.interface_constructor(bus.busnum, bus.address, bus.bus_mode, bus.bus_freq_hz);
+	bmp280::IBMP280 *interface = bus.interface_constructor(bus.busnum, bus.address, bus.bus_mode, bus.bus_freq_hz);
 
 	if ((interface == nullptr) || (interface->init() != PX4_OK)) {
 		PX4_WARN("no device on bus %u", (unsigned)bus.busid);
@@ -207,7 +207,7 @@ extern "C" int bmp280_main(int argc, char *argv[])
 
 	BMP280_BUS busid = BMP280_BUS::ALL;
 
-    	while ((ch = px4_getopt(argc, argv, "XISsm:k:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISsm:k:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = BMP280_BUS::I2C_EXTERNAL;
@@ -225,19 +225,17 @@ extern "C" int bmp280_main(int argc, char *argv[])
 			busid = BMP280_BUS::SPI_INTERNAL;
 			break;
 
-		case 'm':
-		{
-			uint8_t bus_mode = (uint8_t)atoi(myoptarg);
-			bmp280::updateBusMode(bus_mode);
-			break;
-		}
+		case 'm': {
+				uint8_t bus_mode = (uint8_t)atoi(myoptarg);
+				bmp280::updateBusMode(bus_mode);
+				break;
+			}
 
-		case 'k':
-		{
-			uint32_t bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
-			bmp280::updateBusSpeed(bus_freq_hz);
-			break;
-		}
+		case 'k': {
+				uint32_t bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
+				bmp280::updateBusSpeed(bus_freq_hz);
+				break;
+			}
 
 		default:
 			return bmp280::usage();

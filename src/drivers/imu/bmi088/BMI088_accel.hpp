@@ -157,8 +157,8 @@
 class BMI088_accel : public BMI088, public px4::ScheduledWorkItem
 {
 public:
-    BMI088_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation,
-                 enum spi_mode_e spi_mode, uint32_t bus_freq_hz);
+	BMI088_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation,
+		     enum spi_mode_e spi_mode, uint32_t bus_freq_hz);
 	virtual ~BMI088_accel();
 
 	virtual int     init() override;

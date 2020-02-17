@@ -109,7 +109,7 @@ static void updateBusMode(uint8_t dev_mode)
 static void updateBusSpeed(uint32_t freq_hz)
 {
 	for (mpu9250_bus_option &bus_option : bus_options) {
-        	//only one option will be used, so simply update all options here
+		//only one option will be used, so simply update all options here
 		bus_option.bus_freq_hz = freq_hz;
 	}
 }
@@ -234,7 +234,7 @@ extern "C" int mpu9250_main(int argc, char *argv[])
 	MPU9250_BUS busid = MPU9250_BUS::ALL;
 	enum Rotation rotation = ROTATION_NONE;
 
-    while ((ch = px4_getopt(argc, argv, "XISstR:m:k:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISstR:m:k:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MPU9250_BUS::I2C_EXTERNAL;
@@ -260,19 +260,17 @@ extern "C" int mpu9250_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
-		case 'm':
-		{
-			uint8_t bus_mode = (uint8_t)atoi(myoptarg);
-			mpu9250::updateBusMode(bus_mode);
-			break;
-		}
+		case 'm': {
+				uint8_t bus_mode = (uint8_t)atoi(myoptarg);
+				mpu9250::updateBusMode(bus_mode);
+				break;
+			}
 
-		case 'k':
-		{
-			uint32_t bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
-			mpu9250::updateBusSpeed(bus_freq_hz);
-			break;
-		}
+		case 'k': {
+				uint32_t bus_freq_hz = (uint32_t)atoi(myoptarg) * 1000;
+				mpu9250::updateBusSpeed(bus_freq_hz);
+				break;
+			}
 
 		default:
 			return mpu9250::usage();

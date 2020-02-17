@@ -161,8 +161,8 @@ public:
 
 /* interface factories */
 extern bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint32_t device,
-                                             uint8_t bus_mode, uint32_t bus_freq_hz);
+		uint8_t bus_mode, uint32_t bus_freq_hz);
 extern bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device,
-                                             uint8_t bus_mode, uint32_t bus_freq_hz);
+		uint8_t bus_mode, uint32_t bus_freq_hz);
 typedef bmp280::IBMP280 *(*BMP280_constructor)(uint8_t busnum, uint32_t device,
-                                               uint8_t bus_mode, uint32_t bus_freq_hz);
+		uint8_t bus_mode, uint32_t bus_freq_hz);

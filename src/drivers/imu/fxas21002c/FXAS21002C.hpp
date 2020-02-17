@@ -180,19 +180,19 @@ typedef device::Device *(*FXAS21002C_constructor)(int, uint32_t);
 
 /* status register and data as read back from the device */
 #pragma pack(push, 1)
-    struct RawGyroReport{
-        uint8_t		cmd;
-        uint8_t		status;
-        int16_t		x;
-        int16_t		y;
-        int16_t		z;
-    };
+struct RawGyroReport {
+	uint8_t		cmd;
+	uint8_t		status;
+	int16_t		x;
+	int16_t		y;
+	int16_t		z;
+};
 #pragma pack(pop)
 
 class FXAS21002C : public px4::ScheduledWorkItem
 {
 public:
-    FXAS21002C(device::Device *interface, enum Rotation rotation);
+	FXAS21002C(device::Device *interface, enum Rotation rotation);
 	virtual ~FXAS21002C();
 
 	virtual int init();
@@ -276,7 +276,8 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	inline uint8_t read_reg(unsigned reg) {
+	inline uint8_t read_reg(unsigned reg)
+	{
 		return _interface->read_reg(reg);
 	}
 
@@ -286,7 +287,8 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	inline void write_reg(unsigned reg, uint8_t value) {
+	inline void write_reg(unsigned reg, uint8_t value)
+	{
 		_interface->write_reg(reg, value);
 	}
 

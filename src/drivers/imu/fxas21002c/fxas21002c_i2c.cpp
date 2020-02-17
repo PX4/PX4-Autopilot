@@ -45,7 +45,8 @@
 
 device::Device *FXAS21002C_I2C_interface(int bus, uint32_t slave_address);
 
-class FXAS21002C_I2C : public device::I2C {
+class FXAS21002C_I2C : public device::I2C
+{
 public:
 	FXAS21002C_I2C(int bus, uint32_t slave_address);
 	~FXAS21002C_I2C() override = default;
@@ -60,7 +61,7 @@ public:
 	 * @param count	The number of items to read.
 	 * @return		The number of items read on success, negative errno otherwise.
 	 */
-    int	read(unsigned reg, void *data, unsigned count) override;
+	int	read(unsigned reg, void *data, unsigned count) override;
 
 	/**
 	 * Write directly to the device.
@@ -72,7 +73,7 @@ public:
 	 * @param count	The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
 	 */
-    int	write(unsigned reg, void *data, unsigned count) override;
+	int	write(unsigned reg, void *data, unsigned count) override;
 
 	/**
 	 * Read a register from the FXAS21002C
@@ -80,7 +81,7 @@ public:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-    uint8_t read_reg(unsigned reg) override;
+	uint8_t read_reg(unsigned reg) override;
 
 	/**
 	 * Write a register in the FXAS21002C
@@ -88,54 +89,57 @@ public:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-    void write_reg(unsigned reg, uint8_t value) override;
+	void write_reg(unsigned reg, uint8_t value) override;
 
 protected:
-    int probe() override;
+	int probe() override;
 };
 
 device::Device *
-FXAS21002C_I2C_interface(int bus, uint32_t slave_address) {
+FXAS21002C_I2C_interface(int bus, uint32_t slave_address)
+{
 	return new FXAS21002C_I2C(bus, slave_address);
 }
 
 FXAS21002C_I2C::FXAS21002C_I2C(int bus, uint32_t slave_address) :
-        I2C("FXAS21002C", nullptr, bus, slave_address, FXAS21002C_I2C_BUS_SPEED)
+	I2C("FXAS21002C", nullptr, bus, slave_address, FXAS21002C_I2C_BUS_SPEED)
 {
 	set_device_type(DRV_GYR_DEVTYPE_FXAS2100C);
-    PX4_INFO("FXAS21002C_I2C: bus frequency: %i KHz", FXAS21002C_I2C_BUS_SPEED/1000);
+	PX4_INFO("FXAS21002C_I2C: bus frequency: %i KHz", FXAS21002C_I2C_BUS_SPEED / 1000);
 }
 
 int
 FXAS21002C_I2C::probe()
 {
-    uint8_t whoami = read_reg(FXAS21002C_WHO_AM_I);
-    bool success = (whoami== WHO_AM_I);
+	uint8_t whoami = read_reg(FXAS21002C_WHO_AM_I);
+	bool success = (whoami == WHO_AM_I);
 
-    PX4_INFO("FXAS21002C_I2C::probe: %s, whoami: 0x%02x", (success? "Succeeded" : "failed"), whoami);
-    return success? OK : -EIO;
+	PX4_INFO("FXAS21002C_I2C::probe: %s, whoami: 0x%02x", (success ? "Succeeded" : "failed"), whoami);
+	return success ? OK : -EIO;
 }
 
 uint8_t
-FXAS21002C_I2C::read_reg(unsigned reg) {
-    uint8_t cmd[1];
-    uint8_t data[1];
+FXAS21002C_I2C::read_reg(unsigned reg)
+{
+	uint8_t cmd[1];
+	uint8_t data[1];
 
-    cmd[0] = FXAS21002C_REG(reg);
+	cmd[0] = FXAS21002C_REG(reg);
 
-    transfer(cmd, 1, data, 1);
+	transfer(cmd, 1, data, 1);
 
-    return data[0];
+	return data[0];
 }
 
 void
-FXAS21002C_I2C::write_reg(unsigned reg, uint8_t value) {
+FXAS21002C_I2C::write_reg(unsigned reg, uint8_t value)
+{
 	uint8_t cmd[2];
 
-    cmd[0] = FXAS21002C_REG(reg);
+	cmd[0] = FXAS21002C_REG(reg);
 	cmd[1] = value;
 
-    transfer(cmd, 2, nullptr, 0);
+	transfer(cmd, 2, nullptr, 0);
 }
 
 /**
@@ -148,19 +152,20 @@ FXAS21002C_I2C::write_reg(unsigned reg, uint8_t value) {
  * @param count	The number of items to read.
  * @return		The number of items read on success, negative errno otherwise.
  */
-int FXAS21002C_I2C::read(unsigned reg, void *data, unsigned count) {
-    /* Same as in mpu9250_i2c.cpp:
-     * We want to avoid copying the data of RawGyroReport: So if the caller
-     * supplies a buffer not RawGyroReport in size, it is assume to be a reg or
-     * reg 16 read
-     * Since RawGyroReport has a cmd at front, we must return the data
-     * after that. Foe anthing else we must return it
-     */
-    uint32_t offset = count < sizeof(RawGyroReport) ? 0 : offsetof(RawGyroReport, status);
-    uint8_t cmd = FXAS21002C_REG(reg);
+int FXAS21002C_I2C::read(unsigned reg, void *data, unsigned count)
+{
+	/* Same as in mpu9250_i2c.cpp:
+	 * We want to avoid copying the data of RawGyroReport: So if the caller
+	 * supplies a buffer not RawGyroReport in size, it is assume to be a reg or
+	 * reg 16 read
+	 * Since RawGyroReport has a cmd at front, we must return the data
+	 * after that. Foe anthing else we must return it
+	 */
+	uint32_t offset = count < sizeof(RawGyroReport) ? 0 : offsetof(RawGyroReport, status);
+	uint8_t cmd = FXAS21002C_REG(reg);
 
-    return transfer(&cmd, 1, &((uint8_t *)data)[offset], count-offset);
-    // without "-offset" -> stack smashing detected
+	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count - offset);
+	// without "-offset" -> stack smashing detected
 }
 
 /**
@@ -173,19 +178,20 @@ int FXAS21002C_I2C::read(unsigned reg, void *data, unsigned count) {
  * @param count	The number of items to write.
  * @return		The number of items written on success, negative errno otherwise.
  */
-int FXAS21002C_I2C::write(unsigned reg, void *data, unsigned count) {
-    uint8_t cmd[2] {};
+int FXAS21002C_I2C::write(unsigned reg, void *data, unsigned count)
+{
+	uint8_t cmd[2] {};
 
-    if (sizeof(cmd) < (count + 1)) {
-        // same as in mpu9250_i2c.cpp
-        // This condition means only supportting the case of count == 1
-        // so this API is the same as write_reg
-        return -EIO;
-    }
+	if (sizeof(cmd) < (count + 1)) {
+		// same as in mpu9250_i2c.cpp
+		// This condition means only supportting the case of count == 1
+		// so this API is the same as write_reg
+		return -EIO;
+	}
 
-    cmd[0] = FXAS21002C_REG(reg);
-    cmd[1] = *(uint8_t *)data;
+	cmd[0] = FXAS21002C_REG(reg);
+	cmd[1] = *(uint8_t *)data;
 
-    return transfer(cmd, sizeof(cmd), nullptr, 0);
+	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 

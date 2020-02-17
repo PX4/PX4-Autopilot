@@ -71,7 +71,7 @@ MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address, int32_t bus_freq_hz) :
 	I2C("MPU9250_I2C", nullptr, bus, address, bus_freq_hz)
 {
 	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
-    PX4_INFO("MPU9250_I2C: bus frequency: %i KHz", bus_freq_hz/1000);
+	PX4_INFO("MPU9250_I2C: bus frequency: %i KHz", bus_freq_hz / 1000);
 }
 
 int
@@ -99,7 +99,7 @@ MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	 */
 	uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, ACCEL_XOUT_H);
 	uint8_t cmd = MPU9250_REG(reg_speed);
-	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count-offset);
+	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count - offset);
 }
 
 int
