@@ -146,12 +146,7 @@ protected:
 
 	DeviceNode		*_node{nullptr};
 
-	/**
-	 * Subscription's latest data generation.
-	 * Also used to track (and rate limit) subscription
-	 * attempts if the topic has not yet been published.
-	 */
-	unsigned _last_generation{0};
+	unsigned _last_generation{0}; /**< last generation the subscriber has seen */
 
 	ORB_ID _orb_id{ORB_ID::INVALID};
 	uint8_t _instance{0};
