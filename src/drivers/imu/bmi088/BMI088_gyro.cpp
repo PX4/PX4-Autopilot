@@ -109,11 +109,7 @@ int BMI088_gyro::reset()
 	//Enable Gyroscope in normal mode
 	write_reg(BMI088_GYR_LPM1, BMI088_GYRO_NORMAL);
 
-#if defined(__PX4_POSIX)
 	px4_usleep(1000) ;
-#else
-	up_udelay(1000);
-#endif
 
 	uint8_t retries = 10;
 

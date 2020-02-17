@@ -43,11 +43,7 @@
 
 void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status)
 {
-#if defined(__PX4_NUTTX)
-	PX4_DEBUG("set_health_flags: Type %llu pres=%u enabl=%u ok=%u", subsystem_type, present, enabled, ok);
-#else
-	PX4_DEBUG("set_health_flags: Type %lu pres=%u enabl=%u ok=%u", subsystem_type, present, enabled, ok);
-#endif
+	PX4_DEBUG("set_health_flags: Type %lu pres=%u enabl=%u ok=%u", (long unsigned int)subsystem_type, present, enabled, ok);
 
 	if (present) {
 		status.onboard_control_sensors_present |= (uint32_t)subsystem_type;

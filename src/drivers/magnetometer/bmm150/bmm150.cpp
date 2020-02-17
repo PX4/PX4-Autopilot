@@ -161,13 +161,7 @@ int test(bool external_bus)
 	}
 
 	PX4_WARN("single read");
-
-#if defined(__PX4_NUTTX)
-	PX4_WARN("time:     %llu", m_report.timestamp);
-#else
-	PX4_WARN("time:     %lu", m_report.timestamp);
-#endif
-
+	PX4_WARN("time:     %llu", (long long unsigned int) m_report.timestamp);
 
 	PX4_WARN("mag  x:  \t%8.4f\t", (double)m_report.x);
 	PX4_WARN("mag  y:  \t%8.4f\t", (double)m_report.y);
@@ -354,11 +348,7 @@ int BMM150::init()
 	/* Bring the device to sleep mode */
 	modify_reg(BMM150_POWER_CTRL_REG, 1, 1);
 
-#if defined(__PX4_POSIX)
-	px4_usleep(10000) ;
-#else
-	up_udelay(10000);
-#endif
+	px4_usleep(10000);
 
 	id = read_reg(BMM150_CHIP_ID_REG);
 
@@ -385,11 +375,7 @@ int BMM150::init()
 		return -EIO;
 	}
 
-#if defined(__PX4_POSIX)
-	px4_usleep(10000) ;
-#else
-	up_udelay(10000);
-#endif
+	px4_usleep(10000);
 
 	if (collect()) {
 		return -EIO;
@@ -803,20 +789,12 @@ int BMM150::reset()
 	/* Soft-reset */
 	modify_reg(BMM150_POWER_CTRL_REG, BMM150_SOFT_RESET_MASK, BMM150_SOFT_RESET_VALUE);
 
-#if defined(__PX4_POSIX)
-	px4_usleep(5000) ;
-#else
-	up_udelay(5000);
-#endif
+	px4_usleep(5000);
 
 	/* Enable Magnetometer in normal mode */
 	ret += set_power_mode(BMM150_DEFAULT_POWER_MODE);
 
-#if defined(__PX4_POSIX)
-	px4_usleep(1000) ;
-#else
-	up_udelay(1000);
-#endif
+	px4_usleep(1000);
 
 	/* Set the data rate to default */
 	ret += set_data_rate(BMM150_DEFAULT_ODR);
