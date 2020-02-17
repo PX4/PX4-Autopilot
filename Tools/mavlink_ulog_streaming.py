@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 try:
     from pymavlink import mavutil
 except ImportError as e:
-    print("Failed to import pymavlink: " + e)
+    print("Failed to import pymavlink: " + str(e))
     print("")
     print("You may need to install it with:")
     print("    pip3 install --user pymavlink")

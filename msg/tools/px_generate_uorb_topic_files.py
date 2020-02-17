@@ -43,31 +43,26 @@ import shutil
 import filecmp
 import argparse
 import sys
-import errno
 
 try:
     import em
 except ImportError as e:
-    print("Python import error: ", e)
-    print('''
-Required python package empy not installed.
-
-Please run:
-    pip3 install --user empy
-''')
-    exit(1)
+    print("Failed to import em: " + str(e))
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user empy")
+    print("")
+    sys.exit(1)
 
 try:
     import genmsg.template_tools
 except ImportError as e:
-    print("Python import error: ", e)
-    print('''
-Required python package pyros-genmsg not installed.
-
-Please run:
-    pip3 install --user pyros-genmsg
-''')
-    exit(1)
+    print("Failed to import genmsg: " + str(e))
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user pyros-genmsg")
+    print("")
+    sys.exit(1)
 
 
 __author__ = "Sergey Belash, Thomas Gubler, Beat Kueng"

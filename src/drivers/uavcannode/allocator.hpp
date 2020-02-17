@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
- *   Author: Pavel Kirienko <pavel.kirienko@gmail.com>
+ *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,65 +31,40 @@
  *
  ****************************************************************************/
 
-#include "indication_controller.hpp"
-#include <uavcan/equipment/indication/LightsCommand.hpp>
-#include "led.hpp"
+/**
+ * @author Pavel Kirienko <pavel.kirienko@gmail.com>
+ */
 
-namespace
+#pragma once
+
+#include <systemlib/err.h>
+#include <uavcan/uavcan.hpp>
+#include <uavcan/helpers/heap_based_pool_allocator.hpp>
+
+// TODO: Entire UAVCAN application should be moved into a namespace later; this is the first step.
+namespace uavcan_node
 {
-unsigned self_light_index = 0;
 
-void cb_light_command(const uavcan::ReceivedDataStructure<uavcan::equipment::indication::LightsCommand> &msg)
-{
-	uavcan::uint32_t red = 0;
-	uavcan::uint32_t green = 0;
-	uavcan::uint32_t blue = 0;
+struct AllocatorSynchronizer {
+	const ::irqstate_t state = ::enter_critical_section();
+	~AllocatorSynchronizer() { ::leave_critical_section(state); }
+};
 
-	for (auto &cmd : msg.commands) {
-		if (cmd.light_id == self_light_index) {
-			using uavcan::equipment::indication::RGB565;
+struct Allocator : public uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer> {
+	static constexpr unsigned CapacitySoftLimit = 250;
+	static constexpr unsigned CapacityHardLimit = 500;
 
-			red = uavcan::uint32_t(float(cmd.color.red) *
-					       (255.0F / float(RGB565::FieldTypes::red::max())) + 0.5F);
+	Allocator() :
+		uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer>(CapacitySoftLimit, CapacityHardLimit)
+	{ }
 
-			green = uavcan::uint32_t(float(cmd.color.green) *
-						 (255.0F / float(RGB565::FieldTypes::green::max())) + 0.5F);
-
-			blue = uavcan::uint32_t(float(cmd.color.blue) *
-						(255.0F / float(RGB565::FieldTypes::blue::max())) + 0.5F);
-
-			red   = uavcan::min<uavcan::uint32_t>(red, 0xFFU);
-			green = uavcan::min<uavcan::uint32_t>(green, 0xFFU);
-			blue  = uavcan::min<uavcan::uint32_t>(blue, 0xFFU);
-		}
-
-		if (cmd.light_id == self_light_index + 1) {
-			static int c = 0;
-
-			if (c++ % 100 == 0) {
-				::syslog(LOG_INFO, "rgb:%d %d %d hz %d\n", red, green, blue,  int(cmd.color.red));
-			}
-
-			rgb_led(red, green, blue, int(cmd.color.red));
-			break;
+	~Allocator()
+	{
+		if (getNumAllocatedBlocks() > 0) {
+			PX4_ERR("UAVCAN LEAKS MEMORY: %u BLOCKS (%u BYTES) LOST",
+				getNumAllocatedBlocks(), getNumAllocatedBlocks() * uavcan::MemPoolBlockSize);
 		}
 	}
-}
-}
+};
 
-int init_indication_controller(uavcan::INode &node)
-{
-	static uavcan::Subscriber<uavcan::equipment::indication::LightsCommand> sub_light(node);
-
-	self_light_index = 0;
-
-	int res = 0;
-
-	res = sub_light.start(cb_light_command);
-
-	if (res != 0) {
-		return res;
-	}
-
-	return 0;
 }

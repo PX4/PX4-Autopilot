@@ -1124,7 +1124,6 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.orientation = dist_mavlink->orientation;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
 	dist.signal_quality = -1;
-
 	dist.h_fov = dist_mavlink->horizontal_fov;
 	dist.v_fov = dist_mavlink->vertical_fov;
 	dist.q[0] = dist_mavlink->quaternion[0];
@@ -1132,7 +1131,21 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.q[2] = dist_mavlink->quaternion[2];
 	dist.q[3] = dist_mavlink->quaternion[3];
 
-	_dist_pub.publish(dist);
+	// New publishers will be created based on the sensor ID's being different or not
+	for (size_t i = 0; i < sizeof(_dist_sensor_ids) / sizeof(_dist_sensor_ids[0]); i++) {
+		if (_dist_pubs[i] && _dist_sensor_ids[i] == dist.id) {
+			_dist_pubs[i]->publish(dist);
+			break;
+
+		}
+
+		if (_dist_pubs[i] == nullptr) {
+			_dist_pubs[i] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
+			_dist_sensor_ids[i] = dist.id;
+			_dist_pubs[i]->publish(dist);
+			break;
+		}
+	}
 
 	return PX4_OK;
 }
