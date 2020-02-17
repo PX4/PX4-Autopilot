@@ -259,7 +259,11 @@ MappyDot::collect()
 		int ret_val = transfer(nullptr, 0, &val[0], 2);
 
 		if (ret_val < 0) {
+#if defined(__PX4_NUTTX)
+			PX4_ERR("sensor %u read failed, address: 0x%02X", index, _sensor_addresses[index]);
+#else
 			PX4_ERR("sensor %lu read failed, address: 0x%02X", index, _sensor_addresses[index]);
+#endif
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
 			return ret_val;
@@ -376,14 +380,22 @@ MappyDot::init()
 		transfer(&threshold_cmd[0], 3, nullptr, 0);
 		px4_usleep(10_ms);
 
+#if defined(__PX4_NUTTX)
+		PX4_INFO("sensor %u at address 0x%02X added", i, get_device_address());
+#else
 		PX4_INFO("sensor %lu at address 0x%02X added", i, get_device_address());
+#endif
 	}
 
 	if (_sensor_count == 0) {
 		return PX4_ERROR;
 	}
 
+#if defined(__PX4_NUTTX)
+	PX4_INFO("%u sensors connected", _sensor_count);
+#else
 	PX4_INFO("%lu sensors connected", _sensor_count);
+#endif
 
 	return PX4_OK;
 }
