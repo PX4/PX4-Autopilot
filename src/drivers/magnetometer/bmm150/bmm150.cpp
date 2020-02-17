@@ -161,7 +161,14 @@ int test(bool external_bus)
 	}
 
 	PX4_WARN("single read");
+
+#if defined(__PX4_NUTTX)
+	PX4_WARN("time:     %llu", m_report.timestamp);
+#else
 	PX4_WARN("time:     %lu", m_report.timestamp);
+#endif
+
+
 	PX4_WARN("mag  x:  \t%8.4f\t", (double)m_report.x);
 	PX4_WARN("mag  y:  \t%8.4f\t", (double)m_report.y);
 	PX4_WARN("mag  z:  \t%8.4f\t", (double)m_report.z);
