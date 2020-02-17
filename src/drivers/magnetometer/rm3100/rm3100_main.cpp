@@ -38,7 +38,7 @@
  */
 
 #include "rm3100_main.h"
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /**
  * Driver 'main' command.
@@ -154,7 +154,7 @@ bool
 rm3100::test(RM3100_BUS bus_id)
 {
 	struct rm3100_bus_option &bus = find_bus(bus_id);
-	struct mag_report report;
+	sensor_mag_s report;
 	ssize_t sz;
 	int ret;
 	const char *path = bus.devpath;

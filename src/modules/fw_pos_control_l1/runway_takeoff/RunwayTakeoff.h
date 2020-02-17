@@ -46,7 +46,7 @@
 #include <math.h>
 
 #include <drivers/drv_hrt.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
@@ -98,7 +98,6 @@ private:
 	hrt_abstime _initialized_time;
 	float _init_yaw;
 	bool _climbout;
-	unsigned _throttle_ramp_time;
 	matrix::Vector2f _start_wp;
 
 	DEFINE_PARAMETERS(
@@ -110,6 +109,7 @@ private:
 		(ParamFloat<px4::params::RWTO_MAX_PITCH>) _param_rwto_max_pitch,
 		(ParamFloat<px4::params::RWTO_MAX_ROLL>) _param_rwto_max_roll,
 		(ParamFloat<px4::params::RWTO_AIRSPD_SCL>) _param_rwto_airspd_scl,
+		(ParamFloat<px4::params::RWTO_RAMP_TIME>) _param_rwto_ramp_time,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>) _param_fw_clmbout_diff
 	)

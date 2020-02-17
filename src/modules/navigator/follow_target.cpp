@@ -56,7 +56,7 @@
 
 #include "navigator.h"
 
-using matrix::wrap_pi;
+using namespace matrix;
 
 constexpr float FollowTarget::_follow_position_matricies[4][9];
 
@@ -89,7 +89,7 @@ void FollowTarget::on_activation()
 		_follow_target_position = FOLLOW_FROM_BEHIND;
 	}
 
-	_rot_matrix = (_follow_position_matricies[_follow_target_position]);
+	_rot_matrix = Dcmf(_follow_position_matricies[_follow_target_position]);
 }
 
 void FollowTarget::on_active()
@@ -240,7 +240,7 @@ void FollowTarget::on_active()
 
 	case TRACK_POSITION: {
 
-			if (_radius_entered == true) {
+			if (_radius_entered) {
 				_follow_target_state = TRACK_VELOCITY;
 
 			} else if (target_velocity_valid()) {
@@ -259,7 +259,7 @@ void FollowTarget::on_active()
 
 	case TRACK_VELOCITY: {
 
-			if (_radius_exited == true) {
+			if (_radius_exited) {
 				_follow_target_state = TRACK_POSITION;
 
 			} else if (target_velocity_valid()) {

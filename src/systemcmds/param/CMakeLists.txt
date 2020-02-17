@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE systemcmds__param
 	MAIN param
-	STACK_MAIN 2500
 	COMPILE_FLAGS
 		-Wno-array-bounds
 	SRCS

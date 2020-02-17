@@ -49,10 +49,10 @@
 #include <lib/conversion/rotation.h>
 
 #include <perf/perf_counter.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 /**
  * RM3100 internal constants and data structures.
@@ -152,7 +152,7 @@ private:
 
 	struct mag_calibration_s _scale;
 
-	struct mag_report _last_report {};      /**< used for info() */
+	sensor_mag_s _last_report {};      /**< used for info() */
 
 	orb_advert_t _mag_topic;
 

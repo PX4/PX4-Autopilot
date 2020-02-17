@@ -23,7 +23,7 @@
     <!-- MAVROS -->
     <include file="$(find mavros)/launch/node.launch">
         <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml"/>
-        <arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml"/>
+        <arg name="config_yaml" value="$(find local_planner)/resource/px4_config.yaml"/>
         <arg name="gcs_url" value=""/>
         <arg name="fcu_url" value="udp://:14540@localhost:14557"/>
         <arg name="tgt_system" value="1"/>

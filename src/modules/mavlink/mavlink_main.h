@@ -62,13 +62,13 @@
 #include <drivers/device/ringbuffer.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <px4_cli.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_posix.h>
+#include <px4_platform_common/cli.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/uthash/utlist.h>
 #include <uORB/PublicationQueued.hpp>
@@ -84,14 +84,20 @@
 #include "mavlink_ulog.h"
 
 #define DEFAULT_BAUD_RATE       57600
-#define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
+
 #define HASH_PARAM              "_HASH_CHECK"
 
-enum Protocol {
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+# define MAVLINK_UDP
+# define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
+#endif // CONFIG_NET || __PX4_POSIX
+
+enum class Protocol {
 	SERIAL = 0,
+#if defined(MAVLINK_UDP)
 	UDP,
-	TCP,
+#endif // MAVLINK_UDP
 };
 
 using namespace time_literals;
@@ -137,8 +143,6 @@ public:
 
 	static Mavlink 		*get_instance_for_device(const char *device_name);
 
-	static Mavlink 		*get_instance_for_network_port(unsigned long port);
-
 	mavlink_message_t 	*get_buffer() { return &_mavlink_buffer; }
 
 	mavlink_status_t 	*get_status() { return &_mavlink_status; }
@@ -159,8 +163,6 @@ public:
 	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
-
-	static int		get_uart_fd(unsigned index);
 
 	int			get_uart_fd() const { return _uart_fd; }
 
@@ -259,9 +261,11 @@ public:
 
 	bool			is_connected() { return (hrt_elapsed_time(&_tstatus.heartbeat_time) < 3_s); }
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(MAVLINK_UDP)
+	static Mavlink 		*get_instance_for_network_port(unsigned long port);
+
 	bool			broadcast_enabled() { return _param_mav_broadcast.get() == BROADCAST_MODE_ON; }
-#endif
+#endif // MAVLINK_UDP
 
 	/**
 	 * Set the boot complete flag on all instances
@@ -450,30 +454,26 @@ public:
 
 	unsigned		get_system_type() { return _param_mav_type.get(); }
 
-	Protocol 		get_protocol() { return _protocol; }
-
-	unsigned short		get_network_port() { return _network_port; }
-
-	unsigned short		get_remote_port() { return _remote_port; }
+	Protocol 		get_protocol() const { return _protocol; }
 
 	int 			get_socket_fd() { return _socket_fd; };
 
 	bool			_task_should_exit{false};	/**< Mavlink task should exit iff true. */
 
-#ifdef __PX4_POSIX
+#if defined(MAVLINK_UDP)
+	unsigned short		get_network_port() { return _network_port; }
+
+	unsigned short		get_remote_port() { return _remote_port; }
+
 	const in_addr		query_netmask_addr(const int socket_fd, const ifreq &ifreq);
 
 	const in_addr		compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr);
-#endif
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	struct sockaddr_in 	&get_client_source_address() { return _src_addr; }
 
 	void			set_client_source_initialized() { _src_addr_initialized = true; }
 
 	bool			get_client_source_initialized() { return _src_addr_initialized; }
-#else
-	bool			get_client_source_initialized() { return true; }
 #endif
 
 	uint64_t		get_start_time() { return _mavlink_start_time; }
@@ -530,6 +530,8 @@ public:
 	 */
 	struct ping_statistics_s &get_ping_statistics() { return _ping_stats; }
 
+	static hrt_abstime &get_first_start_time() { return _first_start_time; }
+
 protected:
 	Mavlink			*next{nullptr};
 
@@ -544,7 +546,7 @@ private:
 
 	uORB::PublicationQueued<telemetry_status_s>	_telem_status_pub{ORB_ID(telemetry_status)};
 
-	bool			_task_running{false};
+	bool			_task_running{true};
 	static bool		_boot_complete;
 	static constexpr int	MAVLINK_MAX_INSTANCES{4};
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
@@ -581,6 +583,7 @@ private:
 
 	bool			_forwarding_on{false};
 	bool			_ftp_on{false};
+	bool			_use_software_mav_throttling{false};
 
 	int			_uart_fd{-1};
 
@@ -618,7 +621,7 @@ private:
 	unsigned		_bytes_rx{0};
 	uint64_t		_bytes_timestamp{0};
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(MAVLINK_UDP)
 	sockaddr_in		_myaddr {};
 	sockaddr_in		_src_addr {};
 	sockaddr_in		_bcast_addr {};
@@ -629,14 +632,15 @@ private:
 	bool			_broadcast_failed_warned{false};
 	uint8_t			_network_buf[MAVLINK_MAX_PACKET_LEN] {};
 	unsigned		_network_buf_len{0};
-#endif
+
+	unsigned short		_network_port{14556};
+	unsigned short		_remote_port{DEFAULT_REMOTE_PORT_UDP};
+#endif // MAVLINK_UDP
 
 	const char 		*_interface_name{nullptr};
 
 	int			_socket_fd{-1};
-	Protocol		_protocol{SERIAL};
-	unsigned short		_network_port{14556};
-	unsigned short		_remote_port{DEFAULT_REMOTE_PORT_UDP};
+	Protocol		_protocol{Protocol::SERIAL};
 
 	radio_status_s		_rstatus {};
 	telemetry_status_s	_tstatus {};
@@ -659,16 +663,17 @@ private:
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_ver,
-		(ParamInt<px4::params::MAV_RADIO_ID>) _param_mav_radio_id,
+		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_sik_radio_id,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(MAVLINK_UDP)
 		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
-#endif
+#endif // MAVLINK_UDP
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
+		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 	)
 
@@ -684,6 +689,8 @@ private:
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
 	static constexpr unsigned RADIO_BUFFER_HALF_PERCENTAGE = 50;
+
+	static hrt_abstime _first_start_time;
 
 	/**
 	 * Configure a single stream.
@@ -717,22 +724,27 @@ private:
 
 	void publish_telemetry_status();
 
+	void check_requested_subscriptions();
+
 	/**
-	 * Check the configuration of a connected radio
+	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID
 	 *
 	 * This convenience function allows to re-configure a connected
-	 * radio without removing it from the main system harness.
+	 * SiK radio without removing it from the main system harness.
 	 */
-	void check_radio_config();
+	void configure_sik_radio();
 
 	/**
 	 * Update rate mult so total bitrate will be equal to _datarate.
 	 */
 	void update_rate_mult();
 
+#if defined(MAVLINK_UDP)
 	void find_broadcast_address();
 
 	void init_udp();
+#endif // MAVLINK_UDP
+
 
 	void set_channel();
 

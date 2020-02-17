@@ -57,8 +57,7 @@ RunwayTakeoff::RunwayTakeoff(ModuleParams *parent) :
 	_initialized(false),
 	_initialized_time(0),
 	_init_yaw(0),
-	_climbout(false),
-	_throttle_ramp_time(2 * 1e6)
+	_climbout(false)
 {
 }
 
@@ -79,7 +78,8 @@ void RunwayTakeoff::update(float airspeed, float alt_agl,
 
 	switch (_state) {
 	case RunwayTakeoffState::THROTTLE_RAMP:
-		if (hrt_elapsed_time(&_initialized_time) > _throttle_ramp_time) {
+		if (hrt_elapsed_time(&_initialized_time) > _param_rwto_ramp_time.get() * 1e6f
+		    || airspeed > _param_fw_airspd_min.get() * _param_rwto_airspd_scl.get() * 0.9f) {
 			_state = RunwayTakeoffState::CLAMPED_TO_RUNWAY;
 		}
 
@@ -195,7 +195,7 @@ float RunwayTakeoff::getThrottle(float tecsThrottle)
 {
 	switch (_state) {
 	case RunwayTakeoffState::THROTTLE_RAMP: {
-			float throttle = hrt_elapsed_time(&_initialized_time) / (float)_throttle_ramp_time *
+			float throttle = (hrt_elapsed_time(&_initialized_time) / (float)_param_rwto_ramp_time.get() * 1e6f) *
 					 _param_rwto_max_thr.get();
 			return throttle < _param_rwto_max_thr.get() ?
 			       throttle :

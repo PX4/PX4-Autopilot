@@ -86,7 +86,7 @@ private:
 
 	struct PerBatteryData {
 		PerBatteryData() {}
-		MavlinkOrbSubscription *subscription;
+		MavlinkOrbSubscription *subscription{nullptr};
 		SimpleAnalyzer analyzer{SimpleAnalyzer::AVERAGE};
 		uint64_t timestamp{0};
 		bool connected{false};

@@ -55,13 +55,11 @@ static constexpr uint8_t _checked_registers[] = {
 
 LSM303D::LSM303D(int bus, uint32_t device, enum Rotation rotation) :
 	SPI("LSM303D", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_px4_mag(get_device_id(), ORB_PRIO_LOW, rotation),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: acc_read")),
-	_accel_sample_interval_perf(perf_alloc(PC_INTERVAL, "lsm303d: acc interval")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: mag_read")),
-	_mag_sample_interval_perf(perf_alloc(PC_INTERVAL, "lsm303d: mag interval")),
 	_bad_registers(perf_alloc(PC_COUNT, "lsm303d: bad_reg")),
 	_bad_values(perf_alloc(PC_COUNT, "lsm303d: bad_val")),
 	_accel_duplicates(perf_alloc(PC_COUNT, "lsm303d: acc_dupe"))
@@ -78,9 +76,7 @@ LSM303D::~LSM303D()
 
 	// delete the perf counter
 	perf_free(_accel_sample_perf);
-	perf_free(_accel_sample_interval_perf);
 	perf_free(_mag_sample_perf);
-	perf_free(_mag_sample_interval_perf);
 	perf_free(_bad_registers);
 	perf_free(_bad_values);
 	perf_free(_accel_duplicates);
@@ -367,7 +363,6 @@ LSM303D::accel_set_samplerate(unsigned frequency)
 	}
 
 	_call_accel_interval = 1000000 / accel_samplerate;
-	_px4_accel.set_sample_rate(accel_samplerate);
 
 	modify_reg(ADDR_CTRL_REG1, clearbits, setbits);
 
@@ -470,7 +465,6 @@ void
 LSM303D::measureAccelerometer()
 {
 	perf_begin(_accel_sample_perf);
-	perf_count(_accel_sample_interval_perf);
 
 	// status register and data as read back from the device
 #pragma pack(push, 1)
@@ -552,7 +546,6 @@ void
 LSM303D::measureMagnetometer()
 {
 	perf_begin(_mag_sample_perf);
-	perf_count(_mag_sample_interval_perf);
 
 	// status register and data as read back from the device
 #pragma pack(push, 1)
@@ -591,9 +584,7 @@ void
 LSM303D::print_info()
 {
 	perf_print_counter(_accel_sample_perf);
-	perf_print_counter(_accel_sample_interval_perf);
 	perf_print_counter(_mag_sample_perf);
-	perf_print_counter(_mag_sample_interval_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_bad_values);
 	perf_print_counter(_accel_duplicates);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,29 +33,22 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/conversions.h>
-
-#include <drivers/drv_hrt.h>
-
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/conversion/rotation.h>
-#include <systemlib/err.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
-#include <uORB/uORB.h>
+#include <lib/ecl/geo/geo.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/systemlib/conversions.h>
+#include <lib/systemlib/px4_macros.h>
 
 #include "ICM20948_mag.h"
 
-#if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
+#if defined(PX4_I2C_OBDEV_ICM20948) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
 #endif
 
 
-// MPU 9250 registers
+// ICM20948 registers
 #define MPUREG_WHOAMI			0x75
 #define MPUREG_SMPLRT_DIV		0x19
 #define MPUREG_CONFIG			0x1A
@@ -116,7 +109,7 @@
 #define MPUREG_FIFO_COUNTL		0x73
 #define MPUREG_FIFO_R_W			0x74
 
-// Configuration bits MPU 9250
+// Configuration bits ICM20948
 #define BIT_SLEEP			0x40
 #define BIT_H_RESET			0x80
 #define MPU_CLK_SEL_AUTO		0x01
@@ -175,18 +168,15 @@
 
 #define ICM_WHOAMI_20948            0xEA
 
-#define MPU9250_ACCEL_DEFAULT_RATE	1000
-#define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
-#define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
-#define MPU9250_GYRO_DEFAULT_RATE	1000
+#define ICM20948_ACCEL_DEFAULT_RATE	1000
+#define ICM20948_ACCEL_MAX_OUTPUT_RATE			280
+#define ICM20948_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
+#define ICM20948_GYRO_DEFAULT_RATE	1000
 /* rates need to be the same between accel and gyro */
-#define MPU9250_GYRO_MAX_OUTPUT_RATE			MPU9250_ACCEL_MAX_OUTPUT_RATE
-#define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
+#define ICM20948_GYRO_MAX_OUTPUT_RATE			ICM20948_ACCEL_MAX_OUTPUT_RATE
+#define ICM20948_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
 
-#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	92
-
-#define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
-
+#define ICM20948_DEFAULT_ONCHIP_FILTER_FREQ	92
 
 
 // ICM20948 registers and data
@@ -245,9 +235,9 @@
 
 /*
 * ICM20948 register bits
-* Most of the regiser set values from MPU9250 have the same
+* Most of the regiser set values from ICM20948 have the same
 * meaning on ICM20948. The exceptions and values not already
-* defined for MPU9250 are defined below
+* defined for ICM20948 are defined below
 */
 #define ICM_BIT_PWR_MGMT_1_ENABLE       	0x00
 #define ICM_BIT_USER_CTRL_I2C_MST_DISABLE   0x00
@@ -293,9 +283,7 @@
 #define ICM_BITS_I2C_MST_CLOCK_400HZ    	0x07	// recommended by datasheet for 400kHz target clock
 
 
-
 #define MPU_OR_ICM(m,i)					((_whoami==ICM_WHOAMI_20948) ? i : m)
-
 
 #pragma pack(push, 1)
 /**
@@ -310,11 +298,9 @@ struct ICMReport {
 	uint8_t		gyro_y[2];
 	uint8_t		gyro_z[2];
 	uint8_t		temp[2];
-	struct ak8963_regs mag;
+	struct ak09916_regs mag;
 };
 #pragma pack(pop)
-
-
 
 
 #pragma pack(push, 1)
@@ -332,44 +318,39 @@ struct MPUReport {
 	uint8_t		gyro_x[2];
 	uint8_t		gyro_y[2];
 	uint8_t		gyro_z[2];
-	struct ak8963_regs mag;
+	struct ak09916_regs mag;
 };
 #pragma pack(pop)
 
-#define MPU_MAX_WRITE_BUFFER_SIZE (2)
-
-
 /*
-  The MPU9250 can only handle high bus speeds on the sensor and
+  The ICM20948 can only handle high bus speeds on the sensor and
   interrupt status registers. All other registers have a maximum 1MHz
   Communication with all registers of the device is performed using either
   I2C at 400kHz or SPI at 1MHz. For applications requiring faster communications,
   the sensor and interrupt registers may be read using SPI at 20MHz
  */
-#define MPU9250_LOW_BUS_SPEED				0
-#define MPU9250_HIGH_BUS_SPEED				0x8000
-#define MPU9250_REG_MASK					0x00FF
-#  define MPU9250_IS_HIGH_SPEED(r) 			((r) & MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_REG(r) 					((r) & MPU9250_REG_MASK)
-#  define MPU9250_SET_SPEED(r, s) 			((r)|(s))
-#  define MPU9250_HIGH_SPEED_OP(r) 			MPU9250_SET_SPEED((r), MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_LOW_SPEED_OP(r)			((r) &~MPU9250_HIGH_BUS_SPEED)
+#define ICM20948_LOW_BUS_SPEED				0
+#define ICM20948_HIGH_BUS_SPEED				0x8000
+#define ICM20948_REG_MASK					0x00FF
+#  define ICM20948_IS_HIGH_SPEED(r) 			((r) & ICM20948_HIGH_BUS_SPEED)
+#  define ICM20948_REG(r) 					((r) & ICM20948_REG_MASK)
+#  define ICM20948_SET_SPEED(r, s) 			((r)|(s))
+#  define ICM20948_HIGH_SPEED_OP(r) 			ICM20948_SET_SPEED((r), ICM20948_HIGH_BUS_SPEED)
+#  define ICM20948_LOW_SPEED_OP(r)			((r) &~ICM20948_HIGH_BUS_SPEED)
 
 /* interface factories */
-extern device::Device *ICM20948_SPI_interface(int bus, uint32_t cs, bool external_bus);
-extern device::Device *ICM20948_I2C_interface(int bus, uint32_t address, bool external_bus);
-extern int MPU9250_probe(device::Device *dev);
+extern device::Device *ICM20948_SPI_interface(int bus, uint32_t cs);
+extern device::Device *ICM20948_I2C_interface(int bus, uint32_t address);
+extern int ICM20948_probe(device::Device *dev);
 
-typedef device::Device *(*ICM20948_constructor)(int, uint32_t, bool);
+typedef device::Device *(*ICM20948_constructor)(int, uint32_t);
 
 class ICM20948_mag;
 
 class ICM20948 : public px4::ScheduledWorkItem
 {
 public:
-	ICM20948(device::Device *interface, device::Device *mag_interface, const char *path, enum Rotation rotation,
-		 bool magnetometer_only);
-
+	ICM20948(device::Device *interface, device::Device *mag_interface, enum Rotation rotation);
 	virtual ~ICM20948();
 
 	virtual int		init();
@@ -382,39 +363,35 @@ public:
 
 protected:
 	device::Device *_interface;
-	uint8_t			_whoami;	/** whoami result */
+	uint8_t			_whoami{0};	/** whoami result */
 
 	virtual int		probe();
 
 	friend class ICM20948_mag;
 
-	void Run() override;
-
 private:
+
+	void Run() override;
 
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
 
 	ICM20948_mag		_mag;
-	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
-	bool
-	_magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
+	uint8_t 		_selected_bank{0};		/* Remember selected memory bank to avoid polling / setting on each read/write */
 
 	unsigned		_call_interval{1000};
 
-	unsigned		_dlpf_freq;
-	unsigned		_dlpf_freq_icm_gyro;
-	unsigned		_dlpf_freq_icm_accel;
+	unsigned		_dlpf_freq{0};
+	unsigned		_dlpf_freq_icm_gyro{0};
+	unsigned		_dlpf_freq_icm_accel{0};
 
 	unsigned		_sample_rate{1000};
 
-	perf_counter_t		_accel_reads;
-	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_interval_perf;
 	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
-	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
 
 	uint8_t			_register_wait{0};
@@ -429,8 +406,8 @@ private:
 
 	const uint16_t			*_checked_registers{nullptr};
 
-	uint8_t					_checked_values[ICM20948_NUM_CHECKED_REGISTERS];
-	uint8_t					_checked_bad[ICM20948_NUM_CHECKED_REGISTERS];
+	uint8_t					_checked_values[ICM20948_NUM_CHECKED_REGISTERS] {};
+	uint8_t					_checked_bad[ICM20948_NUM_CHECKED_REGISTERS] {};
 	unsigned				_checked_next{0};
 	unsigned				_num_checked_registers{0};
 
@@ -440,27 +417,14 @@ private:
 
 	bool check_null_data(uint16_t *data, uint8_t size);
 	bool check_duplicate(uint8_t *accel_data);
+
 	// keep last accel reading for duplicate detection
 	uint8_t			_last_accel_data[6] {};
 	bool			_got_duplicate{false};
 
-	/**
-	 * Start automatic measurement.
-	 */
 	void			start();
-
-	/**
-	 * Stop automatic measurement.
-	 */
 	void			stop();
-
-	/**
-	 * Reset chip.
-	 *
-	 * Resets the chip and measurements ranges, but not scale and offset.
-	 */
 	int			reset();
-
 
 	/**
 	 * Resets the main chip (excluding the magnetometer if any).
@@ -483,7 +447,6 @@ private:
 	 */
 	int				select_register_bank(uint8_t bank);
 
-
 	/**
 	 * Read a register from the mpu
 	 *
@@ -491,7 +454,7 @@ private:
 	* @param       The bus speed to read with.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg, uint32_t speed = MPU9250_LOW_BUS_SPEED);
+	uint8_t			read_reg(unsigned reg, uint32_t speed = ICM20948_LOW_BUS_SPEED);
 	uint16_t		read_reg16(unsigned reg);
 
 
@@ -575,13 +538,7 @@ private:
 	void _set_sample_rate(unsigned desired_sample_rate_hz);
 
 	/*
-	  set poll rate
-	 */
-	int _set_pollrate(unsigned long rate);
-
-	/*
 	  check that key registers still have the right value
 	 */
-	void check_registers(void);
-
+	void check_registers();
 };

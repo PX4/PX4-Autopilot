@@ -88,7 +88,7 @@ Mission::on_inactive()
 		}
 
 		/* reset the current mission if needed */
-		if (need_to_reset_mission(false)) {
+		if (need_to_reset_mission()) {
 			reset_mission(_mission);
 			update_mission();
 			_navigator->reset_cruising_speed();
@@ -174,22 +174,29 @@ Mission::on_activation()
 void
 Mission::on_active()
 {
+	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND) {
+		// switch out of precision land once landed
+		if (_navigator->get_land_detected()->landed) {
+			_navigator->get_precland()->on_inactivation();
+			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+
+		} else {
+			_navigator->get_precland()->on_active();
+		}
+	}
+
 	check_mission_valid(false);
 
 	/* check if anything has changed */
 	bool mission_sub_updated = _mission_sub.updated();
 
 	if (mission_sub_updated) {
+		_navigator->reset_triplets();
 		update_mission();
 	}
 
-	/* reset the current mission if needed */
-	if (need_to_reset_mission(true)) {
-		reset_mission(_mission);
-		update_mission();
-		_navigator->reset_cruising_speed();
-		mission_sub_updated = true;
-	}
+	/* mission is running (and we are armed), need reset after disarm */
+	_need_mission_reset = true;
 
 	_mission_changed = false;
 
@@ -262,17 +269,6 @@ Mission::on_active()
 	    && (_navigator->abort_landing())) {
 
 		do_abort_landing();
-	}
-
-	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND) {
-		// switch out of precision land once landed
-		if (_navigator->get_land_detected()->landed) {
-			_navigator->get_precland()->on_inactivation();
-			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-
-		} else {
-			_navigator->get_precland()->on_active();
-		}
 	}
 }
 
@@ -376,17 +372,17 @@ Mission::set_execution_mode(const uint8_t mode)
 bool
 Mission::find_mission_land_start()
 {
-	/* return true if a MAV_CMD_DO_LAND_START is found and internally save the index
+	/* return true if a MAV_CMD_DO_LAND_START, NAV_CMD_VTOL_LAND or NAV_CMD_LAND is found and internally save the index
 	 *  return false if not found
-	 *
-	 * TODO: implement full spec and find closest landing point geographically
 	 */
 
 	const dm_item_t dm_current = (dm_item_t)_mission.dataman_id;
+	struct mission_item_s missionitem = {};
+	struct mission_item_s missionitem_prev = {}; //to store mission item before currently checked on, needed to get pos of wp before NAV_CMD_DO_LAND_START
 
-	for (size_t i = 0; i < _mission.count; i++) {
-		struct mission_item_s missionitem = {};
+	for (size_t i = 1; i < _mission.count; i++) {
 		const ssize_t len = sizeof(missionitem);
+		missionitem_prev = missionitem; // store the last mission item before reading a new one
 
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
@@ -394,11 +390,27 @@ Mission::find_mission_land_start()
 			break;
 		}
 
-		if ((missionitem.nav_cmd == NAV_CMD_DO_LAND_START) ||
-		    ((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
-		    (missionitem.nav_cmd == NAV_CMD_LAND)) {
+		// first check for DO_LAND_START marker
+		if ((missionitem.nav_cmd == NAV_CMD_DO_LAND_START) && (missionitem_prev.nav_cmd == NAV_CMD_WAYPOINT)) {
+
 			_land_start_available = true;
 			_land_start_index = i;
+			// the DO_LAND_START marker contains no position sp, so take them from the previous mission item
+			_landing_lat = missionitem_prev.lat;
+			_landing_lon = missionitem_prev.lon;
+			_landing_alt = missionitem_prev.altitude;
+			return true;
+
+			// if no DO_LAND_START marker available, also check for VTOL_LAND or normal LAND
+
+		} else if (((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
+			   (missionitem.nav_cmd == NAV_CMD_LAND)) {
+
+			_land_start_available = true;
+			_land_start_index = i;
+			_landing_lat = missionitem.lat;
+			_landing_lon = missionitem.lon;
+			_landing_alt = missionitem.altitude;
 			return true;
 		}
 	}
@@ -441,9 +453,6 @@ Mission::update_mission()
 {
 
 	bool failed = true;
-
-	/* reset triplets */
-	_navigator->reset_triplets();
 
 	/* Reset vehicle_roi
 	 * Missions that do not explicitly configure ROI would not override
@@ -673,9 +682,6 @@ Mission::set_mission_items()
 
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-				// allow weather vane in mission
-				pos_sp_triplet->current.allow_weather_vane = true;
-
 				/* do takeoff before going to setpoint if needed and not already in takeoff */
 				/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
 				if (do_need_vertical_takeoff() &&
@@ -758,7 +764,7 @@ Mission::set_mission_items()
 				    !_navigator->get_land_detected()->landed) {
 
 					/* disable weathervane before front transition for allowing yaw to align */
-					pos_sp_triplet->current.allow_weather_vane = false;
+					pos_sp_triplet->current.disable_weather_vane = true;
 
 					/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
 					_mission_item.yaw = get_bearing_to_next_waypoint(
@@ -779,6 +785,9 @@ Mission::set_mission_items()
 				    _work_item_type == WORK_ITEM_TYPE_ALIGN &&
 				    _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 				    !_navigator->get_land_detected()->landed) {
+
+					/* re-enable weather vane again after alignment */
+					pos_sp_triplet->current.disable_weather_vane = false;
 
 					/* check if the vtol_takeoff waypoint is on top of us */
 					if (do_need_move_to_takeoff()) {
@@ -805,7 +814,7 @@ Mission::set_mission_items()
 
 				/* move to land wp as fixed wing */
 				if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-				    && _work_item_type == WORK_ITEM_TYPE_DEFAULT
+				    && (_work_item_type == WORK_ITEM_TYPE_DEFAULT || _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF)
 				    && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
 				    && !_navigator->get_land_detected()->landed) {
 
@@ -837,6 +846,8 @@ Mission::set_mission_items()
 				    && !_navigator->get_land_detected()->landed) {
 
 					set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+					_mission_item.altitude = _navigator->get_global_position()->alt;
+					_mission_item.altitude_is_relative = false;
 
 					new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
 				}
@@ -961,7 +972,7 @@ Mission::set_mission_items()
 				    && has_next_position_item) {
 
 					/* disable weathervane before front transition for allowing yaw to align */
-					pos_sp_triplet->current.allow_weather_vane = false;
+					pos_sp_triplet->current.disable_weather_vane = true;
 
 					new_work_item_type = WORK_ITEM_TYPE_ALIGN;
 
@@ -1263,6 +1274,7 @@ Mission::heading_sp_update()
 
 			_mission_item.yaw = yaw;
 			pos_sp_triplet->current.yaw = _mission_item.yaw;
+			pos_sp_triplet->current.yaw_valid = true;
 		}
 
 		// we set yaw directly so we can run this in parallel to the FOH update
@@ -1566,6 +1578,7 @@ Mission::save_mission_state()
 		if (mission_state.dataman_id == _mission.dataman_id && mission_state.count == _mission.count) {
 			/* navigator may modify only sequence, write modified state only if it changed */
 			if (mission_state.current_seq != _current_mission_index) {
+				mission_state.current_seq = _current_mission_index;
 				mission_state.timestamp = hrt_absolute_time();
 
 				if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
@@ -1704,16 +1717,12 @@ Mission::reset_mission(struct mission_s &mission)
 }
 
 bool
-Mission::need_to_reset_mission(bool active)
+Mission::need_to_reset_mission()
 {
 	/* reset mission state when disarmed */
 	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
 		_need_mission_reset = false;
 		return true;
-
-	} else if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED && active) {
-		/* mission is running, need reset after disarm */
-		_need_mission_reset = true;
 	}
 
 	return false;

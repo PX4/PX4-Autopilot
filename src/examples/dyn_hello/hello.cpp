@@ -1,5 +1,5 @@
-#include <px4_log.h>
-#include <px4_app.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/app.h>
 
 extern "C" __EXPORT int hello_main(int argc, char *argv[]);
 int hello_main(int argc, char *argv[])

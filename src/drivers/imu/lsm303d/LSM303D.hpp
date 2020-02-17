@@ -41,7 +41,7 @@
 #include <drivers/device/spi.h>
 #include <ecl/geo/geo.h>
 #include <perf/perf_counter.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
@@ -274,9 +274,7 @@ private:
 	unsigned		_call_mag_interval{1000000 / LSM303D_MAG_DEFAULT_RATE};
 
 	perf_counter_t		_accel_sample_perf;
-	perf_counter_t		_accel_sample_interval_perf;
 	perf_counter_t		_mag_sample_perf;
-	perf_counter_t		_mag_sample_interval_perf;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_bad_values;
 	perf_counter_t		_accel_duplicates;

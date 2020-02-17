@@ -127,21 +127,20 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_time.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/time.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <poll.h>
 #include <fcntl.h>
 #include <math.h>
-#include <poll.h>
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
 #include <lib/ecl/geo/geo.h>
+#include <matrix/math.hpp>
 #include <conversion/rotation.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
@@ -149,6 +148,9 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/Subscription.hpp>
+
+using namespace time_literals;
+using namespace matrix;
 
 static const char *sensor_name = "accel";
 
@@ -176,7 +178,7 @@ typedef struct  {
 
 int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 {
-#ifdef __PX4_NUTTX
+#if 1 // TODO: replace all IOCTL usage
 	int fd;
 #endif
 
@@ -196,7 +198,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	/* reset all sensors */
 	for (unsigned s = 0; s < max_accel_sens; s++) {
-#ifdef __PX4_NUTTX
+#if 1 // TODO: replace all IOCTL usage
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
 		/* reset all offsets to zero and all scales to one */
 		fd = px4_open(str, 0);
@@ -294,19 +296,19 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	int32_t board_rotation_int;
 	param_get(board_rotation_h, &(board_rotation_int));
 	enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
-	matrix::Dcmf board_rotation = get_rot_matrix(board_rotation_id);
+	Dcmf board_rotation = get_rot_matrix(board_rotation_id);
 
-	matrix::Dcmf board_rotation_t = board_rotation.transpose();
+	Dcmf board_rotation_t = board_rotation.transpose();
 
 	bool tc_locked[3] = {false}; // true when the thermal parameter instance has already been adjusted by the calibrator
 
 	for (unsigned uorb_index = 0; uorb_index < active_sensors; uorb_index++) {
 
 		/* handle individual sensors, one by one */
-		matrix::Vector3f accel_offs_vec(accel_offs[uorb_index]);
-		matrix::Vector3f accel_offs_rotated = board_rotation_t *accel_offs_vec;
-		matrix::Matrix3f accel_T_mat(accel_T[uorb_index]);
-		matrix::Matrix3f accel_T_rotated = board_rotation_t *accel_T_mat * board_rotation;
+		Vector3f accel_offs_vec(accel_offs[uorb_index]);
+		Vector3f accel_offs_rotated = board_rotation_t *accel_offs_vec;
+		Matrix3f accel_T_mat(accel_T[uorb_index]);
+		Matrix3f accel_T_rotated = board_rotation_t *accel_T_mat * board_rotation;
 
 		accel_scale.x_offset = accel_offs_rotated(0);
 		accel_scale.x_scale = accel_T_rotated(0, 0);
@@ -414,11 +416,11 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[uorb_index])));
 
 		if (failed) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, uorb_index);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			return PX4_ERROR;
 		}
 
-#ifdef __PX4_NUTTX
+#if 1 // TODO: replace all IOCTL usage
 		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, uorb_index);
 		fd = px4_open(str, 0);
 
@@ -432,7 +434,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		if (res != PX4_OK) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, uorb_index);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG);
 		}
 
 #endif
@@ -521,7 +523,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 			sensor_accel_s report = {};
 			orb_copy(ORB_ID(sensor_accel), worker_data.subs[cur_accel], &report);
 
-#ifdef __PX4_NUTTX
+#if 1 // TODO: replace all IOCTL usage
 
 			// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
 			// and match it up with the one from the uORB subscription, because the
@@ -625,15 +627,15 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 	param_get(board_offset_y, &board_offset[1]);
 	param_get(board_offset_z, &board_offset[2]);
 
-	matrix::Dcmf board_rotation_offset = matrix::Eulerf(
-			M_DEG_TO_RAD_F * board_offset[0],
-			M_DEG_TO_RAD_F * board_offset[1],
-			M_DEG_TO_RAD_F * board_offset[2]);
+	Dcmf board_rotation_offset = Eulerf(
+					     M_DEG_TO_RAD_F * board_offset[0],
+					     M_DEG_TO_RAD_F * board_offset[1],
+					     M_DEG_TO_RAD_F * board_offset[2]);
 
 	int32_t board_rotation_int;
 	param_get(board_rotation_h, &(board_rotation_int));
 
-	matrix::Dcmf board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)board_rotation_int);
+	Dcmf board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)board_rotation_int);
 
 	px4_pollfd_struct_t fds[max_accel_sens];
 
@@ -643,8 +645,7 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 	}
 
 	unsigned counts[max_accel_sens] = { 0 };
-	float accel_sum[max_accel_sens][3];
-	memset(accel_sum, 0, sizeof(accel_sum));
+	float accel_sum[max_accel_sens][3] {};
 
 	unsigned errcount = 0;
 	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
@@ -714,9 +715,12 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 
 	// rotate sensor measurements from sensor to body frame using board rotation matrix
 	for (unsigned i = 0; i < max_accel_sens; i++) {
-		matrix::Vector3f accel_sum_vec(&accel_sum[i][0]);
+		Vector3f accel_sum_vec(&accel_sum[i][0]);
 		accel_sum_vec = board_rotation * accel_sum_vec;
-		memcpy(&accel_sum[i][0], accel_sum_vec.data(), sizeof(accel_sum[i]));
+
+		for (size_t j = 0; j < 3; j++) {
+			accel_sum[i][j] = accel_sum_vec(j);
+		}
 	}
 
 	for (unsigned s = 0; s < max_accel_sens; s++) {
@@ -791,14 +795,9 @@ calibrate_return calculate_calibration_values(unsigned sensor,
 
 int do_level_calibration(orb_advert_t *mavlink_log_pub)
 {
-	const unsigned cal_time = 5;
-	const unsigned cal_hz = 100;
-	unsigned settle_time = 30;
-
 	bool success = false;
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
+	vehicle_attitude_s att{};
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "level");
 
@@ -806,7 +805,7 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 	param_t pitch_offset_handle = param_find("SENS_BOARD_Y_OFF");
 	param_t board_rot_handle = param_find("SENS_BOARD_ROT");
 
-	// save old values if calibration fails
+	// get old values
 	float roll_offset_current;
 	float pitch_offset_current;
 	int32_t board_rot_current = 0;
@@ -814,67 +813,82 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 	param_get(pitch_offset_handle, &pitch_offset_current);
 	param_get(board_rot_handle, &board_rot_current);
 
-	// give attitude some time to settle if there have been changes to the board rotation parameters
-	if (board_rot_current == 0 && fabsf(roll_offset_current) < FLT_EPSILON && fabsf(pitch_offset_current) < FLT_EPSILON) {
-		settle_time = 0;
-	}
-
-	float zero = 0.0f;
-	param_set_no_notification(roll_offset_handle, &zero);
-	param_set_no_notification(pitch_offset_handle, &zero);
-	param_notify_changes();
+	Dcmf board_rotation_offset = Eulerf(
+					     math::radians(roll_offset_current),
+					     math::radians(pitch_offset_current),
+					     0.f);
 
 	px4_pollfd_struct_t fds[1];
-
 	fds[0].fd = att_sub;
 	fds[0].events = POLLIN;
 
 	float roll_mean = 0.0f;
 	float pitch_mean = 0.0f;
 	unsigned counter = 0;
+	bool had_motion = true;
+	int num_retries = 0;
 
-	// sleep for some time
-	hrt_abstime start = hrt_absolute_time();
+	while (had_motion && num_retries++ < 50) {
+		Vector2f min_angles{100.f, 100.f};
+		Vector2f max_angles{-100.f, -100.f};
+		roll_mean = 0.0f;
+		pitch_mean = 0.0f;
+		counter = 0;
+		int last_progress_report = -100;
+		const hrt_abstime calibration_duration = 500_ms;
+		const hrt_abstime start = hrt_absolute_time();
 
-	while (hrt_elapsed_time(&start) < settle_time * 1000000) {
-		calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG,
-				     (int)(90 * hrt_elapsed_time(&start) / 1e6f / (float)settle_time));
-		px4_sleep(settle_time / 10);
-	}
+		while (hrt_elapsed_time(&start) < calibration_duration) {
+			int pollret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
-	start = hrt_absolute_time();
+			if (pollret <= 0) {
+				// attitude estimator is not running
+				calibration_log_critical(mavlink_log_pub, "attitude estimator not running - check system boot");
+				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
+				goto out;
+			}
 
-	// average attitude for 5 seconds
-	while (hrt_elapsed_time(&start) < cal_time * 1000000) {
-		int pollret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+			int progress = 100 * hrt_elapsed_time(&start) / calibration_duration;
 
-		if (pollret <= 0) {
-			// attitude estimator is not running
-			calibration_log_critical(mavlink_log_pub, "attitude estimator not running - check system boot");
-			calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
-			goto out;
+			if (progress >= last_progress_report + 20) {
+				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, progress);
+				last_progress_report = progress;
+			}
+
+			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+			Eulerf att_euler = Quatf(att.q);
+
+			// keep min + max angles
+			for (int i = 0; i < 2; ++i) {
+				if (att_euler(i) < min_angles(i)) { min_angles(i) = att_euler(i); }
+
+				if (att_euler(i) > max_angles(i)) { max_angles(i) = att_euler(i); }
+			}
+
+			att_euler(2) = 0.f; // ignore yaw
+			att_euler = Eulerf(board_rotation_offset * Dcmf(att_euler)); // subtract existing board rotation
+			roll_mean += att_euler.phi();
+			pitch_mean += att_euler.theta();
+			++counter;
 		}
 
-		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-		matrix::Eulerf euler = matrix::Quatf(att.q);
-		roll_mean += euler.phi();
-		pitch_mean += euler.theta();
-		counter++;
+		// motion detection: check that (max-min angle) is within a threshold.
+		// The difference is typically <0.1 deg while at rest
+		if (max_angles(0) - min_angles(0) < math::radians(0.5f) &&
+		    max_angles(1) - min_angles(1) < math::radians(0.5f)) {
+			had_motion = false;
+		}
 	}
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
 
-	if (counter > (cal_time * cal_hz / 2)) {
-		roll_mean /= counter;
-		pitch_mean /= counter;
+	roll_mean /= counter;
+	pitch_mean /= counter;
 
-	} else {
-		calibration_log_info(mavlink_log_pub, "not enough measurements taken");
-		success = false;
-		goto out;
-	}
+	if (had_motion) {
+		calibration_log_critical(mavlink_log_pub, "motion during calibration");
 
-	if (fabsf(roll_mean) > 0.8f) {
+	} else if (fabsf(roll_mean) > 0.8f) {
 		calibration_log_critical(mavlink_log_pub, "excess roll angle");
 
 	} else if (fabsf(pitch_mean) > 0.8f) {
@@ -891,15 +905,13 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 
 out:
 
+	orb_unsubscribe(att_sub);
+
 	if (success) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "level");
 		return 0;
 
 	} else {
-		// set old parameters
-		param_set_no_notification(roll_offset_handle, &roll_offset_current);
-		param_set_no_notification(pitch_offset_handle, &pitch_offset_current);
-		param_notify_changes();
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
 		return 1;
 	}

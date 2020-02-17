@@ -37,14 +37,14 @@
  * PWM servo output configuration and monitoring tool.
  */
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
-#include <px4_getopt.h>
-#include <px4_defines.h>
-#include <px4_log.h>
-#include <px4_module.h>
-#include <px4_cli.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/cli.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,8 +59,6 @@
 #ifdef __PX4_NUTTX
 #include <nuttx/fs/ioctl.h>
 #endif
-
-#include <arch/board/board.h>
 
 #include "systemlib/err.h"
 #include <parameters/param.h>
@@ -415,9 +413,7 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
-		struct pwm_output_values pwm_values;
-
-		memset(&pwm_values, 0, sizeof(pwm_values));
+		struct pwm_output_values pwm_values {};
 
 		pwm_values.channel_count = servo_count;
 
@@ -471,9 +467,7 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
-		struct pwm_output_values pwm_values;
-
-		memset(&pwm_values, 0, sizeof(pwm_values));
+		struct pwm_output_values pwm_values {};
 
 		pwm_values.channel_count = servo_count;
 
@@ -526,9 +520,7 @@ pwm_main(int argc, char *argv[])
 			PX4_WARN("reading disarmed value of zero, disabling disarmed PWM");
 		}
 
-		struct pwm_output_values pwm_values;
-
-		memset(&pwm_values, 0, sizeof(pwm_values));
+		struct pwm_output_values pwm_values {};
 
 		pwm_values.channel_count = servo_count;
 
@@ -582,9 +574,7 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
-		struct pwm_output_values pwm_values;
-
-		memset(&pwm_values, 0, sizeof(pwm_values));
+		struct pwm_output_values pwm_values {};
 
 		pwm_values.channel_count = servo_count;
 

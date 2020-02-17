@@ -35,7 +35,7 @@
  * @file init.c
  *
  * Board-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.
@@ -64,11 +64,13 @@
 #include <arch/board/board.h>
 #include "up_internal.h"
 
+#include <px4_arch/io_timer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
-#include <px4_init.h>
-#include <drivers/boards/common/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform/board_dma_alloc.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>
@@ -117,10 +119,9 @@ __EXPORT void board_peripheral_reset(int ms)
  ************************************************************************************/
 __EXPORT void board_on_reset(int status)
 {
-	/* configure the GPIO pins to outputs and keep them low */
-
-	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
+	}
 
 	if (status >= 0) {
 		up_mdelay(6);
@@ -149,7 +150,7 @@ stm32_boardinitialize(void)
 	/* configure pins */
 
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	/* configure SPI interfaces */
 

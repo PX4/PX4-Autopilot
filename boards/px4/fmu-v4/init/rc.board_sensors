@@ -3,6 +3,8 @@
 # PX4 FMUv4 specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
+
 # We know there are sketchy boards out there
 # as chinese companies produce Pixracers without
 # fully understanding the critical parts of the
@@ -16,11 +18,11 @@ fmu sensor_reset 50
 hmc5883 -C -T -X start
 lis3mdl -X start
 ist8310 start
-bmp280 -X start
 qmc5883 -X start
+rm3100 start
 
-# expansion i2c used for BMM150 rotated by 90deg
-bmm150 -X -R 2 start
+# Internal SPI
+ms5611 -s start
 
 # For Teal One airframe
 if param compare SYS_AUTOSTART 4250
@@ -33,14 +35,10 @@ fi
 if ! hmc5883 -C -T -S -R 2 start
 then
 	# lis3mdl internal SPI bus is rotated 90 deg yaw
-	if ! lis3mdl start
-	then
-		# BMI055 gyro internal SPI bus
-		bmi055 -G start
-	fi
+	lis3mdl start
 fi
 
-# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
+# Start either ICM2060X. They are both connected to the same SPI bus and use the same
 # chip select pin. There are different boards with either one of them and the WHO_AM_I register
 # will prevent the incorrect driver from a successful initialization.
 
@@ -48,22 +46,12 @@ fi
 if ! mpu6000 -R 2 -T 20602 start
 then
 	# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	if ! mpu6000 -R 2 -T 20608 start
-	then
-		# BMI055 accel internal SPI bus
-		bmi055 -A start
-	fi
+	mpu6000 -R 2 -T 20608 start
 fi
 
-# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
-# chip select pin. There are different boards with either one of them and the WHO_AM_I register
-# will prevent the incorrect driver from a successful initialization.
+# new sensor drivers (in testing)
+#icm20602 -R 8 start
+#icm20608g -R 8 start
 
 # mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
-if ! mpu9250 -R 2 start
-then
-	# BMI160 internal SPI bus
-	bmi160 start
-fi
-
-pmw3901 start
+mpu9250 -R 2 start

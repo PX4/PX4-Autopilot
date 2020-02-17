@@ -33,16 +33,14 @@
 px4_add_module(
 	MODULE drivers__px4io
 	MAIN px4io
-	STACK_MAIN 1816
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		px4io.cpp
-		px4io_uploader.cpp
 		px4io_serial.cpp
-		px4io_serial_f4.cpp
-		px4io_serial_f7.cpp
+		px4io_uploader.cpp
 	DEPENDS
+		arch_px4io_serial
 		circuit_breaker
 		mixer
 	)
@@ -59,6 +57,7 @@ ExternalProject_Add(px4io_firmware
 	INSTALL_COMMAND ""
 	USES_TERMINAL_BUILD true
 	DEPENDS git_nuttx git_nuttx_apps
+	BUILD_ALWAYS 1
 )
 
 ExternalProject_Get_Property(px4io_firmware BINARY_DIR)

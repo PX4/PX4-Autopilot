@@ -1,9 +1,6 @@
-#
 # Sensor readings in SI-unit form.
-#
 # These fields are scaled and offset-compensated where possible and do not
 # change with board revisions and sensor updates.
-#
 
 uint64 timestamp				# time since system start (microseconds)
 

@@ -3,11 +3,12 @@
 # NXP fmuk66-v3 specific board defaults
 #------------------------------------------------------------------------------
 
+adc start
 
 # Possible external compasses
 hmc5883 -C -X start
 lis3mdl -X start
-ist8310 -C -b 1 start
+ist8310 -b 1 start
 qmc5883 -X start
 
 # Internal Mag I2C bus roll 180, yaw 90
@@ -18,7 +19,7 @@ bmp280 -I start
 mpl3115a2 -I start
 
 # Internal SPI (accel + mag)
-fxos8701cq start -R 0
+fxos8701cq start
 
 # Internal SPI (gyro)
 fxas21002c start

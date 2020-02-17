@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -69,7 +69,7 @@ public:
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	}
-	virtual ~BlockRandGauss() {}
+	virtual ~BlockRandGauss() = default;
 	float update()
 	{
 		static float V1, V2, S;

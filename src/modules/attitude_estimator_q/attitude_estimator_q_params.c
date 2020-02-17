@@ -39,8 +39,6 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <parameters/param.h>
-
 /**
  * Complimentary filter accelerometer weight
  *

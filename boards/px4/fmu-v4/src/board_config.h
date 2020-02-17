@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -71,28 +71,13 @@
  *  Define the Chip Selects for SPI1
  *  CS           Devices                                 DRDY
  *  ---- ----------------------------------------------- -----
- *  PC2  MPU9250                    BMI160               PD15
- *  PC15 ICM, ICM_20602, ICM_20608  BMI055_ACCEL         PC14
- *  PE15 HMC5983                    BMI055_GYRO          PE12
+ *  PC2  MPU9250                                         PD15
+ *  PC15 ICM, ICM_20602, ICM_20608                       PC14
+ *  PE15 HMC5983                                         PE12
  *  ---- ----------------------------------------------- -----
  */
-
-/**
- * The BMI160 sensor replaces the MPU9250 on some boards. Only one is actually present and connected
- * to the second GPIO pin on port C. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
 #define GPIO_SPI1_CS_PORTC_PIN2      (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
-
-/**
- * The BMI055 acceleration sensor replaces the ICM20608G on some boards. Only one is actually present and connected
- * to the second GPIO pin on port C. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
 #define GPIO_SPI1_CS_PORTC_PIN15     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
-
-/**
- * The BMI055 gyroscope sensor replaces the LIS3MDL, HMC5983 on some boards. Only one is actually present and connected
- * to the second GPIO pin on port E. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
 #define GPIO_SPI1_CS_PORTE_PIN15     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
 
 /* Define the Data Ready interrupts On SPI 1. */
@@ -161,18 +146,11 @@
 #define SPI_BUS_INIT_MASK        (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS)
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_GYRO              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
-#define PX4_SPIDEV_ACCEL_MAG         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
 #define PX4_SPIDEV_MPU               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
 #define PX4_SPIDEV_HMC               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 5)
-#define PX4_SPIDEV_ICM               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 6)
 #define PX4_SPIDEV_LIS               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 7)
-#define PX4_SPIDEV_BMI               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 8)
-#define PX4_SPIDEV_BMA               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 9)
 #define PX4_SPIDEV_ICM_20608         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 10)
 #define PX4_SPIDEV_ICM_20602         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 11)
-#define PX4_SPIDEV_BMI055_ACC        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 12)
-#define PX4_SPIDEV_BMI055_GYR        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 13)
 #define PX4_SPIDEV_MPU2              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 14)
 
 /**
@@ -191,12 +169,6 @@
 #define PX4_I2C_BUS_LED              PX4_I2C_BUS_EXPANSION
 
 /**
- * Devices on the external bus.
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_BMP280         0x76
-
-/**
  * ADC channels:
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver.
  */
@@ -213,24 +185,6 @@
 #define BOARD_BATTERY1_A_PER_V       (36.367515152f)
 
 
-/**
- * User GPIOs:
- * GPIO0-5 are the PWM servo outputs.
- */
-#define GPIO_GPIO0_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN14)
-#define GPIO_GPIO1_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN13)
-#define GPIO_GPIO2_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN11)
-#define GPIO_GPIO3_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN9)
-#define GPIO_GPIO4_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_GPIO5_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN14)
-
-#define GPIO_GPIO0_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN14)
-#define GPIO_GPIO1_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN13)
-#define GPIO_GPIO2_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN11)
-#define GPIO_GPIO3_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
-#define GPIO_GPIO4_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_GPIO5_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
-
 /* Power supply control and monitoring GPIOs. */
 #define GPIO_VDD_BRICK_VALID         (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
 #define GPIO_VDD_USB_VALID           (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
@@ -246,35 +200,8 @@
  * PWM:
  *
  * Six PWM outputs are configured.
- *
- * Pins:
- *
- * CH1 : PE14 : TIM1_CH4
- * CH2 : PE13 : TIM1_CH3
- * CH3 : PE11 : TIM1_CH2
- * CH4 : PE9  : TIM1_CH1
- * CH5 : PD13 : TIM4_CH2
- * CH6 : PD14 : TIM4_CH3
  */
-
-/**
- * N.B. the added pull down, on the timer being disabled the PD
- * will keep the channel low
- */
-#define GPIO_TIM1_CH1OUT             (GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
-#define GPIO_TIM1_CH2OUT             (GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN11)
-#define GPIO_TIM1_CH3OUT             (GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN13)
-#define GPIO_TIM1_CH4OUT             (GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN14)
-#define GPIO_TIM4_CH2OUT             (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_TIM4_CH3OUT             (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN14)
 #define DIRECT_PWM_OUTPUT_CHANNELS   6
-
-#define GPIO_TIM1_CH1IN              GPIO_TIM1_CH1IN_2
-#define GPIO_TIM1_CH2IN              GPIO_TIM1_CH2IN_2
-#define GPIO_TIM1_CH3IN              GPIO_TIM1_CH3IN_2
-#define GPIO_TIM1_CH4IN              GPIO_TIM1_CH4IN_2
-#define GPIO_TIM4_CH2IN              GPIO_TIM4_CH2IN_2
-#define GPIO_TIM4_CH3IN              GPIO_TIM4_CH3IN_2
 #define DIRECT_INPUT_TIMER_CHANNELS  6
 
 /**
@@ -352,9 +279,12 @@
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs. */
-#define BOARD_DMA_ALLOC_POOL_SIZE    5120
+#define BOARD_DMA_ALLOC_POOL_SIZE (5120 + 512 + 1008)	// 5120 fat + 512 + 1008 spi
 
 #define BOARD_HAS_ON_RESET 1
+
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5};
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -390,7 +320,7 @@ extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

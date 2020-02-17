@@ -68,6 +68,7 @@ UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equi
 	optical_flow_s flow{};
 
 	flow.timestamp = hrt_absolute_time();
+	flow.integration_timespan = 1.e6f * msg.integration_interval; // s -> micros
 	flow.pixel_flow_x_integral = msg.flow_integral[0];
 	flow.pixel_flow_y_integral = msg.flow_integral[1];
 

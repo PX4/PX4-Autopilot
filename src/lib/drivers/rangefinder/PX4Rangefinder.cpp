@@ -35,16 +35,14 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-PX4Rangefinder::PX4Rangefinder(uint32_t device_id, uint8_t priority, uint8_t rotation) :
+PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const uint8_t priority, const uint8_t device_orientation) :
 	CDev(nullptr),
 	_distance_sensor_pub{ORB_ID(distance_sensor), priority}
 {
 	_class_device_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-	// TODO: range finders should have device ids
-	//_distance_sensor_pub.get().device_id = device_id;
-
-	_distance_sensor_pub.get().orientation = rotation;
+	set_device_id(device_id);
+	set_orientation(device_orientation);
 }
 
 PX4Rangefinder::~PX4Rangefinder()
@@ -55,7 +53,7 @@ PX4Rangefinder::~PX4Rangefinder()
 }
 
 void
-PX4Rangefinder::set_device_type(uint8_t devtype)
+PX4Rangefinder::set_device_type(uint8_t device_type)
 {
 	// TODO: range finders should have device ids
 
@@ -71,13 +69,26 @@ PX4Rangefinder::set_device_type(uint8_t devtype)
 }
 
 void
-PX4Rangefinder::update(hrt_abstime timestamp, float distance, int8_t quality)
+PX4Rangefinder::set_orientation(const uint8_t device_orientation)
+{
+	_distance_sensor_pub.get().orientation = device_orientation;
+}
+
+void
+PX4Rangefinder::update(const hrt_abstime timestamp, const float distance, const int8_t quality)
 {
 	distance_sensor_s &report = _distance_sensor_pub.get();
 
 	report.timestamp = timestamp;
 	report.current_distance = distance;
 	report.signal_quality = quality;
+
+	// if quality is unavailable (-1) set to 0 if distance is outside bounds
+	if (quality < 0) {
+		if ((distance < report.min_distance) || (distance > report.max_distance)) {
+			report.signal_quality = 0;
+		}
+	}
 
 	_distance_sensor_pub.update();
 }

@@ -1,5 +1,5 @@
 
-if (CONFIG_ARCH_DPFPU)
+if(CONFIG_ARCH_DPFPU)
 	message(STATUS "Enabling double FP precision hardware instructions")
 	set(mfpu_type "fpv5-d16")
 else()

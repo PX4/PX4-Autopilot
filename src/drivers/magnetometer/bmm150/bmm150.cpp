@@ -37,7 +37,7 @@
  */
 
 #include "bmm150.hpp"
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int bmm150_main(int argc, char *argv[]); }
@@ -135,7 +135,7 @@ void test(bool external_bus)
 {
 	int fd = -1;
 	const char *path = (external_bus ? BMM150_DEVICE_PATH_MAG_EXT : BMM150_DEVICE_PATH_MAG);
-	struct mag_report m_report;
+	sensor_mag_s m_report;
 	ssize_t sz;
 
 
@@ -251,7 +251,7 @@ usage()
 
 BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
 	I2C("BMM150", path, bus, BMM150_SLAVE_ADDRESS, BMM150_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_running(false),
 	_call_interval(0),
 	_reports(nullptr),
@@ -275,12 +275,12 @@ BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
 	dig_xy1(0),
 	dig_xy2(0),
 	dig_xyz1(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "bmm150_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "bmm150_bad_transfers")),
-	_good_transfers(perf_alloc(PC_COUNT, "bmm150_good_transfers")),
-	_measure_perf(perf_alloc(PC_ELAPSED, "bmp280_measure")),
-	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
-	_duplicates(perf_alloc(PC_COUNT, "bmm150_duplicates")),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
+	_good_transfers(perf_alloc(PC_COUNT, MODULE_NAME": good transfers")),
+	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors")),
+	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicates")),
 	_rotation(rotation),
 	_got_duplicate(false)
 {
@@ -295,7 +295,7 @@ BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
 	_scale.z_scale = 1.0f;
 }
 
-BMM150 :: ~BMM150()
+BMM150::~BMM150()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -322,7 +322,6 @@ BMM150 :: ~BMM150()
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
 	perf_free(_duplicates);
-
 }
 
 int BMM150::init()
@@ -339,7 +338,7 @@ int BMM150::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_mag_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -375,12 +374,12 @@ int BMM150::init()
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct mag_report mrb;
+	sensor_mag_s mrb;
 	_reports->get(&mrb);
 
 	/* measurement will have generated a report, publish */
 	_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrb,
-				     &_orb_class_instance, (external()) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
+				     &_orb_class_instance, (external()) ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 	if (_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
@@ -426,8 +425,8 @@ BMM150::stop()
 ssize_t
 BMM150::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(mag_report);
-	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_mag_s);
+	sensor_mag_s *mag_buf = reinterpret_cast<sensor_mag_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -444,7 +443,7 @@ BMM150::read(struct file *filp, char *buffer, size_t buflen)
 		 */
 		while (count--) {
 			if (_reports->get(mag_buf)) {
-				ret += sizeof(struct mag_report);
+				ret += sizeof(sensor_mag_s);
 				mag_buf++;
 			}
 		}
@@ -475,7 +474,7 @@ BMM150::read(struct file *filp, char *buffer, size_t buflen)
 
 
 		if (_reports->get(mag_buf)) {
-			ret = sizeof(struct mag_report);
+			ret = sizeof(sensor_mag_s);
 		}
 	} while (0);
 
@@ -541,7 +540,7 @@ BMM150::collect()
 	bool mag_notify = true;
 	uint8_t mag_data[8], status;
 	uint16_t resistance, lsb, msb, msblsb;
-	mag_report  mrb;
+	sensor_mag_s mrb{};
 
 
 	/* start collecting data */

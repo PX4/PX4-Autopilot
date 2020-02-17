@@ -45,11 +45,11 @@
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
 
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/irlock_report.h>
 
 /** Configuration Constants **/
@@ -132,7 +132,7 @@ private:
 	uint32_t _read_failures;
 
 	int _orb_class_instance;
-	orb_advert_t _irlock_report_topic;
+	uORB::Publication<irlock_report_s> _irlock_report_topic{ORB_ID(irlock_report)};
 };
 
 /** global pointer for single IRLOCK sensor **/
@@ -148,12 +148,11 @@ extern "C" __EXPORT int irlock_main(int argc, char *argv[]);
 /** constructor **/
 IRLOCK::IRLOCK(int bus, int address) :
 	I2C("irlock", IRLOCK0_DEVICE_PATH, bus, address, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_read_failures(0),
-	_orb_class_instance(-1),
-	_irlock_report_topic(nullptr)
+	_orb_class_instance(-1)
 {
 }
 
@@ -366,8 +365,7 @@ int IRLOCK::read_device()
 
 	// publish over uORB
 	if (report.num_targets > 0) {
-		struct irlock_report_s orb_report;
-
+		irlock_report_s orb_report{};
 		orb_report.timestamp = report.timestamp;
 		orb_report.signature = report.targets[0].signature;
 		orb_report.pos_x     = report.targets[0].pos_x;
@@ -375,16 +373,7 @@ int IRLOCK::read_device()
 		orb_report.size_x    = report.targets[0].size_x;
 		orb_report.size_y    = report.targets[0].size_y;
 
-		if (_irlock_report_topic != nullptr) {
-			orb_publish(ORB_ID(irlock_report), _irlock_report_topic, &orb_report);
-
-		} else {
-			_irlock_report_topic = orb_advertise_multi(ORB_ID(irlock_report), &orb_report, &_orb_class_instance, ORB_PRIO_LOW);
-
-			if (_irlock_report_topic == nullptr) {
-				DEVICE_LOG("failed to create irlock_report object. Did you start uOrb?");
-			}
-		}
+		_irlock_report_topic.publish(orb_report);
 	}
 
 	return OK;

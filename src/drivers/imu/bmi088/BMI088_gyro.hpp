@@ -159,7 +159,6 @@ private:
 	PX4Gyroscope	_px4_gyro;
 
 	perf_counter_t      _sample_perf;
-	perf_counter_t      _measure_interval;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
 
@@ -252,6 +251,8 @@ private:
 	     */
 	struct BMI_GyroReport {
 		uint8_t     cmd;
+		uint8_t     chip_id;	// Read to check if bus is workig
+		uint8_t     ununsed;
 		int16_t     gyro_x;
 		int16_t     gyro_y;
 		int16_t     gyro_z;

@@ -44,6 +44,9 @@ public:
 		pthread_mutex_lock(&_mutex);
 	}
 
+	LockGuard(const LockGuard &other) = delete;
+	LockGuard &operator=(const LockGuard &other) = delete;
+
 	~LockGuard()
 	{
 		pthread_mutex_unlock(&_mutex);

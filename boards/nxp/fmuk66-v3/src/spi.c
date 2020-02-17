@@ -37,7 +37,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -54,6 +54,8 @@
 #include <systemlib/px4_macros.h>
 
 #if defined(CONFIG_KINETIS_SPI0) || defined(CONFIG_KINETIS_SPI1) || defined(CONFIG_KINETIS_SPI2)
+
+#define PX4_MK_GPIO(pin_ftmx, io)    ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) |(io))
 
 /* Define CS GPIO array */
 static const uint32_t spi0selects_gpio[] = PX4_MEMORY_BUS_CS_GPIO;

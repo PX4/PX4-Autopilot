@@ -43,8 +43,7 @@
 #include "navigator.h"
 
 NavigatorMode::NavigatorMode(Navigator *navigator) :
-	_navigator(navigator),
-	_active(false)
+	_navigator(navigator)
 {
 	/* set initial mission items */
 	on_inactivation();

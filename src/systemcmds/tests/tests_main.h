@@ -36,7 +36,7 @@
  * Tests declaration file.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #ifndef __APPS_PX4_TESTS_H
 #define __APPS_PX4_TESTS_H
@@ -47,7 +47,6 @@ extern int test_adc(int argc, char *argv[]);
 extern int test_autodeclination(int argc, char *argv[]);
 extern int test_bezierQuad(int argc, char *argv[]);
 extern int test_bson(int argc, char *argv[]);
-extern int test_controlmath(int argc, char *argv[]);
 extern int test_conv(int argc, char *argv[]);
 extern int test_dataman(int argc, char *argv[]);
 extern int test_file(int argc, char *argv[]);
@@ -75,7 +74,6 @@ extern int test_ppm(int argc, char *argv[]);
 extern int test_ppm_loopback(int argc, char *argv[]);
 extern int test_rc(int argc, char *argv[]);
 extern int test_search_min(int argc, char *argv[]);
-extern int test_sensors(int argc, char *argv[]);
 extern int test_servo(int argc, char *argv[]);
 extern int test_sleep(int argc, char *argv[]);
 extern int test_smooth_z(int argc, char *argv[]);

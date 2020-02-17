@@ -38,7 +38,7 @@ then
 	param set FW_RLL_TO_YAW_FF	0.1
 	param set FW_RR_I	0.1
 	param set FW_RR_P	0.08
-	param set FW_R_LIM 35
+	param set FW_R_LIM 45
 	param set FW_R_RMAX	50
 	param set FW_THR_CRUISE 0.65
 	param set FW_THR_MIN 0.3
@@ -67,6 +67,7 @@ then
 	param set MPC_ACC_DOWN_MAX	2
 	param set MPC_ACC_HOR_MAX	2
 	param set MPC_ACC_UP_MAX	3
+	param set MC_AIRMODE 1
 	param set MPC_JERK_AUTO	8
 	param set MPC_JERK_AUTO	15
 	param set MPC_LAND_SPEED 1
@@ -100,7 +101,6 @@ then
 	param set VT_ELEV_MC_LOCK 0
 	param set VT_FWD_THRUST_SC 1.2
 	param set VT_FW_MOT_OFFID 5678
-	param set VT_F_TRANS_THR 0.85
 	param set VT_F_TR_OL_TM 8
 	param set VT_IDLE_PWM_MC 1000
 	param set VT_MOT_ID 5678

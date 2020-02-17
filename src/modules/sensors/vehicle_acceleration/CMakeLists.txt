@@ -31,7 +31,13 @@
 #
 ############################################################################
 
-px4_add_library(sensors__vehicle_acceleration
+px4_add_library(vehicle_acceleration
 	VehicleAcceleration.cpp
+	VehicleAcceleration.hpp
 )
-target_link_libraries(sensors__vehicle_acceleration PRIVATE px4_work_queue)
+target_link_libraries(vehicle_acceleration
+	PRIVATE
+		mathlib
+		sensor_corrections
+		px4_work_queue
+)

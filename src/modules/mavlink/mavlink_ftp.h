@@ -39,7 +39,7 @@
 #include <dirent.h>
 #include <queue.h>
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 

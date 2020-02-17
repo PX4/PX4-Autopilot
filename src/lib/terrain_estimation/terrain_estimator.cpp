@@ -38,7 +38,7 @@
 
 #include "terrain_estimator.h"
 #include <lib/ecl/geo/geo.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #define DISTANCE_TIMEOUT 100000		// time in usec after which laser is considered dead
 
@@ -48,7 +48,7 @@ TerrainEstimator::TerrainEstimator() :
 	_time_last_distance(0),
 	_time_last_gps(0)
 {
-	memset(&_x._data[0], 0, sizeof(_x._data));
+	_x.zero();
 	_u_z = 0.0f;
 	_P.setIdentity();
 }
@@ -186,7 +186,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 	}
 
 	if (reinit) {
-		memset(&_x._data[0], 0, sizeof(_x._data));
+		_x.zero();
 		_P.setZero();
 		_P(0, 0) = _P(1, 1) = _P(2, 2) = 0.1f;
 	}

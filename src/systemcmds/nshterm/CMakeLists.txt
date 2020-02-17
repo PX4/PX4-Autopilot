@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE systemcmds__nshterm
 	MAIN nshterm
 	PRIORITY "SCHED_PRIORITY_DEFAULT-30"
-	STACK_MAIN 1500
 	COMPILE_FLAGS
 	SRCS
 		nshterm.c

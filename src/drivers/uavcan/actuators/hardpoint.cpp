@@ -48,13 +48,13 @@ UavcanHardpointController::UavcanHardpointController(uavcan::INode &node) :
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::MiddleLower);
 }
 
-
 UavcanHardpointController::~UavcanHardpointController()
 {
 
 }
 
-int UavcanHardpointController::init()
+int
+UavcanHardpointController::init()
 {
 	/*
 	 * Setup timer and call back function for periodic updates
@@ -63,7 +63,8 @@ int UavcanHardpointController::init()
 	return 0;
 }
 
-void UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t command)
+void
+UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t command)
 {
 	_cmd.command = command;
 	_cmd.hardpoint_id = hardpoint_id;
@@ -71,7 +72,7 @@ void UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t comma
 	/*
 	 * Publish the command message to the bus
 	 */
-	(void)_uavcan_pub_raw_cmd.broadcast(_cmd);
+	_uavcan_pub_raw_cmd.broadcast(_cmd);
 
 	/*
 	 * Start the periodic update timer after a command is set
@@ -81,10 +82,10 @@ void UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t comma
 	}
 
 }
-void UavcanHardpointController::periodic_update(const uavcan::TimerEvent &)
+
+void
+UavcanHardpointController::periodic_update(const uavcan::TimerEvent &)
 {
-	/*
-	 * Broadcast command at MAX_RATE_HZ
-	 */
-	(void)_uavcan_pub_raw_cmd.broadcast(_cmd);
+	// Broadcast command at MAX_RATE_HZ
+	_uavcan_pub_raw_cmd.broadcast(_cmd);
 }

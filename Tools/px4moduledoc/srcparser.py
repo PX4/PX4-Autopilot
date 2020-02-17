@@ -1,7 +1,10 @@
+#! /usr/bin/env python3
 import sys
 import re
 import math
 import textwrap
+from functools import reduce
+
 
 class ModuleDocumentation(object):
     """
@@ -367,9 +370,9 @@ class SourceParser(object):
                             failed = True
 
                 if failed:
-                    print("Warning: documentation inconsistency in %s:" % scope)
-                    print(" Documented options       : %s" % sorted_module_options)
-                    print(" Options found in getopt(): %s" % sorted_getopt_args)
+                    print(("Warning: documentation inconsistency in %s:" % scope))
+                    print((" Documented options       : %s" % sorted_module_options))
+                    print((" Options found in getopt(): %s" % sorted_getopt_args))
                     self._consistency_checks_failure = True
 
 
@@ -391,7 +394,7 @@ class SourceParser(object):
                 continue # handled in the base class
 
             if not command in doc_commands:
-                print("Warning: undocumented command '%s' in %s" %(command, scope))
+                print(("Warning: undocumented command '%s' in %s" %(command, scope)))
                 self._consistency_checks_failure = True
 
         # limit the maximum line length in the module doc string
@@ -407,8 +410,8 @@ class SourceParser(object):
             elif not verbatim_mode:
                 if not 'www.' in line and not 'http' in line:
                     if len(line) > max_line_length:
-                        print('Line too long (%i > %i) in %s:' % (len(line), max_line_length, scope))
-                        print(' '+line)
+                        print(('Line too long (%i > %i) in %s:' % (len(line), max_line_length, scope)))
+                        print((' '+line))
                         self._consistency_checks_failure = True
 
 
@@ -440,7 +443,7 @@ class SourceParser(object):
                 while next_position < len(contents):
                     if contents[next_position] == '\\': # escaping
                         if contents[next_position + 1] != '\n': # skip if continued on next line
-                            string += contents[next_position:next_position+2].decode('string_escape')
+                            string += contents[next_position:next_position+2].encode().decode('unicode_escape')
                         next_position += 2
                     elif contents[next_position] == '"':
                         next_position += 1
@@ -517,4 +520,3 @@ class SourceParser(object):
             for subcategory in group:
                 group[subcategory] = sorted(group[subcategory], key=lambda x: x.name())
         return groups
-

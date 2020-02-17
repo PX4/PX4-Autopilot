@@ -45,7 +45,7 @@
 #include <drivers/airspeed/airspeed.h>
 #include <math.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 #define I2C_ADDRESS_1_SDP3X		0x21
 #define I2C_ADDRESS_2_SDP3X		0x22

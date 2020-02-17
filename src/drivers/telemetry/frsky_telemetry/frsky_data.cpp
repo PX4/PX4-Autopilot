@@ -51,6 +51,7 @@
 #include <stdbool.h>
 #include <math.h>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -63,53 +64,36 @@
 #define frac(f) (f - (int)f)
 
 struct frsky_subscription_data_s {
-	struct battery_status_s battery_status;
-	struct vehicle_global_position_s global_pos;
-	struct sensor_combined_s sensor_combined;
-	struct vehicle_air_data_s airdata;
-	struct vehicle_gps_position_s vehicle_gps_position;
-	uint8_t current_flight_mode; // == vehicle_status.nav_state
 
-	int battery_status_sub;
-	int vehicle_air_data_sub;
-	int vehicle_global_position_sub;
-	int sensor_sub;
-	int vehicle_gps_position_sub;
-	int vehicle_status_sub;
+	uORB::SubscriptionData<battery_status_s> battery_status_sub{ORB_ID(battery_status)};
+	uORB::SubscriptionData<sensor_combined_s> sensor_combined_sub{ORB_ID(sensor_combined)};
+	uORB::SubscriptionData<vehicle_air_data_s> vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+	uORB::SubscriptionData<vehicle_global_position_s> vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::SubscriptionData<vehicle_gps_position_s> vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 };
 
-static struct frsky_subscription_data_s *subscription_data = NULL;
+static struct frsky_subscription_data_s *subscription_data = nullptr;
 
 /**
  * Initializes the uORB subscriptions.
  */
 bool frsky_init()
 {
-	subscription_data = (struct frsky_subscription_data_s *)calloc(1, sizeof(struct frsky_subscription_data_s));
+	subscription_data = new frsky_subscription_data_s();
 
 	if (!subscription_data) {
 		return false;
 	}
 
-	subscription_data->battery_status_sub = orb_subscribe(ORB_ID(battery_status));
-	subscription_data->vehicle_air_data_sub = orb_subscribe(ORB_ID(vehicle_air_data));
-	subscription_data->vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	subscription_data->sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	subscription_data->vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	subscription_data->vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	return true;
 }
 
 void frsky_deinit()
 {
 	if (subscription_data) {
-		orb_unsubscribe(subscription_data->battery_status_sub);
-		orb_unsubscribe(subscription_data->vehicle_global_position_sub);
-		orb_unsubscribe(subscription_data->sensor_sub);
-		orb_unsubscribe(subscription_data->vehicle_gps_position_sub);
-		orb_unsubscribe(subscription_data->vehicle_status_sub);
-		free(subscription_data);
-		subscription_data = NULL;
+		delete subscription_data;
+		subscription_data = nullptr;
 	}
 }
 
@@ -162,51 +146,12 @@ static void frsky_send_data(int uart, uint8_t id, int16_t data)
 
 void frsky_update_topics()
 {
-	struct frsky_subscription_data_s *subs = subscription_data;
-	bool updated;
-
-	/* get a local copy of the current sensor values */
-	orb_check(subs->sensor_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(sensor_combined), subs->sensor_sub, &subs->sensor_combined);
-	}
-
-	orb_check(subs->vehicle_air_data_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_air_data), subs->vehicle_air_data_sub, &subs->airdata);
-	}
-
-	/* get a local copy of the vehicle status */
-	orb_check(subs->vehicle_status_sub, &updated);
-
-	if (updated) {
-		struct vehicle_status_s vehicle_status;
-		orb_copy(ORB_ID(vehicle_status), subs->vehicle_status_sub, &vehicle_status);
-		subs->current_flight_mode = vehicle_status.nav_state;
-	}
-
-	/* get a local copy of the battery data */
-	orb_check(subs->battery_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(battery_status), subs->battery_status_sub, &subs->battery_status);
-	}
-
-	/* get a local copy of the global position data */
-	orb_check(subs->vehicle_global_position_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_global_position), subs->vehicle_global_position_sub, &subs->global_pos);
-	}
-
-	/* get a local copy of the raw GPS data */
-	orb_check(subs->vehicle_gps_position_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_gps_position), subs->vehicle_gps_position_sub, &subs->vehicle_gps_position);
-	}
+	subscription_data->battery_status_sub.update();
+	subscription_data->sensor_combined_sub.update();
+	subscription_data->vehicle_air_data_sub.update();
+	subscription_data->vehicle_global_position_sub.update();
+	subscription_data->vehicle_gps_position_sub.update();
+	subscription_data->vehicle_status_sub.update();
 }
 
 /**
@@ -215,26 +160,25 @@ void frsky_update_topics()
  */
 void frsky_send_frame1(int uart)
 {
-	struct frsky_subscription_data_s *subs = subscription_data;
-
 	/* send formatted frame */
-	frsky_send_data(uart, FRSKY_ID_ACCEL_X, roundf(subs->sensor_combined.accelerometer_m_s2[0] * 1000.0f));
-	frsky_send_data(uart, FRSKY_ID_ACCEL_Y, roundf(subs->sensor_combined.accelerometer_m_s2[1] * 1000.0f));
-	frsky_send_data(uart, FRSKY_ID_ACCEL_Z, roundf(subs->sensor_combined.accelerometer_m_s2[2] * 1000.0f));
+	const sensor_combined_s &sensor_combined = subscription_data->sensor_combined_sub.get();
+	frsky_send_data(uart, FRSKY_ID_ACCEL_X, roundf(sensor_combined.accelerometer_m_s2[0] * 1000.0f));
+	frsky_send_data(uart, FRSKY_ID_ACCEL_Y, roundf(sensor_combined.accelerometer_m_s2[1] * 1000.0f));
+	frsky_send_data(uart, FRSKY_ID_ACCEL_Z, roundf(sensor_combined.accelerometer_m_s2[2] * 1000.0f));
 
-	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP, subs->airdata.baro_alt_meter);
-	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP, roundf(frac(subs->airdata.baro_alt_meter) * 100.0f));
+	const vehicle_air_data_s &air_data = subscription_data->vehicle_air_data_sub.get();
+	frsky_send_data(uart, FRSKY_ID_BARO_ALT_BP, air_data.baro_alt_meter);
+	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP, roundf(frac(air_data.baro_alt_meter) * 100.0f));
 
-	frsky_send_data(uart, FRSKY_ID_VFAS,
-			roundf(subs->battery_status.voltage_v * 10.0f));
-	frsky_send_data(uart, FRSKY_ID_CURRENT,
-			(subs->battery_status.current_a < 0) ? 0 : roundf(subs->battery_status.current_a * 10.0f));
+	const battery_status_s &bat = subscription_data->battery_status_sub.get();
+	frsky_send_data(uart, FRSKY_ID_VFAS, roundf(bat.voltage_v * 10.0f));
+	frsky_send_data(uart, FRSKY_ID_CURRENT, (bat.current_a < 0) ? 0 : roundf(bat.current_a * 10.0f));
 
-	int16_t telem_flight_mode = get_telemetry_flight_mode(subs->current_flight_mode);
+	int16_t telem_flight_mode = get_telemetry_flight_mode(subscription_data->vehicle_status_sub.get().nav_state);
 	frsky_send_data(uart, FRSKY_ID_TEMP1, telem_flight_mode); // send flight mode as TEMP1. This matches with OpenTX & APM
 
-	frsky_send_data(uart, FRSKY_ID_TEMP2, subs->vehicle_gps_position.satellites_used * 10 +
-			subs->vehicle_gps_position.fix_type);
+	const vehicle_gps_position_s &gps = subscription_data->vehicle_gps_position_sub.get();
+	frsky_send_data(uart, FRSKY_ID_TEMP2, gps.satellites_used * 10 + gps.fix_type);
 
 	frsky_send_startstop(uart);
 }
@@ -254,32 +198,33 @@ static float frsky_format_gps(float dec)
  */
 void frsky_send_frame2(int uart)
 {
-	struct vehicle_global_position_s *global_pos = &subscription_data->global_pos;
-	struct battery_status_s *battery_status = &subscription_data->battery_status;
-	struct vehicle_gps_position_s *gps = &subscription_data->vehicle_gps_position;
+	const vehicle_global_position_s &gpos = subscription_data->vehicle_global_position_sub.get();
+	const battery_status_s &battery_status = subscription_data->battery_status_sub.get();
+	const vehicle_gps_position_s &gps = subscription_data->vehicle_gps_position_sub.get();
+
 	/* send formatted frame */
 	float course = 0, lat = 0, lon = 0, speed = 0, alt = 0;
 	char lat_ns = 0, lon_ew = 0;
 	int sec = 0;
 
-	if (global_pos->timestamp != 0 && hrt_absolute_time() < global_pos->timestamp + 20000) {
-		course = global_pos->yaw / M_PI_F * 180.0f;
+	if (gpos.timestamp != 0 && hrt_absolute_time() < gpos.timestamp + 20000) {
+		course = gpos.yaw / M_PI_F * 180.0f;
 
 		if (course < 0.f) { // course is in range [0, 360], 0=north, CW
 			course += 360.f;
 		}
 
-		lat    = frsky_format_gps(fabsf(global_pos->lat));
-		lat_ns = (global_pos->lat < 0) ? 'S' : 'N';
-		lon    = frsky_format_gps(fabsf(global_pos->lon));
-		lon_ew = (global_pos->lon < 0) ? 'W' : 'E';
-		speed  = sqrtf(global_pos->vel_n * global_pos->vel_n + global_pos->vel_e * global_pos->vel_e)
+		lat    = frsky_format_gps(fabsf(gpos.lat));
+		lat_ns = (gpos.lat < 0) ? 'S' : 'N';
+		lon    = frsky_format_gps(fabsf(gpos.lon));
+		lon_ew = (gpos.lon < 0) ? 'W' : 'E';
+		speed  = sqrtf(gpos.vel_n * gpos.vel_n + gpos.vel_e * gpos.vel_e)
 			 * 25.0f / 46.0f;
-		alt    = global_pos->alt;
+		alt    = gpos.alt;
 	}
 
-	if (gps->timestamp != 0 && hrt_absolute_time() < gps->timestamp + 20000) {
-		time_t time_gps = gps->time_utc_usec / 1000000ULL;
+	if (gps.timestamp != 0 && hrt_absolute_time() < gps.timestamp + 20000) {
+		time_t time_gps = gps.time_utc_usec / 1000000ULL;
 		struct tm *tm_gps = gmtime(&time_gps);
 
 		sec    = tm_gps->tm_sec;
@@ -302,8 +247,7 @@ void frsky_send_frame2(int uart)
 	frsky_send_data(uart, FRSKY_ID_GPS_ALT_BP, alt);
 	frsky_send_data(uart, FRSKY_ID_GPS_ALT_AP, frac(alt) * 100.0f);
 
-	frsky_send_data(uart, FRSKY_ID_FUEL,
-			roundf(battery_status->remaining * 100.0f));
+	frsky_send_data(uart, FRSKY_ID_FUEL, roundf(battery_status.remaining * 100.0f));
 
 	frsky_send_data(uart, FRSKY_ID_GPS_SEC, sec);
 
@@ -317,7 +261,8 @@ void frsky_send_frame2(int uart)
 void frsky_send_frame3(int uart)
 {
 	/* send formatted frame */
-	time_t time_gps = subscription_data->vehicle_gps_position.time_utc_usec / 1000000ULL;
+	time_t time_gps = subscription_data->vehicle_gps_position_sub.get().time_utc_usec / 1000000ULL;
+
 	struct tm *tm_gps = gmtime(&time_gps);
 	uint16_t hour_min = (tm_gps->tm_min << 8) | (tm_gps->tm_hour & 0xff);
 	frsky_send_data(uart, FRSKY_ID_GPS_DAY_MONTH, tm_gps->tm_mday);

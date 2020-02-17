@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__mappydot
 	MAIN mappydot
-	STACK_MAIN 1200
 	SRCS
 		MappyDot.cpp
 	)

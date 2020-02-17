@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_common_flags
@@ -51,6 +49,7 @@ function(px4_add_common_flags)
 		-fdata-sections
 		-ffunction-sections
 		-fomit-frame-pointer
+		-fmerge-all-constants
 
 		#-funsafe-math-optimizations # Enables -fno-signed-zeros, -fno-trapping-math, -fassociative-math and -freciprocal-math
 		-fno-signed-zeros	# Allow optimizations for floating-point arithmetic that ignore the signedness of zero
@@ -93,10 +92,12 @@ function(px4_add_common_flags)
 		)
 
 	# compiler specific flags
-	if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+	if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
 
 		# force color for clang (needed for clang + ccache)
 		add_compile_options(-fcolor-diagnostics)
+		# force absolute paths
+		add_compile_options(-fdiagnostics-absolute-paths)
 
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
 		if (NOT "${PX4_PLATFORM}" STREQUAL "qurt")
@@ -132,9 +133,9 @@ function(px4_add_common_flags)
 		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fcheck-new>)
 
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-	  message(FATAL_ERROR "Intel compiler not yet supported")
+		message(FATAL_ERROR "Intel compiler not yet supported")
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-	  message(FATAL_ERROR "MS compiler not yet supported")
+		message(FATAL_ERROR "MS compiler not yet supported")
 	endif()
 
 	# C only flags
@@ -170,19 +171,20 @@ function(px4_add_common_flags)
 
 	include_directories(
 		${PX4_BINARY_DIR}
-		${PX4_BINARY_DIR}/src
 		${PX4_BINARY_DIR}/src/lib
-		${PX4_BINARY_DIR}/src/modules
 
+		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP}/include
+		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include
+		${PX4_SOURCE_DIR}/platforms/common/include
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib
-		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		${PX4_SOURCE_DIR}/src/lib/matrix
 		${PX4_SOURCE_DIR}/src/modules
-		${PX4_SOURCE_DIR}/src/platforms
-		${PX4_SOURCE_DIR}/src/platforms/common
-		)
+	)
+	if(EXISTS ${PX4_BOARD_DIR}/include)
+		include_directories(${PX4_BOARD_DIR}/include)
+	endif()
 
 	add_definitions(
 		-DCONFIG_ARCH_BOARD_${PX4_BOARD_NAME}

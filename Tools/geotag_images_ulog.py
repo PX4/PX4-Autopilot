@@ -30,6 +30,7 @@
 # Parts included from https://github.com/PX4/flight_review/
 
 
+from __future__ import print_function
 import os, sys, time, datetime, piexif
 from pyulog import *
 from pyulog.px4 import *
@@ -38,9 +39,9 @@ from fractions import Fraction
 
 
 if(len(sys.argv)) < 3:
-    print "Usage: python geotag_images_ulog.py [logfile] [image dir]"
-    print "Example: python geotag_images_ulog.py mylog.ulg ./images"
-    print len(sys.argv)
+    print("Usage: python geotag_images_ulog.py [logfile] [image dir]")
+    print("Example: python geotag_images_ulog.py mylog.ulg ./images")
+    print(len(sys.argv))
     sys.exit()
 
 logfile = sys.argv[1]
@@ -189,13 +190,13 @@ for f in reversed(files):
   timestamp = time.mktime(datetime.datetime.strptime(timestring, "%Y:%m:%d %H:%M:%S").timetuple())
   if first == 0:
     first = timestamp
-    print "Calibrating on",f,"as last image on",timestring
-    print ""
-    print "[filename] [offset] [trigger seq] [lat] [lng] [alt]"
+    print("Calibrating on",f,"as last image on",timestring)
+    print("")
+    print("[filename] [offset] [trigger seq] [lat] [lng] [alt]")
 
   offset = first - timestamp
-  print(f),
-  print(offset),
+  print((f), end=' ')
+  print((offset), end=' ')
   if not offset in offsets:
     offset += 1
 
@@ -203,9 +204,9 @@ for f in reversed(files):
     offset += 1
 
   if offset in offsets:
-    print(offsets[offset]),
-    print(camera_capture.data['lat'][offsets[offset]]),
-    print(camera_capture.data['lon'][offsets[offset]]),
+    print((offsets[offset]), end=' ')
+    print((camera_capture.data['lat'][offsets[offset]]), end=' ')
+    print((camera_capture.data['lon'][offsets[offset]]), end=' ')
     print(camera_capture.data['alt'][offsets[offset]])
 
     lat = camera_capture.data['lat'][offsets[offset]]
@@ -232,7 +233,7 @@ for f in reversed(files):
     exif_bytes = piexif.dump(exif_dict)
     piexif.insert(exif_bytes, f)
   else:
-    print "Could not georeference"
+    print("Could not georeference")
 
 
-print "Done"
+print("Done")

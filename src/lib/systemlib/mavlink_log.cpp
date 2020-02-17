@@ -39,7 +39,7 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

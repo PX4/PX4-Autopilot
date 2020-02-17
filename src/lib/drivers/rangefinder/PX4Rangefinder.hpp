@@ -45,27 +45,33 @@ class PX4Rangefinder : public cdev::CDev
 {
 
 public:
-	PX4Rangefinder(uint32_t device_id, uint8_t priority, uint8_t rotation);
+	PX4Rangefinder(const uint32_t device_id,
+		       const uint8_t priority = ORB_PRIO_DEFAULT,
+		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~PX4Rangefinder() override;
-
-	void set_device_type(uint8_t devtype);
-	//void set_error_count(uint64_t error_count) { _distance_sensor_pub.get().error_count = error_count; }
-
-	void set_min_distance(float distance) { _distance_sensor_pub.get().min_distance = distance; }
-	void set_max_distance(float distance) { _distance_sensor_pub.get().max_distance = distance; }
-
-	void set_hfov(float fov) { _distance_sensor_pub.get().h_fov = fov; }
-	void set_vfov(float fov) { _distance_sensor_pub.get().v_fov = fov; }
-	void set_fov(float fov) { set_hfov(fov); set_vfov(fov); }
-
-	void update(hrt_abstime timestamp, float distance, int8_t quality = -1);
 
 	void print_status();
 
+	void set_device_type(uint8_t device_type);
+	//void set_error_count(uint64_t error_count) { _distance_sensor_pub.get().error_count = error_count; }
+
+	void set_device_id(const uint8_t device_id) { _distance_sensor_pub.get().id = device_id; };
+
+	void set_fov(const float fov) { set_hfov(fov); set_vfov(fov); }
+	void set_hfov(const float fov) { _distance_sensor_pub.get().h_fov = fov; }
+	void set_vfov(const float fov) { _distance_sensor_pub.get().v_fov = fov; }
+
+	void set_max_distance(const float distance) { _distance_sensor_pub.get().max_distance = distance; }
+	void set_min_distance(const float distance) { _distance_sensor_pub.get().min_distance = distance; }
+
+	void set_orientation(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+
+	void update(const hrt_abstime timestamp, const float distance, const int8_t quality = -1);
+
 private:
 
-	uORB::PublicationMultiData<distance_sensor_s>	_distance_sensor_pub;
+	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub;
 
-	int			_class_device_instance{-1};
+	int _class_device_instance{-1};
 
 };

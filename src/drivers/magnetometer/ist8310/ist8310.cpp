@@ -40,9 +40,9 @@
  * @author Maelok Dong
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -76,7 +76,7 @@
 #include <float.h>
 #include <lib/conversion/rotation.h>
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 /*
  * IST8310 internal constants and data structures.
@@ -222,9 +222,6 @@ private:
 	perf_counter_t      _range_errors;
 	perf_counter_t      _conf_errors;
 
-	/* status reporting */
-	bool			_sensor_ok{false};		/**< sensor was found and reports ok */
-	bool			_calibrated{false};		/**< the calibration is valid */
 	enum Rotation       _rotation;
 
 	sensor_mag_s   _last_report{};           /**< used for info() */
@@ -249,17 +246,6 @@ private:
 	 * Reset the device
 	 */
 	int         reset();
-
-	/**
-	 * Perform the on-sensor scale calibration routine.
-	 *
-	 * @note The sensor will continue to provide measurements, these
-	 *   will however reflect the uncalibrated sensor state until
-	 *   the calibration routine has been completed.
-	 *
-	 * @param enable set to 1 to enable self-test strap, 0 to disable
-	 */
-	int         calibrate(struct file *filp, unsigned enable);
 
 	/**
 	 * check the sensor configuration.
@@ -344,20 +330,6 @@ private:
 	float       meas_to_float(uint8_t in[2]);
 
 	/**
-	* Check the current scale calibration
-	*
-	* @return 0 if scale calibration is ok, 1 else
-	*/
-	int         check_scale();
-
-	/**
-	* Check the current offset calibration
-	*
-	* @return 0 if offset calibration is ok, 1 else
-	*/
-	int         check_offset();
-
-	/**
 	* Place the device in self test mode
 	*
 	* @return 0 if mode is set, 1 else
@@ -377,7 +349,7 @@ extern "C" __EXPORT int ist8310_main(int argc, char *argv[]);
 
 IST8310::IST8310(int bus_number, int address, const char *path, enum Rotation rotation) :
 	I2C("IST8310", path, bus_number, address, IST8310_DEFAULT_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ist8310_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ist8310_com_err")),
 	_range_errors(perf_alloc(PC_COUNT, "ist8310_rng_err")),
@@ -428,7 +400,7 @@ IST8310::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_mag_s));
 
 	if (_reports == nullptr) {
 		goto out;
@@ -440,8 +412,6 @@ IST8310::init()
 	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
 	ret = OK;
-	/* sensor is ok, but not calibrated */
-	_sensor_ok = true;
 out:
 	return ret;
 }
@@ -515,8 +485,8 @@ void IST8310::check_conf(void)
 ssize_t
 IST8310::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct mag_report);
-	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_mag_s);
+	sensor_mag_s *mag_buf = reinterpret_cast<sensor_mag_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -533,7 +503,7 @@ IST8310::read(struct file *filp, char *buffer, size_t buflen)
 		 */
 		while (count--) {
 			if (_reports->get(mag_buf)) {
-				ret += sizeof(struct mag_report);
+				ret += sizeof(sensor_mag_s);
 				mag_buf++;
 			}
 		}
@@ -563,7 +533,7 @@ IST8310::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		if (_reports->get(mag_buf)) {
-			ret = sizeof(struct mag_report);
+			ret = sizeof(sensor_mag_s);
 		}
 	} while (0);
 
@@ -638,9 +608,6 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* copy out scale factors */
 		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
-
-	case MAGIOCCALIBRATE:
-		return calibrate(filp, arg);
 
 	case MAGIOCGEXTERNAL:
 		return external();
@@ -781,7 +748,7 @@ IST8310::collect()
 	uint8_t check_counter;
 
 	perf_begin(_sample_perf);
-	struct mag_report new_report;
+	sensor_mag_s new_report;
 	const bool sensor_is_external = external();
 
 	float xraw_f;
@@ -874,9 +841,6 @@ IST8310::collect()
 	/* post a report to the ring */
 	_reports->force(&new_report);
 
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-
 	/*
 	  periodically check the range register and configuration
 	  registers. With a bad I2C cable it is possible for the
@@ -895,158 +859,6 @@ IST8310::collect()
 out:
 	perf_end(_sample_perf);
 	return ret;
-}
-
-int IST8310::calibrate(struct file *filp, unsigned enable)
-{
-	struct mag_report report {};
-	ssize_t sz;
-	int ret = 1;
-	float total_x = 0.0f;
-	float total_y = 0.0f;
-	float total_z = 0.0f;
-
-	// XXX do something smarter here
-	int fd = (int)enable;
-
-	struct mag_calibration_s mscale_previous;
-
-	struct mag_calibration_s mscale_null;
-	mscale_null.x_offset = 0.0f;
-	mscale_null.x_scale = 1.0f;
-	mscale_null.y_offset = 0.0f;
-	mscale_null.y_scale = 1.0f;
-	mscale_null.z_offset = 0.0f;
-	mscale_null.z_scale = 1.0f;
-
-	float sum_in_test[3] =   {0.0f, 0.0f, 0.0f};
-	float sum_in_normal[3] = {0.0f, 0.0f, 0.0f};
-	float *sum = &sum_in_normal[0];
-
-	if (OK != ioctl(filp, MAGIOCGSCALE, (long unsigned int)&mscale_previous)) {
-		PX4_WARN("FAILED: MAGIOCGSCALE 1");
-		ret = 1;
-		goto out;
-	}
-
-	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-		PX4_WARN("FAILED: MAGIOCSSCALE 1");
-		ret = 1;
-		goto out;
-	}
-
-	/* start the sensor polling at 50 Hz */
-	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
-		PX4_WARN("FAILED: SENSORIOCSPOLLRATE 50Hz");
-		ret = 1;
-		goto out;
-	}
-
-	// discard 10 samples to let the sensor settle
-	/* read the sensor 50 times */
-
-	for (uint8_t p = 0; p < 2; p++) {
-
-		if (p == 1) {
-
-			/* start the Self test */
-
-			if (OK != ioctl(filp, MAGIOCEXSTRAP, 1)) {
-				PX4_WARN("FAILED: MAGIOCEXSTRAP 1");
-				ret = 1;
-				goto out;
-			}
-
-			sum = &sum_in_test[0];
-		}
-
-
-		for (uint8_t i = 0; i < 30; i++) {
-
-
-			struct pollfd fds;
-
-			/* wait for data to be ready */
-			fds.fd = fd;
-			fds.events = POLLIN;
-			ret = ::poll(&fds, 1, 2000);
-
-			if (ret != 1) {
-				PX4_WARN("ERROR: TIMEOUT 2");
-				goto out;
-			}
-
-			/* now go get it */
-
-			sz = ::read(fd, &report, sizeof(report));
-
-			if (sz != sizeof(report)) {
-				PX4_WARN("ERROR: READ 2");
-				ret = -EIO;
-				goto out;
-			}
-
-			if (i > 10) {
-				sum[0] += report.x_raw;
-				sum[1] += report.y_raw;
-				sum[2] += report.z_raw;
-			}
-		}
-	}
-
-	total_x = fabsf(sum_in_test[0] - sum_in_normal[0]);
-	total_y = fabsf(sum_in_test[1] - sum_in_normal[1]);
-	total_z = fabsf(sum_in_test[2] - sum_in_normal[2]);
-
-	ret = ((total_x + total_y + total_z) < (float)0.000001);
-
-out:
-
-	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-		PX4_WARN("FAILED: MAGIOCSSCALE 2");
-	}
-
-	/* set back to normal mode */
-
-	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
-		PX4_WARN("FAILED: MAGIOCEXSTRAP 0");
-	}
-
-	if (ret == OK) {
-		if (check_scale()) {
-			/* failed */
-			PX4_WARN("FAILED: SCALE");
-			ret = PX4_ERROR;
-		}
-
-	} else {
-		PX4_ERR("FAILED: CALIBRATION SCALE %d, %d, %d", (int)total_x, (int)total_y, (int)total_z);
-	}
-
-	return ret;
-}
-
-int IST8310::check_scale()
-{
-	return OK;
-}
-
-int IST8310::check_offset()
-{
-	bool offset_valid;
-
-	if ((-2.0f * FLT_EPSILON < _scale.x_offset && _scale.x_offset < 2.0f * FLT_EPSILON) &&
-	    (-2.0f * FLT_EPSILON < _scale.y_offset && _scale.y_offset < 2.0f * FLT_EPSILON) &&
-	    (-2.0f * FLT_EPSILON < _scale.z_offset && _scale.z_offset < 2.0f * FLT_EPSILON)) {
-		/* offset is zero */
-		offset_valid = false;
-
-	} else {
-		offset_valid = true;
-	}
-
-	/* return 0 if calibrated, 1 else */
-	return !offset_valid;
 }
 
 int
@@ -1154,7 +966,6 @@ struct ist8310_bus_option &find_bus(enum IST8310_BUS busid);
 void    test(enum IST8310_BUS busid);
 void    reset(enum IST8310_BUS busid);
 int info(enum IST8310_BUS busid);
-int calibrate(enum IST8310_BUS busid);
 void    usage();
 
 /**
@@ -1249,7 +1060,7 @@ void
 test(enum IST8310_BUS busid)
 {
 	struct ist8310_bus_option &bus = find_bus(busid);
-	struct mag_report report {};
+	sensor_mag_s report {};
 	ssize_t sz;
 	int ret;
 	const char *path = bus.devpath;
@@ -1303,51 +1114,6 @@ test(enum IST8310_BUS busid)
 
 
 /**
- * Automatic scale calibration.
- *
- * Basic idea:
- *
- *   output = (ext field +- 1.1 Ga self-test) * scale factor
- *
- * and consequently:
- *
- *   1.1 Ga = (excited - normal) * scale factor
- *   scale factor = (excited - normal) / 1.1 Ga
- *
- *   sxy = (excited - normal) / 766 | for conf reg. B set to 0x60 / Gain = 3
- *   sz  = (excited - normal) / 713 | for conf reg. B set to 0x60 / Gain = 3
- *
- * By subtracting the non-excited measurement the pure 1.1 Ga reading
- * can be extracted and the sensitivity of all axes can be matched.
- *
- * SELF TEST OPERATION
- * To check the IST8310L for proper operation, a self test feature in incorporated
- * in which the sensor will change the polarity on all 3 axis. The values with and
- * with and without selftest on shoult be compared and if the absolete value are equal
- * the IC is functional.
- */
-int calibrate(enum IST8310_BUS busid)
-{
-	int ret;
-	struct ist8310_bus_option &bus = find_bus(busid);
-	const char *path = bus.devpath;
-
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed (try 'ist8310 start' if the driver is not running", path);
-	}
-
-	if (OK != (ret = ioctl(fd, MAGIOCCALIBRATE, fd))) {
-		PX4_WARN("failed to enable sensor calibration mode");
-	}
-
-	close(fd);
-
-	return ret;
-}
-
-/**
  * Reset the driver.
  */
 void
@@ -1392,10 +1158,9 @@ info(enum IST8310_BUS busid)
 void
 usage()
 {
-	PX4_INFO("missing command: try 'start', 'info', 'test', 'reset', 'calibrate'");
+	PX4_INFO("missing command: try 'start', 'info', 'test', 'reset'");
 	PX4_INFO("options:");
 	PX4_INFO("    -R rotation");
-	PX4_INFO("    -C calibrate on start");
 	PX4_INFO("    -a 12C Address (0x%02x)", IST8310_BUS_I2C_ADDR);
 	PX4_INFO("    -b 12C bus (%d-%d)", IST8310_BUS_I2C_EXTERNAL, IST8310_BUS_I2C_INTERNAL);
 }
@@ -1409,12 +1174,11 @@ ist8310_main(int argc, char *argv[])
 	int i2c_addr = IST8310_BUS_I2C_ADDR; /* 7bit */
 
 	enum Rotation rotation = ROTATION_NONE;
-	bool calibrate = false;
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "R:Ca:b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);
@@ -1426,10 +1190,6 @@ ist8310_main(int argc, char *argv[])
 
 		case 'b':
 			i2c_busid = (IST8310_BUS)strtol(myoptarg, NULL, 0);
-			break;
-
-		case 'C':
-			calibrate = true;
 			break;
 
 		default:
@@ -1450,16 +1210,6 @@ ist8310_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "start")) {
 		ist8310::start(i2c_busid, i2c_addr, rotation);
-
-		if (i2c_busid == IST8310_BUS_ALL) {
-			PX4_ERR("calibration only feasible against one bus");
-			return 1;
-
-		} else if (calibrate && (ist8310::calibrate(i2c_busid) != 0)) {
-			PX4_ERR("calibration failed");
-			return 1;
-		}
-
 		return 0;
 	}
 
@@ -1482,20 +1232,6 @@ ist8310_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "info") || !strcmp(verb, "status")) {
 		ist8310::info(i2c_busid);
-	}
-
-	/*
-	 * Autocalibrate the scaling
-	 */
-	if (!strcmp(verb, "calibrate")) {
-		if (ist8310::calibrate(i2c_busid) == 0) {
-			PX4_INFO("calibration successful");
-			return 0;
-
-		} else {
-			PX4_ERR("calibration failed");
-			return 1;
-		}
 	}
 
 	ist8310::usage();

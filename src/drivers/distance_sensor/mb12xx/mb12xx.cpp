@@ -60,10 +60,10 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_module_params.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>
 
@@ -181,7 +181,7 @@ private:
 MB12XX::MB12XX(const int bus) :
 	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, MB12XX_BASE_ADDR, MB12XX_BUS_SPEED),
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 }
 

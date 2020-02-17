@@ -57,7 +57,7 @@ void BlockLocalPositionEstimator::gpsInit()
 			// find lat, lon of current origin by subtracting x and y
 			// if not using vision position since vision will
 			// have it's own origin, not necessarily where vehicle starts
-			if (!_map_ref.init_done && !(_param_lpe_fusion.get() & FUSE_VIS_POS)) {
+			if (!_map_ref.init_done) {
 				double gpsLatOrigin = 0;
 				double gpsLonOrigin = 0;
 				// reproject at current coordinates
@@ -186,13 +186,23 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	Vector<float, n_y_gps> r = y - C * x0;
 
 	// residual covariance
-	Matrix<float, n_y_gps, n_y_gps> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_gps, n_y_gps> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
-	for (size_t i = 0; i < 6; i++) {
-		_pub_innov.get().vel_pos_innov[i] = r(i);
-		_pub_innov.get().vel_pos_innov_var[i] = S(i, i);
-	}
+	_pub_innov.get().gps_hpos[0] = r(0);
+	_pub_innov.get().gps_hpos[1] = r(1);
+	_pub_innov.get().gps_vpos    = r(2);
+	_pub_innov.get().gps_hvel[0] = r(3);
+	_pub_innov.get().gps_hvel[1] = r(4);
+	_pub_innov.get().gps_vvel    = r(5);
+
+	// publish innovation variances
+	_pub_innov_var.get().gps_hpos[0] = S(0, 0);
+	_pub_innov_var.get().gps_hpos[1] = S(1, 1);
+	_pub_innov_var.get().gps_vpos    = S(2, 2);
+	_pub_innov_var.get().gps_hvel[0] = S(3, 3);
+	_pub_innov_var.get().gps_hvel[1] = S(4, 4);
+	_pub_innov_var.get().gps_vvel    = S(5, 5);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, n_y_gps>(S);
@@ -217,10 +227,10 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	}
 
 	// kalman filter correction always for GPS
-	Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_gps> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 }
 
 void BlockLocalPositionEstimator::gpsCheckTimeout()

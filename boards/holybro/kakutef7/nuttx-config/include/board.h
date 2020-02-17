@@ -270,11 +270,6 @@
 #define GPIO_UART7_RX    GPIO_UART7_RX_1    /* PE7 */
 #define GPIO_UART7_TX    GPIO_UART7_TX_1    /* PE8 */
 
-/* UART RX DMA configurations */
-
-#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
-#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
-
 /* SPI
  * SPI1 SD Card
  * SPI2 is OSD AT7456E

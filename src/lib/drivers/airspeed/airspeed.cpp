@@ -38,7 +38,7 @@
  *
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <drivers/device/device.h>
 
 #include <drivers/device/i2c.h>
@@ -58,12 +58,11 @@
 
 Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char *path) :
 	I2C("Airspeed", path, bus, address, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sensor_ok(false),
 	_measure_interval(0),
 	_collect_phase(false),
 	_diff_pres_offset(0.0f),
-	_airspeed_pub(nullptr),
 	_airspeed_orb_class_instance(-1),
 	_class_instance(-1),
 	_conversion_interval(conversion_interval),
@@ -80,8 +79,6 @@ Airspeed::~Airspeed()
 	if (_class_instance != -1) {
 		unregister_class_devname(AIRSPEED_BASE_DEVICE_PATH, _class_instance);
 	}
-
-	orb_unadvertise(_airspeed_pub);
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -101,15 +98,6 @@ Airspeed::init()
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	measure();
-	differential_pressure_s arp = {};
-
-	/* measurement will have generated a report, publish */
-	_airspeed_pub = orb_advertise_multi(ORB_ID(differential_pressure), &arp, &_airspeed_orb_class_instance,
-					    ORB_PRIO_HIGH - _class_instance);
-
-	if (_airspeed_pub == nullptr) {
-		PX4_WARN("uORB started?");
-	}
 
 	return PX4_OK;
 }

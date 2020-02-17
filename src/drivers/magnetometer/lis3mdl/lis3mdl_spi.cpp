@@ -37,7 +37,7 @@
  * SPI interface for LIS3MDL
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <assert.h>
 #include <debug.h>
@@ -47,8 +47,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include <arch/board/board.h>
 
 #include <drivers/device/spi.h>
 #include <drivers/drv_mag.h>

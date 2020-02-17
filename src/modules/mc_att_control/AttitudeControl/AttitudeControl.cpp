@@ -53,7 +53,7 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	_proportional_gain(2) = roll_pitch_gain;
 }
 
-matrix::Vector3f AttitudeControl::update(matrix::Quatf q, matrix::Quatf qd, float yawspeed_feedforward)
+matrix::Vector3f AttitudeControl::update(matrix::Quatf q, matrix::Quatf qd, const float yawspeed_feedforward)
 {
 	// ensure input quaternions are exactly normalized because acosf(1.00001) == NaN
 	q.normalize();

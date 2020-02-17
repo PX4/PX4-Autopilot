@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -153,12 +153,6 @@
  */
 #define ADC_CHANNELS 0
 
-// ADC defines to be used in sensors.cpp to read from a particular channel
-// Crazyflie 2 performs battery sensing via the NRF module
-#define ADC_BATTERY_VOLTAGE_CHANNEL	((uint8_t)(-1))
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
-
 /* Tone alarm output : These are only applicable when the buzzer deck is attached */
 #define TONE_ALARM_TIMER	5	/* timer 5 */
 #define TONE_ALARM_CHANNEL 3	/* channel 3 */
@@ -167,28 +161,9 @@
 #define GPIO_TONE_ALARM_NEG (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN3)
 
 /* PWM
-*
-* Four PWM motor outputs are configured.
-*
-* Pins:
-*
-* CH1 : PA1  : TIM2_CH2
-* CH2 : PB11 : TIM2_CH4
-* CH3 : PA15 : TIM2_CH1
-* CH4 : PB9  : TIM4_CH4
 */
 
-#define GPIO_TIM2_CH2OUT	GPIO_TIM2_CH2OUT_1
-#define GPIO_TIM2_CH4OUT	GPIO_TIM2_CH4OUT_2
-#define GPIO_TIM2_CH1OUT	GPIO_TIM2_CH1OUT_2
-#define GPIO_TIM4_CH4OUT	GPIO_TIM4_CH4OUT_1
 #define DIRECT_PWM_OUTPUT_CHANNELS	4
-
-#define GPIO_TIM2_CH2IN		GPIO_TIM2_CH2IN_1
-#define GPIO_TIM2_CH4IN		GPIO_TIM2_CH4IN_2
-#define GPIO_TIM2_CH1IN		GPIO_TIM2_CH1IN_2
-#define GPIO_TIM4_CH4IN		GPIO_TIM4_CH4IN_1
-
 
 /* This board overrides the defaults by providing
  * PX4_PWM_ALTERNATE_RANGES and a replacement set of
@@ -216,6 +191,9 @@
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_ENABLE_CONSOLE_BUFFER
+#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
 
 __BEGIN_DECLS
 
@@ -286,7 +264,7 @@ extern int stm32_spi_bus_initialize(void);
 void board_spi_reset(int ms);
 
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

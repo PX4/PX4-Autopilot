@@ -8,5 +8,6 @@ then
 	atxxxx start
 fi
 
-
+# DShot telemetry is always on UART7
+dshot telemetry /dev/ttyS5
 

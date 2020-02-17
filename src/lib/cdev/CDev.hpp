@@ -40,8 +40,8 @@
 #ifndef _CDEV_HPP
 #define _CDEV_HPP
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/posix.h>
 
 #ifdef __PX4_NUTTX
 #include "nuttx/cdev_platform.hpp"
@@ -64,7 +64,13 @@ public:
 	 * @param name		Driver name
 	 * @param devname	Device node name
 	 */
-	CDev(const char *devname);
+	explicit CDev(const char *devname);
+
+	// no copy, assignment, move, move assignment
+	CDev(const CDev &) = delete;
+	CDev &operator=(const CDev &) = delete;
+	CDev(CDev &&) = delete;
+	CDev &operator=(CDev &&) = delete;
 
 	virtual ~CDev();
 
@@ -131,8 +137,8 @@ public:
 	/**
 	 * Perform an ioctl operation on the device.
 	 *
-	 * The default implementation handles DIOC_GETPRIV, and otherwise
-	 * returns -ENOTTY. Subclasses should call the default implementation
+	 * The default implementation returns -ENOTTY.
+	 * Subclasses should call the default implementation
 	 * for any command they do not handle themselves.
 	 *
 	 * @param filep		Pointer to the NuttX file structure.
@@ -140,7 +146,7 @@ public:
 	 * @param arg		The ioctl argument value.
 	 * @return		OK on success, or -errno otherwise.
 	 */
-	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg);
+	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg) { return -ENOTTY; };
 
 	/**
 	 * Perform a poll setup/teardown operation.
@@ -181,7 +187,7 @@ protected:
 	 * @param filep		The file that's interested.
 	 * @return		The current set of poll events.
 	 */
-	virtual pollevent_t poll_state(file_t *filep) { return 0; }
+	virtual px4_pollevent_t poll_state(file_t *filep) { return 0; }
 
 	/**
 	 * Report new poll events.
@@ -191,7 +197,7 @@ protected:
 	 *
 	 * @param events	The new event(s) being announced.
 	 */
-	virtual void	poll_notify(pollevent_t events);
+	virtual void	poll_notify(px4_pollevent_t events);
 
 	/**
 	 * Internal implementation of poll_notify.
@@ -199,7 +205,7 @@ protected:
 	 * @param fds		A poll waiter to notify.
 	 * @param events	The event(s) to send to the waiter.
 	 */
-	virtual void	poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
+	virtual void	poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events);
 
 	/**
 	 * Notification of the first open.
@@ -301,9 +307,6 @@ private:
 	 */
 	inline int	remove_poll_waiter(px4_pollfd_struct_t *fds);
 
-	/* do not allow copying this class */
-	CDev(const CDev &);
-	CDev operator=(const CDev &);
 };
 
 } // namespace cdev

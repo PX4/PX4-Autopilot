@@ -32,29 +32,22 @@
  ****************************************************************************/
 
 /**
- * @file mag.cpp
- *
- * Driver for the ak09916 magnetometer within the Invensense mpu9250
- *
- * @author Robert Dickenson
- *
+ * Driver for the standalone AK09916 magnetometer.
  */
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_time.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <lib/conversion/rotation.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 #include "ak09916.hpp"
 
 
-/** driver 'main' command */
 extern "C" { __EXPORT int ak09916_main(int argc, char *argv[]); }
 
-#define AK09916_CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
 namespace ak09916
 {
@@ -66,25 +59,16 @@ void start(bool, enum Rotation);
 void info(bool);
 void usage();
 
-/**
- * Start the driver.
- *
- * This function only returns if the driver is up and running
- * or failed to detect the sensor.
- */
 void start(bool external_bus, enum Rotation rotation)
 {
 	AK09916 **g_dev_ptr = (external_bus ? &g_dev_ext : &g_dev_int);
 	const char *path = (external_bus ? AK09916_DEVICE_PATH_MAG_EXT : AK09916_DEVICE_PATH_MAG);
 
-	if (*g_dev_ptr != nullptr)
-		/* if already started, the still command succeeded */
-	{
+	if (*g_dev_ptr != nullptr) {
 		PX4_ERR("already started");
 		exit(0);
 	}
 
-	/* create the driver */
 	if (external_bus) {
 #if defined(PX4_I2C_BUS_EXPANSION)
 		*g_dev_ptr = new AK09916(PX4_I2C_BUS_EXPANSION, path, rotation);
@@ -98,25 +82,14 @@ void start(bool external_bus, enum Rotation rotation)
 		exit(0);
 	}
 
-	if (*g_dev_ptr == nullptr) {
-		goto fail;
-	}
-
-
-	if (OK != (*g_dev_ptr)->init()) {
-		goto fail;
+	if (*g_dev_ptr == nullptr || (OK != (*g_dev_ptr)->init())) {
+		PX4_ERR("driver start failed");
+		delete (*g_dev_ptr);
+		*g_dev_ptr = nullptr;
+		exit(1);
 	}
 
 	exit(0);
-fail:
-
-	if (*g_dev_ptr != nullptr) {
-		delete (*g_dev_ptr);
-		*g_dev_ptr = nullptr;
-	}
-
-	PX4_ERR("driver start failed");
-	exit(1);
 }
 
 void
@@ -153,25 +126,22 @@ info(bool external_bus)
 void
 usage()
 {
-	PX4_WARN("missing command: try 'start', 'info', stop'");
-	PX4_WARN("options:");
-	PX4_WARN("    -X    (external bus)");
-
+	PX4_INFO("missing command: try 'start', 'info', stop'");
+	PX4_INFO("options:");
+	PX4_INFO("    -X    (external bus)");
+	PX4_INFO("    -R    (rotation)");
 }
 
-} // namespace AK09916
+} // namespace ak09916
 
-// If interface is non-null, then it will used for interacting with the device.
-// Otherwise, it will passthrough the parent AK09916
 AK09916::AK09916(int bus, const char *path, enum Rotation rotation) :
 	I2C("AK09916", path, bus, AK09916_I2C_ADDR, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_mag(get_device_id(), ORB_PRIO_MAX, rotation),
 	_mag_reads(perf_alloc(PC_COUNT, "ak09916_mag_reads")),
 	_mag_errors(perf_alloc(PC_COUNT, "ak09916_mag_errors")),
 	_mag_overruns(perf_alloc(PC_COUNT, "ak09916_mag_overruns")),
-	_mag_overflows(perf_alloc(PC_COUNT, "ak09916_mag_overflows")),
-	_mag_duplicates(perf_alloc(PC_COUNT, "ak09916_mag_duplicates"))
+	_mag_overflows(perf_alloc(PC_COUNT, "ak09916_mag_overflows"))
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK09916);
 	_px4_mag.set_scale(AK09916_MAG_RANGE_GA);
@@ -183,7 +153,6 @@ AK09916::~AK09916()
 	perf_free(_mag_errors);
 	perf_free(_mag_overruns);
 	perf_free(_mag_overflows);
-	perf_free(_mag_duplicates);
 }
 
 int
@@ -191,17 +160,15 @@ AK09916::init()
 {
 	int ret = I2C::init();
 
-	/* if cdev init failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("AK09916 mag init failed");
-
+		PX4_WARN("AK09916 mag init failed");
 		return ret;
 	}
 
 	ret = reset();
 
 	if (ret != PX4_OK) {
-		return PX4_ERROR;
+		return ret;
 	}
 
 	start();
@@ -209,52 +176,56 @@ AK09916::init()
 	return PX4_OK;
 }
 
-bool AK09916::check_duplicate(uint8_t *mag_data)
+void
+AK09916::try_measure()
 {
-	if (memcmp(mag_data, &_last_mag_data, sizeof(_last_mag_data)) == 0) {
-		// it isn't new data - wait for next timer
-		return true;
+	if (!is_ready()) {
+		return;
+	}
 
-	} else {
-		memcpy(&_last_mag_data, mag_data, sizeof(_last_mag_data));
+	measure();
+}
+
+bool
+AK09916::is_ready()
+{
+	uint8_t st1;
+	const int ret = transfer(&AK09916REG_ST1, sizeof(AK09916REG_ST1), &st1, sizeof(st1));
+
+	if (ret != OK) {
 		return false;
 	}
+
+	// Monitor if data overrun flag is ever set.
+	if (st1 & AK09916_ST1_DOR) {
+		perf_count(_mag_overruns);
+	}
+
+	return (st1 & AK09916_ST1_DRDY);
 }
 
 void
 AK09916::measure()
 {
-	uint8_t cmd = AK09916REG_ST1;
-	struct ak09916_regs raw_data;
+	ak09916_regs regs;
 
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	uint8_t ret = transfer(&cmd, 1, (uint8_t *)(&raw_data), sizeof(struct ak09916_regs));
+	const hrt_abstime now = hrt_absolute_time();
 
-	if (ret == OK) {
-		raw_data.st2 = raw_data.st2;
+	const int ret = transfer(&AK09916REG_HXL, sizeof(AK09916REG_HXL),
+				 reinterpret_cast<uint8_t *>(&regs), sizeof(regs));
 
-		if (check_duplicate((uint8_t *)&raw_data.x) && !(raw_data.st1 & 0x02)) {
-			perf_count(_mag_duplicates);
-			return;
-		}
-
-		/* monitor for if data overrun flag is ever set */
-		if (raw_data.st1 & 0x02) {
-			perf_count(_mag_overruns);
-		}
-
-		/* monitor for if magnetic sensor overflow flag is ever set noting that st2
-		* is usually not even refreshed, but will always be in the same place in the
-		* mpu's buffers regardless, hence the actual count would be bogus
-		*/
-		if (raw_data.st2 & 0x08) {
-			perf_count(_mag_overflows);
-		}
-
+	if (ret != OK) {
 		_px4_mag.set_error_count(perf_event_count(_mag_errors));
-		_px4_mag.set_external(external());
-		_px4_mag.update(timestamp_sample, raw_data.x, raw_data.y, raw_data.z);
+		return;
 	}
+
+	// Monitor if magnetic sensor overflow flag is set.
+	if (regs.st2 & AK09916_ST2_HOFL) {
+		perf_count(_mag_overflows);
+	}
+
+	_px4_mag.set_external(external());
+	_px4_mag.update(now, regs.x, regs.y, regs.z);
 }
 
 void
@@ -278,9 +249,9 @@ AK09916::read_reg(uint8_t reg)
 }
 
 bool
-AK09916::check_id(uint8_t &deviceid)
+AK09916::check_id()
 {
-	deviceid = read_reg(AK09916REG_WIA);
+	const uint8_t deviceid = read_reg(AK09916REG_WIA);
 
 	return (AK09916_DEVICE_ID_A == deviceid);
 }
@@ -298,10 +269,10 @@ AK09916::reset()
 	int rv = probe();
 
 	if (rv == OK) {
-		// Now reset the mag
+		// Now reset the mag.
 		write_reg(AK09916REG_CNTL3, AK09916_RESET);
 
-		// Then re-initialize the bus/mag
+		// Then re-initialize the bus/mag.
 		rv = setup();
 	}
 
@@ -316,9 +287,7 @@ AK09916::probe()
 	do {
 		write_reg(AK09916REG_CNTL3, AK09916_RESET);
 
-		uint8_t id = 0;
-
-		if (check_id(id)) {
+		if (check_id()) {
 			return OK;
 		}
 
@@ -339,17 +308,16 @@ AK09916::setup()
 void
 AK09916::start()
 {
-	_measure_interval = AK09916_CONVERSION_INTERVAL;
+	_cycle_interval = AK09916_CONVERSION_INTERVAL_us;
 
-	/* schedule a cycle to start things */
 	ScheduleNow();
 }
 
 void
 AK09916::stop()
 {
-	/* ensure no new items are queued while we cancel this one */
-	_measure_interval = 0;
+	// Ensure no new items are queued while we cancel this one.
+	_cycle_interval = 0;
 
 	ScheduleClear();
 }
@@ -357,16 +325,14 @@ AK09916::stop()
 void
 AK09916::Run()
 {
-	if (_measure_interval == 0) {
+	if (_cycle_interval == 0) {
 		return;
 	}
 
-	/* measurement phase */
-	measure();
+	try_measure();
 
-	if (_measure_interval > 0) {
-		/* schedule a fresh cycle call when the measurement is done */
-		ScheduleDelayed(_measure_interval);
+	if (_cycle_interval > 0) {
+		ScheduleDelayed(_cycle_interval);
 	}
 }
 
@@ -402,23 +368,14 @@ ak09916_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 
-	/*
-	 * Start/load the driver.
-	 */
 	if (!strcmp(verb, "start")) {
 		ak09916::start(external_bus, rotation);
 	}
 
-	/*
-	 * Stop the driver.
-	 */
 	if (!strcmp(verb, "stop")) {
 		ak09916::stop(external_bus);
 	}
 
-	/*
-	 * Print driver information.
-	 */
 	if (!strcmp(verb, "info")) {
 		ak09916::info(external_bus);
 	}

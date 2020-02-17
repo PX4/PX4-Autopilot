@@ -38,12 +38,12 @@
  * @author Roman Bapst <bapstroman@gmail.com>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,10 +52,9 @@
 #include <math.h>
 #include <poll.h>
 
-#include <arch/board/board.h>
+
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <platforms/px4_defines.h>
 
 #include "systemlib/err.h"
 #include "uORB/topics/actuator_controls.h"
@@ -121,7 +120,7 @@ usage(const char *reason)
 Application to test motor ramp up.
 
 Before starting, make sure to stop any running attitude controller:
-$ mc_att_control stop
+$ mc_rate_control stop
 $ fw_att_control stop
 
 When starting, a background task is started, runs for several seconds (as specified), then exits.
@@ -274,8 +273,7 @@ int set_min_pwm(int fd, unsigned long max_channels, int pwm_value)
 {
 	int ret;
 
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_values {};
 
 	pwm_values.channel_count = max_channels;
 
@@ -329,7 +327,7 @@ int prepare(int fd, unsigned long *max_channels)
 
 	if (orb_updated) {
 		PX4_ERR("ABORTING! Attitude control still active. Please ensure to shut down all controllers:\n"
-			"\tmc_att_control stop\n"
+			"\tmc_rate_control stop\n"
 			"\tfw_att_control stop\n");
 		return 1;
 	}

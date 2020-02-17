@@ -41,11 +41,11 @@
  * Default I2C address 0x66 is used.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/module.h>
 
 #include <drivers/device/i2c.h>
 
@@ -61,6 +61,7 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
 
 #include <drivers/drv_hrt.h>
@@ -167,7 +168,7 @@ extern "C" __EXPORT int sf1xx_main(int argc, char *argv[]);
 
 SF1XX::SF1XX(uint8_t rotation, int bus, int address) :
 	I2C("SF1XX", SF1XX_DEVICE_PATH, bus, address, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation)
 {
 }
@@ -233,7 +234,14 @@ SF1XX::init()
 		break;
 
 	case 5:
-		/* SF20/LW20 (100m 48-388Hz) */
+		/* SF/LW20/b (50m 48-388Hz) */
+		_min_distance = 0.001f;
+		_max_distance = 50.0f;
+		_conversion_interval = 20834;
+		break;
+
+	case 6:
+		/* SF/LW20/c (100m 48-388Hz) */
 		_min_distance = 0.001f;
 		_max_distance = 100.0f;
 		_conversion_interval = 20834;

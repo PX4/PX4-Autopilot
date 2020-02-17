@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
  * to takeoff is reached.
  *
  * @unit deg
- * @min 0.0
+ * @min -10.0
  * @max 20.0
  * @decimal 1
  * @increment 0.5
@@ -144,3 +144,15 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_ROLL, 25.0);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_AIRSPD_SCL, 1.3);
+
+/**
+ * Throttle ramp up time for runway takeoff
+ *
+ * @unit s
+ * @min 1.0
+ * @max 15.0
+ * @decimal 2
+ * @increment 0.1
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_RAMP_TIME, 2.0f);

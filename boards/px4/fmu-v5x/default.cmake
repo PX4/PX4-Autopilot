@@ -10,39 +10,38 @@ px4_add_board(
 	IO px4_io-v2_default
 	TESTING
 	UAVCAN_INTERFACES 2
-
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS6
 		TEL2:/dev/ttyS4
-		TEL3:/dev/ttyS2
-		GPS2:/dev/ttyS0
-
+		TEL3:/dev/ttyS1
+		GPS2:/dev/ttyS7
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
+		dshot
 		gps
 		#heater
-		imu/adis16448
-		imu/adis16497
 		#imu # all available imu drivers
+		imu/adis16448
+		imu/adis16477
+		imu/adis16497
 		imu/bmi088
-# TBD		imu/ism330dlc - needs bus selection
 		imu/mpu6000
+		imu/st/ism330dlc
 		irlock
 		lights/blinkm
-		lights/oreoled
-		lights/pca8574
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
-		#md25
 		mkblctrl
 		optical_flow # all available optical flow drivers
+		#osd
 		pca9685
 		power_monitor/ina226
 		#protocol_splitter
@@ -52,16 +51,15 @@ px4_add_board(
 		px4io
 		rc_input
 		roboclaw
-		stm32
-		stm32/adc
-		stm32/tone_alarm
+		rpm
+		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
 		uavcan
-
 	MODULES
+		airspeed_selector
 		attitude_estimator_q
 		camera_feedback
 		commander
@@ -78,14 +76,16 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
+		mc_rate_control
+		#micrortps_bridge
 		navigator
+		rc_update
 		rover_pos_control
 		sensors
 		sih
+		temperature_compensation
 		vmount
 		vtol_att_control
-		airspeed_selector
-
 	SYSTEMCMDS
 		bl_update
 		config
@@ -113,7 +113,7 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
-
+		work_queue
 	EXAMPLES
 		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
@@ -123,6 +123,5 @@ px4_add_board(
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
-		segway
 		uuv_example_app
 	)

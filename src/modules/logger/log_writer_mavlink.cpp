@@ -36,8 +36,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
-#include <px4_log.h>
-#include <px4_posix.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
 #include <cstring>
 
 namespace px4
@@ -72,7 +72,7 @@ void LogWriterMavlink::start_log()
 	ulog_stream_ack_s ack;
 	orb_copy(ORB_ID(ulog_stream_ack), _ulog_stream_ack_sub, &ack);
 
-	_ulog_stream_data.sequence = 0;
+	_ulog_stream_data.msg_sequence = 0;
 	_ulog_stream_data.length = 0;
 	_ulog_stream_data.first_message_offset = 0;
 
@@ -160,7 +160,7 @@ int LogWriterMavlink::publish_message()
 				ulog_stream_ack_s ack;
 				orb_copy(ORB_ID(ulog_stream_ack), _ulog_stream_ack_sub, &ack);
 
-				if (ack.sequence == _ulog_stream_data.sequence) {
+				if (ack.msg_sequence == _ulog_stream_data.msg_sequence) {
 					got_ack = true;
 				}
 
@@ -178,7 +178,7 @@ int LogWriterMavlink::publish_message()
 		PX4_DEBUG("got ack in %i ms", (int)(hrt_elapsed_time(&started) / 1000));
 	}
 
-	_ulog_stream_data.sequence++;
+	_ulog_stream_data.msg_sequence++;
 	_ulog_stream_data.length = 0;
 	_ulog_stream_data.first_message_offset = 255;
 	return 0;

@@ -43,8 +43,10 @@
 #include "vtol_att_control_main.h"
 
 #include <float.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <matrix/math.hpp>
+
+using namespace matrix;
 
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
@@ -63,7 +65,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_actuators_fw_in = _attc->get_actuators_fw_in();
 	_local_pos = _attc->get_local_pos();
 	_local_pos_sp = _attc->get_local_pos_sp();
-	_airspeed = _attc->get_airspeed();
+	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
 	_params = _attc->get_params();
@@ -187,7 +189,7 @@ void VtolType::check_quadchute_condition()
 {
 
 	if (_v_control_mode->flag_armed && !_land_detected->landed) {
-		matrix::Eulerf euler = matrix::Quatf(_v_att->q);
+		Eulerf euler = Quatf(_v_att->q);
 
 		// fixed-wing minimum altitude
 		if (_params->fw_min_alt > FLT_EPSILON) {
@@ -244,10 +246,8 @@ void VtolType::check_quadchute_condition()
 
 bool VtolType::set_idle_mc()
 {
-
 	unsigned pwm_value = _params->idle_pwm_mc;
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_values {};
 
 	for (int i = 0; i < num_outputs_max; i++) {
 		if (is_channel_set(i, _params->vtol_motor_id)) {
@@ -265,9 +265,7 @@ bool VtolType::set_idle_mc()
 
 bool VtolType::set_idle_fw()
 {
-	struct pwm_output_values pwm_values;
-
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_values {};
 
 	for (int i = 0; i < num_outputs_max; i++) {
 		if (is_channel_set(i, _params->vtol_motor_id)) {
@@ -306,7 +304,7 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 
 
 	if (ret != OK) {
-		PX4_ERR("failed setting max values");
+		PX4_DEBUG("failed setting max values");
 		return false;
 	}
 
@@ -384,4 +382,82 @@ bool VtolType::is_channel_set(const int channel, const int target)
 	}
 
 	return (channel_bitmap >> channel) & 1;
+}
+
+
+float VtolType::pusher_assist()
+{
+	// if the thrust scale param is zero or the drone is not in some position or altitude control mode,
+	// then the pusher-for-pitch strategy is disabled and we can return
+	if (_params->forward_thrust_scale < FLT_EPSILON || !(_v_control_mode->flag_control_position_enabled
+			|| _v_control_mode->flag_control_altitude_enabled)) {
+		return 0.0f;
+	}
+
+	// Do not engage pusher assist during a failsafe event (could be a problem with the fixed wing drive)
+	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
+		return 0.0f;
+	}
+
+	// disable pusher assist during landing
+	if (_attc->get_pos_sp_triplet()->current.valid
+	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		return 0.0f;
+	}
+
+	const Dcmf R(Quatf(_v_att->q));
+	const Dcmf R_sp(Quatf(_v_att_sp->q_d));
+	const Eulerf euler(R);
+	const Eulerf euler_sp(R_sp);
+
+	// direction of desired body z axis represented in earth frame
+	Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+
+	// rotate desired body z axis into new frame which is rotated in z by the current
+	// heading of the vehicle. we refer to this as the heading frame.
+	Dcmf R_yaw = Eulerf(0.0f, 0.0f, -euler(2));
+	body_z_sp = R_yaw * body_z_sp;
+	body_z_sp.normalize();
+
+	// calculate the desired pitch seen in the heading frame
+	// this value corresponds to the amount the vehicle would try to pitch down
+	float pitch_down = atan2f(body_z_sp(0), body_z_sp(2));
+
+	// normalized pusher support throttle (standard VTOL) or tilt (tiltrotor), initialize to 0
+	float forward_thrust = 0.0f;
+
+	// only allow pitching down up to threshold, the rest of the desired
+	// forward acceleration will be compensated by the pusher/tilt
+	if (pitch_down < -_params->down_pitch_max) {
+		// desired roll angle in heading frame stays the same
+		float roll_new = -asinf(body_z_sp(1));
+
+		forward_thrust = (sinf(-pitch_down) - sinf(_params->down_pitch_max)) * _params->forward_thrust_scale;
+		// limit forward actuation to [0, 0.9]
+		forward_thrust = math::constrain(forward_thrust, 0.0f, 0.9f);
+
+		// return the vehicle to level position
+		float pitch_new = 0.0f;
+
+		// create corrected desired body z axis in heading frame
+		const Dcmf R_tmp = Eulerf(roll_new, pitch_new, 0.0f);
+		Vector3f tilt_new(R_tmp(0, 2), R_tmp(1, 2), R_tmp(2, 2));
+
+		// rotate the vector into a new frame which is rotated in z by the desired heading
+		// with respect to the earh frame.
+		const float yaw_error = wrap_pi(euler_sp(2) - euler(2));
+		const Dcmf R_yaw_correction = Eulerf(0.0f, 0.0f, -yaw_error);
+		tilt_new = R_yaw_correction * tilt_new;
+
+		// now extract roll and pitch setpoints
+		_v_att_sp->pitch_body = atan2f(tilt_new(0), tilt_new(2));
+		_v_att_sp->roll_body = -asinf(tilt_new(1));
+
+		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, euler_sp(2)));
+		q_sp.copyTo(_v_att_sp->q_d);
+		_v_att_sp->q_d_valid = true;
+	}
+
+	return forward_thrust;
+
 }

@@ -410,27 +410,6 @@ __EXPORT void	param_print_status(void);
  */
 __EXPORT void	param_control_autosave(bool enable);
 
-/*
- * Macros creating static parameter definitions.
- *
- * Note that these structures are not known by name; they are
- * collected into a section that is iterated by the parameter
- * code.
- *
- * Note that these macros cannot be used in C++ code due to
- * their use of designated initializers.  They should probably
- * be refactored to avoid the use of a union for param_value_u.
- */
-
-/** define an int32 parameter */
-#define PARAM_DEFINE_INT32(_name, _default)
-
-/** define a float parameter */
-#define PARAM_DEFINE_FLOAT(_name, _default)
-
-/** define a parameter that points to a structure */
-#define PARAM_DEFINE_STRUCT(_name, _default)
-
 /**
  * Parameter value union.
  */

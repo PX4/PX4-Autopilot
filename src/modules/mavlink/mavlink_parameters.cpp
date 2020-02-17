@@ -79,11 +79,11 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			if (req_list.target_system == mavlink_system.sysid && req_list.target_component < 127 &&
 			    (req_list.target_component != mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				// publish list request to UAVCAN driver via uORB.
-				uavcan_parameter_request_s req;
+				uavcan_parameter_request_s req{};
 				req.message_type = msg->msgid;
 				req.node_id = req_list.target_component;
 				req.param_index = 0;
-
+				req.timestamp = hrt_absolute_time();
 				_uavcan_parameter_request_pub.publish(req);
 			}
 
@@ -123,6 +123,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					sprintf(buf, "[pm] unknown param: %s", name);
 					_mavlink->send_statustext_info(buf);
 
+				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
+					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
+					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
+					sprintf(buf, "[pm] param types mismatch param: %s", name);
+					_mavlink->send_statustext_info(buf);
+
 				} else {
 					// According to the mavlink spec we should always acknowledge a write operation.
 					param_set(param, &(set.param_value));
@@ -133,7 +139,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			if (set.target_system == mavlink_system.sysid && set.target_component < 127 &&
 			    (set.target_component != mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
-				uavcan_parameter_request_s req;
+				uavcan_parameter_request_s req{};
 				req.message_type = msg->msgid;
 				req.node_id = set.target_component;
 				req.param_index = -1;
@@ -151,6 +157,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					req.int_value = val;
 				}
 
+				req.timestamp = hrt_absolute_time();
 				_uavcan_parameter_request_pub.publish(req);
 			}
 
@@ -211,7 +218,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			if (req_read.target_system == mavlink_system.sysid && req_read.target_component < 127 &&
 			    (req_read.target_component != mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
-				uavcan_parameter_request_s req = {};
+				uavcan_parameter_request_s req{};
 				req.timestamp = hrt_absolute_time();
 				req.message_type = msg->msgid;
 				req.node_id = req_read.target_component;
@@ -256,14 +263,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				}
 
 				_rc_param_map.timestamp = hrt_absolute_time();
-
-				if (_rc_param_map_pub == nullptr) {
-					_rc_param_map_pub = orb_advertise(ORB_ID(rc_parameter_map), &_rc_param_map);
-
-				} else {
-					orb_publish(ORB_ID(rc_parameter_map), _rc_param_map_pub, &_rc_param_map);
-				}
-
+				_rc_param_map_pub.publish(_rc_param_map);
 			}
 
 			break;
@@ -279,18 +279,18 @@ MavlinkParametersManager::send(const hrt_abstime t)
 {
 	int max_num_to_send;
 
-	if (_mavlink->get_protocol() == SERIAL && !_mavlink->is_usb_uart()) {
+	if (_mavlink->get_protocol() == Protocol::SERIAL && !_mavlink->is_usb_uart()) {
 		max_num_to_send = 3;
 
 	} else {
-		// speed up parameter loading via UDP, TCP or USB: try to send 20 at once
+		// speed up parameter loading via UDP or USB: try to send 20 at once
 		max_num_to_send = 20;
 	}
 
 	int i = 0;
 
 	// Send while burst is not exceeded, we still have buffer space and still something to send
-	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && send_params());
+	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && send_params()) {}
 }
 
 bool
@@ -422,7 +422,7 @@ MavlinkParametersManager::send_uavcan()
 bool
 MavlinkParametersManager::send_one()
 {
-	if (_send_all_index >= 0 && _mavlink->boot_complete()) {
+	if (_send_all_index >= 0) {
 		/* send all parameters if requested, but only after the system has booted */
 
 		/* The first thing we send is a hash of all values for the ground
@@ -468,11 +468,6 @@ MavlinkParametersManager::send_one()
 		} else {
 			return true;
 		}
-
-	} else if (_send_all_index == PARAM_HASH && hrt_absolute_time() > 20 * 1000 * 1000) {
-		/* the boot did not seem to ever complete, warn user and set boot complete */
-		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
-		_mavlink->set_boot_complete();
 	}
 
 	return false;

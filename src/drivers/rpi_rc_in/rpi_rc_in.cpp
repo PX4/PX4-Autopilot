@@ -125,13 +125,7 @@ void RcInput::_measure(void)
 	_data.rc_lost = false;
 	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
-	if (nullptr == _rcinput_pub) {
-		int instance;
-		_rcinput_pub = orb_advertise_multi(ORB_ID(input_rc), &_data, &instance, ORB_PRIO_DEFAULT);
-
-	} else {
-		orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
-	}
+	_rcinput_pub.publish(_data);
 }
 
 static void rpi_rc_in::usage(const char *reason)

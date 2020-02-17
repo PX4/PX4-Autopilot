@@ -50,7 +50,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <perf/perf_counter.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 using namespace time_literals;
 
@@ -211,7 +211,6 @@ private:
 	static constexpr float _sample_rate{ADIS16448_ACCEL_GYRO_UPDATE_RATE};
 
 	perf_counter_t _perf_read{perf_counter_t(perf_alloc(PC_ELAPSED, "ADIS16448: read"))};
-	perf_counter_t _perf_read_interval{perf_alloc(PC_INTERVAL, "ADIS16448: read interval")};
 	perf_counter_t _perf_transfer{perf_counter_t(perf_alloc(PC_ELAPSED, "ADIS16448: transfer"))};
 	perf_counter_t _perf_bad_transfer{perf_counter_t(perf_alloc(PC_COUNT, "ADIS16448: bad transfers"))};
 	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, "ADIS16448: CRC16 bad"))};

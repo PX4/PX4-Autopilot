@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,16 +31,17 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/ecl/geo/geo.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/conversions.h>
-#include <systemlib/px4_macros.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/systemlib/conversions.h>
+#include <lib/systemlib/px4_macros.h>
 
 #include "MPU9250_mag.h"
-
 
 #if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
@@ -178,37 +179,31 @@
 
 #define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	92
 
-
-#define BANK0	0x0000
-#define BANK1	0x0100
-#define BANK2	0x0200
-#define BANK3	0x0300
-
-#define BANK_REG_MASK	0x0300
-#define REG_BANK(r) 			(((r) & BANK_REG_MASK)>>4)
-#define REG_ADDRESS(r)			((r) & ~BANK_REG_MASK)
-
 #pragma pack(push, 1)
 /**
  * Report conversation within the mpu, including command byte and
  * interrupt status.
  */
 struct MPUReport {
-	uint8_t		cmd;
-	uint8_t		status;
-	uint8_t		accel_x[2];
-	uint8_t		accel_y[2];
-	uint8_t		accel_z[2];
-	uint8_t		temp[2];
-	uint8_t		gyro_x[2];
-	uint8_t		gyro_y[2];
-	uint8_t		gyro_z[2];
+	uint8_t cmd;
+	uint8_t ACCEL_XOUT_H;
+	uint8_t ACCEL_XOUT_L;
+	uint8_t ACCEL_YOUT_H;
+	uint8_t ACCEL_YOUT_L;
+	uint8_t ACCEL_ZOUT_H;
+	uint8_t ACCEL_ZOUT_L;
+	uint8_t TEMP_OUT_H;
+	uint8_t TEMP_OUT_L;
+	uint8_t GYRO_XOUT_H;
+	uint8_t GYRO_XOUT_L;
+	uint8_t GYRO_YOUT_H;
+	uint8_t GYRO_YOUT_L;
+	uint8_t GYRO_ZOUT_H;
+	uint8_t GYRO_ZOUT_L;
+
 	struct ak8963_regs mag;
 };
 #pragma pack(pop)
-
-#define MPU_MAX_WRITE_BUFFER_SIZE (2)
-
 
 /*
   The MPU9250 can only handle high bus speeds on the sensor and
@@ -226,21 +221,21 @@ struct MPUReport {
 #  define MPU9250_HIGH_SPEED_OP(r) 			MPU9250_SET_SPEED((r), MPU9250_HIGH_BUS_SPEED)
 #  define MPU9250_LOW_SPEED_OP(r)			((r) &~MPU9250_HIGH_BUS_SPEED)
 
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
+
 /* interface factories */
-extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
-extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
+extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs);
+extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address);
 extern int MPU9250_probe(device::Device *dev);
 
-typedef device::Device *(*MPU9250_constructor)(int, uint32_t, bool);
+typedef device::Device *(*MPU9250_constructor)(int, uint32_t);
 
 class MPU9250_mag;
 
 class MPU9250 : public px4::ScheduledWorkItem
 {
 public:
-	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path, enum Rotation rotation,
-		bool magnetometer_only);
-
+	MPU9250(device::Device *interface, device::Device *mag_interface, enum Rotation rotation);
 	virtual ~MPU9250();
 
 	virtual int		init();
@@ -259,28 +254,23 @@ protected:
 
 	friend class MPU9250_mag;
 
-	void Run() override;
-
 private:
+
+	void Run() override;
 
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
 
 	MPU9250_mag		_mag;
-	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
-	bool
-	_magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
 
 	unsigned		_call_interval{1000};
 
-	unsigned		_dlpf_freq;
+	unsigned		_dlpf_freq{0};
 
 	unsigned		_sample_rate{1000};
 
 	perf_counter_t		_sample_perf;
-	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
-	perf_counter_t		_good_transfers;
 	perf_counter_t		_duplicates;
 
 	uint8_t			_register_wait{0};
@@ -291,12 +281,11 @@ private:
 	// reset
 
 	static constexpr int MPU9250_NUM_CHECKED_REGISTERS{11};
-	static const uint16_t	_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
+	static const uint16_t _mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
 
 	const uint16_t			*_checked_registers{nullptr};
 
 	uint8_t					_checked_values[MPU9250_NUM_CHECKED_REGISTERS] {};
-	uint8_t					_checked_bad[MPU9250_NUM_CHECKED_REGISTERS] {};
 	unsigned				_checked_next{0};
 	unsigned				_num_checked_registers{0};
 
@@ -304,29 +293,15 @@ private:
 	// last temperature reading for print_info()
 	float			_last_temperature{0.0f};
 
-	bool check_null_data(uint16_t *data, uint8_t size);
 	bool check_duplicate(uint8_t *accel_data);
+
 	// keep last accel reading for duplicate detection
 	uint8_t			_last_accel_data[6] {};
 	bool			_got_duplicate{false};
 
-	/**
-	 * Start automatic measurement.
-	 */
 	void			start();
-
-	/**
-	 * Stop automatic measurement.
-	 */
 	void			stop();
-
-	/**
-	 * Reset chip.
-	 *
-	 * Resets the chip and measurements ranges, but not scale and offset.
-	 */
 	int			reset();
-
 
 	/**
 	 * Resets the main chip (excluding the magnetometer if any).
@@ -346,8 +321,6 @@ private:
 	 * @return		The value that was read.
 	 */
 	uint8_t			read_reg(unsigned reg, uint32_t speed = MPU9250_LOW_BUS_SPEED);
-	uint16_t		read_reg16(unsigned reg);
-
 
 	/**
 	 * Read a register range from the mpu
@@ -431,9 +404,5 @@ private:
 	/*
 	  check that key registers still have the right value
 	 */
-	void check_registers(void);
-
-	/* do not allow to copy this class due to pointer data members */
-	MPU9250(const MPU9250 &);
-	MPU9250 operator=(const MPU9250 &);
+	void check_registers();
 };

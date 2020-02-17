@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -80,6 +80,10 @@
 /* SPI 1 CS */
 #define GPIO_SPI1_CS1_ICM20602	/* PC2 */	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
 #define GPIO_SPI1_CS2_ICM20948	/* PE15 */	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
+
+/*  Define the SPI1 Data Ready interrupts */
+#define GPIO_SPI1_DRDY1_ICM20602    /* PD15  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN15)
+#define GPIO_SPI1_DRDY2_ICM20948    /* PE12  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTE|GPIO_PIN12)
 
 /* SPI 2 CS */
 #define GPIO_SPI2_CS1_FRAM	/* PD10 */	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
@@ -162,65 +166,9 @@
 
 /* PWM
  *
- * 8  PWM outputs are configured.
- *
- * Pins:
- *
- * FMU_CH1 : PE14 : TIM1_CH4
- * FMU_CH2 : PE13 : TIM1_CH3
- * FMU_CH3 : PE11 : TIM1_CH2
- * FMU_CH4 : PE9  : TIM1_CH1
- * FMU_CH5 : PD13 : TIM4_CH2
- * FMU_CH6 : PD14 : TIM4_CH3
- * FMU_CH7 : PI5  : TIM8_CH1
- * FMU_CH8 : PI6  : TIM8_CH2
- *
  */
-#define GPIO_TIM8_CH2OUT	/* PI6   T8C1   FMU8 */ GPIO_TIM8_CH2OUT_2
-#define GPIO_TIM8_CH1OUT	/* PI5   T8C1   FMU7 */ GPIO_TIM8_CH1OUT_2
-#define GPIO_TIM4_CH3OUT	/* PD14  T4C3   FMU6 */ GPIO_TIM4_CH3OUT_2
-#define GPIO_TIM4_CH2OUT	/* PD13  T4C2   FMU5 */ GPIO_TIM4_CH2OUT_2
-#define GPIO_TIM1_CH1OUT	/* PE9   T1C1   FMU4 */ GPIO_TIM1_CH1OUT_2
-#define GPIO_TIM1_CH2OUT	/* PE11  T1C2   FMU3 */ GPIO_TIM1_CH2OUT_2
-#define GPIO_TIM1_CH3OUT	/* PE13  T1C3   FMU2 */ GPIO_TIM1_CH3OUT_2
-#define GPIO_TIM1_CH4OUT	/* PE14  T1C4   FMU1 */ GPIO_TIM1_CH4OUT_2
-
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
-
-#define GPIO_TIM8_CH2IN		/* PI6   T8C2   FMU8 */ GPIO_TIM8_CH2IN_2
-#define GPIO_TIM8_CH1IN		/* PI5   T8C1   FMU7 */ GPIO_TIM8_CH1IN_2
-#define GPIO_TIM4_CH3IN		/* PD14  T4C3   FMU6 */ GPIO_TIM4_CH3IN_2
-#define GPIO_TIM4_CH2IN		/* PD13  T4C2   FMU5 */ GPIO_TIM4_CH2IN_2
-#define GPIO_TIM1_CH1IN		/* PE9   T1C1   FMU4 */ GPIO_TIM1_CH1IN_2
-#define GPIO_TIM1_CH2IN		/* PE11  T1C2   FMU3 */ GPIO_TIM1_CH2IN_2
-#define GPIO_TIM1_CH3IN		/* PE13  T1C3   FMU2 */ GPIO_TIM1_CH3IN_2
-#define GPIO_TIM1_CH4IN		/* PE14  T1C4   FMU1 */ GPIO_TIM1_CH4IN_2
-
 #define DIRECT_INPUT_TIMER_CHANNELS  8
-
-/* User GPIOs: GPIO0-5 are the PWM servo outputs. */
-#define _MK_GPIO_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLUP))
-
-#define GPIO_GPIO7_INPUT        /* PI6   T8C2   FMU8 */ _MK_GPIO_INPUT(GPIO_TIM8_CH2IN)
-#define GPIO_GPIO6_INPUT        /* PI5   T8C1   FMU7 */ _MK_GPIO_INPUT(GPIO_TIM8_CH1IN)
-#define GPIO_GPIO5_INPUT        /* PD14  T4C3   FMU6 */ _MK_GPIO_INPUT(GPIO_TIM4_CH3IN)
-#define GPIO_GPIO4_INPUT        /* PD13  T4C2   FMU5 */ _MK_GPIO_INPUT(GPIO_TIM4_CH2IN)
-#define GPIO_GPIO3_INPUT        /* PE9   T1C1   FMU4 */ _MK_GPIO_INPUT(GPIO_TIM1_CH1IN)
-#define GPIO_GPIO2_INPUT        /* PE11  T1C2   FMU3 */ _MK_GPIO_INPUT(GPIO_TIM1_CH2IN)
-#define GPIO_GPIO1_INPUT        /* PE13  T1C3   FMU2 */ _MK_GPIO_INPUT(GPIO_TIM1_CH3IN)
-#define GPIO_GPIO0_INPUT        /* PE14  T1C4   FMU1 */ _MK_GPIO_INPUT(GPIO_TIM1_CH4IN)
-
-#define _MK_GPIO_OUTPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR))
-
-#define GPIO_GPIO7_OUTPUT        /* PI6   T8C2   FMU8 */ _MK_GPIO_OUTPUT(GPIO_TIM8_CH2OUT)
-#define GPIO_GPIO6_OUTPUT        /* PI5   T8C1   FMU7 */ _MK_GPIO_OUTPUT(GPIO_TIM8_CH1OUT)
-#define GPIO_GPIO5_OUTPUT        /* PD14  T4C3   FMU6 */ _MK_GPIO_OUTPUT(GPIO_TIM4_CH3OUT)
-#define GPIO_GPIO4_OUTPUT        /* PD13  T4C2   FMU5 */ _MK_GPIO_OUTPUT(GPIO_TIM4_CH2OUT)
-#define GPIO_GPIO3_OUTPUT        /* PE9   T1C1   FMU4 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH1OUT)
-#define GPIO_GPIO2_OUTPUT        /* PE11  T1C2   FMU3 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH2OUT)
-#define GPIO_GPIO1_OUTPUT        /* PA10  T1C3   FMU2 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH3OUT)
-#define GPIO_GPIO0_OUTPUT        /* PE14  T1C4   FMU1 */ _MK_GPIO_OUTPUT(GPIO_TIM1_CH4OUT)
-
 
 /* Power supply control and monitoring GPIOs */
 #define GPIO_nPOWER_IN_A                /* PB5 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
@@ -253,7 +201,7 @@
 #define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
-#define HRT_TIMER               8  /* use timer8 for the HRT */
+#define HRT_TIMER               3  /* use timer3 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
 #define HRT_PPM_CHANNEL         /* T3C2 */  2  /* use capture/compare channel 1 */
@@ -306,18 +254,6 @@
 /* This board provides the board_on_reset interface */
 #define BOARD_HAS_ON_RESET 1
 
-/* The list of GPIO that will be initialized */
-#define PX4_GPIO_PWM_INIT_LIST { \
-		GPIO_GPIO7_INPUT, \
-		GPIO_GPIO6_INPUT, \
-		GPIO_GPIO5_INPUT, \
-		GPIO_GPIO4_INPUT, \
-		GPIO_GPIO3_INPUT, \
-		GPIO_GPIO2_INPUT, \
-		GPIO_GPIO1_INPUT, \
-		GPIO_GPIO0_INPUT, \
-	}
-
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
 		GPIO_CAN1_TX,                     \
@@ -328,13 +264,11 @@
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_SAFETY_SWITCH_IN,            \
-		GPIO_DRDY_BMI088_INT1_ACCEL,      \
-		GPIO_DRDY_BMI088_INT2_ACCEL,      \
-		GPIO_DRDY_BMI088_INT3_GYRO,       \
-		GPIO_DRDY_BMI088_INT4_GYRO,       \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
+
+#define BOARD_NUM_IO_TIMERS 3
 
 __BEGIN_DECLS
 
@@ -370,27 +304,7 @@ extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
-
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
-
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

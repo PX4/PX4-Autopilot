@@ -82,7 +82,6 @@ def main():
     do_test(args.device, args.baudrate, "commander")
     do_test(args.device, args.baudrate, "controllib")
     do_test(args.device, args.baudrate, "conv")
-    do_test(args.device, args.baudrate, "ctlmath")
     #do_test(args.device, args.baudrate, "dataman")
     do_test(args.device, args.baudrate, "float")
     do_test(args.device, args.baudrate, "hrt")

@@ -256,7 +256,7 @@
 #define GPIO_USART1_TX GPIO_USART1_TX_1
 
 /* USART1 require a RX DMA configuration */
-#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
+#define DMAMAP_USART1_RX DMAMAP_USART1_RX_1
 
 /* USART3:
  *

@@ -40,7 +40,7 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 

@@ -36,8 +36,8 @@
 #include <drivers/device/spi.h>
 #include <ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00

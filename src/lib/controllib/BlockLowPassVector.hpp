@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -70,7 +70,7 @@ public:
 			_state(i) = 0.0f / 0.0f;
 		}
 	}
-	virtual ~BlockLowPassVector() {}
+	virtual ~BlockLowPassVector() = default;
 	matrix::Vector<Type, M> update(const matrix::Matrix<Type, M, 1> &input)
 	{
 		for (size_t i = 0; i < M; i++) {

@@ -44,7 +44,7 @@
 
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
 #define BOARD_BATTERY1_A_PER_V (15.391030303f)
-#define BOARD_HAS_NO_RESET
+#define BOARD_HAS_POWER_CONTROL
 #define BOARD_HAS_NO_BOOTLOADER
 
 #define PX4_I2C_BUS_EXPANSION	1
@@ -58,4 +58,4 @@
 #define BOARD_ARMED_STATE_LED  LED_GREEN
 
 #include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
