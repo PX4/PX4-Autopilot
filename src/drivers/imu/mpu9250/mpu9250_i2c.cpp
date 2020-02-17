@@ -43,7 +43,7 @@
 
 #ifdef USE_I2C
 
-device::Device *MPU9250_I2C_interface(int bus, uint32_t address, int32_t bus_freq_hz);
+device::Device *MPU9250_I2C_interface(int bus, uint32_t address, uint8_t bus_mode, int32_t bus_freq_hz);
 
 class MPU9250_I2C : public device::I2C
 {

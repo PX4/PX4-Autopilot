@@ -239,7 +239,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) 
 
 /* interface factories */
 extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, uint8_t bus_mode, int32_t bus_freq_hz);
-extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, int32_t bus_freq_hz);
+extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, uint8_t bus_mode, int32_t bus_freq_hz);
 extern int MPU9250_probe(device::Device *dev);
 
 typedef device::Device *(*MPU9250_constructor)(int bus, uint32_t cs, uint8_t bus_mode, int32_t bus_freq_hz);
