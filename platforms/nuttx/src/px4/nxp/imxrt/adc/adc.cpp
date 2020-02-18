@@ -186,12 +186,6 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	result  = rR0(base_address);
 	return result;
 }
-
-float px4_arch_adc_reference_v(unsigned channel)
-{
-	return 3.3f;	// TODO: need confirmation
-}
-
 uint32_t px4_arch_adc_temp_sensor_mask()
 {
 	return 0;
