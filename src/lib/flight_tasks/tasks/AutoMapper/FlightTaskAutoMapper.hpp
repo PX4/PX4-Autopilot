@@ -70,7 +70,9 @@ protected:
 					_param_mpc_land_alt1, // altitude at which speed limit downwards reaches maximum speed
 					(ParamFloat<px4::params::MPC_LAND_ALT2>)
 					_param_mpc_land_alt2, // altitude at which speed limit downwards reached minimum speed
-					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
+					(ParamFloat<px4::params::MPC_TKO_RAMP_T>)
+					_param_mpc_tko_ramp_t // time constant for smooth takeoff ramp
 				       );
 
 private:
