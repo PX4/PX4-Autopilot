@@ -107,8 +107,8 @@ SPI::init()
 		return ret;
 	}
 
-	/* tell the workd where we are */
-	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", get_device_bus(), PX4_SPI_DEV_ID(_device), _frequency / 1000);
+	/* tell the world where we are */
+	DEVICE_DEBUG("on SPI bus %d at %d (%u KHz)", get_device_bus(), PX4_SPI_DEV_ID(_device), _frequency / 1000);
 
 	return PX4_OK;
 }
