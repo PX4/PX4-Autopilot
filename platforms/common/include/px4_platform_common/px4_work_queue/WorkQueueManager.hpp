@@ -64,7 +64,8 @@ static constexpr wq_config_t I2C2{"wq:I2C2", 1400, -10};
 static constexpr wq_config_t I2C3{"wq:I2C3", 1400, -11};
 static constexpr wq_config_t I2C4{"wq:I2C4", 1400, -12};
 
-static constexpr wq_config_t att_pos_ctrl{"wq:att_pos_ctrl", 6600, -13}; // PX4 att/pos controllers, highest priority after sensors
+// PX4 att/pos controllers, highest priority after sensors.
+static constexpr wq_config_t att_pos_ctrl{"wq:att_pos_ctrl", 7200, -13};
 
 static constexpr wq_config_t hp_default{"wq:hp_default", 1900, -14};
 
