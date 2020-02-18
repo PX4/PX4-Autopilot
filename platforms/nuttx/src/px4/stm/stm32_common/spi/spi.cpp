@@ -331,7 +331,7 @@ void board_control_spi_sensors_power(bool enable_power, int bus_mask)
 	const px4_spi_bus_t *buses = px4_spi_buses;
 	// this might be called very early on boot where we have not yet determined the hw version
 	// (we expect all versions to have the same power GPIO)
-#if BOARD_NUM_HW_VERSIONS > 1
+#if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1
 
 	if (!buses) {
 		buses = &px4_spi_buses_all_hw[0].buses[0];
@@ -361,7 +361,7 @@ void board_control_spi_sensors_power_configgpio()
 	const px4_spi_bus_t *buses = px4_spi_buses;
 	// this might be called very early on boot where we have yet not determined the hw version
 	// (we expect all versions to have the same power GPIO)
-#if BOARD_NUM_HW_VERSIONS > 1
+#if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1
 
 	if (!buses) {
 		buses = &px4_spi_buses_all_hw[0].buses[0];
