@@ -103,16 +103,17 @@
 #define PX4_SPI_BUS_RAMTRON  PX4_SPI_BUS_2
 /* ^ END Legacy SPI defines TODO: fix this with enumeration */
 
-#define PX4_SPIDEV_ICM_20602        PX4_MK_SPI_SEL(PX4_SPI_BUS_1,0)
-#define PX4_SPIDEV_ICM_20948        PX4_MK_SPI_SEL(PX4_SPI_BUS_1,1)
+#include <drivers/drv_sensor.h>
+#define PX4_SPIDEV_ICM_20602        PX4_MK_SPI_SEL(0,DRV_IMU_DEVTYPE_ICM20602)
+#define PX4_SPIDEV_ICM_20948        PX4_MK_SPI_SEL(0,DRV_DEVTYPE_UNUSED)
 #define PX4_SPI_BUS_1_CS_GPIO       {GPIO_SPI1_CS1_ICM20602, GPIO_SPI1_CS2_ICM20948}
 
-#define PX4_SPIDEV_MEMORY           PX4_MK_SPI_SEL(PX4_SPI_BUS_2,0)
-#define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_2,1)
+#define PX4_SPIDEV_MEMORY           SPIDEV_FLASH(0)
+#define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(0,DRV_DEVTYPE_DPS310)
 #define PX4_SPI_BUS_2_CS_GPIO       {GPIO_SPI2_CS1_FRAM, GPIO_SPI2_CS2_BARO}
 
-#define PX4_SPIDEV_BMI088_ACC       PX4_MK_SPI_SEL(PX4_SPI_BUS_5,0)
-#define PX4_SPIDEV_BMI088_GYR       PX4_MK_SPI_SEL(PX4_SPI_BUS_5,1)
+#define PX4_SPIDEV_BMI088_ACC       PX4_MK_SPI_SEL(0,DRV_ACC_DEVTYPE_BMI088)
+#define PX4_SPIDEV_BMI088_GYR       PX4_MK_SPI_SEL(0,DRV_GYR_DEVTYPE_BMI088)
 #define PX4_SPI_BUS_5_CS_GPIO       {GPIO_SPI5_CS1_BMI088_ACCEL, GPIO_SPI5_CS2_BMI088_GYRO}
 
 
@@ -176,12 +177,10 @@
 #define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
 #define BOARD_NUMBER_BRICKS             1
 
-#define GPIO_VDD_3V3_SENSORS_EN         /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PE4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
 
 
 /* Define True logic Power Control in arch agnostic form */
-#define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
 
@@ -260,7 +259,6 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN1_SILENT_S0,              \
 		GPIO_nPOWER_IN_A,                 \
-		GPIO_VDD_3V3_SENSORS_EN,          \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_SAFETY_SWITCH_IN,            \
@@ -297,8 +295,6 @@ int stm32_sdio_initialize(void);
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
 
