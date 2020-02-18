@@ -1,20 +1,15 @@
 #include "imu_down_sampler.hpp"
 
-ImuDownSampler::ImuDownSampler(float target_dt_sec) : _target_dt{target_dt_sec}, _imu_collection_time_adj{0.0f} {
-	reset();
-	_imu_down_sampled.time_us = 0.0f;
-}
-
-ImuDownSampler::~ImuDownSampler() {}
+ImuDownSampler::ImuDownSampler(float target_dt_sec) : _target_dt{target_dt_sec} { reset(); }
 
 // integrate imu samples until target dt reached
 // assumes that dt of the gyroscope is close to the dt of the accelerometer
 // returns true if target dt is reached
-bool ImuDownSampler::update(imuSample imu_sample_new) {
-
+bool ImuDownSampler::update(const imuSample &imu_sample_new) {
 	if (_do_reset) {
 		reset();
 	}
+
 	// accumulate time deltas
 	_imu_down_sampled.delta_ang_dt += imu_sample_new.delta_ang_dt;
 	_imu_down_sampled.delta_vel_dt += imu_sample_new.delta_vel_dt;
@@ -49,11 +44,6 @@ bool ImuDownSampler::update(imuSample imu_sample_new) {
 	} else {
 		return false;
 	}
-}
-
-imuSample ImuDownSampler::getDownSampledImuAndTriggerReset() {
-	_do_reset = true;
-	return _imu_down_sampled;
 }
 
 void ImuDownSampler::reset() {
