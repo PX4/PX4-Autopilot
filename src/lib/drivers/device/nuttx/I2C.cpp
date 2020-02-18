@@ -155,8 +155,8 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	DEVICE_LOG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
-		   get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+		     get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
 

@@ -101,7 +101,7 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	DEVICE_LOG("on I2C bus %d at 0x%02x", get_device_bus(), get_device_address());
+	DEVICE_DEBUG("on I2C bus %d at 0x%02x", get_device_bus(), get_device_address());
 
 out:
 
