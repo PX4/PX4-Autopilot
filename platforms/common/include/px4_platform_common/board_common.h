@@ -124,6 +124,17 @@
 #    error BOARD_NUMBER_I2C_BUSES not supported
 #  endif
 #endif
+
+#ifdef BOARD_SPI_BUS_MAX_BUS_ITEMS
+#define SPI_BUS_MAX_BUS_ITEMS BOARD_SPI_BUS_MAX_BUS_ITEMS
+#else
+#define SPI_BUS_MAX_BUS_ITEMS 6
+#endif
+
+#ifndef BOARD_NUM_SPI_CFG_HW_VERSIONS
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
+#endif
+
 /* ADC defining tools
  * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
  */
@@ -1060,6 +1071,7 @@ __EXPORT bool px4_spi_bus_external(int bus);
  ************************************************************************************/
 
 enum board_bus_types {
+	BOARD_INVALID_BUS = 0,
 	BOARD_SPI_BUS = 1,
 	BOARD_I2C_BUS = 2
 };
