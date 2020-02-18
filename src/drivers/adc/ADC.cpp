@@ -240,7 +240,7 @@ void ADC::update_system_power(hrt_abstime now)
 uint32_t ADC::sample(unsigned channel)
 {
 	perf_begin(_sample_perf);
-	uint32_t result = px4_arch_adc_sample(_base_address, channel);
+	uint32_t result = px4_arch_adc_sample(_base_address, channel).sample_val;
 
 	if (result == UINT32_MAX) {
 		PX4_ERR("sample timeout");

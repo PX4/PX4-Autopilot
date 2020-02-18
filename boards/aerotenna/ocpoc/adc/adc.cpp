@@ -62,11 +62,15 @@ void px4_arch_adc_uninit(uint32_t base_address)
 	}
 }
 
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
+px4_adc_sample_result_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
+	px4_adc_sample_result_t adc_result;
+	adc_result.reference_v = 3.3f;	// TODO: need confirmation
+	adc_result.sample_val = UINT32_MAX;	// default is invalid
+
 	if (channel > ADC_MAX_CHAN) {
 		PX4_ERR("channel %d out of range: %d", channel, ADC_MAX_CHAN);
-		return UINT32_MAX; // error
+		return adc_result; // error
 	}
 
 	// open channel if necessary
@@ -76,7 +80,7 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 
 		if (sprintf(channel_path, "%s/in_voltage%d_raw", ADC_SYSFS_PATH, channel) == -1) {
 			PX4_ERR("adc channel: %d\n", channel);
-			return UINT32_MAX; // error
+			return adc_result; // error
 		}
 
 		_channels_fd[channel] = ::open(channel_path, O_RDONLY);
@@ -86,10 +90,12 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 
 	if (::pread(_channels_fd[channel], buffer, sizeof(buffer), 0) < 0) {
 		PX4_ERR("read channel %d failed", channel);
-		return UINT32_MAX; // error
+		return adc_result; // error
 	}
 
-	return atoi(buffer);
+	adc_result.sample_val = atoi(buffer);
+
+	return adc_result;
 }
 
 uint32_t px4_arch_adc_dn_fullcount()

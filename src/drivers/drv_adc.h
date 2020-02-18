@@ -55,6 +55,10 @@ typedef struct __attribute__((packed)) px4_adc_msg_t {
 	int32_t      am_data;                  /* ADC convert result (4 bytes) */
 } px4_adc_msg_t;
 
+typedef struct __attribute__((packed)) px4_adc_sample_result_t {
+	float      reference_v;               /* The reference voltage of this channel */
+	uint32_t      sample_val;                  /* ADC convert result (4 bytes) */
+} px4_adc_sample_result_t;
 
 #define ADC0_DEVICE_PATH	"/dev/adc0"
 
@@ -80,7 +84,7 @@ void px4_arch_adc_uninit(uint32_t base_address);
  * @param channel specify the channel
  * @return sample, 0xffffffff on error
  */
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
+px4_adc_sample_result_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
 
 /**
  * Get the temperature sensor channel bitmask

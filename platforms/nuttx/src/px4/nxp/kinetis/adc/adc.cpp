@@ -146,8 +146,12 @@ void px4_arch_adc_uninit(uint32_t base_address)
 	px4_leave_critical_section(flags);
 }
 
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
+px4_adc_sample_result_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
+	px4_adc_sample_result_t adc_result;
+	adc_result.reference_v = 3.3f;	// TODO: provide true vref
+	adc_result.sample_val = 0xffff;	// default is invalid
+
 	irqstate_t flags = px4_enter_critical_section();
 
 	/* clear any previous COCC */
@@ -164,16 +168,16 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 		/* don't wait for more than 10us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 10) {
 			px4_leave_critical_section(flags);
-			return 0xffff;
+			return adc_result;
 		}
 	}
 
 	/* read the result and clear EOC */
-	uint32_t result = rRA(1);
+	adc_result.sample_val = rRA(1);
 
 	px4_leave_critical_section(flags);
 
-	return result;
+	return adc_result;
 }
 
 uint32_t px4_arch_adc_temp_sensor_mask()
