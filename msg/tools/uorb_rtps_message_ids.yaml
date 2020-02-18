@@ -285,6 +285,10 @@ rtps:
     id: 127
   - msg: hover_thrust_estimate
     id: 128
+  - msg: trajectory_bezier
+    id: 129
+  - msg: vehicle_trajectory_bezier
+    id: 130
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
@@ -354,4 +358,5 @@ rtps:
   - msg: estimator_innovation_test_ratios
     id: 171
     alias: estimator_innovations
+
   ########## multi topics: end ##########
