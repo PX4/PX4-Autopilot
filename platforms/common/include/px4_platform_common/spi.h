@@ -69,7 +69,7 @@ struct px4_spi_bus_t {
 
 struct px4_spi_bus_all_hw_t {
 	px4_spi_bus_t buses[SPI_BUS_MAX_BUS_ITEMS];
-	int board_hw_version; ///< 0=default, >0 for a specific revision (see board_get_hw_version)
+	int board_hw_version{-1}; ///< 0=default, >0 for a specific revision (see board_get_hw_version), -1=unused
 };
 
 #if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1

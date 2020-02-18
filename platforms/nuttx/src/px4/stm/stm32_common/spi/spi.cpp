@@ -106,6 +106,7 @@ __EXPORT void stm32_spiinitialize()
 {
 	px4_set_spi_buses_from_hw_version();
 	board_control_spi_sensors_power_configgpio();
+	board_control_spi_sensors_power(true, 0xffff);
 
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		switch (px4_spi_buses[i].bus) {

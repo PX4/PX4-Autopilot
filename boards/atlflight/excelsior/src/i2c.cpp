@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +31,11 @@
  *
  ****************************************************************************/
 
-/**
- * @file px4fmu_i2c.c
- *
- * Board-specific I2C functions.
- */
+#include <px4_arch/i2c_hw_description.h>
 
-#include "board_config.h"
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusExternal(2),
+	initI2CBusExternal(3),
+	initI2CBusExternal(9),
+};
 
-__EXPORT bool px4_i2c_bus_external(int bus)
-{
-	if (HW_VER_FMUV3 == board_get_hw_version()) {
-		/* All FMUV3 2.1 i2c buses are external */
-		return true;
-
-	} else {
-		if (bus != PX4_I2C_BUS_ONBOARD) {
-			return true;
-		}
-	}
-
-	return false;
-}

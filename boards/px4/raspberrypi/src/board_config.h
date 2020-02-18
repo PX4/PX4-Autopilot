@@ -55,7 +55,7 @@
 
 // SPI
 #define PX4_SPI_BUS_SENSORS    0
-#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0) // spidev0.0
+#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(0, 0) // spidev0.0
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
