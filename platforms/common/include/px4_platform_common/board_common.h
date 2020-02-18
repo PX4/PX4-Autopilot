@@ -101,27 +101,22 @@
 
 /* I2C PX4 clock configuration
  *
- * A board may override BOARD_NUMBER_I2C_BUSES and BOARD_I2C_BUS_CLOCK_INIT
- * simply by defining the #defines.
- *
- * If none are provided the default number of I2C busses  will be taken from
- * the px4 micro hal and the init will be from the legacy values of 100K.
+ * A board may override BOARD_I2C_BUS_CLOCK_INIT simply by defining the #defines.
  */
-#if !defined(BOARD_NUMBER_I2C_BUSES)
-# define BOARD_NUMBER_I2C_BUSES PX4_NUMBER_I2C_BUSES
-#endif
 
-#if !defined(BOARD_I2C_BUS_CLOCK_INIT)
-#  if (BOARD_NUMBER_I2C_BUSES) == 1
-#    define BOARD_I2C_BUS_CLOCK_INIT {100000}
-#  elif (BOARD_NUMBER_I2C_BUSES) == 2
-#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000}
-#  elif (BOARD_NUMBER_I2C_BUSES) == 3
-#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
-#  elif (BOARD_NUMBER_I2C_BUSES) == 4
-#    define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
+#if defined(BOARD_I2C_BUS_CLOCK_INIT)
+#  define PX4_I2C_BUS_CLOCK_INIT BOARD_I2C_BUS_CLOCK_INIT
+#else
+#  if (PX4_NUMBER_I2C_BUSES) == 1
+#    define PX4_I2C_BUS_CLOCK_INIT {100000}
+#  elif (PX4_NUMBER_I2C_BUSES) == 2
+#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000}
+#  elif (PX4_NUMBER_I2C_BUSES) == 3
+#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
+#  elif (PX4_NUMBER_I2C_BUSES) == 4
+#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
 #  else
-#    error BOARD_NUMBER_I2C_BUSES not supported
+#    error PX4_NUMBER_I2C_BUSES not supported
 #  endif
 #endif
 
@@ -1024,46 +1019,6 @@ int board_shutdown(void);
 static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
 static inline int board_shutdown(void) { return -EINVAL; }
 #endif
-__END_DECLS
-
-/************************************************************************************
- * Name: px4_i2c_bus_external
- *
- ************************************************************************************/
-
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-
-__EXPORT bool px4_i2c_bus_external(int bus);
-
-#else
-
-#ifdef PX4_I2C_BUS_ONBOARD
-#define px4_i2c_bus_external(bus) (bus != PX4_I2C_BUS_ONBOARD)
-#else
-#define px4_i2c_bus_external(bus) true
-#endif /* PX4_I2C_BUS_ONBOARD */
-
-#endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
-
-
-/************************************************************************************
- * Name: px4_spi_bus_external
- *
- ************************************************************************************/
-
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-
-__EXPORT bool px4_spi_bus_external(int bus);
-
-#else
-
-#ifdef PX4_SPI_BUS_EXT
-#define px4_spi_bus_external(bus) (bus == PX4_SPI_BUS_EXT)
-#else
-#define px4_spi_bus_external(bus) false
-#endif /* PX4_SPI_BUS_EXT */
-
-#endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
 
 /************************************************************************************
  * Name: board_has_bus
@@ -1083,6 +1038,41 @@ __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus);
 #else
 #  define board_has_bus(t, b) true
 #endif /* BOARD_HAS_BUS_MANIFEST */
+
+
+/************************************************************************************
+ * Name: board_spi_reset
+ *
+ * Description:
+ *   Reset SPI buses and devices
+ *
+ * Input Parameters:
+ *  ms                   - delay in msbetween powering off the devices and re-enabling power.
+ *
+ *  bus_mask             - bitmask to select buses - use 0xffff to select all.
+ */
+__EXPORT void board_spi_reset(int ms, int bus_mask);
+
+/************************************************************************************
+ * Name: board_control_spi_sensors_power_configgpio
+ *
+ * Description:
+ *   Initialize GPIO pins for all SPI bus power enable pins
+ */
+__EXPORT void board_control_spi_sensors_power_configgpio(void);
+
+/************************************************************************************
+ * Name: board_control_spi_sensors_power
+ *
+ * Description:
+ *   Control the power of SPI buses
+ *
+ * Input Parameters:
+ *  enable_power         - true to enable power, false to disable
+ *
+ *  bus_mask             - bitmask to select buses - use 0xffff to select all.
+ */
+__EXPORT void board_control_spi_sensors_power(bool enable_power, int bus_mask);
 
 /************************************************************************************
  * Name: board_hardfault_init
@@ -1108,3 +1098,5 @@ __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus);
  *               32000 resets.
  */
 int board_hardfault_init(int display_to_console, bool allow_prompt);
+
+__END_DECLS

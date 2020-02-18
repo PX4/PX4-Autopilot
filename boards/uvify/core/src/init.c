@@ -191,12 +191,6 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
 	stm32_configgpio(GPIO_VDD_USB_VALID);
 
-	/**
-	 * Start with Sensor voltage off We will enable it
-	 * in board_app_initialize.
-	 */
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
@@ -207,15 +201,10 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_BTN_SAFETY);
 	stm32_configgpio(GPIO_PPM_IN);
 
-	int spi_init_mask = SPI_BUS_INIT_MASK;
-
 #if defined(CONFIG_STM32_SPI4)
 
 	/* We have SPI4 is GPIO_PB4 pin 3 Low */
-	if (stm32_gpioread(GPIO_PB4) == 0) {
-		spi_init_mask |= SPI_BUS_INIT_MASK_EXT;
-
-	} else {
+	if (stm32_gpioread(GPIO_PB4) != 0) {
 #endif /* CONFIG_STM32_SPI4 */
 
 		stm32_configgpio(GPIO_PE5);
@@ -226,8 +215,8 @@ stm32_boardinitialize(void)
 
 #endif /* CONFIG_STM32_SPI4 */
 
-// Configure SPI all interfaces GPIO.
-	stm32_spiinitialize(spi_init_mask);
+	// Configure SPI all interfaces GPIO & enable power.
+	stm32_spiinitialize();
 
 	// Configure heater GPIO.
 	stm32_configgpio(GPIO_HEATER_INPUT);
@@ -302,9 +291,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-	// Power up the sensors.
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
-
 	// Power down the heater.
 	stm32_gpiowrite(GPIO_HEATER_OUTPUT, 0);
 
@@ -322,7 +308,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_HMC, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);

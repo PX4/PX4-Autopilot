@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
- *         Author: David Sidrane <david_s5@nscdg.com>
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,58 +31,23 @@
  *
  ****************************************************************************/
 
-/**
- * @file spi.c
- *
- * Board-specific SPI functions.
- */
-
-/************************************************************************************
- * Included Files
- ************************************************************************************/
-
-#include <px4_platform_common/px4_config.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
+#include <px4_arch/spi_hw_description.h>
+#include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
-#include <arch/board/board.h>
 
-#include "up_arch.h"
-#include "chip.h"
-#include "stm32.h"
-#include "board_config.h"
+constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+	initSPIBus(1, {
+		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortA, GPIO::Pin4}),
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortA, GPIO::Pin4}),
+	}),
+	initSPIBus(2, {
+		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::PortB, GPIO::Pin12})
+	}),
+	initSPIBus(3, {
+		initSPIDevice(DRV_BARO_DEVTYPE_BMP280, SPI::CS{GPIO::PortB, GPIO::Pin3}),
+		initSPIDevice(DRV_OSD_DEVTYPE_ATXXXX, SPI::CS{GPIO::PortA, GPIO::Pin15}),
+	}),
+};
 
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
+static constexpr bool unused = validateSPIConfig(px4_spi_buses);
 
-/************************************************************************************
- * Name: stm32_spiinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the AEROFC-v1 board.
- *
- ************************************************************************************/
-
-__EXPORT void stm32_spiinitialize(void)
-{
-#ifdef CONFIG_STM32_SPI1
-	px4_arch_configgpio(GPIO_SPI_CS_MPU6500);
-
-#endif
-}
-
-
-__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
-	/* SPI select is active low, so write !selected to select the device */
-	px4_arch_gpiowrite(GPIO_SPI_CS_MPU6500, !selected);
-}
-
-__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}

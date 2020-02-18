@@ -35,6 +35,7 @@ px4_add_library(drivers_board
 	autoleds.c
 	automount.c
 	can.c
+	i2c.cpp
 	init.c
 	led.c
 	sdhc.c

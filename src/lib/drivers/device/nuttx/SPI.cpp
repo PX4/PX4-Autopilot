@@ -70,6 +70,10 @@ SPI::SPI(const char *name, const char *devname, int bus, uint32_t device, enum s
 	_device_id.devid_s.address = (uint8_t)device;
 	// devtype needs to be filled in by the driver
 	_device_id.devid_s.devtype = 0;
+
+	if (!px4_spi_bus_requires_locking(bus)) {
+		_locking_mode = LOCK_NONE;
+	}
 }
 
 SPI::~SPI()
