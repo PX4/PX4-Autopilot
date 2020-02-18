@@ -790,6 +790,7 @@ PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
  *
  * @value 0 Hold
  * @value 1 Mission (if valid)
+ * @value 2 Position
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);

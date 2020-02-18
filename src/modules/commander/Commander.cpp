@@ -2013,7 +2013,7 @@ Commander::run()
 			}
 		}
 
-		/* Reset main state to loiter or auto-mission after takeoff is completed.
+		/* Transition to loiter, auto-mission or position control mode when takeoff is completed.
 		 * Sometimes, the mission result topic is outdated and the mission is still signaled
 		 * as finished even though we only just started with the takeoff. Therefore, we also
 		 * check the timestamp of the mission_result topic. */
@@ -2026,6 +2026,9 @@ Commander::run()
 
 			if ((_param_takeoff_finished_action.get() == 1) && mission_available) {
 				main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &_internal_state);
+
+			} else if (_param_takeoff_finished_action.get() == 2) {
+				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &_internal_state);
 
 			} else {
 				main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, &_internal_state);
