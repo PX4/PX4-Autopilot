@@ -53,6 +53,7 @@ const char *get_commands()
 		"commander start --hil\n"
 		"sensors start\n"
 		"ekf2 start\n"
+		"mc_hover_thrust_estimator start\n"
 		"mc_pos_control start\n"
 		"mc_att_control start\n"
 		"mc_rate_control start\n"
