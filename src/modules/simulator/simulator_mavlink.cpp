@@ -127,7 +127,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 		}
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (_actuator_outputs.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (armed) {
 				if (i < n) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
 					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
@@ -147,7 +147,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (_actuator_outputs.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (armed) {
 				if (i != 4) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
 					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
