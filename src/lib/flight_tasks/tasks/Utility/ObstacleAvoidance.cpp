@@ -62,11 +62,6 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	_sub_vehicle_status.update();
 	_sub_vehicle_trajectory_waypoint.update();
 
-	if (_sub_vehicle_status.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-		// if in failsafe nav_state LOITER, don't inject setpoints from avoidance system
-		return;
-	}
-
 	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint.get().timestamp)
 					    > TRAJECTORY_STREAM_TIMEOUT_US;
 	const bool avoidance_point_valid =
@@ -74,7 +69,14 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 
 	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid, hrt_absolute_time());
 
-	if (avoidance_data_timeout || _avoidance_point_not_valid_hysteresis.get_state()) {
+	const bool avoidance_invalid = (avoidance_data_timeout || _avoidance_point_not_valid_hysteresis.get_state());
+
+	if ((_sub_vehicle_status.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) && avoidance_invalid) {
+		// if in nav_state LOITER and avoidance isn't healthy, don't inject setpoints from avoidance system
+		return;
+	}
+
+	if (avoidance_invalid) {
 		PX4_WARN("Obstacle Avoidance system failed, loitering");
 		_publishVehicleCmdDoLoiter();
 
