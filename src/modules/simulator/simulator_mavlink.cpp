@@ -168,6 +168,10 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 	msg.mode |= (armed) ? mode_flag_armed : 0;
 	msg.flags = 0;
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	msg.flags |= 1;
+#endif
+
 	return msg;
 }
 
