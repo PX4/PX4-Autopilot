@@ -36,6 +36,7 @@
  */
 
 #include "ObstacleAvoidance.hpp"
+#include "bezier/BezierN.hpp"
 
 using namespace matrix;
 using namespace time_literals;
@@ -61,13 +62,21 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 {
 	_sub_vehicle_status.update();
 	_sub_vehicle_trajectory_waypoint.update();
+	_sub_vehicle_trajectory_bezier.update();
 
-	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint.get().timestamp)
-					    > TRAJECTORY_STREAM_TIMEOUT_US;
-	const bool avoidance_point_valid =
-		_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid;
+	const auto &wp_msg = _sub_vehicle_trajectory_waypoint.get();
+	const auto &bezier_msg = _sub_vehicle_trajectory_bezier.get();
 
-	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid, hrt_absolute_time());
+	const bool avoidance_data_timeout =
+		hrt_elapsed_time((hrt_abstime *)&wp_msg.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US &&
+		hrt_elapsed_time((hrt_abstime *)&bezier_msg.timestamp) > hrt_abstime(bezier_msg.control_points[bezier_msg.bezier_order -
+							1].delta * 1e6f);
+
+	const bool avoidance_point_valid = wp_msg.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid;
+	const bool avoidance_bezier_valid = bezier_msg.bezier_order > 0;
+
+	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid
+			&& !avoidance_bezier_valid, hrt_absolute_time());
 
 	const bool avoidance_invalid = (avoidance_data_timeout || _avoidance_point_not_valid_hysteresis.get_state());
 
@@ -97,17 +106,62 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	}
 
 	if (avoidance_point_valid) {
-		pos_sp = Vector3f(_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
-		vel_sp = Vector3f(_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);
+		const auto &point0 = wp_msg.waypoints[vehicle_trajectory_waypoint_s::POINT_0];
+		pos_sp = Vector3f(point0.position);
+		vel_sp = Vector3f(point0.velocity);
 
 		if (!_ext_yaw_active) {
 			// inject yaw setpoints only if weathervane isn't active
-			yaw_sp =  _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
-			yaw_speed_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+			yaw_sp =  point0.yaw;
+			yaw_speed_sp = point0.yaw_speed;
+		}
+
+	} else if (avoidance_bezier_valid) {
+
+		float yaw = NAN, yaw_speed = NAN;
+		_generateBezierSetpoints(pos_sp, vel_sp, yaw, yaw_speed);
+
+		if (!_ext_yaw_active) {
+			// inject yaw setpoints only if weathervane isn't active
+			yaw_sp =  yaw;
+			yaw_speed_sp = yaw_speed;
 		}
 	}
-
 }
+
+void ObstacleAvoidance::_generateBezierSetpoints(matrix::Vector3f &position, matrix::Vector3f &velocity,
+		float &yaw, float &yaw_velocity)
+{
+	const auto &msg =  _sub_vehicle_trajectory_bezier.get();
+	int bezier_order = msg.bezier_order;
+	matrix::Vector3f bezier_points[bezier_order];
+	float bezier_yaws[bezier_order];
+
+	for (int i = 0; i < bezier_order; i++) {
+		bezier_points[i] = Vector3f(msg.control_points[i].position);
+		bezier_yaws[i] = msg.control_points[i].yaw;
+	}
+
+	const float duration_s = msg.control_points[bezier_order - 1].delta;
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime start = msg.timestamp;
+	const hrt_abstime end = start + hrt_abstime(duration_s * 1e6f);
+
+	float T = NAN;
+
+	if (bezier::calculateT(start, end, now, T) &&
+	    bezier::calculateBezierPosVel(bezier_points, bezier_order, T, position, velocity) &&
+	    bezier::calculateBezierYaw(bezier_yaws, bezier_order, T, yaw, yaw_velocity)
+	   ) {
+		// translate velocities into real velocities
+		yaw_velocity *= duration_s;
+		velocity *= duration_s;
+
+	} else {
+		PX4_WARN("Obstacle Avoidance system failed, bad trajectory");
+	}
+}
+
 
 void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp, const float curr_yaw,
 		const float curr_yawspeed, const Vector3f &next_wp, const float next_yaw, const float next_yawspeed,

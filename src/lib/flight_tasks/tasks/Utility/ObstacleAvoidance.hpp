@@ -52,6 +52,7 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_trajectory_bezier.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/position_setpoint.h>
 
@@ -116,6 +117,7 @@ public:
 
 protected:
 
+	uORB::SubscriptionData<vehicle_trajectory_bezier_s> _sub_vehicle_trajectory_bezier{ORB_ID(vehicle_trajectory_bezier)}; /**< vehicle trajectory waypoint subscription */
 	uORB::SubscriptionData<vehicle_trajectory_waypoint_s> _sub_vehicle_trajectory_waypoint{ORB_ID(vehicle_trajectory_waypoint)}; /**< vehicle trajectory waypoint subscription */
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)}; /**< vehicle status subscription */
 
@@ -140,6 +142,7 @@ protected:
 	 * Publishes vehicle command.
 	 */
 	void _publishVehicleCmdDoLoiter();
+	void _generateBezierSetpoints(matrix::Vector3f &position, matrix::Vector3f &velocity, float &yaw, float &yaw_velocity);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad    /**< Acceptance radius for multicopter altitude */
