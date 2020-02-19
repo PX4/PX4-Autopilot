@@ -365,23 +365,21 @@ VtolAttitudeControl::Run()
 		bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
 		// update the vtol state machine which decides which mode we are in
-		if (mc_att_sp_updated || fw_att_sp_updated) {
-			_vtol_type->update_vtol_state();
+		_vtol_type->update_vtol_state();
 
-			// reset transition command if not auto control
-			if (_v_control_mode.flag_control_manual_enabled) {
-				if (_vtol_type->get_mode() == mode::ROTARY_WING) {
-					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		// reset transition command if not auto control
+		if (_v_control_mode.flag_control_manual_enabled) {
+			if (_vtol_type->get_mode() == mode::ROTARY_WING) {
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-				} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
-					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 
-				} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
-					/* We want to make sure that a mode change (manual>auto) during the back transition
-					 * doesn't result in an unsafe state. This prevents the instant fall back to
-					 * fixed-wing on the switch from manual to auto */
-					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-				}
+			} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
+				/* We want to make sure that a mode change (manual>auto) during the back transition
+				 * doesn't result in an unsafe state. This prevents the instant fall back to
+				 * fixed-wing on the switch from manual to auto */
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 			}
 		}
 
