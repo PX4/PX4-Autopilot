@@ -728,7 +728,7 @@ void Simulator::run()
 
 	} else {
 
-		PX4_INFO("Waiting for simulator to connect on TCP port %u", _port);
+		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
 			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
