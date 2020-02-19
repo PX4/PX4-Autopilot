@@ -40,6 +40,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
 static constexpr uint8_t Bit1 = (1 << 1);
@@ -57,6 +59,9 @@ static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0xAF;
 
+static constexpr float TEMPERATURE_SENSITIVITY = 326.8f; // LSB/C
+static constexpr float ROOM_TEMPERATURE_OFFSET = 25.f; // C
+
 enum class Register : uint8_t {
 	CONFIG        = 0x1A,
 	GYRO_CONFIG   = 0x1B,
@@ -64,8 +69,6 @@ enum class Register : uint8_t {
 	ACCEL_CONFIG2 = 0x1D,
 
 	FIFO_EN       = 0x23,
-
-	INT_STATUS    = 0x3A,
 
 	INT_ENABLE    = 0x38,
 
@@ -97,7 +100,7 @@ enum GYRO_CONFIG_BIT : uint8_t {
 	FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
 
 	// FCHOICE_B [1:0]
-	FCHOICE_B_8KHZ_BYPASS_DLPF = Bit1 | Bit0, // 0b10 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
+	FCHOICE_B_8KHZ_BYPASS_DLPF = Bit1 | Bit0, // 0b00 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
 };
 
 // ACCEL_CONFIG
@@ -129,26 +132,23 @@ enum INT_ENABLE_BIT : uint8_t {
 	DATA_RDY_INT_EN = Bit0
 };
 
-// INT_STATUS
-enum INT_STATUS_BIT : uint8_t {
-	FIFO_OFLOW_INT = Bit4,
-	DATA_RDY_INT   = Bit0,
-};
-
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
-	FIFO_EN  = Bit6,
-	FIFO_RST = Bit2,
+	FIFO_EN      = Bit6,
+	I2C_IF_DIS   = Bit4,
+	FIFO_RST     = Bit2,
+	SIG_COND_RST = Bit0,
 };
 
 // PWR_MGMT_1
 enum PWR_MGMT_1_BIT : uint8_t {
 	DEVICE_RESET = Bit7,
+	SLEEP        = Bit6,
+
 	CLKSEL_2     = Bit2,
 	CLKSEL_1     = Bit1,
 	CLKSEL_0     = Bit0,
 };
-
 
 namespace FIFO
 {
