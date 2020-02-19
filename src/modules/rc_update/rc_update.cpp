@@ -351,10 +351,15 @@ RCUpdate::Run()
 			/* signal is lost or no enough channels */
 			signal_lost = true;
 
-			//This problem occurs at RC controllers which are use PPM signal on RFD 868+/900 Modems (Maybe it can be also related another types)
 
-		} else if (rc_input.channel_count ==
-			   16) { // check failsafe by channel values to detect RC loss (This statement is specific for only RF modules that still sending valid PPM signal when RC loss from ground RF)
+		} else if ((rc_input.input_source == input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM ||
+			    rc_input.input_source == input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM)
+			   && rc_input.channel_count == 16) {
+
+			// This is a specific RC lost check for RFD 868+/900 Modems on PPM.
+			// The observation was that when RC is lost, 16 channels are active and the first 12 are 1000
+			// and the remaining ones are 0.
+
 			for (unsigned int i = 0; i < 16; i++) {
 				if (i < 12 && rc_input.values[i] > 999 && rc_input.values[i] < 1005) {
 					signal_lost = true;
