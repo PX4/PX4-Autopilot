@@ -138,7 +138,6 @@ private:
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500_ms};
 	static constexpr uint64_t TIMEOUT_HOLD_US{5_s};
 
-	hrt_abstime	_last_collision_warning{0};
 	hrt_abstime	_last_timeout_warning{0};
 	hrt_abstime	_time_activated{0};
 
