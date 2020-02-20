@@ -161,15 +161,12 @@ void px4_arch_adc_uninit(uint32_t base_address)
 	imxrt_clockoff_adc1();
 }
 
-px4_adc_sample_result_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
-	px4_adc_sample_result_t adc_result;
-	adc_result.reference_v = 3.3f;	// TODO: provide true vref
-	adc_result.sample_val = 0xffff;	// default is invalid
 
 	/* clear any previous COCO0 */
 
-	rR0(base_address);
+	uint16_t result = rR0(base_address);
 
 	rHC0(base_address) =  channel;
 
@@ -181,14 +178,13 @@ px4_adc_sample_result_t px4_arch_adc_sample(uint32_t base_address, unsigned chan
 		 *  should reset here if we see this
 		 */
 		if ((hrt_absolute_time() - now) > 50) {
-			return adc_result;
+			return 0xffff;
 		}
 	}
 
 	/* read the result and clear  COCO0 */
-	adc_result.sample_val = rR0(base_address);
-
-	return adc_result;
+	result  = rR0(base_address);
+	return result;
 }
 uint32_t px4_arch_adc_temp_sensor_mask()
 {

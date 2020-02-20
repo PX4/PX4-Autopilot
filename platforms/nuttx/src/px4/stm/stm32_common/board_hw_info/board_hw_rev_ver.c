@@ -205,7 +205,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 			/* Read the value */
 			for (unsigned av = 0; av < samples; av++) {
-				dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel).sample_val;
+				dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
 				if (dn == 0xffff) {
 					break;
