@@ -94,7 +94,7 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 
 float px4_arch_adc_reference_v()
 {
-	return 1.8f;	// 12-bit 1.8V ADC
+	return BOARD_ADC_POS_REF_V;	// 12-bit 1.8V ADC
 }
 
 uint32_t px4_arch_adc_dn_fullcount()
