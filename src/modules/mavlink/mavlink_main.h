@@ -302,7 +302,7 @@ public:
 	 *
 	 * @param generation_enabled If set to true, generate RC_INPUT messages
 	 */
-	void			set_manual_input_mode_generation(bool generation_enabled) { _generate_rc = generation_enabled; }
+	void			set_generate_virtual_rc_input(bool generation_enabled) { _generate_rc = generation_enabled; }
 
 	/**
 	 * Set communication protocol for this mavlink instance
@@ -314,7 +314,7 @@ public:
 	 *
 	 * @return true if manual inputs should generate RC data
 	 */
-	bool			get_manual_input_mode_generation() { return _generate_rc; }
+	bool			should_generate_virtual_rc_input() { return _generate_rc; }
 
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
