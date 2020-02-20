@@ -691,13 +691,16 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 						break;
 					}
 
-					// Flick to inair restore first if this comes from an onboard system
-					if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
+					const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
+
+					// Flick to inair restore first if this comes from an onboard system and from IO
+					if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id
+					    && cmd_from_io && cmd_arms) {
 						status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
 
 					} else {
 						// Refuse to arm if preflight checks have failed
-						if ((!status_local->hil_state) != vehicle_status_s::HIL_STATE_ON
+						if (status_local->hil_state != vehicle_status_s::HIL_STATE_ON
 						    && !status_flags.condition_system_sensors_initialized) {
 							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Preflight checks have failed");
 							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
@@ -1766,7 +1769,7 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &_internal_state);
-				mavlink_log_info(&mavlink_log_pub, "Autonomy off! Returned control to pilot");
+				mavlink_log_info(&mavlink_log_pub, "Pilot took over control using sticks");
 			}
 		}
 

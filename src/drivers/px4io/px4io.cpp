@@ -785,6 +785,7 @@ PX4IO::init()
 		/* send command to arm system via command API */
 		vcmd.timestamp = hrt_absolute_time();
 		vcmd.param1 = 1.0f; /* request arming */
+		vcmd.param3 = 1234.f; /* mark the command coming from IO (for in-air restoring) */
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* send command once */
