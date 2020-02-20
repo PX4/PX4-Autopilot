@@ -83,11 +83,11 @@ void px4_arch_adc_uninit(uint32_t base_address);
 uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
 
 /**
- * Get the reference voltage for specific channel
- * @param channel specify the channel
+ * Get the overall reference voltage
+ * Currently assume that all ADC channels share the same vref.
  * @return v_ref
  */
-float px4_arch_adc_reference_v(unsigned channel);
+float px4_arch_adc_reference_v(void);
 
 /**
  * Get the temperature sensor channel bitmask

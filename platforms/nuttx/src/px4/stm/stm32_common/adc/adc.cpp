@@ -224,9 +224,9 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	return result;
 }
 
-float px4_arch_adc_reference_v(unsigned channel)
+float px4_arch_adc_reference_v()
 {
-	return 3.3f;	// TODO: calculate true vref
+	return 3.3f;	// TODO: provide true vref
 }
 
 uint32_t px4_arch_adc_temp_sensor_mask()

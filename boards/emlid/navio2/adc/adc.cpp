@@ -92,9 +92,9 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	return atoi(buffer);
 }
 
-float px4_arch_adc_reference_v(unsigned channel)
+float px4_arch_adc_reference_v()
 {
-	return 4.096f;	// TODO: Probably wrong, need confirmation from emlid
+	return 4.096f;	// TODO: need confirmation
 }
 
 uint32_t px4_arch_adc_dn_fullcount()
