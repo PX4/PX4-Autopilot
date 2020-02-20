@@ -634,7 +634,6 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 				} else if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
 					PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
 					switch_to_idle_state();
-					_transfer_in_progress = false;
 
 				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
 					PX4_WARN("Mission ack result was %d", wpa.type);
