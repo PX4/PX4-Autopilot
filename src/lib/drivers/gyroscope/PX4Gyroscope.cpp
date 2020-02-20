@@ -50,12 +50,12 @@ static inline int32_t sum(const int16_t samples[16], uint8_t len)
 	return sum;
 }
 
-static inline unsigned clipping(const int16_t samples[16], int16_t clip_limit, uint8_t len)
+static constexpr unsigned clipping(const int16_t samples[16], int16_t clip_limit, uint8_t len)
 {
 	unsigned clip_count = 0;
 
 	for (int n = 0; n < len; n++) {
-		if (abs(samples[n]) > clip_limit) {
+		if (abs(samples[n]) >= clip_limit) {
 			clip_count++;
 		}
 	}
@@ -65,6 +65,7 @@ static inline unsigned clipping(const int16_t samples[16], int16_t clip_limit, u
 
 PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
 	CDev(nullptr),
+	ModuleParams(nullptr),
 	_sensor_pub{ORB_ID(sensor_gyro), priority},
 	_sensor_fifo_pub{ORB_ID(sensor_gyro_fifo), priority},
 	_sensor_integrated_pub{ORB_ID(sensor_gyro_integrated), priority},
@@ -74,6 +75,8 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	_rotation_dcm{get_rot_matrix(rotation)}
 {
 	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+
+	updateParams();
 }
 
 PX4Gyroscope::~PX4Gyroscope()
@@ -119,7 +122,10 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 
 void PX4Gyroscope::set_update_rate(uint16_t rate)
 {
+	_update_rate = rate;
 	const uint32_t update_interval = 1000000 / rate;
+
+	// TODO: set this intelligently
 	_integrator_reset_samples = 4000 / update_interval;
 }
 
@@ -143,7 +149,7 @@ void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float 
 
 	// publish raw data immediately
 	{
-		sensor_gyro_s report{};
+		sensor_gyro_s report;
 
 		report.timestamp_sample = timestamp_sample;
 		report.device_id = _device_id;
@@ -165,7 +171,7 @@ void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float 
 	if (_integrator.put(timestamp_sample, val_calibrated, delta_angle, integral_dt)) {
 
 		// fill sensor_gyro_integrated and publish
-		sensor_gyro_integrated_s report{};
+		sensor_gyro_integrated_s report;
 
 		report.timestamp_sample = timestamp_sample;
 		report.error_count = _error_count;
@@ -207,7 +213,7 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 		// Apply range scale and the calibration offset
 		const Vector3f val_calibrated{(Vector3f{x, y, z} * _scale) - _calibration_offset};
 
-		sensor_gyro_s report{};
+		sensor_gyro_s report;
 
 		report.timestamp_sample = sample.timestamp_sample;
 		report.device_id = _device_id;
@@ -268,7 +274,7 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			delta_angle *= 1e-6f * dt;
 
 			// fill sensor_gyro_integrated and publish
-			sensor_gyro_integrated_s report{};
+			sensor_gyro_integrated_s report;
 
 			report.timestamp_sample = sample.timestamp_sample;
 			report.error_count = _error_count;
@@ -315,13 +321,13 @@ void PX4Gyroscope::PublishStatus()
 {
 	// publish sensor status
 	if (hrt_elapsed_time(&_status_last_publish) >= 100_ms) {
-		sensor_gyro_status_s status{};
+		sensor_gyro_status_s status;
 
 		status.device_id = _device_id;
 		status.error_count = _error_count;
 		status.full_scale_range = _range;
 		status.rotation = _rotation;
-		status.measure_rate = _update_rate;
+		status.measure_rate_hz = _update_rate;
 		status.temperature = _temperature;
 		status.vibration_metric = _vibration_metric;
 		status.coning_vibration = _coning_vibration;
@@ -347,10 +353,9 @@ void PX4Gyroscope::ResetIntegrator()
 
 void PX4Gyroscope::UpdateClipLimit()
 {
-	// 95% of potential max
-	_clip_limit = (_range / _scale) * 0.95f;
+	// 99.9% of potential max
+	_clip_limit = fmaxf((_range / _scale) * 0.999f, INT16_MAX);
 }
-
 
 void PX4Gyroscope::UpdateVibrationMetrics(const Vector3f &delta_angle)
 {

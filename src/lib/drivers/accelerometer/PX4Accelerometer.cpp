@@ -50,12 +50,12 @@ static inline int32_t sum(const int16_t samples[16], uint8_t len)
 	return sum;
 }
 
-static inline unsigned clipping(const int16_t samples[16], int16_t clip_limit, uint8_t len)
+static constexpr unsigned clipping(const int16_t samples[16], int16_t clip_limit, uint8_t len)
 {
 	unsigned clip_count = 0;
 
 	for (int n = 0; n < len; n++) {
-		if (abs(samples[n]) > clip_limit) {
+		if (abs(samples[n]) >= clip_limit) {
 			clip_count++;
 		}
 	}
@@ -120,7 +120,10 @@ void PX4Accelerometer::set_device_type(uint8_t devtype)
 
 void PX4Accelerometer::set_update_rate(uint16_t rate)
 {
+	_update_rate = rate;
 	const uint32_t update_interval = 1000000 / rate;
+
+	// TODO: set this intelligently
 	_integrator_reset_samples = 4000 / update_interval;
 }
 
@@ -144,7 +147,7 @@ void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, fl
 
 	// publish raw data immediately
 	{
-		sensor_accel_s report{};
+		sensor_accel_s report;
 
 		report.timestamp_sample = timestamp_sample;
 		report.device_id = _device_id;
@@ -166,7 +169,7 @@ void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, fl
 	if (_integrator.put(timestamp_sample, val_calibrated, delta_velocity, integral_dt)) {
 
 		// fill sensor_accel_integrated and publish
-		sensor_accel_integrated_s report{};
+		sensor_accel_integrated_s report;
 
 		report.timestamp_sample = timestamp_sample;
 		report.error_count = _error_count;
@@ -208,7 +211,7 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 		// Apply range scale and the calibrating offset/scale
 		const Vector3f val_calibrated{((Vector3f{x, y, z} * _scale) - _calibration_offset).emult(_calibration_scale)};
 
-		sensor_accel_s report{};
+		sensor_accel_s report;
 
 		report.timestamp_sample = sample.timestamp_sample;
 		report.device_id = _device_id;
@@ -269,7 +272,7 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			delta_velocity *= 1e-6f * dt;
 
 			// fill sensor_accel_integrated and publish
-			sensor_accel_integrated_s report{};
+			sensor_accel_integrated_s report;
 
 			report.timestamp_sample = sample.timestamp_sample;
 			report.error_count = _error_count;
@@ -316,13 +319,13 @@ void PX4Accelerometer::PublishStatus()
 {
 	// publish sensor status
 	if (hrt_elapsed_time(&_status_last_publish) >= 100_ms) {
-		sensor_accel_status_s status{};
+		sensor_accel_status_s status;
 
 		status.device_id = _device_id;
 		status.error_count = _error_count;
 		status.full_scale_range = _range;
 		status.rotation = _rotation;
-		status.measure_rate = _update_rate;
+		status.measure_rate_hz = _update_rate;
 		status.temperature = _temperature;
 		status.vibration_metric = _vibration_metric;
 		status.clipping[0] = _clipping[0];
@@ -347,8 +350,8 @@ void PX4Accelerometer::ResetIntegrator()
 
 void PX4Accelerometer::UpdateClipLimit()
 {
-	// 95% of potential max
-	_clip_limit = (_range / _scale) * 0.95f;
+	// 99.9% of potential max
+	_clip_limit = fmaxf((_range / _scale) * 0.999f, INT16_MAX);
 }
 
 void PX4Accelerometer::UpdateVibrationMetrics(const Vector3f &delta_velocity)

@@ -28,6 +28,9 @@ px4_add_board(
 		imu/adis16448
 		imu/adis16477
 		imu/adis16497
+		imu/invensense/icm20602
+		imu/invensense/icm20608g
+		#imu/invensense/mpu9250
 		imu/mpu6000
 		imu/mpu9250
 		irlock
@@ -78,6 +81,7 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
+		uuv_att_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
