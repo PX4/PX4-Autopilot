@@ -16,6 +16,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_test
+    px4_io-v2_default:
+      short: px4_io-v2_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_io-v2_default
     px4_fmu-v2_default:
       short: px4_fmu-v2_default
       buildType: MinSizeRel

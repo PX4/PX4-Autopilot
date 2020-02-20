@@ -235,9 +235,9 @@ public:
 
 protected:
 
-	pollevent_t poll_state(cdev::file_t *filp) override;
+	px4_pollevent_t poll_state(cdev::file_t *filp) override;
 
-	void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events) override;
+	void poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events) override;
 
 private:
 

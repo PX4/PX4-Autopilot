@@ -7,7 +7,7 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	#BUILD_BOOTLOADER
+	BUILD_BOOTLOADER
 	IO px4_io-v2_default
 	TESTING
 #	UAVCAN_INTERFACES 2  - No H7 or FD can support in UAVCAN
@@ -25,14 +25,14 @@ px4_add_board(
 		#camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		# dshot -- todo needslooking at
+		#dshot
 		gps
 		heater
 		#imu # all available imu drivers
 		#imu/adis16448
 		#imu/adis16477
 		#imu/adis16497
-		#imu/bmi088
+		imu/bmi088
 		imu/mpu6000
 		#imu/mpu9250
 		#irlock
@@ -78,14 +78,16 @@ px4_add_board(
 		mc_pos_control
 		mc_rate_control
 		navigator
+		rc_update
 		#rover_pos_control
 		sensors
 		#sih
+		temperature_compensation
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		#bl_update
-		#config
+		bl_update
+		config
 		dmesg
 		dumpfile
 		esc_calib

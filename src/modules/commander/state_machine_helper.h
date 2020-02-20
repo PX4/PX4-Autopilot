@@ -44,6 +44,8 @@
 
 #include <drivers/drv_hrt.h>
 
+#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
+
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
@@ -96,12 +98,11 @@ enum class position_nav_loss_actions_t {
 
 extern const char *const arming_state_names[];
 
-bool is_safe(const safety_s &safety, const actuator_armed_s &armed);
-
 transition_result_t
 arming_state_transition(vehicle_status_s *status, const safety_s &safety, const arming_state_t new_arming_state,
 			actuator_armed_s *armed, const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
-			vehicle_status_flags_s *status_flags, const uint8_t arm_requirements, const hrt_abstime &time_since_boot);
+			vehicle_status_flags_s *status_flags, const PreFlightCheck::arm_requirements_t &arm_requirements,
+			const hrt_abstime &time_since_boot);
 
 transition_result_t
 main_state_transition(const vehicle_status_s &status, const main_state_t new_main_state,

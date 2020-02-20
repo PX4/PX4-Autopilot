@@ -71,7 +71,6 @@
 #include <px4_platform_common/posix.h>
 
 #include "apps.h"
-#include "DriverFramework.hpp"
 #include "px4_daemon/client.h"
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
@@ -281,12 +280,14 @@ int main(int argc, char **argv)
 			return ret;
 		}
 
-		DriverFramework::Framework::initialize();
-
 		px4::init_once();
 		px4::init(argc, argv, "px4");
 
 		ret = run_startup_script(commands_file, absolute_binary_path, instance);
+
+		if (ret != 0) {
+			return PX4_ERROR;
+		}
 
 		// We now block here until we need to exit.
 		if (pxh_off) {
@@ -421,7 +422,7 @@ void register_sig_handler()
 	sigaction(SIGINT, &sig_int, nullptr);
 #endif
 
-	//sigaction(SIGTERM, &sig_int, nullptr);
+	sigaction(SIGTERM, &sig_int, nullptr);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
 }
@@ -429,7 +430,7 @@ void register_sig_handler()
 void sig_int_handler(int sig_num)
 {
 	fflush(stdout);
-	printf("\nExiting...\n");
+	printf("\nPX4 Exiting...\n");
 	fflush(stdout);
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;
@@ -548,7 +549,8 @@ int run_startup_script(const std::string &commands_file, const std::string &abso
 void wait_to_exit()
 {
 	while (!_exit_requested) {
-		px4_usleep(100000);
+		// needs to be a regular sleep not dependant on lockstep (not px4_usleep)
+		usleep(100000);
 	}
 }
 

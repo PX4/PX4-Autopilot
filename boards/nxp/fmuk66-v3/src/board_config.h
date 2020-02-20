@@ -320,40 +320,7 @@ __BEGIN_DECLS
 
 /* User GPIOs
  *
- * GPIO-
- * Define as GPIO input / GPIO outputs and timers IO
  */
-
-#define PX4_MK_GPIO(pin_ftmx, io)    ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) |(io))
-#define PX4_MK_GPIO_INPUT(pin_ftmx)    PX4_MK_GPIO(pin_ftmx, GPIO_PULLUP)
-#define PX4_MK_GPIO_OUTPUT(pin_ftmx)   PX4_MK_GPIO(pin_ftmx, GPIO_HIGHDRIVE)
-
-#define GPIO_GPIO0_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH0OUT) /* FMU_CH1 */
-#define GPIO_GPIO1_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH3OUT) /* FMU_CH2 */
-#define GPIO_GPIO2_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH4OUT) /* FMU_CH3 */
-#define GPIO_GPIO3_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH5OUT) /* FMU_CH4 */
-#define GPIO_GPIO4_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH6OUT) /* FMU_CH5 */
-#define GPIO_GPIO5_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH7OUT) /* FMU_CH6 */
-
-#define GPIO_GPIO6_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH0OUT) /* U_TRI   */
-#define GPIO_GPIO7_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM2_CH0OUT) /* U_ECHO  */
-
-#define GPIO_GPIO0_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH0OUT) /* FMU_CH1 */
-#define GPIO_GPIO1_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH3OUT) /* FMU_CH2 */
-#define GPIO_GPIO2_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH4OUT) /* FMU_CH3 */
-#define GPIO_GPIO3_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH5OUT) /* FMU_CH4 */
-#define GPIO_GPIO4_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH6OUT) /* FMU_CH5 */
-#define GPIO_GPIO5_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH7OUT) /* FMU_CH6 */
-
-#define GPIO_GPIO6_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH0OUT) /* U_TRI   */
-#define GPIO_GPIO7_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM2_CH0OUT) /* U_ECHO  */
-
-/* P13 Ultrasonic Sensors
- * Timer Capture driver the the Trigger and sample the response on Echo
- */
-
-#define GPIO_TRI                 GPIO_GPIO6_OUTPUT
-#define GPIO_ECH                 GPIO_GPIO7_INPUT
 
 /* Timer I/O PWM and capture
  *
@@ -439,16 +406,6 @@ __BEGIN_DECLS
 
 #define BOARD_HAS_ON_RESET 1
 
-#define PX4_GPIO_PWM_INIT_LIST { \
-		GPIO_GPIO5_INPUT, \
-		GPIO_GPIO4_INPUT, \
-		GPIO_GPIO3_INPUT, \
-		GPIO_GPIO2_INPUT, \
-		GPIO_GPIO1_INPUT, \
-		GPIO_GPIO0_INPUT, \
-		GPIO_TRI,         \
-	}
-
 #define PX4_GPIO_INIT_LIST {  \
 		GPIO_LED_R,           \
 		GPIO_LED_G,           \
@@ -461,7 +418,6 @@ __BEGIN_DECLS
 		GPIO_GM_nRST,         \
 		GPIO_A_RST,           \
 		GPIO_USB_VBUS_VALID,  \
-		GPIO_ECH,             \
 		GPIO_ENET_RST,        \
 		GPIO_ENET_EN,         \
 		GPIO_ENET_INH,        \

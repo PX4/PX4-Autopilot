@@ -44,8 +44,10 @@
 #include <systemlib/printload.h>
 #include <px4_platform_common/module.h>
 
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/logger_status.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -268,6 +270,12 @@ private:
 	bool initialize_topics(MissionLogType mission_log_mode);
 
 	/**
+	 * Determines if log-from-boot should be disabled, based on the value of SDLOG_BOOT_BAT and the battery status.
+	 * @return true if log-from-boot should be disabled
+	 */
+	bool get_disable_boot_logging();
+
+	/**
 	 * check current arming state or aux channel and start/stop logging if state changed and according to
 	 * configured params.
 	 * @param vehicle_status_sub
@@ -329,6 +337,9 @@ private:
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
 	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
 
+	uORB::PublicationMulti<logger_status_s>		_logger_status_pub[2] { ORB_ID(logger_status), ORB_ID(logger_status) };
+	hrt_abstime					_logger_status_last{0};
+
 	uORB::Subscription				_manual_control_sp_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -338,6 +349,7 @@ private:
 	param_t						_log_utc_offset{PARAM_INVALID};
 	param_t						_log_dirs_max{PARAM_INVALID};
 	param_t						_mission_log{PARAM_INVALID};
+	param_t						_boot_bat_only{PARAM_INVALID};
 };
 
 } //namespace logger

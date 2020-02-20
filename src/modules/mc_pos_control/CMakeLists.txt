@@ -50,4 +50,5 @@ px4_add_module(
 		WeatherVane
 		CollisionPrevention
 		Takeoff
+		HoverThrustEstimator
 	)

@@ -583,6 +583,7 @@ private:
 
 	bool			_forwarding_on{false};
 	bool			_ftp_on{false};
+	bool			_use_software_mav_throttling{false};
 
 	int			_uart_fd{-1};
 
@@ -662,7 +663,7 @@ private:
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_ver,
-		(ParamInt<px4::params::MAV_RADIO_ID>) _param_mav_radio_id,
+		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_sik_radio_id,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
@@ -672,6 +673,7 @@ private:
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
+		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 	)
 
@@ -725,12 +727,12 @@ private:
 	void check_requested_subscriptions();
 
 	/**
-	 * Check the configuration of a connected radio
+	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID
 	 *
 	 * This convenience function allows to re-configure a connected
-	 * radio without removing it from the main system harness.
+	 * SiK radio without removing it from the main system harness.
 	 */
-	void check_radio_config();
+	void configure_sik_radio();
 
 	/**
 	 * Update rate mult so total bitrate will be equal to _datarate.

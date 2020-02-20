@@ -60,13 +60,15 @@ set(msg_files
 	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
-	estimator_status.msg
 	estimator_innovations.msg
+	estimator_sensor_bias.msg
+	estimator_status.msg
 	follow_target.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
 	home_position.msg
+	hover_thrust_estimate.msg
 	input_rc.msg
 	iridiumsbd_status.msg
 	irlock_report.msg
@@ -75,6 +77,7 @@ set(msg_files
 	landing_target_pose.msg
 	led_control.msg
 	log_message.msg
+	logger_status.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
 	mission.msg
@@ -95,6 +98,7 @@ set(msg_files
 	power_button_state.msg
 	power_monitor.msg
 	pwm_input.msg
+	rpm.msg
 	qshell_req.msg
 	qshell_retval.msg
 	radio_status.msg
@@ -105,14 +109,14 @@ set(msg_files
 	satellite_info.msg
 	sensor_accel.msg
 	sensor_accel_fifo.msg
+	sensor_accel_integrated.msg
 	sensor_accel_status.msg
 	sensor_baro.msg
-	sensor_bias.msg
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
-	sensor_gyro_control.msg
 	sensor_gyro_fifo.msg
+	sensor_gyro_integrated.msg
 	sensor_gyro_status.msg
 	sensor_mag.msg
 	sensor_preflight.msg
@@ -134,6 +138,7 @@ set(msg_files
 	ulog_stream_ack.msg
 	vehicle_acceleration.msg
 	vehicle_air_data.msg
+	vehicle_angular_acceleration.msg
 	vehicle_angular_velocity.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
@@ -143,6 +148,7 @@ set(msg_files
 	vehicle_control_mode.msg
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
+	vehicle_imu.msg
 	vehicle_land_detected.msg
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
@@ -156,7 +162,7 @@ set(msg_files
 	vtol_vehicle_status.msg
 	wheel_encoders.msg
 	wind_estimate.msg
-	)
+)
 
 set(deprecated_msgs
 	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
@@ -192,9 +198,6 @@ if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 		endforeach()
 	endif()
 endif()
-
-px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
-px4_add_git_submodule(TARGET git_genmsg PATH tools/genmsg)
 
 # headers
 set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)

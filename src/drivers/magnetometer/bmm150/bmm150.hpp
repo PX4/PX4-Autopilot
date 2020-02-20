@@ -224,7 +224,7 @@ private:
 	unsigned        _call_interval;
 
 
-	mag_report _report {};
+	sensor_mag_s _report {};
 	ringbuffer::RingBuffer  *_reports;
 
 	bool            _collect_phase;
@@ -265,7 +265,7 @@ private:
 	enum Rotation       _rotation;
 	bool            _got_duplicate;
 
-	mag_report   _last_report {};          /**< used for info() */
+	sensor_mag_s   _last_report {};          /**< used for info() */
 
 	int             init_trim_registers(void);
 

@@ -109,7 +109,9 @@ param set MAV_SYS_ID $((px4_instance+1))
 simulator_tcp_port=$((4560+px4_instance))
 udp_offboard_port_local=$((14580+px4_instance))
 udp_offboard_port_remote=$((14540+px4_instance))
-udp_gcs_port_local=$((14570+px4_instance))
+[ $px4_instance -gt 9 ] && udp_offboard_port_remote=14549 # use the same ports for more than 10 instances to avoid port overlaps
+udp_gcs_port_local=$((18570+px4_instance))
+
 
 if [ $AUTOCNF = yes ]
 then
@@ -140,6 +142,10 @@ then
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
+
+	# Prevent high accel bias
+	param set COM_ARM_EKF_AB 0.005
+
 	# Speedup SITL startup
 	param set EKF2_REQ_GPS_H 0.5
 
@@ -233,7 +239,6 @@ dataman start
 replay tryapplyparams
 simulator start -c $simulator_tcp_port
 tone_alarm start
-gpssim start
 rc_update start
 sensors start
 commander start

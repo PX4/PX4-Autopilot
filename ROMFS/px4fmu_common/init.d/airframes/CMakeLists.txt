@@ -60,14 +60,10 @@ px4_add_romfs_files(
 
 	# [4000, 4999] Quadrotor x"
 	4001_quad_x
-	4002_quad_x_mount
 	4003_qavr5
-	4004_H4_680mm
 	4009_qav250
 	4010_dji_f330
 	4011_dji_f450
-	4012_quad_x_can
-	4013_bebop
 	4014_s500
 	4015_holybro_s500
 	4016_holybro_px4vision
@@ -150,4 +146,8 @@ px4_add_romfs_files(
 	50001_axialracing_ax10
 	50002_traxxas_stampede_2wd
 	50003_aion_robotics_r1_rover
+
+	# [60000, 61000] (Unmanned) Underwater Robots
+	60000_uuv_generic
+	60001_uuv_hippocampus
 )
