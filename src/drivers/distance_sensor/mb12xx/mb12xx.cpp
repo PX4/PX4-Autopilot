@@ -329,7 +329,7 @@ MB12XX::init()
 		_measure_interval = MB12XX_INTERVAL_BETWEEN_SUCCESIVE_FIRES;
 	}
 
-	PX4_INFO("Total sensors connected: %i", (long unsigned int)_sensor_count);
+	PX4_INFO("Total sensors connected: %i", _sensor_count);
 	return PX4_OK;
 }
 
