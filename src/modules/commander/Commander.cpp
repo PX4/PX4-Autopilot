@@ -691,8 +691,11 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 						break;
 					}
 
-					// Flick to inair restore first if this comes from an onboard system
-					if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
+					const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
+
+					// Flick to inair restore first if this comes from an onboard system and from IO
+					if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id
+					    && cmd_from_io && cmd_arms) {
 						status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
 
 					} else {
