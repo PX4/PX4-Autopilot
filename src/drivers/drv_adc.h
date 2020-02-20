@@ -83,7 +83,7 @@ void px4_arch_adc_uninit(uint32_t base_address);
 uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
 
 /**
- * Get the overall reference voltage
+ * Get the ADC positive reference voltage
  * Currently assume that all ADC channels share the same vref.
  * @return v_ref
  */
@@ -100,4 +100,3 @@ uint32_t px4_arch_adc_temp_sensor_mask(void);
 uint32_t px4_arch_adc_dn_fullcount(void);
 
 __END_DECLS
-
