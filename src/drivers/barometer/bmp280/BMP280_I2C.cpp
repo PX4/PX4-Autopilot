@@ -74,7 +74,7 @@ bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device,
 BMP280_I2C::BMP280_I2C(uint8_t bus, uint32_t device, uint32_t bus_freq_hz) :
 	I2C("BMP280_I2C", nullptr, bus, device, bus_freq_hz)
 {
-	PX4_INFO("BMP280_I2C: bus frequency: %i KHz", bus_freq_hz / 1000);
+	PX4_DEBUG("BMP280_I2C: bus frequency: %i KHz", bus_freq_hz / 1000);
 }
 
 uint8_t

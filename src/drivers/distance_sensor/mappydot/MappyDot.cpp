@@ -197,7 +197,7 @@ private:
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses {};
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
 
-	size_t _sensor_count{0};
+	int _sensor_count{0};
 
 	orb_advert_t _distance_sensor_topic{nullptr};
 
@@ -250,7 +250,7 @@ MappyDot::collect()
 	perf_begin(_sample_perf);
 
 	// Increment the sensor index, (limited to the number of sensors connected).
-	for (size_t index = 0; index < _sensor_count; index++) {
+	for (int index = 0; index < _sensor_count; index++) {
 
 		// Set address of the current sensor to collect data from.
 		set_device_address(_sensor_addresses[index]);
@@ -259,7 +259,7 @@ MappyDot::collect()
 		int ret_val = transfer(nullptr, 0, &val[0], 2);
 
 		if (ret_val < 0) {
-			PX4_ERR("sensor %lu read failed, address: 0x%02X", (long unsigned int)index, _sensor_addresses[index]);
+			PX4_ERR("sensor %i read failed, address: 0x%02X", index, _sensor_addresses[index]);
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
 			return ret_val;
@@ -337,7 +337,7 @@ MappyDot::init()
 
 	// Check for connected rangefinders on each i2c port,
 	// starting from the base address 0x08 and incrementing
-	for (size_t i = 0; i <= RANGE_FINDER_MAX_SENSORS; i++) {
+	for (int i = 0; i <= RANGE_FINDER_MAX_SENSORS; i++) {
 		set_device_address(MAPPYDOT_BASE_ADDR + i);
 
 		// Check if a sensor is present.
@@ -376,14 +376,14 @@ MappyDot::init()
 		transfer(&threshold_cmd[0], 3, nullptr, 0);
 		px4_usleep(10_ms);
 
-		PX4_INFO("sensor %lu at address 0x%02X added", (long unsigned int)i, get_device_address());
+		PX4_INFO("sensor %i at address 0x%02X added", i, get_device_address());
 	}
 
 	if (_sensor_count == 0) {
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("%lu sensors connected", (long unsigned int)_sensor_count);
+	PX4_INFO("%i sensors connected", _sensor_count);
 	return PX4_OK;
 }
 
