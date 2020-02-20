@@ -84,7 +84,7 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
 
 /**
  * Get the ADC positive reference voltage
- * Currently assume that all ADC channels share the same vref.
+ * N.B This assume that all ADC channels share the same vref.
  * @return v_ref
  */
 float px4_arch_adc_reference_v(void);
