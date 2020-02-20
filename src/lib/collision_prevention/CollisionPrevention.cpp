@@ -483,11 +483,6 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 			//if the sensor field of view is zero, never allow to move (even if move_no_data=1)
 			if (num_fov_bins == 0) {
 				vel_max = 0.f;
-
-				if (getElapsedTime(&_last_timeout_warning) > 1_s) {
-					mavlink_log_critical(&_mavlink_log_pub, "Range sensor data invalid, no movement allowed.");
-					_last_timeout_warning = getTime();
-				}
 			}
 
 			setpoint = setpoint_dir * vel_max;
@@ -500,12 +495,10 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 
 		// if distance data is stale, switch to Loiter
 		if (getElapsedTime(&_last_timeout_warning) > 1_s && getElapsedTime(&_time_activated) > 1_s) {
-			mavlink_log_critical(&_mavlink_log_pub, "No range data received, no movement allowed.");
 
 			if ((constrain_time - _obstacle_map_body_frame.timestamp) > TIMEOUT_HOLD_US
 			    && getElapsedTime(&_time_activated) > TIMEOUT_HOLD_US) {
 				_publishVehicleCmdDoLoiter();
-				mavlink_log_critical(&_mavlink_log_pub, "No range data received, switch to HOLD.");
 			}
 
 			_last_timeout_warning = getTime();
@@ -528,13 +521,6 @@ CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max
 				      || new_setpoint(0) > original_setpoint(0) + 0.05f * max_speed
 				      || new_setpoint(1) < original_setpoint(1) - 0.05f * max_speed
 				      || new_setpoint(1) > original_setpoint(1) + 0.05f * max_speed);
-
-	if (currently_interfering && !_interfering) {
-		if (getElapsedTime(&_last_collision_warning) > 3_s) {
-			mavlink_log_info(&_mavlink_log_pub, "Collision Prevention limiting velocity");
-			_last_collision_warning = getTime();
-		}
-	}
 
 	_interfering = currently_interfering;
 
