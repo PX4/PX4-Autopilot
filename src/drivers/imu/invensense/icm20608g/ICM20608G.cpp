@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "MPU9250.hpp"
+#include "ICM20608G.hpp"
 
 #include <px4_platform/board_dma_alloc.h>
 
@@ -47,18 +47,18 @@ static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
 	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
 }
 
-MPU9250::MPU9250(int bus, uint32_t device, enum Rotation rotation) :
+ICM20608G::ICM20608G(int bus, uint32_t device, enum Rotation rotation) :
 	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_accel(get_device_id(), ORB_PRIO_VERY_HIGH, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_VERY_HIGH, rotation)
 {
-	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_MPU9250);
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_MPU9250);
+	set_device_type(DRV_ACC_DEVTYPE_ICM20608);
+	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20608);
+	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20608);
 }
 
-MPU9250::~MPU9250()
+ICM20608G::~ICM20608G()
 {
 	Stop();
 
@@ -75,7 +75,7 @@ MPU9250::~MPU9250()
 	perf_free(_drdy_interval_perf);
 }
 
-void MPU9250::ConfigureSampleRate(int sample_rate)
+void ICM20608G::ConfigureSampleRate(int sample_rate)
 {
 	if (sample_rate == 0) {
 		sample_rate = 1000; // default to 1 kHz
@@ -95,7 +95,7 @@ void MPU9250::ConfigureSampleRate(int sample_rate)
 	_px4_gyro.set_update_rate(1000000 / _fifo_empty_interval_us);
 }
 
-int MPU9250::probe()
+int ICM20608G::probe()
 {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
@@ -107,7 +107,7 @@ int MPU9250::probe()
 	return PX4_OK;
 }
 
-bool MPU9250::Init()
+bool ICM20608G::Init()
 {
 	if (SPI::init() != PX4_OK) {
 		PX4_ERR("SPI::init failed");
@@ -132,16 +132,16 @@ bool MPU9250::Init()
 	return true;
 }
 
-bool MPU9250::Reset()
+bool ICM20608G::Reset()
 {
 	// PWR_MGMT_1: Device Reset
-	RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::H_RESET);
+	RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
 
 	for (int i = 0; i < 100; i++) {
 		// The reset value is 0x00 for all registers other than the registers below
-		//  Document Number: RM-MPU-9250A-00 Page 9 of 55
+		//  Document Number: RM-000030 Page 5 of 23
 		if ((RegisterRead(Register::WHO_AM_I) == WHOAMI)
-		    && (RegisterRead(Register::PWR_MGMT_1) == 0x01)) {
+		    && (RegisterRead(Register::PWR_MGMT_1) == 0x40)) {
 			return true;
 		}
 	}
@@ -149,7 +149,7 @@ bool MPU9250::Reset()
 	return false;
 }
 
-void MPU9250::ConfigureAccel()
+void ICM20608G::ConfigureAccel()
 {
 	const uint8_t ACCEL_FS_SEL = RegisterRead(Register::ACCEL_CONFIG) & (Bit4 | Bit3); // [4:3] ACCEL_FS_SEL[1:0]
 
@@ -176,34 +176,34 @@ void MPU9250::ConfigureAccel()
 	}
 }
 
-void MPU9250::ConfigureGyro()
+void ICM20608G::ConfigureGyro()
 {
 	const uint8_t GYRO_FS_SEL = RegisterRead(Register::GYRO_CONFIG) & (Bit4 | Bit3); // [4:3] GYRO_FS_SEL[1:0]
 
 	switch (GYRO_FS_SEL) {
-	case GYRO_FS_SEL_250_DPS:
+	case FS_SEL_250_DPS:
 		_px4_gyro.set_scale(math::radians(1.0f / 131.f));
 		_px4_gyro.set_range(math::radians(250.f));
 		break;
 
-	case GYRO_FS_SEL_500_DPS:
+	case FS_SEL_500_DPS:
 		_px4_gyro.set_scale(math::radians(1.0f / 65.5f));
 		_px4_gyro.set_range(math::radians(500.f));
 		break;
 
-	case GYRO_FS_SEL_1000_DPS:
+	case FS_SEL_1000_DPS:
 		_px4_gyro.set_scale(math::radians(1.0f / 32.8f));
 		_px4_gyro.set_range(math::radians(1000.0f));
 		break;
 
-	case GYRO_FS_SEL_2000_DPS:
+	case FS_SEL_2000_DPS:
 		_px4_gyro.set_scale(math::radians(1.0f / 16.4f));
 		_px4_gyro.set_range(math::radians(2000.0f));
 		break;
 	}
 }
 
-void MPU9250::ResetFIFO()
+void ICM20608G::ResetFIFO()
 {
 	perf_count(_fifo_reset_perf);
 
@@ -214,15 +214,15 @@ void MPU9250::ResetFIFO()
 	_data_ready_count.store(0);
 
 	// FIFO_EN: enable both gyro and accel
-	RegisterWrite(Register::FIFO_EN, FIFO_EN_BIT::GYRO_XOUT | FIFO_EN_BIT::GYRO_YOUT | FIFO_EN_BIT::GYRO_ZOUT |
-		      FIFO_EN_BIT::ACCEL);
+	RegisterWrite(Register::FIFO_EN, FIFO_EN_BIT::XG_FIFO_EN | FIFO_EN_BIT::YG_FIFO_EN | FIFO_EN_BIT::ZG_FIFO_EN |
+		      FIFO_EN_BIT::ACCEL_FIFO_EN);
 
 	// USER_CTRL: re-enable FIFO
 	RegisterSetAndClearBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_EN,
 				USER_CTRL_BIT::FIFO_RST | USER_CTRL_BIT::SIG_COND_RST);
 }
 
-bool MPU9250::Configure(bool notify)
+bool ICM20608G::Configure(bool notify)
 {
 	bool success = true;
 
@@ -235,7 +235,7 @@ bool MPU9250::Configure(bool notify)
 	return success;
 }
 
-bool MPU9250::CheckRegister(const register_config_t &reg_cfg, bool notify)
+bool ICM20608G::CheckRegister(const register_config_t &reg_cfg, bool notify)
 {
 	bool success = true;
 
@@ -275,7 +275,7 @@ bool MPU9250::CheckRegister(const register_config_t &reg_cfg, bool notify)
 	return success;
 }
 
-uint8_t MPU9250::RegisterRead(Register reg)
+uint8_t ICM20608G::RegisterRead(Register reg)
 {
 	uint8_t cmd[2] {};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
@@ -283,13 +283,13 @@ uint8_t MPU9250::RegisterRead(Register reg)
 	return cmd[1];
 }
 
-void MPU9250::RegisterWrite(Register reg, uint8_t value)
+void ICM20608G::RegisterWrite(Register reg, uint8_t value)
 {
 	uint8_t cmd[2] { (uint8_t)reg, value };
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
-void MPU9250::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
+void ICM20608G::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
 {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = orig_val;
@@ -305,24 +305,24 @@ void MPU9250::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 	RegisterWrite(reg, val);
 }
 
-void MPU9250::RegisterSetBits(Register reg, uint8_t setbits)
+void ICM20608G::RegisterSetBits(Register reg, uint8_t setbits)
 {
 	RegisterSetAndClearBits(reg, setbits, 0);
 }
 
-void MPU9250::RegisterClearBits(Register reg, uint8_t clearbits)
+void ICM20608G::RegisterClearBits(Register reg, uint8_t clearbits)
 {
 	RegisterSetAndClearBits(reg, 0, clearbits);
 }
 
-int MPU9250::DataReadyInterruptCallback(int irq, void *context, void *arg)
+int ICM20608G::DataReadyInterruptCallback(int irq, void *context, void *arg)
 {
-	MPU9250 *dev = reinterpret_cast<MPU9250 *>(arg);
+	ICM20608G *dev = reinterpret_cast<ICM20608G *>(arg);
 	dev->DataReady();
 	return 0;
 }
 
-void MPU9250::DataReady()
+void ICM20608G::DataReady()
 {
 	perf_count(_drdy_interval_perf);
 
@@ -333,7 +333,7 @@ void MPU9250::DataReady()
 	}
 }
 
-void MPU9250::Start()
+void ICM20608G::Start()
 {
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 
@@ -345,10 +345,14 @@ void MPU9250::Start()
 	}
 
 	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_DRDY_PORTD_PIN15)
+#if defined(GPIO_DRDY_PORTC_PIN14)
 	_using_data_ready_interrupt_enabled = true;
 	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_DRDY_PORTD_PIN15, true, false, true, &MPU9250::DataReadyInterruptCallback, this);
+	px4_arch_gpiosetevent(GPIO_DRDY_PORTC_PIN14, true, false, true, &ICM20608G::DataReadyInterruptCallback, this);
+#elif defined(GPIO_DRDY_ICM_2060X)
+	_using_data_ready_interrupt_enabled = true;
+	// Setup data ready on rising edge
+	px4_arch_gpiosetevent(GPIO_DRDY_ICM_2060X, true, false, true, &ICM20608G::DataReadyInterruptCallback, this);
 #else
 	_using_data_ready_interrupt_enabled = false;
 	ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
@@ -362,20 +366,23 @@ void MPU9250::Start()
 	}
 }
 
-void MPU9250::Stop()
+void ICM20608G::Stop()
 {
 	Reset();
 
 	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_DRDY_PORTD_PIN15)
+#if defined(GPIO_DRDY_PORTC_PIN14)
 	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_DRDY_PORTD_PIN15, false, false, false, nullptr, nullptr);
+	px4_arch_gpiosetevent(GPIO_DRDY_PORTC_PIN14, false, false, false, nullptr, nullptr);
+#elif defined(GPIO_DRDY_ICM_2060X)
+	// Disable data ready callback
+	px4_arch_gpiosetevent(GPIO_DRDY_ICM_2060X, false, false, false, nullptr, nullptr);
 #endif
 
 	ScheduleClear();
 }
 
-void MPU9250::Run()
+void ICM20608G::Run()
 {
 	// use the time now roughly corresponding with the last sample we'll pull from the FIFO
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
@@ -529,7 +536,7 @@ void MPU9250::Run()
 	_px4_accel.updateFIFO(accel);
 }
 
-void MPU9250::PrintInfo()
+void ICM20608G::PrintInfo()
 {
 	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us,
 		 static_cast<double>(1000000 / _fifo_empty_interval_us));
