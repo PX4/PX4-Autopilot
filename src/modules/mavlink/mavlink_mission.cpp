@@ -612,8 +612,6 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 					_transfer_in_progress = false;
 
 				} else {
-					_mavlink->send_statustext_critical("WPM: ERR: not all items sent -> IDLE");
-
 					PX4_DEBUG("WPM: MISSION_ACK ERROR: not all items sent, switch to state IDLE anyway");
 				}
 
