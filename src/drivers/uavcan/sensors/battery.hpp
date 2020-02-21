@@ -41,7 +41,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uavcan/equipment/power/BatteryInfo.hpp>
 #include <drivers/drv_hrt.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 
 class UavcanBatteryBridge : public UavcanCDevSensorBridgeBase, public ModuleParams
 {
