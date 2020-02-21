@@ -348,7 +348,7 @@ else
 
 		sh /etc/init.d/rc.sensors
 
-		battery_status start
+		# battery_status start
 		commander start
 	fi
 
