@@ -103,10 +103,15 @@ static bool start_bus(bmp388_bus_option &bus)
 
 	BMP388 *dev = new BMP388(interface);
 
-	if (dev == nullptr || (dev->init() != PX4_OK)) {
+	if (dev == nullptr) {
+		PX4_ERR("alloc failed");
+		delete interface;
+		return false;
+	}
+
+	if (dev->init() != PX4_OK) {
 		PX4_ERR("driver start failed");
 		delete dev;
-		delete interface;
 		return false;
 	}
 
