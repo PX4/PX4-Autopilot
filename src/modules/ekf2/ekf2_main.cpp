@@ -131,6 +131,7 @@ private:
 	bool update_mag_decl(Param &mag_decl_param);
 
 	bool publish_attitude(const hrt_abstime &now);
+	void publish_vehicle_odometry(const vehicle_local_position_s &lpos, const imuSample &imu);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
 
 	/*
@@ -1216,13 +1217,7 @@ void Ekf2::Run()
 				// generate vehicle local position data
 				vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
 
-				// generate vehicle odometry data
-				vehicle_odometry_s odom{};
-
 				lpos.timestamp = now;
-				odom.timestamp = lpos.timestamp;
-
-				odom.local_frame = odom.LOCAL_FRAME_NED;
 
 				// Position of body origin in local NED frame
 				float position[3];
@@ -1233,22 +1228,12 @@ void Ekf2::Run()
 				lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
 				lpos.z = position[2];
 
-				// Vehicle odometry position
-				odom.x = lpos.x;
-				odom.y = lpos.y;
-				odom.z = lpos.z;
-
 				// Velocity of body origin in local NED frame (m/s)
 				float velocity[3];
 				_ekf.get_velocity(velocity);
 				lpos.vx = velocity[0];
 				lpos.vy = velocity[1];
 				lpos.vz = velocity[2];
-
-				// Vehicle odometry linear velocity
-				odom.vx = lpos.vx;
-				odom.vy = lpos.vy;
-				odom.vz = lpos.vz;
 
 				// vertical position time derivative (m/s)
 				_ekf.get_pos_d_deriv(&lpos.z_deriv);
@@ -1282,20 +1267,9 @@ void Ekf2::Run()
 				}
 
 				// The rotation of the tangent plane vs. geographical north
-				matrix::Quatf q = _ekf.get_quaternion();
+				const matrix::Quatf q = _ekf.get_quaternion();
 
 				lpos.yaw = matrix::Eulerf(q).psi();
-
-				// Vehicle odometry quaternion
-				q.copyTo(odom.q);
-
-				// Vehicle odometry angular rates
-				float gyro_bias[3];
-				_ekf.get_gyro_bias(gyro_bias);
-				const Vector3f rates{imu_sample_new.delta_ang * imu_sample_new.delta_ang_dt};
-				odom.rollspeed = rates(0) - gyro_bias[0];
-				odom.pitchspeed = rates(1) - gyro_bias[1];
-				odom.yawspeed = rates(2) - gyro_bias[2];
 
 				lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 
@@ -1360,42 +1334,10 @@ void Ekf2::Run()
 					lpos.hagl_max = INFINITY;
 				}
 
-				// Get covariances to vehicle odometry
-				float covariances[24];
-				_ekf.covariances_diagonal().copyTo(covariances);
-
-				// get the covariance matrix size
-				const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
-				const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
-
-				// initially set pose covariances to 0
-				for (size_t i = 0; i < POS_URT_SIZE; i++) {
-					odom.pose_covariance[i] = 0.0;
-				}
-
-				// set the position variances
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_X_VARIANCE] = covariances[7];
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_Y_VARIANCE] = covariances[8];
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_Z_VARIANCE] = covariances[9];
-
-				// TODO: implement propagation from quaternion covariance to Euler angle covariance
-				// by employing the covariance law
-
-				// initially set velocity covariances to 0
-				for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-					odom.velocity_covariance[i] = 0.0;
-				}
-
-				// set the linear velocity variances
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VX_VARIANCE] = covariances[4];
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VY_VARIANCE] = covariances[5];
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VZ_VARIANCE] = covariances[6];
-
 				// publish vehicle local position data
 				_vehicle_local_position_pub.update();
 
-				// publish vehicle odometry data
-				_vehicle_odometry_pub.publish(odom);
+				publish_vehicle_odometry(lpos, imu_sample_new);
 
 				// publish external visual odometry after fixed frame alignment if new odometry is received
 				if (new_ev_data_received) {
@@ -1785,6 +1727,63 @@ bool Ekf2::publish_attitude(const hrt_abstime &now)
 	}
 
 	return false;
+}
+
+void Ekf2::publish_vehicle_odometry(const vehicle_local_position_s &lpos, const imuSample &imu)
+{
+	// generate vehicle odometry data
+	vehicle_odometry_s odom{};
+
+	odom.timestamp = lpos.timestamp;
+	odom.local_frame = odom.LOCAL_FRAME_NED;
+
+	// Vehicle odometry position
+	odom.x = lpos.x;
+	odom.y = lpos.y;
+	odom.z = lpos.z;
+
+	// Vehicle odometry linear velocity
+	odom.vx = lpos.vx;
+	odom.vy = lpos.vy;
+	odom.vz = lpos.vz;
+
+	// Vehicle odometry quaternion
+	// The rotation of the tangent plane vs. geographical north
+	const Quatf q = _ekf.get_quaternion();
+	q.copyTo(odom.q);
+
+	// Vehicle odometry angular rates
+	float gyro_bias[3];
+	_ekf.get_gyro_bias(gyro_bias);
+	const Vector3f rates{imu.delta_ang * imu.delta_ang_dt};
+	odom.rollspeed = rates(0) - gyro_bias[0];
+	odom.pitchspeed = rates(1) - gyro_bias[1];
+	odom.yawspeed = rates(2) - gyro_bias[2];
+
+	// Get covariances to vehicle odometry
+	float covariances[24];
+	_ekf.covariances_diagonal().copyTo(covariances);
+
+	// Get covariances to vehicle odometry
+	// get the covariance matrix size
+	//static constexpr size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
+	//static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+
+	// set the position variances
+	odom.pose_covariance[odom.COVARIANCE_MATRIX_X_VARIANCE] = covariances[7];
+	odom.pose_covariance[odom.COVARIANCE_MATRIX_Y_VARIANCE] = covariances[8];
+	odom.pose_covariance[odom.COVARIANCE_MATRIX_Z_VARIANCE] = covariances[9];
+
+	// TODO: implement propagation from quaternion covariance to Euler angle covariance
+	// by employing the covariance law
+
+	// set the linear velocity variances
+	odom.velocity_covariance[odom.COVARIANCE_MATRIX_VX_VARIANCE] = covariances[4];
+	odom.velocity_covariance[odom.COVARIANCE_MATRIX_VY_VARIANCE] = covariances[5];
+	odom.velocity_covariance[odom.COVARIANCE_MATRIX_VZ_VARIANCE] = covariances[6];
+
+	// publish vehicle odometry data
+	_vehicle_odometry_pub.publish(odom);
 }
 
 bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
