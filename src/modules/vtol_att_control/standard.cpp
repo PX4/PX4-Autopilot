@@ -232,7 +232,9 @@ void Standard::update_transition_state()
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
-		// copy virtual attitude setpoint to real attitude setpoint
+                float addtime = _attc->get_pos_sp_triplet()->current.alt/250.0f;
+
+                // copy virtual attitude setpoint to real attitude setpoint
 		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 		matrix::Quatf q_sp(matrix::Eulerf(0.0f, _fw_virtual_att_sp->pitch_body,
 						  _mc_virtual_att_sp->yaw_body));
@@ -259,16 +261,15 @@ void Standard::update_transition_state()
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
 
-		} else if (_params->airspeed_disabled) {
-                        float addtime = _attc->get_pos_sp_triplet()->current.alt/250.0f;
+                } else if (_params->airspeed_disabled) {
                         mc_weight = 1.0f - time_since_trans_start / (_params->front_trans_time_min+addtime);
 			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
 
 		}
 
 		// check front transition timeout
-		if (_params->front_trans_timeout > FLT_EPSILON) {
-			if (time_since_trans_start > _params->front_trans_timeout) {
+                if (_params->front_trans_timeout > FLT_EPSILON) {
+                        if (time_since_trans_start > _params->front_trans_timeout) {
 				// transition timeout occured, abort transition
 				_attc->abort_front_transition("Transition timeout");
 			}
