@@ -157,14 +157,6 @@
 #define BOARD_ADC_POS_REF_V              (3.3f) // Default reference voltage for every channels
 #endif
 
-#ifndef BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN
-#define BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN (3.3f) // Reference voltage for reading out the current channel
-#endif
-
-#ifndef BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN
-#define BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN (3.3f) // Reference voltage for reading out the voltage channel
-#endif
-
 /* Provide define for Bricks and Battery */
 
 /* Define the default maximum voltage resulting from the bias on ADC termination */

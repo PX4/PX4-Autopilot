@@ -65,9 +65,6 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL  5
 #define ADC_BATTERY_CURRENT_CHANNEL  ((uint8_t)(-1))
 
-#define BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN 1.8f
-#define BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN 1.8f
-
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
