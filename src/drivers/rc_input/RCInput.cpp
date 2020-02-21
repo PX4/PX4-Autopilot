@@ -311,7 +311,7 @@ void RCInput::Run()
 			for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 				if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
 					float adc_volt = adc.raw_data[ADC_RC_RSSI_CHANNEL] *
-							 adc.v_ref[ADC_RC_RSSI_CHANNEL] /
+							 adc.v_ref /
 							 adc.resolution;
 
 					if (_analog_rc_rssi_volt < 0.0f) {

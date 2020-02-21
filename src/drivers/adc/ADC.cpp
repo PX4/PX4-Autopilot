@@ -150,10 +150,10 @@ void ADC::update_adc_report(hrt_abstime now)
 	for (unsigned i = 0; i < max_num; i++) {
 		adc.channel_id[i] = _samples[i].am_channel;
 		adc.raw_data[i] = _samples[i].am_data;
-		adc.v_ref[i] = px4_arch_adc_reference_v();
 		//adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
 	}
 
+	adc.v_ref = px4_arch_adc_reference_v();
 	adc.resolution = px4_arch_adc_dn_fullcount();
 
 	_to_adc_report.publish(adc);
