@@ -1936,7 +1936,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		return;
 	}
 
-	if (_mavlink->get_manual_input_mode_generation()) {
+	if (_mavlink->should_generate_virtual_rc_input()) {
 
 		input_rc_s rc{};
 		rc.timestamp = hrt_absolute_time();
