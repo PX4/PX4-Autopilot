@@ -93,9 +93,13 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${romfs_src_dir} ${romfs_gen_root_dir}
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/init.d-posix
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/mixers-sitl
+	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/init.d/airframes/param_files
 	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/mixers/CMakeLists.txt
 	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/CMakeLists.txt
 	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/airframes/CMakeLists.txt
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/mc_params
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/fw_params
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/vtol_params
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
@@ -119,6 +123,66 @@ add_custom_command(
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	COMMENT "ROMFS: copying, generating airframes"
 	)
+
+# generate board specific parameter file
+add_custom_command(
+	OUTPUT
+		board_param_file
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_param_file.py
+		-i ${PX4_BOARD_DIR}/init/board_defaults.param
+		-o ${romfs_gen_root_dir}/init.d/board_params
+		-p ${PX4_BINARY_DIR}/parameters.xml
+	DEPENDS
+		${PX4_SOURCE_DIR}/Tools/generate_param_file.py
+		${PX4_BOARD_DIR}/init/board_defaults.param
+		romfs_pruned.stamp
+		metadata_parameters
+	COMMENT "ROMFS: generating board params file"
+	)
+
+# generate vehicle type specific param file
+set(VEHICLE_TYPE_PARAM_FILE_OUTPUT_LIST)
+
+foreach(vehicle_type "mc" "fw" "vtol")
+	add_custom_command(
+		OUTPUT
+			${vehicle_type}_defaults
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_param_file.py
+			-i ${romfs_src_dir}/init.d/${vehicle_type}_defaults.param
+			-o ${romfs_gen_root_dir}/init.d/${vehicle_type}_params
+			-p ${PX4_BINARY_DIR}/parameters.xml
+		DEPENDS
+			${PX4_SOURCE_DIR}/Tools/generate_param_file.py
+			${romfs_src_dir}/init.d/${vehicle_type}_defaults.param
+			romfs_pruned.stamp
+			metadata_parameters
+		COMMENT "ROMFS: generating vehicle_type params file"
+		)
+	list(APPEND VEHICLE_TYPE_PARAM_FILE_OUTPUT_LIST ${vehicle_type}_defaults)
+endforeach()
+
+file(GLOB AIRFRAME_PARAM_FILES ${romfs_src_dir}/init.d/airframes/param_files/*)
+set(AIRFRAME_PARAM_FILE_OUTPUT_LIST)
+foreach(airframe_param_file ${AIRFRAME_PARAM_FILES})
+	set(airframe_param_file_name)
+	get_filename_component(airframe_param_file_name ${airframe_param_file} NAME)
+
+	add_custom_command(
+	OUTPUT
+		${airframe_param_file_name}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_param_file.py
+		-i ${airframe_param_file}
+		-o ${romfs_gen_root_dir}/init.d/${airframe_param_file_name}
+		-p ${PX4_BINARY_DIR}/parameters.xml
+	DEPENDS
+		${PX4_SOURCE_DIR}/Tools/generate_param_file.py
+		${AIRFRAME_PARAM_FILES}
+		romfs_pruned.stamp
+		metadata_parameters
+	COMMENT "ROMFS: generating airframe params file"
+	)
+	list(APPEND AIRFRAME_PARAM_FILE_OUTPUT_LIST ${airframe_param_file_name})
+endforeach()
 
 # copy extras into ROMFS
 set(extras_dependencies)
@@ -217,6 +281,9 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 		DEPENDS
 			${CMAKE_BINARY_DIR}/gencromfs
 			romfs_pruned.stamp
+			board_param_file
+			${AIRFRAME_PARAM_FILE_OUTPUT_LIST}
+			${VEHICLE_TYPE_PARAM_FILE_OUTPUT_LIST}
 		COMMENT "ROMFS: generating image"
 	)
 
@@ -233,7 +300,11 @@ else()
 			romfs.txt
 		COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
 		COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
-		DEPENDS romfs_pruned.stamp
+		DEPENDS
+			romfs_pruned.stamp
+			board_param_file
+			${AIRFRAME_PARAM_FILE_OUTPUT_LIST}
+			${VEHICLE_TYPE_PARAM_FILE_OUTPUT_LIST}
 		COMMENT "ROMFS: generating image"
 	)
 
