@@ -1,0 +1,23 @@
+
+#!/bin/sh
+#
+# @name DJI Matrice 100
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer James Goppert <james.goppert@gmail.com>
+#
+BAT_N_CELLS 6
+MC_ROLL_P 6.5
+MC_ROLLRATE_P 0.05
+MC_ROLLRATE_I 0.05
+MC_ROLLRATE_D 0.001
+MC_PITCH_P 6.5
+MC_PITCHRATE_P 0.05
+MC_PITCHRATE_I 0.05
+MC_PITCHRATE_D 0.001
+MC_YAWRATE_P 0.2
+MC_YAWRATE_I 0
+MC_YAWRATE_D 0
+PWM_MIN 1200

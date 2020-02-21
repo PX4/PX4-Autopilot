@@ -1,0 +1,9 @@
+
+# PWM default value for "disarmed" mode.
+# This centers the steering and throttle, which means
+# no motion for a rover.
+PWM_DISARMED 1500
+
+# PWM range.
+PWM_MIN 1200
+PWM_MAX 1800

@@ -1,0 +1,119 @@
+
+###############################################
+# Attitude & rate gains
+###############################################
+# Roll
+MC_ROLL_P 6.50000
+MC_ROLLRATE_P 0.15000
+MC_ROLLRATE_I 0.05000
+MC_ROLLRATE_D 0.00130
+MC_ROLLRATE_MAX 800.00000
+
+# Pitch
+MC_PITCH_P 6.50000
+MC_PITCHRATE_P 0.15000
+MC_PITCHRATE_I 0.05000
+MC_PITCHRATE_D 0.00160
+MC_PITCHRATE_MAX 800.00000
+
+# Yaw
+MC_YAW_P 2.80000
+MC_YAWRATE_P 0.20000
+MC_YAWRATE_I 0.10000
+MC_YAWRATE_D 0.00000
+MC_YAW_FF 0.00000
+MC_YAWRATE_MAX 700.00000
+
+###############################################
+# Multirotor Position Gains
+###############################################
+MPC_ACC_HOR 8.0000
+MPC_THR_MIN 0.06000
+MPC_THR_HOVER 0.3000
+
+# altitude control gains
+MPC_Z_P 1.00000
+MPC_Z_VEL_P 0.20000
+MPC_Z_VEL_I 0.02000
+MPC_Z_VEL_D 0.00000
+
+# position control gains
+MPC_XY_P 0.9500
+MPC_XY_VEL_P 0.0900
+MPC_XY_VEL_I 0.0200
+MPC_XY_VEL_D 0.0100
+
+# etc gains
+MPC_TKO_RAMP_T 0.4000
+MPC_TKO_SPEED 1.5000
+MPC_VEL_MANUAL 5.0000
+
+# Disable RC filtering
+RC_FLT_CUTOFF 0.00000
+
+# Filter settings
+MC_DTERM_CUTOFF 90.00000
+IMU_GYRO_CUTOFF 100.00000
+
+# Thrust curve (avoids the need for TPA)
+THR_MDL_FAC 0.25
+
+# System
+PWM_MAX 1950
+PWM_MIN 1100
+PWM_MAIN_DIS5 980
+PWM_MAIN_DIS6 980
+
+# DSHOT
+DSHOT_CONFIG 600
+COM_ARM_MAG 0.2000
+MIS_TAKEOFF_ALT 1.1000
+
+#####################################
+# EKF
+#####################################
+# Height mode as GPS
+EKF2_HGT_MODE 1
+
+# Enable optical flow and GPS
+EKF2_AID_MASK 1
+EKF2_RNG_AID 1
+EKF2_MAG_TYPE 1
+EKF2_OF_QMIN 80.0000
+
+# default horizontal stablization sensors
+SENS_EN_PMW3901 1
+SENS_EN_PX4FLOW 1
+SENS_EN_LL40LS 2
+SENS_FLOW_ROT 2
+
+#
+CBRK_IO_SAFETY 22027
+COM_DISARM_LAND 3
+
+# PWM ONESHOT
+PWM_RATE 0
+
+# Battery
+BAT_SOURCE 0
+BAT_N_CELLS 4
+BAT_V_DIV 10.133
+
+# TELEM1 ttyS1
+MAV_0_CONFIG 101
+MAV_0_MODE 0
+MAV_0_FORWARD 1
+SER_TEL1_BAUD 57600
+
+# TELEM2 ttyS2
+MAV_1_CONFIG 102
+MAV_1_MODE 2
+MAV_1_FORWARD 1
+MAV_1_RATE 800000
+SER_TEL2_BAUD 921600
+
+# Disable internal magnetometer sensor
+CAL_MAG0_EN 0
+
+# Enable external magnetometer sensor
+CAL_MAG1_EN 1
