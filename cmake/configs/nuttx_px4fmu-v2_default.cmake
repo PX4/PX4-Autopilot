@@ -40,7 +40,7 @@ set(config_module_list
 	drivers/imu/mpu9250
 	#drivers/iridiumsbd
 	#drivers/irlock
-	#drivers/magnetometer/hmc5883
+	drivers/magnetometer/hmc5883
 	drivers/magnetometer/lis3mdl
 	#drivers/mb12xx
 	#drivers/mkblctrl

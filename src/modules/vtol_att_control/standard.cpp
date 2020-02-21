@@ -272,7 +272,7 @@ void Standard::update_transition_state()
 			}
 		}
 
-		_pusher_throttle = _fw_virtual_att_sp->thrust_x;
+                //_pusher_throttle = _fw_virtual_att_sp->thrust_x;
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 

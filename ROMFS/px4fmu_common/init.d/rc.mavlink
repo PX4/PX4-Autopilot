@@ -151,7 +151,7 @@ then
 	#
 	if param compare SYS_COMPANION 57600
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 1000 -x -f		
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m companion -r 1000 -x -f
 	fi
 	if param compare SYS_COMPANION 157600
 	then
@@ -163,8 +163,8 @@ then
 	fi
 	if param compare SYS_COMPANION 357600
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -x -f
-		mavlink start -m custom -w -b 57600 -d /dev/ttyS6
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m companion -r 1000 -x -f
+		mavlink start -d /dev/ttyS6 -b 57600 -r 1000 -x -f
 	fi
 	if param compare SYS_COMPANION 557600
 	then
