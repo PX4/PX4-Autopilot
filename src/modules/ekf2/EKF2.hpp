@@ -262,10 +262,11 @@ private:
 	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}};
 
 	sensor_selection_s		_sensor_selection{};
-	vehicle_land_detected_s		_vehicle_land_detected{};
 
 	uint8_t _arming_state{vehicle_status_s::ARMING_STATE_INIT};
 	bool _can_observe_heading_in_flight{false};
+	bool _landed{true};
+	bool _in_ground_effect{true};
 
 	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
