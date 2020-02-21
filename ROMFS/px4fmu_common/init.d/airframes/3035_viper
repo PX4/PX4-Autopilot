@@ -19,4 +19,6 @@
 
 sh /etc/init.d/rc.fw_defaults
 
+param import-as-default /etc/init.d/3035.params
+
 set MIXER Viper

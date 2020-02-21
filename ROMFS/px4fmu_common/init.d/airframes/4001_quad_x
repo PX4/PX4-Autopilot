@@ -22,6 +22,8 @@
 
 sh /etc/init.d/rc.mc_defaults
 
+param import-as-default /etc/init.d/4001.params
+
 set MIXER quad_x
 
 set PWM_OUT 1234

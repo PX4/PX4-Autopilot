@@ -21,4 +21,6 @@
 
 sh /etc/init.d/rc.fw_defaults
 
+param import-as-default /etc/init.d/3000.params
+
 set MIXER fw_generic_wing

@@ -22,6 +22,8 @@
 
 sh /etc/init.d/rc.mc_defaults
 
+param import-as-default /etc/init.d/12001.params
+
 set MIXER octo_cox
 
 set PWM_OUT 12345678

@@ -27,16 +27,6 @@ sh /etc/init.d/rc.rover_defaults
 # This section can be enabled once tuning parameters for this particular
 # rover model are known. It allows to configure default gains via the GUI.
 #
-if [ $AUTOCNF = yes ]
-then
-	# PWM default value for "disarmed" mode.
-	# This centers the steering and throttle, which means
-	# no motion for a rover.
-	param set PWM_DISARMED 1500
-
-	# PWM range.
-	param set PWM_MIN 1200
-	param set PWM_MAX 1800
-fi
+param import-as-default /etc/init.d/50001.params
 
 set MIXER IO_pass

@@ -24,6 +24,8 @@
 
 sh /etc/init.d/rc.mc_defaults
 
+param import-as-default /etc/init.d/6001.params
+
 set MIXER hexa_x
 
 # Need to set all 8 channels

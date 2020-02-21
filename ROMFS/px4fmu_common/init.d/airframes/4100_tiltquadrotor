@@ -28,6 +28,8 @@ sh /etc/init.d/rc.mc_defaults
 #Parameters here:
 param set LED_RGB_MAXBRT 8
 
+param import-as-default /etc/init.d/4100.params
+
 
 # Configure this as Quadrotor
 # set MAV_TYPE 14

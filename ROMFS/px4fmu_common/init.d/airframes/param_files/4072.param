@@ -50,7 +50,7 @@ CBRK_IO_SAFETY 22027
 #param set COM_DISARM_LAND 3
 # Filter settings
 IMU_GYRO_CUTOFF 90.00000
-MC_DTERM_CUTOFF 100.00000
+IMU_DGYRO_CUTOFF 100.00000
 
 # Don't try to be intelligent on RC loss: just cut the motors
 #param set NAV_RCL_ACT 6

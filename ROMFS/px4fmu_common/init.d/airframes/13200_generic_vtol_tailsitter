@@ -18,14 +18,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF = yes ]
-then
-	param set VT_ELEV_MC_LOCK 0
-	param set VT_MOT_COUNT 2
-	param set VT_TYPE 0
-
-	param set MAV_TYPE 19
-fi
+param import-as-default /etc/init.d/13200.params
 
 set MAV_TYPE 19
 set MIXER vtol_tailsitter_duo
