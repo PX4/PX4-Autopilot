@@ -272,11 +272,16 @@ private:
 	uORB::Publication<estimator_sensor_bias_s>		_estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
 	uORB::Publication<estimator_status_s>			_estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_global_position_s>		_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
-	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
-	uORB::PublicationData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
+	uORB::Publication<vehicle_odometry_s>			_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
+
 	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
+
+	uint64_t _lpos_ref_timestamp{0};
+	float _lpos_x_prev{0.f};
+	float _lpos_y_prev{0.f};
 
 	Ekf _ekf;
 

@@ -712,18 +712,22 @@ void Ekf2::Run()
 			filter_control_status_u control_status;
 			_ekf.get_control_mode(&control_status.value);
 
+			float eph = 0.f;
+			float epv = 0.f;
+			_ekf.get_ekf_lpos_accuracy(&eph, &epv);
+
 			// only publish position after successful alignment
 			if (control_status.flags.tilt_align) {
 				// generate vehicle local position data
-				vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
+				vehicle_local_position_s lpos{};
 
 				lpos.timestamp = now;
 
 				// Position of body origin in local NED frame
 				float position[3];
 				_ekf.get_position(position);
-				const float lpos_x_prev = lpos.x;
-				const float lpos_y_prev = lpos.y;
+				_lpos_x_prev = lpos.x;
+				_lpos_y_prev = lpos.y;
 				lpos.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
 				lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
 				lpos.z = position[2];
@@ -760,10 +764,11 @@ void Ekf2::Run()
 				lpos.xy_global = ekf_origin_valid;
 				lpos.z_global = ekf_origin_valid;
 
-				if (ekf_origin_valid && (origin_time > lpos.ref_timestamp)) {
+				if (ekf_origin_valid && (origin_time > _lpos_ref_timestamp)) {
+					_lpos_ref_timestamp = origin_time;
 					lpos.ref_timestamp = origin_time;
-					lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
-					lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
+					lpos.ref_lat = math::degrees(ekf_origin.lat_rad); // Reference point latitude in degrees
+					lpos.ref_lon = math::degrees(ekf_origin.lon_rad); // Reference point longitude in degrees
 				}
 
 				// The rotation of the tangent plane vs. geographical north
@@ -805,7 +810,8 @@ void Ekf2::Run()
 					_ekf.set_gnd_effect_flag(false);
 				}
 
-				_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
+				lpos.eph = eph;
+				lpos.epv = epv;
 				_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
 
 				// get state reset information of position and velocity
@@ -835,7 +841,7 @@ void Ekf2::Run()
 				}
 
 				// publish vehicle local position data
-				_vehicle_local_position_pub.update();
+				_vehicle_local_position_pub.publish(lpos);
 
 				publish_vehicle_odometry(lpos, imu_sample_new);
 
@@ -871,11 +877,11 @@ void Ekf2::Run()
 
 				if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
 					// generate and publish global position data
-					vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
+					vehicle_global_position_s global_pos{};
 
 					global_pos.timestamp = now;
 
-					if (fabsf(lpos_x_prev - lpos.x) > FLT_EPSILON || fabsf(lpos_y_prev - lpos.y) > FLT_EPSILON) {
+					if (fabsf(_lpos_x_prev - lpos.x) > FLT_EPSILON || fabsf(_lpos_y_prev - lpos.y) > FLT_EPSILON) {
 						map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &global_pos.lat, &global_pos.lon);
 					}
 
@@ -899,14 +905,11 @@ void Ekf2::Run()
 
 					if (global_pos.terrain_alt_valid) {
 						global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
-
-					} else {
-						global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
 					}
 
 					global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
 
-					_vehicle_global_position_pub.update();
+					_vehicle_global_position_pub.publish(global_pos);
 				}
 			}
 
@@ -951,8 +954,8 @@ void Ekf2::Run()
 							status.hgt_test_ratio, status.tas_test_ratio,
 							status.hagl_test_ratio, status.beta_test_ratio);
 
-			status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
-			status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
+			status.pos_horiz_accuracy = eph;
+			status.pos_vert_accuracy = epv;
 			_ekf.get_ekf_soln_status(&status.solution_status_flags);
 			_ekf.get_imu_vibe_metrics(status.vibe);
 			status.time_slip = _last_time_slip_us / 1e6f;
