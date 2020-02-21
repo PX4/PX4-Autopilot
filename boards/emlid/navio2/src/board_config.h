@@ -73,6 +73,7 @@
 // A4 - ADC2 (ADC port)
 // A5 - ADC3 (ADC port)
 #define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5)
+#define BOARD_ADC_POS_REF_V (4.096f)	// TODO: need confirmation
 
 #define ADC_BATTERY_VOLTAGE_CHANNEL  2
 #define ADC_BATTERY_CURRENT_CHANNEL  3
