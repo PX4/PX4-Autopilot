@@ -841,32 +841,7 @@ void Ekf2::Run()
 
 				// publish external visual odometry after fixed frame alignment if new odometry is received
 				if (new_ev_data_received) {
-					float q_ev2ekf[4];
-					_ekf.get_ev2ekf_quaternion(q_ev2ekf); // rotates from EV to EKF navigation frame
-					Quatf quat_ev2ekf(q_ev2ekf);
-					Dcmf ev_rot_mat(quat_ev2ekf);
-
-					vehicle_odometry_s aligned_ev_odom = ev_odom;
-
-					// Rotate external position and velocity into EKF navigation frame
-					Vector3f aligned_pos = ev_rot_mat * Vector3f(ev_odom.x, ev_odom.y, ev_odom.z);
-					aligned_ev_odom.x = aligned_pos(0);
-					aligned_ev_odom.y = aligned_pos(1);
-					aligned_ev_odom.z = aligned_pos(2);
-
-					Vector3f aligned_vel = ev_rot_mat * Vector3f(ev_odom.vx, ev_odom.vy, ev_odom.vz);
-					aligned_ev_odom.vx = aligned_vel(0);
-					aligned_ev_odom.vy = aligned_vel(1);
-					aligned_ev_odom.vz = aligned_vel(2);
-
-					// Compute orientation in EKF navigation frame
-					Quatf ev_quat_aligned = quat_ev2ekf * Quatf(ev_odom.q) ;
-					ev_quat_aligned.normalize();
-
-					ev_quat_aligned.copyTo(aligned_ev_odom.q);
-					quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
-
-					_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
+					publish_vehicle_odometry_aligned(ev_odom);
 				}
 
 				if (ekf_origin_valid) {
@@ -1298,6 +1273,36 @@ void Ekf2::publish_vehicle_odometry(const vehicle_local_position_s &lpos, const 
 
 	// publish vehicle odometry data
 	_vehicle_odometry_pub.publish(odom);
+}
+
+void Ekf2::publish_vehicle_odometry_aligned(const vehicle_odometry_s &ev_odom)
+{
+	float q_ev2ekf[4];
+	_ekf.get_ev2ekf_quaternion(q_ev2ekf); // rotates from EV to EKF navigation frame
+	const Quatf quat_ev2ekf(q_ev2ekf);
+	const Dcmf ev_rot_mat(quat_ev2ekf);
+
+	vehicle_odometry_s aligned_ev_odom = ev_odom;
+
+	// Rotate external position and velocity into EKF navigation frame
+	const Vector3f aligned_pos{ev_rot_mat * Vector3f(ev_odom.x, ev_odom.y, ev_odom.z)};
+	aligned_ev_odom.x = aligned_pos(0);
+	aligned_ev_odom.y = aligned_pos(1);
+	aligned_ev_odom.z = aligned_pos(2);
+
+	const Vector3f aligned_vel{ev_rot_mat * Vector3f(ev_odom.vx, ev_odom.vy, ev_odom.vz)};
+	aligned_ev_odom.vx = aligned_vel(0);
+	aligned_ev_odom.vy = aligned_vel(1);
+	aligned_ev_odom.vz = aligned_vel(2);
+
+	// Compute orientation in EKF navigation frame
+	Quatf ev_quat_aligned = quat_ev2ekf * Quatf(ev_odom.q) ;
+	ev_quat_aligned.normalize();
+
+	ev_quat_aligned.copyTo(aligned_ev_odom.q);
+	quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
+
+	_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 }
 
 bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)

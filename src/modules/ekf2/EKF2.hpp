@@ -135,6 +135,7 @@ private:
 	bool publish_attitude(const hrt_abstime &now);
 	void publish_vehicle_global_position(const vehicle_local_position_s &lpos);
 	void publish_vehicle_odometry(const vehicle_local_position_s &lpos, const imuSample &imu);
+	void publish_vehicle_odometry_aligned(const vehicle_odometry_s &ev_odom);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
 
 	/*
