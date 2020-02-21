@@ -129,14 +129,13 @@ private:
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
 
-	template<typename Param>
-	bool update_mag_decl(Param &mag_decl_param);
-
 	bool publish_attitude(const hrt_abstime &now);
 	void publish_vehicle_global_position(const vehicle_local_position_s &lpos);
 	void publish_vehicle_odometry(const vehicle_local_position_s &lpos, const imuSample &imu);
 	void publish_vehicle_odometry_aligned(const vehicle_odometry_s &ev_odom);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
+
+	void save_magnetometer_bias(const estimator_status_s &status, const filter_control_status_u &control_status);
 
 	/*
 	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical

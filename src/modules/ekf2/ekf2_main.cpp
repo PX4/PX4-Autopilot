@@ -219,21 +219,6 @@ void Ekf2::update_mag_bias(Param &mag_bias_param, int axis_index)
 	}
 }
 
-template<typename Param>
-bool Ekf2::update_mag_decl(Param &mag_decl_param)
-{
-	// update stored declination value
-	float declination_deg;
-
-	if (_ekf.get_mag_decl_deg(&declination_deg)) {
-		mag_decl_param.set(declination_deg);
-		mag_decl_param.commit_no_notification();
-		return true;
-	}
-
-	return false;
-}
-
 void Ekf2::Run()
 {
 	if (should_exit()) {
@@ -920,80 +905,9 @@ void Ekf2::Run()
 				_ekf_gps_drift_pub.publish(drift_data);
 			}
 
-			{
-				/* Check and save learned magnetometer bias estimates */
-
-				// Check if conditions are OK for learning of magnetometer bias values
-				if (!_vehicle_land_detected.landed && // not on ground
-				    (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
-				    !status.filter_fault_flags && // there are no filter faults
-				    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
-
-					if (_last_magcal_us == 0) {
-						_last_magcal_us = now;
-
-					} else {
-						_total_cal_time_us += now - _last_magcal_us;
-						_last_magcal_us = now;
-					}
-
-				} else if (status.filter_fault_flags != 0) {
-					// if a filter fault has occurred, assume previous learning was invalid and do not
-					// count it towards total learning time.
-					_total_cal_time_us = 0;
-
-					for (bool &cal_available : _valid_cal_available) {
-						cal_available = false;
-					}
-				}
-
-				// Start checking mag bias estimates when we have accumulated sufficient calibration time
-				if (_total_cal_time_us > 120_s) {
-					// we have sufficient accumulated valid flight time to form a reliable bias estimate
-					// check that the state variance for each axis is within a range indicating filter convergence
-					const float max_var_allowed = 100.0f * _param_ekf2_magb_vref.get();
-					const float min_var_allowed = 0.01f * _param_ekf2_magb_vref.get();
-
-					// Declare all bias estimates invalid if any variances are out of range
-					bool all_estimates_invalid = false;
-
-					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-						if (status.covariances[axis_index + 19] < min_var_allowed
-						    || status.covariances[axis_index + 19] > max_var_allowed) {
-							all_estimates_invalid = true;
-						}
-					}
-
-					// Store valid estimates and their associated variances
-					if (!all_estimates_invalid) {
-						for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-							_last_valid_mag_cal[axis_index] = status.states[axis_index + 19];
-							_valid_cal_available[axis_index] = true;
-							_last_valid_variance[axis_index] = status.covariances[axis_index + 19];
-						}
-					}
-				}
-
-				// Check and save the last valid calibration when we are disarmed
-				if ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-				    && (status.filter_fault_flags == 0)
-				    && (_sensor_selection.mag_device_id == (uint32_t)_param_ekf2_magbias_id.get())) {
-
-					update_mag_bias(_param_ekf2_magbias_x, 0);
-					update_mag_bias(_param_ekf2_magbias_y, 1);
-					update_mag_bias(_param_ekf2_magbias_z, 2);
-
-					// reset to prevent data being saved too frequently
-					_total_cal_time_us = 0;
-				}
-
-			}
+			save_magnetometer_bias(status, control_status);
 
 			publish_wind_estimate(now);
-
-			if (!_mag_decl_saved && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
-				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
-			}
 
 			{
 				// publish estimator innovation data
@@ -1331,6 +1245,89 @@ bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 	}
 
 	return false;
+}
+
+void Ekf2::save_magnetometer_bias(const estimator_status_s &status, const filter_control_status_u &control_status)
+{
+	/* Check and save learned magnetometer bias estimates */
+
+	// Check if conditions are OK for learning of magnetometer bias values
+	if (!_vehicle_land_detected.landed && // not on ground
+	    (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
+	    !status.filter_fault_flags && // there are no filter faults
+	    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
+
+		if (_last_magcal_us == 0) {
+			_last_magcal_us = status.timestamp;
+
+		} else {
+			_total_cal_time_us += status.timestamp - _last_magcal_us;
+			_last_magcal_us = status.timestamp;
+		}
+
+	} else if (status.filter_fault_flags != 0) {
+		// if a filter fault has occurred, assume previous learning was invalid and do not
+		// count it towards total learning time.
+		_total_cal_time_us = 0;
+
+		for (bool &cal_available : _valid_cal_available) {
+			cal_available = false;
+		}
+	}
+
+	// Start checking mag bias estimates when we have accumulated sufficient calibration time
+	if (_total_cal_time_us > 120_s) {
+		// we have sufficient accumulated valid flight time to form a reliable bias estimate
+		// check that the state variance for each axis is within a range indicating filter convergence
+		const float max_var_allowed = 100.0f * _param_ekf2_magb_vref.get();
+		const float min_var_allowed = 0.01f * _param_ekf2_magb_vref.get();
+
+		// Declare all bias estimates invalid if any variances are out of range
+		bool all_estimates_invalid = false;
+
+		for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
+			if (status.covariances[axis_index + 19] < min_var_allowed
+			    || status.covariances[axis_index + 19] > max_var_allowed) {
+				all_estimates_invalid = true;
+			}
+		}
+
+		// Store valid estimates and their associated variances
+		if (!all_estimates_invalid) {
+			for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
+				_last_valid_mag_cal[axis_index] = status.states[axis_index + 19];
+				_valid_cal_available[axis_index] = true;
+				_last_valid_variance[axis_index] = status.covariances[axis_index + 19];
+			}
+		}
+	}
+
+	// Check and save the last valid calibration when we are disarmed
+	if ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+	    && (status.filter_fault_flags == 0)
+	    && (_sensor_selection.mag_device_id == (uint32_t)_param_ekf2_magbias_id.get())) {
+
+		update_mag_bias(_param_ekf2_magbias_x, 0);
+		update_mag_bias(_param_ekf2_magbias_y, 1);
+		update_mag_bias(_param_ekf2_magbias_z, 2);
+
+		// reset to prevent data being saved too frequently
+		_total_cal_time_us = 0;
+	}
+
+	if (!_mag_decl_saved && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
+		// update stored declination value
+		float declination_deg;
+
+		if (_ekf.get_mag_decl_deg(&declination_deg)) {
+			_param_ekf2_mag_decl.set(declination_deg);
+			_param_ekf2_mag_decl.commit_no_notification();
+			_mag_decl_saved = true;
+
+		} else {
+			_mag_decl_saved = false;
+		}
+	}
 }
 
 bool Ekf2::blend_gps_data()
