@@ -57,7 +57,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
 
@@ -108,7 +108,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensors_sub{this, ORB_ID(sensor_combined)};
 
 	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription		_global_pos_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription		_gps_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription		_vision_odom_sub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Subscription		_mocap_odom_sub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Subscription		_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
@@ -299,29 +299,29 @@ AttitudeEstimatorQ::Run()
 			}
 		}
 
-		if (_global_pos_sub.updated()) {
-			vehicle_global_position_s gpos;
+		if (_gps_sub.updated()) {
+			vehicle_gps_position_s gps;
 
-			if (_global_pos_sub.copy(&gpos)) {
-				if (_param_att_mag_decl_a.get() && gpos.eph < 20.0f && hrt_elapsed_time(&gpos.timestamp) < 1_s) {
+			if (_gps_sub.copy(&gps)) {
+				if (_param_att_mag_decl_a.get() && gps.eph < 20.0f && hrt_elapsed_time(&gps.timestamp) < 1_s) {
 					/* set magnetic declination automatically */
-					update_mag_declination(math::radians(get_mag_declination(gpos.lat, gpos.lon)));
+					update_mag_declination(math::radians(get_mag_declination(gps.lat, gps.lon)));
 				}
 
-				if (_param_att_acc_comp.get() && gpos.timestamp != 0 && hrt_absolute_time() < gpos.timestamp + 20000 && gpos.eph < 5.0f
+				if (_param_att_acc_comp.get() && gps.timestamp != 0 && hrt_absolute_time() < gps.timestamp + 20000 && gps.eph < 5.0f
 				    && _inited) {
 
 					/* position data is actual */
-					Vector3f vel(gpos.vel_n, gpos.vel_e, gpos.vel_d);
+					Vector3f vel(gps.vel_n_m_s, gps.vel_e_m_s, gps.vel_d_m_s);
 
 					/* velocity updated */
-					if (_vel_prev_t != 0 && gpos.timestamp != _vel_prev_t) {
-						float vel_dt = (gpos.timestamp - _vel_prev_t) / 1e6f;
+					if (_vel_prev_t != 0 && gps.timestamp != _vel_prev_t) {
+						float vel_dt = (gps.timestamp - _vel_prev_t) / 1e6f;
 						/* calculate acceleration in body frame */
 						_pos_acc = _q.conjugate_inversed((vel - _vel_prev) / vel_dt);
 					}
 
-					_vel_prev_t = gpos.timestamp;
+					_vel_prev_t = gps.timestamp;
 					_vel_prev = vel;
 
 				} else {

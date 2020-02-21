@@ -1921,7 +1921,7 @@ public:
 private:
 	MavlinkOrbSubscription *_local_pos_sub;
 	uint64_t _local_pos_time = 0;
-	vehicle_local_position_s _local_position   = {};
+	vehicle_local_position_s _local_position = {};
 
 	MavlinkOrbSubscription *_global_pos_sub;
 	uint64_t _global_pos_time = 0;

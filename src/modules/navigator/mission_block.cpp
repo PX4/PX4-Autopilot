@@ -336,10 +336,10 @@ MissionBlock::is_mission_item_reached()
 
 			/* check course if defined only for rotary wing except takeoff */
 			float cog = (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) ?
-				    _navigator->get_global_position()->yaw :
+				    _navigator->get_local_position()->yaw :
 				    atan2f(
-					    _navigator->get_global_position()->vel_e,
-					    _navigator->get_global_position()->vel_n
+					    _navigator->get_local_position()->vy,
+					    _navigator->get_local_position()->vx
 				    );
 
 			float yaw_err = wrap_pi(_mission_item.yaw - cog);
@@ -642,7 +642,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, 
 	/* use current position */
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
-	item->yaw = _navigator->get_global_position()->yaw;
+	item->yaw = _navigator->get_local_position()->yaw;
 
 	item->altitude = abs_altitude;
 	item->altitude_is_relative = false;
@@ -711,7 +711,7 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 {
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 	item->params[0] = (float) new_mode;
-	item->yaw = _navigator->get_global_position()->yaw;
+	item->yaw = _navigator->get_local_position()->yaw;
 	item->autocontinue = true;
 }
 

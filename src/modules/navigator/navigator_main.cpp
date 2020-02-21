@@ -309,7 +309,7 @@ Navigator::run()
 				position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
 				// store current position as previous position and goal as next
-				rep->previous.yaw = get_global_position()->yaw;
+				rep->previous.yaw = get_local_position()->yaw;
 				rep->previous.lat = get_global_position()->lat;
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;

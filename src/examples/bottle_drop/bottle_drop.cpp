@@ -61,6 +61,7 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
@@ -116,12 +117,13 @@ private:
 
 	int		_command_sub;
 	int		_wind_estimate_sub;
-	struct vehicle_command_s	_command;
-	struct vehicle_global_position_s _global_pos;
-	map_projection_reference_s ref;
+	vehicle_command_s	_command{};
+	vehicle_global_position_s _global_pos{};
+	vehicle_local_position_s _local_pos{};
+	map_projection_reference_s ref{};
 
-	orb_advert_t	_actuator_pub;
-	struct actuator_controls_s _actuators;
+	orb_advert_t	_actuator_pub{nullptr};
+	actuator_controls_s _actuators{};
 
 	bool		_drop_approval;
 	hrt_abstime	_doors_opened;
@@ -176,11 +178,7 @@ BottleDrop::BottleDrop() :
 	_mavlink_log_pub(nullptr),
 	_command_sub(-1),
 	_wind_estimate_sub(-1),
-	_command {},
-	_global_pos {},
-	ref {},
 	_actuator_pub(nullptr),
-	_actuators {},
 	_drop_approval(false),
 	_doors_opened(0),
 	_drop_time(0),
@@ -409,6 +407,7 @@ BottleDrop::task_main()
 	param_get(param_mass, &m);
 	param_get(param_surface, &A);
 
+	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	int vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
 	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
@@ -467,6 +466,13 @@ BottleDrop::task_main()
 			continue;
 		}
 
+		orb_check(vehicle_local_position_sub, &updated);
+
+		if (updated) {
+			/* copy local position */
+			orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &_local_pos);
+		}
+
 		const unsigned sleeptime_us = 9500;
 
 		hrt_abstime last_run = hrt_absolute_time();
@@ -511,7 +517,7 @@ BottleDrop::task_main()
 
 
 			float windspeed_norm = sqrtf(wind.windspeed_north * wind.windspeed_north + wind.windspeed_east * wind.windspeed_east);
-			float groundspeed_body = sqrtf(_global_pos.vel_n * _global_pos.vel_n + _global_pos.vel_e * _global_pos.vel_e);
+			float groundspeed_body = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
 			ground_distance = _global_pos.alt - _target_position.alt;
 
 			// Distance to drop position and angle error to approach vector
@@ -520,7 +526,7 @@ BottleDrop::task_main()
 				distance_real = fabsf(get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon, _drop_position.lat,
 						      _drop_position.lon));
 
-				float ground_direction = atan2f(_global_pos.vel_e, _global_pos.vel_n);
+				float ground_direction = atan2f(_local_pos.vx, _local_pos.vx);
 				float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
 							   flight_vector_e.lon);
 
@@ -667,8 +673,8 @@ BottleDrop::task_main()
 			case DROP_STATE_BAY_OPEN: {
 					if (_drop_approval) {
 						map_projection_project(&ref, _global_pos.lat, _global_pos.lon, &x_l, &y_l);
-						x_f = x_l + _global_pos.vel_n * dt_runs;
-						y_f = y_l + _global_pos.vel_e * dt_runs;
+						x_f = x_l + _local_pos.vx * dt_runs;
+						y_f = y_l + _local_pos.vy * dt_runs;
 						map_projection_reproject(&ref, x_f, y_f, &x_f_NED, &y_f_NED);
 						future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, _drop_position.lat, _drop_position.lon);
 
