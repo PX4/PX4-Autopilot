@@ -133,6 +133,7 @@ private:
 	bool update_mag_decl(Param &mag_decl_param);
 
 	bool publish_attitude(const hrt_abstime &now);
+	void publish_vehicle_global_position(const vehicle_local_position_s &lpos);
 	void publish_vehicle_odometry(const vehicle_local_position_s &lpos, const imuSample &imu);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
 
@@ -279,9 +280,13 @@ private:
 
 	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
 
-	uint64_t _lpos_ref_timestamp{0};
-	float _lpos_x_prev{0.f};
-	float _lpos_y_prev{0.f};
+	// Position of local NED origin in GPS / WGS84 frame
+	map_projection_reference_s _ekf_origin{};
+	uint64_t _ekf_origin_time{0};
+
+	float _gpos_x_prev{0.f};
+	float _gpos_y_prev{0.f};
+	float _gpos_z_prev{0.f};
 
 	Ekf _ekf;
 
