@@ -228,10 +228,6 @@ private:
 
 	bool _imu_bias_reset_request{false};
 
-	// republished aligned external visual odometry
-	bool new_ev_data_received = false;
-	vehicle_odometry_s _ev_odom{};
-
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
 	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
@@ -1092,31 +1088,29 @@ void Ekf2::Run()
 
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
-		new_ev_data_received = false;
+		bool new_ev_data_received = false;
+		vehicle_odometry_s ev_odom;
 
-		if (_ev_odom_sub.updated()) {
+		if (_ev_odom_sub.update(&ev_odom)) {
 			new_ev_data_received = true;
-
-			// copy both attitude & position, we need both to fill a single extVisionSample
-			_ev_odom_sub.copy(&_ev_odom);
-
 			extVisionSample ev_data {};
 
 			// check for valid velocity data
-			if (PX4_ISFINITE(_ev_odom.vx) && PX4_ISFINITE(_ev_odom.vy) && PX4_ISFINITE(_ev_odom.vz)) {
-				ev_data.vel(0) = _ev_odom.vx;
-				ev_data.vel(1) = _ev_odom.vy;
-				ev_data.vel(2) = _ev_odom.vz;
+			if (PX4_ISFINITE(ev_odom.vx) && PX4_ISFINITE(ev_odom.vy) && PX4_ISFINITE(ev_odom.vz)) {
+				ev_data.vel(0) = ev_odom.vx;
+				ev_data.vel(1) = ev_odom.vy;
+				ev_data.vel(2) = ev_odom.vz;
 
 				// velocity measurement error from ev_data or parameters
 				float param_evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
-				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])
-				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE])
-				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE])) {
-					ev_data.velVar(0) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE]);
-					ev_data.velVar(1) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE]);
-					ev_data.velVar(2) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]);
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])
+				    && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_VY_VARIANCE])
+				    && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE])) {
+
+					ev_data.velVar(0) = fmaxf(param_evv_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_VX_VARIANCE]);
+					ev_data.velVar(1) = fmaxf(param_evv_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_VY_VARIANCE]);
+					ev_data.velVar(2) = fmaxf(param_evv_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]);
 
 				} else {
 					ev_data.velVar.setAll(param_evv_noise_var);
@@ -1124,20 +1118,21 @@ void Ekf2::Run()
 			}
 
 			// check for valid position data
-			if (PX4_ISFINITE(_ev_odom.x) && PX4_ISFINITE(_ev_odom.y) && PX4_ISFINITE(_ev_odom.z)) {
-				ev_data.pos(0) = _ev_odom.x;
-				ev_data.pos(1) = _ev_odom.y;
-				ev_data.pos(2) = _ev_odom.z;
+			if (PX4_ISFINITE(ev_odom.x) && PX4_ISFINITE(ev_odom.y) && PX4_ISFINITE(ev_odom.z)) {
+				ev_data.pos(0) = ev_odom.x;
+				ev_data.pos(1) = ev_odom.y;
+				ev_data.pos(2) = ev_odom.z;
 
 				float param_evp_noise_var = sq(_param_ekf2_evp_noise.get());
 
 				// position measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])
-				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])
-				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Z_VARIANCE])) {
-					ev_data.posVar(0) = fmaxf(param_evp_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE]);
-					ev_data.posVar(1) = fmaxf(param_evp_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Y_VARIANCE]);
-					ev_data.posVar(2) = fmaxf(param_evp_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]);
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE])
+				    && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])
+				    && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE])) {
+
+					ev_data.posVar(0) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE]);
+					ev_data.posVar(1) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE]);
+					ev_data.posVar(2) = fmaxf(param_evp_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]);
 
 				} else {
 					ev_data.posVar.setAll(param_evp_noise_var);
@@ -1145,14 +1140,14 @@ void Ekf2::Run()
 			}
 
 			// check for valid orientation data
-			if (PX4_ISFINITE(_ev_odom.q[0])) {
-				ev_data.quat = matrix::Quatf(_ev_odom.q);
+			if (PX4_ISFINITE(ev_odom.q[0])) {
+				ev_data.quat = matrix::Quatf(ev_odom.q);
 
 				// orientation measurement error from ev_data or parameters
 				float param_eva_noise_var = sq(_param_ekf2_eva_noise.get());
 
-				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE])) {
-					ev_data.angVar = fmaxf(param_eva_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]);
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE])) {
+					ev_data.angVar = fmaxf(param_eva_noise_var, ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]);
 
 				} else {
 					ev_data.angVar = param_eva_noise_var;
@@ -1160,10 +1155,10 @@ void Ekf2::Run()
 			}
 
 			// use timestamp from external computer, clocks are synchronized when using MAVROS
-			ev_data.time_us = _ev_odom.timestamp;
+			ev_data.time_us = ev_odom.timestamp;
 			_ekf.setExtVisionData(ev_data);
 
-			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)_ev_odom.timestamp / 100 -
+			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
 					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
@@ -1346,21 +1341,21 @@ void Ekf2::Run()
 					Quatf quat_ev2ekf(q_ev2ekf);
 					Dcmf ev_rot_mat(quat_ev2ekf);
 
-					vehicle_odometry_s aligned_ev_odom = _ev_odom;
+					vehicle_odometry_s aligned_ev_odom = ev_odom;
 
 					// Rotate external position and velocity into EKF navigation frame
-					Vector3f aligned_pos = ev_rot_mat * Vector3f(_ev_odom.x, _ev_odom.y, _ev_odom.z);
+					Vector3f aligned_pos = ev_rot_mat * Vector3f(ev_odom.x, ev_odom.y, ev_odom.z);
 					aligned_ev_odom.x = aligned_pos(0);
 					aligned_ev_odom.y = aligned_pos(1);
 					aligned_ev_odom.z = aligned_pos(2);
 
-					Vector3f aligned_vel = ev_rot_mat * Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
+					Vector3f aligned_vel = ev_rot_mat * Vector3f(ev_odom.vx, ev_odom.vy, ev_odom.vz);
 					aligned_ev_odom.vx = aligned_vel(0);
 					aligned_ev_odom.vy = aligned_vel(1);
 					aligned_ev_odom.vz = aligned_vel(2);
 
 					// Compute orientation in EKF navigation frame
-					Quatf ev_quat_aligned = quat_ev2ekf * matrix::Quatf(_ev_odom.q) ;
+					Quatf ev_quat_aligned = quat_ev2ekf * Quatf(ev_odom.q) ;
 					ev_quat_aligned.normalize();
 
 					ev_quat_aligned.copyTo(aligned_ev_odom.q);
