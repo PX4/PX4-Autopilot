@@ -406,7 +406,7 @@ bool Ekf::realignYawGPS()
 		const float ekfCOG = atan2f(_state.vel(1), _state.vel(0));
 
 		// Check the EKF and GPS course over ground for consistency
-		const float courseYawError = gpsCOG - ekfCOG;
+		const float courseYawError = wrap_pi(gpsCOG - ekfCOG);
 
 		// If the angles disagree and horizontal GPS velocity innovations are large or no previous yaw alignment, we declare the magnetic yaw as bad
 		const bool badYawErr = fabsf(courseYawError) > 0.5f;
