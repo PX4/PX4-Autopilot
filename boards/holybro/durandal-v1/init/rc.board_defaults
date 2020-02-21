@@ -22,10 +22,6 @@ then
 fi
 unset BL_FILE
 
-if [ $AUTOCNF = yes ]
-then
-	# Enable IMU thermal control
-	param set SENS_EN_THERMAL 1
-fi
+param import-as-default /etc/init.d/board_params
 
 set LOGGER_BUF 64

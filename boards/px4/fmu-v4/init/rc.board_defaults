@@ -4,12 +4,6 @@
 #------------------------------------------------------------------------------
 
 
-if [ $AUTOCNF = yes ]
-then
-	# Disable safety switch by default
-	param set CBRK_IO_SAFETY 22027
-
-fi
+param import-as-default /etc/init.d/board_params
 
 safety_button start
-

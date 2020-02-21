@@ -4,9 +4,6 @@
 #------------------------------------------------------------------------------
 
 
-if [ $AUTOCNF = yes ]
-then
-
-fi
+param import-as-default /etc/init.d/board_params
 
 set LOGGER_BUF 64

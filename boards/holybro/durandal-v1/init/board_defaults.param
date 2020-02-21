@@ -1,0 +1,2 @@
+# Enable IMU thermal control
+SENS_EN_THERMAL 1

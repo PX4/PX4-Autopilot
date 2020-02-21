@@ -10,18 +10,6 @@ then
 	set AUTOCNF yes
 fi
 
-if [ $AUTOCNF = yes ]
-then
-	# use the Q attitude estimator, it works w/o mag or GPS.
-	param set SYS_MC_EST_GROUP 3
-	param set ATT_ACC_COMP 0
-	param set ATT_W_ACC 0.4000
-	param set ATT_W_GYRO_BIAS 0.0000
-
-	param set SYS_HAS_MAG 0
-
-	# the startup tune is not great on a binary output buzzer, so disable it
-	param set CBRK_BUZZER 782090
-fi
+param import-as-default /etc/init.d/board_params
 
 set LOGGER_BUF 30

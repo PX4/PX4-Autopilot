@@ -1,0 +1,2 @@
+# Disable safety switch by default
+param set CBRK_IO_SAFETY 22027

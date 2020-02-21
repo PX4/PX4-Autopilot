@@ -1,0 +1,10 @@
+# Disable safety switch by default
+CBRK_IO_SAFETY 22027
+
+# use the Q attitude estimator, it works w/o mag or GPS.
+SYS_MC_EST_GROUP 3
+ATT_ACC_COMP 0
+ATT_W_ACC 0.4000
+ATT_W_GYRO_BIAS 0.0000
+
+SYS_HAS_MAG 0
