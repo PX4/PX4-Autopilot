@@ -83,7 +83,7 @@ enum class COMPARE_ERROR_LEVEL {
 static int 	do_save(const char *param_file_name);
 static int	do_save_default();
 static int 	do_load(const char *param_file_name);
-static int	do_import(const char *param_file_name);
+static int	do_import(const char *param_file_name, bool set_as_config_default = false);
 static int	do_show(const char *search_string, bool only_changed);
 static int	do_show_all();
 static int	do_show_quiet(const char *param_name);
@@ -211,6 +211,12 @@ param_main(int argc, char *argv[])
 
 			} else {
 				return do_import(param_get_default_file());
+			}
+		}
+
+		if (!strcmp(argv[1], "import-as-default")) {
+			if (argc >= 3) {
+				return do_import(argv[2], true);
 			}
 		}
 
@@ -418,7 +424,7 @@ do_load(const char *param_file_name)
 }
 
 static int
-do_import(const char *param_file_name)
+do_import(const char *param_file_name, bool import_as_default)
 {
 	int fd = -1;
 	if (param_file_name) { // passing NULL means to select the flash storage
@@ -430,7 +436,7 @@ do_import(const char *param_file_name)
 		}
 	}
 
-	int result = param_import(fd);
+	int result = param_import(fd, import_as_default);
 	if (fd >= 0) {
 		close(fd);
 	}
