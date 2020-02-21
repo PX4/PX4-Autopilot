@@ -66,13 +66,13 @@ public:
 
 	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
 
-	void getGpsVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos) override;
+	void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) override;
 
-	void getEvVelPosInnov(float hvel[2], float& vvel, float hpos[2], float& vpos) override;
+	void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
 
 	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
 
-	void getEvVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos) override;
+	void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) override;
 
 	void getBaroHgtInnov(float &baro_hgt_innov) override;
 
@@ -147,7 +147,7 @@ public:
 	void get_true_airspeed(float *tas) override;
 
 	// get the full covariance matrix
-	matrix::SquareMatrix<float, 24> covariances() const { return P; }
+	const matrix::SquareMatrix<float, 24> &covariances() const { return P; }
 
 	// get the diagonal elements of the covariance matrix
 	matrix::Vector<float, 24> covariances_diagonal() const { return P.diag(); }
@@ -563,17 +563,17 @@ private:
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
 
-	bool fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate,
-				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio);
+	bool fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+				    Vector3f &innov_var, Vector2f &test_ratio);
 
-	bool fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate,
-				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio);
+	bool fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+				  Vector3f &innov_var, Vector2f &test_ratio);
 
-	bool fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate,
-				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio);
+	bool fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+				    Vector3f &innov_var, Vector2f &test_ratio);
 
-	bool fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate,
-				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio);
+	bool fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+				  Vector3f &innov_var, Vector2f &test_ratio);
 
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable
@@ -594,7 +594,7 @@ private:
 
 	// reset the heading and magnetic field states using the declination and magnetometer/external vision measurements
 	// return true if successful
-	bool resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var = true, bool update_buffer=true);
+	bool resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var = true, bool update_buffer = true);
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
@@ -784,7 +784,7 @@ private:
 
 	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
 	// sensor measurement
-	float calculate_synthetic_mag_z_measurement(const Vector3f& mag_meas, const Vector3f& mag_earth_predicted);
+	float calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const Vector3f &mag_earth_predicted);
 
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
 	{
