@@ -121,9 +121,7 @@ private:
 	void fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data);
 
 	PreFlightChecker _preflt_checker;
-	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
-				const vehicle_status_s &vehicle_status,
-				const estimator_innovations_s &innov);
+	void runPreFlightChecks(float dt, const filter_control_status_u &control_status, const estimator_innovations_s &innov);
 	void resetPreFlightChecks();
 
 	template<typename Param>
@@ -265,7 +263,9 @@ private:
 
 	sensor_selection_s		_sensor_selection{};
 	vehicle_land_detected_s		_vehicle_land_detected{};
-	vehicle_status_s		_vehicle_status{};
+
+	uint8_t _arming_state{vehicle_status_s::ARMING_STATE_INIT};
+	bool _can_observe_heading_in_flight{false};
 
 	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
