@@ -133,7 +133,7 @@ private:
 	void publish_vehicle_global_position(const vehicle_local_position_s &lpos);
 	void publish_vehicle_odometry(const vehicle_local_position_s &lpos, const imuSample &imu);
 	void publish_vehicle_odometry_aligned(const vehicle_odometry_s &ev_odom);
-	bool publish_wind_estimate(const hrt_abstime &timestamp);
+	void publish_wind_estimate(const hrt_abstime &timestamp);
 	void publish_innovations(const hrt_abstime &now, estimator_innovations_s &innovations);
 	void publish_innovation_variances(const hrt_abstime &now);
 	void publish_innovation_test_ratios(const hrt_abstime &now);

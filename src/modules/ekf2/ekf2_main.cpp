@@ -1152,7 +1152,7 @@ void Ekf2::publish_vehicle_odometry_aligned(const vehicle_odometry_s &ev_odom)
 	_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 }
 
-bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
+void Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
 		// Publish wind estimate only if ekf declares them valid
@@ -1173,11 +1173,7 @@ bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 
 		_wind_pub.publish(wind_estimate);
-
-		return true;
 	}
-
-	return false;
 }
 
 void Ekf2::publish_innovations(const hrt_abstime &now, estimator_innovations_s &innovations)
