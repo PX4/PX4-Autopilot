@@ -116,7 +116,7 @@ class TestHadrwareMethods(unittest.TestCase):
         else:
             print("some run_test.py Tests failed"); #TODO: show which test pass or failed
 
-        assertTrue(success)
+        self.assertTrue(success)
 
         return success
 
