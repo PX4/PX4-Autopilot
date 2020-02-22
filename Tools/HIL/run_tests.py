@@ -114,7 +114,7 @@ def main():
     else:
         print("some run_test.py Tests failed"); #TODO: show which test pass or failed
 
-    self.assertEqual(success, True)
+    assertEqual(success, False)
 
     return success
 
