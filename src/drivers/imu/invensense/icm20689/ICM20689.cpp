@@ -42,11 +42,6 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
-{
-	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
-}
-
 ICM20689::ICM20689(int bus, uint32_t device, enum Rotation rotation) :
 	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
@@ -54,8 +49,11 @@ ICM20689::ICM20689(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_gyro(get_device_id(), ORB_PRIO_VERY_HIGH, rotation)
 {
 	set_device_type(DRV_ACC_DEVTYPE_ICM20689);
+
 	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20689);
 	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20689);
+
+	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
 
 ICM20689::~ICM20689()
@@ -75,38 +73,6 @@ ICM20689::~ICM20689()
 	perf_free(_drdy_interval_perf);
 }
 
-void ICM20689::ConfigureSampleRate(int sample_rate)
-{
-	if (sample_rate == 0) {
-		sample_rate = 1000; // default to 1 kHz
-	}
-
-	sample_rate = math::constrain(sample_rate, 250, 2000); // limit 250 - 2000 Hz
-
-	_fifo_empty_interval_us = math::max(((1000000 / sample_rate) / 250) * 250, 500); // round down to nearest 250 us
-	_fifo_gyro_samples = math::min(_fifo_empty_interval_us / (1000000 / GYRO_RATE), FIFO_MAX_SAMPLES);
-
-	// recompute FIFO empty interval (us) with actual gyro sample limit
-	_fifo_empty_interval_us = _fifo_gyro_samples * (1000000 / GYRO_RATE);
-
-	_fifo_accel_samples = math::min(_fifo_empty_interval_us / (1000000 / ACCEL_RATE), FIFO_MAX_SAMPLES);
-
-	_px4_accel.set_update_rate(1000000 / _fifo_empty_interval_us);
-	_px4_gyro.set_update_rate(1000000 / _fifo_empty_interval_us);
-}
-
-int ICM20689::probe()
-{
-	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
-
-	if (whoami != WHOAMI) {
-		PX4_WARN("unexpected WHO_AM_I 0x%02x", whoami);
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
-}
-
 bool ICM20689::Init()
 {
 	if (SPI::init() != PX4_OK) {
@@ -122,33 +88,199 @@ bool ICM20689::Init()
 		return false;
 	}
 
-	if (!Reset()) {
-		PX4_ERR("reset failed");
-		return false;
+	return Reset();
+}
+
+void ICM20689::Stop()
+{
+	// wait until stopped
+	while (_state.load() != STATE::STOPPED) {
+		_state.store(STATE::REQUEST_STOP);
+		ScheduleNow();
+		px4_usleep(10);
 	}
-
-	Start();
-
-	return true;
 }
 
 bool ICM20689::Reset()
 {
-	// PWR_MGMT_1: Device Reset
-	RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
+	_state.store(STATE::RESET);
+	ScheduleClear();
+	ScheduleNow();
+	return true;
+}
 
-	for (int i = 0; i < 10; i++) {
-		// The reset value is 0x00 for all registers other than the registers below
-		//  Document Number: RM-000030 Page 5 of 23
-		if ((RegisterRead(Register::WHO_AM_I) == WHOAMI)
-		    && (RegisterRead(Register::PWR_MGMT_1) == 0x40)) {
-			return true;
-		}
+void ICM20689::PrintInfo()
+{
+	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us,
+		 static_cast<double>(1000000 / _fifo_empty_interval_us));
 
-		usleep(1);
+	perf_print_counter(_transfer_perf);
+	perf_print_counter(_bad_register_perf);
+	perf_print_counter(_bad_transfer_perf);
+	perf_print_counter(_fifo_empty_perf);
+	perf_print_counter(_fifo_overflow_perf);
+	perf_print_counter(_fifo_reset_perf);
+	perf_print_counter(_drdy_interval_perf);
+
+	_px4_accel.print_status();
+	_px4_gyro.print_status();
+}
+
+int ICM20689::probe()
+{
+	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
+
+	if (whoami != WHOAMI) {
+		PX4_WARN("unexpected WHO_AM_I 0x%02x", whoami);
+		return PX4_ERROR;
 	}
 
-	return false;
+	return PX4_OK;
+}
+
+void ICM20689::Run()
+{
+	switch (_state.load()) {
+	case STATE::RESET:
+		// PWR_MGMT_1: Device Reset
+		RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
+		_reset_timestamp = hrt_absolute_time();
+		_state.store(STATE::WAIT_FOR_RESET);
+		ScheduleDelayed(100);
+		break;
+
+	case STATE::WAIT_FOR_RESET:
+
+		// The reset value is 0x00 for all registers other than the registers below
+		//  Document Number: DS-000114 Page Page 35 of 53
+		if ((RegisterRead(Register::WHO_AM_I) == WHOAMI)
+		    && (RegisterRead(Register::PWR_MGMT_1) == 0x40)) {
+
+			// if reset succeeded then configure
+			_state.store(STATE::CONFIGURE);
+			ScheduleNow();
+
+		} else {
+			// RESET not complete
+			if (hrt_elapsed_time(&_reset_timestamp) > 10_ms) {
+				PX4_ERR("Reset failed, retrying");
+				_state.store(STATE::RESET);
+				ScheduleDelayed(10_ms);
+
+			} else {
+				PX4_DEBUG("Reset not complete, check again in 1 ms");
+				ScheduleDelayed(1_ms);
+			}
+		}
+
+		break;
+
+	case STATE::CONFIGURE:
+		if (Configure()) {
+			// if configure succeeded then start reading from FIFO
+			_state.store(STATE::FIFO_READ);
+
+			if (DataReadyInterruptConfigure()) {
+				_data_ready_interrupt_enabled = true;
+
+				// backup schedule as a watchdog timeout
+				ScheduleDelayed(10_ms);
+
+			} else {
+				_data_ready_interrupt_enabled = false;
+				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+			}
+
+			FIFOReset();
+
+		} else {
+			PX4_DEBUG("Configure failed, retrying");
+			// try again in 1 ms
+			ScheduleDelayed(1_ms);
+		}
+
+		break;
+
+	case STATE::FIFO_READ: {
+			hrt_abstime timestamp_sample = 0;
+			uint8_t samples = 0;
+
+			if (_data_ready_interrupt_enabled) {
+				// re-schedule as watchdog timeout
+				ScheduleDelayed(10_ms);
+
+				// timestamp set in data ready interrupt
+				samples = _fifo_read_samples.load();
+				timestamp_sample = _fifo_watermark_interrupt_timestamp;
+			}
+
+			bool failure = false;
+
+			// manually check FIFO count if no samples from DRDY or timestamp looks bogus
+			if (!_data_ready_interrupt_enabled || (samples == 0)
+			    || (hrt_elapsed_time(&timestamp_sample) > (_fifo_empty_interval_us / 2))) {
+
+				// use the time now roughly corresponding with the last sample we'll pull from the FIFO
+				timestamp_sample = hrt_absolute_time();
+				const uint16_t fifo_count = FIFOReadCount();
+
+				if (fifo_count == 0) {
+					failure = true;
+					perf_count(_fifo_empty_perf);
+				}
+
+				samples = (fifo_count / sizeof(FIFO::DATA) / 2) * 2; // round down to nearest 2
+			}
+
+			if (samples > FIFO_MAX_SAMPLES) {
+				// not technically an overflow, but more samples than we expected or can publish
+				perf_count(_fifo_overflow_perf);
+				failure = true;
+				FIFOReset();
+
+			} else if (samples >= 2) {
+				// require at least 2 samples (we want at least 1 new accel sample per transfer)
+				if (!FIFORead(timestamp_sample, samples)) {
+					failure = true;
+					_px4_accel.increase_error_count();
+					_px4_gyro.increase_error_count();
+				}
+			}
+
+			if (failure || hrt_elapsed_time(&_last_config_check_timestamp) > 10_ms) {
+				// check registers incrementally
+				if (RegisterCheck(_register_cfg[_checked_register], true)) {
+					_last_config_check_timestamp = timestamp_sample;
+					_checked_register = (_checked_register + 1) % size_register_cfg;
+
+				} else {
+					// register check failed, force reconfigure
+					PX4_DEBUG("Health check failed, reconfiguring");
+					_state.store(STATE::CONFIGURE);
+					ScheduleNow();
+				}
+
+			} else {
+				// periodically update temperature (1 Hz)
+				if (hrt_elapsed_time(&_temperature_update_timestamp) > 1_s) {
+					UpdateTemperature();
+					_temperature_update_timestamp = timestamp_sample;
+				}
+			}
+		}
+
+		break;
+
+	case STATE::REQUEST_STOP:
+		DataReadyInterruptDisable();
+		ScheduleClear();
+		_state.store(STATE::STOPPED);
+		break;
+
+	case STATE::STOPPED:
+		// DO NOTHING
+		break;
+	}
 }
 
 void ICM20689::ConfigureAccel()
@@ -180,9 +312,9 @@ void ICM20689::ConfigureAccel()
 
 void ICM20689::ConfigureGyro()
 {
-	const uint8_t GYRO_FS_SEL = RegisterRead(Register::GYRO_CONFIG) & (Bit4 | Bit3); // [4:3] GYRO_FS_SEL[1:0]
+	const uint8_t FS_SEL = RegisterRead(Register::GYRO_CONFIG) & (Bit4 | Bit3); // [4:3] FS_SEL[1:0]
 
-	switch (GYRO_FS_SEL) {
+	switch (FS_SEL) {
 	case FS_SEL_250_DPS:
 		_px4_gyro.set_scale(math::radians(1.0f / 131.f));
 		_px4_gyro.set_range(math::radians(250.f));
@@ -205,57 +337,98 @@ void ICM20689::ConfigureGyro()
 	}
 }
 
-void ICM20689::ResetFIFO()
+void ICM20689::ConfigureSampleRate(int sample_rate)
 {
-	perf_count(_fifo_reset_perf);
+	if (sample_rate == 0) {
+		sample_rate = 1000; // default to 1 kHz
+	}
 
-	// USER_CTRL: disable FIFO and reset all signal paths
-	RegisterSetAndClearBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_RST | USER_CTRL_BIT::SIG_COND_RST,
-				USER_CTRL_BIT::FIFO_EN);
+	_fifo_empty_interval_us = math::max(((1000000 / sample_rate) / 250) * 250, 250); // round down to nearest 250 us
+	_fifo_gyro_samples = math::min(_fifo_empty_interval_us / (1000000 / GYRO_RATE), FIFO_MAX_SAMPLES);
 
-	_data_ready_count.store(0);
+	// recompute FIFO empty interval (us) with actual gyro sample limit
+	_fifo_empty_interval_us = _fifo_gyro_samples * (1000000 / GYRO_RATE);
 
-	// FIFO_EN: enable both gyro and accel
-	RegisterWrite(Register::FIFO_EN, FIFO_EN_BIT::XG_FIFO_EN | FIFO_EN_BIT::YG_FIFO_EN | FIFO_EN_BIT::ZG_FIFO_EN |
-		      FIFO_EN_BIT::ACCEL_FIFO_EN);
+	_fifo_accel_samples = math::min(_fifo_empty_interval_us / (1000000 / ACCEL_RATE), FIFO_MAX_SAMPLES);
 
-	// USER_CTRL: re-enable FIFO
-	RegisterSetAndClearBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_EN,
-				USER_CTRL_BIT::FIFO_RST | USER_CTRL_BIT::SIG_COND_RST);
+	_px4_accel.set_update_rate(1000000 / _fifo_empty_interval_us);
+	_px4_gyro.set_update_rate(1000000 / _fifo_empty_interval_us);
 }
 
-bool ICM20689::Configure(bool notify)
+bool ICM20689::Configure()
 {
 	bool success = true;
 
 	for (const auto &reg : _register_cfg) {
-		if (!CheckRegister(reg, notify)) {
+		if (!RegisterCheck(reg)) {
 			success = false;
 		}
 	}
 
+	ConfigureAccel();
+	ConfigureGyro();
+
 	return success;
 }
 
-bool ICM20689::CheckRegister(const register_config_t &reg_cfg, bool notify)
+int ICM20689::DataReadyInterruptCallback(int irq, void *context, void *arg)
+{
+	static_cast<ICM20689 *>(arg)->DataReady();
+	return 0;
+}
+
+void ICM20689::DataReady()
+{
+	if (_data_ready_count.fetch_add(1) >= (_fifo_gyro_samples - 1)) {
+		_data_ready_count.store(0);
+		_fifo_watermark_interrupt_timestamp = hrt_absolute_time();
+		_fifo_read_samples.store(_fifo_gyro_samples);
+		ScheduleNow();
+	}
+
+	perf_count(_drdy_interval_perf);
+}
+
+bool ICM20689::DataReadyInterruptConfigure()
+{
+	int ret_setevent = -1;
+
+	// Setup data ready on rising edge
+	// TODO: cleanup horrible DRDY define mess
+#if defined(GPIO_SPI1_DRDY1_ICM20689)
+	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20689, true, false, true, &ICM20689::DataReadyInterruptCallback,
+					     this);
+#endif
+
+	return (ret_setevent == 0);
+}
+
+bool ICM20689::DataReadyInterruptDisable()
+{
+	int ret_setevent = -1;
+
+	// Disable data ready callback
+	// TODO: cleanup horrible DRDY define mess
+#if defined(GPIO_SPI1_DRDY1_ICM20689)
+	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20689, false, false, false, nullptr, nullptr);
+#endif
+
+	return (ret_setevent == 0);
+}
+
+bool ICM20689::RegisterCheck(const register_config_t &reg_cfg, bool notify)
 {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
 
 	if (reg_cfg.set_bits && !(reg_value & reg_cfg.set_bits)) {
-		if (notify) {
-			PX4_ERR("0x%02hhX: 0x%02hhX (0x%02hhX not set)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.set_bits);
-		}
-
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not set)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.set_bits);
 		success = false;
 	}
 
 	if (reg_cfg.clear_bits && (reg_value & reg_cfg.clear_bits)) {
-		if (notify) {
-			PX4_ERR("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
-		}
-
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
 		success = false;
 	}
 
@@ -271,6 +444,8 @@ bool ICM20689::CheckRegister(const register_config_t &reg_cfg, bool notify)
 
 		if (notify) {
 			perf_count(_bad_register_perf);
+			_px4_accel.increase_error_count();
+			_px4_gyro.increase_error_count();
 		}
 	}
 
@@ -317,124 +492,22 @@ void ICM20689::RegisterClearBits(Register reg, uint8_t clearbits)
 	RegisterSetAndClearBits(reg, 0, clearbits);
 }
 
-int ICM20689::DataReadyInterruptCallback(int irq, void *context, void *arg)
+uint16_t ICM20689::FIFOReadCount()
 {
-	ICM20689 *dev = reinterpret_cast<ICM20689 *>(arg);
-	dev->DataReady();
-	return 0;
-}
-
-void ICM20689::DataReady()
-{
-	perf_count(_drdy_interval_perf);
-
-	if (_data_ready_count.fetch_add(1) >= (_fifo_gyro_samples - 1)) {
-		// make another measurement
-		ScheduleNow();
-		_data_ready_count.store(0);
-	}
-}
-
-void ICM20689::Start()
-{
-	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
-
-	// attempt to configure 3 times
-	for (int i = 0; i < 3; i++) {
-		if (Configure(false)) {
-			break;
-		}
-	}
-
-	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_SPI1_DRDY1_ICM20689)
-	_using_data_ready_interrupt_enabled = true;
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20689, true, false, true, &ICM20689::DataReadyInterruptCallback, this);
-#else
-	_using_data_ready_interrupt_enabled = false;
-	ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
-#endif
-
-	ResetFIFO();
-
-	// schedule as watchdog
-	if (_using_data_ready_interrupt_enabled) {
-		ScheduleDelayed(100_ms);
-	}
-}
-
-void ICM20689::Stop()
-{
-	Reset();
-
-	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_SPI1_DRDY1_ICM20689)
-	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20689, false, false, false, nullptr, nullptr);
-#endif
-
-	ScheduleClear();
-}
-
-void ICM20689::Run()
-{
-	// use the time now roughly corresponding with the last sample we'll pull from the FIFO
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
-
 	// read FIFO count
 	uint8_t fifo_count_buf[3] {};
 	fifo_count_buf[0] = static_cast<uint8_t>(Register::FIFO_COUNTH) | DIR_READ;
 
 	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
+		return 0;
 	}
 
-	if (_using_data_ready_interrupt_enabled) {
-		// re-schedule as watchdog
-		ScheduleDelayed(100_ms);
-	}
+	return combine(fifo_count_buf[1], fifo_count_buf[2]);
+}
 
-	// check registers
-	if (hrt_elapsed_time(&_last_config_check) > 100_ms) {
-		_checked_register = (_checked_register + 1) % size_register_cfg;
-
-		if (CheckRegister(_register_cfg[_checked_register])) {
-			// delay next register check if current succeeded
-			_last_config_check = hrt_absolute_time();
-
-		} else {
-			// if register check failed reconfigure all
-			Configure();
-			ResetFIFO();
-			return;
-		}
-	}
-
-	// FIFO_COUNTH (FIFO_COUNT[12:8]) + FIFO_COUNTL (FIFO_COUNT[7:0])
-	const uint16_t fifo_count = combine(fifo_count_buf[1] & 0x1F, fifo_count_buf[2]);
-	const uint8_t samples = (fifo_count / sizeof(FIFO::DATA) / 2) * 2; // round down to nearest 2
-
-	if (samples < 2) {
-		perf_count(_fifo_empty_perf);
-		return;
-
-	} else if (samples > FIFO_MAX_SAMPLES) {
-		// not technically an overflow, but more samples than we expected or can publish
-		perf_count(_fifo_overflow_perf);
-		ResetFIFO();
-
-		return;
-	}
-
-	// Transfer data
-	struct TransferBuffer {
-		uint8_t cmd;
-		FIFO::DATA f[FIFO_MAX_SAMPLES];
-	};
-	// ensure no struct padding
-	static_assert(sizeof(TransferBuffer) == (sizeof(uint8_t) + FIFO_MAX_SAMPLES * sizeof(FIFO::DATA)));
-
+bool ICM20689::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
+{
 	TransferBuffer *report = (TransferBuffer *)_dma_data_buffer;
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
 	memset(report, 0, transfer_size);
@@ -445,18 +518,55 @@ void ICM20689::Run()
 	if (transfer(_dma_data_buffer, _dma_data_buffer, transfer_size) != PX4_OK) {
 		perf_end(_transfer_perf);
 		perf_count(_bad_transfer_perf);
-		return;
+		return false;
 	}
 
 	perf_end(_transfer_perf);
 
+	ProcessGyro(timestamp_sample, report, samples);
+	return ProcessAccel(timestamp_sample, report, samples);
+}
 
+void ICM20689::FIFOReset()
+{
+	perf_count(_fifo_reset_perf);
+
+	// FIFO_EN: disable FIFO
+	RegisterWrite(Register::FIFO_EN, 0);
+
+	// USER_CTRL: disable FIFO and reset all signal paths
+	RegisterSetAndClearBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_RST | USER_CTRL_BIT::SIG_COND_RST,
+				USER_CTRL_BIT::FIFO_EN);
+
+	// reset while FIFO is disabled
+	_data_ready_count.store(0);
+	_fifo_watermark_interrupt_timestamp = 0;
+	_fifo_read_samples.store(0);
+
+	// FIFO_EN: enable both gyro and accel
+	// USER_CTRL: re-enable FIFO
+	for (const auto &r : _register_cfg) {
+		if ((r.reg == Register::FIFO_EN) || (r.reg == Register::USER_CTRL)) {
+			RegisterSetAndClearBits(r.reg, r.set_bits, r.clear_bits);
+		}
+	}
+}
+
+static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
+{
+	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
+}
+
+bool ICM20689::ProcessAccel(const hrt_abstime &timestamp_sample, const TransferBuffer *const report, uint8_t samples)
+{
 	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = _fifo_empty_interval_us / _fifo_accel_samples;
 
+	bool bad_data = false;
+
 	// accel data is doubled in FIFO, but might be shifted
-	int accel_first_sample = 0;
+	int accel_first_sample = 1;
 
 	if (samples >= 3) {
 		if (fifo_accel_equal(report->f[0], report->f[1])) {
@@ -471,7 +581,7 @@ void ICM20689::Run()
 
 		} else {
 			perf_count(_bad_transfer_perf);
-			return;
+			bad_data = true;
 		}
 	}
 
@@ -483,7 +593,8 @@ void ICM20689::Run()
 		int16_t accel_y = combine(fifo_sample.ACCEL_YOUT_H, fifo_sample.ACCEL_YOUT_L);
 		int16_t accel_z = combine(fifo_sample.ACCEL_ZOUT_H, fifo_sample.ACCEL_ZOUT_L);
 
-		// sensor's frame is +x forward, +y left, +z up, flip y & z to publish right handed (x forward, y right, z down)
+		// sensor's frame is +x forward, +y left, +z up
+		//  flip y & z to publish right handed with z down (x forward, y right, z down)
 		accel.x[accel_samples] = accel_x;
 		accel.y[accel_samples] = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
 		accel.z[accel_samples] = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
@@ -492,7 +603,13 @@ void ICM20689::Run()
 
 	accel.samples = accel_samples;
 
+	_px4_accel.updateFIFO(accel);
 
+	return !bad_data;
+}
+
+void ICM20689::ProcessGyro(const hrt_abstime &timestamp_sample, const TransferBuffer *const report, uint8_t samples)
+{
 	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
@@ -505,46 +622,32 @@ void ICM20689::Run()
 		const int16_t gyro_y = combine(fifo_sample.GYRO_YOUT_H, fifo_sample.GYRO_YOUT_L);
 		const int16_t gyro_z = combine(fifo_sample.GYRO_ZOUT_H, fifo_sample.GYRO_ZOUT_L);
 
-		// sensor's frame is +x forward, +y left, +z up, flip y & z to publish right handed (x forward, y right, z down)
+		// sensor's frame is +x forward, +y left, +z up
+		//  flip y & z to publish right handed with z down (x forward, y right, z down)
 		gyro.x[i] = gyro_x;
 		gyro.y[i] = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
 		gyro.z[i] = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
 	}
 
-	// Temperature
-	if (hrt_elapsed_time(&_time_last_temperature_update) > 1_s) {
-		// read current temperature
-		uint8_t temperature_buf[3] {};
-		temperature_buf[0] = static_cast<uint8_t>(Register::TEMP_OUT_H) | DIR_READ;
+	_px4_gyro.updateFIFO(gyro);
+}
 
-		if (transfer(temperature_buf, temperature_buf, sizeof(temperature_buf)) != PX4_OK) {
-			return;
-		}
+void ICM20689::UpdateTemperature()
+{
+	// read current temperature
+	uint8_t temperature_buf[3] {};
+	temperature_buf[0] = static_cast<uint8_t>(Register::TEMP_OUT_H) | DIR_READ;
 
-		const int16_t TEMP_OUT = combine(temperature_buf[1], temperature_buf[2]);
-		const float TEMP_degC = ((TEMP_OUT - ROOM_TEMPERATURE_OFFSET) / TEMPERATURE_SENSITIVITY) + ROOM_TEMPERATURE_OFFSET;
+	if (transfer(temperature_buf, temperature_buf, sizeof(temperature_buf)) != PX4_OK) {
+		perf_count(_bad_transfer_perf);
+		return;
+	}
 
+	const int16_t TEMP_OUT = combine(temperature_buf[1], temperature_buf[2]);
+	const float TEMP_degC = ((TEMP_OUT - ROOM_TEMPERATURE_OFFSET) / TEMPERATURE_SENSITIVITY) + ROOM_TEMPERATURE_OFFSET;
+
+	if (PX4_ISFINITE(TEMP_degC)) {
 		_px4_accel.set_temperature(TEMP_degC);
 		_px4_gyro.set_temperature(TEMP_degC);
 	}
-
-	_px4_gyro.updateFIFO(gyro);
-	_px4_accel.updateFIFO(accel);
-}
-
-void ICM20689::PrintInfo()
-{
-	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us,
-		 static_cast<double>(1000000 / _fifo_empty_interval_us));
-
-	perf_print_counter(_transfer_perf);
-	perf_print_counter(_bad_register_perf);
-	perf_print_counter(_bad_transfer_perf);
-	perf_print_counter(_fifo_empty_perf);
-	perf_print_counter(_fifo_overflow_perf);
-	perf_print_counter(_fifo_reset_perf);
-	perf_print_counter(_drdy_interval_perf);
-
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }
