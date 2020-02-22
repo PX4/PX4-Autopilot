@@ -7,7 +7,13 @@ from argparse import ArgumentParser
 import re
 import unittest
 
-def do_test(port, baudrate, test_name):
+device = ""
+baudrate = ""
+
+def do_test(test_name):
+    global device
+    global baudrate
+
     databits = serial.EIGHTBITS
     stopbits = serial.STOPBITS_ONE
     parity = serial.PARITY_NONE
@@ -76,40 +82,36 @@ def do_test(port, baudrate, test_name):
 
 class TestHadrwareMethods(unittest.TestCase):
     def test_hardware(self):
-        parser = ArgumentParser(description=__doc__)
-        parser.add_argument('--device', "-d", nargs='?', default = None, help='')
-        parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
-        args = parser.parse_args()
         success = True
 
-        success = success and do_test(args.device, args.baudrate, "autodeclination")
-        success = success and do_test(args.device, args.baudrate, "bezier")
-        success = success and do_test(args.device, args.baudrate, "bson")
-        success = success and do_test(args.device, args.baudrate, "commander")
-        success = success and do_test(args.device, args.baudrate, "controllib")
-        success = success and do_test(args.device, args.baudrate, "conv")
-        #success = success and do_test(args.device, args.baudrate, "dataman")
-        success = success and do_test(args.device, args.baudrate, "float")
-        success = success and do_test(args.device, args.baudrate, "hrt")
-        success = success and do_test(args.device, args.baudrate, "int")
-        success = success and do_test(args.device, args.baudrate, "IntrusiveQueue")
-        success = success and do_test(args.device, args.baudrate, "List")
-        success = success and do_test(args.device, args.baudrate, "mathlib")
-        success = success and do_test(args.device, args.baudrate, "matrix")
-        success = success and do_test(args.device, args.baudrate, "microbench_hrt")
-        success = success and do_test(args.device, args.baudrate, "microbench_math")
-        success = success and do_test(args.device, args.baudrate, "microbench_matrix")
-        success = success and do_test(args.device, args.baudrate, "microbench_uorb")
-        #success = success and do_test(args.device, args.baudrate, "mixer")
-        success = success and do_test(args.device, args.baudrate, "param")
-        success = success and do_test(args.device, args.baudrate, "parameters")
-        success = success and do_test(args.device, args.baudrate, "perf")
-        success = success and do_test(args.device, args.baudrate, "search_min")
-        success = success and do_test(args.device, args.baudrate, "sleep")
-        success = success and do_test(args.device, args.baudrate, "smoothz")
-        success = success and do_test(args.device, args.baudrate, "time")
-        success = success and do_test(args.device, args.baudrate, "uorb")
-        success = success and do_test(args.device, args.baudrate, "versioning")
+        success = success and do_test("autodeclination")
+        success = success and do_test("bezier")
+        success = success and do_test("bson")
+        success = success and do_test("commander")
+        success = success and do_test("controllib")
+        success = success and do_test("conv")
+        #success = success and do_test("dataman")
+        success = success and do_test("float")
+        success = success and do_test("hrt")
+        success = success and do_test("int")
+        success = success and do_test("IntrusiveQueue")
+        success = success and do_test("List")
+        success = success and do_test("mathlib")
+        success = success and do_test("matrix")
+        success = success and do_test("microbench_hrt")
+        success = success and do_test("microbench_math")
+        success = success and do_test("microbench_matrix")
+        success = success and do_test("microbench_uorb")
+        #success = success and do_test("mixer")
+        success = success and do_test("param")
+        success = success and do_test("parameters")
+        success = success and do_test("perf")
+        success = success and do_test("search_min")
+        success = success and do_test("sleep")
+        success = success and do_test("smoothz")
+        success = success and do_test("time")
+        success = success and do_test("uorb")
+        success = success and do_test("versioning")
 
         if success:
             print("all run_test.py passed");
@@ -120,5 +122,18 @@ class TestHadrwareMethods(unittest.TestCase):
 
         return success
 
-if __name__ == "__main__":
+def main():
+    global device
+    global baudrate
+
+    parser = ArgumentParser(description=__doc__)
+    parser.add_argument('--device', "-d", nargs='?', default = None, help='')
+    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
+    args = parser.parse_args()
+    device = args.device
+    baudrate = args.baudrate
+
     unittest.main()
+
+if __name__ == "__main__":
+    main()
