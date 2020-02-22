@@ -297,9 +297,6 @@ public:
 	// write reg value
 	virtual int set_reg(uint8_t value, uint8_t addr) = 0;
 
-	// bulk read of data into buffer, return same pointer
-	virtual data_s *get_data(uint8_t addr) = 0;
-
 	// bulk read of calibration data into buffer, return same pointer
 	virtual calibration_s *get_calibration(uint8_t addr) = 0;
 

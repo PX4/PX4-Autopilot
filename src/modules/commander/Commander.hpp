@@ -374,8 +374,19 @@ private:
 
 	// Subscriptions
 	uORB::Subscription					_actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
-	uORB::Subscription					_battery_sub{ORB_ID(battery_status)};
-	uORB::Subscription					_cmd_sub{ORB_ID(vehicle_command)};
+#if BOARD_NUMBER_BRICKS > 1
+	uORB::Subscription					_battery_subs[ORB_MULTI_MAX_INSTANCES] {
+		uORB::Subscription(ORB_ID(battery_status), 0),
+		uORB::Subscription(ORB_ID(battery_status), 1),
+		uORB::Subscription(ORB_ID(battery_status), 2),
+		uORB::Subscription(ORB_ID(battery_status), 3),
+	};
+#else
+	uORB::Subscription					_battery_subs[1] {
+		uORB::Subscription(ORB_ID(battery_status), 0)
+	};
+#endif
+	uORB::Subscription					_cmd_sub {ORB_ID(vehicle_command)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
