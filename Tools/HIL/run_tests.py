@@ -6,14 +6,9 @@ from subprocess import call, Popen
 from argparse import ArgumentParser
 import re
 import unittest
+import os
 
-device = ""
-baudrate = ""
-
-def do_test(test_name):
-    global device
-    global baudrate
-
+def do_test(port, baudrate, test_name):
     databits = serial.EIGHTBITS
     stopbits = serial.STOPBITS_ONE
     parity = serial.PARITY_NONE
@@ -59,10 +54,6 @@ def do_test(test_name):
         elif test_name + " FAILED" in serial_line:
             finished = 1
             success = False
-        elif "PANIC!!!" in serial_line:
-            print("Error, Hardfault!!")
-            finished = 1
-            success = False
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
@@ -81,59 +72,28 @@ def do_test(test_name):
     return success
 
 class TestHadrwareMethods(unittest.TestCase):
-    def test_hardware(self):
-        success = True
+    TEST_DEVICE = 0
+    TEST_BAUDRATE = 0
 
-        success = success and do_test("autodeclination")
-        success = success and do_test("bezier")
-        success = success and do_test("bson")
-        success = success and do_test("commander")
-        success = success and do_test("controllib")
-        success = success and do_test("conv")
-        #success = success and do_test("dataman")
-        success = success and do_test("float")
-        success = success and do_test("hrt")
-        success = success and do_test("int")
-        success = success and do_test("IntrusiveQueue")
-        success = success and do_test("List")
-        success = success and do_test("mathlib")
-        success = success and do_test("matrix")
-        success = success and do_test("microbench_hrt")
-        success = success and do_test("microbench_math")
-        success = success and do_test("microbench_matrix")
-        success = success and do_test("microbench_uorb")
-        #success = success and do_test("mixer")
-        success = success and do_test("param")
-        success = success and do_test("parameters")
-        success = success and do_test("perf")
-        success = success and do_test("search_min")
-        success = success and do_test("sleep")
-        success = success and do_test("smoothz")
-        success = success and do_test("time")
-        success = success and do_test("uorb")
-        success = success and do_test("versioning")
+    def test_autodeclination(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "autodeclination"))
 
-        if success:
-            print("all run_test.py passed");
-        else:
-            print("some run_test.py Tests failed"); #TODO: show which test pass or failed
+    def test_bezier(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bezier"))
 
-        self.assertTrue(success)
-
-        return success
+    def test_bson(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bson"))
 
 def main():
-    global device
-    global baudrate
-
     parser = ArgumentParser(description=__doc__)
-    parser.add_argument('--device', "-d", nargs='?', default = None, help='')
-    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
-    args = parser.parse_args()
-    device = args.device
-    baudrate = args.baudrate
+#    parser.add_argument('--device', "-d", nargs='?', default = None, help='')
+#    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
+#    args = parser.parse_args()
+
+    TestHadrwareMethods.TEST_DEVICE = os.environ.get('TEST_DEVICE', TestHadrwareMethods.TEST_DEVICE)
+    TestHadrwareMethods.TEST_BAUDRATE = 57600
 
     unittest.main()
 
 if __name__ == "__main__":
-    main()
+   main()
