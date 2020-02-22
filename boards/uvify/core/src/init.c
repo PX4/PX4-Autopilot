@@ -73,9 +73,11 @@
 
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
+
+#include <drivers/drv_pwm_output.h>
+#include <px4_arch/io_timer.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -146,7 +148,7 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
 
-	/*
+	/**
 	 * On resets invoked from system (not boot) insure we establish a low
 	 * output state (discharge the pins) on PWM pins before they become inputs.
 	 */
