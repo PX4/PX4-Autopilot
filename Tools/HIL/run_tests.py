@@ -52,6 +52,10 @@ def do_test(port, baudrate, test_name):
         elif test_name + " FAILED" in serial_line:
             finished = 1
             success = False
+        elif "PANIC!!!" in serial_line:
+            print("Error, Hardfault!!")
+            finished = 1
+            success = False
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
