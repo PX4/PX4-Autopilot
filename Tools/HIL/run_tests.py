@@ -93,8 +93,7 @@ def main():
     TestHadrwareMethods.TEST_DEVICE = args.device
     TestHadrwareMethods.TEST_BAUDRATE = 57600
 
-    sys.argv = [sys.argv[0]]
-    unittest.main()
+    unittest.main(__name__, argv=['main'], exit=False)
 
 if __name__ == "__main__":
    main()
