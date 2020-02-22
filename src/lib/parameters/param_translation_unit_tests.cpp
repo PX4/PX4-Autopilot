@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,83 +31,10 @@
  *
  ****************************************************************************/
 
-/**
- * @file mag_i2c.cpp
- *
- * I2C interface for AK09916
- */
+#include "param_translation.h"
 
-#include "icm20948.h"
-#include "ICM20948_mag.h"
-
-#include <drivers/device/i2c.h>
-
-#ifdef USE_I2C
-
-device::Device *AK09916_I2C_interface(int bus);
-
-class AK09916_I2C : public device::I2C
+bool param_modify_on_import(const char *name, bson_type_t type, void *value)
 {
-public:
-	AK09916_I2C(int bus);
-	~AK09916_I2C() override = default;
-
-	int	read(unsigned address, void *data, unsigned count) override;
-	int	write(unsigned address, void *data, unsigned count) override;
-
-protected:
-	int	probe() override;
-
-};
-
-device::Device *
-AK09916_I2C_interface(int bus)
-{
-	return new AK09916_I2C(bus);
+	// don't modify params for unit tests
+	return false;
 }
-
-AK09916_I2C::AK09916_I2C(int bus) :
-	I2C("AK09916_I2C", nullptr, bus, AK09916_I2C_ADDR, 400000)
-{
-	_device_id.devid_s.devtype = DRV_IMU_DEVTYPE_ICM20948;
-}
-
-int
-AK09916_I2C::write(unsigned reg_speed, void *data, unsigned count)
-{
-	uint8_t cmd[2] {};
-
-	if (sizeof(cmd) < (count + 1)) {
-		return -EIO;
-	}
-
-	cmd[0] = ICM20948_REG(reg_speed);
-	cmd[1] = *(uint8_t *)data;
-	return transfer(&cmd[0], count + 1, nullptr, 0);
-}
-
-int
-AK09916_I2C::read(unsigned reg_speed, void *data, unsigned count)
-{
-	uint8_t cmd = ICM20948_REG(reg_speed);
-	return transfer(&cmd, 1, (uint8_t *)data, count);
-}
-
-int
-AK09916_I2C::probe()
-{
-	uint8_t whoami = 0;
-	uint8_t expected = AK09916_DEVICE_ID;
-
-	if (PX4_OK != read(AK09916REG_WIA, &whoami, 1)) {
-		return -EIO;
-	}
-
-	if (whoami != expected) {
-		return -EIO;
-	}
-
-	return OK;
-}
-
-#endif // USE_I2C
