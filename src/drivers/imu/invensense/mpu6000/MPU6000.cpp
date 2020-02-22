@@ -54,9 +54,9 @@ MPU6000::MPU6000(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_accel(get_device_id(), ORB_PRIO_VERY_HIGH, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_VERY_HIGH, rotation)
 {
-	set_device_type(DRV_ACC_DEVTYPE_MPU6000);
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_MPU6000);
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_MPU6000);
+	set_device_type(DRV_IMU_DEVTYPE_MPU6000);
+	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_MPU6000);
+	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_MPU6000);
 
 	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
 	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);

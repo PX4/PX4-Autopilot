@@ -48,10 +48,10 @@ ICM20608G::ICM20608G(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_accel(get_device_id(), ORB_PRIO_VERY_HIGH, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_VERY_HIGH, rotation)
 {
-	set_device_type(DRV_ACC_DEVTYPE_ICM20608);
+	set_device_type(DRV_IMU_DEVTYPE_ICM20608);
 
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20608);
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20608);
+	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20608);
+	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20608);
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
