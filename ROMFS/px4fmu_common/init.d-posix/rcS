@@ -132,7 +132,7 @@ then
 
 	param set CBRK_AIRSPD_CHK 0
 
-	param set COM_DISARM_LAND 0.1
+	param set COM_DISARM_LAND 0.5
 	param set COM_OBL_ACT 2
 	param set COM_OBL_RC_ACT 0
 	param set COM_OF_LOSS_T 5
@@ -169,6 +169,8 @@ then
 	param set MPC_JERK_MIN 10
 	param set MPC_JERK_MAX 20
 	param set MPC_ACC_HOR_MAX 3
+	param set MPC_SPOOLUP_TIME 0.5
+	param set MPC_TKO_RAMP_T 1
 
 	param set NAV_ACC_RAD 2
 	param set NAV_DLL_ACT 2
