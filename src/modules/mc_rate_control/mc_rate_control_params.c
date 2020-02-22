@@ -112,7 +112,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
  * Set MC_ROLLRATE_P=1 to implement a PID in the ideal form.
  * Set MC_ROLLRATE_K=1 to implement a PID in the parallel form.
  *
- * @min 0.0
+ * @min 0.01
  * @max 5.0
  * @decimal 4
  * @increment 0.0005
@@ -192,7 +192,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
  * Set MC_PITCHRATE_P=1 to implement a PID in the ideal form.
  * Set MC_PITCHRATE_K=1 to implement a PID in the parallel form.
  *
- * @min 0.0
+ * @min 0.01
  * @max 5.0
  * @decimal 4
  * @increment 0.0005
