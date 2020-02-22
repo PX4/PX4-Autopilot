@@ -531,7 +531,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 20.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.0f);
 
 /**
  * Velocity-based jerk limit
@@ -564,13 +564,13 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
  * agility.
  *
  * @unit m/s/s/s
- * @min 5.0
+ * @min 1.0
  * @max 80.0
  * @increment 1
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 8.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 4.0f);
 
 /**
  * Altitude control mode.
