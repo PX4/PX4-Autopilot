@@ -548,7 +548,7 @@
 
 /* This board provides a DMA pool and APIs */
 
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120+4096
+#define BOARD_DMA_ALLOC_POOL_SIZE (5120 + 4096 + 1024 + 1024) 	// 5120 fat + 4096 + 1024 + 1024 spi
 
 /* This board provides the board_on_reset interface */
 
