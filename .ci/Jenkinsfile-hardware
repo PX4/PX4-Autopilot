@@ -135,8 +135,7 @@ pipeline {
                 stage("tests") {
                   steps {
                     // run tests
-                    set TEST_DEVICE = `find /dev/serial -name *usb-FTDI_*`
-                    sh './Tools/HIL/run_tests.py
+                    sh './Tools/HIL/run_tests.py `find /dev/serial -name *usb-FTDI_*`'
                   }
                 }
                 stage("reset") {
