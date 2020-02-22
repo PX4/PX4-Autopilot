@@ -86,11 +86,13 @@ class TestHadrwareMethods(unittest.TestCase):
 
 def main():
     parser = ArgumentParser(description=__doc__)
-#    parser.add_argument('--device', "-d", nargs='?', default = None, help='')
-#    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
-#    args = parser.parse_args()
+    parser.add_argument('--device', "-d", nargs='?', default = None, help='')
+    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
+    args = parser.parse_args()
 
-    TestHadrwareMethods.TEST_DEVICE = os.environ.get('TEST_DEVICE', TestHadrwareMethods.TEST_DEVICE)
+    sys.argv = [sys.argv[0]]
+
+    TestHadrwareMethods.TEST_DEVICE = args.device
     TestHadrwareMethods.TEST_BAUDRATE = 57600
 
     unittest.main()
