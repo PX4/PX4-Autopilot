@@ -109,6 +109,13 @@ def main():
     success = success and do_test(args.device, args.baudrate, "uorb")
     success = success and do_test(args.device, args.baudrate, "versioning")
 
+    if success:
+        print("all run_test.py passed");
+    else:
+        print("some run_test.py Tests failed"); #TODO: show which test pass or failed
+
+    self.assertEqual(success, True)
+
     return success
 
 if __name__ == "__main__":
