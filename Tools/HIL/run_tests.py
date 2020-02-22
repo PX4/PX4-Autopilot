@@ -5,6 +5,7 @@ import subprocess
 from subprocess import call, Popen
 from argparse import ArgumentParser
 import re
+import unittest
 
 def do_test(port, baudrate, test_name):
     databits = serial.EIGHTBITS
@@ -114,7 +115,7 @@ def main():
     else:
         print("some run_test.py Tests failed"); #TODO: show which test pass or failed
 
-    assertEqual(success, False)
+    assertFalse(success)
 
     return success
 
