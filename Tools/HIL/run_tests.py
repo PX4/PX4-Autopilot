@@ -90,11 +90,10 @@ def main():
     parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 
-    sys.argv = [sys.argv[0]]
-
     TestHadrwareMethods.TEST_DEVICE = args.device
     TestHadrwareMethods.TEST_BAUDRATE = 57600
 
+    sys.argv = [sys.argv[0]]
     unittest.main()
 
 if __name__ == "__main__":
