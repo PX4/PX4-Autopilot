@@ -44,7 +44,7 @@
  *
  * Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @min 0.0
+ * @min 0.01
  * @max 0.5
  * @decimal 3
  * @increment 0.01
@@ -125,7 +125,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_K, 1.0f);
  *
  * Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @min 0.0
+ * @min 0.01
  * @max 0.6
  * @decimal 3
  * @increment 0.01
