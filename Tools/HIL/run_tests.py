@@ -84,6 +84,9 @@ class TestHadrwareMethods(unittest.TestCase):
     def test_bson(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bson"))
 
+    def test_uorb(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "uorb"))
+
 def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('--device', "-d", nargs='?', default = None, help='')
