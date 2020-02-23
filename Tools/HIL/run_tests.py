@@ -91,7 +91,7 @@ def main():
     args = parser.parse_args()
 
     TestHadrwareMethods.TEST_DEVICE = args.device
-    TestHadrwareMethods.TEST_BAUDRATE = 57600
+    TestHadrwareMethods.TEST_BAUDRATE =  args.baudrate
 
     unittest.main(__name__, argv=['main'], exit=False)
 
