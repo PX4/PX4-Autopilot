@@ -41,6 +41,7 @@
  * and background parameter saving.
  */
 
+#define PARAM_IMPLEMENTATION
 #include "param.h"
 #include "param_translation.h"
 #include <parameters/px4_parameters.h>
