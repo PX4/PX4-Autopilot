@@ -194,7 +194,7 @@ public:
         if(Width>1) {
             for (size_t row_idx = first+1; row_idx < first+Width; row_idx++) {
                 for (size_t col_idx = first; col_idx < row_idx; col_idx++) {
-                    Type tmp = self(row_idx,col_idx) + (self(col_idx,row_idx) - self(row_idx,col_idx)) / Type(2);
+                    Type tmp = (self(row_idx,col_idx) + self(col_idx,row_idx)) / Type(2);
                     self(row_idx,col_idx) = tmp;
                     self(col_idx,row_idx) = tmp;
                 }
@@ -214,12 +214,12 @@ public:
         self.makeBlockSymmetric<Width>(first);
         for (size_t row_idx = first; row_idx < first+Width; row_idx++) {
             for (size_t col_idx = 0; col_idx < first; col_idx++) {
-                Type tmp = self(row_idx,col_idx) + (self(col_idx,row_idx) - self(row_idx,col_idx)) / Type(2);
+                Type tmp = (self(row_idx,col_idx) + self(col_idx,row_idx)) / Type(2);
                 self(row_idx,col_idx) = tmp;
                 self(col_idx,row_idx) = tmp;
             }
             for (size_t col_idx = first+Width; col_idx < M; col_idx++) {
-                Type tmp = self(row_idx,col_idx) + (self(col_idx,row_idx) - self(row_idx,col_idx)) / 2;
+                Type tmp = (self(row_idx,col_idx) + self(col_idx,row_idx)) / Type(2);
                 self(row_idx,col_idx) = tmp;
                 self(col_idx,row_idx) = tmp;
             }
