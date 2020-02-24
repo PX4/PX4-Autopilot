@@ -1749,10 +1749,13 @@ Commander::run()
 
 		const bool override_auto_mode =
 			(_param_rc_override.get() & OVERRIDE_AUTO_MODE_BIT) &&
-			(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND    ||
+			(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND    ||
 			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL 	  ||
 			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER);
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND);
 
 		const bool override_offboard_mode =
 			(_param_rc_override.get() & OVERRIDE_OFFBOARD_MODE_BIT) &&
