@@ -848,10 +848,9 @@ void Ekf::controlHeightSensorTimeouts()
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to baro");
 
 			}
-		}
 
 		// handle the case we are using GPS for height
-		if (_control_status.flags.gps_hgt) {
+		} else if (_control_status.flags.gps_hgt) {
 			// check if GPS height is available
 			const gpsSample &gps_init = _gps_buffer.get_newest();
 			const bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
@@ -883,11 +882,9 @@ void Ekf::controlHeightSensorTimeouts()
 				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to GPS");
 
 			}
-		}
 
 		// handle the case we are using range finder for height
-		if (_control_status.flags.rng_hgt) {
-
+		} else if (_control_status.flags.rng_hgt) {
 			// check if baro data is available
 			const baroSample &baro_init = _baro_buffer.get_newest();
 			const bool baro_data_available = isRecent(baro_init.time_us, 2 * BARO_MAX_INTERVAL);
@@ -909,10 +906,9 @@ void Ekf::controlHeightSensorTimeouts()
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to baro");
 
 			}
-		}
 
 		// handle the case where we are using external vision data for height
-		if (_control_status.flags.ev_hgt) {
+		} else if (_control_status.flags.ev_hgt) {
 			// check if vision data is available
 			const extVisionSample &ev_init = _ext_vision_buffer.get_newest();
 			const bool ev_data_available = isRecent(ev_init.time_us, 2 * EV_MAX_INTERVAL);
