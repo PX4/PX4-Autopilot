@@ -66,6 +66,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/hover_thrust_estimate.h>
 
 #include "PositionControl/PositionControl.hpp"
 #include "Takeoff/Takeoff.hpp"
@@ -121,6 +122,7 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};				/**< vehicle attitude */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
+	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 
@@ -143,6 +145,8 @@ private:
 	landing_gear_s _landing_gear{};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
+	bool _use_hover_thrust_estimator{false};
+
 	DEFINE_PARAMETERS(
 		// Position Control
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p,
@@ -158,6 +162,7 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
+		(ParamInt<px4::params::MPC_USE_HTE>) _param_mpc_use_hte,
 
 		// Takeoff / Land
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
@@ -347,7 +352,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
 		_control.setThrustLimits(_param_mpc_thr_min.get(), _param_mpc_thr_max.get());
 		_control.setTiltLimit(M_DEG_TO_RAD_F * _param_mpc_tiltmax_air.get()); // convert to radians!
-		_control.setHoverThrust(_param_mpc_thr_hover.get());
 
 		// Check that the design parameters are inside the absolute maximum constraints
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
@@ -362,12 +366,18 @@ MulticopterPositionControl::parameters_update(bool force)
 			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed");
 		}
 
-		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
-		    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
-			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
-						 _param_mpc_thr_max.get()));
-			_param_mpc_thr_hover.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
+		_use_hover_thrust_estimator = (_param_mpc_use_hte.get() == 1);
+
+		if (!_use_hover_thrust_estimator) {
+			if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
+			    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
+				_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
+							 _param_mpc_thr_max.get()));
+				_param_mpc_thr_hover.commit();
+				mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
+			}
+
+			_control.setHoverThrust(_param_mpc_thr_hover.get());
 		}
 
 		_flight_tasks.handleParameterUpdate();
@@ -402,6 +412,14 @@ MulticopterPositionControl::poll_subscriptions()
 
 		if (_att_sub.copy(&att) && PX4_ISFINITE(att.q[0])) {
 			_states.yaw = Eulerf(Quatf(att.q)).psi();
+		}
+	}
+
+	if (_use_hover_thrust_estimator) {
+		hover_thrust_estimate_s hte{};
+
+		if (_hover_thrust_estimate_sub.update(&hte)) {
+			_control.setHoverThrust(hte.hover_thrust);
 		}
 	}
 }

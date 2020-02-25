@@ -66,7 +66,7 @@ bool MulticopterHoverThrustEstimator::init()
 
 void MulticopterHoverThrustEstimator::reset()
 {
-	_hover_thrust_ekf.setHoverThrust(fabsf(_param_mpc_thr_hover.get()));
+	_hover_thrust_ekf.setHoverThrust(_param_mpc_thr_hover.get());
 	_hover_thrust_ekf.setHoverThrustStdDev(_param_hte_ht_err_init.get());
 	_hover_thrust_ekf.resetAccelNoise();
 }
@@ -145,7 +145,10 @@ void MulticopterHoverThrustEstimator::Run()
 		}
 
 	} else {
-		reset();
+		if (!_armed) {
+			reset();
+		}
+
 		status.hover_thrust = _hover_thrust_ekf.getHoverThrustEstimate();
 		status.hover_thrust_var = _hover_thrust_ekf.getHoverThrustEstimateVar();
 		status.accel_noise_var = _hover_thrust_ekf.getAccelNoiseVar();
