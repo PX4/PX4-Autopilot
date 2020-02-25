@@ -1125,9 +1125,38 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.current_distance = dist_mavlink->current_distance / 100.0f;
 	dist.type = dist_mavlink->type;
 	dist.id = dist_mavlink->id;
-	dist.orientation = dist_mavlink->orientation;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
 	dist.signal_quality = -1;
+
+	switch (dist_mavlink->orientation) {
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_270:
+		dist.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_90:
+		dist.orientation = distance_sensor_s::ROTATION_UPWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_180:
+		dist.orientation = distance_sensor_s::ROTATION_BACKWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_NONE:
+		dist.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_270:
+		dist.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_90:
+		dist.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
+		break;
+
+	default:
+		dist.orientation = distance_sensor_s::ROTATION_CUSTOM;
+	}
+
 	dist.h_fov = dist_mavlink->horizontal_fov;
 	dist.v_fov = dist_mavlink->vertical_fov;
 	dist.q[0] = dist_mavlink->quaternion[0];
