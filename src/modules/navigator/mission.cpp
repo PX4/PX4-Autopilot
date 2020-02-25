@@ -883,6 +883,10 @@ Mission::set_mission_items()
 					_mission_item.altitude_is_relative = false;
 
 					new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
+
+					// make previous setpoint invalid, such that there will be no prev-current line following
+					// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
+					pos_sp_triplet->previous.valid = false;
 				}
 
 				/* move to landing waypoint before descent if necessary */
@@ -916,6 +920,10 @@ Mission::set_mission_items()
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
+
+					// make previous setpoint invalid, such that there will be no prev-current line following.
+					// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
+					pos_sp_triplet->previous.valid = false;
 
 				} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 					if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
