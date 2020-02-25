@@ -110,6 +110,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::HTE_HT_NOISE>) _param_hte_ht_noise,
 		(ParamFloat<px4::params::HTE_ACC_GATE>) _param_hte_acc_gate,
-		(ParamFloat<px4::params::HTE_HT_ERR_INIT>) _param_hte_ht_err_init
+		(ParamFloat<px4::params::HTE_HT_ERR_INIT>) _param_hte_ht_err_init,
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover
 	)
 };

@@ -66,6 +66,7 @@ bool MulticopterHoverThrustEstimator::init()
 
 void MulticopterHoverThrustEstimator::reset()
 {
+	_hover_thrust_ekf.setHoverThrust(fabsf(_param_mpc_thr_hover.get()));
 	_hover_thrust_ekf.setHoverThrustStdDev(_param_hte_ht_err_init.get());
 	_hover_thrust_ekf.resetAccelNoise();
 }
