@@ -198,7 +198,7 @@ private:
 	void send_controls();
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
-	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu);
+	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors);
 
 	static void *sending_trampoline(void *);
 
@@ -244,6 +244,15 @@ private:
 		WaitingForFirstEkf2Timestamp = 0,
 		WaitingForActuatorControls = 1,
 		WaitingForEkf2Timestamp = 2,
+	};
+
+	///! Enumeration to use on the bitmask in HIL_SENSOR
+	enum SensorSource {
+		ACCEL		= 0x0007,
+		GYRO		= 0x0038,
+		MAG		= 0x01C0,
+		BARO		= 0x1A00,
+		DIFF_PRESS	= 0x0400
 	};
 #endif
 
