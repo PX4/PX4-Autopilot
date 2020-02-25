@@ -1478,8 +1478,7 @@ protected:
 						       act0.control[actuator_controls_s::INDEX_THROTTLE],
 						       act1.control[actuator_controls_s::INDEX_THROTTLE]);
 
-			} else {
-				msg.throttle = 0.0f;
+			} 
 			}
 
 			if (pos.z_valid && pos.z_global) {
