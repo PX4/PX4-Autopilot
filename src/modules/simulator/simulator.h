@@ -245,6 +245,7 @@ private:
 		WaitingForActuatorControls = 1,
 		WaitingForEkf2Timestamp = 2,
 	};
+#endif
 
 	///! Enumeration to use on the bitmask in HIL_SENSOR
 	enum SensorSource {
@@ -254,7 +255,6 @@ private:
 		BARO		= 0x1A00,
 		DIFF_PRESS	= 0x0400
 	};
-#endif
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
