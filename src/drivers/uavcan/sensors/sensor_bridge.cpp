@@ -43,6 +43,7 @@
 #include "baro.hpp"
 #include "flow.hpp"
 #include "battery.hpp"
+#include "airspeed.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -54,6 +55,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanGnssBridge(node));
 	list.add(new UavcanFlowBridge(node));
 	list.add(new UavcanBatteryBridge(node));
+	list.add(new UavcanAirspeedBridge(node));
 }
 
 /*
