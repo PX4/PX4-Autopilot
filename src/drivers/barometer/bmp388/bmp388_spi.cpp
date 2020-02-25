@@ -71,14 +71,12 @@ public:
 	uint8_t get_reg(uint8_t addr);
 	int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
 	int set_reg(uint8_t value, uint8_t addr);
-	data_s *get_data(uint8_t addr);
 	calibration_s *get_calibration(uint8_t addr);
 
 	uint32_t get_device_id() const override { return device::SPI::get_device_id(); }
 
 private:
 	spi_calibration_s _cal;
-	spi_data_s _data;
 };
 
 IBMP388 *bmp388_spi_interface(uint8_t busnum, uint32_t device)
@@ -114,18 +112,6 @@ int BMP388_SPI::set_reg(uint8_t value, uint8_t addr)
 {
 	uint8_t cmd[2] = { (uint8_t)(addr & DIR_WRITE), value}; //clear MSB bit
 	return transfer(&cmd[0], nullptr, 2);
-}
-
-data_s *BMP388_SPI::get_data(uint8_t addr)
-{
-	_data.addr = (uint8_t)(addr | DIR_READ); //set MSB bit
-
-	if (transfer((uint8_t *)&_data, (uint8_t *)&_data, sizeof(struct spi_data_s)) == OK) {
-		return &(_data.data);
-
-	} else {
-		return nullptr;
-	}
 }
 
 calibration_s *BMP388_SPI::get_calibration(uint8_t addr)
