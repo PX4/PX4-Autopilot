@@ -37,8 +37,6 @@
  * @author Mathieu Bresciani 	<brescianimathieu@gmail.com>
  */
 
-#include <mathlib/mathlib.h>
-
 #include "zero_order_hover_thrust_ekf.hpp"
 
 void ZeroOrderHoverThrustEkf::predict(const float dt)

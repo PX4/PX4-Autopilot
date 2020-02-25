@@ -65,6 +65,7 @@
 
 #include <matrix/matrix/math.hpp>
 #include <ecl/geo/geo.h>
+#include <mathlib/mathlib.h>
 
 class ZeroOrderHoverThrustEkf
 {
@@ -86,7 +87,7 @@ public:
 	void predict(float _dt);
 	void fuseAccZ(float acc_z, float thrust, status &status_return);
 
-	void setHoverThrust(float hover_thrust) { _hover_thr = hover_thrust; }
+	void setHoverThrust(float hover_thrust) { _hover_thr = math::constrain(hover_thrust, 0.1f, 0.9f); }
 	void setProcessNoiseStdDev(float process_noise) { _process_var = process_noise * process_noise; }
 	void setMeasurementNoiseStdDev(float measurement_noise) { _acc_var = measurement_noise * measurement_noise; }
 	void setHoverThrustStdDev(float hover_thrust_noise) { _state_var = hover_thrust_noise * hover_thrust_noise; }
