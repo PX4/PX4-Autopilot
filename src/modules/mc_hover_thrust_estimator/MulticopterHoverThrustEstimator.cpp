@@ -106,6 +106,7 @@ void MulticopterHoverThrustEstimator::Run()
 
 	vehicle_land_detected_s vehicle_land_detected;
 	vehicle_status_s vehicle_status;
+	vehicle_local_position_s local_pos;
 
 	if (_vehicle_land_detected_sub.update(&vehicle_land_detected)) {
 		_landed = vehicle_land_detected.landed;
@@ -115,7 +116,17 @@ void MulticopterHoverThrustEstimator::Run()
 		_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 	}
 
-	if (_armed && !_landed) {
+	if (_vehicle_local_pos_sub.update(&local_pos)) {
+		// This is only necessary because the landed
+		// flag of the land detector does not guarantee that
+		// the vehicle does not touch the ground anymore
+		// TODO: improve the landed flag
+		_in_air = local_pos.z < -1.f;
+	}
+
+	ZeroOrderHoverThrustEkf::status status{};
+
+	if (_armed && !_landed && _in_air) {
 		vehicle_local_position_setpoint_s local_pos_sp;
 
 		if (_vehicle_local_position_setpoint_sub.update(&local_pos_sp)) {
@@ -123,23 +134,26 @@ void MulticopterHoverThrustEstimator::Run()
 			const hrt_abstime now = hrt_absolute_time();
 			const float dt = math::constrain((now - _timestamp_last) / 1e6f, 0.002f, 0.2f);
 
-			vehicle_local_position_s local_pos;
-			_vehicle_local_pos_sub.copy(&local_pos);
-
 			_hover_thrust_ekf.predict(dt);
 
 			if (PX4_ISFINITE(local_pos.az) && PX4_ISFINITE(local_pos_sp.thrust[2])) {
-				// Inform the hover thrust estimator about the measured vertical acceleration (positive acceleration is up)
-				// Inform the hover thrust estimator about the current thrust (positive thrust is up)
-				ZeroOrderHoverThrustEkf::status status{};
+				// Inform the hover thrust estimator about the measured vertical
+				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
 				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2], status);
-				publishStatus(status);
 			}
 		}
 
 	} else {
 		reset();
+		status.hover_thrust = _hover_thrust_ekf.getHoverThrustEstimate();
+		status.hover_thrust_var = _hover_thrust_ekf.getHoverThrustEstimateVar();
+		status.accel_noise_var = _hover_thrust_ekf.getAccelNoiseVar();
+		status.innov = NAN;
+		status.innov_var = NAN;
+		status.innov_test_ratio = NAN;
 	}
+
+	publishStatus(status);
 
 	perf_end(_cycle_perf);
 }

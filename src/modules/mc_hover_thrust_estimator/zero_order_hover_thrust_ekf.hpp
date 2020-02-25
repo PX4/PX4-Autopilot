@@ -93,6 +93,8 @@ public:
 	void setAccelInnovGate(float gate_size) { _gate_size = gate_size; }
 
 	float getHoverThrustEstimate() const { return _hover_thr; }
+	float getHoverThrustEstimateVar() const { return _state_var; }
+	float getAccelNoiseVar() const { return _acc_var; }
 
 private:
 	float _hover_thr{0.5f};
