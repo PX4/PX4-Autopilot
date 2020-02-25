@@ -79,8 +79,8 @@ px4_add_romfs_files(
 	rover_generic.main.mix
 	rover_diff_and_servo.main.mix
 	Viper.main.mix
-	vtol_AAERT.aux.mix
-	vtol_AAVVT.aux.mix
+	vtol_AAERTB.aux.mix
+	vtol_AAVVTB.aux.mix
 	vtol_convergence.main.mix
 	vtol_delta.aux.mix
 	wingwing.main.mix

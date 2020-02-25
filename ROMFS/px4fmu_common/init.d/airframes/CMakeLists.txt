@@ -123,9 +123,9 @@ px4_add_romfs_files(
 	13002_firefly6
 	13003_quad_tailsitter
 	13004_quad+_tailsitter
-	13005_vtol_AAERT_quad
+	13005_vtol_AAERTB_quad
 	13006_vtol_standard_delta
-	13007_vtol_AAVVT_quad
+	13007_vtol_AAVVTB_quad
 	13008_QuadRanger
 	13009_vtol_spt_ranger
 	13010_claire

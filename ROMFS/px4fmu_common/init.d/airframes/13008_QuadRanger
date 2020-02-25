@@ -19,7 +19,8 @@
 # @output AUX3 Elevator
 # @output AUX4 Rudder
 # @output AUX5 Throttle
-# @output AUX6 Pusher reverse channel
+# @output AUX6 Throttle reverse
+#
 
 sh /etc/init.d/rc.vtol_defaults
 
@@ -74,6 +75,6 @@ fi
 set MAV_TYPE 22
 
 set MIXER quad_x
-set MIXER_AUX vtol_AAERT
+set MIXER_AUX vtol_AAERTB
 
 set PWM_OUT 1234
