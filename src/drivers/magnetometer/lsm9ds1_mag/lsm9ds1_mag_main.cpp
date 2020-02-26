@@ -34,110 +34,75 @@
 #include "LSM9DS1_MAG.hpp"
 
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-namespace lsm9ds1_mag
+void
+LSM9DS1_MAG::print_usage()
 {
-
-LSM9DS1_MAG *g_dev{nullptr};
-
-static int start(enum Rotation rotation)
-{
-	if (g_dev != nullptr) {
-		PX4_WARN("already started");
-		return 0;
-	}
-
-	// create the driver
-#if defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_LSM9DS1_M)
-	g_dev = new LSM9DS1_MAG(PX4_SPI_BUS_SENSORS, PX4_SPIDEV_LSM9DS1_M, rotation);
-#endif // PX4_SPI_BUS_SENSORS && PX4_SPIDEV_LSM9DS1_M
-
-	if (g_dev == nullptr) {
-		PX4_ERR("driver start failed");
-		return -1;
-	}
-
-	if (!g_dev->Init()) {
-		PX4_ERR("driver init failed");
-		delete g_dev;
-		g_dev = nullptr;
-		return -1;
-	}
-
-	return 0;
+	PRINT_MODULE_USAGE_NAME("lsm9ds1_mag", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-static int stop()
+I2CSPIDriverBase *LSM9DS1_MAG::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+		int runtime_instance)
 {
-	if (g_dev == nullptr) {
-		PX4_WARN("driver not running");
+	LSM9DS1_MAG *instance = new LSM9DS1_MAG(iterator.configuredBusOption(), iterator.bus(), iterator.devid(),
+						cli.rotation, cli.bus_frequency, cli.spi_mode);
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	g_dev->Stop();
-	delete g_dev;
-
-	return 0;
-}
-
-static int status()
-{
-	if (g_dev == nullptr) {
-		PX4_WARN("driver not running");
-		return -1;
+	if (!instance->Init()) {
+		delete instance;
+		return nullptr;
 	}
 
-	g_dev->PrintInfo();
-
-	return 0;
+	return instance;
 }
 
-static void usage()
-{
-	PX4_INFO("missing command: try 'start', 'stop', 'status'");
-	PX4_INFO("options:");
-	PX4_INFO("    -R rotation");
-}
-
-} // namespace lsm9ds1_mag
 
 extern "C" __EXPORT int lsm9ds1_mag_main(int argc, char *argv[])
 {
-	enum Rotation rotation = ROTATION_NONE;
-	int myoptind = 1;
-	int ch = 0;
-	const char *myoptarg = nullptr;
+	using ThisDriver = LSM9DS1_MAG;
+	int ch;
+	BusCLIArguments cli{false, true};
+	cli.default_spi_frequency = ST_LSM9DS1_MAG::SPI_SPEED;
 
-	/* start options */
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(myoptarg);
+			cli.rotation = (enum Rotation)atoi(cli.optarg());
 			break;
-
-		default:
-			lsm9ds1_mag::usage();
-			return 0;
 		}
 	}
 
-	if (myoptind >= argc) {
-		lsm9ds1_mag::usage();
+	const char *verb = cli.optarg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
 		return -1;
 	}
 
-	const char *verb = argv[myoptind];
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_ST_LSM9DS1_M);
 
 	if (!strcmp(verb, "start")) {
-		return lsm9ds1_mag::start(rotation);
-
-	} else if (!strcmp(verb, "stop")) {
-		return lsm9ds1_mag::stop();
-
-	} else if (!strcmp(verb, "status")) {
-		return lsm9ds1_mag::status();
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	lsm9ds1_mag::usage();
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
 
-	return 0;
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
