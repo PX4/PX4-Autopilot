@@ -40,9 +40,10 @@ using namespace time_literals;
 
 static constexpr int16_t combine(uint8_t lsb, uint8_t msb) { return (msb << 8u) | lsb; }
 
-LSM9DS1_MAG::LSM9DS1_MAG(int bus, uint32_t device, enum Rotation rotation) :
-	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+LSM9DS1_MAG::LSM9DS1_MAG(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation,
+			 int bus_frequency, spi_mode_e spi_mode) :
+	SPI(MODULE_NAME, nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_mag(get_device_id(), ORB_PRIO_DEFAULT, rotation)
 {
 	set_device_type(DRV_MAG_DEVTYPE_ST_LSM9DS1_M);
@@ -53,8 +54,6 @@ LSM9DS1_MAG::LSM9DS1_MAG(int bus, uint32_t device, enum Rotation rotation) :
 
 LSM9DS1_MAG::~LSM9DS1_MAG()
 {
-	Stop();
-
 	perf_free(_interval_perf);
 	perf_free(_transfer_perf);
 	perf_free(_data_overrun_perf);
@@ -72,7 +71,6 @@ int LSM9DS1_MAG::probe()
 bool LSM9DS1_MAG::Init()
 {
 	if (SPI::init() != PX4_OK) {
-		PX4_ERR("SPI::init failed");
 		return false;
 	}
 
@@ -159,7 +157,7 @@ void LSM9DS1_MAG::Stop()
 	ScheduleClear();
 }
 
-void LSM9DS1_MAG::Run()
+void LSM9DS1_MAG::RunImpl()
 {
 	perf_count(_interval_perf);
 
@@ -204,8 +202,9 @@ void LSM9DS1_MAG::Run()
 	}
 }
 
-void LSM9DS1_MAG::PrintInfo()
+void LSM9DS1_MAG::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_interval_perf);
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_data_overrun_perf);
