@@ -309,7 +309,7 @@ private:
 	 * @param reg     The register to read.
 	 * @return        The value that was read.
 	 */
-	uint8_t         read_reg(uint8_t reg);
+	uint8_t         read_reg(uint8_t reg) override;
 
 	/**
 	 * Write a register in the BMM150
@@ -318,7 +318,7 @@ private:
 	 * @param value     The new value to write.
 	 * @return          OK if the transfer was successful, -errno otherwise.
 	 */
-	int             write_reg(uint8_t reg, uint8_t value);
+	int             write_reg(uint8_t reg, uint8_t value) override;
 
 	/**
 	 * Modify a register in the BMM150

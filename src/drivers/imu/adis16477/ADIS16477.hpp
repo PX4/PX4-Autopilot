@@ -114,7 +114,7 @@ private:
 
 	uint16_t		read_reg16(uint8_t reg);
 
-	void			write_reg(uint8_t reg, uint8_t value);
+	int			write_reg(uint8_t reg, uint8_t value) override;
 	void			write_reg16(uint8_t reg, uint16_t value);
 
 	// ADIS16477 onboard self test

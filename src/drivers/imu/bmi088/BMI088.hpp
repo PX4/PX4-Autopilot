@@ -78,6 +78,7 @@ protected:
 	*
 	* @param reg       The register to write.
 	* @param value     The new value to write.
+	* @return	   OK on success, negative errno otherwise.
 	*/
 	int            write_reg(unsigned reg, uint8_t value) override;
 

@@ -102,9 +102,9 @@ protected:
 	void measure();
 	int reset();
 
-	uint8_t read_reg(uint8_t reg);
+	uint8_t read_reg(uint8_t reg) override;
 	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
-	void write_reg(uint8_t reg, uint8_t value);
+	int write_reg(uint8_t reg, uint8_t value) override;
 
 private:
 

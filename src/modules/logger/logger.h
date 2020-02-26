@@ -338,7 +338,7 @@ private:
 	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
 
 	uORB::PublicationMulti<logger_status_s>		_logger_status_pub[2] { ORB_ID(logger_status), ORB_ID(logger_status) };
-	hrt_abstime					_logger_status_last{0};
+	hrt_abstime					_logger_status_last {0};
 
 	uORB::Subscription				_manual_control_sp_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
