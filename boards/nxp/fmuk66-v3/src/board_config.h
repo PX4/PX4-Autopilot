@@ -268,8 +268,6 @@ __END_DECLS
 
 #define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION
 
-#define PX4_I2C_OBDEV_BMP280                0x76
-
 /*
  * ADC channels
  *
