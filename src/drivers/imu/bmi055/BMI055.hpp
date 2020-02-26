@@ -78,7 +78,7 @@ protected:
 	* @param reg       The register to write.
 	* @param value     The new value to write.
 	*/
-	void            write_reg(unsigned reg, uint8_t value);
+	int            write_reg(unsigned reg, uint8_t value);
 
 	/* do not allow to copy this class due to pointer data members */
 	BMI055(const BMI055 &);
