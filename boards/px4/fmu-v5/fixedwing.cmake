@@ -28,7 +28,7 @@ px4_add_board(
 		imu/adis16497
 		#imu # all available imu drivers
 		imu/bmi055
-		imu/mpu6000
+		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
