@@ -46,10 +46,12 @@
 //#define PX4_SPI_DEV_ID(devid)     ((devid) & 0xffff)
 #define PX4_SPIDEVID_TYPE(devid) (((uint32_t)(devid) >> 16) & 0xffff)
 
+typedef uint32_t spi_drdy_gpio_t;
+
 #define SPI_BUS_MAX_DEVICES 5
 struct px4_spi_bus_device_t {
 	uint32_t cs_gpio; ///< chip-select GPIO (0 if this device is not used)
-	uint32_t drdy_gpio; ///< data ready GPIO (0 if not set)
+	spi_drdy_gpio_t drdy_gpio; ///< data ready GPIO (0 if not set)
 	uint32_t devid; ///< SPIDEV_ID(type,index). For PX4 devices on NuttX: index is the device type, and for external buses the CS index
 	uint16_t devtype_driver; ///< driver device type, e.g. DRV_IMU_DEVTYPE_ICM20689 (on NuttX: PX4_SPI_DEV_ID(devid) == devtype_driver)
 };
@@ -148,7 +150,7 @@ public:
 	bool next();
 
 	const px4_spi_bus_t &bus() const { return px4_spi_buses[_index]; }
-	uint32_t DRDYGPIO() const { return px4_spi_buses[_index].devices[_bus_device_index].drdy_gpio; }
+	spi_drdy_gpio_t DRDYGPIO() const { return px4_spi_buses[_index].devices[_bus_device_index].drdy_gpio; }
 
 	uint32_t devid() const { return px4_spi_buses[_index].devices[_bus_device_index].devid; }
 
