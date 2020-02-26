@@ -54,9 +54,9 @@
 #define MPL3115A2_OSR                   2       /* Over Sample rate of 4 18MS Minimum time between data samples */
 #define MPL3115A2_CTRL_TRIGGER          (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
 
-MPL3115A2::MPL3115A2(const int bus) :
-	I2C("MPL3115A2", nullptr, bus, MPL3115A2_ADDRESS, 400000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+MPL3115A2::MPL3115A2(I2CSPIBusOption bus_option, const int bus, int bus_frequency) :
+	I2C("MPL3115A2", nullptr, bus, MPL3115A2_ADDRESS, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_barometer(get_device_id()),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
@@ -68,8 +68,6 @@ MPL3115A2::MPL3115A2(const int bus) :
 
 MPL3115A2::~MPL3115A2()
 {
-	stop();
-
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
@@ -129,11 +127,6 @@ void MPL3115A2::start()
 	ScheduleNow();
 }
 
-void MPL3115A2::stop()
-{
-	ScheduleClear();
-}
-
 int MPL3115A2::reset()
 {
 	int max = 10;
@@ -149,7 +142,7 @@ int MPL3115A2::reset()
 	return ret == 1 ? PX4_OK : ret;
 }
 
-void MPL3115A2::Run()
+void MPL3115A2::RunImpl()
 {
 	int ret = PX4_ERROR;
 
@@ -243,7 +236,6 @@ int MPL3115A2::collect()
 	}
 
 
-
 	/* read the most recent measurement
 	 * 3 Pressure and 2 temprtture
 	 */
@@ -289,8 +281,9 @@ int MPL3115A2::collect()
 	return PX4_OK;
 }
 
-void MPL3115A2::print_info()
+void MPL3115A2::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 
