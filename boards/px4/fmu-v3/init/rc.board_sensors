@@ -15,7 +15,7 @@ qmc5883 -X start
 hmc5883 -C -T -I -R 4 start
 
 # Internal SPI bus ICM-20608-G
-mpu6000 -T 20608 start
+mpu6000 -s -T 20608 start
 
 # External SPI
 ms5611 -S start
@@ -29,8 +29,8 @@ set BOARD_FMUV3 0
 if ver hwtypecmp V30
 then
 	# Check for Pixhawk 2.0 cube
-	# external MPU6K is rotated 180 degrees yaw
-	if mpu6000 -S -R 4 start
+	# MPU6K is rotated 180 degrees yaw
+	if mpu6000 -s -R 4 start
 	then
 		set BOARD_FMUV3 20
 	else
@@ -49,8 +49,8 @@ then
 	# Pixhawk Mini doesn't have these sensors,
 	# so if they are found we know its a Pixhack
 
-	# external MPU6K is rotated 180 degrees yaw
-	if mpu6000 -S -R 4 start
+	# MPU6K is rotated 180 degrees yaw
+	if mpu6000 -s -R 4 start
 	then
 		set BOARD_FMUV3 20
 	else
@@ -87,7 +87,7 @@ then
 	if [ $BOARD_FMUV3 = 20 ]
 	then
 		# v2.0 internal MPU6000 is rotated 180 deg roll, 270 deg yaw
-		mpu6000 -R 14 start
+		mpu6000 -s -R 14 start
 
 		# v2.0 Has internal hmc5883 on SPI1
 		hmc5883 -C -T -S -R 8 start
@@ -102,7 +102,7 @@ then
 else
 	# $BOARD_FMUV3 = 0 -> FMUv2
 
-	mpu6000 start
+	mpu6000 -s start
 
 	# As we will use the external mag and the ICM-20608-G
 	# V2 build hwtypecmp is always false
