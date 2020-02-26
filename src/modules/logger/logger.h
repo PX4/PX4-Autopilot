@@ -340,6 +340,7 @@ private:
 	uORB::PublicationMulti<logger_status_s>		_logger_status_pub[2] { ORB_ID(logger_status), ORB_ID(logger_status) };
 
 #ifndef ORB_USE_PUBLISHER_RULES // don't publish logger_status when building for replay
+
 	hrt_abstime					_logger_status_last{0};
 #endif
 
