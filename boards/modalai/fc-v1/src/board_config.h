@@ -208,7 +208,6 @@
  *
  * Note that these are unshifted addresses.
  */
-#define PX4_I2C_OBDEV_BMP388        0x76
 #define PX4_I2C_OBDEV_A71CH         0x49
 
 #define BOARD_NUMBER_I2C_BUSES      4
