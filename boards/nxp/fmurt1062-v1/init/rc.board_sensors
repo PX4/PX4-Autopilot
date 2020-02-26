@@ -24,10 +24,10 @@ mpu6000 -R 8 -s -T 20602 start
 mpu6000 -R 8 -s -T 20689 start
 
 # Internal SPI bus BMI055 accel
-bmi055 -A -R 10 start
+bmi055 -A -R 10 -s start
 
 # Internal SPI bus BMI055 gyro
-bmi055 -G -R 10 start
+bmi055 -G -R 10 -s start
 
 # Possible external compasses
 ist8310 -X start
