@@ -7,7 +7,7 @@ adc start
 
 adis16477 -R 8 start
 
-lps22hb -S start
+lps22hb -s start
 
 lsm303agr -R 4 start
 
