@@ -45,7 +45,7 @@
 BusInstanceIterator::BusInstanceIterator(I2CSPIInstance **instances, int max_num_instances,
 		const BusCLIArguments &cli_arguments, uint16_t devid_driver_index)
 	: _instances(instances), _max_num_instances(max_num_instances),
-	  _bus_option(cli_arguments.bus_option),
+	  _bus_option(cli_arguments.bus_option), _type(cli_arguments.type),
 	  _spi_bus_iterator(spiFilter(cli_arguments.bus_option),
 			    cli_arguments.bus_option == I2CSPIBusOption::SPIExternal ? cli_arguments.chipselect_index : devid_driver_index,
 			    cli_arguments.requested_bus),
@@ -58,7 +58,8 @@ bool BusInstanceIterator::next()
 	int bus = -1;
 
 	if (busType() == BOARD_INVALID_BUS) {
-		while (++_current_instance < _max_num_instances && _instances[_current_instance] == nullptr) {}
+		while (++_current_instance < _max_num_instances && (_instances[_current_instance] == nullptr
+				|| _type != _instances[_current_instance]->_type)) {}
 
 		return _current_instance < _max_num_instances;
 
@@ -82,7 +83,7 @@ bool BusInstanceIterator::next()
 				continue;
 			}
 
-			if (_bus_option == _instances[i]->_bus_option && bus == _instances[i]->_bus) {
+			if (_bus_option == _instances[i]->_bus_option && bus == _instances[i]->_bus && _type == _instances[i]->_type) {
 				_current_instance = i;
 			}
 		}
@@ -164,7 +165,7 @@ uint32_t BusInstanceIterator::devid() const
 	}
 }
 
-uint32_t BusInstanceIterator::DRDYGPIO() const
+spi_drdy_gpio_t BusInstanceIterator::DRDYGPIO() const
 {
 	if (busType() == BOARD_INVALID_BUS) {
 		return 0;
@@ -233,7 +234,8 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 
 	while (iterator.next()) {
 		if (iterator.instance()) {
-			continue; // already running
+			PX4_WARN("Already running on bus %i", iterator.bus());
+			continue;
 		}
 
 		const int free_index = iterator.nextFreeInstance();
