@@ -48,22 +48,30 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
-class LSM9DS1_MAG : public device::SPI, public px4::ScheduledWorkItem
+class LSM9DS1_MAG : public device::SPI, public I2CSPIDriver<LSM9DS1_MAG>
 {
 public:
-	LSM9DS1_MAG(int bus, uint32_t device, enum Rotation rotation = ROTATION_NONE);
+	LSM9DS1_MAG(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		    spi_mode_e spi_mode);
 	~LSM9DS1_MAG() override;
+
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
+
+	void print_status();
 
 	bool Init();
 	void Start();
 	void Stop();
 	bool Reset();
-	void PrintInfo();
+
+	void     RunImpl();
 
 private:
 	int      probe() override;
-	void     Run() override;
 
 	uint8_t  RegisterRead(ST_LSM9DS1_MAG::Register reg);
 	void     RegisterWrite(ST_LSM9DS1_MAG::Register reg, uint8_t value);
