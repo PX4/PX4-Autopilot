@@ -59,8 +59,8 @@ enum class I2CSPIBusOption : uint8_t {
 class I2CSPIInstance
 {
 public:
-	I2CSPIInstance(I2CSPIBusOption bus_option, int bus)
-		: _bus_option(bus_option), _bus(bus) {}
+	I2CSPIInstance(I2CSPIBusOption bus_option, int bus, int type)
+		: _bus_option(bus_option), _bus(bus), _type(type) {}
 
 	virtual ~I2CSPIInstance() = default;
 
@@ -70,15 +70,20 @@ private:
 
 	const I2CSPIBusOption _bus_option;
 	const int _bus;
+	const int _type; ///< device type (driver-specific)
 };
 
 struct BusCLIArguments {
 	I2CSPIBusOption bus_option{I2CSPIBusOption::All};
+	int type{0}; ///< device type (driver-specific)
 	int requested_bus{-1};
 	int chipselect_index{1};
 	Rotation rotation{ROTATION_NONE};
-	int custom1; ///< driver-specific custom argument
-	int custom2; ///< driver-specific custom argument
+	int bus_frequency{0};
+	int spi_mode{-1};
+	int custom1{0}; ///< driver-specific custom argument
+	int custom2{0}; ///< driver-specific custom argument
+	void *custom_data{nullptr}; ///< driver-specific custom argument
 };
 
 /**
@@ -103,7 +108,7 @@ public:
 	board_bus_types busType() const;
 	int bus() const;
 	uint32_t devid() const;
-	uint32_t DRDYGPIO() const;
+	spi_drdy_gpio_t DRDYGPIO() const;
 	bool external() const;
 
 	static I2CBusIterator::FilterType i2cFilter(I2CSPIBusOption bus_option);
@@ -112,6 +117,7 @@ private:
 	I2CSPIInstance **_instances;
 	const int _max_num_instances;
 	const I2CSPIBusOption _bus_option;
+	const int _type;
 	SPIBusIterator _spi_bus_iterator;
 	I2CBusIterator _i2c_bus_iterator;
 	int _current_instance{-1};
@@ -124,9 +130,9 @@ private:
 class I2CSPIDriverBase : public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
-	I2CSPIDriverBase(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus)
+	I2CSPIDriverBase(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus, int type)
 		: ScheduledWorkItem(module_name, config),
-		  I2CSPIInstance(bus_option, bus) {}
+		  I2CSPIInstance(bus_option, bus, type) {}
 
 	static int module_stop(BusInstanceIterator &iterator);
 	static int module_status(BusInstanceIterator &iterator);
@@ -178,8 +184,8 @@ public:
 	static I2CSPIInstance **instances() { return _instances; }
 
 protected:
-	I2CSPIDriver(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus)
-		: I2CSPIDriverBase(module_name, config, bus_option, bus) {}
+	I2CSPIDriver(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus, int type = 0)
+		: I2CSPIDriverBase(module_name, config, bus_option, bus, type) {}
 
 	virtual ~I2CSPIDriver() = default;
 
