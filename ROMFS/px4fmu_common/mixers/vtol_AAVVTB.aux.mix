@@ -1,14 +1,14 @@
 Aileron/v-tail/throttle VTOL mixer for PX4FMU
 =======================================================
 
-This file defines mixers suitable for controlling a fixed wing aircraft with
-aileron, v-tail (rudder, elevator) and throttle using PX4FMU.
-The configuration assumes the aileron servos are connected to PX4FMU
+This file defines mixers suitable for controlling the FW-actuators of a VTOL
+aircraft with aileron, v-tail (rudder, elevator), throttle and reverse throttle
+using PX4FMU. The configuration assumes the aileron servos are connected to PX4FMU
 AUX servo output 0 and 1, the tail servos to output 2 and 3, the throttle
 to output 4 and the thrust reverse signal to output 5.
 
-Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
-(roll), 1 (pitch), 2 (yaw) and 3 (thrust) 4 (flaps) 6 (flaperon).
+Inputs to the mixer come from channel group 1 (Flight Control VTOL), channels 0
+(roll), 1 (pitch), 2 (yaw) and 3 (thrust) 6 (reverse throttle).
 
 Aileron mixer (roll + flaperon)
 ---------------------------------

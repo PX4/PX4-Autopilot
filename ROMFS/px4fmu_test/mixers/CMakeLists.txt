@@ -47,7 +47,7 @@ px4_add_romfs_files(
 	rover_generic.main.mix
 	vtol1_test.mix
 	vtol2_test.mix
-	vtol_AAERT.aux.mix
-	vtol_AAVVT.aux.mix
+	vtol_AAERTB.aux.mix
+	vtol_AAVVTB.aux.mix
 	vtol_convergence.main.mix
 	)
