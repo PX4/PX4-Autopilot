@@ -53,6 +53,6 @@ ms5611 -s start
 rm3100 start
 
 # Possible pmw3901 optical flow sensor
-pmw3901 start
+pmw3901 -S start
 
 px4flow start &
