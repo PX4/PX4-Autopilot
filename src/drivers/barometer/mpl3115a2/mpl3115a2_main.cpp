@@ -34,165 +34,61 @@
 #include "MPL3115A2.hpp"
 
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-enum class MPL3115A2_BUS {
-	ALL = 0,
-	I2C_INTERNAL,
-	I2C_EXTERNAL,
-};
-
-namespace mpl3115a2
+void
+MPL3115A2::print_usage()
 {
-
-struct mpl3115a2_bus_option {
-	MPL3115A2_BUS busid;
-	uint8_t busnum;
-	MPL3115A2 *dev;
-} bus_options[] = {
-#if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPL3115A2_BUS::I2C_INTERNAL, PX4_I2C_BUS_ONBOARD, nullptr },
-#endif
-#if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPL3115A2_BUS::I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION, nullptr },
-#endif
-#if defined(PX4_I2C_BUS_EXPANSION1)
-	{ MPL3115A2_BUS::I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION1, nullptr },
-#endif
-#if defined(PX4_I2C_BUS_EXPANSION2)
-	{ MPL3115A2_BUS::I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION2, nullptr },
-#endif
-};
-
-// find a bus structure for a busid
-static mpl3115a2_bus_option *find_bus(MPL3115A2_BUS busid)
-{
-	for (mpl3115a2_bus_option &bus_option : bus_options) {
-		if ((busid == MPL3115A2_BUS::ALL ||
-		     busid == bus_option.busid) && bus_option.dev != nullptr) {
-
-			return &bus_option;
-		}
-	}
-
-	return nullptr;
+	PRINT_MODULE_USAGE_NAME("mpl3115a2", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-static bool start_bus(mpl3115a2_bus_option &bus)
+I2CSPIDriverBase *MPL3115A2::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+		int runtime_instance)
 {
-	MPL3115A2 *dev = new MPL3115A2(bus.busnum);
+	MPL3115A2 *dev = new MPL3115A2(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
 
-	if (dev == nullptr || (dev->init() != PX4_OK)) {
-		PX4_ERR("driver start failed");
+	if (dev == nullptr) {
+		return nullptr;
+	}
+
+	if (OK != dev->init()) {
 		delete dev;
-		return false;
+		return nullptr;
 	}
 
-	bus.dev = dev;
-
-	return true;
+	return dev;
 }
-
-static int start(MPL3115A2_BUS busid)
-{
-	for (mpl3115a2_bus_option &bus_option : bus_options) {
-		if (bus_option.dev != nullptr) {
-			// this device is already started
-			PX4_WARN("already started");
-			continue;
-		}
-
-		if (busid != MPL3115A2_BUS::ALL && bus_option.busid != busid) {
-			// not the one that is asked for
-			continue;
-		}
-
-		if (start_bus(bus_option)) {
-			return PX4_OK;
-		}
-	}
-
-	return PX4_ERROR;
-}
-
-static int stop(MPL3115A2_BUS busid)
-{
-	mpl3115a2_bus_option *bus = find_bus(busid);
-
-	if (bus != nullptr && bus->dev != nullptr) {
-		delete bus->dev;
-		bus->dev = nullptr;
-
-	} else {
-		PX4_WARN("driver not running");
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
-}
-
-static int status(MPL3115A2_BUS busid)
-{
-	mpl3115a2_bus_option *bus = find_bus(busid);
-
-	if (bus != nullptr && bus->dev != nullptr) {
-		bus->dev->print_info();
-		return PX4_OK;
-	}
-
-	PX4_WARN("driver not running");
-	return PX4_ERROR;
-}
-
-static int usage()
-{
-	PX4_INFO("missing command: try 'start', 'stop', 'status'");
-	PX4_INFO("options:");
-	PX4_INFO("    -X    (i2c external bus)");
-	PX4_INFO("    -I    (i2c internal bus)");
-
-	return 0;
-}
-
-} // namespace
 
 extern "C" int mpl3115a2_main(int argc, char *argv[])
 {
-	int myoptind = 1;
-	int ch;
-	const char *myoptarg = nullptr;
+	using ThisDriver = MPL3115A2;
+	BusCLIArguments cli{true, false};
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
-	MPL3115A2_BUS busid = MPL3115A2_BUS::ALL;
-
-	while ((ch = px4_getopt(argc, argv, "XI", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'X':
-			busid = MPL3115A2_BUS::I2C_EXTERNAL;
-			break;
-
-		case 'I':
-			busid = MPL3115A2_BUS::I2C_INTERNAL;
-			break;
-
-		default:
-			return mpl3115a2::usage();
-		}
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
 	}
 
-	if (myoptind >= argc) {
-		return mpl3115a2::usage();
-	}
-
-	const char *verb = argv[myoptind];
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_BARO_DEVTYPE_MPL3115A2);
 
 	if (!strcmp(verb, "start")) {
-		return mpl3115a2::start(busid);
-
-	} else if (!strcmp(verb, "stop")) {
-		return mpl3115a2::stop(busid);
-
-	} else if (!strcmp(verb, "status")) {
-		return mpl3115a2::status(busid);
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	return mpl3115a2::usage();
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
+
