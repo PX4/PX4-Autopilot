@@ -63,8 +63,7 @@ struct spi_calibration_s {
 class BMP280_SPI: public device::SPI, public bmp280::IBMP280
 {
 public:
-	BMP280_SPI(uint8_t bus, uint32_t device,
-		   uint8_t bus_mode, uint32_t bus_freq_hz);
+	BMP280_SPI(uint8_t bus, uint32_t device, uint8_t bus_mode, uint32_t bus_freq_hz);
 	virtual ~BMP280_SPI() override = default;
 
 	int init() override { return SPI::init(); }
@@ -93,7 +92,6 @@ BMP280_SPI::BMP280_SPI(uint8_t bus, uint32_t device,
 		       uint8_t bus_mode, uint32_t bus_freq_hz) :
 	SPI("BMP280_SPI", nullptr, bus, device, (enum spi_mode_e)bus_mode, bus_freq_hz)
 {
-	PX4_INFO("BMP280_SPI: spi mode: %u, bus frequency: %i KHz", bus_mode, bus_freq_hz / 1000);
 }
 
 uint8_t

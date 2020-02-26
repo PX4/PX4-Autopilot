@@ -120,15 +120,16 @@ public:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	virtual uint8_t read_reg(unsigned reg) { return 0; }
+	virtual uint8_t read_reg(unsigned reg) { return -ENODEV; }
 
 	/**
 	 * Write a register in the device.
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
+	 * @return		OK on success, negative errno otherwise.
 	 */
-	virtual void write_reg(unsigned reg, uint8_t value) {}
+	virtual int write_reg(unsigned reg, uint8_t value) { return -ENODEV; }
 
 	/**
 	 * Perform a device-specific operation.

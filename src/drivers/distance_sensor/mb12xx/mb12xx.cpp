@@ -150,7 +150,6 @@ private:
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
 
 	int _measure_interval{MB12XX_MEASURE_INTERVAL};	// Initialize the measure interval for a single sensor.
-	//int _orb_class_instance{-1};
 
 	int _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
 

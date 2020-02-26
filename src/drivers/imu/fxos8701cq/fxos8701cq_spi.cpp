@@ -76,7 +76,7 @@ public:
 	int	write(unsigned reg, void *data, unsigned count) override;
 
 	/**
-	 * Read a register from the FXOS8701CQ
+	 * Read a register from FXOS8701CQ
 	 *
 	 * @param		The register to read.
 	 * @return		The value that was read.
@@ -84,12 +84,13 @@ public:
 	uint8_t read_reg(unsigned reg) override;
 
 	/**
-	 * Write a register in the FXOS8701CQ
+	 * Write a register FXOS8701CQ.
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
+	 * @return		OK on success, negative errno otherwise.
 	 */
-	void write_reg(unsigned reg, uint8_t value) override;
+	int write_reg(unsigned reg, uint8_t value) override;
 
 protected:
 	int probe() override;
@@ -105,7 +106,6 @@ FXOS8701CQ_SPI::FXOS8701CQ_SPI(int bus, uint32_t chip_select) :
 	SPI("FXOS8701CQ", nullptr, bus, chip_select, SPIDEV_MODE0, FXOS8701CQ_SPI_BUS_SPEED)
 {
 	set_device_type(DRV_ACC_DEVTYPE_FXOS8701C);
-	PX4_INFO("FXOS8701CQ_SPI: spi mode: %u, bus frequency: %i KHz", SPIDEV_MODE0, FXOS8701CQ_SPI_BUS_SPEED / 1000);
 }
 
 int
@@ -132,7 +132,7 @@ FXOS8701CQ_SPI::read_reg(unsigned reg)
 	return cmd[2];
 }
 
-void
+int
 FXOS8701CQ_SPI::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t cmd[3];
@@ -141,7 +141,7 @@ FXOS8701CQ_SPI::write_reg(unsigned reg, uint8_t value)
 	cmd[1] = ADDR_7(reg);
 	cmd[2] = value;
 
-	transfer(cmd, nullptr, sizeof(cmd));
+	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
 /**

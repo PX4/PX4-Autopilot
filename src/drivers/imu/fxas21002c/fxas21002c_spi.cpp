@@ -75,22 +75,6 @@ public:
 	 */
 	int	write(unsigned reg, void *data, unsigned count) override;
 
-	/**
-	 * Read a register from the FXAS21002C
-	 *
-	 * @param		The register to read.
-	 * @return		The value that was read.
-	 */
-	uint8_t read_reg(unsigned reg) override;
-
-	/**
-	 * Write a register in the FXAS21002C
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void write_reg(unsigned reg, uint8_t value) override;
-
 protected:
 	int probe() override;
 };
@@ -116,30 +100,6 @@ FXAS21002C_SPI::probe()
 
 	PX4_INFO("FXAS21002C_SPI::probe: %s, whoami: 0x%02x", (success ? "Succeeded" : "failed"), whoami);
 	return success ? OK : -EIO;
-}
-
-uint8_t
-FXAS21002C_SPI::read_reg(unsigned reg)
-{
-	uint8_t cmd[2];
-
-	cmd[0] = DIR_READ(reg);
-	cmd[1] = 0;
-
-	transfer(cmd, cmd, sizeof(cmd));
-
-	return cmd[1];
-}
-
-void
-FXAS21002C_SPI::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t cmd[2];
-
-	cmd[0] = DIR_WRITE(reg);
-	cmd[1] = value;
-
-	transfer(cmd, nullptr, sizeof(cmd));
 }
 
 /**

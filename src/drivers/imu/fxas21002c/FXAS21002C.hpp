@@ -287,9 +287,9 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	inline void write_reg(unsigned reg, uint8_t value)
+	inline int write_reg(unsigned reg, uint8_t value)
 	{
-		_interface->write_reg(reg, value);
+		return _interface->write_reg(reg, value);
 	}
 
 	/**

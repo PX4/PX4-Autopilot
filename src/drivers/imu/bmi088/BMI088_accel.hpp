@@ -184,7 +184,7 @@ public:
 
 protected:
 
-	virtual int     probe() override;
+	int     probe() override;
 
 private:
 

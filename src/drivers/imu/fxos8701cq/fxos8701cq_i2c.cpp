@@ -75,22 +75,6 @@ public:
 	 */
 	int	write(unsigned reg, void *data, unsigned count) override;
 
-	/**
-	 * Read a register from the FXOS8701CQ
-	 *
-	 * @param		The register to read.
-	 * @return		The value that was read.
-	 */
-	uint8_t read_reg(unsigned reg) override;
-
-	/**
-	 * Write a register in the FXOS8701CQ
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void write_reg(unsigned reg, uint8_t value) override;
-
 protected:
 	int probe() override;
 };
@@ -118,30 +102,6 @@ FXOS8701CQ_I2C::probe()
 	return success ? OK : -EIO;
 }
 
-uint8_t
-FXOS8701CQ_I2C::read_reg(unsigned reg)
-{
-	uint8_t cmd[1];
-	uint8_t data[1];
-
-	cmd[0] = reg;
-
-	transfer(cmd, 1, data, 1);
-
-	return data[0];
-}
-
-void
-FXOS8701CQ_I2C::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t cmd[2];
-
-	cmd[0] = reg;
-	cmd[1] = value;
-
-	transfer(cmd, 2, nullptr, 0);
-}
-
 /**
  * Read directly from the device.
  *
@@ -165,7 +125,6 @@ int FXOS8701CQ_I2C::read(unsigned reg, void *data, unsigned count)
 	uint8_t cmd = FXOS8701CQ_REG(reg);
 
 	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count - offset);
-	// without "-offset" -> stack smashing detected
 }
 
 /**

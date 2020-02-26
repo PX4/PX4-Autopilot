@@ -122,19 +122,15 @@
 
 #pragma pack(push, 1)
 struct RawAccelMagReport {
-#       ifdef FXOS8701CQ_USE_I2C
-	uint8_t  cmd;
-#       else
-	uint8_t	 cmd[2];
-#       endif
+	uint8_t	cmd[2];  // cmd field is not used whe uing I2C bus
 
-	uint8_t		status;
-	int16_t		x;
-	int16_t		y;
-	int16_t		z;
-	int16_t		mx;
-	int16_t		my;
-	int16_t		mz;
+	uint8_t	status;
+	int16_t	x;
+	int16_t	y;
+	int16_t z;
+	int16_t	mx;
+	int16_t	my;
+	int16_t	mz;
 };
 #pragma pack(pop)
 

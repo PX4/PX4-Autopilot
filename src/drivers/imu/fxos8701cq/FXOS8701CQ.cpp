@@ -101,7 +101,7 @@ FXOS8701CQ::init()
 
 	// There are 2 possible WHOAMI return values,
 	// so probe here again to set proper _checked_values[0]
-	ret = this->probe();
+	ret = probe();
 
 	if (ret != OK) {
 		PX4_ERR("FXOS8701CQ::probe() failed");
