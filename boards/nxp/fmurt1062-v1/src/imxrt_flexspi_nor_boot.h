@@ -77,12 +77,11 @@
 #define FLASH_BASE                  0x60000000
 #define FLASH_END                   0x7f7fffff
 
-/* This needs to take into account bootloader */
+/* This needs to take into account  the memory configuration at boot bootloader */
 
 #define ROM_BOOTLOADER_OCRAM_RES    0x8000
 #define OCRAM_BASE                  (0x20200000 + ROM_BOOTLOADER_OCRAM_RES)
-#define OCRAM_END                   (OCRAM_BASE + (512 * 1024) + (256 * 1024) -\
-				     ROM_BOOTLOADER_OCRAM_RES)
+#define OCRAM_END                   (OCRAM_BASE + (512 * 1024) + (256 * 1024) - ROM_BOOTLOADER_OCRAM_RES)
 
 
 #define SCLK 1
@@ -97,6 +96,7 @@
 #endif
 
 #define LOCATE_IN_DEST(x)           (((uint32_t)(x)) - FLASH_BASE + IMAGE_DEST)
+#define LOCATE_IN_SRC(x)            (((uint32_t)(x)) - IMAGE_DEST + FLASH_BASE)
 
 #define DCD_ADDRESS                 0
 #define BOOT_DATA_ADDRESS           LOCATE_IN_DEST(&g_boot_data)
@@ -111,8 +111,6 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
-
-extern  uint32_t  _vectors[];
 
 /* IVT Data */
 
@@ -170,5 +168,8 @@ struct boot_data_s {
  ****************************************************************************/
 
 extern const struct boot_data_s g_boot_data;
+extern  const uint8_t g_dcd_data[];
+extern  const uint32_t  _vectors[];
+
 
 #endif /* __BOARDS_ARM_IMXRT_IMXRT1060_EVK_SRC_IMXRT_FLEXSPI_NOR_BOOT_H */
