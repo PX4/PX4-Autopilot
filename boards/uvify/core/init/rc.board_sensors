@@ -14,7 +14,7 @@ then
 	# GPS LED
 	rgbled_ncp5623c start -a 0x38
 
-	#mpu6000 -R 4 -T 20608 start
+	#mpu6000 -s -R 4 -T 20608 start
 	mpu9250 -R 4 start
 
 	# Default GNSS with LIS3MDL magnetometer with external i2c.

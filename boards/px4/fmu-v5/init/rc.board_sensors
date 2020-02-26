@@ -10,7 +10,7 @@ mpu6000 -R 8 -s -T 20602 start
 #icm20602 -R 6 start
 
 # Internal SPI bus ICM-20689
-mpu6000 -R 8 -z -T 20689 start
+mpu6000 -R 8 -s -T 20689 start
 #icm20689 -R 6 start
 
 # new sensor drivers (in testing)

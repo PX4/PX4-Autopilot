@@ -5,7 +5,7 @@
 adc start
 
 # Internal SPI bus ICM-20689
-mpu6000 -R 8 -z -T 20689 start
+mpu6000 -R 8 -s -T 20689 start
 
 # Internal SPI bus BMI088 accel
 bmi088 -A -R 10 start
