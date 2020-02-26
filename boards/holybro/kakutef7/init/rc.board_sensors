@@ -11,8 +11,8 @@ then
 	mpu6000 -R 12 -s -T 20689 start
 fi
 
-# Internal Baro
-bmp280 start
+# Onboard Baro
+bmp280 -X start
 
 # Possible external compasses
 ist8310 -X start
