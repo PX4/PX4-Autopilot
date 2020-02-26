@@ -8,7 +8,7 @@ adc start
 # Possible external compasses
 hmc5883 -C -X start
 lis3mdl -X start
-ist8310 -b 1 start
+ist8310 -X start
 qmc5883 -X start
 
 # Internal Mag I2C bus roll 180, yaw 90

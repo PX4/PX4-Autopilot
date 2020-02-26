@@ -17,7 +17,7 @@ fmu sensor_reset 50
 # External I2C bus
 hmc5883 -C -T -X start
 lis3mdl -X start
-ist8310 start
+ist8310 -X start
 qmc5883 -X start
 rm3100 start
 
