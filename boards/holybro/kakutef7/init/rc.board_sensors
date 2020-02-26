@@ -8,7 +8,7 @@ adc start
 # The default IMU is an ICM20689, but there might also be an MPU6000
 if ! mpu6000 -R 12 -s start
 then
-	mpu6000 -R 12 -z -T 20689 start
+	mpu6000 -R 12 -s -T 20689 start
 fi
 
 # Internal Baro
