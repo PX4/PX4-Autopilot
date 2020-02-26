@@ -2,6 +2,8 @@
 #
 # @name Lumenier QAV250
 #
+# @board px4_fmu-v2 exclude
+#
 # @type Quadrotor x
 # @class Copter
 #
