@@ -24,8 +24,7 @@ bmi055 -A -R 10 start
 bmi055 -G -R 10 start
 
 # Possible external compasses
-ist8310 -b 1 start
-ist8310 -b 2 start
+ist8310 -X start
 hmc5883 -C -T -X start
 qmc5883 -X start
 lis3mdl -X start
@@ -38,7 +37,7 @@ then
 fi
 
 # Possible internal compass
-ist8310 -b 5 start
+ist8310 -I start
 
 # Baro on internal SPI
 ms5611 -s start
