@@ -78,7 +78,6 @@ MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device, uint8_t bus_mode, int32_t bus
 	high_bus_speed(bus_freq_hz)
 {
 	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
-	PX4_INFO("MPU9250_SPI: spi mode: %u, high bus frequency: %i KHz", bus_mode, bus_freq_hz / 1000);
 }
 
 void

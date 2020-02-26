@@ -71,7 +71,6 @@ MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address, int32_t bus_freq_hz) :
 	I2C("MPU9250_I2C", nullptr, bus, address, bus_freq_hz)
 {
 	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
-	PX4_INFO("MPU9250_I2C: bus frequency: %i KHz", bus_freq_hz / 1000);
 }
 
 int

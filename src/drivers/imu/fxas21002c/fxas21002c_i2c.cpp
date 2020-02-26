@@ -89,7 +89,6 @@ FXAS21002C_I2C::FXAS21002C_I2C(int bus, uint32_t slave_address) :
 	I2C("FXAS21002C", nullptr, bus, slave_address, FXAS21002C_I2C_BUS_SPEED)
 {
 	set_device_type(DRV_GYR_DEVTYPE_FXAS2100C);
-	PX4_INFO("FXAS21002C_I2C: bus frequency: %i KHz", FXAS21002C_I2C_BUS_SPEED / 1000);
 }
 
 int

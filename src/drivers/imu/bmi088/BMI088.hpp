@@ -70,7 +70,7 @@ protected:
 	* @param       The register to read.
 	* @return      The value that was read.
 	*/
-	virtual uint8_t         read_reg(unsigned reg); // This needs to be declared as virtual, because the
+	uint8_t         read_reg(unsigned reg) override;
 	virtual uint16_t        read_reg16(unsigned reg);
 
 	/**
@@ -79,7 +79,7 @@ protected:
 	* @param reg       The register to write.
 	* @param value     The new value to write.
 	*/
-	void            write_reg(unsigned reg, uint8_t value);
+	int            write_reg(unsigned reg, uint8_t value) override;
 
 	/* do not allow to copy this class due to pointer data members */
 	BMI088(const BMI088 &);

@@ -89,7 +89,6 @@ FXOS8701CQ_I2C::FXOS8701CQ_I2C(int bus, uint32_t slave_address) :
 	I2C("FXOS8701CQ", nullptr, bus, slave_address, FXOS8701CQ_I2C_BUS_SPEED)
 {
 	set_device_type(DRV_ACC_DEVTYPE_FXOS8701C);
-	PX4_INFO("FXOS8701CQ_I2C: bus frequency: %i KHz", FXOS8701CQ_I2C_BUS_SPEED / 1000);
 }
 
 int

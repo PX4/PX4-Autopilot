@@ -64,7 +64,6 @@ BMI088_accel::BMI088_accel(int bus, const char *path_accel, uint32_t device, enu
 	_got_duplicate(false)
 {
 	_px4_accel.set_device_type(DRV_DEVTYPE_BMI088);
-	PX4_INFO("BMI088_accel: spi mode: %u, bus frequency: %i KHz", spi_mode, bus_freq_hz / 1000);
 }
 
 BMI088_accel::~BMI088_accel()

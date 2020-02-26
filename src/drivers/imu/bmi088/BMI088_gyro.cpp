@@ -65,7 +65,6 @@ BMI088_gyro::BMI088_gyro(int bus, const char *path_gyro, uint32_t device, enum R
 	_bad_registers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_registers"))
 {
 	_px4_gyro.set_device_type(DRV_DEVTYPE_BMI088);
-	PX4_INFO("BMI088_gyro: spi mode: %u, bus frequency: %i KHz", spi_mode, bus_freq_hz / 1000);
 }
 
 BMI088_gyro::~BMI088_gyro()
