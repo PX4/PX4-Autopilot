@@ -33,195 +33,84 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
 #include "LPS25H.hpp"
 
-enum class LPS25H_BUS {
-	ALL = 0,
-	I2C_INTERNAL,
-	I2C_EXTERNAL,
-	SPI_INTERNAL,
-	SPI_EXTERNAL
-};
-
-namespace lps25h
+void
+LPS25H::print_usage()
 {
-
-struct lps25h_bus_option {
-	LPS25H_BUS busid;
-	LPS25H_constructor interface_constructor;
-	uint8_t busnum;
-	LPS25H	*dev;
-} bus_options[] = {
-	{ LPS25H_BUS::I2C_EXTERNAL, &LPS25H_I2C_interface, PX4_I2C_BUS_EXPANSION, nullptr },
-#if defined(PX4_I2C_BUS_EXPANSION1)
-	{ LPS25H_BUS::I2C_EXTERNAL, &LPS25H_I2C_interface, PX4_I2C_BUS_EXPANSION1, nullptr },
-#endif
-#if defined(PX4_I2C_BUS_EXPANSION2)
-	{ LPS25H_BUS::I2C_EXTERNAL, &LPS25H_I2C_interface, PX4_I2C_BUS_EXPANSION2, nullptr },
-#endif
-#if defined(PX4_I2C_BUS_ONBOARD)
-	{ LPS25H_BUS::I2C_INTERNAL, &LPS25H_I2C_interface, PX4_I2C_BUS_ONBOARD, nullptr },
-#endif
-#if defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_LPS22H)
-	{ LPS25H_BUS::SPI_EXTERNAL, &LPS25H_SPI_interface, PX4_SPI_BUS_SENSORS, nullptr },
-#endif
-};
-
-// find a bus structure for a busid
-static struct lps25h_bus_option *find_bus(LPS25H_BUS busid)
-{
-	for (lps25h_bus_option &bus_option : bus_options) {
-		if ((busid == LPS25H_BUS::ALL ||
-		     busid == bus_option.busid) && bus_option.dev != nullptr) {
-
-			return &bus_option;
-		}
-	}
-
-	return nullptr;
+	PRINT_MODULE_USAGE_NAME("lps25h", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-static bool start_bus(lps25h_bus_option &bus)
+I2CSPIDriverBase *LPS25H::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
 {
-	device::Device *interface = bus.interface_constructor(bus.busnum);
+	device::Device *interface = nullptr;
+
+	if (iterator.busType() == BOARD_I2C_BUS) {
+		interface = LPS25H_I2C_interface(iterator.bus(), cli.bus_frequency);
+
+	} else if (iterator.busType() == BOARD_SPI_BUS) {
+		interface = LPS25H_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	}
+
+	if (interface == nullptr) {
+		PX4_ERR("failed creating interface for bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		return nullptr;
+	}
 
 	if (interface->init() != OK) {
-		PX4_WARN("no device on bus %u", (unsigned)bus.busid);
 		delete interface;
-		return false;
+		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		return nullptr;
 	}
 
-	LPS25H *dev = new LPS25H(interface);
+	LPS25H *dev = new LPS25H(iterator.configuredBusOption(), iterator.bus(), interface);
 
 	if (dev == nullptr) {
-		PX4_ERR("alloc failed");
-		return false;
-	}
-
-	if (dev->init() != PX4_OK) {
-		PX4_ERR("driver start failed");
-		delete dev;
 		delete interface;
-		return false;
+		return nullptr;
 	}
 
-	bus.dev = dev;
-
-	return true;
-}
-
-static int start(LPS25H_BUS busid)
-{
-	for (lps25h_bus_option &bus_option : bus_options) {
-		if (bus_option.dev != nullptr) {
-			// this device is already started
-			PX4_WARN("already started");
-			continue;
-		}
-
-		if (busid != LPS25H_BUS::ALL && bus_option.busid != busid) {
-			// not the one that is asked for
-			continue;
-		}
-
-		if (start_bus(bus_option)) {
-			return PX4_OK;
-		}
+	if (OK != dev->init()) {
+		delete dev;
+		return nullptr;
 	}
 
-	return PX4_ERROR;
+	return dev;
 }
-
-static int stop(LPS25H_BUS busid)
-{
-	lps25h_bus_option *bus = find_bus(busid);
-
-	if (bus != nullptr && bus->dev != nullptr) {
-		delete bus->dev;
-		bus->dev = nullptr;
-
-	} else {
-		PX4_WARN("driver not running");
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
-}
-
-static int status(LPS25H_BUS busid)
-{
-	lps25h_bus_option *bus = find_bus(busid);
-
-	if (bus != nullptr && bus->dev != nullptr) {
-		bus->dev->print_info();
-		return PX4_OK;
-	}
-
-	PX4_WARN("driver not running");
-	return PX4_ERROR;
-}
-
-static int usage()
-{
-	PX4_INFO("missing command: try 'start', 'stop', 'status'");
-	PX4_INFO("options:");
-	PX4_INFO("    -X    (i2c external bus)");
-	PX4_INFO("    -I    (i2c internal bus)");
-	PX4_INFO("    -s    (spi internal bus)");
-	PX4_INFO("    -S    (spi external bus)");
-
-	return 0;
-}
-
-} // namespace
 
 extern "C" int lps25h_main(int argc, char *argv[])
 {
-	int myoptind = 1;
-	int ch;
-	const char *myoptarg = nullptr;
+	using ThisDriver = LPS25H;
+	BusCLIArguments cli{true, true};
+	cli.default_spi_frequency = 11 * 1000 * 1000;
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
-	LPS25H_BUS busid = LPS25H_BUS::ALL;
-
-	while ((ch = px4_getopt(argc, argv, "XISs:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'X':
-			busid = LPS25H_BUS::I2C_EXTERNAL;
-			break;
-
-		case 'I':
-			busid = LPS25H_BUS::I2C_INTERNAL;
-			break;
-
-		case 'S':
-			busid = LPS25H_BUS::SPI_EXTERNAL;
-			break;
-
-		case 's':
-			busid = LPS25H_BUS::SPI_INTERNAL;
-			break;
-
-		default:
-			return lps25h::usage();
-		}
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
 	}
 
-	if (myoptind >= argc) {
-		return lps25h::usage();
-	}
-
-	const char *verb = argv[myoptind];
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_BARO_DEVTYPE_LPS25H);
 
 	if (!strcmp(verb, "start")) {
-		lps25h::start(busid);
-
-	} else if (!strcmp(verb, "stop")) {
-		return lps25h::stop(busid);
-
-	} else if (!strcmp(verb, "status")) {
-		lps25h::status(busid);
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	return lps25h::usage();
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
