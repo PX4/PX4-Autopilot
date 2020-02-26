@@ -8,7 +8,7 @@ adc start
 # External I2C bus
 hmc5883 -C -T -X start
 lis3mdl -X start
-ist8310 start
+ist8310 -X start
 qmc5883 -X start
 
 # Internal SPI bus ICM-20608-G is rotated 90 deg yaw

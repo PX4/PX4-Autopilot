@@ -21,8 +21,7 @@ bmi088 -A -R 4 start
 bmi088 -G -R 4 start
 
 # Possible external compasses
-ist8310 -b 1 start
-ist8310 -b 2 start
+ist8310 -X start
 hmc5883 -C -T -X start
 qmc5883 -X start
 

@@ -19,8 +19,7 @@ mpu6000 -R 2 -T 20602 start
 mpu9250 -R 2 start
 
 # Possible external compasses
-ist8310 -b 1 start
-ist8310 -b 2 start
+ist8310 -X start
 hmc5883 -C -T -X start
 qmc5883 -X start
 lis3mdl -X start
