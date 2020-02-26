@@ -171,12 +171,6 @@
 #define PX4_I2C_BUS_LED              PX4_I2C_BUS_EXPANSION
 
 /**
- * Devices on the external bus.
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_BMP280         0x76
-
-/**
  * ADC channels:
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver.
  */

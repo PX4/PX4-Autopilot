@@ -56,7 +56,6 @@
 #define PX4_NUMBER_I2C_BUSES    2
 
 #define PX4_I2C_OBDEV_MPU9250 0x68
-#define PX4_I2C_OBDEV_BMP280  0x76
 
 
 // ADC channels:
