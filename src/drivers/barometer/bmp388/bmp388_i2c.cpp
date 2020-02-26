@@ -54,14 +54,12 @@ public:
 	uint8_t get_reg(uint8_t addr);
 	int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
 	int set_reg(uint8_t value, uint8_t addr);
-	data_s *get_data(uint8_t addr);
 	calibration_s *get_calibration(uint8_t addr);
 
 	uint32_t get_device_id() const override { return device::I2C::get_device_id(); }
 
 private:
 	struct calibration_s _cal;
-	struct data_s _data;
 };
 
 IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device)
@@ -97,18 +95,6 @@ int BMP388_I2C::set_reg(uint8_t value, uint8_t addr)
 {
 	uint8_t cmd[2] = { (uint8_t)(addr), value};
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
-}
-
-data_s *BMP388_I2C::get_data(uint8_t addr)
-{
-	const uint8_t cmd = (uint8_t)(addr);
-
-	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_data, sizeof(struct data_s)) == OK) {
-		return (&_data);
-
-	} else {
-		return nullptr;
-	}
 }
 
 calibration_s *BMP388_I2C::get_calibration(uint8_t addr)
