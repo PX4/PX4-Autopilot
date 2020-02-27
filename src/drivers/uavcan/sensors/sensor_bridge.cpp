@@ -154,8 +154,21 @@ UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 	return out;
 }
 
-void
-UavcanCDevSensorBridgeBase::print_status() const
+int8_t UavcanCDevSensorBridgeBase::get_channel_index_for_node(int node_id)
+{
+	int8_t ch = -1;
+
+	for (unsigned i = 0; i < _max_channels; i++) {
+		if (_channels[i].node_id == node_id) {
+			ch = i;
+			break;
+		}
+	}
+
+	return ch;
+}
+
+void UavcanCDevSensorBridgeBase::print_status() const
 {
 	printf("devname: %s\n", _class_devname);
 
