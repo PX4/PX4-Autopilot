@@ -53,7 +53,7 @@ bool Ekf::resetVelocity()
 	Vector3f vel_before_reset = _state.vel;
 
 	// reset EKF states
-	if (_control_status.flags.gps && _gps_check_fail_status.value==0) {
+	if (_control_status.flags.gps && isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us)) {
 		ECL_INFO_TIMESTAMPED("reset velocity to GPS");
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.vel = _gps_sample_delayed.vel;
