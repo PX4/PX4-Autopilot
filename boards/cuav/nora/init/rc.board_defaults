@@ -1,0 +1,66 @@
+#!/bin/sh
+#
+# Cuav Nora specific board defaults
+#------------------------------------------------------------------------------
+
+
+#
+# Bootloader upgrade
+#
+set BL_FILE /etc/extras/cuav_nora_bootloader.bin
+if [ -f $BL_FILE ]
+then
+	if param compare SYS_BL_UPDATE 1
+	then
+		param set SYS_BL_UPDATE 0
+		param save
+		echo "BL update..." >> $LOG_FILE
+		bl_update $BL_FILE
+		echo "BL update done" >> $LOG_FILE
+		reboot
+	fi
+fi
+unset BL_FILE
+
+if [ $AUTOCNF = yes ]
+then
+	# Enable IMU thermal control
+	param set SENS_EN_THERMAL 1
+fi
+
+set LOGGER_BUF 64
+
+safety_button start
+
+# fmu mode_pwm
+# pwm rate -a -r 400
+
+# pwm disarmed -m 0x100 -p p:PWM_MAIN_DIS9
+# pwm disarmed -m 0x200 -p p:PWM_MAIN_DIS10
+# pwm disarmed -m 0x400 -p p:PWM_MAIN_DIS11
+# pwm disarmed -m 0x800 -p p:PWM_MAIN_DIS12
+# pwm disarmed -m 0x1000 -p p:PWM_MAIN_DIS13
+# pwm disarmed -m 0x2000 -p p:PWM_MAIN_DIS14
+
+# pwm min -m 0x100 -p p:PWM_MAIN_MIN9
+# pwm min -m 0x200 -p p:PWM_MAIN_MIN10
+# pwm min -m 0x400 -p p:PWM_MAIN_MIN11
+# pwm min -m 0x800 -p p:PWM_MAIN_MIN12
+# pwm min -m 0x1000 -p p:PWM_MAIN_MIN13
+# pwm min -m 0x2000 -p p:PWM_MAIN_MIN14
+
+# pwm max -m 0x100 -p p:PWM_MAIN_MAX9
+# pwm max -m 0x200 -p p:PWM_MAIN_MAX10
+# pwm max -m 0x400 -p p:PWM_MAIN_MAX11
+# pwm max -m 0x800 -p p:PWM_MAIN_MAX12
+# pwm max -m 0x1000 -p p:PWM_MAIN_MAX13
+# pwm max -m 0x2000 -p p:PWM_MAIN_MAX14
+
+# pwm failsafe -m 0x100 -p p:PWM_MAIN_FAIL9
+# pwm failsafe -m 0x200 -p p:PWM_MAIN_FAIL10
+# pwm failsafe -m 0x400 -p p:PWM_MAIN_FAIL11
+# pwm failsafe -m 0x800 -p p:PWM_MAIN_FAIL12
+# pwm failsafe -m 0x1000 -p p:PWM_MAIN_FAIL13
+# pwm failsafe -m 0x2000 -p p:PWM_MAIN_FAIL14
+
+# set PWM_RATE none
