@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Cuav Nora specific board sensors init
+#------------------------------------------------------------------------------
+adc start
+
+# Internal SPI bus ICM-20689
+mpu6000 -R 8 -z -T 20689 start
+#$icm20948 -R start
+
+# Internal SPI bus BMI088 accel
+bmi088 -A -R 10 start
+
+# Internal SPI bus BMI088 gyro
+bmi088 -G -R 10 start
+
+#rm3100 -R 1 start
+rm3100 start
+# Possible external compasses
+ist8310 -b 4 start
+
+hmc5883 -C -T -X start
+qmc5883 -X start
+lis3mdl -X start
+
+# Possible internal compass
+ist8310 -b 5 start
+
+# Baro on internal SPI
+ms5611 -S start
+
+# Baro on external SPI
+ms5611 -s start
