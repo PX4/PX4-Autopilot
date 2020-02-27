@@ -22,6 +22,13 @@ then
 fi
 unset BL_FILE
 
+#
+# No px4IO
+#
+unset IOFW
+param set SYS_USE_IO 0
+
+
 if [ $AUTOCNF = yes ]
 then
 	# Enable IMU thermal control
