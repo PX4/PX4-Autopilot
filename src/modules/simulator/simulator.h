@@ -53,6 +53,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/bitmask.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
@@ -79,6 +80,34 @@
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
 #include <lib/battery/battery.h>
+
+//! Enumeration to use on the bitmask in HIL_SENSOR
+enum class SensorSource {
+	ACCEL		= 0b111,
+	GYRO		= 0b111000,
+	MAG		= 0b111000000,
+	BARO		= 0b1101000000000,
+	DIFF_PRESS	= 0b10000000000
+};
+ENABLE_BIT_OPERATORS(SensorSource)
+
+//! AND operation for the enumeration and unsigned types that returns the bitmask
+template<typename A, typename B>
+static inline SensorSource operator &(A lhs, B rhs)
+{
+	// make it type safe
+	static_assert((std::is_same<A, uint32_t>::value || std::is_same<A, SensorSource>::value),
+		      "first argument is not uint32_t or SensorSource enum type");
+	static_assert((std::is_same<B, uint32_t>::value || std::is_same<B, SensorSource>::value),
+		      "second argument is not uint32_t or SensorSource enum type");
+
+	typedef typename std::underlying_type<SensorSource>::type underlying;
+
+	return static_cast<SensorSource>(
+		       static_cast<underlying>(lhs) &
+		       static_cast<underlying>(rhs)
+	       );
+}
 
 class Simulator : public ModuleParams
 {
@@ -246,15 +275,6 @@ private:
 		WaitingForEkf2Timestamp = 2,
 	};
 #endif
-
-	///! Enumeration to use on the bitmask in HIL_SENSOR
-	enum SensorSource {
-		ACCEL		= 0x0007,
-		GYRO		= 0x0038,
-		MAG		= 0x01C0,
-		BARO		= 0x1A00,
-		DIFF_PRESS	= 0x0400
-	};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
