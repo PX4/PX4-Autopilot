@@ -97,9 +97,9 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/mixers/CMakeLists.txt
 	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/CMakeLists.txt
 	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/airframes/CMakeLists.txt
-	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/mc_params
-	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/fw_params
-	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/vtol_params
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/mc_defaults.param
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/fw_defaults.param
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/vtol_defaults.param
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
@@ -132,6 +132,7 @@ add_custom_command(
 		-i ${PX4_BOARD_DIR}/init/board_defaults.param
 		-o ${romfs_gen_root_dir}/init.d/board_params
 		-p ${PX4_BINARY_DIR}/parameters.xml
+		-g ${romfs_gen_root_dir}
 	DEPENDS
 		${PX4_SOURCE_DIR}/Tools/generate_param_file.py
 		${PX4_BOARD_DIR}/init/board_defaults.param
@@ -151,6 +152,7 @@ foreach(vehicle_type "mc" "fw" "vtol")
 			-i ${romfs_src_dir}/init.d/${vehicle_type}_defaults.param
 			-o ${romfs_gen_root_dir}/init.d/${vehicle_type}_params
 			-p ${PX4_BINARY_DIR}/parameters.xml
+			-g ${romfs_gen_root_dir}
 		DEPENDS
 			${PX4_SOURCE_DIR}/Tools/generate_param_file.py
 			${romfs_src_dir}/init.d/${vehicle_type}_defaults.param
@@ -174,6 +176,7 @@ foreach(airframe_param_file ${AIRFRAME_PARAM_FILES})
 		-i ${airframe_param_file}
 		-o ${romfs_gen_root_dir}/init.d/${airframe_param_file_name}
 		-p ${PX4_BINARY_DIR}/parameters.xml
+		-g ${romfs_gen_root_dir}
 	DEPENDS
 		${PX4_SOURCE_DIR}/Tools/generate_param_file.py
 		${AIRFRAME_PARAM_FILES}
