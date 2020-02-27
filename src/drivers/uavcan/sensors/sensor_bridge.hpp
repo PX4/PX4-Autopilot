@@ -94,7 +94,6 @@ class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CD
 		int orb_instance	 = -1;
 	};
 
-	const unsigned _max_channels;
 	const char *const _class_devname;
 	const orb_id_t _orb_topic;
 	Channel *const _channels;
@@ -102,15 +101,16 @@ class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CD
 
 protected:
 	static constexpr unsigned DEFAULT_MAX_CHANNELS = 5;
+	const unsigned _max_channels;
 
 	UavcanCDevSensorBridgeBase(const char *name, const char *devname, const char *class_devname,
 				   const orb_id_t orb_topic_sensor,
 				   const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
 		device::CDev(name, devname),
-		_max_channels(max_channels),
 		_class_devname(class_devname),
 		_orb_topic(orb_topic_sensor),
-		_channels(new Channel[max_channels])
+		_channels(new Channel[max_channels]),
+		_max_channels(max_channels)
 	{
 		_device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
 		_device_id.devid_s.bus = 0;
@@ -128,6 +128,8 @@ public:
 	virtual ~UavcanCDevSensorBridgeBase();
 
 	unsigned get_num_redundant_channels() const override;
+
+	int8_t get_channel_index_for_node(int node_id);
 
 	void print_status() const override;
 };
