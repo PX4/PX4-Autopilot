@@ -331,8 +331,8 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  8
-#define DIRECT_INPUT_TIMER_CHANNELS  8
+#define DIRECT_PWM_OUTPUT_CHANNELS  14
+#define DIRECT_INPUT_TIMER_CHANNELS  14
 #define BOARD_NUM_IO_TIMERS 4
 
 #define BOARD_HAS_LED_PWM              1
@@ -341,7 +341,7 @@
 #define BOARD_HAS_UI_LED_PWM            1
 #define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
 
 /* Power supply control and monitoring GPIOs */
 

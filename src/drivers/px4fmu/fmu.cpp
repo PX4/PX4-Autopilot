@@ -73,6 +73,7 @@ enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
 	PORT_FULL_PWM,
+	PORT_PWM14,
 	PORT_PWM8,
 	PORT_PWM6,
 	PORT_PWM5,
@@ -1118,10 +1119,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(10):
 	case PWM_SERVO_SET(9):
 	case PWM_SERVO_SET(8):
-		if (_mode < MODE_14PWM) {
-			ret = -EINVAL;
-			break;
-		}
+		// if (_mode < MODE_14PWM) {
+		// 	ret = -EINVAL;
+		// 	break;
+		// }
 
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
@@ -1377,6 +1378,13 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				break;
 #endif
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=14
+
+			case 14:
+				set_mode(MODE_14PWM);
+				break;
+#endif
+
 			default:
 				ret = -EINVAL;
 				break;
@@ -1437,6 +1445,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			case PWM_SERVO_MODE_8PWM:
 				ret = set_mode(MODE_8PWM);
+				break;
+
+			case PWM_SERVO_MODE_14PWM:
+				ret = set_mode(MODE_14PWM);
 				break;
 
 			case PWM_SERVO_MODE_4CAP:
@@ -1703,6 +1715,13 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_1PWM;
 		break;
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	case PORT_PWM14:
+		/* select 14-pin PWM mode */
+		servo_mode = PX4FMU::MODE_14PWM;
+		break;
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case PORT_PWM8:
@@ -2161,6 +2180,12 @@ int PX4FMU::custom_command(int argc, char *argv[])
 		new_mode = PORT_PWM2CAP2;
 #  endif
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	} else if (!strcmp(verb, "mode_pwm14")) {
+		new_mode = PORT_PWM14;
+#endif
+
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	} else if (!strcmp(verb, "mode_pwm8")) {
@@ -2218,6 +2243,8 @@ int PX4FMU::print_status()
 	case MODE_6PWM: mode_str = "pwm6"; break;
 
 	case MODE_8PWM: mode_str = "pwm8"; break;
+
+	case MODE_14PWM: mode_str = "pwm14"; break;
 
 	case MODE_4CAP: mode_str = "cap4"; break;
 
@@ -2283,6 +2310,9 @@ mixer files.
 
 	PRINT_MODULE_USAGE_COMMAND("mode_gpio");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode_pwm", "Select all available pins as PWM");
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm14");
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
   PRINT_MODULE_USAGE_COMMAND("mode_pwm8");
 #endif
