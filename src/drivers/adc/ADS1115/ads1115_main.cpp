@@ -46,6 +46,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/adc_report.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_adc.h>
 #include <px4_platform_common/getopt.h>
 
 #define ADS1115_DEFAULT_PATH "/dev/ads1115"
@@ -104,6 +105,10 @@ ADS1115_Drv::ADS1115_Drv(uint8_t bus, uint8_t address) :
 	_adc_report.device_id = this->get_device_id();
 	_adc_report.resolution = 32768;
 	_adc_report.v_ref = 6.144f;
+
+	for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+		_adc_report.channel_id[i] = -1;
+	}
 
 	if (_ads1115 == nullptr) {
 		PX4_ERR("ads1115 logical driver alloc failed");
