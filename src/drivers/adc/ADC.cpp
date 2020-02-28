@@ -147,9 +147,15 @@ void ADC::update_adc_report(hrt_abstime now)
 		max_num = (sizeof(adc.channel_id) / sizeof(adc.channel_id[0]));
 	}
 
-	for (unsigned i = 0; i < max_num; i++) {
+	unsigned i;
+
+	for (i = 0; i < max_num; i++) {
 		adc.channel_id[i] = _samples[i].am_channel;
 		adc.raw_data[i] = _samples[i].am_data;
+	}
+
+	for (; i < PX4_MAX_ADC_CHANNELS; ++i) {	// set unused channel id to -1
+		adc.channel_id[i] = -1;
 	}
 
 	adc.v_ref = px4_arch_adc_reference_v();

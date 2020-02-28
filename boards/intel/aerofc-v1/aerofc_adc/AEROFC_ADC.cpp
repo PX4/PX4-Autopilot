@@ -118,9 +118,15 @@ void AEROFC_ADC::Run()
 	adc_report.v_ref = 3.0f;
 	adc_report.resolution = 1 << 12;
 
-	for (int i = 0; i < MAX_CHANNEL; ++i) {
+	int i;
+
+	for (i = 0; i < MAX_CHANNEL; ++i) {
 		adc_report.channel_id[i] = i;
 		adc_report.raw_data[i] = (buffer[i * 2] | (buffer[i * 2 + 1] << 8));
+	}
+
+	for (; i < PX4_MAX_ADC_CHANNELS; ++i) {	// set unused channel id to -1
+		adc_report.channel_id[i] = -1;
 	}
 
 	_to_adc_report.publish(adc_report);
