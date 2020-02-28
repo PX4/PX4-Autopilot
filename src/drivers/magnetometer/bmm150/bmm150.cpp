@@ -712,7 +712,7 @@ BMM150::collect()
 }
 
 int
-BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
+BMM150::ioctl(file_t *filp, int cmd, unsigned long arg)
 {
 
 	switch (cmd) {
@@ -770,14 +770,10 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	default:
 		/* give it to the superclass */
-#if defined(__PX4_POSIX)
+
 		// In CDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 		// parameter filep is not used
-		cdev::file_t ft;
-		return I2C::ioctl(&ft, cmd, arg);
-#else
 		return I2C::ioctl(filp, cmd, arg);
-#endif
 	}
 }
 

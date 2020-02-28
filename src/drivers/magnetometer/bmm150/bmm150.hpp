@@ -201,8 +201,7 @@ public:
 
 	virtual int             init() override;
 	virtual ssize_t       read(struct file *filp, char *buffer, size_t buflen);
-	virtual int       ioctl(struct file *filp, int cmd, unsigned long arg);
-
+	int	ioctl(file_t *filep, int cmd, unsigned long arg) override;
 	/**
 	 * Stop automatic measurement.
 	 */
