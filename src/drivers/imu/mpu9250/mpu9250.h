@@ -214,10 +214,10 @@ struct MPUReport {
  * for a 168Mhz CPU this will be 10.5 Mhz and for a 180 Mhz CPU
  * it will be 11.250 Mhz
  */
-#define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
-#define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
+#define MPU9250_LOW_SPI_BUS_SPEED	(1000*1000)
+#define MPU9250_HIGH_SPI_BUS_SPEED	(20*1000*1000)
 
-#define MPU9250_I2C_BUS_SPEED       400 * 1000
+#define MPU9250_I2C_BUS_SPEED       	(400 * 1000)
 
 /*
   The MPU9250 can only handle high bus speeds on the sensor and
@@ -228,7 +228,7 @@ struct MPUReport {
  */
 #define MPU9250_LOW_BUS_SPEED				0
 #define MPU9250_HIGH_BUS_SPEED				0x8000
-#define MPU9250_REG_MASK					0x00FF
+#define MPU9250_REG_MASK				0x00FF
 #  define MPU9250_IS_HIGH_SPEED(r) 			((r) & MPU9250_HIGH_BUS_SPEED)
 #  define MPU9250_REG(r) 					((r) & MPU9250_REG_MASK)
 #  define MPU9250_SET_SPEED(r, s) 			((r)|(s))

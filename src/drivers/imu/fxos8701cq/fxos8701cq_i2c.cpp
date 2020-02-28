@@ -97,7 +97,6 @@ FXOS8701CQ_I2C::probe()
 	uint8_t whoami = read_reg(FXOS8701CQ_WHOAMI);
 	bool success = (whoami == FXOS8700CQ_WHOAMI_VAL) || (whoami == FXOS8701CQ_WHOAMI_VAL);
 
-	PX4_INFO("FXOS8701CQ_I2C::probe: %s, whoami: 0x%02x", (success ? "Succeeded" : "failed"), whoami);
 	return success ? OK : -EIO;
 }
 

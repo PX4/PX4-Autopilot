@@ -122,7 +122,7 @@
 
 #pragma pack(push, 1)
 struct RawAccelMagReport {
-	uint8_t	cmd[2];  // cmd field is not used whe uing I2C bus
+	uint8_t	cmd[2];  // cmd field is not used when uing I2C bus
 
 	uint8_t	status;
 	int16_t	x;
