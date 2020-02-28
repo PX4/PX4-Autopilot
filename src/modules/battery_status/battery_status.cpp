@@ -187,40 +187,36 @@ BatteryStatus::adc_poll()
 
 	if (_adc_report_sub.update(&adc_report)) {
 
-		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+		/* Read add channels we got */
+		for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+			for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
-			/* Once we have subscriptions, Do this once for the lowest (highest priority
-			 * supply on power controller) that is valid.
-			 */
-			if (selected_source < 0 && _analogBatteries[b]->is_valid()) {
-				/* Indicate the lowest brick (highest priority supply on power controller)
-				 * that is valid as the one that is the selected source for the
-				 * VDD_5V_IN
+				/* Once we have subscriptions, Do this once for the lowest (highest priority
+				 * supply on power controller) that is valid.
 				 */
-				selected_source = b;
+				if (selected_source < 0 && _analogBatteries[b]->is_valid()) {
+					/* Indicate the lowest brick (highest priority supply on power controller)
+					 * that is valid as the one that is the selected source for the
+					 * VDD_5V_IN
+					 */
+					selected_source = b;
 
-			}
+				}
 
-			/* look for specific channels and process the raw voltage to measurement data */
-			for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+				/* look for specific channels and process the raw voltage to measurement data */
+
 				if (adc_report.channel_id[i] == _analogBatteries[b]->get_voltage_channel()) {
 					/* Voltage in volts */
 					bat_voltage_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_voltage_channel()] *
 								      adc_report.v_ref /
 								      adc_report.resolution;
 
-				}
-
-				if (_analogBatteries[b]->get_current_channel() < 0) {
-					// no current channel is valid
-					bat_current_adc_readings[b] = 0;
-					break;    // jump out immediately
-
 				} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_current_channel()) {
 					bat_current_adc_readings[b] = adc_report.raw_data[_analogBatteries[b]->get_current_channel()] *
 								      adc_report.v_ref /
 								      adc_report.resolution;
 				}
+
 			}
 		}
 
