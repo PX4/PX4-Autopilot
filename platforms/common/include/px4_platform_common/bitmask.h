@@ -40,7 +40,7 @@
 
 #pragma once
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && (defined(__PX4_POSIX) || defined(__PX4_LINUX))
 
 #include<type_traits>
 
@@ -151,4 +151,4 @@ operator^=(E &lhs, E rhs)
 
 } /* namespace px4 */
 
-#endif /* __cplusplus */
+#endif /* __cplusplus && (__PX4_POSIX || __PX4_LINUX) */
