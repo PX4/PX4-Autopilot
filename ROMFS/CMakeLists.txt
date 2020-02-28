@@ -124,6 +124,8 @@ add_custom_command(
 	COMMENT "ROMFS: copying, generating airframes"
 	)
 
+
+
 # generate board specific parameter file
 add_custom_command(
 	OUTPUT
@@ -163,23 +165,19 @@ foreach(vehicle_type "mc" "fw" "vtol")
 	list(APPEND VEHICLE_TYPE_PARAM_FILE_OUTPUT_LIST ${vehicle_type}_defaults)
 endforeach()
 
-file(GLOB AIRFRAME_PARAM_FILES ${romfs_src_dir}/init.d/airframes/param_files/*)
+get_property(airframe_parameter_files GLOBAL PROPERTY AIRFRAME_PARAMETER_FILES)
 set(AIRFRAME_PARAM_FILE_OUTPUT_LIST)
-foreach(airframe_param_file ${AIRFRAME_PARAM_FILES})
-	set(airframe_param_file_name)
-	get_filename_component(airframe_param_file_name ${airframe_param_file} NAME)
-
+foreach(airframe_param_file_name ${airframe_parameter_files})
 	add_custom_command(
 	OUTPUT
 		${airframe_param_file_name}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_param_file.py
-		-i ${airframe_param_file}
+		-i ${romfs_src_dir}/init.d/airframes/param_files/${airframe_param_file_name}
 		-o ${romfs_gen_root_dir}/init.d/${airframe_param_file_name}
 		-p ${PX4_BINARY_DIR}/parameters.xml
 		-g ${romfs_gen_root_dir}
 	DEPENDS
 		${PX4_SOURCE_DIR}/Tools/generate_param_file.py
-		${AIRFRAME_PARAM_FILES}
 		romfs_pruned.stamp
 		metadata_parameters
 	COMMENT "ROMFS: generating airframe params file"
