@@ -85,6 +85,9 @@ UavcanBarometerBridge::air_pressure_sub_cb(const
 {
 	sensor_baro_s report{};
 
+	// Set the devid address to the UAVCAN node ID (so we get a unique address)
+	_device_id.devid_s.address = (uint8_t)(msg.getSrcNodeID().get() & 0xFF);
+
 	/*
 	 * FIXME HACK
 	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.
@@ -97,8 +100,7 @@ UavcanBarometerBridge::air_pressure_sub_cb(const
 	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
 	report.error_count = 0;
 
-	/* TODO get device ID for sensor */
-	report.device_id = 0;
+	report.device_id = _device_id.devid;
 
 	publish(msg.getSrcNodeID().get(), &report);
 }
