@@ -22,6 +22,7 @@ px4_add_board(
 		#heater
 		#imu # all available imu drivers
 		imu/mpu6000
+		imu/invensense/icm20602
 		#irlock
 		#lights/blinkm
 		lights/rgbled
