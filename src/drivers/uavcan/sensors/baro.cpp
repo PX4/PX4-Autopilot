@@ -39,6 +39,8 @@
 #include "baro.hpp"
 #include <math.h>
 
+#include <lib/drivers/barometer/PX4Barometer.hpp>
+
 const char *const UavcanBarometerBridge::NAME = "baro";
 
 UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node) :
@@ -83,24 +85,35 @@ void
 UavcanBarometerBridge::air_pressure_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg)
 {
-	sensor_baro_s report{};
+	lock();
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	unlock();
 
-	// Set the devid address to the UAVCAN node ID (so we get a unique address)
-	_device_id.devid_s.address = (uint8_t)(msg.getSrcNodeID().get() & 0xFF);
+	if (channel == nullptr) {
+		// Something went wrong - no channel to publish on; return
+		return;
+	}
 
-	/*
-	 * FIXME HACK
-	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.
-	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
-	 * to use an independent time source (based on hardware TIM5) instead of HRT.
-	 * The proper solution is to be developed.
-	 */
-	report.timestamp   = hrt_absolute_time();
-	report.temperature = last_temperature_kelvin - 273.15F;
-	report.pressure    = msg.static_pressure / 100.0F;  // Convert to millibar
-	report.error_count = 0;
+	// Cast our generic CDev pointer to the sensor-specific driver class
+	PX4Barometer *_baro = (PX4Barometer *)channel->h_driver;
 
-	report.device_id = _device_id.devid;
+	_baro->set_temperature(last_temperature_kelvin - 273.15f);
+	_baro->update(hrt_absolute_time(), msg.static_pressure / 100.0f); // Convert pressure to millibar
+}
 
-	publish(msg.getSrcNodeID().get(), &report);
+int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
+{
+	// update device id as we now know our device node_id
+	DeviceId device_id{_device_id};
+
+	device_id.devid_s.devtype = 0x00;
+	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
+
+	channel->h_driver = new PX4Barometer(device_id.devid, ORB_PRIO_HIGH);
+
+	if (channel->h_driver == nullptr) {
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }

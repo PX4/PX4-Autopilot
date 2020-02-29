@@ -59,6 +59,8 @@ private:
 
 	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
+	int init_driver(uavcan_bridge::Channel *channel) override;
+
 	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &msg);
 	void mag2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &msg);
 

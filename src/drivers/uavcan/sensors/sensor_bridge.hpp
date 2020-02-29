@@ -41,6 +41,7 @@
 #include <uavcan/uavcan.hpp>
 #include <drivers/device/device.h>
 #include <drivers/drv_orb_dev.h>
+#include <lib/cdev/CDev.hpp>
 #include <uORB/uORB.h>
 
 /**
@@ -81,22 +82,26 @@ public:
 	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list);
 };
 
+namespace uavcan_bridge
+{
+struct Channel {
+	int node_id              = -1;
+	orb_advert_t orb_advert  = nullptr;
+	int class_instance       = -1;
+	int orb_instance         = -1;
+	cdev::CDev *h_driver           = nullptr;
+};
+}
+
 /**
  * This is the base class for redundant sensors with an independent ORB topic per each redundancy channel.
  * For example, sensor_mag0, sensor_mag1, etc.
  */
 class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CDev
 {
-	struct Channel {
-		int node_id              = -1;
-		orb_advert_t orb_advert  = nullptr;
-		int class_instance       = -1;
-		int orb_instance	 = -1;
-	};
-
 	const char *const _class_devname;
 	const orb_id_t _orb_topic;
-	Channel *const _channels;
+	uavcan_bridge::Channel *const _channels;
 	bool _out_of_channels = false;
 
 protected:
@@ -109,7 +114,7 @@ protected:
 		device::CDev(name, devname),
 		_class_devname(class_devname),
 		_orb_topic(orb_topic_sensor),
-		_channels(new Channel[max_channels]),
+		_channels(new uavcan_bridge::Channel[max_channels]),
 		_max_channels(max_channels)
 	{
 		_device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
@@ -123,6 +128,15 @@ protected:
 	 * @param report  Pointer to ORB message object
 	 */
 	void publish(const int node_id, const void *report);
+
+	/**
+	 * Init the sensor driver for this channel.
+	 * Implementation depends on sensor type being constructed.
+	 * @param channel Channel pointer for which h_driver should be initialized.
+	 */
+	virtual int init_driver(uavcan_bridge::Channel *channel) { return PX4_OK; };
+
+	uavcan_bridge::Channel *get_channel_for_node(int node_id);
 
 public:
 	virtual ~UavcanCDevSensorBridgeBase();
