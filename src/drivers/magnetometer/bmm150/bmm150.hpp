@@ -37,7 +37,9 @@
 #include <drivers/drv_mag.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <lib/cdev/CDev.hpp>
 
+using file_t = cdev::file_t;
 
 #define BMM150_DEVICE_PATH_MAG              "/dev/bmm150_i2c_int"
 
