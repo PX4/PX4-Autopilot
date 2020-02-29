@@ -3,20 +3,13 @@
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
 
-# Colors
-GREEN='\033[0;32m'
-NC='\033[0m'
-BOLD='\033[1m'
-BLUE='\033[94m'
-YELLOW='\033[33m'
-
 # Initial messages
 echo
-echo -e "${BOLD}WELCOME TO PX4. BUCKLE UP, WE ARE ABOUT TO TAKEOFF...${NC}"
+echo -e "\033[1mWELCOME TO PX4. BUCKLE UP, WE ARE ABOUT TO TAKEOFF...\033[0m"
 echo
-echo -e "${GREEN}${BOLD}INSTALLING PX4 TOOLCHAIN!${NC}"
+echo -e "\033[0;32m\033[1mINSTALLING PX4 TOOLCHAIN!\033[0m"
 echo
-echo -e "${BLUE}${BOLD}This could take a while (10min) make sure you go grab a cofee ${YELLOW}:)${NC}"
+echo -e "\033[94m\033[1mThis could take a while (10min) make sure you go grab a cofee \033[33m:)\033[0m"
 echo
 
 # Sleep 5 seconds to show the initial messages
