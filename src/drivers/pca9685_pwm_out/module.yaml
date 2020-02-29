@@ -1,0 +1,157 @@
+__max_num_channel_count: &max_num_channel_count 16
+
+module_name: pca9685_pwm_out
+
+parameters:
+    - group: PWM Outputs
+      definitions:
+        PCA_PWM_RATE:
+            description:
+                short: PWM Frequency on PCA9685
+                long: |
+                    Set the PWM frequency for all outputs.
+                    This will also change schedule rate to match update rate.
+
+            type: int32
+            unit: Hz
+            reboot_required: false
+            num_instances: 1
+            default: 50
+
+        PCA_DFL_MAX:
+            description:
+                short: Default max PWM on PCA9685
+                long: |
+                    Set the maximum PWM pulse width for all outputs.
+                    Set to 2000 for industry default or 2100 to increase servo travel.
+
+            type: int32
+            unit: us
+            reboot_required: false
+            num_instances: 1
+            default: 2000
+
+        PCA_DFL_MIN:
+            description:
+                short: Default min PWM on PCA9685
+                long: |
+                    Set the minimum PWM pulse width for all outputs.
+                    Set to 1000 for industry default or 900 to increase servo travel.
+
+            type: int32
+            unit: us
+            reboot_required: false
+            num_instances: 1
+            default: 1000
+
+        PCA_DFL_FAIL:
+            description:
+                short: Default failsafe PWM on PCA9685
+                long: |
+                    Set the failsafe PWM pulse width for all outputs.
+                    Caution: This should be kept the same as disarmed value in most case.
+
+            type: int32
+            unit: us
+            reboot_required: false
+            num_instances: 1
+            default: 1000
+
+        PCA_DFL_DIS:
+            description:
+                short: Default disarmed PWM on PCA9685
+                long: |
+                    Set the disarmed PWM pulse width for all outputs.
+
+            type: int32
+            unit: us
+            reboot_required: false
+            num_instances: 1
+            default: 900
+
+        PCA_CH${i}_MAX:
+            description:
+                short: Max value of CH${i} on PCA9685
+                long: |
+                    This is the maximum PWM pulse width the autopilot is allowed to output.
+                    When set to -1 the value for PCA_DFL_MAX will be used
+
+            type: int32
+            unit: us
+            reboot_required: false
+            num_instances: *max_num_channel_count
+            instance_start: 1
+            default: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+
+        PCA_CH${i}_MIN:
+            description:
+                short: Max value of CH${i} on PCA9685
+                long: |
+                    This is the minimum PWM pulse width the autopilot is allowed to output.
+                    When set to -1 the value for PCA_DFL_MIN will be used
+
+            type: int32
+            unit: us
+            reboot_required: false
+            num_instances: *max_num_channel_count
+            instance_start: 1
+            default: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+
+        PCA_CH${i}_FAIL:
+            description:
+                short: Failsafe value of CH${i} on PCA9685
+                long: |
+                    This is the PWM pulse width the autopilot is outputting if in failsafe mode.
+                    When set to -1 the value for PCA_DFL_FAIL will be used
+                    Caution: This should be kept the same as disarmed value in most cases
+
+            type: int32
+            unit: us
+            reboot_required: false
+            num_instances: *max_num_channel_count
+            instance_start: 1
+            default: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+
+        PCA_CH${i}_DIS:
+            description:
+                short: Disarmed value of CH${i} on PCA9685
+                long: |
+                    This is the PWM pulse the autopilot is outputting if not armed.
+                    When set to -1 the value for PCA_DFL_DIS will be used
+                    Set to 1000 for motors or 1500 for servos.
+
+            type: int32
+            unit: us
+            reboot_required: false
+            num_instances: *max_num_channel_count
+            instance_start: 1
+            default: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+
+        PCA_CH${i}_REV:
+            description:
+                short: Invert direction of main output CH${i} on PCA9685
+                long: |
+                    Enable to invert the channel.
+                    Warning: Use this parameter when connected to a servo only.
+                    For a brushless motor, invert manually two phases to reverse the direction.
+
+            type: boolean
+            reboot_required: false
+            num_instances: *max_num_channel_count
+            instance_start: 1
+            default: [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+
+        PCA_CH${i}_TRIM:
+            description:
+                short: Trim value of CH${i} on PCA9685
+                long: |
+                    This has no effect except for SimpleMixer, which stands for servos.
+
+            type: int32
+            unit: us
+            min: -500
+            max: 500
+            reboot_required: false
+            num_instances: *max_num_channel_count
+            instance_start: 1
+            default: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
