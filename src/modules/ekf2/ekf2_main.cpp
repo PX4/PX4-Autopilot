@@ -1833,7 +1833,7 @@ bool Ekf2::blend_gps_data()
 	float dt_min = 0.3f;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		float raw_dt = 0.001f * (float)(_gps_state[i].time_usec - _time_prev_us[i]);
+		float raw_dt = 1e-6f * (float)(_gps_state[i].time_usec - _time_prev_us[i]);
 
 		if (raw_dt > 0.0f && raw_dt < 0.3f) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];

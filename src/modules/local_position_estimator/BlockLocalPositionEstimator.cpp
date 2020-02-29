@@ -111,7 +111,13 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_ref_lon(0.0),
 	_ref_alt(0.0)
 {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	// For lockstep 250 Hz are needed because ekf2_timestamps need to be
+	// published at 250 Hz.
+	_sensors_sub.set_interval_ms(4);
+#else
 	_sensors_sub.set_interval_ms(10); // main prediction loop, 100 hz
+#endif
 
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -498,6 +504,7 @@ void BlockLocalPositionEstimator::Run()
 
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _param_lpe_fake_origin.get())) {
 			publishGlobalPos();
+			publishEk2fTimestamps();
 		}
 	}
 
@@ -744,6 +751,22 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	_pub_est_status.get().pos_vert_accuracy = _pub_gpos.get().epv;
 
 	_pub_est_status.update();
+}
+
+void BlockLocalPositionEstimator::publishEk2fTimestamps()
+{
+	_pub_ekf2_timestamps.get().timestamp = _timeStamp;
+
+	// We only really publish this as a dummy because lockstep simulation
+	// requires it to be published.
+	_pub_ekf2_timestamps.get().airspeed_timestamp_rel = 0;
+	_pub_ekf2_timestamps.get().distance_sensor_timestamp_rel = 0;
+	_pub_ekf2_timestamps.get().optical_flow_timestamp_rel = 0;
+	_pub_ekf2_timestamps.get().vehicle_air_data_timestamp_rel = 0;
+	_pub_ekf2_timestamps.get().vehicle_magnetometer_timestamp_rel = 0;
+	_pub_ekf2_timestamps.get().visual_odometry_timestamp_rel = 0;
+
+	_pub_ekf2_timestamps.update();
 }
 
 void BlockLocalPositionEstimator::publishGlobalPos()

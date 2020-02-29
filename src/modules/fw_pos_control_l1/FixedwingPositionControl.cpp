@@ -1559,7 +1559,6 @@ FixedwingPositionControl::Run()
 
 			Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 			q.copyTo(_att_sp.q_d);
-			_att_sp.q_d_valid = true;
 
 			if (_control_mode.flag_control_offboard_enabled ||
 			    _control_mode.flag_control_position_enabled ||
