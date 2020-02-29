@@ -3,6 +3,25 @@
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
 
+# Colors
+GREEN='\033[0;32m'
+NC='\033[0m'
+BOLD='\033[1m'
+BLUE='\033[94m'
+YELLOW='\033[33m'
+
+# Initial messages
+echo
+echo -e "${BOLD}WELCOME TO PX4. BUCKLE UP, WE ARE ABOUT TO TAKEOFF...${NC}"
+echo
+echo -e "${GREEN}${BOLD}INSTALLING PX4 TOOLCHAIN!${NC}"
+echo
+echo -e "${BLUE}${BOLD}This could take a while (10min) make sure you go grab a cofee ${YELLOW}:)${NC}"
+echo
+
+# Sleep 5 seconds to show the initial messages
+sleep 5
+
 # Parse arguments
 for arg in "$@"
 do
