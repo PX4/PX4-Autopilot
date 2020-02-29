@@ -57,6 +57,7 @@ extern int test_float(int argc, char *argv[]);
 extern int test_hott_telemetry(int argc, char *argv[]);
 extern int test_hrt(int argc, char *argv[]);
 extern int test_int(int argc, char *argv[]);
+extern int test_i2c_spi_cli(int argc, char *argv[]);
 extern int test_IntrusiveQueue(int argc, char *argv[]);
 extern int test_jig_voltages(int argc, char *argv[]);
 extern int test_led(int argc, char *argv[]);
