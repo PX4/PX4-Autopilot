@@ -41,11 +41,146 @@
 #include <lib/drivers/device/Device.hpp>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/getopt.h>
+
+const char *BusCLIArguments::parseDefaultArguments(int argc, char *argv[])
+{
+	if (getopt(argc, argv, "") == EOF) {
+		return optarg();
+	}
+
+	// unexpected arguments
+	return nullptr;
+}
+
+int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
+{
+	if (_options[0] == 0) { // need to initialize
+		char *p = (char *)&_options;
+
+		if (_i2c_support) {
+			*(p++) = 'X'; // external
+			*(p++) = 'I'; // internal
+
+			if (i2c_address != 0) {
+				*(p++) = 'a'; *(p++) = ':'; // I2C address
+			}
+		}
+
+		if (_spi_support) {
+			*(p++) = 'S'; // external
+			*(p++) = 's'; // internal
+			*(p++) = 'c'; *(p++) = ':'; // chip-select
+			*(p++) = 'm'; *(p++) = ':'; // spi mode
+		}
+
+		*(p++) = 'b'; *(p++) = ':'; // bus
+		*(p++) = 'f'; *(p++) = ':'; // frequency
+
+		// copy all options
+		const char *option = options;
+
+		while (p != _options + sizeof(_options) && *option) {
+			if (*option != ':') {
+				// check for duplicates
+				for (const char *c = _options; c != p; ++c) {
+					if (*c == *option) {
+						PX4_ERR("conflicting option: %c", *c);
+						_options[0] = 0;
+						return EOF;
+					}
+				}
+			}
+
+			*(p++) = *(option++);
+		}
+
+		if (p == _options + sizeof(_options)) {
+			PX4_ERR("too many options");
+			_options[0] = 0;
+			return EOF;
+		}
+
+		*p = '\0';
+	}
+
+	int ch;
+
+	while ((ch = px4_getopt(argc, argv, _options, &_optind, &_optarg)) != EOF) {
+		switch (ch) {
+		case 'X':
+			bus_option = I2CSPIBusOption::I2CExternal;
+			break;
+
+		case 'I':
+			bus_option = I2CSPIBusOption::I2CInternal;
+			break;
+
+		case 'a':
+			if (i2c_address == 0) {
+				return ch;
+			}
+
+			i2c_address = (int)strtol(_optarg, nullptr, 0);
+			break;
+
+		case 'S':
+			bus_option = I2CSPIBusOption::SPIExternal;
+			break;
+
+		case 's':
+			bus_option = I2CSPIBusOption::SPIInternal;
+			break;
+
+		case 'c':
+			chipselect_index = atoi(_optarg);
+			break;
+
+		case 'b':
+			requested_bus = atoi(_optarg);
+			break;
+
+		case 'f':
+			bus_frequency = 1000 * atoi(_optarg);
+			break;
+
+		case 'm':
+			spi_mode = (spi_mode_e)atoi(_optarg);
+			break;
+
+		default:
+			if (ch == '?') {
+				// abort further parsing on unknown arguments
+				_optarg = nullptr;
+				return EOF;
+			}
+
+			return ch;
+		}
+	}
+
+	if (ch == EOF) {
+		_optarg = argv[_optind];
+
+		// apply defaults if not provided
+		if (bus_frequency == 0) {
+			if (bus_option == I2CSPIBusOption::I2CExternal || bus_option == I2CSPIBusOption::I2CInternal) {
+				bus_frequency = default_i2c_frequency;
+
+			} else if (bus_option == I2CSPIBusOption::SPIExternal || bus_option == I2CSPIBusOption::SPIInternal) {
+				bus_frequency = default_spi_frequency;
+			}
+		}
+	}
+
+	return ch;
+}
+
 
 BusInstanceIterator::BusInstanceIterator(I2CSPIInstance **instances, int max_num_instances,
 		const BusCLIArguments &cli_arguments, uint16_t devid_driver_index)
 	: _instances(instances), _max_num_instances(max_num_instances),
-	  _bus_option(cli_arguments.bus_option), _type(cli_arguments.type),
+	  _bus_option(cli_arguments.bus_option), _type(cli_arguments.type), _i2c_address(cli_arguments.i2c_address),
 	  _spi_bus_iterator(spiFilter(cli_arguments.bus_option),
 			    cli_arguments.bus_option == I2CSPIBusOption::SPIExternal ? cli_arguments.chipselect_index : devid_driver_index,
 			    cli_arguments.requested_bus),
@@ -83,7 +218,10 @@ bool BusInstanceIterator::next()
 				continue;
 			}
 
-			if (_bus_option == _instances[i]->_bus_option && bus == _instances[i]->_bus && _type == _instances[i]->_type) {
+			bool is_i2c = busType() == BOARD_I2C_BUS;
+
+			if (_bus_option == _instances[i]->_bus_option && bus == _instances[i]->_bus && _type == _instances[i]->_type
+			    && (!is_i2c || _i2c_address == _instances[i]->_i2c_address)) {
 				_current_instance = i;
 			}
 		}
