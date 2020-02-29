@@ -43,6 +43,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/sem.h>
 #include <board_config.h>
+#include <drivers/device/spi.h>
 
 enum class I2CSPIBusOption : uint8_t {
 	All = 0, ///< select all runnning instances
@@ -59,31 +60,68 @@ enum class I2CSPIBusOption : uint8_t {
 class I2CSPIInstance
 {
 public:
-	I2CSPIInstance(I2CSPIBusOption bus_option, int bus, int type)
-		: _bus_option(bus_option), _bus(bus), _type(type) {}
-
 	virtual ~I2CSPIInstance() = default;
 
 private:
+	I2CSPIInstance(I2CSPIBusOption bus_option, int bus, uint8_t i2c_address, uint16_t type)
+		: _bus_option(bus_option), _bus(bus), _type(type), _i2c_address(i2c_address) {}
+
 	friend class BusInstanceIterator;
 	friend class I2CSPIDriverBase;
 
 	const I2CSPIBusOption _bus_option;
 	const int _bus;
-	const int _type; ///< device type (driver-specific)
+	const int16_t _type; ///< device type (driver-specific)
+	const int8_t _i2c_address; ///< I2C address (optional)
 };
 
-struct BusCLIArguments {
+class BusCLIArguments
+{
+public:
+	BusCLIArguments(bool i2c_support, bool spi_support)
+		: _i2c_support(i2c_support), _spi_support(spi_support) {}
+
+	/**
+	 * Parse CLI arguments (for drivers that don't need any custom arguments, otherwise getopt() should be used)
+	 * @return command (e.g. "start") or nullptr on error or unknown argument
+	 */
+	const char *parseDefaultArguments(int argc, char *argv[]);
+
+	/**
+	 * Like px4_getopt(), but adds and handles i2c/spi driver-specific arguments
+	 */
+	int getopt(int argc, char *argv[], const char *options);
+
+	/**
+	 * returns the current optional argument (for options like 'T:'), or the command (e.g. "start")
+	 * @return nullptr or argument/command
+	 */
+	const char *optarg() const { return _optarg; }
+
+
 	I2CSPIBusOption bus_option{I2CSPIBusOption::All};
-	int type{0}; ///< device type (driver-specific)
+	uint16_t type{0}; ///< device type (driver-specific)
 	int requested_bus{-1};
 	int chipselect_index{1};
 	Rotation rotation{ROTATION_NONE};
 	int bus_frequency{0};
-	int spi_mode{-1};
+	spi_mode_e spi_mode{SPIDEV_MODE3};
+	uint8_t i2c_address{0}; ///< optional I2C address: a driver can set this to allow configuring the I2C address
+
 	int custom1{0}; ///< driver-specific custom argument
 	int custom2{0}; ///< driver-specific custom argument
 	void *custom_data{nullptr}; ///< driver-specific custom argument
+
+	// driver defaults, if not specified via CLI
+	int default_spi_frequency{20 * 1000 * 1000}; ///< default spi bus frequency [Hz]
+	int default_i2c_frequency{400 * 1000}; ///< default i2c bus frequency [Hz]
+
+private:
+	char _options[32] {};
+	int _optind{1};
+	const char *_optarg{nullptr};
+	const bool _i2c_support;
+	const bool _spi_support;
 };
 
 /**
@@ -117,7 +155,8 @@ private:
 	I2CSPIInstance **_instances;
 	const int _max_num_instances;
 	const I2CSPIBusOption _bus_option;
-	const int _type;
+	const uint16_t _type;
+	const uint8_t _i2c_address;
 	SPIBusIterator _spi_bus_iterator;
 	I2CBusIterator _i2c_bus_iterator;
 	int _current_instance{-1};
@@ -130,9 +169,10 @@ private:
 class I2CSPIDriverBase : public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
-	I2CSPIDriverBase(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus, int type)
+	I2CSPIDriverBase(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus,
+			 uint8_t i2c_address, uint16_t type)
 		: ScheduledWorkItem(module_name, config),
-		  I2CSPIInstance(bus_option, bus, type) {}
+		  I2CSPIInstance(bus_option, bus, i2c_address, type) {}
 
 	static int module_stop(BusInstanceIterator &iterator);
 	static int module_status(BusInstanceIterator &iterator);
@@ -184,8 +224,9 @@ public:
 	static I2CSPIInstance **instances() { return _instances; }
 
 protected:
-	I2CSPIDriver(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus, int type = 0)
-		: I2CSPIDriverBase(module_name, config, bus_option, bus, type) {}
+	I2CSPIDriver(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus,
+		     uint8_t i2c_address = 0, uint16_t type = 0)
+		: I2CSPIDriverBase(module_name, config, bus_option, bus, i2c_address, type) {}
 
 	virtual ~I2CSPIDriver() = default;
 
