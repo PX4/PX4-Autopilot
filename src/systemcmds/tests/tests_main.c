@@ -90,6 +90,7 @@ const struct {
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hrt",			test_hrt,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"int",			test_int,		0},
+	{"i2c_spi_cli",		test_i2c_spi_cli,		0},
 	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"List",		test_List,		0},
