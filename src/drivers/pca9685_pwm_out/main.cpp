@@ -160,40 +160,54 @@ void PWMDriverWrapper::updateParams()
 void PWMDriverWrapper::updatePWMParams()
 {
 	// update pwm params
-	const char *pname_format_main_max = "PWM_MAIN_MAX%d";
-	const char *pname_format_main_min = "PWM_MAIN_MIN%d";
-	const char *pname_format_main_fail = "PWM_MAIN_FAIL%d";
-	const char *pname_format_main_dis = "PWM_MAIN_DIS%d";
-	const char *pname_format_main_rev = "PWM_MAIN_REV%d";
-	const char *pname_format_aux_max = "PWM_AUX_MAX%d";
-	const char *pname_format_aux_min = "PWM_AUX_MIN%d";
-	const char *pname_format_aux_fail = "PWM_AUX_FAIL%d";
-	const char *pname_format_aux_dis = "PWM_AUX_DIS%d";
-	const char *pname_format_aux_rev = "PWM_AUX_REV%d";
+	const char *pname_format_pwm_ch_max = "PCA_CH%d_MAX";
+	const char *pname_format_pwm_ch_min = "PCA_CH%d_MIN";
+	const char *pname_format_pwm_ch_fail = "PCA_CH%d_FAIL";
+	const char *pname_format_pwm_ch_dis = "PCA_CH%d_DIS";
+	const char *pname_format_pwm_ch_rev = "PCA_CH%d_REV";
 
-	param_t param_h = param_find("PWM_MAX");
+	int32_t default_pwm_max = PWM_DEFAULT_MAX,
+		default_pwm_min = PWM_DEFAULT_MIN,
+		default_pwm_fail = PWM_DEFAULT_MIN,
+		default_pwm_dis = PWM_MOTOR_OFF;
 
-	if (param_h != PARAM_INVALID) {
-		int32_t pval = 0;
-		param_get(param_h, &pval);
-		_mixing_output.setAllMaxValues(pval);
-
-	} else {
-		PX4_DEBUG("PARAM_INVALID: %s", "PWM_MAX");
-	}
-
-	param_h = param_find("PWM_MIN");
+	param_t param_h = param_find("PCA_DFL_MAX");
 
 	if (param_h != PARAM_INVALID) {
-		int32_t pval = 0;
-		param_get(param_h, &pval);
-		_mixing_output.setAllMinValues(pval);
+		param_get(param_h, &default_pwm_max);
 
 	} else {
-		PX4_DEBUG("PARAM_INVALID: %s", "PWM_MIN");
+		PX4_DEBUG("PARAM_INVALID: %s", "PCA_DFL_MAX");
 	}
 
-	param_h = param_find("PWM_RATE");
+	param_h = param_find("PCA_DFL_MIN");
+
+	if (param_h != PARAM_INVALID) {
+		param_get(param_h, &default_pwm_min);
+
+	} else {
+		PX4_DEBUG("PARAM_INVALID: %s", "PCA_DFL_MIN");
+	}
+
+	param_h = param_find("PCA_DFL_FAIL");
+
+	if (param_h != PARAM_INVALID) {
+		param_get(param_h, &default_pwm_fail);
+
+	} else {
+		PX4_DEBUG("PARAM_INVALID: %s", "PCA_DFL_FAIL");
+	}
+
+	param_h = param_find("PCA_DFL_DIS");
+
+	if (param_h != PARAM_INVALID) {
+		param_get(param_h, &default_pwm_dis);
+
+	} else {
+		PX4_DEBUG("PARAM_INVALID: %s", "PCA_DFL_DIS");
+	}
+
+	param_h = param_find("PCA_PWM_RATE");
 
 	if (param_h != PARAM_INVALID) {
 		int32_t pval = 0;
@@ -204,13 +218,13 @@ void PWMDriverWrapper::updatePWMParams()
 		}
 
 	} else {
-		PX4_DEBUG("PARAM_INVALID: %s", "PWM_RATE");
+		PX4_DEBUG("PARAM_INVALID: %s", "PCA_PWM_RATE");
 	}
 
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < PCA9685_MAX_OUTPUT_CHANNELS; i++) {
 		char pname[16];
 
-		sprintf(pname, pname_format_main_max, i + 1);
+		sprintf(pname, pname_format_pwm_ch_max, i + 1);
 		param_h = param_find(pname);
 
 		if (param_h != PARAM_INVALID) {
@@ -219,13 +233,16 @@ void PWMDriverWrapper::updatePWMParams()
 
 			if (pval != -1) {
 				_mixing_output.maxValue(i) = pval;
+
+			} else {
+				_mixing_output.maxValue(i) = default_pwm_max;
 			}
 
 		} else {
 			PX4_DEBUG("PARAM_INVALID: %s", pname);
 		}
 
-		sprintf(pname, pname_format_main_min, i + 1);
+		sprintf(pname, pname_format_pwm_ch_min, i + 1);
 		param_h = param_find(pname);
 
 		if (param_h != PARAM_INVALID) {
@@ -234,13 +251,16 @@ void PWMDriverWrapper::updatePWMParams()
 
 			if (pval != -1) {
 				_mixing_output.minValue(i) = pval;
+
+			} else {
+				_mixing_output.minValue(i) = default_pwm_min;
 			}
 
 		} else {
 			PX4_DEBUG("PARAM_INVALID: %s", pname);
 		}
 
-		sprintf(pname, pname_format_main_fail, i + 1);
+		sprintf(pname, pname_format_pwm_ch_fail, i + 1);
 		param_h = param_find(pname);
 
 		if (param_h != PARAM_INVALID) {
@@ -249,13 +269,16 @@ void PWMDriverWrapper::updatePWMParams()
 
 			if (pval != -1) {
 				_mixing_output.failsafeValue(i) = pval;
+
+			} else {
+				_mixing_output.failsafeValue(i) = default_pwm_fail;
 			}
 
 		} else {
 			PX4_DEBUG("PARAM_INVALID: %s", pname);
 		}
 
-		sprintf(pname, pname_format_main_dis, i + 1);
+		sprintf(pname, pname_format_pwm_ch_dis, i + 1);
 		param_h = param_find(pname);
 
 		if (param_h != PARAM_INVALID) {
@@ -264,13 +287,16 @@ void PWMDriverWrapper::updatePWMParams()
 
 			if (pval != -1) {
 				_mixing_output.disarmedValue(i) = pval;
+
+			} else {
+				_mixing_output.disarmedValue(i) = default_pwm_dis;
 			}
 
 		} else {
 			PX4_DEBUG("PARAM_INVALID: %s", pname);
 		}
 
-		sprintf(pname, pname_format_main_rev, i + 1);
+		sprintf(pname, pname_format_pwm_ch_rev, i + 1);
 		param_h = param_find(pname);
 
 		if (param_h != PARAM_INVALID) {
@@ -279,80 +305,6 @@ void PWMDriverWrapper::updatePWMParams()
 			param_get(param_h, &pval);
 			reverse_pwm_mask &= (0xfffe << i);  // clear this bit
 			reverse_pwm_mask |= (((uint16_t)(pval != 0)) << i); // set to new val
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_aux_max, i + 1);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-
-			if (pval != -1) {
-				_mixing_output.maxValue(i + 8) = pval;
-			}
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_aux_min, i + 1);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-
-			if (pval != -1) {
-				_mixing_output.minValue(i + 8) = pval;
-			}
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_aux_fail, i + 1);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-
-			if (pval != -1) {
-				_mixing_output.failsafeValue(i + 8) = pval;
-			}
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_aux_dis, i + 1);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-
-			if (pval != -1) {
-				_mixing_output.disarmedValue(i + 8) = pval;
-			}
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_aux_rev, i + 1);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-			reverse_pwm_mask &= (0xfffe << (i + 8)); // clear this bit
-			reverse_pwm_mask |= (((uint16_t)(pval != 0)) << (i + 8)); // set to new val
 
 		} else {
 			PX4_DEBUG("PARAM_INVALID: %s", pname);
@@ -366,33 +318,18 @@ void PWMDriverWrapper::updatePWMParams()
 
 void PWMDriverWrapper::updatePWMParamTrim()
 {
-	const char *pname_format_main_trim = "PWM_MAIN_TRIM%d";
-	const char *pname_format_aux_trim = "PWM_AUX_TRIM%d";
+	const char *pname_format_pwm_ch_trim = "PCA_CH%d_TRIM";
 
 	int16_t trim_values[PCA9685_MAX_OUTPUT_CHANNELS] = {};
 
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < PCA9685_MAX_OUTPUT_CHANNELS; i++) {
 		char pname[16];
 
-		sprintf(pname, pname_format_main_trim, i + 1);
+		sprintf(pname, pname_format_pwm_ch_trim, i + 1);
 		param_t param_h = param_find(pname);
 
 		if (param_h != PARAM_INVALID) {
-			float pval = 0.0f;
-			param_get(param_h, &pval);
-			trim_values[i] = (int16_t)(10000 * pval);
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_aux_trim, i + 1);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			float pval = 0.0f;
-			param_get(param_h, &pval);
-			trim_values[i + 8] = (int16_t)(10000 * pval);
+			param_get(param_h, trim_values + i);
 
 		} else {
 			PX4_DEBUG("PARAM_INVALID: %s", pname);
@@ -406,11 +343,6 @@ void PWMDriverWrapper::updatePWMParamTrim()
 bool PWMDriverWrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
 				     unsigned num_control_groups_updated)
 {
-	/*char buf[1024]="PWM:";
-	for(uint i=0;i<num_outputs;++i){
-	    sprintf(buf,"%s %.4d",buf,outputs[i]);
-	}
-	PX4_INFO("%s",buf);*/
 	return pca9685->updatePWM(outputs, num_outputs);;
 }
 
