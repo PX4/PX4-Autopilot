@@ -49,9 +49,6 @@
 
 #include "PCA9685.h"
 
-#define PCA9685_MAX_OUTPUT_CHANNELS   16
-#define PCA9685_DEVICE_BASE_PATH	"/dev/pca9685"
-
 #define PCA9685_DEFAULT_IICBUS  1
 #define PCA9685_DEFAULT_ADDRESS (0x40)
 
@@ -88,6 +85,8 @@ public:
 private:
 	perf_counter_t	_cycle_perf;
 
+	int		_class_instance{-1};
+
 	void Run() override;
 
 protected:
@@ -101,14 +100,14 @@ protected:
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)}; // param handle
 
-	MixingOutput _mixing_output{PCA9685_MAX_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output{PCA9685_PWM_CHANNEL_COUNT, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
-	uint16_t _pwm_val_from_ioctl[PCA9685_MAX_OUTPUT_CHANNELS];	// stores pwm set from ioctl call
+	uint16_t _pwm_val_from_ioctl[PCA9685_PWM_CHANNEL_COUNT] = {};	// stores pwm set from ioctl call
 	bool _is_ioctl_control_flag = false;	// whether PCA9685 is controlled by ioctl or MixingOutput
 };
 
 PWMDriverWrapper::PWMDriverWrapper() :
-	CDev(PCA9685_DEVICE_BASE_PATH),
+	CDev(nullptr),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
@@ -147,6 +146,8 @@ int PWMDriverWrapper::init()
 	if (!_mixing_output.updateSubscriptions(true)) {  // change to proper wq
 		ScheduleNow();
 	}
+
+	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
 	return PX4_OK;
 }
@@ -221,7 +222,7 @@ void PWMDriverWrapper::updatePWMParams()
 		PX4_DEBUG("PARAM_INVALID: %s", "PCA_PWM_RATE");
 	}
 
-	for (int i = 0; i < PCA9685_MAX_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < PCA9685_PWM_CHANNEL_COUNT; i++) {
 		char pname[16];
 
 		sprintf(pname, pname_format_pwm_ch_max, i + 1);
@@ -320,9 +321,9 @@ void PWMDriverWrapper::updatePWMParamTrim()
 {
 	const char *pname_format_pwm_ch_trim = "PCA_CH%d_TRIM";
 
-	int16_t trim_values[PCA9685_MAX_OUTPUT_CHANNELS] = {};
+	int16_t trim_values[PCA9685_PWM_CHANNEL_COUNT] = {};
 
-	for (int i = 0; i < PCA9685_MAX_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < PCA9685_PWM_CHANNEL_COUNT; i++) {
 		char pname[16];
 
 		sprintf(pname, pname_format_pwm_ch_trim, i + 1);
@@ -336,7 +337,7 @@ void PWMDriverWrapper::updatePWMParamTrim()
 		}
 	}
 
-	unsigned n_out = _mixing_output.mixers()->set_trims(trim_values, PCA9685_MAX_OUTPUT_CHANNELS);
+	unsigned n_out = _mixing_output.mixers()->set_trims(trim_values, PCA9685_PWM_CHANNEL_COUNT);
 	PX4_DEBUG("set %d trims", n_out);
 }
 
@@ -346,12 +347,12 @@ bool PWMDriverWrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsign
 	if (_is_ioctl_control_flag) {
 		/*printf("IOCTL:");
 
-		for (unsigned i = 0; i < PCA9685_MAX_OUTPUT_CHANNELS; i++) {
+		for (unsigned i = 0; i < PCA9685_PWM_CHANNEL_COUNT; i++) {
 			printf(" %.4d", _pwm_val_from_ioctl[i]);
 		}
 
 		printf("\n");*/
-		return pca9685->updatePWM(_pwm_val_from_ioctl, (unsigned)PCA9685_MAX_OUTPUT_CHANNELS);
+		return pca9685->updatePWM(_pwm_val_from_ioctl, (unsigned)PCA9685_PWM_CHANNEL_COUNT);
 
 	} else {
 		return pca9685->updatePWM(outputs, num_outputs);
@@ -366,6 +367,7 @@ void PWMDriverWrapper::Run()
 		PX4_INFO("PCA9685 stopping.");
 		ScheduleClear();
 		_mixing_output.unregister();
+		unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 		pca9685->Stop();
 		delete pca9685;
@@ -425,7 +427,7 @@ int PWMDriverWrapper::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 		}
 
 	case PWM_SERVO_GET_COUNT:
-		*(unsigned *)arg = PCA9685_MAX_OUTPUT_CHANNELS;
+		*(unsigned *)arg = PCA9685_PWM_CHANNEL_COUNT;
 
 		break;
 
@@ -441,7 +443,7 @@ int PWMDriverWrapper::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 			 * Then change the _is_ioctl_control_flag lag,
 			 * so driver will directly output those value
 			 */
-			for (int i = 0; i < PCA9685_MAX_OUTPUT_CHANNELS; ++i) {
+			for (int i = 0; i < PCA9685_PWM_CHANNEL_COUNT; ++i) {
 				_pwm_val_from_ioctl[i] = _mixing_output.disarmedValue(i);
 			}
 

@@ -91,6 +91,7 @@ namespace drv_pca9685_pwm
 #define PCA9685_CLOCK_FREQ PCA9685_CLOCK_EXT   // use ext clk
 #endif
 
+#define PCA9685_DEVICE_BASE_PATH	"/dev/pca9685"
 #define PWM_DEFAULT_FREQUENCY 50    // default pwm frequency
 
 //! Main class that exports features for PCA9685 chip
