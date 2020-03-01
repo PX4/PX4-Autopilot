@@ -96,7 +96,7 @@ namespace drv_pca9685_pwm
 /* Correct for overshoot in the frequency setting (see issue
  * https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/issues/11).
  */
-#define PCA9685_FREQ_OVERSHOT_FACTOR 0.9f
+#define PCA9685_FREQ_OVERSHOOT_FACTOR 0.9f
 
 //! Main class that exports features for PCA9685 chip
 class PCA9685 : public device::I2C
@@ -113,13 +113,13 @@ public:
 	 */
 	int updatePWM(const uint16_t *outputs, unsigned num_outputs);
 
-	int setFreq(int freq);
+	int setFreq(float freq);
 
 	~PCA9685() override = default;
 
 	int init() override;
 
-	inline float getFrequency() {return _Freq / PCA9685_FREQ_OVERSHOT_FACTOR;}
+	inline float getFrequency() {return _Freq / PCA9685_FREQ_OVERSHOOT_FACTOR;}
 
 protected:
 	int probe() override;

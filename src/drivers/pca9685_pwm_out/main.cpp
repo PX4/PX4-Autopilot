@@ -208,7 +208,7 @@ void PWMDriverWrapper::updatePWMParams()
 	param_h = param_find("PCA_PWM_RATE");
 
 	if (param_h != PARAM_INVALID) {
-		int32_t pval = 0;
+		float pval = 0;
 		param_get(param_h, &pval);
 
 		if (pca9685->setFreq(pval) != PX4_OK) {

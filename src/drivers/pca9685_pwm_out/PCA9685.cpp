@@ -74,9 +74,9 @@ int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
 	return 0;
 }
 
-int PCA9685::setFreq(int freq)
+int PCA9685::setFreq(float freq)
 {
-	float factored_freq = (float)freq * PCA9685_FREQ_OVERSHOT_FACTOR;
+	float factored_freq = (float)freq * PCA9685_FREQ_OVERSHOOT_FACTOR;
 	uint16_t realResolution = floorl((float)PCA9685_CLOCK_FREQ / factored_freq);
 
 	if (realResolution < PCA9685_PWM_RES) { // unable to provide enough resolution

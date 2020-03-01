@@ -12,11 +12,11 @@ parameters:
                     Set the PWM frequency for all outputs.
                     This will also change schedule rate to match update rate.
 
-            type: int32
+            type: float
             unit: Hz
             reboot_required: false
             num_instances: 1
-            default: 50
+            default: 50.0
 
         PCA_DFL_MAX:
             description:
