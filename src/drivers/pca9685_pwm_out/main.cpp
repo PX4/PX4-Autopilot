@@ -101,9 +101,6 @@ protected:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)}; // param handle
 
 	MixingOutput _mixing_output{PCA9685_PWM_CHANNEL_COUNT, *this, MixingOutput::SchedulingPolicy::Auto, true};
-
-	uint16_t _pwm_val_from_ioctl[PCA9685_PWM_CHANNEL_COUNT] = {};	// stores pwm set from ioctl call
-	bool _is_ioctl_control_flag = false;	// whether PCA9685 is controlled by ioctl or MixingOutput
 };
 
 PWMDriverWrapper::PWMDriverWrapper() :
@@ -344,19 +341,7 @@ void PWMDriverWrapper::updatePWMParamTrim()
 bool PWMDriverWrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
 				     unsigned num_control_groups_updated)
 {
-	if (_is_ioctl_control_flag) {
-		/*printf("IOCTL:");
-
-		for (unsigned i = 0; i < PCA9685_PWM_CHANNEL_COUNT; i++) {
-			printf(" %.4d", _pwm_val_from_ioctl[i]);
-		}
-
-		printf("\n");*/
-		return pca9685->updatePWM(_pwm_val_from_ioctl, (unsigned)PCA9685_PWM_CHANNEL_COUNT);
-
-	} else {
-		return pca9685->updatePWM(outputs, num_outputs);
-	}
+	return pca9685->updatePWM(outputs, num_outputs);
 }
 
 void PWMDriverWrapper::Run()
@@ -435,46 +420,8 @@ int PWMDriverWrapper::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 	case PWM_SERVO_CLEAR_ARM_OK:
 	case PWM_SERVO_SET_FORCE_SAFETY_ON:
-		break;
-
-	case PWM_SERVO_ARM: {
-			/*
-			 * Firstly prepare the initial state of _pwm_val_from_ioctl.
-			 * Then change the _is_ioctl_control_flag lag,
-			 * so driver will directly output those value
-			 */
-			for (int i = 0; i < PCA9685_PWM_CHANNEL_COUNT; ++i) {
-				_pwm_val_from_ioctl[i] = _mixing_output.disarmedValue(i);
-			}
-
-			_is_ioctl_control_flag = true;
-		}
-		break;
-
+	case PWM_SERVO_ARM:
 	case PWM_SERVO_DISARM:
-		_is_ioctl_control_flag = false;
-
-		break;
-
-	case PWM_SERVO_SET(15):
-	case PWM_SERVO_SET(14):
-	case PWM_SERVO_SET(13):
-	case PWM_SERVO_SET(12):
-	case PWM_SERVO_SET(11):
-	case PWM_SERVO_SET(10):
-	case PWM_SERVO_SET(9):
-	case PWM_SERVO_SET(8):
-	case PWM_SERVO_SET(7):
-	case PWM_SERVO_SET(6):
-	case PWM_SERVO_SET(5):
-	case PWM_SERVO_SET(4):
-	case PWM_SERVO_SET(3):
-	case PWM_SERVO_SET(2):
-	case PWM_SERVO_SET(1):
-	case PWM_SERVO_SET(0): {
-			int servo_index = cmd - PWM_SERVO_SET(0);
-			_pwm_val_from_ioctl[servo_index] = arg;	// TODO: is this thread safe?
-		}
 		break;
 
 	default:
