@@ -76,14 +76,15 @@ int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
 
 int PCA9685::setFreq(int freq)
 {
-	uint16_t realResolution = floorl((double)PCA9685_CLOCK_FREQ / freq);
+	float factored_freq = (float)freq * PCA9685_FREQ_OVERSHOT_FACTOR;
+	uint16_t realResolution = floorl((float)PCA9685_CLOCK_FREQ / factored_freq);
 
 	if (realResolution < PCA9685_PWM_RES) { // unable to provide enough resolution
 		PX4_DEBUG("frequency too high");
 		return -EINVAL;
 	}
 
-	uint16_t divider = (uint16_t)round((double)PCA9685_CLOCK_FREQ / freq / PCA9685_PWM_RES) - 1;
+	uint16_t divider = (uint16_t)round((float)PCA9685_CLOCK_FREQ / factored_freq / PCA9685_PWM_RES) - 1;
 
 	if (divider > 0x00FF) { // out of divider
 		PX4_DEBUG("frequency too low");
@@ -91,8 +92,8 @@ int PCA9685::setFreq(int freq)
 	}
 
 	float freq_err = ((float)PCA9685_CLOCK_FREQ / (float)(divider + (uint16_t)1)
-			  - (float)(freq * PCA9685_PWM_RES))
-			 / (float)(freq * PCA9685_PWM_RES); // actually asked for (freq * PCA9685_PWM_RES)
+			  - (float)(factored_freq * PCA9685_PWM_RES))
+			 / (float)(factored_freq * PCA9685_PWM_RES); // actually asked for (freq * PCA9685_PWM_RES)
 
 	if (fabsf(freq_err) > 0.01f) { // TODO decide threshold
 		PX4_WARN("frequency error too large: %.4f", (double)freq_err);

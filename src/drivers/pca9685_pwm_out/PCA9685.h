@@ -93,6 +93,10 @@ namespace drv_pca9685_pwm
 
 #define PCA9685_DEVICE_BASE_PATH	"/dev/pca9685"
 #define PWM_DEFAULT_FREQUENCY 50    // default pwm frequency
+/* Correct for overshoot in the frequency setting (see issue
+ * https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/issues/11).
+ */
+#define PCA9685_FREQ_OVERSHOT_FACTOR 0.9f
 
 //! Main class that exports features for PCA9685 chip
 class PCA9685 : public device::I2C
@@ -115,7 +119,7 @@ public:
 
 	int init() override;
 
-	inline float getFrequency() {return _Freq;}
+	inline float getFrequency() {return _Freq / PCA9685_FREQ_OVERSHOT_FACTOR;}
 
 protected:
 	int probe() override;
