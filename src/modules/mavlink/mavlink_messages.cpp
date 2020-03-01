@@ -85,6 +85,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_accel_status.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_mag.h>
@@ -903,6 +904,161 @@ protected:
 	}
 };
 
+template <int N, typename Derived>
+class MavlinkStreamScaledPressureBase : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return Derived::get_name_static();
+	}
+
+	uint16_t get_id() override
+	{
+		return Derived::get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new Derived(mavlink);
+	}
+
+private:
+	MavlinkOrbSubscription *_differential_pressure_sub;
+	MavlinkOrbSubscription *_sensor_baro_sub;
+
+	uint64_t _baro_timestamp;
+	uint64_t _dpres_timestamp;
+
+	/* do not allow top copying this class */
+	MavlinkStreamScaledPressureBase(MavlinkStreamScaledPressureBase &) = delete;
+	MavlinkStreamScaledPressureBase &operator = (const MavlinkStreamScaledPressureBase &) = delete;
+
+protected:
+	explicit MavlinkStreamScaledPressureBase(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_differential_pressure_sub(_mavlink->add_orb_subscription(ORB_ID(differential_pressure))),
+		_sensor_baro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_baro), N)),
+		_baro_timestamp(0),
+		_dpres_timestamp(0)
+	{}
+
+	bool send(const hrt_abstime t) override
+	{
+		sensor_baro_s sensor_baro{};
+		differential_pressure_s differential_pressure{};
+
+		bool updated = false;
+		updated |= _sensor_baro_sub->update(&_baro_timestamp, &sensor_baro);
+		updated |= _differential_pressure_sub->update(&_dpres_timestamp, &differential_pressure);
+
+		if (updated) {
+			typename Derived::mav_msg_type msg{};
+			msg.time_boot_ms = sensor_baro.timestamp / 1000;
+			msg.press_abs = sensor_baro.pressure;
+			msg.press_diff = differential_pressure.differential_pressure_raw_pa;
+			msg.temperature = sensor_baro.temperature;
+
+
+			Derived::send(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+template <int N> class MavlinkStreamScaledPressure {};
+
+template <>
+class MavlinkStreamScaledPressure<0> : public MavlinkStreamScaledPressureBase<0, MavlinkStreamScaledPressure<0> >
+{
+public:
+	typedef MavlinkStreamScaledPressureBase<0, MavlinkStreamScaledPressure<0> > Base;
+	typedef mavlink_scaled_pressure_t mav_msg_type;
+
+	explicit MavlinkStreamScaledPressure(Mavlink *mavlink) : Base(mavlink) {}
+
+	static void send(mavlink_channel_t channel, const MavlinkStreamScaledPressure<0>::mav_msg_type *msg)
+	{
+		mavlink_msg_scaled_pressure_send_struct(channel, msg);
+	}
+
+	static const char *get_name_static()
+	{
+		return "SCALED_PRESSURE";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE;
+	}
+
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+};
+
+template <>
+class MavlinkStreamScaledPressure<1> : public MavlinkStreamScaledPressureBase<1, MavlinkStreamScaledPressure<1> >
+{
+public:
+	typedef MavlinkStreamScaledPressureBase<1, MavlinkStreamScaledPressure<1> > Base;
+	typedef mavlink_scaled_pressure2_t mav_msg_type;
+
+	explicit MavlinkStreamScaledPressure(Mavlink *mavlink) : Base(mavlink) {}
+
+	static void send(mavlink_channel_t channel, const MavlinkStreamScaledPressure<1>::mav_msg_type *msg)
+	{
+		mavlink_msg_scaled_pressure2_send_struct(channel, msg);
+	}
+
+	static const char *get_name_static()
+	{
+		return "SCALED_PRESSURE2";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE2;
+	}
+
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE2_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+};
+
+template <>
+class MavlinkStreamScaledPressure<2> : public MavlinkStreamScaledPressureBase<2, MavlinkStreamScaledPressure<2> >
+{
+public:
+	typedef MavlinkStreamScaledPressureBase<2, MavlinkStreamScaledPressure<2> > Base;
+	typedef mavlink_scaled_pressure3_t mav_msg_type;
+
+	explicit MavlinkStreamScaledPressure(Mavlink *mavlink) : Base(mavlink) {}
+
+	static void send(mavlink_channel_t channel, const MavlinkStreamScaledPressure<2>::mav_msg_type *msg)
+	{
+		mavlink_msg_scaled_pressure3_send_struct(channel, msg);
+	}
+
+	static const char *get_name_static()
+	{
+		return "SCALED_PRESSURE3";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE3;
+	}
+
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE3_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+};
 
 class MavlinkStreamScaledIMU : public MavlinkStream
 {
@@ -5127,6 +5283,9 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamScaledIMU::new_instance, &MavlinkStreamScaledIMU::get_name_static, &MavlinkStreamScaledIMU::get_id_static),
 	StreamListItem(&MavlinkStreamScaledIMU2::new_instance, &MavlinkStreamScaledIMU2::get_name_static, &MavlinkStreamScaledIMU2::get_id_static),
 	StreamListItem(&MavlinkStreamScaledIMU3::new_instance, &MavlinkStreamScaledIMU3::get_name_static, &MavlinkStreamScaledIMU3::get_id_static),
+	StreamListItem(&MavlinkStreamScaledPressure<0>::new_instance, &MavlinkStreamScaledPressure<0>::get_name_static, &MavlinkStreamScaledPressure<0>::get_id_static),
+	StreamListItem(&MavlinkStreamScaledPressure<1>::new_instance, &MavlinkStreamScaledPressure<1>::get_name_static, &MavlinkStreamScaledPressure<1>::get_id_static),
+	StreamListItem(&MavlinkStreamScaledPressure<2>::new_instance, &MavlinkStreamScaledPressure<2>::get_name_static, &MavlinkStreamScaledPressure<2>::get_id_static),
 	StreamListItem(&MavlinkStreamAttitude::new_instance, &MavlinkStreamAttitude::get_name_static, &MavlinkStreamAttitude::get_id_static),
 	StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static, &MavlinkStreamAttitudeQuaternion::get_id_static),
 	StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static, &MavlinkStreamVFRHUD::get_id_static),
