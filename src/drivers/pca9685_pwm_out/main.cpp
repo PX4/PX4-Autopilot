@@ -100,7 +100,7 @@ protected:
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)}; // param handle
 
-	MixingOutput _mixing_output{PCA9685_PWM_CHANNEL_COUNT, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output{PCA9685_PWM_CHANNEL_COUNT, *this, MixingOutput::SchedulingPolicy::Disabled, true};
 };
 
 PWMDriverWrapper::PWMDriverWrapper() :
@@ -138,11 +138,9 @@ int PWMDriverWrapper::init()
 		return ret;
 	}
 
-	updatePWMParams();
+	this->ChangeWorkQeue(px4::device_bus_to_wq(pca9685->get_device_id()));
 
-	if (!_mixing_output.updateSubscriptions(true)) {  // change to proper wq
-		ScheduleNow();
-	}
+	updatePWMParams();	// Schedule is done inside
 
 	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
@@ -213,6 +211,10 @@ void PWMDriverWrapper::updatePWMParams()
 
 		if (pca9685->setFreq(pval) != PX4_OK) {
 			PX4_DEBUG("failed to set pwm frequency");
+
+		} else {
+			ScheduleClear();
+			ScheduleOnInterval(1000000 / pval, 1000000 / pval);
 		}
 
 	} else {
@@ -346,8 +348,6 @@ bool PWMDriverWrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsign
 
 void PWMDriverWrapper::Run()
 {
-	hrt_abstime timestamp = hrt_absolute_time();
-
 	if (should_exit()) {
 		PX4_INFO("PCA9685 stopping.");
 		ScheduleClear();
@@ -376,17 +376,9 @@ void PWMDriverWrapper::Run()
 		updateParams();
 	}
 
+	_mixing_output.updateSubscriptions(false);
+
 	perf_end(_cycle_perf);
-
-	int nextDelay = 1000000 / pca9685->getFrequency() - (hrt_absolute_time() - timestamp);
-
-	if (nextDelay < 0) {
-		PX4_DEBUG("PCA9685: can not follow up. %d us");
-		ScheduleNow();
-
-	} else {
-		ScheduleDelayed((uint32_t)nextDelay);
-	}
 }
 
 // TODO
@@ -550,9 +542,7 @@ void PWMDriverWrapper::mixerChanged() {
     if (_mixing_output.mixers()) { // only update trims if mixer loaded
         updatePWMParamTrim();
     }
-    if(!_mixing_output.updateSubscriptions(true)) {   // change to proper wq
-        ScheduleNow();
-    }
+    _mixing_output.updateSubscriptions(false);
 }
 
 extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[]);
