@@ -42,6 +42,7 @@
 #include <lib/flight_tasks/FlightTasks.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/weather_vane/WeatherVane.hpp>
@@ -74,6 +75,7 @@
 #include <float.h>
 
 using namespace time_literals;
+using namespace matrix;
 
 /**
  * Multicopter position control app start / stop handling function
@@ -847,10 +849,6 @@ MulticopterPositionControl::start_flight_task()
 		switch (_param_mpc_pos_mode.get()) {
 		case 1:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
-			break;
-
-		case 2:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
 			break;
 
 		case 3:
