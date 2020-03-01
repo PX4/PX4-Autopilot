@@ -531,6 +531,7 @@ int PWMDriverWrapper::print_status() {
             pca9685->get_device_bus(),
             pca9685->get_device_address(),
              (double)(pca9685->getFrequency()));
+    PX4_INFO("CDev path: %s%d", PWM_OUTPUT_BASE_DEVICE_PATH, this->_class_instance);
 
     return ret;
 }
