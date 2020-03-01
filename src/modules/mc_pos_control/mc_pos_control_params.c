@@ -449,7 +449,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 /**
  * Maximum horizontal acceleration for auto mode and for manual mode
  *
- * Maximum deceleration for MPC_POS_MODE 1 and 2. Maximum acceleration and deceleration for MPC_POS_MODE 3.
+ * Maximum deceleration for MPC_POS_MODE 1. Maximum acceleration and deceleration for MPC_POS_MODE 3.
  *
  * @unit m/s/s
  * @min 2.0
@@ -719,7 +719,6 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  *
  * @value 0 Default position control
  * @value 1 Smooth position control
- * @value 2 Sport position control
  * @value 3 Smooth position control (Velocity)
  * @group Multicopter Position Control
  */
