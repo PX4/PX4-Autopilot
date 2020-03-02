@@ -132,6 +132,7 @@
 #define DRV_DIST_DEVTYPE_MAPPYDOT     0x71
 #define DRV_DIST_DEVTYPE_MB12XX       0x72
 #define DRV_DIST_DEVTYPE_SF1XX        0x73
+#define DRV_DIST_DEVTYPE_SRF02        0x74
 
 #define DRV_DEVTYPE_UNUSED		0xff
 
