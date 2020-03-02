@@ -973,6 +973,11 @@ void Ekf2::Run()
 				// Only use selected receiver data if it has been updated
 				_gps_new_output_data = (gps1_updated && _gps_select_index == 0) ||
 						       (gps2_updated && _gps_select_index == 1);
+
+				// Reset relative position offsets to zero
+				_NE_pos_offset_m[0].zero();
+				_NE_pos_offset_m[1].zero();
+				_hgt_offset_mm[0] = _hgt_offset_mm[1] = 0.0f;
 			}
 
 			if (_gps_new_output_data) {
