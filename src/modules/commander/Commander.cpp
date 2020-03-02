@@ -3730,10 +3730,8 @@ void Commander::avoidance_check()
 			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND;
 	const bool pos_ctl_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL;
 
-	const bool sensor_oa_enabled = ((auto_mode && status_flags.avoidance_system_required) || (pos_ctl_mode
-					&& cp_enabled)) ? true : false;
-	const bool sensor_oa_healthy = ((auto_mode && status_flags.avoidance_system_valid) || (pos_ctl_mode
-					&& cp_healthy)) ? true : false;
+	const bool sensor_oa_enabled = ((auto_mode && status_flags.avoidance_system_required) || (pos_ctl_mode && cp_enabled));
+	const bool sensor_oa_healthy = ((auto_mode && status_flags.avoidance_system_valid) || (pos_ctl_mode && cp_healthy));
 
 	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE, sensor_oa_present, sensor_oa_enabled,
 			 sensor_oa_healthy, status);
