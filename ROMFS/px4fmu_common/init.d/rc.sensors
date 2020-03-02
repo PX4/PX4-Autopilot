@@ -67,7 +67,7 @@ fi
 # Lidar-Lite on I2C
 if param compare -s SENS_EN_LL40LS 2
 then
-	ll40ls start i2c -a
+	ll40ls start -X
 fi
 
 # mappydot lidar sensor

@@ -45,6 +45,7 @@
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <drivers/device/device.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
@@ -90,12 +91,17 @@ static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
 static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};
 
 
-class LidarLiteI2C : public device::I2C, public px4::ScheduledWorkItem
+class LidarLiteI2C : public device::I2C, public I2CSPIDriver<LidarLiteI2C>
 {
 public:
-	LidarLiteI2C(const int bus, const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
+	LidarLiteI2C(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
 		     const int address = LL40LS_BASEADDR);
 	virtual ~LidarLiteI2C();
+
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
+
 
 	int init();
 
@@ -112,14 +118,17 @@ public:
 	 */
 	void start();
 
-	void print_info();
-
 	/**
-	 * Stop the automatic measurement state machine.
+	 * Perform a poll cycle; collect from the previous measurement
+	 * and start a new one.
 	 */
-	void stop();
+	void RunImpl();
 
 protected:
+	void custom_method(const BusCLIArguments &cli) override;
+
+	void print_status() override;
+
 	uint32_t get_measure_interval() const { return LL40LS_CONVERSION_INTERVAL; };
 
 	int measure();
@@ -160,12 +169,6 @@ private:
 	 * @return        True if the device is present.
 	 */
 	int probe_address(const uint8_t address);
-
-	/**
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 */
-	void Run() override;
 
 	bool _collect_phase{false};
 	bool _is_v3hp{false};
