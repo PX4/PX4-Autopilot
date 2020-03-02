@@ -79,7 +79,7 @@ fi
 # mb12xx sonar sensor
 if param greater -s SENS_EN_MB12XX 0
 then
-	mb12xx start -a
+	mb12xx start -X
 fi
 
 # pga460 sonar sensor
