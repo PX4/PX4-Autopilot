@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/attitude_fw/ecl_pitch_controller.h>
-#include <lib/ecl/attitude_fw/ecl_roll_controller.h>
-#include <lib/ecl/attitude_fw/ecl_wheel_controller.h>
-#include <lib/ecl/attitude_fw/ecl_yaw_controller.h>
+#include "ecl_pitch_controller.h"
+#include "ecl_roll_controller.h"
+#include "ecl_wheel_controller.h"
+#include "ecl_yaw_controller.h"
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
