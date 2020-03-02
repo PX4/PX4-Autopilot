@@ -936,12 +936,15 @@ UavcanNode::print_info()
 		printf("CAN%u status:\n", unsigned(i + 1));
 
 		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
-		printf("\tHW errors: %llu\n", iface->getErrorCount());
 
-		auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
-		printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
-		printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
-		printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+		if (iface) {
+			printf("\tHW errors: %llu\n", iface->getErrorCount());
+
+			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+			printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
+			printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
+			printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+		}
 	}
 
 	printf("\n");

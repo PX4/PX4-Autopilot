@@ -5093,19 +5093,20 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		obstacle_distance_s obstacke_distance;
+		obstacle_distance_s obstacle_distance;
 
-		if (_obstacle_distance_fused_sub->update(&_obstacle_distance_time, &obstacke_distance)) {
+		if (_obstacle_distance_fused_sub->update(&_obstacle_distance_time, &obstacle_distance)) {
 			mavlink_obstacle_distance_t msg = {};
 
-			msg.time_usec = obstacke_distance.timestamp;
-			msg.sensor_type = obstacke_distance.sensor_type;
-			memcpy(msg.distances, obstacke_distance.distances, sizeof(msg.distances));
+			msg.time_usec = obstacle_distance.timestamp;
+			msg.sensor_type = obstacle_distance.sensor_type;
+			memcpy(msg.distances, obstacle_distance.distances, sizeof(msg.distances));
 			msg.increment = 0;
-			msg.min_distance = obstacke_distance.min_distance;
-			msg.max_distance = obstacke_distance.max_distance;
-			msg.angle_offset = obstacke_distance.angle_offset;
-			msg.increment_f = obstacke_distance.increment;
+			msg.min_distance = obstacle_distance.min_distance;
+			msg.max_distance = obstacle_distance.max_distance;
+			msg.angle_offset = obstacle_distance.angle_offset;
+			msg.increment_f = obstacle_distance.increment;
+			msg.frame = obstacle_distance.frame;
 
 			mavlink_msg_obstacle_distance_send_struct(_mavlink->get_channel(), &msg);
 
