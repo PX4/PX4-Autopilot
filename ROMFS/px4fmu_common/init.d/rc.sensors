@@ -103,7 +103,7 @@ fi
 # Teraranger one tof sensor
 if param greater -s SENS_EN_TRANGER 0
 then
-	teraranger start -a
+	teraranger start -X
 fi
 
 # Possible external pmw3901 optical flow sensor
