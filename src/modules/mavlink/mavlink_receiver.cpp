@@ -1491,7 +1491,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
 						matrix::Quatf q(set_attitude_target.q);
 						q.copyTo(att_sp.q_d);
-						att_sp.q_d_valid = true;
 
 						matrix::Eulerf euler{q};
 						att_sp.roll_body = euler.phi();
@@ -1936,7 +1935,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		return;
 	}
 
-	if (_mavlink->get_manual_input_mode_generation()) {
+	if (_mavlink->should_generate_virtual_rc_input()) {
 
 		input_rc_s rc{};
 		rc.timestamp = hrt_absolute_time();

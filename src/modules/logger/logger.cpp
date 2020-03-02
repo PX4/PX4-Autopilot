@@ -792,7 +792,12 @@ void Logger::run()
 				}
 			}
 
+
+#ifndef ORB_USE_PUBLISHER_RULES
+
 			// publish logger status
+			//  - this is disabled in replay builds to ensure all data in ekf2 replay logs only contain
+			//    the same time range, otherwise the plots can be unreadable using common tools
 			if (hrt_elapsed_time(&_logger_status_last) >= 1_s) {
 				for (int i = 0; i < (int)LogType::Count; ++i) {
 
@@ -821,6 +826,8 @@ void Logger::run()
 
 				_logger_status_last = hrt_absolute_time();
 			}
+
+#endif // !ORB_USE_PUBLISHER_RULES
 
 			/* release the log buffer */
 			_writer.unlock();
