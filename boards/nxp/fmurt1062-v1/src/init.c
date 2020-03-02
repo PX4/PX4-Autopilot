@@ -314,18 +314,3 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	return OK;
 }
-
-// USB Stubs
-#include <nuttx/usb/usbdev.h>
-void arm_usbinitialize(void)
-{
-}
-
-int usbdev_register(struct usbdevclass_driver_s *driver)
-{
-	return -EINVAL;
-}
-int usbdev_unregister(struct usbdevclass_driver_s *driver)
-{
-	return -EINVAL;
-}
