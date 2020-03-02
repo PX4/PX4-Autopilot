@@ -952,24 +952,6 @@ void Ekf2::Run()
 			// calculate blending weights
 			if (!blend_gps_data()) {
 				// handle case where the blended states cannot be updated
-				if (_gps_state[0].fix_type > _gps_state[1].fix_type) {
-					// GPS 1 has the best fix status so use that
-					_gps_select_index = 0;
-
-				} else if (_gps_state[1].fix_type > _gps_state[0].fix_type) {
-					// GPS 2 has the best fix status so use that
-					_gps_select_index = 1;
-
-				} else if (_gps_select_index == 2) {
-					// use last receiver we received data from
-					if (gps1_updated) {
-						_gps_select_index = 0;
-
-					} else if (gps2_updated) {
-						_gps_select_index = 1;
-					}
-				}
-
 				// Only use selected receiver data if it has been updated
 				_gps_new_output_data = (gps1_updated && _gps_select_index == 0) ||
 						       (gps2_updated && _gps_select_index == 1);
@@ -1873,6 +1855,23 @@ bool Ekf2::blend_gps_data()
 
 	if ((max_us - min_us) > 300000) {
 		// A receiver has timed out so fall out of blending
+		if (_gps_state[0].time_usec > _gps_state[1].time_usec) {
+			_gps_select_index = 0;
+
+		} else {
+			_gps_select_index = 1;
+		}
+
+		return false;
+	}
+
+	// One receiver has lost 3D fix, fall out of blending
+	if (_gps_state[0].fix_type > 2 && _gps_state[1].fix_type < 3) {
+		_gps_select_index = 0;
+		return false;
+
+	} else if (_gps_state[1].fix_type > 2 && _gps_state[0].fix_type < 3) {
+		_gps_select_index = 1;
 		return false;
 	}
 
