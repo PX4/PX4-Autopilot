@@ -44,21 +44,21 @@
  ****************************************************************************/
 
 __attribute__((section(".boot_hdr.ivt")))
-const struct ivt_s image_vector_table = {
+const struct ivt_s g_image_vector_table = {
 	IVT_HEADER,                         /* IVT Header */
-	0x60002000,                         /* Image  Entry Function */
+	IMAGE_ENTRY_ADDRESS,                /* Image  Entry Function */
 	IVT_RSVD,                           /* Reserved = 0 */
 	(uint32_t)DCD_ADDRESS,              /* Address where DCD information is stored */
 	(uint32_t)BOOT_DATA_ADDRESS,        /* Address where BOOT Data Structure is stored */
-	(uint32_t) &image_vector_table,     /* Pointer to IVT Self (absolute address */
+	(uint32_t)IMAG_VECTOR_TABLE,        /* Pointer to IVT Self (absolute address */
 	(uint32_t)CSF_ADDRESS,              /* Address where CSF file is stored */
 	IVT_RSVD                            /* Reserved = 0 */
 };
 
 __attribute__((section(".boot_hdr.boot_data")))
-const struct boot_data_s boot_data = {
-	FLASH_BASE,                         /* boot start location */
-	(FLASH_END - FLASH_BASE),           /* size */
-	PLUGIN_FLAG,                        /* Plugin flag*/
-	0xFFFFFFFF                          /* empty - extra data word */
+const struct boot_data_s g_boot_data = {
+	IMAGE_DEST,                         /* boot start location */
+	(IMAGE_DEST_END - IMAGE_DEST),      /* size */
+	PLUGIN_FLAG,                        /* Plugin flag */
+	0xffffffff                          /* empty - extra data word */
 };
