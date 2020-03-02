@@ -99,7 +99,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  * @min 5
  * @max 300
  * @decimal 1
- * @increment 0.5
+ * @increment 1
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 
