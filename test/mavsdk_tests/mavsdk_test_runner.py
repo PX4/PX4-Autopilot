@@ -136,7 +136,8 @@ class Px4Runner(Runner):
         if not debugger:
             pass
         elif debugger == "valgrind":
-            self.args = ["--track-origins=yes", "--leak-check=full", "-v", self.cmd] + self.args
+            self.args = ["--track-origins=yes", "--leak-check=full", "-v",
+                         self.cmd] + self.args
             self.cmd = "valgrind"
         elif debugger == "callgrind":
             self.args = ["--tool=callgrind", "-v", self.cmd] + self.args
@@ -145,7 +146,7 @@ class Px4Runner(Runner):
             self.args = ["--args", self.cmd] + self.args
             self.cmd = "gdb"
         else:
-            print("Using custom debugger " , debugger)
+            print("Using custom debugger ", debugger)
             self.args = [self.cmd] + self.args
             self.cmd = debugger
 
@@ -325,7 +326,8 @@ def run_test_group(args):
 
 def run_test(test, group, args):
     px4_runner = Px4Runner(
-        group['model'], os.getcwd(), args.log_dir, args.speed_factor, args.debugger)
+        group['model'], os.getcwd(), args.log_dir, args.speed_factor,
+        args.debugger)
     px4_runner.start(group)
 
     gzserver_runner = GzserverRunner(
