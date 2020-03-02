@@ -1369,6 +1369,8 @@ Commander::run()
 				}
 			}
 
+			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get());
+
 			param_init_forced = false;
 		}
 
@@ -3993,38 +3995,16 @@ Commander::offboard_control_update()
 		}
 	}
 
-	if (offboard_control_mode.timestamp != 0 &&
-	    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
-		if (status_flags.offboard_control_signal_lost) {
-			status_flags.offboard_control_signal_lost = false;
-			status_flags.offboard_control_loss_timeout = false;
-			_status_changed = true;
-		}
+	_offboard_available.set_state_and_update(
+		hrt_elapsed_time(&offboard_control_mode.timestamp) < _param_com_of_loss_t.get() * 1e6f,
+		hrt_absolute_time());
 
-	} else {
-		if (!status_flags.offboard_control_signal_lost) {
-			status_flags.offboard_control_signal_lost = true;
-			_status_changed = true;
-		}
+	const bool offboard_lost = !_offboard_available.get_state();
 
-		/* check timer if offboard was there but now lost */
-		if (!status_flags.offboard_control_loss_timeout && offboard_control_mode.timestamp != 0) {
-			if (_param_com_of_loss_t.get() < FLT_EPSILON) {
-				/* execute loss action immediately */
-				status_flags.offboard_control_loss_timeout = true;
-
-			} else {
-				/* wait for timeout if set */
-				status_flags.offboard_control_loss_timeout = offboard_control_mode.timestamp +
-						OFFBOARD_TIMEOUT + _param_com_of_loss_t.get() * 1e6f < hrt_absolute_time();
-			}
-
-			if (status_flags.offboard_control_loss_timeout) {
-				_status_changed = true;
-			}
-		}
+	if (status_flags.offboard_control_signal_lost != offboard_lost) {
+		status_flags.offboard_control_signal_lost = offboard_lost;
+		_status_changed = true;
 	}
-
 }
 
 void Commander::esc_status_check(const esc_status_s &esc_status)
