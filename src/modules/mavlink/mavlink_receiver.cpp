@@ -1491,7 +1491,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
 						matrix::Quatf q(set_attitude_target.q);
 						q.copyTo(att_sp.q_d);
-						att_sp.q_d_valid = true;
 
 						matrix::Eulerf euler{q};
 						att_sp.roll_body = euler.phi();

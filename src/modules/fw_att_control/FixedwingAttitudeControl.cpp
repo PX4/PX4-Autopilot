@@ -169,7 +169,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
-					_att_sp.q_d_valid = true;
 
 					_att_sp.timestamp = hrt_absolute_time();
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * config/imxrt1060-evk/src/imxrt_flexspi_nor_boot.h
+ * boards/arm/imxrt/imxrt1060-evk/src/imxrt_flexspi_nor_boot.h
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Authors: Ivan Ucherdzhiev <ivanucherdjiev@gmail.com>
@@ -34,8 +34,8 @@
  *
  ****************************************************************************/
 
-#ifndef __CONFIGS_IMXRT1060_EVK_SRC_IMXRT_FLEXSPI_NOR_BOOT_H
-#define __CONFIGS_IMXRT1060_EVK_SRC_IMXRT_FLEXSPI_NOR_BOOT_H
+#ifndef __BOARDS_ARM_IMXRT_IMXRT1060_EVK_SRC_IMXRT_FLEXSPI_NOR_BOOT_H
+#define __BOARDS_ARM_IMXRT_IMXRT1060_EVK_SRC_IMXRT_FLEXSPI_NOR_BOOT_H
 
 /****************************************************************************
  * Included Files
@@ -76,12 +76,37 @@
 
 #define FLASH_BASE                  0x60000000
 #define FLASH_END                   0x7f7fffff
+
+/* This needs to take into account  the memory configuration at boot bootloader */
+
+#define ROM_BOOTLOADER_OCRAM_RES    0x8000
+#define OCRAM_BASE                  (0x20200000 + ROM_BOOTLOADER_OCRAM_RES)
+#define OCRAM_END                   (OCRAM_BASE + (512 * 1024) + (256 * 1024) - ROM_BOOTLOADER_OCRAM_RES)
+
+
 #define SCLK 1
+#if defined(CONFIG_BOOT_RUNFROMFLASH)
+#  define IMAGE_DEST                FLASH_BASE
+#  define IMAGE_DEST_END            FLASH_END
+#  define IMAGE_DEST_OFFSET         0
+#else
+#  define IMAGE_DEST                OCRAM_BASE
+#  define IMAGE_DEST_END            OCRAM_END
+#  define IMAGE_DEST_OFFSET         IVT_SIZE
+#endif
+
+#define LOCATE_IN_DEST(x)           (((uint32_t)(x)) - FLASH_BASE + IMAGE_DEST)
+#define LOCATE_IN_SRC(x)            (((uint32_t)(x)) - IMAGE_DEST + FLASH_BASE)
 
 #define DCD_ADDRESS                 0
-#define BOOT_DATA_ADDRESS           &boot_data
+#define BOOT_DATA_ADDRESS           LOCATE_IN_DEST(&g_boot_data)
 #define CSF_ADDRESS                 0
 #define PLUGIN_FLAG                 (uint32_t)0
+
+/* Located in Destination Memory */
+
+#define IMAGE_ENTRY_ADDRESS        ((uint32_t)&_vectors)
+#define IMAG_VECTOR_TABLE           LOCATE_IN_DEST(&g_image_vector_table)
 
 /****************************************************************************
  * Public Types
@@ -116,11 +141,11 @@ struct ivt_s {
 
 	uint32_t boot_data;
 
-	/* Absolute address of the IVT.*/
+	/* Absolute address of the IVT. */
 
 	uint32_t self;
 
-	/* Absolute address of the image CSF.*/
+	/* Absolute address of the image CSF. */
 
 	uint32_t csf;
 
@@ -142,6 +167,9 @@ struct boot_data_s {
  * Public Data
  ****************************************************************************/
 
-extern const struct boot_data_s boot_data;
+extern const struct boot_data_s g_boot_data;
+extern  const uint8_t g_dcd_data[];
+extern  const uint32_t  _vectors[];
 
-#endif /* __CONFIGS_IMXRT1060_EVK_SRC_IMXRT_FLEXSPI_NOR_BOOT_H */
+
+#endif /* __BOARDS_ARM_IMXRT_IMXRT1060_EVK_SRC_IMXRT_FLEXSPI_NOR_BOOT_H */
