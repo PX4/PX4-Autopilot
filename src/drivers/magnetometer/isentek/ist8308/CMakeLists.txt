@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(ak09916)
-add_subdirectory(bmm150)
-add_subdirectory(hmc5883)
-add_subdirectory(qmc5883)
-add_subdirectory(isentek)
-add_subdirectory(ist8310)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(rm3100)
+px4_add_module(
+	MODULE drivers__magnetometer__isentek__ist8308
+	MAIN ist8308
+	COMPILE_FLAGS
+	SRCS
+		IST8308.cpp
+		IST8308.hpp
+		ist8308_main.cpp
+		iSentek_IST8308_registers.hpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)
