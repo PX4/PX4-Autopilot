@@ -64,7 +64,7 @@ static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::
 	return ret;
 }
 
-static inline constexpr px4_spi_bus_t initSPIBus(int bus, const px4_spi_bus_devices_t &devices,
+static inline constexpr px4_spi_bus_t initSPIBus(SPI::Bus bus, const px4_spi_bus_devices_t &devices,
 		GPIO::GPIOPin power_enable = {})
 {
 	px4_spi_bus_t ret{};
@@ -88,7 +88,7 @@ static inline constexpr px4_spi_bus_t initSPIBus(int bus, const px4_spi_bus_devi
 		}
 	}
 
-	ret.bus = bus;
+	ret.bus = (int)bus;
 	ret.is_external = false;
 
 	if (power_enable.port != GPIO::PortInvalid) {
@@ -104,7 +104,7 @@ struct bus_device_external_cfg_array_t {
 	SPI::bus_device_external_cfg_t devices[SPI_BUS_MAX_DEVICES];
 };
 
-static inline constexpr px4_spi_bus_t initSPIBusExternal(int bus, const bus_device_external_cfg_array_t &devices)
+static inline constexpr px4_spi_bus_t initSPIBusExternal(SPI::Bus bus, const bus_device_external_cfg_array_t &devices)
 {
 	px4_spi_bus_t ret{};
 
@@ -116,7 +116,7 @@ static inline constexpr px4_spi_bus_t initSPIBusExternal(int bus, const bus_devi
 		ret.devices[i] = initSPIDevice(i, devices.devices[i].cs_gpio, devices.devices[i].drdy_gpio);
 	}
 
-	ret.bus = bus;
+	ret.bus = (int)bus;
 	ret.is_external = true;
 	// TODO: set requires_locking to false once all drivers are converted to use the I2CSPIDriver class
 	ret.requires_locking = true; // external buses are never accessed by NuttX drivers
