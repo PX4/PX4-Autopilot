@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <ObstacleAvoidance.hpp>
+#include <avoidance/ObstacleAvoidance.hpp>
 #include <uORB/Subscription.hpp>
 
 
 using namespace matrix;
-// to run: make tests TESTFILTER=CollisionPrevention
+// to run: make tests TESTFILTER=ObstacleAvoidance
 
 class ObstacleAvoidanceTest : public ::testing::Test
 {
