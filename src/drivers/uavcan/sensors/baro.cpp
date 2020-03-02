@@ -115,5 +115,9 @@ int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
 		return PX4_ERROR;
 	}
 
+	PX4Barometer *_baro = (PX4Barometer *)channel->h_driver;
+
+	channel->class_instance = _baro->get_class_instance();
+
 	return PX4_OK;
 }

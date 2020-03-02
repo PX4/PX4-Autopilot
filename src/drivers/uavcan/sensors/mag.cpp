@@ -150,6 +150,7 @@ int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
 
 	PX4Magnetometer *_mag = (PX4Magnetometer *)channel->h_driver;
 	_mag->set_external(true);
+	channel->class_instance = _mag->get_class_instance();
 
 	PX4_INFO("driver init succeeded");
 	return PX4_OK;
