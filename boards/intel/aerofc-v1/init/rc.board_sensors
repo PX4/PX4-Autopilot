@@ -16,7 +16,7 @@ hmc5883 -X start
 
 ist8310 -I -R 4 start
 
-ll40ls start i2c -a
+ll40ls start -X
 
 # Internal SPI (auto detect ms5611 or ms5607)
 if ! ms5611 -T 5607 -s start
