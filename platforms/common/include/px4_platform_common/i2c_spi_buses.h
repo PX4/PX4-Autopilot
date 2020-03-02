@@ -110,6 +110,8 @@ public:
 	spi_mode_e spi_mode{SPIDEV_MODE3};
 	uint8_t i2c_address{0}; ///< optional I2C address: a driver can set this to allow configuring the I2C address
 
+	uint8_t orientation{0}; ///< distance_sensor_s::ROTATION_*
+
 	int custom1{0}; ///< driver-specific custom argument
 	int custom2{0}; ///< driver-specific custom argument
 	void *custom_data{nullptr}; ///< driver-specific custom argument
