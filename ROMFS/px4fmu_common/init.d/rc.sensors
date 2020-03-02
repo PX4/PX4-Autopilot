@@ -91,7 +91,7 @@ fi
 # Lightware i2c lidar sensor
 if param greater -s SENS_EN_SF1XX 0
 then
-	sf1xx start -a
+	sf1xx start -X
 fi
 
 # Heater driver for temperature regulated IMUs.
