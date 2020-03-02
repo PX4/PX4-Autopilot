@@ -276,7 +276,6 @@ private:
 
 	static constexpr float STICK_ON_OFF_LIMIT{0.9f};
 
-	static constexpr uint64_t OFFBOARD_TIMEOUT{500_ms};
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t PRINT_MODE_REJECT_INTERVAL{500_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
@@ -330,6 +329,7 @@ private:
 
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};
+	Hysteresis	_offboard_available{false};
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
