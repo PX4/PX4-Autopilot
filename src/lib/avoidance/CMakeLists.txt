@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,35 +31,9 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_ecl PATH "ecl")
-px4_add_git_submodule(TARGET git_matrix PATH "matrix")
+px4_add_library(avoidance
+		ObstacleAvoidance.cpp
+)
+target_link_libraries(avoidance PUBLIC hysteresis bezier)
 
-add_subdirectory(airspeed)
-add_subdirectory(airspeed_validator)
-add_subdirectory(avoidance)
-add_subdirectory(battery)
-add_subdirectory(bezier)
-add_subdirectory(cdev)
-add_subdirectory(circuit_breaker)
-add_subdirectory(collision_prevention)
-add_subdirectory(controllib)
-add_subdirectory(conversion)
-add_subdirectory(drivers)
-add_subdirectory(ecl)
-add_subdirectory(flight_tasks)
-add_subdirectory(hover_thrust_estimator)
-add_subdirectory(hysteresis)
-add_subdirectory(landing_slope)
-add_subdirectory(led)
-add_subdirectory(mathlib)
-add_subdirectory(mixer)
-add_subdirectory(mixer_module)
-add_subdirectory(output_limit)
-add_subdirectory(perf)
-add_subdirectory(pid)
-add_subdirectory(rc)
-add_subdirectory(systemlib)
-add_subdirectory(terrain_estimation)
-add_subdirectory(tunes)
-add_subdirectory(version)
-add_subdirectory(weather_vane)
+px4_add_functional_gtest(SRC ObstacleAvoidanceTest.cpp LINKLIBS avoidance)
