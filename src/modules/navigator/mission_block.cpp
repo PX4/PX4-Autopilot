@@ -309,10 +309,7 @@ MissionBlock::is_mission_item_reached()
 				// if the dot product (projected vector) is positive, then
 				// the current position is between the gate position and the
 				// next waypoint
-				if (res >= 0) {
-					gate_reached = true;
-
-				} else {
+				if (res < 0) {
 					gate_reached = false;
 				}
 			}
