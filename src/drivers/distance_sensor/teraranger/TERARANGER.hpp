@@ -42,7 +42,7 @@
 
 #include <drivers/device/i2c.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/perf/perf_counter.h>
 
@@ -72,24 +72,26 @@ using namespace time_literals;
 
 #define TERARANGER_MEASUREMENT_INTERVAL         10_ms
 
-class TERARANGER : public device::I2C, public px4::ScheduledWorkItem
+class TERARANGER : public device::I2C, public I2CSPIDriver<TERARANGER>
 {
 public:
-	TERARANGER(const int bus, const int address = TERARANGER_ONE_BASEADDR,
-		   const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	TERARANGER(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency);
 	~TERARANGER() override;
 
-	virtual int init() override;
-	void print_info();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
+	virtual int init() override;
+	void print_status() override;
+
+	void RunImpl();
 protected:
 
 	virtual int probe() override;
 
 private:
-
 	void start();
-	void stop();
 	int collect();
 	int measure();
 
@@ -102,7 +104,6 @@ private:
 	*/
 	int probe_address(const uint8_t address);
 
-	void Run() override;
 
 	PX4Rangefinder _px4_rangefinder;
 
