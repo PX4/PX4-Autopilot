@@ -65,19 +65,19 @@
 
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(1, {
+	initSPIBus(SPI::Bus::LPSPI1, {
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::Port3, GPIO::Pin26}, SPI::DRDY{GPIO::Port4, GPIO::Pin15}), /* GPIO_EMC_40 GPIO3_IO26 */
 		initSPIDevice(DRV_GYR_DEVTYPE_BMI055, SPI::CS{GPIO::Port2, GPIO::Pin26}, SPI::DRDY{GPIO::Port4, GPIO::Pin16}), /* GPIO_B1_10 GPIO2_IO26 */
 		initSPIDevice(DRV_ACC_DEVTYPE_BMI055, SPI::CS{GPIO::Port2, GPIO::Pin31}, SPI::DRDY{GPIO::Port3, GPIO::Pin23}), /* GPIO_B1_15 GPIO2_IO31 */
 		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::Port3, GPIO::Pin0}), /* GPIO_SD_B1_00 GPIO3_IO00, AUX_MEM */
 	}, {GPIO::Port3, GPIO::Pin27}),
-	initSPIBus(2, {
+	initSPIBus(SPI::Bus::LPSPI2, {
 		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::Port3, GPIO::Pin20}) /* GPIO_EMC_34 G GPIO3_IO20 */
 	}),
-	initSPIBus(3, {
+	initSPIBus(SPI::Bus::LPSPI3, {
 		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::Port4, GPIO::Pin14}), /* GPIO_EMC_14 GPIO4_IO14 */
 	}),
-	initSPIBusExternal(4, {
+	initSPIBusExternal(SPI::Bus::LPSPI4, {
 		initSPIConfigExternal(SPI::CS{GPIO::Port4, GPIO::Pin7}), /* GPIO_EMC_07 GPIO4_IO07 */
 		initSPIConfigExternal(SPI::CS{GPIO::Port2, GPIO::Pin30}), /* GPIO_B1_14  GPIO2_IO30 */
 		initSPIConfigExternal(SPI::CS{GPIO::Port4, GPIO::Pin11}), /* GPIO_EMC_11 GPIO4_IO011 */

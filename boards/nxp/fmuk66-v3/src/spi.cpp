@@ -56,15 +56,15 @@
 #if defined(CONFIG_KINETIS_SPI0) || defined(CONFIG_KINETIS_SPI1) || defined(CONFIG_KINETIS_SPI2)
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(PX4_BUS_NUMBER_TO_PX4(0), {
+	initSPIBus(SPI::Bus::SPI0, {
 		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortC, GPIO::Pin2})
 	}),
-	initSPIBus(PX4_BUS_NUMBER_TO_PX4(1), {
+	initSPIBus(SPI::Bus::SPI1, {
 		initSPIDevice(DRV_ACC_DEVTYPE_FXOS8701C, SPI::CS{GPIO::PortB, GPIO::Pin10}),
 		initSPIDevice(DRV_GYR_DEVTYPE_FXAS2100C, SPI::CS{GPIO::PortB, GPIO::Pin9}),
 		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortA, GPIO::Pin19}),
 	}, {GPIO::PortB, GPIO::Pin8}),
-	initSPIBusExternal(PX4_BUS_NUMBER_TO_PX4(2), {
+	initSPIBusExternal(SPI::Bus::SPI2, {
 		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin20}),
 		initSPIConfigExternal(SPI::CS{GPIO::PortD, GPIO::Pin15}),
 	}),
