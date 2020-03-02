@@ -36,16 +36,16 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(1, {
+	initSPIBus(SPI::Bus::SPI1, {
 		initSPIDevice(DRV_GYR_DEVTYPE_ADIS16477, SPI::CS{GPIO::PortG, GPIO::Pin10}, SPI::DRDY{GPIO::PortJ, GPIO::Pin0}),
 	}),
-	initSPIBusExternal(2, {
+	initSPIBusExternal(SPI::Bus::SPI2, {
 		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin0}),
 	}),
-	initSPIBus(4, {
+	initSPIBus(SPI::Bus::SPI4, {
 		initSPIDevice(DRV_BARO_DEVTYPE_LPS22HB, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortK, GPIO::Pin1}),
 	}),
-	initSPIBus(5, {
+	initSPIBus(SPI::Bus::SPI5, {
 		initSPIDevice(DRV_MAG_DEVTYPE_LSM303AGR, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortK, GPIO::Pin7}),
 		initSPIDevice(DRV_ACC_DEVTYPE_LSM303AGR, SPI::CS{GPIO::PortB, GPIO::Pin0}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
 	}),

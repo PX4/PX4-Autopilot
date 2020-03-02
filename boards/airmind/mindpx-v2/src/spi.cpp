@@ -36,13 +36,13 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(1, {
+	initSPIBus(SPI::Bus::SPI1, {
 		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortE, GPIO::Pin12}),
 	}),
-	initSPIBusExternal(2, {
+	initSPIBusExternal(SPI::Bus::SPI2, {
 		initSPIConfigExternal(SPI::CS{GPIO::PortD, GPIO::Pin7}),
 	}),
-	initSPIBus(4, {
+	initSPIBus(SPI::Bus::SPI4, {
 		initSPIDevice(DRV_GYR_DEVTYPE_L3GD20, SPI::CS{GPIO::PortB, GPIO::Pin2}, SPI::DRDY{GPIO::PortE, GPIO::Pin14}),
 		initSPIDevice(DRV_ACC_DEVTYPE_LSM303D, SPI::CS{GPIO::PortD, GPIO::Pin11}),
 		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortC, GPIO::Pin15}),

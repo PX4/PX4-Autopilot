@@ -54,7 +54,7 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(1, {
+	initSPIBus(SPI::Bus::SPI1, {
 		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::PortC, GPIO::Pin12}),
 		initSPIDevice(DRV_FLOW_DEVTYPE_PMW3901, SPI::CS{GPIO::PortB, GPIO::Pin4}),
 		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortB, GPIO::Pin5}),
