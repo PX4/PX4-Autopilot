@@ -73,7 +73,7 @@ fi
 # mappydot lidar sensor
 if param compare -s SENS_EN_MPDT 1
 then
-	mappydot start -a
+	mappydot start -X
 fi
 
 # mb12xx sonar sensor
