@@ -95,6 +95,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	battery.system_source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
 	// battery.priority = msg.;
 	// battery.is_powering_off = msg.;
+	battery.id = msg.getSrcNodeID().get();
 
 	determineWarning(battery.remaining);
 
