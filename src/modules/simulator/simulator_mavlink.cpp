@@ -963,7 +963,7 @@ int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink
 {
 	optical_flow_s flow = {};
 	flow.sensor_id = flow_mavlink->sensor_id;
-	flow.timestamp = hrt_absolute_time();;
+	flow.timestamp = hrt_absolute_time();
 	flow.time_since_last_sonar_update = 0;
 	flow.frame_count_since_last_readout = 0; // ?
 	flow.integration_timespan = flow_mavlink->integration_time_us;
