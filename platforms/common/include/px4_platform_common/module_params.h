@@ -52,6 +52,14 @@ public:
 		setParent(parent);
 	}
 
+	// empty copy and move constructors (don't copy _children)
+	ModuleParams(const ModuleParams &) {};
+	ModuleParams(ModuleParams &&) {};
+
+	// no assignment
+	ModuleParams &operator=(const ModuleParams &) = delete;
+	ModuleParams &operator=(ModuleParams &&) = delete;
+
 	/**
 	 * @brief Sets the parent module. This is typically not required,
 	 *         only in cases where the parent cannot be set via constructor.
@@ -64,12 +72,6 @@ public:
 	}
 
 	virtual ~ModuleParams() = default;
-
-	// Disallow copy construction and move assignment.
-	ModuleParams(const ModuleParams &) = delete;
-	ModuleParams &operator=(const ModuleParams &) = delete;
-	ModuleParams(ModuleParams &&) = delete;
-	ModuleParams &operator=(ModuleParams &&) = delete;
 
 protected:
 	/**

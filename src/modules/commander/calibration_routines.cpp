@@ -793,7 +793,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 	}
 
 	if (sub_accel >= 0) {
-		px4_close(sub_accel);
+		orb_unsubscribe(sub_accel);
 	}
 
 	return result;

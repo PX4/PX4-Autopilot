@@ -35,3 +35,5 @@ px4_add_library(sensor_corrections
 	SensorCorrections.cpp
 	SensorCorrections.hpp
 )
+
+target_include_directories(sensor_corrections PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)

@@ -107,7 +107,7 @@ void PX4Magnetometer::set_device_type(uint8_t devtype)
 	_sensor_mag_pub.get().device_id = device_id.devid;
 }
 
-void PX4Magnetometer::update(hrt_abstime timestamp_sample, float x, float y, float z)
+void PX4Magnetometer::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
 {
 	sensor_mag_s &report = _sensor_mag_pub.get();
 	report.timestamp = timestamp_sample;

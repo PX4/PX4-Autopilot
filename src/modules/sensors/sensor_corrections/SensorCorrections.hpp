@@ -53,7 +53,6 @@ public:
 		Gyroscope,
 	};
 
-	SensorCorrections() = delete;
 	SensorCorrections(ModuleParams *parent, SensorType type);
 	~SensorCorrections() override = default;
 
@@ -72,6 +71,11 @@ public:
 private:
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
+
+	int FindCalibrationIndex(uint32_t device_id) const;
+
+	matrix::Vector3f CalibrationOffset(uint8_t calibration_index) const;
+	matrix::Vector3f CalibrationScale(uint8_t calibration_index) const;
 
 	const char *SensorString() const;
 

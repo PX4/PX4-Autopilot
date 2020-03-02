@@ -72,9 +72,6 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 bool inverse4x4(float m[], float invOut[]);
 bool mat_inverse(float *A, float *inv, uint8_t n);
 
-// FIXME: Change the name
-static const unsigned max_accel_sens = 3;
-
 // The order of these cannot change since the calibration calculations depend on them in this order
 enum detect_orientation_return {
 	DETECT_ORIENTATION_TAIL_DOWN,

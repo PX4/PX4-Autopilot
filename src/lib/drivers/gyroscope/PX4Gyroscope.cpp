@@ -39,7 +39,7 @@
 using namespace time_literals;
 using matrix::Vector3f;
 
-static inline int32_t sum(const int16_t samples[16], uint8_t len)
+static constexpr int32_t sum(const int16_t samples[16], uint8_t len)
 {
 	int32_t sum = 0;
 
@@ -64,7 +64,6 @@ static constexpr unsigned clipping(const int16_t samples[16], int16_t clip_limit
 }
 
 PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
-	CDev(nullptr),
 	ModuleParams(nullptr),
 	_sensor_pub{ORB_ID(sensor_gyro), priority},
 	_sensor_fifo_pub{ORB_ID(sensor_gyro_fifo), priority},
@@ -73,37 +72,7 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	_device_id{device_id},
 	_rotation{rotation}
 {
-	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
-
 	updateParams();
-}
-
-PX4Gyroscope::~PX4Gyroscope()
-{
-	if (_class_device_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_device_instance);
-	}
-}
-
-int PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case GYROIOCSSCALE: {
-			// Copy offsets and scale factors in
-			gyro_calibration_s cal{};
-			memcpy(&cal, (gyro_calibration_s *) arg, sizeof(cal));
-
-			_calibration_offset = Vector3f{cal.x_offset, cal.y_offset, cal.z_offset};
-		}
-
-		return PX4_OK;
-
-	case DEVIOCGDEVICEID:
-		return _device_id;
-
-	default:
-		return -ENOTTY;
-	}
 }
 
 void PX4Gyroscope::set_device_type(uint8_t devtype)
@@ -128,7 +97,7 @@ void PX4Gyroscope::set_update_rate(uint16_t rate)
 	_integrator_reset_samples = 2500 / update_interval;
 }
 
-void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float z)
+void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
 {
 	// Apply rotation (before scaling)
 	rotate_3f(_rotation, x, y, z);
@@ -143,8 +112,8 @@ void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float 
 		}
 	}
 
-	// Apply range scale and the calibrating offset/scale
-	const Vector3f val_calibrated{((raw * _scale) - _calibration_offset)};
+	// Apply range scale
+	const Vector3f val{raw * _scale};
 
 	// publish raw data immediately
 	{
@@ -153,9 +122,9 @@ void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float 
 		report.timestamp_sample = timestamp_sample;
 		report.device_id = _device_id;
 		report.temperature = _temperature;
-		report.x = val_calibrated(0);
-		report.y = val_calibrated(1);
-		report.z = val_calibrated(2);
+		report.x = val(0);
+		report.y = val(1);
+		report.z = val(2);
 		report.timestamp = hrt_absolute_time();
 
 		_sensor_pub.publish(report);
@@ -167,7 +136,7 @@ void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float 
 
 	_integrator_samples++;
 
-	if (_integrator.put(timestamp_sample, val_calibrated, delta_angle, integral_dt)) {
+	if (_integrator.put(timestamp_sample, val, delta_angle, integral_dt)) {
 
 		// fill sensor_gyro_integrated and publish
 		sensor_gyro_integrated_s report;
@@ -213,17 +182,17 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 		// Apply rotation (before scaling)
 		rotate_3f(_rotation, x, y, z);
 
-		// Apply range scale and the calibration offset
-		const Vector3f val_calibrated{(Vector3f{x, y, z} * _scale) - _calibration_offset};
+		// Apply range scale
+		const Vector3f val{Vector3f{x, y, z} *_scale};
 
 		sensor_gyro_s report;
 
 		report.timestamp_sample = sample.timestamp_sample;
 		report.device_id = _device_id;
 		report.temperature = _temperature;
-		report.x = val_calibrated(0);
-		report.y = val_calibrated(1);
-		report.z = val_calibrated(2);
+		report.x = val(0);
+		report.y = val(1);
+		report.z = val(2);
 		report.timestamp = hrt_absolute_time();
 
 		_sensor_pub.publish(report);
@@ -270,11 +239,8 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			// Apply rotation (before scaling)
 			rotate_3f(_rotation, _integration_raw(0), _integration_raw(1), _integration_raw(2));
 
-			// scale calibration offset to number of samples
-			const Vector3f offset{_calibration_offset * _integrator_fifo_samples};
-
 			// Apply calibration and scale to seconds
-			const Vector3f delta_angle{((_integration_raw * _scale) - offset) * 1e-6f * dt};
+			const Vector3f delta_angle{_integration_raw *_scale * 1e-6f * dt};
 
 			// fill sensor_gyro_integrated and publish
 			sensor_gyro_integrated_s report;
@@ -381,8 +347,8 @@ void PX4Gyroscope::UpdateVibrationMetrics(const Vector3f &delta_angle)
 
 void PX4Gyroscope::print_status()
 {
-	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
-
-	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
-		 (double)_calibration_offset(2));
+	char device_id_buffer[80] {};
+	device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), _device_id);
+	PX4_INFO("device id: %d (%s)", _device_id, device_id_buffer);
+	PX4_INFO("rotation: %d", _rotation);
 }

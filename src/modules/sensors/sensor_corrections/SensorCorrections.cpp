@@ -51,6 +51,7 @@ void SensorCorrections::set_device_id(uint32_t device_id)
 	if (_device_id != device_id) {
 		_device_id = device_id;
 		SensorCorrectionsUpdate(true);
+		ParametersUpdate();
 	}
 }
 
@@ -65,6 +66,67 @@ const char *SensorCorrections::SensorString() const
 	}
 
 	return nullptr;
+}
+
+int SensorCorrections::FindCalibrationIndex(uint32_t device_id) const
+{
+	if (device_id == 0) {
+		return -1;
+	}
+
+	for (unsigned i = 0; i < MAX_SENSOR_COUNT; ++i) {
+		char str[16] {};
+		sprintf(str, "CAL_%s%u_ID", SensorString(), i);
+
+		int32_t device_id_val = 0;
+
+		if (param_get(param_find(str), &device_id_val) != OK) {
+			PX4_ERR("Could not access param %s", str);
+			continue;
+		}
+
+		if ((uint32_t)device_id_val == device_id) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+Vector3f SensorCorrections::CalibrationOffset(uint8_t calibration_index) const
+{
+	// offsets (x, y, z)
+	Vector3f offset{0.f, 0.f, 0.f};
+	char str[20] {};
+
+	sprintf(str, "CAL_%s%u_XOFF", SensorString(), calibration_index);
+	param_get(param_find(str), &offset(0));
+
+	sprintf(str, "CAL_%s%u_YOFF", SensorString(), calibration_index);
+	param_get(param_find(str), &offset(1));
+
+	sprintf(str, "CAL_%s%u_ZOFF", SensorString(), calibration_index);
+	param_get(param_find(str), &offset(2));
+
+	return offset;
+}
+
+Vector3f SensorCorrections::CalibrationScale(uint8_t calibration_index) const
+{
+	// scale factors (x, y, z)
+	Vector3f scale{1.f, 1.f, 1.f};
+	char str[20] {};
+
+	sprintf(str, "CAL_%s%u_XSCALE", SensorString(), calibration_index);
+	param_get(param_find(str), &scale(0));
+
+	sprintf(str, "CAL_%s%u_YSCALE", SensorString(), calibration_index);
+	param_get(param_find(str), &scale(1));
+
+	sprintf(str, "CAL_%s%u_ZSCALE", SensorString(), calibration_index);
+	param_get(param_find(str), &scale(2));
+
+	return scale;
 }
 
 void SensorCorrections::SensorCorrectionsUpdate(bool force)
@@ -152,10 +214,35 @@ void SensorCorrections::ParametersUpdate()
 
 	// get transformation matrix from sensor/board to body frame
 	_board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
+
+	// temperature calibration disabled
+	if (_corrections_selected_instance < 0) {
+		int calibration_index = FindCalibrationIndex(_device_id);
+
+		if (calibration_index >= 0) {
+			_offset = CalibrationOffset(calibration_index);
+
+			// gyroscope doesn't have a scale factor calibration
+			if (_type != SensorType::Gyroscope) {
+				_scale = CalibrationScale(calibration_index);
+
+			} else {
+				_scale = Vector3f{1.f, 1.f, 1.f};
+			}
+
+		} else {
+			_offset.zero();
+			_scale = Vector3f{1.f, 1.f, 1.f};
+		}
+	}
 }
 
 void SensorCorrections::PrintStatus()
 {
+	if (_corrections_selected_instance >= 0) {
+		PX4_INFO("%s %d temperature calibration enabled", SensorString(), _device_id);
+	}
+
 	if (_offset.norm() > 0.f) {
 		PX4_INFO("%s %d offset: [%.3f %.3f %.3f]", SensorString(), _device_id, (double)_offset(0), (double)_offset(1),
 			 (double)_offset(2));
