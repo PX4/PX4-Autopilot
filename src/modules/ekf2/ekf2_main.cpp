@@ -87,8 +87,12 @@
 #define BLEND_MASK_USE_VPOS_ACC     4
 
 // define max number of GPS receivers supported and 0 base instance used to access virtual 'blended' GPS solution
-#define GPS_MAX_RECEIVERS 2
-#define GPS_BLENDED_INSTANCE 2
+#define GPS_MAX_RECEIVERS 3
+#define GPS_BLENDED_INSTANCE GPS_MAX_RECEIVERS
+
+// Set the GPS timeout to 2s, after which a receiver will be ignored
+#define GPS_TIMEOUT_US 2000000
+#define GPS_TIMEOUT_S (GPS_TIMEOUT_US/1e6f)
 
 using math::constrain;
 using namespace time_literals;
@@ -258,7 +262,7 @@ private:
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
 	// because we can have multiple GPS instances
-	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}};
+	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}, {ORB_ID(vehicle_gps_position), 2}};
 
 	sensor_selection_s		_sensor_selection{};
 	vehicle_land_detected_s		_vehicle_land_detected{};
@@ -919,47 +923,65 @@ void Ekf2::Run()
 		}
 
 		// read gps1 data if available
-		bool gps1_updated = _gps_subs[0].updated();
+		bool gps_updated[GPS_MAX_RECEIVERS] = {false};
+		bool any_gps_updated = false;
 
-		if (gps1_updated) {
-			vehicle_gps_position_s gps;
+		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			gps_updated[i] = _gps_subs[i].updated();
 
-			if (_gps_subs[0].copy(&gps)) {
-				fillGpsMsgWithVehicleGpsPosData(_gps_state[0], gps);
-				_gps_alttitude_ellipsoid[0] = gps.alt_ellipsoid;
+			if (gps_updated[i]) {
+				any_gps_updated = true;
+				vehicle_gps_position_s gps;
+
+				if (_gps_subs[i].copy(&gps)) {
+					fillGpsMsgWithVehicleGpsPosData(_gps_state[i], gps);
+					_gps_alttitude_ellipsoid[i] = gps.alt_ellipsoid;
+				}
 			}
 		}
 
-		// check for second GPS receiver data
-		bool gps2_updated = _gps_subs[1].updated();
-
-		if (gps2_updated) {
-			vehicle_gps_position_s gps;
-
-			if (_gps_subs[1].copy(&gps)) {
-				fillGpsMsgWithVehicleGpsPosData(_gps_state[1], gps);
-				_gps_alttitude_ellipsoid[1] = gps.alt_ellipsoid;
-			}
-		}
-
-		if ((_param_ekf2_gps_mask.get() == 0) && gps1_updated) {
+		if ((_param_ekf2_gps_mask.get() == 0) && gps_updated[0]) {
 			// When GPS blending is disabled we always use the first receiver instance
 			_ekf.setGpsData(_gps_state[0]);
 
-		} else if ((_param_ekf2_gps_mask.get() > 0) && (gps1_updated || gps2_updated)) {
-			// blend dual receivers if available
+		} else if ((_param_ekf2_gps_mask.get() > 0) && any_gps_updated) {
+			// blend multiple receivers if available
 
 			// calculate blending weights
 			if (!blend_gps_data()) {
-				// handle case where the blended states cannot be updated
 				// Only use selected receiver data if it has been updated
-				_gps_new_output_data = (gps1_updated && _gps_select_index == 0) ||
-						       (gps2_updated && _gps_select_index == 1);
+				_gps_new_output_data = false;
+				_gps_select_index = 0;
 
-				// Reset relative position offsets to zero
-				_NE_pos_offset_m[0].zero();
-				_NE_pos_offset_m[1].zero();
-				_hgt_offset_mm[0] = _hgt_offset_mm[1] = 0.0f;
+				// Find the single "best" GPS from the data we have
+				// First, find the GPS(s) with the best fix
+				uint8_t best_fix = 0;
+
+				for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+					if (_gps_state[i].fix_type > best_fix) {
+						best_fix = _gps_state[i].fix_type;
+					}
+				}
+
+				// Second, compare GPS's with best fix and take the one with most satellites
+				uint8_t max_sats = 0;
+
+				for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+					if (_gps_state[i].fix_type == best_fix && _gps_state[i].nsats > max_sats) {
+						max_sats = _gps_state[i].nsats;
+						_gps_select_index = i;
+					}
+				}
+
+				// Check for new data on selected GPS, and clear blend offsets
+				for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+					if (gps_updated[i] && _gps_select_index == i) {
+						_gps_new_output_data = true;
+					}
+
+					_NE_pos_offset_m[i].zero();
+					_hgt_offset_mm[i] = 0.0f;
+				}
 			}
 
 			if (_gps_new_output_data) {
@@ -967,7 +989,7 @@ void Ekf2::Run()
 				apply_gps_offsets();
 
 				// calculate a blended output from the offset corrected receiver data
-				if (_gps_select_index == 2) {
+				if (_gps_select_index == GPS_MAX_RECEIVERS) {
 					calc_gps_blend_output();
 				}
 
@@ -1822,13 +1844,30 @@ bool Ekf2::blend_gps_data()
 	// Calculate the time step for each receiver with some filtering to reduce the effects of jitter
 	// Find the largest and smallest time step.
 	float dt_max = 0.0f;
-	float dt_min = 0.3f;
+	float dt_min = GPS_TIMEOUT_S;
+	uint8_t gps_count = 0; // Count of receivers which have an active >=2D fix
+	const hrt_abstime hrt_now = hrt_absolute_time();
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		float raw_dt = 1e-6f * (float)(_gps_state[i].time_usec - _time_prev_us[i]);
+		const float raw_dt = 1e-6f * (float)(_gps_state[i].time_usec - _time_prev_us[i]);
+		const float present_dt = 1e-6f * (float)(hrt_now - _gps_state[i].time_usec);
 
-		if (raw_dt > 0.0f && raw_dt < 0.3f) {
+		if (raw_dt > 0.0f && raw_dt < GPS_TIMEOUT_S) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
+
+		} else if (present_dt >= GPS_TIMEOUT_S) {
+			// Timed out - kill the stored fix for this receiver and don't track its (stale) gps_dt
+			_gps_state[i].time_usec = 0;
+			_gps_state[i].fix_type = 0;
+			_gps_state[i].nsats = 0;
+			_gps_state[i].vel_ned_valid = 0;
+
+			continue;
+		}
+
+		// Only count GPSs with at least a 2D fix for blending purposes
+		if (_gps_state[i].fix_type < 2) {
+			continue;
 		}
 
 		if (_gps_dt[i] > dt_max) {
@@ -1839,6 +1878,8 @@ bool Ekf2::blend_gps_data()
 		if (_gps_dt[i] < dt_min) {
 			dt_min = _gps_dt[i];
 		}
+
+		gps_count++;
 	}
 
 	// Find the receiver that is last be updated
@@ -1858,25 +1899,8 @@ bool Ekf2::blend_gps_data()
 		}
 	}
 
-	if ((max_us - min_us) > 300000) {
-		// A receiver has timed out so fall out of blending
-		if (_gps_state[0].time_usec > _gps_state[1].time_usec) {
-			_gps_select_index = 0;
-
-		} else {
-			_gps_select_index = 1;
-		}
-
-		return false;
-	}
-
-	// One receiver has lost 3D fix, fall out of blending
-	if (_gps_state[0].fix_type > 2 && _gps_state[1].fix_type < 3) {
-		_gps_select_index = 0;
-		return false;
-
-	} else if (_gps_state[1].fix_type > 2 && _gps_state[0].fix_type < 3) {
-		_gps_select_index = 1;
+	if (gps_count < 2) {
+		// Less than 2 receivers left, so fall out of blending
 		return false;
 	}
 
@@ -1917,11 +1941,6 @@ bool Ekf2::blend_gps_data()
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 				if (_gps_state[i].fix_type >= 3 && _gps_state[i].sacc > 0.0f) {
 					speed_accuracy_sum_sq += _gps_state[i].sacc * _gps_state[i].sacc;
-
-				} else {
-					// not all receivers support this metric so set it to zero and don't use it
-					speed_accuracy_sum_sq = 0.0f;
-					break;
 				}
 			}
 		}
@@ -1933,11 +1952,6 @@ bool Ekf2::blend_gps_data()
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 				if (_gps_state[i].fix_type >= 2 && _gps_state[i].eph > 0.0f) {
 					horizontal_accuracy_sum_sq += _gps_state[i].eph * _gps_state[i].eph;
-
-				} else {
-					// not all receivers support this metric so set it to zero and don't use it
-					horizontal_accuracy_sum_sq = 0.0f;
-					break;
 				}
 			}
 		}
@@ -1949,11 +1963,6 @@ bool Ekf2::blend_gps_data()
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 				if (_gps_state[i].fix_type >= 3 && _gps_state[i].epv > 0.0f) {
 					vertical_accuracy_sum_sq += _gps_state[i].epv * _gps_state[i].epv;
-
-				} else {
-					// not all receivers support this metric so set it to zero and don't use it
-					vertical_accuracy_sum_sq = 0.0f;
-					break;
 				}
 			}
 		}
@@ -2050,7 +2059,7 @@ bool Ekf2::blend_gps_data()
 		// offsets for each physical receiver
 		update_gps_blend_states();
 		update_gps_offsets();
-		_gps_select_index = 2;
+		_gps_select_index = GPS_MAX_RECEIVERS;
 
 	}
 
