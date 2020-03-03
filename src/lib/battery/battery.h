@@ -120,6 +120,7 @@ protected:
 		param_t crit_thr;
 		param_t emergen_thr;
 		param_t source;
+		param_t source_common;
 
 		// TODO: These parameters are depracated. They can be removed entirely once the
 		//  new version of Firmware has been around for long enough.
@@ -129,7 +130,6 @@ protected:
 		param_t capacity_old;
 		param_t v_load_drop_old;
 		param_t r_internal_old;
-		param_t source_old;
 	} _param_handles;
 
 	struct {
@@ -142,6 +142,7 @@ protected:
 		float low_thr;
 		float crit_thr;
 		float emergen_thr;
+		int source_common;
 		int source;
 
 		// TODO: These parameters are depracated. They can be removed entirely once the
@@ -152,7 +153,6 @@ protected:
 		float capacity_old;
 		float v_load_drop_old;
 		float r_internal_old;
-		int source_old;
 	} _params;
 
 	battery_status_s _battery_status;
