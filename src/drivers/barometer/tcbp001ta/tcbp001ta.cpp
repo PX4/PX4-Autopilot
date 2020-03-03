@@ -86,6 +86,11 @@ TCBP001TA::init()
 	// get calibration and pre process them
 	_cal = _interface->get_calibration(TCBP001TA_ADDR_CAL);
 
+	if (_cal == nullptr) {
+		PX4_INFO("init failed");
+		return -EIO;
+	}
+
 	_fcal.c0 = (_cal->c0_h << 4) + ((_cal->c0l_1h >> 4) & 0x0F);
 
 	if (_fcal.c0 > POW_2_11_MINUS_1) {
@@ -204,7 +209,7 @@ TCBP001TA::collect()
 		return -EIO;
 	}
 
-	double p_raw = (data_temp->p_msb << 16 | data_temp->p_lsb << 8) + (data_temp->p_xlsb);
+	uint32_t p_raw = (data_temp->p_msb << 16 | data_temp->p_lsb << 8) + (data_temp->p_xlsb);
 
 	//write 0x01 to reg 0x08  Pressure
 	_interface->set_reg(0x01, TCBP001TA_ADDR_MEAS_CFG);
@@ -217,7 +222,7 @@ TCBP001TA::collect()
 		return -EIO;
 	}
 
-	double t_raw = (data_pres->t_msb << 16 | data_pres->t_lsb << 8) + (data_pres->t_xlsb);
+	uint32_t t_raw = (data_pres->t_msb << 16 | data_pres->t_lsb << 8) + (data_pres->t_xlsb);
 
 	// PX4_INFO("p raw %f", p_raw);
 	// PX4_INFO("t raw %f", t_raw);
@@ -225,12 +230,12 @@ TCBP001TA::collect()
 	// PX4_INFO("data 3 %d data 4 %d data5 %d", data_pres->t_msb, data_pres->t_lsb, data_pres->t_xlsb);
 
 	// Temperature
-	double Traw_sc = (double)t_raw / (double)(tmp_osr_scale_coeff);
+	float Traw_sc = (float)t_raw / (float)(tmp_osr_scale_coeff);
 
 	const float T = (_fcal.c0 / 2.0f) + (float)(_fcal.c1 * Traw_sc);
 
 	// Pressure
-	double Praw_sc = (double) p_raw / (double)(prs_osr_scale_coeff);
+	float Praw_sc = (float) p_raw / (float)(prs_osr_scale_coeff);
 
 	const float P = _fcal.c00 +
 			Praw_sc * (_fcal.c10 + Praw_sc * (_fcal.c20 + Praw_sc * _fcal.c30)) +
