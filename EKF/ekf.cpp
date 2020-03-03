@@ -245,8 +245,8 @@ void Ekf::predictState()
 	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _state.delta_ang_bias;
 	const Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - _state.delta_vel_bias;
 
-	// correct delta angles for earth rotation rate
-	corrected_delta_ang -= -_R_to_earth.transpose() * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
+	// subtract component of angular rate due to earth rotation
+	corrected_delta_ang -= _R_to_earth.transpose() * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
 
 	const Quatf dq(AxisAnglef{corrected_delta_ang});
 
