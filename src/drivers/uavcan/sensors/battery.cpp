@@ -78,27 +78,28 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	// battery.average_current_a = msg.;
 
 	sumDischarged(battery.timestamp, battery.current_a);
-
 	battery.discharged_mah = _discharged_mah;
+
 	battery.remaining = msg.state_of_charge_pct / 100.0f; // between 0 and 1
 	// battery.scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
 	battery.temperature = msg.temperature - 273.15f; // Kelvin to Celcius
 	// battery.cell_count = msg.;
-	// battery.voltage_cell_v[0] = msg.voltage;
-	// battery.max_cell_voltage_delta = msg.;
+	battery.connected = true;
+	battery.system_source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
+	// battery.priority = msg.;
 	battery.capacity = msg.full_charge_capacity_wh;
 	// battery.cycle_count = msg.;
 	// battery.run_time_to_empty = msg.;
 	// battery.average_time_to_empty = msg.;
 	battery.serial_number = msg.model_instance_id;
-	battery.connected = true;
-	battery.system_source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
-	// battery.priority = msg.;
-	// battery.is_powering_off = msg.;
 	battery.id = msg.getSrcNodeID().get();
 
-	determineWarning(battery.remaining);
+	// battery.voltage_cell_v[0] = msg.;
+	// battery.max_cell_voltage_delta = msg.;
 
+	// battery.is_powering_off = msg.;
+
+	determineWarning(battery.remaining);
 	battery.warning = _warning;
 
 	publish(msg.getSrcNodeID().get(), &battery);
