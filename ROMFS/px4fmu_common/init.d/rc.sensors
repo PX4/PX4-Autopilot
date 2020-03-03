@@ -54,7 +54,7 @@ if param compare -s SENS_EN_LL40LS 1
 then
 	if pwm_input start
 	then
-		ll40ls start pwm
+		ll40ls_pwm start
 	fi
 fi
 

@@ -33,13 +33,21 @@
 
 
 /**
- * @file LidarLite.h
+ * @file LidarLitePWM.h
  * @author Johan Jansen <jnsn.johan@gmail.com>
+ * @author Ban Siesta <bansiesta@gmail.com>
  *
- * Generic interface driver for the PulsedLight Lidar-Lite range finders.
+ * Driver for the PulsedLight Lidar-Lite range finders connected via PWM.
+ *
+ * This driver accesses the pwm_input published by the pwm_input driver.
  */
 #pragma once
 
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+#include <uORB/topics/pwm_input.h>
+#include <uORB/Subscription.hpp>
+#include <board_config.h>
 #include <drivers/device/device.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
@@ -57,35 +65,36 @@ static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
 // Maximum time to wait for a conversion to complete.
 static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};
 
-class LidarLite
+#if DIRECT_PWM_OUTPUT_CHANNELS >= 6
+#define GPIO_VDD_RANGEFINDER_EN_CHAN 5 // use pin 6
+#define LIDAR_LITE_PWM_SUPPORTED
+
+class LidarLitePWM : public px4::ScheduledWorkItem
 {
 public:
-	LidarLite(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	virtual ~LidarLite();
+	LidarLitePWM(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	virtual ~LidarLitePWM();
 
-	virtual int init() = 0;
-	virtual void start() = 0;
-	virtual void stop() = 0;
+	int init();
+	void start();
+	void stop();
 
-	/**
-	 * @brief Diagnostics - print some basic information about the driver.
-	 */
 	void print_info();
-
-	/**
-	 * @brief print registers to console.
-	 */
-	virtual void print_registers() {};
 
 protected:
 
-	uint32_t get_measure_interval() const { return _measure_interval; };
+	int collect();
+	int measure();
 
-	virtual int collect() = 0;
+	void Run() override;
 
-	virtual int measure() = 0;
+private:
+	uint32_t get_measure_interval() const { return LL40LS_CONVERSION_INTERVAL; };
 
-	virtual int reset_sensor() { return PX4_ERROR; };
+
+	uORB::Subscription _sub_pwm_input{ORB_ID(pwm_input)};
+
+	pwm_input_s _pwm{};
 
 	PX4Rangefinder	_px4_rangefinder;
 
@@ -93,8 +102,6 @@ protected:
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ll40ls: read")};
 	perf_counter_t _sensor_resets{perf_alloc(PC_COUNT, "ll40ls: resets")};
 	perf_counter_t _sensor_zero_resets{perf_alloc(PC_COUNT, "ll40ls: zero resets")};
-
-private:
-
-	uint32_t  _measure_interval{LL40LS_CONVERSION_INTERVAL};
 };
+
+#endif
