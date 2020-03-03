@@ -6,7 +6,8 @@
 adc start
 
 # Start Digital power monitors
-voxlpm -R start
+voxlpm -X -b 3 -T VBATT start
+voxlpm -X -b 3 -T P5VDC start
 
 # Internal SPI bus ICM-20602
 mpu6000 -R 6 -s -T 20602 start
