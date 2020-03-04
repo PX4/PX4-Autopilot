@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 ECL Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 ECL Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@ class EkfBasicsTest : public ::testing::Test {
 
 
 	// Duration of initalization with only providing baro,mag and IMU
-	const uint32_t _init_duration_s{2};
+	const uint32_t _init_duration_s{3};
 
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
@@ -166,7 +166,7 @@ TEST_F(EkfBasicsTest, gpsFusion)
 
 TEST_F(EkfBasicsTest, accleBiasEstimation)
 {
-	// GIVEN: initialized EKF with default IMU, baro and mag input for 2s
+	// GIVEN: initialized EKF with default IMU, baro and mag input for 3s
 	// WHEN: Added more sensor measurements with accel bias and gps measurements
 	Vector3f accel_bias_sim = {0.0f,0.0f,0.1f};
 
@@ -181,8 +181,8 @@ TEST_F(EkfBasicsTest, accleBiasEstimation)
 	Vector3f zero{0.0f, 0.0f, 0.0f};
 
 	// THEN: EKF should stay or converge to zero
-	EXPECT_TRUE(matrix::isEqual(pos, zero, 0.001f));
-	EXPECT_TRUE(matrix::isEqual(vel, zero, 0.001f));
+	EXPECT_TRUE(matrix::isEqual(pos, zero, 0.01f));
+	EXPECT_TRUE(matrix::isEqual(vel, zero, 0.005f));
 	EXPECT_TRUE(matrix::isEqual(accel_bias, accel_bias_sim, 0.001f));
 	EXPECT_TRUE(matrix::isEqual(gyro_bias, zero, 0.001f));
 }
