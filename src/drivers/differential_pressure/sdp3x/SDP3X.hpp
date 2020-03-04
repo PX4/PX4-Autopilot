@@ -61,8 +61,6 @@
 #define SDP3X_SCALE_PRESSURE_SDP32	240
 #define SDP3X_SCALE_PRESSURE_SDP33	20
 
-#define PATH_SDP3X "/dev/sdp3x"
-
 // Measurement rate is 20Hz
 #define SPD3X_MEAS_RATE 100
 #define SDP3X_MEAS_DRIVER_FILTER_FREQ 3.0f
@@ -71,9 +69,8 @@
 class SDP3X : public Airspeed, public I2CSPIDriver<SDP3X>
 {
 public:
-	SDP3X(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_SDP3X,
-	      const char *path = PATH_SDP3X) :
-		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL, path),
+	SDP3X(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_SDP3X) :
+		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
 		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 	{
 	}

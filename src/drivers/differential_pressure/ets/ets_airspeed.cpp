@@ -47,7 +47,6 @@
 
 /* I2C bus address */
 #define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
-#define ETS_PATH	"/dev/ets_airspeed"
 
 /* Register address */
 #define READ_CMD	0x07	/* Read the data */
@@ -64,8 +63,7 @@
 class ETSAirspeed : public Airspeed, public I2CSPIDriver<ETSAirspeed>
 {
 public:
-	ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS,
-		    const char *path = ETS_PATH);
+	ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS);
 
 	virtual ~ETSAirspeed() = default;
 
@@ -84,8 +82,8 @@ protected:
  */
 extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
 
-ETSAirspeed::ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address, const char *path)
-	: Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL, path),
+ETSAirspeed::ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address)
+	: Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
 	  I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS4525;

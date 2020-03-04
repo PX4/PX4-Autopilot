@@ -65,7 +65,6 @@ enum MS_DEVICE_TYPE {
 /* I2C bus address is 1010001x */
 #define I2C_ADDRESS_MS4515DO	0x46
 #define I2C_ADDRESS_MS4525DO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
-#define PATH_MS4525		"/dev/ms4525"
 
 /* Register address */
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
@@ -79,8 +78,7 @@ enum MS_DEVICE_TYPE {
 class MEASAirspeed : public Airspeed, public I2CSPIDriver<MEASAirspeed>
 {
 public:
-	MEASAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_MS4525DO,
-		     const char *path = PATH_MS4525);
+	MEASAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_MS4525DO);
 
 	virtual ~MEASAirspeed() = default;
 
@@ -111,8 +109,8 @@ protected:
  */
 extern "C" __EXPORT int ms4525_airspeed_main(int argc, char *argv[]);
 
-MEASAirspeed::MEASAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address, const char *path)
-	: Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL, path),
+MEASAirspeed::MEASAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address)
+	: Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
 	  I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS4525;
