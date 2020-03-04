@@ -57,6 +57,8 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #include <condition_variable>
 #include <queue>
 
+#include "microRTPS_timesync.h"
+
 @[for topic in send_topics]@
 #include "@(topic)_Publisher.h"
 @[end for]@
@@ -67,6 +69,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 class RtpsTopics {
 public:
     bool init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue);
+    void set_timesync(const std::shared_ptr<TimeSync>& timesync) { _timesync = timesync; };
 @[if send_topics]@
     void publish(uint8_t topic_ID, char data_buffer[], size_t len);
 @[end if]@
@@ -87,6 +90,8 @@ private:
 @[for topic in recv_topics]@
     @(topic)_Subscriber _@(topic)_sub;
 @[end for]@
+
+    std::shared_ptr<TimeSync> _timesync;
 
 @[end if]@
 };

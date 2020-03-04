@@ -177,8 +177,10 @@ rtps:
     id: 76
   - msg: test_motor
     id: 77
-  - msg: timesync_status
+  - msg: timesync
     id: 78
+    receive: true
+    send: true
   - msg: trajectory_waypoint
     id: 79
     receive: true

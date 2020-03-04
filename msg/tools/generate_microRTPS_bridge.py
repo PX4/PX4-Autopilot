@@ -416,6 +416,8 @@ def generate_agent(out_dir):
         shutil.rmtree(os.path.join(out_dir, "fastrtpsgen"))
     cp_wildcard(os.path.join(urtps_templates_dir,
                              "microRTPS_transport.*"), agent_out_dir)
+    cp_wildcard(os.path.join(urtps_templates_dir,
+                             "microRTPS_timesync.*"), agent_out_dir)
     if cmakelists:
         os.rename(os.path.join(out_dir, "microRTPS_agent_CMakeLists.txt"),
                   os.path.join(out_dir, "CMakeLists.txt"))
@@ -458,6 +460,12 @@ def generate_client(out_dir):
             os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
         def_file = os.path.join(default_client_out, "microRTPS_transport.h")
         if os.path.isfile(def_file):
+            os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
+        def_file = os.path.join(default_client_out, "microRTPS_timesync.cpp")
+        if os.path.isfile(def_file):
+            os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
+        def_file = os.path.join(default_client_out, "microRTPS_timesync.h")
+        if os.path.isfile(def_file):
             os.rename(def_file, def_file.replace(".h", ".h_"))
 
     px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir,
@@ -466,6 +474,8 @@ def generate_client(out_dir):
     # Final steps to install client
     cp_wildcard(os.path.join(urtps_templates_dir,
                              "microRTPS_transport.*"), out_dir)
+    cp_wildcard(os.path.join(urtps_templates_dir,
+                             "microRTPS_timesync.*"), out_dir)
 
     return 0
 
