@@ -422,11 +422,14 @@ protected:
 
 				while ((text_size = strlen(text)) > 0) {
 					unsigned chunk_size = math::min(text_size, max_chunk_size);
-					strncpy(msg.text, text, chunk_size);
 
-					// pad with zeros
 					if (chunk_size < max_chunk_size) {
+						memcpy(&msg.text[0], &text[0], chunk_size + 1);
+						// pad with zeros
 						memset(&msg.text + chunk_size, 0, max_chunk_size - chunk_size);
+
+					} else {
+						memcpy(&msg.text[0], &text[0], chunk_size);
 					}
 
 					mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
