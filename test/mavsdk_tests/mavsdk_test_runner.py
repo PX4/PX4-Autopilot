@@ -18,19 +18,21 @@ test_matrix = [
         "timeout_min": 20,
     },
     {
-        "model": "iris_opt_flow",
-        "test_filter": "[multicopter_offboard]",
-        "timeout_min": 20,
-    },
-    {
         "model": "iris_opt_flow_mockup",
         "test_filter": "[multicopter_offboard]",
         "timeout_min": 20,
     },
     {
+        "model": "iris_opt_flow",
+        "test_filter": "[multicopter_offboard]",
+        "timeout_min": 20,
+        "max_speed_factor": 1,
+    },
+    {
         "model": "iris_vision",
         "test_filter": "[multicopter_offboard]",
         "timeout_min": 20,
+        "max_speed_factor": 1,
     },
     {
        "model": "standard_vtol",
@@ -325,13 +327,18 @@ def run_test_group(args):
 
 
 def run_test(test, group, args):
+
+    speed_factor = args.speed_factor
+    if "max_speed_factor" in group:
+        speed_factor = max(int(speed_factor), group["max_speed_factor"])
+
     px4_runner = Px4Runner(
-        group['model'], os.getcwd(), args.log_dir, args.speed_factor,
+        group['model'], os.getcwd(), args.log_dir, speed_factor,
         args.debugger)
     px4_runner.start(group)
 
     gzserver_runner = GzserverRunner(
-        group['model'], os.getcwd(), args.log_dir, args.speed_factor)
+        group['model'], os.getcwd(), args.log_dir, speed_factor)
     gzserver_runner.start(group)
 
     if args.gui:
