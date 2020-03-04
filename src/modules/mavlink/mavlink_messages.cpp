@@ -399,7 +399,9 @@ private:
 	MavlinkStreamStatustext &operator = (const MavlinkStreamStatustext &) = delete;
 
 protected:
-	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
+	int id;
+
+	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink), id(0)
 	{}
 
 	bool send(const hrt_abstime t) override
@@ -411,11 +413,33 @@ protected:
 			if (_mavlink->get_logbuffer()->get(&mavlink_log)) {
 
 				mavlink_statustext_t msg{};
+				const char *text = mavlink_log.text;
+				constexpr unsigned max_chunk_size = sizeof(msg.text);
 				msg.severity = mavlink_log.severity;
-				strncpy(msg.text, (const char *)mavlink_log.text, sizeof(msg.text));
-				msg.text[sizeof(msg.text) - 1] = '\0';
+				msg.chunk_seq = 0;
+				msg.id = id++;
+				unsigned text_size;
 
-				mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+				while ((text_size = strlen(text)) > 0) {
+					unsigned chunk_size = math::min(text_size, max_chunk_size);
+					strncpy(msg.text, text, chunk_size);
+
+					// pad with zeros
+					if (chunk_size < max_chunk_size) {
+						memset(&msg.text + chunk_size, 0, max_chunk_size - chunk_size);
+					}
+
+					mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+
+					if (text_size <= max_chunk_size) {
+						break;
+
+					} else {
+						text += max_chunk_size;
+					}
+
+					msg.chunk_seq += 1;
+				}
 
 				return true;
 			}
