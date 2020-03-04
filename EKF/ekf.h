@@ -308,12 +308,6 @@ private:
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
 
-	bool _fuse_height{false};	///< true when baro height data should be fused
-	bool _fuse_pos{false};		///< true when gps position data should be fused
-	bool _fuse_hor_vel{false};	///< true when gps horizontal velocity measurement should be fused
-	bool _fuse_vert_vel{false};	///< true when gps vertical velocity measurement should be fused
-	bool _fuse_hor_vel_aux{false};	///< true when auxiliary horizontal velocity measurement should be fused
-
 	// variables used when position data is being fused using a relative position odometry model
 	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
 	Vector3f _pos_meas_prev;		///< previous value of NED position measurement fused using odometry assumption (m)

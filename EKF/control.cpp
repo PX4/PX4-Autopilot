@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2020 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -284,7 +284,6 @@ void Ekf::controlExternalVisionFusion()
 			if (_fuse_hpos_as_odom) {
 				if (!_hpos_prev_available) {
 					// no previous observation available to calculate position change
-					_fuse_pos = false;
 					_hpos_prev_available = true;
 
 				} else {
@@ -928,9 +927,10 @@ void Ekf::controlHeightSensorTimeouts()
 
 void Ekf::controlHeightFusion()
 {
-
 	checkRangeAidSuitability();
 	_range_aid_mode_selected = (_params.range_aid == 1) && isRangeAidSuitable();
+
+	bool fuse_height = false;
 
 	switch (_params.vdist_sensor_type) {
 	default:
@@ -940,7 +940,7 @@ void Ekf::controlHeightFusion()
 	case VDIST_SENSOR_BARO:
 		if (_range_aid_mode_selected && _range_data_ready && _rng_hgt_valid) {
 			setControlRangeHeight();
-			_fuse_height = true;
+			fuse_height = true;
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurement matches our current height estimate
@@ -955,7 +955,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (!_range_aid_mode_selected && _baro_data_ready && !_baro_hgt_faulty) {
 			setControlBaroHeight();
-			_fuse_height = true;
+			fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -973,7 +973,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_intermittent) {
 			// switch to gps if there was a reset to gps
-			_fuse_height = true;
+			fuse_height = true;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurement matches our current height estimate
@@ -987,7 +987,7 @@ void Ekf::controlHeightFusion()
 	case VDIST_SENSOR_RANGE:
 		if (_range_data_ready && _rng_hgt_valid) {
 			setControlRangeHeight();
-			_fuse_height = _range_data_ready;
+			fuse_height = _range_data_ready;
 
 		} else if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
 			// we have just switched to using range finder, calculate height sensor offset such that current
@@ -1005,7 +1005,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (_baro_data_ready && !_baro_hgt_faulty) {
 			setControlBaroHeight();
-			_fuse_height = true;
+			fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -1021,7 +1021,7 @@ void Ekf::controlHeightFusion()
 		// Determine if GPS should be used as the height source
 		if (_range_aid_mode_selected && _range_data_ready && _rng_hgt_valid) {
 			setControlRangeHeight();
-			_fuse_height = true;
+			fuse_height = true;
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurement matches our current height estimate
@@ -1036,7 +1036,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (!_range_aid_mode_selected && _gps_data_ready && !_gps_hgt_intermittent && _gps_checks_passed) {
 			setControlGPSHeight();
-			_fuse_height = true;
+			fuse_height = true;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurement matches our current height estimate
@@ -1046,7 +1046,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
-			_fuse_height = true;
+			fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -1061,14 +1061,14 @@ void Ekf::controlHeightFusion()
 
 		// don't start using EV data unless data is arriving frequently
 		if (!_control_status.flags.ev_hgt && isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
-			_fuse_height = true;
+			fuse_height = true;
 			setControlEVHeight();
 			resetHeight();
 		}
 
 		if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
-			_fuse_height = true;
+			fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -1079,7 +1079,7 @@ void Ekf::controlHeightFusion()
 
 		// determine if we should use the vertical position observation
 		if (_control_status.flags.ev_hgt) {
-			_fuse_height = true;
+			fuse_height = true;
 		}
 
 		break;
@@ -1107,11 +1107,10 @@ void Ekf::controlHeightFusion()
 
 		}
 
-		_fuse_height = true;
+		fuse_height = true;
 	}
 
-	if (_fuse_height) {
-
+	if (fuse_height) {
 		if (_control_status.flags.baro_hgt) {
 			Vector2f baro_hgt_innov_gate;
 			Vector3f baro_hgt_obs_var;
@@ -1186,9 +1185,7 @@ void Ekf::controlHeightFusion()
 			fuseVerticalPosition(_ev_pos_innov,ev_hgt_innov_gate,
 				ev_hgt_obs_var, _ev_pos_innov_var,_ev_pos_test_ratio);
 		}
-
 	}
-
 }
 
 void Ekf::checkRangeAidSuitability()
@@ -1331,7 +1328,7 @@ void Ekf::controlFakePosFusion()
 		_using_synthetic_position = true;
 
 		// Fuse synthetic position observations every 200msec
-		if (isTimedOut(_time_last_fake_pos, (uint64_t)2e5) || _fuse_height) {
+		if (isTimedOut(_time_last_fake_pos, (uint64_t)2e5)) {
 
 			Vector3f fake_pos_obs_var;
 			Vector2f fake_pos_innov_gate;
