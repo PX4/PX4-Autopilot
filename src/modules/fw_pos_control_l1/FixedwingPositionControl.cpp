@@ -1478,8 +1478,6 @@ FixedwingPositionControl::Run()
 	perf_begin(_loop_perf);
 
 	/* only run controller if position changed */
-	float lpos_x_prev = _local_pos.x;
-	float lpos_y_prev = _local_pos.y;
 
 	if (_local_pos_sub.update(&_local_pos)) {
 
@@ -1504,7 +1502,7 @@ FixedwingPositionControl::Run()
 
 		// handle estimator reset events. we only adjust setpoins for manual modes
 		if (_control_mode.flag_control_manual_enabled) {
-			if (_control_mode.flag_control_altitude_enabled && _current_altitude_reset_counter != _alt_reset_counter) {
+			if (_control_mode.flag_control_altitude_enabled && _local_pos.vz_reset_counter != _alt_reset_counter) {
 				_hold_alt += -_local_pos.delta_z;
 				// make TECS accept step in altitude and demanded altitude
 				_tecs.handle_alt_step(-_local_pos.delta_z, _current_altitude);
@@ -1512,7 +1510,7 @@ FixedwingPositionControl::Run()
 
 			// adjust navigation waypoints in position control mode
 			if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
-			    && _current_latitude_lon_reset_counter != _pos_reset_counter) {
+			    && _local_pos.vxy_reset_counter != _pos_reset_counter) {
 
 				// reset heading hold flag, which will re-initialise position control
 				_hdg_hold_enabled = false;
@@ -1520,8 +1518,8 @@ FixedwingPositionControl::Run()
 		}
 
 		// update the reset counters in any case
-		_alt_reset_counter = _current_altitude_reset_counter;
-		_pos_reset_counter = _current_latitude_lon_reset_counter;
+		_alt_reset_counter = _local_pos.vz_reset_counter;
+		_pos_reset_counter = _local_pos.vxy_reset_counter;
 
 		airspeed_poll();
 		_manual_control_sub.update(&_manual);
