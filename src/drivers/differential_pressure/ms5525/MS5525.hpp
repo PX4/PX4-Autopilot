@@ -43,8 +43,6 @@
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
 static constexpr uint8_t I2C_ADDRESS_1_MS5525DSO = 0x76;
 
-static constexpr const char PATH_MS5525[] = "/dev/ms5525";
-
 /* Measurement rate is 100Hz */
 static constexpr unsigned MEAS_RATE = 100;
 static constexpr float MEAS_DRIVER_FILTER_FREQ = 1.2f;
@@ -53,9 +51,8 @@ static constexpr int64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microse
 class MS5525 : public Airspeed, public I2CSPIDriver<MS5525>
 {
 public:
-	MS5525(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_MS5525DSO,
-	       const char *path = PATH_MS5525) :
-		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL, path),
+	MS5525(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_MS5525DSO) :
+		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
 		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 	{
 	}
