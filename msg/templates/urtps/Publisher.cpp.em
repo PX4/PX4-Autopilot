@@ -150,55 +150,6 @@ void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, Match
     }
 }
 
-void @(topic)_Publisher::run()
-{
-    while(m_listener.n_matched == 0)
-    {
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-        eClock::my_sleep(250); // Sleep 250 ms;
-@[else]@
-        std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Sleep 250 ms
-@[end if]@
-    }
-
-    // Publication code
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-    @(package)::msg::dds_::@(topic)_ st;
-@[    else]@
-    @(topic)_ st;
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-    @(package)::msg::@(topic) st;
-@[    else]@
-    @(topic) st;
-@[    end if]@
-@[end if]@
-
-    /* Initialize your structure here */
-
-    int msgsent = 0;
-    char ch = 'y';
-    do
-    {
-        if(ch == 'y')
-        {
-            mp_publisher->write(&st);  ++msgsent;
-            std::cout << "Sending sample, count=" << msgsent << ", send another sample?(y-yes,n-stop): ";
-        }
-        else if(ch == 'n')
-        {
-            std::cout << "Stopping execution " << std::endl;
-            break;
-        }
-        else
-        {
-            std::cout << "Command " << ch << " not recognized, please enter \"y/n\":";
-        }
-    }while(std::cin >> ch);
-}
-
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
 @[    if ros2_distro]@
     void @(topic)_Publisher::publish(@(package)::msg::dds_::@(topic)_* st)
