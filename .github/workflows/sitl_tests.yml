@@ -33,16 +33,8 @@ jobs:
       run: DONT_RUN=1 make px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage gazebo mavsdk_tests
     - name: ccache post-run
       run: ccache -s && ccache -z
-
-      # Run mavsdk tests
-    - name: Run multicopter simulation test
-      run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris --speed-factor 20 --iterations 1 --fail-early
-    - name: Run multicopter with optical flow simulation test
-      run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris_opt_flow_mockup --speed-factor 1 --iterations 1 --fail-early
-    - name: Run multicopter with VIO sensor simulation test
-      run:  test/mavsdk_tests/mavsdk_test_runner.py --model iris_vision --speed-factor 1 --iterations 1 --fail-early
-    - name: Run VTOL simulation test #
-      run:  test/mavsdk_tests/mavsdk_test_runner.py --model standard_vtol --speed-factor 20 --iterations 1 --fail-early
+    - name: Run SITL tests
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
 
     # Report test coverage
     - name: disable the keychain credential helper
