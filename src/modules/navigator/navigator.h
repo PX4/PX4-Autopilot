@@ -50,7 +50,6 @@
 #include "loiter.h"
 #include "mission.h"
 #include "navigator_mode.h"
-#include "rcloss.h"
 #include "rtl.h"
 #include "takeoff.h"
 
@@ -82,7 +81,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 10
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
@@ -381,7 +380,6 @@ private:
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
-	RCLoss 		_rcLoss;				/**< class that handles RTL according to OBC rules (rc loss mode) */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
