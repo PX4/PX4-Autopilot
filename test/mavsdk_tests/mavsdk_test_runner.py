@@ -324,7 +324,7 @@ def run_test(test, group, args):
 
     speed_factor = args.speed_factor
     if "max_speed_factor" in group:
-        speed_factor = max(int(speed_factor), group["max_speed_factor"])
+        speed_factor = min(int(speed_factor), group["max_speed_factor"])
 
     px4_runner = Px4Runner(
         group['model'], os.getcwd(), args.log_dir, speed_factor,
