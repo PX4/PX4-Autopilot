@@ -103,9 +103,9 @@ AnalogBattery::updateParams()
 		param_get(_analog_param_handles.v_div, &_analog_params.v_div);
 		param_get(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
 		param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
-		param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	}
 
+	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 
 	if (_analog_params.v_div <= 0.0f) {
