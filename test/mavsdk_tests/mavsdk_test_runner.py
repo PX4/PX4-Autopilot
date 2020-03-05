@@ -33,11 +33,6 @@ test_matrix = [
        "test_filter": "[vtol]",
        "timeout_min": 20,
     },
-    # {
-    #     "model": "plane",
-    #     "test_filter": "[plane]",
-    #     "timeout_min": 25,
-    # }
 ]
 
 
