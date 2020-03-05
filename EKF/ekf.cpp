@@ -105,9 +105,6 @@ bool Ekf::update()
 
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
-		const imuSample &imu_init = _imu_buffer.get_newest();
-		_accel_lpf.update(imu_init.delta_vel);
-
 		// perform state and covariance prediction for the main filter
 		predictState();
 		predictCovariance();
@@ -130,18 +127,21 @@ bool Ekf::update()
 
 bool Ekf::initialiseFilter()
 {
-	// Keep accumulating measurements until we have a minimum of 10 samples for the required sensors
-
 	// Filter accel for tilt initialization
 	const imuSample &imu_init = _imu_buffer.get_newest();
 
-	if(_is_first_imu_sample){
-		_accel_lpf.reset(imu_init.delta_vel);
-		_is_first_imu_sample = false;
+	// protect against zero data
+	if (imu_init.delta_vel_dt < 1e-4f || imu_init.delta_ang_dt < 1e-4f) {
+		return false;
 	}
-	else
-	{
-		_accel_lpf.update(imu_init.delta_vel);
+
+	if (_is_first_imu_sample) {
+		_accel_lpf.reset(imu_init.delta_vel / imu_init.delta_vel_dt);
+		_gyro_lpf.reset(imu_init.delta_ang / imu_init.delta_ang_dt);
+		_is_first_imu_sample = false;
+	} else {
+		_accel_lpf.update(imu_init.delta_vel / imu_init.delta_vel_dt);
+		_gyro_lpf.update(imu_init.delta_ang / imu_init.delta_ang_dt);
 	}
 
 	// Sum the magnetometer measurements
@@ -222,7 +222,11 @@ bool Ekf::initialiseFilter()
 
 bool Ekf::initialiseTilt()
 {
-	if (_accel_lpf.getState().norm() < 0.001f) {
+	const float accel_norm = _accel_lpf.getState().norm();
+	const float gyro_norm = _gyro_lpf.getState().norm();
+	if (accel_norm < 0.9f * CONSTANTS_ONE_G ||
+	    accel_norm > 1.1f * CONSTANTS_ONE_G ||
+	    gyro_norm > math::radians(15.0f)) {
 		return false;
 	}
 
