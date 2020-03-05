@@ -179,13 +179,6 @@ void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
     }
 }
 
-void @(topic)_Subscriber::run()
-{
-    std::cout << "Waiting for Data, press Enter to stop the Subscriber. "<<std::endl;
-    std::cin.ignore();
-    std::cout << "Shutting down the Subscriber." << std::endl;
-}
-
 bool @(topic)_Subscriber::hasMsg()
 {
     if (m_listener.n_matched > 0) {
