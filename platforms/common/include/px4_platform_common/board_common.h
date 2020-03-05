@@ -664,6 +664,7 @@ __EXPORT int board_set_bootload_mode(board_reset_e mode);
 
 typedef enum {
 	PX4_MFT_PX4IO = 0,
+	PX4_MFT_USB   = 1,
 } px4_hw_mft_item_id_t;
 
 typedef enum {
