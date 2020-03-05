@@ -4,36 +4,12 @@ import argparse
 import atexit
 import datetime
 import errno
+import json
 import os
 import psutil
 import subprocess
 import sys
 import signal
-
-
-test_matrix = [
-    {
-        "model": "iris",
-        "test_filter": "[multicopter]",
-        "timeout_min": 20,
-    },
-    {
-        "model": "iris_opt_flow_mockup",
-        "test_filter": "[multicopter_offboard]",
-        "timeout_min": 20,
-    },
-    {
-        "model": "iris_vision",
-        "test_filter": "[multicopter_offboard]",
-        "timeout_min": 20,
-        "max_speed_factor": 1,
-    },
-    {
-       "model": "standard_vtol",
-       "test_filter": "[vtol]",
-       "timeout_min": 20,
-    },
-]
 
 
 class Runner:
@@ -202,6 +178,7 @@ def main():
                         help="Specify which model to run")
     parser.add_argument("--debugger", default="",
                         help="valgrind callgrind gdb lldb")
+    parser.add_argument("config_file", help="JSON config file to use")
     args = parser.parse_args()
 
     if not is_everything_ready():
@@ -280,6 +257,9 @@ def run(args):
 
 def run_test_group(args):
     overall_success = True
+
+    with open(args.config_file) as json_file:
+        test_matrix = json.load(json_file)
 
     if args.model == 'all':
         models = test_matrix
