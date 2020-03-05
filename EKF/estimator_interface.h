@@ -46,6 +46,7 @@
 #include "RingBuffer.h"
 #include "AlphaFilter.hpp"
 #include "imu_down_sampler.hpp"
+#include "EKFGSF_yaw.h"
 
 #include <geo/geo.h>
 #include <matrix/math.hpp>
@@ -414,6 +415,13 @@ public:
 	static constexpr unsigned FILTER_UPDATE_PERIOD_MS{8};	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
 	static constexpr float FILTER_UPDATE_PERIOD_S{FILTER_UPDATE_PERIOD_MS * 0.001f};
 
+	// request the EKF reset the yaw to the estimate from the internal EKF-GSF filter
+	// argment should be incremented only when a new reset is required
+	virtual void requestEmergencyNavReset(uint8_t counter) = 0;
+
+	// get ekf-gsf debug data
+	virtual bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]) = 0;
+
 protected:
 
 	parameters _params;		// filter parameters
@@ -537,6 +545,9 @@ protected:
 	RingBuffer<outputVert> _output_vert_buffer;
 	RingBuffer<dragSample> _drag_buffer;
 	RingBuffer<auxVelSample> _auxvel_buffer;
+
+	// yaw estimator instance
+	EKFGSF_yaw yawEstimator;
 
 	// observation buffer final allocation failed
 	bool _gps_buffer_fail{false};
