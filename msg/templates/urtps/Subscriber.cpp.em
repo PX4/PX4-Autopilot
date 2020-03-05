@@ -129,14 +129,16 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
 {
     // The first 6 values of the ID guidPrefix of an entity in a DDS-RTPS Domain
     // are the same for all its subcomponents (publishers, subscribers)
-    std::stringstream own_endpoint, remote_endpoint;
+    bool is_different_endpoint = false;
     for (size_t i = 0; i < 6; i++) {
-        own_endpoint << sub->getGuid().guidPrefix.value[i];
-        remote_endpoint << info.remoteEndpointGuid.guidPrefix.value[i];
+        if (sub->getGuid().guidPrefix.value[i] != info.remoteEndpointGuid.guidPrefix.value[i]) {
+            is_different_endpoint = true;
+            break;
+        }
     }
 
     // If the matching happens for the same entity, do not make a match
-    if (own_endpoint.str() != remote_endpoint.str()) {
+    if (is_different_endpoint) {
         if (info.status == MATCHED_MATCHING)
         {
             n_matched++;
