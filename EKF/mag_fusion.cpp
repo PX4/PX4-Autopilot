@@ -624,46 +624,20 @@ void Ekf::fuseHeading()
 
 		}
 
-
-
-		/* Calculate the 312 sequence euler angles that rotate from earth to body frame
-		 * Derived from https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
-		 * Body to nav frame transformation using a yaw-roll-pitch rotation sequence is given by:
-		 *
-		[ cos(pitch)*cos(yaw) - sin(pitch)*sin(roll)*sin(yaw), -cos(roll)*sin(yaw), cos(yaw)*sin(pitch) + cos(pitch)*sin(roll)*sin(yaw)]
-		[ cos(pitch)*sin(yaw) + cos(yaw)*sin(pitch)*sin(roll),  cos(roll)*cos(yaw), sin(pitch)*sin(yaw) - cos(pitch)*cos(yaw)*sin(roll)]
-		[                               -cos(roll)*sin(pitch),           sin(roll),                                cos(pitch)*cos(roll)]
-		*/
-		float yaw = atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1)); // first rotation (yaw)
-		const float roll = asinf(_R_to_earth(2, 1)); // second rotation (roll)
-		const float pitch = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)); // third rotation (pitch)
-
-		predicted_hdg = yaw; // we will need the predicted heading to calculate the innovation
+		// Use a Tait-Bryan 312 rotation sequence
+		Vector3f rotVec312;
+		predicted_hdg = atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1));
+		rotVec312(0) = 0.0f; // first rotation (yaw) set to zero for alter use when rotating the mag field into earth frame
+		rotVec312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
+		rotVec312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)); // third rotation (pitch)
 
 		// calculate the observed yaw angle
 		if (_control_status.flags.mag_hdg) {
-			// Set the first rotation (yaw) to zero and rotate the measurements into earth frame
-			yaw = 0.0f;
 
 			// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
-			// Equations from Tbn_312.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
-			Dcmf R_to_earth;
-			float sy = sinf(yaw);
-			float cy = cosf(yaw);
-			float sp = sinf(pitch);
-			float cp = cosf(pitch);
-			float sr = sinf(roll);
-			float cr = cosf(roll);
-			R_to_earth(0,0) = cy*cp-sy*sp*sr;
-			R_to_earth(0,1) = -sy*cr;
-			R_to_earth(0,2) = cy*sp+sy*cp*sr;
-			R_to_earth(1,0) = sy*cp+cy*sp*sr;
-			R_to_earth(1,1) = cy*cr;
-			R_to_earth(1,2) = sy*sp-cy*cp*sr;
-			R_to_earth(2,0) = -sp*cr;
-			R_to_earth(2,1) = sr;
-			R_to_earth(2,2) = cp*cr;
+			// with yaw angle set to to zero
 
+			const Dcmf R_to_earth = taitBryan312ToRotMat(rotVec312);
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			if (_control_status.flags.mag_3D) {
 				// don't apply bias corrections if we are learning them

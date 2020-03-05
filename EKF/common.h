@@ -354,6 +354,11 @@ struct parameters {
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
 	int32_t check_mag_strength{0};
+
+	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
+	float EKFGSF_tas_default{15.0f};	///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
+	unsigned EKFGSF_reset_delay{1000000};	///< Number of uSec of bad innovations on main filter inpost takeoff phase before yaw is reset to EKF-GSF value
+	float EKFGSF_yaw_err_max{0.2f}; 	///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
 };
 
 struct stateSample {
