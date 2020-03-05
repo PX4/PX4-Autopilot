@@ -171,7 +171,7 @@ def main():
                         help="How fast to run the simulation")
     parser.add_argument("--iterations", type=int, default=1,
                         help="How often to run all tests")
-    parser.add_argument("--fail-early", action='store_true',
+    parser.add_argument("--abort-early", action='store_true',
                         help="Abort on first unsuccessful test")
     parser.add_argument("--gui", default=False, action='store_true',
                         help="Display gzclient with simulation")
@@ -259,7 +259,7 @@ def run(args, config):
         if not was_success:
             overall_success = False
 
-        if args.iterations > 1 and not was_success and args.fail_early:
+        if args.iterations > 1 and not was_success and args.abort_early:
             print("Aborting with a failure in test run {}/{}".
                   format(iteration + 1, args.iterations))
             break
