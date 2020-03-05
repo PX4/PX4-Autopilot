@@ -139,8 +139,7 @@ void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, Match
 
     // If the matching happens for the same entity, do not make a match
     if (is_different_endpoint) {
-        if (info.status == MATCHED_MATCHING)
-        {
+        if (info.status == MATCHED_MATCHING) {
             n_matched++;
             std::cout << " - @(topic) publisher matched" << std::endl;
         } else {

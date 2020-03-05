@@ -82,7 +82,7 @@ bool RtpsTopics::init(std::condition_variable* t_send_queue_cv, std::mutex* t_se
 @[for topic in send_topics]@
     if (_@(topic)_pub.init()) {
         std::cout << "- @(topic) publisher started" << std::endl;
-@[    if topic == 'Timesync']@
+@[    if topic == 'Timesync' or topic == 'timesync']@
         _timesync->start(&_@(topic)_pub);
 @[    end if]@
     } else {
@@ -119,7 +119,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
             eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
             st.deserialize(cdr_des);
-@[    if topic == 'Timesync']@
+@[    if topic == 'Timesync' or topic == 'timesync']@
             _timesync->processTimesyncMsg(&st);
 @[    end if]@
             // apply timestamp offset
