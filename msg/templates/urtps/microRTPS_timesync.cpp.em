@@ -91,15 +91,15 @@ void TimeSync::start(const timesync_Publisher* pub) {
 		while (!_request_stop) {
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
 @[    if ros2_distro]@
-            @(package)::msg::dds_::Timesync_ msg = newTimesyncMsg();
+			@(package)::msg::dds_::Timesync_ msg = newTimesyncMsg();
 @[    else]@
-            timesync_ msg = newTimesyncMsg();
+			timesync_ msg = newTimesyncMsg();
 @[    end if]@
 @[else]@
 @[    if ros2_distro]@
-            @(package)::msg::Timesync msg = newTimesyncMsg();
+			@(package)::msg::Timesync msg = newTimesyncMsg();
 @[    else]@
-            timesync msg = newTimesyncMsg();
+			timesync msg = newTimesyncMsg();
 @[    end if]@
 @[end if]@
 
@@ -206,15 +206,15 @@ void TimeSync::processTimesyncMsg(const timesync* msg) {
 	if (msg->tc1() == 0) {
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
 @[    if ros2_distro]@
-    	@(package)::msg::dds_::Timesync_ reply = (*msg);
+		@(package)::msg::dds_::Timesync_ reply = (*msg);
 @[    else]@
-    	timesync_ reply = (*msg);
+		timesync_ reply = (*msg);
 @[    end if]@
 @[else]@
 @[    if ros2_distro]@
-        @(package)::msg::Timesync reply = (*msg);
+		@(package)::msg::Timesync reply = (*msg);
 @[    else]@
-        timesync reply = (*msg);
+		timesync reply = (*msg);
 @[    end if]@
 @[end if]@
 		reply.timestamp() = getSystemTime();
@@ -232,18 +232,18 @@ void TimeSync::processTimesyncMsg(const timesync* msg) {
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
 @[    if ros2_distro]@
 @(package)::msg::dds_::Timesync_ TimeSync::newTimesyncMsg() {
-    @(package)::msg::dds_::Timesync_ msg{};
+	@(package)::msg::dds_::Timesync_ msg{};
 @[    else]@
 timesync_ TimeSync::newTimesyncMsg() {
-    timesync_ msg{};
+	timesync_ msg{};
 @[    end if]@
 @[else]@
 @[    if ros2_distro]@
 @(package)::msg::Timesync TimeSync::newTimesyncMsg() {
-    @(package)::msg::Timesync msg{};
+	@(package)::msg::Timesync msg{};
 @[    else]@
 timesync TimeSync::newTimesyncMsg() {
-    timesync msg{};
+	timesync msg{};
 @[    end if]@
 @[end if]@
 	msg.timestamp() = getSystemTime();
