@@ -127,6 +127,9 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
 
 void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, MatchingInfo& info)
 {
+@# Since the time sync runs on the bridge itself, it is required that there is a
+@# match between two topics of the same entity
+@[if topic != 'Timesync' and topic != 'timesync']@
     // The first 6 values of the ID guidPrefix of an entity in a DDS-RTPS Domain
     // are the same for all its subcomponents (publishers, subscribers)
     bool is_different_endpoint = false;
@@ -139,8 +142,7 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
 
     // If the matching happens for the same entity, do not make a match
     if (is_different_endpoint) {
-        if (info.status == MATCHED_MATCHING)
-        {
+        if (info.status == MATCHED_MATCHING) {
             n_matched++;
             std::cout << " - @(topic) subscriber matched" << std::endl;
         } else {
@@ -148,6 +150,15 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
             std::cout << " - @(topic) subscriber unmatched" << std::endl;
         }
     }
+@[else]@
+    (void)sub;
+
+    if (info.status == MATCHED_MATCHING) {
+        n_matched++;
+    } else {
+        n_matched--;
+    }
+@[end if]@
 }
 
 void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
