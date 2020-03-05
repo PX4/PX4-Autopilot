@@ -83,7 +83,7 @@ int PCA9685::setFreq(float freq)
 		return -EINVAL;
 	}
 
-	uint16_t divider = (uint16_t)round((double)PCA9685_CLOCK_FREQ / freq / PCA9685_PWM_RES) - 1;
+	uint16_t divider = (uint16_t)round((float)PCA9685_CLOCK_FREQ / freq / PCA9685_PWM_RES) - 1;
 
 	if (divider > 0x00FF) { // out of divider
 		PX4_DEBUG("frequency too low");
