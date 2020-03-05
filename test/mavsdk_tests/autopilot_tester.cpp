@@ -89,7 +89,7 @@ void AutopilotTester::wait_until_disarmed()
 void AutopilotTester::wait_until_hovering()
 {
     REQUIRE(poll_condition_with_timeout(
-        [this]() { return _telemetry->landed_state() == Telemetry::LandedState::IN_AIR; }, std::chrono::seconds(10)));
+        [this]() { return _telemetry->landed_state() == Telemetry::LandedState::IN_AIR; }, std::chrono::seconds(20)));
 }
 
 void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
