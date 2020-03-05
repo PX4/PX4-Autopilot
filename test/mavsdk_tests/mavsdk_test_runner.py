@@ -152,12 +152,13 @@ class GzclientRunner(Runner):
 
 
 class TestRunner(Runner):
-    def __init__(self, workspace_dir, log_dir, config, test):
+    def __init__(self, workspace_dir, log_dir, config, test,
+                 mavlink_connection):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
-        self.args = [test]
+        self.args = ["--url", mavlink_connection, test]
         self.log_prefix = "test_runner"
 
 
@@ -181,10 +182,18 @@ def main():
     parser.add_argument("config_file", help="JSON config file to use")
     args = parser.parse_args()
 
-    if not is_everything_ready():
+    with open(args.config_file) as json_file:
+        config = json.load(json_file)
+
+    if config["mode"] != "sitl" and args.gui:
+        print("--gui is not compatible with the mode '{}'"
+              .format(config["mode"]))
         sys.exit(1)
 
-    run(args)
+    if not is_everything_ready(config):
+        sys.exit(1)
+
+    run(args, config)
 
 
 def determine_tests(workspace_dir, filter):
@@ -206,41 +215,46 @@ def is_running(process_name):
     return False
 
 
-def is_everything_ready():
+def is_everything_ready(config):
     result = True
-    if is_running('px4'):
-        print("px4 process already running\n"
-              "run `killall px4` and try again")
-        result = False
-    if is_running('gzserver'):
-        print("gzserver process already running\n"
-              "run `killall gzserver` and try again")
-        result = False
-    if is_running('gzclient'):
-        print("gzclient process already running\n"
-              "run `killall gzclient` and try again")
-        result = False
-    if not os.path.isfile('build/px4_sitl_default/bin/px4'):
-        print("PX4 SITL is not built\n"
-              "run `DONT_RUN=1 "
-              "make px4_sitl gazebo mavsdk_tests`")
-        result = False
+
+    if config['mode'] == 'sitl':
+        if is_running('px4'):
+            print("px4 process already running\n"
+                  "run `killall px4` and try again")
+            result = False
+        if not os.path.isfile('build/px4_sitl_default/bin/px4'):
+            print("PX4 SITL is not built\n"
+                  "run `DONT_RUN=1 "
+                  "make px4_sitl gazebo mavsdk_tests`")
+            result = False
+        if config['simulator'] == 'gazebo':
+            if is_running('gzserver'):
+                print("gzserver process already running\n"
+                      "run `killall gzserver` and try again")
+                result = False
+            if is_running('gzclient'):
+                print("gzclient process already running\n"
+                      "run `killall gzclient` and try again")
+                result = False
+
     if not os.path.isfile('build/px4_sitl_default/mavsdk_tests/mavsdk_tests'):
         print("Test runner is not built\n"
               "run `DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests`")
         result = False
+
     return result
 
 
-def run(args):
+def run(args, config):
     overall_success = True
 
     for iteration in range(args.iterations):
         if args.iterations > 1:
             print("Test iteration: {}".format(iteration + 1, args.iterations))
 
-        was_success = run_test_group(args)
+        was_success = run_test_group(args, config)
 
         if not was_success:
             overall_success = False
@@ -255,11 +269,10 @@ def run(args):
     sys.exit(0 if overall_success else 1)
 
 
-def run_test_group(args):
+def run_test_group(args, config):
     overall_success = True
 
-    with open(args.config_file) as json_file:
-        test_matrix = json.load(json_file)
+    test_matrix = config["tests"]
 
     if args.model == 'all':
         models = test_matrix
@@ -281,55 +294,60 @@ def run_test_group(args):
 
         for test in tests:
             print("Running test '{}'".format(test))
-            was_success = run_test(test, group, args)
+            was_success = run_test(test, group, args, config)
             print("Test '{}': {}".
                   format(test, "Success" if was_success else "Fail"))
 
             if not was_success:
                 overall_success = False
 
-            if not was_success and args.fail_early:
+            if not was_success and args.abort_early:
                 print("Aborting early")
                 return False
 
     return overall_success
 
 
-def run_test(test, group, args):
+def run_test(test, group, args, config):
 
     speed_factor = args.speed_factor
     if "max_speed_factor" in group:
         speed_factor = min(int(speed_factor), group["max_speed_factor"])
 
-    px4_runner = Px4Runner(
-        group['model'], os.getcwd(), args.log_dir, speed_factor,
-        args.debugger)
-    px4_runner.start(group)
+    if config['mode'] == 'sitl':
+        px4_runner = Px4Runner(
+            group['model'], os.getcwd(), args.log_dir, speed_factor,
+            args.debugger)
+        px4_runner.start(group)
 
-    gzserver_runner = GzserverRunner(
-        group['model'], os.getcwd(), args.log_dir, speed_factor)
-    gzserver_runner.start(group)
+        if config['simulator'] == 'gazebo':
+            gzserver_runner = GzserverRunner(
+                group['model'], os.getcwd(), args.log_dir, speed_factor)
+            gzserver_runner.start(group)
 
-    if args.gui:
-        gzclient_runner = GzclientRunner(
-            os.getcwd(), args.log_dir)
-        gzclient_runner.start(group)
+            if args.gui:
+                gzclient_runner = GzclientRunner(
+                    os.getcwd(), args.log_dir)
+                gzclient_runner.start(group)
 
-    test_runner = TestRunner(os.getcwd(), args.log_dir, group, test)
+    test_runner = TestRunner(os.getcwd(), args.log_dir, group, test,
+                             config['mavlink_connection'])
     test_runner.start(group)
 
     returncode = test_runner.wait(group['timeout_min'])
     is_success = (returncode == 0)
 
-    if args.gui:
-        returncode = gzclient_runner.stop()
-        print("gzclient exited with {}".format(returncode))
+    if config['mode'] == 'sitl':
+        if config['simulator'] == 'gazebo':
+            if args.gui:
+                returncode = gzclient_runner.stop()
+                print("gzclient exited with {}".format(returncode))
 
-    returncode = gzserver_runner.stop()
-    print("gzserver exited with {}".format(returncode))
+            returncode = gzserver_runner.stop()
+            print("gzserver exited with {}".format(returncode))
 
-    px4_runner.stop()
-    print("px4 exited with {}".format(returncode))
+        px4_runner.stop()
+        print("px4 exited with {}".format(returncode))
 
     return is_success
 
