@@ -105,6 +105,13 @@ void* send(void* /*unused*/)
 @[for idx, topic in enumerate(send_topics)]@
         @(send_base_types[idx])_s @(topic)_data;
         if (@(topic)_sub.update(&@(topic)_data)) {
+@[if topic == 'Timesync' or topic == 'timesync']@
+                if (@(topic)_data.tc1 == 0) {
+                        @(topic)_data.seq++;
+                        @(topic)_data.tc1 = hrt_absolute_time() * 1000ULL;
+                        @(topic)_data.ts1 = @(topic)_data.ts1;
+                }
+@[end if]@
                 // copy raw data into local buffer. Payload is shifted by header length to make room for header
                 serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
                 if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length)))
