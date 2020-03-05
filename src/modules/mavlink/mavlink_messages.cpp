@@ -250,12 +250,6 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
-		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
-		break;
-
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
@@ -2182,7 +2176,6 @@ protected:
 
 		bool vehicle_in_auto_mode = _vehicle_status_time > 0
 					    && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET
-						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND

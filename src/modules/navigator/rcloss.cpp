@@ -51,7 +51,6 @@
 #include <uORB/topics/home_position.h>
 
 #include "navigator.h"
-#include "datalinkloss.h"
 
 RCLoss::RCLoss(Navigator *navigator) :
 	MissionBlock(navigator),

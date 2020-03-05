@@ -807,7 +807,6 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
  * @value 1 Hold mode
  * @value 2 Return mode
  * @value 3 Land mode
- * @value 4 Data Link Auto Recovery (CASA Outback Challenge rules)
  * @value 5 Terminate
  * @value 6 Lockdown
  *
