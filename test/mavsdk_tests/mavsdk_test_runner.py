@@ -23,12 +23,6 @@ test_matrix = [
         "timeout_min": 20,
     },
     {
-        "model": "iris_opt_flow",
-        "test_filter": "[multicopter_offboard]",
-        "timeout_min": 20,
-        "max_speed_factor": 1,
-    },
-    {
         "model": "iris_vision",
         "test_filter": "[multicopter_offboard]",
         "timeout_min": 20,
