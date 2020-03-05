@@ -100,8 +100,7 @@ px4_add_board(
 		work_queue
 		serial_test
 	EXAMPLES
-#		bottle_drop # OBC challenge
-#		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+##		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 #		hello
 #		hwtest # Hardware test
 		#matlab_csv_serial
