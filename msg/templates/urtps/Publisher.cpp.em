@@ -127,17 +127,24 @@ bool @(topic)_Publisher::init()
 
 void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, MatchingInfo& info)
 {
-    (void)pub;
-
-    if (info.status == MATCHED_MATCHING)
-    {
-        n_matched++;
-        std::cout << " - @(topic) publisher matched" << std::endl;
+    // The first 6 values of the ID guidPrefix of an entity in a DDS-RTPS Domain
+    // are the same for all its subcomponents (publishers, subscribers)
+    std::stringstream own_endpoint, remote_endpoint;
+    for (size_t i = 0; i < 6; i++) {
+        own_endpoint << pub->getGuid().guidPrefix.value[i];
+        remote_endpoint << info.remoteEndpointGuid.guidPrefix.value[i];
     }
-    else
-    {
-        n_matched--;
-        std::cout << " - @(topic) publisher unmatched" << std::endl;
+
+    // If the matching happens for the same entity, do not make a match
+    if (own_endpoint.str() != remote_endpoint.str()) {
+        if (info.status == MATCHED_MATCHING)
+        {
+            n_matched++;
+            std::cout << " - @(topic) publisher matched" << std::endl;
+        } else {
+            n_matched--;
+            std::cout << " - @(topic) publisher unmatched" << std::endl;
+        }
     }
 }
 
