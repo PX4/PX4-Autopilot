@@ -90,8 +90,10 @@ public:
 
 	px4_msgs::msg::Timesync newTimesyncMsg();
 
+	inline void applyOffset(uint64_t &timestamp) { timestamp += _offset_ns.load(); }
+
 private:
-	int64_t _offset_ns;
+	std::atomic<int64_t> _offset_ns;
 	int64_t _skew_ns_per_sync;
 	int64_t _num_samples;
 
