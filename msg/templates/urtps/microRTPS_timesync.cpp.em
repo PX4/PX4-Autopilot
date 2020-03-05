@@ -1,3 +1,28 @@
+@###############################################
+@#
+@# EmPy template for generating microRTPS_timesync.cpp file
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@#  - ids (List) list of all RTPS msg ids
+@###############################################
+@{
+import genmsg.msgs
+
+from px_generate_uorb_topic_helper import * # this is in Tools/
+from px_generate_uorb_topic_files import MsgScope # this is in Tools/
+
+package = package[0]
+fastrtpsgen_version = fastrtpsgen_version[0]
+try:
+    ros2_distro = ros2_distro[0].decode("utf-8")
+except AttributeError:
+    ros2_distro = ros2_distro[0]
+}@
 /****************************************************************************
  *
  * Copyright (c) 2020 PX4 Development Team. All rights reserved.
@@ -31,8 +56,8 @@
  ****************************************************************************/
 
 /*!
- * @file microRTPS_timesync.cpp
- * @brief source code for time sync implementation
+ * @@file microRTPS_timesync.cpp
+ * @@brief source code for time sync implementation
  */
 
 #include <time.h>
@@ -40,9 +65,6 @@
 #include <iostream>
 
 #include "microRTPS_timesync.h"
-
-#include "Timesync_Publisher.h"
-#include "Timesync_Subscriber.h"
 
 TimeSync::TimeSync()
     : _offset_ns(-1),
@@ -56,16 +78,32 @@ TimeSync::~TimeSync() { stop(); }
 
 void TimeSync::setNewOffsetCB(std::function<void(int64_t)> callback) { _notifyNewOffset = callback; }
 
+@[if ros2_distro]@
 void TimeSync::start(const Timesync_Publisher* pub) {
+@[else]@
+void TimeSync::start(const timesync_Publisher* pub) {
+@[end if]@
 	stop();
 
-	_Timesync_pub = (*pub);
+	_timesync_pub = (*pub);
 
 	auto run = [this]() {
 		while (!_request_stop) {
-			px4_msgs::msg::Timesync msg = newTimesyncMsg();
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+            @(package)::msg::dds_::Timesync_ msg = newTimesyncMsg();
+@[    else]@
+            timesync_ msg = newTimesyncMsg();
+@[    end if]@
+@[else]@
+@[    if ros2_distro]@
+            @(package)::msg::Timesync msg = newTimesyncMsg();
+@[    else]@
+            timesync msg = newTimesyncMsg();
+@[    end if]@
+@[end if]@
 
-			_Timesync_pub.publish(&msg);
+			_timesync_pub.publish(&msg);
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
@@ -147,19 +185,43 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 	return true;
 }
 
-void TimeSync::processTimesyncMsg(const px4_msgs::msg::Timesync* msg) {
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+void TimeSync::processTimesyncMsg(const @(package)::msg::dds_::Timesync_* msg) {
+@[    else]@
+void TimeSync::processTimesyncMsg(const timesync_* msg) {
+@[    end if]@
+@[else]@
+@[    if ros2_distro]@
+void TimeSync::processTimesyncMsg(const @(package)::msg::Timesync* msg) {
+@[    else]@
+void TimeSync::processTimesyncMsg(const timesync* msg) {
+@[    end if]@
+@[end if]@
 	if (msg->seq() == _last_msg_seq) return;
 	_last_msg_seq = msg->seq();
 
 	int64_t now_time = getSystemMonoNanos();
 
 	if (msg->tc1() == 0) {
-		px4_msgs::msg::Timesync reply = (*msg);
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+    	@(package)::msg::dds_::Timesync_ reply = (*msg);
+@[    else]@
+    	timesync_ reply = (*msg);
+@[    end if]@
+@[else]@
+@[    if ros2_distro]@
+        @(package)::msg::Timesync reply = (*msg);
+@[    else]@
+        timesync reply = (*msg);
+@[    end if]@
+@[end if]@
 		reply.timestamp() = getSystemTime();
 		reply.seq() = _last_msg_seq;
 		reply.tc1() = now_time;
 
-		_Timesync_pub.publish(&reply);
+		_timesync_pub.publish(&reply);
 
 	} else if (msg->tc1() > 0) {
 		bool added = addMeasurement(msg->ts1(), msg->tc1(), now_time);
@@ -167,8 +229,23 @@ void TimeSync::processTimesyncMsg(const px4_msgs::msg::Timesync* msg) {
 	}
 }
 
-px4_msgs::msg::Timesync TimeSync::newTimesyncMsg() {
-	px4_msgs::msg::Timesync msg{};
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+@(package)::msg::dds_::Timesync_ TimeSync::newTimesyncMsg() {
+    @(package)::msg::dds_::Timesync_ msg{};
+@[    else]@
+timesync_ TimeSync::newTimesyncMsg() {
+    timesync_ msg{};
+@[    end if]@
+@[else]@
+@[    if ros2_distro]@
+@(package)::msg::Timesync TimeSync::newTimesyncMsg() {
+    @(package)::msg::Timesync msg{};
+@[    else]@
+timesync TimeSync::newTimesyncMsg() {
+    timesync msg{};
+@[    end if]@
+@[end if]@
 	msg.timestamp() = getSystemTime();
 	msg.seq() = _last_msg_seq;
 	msg.tc1() = 0;

@@ -1,3 +1,28 @@
+@###############################################
+@#
+@# EmPy template for generating microRTPS_timesync.h file
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@#  - ids (List) list of all RTPS msg ids
+@###############################################
+@{
+import genmsg.msgs
+
+from px_generate_uorb_topic_helper import * # this is in Tools/
+from px_generate_uorb_topic_files import MsgScope # this is in Tools/
+
+package = package[0]
+fastrtpsgen_version = fastrtpsgen_version[0]
+try:
+    ros2_distro = ros2_distro[0].decode("utf-8")
+except AttributeError:
+    ros2_distro = ros2_distro[0]
+}@
 /****************************************************************************
  *
  * Copyright (c) 2020 PX4 Development Team. All rights reserved.
@@ -31,10 +56,10 @@
  ****************************************************************************/
 
 /*!
- * @file microRTPS_timesync.h
- * @brief Adds time sync for the microRTPS bridge
- * @author Nuno Marques <nuno.marques@dronesolutions.io>
- * @author Julian Kent <julian@auterion.com>
+ * @@file microRTPS_timesync.h
+ * @@brief Adds time sync for the microRTPS bridge
+ * @@author Nuno Marques <nuno.marques@@dronesolutions.io>
+ * @@author Julian Kent <julian@@auterion.com>
  */
 
 #pragma once
@@ -43,8 +68,13 @@
 #include <functional>
 #include <thread>
 
+@[if ros2_distro]@
 #include "Timesync_Publisher.h"
 #include "Timesync_Subscriber.h"
+@[else]@
+#include "timesync_Publisher.h"
+#include "timesync_Subscriber.h"
+@[end if]@
 
 static constexpr double ALPHA_INITIAL = 0.05;
 static constexpr double ALPHA_FINAL = 0.003;
@@ -60,7 +90,12 @@ public:
 	TimeSync();
 	virtual ~TimeSync();
 
+@[if ros2_distro]@
 	void start(const Timesync_Publisher* pub);
+@[else]@
+	void start(const timesync_Publisher* pub);
+@[end if]@
+
 	void reset();
 	void stop();
 
@@ -86,9 +121,27 @@ public:
 
 	bool addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t local_t3_ns);
 
-	void processTimesyncMsg(const px4_msgs::msg::Timesync* msg);
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+	void processTimesyncMsg(const @(package)::msg::dds_::Timesync_* msg);
 
-	px4_msgs::msg::Timesync newTimesyncMsg();
+	@(package)::msg::dds_::Timesync_ newTimesyncMsg();
+@[    else]@
+	void processTimesyncMsg(const timesync_* msg);
+
+	timesync_ newTimesyncMsg();
+@[    end if]@
+@[else]@
+@[    if ros2_distro]@
+	void processTimesyncMsg(const @(package)::msg::Timesync* msg);
+
+	@(package)::msg::Timesync newTimesyncMsg();
+@[    else]@
+	void processTimesyncMsg(const timesync* msg);
+
+	timesync newTimesyncMsg();
+@[    end if]@
+@[end if]@
 
 	inline void applyOffset(uint64_t &timestamp) { timestamp += _offset_ns.load(); }
 
@@ -100,8 +153,13 @@ private:
 	int32_t _request_reset_counter;
 	uint8_t _last_msg_seq;
 
-	Timesync_Publisher _Timesync_pub;
-	Timesync_Subscriber _Timesync_sub;
+@[if ros2_distro]@
+	Timesync_Publisher _timesync_pub;
+	Timesync_Subscriber _timesync_sub;
+@[else]@
+	timesync_Publisher _timesync_pub;
+	timesync_Subscriber _timesync_sub;
+@[end if]@
 
 	std::unique_ptr<std::thread> _send_timesync_thread;
 	std::atomic<bool> _request_stop{false};
