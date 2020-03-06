@@ -53,7 +53,6 @@ public:
 
 private:
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-	void updateAccelerationEstimate();
 
 	float _transition_altitude = 0.0f;
 	float _transition_yaw = 0.0f;
