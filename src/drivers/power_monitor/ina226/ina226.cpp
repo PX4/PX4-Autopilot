@@ -37,29 +37,14 @@
  *
  * Driver for the I2C attached INA226
  */
-#define INA226_RAW // remove this
 
 #include "ina226.h"
 
-#include <string.h>
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
-#include <drivers/device/i2c.h>
-#include <lib/parameters/param.h>
-#include <lib/perf/perf_counter.h>
-#include <drivers/drv_hrt.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/power_monitor.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
-
-INA226::INA226(int battery_index, int bus, int address) :
-	I2C("INA226", nullptr, i2c_bus_options[bus], address, 100000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+INA226::INA226(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address, int battery_index) :
+	I2C("INA226", nullptr, bus, address, bus_frequency),
 	ModuleParams(nullptr),
-	index(bus),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
 	_collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
@@ -112,9 +97,6 @@ INA226::INA226(int battery_index, int bus, int address) :
 
 INA226::~INA226()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -172,8 +154,6 @@ INA226::init()
 	} else {
 		ret = OK;
 	}
-
-	set_device_address(INA226_BASEADDR);	/* set I2c Address */
 
 	start();
 	_sensor_ok = true;
@@ -329,13 +309,7 @@ INA226::start()
 }
 
 void
-INA226::stop()
-{
-	ScheduleClear();
-}
-
-void
-INA226::Run()
+INA226::RunImpl()
 {
 	if (_initialized) {
 		if (_collect_phase) {
@@ -391,8 +365,10 @@ INA226::Run()
 }
 
 void
-INA226::print_info()
+INA226::print_status()
 {
+	I2CSPIDriverBase::print_status();
+
 	if (_initialized) {
 		perf_print_counter(_sample_perf);
 		perf_print_counter(_comms_errors);
@@ -401,6 +377,6 @@ INA226::print_info()
 
 	} else {
 		PX4_INFO("Device not initialized. Retrying every %d ms until battery is plugged in.",
-			 INA226_INIT_RETRY_INTERVAL_US);
+			 INA226_INIT_RETRY_INTERVAL_US / 1000);
 	}
 }

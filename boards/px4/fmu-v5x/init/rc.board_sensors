@@ -6,8 +6,8 @@
 adc start
 
 # Start Digital power monitors
-ina226 -b 0 -t 1 -f start
-ina226 -b 1 -t 2 -f start
+ina226 -X -b 1 -t 1 -k start
+ina226 -X -b 2 -t 2 -k start
 
 # Internal SPI bus ICM-20602
 mpu6000 -R 8 -s -T 20602 start
