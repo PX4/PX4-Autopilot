@@ -50,6 +50,17 @@ WorkItem::WorkItem(const char *name, const wq_config_t &config) :
 	}
 }
 
+WorkItem::WorkItem(const char *name, const WorkItem &work_item) :
+	_item_name(name)
+{
+	px4::WorkQueue *wq = work_item._wq;
+
+	if ((wq != nullptr) && wq->Attach(this)) {
+		_wq = wq;
+		_start_time = hrt_absolute_time();
+	}
+}
+
 WorkItem::~WorkItem()
 {
 	Deinit();
