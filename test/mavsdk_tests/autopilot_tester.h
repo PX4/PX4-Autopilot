@@ -40,7 +40,7 @@ public:
     void prepare_square_mission(MissionOptions mission_options);
     void execute_mission();
     void execute_rtl();
-    void offboard_goto(const Offboard::PositionNEDYaw& target, float acceptance_radius = 0.3f,
+    void offboard_goto(const Offboard::PositionNEDYaw& target, float acceptance_radius_m = 0.3f,
                        std::chrono::seconds timeout_duration = std::chrono::seconds(60));
     void offboard_land();
     void request_ground_truth();
