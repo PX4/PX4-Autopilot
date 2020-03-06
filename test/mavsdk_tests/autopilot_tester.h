@@ -27,6 +27,8 @@ public:
     void connect(const std::string uri);
     void wait_until_ready();
     void wait_until_ready_local_position_only();
+    void store_home();
+    void check_home_within(float acceptance_radius_m);
     void set_takeoff_altitude(const float altitude_m);
     void arm();
     void takeoff();
@@ -41,25 +43,28 @@ public:
     void offboard_goto(const Offboard::PositionNEDYaw& target, float acceptance_radius = 0.3f,
                        std::chrono::seconds timeout_duration = std::chrono::seconds(60));
     void offboard_land();
-    bool estimated_position_close_to(const Offboard::PositionNEDYaw& target_position, float acceptance_radius_m);
-    bool estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius_m);
     void request_ground_truth();
-    Telemetry::GroundTruth get_ground_truth_position();
-    bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius_m);
 
 
 private:
-    mavsdk::geometry::CoordinateTransformation _get_coordinate_transformation();
-    std::shared_ptr<mavsdk::MissionItem> _create_mission_item(
+    mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
+    std::shared_ptr<mavsdk::MissionItem> create_mission_item(
         const mavsdk::geometry::CoordinateTransformation::LocalCoordinate& local_coordinate,
         const MissionOptions& mission_options,
         const mavsdk::geometry::CoordinateTransformation& ct);
+    Telemetry::GroundTruth get_ground_truth_position();
+
+    bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius_m);
+    bool estimated_position_close_to(const Offboard::PositionNEDYaw& target_position, float acceptance_radius_m);
+    bool estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw& target_pos, float acceptance_radius_m);
 
     mavsdk::Mavsdk _mavsdk{};
     std::unique_ptr<mavsdk::Telemetry> _telemetry{};
     std::unique_ptr<mavsdk::Action> _action{};
     std::unique_ptr<mavsdk::Mission> _mission{};
     std::unique_ptr<mavsdk::Offboard> _offboard{};
+
+    Telemetry::GroundTruth _home{NAN, NAN, NAN};
 };
 
 template<typename Rep, typename Period>
