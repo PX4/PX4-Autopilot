@@ -14,7 +14,6 @@ if(MAVSDK_FOUND)
         autopilot_tester.cpp
         test_multicopter_offboard.cpp
         test_mission_multicopter.cpp
-        test_mission_plane.cpp
         test_mission_vtol.cpp
     )
 
