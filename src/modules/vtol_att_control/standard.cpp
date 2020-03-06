@@ -280,9 +280,9 @@ void Standard::update_transition_state()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 
-		// maintain FW_PSP_OFF
-		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset;
 		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+		_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
+
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
