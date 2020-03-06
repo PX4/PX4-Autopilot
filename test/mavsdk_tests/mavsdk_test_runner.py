@@ -13,27 +13,31 @@ import signal
 
 
 class Runner:
-    def __init__(self, log_dir):
+    def __init__(self, log_dir, verbose):
         self.cmd = ""
         self.cwd = None
         self.args = []
         self.env = {}
         self.log_prefix = ""
         self.log_dir = log_dir
+        self.verbose = verbose
 
     def start(self, config):
+        if self.verbose:
+            print("Running: {}".format(" ".join([self.cmd] + self.args)))
+
+        atexit.register(self.stop)
+
         if self.log_dir:
-            f = open(self.log_dir + os.path.sep +
-                     "log-{}-{}-{}-{}.log".format(
-                         self.log_prefix,
-                         config['model'],
-                         config['test_filter'],
-                         datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
-                        ), 'w')
+            f = open(
+                self.log_dir + os.path.sep + "log-{}-{}-{}-{}.log".format(
+                    self.log_prefix, config['model'], config['test_filter'],
+                    datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")),
+                'w')
         else:
             f = None
 
-        print("Running: {}".format(" ".join([self.cmd] + self.args)))
+        # TODO: pipe stdout through when set to verbose
 
         self.process = subprocess.Popen(
             [self.cmd] + self.args,
@@ -42,8 +46,6 @@ class Runner:
             stdout=f,
             stderr=f
         )
-
-        atexit.register(self.stop)
 
     def wait(self, timeout_min):
         try:
@@ -62,14 +64,16 @@ class Runner:
         if returncode is not None:
             return returncode
 
-        print("Sending SIGINT to {}".format(self.process.pid))
+        if self.verbose:
+            print("Sending SIGINT to {}".format(self.process.pid))
         self.process.send_signal(signal.SIGINT)
         try:
             return self.process.wait(timeout=1)
         except subprocess.TimeoutExpired:
             pass
 
-        print("Terminating {}".format(self.process.pid))
+        if self.verbose:
+            print("Terminating {}".format(self.process.pid))
         self.process.terminate()
 
         try:
@@ -77,14 +81,20 @@ class Runner:
         except subprocess.TimeoutExpired:
             pass
 
-        print("Killing {}".format(self.process.pid))
+        if self.verbose:
+            print("Killing {}".format(self.process.pid))
         self.process.kill()
+
+        if self.verbose:
+            print("{} exited with {}".format(
+                self.command, self.process.returncode))
         return self.process.returncode
 
 
 class Px4Runner(Runner):
-    def __init__(self, model, workspace_dir, log_dir, speed_factor, debugger):
-        super().__init__(log_dir)
+    def __init__(self, model, workspace_dir, log_dir, speed_factor, debugger,
+                 verbose):
+        super().__init__(log_dir, verbose)
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
         self.args = [
@@ -119,8 +129,8 @@ class Px4Runner(Runner):
 
 
 class GzserverRunner(Runner):
-    def __init__(self, model, workspace_dir, log_dir, speed_factor):
-        super().__init__(log_dir)
+    def __init__(self, model, workspace_dir, log_dir, speed_factor, verbose):
+        super().__init__(log_dir, verbose)
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
                     "GAZEBO_PLUGIN_PATH":
@@ -137,8 +147,8 @@ class GzserverRunner(Runner):
 
 
 class GzclientRunner(Runner):
-    def __init__(self, workspace_dir, log_dir):
-        super().__init__(log_dir)
+    def __init__(self, workspace_dir, log_dir, verbose):
+        super().__init__(log_dir, verbose)
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
                     # "GAZEBO_PLUGIN_PATH":
@@ -153,8 +163,8 @@ class GzclientRunner(Runner):
 
 class TestRunner(Runner):
     def __init__(self, workspace_dir, log_dir, config, test,
-                 mavlink_connection):
-        super().__init__(log_dir)
+                 mavlink_connection, verbose):
+        super().__init__(log_dir, verbose)
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
@@ -179,6 +189,8 @@ def main():
                         help="Specify which model to run")
     parser.add_argument("--debugger", default="",
                         help="valgrind callgrind gdb lldb")
+    parser.add_argument("--verbose", default=False, action='store_true',
+                        help="Enable more verbose output")
     parser.add_argument("config_file", help="JSON config file to use")
     args = parser.parse_args()
 
@@ -193,6 +205,8 @@ def main():
     if not is_everything_ready(config):
         sys.exit(1)
 
+    if args.verbose:
+        print("Creating directory: {}".format(args.log_dir))
     os.makedirs(args.log_dir, exist_ok=True)
 
     run(args, config)
@@ -319,21 +333,22 @@ def run_test(test, group, args, config):
     if config['mode'] == 'sitl':
         px4_runner = Px4Runner(
             group['model'], os.getcwd(), args.log_dir, speed_factor,
-            args.debugger)
+            args.debugger, args.verbose)
         px4_runner.start(group)
 
         if config['simulator'] == 'gazebo':
             gzserver_runner = GzserverRunner(
-                group['model'], os.getcwd(), args.log_dir, speed_factor)
+                group['model'], os.getcwd(), args.log_dir, speed_factor,
+                args.verbose)
             gzserver_runner.start(group)
 
             if args.gui:
                 gzclient_runner = GzclientRunner(
-                    os.getcwd(), args.log_dir)
+                    os.getcwd(), args.log_dir, args.verbose)
                 gzclient_runner.start(group)
 
     test_runner = TestRunner(os.getcwd(), args.log_dir, group, test,
-                             config['mavlink_connection'])
+                             config['mavlink_connection'], args.verbose)
     test_runner.start(group)
 
     returncode = test_runner.wait(group['timeout_min'])
@@ -342,14 +357,9 @@ def run_test(test, group, args, config):
     if config['mode'] == 'sitl':
         if config['simulator'] == 'gazebo':
             if args.gui:
-                returncode = gzclient_runner.stop()
-                print("gzclient exited with {}".format(returncode))
-
-            returncode = gzserver_runner.stop()
-            print("gzserver exited with {}".format(returncode))
-
+                gzclient_runner.stop()
+            gzserver_runner.stop()
         px4_runner.stop()
-        print("px4 exited with {}".format(returncode))
 
     return is_success
 
