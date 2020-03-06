@@ -166,7 +166,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-dir",
-                        help="Directory for log files, stdout if not provided")
+                        help="Directory for log files", default="logs")
     parser.add_argument("--speed-factor", default=1,
                         help="How fast to run the simulation")
     parser.add_argument("--iterations", type=int, default=1,
@@ -192,6 +192,8 @@ def main():
 
     if not is_everything_ready(config):
         sys.exit(1)
+
+    os.makedirs(args.log_dir, exist_ok=True)
 
     run(args, config)
 
