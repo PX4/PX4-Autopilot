@@ -4,6 +4,8 @@
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 
+#include "common.h"
+
 using matrix::AxisAnglef;
 using matrix::Dcmf;
 using matrix::Eulerf;
@@ -13,35 +15,26 @@ using matrix::Vector2f;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-#define N_MODELS_EKFGSF 5
+static constexpr uint8_t N_MODELS_EKFGSF = 5;
 
-#ifndef M_PI_F
-#define M_PI_F 3.14159265f
-#endif
+// Required math constants
+static constexpr float _m_2pi_inv = 0.159154943f;
+static constexpr float _m_pi = 3.14159265f;
+static constexpr float _m_pi2 = 1.57079632f;
 
-#ifndef M_PI_2_F
-#define M_PI_2_F 1.57079632f
-#endif
-
-#ifndef M_TWOPI_INV
-#define M_TWOPI_INV 0.159154943f
-#endif
+using namespace estimator;
 
 class EKFGSF_yaw
 {
 public:
-    	// Constructor
     	EKFGSF_yaw();
 
     	// Update Filter States - this should be called whenever new IMU data is available
-	void update(const Vector3f del_ang, // IMU delta angle rotation vector meassured in body frame (rad)
-                	const Vector3f del_vel, // IMU delta velocity vector meassured in body frame (m/s)
-                	const float del_ang_dt, // time interval that del_ang was integrated over (sec)
-                	const float del_vel_dt, // time interval that del_vel was integrated over (sec)
+	void update(const imuSample &imu_sample,
                 	bool run_EKF,           // set to true when flying or movement is suitable for yaw estimation
                 	float airspeed);   	// true airspeed used for centripetal accel compensation - set to 0 when not required.
 
-	void setVelocity(Vector2f velocity,	// NE velocity measurement (m/s)
+	void setVelocity(const Vector2f &velocity,	// NE velocity measurement (m/s)
                      	float accuracy);	// 1-sigma accuracy of velocity measurement (m/s)
 
 	// get solution data for logging
@@ -57,6 +50,7 @@ public:
     	bool getYawData(float *yaw, float *yaw_variance);
 
 private:
+
 	// Parameters - these could be made tuneable
 	const float _gyro_noise{1.0e-1f}; 	// yaw rate noise used for covariance prediction (rad/sec)
 	const float _accel_noise{2.0f};		// horizontal accel noise used for covariance prediction (m/sec**2)
@@ -99,15 +93,13 @@ private:
 	void ahrsAlignYaw();
 
 	// Efficient propagation of a delta angle in body frame applied to the body to earth frame rotation matrix
-	Matrix3f ahrsPredictRotMat(Matrix3f &R, Vector3f &g);
+	Matrix3f ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g);
 
 	// Declarations used by a bank of N_MODELS_EKFGSF EKFs
 
 	struct _ekf_gsf_struct{
 		matrix::Vector3f X; // Vel North (m/s),  Vel East (m/s), yaw (rad)s
 		matrix::SquareMatrix<float, 3> P; // covariance matrix
-		float W = 0.0f; // weighting
-		matrix::SquareMatrix<float, 2> S; // innovation covariance matrix
 		matrix::SquareMatrix<float, 2> S_inverse;  // inverse of the innovation covariance matrix
 		float S_det_inverse; // inverse of the innovation covariance matrix determinant
 		matrix::Vector2f innov; // Velocity N,E innovation (m/s)
@@ -141,6 +133,7 @@ private:
 
 	// Declarations used by the Gaussian Sum Filter (GSF) that combines the individual EKF yaw estimates
 
+	matrix::Vector<float, N_MODELS_EKFGSF> _model_weights;
 	float _gsf_yaw; 		// yaw estimate (rad)
 	float _gsf_yaw_variance; 	// variance of yaw estimate (rad^2)
 
@@ -148,6 +141,6 @@ private:
 	float gaussianDensity(const uint8_t model_index) const;
 
 	// update the inverse of the innovation covariance matrix
-	void updateInnovCovMatInv(const uint8_t model_index);
+	void updateInnovCovMatInv(const uint8_t model_index, const matrix::SquareMatrix<float, 2> &S);
 
 };
