@@ -1,0 +1,6 @@
+#
+# Nodes that are capable of producing sounds should obey.
+#
+
+uint8 button  # Hz
+uint8 press_time   # Sec

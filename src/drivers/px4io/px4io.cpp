@@ -265,6 +265,7 @@ private:
 	uORB::Subscription 	_t_vehicle_control_mode{ORB_ID(vehicle_control_mode)};	///< vehicle control mode topic
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};	///< parameter update topic
 	uORB::Subscription	_t_vehicle_command{ORB_ID(vehicle_command)};		///< vehicle command topic
+	uORB::Subscription	_safety_sub{ORB_ID(safety)};				///< safety switch status
 
 	bool			_param_update_force;	///< force a parameter update
 
@@ -279,6 +280,7 @@ private:
 	bool			_lockdown_override;	///< allow to override the safety lockdown
 	bool			_armed;			///< wether the system is armed
 	bool			_override_available;	///< true if manual reversion mode is enabled
+	bool 			safety_status;          ///< safety cache status
 
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
@@ -1690,10 +1692,30 @@ PX4IO::io_handle_status(uint16_t status)
 	/**
 	 * Get and handle the safety status
 	 */
+	bool temp = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? true : false;
 	safety_s safety{};
+
+	if (_safety_sub.copy(&safety)) {
+		if (safety_status != temp) {
+			safety_status = temp;
+
+			if (safety.safety_off) {
+				safety.safety_off = false;
+
+			} else {
+				safety.safety_off = true;
+			}
+
+		} else {
+			safety.safety_off = safety.safety_off;
+		}
+
+	} else {
+		safety.safety_off = temp;
+	}
+
 	safety.timestamp = hrt_absolute_time();
 	safety.safety_switch_available = true;
-	safety.safety_off = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? true : false;
 	safety.override_available = _override_available;
 	safety.override_enabled = (status & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? true : false;
 

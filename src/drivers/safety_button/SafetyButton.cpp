@@ -102,6 +102,11 @@ SafetyButton::CheckButton()
 
 	} else {
 		_button_counter = 0;
+		safety_s safety{};
+
+		if (_safety_sub.copy(&safety)) {
+			_safety_btn_off = safety.safety_off;
+		}
 	}
 
 	CheckPairingRequest(safety_button_pressed);

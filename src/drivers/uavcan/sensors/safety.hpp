@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,52 @@
  *
  ****************************************************************************/
 
+/**
+ * @author CUAVcaijie <caijie@cuav.net>
+ */
+
 #pragma once
 
-#include <float.h>
-
-#include <circuit_breaker/circuit_breaker.h>
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_armed.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/safety.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/led_control.h>
-#include <uORB/topics/tune_control.h>
 
-class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
+#include <drivers/drv_orb_dev.h>
+
+#include <uavcan/uavcan.hpp>
+#include <com/hex/equipment/indication/ButtonCommand.hpp>
+#include "sensor_bridge.hpp"
+
+class UavcanSafetyBridge : public IUavcanSensorBridge
 {
 public:
-	SafetyButton();
-	~SafetyButton() override;
+	static const char *const NAME;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	UavcanSafetyBridge(uavcan::INode &node);
+	~UavcanSafetyBridge() = default;
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	const char *get_name() const override { return NAME; }
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+	int init() override;
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
+	unsigned get_num_redundant_channels() const override;
 
-	int Start();
-
+	void print_status() const override;
 private:
-	void Run() override;
 
-	void CheckButton();
-	void FlashButton();
-	void CheckPairingRequest(bool button_pressed);
+	bool	_safety_disabled{false};
 
+	void safety_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::indication::ButtonCommand> &msg);
 
-	uORB::Subscription		_armed_sub{ORB_ID(actuator_armed)};
+	typedef uavcan::MethodBinder < UavcanSafetyBridge *,
+		void (UavcanSafetyBridge::*)(const uavcan::ReceivedDataStructure<com::hex::equipment::indication::ButtonCommand> &) >
+		SafetyCommandCbBinder;
+
+	uavcan::INode &_node;
+	uavcan::Subscriber<com::hex::equipment::indication::ButtonCommand, SafetyCommandCbBinder> _sub_safety;
+	uavcan::Publisher<com::hex::equipment::indication::ButtonCommand> _pub_safety;
+
 	uORB::Subscription		_safety_sub{ORB_ID(safety)};
 	uORB::Publication<safety_s>	_to_safety{ORB_ID(safety)};
-	uORB::PublicationQueued<vehicle_command_s>	_to_command{ORB_ID(vehicle_command)};
-	uORB::PublicationQueued<led_control_s> _to_led_control{ORB_ID(led_control)};
-	uORB::Publication<tune_control_s> _to_tune_control{ORB_ID(tune_control)};
-
-
-	uint8_t				_button_counter{0};
-	uint8_t				_blink_counter{0};
-	bool				_safety_disabled{false};	///< circuit breaker to disable the safety button
-	bool				_safety_btn_off{false};		///< State of the safety button read from the HW button
-	bool				_safety_btn_prev_sate{false};	///< Previous state of the HW button
-
-	// Pairing request
-	hrt_abstime		_pairing_start{0};
-	int			_pairing_button_counter{0};
 
 };
