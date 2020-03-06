@@ -44,7 +44,7 @@
 
 const char *const UavcanMagnetometerBridge::NAME = "mag";
 
-#define UAVCAN_MAG_BASE_DEVICE_PATH "/dev/uavcan/mag" /// HACK due to replacing CDev use with PX4Magnetometer
+#define UAVCAN_MAG_BASE_DEVICE_PATH "/dev/uavcan/mag"
 
 UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
 	UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", UAVCAN_MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
@@ -134,14 +134,13 @@ UavcanMagnetometerBridge::mag2_sub_cb(const
 
 int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
 {
-	PX4_INFO("init mag driver");
 	// update device id as we now know our device node_id
 	DeviceId device_id{_device_id};
 
-	device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;     // <-- Why?
+	// No sensor info is included in the MagneticFieldStrength msg; use some generic mag type
+	device_id.devid_s.devtype = DRV_MAG_DEVTYPE_MPU9250;
 	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
-	/// TODO: Handle other rotations
 	channel->h_driver = new PX4Magnetometer(device_id.devid, ORB_PRIO_HIGH, ROTATION_NONE);
 
 	if (channel->h_driver == nullptr) {
@@ -152,6 +151,5 @@ int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
 	_mag->set_external(true);
 	channel->class_instance = _mag->get_class_instance();
 
-	PX4_INFO("driver init succeeded");
 	return PX4_OK;
 }

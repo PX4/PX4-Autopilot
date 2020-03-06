@@ -76,7 +76,4 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength, MagCbBinder> _sub_mag;
 	uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength2, Mag2CbBinder> _sub_mag2;
-
-	mag_calibration_s _scale{};
-	sensor_mag_s _report{};
 };

@@ -43,8 +43,10 @@
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 
+#define UAVCAN_BARO_BASE_DEVICE_PATH "/dev/uavcan/baro"
+
 UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", BARO_BASE_DEVICE_PATH, ORB_ID(sensor_baro)),
+	UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", UAVCAN_BARO_BASE_DEVICE_PATH, ORB_ID(sensor_baro)),
 	_sub_air_pressure_data(node),
 	_sub_air_temperature_data(node)
 { }
@@ -106,7 +108,8 @@ int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
 	// update device id as we now know our device node_id
 	DeviceId device_id{_device_id};
 
-	device_id.devid_s.devtype = 0x00;
+	// No sensor info is included int he StaticPressure msg; use some generic baro type
+	device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5611;
 	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
 	channel->h_driver = new PX4Barometer(device_id.devid, ORB_PRIO_HIGH);

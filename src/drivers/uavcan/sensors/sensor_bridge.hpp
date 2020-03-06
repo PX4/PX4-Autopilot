@@ -89,7 +89,7 @@ struct Channel {
 	orb_advert_t orb_advert  = nullptr;
 	int class_instance       = -1;
 	int orb_instance         = -1;
-	cdev::CDev *h_driver           = nullptr;
+	cdev::CDev *h_driver     = nullptr;
 };
 }
 
@@ -105,7 +105,7 @@ class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CD
 	bool _out_of_channels = false;
 
 protected:
-	static constexpr unsigned DEFAULT_MAX_CHANNELS = 5;
+	static constexpr unsigned DEFAULT_MAX_CHANNELS = ORB_MULTI_MAX_INSTANCES;
 	const unsigned _max_channels;
 
 	UavcanCDevSensorBridgeBase(const char *name, const char *devname, const char *class_devname,
