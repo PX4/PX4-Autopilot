@@ -146,8 +146,8 @@ void AutopilotTester::execute_mission()
 CoordinateTransformation AutopilotTester::get_coordinate_transformation()
 {
     const auto home = _telemetry->home_position();
-    REQUIRE(std::isfinite(home.latitude_deg));
-    REQUIRE(std::isfinite(home.longitude_deg));
+    CHECK(std::isfinite(home.latitude_deg));
+    CHECK(std::isfinite(home.longitude_deg));
     return CoordinateTransformation({home.latitude_deg, home.longitude_deg});
 }
 
@@ -172,7 +172,7 @@ void AutopilotTester::offboard_goto(const Offboard::PositionNEDYaw& target, floa
 {
     _offboard->set_position_ned(target);
     REQUIRE(_offboard->start() == Offboard::Result::SUCCESS);
-    REQUIRE(poll_condition_with_timeout(
+    CHECK(poll_condition_with_timeout(
         [=]() { return estimated_position_close_to(target, acceptance_radius_m); }, timeout_duration));
     std::cout << "Target position reached" << std::endl;
 }
@@ -204,7 +204,7 @@ bool AutopilotTester::estimated_horizontal_position_close_to(const Offboard::Pos
 
 void AutopilotTester::request_ground_truth()
 {
-    REQUIRE(_telemetry->set_rate_ground_truth(15) == Telemetry::Result::SUCCESS);
+    CHECK(_telemetry->set_rate_ground_truth(15) == Telemetry::Result::SUCCESS);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
@@ -215,15 +215,15 @@ Telemetry::GroundTruth AutopilotTester::get_ground_truth_position()
 
 bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth& target_pos, float acceptance_radius_m)
 {
-    REQUIRE(std::isfinite(target_pos.latitude_deg));
-    REQUIRE(std::isfinite(target_pos.longitude_deg));
+    CHECK(std::isfinite(target_pos.latitude_deg));
+    CHECK(std::isfinite(target_pos.longitude_deg));
     using GlobalCoordinate = CoordinateTransformation::GlobalCoordinate;
     using LocalCoordinate = CoordinateTransformation::LocalCoordinate;
     CoordinateTransformation ct(GlobalCoordinate{target_pos.latitude_deg, target_pos.longitude_deg});
 
     Telemetry::GroundTruth current_pos = _telemetry->ground_truth();
-    REQUIRE(std::isfinite(current_pos.latitude_deg));
-    REQUIRE(std::isfinite(current_pos.longitude_deg));
+    CHECK(std::isfinite(current_pos.latitude_deg));
+    CHECK(std::isfinite(current_pos.longitude_deg));
     LocalCoordinate local_pos= ct.local_from_global(GlobalCoordinate{current_pos.latitude_deg, current_pos.longitude_deg});
 
     return sq(local_pos.north_m) + sq(local_pos.east_m) < sq(acceptance_radius_m);
