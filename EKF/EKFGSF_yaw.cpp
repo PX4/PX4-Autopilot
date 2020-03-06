@@ -13,18 +13,15 @@ EKFGSF_yaw::EKFGSF_yaw()
 	_ahrs_accel.zero();
 }
 
-void EKFGSF_yaw::update(const Vector3f del_ang, // IMU delta angle rotation vector meassured in body frame (rad)
-                	const Vector3f del_vel, // IMU delta velocity vector meassured in body frame (m/s)
-                	const float del_ang_dt, // time interval that del_ang was integrated over (sec)
-                	const float del_vel_dt, // time interval that del_vel was integrated over (sec)
+void EKFGSF_yaw::update(const imuSample& imu_sample,
                 	bool run_EKF,           // set to true when flying or movement is suitable for yaw estimation
                 	float airspeed)   	// true airspeed used for centripetal accel compensation - set to 0 when not required.
 {
 	// copy to class variables
-	_delta_ang = del_ang;
-	_delta_vel = del_vel;
-	_delta_ang_dt = del_ang_dt;
-	_delta_vel_dt = del_vel_dt;
+	_delta_ang = imu_sample.delta_ang;
+	_delta_vel = imu_sample.delta_vel;
+	_delta_ang_dt = imu_sample.delta_ang_dt;
+	_delta_vel_dt = imu_sample.delta_vel_dt;
 	_run_ekf_gsf = run_EKF;
 	_true_airspeed = airspeed;
 
@@ -62,8 +59,6 @@ void EKFGSF_yaw::update(const Vector3f del_ang, // IMU delta angle rotation vect
 			ahrsAlignYaw();
 			_ekf_gsf_vel_fuse_started = true;
 		} else {
-			float total_w = 0.0f;
-			float newWeight[N_MODELS_EKFGSF];
 			bool bad_update = false;
 			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 				// subsequent measurements are fused as direct state observations
@@ -73,18 +68,16 @@ void EKFGSF_yaw::update(const Vector3f del_ang, // IMU delta angle rotation vect
 			}
 
 			if (!bad_update) {
+				float total_weight = 0.0f;
 				// calculate weighting for each model assuming a normal distribution
 				for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-					newWeight[model_index] = fmaxf(gaussianDensity(model_index) * _ekf_gsf[model_index].W, 0.0f);
-					total_w += newWeight[model_index];
+					_model_weights(model_index) = fmaxf(gaussianDensity(model_index) * _model_weights(model_index), 0.0f);
+					total_weight += _model_weights(model_index);
 				}
 
 				// normalise the weighting function
-				if (_ekf_gsf_vel_fuse_started && total_w > 1e-15f && !bad_update) {
-					float total_w_inv = 1.0f / total_w;
-					for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-						_ekf_gsf[model_index].W = newWeight[model_index] * total_w_inv;
-					}
+				if (total_weight > 1e-15f) {
+					_model_weights /= total_weight;
 				}
 
 				// Enforce a minimum weighting value. This was added during initial development but has not been needed
@@ -95,12 +88,12 @@ void EKFGSF_yaw::update(const Vector3f del_ang, // IMU delta angle rotation vect
 					bool change_mask[N_MODELS_EKFGSF] = {}; // true when the weighting for that model has been increased
 					float unmodified_weights_sum = 0.0f; // sum of unmodified weights
 					for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-						if (_ekf_gsf[model_index].W < _weight_min) {
-							correction_sum += _weight_min - _ekf_gsf[model_index].W;
-							_ekf_gsf[model_index].W = _weight_min;
+						if (_model_weights(model_index) < _weight_min) {
+							correction_sum += _weight_min - _model_weights(model_index);
+							_model_weights(model_index) = _weight_min;
 							change_mask[model_index] = true;
 						} else {
-							unmodified_weights_sum += _ekf_gsf[model_index].W;
+							unmodified_weights_sum += _model_weights(model_index);
 						}
 					}
 
@@ -108,7 +101,7 @@ void EKFGSF_yaw::update(const Vector3f del_ang, // IMU delta angle rotation vect
 					const float scale_factor = (unmodified_weights_sum - correction_sum - _weight_min) / (unmodified_weights_sum - _weight_min);
 					for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 						if (!change_mask[model_index]) {
-							_ekf_gsf[model_index].W = _weight_min + scale_factor * (_ekf_gsf[model_index].W - _weight_min);
+							_model_weights(model_index) = _weight_min + scale_factor * (_model_weights(model_index) - _weight_min);
 						}
 					}
 				}
@@ -122,10 +115,10 @@ void EKFGSF_yaw::update(const Vector3f del_ang, // IMU delta angle rotation vect
 	// Calculate a composite yaw vector as a weighted average of the states for each model.
 	// To avoid issues with angle wrapping, the yaw state is converted to a vector with legnth
 	// equal to the weighting value before it is summed.
-	Vector2f yaw_vector = {};
+	Vector2f yaw_vector;
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-		yaw_vector(0) += _ekf_gsf[model_index].W * cosf(_ekf_gsf[model_index].X(2));
-		yaw_vector(1) += _ekf_gsf[model_index].W * sinf(_ekf_gsf[model_index].X(2));
+		yaw_vector(0) += _model_weights(model_index) * cosf(_ekf_gsf[model_index].X(2));
+		yaw_vector(1) += _model_weights(model_index) * sinf(_ekf_gsf[model_index].X(2));
 	}
 	_gsf_yaw = atan2f(yaw_vector(1),yaw_vector(0));
 
@@ -133,8 +126,8 @@ void EKFGSF_yaw::update(const Vector3f del_ang, // IMU delta angle rotation vect
 	// models with larger innovations are weighted less
 	_gsf_yaw_variance = 0.0f;
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-		float yaw_delta = wrap_pi(_ekf_gsf[model_index].X(2) - _gsf_yaw);
-		_gsf_yaw_variance += _ekf_gsf[model_index].W * (_ekf_gsf[model_index].P(2,2) + yaw_delta * yaw_delta);
+		const float yaw_delta = wrap_pi(_ekf_gsf[model_index].X(2) - _gsf_yaw);
+		_gsf_yaw_variance += _model_weights(model_index) * (_ekf_gsf[model_index].P(2,2) + yaw_delta * yaw_delta);
 	}
 
 	// prevent the same velocity data being used more than once
@@ -145,33 +138,28 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index)
 {
 	// generate attitude solution using simple complementary filter for the selected model
 
-	Vector3f ang_rate = _delta_ang / fmaxf(_delta_ang_dt, 0.001f) - _ahrs_ekf_gsf[model_index].gyro_bias;
+	const Vector3f ang_rate = _delta_ang / fmaxf(_delta_ang_dt, 0.001f) - _ahrs_ekf_gsf[model_index].gyro_bias;
 
-	// Accelerometer correction
-	// Project 'k' unit vector of earth frame to body frame
-	// Vector3f k = quaterion.conjugate_inversed(Vector3f(0.0f, 0.0f, 1.0f));
-	// Optimized version with dropped zeros
-	const Vector3f k(_ahrs_ekf_gsf[model_index].R(2,0), _ahrs_ekf_gsf[model_index].R(2,1), _ahrs_ekf_gsf[model_index].R(2,2));
+	const Dcmf R_to_body = _ahrs_ekf_gsf[model_index].R.transpose();
+	const Vector3f gravity_direction_bf = R_to_body.col(2);
 
 	// Perform angular rate correction using accel data and reduce correction as accel magnitude moves away from 1 g (reduces drift when vehicle picked up and moved).
 	// During fixed wing flight, compensate for centripetal acceleration assuming coordinated turns and X axis forward
-	Vector3f tilt_correction = {};
+	Vector3f tilt_correction;
 	if (_ahrs_accel_fusion_gain > 0.0f) {
 
 		Vector3f accel = _ahrs_accel;
 
 		if (_true_airspeed > FLT_EPSILON) {
 			// turn rate is component of gyro rate about vertical (down) axis
-			const float turn_rate = _ahrs_ekf_gsf[model_index].R(2,0) * ang_rate(0)
-					  + _ahrs_ekf_gsf[model_index].R(2,1) * ang_rate(1)
-					  + _ahrs_ekf_gsf[model_index].R(2,2) * ang_rate(2);
+			const float turn_rate = gravity_direction_bf.dot(ang_rate);
 
 			// use measured airspeed to calculate centripetal acceleration if available
-			float centripetal_accel = _true_airspeed * turn_rate;
+			const float centripetal_accel = _true_airspeed * turn_rate;
 
 			// project Y body axis onto horizontal and multiply by centripetal acceleration to give estimated
 			// centripetal acceleration vector in earth frame due to coordinated turn
-			Vector3f centripetal_accel_vec_ef = {_ahrs_ekf_gsf[model_index].R(0,1), _ahrs_ekf_gsf[model_index].R(1,1), 0.0f};
+			Vector3f centripetal_accel_vec_ef(_ahrs_ekf_gsf[model_index].R(0,1), _ahrs_ekf_gsf[model_index].R(1,1), 0.0f);
 			if (_ahrs_ekf_gsf[model_index].R(2,2) > 0.0f) {
 				// vehicle is upright
 				centripetal_accel_vec_ef *= centripetal_accel;
@@ -181,29 +169,26 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index)
 			}
 
 			// rotate into body frame
-			Vector3f centripetal_accel_vec_bf = _ahrs_ekf_gsf[model_index].R.transpose() * centripetal_accel_vec_ef;
+			Vector3f centripetal_accel_vec_bf = R_to_body * centripetal_accel_vec_ef;
 
 			// correct measured accel for centripetal acceleration
 			accel -= centripetal_accel_vec_bf;
 		}
 
-		tilt_correction = (k % accel) * _ahrs_accel_fusion_gain / _ahrs_accel_norm;
+		tilt_correction = (gravity_direction_bf % accel) * _ahrs_accel_fusion_gain / _ahrs_accel_norm;
 
 	}
 
 	// Gyro bias estimation
-	const float gyro_bias_limit = 0.05f;
+	constexpr float gyro_bias_limit = 0.05f;
 	const float spinRate = ang_rate.length();
 	if (spinRate < 0.175f) {
 		_ahrs_ekf_gsf[model_index].gyro_bias -= tilt_correction * (_gyro_bias_gain * _delta_ang_dt);
-
-		for (int i = 0; i < 3; i++) {
-			_ahrs_ekf_gsf[model_index].gyro_bias(i) = math::constrain(_ahrs_ekf_gsf[model_index].gyro_bias(i), -gyro_bias_limit, gyro_bias_limit);
-		}
+		_ahrs_ekf_gsf[model_index].gyro_bias = matrix::constrain(_ahrs_ekf_gsf[model_index].gyro_bias, -gyro_bias_limit, gyro_bias_limit);
 	}
 
 	// delta angle from previous to current frame
-	Vector3f delta_angle_corrected = _delta_ang + (tilt_correction - _ahrs_ekf_gsf[model_index].gyro_bias) * _delta_ang_dt;
+	const Vector3f delta_angle_corrected = _delta_ang + (tilt_correction - _ahrs_ekf_gsf[model_index].gyro_bias) * _delta_ang_dt;
 
 	// Apply delta angle to rotation matrix
 	_ahrs_ekf_gsf[model_index].R = ahrsPredictRotMat(_ahrs_ekf_gsf[model_index].R, delta_angle_corrected);
@@ -218,17 +203,14 @@ void EKFGSF_yaw::ahrsAlignTilt()
 	// 2) The vehicle is not accelerating so all of the measured acceleration is due to gravity.
 
 	// Calculate earth frame Down axis unit vector rotated into body frame
-	Vector3f down_in_bf = -_delta_vel;
-	down_in_bf.normalize();
+	const Vector3f down_in_bf = -_delta_vel.normalized();
 
 	// Calculate earth frame North axis unit vector rotated into body frame, orthogonal to 'down_in_bf'
-	// * operator is overloaded to provide a dot product
 	const Vector3f i_vec_bf(1.0f,0.0f,0.0f);
-	Vector3f north_in_bf = i_vec_bf - down_in_bf * (i_vec_bf * down_in_bf);
+	Vector3f north_in_bf = i_vec_bf - down_in_bf * (i_vec_bf.dot(down_in_bf));
 	north_in_bf.normalize();
 
 	// Calculate earth frame East axis unit vector rotated into body frame, orthogonal to 'down_in_bf' and 'north_in_bf'
-	// % operator is overloaded to provide a cross product
 	const Vector3f east_in_bf = down_in_bf % north_in_bf;
 
 	// Each column in a rotation matrix from earth frame to body frame represents the projection of the
@@ -240,6 +222,9 @@ void EKFGSF_yaw::ahrsAlignTilt()
 	R.setRow(1, east_in_bf);
 	R.setRow(2, down_in_bf);
 
+	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
+		_ahrs_ekf_gsf[model_index].R = R;
+	}
 }
 
 void EKFGSF_yaw::ahrsAlignYaw()
@@ -371,13 +356,12 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index)
 	const float &P22 = _ekf_gsf[model_index].P(2,2);
 
 	// calculate innovation variance
-	_ekf_gsf[model_index].S(0,0) = P00 + velObsVar;
-	_ekf_gsf[model_index].S(1,1) = P11 + velObsVar;
-	_ekf_gsf[model_index].S(0,1) = P01;
-	_ekf_gsf[model_index].S(1,0) = P10;
+	matrix::SquareMatrix<float, 2> S = _ekf_gsf[model_index].P.slice<2, 2>(0, 0);
+	S(0, 0) += velObsVar;
+	S(1, 1) += velObsVar;
 
 	// Update the inverse of the innovation covariance matrix S_inverse
-	updateInnovCovMatInv(model_index);
+	updateInnovCovMatInv(model_index, S);
 
 	// Perform a chi-square innovation consistency test and calculate a compression scale factor that limits the magnitude of innovations to 5-sigma
 	float innov_comp_scale_factor = 1.0f;
@@ -470,8 +454,10 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index)
 
 	// Correct the state vector and capture the change in yaw angle
 	const float oldYaw = _ekf_gsf[model_index].X(2);
+
 	_ekf_gsf[model_index].X -= (K * _ekf_gsf[model_index].innov) * innov_comp_scale_factor;
-	float yawDelta = _ekf_gsf[model_index].X(2) - oldYaw;
+
+	const float yawDelta = _ekf_gsf[model_index].X(2) - oldYaw;
 
 	// apply the change in yaw angle to the AHRS
 	// take advantage of sparseness in the yaw rotation matrix
@@ -493,15 +479,14 @@ void EKFGSF_yaw::initialiseEKFGSF()
 {
 	_gsf_yaw = 0.0f;
 	_ekf_gsf_vel_fuse_started = false;
-	_gsf_yaw_variance = M_PI_2_F * M_PI_2_F;
+	_gsf_yaw_variance = _m_pi2 * _m_pi2;
+	_model_weights.setAll(1.0f / (float)N_MODELS_EKFGSF);  // All filter models start with the same weight
+
 	memset(&_ekf_gsf, 0, sizeof(_ekf_gsf));
-	const float yaw_increment = 2.0f * M_PI_F / (float)N_MODELS_EKFGSF;
+	const float yaw_increment = 2.0f * _m_pi / (float)N_MODELS_EKFGSF;
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
 		// evenly space initial yaw estimates in the region between +-Pi
-		_ekf_gsf[model_index].X(2) = -M_PI_F + (0.5f * yaw_increment) + ((float)model_index * yaw_increment);
-
-		// All filter models start with the same weight
-		_ekf_gsf[model_index].W = 1.0f / (float)N_MODELS_EKFGSF;
+		_ekf_gsf[model_index].X(2) = -_m_pi + (0.5f * yaw_increment) + ((float)model_index * yaw_increment);
 
 		// take velocity states and corresponding variance from last meaurement
 		_ekf_gsf[model_index].X(0) = _vel_NE(0);
@@ -516,31 +501,27 @@ void EKFGSF_yaw::initialiseEKFGSF()
 
 float EKFGSF_yaw::gaussianDensity(const uint8_t model_index) const
 {
-	// calculate inv(S) * innovation
-	const matrix::Vector2f tempVec = _ekf_gsf[model_index].S_inverse * _ekf_gsf[model_index].innov;
-
 	// calculate transpose(innovation) * inv(S) * innovation
-	// * operator is overloaded to provide a dot product
-	const float normDist = _ekf_gsf[model_index].innov * tempVec;
+	const float normDist = _ekf_gsf[model_index].innov.dot(_ekf_gsf[model_index].S_inverse * _ekf_gsf[model_index].innov);
 
-	return M_TWOPI_INV * sqrtf(_ekf_gsf[model_index].S_det_inverse) * expf(-0.5f * normDist);
+	return _m_2pi_inv * sqrtf(_ekf_gsf[model_index].S_det_inverse) * expf(-0.5f * normDist);
 }
 
-void EKFGSF_yaw::updateInnovCovMatInv(const uint8_t model_index)
+void EKFGSF_yaw::updateInnovCovMatInv(const uint8_t model_index, const matrix::SquareMatrix<float, 2> &S)
 {
 	// calculate determinant for innovation covariance matrix
-	const float t2 = _ekf_gsf[model_index].S(0,0) * _ekf_gsf[model_index].S(1,1);
-	const float t5 = _ekf_gsf[model_index].S(0,1) * _ekf_gsf[model_index].S(1,0);
+	const float t2 = S(0,0) * S(1,1);
+	const float t5 = S(0,1) * S(1,0);
 	const float t3 = t2 - t5;
 
 	// calculate determinant inverse and protect against badly conditioned matrix
 	_ekf_gsf[model_index].S_det_inverse = 1.0f / fmaxf(t3 , 1e-12f);
 
 	// calculate inv(S)
-	_ekf_gsf[model_index].S_inverse(0,0) =   _ekf_gsf[model_index].S_det_inverse * _ekf_gsf[model_index].S(1,1);
-	_ekf_gsf[model_index].S_inverse(1,1) =   _ekf_gsf[model_index].S_det_inverse * _ekf_gsf[model_index].S(0,0);
-	_ekf_gsf[model_index].S_inverse(0,1) = - _ekf_gsf[model_index].S_det_inverse * _ekf_gsf[model_index].S(0,1);
-	_ekf_gsf[model_index].S_inverse(1,0) = - _ekf_gsf[model_index].S_det_inverse * _ekf_gsf[model_index].S(1,0);
+	_ekf_gsf[model_index].S_inverse(0,0) =   _ekf_gsf[model_index].S_det_inverse * S(1,1);
+	_ekf_gsf[model_index].S_inverse(1,1) =   _ekf_gsf[model_index].S_det_inverse * S(0,0);
+	_ekf_gsf[model_index].S_inverse(0,1) = - _ekf_gsf[model_index].S_det_inverse * S(0,1);
+	_ekf_gsf[model_index].S_inverse(1,0) = - _ekf_gsf[model_index].S_det_inverse * S(1,0);
 
 }
 
@@ -553,7 +534,7 @@ bool EKFGSF_yaw::getLogData(float *yaw_composite, float *yaw_variance, float yaw
 			yaw[model_index] = _ekf_gsf[model_index].X(2);
 			innov_VN[model_index] = _ekf_gsf[model_index].innov(0);
 			innov_VE[model_index] = _ekf_gsf[model_index].innov(1);
-			weight[model_index] = _ekf_gsf[model_index].W;
+			weight[model_index] = _model_weights(model_index);
 		}
 		return true;
 	}
@@ -562,26 +543,26 @@ bool EKFGSF_yaw::getLogData(float *yaw_composite, float *yaw_variance, float yaw
 
 Dcmf EKFGSF_yaw::taitBryan312ToRotMat(const Vector3f &rot312)
 {
-		// Calculate the frame2 to frame 1 rotation matrix from a 312 rotation sequence
-		const float c2 = cosf(rot312(2));
-		const float s2 = sinf(rot312(2));
-		const float s1 = sinf(rot312(1));
-		const float c1 = cosf(rot312(1));
-		const float s0 = sinf(rot312(0));
-		const float c0 = cosf(rot312(0));
+	// Calculate the frame2 to frame 1 rotation matrix from a 312 rotation sequence
+	const float c2 = cosf(rot312(2));
+	const float s2 = sinf(rot312(2));
+	const float s1 = sinf(rot312(1));
+	const float c1 = cosf(rot312(1));
+	const float s0 = sinf(rot312(0));
+	const float c0 = cosf(rot312(0));
 
-		Dcmf R;
-		R(0, 0) = c0 * c2 - s0 * s1 * s2;
-		R(1, 1) = c0 * c1;
-		R(2, 2) = c2 * c1;
-		R(0, 1) = -c1 * s0;
-		R(0, 2) = s2 * c0 + c2 * s1 * s0;
-		R(1, 0) = c2 * s0 + s2 * s1 * c0;
-		R(1, 2) = s0 * s2 - s1 * c0 * c2;
-		R(2, 0) = -s2 * c1;
-		R(2, 1) = s1;
+	Dcmf R;
+	R(0, 0) = c0 * c2 - s0 * s1 * s2;
+	R(1, 1) = c0 * c1;
+	R(2, 2) = c2 * c1;
+	R(0, 1) = -c1 * s0;
+	R(0, 2) = s2 * c0 + c2 * s1 * s0;
+	R(1, 0) = c2 * s0 + s2 * s1 * c0;
+	R(1, 2) = s0 * s2 - s1 * c0 * c2;
+	R(2, 0) = -s2 * c1;
+	R(2, 1) = s1;
 
-		return R;
+	return R;
 }
 
 void EKFGSF_yaw::ahrsCalcAccelGain()
@@ -593,7 +574,7 @@ void EKFGSF_yaw::ahrsCalcAccelGain()
 	// at the min and mas g value. Allow for more acceleration when flying as a fixed wing vehicle using centripetal
 	// acceleration correction as higher and more sustained g will be experienced.
 	// Use a quadratic finstead of linear unction to prevent vibration around 1g reducing the tilt correction effectiveness.
-	float accel_g = _ahrs_accel_norm / CONSTANTS_ONE_G;
+	const float accel_g = _ahrs_accel_norm / CONSTANTS_ONE_G;
 	if (accel_g > 1.0f) {
 		if (_true_airspeed > FLT_EPSILON && accel_g < 2.0f) {
 			_ahrs_accel_fusion_gain = _tilt_gain * sq(2.0f - accel_g);
@@ -609,7 +590,7 @@ void EKFGSF_yaw::ahrsCalcAccelGain()
 	}
 }
 
-Matrix3f EKFGSF_yaw::ahrsPredictRotMat(Matrix3f &R, Vector3f &g)
+Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
 {
 	Matrix3f ret = R;
 	ret(0,0) += R(0,1) * g(2) - R(0,2) * g(1);
@@ -648,7 +629,7 @@ bool EKFGSF_yaw::getYawData(float *yaw, float *yaw_variance)
 	return false;
 }
 
-void EKFGSF_yaw::setVelocity(Vector2f velocity, float accuracy)
+void EKFGSF_yaw::setVelocity(const Vector2f &velocity, float accuracy)
 {
 	_vel_NE = velocity;
 	_vel_accuracy = accuracy;

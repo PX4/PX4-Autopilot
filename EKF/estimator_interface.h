@@ -417,7 +417,7 @@ public:
 
 	// request the EKF reset the yaw to the estimate from the internal EKF-GSF filter
 	// argment should be incremented only when a new reset is required
-	virtual void requestEmergencyNavReset(uint8_t counter) = 0;
+	virtual void requestEmergencyNavReset() = 0;
 
 	// get ekf-gsf debug data
 	virtual bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]) = 0;

@@ -1785,12 +1785,9 @@ bool Ekf::resetYawToEKFGSF()
 
 }
 
-void Ekf::requestEmergencyNavReset(uint8_t counter)
+void Ekf::requestEmergencyNavReset()
 {
-	if (counter > _yaw_extreset_counter) {
-		_yaw_extreset_counter = counter;
-		_do_emergency_yaw_reset = true;
-	}
+	_do_emergency_yaw_reset = true;
 }
 
 bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF])
@@ -1830,11 +1827,11 @@ void Ekf::runYawEKFGSF()
 	} else {
 		TAS = _airspeed_sample_delayed.true_airspeed;
 	}
-	yawEstimator.update(_imu_sample_delayed.delta_ang, _imu_sample_delayed.delta_vel, _imu_sample_delayed.delta_ang_dt, _imu_sample_delayed.delta_vel_dt, _control_status.flags.in_air, TAS);
+
+	yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS);
 
 	// basic sanity check on GPS velocity data
 	if (_gps_data_ready && _gps_sample_delayed.vacc > FLT_EPSILON && isfinite(_gps_sample_delayed.vel(0)) && isfinite(_gps_sample_delayed.vel(1))) {
-		Vector2f vel_NE = Vector2f(_gps_sample_delayed.vel(0),_gps_sample_delayed.vel(1));
-		yawEstimator.setVelocity(vel_NE, _gps_sample_delayed.vacc);
+		yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.vacc);
 	}
 }

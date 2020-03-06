@@ -290,10 +290,9 @@ public:
 
 	// Request the EKF reset the yaw to the estimate from the internal EKF-GSF filter
 	// and reset the velocity and position states to the GPS. This will cause the EKF
-	// to ignore the magnetomer for the remainder of flight.
+	// to ignore the magnetometer for the remainder of flight.
 	// This should only be used as a last resort before activating a loss of navigation failsafe
-	// The counter must be incremented for each new reset request
-	void requestEmergencyNavReset(uint8_t counter) override;
+	void requestEmergencyNavReset() override;
 
 private:
 
@@ -846,7 +845,6 @@ private:
 
 	int64_t _emergency_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
 	uint64_t _time_last_on_ground_us{0};	///< last tine we were on the ground (uSec)
-	uint8_t _yaw_extreset_counter{0};	// number of external emergency yaw reset requests
 	bool _do_emergency_yaw_reset{false};	// true when an emergency yaw reset has been requested
 
 	// Call once per _imu_sample_delayed update after all main EKF data fusion oeprations have been completed
