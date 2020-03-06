@@ -43,6 +43,7 @@
 #include <parameters/param.h>
 #include <systemlib/printload.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -76,7 +77,7 @@ struct LoggerSubscription : public uORB::SubscriptionInterval {
 	{}
 };
 
-class Logger : public ModuleBase<Logger>
+class Logger : public ModuleBase<Logger>, public ModuleParams
 {
 public:
 	enum class LogMode {
@@ -267,7 +268,7 @@ private:
 	 * This must be called before start_log() (because it does not write an ADD_LOGGED_MSG message).
 	 * @return true on success
 	 */
-	bool initialize_topics(MissionLogType mission_log_mode);
+	bool initialize_topics();
 
 	/**
 	 * Determines if log-from-boot should be disabled, based on the value of SDLOG_BOOT_BAT and the battery status.
@@ -278,12 +279,9 @@ private:
 	/**
 	 * check current arming state or aux channel and start/stop logging if state changed and according to
 	 * configured params.
-	 * @param vehicle_status_sub
-	 * @param manual_control_sp_sub
-	 * @param mission_log_type
 	 * @return true if log started
 	 */
-	bool start_stop_logging(MissionLogType mission_log_type);
+	bool start_stop_logging();
 
 	void handle_vehicle_command_update();
 	void ack_vehicle_command(vehicle_command_s *cmd, uint32_t result);
@@ -346,13 +344,16 @@ private:
 	uORB::Subscription				_manual_control_sp_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
+	uORB::SubscriptionInterval		_log_message_sub{ORB_ID(log_message), 20};
 
-	param_t						_sdlog_profile_handle{PARAM_INVALID};
-	param_t						_log_utc_offset{PARAM_INVALID};
-	param_t						_log_dirs_max{PARAM_INVALID};
-	param_t						_mission_log{PARAM_INVALID};
-	param_t						_boot_bat_only{PARAM_INVALID};
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,
+		(ParamInt<px4::params::SDLOG_DIRS_MAX>) _param_sdlog_dirs_max,
+		(ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
+		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,
+		(ParamInt<px4::params::SDLOG_BOOT_BAT>) _param_sdlog_boot_bat,
+		(ParamInt<px4::params::SDLOG_UUID>) _param_sdlog_uuid
+	)
 };
 
 } //namespace logger
