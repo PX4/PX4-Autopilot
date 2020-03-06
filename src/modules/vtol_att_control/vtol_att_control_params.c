@@ -315,3 +315,44 @@ PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_SC, 0.1f);
+
+/**
+ * Target deceleration during backtransition.
+ *
+ * The vehicle will use its pitch angle to try and maintain a target deceleration during the backtransition.
+ * This parameter only applies for standard vtol and tiltrotors.
+ *
+ * @unit m/s2
+ * @min 0.5
+ * @max 5
+ * @decimal 1
+ * @increment 0.5
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_DEC_SP, 2.0f);
+
+/**
+ * Backtransition deceleration setpoint to pitch feedforward gain.
+ *
+ *
+ * @unit rad*s*s/m
+ * @min 0
+ * @max 0.2
+ * @decimal 1
+ * @increment 0.05
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.12f);
+
+/**
+ * Backtransition deceleration setpoint to pitch I gain.
+ *
+ *
+ * @unit rad*s/m
+ * @min 0
+ * @max 0.3
+ * @decimal 1
+ * @increment 0.05
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);

@@ -177,7 +177,43 @@ void VtolType::update_fw_state()
 
 void VtolType::update_transition_state()
 {
+	hrt_abstime t_now = hrt_absolute_time();
+	_transition_dt = (float)(t_now - _last_loop_ts) / 1e6f;
+	_transition_dt = math::constrain(_transition_dt, 0.0001f, 0.02f);
+	_last_loop_ts = t_now;
+
+
+
 	check_quadchute_condition();
+}
+
+float VtolType::update_and_get_backtransition_pitch_sp()
+{
+	// maximum up or down pitch the controller is allowed to demand
+	const float pitch_lim = 0.3f;
+
+	// calculate acceleration in body x direction
+	const Dcmf R_to_body(Quatf(_v_att->q).inversed());
+	const Vector3f acc = R_to_body * Vector3f(_local_pos->ax, _local_pos->ay, _local_pos->az);
+	float accel_body_x = acc(0);
+	float accel_error_x = 0.0f;
+
+	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
+	accel_error_x = _params->back_trans_dec_sp + accel_body_x;
+	float pitch_sp_new = _params->dec_to_pitch_ff * _params->back_trans_dec_sp + _accel_to_pitch_integ;
+
+	float integrator_input = _params->dec_to_pitch_i * accel_error_x;
+
+	if ((pitch_sp_new >= pitch_lim && accel_error_x > 0.0f) ||
+	    (pitch_sp_new <= -pitch_lim && accel_error_x < 0.0f)
+	   ) {
+		integrator_input = 0.0f;
+	}
+
+	_accel_to_pitch_integ += integrator_input * _transition_dt;
+
+	return math::constrain(pitch_sp_new, -pitch_lim, pitch_lim);
+
 }
 
 bool VtolType::can_transition_on_ground()
