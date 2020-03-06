@@ -85,6 +85,10 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
+	_params_handles.dec_to_pitch_ff = param_find("VT_B_DEC_FF");
+	_params_handles.dec_to_pitch_i = param_find("VT_B_DEC_I");
+	_params_handles.back_trans_dec_sp = param_find("VT_B_DEC_SP");
+
 
 	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
@@ -284,6 +288,10 @@ VtolAttitudeControl::parameters_update()
 
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
+
+	param_get(_params_handles.back_trans_dec_sp, &_params.back_trans_dec_sp);
+	param_get(_params_handles.dec_to_pitch_ff, &_params.dec_to_pitch_ff);
+	param_get(_params_handles.dec_to_pitch_i, &_params.dec_to_pitch_i);
 
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
