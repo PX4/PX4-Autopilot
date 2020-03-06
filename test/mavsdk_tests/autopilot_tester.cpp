@@ -42,6 +42,17 @@ void AutopilotTester::wait_until_ready_local_position_only()
 	}, std::chrono::seconds(20)));
 }
 
+void AutopilotTester::store_home()
+{
+    request_ground_truth();
+    _home = get_ground_truth_position();
+}
+
+void AutopilotTester::check_home_within(float acceptance_radius_m)
+{
+    CHECK(ground_truth_horizontal_position_close_to(_home, acceptance_radius_m));
+}
+
 void AutopilotTester::set_takeoff_altitude(const float altitude_m)
 {
     CHECK(Action::Result::SUCCESS == _action->set_takeoff_altitude(altitude_m));
@@ -94,12 +105,12 @@ void AutopilotTester::wait_until_hovering()
 
 void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
 {
-    const auto ct = _get_coordinate_transformation();
+    const auto ct = get_coordinate_transformation();
 
     std::vector<std::shared_ptr<MissionItem>> mission_items {};
-    mission_items.push_back(_create_mission_item({mission_options.leg_length_m, 0.}, mission_options, ct));
-    mission_items.push_back(_create_mission_item({mission_options.leg_length_m, mission_options.leg_length_m}, mission_options, ct));
-    mission_items.push_back(_create_mission_item({0., mission_options.leg_length_m}, mission_options, ct));
+    mission_items.push_back(create_mission_item({mission_options.leg_length_m, 0.}, mission_options, ct));
+    mission_items.push_back(create_mission_item({mission_options.leg_length_m, mission_options.leg_length_m}, mission_options, ct));
+    mission_items.push_back(create_mission_item({0., mission_options.leg_length_m}, mission_options, ct));
 
     _mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
 
@@ -132,7 +143,7 @@ void AutopilotTester::execute_mission()
     REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 }
 
-CoordinateTransformation AutopilotTester::_get_coordinate_transformation()
+CoordinateTransformation AutopilotTester::get_coordinate_transformation()
 {
     const auto home = _telemetry->home_position();
     REQUIRE(std::isfinite(home.latitude_deg));
@@ -140,7 +151,7 @@ CoordinateTransformation AutopilotTester::_get_coordinate_transformation()
     return CoordinateTransformation({home.latitude_deg, home.longitude_deg});
 }
 
-std::shared_ptr<MissionItem>  AutopilotTester::_create_mission_item(
+std::shared_ptr<MissionItem>  AutopilotTester::create_mission_item(
     const CoordinateTransformation::LocalCoordinate& local_coordinate,
     const MissionOptions& mission_options,
     const CoordinateTransformation& ct)
