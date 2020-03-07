@@ -78,6 +78,9 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 
 void* send(void *data);
 
+uint8_t last_remote_msg_seq = 0;
+uint8_t last_msg_seq = 0;
+
 @[if send_topics]@
 void* send(void* /*unused*/)
 {
@@ -106,11 +109,16 @@ void* send(void* /*unused*/)
         @(send_base_types[idx])_s @(topic)_data;
         if (@(topic)_sub.update(&@(topic)_data)) {
 @[if topic == 'Timesync' or topic == 'timesync']@
-                if (@(topic)_data.tc1 == 0) {
-                        @(topic)_data.seq++;
-                        @(topic)_data.tc1 = hrt_absolute_time() * 1000ULL;
-                        @(topic)_data.ts1 = @(topic)_data.ts1;
-                }
+            if(@(topic)_data.sys_id == 0 && @(topic)_data.seq != last_remote_msg_seq && @(topic)_data.tc1 == 0) {
+                last_remote_msg_seq = @(topic)_data.seq;
+
+                @(topic)_data.timestamp = hrt_absolute_time();
+                @(topic)_data.sys_id = 1;
+                @(topic)_data.seq = last_msg_seq;
+                @(topic)_data.tc1 = hrt_absolute_time() * 1000ULL;
+                @(topic)_data.ts1 = @(topic)_data.ts1;
+
+                last_msg_seq++;
 @[end if]@
                 // copy raw data into local buffer. Payload is shifted by header length to make room for header
                 serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
@@ -119,6 +127,9 @@ void* send(void* /*unused*/)
                     total_sent += read;
                     ++sent;
                 }
+@[if topic == 'Timesync' or topic == 'timesync']@
+            }
+@[end if]@
         }
 @[end for]@
         px4_usleep(_options.sleep_ms * 1000);

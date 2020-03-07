@@ -124,6 +124,9 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 @[    end if]@
             // apply timestamp offset
             _timesync->applyOffset(st.timestamp());
+@[    if topic == 'Timesync' or topic == 'timesync']@
+            if (st.sys_id() == 1)
+@[    end if]@
             _@(topic)_pub.publish(&st);
         }
         break;

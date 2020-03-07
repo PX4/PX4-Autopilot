@@ -102,7 +102,7 @@ public:
 	void setNewOffsetCB(std::function<void(int64_t)> callback);
 
 	/**
-	 * Returns clock monotonic time in nanoseconds
+	 * Get clock monotonic time (raw) in nanoseconds
 	 */
 	inline int64_t getSystemMonoNanos() {
 		timespec t;
@@ -111,12 +111,12 @@ public:
 	}
 
 	/**
-	 * Returns system realtime in seconds
+	 * Get system monotonic time in microseconds
 	 */
-	inline uint64_t getSystemTime() {
+	inline uint64_t getMonoTime() {
 		timespec t;
-		clock_gettime(CLOCK_REALTIME, &t);
-		return (uint64_t)t.tv_sec + t.tv_nsec;
+		clock_gettime(CLOCK_MONOTONIC, &t);
+		return (t.tv_sec * 1000000000ll + t.tv_nsec) / 1000ULL;
 	}
 
 	bool addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t local_t3_ns);
@@ -143,7 +143,7 @@ public:
 @[    end if]@
 @[end if]@
 
-	inline void applyOffset(uint64_t &timestamp) { timestamp += _offset_ns.load(); }
+	inline void applyOffset(uint64_t timestamp) { timestamp += _offset_ns.load(); }
 
 private:
 	std::atomic<int64_t> _offset_ns;
@@ -152,6 +152,7 @@ private:
 
 	int32_t _request_reset_counter;
 	uint8_t _last_msg_seq;
+	uint8_t _last_remote_msg_seq;
 
 @[if ros2_distro]@
 	Timesync_Publisher _timesync_pub;
