@@ -165,7 +165,7 @@ private:
 	float			_min_interval;
 	float 			_distance;
 	uint32_t 		_trigger_seq;
-	hrt_abstime		_trigger_timestamp;
+	hrt_abstime		_last_trigger_timestamp;
 	bool			_trigger_enabled;
 	bool			_trigger_paused;
 	bool			_one_shot;
@@ -249,7 +249,7 @@ CameraTrigger::CameraTrigger() :
 	_min_interval(1.0f /* ms */),
 	_distance(25.0f /* m */),
 	_trigger_seq(0),
-	_trigger_timestamp(0),
+	_last_trigger_timestamp(0),
 	_trigger_enabled(false),
 	_trigger_paused(false),
 	_one_shot(false),
@@ -272,7 +272,7 @@ CameraTrigger::CameraTrigger() :
 
 	// Parameters
 	_p_interval = param_find("TRIG_INTERVAL");
-	_p_min_interval = param_find("TRIG_MIN_TIMING");
+	_p_min_interval = param_find("TRIG_MIN_INTERVA");
 	_p_distance = param_find("TRIG_DISTANCE");
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
@@ -534,7 +534,7 @@ CameraTrigger::Run()
 			need_ack = true;
 			hrt_abstime now = hrt_absolute_time();
 
-			if (now - _trigger_timestamp < _min_interval * 1000) {
+			if (now - _last_trigger_timestamp < _min_interval * 1000) {
 				// triggering too fast, abort
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
@@ -739,14 +739,14 @@ CameraTrigger::engage(void *arg)
 
 	hrt_abstime now = hrt_absolute_time();
 
-	if ((trig->_trigger_timestamp > 0) && (now - trig->_trigger_timestamp < trig->_min_interval * 1000)) {
+	if ((trig->_last_trigger_timestamp > 0) && (now - trig->_last_trigger_timestamp < trig->_min_interval * 1000)) {
 		return;
 	}
 
 	// Trigger the camera
 	trig->_camera_interface->trigger(true);
 	// set last timestamp
-	trig->_trigger_timestamp = now;
+	trig->_last_trigger_timestamp = now;
 
 	if (trig->_test_shot) {
 		// do not send messages or increment frame count for test shots
@@ -759,7 +759,7 @@ CameraTrigger::engage(void *arg)
 	struct camera_trigger_s	trigger = {};
 
 	// Set timestamp the instant after the trigger goes off
-	trigger.timestamp = trig->_trigger_timestamp;
+	trigger.timestamp = now;
 
 	timespec tv = {};
 	px4_clock_gettime(CLOCK_REALTIME, &tv);
