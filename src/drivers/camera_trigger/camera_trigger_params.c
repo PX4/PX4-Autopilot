@@ -82,7 +82,7 @@ PARAM_DEFINE_FLOAT(TRIG_INTERVAL, 40.0f);
  * @reboot_required true
  * @group Camera trigger
  */
-PARAM_DEFINE_FLOAT(TRIG_MIN_TIMING, 1.0f);
+PARAM_DEFINE_FLOAT(TRIG_MIN_INTERVA, 1.0f);
 
 /**
  * Camera trigger polarity
