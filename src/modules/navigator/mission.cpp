@@ -509,11 +509,15 @@ Mission::update_mission()
 	}
 
 	if (failed) {
+		// only warn if the check failed on merit
+		if ((int)_mission.count > 0) {
+			PX4_WARN("mission check failed");
+	}
+
+		// reset the mission
 		_mission.count = 0;
 		_mission.current_seq = 0;
 		_current_mission_index = 0;
-
-		PX4_ERR("mission check failed");
 	}
 
 	// find and store landing start marker (if available)
