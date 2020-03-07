@@ -291,7 +291,10 @@ MissionBlock::is_mission_item_reached()
 
 			struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
 
-			// if either is not valid the gate is reached
+			// if the setpoint is valid we are checking if we reached the gate
+			// in the case of an invalid setpoint we are defaulting to
+			// assuming that we have already reached the gate to not block
+			// the further execution of the mission.
 			if (curr_sp->valid) {
 
 				// zero is the current gate position
