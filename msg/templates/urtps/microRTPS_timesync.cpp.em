@@ -71,7 +71,8 @@ TimeSync::TimeSync()
       _skew_ns_per_sync(0.0),
       _num_samples(0),
       _request_reset_counter(0),
-      _last_msg_seq(0)
+      _last_msg_seq(0),
+      _last_remote_msg_seq(0)
 {}
 
 TimeSync::~TimeSync() { stop(); }
@@ -198,34 +199,14 @@ void TimeSync::processTimesyncMsg(const @(package)::msg::Timesync* msg) {
 void TimeSync::processTimesyncMsg(const timesync* msg) {
 @[    end if]@
 @[end if]@
-	if (msg->seq() == _last_msg_seq) return;
-	_last_msg_seq = msg->seq();
+	if (msg->sys_id() == 1 && msg->seq() != _last_remote_msg_seq && msg->tc1() > 0) {
+                _last_remote_msg_seq = msg->seq();
 
-	int64_t now_time = getSystemMonoNanos();
+                int64_t now_time = getSystemMonoNanos();
 
-	if (msg->tc1() == 0) {
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-		@(package)::msg::dds_::Timesync_ reply = (*msg);
-@[    else]@
-		timesync_ reply = (*msg);
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-		@(package)::msg::Timesync reply = (*msg);
-@[    else]@
-		timesync reply = (*msg);
-@[    end if]@
-@[end if]@
-		reply.timestamp() = getSystemTime();
-		reply.seq() = _last_msg_seq;
-		reply.tc1() = now_time;
-
-		_timesync_pub.publish(&reply);
-
-	} else if (msg->tc1() > 0) {
-		bool added = addMeasurement(msg->ts1(), msg->tc1(), now_time);
+	        bool added = addMeasurement(msg->ts1(), msg->tc1(), now_time);
 		if (added && _notifyNewOffset) _notifyNewOffset(_offset_ns);
+                // std::cout << "Offset: " << _offset_ns << std::endl;
 	}
 }
 
@@ -246,7 +227,9 @@ timesync TimeSync::newTimesyncMsg() {
 	timesync msg{};
 @[    end if]@
 @[end if]@
-	msg.timestamp() = getSystemTime();
+	msg.timestamp() = getMonoTime();
+	applyOffset(msg.timestamp());
+	msg.sys_id() = 0;
 	msg.seq() = _last_msg_seq;
 	msg.tc1() = 0;
 	msg.ts1() = getSystemMonoNanos();
