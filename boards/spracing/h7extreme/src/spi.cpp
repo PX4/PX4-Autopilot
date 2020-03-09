@@ -60,6 +60,7 @@
 /* Define CS GPIO array */
 static constexpr uint32_t spi1selects_gpio[] = PX4_SENSOR_BUS_CS_GPIO;
 static constexpr uint32_t spi2selects_gpio[] = PX4_MEMORY_BUS_CS_GPIO;
+static constexpr uint32_t spi3selects_gpio[] = PX4_DEVICE_BUS_CS_GPIO;
 static constexpr uint32_t spi4selects_gpio[] = PX4_BARO_BUS_CS_GPIO;
 static constexpr uint32_t spi5selects_gpio[] = PX4_EXTERNAL1_BUS_CS_GPIO;
 static constexpr uint32_t spi6selects_gpio[] = PX4_EXTERNAL2_BUS_CS_GPIO;
@@ -176,6 +177,37 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 	return SPI_STATUS_PRESENT;
 }
 #endif // CONFIG_STM32H7_SPI2 && GPIO_SPI2_CS_FRAM
+
+/************************************************************************************
+ * Name: stm32_spi3select and stm32_spi3status
+ *
+ * Description:
+ *   Called by stm32 spi driver on bus 3.
+ *
+ ************************************************************************************/
+#if defined(CONFIG_STM32H7_SPI3)
+__EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
+{
+	if (devid == SPIDEV_FLASH(0)) {
+		devid = PX4_SPIDEV_MEMORY;
+	}
+
+	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_MEMORY);
+
+	// Making sure the other peripherals are not selected
+	for (auto cs : spi3selects_gpio) {
+		stm32_gpiowrite(cs, 1);
+	}
+
+	// SPI select is active low, so write !selected to select the device
+	stm32_gpiowrite(spi3selects_gpio[PX4_SPI_DEV_ID(devid)], !selected);
+}
+
+__EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, uint32_t devid)
+{
+	return SPI_STATUS_PRESENT;
+}
+#endif // CONFIG_STM32H7_SPI3 && GPIO_SPI3_CS_FRAM
 
 /************************************************************************************
  * Name: stm32_spi4select and stm32_spi4status

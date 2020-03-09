@@ -71,7 +71,7 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 // List of components on a specific board configuration
 // The index of those components is given by the enum (px4_hw_mft_item_id_t)
 // declared in board_common.h
-static const px4_hw_mft_item_t hw_mft_list_durandal[] = {
+static const px4_hw_mft_item_t hw_mft_list_sph7extreme[] = {
 	{
 		.present     = 1,
 		.mandatory   = 1,
@@ -80,7 +80,7 @@ static const px4_hw_mft_item_t hw_mft_list_durandal[] = {
 };
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{0x0000, hw_mft_list_durandal, arraySize(hw_mft_list_durandal)},
+	{0x0000, hw_mft_list_sph7extreme, arraySize(hw_mft_list_sph7extreme)},
 };
 
 /************************************************************************************
