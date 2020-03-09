@@ -142,8 +142,8 @@ public:
 @[end if]@
 
 	inline int64_t getOffset() { return _offset_ns.load(); }
-	inline void addOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL + _offset_ns.load()) / 10000ULL; }
-	inline void subtractOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL - _offset_ns.load()) / 10000ULL; }
+	inline void addOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL + _offset_ns.load()) / 1000ULL; }
+	inline void subtractOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL - _offset_ns.load()) / 1000ULL; }
 
 private:
 	std::atomic<int64_t> _offset_ns;
