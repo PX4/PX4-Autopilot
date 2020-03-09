@@ -69,6 +69,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("offboard_control_mode", 1000);
 	add_topic("position_controller_status", 500);
 	add_topic("position_setpoint_triplet", 200);
+	add_topic("rpm");
 	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 200);
 	add_topic("safety", 1000);
@@ -398,4 +399,3 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 		add_vision_and_avoidance_topics();
 	}
 }
-
