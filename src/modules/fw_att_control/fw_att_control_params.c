@@ -538,6 +538,18 @@ PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
 
 /**
+ * Disable of airspeed scaling
+ *
+ * Disable of airspeed scaling of control surfaces. Disabling of airspeed scaling
+ * is important for rotor craft and vehicles with rotor wing such as autogyro.
+ *
+ * @value 1 Airspeed scaling is enabled.
+ * @value 0 Airspeed scaling disabled
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_ARSP_SCALE, 1);
+
+/**
  * Manual roll scale
  *
  * Scale factor applied to the desired roll actuator command in full manual mode. This parameter allows
