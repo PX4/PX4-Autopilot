@@ -191,26 +191,28 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 {
 	// maximum up or down pitch the controller is allowed to demand
 	const float pitch_lim = 0.3f;
+	const Eulerf euler(Quatf(_v_att->q));
 
-	// calculate acceleration in body x direction
-	const Dcmf R_to_body(Quatf(_v_att->q).inversed());
-	const Vector3f acc = R_to_body * Vector3f(_local_pos->ax, _local_pos->ay, _local_pos->az);
-	float accel_body_x = acc(0);
-	float accel_error_x = 0.0f;
+	const float track = atan2f(_local_pos->vy, _local_pos->vx);
+	const float accel_body_forward = cosf(track) * _local_pos->ax + sinf(track) * _local_pos->ay;
+
+	float accel_error_forward = 0.0f;
 
 	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
-	accel_error_x = _params->back_trans_dec_sp + accel_body_x;
+	accel_error_forward = _params->back_trans_dec_sp + accel_body_forward;
+
 	float pitch_sp_new = _params->dec_to_pitch_ff * _params->back_trans_dec_sp + _accel_to_pitch_integ;
 
-	float integrator_input = _params->dec_to_pitch_i * accel_error_x;
+	float integrator_input = _params->dec_to_pitch_i * accel_error_forward;
 
-	if ((pitch_sp_new >= pitch_lim && accel_error_x > 0.0f) ||
-	    (pitch_sp_new <= -pitch_lim && accel_error_x < 0.0f)
+	if ((pitch_sp_new >= pitch_lim && accel_error_forward > 0.0f) ||
+	    (pitch_sp_new <= -pitch_lim && accel_error_forward < 0.0f)
 	   ) {
 		integrator_input = 0.0f;
 	}
 
 	_accel_to_pitch_integ += integrator_input * _transition_dt;
+
 
 	return math::constrain(pitch_sp_new, -pitch_lim, pitch_lim);
 
