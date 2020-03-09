@@ -2255,8 +2255,8 @@ Commander::run()
 			// Evaluate current prearm status
 			if (!armed.armed) {
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, status, status_flags, true, true, true, 30_s);
-				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, safety_s{},
-							PreFlightCheck::arm_requirements_t{}, status);
+				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, _safety,
+							_arm_requirements, status);
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, (preflight_check_res
 						 && prearm_check_res), status);
 			}
