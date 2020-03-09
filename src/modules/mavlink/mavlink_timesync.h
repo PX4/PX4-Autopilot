@@ -43,7 +43,7 @@
 #include "mavlink_bridge_header.h"
 
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/timesync.h>
+#include <uORB/topics/timesync_status.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -132,7 +132,7 @@ protected:
 	 */
 	void reset_filter();
 
-	uORB::PublicationMulti<timesync_s>  _timesync_pub{ORB_ID(timesync)};
+	uORB::PublicationMulti<timesync_status_s>  _timesync_status_pub{ORB_ID(timesync_status)};
 
 	uint32_t _sequence{0};
 
