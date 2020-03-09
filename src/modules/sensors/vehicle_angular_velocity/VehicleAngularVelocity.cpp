@@ -74,14 +74,14 @@ bool VehicleAngularVelocity::Start()
 
 void VehicleAngularVelocity::Stop()
 {
-	Deinit();
-
 	// clear all registered callbacks
 	for (auto &sub : _sensor_sub) {
 		sub.unregisterCallback();
 	}
 
 	_sensor_selection_sub.unregisterCallback();
+
+	Deinit();
 }
 
 void VehicleAngularVelocity::CheckFilters()
