@@ -89,6 +89,14 @@ WorkItem::Deinit()
 	}
 }
 
+void
+WorkItem::ScheduleClear()
+{
+	if (_wq != nullptr) {
+		_wq->Remove(this);
+	}
+}
+
 float
 WorkItem::elapsed_time() const
 {
