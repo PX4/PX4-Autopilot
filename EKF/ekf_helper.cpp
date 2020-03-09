@@ -246,7 +246,7 @@ void Ekf::resetHeight()
 		// initialize vertical position with newest baro measurement
 		const baroSample &baro_newest = _baro_buffer.get_newest();
 
-		if (isRecent(baro_newest.time_us, 2 * BARO_MAX_INTERVAL)) {
+		if (!_baro_hgt_faulty) {
 			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
 
 			// the state variance is the same as the observation
@@ -260,7 +260,7 @@ void Ekf::resetHeight()
 
 	} else if (_control_status.flags.gps_hgt) {
 		// initialize vertical position and velocity with newest gps measurement
-		if (isRecent(gps_newest.time_us, 2 * GPS_MAX_INTERVAL)) {
+		if (!_gps_hgt_intermittent) {
 			_state.pos(2) = _hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref;
 
 			// the state variance is the same as the observation
@@ -296,7 +296,7 @@ void Ekf::resetHeight()
 	}
 
 	// reset the vertical velocity state
-	if (_control_status.flags.gps && isRecent(gps_newest.time_us, 2 * GPS_MAX_INTERVAL)) {
+	if (_control_status.flags.gps && !_gps_hgt_intermittent) {
 		// If we are using GPS, then use it to reset the vertical velocity
 		_state.vel(2) = gps_newest.vel(2);
 
