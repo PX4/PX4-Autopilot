@@ -593,6 +593,16 @@ MulticopterPositionControl::Run()
 				constraints.speed_up = _param_mpc_z_vel_max_up.get();
 			}
 
+			// limit tilt during takeoff ramupup
+			if (_takeoff.getTakeoffState() < TakeoffState::flight && !PX4_ISFINITE(setpoint.thrust[2])) {
+				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
+			}
+
+			// limit altitude only if local position is valid
+			if (PX4_ISFINITE(_states.position(2))) {
+				limit_altitude(setpoint);
+			}
+
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff,
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
@@ -610,15 +620,6 @@ MulticopterPositionControl::Run()
 				_control.resetIntegral();
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
-			}
-
-			if (_takeoff.getTakeoffState() < TakeoffState::flight && !PX4_ISFINITE(setpoint.thrust[2])) {
-				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
-			}
-
-			// limit altitude only if local position is valid
-			if (PX4_ISFINITE(_states.position(2))) {
-				limit_altitude(setpoint);
 			}
 
 			// Run position control
