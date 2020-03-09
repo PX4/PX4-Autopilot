@@ -169,10 +169,10 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
                 // apply timestamp offset
                 _timesync->addOffset(msg.timestamp());
                 msg.serialize(scdr);
+                ret = true;
 @[    if topic == 'Timesync' or topic == 'timesync']@
                 }
 @[    end if]@
-                ret = true;
                 _@(topic)_sub.unlockMsg();
             }
         break;
