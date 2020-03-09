@@ -121,13 +121,15 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
             st.deserialize(cdr_des);
 @[    if topic == 'Timesync' or topic == 'timesync']@
             _timesync->processTimesyncMsg(&st);
+
+            if (st.sys_id() == 1) {
 @[    end if]@
             // apply timestamp offset
-            _timesync->applyOffset(st.timestamp());
-@[    if topic == 'Timesync' or topic == 'timesync']@
-            if (st.sys_id() == 1)
-@[    end if]@
+            _timesync->subtractOffset(st.timestamp());
             _@(topic)_pub.publish(&st);
+@[    if topic == 'Timesync' or topic == 'timesync']@
+            }
+@[    end if]@
         }
         break;
 @[end for]@
@@ -161,10 +163,15 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
                 @(topic) msg = _@(topic)_sub.getMsg();
 @[        end if]@
 @[    end if]@
+@[    if topic == 'Timesync' or topic == 'timesync']@
+                if (msg.sys_id() == 0) {
+@[    end if]@
                 // apply timestamp offset
-                _timesync->applyOffset(msg.timestamp());
-
+                _timesync->addOffset(msg.timestamp());
                 msg.serialize(scdr);
+@[    if topic == 'Timesync' or topic == 'timesync']@
+                }
+@[    end if]@
                 ret = true;
                 _@(topic)_sub.unlockMsg();
             }
