@@ -78,7 +78,7 @@ except AttributeError:
 
 static constexpr double ALPHA_INITIAL = 0.05;
 static constexpr double ALPHA_FINAL = 0.003;
-static constexpr double BETA_INTIIAL = 0.05;
+static constexpr double BETA_INITIAL = 0.05;
 static constexpr double BETA_FINAL = 0.003;
 static constexpr int WINDOW_SIZE = 500;
 static constexpr int64_t UNKNOWN = 0;
