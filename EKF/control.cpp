@@ -777,31 +777,7 @@ void Ekf::controlHeightSensorTimeouts()
 	 * source failed if we have switched.
 	*/
 
-	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical innovations being positive and not stale.
-	// Clipping causes the average accel reading to move towards zero which makes the INS think it is falling and produces positive vertical innovations
-	float var_product_lim = sq(_params.vert_innov_test_lim) * sq(_params.vert_innov_test_lim);
-	bool bad_vert_accel = (_control_status.flags.baro_hgt && // we can only run this check if vertical position and velocity observations are independent
-			(sq(_gps_pos_innov(2) * fmaxf(fabsf(_gps_vel_innov(2)),fabsf(_ev_vel_innov(2)))) > var_product_lim * (_gps_pos_innov_var(2) * fmaxf(fabsf(_gps_vel_innov_var(2)),fabsf(_ev_vel_innov_var(2))))) && // vertical position and velocity sensors are in agreement that we have a significant error
-			(_gps_vel_innov(2) > 0.0f || _ev_vel_innov(2) > 0.0f) && // positive innovation indicates that the inertial nav thinks it is falling
-			((_imu_sample_delayed.time_us - _baro_sample_delayed.time_us) < 2 * BARO_MAX_INTERVAL) && // vertical position data is fresh
-			((_imu_sample_delayed.time_us - _gps_sample_delayed.time_us) < 2 * GPS_MAX_INTERVAL)); // vertical velocity data is fresh
-
-	// record time of last bad vert accel
-	if (bad_vert_accel) {
-		_time_bad_vert_accel =  _time_last_imu;
-
-	} else {
-		_time_good_vert_accel = _time_last_imu;
-	}
-
-	// declare a bad vertical acceleration measurement and make the declaration persist
-	// for a minimum of 10 seconds
-	if (_bad_vert_accel_detected) {
-		_bad_vert_accel_detected = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
-
-	} else {
-		_bad_vert_accel_detected = bad_vert_accel;
-	}
+	checkVerticalAccelerationHealth();
 
 	// check if height is continuously failing because of accel errors
 	bool continuous_bad_accel_hgt = isTimedOut(_time_good_vert_accel, (uint64_t)_params.bad_acc_reset_delay_us);
@@ -943,6 +919,46 @@ void Ekf::controlHeightSensorTimeouts()
 
 		}
 
+	}
+}
+
+void Ekf::checkVerticalAccelerationHealth()
+{
+	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical
+	// innovations being positive and not stale.
+	// Clipping causes the average accel reading to move towards zero which makes the INS
+	// think it is falling and produces positive vertical innovations
+
+	const float var_product_lim = sq(_params.vert_innov_test_lim) * sq(_params.vert_innov_test_lim);
+	const bool is_fusing_gps_vel = !_gps_hgt_intermittent;
+	const bool is_fusing_baro_alt = _control_status.flags.baro_hgt && !_baro_hgt_faulty;
+	const bool are_vertical_pos_and_vel_independant = is_fusing_gps_vel && is_fusing_baro_alt; // TODO: should we add range hgt here?
+	const float pos_vel_innov_product = _gps_pos_innov(2) * fmaxf(fabsf(_gps_vel_innov(2)),fabsf(_ev_vel_innov(2)));
+	const float pos_vel_innov_var_product = _gps_pos_innov_var(2) * fmaxf(fabsf(_gps_vel_innov_var(2)),fabsf(_ev_vel_innov_var(2)));
+	const bool are_pos_vel_sensor_in_agreement = sq(pos_vel_innov_product) > var_product_lim * (pos_vel_innov_var_product);
+
+	// A positive innovation indicates that the inertial nav thinks it is falling
+	// This is caused by average of the Z accelerometer being 0, due to clipping
+	const bool is_inertial_nav_falling = _gps_vel_innov(2) > 0.0f || _ev_vel_innov(2) > 0.0f;
+
+	const bool bad_vert_accel = are_vertical_pos_and_vel_independant &&
+			      are_pos_vel_sensor_in_agreement &&
+			      is_inertial_nav_falling;
+
+	if (bad_vert_accel) {
+		_time_bad_vert_accel =  _time_last_imu;
+
+	} else {
+		_time_good_vert_accel = _time_last_imu;
+	}
+
+	// declare a bad vertical acceleration measurement and make the declaration persist
+	// for a minimum of BADACC_PROBATION seconds
+	if (_bad_vert_accel_detected) {
+		_bad_vert_accel_detected = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
+
+	} else {
+		_bad_vert_accel_detected = bad_vert_accel;
 	}
 }
 
