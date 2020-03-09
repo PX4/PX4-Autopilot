@@ -352,7 +352,6 @@ Logger *Logger::instantiate(int argc, char *argv[])
 	return logger;
 }
 
-
 Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
 	       LogMode log_mode, bool log_name_timestamp) :
 	ModuleParams(nullptr),
@@ -385,6 +384,19 @@ Logger::~Logger()
 
 	delete[](_msg_buffer);
 	delete[](_subscriptions);
+}
+
+void Logger::update_params(const bool force)
+{
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		ModuleParams::updateParams();
+	}
 }
 
 bool Logger::request_stop_static()
@@ -499,6 +511,7 @@ bool Logger::initialize_topics()
 void Logger::run()
 {
 	PX4_INFO("logger started (mode=%s)", configured_backend_mode());
+	update_params(true);
 
 	if (_writer.backend() & LogWriter::BackendFile) {
 		int mkdir_ret = mkdir(LOG_ROOT[(int)LogType::Full], S_IRWXU | S_IRWXG | S_IRWXO);
@@ -614,6 +627,7 @@ void Logger::run()
 	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
 	while (!should_exit()) {
+		update_params(false);
 
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
 		const bool logging_started = start_stop_logging();

@@ -53,6 +53,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/parameter_update.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
@@ -161,6 +162,12 @@ private:
 		unsigned min_delta_ms{0};        ///< minimum time between 2 topic writes [ms]
 		unsigned next_write_time{0};     ///< next time to write in 0.1 seconds
 	};
+
+	/**
+	 * @brief Updates and checks for updated uORB parameters.
+	 * @param force Boolean to determine if an update check should be forced.
+	 */
+	void update_params(const bool force = false);
 
 	/**
 	 * Write an ADD_LOGGED_MSG to the log for a all current subscriptions and instances
@@ -345,6 +352,7 @@ private:
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionInterval		_log_message_sub{ORB_ID(log_message), 20};
+	uORB::Subscription 				_parameter_update_sub{ORB_ID(parameter_update)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,
