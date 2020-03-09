@@ -594,7 +594,7 @@ MulticopterPositionControl::Run()
 			}
 
 			// limit tilt during takeoff ramupup
-			if (_takeoff.getTakeoffState() < TakeoffState::flight && !PX4_ISFINITE(setpoint.thrust[2])) {
+			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
 				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 			}
 
@@ -608,7 +608,7 @@ MulticopterPositionControl::Run()
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
-			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
+			if (_takeoff.getTakeoffState() < TakeoffState::rampup) {
 				// we are not flying yet and need to avoid any corrections
 				reset_setpoint_to_nan(setpoint);
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
@@ -664,7 +664,7 @@ MulticopterPositionControl::Run()
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
 			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
-			if (_takeoff.getTakeoffState() > TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
+			if (_takeoff.getTakeoffState() > TakeoffState::rampup) {
 				limit_thrust_during_landing(attitude_setpoint);
 			}
 
