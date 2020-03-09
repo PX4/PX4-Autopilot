@@ -811,8 +811,6 @@ void Ekf::controlHeightSensorTimeouts()
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to GPS");
 
 			} else if (!_baro_hgt_faulty) {
-				setControlBaroHeight();
-
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to baro");
 			}
@@ -839,8 +837,6 @@ void Ekf::controlHeightSensorTimeouts()
 				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to baro");
 
 			} else if (!_gps_hgt_intermittent) {
-				setControlGPSHeight();
-
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to GPS");
 			}
@@ -848,8 +844,6 @@ void Ekf::controlHeightSensorTimeouts()
 		} else if (_control_status.flags.rng_hgt) {
 
 			if (_rng_hgt_valid) {
-				setControlRangeHeight();
-
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to rng hgt");
 
@@ -866,8 +860,6 @@ void Ekf::controlHeightSensorTimeouts()
 			const bool ev_data_available = isRecent(ev_init.time_us, 2 * EV_MAX_INTERVAL);
 
 			if (ev_data_available) {
-				setControlEVHeight();
-
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to ev hgt");
 
@@ -884,7 +876,6 @@ void Ekf::controlHeightSensorTimeouts()
 			resetHeight();
 			// Reset the timout timer
 			_time_last_hgt_fuse = _time_last_imu;
-
 		}
 	}
 }
