@@ -190,23 +190,23 @@ void TimeSync::processTimesyncMsg(timesync* msg) {
 @[    end if]@
 @[end if]@
 	if (msg->sys_id() == 1 && msg->seq() != _last_remote_msg_seq) {
-                if (msg->tc1() > 0) {
-                        _last_remote_msg_seq = msg->seq();
+		if (msg->tc1() > 0) {
+			_last_remote_msg_seq = msg->seq();
 
-                        if (!addMeasurement(msg->ts1(), msg->tc1(), getMonoRawTimeNSec())) {
-                                std::cerr << "Offset not updated" << std::endl;
-                        }
+			if (!addMeasurement(msg->ts1(), msg->tc1(), getMonoRawTimeNSec())) {
+				std::cerr << "Offset not updated" << std::endl;
+			}
 
-	        } else if (msg->tc1() == 0) {
-                        _last_remote_msg_seq = msg->seq();
+		} else if (msg->tc1() == 0) {
+			_last_remote_msg_seq = msg->seq();
 
-                        msg->timestamp() = getMonoTimeUSec();
-                        msg->sys_id() = 0;
-                        msg->seq()++;
-                        msg->tc1() = getMonoRawTimeNSec();
+			msg->timestamp() = getMonoTimeUSec();
+			msg->sys_id() = 0;
+			msg->seq()++;
+			msg->tc1() = getMonoRawTimeNSec();
 
-                        _timesync_pub.publish(msg);
-                }
+			_timesync_pub.publish(msg);
+		}
 	}
 }
 
