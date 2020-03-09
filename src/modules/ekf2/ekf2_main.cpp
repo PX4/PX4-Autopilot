@@ -804,7 +804,6 @@ void Ekf2::Run()
 
 		ekf2_timestamps.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.gps_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
@@ -928,8 +927,6 @@ void Ekf2::Run()
 			if (_gps_subs[0].copy(&gps)) {
 				fillGpsMsgWithVehicleGpsPosData(_gps_state[0], gps);
 				_gps_alttitude_ellipsoid[0] = gps.alt_ellipsoid;
-
-				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
 			}
 		}
 
@@ -955,27 +952,14 @@ void Ekf2::Run()
 			// calculate blending weights
 			if (!blend_gps_data()) {
 				// handle case where the blended states cannot be updated
-				if (_gps_state[0].fix_type > _gps_state[1].fix_type) {
-					// GPS 1 has the best fix status so use that
-					_gps_select_index = 0;
-
-				} else if (_gps_state[1].fix_type > _gps_state[0].fix_type) {
-					// GPS 2 has the best fix status so use that
-					_gps_select_index = 1;
-
-				} else if (_gps_select_index == 2) {
-					// use last receiver we received data from
-					if (gps1_updated) {
-						_gps_select_index = 0;
-
-					} else if (gps2_updated) {
-						_gps_select_index = 1;
-					}
-				}
-
 				// Only use selected receiver data if it has been updated
 				_gps_new_output_data = (gps1_updated && _gps_select_index == 0) ||
 						       (gps2_updated && _gps_select_index == 1);
+
+				// Reset relative position offsets to zero
+				_NE_pos_offset_m[0].zero();
+				_NE_pos_offset_m[1].zero();
+				_hgt_offset_mm[0] = _hgt_offset_mm[1] = 0.0f;
 			}
 
 			if (_gps_new_output_data) {
@@ -1836,7 +1820,7 @@ bool Ekf2::blend_gps_data()
 	float dt_min = 0.3f;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		float raw_dt = 0.001f * (float)(_gps_state[i].time_usec - _time_prev_us[i]);
+		float raw_dt = 1e-6f * (float)(_gps_state[i].time_usec - _time_prev_us[i]);
 
 		if (raw_dt > 0.0f && raw_dt < 0.3f) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
@@ -1871,6 +1855,23 @@ bool Ekf2::blend_gps_data()
 
 	if ((max_us - min_us) > 300000) {
 		// A receiver has timed out so fall out of blending
+		if (_gps_state[0].time_usec > _gps_state[1].time_usec) {
+			_gps_select_index = 0;
+
+		} else {
+			_gps_select_index = 1;
+		}
+
+		return false;
+	}
+
+	// One receiver has lost 3D fix, fall out of blending
+	if (_gps_state[0].fix_type > 2 && _gps_state[1].fix_type < 3) {
+		_gps_select_index = 0;
+		return false;
+
+	} else if (_gps_state[1].fix_type > 2 && _gps_state[0].fix_type < 3) {
+		_gps_select_index = 1;
 		return false;
 	}
 
@@ -2208,7 +2209,6 @@ void Ekf2::update_gps_offsets()
 {
 
 	// Calculate filter coefficients to be applied to the offsets for each GPS position and height offset
-	// Increase the filter time constant proportional to the inverse of the weighting
 	// A weighting of 1 will make the offset adjust the slowest, a weighting of 0 will make it adjust with zero filtering
 	float alpha[GPS_MAX_RECEIVERS] = {};
 	float omega_lpf = 1.0f / fmaxf(_param_ekf2_gps_tau.get(), 1.0f);
@@ -2216,16 +2216,8 @@ void Ekf2::update_gps_offsets()
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		if (_gps_state[i].time_usec - _time_prev_us[i] > 0) {
 			// calculate the filter coefficient that achieves the time constant specified by the user adjustable parameter
-			float min_alpha = constrain(omega_lpf * 1e-6f * (float)(_gps_state[i].time_usec - _time_prev_us[i]),
-						    0.0f, 1.0f);
-
-			// scale the filter coefficient so that time constant is inversely proprtional to weighting
-			if (_blend_weights[i] > min_alpha) {
-				alpha[i] = min_alpha / _blend_weights[i];
-
-			} else {
-				alpha[i] = 1.0f;
-			}
+			alpha[i] = constrain(omega_lpf * 1e-6f * (float)(_gps_state[i].time_usec - _time_prev_us[i]),
+					     0.0f, 1.0f);
 
 			_time_prev_us[i] = _gps_state[i].time_usec;
 		}

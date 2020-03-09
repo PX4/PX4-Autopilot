@@ -108,15 +108,6 @@ public:
 	 */
 	void publish();
 
-	/**
-	 * Some old functionality expects the primary battery to be published on instance 0. To maintain backwards
-	 * compatibility, this function allows the advertisements (and therefore instances) of 2 batteries to be swapped.
-	 * However, this should not be relied upon anywhere, and should be considered for all intents deprecated.
-	 *
-	 * The proper way to uniquely identify batteries is by the `id` field in the `battery_status` message.
-	 */
-	void swapUorbAdvert(Battery &other);
-
 protected:
 	struct {
 		param_t v_empty;

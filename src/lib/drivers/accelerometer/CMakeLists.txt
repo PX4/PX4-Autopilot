@@ -37,6 +37,7 @@ px4_add_library(drivers_accelerometer
 )
 target_link_libraries(drivers_accelerometer
 	PRIVATE
+		conversion
 		drivers__device
 		mathlib
-	)
+)

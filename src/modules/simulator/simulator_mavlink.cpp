@@ -127,7 +127,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 		}
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (_actuator_outputs.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (armed) {
 				if (i < n) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
 					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
@@ -147,7 +147,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (_actuator_outputs.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (armed) {
 				if (i != 4) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
 					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
@@ -168,6 +168,10 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 	msg.mode |= (armed) ? mode_flag_armed : 0;
 	msg.flags = 0;
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	msg.flags |= 1;
+#endif
+
 	return msg;
 }
 
@@ -187,43 +191,39 @@ void Simulator::send_controls()
 	}
 }
 
-void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu)
+void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
-	if ((imu.fields_updated & 0x1FFF) != 0x1FFF) {
-		PX4_DEBUG("All sensor fields in mavlink HIL_SENSOR packet not updated.  Got %08x", imu.fields_updated);
-	}
-
 	// gyro
-	if (!_param_sim_gyro_block.get()) {
-		_px4_gyro.set_temperature(imu.temperature);
-		_px4_gyro.update(time, imu.xgyro, imu.ygyro, imu.zgyro);
+	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO && !_param_sim_gyro_block.get()) {
+		_px4_gyro.set_temperature(sensors.temperature);
+		_px4_gyro.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 	}
 
 	// accel
-	if (!_param_sim_accel_block.get()) {
-		_px4_accel.set_temperature(imu.temperature);
-		_px4_accel.update(time, imu.xacc, imu.yacc, imu.zacc);
+	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_param_sim_accel_block.get()) {
+		_px4_accel.set_temperature(sensors.temperature);
+		_px4_accel.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 	}
 
 	// magnetometer
-	if (!_param_sim_mag_block.get()) {
-		_px4_mag.set_temperature(imu.temperature);
-		_px4_mag.update(time, imu.xmag, imu.ymag, imu.zmag);
+	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG && !_param_sim_mag_block.get()) {
+		_px4_mag.set_temperature(sensors.temperature);
+		_px4_mag.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
 	}
 
 	// baro
-	if (!_param_sim_baro_block.get()) {
-		_px4_baro.set_temperature(imu.temperature);
-		_px4_baro.update(time, imu.abs_pressure);
+	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_param_sim_baro_block.get()) {
+		_px4_baro.set_temperature(sensors.temperature);
+		_px4_baro.update(time, sensors.abs_pressure);
 	}
 
 	// differential pressure
-	if (!_param_sim_dpres_block.get()) {
+	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_param_sim_dpres_block.get()) {
 		differential_pressure_s report{};
 		report.timestamp = time;
-		report.temperature = imu.temperature;
-		report.differential_pressure_filtered_pa = imu.diff_pressure * 100.0f; // convert from millibar to bar;
-		report.differential_pressure_raw_pa = imu.diff_pressure * 100.0f; // convert from millibar to bar;
+		report.temperature = sensors.temperature;
+		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
+		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 
 		_differential_pressure_pub.publish(report);
 	}
@@ -724,7 +724,7 @@ void Simulator::run()
 
 	} else {
 
-		PX4_INFO("Waiting for simulator to connect on TCP port %u", _port);
+		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
 			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -1121,9 +1121,37 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.current_distance = dist_mavlink->current_distance / 100.0f;
 	dist.type = dist_mavlink->type;
 	dist.id = dist_mavlink->id;
-	dist.orientation = dist_mavlink->orientation;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
 	dist.signal_quality = -1;
+
+	switch (dist_mavlink->orientation) {
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_270:
+		dist.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_90:
+		dist.orientation = distance_sensor_s::ROTATION_UPWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_180:
+		dist.orientation = distance_sensor_s::ROTATION_BACKWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_NONE:
+		dist.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_270:
+		dist.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_90:
+		dist.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
+		break;
+
+	default:
+		dist.orientation = distance_sensor_s::ROTATION_CUSTOM;
+	}
 
 	dist.h_fov = dist_mavlink->horizontal_fov;
 	dist.v_fov = dist_mavlink->vertical_fov;
@@ -1132,7 +1160,21 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.q[2] = dist_mavlink->quaternion[2];
 	dist.q[3] = dist_mavlink->quaternion[3];
 
-	_dist_pub.publish(dist);
+	// New publishers will be created based on the sensor ID's being different or not
+	for (size_t i = 0; i < sizeof(_dist_sensor_ids) / sizeof(_dist_sensor_ids[0]); i++) {
+		if (_dist_pubs[i] && _dist_sensor_ids[i] == dist.id) {
+			_dist_pubs[i]->publish(dist);
+			break;
+
+		}
+
+		if (_dist_pubs[i] == nullptr) {
+			_dist_pubs[i] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
+			_dist_sensor_ids[i] = dist.id;
+			_dist_pubs[i]->publish(dist);
+			break;
+		}
+	}
 
 	return PX4_OK;
 }

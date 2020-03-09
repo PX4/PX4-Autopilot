@@ -6,6 +6,7 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
+	CONSTRAINED_FLASH
 	SERIAL_PORTS
 		TEL2:/dev/ttyS1
 		URT6:/dev/ttyS2
@@ -22,6 +23,7 @@ px4_add_board(
 		#heater
 		#imu # all available imu drivers
 		imu/mpu6000
+		imu/invensense/icm20602
 		#irlock
 		#lights/blinkm
 		lights/rgbled
@@ -96,7 +98,6 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

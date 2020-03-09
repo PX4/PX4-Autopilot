@@ -117,10 +117,6 @@ private:
 #endif
 	}; // End _analogBatteries
 
-#if BOARD_NUMBER_BRICKS > 1
-	int 			_battery_pub_intance0ndx {0}; /**< track the index of instance 0 */
-#endif /* BOARD_NUMBER_BRICKS > 1 */
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	/**
@@ -210,17 +206,7 @@ BatteryStatus::adc_poll()
 						 * VDD_5V_IN
 						 */
 						selected_source = b;
-#  if BOARD_NUMBER_BRICKS > 1
 
-						/* Move the selected_source to instance 0 */
-						if (_battery_pub_intance0ndx != selected_source) {
-							_analogBatteries[_battery_pub_intance0ndx]->swapUorbAdvert(
-								*_analogBatteries[selected_source]
-							);
-							_battery_pub_intance0ndx = selected_source;
-						}
-
-#  endif /* BOARD_NUMBER_BRICKS > 1 */
 					}
 
 					/* look for specific channels and process the raw voltage to measurement data */

@@ -28,7 +28,10 @@ px4_add_board(
 		imu/adis16448
 		imu/adis16477
 		imu/adis16497
-		imu/mpu6000
+		imu/invensense/icm20602
+		imu/invensense/icm20608g
+		#imu/invensense/mpu9250
+		#imu/mpu6000 # legacy icm20602/icm20608g driver
 		imu/mpu9250
 		irlock
 		lights/blinkm
@@ -78,6 +81,7 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
+		uuv_att_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -109,7 +113,6 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

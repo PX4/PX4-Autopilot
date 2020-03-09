@@ -44,7 +44,7 @@
  *
  * Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @min 0.0
+ * @min 0.01
  * @max 0.5
  * @decimal 3
  * @increment 0.01
@@ -112,7 +112,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
  * Set MC_ROLLRATE_P=1 to implement a PID in the ideal form.
  * Set MC_ROLLRATE_K=1 to implement a PID in the parallel form.
  *
- * @min 0.0
+ * @min 0.01
  * @max 5.0
  * @decimal 4
  * @increment 0.0005
@@ -125,7 +125,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_K, 1.0f);
  *
  * Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @min 0.0
+ * @min 0.01
  * @max 0.6
  * @decimal 3
  * @increment 0.01
@@ -192,7 +192,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
  * Set MC_PITCHRATE_P=1 to implement a PID in the ideal form.
  * Set MC_PITCHRATE_K=1 to implement a PID in the parallel form.
  *
- * @min 0.0
+ * @min 0.01
  * @max 5.0
  * @decimal 4
  * @increment 0.0005

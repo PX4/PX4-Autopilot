@@ -147,6 +147,10 @@
 #define ADC_3V3_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
+#ifndef BOARD_ADC_POS_REF_V
+#define BOARD_ADC_POS_REF_V              (3.3f) // Default reference voltage for every channels
+#endif
+
 #ifndef BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN
 #define BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN (3.3f) // Reference voltage for reading out the current channel
 #endif
@@ -383,6 +387,8 @@ typedef enum PX4_SOC_ARCH_ID_t {
 	PX4_SOC_ARCH_ID_NXPIMXRT1062   =  0x0005,
 
 	PX4_SOC_ARCH_ID_STM32H7        =  0x0006,
+
+	PX4_SOC_ARCH_ID_NXPS32K146     =  0x0007,
 
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,
@@ -658,6 +664,7 @@ __EXPORT int board_set_bootload_mode(board_reset_e mode);
 
 typedef enum {
 	PX4_MFT_PX4IO = 0,
+	PX4_MFT_USB   = 1,
 } px4_hw_mft_item_id_t;
 
 typedef enum {

@@ -609,7 +609,11 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 		}
 	}
 
-	if (_uart_fd < 0) {
+	/*
+	 * Return here in the iridium mode since the iridium driver does not
+	 * support the subsequent function calls.
+	*/
+	if (_uart_fd < 0 || _mode == MAVLINK_MODE_IRIDIUM) {
 		return _uart_fd;
 	}
 
@@ -1528,12 +1532,15 @@ Mavlink::update_rate_mult()
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > 5_s) {
+		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() *
+				1_s)) {
 			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
-
 			_radio_status_available = false;
-			_radio_status_critical = false;
-			_radio_status_mult = 1.0f;
+
+			if (_use_software_mav_throttling) {
+				_radio_status_critical = false;
+				_radio_status_mult = 1.0f;
+			}
 		}
 
 		hardware_mult *= _radio_status_mult;
@@ -1712,6 +1719,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("WIND_COV", 1.0f);
+		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
 		break;
 
 
@@ -2264,7 +2272,7 @@ Mavlink::task_main(int argc, char *argv[])
 			/* switch HIL mode if required */
 			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
-			set_manual_input_mode_generation(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+			set_generate_virtual_rc_input(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
 
 			if (_mode == MAVLINK_MODE_IRIDIUM) {
 

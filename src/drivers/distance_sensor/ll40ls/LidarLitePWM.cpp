@@ -46,11 +46,13 @@
 
 #ifdef LIDAR_LITE_PWM_SUPPORTED
 
+#include <px4_arch/io_timer.h>
+
 LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
 	LidarLite(rotation),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	px4_arch_configgpio(GPIO_VDD_RANGEFINDER_EN);
+	px4_arch_configgpio(io_timer_channel_get_gpio_output(GPIO_VDD_RANGEFINDER_EN_CHAN));
 }
 
 LidarLitePWM::~LidarLitePWM()

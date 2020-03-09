@@ -17,7 +17,7 @@
 #
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
+set MIXER quad_x_cw
 set PWM_OUT 1234
 if [ $AUTOCNF = yes ]
 then

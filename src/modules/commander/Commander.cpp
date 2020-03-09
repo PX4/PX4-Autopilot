@@ -691,13 +691,16 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 						break;
 					}
 
-					// Flick to inair restore first if this comes from an onboard system
-					if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
+					const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
+
+					// Flick to inair restore first if this comes from an onboard system and from IO
+					if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id
+					    && cmd_from_io && cmd_arms) {
 						status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
 
 					} else {
 						// Refuse to arm if preflight checks have failed
-						if ((!status_local->hil_state) != vehicle_status_s::HIL_STATE_ON
+						if (status_local->hil_state != vehicle_status_s::HIL_STATE_ON
 						    && !status_flags.condition_system_sensors_initialized) {
 							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Preflight checks have failed");
 							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
@@ -1366,6 +1369,8 @@ Commander::run()
 				}
 			}
 
+			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get());
+
 			param_init_forced = false;
 		}
 
@@ -1746,10 +1751,13 @@ Commander::run()
 
 		const bool override_auto_mode =
 			(_param_rc_override.get() & OVERRIDE_AUTO_MODE_BIT) &&
-			(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND    ||
+			(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND    ||
 			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL 	  ||
 			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER);
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND);
 
 		const bool override_offboard_mode =
 			(_param_rc_override.get() & OVERRIDE_OFFBOARD_MODE_BIT) &&
@@ -1766,7 +1774,7 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &_internal_state);
-				mavlink_log_info(&mavlink_log_pub, "Autonomy off! Returned control to pilot");
+				mavlink_log_info(&mavlink_log_pub, "Pilot took over control using sticks");
 			}
 		}
 
@@ -1969,6 +1977,8 @@ Commander::run()
 
 		// data link checks which update the status
 		data_link_check();
+
+		avoidance_check();
 
 		// engine failure detection
 		// TODO: move out of commander
@@ -3608,7 +3618,6 @@ void Commander::data_link_check()
 					_datalink_last_status_avoidance_system = telemetry.remote_system_status;
 
 					if (_avoidance_system_lost) {
-						mavlink_log_info(&mavlink_log_pub, "Avoidance system regained");
 						_status_changed = true;
 						_avoidance_system_lost = false;
 						status_flags.avoidance_system_valid = true;
@@ -3648,42 +3657,29 @@ void Commander::data_link_check()
 	// AVOIDANCE SYSTEM state check (only if it is enabled)
 	if (status_flags.avoidance_system_required && !_onboard_controller_lost) {
 
-		//if avoidance never started
-		if (_datalink_last_heartbeat_avoidance_system == 0
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _param_com_oa_boot_t.get() * 1_s) {
-			if (!_print_avoidance_msg_once) {
-				mavlink_log_critical(&mavlink_log_pub, "Avoidance system not available");
-				_print_avoidance_msg_once = true;
-
-			}
-		}
-
 		//if heartbeats stop
 		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
 		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
 			_avoidance_system_lost = true;
-			mavlink_log_critical(&mavlink_log_pub, "Avoidance system lost");
 			status_flags.avoidance_system_valid = false;
-			_print_avoidance_msg_once = false;
 		}
 
 		//if status changed
 		if (_avoidance_system_status_change) {
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_BOOT) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system starting");
+				status_flags.avoidance_system_valid = false;
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_ACTIVE) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system connected");
 				status_flags.avoidance_system_valid = true;
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system timed out");
+				status_flags.avoidance_system_valid = false;
+				_status_changed = true;
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
-				mavlink_log_critical(&mavlink_log_pub, "Avoidance system rejected");
 				status_flags.avoidance_system_valid = false;
 				_status_changed = true;
 			}
@@ -3706,70 +3702,140 @@ void Commander::data_link_check()
 	}
 }
 
+void Commander::avoidance_check()
+{
+
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (_sub_distance_sensor[i].updated()) {
+			distance_sensor_s distance_sensor {};
+			_sub_distance_sensor[i].copy(&distance_sensor);
+
+			if ((distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
+			    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
+				_valid_distance_sensor_time_us = distance_sensor.timestamp;
+			}
+		}
+	}
+
+	const bool cp_enabled =  _param_cp_dist.get() > 0.f;
+
+	const bool distance_sensor_valid = hrt_elapsed_time(&_valid_distance_sensor_time_us) < 500_ms;
+	const bool cp_healthy = status_flags.avoidance_system_valid || distance_sensor_valid;
+
+	const bool sensor_oa_present = cp_healthy || status_flags.avoidance_system_required || cp_enabled;
+
+	const bool auto_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_OFFBOARD
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND;
+	const bool pos_ctl_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL;
+
+	const bool sensor_oa_enabled = ((auto_mode && status_flags.avoidance_system_required) || (pos_ctl_mode && cp_enabled));
+	const bool sensor_oa_healthy = ((auto_mode && status_flags.avoidance_system_valid) || (pos_ctl_mode && cp_healthy));
+
+	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE, sensor_oa_present, sensor_oa_enabled,
+			 sensor_oa_healthy, status);
+
+}
+
 void Commander::battery_status_check()
 {
-	/* update battery status */
-	if (_battery_sub.updated()) {
-		battery_status_s battery{};
+	bool battery_sub_updated = false;
 
-		if (_battery_sub.copy(&battery)) {
+	battery_status_s batteries[ORB_MULTI_MAX_INSTANCES];
+	size_t num_connected_batteries = 0;
 
 
-			bool battery_warning_level_increased_while_armed = false;
-			bool update_internal_battery_state = false;
+	for (size_t i = 0; i < sizeof(_battery_subs) / sizeof(_battery_subs[0]); i++) {
+		if (_battery_subs[i].updated() && _battery_subs[i].copy(&batteries[num_connected_batteries])) {
+			// We need to update the status flag if ANY battery is updated, because the system source might have
+			// changed, or might be nothing (if there is no battery connected)
+			battery_sub_updated = true;
 
-			if (armed.armed) {
-				if (battery.warning > _battery_warning) {
-					battery_warning_level_increased_while_armed = true;
-					update_internal_battery_state = true;
-				}
+			if (batteries[num_connected_batteries].connected) {
+				num_connected_batteries++;
+			}
+		}
+	}
+
+	if (!battery_sub_updated) {
+		// Nothing has changed since the last time this function was called, so nothing needs to be done now.
+		return;
+	}
+
+	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
+	// option is to check if ANY of them have a warning, and specifically find which one has the most
+	// urgent warning.
+	uint8_t worst_warning = battery_status_s::BATTERY_WARNING_NONE;
+	// To make sure that all connected batteries are being regularly reported, we check which one has the
+	// oldest timestamp.
+	hrt_abstime oldest_update = hrt_absolute_time();
+
+	// Only iterate over connected batteries. We don't care if a disconnected battery is not regularly publishing.
+	for (size_t i = 0; i < num_connected_batteries; i++) {
+		if (batteries[i].warning > worst_warning) {
+			worst_warning = batteries[i].warning;
+		}
+
+		if (hrt_elapsed_time(&batteries[i].timestamp) > hrt_elapsed_time(&oldest_update)) {
+			oldest_update = batteries[i].timestamp;
+		}
+
+		if (batteries[i].system_source) {
+			_battery_current = batteries[i].current_filtered_a;
+		}
+	}
+
+	bool battery_warning_level_increased_while_armed = false;
+	bool update_internal_battery_state = false;
+
+	if (armed.armed) {
+		if (worst_warning > _battery_warning) {
+			battery_warning_level_increased_while_armed = true;
+			update_internal_battery_state = true;
+		}
+
+	} else {
+		if (_battery_warning != worst_warning) {
+			update_internal_battery_state = true;
+		}
+	}
+
+	if (update_internal_battery_state) {
+		_battery_warning = worst_warning;
+	}
+
+	status_flags.condition_battery_healthy =
+		// All connected batteries are regularly being published
+		(hrt_elapsed_time(&oldest_update) < 5_s)
+		// There is at least one connected battery (in any slot)
+		&& num_connected_batteries > 0
+		// No currently-connected batteries have any warning
+		&& (_battery_warning == battery_status_s::BATTERY_WARNING_NONE);
+
+	// execute battery failsafe if the state has gotten worse while we are armed
+	if (battery_warning_level_increased_while_armed) {
+		battery_failsafe(&mavlink_log_pub, status, status_flags, &_internal_state, _battery_warning,
+				 (low_battery_action_t)_param_com_low_bat_act.get());
+	}
+
+	// Handle shutdown request from emergency battery action
+	if (update_internal_battery_state) {
+
+		if ((_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
+			mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
+			px4_usleep(200000);
+
+			int ret_val = px4_shutdown_request(false, false);
+
+			if (ret_val) {
+				mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
 
 			} else {
-				if (_battery_warning != battery.warning) {
-					update_internal_battery_state = true;
-				}
+				while (1) { px4_usleep(1); }
 			}
-
-			if (update_internal_battery_state) {
-				_battery_warning = battery.warning;
-			}
-
-
-			if ((hrt_elapsed_time(&battery.timestamp) < 5_s)
-			    && battery.connected
-			    && (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)) {
-
-				status_flags.condition_battery_healthy = true;
-
-			} else {
-				status_flags.condition_battery_healthy = false;
-			}
-
-			// execute battery failsafe if the state has gotten worse while we are armed
-			if (battery_warning_level_increased_while_armed) {
-				battery_failsafe(&mavlink_log_pub, status, status_flags, &_internal_state, battery.warning,
-						 (low_battery_action_t)_param_com_low_bat_act.get());
-			}
-
-			// Handle shutdown request from emergency battery action
-			if (update_internal_battery_state) {
-
-				if ((_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
-					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
-					px4_usleep(200000);
-
-					int ret_val = px4_shutdown_request(false, false);
-
-					if (ret_val) {
-						mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
-
-					} else {
-						while (1) { px4_usleep(1); }
-					}
-				}
-			}
-
-			_battery_current = battery.current_filtered_a;
 		}
 	}
 }
@@ -3929,38 +3995,16 @@ Commander::offboard_control_update()
 		}
 	}
 
-	if (offboard_control_mode.timestamp != 0 &&
-	    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
-		if (status_flags.offboard_control_signal_lost) {
-			status_flags.offboard_control_signal_lost = false;
-			status_flags.offboard_control_loss_timeout = false;
-			_status_changed = true;
-		}
+	_offboard_available.set_state_and_update(
+		hrt_elapsed_time(&offboard_control_mode.timestamp) < _param_com_of_loss_t.get() * 1e6f,
+		hrt_absolute_time());
 
-	} else {
-		if (!status_flags.offboard_control_signal_lost) {
-			status_flags.offboard_control_signal_lost = true;
-			_status_changed = true;
-		}
+	const bool offboard_lost = !_offboard_available.get_state();
 
-		/* check timer if offboard was there but now lost */
-		if (!status_flags.offboard_control_loss_timeout && offboard_control_mode.timestamp != 0) {
-			if (_param_com_of_loss_t.get() < FLT_EPSILON) {
-				/* execute loss action immediately */
-				status_flags.offboard_control_loss_timeout = true;
-
-			} else {
-				/* wait for timeout if set */
-				status_flags.offboard_control_loss_timeout = offboard_control_mode.timestamp +
-						OFFBOARD_TIMEOUT + _param_com_of_loss_t.get() * 1e6f < hrt_absolute_time();
-			}
-
-			if (status_flags.offboard_control_loss_timeout) {
-				_status_changed = true;
-			}
-		}
+	if (status_flags.offboard_control_signal_lost != offboard_lost) {
+		status_flags.offboard_control_signal_lost = offboard_lost;
+		_status_changed = true;
 	}
-
 }
 
 void Commander::esc_status_check(const esc_status_s &esc_status)
