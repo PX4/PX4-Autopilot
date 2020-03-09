@@ -99,51 +99,51 @@ public:
 	void reset();
 	void stop();
 
-	void setNewOffsetCB(std::function<void(int64_t)> callback);
-
 	/**
 	 * Get clock monotonic time (raw) in nanoseconds
 	 */
-	inline int64_t getSystemMonoNanos() {
+	inline int64_t getMonoRawTimeNSec() {
 		timespec t;
 		clock_gettime(CLOCK_MONOTONIC_RAW, &t);
-		return (int64_t)t.tv_sec * 1000000000ll + t.tv_nsec;
+		return (int64_t)t.tv_sec * 1000000000LL + t.tv_nsec;
 	}
 
 	/**
 	 * Get system monotonic time in microseconds
 	 */
-	inline uint64_t getMonoTime() {
+	inline int64_t getMonoTimeUSec() {
 		timespec t;
 		clock_gettime(CLOCK_MONOTONIC, &t);
-		return (t.tv_sec * 1000000000ll + t.tv_nsec) / 1000ULL;
+		return (int64_t)(t.tv_sec * 1000000000LL + t.tv_nsec) / 1000LL;
 	}
 
 	bool addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t local_t3_ns);
 
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
 @[    if ros2_distro]@
-	void processTimesyncMsg(const @(package)::msg::dds_::Timesync_* msg);
+	void processTimesyncMsg(@(package)::msg::dds_::Timesync_* msg);
 
 	@(package)::msg::dds_::Timesync_ newTimesyncMsg();
 @[    else]@
-	void processTimesyncMsg(const timesync_* msg);
+	void processTimesyncMsg(timesync_* msg);
 
 	timesync_ newTimesyncMsg();
 @[    end if]@
 @[else]@
 @[    if ros2_distro]@
-	void processTimesyncMsg(const @(package)::msg::Timesync* msg);
+	void processTimesyncMsg(@(package)::msg::Timesync* msg);
 
 	@(package)::msg::Timesync newTimesyncMsg();
 @[    else]@
-	void processTimesyncMsg(const timesync* msg);
+	void processTimesyncMsg(timesync* msg);
 
 	timesync newTimesyncMsg();
 @[    end if]@
 @[end if]@
 
-	inline void applyOffset(uint64_t timestamp) { timestamp += _offset_ns.load(); }
+	inline int64_t getOffset() { return _offset_ns.load(); }
+	inline void addOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL + _offset_ns.load()) / 10000ULL; }
+	inline void subtractOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL - _offset_ns.load()) / 10000ULL; }
 
 private:
 	std::atomic<int64_t> _offset_ns;
@@ -165,5 +165,5 @@ private:
 	std::unique_ptr<std::thread> _send_timesync_thread;
 	std::atomic<bool> _request_stop{false};
 
-	std::function<void(int64_t)> _notifyNewOffset;
+	inline void updateOffset(const uint64_t& offset) { _offset_ns.store(offset, std::memory_order_relaxed); }
 };
