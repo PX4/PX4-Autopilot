@@ -612,6 +612,14 @@ MulticopterPositionControl::Run()
 			const bool flying = _takeoff.getTakeoffState() >= TakeoffState::flight;
 			const bool flying_but_ground_contact = flying && _vehicle_land_detected.ground_contact;
 
+			if (flying) {
+				_control.setThrustLimits(_param_mpc_thr_min.get(), _param_mpc_thr_max.get());
+
+			} else {
+				// allow zero thrust when taking off and landing
+				_control.setThrustLimits(0.f, _param_mpc_thr_max.get());
+			}
+
 			if (not_taken_off || flying_but_ground_contact) {
 				// we are not flying yet and need to avoid any corrections
 				reset_setpoint_to_nan(setpoint);
