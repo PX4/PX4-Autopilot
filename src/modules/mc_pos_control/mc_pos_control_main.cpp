@@ -608,7 +608,11 @@ MulticopterPositionControl::Run()
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
-			if (_takeoff.getTakeoffState() < TakeoffState::rampup) {
+			const bool not_taken_off = _takeoff.getTakeoffState() < TakeoffState::rampup;
+			const bool flying = _takeoff.getTakeoffState() >= TakeoffState::flight;
+			const bool flying_but_ground_contact = flying && _vehicle_land_detected.ground_contact;
+
+			if (not_taken_off || flying_but_ground_contact) {
 				// we are not flying yet and need to avoid any corrections
 				reset_setpoint_to_nan(setpoint);
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
@@ -618,6 +622,9 @@ MulticopterPositionControl::Run()
 				setpoint.yawspeed = 0.f;
 				// prevent any integrator windup
 				_control.resetIntegral();
+			}
+
+			if (not_taken_off) {
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
 			}
@@ -660,13 +667,6 @@ MulticopterPositionControl::Run()
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
 			_control.getAttitudeSetpoint(attitude_setpoint);
-
-			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
-			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
-			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
-			if (_takeoff.getTakeoffState() > TakeoffState::rampup) {
-				limit_thrust_during_landing(attitude_setpoint);
-			}
 
 			// publish attitude setpoint
 			// It's important to publish also when disarmed otheriwse the attitude setpoint stays uninitialized.
@@ -905,21 +905,6 @@ MulticopterPositionControl::start_flight_task()
 
 	} else if (should_disable_task) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
-	}
-}
-
-void
-MulticopterPositionControl::limit_thrust_during_landing(vehicle_attitude_setpoint_s &setpoint)
-{
-	if (_vehicle_land_detected.ground_contact
-	    || _vehicle_land_detected.maybe_landed) {
-		// we set the collective thrust to zero, this will help to decide if we are actually landed or not
-		setpoint.thrust_body[2] = 0.f;
-		// go level to avoid corrections but keep the heading we have
-		Quatf(AxisAngle<float>(0, 0, _states.yaw)).copyTo(setpoint.q_d);
-		setpoint.yaw_sp_move_rate = 0.f;
-		// prevent any position control integrator windup
-		_control.resetIntegral();
 	}
 }
 
