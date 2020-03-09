@@ -141,22 +141,22 @@ public:
 @[    end if]@
 @[end if]@
 
-        /**
-         * @brief Get the time sync offset in nanoseconds
-         * @return The offset in nanosecods
-         */
+	/**
+	 * @@brief Get the time sync offset in nanoseconds
+	 * @@return The offset in nanosecods
+	 */
 	inline int64_t getOffset() { return _offset_ns.load(); }
 
-        /**
-         * @brief Sums the time sync offset to the timestamp
-         * @param[in,out] timestamp The timestamp to add the offset to
-         */
+	/**
+	 * @@brief Sums the time sync offset to the timestamp
+	 * @@param[in,out] timestamp The timestamp to add the offset to
+	 */
 	inline void addOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL + _offset_ns.load()) / 1000ULL; }
 
-        /**
-         * @brief Substracts the time sync offset to the timestamp
-         * @param[in,out] timestamp The timestamp to subtract the offset of
-         */
+	/**
+	 * @@brief Substracts the time sync offset to the timestamp
+	 * @@param[in,out] timestamp The timestamp to subtract the offset of
+	 */
 	inline void subtractOffset(uint64_t& timestamp) { timestamp = (timestamp * 1000LL - _offset_ns.load()) / 1000ULL; }
 
 private:
@@ -179,9 +179,9 @@ private:
 	std::unique_ptr<std::thread> _send_timesync_thread;
 	std::atomic<bool> _request_stop{false};
 
-        /**
-         * @brief Updates the offset of the time sync filter
-         * @param[in] offset The value of the offset to update to
-         */
+	/**
+	 * @@brief Updates the offset of the time sync filter
+	 * @@param[in] offset The value of the offset to update to
+	 */
 	inline void updateOffset(const uint64_t& offset) { _offset_ns.store(offset, std::memory_order_relaxed); }
 };
