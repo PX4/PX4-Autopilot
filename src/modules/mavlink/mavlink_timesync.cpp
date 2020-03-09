@@ -138,7 +138,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				}
 
 				// Publish status message
-				timesync_s tsync_status{};
+				timesync_status_s tsync_status{};
 
 				tsync_status.timestamp = hrt_absolute_time();
 				tsync_status.remote_timestamp = tsync.tc1 / 1000ULL;
@@ -146,7 +146,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				tsync_status.estimated_offset = (int64_t)_time_offset;
 				tsync_status.round_trip_time = rtt_us;
 
-				_timesync_pub.publish(tsync_status);
+				_timesync_status_pub.publish(tsync_status);
 			}
 
 			break;

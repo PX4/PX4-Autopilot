@@ -1,10 +1,5 @@
-uint64 timestamp		# time since system start (microseconds)
-uint8 sys_id                    # id of the origin system
-uint8 seq                       # timesync msg sequence
-int64 tc1                       # time sync timestamp 1
-int64 ts1                       # time sync timestamp 2
-
-uint64 remote_timestamp		# remote system timestamp (microseconds)
-int64 observed_offset		# raw time offset directly observed from this timesync packet (microseconds)
-int64 estimated_offset		# smoothed time offset between companion system and PX4 (microseconds)
-uint32 round_trip_time		# round trip time of this timesync packet (microseconds)
+uint64 timestamp	       # time since system start (microseconds)
+uint8 sys_id                  # id of the origin system
+uint8 seq		       # timesync msg sequence
+int64 tc1		       # time sync timestamp 1
+int64 ts1		       # time sync timestamp 2
