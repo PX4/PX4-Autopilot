@@ -157,9 +157,15 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 		return false;
 	}
 
-	double schedule = std::min((double)_num_samples / WINDOW_SIZE, 1.);
-	double alpha = ALPHA_INITIAL * (1. - schedule) + ALPHA_FINAL * schedule;
-	double beta = BETA_INTIIAL * (1. - schedule) + BETA_FINAL * schedule;
+        double alpha = ALPHA_FINAL;
+        double beta = BETA_FINAL;
+
+        if (_num_samples < WINDOW_SIZE) {
+                double schedule = (double)_num_samples / WINDOW_SIZE;
+                double s = 1. - exp(.5 * (1. - 1. / (1. - schedule)));
+                alpha = (1. - s) * ALPHA_INITIAL + s * ALPHA_FINAL;
+                beta = (1. - s) * BETA_INITIAL + s * BETA_FINAL;
+        }
 
 	int64_t offset_prev = _offset_ns.load();
 	updateOffset(static_cast<int64_t>((_skew_ns_per_sync + _offset_ns.load()) * (1. - alpha) + measurement_offset * alpha));
