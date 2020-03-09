@@ -558,7 +558,7 @@ void Ekf::controlGpsFusion()
 				&& ISFINITE(_gps_sample_delayed.yaw)
 				&& _control_status.flags.tilt_align
 				&& (!_control_status.flags.gps_yaw || !_control_status.flags.yaw_align)
-				&& isRecent(_time_last_gps, 2 * GPS_MAX_INTERVAL)) {
+				&& !_gps_hgt_intermittent) {
 
 			if (resetGpsAntYaw()) {
 				// flag the yaw as aligned
@@ -789,21 +789,17 @@ void Ekf::controlHeightSensorTimeouts()
 
 		bool request_height_reset = false;
 
-		// handle the case where we are using baro for height
 		if (_control_status.flags.baro_hgt) {
 			// check if GPS height is available
 			const gpsSample &gps_init = _gps_buffer.get_newest();
 			const bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
 
-			const baroSample &baro_init = _baro_buffer.get_newest();
-			const bool baro_data_available = isRecent(baro_init.time_us, 2 * BARO_MAX_INTERVAL);
-
-			// check for inertial sensing errors in the last 10 seconds
+			// check for inertial sensing errors in the last BADACC_PROBATION seconds
 			const bool prev_bad_vert_accel = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
 
 			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
 			const bool reset_to_gps = !_gps_hgt_intermittent &&
-					    ((gps_hgt_accurate && !prev_bad_vert_accel) || !baro_data_available);
+					    ((gps_hgt_accurate && !prev_bad_vert_accel) || _baro_hgt_faulty);
 
 			if (reset_to_gps) {
 				// set height sensor health
@@ -814,18 +810,13 @@ void Ekf::controlHeightSensorTimeouts()
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to GPS");
 
-			} else if (baro_data_available) {
-				// set height sensor health
-				_baro_hgt_faulty = false;
-
+			} else if (!_baro_hgt_faulty) {
 				setControlBaroHeight();
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to baro");
-
 			}
 
-		// handle the case we are using GPS for height
 		} else if (_control_status.flags.gps_hgt) {
 			// check if GPS height is available
 			const gpsSample &gps_init = _gps_buffer.get_newest();
@@ -833,19 +824,15 @@ void Ekf::controlHeightSensorTimeouts()
 
 			// check the baro height source for consistency and freshness
 			const baroSample &baro_init = _baro_buffer.get_newest();
-			const bool baro_data_fresh = isRecent(baro_init.time_us, 2 * BARO_MAX_INTERVAL);
 			const float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
 			const bool baro_data_consistent = fabsf(baro_innov) < (sq(_params.baro_noise) + P(9,9)) * sq(_params.baro_innov_gate);
 
 			// if baro data is acceptable and GPS data is inaccurate, reset height to baro
-			const bool reset_to_baro = baro_data_fresh &&
-						   ((baro_data_consistent && !_baro_hgt_faulty && !gps_hgt_accurate) ||
+			const bool reset_to_baro = !_baro_hgt_faulty &&
+						   ((baro_data_consistent && !gps_hgt_accurate) ||
 						     _gps_hgt_intermittent);
 
 			if (reset_to_baro) {
-				// set height sensor health
-				_baro_hgt_faulty = false;
-
 				setControlBaroHeight();
 
 				request_height_reset = true;
@@ -856,42 +843,27 @@ void Ekf::controlHeightSensorTimeouts()
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to GPS");
-
 			}
 
-		// handle the case we are using range finder for height
 		} else if (_control_status.flags.rng_hgt) {
-			// check if baro data is available
-			const baroSample &baro_init = _baro_buffer.get_newest();
-			const bool baro_data_available = isRecent(baro_init.time_us, 2 * BARO_MAX_INTERVAL);
 
 			if (_rng_hgt_valid) {
-
 				setControlRangeHeight();
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to rng hgt");
 
-			} else if (baro_data_available) {
-				// set height sensor health
-				_baro_hgt_faulty = false;
-
+			} else if (!_baro_hgt_faulty) {
 				setControlBaroHeight();
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to baro");
-
 			}
 
-		// handle the case where we are using external vision data for height
 		} else if (_control_status.flags.ev_hgt) {
 			// check if vision data is available
 			const extVisionSample &ev_init = _ext_vision_buffer.get_newest();
 			const bool ev_data_available = isRecent(ev_init.time_us, 2 * EV_MAX_INTERVAL);
-
-			// check if baro data is available
-			const baroSample &baro_init = _baro_buffer.get_newest();
-			const bool baro_data_available = isRecent(baro_init.time_us, 2 * BARO_MAX_INTERVAL);
 
 			if (ev_data_available) {
 				setControlEVHeight();
@@ -899,15 +871,11 @@ void Ekf::controlHeightSensorTimeouts()
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to ev hgt");
 
-			} else if (baro_data_available) {
-				// set height sensor health
-				_baro_hgt_faulty = false;
-
+			} else if (!_baro_hgt_faulty) {
 				setControlBaroHeight();
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to baro");
-
 			}
 		}
 
@@ -918,7 +886,6 @@ void Ekf::controlHeightSensorTimeouts()
 			_time_last_hgt_fuse = _time_last_imu;
 
 		}
-
 	}
 }
 
