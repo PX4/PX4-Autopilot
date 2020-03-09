@@ -227,20 +227,19 @@ void Ekf::resetHeight()
 
 	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
+		float new_pos_down = _hgt_sensor_offset - _range_sample_delayed.rng * _R_rng_to_earth_2_2;
 
-			float new_pos_down = _hgt_sensor_offset - _range_sample_delayed.rng * _R_rng_to_earth_2_2;
+		// update the state and associated variance
+		_state.pos(2) = new_pos_down;
 
-			// update the state and associated variance
-			_state.pos(2) = new_pos_down;
+		// the state variance is the same as the observation
+		P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.range_noise));
 
-			// the state variance is the same as the observation
-			P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.range_noise));
+		vert_pos_reset = true;
 
-			vert_pos_reset = true;
-
-			// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
-			const baroSample &baro_newest = _baro_buffer.get_newest();
-			_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
+		// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
+		const baroSample &baro_newest = _baro_buffer.get_newest();
+		_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
 
 	} else if (_control_status.flags.baro_hgt) {
 		// initialize vertical position with newest baro measurement
