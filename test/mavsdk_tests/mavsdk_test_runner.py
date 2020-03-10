@@ -12,6 +12,47 @@ import sys
 import signal
 
 
+def supports_color():
+    """
+    Returns True if the running system's terminal supports color, and False
+    otherwise.
+
+    From https://stackoverflow.com/a/22254892/8548472
+    """
+    plat = sys.platform
+    supported_platform = plat != 'Pocket PC' and (plat != 'win32' or
+                                                  'ANSICON' in os.environ)
+    # isatty is not always implemented, #6223.
+    is_a_tty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+    return supported_platform and is_a_tty
+
+
+if supports_color():
+    class color:
+        PURPLE = '\033[95m'
+        CYAN = '\033[96m'
+        DARKCYAN = '\033[36m'
+        BLUE = '\033[94m'
+        GREEN = '\033[92m'
+        YELLOW = '\033[93m'
+        RED = '\033[91m'
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
+        END = '\033[0m'
+else:
+    class color:
+        PURPLE = ''
+        CYAN = ''
+        DARKCYAN = ''
+        BLUE = ''
+        GREEN = ''
+        YELLOW = ''
+        RED = ''
+        BOLD = ''
+        UNDERLINE = ''
+        END = ''
+
+
 class Runner:
     def __init__(self, log_dir, verbose):
         self.cmd = ""
@@ -226,11 +267,11 @@ def main():
         print("Creating directory: {}".format(args.log_dir))
     os.makedirs(args.log_dir, exist_ok=True)
 
-    run(args, config)
+    sys.exit(run(args, config))
 
 
-def determine_tests(workspace_dir, filter):
-    cmd = workspace_dir + "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
+def determine_tests(filter):
+    cmd = os.getcwd() + "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
     args = ["--list-test-names-only", filter]
     p = subprocess.Popen(
         [cmd] + args,
@@ -297,21 +338,24 @@ def run(args, config):
                   format(iteration + 1, args.iterations))
             break
 
-    print("Overall result: {}".
-          format("SUCCESS" if overall_success else "FAIL"))
-    sys.exit(0 if overall_success else 1)
+    if overall_success:
+        print(color.GREEN + "Overall result: success!" + color.END)
+        return 0
+    else:
+        print(color.RED + "Overall result: failure!" + color.END)
+        return 1
 
 
 def run_test_group(args, config):
     overall_success = True
 
-    test_matrix = config["tests"]
+    tests = config["tests"]
 
     if args.model == 'all':
-        models = test_matrix
+        models = tests
     else:
         found = False
-        for elem in test_matrix:
+        for elem in tests:
             if elem['model'] == args.model:
                 models = [elem]
                 found = True
@@ -320,16 +364,21 @@ def run_test_group(args, config):
             models = []
 
     for group in models:
-        print("Running test group for '{}' with filter '{}'"
-              .format(group['model'], group['test_filter']))
+        print(color.BOLD + "==> Running tests for '{}' with filter '{}'"
+              .format(group['model'], group['test_filter']) + color.END)
 
-        tests = determine_tests(os.getcwd(), group['test_filter'])
+        tests = determine_tests(group['test_filter'])
 
-        for test in tests:
-            print("Running test '{}'".format(test))
+        for i, test in enumerate(tests):
+            print("--> Test {} of {}: '{}' running ...".
+                  format(i+1, len(tests), test))
             was_success = run_test(test, group, args, config)
-            print("Test '{}': {}".
-                  format(test, "Success" if was_success else "Fail"))
+            if was_success:
+                print(color.GREEN + "--- Test {} of {}: '{}' succeeded.".
+                      format(i+1, len(tests), test) + color.END)
+            else:
+                print(color.RED + "--- Test {} of {}: '{}' failed.".
+                      format(i+1, len(tests), test) + color.END)
 
             if not was_success:
                 overall_success = False
