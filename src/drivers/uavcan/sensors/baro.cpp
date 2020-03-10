@@ -40,6 +40,7 @@
 #include <math.h>
 
 #include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <lib/ecl/geo/geo.h> // For CONSTANTS_*
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 
@@ -99,7 +100,7 @@ UavcanBarometerBridge::air_pressure_sub_cb(const
 	// Cast our generic CDev pointer to the sensor-specific driver class
 	PX4Barometer *_baro = (PX4Barometer *)channel->h_driver;
 
-	_baro->set_temperature(last_temperature_kelvin - 273.15f);
+	_baro->set_temperature(last_temperature_kelvin + CONSTANTS_ABSOLUTE_NULL_CELSIUS);
 	_baro->update(hrt_absolute_time(), msg.static_pressure / 100.0f); // Convert pressure to millibar
 }
 
