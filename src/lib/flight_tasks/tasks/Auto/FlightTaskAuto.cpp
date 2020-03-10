@@ -142,6 +142,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_type = WaypointType::loiter;
 		_yaw_setpoint = _yaw;
 		_yawspeed_setpoint = NAN;
+		_target_acceptance_radius = _sub_triplet_setpoint.get().current.acceptance_radius;
 		_updateInternalWaypoints();
 		return true;
 	}
