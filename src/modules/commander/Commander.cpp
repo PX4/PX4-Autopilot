@@ -1301,6 +1301,20 @@ Commander::run()
 			// update parameters from storage
 			updateParams();
 
+			// NAV_DLL_ACT value 4 Data Link Auto Recovery (CASA Outback Challenge rules) deleted 2020-03-10
+			if (_param_nav_dll_act.get() == 4) {
+				mavlink_log_critical(&mavlink_log_pub, "CASA Outback Challenge rules (NAV_DLL_ACT = 4) retired");
+				_param_nav_dll_act.set(2); // value 2 Return mode
+				_param_nav_dll_act.commit_no_notification();
+			}
+
+			// NAV_RCL_ACT value 4 RC Auto Recovery (CASA Outback Challenge rules) deleted 2020-03-10
+			if (_param_nav_rcl_act.get() == 4) {
+				mavlink_log_critical(&mavlink_log_pub, "CASA Outback Challenge rules (NAV_RCL_ACT = 4) retired");
+				_param_nav_rcl_act.set(2); // value 2 Return mode
+				_param_nav_rcl_act.commit_no_notification();
+			}
+
 			/* update parameters */
 			if (!armed.armed) {
 				status.system_type = _param_mav_type.get();
