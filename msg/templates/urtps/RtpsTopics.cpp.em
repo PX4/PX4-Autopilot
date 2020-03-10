@@ -20,11 +20,6 @@ from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 package = package[0]
-fastrtpsgen_version = fastrtpsgen_version[0]
-try:
-    ros2_distro = ros2_distro[0].decode("utf-8")
-except AttributeError:
-    ros2_distro = ros2_distro[0]
 }@
 /****************************************************************************
  *
@@ -103,29 +98,18 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 @[for topic in send_topics]@
         case @(rtps_message_id(ids, topic)): // @(topic)
         {
-@[    if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[        if ros2_distro]@
-            @(package)::msg::dds_::@(topic)_ st;
-@[        else]@
-            @(topic)_ st;
-@[        end if]@
-@[    else]@
-@[        if ros2_distro]@
-            @(package)::msg::@(topic) st;
-@[        else]@
-            @(topic) st;
-@[        end if]@
-@[    end if]@
+            @(topic)_msg_t st;
             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
             eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
             st.deserialize(cdr_des);
 @[    if topic == 'Timesync' or topic == 'timesync']@
             _timesync->processTimesyncMsg(&st);
 
-            if (st.sys_id() == 1) {
+            if (getMsgSysID(&st) == 1) {
 @[    end if]@
             // apply timestamp offset
-            _timesync->subtractOffset(st.timestamp());
+            uint64_t timestamp = getMsgTimestamp(&st);
+            _timesync->subtractOffset(timestamp);
             _@(topic)_pub.publish(&st);
 @[    if topic == 'Timesync' or topic == 'timesync']@
             }
@@ -150,24 +134,13 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
         case @(rtps_message_id(ids, topic)): // @(topic)
             if (_@(topic)_sub.hasMsg())
             {
-@[    if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[        if ros2_distro]@
-                @(package)::msg::dds_::@(topic)_ msg = _@(topic)_sub.getMsg();
-@[        else]@
-                @(topic)_ msg = _@(topic)_sub.getMsg();
-@[        end if]@
-@[    else]@
-@[        if ros2_distro]@
-                @(package)::msg::@(topic) msg = _@(topic)_sub.getMsg();
-@[        else]@
-                @(topic) msg = _@(topic)_sub.getMsg();
-@[        end if]@
-@[    end if]@
+                @(topic)_msg_t msg = _@(topic)_sub.getMsg();
 @[    if topic == 'Timesync' or topic == 'timesync']@
-                if (msg.sys_id() == 0) {
+                if (getMsgSysID(&msg) == 0) {
 @[    end if]@
                 // apply timestamp offset
-                _timesync->addOffset(msg.timestamp());
+                uint64_t timestamp = getMsgTimestamp(&msg);
+                _timesync->addOffset(timestamp);
                 msg.serialize(scdr);
                 ret = true;
 @[    if topic == 'Timesync' or topic == 'timesync']@
