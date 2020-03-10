@@ -77,6 +77,7 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+#define _GPIO_PULL_DOWN_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
 
 /* Configuration ************************************************************/
 
@@ -230,6 +231,18 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure SPI interfaces (after we determined the HW version) */
 
 	stm32_spiinitialize();
+
+	/* Does this board have CAN 2 or CAN 3 if not decouple the RX
+	 * from IP block Leave TX connected
+	 */
+
+	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_CAN2)) {
+		px4_arch_configgpio(_GPIO_PULL_DOWN_INPUT(GPIO_CAN2_RX));
+	}
+
+	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_CAN3)) {
+		px4_arch_configgpio(_GPIO_PULL_DOWN_INPUT(GPIO_CAN3_RX));
+	}
 
 	/* configure the DMA allocator */
 
