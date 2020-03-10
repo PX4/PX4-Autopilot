@@ -543,7 +543,7 @@ PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
  * This enables a logic that automatically adjusts the output of the rate controller to take
  * into account the real torque produced by an aerodynamic control surface given
  * the current deviation from the trim airspeed (FW_AIRSPD_TRIM).
- 
+ *
  * Enable when using aerodynamic control surfaces (e.g.: plane)
  * Disable when using rotor wings (e.g.: autogyro)
  *
