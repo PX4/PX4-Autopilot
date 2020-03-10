@@ -538,18 +538,19 @@ PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
 
 /**
- * Enable of airspeed scaling
+ * Enable airspeed scaling
  *
- * Enable of airspeed scaling of control surfaces. Disabling of airspeed scaling
- * is important for rotor craft and vehicles with rotor wing such as autogyro.
- * Enable when using aerodynamic control surfaces (e.g.: plane), disable when
- * using rotor wings (e.g.: autogyro)
+ * This enables a logic that automatically adjusts the output of the rate controller to take
+ * into account the real torque produced by an aerodynamic control surface given
+ * the current deviation from the trim airspeed (FW_AIRSPD_TRIM).
+ 
+ * Enable when using aerodynamic control surfaces (e.g.: plane)
+ * Disable when using rotor wings (e.g.: autogyro)
  *
- * @value 1 Airspeed scaling enabled
- * @value 0 Airspeed scaling disabled
+ * @boolean
  * @group FW Attitude Control
  */
-PARAM_DEFINE_INT32(FW_ARSP_SCALE, 1);
+PARAM_DEFINE_INT32(FW_ARSP_SCALE_EN, 1);
 
 /**
  * Manual roll scale
