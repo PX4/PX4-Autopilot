@@ -81,6 +81,10 @@ protected:
 
 	virtual ~WorkItem();
 
+	/**
+	 * Remove work item from the runnable queue, if it's there
+	 */
+	void ScheduleClear();
 protected:
 
 	void RunPreamble() { _run_count++; }

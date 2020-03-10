@@ -1,6 +1,8 @@
+
+
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,56 +33,44 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+/**
+ * @file BerzierN.hpp
+ *
+ * @author Julian Kent <julian@auterion.com>
+ *
+ * N-order Bezier library designed for time-aware trajectory tracking
+ */
 
-namespace px4
+#pragma once
+#include <matrix/math.hpp>
+
+namespace bezier
 {
 
-ScheduledWorkItem::~ScheduledWorkItem()
-{
-	ScheduleClear();
+/*
+ * Calculates the location and velocity with respect to T on a given bezier curve of any order.
+ *
+ */
+bool calculateBezierPosVel(const matrix::Vector3f *positions, int N, float t,
+			   matrix::Vector3f &position, matrix::Vector3f &velocity);
+
+/*
+ * Calculates the position, velocity and acceleration with respect to T on a given bezier curve of any order.
+ *
+ */
+bool calculateBezierPosVelAcc(const matrix::Vector3f *positions, int N, float t,
+			      matrix::Vector3f &position, matrix::Vector3f &velocity, matrix::Vector3f &acceleration);
+
+/*
+ * Calculates the position and velocity of yaw with respect to t on a bezier curve.
+ * All yaw setpoints are wrapped relative to the starting yaw.
+ *
+ */
+bool calculateBezierYaw(const float *setpoints, int N, float t, float &yaw_setpoint, float &yaw_vel_setpoint);
+
+/*
+ * Calculates the fraction between the begin and end time which can be used for fast bezier curve lookups
+ */
+bool calculateT(int64_t start_time, int64_t end_time, int64_t now, float &T);
+
 }
-
-void
-ScheduledWorkItem::schedule_trampoline(void *arg)
-{
-	ScheduledWorkItem *dev = static_cast<ScheduledWorkItem *>(arg);
-	dev->ScheduleNow();
-}
-
-void
-ScheduledWorkItem::ScheduleDelayed(uint32_t delay_us)
-{
-	hrt_call_after(&_call, delay_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
-}
-
-void
-ScheduledWorkItem::ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us)
-{
-	// reset start time to first deadline (approximately)
-	_start_time = hrt_absolute_time() + interval_us + delay_us;
-
-	hrt_call_every(&_call, delay_us, interval_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
-}
-
-void
-ScheduledWorkItem::ScheduleClear()
-{
-	// first clear any scheduled hrt call, then remove the item from the runnable queue
-	hrt_cancel(&_call);
-	WorkItem::ScheduleClear();
-}
-
-void
-ScheduledWorkItem::print_run_status() const
-{
-	if (_call.period > 0) {
-		PX4_INFO_RAW("%-24s %8.1f Hz %12.1f us (%" PRId64 " us)\n", _item_name, (double)average_rate(),
-			     (double)average_interval(), _call.period);
-
-	} else {
-		WorkItem::print_run_status();
-	}
-}
-
-} // namespace px4

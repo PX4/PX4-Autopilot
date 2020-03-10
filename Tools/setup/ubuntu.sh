@@ -140,7 +140,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"
 
-if [ $(which arm-none-eabi-gc) ]; then
+if [ $(which arm-none-eabi-gcc) ]; then
 	GCC_VER_STR=$(arm-none-eabi-gcc --version)
 	GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
 fi

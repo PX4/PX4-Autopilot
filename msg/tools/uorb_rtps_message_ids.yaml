@@ -177,8 +177,10 @@ rtps:
     id: 76
   - msg: test_motor
     id: 77
-  - msg: timesync_status
+  - msg: timesync
     id: 78
+    receive: true
+    send: true
   - msg: trajectory_waypoint
     id: 79
     receive: true
@@ -285,6 +287,12 @@ rtps:
     id: 127
   - msg: hover_thrust_estimate
     id: 128
+  - msg: trajectory_bezier
+    id: 129
+  - msg: vehicle_trajectory_bezier
+    id: 130
+  - msg: timesync_status
+    id: 131
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
@@ -354,4 +362,5 @@ rtps:
   - msg: estimator_innovation_test_ratios
     id: 171
     alias: estimator_innovations
+
   ########## multi topics: end ##########

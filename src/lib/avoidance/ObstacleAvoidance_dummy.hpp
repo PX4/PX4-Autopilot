@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,56 +31,63 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+/**
+ * @file ObstacleAvoidance_dummy.hpp
+ * This is a dummy class to reduce flash space for when obstacle avoidance is not required
+ *
+ * @author Julian Kent
+ */
 
-namespace px4
+#pragma once
+
+#include <px4_platform_common/defines.h>
+#include <commander/px4_custom_mode.h>
+
+
+#include <matrix/matrix/math.hpp>
+
+
+class ObstacleAvoidance
 {
+public:
+	ObstacleAvoidance(void *) {} // takes void* argument to be compatible with ModuleParams constructor
 
-ScheduledWorkItem::~ScheduledWorkItem()
-{
-	ScheduleClear();
-}
 
-void
-ScheduledWorkItem::schedule_trampoline(void *arg)
-{
-	ScheduledWorkItem *dev = static_cast<ScheduledWorkItem *>(arg);
-	dev->ScheduleNow();
-}
+	void injectAvoidanceSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, float &yaw_sp,
+				      float &yaw_speed_sp)
+	{
+		notify_dummy();
+	};
 
-void
-ScheduledWorkItem::ScheduleDelayed(uint32_t delay_us)
-{
-	hrt_call_after(&_call, delay_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
-}
+	void updateAvoidanceDesiredWaypoints(const matrix::Vector3f &curr_wp, const float curr_yaw,
+					     const float curr_yawspeed,
+					     const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed, const bool ext_yaw_active,
+					     const int wp_type)
+	{
+		notify_dummy();
+	};
 
-void
-ScheduledWorkItem::ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us)
-{
-	// reset start time to first deadline (approximately)
-	_start_time = hrt_absolute_time() + interval_us + delay_us;
-
-	hrt_call_every(&_call, delay_us, interval_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
-}
-
-void
-ScheduledWorkItem::ScheduleClear()
-{
-	// first clear any scheduled hrt call, then remove the item from the runnable queue
-	hrt_cancel(&_call);
-	WorkItem::ScheduleClear();
-}
-
-void
-ScheduledWorkItem::print_run_status() const
-{
-	if (_call.period > 0) {
-		PX4_INFO_RAW("%-24s %8.1f Hz %12.1f us (%" PRId64 " us)\n", _item_name, (double)average_rate(),
-			     (double)average_interval(), _call.period);
-
-	} else {
-		WorkItem::print_run_status();
+	void updateAvoidanceDesiredSetpoints(const matrix::Vector3f &pos_sp, const matrix::Vector3f &vel_sp,
+					     const int type)
+	{
+		notify_dummy();
 	}
-}
 
-} // namespace px4
+
+	void checkAvoidanceProgress(const matrix::Vector3f &pos, const matrix::Vector3f &prev_wp,
+				    float target_acceptance_radius, const matrix::Vector2f &closest_pt)
+	{
+		notify_dummy();
+	};
+
+protected:
+
+	bool _logged_error = false;
+	void notify_dummy()
+	{
+		if (!_logged_error) {
+			PX4_ERR("Dummy avoidance library called!");
+			_logged_error = true;
+		}
+	}
+};

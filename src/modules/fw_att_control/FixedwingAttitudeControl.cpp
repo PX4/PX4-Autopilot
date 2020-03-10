@@ -263,7 +263,8 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
 	const float airspeed_constrained = constrain(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_max.get());
-	_airspeed_scaling = _param_fw_airspd_trim.get() / airspeed_constrained;
+
+	_airspeed_scaling = (_param_fw_arsp_scale_en.get()) ? (_param_fw_airspd_trim.get() / airspeed_constrained) : 1.0f;
 
 	return airspeed;
 }
