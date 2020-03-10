@@ -45,6 +45,7 @@
 #include <vector>
 #include <stdio.h>
 
+#include <px4_platform_common/log.h>
 #include "pxh.h"
 
 namespace px4_daemon
@@ -107,7 +108,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 		if (retval) {
 			if (!silently_fail) {
-				printf("Command '%s' failed, returned %d.\n", command.c_str(), retval);
+				PX4_INFO_RAW("Command '%s' failed, returned %d.\n", command.c_str(), retval);
 			}
 		}
 
@@ -123,7 +124,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 	} else if (!silently_fail) {
 		//std::cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
-		printf("Invalid command: %s\ntype 'help' for a list of commands\n", command.c_str());
+		PX4_INFO_RAW("Invalid command: %s\ntype 'help' for a list of commands\n", command.c_str());
 		return -1;
 
 	} else {
@@ -166,7 +167,7 @@ void Pxh::run_pxh()
 			_history.try_to_add(mystr);
 			_history.reset_to_end();
 
-			printf("\n");
+			PX4_INFO_RAW("\n");
 			process_line(mystr, false);
 			// reset string and cursor position
 			mystr = "";
@@ -234,7 +235,7 @@ void Pxh::run_pxh()
 			mystr.insert(mystr.length() - cursor_position, add_string);
 			_clear_line();
 			_print_prompt();
-			printf("%s", mystr.c_str());
+			PX4_INFO_RAW("%s", mystr.c_str());
 
 			// Move the cursor to its position
 			if (cursor_position > 0) {
@@ -278,18 +279,18 @@ void Pxh::_restore_term()
 
 void Pxh::_print_prompt()
 {
-	fflush(stdout);
-	printf("pxh> ");
-	fflush(stdout);
+	//fflush(stdout);
+	PX4_INFO_RAW("pxh> ");
+	//fflush(stdout);
 }
 
 void Pxh::_clear_line()
 {
-	printf("%c[2K%c", (char)27, (char)13);
+	PX4_INFO_RAW("%c[2K%c", (char)27, (char)13);
 }
 void Pxh::_move_cursor(int position)
 {
-	printf("\033[%dD", position);
+	PX4_INFO_RAW("\033[%dD", position);
 }
 
 } // namespace px4_daemon

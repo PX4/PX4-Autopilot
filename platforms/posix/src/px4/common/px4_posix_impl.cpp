@@ -77,16 +77,16 @@ void init_once()
 
 void init(int argc, char *argv[], const char *app_name)
 {
-	printf("\n");
-	printf("______  __   __    ___ \n");
-	printf("| ___ \\ \\ \\ / /   /   |\n");
-	printf("| |_/ /  \\ V /   / /| |\n");
-	printf("|  __/   /   \\  / /_| |\n");
-	printf("| |     / /^\\ \\ \\___  |\n");
-	printf("\\_|     \\/   \\/     |_/\n");
-	printf("\n");
-	printf("%s starting.\n", app_name);
-	printf("\n");
+	PX4_INFO_RAW("\n");
+	PX4_INFO_RAW("______  __   __    ___ \n");
+	PX4_INFO_RAW("| ___ \\ \\ \\ / /   /   |\n");
+	PX4_INFO_RAW("| |_/ /  \\ V /   / /| |\n");
+	PX4_INFO_RAW("|  __/   /   \\  / /_| |\n");
+	PX4_INFO_RAW("| |     / /^\\ \\ \\___  |\n");
+	PX4_INFO_RAW("\\_|     \\/   \\/     |_/\n");
+	PX4_INFO_RAW("\n");
+	PX4_INFO_RAW("%s starting.\n", app_name);
+	PX4_INFO_RAW("\n");
 
 	// set the threads name
 #ifdef __PX4_DARWIN

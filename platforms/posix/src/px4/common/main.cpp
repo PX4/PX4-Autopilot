@@ -430,7 +430,7 @@ void register_sig_handler()
 void sig_int_handler(int sig_num)
 {
 	fflush(stdout);
-	printf("\nPX4 Exiting...\n");
+	PX4_INFO_RAW("\nPX4 Exiting...\n");
 	fflush(stdout);
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;
@@ -439,7 +439,7 @@ void sig_int_handler(int sig_num)
 void sig_fpe_handler(int sig_num)
 {
 	fflush(stdout);
-	printf("\nfloating point exception\n");
+	PX4_INFO_RAW("\nfloating point exception\n");
 	fflush(stdout);
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;
@@ -556,22 +556,22 @@ void wait_to_exit()
 
 void print_usage()
 {
-	printf("Usage for Server/daemon process: \n");
-	printf("\n");
-	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
-	printf("\n");
-	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d/rcS)\n");
-	printf("    <rootfs_directory>     directory where startup files and mixers are located,\n");
-	printf("                           (if not given, CWD is used)\n");
-	printf("    -i <instance>          px4 instance id to run multiple instances [0...N], default=0\n");
-	printf("    -w <working_directory> directory to change to\n");
-	printf("    -h                     help/usage information\n");
-	printf("    -d                     daemon mode, don't start pxh shell\n");
-	printf("\n");
-	printf("Usage for client: \n");
-	printf("\n");
-	printf("    px4-MODULE [--instance <instance>] command using symlink.\n");
-	printf("        e.g.: px4-commander status\n");
+	PX4_INFO_RAW("Usage for Server/daemon process: \n");
+	PX4_INFO_RAW("\n");
+	PX4_INFO_RAW("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
+	PX4_INFO_RAW("\n");
+	PX4_INFO_RAW("    -s <startup_file>      shell script to be used as startup (default=etc/init.d/rcS)\n");
+	PX4_INFO_RAW("    <rootfs_directory>     directory where startup files and mixers are located,\n");
+	PX4_INFO_RAW("                           (if not given, CWD is used)\n");
+	PX4_INFO_RAW("    -i <instance>          px4 instance id to run multiple instances [0...N], default=0\n");
+	PX4_INFO_RAW("    -w <working_directory> directory to change to\n");
+	PX4_INFO_RAW("    -h                     help/usage information\n");
+	PX4_INFO_RAW("    -d                     daemon mode, don't start pxh shell\n");
+	PX4_INFO_RAW("\n");
+	PX4_INFO_RAW("Usage for client: \n");
+	PX4_INFO_RAW("\n");
+	PX4_INFO_RAW("    px4-MODULE [--instance <instance>] command using symlink.\n");
+	PX4_INFO_RAW("        e.g.: px4-commander status\n");
 }
 
 bool is_server_running(int instance, bool server)
