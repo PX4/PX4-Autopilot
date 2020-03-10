@@ -20,7 +20,17 @@ class Runner:
         self.env = {}
         self.log_prefix = ""
         self.log_dir = log_dir
+        self.log_filename = ""
+        self.log_fd = None
         self.verbose = verbose
+
+    def create_log_filename(self, model, test_filter):
+        return self.log_dir + os.path.sep + \
+            "log-{}-{}-{}-{}.log".format(
+                self.log_prefix,
+                model,
+                test_filter,
+                datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ"))
 
     def start(self, config):
         if self.verbose:
@@ -28,23 +38,19 @@ class Runner:
 
         atexit.register(self.stop)
 
-        if self.log_dir:
-            f = open(
-                self.log_dir + os.path.sep + "log-{}-{}-{}-{}.log".format(
-                    self.log_prefix, config['model'], config['test_filter'],
-                    datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")),
-                'w')
+        if self.verbose:
+            self.log_fd = None
         else:
-            f = None
-
-        # TODO: pipe stdout through when set to verbose
+            self.log_filename = self.create_log_filename(
+                config['model'], config['test_filter'])
+            self.log_fd = open(self.log_filename, 'w')
 
         self.process = subprocess.Popen(
             [self.cmd] + self.args,
             cwd=self.cwd,
             env=self.env,
-            stdout=f,
-            stderr=f
+            stdout=self.log_fd,
+            stderr=self.log_fd
         )
 
     def wait(self, timeout_min):
@@ -60,14 +66,18 @@ class Runner:
     def stop(self):
         atexit.unregister(self.stop)
 
+        self.log_fd.flush()
+
         returncode = self.process.poll()
         if returncode is not None:
+            self.log_fd.close()
             return returncode
 
         if self.verbose:
             print("Sending SIGINT to {}".format(self.process.pid))
         self.process.send_signal(signal.SIGINT)
         try:
+            self.log_fd.close()
             return self.process.wait(timeout=1)
         except subprocess.TimeoutExpired:
             pass
@@ -77,6 +87,7 @@ class Runner:
         self.process.terminate()
 
         try:
+            self.log_fd.close()
             return self.process.wait(timeout=1)
         except subprocess.TimeoutExpired:
             pass
@@ -88,7 +99,13 @@ class Runner:
         if self.verbose:
             print("{} exited with {}".format(
                 self.command, self.process.returncode))
+
+        self.log_fd.close()
         return self.process.returncode
+
+    def print_output(self):
+        with open(self.log_filename, 'r') as f:
+            print(f.read(), end="")
 
 
 class Px4Runner(Runner):
@@ -360,6 +377,9 @@ def run_test(test, group, args, config):
                 gzclient_runner.stop()
             gzserver_runner.stop()
         px4_runner.stop()
+
+    if not is_success and not args.verbose:
+        test_runner.print_output()
 
     return is_success
 
