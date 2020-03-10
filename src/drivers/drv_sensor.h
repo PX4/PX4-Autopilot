@@ -140,6 +140,7 @@
 #define DRV_LED_DEVTYPE_BLINKM        0x79
 #define DRV_LED_DEVTYPE_RGBLED        0x7a
 #define DRV_LED_DEVTYPE_RGBLED_NCP5623C 0x7b
+#define DRV_BAT_DEVTYPE_SMBUS         0x7c
 
 #define DRV_DEVTYPE_UNUSED		0xff
 
