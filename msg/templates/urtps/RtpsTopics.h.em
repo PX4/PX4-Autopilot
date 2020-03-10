@@ -19,6 +19,12 @@ from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
+package = package[0]
+fastrtpsgen_version = fastrtpsgen_version[0]
+try:
+    ros2_distro = ros2_distro[0].decode("utf-8")
+except AttributeError:
+    ros2_distro = ros2_distro[0]
 }@
 /****************************************************************************
  *
@@ -66,6 +72,39 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #include "@(topic)_Subscriber.h"
 @[end for]@
 
+
+@[for topic in recv_topics]@
+@[    if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[        if ros2_distro]@
+using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
+@[        else]@
+using @(topic)_msg_t = @(topic)_;
+@[        end if]@
+@[    else]@
+@[        if ros2_distro]@
+using @(topic)_msg_t = @(package)::msg::@(topic) ;
+@[        else]@
+using @(topic)_msg_t = @(topic);
+@[        end if]@
+@[    end if]@
+@[end for]@
+@[for topic in send_topics]@
+@[    if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[        if ros2_distro]@
+using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
+@[        else]@
+using @(topic)_msg_t = @(topic)_;
+@[        end if]@
+@[    else]@
+@[        if ros2_distro]@
+using @(topic)_msg_t = @(package)::msg::@(topic);
+@[        else]@
+using @(topic)_msg_t = @(topic);
+@[        end if]@
+@[    end if]@
+@[end for]@
+
+
 class RtpsTopics {
 public:
     bool init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue);
@@ -90,8 +129,21 @@ private:
 @[for topic in recv_topics]@
     @(topic)_Subscriber _@(topic)_sub;
 @[end for]@
+@[end if]@
+
+@[if 1.5 <= fastrtpsgen_version <= 1.7 or not ros2_distro]@
+    template <class T>
+    uint8_t getMsgSysID(T* msg) { return msg->sys_id_(); }
+
+    template <class T>
+    uint64_t getMsgTimestamp(T* msg) { return msg->timestamp_(); }
+@[elif ros2_distro]@
+    template <class T>
+    uint8_t getMsgSysID(T* msg) { return msg->sys_id(); }
+
+    template <class T>
+    uint64_t getMsgTimestamp(T* msg) { return msg->timestamp(); }
+@[end if]@
 
     std::shared_ptr<TimeSync> _timesync;
-
-@[end if]@
 };
