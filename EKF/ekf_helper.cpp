@@ -1722,9 +1722,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 		}
 
 		// calculate the amount that the quaternion has changed by
-		const Quatf quat_after_reset = _R_to_earth;
-		Quatf q_error =  quat_after_reset * quat_before_reset.inversed();
-		q_error.normalize();
+		const Quatf quat_after_reset(_R_to_earth);
+		const Quatf q_error((quat_after_reset * quat_before_reset.inversed()).normalized());
 
 		// update quaternion states
 		_state.quat_nominal = quat_after_reset;
