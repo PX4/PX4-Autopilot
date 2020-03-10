@@ -285,6 +285,8 @@ rtps:
     id: 127
   - msg: hover_thrust_estimate
     id: 128
+  - msg: yaw_est_test_data
+    id: 129
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
