@@ -69,7 +69,7 @@ except AttributeError:
 
 #include <fastrtps/Domain.h>
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 #include <fastrtps/utils/eClock.h>
 @[end if]@
 
@@ -85,7 +85,7 @@ bool @(topic)_Publisher::init()
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0;
-@[if 1.5 <= fastrtpsgen_version <= 1.7 or ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal" or ros2_distro == "dashing"]@
+@[if fastrtps_version <= 1.8]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -149,7 +149,7 @@ void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, Match
     }
 }
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 @[    if ros2_distro]@
     void @(topic)_Publisher::publish(@(package)::msg::dds_::@(topic)_* st)
 @[    else]@
