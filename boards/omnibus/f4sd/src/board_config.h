@@ -112,6 +112,8 @@
 /*         OMNIBUSF4SD SPI chip selects and DRDY            */
 /*----------------------------------------------------------*/
 
+#include <drivers/drv_sensor.h>
+
 /* SPI chip selects */
 /*
  * Define the Chip Selects for SPI1
@@ -171,11 +173,11 @@
 
 // One device per bus
 #define PX4_SPI_BUS_SENSORS         1
-#define PX4_SPIDEV_MPU              1
-#define PX4_SPIDEV_ICM_20602        1
+#define PX4_SPIDEV_MPU              PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU6000)
+#define PX4_SPIDEV_ICM_20602        PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_ICM20602)
 #define PX4_SPIDEV_BARO_BUS         3
-#define PX4_SPIDEV_BARO             1
-#define PX4_SPIDEV_OSD              2
+#define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(0, DRV_BARO_DEVTYPE_BMP280)
+#define PX4_SPIDEV_OSD              PX4_MK_SPI_SEL(0, DRV_OSD_DEVTYPE_ATXXXX)
 
 /* USB OTG FS
  *
@@ -259,14 +261,9 @@ __BEGIN_DECLS
  * Description:
  *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
  *
- *   mask - is bus selection
- *   1 - 1 << 0
- *   2 - 1 << 1
- *
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-void board_spi_reset(int ms);
 
 
 /****************************************************************************************************
