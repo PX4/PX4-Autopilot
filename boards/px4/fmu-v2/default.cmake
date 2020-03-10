@@ -91,7 +91,7 @@ px4_add_board(
 		#sih
 		#temperature_compensation
 		vmount
-		vtol_att_control
+		#vtol_att_control
 	SYSTEMCMDS
 		bl_update
 		#config
