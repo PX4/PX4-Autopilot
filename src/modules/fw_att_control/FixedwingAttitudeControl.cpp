@@ -265,7 +265,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	const float airspeed_constrained = constrain(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_max.get());
 
 	// Disable airspeed scaling with parameter
-	_airspeed_scaling = (_param_fw_arsp_scale.get()) ? (_param_fw_airspd_trim.get() / airspeed_constrained) : 1.0f;
+	_airspeed_scaling = (_param_fw_arsp_scale_en.get()) ? (_param_fw_airspd_trim.get() / airspeed_constrained) : 1.0f;
 
 	return airspeed;
 }
