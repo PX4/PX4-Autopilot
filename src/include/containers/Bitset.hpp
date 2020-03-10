@@ -45,13 +45,10 @@ public:
 	{
 		size_t total = 0;
 
-		for (const auto &x : _data) {
-			for (uint8_t i = 0; i < BITS_PER_ELEMENT; i++) {
-				const uint8_t mask = 1 << i;
-
-				if (x & mask) {
-					total++;
-				}
+		for (auto x : _data) {
+			while (x) {
+				total += x & 1;
+				x >>= 1;
 			}
 		}
 

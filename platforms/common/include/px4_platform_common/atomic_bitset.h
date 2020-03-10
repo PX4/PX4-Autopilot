@@ -50,14 +50,11 @@ public:
 		size_t total = 0;
 
 		for (const auto &x : _data) {
-			const uint32_t y = x.load();
+			uint32_t y = x.load();
 
-			for (uint8_t i = 0; i < BITS_PER_ELEMENT; i++) {
-				const uint32_t mask = 1 << i;
-
-				if (y & mask) {
-					total++;
-				}
+			while (y) {
+				total += y & 1;
+				y >>= 1;
 			}
 		}
 
