@@ -53,6 +53,8 @@ __BEGIN_DECLS
 #include <hardware/kinetis_pinmux.h>
 #include <arch/board/board.h>
 
+__END_DECLS
+
 /* FMUK66 GPIOs ***********************************************************************************/
 /* LEDs */
 /* An RGB LED is connected through GPIO as shown below:
@@ -233,20 +235,21 @@ __BEGIN_DECLS
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 
-#define PX4_SPIDEV_MEMORY                   PX4_MK_SPI_SEL(PX4_SPI_BUS_MEMORY,0)
+#include <drivers/drv_sensor.h>
+#define PX4_SPIDEV_MEMORY                   SPIDEV_FLASH(0)
 #define PX4_MEMORY_BUS_CS_GPIO              {GPIO_SPI_CS_MEMORY}
 #define PX4_MEMORY_BUS_FIRST_CS             PX4_SPIDEV_MEMORY
 #define PX4_MEMORY_BUS_LAST_CS              PX4_SPIDEV_MEMORY
 
-#define PX4_SPIDEV_ACCEL_MAG                PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
-#define PX4_SPIDEV_GYRO                     PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
-#define PX4_SPIDEV_CALMEM                   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,2)
+#define PX4_SPIDEV_ACCEL_MAG                PX4_MK_SPI_SEL(0,DRV_ACC_DEVTYPE_FXOS8701C)
+#define PX4_SPIDEV_GYRO                     PX4_MK_SPI_SEL(0,DRV_GYR_DEVTYPE_FXAS2100C)
+#define PX4_SPIDEV_CALMEM                   PX4_MK_SPI_SEL(0,DRV_DEVTYPE_UNUSED)
 #define PX4_SENSOR_BUS_CS_GPIO              {GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG, GPIO_SPI_CS_FXAS21002CQ_GYRO, GPIO_SPI1_CS_CALMEM}
 #define PX4_SENSOR_BUS_FIRST_CS             PX4_SPIDEV_ACCEL_MAG
 #define PX4_SENSOR_BUS_LAST_CS              PX4_SPIDEV_CALMEM
 
-#define PX4_SPIDEV_EXTERNAL1                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,0)
-#define PX4_SPIDEV_EXTERNAL2                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,1)
+#define PX4_SPIDEV_EXTERNAL1                PX4_MK_SPI_SEL(0,0)
+#define PX4_SPIDEV_EXTERNAL2                PX4_MK_SPI_SEL(0,1)
 #define PX4_EXTERNAL_BUS_CS_GPIO            {GPIO_SPI2_CS, GPIO_SPI2_EXT}
 #define PX4_EXTERNAL_BUS_FIRST_CS           PX4_SPIDEV_EXTERNAL1
 #define PX4_EXTERNAL_BUS_LAST_CS            PX4_SPIDEV_EXTERNAL2
@@ -482,6 +485,8 @@ __BEGIN_DECLS
  * Public data
  ************************************************************************************/
 
+__BEGIN_DECLS
+
 #ifndef __ASSEMBLY__
 
 /************************************************************************************
@@ -515,7 +520,6 @@ int  fmuk66_spi_bus_initialize(void);
  *   Called to reset SPI and the perferal bus
  *
  ****************************************************************************************************/
-void board_spi_reset(int ms);
 void board_peripheral_reset(int ms);
 
 /************************************************************************************

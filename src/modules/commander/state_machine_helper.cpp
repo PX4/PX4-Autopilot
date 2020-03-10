@@ -684,8 +684,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
-		/* require offboard control, otherwise stay where you are */
-		if (status_flags.offboard_control_signal_lost && status_flags.offboard_control_loss_timeout) {
+		if (status_flags.offboard_control_signal_lost) {
 			if (status->rc_signal_lost) {
 				// Offboard and RC are lost
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_offboard);

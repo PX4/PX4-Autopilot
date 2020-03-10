@@ -43,16 +43,16 @@
 MEMORY
 {
 	flash (rx)  : ORIGIN = 0x60000000, LENGTH = 8M
-	sram  (rwx) : ORIGIN = 0x20200000, LENGTH = 512M
+	sram  (rwx) : ORIGIN = 0x20200000, LENGTH = 768K
 	itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 128K
 	dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 }
 
 OUTPUT_ARCH(arm)
 EXTERN(_vectors)
-EXTERN(flash_config)
-EXTERN(image_vector_table)
-EXTERN(boot_data)
+EXTERN(g_flash_config)
+EXTERN(g_image_vector_table)
+EXTERN(g_boot_data)
 
 ENTRY(_stext)
 

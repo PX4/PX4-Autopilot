@@ -166,14 +166,6 @@ Battery::publish()
 }
 
 void
-Battery::swapUorbAdvert(Battery &other)
-{
-	orb_advert_t tmp = _orb_advert;
-	_orb_advert = other._orb_advert;
-	other._orb_advert = tmp;
-}
-
-void
 Battery::filterVoltage(float voltage_v)
 {
 	if (!_battery_initialized) {

@@ -68,10 +68,7 @@
                 "${workspaceFolder}/src/lib/matrix",
                 "${workspaceFolder}/src/modules"
             ],
-            "intelliSenseMode": "${default}",
-            "macFrameworkPath": [
-                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
-            ]
+            "intelliSenseMode": "${default}"
         }
     ],
     "version": 4

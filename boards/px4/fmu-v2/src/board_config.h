@@ -60,6 +60,7 @@
 #define HW_VER_FMUV2MINI_STATE 0xA /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:0 */
 #define HW_VER_FMUV2X_STATE    0xB /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:1 */
 #define HW_VER_TYPE_INIT {'V','2',0, 0}
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
 
 /****************************************************************************************************
  * Definitions
@@ -87,12 +88,7 @@
 #define GPIO_LED1		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN12)
 #define BOARD_OVERLOAD_LED LED_AMBER
 
-/*
- *  Define the ability to shut off off the sensor signals
- *  by changing the signals to inputs
- */
-
-#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_50MHz))
+#include <drivers/drv_sensor.h>
 
 /* Due to inconsistent use of chip select and dry signal on
  * different board that use this build. We are defining the GPIO
@@ -208,23 +204,26 @@
 
 /* Use these to select a specific SPI device on SPI1 */
 
-#define PX4_SPIDEV_GYRO       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
-#define PX4_SPIDEV_ACCEL_MAG  PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
-#define PX4_SPIDEV_BARO       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
-#define PX4_SPIDEV_MPU        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
+#define PX4_SPIDEV_GYRO       PX4_MK_SPI_SEL(0, DRV_GYR_DEVTYPE_L3GD20)
+#define PX4_SPIDEV_ACCEL_MAG  PX4_MK_SPI_SEL(0, DRV_ACC_DEVTYPE_LSM303D)
+#define PX4_SPIDEV_BARO       PX4_MK_SPI_SEL(0, DRV_BARO_DEVTYPE_MS5611)
+#define PX4_SPIDEV_MPU        PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU6000)
 
 /* FMUv3 SPI on external bus */
 
-#define PX4_SPIDEV_EXT_GYRO      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 1)
-#define PX4_SPIDEV_EXT_ACCEL_MAG PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 2)
-#define PX4_SPIDEV_EXT_BARO      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 3)
-#define PX4_SPIDEV_EXT_MPU       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 4)
-#define PX4_SPIDEV_EXT_BMI       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT, 5)
+#define PX4_SPIDEV_EXT_GYRO      PX4_MK_SPI_SEL(0, DRV_GYR_DEVTYPE_L3GD20)
+#define PX4_SPIDEV_EXT_ACCEL_MAG PX4_MK_SPI_SEL(0, DRV_ACC_DEVTYPE_LSM303D)
+#define PX4_SPIDEV_EXT_BARO      PX4_MK_SPI_SEL(0, DRV_BARO_DEVTYPE_MS5611)
+#define PX4_SPIDEV_EXT_MPU       PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU6000)
+#define PX4_SPIDEV_EXT_BMI       PX4_MK_SPI_SEL(0, DRV_GYR_DEVTYPE_BMI055)
 
 /* I2C busses */
+#define BOARD_OVERRIDE_I2C_BUS_EXTERNAL
 #define PX4_I2C_BUS_EXPANSION	1
 #define PX4_I2C_BUS_ONBOARD	2
 #define PX4_I2C_BUS_LED		PX4_I2C_BUS_ONBOARD
+
+#define BOARD_SPI_BUS_MAX_BUS_ITEMS 3
 
 /*----------------------------------------------------------*/
 /*           FMUv3 Cube SPI chip selects and DRDY           */
@@ -292,7 +291,7 @@
 #define GPIO_SPI4_EXTERN_CS              GPIO_SPI4_CS_PB1
 /* PB1 is an External CS on V3 */
 
-#define PX4_SPIDEV_HMC            5
+#define PX4_SPIDEV_HMC       PX4_MK_SPI_SEL(0, DRV_MAG_DEVTYPE_HMC5883)
 
 /*----------------------------------------------------------*/
 /*       End FMUv3 Cube SPI chip selects and DRDY           */
@@ -351,7 +350,7 @@
  */
 #define GPIO_SPI1_EXTI_20608_DRDY_PC14   (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN14)
 
-#define PX4_SPIDEV_ICM_20608         6   /* ICM_20608 on PC15 */
+#define PX4_SPIDEV_ICM_20608       PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_ICM20608)
 
 
 
@@ -379,7 +378,6 @@
 #define GPIO_VDD_BRICK_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
 #define GPIO_VDD_SERVO_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN7)
 #define GPIO_VDD_USB_VALID		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
-#define GPIO_VDD_3V3_SENSORS_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 #define GPIO_VDD_5V_HIPOWER_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
 #define GPIO_VDD_5V_PERIPH_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
 
@@ -463,7 +461,6 @@ extern void stm32_spiinitialize(void);
  *
  ****************************************************************************************************/
 
-void board_spi_reset(int ms);
 extern void board_peripheral_reset(int ms);
 
 /****************************************************************************************************

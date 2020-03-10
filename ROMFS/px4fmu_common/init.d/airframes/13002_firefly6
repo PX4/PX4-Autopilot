@@ -4,6 +4,8 @@
 # @type VTOL Tiltrotor
 # @class VTOL
 #
+# @board px4_fmu-v2 exclude
+#
 # @maintainer Roman Bapst <roman@uaventure.com>
 #
 # @output MAIN1 Front right motor bottom
