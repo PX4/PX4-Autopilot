@@ -20,7 +20,7 @@ from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 package = package[0]
-fastrtpsgen_version = fastrtpsgen_version[0]
+fastrtps_version = fastrtps_version[0]
 try:
     ros2_distro = ros2_distro[0].decode("utf-8")
 except AttributeError:
@@ -74,7 +74,7 @@ except AttributeError:
 
 
 @[for topic in recv_topics]@
-@[    if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if fastrtps_version <= 1.7]@
 @[        if ros2_distro]@
 using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
 @[        else]@
@@ -89,7 +89,7 @@ using @(topic)_msg_t = @(topic);
 @[    end if]@
 @[end for]@
 @[for topic in send_topics]@
-@[    if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if fastrtps_version <= 1.7]@
 @[        if ros2_distro]@
 using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
 @[        else]@
@@ -131,7 +131,7 @@ private:
 @[end for]@
 @[end if]@
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7 or not ros2_distro]@
+@[if fastrtps_version <= 1.7 or not ros2_distro]@
     template <class T>
     uint8_t getMsgSysID(T* msg) { return msg->sys_id_(); }
 

@@ -68,7 +68,7 @@ except AttributeError:
 #include <fastrtps/fastrtps_fwd.h>
 #include <fastrtps/publisher/PublisherListener.h>
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 #include "@(topic)_PubSubTypes.h"
 @[else]@
 #include "@(topic)PubSubTypes.h"
@@ -84,7 +84,7 @@ public:
     virtual ~@(topic)_Publisher();
     bool init();
     void run();
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 @[    if ros2_distro]@
     void publish(@(package)::msg::dds_::@(topic)_* st);
 @[    else]@
@@ -109,7 +109,7 @@ private:
         void onPublicationMatched(Publisher* pub, MatchingInfo& info);
         int n_matched;
     } m_listener;
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 @[    if ros2_distro]@
     @(package)::msg::dds_::@(topic)_PubSubType @(topic)DataType;
 @[    else]@

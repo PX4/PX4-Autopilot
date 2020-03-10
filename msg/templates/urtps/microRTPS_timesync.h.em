@@ -17,7 +17,7 @@ from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 package = package[0]
-fastrtpsgen_version = fastrtpsgen_version[0]
+fastrtps_version = fastrtps_version[0]
 try:
     ros2_distro = ros2_distro[0].decode("utf-8")
 except AttributeError:
@@ -86,7 +86,7 @@ static constexpr int64_t TRIGGER_RESET_THRESHOLD_NS = 100ll * 1000ll * 1000ll;
 static constexpr int REQUEST_RESET_COUNTER_THRESHOLD = 5;
 
 @# Sets the timesync DDS type according to the FastRTPS and ROS2 version
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 @[    if ros2_distro]@
 using timesync_msg_t = @(package)::msg::dds_::Timesync_;
 @[    else]@
