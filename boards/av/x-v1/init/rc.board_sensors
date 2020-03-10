@@ -16,6 +16,7 @@ ms4525_airspeed -T 4515 -b 3 start
 if ! param greater SENS_EN_PMW3901 0
 then
 	# try to start adis16497 only if pmw3901 isn't enabled, or parameter doesn't exists
+	# TODO: this one is external SPI
 	adis16497 start
 fi
 

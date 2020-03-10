@@ -30,7 +30,7 @@ qmc5883 -X start
 # Possible internal compass
 bmm150 start
 
-# Possible internal Barro
+# Possible internal Baro
 bmp388 -I start
 bmp388 -J start
 

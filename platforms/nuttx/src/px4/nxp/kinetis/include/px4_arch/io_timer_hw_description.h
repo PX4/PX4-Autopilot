@@ -85,6 +85,8 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	case GPIO::PortE:
 		gpio_af = PIN_ALT6;
 		break;
+
+	default: break;
 	}
 
 	uint32_t gpio_pin_port = getGPIOPort(pin.port) | getGPIOPin(pin.pin);
