@@ -41,6 +41,7 @@
 #define _DEVICE_I2C_H
 
 #include "../CDev.hpp"
+#include <px4_platform_common/i2c.h>
 
 #include <nuttx/i2c/i2c_master.h>
 
@@ -68,8 +69,6 @@ public:
 	virtual int	init() override;
 
 	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
-
-	static unsigned	int	_bus_clocks[BOARD_NUMBER_I2C_BUSES];
 
 protected:
 	/**
@@ -109,10 +108,12 @@ protected:
 	 */
 	int		transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len);
 
-	virtual bool	external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
+	bool	external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
-	uint32_t		_frequency{0};
+	static unsigned	int	_bus_clocks[PX4_NUMBER_I2C_BUSES];
+
+	const uint32_t		_frequency;
 	i2c_master_s		*_dev{nullptr};
 
 };

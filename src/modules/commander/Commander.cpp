@@ -1369,6 +1369,8 @@ Commander::run()
 				}
 			}
 
+			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get());
+
 			param_init_forced = false;
 		}
 
@@ -1975,6 +1977,8 @@ Commander::run()
 
 		// data link checks which update the status
 		data_link_check();
+
+		avoidance_check();
 
 		// engine failure detection
 		// TODO: move out of commander
@@ -3614,7 +3618,6 @@ void Commander::data_link_check()
 					_datalink_last_status_avoidance_system = telemetry.remote_system_status;
 
 					if (_avoidance_system_lost) {
-						mavlink_log_info(&mavlink_log_pub, "Avoidance system regained");
 						_status_changed = true;
 						_avoidance_system_lost = false;
 						status_flags.avoidance_system_valid = true;
@@ -3654,42 +3657,29 @@ void Commander::data_link_check()
 	// AVOIDANCE SYSTEM state check (only if it is enabled)
 	if (status_flags.avoidance_system_required && !_onboard_controller_lost) {
 
-		//if avoidance never started
-		if (_datalink_last_heartbeat_avoidance_system == 0
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _param_com_oa_boot_t.get() * 1_s) {
-			if (!_print_avoidance_msg_once) {
-				mavlink_log_critical(&mavlink_log_pub, "Avoidance system not available");
-				_print_avoidance_msg_once = true;
-
-			}
-		}
-
 		//if heartbeats stop
 		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
 		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
 			_avoidance_system_lost = true;
-			mavlink_log_critical(&mavlink_log_pub, "Avoidance system lost");
 			status_flags.avoidance_system_valid = false;
-			_print_avoidance_msg_once = false;
 		}
 
 		//if status changed
 		if (_avoidance_system_status_change) {
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_BOOT) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system starting");
+				status_flags.avoidance_system_valid = false;
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_ACTIVE) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system connected");
 				status_flags.avoidance_system_valid = true;
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system timed out");
+				status_flags.avoidance_system_valid = false;
+				_status_changed = true;
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
-				mavlink_log_critical(&mavlink_log_pub, "Avoidance system rejected");
 				status_flags.avoidance_system_valid = false;
 				_status_changed = true;
 			}
@@ -3710,6 +3700,44 @@ void Commander::data_link_check()
 			_status_changed = true;
 		}
 	}
+}
+
+void Commander::avoidance_check()
+{
+
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (_sub_distance_sensor[i].updated()) {
+			distance_sensor_s distance_sensor {};
+			_sub_distance_sensor[i].copy(&distance_sensor);
+
+			if ((distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
+			    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
+				_valid_distance_sensor_time_us = distance_sensor.timestamp;
+			}
+		}
+	}
+
+	const bool cp_enabled =  _param_cp_dist.get() > 0.f;
+
+	const bool distance_sensor_valid = hrt_elapsed_time(&_valid_distance_sensor_time_us) < 500_ms;
+	const bool cp_healthy = status_flags.avoidance_system_valid || distance_sensor_valid;
+
+	const bool sensor_oa_present = cp_healthy || status_flags.avoidance_system_required || cp_enabled;
+
+	const bool auto_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_OFFBOARD
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+			       || _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND;
+	const bool pos_ctl_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL;
+
+	const bool sensor_oa_enabled = ((auto_mode && status_flags.avoidance_system_required) || (pos_ctl_mode && cp_enabled));
+	const bool sensor_oa_healthy = ((auto_mode && status_flags.avoidance_system_valid) || (pos_ctl_mode && cp_healthy));
+
+	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE, sensor_oa_present, sensor_oa_enabled,
+			 sensor_oa_healthy, status);
+
 }
 
 void Commander::battery_status_check()
@@ -3967,38 +3995,16 @@ Commander::offboard_control_update()
 		}
 	}
 
-	if (offboard_control_mode.timestamp != 0 &&
-	    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
-		if (status_flags.offboard_control_signal_lost) {
-			status_flags.offboard_control_signal_lost = false;
-			status_flags.offboard_control_loss_timeout = false;
-			_status_changed = true;
-		}
+	_offboard_available.set_state_and_update(
+		hrt_elapsed_time(&offboard_control_mode.timestamp) < _param_com_of_loss_t.get() * 1e6f,
+		hrt_absolute_time());
 
-	} else {
-		if (!status_flags.offboard_control_signal_lost) {
-			status_flags.offboard_control_signal_lost = true;
-			_status_changed = true;
-		}
+	const bool offboard_lost = !_offboard_available.get_state();
 
-		/* check timer if offboard was there but now lost */
-		if (!status_flags.offboard_control_loss_timeout && offboard_control_mode.timestamp != 0) {
-			if (_param_com_of_loss_t.get() < FLT_EPSILON) {
-				/* execute loss action immediately */
-				status_flags.offboard_control_loss_timeout = true;
-
-			} else {
-				/* wait for timeout if set */
-				status_flags.offboard_control_loss_timeout = offboard_control_mode.timestamp +
-						OFFBOARD_TIMEOUT + _param_com_of_loss_t.get() * 1e6f < hrt_absolute_time();
-			}
-
-			if (status_flags.offboard_control_loss_timeout) {
-				_status_changed = true;
-			}
-		}
+	if (status_flags.offboard_control_signal_lost != offboard_lost) {
+		status_flags.offboard_control_signal_lost = offboard_lost;
+		_status_changed = true;
 	}
-
 }
 
 void Commander::esc_status_check(const esc_status_s &esc_status)

@@ -609,7 +609,11 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 		}
 	}
 
-	if (_uart_fd < 0) {
+	/*
+	 * Return here in the iridium mode since the iridium driver does not
+	 * support the subsequent function calls.
+	*/
+	if (_uart_fd < 0 || _mode == MAVLINK_MODE_IRIDIUM) {
 		return _uart_fd;
 	}
 
@@ -1715,6 +1719,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("WIND_COV", 1.0f);
+		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
 		break;
 
 
