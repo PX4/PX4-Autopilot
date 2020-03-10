@@ -3,6 +3,8 @@
 # PX4 FMUv3 specific board sensors init
 #------------------------------------------------------------------------------
 
+rgbled start -I
+
 adc start
 
 # External I2C bus

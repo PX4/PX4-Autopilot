@@ -3,6 +3,8 @@
 # PX4 FMUv4pro specific board sensors init
 #------------------------------------------------------------------------------
 
+rgbled start -I
+
 adc start
 
 # Internal SPI bus ICM-20608-G
