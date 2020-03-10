@@ -11,7 +11,7 @@
 #include "autopilot_tester.h"
 
 
-TEST_CASE("Takeoff and Land (Multicopter offboard)", "[multicopter][offboard][nogps]")
+TEST_CASE("Offboard takeoff and land", "[multicopter][offboard][nogps]")
 {
     AutopilotTester tester;
     Offboard::PositionNEDYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
@@ -25,7 +25,7 @@ TEST_CASE("Takeoff and Land (Multicopter offboard)", "[multicopter][offboard][no
     tester.check_home_within(0.5f);
 }
 
-TEST_CASE("Mission (Multicopter offboard )", "[multicopter][offboard][nogps]")
+TEST_CASE("Offboard position control", "[multicopter][offboard][nogps]")
 {
     AutopilotTester tester;
     Offboard::PositionNEDYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};

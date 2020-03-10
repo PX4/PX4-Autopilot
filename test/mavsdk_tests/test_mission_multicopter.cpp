@@ -11,7 +11,7 @@
 #include "autopilot_tester.h"
 
 
-TEST_CASE("Takeoff and Land (Multicopter)", "[multicopter][vtol]")
+TEST_CASE("Takeoff and Land", "[multicopter][vtol]")
 {
     AutopilotTester tester;
     tester.connect(connection_url);
