@@ -447,9 +447,9 @@ bool Ekf::realignYawGPS()
 			}
 
 			// use the combined EKF and GPS speed variance to calculate a rough estimate of the yaw error after alignment
-			float SpdErrorVariance = sq(_gps_sample_delayed.sacc) + P(4,4) + P(5,5);
-			float sineYawError = math::constrain(sqrtf(SpdErrorVariance) / gpsSpeed, 0.0f, 1.0f);
-			float yaw_variance_new = sq(asinf(sineYawError));
+			const float SpdErrorVariance = sq(_gps_sample_delayed.sacc) + P(4,4) + P(5,5);
+			const float sineYawError = math::constrain(sqrtf(SpdErrorVariance) / gpsSpeed, 0.0f, 1.0f);
+			const float yaw_variance_new = sq(asinf(sineYawError));
 
 			// Apply updated yaw and yaw variance to states and covariances
 			resetQuatStateYaw(yaw_new, yaw_variance_new, true);
