@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,5 +31,35 @@
 #
 ############################################################################
 
-px4_add_library(drivers_magnetometer PX4Magnetometer.cpp)
-target_link_libraries(drivers_magnetometer PRIVATE conversion)
+if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
+	add_library(drivers_board
+		boot_config.h
+		boot.c
+		led.c
+		led.h
+	)
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch
+			nuttx_drivers
+			canbootloader
+	)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/canbootloader)
+
+else()
+	add_library(drivers_board
+		can.c
+		i2c.cpp
+		init.c
+		spi.cpp
+	)
+
+	target_link_libraries(drivers_board
+		PRIVATE
+			arch_spi
+			nuttx_arch
+			nuttx_drivers
+			px4_layer
+			arch_io_pins
+	)
+endif()
