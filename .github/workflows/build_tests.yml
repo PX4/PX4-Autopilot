@@ -20,5 +20,16 @@ jobs:
       env:
         CI: true
       run: make check_format
+    - uses: actions/cache@v1.1.0
+      id: ccache-persistence
+      with:
+        path: ~/.ccache
+        key: ccache-main-tests
+        restore-keys: |
+          ccache-main-tests
+    - name: setup ccache
+      run: mkdir -p ~/.ccache && echo "max_size = 300M" > ~/.ccache/ccache.conf && ccache -z && ccache -s
     - name: main tests
       run: make tests
+    - name: ccache post-run
+      run: ccache -s && ccache -z
