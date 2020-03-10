@@ -53,7 +53,7 @@ DPS310::DPS310(device::Device *interface) :
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors"))
 {
-	_px4_barometer.set_device_type(DRV_DEVTYPE_DPS310);
+	_px4_barometer.set_device_type(DRV_BARO_DEVTYPE_DPS310);
 }
 
 DPS310::~DPS310()

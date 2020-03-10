@@ -75,12 +75,18 @@ public:
 	 */
 	bool ChangeWorkQeue(const wq_config_t &config) { return Init(config); }
 
+	const char *ItemName() const { return _item_name; }
+
 protected:
 
 	explicit WorkItem(const char *name, const wq_config_t &config);
 
 	virtual ~WorkItem();
 
+	/**
+	 * Remove work item from the runnable queue, if it's there
+	 */
+	void ScheduleClear();
 protected:
 
 	void RunPreamble() { _run_count++; }
