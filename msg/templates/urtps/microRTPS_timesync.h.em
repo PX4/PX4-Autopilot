@@ -85,65 +85,92 @@ static constexpr int64_t UNKNOWN = 0;
 static constexpr int64_t TRIGGER_RESET_THRESHOLD_NS = 100ll * 1000ll * 1000ll;
 static constexpr int REQUEST_RESET_COUNTER_THRESHOLD = 5;
 
+@# Sets the timesync DDS type according to the FastRTPS and ROS2 version
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+using timesync_msg_t = @(package)::msg::dds_::Timesync_;
+@[    else]@
+using timesync_msg_t = timesync_;
+@[    end if]@
+@[else]@
+@[    if ros2_distro]@
+using timesync_msg_t = @(package)::msg::Timesync;
+@[    else]@
+using timesync_msg_t = timesync;
+@[    end if]@
+@[end if]@
+@# Sets the timesync publisher entity depending on using ROS2 or not
+@[if ros2_distro]@
+using TimesyncPublisher = Timesync_Publisher;
+@[else]@
+using TimesyncPublisher = timesync_Publisher;
+@[end if]@
+
 class TimeSync {
 public:
 	TimeSync();
 	virtual ~TimeSync();
 
-@[if ros2_distro]@
-	void start(const Timesync_Publisher* pub);
-@[else]@
-	void start(const timesync_Publisher* pub);
-@[end if]@
+	/**
+	 * @@brief Starts the timesync publishing thread
+	 * @@param[in] pub The timesync publisher entity to use
+	 */
+	void start(const TimesyncPublisher* pub);
 
+	/**
+	 * @@brief Resets the filter
+	 */
 	void reset();
+
+	/**
+	 * @@brief Stops the timesync publishing thread
+	 */
 	void stop();
 
 	/**
-	 * Get clock monotonic time (raw) in nanoseconds
+	 * @@brief Get clock monotonic time (raw) in nanoseconds
+	 * @@return System CLOCK_MONOTONIC_RAW time in nanoseconds
 	 */
 	inline int64_t getMonoRawTimeNSec() {
 		timespec t;
 		clock_gettime(CLOCK_MONOTONIC_RAW, &t);
-		return (int64_t)t.tv_sec * 1000000000LL + t.tv_nsec;
+		return static_cast<int64_t>(t.tv_sec * 1000000000LL + t.tv_nsec);
 	}
 
 	/**
-	 * Get system monotonic time in microseconds
+	 * @@brief Get system monotonic time in microseconds
+	 * @@return System CLOCK_MONOTONIC time in microseconds
 	 */
 	inline int64_t getMonoTimeUSec() {
 		timespec t;
 		clock_gettime(CLOCK_MONOTONIC, &t);
-		return (int64_t)(t.tv_sec * 1000000000LL + t.tv_nsec) / 1000LL;
+		return static_cast<int64_t>(t.tv_sec * 1000000000LL + t.tv_nsec) / 1000LL;
 	}
 
+	/**
+	 * @@brief Adds a time offset measurement to be filtered
+	 * @@param[in] local_t1_ns The agent CLOCK_MONOTONIC_RAW time in nanoseconds when the message was sent
+	 * @@param[in] remote_t2_ns The (client) remote CLOCK_MONOTONIC time in nanoseconds
+	 * @@param[in] local_t3_ns The agent current CLOCK_MONOTONIC time in nanoseconds
+	 * @@return true or false depending if the time offset was updated
+	 */
 	bool addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t local_t3_ns);
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-	void processTimesyncMsg(@(package)::msg::dds_::Timesync_* msg);
+	/**
+	 * @@brief Processes DDS timesync message
+	 * @@param[in,out] msg The timestamp msg to be processed
+	 */
+	void processTimesyncMsg(timesync_msg_t* msg);
 
-	@(package)::msg::dds_::Timesync_ newTimesyncMsg();
-@[    else]@
-	void processTimesyncMsg(timesync_* msg);
-
-	timesync_ newTimesyncMsg();
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-	void processTimesyncMsg(@(package)::msg::Timesync* msg);
-
-	@(package)::msg::Timesync newTimesyncMsg();
-@[    else]@
-	void processTimesyncMsg(timesync* msg);
-
-	timesync newTimesyncMsg();
-@[    end if]@
-@[end if]@
+	/**
+	 * @@brief Creates a new timesync DDS message to be sent from the agent to the client
+	 * @@return A new timesync message with the origin in the agent and with the agent timestamp
+	 */
+	timesync_msg_t newTimesyncMsg();
 
 	/**
 	 * @@brief Get the time sync offset in nanoseconds
-	 * @@return The offset in nanosecods
+	 * @@return The offset in nanoseconds
 	 */
 	inline int64_t getOffset() { return _offset_ns.load(); }
 

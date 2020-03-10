@@ -73,34 +73,18 @@ TimeSync::TimeSync()
       _request_reset_counter(0),
       _last_msg_seq(0),
       _last_remote_msg_seq(0)
-{}
+{ }
 
 TimeSync::~TimeSync() { stop(); }
 
-@[if ros2_distro]@
-void TimeSync::start(const Timesync_Publisher* pub) {
-@[else]@
-void TimeSync::start(const timesync_Publisher* pub) {
-@[end if]@
+void TimeSync::start(const TimesyncPublisher* pub) {
 	stop();
 
 	_timesync_pub = (*pub);
 
 	auto run = [this]() {
 		while (!_request_stop) {
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-			@(package)::msg::dds_::Timesync_ msg = newTimesyncMsg();
-@[    else]@
-			timesync_ msg = newTimesyncMsg();
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-			@(package)::msg::Timesync msg = newTimesyncMsg();
-@[    else]@
-			timesync msg = newTimesyncMsg();
-@[    end if]@
-@[end if]@
+			timesync_msg_t msg = newTimesyncMsg();
 
 			_timesync_pub.publish(&msg);
 
@@ -135,6 +119,11 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 		std::cout << std::endl << "Timesync clock changed, resetting" << std::endl;
 	}
 
+        if (_num_samples == 0) {
+                updateOffset(measurement_offset);
+                _skew_ns_per_sync = 0;
+        }
+
 	if (_num_samples >= WINDOW_SIZE) {
 		if (std::abs(measurement_offset - _offset_ns.load()) > TRIGGER_RESET_THRESHOLD_NS) {
 			_request_reset_counter++;
@@ -145,11 +134,6 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 		}
 	}
 
-	if (_num_samples == 0) {
-		updateOffset(measurement_offset);
-		_skew_ns_per_sync = 0;
-	}
-
 	// ignore if rtti > 10ms
 	if (rtti > 15ll * 1000ll * 1000ll) {
 		std::cout << std::endl
@@ -157,49 +141,37 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 		return false;
 	}
 
-        double alpha = ALPHA_FINAL;
-        double beta = BETA_FINAL;
+	double alpha = ALPHA_FINAL;
+	double beta = BETA_FINAL;
 
-        if (_num_samples < WINDOW_SIZE) {
-                double schedule = (double)_num_samples / WINDOW_SIZE;
-                double s = 1. - exp(.5 * (1. - 1. / (1. - schedule)));
-                alpha = (1. - s) * ALPHA_INITIAL + s * ALPHA_FINAL;
-                beta = (1. - s) * BETA_INITIAL + s * BETA_FINAL;
-        }
+	if (_num_samples < WINDOW_SIZE) {
+		double schedule = (double)_num_samples / WINDOW_SIZE;
+		double s = 1. - exp(.5 * (1. - 1. / (1. - schedule)));
+		alpha = (1. - s) * ALPHA_INITIAL + s * ALPHA_FINAL;
+		beta = (1. - s) * BETA_INITIAL + s * BETA_FINAL;
+	}
 
 	int64_t offset_prev = _offset_ns.load();
-	updateOffset(static_cast<int64_t>((_skew_ns_per_sync + _offset_ns.load()) * (1. - alpha) + measurement_offset * alpha));
-	_skew_ns_per_sync = static_cast<int64_t>(beta * (_offset_ns.load() - offset_prev) + (1. - beta) * _skew_ns_per_sync);
+	updateOffset(static_cast<int64_t>((_skew_ns_per_sync + _offset_ns.load()) * (1. - alpha) +
+					  measurement_offset * alpha));
+	_skew_ns_per_sync =
+	    static_cast<int64_t>(beta * (_offset_ns.load() - offset_prev) + (1. - beta) * _skew_ns_per_sync);
 
 	_num_samples++;
 
 	return true;
 }
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-void TimeSync::processTimesyncMsg(@(package)::msg::dds_::Timesync_* msg) {
-@[    else]@
-void TimeSync::processTimesyncMsg(timesync_* msg) {
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-void TimeSync::processTimesyncMsg(@(package)::msg::Timesync* msg) {
-@[    else]@
-void TimeSync::processTimesyncMsg(timesync* msg) {
-@[    end if]@
-@[end if]@
+void TimeSync::processTimesyncMsg(timesync_msg_t * msg) {
 	if (msg->sys_id() == 1 && msg->seq() != _last_remote_msg_seq) {
-		if (msg->tc1() > 0) {
-			_last_remote_msg_seq = msg->seq();
+                _last_remote_msg_seq = msg->seq();
 
+		if (msg->tc1() > 0) {
 			if (!addMeasurement(msg->ts1(), msg->tc1(), getMonoRawTimeNSec())) {
 				std::cerr << "Offset not updated" << std::endl;
 			}
 
 		} else if (msg->tc1() == 0) {
-			_last_remote_msg_seq = msg->seq();
-
 			msg->timestamp() = getMonoTimeUSec();
 			msg->sys_id() = 0;
 			msg->seq()++;
@@ -210,23 +182,8 @@ void TimeSync::processTimesyncMsg(timesync* msg) {
 	}
 }
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-@(package)::msg::dds_::Timesync_ TimeSync::newTimesyncMsg() {
-       @(package)::msg::dds_::Timesync_ msg{};
-@[    else]@
-timesync_ TimeSync::newTimesyncMsg() {
-       timesync_ msg{};
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-@(package)::msg::Timesync TimeSync::newTimesyncMsg() {
-       @(package)::msg::Timesync msg{};
-@[    else]@
-timesync TimeSync::newTimesyncMsg() {
-       timesync msg{};
-@[    end if]@
-@[end if]@
+timesync_msg_t TimeSync::newTimesyncMsg() {
+	timesync_msg_t msg{};
 
 	msg.timestamp() = getMonoTimeUSec();
 	msg.sys_id() = 0;
