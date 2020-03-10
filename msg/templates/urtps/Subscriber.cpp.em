@@ -84,7 +84,7 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0; // MUST BE THE SAME AS IN THE PUBLISHER
-@[if 1.5 <= fastrtpsgen_version <= 1.7 or ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal" or ros2_distro == "dashing"]@
+@[if fastrtps_version <= 1.8]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -199,7 +199,7 @@ bool @(topic)_Subscriber::hasMsg()
     return false;
 }
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 @[    if ros2_distro]@
 @(package)::msg::dds_::@(topic)_ @(topic)_Subscriber::getMsg()
 @[    else]@
