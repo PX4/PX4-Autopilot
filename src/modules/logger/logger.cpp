@@ -1232,7 +1232,7 @@ void Logger::start_log_file(LogType type)
 
 	if (type == LogType::Full) {
 		/* print logging path, important to find log file later */
-		mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
+		mavlink_log_info(&_mavlink_log_pub, "[logger] file:%s", file_name);
 	}
 
 	_writer.start_log_file(type, file_name);

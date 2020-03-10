@@ -70,6 +70,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #include <fastrtps/Domain.h>
 
 #include "microRTPS_transport.h"
+#include "microRTPS_timesync.h"
 #include "RtpsTopics.h"
 
 #define BUFFER_SIZE 1024
@@ -91,6 +92,9 @@ volatile sig_atomic_t running = 1;
 Transport_node *transport_node = nullptr;
 RtpsTopics topics;
 uint32_t total_sent = 0, sent = 0;
+
+// Init timesync
+std::shared_ptr<TimeSync> timeSync = std::make_shared<TimeSync>();
 
 struct options {
     enum class eTransports
@@ -160,6 +164,7 @@ void signal_handler(int signum)
    printf("Interrupt signal (%d) received.\n", signum);
    running = 0;
    transport_node->close();
+   timeSync->stop();
 }
 
 @[if recv_topics]@
@@ -188,6 +193,7 @@ void t_send(void*)
         /* make room for the header to fill in later */
         eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[header_length], sizeof(data_buffer)-header_length);
         eprosima::fastcdr::Cdr scdr(cdrbuffer);
+
         if (topics.getMsg(topic_ID, scdr))
         {
             length = scdr.getSerializedDataLength();
@@ -253,6 +259,8 @@ int main(int argc, char** argv)
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 @[end if]@
 
+    topics.set_timesync(timeSync);
+
 @[if recv_topics]@
     topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue);
 @[end if]@
@@ -299,6 +307,8 @@ int main(int argc, char** argv)
 @[end if]@
     delete transport_node;
     transport_node = nullptr;
+
+    timeSync->reset();
 
     return 0;
 }

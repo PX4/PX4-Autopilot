@@ -66,11 +66,11 @@ bool VehicleIMU::Start()
 
 void VehicleIMU::Stop()
 {
-	Deinit();
-
 	// clear all registered callbacks
 	_sensor_accel_integrated_sub.unregisterCallback();
 	_sensor_gyro_integrated_sub.unregisterCallback();
+
+	Deinit();
 }
 
 void VehicleIMU::ParametersUpdate(bool force)

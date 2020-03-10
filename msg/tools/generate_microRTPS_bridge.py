@@ -312,6 +312,8 @@ uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.em'
 uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.em'
 uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cpp.em'
 uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cpp.em'
+uRTPS_TIMESYNC_CPP_TEMPL_FILE = 'microRTPS_timesync.cpp.em'
+uRTPS_TIMESYNC_H_TEMPL_FILE = 'microRTPS_timesync.h.em'
 uRTPS_AGENT_CMAKELISTS_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.em'
 uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cpp.em'
 uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.em'
@@ -384,6 +386,10 @@ def generate_agent(out_dir):
 
     px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,
                                                         urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, fastrtpsgen_version, ros2_distro, uRTPS_AGENT_TEMPL_FILE)
+    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,
+                                                        urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, fastrtpsgen_version, ros2_distro, uRTPS_TIMESYNC_CPP_TEMPL_FILE)
+    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,
+                                                        urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, fastrtpsgen_version, ros2_distro, uRTPS_TIMESYNC_H_TEMPL_FILE)
     px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,
                                                         urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, fastrtpsgen_version, ros2_distro, uRTPS_AGENT_TOPICS_H_TEMPL_FILE)
     px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,

@@ -71,6 +71,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 200);
+	add_topic("rpm", 500);
 	add_topic("safety", 1000);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_correction", 1000);
@@ -398,4 +399,3 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 		add_vision_and_avoidance_topics();
 	}
 }
-
