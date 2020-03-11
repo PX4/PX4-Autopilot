@@ -54,11 +54,13 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
@@ -82,7 +84,7 @@ using namespace time_literals;
  * subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
  */
 #define PCB_TEMP_ESTIMATE_DEG		5.0f
-class Sensors : public ModuleBase<Sensors>, public ModuleParams
+class Sensors : public ModuleBase<Sensors>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	explicit Sensors(bool hil_enabled);
@@ -92,23 +94,30 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static Sensors *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
 	/** @see ModuleBase::run() */
-	void run() override;
+	void Run() override;
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
+	bool init();
+
 private:
 	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed{false};				/**< arming status of the vehicle */
+
+	hrt_abstime     _last_config_update{0};
+	hrt_abstime     _airdata_prev_timestamp{0};
+	hrt_abstime     _sensor_combined_prev_timestamp{0};
+	hrt_abstime     _magnetometer_prev_timestamp{0};
+
+	sensor_combined_s _sensor_combined{};
+	sensor_preflight_s _sensor_preflight{};
 
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::Subscription	_diff_pres_sub{ORB_ID(differential_pressure)};			/**< raw differential pressure subscription */
@@ -117,9 +126,18 @@ private:
 
 	uORB::Publication<airspeed_s>			_airspeed_pub{ORB_ID(airspeed)};			/**< airspeed */
 	uORB::Publication<sensor_combined_s>		_sensor_pub{ORB_ID(sensor_combined)};			/**< combined sensor data topic */
-	uORB::Publication<sensor_preflight_s>		_sensor_preflight{ORB_ID(sensor_preflight)};		/**< sensor preflight topic */
+	uORB::Publication<sensor_preflight_s>		_sensor_preflight_pub{ORB_ID(sensor_preflight)};		/**< sensor preflight topic */
 	uORB::Publication<vehicle_air_data_s>		_airdata_pub{ORB_ID(vehicle_air_data)};			/**< combined sensor data topic */
 	uORB::Publication<vehicle_magnetometer_s>	_magnetometer_pub{ORB_ID(vehicle_magnetometer)};	/**< combined sensor data topic */
+
+	uORB::SubscriptionCallbackWorkItem _sensor_gyro_integrated_sub[GYRO_COUNT_MAX] {
+		{this, ORB_ID(sensor_gyro_integrated), 0},
+		{this, ORB_ID(sensor_gyro_integrated), 1},
+		{this, ORB_ID(sensor_gyro_integrated), 2}
+	};
+
+	uint32_t _selected_sensor_device_id{0};
+	uint8_t _selected_sensor_sub_index{0};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -183,6 +201,7 @@ private:
 
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_voted_sensors_update(_parameters, hil_enabled)
@@ -210,8 +229,15 @@ Sensors::~Sensors()
 	}
 }
 
-int
-Sensors::parameters_update()
+bool Sensors::init()
+{
+	// initially run manually
+	ScheduleDelayed(10_ms);
+
+	return true;
+}
+
+int Sensors::parameters_update()
 {
 	if (_armed) {
 		return 0;
@@ -225,8 +251,7 @@ Sensors::parameters_update()
 	return PX4_OK;
 }
 
-int
-Sensors::adc_init()
+int Sensors::adc_init()
 {
 	if (!_hil_enabled) {
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
@@ -253,7 +278,7 @@ Sensors::diff_pres_poll(const vehicle_air_data_s &raw)
 		float air_temperature_celsius = (diff_pres.temperature > -300.0f) ? diff_pres.temperature :
 						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
-		airspeed_s airspeed;
+		airspeed_s airspeed{};
 		airspeed.timestamp = diff_pres.timestamp;
 
 		/* push data into validator */
@@ -333,8 +358,7 @@ Sensors::parameter_update_poll(bool forced)
 	}
 }
 
-void
-Sensors::adc_poll()
+void Sensors::adc_poll()
 {
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
@@ -421,143 +445,173 @@ void Sensors::InitializeVehicleIMU()
 	}
 }
 
-void
-Sensors::run()
+void Sensors::Run()
 {
-	adc_init();
+	if (should_exit()) {
+		// clear all registered callbacks
+		for (auto &sub : _sensor_gyro_integrated_sub) {
+			sub.unregisterCallback();
+		}
 
-	sensor_combined_s raw = {};
-	sensor_preflight_s preflt = {};
-	vehicle_air_data_s airdata = {};
-	vehicle_magnetometer_s magnetometer = {};
+		_voted_sensors_update.deinit();
+		exit_and_cleanup();
+		return;
+	}
 
-	_voted_sensors_update.init(raw);
+	// run once
+	if (_last_config_update == 0) {
+		adc_init();
+		_voted_sensors_update.init(_sensor_combined);
+		parameter_update_poll(true);
+	}
 
-	/* (re)load params and calibration */
-	parameter_update_poll(true);
+	perf_begin(_loop_perf);
 
-	/* get a set of initial values */
-	_voted_sensors_update.sensorsPoll(raw, airdata, magnetometer);
+	// backup schedule as a watchdog timeout
+	ScheduleDelayed(10_ms);
+
+	sensor_gyro_integrated_s gyro_integrated;
+	_sensor_gyro_integrated_sub[_selected_sensor_sub_index].copy(&gyro_integrated);
+
+	// check vehicle status for changes to publication state
+	if (_vcontrol_mode_sub.updated()) {
+		vehicle_control_mode_s vcontrol_mode{};
+
+		if (_vcontrol_mode_sub.copy(&vcontrol_mode)) {
+			_armed = vcontrol_mode.flag_armed;
+		}
+	}
+
+	vehicle_air_data_s airdata{};
+	vehicle_magnetometer_s magnetometer{};
+	_voted_sensors_update.sensorsPoll(_sensor_combined, airdata, magnetometer);
+
+	// check analog airspeed
+	adc_poll();
 
 	diff_pres_poll(airdata);
 
-	/* wakeup source */
-	px4_pollfd_struct_t poll_fds = {};
-	poll_fds.events = POLLIN;
 
-	uint64_t last_config_update = hrt_absolute_time();
+	// check failover and update subscribed sensor (if necessary)
+	_voted_sensors_update.checkFailover();
+	const uint32_t current_device_id = _voted_sensors_update.bestGyroID();
 
-	while (!should_exit()) {
-
-		/* use the best-voted gyro to pace output */
-		poll_fds.fd = _voted_sensors_update.bestGyroFd();
-
-		/* wait for up to 50ms for data (Note that this implies, we can have a fail-over time of 50ms,
-		 * if a gyro fails) */
-		int pret = px4_poll(&poll_fds, 1, 50);
-
-		/* If pret == 0 it timed out but we should still do all checks and potentially copy
-		 * other gyros. */
-
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
-		if (pret < 0) {
-			/* if the polling operation failed because no gyro sensor is available yet,
-			 * then attempt to subscribe once again
-			 */
-			if (_voted_sensors_update.numGyros() == 0) {
-				_voted_sensors_update.initializeSensors();
-			}
-
-			px4_usleep(1000);
-			continue;
+	if (_selected_sensor_device_id != current_device_id) {
+		// clear all registered callbacks
+		for (auto &sub : _sensor_gyro_integrated_sub) {
+			sub.unregisterCallback();
 		}
 
-		perf_begin(_loop_perf);
+		for (int i = 0; i < GYRO_COUNT_MAX; i++) {
+			sensor_gyro_integrated_s report{};
 
-		/* check vehicle status for changes to publication state */
-		if (_vcontrol_mode_sub.updated()) {
-			vehicle_control_mode_s vcontrol_mode{};
-			_vcontrol_mode_sub.copy(&vcontrol_mode);
-			_armed = vcontrol_mode.flag_armed;
-		}
-
-		/* the timestamp of the raw struct is updated by the gyroPoll() method (this makes the gyro
-		 * a mandatory sensor) */
-		const uint64_t airdata_prev_timestamp = airdata.timestamp;
-		const uint64_t magnetometer_prev_timestamp = magnetometer.timestamp;
-
-		_voted_sensors_update.sensorsPoll(raw, airdata, magnetometer);
-
-		/* check analog airspeed */
-		adc_poll();
-
-		diff_pres_poll(airdata);
-
-		if (raw.timestamp > 0) {
-
-			_voted_sensors_update.setRelativeTimestamps(raw);
-
-			_sensor_pub.publish(raw);
-
-			if (airdata.timestamp != airdata_prev_timestamp) {
-				_airdata_pub.publish(airdata);
-			}
-
-			if (magnetometer.timestamp != magnetometer_prev_timestamp) {
-				_magnetometer_pub.publish(magnetometer);
-			}
-
-			_voted_sensors_update.checkFailover();
-
-			/* If the the vehicle is disarmed calculate the length of the maximum difference between
-			 * IMU units as a consistency metric and publish to the sensor preflight topic
-			*/
-			if (!_armed) {
-				preflt.timestamp = hrt_absolute_time();
-				_voted_sensors_update.calcAccelInconsistency(preflt);
-				_voted_sensors_update.calcGyroInconsistency(preflt);
-				_voted_sensors_update.calcMagInconsistency(preflt);
-
-				_sensor_preflight.publish(preflt);
+			if (_sensor_gyro_integrated_sub[i].copy(&report)) {
+				if ((report.device_id != 0) && (report.device_id == current_device_id)) {
+					if (_sensor_gyro_integrated_sub[i].registerCallback()) {
+						// record selected sensor (array index)
+						_selected_sensor_sub_index = i;
+						_selected_sensor_device_id = current_device_id;
+					}
+				}
 			}
 		}
-
-		/* keep adding sensors as long as we are not armed,
-		 * when not adding sensors poll for param updates
-		 */
-		if (!_armed && hrt_elapsed_time(&last_config_update) > 500_ms) {
-			_voted_sensors_update.initializeSensors();
-			InitializeVehicleIMU();
-			last_config_update = hrt_absolute_time();
-
-		} else {
-
-			/* check parameters for updates */
-			parameter_update_poll();
-		}
-
-		perf_end(_loop_perf);
 	}
 
-	_voted_sensors_update.deinit();
+	if ((airdata.timestamp != 0) && (airdata.timestamp != _airdata_prev_timestamp)) {
+		_airdata_pub.publish(airdata);
+		_airdata_prev_timestamp = airdata.timestamp;
+	}
+
+	if ((magnetometer.timestamp != 0) && (magnetometer.timestamp != _magnetometer_prev_timestamp)) {
+		_magnetometer_pub.publish(magnetometer);
+		_magnetometer_prev_timestamp = magnetometer.timestamp;
+
+		if (!_armed) {
+			_voted_sensors_update.calcMagInconsistency(_sensor_preflight);
+		}
+	}
+
+	if (_sensor_combined.timestamp != _sensor_combined_prev_timestamp) {
+
+		_voted_sensors_update.setRelativeTimestamps(_sensor_combined);
+		_sensor_pub.publish(_sensor_combined);
+		_sensor_combined_prev_timestamp = _sensor_combined.timestamp;
+
+		// If the the vehicle is disarmed calculate the length of the maximum difference between
+		// IMU units as a consistency metric and publish to the sensor preflight topic
+		if (!_armed) {
+			_voted_sensors_update.calcAccelInconsistency(_sensor_preflight);
+			_voted_sensors_update.calcGyroInconsistency(_sensor_preflight);
+
+			_sensor_preflight.timestamp = hrt_absolute_time();
+			_sensor_preflight_pub.publish(_sensor_preflight);
+		}
+	}
+
+	// keep adding sensors as long as we are not armed,
+	// when not adding sensors poll for param updates
+	if (!_armed && hrt_elapsed_time(&_last_config_update) > 500_ms) {
+		_voted_sensors_update.initializeSensors();
+		InitializeVehicleIMU();
+		_last_config_update = hrt_absolute_time();
+
+	} else {
+		// check parameters for updates
+		parameter_update_poll();
+	}
+
+	perf_end(_loop_perf);
 }
 
 int Sensors::task_spawn(int argc, char *argv[])
 {
-	/* start the task */
-	_task_id = px4_task_spawn_cmd("sensors",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_SENSOR_HUB,
-				      2000,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	bool hil_enabled = false;
+	bool error_flag = false;
 
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "h", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'h':
+			hil_enabled = true;
+			break;
+
+		case '?':
+			error_flag = true;
+			break;
+
+		default:
+			PX4_WARN("unrecognized flag");
+			error_flag = true;
+			break;
+		}
 	}
 
-	return 0;
+	if (error_flag) {
+		return PX4_ERROR;
+	}
+
+	Sensors *instance = new Sensors(hil_enabled);
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
 int Sensors::print_status()
@@ -621,39 +675,6 @@ It runs in its own thread and polls on the currently selected gyro topic.
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
-}
-
-Sensors *Sensors::instantiate(int argc, char *argv[])
-{
-	bool hil_enabled = false;
-	bool error_flag = false;
-
-	int myoptind = 1;
-	int ch;
-	const char *myoptarg = nullptr;
-
-	while ((ch = px4_getopt(argc, argv, "h", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'h':
-			hil_enabled = true;
-			break;
-
-		case '?':
-			error_flag = true;
-			break;
-
-		default:
-			PX4_WARN("unrecognized flag");
-			error_flag = true;
-			break;
-		}
-	}
-
-	if (error_flag) {
-		return nullptr;
-	}
-
-	return new Sensors(hil_enabled);
 }
 
 extern "C" __EXPORT int sensors_main(int argc, char *argv[])
