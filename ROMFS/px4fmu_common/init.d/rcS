@@ -467,10 +467,10 @@ else
 		vmount start
 	fi
 
-	# Check for flow sensor, launched as a background task to scan
+	# Check for flow sensor
 	if param compare SENS_EN_PX4FLOW 1
 	then
-		px4flow start &
+		px4flow start -X
 	fi
 
 	# Blacksheep telemetry
