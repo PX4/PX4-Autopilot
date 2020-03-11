@@ -36,6 +36,7 @@
 #include <stdint.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/uORBTopics.hpp>
 
 namespace px4
 {
@@ -74,9 +75,9 @@ public:
 	static constexpr int 		MAX_TOPICS_NUM = 200; /**< Maximum number of logged topics */
 
 	struct RequestedSubscription {
-		const orb_metadata *topic;
 		uint16_t interval_ms;
 		uint8_t instance;
+		ORB_ID id{ORB_ID::INVALID};
 	};
 	struct RequestedSubscriptionArray {
 		RequestedSubscription sub[MAX_TOPICS_NUM];

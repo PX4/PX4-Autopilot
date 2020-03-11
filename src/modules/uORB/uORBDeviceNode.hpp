@@ -192,6 +192,8 @@ public:
 
 	const orb_metadata *get_meta() const { return _meta; }
 
+	ORB_ID id() const { return static_cast<ORB_ID>(_meta->o_id); }
+
 	const char *get_name() const { return _meta->o_name; }
 
 	uint8_t get_instance() const { return _instance; }
