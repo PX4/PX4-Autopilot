@@ -73,22 +73,7 @@ except AttributeError:
 @[end for]@
 
 
-@[for topic in recv_topics]@
-@[    if fastrtps_version <= 1.7]@
-@[        if ros2_distro]@
-using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
-@[        else]@
-using @(topic)_msg_t = @(topic)_;
-@[        end if]@
-@[    else]@
-@[        if ros2_distro]@
-using @(topic)_msg_t = @(package)::msg::@(topic) ;
-@[        else]@
-using @(topic)_msg_t = @(topic);
-@[        end if]@
-@[    end if]@
-@[end for]@
-@[for topic in send_topics]@
+@[for topic in (recv_topics + send_topics)]@
 @[    if fastrtps_version <= 1.7]@
 @[        if ros2_distro]@
 using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
@@ -103,7 +88,6 @@ using @(topic)_msg_t = @(topic);
 @[        end if]@
 @[    end if]@
 @[end for]@
-
 
 class RtpsTopics {
 public:
@@ -152,7 +136,7 @@ private:
     inline uint8_t getMsgSeq(const T* msg) { return msg->seq(); }
 @[end if]@
 
-    /** Msg metadata Getters **/
+    /** Msg metadata Setters **/
 @[if fastrtps_version <= 1.7 or not ros2_distro]@
     template <class T>
     inline uint64_t setMsgTimestamp(T* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
