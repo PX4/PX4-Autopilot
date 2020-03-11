@@ -3966,17 +3966,7 @@ Commander::offboard_control_update()
 {
 	const offboard_control_mode_s &offboard_control_mode = _offboard_control_mode_sub.get();
 
-	// if this is the first time entering OFFBOARD the subscription may not be active yet
-	bool force_update = false;
-
-	if (commander_state_s::MAIN_STATE_OFFBOARD) {
-		if (offboard_control_mode.timestamp == 0) {
-			_offboard_control_mode_sub.subscribe();
-			force_update = true;
-		}
-	}
-
-	if (_offboard_control_mode_sub.updated() || force_update) {
+	if (_offboard_control_mode_sub.updated()) {
 		const offboard_control_mode_s old = offboard_control_mode;
 
 		if (_offboard_control_mode_sub.update()) {

@@ -46,7 +46,7 @@
 #include <time.h>
 
 #include <uORB/PublicationQueued.hpp>
-#include <uORB/uORBTopics.h>
+#include <uORB/topics/uORBTopics.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/battery_status.h>
@@ -508,7 +508,7 @@ bool Logger::initialize_topics(MissionLogType mission_log_mode)
 			const LoggedTopics::RequestedSubscription &sub = logged_topics.subscriptions().sub[i];
 			// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
 			uint16_t interval_ms = _polling_topic_meta ? 0 : sub.interval_ms;
-			_subscriptions[i] = LoggerSubscription(sub.topic, interval_ms, sub.instance);
+			_subscriptions[i] = LoggerSubscription(sub.id, interval_ms, sub.instance);
 		}
 	}
 
@@ -1232,7 +1232,7 @@ void Logger::start_log_file(LogType type)
 
 	if (type == LogType::Full) {
 		/* print logging path, important to find log file later */
-		mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
+		mavlink_log_info(&_mavlink_log_pub, "[logger] file:%s", file_name);
 	}
 
 	_writer.start_log_file(type, file_name);

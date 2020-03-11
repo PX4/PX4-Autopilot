@@ -73,7 +73,6 @@ bool RtpsTopics::init(std::condition_variable* t_send_queue_cv, std::mutex* t_se
         std::cerr << "Failed starting @(topic) subscriber" << std::endl;
         return false;
     }
-
 @[end for]@
     std::cout << "--------------------" << std::endl << std::endl;
 @[end if]@
@@ -83,11 +82,13 @@ bool RtpsTopics::init(std::condition_variable* t_send_queue_cv, std::mutex* t_se
 @[for topic in send_topics]@
     if (_@(topic)_pub.init()) {
         std::cout << "- @(topic) publisher started" << std::endl;
+@[    if topic == 'Timesync' or topic == 'timesync']@
+        _timesync->start(&_@(topic)_pub);
+@[    end if]@
     } else {
         std::cerr << "ERROR starting @(topic) publisher" << std::endl;
         return false;
     }
-
 @[end for]@
     std::cout << "--------------------" << std::endl;
 @[end if]@
@@ -118,7 +119,17 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
             eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
             st.deserialize(cdr_des);
+@[    if topic == 'Timesync' or topic == 'timesync']@
+            _timesync->processTimesyncMsg(&st);
+
+            if (st.sys_id() == 1) {
+@[    end if]@
+            // apply timestamp offset
+            _timesync->subtractOffset(st.timestamp());
             _@(topic)_pub.publish(&st);
+@[    if topic == 'Timesync' or topic == 'timesync']@
+            }
+@[    end if]@
         }
         break;
 @[end for]@
@@ -152,8 +163,16 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
                 @(topic) msg = _@(topic)_sub.getMsg();
 @[        end if]@
 @[    end if]@
+@[    if topic == 'Timesync' or topic == 'timesync']@
+                if (msg.sys_id() == 0) {
+@[    end if]@
+                // apply timestamp offset
+                _timesync->addOffset(msg.timestamp());
                 msg.serialize(scdr);
                 ret = true;
+@[    if topic == 'Timesync' or topic == 'timesync']@
+                }
+@[    end if]@
                 _@(topic)_sub.unlockMsg();
             }
         break;

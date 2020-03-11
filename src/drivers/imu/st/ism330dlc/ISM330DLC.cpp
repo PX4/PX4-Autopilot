@@ -48,9 +48,9 @@ ISM330DLC::ISM330DLC(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation)
 {
-	set_device_type(DRV_DEVTYPE_ST_ISM330DLC);
-	_px4_accel.set_device_type(DRV_DEVTYPE_ST_ISM330DLC);
-	_px4_gyro.set_device_type(DRV_DEVTYPE_ST_ISM330DLC);
+	set_device_type(DRV_IMU_DEVTYPE_ST_ISM330DLC);
+	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ST_ISM330DLC);
+	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ST_ISM330DLC);
 
 	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
 	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);

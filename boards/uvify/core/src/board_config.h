@@ -145,32 +145,25 @@
 #  define   SPI_BUS_INIT_MASK_EXT     PX4_SPI_BUS_EXTERNAL
 #endif /* CONFIG_STM32_SPI4 */
 
-#define SPI_BUS_INIT_MASK        (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS)
+#include <drivers/drv_sensor.h>
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_GYRO              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
-#define PX4_SPIDEV_ACCEL_MAG         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
-#define PX4_SPIDEV_MPU               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
-#define PX4_SPIDEV_HMC               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 5)
-#define PX4_SPIDEV_ICM               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 6)
-#define PX4_SPIDEV_LIS               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 7)
-#define PX4_SPIDEV_BMI               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 8)
-#define PX4_SPIDEV_BMA               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 9)
-#define PX4_SPIDEV_ICM_20608         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 10)
-#define PX4_SPIDEV_ICM_20602         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 11)
-#define PX4_SPIDEV_BMI055_ACC        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 12)
-#define PX4_SPIDEV_BMI055_GYR        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 13)
-#define PX4_SPIDEV_MPU2              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 14)
+#define PX4_SPIDEV_MPU               PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU6000)
+#define PX4_SPIDEV_HMC               PX4_MK_SPI_SEL(0, DRV_MAG_DEVTYPE_HMC5883)
+#define PX4_SPIDEV_LIS               PX4_MK_SPI_SEL(0, DRV_MAG_DEVTYPE_LIS3MDL)
+#define PX4_SPIDEV_ICM_20608         PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_ICM20608)
+#define PX4_SPIDEV_ICM_20602         PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_ICM20602)
+#define PX4_SPIDEV_MPU2              PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU9250)
 
 /**
  * Onboard MS5611 and FRAM are both on bus SPI2.
  * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver.
  * PX4_MK_SPI_SEL  differentiate by adding in PX4_SPI_DEVICE_ID.
  */
-#define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO, 3)
+#define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(0, DRV_BARO_DEVTYPE_MS5611)
 
 #ifdef CONFIG_STM32_SPI4
-#  define PX4_SPIDEV_EXTERNAL       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL, 1)
+#  define PX4_SPIDEV_EXTERNAL       PX4_MK_SPI_SEL(0, 0)
 #endif /* CONFIG_STM32_SPI4 */
 
 /* I2C busses. */
@@ -202,7 +195,6 @@
 /* Power supply control and monitoring GPIOs. */
 #define GPIO_VDD_BRICK_VALID         (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
 #define GPIO_VDD_USB_VALID           (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
-#define GPIO_VDD_3V3_SENSORS_EN      (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
 
 /* Tone alarm output. */
 #define TONE_ALARM_TIMER             2    /* timer 2 */
@@ -323,14 +315,9 @@ __BEGIN_DECLS
  * Description:
  *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
  *
- *   mask - is bus selection
- *   1 - 1 << 0
- *   2 - 1 << 1
- *
  ****************************************************************************************************/
 
-extern void stm32_spiinitialize(int mask);
-void board_spi_reset(int ms);
+extern void stm32_spiinitialize(void);
 
 extern void stm32_usbinitialize(void);
 

@@ -32,9 +32,6 @@
  ****************************************************************************/
 
 #include <string.h>
-#include "../uORBDeviceNode.hpp"
-#include "../uORB.h"
-#include "../uORBCommon.hpp"
 
 #include "uORBTest_UnitTest.hpp"
 
@@ -73,13 +70,13 @@ uorb_tests_main(int argc, char *argv[])
 		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 
 		if (argc > 2 && !strcmp(argv[2], "medium")) {
-			return t.latency_test<struct orb_test_medium>(ORB_ID(orb_test_medium), true);
+			return t.latency_test<orb_test_medium_s>(ORB_ID(orb_test_medium), true);
 
 		} else if (argc > 2 && !strcmp(argv[2], "large")) {
-			return t.latency_test<struct orb_test_large>(ORB_ID(orb_test_large), true);
+			return t.latency_test<orb_test_large_s>(ORB_ID(orb_test_large), true);
 
 		} else {
-			return t.latency_test<struct orb_test>(ORB_ID(orb_test), true);
+			return t.latency_test<orb_test_s>(ORB_ID(orb_test), true);
 		}
 	}
 
