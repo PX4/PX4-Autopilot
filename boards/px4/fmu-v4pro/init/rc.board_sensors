@@ -11,7 +11,7 @@ adc start
 icm20608g -R 8 start
 
 # Internal SPI bus ICM-20602
-icm20602 -R 8 start
+icm20602 -s -R 8 start
 
 # Internal SPI bus mpu9250
 mpu9250 -R 2 start
