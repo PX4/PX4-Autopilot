@@ -177,8 +177,10 @@ rtps:
     id: 76
   - msg: test_motor
     id: 77
-  - msg: timesync_status
+  - msg: timesync
     id: 78
+    receive: true
+    send: true
   - msg: trajectory_waypoint
     id: 79
     receive: true
@@ -289,6 +291,8 @@ rtps:
     id: 129
   - msg: vehicle_trajectory_bezier
     id: 130
+  - msg: timesync_status
+    id: 131
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150

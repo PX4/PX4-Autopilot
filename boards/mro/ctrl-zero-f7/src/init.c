@@ -101,7 +101,7 @@ __END_DECLS
 __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
-	VDD_3V3_SENSORS_EN(false);
+	board_control_spi_sensors_power(false, 0xffff);
 
 	bool last = READ_VDD_3V3_SPEKTRUM_POWER_EN();
 	/* Keep Spektum on to discharge rail*/
@@ -115,7 +115,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* switch the peripheral rail back on */
 	VDD_3V3_SPEKTRUM_POWER_EN(last);
-	VDD_3V3_SENSORS_EN(true);
+	board_control_spi_sensors_power(true, 0xffff);
 }
 
 /************************************************************************************
@@ -198,7 +198,7 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-	VDD_3V3_SENSORS_EN(true);
+	board_control_spi_sensors_power(true, 0xffff);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
 	px4_platform_init();
