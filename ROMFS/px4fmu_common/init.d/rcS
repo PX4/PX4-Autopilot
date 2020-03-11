@@ -476,7 +476,7 @@ else
 	# Blacksheep telemetry
 	if param greater TEL_BST_EN 0
 	then
-		bst start
+		bst start -X
 	fi
 
 	#

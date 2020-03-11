@@ -13,7 +13,7 @@ then
 fi
 
 # Blacksheep telemetry
-if bst start
+if bst start -X
 then
 fi
 

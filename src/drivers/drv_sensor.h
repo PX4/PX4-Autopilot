@@ -145,6 +145,7 @@
 #define DRV_BAT_DEVTYPE_SMBUS         0x7c
 #define DRV_SENS_DEVTYPE_IRLOCK       0x7d
 #define DRV_SENS_DEVTYPE_PCF8583      0x7e
+#define DRV_TEL_DEVTYPE_BST           0x7f
 
 #define DRV_DEVTYPE_UNUSED		0xff
 
