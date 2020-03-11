@@ -163,19 +163,19 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 }
 
 void TimeSync::processTimesyncMsg(timesync_msg_t * msg) {
-	if (msg->sys_id() == 1 && msg->seq() != _last_remote_msg_seq) {
-                _last_remote_msg_seq = msg->seq();
+	if (getMsgSysID(msg) == 1 && getMsgSeq(msg) != _last_remote_msg_seq) {
+                _last_remote_msg_seq = getMsgSeq(msg);
 
-		if (msg->tc1() > 0) {
-			if (!addMeasurement(msg->ts1(), msg->tc1(), getMonoRawTimeNSec())) {
+		if (getMsgTC1(msg) > 0) {
+			if (!addMeasurement(getMsgTS1(msg), getMsgTC1(msg), getMonoRawTimeNSec())) {
 				std::cerr << "Offset not updated" << std::endl;
 			}
 
-		} else if (msg->tc1() == 0) {
-			msg->timestamp() = getMonoTimeUSec();
-			msg->sys_id() = 0;
-			msg->seq()++;
-			msg->tc1() = getMonoRawTimeNSec();
+		} else if (getMsgTC1(msg) == 0) {
+			setMsgTimestamp(msg, getMonoTimeUSec());
+			setMsgSysID(msg, 0);
+			setMsgSeq(msg, getMsgSeq(msg) + 1);
+			setMsgTC1(msg, getMonoRawTimeNSec());
 
 			_timesync_pub.publish(msg);
 		}
@@ -185,11 +185,11 @@ void TimeSync::processTimesyncMsg(timesync_msg_t * msg) {
 timesync_msg_t TimeSync::newTimesyncMsg() {
 	timesync_msg_t msg{};
 
-	msg.timestamp() = getMonoTimeUSec();
-	msg.sys_id() = 0;
-	msg.seq() = _last_msg_seq;
-	msg.tc1() = 0;
-	msg.ts1() = getMonoRawTimeNSec();
+	setMsgTimestamp(&msg, getMonoTimeUSec());
+	setMsgSysID(&msg, 0);
+	setMsgSeq(&msg, _last_msg_seq);
+	setMsgTC1(&msg, 0);
+	setMsgTS1(&msg, getMonoRawTimeNSec());
 
 	_last_msg_seq++;
 

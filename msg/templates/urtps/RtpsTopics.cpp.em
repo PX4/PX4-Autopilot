@@ -110,6 +110,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
             // apply timestamp offset
             uint64_t timestamp = getMsgTimestamp(&st);
             _timesync->subtractOffset(timestamp);
+            setMsgTimestamp(&st, timestamp);
             _@(topic)_pub.publish(&st);
 @[    if topic == 'Timesync' or topic == 'timesync']@
             }
@@ -141,6 +142,7 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
                 // apply timestamp offset
                 uint64_t timestamp = getMsgTimestamp(&msg);
                 _timesync->addOffset(timestamp);
+                setMsgTimestamp(&msg, timestamp);
                 msg.serialize(scdr);
                 ret = true;
 @[    if topic == 'Timesync' or topic == 'timesync']@

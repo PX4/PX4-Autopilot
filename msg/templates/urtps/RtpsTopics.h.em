@@ -118,32 +118,65 @@ public:
 
 private:
 @[if send_topics]@
-    // Publishers
+    /** Publishers **/
 @[for topic in send_topics]@
     @(topic)_Publisher _@(topic)_pub;
 @[end for]@
 @[end if]@
 
 @[if recv_topics]@
-    // Subscribers
+    /** Subscribers **/
 @[for topic in recv_topics]@
     @(topic)_Subscriber _@(topic)_sub;
 @[end for]@
 @[end if]@
 
+    /** Msg metada Getters **/
 @[if fastrtps_version <= 1.7 or not ros2_distro]@
     template <class T>
-    uint8_t getMsgSysID(T* msg) { return msg->sys_id_(); }
+    inline uint64_t getMsgTimestamp(const T* msg) { return msg->timestamp_(); }
 
     template <class T>
-    uint64_t getMsgTimestamp(T* msg) { return msg->timestamp_(); }
+    inline uint8_t getMsgSysID(const T* msg) { return msg->sys_id_(); }
+
+    template <class T>
+    inline uint8_t getMsgSeq(const T* msg) { return msg->seq_(); }
 @[elif ros2_distro]@
     template <class T>
-    uint8_t getMsgSysID(T* msg) { return msg->sys_id(); }
+    inline uint64_t getMsgTimestamp(const T* msg) { return msg->timestamp(); }
 
     template <class T>
-    uint64_t getMsgTimestamp(T* msg) { return msg->timestamp(); }
+    inline uint8_t getMsgSysID(const T* msg) { return msg->sys_id(); }
+
+    template <class T>
+    inline uint8_t getMsgSeq(const T* msg) { return msg->seq(); }
 @[end if]@
 
+    /** Msg metadata Getters **/
+@[if fastrtps_version <= 1.7 or not ros2_distro]@
+    template <class T>
+    inline uint64_t setMsgTimestamp(T* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
+
+    template <class T>
+    inline uint8_t setMsgSysID(T* msg, const uint8_t& sys_id) { msg->sys_id_() = sys_id; }
+
+    template <class T>
+    inline uint8_t setMsgSeq(T* msg, const uint8_t& seq) { msg->seq_() = seq; }
+@[elif ros2_distro]@
+    template <class T>
+    inline uint64_t setMsgTimestamp(T* msg, const uint64_t& timestamp) { msg->timestamp() = timestamp; }
+
+    template <class T>
+    inline uint8_t setMsgSysID(T* msg, const uint8_t& sys_id) { msg->sys_id() = sys_id; }
+
+    template <class T>
+    inline uint8_t setMsgSeq(T* msg, const uint8_t& seq) { msg->seq() = seq; }
+@[end if]@
+
+    /**
+     * @@brief Timesync object ptr.
+     *         This object is used to compuyte and apply the time offsets to the
+     *         messages timestamps.
+     */
     std::shared_ptr<TimeSync> _timesync;
 };
