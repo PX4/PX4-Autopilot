@@ -7,15 +7,16 @@ import errno
 import json
 import os
 import psutil
+import re
 import subprocess
 import sys
-import signal
+import threading
+import time
+import queue
 
 
 def supports_color():
-    """
-    Returns True if the running system's terminal supports color, and False
-    otherwise.
+    """Returns True if the running system's terminal supports color.
 
     From https://stackoverflow.com/a/22254892/8548472
     """
@@ -53,22 +54,32 @@ else:
         END = ''
 
 
+def remove_color(text):
+    """Remove ANSI and xterm256 color codes.
+
+    From https://stackoverflow.com/a/30500866/8548472
+    """
+    return re.sub(r'\x1b(\[.*?[@-~]|\].*?(\x07|\x1b\\))', '', text)
+
+
 class Runner:
     def __init__(self, log_dir, verbose):
+        self.name = ""
         self.cmd = ""
         self.cwd = None
         self.args = []
         self.env = {}
-        self.log_prefix = ""
         self.log_dir = log_dir
         self.log_filename = ""
         self.log_fd = None
         self.verbose = verbose
+        self.output_queue = queue.Queue()
+        self.start_time = time.time()
 
     def create_log_filename(self, model, test_filter):
         return self.log_dir + os.path.sep + \
             "log-{}-{}-{}-{}.log".format(
-                self.log_prefix,
+                self.name,
                 model,
                 test_filter,
                 datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ"))
@@ -79,20 +90,34 @@ class Runner:
 
         atexit.register(self.stop)
 
-        if self.verbose:
-            self.log_fd = None
-        else:
-            self.log_filename = self.create_log_filename(
-                config['model'], config['test_filter'])
-            self.log_fd = open(self.log_filename, 'w')
+        self.log_filename = self.create_log_filename(
+            config['model'], config['test_filter'])
+        self.log_fd = open(self.log_filename, 'w')
 
         self.process = subprocess.Popen(
             [self.cmd] + self.args,
             cwd=self.cwd,
             env=self.env,
-            stdout=self.log_fd,
-            stderr=self.log_fd
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True
         )
+
+        self.stop_thread = threading.Event()
+        self.thread = threading.Thread(target=self.process_output)
+        self.thread.start()
+
+    def process_output(self):
+        while not self.stop_thread.is_set():
+            line = self.process.stdout.readline()
+            if line == "\n":
+                continue
+            self.output_queue.put(line)
+            self.log_fd.write(line)
+            self.log_fd.flush()
+
+    def poll(self):
+        return self.process.poll()
 
     def wait(self, timeout_min):
         try:
@@ -104,55 +129,67 @@ class Runner:
             print("stopped.")
             return errno.ETIMEDOUT
 
+    def get_output(self):
+        try:
+            output = self.output_queue.get(block=True, timeout=0.1)
+            if supports_color():
+                return output
+            else:
+                return remove_color(output)
+        except queue.Empty:
+            return None
+
+    def print_output(self):
+        output = self.get_output()
+        if not output:
+            return
+        print(color.END +
+              "[" + self.name.ljust(11) + "] " +
+              output +
+              color.END, end="")
+
     def stop(self):
         atexit.unregister(self.stop)
 
-        self.log_fd.flush()
+        self.stop_thread.set()
 
         returncode = self.process.poll()
-        if returncode is not None:
-            self.log_fd.close()
-            return returncode
+        if returncode is None:
 
-        if self.verbose:
-            print("Sending SIGINT to {}".format(self.process.pid))
-        self.process.send_signal(signal.SIGINT)
-        try:
-            self.log_fd.close()
-            return self.process.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            pass
+            if self.verbose:
+                print("Terminating {}".format(self.cmd))
+            self.process.terminate()
 
-        if self.verbose:
-            print("Terminating {}".format(self.process.pid))
-        self.process.terminate()
+            try:
+                returncode = self.process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                pass
 
-        try:
-            self.log_fd.close()
-            return self.process.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            pass
-
-        if self.verbose:
-            print("Killing {}".format(self.process.pid))
-        self.process.kill()
+            if returncode is None:
+                if self.verbose:
+                    print("Killing {}".format(self.cmd))
+                self.process.kill()
+                returncode = self.process.poll()
 
         if self.verbose:
             print("{} exited with {}".format(
-                self.command, self.process.returncode))
+                self.cmd, self.process.returncode))
+
+        self.thread.join()
 
         self.log_fd.close()
+
         return self.process.returncode
 
-    def print_output(self):
-        with open(self.log_filename, 'r') as f:
-            print(f.read(), end="")
+    def time_elapsed_s(self):
+        return time.time() - self.start_time
 
 
 class Px4Runner(Runner):
     def __init__(self, model, workspace_dir, log_dir, speed_factor, debugger,
                  verbose):
         super().__init__(log_dir, verbose)
+        self.name = "px4"
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
         self.args = [
@@ -166,7 +203,7 @@ class Px4Runner(Runner):
         self.env = {"PATH": os.environ['PATH'],
                     "PX4_SIM_MODEL": model,
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
-        self.log_prefix = "px4"
+        self.name = "px4"
 
         if not debugger:
             pass
@@ -189,6 +226,7 @@ class Px4Runner(Runner):
 class GzserverRunner(Runner):
     def __init__(self, model, workspace_dir, log_dir, speed_factor, verbose):
         super().__init__(log_dir, verbose)
+        self.name = "gzserver"
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
                     "GAZEBO_PLUGIN_PATH":
@@ -201,12 +239,12 @@ class GzserverRunner(Runner):
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      model + ".world"]
-        self.log_prefix = "gzserver"
 
 
 class GzclientRunner(Runner):
     def __init__(self, workspace_dir, log_dir, verbose):
         super().__init__(log_dir, verbose)
+        self.name = "gzclient"
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
                     # "GAZEBO_PLUGIN_PATH":
@@ -216,18 +254,17 @@ class GzclientRunner(Runner):
                     "DISPLAY": os.environ['DISPLAY']}
         self.cmd = "gzclient"
         self.args = ["--verbose"]
-        self.log_prefix = "gzclient"
 
 
 class TestRunner(Runner):
     def __init__(self, workspace_dir, log_dir, config, test,
                  mavlink_connection, verbose):
         super().__init__(log_dir, verbose)
+        self.name = "test_runner"
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
         self.args = ["--url", mavlink_connection, test]
-        self.log_prefix = "test_runner"
 
 
 def main():
@@ -417,8 +454,29 @@ def run_test(test, group, args, config):
                              config['mavlink_connection'], args.verbose)
     test_runner.start(group)
 
-    returncode = test_runner.wait(group['timeout_min'])
-    is_success = (returncode == 0)
+    while test_runner.time_elapsed_s() < group['timeout_min']*60:
+        returncode = test_runner.poll()
+        if returncode is not None:
+            is_success = (returncode == 0)
+            break
+
+        if args.verbose:
+            test_runner.print_output()
+
+            if config['mode'] == 'sitl':
+                px4_runner.print_output()
+
+                if config['simulator'] == 'gazebo':
+                    gzserver_runner.print_output()
+
+                    if args.gui:
+                        gzclient_runner.print_output()
+    else:
+        print(color.BOLD + "Test timeout of {} mins triggered!".
+              format(group['timeout_min']) + color.END)
+        is_success = False
+
+    test_runner.stop()
 
     if config['mode'] == 'sitl':
         if config['simulator'] == 'gazebo':
@@ -426,9 +484,6 @@ def run_test(test, group, args, config):
                 gzclient_runner.stop()
             gzserver_runner.stop()
         px4_runner.stop()
-
-    if not is_success and not args.verbose:
-        test_runner.print_output()
 
     return is_success
 
