@@ -212,7 +212,7 @@ private:
 	 */
 	inline void updateOffset(const uint64_t& offset) { _offset_ns.store(offset, std::memory_order_relaxed); }
 
-        /** Timesync msg Getters **/
+	/** Timesync msg Getters **/
 @[if fastrtps_version <= 1.7 or not ros2_distro]@
 	inline uint64_t getMsgTimestamp(const timesync_msg_t* msg) { return msg->timestamp_(); }
 	inline uint8_t getMsgSysID(const timesync_msg_t* msg) { return msg->sys_id_(); }
@@ -227,7 +227,7 @@ private:
 	inline int64_t getMsgTS1(const timesync_msg_t* msg) { return msg->ts1(); }
 @[end if]@
 
-        /** Timesync msg Setters **/
+	/** Timesync msg Setters **/
 @[if fastrtps_version <= 1.7 or not ros2_distro]@
 	inline uint64_t setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
 	inline uint8_t setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id_() = sys_id; }
