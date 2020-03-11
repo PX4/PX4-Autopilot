@@ -27,7 +27,7 @@ hmc5883 -C -T -X start
 qmc5883 -X start
 
 # Possible internal compass
-bmm150 start
+bmm150 -I start
 
 # Possible internal Baro
 bmp388 -I start
