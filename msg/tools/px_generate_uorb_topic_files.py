@@ -72,7 +72,7 @@ __email__ = "thomasgubler@gmail.com"
 
 
 TEMPLATE_FILE = ['msg.h.em', 'msg.cpp.em']
-TOPICS_LIST_TEMPLATE_FILE = 'uORBTopics.cpp.em'
+TOPICS_LIST_TEMPLATE_FILE = ['uORBTopics.hpp.em', 'uORBTopics.cpp.em']
 OUTPUT_FILE_EXT = ['.h', '.cpp']
 INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
@@ -434,12 +434,12 @@ def convert_dir_save(format_idx, inputdir, outputdir, package, templatedir, temp
     # Create new headers in temporary output directory
     convert_dir(format_idx, inputdir, temporarydir, package, templatedir)
     if generate_idx == 1:
-        generate_topics_list_file(inputdir, temporarydir, templatedir)
+        generate_topics_list_file(inputdir, temporarydir, TOPICS_LIST_TEMPLATE_FILE[1], templatedir)
     # Copy changed headers from temporary dir to output dir
     copy_changed(temporarydir, outputdir, prefix, quiet)
 
 
-def generate_topics_list_file(msgdir, outputdir, templatedir):
+def generate_topics_list_file(msgdir, outputdir, template_filename, templatedir):
     # generate cpp file with topics list
     msgs = get_msgs_list(msgdir)
     multi_topics = []
@@ -447,13 +447,12 @@ def generate_topics_list_file(msgdir, outputdir, templatedir):
         msg_filename = os.path.join(msgdir, msg)
         multi_topics.extend(get_multi_topics(msg_filename))
     tl_globals = {"msgs": msgs, "multi_topics": multi_topics}
-    tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
-    tl_out_file = os.path.join(
-        outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".em", ""))
+    tl_template_file = os.path.join(templatedir, template_filename)
+    tl_out_file = os.path.join(outputdir, template_filename.replace(".em", ""))
     generate_by_template(tl_out_file, tl_template_file, tl_globals)
 
 
-def generate_topics_list_file_from_files(files, outputdir, templatedir):
+def generate_topics_list_file_from_files(files, outputdir, template_filename, templatedir):
     # generate cpp file with topics list
     filenames = [os.path.basename(
         p) for p in files if os.path.basename(p).endswith(".msg")]
@@ -461,9 +460,8 @@ def generate_topics_list_file_from_files(files, outputdir, templatedir):
     for msg_filename in files:
         multi_topics.extend(get_multi_topics(msg_filename))
     tl_globals = {"msgs": filenames, "multi_topics": multi_topics}
-    tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
-    tl_out_file = os.path.join(
-        outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".em", ""))
+    tl_template_file = os.path.join(templatedir, template_filename)
+    tl_out_file = os.path.join(outputdir, template_filename.replace(".em", ""))
     generate_by_template(tl_out_file, tl_template_file, tl_globals)
 
 
@@ -520,11 +518,9 @@ if __name__ == "__main__":
         for f in args.file:
             generate_output_from_file(
                 generate_idx, f, args.temporarydir, args.package, args.templatedir, INCL_DEFAULT)
-        if generate_idx == 1:
-            generate_topics_list_file_from_files(
-                args.file, args.outputdir, args.templatedir)
-        copy_changed(args.temporarydir, args.outputdir,
-                     args.prefix, args.quiet)
+
+        generate_topics_list_file_from_files(args.file, args.outputdir, TOPICS_LIST_TEMPLATE_FILE[generate_idx], args.templatedir)
+        copy_changed(args.temporarydir, args.outputdir, args.prefix, args.quiet)
     elif args.dir is not None:
         convert_dir_save(
             generate_idx,
