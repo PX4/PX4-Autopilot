@@ -1,6 +1,19 @@
+@###############################################
+@#
+@# EmPy template for generating uORBTopics.cpp file
+@# for logging purposes
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@#  - ids (List) list of all RTPS msg ids
+@###############################################
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,55 +44,6 @@
  *
  ****************************************************************************/
 
-#include <string.h>
+#pragma once
 
-#include "uORBTest_UnitTest.hpp"
-
-extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
-
-static void usage()
-{
-	PX4_INFO("Usage: uorb_tests [latency_test]");
-}
-
-int
-uorb_tests_main(int argc, char *argv[])
-{
-	/*
-	 * Test the driver/device.
-	 */
-	if (argc == 1) {
-		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
-		int rc = t.test();
-
-		if (rc == OK) {
-			PX4_INFO("PASS");
-			return 0;
-
-		} else {
-			PX4_ERR("FAIL");
-			return -1;
-		}
-	}
-
-	/*
-	 * Test the latency.
-	 */
-	if (argc > 1 && !strcmp(argv[1], "latency_test")) {
-
-		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
-
-		if (argc > 2 && !strcmp(argv[2], "medium")) {
-			return t.latency_test<orb_test_medium_s>(ORB_ID(orb_test_medium), true);
-
-		} else if (argc > 2 && !strcmp(argv[2], "large")) {
-			return t.latency_test<orb_test_large_s>(ORB_ID(orb_test_large), true);
-
-		} else {
-			return t.latency_test<orb_test_s>(ORB_ID(orb_test), true);
-		}
-	}
-
-	usage();
-	return -EINVAL;
-}
+#include <uORB/uORB.h>
