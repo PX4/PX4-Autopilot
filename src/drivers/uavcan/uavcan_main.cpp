@@ -518,7 +518,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	if (can == nullptr) {
 
-		can = new CanInitHelper();
+		can = new CanInitHelper(board_get_can_interfaces());
 
 		if (can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
 			PX4_ERR("Out of memory");
