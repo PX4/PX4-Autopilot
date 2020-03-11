@@ -348,7 +348,7 @@ else
 
 		sh /etc/init.d/rc.sensors
 
-		if param greater -s BAT_SOURCE 0
+		if param compare BAT_SOURCE 0
 		then
 			battery_status start
 		fi
