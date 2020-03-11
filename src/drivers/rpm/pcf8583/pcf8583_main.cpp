@@ -34,109 +34,60 @@
 #include "PCF8583.hpp"
 
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-namespace pcf8583
+void
+PCF8583::print_usage()
 {
-PCF8583 *g_dev{nullptr};
+	PRINT_MODULE_USAGE_NAME("pcf8583", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
 
-static int start(int i2c_bus)
+I2CSPIDriverBase *PCF8583::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				       int runtime_instance)
 {
-	if (g_dev != nullptr) {
-		PX4_WARN("already started");
-		return 0;
+	PCF8583 *instance = new PCF8583(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	// create the driver
-	g_dev = new PCF8583(i2c_bus);
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		return nullptr;
+	}
 
-	if (g_dev == nullptr) {
-		PX4_ERR("driver alloc failed");
+	return instance;
+}
+extern "C" __EXPORT int pcf8583_main(int argc, char *argv[])
+{
+	using ThisDriver = PCF8583;
+	BusCLIArguments cli{true, false};
+
+	const char *verb = cli.parseDefaultArguments(argc, argv);
+
+	if (!verb) {
+		ThisDriver::print_usage();
 		return -1;
 	}
 
-	if (g_dev->init() != PX4_OK) {
-		PX4_ERR("driver init failed");
-		delete g_dev;
-		g_dev = nullptr;
-		return -1;
-	}
-
-	PX4_INFO("pcf8583 for bus: %d started.", i2c_bus);
-
-	return 0;
-}
-
-static int stop()
-{
-	if (g_dev == nullptr) {
-		PX4_WARN("driver not running");
-		return -1;
-	}
-
-	delete g_dev;
-	g_dev = nullptr;
-
-	return 0;
-}
-
-static int status()
-{
-	if (g_dev == nullptr) {
-		PX4_INFO("driver not running");
-		return 0;
-	}
-
-	g_dev->print_info();
-
-	return 0;
-}
-
-static int usage()
-{
-	PX4_INFO("missing command: try 'start', 'stop', 'status'");
-	PX4_INFO("options:");
-	PX4_INFO("    -b i2cbus (%d)", PX4_I2C_BUS_EXPANSION);
-
-	return 0;
-}
-
-} // namespace pcf8583
-
-extern "C" int pcf8583_main(int argc, char *argv[])
-{
-	int i2c_bus = PX4_I2C_BUS_EXPANSION;
-	int myoptind = 1;
-	int ch = 0;
-	const char *myoptarg = nullptr;
-
-	// start options
-	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'b':
-			i2c_bus = atoi(myoptarg);
-			break;
-
-		default:
-			return pcf8583::usage();
-		}
-	}
-
-	if (myoptind >= argc) {
-		pcf8583::usage();
-		return -1;
-	}
-
-	const char *verb = argv[myoptind];
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_SENS_DEVTYPE_PCF8583);
 
 	if (!strcmp(verb, "start")) {
-		return pcf8583::start(i2c_bus);
-
-	} else if (!strcmp(verb, "stop")) {
-		return pcf8583::stop();
-
-	} else if (!strcmp(verb, "status")) {
-		return pcf8583::status();
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	return pcf8583::usage();
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
