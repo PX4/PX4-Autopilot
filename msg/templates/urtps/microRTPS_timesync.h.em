@@ -211,4 +211,34 @@ private:
 	 * @@param[in] offset The value of the offset to update to
 	 */
 	inline void updateOffset(const uint64_t& offset) { _offset_ns.store(offset, std::memory_order_relaxed); }
+
+        /** Timesync msg Getters **/
+@[if fastrtps_version <= 1.7 or not ros2_distro]@
+	inline uint64_t getMsgTimestamp(const timesync_msg_t* msg) { return msg->timestamp_(); }
+	inline uint8_t getMsgSysID(const timesync_msg_t* msg) { return msg->sys_id_(); }
+	inline uint8_t getMsgSeq(const timesync_msg_t* msg) { return msg->seq_(); }
+	inline int64_t getMsgTC1(const timesync_msg_t* msg) { return msg->tc1_(); }
+	inline int64_t getMsgTS1(const timesync_msg_t* msg) { return msg->ts1_(); }
+@[elif ros2_distro]@
+	inline uint64_t getMsgTimestamp(const timesync_msg_t* msg) { return msg->timestamp(); }
+	inline uint8_t getMsgSysID(const timesync_msg_t* msg) { return msg->sys_id(); }
+	inline uint8_t getMsgSeq(const timesync_msg_t* msg) { return msg->seq(); }
+	inline int64_t getMsgTC1(const timesync_msg_t* msg) { return msg->tc1(); }
+	inline int64_t getMsgTS1(const timesync_msg_t* msg) { return msg->ts1(); }
+@[end if]@
+
+        /** Timesync msg Setters **/
+@[if fastrtps_version <= 1.7 or not ros2_distro]@
+	inline uint64_t setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
+	inline uint8_t setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id_() = sys_id; }
+	inline uint8_t setMsgSeq(timesync_msg_t* msg, const uint8_t& seq) { msg->seq_() = seq; }
+	inline int64_t setMsgTC1(timesync_msg_t* msg, const int64_t& tc1) { msg->tc1_() = tc1; }
+	inline int64_t setMsgTS1(timesync_msg_t* msg, const int64_t& ts1) { msg->ts1_() = ts1; }
+@[elif ros2_distro]@
+	inline uint64_t setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp() = timestamp; }
+	inline uint8_t setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id() = sys_id; }
+	inline uint8_t setMsgSeq(timesync_msg_t* msg, const uint8_t& seq) { msg->seq() = seq; }
+	inline int64_t setMsgTC1(timesync_msg_t* msg, const int64_t& tc1) { msg->tc1() = tc1; }
+	inline int64_t setMsgTS1(timesync_msg_t* msg, const int64_t& ts1) { msg->ts1() = ts1; }
+@[end if]@
 };
