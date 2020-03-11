@@ -122,7 +122,7 @@ void MulticopterHoverThrustEstimator::Run()
 		// flag of the land detector does not guarantee that
 		// the vehicle does not touch the ground anymore
 		// TODO: improve the landed flag
-		_in_air = local_pos.z < -1.f;
+		_in_air = local_pos.dist_bottom > 1.f;
 	}
 
 	ZeroOrderHoverThrustEkf::status status{};
