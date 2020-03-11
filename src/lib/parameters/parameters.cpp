@@ -664,7 +664,6 @@ int param_get_default_value(param_t param, void *val)
 	return result;
 }
 
-#ifndef PARAM_NO_AUTOSAVE
 /**
  * worker callback method to save the parameters
  * @param arg unused
