@@ -205,23 +205,24 @@ class Px4Runner(Runner):
                     "PX4_SIM_MODEL": model,
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.name = "px4"
+        self.debugger = debugger
 
-        if not debugger:
+        if not self.debugger:
             pass
-        elif debugger == "valgrind":
+        elif self.debugger == "valgrind":
             self.args = ["--track-origins=yes", "--leak-check=full", "-v",
                          self.cmd] + self.args
             self.cmd = "valgrind"
-        elif debugger == "callgrind":
+        elif self.debugger == "callgrind":
             self.args = ["--tool=callgrind", "-v", self.cmd] + self.args
             self.cmd = "valgrind"
-        elif debugger == "gdb":
+        elif self.debugger == "gdb":
             self.args = ["--args", self.cmd] + self.args
             self.cmd = "gdb"
         else:
-            print("Using custom debugger ", debugger)
+            print("Using custom debugger " + self.debugger)
             self.args = [self.cmd] + self.args
-            self.cmd = debugger
+            self.cmd = self.debugger
 
 
 class GzserverRunner(Runner):
@@ -305,10 +306,20 @@ def main():
         print("Creating directory: {}".format(args.log_dir))
     os.makedirs(args.log_dir, exist_ok=True)
 
-    tester = Tester()
+    tester = Tester(
+        config,
+        args.iterations,
+        args.abort_early,
+        args.speed_factor,
+        args.model,
+        args.debugger,
+        args.log_dir,
+        args.gui,
+        args.verbose
+    )
     signal.signal(signal.SIGINT, tester.sigint_handler)
 
-    sys.exit(tester.run(args, config))
+    sys.exit(tester.run())
 
 
 def determine_tests(filter):
@@ -363,25 +374,43 @@ def is_everything_ready(config):
 
 
 class Tester:
-    def __init__(self):
+    def __init__(self,
+                 config,
+                 iterations,
+                 abort_early,
+                 speed_factor,
+                 model,
+                 debugger,
+                 log_dir,
+                 gui,
+                 verbose):
         self.active_runners = []
+        self.iterations = iterations
+        self.abort_early = abort_early
+        self.config = config
+        self.speed_factor = speed_factor
+        self.model = model
+        self.debugger = debugger
+        self.log_dir = log_dir
+        self.gui = gui
+        self.verbose = verbose
 
-    def run(self, args, config):
+    def run(self):
         overall_success = True
 
-        for iteration in range(args.iterations):
-            if args.iterations > 1:
+        for iteration in range(self.iterations):
+            if self.iterations > 1:
                 print("Test iteration: {}".
-                      format(iteration + 1, args.iterations))
+                      format(iteration + 1, self.iterations))
 
-            was_success = self.run_test_group(args, config)
+            was_success = self.run_test_group()
 
             if not was_success:
                 overall_success = False
 
-            if args.iterations > 1 and not was_success and args.abort_early:
+            if self.iterations > 1 and not was_success and self.abort_early:
                 print("Aborting with a failure in test run {}/{}".
-                      format(iteration + 1, args.iterations))
+                      format(iteration + 1, self.iterations))
                 break
 
         if overall_success:
@@ -391,17 +420,17 @@ class Tester:
             print(color.RED + "Overall result: failure!" + color.END)
             return 1
 
-    def run_test_group(self, args, config):
+    def run_test_group(self):
         overall_success = True
 
-        tests = config["tests"]
+        tests = self.config["tests"]
 
-        if args.model == 'all':
+        if self.model == 'all':
             models = tests
         else:
             found = False
             for elem in tests:
-                if elem['model'] == args.model:
+                if elem['model'] == self.model:
                     models = [elem]
                     found = True
             if not found:
@@ -417,7 +446,7 @@ class Tester:
             for i, test in enumerate(tests):
                 print("--> Test {} of {}: '{}' running ...".
                       format(i+1, len(tests), test))
-                was_success = self.run_test(test, group, args, config)
+                was_success = self.run_test(test, group)
                 if was_success:
                     print(color.GREEN + "--- Test {} of {}: '{}' succeeded.".
                           format(i+1, len(tests), test) + color.END)
@@ -428,41 +457,50 @@ class Tester:
                 if not was_success:
                     overall_success = False
 
-                if not was_success and args.abort_early:
+                if not was_success and self.abort_early:
                     print("Aborting early")
                     return False
 
         return overall_success
 
-    def run_test(self, test, group, args, config):
+    def run_test(self, test, group):
         self.active_runners = []
 
-        speed_factor = args.speed_factor
+        speed_factor = self.speed_factor
         if "max_speed_factor" in group:
             speed_factor = min(int(speed_factor), group["max_speed_factor"])
 
-        if config['mode'] == 'sitl':
+        if self.config['mode'] == 'sitl':
             px4_runner = Px4Runner(
-                group['model'], os.getcwd(), args.log_dir, speed_factor,
-                args.debugger, args.verbose)
+                group['model'], os.getcwd(), self.log_dir, speed_factor,
+                self.debugger, self.verbose)
             px4_runner.start(group)
             self.active_runners.append(px4_runner)
 
-            if config['simulator'] == 'gazebo':
+            if self.config['simulator'] == 'gazebo':
                 gzserver_runner = GzserverRunner(
-                    group['model'], os.getcwd(), args.log_dir, speed_factor,
-                    args.verbose)
+                    group['model'],
+                    os.getcwd(),
+                    self.log_dir,
+                    self.speed_factor,
+                    self.verbose)
                 gzserver_runner.start(group)
                 self.active_runners.append(gzserver_runner)
 
-                if args.gui:
+                if self.gui:
                     gzclient_runner = GzclientRunner(
-                        os.getcwd(), args.log_dir, args.verbose)
+                        os.getcwd(), self.log_dir, self.verbose)
                     gzclient_runner.start(group)
                     self.active_runners.append(gzclient_runner)
 
-        test_runner = TestRunner(os.getcwd(), args.log_dir, group, test,
-                                 config['mavlink_connection'], args.verbose)
+        test_runner = TestRunner(
+            os.getcwd(),
+            self.log_dir,
+            group,
+            test,
+            self.config['mavlink_connection'],
+            self.verbose)
+
         test_runner.start(group)
         self.active_runners.append(test_runner)
 
@@ -472,7 +510,7 @@ class Tester:
                 is_success = (returncode == 0)
                 break
 
-            if args.verbose:
+            if self.verbose:
                 for runner in self.active_runners:
                     runner.print_output()
 
