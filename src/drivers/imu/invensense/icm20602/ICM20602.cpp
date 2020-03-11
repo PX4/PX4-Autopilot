@@ -40,13 +40,16 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-ICM20602::ICM20602(int bus, uint32_t device, enum Rotation rotation) :
-	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+ICM20602::ICM20602(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		   spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
+	SPI(MODULE_NAME, nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	_drdy_gpio(drdy_gpio),
 	_px4_accel(get_device_id(), ORB_PRIO_VERY_HIGH, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_VERY_HIGH, rotation)
 {
 	set_device_type(DRV_IMU_DEVTYPE_ICM20602);
+
 	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20602);
 	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20602);
 
@@ -55,8 +58,6 @@ ICM20602::ICM20602(int bus, uint32_t device, enum Rotation rotation) :
 
 ICM20602::~ICM20602()
 {
-	Stop();
-
 	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -66,36 +67,35 @@ ICM20602::~ICM20602()
 	perf_free(_drdy_interval_perf);
 }
 
-bool ICM20602::Init()
+int ICM20602::init()
 {
-	if (SPI::init() != PX4_OK) {
-		PX4_ERR("SPI::init failed");
-		return false;
+	int ret = SPI::init();
+
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("SPI::init failed (%i)", ret);
+		return ret;
 	}
 
-	return Reset();
-}
-
-void ICM20602::Stop()
-{
-	// wait until stopped
-	while (_state.load() != STATE::STOPPED) {
-		_state.store(STATE::REQUEST_STOP);
-		ScheduleNow();
-		px4_usleep(10);
-	}
+	return Reset() ? 0 : -1;
 }
 
 bool ICM20602::Reset()
 {
-	_state.store(STATE::RESET);
+	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void ICM20602::PrintInfo()
+void ICM20602::exit_and_cleanup()
 {
+	DataReadyInterruptDisable();
+	I2CSPIDriverBase::exit_and_cleanup();
+}
+
+void ICM20602::print_status()
+{
+	I2CSPIDriverBase::print_status();
 	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us,
 		 static_cast<double>(1000000 / _fifo_empty_interval_us));
 
@@ -116,21 +116,21 @@ int ICM20602::probe()
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
 	if (whoami != WHOAMI) {
-		PX4_WARN("unexpected WHO_AM_I 0x%02x", whoami);
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-void ICM20602::Run()
+void ICM20602::RunImpl()
 {
-	switch (_state.load()) {
+	switch (_state) {
 	case STATE::RESET:
 		// PWR_MGMT_1: Device Reset
 		RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
 		_reset_timestamp = hrt_absolute_time();
-		_state.store(STATE::WAIT_FOR_RESET);
+		_state = STATE::WAIT_FOR_RESET;
 		ScheduleDelayed(100);
 		break;
 
@@ -143,14 +143,14 @@ void ICM20602::Run()
 		    && (RegisterRead(Register::CONFIG) == 0x80)) {
 
 			// if reset succeeded then configure
-			_state.store(STATE::CONFIGURE);
+			_state = STATE::CONFIGURE;
 			ScheduleNow();
 
 		} else {
 			// RESET not complete
 			if (hrt_elapsed_time(&_reset_timestamp) > 10_ms) {
 				PX4_ERR("Reset failed, retrying");
-				_state.store(STATE::RESET);
+				_state = STATE::RESET;
 				ScheduleDelayed(10_ms);
 
 			} else {
@@ -164,7 +164,7 @@ void ICM20602::Run()
 	case STATE::CONFIGURE:
 		if (Configure()) {
 			// if configure succeeded then start reading from FIFO
-			_state.store(STATE::FIFO_READ);
+			_state = STATE::FIFO_READ;
 
 			if (DataReadyInterruptConfigure()) {
 				_data_ready_interrupt_enabled = true;
@@ -242,22 +242,12 @@ void ICM20602::Run()
 				} else {
 					// register check failed, force reconfigure
 					PX4_DEBUG("Health check failed, reconfiguring");
-					_state.store(STATE::CONFIGURE);
+					_state = STATE::CONFIGURE;
 					ScheduleNow();
 				}
 			}
 		}
 
-		break;
-
-	case STATE::REQUEST_STOP:
-		DataReadyInterruptDisable();
-		ScheduleClear();
-		_state.store(STATE::STOPPED);
-		break;
-
-	case STATE::STOPPED:
-		// DO NOTHING
 		break;
 	}
 }
@@ -378,49 +368,21 @@ void ICM20602::DataReady()
 
 bool ICM20602::DataReadyInterruptConfigure()
 {
-	int ret_setevent = -1;
+	if (_drdy_gpio == 0) {
+		return false;
+	}
 
 	// Setup data ready on rising edge
-	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_DRDY_PORTC_PIN14)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_DRDY_PORTC_PIN14, true, false, true, &ICM20602::DataReadyInterruptCallback,
-					     this);
-#elif defined(GPIO_SPI1_DRDY1_ICM20602)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback,
-					     this);
-#elif defined(GPIO_SPI1_DRDY4_ICM20602)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI1_DRDY4_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback,
-					     this);
-#elif defined(GPIO_SPI1_DRDY1_ICM20602)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, true, false, true, &ICM20602::DataReadyInterruptCallback,
-					     this);
-#elif defined(GPIO_DRDY_ICM_2060X)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_DRDY_ICM_2060X, true, false, true, &ICM20602::DataReadyInterruptCallback,
-					     this);
-#endif
-
-	return (ret_setevent == 0);
+	return px4_arch_gpiosetevent(_drdy_gpio, true, false, true, &ICM20602::DataReadyInterruptCallback, this) == 0;
 }
 
 bool ICM20602::DataReadyInterruptDisable()
 {
-	int ret_setevent = -1;
+	if (_drdy_gpio == 0) {
+		return false;
+	}
 
-	// Disable data ready callback
-	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_DRDY_PORTC_PIN14)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_DRDY_PORTC_PIN14, false, false, false, nullptr, nullptr);
-#elif defined(GPIO_SPI1_DRDY1_ICM20602)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, false, false, false, nullptr, nullptr);
-#elif defined(GPIO_SPI1_DRDY4_ICM20602)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI1_DRDY4_ICM20602, false, false, false, nullptr, nullptr);
-#elif defined(GPIO_SPI1_DRDY1_ICM20602)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ICM20602, false, false, false, nullptr, nullptr);
-#elif defined(GPIO_DRDY_ICM_2060X)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_DRDY_ICM_2060X, false, false, false, nullptr, nullptr);
-#endif
-
-	return (ret_setevent == 0);
+	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
 bool ICM20602::RegisterCheck(const register_config_t &reg_cfg, bool notify)
