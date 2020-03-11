@@ -83,6 +83,23 @@ private:
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
+	int read(Register reg, void *data, unsigned count);
+
+	/**
+	* Pull cross axis compensation from device and calculate compensation matrix
+	*/
+	void cross_axis_comp();
+
+	/**
+	* Update cross axis matrix to identity
+	*/
+	void update_crossaxis();
+
+	/**
+	* Print cross axis matrix
+	*/
+	void print_cross_axis_info();
+
 	PX4Magnetometer _px4_mag;
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
@@ -110,4 +127,7 @@ private:
 		{ Register::AVGCNTL,      AVGCNTL_BIT::Y_16TIMES_SET | AVGCNTL_BIT::XZ_16TIMES_SET, AVGCNTL_BIT::Y_16TIMES_CLEAR | AVGCNTL_BIT::XZ_16TIMES_CLEAR },
 		{ Register::PDCNTL,       PDCNTL_BIT::PULSE_NORMAL, 0 },
 	};
+
+	float _crossaxis_inv[9];
+	int32_t _crossaxis_det;
 };

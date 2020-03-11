@@ -82,6 +82,8 @@ enum class Register : uint8_t {
 	AVGCNTL    = 0x41, // Average Control Register
 	PDCNTL     = 0x42, // Pulse Duration Control Register
 
+	OTP        = 0x99,
+
 	XX_CROSS_L = 0x9C, // cross axis xx low byte
 	XX_CROSS_H = 0x9D, // cross axis xx high byte
 	XY_CROSS_L = 0x9E, // cross axis xy low byte
