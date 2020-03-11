@@ -88,6 +88,9 @@ set(msg_files
 	offboard_control_mode.msg
 	onboard_computer_status.msg
 	optical_flow.msg
+	orb_test.msg
+	orb_test_large.msg
+	orb_test_medium.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
@@ -98,13 +101,13 @@ set(msg_files
 	power_button_state.msg
 	power_monitor.msg
 	pwm_input.msg
-	rpm.msg
 	qshell_req.msg
 	qshell_retval.msg
 	radio_status.msg
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
+	rpm.msg
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
@@ -206,7 +209,7 @@ endif()
 set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)
 set(msg_source_out_path	${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
 
-set(uorb_headers)
+set(uorb_headers ${msg_out_path}/uORBTopics.hpp)
 set(uorb_sources ${msg_source_out_path}/uORBTopics.cpp)
 foreach(msg_file ${msg_files})
 	get_filename_component(msg ${msg_file} NAME_WE)
@@ -232,6 +235,7 @@ add_custom_command(OUTPUT ${uorb_headers}
 	DEPENDS
 		${msg_files}
 		templates/uorb/msg.h.em
+		templates/uorb/uORBTopics.hpp.em
 		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -253,6 +257,7 @@ add_custom_command(OUTPUT ${uorb_sources}
 	DEPENDS
 		${msg_files}
 		templates/uorb/msg.cpp.em
+		templates/uorb/uORBTopics.cpp.em
 		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
