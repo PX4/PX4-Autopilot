@@ -1,6 +1,19 @@
+@###############################################
+@#
+@# EmPy template for generating uORBTopics.hpp file
+@# for logging purposes
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@#  - ids (List) list of all RTPS msg ids
+@###############################################
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,55 +44,33 @@
  *
  ****************************************************************************/
 
-#include <string.h>
+@{
+msg_names = [mn.replace(".msg", "") for mn in msgs]
+msgs_count = len(msg_names)
+msg_names_all = list(set(msg_names + multi_topics)) # set() filters duplicates
+msg_names_all.sort()
+msgs_count_all = len(msg_names_all)
+}@
 
-#include "uORBTest_UnitTest.hpp"
+#pragma once
 
-extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
+#include <stddef.h>
 
-static void usage()
-{
-	PX4_INFO("Usage: uorb_tests [latency_test]");
-}
+#include <uORB/uORB.h>
 
-int
-uorb_tests_main(int argc, char *argv[])
-{
-	/*
-	 * Test the driver/device.
-	 */
-	if (argc == 1) {
-		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
-		int rc = t.test();
+static constexpr size_t ORB_TOPICS_COUNT{@(msgs_count_all)};
+static constexpr size_t orb_topics_count() { return ORB_TOPICS_COUNT; }
 
-		if (rc == OK) {
-			PX4_INFO("PASS");
-			return 0;
+/*
+ * Returns array of topics metadata
+ */
+extern const struct orb_metadata *const *orb_get_topics() __EXPORT;
 
-		} else {
-			PX4_ERR("FAIL");
-			return -1;
-		}
-	}
+enum class ORB_ID : uint8_t {
+@[for idx, msg_name in enumerate(msg_names_all)]@
+	@(msg_name) = @(idx),
+@[end for]
+	INVALID
+};
 
-	/*
-	 * Test the latency.
-	 */
-	if (argc > 1 && !strcmp(argv[1], "latency_test")) {
-
-		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
-
-		if (argc > 2 && !strcmp(argv[2], "medium")) {
-			return t.latency_test<orb_test_medium_s>(ORB_ID(orb_test_medium), true);
-
-		} else if (argc > 2 && !strcmp(argv[2], "large")) {
-			return t.latency_test<orb_test_large_s>(ORB_ID(orb_test_large), true);
-
-		} else {
-			return t.latency_test<orb_test_s>(ORB_ID(orb_test), true);
-		}
-	}
-
-	usage();
-	return -EINVAL;
-}
+const struct orb_metadata *get_orb_meta(ORB_ID id);

@@ -71,8 +71,8 @@ struct LoggerSubscription : public uORB::SubscriptionInterval {
 
 	LoggerSubscription() = default;
 
-	LoggerSubscription(const orb_metadata *meta, uint32_t interval_ms = 0, uint8_t instance = 0) :
-		uORB::SubscriptionInterval(meta, interval_ms * 1000, instance)
+	LoggerSubscription(ORB_ID id, uint32_t interval_ms = 0, uint8_t instance = 0) :
+		uORB::SubscriptionInterval(id, interval_ms * 1000, instance)
 	{}
 };
 

@@ -58,6 +58,18 @@ public:
 	/**
 	 * Constructor
 	 *
+	 * @param id The uORB ORB_ID enum for the topic.
+	 * @param interval The requested maximum update interval in microseconds.
+	 * @param instance The instance for multi sub.
+	 */
+	SubscriptionInterval(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0) :
+		_subscription{id, instance},
+		_interval_us(interval_us)
+	{}
+
+	/**
+	 * Constructor
+	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
