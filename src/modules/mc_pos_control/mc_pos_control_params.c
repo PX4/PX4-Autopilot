@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
  * (EXPERIMENTAL) Set true to use the value computed by the hover thrust estimator
  *
  * @boolean
- * @max 0
+ * @category Developer
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_USE_HTE, 0);
