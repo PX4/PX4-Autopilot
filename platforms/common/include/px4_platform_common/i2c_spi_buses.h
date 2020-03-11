@@ -176,7 +176,8 @@ public:
 
 	static int module_stop(BusInstanceIterator &iterator);
 	static int module_status(BusInstanceIterator &iterator);
-	static int module_custom_method(const BusCLIArguments &cli, BusInstanceIterator &iterator);
+	static int module_custom_method(const BusCLIArguments &cli, BusInstanceIterator &iterator,
+					bool run_on_work_queue = true);
 
 	using instantiate_method = I2CSPIDriverBase * (*)(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				   int runtime_instance);
@@ -200,6 +201,8 @@ protected:
 				instantiate_method instantiate, I2CSPIInstance **instances);
 
 private:
+	static void custom_method_trampoline(void *argument);
+
 	void request_stop_and_wait();
 
 	px4::atomic_bool _task_should_exit{false};
@@ -246,31 +249,3 @@ template<class T, int MAX_NUM>
 I2CSPIInstance *I2CSPIDriver<T, MAX_NUM>::_instances[MAX_NUM] {};
 
 
-/**
- * @class I2CSPIDriverInitializer
- * Helper class to initialize a driver: it ensures the object is initialzed on
- * the work queue where the driver is running. This is required so that all
- * bus accesses come from the same thread.
- */
-class I2CSPIDriverInitializer : public px4::WorkItem
-{
-public:
-	using instantiate_method = I2CSPIDriverBase::instantiate_method;
-
-	I2CSPIDriverInitializer(const px4::wq_config_t &config,
-				const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				instantiate_method instantiate, int runtime_instance);
-	~I2CSPIDriverInitializer();
-	void wait();
-
-	I2CSPIDriverBase *instance() const { return _instance; }
-protected:
-	void Run() override;
-private:
-	I2CSPIDriverBase *_instance{nullptr};
-	const BusCLIArguments &_cli;
-	const BusInstanceIterator &_iterator;
-	const int _runtime_instance;
-	instantiate_method _instantiate;
-	px4_sem_t _sem;
-};

@@ -40,6 +40,7 @@
 
 #include <lib/drivers/device/Device.hpp>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/px4_work_queue/WorkItemSingleShot.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/getopt.h>
 
@@ -357,6 +358,19 @@ SPIBusIterator::FilterType BusInstanceIterator::spiFilter(I2CSPIBusOption bus_op
 	return SPIBusIterator::FilterType::InternalBus;
 }
 
+struct I2CSPIDriverInitializing {
+	const BusCLIArguments &cli;
+	const BusInstanceIterator &iterator;
+	I2CSPIDriverBase::instantiate_method instantiate;
+	int runtime_instance;
+	I2CSPIDriverBase *instance{nullptr};
+};
+
+static void initializer_trampoline(void *argument)
+{
+	I2CSPIDriverInitializing *data = (I2CSPIDriverInitializing *)argument;
+	data->instance = data->instantiate(data->cli, data->iterator, data->runtime_instance);
+}
 
 int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator,
 				   void(*print_usage)(),
@@ -394,11 +408,12 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 		case BOARD_INVALID_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_UNKNOWN; break;
 		}
 
+		I2CSPIDriverInitializing initializer_data{cli, iterator, instantiate, free_index};
 		// initialize the object and bus on the work queue thread - this will also probe for the device
-		I2CSPIDriverInitializer initializer(px4::device_bus_to_wq(device_id.devid), cli, iterator, instantiate, free_index);
+		px4::WorkItemSingleShot initializer(px4::device_bus_to_wq(device_id.devid), initializer_trampoline, &initializer_data);
 		initializer.ScheduleNow();
 		initializer.wait();
-		I2CSPIDriverBase *instance = initializer.instance();
+		I2CSPIDriverBase *instance = initializer_data.instance;
 
 		if (!instance) {
 			PX4_DEBUG("instantiate failed (no device on bus %i (devid 0x%x)?)", iterator.bus(), iterator.devid());
@@ -472,12 +487,33 @@ int I2CSPIDriverBase::module_status(BusInstanceIterator &iterator)
 	return 0;
 }
 
-int I2CSPIDriverBase::module_custom_method(const BusCLIArguments &cli, BusInstanceIterator &iterator)
+struct custom_method_data_t {
+	I2CSPIDriverBase *instance;
+	const BusCLIArguments &cli;
+};
+
+void I2CSPIDriverBase::custom_method_trampoline(void *argument)
+{
+	custom_method_data_t *data = (custom_method_data_t *)argument;
+	data->instance->custom_method(data->cli);
+}
+
+int I2CSPIDriverBase::module_custom_method(const BusCLIArguments &cli, BusInstanceIterator &iterator,
+		bool run_on_work_queue)
 {
 	while (iterator.next()) {
 		if (iterator.instance()) {
 			I2CSPIDriverBase *instance = (I2CSPIDriverBase *)iterator.instance();
-			instance->custom_method(cli);
+
+			if (run_on_work_queue) {
+				custom_method_data_t data{instance, cli};
+				px4::WorkItemSingleShot runner(*instance, custom_method_trampoline, &data);
+				runner.ScheduleNow();
+				runner.wait();
+
+			} else {
+				instance->custom_method(cli);
+			}
 		}
 	}
 
@@ -504,30 +540,6 @@ void I2CSPIDriverBase::request_stop_and_wait()
 	if (i >= 100) {
 		PX4_ERR("Module did not respond to stop request");
 	}
-}
-
-I2CSPIDriverInitializer::I2CSPIDriverInitializer(const px4::wq_config_t &config, const BusCLIArguments &cli,
-		const BusInstanceIterator &iterator, instantiate_method instantiate, int runtime_instance)
-	: px4::WorkItem("<driver_init>", config),
-	  _cli(cli), _iterator(iterator), _runtime_instance(runtime_instance), _instantiate(instantiate)
-{
-	px4_sem_init(&_sem, 0, 0);
-}
-
-I2CSPIDriverInitializer::~I2CSPIDriverInitializer()
-{
-	px4_sem_destroy(&_sem);
-}
-
-void I2CSPIDriverInitializer::wait()
-{
-	while (px4_sem_wait(&_sem) != 0) {}
-}
-
-void I2CSPIDriverInitializer::Run()
-{
-	_instance = _instantiate(_cli, _iterator, _runtime_instance);
-	px4_sem_post(&_sem);
 }
 
 #endif /* BOARD_DISABLE_I2C_SPI */
