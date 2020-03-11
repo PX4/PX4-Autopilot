@@ -165,9 +165,8 @@ private:
 
 	/**
 	 * @brief Updates and checks for updated uORB parameters.
-	 * @param force Boolean to determine if an update check should be forced.
 	 */
-	void update_params(const bool force = false);
+	void update_params();
 
 	/**
 	 * Write an ADD_LOGGED_MSG to the log for a all current subscriptions and instances

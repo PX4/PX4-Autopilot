@@ -386,10 +386,10 @@ Logger::~Logger()
 	delete[](_subscriptions);
 }
 
-void Logger::update_params(const bool force)
+void Logger::update_params()
 {
 	// check for parameter updates
-	if (_parameter_update_sub.updated() || force) {
+	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
@@ -511,7 +511,6 @@ bool Logger::initialize_topics()
 void Logger::run()
 {
 	PX4_INFO("logger started (mode=%s)", configured_backend_mode());
-	update_params(true);
 
 	if (_writer.backend() & LogWriter::BackendFile) {
 		int mkdir_ret = mkdir(LOG_ROOT[(int)LogType::Full], S_IRWXU | S_IRWXG | S_IRWXO);
@@ -627,8 +626,6 @@ void Logger::run()
 	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
 	while (!should_exit()) {
-		update_params(false);
-
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
 		const bool logging_started = start_stop_logging();
 
@@ -849,6 +846,8 @@ void Logger::run()
 				next_subscribe_topic_index = 0;
 			}
 		}
+
+		update_params();
 
 		// wait for next loop iteration...
 		if (polling_topic_sub >= 0) {
