@@ -69,23 +69,29 @@ except AttributeError:
 
 #include <fastrtps/Domain.h>
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 #include <fastrtps/utils/eClock.h>
 @[end if]@
 
 #include "@(topic)_Publisher.h"
 
 
-@(topic)_Publisher::@(topic)_Publisher() : mp_participant(nullptr), mp_publisher(nullptr) {}
+@(topic)_Publisher::@(topic)_Publisher()
+    : mp_participant(nullptr),
+      mp_publisher(nullptr)
+{ }
 
-@(topic)_Publisher::~@(topic)_Publisher() { Domain::removeParticipant(mp_participant);}
+@(topic)_Publisher::~@(topic)_Publisher()
+{
+    Domain::removeParticipant(mp_participant);
+}
 
 bool @(topic)_Publisher::init()
 {
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0;
-@[if 1.5 <= fastrtpsgen_version <= 1.7 or ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal" or ros2_distro == "dashing"]@
+@[if fastrtps_version <= 1.8]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -149,19 +155,7 @@ void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, Match
     }
 }
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-    void @(topic)_Publisher::publish(@(package)::msg::dds_::@(topic)_* st)
-@[    else]@
-    void @(topic)_Publisher::publish(@(topic)_* st)
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-    void @(topic)_Publisher::publish(@(package)::msg::@(topic)* st)
-@[    else]@
-    void @(topic)_Publisher::publish(@(topic)* st)
-@[    end if]@
-@[end if]@
+void @(topic)_Publisher::publish(@(topic)_msg_t* st)
 {
     mp_publisher->write(st);
 }

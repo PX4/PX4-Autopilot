@@ -277,11 +277,6 @@
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
 #define DIRECT_INPUT_TIMER_CHANNELS  8
 
-/* Power supply control and monitoring GPIOs */
-
-#define BOARD_NUMBER_BRICKS             0
-#define BOARD_NUMBER_DIGITAL_BRICKS     0
-
 #define GPIO_CAN1_SILENT                /* PI11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTI|GPIO_PIN11)
 
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
@@ -311,12 +306,10 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-#define RC_UXART_BASE                      STM32_USART6_BASE
+/* RC Serial port */
+
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
-#define BOARD_HAS_SINGLE_WIRE              1 /* HW is capable of Single Wire */
-#define BOARD_HAS_SINGLE_WIRE_ON_TX        0 /* HW default is wired as Single Wire On RX pin */
-#define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
-#define RC_SERIAL_PORT_IS_SWAPED           1 /* Board wired with RC's TX is on cpu RX */
+#define RC_SERIAL_SINGLEWIRE
 
 /* Safety Switch: Enable the FMU to control it as there is no px4io in ModalAI FC-v1 */
 #define GPIO_SAFETY_SWITCH_IN              /* PF3 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTF|GPIO_PIN3)
@@ -365,28 +358,8 @@
 /* ModalAI FC-v1 never powers off the Servo rail */
 
 #define BOARD_ADC_SERVO_VALID     (1)
+#define BOARD_ADC_BRICK_VALID     (1)
 
-#if !defined(BOARD_HAS_LTC44XX_VALIDS) || BOARD_HAS_LTC44XX_VALIDS == 0
-#  define BOARD_ADC_BRICK1_VALID  (1)
-#  define BOARD_ADC_BRICK2_VALID  (0)
-#elif BOARD_HAS_LTC44XX_VALIDS == 1
-#  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (0)
-#elif BOARD_HAS_LTC44XX_VALIDS == 2
-#  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
-#elif BOARD_HAS_LTC44XX_VALIDS == 3
-#  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
-#  define BOARD_ADC_BRICK3_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK3_VALID))
-#elif BOARD_HAS_LTC44XX_VALIDS == 4
-#  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
-#  define BOARD_ADC_BRICK3_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK3_VALID))
-#  define BOARD_ADC_BRICK4_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK4_VALID))
-#else
-#  error Unsupported BOARD_HAS_LTC44XX_VALIDS value
-#endif
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
