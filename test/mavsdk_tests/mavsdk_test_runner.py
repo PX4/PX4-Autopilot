@@ -8,6 +8,7 @@ import json
 import os
 import psutil
 import re
+import signal
 import subprocess
 import sys
 import threading
@@ -304,7 +305,10 @@ def main():
         print("Creating directory: {}".format(args.log_dir))
     os.makedirs(args.log_dir, exist_ok=True)
 
-    sys.exit(run(args, config))
+    tester = Tester()
+    signal.signal(signal.SIGINT, tester.sigint_handler)
+
+    sys.exit(tester.run(args, config))
 
 
 def determine_tests(filter):
@@ -358,134 +362,137 @@ def is_everything_ready(config):
     return result
 
 
-def run(args, config):
-    overall_success = True
+class Tester:
+    def __init__(self):
+        self.active_runners = []
 
-    for iteration in range(args.iterations):
-        if args.iterations > 1:
-            print("Test iteration: {}".format(iteration + 1, args.iterations))
+    def run(self, args, config):
+        overall_success = True
 
-        was_success = run_test_group(args, config)
+        for iteration in range(args.iterations):
+            if args.iterations > 1:
+                print("Test iteration: {}".
+                      format(iteration + 1, args.iterations))
 
-        if not was_success:
-            overall_success = False
-
-        if args.iterations > 1 and not was_success and args.abort_early:
-            print("Aborting with a failure in test run {}/{}".
-                  format(iteration + 1, args.iterations))
-            break
-
-    if overall_success:
-        print(color.GREEN + "Overall result: success!" + color.END)
-        return 0
-    else:
-        print(color.RED + "Overall result: failure!" + color.END)
-        return 1
-
-
-def run_test_group(args, config):
-    overall_success = True
-
-    tests = config["tests"]
-
-    if args.model == 'all':
-        models = tests
-    else:
-        found = False
-        for elem in tests:
-            if elem['model'] == args.model:
-                models = [elem]
-                found = True
-        if not found:
-            print("Specified model is not defined")
-            models = []
-
-    for group in models:
-        print(color.BOLD + "==> Running tests for '{}' with filter '{}'"
-              .format(group['model'], group['test_filter']) + color.END)
-
-        tests = determine_tests(group['test_filter'])
-
-        for i, test in enumerate(tests):
-            print("--> Test {} of {}: '{}' running ...".
-                  format(i+1, len(tests), test))
-            was_success = run_test(test, group, args, config)
-            if was_success:
-                print(color.GREEN + "--- Test {} of {}: '{}' succeeded.".
-                      format(i+1, len(tests), test) + color.END)
-            else:
-                print(color.RED + "--- Test {} of {}: '{}' failed.".
-                      format(i+1, len(tests), test) + color.END)
+            was_success = self.run_test_group(args, config)
 
             if not was_success:
                 overall_success = False
 
-            if not was_success and args.abort_early:
-                print("Aborting early")
-                return False
+            if args.iterations > 1 and not was_success and args.abort_early:
+                print("Aborting with a failure in test run {}/{}".
+                      format(iteration + 1, args.iterations))
+                break
 
-    return overall_success
+        if overall_success:
+            print(color.GREEN + "Overall result: success!" + color.END)
+            return 0
+        else:
+            print(color.RED + "Overall result: failure!" + color.END)
+            return 1
 
+    def run_test_group(self, args, config):
+        overall_success = True
 
-def run_test(test, group, args, config):
+        tests = config["tests"]
 
-    speed_factor = args.speed_factor
-    if "max_speed_factor" in group:
-        speed_factor = min(int(speed_factor), group["max_speed_factor"])
+        if args.model == 'all':
+            models = tests
+        else:
+            found = False
+            for elem in tests:
+                if elem['model'] == args.model:
+                    models = [elem]
+                    found = True
+            if not found:
+                print("Specified model is not defined")
+                models = []
 
-    if config['mode'] == 'sitl':
-        px4_runner = Px4Runner(
-            group['model'], os.getcwd(), args.log_dir, speed_factor,
-            args.debugger, args.verbose)
-        px4_runner.start(group)
+        for group in models:
+            print(color.BOLD + "==> Running tests for '{}' with filter '{}'"
+                  .format(group['model'], group['test_filter']) + color.END)
 
-        if config['simulator'] == 'gazebo':
-            gzserver_runner = GzserverRunner(
+            tests = determine_tests(group['test_filter'])
+
+            for i, test in enumerate(tests):
+                print("--> Test {} of {}: '{}' running ...".
+                      format(i+1, len(tests), test))
+                was_success = self.run_test(test, group, args, config)
+                if was_success:
+                    print(color.GREEN + "--- Test {} of {}: '{}' succeeded.".
+                          format(i+1, len(tests), test) + color.END)
+                else:
+                    print(color.RED + "--- Test {} of {}: '{}' failed.".
+                          format(i+1, len(tests), test) + color.END)
+
+                if not was_success:
+                    overall_success = False
+
+                if not was_success and args.abort_early:
+                    print("Aborting early")
+                    return False
+
+        return overall_success
+
+    def run_test(self, test, group, args, config):
+        self.active_runners = []
+
+        speed_factor = args.speed_factor
+        if "max_speed_factor" in group:
+            speed_factor = min(int(speed_factor), group["max_speed_factor"])
+
+        if config['mode'] == 'sitl':
+            px4_runner = Px4Runner(
                 group['model'], os.getcwd(), args.log_dir, speed_factor,
-                args.verbose)
-            gzserver_runner.start(group)
+                args.debugger, args.verbose)
+            px4_runner.start(group)
+            self.active_runners.append(px4_runner)
 
-            if args.gui:
-                gzclient_runner = GzclientRunner(
-                    os.getcwd(), args.log_dir, args.verbose)
-                gzclient_runner.start(group)
+            if config['simulator'] == 'gazebo':
+                gzserver_runner = GzserverRunner(
+                    group['model'], os.getcwd(), args.log_dir, speed_factor,
+                    args.verbose)
+                gzserver_runner.start(group)
+                self.active_runners.append(gzserver_runner)
 
-    test_runner = TestRunner(os.getcwd(), args.log_dir, group, test,
-                             config['mavlink_connection'], args.verbose)
-    test_runner.start(group)
+                if args.gui:
+                    gzclient_runner = GzclientRunner(
+                        os.getcwd(), args.log_dir, args.verbose)
+                    gzclient_runner.start(group)
+                    self.active_runners.append(gzclient_runner)
 
-    while test_runner.time_elapsed_s() < group['timeout_min']*60:
-        returncode = test_runner.poll()
-        if returncode is not None:
-            is_success = (returncode == 0)
-            break
+        test_runner = TestRunner(os.getcwd(), args.log_dir, group, test,
+                                 config['mavlink_connection'], args.verbose)
+        test_runner.start(group)
+        self.active_runners.append(test_runner)
 
-        if args.verbose:
-            test_runner.print_output()
+        while test_runner.time_elapsed_s() < group['timeout_min']*60:
+            returncode = test_runner.poll()
+            if returncode is not None:
+                is_success = (returncode == 0)
+                break
 
-            if config['mode'] == 'sitl':
-                px4_runner.print_output()
+            if args.verbose:
+                for runner in self.active_runners:
+                    runner.print_output()
 
-                if config['simulator'] == 'gazebo':
-                    gzserver_runner.print_output()
+        else:
+            print(color.BOLD + "Test timeout of {} mins triggered!".
+                  format(group['timeout_min']) + color.END)
+            is_success = False
 
-                    if args.gui:
-                        gzclient_runner.print_output()
-    else:
-        print(color.BOLD + "Test timeout of {} mins triggered!".
-              format(group['timeout_min']) + color.END)
-        is_success = False
+        for runner in self.active_runners:
+            runner.stop()
 
-    test_runner.stop()
+        return is_success
 
-    if config['mode'] == 'sitl':
-        if config['simulator'] == 'gazebo':
-            if args.gui:
-                gzclient_runner.stop()
-            gzserver_runner.stop()
-        px4_runner.stop()
-
-    return is_success
+    def sigint_handler(self, sig, frame):
+        print("Received SIGINT")
+        print("Stopping all processes ...")
+        for runner in self.active_runners:
+            runner.stop()
+        print("Stopping all processes done.")
+        sys.exit(-sig)
 
 
 if __name__ == '__main__':
