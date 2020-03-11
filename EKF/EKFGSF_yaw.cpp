@@ -463,14 +463,16 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index)
 	// take advantage of sparseness in the yaw rotation matrix
 	const float cosYaw = cosf(yawDelta);
 	const float sinYaw = sinf(yawDelta);
-	float  R_prev[2][3];
-	memcpy(&R_prev, &_ahrs_ekf_gsf[model_index].R, sizeof(R_prev));
-	_ahrs_ekf_gsf[model_index].R(0,0) = R_prev[0][0] * cosYaw - R_prev[1][0] * sinYaw;
-	_ahrs_ekf_gsf[model_index].R(0,1) = R_prev[0][1] * cosYaw - R_prev[1][1] * sinYaw;
-	_ahrs_ekf_gsf[model_index].R(0,2) = R_prev[0][2] * cosYaw - R_prev[1][2] * sinYaw;
-	_ahrs_ekf_gsf[model_index].R(1,0) = R_prev[0][0] * sinYaw + R_prev[1][0] * cosYaw;
-	_ahrs_ekf_gsf[model_index].R(1,1) = R_prev[0][1] * sinYaw + R_prev[1][1] * cosYaw;
-	_ahrs_ekf_gsf[model_index].R(1,2) = R_prev[0][2] * sinYaw + R_prev[1][2] * cosYaw;
+	const float R_prev00 = _ahrs_ekf_gsf[model_index].R(0, 0);
+	const float R_prev01 = _ahrs_ekf_gsf[model_index].R(0, 1);
+	const float R_prev02 = _ahrs_ekf_gsf[model_index].R(0, 2);
+
+	_ahrs_ekf_gsf[model_index].R(0, 0) = R_prev00 * cosYaw - _ahrs_ekf_gsf[model_index].R(1, 0) * sinYaw;
+	_ahrs_ekf_gsf[model_index].R(0, 1) = R_prev01 * cosYaw - _ahrs_ekf_gsf[model_index].R(1, 1) * sinYaw;
+	_ahrs_ekf_gsf[model_index].R(0, 2) = R_prev02 * cosYaw - _ahrs_ekf_gsf[model_index].R(1, 2) * sinYaw;
+	_ahrs_ekf_gsf[model_index].R(1, 0) = R_prev00 * sinYaw + _ahrs_ekf_gsf[model_index].R(1, 0) * cosYaw;
+	_ahrs_ekf_gsf[model_index].R(1, 1) = R_prev01 * sinYaw + _ahrs_ekf_gsf[model_index].R(1, 1) * cosYaw;
+	_ahrs_ekf_gsf[model_index].R(1, 2) = R_prev02 * sinYaw + _ahrs_ekf_gsf[model_index].R(1, 2) * cosYaw;
 
 	return true;
 }
