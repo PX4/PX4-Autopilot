@@ -77,7 +77,7 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
 	_paramHandle.minThrottle    = param_find("MPC_THR_MIN");
 	_paramHandle.useHoverThrustEstimate = param_find("MPC_USE_HTE");
-	_paramHandle.hoverThrottle  = param_find("MPC_THR_HOVER");;
+	_paramHandle.hoverThrottle  = param_find("MPC_THR_HOVER");
 
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_ground_contact_hysteresis.set_hysteresis_time_from(false, GROUND_CONTACT_TRIGGER_TIME_US);
@@ -96,10 +96,10 @@ void MulticopterLandDetector::_update_topics()
 	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
 
 	if (_params.useHoverThrustEstimate) {
-		hover_thrust_estimate_s hte{};
+		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
-			_params.hoverThrottle  = hte.hover_thrust;
+			_params.hoverThrottle = hte.hover_thrust;
 		}
 	}
 }
@@ -114,7 +114,7 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 
-	int use_hover_thrust_estimate = 0;
+	int32_t use_hover_thrust_estimate = 0;
 	param_get(_paramHandle.useHoverThrustEstimate, &use_hover_thrust_estimate);
 	_params.useHoverThrustEstimate = (use_hover_thrust_estimate == 1);
 

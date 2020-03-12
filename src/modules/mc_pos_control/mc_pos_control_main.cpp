@@ -145,8 +145,6 @@ private:
 	landing_gear_s _landing_gear{};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
-	bool _use_hover_thrust_estimator{false};
-
 	DEFINE_PARAMETERS(
 		// Position Control
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p,
@@ -162,7 +160,7 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
-		(ParamInt<px4::params::MPC_USE_HTE>) _param_mpc_use_hte,
+		(ParamBool<px4::params::MPC_USE_HTE>) _param_mpc_use_hte,
 
 		// Takeoff / Land
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
@@ -366,9 +364,7 @@ MulticopterPositionControl::parameters_update(bool force)
 			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed");
 		}
 
-		_use_hover_thrust_estimator = (_param_mpc_use_hte.get() == 1);
-
-		if (!_use_hover_thrust_estimator) {
+		if (!_param_mpc_use_hte.get()) {
 			if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
 			    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
 				_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
@@ -415,8 +411,8 @@ MulticopterPositionControl::poll_subscriptions()
 		}
 	}
 
-	if (_use_hover_thrust_estimator) {
-		hover_thrust_estimate_s hte{};
+	if (_param_mpc_use_hte.get()) {
+		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
 			_control.setHoverThrust(hte.hover_thrust);

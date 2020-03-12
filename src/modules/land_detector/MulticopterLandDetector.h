@@ -135,8 +135,6 @@ private:
 	bool _in_descend{false};		///< vehicle is desending
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 
-	bool _use_hover_thrust_estimator{false};
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
 		(ParamFloat<px4::params::LNDMC_ALT_MAX>)    _param_lndmc_alt_max,
