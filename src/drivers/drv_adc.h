@@ -42,6 +42,7 @@
 
 #include <stdint.h>
 #include <sys/ioctl.h>
+#include <uORB/topics/adc_report.h>
 
 /* Define the PX4 low level format ADC and the maximum
  * number of channels that can be returned by a lowlevel
@@ -49,7 +50,7 @@
  * but no more than PX4_MAX_ADC_CHANNELS.
  *
  */
-#define PX4_MAX_ADC_CHANNELS 12
+#define PX4_MAX_ADC_CHANNELS ((int)(sizeof(adc_report_s::channel_id)/sizeof(*adc_report_s::channel_id)))
 typedef struct __attribute__((packed)) px4_adc_msg_t {
 	uint8_t      am_channel;               /* The 8-bit ADC Channel */
 	int32_t      am_data;                  /* ADC convert result (4 bytes) */
