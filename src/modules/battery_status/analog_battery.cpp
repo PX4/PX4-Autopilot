@@ -15,8 +15,6 @@ static constexpr int DEFAULT_V_CHANNEL[1] = {0};
 static constexpr int DEFAULT_I_CHANNEL[1] = {0};
 #endif
 
-static constexpr float DEFAULT_VOLTS_PER_COUNT = 3.3f / 4096.0f;
-
 AnalogBattery::AnalogBattery(int index, ModuleParams *parent) :
 	Battery(index, parent)
 {
