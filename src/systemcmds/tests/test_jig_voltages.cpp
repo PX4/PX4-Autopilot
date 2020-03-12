@@ -87,7 +87,7 @@ int test_jig_voltages(int argc, char *argv[])
 	/* Expected values */
 	int16_t expected_min[] = {2800, 2800, 1800,  800};
 	int16_t expected_max[] = {3100, 3100, 2100, 1100};
-	char *check_res[channels];
+	const char *check_res[channels];
 
 	if (channels < 4) {
 		close(fd);
@@ -96,14 +96,10 @@ int test_jig_voltages(int argc, char *argv[])
 
 	} else {
 		/* Check values */
-		check_res[0] = const_cast<char *>((expected_min[0] < data[0].am_data && expected_max[0] > data[0].am_data)
-						  ? "OK" : "FAIL");
-		check_res[1] = const_cast<char *>((expected_min[1] < data[1].am_data && expected_max[1] > data[1].am_data)
-						  ? "OK" : "FAIL");
-		check_res[2] = const_cast<char *>((expected_min[2] < data[2].am_data && expected_max[2] > data[2].am_data)
-						  ? "OK" : "FAIL");
-		check_res[3] = const_cast<char *>((expected_min[3] < data[3].am_data && expected_max[3] > data[3].am_data)
-						  ? "OK" : "FAIL");
+		check_res[0] = (expected_min[0] < data[0].am_data && expected_max[0] > data[0].am_data) ? "OK" : "FAIL";
+		check_res[1] = (expected_min[1] < data[1].am_data && expected_max[1] > data[1].am_data) ? "OK" : "FAIL";
+		check_res[2] = (expected_min[2] < data[2].am_data && expected_max[2] > data[2].am_data) ? "OK" : "FAIL";
+		check_res[3] = (expected_min[3] < data[3].am_data && expected_max[3] > data[3].am_data) ? "OK" : "FAIL";
 
 		/* Accumulate result */
 		ret += (expected_min[0] > data[0].am_data || expected_max[0] < data[0].am_data) ? 1 : 0;
