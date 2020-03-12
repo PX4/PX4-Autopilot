@@ -7,12 +7,8 @@ import psutil
 import signal
 import subprocess
 import sys
-from logger_helper import color
-from process_helper import \
-    Px4Runner, \
-    GzserverRunner, \
-    GzclientRunner, \
-    TestRunner
+from logger_helper import color, colorize
+import process_helper as ph
 
 
 def main():
@@ -160,10 +156,12 @@ class Tester:
                 break
 
         if overall_success:
-            print(color.GREEN + "Overall result: success!" + color.END)
+            print(colorize(colorize(
+                "Overall result: success!", color.GREEN), color.BOLD))
             return 0
         else:
-            print(color.RED + "Overall result: failure!" + color.END)
+            print(colorize(colorize(
+                "Overall result: failure!", color.RED), color.BOLD))
             return 1
 
     def run_test_group(self):
@@ -184,8 +182,10 @@ class Tester:
                 models = []
 
         for group in models:
-            print(color.BOLD + "==> Running tests for '{}' with filter '{}'"
-                  .format(group['model'], group['test_filter']) + color.END)
+            print(colorize(
+                "==> Running tests for '{}' with filter '{}'"
+                .format(group['model'], group['test_filter']),
+                color.BOLD))
 
             tests = determine_tests(group['test_filter'])
 
@@ -194,11 +194,15 @@ class Tester:
                       format(i+1, len(tests), test))
                 was_success = self.run_test(test, group)
                 if was_success:
-                    print(color.GREEN + "--- Test {} of {}: '{}' succeeded.".
-                          format(i+1, len(tests), test) + color.END)
+                    print(colorize(
+                        "--- Test {} of {}: '{}' succeeded."
+                        .format(i+1, len(tests), test),
+                        color.GREEN))
                 else:
-                    print(color.RED + "--- Test {} of {}: '{}' failed.".
-                          format(i+1, len(tests), test) + color.END)
+                    print(colorize(
+                        "--- Test {} of {}: '{}' failed."
+                        .format(i+1, len(tests), test),
+                        color.RED))
 
                 if not was_success:
                     overall_success = False
@@ -217,14 +221,14 @@ class Tester:
             speed_factor = min(int(speed_factor), group["max_speed_factor"])
 
         if self.config['mode'] == 'sitl':
-            px4_runner = Px4Runner(
+            px4_runner = ph.Px4Runner(
                 group['model'], os.getcwd(), self.log_dir, speed_factor,
                 self.debugger, self.verbose)
             px4_runner.start(group)
             self.active_runners.append(px4_runner)
 
             if self.config['simulator'] == 'gazebo':
-                gzserver_runner = GzserverRunner(
+                gzserver_runner = ph.GzserverRunner(
                     group['model'],
                     os.getcwd(),
                     self.log_dir,
@@ -234,12 +238,12 @@ class Tester:
                 self.active_runners.append(gzserver_runner)
 
                 if self.gui:
-                    gzclient_runner = GzclientRunner(
+                    gzclient_runner = ph.GzclientRunner(
                         os.getcwd(), self.log_dir, self.verbose)
                     gzclient_runner.start(group)
                     self.active_runners.append(gzclient_runner)
 
-        test_runner = TestRunner(
+        test_runner = ph.TestRunner(
             os.getcwd(),
             self.log_dir,
             group,
@@ -261,8 +265,10 @@ class Tester:
                     runner.print_output()
 
         else:
-            print(color.BOLD + "Test timeout of {} mins triggered!".
-                  format(group['timeout_min']) + color.END)
+            print(colorize(
+                "Test timeout of {} mins triggered!".
+                format(group['timeout_min']),
+                color.BOLD))
             is_success = False
 
         for runner in self.active_runners:
