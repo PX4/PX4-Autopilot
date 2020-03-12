@@ -95,6 +95,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
+	add_topic("yaw_estimator_status", 200);
 
 	// multi topics
 	add_topic_multi("actuator_outputs", 100);
@@ -170,8 +171,6 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_visual_odometry_aligned");
 	add_topic_multi("distance_sensor");
 	add_topic_multi("vehicle_gps_position");
-	add_topic("yaw_est_test_data");
-
 }
 
 void LoggedTopics::add_thermal_calibration_topics()

@@ -168,8 +168,8 @@ set(msg_files
 	vtol_vehicle_status.msg
 	wheel_encoders.msg
 	wind_estimate.msg
-	yaw_est_test_data.msg
-	)
+	yaw_estimator_status.msg
+)
 
 set(deprecated_msgs
 	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.

@@ -299,7 +299,7 @@ rtps:
     id: 133
   - msg: orb_test_large
     id: 134
-  - msg: yaw_est_test_data
+  - msg: yaw_estimator_status
     id: 135
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
