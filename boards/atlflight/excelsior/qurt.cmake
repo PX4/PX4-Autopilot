@@ -62,6 +62,7 @@ px4_add_board(
 		landing_target_estimator
 		local_position_estimator
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		muorb/adsp
