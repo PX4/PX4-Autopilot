@@ -212,16 +212,22 @@ int main()
 
     // check write_string()
     float comma[6] = {
-        1.f, 12345.678f,
-        12345.67891f, 12345.67891f,
-        1112345.67891f, 12345.111111111f
+        1.f, 12345.123f,
+        12345.1228f, .1234567891011f,
+        12345678910.123456789f, 1234567891011.123456789101112f
     };
     Matrix<float, 3, 2> Comma(comma);
-    const size_t len = 10*2*3 + 2 + 1;
+    const size_t len = 15*2*3 + 2 + 1;
     char buffer[len];
+    Comma.print(); // for debugging in case of failure
     Comma.write_string(buffer, len);
-    char output[] = "\t       1\t12345.678\n\t12345.679\t12345.679\n\t1112345.6\t12345.111\n";
+    printf("%s\n", buffer); // for debugging in case of failure
+    char output[] = "\t       1\t12345.123\n\t12345.123\t0.12345679\n\t1.2345679e+10\t1.234568e+12\n";
+    printf("%s\n", output); // for debugging in case of failure
     for (size_t i = 0; i < len; i++) {
+        if(buffer[i] != output[i]) { // for debugging in case of failure
+            printf("%d: \"%c\" != \"%c\"", int(i), buffer[i], output[i]);
+        }
         TEST(buffer[i] == output[i]);
         if (buffer[i] == '\0') {
             break;
