@@ -235,13 +235,13 @@ int main()
     }
 
     // check print()
+    // Redirect stdout
+    TEST(freopen("testoutput.txt", "w", stdout) != NULL);
     // write
-    FILE *fp = fopen("testoutput.txt", "w+");
-    TEST(fp != nullptr);
-    Comma.print(fp);
-    TEST(!fclose(fp));
+    Comma.print();
+    fclose(stdout);
     // read
-    fp = fopen("testoutput.txt", "r");
+    FILE *fp = fopen("testoutput.txt", "r");
     TEST(fp != nullptr);
     TEST(!fseek(fp, 0, SEEK_SET));
     for (size_t i = 0; i < len; i++) {
@@ -249,7 +249,7 @@ int main()
         if (c == '\n') {
             break;
         }
-        printf("%d %d %c\n", static_cast<int>(i), c, c);
+        printf("%d %d %d\n", static_cast<int>(i), output[i], c);
         TEST(c == output[i]);
     }
     TEST(!fclose(fp));
