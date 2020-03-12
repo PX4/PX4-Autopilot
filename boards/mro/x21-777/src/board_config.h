@@ -61,8 +61,8 @@
 #define PX4IO_SERIAL_RX_GPIO           GPIO_USART6_RX
 #define PX4IO_SERIAL_BASE              STM32_USART6_BASE
 #define PX4IO_SERIAL_VECTOR            STM32_IRQ_USART6
-#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_USART6_TX_2
-#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_USART6_RX_2
+#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_USART6_TX
+#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_USART6_RX
 #define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB2ENR
 #define PX4IO_SERIAL_RCC_EN            RCC_APB2ENR_USART6EN
 #define PX4IO_SERIAL_CLOCK             STM32_PCLK2_FREQUENCY
@@ -178,7 +178,7 @@
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120
+#define BOARD_DMA_ALLOC_POOL_SIZE (5120 + 512 + 512)	// 5120 fat + 512 + 512 spi
 
 /* This board provides the board_on_reset interface */
 

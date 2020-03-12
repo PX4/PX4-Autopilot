@@ -1,6 +1,19 @@
+@###############################################
+@#
+@# EmPy template for generating uORBTopics.cpp file
+@# for logging purposes
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@#  - ids (List) list of all RTPS msg ids
+@###############################################
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,58 +44,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file hover_thrust_estimator.hpp
- * @brief Interface class for a hover thrust estimator
- * Convention is positive thrust, hover thrust and acceleration UP
- *
- * @author Mathieu Bresciani 	<brescianimathieu@gmail.com>
- */
-
 #pragma once
 
-#include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/hover_thrust_estimate.h>
-#include <drivers/drv_hrt.h>
-
-#include "zero_order_hover_thrust_ekf.hpp"
-
-class HoverThrustEstimator : public ModuleParams
-{
-public:
-	HoverThrustEstimator(ModuleParams *parent) :
-		ModuleParams(parent)
-	{
-		ZeroOrderHoverThrustEkf::status status{};
-		publishStatus(status);
-	}
-	~HoverThrustEstimator() = default;
-
-	void reset();
-
-	void update(float dt);
-
-	void setThrust(float thrust) { _thrust = thrust; };
-	void setAccel(float accel) { _acc_z = accel; };
-
-	float getHoverThrustEstimate() const { return _hover_thrust_ekf.getHoverThrustEstimate(); }
-
-protected:
-	void updateParams() override;
-
-private:
-	void publishStatus(ZeroOrderHoverThrustEkf::status &status);
-
-	ZeroOrderHoverThrustEkf _hover_thrust_ekf{};
-	float _acc_z{};
-	float _thrust{};
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::HTE_HT_NOISE>) _param_hte_ht_noise,
-		(ParamFloat<px4::params::HTE_ACC_GATE>) _param_hte_acc_gate,
-		(ParamFloat<px4::params::HTE_HT_ERR_INIT>) _param_hte_ht_err_init
-	)
-
-	uORB::Publication<hover_thrust_estimate_s> _hover_thrust_ekf_pub{ORB_ID(hover_thrust_estimate)};
-};
+#include <uORB/uORB.h>

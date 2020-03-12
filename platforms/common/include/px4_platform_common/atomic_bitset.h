@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,52 +30,66 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file rcloss.h
- * Helper class for RC Loss Mode acording to the OBC rules
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
 
 #pragma once
 
-#include <px4_platform_common/module_params.h>
+#include "atomic.h"
 
-#include "navigator_mode.h"
-#include "mission_block.h"
+namespace px4
+{
 
-class Navigator;
-
-class RCLoss : public MissionBlock, public ModuleParams
+template <size_t N>
+class AtomicBitset
 {
 public:
-	RCLoss(Navigator *navigator);
-	~RCLoss() = default;
 
-	void on_inactive() override;
-	void on_activation() override;
-	void on_active() override;
+	AtomicBitset() = default;
+
+	size_t count() const
+	{
+		size_t total = 0;
+
+		for (const auto &x : _data) {
+			uint32_t y = x.load();
+
+			while (y) {
+				total += y & 1;
+				y >>= 1;
+			}
+		}
+
+		return total;
+	}
+
+	size_t size() const { return N; }
+
+	bool operator[](size_t position) const
+	{
+		return _data[array_index(position)].load() & element_mask(position);
+	}
+
+	void set(size_t pos, bool val = true)
+	{
+		const uint32_t bitmask = element_mask(pos);
+
+		if (val) {
+			_data[array_index(pos)].fetch_or(bitmask);
+
+		} else {
+			_data[array_index(pos)].fetch_and(~bitmask);
+		}
+	}
 
 private:
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_RCL_LT>) _param_nav_gpsf_lt
-	)
+	static constexpr uint8_t BITS_PER_ELEMENT = 32;
+	static constexpr size_t ARRAY_SIZE = ((N % BITS_PER_ELEMENT) == 0) ? (N / BITS_PER_ELEMENT) :
+					     (N / BITS_PER_ELEMENT + 1);
+	static constexpr size_t ALLOCATED_BITS = ARRAY_SIZE * BITS_PER_ELEMENT;
 
-	enum RCLState {
-		RCL_STATE_NONE = 0,
-		RCL_STATE_LOITER = 1,
-		RCL_STATE_TERMINATE = 2,
-		RCL_STATE_END = 3
-	} _rcl_state{RCL_STATE_NONE};
+	size_t array_index(size_t position) const { return position / BITS_PER_ELEMENT; }
+	uint32_t element_mask(size_t position) const { return (1 << (position % BITS_PER_ELEMENT)); }
 
-	/**
-	 * Set the RCL item
-	 */
-	void		set_rcl_item();
-
-	/**
-	 * Move to next RCL item
-	 */
-	void		advance_rcl();
-
+	px4::atomic<uint32_t> _data[ARRAY_SIZE];
 };
+
+} // namespace px4

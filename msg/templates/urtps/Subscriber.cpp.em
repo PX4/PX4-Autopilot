@@ -70,9 +70,15 @@ except AttributeError:
 
 #include "@(topic)_Subscriber.h"
 
-@(topic)_Subscriber::@(topic)_Subscriber() : mp_participant(nullptr), mp_subscriber(nullptr) {}
+@(topic)_Subscriber::@(topic)_Subscriber()
+    : mp_participant(nullptr),
+      mp_subscriber(nullptr)
+{ }
 
-@(topic)_Subscriber::~@(topic)_Subscriber() {   Domain::removeParticipant(mp_participant);}
+@(topic)_Subscriber::~@(topic)_Subscriber()
+{
+    Domain::removeParticipant(mp_participant);
+}
 
 bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue)
 {
@@ -84,12 +90,12 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0; // MUST BE THE SAME AS IN THE PUBLISHER
-@[if 1.5 <= fastrtpsgen_version <= 1.7 or ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal" or ros2_distro == "dashing"]@
+@[if fastrtps_version <= 1.8]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
 @[end if]@
-    PParam.rtps.setName("@(topic)_subscriber"); //You can put the name you want
+    PParam.rtps.setName("@(topic)_subscriber");
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant == nullptr)
             return false;
@@ -199,19 +205,7 @@ bool @(topic)_Subscriber::hasMsg()
     return false;
 }
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-@(package)::msg::dds_::@(topic)_ @(topic)_Subscriber::getMsg()
-@[    else]@
-@(topic)_ @(topic)_Subscriber::getMsg()
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-@(package)::msg::@(topic) @(topic)_Subscriber::getMsg()
-@[    else]@
-@(topic) @(topic)_Subscriber::getMsg()
-@[    end if]@
-@[end if]@
+@(topic)_msg_t @(topic)_Subscriber::getMsg()
 {
     return m_listener.msg;
 }

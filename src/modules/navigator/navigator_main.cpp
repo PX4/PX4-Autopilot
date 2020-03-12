@@ -84,8 +84,6 @@ Navigator::Navigator() :
 	_land(this),
 	_precland(this),
 	_rtl(this),
-	_rcLoss(this),
-	_dataLinkLoss(this),
 	_engineFailure(this),
 	_gpsFailure(this),
 	_follow_target(this)
@@ -94,14 +92,12 @@ Navigator::Navigator() :
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_dataLinkLoss;
-	_navigation_mode_array[4] = &_engineFailure;
-	_navigation_mode_array[5] = &_gpsFailure;
-	_navigation_mode_array[6] = &_rcLoss;
-	_navigation_mode_array[7] = &_takeoff;
-	_navigation_mode_array[8] = &_land;
-	_navigation_mode_array[9] = &_precland;
-	_navigation_mode_array[10] = &_follow_target;
+	_navigation_mode_array[3] = &_engineFailure;
+	_navigation_mode_array[4] = &_gpsFailure;
+	_navigation_mode_array[5] = &_takeoff;
+	_navigation_mode_array[6] = &_land;
+	_navigation_mode_array[7] = &_precland;
+	_navigation_mode_array[8] = &_follow_target;
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
@@ -493,11 +489,6 @@ Navigator::run()
 			navigation_mode_new = &_loiter;
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
-			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_rcLoss;
-			break;
-
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: {
 				_pos_sp_triplet_published_invalid_once = false;
 
@@ -611,11 +602,6 @@ Navigator::run()
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_precland;
 			_precland.set_mode(PrecLandMode::Required);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
-			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_dataLinkLoss;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:

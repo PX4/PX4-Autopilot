@@ -231,9 +231,6 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-
-	/* fallthrough */
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 		*mavlink_base_mode |= auto_mode_flags;
 		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
@@ -248,12 +245,6 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 		*mavlink_base_mode |= auto_mode_flags;
 		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
-		*mavlink_base_mode |= auto_mode_flags;
-		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTGS;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
@@ -2182,15 +2173,13 @@ protected:
 
 		bool vehicle_in_auto_mode = _vehicle_status_time > 0
 					    && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET
-						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
 						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
-						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 
 		// Handle next waypoint if it is valid
 		if (vehicle_in_auto_mode && _setpoint_triplet_time > 0 && _setpoint_triplet.current.valid) {
