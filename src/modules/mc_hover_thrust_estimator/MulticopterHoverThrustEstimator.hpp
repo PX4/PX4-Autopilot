@@ -41,48 +41,76 @@
 
 #pragma once
 
-#include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/hover_thrust_estimate.h>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/hover_thrust_estimate.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "zero_order_hover_thrust_ekf.hpp"
 
-class HoverThrustEstimator : public ModuleParams
+class MulticopterHoverThrustEstimator : public ModuleBase<MulticopterHoverThrustEstimator>, public ModuleParams,
+	public px4::WorkItem
 {
 public:
-	HoverThrustEstimator(ModuleParams *parent) :
-		ModuleParams(parent)
-	{
-		ZeroOrderHoverThrustEkf::status status{};
-		publishStatus(status);
-	}
-	~HoverThrustEstimator() = default;
+	MulticopterHoverThrustEstimator();
+	~MulticopterHoverThrustEstimator() override;
 
-	void reset();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	void update(float dt);
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	void setThrust(float thrust) { _thrust = thrust; };
-	void setAccel(float accel) { _acc_z = accel; };
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-	float getHoverThrustEstimate() const { return _hover_thrust_ekf.getHoverThrustEstimate(); }
+	bool init();
 
-protected:
-	void updateParams() override;
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 private:
+	void Run() override;
+	void updateParams() override;
+
+	void reset();
 	void publishStatus(ZeroOrderHoverThrustEkf::status &status);
 
 	ZeroOrderHoverThrustEkf _hover_thrust_ekf{};
-	float _acc_z{};
-	float _thrust{};
+
+	uORB::Publication<hover_thrust_estimate_s> _hover_thrust_ekf_pub{ORB_ID(hover_thrust_estimate)};
+
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_setpoint_sub{this, ORB_ID(vehicle_local_position_setpoint)};
+
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_local_pos_sub{ORB_ID(vehicle_local_position)};
+
+	hrt_abstime _timestamp_last{0};
+
+	bool _armed{false};
+	bool _landed{false};
+	bool _in_air{false};
+
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::HTE_HT_NOISE>) _param_hte_ht_noise,
 		(ParamFloat<px4::params::HTE_ACC_GATE>) _param_hte_acc_gate,
-		(ParamFloat<px4::params::HTE_HT_ERR_INIT>) _param_hte_ht_err_init
+		(ParamFloat<px4::params::HTE_HT_ERR_INIT>) _param_hte_ht_err_init,
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover
 	)
-
-	uORB::Publication<hover_thrust_estimate_s> _hover_thrust_ekf_pub{ORB_ID(hover_thrust_estimate)};
 };

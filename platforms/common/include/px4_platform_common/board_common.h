@@ -671,6 +671,8 @@ __EXPORT int board_set_bootload_mode(board_reset_e mode);
 typedef enum {
 	PX4_MFT_PX4IO = 0,
 	PX4_MFT_USB   = 1,
+	PX4_MFT_CAN2  = 2,
+	PX4_MFT_CAN3  = 3,
 } px4_hw_mft_item_id_t;
 
 typedef enum {
@@ -714,6 +716,35 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
 #  define PX4_MFT_HW_IS_OFFBOARD(ID)         (0)
 #  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (0)
 #  define board_query_manifest(_na)          px4_hw_mft_unsupported
+#endif
+
+/************************************************************************************
+ * Name: board_get_can_interfaces
+ *
+ * Description:
+ *   Optional returns a bit mask of the enabled can interfaces, that are
+ *   dependent on the on board CAN configuration.
+ *
+ *   In UAVCAN the number of interfaces is a compile time setting. On some HW
+ *   using the same binary, all the CAN interfaces are not present.
+ *
+ *   The default is now 3 CAN interfaces and all active, the the build will set
+ *   the actual max number of interfaces.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   A bit mask of the can interfaces enabled for this board.
+ *   i.e CAN1 and CAN2   0x3
+ *       CAN0 and CAN1   0x3
+ *
+ ************************************************************************************/
+
+#if defined(UAVCAN_NUM_IFACES_RUNTIME)
+__EXPORT uint16_t board_get_can_interfaces(void);
+#else
+inline uint16_t board_get_can_interfaces(void) { return 0x7; }
 #endif
 
 /************************************************************************************
