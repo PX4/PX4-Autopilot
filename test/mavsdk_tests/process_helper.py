@@ -8,7 +8,7 @@ import atexit
 import subprocess
 import threading
 import errno
-from logger_helper import color
+from logger_helper import color, maybe_strip_color, colorize
 
 
 class Runner:
@@ -81,10 +81,7 @@ class Runner:
     def get_output(self):
         try:
             output = self.output_queue.get(block=True, timeout=0.1)
-            if supports_color():
-                return output
-            else:
-                return remove_color(output)
+            return maybe_strip_color(output)
         except queue.Empty:
             return None
 
@@ -92,10 +89,8 @@ class Runner:
         output = self.get_output()
         if not output:
             return
-        print(color.END +
-              "[" + self.name.ljust(11) + "] " +
-              output +
-              color.END, end="")
+        print(colorize("[" + self.name.ljust(11) + "] " + output, color.RESET),
+              end="")
 
     def stop(self):
         atexit.unregister(self.stop)
