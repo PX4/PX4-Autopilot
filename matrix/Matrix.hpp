@@ -350,13 +350,13 @@ public:
         }
     }
 
-    void print(FILE *stream = stdout) const
+    void print() const
     {
         // element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
         static const size_t n = 15*N*M + M + 1;
         char * buf = new char[n];
         write_string(buf, n);
-        fprintf(stream, "%s\n", buf);
+        printf("%s\n", buf);
         delete[] buf;
     }
 
