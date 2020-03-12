@@ -40,6 +40,18 @@
  */
 
 /**
+ * IMU samples per filter update.
+ *
+ * Filter update period as a multiple of IMU samples.
+ *
+ * @group EKF2
+* @reboot_required true
+ * @min 2
+ * @max 3
+ */
+PARAM_DEFINE_INT32(EKF2_IMU_SAMPLES, 2);
+
+/**
  * Minimum time of arrival delta between non-IMU observations before data is downsampled.
  * Baro and Magnetometer data will be averaged before downsampling, other data will be point sampled resulting in loss of information.
  *
