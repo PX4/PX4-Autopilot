@@ -1785,10 +1785,8 @@ void Ekf2::publish_yaw_estimator_status(const hrt_abstime &timestamp)
 {
 	yaw_estimator_status_s yaw_est_test_data{};
 
-	static_assert(sizeof(yaw_estimator_status_s::yaw) / sizeof(float) == N_MODELS_EKFGSF);
-	static_assert(sizeof(yaw_estimator_status_s::innov_vn) / sizeof(float) == N_MODELS_EKFGSF);
-	static_assert(sizeof(yaw_estimator_status_s::innov_ve) / sizeof(float) == N_MODELS_EKFGSF);
-	static_assert(sizeof(yaw_estimator_status_s::weight) / sizeof(float) == N_MODELS_EKFGSF);
+	static_assert(sizeof(yaw_estimator_status_s::yaw) / sizeof(float) == N_MODELS_EKFGSF,
+		      "yaw_estimator_status_s::yaw wrong size");
 
 	if (_ekf.getDataEKFGSF(&yaw_est_test_data.yaw_composite, &yaw_est_test_data.yaw_variance,
 			       &yaw_est_test_data.yaw[0],
