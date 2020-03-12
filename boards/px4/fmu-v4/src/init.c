@@ -311,7 +311,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
 	SPI_SELECT(spi1, PX4_SPIDEV_HMC, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_MPU9250, false);
 	up_udelay(20);
 
 	// Get the SPI port for the FRAM.

@@ -9,7 +9,8 @@ adc start
 voxlpm -R start
 
 # Internal SPI bus ICM-20602
-mpu6000 -R 6 -s -T 20602 start
+#mpu6000 -R 6 -s -T 20602 start # legacy icm20602 driver
+icm20602 -R 10 start
 
 # Internal SPI bus ICM-42688
 # TODO

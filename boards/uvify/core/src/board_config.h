@@ -148,7 +148,7 @@
 #include <drivers/drv_sensor.h>
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_MPU               PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU6000)
+#define PX4_SPIDEV_MPU9250           PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU9250)
 #define PX4_SPIDEV_HMC               PX4_MK_SPI_SEL(0, DRV_MAG_DEVTYPE_HMC5883)
 #define PX4_SPIDEV_LIS               PX4_MK_SPI_SEL(0, DRV_MAG_DEVTYPE_LIS3MDL)
 #define PX4_SPIDEV_ICM_20608         PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_ICM20608)
@@ -284,7 +284,7 @@
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs. */
-#define BOARD_DMA_ALLOC_POOL_SIZE (5120 + 512 + 1024)	// 5120 fat + 512 + 1024 spi
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 #define BOARD_HAS_ON_RESET 1
 

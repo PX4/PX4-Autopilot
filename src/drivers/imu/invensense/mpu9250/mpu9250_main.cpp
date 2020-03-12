@@ -47,8 +47,8 @@ static int start(enum Rotation rotation)
 	}
 
 	// create the driver
-#if defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_MPU)
-	g_dev = new MPU9250(PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU, rotation);
+#if defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_MPU9250)
+	g_dev = new MPU9250(PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU9250, rotation);
 #elif defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
 	g_dev = new MPU9250(PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, rotation);
 #endif

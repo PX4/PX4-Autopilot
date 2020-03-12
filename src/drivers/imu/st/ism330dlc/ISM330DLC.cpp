@@ -33,8 +33,6 @@
 
 #include "ISM330DLC.hpp"
 
-#include <px4_platform/board_dma_alloc.h>
-
 using namespace time_literals;
 using namespace ST_ISM330DLC;
 
@@ -59,10 +57,6 @@ ISM330DLC::ISM330DLC(int bus, uint32_t device, enum Rotation rotation) :
 ISM330DLC::~ISM330DLC()
 {
 	Stop();
-
-	if (_dma_data_buffer != nullptr) {
-		board_dma_free(_dma_data_buffer, FIFO::SIZE);
-	}
 
 	perf_free(_interval_perf);
 	perf_free(_transfer_perf);
@@ -94,14 +88,6 @@ bool ISM330DLC::Init()
 
 	if (!Reset()) {
 		PX4_ERR("reset failed");
-		return false;
-	}
-
-	// allocate DMA capable buffer
-	_dma_data_buffer = (uint8_t *)board_dma_alloc(FIFO::SIZE);
-
-	if (_dma_data_buffer == nullptr) {
-		PX4_ERR("DMA alloc failed");
 		return false;
 	}
 
@@ -299,9 +285,8 @@ void ISM330DLC::Run()
 	};
 	static_assert(sizeof(TransferBuffer) == (sizeof(uint8_t) + 16 * sizeof(FIFO::DATA))); // ensure no struct padding
 
-	TransferBuffer *report = (TransferBuffer *)_dma_data_buffer;
+	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
-	memset(report, 0, transfer_size);
 	report->cmd = static_cast<uint8_t>(Register::FIFO_DATA_OUT_L) | DIR_READ;
 
 	perf_begin(_transfer_perf);

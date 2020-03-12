@@ -70,7 +70,7 @@ AK8963_I2C_interface(int bus)
 
 AK8963_I2C::AK8963_I2C(int bus) : I2C("AK8963_I2C", nullptr, bus, AK8963_I2C_ADDR, 400000)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_MPU9250;
+	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_AK8963;
 }
 
 int

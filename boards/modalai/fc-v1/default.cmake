@@ -25,8 +25,9 @@ px4_add_board(
 		dshot
 		gps
 		imu/bmi088
+		imu/invensense/icm20602
 # TODO		imu/icm42688
-		imu/mpu6000
+		#imu/mpu6000 # legacy icm20602 driver
 		irlock
 		lights/blinkm
 		lights/rgbled

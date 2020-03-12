@@ -30,9 +30,9 @@ px4_add_board(
 		imu/adis16497
 		imu/invensense/icm20602
 		imu/invensense/icm20608g
-		#imu/invensense/mpu9250
+		imu/invensense/mpu9250
 		#imu/mpu6000 # legacy icm20602/icm20608g driver
-		imu/mpu9250
+		#imu/mpu9250 # legacy mpu9250 driver
 		irlock
 		lights/blinkm
 		lights/rgbled

@@ -54,7 +54,9 @@ static constexpr uint8_t Bit7 = (1 << 7);
 
 namespace InvenSense_ICM20689
 {
-static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8MHz SPI serial interface for communicating with all registers
+//static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8 MHz SPI serial interface for communicating with all registers
+static constexpr uint32_t SPI_SPEED = 6 * 1000 * 1000; // reduced to 6 MHz to minimize transfer errors
+
 static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x98;

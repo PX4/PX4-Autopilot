@@ -22,17 +22,22 @@ px4_add_board(
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
+		dshot
 		gps
+		#heater
+		#imu # all available imu drivers
 		imu/adis16448
 		imu/adis16477
 		imu/adis16497
-		#imu # all available imu drivers
 		imu/bmi055
-		imu/mpu6000
+		imu/invensense/icm20602
+		imu/invensense/icm20689
+		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
+		optical_flow # all available optical flow drivers
 		pwm_input
 		pwm_out_sim
 		px4fmu
