@@ -41,15 +41,10 @@
 
 #include "Limits.hpp"
 
+#include <matrix/matrix/math.hpp>
+
 namespace math
 {
-
-// Type-safe signum function
-template<typename T>
-int sign(T val)
-{
-	return (T(FLT_EPSILON) < val) - (val < T(FLT_EPSILON));
-}
 
 // Type-safe signum function with zero treated as positive
 template<typename T>
@@ -114,7 +109,7 @@ const T deadzone(const T &value, const T &dz)
 	T x = constrain(value, (T) - 1, (T) 1);
 	T dzc = constrain(dz, (T) 0, (T) 0.99);
 	// Rescale the input such that we get a piecewise linear function that will be continuous with applied deadzone
-	T out = (x - sign(x) * dzc) / (1 - dzc);
+	T out = (x - matrix::sign(x) * dzc) / (1 - dzc);
 	// apply the deadzone (values zero around the middle)
 	return out * (fabsf(x) > dzc);
 }
