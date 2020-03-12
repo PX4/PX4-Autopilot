@@ -57,7 +57,7 @@ public:
 	~FieldSensorBiasEstimator() = default;
 
 	// Set initial states
-	void setField(const matrix::Vector3f &field) { _field_prev = field; }
+	void setField(const matrix::Vector3f &field) { _state_field = field; }
 	void setBias(const matrix::Vector3f &bias) { _state_bias = bias; }
 
 	/**
@@ -68,20 +68,20 @@ public:
 	 */
 	void updateEstimate(const matrix::Vector3f &gyro, const matrix::Vector3f &field, const float dt)
 	{
-		const matrix::Vector3f field_pred = _field_prev + (-gyro % (_field_prev - _state_bias)) * dt;
-		const matrix::Vector3f field_innov = field - field_pred;
-		_state_bias += GAIN_BIAS * (-gyro % field_innov);
-		_field_prev = field;
+		const matrix::Vector3f state_field_prev = _state_field;
+		_state_field += (-gyro % (_state_field - _state_bias)) * dt + GAIN_FIELD * (field - _state_field);
+		_state_bias += GAIN_BIAS * (gyro % (state_field_prev - field));
 	}
 
-	const matrix::Vector3f &getField() { return _field_prev; }
+	const matrix::Vector3f &getField() { return _state_field; }
 	const matrix::Vector3f &getBias() { return _state_bias; }
 
 private:
 	// gains
-	static constexpr float GAIN_BIAS = 100.f;
+	static constexpr float GAIN_FIELD = 1.f;
+	static constexpr float GAIN_BIAS = 0.05f;
 
 	// states
-	matrix::Vector3f _field_prev{};
+	matrix::Vector3f _state_field{};
 	matrix::Vector3f _state_bias{};
 };
