@@ -51,6 +51,7 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -76,6 +77,8 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_pos_ctrl_status_time(0),
 	_geofence_sub(_mavlink->add_orb_subscription(ORB_ID(geofence_result))),
 	_geofence_time(0),
+	_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+	_local_pos_time(0),
 	_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
 	_global_pos_time(0),
 	_gps_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position))),
@@ -503,7 +506,7 @@ void MavlinkStreamHighLatency2::update_data()
 
 	update_battery_status();
 
-	update_global_position();
+	update_local_position();
 
 	update_gps();
 
@@ -543,14 +546,13 @@ void MavlinkStreamHighLatency2::update_battery_status()
 	}
 }
 
-void MavlinkStreamHighLatency2::update_global_position()
+void MavlinkStreamHighLatency2::update_local_position()
 {
-	vehicle_global_position_s global_pos;
+	vehicle_local_position_s local_pos;
 
-	if (_global_pos_sub->update(&global_pos)) {
-		_climb_rate.add_value(fabsf(global_pos.vel_d), _update_rate_filtered);
-		_groundspeed.add_value(sqrtf(global_pos.vel_n * global_pos.vel_n + global_pos.vel_e * global_pos.vel_e),
-				       _update_rate_filtered);
+	if (_local_pos_sub->update(&local_pos)) {
+		_climb_rate.add_value(fabsf(local_pos.vz), _update_rate_filtered);
+		_groundspeed.add_value(sqrtf(local_pos.vx * local_pos.vx + local_pos.vy * local_pos.vy), _update_rate_filtered);
 	}
 }
 

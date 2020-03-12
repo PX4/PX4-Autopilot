@@ -391,9 +391,6 @@ void Sih::publish_sih()
 	_gpos_gt.lat = _gps_lat_noiseless;
 	_gpos_gt.lon = _gps_lon_noiseless;
 	_gpos_gt.alt = _gps_alt_noiseless;
-	_gpos_gt.vel_n = _v_I(0);
-	_gpos_gt.vel_e = _v_I(1);
-	_gpos_gt.vel_d = _v_I(2);
 
 	_gpos_gt_pub.publish(_gpos_gt);
 }

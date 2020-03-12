@@ -1,6 +1,19 @@
+@###############################################
+@#
+@# EmPy template for generating uORBTopics.hpp file
+@# for logging purposes
+@#
+@###############################################
+@# Start of Template
+@#
+@# Context:
+@#  - msgs (List) list of all msg files
+@#  - multi_topics (List) list of all multi-topic names
+@#  - ids (List) list of all RTPS msg ids
+@###############################################
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +30,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -31,29 +44,33 @@
  *
  ****************************************************************************/
 
-/**
- * @file rcloss_params.c
- *
- * Parameters for RC Loss (OBC)
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
+@{
+msg_names = [mn.replace(".msg", "") for mn in msgs]
+msgs_count = len(msg_names)
+msg_names_all = list(set(msg_names + multi_topics)) # set() filters duplicates
+msg_names_all.sort()
+msgs_count_all = len(msg_names_all)
+}@
+
+#pragma once
+
+#include <stddef.h>
+
+#include <uORB/uORB.h>
+
+static constexpr size_t ORB_TOPICS_COUNT{@(msgs_count_all)};
+static constexpr size_t orb_topics_count() { return ORB_TOPICS_COUNT; }
 
 /*
- * OBC RC Loss mode parameters, accessible via MAVLink
+ * Returns array of topics metadata
  */
+extern const struct orb_metadata *const *orb_get_topics() __EXPORT;
 
-/**
- * RC Loss Loiter Time (CASA Outback Challenge rules)
- *
- * The amount of time in seconds the system should loiter at current position before termination.
- * Only applies if NAV_RCL_ACT is set to 2 (CASA Outback Challenge rules).
- * Set to -1 to make the system skip loitering.
- *
- * @unit s
- * @min -1.0
- * @decimal 1
- * @increment 0.1
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(NAV_RCL_LT, 120.0f);
+enum class ORB_ID : uint8_t {
+@[for idx, msg_name in enumerate(msg_names_all)]@
+	@(msg_name) = @(idx),
+@[end for]
+	INVALID
+};
+
+const struct orb_metadata *get_orb_meta(ORB_ID id);

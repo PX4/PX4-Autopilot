@@ -31,56 +31,58 @@
  *
  ****************************************************************************/
 
-/**
- * @file hover_thrust_estimator.cpp
- *
- * @author Mathieu Bresciani 	<brescianimathieu@gmail.com>
- */
+#pragma once
 
-#include "hover_thrust_estimator.hpp"
-
-void HoverThrustEstimator::reset()
+namespace px4
 {
-	_thrust = 0.f;
-	_acc_z = 0.f;
-	_hover_thrust_ekf.setHoverThrustStdDev(_param_hte_ht_err_init.get());
-	_hover_thrust_ekf.resetAccelNoise();
 
-}
-
-void HoverThrustEstimator::updateParams()
+template <size_t N>
+class Bitset
 {
-	const float ht_err_init_prev = _param_hte_ht_err_init.get();
-	ModuleParams::updateParams();
+public:
 
-	_hover_thrust_ekf.setProcessNoiseStdDev(_param_hte_ht_noise.get());
+	size_t count() const
+	{
+		size_t total = 0;
 
-	if (fabsf(_param_hte_ht_err_init.get() - ht_err_init_prev) > FLT_EPSILON) {
-		_hover_thrust_ekf.setHoverThrustStdDev(_param_hte_ht_err_init.get());
+		for (auto x : _data) {
+			while (x) {
+				total += x & 1;
+				x >>= 1;
+			}
+		}
+
+		return total;
 	}
 
-	_hover_thrust_ekf.setAccelInnovGate(_param_hte_acc_gate.get());
-}
+	size_t size() const { return N; }
 
-void HoverThrustEstimator::update(const float dt)
-{
-	_hover_thrust_ekf.predict(dt);
+	bool operator[](size_t position) const
+	{
+		return _data[array_index(position)] & element_mask(position);
+	}
 
-	ZeroOrderHoverThrustEkf::status status{};
-	_hover_thrust_ekf.fuseAccZ(_acc_z, _thrust, status);
+	void set(size_t pos, bool val = true)
+	{
+		const uint8_t bitmask = element_mask(pos);
 
-	publishStatus(status);
-}
+		if (val) {
+			_data[array_index(pos)] |= bitmask;
 
-void HoverThrustEstimator::publishStatus(ZeroOrderHoverThrustEkf::status &status)
-{
-	hover_thrust_estimate_s status_msg{};
-	status_msg.timestamp = hrt_absolute_time();
-	status_msg.hover_thrust = status.hover_thrust;
-	status_msg.hover_thrust_var = status.hover_thrust_var;
-	status_msg.accel_innov = status.innov;
-	status_msg.accel_innov_var = status.innov_var;
-	status_msg.accel_innov_test_ratio = status.innov_test_ratio;
-	status_msg.accel_noise_var = status.accel_noise_var;
-	_hover_thrust_ekf_pub.publish(status_msg);
-}
+		} else {
+			_data[array_index(pos)] &= ~bitmask;
+		}
+	}
+
+private:
+	static constexpr uint8_t BITS_PER_ELEMENT = 8;
+	static constexpr size_t ARRAY_SIZE = (N % BITS_PER_ELEMENT == 0) ? N / BITS_PER_ELEMENT : N / BITS_PER_ELEMENT + 1;
+	static constexpr size_t ALLOCATED_BITS = ARRAY_SIZE * BITS_PER_ELEMENT;
+
+	size_t array_index(size_t position) const { return position / BITS_PER_ELEMENT; }
+	uint8_t element_mask(size_t position) const { return (1 << position % BITS_PER_ELEMENT); }
+
+	uint8_t _data[ARRAY_SIZE] {};
+};
+
+} // namespace px4

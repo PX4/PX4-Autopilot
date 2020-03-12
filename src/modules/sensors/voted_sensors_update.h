@@ -125,11 +125,7 @@ public:
 	 */
 	void checkFailover();
 
-	int numGyros() const { return _gyro.subscription_count; }
-
-	int gyroFd(int idx) const { return _gyro.subscription[idx]; }
-
-	int bestGyroFd() const { return _gyro.subscription[_gyro.last_best_vote]; }
+	int bestGyroID() const { return _gyro_device_id[_gyro.last_best_vote]; }
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
