@@ -69,7 +69,7 @@ public:
     AxisAngle(const Quaternion<Type> &q)
     {
         AxisAngle &v = *this;
-        Type mag = Type(sqrt(q(1) * q(1) + q(2) * q(2) + q(3) * q(3)));
+        Type mag = q.imag().norm();
         if (fabs(mag) >= Type(1e-10)) {
             v = q.imag() * Type(Type(2) * atan2(mag, q(0)) / mag);
         } else {
