@@ -74,6 +74,18 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 
 /**
+ * Hover thrust source selector
+ *
+ * Set false to use the fixed parameter MPC_THR_HOVER
+ * (EXPERIMENTAL) Set true to use the value computed by the hover thrust estimator
+ *
+ * @boolean
+ * @category Developer
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_USE_HTE, 0);
+
+/**
  * Thrust curve in Manual Mode
  *
  * This parameter defines how the throttle stick input is mapped to commanded thrust

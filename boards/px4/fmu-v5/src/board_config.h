@@ -327,6 +327,8 @@
 #define GPIO_CAN2_SILENT_S1  /* PH3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN3)
 #define GPIO_CAN3_SILENT_S2  /* PH4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN4)
 
+#define UAVCAN_NUM_IFACES_RUNTIME 1
+
 /* HEATER
  * PWM in future
  */
@@ -547,7 +549,7 @@
 
 /* This board provides a DMA pool and APIs */
 
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120
+#define BOARD_DMA_ALLOC_POOL_SIZE (5120 + 1024 + 1024)	// 5120 fat + 1024 + 1024 spi
 
 /* This board provides the board_on_reset interface */
 

@@ -31,9 +31,21 @@
 #
 ############################################################################
 
-px4_add_library(HoverThrustEstimator
-	hover_thrust_estimator.cpp
+px4_add_library(zero_order_hover_thrust_ekf
 	zero_order_hover_thrust_ekf.cpp
+	zero_order_hover_thrust_ekf.hpp
 )
 
-px4_add_unit_gtest(SRC zero_order_hover_thrust_ekf_test.cpp LINKLIBS HoverThrustEstimator)
+px4_add_module(
+	MODULE modules__mc_hover_thrust_estimator
+	MAIN mc_hover_thrust_estimator
+	SRCS
+		MulticopterHoverThrustEstimator.cpp
+		MulticopterHoverThrustEstimator.hpp
+	DEPENDS
+		mathlib
+		px4_work_queue
+		zero_order_hover_thrust_ekf
+)
+
+px4_add_unit_gtest(SRC zero_order_hover_thrust_ekf_test.cpp LINKLIBS zero_order_hover_thrust_ekf)
