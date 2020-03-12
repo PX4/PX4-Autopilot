@@ -113,6 +113,9 @@ private:
 	MavlinkOrbSubscription *_geofence_sub;
 	uint64_t _geofence_time;
 
+	MavlinkOrbSubscription *_local_pos_sub;
+	uint64_t _local_pos_time;
+
 	MavlinkOrbSubscription *_global_pos_sub;
 	uint64_t _global_pos_time;
 
@@ -193,7 +196,7 @@ protected:
 
 	void update_battery_status();
 
-	void update_global_position();
+	void update_local_position();
 
 	void update_gps();
 
