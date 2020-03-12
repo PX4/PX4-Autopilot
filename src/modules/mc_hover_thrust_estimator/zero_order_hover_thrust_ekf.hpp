@@ -107,7 +107,7 @@ private:
 	float _dt{0.02f};
 
 	float _residual_lpf{}; ///< used to remove the constant bias of the residual
-	float _innov_test_ratio_lpf{}; ///< used as a delay to trigger the recovery logic
+	float _signed_innov_test_ratio_lpf{}; ///< used as a delay to trigger the recovery logic
 
 	float computeH(float thrust) const;
 	float computeInnovVar(float H) const;
@@ -125,12 +125,14 @@ private:
 
 	void updateState(float K, float innov);
 	void updateStateCovariance(float K, float H);
-	void updateMeasurementNoise(float residual, float H);
+	bool isLargeOffsetDetected() const;
 
 	void bumpStateVariance();
-	void updateLpf(float residual, float innov_test_ratio);
+	void updateLpf(float residual, float signed_innov_test_ratio);
+	void updateMeasurementNoise(float residual, float H);
 
 	status packStatus(float innov, float innov_var, float innov_test_ratio) const;
 
-	static constexpr float noise_learning_time_constant = 0.5f; ///< in seconds
+	static constexpr float _noise_learning_time_constant = 2.f; ///< in seconds
+	static constexpr float _lpf_time_constant = 1.f; ///< in seconds
 };
