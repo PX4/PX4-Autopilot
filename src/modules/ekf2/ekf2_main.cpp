@@ -1432,10 +1432,6 @@ void Ekf2::Run()
 					// global altitude has opposite sign of local down position
 					global_pos.delta_alt = -lpos.delta_z;
 
-					global_pos.vel_n = lpos.vx; // Ground north velocity, m/s
-					global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
-					global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
-
 					global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
 
 					_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);

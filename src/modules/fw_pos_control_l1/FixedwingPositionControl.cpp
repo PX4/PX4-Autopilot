@@ -1369,7 +1369,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			_land_noreturn_vertical = true;
 
 		} else {
-			if (_global_pos.vel_d > 0.1f) {
+			if (_local_pos.vz > 0.1f) {
 				_flare_pitch_sp = radians(_param_fw_lnd_fl_pmin.get()) *
 						  constrain((_flare_height - (_global_pos.alt - terrain_alt)) / _flare_height, 0.0f, 1.0f);
 			}
@@ -1525,7 +1525,7 @@ FixedwingPositionControl::Run()
 		_vehicle_rates_sub.update();
 
 		Vector2f curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
-		Vector2f ground_speed(_global_pos.vel_n, _global_pos.vel_e);
+		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
 
 		//Convert Local setpoints to global setpoints
 		if (_control_mode.flag_control_offboard_enabled) {
