@@ -66,7 +66,7 @@ then
 	param set MC_ACRO_SUPEXPO 0
 	param set MC_ACRO_SUPEXPOY 0
 	param set MC_ACRO_Y_MAX 150
-	param set MC_DTERM_CUTOFF 30
+	param set IMU_DGYRO_CUTOFF 30
 	param set MC_PITCHRATE_D 0.0015
 	param set MC_PITCHRATE_I 0.2
 	param set MC_PITCHRATE_K 1

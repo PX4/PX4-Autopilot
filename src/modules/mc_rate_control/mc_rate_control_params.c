@@ -395,20 +395,3 @@ PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPOY, 0.7f);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
-
-/**
- * Cutoff frequency for the low pass filter on the D-term in the rate controller
- *
- * The D-term uses the derivative of the rate and thus is the most susceptible to noise.
- * Therefore, using a D-term filter allows to decrease the driver-level filtering, which
- * leads to reduced control latency and permits to increase the P gains.
- * A value of 0 disables the filter.
- *
- * @unit Hz
- * @min 0
- * @max 1000
- * @decimal 0
- * @increment 10
- * @group Multicopter Rate Control
- */
-PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 0.f);

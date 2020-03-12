@@ -23,7 +23,7 @@ then
 	param set RC_PORT_CONFIG 201
 
 	param set IMU_GYRO_CUTOFF 120
-	param set MC_DTERM_CUTOFF 0
+	param set IMU_DGYRO_CUTOFF 0
 
 	param set MC_ROLLRATE_P 0.075
 	param set MC_ROLLRATE_I 0.25
