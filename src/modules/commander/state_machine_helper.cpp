@@ -468,7 +468,6 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 				   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
 						   !(posctl_nav_loss_act == position_nav_loss_actions_t::LAND_TERMINATE),
 						   status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
-
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else {
@@ -496,6 +495,13 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		} else if (status->mission_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
+		} else if (data_link_loss_act_configured && status->data_link_lost && is_armed) {
+			/* datalink loss enabled:
+			 * check for datalink lost: this should always trigger RTL */
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+
 		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
 			   && mission_finished && is_armed) {
 			/* datalink loss DISABLED:
@@ -520,6 +526,11 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
+		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
+			/* also go into failsafe if just datalink is lost, and we're actually in air */
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
 		} else if (rc_lost && !data_link_loss_act_configured && is_armed) {
 			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
@@ -582,6 +593,16 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// failsafe: necessary position estimate lost; switching is done in check_invalid_pos_nav_state
+
+			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
+			// is not possible and therefore the internal_state needs to be adjusted.
+			internal_state->main_state = commander_state_s::MAIN_STATE_POSCTL;
+
+		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
+			// failsafe: just datalink is lost and we're in air
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
 			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
 			// is not possible and therefore the internal_state needs to be adjusted.
