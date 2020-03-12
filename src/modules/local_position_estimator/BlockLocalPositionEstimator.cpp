@@ -803,9 +803,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;
 		_pub_gpos.get().alt = alt;
-		_pub_gpos.get().vel_n = xLP(X_vx);
-		_pub_gpos.get().vel_e = xLP(X_vy);
-		_pub_gpos.get().vel_d = xLP(X_vz);
 		_pub_gpos.get().yaw = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;

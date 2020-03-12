@@ -421,10 +421,6 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_gpos.lon = hil_state.lon / 1E7;//1E7
 		hil_gpos.alt = hil_state.alt / 1E3;//1E3
 
-		hil_gpos.vel_n = hil_state.vx / 100.0f;
-		hil_gpos.vel_e = hil_state.vy / 100.0f;
-		hil_gpos.vel_d = hil_state.vz / 100.0f;
-
 		// always publish ground truth attitude message
 		_gpos_ground_truth_pub.publish(hil_gpos);
 	}

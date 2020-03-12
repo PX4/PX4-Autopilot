@@ -45,7 +45,6 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/weather_vane/WeatherVane.hpp>
-#include <lib/hover_thrust_estimator/hover_thrust_estimator.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -67,6 +66,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/hover_thrust_estimate.h>
 
 #include "PositionControl/PositionControl.hpp"
 #include "Takeoff/Takeoff.hpp"
@@ -122,6 +122,7 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};				/**< vehicle attitude */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
+	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 
@@ -159,6 +160,7 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
+		(ParamBool<px4::params::MPC_USE_HTE>) _param_mpc_use_hte,
 
 		// Takeoff / Land
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
@@ -183,8 +185,6 @@ private:
 	FlightTasks _flight_tasks; /**< class generating position controller setpoints depending on vehicle task */
 	PositionControl _control; /**< class for core PID position control */
 	PositionControlStates _states{}; /**< structure containing vehicle state information for position control */
-
-	HoverThrustEstimator _hover_thrust_estimator;
 
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 
@@ -283,7 +283,6 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
-	_hover_thrust_estimator(this),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time"))
 {
 	if (vtol) {
@@ -351,7 +350,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
 		_control.setThrustLimits(_param_mpc_thr_min.get(), _param_mpc_thr_max.get());
 		_control.setTiltLimit(M_DEG_TO_RAD_F * _param_mpc_tiltmax_air.get()); // convert to radians!
-		_control.setHoverThrust(_param_mpc_thr_hover.get());
 
 		// Check that the design parameters are inside the absolute maximum constraints
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
@@ -366,12 +364,16 @@ MulticopterPositionControl::parameters_update(bool force)
 			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed");
 		}
 
-		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
-		    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
-			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
-						 _param_mpc_thr_max.get()));
-			_param_mpc_thr_hover.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
+		if (!_param_mpc_use_hte.get()) {
+			if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
+			    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
+				_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
+							 _param_mpc_thr_max.get()));
+				_param_mpc_thr_hover.commit();
+				mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
+			}
+
+			_control.setHoverThrust(_param_mpc_thr_hover.get());
 		}
 
 		_flight_tasks.handleParameterUpdate();
@@ -406,6 +408,14 @@ MulticopterPositionControl::poll_subscriptions()
 
 		if (_att_sub.copy(&att) && PX4_ISFINITE(att.q[0])) {
 			_states.yaw = Eulerf(Quatf(att.q)).psi();
+		}
+	}
+
+	if (_param_mpc_use_hte.get()) {
+		hover_thrust_estimate_s hte;
+
+		if (_hover_thrust_estimate_sub.update(&hte)) {
+			_control.setHoverThrust(hte.hover_thrust);
 		}
 	}
 }
@@ -594,15 +604,6 @@ MulticopterPositionControl::Run()
 				_control.resetIntegral();
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
-				_hover_thrust_estimator.reset();
-
-			} else if (_takeoff.getTakeoffState() >= TakeoffState::flight) {
-				// Inform the hover thrust estimator about the measured vertical acceleration (positive acceleration is up)
-				if (PX4_ISFINITE(_local_pos.az)) {
-					_hover_thrust_estimator.setAccel(-_local_pos.az);
-				}
-
-				_hover_thrust_estimator.update(_dt);
 			}
 
 			if (_takeoff.getTakeoffState() < TakeoffState::flight && !PX4_ISFINITE(setpoint.thrust[2])) {
@@ -648,9 +649,6 @@ MulticopterPositionControl::Run()
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
 			_flight_tasks.updateVelocityControllerIO(Vector3f(local_pos_sp.vx, local_pos_sp.vy, local_pos_sp.vz),
 					Vector3f(local_pos_sp.thrust));
-
-			// Inform the hover thrust estimator about the current thrust (positive thrust is up)
-			_hover_thrust_estimator.setThrust(-local_pos_sp.thrust[2]);
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;

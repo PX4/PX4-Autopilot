@@ -2492,9 +2492,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
 		hil_global_pos.lon = hil_state.lon / ((double)1e7);
 		hil_global_pos.alt = hil_state.alt / 1000.0f;
-		hil_global_pos.vel_n = hil_state.vx / 100.0f;
-		hil_global_pos.vel_e = hil_state.vy / 100.0f;
-		hil_global_pos.vel_d = hil_state.vz / 100.0f;
 		hil_global_pos.eph = 2.0f;
 		hil_global_pos.epv = 4.0f;
 
