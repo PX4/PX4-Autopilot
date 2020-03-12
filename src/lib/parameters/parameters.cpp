@@ -41,7 +41,9 @@
  * and background parameter saving.
  */
 
+#define PARAM_IMPLEMENTATION
 #include "param.h"
+#include "param_translation.h"
 #include <parameters/px4_parameters.h>
 #include "tinybson/tinybson.h"
 
@@ -1260,6 +1262,8 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		PX4_DEBUG("unrecognised node type");
 		goto out;
 	}
+
+	param_modify_on_import(node->name, node->type, v);
 
 	if (param_set_internal(param, v, state->mark_saved, true)) {
 		PX4_DEBUG("error setting value for '%s'", node->name);

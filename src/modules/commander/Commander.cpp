@@ -1301,6 +1301,20 @@ Commander::run()
 			// update parameters from storage
 			updateParams();
 
+			// NAV_DLL_ACT value 4 Data Link Auto Recovery (CASA Outback Challenge rules) deleted 2020-03-10
+			if (_param_nav_dll_act.get() == 4) {
+				mavlink_log_critical(&mavlink_log_pub, "CASA Outback Challenge rules (NAV_DLL_ACT = 4) retired");
+				_param_nav_dll_act.set(2); // value 2 Return mode
+				_param_nav_dll_act.commit_no_notification();
+			}
+
+			// NAV_RCL_ACT value 4 RC Auto Recovery (CASA Outback Challenge rules) deleted 2020-03-10
+			if (_param_nav_rcl_act.get() == 4) {
+				mavlink_log_critical(&mavlink_log_pub, "CASA Outback Challenge rules (NAV_RCL_ACT = 4) retired");
+				_param_nav_rcl_act.set(2); // value 2 Return mode
+				_param_nav_rcl_act.commit_no_notification();
+			}
+
 			/* update parameters */
 			if (!armed.armed) {
 				status.system_type = _param_mav_type.get();
@@ -3044,13 +3058,11 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER:
 		/* override is not ok for the RTL and recovery mode */
 		control_mode.flag_external_manual_override_ok = false;
 
 	/* fallthrough */
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
@@ -3966,17 +3978,7 @@ Commander::offboard_control_update()
 {
 	const offboard_control_mode_s &offboard_control_mode = _offboard_control_mode_sub.get();
 
-	// if this is the first time entering OFFBOARD the subscription may not be active yet
-	bool force_update = false;
-
-	if (commander_state_s::MAIN_STATE_OFFBOARD) {
-		if (offboard_control_mode.timestamp == 0) {
-			_offboard_control_mode_sub.subscribe();
-			force_update = true;
-		}
-	}
-
-	if (_offboard_control_mode_sub.updated() || force_update) {
+	if (_offboard_control_mode_sub.updated()) {
 		const offboard_control_mode_s old = offboard_control_mode;
 
 		if (_offboard_control_mode_sub.update()) {

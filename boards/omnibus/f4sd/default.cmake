@@ -53,12 +53,13 @@ px4_add_board(
 		#fw_att_control
 		#fw_pos_control_l1
 		land_detector
-		landing_target_estimator
+		#landing_target_estimator
 		load_mon
 		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		navigator

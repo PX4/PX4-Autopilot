@@ -25,6 +25,7 @@ land_detector start vtol
 navigator start
 ekf2 start
 vtol_att_control start
+mc_hover_thrust_estimator start
 mc_pos_control start vtol
 mc_att_control start vtol
 mc_rate_control start vtol

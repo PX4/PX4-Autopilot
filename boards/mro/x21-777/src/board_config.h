@@ -61,8 +61,8 @@
 #define PX4IO_SERIAL_RX_GPIO           GPIO_USART6_RX
 #define PX4IO_SERIAL_BASE              STM32_USART6_BASE
 #define PX4IO_SERIAL_VECTOR            STM32_IRQ_USART6
-#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_USART6_TX_2
-#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_USART6_RX_2
+#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_USART6_TX
+#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_USART6_RX
 #define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB2ENR
 #define PX4IO_SERIAL_RCC_EN            RCC_APB2ENR_USART6EN
 #define PX4IO_SERIAL_CLOCK             STM32_PCLK2_FREQUENCY
@@ -107,10 +107,11 @@
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_ICM_20602 PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
-#define PX4_SPIDEV_ICM_20608 PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
-#define PX4_SPIDEV_BARO      PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
-#define PX4_SPIDEV_MPU       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
+#include <drivers/drv_sensor.h>
+#define PX4_SPIDEV_ICM_20602 PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_ICM20602)
+#define PX4_SPIDEV_ICM_20608 PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_ICM20608)
+#define PX4_SPIDEV_BARO      PX4_MK_SPI_SEL(0, DRV_BARO_DEVTYPE_MS5611)
+#define PX4_SPIDEV_MPU       PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU9250)
 
 /* I2C busses */
 
@@ -177,7 +178,7 @@
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120
+#define BOARD_DMA_ALLOC_POOL_SIZE (5120 + 512 + 512)	// 5120 fat + 512 + 512 spi
 
 /* This board provides the board_on_reset interface */
 
@@ -219,7 +220,7 @@ int stm32_sdio_initialize(void);
 
 extern void stm32_spiinitialize(void);
 
-void board_spi_reset(int ms);
+extern void board_peripheral_reset(int ms);
 
 extern void stm32_usbinitialize(void);
 

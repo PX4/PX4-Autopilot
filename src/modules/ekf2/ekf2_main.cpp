@@ -1551,6 +1551,11 @@ void Ekf2::Run()
 					for (bool &cal_available : _valid_cal_available) {
 						cal_available = false;
 					}
+
+				} else {
+					// conditions are NOT OK for learning magnetometer bias, reset timestamp
+					// but keep the accumulated calibration time
+					_last_magcal_us = now;
 				}
 
 				// Start checking mag bias estimates when we have accumulated sufficient calibration time
