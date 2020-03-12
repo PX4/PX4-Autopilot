@@ -60,7 +60,7 @@ public:
 
 	void update(hrt_abstime timestamp_sample, float x, float y, float z);
 
-	int get_class_instance(void) { return _class_device_instance; };
+	int get_class_instance() { return _class_device_instance; };
 
 	void print_status();
 

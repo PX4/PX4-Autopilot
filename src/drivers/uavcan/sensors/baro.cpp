@@ -47,7 +47,8 @@ const char *const UavcanBarometerBridge::NAME = "baro";
 #define UAVCAN_BARO_BASE_DEVICE_PATH "/dev/uavcan/baro"
 
 UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", UAVCAN_BARO_BASE_DEVICE_PATH, ORB_ID(sensor_baro)),
+	UavcanCDevSensorBridgeBase("uavcan_baro", UAVCAN_BARO_BASE_DEVICE_PATH, UAVCAN_BARO_BASE_DEVICE_PATH,
+				   ORB_ID(sensor_baro)),
 	_sub_air_pressure_data(node),
 	_sub_air_temperature_data(node)
 { }
@@ -98,10 +99,14 @@ UavcanBarometerBridge::air_pressure_sub_cb(const
 	}
 
 	// Cast our generic CDev pointer to the sensor-specific driver class
-	PX4Barometer *_baro = (PX4Barometer *)channel->h_driver;
+	PX4Barometer *baro = (PX4Barometer *)channel->h_driver;
 
-	_baro->set_temperature(last_temperature_kelvin + CONSTANTS_ABSOLUTE_NULL_CELSIUS);
-	_baro->update(hrt_absolute_time(), msg.static_pressure / 100.0f); // Convert pressure to millibar
+	if (baro == nullptr) {
+		return;
+	}
+
+	baro->set_temperature(last_temperature_kelvin + CONSTANTS_ABSOLUTE_NULL_CELSIUS);
+	baro->update(hrt_absolute_time(), msg.static_pressure / 100.0f); // Convert pressure to millibar
 }
 
 int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
@@ -109,8 +114,7 @@ int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
 	// update device id as we now know our device node_id
 	DeviceId device_id{_device_id};
 
-	// No sensor info is included int he StaticPressure msg; use some generic baro type
-	device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5611;
+	device_id.devid_s.devtype = DRV_BARO_DEVTYPE_UAVCAN;
 	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
 	channel->h_driver = new PX4Barometer(device_id.devid, ORB_PRIO_HIGH);
@@ -119,9 +123,16 @@ int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
 		return PX4_ERROR;
 	}
 
-	PX4Barometer *_baro = (PX4Barometer *)channel->h_driver;
+	PX4Barometer *baro = (PX4Barometer *)channel->h_driver;
 
-	channel->class_instance = _baro->get_class_instance();
+	channel->class_instance = baro->get_class_instance();
+
+	if (channel->class_instance < 0) {
+		PX4_ERR("UavcanBaro: Unable to get a class instance");
+		delete baro;
+		channel->h_driver = nullptr;
+		return PX4_ERROR;
+	}
 
 	return PX4_OK;
 }

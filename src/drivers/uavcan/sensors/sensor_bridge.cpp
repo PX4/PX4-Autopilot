@@ -88,7 +88,7 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 	// No such channel - try to create one
 	if (channel == nullptr) {
 		if (_out_of_channels) {
-			return;           // Give up immediately - saves some CPU time
+			return;  // Give up immediately - saves some CPU time
 		}
 
 		DEVICE_LOG("adding channel %d...", node_id);
@@ -111,9 +111,6 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 		// update device id as we now know our device node_id
 		_device_id.devid_s.address = static_cast<uint8_t>(node_id);
 
-		// initialize the driver, which registers the class device name and uORB publisher
-		// int ret = init_driver(channel);
-
 		// Ask the CDev helper which class instance we can take
 		const int class_instance = register_class_devname(_class_devname);
 
@@ -124,11 +121,6 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 			return;
 		}
 
-		// if (ret != PX4_OK) {
-		// 	DEVICE_LOG("INIT ERROR node %d errno %d", channel->node_id, ret);
-		// 	return;
-		// }
-
 		// Publish to the appropriate topic, abort on failure
 		channel->node_id        = node_id;
 		channel->class_instance = class_instance;
@@ -137,16 +129,15 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->orb_instance, ORB_PRIO_VERY_HIGH);
 
 		if (channel->orb_advert == nullptr) {
-			DEVICE_LOG("ADVERTISE FAILED");
+			DEVICE_LOG("uORB advertise failed. Out of instances?");
 			(void)unregister_class_devname(_class_devname, class_instance);
 			*channel = uavcan_bridge::Channel();
+			_out_of_channels = true;
 			return;
 		}
 
-		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
+		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->orb_instance);
 	}
-
-	//publish_sensor()
 
 	assert(channel != nullptr);
 
@@ -168,7 +159,8 @@ uavcan_bridge::Channel *UavcanCDevSensorBridgeBase::get_channel_for_node(int nod
 	// No such channel - try to create one
 	if (channel == nullptr) {
 		if (_out_of_channels) {
-			return channel;           // Give up immediately - saves some CPU time
+			// We already determined we're out of class or uORB instances
+			return channel;
 		}
 
 		DEVICE_LOG("adding channel %d...", node_id);

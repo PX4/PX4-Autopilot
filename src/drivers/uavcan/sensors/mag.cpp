@@ -47,7 +47,7 @@ const char *const UavcanMagnetometerBridge::NAME = "mag";
 #define UAVCAN_MAG_BASE_DEVICE_PATH "/dev/uavcan/mag"
 
 UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", UAVCAN_MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
+	UavcanCDevSensorBridgeBase("uavcan_mag", UAVCAN_MAG_BASE_DEVICE_PATH, UAVCAN_MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
 	_sub_mag(node),
 	_sub_mag2(node)
 {
@@ -102,13 +102,17 @@ UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan:
 	}
 
 	// Cast our generic CDev pointer to the sensor-specific driver class
-	PX4Magnetometer *_mag = (PX4Magnetometer *)channel->h_driver;
+	PX4Magnetometer *mag = (PX4Magnetometer *)channel->h_driver;
+
+	if (mag == nullptr) {
+		return;
+	}
 
 	const float x = msg.magnetic_field_ga[0];
 	const float y = msg.magnetic_field_ga[1];
 	const float z = msg.magnetic_field_ga[2];
 
-	_mag->update(hrt_absolute_time(), x, y, z);
+	mag->update(hrt_absolute_time(), x, y, z);
 }
 
 void
@@ -117,19 +121,23 @@ UavcanMagnetometerBridge::mag2_sub_cb(const
 {
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
 
-	if (channel == nullptr) {
+	if (channel == nullptr || channel->class_instance < 0) {
 		// Something went wrong - no channel to publish on; return
 		return;
 	}
 
 	// Cast our generic CDev pointer to the sensor-specific driver class
-	PX4Magnetometer *_mag = (PX4Magnetometer *)channel->h_driver;
+	PX4Magnetometer *mag = (PX4Magnetometer *)channel->h_driver;
+
+	if (mag == nullptr) {
+		return;
+	}
 
 	const float x = msg.magnetic_field_ga[0];
 	const float y = msg.magnetic_field_ga[1];
 	const float z = msg.magnetic_field_ga[2];
 
-	_mag->update(hrt_absolute_time(), x, y, z);
+	mag->update(hrt_absolute_time(), x, y, z);
 }
 
 int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
@@ -137,8 +145,7 @@ int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
 	// update device id as we now know our device node_id
 	DeviceId device_id{_device_id};
 
-	// No sensor info is included in the MagneticFieldStrength msg; use some generic mag type
-	device_id.devid_s.devtype = DRV_MAG_DEVTYPE_MPU9250;
+	device_id.devid_s.devtype = DRV_MAG_DEVTYPE_UAVCAN;
 	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
 	channel->h_driver = new PX4Magnetometer(device_id.devid, ORB_PRIO_HIGH, ROTATION_NONE);
@@ -147,9 +154,18 @@ int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
 		return PX4_ERROR;
 	}
 
-	PX4Magnetometer *_mag = (PX4Magnetometer *)channel->h_driver;
-	_mag->set_external(true);
-	channel->class_instance = _mag->get_class_instance();
+	PX4Magnetometer *mag = (PX4Magnetometer *)channel->h_driver;
+
+	channel->class_instance = mag->get_class_instance();
+
+	if (channel->class_instance < 0) {
+		PX4_ERR("UavcanMag: Unable to get a class instance");
+		delete mag;
+		channel->h_driver = nullptr;
+		return PX4_ERROR;
+	}
+
+	mag->set_external(true);
 
 	return PX4_OK;
 }
