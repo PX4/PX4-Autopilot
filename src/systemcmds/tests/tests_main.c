@@ -67,7 +67,6 @@ const struct {
 	{"jig",			test_jig,		OPT_NOJIGTEST | OPT_NOALLTEST},
 
 #ifdef __PX4_NUTTX
-	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"file",		test_file,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"led",			test_led,		0},
 	{"time",		test_time,		OPT_NOJIGTEST},
@@ -78,6 +77,7 @@ const struct {
 	{"rc",			rc_tests_main,		0},
 #endif /* __PX4_NUTTX */
 
+	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"atomic_bitset",	test_atomic_bitset,	0},
 	{"autodeclination",	test_autodeclination,	0},
 	{"bezier",		test_bezierQuad,	0},

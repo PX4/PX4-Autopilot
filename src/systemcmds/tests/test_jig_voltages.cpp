@@ -36,98 +36,85 @@
  * Tests for jig voltages.
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-
 #include "tests_main.h"
-
 #include <drivers/drv_adc.h>
-#include <systemlib/err.h>
+
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/adc_report.h>
 
 int test_jig_voltages(int argc, char *argv[])
 {
-	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
-	int ret = OK;
+	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
+	adc_report_s adc;
 
-	if (fd < 0) {
-		PX4_ERR("can't open ADC device");
-		return 1;
-	}
+	px4_usleep(1000000);	// sleep 1s and wait for adc report
 
-	/* make space for the  maximum channels */
-	px4_adc_msg_t data[PX4_MAX_ADC_CHANNELS];
+	if (_adc_sub.update(&adc)) {
+		PX4_INFO_RAW("DeviceID: %d\n", adc.device_id);
+		PX4_INFO_RAW("Resolution: %d\n", adc.resolution);
+		PX4_INFO_RAW("Voltage Reference: %f\n", adc.v_ref);
 
-	/* read all channels available */
-	ssize_t count = read(fd, data, sizeof(data));
+		unsigned channels = 0;
 
-	if (count < 0) {
-		close(fd);
-		PX4_ERR("can't read from ADC driver. Forgot 'adc start' command?");
-		return 1;
-	}
+		for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+			PX4_INFO_RAW("%d: %d  ", adc.channel_id[i], adc.raw_data[i]);
 
-	unsigned channels = count / sizeof(data[0]);
+			if (adc.channel_id[i] != -1) {
+				++channels;
+			}
+		}
 
-	for (unsigned j = 0; j < channels; j++) {
-		printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-	}
+		PX4_INFO_RAW("\n");
 
-	printf("\n");
+		PX4_INFO("\t ADC operational.\n");
 
-	PX4_INFO("\t ADC operational.\n");
+		/* Expected values */
+		int16_t expected_min[] = {2800, 2800, 1800,  800};
+		int16_t expected_max[] = {3100, 3100, 2100, 1100};
+		const char *check_res[channels];
 
-	/* Expected values */
-	int16_t expected_min[] = {2800, 2800, 1800,  800};
-	int16_t expected_max[] = {3100, 3100, 2100, 1100};
-	const char *check_res[channels];
+		if (channels < 4) {
+			PX4_ERR("not all four test channels available, aborting.");
+			return 1;
 
-	if (channels < 4) {
-		close(fd);
-		PX4_ERR("not all four test channels available, aborting.");
-		return 1;
+		} else {
+			int ret = OK;
+
+			/* Check values */
+			check_res[0] = (expected_min[0] < adc.raw_data[0] && expected_max[0] > adc.raw_data[0]) ? "OK" : "FAIL";
+			check_res[1] = (expected_min[1] < adc.raw_data[1] && expected_max[1] > adc.raw_data[1]) ? "OK" : "FAIL";
+			check_res[2] = (expected_min[2] < adc.raw_data[2] && expected_max[2] > adc.raw_data[2]) ? "OK" : "FAIL";
+			check_res[3] = (expected_min[3] < adc.raw_data[3] && expected_max[3] > adc.raw_data[3]) ? "OK" : "FAIL";
+
+			/* Accumulate result */
+			ret += (expected_min[0] > adc.raw_data[0] || expected_max[0] < adc.raw_data[0]) ? 1 : 0;
+			ret += (expected_min[1] > adc.raw_data[1] || expected_max[1] < adc.raw_data[1]) ? 1 : 0;
+			ret += (expected_min[2] > adc.raw_data[2] || expected_max[2] < adc.raw_data[2]) ? 1 : 0;
+			ret += (expected_min[3] > adc.raw_data[3] || expected_max[3] < adc.raw_data[3]) ? 1 : 0;
+
+			PX4_INFO("Sample:");
+			PX4_INFO("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s",
+				 adc.channel_id[0], (int)(adc.raw_data[0]), expected_min[0], expected_max[0], check_res[0]);
+			PX4_INFO("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s",
+				 adc.channel_id[1], (int)(adc.raw_data[1]), expected_min[1], expected_max[1], check_res[1]);
+			PX4_INFO("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s",
+				 adc.channel_id[2], (int)(adc.raw_data[2]), expected_min[2], expected_max[2], check_res[2]);
+			PX4_INFO("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s",
+				 adc.channel_id[3], (int)(adc.raw_data[3]), expected_min[3], expected_max[3], check_res[3]);
+
+			if (ret != OK) {
+				PX4_ERR("\t JIG voltages test FAILED. Some channels where out of allowed range. Check supply voltages.");
+				return ret;
+			}
+		}
+
+		PX4_INFO("JIG voltages test successful.");
+
+		return OK;
 
 	} else {
-		/* Check values */
-		check_res[0] = (expected_min[0] < data[0].am_data && expected_max[0] > data[0].am_data) ? "OK" : "FAIL";
-		check_res[1] = (expected_min[1] < data[1].am_data && expected_max[1] > data[1].am_data) ? "OK" : "FAIL";
-		check_res[2] = (expected_min[2] < data[2].am_data && expected_max[2] > data[2].am_data) ? "OK" : "FAIL";
-		check_res[3] = (expected_min[3] < data[3].am_data && expected_max[3] > data[3].am_data) ? "OK" : "FAIL";
-
-		/* Accumulate result */
-		ret += (expected_min[0] > data[0].am_data || expected_max[0] < data[0].am_data) ? 1 : 0;
-		ret += (expected_min[1] > data[1].am_data || expected_max[1] < data[1].am_data) ? 1 : 0;
-		ret += (expected_min[2] > data[2].am_data || expected_max[2] < data[2].am_data) ? 1 : 0;
-		ret += (expected_min[3] > data[3].am_data || expected_max[3] < data[3].am_data) ? 1 : 0;
-
-		PX4_INFO("Sample:");
-		PX4_INFO("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s",
-			 data[0].am_channel, (int)(data[0].am_data), expected_min[0], expected_max[0], check_res[0]);
-		PX4_INFO("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s",
-			 data[1].am_channel, (int)(data[1].am_data), expected_min[1], expected_max[1], check_res[1]);
-		PX4_INFO("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s",
-			 data[2].am_channel, (int)(data[2].am_data), expected_min[2], expected_max[2], check_res[2]);
-		PX4_INFO("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s",
-			 data[3].am_channel, (int)(data[3].am_data), expected_min[3], expected_max[3], check_res[3]);
-
-		if (ret != OK) {
-			PX4_ERR("\t JIG voltages test FAILED. Some channels where out of allowed range. Check supply voltages.");
-			goto errout_with_dev;
-		}
+		return 1;
 	}
-
-	PX4_INFO("JIG voltages test successful.");
-
-errout_with_dev:
-
-	if (fd != 0) { close(fd); }
-
-	return ret;
 }
