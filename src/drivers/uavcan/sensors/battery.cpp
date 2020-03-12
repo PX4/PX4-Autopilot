@@ -82,7 +82,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	battery.remaining = msg.state_of_charge_pct / 100.0f; // between 0 and 1
 	// battery.scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
-	battery.temperature = msg.temperature - 273.15f; // Kelvin to Celcius
+	battery.temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // Kelvin to Celcius
 	// battery.cell_count = msg.;
 	battery.connected = true;
 	battery.system_source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
