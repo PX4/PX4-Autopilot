@@ -24,13 +24,6 @@ rm3100 start
 # Internal SPI
 ms5611 -s start
 
-# For Teal One airframe
-if param compare SYS_AUTOSTART 4250
-then
-	mpu9250 -s -R 14 start
-	mpu9250 -t -R 14 start
-fi
-
 # hmc5883 internal SPI bus is rotated 90 deg yaw
 if ! hmc5883 -T -S -R 2 start
 then
@@ -49,5 +42,11 @@ then
 	icm20608g -R 8 start
 fi
 
-# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
-mpu9250 -R 2 start
+# For Teal One airframe
+if param compare SYS_AUTOSTART 4250
+then
+	mpu9250 -s -R 14 start
+else
+	# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
+	mpu9250 -s -R 2 start
+fi
