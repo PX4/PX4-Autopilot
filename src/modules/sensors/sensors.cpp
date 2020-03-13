@@ -148,6 +148,7 @@ private:
 
 	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
 
+	uORB::Subscription	_adc_report_sub{ORB_ID(adc_report)};		/**< adc_report sub */
 	differential_pressure_s	_diff_pres {};
 	uORB::PublicationMulti<differential_pressure_s>	_diff_pres_pub{ORB_ID(differential_pressure)};		/**< differential_pressure */
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
@@ -378,24 +379,27 @@ void Sensors::adc_poll()
 
 		/* rate limit to 100 Hz */
 		if (t - _last_adc >= 10000) {
-			/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-			px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
-			/* read all channels available */
-			int ret = px4_read(_adc_fd, &buf_adc, sizeof(buf_adc));
+			adc_report_s adc;
 
-			if (ret >= (int)sizeof(buf_adc[0])) {
-
+			if (_adc_report_sub.update(&adc)) {
 				/* Read add channels we got */
-				for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-					if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; i++) {
+					if (adc.channel_id[i] == -1) {
+						continue;	// skip non-exist channels
+					}
+
+					if (ADC_AIRSPEED_VOLTAGE_CHANNEL == adc.channel_id[i]) {
 
 						/* calculate airspeed, raw is the difference from */
-						const float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
+						const float voltage = (float)(adc.raw_data[i]) * adc.v_ref / adc.resolution * ADC_DP_V_DIV;
 
 						/**
 						 * The voltage divider pulls the signal down, only act on
 						 * a valid voltage from a connected sensor. Also assume a non-
 						 * zero offset from the sensor if its connected.
+						 *
+						 * Notice: This won't work on devices which have PGA controlled
+						 * vref. Those devices require no divider at all.
 						 */
 						if (voltage > 0.4f) {
 							const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
@@ -410,9 +414,9 @@ void Sensors::adc_poll()
 						}
 					}
 				}
-
-				_last_adc = t;
 			}
+
+			_last_adc = t;
 		}
 	}
 

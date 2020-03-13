@@ -157,6 +157,10 @@
 #define BOARD_ADC_POS_REF_V              (3.3f) // Default reference voltage for every channels
 #endif
 
+#if !defined(ADC_DP_V_DIV)						// Analog differential pressure (analog airspeed sensor)
+#define ADC_DP_V_DIV                    (2.0f)	// The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#endif
+
 /* Provide define for Bricks and Battery */
 
 /* Define the default maximum voltage resulting from the bias on ADC termination */
