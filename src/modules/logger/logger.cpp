@@ -266,7 +266,12 @@ Logger *Logger::instantiate(int argc, char *argv[])
 			break;
 
 		case 'e':
-			log_mode = Logger::LogMode::boot_until_disarm;
+			if (log_mode != Logger::LogMode::boot_until_shutdown) {
+				//setting boot_until_shutdown can't lower mode to boot_until_disarm
+				log_mode = Logger::LogMode::boot_until_disarm;
+
+			}
+
 			break;
 
 		case 'f':
