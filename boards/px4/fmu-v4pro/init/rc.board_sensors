@@ -20,7 +20,7 @@ mpu9250 -R 2 start
 lis3mdl -R 0 start
 
 # Possible external compasses
-hmc5883 -C -T -X start
+hmc5883 -T -X start
 qmc5883 -X start
 
 # RM3100

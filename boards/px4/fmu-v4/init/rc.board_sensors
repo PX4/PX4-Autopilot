@@ -15,7 +15,7 @@ fmu sensor_reset 50
 
 
 # External I2C bus
-hmc5883 -C -T -X start
+hmc5883 -T -X start
 lis3mdl -X start
 ist8310 -X start
 qmc5883 -X start
@@ -32,7 +32,7 @@ then
 fi
 
 # hmc5883 internal SPI bus is rotated 90 deg yaw
-if ! hmc5883 -C -T -S -R 2 start
+if ! hmc5883 -T -S -R 2 start
 then
 	# lis3mdl internal SPI bus is rotated 90 deg yaw
 	lis3mdl start

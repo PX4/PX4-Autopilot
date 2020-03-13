@@ -6,7 +6,7 @@
 adc start
 
 # Possible external compasses
-hmc5883 -C -X start
+hmc5883 -X start
 lis3mdl -X start
 ist8310 -X start
 qmc5883 -X start

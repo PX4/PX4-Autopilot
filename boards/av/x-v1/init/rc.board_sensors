@@ -22,5 +22,5 @@ fi
 
 # Possible external compasses
 ist8310 -X start
-hmc5883 -C -T -X start
+hmc5883 -T -X start
 qmc5883 -X start
