@@ -36,39 +36,33 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-IST8308::print_usage()
-{
-	PRINT_MODULE_USAGE_NAME("ist8308", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("reset");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
 I2CSPIDriverBase *IST8308::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				       int runtime_instance)
 {
-	IST8308 *instance = new IST8308(iterator.configuredBusOption(), iterator.bus(), cli.rotation, cli.bus_frequency);
+	IST8308 *instance = new IST8308(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (OK != instance->init()) {
+	if (instance->init() != PX4_OK) {
 		delete instance;
+		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
 		return nullptr;
 	}
 
 	return instance;
 }
 
-void IST8308::custom_method(const BusCLIArguments &cli)
+void IST8308::print_usage()
 {
-	Reset();
+	PRINT_MODULE_USAGE_NAME("ist8308", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 extern "C" int ist8308_main(int argc, char *argv[])
@@ -105,10 +99,6 @@ extern "C" int ist8308_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "reset")) {
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();
