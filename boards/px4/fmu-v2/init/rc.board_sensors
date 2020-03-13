@@ -37,8 +37,8 @@ then
 		set BOARD_FMUV3 20
 	else
 		# Check for Pixhawk 2.1 cube
-		# external MPU9250 is rotated 180 degrees yaw
-		if mpu9250 -S -R 4 start
+		# (external) MPU9250 is rotated 180 degrees yaw
+		if mpu9250 -s -R 4 start
 		then
 			set BOARD_FMUV3 21
 		fi
@@ -57,8 +57,8 @@ then
 		set BOARD_FMUV3 20
 	else
 		# Check for Pixhack 3.1
-		# external MPU9250 is rotated 180 degrees yaw
-		if mpu9250 -S -R 4 start
+		# (external) MPU9250 is rotated 180 degrees yaw
+		if mpu9250 -s -R 4 start
 		then
 			set BOARD_FMUV3 21
 		fi
@@ -101,7 +101,7 @@ else
 	# V3 build hwtypecmp supports V2|V2M|V30
 	if ! ver hwtypecmp V2M
 	then
-		mpu9250 start
+		mpu9250 -s start
 	# else: On the PixhawkMini the mpu9250 has been disabled due to HW errata
 	fi
 

@@ -18,7 +18,7 @@ then
 	rgbled_ncp5623c start -X -a 0x38
 
 	#mpu6000 -s -R 4 -T 20608 start
-	mpu9250 -R 4 start
+	mpu9250 -s -R 4 start
 
 	# Default GNSS with LIS3MDL magnetometer with external i2c.
 	lis3mdl -R 2 -X start
@@ -27,7 +27,7 @@ fi
 # Draco
 if param compare SYS_AUTOSTART 4072
 then
-	mpu9250 -R 2 start
+	mpu9250 -s -R 2 start
 fi
 
 # IFO
@@ -39,6 +39,6 @@ then
 	# IFO rgb LED
 	pca9685 start
 
-	mpu9250 -R 2 start
+	mpu9250 -s -R 2 start
 	lis3mdl -R 2 -X start
 fi
