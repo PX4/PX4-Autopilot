@@ -22,7 +22,7 @@ class color(Enum):
 
 def colorize(text: str, c: color) -> str:
     if _supports_color():
-        return c.value + text + color.RESET.value
+        return str(c.value) + text + color.RESET.value
     else:
         return text
 
