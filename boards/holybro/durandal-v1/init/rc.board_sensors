@@ -12,7 +12,7 @@ bmi088 -A -R 2 -s start
 bmi088 -G -R 2 -s start
 
 # internal compass
-ist8310 -I start
+ist8310 -I -R 10 start
 
 # Baro on internal SPI
 ms5611 -s start
