@@ -6,7 +6,7 @@
 adc start
 
 # External I2C bus
-hmc5883 -C -T -X start
+hmc5883 -T -X start
 lis3mdl -X start
 ist8310 -X start
 qmc5883 -X start

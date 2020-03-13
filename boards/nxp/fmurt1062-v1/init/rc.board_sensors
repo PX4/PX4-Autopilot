@@ -31,7 +31,7 @@ bmi055 -G -R 10 -s start
 
 # Possible external compasses
 ist8310 -X start
-hmc5883 -C -T -X start
+hmc5883 -T -X start
 qmc5883 -X start
 lis3mdl -X start
 
