@@ -72,6 +72,7 @@ def determine_tests(filter):
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT)
+    assert p.stdout is not None
     tests = str(p.stdout.read().decode("utf-8")).strip().split('\n')
     return tests
 
