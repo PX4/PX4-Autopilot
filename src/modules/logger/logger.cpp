@@ -238,8 +238,6 @@ Logger *Logger::instantiate(int argc, char *argv[])
 {
 	uint32_t log_interval = 3500;
 	int log_buffer_size = 12 * 1024;
-	bool log_on_start = false;
-	bool log_until_shutdown = false;
 	Logger::LogMode log_mode = Logger::LogMode::while_armed;
 	bool error_flag = false;
 	bool log_name_timestamp = false;
@@ -268,7 +266,16 @@ Logger *Logger::instantiate(int argc, char *argv[])
 			break;
 
 		case 'e':
-			log_on_start = true;
+			if (log_mode != Logger::LogMode::boot_until_shutdown) {
+				//setting boot_until_shutdown can't lower mode to boot_until_disarm
+				log_mode = Logger::LogMode::boot_until_disarm;
+
+			}
+
+			break;
+
+		case 'f':
+			log_mode = Logger::LogMode::boot_until_shutdown;
 			break;
 
 		case 'b': {
@@ -286,10 +293,6 @@ Logger *Logger::instantiate(int argc, char *argv[])
 			log_name_timestamp = true;
 			break;
 
-		case 'f':
-			log_on_start = true;
-			log_until_shutdown = true;
-			break;
 
 		case 'm':
 			if (!strcmp(myoptarg, "file")) {
@@ -320,15 +323,6 @@ Logger *Logger::instantiate(int argc, char *argv[])
 			PX4_WARN("unrecognized flag");
 			error_flag = true;
 			break;
-		}
-	}
-
-	if (log_on_start) {
-		if (log_until_shutdown) {
-			log_mode = Logger::LogMode::boot_until_shutdown;
-
-		} else {
-			log_mode = Logger::LogMode::boot_until_disarm;
 		}
 	}
 
@@ -363,20 +357,14 @@ Logger *Logger::instantiate(int argc, char *argv[])
 	return logger;
 }
 
-
 Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
 	       LogMode log_mode, bool log_name_timestamp) :
+	ModuleParams(nullptr),
 	_log_mode(log_mode),
 	_log_name_timestamp(log_name_timestamp),
 	_writer(backend, buffer_size),
 	_log_interval(log_interval)
 {
-	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
-	_log_dirs_max = param_find("SDLOG_DIRS_MAX");
-	_sdlog_profile_handle = param_find("SDLOG_PROFILE");
-	_mission_log = param_find("SDLOG_MISSION");
-	_boot_bat_only = param_find("SDLOG_BOOT_BAT");
-
 	if (poll_topic_name) {
 		const orb_metadata *const *topics = orb_get_topics();
 
@@ -401,6 +389,19 @@ Logger::~Logger()
 
 	delete[](_msg_buffer);
 	delete[](_subscriptions);
+}
+
+void Logger::update_params()
+{
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		ModuleParams::updateParams();
+	}
 }
 
 bool Logger::request_stop_static()
@@ -451,14 +452,10 @@ const char *Logger::configured_backend_mode() const
 	}
 }
 
-bool Logger::initialize_topics(MissionLogType mission_log_mode)
+bool Logger::initialize_topics()
 {
 	// get the logging profile
-	SDLogProfileMask sdlog_profile = SDLogProfileMask::DEFAULT;
-
-	if (_sdlog_profile_handle != PARAM_INVALID) {
-		param_get(_sdlog_profile_handle, (int32_t *)&sdlog_profile);
-	}
+	SDLogProfileMask sdlog_profile = (SDLogProfileMask)_param_sdlog_profile.get();
 
 	if ((int32_t)sdlog_profile == 0) {
 		PX4_WARN("No logging profile selected. Using default set");
@@ -468,7 +465,7 @@ bool Logger::initialize_topics(MissionLogType mission_log_mode)
 	LoggedTopics logged_topics;
 
 	// initialize mission topics
-	logged_topics.initialize_mission_topics(mission_log_mode);
+	logged_topics.initialize_mission_topics((MissionLogType)_param_sdlog_mission.get());
 	_num_mission_subs = logged_topics.numMissionSubscriptions();
 
 	if (_num_mission_subs > 0) {
@@ -534,13 +531,7 @@ void Logger::run()
 			}
 		}
 
-		int32_t max_log_dirs_to_keep = 0;
-
-		if (_log_dirs_max != PARAM_INVALID) {
-			param_get(_log_dirs_max, &max_log_dirs_to_keep);
-		}
-
-		if (util::check_free_space(LOG_ROOT[(int)LogType::Full], max_log_dirs_to_keep, _mavlink_log_pub,
+		if (util::check_free_space(LOG_ROOT[(int)LogType::Full], _param_sdlog_dirs_max.get(), _mavlink_log_pub,
 					   _file_name[(int)LogType::Full].sess_dir_index) == 1) {
 			return;
 		}
@@ -548,13 +539,7 @@ void Logger::run()
 
 	uORB::Subscription parameter_update_sub(ORB_ID(parameter_update));
 
-	int32_t mission_log_mode = 0;
-
-	if (_mission_log != PARAM_INVALID) {
-		param_get(_mission_log, &mission_log_mode);
-	}
-
-	if (!initialize_topics((MissionLogType)mission_log_mode)) {
+	if (!initialize_topics()) {
 		return;
 	}
 
@@ -646,9 +631,8 @@ void Logger::run()
 	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
 	while (!should_exit()) {
-
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
-		const bool logging_started = start_stop_logging((MissionLogType)mission_log_mode);
+		const bool logging_started = start_stop_logging();
 
 		if (logging_started) {
 #ifdef DBGPRINT
@@ -868,6 +852,8 @@ void Logger::run()
 			}
 		}
 
+		update_params();
+
 		// wait for next loop iteration...
 		if (polling_topic_sub >= 0) {
 			px4_pollfd_struct_t fds[1];
@@ -941,13 +927,7 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 
 bool Logger::get_disable_boot_logging()
 {
-	int32_t boot_logging_bat_only = 0;
-
-	if (_boot_bat_only != PARAM_INVALID) {
-		param_get(_boot_bat_only, &boot_logging_bat_only);
-	}
-
-	if (boot_logging_bat_only) {
+	if (_param_sdlog_boot_bat.get()) {
 		battery_status_s battery_status;
 		uORB::Subscription battery_status_sub{ORB_ID(battery_status)};
 
@@ -964,7 +944,7 @@ bool Logger::get_disable_boot_logging()
 	return false;
 }
 
-bool Logger::start_stop_logging(MissionLogType mission_log_type)
+bool Logger::start_stop_logging()
 {
 	bool updated = false;
 	bool desired_state = false;
@@ -1004,7 +984,7 @@ bool Logger::start_stop_logging(MissionLogType mission_log_type)
 
 			start_log_file(LogType::Full);
 
-			if (mission_log_type != MissionLogType::Disabled) {
+			if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
 				start_log_file(LogType::Mission);
 			}
 
@@ -1015,7 +995,7 @@ bool Logger::start_stop_logging(MissionLogType mission_log_type)
 			initialize_load_output(PrintLoadReason::Postflight);
 			_should_stop_file_log = true;
 
-			if (mission_log_type != MissionLogType::Disabled) {
+			if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
 				stop_log_file(LogType::Mission);
 			}
 		}
@@ -1145,14 +1125,8 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 	bool time_ok = false;
 
 	if (_log_name_timestamp) {
-		int32_t utc_offset = 0;
-
-		if (_log_utc_offset != PARAM_INVALID) {
-			param_get(_log_utc_offset, &utc_offset);
-		}
-
 		/* use RTC time for log file naming, e.g. /fs/microsd/log/2014-01-19/19_37_52.ulg */
-		time_ok = util::get_log_time(&tt, utc_offset * 60, false);
+		time_ok = util::get_log_time(&tt, _param_sdlog_utc_offset.get() * 60, false);
 	}
 
 	const char *replay_suffix = "";
@@ -1789,28 +1763,17 @@ void Logger::write_version(LogType type)
 	}
 
 #ifndef BOARD_HAS_NO_UUID
+
 	/* write the UUID if enabled */
-	param_t write_uuid_param = param_find("SDLOG_UUID");
-
-	if (write_uuid_param != PARAM_INVALID) {
-		int32_t write_uuid;
-		param_get(write_uuid_param, &write_uuid);
-
-		if (write_uuid == 1) {
-			char px4_uuid_string[PX4_GUID_FORMAT_SIZE];
-			board_get_px4_guid_formated(px4_uuid_string, sizeof(px4_uuid_string));
-			write_info(type, "sys_uuid", px4_uuid_string);
-		}
+	if (_param_sdlog_uuid.get() == 1) {
+		char px4_uuid_string[PX4_GUID_FORMAT_SIZE];
+		board_get_px4_guid_formated(px4_uuid_string, sizeof(px4_uuid_string));
+		write_info(type, "sys_uuid", px4_uuid_string);
 	}
 
 #endif /* BOARD_HAS_NO_UUID */
 
-	int32_t utc_offset = 0;
-
-	if (_log_utc_offset != PARAM_INVALID) {
-		param_get(_log_utc_offset, &utc_offset);
-		write_info(type, "time_ref_utc", utc_offset * 60);
-	}
+	write_info(type, "time_ref_utc", _param_sdlog_utc_offset.get() * 60);
 
 	if (_replay_file_name) {
 		write_info(type, "replay", _replay_file_name);
