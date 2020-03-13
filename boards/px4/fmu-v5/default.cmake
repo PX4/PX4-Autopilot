@@ -17,6 +17,7 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 	DRIVERS
 		adc
+		anemometer # SFM300 available
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -118,12 +119,14 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
+		anemometer_test
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test
 		#matlab_csv_serial
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+                PX4_simple_app
 		rover_steering_control # Rover example app
 		uuv_example_app
 	)
