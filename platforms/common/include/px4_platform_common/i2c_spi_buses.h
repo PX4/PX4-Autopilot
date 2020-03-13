@@ -38,6 +38,7 @@
 
 #include <stdint.h>
 
+#include <containers/List.hpp>
 #include <lib/conversion/rotation.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -57,18 +58,19 @@ enum class I2CSPIBusOption : uint8_t {
  * @class I2CSPIInstance
  * I2C/SPI driver instance used by BusInstanceIterator to find running instances.
  */
-class I2CSPIInstance
+class I2CSPIInstance : public ListNode<I2CSPIInstance *>
 {
 public:
 	virtual ~I2CSPIInstance() = default;
 
 private:
-	I2CSPIInstance(I2CSPIBusOption bus_option, int bus, uint8_t i2c_address, uint16_t type)
-		: _bus_option(bus_option), _bus(bus), _type(type), _i2c_address(i2c_address) {}
+	I2CSPIInstance(const char *module_name, I2CSPIBusOption bus_option, int bus, uint8_t i2c_address, uint16_t type)
+		: _module_name(module_name), _bus_option(bus_option), _bus(bus), _type(type), _i2c_address(i2c_address) {}
 
 	friend class BusInstanceIterator;
 	friend class I2CSPIDriverBase;
 
+	const char *_module_name;
 	const I2CSPIBusOption _bus_option;
 	const int _bus;
 	const int16_t _type; ///< device type (driver-specific)
@@ -131,35 +133,35 @@ private:
 class BusInstanceIterator
 {
 public:
-	BusInstanceIterator(I2CSPIInstance **instances, int max_num_instances,
-			    const BusCLIArguments &cli_arguments, uint16_t devid_driver_index);
-	~BusInstanceIterator() = default;
+	BusInstanceIterator(const char *module_name, const BusCLIArguments &cli_arguments, uint16_t devid_driver_index);
+	~BusInstanceIterator();
 
 	I2CSPIBusOption configuredBusOption() const { return _bus_option; }
 
-	int nextFreeInstance() const;
+	int runningInstancesCount() const;
 
 	bool next();
 
 	I2CSPIInstance *instance() const;
-	void resetInstance();
+	void removeInstance();
 	board_bus_types busType() const;
 	int bus() const;
 	uint32_t devid() const;
 	spi_drdy_gpio_t DRDYGPIO() const;
 	bool external() const;
 
+	void addInstance(I2CSPIInstance *instance);
+
 	static I2CBusIterator::FilterType i2cFilter(I2CSPIBusOption bus_option);
 	static SPIBusIterator::FilterType spiFilter(I2CSPIBusOption bus_option);
 private:
-	I2CSPIInstance **_instances;
-	const int _max_num_instances;
+	const char *_module_name;
 	const I2CSPIBusOption _bus_option;
 	const uint16_t _type;
 	const uint8_t _i2c_address;
 	SPIBusIterator _spi_bus_iterator;
 	I2CBusIterator _i2c_bus_iterator;
-	int _current_instance{-1};
+	List<I2CSPIInstance *>::Iterator _current_instance;
 };
 
 /**
@@ -172,7 +174,7 @@ public:
 	I2CSPIDriverBase(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus,
 			 uint8_t i2c_address, uint16_t type)
 		: ScheduledWorkItem(module_name, config),
-		  I2CSPIInstance(bus_option, bus, i2c_address, type) {}
+		  I2CSPIInstance(module_name, bus_option, bus, i2c_address, type) {}
 
 	static int module_stop(BusInstanceIterator &iterator);
 	static int module_status(BusInstanceIterator &iterator);
@@ -198,7 +200,7 @@ protected:
 	bool should_exit() const { return _task_should_exit.load(); }
 
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator, void(*print_usage)(),
-				instantiate_method instantiate, I2CSPIInstance **instances);
+				instantiate_method instantiate);
 
 private:
 	static void custom_method_trampoline(void *argument);
@@ -213,18 +215,14 @@ private:
  * @class I2CSPIDriver
  * Base class for I2C/SPI driver modules
  */
-template<class T, int MAX_NUM = 3>
+template<class T>
 class I2CSPIDriver : public I2CSPIDriverBase
 {
 public:
-	static constexpr int max_num_instances = MAX_NUM;
-
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator)
 	{
-		return I2CSPIDriverBase::module_start(cli, iterator, &T::print_usage, &T::instantiate, _instances);
+		return I2CSPIDriverBase::module_start(cli, iterator, &T::print_usage, &T::instantiate);
 	}
-
-	static I2CSPIInstance **instances() { return _instances; }
 
 protected:
 	I2CSPIDriver(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus,
@@ -242,10 +240,6 @@ protected:
 		}
 	}
 private:
-	static I2CSPIInstance *_instances[MAX_NUM];
 };
-
-template<class T, int MAX_NUM>
-I2CSPIInstance *I2CSPIDriver<T, MAX_NUM>::_instances[MAX_NUM] {};
 
 
