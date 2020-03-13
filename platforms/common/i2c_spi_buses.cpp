@@ -44,6 +44,11 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/getopt.h>
 
+#include <pthread.h>
+
+static List<I2CSPIInstance *> i2c_spi_module_instances; ///< list of currently running instances
+static pthread_mutex_t i2c_spi_module_instances_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 const char *BusCLIArguments::parseDefaultArguments(int argc, char *argv[])
 {
 	if (getopt(argc, argv, "") == EOF) {
@@ -178,15 +183,25 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 }
 
 
-BusInstanceIterator::BusInstanceIterator(I2CSPIInstance **instances, int max_num_instances,
+BusInstanceIterator::BusInstanceIterator(const char *module_name,
 		const BusCLIArguments &cli_arguments, uint16_t devid_driver_index)
-	: _instances(instances), _max_num_instances(max_num_instances),
-	  _bus_option(cli_arguments.bus_option), _type(cli_arguments.type), _i2c_address(cli_arguments.i2c_address),
+	: _module_name(module_name), _bus_option(cli_arguments.bus_option), _type(cli_arguments.type),
+	  _i2c_address(cli_arguments.i2c_address),
 	  _spi_bus_iterator(spiFilter(cli_arguments.bus_option),
 			    cli_arguments.bus_option == I2CSPIBusOption::SPIExternal ? cli_arguments.chipselect_index : devid_driver_index,
 			    cli_arguments.requested_bus),
-	  _i2c_bus_iterator(i2cFilter(cli_arguments.bus_option), cli_arguments.requested_bus)
+	  _i2c_bus_iterator(i2cFilter(cli_arguments.bus_option), cli_arguments.requested_bus),
+	  _current_instance(i2c_spi_module_instances.end())
 {
+	// We lock the module instance list as long as this object is alive, since we iterate over the list.
+	// Locking could be a bit more fine-grained, but the iterator is mostly only used sequentially, so not an issue.
+	pthread_mutex_lock(&i2c_spi_module_instances_mutex);
+	_current_instance = i2c_spi_module_instances.end();
+}
+
+BusInstanceIterator::~BusInstanceIterator()
+{
+	pthread_mutex_unlock(&i2c_spi_module_instances_mutex);
 }
 
 bool BusInstanceIterator::next()
@@ -194,10 +209,23 @@ bool BusInstanceIterator::next()
 	int bus = -1;
 
 	if (busType() == BOARD_INVALID_BUS) {
-		while (++_current_instance < _max_num_instances && (_instances[_current_instance] == nullptr
-				|| _type != _instances[_current_instance]->_type)) {}
+		if (_current_instance == i2c_spi_module_instances.end()) { // either not initialized, or the first instance was removed
+			_current_instance = i2c_spi_module_instances.begin();
 
-		return _current_instance < _max_num_instances;
+		} else {
+			++_current_instance;
+		}
+
+		while (_current_instance != i2c_spi_module_instances.end()) {
+			if (strcmp((*_current_instance)->_module_name, _module_name) == 0 &&
+			    _type == (*_current_instance)->_type) {
+				return true;
+			}
+
+			++_current_instance;
+		}
+
+		return false;
 
 	} else if (busType() == BOARD_SPI_BUS) {
 		if (_spi_bus_iterator.next()) {
@@ -212,18 +240,18 @@ bool BusInstanceIterator::next()
 
 	if (bus != -1) {
 		// find matching runtime instance
-		_current_instance = -1;
+		bool is_i2c = busType() == BOARD_I2C_BUS;
 
-		for (int i = 0; i < _max_num_instances; ++i) {
-			if (!_instances[i]) {
+		for (_current_instance = i2c_spi_module_instances.begin(); _current_instance != i2c_spi_module_instances.end();
+		     ++_current_instance) {
+			if (strcmp((*_current_instance)->_module_name, _module_name) != 0) {
 				continue;
 			}
 
-			bool is_i2c = busType() == BOARD_I2C_BUS;
-
-			if (_bus_option == _instances[i]->_bus_option && bus == _instances[i]->_bus && _type == _instances[i]->_type
-			    && (!is_i2c || _i2c_address == _instances[i]->_i2c_address)) {
-				_current_instance = i;
+			if (_bus_option == (*_current_instance)->_bus_option && bus == (*_current_instance)->_bus &&
+			    _type == (*_current_instance)->_type &&
+			    (!is_i2c || _i2c_address == (*_current_instance)->_i2c_address)) {
+				break;
 			}
 		}
 
@@ -233,31 +261,44 @@ bool BusInstanceIterator::next()
 	return false;
 }
 
-int BusInstanceIterator::nextFreeInstance() const
+int BusInstanceIterator::runningInstancesCount() const
 {
-	for (int i = 0; i < _max_num_instances; ++i) {
-		if (_instances[i] == nullptr) {
-			return i;
+	int num_instances = 0;
+
+	for (const auto &modules : i2c_spi_module_instances) {
+		if (strcmp(modules->_module_name, _module_name) == 0) {
+			++num_instances;
 		}
 	}
 
-	return -1;
+	return num_instances;
 }
 
 I2CSPIInstance *BusInstanceIterator::instance() const
 {
-	if (_current_instance < 0 || _current_instance >= _max_num_instances) {
+	if (_current_instance == i2c_spi_module_instances.end()) {
 		return nullptr;
 	}
 
-	return _instances[_current_instance];
+	return *_current_instance;
 }
 
-void BusInstanceIterator::resetInstance()
+void BusInstanceIterator::removeInstance()
 {
-	if (_current_instance >= 0 && _current_instance < _max_num_instances) {
-		_instances[_current_instance] = nullptr;
+	// find previous node
+	List<I2CSPIInstance *>::Iterator previous = i2c_spi_module_instances.begin();
+
+	while (previous != i2c_spi_module_instances.end() && (*previous)->getSibling() != *_current_instance) {
+		++previous;
 	}
+
+	i2c_spi_module_instances.remove(*_current_instance);
+	_current_instance = previous; // previous can be i2c_spi_module_instances.end(), which means we removed the first item
+}
+
+void BusInstanceIterator::addInstance(I2CSPIInstance *instance)
+{
+	i2c_spi_module_instances.add(instance);
 }
 
 board_bus_types BusInstanceIterator::busType() const
@@ -373,8 +414,7 @@ static void initializer_trampoline(void *argument)
 }
 
 int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator,
-				   void(*print_usage)(),
-				   instantiate_method instantiate, I2CSPIInstance **instances)
+				   void(*print_usage)(), instantiate_method instantiate)
 {
 	if (iterator.configuredBusOption() == I2CSPIBusOption::All) {
 		PX4_ERR("need to specify a bus type");
@@ -390,12 +430,6 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 			continue;
 		}
 
-		const int free_index = iterator.nextFreeInstance();
-
-		if (free_index < 0) {
-			PX4_ERR("Not enough instances");
-			return -1;
-		}
 
 		device::Device::DeviceId device_id{};
 		device_id.devid_s.bus = iterator.bus();
@@ -408,7 +442,8 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 		case BOARD_INVALID_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_UNKNOWN; break;
 		}
 
-		I2CSPIDriverInitializing initializer_data{cli, iterator, instantiate, free_index};
+		const int runtime_instance = iterator.runningInstancesCount();
+		I2CSPIDriverInitializing initializer_data{cli, iterator, instantiate, runtime_instance};
 		// initialize the object and bus on the work queue thread - this will also probe for the device
 		px4::WorkItemSingleShot initializer(px4::device_bus_to_wq(device_id.devid), initializer_trampoline, &initializer_data);
 		initializer.ScheduleNow();
@@ -420,19 +455,19 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 			continue;
 		}
 
-		instances[free_index] = instance;
+		iterator.addInstance(instance);
 		started = true;
 
 		// print some info that we are running
 		switch (iterator.busType()) {
 		case BOARD_I2C_BUS:
 			PX4_INFO_RAW("%s #%i on I2C bus %d%s\n",
-				     instance->ItemName(), free_index, iterator.bus(), iterator.external() ? " (external)" : "");
+				     instance->ItemName(), runtime_instance, iterator.bus(), iterator.external() ? " (external)" : "");
 			break;
 
 		case BOARD_SPI_BUS:
 			PX4_INFO_RAW("%s #%i on SPI bus %d (devid=0x%x)%s\n",
-				     instance->ItemName(), free_index, iterator.bus(), PX4_SPI_DEV_ID(iterator.devid()),
+				     instance->ItemName(), runtime_instance, iterator.bus(), PX4_SPI_DEV_ID(iterator.devid()),
 				     iterator.external() ? " (external)" : "");
 			break;
 
@@ -454,7 +489,7 @@ int I2CSPIDriverBase::module_stop(BusInstanceIterator &iterator)
 			I2CSPIDriverBase *instance = (I2CSPIDriverBase *)iterator.instance();
 			instance->request_stop_and_wait();
 			delete iterator.instance();
-			iterator.resetInstance();
+			iterator.removeInstance();
 			is_running = true;
 		}
 	}
