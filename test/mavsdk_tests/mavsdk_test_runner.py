@@ -3,7 +3,7 @@
 import argparse
 import json
 import os
-import psutil
+import psutil  # type: ignore
 import signal
 import subprocess
 import sys
@@ -142,7 +142,7 @@ class Tester:
 
         for iteration in range(self.iterations):
             if self.iterations > 1:
-                print("Test iteration: {}".
+                print("Test iteration: {} / {}".
                       format(iteration + 1, self.iterations))
 
             was_success = self.run_test_group()
@@ -203,6 +203,7 @@ class Tester:
                         "--- Test {} of {}: '{}' failed."
                         .format(i+1, len(tests), test),
                         color.RED))
+                    # TODO: now print the test output
 
                 if not was_success:
                     overall_success = False
@@ -222,25 +223,32 @@ class Tester:
 
         if self.config['mode'] == 'sitl':
             px4_runner = ph.Px4Runner(
-                group['model'], os.getcwd(), self.log_dir, speed_factor,
-                self.debugger, self.verbose)
-            px4_runner.start(group)
+                os.getcwd(),
+                self.log_dir,
+                group,
+                speed_factor,
+                self.debugger,
+                self.verbose)
+            px4_runner.start()
             self.active_runners.append(px4_runner)
 
             if self.config['simulator'] == 'gazebo':
                 gzserver_runner = ph.GzserverRunner(
-                    group['model'],
                     os.getcwd(),
                     self.log_dir,
+                    group,
                     self.speed_factor,
                     self.verbose)
-                gzserver_runner.start(group)
+                gzserver_runner.start()
                 self.active_runners.append(gzserver_runner)
 
                 if self.gui:
                     gzclient_runner = ph.GzclientRunner(
-                        os.getcwd(), self.log_dir, self.verbose)
-                    gzclient_runner.start(group)
+                        os.getcwd(),
+                        self.log_dir,
+                        group,
+                        self.verbose)
+                    gzclient_runner.start()
                     self.active_runners.append(gzclient_runner)
 
         test_runner = ph.TestRunner(
@@ -251,7 +259,7 @@ class Tester:
             self.config['mavlink_connection'],
             self.verbose)
 
-        test_runner.start(group)
+        test_runner.start()
         self.active_runners.append(test_runner)
 
         while test_runner.time_elapsed_s() < group['timeout_min']*60:
@@ -282,6 +290,7 @@ class Tester:
         for runner in self.active_runners:
             runner.stop()
         print("Stopping all processes done.")
+        # TODO: print interim results
         sys.exit(-sig)
 
 

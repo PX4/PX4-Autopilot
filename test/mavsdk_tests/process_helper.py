@@ -9,40 +9,46 @@ import subprocess
 import threading
 import errno
 from logger_helper import color, maybe_strip_color, colorize
+from typing import Dict, List
 
 
 class Runner:
-    def __init__(self, log_dir, verbose):
+    def __init__(self, log_dir: str, config: dict, verbose: bool):
         self.name = ""
         self.cmd = ""
-        self.cwd = None
-        self.args = []
-        self.env = {}
+        self.cwd = ""
+        self.args: List[str]
+        self.env: Dict[str, str]
         self.log_dir = log_dir
+        self.config = config
         self.log_filename = ""
         self.log_fd = None
         self.verbose = verbose
-        self.output_queue = queue.Queue()
+        self.output_queue: queue.Queue = queue.Queue()
         self.start_time = time.time()
 
-    def create_log_filename(self, model, test_filter):
+    def create_log_filename(self, model: str, test_filter: str) -> str:
         return self.log_dir + os.path.sep + \
             "log-{}-{}-{}-{}.log".format(
                 self.name,
                 model,
                 test_filter,
                 datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ"))
+        # TODO: improve logfilename, create folder, create merged log.
 
-    def start(self, config):
+    def start(self):
         if self.verbose:
             print("Running: {}".format(" ".join([self.cmd] + self.args)))
 
         atexit.register(self.stop)
 
         self.log_filename = self.create_log_filename(
-            config['model'], config['test_filter'])
+            self.config['model'], self.config['test_filter'])
         self.log_fd = open(self.log_filename, 'w')
 
+        print("self.cmd: {}".format(self.cmd))
+        print("self.args: {}".format(self.args))
+        print("self.cwd: {}".format(self.cwd))
         self.process = subprocess.Popen(
             [self.cmd] + self.args,
             cwd=self.cwd,
@@ -130,9 +136,10 @@ class Runner:
 
 
 class Px4Runner(Runner):
-    def __init__(self, model, workspace_dir, log_dir, speed_factor, debugger,
-                 verbose):
-        super().__init__(log_dir, verbose)
+    def __init__(self, workspace_dir: str, log_dir: str,
+                 config: Dict[str, str], speed_factor: float,
+                 debugger: str, verbose: bool):
+        super().__init__(log_dir, config, verbose)
         self.name = "px4"
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
@@ -144,10 +151,9 @@ class Px4Runner(Runner):
                 workspace_dir + "/test_data",
                 "-d"
             ]
-        self.env = {"PATH": os.environ['PATH'],
-                    "PX4_SIM_MODEL": model,
+        self.env = {"PATH": str(os.environ['PATH']),
+                    "PX4_SIM_MODEL": str(config['model']),
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
-        self.name = "px4"
         self.debugger = debugger
 
         if not self.debugger:
@@ -169,9 +175,11 @@ class Px4Runner(Runner):
 
 
 class GzserverRunner(Runner):
-    def __init__(self, model, workspace_dir, log_dir, speed_factor, verbose):
-        super().__init__(log_dir, verbose)
+    def __init__(self, workspace_dir, log_dir, config,
+                 speed_factor, verbose):
+        super().__init__(log_dir, config, verbose)
         self.name = "gzserver"
+        self.cwd = workspace_dir
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
                     "GAZEBO_PLUGIN_PATH":
@@ -183,13 +191,14 @@ class GzserverRunner(Runner):
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
-                     model + ".world"]
+                     config['model'] + ".world"]
 
 
 class GzclientRunner(Runner):
-    def __init__(self, workspace_dir, log_dir, verbose):
-        super().__init__(log_dir, verbose)
+    def __init__(self, workspace_dir, log_dir, config, verbose):
+        super().__init__(log_dir, config, verbose)
         self.name = "gzclient"
+        self.cwd = workspace_dir
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
                     # "GAZEBO_PLUGIN_PATH":
@@ -204,8 +213,9 @@ class GzclientRunner(Runner):
 class TestRunner(Runner):
     def __init__(self, workspace_dir, log_dir, config, test,
                  mavlink_connection, verbose):
-        super().__init__(log_dir, verbose)
+        super().__init__(log_dir, config, verbose)
         self.name = "test_runner"
+        self.cwd = workspace_dir
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
