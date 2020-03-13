@@ -284,11 +284,6 @@ MissionBlock::is_mission_item_reached()
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_CONDITION_GATE) {
 
-			// default to true as a number of geometric corner cases
-			// might prevent reaching the gate - we only set this to false
-			// if we are able to show that the gate conditions are feasible
-			bool gate_reached = true;
-
 			struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
 
 			// if the setpoint is valid we are checking if we reached the gate
@@ -297,30 +292,28 @@ MissionBlock::is_mission_item_reached()
 			// the further execution of the mission.
 			if (curr_sp->valid) {
 
-				// zero is the current gate position
-				matrix::Vector2f gate_sp(0, 0);
+				// location of gate (mission item)
 				struct map_projection_reference_s ref_pos;
 				map_projection_init(&ref_pos, _mission_item.lat, _mission_item.lon);
 
+				// current setpoint
 				matrix::Vector2f gate_to_curr_sp;
 				map_projection_project(&ref_pos, curr_sp->lat, curr_sp->lon, &gate_to_curr_sp(0), &gate_to_curr_sp(1));
+
+				// system position
 				matrix::Vector2f vehicle_pos;
 				map_projection_project(&ref_pos, _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
 						       &vehicle_pos(0), &vehicle_pos(1));
-				float res = vehicle_pos.dot(gate_to_curr_sp.normalized());
+				const float dot_product = vehicle_pos.dot(gate_to_curr_sp.normalized());
 
 				// if the dot product (projected vector) is positive, then
 				// the current position is between the gate position and the
 				// next waypoint
-				if (res < 0) {
-					gate_reached = false;
+				if (dot_product >= 0) {
+					_waypoint_position_reached = true;
+					_waypoint_yaw_reached = true;
+					_time_wp_reached = now;
 				}
-			}
-
-			if (gate_reached) {
-				_waypoint_position_reached = true;
-				_waypoint_yaw_reached = true;
-				_time_wp_reached = now;
 			}
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_DELAY) {
