@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file mag_calibration.h
- * Barometer calibration routine
+ * QNH for barometer
+ *
+ * @min 500
+ * @max 1500
+ * @group Sensors
+ * @unit hPa
+ *
+ * @reboot_required true
+ *
  */
-
-#ifndef BARO_CALIBRATION_H_
-#define BARO_CALIBRATION_H_
-
-#include <stdint.h>
-#include <uORB/uORB.h>
-
-int do_baro_calibration(orb_advert_t *mavlink_log_pub);
-
-#endif /* BARO_CALIBRATION_H_ */
+PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
