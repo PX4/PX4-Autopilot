@@ -37,9 +37,29 @@
 #include <px4_platform_common/log.h>
 #include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
+#include <lib/parameters/param.h>
 
 bool param_modify_on_import(const char *name, bson_type_t type, void *value)
 {
+
+	// migrate MC_DTERM_CUTOFF -> IMU_DGYRO_CUTOFF (2020-03-12). This can be removed after the next release (current release=1.10)
+	if (type == BSON_DOUBLE) {
+		if (strcmp("MC_DTERM_CUTOFF", name) == 0) {
+			param_t h = param_find("IMU_DGYRO_CUTOFF");
+
+			if (h == PX4_OK) {
+				float fvalue = *(float *)value;
+				PX4_INFO("param migrating MC_DTERM_CUTOFF (removed) -> IMU_DGYRO_CUTOFF: value=%.3f", (double)fvalue);
+				param_set_no_notification(h, value);
+				return true;
+			}
+
+			return false;
+		}
+	}
+
+
+
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
 	if (type != BSON_INT32) {
