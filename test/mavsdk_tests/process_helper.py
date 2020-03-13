@@ -49,9 +49,6 @@ class Runner:
             self.config['model'], self.config['test_filter'])
         self.log_fd = open(self.log_filename, 'w')
 
-        print("self.cmd: {}".format(self.cmd))
-        print("self.args: {}".format(self.args))
-        print("self.cwd: {}".format(self.cwd))
         self.process = subprocess.Popen(
             [self.cmd] + self.args,
             cwd=self.cwd,
