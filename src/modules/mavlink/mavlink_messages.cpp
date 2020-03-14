@@ -1655,11 +1655,11 @@ public:
 
 	unsigned get_size() override
 	{
-		return _gps_sub.advertised() ? (MAVLINK_MSG_ID_GPS2_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _gps2_sub.advertised() ? (MAVLINK_MSG_ID_GPS2_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-	uORB::Subscription _gps_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _gps2_sub{ORB_ID(vehicle_gps_position), 1};
 
 	/* do not allow top copying this class */
 	MavlinkStreamGPS2Raw(MavlinkStreamGPS2Raw &) = delete;
@@ -1673,7 +1673,7 @@ protected:
 	{
 		vehicle_gps_position_s gps;
 
-		if (_gps_sub.update(&gps)) {
+		if (_gps2_sub.update(&gps)) {
 			mavlink_gps2_raw_t msg = {};
 
 			msg.time_usec = gps.timestamp;
