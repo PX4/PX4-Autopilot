@@ -1302,7 +1302,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_ATTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _att_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -1378,7 +1378,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _att_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -1473,11 +1473,15 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_VFR_HUD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		if (_lpos_sub.advertised() || _airspeed_validated_sub.advertised()) {
+			return MAVLINK_MSG_ID_VFR_HUD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		}
+
+		return 0;
 	}
 
 private:
-	uORB::Subscription _pos_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _act0_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _act1_sub{ORB_ID(actuator_controls_1)};
@@ -1494,10 +1498,10 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		if (_pos_sub.updated() || _armed_sub.updated() || _airspeed_validated_sub.updated()) {
+		if (_lpos_sub.updated() || _airspeed_validated_sub.updated()) {
 
-			vehicle_local_position_s pos{};
-			_pos_sub.copy(&pos);
+			vehicle_local_position_s lpos{};
+			_lpos_sub.copy(&lpos);
 
 			actuator_armed_s armed{};
 			_armed_sub.copy(&armed);
@@ -1507,12 +1511,12 @@ protected:
 
 			mavlink_vfr_hud_t msg{};
 			msg.airspeed = airspeed_validated.indicated_airspeed_m_s;
-			msg.groundspeed = sqrtf(pos.vx * pos.vx + pos.vy * pos.vy);
-			msg.heading = math::degrees(wrap_2pi(pos.yaw));
+			msg.groundspeed = sqrtf(lpos.vx * lpos.vx + lpos.vy * lpos.vy);
+			msg.heading = math::degrees(wrap_2pi(lpos.yaw));
 
 			if (armed.armed) {
-				actuator_controls_s act0 = {};
-				actuator_controls_s act1 = {};
+				actuator_controls_s act0{};
+				actuator_controls_s act1{};
 				_act0_sub.copy(&act0);
 				_act1_sub.copy(&act1);
 
@@ -1529,9 +1533,9 @@ protected:
 				msg.throttle = 0.0f;
 			}
 
-			if (pos.z_valid && pos.z_global) {
+			if (lpos.z_valid && lpos.z_global) {
 				/* use local position estimate */
-				msg.alt = -pos.z + pos.ref_alt;
+				msg.alt = -lpos.z + lpos.ref_alt;
 
 			} else {
 				vehicle_air_data_s air_data{};
@@ -1543,8 +1547,8 @@ protected:
 				}
 			}
 
-			if (pos.v_z_valid) {
-				msg.climb = -pos.vz;
+			if (lpos.v_z_valid) {
+				msg.climb = -lpos.vz;
 			}
 
 			mavlink_msg_vfr_hud_send_struct(_mavlink->get_channel(), &msg);
@@ -1587,7 +1591,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_GPS_RAW_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _gps_sub.advertised() ? MAVLINK_MSG_ID_GPS_RAW_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -1750,11 +1754,10 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		mavlink_system_time_t msg = {};
 		timespec tv;
-
 		px4_clock_gettime(CLOCK_REALTIME, &tv);
 
+		mavlink_system_time_t msg{};
 		msg.time_boot_ms = hrt_absolute_time() / 1000;
 		msg.time_unix_usec = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
@@ -1813,7 +1816,7 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		mavlink_timesync_t msg = {};
+		mavlink_timesync_t msg{};
 
 		msg.tc1 = 0;
 		msg.ts1 = hrt_absolute_time() * 1000; // boot time in nanoseconds
@@ -2380,7 +2383,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_GLOBAL_POSITION_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _gpos_sub.advertised() ? MAVLINK_MSG_ID_GLOBAL_POSITION_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -2618,11 +2621,11 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _lpos_sub.advertised() ? MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	uORB::Subscription _pos_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamLocalPositionNED(MavlinkStreamLocalPositionNED &) = delete;
@@ -2634,18 +2637,18 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		vehicle_local_position_s pos;
+		vehicle_local_position_s lpos;
 
-		if (_pos_sub.update(&pos)) {
+		if (_lpos_sub.update(&lpos)) {
 			mavlink_local_position_ned_t msg{};
 
-			msg.time_boot_ms = pos.timestamp / 1000;
-			msg.x = pos.x;
-			msg.y = pos.y;
-			msg.z = pos.z;
-			msg.vx = pos.vx;
-			msg.vy = pos.vy;
-			msg.vz = pos.vz;
+			msg.time_boot_ms = lpos.timestamp / 1000;
+			msg.x = lpos.x;
+			msg.y = lpos.y;
+			msg.z = lpos.z;
+			msg.vx = lpos.vx;
+			msg.vy = lpos.vy;
+			msg.vz = lpos.vz;
 
 			mavlink_msg_local_position_ned_send_struct(_mavlink->get_channel(), &msg);
 
@@ -2686,7 +2689,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_VIBRATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _est_sub.advertised() ? MAVLINK_MSG_ID_VIBRATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -2786,7 +2789,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_ATT_POS_MOCAP_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _mocap_sub.advertised() ? MAVLINK_MSG_ID_ATT_POS_MOCAP_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -2948,7 +2951,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_SERVO_OUTPUT_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _act_sub.advertised() ? MAVLINK_MSG_ID_SERVO_OUTPUT_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3134,7 +3137,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _act_sub.advertised() ? MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3290,7 +3293,8 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _pos_sp_triplet_sub.advertised() ? MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT_LEN +
+		       MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3386,7 +3390,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _pos_sp_sub.advertised() ? MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -3461,7 +3465,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_ATTITUDE_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _att_sp_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -4939,7 +4943,7 @@ protected:
 
 			_msg_orbit_execution_status.time_usec = _orbit_status.timestamp;
 			_msg_orbit_execution_status.radius = _orbit_status.radius;
-			_msg_orbit_execution_status.frame  = _orbit_status.frame;
+			_msg_orbit_execution_status.frame = _orbit_status.frame;
 			_msg_orbit_execution_status.x = _orbit_status.x * 1e7;
 			_msg_orbit_execution_status.y = _orbit_status.y * 1e7;
 			_msg_orbit_execution_status.z = _orbit_status.z;
