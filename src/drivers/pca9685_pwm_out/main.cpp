@@ -327,9 +327,11 @@ void PWMDriverWrapper::updatePWMParamTrim()
 
 		sprintf(pname, pname_format_pwm_ch_trim, i + 1);
 		param_t param_h = param_find(pname);
+		int32_t val;
 
 		if (param_h != PARAM_INVALID) {
-			param_get(param_h, trim_values + i);
+			param_get(param_h, &val);
+			trim_values[i] = (int16_t)val;
 
 		} else {
 			PX4_DEBUG("PARAM_INVALID: %s", pname);
