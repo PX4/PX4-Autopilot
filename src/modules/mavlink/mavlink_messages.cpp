@@ -636,7 +636,15 @@ public:
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		unsigned total_size = 0;
+
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if (_battery_status_sub[i].advertised()) {
+				total_size += MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+			}
+		}
+
+		return total_size;
 	}
 
 private:
@@ -1947,7 +1955,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return _local_pos_sub.advertised() ? MAVLINK_MSG_ID_UTM_GLOBAL_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _global_pos_sub.advertised() ? MAVLINK_MSG_ID_UTM_GLOBAL_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -2006,10 +2014,9 @@ protected:
 			msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;
 
 			// Handle local position
-			vehicle_local_position_s local_pos{};
-			_local_pos_sub.copy(&local_pos);
+			vehicle_local_position_s local_pos;
 
-			if (local_pos.timestamp > 0) {
+			if (_local_pos_sub.copy(&local_pos)) {
 				float evh = 0.0f;
 				float evv = 0.0f;
 
@@ -2048,17 +2055,17 @@ protected:
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 
 			// Handle next waypoint if it is valid
-			position_setpoint_triplet_s position_setpoint_triplet{};
-			_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
+			position_setpoint_triplet_s position_setpoint_triplet;
 
-			if (vehicle_in_auto_mode && (position_setpoint_triplet.timestamp > 0) && position_setpoint_triplet.current.valid) {
-
-				msg.next_lat = position_setpoint_triplet.current.lat * 1e7;
-				msg.next_lon = position_setpoint_triplet.current.lon * 1e7;
-				// HACK We assume that the offset between AMSL and WGS84 is constant between the current
-				// vehicle position and the the target waypoint.
-				msg.next_alt = (position_setpoint_triplet.current.alt + (global_pos.alt_ellipsoid - global_pos.alt)) * 1000.0f;
-				msg.flags |= UTM_DATA_AVAIL_FLAGS_NEXT_WAYPOINT_AVAILABLE;
+			if (vehicle_in_auto_mode && _position_setpoint_triplet_sub.copy(&position_setpoint_triplet)) {
+				if (position_setpoint_triplet.current.valid) {
+					msg.next_lat = position_setpoint_triplet.current.lat * 1e7;
+					msg.next_lon = position_setpoint_triplet.current.lon * 1e7;
+					// HACK We assume that the offset between AMSL and WGS84 is constant between the current
+					// vehicle position and the the target waypoint.
+					msg.next_alt = (position_setpoint_triplet.current.alt + (global_pos.alt_ellipsoid - global_pos.alt)) * 1000.0f;
+					msg.flags |= UTM_DATA_AVAIL_FLAGS_NEXT_WAYPOINT_AVAILABLE;
+				}
 			}
 
 			// Handle flight state
