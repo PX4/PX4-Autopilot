@@ -198,8 +198,8 @@ public:
 
 	uint8_t get_instance() const { return _instance; }
 
-	int get_priority() const { return _priority; }
-	void set_priority(uint8_t priority) { _priority = priority; }
+	ORB_PRIO get_priority() const { return (ORB_PRIO)_priority; }
+	void set_priority(ORB_PRIO priority) { _priority = priority; }
 
 	/**
 	 * Copies data and the corresponding generation

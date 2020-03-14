@@ -63,11 +63,6 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_en
 		_corrections.accel_scale_2[i] = 1.0f;
 	}
 
-	_corrections.baro_scale_0 = 1.0f;
-	_corrections.baro_scale_1 = 1.0f;
-	_corrections.baro_scale_2 = 1.0f;
-
-	_baro.voter.set_timeout(300000);
 	_mag.voter.set_timeout(300000);
 	_mag.voter.set_equal_value_threshold(1000);
 
@@ -94,7 +89,6 @@ void VotedSensorsUpdate::initializeSensors()
 	initSensorClass(ORB_ID(sensor_gyro_integrated), _gyro, GYRO_COUNT_MAX);
 	initSensorClass(ORB_ID(sensor_mag), _mag, MAG_COUNT_MAX);
 	initSensorClass(ORB_ID(sensor_accel_integrated), _accel, ACCEL_COUNT_MAX);
-	initSensorClass(ORB_ID(sensor_baro), _baro, BARO_COUNT_MAX);
 }
 
 void VotedSensorsUpdate::deinit()
@@ -109,10 +103,6 @@ void VotedSensorsUpdate::deinit()
 
 	for (int i = 0; i < _mag.subscription_count; i++) {
 		orb_unsubscribe(_mag.subscription[i]);
-	}
-
-	for (int i = 0; i < _baro.subscription_count; i++) {
-		orb_unsubscribe(_baro.subscription[i]);
 	}
 }
 
@@ -715,101 +705,6 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 	}
 }
 
-void VotedSensorsUpdate::baroPoll(vehicle_air_data_s &airdata)
-{
-	bool got_update = false;
-	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2 };
-	float *scales[] = {&_corrections.baro_scale_0, &_corrections.baro_scale_1, &_corrections.baro_scale_2 };
-
-	for (int uorb_index = 0; uorb_index < _baro.subscription_count; uorb_index++) {
-		bool baro_updated;
-		orb_check(_baro.subscription[uorb_index], &baro_updated);
-
-		if (baro_updated) {
-			sensor_baro_s baro_report{};
-
-			int ret = orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
-
-			if (ret != PX4_OK || baro_report.timestamp == 0) {
-				continue; //ignore invalid data
-			}
-
-			// Convert from millibar to Pa
-			float corrected_pressure = 100.0f * baro_report.pressure;
-
-			// apply temperature compensation
-			corrected_pressure = (corrected_pressure - *offsets[uorb_index]) * *scales[uorb_index];
-
-			// First publication with data
-			if (_baro.priority[uorb_index] == 0) {
-				int32_t priority = 0;
-				orb_priority(_baro.subscription[uorb_index], &priority);
-				_baro.priority[uorb_index] = (uint8_t)priority;
-			}
-
-			_baro_device_id[uorb_index] = baro_report.device_id;
-
-			got_update = true;
-
-			float vect[3] = {baro_report.pressure, baro_report.temperature, 0.f};
-
-			_last_airdata[uorb_index].timestamp = baro_report.timestamp;
-			_last_airdata[uorb_index].baro_temp_celcius = baro_report.temperature;
-			_last_airdata[uorb_index].baro_pressure_pa = corrected_pressure;
-
-			_baro.voter.put(uorb_index, baro_report.timestamp, vect, baro_report.error_count, _baro.priority[uorb_index]);
-		}
-	}
-
-	if (got_update) {
-		int best_index;
-		_baro.voter.get_best(hrt_absolute_time(), &best_index);
-
-		if (best_index >= 0) {
-			airdata = _last_airdata[best_index];
-
-			if (_baro.last_best_vote != best_index) {
-				_baro.last_best_vote = (uint8_t)best_index;
-			}
-
-			if (_selection.baro_device_id != _baro_device_id[best_index]) {
-				_selection_changed = true;
-				_selection.baro_device_id = _baro_device_id[best_index];
-			}
-
-			// calculate altitude using the hypsometric equation
-
-			static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS;	/* temperature at base height in Kelvin */
-			static constexpr float a  = -6.5f / 1000.0f;	/* temperature gradient in degrees per metre */
-
-			/* current pressure at MSL in kPa (QNH in hPa)*/
-			const float p1 = _parameters.baro_qnh * 0.1f;
-
-			/* measured pressure in kPa */
-			const float p = airdata.baro_pressure_pa * 0.001f;
-
-			/*
-			 * Solve:
-			 *
-			 *     /        -(aR / g)     \
-			 *    | (p / p1)          . T1 | - T1
-			 *     \                      /
-			 * h = -------------------------------  + h1
-			 *                   a
-			 */
-			airdata.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
-
-
-			// calculate air density
-			// estimate air density assuming typical 20degC ambient temperature
-			// TODO: use air temperature if available (differential pressure sensors)
-			static constexpr float pressure_to_density = 1.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f -
-					CONSTANTS_ABSOLUTE_NULL_CELSIUS));
-			airdata.rho = pressure_to_density * airdata.baro_pressure_pa;
-		}
-	}
-}
-
 bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type)
 {
 	if (sensor.last_failover_count != sensor.voter.failover_count() && !_hil_enabled) {
@@ -917,19 +812,15 @@ void VotedSensorsUpdate::printStatus()
 	_accel.voter.print();
 	PX4_INFO("mag status:");
 	_mag.voter.print();
-	PX4_INFO("baro status:");
-	_baro.voter.print();
 }
 
-void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s &airdata,
-				     vehicle_magnetometer_s &magnetometer)
+void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_magnetometer_s &magnetometer)
 {
 	_corrections_sub.update(&_corrections);
 
 	accelPoll(raw);
 	gyroPoll(raw);
 	magPoll(magnetometer);
-	baroPoll(airdata);
 
 	// publish sensor selection if changed
 	if (_selection_changed) {
@@ -946,7 +837,6 @@ void VotedSensorsUpdate::checkFailover()
 	checkFailover(_accel, "Accel", subsystem_info_s::SUBSYSTEM_TYPE_ACC);
 	checkFailover(_gyro, "Gyro", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
 	checkFailover(_mag, "Mag", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
-	checkFailover(_baro, "Baro", subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE);
 }
 
 void VotedSensorsUpdate::setRelativeTimestamps(sensor_combined_s &raw)
