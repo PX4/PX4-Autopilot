@@ -308,7 +308,7 @@ void RCInput::Run()
 		adc_report_s adc;
 
 		if (_adc_sub.update(&adc)) {
-			for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 				if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
 					float adc_volt = adc.raw_data[i] *
 							 adc.v_ref /

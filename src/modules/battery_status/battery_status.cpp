@@ -188,7 +188,7 @@ BatteryStatus::adc_poll()
 	if (_adc_report_sub.update(&adc_report)) {
 
 		/* Read add channels we got */
-		for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+		for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 			for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
 				/* Once we have subscriptions, Do this once for the lowest (highest priority

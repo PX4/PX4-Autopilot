@@ -118,7 +118,7 @@ void AEROFC_ADC::Run()
 	adc_report.v_ref = 3.0f;
 	adc_report.resolution = 1 << 12;
 
-	int i;
+	unsigned i;
 
 	for (i = 0; i < MAX_CHANNEL; ++i) {
 		adc_report.channel_id[i] = i;
