@@ -39,8 +39,6 @@ then
 
 	param set RWTO_TKOFF 1
 
-	# Distance trigger mode enabled
-	param set TRIG_MODE 4
 fi
 
 set MIXER_FILE etc/mixers-sitl/plane_sitl.main.mix
