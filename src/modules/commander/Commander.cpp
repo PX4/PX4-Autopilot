@@ -3833,12 +3833,9 @@ void Commander::battery_status_check()
 		// All connected batteries are regularly being published
 		(hrt_elapsed_time(&oldest_update) < 5_s)
 		// There is at least one connected battery (in any slot)
-		&& num_connected_batteries > 0
+		&& (num_connected_batteries > 0)
 		// No currently-connected batteries have any warning
 		&& (_battery_warning == battery_status_s::BATTERY_WARNING_NONE);
-
-	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_SENSORBATTERY, true, true,
-			 (_battery_warning == battery_status_s::BATTERY_WARNING_NONE), status);
 
 	// execute battery failsafe if the state has gotten worse while we are armed
 	if (battery_warning_level_increased_while_armed) {
@@ -3973,13 +3970,6 @@ void Commander::estimator_check()
 			check_posvel_validity(lpos.v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp, &_last_lvel_fail_time_us,
 					      &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &_status_changed);
 		}
-	}
-
-	if ((_last_condition_global_position_valid != status_flags.condition_global_position_valid)
-	    && status_flags.condition_global_position_valid) {
-		// If global position state changed and is now valid, set respective health flags to true. For now also assume GPS is OK if global pos is OK, but not vice versa.
-		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, status);
-		set_health_flags_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, status);
 	}
 
 	check_valid(lpos.timestamp, _param_com_pos_fs_delay.get() * 1_s, lpos.z_valid,
