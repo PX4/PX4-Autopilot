@@ -292,6 +292,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 					PreFlightCheck::arm_requirements_t{}, status);
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
+		print_health_flags(status);
+
 		return 0;
 	}
 

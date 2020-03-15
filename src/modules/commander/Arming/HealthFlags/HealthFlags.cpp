@@ -40,6 +40,7 @@
  */
 
 #include "HealthFlags.h"
+#include <uORB/topics/subsystem_info.h>
 
 void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status)
 {
@@ -77,4 +78,44 @@ void set_health_flags_healthy(uint64_t subsystem_type, bool healthy, vehicle_sta
 {
 	set_health_flags(subsystem_type, status.onboard_control_sensors_present & (uint32_t)subsystem_type,
 			 status.onboard_control_sensors_enabled & (uint32_t)subsystem_type, healthy, status);
+}
+
+#define _print_sub(name, bit) PX4_INFO(name":\t\t%s\t%s", \
+				       (status.onboard_control_sensors_enabled & bit) ? "EN" : " ", \
+				       (status.onboard_control_sensors_present & bit) ? ((status.onboard_control_sensors_health & bit) ? "OK" : "ERR") : (status.onboard_control_sensors_enabled & bit) ? "OFF" : "")
+
+void print_health_flags(vehicle_status_s &status)
+{
+	PX4_INFO("DEVICE\t\tSTATUS");
+	PX4_INFO("----------------------------------");
+	_print_sub("GYRO", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
+	_print_sub("ACC", subsystem_info_s::SUBSYSTEM_TYPE_ACC);
+	_print_sub("MAG", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
+	_print_sub("PRESS", subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE);
+	_print_sub("AIRSP", subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE);
+	_print_sub("GPS", subsystem_info_s::SUBSYSTEM_TYPE_GPS);
+	_print_sub("OPT", subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW);
+	_print_sub("VIO", subsystem_info_s::SUBSYSTEM_TYPE_CVPOSITION);
+	_print_sub("LASER", subsystem_info_s::SUBSYSTEM_TYPE_LASERPOSITION);
+	_print_sub("GTRUTH", subsystem_info_s::SUBSYSTEM_TYPE_EXTERNALGROUNDTRUTH);
+	_print_sub("RATES", subsystem_info_s::SUBSYSTEM_TYPE_ANGULARRATECONTROL);
+	_print_sub("ATT", subsystem_info_s::SUBSYSTEM_TYPE_ATTITUDESTABILIZATION);
+	_print_sub("YAW", subsystem_info_s::SUBSYSTEM_TYPE_YAWPOSITION);
+	_print_sub("ALTCTL", subsystem_info_s::SUBSYSTEM_TYPE_ALTITUDECONTROL);
+	_print_sub("POS", subsystem_info_s::SUBSYSTEM_TYPE_POSITIONCONTROL);
+	_print_sub("MOT", subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL);
+	_print_sub("RC  ", subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER);
+	_print_sub("GYRO2", subsystem_info_s::SUBSYSTEM_TYPE_GYRO2);
+	_print_sub("ACC2", subsystem_info_s::SUBSYSTEM_TYPE_ACC2);
+	_print_sub("MAG2", subsystem_info_s::SUBSYSTEM_TYPE_MAG2);
+	_print_sub("GEOFENCE", subsystem_info_s::SUBSYSTEM_TYPE_GEOFENCE);
+	_print_sub("AHRS", subsystem_info_s::SUBSYSTEM_TYPE_AHRS);
+	_print_sub("TERRAIN", subsystem_info_s::SUBSYSTEM_TYPE_TERRAIN);
+	_print_sub("REVMOT", subsystem_info_s::SUBSYSTEM_TYPE_REVERSEMOTOR);
+	_print_sub("LOGGIN", subsystem_info_s::SUBSYSTEM_TYPE_LOGGING);
+	_print_sub("BATT", subsystem_info_s::SUBSYSTEM_TYPE_SENSORBATTERY);
+	_print_sub("PROX", subsystem_info_s::SUBSYSTEM_TYPE_SENSORPROXIMITY);
+	_print_sub("SATCOM", subsystem_info_s::SUBSYSTEM_TYPE_SATCOM);
+	_print_sub("PREARM", subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK);
+	_print_sub("OBSAVD", subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE);
 }
