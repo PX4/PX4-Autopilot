@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name ECL nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,66 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file Subscription.cpp
+ * @file ecl_yaw_controller.h
+ * Definition of a simple orthogonal coordinated turn yaw PID controller.
  *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ *
+ * Acknowledgements:
+ *
+ *   The control design is based on a design
+ *   by Paul Riseborough and Andrew Tridgell, 2013,
+ *   which in turn is based on initial work of
+ *   Jonathan Challinger, 2012.
  */
+#ifndef ECL_YAW_CONTROLLER_H
+#define ECL_YAW_CONTROLLER_H
 
-#include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
+#include "ecl_controller.h"
 
-namespace uORB
+class ECL_YawController :
+	public ECL_Controller
 {
+public:
+	ECL_YawController() = default;
+	~ECL_YawController() = default;
 
-bool Subscription::subscribe()
-{
-	// check if already subscribed
-	if (_node != nullptr) {
-		return true;
+	float control_attitude(const struct ECL_ControlData &ctl_data) override;
+	float control_euler_rate(const struct ECL_ControlData &ctl_data) override;
+	float control_bodyrate(const struct ECL_ControlData &ctl_data) override;
+
+	/* Additional setters */
+	void set_coordinated_min_speed(float coordinated_min_speed)
+	{
+		_coordinated_min_speed = coordinated_min_speed;
 	}
 
-	if (_orb_id != ORB_ID::INVALID) {
-
-		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
-
-		if (device_master != nullptr) {
-
-			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
-				return false;
-			}
-
-			uORB::DeviceNode *node = device_master->getDeviceNode(get_topic(), _instance);
-
-			if (node != nullptr) {
-				_node = node;
-				_node->add_internal_subscriber();
-
-				// If there were any previous publications, allow the subscriber to read them
-				const unsigned curr_gen = _node->published_message_count();
-				const uint8_t q_size = _node->get_queue_size();
-
-				if (q_size < curr_gen) {
-					_last_generation = curr_gen - q_size;
-
-				} else {
-					_last_generation = 0;
-				}
-
-				return true;
-			}
-		}
+	void set_coordinated_method(int32_t coordinated_method)
+	{
+		_coordinated_method = coordinated_method;
 	}
 
-	return false;
-}
+	enum {
+		COORD_METHOD_OPEN = 0,
+		COORD_METHOD_CLOSEACC = 1
+	};
 
-void Subscription::unsubscribe()
-{
-	if (_node != nullptr) {
-		_node->remove_internal_subscriber();
-	}
+protected:
+	float _coordinated_min_speed{1.0f};
+	float _max_rate{0.0f};
 
-	_node = nullptr;
-	_last_generation = 0;
-}
+	int32_t _coordinated_method{COORD_METHOD_OPEN};
 
-} // namespace uORB
+	float control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data);
+
+	float control_attitude_impl_accclosedloop(const struct ECL_ControlData &ctl_data);
+
+};
+
+#endif // ECL_YAW_CONTROLLER_H

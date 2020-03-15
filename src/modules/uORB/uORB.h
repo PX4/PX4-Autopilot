@@ -222,11 +222,6 @@ extern int	orb_copy(const struct orb_metadata *meta, int handle, void *buffer) _
 extern int	orb_check(int handle, bool *updated) __EXPORT;
 
 /**
- * @see uORB::Manager::orb_stat()
- */
-extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
-
-/**
  * @see uORB::Manager::orb_exists()
  */
 extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;

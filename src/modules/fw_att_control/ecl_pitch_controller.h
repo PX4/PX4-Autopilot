@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name ECL nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,26 +32,62 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_orb_subscription.cpp
- * uORB subscription implementation.
+ * @file ecl_pitch_controller.h
+ * Definition of a simple orthogonal pitch PID controller.
  *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ *
+ * Acknowledgements:
+ *
+ *   The control design is based on a design
+ *   by Paul Riseborough and Andrew Tridgell, 2013,
+ *   which in turn is based on initial work of
+ *   Jonathan Challinger, 2012.
  */
 
-#include "mavlink_orb_subscription.h"
+#ifndef ECL_PITCH_CONTROLLER_H
+#define ECL_PITCH_CONTROLLER_H
 
-bool
-MavlinkOrbSubscription::is_published()
+#include <mathlib/mathlib.h>
+
+#include "ecl_controller.h"
+
+class ECL_PitchController :
+	public ECL_Controller
 {
-	const bool published = _sub.advertised();
+public:
+	ECL_PitchController() = default;
+	~ECL_PitchController() = default;
 
-	if (published) {
-		return true;
+	float control_attitude(const struct ECL_ControlData &ctl_data) override;
+	float control_euler_rate(const struct ECL_ControlData &ctl_data) override;
+	float control_bodyrate(const struct ECL_ControlData &ctl_data) override;
 
-	} else if (!published && _subscribe_from_beginning) {
-		// For some topics like vehicle_command_ack, we want to subscribe
-		// from the beginning in order not to miss or delay the first publish respective advertise.
-		return _sub.subscribe();
+	/* Additional Setters */
+	void set_max_rate_pos(float max_rate_pos)
+	{
+		_max_rate = max_rate_pos;
 	}
 
-	return false;
-}
+	void set_max_rate_neg(float max_rate_neg)
+	{
+		_max_rate_neg = max_rate_neg;
+	}
+
+	void set_bodyrate_setpoint(float rate)
+	{
+		_bodyrate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
+	}
+
+	void set_roll_ff(float roll_ff)
+	{
+		_roll_ff = roll_ff;
+	}
+
+protected:
+	float _max_rate_neg{0.0f};
+	float _roll_ff{0.0f};
+};
+
+#endif // ECL_PITCH_CONTROLLER_H

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name ECL nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,46 +31,36 @@
  *
  ****************************************************************************/
 
-#ifndef _DRV_UORB_H
-#define _DRV_UORB_H
-
 /**
- * @file drv_orb_dev.h
+ * @file ecl_roll_controller.h
+ * Definition of a simple orthogonal roll PID controller.
  *
- * uORB published object driver.
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ *
+ * Acknowledgements:
+ *
+ *   The control design is based on a design
+ *   by Paul Riseborough and Andrew Tridgell, 2013,
+ *   which in turn is based on initial work of
+ *   Jonathan Challinger, 2012.
  */
 
-#include <px4_platform_common/defines.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <stdint.h>
+#ifndef ECL_ROLL_CONTROLLER_H
+#define ECL_ROLL_CONTROLLER_H
 
-#define _ORBIOCBASE		(0x2600)
-#define _ORBIOC(_n)		(_PX4_IOC(_ORBIOCBASE, _n))
+#include "ecl_controller.h"
 
-/*
- * IOCTLs for individual topics.
- */
+class ECL_RollController :
+	public ECL_Controller
+{
+public:
+	ECL_RollController() = default;
+	~ECL_RollController() = default;
 
-/** Check whether the topic has been updated since it was last read, sets *(bool *)arg */
-#define ORBIOCUPDATED		_ORBIOC(11)
+	float control_attitude(const struct ECL_ControlData &ctl_data) override;
+	float control_euler_rate(const struct ECL_ControlData &ctl_data) override;
+	float control_bodyrate(const struct ECL_ControlData &ctl_data) override;
+};
 
-/** Set the minimum interval at which the topic can be seen to be updated for this subscription */
-#define ORBIOCSETINTERVAL	_ORBIOC(12)
-
-/** Get the global advertiser handle for the topic */
-#define ORBIOCGADVERTISER	_ORBIOC(13)
-
-/** Get the priority for the topic */
-#define ORBIOCGPRIORITY		_ORBIOC(14)
-
-/** Set the queue size of the topic */
-#define ORBIOCSETQUEUESIZE	_ORBIOC(15)
-
-/** Get the minimum interval at which the topic can be seen to be updated for this subscription */
-#define ORBIOCGETINTERVAL	_ORBIOC(16)
-
-/** Check whether the topic is advertised, sets *(unsigned long *)arg to 1 if advertised, 0 otherwise */
-#define ORBIOCISADVERTISED	_ORBIOC(17)
-
-#endif /* _DRV_UORB_H */
+#endif // ECL_ROLL_CONTROLLER_H

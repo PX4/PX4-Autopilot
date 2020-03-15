@@ -326,3 +326,32 @@ TEST_F(PositionControlBasicTest, InvalidState)
 	_position_control.setState(states);
 	EXPECT_FALSE(runController());
 }
+
+
+TEST_F(PositionControlBasicTest, UpdateHoverThrust)
+{
+	// GIVEN: some hover thrust and 0 velocity change
+	const float hover_thrust = 0.6f;
+	_position_control.setHoverThrust(hover_thrust);
+
+	_input_setpoint.vx = 0.f;
+	_input_setpoint.vy = 0.f;
+	_input_setpoint.vz = -0.f;
+
+	// WHEN: we run the controller
+	EXPECT_TRUE(runController());
+
+	// THEN: the output thrust equals the hover thrust
+	EXPECT_EQ(_output_setpoint.thrust[2], -hover_thrust);
+
+	// HOWEVER WHEN: we set a new hover thrust through the update function
+	const float hover_thrust_new = 0.7f;
+	_position_control.updateHoverThrust(hover_thrust_new);
+	EXPECT_TRUE(runController());
+
+	// THEN: the integral is updated to avoid discontinuities and
+	// the output is still the same
+	EXPECT_EQ(_output_setpoint.thrust[2], -hover_thrust);
+	const Vector3f integrator_new(_position_control.getIntegral());
+	EXPECT_EQ(integrator_new(2) - hover_thrust_new, -hover_thrust);
+}
