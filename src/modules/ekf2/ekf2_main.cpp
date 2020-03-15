@@ -78,6 +78,7 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/yaw_estimator_status.h>
 
 #include "Utility/PreFlightChecker.hpp"
 
@@ -130,8 +131,9 @@ private:
 	template<typename Param>
 	bool update_mag_decl(Param &mag_decl_param);
 
-	bool publish_attitude(const hrt_abstime &now);
-	bool publish_wind_estimate(const hrt_abstime &timestamp);
+	void publish_attitude(const hrt_abstime &timestamp);
+	void publish_wind_estimate(const hrt_abstime &timestamp);
+	void publish_yaw_estimator_status(const hrt_abstime &timestamp);
 
 	/*
 	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical
@@ -274,6 +276,7 @@ private:
 	uORB::Publication<estimator_status_s>			_estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
+	uORB::Publication<yaw_estimator_status_s>		_yaw_est_pub{ORB_ID(yaw_estimator_status)};
 	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::PublicationData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
@@ -525,7 +528,11 @@ private:
 		_param_ekf2_move_test,	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
 
 		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
-		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check ///< Mag field strength check
+		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check, ///< Mag field strength check
+
+		// Used by EKF-GSF experimental yaw estimator
+		(ParamExtFloat<px4::params::EKF2_GSF_TAS>)
+		_param_ekf2_gsf_tas_default	///< default value of true airspeed assumed during fixed wing operation
 
 	)
 
@@ -637,7 +644,8 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_pcoef_yn(_params->static_pressure_coef_yn),
 	_param_ekf2_pcoef_z(_params->static_pressure_coef_z),
 	_param_ekf2_move_test(_params->is_moving_scaler),
-	_param_ekf2_mag_check(_params->check_mag_strength)
+	_param_ekf2_mag_check(_params->check_mag_strength),
+	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
 {
 	// initialise parameter cache
 	updateParams();
@@ -1598,6 +1606,8 @@ void Ekf2::Run()
 
 			publish_wind_estimate(now);
 
+			publish_yaw_estimator_status(now);
+
 			if (!_mag_decl_saved && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
 			}
@@ -1749,12 +1759,12 @@ int Ekf2::getRangeSubIndex()
 	return -1;
 }
 
-bool Ekf2::publish_attitude(const hrt_abstime &now)
+void Ekf2::publish_attitude(const hrt_abstime &timestamp)
 {
 	if (_ekf.attitude_valid()) {
 		// generate vehicle attitude quaternion data
 		vehicle_attitude_s att;
-		att.timestamp = now;
+		att.timestamp = timestamp;
 
 		const Quatf q{_ekf.calculate_quaternion()};
 		q.copyTo(att.q);
@@ -1763,19 +1773,33 @@ bool Ekf2::publish_attitude(const hrt_abstime &now)
 
 		_att_pub.publish(att);
 
-		return true;
-
 	}  else if (_replay_mode) {
 		// in replay mode we have to tell the replay module not to wait for an update
 		// we do this by publishing an attitude with zero timestamp
 		vehicle_attitude_s att{};
 		_att_pub.publish(att);
 	}
-
-	return false;
 }
 
-bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
+void Ekf2::publish_yaw_estimator_status(const hrt_abstime &timestamp)
+{
+	yaw_estimator_status_s yaw_est_test_data{};
+
+	static_assert(sizeof(yaw_estimator_status_s::yaw) / sizeof(float) == N_MODELS_EKFGSF,
+		      "yaw_estimator_status_s::yaw wrong size");
+
+	if (_ekf.getDataEKFGSF(&yaw_est_test_data.yaw_composite, &yaw_est_test_data.yaw_variance,
+			       &yaw_est_test_data.yaw[0],
+			       &yaw_est_test_data.innov_vn[0], &yaw_est_test_data.innov_ve[0],
+			       &yaw_est_test_data.weight[0])) {
+
+		yaw_est_test_data.timestamp = timestamp;
+
+		_yaw_est_pub.publish(yaw_est_test_data);
+	}
+}
+
+void Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
 		// Publish wind estimate only if ekf declares them valid
@@ -1796,11 +1820,7 @@ bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 
 		_wind_pub.publish(wind_estimate);
-
-		return true;
 	}
-
-	return false;
 }
 
 bool Ekf2::blend_gps_data()
