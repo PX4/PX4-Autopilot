@@ -31,8 +31,11 @@
 #
 ############################################################################
 
+add_subdirectory(sensor_corrections) # used by vehicle_{acceleration, angular_velocity, imu}
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(vehicle_acceleration)
 add_subdirectory(vehicle_angular_velocity)
+add_subdirectory(vehicle_air_data)
 add_subdirectory(vehicle_imu)
 
 px4_add_module(
@@ -52,5 +55,6 @@ px4_add_module(
 		mathlib
 		vehicle_acceleration
 		vehicle_angular_velocity
+		vehicle_air_data
 		vehicle_imu
 	)

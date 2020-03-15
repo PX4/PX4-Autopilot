@@ -42,10 +42,6 @@
 	path = platforms/nuttx/NuttX/apps
 	url = https://github.com/PX4/NuttX-apps.git
 	branch = px4_firmware_nuttx-8.2
-[submodule "cmake/configs/uavcan_board_ident"]
-	path = cmake/configs/uavcan_board_ident
-	url = https://github.com/PX4/uavcan_board_ident.git
-	branch = master
 [submodule "platforms/qurt/dspal"]
 	path = platforms/qurt/dspal
 	url = https://github.com/ATLFlight/dspal.git

@@ -50,7 +50,6 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		#lights/rgbled
-		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		qshell/posix
@@ -73,6 +72,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		#micrortps_bridge
@@ -112,7 +112,6 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

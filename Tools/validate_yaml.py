@@ -4,13 +4,12 @@
 from __future__ import print_function
 
 import argparse
-import os
 import sys
 
 try:
     import yaml
 except ImportError as e:
-    print("Failed to import yaml: " + e)
+    print("Failed to import yaml: " + str(e))
     print("")
     print("You may need to install it using:")
     print("    pip3 install --user pyyaml")
@@ -20,7 +19,7 @@ except ImportError as e:
 try:
     import cerberus
 except ImportError as e:
-    print("Failed to import cerberus: " + e)
+    print("Failed to import cerberus: " + str(e))
     print("")
     print("You may need to install it using:")
     print("    pip3 install --user cerberus")

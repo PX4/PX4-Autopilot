@@ -35,11 +35,12 @@ px4_add_library(drivers_board
 	autoleds.c
 	automount.c
 	can.c
+	i2c.cpp
 	init.c
 	led.c
 	sdhc.c
 	spi.cpp
-	timer_config.c
+	timer_config.cpp
 	usb.c
 	manifest.c
 	imxrt_flexspi_nor_boot.c

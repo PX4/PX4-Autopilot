@@ -609,7 +609,11 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 		}
 	}
 
-	if (_uart_fd < 0) {
+	/*
+	 * Return here in the iridium mode since the iridium driver does not
+	 * support the subsequent function calls.
+	*/
+	if (_uart_fd < 0 || _mode == MAVLINK_MODE_IRIDIUM) {
 		return _uart_fd;
 	}
 
@@ -1151,12 +1155,11 @@ Mavlink::send_statustext_emergency(const char *string)
 void
 Mavlink::send_autopilot_capabilites()
 {
-	struct vehicle_status_s status;
+	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
+	vehicle_status_s status;
 
-	MavlinkOrbSubscription *status_sub = this->add_orb_subscription(ORB_ID(vehicle_status));
-
-	if (status_sub->update(&status)) {
-		mavlink_autopilot_version_t msg = {};
+	if (status_sub.copy(&status)) {
+		mavlink_autopilot_version_t msg{};
 
 		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_INT;
@@ -1236,27 +1239,6 @@ Mavlink::send_protocol_version()
 	mavlink_msg_protocol_version_send_struct(get_channel(), &msg);
 	// Reset to previous value
 	set_proto_version(curr_proto_ver);
-}
-
-MavlinkOrbSubscription *
-Mavlink::add_orb_subscription(const orb_id_t topic, int instance, bool disable_sharing)
-{
-	if (!disable_sharing) {
-		/* check if already subscribed to this topic */
-		for (MavlinkOrbSubscription *sub : _subscriptions) {
-			if (sub->get_topic() == topic && sub->get_instance() == instance) {
-				/* already subscribed */
-				return sub;
-			}
-		}
-	}
-
-	/* add new subscription */
-	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(topic, instance);
-
-	_subscriptions.add(sub_new);
-
-	return sub_new;
 }
 
 int
@@ -1528,13 +1510,15 @@ Mavlink::update_rate_mult()
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > 5_s) {
+		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() *
+				1_s)) {
 			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
-			set_telemetry_status_type(telemetry_status_s::LINK_TYPE_GENERIC);
-
 			_radio_status_available = false;
-			_radio_status_critical = false;
-			_radio_status_mult = 1.0f;
+
+			if (_use_software_mav_throttling) {
+				_radio_status_critical = false;
+				_radio_status_mult = 1.0f;
+			}
 		}
 
 		hardware_mult *= _radio_status_mult;
@@ -1551,23 +1535,25 @@ void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
 	_rstatus = radio_status;
-	set_telemetry_status_type(telemetry_status_s::LINK_TYPE_3DR_RADIO);
-
-	/* check hardware limits */
 	_radio_status_available = true;
-	_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
 
-	if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
-		/* this indicates link congestion, reduce rate by 20% */
-		_radio_status_mult *= 0.80f;
+	if (_use_software_mav_throttling) {
 
-	} else if (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
-		/* this indicates link congestion, reduce rate by 2.5% */
-		_radio_status_mult *= 0.975f;
+		/* check hardware limits */
+		_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
 
-	} else if (radio_status.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
-		/* this indicates spare bandwidth, increase by 2.5% */
-		_radio_status_mult *= 1.025f;
+		if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 20% */
+			_radio_status_mult *= 0.80f;
+
+		} else if (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 2.5% */
+			_radio_status_mult *= 0.975f;
+
+		} else if (radio_status.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
+			/* this indicates spare bandwidth, increase by 2.5% */
+			_radio_status_mult *= 1.025f;
+		}
 	}
 }
 
@@ -1711,6 +1697,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("WIND_COV", 1.0f);
+		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
 		break;
 
 
@@ -1847,7 +1834,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fwxz", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxz", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -2028,6 +2015,10 @@ Mavlink::task_main(int argc, char *argv[])
 			_forwarding_on = true;
 			break;
 
+		case 's':
+			_use_software_mav_throttling = true;
+			break;
+
 		case 'w':
 			_wait_to_transmit = true;
 			break;
@@ -2125,22 +2116,17 @@ Mavlink::task_main(int argc, char *argv[])
 
 	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
-	MavlinkOrbSubscription *cmd_sub = add_orb_subscription(ORB_ID(vehicle_command), 0, true);
-	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
-	uint64_t status_time = 0;
-	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack), 0, true);
-	/* We don't want to miss the first advertise of an ACK, so we subscribe from the
-	 * beginning and not just when the topic exists. */
-	ack_sub->subscribe_from_beginning(true);
-	cmd_sub->subscribe_from_beginning(true);
+	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription ack_sub{ORB_ID(vehicle_command_ack)};
 
 	/* command ack */
 	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
+	uORB::Subscription mavlink_log_sub{ORB_ID(mavlink_log)};
 
 	vehicle_status_s status{};
-	status_sub->update(&status_time, &status);
+	status_sub.copy(&status);
 
 	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
 	_transmitting_enabled = true;
@@ -2253,13 +2239,13 @@ Mavlink::task_main(int argc, char *argv[])
 #endif // CONFIG_NET
 		}
 
-		check_radio_config();
+		configure_sik_radio();
 
-		if (status_sub->update(&status_time, &status)) {
+		if (status_sub.update(&status)) {
 			/* switch HIL mode if required */
 			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
-			set_manual_input_mode_generation(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+			set_generate_virtual_rc_input(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
 
 			if (_mode == MAVLINK_MODE_IRIDIUM) {
 
@@ -2278,9 +2264,9 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
-		vehicle_command_s vehicle_cmd{};
+		vehicle_command_s vehicle_cmd;
 
-		if (cmd_sub->update_if_changed(&vehicle_cmd)) {
+		if (cmd_sub.update(&vehicle_cmd)) {
 			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
 			    (_mode == MAVLINK_MODE_IRIDIUM)) {
 				if (vehicle_cmd.param1 > 0.5f) {
@@ -2317,9 +2303,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* send command ACK */
 		uint16_t current_command_ack = 0;
-		vehicle_command_ack_s command_ack{};
+		vehicle_command_ack_s command_ack;
 
-		if (ack_sub->update_if_changed(&command_ack)) {
+		if (ack_sub.update(&command_ack)) {
 			if (!command_ack.from_external) {
 				mavlink_command_ack_t msg;
 				msg.result = command_ack.result;
@@ -2338,9 +2324,9 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
-		mavlink_log_s mavlink_log{};
+		mavlink_log_s mavlink_log;
 
-		if (mavlink_log_sub->update_if_changed(&mavlink_log)) {
+		if (mavlink_log_sub.update(&mavlink_log)) {
 			_logbuffer.put(&mavlink_log);
 		}
 
@@ -2484,9 +2470,6 @@ Mavlink::task_main(int argc, char *argv[])
 	/* delete streams */
 	_streams.clear();
 
-	/* delete subscriptions */
-	_subscriptions.clear();
-
 	if (_uart_fd >= 0 && !_is_usb_uart) {
 		/* close UART */
 		::close(_uart_fd);
@@ -2603,11 +2586,10 @@ void Mavlink::publish_telemetry_status()
 	_telem_status_pub.publish(_tstatus);
 }
 
-void Mavlink::check_radio_config()
+void Mavlink::configure_sik_radio()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _param_mav_radio_id.get() != 0
-	    && _tstatus.type == telemetry_status_s::LINK_TYPE_3DR_RADIO) {
+	if (_uart_fd >= 0 && _param_sik_radio_id.get() != 0) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
 
@@ -2617,9 +2599,9 @@ void Mavlink::check_radio_config()
 			fprintf(fs, "+++\n");
 			px4_usleep(1200000);
 
-			if (_param_mav_radio_id.get() > 0) {
+			if (_param_sik_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%u\n", _param_mav_radio_id.get());
+				fprintf(fs, "ATS3=%u\n", _param_sik_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
@@ -2650,8 +2632,8 @@ void Mavlink::check_radio_config()
 		}
 
 		/* reset param and save */
-		_param_mav_radio_id.set(0);
-		_param_mav_radio_id.commit_no_notification();
+		_param_sik_radio_id.set(0);
+		_param_sik_radio_id.commit_no_notification();
 	}
 }
 
@@ -2750,9 +2732,8 @@ Mavlink::display_status()
 
 		printf("\ttype:\t\t");
 
-		switch (_tstatus.type) {
-		case telemetry_status_s::LINK_TYPE_3DR_RADIO:
-			printf("3DR RADIO\n");
+		if (_radio_status_available) {
+			printf("RADIO Link\n");
 			printf("\t  rssi:\t\t%d\n", _rstatus.rssi);
 			printf("\t  remote rssi:\t%u\n", _rstatus.remote_rssi);
 			printf("\t  txbuf:\t%u\n", _rstatus.txbuf);
@@ -2760,15 +2741,12 @@ Mavlink::display_status()
 			printf("\t  remote noise:\t%u\n", _rstatus.remote_noise);
 			printf("\t  rx errors:\t%u\n", _rstatus.rxerrors);
 			printf("\t  fixed:\t%u\n", _rstatus.fix);
-			break;
 
-		case telemetry_status_s::LINK_TYPE_USB:
+		} else if (_is_usb_uart) {
 			printf("USB CDC\n");
-			break;
 
-		default:
+		} else {
 			printf("GENERIC LINK OR RADIO\n");
-			break;
 		}
 
 	} else {

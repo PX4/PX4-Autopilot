@@ -140,7 +140,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"
 
-if [ $(which arm-none-eabi-gc) ]; then
+if [ $(which arm-none-eabi-gcc) ]; then
 	GCC_VER_STR=$(arm-none-eabi-gcc --version)
 	GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
 fi
@@ -172,12 +172,15 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	echo
 	echo "Installing PX4 simulation dependencies"
 
-	# java (jmavsim or fastrtps)
+	# Java 8 (jmavsim or fastrtps)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		ant \
 		openjdk-8-jre \
 		openjdk-8-jdk \
 		;
+
+    # Set Java 8 as default
+    sudo update-alternatives --set java $(update-alternatives --list java | grep "java-8")
 
 	# Gazebo
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'

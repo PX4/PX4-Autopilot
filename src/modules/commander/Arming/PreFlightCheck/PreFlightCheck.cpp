@@ -221,11 +221,6 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* ---- BARO ---- */
 	if (checkSensors) {
-		//bool prime_found = false;
-
-		int32_t prime_id = -1;
-		param_get(param_find("CAL_BARO_PRIME"), &prime_id);
-
 		int32_t sys_has_baro = 1;
 		param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
 
@@ -238,29 +233,13 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 			int32_t device_id = -1;
 
-			if (baroCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
-				if ((prime_id > 0) && (device_id == prime_id)) {
-					//prime_found = true;
-				}
-
-			} else {
+			if (!baroCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
 				if (required) {
 					failed = true;
 					baro_fail_reported = true;
 				}
 			}
 		}
-
-		// TODO there is no logic in place to calibrate the primary baro yet
-		// // check if the primary device is present
-		// if (false) {
-		// 	if (reportFailures && !failed) {
-		// 		mavlink_log_critical(mavlink_log_pub, "Primary barometer not operational");
-		// 	}
-
-		// 	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, false, true, false, status);
-		// 	failed = true;
-		// }
 	}
 
 	/* ---- IMU CONSISTENCY ---- */

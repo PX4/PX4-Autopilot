@@ -13,7 +13,7 @@ This repository holds the [PX4](http://px4.io) flight control solution for drone
   * [Multicopters](https://docs.px4.io/en/airframes/airframe_reference.html#copter)
   * [Fixed wing](https://docs.px4.io/en/airframes/airframe_reference.html#plane)
   * [VTOL](https://docs.px4.io/en/airframes/airframe_reference.html#vtol)
-  * many more experimental types (Rovers, Blimps, Boats, Submarines, etc)
+  * many more experimental types (Rovers, Blimps, Boats, Submarines, Autogyros, etc)
 * Releases: [Downloads](https://github.com/PX4/Firmware/releases)
 
 

@@ -271,7 +271,7 @@ if (NOT CATKIN_DEVEL_PREFIX)
 	# We have a custom error message to tell users how to install python3.
 	if (NOT PYTHONINTERP_FOUND)
 		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-			"    Ubuntu: sudo apt install python3 python3-devel python3-pip\n"
+			"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
 			"    macOS: brew install python")
 	endif()
 else()

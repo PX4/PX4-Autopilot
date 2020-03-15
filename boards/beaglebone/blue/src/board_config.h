@@ -61,6 +61,7 @@
 
 // ADC channels:
 #define ADC_CHANNELS (1 << 5)
+#define BOARD_ADC_POS_REF_V (1.8f)
 
 #define ADC_BATTERY_VOLTAGE_CHANNEL  5
 #define ADC_BATTERY_CURRENT_CHANNEL  ((uint8_t)(-1))

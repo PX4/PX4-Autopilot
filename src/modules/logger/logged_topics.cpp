@@ -36,7 +36,7 @@
 
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
-#include <uORB/uORBTopics.h>
+#include <uORB/topics/uORBTopics.hpp>
 
 #include <string.h>
 
@@ -61,6 +61,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_sensor_bias", 1000);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
+	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
@@ -70,6 +71,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 200);
+	add_topic("rpm", 500);
 	add_topic("safety", 1000);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_correction", 1000);
@@ -120,6 +122,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("fw_virtual_attitude_setpoint");
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("time_offset");
+	add_topic("vehicle_angular_acceleration", 10);
 	add_topic("vehicle_angular_velocity", 10);
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
@@ -133,8 +136,9 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("actuator_controls_0");
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
-	add_topic("rate_ctrl_status");
+	add_topic("rate_ctrl_status", 20);
 	add_topic("sensor_combined");
+	add_topic("vehicle_angular_acceleration");
 	add_topic("vehicle_angular_velocity");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
@@ -230,10 +234,11 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 			continue;
 		}
 
-		// read line with format: <topic_name>[, <interval>]
+		// read line with format: <topic_name>[ <interval>[ <instance>]]
 		char topic_name[80];
 		uint32_t interval_ms = 0;
-		int nfields = sscanf(line, "%s %u", topic_name, &interval_ms);
+		uint32_t instance = 0;
+		int nfields = sscanf(line, "%s %u %u", topic_name, &interval_ms, &instance);
 
 		if (nfields > 0) {
 			int name_len = strlen(topic_name);
@@ -243,7 +248,8 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 			}
 
 			/* add topic with specified interval_ms */
-			if (add_topic(topic_name, interval_ms)) {
+			if ((nfields > 2 && add_topic(topic_name, interval_ms, instance))
+			    || add_topic_multi(topic_name, interval_ms)) {
 				ntopics++;
 
 			} else {
@@ -293,9 +299,9 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 	}
 
 	RequestedSubscription &sub = _subscriptions.sub[_subscriptions.count++];
-	sub.topic = topic;
 	sub.interval_ms = interval_ms;
 	sub.instance = instance;
+	sub.id = static_cast<ORB_ID>(topic->o_id);
 	return true;
 }
 
@@ -310,7 +316,7 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 
 			// check if already added: if so, only update the interval
 			for (int j = 0; j < _subscriptions.count; ++j) {
-				if (_subscriptions.sub[j].topic == topics[i] &&
+				if (_subscriptions.sub[j].id == static_cast<ORB_ID>(topics[i]->o_id) &&
 				    _subscriptions.sub[j].instance == instance) {
 
 					PX4_DEBUG("logging topic %s(%d), interval: %i, already added, only setting interval",
@@ -395,4 +401,3 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 		add_vision_and_avoidance_topics();
 	}
 }
-

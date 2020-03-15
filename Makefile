@@ -141,6 +141,11 @@ else
 
 endif
 
+# Pick up specific Python path if set
+ifdef PYTHON_EXECUTABLE
+	CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
@@ -204,23 +209,13 @@ $(CONFIG_TARGETS_DEFAULT):
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
-posix: px4_sitl_default
-
 # board reorganization deprecation warnings (2018-11-22)
 define deprecation_warning
 	$(warning $(1) has been deprecated and will be removed, please use $(2)!)
 endef
 
-px4fmu-%_default:
-	$(call deprecation_warning, ${@},$(subst px4fmu,px4_fmu,$@))
-	$(MAKE) $(subst px4fmu,px4_fmu, $@)
-
-posix_sitl_default:
-	$(call deprecation_warning, ${@},px4_sitl_default)
-	$(MAKE) px4_sitl_default
-
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix px4_sitl_default all_config_targets all_default_targets
+.PHONY: all px4_sitl_default all_config_targets all_default_targets
 
 # Multi- config targets.
 eagle_default: atlflight_eagle_default atlflight_eagle_qurt
@@ -235,7 +230,7 @@ excelsior_rtps: atlflight_excelsior_rtps atlflight_excelsior_qurt-rtps
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware check_rtps
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware check_rtps
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware
@@ -261,11 +256,6 @@ misc_qgc_extra_firmware: \
 	check_px4_fmu-v2_lpe \
 	sizes
 
-# Other NuttX firmware
-alt_firmware: \
-	check_px4_cannode-v1_default \
-	sizes
-
 # builds with RTPS
 check_rtps: \
 	check_px4_fmu-v3_rtps \
@@ -280,9 +270,9 @@ sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
 
 # All default targets that don't require a special build environment
-check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware tests check_format
+check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware tests check_format
 
-# quick_check builds a single nuttx and posix target, runs testing, and checks the style
+# quick_check builds a single nuttx and SITL target, runs testing, and checks the style
 quick_check: check_px4_sitl_test check_px4_fmu-v5_default tests check_format
 
 check_%:
@@ -426,7 +416,7 @@ px4_sitl_default-clang:
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/px4_sitl_default-clang
 
 clang-tidy: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .

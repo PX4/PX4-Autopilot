@@ -22,7 +22,7 @@ then
 	param set BAT_N_CELLS 4
 
 	param set IMU_GYRO_CUTOFF 120
-	param set MC_DTERM_CUTOFF 45
+	param set IMU_DGYRO_CUTOFF 45
 
 	param set MC_AIRMODE 1
 	param set MC_PITCHRATE_D 0.0012
