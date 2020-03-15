@@ -63,6 +63,12 @@ void PositionControl::setThrustLimits(const float min, const float max)
 	_lim_thr_max = max;
 }
 
+void PositionControl::updateHoverThrust(const float hover_thrust_new)
+{
+	_vel_int(2) += hover_thrust_new - _hover_thrust;
+	setHoverThrust(hover_thrust_new);
+}
+
 void PositionControl::setState(const PositionControlStates &states)
 {
 	_pos = states.position;
