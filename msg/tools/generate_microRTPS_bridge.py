@@ -230,8 +230,15 @@ if fastrtpsgen_include is not None and fastrtpsgen_include != '':
 # get FastRTPS version (major.minor, since patch is not relevant at this stage)
 fastrtps_version = ""
 try:
-    fastrtps_version = float(subprocess.check_output(
-        "ldconfig -v | grep libfastrtps | tail -c 6", shell=True).decode("utf-8").strip()[-5:-2])
+    version = subprocess.check_output(
+        "ldconfig -v | grep libfastrtps", shell=True).decode("utf-8").strip().split('so.')[-1]
+    version = [int(v) for v in version.split('.')]
+
+    # convert version string to float (in case of 1.10, 1.91 temporarily)
+    fastrtps_version  = 0.0
+    fastrtps_version += version[0]
+    fastrtps_version += version[1] * 0.1 if version[1] < 10 else 0.9 + 0.01*(version[1]-9)
+
 except ValueError:
     print("No valid version found to FasRTPS. Make sure it is installed.")
 
