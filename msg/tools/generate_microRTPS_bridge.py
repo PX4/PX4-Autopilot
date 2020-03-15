@@ -264,18 +264,15 @@ fastrtps_version = subprocess.check_output(
     "ldconfig -v | grep libfastrtps", shell=True).decode("utf-8").strip().split('so.')[-1]
 
 # get ROS 2 version, if exists
-ros2_distro = ""
-try:
-    rosversion_out = subprocess.check_output(["rosversion", "-d"])
-    rosversion_out = rosversion_out.rstrip().decode('utf-8')
-    if rosversion_out not in ["<unknown>", "kinetic", "lunar", "melodic"]:
-        ros2_distro = rosversion_out
-except OSError as e:
-    if e.errno == errno.ENOENT:
-        if args.ros2_distro != None:
-            ros2_distro = args.ros2_distro
-    else:
-        raise
+ros2_distro = ''
+ros_version = os.environ.get('ROS_VERSION')
+if ros_version == '2' :
+    if args.ros2_distro != '':
+        ros2_distro = args.ros2_distro
+    else :
+        ros2_distro = os.environ.get('ROS_DISTRO')
+else :
+    raise ValueError
 
 # If nothing specified it's generated both
 if agent == False and client == False:
