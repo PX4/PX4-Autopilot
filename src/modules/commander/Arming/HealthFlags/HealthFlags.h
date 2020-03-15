@@ -47,3 +47,4 @@
 void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status);
 void set_health_flags_present_healthy(uint64_t subsystem_type, bool present, bool healthy, vehicle_status_s &status);
 void set_health_flags_healthy(uint64_t subsystem_type, bool healthy, vehicle_status_s &status);
+void print_health_flags(vehicle_status_s &status);
