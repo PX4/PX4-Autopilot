@@ -91,6 +91,7 @@ void _print_sub(const char *name, const vehicle_status_s &status, uint32_t bit)
 
 void print_health_flags(const vehicle_status_s &status)
 {
+#ifndef CONSTRAINED_FLASH
 	PX4_INFO("DEVICE\t\tSTATUS");
 	PX4_INFO("----------------------------------");
 	_print_sub("GYRO", status, subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
@@ -123,4 +124,5 @@ void print_health_flags(const vehicle_status_s &status)
 	_print_sub("SATCOM", status, subsystem_info_s::SUBSYSTEM_TYPE_SATCOM);
 	_print_sub("PREARM", status, subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK);
 	_print_sub("OBSAVD", status, subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE);
+#endif
 }
