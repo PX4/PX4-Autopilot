@@ -67,7 +67,8 @@ typedef const struct orb_metadata *orb_id_t;
  * Relevant for multi-topics / topic groups
  */
 enum ORB_PRIO {
-	ORB_PRIO_MIN = 1, // leave 0 free for other purposes, eg. marking an uninitialized value
+	ORB_PRIO_UNINITIALIZED = 0,
+	ORB_PRIO_MIN = 1,
 	ORB_PRIO_VERY_LOW = 25,
 	ORB_PRIO_LOW = 50,
 	ORB_PRIO_DEFAULT = 75,
@@ -219,11 +220,6 @@ extern int	orb_copy(const struct orb_metadata *meta, int handle, void *buffer) _
  * @see uORB::Manager::orb_check()
  */
 extern int	orb_check(int handle, bool *updated) __EXPORT;
-
-/**
- * @see uORB::Manager::orb_stat()
- */
-extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_exists()

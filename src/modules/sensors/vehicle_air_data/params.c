@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,26 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_orb_subscription.cpp
- * uORB subscription implementation.
+ * QNH for barometer
+ *
+ * @min 500
+ * @max 1500
+ * @group Sensors
+ * @unit hPa
+ *
+ * @reboot_required true
  *
  */
-
-#include "mavlink_orb_subscription.h"
-
-bool
-MavlinkOrbSubscription::is_published()
-{
-	const bool published = _sub.advertised();
-
-	if (published) {
-		return true;
-
-	} else if (!published && _subscribe_from_beginning) {
-		// For some topics like vehicle_command_ack, we want to subscribe
-		// from the beginning in order not to miss or delay the first publish respective advertise.
-		return _sub.subscribe();
-	}
-
-	return false;
-}
+PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);

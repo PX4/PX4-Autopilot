@@ -41,7 +41,6 @@ px4_add_module(
 	SRCS
 		accelerometer_calibration.cpp
 		airspeed_calibration.cpp
-		baro_calibration.cpp
 		calibration_routines.cpp
 		Commander.cpp
 		commander_helper.cpp

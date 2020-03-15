@@ -150,19 +150,16 @@ bool MicroBenchORB::time_px4_uorb()
 	uint64_t time = 0;
 
 	PERF("orb_check vehicle_status", ret = orb_check(fd_status, &updated), 1000);
-	PERF("orb_stat vehicle_status", ret = orb_stat(fd_status, &time), 1000);
 	PERF("orb_copy vehicle_status", ret = orb_copy(ORB_ID(vehicle_status), fd_status, &status), 1000);
 
 	printf("\n");
 
 	PERF("orb_check vehicle_local_position", ret = orb_check(fd_lpos, &updated), 1000);
-	PERF("orb_stat vehicle_local_position", ret = orb_stat(fd_lpos, &time), 1000);
 	PERF("orb_copy vehicle_local_position", ret = orb_copy(ORB_ID(vehicle_local_position), fd_lpos, &lpos), 1000);
 
 	printf("\n");
 
 	PERF("orb_check sensor_gyro", ret = orb_check(fd_gyro, &updated), 1000);
-	PERF("orb_stat sensor_gyro", ret = orb_stat(fd_gyro, &time), 1000);
 	PERF("orb_copy sensor_gyro", ret = orb_copy(ORB_ID(sensor_gyro), fd_gyro, &gyro), 1000);
 
 	printf("\n");

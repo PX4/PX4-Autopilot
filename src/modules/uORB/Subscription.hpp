@@ -119,17 +119,6 @@ public:
 	bool update(void *dst) { return updated() ? copy(dst) : false; }
 
 	/**
-	 * Check if subscription updated based on timestamp.
-	 *
-	 * @return true only if topic was updated based on a timestamp and
-	 * copied to buffer successfully.
-	 * If topic was not updated since last check it will return false but
-	 * still copy the data.
-	 * If no data available data buffer will be filled with zeros.
-	 */
-	bool update(uint64_t *time, void *dst);
-
-	/**
 	 * Copy the struct
 	 * @param data The uORB message struct we are updating.
 	 */
@@ -137,6 +126,7 @@ public:
 
 	uint8_t		get_instance() const { return _instance; }
 	orb_id_t	get_topic() const { return get_orb_meta(_orb_id); }
+	ORB_PRIO	get_priority() { return advertised() ? _node->get_priority() : ORB_PRIO_UNINITIALIZED; }
 
 protected:
 
