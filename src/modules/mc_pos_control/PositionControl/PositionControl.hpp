@@ -114,10 +114,17 @@ public:
 	void setTiltLimit(const float tilt) { _lim_tilt = tilt; }
 
 	/**
-	 * Set the maximum tilt angle in radians the output attitude is allowed to have
-	 * @param thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation
+	 * Set the normalized hover thrust
+	 * @param thrust [0,1] with which the vehicle hovers not acelerating down or up with level orientation
 	 */
-	void setHoverThrust(const float thrust) { _hover_thrust = thrust; }
+	void setHoverThrust(const float hover_thrust) { _hover_thrust = hover_thrust; }
+
+	/**
+	 * Update the hover thrust without immediately affecting the output
+	 * by adjusting the integrator. This prevents propagating the dynamics
+	 * of the hover thrust signal directly to the output of the controller.
+	 */
+	void updateHoverThrust(const float hover_thrust_new);
 
 	/**
 	 * Pass the current vehicle state to the controller
@@ -155,6 +162,11 @@ public:
 	 * @see _vel_int
 	 */
 	void resetIntegral() { _vel_int.setZero(); }
+
+	/**
+	 * @return the value of the velocity integrator
+	 */
+	matrix::Vector3f getIntegral() const { return _vel_int; }
 
 	/**
 	 * Get the controllers output local position setpoint

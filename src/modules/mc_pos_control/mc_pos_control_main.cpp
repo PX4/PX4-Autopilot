@@ -373,7 +373,7 @@ MulticopterPositionControl::parameters_update(bool force)
 				mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
 			}
 
-			_control.setHoverThrust(_param_mpc_thr_hover.get());
+			_control.updateHoverThrust(_param_mpc_thr_hover.get());
 		}
 
 		_flight_tasks.handleParameterUpdate();
@@ -415,7 +415,7 @@ MulticopterPositionControl::poll_subscriptions()
 		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
-			_control.setHoverThrust(hte.hover_thrust);
+			_control.updateHoverThrust(hte.hover_thrust);
 		}
 	}
 }
