@@ -36,9 +36,10 @@
 #include <ArmAuthorization.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <HealthFlags.h>
 
 bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-				 const safety_s &safety, const arm_requirements_t &arm_requirements, const vehicle_status_s &status, bool report_fail)
+				 const safety_s &safety, const arm_requirements_t &arm_requirements, vehicle_status_s &status, bool report_fail)
 {
 	bool prearm_ok = true;
 
@@ -60,6 +61,10 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 
 		// main battery level
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_SENSORBATTERY, true, true,
+				 status_flags.condition_battery_healthy, status);
+
+		// Only arm if healthy
 		if (!status_flags.condition_battery_healthy) {
 			if (prearm_ok) {
 				if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! Check battery"); }
@@ -89,7 +94,6 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 	}
 
-	// Arm Requirements: global position
 	if (arm_requirements.global_position) {
 
 		if (!status_flags.condition_global_position_valid) {

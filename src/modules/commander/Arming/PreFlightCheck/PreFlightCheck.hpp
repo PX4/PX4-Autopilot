@@ -89,7 +89,7 @@ public:
 	};
 
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-				const safety_s &safety, const arm_requirements_t &arm_requirements, const vehicle_status_s &status,
+				const safety_s &safety, const arm_requirements_t &arm_requirements, vehicle_status_s &status,
 				bool report_fail = true);
 
 private:
