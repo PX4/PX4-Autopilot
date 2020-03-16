@@ -11,6 +11,7 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
+from packaging import version
 import genmsg.msgs
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
@@ -69,12 +70,11 @@ except AttributeError:
 
 #include <fastrtps/Domain.h>
 
-@[if fastrtps_version <= 1.7]@
+@[if version.parse(fastrtps_version) <= version.parse('1.7')]@
 #include <fastrtps/utils/eClock.h>
 @[end if]@
 
 #include "@(topic)_Publisher.h"
-
 
 @(topic)_Publisher::@(topic)_Publisher()
     : mp_participant(nullptr),
@@ -91,7 +91,7 @@ bool @(topic)_Publisher::init()
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0;
-@[if fastrtps_version <= 1.8]@
+@[if version.parse(fastrtps_version) <= version.parse('1.8')]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
