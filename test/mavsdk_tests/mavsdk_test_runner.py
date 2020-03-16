@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
+import datetime
 import json
+import math
 import os
 import psutil  # type: ignore
 import signal
@@ -126,6 +128,7 @@ class Tester:
         self.log_dir = log_dir
         self.gui = gui
         self.verbose = verbose
+        self.start_time = datetime.datetime.now()
 
     @classmethod
     def determine_tests(cls, tests: List[Dict[str, Any]], model: str) \
@@ -194,7 +197,6 @@ class Tester:
         print()
 
     def prepare_for_results(self) -> None:
-        # prepare dict entry for results
         for test in self.tests:
             if not test['selected']:
                 continue
@@ -207,14 +209,13 @@ class Tester:
                 print("%%% Test iteration: {} / {}".
                       format(iteration + 1, self.iterations))
 
-            success = self.run_iteration()
+            success = self.run_iteration(iteration)
             if not success:
                 if self.abort_early:
                     break
 
-    def run_iteration(self) -> bool:
+    def run_iteration(self, iteration: int) -> bool:
         iteration_success = True
-
         for test in self.tests:
             if not test['selected']:
                 continue
@@ -226,7 +227,15 @@ class Tester:
             for i, case in enumerate(test['cases']):
                 print("--> Test case {} of {}: '{}' running ...".
                       format(i+1, len(test['cases']), case))
-                was_success = self.run_test_case(test, case)
+
+                log_dir = self.get_log_dir(iteration, test['model'], case)
+                if self.verbose:
+                    print("creating log directory: {}"
+                          .format(log_dir))
+                os.makedirs(log_dir, exist_ok=True)
+
+                was_success = self.run_test_case(test, case, log_dir)
+
                 if was_success:
                     print(colorize(
                         "--- Test case {} of {}: '{}' succeeded."
@@ -247,7 +256,23 @@ class Tester:
 
         return iteration_success
 
-    def run_test_case(self, test: Dict[str, Any], case: str) -> bool:
+    def get_log_dir(self, iteration: int, model: str, case: str) -> str:
+        date_and_time = self.start_time.strftime("%Y-%m-%dT%H-%M-%SZ")
+        foldername = os.path.join(self.log_dir, date_and_time)
+
+        if self.iterations > 1:
+            # Use as many zeros in foldername as required.
+            digits = math.floor(math.log10(self.iterations)) + 1
+            foldername = os.path.join(foldername,
+                                      str(iteration + 1).zfill(digits))
+
+        foldername = os.path.join(foldername, model)
+        foldername = os.path.join(foldername, case.replace(" ", "_"))
+
+        return foldername
+
+    def run_test_case(self, test: Dict[str, Any],
+                      case: str, logfile_path: str) -> bool:
         self.active_runners = []
 
         speed_factor = self.speed_factor
@@ -257,8 +282,9 @@ class Tester:
         if self.config['mode'] == 'sitl':
             px4_runner = ph.Px4Runner(
                 os.getcwd(),
-                self.log_dir,
-                test,
+                logfile_path,
+                test['model'],
+                case,
                 speed_factor,
                 self.debugger,
                 self.verbose)
@@ -268,8 +294,9 @@ class Tester:
             if self.config['simulator'] == 'gazebo':
                 gzserver_runner = ph.GzserverRunner(
                     os.getcwd(),
-                    self.log_dir,
-                    test,
+                    logfile_path,
+                    test['model'],
+                    case,
                     self.speed_factor,
                     self.verbose)
                 gzserver_runner.start()
@@ -278,16 +305,17 @@ class Tester:
                 if self.gui:
                     gzclient_runner = ph.GzclientRunner(
                         os.getcwd(),
-                        self.log_dir,
-                        test,
+                        logfile_path,
+                        test['model'],
+                        case,
                         self.verbose)
                     gzclient_runner.start()
                     self.active_runners.append(gzclient_runner)
 
         test_runner = ph.TestRunner(
             os.getcwd(),
-            self.log_dir,
-            test,
+            logfile_path,
+            test['model'],
             case,
             self.config['mavlink_connection'],
             self.verbose)
@@ -315,18 +343,26 @@ class Tester:
         for runner in self.active_runners:
             runner.stop()
 
-        test['cases'][case]['results'].append(is_success)
+        result = {'success': is_success,
+                  'logfiles': [runner.get_log_filename()
+                               for runner in self.active_runners]}
+        test['cases'][case]['results'].append(result)
+
+        if not is_success:
+            # TODO: print error and logfiles
+            pass
+
         return is_success
 
     def show_detailed_results(self) -> None:
-
         print()
         print(colorize("Results:", color.BOLD))
 
         for test in self.tests:
             if not test['selected']:
-                print(colorize(colorize("  - {} (not selected)".
-                               format(test['model']), color.BOLD), color.GRAY))
+                print(colorize(colorize(
+                    "  - {} (not selected)".
+                    format(test['model']), color.BOLD), color.GRAY))
                 continue
             else:
                 print(colorize("  - {}:".format(test['model']), color.BOLD))
@@ -334,8 +370,10 @@ class Tester:
             for name, case in test['cases'].items():
                 print("     - '{}': ".format(name), end="")
 
-                n_succeeded = case['results'].count(True)
-                n_failed = case['results'].count(False)
+                n_succeeded = [result['success']
+                               for result in case['results']].count(True)
+                n_failed = [result['success']
+                            for result in case['results']].count(False)
                 n_cancelled = self.iterations - len(case['results'])
 
                 notes = [
