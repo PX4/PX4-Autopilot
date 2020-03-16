@@ -2,6 +2,11 @@
 #
 # @name Crazyflie 2
 #
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Dennis Shtatov <densht@gmail.com>
+#
 # @board px4_fmu-v2 exclude
 # @board px4_fmu-v3 exclude
 # @board px4_fmu-v4 exclude
@@ -9,11 +14,6 @@
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
 # @board intel_aerofc-v1 exclude
-#
-# @type Quadrotor x
-# @class Copter
-#
-# @maintainer Dennis Shtatov <densht@gmail.com>
 #
 sh /etc/init.d/rc.mc_defaults
 
