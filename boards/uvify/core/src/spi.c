@@ -59,7 +59,7 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
-
+#ifdef BOARD_HAS_BUS_MANIFEST
 __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
 {
 	bool rv = true;
@@ -77,7 +77,7 @@ __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
 
 	return rv;
 }
-
+#endif
 /************************************************************************************
  * Name: stm32_spiinitialize
  *
@@ -107,9 +107,10 @@ __EXPORT void stm32_spiinitialize(int mask)
 
 #ifdef CONFIG_STM32_SPI2
 
-	if (mask & (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_BARO)) {
+	if (mask & (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_BARO | PX4_SPI_BUS_EXTERNAL)) {
 		stm32_configgpio(GPIO_SPI2_CS_MS5611);
 		stm32_configgpio(GPIO_SPI2_CS_FRAM);
+		stm32_configgpio(GPIO_SPI2_CS_EXTERNAL);
 	}
 
 #endif
@@ -182,14 +183,23 @@ __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool s
 	switch (devid) {
 	case SPIDEV_FLASH(0):
 		/* Making sure the other peripherals are not selected */
-		stm32_gpiowrite(GPIO_SPI2_CS_MS5611, 1);
 		stm32_gpiowrite(GPIO_SPI2_CS_FRAM, !selected);
+		stm32_gpiowrite(GPIO_SPI2_CS_MS5611, 1);
+		stm32_gpiowrite(GPIO_SPI2_CS_EXTERNAL, 1);
 		break;
 
 	case PX4_SPIDEV_BARO:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI2_CS_FRAM, 1);
 		stm32_gpiowrite(GPIO_SPI2_CS_MS5611, !selected);
+		stm32_gpiowrite(GPIO_SPI2_CS_EXTERNAL, 1);
+		break;
+
+	case PX4_SPIDEV_EXTERNAL:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI2_CS_FRAM, 1);
+		stm32_gpiowrite(GPIO_SPI2_CS_MS5611, 1);
+		stm32_gpiowrite(GPIO_SPI2_CS_EXTERNAL, !selected);
 		break;
 
 	default:
