@@ -11,7 +11,7 @@ import subprocess
 import sys
 from logger_helper import color, colorize
 import process_helper as ph
-from typing import Any, Dict, List, NoReturn, Optional
+from typing import Any, Dict, List, NoReturn, TextIO, Optional
 from types import FrameType
 
 
@@ -129,6 +129,7 @@ class Tester:
         self.gui = gui
         self.verbose = verbose
         self.start_time = datetime.datetime.now()
+        self.combined_log_fd = TextIO
 
     @classmethod
     def determine_tests(cls, tests: List[Dict[str, Any]], model: str) \
@@ -272,7 +273,7 @@ class Tester:
         return foldername
 
     def run_test_case(self, test: Dict[str, Any],
-                      case: str, logfile_path: str) -> bool:
+                      case: str, log_dir: str) -> bool:
         self.active_runners = []
 
         speed_factor = self.speed_factor
@@ -282,46 +283,52 @@ class Tester:
         if self.config['mode'] == 'sitl':
             px4_runner = ph.Px4Runner(
                 os.getcwd(),
-                logfile_path,
+                log_dir,
                 test['model'],
                 case,
                 speed_factor,
                 self.debugger,
                 self.verbose)
-            px4_runner.start()
             self.active_runners.append(px4_runner)
 
             if self.config['simulator'] == 'gazebo':
                 gzserver_runner = ph.GzserverRunner(
                     os.getcwd(),
-                    logfile_path,
+                    log_dir,
                     test['model'],
                     case,
                     self.speed_factor,
                     self.verbose)
-                gzserver_runner.start()
                 self.active_runners.append(gzserver_runner)
 
                 if self.gui:
                     gzclient_runner = ph.GzclientRunner(
                         os.getcwd(),
-                        logfile_path,
+                        log_dir,
                         test['model'],
                         case,
                         self.verbose)
-                    gzclient_runner.start()
                     self.active_runners.append(gzclient_runner)
 
         test_runner = ph.TestRunner(
             os.getcwd(),
-            logfile_path,
+            log_dir,
             test['model'],
             case,
             self.config['mavlink_connection'],
             self.verbose)
 
-        test_runner.start()
         self.active_runners.append(test_runner)
+
+        for runner in self.active_runners:
+            runner.set_log_filename(
+                self.determine_logfile_path(log_dir, runner.name))
+            runner.start()
+
+        max_name = max(len(runner.name) for runner in self.active_runners)
+
+        self.start_combined_log(
+            self.determine_logfile_path(log_dir, 'combined'))
 
         while test_runner.time_elapsed_s() < test['timeout_min']*60:
             returncode = test_runner.poll()
@@ -329,9 +336,15 @@ class Tester:
                 is_success = (returncode == 0)
                 break
 
-            if self.verbose:
-                for runner in self.active_runners:
-                    runner.print_output()
+            for runner in self.active_runners:
+                output = runner.get_output()
+                if not output:
+                    continue
+
+                output = self.add_name_prefix(max_name, runner.name, output)
+                self.add_to_combined_log(output)
+                if self.verbose:
+                    print(output)
 
         else:
             print(colorize(
@@ -342,6 +355,7 @@ class Tester:
 
         for runner in self.active_runners:
             runner.stop()
+        self.stop_combined_log()
 
         result = {'success': is_success,
                   'logfiles': [runner.get_log_filename()
@@ -353,6 +367,23 @@ class Tester:
             pass
 
         return is_success
+
+    def start_combined_log(self, filename: str) -> None:
+        self.log_fd = open(filename, 'w')
+
+    def stop_combined_log(self) -> None:
+        self.log_fd.close()
+
+    def add_to_combined_log(self, output: str) -> None:
+        self.log_fd.write(output)
+
+    @staticmethod
+    def add_name_prefix(width: int, name: str, text: str) -> str:
+        return colorize("[" + name.ljust(width) + "] " + text, color.RESET)
+
+    @staticmethod
+    def determine_logfile_path(log_dir: str, desc: str) -> str:
+        return os.path.join(log_dir, "log-{}.log".format(desc))
 
     def show_detailed_results(self) -> None:
         print()
@@ -416,6 +447,7 @@ class Tester:
         print("Stopping all processes ...")
         for runner in self.active_runners:
             runner.stop()
+        self.stop_combined_log()
         print("Stopping all processes done.")
         self.show_detailed_results()
         sys.exit(-sig)
