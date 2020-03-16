@@ -156,6 +156,7 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	return ret;
 }
 
+#ifndef CONSTRAINED_FLASH
 static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN, float param3 = NAN,
 				 float param4 = NAN, float param5 = NAN, float param6 = NAN, float param7 = NAN)
 {
@@ -183,6 +184,7 @@ static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 
 
 	return vcmd_pub.publish(vcmd);
 }
+#endif
 
 extern "C" __EXPORT int commander_main(int argc, char *argv[])
 {
@@ -245,6 +247,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 		PX4_INFO("arming: %s", arming_state_names[status.arming_state]);
 		return 0;
 	}
+
+#ifndef CONSTRAINED_FLASH
 
 	if (!strcmp(argv[1], "calibrate")) {
 		if (argc > 2) {
@@ -410,6 +414,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 		return (ret ? 0 : 1);
 	}
+
+#endif
 
 	Commander::print_usage("unrecognized command");
 	return 1;
@@ -4063,6 +4069,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_NAME("commander", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Enable HIL mode", true);
+#ifndef CONSTRAINED_FLASH
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run sensor calibration");
 	PRINT_MODULE_USAGE_ARG("mag|accel|gyro|level|esc|airspeed", "Calibration type", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
@@ -4077,6 +4084,7 @@ The commander module contains the state machine for mode switching and failsafe 
 			"Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("lockdown");
 	PRINT_MODULE_USAGE_ARG("off", "Turn lockdown off", true);
+#endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 1;
