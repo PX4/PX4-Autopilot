@@ -80,6 +80,7 @@ px4_add_romfs_files(
 	4070_aerofc
 	4071_ifo
 	4072_draco
+	4073_ifo-s
 	4080_zmr250
 	4090_nanomind
 	4100_tiltquadrotor
