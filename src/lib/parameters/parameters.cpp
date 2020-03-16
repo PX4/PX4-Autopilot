@@ -821,22 +821,39 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	if (handle_in_range(param)) {
 		param_wbuf_s *s = param_find_changed(param);
 
-		// // don't store new value if default
-		// if (val_is_default) {
-		// 	if (s == nullptr) {
-		// 		params_changed = true;
-		// 		result = 0;
-		// 		goto out;
+		bool val_is_default = false;
 
-		// 	} else {
-		// 		// if already in array, then find it and erase
-		// 		int pos = utarray_eltidx(param_values, s);
-		// 		utarray_erase(param_values, pos, 1);
-		// 		params_changed = true;
-		// 		result = 0;
-		// 		goto out;
-		// 	}
-		// }
+		switch (param_type(param)) {
+		case PARAM_TYPE_INT32:
+			int32_t val_default_i;
+			param_get_default_value(param, &val_default_i);
+			val_is_default = (val_default_i == *(int32_t *)val);
+			break;
+
+		case PARAM_TYPE_FLOAT:
+			float val_default_f;
+			param_get_default_value(param, &val_default_f);
+			val_is_default = (fabsf(val_default_f - * (float *)val) < FLT_EPSILON);
+
+			break;
+		}
+
+		// don't store new value if default
+		if (val_is_default) {
+			if (s == nullptr) {
+				params_changed = true;
+				result = 0;
+				goto out;
+
+			} else {
+				// if already in array, then find it and erase
+				int pos = utarray_eltidx(param_values, s);
+				utarray_erase(param_values, pos, 1);
+				params_changed = true;
+				result = 0;
+				goto out;
+			}
+		}
 
 		if (s == nullptr) {
 			/* construct a new parameter */
