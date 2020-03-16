@@ -32,9 +32,8 @@ class Runner:
         self.log_dir = log_dir
         self.log_filename = ""
 
-    def set_log_filename(self) -> None:
-        self.log_filename = self.log_dir + os.path.sep + \
-            "log-{}.log".format(self.name)
+    def set_log_filename(self, log_filename: str) -> None:
+        self.log_filename = log_filename
 
     def get_log_filename(self) -> str:
         return self.log_filename
@@ -45,7 +44,6 @@ class Runner:
 
         atexit.register(self.stop)
 
-        self.set_log_filename()
         if self.verbose:
             print("Logging to {}".format(self.log_filename))
         self.log_fd = open(self.log_filename, 'w')
@@ -88,17 +86,9 @@ class Runner:
 
     def get_output(self) -> Optional[str]:
         try:
-            output = self.output_queue.get(block=True, timeout=0.1)
-            return maybe_strip_color(output)
+            return self.output_queue.get(block=True, timeout=0.1)
         except queue.Empty:
             return None
-
-    def print_output(self) -> None:
-        output = self.get_output()
-        if not output:
-            return
-        print(colorize("[" + self.name.ljust(11) + "] " + output, color.RESET),
-              end="")
 
     def stop(self) -> int:
         atexit.unregister(self.stop)
