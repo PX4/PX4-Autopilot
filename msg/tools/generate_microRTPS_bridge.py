@@ -227,13 +227,9 @@ if fastrtpsgen_include is not None and fastrtpsgen_include != '':
         os.path.abspath(
             args.fastrtpsgen_include) + " "
 
-# get FastRTPS version (major.minor, since patch is not relevant at this stage)
-fastrtps_version = ""
-try:
-    fastrtps_version = float(subprocess.check_output(
-        "ldconfig -v | grep libfastrtps | tail -c 6", shell=True).decode("utf-8").strip()[-5:-2])
-except ValueError:
-    print("No valid version found to FasRTPS. Make sure it is installed.")
+# get FastRTPS version
+fastrtps_version = subprocess.check_output(
+    "ldconfig -v | grep libfastrtps", shell=True).decode("utf-8").strip().split('so.')[-1]
 
 # get ROS 2 version, if exists
 ros2_distro = ""

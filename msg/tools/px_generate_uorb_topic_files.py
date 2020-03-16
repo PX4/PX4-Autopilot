@@ -43,6 +43,7 @@ import shutil
 import filecmp
 import argparse
 import sys
+from packaging import version
 
 try:
     import em
@@ -187,7 +188,7 @@ def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, pack
         os.makedirs(outputdir)
 
     template_file = os.path.join(templatedir, IDL_TEMPLATE_FILE)
-    if 1.5 <= fastrtps_version <= 1.7:
+    if version.parse(fastrtps_version) <= version.parse('1.7'):
         output_file = os.path.join(outputdir, IDL_TEMPLATE_FILE.replace(
             "msg.idl.em", str(spec_short_name + "_.idl")))
     else:
