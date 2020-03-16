@@ -3,7 +3,6 @@
 import queue
 import time
 import os
-import datetime
 import atexit
 import subprocess
 import threading
@@ -15,29 +14,30 @@ from typing import Dict, List, TextIO, Optional
 class Runner:
     def __init__(self,
                  log_dir: str,
-                 config: Dict[str, str],
+                 model: str,
+                 case: str,
                  verbose: bool):
         self.name = ""
         self.cmd = ""
         self.cwd = ""
         self.args: List[str]
         self.env: Dict[str, str]
-        self.log_dir = log_dir
-        self.config = config
+        self.model = model
+        self.case = case
         self.log_filename = ""
         self.log_fd: TextIO
         self.verbose = verbose
         self.output_queue: queue.Queue[str] = queue.Queue()
         self.start_time = time.time()
+        self.log_dir = log_dir
+        self.log_filename = ""
 
-    def create_log_filename(self, model: str, test_filter: str) -> str:
-        return self.log_dir + os.path.sep + \
-            "log-{}-{}-{}-{}.log".format(
-                self.name,
-                model,
-                test_filter,
-                datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ"))
-        # TODO: improve logfilename, create folder, create merged log.
+    def set_log_filename(self) -> None:
+        self.log_filename = self.log_dir + os.path.sep + \
+            "log-{}.log".format(self.name)
+
+    def get_log_filename(self) -> str:
+        return self.log_filename
 
     def start(self) -> None:
         if self.verbose:
@@ -45,8 +45,9 @@ class Runner:
 
         atexit.register(self.stop)
 
-        self.log_filename = self.create_log_filename(
-            self.config['model'], self.config['test_filter'])
+        self.set_log_filename()
+        if self.verbose:
+            print("Logging to {}".format(self.log_filename))
         self.log_fd = open(self.log_filename, 'w')
 
         self.process = subprocess.Popen(
@@ -138,9 +139,9 @@ class Runner:
 
 class Px4Runner(Runner):
     def __init__(self, workspace_dir: str, log_dir: str,
-                 config: Dict[str, str], speed_factor: float,
+                 model: str, case: str, speed_factor: float,
                  debugger: str, verbose: bool):
-        super().__init__(log_dir, config, verbose)
+        super().__init__(log_dir, model, case, verbose)
         self.name = "px4"
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
@@ -153,7 +154,7 @@ class Px4Runner(Runner):
                 "-d"
             ]
         self.env = {"PATH": str(os.environ['PATH']),
-                    "PX4_SIM_MODEL": str(config['model']),
+                    "PX4_SIM_MODEL": self.model,
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.debugger = debugger
 
@@ -179,10 +180,11 @@ class GzserverRunner(Runner):
     def __init__(self,
                  workspace_dir: str,
                  log_dir: str,
-                 config: Dict[str, str],
+                 model: str,
+                 case: str,
                  speed_factor: float,
                  verbose: bool):
-        super().__init__(log_dir, config, verbose)
+        super().__init__(log_dir, model, case, verbose)
         self.name = "gzserver"
         self.cwd = workspace_dir
         self.env = {"PATH": os.environ['PATH'],
@@ -196,16 +198,17 @@ class GzserverRunner(Runner):
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
-                     config['model'] + ".world"]
+                     self.model + ".world"]
 
 
 class GzclientRunner(Runner):
     def __init__(self,
                  workspace_dir: str,
                  log_dir: str,
-                 config: Dict[str, str],
+                 model: str,
+                 case: str,
                  verbose: bool):
-        super().__init__(log_dir, config, verbose)
+        super().__init__(log_dir, model, case, verbose)
         self.name = "gzclient"
         self.cwd = workspace_dir
         self.env = {"PATH": os.environ['PATH'],
@@ -223,14 +226,14 @@ class TestRunner(Runner):
     def __init__(self,
                  workspace_dir: str,
                  log_dir: str,
-                 config: Dict[str, str],
-                 test: str,
+                 model: str,
+                 case: str,
                  mavlink_connection: str,
                  verbose: bool):
-        super().__init__(log_dir, config, verbose)
+        super().__init__(log_dir, model, case, verbose)
         self.name = "test_runner"
         self.cwd = workspace_dir
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
-        self.args = ["--url", mavlink_connection, test]
+        self.args = ["--url", mavlink_connection, case]
