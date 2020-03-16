@@ -47,6 +47,7 @@
 
 #include <px4_platform_common/log.h>
 #include "pxh.h"
+#include "console.h"
 
 namespace px4_daemon
 {
@@ -257,23 +258,31 @@ void Pxh::stop()
 
 void Pxh::_setup_term()
 {
+	int terminalfd = 0;
+#ifdef __PX4_LINUX
+	terminalfd = px4_console::_sys_stdin_backup == -1 ? 0 : px4_console::_sys_stdin_backup;
+#endif
 	// Make sure we restore terminal at exit.
-	tcgetattr(0, &_orig_term);
+	tcgetattr(terminalfd, &_orig_term);
 	atexit(Pxh::_restore_term);
 
 	// change input mode so that we can manage shell
 	struct termios term;
-	tcgetattr(0, &term);
+	tcgetattr(terminalfd, &term);
 	term.c_lflag &= ~ICANON;
 	term.c_lflag &= ~ECHO;
-	tcsetattr(0, TCSANOW, &term);
+	tcsetattr(terminalfd, TCSANOW, &term);
 	setbuf(stdin, nullptr);
 }
 
 void Pxh::_restore_term()
 {
 	if (_instance) {
-		tcsetattr(0, TCSANOW, &_instance->_orig_term);
+		int terminalfd = 0;
+#ifdef __PX4_LINUX
+		terminalfd = px4_console::_sys_stdin_backup == -1 ? 0 : px4_console::_sys_stdin_backup;
+#endif
+		tcsetattr(terminalfd, TCSANOW, &_instance->_orig_term);
 	}
 }
 

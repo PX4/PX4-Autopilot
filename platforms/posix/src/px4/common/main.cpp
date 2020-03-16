@@ -74,6 +74,9 @@
 #include "px4_daemon/client.h"
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
+#ifdef __PX4_LINUX
+#include "px4_daemon/console.h"
+#endif
 
 #define MODULE_NAME "px4"
 
@@ -175,6 +178,15 @@ int main(int argc, char **argv)
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
+#ifdef __PX4_LINUX
+
+		if (px4_console::prepare_fds() != 0) {
+			PX4_ERR("failed to prepare console fd");
+			return -1;
+		}
+
+		atexit(px4_console::clean_fds);
+#endif
 		/* Server/daemon apps need to parse the command line arguments. */
 
 		std::string data_path{};
@@ -281,6 +293,9 @@ int main(int argc, char **argv)
 		}
 
 		px4::init_once();
+#ifdef __PX4_LINUX
+		px4_console::launch_thread();
+#endif
 		px4::init(argc, argv, "px4");
 
 		ret = run_startup_script(commands_file, absolute_binary_path, instance);
@@ -305,6 +320,10 @@ int main(int argc, char **argv)
 		// TODO: we should check with px4_task_is_running("muorb") before stopping it.
 		std::string muorb_stop_cmd("muorb stop");
 		px4_daemon::Pxh::process_line(muorb_stop_cmd, true);
+#endif
+
+#ifdef __PX4_LINUX
+		px4_console::stop_thread();
 #endif
 
 		std::string cmd("shutdown");
