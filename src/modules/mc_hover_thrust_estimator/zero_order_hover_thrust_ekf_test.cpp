@@ -61,6 +61,9 @@ private:
 
 	std::normal_distribution<float> _standard_normal_distribution;
 	std::default_random_engine _random_generator; // Pseudo-random generator with constant seed
+
+protected:
+	static constexpr float _accel_noise_var_min = 1.f; // Constrained in the implementation
 };
 
 float ZeroOrderHoverThrustEkfTest::computeAccelFromThrustAndHoverThrust(float thrust, float hover_thrust)
@@ -91,12 +94,13 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testStaticCase)
 	const float hover_thrust_true = 0.5f;
 
 	// WHEN: we input noiseless data and run the filter
-	ZeroOrderHoverThrustEkf::status status = runEkf(hover_thrust_true, thrust, 1.f);
+	ZeroOrderHoverThrustEkf::status status = runEkf(hover_thrust_true, thrust, 2.f);
 
 	// THEN: The estimate should not move and its variance decrease quickly
 	EXPECT_NEAR(status.hover_thrust, hover_thrust_true, 1e-4f);
 	EXPECT_NEAR(status.hover_thrust_var, 0.f, 1e-3f);
-	EXPECT_NEAR(status.accel_noise_var, 0.f, 1.f); // The noise learning is slow and takes more than 1s to go to zero
+	EXPECT_NEAR(status.accel_noise_var, _accel_noise_var_min,
+		    1.f); // The noise learning is slow and takes more time to go to zero
 }
 
 TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergence)
@@ -111,7 +115,8 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergence)
 	// THEN: the state should converge to the true value and its variance decrease
 	EXPECT_NEAR(status.hover_thrust, hover_thrust_true, 1e-2f);
 	EXPECT_NEAR(status.hover_thrust_var, 0.f, 1e-3f);
-	EXPECT_NEAR(status.accel_noise_var, 0.f, 1.f); // The noise learning is slow and takes more than 1s to go to zero
+	EXPECT_NEAR(status.accel_noise_var, _accel_noise_var_min,
+		    1.f); // The noise learning is slow and takes more time to go to zero
 }
 
 TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergenceWithNoise)

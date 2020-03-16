@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name ECL nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,48 +31,63 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file ecl_pitch_controller.h
+ * Definition of a simple orthogonal pitch PID controller.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ *
+ * Acknowledgements:
+ *
+ *   The control design is based on a design
+ *   by Paul Riseborough and Andrew Tridgell, 2013,
+ *   which in turn is based on initial work of
+ *   Jonathan Challinger, 2012.
+ */
 
-#include <drivers/drv_mag.h>
-#include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
-#include <lib/conversion/rotation.h>
-#include <uORB/uORB.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_mag.h>
+#ifndef ECL_PITCH_CONTROLLER_H
+#define ECL_PITCH_CONTROLLER_H
 
-class PX4Magnetometer : public cdev::CDev
+#include <mathlib/mathlib.h>
+
+#include "ecl_controller.h"
+
+class ECL_PitchController :
+	public ECL_Controller
 {
-
 public:
-	PX4Magnetometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
-	~PX4Magnetometer() override;
+	ECL_PitchController() = default;
+	~ECL_PitchController() = default;
 
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	float control_attitude(const struct ECL_ControlData &ctl_data) override;
+	float control_euler_rate(const struct ECL_ControlData &ctl_data) override;
+	float control_bodyrate(const struct ECL_ControlData &ctl_data) override;
 
-	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_mag_pub.get().error_count = error_count; }
-	void increase_error_count() { _sensor_mag_pub.get().error_count++; }
-	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
-	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
-	void set_sensitivity(float x, float y, float z) { _sensitivity = matrix::Vector3f{x, y, z}; }
+	/* Additional Setters */
+	void set_max_rate_pos(float max_rate_pos)
+	{
+		_max_rate = max_rate_pos;
+	}
 
-	void update(hrt_abstime timestamp_sample, float x, float y, float z);
+	void set_max_rate_neg(float max_rate_neg)
+	{
+		_max_rate_neg = max_rate_neg;
+	}
 
-	void print_status();
+	void set_bodyrate_setpoint(float rate)
+	{
+		_bodyrate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
+	}
 
-private:
+	void set_roll_ff(float roll_ff)
+	{
+		_roll_ff = roll_ff;
+	}
 
-	uORB::PublicationMultiData<sensor_mag_s>	_sensor_mag_pub;
-
-	const enum Rotation	_rotation;
-
-	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
-	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
-
-	matrix::Vector3f	_sensitivity{1.0f, 1.0f, 1.0f};
-
-	int			_class_device_instance{-1};
-
+protected:
+	float _max_rate_neg{0.0f};
+	float _roll_ff{0.0f};
 };
+
+#endif // ECL_PITCH_CONTROLLER_H

@@ -61,17 +61,17 @@ void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust, st
 		updateState(K, innov);
 		updateStateCovariance(K, H);
 		residual = computeInnov(acc_z, thrust); // residual != innovation since the hover thrust changed
-		updateMeasurementNoise(residual, H);
 
-	} else if (!isTestRatioPassing(_innov_test_ratio_lpf)) {
+	} else if (isLargeOffsetDetected()) {
 		// Rejecting all the measurements for some time,
 		// it means that the hover thrust suddenly changed or that the EKF
-		// is diverging. To recover, we bump the state variance and reset the accel noise.
+		// is diverging. To recover, we bump the state variance
 		bumpStateVariance();
-		resetAccelNoise();
 	}
 
-	updateLpf(residual, innov_test_ratio);
+	const float signed_innov_test_ratio = math::sign(innov) * innov_test_ratio;
+	updateLpf(residual, signed_innov_test_ratio);
+	updateMeasurementNoise(residual, H);
 
 	status_return = packStatus(innov, innov_var, innov_test_ratio);
 }
@@ -124,24 +124,30 @@ inline void ZeroOrderHoverThrustEkf::updateStateCovariance(const float K, const 
 	_state_var = math::constrain((1.f - K * H) * _state_var, 1e-10f, 1.f);
 }
 
-inline void ZeroOrderHoverThrustEkf::updateMeasurementNoise(const float residual, const float H)
+inline bool ZeroOrderHoverThrustEkf::isLargeOffsetDetected() const
 {
-	const float alpha = _dt / (noise_learning_time_constant + _dt);
-	const float res_no_bias = residual - _residual_lpf;
-	const float P = _state_var;
-	_acc_var = math::constrain((1.f - alpha) * _acc_var  + alpha * (res_no_bias * res_no_bias + H * P * H), 1e-4f, 60.f);
+	return fabsf(_signed_innov_test_ratio_lpf) > 0.2f;
 }
 
 inline void ZeroOrderHoverThrustEkf::bumpStateVariance()
 {
-	_state_var += 10000.f * _process_var * _dt;
+	_state_var += 1e3f * _process_var * _dt;
 }
 
-inline void ZeroOrderHoverThrustEkf::updateLpf(const float residual, const float innov_test_ratio)
+inline void ZeroOrderHoverThrustEkf::updateLpf(const float residual, const float signed_innov_test_ratio)
 {
-	const float alpha = _dt / (5.f * noise_learning_time_constant + _dt);
+	const float alpha = _dt / (_lpf_time_constant + _dt);
 	_residual_lpf = (1.f - alpha) * _residual_lpf + alpha * residual;
-	_innov_test_ratio_lpf = (1.f - alpha) * _innov_test_ratio_lpf + alpha * math::min(innov_test_ratio, 5.f);
+	_signed_innov_test_ratio_lpf = (1.f - alpha) * _signed_innov_test_ratio_lpf + alpha * math::constrain(
+					       signed_innov_test_ratio, -1.f, 1.f);
+}
+
+inline void ZeroOrderHoverThrustEkf::updateMeasurementNoise(const float residual, const float H)
+{
+	const float alpha = _dt / (_noise_learning_time_constant + _dt);
+	const float res_no_bias = residual - _residual_lpf;
+	const float P = _state_var;
+	_acc_var = math::constrain((1.f - alpha) * _acc_var  + alpha * (res_no_bias * res_no_bias + H * P * H), 1.f, 400.f);
 }
 
 inline ZeroOrderHoverThrustEkf::status ZeroOrderHoverThrustEkf::packStatus(const float innov, const float innov_var,

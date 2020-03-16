@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,18 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE modules__fw_att_control
-	MAIN fw_att_control
-	SRCS
-		FixedwingAttitudeControl.cpp
-		FixedwingAttitudeControl.hpp
 
-		ecl_controller.cpp
-		ecl_pitch_controller.cpp
-		ecl_roll_controller.cpp
-		ecl_wheel_controller.cpp
-		ecl_yaw_controller.cpp
+px4_add_module(
+	MODULE drivers__magnetometer__isentek__ist8308
+	MAIN ist8308
+	COMPILE_FLAGS
+	SRCS
+		IST8308.cpp
+		IST8308.hpp
+		ist8308_main.cpp
+		iSentek_IST8308_registers.hpp
 	DEPENDS
+		drivers_magnetometer
 		px4_work_queue
 	)
