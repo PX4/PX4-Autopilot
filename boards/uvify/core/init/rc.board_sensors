@@ -42,3 +42,12 @@ then
 	mpu9250 -s -R 2 start
 	lis3mdl -R 2 -X start
 fi
+
+# IFO-S
+if param compare SYS_AUTOSTART 4073
+then
+	# IFO GPS LED
+	rgbled_ncp5623c start -a 0x38
+	mpu9250 -R 2 start
+	lis3mdl -R 2 -X start
+fi
