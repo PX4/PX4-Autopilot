@@ -449,7 +449,7 @@ class Tester:
         elif n == 1 and total == 1:
             return text_to_format.format("")
         else:
-            return text_to_format.format(n)
+            return text_to_format.format(str(n) + " ")
 
     def sigint_handler(self, sig: signal.Signals, frame: FrameType) \
             -> NoReturn:
