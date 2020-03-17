@@ -42,5 +42,5 @@ ist8310 -I start
 # Baro on internal SPI
 ms5611 -s start
 
-# External RM3100 (I2C or SPI)
-rm3100 start
+# External RM3100
+rm3100 -X start

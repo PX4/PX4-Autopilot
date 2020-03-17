@@ -117,7 +117,7 @@ else
 	lsm303d start
 fi
 
-# External RM3100 (I2C or SPI)
-rm3100 start
+# External RM3100
+rm3100 -X start
 
 unset BOARD_FMUV3
