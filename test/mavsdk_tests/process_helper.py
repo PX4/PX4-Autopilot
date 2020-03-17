@@ -7,7 +7,6 @@ import atexit
 import subprocess
 import threading
 import errno
-from logger_helper import color, maybe_strip_color, colorize
 from typing import Dict, List, TextIO, Optional
 
 
