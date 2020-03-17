@@ -154,36 +154,35 @@
 
 #define BMI088_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 50
 
-class BMI088_accel : public BMI088, public px4::ScheduledWorkItem
+class BMI088_accel : public BMI088
 {
 public:
-	BMI088_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation);
+	BMI088_accel(I2CSPIBusOption bus_option, int bus, const char *path_accel, uint32_t device, enum Rotation rotation,
+		     int bus_frequency, spi_mode_e spi_mode);
 	virtual ~BMI088_accel();
 
-	virtual int     init();
+	int     init() override;
 
 	// Start automatic measurement.
 	void            start();
 
 	// We need to override the read_reg function from the BMI088 base class, because the accelerometer requires a dummy byte read before each read operation
-	virtual uint8_t   read_reg(unsigned reg);
+	uint8_t   read_reg(unsigned reg) override;
 
 	// We need to override the read_reg16 function from the BMI088 base class, because the accelerometer requires a dummy byte read before each read operation
-	virtual uint16_t read_reg16(unsigned reg);
+	uint16_t read_reg16(unsigned reg) override;
 
-	/**
-	    * Diagnostics - print some basic information about the driver.
-	    */
-	void            print_info();
+	void            print_status() override;
 
 	void            print_registers();
 
 	// deliberately cause a sensor error
 	void            test_error();
 
+	void     RunImpl() override;
 protected:
 
-	virtual int     probe();
+	int     probe() override;
 
 private:
 
@@ -205,23 +204,11 @@ private:
 	bool            _got_duplicate;
 
 	/**
-	     * Stop automatic measurement.
-	     */
-	void            stop();
-
-	/**
 	     * Reset chip.
 	     *
 	     * Resets the chip and measurements ranges, but not scale and offset.
 	     */
 	int         reset();
-
-	void     Run() override;
-
-	/**
-	     * Fetch measurements from the sensor and update the report buffers.
-	     */
-	void            measure();
 
 	/**
 	     * Modify a register in the BMI088_accel

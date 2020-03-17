@@ -33,276 +33,74 @@
 
 #include "BMI088_accel.hpp"
 #include "BMI088_gyro.hpp"
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module.h>
 
-/** driver 'main' command */
-extern "C" { __EXPORT int bmi088_main(int argc, char *argv[]); }
+extern "C" __EXPORT int bmi088_main(int argc, char *argv[]);
 
-enum sensor_type {
-	BMI088_NONE = 0,
-	BMI088_ACCEL = 1,
-	BMI088_GYRO
-};
-
-namespace bmi088
-{
-
-BMI088_accel    *g_acc_dev_int; // on internal bus (accel)
-BMI088_accel    *g_acc_dev_ext; // on external bus (accel)
-BMI088_gyro     *g_gyr_dev_int; // on internal bus (gyro)
-BMI088_gyro     *g_gyr_dev_ext; // on external bus (gyro)
-
-void    start(bool, enum Rotation, enum sensor_type);
-void    stop(bool, enum sensor_type);
-void    info(bool, enum sensor_type);
-void    regdump(bool, enum sensor_type);
-void    testerror(bool, enum sensor_type);
-void    usage();
-
-/**
- * Start the driver.
- *
- * This function only returns if the driver is up and running
- * or failed to detect the sensor.
- */
 void
-start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
+BMI088::print_usage()
 {
+	PRINT_MODULE_USAGE_NAME("bmi088", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('A', "Accel", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('G', "Gyro", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 
-	BMI088_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-	const char *path_accel = external_bus ? BMI088_DEVICE_PATH_ACCEL_EXT : BMI088_DEVICE_PATH_ACCEL;
+	PRINT_MODULE_USAGE_COMMAND("regdump");
+	PRINT_MODULE_USAGE_COMMAND("testerror");
 
-	BMI088_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
-	const char *path_gyro  = external_bus ? BMI088_DEVICE_PATH_GYRO_EXT : BMI088_DEVICE_PATH_GYRO;
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
 
-	if (sensor == BMI088_ACCEL) {
-		if (*g_dev_acc_ptr != nullptr)
-			/* if already started, the still command succeeded */
-		{
-			errx(0, "bmi088 accel sensor already started");
-		}
+I2CSPIDriverBase *BMI088::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
+{
+	BMI088 *instance = nullptr;
 
-		/* create the driver */
-		if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-			*g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_EXT, path_accel, PX4_SPIDEV_EXT_BMI, rotation);
-#else
-			errx(0, "External SPI not available");
-#endif
+	if (cli.type == DRV_ACC_DEVTYPE_BMI088) {
+		instance = new BMI088_accel(iterator.configuredBusOption(), iterator.bus(), BMI088_DEVICE_PATH_ACCEL, iterator.devid(),
+					    cli.rotation, cli.bus_frequency, cli.spi_mode);
 
-		} else {
-#if defined(PX4_SPI_BUS_SENSORS3) && defined(PX4_SPIDEV_BMI088_ACC)
-			*g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_SENSORS3, path_accel, PX4_SPIDEV_BMI088_ACC, rotation);
-#elif defined(PX4_SPI_BUS_5) && defined(PX4_SPIDEV_BMI088_ACC)
-			*g_dev_acc_ptr = new BMI088_accel(PX4_SPI_BUS_5, path_accel, PX4_SPIDEV_BMI088_ACC, rotation);
-#endif
-		}
-
-		if (*g_dev_acc_ptr == nullptr) {
-			goto fail_accel;
-		}
-
-		if (OK != (*g_dev_acc_ptr)->init()) {
-			goto fail_accel;
-		}
-
-		// start automatic data collection
-		(*g_dev_acc_ptr)->start();
+	} else if (cli.type == DRV_GYR_DEVTYPE_BMI088) {
+		instance = new BMI088_gyro(iterator.configuredBusOption(), iterator.bus(), BMI088_DEVICE_PATH_GYRO, iterator.devid(),
+					   cli.rotation, cli.bus_frequency, cli.spi_mode);
 	}
 
-	if (sensor == BMI088_GYRO) {
-
-		if (*g_dev_gyr_ptr != nullptr) {
-			errx(0, "bmi088 gyro sensor already started");
-		}
-
-		/* create the driver */
-		if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-			*g_dev_ptr = new BMI088_gyro(PX4_SPI_BUS_EXT, path_gyro, PX4_SPIDEV_EXT_BMI, rotation);
-#else
-			errx(0, "External SPI not available");
-#endif
-
-		} else {
-#if defined(PX4_SPI_BUS_SENSORS3) && defined(PX4_SPIDEV_BMI088_GYR)
-			*g_dev_gyr_ptr = new BMI088_gyro(PX4_SPI_BUS_SENSORS3, path_gyro, PX4_SPIDEV_BMI088_GYR, rotation);
-#elif defined(PX4_SPI_BUS_5) && defined(PX4_SPIDEV_BMI088_GYR)
-			*g_dev_gyr_ptr = new BMI088_gyro(PX4_SPI_BUS_5, path_gyro, PX4_SPIDEV_BMI088_GYR, rotation);
-#endif
-		}
-
-		if (*g_dev_gyr_ptr == nullptr) {
-			goto fail_gyro;
-		}
-
-		if (OK != (*g_dev_gyr_ptr)->init()) {
-			goto fail_gyro;
-		}
-
-		// start automatic data collection
-		(*g_dev_gyr_ptr)->start();
+	if (instance == nullptr) {
+		return nullptr;
 	}
 
-	exit(PX4_OK);
-
-fail_accel:
-
-	if (*g_dev_acc_ptr != nullptr) {
-		delete (*g_dev_acc_ptr);
-		*g_dev_acc_ptr = nullptr;
+	if (OK != instance->init()) {
+		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		delete instance;
+		return nullptr;
 	}
 
-	PX4_WARN("No BMI088 accel found");
-	exit(PX4_ERROR);
+	instance->start();
 
-fail_gyro:
-
-	if (*g_dev_gyr_ptr != nullptr) {
-		delete (*g_dev_gyr_ptr);
-		*g_dev_gyr_ptr = nullptr;
-	}
-
-	PX4_WARN("No BMI088 gyro found");
-	exit(PX4_ERROR);
+	return instance;
 }
 
 void
-stop(bool external_bus, enum sensor_type sensor)
+BMI088::custom_method(const BusCLIArguments &cli)
 {
-	BMI088_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-	BMI088_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
+	switch (cli.custom1) {
+	case 0: print_registers();
+		break;
 
-	if (sensor == BMI088_ACCEL) {
-		if (*g_dev_acc_ptr != nullptr) {
-			delete *g_dev_acc_ptr;
-			*g_dev_acc_ptr = nullptr;
-
-		} else {
-			/* warn, but not an error */
-			warnx("bmi088 accel sensor already stopped.");
-		}
+	case 1: test_error();
+		break;
 	}
-
-	if (sensor == BMI088_GYRO) {
-		if (*g_dev_gyr_ptr != nullptr) {
-			delete *g_dev_gyr_ptr;
-			*g_dev_gyr_ptr = nullptr;
-
-		} else {
-			/* warn, but not an error */
-			warnx("bmi088 gyro sensor already stopped.");
-		}
-	}
-
-	exit(0);
-
 }
 
-/**
- * Print a little info about the driver.
- */
-void
-info(bool external_bus, enum sensor_type sensor)
-{
-	BMI088_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-	BMI088_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
-
-	if (sensor == BMI088_ACCEL) {
-		if (*g_dev_acc_ptr == nullptr) {
-			errx(1, "bmi088 accel driver not running");
-		}
-
-		printf("state @ %p\n", *g_dev_acc_ptr);
-		(*g_dev_acc_ptr)->print_info();
-	}
-
-	if (sensor == BMI088_GYRO) {
-		if (*g_dev_gyr_ptr == nullptr) {
-			errx(1, "bmi088 gyro driver not running");
-		}
-
-		printf("state @ %p\n", *g_dev_gyr_ptr);
-		(*g_dev_gyr_ptr)->print_info();
-	}
-
-	exit(0);
-}
-
-/**
- * Dump the register information
- */
-void
-regdump(bool external_bus, enum sensor_type sensor)
-{
-	BMI088_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-	BMI088_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
-
-	if (sensor == BMI088_ACCEL) {
-		if (*g_dev_acc_ptr == nullptr) {
-			errx(1, "bmi088 accel driver not running");
-		}
-
-		printf("regdump @ %p\n", *g_dev_acc_ptr);
-		(*g_dev_acc_ptr)->print_registers();
-	}
-
-	if (sensor == BMI088_GYRO) {
-		if (*g_dev_gyr_ptr == nullptr) {
-			errx(1, "bmi088 gyro driver not running");
-		}
-
-		printf("regdump @ %p\n", *g_dev_gyr_ptr);
-		(*g_dev_gyr_ptr)->print_registers();
-	}
-
-	exit(0);
-}
-
-/**
- * deliberately produce an error to test recovery
- */
-void
-testerror(bool external_bus, enum sensor_type sensor)
-{
-	BMI088_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
-	BMI088_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
-
-	if (sensor == BMI088_ACCEL) {
-		if (*g_dev_acc_ptr == nullptr) {
-			errx(1, "bmi088 accel driver not running");
-		}
-
-		(*g_dev_acc_ptr)->test_error();
-	}
-
-	if (sensor == BMI088_GYRO) {
-		if (*g_dev_gyr_ptr == nullptr) {
-			errx(1, "bmi088 gyro driver not running");
-		}
-
-		(*g_dev_gyr_ptr)->test_error();
-	}
-
-	exit(0);
-}
-
-void
-usage()
-{
-	warnx("missing command: try 'start', 'info', 'stop', 'regdump', 'testerror'");
-	warnx("options:");
-	warnx("    -X    (external bus)");
-	warnx("    -R    rotation");
-	warnx("    -A    (Enable Accelerometer)");
-	warnx("    -G    (Enable Gyroscope)");
-}
-
-}//namespace ends
-
-
-BMI088::BMI088(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode,
+BMI088::BMI088(const char *name, const char *devname, I2CSPIBusOption bus_option, int bus, int type, uint32_t device,
+	       enum spi_mode_e mode,
 	       uint32_t frequency, enum Rotation rotation):
 	SPI(name, devname, bus, device, mode, frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, type),
 	_whoami(0),
 	_register_wait(0),
 	_reset_wait(0),
@@ -345,77 +143,59 @@ BMI088::write_reg(unsigned reg, uint8_t value)
 int
 bmi088_main(int argc, char *argv[])
 {
-	bool external_bus = false;
+	using ThisDriver = BMI088;
 	int ch;
-	enum Rotation rotation = ROTATION_NONE;
-	enum sensor_type sensor = BMI088_NONE;
-	int myoptind = 1;
-	const char *myoptarg = NULL;
+	BusCLIArguments cli{false, true};
+	cli.type = 0;
+	cli.default_spi_frequency = BMI088_BUS_SPEED;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = px4_getopt(argc, argv, "XR:AG", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = cli.getopt(argc, argv, "AGR:")) != EOF) {
 		switch (ch) {
-		case 'X':
-			external_bus = true;
-			break;
-
-		case 'R':
-			rotation = (enum Rotation)atoi(myoptarg);
-			break;
-
 		case 'A':
-			sensor = BMI088_ACCEL;
+			cli.type = DRV_ACC_DEVTYPE_BMI088;
 			break;
 
 		case 'G':
-			sensor = BMI088_GYRO;
+			cli.type = DRV_GYR_DEVTYPE_BMI088;
 			break;
 
-		default:
-			bmi088::usage();
-			exit(0);
+		case 'R':
+			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			break;
 		}
 	}
 
-	const char *verb = argv[myoptind];
+	const char *verb = cli.optarg();
 
-	if (sensor == BMI088_NONE) {
-		bmi088::usage();
-		exit(0);
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
 	}
 
-	/*
-	* Start/load the driver.
-	*/
+	BusInstanceIterator iterator(MODULE_NAME, cli, cli.type);
+
 	if (!strcmp(verb, "start")) {
-		bmi088::start(external_bus, rotation, sensor);
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	/*
-	* Stop the driver.
-	*/
 	if (!strcmp(verb, "stop")) {
-		bmi088::stop(external_bus, sensor);
+		return ThisDriver::module_stop(iterator);
 	}
 
-	/*
-	* Print driver information.
-	*/
-	if (!strcmp(verb, "info")) {
-		bmi088::info(external_bus, sensor);
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
 	}
 
-	/*
-	* Print register information.
-	*/
 	if (!strcmp(verb, "regdump")) {
-		bmi088::regdump(external_bus, sensor);
+		cli.custom1 = 0;
+		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	if (!strcmp(verb, "testerror")) {
-		bmi088::testerror(external_bus, sensor);
+		cli.custom1 = 1;
+		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
-	bmi088::usage();
-	exit(1);
+	ThisDriver::print_usage();
+	return -1;
 }
