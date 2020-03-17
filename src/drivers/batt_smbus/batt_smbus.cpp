@@ -143,22 +143,18 @@ void BATT_SMBUS::RunImpl()
 	// Check if max lifetime voltage delta is greater than allowed.
 	if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
 		new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
-	}
 
-	// Propagate warning state.
-	else {
-		if (new_report.remaining > _low_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
+	} else if (new_report.remaining > _low_thr) {
+		new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
 
-		} else if (new_report.remaining > _crit_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
+	} else if (new_report.remaining > _crit_thr) {
+		new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
 
-		} else if (new_report.remaining > _emergency_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+	} else if (new_report.remaining > _emergency_thr) {
+		new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else {
-			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
-		}
+	} else {
+		new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 	}
 
 	// Read battery temperature and covert to Celsius.
@@ -168,6 +164,7 @@ void BATT_SMBUS::RunImpl()
 	new_report.capacity = _batt_capacity;
 	new_report.cycle_count = _cycle_count;
 	new_report.serial_number = _serial_number;
+	new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 	new_report.cell_count = _cell_count;
 	new_report.voltage_cell_v[0] = _cell_voltages[0];
 	new_report.voltage_cell_v[1] = _cell_voltages[1];
@@ -219,7 +216,7 @@ int BATT_SMBUS::get_cell_voltages()
 
 	for (uint8_t i = 1; i < (sizeof(_cell_voltages) / sizeof(_cell_voltages[0])); i++) {
 		_min_cell_voltage = math::min(_min_cell_voltage, _cell_voltages[i]);
-		max_cell_voltage = math::max(_min_cell_voltage, _cell_voltages[i]);
+		max_cell_voltage = math::max(max_cell_voltage, _cell_voltages[i]);
 	}
 
 	// Calculate the max difference between the min and max cells with complementary filter.
