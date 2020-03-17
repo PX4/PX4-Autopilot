@@ -5,7 +5,7 @@
 
 adc start
 
-adis16477 -R 8 start
+adis16477 -s -R 8 start
 
 lps22hb -s start
 
