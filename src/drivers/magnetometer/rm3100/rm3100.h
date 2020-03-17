@@ -52,7 +52,7 @@
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
 
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 /**
  * RM3100 internal constants and data structures.
@@ -97,17 +97,8 @@
 #define NUM_BUS_OPTIONS		(sizeof(bus_options)/sizeof(bus_options[0]))
 
 /* interface factories */
-extern device::Device *RM3100_SPI_interface(int bus);
-extern device::Device *RM3100_I2C_interface(int bus);
-typedef device::Device *(*RM3100_constructor)(int);
-
-enum RM3100_BUS {
-	RM3100_BUS_ALL = 0,
-	RM3100_BUS_I2C_INTERNAL,
-	RM3100_BUS_I2C_EXTERNAL,
-	RM3100_BUS_SPI_INTERNAL,
-	RM3100_BUS_SPI_EXTERNAL
-};
+extern device::Device *RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
+extern device::Device *RM3100_I2C_interface(int bus, int bus_frequency);
 
 enum OPERATING_MODE {
 	CONTINUOUS = 0,
@@ -115,34 +106,32 @@ enum OPERATING_MODE {
 };
 
 
-class RM3100 : public device::CDev, public px4::ScheduledWorkItem
+class RM3100 : public device::CDev, public I2CSPIDriver<RM3100>
 {
 public:
-	RM3100(device::Device *interface, const char *path, enum Rotation rotation);
-
+	RM3100(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus);
 	virtual ~RM3100();
 
-	virtual int init();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	virtual int ioctl(struct file *file_pointer, int cmd, unsigned long arg);
+	void custom_method(const BusCLIArguments &cli) override;
 
-	virtual int read(struct file *file_pointer, char *buffer, size_t buffer_len);
+	int init() override;
 
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void print_info();
+	int ioctl(struct file *file_pointer, int cmd, unsigned long arg) override;
+
+	int read(struct file *file_pointer, char *buffer, size_t buffer_len) override;
+
+	void print_status() override;
 
 	/**
 	 * Configures the device with default register values.
 	 */
 	int set_default_register_values();
 
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void stop();
-
+	void RunImpl();
 protected:
 	Device *_interface;
 
@@ -200,21 +189,6 @@ private:
 	* Converts int24_t stored in 32-bit container to int32_t
 	*/
 	void convert_signed(int32_t *n);
-
-	/**
-	 * @brief Performs a poll cycle; collect from the previous measurement
-	 *        and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-	 * previous measurement.
-	 *
-	 * When the interval between measurements is greater than the minimum
-	 * measurement interval, a gap is inserted between collection
-	 * and measurement to provide the most recent measurement possible
-	 * at the next interval.
-	 */
-	void Run() override;
 
 	/**
 	 * Issue a measurement command.

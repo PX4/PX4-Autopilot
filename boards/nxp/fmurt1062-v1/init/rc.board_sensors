@@ -48,8 +48,8 @@ ist8310 -I start
 # Baro on internal SPI
 ms5611 -s start
 
-# External RM3100 (I2C or SPI)
-rm3100 start
+# External RM3100
+rm3100 -X start
 
 # Possible pmw3901 optical flow sensor
 pmw3901 -S start
