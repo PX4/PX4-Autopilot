@@ -68,20 +68,22 @@ int LSM9DS1_MAG::probe()
 	return PX4_ERROR;
 }
 
-bool LSM9DS1_MAG::Init()
+int LSM9DS1_MAG::init()
 {
-	if (SPI::init() != PX4_OK) {
-		return false;
+	int ret = SPI::init();
+
+	if (ret != PX4_OK) {
+		return ret;
 	}
 
 	if (!Reset()) {
 		PX4_ERR("reset failed");
-		return false;
+		return PX4_ERROR;
 	}
 
 	Start();
 
-	return true;
+	return PX4_OK;
 }
 
 bool LSM9DS1_MAG::Reset()
@@ -147,14 +149,7 @@ void LSM9DS1_MAG::RegisterClearBits(Register reg, uint8_t clearbits)
 
 void LSM9DS1_MAG::Start()
 {
-	Stop();
-
 	ScheduleOnInterval(1000000 / ST_LSM9DS1_MAG::M_ODR / 2);
-}
-
-void LSM9DS1_MAG::Stop()
-{
-	ScheduleClear();
 }
 
 void LSM9DS1_MAG::RunImpl()
