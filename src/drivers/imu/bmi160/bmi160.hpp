@@ -40,7 +40,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <systemlib/conversions.h>
 
 #define DIR_READ                0x80
@@ -243,33 +243,38 @@
 
 using namespace time_literals;
 
-class BMI160 : public device::SPI, public px4::ScheduledWorkItem
+class BMI160 : public device::SPI, public I2CSPIDriver<BMI160>
 {
 public:
-	BMI160(int bus, uint32_t device, enum Rotation rotation);
+	BMI160(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
+	       spi_mode_e spi_mode);
 	virtual ~BMI160();
 
-	virtual int		init();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void			print_info();
+	int		init() override;
+
+	void			print_status() override;
 
 	void			print_registers();
 
 	// deliberately cause a sensor error
 	void 			test_error();
 
+	void			RunImpl();
+
 protected:
-	virtual int		probe();
+	int		probe() override;
+	void custom_method(const BusCLIArguments &cli) override;
 
 private:
 
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
 
-	uint8_t			_whoami;	/** whoami result */
+	uint8_t			_whoami;	///< whoami result
 
 	unsigned		_dlpf_freq;
 
@@ -307,23 +312,11 @@ private:
 	void			start();
 
 	/**
-	 * Stop automatic measurement.
-	 */
-	void			stop();
-
-	/**
 	 * Reset chip.
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
 	int			reset();
-
-	void			Run() override;
-
-	/**
-	 * Fetch measurements from the sensor and update the report buffers.
-	 */
-	void			measure();
 
 	/**
 	 * Read a register from the BMI160
