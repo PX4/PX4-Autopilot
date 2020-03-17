@@ -207,8 +207,8 @@ class Tester:
     def run_tests(self) -> None:
         for iteration in range(self.iterations):
             if self.iterations > 1:
-                print("%%% Test iteration: {} / {}".
-                      format(iteration + 1, self.iterations))
+                print(colorize("%%% Test iteration: {} / {}".
+                      format(iteration + 1, self.iterations), color.BOLD))
 
             success = self.run_iteration(iteration)
             if not success:
@@ -237,16 +237,13 @@ class Tester:
 
                 was_success = self.run_test_case(test, case, log_dir)
 
-                if was_success:
-                    print(colorize(
-                        "--- Test case {} of {}: '{}' succeeded."
-                        .format(i+1, len(test['cases']), case),
-                        color.GREEN))
-                else:
-                    print(colorize(
-                        "--- Test case {} of {}: '{}' failed."
-                        .format(i+1, len(test['cases']), case),
-                        color.RED))
+                print("--- Test case {} of {}: '{}' {}."
+                      .format(i+1,
+                              len(test['cases']),
+                              case,
+                              colorize("succeeded", color.GREEN)
+                              if was_success
+                              else colorize("failed", color.RED)))
 
                 if not was_success:
                     iteration_success = False
@@ -409,11 +406,14 @@ class Tester:
 
                 notes = [
                     self.note_if_any(
-                        "succeeded", n_succeeded, self.iterations),
+                        colorize("{}succeeded", color.GREEN),
+                        n_succeeded, self.iterations),
                     self.note_if_any(
-                        "failed", n_failed, self.iterations),
+                        colorize("{}failed", color.RED),
+                        n_failed, self.iterations),
                     self.note_if_any(
-                        "cancelled", n_cancelled, self.iterations)]
+                        colorize("{}cancelled", color.GRAY),
+                        n_cancelled, self.iterations)]
                 notes_without_none = list(filter(None, notes))
                 print(", ".join(notes_without_none))
 
@@ -423,23 +423,27 @@ class Tester:
                 continue
 
             for case in test['cases'].values():
-                if case['results'].count(False) > 0:
-                    return False
+                for result in case['results']:
+                    if result['success'] is not True:
+                        return False
         return True
 
     def show_overall_result(self) -> None:
-        print("Overall result: {}".format(
-              "PASS" if self.was_overall_pass() else "FAIL"))
+        print(colorize(
+            "Overall result: {}".format(
+             colorize("PASS", color.GREEN)
+             if self.was_overall_pass()
+             else colorize("FAIL", color.RED)), color.BOLD))
 
     @staticmethod
-    def note_if_any(text: str, n: int, total: int) -> Optional[str]:
+    def note_if_any(text_to_format: str, n: int, total: int) -> Optional[str]:
         assert not n < 0
         if n == 0:
             return None
         elif n == 1 and total == 1:
-            return text
+            return text_to_format.format("")
         else:
-            return "{} {}".format(n, text)
+            return text_to_format.format(n)
 
     def sigint_handler(self, sig: signal.Signals, frame: FrameType) \
             -> NoReturn:
