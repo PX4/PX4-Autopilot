@@ -37,18 +37,19 @@
 
 #include "ADIS16448.h"
 
-ADIS16448::ADIS16448(int bus, uint32_t device, enum Rotation rotation) :
-	SPI("ADIS16448", nullptr, bus, device, SPIDEV_MODE3, 1000000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+ADIS16448::ADIS16448(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
+		     spi_mode_e spi_mode) :
+	SPI("ADIS16448", nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), ORB_PRIO_MAX, rotation),
 	_px4_baro(get_device_id(), ORB_PRIO_MAX),
 	_px4_gyro(get_device_id(), ORB_PRIO_MAX, rotation),
 	_px4_mag(get_device_id(), ORB_PRIO_MAX, rotation)
 {
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ADIS16448);
-	_px4_baro.set_device_type(DRV_ACC_DEVTYPE_ADIS16448); // not a typo, baro uses accel device id
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ADIS16448);
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_ADIS16448);
+	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ADIS16448);
+	_px4_baro.set_device_type(DRV_IMU_DEVTYPE_ADIS16448);
+	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ADIS16448);
+	_px4_mag.set_device_type(DRV_IMU_DEVTYPE_ADIS16448);
 
 	_px4_accel.set_scale(ADIS16448_ACCEL_SENSITIVITY);
 	_px4_gyro.set_scale(ADIS16448_GYRO_INITIAL_SENSITIVITY);
@@ -59,9 +60,6 @@ ADIS16448::ADIS16448(int bus, uint32_t device, enum Rotation rotation) :
 
 ADIS16448::~ADIS16448()
 {
-	// Ensure the driver is inactive.
-	stop();
-
 	// Delete the perf counter.
 	perf_free(_perf_read);
 	perf_free(_perf_transfer);
@@ -209,7 +207,7 @@ ADIS16448::probe()
 	}
 
 	if (!reset_success) {
-		PX4_ERR("unable to successfully reset");
+		DEVICE_DEBUG("unable to successfully reset");
 		return PX4_ERROR;
 	}
 
@@ -307,8 +305,9 @@ ADIS16448::set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 }
 
 void
-ADIS16448::print_info()
+ADIS16448::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_perf_read);
 	perf_print_counter(_perf_transfer);
 	perf_print_counter(_perf_bad_transfer);
@@ -361,17 +360,8 @@ ADIS16448::write_reg16(unsigned reg, uint16_t value)
 void
 ADIS16448::start()
 {
-	// Make sure we are stopped first.
-	stop();
-
 	// Start polling at the specified interval
 	ScheduleOnInterval((1_s / _sample_rate), 10000);
-}
-
-void
-ADIS16448::stop()
-{
-	ScheduleClear();
 }
 
 // computes the CCITT CRC16 on the data received from a burst read
@@ -527,7 +517,7 @@ ADIS16448::measure()
 }
 
 void
-ADIS16448::Run()
+ADIS16448::RunImpl()
 {
 	// Make another measurement.
 	measure();
