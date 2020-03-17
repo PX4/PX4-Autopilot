@@ -271,6 +271,7 @@ ak09916_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = AK09916;
 	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {

@@ -430,6 +430,7 @@ extern "C" __EXPORT int irlock_main(int argc, char *argv[])
 	using ThisDriver = IRLOCK;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = IRLOCK_I2C_ADDRESS;
+	cli.default_i2c_frequency = 400000;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

@@ -89,6 +89,7 @@ extern "C" int lps22hb_main(int argc, char *argv[])
 {
 	using ThisDriver = LPS22HB;
 	BusCLIArguments cli{true, true};
+	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 10 * 1000 * 1000;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
