@@ -39,6 +39,8 @@
 
 #include "zero_order_hover_thrust_ekf.hpp"
 
+using matrix::sign;
+
 void ZeroOrderHoverThrustEkf::predict(const float dt)
 {
 	// State is constant
@@ -69,7 +71,7 @@ void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust, st
 		bumpStateVariance();
 	}
 
-	const float signed_innov_test_ratio = math::sign(innov) * innov_test_ratio;
+	const float signed_innov_test_ratio = sign(innov) * innov_test_ratio;
 	updateLpf(residual, signed_innov_test_ratio);
 	updateMeasurementNoise(residual, H);
 

@@ -15,6 +15,8 @@
 # @maintainer Marco Zorzi
 #
 # @board px4_fmu-v2 exclude
+# @board intel_aerofc-v1 exclude
+# @board bitcraze_crazyflie exclude
 #
 
 sh /etc/init.d/rc.rover_defaults
