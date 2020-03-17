@@ -66,6 +66,7 @@ extern "C" __EXPORT int pcf8583_main(int argc, char *argv[])
 {
 	using ThisDriver = PCF8583;
 	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
