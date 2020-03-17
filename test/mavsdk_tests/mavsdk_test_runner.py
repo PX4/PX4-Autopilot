@@ -323,9 +323,9 @@ class Tester:
             runner.start()
 
         max_name = max(len(runner.name) for runner in self.active_runners)
+        logfile_path = self.determine_logfile_path(log_dir, 'combined')
 
-        self.start_combined_log(
-            self.determine_logfile_path(log_dir, 'combined'))
+        self.start_combined_log(logfile_path)
 
         while test_runner.time_elapsed_s() < test['timeout_min']*60:
             returncode = test_runner.poll()
@@ -360,9 +360,7 @@ class Tester:
         test['cases'][case]['results'].append(result)
 
         if not is_success:
-            # TODO: print error and logfiles
-            pass
-
+            print(self.get_combined_log(logfile_path))
         return is_success
 
     def start_combined_log(self, filename: str) -> None:
@@ -373,6 +371,10 @@ class Tester:
 
     def add_to_combined_log(self, output: str) -> None:
         self.log_fd.write(output)
+
+    def get_combined_log(self, filename: str) -> str:
+        with open(filename, 'r') as f:
+            return f.read()
 
     @staticmethod
     def add_name_prefix(width: int, name: str, text: str) -> str:
