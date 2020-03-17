@@ -281,6 +281,8 @@ void Standard::update_transition_state()
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 
 		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+
+		// control backtransition deceleration using pitch.
 		_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
 
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
