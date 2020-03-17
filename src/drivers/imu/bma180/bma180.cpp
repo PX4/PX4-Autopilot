@@ -38,6 +38,8 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 #include <ecl/geo/geo.h>
 
 #include <sys/types.h>
@@ -57,7 +59,6 @@
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <nuttx/arch.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <drivers/drv_hrt.h>
@@ -66,7 +67,7 @@
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/device/ringbuffer.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 #define ACCEL_DEVICE_PATH	"/dev/bma180"
 
@@ -120,26 +121,29 @@
 #define ADDR_OFFSET_T			0x37
 #define OFFSET_T_READOUT_12BIT			(1<<0)
 
-extern "C" { __EXPORT int bma180_main(int argc, char *argv[]); }
+extern "C" __EXPORT int bma180_main(int argc, char *argv[]);
 
-class BMA180 : public device::SPI, public px4::ScheduledWorkItem
+class BMA180 : public device::SPI, public I2CSPIDriver<BMA180>
 {
 public:
-	BMA180(int bus, uint32_t device);
+	BMA180(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
+	       spi_mode_e spi_mode);
 	virtual ~BMA180();
 
-	virtual int		init();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	int		init() override;
 
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void			print_info();
+	ssize_t		read(struct file *filp, char *buffer, size_t buflen) override;
+	int		ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
+	void			print_status() override;
+
+	void		RunImpl();
 protected:
-	virtual int		probe();
+	int		probe() override;
 
 private:
 
@@ -162,13 +166,6 @@ private:
 	 * Start automatic measurement.
 	 */
 	void			start();
-
-	/**
-	 * Stop automatic measurement.
-	 */
-	void			stop();
-
-	void		Run() override;
 
 	/**
 	 * Fetch measurements from the sensor and update the report ring.
@@ -221,9 +218,10 @@ private:
 	int			set_lowpass(unsigned frequency);
 };
 
-BMA180::BMA180(int bus, uint32_t device) :
-	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, 8000000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
+BMA180::BMA180(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
+	       spi_mode_e spi_mode) :
+	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_call_interval(0),
 	_reports(nullptr),
 	_accel_range_scale(0.0f),
@@ -247,9 +245,6 @@ BMA180::BMA180(int bus, uint32_t device) :
 
 BMA180::~BMA180()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	/* free any existing reports */
 	if (_reports != nullptr) {
 		delete _reports;
@@ -324,6 +319,9 @@ BMA180::init()
 		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &arp);
 	}
 
+	_call_interval = 1000000 / 250;
+	start();
+
 out:
 	return ret;
 }
@@ -388,47 +386,6 @@ int
 BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				/* With internal low pass filters enabled, 250 Hz is sufficient */
-				return ioctl(filp, SENSORIOCSPOLLRATE, 250);
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
-					/* convert hz to hrt interval via microseconds */
-					unsigned interval = 1000000 / arg;
-
-					/* check against maximum sane rate */
-					if (interval < 1000) {
-						return -EINVAL;
-					}
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement */
-		return -EINVAL;
-
 	case ACCELIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_accel_scale, (struct accel_calibration_s *) arg, sizeof(_accel_scale));
@@ -579,9 +536,6 @@ BMA180::set_lowpass(unsigned frequency)
 void
 BMA180::start()
 {
-	/* make sure we are stopped first */
-	stop();
-
 	/* reset the report ring */
 	_reports->flush();
 
@@ -590,13 +544,7 @@ BMA180::start()
 }
 
 void
-BMA180::stop()
-{
-	ScheduleClear();
-}
-
-void
-BMA180::Run()
+BMA180::RunImpl()
 {
 	/* make another measurement */
 	measure();
@@ -677,181 +625,80 @@ BMA180::measure()
 }
 
 void
-BMA180::print_info()
+BMA180::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	_reports->print_info("report queue");
 }
 
-/**
- * Local functions in support of the shell command.
- */
-namespace bma180
-{
 
-BMA180	*g_dev;
-
-void	start();
-void	test();
-void	reset();
-void	info();
-
-/**
- * Start the driver.
- */
 void
-start()
+BMA180::print_usage()
 {
-	int fd;
-
-	if (g_dev != nullptr) {
-		errx(1, "already started");
-	}
-
-	/* create the driver */
-	g_dev = new BMA180(1 /* XXX magic number */, PX4_SPIDEV_BMA);
-
-	if (g_dev == nullptr) {
-		goto fail;
-	}
-
-	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	exit(0);
-fail:
-
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	errx(1, "driver start failed");
+	PRINT_MODULE_USAGE_NAME("bma180", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-/**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-void
-test()
+I2CSPIDriverBase *BMA180::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
 {
-	int fd = -1;
-	sensor_accel_s a_report;
-	ssize_t sz;
+	BMA180 *instance = new BMA180(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
+				      cli.bus_frequency, cli.spi_mode);
 
-	/* get the driver */
-	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed (try 'bma180 start' if the driver is not running)",
-		    ACCEL_DEVICE_PATH);
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-
-	/* do a simple demand read */
-	sz = read(fd, &a_report, sizeof(a_report));
-
-	if (sz != sizeof(a_report)) {
-		err(1, "immediate acc read failed");
+	if (OK != instance->init()) {
+		delete instance;
+		return nullptr;
 	}
 
-	print_message(a_report);
-
-	reset();
-	errx(0, "PASS");
+	return instance;
 }
 
-/**
- * Reset the driver.
- */
-void
-reset()
+extern "C" int bma180_main(int argc, char *argv[])
 {
-	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	int ch;
+	using ThisDriver = BMA180;
+	BusCLIArguments cli{false, true};
+	cli.default_spi_frequency = 8000000;
 
-	if (fd < 0) {
-		err(1, "failed ");
+	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+		switch (ch) {
+		case 'R':
+			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			break;
+		}
 	}
 
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+	const char *verb = cli.optarg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_ACC_DEVTYPE_BMA180);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	exit(0);
-}
-
-/**
- * Print a little info about the driver.
- */
-void
-info()
-{
-	if (g_dev == nullptr) {
-		errx(1, "BMA180: driver not running");
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
 	}
 
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
-
-	exit(0);
-}
-
-
-} // namespace
-
-int
-bma180_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		goto out_error;
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
 	}
 
-	/*
-	 * Start/load the driver.
-	 */
-	if (!strcmp(argv[1], "start")) {
-		bma180::start();
-	}
-
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(argv[1], "test")) {
-		bma180::test();
-	}
-
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(argv[1], "reset")) {
-		bma180::reset();
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "info")) {
-		bma180::info();
-	}
-
-out_error:
-	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	ThisDriver::print_usage();
+	return -1;
 }
