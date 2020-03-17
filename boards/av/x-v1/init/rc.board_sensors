@@ -9,7 +9,7 @@ adis16477 -s -R 8 start
 
 lps22hb -s start
 
-lsm303agr -R 4 start
+lsm303agr -s -R 4 start
 
 ms4525_airspeed -T 4515 -I -b 3 start
 
