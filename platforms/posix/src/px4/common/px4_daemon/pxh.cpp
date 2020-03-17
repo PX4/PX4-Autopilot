@@ -259,7 +259,7 @@ void Pxh::stop()
 void Pxh::_setup_term()
 {
 	int terminalfd = 0;
-#ifdef __PX4_LINUX_CONSOLE
+#ifdef __PX4_LINUX
 	terminalfd = px4_console::_sys_stdin_backup == -1 ? 0 : px4_console::_sys_stdin_backup;
 #endif
 	// Make sure we restore terminal at exit.
@@ -279,7 +279,7 @@ void Pxh::_restore_term()
 {
 	if (_instance) {
 		int terminalfd = 0;
-#ifdef __PX4_LINUX_CONSOLE
+#ifdef __PX4_LINUX
 		terminalfd = px4_console::_sys_stdin_backup == -1 ? 0 : px4_console::_sys_stdin_backup;
 #endif
 		tcsetattr(terminalfd, TCSANOW, &_instance->_orig_term);

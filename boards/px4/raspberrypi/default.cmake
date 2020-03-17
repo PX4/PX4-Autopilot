@@ -1,7 +1,5 @@
 add_definitions(
 	-D__PX4_LINUX
-
-	-D__PX4_LINUX_CONSOLE
 )
 
 px4_add_board(

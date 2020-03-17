@@ -74,7 +74,7 @@
 #include "px4_daemon/client.h"
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
-#ifdef __PX4_LINUX_CONSOLE
+#ifdef __PX4_LINUX
 #include "px4_daemon/console.h"
 #endif
 
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
-#ifdef __PX4_LINUX_CONSOLE
+#ifdef __PX4_LINUX
 
 		if (px4_console::prepare_fds() != 0) {
 			PX4_ERR("failed to prepare console fd");
@@ -293,7 +293,7 @@ int main(int argc, char **argv)
 		}
 
 		px4::init_once();
-#ifdef __PX4_LINUX_CONSOLE
+#ifdef __PX4_LINUX
 		px4_console::launch_thread();
 #endif
 		px4::init(argc, argv, "px4");
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
 		px4_daemon::Pxh::process_line(muorb_stop_cmd, true);
 #endif
 
-#ifdef __PX4_LINUX_CONSOLE
+#ifdef __PX4_LINUX
 		px4_console::stop_thread();
 #endif
 

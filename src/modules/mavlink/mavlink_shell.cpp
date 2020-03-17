@@ -50,7 +50,7 @@
 #include <nshlib/nshlib.h>
 #endif /* __PX4_NUTTX */
 
-#ifdef __PX4_LINUX_CONSOLE
+#ifdef __PX4_LINUX
 #include <px4_daemon/px4_console.h>
 #endif
 
@@ -60,7 +60,7 @@
 
 MavlinkShell::~MavlinkShell()
 {
-#ifndef __PX4_LINUX_CONSOLE
+#ifndef __PX4_LINUX
 
 	//closing the pipes will stop the thread as well
 	if (_to_shell_fd >= 0) {
@@ -154,7 +154,7 @@ int MavlinkShell::start()
 	return ret;
 #endif /* __PX4_NUTTX */
 
-#ifdef __PX4_LINUX_CONSOLE
+#ifdef __PX4_LINUX
 	_to_shell_fd = to_console_input_fd(1);
 	_from_shell_fd = from_console_output_fd(0);
 	return 0;
@@ -164,7 +164,7 @@ int MavlinkShell::start()
 
 int MavlinkShell::shell_start_thread(int argc, char *argv[])
 {
-#ifndef __PX4_LINUX_CONSOLE
+#ifndef __PX4_LINUX
 	dup2(1, 2); //redirect stderror to stdout
 #endif
 
