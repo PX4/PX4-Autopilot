@@ -12,10 +12,10 @@ mpu6000 -R 10 -s -T 20602 start
 #icm20689 -R 10 20689 start
 
 # Internal SPI bus BMI088 accel
-bmi088 -A -R 10 start
+bmi088 -A -R 10 -s start
 
 # Internal SPI bus BMI088 gyro
-bmi088 -G -R 10 start
+bmi088 -G -R 10 -s start
 
 # Interal DPS310 (barometer)
 dps310 -s start

@@ -16,10 +16,10 @@ mpu6000 -R 8 -s -T 20602 start
 ism330dlc start
 
 # Internal SPI bus BMI088 accel
-bmi088 -A -R 12 start
+bmi088 -A -R 12 -s start
 
 # Internal SPI bus BMI088 gyro
-bmi088 -G -R 12 start
+bmi088 -G -R 12 -s start
 
 # Possible external compasses
 ist8310 -X start
@@ -36,5 +36,5 @@ bmp388 -I -a 0x77 start
 # Baro on I2C3
 ms5611 -X start
 
-# External RM3100 (I2C or SPI)
-rm3100 start
+# External RM3100
+rm3100 -X start
