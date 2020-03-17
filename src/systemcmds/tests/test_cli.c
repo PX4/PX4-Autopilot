@@ -49,7 +49,7 @@
 
 #include "tests_main.h"
 
-#ifdef PX4_NUTTX
+#ifdef __PX4_NUTTX
 #define _px4_system(command) system(command)
 #else
 #define _px4_system(command) system("px4-"command)
@@ -57,6 +57,7 @@
 
 int test_cli(int argc, char *argv[])
 {
+#ifndef __PX4_NUTTX
 	// This is not a fully built out test
 	// suite yet and is more of a soak
 	// test to ensure that the command exists
@@ -67,6 +68,8 @@ int test_cli(int argc, char *argv[])
 	if (_px4_system("commander check")) { return PX4_ERROR; }
 
 	if (_px4_system("commander stop")) { return PX4_ERROR; }
+
+#endif
 
 	return 0;
 }
