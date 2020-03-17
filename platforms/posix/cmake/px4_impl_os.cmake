@@ -251,22 +251,6 @@ function(px4_os_add_flags)
 			add_definitions(-D__PX4_LINUX)
 		endif()
 
-	elseif (("${PX4_BOARD}" MATCHES "navio2") OR ("${PX4_BOARD}" MATCHES "raspberrypi"))
-		#TODO: move to board support
-		add_definitions(-D__PX4_LINUX)
-
-	elseif ("${PX4_BOARD}" MATCHES "aerotenna_ocpoc")
-		#TODO: move to board support
-		add_definitions(-D__PX4_LINUX)
-
-	elseif ("${PX4_BOARD}" MATCHES "beaglebone_blue")
-		#TODO: move to board support
-		add_definitions(
-			-D__PX4_LINUX
-
-			-DRC_AUTOPILOT_EXT  # Enable extensions in Robotics Cape Library, TODO: remove
-		)
-
 	endif()
 
 endfunction()
