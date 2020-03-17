@@ -7,8 +7,6 @@
 # @type Flying Wing
 # @class Plane
 #
-# @board px4_fmu-v2 exclude
-#
 # @output MAIN1 left aileron
 # @output MAIN2 right aileron
 # @output MAIN4 throttle
@@ -18,6 +16,9 @@
 # @output AUX3 feed-through of RC AUX3 channel
 #
 # @maintainer Jan Liphardt <JTLiphardt@gmail.com>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
 #
 
 sh /etc/init.d/rc.fw_defaults
