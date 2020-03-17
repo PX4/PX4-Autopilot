@@ -28,7 +28,7 @@ ms5611 -s start
 if ! hmc5883 -T -S -R 2 start
 then
 	# lis3mdl internal SPI bus is rotated 90 deg yaw
-	lis3mdl start
+	lis3mdl -s start
 fi
 
 # Start either ICM2060X. They are both connected to the same SPI bus and use the same

@@ -17,7 +17,7 @@ icm20602 -s -R 8 start
 mpu9250 -s -R 2 start
 
 # Internal SPI bus
-lis3mdl -R 0 start
+lis3mdl -s -R 0 start
 
 # Possible external compasses
 hmc5883 -T -X start
