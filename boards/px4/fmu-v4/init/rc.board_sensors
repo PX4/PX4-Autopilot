@@ -19,7 +19,7 @@ hmc5883 -T -X start
 lis3mdl -X start
 ist8310 -X start
 qmc5883 -X start
-rm3100 start
+rm3100 -X start
 
 # Internal SPI
 ms5611 -s start

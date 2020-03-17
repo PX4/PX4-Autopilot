@@ -29,5 +29,5 @@ qmc5883 -X start
 # Internal I2C Baro
 bmp388 -I start
 
-# External RM3100 (I2C or SPI)
-rm3100 start
+# External RM3100
+rm3100 -X start
