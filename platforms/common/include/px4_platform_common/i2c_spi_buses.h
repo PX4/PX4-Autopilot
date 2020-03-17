@@ -117,10 +117,12 @@ public:
 	void *custom_data{nullptr}; ///< driver-specific custom argument
 
 	// driver defaults, if not specified via CLI
-	int default_spi_frequency{20 * 1000 * 1000}; ///< default spi bus frequency [Hz]
-	int default_i2c_frequency{400 * 1000}; ///< default i2c bus frequency [Hz]
+	int default_spi_frequency{-1}; ///< default spi bus frequency (driver needs to set this) [Hz]
+	int default_i2c_frequency{-1}; ///< default i2c bus frequency (driver needs to set this) [Hz]
 
 private:
+	bool validateConfiguration();
+
 	char _options[32] {};
 	int _optind{1};
 	const char *_optarg{nullptr};

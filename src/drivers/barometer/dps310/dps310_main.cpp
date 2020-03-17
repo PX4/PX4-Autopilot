@@ -98,6 +98,7 @@ extern "C" int dps310_main(int argc, char *argv[])
 	using ThisDriver = DPS310;
 	BusCLIArguments cli{true, true};
 	cli.i2c_address = 0x77;
+	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 10 * 1000 * 1000;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);

@@ -96,6 +96,8 @@ extern "C" int ms5611_main(int argc, char *argv[])
 	int ch;
 	BusCLIArguments cli{true, true};
 	cli.type = MS5611_DEVICE;
+	cli.default_i2c_frequency = 400000;
+	cli.default_spi_frequency = 20 * 1000 * 1000;
 	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5611;
 
 	while ((ch = cli.getopt(argc, argv, "T:")) != EOF) {

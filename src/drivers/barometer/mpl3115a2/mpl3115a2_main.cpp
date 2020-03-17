@@ -67,6 +67,8 @@ extern "C" int mpl3115a2_main(int argc, char *argv[])
 {
 	using ThisDriver = MPL3115A2;
 	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
+
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {

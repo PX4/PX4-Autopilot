@@ -816,6 +816,7 @@ extern "C" __EXPORT int vl53lxx_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = VL53LXX;
 	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
 	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {

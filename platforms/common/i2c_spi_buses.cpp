@@ -62,6 +62,10 @@ const char *BusCLIArguments::parseDefaultArguments(int argc, char *argv[])
 int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 {
 	if (_options[0] == 0) { // need to initialize
+		if (!validateConfiguration()) {
+			return EOF;
+		}
+
 		char *p = (char *)&_options;
 
 		if (_i2c_support) {
@@ -180,6 +184,23 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 	}
 
 	return ch;
+}
+
+bool BusCLIArguments::validateConfiguration()
+{
+	bool success = true;
+
+	if (_i2c_support && default_i2c_frequency == -1) {
+		PX4_ERR("Bug: driver %s does not set default_i2c_frequency", px4_get_taskname());
+		success = false;
+	}
+
+	if (_spi_support && default_spi_frequency == -1) {
+		PX4_ERR("Bug: driver %s does not set default_spi_frequency", px4_get_taskname());
+		success = false;
+	}
+
+	return success;
 }
 
 

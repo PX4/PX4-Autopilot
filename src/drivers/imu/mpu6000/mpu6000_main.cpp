@@ -128,6 +128,7 @@ mpu6000_main(int argc, char *argv[])
 	using ThisDriver = MPU6000;
 	BusCLIArguments cli{true, true};
 	cli.type = MPU_DEVICE_TYPE_MPU6000;
+	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 1000 * 1000; // low speed bus frequency
 
 	while ((ch = cli.getopt(argc, argv, "T:R:")) != EOF) {
