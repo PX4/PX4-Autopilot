@@ -39,7 +39,7 @@ def maybe_strip_color(text: str) -> str:
         return text
 
 
-@lru_cache
+@lru_cache()
 def _supports_color() -> bool:
     """Returns True if the running system's terminal supports color.
 
