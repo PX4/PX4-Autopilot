@@ -361,6 +361,10 @@ class Tester:
 
         if not is_success:
             print(self.get_combined_log(logfile_path))
+            print("Logfiles: ")
+            print("  - {}".format(logfile_path))
+            for runner in self.active_runners:
+                print("  - {}".format(runner.get_log_filename()))
         return is_success
 
     def start_combined_log(self, filename: str) -> None:
