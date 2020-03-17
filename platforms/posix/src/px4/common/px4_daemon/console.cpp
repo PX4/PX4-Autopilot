@@ -36,7 +36,7 @@
  * @author SalimTerryLi <lhf2613@gmail.com>
  */
 
-#ifdef __PX4_LINUX
+#ifdef __PX4_LINUX_CONSOLE
 
 #include <unistd.h>
 #include <fcntl.h>
