@@ -57,11 +57,7 @@ void Ekf::initialiseCovariance()
 
 	const float dt = FILTER_UPDATE_PERIOD_S;
 
-	// define the initial angle uncertainty as variances for a rotation vector
-	Vector3f rot_vec_var;
-	rot_vec_var.setAll(sq(_params.initial_tilt_err));
-
-	initialiseQuatCovariances(rot_vec_var);
+	resetQuatCov();
 
 	// velocity
 	P(4,4) = sq(fmaxf(_params.gps_vel_noise, 0.01f));
@@ -97,14 +93,7 @@ void Ekf::initialiseCovariance()
 	// record IMU bias state covariance reset time - used to prevent resets being performed too often
 	_last_imu_bias_cov_reset_us = _imu_sample_delayed.time_us;
 
-	// earth frame and body frame magnetic field
-	// set to observation variance
-	for (uint8_t index = 16; index <= 21; index ++) {
-		P(index,index) = sq(_params.mag_noise);
-	}
-
-	// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-	saveMagCovData();
+	resetMagCov();
 
 	// wind
 	P(22,22) = sq(_params.initial_wind_uncertainty);
@@ -869,16 +858,41 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 void Ekf::resetMagRelatedCovariances()
 {
-	// set the quaternion covariance terms to zero
+	resetQuatCov();
+	resetMagCov();
+}
+
+void Ekf::resetQuatCov(){
+	zeroQuatCov();
+
+	// define the initial angle uncertainty as variances for a rotation vector
+	Vector3f rot_vec_var;
+	rot_vec_var.setAll(sq(_params.initial_tilt_err));
+
+	initialiseQuatCovariances(rot_vec_var);
+}
+
+void Ekf::zeroQuatCov()
+{
 	P.uncorrelateCovarianceSetVariance<2>(0, 0.0f);
 	P.uncorrelateCovarianceSetVariance<2>(2, 0.0f);
+}
 
-	// reset the field state variance to the observation variance
+void Ekf::resetMagCov()
+{
+	// reset the corresponding rows and columns in the covariance matrix and
+	// set the variances on the magnetic field states to the measurement variance
+	clearMagCov();
+
 	P.uncorrelateCovarianceSetVariance<3>(16, sq(_params.mag_noise));
 	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
 
-	// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-	saveMagCovData();
+	if (!_control_status.flags.mag_3D) {
+		// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+		// if already in 3-axis fusion mode, the covariances are automatically saved when switching out
+		// of this mode
+		saveMagCovData();
+	}
 }
 
 void Ekf::clearMagCov()
