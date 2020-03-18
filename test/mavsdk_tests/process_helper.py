@@ -225,7 +225,7 @@ class TestRunner(Runner):
                  mavlink_connection: str,
                  verbose: bool):
         super().__init__(log_dir, model, case, verbose)
-        self.name = "test_runner"
+        self.name = "mavsdk_tests"
         self.cwd = workspace_dir
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
