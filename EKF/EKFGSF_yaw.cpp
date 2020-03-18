@@ -32,7 +32,7 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 
 	// Initialise states first time
 	if (!_ahrs_ekf_gsf_tilt_aligned) {
-		// check for excessive acceleration to reduce likelihood of large inital roll/pitch errors
+		// check for excessive acceleration to reduce likelihood of large initial roll/pitch errors
 		// due to vehicle movement
 		const float accel_norm_sq = accel.norm_squared();
 		const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
@@ -113,7 +113,7 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 	}
 
 	// Calculate a composite yaw vector as a weighted average of the states for each model.
-	// To avoid issues with angle wrapping, the yaw state is converted to a vector with legnth
+	// To avoid issues with angle wrapping, the yaw state is converted to a vector with length
 	// equal to the weighting value before it is summed.
 	Vector2f yaw_vector;
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
@@ -490,7 +490,7 @@ void EKFGSF_yaw::initialiseEKFGSF()
 		// evenly space initial yaw estimates in the region between +-Pi
 		_ekf_gsf[model_index].X(2) = -_m_pi + (0.5f * yaw_increment) + ((float)model_index * yaw_increment);
 
-		// take velocity states and corresponding variance from last meaurement
+		// take velocity states and corresponding variance from last measurement
 		_ekf_gsf[model_index].X(0) = _vel_NE(0);
 		_ekf_gsf[model_index].X(1) = _vel_NE(1);
 		_ekf_gsf[model_index].P(0,0) = sq(_vel_accuracy);
@@ -575,7 +575,7 @@ void EKFGSF_yaw::ahrsCalcAccelGain()
 	// Calculate the acceleration fusion gain using a continuous function that is unity at 1g and zero
 	// at the min and mas g value. Allow for more acceleration when flying as a fixed wing vehicle using centripetal
 	// acceleration correction as higher and more sustained g will be experienced.
-	// Use a quadratic finstead of linear unction to prevent vibration around 1g reducing the tilt correction effectiveness.
+	// Use a quadratic instead of linear function to prevent vibration around 1g reducing the tilt correction effectiveness.
 	const float accel_g = _ahrs_accel_norm / CONSTANTS_ONE_G;
 	if (accel_g > 1.0f) {
 		if (_true_airspeed > FLT_EPSILON && accel_g < 2.0f) {
@@ -600,8 +600,8 @@ Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
 	ret(0,2) += R(0,0) * g(1) - R(0,1) * g(0);
 	ret(1,0) += R(1,1) * g(2) - R(1,2) * g(1);
 	ret(1,1) += R(1,2) * g(0) - R(1,0) * g(2);
-	ret(1,2) += R(1,0) * g(1) - R(1,1) * g(0),
-        ret(2,0) += R(2,1) * g(2) - R(2,2) * g(1);
+	ret(1,2) += R(1,0) * g(1) - R(1,1) * g(0);
+	ret(2,0) += R(2,1) * g(2) - R(2,2) * g(1);
 	ret(2,1) += R(2,2) * g(0) - R(2,0) * g(2);
 	ret(2,2) += R(2,0) * g(1) - R(2,1) * g(0);
 
