@@ -52,4 +52,7 @@ then
 	# IMU
 	mpu9250 -R 2 start
 	lis3mdl -R 2 -X start
+
+	# FLOW on SPI2
+	pmw3901 start -s 2
 fi

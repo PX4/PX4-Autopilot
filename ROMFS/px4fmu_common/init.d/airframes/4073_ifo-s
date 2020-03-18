@@ -72,9 +72,8 @@ then
 	param set SENS_BOARD_ROT 10
 	# Yaw 180
 	param set SENS_FLOW_ROT 4
-	# TELEM3
+	# TFMini on TELEM3
 	param set SENS_TFMINI_CFG 103
-	param set SENS_EN_PMW3901 1
 
 	# Smart Battery
 	param set SENS_EN_BATT 1
