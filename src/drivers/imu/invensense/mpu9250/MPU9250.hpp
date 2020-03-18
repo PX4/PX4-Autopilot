@@ -49,22 +49,33 @@
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 using namespace InvenSense_MPU9250;
 
-class MPU9250 : public device::SPI, public px4::ScheduledWorkItem
+class MPU9250 : public device::SPI, public I2CSPIDriver<MPU9250>
 {
 public:
-	MPU9250(int bus, uint32_t device, enum Rotation rotation = ROTATION_NONE);
+	MPU9250(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
 	~MPU9250() override;
 
-	bool Init();
-	void Start();
-	void Stop();
-	bool Reset();
-	void PrintInfo();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
+	void print_status() override;
+
+	void RunImpl();
+
+	int init() override;
+
+	void Start();
+	bool Reset();
+
+protected:
+	void custom_method(const BusCLIArguments &cli) override;
+	void exit_and_cleanup() override;
 private:
 
 	// Sensor Configuration
@@ -87,8 +98,6 @@ private:
 	};
 
 	int probe() override;
-
-	void Run() override;
 
 	bool Configure();
 	void ConfigureAccel();
@@ -116,6 +125,8 @@ private:
 	void ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples);
 	void UpdateTemperature();
 
+	const spi_drdy_gpio_t _drdy_gpio;
+
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
@@ -142,11 +153,9 @@ private:
 		WAIT_FOR_RESET,
 		CONFIGURE,
 		FIFO_READ,
-		REQUEST_STOP,
-		STOPPED,
 	};
 
-	px4::atomic<STATE> _state{STATE::RESET};
+	STATE _state{STATE::RESET};
 
 	uint16_t _fifo_empty_interval_us{1000}; // 1000 us / 1000 Hz transfer interval
 	uint8_t _fifo_gyro_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
