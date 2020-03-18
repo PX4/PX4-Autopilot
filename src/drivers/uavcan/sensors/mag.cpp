@@ -102,9 +102,9 @@ UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan:
 	}
 
 	// Cast our generic CDev pointer to the sensor-specific driver class
-	PX4Magnetometer *_mag = (PX4Magnetometer *)channel->h_driver;
+	PX4Magnetometer *mag = (PX4Magnetometer *)channel->h_driver;
 
-	if (_mag == nullptr) {
+	if (mag == nullptr) {
 		return;
 	}
 
@@ -112,7 +112,7 @@ UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan:
 	const float y = msg.magnetic_field_ga[1];
 	const float z = msg.magnetic_field_ga[2];
 
-	_mag->update(hrt_absolute_time(), x, y, z);
+	mag->update(hrt_absolute_time(), x, y, z);
 }
 
 void
@@ -127,9 +127,9 @@ UavcanMagnetometerBridge::mag2_sub_cb(const
 	}
 
 	// Cast our generic CDev pointer to the sensor-specific driver class
-	PX4Magnetometer *_mag = (PX4Magnetometer *)channel->h_driver;
+	PX4Magnetometer *mag = (PX4Magnetometer *)channel->h_driver;
 
-	if (_mag == nullptr) {
+	if (mag == nullptr) {
 		return;
 	}
 
@@ -137,7 +137,7 @@ UavcanMagnetometerBridge::mag2_sub_cb(const
 	const float y = msg.magnetic_field_ga[1];
 	const float z = msg.magnetic_field_ga[2];
 
-	_mag->update(hrt_absolute_time(), x, y, z);
+	mag->update(hrt_absolute_time(), x, y, z);
 }
 
 int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
@@ -154,18 +154,18 @@ int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
 		return PX4_ERROR;
 	}
 
-	PX4Magnetometer *_mag = (PX4Magnetometer *)channel->h_driver;
+	PX4Magnetometer *mag = (PX4Magnetometer *)channel->h_driver;
 
-	channel->class_instance = _mag->get_class_instance();
+	channel->class_instance = mag->get_class_instance();
 
 	if (channel->class_instance < 0) {
 		PX4_ERR("UavcanMag: Unable to get a class instance");
-		delete _mag;
+		delete mag;
 		channel->h_driver = nullptr;
 		return PX4_ERROR;
 	}
 
-	_mag->set_external(true);
+	mag->set_external(true);
 
 	return PX4_OK;
 }
