@@ -9,7 +9,7 @@ adc start
 mpu6000 -R 10 -s -T 20602 start
 
 # Internal ICM-20689
-#icm20689 -R 10 20689 start
+#icm20689 -s -R 10 start
 
 # Internal SPI bus BMI088 accel
 bmi088 -A -R 10 -s start
