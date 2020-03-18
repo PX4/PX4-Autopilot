@@ -84,8 +84,10 @@ const uint16_t ICM20948::_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGIST
 											 ICMREG_20948_ACCEL_CONFIG_2
 										       };
 
-ICM20948::ICM20948(device::Device *interface, device::Device *mag_interface, enum Rotation rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+ICM20948::ICM20948(device::Device *interface, device::Device *mag_interface, enum Rotation rotation,
+		   I2CSPIBusOption bus_option,
+		   int bus) :
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_interface(interface),
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_DEFAULT : ORB_PRIO_HIGH), rotation),
 	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_DEFAULT : ORB_PRIO_HIGH), rotation),
@@ -106,10 +108,6 @@ ICM20948::ICM20948(device::Device *interface, device::Device *mag_interface, enu
 
 ICM20948::~ICM20948()
 {
-	// make sure we are truly inactive
-	stop();
-
-	// delete the perf counter
 	perf_free(_sample_perf);
 	perf_free(_interval_perf);
 	perf_free(_bad_transfers);
@@ -148,14 +146,11 @@ ICM20948::init()
 
 	/* Magnetometer setup */
 
-#ifdef USE_I2C
 	px4_usleep(100);
 
 	if (!_mag.is_passthrough() && _mag._interface->init() != PX4_OK) {
 		PX4_ERR("failed to setup ak09916 interface");
 	}
-
-#endif /* USE_I2C */
 
 	ret = _mag.ak09916_reset();
 
@@ -235,11 +230,7 @@ ICM20948::reset_mpu()
 	// INT CFG => Interrupt on Data Ready
 	write_checked_reg(ICMREG_20948_INT_ENABLE_1, BIT_RAW_RDY_EN);        // INT: Raw data ready
 
-#ifdef USE_I2C
 	bool bypass = !_mag.is_passthrough();
-#else
-	bool bypass = false;
-#endif
 
 	/* INT: Clear on any read.
 	 * If this instance is for a device is on I2C bus the Mag will have an i2c interface
@@ -602,23 +593,7 @@ ICM20948::set_accel_range(unsigned max_g_in)
 void
 ICM20948::start()
 {
-	/* make sure we are stopped first */
-	stop();
-
 	ScheduleOnInterval(_call_interval - ICM20948_TIMER_REDUCTION, 1000);
-}
-
-void
-ICM20948::stop()
-{
-	ScheduleClear();
-}
-
-void
-ICM20948::Run()
-{
-	/* make another measurement */
-	measure();
 }
 
 void
@@ -728,7 +703,7 @@ ICM20948::check_duplicate(uint8_t *accel_data)
 }
 
 void
-ICM20948::measure()
+ICM20948::RunImpl()
 {
 	perf_begin(_sample_perf);
 	perf_count(_interval_perf);
@@ -777,20 +752,12 @@ ICM20948::measure()
 	 * try to read a magnetometer report.
 	 */
 
-#   ifdef USE_I2C
-
 	if (_mag.is_passthrough()) {
-#   endif
-
 		_mag._measure(timestamp_sample, mpu_report.mag);
-
-#   ifdef USE_I2C
 
 	} else {
 		_mag.measure();
 	}
-
-#   endif
 
 	// Continue evaluating gyro and accelerometer results
 	if (_register_wait == 0) {
@@ -854,8 +821,9 @@ ICM20948::measure()
 }
 
 void
-ICM20948::print_info()
+ICM20948::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
