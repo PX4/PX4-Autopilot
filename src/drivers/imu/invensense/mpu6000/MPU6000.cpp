@@ -46,9 +46,11 @@ static constexpr uint32_t FIFO_INTERVAL{1000}; // 1000 us / 1000 Hz interval
 static constexpr uint32_t FIFO_GYRO_SAMPLES{FIFO_INTERVAL / (1000000 / GYRO_RATE)};
 static constexpr uint32_t FIFO_ACCEL_SAMPLES{FIFO_INTERVAL / (1000000 / ACCEL_RATE)};
 
-MPU6000::MPU6000(int bus, uint32_t device, enum Rotation rotation) :
-	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+MPU6000::MPU6000(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		 spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
+	SPI(MODULE_NAME, nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	_drdy_gpio(drdy_gpio),
 	_px4_accel(get_device_id(), ORB_PRIO_VERY_HIGH, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_VERY_HIGH, rotation)
 {
@@ -62,8 +64,6 @@ MPU6000::MPU6000(int bus, uint32_t device, enum Rotation rotation) :
 
 MPU6000::~MPU6000()
 {
-	Stop();
-
 	perf_free(_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
@@ -76,28 +76,41 @@ int MPU6000::probe()
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
 	if (whoami != WHOAMI) {
-		PX4_WARN("unexpected WHO_AM_I 0x%02x", whoami);
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-bool MPU6000::Init()
+void MPU6000::exit_and_cleanup()
 {
-	if (SPI::init() != PX4_OK) {
-		PX4_ERR("SPI::init failed");
-		return false;
+	if (_drdy_gpio != 0) {
+		// Disable data ready callback
+		px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr);
+		RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	}
+
+	I2CSPIDriverBase::exit_and_cleanup();
+}
+
+int MPU6000::init()
+{
+	int ret = SPI::init();
+
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("SPI::init failed (%i)", ret);
+		return ret;
 	}
 
 	if (!Reset()) {
-		PX4_ERR("reset failed");
-		return false;
+		DEVICE_DEBUG("reset failed");
+		return PX4_ERROR;
 	}
 
 	Start();
 
-	return true;
+	return PX4_OK;
 }
 
 bool MPU6000::Reset()
@@ -211,33 +224,20 @@ void MPU6000::DataReady()
 
 void MPU6000::Start()
 {
-	Stop();
-
 	ResetFIFO();
 
-	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_SPI1_EXTI_MPU_DRDY)
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_SPI1_EXTI_MPU_DRDY, true, false, true, &MPU6000::DataReadyInterruptCallback, this);
-	RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
-#else
-	ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
-#endif
+	if (_drdy_gpio == 0) {
+		ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
+
+	} else {
+		// Setup data ready on rising edge
+		px4_arch_gpiosetevent(_drdy_gpio, true, false, true, &MPU6000::DataReadyInterruptCallback, this);
+		RegisterSetBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
+	}
+
 }
 
-void MPU6000::Stop()
-{
-	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_SPI1_EXTI_MPU_DRDY)
-	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_SPI1_EXTI_MPU_DRDY, false, false, false, nullptr, nullptr);
-	RegisterClearBits(Register::INT_ENABLE, INT_ENABLE_BIT::DATA_RDY_INT_EN);
-#else
-	ScheduleClear();
-#endif
-}
-
-void MPU6000::Run()
+void MPU6000::RunImpl()
 {
 	// use timestamp from the data ready interrupt if available,
 	//  otherwise use the time now roughly corresponding with the last sample we'll pull from the FIFO
@@ -338,8 +338,9 @@ void MPU6000::Run()
 	_px4_accel.updateFIFO(accel);
 }
 
-void MPU6000::PrintInfo()
+void MPU6000::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
