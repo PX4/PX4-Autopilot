@@ -48,6 +48,11 @@ if param compare SYS_AUTOSTART 4073
 then
 	# IFO GPS LED
 	rgbled_ncp5623c start -a 0x38
+
+	# IMU
 	mpu9250 -R 2 start
 	lis3mdl -R 2 -X start
+
+	# FLOW on SPI2
+	pmw3901 start -s 2
 fi
