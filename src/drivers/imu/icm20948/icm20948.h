@@ -37,15 +37,11 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/systemlib/conversions.h>
 #include <lib/systemlib/px4_macros.h>
 
 #include "ICM20948_mag.h"
-
-#if defined(PX4_I2C_OBDEV_ICM20948) || defined(PX4_I2C_BUS_EXPANSION)
-#  define USE_I2C
-#endif
 
 
 // ICM20948 registers
@@ -339,39 +335,37 @@ struct MPUReport {
 #  define ICM20948_LOW_SPEED_OP(r)			((r) &~ICM20948_HIGH_BUS_SPEED)
 
 /* interface factories */
-extern device::Device *ICM20948_SPI_interface(int bus, uint32_t cs);
-extern device::Device *ICM20948_I2C_interface(int bus, uint32_t address);
-extern int ICM20948_probe(device::Device *dev);
-
-typedef device::Device *(*ICM20948_constructor)(int, uint32_t);
+extern device::Device *ICM20948_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
+extern device::Device *ICM20948_I2C_interface(int bus, uint32_t address, int bus_frequency);
 
 class ICM20948_mag;
 
-class ICM20948 : public px4::ScheduledWorkItem
+class ICM20948 : public I2CSPIDriver<ICM20948>
 {
 public:
-	ICM20948(device::Device *interface, device::Device *mag_interface, enum Rotation rotation);
+	ICM20948(device::Device *interface, device::Device *mag_interface, enum Rotation rotation, I2CSPIBusOption bus_option,
+		 int bus);
 	virtual ~ICM20948();
 
-	virtual int		init();
-	uint8_t			get_whoami() { return _whoami; }
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void			print_info();
+	int		init();
+
+	void			print_status() override;
+
+	void RunImpl();
 
 protected:
 	device::Device *_interface;
 	uint8_t			_whoami{0};	/** whoami result */
 
-	virtual int		probe();
+	int		probe();
 
 	friend class ICM20948_mag;
 
 private:
-
-	void Run() override;
 
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
@@ -423,18 +417,12 @@ private:
 	bool			_got_duplicate{false};
 
 	void			start();
-	void			stop();
 	int			reset();
 
 	/**
 	 * Resets the main chip (excluding the magnetometer if any).
 	 */
 	int			reset_mpu();
-
-	/**
-	 * Fetch measurements from the sensor and update the report buffers.
-	 */
-	void			measure();
 
 	/**
 	 * Select a register bank in ICM20948

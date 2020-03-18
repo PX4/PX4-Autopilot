@@ -59,12 +59,12 @@
 #define ICM20948_LOW_SPI_BUS_SPEED	1000*1000
 #define ICM20948_HIGH_SPI_BUS_SPEED	20*1000*1000
 
-device::Device *ICM20948_SPI_interface(int bus, uint32_t cs);
+device::Device *ICM20948_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
 class ICM20948_SPI : public device::SPI
 {
 public:
-	ICM20948_SPI(int bus, uint32_t device);
+	ICM20948_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	~ICM20948_SPI() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -80,17 +80,13 @@ private:
 };
 
 device::Device *
-ICM20948_SPI_interface(int bus, uint32_t cs)
+ICM20948_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
 {
-	device::Device *interface = nullptr;
-
-	interface = new ICM20948_SPI(bus, cs);
-
-	return interface;
+	return new ICM20948_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-ICM20948_SPI::ICM20948_SPI(int bus, uint32_t device) :
-	SPI("ICM20948", nullptr, bus, device, SPIDEV_MODE3, ICM20948_LOW_SPI_BUS_SPEED)
+ICM20948_SPI::ICM20948_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
+	SPI("ICM20948", nullptr, bus, device, spi_mode, bus_frequency)
 {
 	_device_id.devid_s.devtype = DRV_IMU_DEVTYPE_ICM20948;
 }
