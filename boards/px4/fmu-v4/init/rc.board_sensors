@@ -39,7 +39,7 @@ fi
 if ! icm20602 -s -R 8 start
 then
 	# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	icm20608g -R 8 start
+	icm20608g -s -R 8 start
 fi
 
 # For Teal One airframe
