@@ -35,6 +35,12 @@ jobs:
       run: ccache -s && ccache -z
     - name: Run SITL tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
+    - name: Run SITL tests in Southern hemisphere
+      run: PX4_HOME_LAT=-37.8134048 PX4_HOME_LON=175.304109 PX4_HOME_ALT=32 |
+        test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
+    - name: Run SITL tests far in the West
+      run: PX4_HOME_LAT=59.6176928 PX4_HOME_LON=-151.1453163 PX4_HOME_ALT=48 |
+        test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
 
     # Report test coverage
     - name: disable the keychain credential helper
