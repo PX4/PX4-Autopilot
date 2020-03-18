@@ -81,7 +81,7 @@ private:
 	float _ahrs_accel_norm;			// length of _ahrs_accel specific force vector used by AHRS calculation (m/s/s)
 
 	// calculate the gain from gravity vector misalingment to tilt correction to be used by all AHRS filters
-	void ahrsCalcAccelGain();
+	float ahrsCalcAccelGain() const;
 
 	// update specified AHRS rotation matrix using IMU and optionally true airspeed data
 	void ahrsPredict(const uint8_t model_index);
@@ -121,7 +121,7 @@ private:
 	// return false if update failed
 	bool updateEKF(const uint8_t model_index);
 
-	inline float sq(float x) { return x * x; };
+	inline float sq(float x) const { return x * x; };
 
 	// converts Tait-Bryan 312 sequence of rotations from frame 1 to frame 2
 	// to the corresponding rotation matrix that rotates from frame 2 to frame 1
