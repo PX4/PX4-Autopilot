@@ -81,8 +81,8 @@ then
 	# external L3GD20H is rotated 180 degrees yaw
 	l3gd20 -X -R 4 start
 
-	# external LSM303D is rotated 270 degrees yaw
-	lsm303d -X -R 6 start
+	# (external) LSM303D is rotated 270 degrees yaw
+	lsm303d -s -R 6 start
 
 	if [ $BOARD_FMUV3 = 20 ]
 	then
@@ -114,7 +114,7 @@ else
 	fi
 
 	l3gd20 start
-	lsm303d start
+	lsm303d -s start
 fi
 
 # External RM3100
