@@ -45,6 +45,7 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 /*
  * LPS25H internal constants and data structures.
@@ -151,21 +152,24 @@
 #define FIFO_STATUS_FULL	(1 << 6)
 #define FIFO_STATUS_WTM		(1 << 7)
 
-class LPS25H : public px4::ScheduledWorkItem
+class LPS25H : public I2CSPIDriver<LPS25H>
 {
 public:
-	LPS25H(device::Device *interface);
+	LPS25H(I2CSPIBusOption bus_option, int bus, device::Device *interface);
 	~LPS25H() override;
 
-	int		init();
-	void		print_info();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
+	int		init();
+	void		print_status();
+
+	void			RunImpl();
 private:
 
 	void			start();
-	void			stop();
 	int			reset();
-	void			Run() override;
 
 	int			write_reg(uint8_t reg, uint8_t val);
 	int			read_reg(uint8_t reg, uint8_t &val);

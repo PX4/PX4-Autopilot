@@ -34,16 +34,16 @@
 /**
  * @file bmp388.cpp
  *
- * Driver for the BMP388 barometric pressure sensor connected via I2C
- * (SPI still TODO/test).
+ * Driver for the BMP388 barometric pressure sensor connected via SPI or I2C
  *
  * Refer to: https://github.com/BoschSensortec/BMP3-Sensor-API
  */
 
 #include "bmp388.h"
 
-BMP388::BMP388(IBMP388 *interface) :
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+BMP388::BMP388(I2CSPIBusOption bus_option, int bus, IBMP388 *interface) :
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus,
+		     interface->get_device_address()),
 	_px4_baro(interface->get_device_id()),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
@@ -55,9 +55,6 @@ BMP388::BMP388(IBMP388 *interface) :
 
 BMP388::~BMP388()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
@@ -116,8 +113,9 @@ BMP388::init()
 }
 
 void
-BMP388::print_info()
+BMP388::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_measure_perf);
 	perf_print_counter(_comms_errors);
@@ -131,23 +129,11 @@ BMP388::start()
 {
 	_collect_phase = false;
 
-	/* make sure we are stopped first */
-	stop();
-
 	ScheduleOnInterval(_measure_interval, 1000);
 }
 
 void
-BMP388::stop()
-{
-	ScheduleClear();
-}
-
-/*
- * ScheduledWorkItem override
- */
-void
-BMP388::Run()
+BMP388::RunImpl()
 {
 	if (_collect_phase) {
 		collect();

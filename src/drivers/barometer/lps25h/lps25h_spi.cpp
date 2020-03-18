@@ -39,20 +39,18 @@
 
 #include "lps25h.h"
 
-#if defined(PX4_SPIDEV_LPS22H)
-
 #include <drivers/device/spi.h>
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
 #define DIR_WRITE			(0<<7)
 
-device::Device *LPS25H_SPI_interface(int bus);
+device::Device *LPS25H_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
 class LPS25H_SPI : public device::SPI
 {
 public:
-	LPS25H_SPI(int bus, uint32_t device);
+	LPS25H_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	~LPS25H_SPI() override = default;
 
 	int	init() override;
@@ -61,13 +59,13 @@ public:
 
 };
 
-device::Device *LPS25H_SPI_interface(int bus)
+device::Device *LPS25H_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
 {
-	return new LPS25H_SPI(bus, PX4_SPIDEV_LPS22H);
+	return new LPS25H_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-LPS25H_SPI::LPS25H_SPI(int bus, uint32_t device) :
-	SPI("LPS25H_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000)
+LPS25H_SPI::LPS25H_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
+	SPI("LPS25H_SPI", nullptr, bus, device, spi_mode, bus_frequency)
 {
 	set_device_type(DRV_BARO_DEVTYPE_LPS25H);
 }
@@ -84,7 +82,7 @@ int LPS25H_SPI::init()
 	// read WHO_AM_I value
 	uint8_t id;
 
-	if (read(ADDR_ID, &id, 1)) {
+	if (read(ADDR_WHO_AM_I, &id, 1)) {
 		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
@@ -125,5 +123,3 @@ int LPS25H_SPI::read(unsigned address, void *data, unsigned count)
 	memcpy(data, &buf[1], count);
 	return ret;
 }
-
-#endif /* PX4_SPIDEV_LPS22H */

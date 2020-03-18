@@ -33,9 +33,9 @@
 
 #include "SRF02.hpp"
 
-SRF02::SRF02(int bus, int address, uint8_t rotation) :
-	I2C("SRF02", nullptr, bus, address, 100000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+SRF02::SRF02(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
+	I2C("SRF02", nullptr, bus, address, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
 {
 	_px4_rangefinder.set_max_distance(SRF02_MAX_DISTANCE);
@@ -44,8 +44,6 @@ SRF02::SRF02(int bus, int address, uint8_t rotation) :
 
 SRF02::~SRF02()
 {
-	stop();
-
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
@@ -59,11 +57,6 @@ void SRF02::start()
 	ScheduleDelayed(5);
 }
 
-void SRF02::stop()
-{
-	ScheduleClear();
-}
-
 int SRF02::init()
 {
 	// I2C init (and probe) first.
@@ -74,15 +67,7 @@ int SRF02::init()
 	// XXX we should find out why we need to wait 200 ms here
 	px4_usleep(200000);
 
-	int ret = measure();
-
-	if (ret != PX4_OK) {
-		return ret;
-	}
-
-	start();
-
-	return PX4_OK;
+	return measure();
 }
 
 int SRF02::collect()
@@ -130,7 +115,7 @@ int SRF02::measure()
 	return PX4_OK;
 }
 
-void SRF02::Run()
+void SRF02::RunImpl()
 {
 	if (_collect_phase) {
 		// Perform collection.
@@ -157,8 +142,9 @@ void SRF02::Run()
 	ScheduleDelayed(_interval);
 }
 
-void SRF02::print_info()
+void SRF02::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 

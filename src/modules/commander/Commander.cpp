@@ -156,6 +156,7 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	return ret;
 }
 
+#ifndef CONSTRAINED_FLASH
 static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN, float param3 = NAN,
 				 float param4 = NAN, float param5 = NAN, float param6 = NAN, float param7 = NAN)
 {
@@ -183,6 +184,7 @@ static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 
 
 	return vcmd_pub.publish(vcmd);
 }
+#endif
 
 extern "C" __EXPORT int commander_main(int argc, char *argv[])
 {
@@ -246,6 +248,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 		return 0;
 	}
 
+#ifndef CONSTRAINED_FLASH
+
 	if (!strcmp(argv[1], "calibrate")) {
 		if (argc > 2) {
 			if (!strcmp(argv[2], "gyro")) {
@@ -291,6 +295,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, safety_s{},
 					PreFlightCheck::arm_requirements_t{}, status);
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
+
+		print_health_flags(status);
 
 		return 0;
 	}
@@ -408,6 +414,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 		return (ret ? 0 : 1);
 	}
+
+#endif
 
 	Commander::print_usage("unrecognized command");
 	return 1;
@@ -2251,6 +2259,16 @@ Commander::run()
 
 			/* publish vehicle_status_flags */
 			status_flags.timestamp = hrt_absolute_time();
+
+			// Evaluate current prearm status
+			if (!armed.armed) {
+				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, status, status_flags, true, false, true, 30_s);
+				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, _safety,
+							_arm_requirements, status, false);
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, (preflight_check_res
+						 && prearm_check_res), status);
+			}
+
 			_vehicle_status_flags_pub.publish(status_flags);
 		}
 
@@ -3748,7 +3766,6 @@ void Commander::avoidance_check()
 
 	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE, sensor_oa_present, sensor_oa_enabled,
 			 sensor_oa_healthy, status);
-
 }
 
 void Commander::battery_status_check()
@@ -3822,7 +3839,7 @@ void Commander::battery_status_check()
 		// All connected batteries are regularly being published
 		(hrt_elapsed_time(&oldest_update) < 5_s)
 		// There is at least one connected battery (in any slot)
-		&& num_connected_batteries > 0
+		&& (num_connected_batteries > 0)
 		// No currently-connected batteries have any warning
 		&& (_battery_warning == battery_status_s::BATTERY_WARNING_NONE);
 
@@ -3961,13 +3978,6 @@ void Commander::estimator_check()
 		}
 	}
 
-	if ((_last_condition_global_position_valid != status_flags.condition_global_position_valid)
-	    && status_flags.condition_global_position_valid) {
-		// If global position state changed and is now valid, set respective health flags to true. For now also assume GPS is OK if global pos is OK, but not vice versa.
-		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, status);
-		set_health_flags_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, status);
-	}
-
 	check_valid(lpos.timestamp, _param_com_pos_fs_delay.get() * 1_s, lpos.z_valid,
 		    &(status_flags.condition_local_altitude_valid), &_status_changed);
 }
@@ -4059,6 +4069,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_NAME("commander", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Enable HIL mode", true);
+#ifndef CONSTRAINED_FLASH
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run sensor calibration");
 	PRINT_MODULE_USAGE_ARG("mag|accel|gyro|level|esc|airspeed", "Calibration type", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
@@ -4073,6 +4084,7 @@ The commander module contains the state machine for mode switching and failsafe 
 			"Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("lockdown");
 	PRINT_MODULE_USAGE_ARG("off", "Turn lockdown off", true);
+#endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 1;

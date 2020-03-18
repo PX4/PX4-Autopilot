@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +31,23 @@
  *
  ****************************************************************************/
 
+#include <mavsdk/mavsdk.h>
+#include <mavsdk/plugins/action/action.h>
+#include <mavsdk/plugins/telemetry/telemetry.h>
+#include <iostream>
+#include <string>
+#include "autopilot_tester.h"
 
-/**
- * @file LidarLitePWM.h
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Ban Siesta <bansiesta@gmail.com>
- *
- * Driver for the PulsedLight Lidar-Lite range finders connected via PWM.
- *
- * This driver accesses the pwm_input published by the pwm_input driver.
- */
-#pragma once
 
-#include "LidarLite.h"
-
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
-#include <uORB/topics/pwm_input.h>
-#include <uORB/Subscription.hpp>
-#include <board_config.h>
-
-#if DIRECT_PWM_OUTPUT_CHANNELS >= 6
-#define GPIO_VDD_RANGEFINDER_EN_CHAN 5 // use pin 6
-#define LIDAR_LITE_PWM_SUPPORTED
-
-class LidarLitePWM : public LidarLite, public px4::ScheduledWorkItem
+TEST_CASE("Takeoff and transition and RTL", "[vtol]")
 {
-public:
-	LidarLitePWM(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	virtual ~LidarLitePWM();
-
-	int init() override;
-	void start() override;
-	void stop() override;
-
-protected:
-
-	int collect() override;
-	int measure() override;
-
-private:
-
-	void Run() override;
-
-	uORB::Subscription _sub_pwm_input{ORB_ID(pwm_input)};
-
-	pwm_input_s _pwm{};
-};
-
-#endif
+	AutopilotTester tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.arm();
+	tester.takeoff();
+	tester.wait_until_hovering();
+	tester.transition_to_fixedwing();
+	tester.execute_rtl();
+	tester.wait_until_disarmed();
+}

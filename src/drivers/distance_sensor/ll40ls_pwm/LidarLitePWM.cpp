@@ -49,15 +49,22 @@
 #include <px4_arch/io_timer.h>
 
 LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
-	LidarLite(rotation),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
 {
+	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
+	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
+	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
 	px4_arch_configgpio(io_timer_channel_get_gpio_output(GPIO_VDD_RANGEFINDER_EN_CHAN));
 }
 
 LidarLitePWM::~LidarLitePWM()
 {
 	stop();
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_sensor_resets);
+	perf_free(_sensor_zero_resets);
 }
 
 int
@@ -106,7 +113,6 @@ LidarLitePWM::measure()
 	if (current_distance <= 0.0f) {
 		perf_count(_sensor_zero_resets);
 		perf_end(_sample_perf);
-		return reset_sensor();
 	}
 
 	_px4_rangefinder.update(timestamp_sample, current_distance);
@@ -128,6 +134,16 @@ LidarLitePWM::collect()
 	}
 
 	return EAGAIN;
+}
+
+void
+LidarLitePWM::print_info()
+{
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_sensor_resets);
+	perf_print_counter(_sensor_zero_resets);
+	printf("poll interval:  %u \n", get_measure_interval());
 }
 
 #endif

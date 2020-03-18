@@ -587,6 +587,12 @@ MulticopterPositionControl::Run()
 			// check if all local states are valid and map accordingly
 			set_vehicle_states(setpoint.vz);
 
+			// fix to prevent the takeoff ramp to ramp to a too high value or get stuck because of NAN
+			// TODO: this should get obsolete once the takeoff limiting moves into the flight tasks
+			if (!PX4_ISFINITE(constraints.speed_up) || (constraints.speed_up > _param_mpc_z_vel_max_up.get())) {
+				constraints.speed_up = _param_mpc_z_vel_max_up.get();
+			}
+
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff,
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);

@@ -21,18 +21,17 @@ adc start
 mpu6000 -R 8 -s -T 20602 start
 
 # Internal SPI bus ICM-20689
-mpu6000 -R 8 -z -T 20689 start
+mpu6000 -R 8 -s -T 20689 start
 
 # Internal SPI bus BMI055 accel
-bmi055 -A -R 10 start
+bmi055 -A -R 10 -s start
 
 # Internal SPI bus BMI055 gyro
-bmi055 -G -R 10 start
+bmi055 -G -R 10 -s start
 
 # Possible external compasses
-ist8310 -b 1 start
-ist8310 -b 2 start
-hmc5883 -C -T -X start
+ist8310 -X start
+hmc5883 -T -X start
 qmc5883 -X start
 lis3mdl -X start
 
@@ -44,7 +43,7 @@ then
 fi
 
 # Possible internal compass
-ist8310 -b 5 start
+ist8310 -I start
 
 # Baro on internal SPI
 ms5611 -s start
@@ -53,6 +52,6 @@ ms5611 -s start
 rm3100 start
 
 # Possible pmw3901 optical flow sensor
-pmw3901 start
+pmw3901 -S start
 
-px4flow start &
+px4flow start -X

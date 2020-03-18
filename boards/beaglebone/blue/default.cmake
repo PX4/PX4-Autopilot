@@ -1,3 +1,8 @@
+add_definitions(
+	-D__PX4_LINUX
+
+	-DRC_AUTOPILOT_EXT  # Enable extensions in Robotics Cape Library, TODO: remove
+)
 
 px4_add_board(
 	VENDOR beaglebone

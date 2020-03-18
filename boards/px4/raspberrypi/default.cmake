@@ -1,3 +1,6 @@
+add_definitions(
+	-D__PX4_LINUX
+)
 
 px4_add_board(
 	VENDOR px4
