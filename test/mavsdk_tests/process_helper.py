@@ -183,14 +183,18 @@ class GzserverRunner(Runner):
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
                     "PX4_SIM_SPEED_FACTOR": str(speed_factor),
-                    "DISPLAY": os.environ['DISPLAY'],
-                    "PX4_HOME_LAT": os.environ['PX4_HOME_LAT'],
-                    "PX4_HOME_LON": os.environ['PX4_HOME_LON'],
-                    "PX4_HOME_ALT": os.environ['PX4_HOME_ALT']}
+                    "DISPLAY": os.environ['DISPLAY']}
+        self.add_to_env_if_set("PX4_HOME_LAT")
+        self.add_to_env_if_set("PX4_HOME_LON")
+        self.add_to_env_if_set("PX4_HOME_ALT")
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      self.model + ".world"]
+
+    def add_to_env_if_set(self, var: str) -> None:
+        if var in os.environ:
+            self.env[var] = os.environ[var]
 
 
 class GzclientRunner(Runner):
