@@ -2674,7 +2674,7 @@ public:
 
 	static constexpr uint16_t get_id_static()
 	{
-		return MAVLINK_MSG_ID_VIBRATION;
+		return MAVLINK_MSG_ID_ESTIMATOR_STATUS;
 	}
 
 	uint16_t get_id() override
@@ -2689,7 +2689,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return _est_sub.advertised() ? MAVLINK_MSG_ID_VIBRATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _est_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
