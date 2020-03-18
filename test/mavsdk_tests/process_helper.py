@@ -202,8 +202,6 @@ class GzclientRunner(Runner):
         self.cwd = workspace_dir
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
-                    # "GAZEBO_PLUGIN_PATH":
-                    # workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
                     "DISPLAY": os.environ['DISPLAY']}
