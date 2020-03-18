@@ -48,22 +48,33 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 using namespace ST_ISM330DLC;
 
-class ISM330DLC : public device::SPI, public px4::ScheduledWorkItem
+class ISM330DLC : public device::SPI, public I2CSPIDriver<ISM330DLC>
 {
 public:
-	ISM330DLC(int bus, uint32_t device, enum Rotation rotation = ROTATION_NONE);
+	ISM330DLC(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		  spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
 	~ISM330DLC() override;
 
-	bool Init();
-	void Start();
-	void Stop();
-	bool Reset();
-	void PrintInfo();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
+	void print_status() override;
+
+	void RunImpl();
+
+	int init() override;
+
+	void Start();
+	bool Reset();
+
+protected:
+	void custom_method(const BusCLIArguments &cli) override;
+	void exit_and_cleanup() override;
 private:
 
 	// Sensor Configuration
@@ -84,14 +95,14 @@ private:
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
 	void DataReady();
 
-	void Run() override;
-
 	uint8_t RegisterRead(Register reg);
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetBits(Register reg, uint8_t setbits);
 	void RegisterClearBits(Register reg, uint8_t clearbits);
 
 	void ResetFIFO();
+
+	const spi_drdy_gpio_t _drdy_gpio;
 
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;

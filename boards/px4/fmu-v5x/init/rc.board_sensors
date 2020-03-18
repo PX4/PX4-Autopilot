@@ -13,7 +13,7 @@ ina226 -X -b 2 -t 2 -k start
 mpu6000 -R 8 -s -T 20602 start
 
 # Internal SPI bus ISM300DLC
-ism330dlc start
+ism330dlc -s start
 
 # Internal SPI bus BMI088 accel
 bmi088 -A -R 12 -s start
