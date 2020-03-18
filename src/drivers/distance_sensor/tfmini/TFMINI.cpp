@@ -245,7 +245,7 @@ TFMINI::Run()
 	// perform collection
 	if (collect() == -EAGAIN) {
 		// reschedule to grab the missing bits, time to transmit 9 bytes @ 115200 bps
-		ScheduleClear();
+		//ScheduleClear();
 		ScheduleOnInterval(100_us, 87 * 9);
 		return;
 	}
