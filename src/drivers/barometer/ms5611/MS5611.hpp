@@ -36,13 +36,13 @@
 #include <drivers/device/device.h>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
 #include "ms5611.h"
 
 enum MS56XX_DEVICE_TYPES {
-	MS56XX_DEVICE   = 0,
 	MS5611_DEVICE	= 5611,
 	MS5607_DEVICE	= 5607,
 };
@@ -84,28 +84,42 @@ enum MS56XX_DEVICE_TYPES {
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
-class MS5611 : public px4::ScheduledWorkItem
+class MS5611 : public I2CSPIDriver<MS5611>
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type,
+	       I2CSPIBusOption bus_option, int bus);
 	~MS5611() override;
+
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
 	int		init();
 
 	/**
-	 * Diagnostics - print some basic information about the driver.
+	 * Perform a poll cycle; collect from the previous measurement
+	 * and start a new one.
+	 *
+	 * This is the heart of the measurement state machine.  This function
+	 * alternately starts a measurement, or collects the data from the
+	 * previous measurement.
+	 *
+	 * When the interval between measurements is greater than the minimum
+	 * measurement interval, a gap is inserted between collection
+	 * and measurement to provide the most recent measurement possible
+	 * at the next interval.
 	 */
-	void			print_info();
+	void			RunImpl();
 
 protected:
+	void print_status() override;
 
 	PX4Barometer		_px4_barometer;
 
 	device::Device		*_interface;
 
 	ms5611::prom_s		_prom;
-
-	unsigned		_measure_interval{0};
 
 	enum MS56XX_DEVICE_TYPES _device_type;
 	bool			_collect_phase{false};
@@ -126,26 +140,6 @@ protected:
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
 	void			start();
-
-	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void			stop();
-
-	/**
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-	 * previous measurement.
-	 *
-	 * When the interval between measurements is greater than the minimum
-	 * measurement interval, a gap is inserted between collection
-	 * and measurement to provide the most recent measurement possible
-	 * at the next interval.
-	 */
-	void			Run() override;
 
 	/**
 	 * Issue a measurement command for the current state.

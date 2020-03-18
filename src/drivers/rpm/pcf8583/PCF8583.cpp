@@ -33,16 +33,11 @@
 
 #include "PCF8583.hpp"
 
-PCF8583::PCF8583(int bus, int address) :
-	I2C("PCF8583", nullptr, bus, address, 400000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
-	ModuleParams(nullptr)
+PCF8583::PCF8583(I2CSPIBusOption bus_option, const int bus, int bus_frequency) :
+	I2C("PCF8583", nullptr, bus, PCF8583_BASEADDR_DEFAULT, bus_frequency),
+	ModuleParams(nullptr),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus)
 {
-}
-
-PCF8583::~PCF8583()
-{
-	ScheduleClear();
 }
 
 int PCF8583::init()
@@ -53,9 +48,9 @@ int PCF8583::init()
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("addr: %d, pool: %d, reset: %d, magenet: %d", get_device_address(), _param_pcf8583_pool.get(),
-		 _param_pcf8583_reset.get(),
-		 _param_pcf8583_magnet.get());
+	PX4_DEBUG("addr: %d, pool: %d, reset: %d, magenet: %d", get_device_address(), _param_pcf8583_pool.get(),
+		  _param_pcf8583_reset.get(),
+		  _param_pcf8583_magnet.get());
 
 	// set counter mode
 	setRegister(0x00, 0b00100000);
@@ -114,7 +109,7 @@ uint8_t PCF8583::readRegister(uint8_t reg)
 	return rcv;
 }
 
-void PCF8583::Run()
+void PCF8583::RunImpl()
 {
 	// read sensor and compute frequency
 	int oldcount = _count;
@@ -145,7 +140,8 @@ void PCF8583::Run()
 	_rpm_pub.publish(msg);
 }
 
-void PCF8583::print_info()
+void PCF8583::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	PX4_INFO("poll interval:  %d us", _param_pcf8583_pool.get());
 }

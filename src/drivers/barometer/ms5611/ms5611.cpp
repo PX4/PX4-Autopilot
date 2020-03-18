@@ -41,8 +41,9 @@
 
 #include <cdev/CDev.hpp>
 
-MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type) :
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type,
+	       I2CSPIBusOption bus_option, int bus) :
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, 0, device_type),
 	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_prom(prom_buf.s),
@@ -55,9 +56,6 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_
 
 MS5611::~MS5611()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
@@ -70,16 +68,9 @@ int
 MS5611::init()
 {
 	int ret;
-	bool autodetect = false;
 
 	/* do a first measurement cycle to populate reports with valid data */
 	_measure_phase = 0;
-
-	if (_device_type == MS56XX_DEVICE) {
-		autodetect = true;
-		/* try first with MS5611 and fallback to MS5607 */
-		_device_type = MS5611_DEVICE;
-	}
 
 	while (true) {
 		/* do temperature first */
@@ -111,22 +102,11 @@ MS5611::init()
 		/* state machine will have generated a report, copy it out */
 		const sensor_baro_s &brp = _px4_barometer.get();
 
-		if (autodetect) {
-			if (_device_type == MS5611_DEVICE) {
-				if (brp.pressure < 520.0f) {
-					/* This is likely not this device, try again */
-					_device_type = MS5607_DEVICE;
-					_measure_phase = 0;
-
-					continue;
-				}
-
-			} else if (_device_type == MS5607_DEVICE) {
-				if (brp.pressure < 520.0f) {
-					/* Both devices returned a very low pressure;
-					 * have fun on Everest using MS5611 */
-					_device_type = MS5611_DEVICE;
-				}
+		if (_device_type == MS5607_DEVICE) {
+			if (brp.pressure < 520.0f) {
+				/* This is likely not this device, abort */
+				ret = -EINVAL;
+				break;
 			}
 		}
 
@@ -150,7 +130,9 @@ MS5611::init()
 		break;
 	}
 
-	start();
+	if (ret == 0) {
+		start();
+	}
 
 	return ret;
 }
@@ -163,17 +145,11 @@ MS5611::start()
 	_measure_phase = 0;
 
 	/* schedule a cycle to start things */
-	ScheduleNow();
+	ScheduleDelayed(MS5611_CONVERSION_INTERVAL);
 }
 
 void
-MS5611::stop()
-{
-	ScheduleClear();
-}
-
-void
-MS5611::Run()
+MS5611::RunImpl()
 {
 	int ret;
 	unsigned dummy;
@@ -207,20 +183,6 @@ MS5611::Run()
 
 		/* next phase is measurement */
 		_collect_phase = false;
-
-		/*
-		 * Is there a collect->measure gap?
-		 * Don't inject one after temperature measurements, so we can keep
-		 * doing pressure measurements at something close to the desired rate.
-		 */
-		if ((_measure_phase != 0) &&
-		    (_measure_interval > MS5611_CONVERSION_INTERVAL)) {
-
-			/* schedule a fresh cycle call when we are ready to measure again */
-			ScheduleDelayed(_measure_interval - MS5611_CONVERSION_INTERVAL);
-
-			return;
-		}
 	}
 
 	/* measurement phase */
@@ -366,8 +328,9 @@ MS5611::collect()
 	return OK;
 }
 
-void MS5611::print_info()
+void MS5611::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 
@@ -376,9 +339,6 @@ void MS5611::print_info()
 	_px4_barometer.print_status();
 }
 
-/**
- * Local functions in support of the shell command.
- */
 namespace ms5611
 {
 

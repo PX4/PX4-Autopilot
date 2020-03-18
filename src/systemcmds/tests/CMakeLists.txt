@@ -46,6 +46,7 @@ set(srcs
 	test_hott_telemetry.c
 	test_hrt.cpp
 	test_int.cpp
+	test_i2c_spi_cli.cpp
 	test_IntrusiveQueue.cpp
 	test_jig_voltages.c
 	test_led.c

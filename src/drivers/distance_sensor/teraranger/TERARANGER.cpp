@@ -73,9 +73,9 @@ static uint8_t crc8(uint8_t *p, uint8_t len)
 	return crc & 0xFF;
 }
 
-TERARANGER::TERARANGER(const int bus, const int address, const uint8_t rotation) :
-	I2C("TERARANGER", nullptr, bus, address, 100000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+TERARANGER::TERARANGER(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency) :
+	I2C("TERARANGER", nullptr, bus, TERARANGER_ONE_BASEADDR, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
 {
 	// up the retries since the device misses the first measure attempts
@@ -84,8 +84,6 @@ TERARANGER::TERARANGER(const int bus, const int address, const uint8_t rotation)
 
 TERARANGER::~TERARANGER()
 {
-	stop();
-
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
@@ -211,8 +209,6 @@ int TERARANGER::init()
 		return PX4_ERROR;
 	}
 
-	start();
-
 	return PX4_OK;
 }
 
@@ -253,7 +249,7 @@ int TERARANGER::probe()
 	return -EIO;
 }
 
-void TERARANGER::Run()
+void TERARANGER::RunImpl()
 {
 	// Perform data collection.
 	collect();
@@ -267,13 +263,9 @@ void TERARANGER::start()
 	ScheduleOnInterval(TERARANGER_MEASUREMENT_INTERVAL);
 }
 
-void TERARANGER::stop()
+void TERARANGER::print_status()
 {
-	ScheduleClear();
-}
-
-void TERARANGER::print_info()
-{
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 

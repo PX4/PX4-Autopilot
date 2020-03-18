@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +31,9 @@
  *
  ****************************************************************************/
 
+#include <px4_arch/spi_hw_description.h>
+#include <drivers/drv_sensor.h>
 
-/**
- * @file LidarLitePWM.h
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Ban Siesta <bansiesta@gmail.com>
- *
- * Driver for the PulsedLight Lidar-Lite range finders connected via PWM.
- *
- * This driver accesses the pwm_input published by the pwm_input driver.
- */
-#pragma once
-
-#include "LidarLite.h"
-
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
-#include <uORB/topics/pwm_input.h>
-#include <uORB/Subscription.hpp>
-#include <board_config.h>
-
-#if DIRECT_PWM_OUTPUT_CHANNELS >= 6
-#define GPIO_VDD_RANGEFINDER_EN_CHAN 5 // use pin 6
-#define LIDAR_LITE_PWM_SUPPORTED
-
-class LidarLitePWM : public LidarLite, public px4::ScheduledWorkItem
-{
-public:
-	LidarLitePWM(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	virtual ~LidarLitePWM();
-
-	int init() override;
-	void start() override;
-	void stop() override;
-
-protected:
-
-	int collect() override;
-	int measure() override;
-
-private:
-
-	void Run() override;
-
-	uORB::Subscription _sub_pwm_input{ORB_ID(pwm_input)};
-
-	pwm_input_s _pwm{};
+constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 };
 
-#endif

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,47 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+#include "WorkItem.hpp"
+#include <px4_platform_common/sem.h>
+
+namespace px4
+{
 
 /**
- * @file LidarLite.h
- * @author Johan Jansen <jnsn.johan@gmail.com>
- *
- * Generic interface driver for the PulsedLight Lidar-Lite range finders.
+ * @class WorkItemSingleShot
+ * Run a method on a specific work queue and wait for it to exit.
+ * Example usage:
+ *   WorkItemSingleShot initializer(px4::device_bus_to_wq(device_id.devid), instantiate, &data);
+ *   initializer.ScheduleNow();
+ *   initializer.wait();
  */
-
-#include "LidarLite.h"
-
-LidarLite::LidarLite(const uint8_t rotation) :
-	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
+class WorkItemSingleShot : public px4::WorkItem
 {
-	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
-	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
-	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
-}
+public:
+	using worker_method = void (*)(void *arg);
 
-LidarLite::~LidarLite()
-{
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
-	perf_free(_sensor_resets);
-	perf_free(_sensor_zero_resets);
+	WorkItemSingleShot(const px4::wq_config_t &config, worker_method method, void *argument);
+	WorkItemSingleShot(const px4::WorkItem &work_item, worker_method method, void *argument);
+
+	~WorkItemSingleShot();
+
+	WorkItemSingleShot() = delete;
+
+	// no copy, assignment, move, move assignment
+	WorkItemSingleShot(const WorkItemSingleShot &) = delete;
+	WorkItemSingleShot &operator=(const WorkItemSingleShot &) = delete;
+	WorkItemSingleShot(WorkItemSingleShot &&) = delete;
+	WorkItemSingleShot &operator=(WorkItemSingleShot &&) = delete;
+
+	void wait();
+protected:
+	void Run() override;
+private:
+	void *_argument;
+	worker_method _method;
+	px4_sem_t _sem;
 };
 
-void
-LidarLite::print_info()
-{
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_sensor_resets);
-	perf_print_counter(_sensor_zero_resets);
-	printf("poll interval:  %u \n", get_measure_interval());
-}
+} // namespace px4

@@ -46,26 +46,29 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
-class MPL3115A2 : public device::I2C, public px4::ScheduledWorkItem
+class MPL3115A2 : public device::I2C, public I2CSPIDriver<MPL3115A2>
 {
 public:
-	MPL3115A2(const int bus);
+	MPL3115A2(I2CSPIBusOption bus_option, const int bus, int bus_frequency);
 	~MPL3115A2() override;
+
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
+
 
 	int init() override;
 	int probe() override;
 
-	void print_info();
+	void print_status();
 
+	void RunImpl();
 private:
 
 	void start();
-	void stop();
 	int  reset();
-
-	void Run() override;
 
 	int measure();
 	int collect();
