@@ -45,14 +45,13 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI2, {
 		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10}),
 		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-	}),
-	initSPIBusExternal(SPI::Bus::SPI4, {
-		SPI::CS{GPIO::PortA, GPIO::Pin8},
+		initSPIDevice(DRV_FLOW_DEVTYPE_PMW3901, SPI::CS{GPIO::PortB, GPIO::Pin12})
 	}),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);
 
+#if defined(BOARD_HAS_BUS_MANIFEST)
 __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
 {
 	bool rv = true;
@@ -72,4 +71,4 @@ __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
 
 	return rv;
 }
-
+#endif

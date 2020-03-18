@@ -62,6 +62,8 @@
 # define PAW3902_BUS PX4_SPI_BUS_EXTERNAL1
 #elif defined PX4_SPI_BUS_EXTERNAL    // fmu-v4 extspi
 # define PAW3902_BUS PX4_SPI_BUS_EXTERNAL
+#elif defined PX4_SPI_BUS_OPTFLOW
+# define PAW3902_BUS PX4_SPI_BUS_OPTFLOW
 #else
 # error "add the required spi bus from board_config.h here"
 #endif
@@ -72,6 +74,8 @@
 # define PAW3902_SPIDEV PX4_SPIDEV_EXTERNAL1_1
 #elif defined PX4_SPIDEV_EXTERNAL   // fmu-v4 extspi
 # define PAW3902_SPIDEV PX4_SPIDEV_EXTERNAL
+#elif defined PX4_SPIDEV_OPTFLOW
+# define PAW3902_SPIDEV PX4_SPIDEV_OPTFLOW
 #else
 # error "add the required spi dev from board_config.h here"
 #endif
