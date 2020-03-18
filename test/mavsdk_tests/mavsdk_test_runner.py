@@ -390,14 +390,14 @@ class Tester:
                         self.verbose)
                     self.active_runners.append(gzclient_runner)
 
-        test_runner = ph.TestRunner(
+        mavsdk_tests_runner = ph.TestRunner(
             os.getcwd(),
             log_dir,
             test['model'],
             case,
             self.config['mavlink_connection'],
             self.verbose)
-        self.active_runners.append(test_runner)
+        self.active_runners.append(mavsdk_tests_runner)
 
         for runner in self.active_runners:
             runner.set_log_filename(
