@@ -47,7 +47,7 @@ const char *const UavcanMagnetometerBridge::NAME = "mag";
 #define UAVCAN_MAG_BASE_DEVICE_PATH "/dev/uavcan/mag"
 
 UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", UAVCAN_MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
+	UavcanCDevSensorBridgeBase("uavcan_mag", UAVCAN_MAG_BASE_DEVICE_PATH, UAVCAN_MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
 	_sub_mag(node),
 	_sub_mag2(node)
 {

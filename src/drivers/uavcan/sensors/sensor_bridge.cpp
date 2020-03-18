@@ -138,8 +138,6 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->orb_instance);
 	}
 
-	//publish_sensor()
-
 	assert(channel != nullptr);
 
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
