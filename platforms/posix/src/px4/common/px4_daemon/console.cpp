@@ -93,6 +93,9 @@ int px4_console::prepare_fds()
 
 	fcntl(_sys_stdin_backup, F_SETFL, fcntl(_sys_stdin_backup, F_GETFL) | O_NONBLOCK);	// set stdin non blocking
 
+	fcntl(_mavshell_out_pipe[1], F_SETFL, fcntl(_mavshell_out_pipe[1],
+			F_GETFL) | O_NONBLOCK);	// prevent write blocking if pipe is full
+
 	ret = dup2(_fake_stdin_pipe[0], 0);	// override stdin
 
 	if (ret == -1) {
