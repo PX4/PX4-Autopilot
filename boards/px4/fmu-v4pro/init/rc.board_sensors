@@ -8,7 +8,7 @@ rgbled start -I
 adc start
 
 # Internal SPI bus ICM-20608-G
-icm20608g -R 8 start
+icm20608g -s -R 8 start
 
 # Internal SPI bus ICM-20602
 icm20602 -s -R 8 start
