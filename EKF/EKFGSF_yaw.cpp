@@ -46,8 +46,11 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 		return;
 	}
 
+	// calculate common values used by the AHRS complementary filter models
+	_ahrs_accel_norm = _ahrs_accel.norm();
+
 	// AHRS prediction cycle for each model - this always runs
-	ahrsCalcAccelGain();
+	_ahrs_accel_fusion_gain = ahrsCalcAccelGain();
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 		predictEKF(model_index);
 	}
@@ -567,29 +570,24 @@ Dcmf EKFGSF_yaw::taitBryan312ToRotMat(const Vector3f &rot312)
 	return R;
 }
 
-void EKFGSF_yaw::ahrsCalcAccelGain()
+float EKFGSF_yaw::ahrsCalcAccelGain() const
 {
-	// calculate common values used by the AHRS complementary filter models
-	_ahrs_accel_norm = _ahrs_accel.norm();
-
 	// Calculate the acceleration fusion gain using a continuous function that is unity at 1g and zero
-	// at the min and mas g value. Allow for more acceleration when flying as a fixed wing vehicle using centripetal
+	// at the min and max g value. Allow for more acceleration when flying as a fixed wing vehicle using centripetal
 	// acceleration correction as higher and more sustained g will be experienced.
 	// Use a quadratic instead of linear function to prevent vibration around 1g reducing the tilt correction effectiveness.
-	const float accel_g = _ahrs_accel_norm / CONSTANTS_ONE_G;
-	if (accel_g > 1.0f) {
-		if (_true_airspeed > FLT_EPSILON && accel_g < 2.0f) {
-			_ahrs_accel_fusion_gain = _tilt_gain * sq(2.0f - accel_g);
-		} else if (accel_g < 1.5f) {
-			_ahrs_accel_fusion_gain = _tilt_gain * sq(3.0f - 2.0f * accel_g);
-		} else {
-			_ahrs_accel_fusion_gain = 0.0f;
-		}
-	} else if (accel_g > 0.5f) {
-		_ahrs_accel_fusion_gain = _tilt_gain * sq(2.0f * accel_g - 1.0f);
-	} else {
-		_ahrs_accel_fusion_gain = 0.0f;
+	// see https://www.desmos.com/calculator/dbqbxvnwfg
+
+	float attenuation = 2.f;
+	const bool centripetal_accel_compensation_enabled = (_true_airspeed > FLT_EPSILON);
+
+	if (centripetal_accel_compensation_enabled
+	    && _ahrs_accel_norm > CONSTANTS_ONE_G) {
+		attenuation = 1.f;
 	}
+
+	const float delta_accel_g = (_ahrs_accel_norm - CONSTANTS_ONE_G) / CONSTANTS_ONE_G;
+	return _tilt_gain * sq(1.f - math::min(attenuation * fabsf(delta_accel_g), 1.f));
 }
 
 Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
