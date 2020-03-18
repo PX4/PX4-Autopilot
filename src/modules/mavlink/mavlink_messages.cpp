@@ -2864,7 +2864,7 @@ protected:
 			for (int i = 0; i < 3; i++) {
 				sensor_accel_status_s acc_status;
 
-				if (_sensor_accel_status_sub[0].copy(&acc_status)) {
+				if (_sensor_accel_status_sub[i].copy(&acc_status)) {
 
 					const uint32_t clipping = acc_status.clipping[0] + acc_status.clipping[1] + acc_status.clipping[2];
 
