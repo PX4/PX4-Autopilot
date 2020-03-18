@@ -163,7 +163,7 @@ private:
 	actuator_controls_s  _actuator_controls{};
 
 	Battery 		  _battery;
-	uORB::Subscription  _actuators_sub{ORB_ID(actuator_controls)};
+	uORB::Subscription  _actuators_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription  _parameters_sub{ORB_ID(parameter_update)};
 
 	/**

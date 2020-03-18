@@ -58,7 +58,7 @@
 
 // SPI
 #define PX4_SPI_BUS_SENSORS	1
-#define PX4_SPIDEV_MPU		PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+#define PX4_SPIDEV_MPU		PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU9250)
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>

@@ -63,6 +63,12 @@ void PositionControl::setThrustLimits(const float min, const float max)
 	_lim_thr_max = max;
 }
 
+void PositionControl::updateHoverThrust(const float hover_thrust_new)
+{
+	_vel_int(2) += hover_thrust_new - _hover_thrust;
+	setHoverThrust(hover_thrust_new);
+}
+
 void PositionControl::setState(const PositionControlStates &states)
 {
 	_pos = states.position;
@@ -213,7 +219,7 @@ void PositionControl::_velocityControl(const float dt)
 	_vel_int += vel_error.emult(_gain_vel_i) * dt;
 
 	// limit thrust integral
-	_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * math::sign(_vel_int(2));
+	_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * sign(_vel_int(2));
 }
 
 bool PositionControl::_updateSuccessful()

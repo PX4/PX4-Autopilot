@@ -49,12 +49,13 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		navigator
 		rc_update
 		sensors
-		sih
+		#sih
 		#temperature_compensation
 		vmount
 	SYSTEMCMDS

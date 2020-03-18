@@ -44,7 +44,6 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
-#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
@@ -62,7 +61,6 @@
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_selection.h>
-#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/subsystem_info.h>
 
@@ -112,7 +110,7 @@ public:
 	/**
 	 * read new sensor data
 	 */
-	void sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s &airdata, vehicle_magnetometer_s &magnetometer);
+	void sensorsPoll(sensor_combined_s &raw, vehicle_magnetometer_s &magnetometer);
 
 	/**
 	 * set the relative timestamps of each sensor timestamp, based on the last sensorsPoll,
@@ -125,11 +123,7 @@ public:
 	 */
 	void checkFailover();
 
-	int numGyros() const { return _gyro.subscription_count; }
-
-	int gyroFd(int idx) const { return _gyro.subscription[idx]; }
-
-	int bestGyroFd() const { return _gyro.subscription[_gyro.last_best_vote]; }
+	int bestGyroID() const { return _gyro_device_id[_gyro.last_best_vote]; }
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
@@ -199,14 +193,6 @@ private:
 	void magPoll(vehicle_magnetometer_s &magnetometer);
 
 	/**
-	 * Poll the barometer for updated data.
-	 *
-	 * @param raw	Combined sensor data structure into which
-	 *		data should be returned.
-	 */
-	void baroPoll(vehicle_air_data_s &airdata);
-
-	/**
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
@@ -215,7 +201,6 @@ private:
 	SensorData _accel {};
 	SensorData _gyro {};
 	SensorData _mag {};
-	SensorData _baro {};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -226,7 +211,6 @@ private:
 	uORB::Subscription _corrections_sub{ORB_ID(sensor_correction)};
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
-	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX] {};		/**< latest sensor data from all sensors instances */
 	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
 
 	matrix::Dcmf _board_rotation {};		/**< rotation matrix for the orientation that the board is mounted */
@@ -242,7 +226,6 @@ private:
 	float _mag_angle_diff[2] {};			/**< filtered mag angle differences between sensor instances (Ga) */
 
 	uint32_t _accel_device_id[SENSOR_COUNT_MAX] {};	/**< accel driver device id for each uorb instance */
-	uint32_t _baro_device_id[SENSOR_COUNT_MAX] {};	/**< baro driver device id for each uorb instance */
 	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] {};	/**< gyro driver device id for each uorb instance */
 	uint32_t _mag_device_id[SENSOR_COUNT_MAX] {};	/**< mag driver device id for each uorb instance */
 

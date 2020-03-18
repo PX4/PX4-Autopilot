@@ -34,4 +34,6 @@
 add_library(drivers_board
 	board_config.h
 	init.c
+	spi.cpp
+	i2c.cpp
 )

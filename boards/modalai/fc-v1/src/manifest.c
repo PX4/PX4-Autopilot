@@ -92,21 +92,6 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{0x0100, hw_mft_list_fc0100, arraySize(hw_mft_list_fc0100)}
 };
 
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-__EXPORT bool board_supports_single_wire(uint32_t uxart_base)
-{
-	return uxart_base == RC_UXART_BASE;
-}
-
 /************************************************************************************
  * Name: board_query_manifest
  *

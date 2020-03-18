@@ -65,7 +65,6 @@ enum class link_loss_actions_t {
 	AUTO_LOITER = 1,	// Hold mode
 	AUTO_RTL = 2,		// Return mode
 	AUTO_LAND = 3,		// Land mode
-	AUTO_RECOVER = 4,	// Data Link Auto Recovery (CASA Outback Challenge rules)
 	TERMINATE = 5,		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
 	LOCKDOWN = 6,		// Lock actuators (set actuator outputs to disarmed values)
 };

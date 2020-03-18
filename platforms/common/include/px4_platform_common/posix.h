@@ -44,7 +44,6 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <stdint.h>
 
 #if defined(__PX4_QURT)
 #include <dspal_types.h>

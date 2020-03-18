@@ -52,6 +52,7 @@ public:
 
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint64_t error_count) { _sensor_mag_pub.get().error_count = error_count; }
+	void increase_error_count() { _sensor_mag_pub.get().error_count++; }
 	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
 	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
 	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }

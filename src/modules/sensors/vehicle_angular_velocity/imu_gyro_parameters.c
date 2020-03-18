@@ -36,8 +36,11 @@
 *
 * The center frequency for the 2nd order notch filter on the primary gyro.
 * This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
-* This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
+* This only affects the signal sent to the controllers, not the estimators.
+* Applies to both angular velocity and angular acceleration sent to the controllers.
 * See "IMU_GYRO_NF_BW" to set the bandwidth of the filter.
+*
+* A value of 0 disables the filter.
 *
 * @min 0
 * @max 1000
@@ -52,6 +55,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF_FREQ, 0.0f);
 *
 * The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
 * See "IMU_GYRO_NF_FREQ" to activate the filter and to set the notch frequency.
+* Applies to both angular velocity and angular acceleration sent to the controllers.
 *
 * @min 0
 * @max 100
@@ -65,7 +69,10 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
 * Low pass filter cutoff frequency for gyro
 *
 * The cutoff frequency for the 2nd order butterworth filter on the primary gyro.
-* This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
+* This only affects the angular velocity sent to the controllers, not the estimators.
+* Doesn't apply to the angular acceleration (D-Term filter), see IMU_DGYRO_CUTOFF.
+*
+* A value of 0 disables the filter.
 *
 * @min 0
 * @max 1000
@@ -96,11 +103,16 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
 
 /**
-* Cutoff frequency for angular acceleration
+* Cutoff frequency for angular acceleration (D-Term filter)
 *
 * The cutoff frequency for the 2nd order butterworth filter used on
-* the time derivative of the measured angular velocity.
-* Set to 0 to disable the filter.
+* the time derivative of the measured angular velocity, also known as
+* the D-term filter in the rate controller. The D-term uses the derivative of
+* the rate and thus is the most susceptible to noise. Therefore, using
+* a D-term filter allows to decrease the driver-level filtering, which
+* leads to reduced control latency and permits to increase the P gains.
+*
+* A value of 0 disables the filter.
 *
 * @min 0
 * @max 1000
@@ -108,4 +120,4 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);
+PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 30.0f);

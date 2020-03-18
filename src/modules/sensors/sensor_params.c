@@ -32,14 +32,6 @@
  ****************************************************************************/
 
 /**
- * Primary baro ID
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
-
-/**
  * Airspeed sensor compensation model for the SDP3x
  *
  * Model with Pitot
@@ -107,19 +99,6 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
-
-/**
- * QNH for barometer
- *
- * @min 500
- * @max 1500
- * @group Sensors
- * @unit hPa
- *
- * @reboot_required true
- *
- */
-PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
 
 /**
  * Board rotation

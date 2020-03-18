@@ -95,134 +95,6 @@ pipeline {
           }
         }
 
-        stage('px4_io-v2 (bloaty)') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-nuttx:2020-01-13'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'ccache -s'
-            sh 'git fetch --tags'
-            sh 'make px4_io-v2_default'
-            sh 'make px4_io-v2_default bloaty_compileunits'
-            sh 'make px4_io-v2_default bloaty_inlines'
-            sh 'make px4_io-v2_default bloaty_segments'
-            sh 'make px4_io-v2_default bloaty_symbols'
-            sh 'make px4_io-v2_default bloaty_templates'
-            sh 'make px4_io-v2_default bloaty_compare_master'
-            sh 'make sizes'
-            sh 'ccache -s'
-          }
-          post {
-            always {
-              sh 'make distclean'
-            }
-          }
-          environment {
-            CCACHE_DISABLE = 1
-          }
-        }
-
-        stage('px4_fmu-v2 (bloaty)') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-nuttx:2020-01-13'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'ccache -s'
-            sh 'git fetch --tags'
-            sh 'make px4_fmu-v2_default'
-            sh 'make px4_fmu-v2_default bloaty_compileunits'
-            sh 'make px4_fmu-v2_default bloaty_inlines'
-            sh 'make px4_fmu-v2_default bloaty_segments'
-            sh 'make px4_fmu-v2_default bloaty_symbols'
-            sh 'make px4_fmu-v2_default bloaty_templates'
-            sh 'make px4_fmu-v2_default bloaty_compare_master'
-            sh 'make sizes'
-            sh 'ccache -s'
-          }
-          post {
-            always {
-              sh 'make distclean'
-            }
-          }
-          environment {
-            CCACHE_DISABLE = 1
-          }
-        }
-
-        stage('px4_fmu-v5 (bloaty)') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-nuttx:2020-01-13'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'ccache -s'
-            sh 'git fetch --tags'
-            sh 'make px4_fmu-v5_default'
-            sh 'make px4_fmu-v5_default bloaty_compileunits'
-            sh 'make px4_fmu-v5_default bloaty_inlines'
-            sh 'make px4_fmu-v5_default bloaty_segments'
-            sh 'make px4_fmu-v5_default bloaty_symbols'
-            sh 'make px4_fmu-v5_default bloaty_templates'
-            sh 'make px4_fmu-v5_default bloaty_compare_master'
-            sh 'make sizes'
-            sh 'ccache -s'
-          }
-          post {
-            always {
-              sh 'make distclean'
-            }
-          }
-          environment {
-            CCACHE_DISABLE = 1
-          }
-        }
-
-        stage('px4_sitl (bloaty)') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-nuttx:2020-01-13'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'ccache -s'
-            sh 'git fetch --tags'
-            sh 'make px4_sitl_default'
-            sh 'make px4_sitl_default bloaty_compileunits'
-            sh 'make px4_sitl_default bloaty_inlines'
-            sh 'make px4_sitl_default bloaty_segments'
-            sh 'make px4_sitl_default bloaty_symbols'
-            sh 'make px4_sitl_default bloaty_templates'
-            //sh 'make px4_fmu-v5_default bloaty_compare_master'
-            sh 'make sizes'
-            sh 'ccache -s'
-          }
-          post {
-            always {
-              sh 'make distclean'
-            }
-          }
-          environment {
-            CCACHE_DISABLE = 1
-          }
-        }
-
         stage('px4_fmu-v5 (no ninja)') {
           agent {
             docker {
@@ -700,6 +572,8 @@ pipeline {
               sh('cp msg/tools/px_generate_uorb_topic_helper.py px4_ros_com/scripts/px_generate_uorb_topic_helper.py')
               // deploy templates
               sh('cp msg/templates/urtps/microRTPS_agent.cpp.em px4_ros_com/templates/microRTPS_agent.cpp.em')
+              sh('cp msg/templates/urtps/microRTPS_timesync.cpp.em px4_ros_com/templates/microRTPS_timesync.cpp.em')
+              sh('cp msg/templates/urtps/microRTPS_timesync.h.em px4_ros_com/templates/microRTPS_timesync.h.em')
               sh('cp msg/templates/urtps/microRTPS_transport.cpp px4_ros_com/templates/microRTPS_transport.cpp')
               sh('cp msg/templates/urtps/microRTPS_transport.h px4_ros_com/templates/microRTPS_transport.h')
               sh('cp msg/templates/urtps/Publisher.cpp.em px4_ros_com/templates/Publisher.cpp.em')

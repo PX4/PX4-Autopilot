@@ -69,23 +69,29 @@ except AttributeError:
 
 #include <fastrtps/Domain.h>
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if fastrtps_version <= 1.7]@
 #include <fastrtps/utils/eClock.h>
 @[end if]@
 
 #include "@(topic)_Publisher.h"
 
 
-@(topic)_Publisher::@(topic)_Publisher() : mp_participant(nullptr), mp_publisher(nullptr) {}
+@(topic)_Publisher::@(topic)_Publisher()
+    : mp_participant(nullptr),
+      mp_publisher(nullptr)
+{ }
 
-@(topic)_Publisher::~@(topic)_Publisher() { Domain::removeParticipant(mp_participant);}
+@(topic)_Publisher::~@(topic)_Publisher()
+{
+    Domain::removeParticipant(mp_participant);
+}
 
 bool @(topic)_Publisher::init()
 {
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0;
-@[if 1.5 <= fastrtpsgen_version <= 1.7 or ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal" or ros2_distro == "dashing"]@
+@[if fastrtps_version <= 1.8]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -127,82 +133,29 @@ bool @(topic)_Publisher::init()
 
 void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, MatchingInfo& info)
 {
-    (void)pub;
-
-    if (info.status == MATCHED_MATCHING)
-    {
-        n_matched++;
-        std::cout << " - @(topic) publisher matched" << std::endl;
-    }
-    else
-    {
-        n_matched--;
-        std::cout << " - @(topic) publisher unmatched" << std::endl;
-    }
-}
-
-void @(topic)_Publisher::run()
-{
-    while(m_listener.n_matched == 0)
-    {
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-        eClock::my_sleep(250); // Sleep 250 ms;
-@[else]@
-        std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Sleep 250 ms
-@[end if]@
-    }
-
-    // Publication code
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-    @(package)::msg::dds_::@(topic)_ st;
-@[    else]@
-    @(topic)_ st;
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-    @(package)::msg::@(topic) st;
-@[    else]@
-    @(topic) st;
-@[    end if]@
-@[end if]@
-
-    /* Initialize your structure here */
-
-    int msgsent = 0;
-    char ch = 'y';
-    do
-    {
-        if(ch == 'y')
-        {
-            mp_publisher->write(&st);  ++msgsent;
-            std::cout << "Sending sample, count=" << msgsent << ", send another sample?(y-yes,n-stop): ";
-        }
-        else if(ch == 'n')
-        {
-            std::cout << "Stopping execution " << std::endl;
+    // The first 6 values of the ID guidPrefix of an entity in a DDS-RTPS Domain
+    // are the same for all its subcomponents (publishers, subscribers)
+    bool is_different_endpoint = false;
+    for (size_t i = 0; i < 6; i++) {
+        if (pub->getGuid().guidPrefix.value[i] != info.remoteEndpointGuid.guidPrefix.value[i]) {
+            is_different_endpoint = true;
             break;
         }
-        else
-        {
-            std::cout << "Command " << ch << " not recognized, please enter \"y/n\":";
+    }
+
+    // If the matching happens for the same entity, do not make a match
+    if (is_different_endpoint) {
+        if (info.status == MATCHED_MATCHING) {
+            n_matched++;
+            std::cout << " - @(topic) publisher matched" << std::endl;
+        } else {
+            n_matched--;
+            std::cout << " - @(topic) publisher unmatched" << std::endl;
         }
-    }while(std::cin >> ch);
+    }
 }
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-    void @(topic)_Publisher::publish(@(package)::msg::dds_::@(topic)_* st)
-@[    else]@
-    void @(topic)_Publisher::publish(@(topic)_* st)
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-    void @(topic)_Publisher::publish(@(package)::msg::@(topic)* st)
-@[    else]@
-    void @(topic)_Publisher::publish(@(topic)* st)
-@[    end if]@
-@[end if]@
+void @(topic)_Publisher::publish(@(topic)_msg_t* st)
 {
     mp_publisher->write(st);
 }

@@ -50,7 +50,6 @@ px4_add_module(
 		mavlink_main.cpp
 		mavlink_messages.cpp
 		mavlink_mission.cpp
-		mavlink_orb_subscription.cpp
 		mavlink_parameters.cpp
 		mavlink_rate_limiter.cpp
 		mavlink_receiver.cpp

@@ -99,7 +99,7 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
  * @min 5
  * @max 300
  * @decimal 1
- * @increment 0.5
+ * @increment 1
  */
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 
@@ -330,9 +330,9 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @unit s
  * @min 0
  * @max 60
- * @increment 1
+ * @increment 0.01
  */
-PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
+PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.5f);
 
 /**
  * Set offboard loss failsafe mode
@@ -799,15 +799,12 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
  *
  * The data link loss failsafe will only be entered after a timeout,
  * set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected
- * action will be executed. Setting this parameter to 4 will enable CASA
- * Outback Challenge rules, which are only recommended to participants
- * of that competition.
+ * action will be executed.
  *
  * @value 0 Disabled
  * @value 1 Hold mode
  * @value 2 Return mode
  * @value 3 Land mode
- * @value 4 Data Link Auto Recovery (CASA Outback Challenge rules)
  * @value 5 Terminate
  * @value 6 Lockdown
  *
@@ -821,14 +818,11 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  * The RC loss failsafe will only be entered after a timeout,
  * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
  * by setting the COM_RC_IN_MODE param it will not be triggered.
- * Setting this parameter to 4 will enable CASA Outback Challenge rules,
- * which are only recommended to participants of that competition.
  *
  * @value 0 Disabled
  * @value 1 Hold mode
  * @value 2 Return mode
  * @value 3 Land mode
- * @value 4 RC Auto Recovery (CASA Outback Challenge rules)
  * @value 5 Terminate
  * @value 6 Lockdown
  *
@@ -843,19 +837,6 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
-
-/**
- * Set avoidance system bootup timeout.
- *
- * The avoidance system running on the companion computer is expected to boot
- * within this time and start providing trajectory points.
- * If no avoidance system is detected a MAVLink warning message is sent.
- * @group Commander
- * @unit s
- * @min 0
- * @max 200
- */
-PARAM_DEFINE_INT32(COM_OA_BOOT_T, 100);
 
 /**
  * User Flight Profile
