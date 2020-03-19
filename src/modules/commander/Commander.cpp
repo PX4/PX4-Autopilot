@@ -758,13 +758,19 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 	case vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION: {
 			if (cmd.param1 > 1.5f) {
-				armed_local->lockdown = true;
-				warnx("forcing lockdown (motors off)");
+				if (!_lockdown_triggered) {
+					armed_local->lockdown = true;
+					_lockdown_triggered = true;
+					warnx("forcing lockdown (motors off)");
+				}
 
 			} else if (cmd.param1 > 0.5f) {
 				//XXX update state machine?
-				armed_local->force_failsafe = true;
-				warnx("forcing failsafe (termination)");
+				if (!_flight_termination_triggered) {
+					armed_local->force_failsafe = true;
+					_flight_termination_triggered = true;
+					warnx("forcing failsafe (termination)");
+				}
 
 				if ((int)cmd.param2 <= 0) {
 					/* reset all commanded failure modes */
@@ -774,6 +780,10 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			} else {
 				armed_local->force_failsafe = false;
 				armed_local->lockdown = false;
+
+				_lockdown_triggered = false;
+				_flight_termination_triggered = false;
+
 				warnx("disabling failsafe and lockdown");
 			}
 
@@ -2102,19 +2112,29 @@ Commander::run()
 		}
 
 		if (armed.armed &&
-		    failure_detector_updated &&
-		    !_flight_termination_triggered &&
-		    !status_flags.circuit_breaker_flight_termination_disabled) {
+		    failure_detector_updated) {
 
 			if (_failure_detector.isFailure()) {
+				if ((hrt_elapsed_time(&_time_at_takeoff) < 3_s) &&
+				    !_lockdown_triggered) {
+					// This handles the case where something fails during the early takeoff phase
 
-				armed.force_failsafe = true;
-				_status_changed = true;
+					armed.lockdown = true;
+					_lockdown_triggered = true;
+					_status_changed = true;
 
-				_flight_termination_triggered = true;
+					mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: lockdown");
 
-				mavlink_log_critical(&mavlink_log_pub, "Critical failure detected: terminate flight");
-				set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
+				} else if (!status_flags.circuit_breaker_flight_termination_disabled &&
+					   !_flight_termination_triggered) {
+
+					armed.force_failsafe = true;
+					_flight_termination_triggered = true;
+					_status_changed = true;
+
+					mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: terminate flight");
+					set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
+				}
 			}
 		}
 
