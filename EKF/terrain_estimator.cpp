@@ -56,7 +56,8 @@ bool Ekf::initHagl()
 		_terrain_var = sq(_params.rng_gnd_clearance);
 		initialized = true;
 
-	} else if (_rng_hgt_valid
+	} else if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
+		   && _rng_hgt_valid
 		   && isRecent(latest_measurement.time_us, (uint64_t)2e5)
 		   && _R_rng_to_earth_2_2 > _params.range_cos_max_tilt) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
@@ -66,7 +67,8 @@ bool Ekf::initHagl()
 		// success
 		initialized = true;
 
-	} else if (_flow_for_terrain_data_ready) {
+	} else if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow)
+		   && _flow_for_terrain_data_ready) {
 		// initialise terrain vertical position to origin as this is the best guess we have
 		_terrain_vpos = fmaxf(0.0f,  _state.pos(2));
 		_terrain_var = 100.0f;
@@ -74,7 +76,6 @@ bool Ekf::initHagl()
 
 	} else {
 		// no information - cannot initialise
-		initialized = false;
 	}
 
 	if (initialized) {

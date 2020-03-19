@@ -179,6 +179,11 @@ struct auxVelSample {
 #define MASK_USE_GPSYAW  (1<<7)		///< set to true to use GPS yaw data if available
 #define MASK_USE_EVVEL  (1<<8)		///< sset to true to use external vision velocity data
 
+enum TerrainFusionMask : int32_t {
+	TerrainFuseRangeFinder = (1 << 0),
+	TerrainFuseOpticalFlow = (1 << 1)
+};
+
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0	///< The selection of either heading or 3D magnetometer fusion will be automatic
 #define MAG_FUSE_TYPE_HEADING   1	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
@@ -204,6 +209,8 @@ struct parameters {
 	// measurement source control
 	int32_t fusion_mode{MASK_USE_GPS};		///< bitmasked integer that selects which aiding sources will be used
 	int32_t vdist_sensor_type{VDIST_SENSOR_BARO};	///< selects the primary source for height data
+	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
+				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
 	int32_t sensor_interval_min_ms{20};		///< minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
 
 	// measurement time delays
