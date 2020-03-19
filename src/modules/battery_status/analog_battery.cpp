@@ -46,7 +46,6 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 	float voltage_v = voltage_raw * _analog_params.v_div;
 	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
 
-	// TODO: voltage_v should be changed to voltage_raw?
 	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
