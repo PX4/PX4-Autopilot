@@ -196,18 +196,15 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 	const float track = atan2f(_local_pos->vy, _local_pos->vx);
 	const float accel_body_forward = cosf(track) * _local_pos->ax + sinf(track) * _local_pos->ay;
 
-	float accel_error_forward = 0.0f;
-
 	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
-	accel_error_forward = _params->back_trans_dec_sp + accel_body_forward;
+	const float accel_error_forward = _params->back_trans_dec_sp + accel_body_forward;
 
-	float pitch_sp_new = _params->dec_to_pitch_ff * _params->back_trans_dec_sp + _accel_to_pitch_integ;
+	const float pitch_sp_new = _params->dec_to_pitch_ff * _params->back_trans_dec_sp + _accel_to_pitch_integ;
 
 	float integrator_input = _params->dec_to_pitch_i * accel_error_forward;
 
 	if ((pitch_sp_new >= pitch_lim && accel_error_forward > 0.0f) ||
-	    (pitch_sp_new <= -pitch_lim && accel_error_forward < 0.0f)
-	   ) {
+	    (pitch_sp_new <= -pitch_lim && accel_error_forward < 0.0f)) {
 		integrator_input = 0.0f;
 	}
 
@@ -215,7 +212,6 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 
 
 	return math::constrain(pitch_sp_new, -pitch_lim, pitch_lim);
-
 }
 
 bool VtolType::can_transition_on_ground()

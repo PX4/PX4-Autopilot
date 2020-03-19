@@ -64,9 +64,8 @@ bool FlightTaskTransition::update()
 	// demand zero vertical velocity and level attitude
 	// tailsitters will override attitude and thrust setpoint
 	// tiltrotors and standard vtol will overrride roll and pitch setpoint but keep vertical thrust setpoint
-	_position_setpoint *= NAN;
+	_position_setpoint.setAll(NAN);
 	_velocity_setpoint(2) = 0.0f;
-	_position_setpoint(2) = NAN;
 
 	_yaw_setpoint = NAN;
 	return true;
