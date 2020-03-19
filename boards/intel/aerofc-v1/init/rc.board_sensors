@@ -3,7 +3,7 @@
 # intel aero specific board sensors init
 #------------------------------------------------------------------------------
 
-aerofc_adc start
+aerofc_adc -I start
 
 if ! ms5611 -T 5607 start
 then
