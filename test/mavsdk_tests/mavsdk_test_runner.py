@@ -21,21 +21,21 @@ def main() -> NoReturn:
     parser.add_argument("--log-dir",
                         help="Directory for log files", default="logs")
     parser.add_argument("--speed-factor", default=1,
-                        help="How fast to run the simulation")
+                        help="how fast to run the simulation")
     parser.add_argument("--iterations", type=int, default=1,
-                        help="How often to run all tests")
+                        help="how often to run all tests")
     parser.add_argument("--abort-early", action='store_true',
-                        help="Abort on first unsuccessful test")
+                        help="abort on first unsuccessful test")
     parser.add_argument("--gui", default=False, action='store_true',
-                        help="Display gzclient with simulation")
+                        help="display the visualization for a simulation")
     parser.add_argument("--model", type=str, default='all',
-                        help="Only run tests for one model")
+                        help="only run tests for one model")
     parser.add_argument("--case", type=str, default='all',
-                        help="Only run tests for one case")
+                        help="only run tests for one case")
     parser.add_argument("--debugger", default="",
-                        help="valgrind callgrind gdb lldb")
+                        help="choice from valgrind, callgrind, gdb, lldb")
     parser.add_argument("--verbose", default=False, action='store_true',
-                        help="Enable more verbose output")
+                        help="enable more verbose output")
     parser.add_argument("config_file", help="JSON config file to use")
     args = parser.parse_args()
 
