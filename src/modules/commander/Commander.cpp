@@ -2106,7 +2106,7 @@ Commander::run()
 
 				_flight_termination_triggered = true;
 
-				mavlink_log_critical(&mavlink_log_pub, "Critical failure detected: terminate flight");
+				mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: terminate flight");
 				set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
 			}
 		}
