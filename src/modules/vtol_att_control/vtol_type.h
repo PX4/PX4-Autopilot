@@ -226,7 +226,7 @@ protected:
 	motor_state _motor_state = motor_state::DISABLED;
 
 	hrt_abstime _last_loop_ts = 0;
-	float 	_transition_dt = 0;
+	float _transition_dt = 0;
 
 	float _accel_to_pitch_integ = 0;
 
