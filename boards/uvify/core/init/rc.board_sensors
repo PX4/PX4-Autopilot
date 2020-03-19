@@ -37,7 +37,7 @@ then
 	rgbled_ncp5623c start -X -a 0x38
 
 	# IFO rgb LED
-	pca9685 start
+	pca9685 -X start
 
 	mpu9250 -s -R 2 start
 	lis3mdl -R 2 -X start
