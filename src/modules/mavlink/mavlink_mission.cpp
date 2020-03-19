@@ -691,6 +691,14 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 	mavlink_msg_mission_request_list_decode(msg, &wprl);
 
 	if (CHECK_SYSID_COMPID_MISSION(wprl)) {
+		const bool maybe_completed = (_transfer_seq == current_item_count());
+
+		// If all mission items have been sent and a new mission request list comes in, we can proceed even if  MISSION_ACK was
+		// never received. This could happen on a quick reconnect that doesn't trigger MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT
+		if (maybe_completed) {
+			switch_to_idle_state();
+		}
+
 		if (_state == MAVLINK_WPM_STATE_IDLE || (_state == MAVLINK_WPM_STATE_SENDLIST
 				&& (uint8_t)_mission_type == wprl.mission_type)) {
 			_time_last_recv = hrt_absolute_time();
