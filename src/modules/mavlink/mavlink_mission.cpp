@@ -737,7 +737,7 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 		} else {
 			PX4_DEBUG("WPM: MISSION_REQUEST_LIST ERROR: busy");
 
-			_mavlink->send_statustext_critical("IGN REQUEST LIST: Busy");
+			_mavlink->send_statustext_info("Mission download request ignored, already active");
 		}
 	}
 }
