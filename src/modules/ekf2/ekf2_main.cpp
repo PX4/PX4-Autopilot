@@ -387,6 +387,8 @@ private:
 		(ParamExtInt<px4::params::EKF2_AID_MASK>)
 		_param_ekf2_aid_mask,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
 		(ParamExtInt<px4::params::EKF2_HGT_MODE>) _param_ekf2_hgt_mode,	///< selects the primary source for height data
+		(ParamExtInt<px4::params::EKF2_TERR_MASK>)
+		_param_ekf2_terr_mask, ///< bitmasked integer that selects which of range finder and optical flow aiding sources will be used for terrain estimation
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
 		_param_ekf2_noaid_tout,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
 
@@ -594,6 +596,7 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_aid_mask(_params->fusion_mode),
 	_param_ekf2_hgt_mode(_params->vdist_sensor_type),
+	_param_ekf2_terr_mask(_params->terrain_fusion_mode),
 	_param_ekf2_noaid_tout(_params->valid_timeout_max),
 	_param_ekf2_rng_noise(_params->range_noise),
 	_param_ekf2_rng_sfe(_params->range_noise_scaler),
