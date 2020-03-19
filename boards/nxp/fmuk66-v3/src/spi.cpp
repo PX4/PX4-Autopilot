@@ -211,7 +211,7 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
 
 	/* Configure SPI-based devices */
 
-	struct spi_dev_s *spi_sensors = px4_spibus_initialize(1);
+	struct spi_dev_s *spi_sensors = px4_spibus_initialize(PX4_BUS_NUMBER_TO_PX4(1));
 
 	if (!spi_sensors) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 1);
@@ -227,7 +227,7 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
 
 	/* Get the SPI port for the Memory */
 
-	struct spi_dev_s *spi_memory = px4_spibus_initialize(0);
+	struct spi_dev_s *spi_memory = px4_spibus_initialize(PX4_BUS_NUMBER_TO_PX4(0));
 
 	if (!spi_memory) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 0);
@@ -243,7 +243,7 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
 
 	/* Configure EXTERNAL SPI-based devices */
 
-	struct spi_dev_s *spi_ext = px4_spibus_initialize(2);
+	struct spi_dev_s *spi_ext = px4_spibus_initialize(PX4_BUS_NUMBER_TO_PX4(2));
 
 	if (!spi_ext) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 2);
