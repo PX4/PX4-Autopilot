@@ -144,7 +144,6 @@ private:
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	int	_adc_fd {-1};				/**< ADC driver handle */
 
 	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
 
@@ -183,11 +182,6 @@ private:
 	 * Check for changes in parameters.
 	 */
 	void 		parameter_update_poll(bool forced = false);
-
-	/**
-	 * Do adc-related initialisation.
-	 */
-	int		adc_init();
 
 	/**
 	 * Poll the ADC and update readings to suit.
@@ -253,23 +247,6 @@ int Sensors::parameters_update()
 	_voted_sensors_update.parametersUpdate();
 
 	return PX4_OK;
-}
-
-int Sensors::adc_init()
-{
-	if (!_hil_enabled) {
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-		_adc_fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
-
-		if (_adc_fd == -1) {
-			PX4_ERR("no ADC found: %s", ADC0_DEVICE_PATH);
-			return PX4_ERROR;
-		}
-
-#endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
-	}
-
-	return OK;
 }
 
 void Sensors::diff_pres_poll()
@@ -469,7 +446,6 @@ void Sensors::Run()
 
 	// run once
 	if (_last_config_update == 0) {
-		adc_init();
 		_voted_sensors_update.init(_sensor_combined);
 		parameter_update_poll(true);
 	}
