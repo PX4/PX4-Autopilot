@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,34 +31,10 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * Aerotenna Ocpoc internal definitions
- */
+#include <px4_arch/i2c_hw_description.h>
 
-#pragma once
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusInternal(PX4_BUS_NUMBER_TO_PX4(1)),
+	initI2CBusExternal(PX4_BUS_NUMBER_TO_PX4(0)),
+};
 
-#define BOARD_OVERRIDE_UUID "OCPOC00000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_OCPOC
-
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-
-#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
-
-#define PX4_NUMBER_I2C_BUSES   4
-
-#define PX4_I2C_BUS_LED 1
-
-// ADC channels:
-#define ADC_CHANNELS (1 << 8)
-
-#define ADC_BATTERY_VOLTAGE_CHANNEL  8
-#define ADC_BATTERY_CURRENT_CHANNEL  ((uint8_t)(-1))
-
-
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>

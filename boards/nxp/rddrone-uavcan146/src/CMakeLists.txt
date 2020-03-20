@@ -37,6 +37,7 @@ add_library(drivers_board
 	bringup.c
 	buttons.c
 	clockconfig.c
+	i2c.cpp
 	init.c
 	periphclocks.c
 	spi.c

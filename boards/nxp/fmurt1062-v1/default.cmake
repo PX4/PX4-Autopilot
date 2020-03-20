@@ -25,9 +25,9 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 #		dshot not ported
 		gps
-		imu/adis16448
-		imu/adis16477
-		imu/adis16497
+		#imu/adis16448
+		#imu/adis16477
+		#imu/adis16497
 		#imu # all available imu drivers
 		imu/bmi055
 		imu/mpu6000

@@ -50,9 +50,6 @@
 
 
 // I2C
-#define PX4_I2C_BUS_EXPANSION   1 // i2c-1: pins P9 17,18
-#define PX4_I2C_BUS_ONBOARD     2 // i2c-2: pins P9 19,20 - bmp280, mpu9250
-
 #define PX4_NUMBER_I2C_BUSES    2
 
 #define PX4_I2C_OBDEV_MPU9250 0x68
