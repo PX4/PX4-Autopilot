@@ -47,6 +47,7 @@
 #include <uORB/topics/adc_report.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_adc.h>
+#include <drivers/drv_sensor.h>
 #include <px4_platform_common/getopt.h>
 
 #define ADS1115_DEFAULT_PATH "/dev/ads1115"
@@ -99,8 +100,7 @@ ADS1115_Drv::ADS1115_Drv(uint8_t bus, uint8_t address) :
 {
 	_ads1115 = new ADS1115(this);
 
-	// TODO fill a vaild dev type
-	//this->_device_id.devid_s.devtype=0;
+	this->_device_id.devid_s.devtype = DRV_ADC_DEVTYPE_ADS1115;
 
 	_adc_report.device_id = this->get_device_id();
 	_adc_report.resolution = 32768;
