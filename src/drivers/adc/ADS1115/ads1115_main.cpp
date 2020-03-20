@@ -106,7 +106,7 @@ ADS1115_Drv::ADS1115_Drv(uint8_t bus, uint8_t address) :
 	_adc_report.resolution = 32768;
 	_adc_report.v_ref = 6.144f;
 
-	for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+	for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 		_adc_report.channel_id[i] = -1;
 	}
 
