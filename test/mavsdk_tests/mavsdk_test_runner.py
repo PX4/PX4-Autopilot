@@ -381,12 +381,19 @@ class Tester:
                     self.verbose)
                 self.active_runners.append(gzserver_runner)
 
+                waitforgz_runner = ph.WaitforgzRunner(
+                    os.getcwd(),
+                    log_dir,
+                    test['model'],
+                    case,
+                    self.verbose)
+                self.active_runners.append(waitforgz_runner)
+
                 gzmodelspawn_runner = ph.GzmodelspawnRunner(
                     os.getcwd(),
                     log_dir,
                     test['model'],
                     case,
-                    self.get_max_speed_factor(test),
                     self.verbose)
                 self.active_runners.append(gzmodelspawn_runner)
 
