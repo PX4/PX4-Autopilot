@@ -190,7 +190,41 @@ class GzserverRunner(Runner):
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
-                     self.model + ".world"]
+                     "empty.world"]
+
+    def add_to_env_if_set(self, var: str) -> None:
+        if var in os.environ:
+            self.env[var] = os.environ[var]
+
+
+class GzmodelspawnRunner(Runner):
+    def __init__(self,
+                 workspace_dir: str,
+                 log_dir: str,
+                 model: str,
+                 case: str,
+                 speed_factor: float,
+                 verbose: bool):
+        super().__init__(log_dir, model, case, verbose)
+        self.name = "gzmodelspawn"
+        self.cwd = workspace_dir
+        self.env = {"PATH": os.environ['PATH'],
+                    "HOME": os.environ['HOME'],
+                    "GAZEBO_PLUGIN_PATH":
+                    workspace_dir + "/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH":
+                    workspace_dir + "/Tools/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": str(speed_factor),
+                    "DISPLAY": os.environ['DISPLAY']}
+        self.add_to_env_if_set("PX4_HOME_LAT")
+        self.add_to_env_if_set("PX4_HOME_LON")
+        self.add_to_env_if_set("PX4_HOME_ALT")
+        self.cmd = "gz"
+        self.args = ["model", "--spawn-file", workspace_dir +
+                     "/Tools/sitl_gazebo/models/" +
+                     self.model + "/" + self.model + ".sdf",
+                     "--model-name", self.model,
+                     "-x", "1.01", "-y", "0.98", "-z", "0.83"]
 
     def add_to_env_if_set(self, var: str) -> None:
         if var in os.environ:
