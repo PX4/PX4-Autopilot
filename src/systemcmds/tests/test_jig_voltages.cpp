@@ -49,7 +49,7 @@ int test_jig_voltages(int argc, char *argv[])
 	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
 	adc_report_s adc;
 
-	px4_usleep(1000000);	// sleep 1s and wait for adc report
+	px4_usleep(50000);	// sleep 50ms and wait for adc report
 
 	if (_adc_sub.update(&adc)) {
 		PX4_INFO_RAW("DeviceID: %d\n", adc.device_id);
