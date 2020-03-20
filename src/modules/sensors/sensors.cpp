@@ -343,12 +343,12 @@ Sensors::parameter_update_poll(bool forced)
 
 void Sensors::adc_poll()
 {
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-
 	/* only read if not in HIL mode */
 	if (_hil_enabled) {
 		return;
 	}
+
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
 	if (_parameters.diff_pres_analog_scale > 0.0f) {
 
