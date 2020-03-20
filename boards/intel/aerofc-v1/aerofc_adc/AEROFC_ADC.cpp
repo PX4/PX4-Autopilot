@@ -36,7 +36,7 @@
 using namespace time_literals;
 
 AEROFC_ADC::AEROFC_ADC(uint8_t bus) :
-	I2C("AEROFC_ADC", ADC0_DEVICE_PATH, bus, SLAVE_ADDR, 400000),
+	I2C("AEROFC_ADC", AEROFC_ADC_DEVICE_PATH, bus, SLAVE_ADDR, 400000),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample"))
 {
