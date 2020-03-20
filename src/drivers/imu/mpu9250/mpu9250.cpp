@@ -75,7 +75,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, enum 
 	_interface(interface),
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
-	_mag(this, mag_interface, rotation),
+	_mag(nullptr),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
@@ -83,12 +83,18 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, enum 
 {
 	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_MPU9250);
 	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_MPU9250);
+    if (_whoami == MPU_WHOAMI_9250) {
+        _mag = new MPU9250_mag(this, mag_interface, rotation);
+    }
 }
 
 MPU9250::~MPU9250()
 {
 	// make sure we are truly inactive
 	stop();
+    if (_mag != nullptr) {
+        delete _mag;
+    }
 
 	// delete the perf counter
 	perf_free(_sample_perf);
@@ -130,13 +136,13 @@ MPU9250::init()
 #ifdef USE_I2C
 		px4_usleep(100);
 
-		if (!_mag.is_passthrough() && _mag._interface->init() != PX4_OK) {
+		if (!_mag->is_passthrough() && _mag->_interface->init() != PX4_OK) {
 			PX4_ERR("failed to setup ak8963 interface");
 		}
 
 #endif /* USE_I2C */
 
-		ret = _mag.ak8963_reset();
+		ret = _mag->ak8963_reset();
 
 		if (ret != OK) {
 			PX4_DEBUG("mag reset failed");
@@ -166,7 +172,7 @@ MPU9250::reset()
 	int ret = reset_mpu();
 
 	if (ret == OK && (_whoami == MPU_WHOAMI_9250)) {
-		ret = _mag.ak8963_reset();
+		ret = _mag->ak8963_reset();
 	}
 
 	_reset_wait = hrt_absolute_time() + 10;
@@ -217,7 +223,7 @@ MPU9250::reset_mpu()
 	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
 
 #ifdef USE_I2C
-	bool bypass = !_mag.is_passthrough();
+    bool bypass = (_mag == nullptr) ? false : !_mag->is_passthrough();
 #else
 	bool bypass = false;
 #endif
@@ -592,7 +598,7 @@ MPU9250::measure()
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	// Fetch the full set of measurements from the ICM20948 in one pass
-	if (_mag.is_passthrough() && _register_wait == 0) {
+    if (((_mag == nullptr) || _mag->is_passthrough()) && (_register_wait == 0)) {
 		if (OK != read_reg_range(MPUREG_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&mpu_report, sizeof(mpu_report))) {
 			perf_end(_sample_perf);
 			return;
@@ -611,24 +617,25 @@ MPU9250::measure()
 	 * In case of a mag passthrough read, hand the magnetometer data over to _mag. Else,
 	 * try to read a magnetometer report.
 	 */
-
+    if (_whoami == MPU_WHOAMI_9250) {
 #   ifdef USE_I2C
 
-	if (_mag.is_passthrough()) {
+	if (_mag->is_passthrough()) {
 #   endif
 
 		if (_register_wait == 0) {
-			_mag._measure(timestamp_sample, mpu_report.mag);
+			_mag->_measure(timestamp_sample, mpu_report.mag);
 		}
 
 #   ifdef USE_I2C
 
 	} else {
-		_mag.measure();
+		_mag->measure();
 	}
 
 #   endif
-
+    }
+    
 	if (_register_wait != 0) {
 		// We are waiting for some good transfers before using the sensor again
 		_register_wait--;
@@ -684,5 +691,8 @@ MPU9250::print_info()
 
 	_px4_accel.print_status();
 	_px4_gyro.print_status();
-	_mag.print_status();
+    
+    if (_whoami == MPU_WHOAMI_9250) {
+        _mag->print_status();
+    }
 }

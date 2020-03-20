@@ -261,7 +261,7 @@ private:
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
 
-	MPU9250_mag		_mag;
+	MPU9250_mag		*_mag;
 
 	unsigned		_call_interval{1000};
 
