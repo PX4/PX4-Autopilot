@@ -32,7 +32,7 @@
 ############################################################################
 
 set(srcs
-	test_adc.c
+	test_adc.cpp
 	test_atomic_bitset.cpp
 	test_autodeclination.cpp
 	test_bezierQuad.cpp
@@ -48,7 +48,7 @@ set(srcs
 	test_int.cpp
 	test_i2c_spi_cli.cpp
 	test_IntrusiveQueue.cpp
-	test_jig_voltages.c
+	test_jig_voltages.cpp
 	test_led.c
 	test_List.cpp
 	test_mathlib.cpp
