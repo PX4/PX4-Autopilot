@@ -128,7 +128,7 @@ class ModuleDocumentation(object):
         self._paring_implicit_options = True
         if self._is_bool_true(args[0]):
             self._handle_usage_param_flag(['\'I\'', "\"Internal I2C bus(es)\"", 'true'])
-            self._handle_usage_param_flag(['\'X\'', "\"External I2C bus(es\")", 'true'])
+            self._handle_usage_param_flag(['\'X\'', "\"External I2C bus(es)\"", 'true'])
         if self._is_bool_true(args[1]):
             self._handle_usage_param_flag(['\'s\'', "\"Internal SPI bus(es)\"", 'true'])
             self._handle_usage_param_flag(['\'S\'', "\"External SPI bus(es)\"", 'true'])
