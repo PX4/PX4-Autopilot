@@ -371,7 +371,8 @@ void UavcanNode::Run()
 			fix2.ned_velocity[0] = gps.vel_n_m_s;
 			fix2.ned_velocity[1] = gps.vel_e_m_s;
 			fix2.ned_velocity[2] = gps.vel_d_m_s;
-			fix2.pdop = gps.hdop > gps.vdop ? gps.hdop : gps.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
+			fix2.pdop = gps.hdop > gps.vdop ? gps.hdop :
+				    gps.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
 			fix2.sats_used = gps.satellites_used;
 
 			// Diagonal matrix
