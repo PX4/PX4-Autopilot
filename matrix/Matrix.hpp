@@ -620,9 +620,7 @@ Type min(const Type x, const Type y) {
         if (x_is_nan && !y_is_nan) {
             return y;
         }
-        if (!x_is_nan && y_is_nan) {
-            return x;
-        }
+        // either !x_is_nan && y_is_nan or both are NAN anyways
         return x;
     }
     return (x < y) ? x : y;
@@ -636,9 +634,7 @@ Type max(const Type x, const Type y) {
         if (x_is_nan && !y_is_nan) {
             return y;
         }
-        if (!x_is_nan && y_is_nan) {
-            return x;
-        }
+        // either !x_is_nan && y_is_nan or both are NAN anyways
         return x;
     }
     return (x > y) ? x : y;
