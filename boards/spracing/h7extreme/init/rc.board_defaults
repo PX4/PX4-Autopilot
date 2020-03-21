@@ -3,24 +3,12 @@
 # SP Racing H7 EXTREME specific board defaults
 #------------------------------------------------------------------------------
 
-
-#
-# Bootloader upgrade
-#
-set BL_FILE /etc/extras/spracing_h7extreme_bootloader.bin
-if [ -f $BL_FILE ]
+if param compare SYS_AUTOSTART 0
 then
-	if param compare SYS_BL_UPDATE 1
-	then
-		param set SYS_BL_UPDATE 0
-		param save
-		echo "BL update..." >> $LOG_FILE
-		bl_update $BL_FILE
-		echo "BL update done" >> $LOG_FILE
-		reboot
-	fi
+	# Select the Generic 250 Racer by default
+	param set SYS_AUTOSTART 4050
+	set AUTOCNF yes
 fi
-unset BL_FILE
 
 if [ $AUTOCNF = yes ]
 then

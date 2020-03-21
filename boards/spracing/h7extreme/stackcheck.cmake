@@ -38,7 +38,7 @@ px4_add_board(
 		#irlock
 		#lights/blinkm
 		#lights/rgbled
-		lights/rgbled_ncp5623c
+		#lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		#mkblctrl
 		#optical_flow # all available optical flow drivers
@@ -96,7 +96,7 @@ px4_add_board(
 		mixer
 		motor_ramp
 		motor_test
-		mtd
+		#mtd
 		nshterm
 		param
 		perf

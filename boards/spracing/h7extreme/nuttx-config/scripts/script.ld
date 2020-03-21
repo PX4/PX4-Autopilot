@@ -161,6 +161,15 @@ SECTIONS
 		 */
 		__errno = get_errno_ptr;
 	} > qspi
+	
+	.ramfunc : {
+		_sramfuncs = ABSOLUTE(.);
+		. = ALIGN(4);
+		*(.ramfunc  .ramfunc.*)
+		_eramfuncs = ABSOLUTE(.);
+	} > sram AT > qspi
+
+	_framfuncs = LOADADDR(.ramfunc);
 
 	/*
 	 * Init functions (static constructors and the like)

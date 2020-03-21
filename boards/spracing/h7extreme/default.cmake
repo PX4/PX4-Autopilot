@@ -31,16 +31,16 @@ px4_add_board(
 		imu/adis16448
 		imu/adis16477
 		imu/adis16497
-		imu/bmi088
+		#imu/bmi088
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		irlock
 		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
+		#lights/rgbled
+		#lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		mkblctrl
-		optical_flow # all available optical flow drivers
+		#optical_flow # all available optical flow drivers
 		#osd
 		pca9685
 		power_monitor/ina226
@@ -84,7 +84,7 @@ px4_add_board(
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		config
 		dmesg
 		dumpfile
@@ -95,7 +95,7 @@ px4_add_board(
 		mixer
 		motor_ramp
 		motor_test
-		mtd
+		#mtd
 		nshterm
 		param
 		perf

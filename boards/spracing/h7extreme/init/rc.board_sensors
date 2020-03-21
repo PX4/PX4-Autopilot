@@ -7,12 +7,6 @@ adc start
 # Internal SPI bus ICM-20689
 mpu6000 -R 8 -z -T 20689 start
 
-# Internal SPI bus BMI088 accel
-bmi088 -A -R 10 start
-
-# Internal SPI bus BMI088 gyro
-bmi088 -G -R 10 start
-
 # Possible external compasses
 ist8310 -b 1 start
 ist8310 -b 2 start

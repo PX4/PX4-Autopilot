@@ -58,12 +58,9 @@
 #include "board_config.h"
 
 /* Define CS GPIO array */
-static constexpr uint32_t spi1selects_gpio[] = PX4_SENSOR_BUS_CS_GPIO;
-static constexpr uint32_t spi2selects_gpio[] = PX4_MEMORY_BUS_CS_GPIO;
-static constexpr uint32_t spi3selects_gpio[] = PX4_DEVICE_BUS_CS_GPIO;
-static constexpr uint32_t spi4selects_gpio[] = PX4_BARO_BUS_CS_GPIO;
-static constexpr uint32_t spi5selects_gpio[] = PX4_EXTERNAL1_BUS_CS_GPIO;
-static constexpr uint32_t spi6selects_gpio[] = PX4_EXTERNAL2_BUS_CS_GPIO;
+static constexpr uint32_t spi2selects_gpio[] = {GPIO_SPI2_CS_GYRO_MPU6500_2};
+static constexpr uint32_t spi3selects_gpio[] = {GPIO_SPI3_CS_GYRO_MPU6500_1};
+static constexpr uint32_t spi4selects_gpio[] = {GPIO_SPI4_CS_OSD_MAX7456};
 
 /************************************************************************************
  * Name: stm32_spiinitialize
@@ -157,12 +154,6 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 #if defined(CONFIG_STM32H7_SPI2)
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
-	if (devid == SPIDEV_FLASH(0)) {
-		devid = PX4_SPIDEV_MEMORY;
-	}
-
-	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_MEMORY);
-
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi2selects_gpio) {
 		stm32_gpiowrite(cs, 1);
@@ -188,12 +179,6 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 #if defined(CONFIG_STM32H7_SPI3)
 __EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
-	if (devid == SPIDEV_FLASH(0)) {
-		devid = PX4_SPIDEV_MEMORY;
-	}
-
-	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_MEMORY);
-
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi3selects_gpio) {
 		stm32_gpiowrite(cs, 1);
@@ -219,8 +204,6 @@ __EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, uint32_t devid)
 #ifdef CONFIG_STM32H7_SPI4
 __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
-	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_BARO);
-
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi4selects_gpio) {
 		stm32_gpiowrite(cs, 1);
@@ -301,23 +284,14 @@ __EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, uint32_t devid)
 __EXPORT void board_spi_reset(int ms)
 {
 	// disable SPI bus
-	for (auto cs : spi1selects_gpio) {
+	for (auto cs : spi2selects_gpio) {
 		stm32_configgpio(_PIN_OFF(cs));
 	}
 
-	stm32_configgpio(GPIO_SPI1_SCK_OFF);
-	stm32_configgpio(GPIO_SPI1_MISO_OFF);
-	stm32_configgpio(GPIO_SPI1_MOSI_OFF);
+	stm32_configgpio(GPIO_SPI2_SCK_OFF);
+	stm32_configgpio(GPIO_SPI2_MISO_OFF);
+	stm32_configgpio(GPIO_SPI2_MOSI_OFF);
 
-
-#if BOARD_USE_DRDY
-	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY1_ICM20689);
-	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY2_BMI088_GYRO);
-	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY3_BMI088_ACC);
-	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY4_ICM20602);
-	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY5_BMI088_GYRO);
-	stm32_configgpio(GPIO_DRDY_OFF_SPI1_DRDY6_BMI088_ACC);
-#endif
 	/* set the sensor rail off */
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
@@ -334,20 +308,11 @@ __EXPORT void board_spi_reset(int ms)
 	usleep(100);
 
 	/* reconfigure the SPI pins */
-	for (auto cs : spi1selects_gpio) {
+	for (auto cs : spi2selects_gpio) {
 		stm32_configgpio(cs);
 	}
 
-	stm32_configgpio(GPIO_SPI1_SCK);
-	stm32_configgpio(GPIO_SPI1_MISO);
-	stm32_configgpio(GPIO_SPI1_MOSI);
-
-#if BOARD_USE_DRDY
-	stm32_configgpio(GPIO_SPI1_DRDY1_ICM20689);
-	stm32_configgpio(GPIO_SPI1_DRDY2_BMI055_GYRO);
-	stm32_configgpio(GPIO_SPI1_DRDY3_BMI055_ACC);
-	stm32_configgpio(GPIO_SPI1_DRDY4_ICM20602);
-	stm32_configgpio(GPIO_SPI1_DRDY5_BMI055_GYRO);
-	stm32_configgpio(GPIO_SPI1_DRDY6_BMI055_ACC);
-#endif
+	stm32_configgpio(GPIO_SPI2_SCK);
+	stm32_configgpio(GPIO_SPI2_MISO);
+	stm32_configgpio(GPIO_SPI2_MOSI);
 }

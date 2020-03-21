@@ -63,7 +63,7 @@
  *   HSE: 25 MHz crystal for HSE
  */
 
-#define STM32_BOARD_XTAL        25000000ul
+#define STM32_BOARD_XTAL        8000000ul
 
 #define STM32_HSI_FREQUENCY     64000000ul
 #define STM32_LSI_FREQUENCY     32000
@@ -72,7 +72,7 @@
 
 /* Main PLL Configuration.
  *
- * PLL source is HSE = 25,000,000
+ * PLL source is HSE = 8,000,000
  *
  * PLL_VCOx = (STM32_HSE_FREQUENCY / PLLM) * PLLN
  * Subject to:
@@ -109,15 +109,15 @@
 				 RCC_PLLCFGR_DIVP1EN | \
 				 RCC_PLLCFGR_DIVQ1EN | \
 				 RCC_PLLCFGR_DIVR1EN)
-#define STM32_PLLCFG_PLL1M       RCC_PLLCKSELR_DIVM1(5)
-#define STM32_PLLCFG_PLL1N       RCC_PLL1DIVR_N1(160)
+#define STM32_PLLCFG_PLL1M       RCC_PLLCKSELR_DIVM1(2)
+#define STM32_PLLCFG_PLL1N       RCC_PLL1DIVR_N1(200)
 #define STM32_PLLCFG_PLL1P       RCC_PLL1DIVR_P1(2)
-#define STM32_PLLCFG_PLL1Q       RCC_PLL1DIVR_Q1(2)
+#define STM32_PLLCFG_PLL1Q       RCC_PLL1DIVR_Q1(10)
 #define STM32_PLLCFG_PLL1R       RCC_PLL1DIVR_R1(2)
 
-#define STM32_VCO1_FREQUENCY     ((STM32_HSE_FREQUENCY / 5) * 160)
+#define STM32_VCO1_FREQUENCY     ((STM32_HSE_FREQUENCY / 2) * 200)
 #define STM32_PLL1P_FREQUENCY    (STM32_VCO1_FREQUENCY / 2)
-#define STM32_PLL1Q_FREQUENCY    (STM32_VCO1_FREQUENCY / 2)
+#define STM32_PLL1Q_FREQUENCY    (STM32_VCO1_FREQUENCY / 10)
 #define STM32_PLL1R_FREQUENCY    (STM32_VCO1_FREQUENCY / 2)
 
 /* PLL2 */
@@ -127,16 +127,16 @@
 				  RCC_PLLCFGR_DIVP2EN | \
 				  RCC_PLLCFGR_DIVQ2EN | \
 				  RCC_PLLCFGR_DIVR2EN)
-#define STM32_PLLCFG_PLL2M       RCC_PLLCKSELR_DIVM2(5)
-#define STM32_PLLCFG_PLL2N       RCC_PLL2DIVR_N2(40)
-#define STM32_PLLCFG_PLL2P       RCC_PLL2DIVR_P2(2)
-#define STM32_PLLCFG_PLL2Q       RCC_PLL2DIVR_Q2(2)
-#define STM32_PLLCFG_PLL2R       RCC_PLL2DIVR_R2(2)
+#define STM32_PLLCFG_PLL2M       RCC_PLLCKSELR_DIVM2(4)
+#define STM32_PLLCFG_PLL2N       RCC_PLL2DIVR_N2(480)
+#define STM32_PLLCFG_PLL2P       RCC_PLL2DIVR_P2(16)
+#define STM32_PLLCFG_PLL2Q       RCC_PLL2DIVR_Q2(16)
+#define STM32_PLLCFG_PLL2R       RCC_PLL2DIVR_R2(15)
 
-#define STM32_VCO2_FREQUENCY     ((STM32_HSE_FREQUENCY / 5) * 40)
-#define STM32_PLL2P_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
-#define STM32_PLL2Q_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
-#define STM32_PLL2R_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
+#define STM32_VCO2_FREQUENCY     ((STM32_HSE_FREQUENCY / 4) * 480)
+#define STM32_PLL2P_FREQUENCY    (STM32_VCO2_FREQUENCY / 16)
+#define STM32_PLL2Q_FREQUENCY    (STM32_VCO2_FREQUENCY / 16)
+#define STM32_PLL2R_FREQUENCY    (STM32_VCO2_FREQUENCY / 15)
 
 /* PLL3 */
 
@@ -144,7 +144,7 @@
 				 RCC_PLLCFGR_PLL3RGE_4_8_MHZ | \
 				 RCC_PLLCFGR_DIVQ3EN)
 #define STM32_PLLCFG_PLL3M      RCC_PLLCKSELR_DIVM3(5)
-#define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(80)
+#define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(40)
 #define STM32_PLLCFG_PLL3P      RCC_PLL3DIVR_P3(2)
 #define STM32_PLLCFG_PLL3Q      RCC_PLL3DIVR_Q3(2)
 #define STM32_PLLCFG_PLL3R      RCC_PLL3DIVR_R3(2)
@@ -244,6 +244,10 @@
 
 #define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
 
+/* QSPI clock source */
+#define STM32_RCC_D1CCIPR_QSPISEL    RCC_D1CCIPR_QSPISEL_PLL2
+
+
 /* FLASH wait states
  *
  *  ------------ ---------- -----------
@@ -325,7 +329,7 @@
 #define LED_SIGNAL         5 /* In a signal handler      N/C    GLOW  N/C  */
 #define LED_ASSERTION      6 /* An assertion failed      GLOW   N/C   GLOW */
 #define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
-#define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
+#define LED_IDLE           8 /* MCU is in sleep mode     ON     OFF   OFF  */
 
 /* Thus if the Green LED is statically on, NuttX has successfully booted and
  * is, apparently, running normally.  If the Red LED is flashing at
