@@ -28,9 +28,9 @@ px4_add_board(
 		gps
 		heater
 		#imu # all available imu drivers
-		imu/adis16448
-		imu/adis16477
-		imu/adis16497
+		#imu/adis16448
+		#imu/adis16477
+		#imu/adis16497
 		#imu/bmi088
 		imu/mpu6000
 		#imu/mpu9250
@@ -43,7 +43,7 @@ px4_add_board(
 		#optical_flow # all available optical flow drivers
 		#osd
 		pca9685
-		power_monitor/ina226
+		#power_monitor/ina226
 		#protocol_splitter
 #		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
 #					   all arch dependant code there

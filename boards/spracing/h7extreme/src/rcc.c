@@ -113,6 +113,9 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
+
+#if defined(CONFIG_STM32H7_CUSTOM_CLOCKCONFIG)
+
 __ramfunc__ void stm32_board_clockconfig(void)
 {
   volatile uint32_t regval = 0;
@@ -484,3 +487,5 @@ __ramfunc__ void stm32_board_clockconfig(void)
 	}
 
 }
+
+#endif //#if defined(CONFIG_STM32H7_CUSTOM_CLOCKCONFIG)

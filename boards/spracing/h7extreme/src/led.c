@@ -69,10 +69,7 @@ static bool nuttx_owns_leds = true;
 static const uint8_t xlatpx4[] = {1, 2, 4, 0};
 #  define xlat(p) xlatpx4[(p)]
 static uint32_t g_ledmap[] = {
-	GPIO_nLED_GREEN,   // Indexed by BOARD_LED_GREEN
-	GPIO_nLED_BLUE,    // Indexed by BOARD_LED_BLUE
 	GPIO_nLED_RED,     // Indexed by BOARD_LED_RED
-	GPIO_nSAFETY_SWITCH_LED_OUT,  // Indexed by LED_SAFETY by xlatpx4
 };
 
 #else
@@ -156,30 +153,22 @@ void board_autoled_on(int led)
 		break;
 
 	case LED_HEAPALLOCATE:
-		phy_set_led(BOARD_LED_BLUE, true);
 		break;
 
 	case LED_IRQSENABLED:
-		phy_set_led(BOARD_LED_BLUE, false);
-		phy_set_led(BOARD_LED_GREEN, true);
 		break;
 
 	case LED_STACKCREATED:
-		phy_set_led(BOARD_LED_GREEN, true);
-		phy_set_led(BOARD_LED_BLUE, true);
 		break;
 
 	case LED_INIRQ:
-		phy_set_led(BOARD_LED_BLUE, true);
 		break;
 
 	case LED_SIGNAL:
-		phy_set_led(BOARD_LED_GREEN, true);
 		break;
 
 	case LED_ASSERTION:
 		phy_set_led(BOARD_LED_RED, true);
-		phy_set_led(BOARD_LED_BLUE, true);
 		break;
 
 	case LED_PANIC:
@@ -207,16 +196,13 @@ void board_autoled_off(int led)
 		break;
 
 	case LED_SIGNAL:
-		phy_set_led(BOARD_LED_GREEN, false);
 		break;
 
 	case LED_INIRQ:
-		phy_set_led(BOARD_LED_BLUE, false);
 		break;
 
 	case LED_ASSERTION:
 		phy_set_led(BOARD_LED_RED, false);
-		phy_set_led(BOARD_LED_BLUE, false);
 		break;
 
 	case LED_PANIC:
