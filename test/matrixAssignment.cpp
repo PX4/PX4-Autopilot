@@ -194,20 +194,20 @@ int main()
     TEST(isEqual(constrain(m10, m10_lower_bound, m10_upper_bound), m10_constrained_ref));
 
     // min, max, constrain with NAN
-    TEST(isEqualF(matrix::typeFunction::min(5.0f,NAN), 5.0f));
-    TEST(isEqualF(matrix::typeFunction::min(NAN,5.0f), 5.0f));
-    TEST(isEqualF(matrix::typeFunction::min(NAN,NAN), NAN));
-    TEST(isEqualF(matrix::typeFunction::max(5.0f,NAN), 5.0f));
-    TEST(isEqualF(matrix::typeFunction::max(NAN,5.0f), 5.0f));
-    TEST(isEqualF(matrix::typeFunction::max(NAN,NAN), NAN));
-    TEST(isEqualF(matrix::typeFunction::constrain(NAN,5.0f,6.0f), NAN));
-    TEST(isEqualF(matrix::typeFunction::constrain(1.0f,5.0f,4.0f), NAN));
-    TEST(isEqualF(matrix::typeFunction::constrain(6.0f,NAN,5.0f), 5.0f));
-    TEST(isEqualF(matrix::typeFunction::constrain(1.0f,5.0f,NAN), 5.0f));
+    TEST(isEqualF(matrix::typeFunction::min(5.f, NAN), 5.f));
+    TEST(isEqualF(matrix::typeFunction::min(NAN, 5.f), 5.f));
+    TEST(isEqualF(matrix::typeFunction::min(NAN, NAN), NAN));
+    TEST(isEqualF(matrix::typeFunction::max(5.f, NAN), 5.f));
+    TEST(isEqualF(matrix::typeFunction::max(NAN, 5.f), 5.f));
+    TEST(isEqualF(matrix::typeFunction::max(NAN, NAN), NAN));
+    TEST(isEqualF(matrix::typeFunction::constrain(NAN, 5.f, 6.f), NAN));
+    TEST(isEqualF(matrix::typeFunction::constrain(1.f, 5.f, 4.f), NAN));
+    TEST(isEqualF(matrix::typeFunction::constrain(6.f, NAN, 5.f), 5.f));
+    TEST(isEqualF(matrix::typeFunction::constrain(1.f, 5.f, NAN), 5.f));
     Vector2f v1{NAN, 5.0f};
-    Vector2f v1_min = min(v1,1.0f);
+    Vector2f v1_min = min(v1, 1.f);
     Matrix3f m11 = min(m10_constrained_ref,NAN);
-    TEST(isEqualF(fmin(NAN,1.0f), float(v1_min(0))));
+    TEST(isEqualF(fmin(NAN, 1.f), float(v1_min(0))));
     TEST(isEqual(m11, m10_constrained_ref));
 
     // check write_string()
