@@ -36,9 +36,10 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		qmc5883_i2c.cpp
-		qmc5883_spi.cpp
-		qmc5883.cpp
+		QMC5883_I2C.cpp
+		QMC5883.cpp
+		QMC5883.hpp
+		qmc5883_main.cpp
 	DEPENDS
 		px4_work_queue
 	)
