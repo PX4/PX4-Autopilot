@@ -33,8 +33,6 @@
 
 #include "ICM42688P.hpp"
 
-#include <px4_platform/board_dma_alloc.h>
-
 using namespace time_literals;
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
@@ -60,10 +58,6 @@ ICM42688P::~ICM42688P()
 {
 	Stop();
 
-	if (_dma_data_buffer != nullptr) {
-		board_dma_free(_dma_data_buffer, FIFO::SIZE);
-	}
-
 	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -77,14 +71,6 @@ bool ICM42688P::Init()
 {
 	if (SPI::init() != PX4_OK) {
 		PX4_ERR("SPI::init failed");
-		return false;
-	}
-
-	// allocate DMA capable buffer
-	_dma_data_buffer = (uint8_t *)board_dma_alloc(FIFO::SIZE);
-
-	if (_dma_data_buffer == nullptr) {
-		PX4_ERR("DMA alloc failed");
 		return false;
 	}
 
@@ -285,22 +271,22 @@ void ICM42688P::ConfigureAccel()
 
 	switch (ACCEL_FS_SEL) {
 	case ACCEL_FS_SEL_2G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384.f);
 		_px4_accel.set_range(2 * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
 		_px4_accel.set_range(4 * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
 		_px4_accel.set_range(8 * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
 		_px4_accel.set_range(16 * CONSTANTS_ONE_G);
 		break;
 	}
@@ -312,7 +298,7 @@ void ICM42688P::ConfigureGyro()
 
 	switch (GYRO_FS_SEL) {
 	case GYRO_FS_SEL_125_DPS:
-		_px4_gyro.set_scale(math::radians(1.0f / 262.f));
+		_px4_gyro.set_scale(math::radians(1.f / 262.f));
 		_px4_gyro.set_range(math::radians(125.f));
 		break;
 
@@ -515,14 +501,11 @@ uint16_t ICM42688P::FIFOReadCount()
 
 bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 {
-	TransferBuffer *report = (TransferBuffer *)_dma_data_buffer;
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
-	memset(report, 0, transfer_size);
-	report->cmd = static_cast<uint8_t>(Register::BANK_0::INT_STATUS) | DIR_READ;
-
 	perf_begin(_transfer_perf);
+	FIFOTransferBuffer buffer{};
+	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
 
-	if (transfer(_dma_data_buffer, _dma_data_buffer, transfer_size) != PX4_OK) {
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_end(_transfer_perf);
 		perf_count(_bad_transfer_perf);
 		return false;
@@ -530,12 +513,12 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 
 	perf_end(_transfer_perf);
 
-	if (report->INT_STATUS & INT_STATUS_BIT::FIFO_FULL_INT) {
+	if (buffer.INT_STATUS & INT_STATUS_BIT::FIFO_FULL_INT) {
 		perf_count(_fifo_overflow_perf);
 		FIFOReset();
 	}
 
-	const uint16_t fifo_count_bytes = combine(report->FIFO_COUNTH, report->FIFO_COUNTL);
+	const uint16_t fifo_count_bytes = combine(buffer.FIFO_COUNTH, buffer.FIFO_COUNTL);
 	const uint16_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
 
 	if (fifo_count_samples == 0) {
@@ -550,7 +533,7 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 		bool valid = true;
 
 		// With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
-		const uint8_t FIFO_HEADER = report->f[i].FIFO_Header;
+		const uint8_t FIFO_HEADER = buffer.f[i].FIFO_Header;
 
 		if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_MSG) {
 			// FIFO sample empty if HEADER_MSG set
@@ -575,8 +558,8 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 	}
 
 	if (valid_samples > 0) {
-		ProcessGyro(timestamp_sample, report, valid_samples);
-		ProcessAccel(timestamp_sample, report, valid_samples);
+		ProcessGyro(timestamp_sample, buffer, valid_samples);
+		ProcessAccel(timestamp_sample, buffer, valid_samples);
 		return true;
 	}
 
@@ -591,12 +574,11 @@ void ICM42688P::FIFOReset()
 	RegisterSetBits(Register::BANK_0::SIGNAL_PATH_RESET, SIGNAL_PATH_RESET_BIT::FIFO_FLUSH);
 
 	// reset while FIFO is disabled
-	_data_ready_count.store(0);
 	_fifo_watermark_interrupt_timestamp = 0;
 	_fifo_read_samples.store(0);
 }
 
-void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const TransferBuffer *const report, uint8_t samples)
+void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples)
 {
 	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
@@ -605,7 +587,7 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const Transfer
 	int accel_samples = 0;
 
 	for (int i = 0; i < samples; i++) {
-		const FIFO::DATA &fifo_sample = report->f[i];
+		const FIFO::DATA &fifo_sample = buffer.f[i];
 		int16_t accel_x = combine(fifo_sample.ACCEL_DATA_X1, fifo_sample.ACCEL_DATA_X0);
 		int16_t accel_y = combine(fifo_sample.ACCEL_DATA_Y1, fifo_sample.ACCEL_DATA_Y0);
 		int16_t accel_z = combine(fifo_sample.ACCEL_DATA_Z1, fifo_sample.ACCEL_DATA_Z0);
@@ -623,7 +605,7 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const Transfer
 	_px4_accel.updateFIFO(accel);
 }
 
-void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const TransferBuffer *const report, uint8_t samples)
+void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples)
 {
 	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
@@ -631,7 +613,7 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const TransferB
 	gyro.dt = _fifo_empty_interval_us / _fifo_gyro_samples;
 
 	for (int i = 0; i < samples; i++) {
-		const FIFO::DATA &fifo_sample = report->f[i];
+		const FIFO::DATA &fifo_sample = buffer.f[i];
 
 		const int16_t gyro_x = combine(fifo_sample.GYRO_DATA_X1, fifo_sample.GYRO_DATA_X0);
 		const int16_t gyro_y = combine(fifo_sample.GYRO_DATA_Y1, fifo_sample.GYRO_DATA_Y0);
