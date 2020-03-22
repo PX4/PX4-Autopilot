@@ -50,7 +50,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-using ST_ISM330DLC::Register;
+using namespace ST_ISM330DLC;
 
 class ISM330DLC : public device::SPI, public px4::ScheduledWorkItem
 {
@@ -65,6 +65,20 @@ public:
 	void PrintInfo();
 
 private:
+
+	// Sensor Configuration
+	static constexpr uint32_t GYRO_RATE{ST_ISM330DLC::G_ODR};
+	static constexpr uint32_t ACCEL_RATE{ST_ISM330DLC::LA_ODR};
+	static constexpr uint32_t FIFO_MAX_SAMPLES{ math::min(FIFO::SIZE / sizeof(FIFO::DATA) + 1, sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
+
+	// Transfer data
+	struct FIFOTransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA_OUT_L) | DIR_READ};
+		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+	};
+	// ensure no struct padding
+	static_assert(sizeof(FIFOTransferBuffer) == (sizeof(uint8_t) + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
+
 	int probe() override;
 
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
@@ -78,8 +92,6 @@ private:
 	void RegisterClearBits(Register reg, uint8_t clearbits);
 
 	void ResetFIFO();
-
-	uint8_t *_dma_data_buffer{nullptr};
 
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
