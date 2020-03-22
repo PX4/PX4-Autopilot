@@ -33,8 +33,6 @@
 
 #include "ICM40609D.hpp"
 
-#include <px4_platform/board_dma_alloc.h>
-
 using namespace time_literals;
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
@@ -60,10 +58,6 @@ ICM40609D::~ICM40609D()
 {
 	Stop();
 
-	if (_dma_data_buffer != nullptr) {
-		board_dma_free(_dma_data_buffer, FIFO::SIZE);
-	}
-
 	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -77,14 +71,6 @@ bool ICM40609D::Init()
 {
 	if (SPI::init() != PX4_OK) {
 		PX4_ERR("SPI::init failed");
-		return false;
-	}
-
-	// allocate DMA capable buffer
-	_dma_data_buffer = (uint8_t *)board_dma_alloc(FIFO::SIZE);
-
-	if (_dma_data_buffer == nullptr) {
-		PX4_ERR("DMA alloc failed");
 		return false;
 	}
 
@@ -514,14 +500,11 @@ uint16_t ICM40609D::FIFOReadCount()
 
 bool ICM40609D::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 {
-	TransferBuffer *report = (TransferBuffer *)_dma_data_buffer;
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
-	memset(report, 0, transfer_size);
-	report->cmd = static_cast<uint8_t>(Register::BANK_0::INT_STATUS) | DIR_READ;
-
 	perf_begin(_transfer_perf);
+	FIFOTransferBuffer buffer{};
+	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
 
-	if (transfer(_dma_data_buffer, _dma_data_buffer, transfer_size) != PX4_OK) {
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_end(_transfer_perf);
 		perf_count(_bad_transfer_perf);
 		return false;
@@ -529,12 +512,12 @@ bool ICM40609D::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 
 	perf_end(_transfer_perf);
 
-	if (report->INT_STATUS & INT_STATUS_BIT::FIFO_FULL_INT) {
+	if (buffer.INT_STATUS & INT_STATUS_BIT::FIFO_FULL_INT) {
 		perf_count(_fifo_overflow_perf);
 		FIFOReset();
 	}
 
-	const uint16_t fifo_count_bytes = combine(report->FIFO_COUNTH, report->FIFO_COUNTL);
+	const uint16_t fifo_count_bytes = combine(buffer.FIFO_COUNTH, buffer.FIFO_COUNTL);
 	const uint16_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
 
 	if (fifo_count_samples == 0) {
@@ -549,7 +532,7 @@ bool ICM40609D::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 		bool valid = true;
 
 		// With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
-		const uint8_t FIFO_HEADER = report->f[i].FIFO_Header;
+		const uint8_t FIFO_HEADER = buffer.f[i].FIFO_Header;
 
 		if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_MSG) {
 			// FIFO sample empty if HEADER_MSG set
@@ -574,8 +557,8 @@ bool ICM40609D::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 	}
 
 	if (valid_samples > 0) {
-		ProcessGyro(timestamp_sample, report, valid_samples);
-		ProcessAccel(timestamp_sample, report, valid_samples);
+		ProcessGyro(timestamp_sample, buffer, valid_samples);
+		ProcessAccel(timestamp_sample, buffer, valid_samples);
 		return true;
 	}
 
@@ -594,7 +577,7 @@ void ICM40609D::FIFOReset()
 	_fifo_read_samples.store(0);
 }
 
-void ICM40609D::ProcessAccel(const hrt_abstime &timestamp_sample, const TransferBuffer *const report, uint8_t samples)
+void ICM40609D::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples)
 {
 	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
@@ -603,7 +586,7 @@ void ICM40609D::ProcessAccel(const hrt_abstime &timestamp_sample, const Transfer
 	int accel_samples = 0;
 
 	for (int i = 0; i < samples; i++) {
-		const FIFO::DATA &fifo_sample = report->f[i];
+		const FIFO::DATA &fifo_sample = buffer.f[i];
 		int16_t accel_x = combine(fifo_sample.ACCEL_DATA_X1, fifo_sample.ACCEL_DATA_X0);
 		int16_t accel_y = combine(fifo_sample.ACCEL_DATA_Y1, fifo_sample.ACCEL_DATA_Y0);
 		int16_t accel_z = combine(fifo_sample.ACCEL_DATA_Z1, fifo_sample.ACCEL_DATA_Z0);
@@ -621,7 +604,7 @@ void ICM40609D::ProcessAccel(const hrt_abstime &timestamp_sample, const Transfer
 	_px4_accel.updateFIFO(accel);
 }
 
-void ICM40609D::ProcessGyro(const hrt_abstime &timestamp_sample, const TransferBuffer *const report, uint8_t samples)
+void ICM40609D::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples)
 {
 	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
@@ -629,7 +612,7 @@ void ICM40609D::ProcessGyro(const hrt_abstime &timestamp_sample, const TransferB
 	gyro.dt = _fifo_empty_interval_us / _fifo_gyro_samples;
 
 	for (int i = 0; i < samples; i++) {
-		const FIFO::DATA &fifo_sample = report->f[i];
+		const FIFO::DATA &fifo_sample = buffer.f[i];
 
 		const int16_t gyro_x = combine(fifo_sample.GYRO_DATA_X1, fifo_sample.GYRO_DATA_X0);
 		const int16_t gyro_y = combine(fifo_sample.GYRO_DATA_Y1, fifo_sample.GYRO_DATA_Y0);

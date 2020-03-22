@@ -72,15 +72,15 @@ private:
 	static constexpr uint32_t FIFO_MAX_SAMPLES{ math::min(FIFO::SIZE / sizeof(FIFO::DATA) + 1, sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
 
 	// Transfer data
-	struct TransferBuffer {
-		uint8_t cmd;
+	struct FIFOTransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::BANK_0::INT_STATUS) | DIR_READ};
 		uint8_t INT_STATUS;
 		uint8_t FIFO_COUNTH;
 		uint8_t FIFO_COUNTL;
-		FIFO::DATA f[FIFO_MAX_SAMPLES];
+		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
 	};
 	// ensure no struct padding
-	static_assert(sizeof(TransferBuffer) == (4 * sizeof(uint8_t) + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
+	static_assert(sizeof(FIFOTransferBuffer) == (4 * sizeof(uint8_t) + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
 
 	struct register_bank0_config_t {
 		Register::BANK_0 reg;
@@ -113,11 +113,9 @@ private:
 	bool FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples);
 	void FIFOReset();
 
-	void ProcessAccel(const hrt_abstime &timestamp_sample, const TransferBuffer *const buffer, uint8_t samples);
-	void ProcessGyro(const hrt_abstime &timestamp_sample, const TransferBuffer *const buffer, uint8_t samples);
+	void ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples);
+	void ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples);
 	void UpdateTemperature();
-
-	uint8_t *_dma_data_buffer{nullptr};
 
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
@@ -154,7 +152,7 @@ private:
 	uint8_t _fifo_accel_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / ACCEL_RATE))};
 
 	uint8_t _checked_register_bank0{0};
-	static constexpr uint8_t size_register_bank0_cfg{11};
+	static constexpr uint8_t size_register_bank0_cfg{10};
 	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg] {
 		// Register                        | Set bits, Clear bits
 		{ Register::BANK_0::INT_CONFIG,    INT_CONFIG_BIT::INT1_MODE | INT_CONFIG_BIT::INT1_DRIVE_CIRCUIT, INT_CONFIG_BIT::INT1_POLARITY },
@@ -168,5 +166,4 @@ private:
 		{ Register::BANK_0::INT_CONFIG0,   INT_CONFIG0_BIT::CLEAR_ON_FIFO_READ, 0 },
 		{ Register::BANK_0::INT_SOURCE0,   INT_SOURCE0_BIT::FIFO_THS_INT1_EN, 0 },
 	};
-
 };
