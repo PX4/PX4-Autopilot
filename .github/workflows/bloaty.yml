@@ -17,7 +17,9 @@ jobs:
         config: [
           px4_fmu-v2_default,
           px4_fmu-v4_default,
+          #px4_fmu-v4_optimized,
           px4_fmu-v5_default,
+          #px4_fmu-v5_optimized,
           px4_fmu-v5x_default,
           px4_io-v2_default,
           ]
