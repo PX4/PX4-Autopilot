@@ -22,4 +22,4 @@ mpl3115a2 -I start
 fxos8701cq start
 
 # Internal SPI (gyro)
-fxas21002c start
+fxas21002c -s start

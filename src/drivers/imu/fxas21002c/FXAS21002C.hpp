@@ -43,34 +43,31 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 
-class FXAS21002C : public device::SPI, public px4::ScheduledWorkItem
+class FXAS21002C : public device::SPI, public I2CSPIDriver<FXAS21002C>
 {
 public:
-	FXAS21002C(int bus, uint32_t device, enum Rotation rotation);
+	FXAS21002C(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		   spi_mode_e spi_mode);
 	virtual ~FXAS21002C();
 
-	virtual int init();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void print_info();
+	int		init() override;
 
-	/**
-	 * dump register values
-	 */
-	void print_registers();
+	void			print_status() override;
 
-	/**
-	 * deliberately trigger an error
-	 */
-	void test_error();
+	void			RunImpl();
 
+	void			print_registers();
+	void			test_error();
 protected:
-	virtual int probe();
+	void custom_method(const BusCLIArguments &cli);
+	int probe() override;
 
 private:
 
@@ -102,11 +99,6 @@ private:
 	void start();
 
 	/**
-	 * Stop automatic measurement.
-	 */
-	void stop();
-
-	/**
 	 * Reset chip.
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
@@ -118,17 +110,10 @@ private:
 	 */
 	void set_standby(int rate, bool standby_true);
 
-	void Run() override;
-
 	/**
 	 * check key registers for correct values
 	 */
 	void check_registers(void);
-
-	/**
-	 * Fetch accel measurements from the sensor and update the report ring.
-	 */
-	void measure();
 
 	/**
 	 * Read a register from the FXAS21002C
