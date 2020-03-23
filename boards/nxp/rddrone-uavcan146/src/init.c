@@ -89,9 +89,9 @@ int board_app_initialize(uintptr_t arg)
 
 	return OK;
 #else
-    
-    px4_platform_init();
-  
+
+	px4_platform_init();
+
 	/* Perform board-specific initialization */
 
 	return s32k1xx_bringup();

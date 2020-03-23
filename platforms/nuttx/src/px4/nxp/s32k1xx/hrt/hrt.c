@@ -392,7 +392,7 @@ static void hrt_tim_init(void)
 	/* Use FIXEDCLK src and enable the timer
 	 * Set calculate prescaler for HRT_TIMER_FREQ */
 	rSC |= (FTM_SC_TOIE | FTM_SC_CLKS(0x2) |
-			FTM_SC_PS(LOG_2(HRT_TIMER_CLOCK/HRT_TIMER_FREQ)));
+		FTM_SC_PS(LOG_2(HRT_TIMER_CLOCK / HRT_TIMER_FREQ)));
 
 	/* enable interrupts */
 	up_enable_irq(HRT_TIMER_VECTOR);
