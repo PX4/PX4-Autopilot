@@ -97,6 +97,7 @@ set_property(GLOBAL PROPERTY AIRFRAME_PARAMETER_FILES
 	13008.param
 	13009.param
 	13010.param
+	13012.param
 	13013.param
 	13014.param
 	13050.param
