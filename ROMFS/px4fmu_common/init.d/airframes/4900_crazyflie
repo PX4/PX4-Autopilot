@@ -21,7 +21,7 @@ set MIXER quad_x_cw
 set PWM_OUT 1234
 
 
-param import-as-default /etc/init.d/4900.params
+param import-airframe /etc/init.d
 
 set PWM_DISARMED none
 set PWM_MAX none

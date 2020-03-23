@@ -18,7 +18,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-param import-as-default /etc/init.d/14001.params
+param import-airframe /etc/init.d
 
 set MIXER tri_y_yaw+
 

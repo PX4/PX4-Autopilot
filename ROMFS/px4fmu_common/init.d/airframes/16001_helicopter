@@ -27,4 +27,4 @@ set MIXER blade130
 
 #set PWM_OUT 1234
 
-param import-as-default /etc/init.d/16001.params
+param import-airframe /etc/init.d

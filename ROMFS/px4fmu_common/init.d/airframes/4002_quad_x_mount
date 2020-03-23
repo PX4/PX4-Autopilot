@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# @name Reaper 500 Quad
+# @name Generic Quadrotor x with mount (e.g. gimbal)
 #
-# @type Quadrotor H
+# @type Quadrotor x
 # @class Copter
 #
 # @output MAIN1 motor 1
@@ -12,21 +12,20 @@
 # @output MAIN5 feed-through of RC AUX1 channel
 # @output MAIN6 feed-through of RC AUX2 channel
 #
-# @maintainer Blankered
+# @output AUX1 Mount pitch
+# @output AUX2 Mount roll
+# @output AUX3 Mount yaw
+# @output AUX4 Mount retract
 #
-# @board px4_fmu-v2 exclude
-# @board intel_aerofc-v1 exclude
-# @board bitcraze_crazyflie exclude
+# @maintainer Leon Mueller <thedevleon>
 #
 
 sh /etc/init.d/rc.mc_defaults
 
 param import-airframe /etc/init.d
 
-set MIXER quad_h
-
+set MIXER quad_x
 set PWM_OUT 1234
 
-set MIXER_AUX pass
-
-set PWM_AUX_OUT 1234
+set MIXER_AUX mount
+set PWM_AUX_OUT 123456

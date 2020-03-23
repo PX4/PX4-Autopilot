@@ -24,7 +24,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-param import-as-default /etc/init.d/11001.params
+param import-airframe /etc/init.d
 
 set MIXER hexa_cox
 

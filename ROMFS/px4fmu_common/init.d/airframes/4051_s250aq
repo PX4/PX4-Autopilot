@@ -28,4 +28,4 @@ set MAV_TYPE 2
 
 set PWM_OUT 1234
 
-param import-as-default /etc/init.d/4051.params
+param import-airframe /etc/init.d

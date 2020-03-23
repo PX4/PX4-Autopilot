@@ -20,4 +20,4 @@ set MIXER quad_x
 set PWM_OUT 1234
 
 
-param import-as-default /etc/init.d/4052.params
+param import-airframe /etc/init.d

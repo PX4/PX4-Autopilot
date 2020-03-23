@@ -28,7 +28,7 @@ sh /etc/init.d/rc.mc_defaults
 set MIXER quad_x
 set PWM_OUT 1234
 
-param import-as-default /etc/init.d/4250.params
+param import-airframe /etc/init.d
 
 # Logger mode. Default(1) + estimator replay(2) + thermal calibration(4)
 param set SDLOG_PROFILE 6

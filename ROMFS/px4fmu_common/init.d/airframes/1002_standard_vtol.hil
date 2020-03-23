@@ -10,7 +10,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-param import-as-default /etc/init.d/1002.params
+param import-airframe /etc/init.d
 
 param set SYS_HITL 1
 

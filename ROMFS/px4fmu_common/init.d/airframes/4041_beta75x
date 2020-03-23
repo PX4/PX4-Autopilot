@@ -25,7 +25,8 @@
 sh /etc/init.d/rc.mc_defaults
 
 
-param import-as-default /etc/init.d/4041.params
+param import-airframe /etc/init.d
+
 # The Whoop uses reversed props
 set MIXER quad_h
 set PWM_OUT 1234

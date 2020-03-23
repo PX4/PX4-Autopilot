@@ -20,7 +20,7 @@
 sh /etc/init.d/rc.mc_defaults
 set MIXER coax
 
-param import-as-default /etc/init.d/15001.params
+param import-airframe /etc/init.d
 
 # This is the gimbal pass mixer
 set MIXER_AUX pass

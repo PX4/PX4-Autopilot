@@ -28,7 +28,7 @@
 
 set VEHICLE_TYPE mc
 
-param import-as-default /etc/init.d/24001.params
+param import-airframe /etc/init.d
 
 set MIXER dodeca_top_cox
 set MIXER_AUX dodeca_bottom_cox

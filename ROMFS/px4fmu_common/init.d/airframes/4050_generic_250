@@ -16,4 +16,4 @@ sh /etc/init.d/rc.mc_defaults
 set MIXER quad_x
 set PWM_OUT 1234
 
-param import-as-default /etc/init.d/4050.params
+param import-airframe /etc/init.d

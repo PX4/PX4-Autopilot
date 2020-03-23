@@ -1,14 +1,13 @@
 #!/bin/sh
 #
-# @name Lumenier QAV250
+# @name F450-sized quadrotor with CAN
 #
 # @type Quadrotor x
 # @class Copter
 #
-# @maintainer Lorenz Meier <lorenz@px4.io>
-#
 # @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
+#
+# @maintainer Pavel Kirienko <pavel.kirienko@gmail.com>
 #
 
 sh /etc/init.d/rc.mc_defaults
@@ -17,3 +16,6 @@ set MIXER quad_x
 set PWM_OUT 1234
 
 param import-airframe /etc/init.d
+
+set MIXER quad_x_can
+set OUTPUT_MODE uavcan_esc

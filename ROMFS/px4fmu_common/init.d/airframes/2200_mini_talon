@@ -27,7 +27,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-param import-as-default /etc/init.d/2200.params
+param import-airframe /etc/init.d
 
 # The Mini Talon does not have a wheel and
 # no flaps. I leave them here because the mixer

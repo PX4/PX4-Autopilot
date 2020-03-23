@@ -21,7 +21,7 @@
 
 sh /etc/init.d/rc.rover_defaults
 
-param import-as-default /etc/init.d/50003.params
+param import-airframe /etc/init.d
 
 # Start this driver after setting parameters, because the driver uses some of those parameters.
 # roboclaw start /dev/ttyS3

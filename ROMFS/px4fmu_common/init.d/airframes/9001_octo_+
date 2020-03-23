@@ -26,8 +26,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-param import-as-default /etc/init.d/9001.params
-
+param import-airframe /etc/init.d
 set MIXER octo_+
 
 set PWM_OUT 12345678

@@ -23,7 +23,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-param import-as-default /etc/init.d/3033.params
+param import-airframe /etc/init.d
 
 # Configure this as plane.
 set MAV_TYPE 1

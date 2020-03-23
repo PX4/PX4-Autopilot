@@ -27,6 +27,6 @@ sh /etc/init.d/rc.rover_defaults
 # This section can be enabled once tuning parameters for this particular
 # rover model are known. It allows to configure default gains via the GUI.
 #
-param import-as-default /etc/init.d/50001.params
+param import-airframe /etc/init.d
 
 set MIXER IO_pass

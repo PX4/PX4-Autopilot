@@ -21,7 +21,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-param import-as-default /etc/init.d/3100.params
+param import-airframe /etc/init.d
 
 set MIXER caipi
 set PWM_OUT 1234

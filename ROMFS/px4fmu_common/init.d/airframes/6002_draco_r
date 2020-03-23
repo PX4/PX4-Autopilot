@@ -31,4 +31,4 @@ set MIXER hexa_x
 set PWM_OUT 12345678
 
 
-param import-as-default /etc/init.d/6002.params
+param import-airframe /etc/init.d

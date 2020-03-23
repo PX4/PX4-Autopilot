@@ -22,7 +22,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-param import-as-default /etc/init.d/12002.params
+param import-airframe /etc/init.d
 
 set MIXER octo_cox_w
 

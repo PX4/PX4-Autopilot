@@ -17,4 +17,4 @@ sh /etc/init.d/rc.mc_defaults
 set MIXER zmr250
 set PWM_OUT 1234
 
-param import-as-default /etc/init.d/4080.params
+param import-airframe /etc/init.d

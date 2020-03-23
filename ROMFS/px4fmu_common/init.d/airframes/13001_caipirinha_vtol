@@ -15,7 +15,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-param import-as-default /etc/init.d/13001.params
+param import-airframe /etc/init.d
 
 set MAV_TYPE 19
 

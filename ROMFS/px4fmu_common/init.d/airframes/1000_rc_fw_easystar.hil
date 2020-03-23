@@ -17,7 +17,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-param import-as-default /etc/init.d/1000.params
+param import-airframe /etc/init.d
 
 param set SYS_HITL 1
 

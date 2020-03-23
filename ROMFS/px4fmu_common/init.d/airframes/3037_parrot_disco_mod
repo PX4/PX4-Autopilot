@@ -23,7 +23,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-param import-as-default /etc/init.d/3037.params
+param import-airframe /etc/init.d
 
 set MIXER fw_generic_wing.main.mix
 

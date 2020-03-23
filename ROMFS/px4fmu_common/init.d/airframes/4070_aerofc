@@ -21,7 +21,7 @@ sh /etc/init.d/rc.mc_defaults
 #
 # Load default params for this platform
 #
-param import-as-default /etc/init.d/4070.params
+param import-airframe /etc/init.d
 
 if param compare SYS_HITL 0
 then
