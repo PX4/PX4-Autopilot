@@ -11,7 +11,7 @@ float32 temperature         # temperature of the battery. NaN if unknown
 int32 cell_count		# Number of cells
 bool connected			# Whether or not a battery is connected, based on a voltage threshold
 bool system_source		# Whether or not a this battery is the active power source for VDD_5V_IN
-uint8 priority        	# Zerro based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
+uint8 priority        	# Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
 uint16 capacity         # actual capacity of the battery
 uint16 cycle_count         # number of discharge cycles the battery has experienced
 uint16 run_time_to_empty   # predicted remaining battery capacity based on the present rate of discharge in min
