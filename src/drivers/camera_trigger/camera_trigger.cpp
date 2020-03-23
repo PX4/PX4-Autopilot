@@ -512,7 +512,7 @@ void
 CameraTrigger::Run()
 {
 	// default loop polling interval
-	int poll_interval_usec = 5000;
+	int poll_interval_usec = 50000;
 
 	vehicle_command_s cmd{};
 	unsigned cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
