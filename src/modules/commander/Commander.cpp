@@ -761,7 +761,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				if (!_lockdown_triggered) {
 					armed_local->lockdown = true;
 					_lockdown_triggered = true;
-					warnx("forcing lockdown (motors off)");
+					PX4_WARN("forcing lockdown (motors off)");
 				}
 
 			} else if (cmd.param1 > 0.5f) {
@@ -769,12 +769,12 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				if (!_flight_termination_triggered) {
 					armed_local->force_failsafe = true;
 					_flight_termination_triggered = true;
-					warnx("forcing failsafe (termination)");
+					PX4_WARN("forcing failsafe (termination)");
 				}
 
 				if ((int)cmd.param2 <= 0) {
 					/* reset all commanded failure modes */
-					warnx("reset all non-flighttermination failsafe commands");
+					PX4_WARN("reset all non-flighttermination failsafe commands");
 				}
 
 			} else {
@@ -784,7 +784,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				_lockdown_triggered = false;
 				_flight_termination_triggered = false;
 
-				warnx("disabling failsafe and lockdown");
+				PX4_WARN("disabling failsafe and lockdown");
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -1738,7 +1738,7 @@ Commander::run()
 					}
 
 				case (geofence_result_s::GF_ACTION_TERMINATE) : {
-						warnx("Flight termination because of geofence");
+						PX4_WARN("Flight termination because of geofence");
 						mavlink_log_critical(&mavlink_log_pub, "Geofence violation! Flight terminated");
 						armed.force_failsafe = true;
 						_status_changed = true;
@@ -2688,7 +2688,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	if (_sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE) {
 
 		if (_sp_man.mode_slot > manual_control_setpoint_s::MODE_SLOT_NUM) {
-			warnx("m slot overflow");
+			PX4_WARN("m slot overflow");
 			return TRANSITION_DENIED;
 		}
 
