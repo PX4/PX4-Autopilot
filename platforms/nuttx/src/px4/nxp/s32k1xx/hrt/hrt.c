@@ -66,6 +66,8 @@
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
 
+#include "hardware/s32k1xx_ftm.h"
+
 #undef PPM_DEBUG
 //#define CONFIG_DEBUG_HRT
 #ifdef CONFIG_DEBUG_HRT
@@ -140,99 +142,19 @@
 
 #define REG(_reg)	_REG(HRT_TIMER_BASE + (_reg))
 
-#define rSC         REG(0x0)
-#define rCNT        REG(0x4)
-#define rMOD        REG(0x8)
-#define rC0SC       REG(0xC)
-#define rC0V        REG(0x10)
-#define rC1SC       REG(0x14)
-#define rC1V        REG(0x18)
-#define rSTATUS     REG(0x50)
-#define rCOMBINE    REG(0x64)
-#define rPOL        REG(0x70)
-#define rFILTER     REG(0x78)
-#define rQDCTRL     REG(0x80)
-#define rCONF       REG(0x84)
-
-/* SC Bit Fields */
-#define FTM_SC_PS_MASK                           0x7u
-#define FTM_SC_PS_SHIFT                          0u
-#define FTM_SC_PS_WIDTH                          3u
-#define FTM_SC_PS(x)                             (((uint32_t)(((uint32_t)(x))<<FTM_SC_PS_SHIFT))&FTM_SC_PS_MASK)
-#define FTM_SC_CLKS_MASK                         0x18u
-#define FTM_SC_CLKS_SHIFT                        3u
-#define FTM_SC_CLKS_WIDTH                        2u
-#define FTM_SC_CLKS(x)                           (((uint32_t)(((uint32_t)(x))<<FTM_SC_CLKS_SHIFT))&FTM_SC_CLKS_MASK)
-#define FTM_SC_CPWMS_MASK                        0x20u
-#define FTM_SC_CPWMS_SHIFT                       5u
-#define FTM_SC_CPWMS_WIDTH                       1u
-#define FTM_SC_CPWMS(x)                          (((uint32_t)(((uint32_t)(x))<<FTM_SC_CPWMS_SHIFT))&FTM_SC_CPWMS_MASK)
-#define FTM_SC_RIE_MASK                          0x40u
-#define FTM_SC_RIE_SHIFT                         6u
-#define FTM_SC_RIE_WIDTH                         1u
-#define FTM_SC_RIE(x)                            (((uint32_t)(((uint32_t)(x))<<FTM_SC_RIE_SHIFT))&FTM_SC_RIE_MASK)
-#define FTM_SC_RF_MASK                           0x80u
-#define FTM_SC_RF_SHIFT                          7u
-#define FTM_SC_RF_WIDTH                          1u
-#define FTM_SC_RF(x)                             (((uint32_t)(((uint32_t)(x))<<FTM_SC_RF_SHIFT))&FTM_SC_RF_MASK)
-#define FTM_SC_TOIE_MASK                         0x100u
-#define FTM_SC_TOIE_SHIFT                        8u
-#define FTM_SC_TOIE_WIDTH                        1u
-#define FTM_SC_TOIE                              (((uint32_t)(((uint32_t)(1))<<FTM_SC_TOIE_SHIFT))&FTM_SC_TOIE_MASK)
-#define FTM_SC_TOF_MASK                          0x200u
-#define FTM_SC_TOF_SHIFT                         9u
-#define FTM_SC_TOF_WIDTH                         1u
-#define FTM_SC_TOF(x)                            (((uint32_t)(((uint32_t)(x))<<FTM_SC_TOF_SHIFT))&FTM_SC_TOF_MASK)
-
-/* CnSC Bit Fields */
-#define FTM_CnSC_ELSA_MASK                       0x4u
-#define FTM_CnSC_ELSA_SHIFT                      2u
-#define FTM_CnSC_ELSA_WIDTH                      1u
-#define FTM_CnSC_ELSA                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_ELSA_SHIFT))&FTM_CnSC_ELSA_MASK)
-#define FTM_CnSC_ELSB_MASK                       0x8u
-#define FTM_CnSC_ELSB_SHIFT                      3u
-#define FTM_CnSC_ELSB_WIDTH                      1u
-#define FTM_CnSC_ELSB                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_ELSB_SHIFT))&FTM_CnSC_ELSB_MASK)
-#define FTM_CnSC_MSA_MASK                        0x10u
-#define FTM_CnSC_MSA_SHIFT                       4u
-#define FTM_CnSC_MSA_WIDTH                       1u
-#define FTM_CnSC_MSA                             (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_MSA_SHIFT))&FTM_CnSC_MSA_MASK)
-#define FTM_CnSC_MSB_MASK                        0x20u
-#define FTM_CnSC_MSB_SHIFT                       5u
-#define FTM_CnSC_MSB_WIDTH                       1u
-#define FTM_CnSC_MSB                             (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_MSB_SHIFT))&FTM_CnSC_MSB_MASK)
-#define FTM_CnSC_CHIE_MASK                       0x40u
-#define FTM_CnSC_CHIE_SHIFT                      6u
-#define FTM_CnSC_CHIE_WIDTH                      1u
-#define FTM_CnSC_CHIE                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_CHIE_SHIFT))&FTM_CnSC_CHIE_MASK)
-#define FTM_CnSC_CHF_MASK                        0x80u
-#define FTM_CnSC_CHF_SHIFT                       7u
-#define FTM_CnSC_CHF_WIDTH                       1u
-#define FTM_CnSC_CHF                             (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_CHF_SHIFT))&FTM_CnSC_CHF_MASK)
-#define FTM_CnSC_TRIGMODE_MASK                   0x100u
-#define FTM_CnSC_TRIGMODE_SHIFT                  8u
-#define FTM_CnSC_TRIGMODE_WIDTH                  1u
-#define FTM_CnSC_TRIGMODE                        (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_TRIGMODE_SHIFT))&FTM_CnSC_TRIGMODE_MASK)
-#define FTM_CnSC_CHIS_MASK                       0x200u
-#define FTM_CnSC_CHIS_SHIFT                      9u
-#define FTM_CnSC_CHIS_WIDTH                      1u
-#define FTM_CnSC_CHIS                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_CHIS_SHIFT))&FTM_CnSC_CHIS_MASK)
-#define FTM_CnSC_CHOV_MASK                       0x400u
-#define FTM_CnSC_CHOV_SHIFT                      10u
-#define FTM_CnSC_CHOV_WIDTH                      1u
-#define FTM_CnSC_CHOV                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_CHOV_SHIFT))&FTM_CnSC_CHOV_MASK)
-
-/* STATUS Bit Fields */
-#define FTM_STATUS_CH0F_MASK                     0x1u
-#define FTM_STATUS_CH0F_SHIFT                    0u
-#define FTM_STATUS_CH0F_WIDTH                    1u
-#define FTM_STATUS_CH0F                          (((uint32_t)(((uint32_t)(1))<<FTM_STATUS_CH0F_SHIFT))&FTM_STATUS_CH0F_MASK)
-#define FTM_STATUS_CH1F_MASK                     0x2u
-#define FTM_STATUS_CH1F_SHIFT                    1u
-#define FTM_STATUS_CH1F_WIDTH                    1u
-#define FTM_STATUS_CH1F                          (((uint32_t)(((uint32_t)(1))<<FTM_STATUS_CH1F_SHIFT))&FTM_STATUS_CH1F_MASK)
-
-
+#define rSC         REG(S32K1XX_FTM_SC_OFFSET)
+#define rCNT        REG(S32K1XX_FTM_CNT_OFFSET)
+#define rMOD        REG(S32K1XX_FTM_MOD_OFFSET)
+#define rC0SC       REG(S32K1XX_FTM_C0SC_OFFSET)
+#define rC0V        REG(S32K1XX_FTM_C0V_OFFSET)
+#define rC1SC       REG(S32K1XX_FTM_C1SC_OFFSET)
+#define rC1V        REG(S32K1XX_FTM_C1V_OFFSET)
+#define rSTATUS     REG(S32K1XX_FTM_STATUS_OFFSET)
+#define rCOMBINE    REG(S32K1XX_FTM_COMBINE_OFFSET)
+#define rPOL        REG(S32K1XX_FTM_POL_OFFSET)
+#define rFILTER     REG(S32K1XX_FTM_FILTER_OFFSET)
+#define rQDCTRL     REG(S32K1XX_FTM_QDCTRL_OFFSET)
+#define rCONF       REG(S32K1XX_FTM_CONF_OFFSET)
 /*
 * Specific registers and bits used by HRT sub-functions
 */
@@ -288,7 +210,7 @@ static void hrt_call_invoke(void);
 #define rCNV_PPM       CAT3(rC,HRT_PPM_CHANNEL,V)                     /* Channel Value Register used by PPM */
 #define rCNSC_PPM      CAT3(rC,HRT_PPM_CHANNEL,SC)                    /* Channel Status and Control Register used by PPM */
 #define STATUS_PPM     CAT3(FTM_STATUS_CH, HRT_PPM_CHANNEL ,F)        /* Capture and Compare Status Register used by PPM */
-#define CNSC_PPM      (FTM_CnSC_CHIE | FTM_CnSC_ELSB | FTM_CnSC_ELSA) /* Input Capture configuration both Edges, interrupt */
+#define CNSC_PPM      (FTM_CNSC_CHIE | FTM_CNSC_ELSB | FTM_CNSC_ELSA) /* Input Capture configuration both Edges, interrupt */
 
 /* Sanity checking */
 
@@ -370,14 +292,13 @@ static void hrt_tim_init(void)
 
 	/* disable and configure the timer */
 
-	rSC = FTM_SC_TOF(1);
+	rSC = FTM_SC_TOF;
 
 	rCNT = 0;
 	rMOD = HRT_COUNTER_PERIOD - 1;
 
-	//rSTATUS   = (STATUS_HRT | STATUS_PPM);
-	rCNSC_HRT = (FTM_CnSC_CHF | FTM_CnSC_CHIE | FTM_CnSC_MSA);
-	rCNSC_PPM = (FTM_CnSC_CHF | CNSC_PPM);
+	rCNSC_HRT = (FTM_CNSC_CHF | FTM_CNSC_CHIE | FTM_CNSC_MSA);
+	rCNSC_PPM = (FTM_CNSC_CHF | CNSC_PPM);
 	rCOMBINE  = 0;
 	rPOL      = 0;
 	rFILTER   = 0;
@@ -391,8 +312,9 @@ static void hrt_tim_init(void)
 
 	/* Use FIXEDCLK src and enable the timer
 	 * Set calculate prescaler for HRT_TIMER_FREQ */
-	rSC |= (FTM_SC_TOIE | FTM_SC_CLKS(0x2) |
-		FTM_SC_PS(LOG_2(HRT_TIMER_CLOCK / HRT_TIMER_FREQ)));
+	rSC |= (FTM_SC_TOIE | FTM_SC_CLKS_FIXED |
+		(LOG_2(HRT_TIMER_CLOCK / HRT_TIMER_FREQ) << FTM_SC_PS_SHIFT
+		 & FTM_SC_PS_MASK));
 
 	/* enable interrupts */
 	up_enable_irq(HRT_TIMER_VECTOR);
@@ -568,7 +490,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 
 	/* was this a PPM edge? */
 	if (status & (STATUS_PPM)) {
-		rCNSC_PPM = rCNSC_PPM & ~(FTM_SC_RF_MASK);
+		rCNSC_PPM = rCNSC_PPM & ~(FTM_SC_RF);
 		hrt_ppm_decode(status);
 	}
 
@@ -576,7 +498,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 
 	/* was this a timer tick? */
 	if (status & STATUS_HRT) {
-		rCNSC_HRT = rCNSC_HRT & ~(FTM_SC_RF_MASK);
+		rCNSC_HRT = rCNSC_HRT & ~(FTM_SC_RF);
 
 		/* do latency calculations */
 		hrt_latency_update();
