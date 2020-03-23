@@ -92,12 +92,17 @@ __BEGIN_DECLS
 
 /* Count of peripheral clock user configurations */
 
-#define NUM_OF_PERIPHERAL_CLOCKS_0 15
+#define NUM_OF_PERIPHERAL_CLOCKS_0 18
 
 /* I2C busses */
 
 #define PX4_I2C_BUS_ONBOARD                 PX4_BUS_NUMBER_TO_PX4(1)
 #define PX4_I2C_BUS_EXPANSION               PX4_BUS_NUMBER_TO_PX4(0)
+
+/* High-resolution timer */
+#define HRT_TIMER              1  /* FTM timer for the HRT */
+#define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
+#define HRT_PPM_CHANNEL        1  /* Use TPM1 capture/compare channel 1 */
 
 /****************************************************************************
  * Public Types

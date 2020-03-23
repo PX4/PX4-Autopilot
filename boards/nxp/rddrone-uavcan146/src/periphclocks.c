@@ -148,6 +148,23 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 		.frac       = MULTIPLY_BY_ONE,
 		.divider    = 1,
 	},
+    {
+        .clkname    = RTC0_CLK,
+        .clkgate    = true,
+        .clksrc     = CLK_SRC_OFF,
+        .frac       = MULTIPLY_BY_ONE,
+        .divider    = 1,
+    },
+    {
+        .clkname    = FTM0_CLK,
+        .clkgate    = true,
+        .clksrc     = CLK_SRC_SIRC,
+    },
+    {
+        .clkname    = FTM1_CLK,
+        .clkgate    = true,
+        .clksrc     = CLK_SRC_SIRC,
+    },
 	{
 		.clkname    = PORTA_CLK,
 		.clkgate    = true,

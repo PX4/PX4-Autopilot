@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +33,17 @@
 
 /**
  * @file drv_hrt.c
- * Author: David Sidrane <david_s5@nscdg.com>
+ * Author: Peter van der Perk <peter.vanderperk@nxp.com>
+ *         David Sidrane <david_s5@nscdg.com>
  *
  * High-resolution timer callouts and timekeeping.
  *
- * This can use any Kinetis TPM timer.
+ * This can use any S32K FTM timer.
  *
  * Note that really, this could use systick too, but that's
  * monopolised by NuttX and stealing it would just be awkward.
  *
- * We don't use the NuttX Kinetis driver per se; rather, we
+ * We don't use the NuttX S32K driver per se; rather, we
  * claim the timer and then drive it directly.
  */
 
@@ -65,63 +66,8 @@
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
 
-
-#include "chip.h"
-#include "hardware/s32k1xx_sim.h"
-
-//todo:stubs
-#define HRT_COUNTER_PERIOD  65536
-#define HRT_COUNTER_SCALE(_c) (_c)
-
-hrt_abstime
-hrt_absolute_time(void)
-{
-	hrt_abstime abstime;
-	uint32_t  count;
-	irqstate_t  flags;
-
-	/*
-	 * Counter state.  Marked volatile as they may change
-	 * inside this routine but outside the irqsave/restore
-	 * pair.  Discourage the compiler from moving loads/stores
-	 * to these outside of the protected range.
-	 */
-	static volatile hrt_abstime base_time;
-	static volatile uint32_t last_count;
-
-	/* prevent re-entry */
-	flags = px4_enter_critical_section();
-
-	/* get the current counter value */
-	count = 0; //rCNT todo:fix this;
-
-	/*
-	 * Determine whether the counter has wrapped since the
-	 * last time we're called.
-	 *
-	 * This simple test is sufficient due to the guarantee that
-	 * we are always called at least once per counter period.
-	 */
-	if (count < last_count) {
-		base_time += HRT_COUNTER_PERIOD;
-	}
-
-	/* save the count for next time */
-	last_count = count;
-
-	/* compute the current time */
-	abstime = HRT_COUNTER_SCALE(base_time + count);
-
-	px4_leave_critical_section(flags);
-
-	return abstime;
-}
-#if 0
-
-#include "kinetis_tpm.h"
-
 #undef PPM_DEBUG
-
+//#define CONFIG_DEBUG_HRT
 #ifdef CONFIG_DEBUG_HRT
 #  define hrtinfo _info
 #else
@@ -137,10 +83,12 @@ hrt_absolute_time(void)
 
 /* HRT configuration */
 
-#define HRT_TIMER_CLOCK        BOARD_TPM_FREQ                          /* The input clock frequency to the TPM block */
-#define HRT_TIMER_BASE         CAT(CAT(KINETIS_TPM, HRT_TIMER),_BASE)  /* The Base address of the TPM */
-#define HRT_TIMER_VECTOR       CAT(KINETIS_IRQ_TPM, HRT_TIMER)         /* The TPM Interrupt vector */
-#define HRT_SIM_SCGC2_TPM      CAT(SIM_SCGC2_TPM, HRT_TIMER)           /* The Clock Gating enable bit for this TPM */
+#define HRT_TIMER_CLOCK        BOARD_FTM_FREQ                 /* The input clock frequency to the FTM block */
+#define HRT_TIMER_BASE         S32K1XX_FTM0_BASE              /* The Base address of the FTM */
+#define HRT_TIMER_VECTOR       S32K1XX_IRQ_FTM0_CH0_1         /* The FTM Interrupt vector */
+
+#define LOG_1(n) (((n) >= 2) ? 1 : 0)
+#define LOG_2(n) (((n) >= 1<<2) ? (2 + LOG_1((n)>>2)) : LOG_1(n))
 
 #if HRT_TIMER == 1 && defined(CONFIG_KINETIS_TPM1)
 #  error must not set CONFIG_KINETIS_TPM1=y and HRT_TIMER=1
@@ -192,19 +140,98 @@ hrt_absolute_time(void)
 
 #define REG(_reg)	_REG(HRT_TIMER_BASE + (_reg))
 
-#define rSC         REG(KINETIS_TPM_SC_OFFSET)
-#define rCNT        REG(KINETIS_TPM_CNT_OFFSET)
-#define rMOD        REG(KINETIS_TPM_MOD_OFFSET)
-#define rC0SC       REG(KINETIS_TPM_C0SC_OFFSET)
-#define rC0V        REG(KINETIS_TPM_C0V_OFFSET)
-#define rC1SC       REG(KINETIS_TPM_C1SC_OFFSET)
-#define rC1V        REG(KINETIS_TPM_C1V_OFFSET)
-#define rSTATUS     REG(KINETIS_TPM_STATUS_OFFSET)
-#define rCOMBINE    REG(KINETIS_TPM_COMBINE_OFFSET)
-#define rPOL        REG(KINETIS_TPM_POL_OFFSET)
-#define rFILTER     REG(KINETIS_TPM_FILTER_OFFSET)
-#define rQDCTRL     REG(KINETIS_TPM_QDCTRL_OFFSET)
-#define rCONF       REG(KINETIS_TPM_CONF_OFFSET)
+#define rSC         REG(0x0)
+#define rCNT        REG(0x4)
+#define rMOD        REG(0x8)
+#define rC0SC       REG(0xC)
+#define rC0V        REG(0x10)
+#define rC1SC       REG(0x14)
+#define rC1V        REG(0x18)
+#define rSTATUS     REG(0x50)
+#define rCOMBINE    REG(0x64)
+#define rPOL        REG(0x70)
+#define rFILTER     REG(0x78)
+#define rQDCTRL     REG(0x80)
+#define rCONF       REG(0x84)
+
+/* SC Bit Fields */
+#define FTM_SC_PS_MASK                           0x7u
+#define FTM_SC_PS_SHIFT                          0u
+#define FTM_SC_PS_WIDTH                          3u
+#define FTM_SC_PS(x)                             (((uint32_t)(((uint32_t)(x))<<FTM_SC_PS_SHIFT))&FTM_SC_PS_MASK)
+#define FTM_SC_CLKS_MASK                         0x18u
+#define FTM_SC_CLKS_SHIFT                        3u
+#define FTM_SC_CLKS_WIDTH                        2u
+#define FTM_SC_CLKS(x)                           (((uint32_t)(((uint32_t)(x))<<FTM_SC_CLKS_SHIFT))&FTM_SC_CLKS_MASK)
+#define FTM_SC_CPWMS_MASK                        0x20u
+#define FTM_SC_CPWMS_SHIFT                       5u
+#define FTM_SC_CPWMS_WIDTH                       1u
+#define FTM_SC_CPWMS(x)                          (((uint32_t)(((uint32_t)(x))<<FTM_SC_CPWMS_SHIFT))&FTM_SC_CPWMS_MASK)
+#define FTM_SC_RIE_MASK                          0x40u
+#define FTM_SC_RIE_SHIFT                         6u
+#define FTM_SC_RIE_WIDTH                         1u
+#define FTM_SC_RIE(x)                            (((uint32_t)(((uint32_t)(x))<<FTM_SC_RIE_SHIFT))&FTM_SC_RIE_MASK)
+#define FTM_SC_RF_MASK                           0x80u
+#define FTM_SC_RF_SHIFT                          7u
+#define FTM_SC_RF_WIDTH                          1u
+#define FTM_SC_RF(x)                             (((uint32_t)(((uint32_t)(x))<<FTM_SC_RF_SHIFT))&FTM_SC_RF_MASK)
+#define FTM_SC_TOIE_MASK                         0x100u
+#define FTM_SC_TOIE_SHIFT                        8u
+#define FTM_SC_TOIE_WIDTH                        1u
+#define FTM_SC_TOIE                              (((uint32_t)(((uint32_t)(1))<<FTM_SC_TOIE_SHIFT))&FTM_SC_TOIE_MASK)
+#define FTM_SC_TOF_MASK                          0x200u
+#define FTM_SC_TOF_SHIFT                         9u
+#define FTM_SC_TOF_WIDTH                         1u
+#define FTM_SC_TOF(x)                            (((uint32_t)(((uint32_t)(x))<<FTM_SC_TOF_SHIFT))&FTM_SC_TOF_MASK)
+
+/* CnSC Bit Fields */
+#define FTM_CnSC_ELSA_MASK                       0x4u
+#define FTM_CnSC_ELSA_SHIFT                      2u
+#define FTM_CnSC_ELSA_WIDTH                      1u
+#define FTM_CnSC_ELSA                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_ELSA_SHIFT))&FTM_CnSC_ELSA_MASK)
+#define FTM_CnSC_ELSB_MASK                       0x8u
+#define FTM_CnSC_ELSB_SHIFT                      3u
+#define FTM_CnSC_ELSB_WIDTH                      1u
+#define FTM_CnSC_ELSB                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_ELSB_SHIFT))&FTM_CnSC_ELSB_MASK)
+#define FTM_CnSC_MSA_MASK                        0x10u
+#define FTM_CnSC_MSA_SHIFT                       4u
+#define FTM_CnSC_MSA_WIDTH                       1u
+#define FTM_CnSC_MSA                             (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_MSA_SHIFT))&FTM_CnSC_MSA_MASK)
+#define FTM_CnSC_MSB_MASK                        0x20u
+#define FTM_CnSC_MSB_SHIFT                       5u
+#define FTM_CnSC_MSB_WIDTH                       1u
+#define FTM_CnSC_MSB                             (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_MSB_SHIFT))&FTM_CnSC_MSB_MASK)
+#define FTM_CnSC_CHIE_MASK                       0x40u
+#define FTM_CnSC_CHIE_SHIFT                      6u
+#define FTM_CnSC_CHIE_WIDTH                      1u
+#define FTM_CnSC_CHIE                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_CHIE_SHIFT))&FTM_CnSC_CHIE_MASK)
+#define FTM_CnSC_CHF_MASK                        0x80u
+#define FTM_CnSC_CHF_SHIFT                       7u
+#define FTM_CnSC_CHF_WIDTH                       1u
+#define FTM_CnSC_CHF                             (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_CHF_SHIFT))&FTM_CnSC_CHF_MASK)
+#define FTM_CnSC_TRIGMODE_MASK                   0x100u
+#define FTM_CnSC_TRIGMODE_SHIFT                  8u
+#define FTM_CnSC_TRIGMODE_WIDTH                  1u
+#define FTM_CnSC_TRIGMODE                        (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_TRIGMODE_SHIFT))&FTM_CnSC_TRIGMODE_MASK)
+#define FTM_CnSC_CHIS_MASK                       0x200u
+#define FTM_CnSC_CHIS_SHIFT                      9u
+#define FTM_CnSC_CHIS_WIDTH                      1u
+#define FTM_CnSC_CHIS                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_CHIS_SHIFT))&FTM_CnSC_CHIS_MASK)
+#define FTM_CnSC_CHOV_MASK                       0x400u
+#define FTM_CnSC_CHOV_SHIFT                      10u
+#define FTM_CnSC_CHOV_WIDTH                      1u
+#define FTM_CnSC_CHOV                            (((uint32_t)(((uint32_t)(1))<<FTM_CnSC_CHOV_SHIFT))&FTM_CnSC_CHOV_MASK)
+
+/* STATUS Bit Fields */
+#define FTM_STATUS_CH0F_MASK                     0x1u
+#define FTM_STATUS_CH0F_SHIFT                    0u
+#define FTM_STATUS_CH0F_WIDTH                    1u
+#define FTM_STATUS_CH0F                          (((uint32_t)(((uint32_t)(1))<<FTM_STATUS_CH0F_SHIFT))&FTM_STATUS_CH0F_MASK)
+#define FTM_STATUS_CH1F_MASK                     0x2u
+#define FTM_STATUS_CH1F_SHIFT                    1u
+#define FTM_STATUS_CH1F_WIDTH                    1u
+#define FTM_STATUS_CH1F                          (((uint32_t)(((uint32_t)(1))<<FTM_STATUS_CH1F_SHIFT))&FTM_STATUS_CH1F_MASK)
+
 
 /*
 * Specific registers and bits used by HRT sub-functions
@@ -212,7 +239,7 @@ hrt_absolute_time(void)
 
 # define rCNV_HRT        CAT3(rC, HRT_TIMER_CHANNEL, V)            /* Channel Value Register used by HRT */
 # define rCNSC_HRT       CAT3(rC, HRT_TIMER_CHANNEL, SC)           /* Channel Status and Control Register used by HRT */
-# define STATUS_HRT      CAT3(TPM_STATUS_CH, HRT_TIMER_CHANNEL, F) /* Capture and Compare Status Register used by HRT */
+# define STATUS_HRT      CAT3(FTM_STATUS_CH, HRT_TIMER_CHANNEL, F) /* Capture and Compare Status Register used by HRT */
 
 #if (HRT_TIMER_CHANNEL != 0) && (HRT_TIMER_CHANNEL != 1)
 # error HRT_TIMER_CHANNEL must be a value between 0 and 1
@@ -228,6 +255,11 @@ static uint16_t           latency_baseline;
 
 /* timer count at interrupt (for latency purposes) */
 static uint16_t           latency_actual;
+
+/* latency histogram */
+const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
+const uint16_t latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
+__EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 /* timer-specific functions */
 static void hrt_tim_init(void);
@@ -255,8 +287,8 @@ static void hrt_call_invoke(void);
 
 #define rCNV_PPM       CAT3(rC,HRT_PPM_CHANNEL,V)                     /* Channel Value Register used by PPM */
 #define rCNSC_PPM      CAT3(rC,HRT_PPM_CHANNEL,SC)                    /* Channel Status and Control Register used by PPM */
-#define STATUS_PPM     CAT3(TPM_STATUS_CH, HRT_PPM_CHANNEL ,F)        /* Capture and Compare Status Register used by PPM */
-#define CNSC_PPM      (TPM_CnSC_CHIE | TPM_CnSC_ELSB | TPM_CnSC_ELSA) /* Input Capture configuration both Edges, interrupt */
+#define STATUS_PPM     CAT3(FTM_STATUS_CH, HRT_PPM_CHANNEL ,F)        /* Capture and Compare Status Register used by PPM */
+#define CNSC_PPM      (FTM_CnSC_CHIE | FTM_CnSC_ELSB | FTM_CnSC_ELSA) /* Input Capture configuration both Edges, interrupt */
 
 /* Sanity checking */
 
@@ -330,21 +362,7 @@ static void	hrt_ppm_decode(uint32_t status);
  */
 static void hrt_tim_init(void)
 {
-
-	/* Select a the clock source to the TPM */
-
-	uint32_t regval = _REG(KINETIS_SIM_SOPT2);
-	regval &= ~(SIM_SOPT2_TPMSRC_MASK);
-	regval |= BOARD_TPM_CLKSRC;
-	_REG(KINETIS_SIM_SOPT2) = regval;
-
-
-	/* Enabled System Clock Gating Control for TPM */
-
-	regval = _REG(KINETIS_SIM_SCGC2);
-	regval |= HRT_SIM_SCGC2_TPM;
-	_REG(KINETIS_SIM_SCGC2) = regval;
-
+	/* Clock is enabled in S32K1XX_pheriphclocks.c */
 
 	/* claim our interrupt vector */
 
@@ -352,28 +370,29 @@ static void hrt_tim_init(void)
 
 	/* disable and configure the timer */
 
-	rSC = TPM_SC_TOF;
+	rSC = FTM_SC_TOF(1);
 
 	rCNT = 0;
 	rMOD = HRT_COUNTER_PERIOD - 1;
 
-	rSTATUS   = (TPM_STATUS_TOF | STATUS_HRT | STATUS_PPM);
-	rCNSC_HRT = (TPM_CnSC_CHF | TPM_CnSC_CHIE | TPM_CnSC_MSA);
-	rCNSC_PPM = (TPM_CnSC_CHF | CNSC_PPM);
+	//rSTATUS   = (STATUS_HRT | STATUS_PPM);
+	rCNSC_HRT = (FTM_CnSC_CHF | FTM_CnSC_CHIE | FTM_CnSC_MSA);
+	rCNSC_PPM = (FTM_CnSC_CHF | CNSC_PPM);
 	rCOMBINE  = 0;
 	rPOL      = 0;
 	rFILTER   = 0;
 	rQDCTRL   = 0;
-	rCONF     = TPM_CONF_DBGMODE_CONT;
+	rCONF     = 0xC0; //FTM continues in DBG
 
 	/* set an initial capture a little ways off */
 
 	rCNV_PPM  = 0;
 	rCNV_HRT  = 1000;
 
-	/* enable the timer */
-
-	rSC |= (TPM_SC_TOIE | TPM_SC_CMOD_LPTPM_CLK | TPM_SC_PS_DIV16);
+	/* Use FIXEDCLK src and enable the timer
+	 * Set calculate prescaler for HRT_TIMER_FREQ */
+	rSC |= (FTM_SC_TOIE | FTM_SC_CLKS(0x2) |
+			FTM_SC_PS(LOG_2(HRT_TIMER_CLOCK/HRT_TIMER_FREQ)));
 
 	/* enable interrupts */
 	up_enable_irq(HRT_TIMER_VECTOR);
@@ -543,13 +562,13 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	uint32_t status = rSTATUS;
 
 	/* ack the interrupts we just read */
-
-	rSTATUS = status;
+	rSTATUS = 0x00;
 
 #ifdef HRT_PPM_CHANNEL
 
 	/* was this a PPM edge? */
 	if (status & (STATUS_PPM)) {
+		rCNSC_PPM = rCNSC_PPM & ~(FTM_SC_RF_MASK);
 		hrt_ppm_decode(status);
 	}
 
@@ -557,6 +576,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 
 	/* was this a timer tick? */
 	if (status & STATUS_HRT) {
+		rCNSC_HRT = rCNSC_HRT & ~(FTM_SC_RF_MASK);
 
 		/* do latency calculations */
 		hrt_latency_update();
@@ -685,7 +705,7 @@ hrt_init(void)
 
 #ifdef HRT_PPM_CHANNEL
 	/* configure the PPM input pin */
-	px4_arch_configgpio(GPIO_PPM_IN);
+	//px4_arch_configgpio(GPIO_PPM_IN);
 #endif
 }
 
@@ -933,4 +953,3 @@ hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
 }
 
 #endif /* HRT_TIMER */
-#endif
