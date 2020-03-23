@@ -49,6 +49,7 @@ px4_add_board(
 		optical_flow/px4flow
 		#osd
 		pca9685
+		pca9685_pwm_out
 		#power_monitor/ina226
 		#protocol_splitter
 		pwm_input
