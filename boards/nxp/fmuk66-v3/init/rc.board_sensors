@@ -19,7 +19,7 @@ bmp280 -I start
 mpl3115a2 -I start
 
 # Internal SPI (accel + mag)
-fxos8701cq start
+fxos8701cq -s start
 
 # Internal SPI (gyro)
 fxas21002c -s start
