@@ -85,7 +85,7 @@ px4_add_board(
 		#vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		config
 		dmesg
 		dumpfile
