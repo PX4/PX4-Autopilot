@@ -79,8 +79,8 @@ if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
 	SIM_PID=`echo $!`
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 	if [ -x "$(command -v gazebo)" ]; then
-    # Set the plugin path so Gazebo finds our model and sim
-    source "$src_path/Tools/setup_gazebo.bash" "${src_path}" "${build_path}"
+		# Set the plugin path so Gazebo finds our model and sim
+		source "$src_path/Tools/setup_gazebo.bash" "${src_path}" "${build_path}"
 		if [ -z $PX4_SITL_WORLD ]; then
 			#Spawn predefined world
 			if [ "$world" == "none" ]; then
@@ -103,19 +103,19 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 				# Spawn world from environment variable with absolute path
 				gzserver "$PX4_SITL_WORLD" &
 			fi
-        fi
+		fi
 		gz model --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83
 
 		SIM_PID=`echo $!`
 
-	if [[ -n "$HEADLESS" ]]; then
-		echo "not running gazebo gui"
-	else
-		# gzserver needs to be running to avoid a race. Since the launch
-		# is putting it into the background we need to avoid it by backing off
-		sleep 3
-		nice -n 20 gzclient --verbose &
-		GUI_PID=`echo $!`
+		if [[ -n "$HEADLESS" ]]; then
+			echo "not running gazebo gui"
+		else
+			# gzserver needs to be running to avoid a race. Since the launch
+			# is putting it into the background we need to avoid it by backing off
+			sleep 3
+			nice -n 20 gzclient --verbose &
+			GUI_PID=`echo $!`
 		fi
 	else
 		echo "You need to have gazebo simulator installed!"
