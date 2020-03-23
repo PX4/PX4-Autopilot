@@ -129,6 +129,10 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("import", "Import params from a file");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("import-as-default", "Import params from a file as default parameters.");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name.", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("import-airframe", "Import params as default from an airframe parameter file.");
+	PRINT_MODULE_USAGE_ARG("<directory>", "Directory where the airframe parameter file is located.", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save params to a file");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 
@@ -218,6 +222,40 @@ param_main(int argc, char *argv[])
 			if (argc >= 3) {
 				return do_import(argv[2], true);
 			}
+		}
+
+		if(!strcmp(argv[1], "import-airframe")) {
+			if (argc >= 3) {
+				int sys_autostart_id = 0;
+				param_t param_handle = param_find("SYS_AUTOSTART");
+
+				if (!param_get(param_handle, &sys_autostart_id)) {
+					if (sys_autostart_id > 0) {
+						unsigned dir_strl_len = strlen(argv[2]);
+
+						char param_file_name[dir_strl_len + 30] = {"\0"};
+						sprintf(param_file_name,"%s/%u.param",argv[2], sys_autostart_id);
+
+						int fd = ::open(param_file_name, O_RDONLY);
+
+						if (fd > 0) {
+							::close(fd);
+
+							if(!do_import(param_file_name, true)) {
+								return PX4_OK;
+							}
+						} else {
+							PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+						}
+					}
+				} else {
+					PX4_ERR("Failed to get SYS_AUTOSTART parameter.");
+				}
+			} else {
+				PX4_ERR("Not enough arguments, specify directory in which airframe parameter file is located.");
+			}
+
+			return PX4_ERROR;
 		}
 
 		if (!strcmp(argv[1], "select")) {
