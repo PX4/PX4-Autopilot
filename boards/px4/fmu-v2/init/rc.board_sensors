@@ -11,6 +11,8 @@ adc start
 hmc5883 -T -X start
 lis3mdl -X start
 ist8310 -X start
+qmc5883 -X start
+rm3100 -X start
 
 # Internal I2C bus
 hmc5883 -T -I -R 4 start
@@ -82,7 +84,7 @@ then
 		mpu6000 -s -R 14 start
 
 		# v2.0 Has internal hmc5883 on SPI1
-		hmc5883 -C -T -S -R 8 start
+		hmc5883 -T -S -R 8 start
 	fi
 
 	if [ $BOARD_FMUV3 = 21 ]
