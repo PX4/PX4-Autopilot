@@ -34,7 +34,7 @@
 #ifndef PX4_ADS1115_H
 #define PX4_ADS1115_H
 
-#include <cinttypes>
+#include <stdint.h>
 
 #define ADDRESSPOINTER_REG_CONVERSATION    0x00
 #define ADDRESSPOINTER_REG_CONFIG    0x01
