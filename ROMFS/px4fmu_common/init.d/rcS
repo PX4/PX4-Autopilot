@@ -348,6 +348,11 @@ else
 
 		sh /etc/init.d/rc.sensors
 
+		if param compare -s BAT1_SOURCE 2
+		then
+			esc_battery start
+		fi
+
 		battery_status start
 		commander start
 	fi
