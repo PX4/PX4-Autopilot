@@ -149,11 +149,12 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
  *
  * The approximate deceleration during a back transition in m/s/s
  * Used to calculate back transition distance in mission mode. A lower value will make the VTOL transition further from the destination waypoint.
+ * For standard vtol and tiltrotors a controller is used to track this value during the transition.
  *
  * @unit m/s/s
- * @min 0.00
- * @max 20.00
- * @increment 1
+ * @min 0.5
+ * @max 10
+ * @increment 0.1
  * @decimal 2
  * @group VTOL Attitude Control
  */
@@ -315,21 +316,6 @@ PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_SC, 0.1f);
-
-/**
- * Target deceleration during backtransition.
- *
- * The vehicle will use its pitch angle to try and maintain a target deceleration during the backtransition.
- * This parameter only applies for standard vtol and tiltrotors.
- *
- * @unit m/s2
- * @min 0.5
- * @max 5
- * @decimal 1
- * @increment 0.5
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_DEC_SP, 2.0f);
 
 /**
  * Backtransition deceleration setpoint to pitch feedforward gain.

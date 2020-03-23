@@ -87,7 +87,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 	_params_handles.dec_to_pitch_ff = param_find("VT_B_DEC_FF");
 	_params_handles.dec_to_pitch_i = param_find("VT_B_DEC_I");
-	_params_handles.back_trans_dec_sp = param_find("VT_B_DEC_SP");
+	_params_handles.back_trans_dec_sp = param_find("VT_B_DEC_MSS");
 
 
 	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
@@ -289,7 +289,11 @@ VtolAttitudeControl::parameters_update()
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 
-	param_get(_params_handles.back_trans_dec_sp, &_params.back_trans_dec_sp);
+	param_get(_params_handles.back_trans_dec_sp, &v);
+	// increase the target deceleration setpoint provided to the controller by 20%
+	// to make overshooting the transition waypoint less likely in the presence of tracking errors
+	_params.back_trans_dec_sp = 1.2f * v;
+
 	param_get(_params_handles.dec_to_pitch_ff, &_params.dec_to_pitch_ff);
 	param_get(_params_handles.dec_to_pitch_i, &_params.dec_to_pitch_i);
 
