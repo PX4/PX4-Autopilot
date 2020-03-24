@@ -138,3 +138,39 @@ PARAM_DEFINE_FLOAT(CAL_MAG2_YSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG2_ZSCALE, 1.0f);
+
+/**
+* Coefficient describing linear relationship between
+* X component of magnetometer in body frame axis
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* Unit for throttle-based compensation is [G] and
+* for current-based compensation [G/kA]
+*
+* @category system
+* @group Sensor Calibration
+*/
+PARAM_DEFINE_FLOAT(CAL_MAG2_XCOMP, 0.0f);
+
+/**
+* Coefficient describing linear relationship between
+* Y component of magnetometer in body frame axis
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* Unit for throttle-based compensation is [G] and
+* for current-based compensation [G/kA]
+*
+* @category system
+* @group Sensor Calibration
+*/
+PARAM_DEFINE_FLOAT(CAL_MAG2_YCOMP, 0.0f);
+
+/**
+* Coefficient describing linear relationship between
+* Z component of magnetometer in body frame axis
+* and either current or throttle depending on value of CAL_MAG_COMP_TYP
+* Unit for throttle-based compensation is [G] and
+* for current-based compensation [G/kA]
+*
+* @category system
+* @group Sensor Calibration
+*/
+PARAM_DEFINE_FLOAT(CAL_MAG2_ZCOMP, 0.0f);

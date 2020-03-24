@@ -57,4 +57,5 @@ px4_add_module(
 		vehicle_angular_velocity
 		vehicle_air_data
 		vehicle_imu
+		mag_compensation
 	)

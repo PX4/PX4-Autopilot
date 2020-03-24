@@ -52,7 +52,7 @@ using namespace sensors;
 using namespace matrix;
 
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
-	: _parameters(parameters), _hil_enabled(hil_enabled)
+	: ModuleParams(nullptr), _parameters(parameters), _hil_enabled(hil_enabled), _mag_compensator(this)
 {
 	for (unsigned i = 0; i < 3; i++) {
 		_corrections.gyro_scale_0[i] = 1.0f;
@@ -120,6 +120,8 @@ void VotedSensorsUpdate::parametersUpdate()
 	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX; ++topic_instance) {
 		_mag_rotation[topic_instance] = _board_rotation;
 	}
+
+	updateParams();
 
 	/* set offset parameters to new values */
 	bool failed = false;
@@ -397,6 +399,7 @@ void VotedSensorsUpdate::parametersUpdate()
 			/* if the calibration is for this device, apply it */
 			if ((uint32_t)device_id == _mag_device_id[topic_instance]) {
 				_mag.enabled[topic_instance] = (device_enabled == 1);
+				_mag.power_compensation[topic_instance] = {_parameters.mag_comp_paramX[i], _parameters.mag_comp_paramY[i], _parameters.mag_comp_paramZ[i]};
 
 				// the mags that were published after the initial parameterUpdate
 				// would be given the priority even if disabled. Reset it to 0 in this case
@@ -679,6 +682,10 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 			}
 
 			Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
+
+			//throttle-/current-based mag compensation
+			_mag_compensator.calculate_mag_corrected(vect, _mag.power_compensation[uorb_index]);
+
 			vect = _mag_rotation[uorb_index] * vect;
 
 			_last_magnetometer[uorb_index].timestamp = mag_report.timestamp;
@@ -979,4 +986,19 @@ void VotedSensorsUpdate::calcMagInconsistency(sensor_preflight_s &preflt)
 	// get the vector length of the largest difference and write to the combined sensor struct
 	// will be zero if there is only one magnetometer and hence nothing to compare
 	preflt.mag_inconsistency_angle = mag_angle_diff_max;
+}
+
+void VotedSensorsUpdate::update_mag_comp_armed(bool armed)
+{
+	_mag_compensator.update_armed_flag(armed);
+}
+
+void VotedSensorsUpdate::update_mag_comp_throttle(float throttle)
+{
+	_mag_compensator.update_throttle(throttle);
+}
+
+void VotedSensorsUpdate::update_mag_comp_current(float current)
+{
+	_mag_compensator.update_current(current);
 }
