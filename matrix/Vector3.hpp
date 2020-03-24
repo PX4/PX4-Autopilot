@@ -75,9 +75,19 @@ public:
         return Matrix31::operator+(other);
     }
 
+    inline Vector3 operator+(Type scalar) const
+    {
+        return Matrix31::operator+(scalar);
+    }
+
     inline Vector3 operator-(Vector3 other) const
     {
         return Matrix31::operator-(other);
+    }
+
+    inline Vector3 operator-(Type scalar) const
+    {
+        return Matrix31::operator-(scalar);
     }
 
     inline Vector3 operator-() const
