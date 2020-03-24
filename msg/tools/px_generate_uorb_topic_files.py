@@ -188,7 +188,7 @@ def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, pack
         os.makedirs(outputdir)
 
     template_file = os.path.join(templatedir, IDL_TEMPLATE_FILE)
-    if version.parse(fastrtps_version) <= version.parse('1.7'):
+    if version.parse(fastrtps_version) <= version.parse('1.7.2'):
         output_file = os.path.join(outputdir, IDL_TEMPLATE_FILE.replace(
             "msg.idl.em", str(spec_short_name + "_.idl")))
     else:

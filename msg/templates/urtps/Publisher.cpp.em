@@ -70,7 +70,7 @@ except AttributeError:
 
 #include <fastrtps/Domain.h>
 
-@[if version.parse(fastrtps_version) <= version.parse('1.7')]@
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
 #include <fastrtps/utils/eClock.h>
 @[end if]@
 
