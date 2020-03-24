@@ -461,31 +461,31 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
+		_rtl_state = RTL_STATE_DESCEND;
+		break;
 
-		// Descend to desired altitude if delay is set, directly land otherwise
+
+	case RTL_STATE_TRANSITION_TO_MC:
+
+		// Only go to land if autoland is enabled.
 		if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
-			_rtl_state = RTL_STATE_DESCEND;
+			_rtl_state = RTL_STATE_LOITER;
 
 		} else {
 			_rtl_state = RTL_STATE_LAND;
 		}
 
-		if (_navigator->get_vstatus()->is_vtol
-		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
-		}
-
-		break;
-
-	case RTL_STATE_TRANSITION_TO_MC:
-		_rtl_state = RTL_STATE_RETURN;
 		break;
 
 	case RTL_STATE_DESCEND:
 
-		// Only go to land if autoland is enabled.
-		if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
-			_rtl_state = RTL_STATE_LOITER;
+		// If the vehicle is a vtol in fixed wing mode, then first transition to hover
+		if (_navigator->get_vstatus()->is_vtol
+		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+
+		} else if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
+			_rtl_state = RTL_STATE_DESCEND;
 
 		} else {
 			_rtl_state = RTL_STATE_LAND;
