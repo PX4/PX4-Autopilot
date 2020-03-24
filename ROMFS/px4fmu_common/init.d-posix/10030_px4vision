@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# @name PX4Vision SITL
+# Holybro px4vision. Gazebo Only.
+#
+# @type Quadrotor
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set COM_OBS_AVOID 1
+	param set CP_DIST 6.0
+fi
+
+set MIXER quad_x
+
