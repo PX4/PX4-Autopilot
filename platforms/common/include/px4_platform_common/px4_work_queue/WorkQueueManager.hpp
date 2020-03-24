@@ -69,7 +69,7 @@ static constexpr wq_config_t att_pos_ctrl{"wq:att_pos_ctrl", 7200, -13};
 
 static constexpr wq_config_t hp_default{"wq:hp_default", 1900, -14};
 
-static constexpr wq_config_t uavcan{"wq:uavcan", 2400, -15};
+static constexpr wq_config_t uavcan{"wq:uavcan", 3000, -15};
 
 static constexpr wq_config_t UART0{"wq:UART0", 1400, -16};
 static constexpr wq_config_t UART1{"wq:UART1", 1400, -17};
