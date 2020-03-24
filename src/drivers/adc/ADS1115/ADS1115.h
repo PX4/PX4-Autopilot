@@ -91,9 +91,9 @@
 class I2C_Interface
 {
 public:
-	virtual void readReg(uint8_t addr, uint8_t *buf, size_t len) = 0;
+	virtual int readReg(uint8_t addr, uint8_t *buf, size_t len) = 0;
 
-	virtual void writeReg(uint8_t addr, uint8_t *buf, size_t len) = 0;
+	virtual int writeReg(uint8_t addr, uint8_t *buf, size_t len) = 0;
 };
 
 /*

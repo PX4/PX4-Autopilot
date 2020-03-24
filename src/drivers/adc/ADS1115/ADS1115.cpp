@@ -47,8 +47,7 @@ int ADS1115::init()
 	config[0] = CONFIG_HIGH_OS_NOACT | CONFIG_HIGH_MUX_P0NG | CONFIG_HIGH_PGA_6144 | CONFIG_HIGH_MODE_SS;
 	config[1] = CONFIG_LOW_DR_250SPS | CONFIG_LOW_COMP_MODE_TRADITIONAL | CONFIG_LOW_COMP_POL_RESET |
 		    CONFIG_LOW_COMP_LAT_NONE | CONFIG_LOW_COMP_QU_DISABLE;
-	_interface->writeReg(ADDRESSPOINTER_REG_CONFIG, config, 2);
-	return 0;
+	return _interface->writeReg(ADDRESSPOINTER_REG_CONFIG, config, 2);
 }
 
 int ADS1115::setChannel(ADS1115::ChannelSelection ch)
@@ -81,14 +80,15 @@ int ADS1115::setChannel(ADS1115::ChannelSelection ch)
 	buf[0] = CONFIG_HIGH_OS_START_SINGLE | next_mux_reg | CONFIG_HIGH_PGA_6144 | CONFIG_HIGH_MODE_SS;
 	buf[1] = CONFIG_LOW_DR_250SPS | CONFIG_LOW_COMP_MODE_TRADITIONAL | CONFIG_LOW_COMP_POL_RESET |
 		 CONFIG_LOW_COMP_LAT_NONE | CONFIG_LOW_COMP_QU_DISABLE;
-	_interface->writeReg(ADDRESSPOINTER_REG_CONFIG, buf, 2);    // must write whole register to take effect
-	return 0;
+	return _interface->writeReg(ADDRESSPOINTER_REG_CONFIG, buf, 2);    // must write whole register to take effect
 }
 
 bool ADS1115::isSampleReady()
 {
 	uint8_t buf[1] = {0x00};
-	_interface->readReg(ADDRESSPOINTER_REG_CONFIG, buf, 1); // Pull config register
+
+	if (_interface->readReg(ADDRESSPOINTER_REG_CONFIG, buf, 1) != 0) { return false; } // Pull config register
+
 	return (buf[0] & (uint8_t) 0x80);
 }
 

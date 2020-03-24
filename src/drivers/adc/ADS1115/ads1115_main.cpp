@@ -40,48 +40,43 @@
 
 #include "ADS1115.h"
 #include <drivers/device/i2c.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/adc_report.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_sensor.h>
-#include <px4_platform_common/getopt.h>
-
-#define ADS1115_DEFAULT_PATH "/dev/ads1115"
 
 using namespace time_literals;
 
-class ADS1115_Drv : public device::I2C, public I2C_Interface, public ModuleBase<ADS1115_Drv>,
-	public px4::ScheduledWorkItem
+class ADS1115_Wrapper : public device::I2C, public I2C_Interface, public I2CSPIDriver<ADS1115_Wrapper>
 {
 public:
-	ADS1115_Drv(uint8_t bus, uint8_t address);
-	~ADS1115_Drv() override;
+	ADS1115_Wrapper(I2CSPIBusOption bus_option, int bus, int addr, int bus_frequency);
+	~ADS1115_Wrapper() override;
 	int init() override;
 
-	void readReg(uint8_t addr, uint8_t *buf, size_t len) override;
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
 
-	void writeReg(uint8_t addr, uint8_t *buf, size_t len) override;
+	static void print_usage();
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	void RunImpl();
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	int readReg(uint8_t addr, uint8_t *buf, size_t len) override;
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+	int writeReg(uint8_t addr, uint8_t *buf, size_t len) override;
 
 protected:
 	ADS1115 *_ads1115 = nullptr;
 
 	adc_report_s _adc_report = {};
 
+	void print_status() override;
+
 private:
-	void Run() override;
 
 	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
 
@@ -93,14 +88,14 @@ private:
 
 };
 
-ADS1115_Drv::ADS1115_Drv(uint8_t bus, uint8_t address) :
-	I2C("ADS1115", ADS1115_DEFAULT_PATH, bus, address, 400000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
+ADS1115_Wrapper::ADS1115_Wrapper(I2CSPIBusOption bus_option, int bus, int addr, int bus_frequency) :
+	I2C(MODULE_NAME, nullptr, bus, addr, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample"))
 {
-	_ads1115 = new ADS1115(this);
+	set_device_type(DRV_ADC_DEVTYPE_ADS1115);
 
-	this->_device_id.devid_s.devtype = DRV_ADC_DEVTYPE_ADS1115;
+	_ads1115 = new ADS1115(this);
 
 	_adc_report.device_id = this->get_device_id();
 	_adc_report.resolution = 32768;
@@ -115,7 +110,7 @@ ADS1115_Drv::ADS1115_Drv(uint8_t bus, uint8_t address) :
 	}
 }
 
-ADS1115_Drv::~ADS1115_Drv()
+ADS1115_Wrapper::~ADS1115_Wrapper()
 {
 	ScheduleClear();
 
@@ -126,7 +121,7 @@ ADS1115_Drv::~ADS1115_Drv()
 	perf_free(_cycle_perf);
 }
 
-int ADS1115_Drv::init()
+int ADS1115_Wrapper::init()
 {
 	if (_ads1115 == nullptr) {
 		return -ENOMEM;
@@ -153,29 +148,21 @@ int ADS1115_Drv::init()
 	return PX4_OK;
 }
 
-void ADS1115_Drv::readReg(uint8_t addr, uint8_t *buf, size_t len)
+int ADS1115_Wrapper::readReg(uint8_t addr, uint8_t *buf, size_t len)
 {
-	transfer(&addr, 1, buf, len);
+	return transfer(&addr, 1, buf, len);
 }
 
-void ADS1115_Drv::writeReg(uint8_t addr, uint8_t *buf, size_t len)
+int ADS1115_Wrapper::writeReg(uint8_t addr, uint8_t *buf, size_t len)
 {
 	uint8_t buffer[len + 1];
 	buffer[0] = addr;
 	memcpy(buffer + 1, buf, sizeof(uint8_t)*len);
-	transfer(buffer, len + 1, nullptr, 0);
+	return transfer(buffer, len + 1, nullptr, 0);
 }
 
-void ADS1115_Drv::Run()
+void ADS1115_Wrapper::RunImpl()
 {
-	if (should_exit()) {
-		PX4_INFO("ADS1115 stopping.");
-		ScheduleClear();
-		exit_and_cleanup();
-		return;
-	}
-
-	lock();
 	perf_begin(_cycle_perf);
 
 	_adc_report.timestamp = hrt_absolute_time();
@@ -223,85 +210,80 @@ void ADS1115_Drv::Run()
 	}
 
 	perf_end(_cycle_perf);
-	unlock();
 }
 
-int ADS1115_Drv::task_spawn(int argc, char **argv)
+I2CSPIDriverBase *ADS1115_Wrapper::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+		int runtime_instance)
 {
-	ADS1115_Drv *instance;
+	ADS1115_Wrapper *instance = new ADS1115_Wrapper(iterator.configuredBusOption(), iterator.bus(), cli.i2c_address,
+			cli.bus_frequency);
 
-	uint8_t i2c_bus = 1;
-	uint8_t i2c_addr = 0x48;
-
-	int myoptind = 1;
-	int ch;
-	const char *myoptarg = nullptr;
-
-	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'b':
-			i2c_bus = atoi(myoptarg);
-			break;
-
-		case 'a':
-			i2c_addr = atoi(myoptarg);
-			break;
-
-		default:
-			print_usage("unknown parameters");
-			return -EINVAL;
-		}
-	}
-
-	instance = new ADS1115_Drv(i2c_bus, i2c_addr);
-
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
-
-		if (instance->init() == PX4_OK) {
-			return PX4_OK;
-		}
-
-	} else {
+	if (!instance) {
 		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
-
-	return PX4_ERROR;
-}
-
-int ADS1115_Drv::custom_command(int argc, char **argv)
-{
-	return PX4_OK;
-}
-
-int ADS1115_Drv::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
+	if (OK != instance->init()) {
+		delete instance;
+		return nullptr;
 	}
 
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-ADS1115 driver.
+	return instance;
+}
 
-)DESCR_STR");
+void ADS1115_Wrapper::print_usage()
+{
+	PRINT_MODULE_USAGE_NAME("ads1115", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("adc");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAM_INT('A', 0x48, 0, 0xff, "Address", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
 
-    PRINT_MODULE_USAGE_NAME("ads1115", "driver");
-    PRINT_MODULE_USAGE_COMMAND("start");
-    PRINT_MODULE_USAGE_PARAM_INT('a',72,0,255,"device address on this bus",true);
-    PRINT_MODULE_USAGE_PARAM_INT('b',1,0,255,"bus that ADS1115 is connected to",true);
-    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-    return 0;
+void ADS1115_Wrapper::print_status()
+{
+	I2CSPIDriverBase::print_status();
+	perf_print_counter(_cycle_perf);
 }
 
 extern "C" int ads1115_main(int argc, char *argv[])
 {
-	return ADS1115_Drv::main(argc,argv);
+	int ch;
+	using ThisDriver = ADS1115_Wrapper;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
+	cli.i2c_address = 0x48;
+
+	while ((ch = cli.getopt(argc, argv, "A:")) != EOF) {
+		switch (ch) {
+		case 'A':
+			cli.i2c_address = atoi(cli.optarg());
+			break;
+		}
+	}
+
+	const char *verb = cli.optarg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_ADC_DEVTYPE_ADS1115);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
