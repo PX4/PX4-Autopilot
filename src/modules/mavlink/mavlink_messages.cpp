@@ -89,7 +89,9 @@
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
+#include <uORB/topics/sensor_gyro_status.h>
 #include <uORB/topics/sensor_mag.h>
+#include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -2674,7 +2676,7 @@ public:
 
 	static constexpr uint16_t get_id_static()
 	{
-		return MAVLINK_MSG_ID_VIBRATION;
+		return MAVLINK_MSG_ID_ESTIMATOR_STATUS;
 	}
 
 	uint16_t get_id() override
@@ -2689,14 +2691,11 @@ public:
 
 	unsigned get_size() override
 	{
-		return _est_sub.advertised() ? MAVLINK_MSG_ID_VIBRATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _est_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
 	uORB::Subscription _est_sub{ORB_ID(estimator_status)};
-	uORB::Subscription _sensor_accel_status_0_sub{ORB_ID(sensor_accel_status), 0};
-	uORB::Subscription _sensor_accel_status_1_sub{ORB_ID(sensor_accel_status), 1};
-	uORB::Subscription _sensor_accel_status_2_sub{ORB_ID(sensor_accel_status), 2};
 
 	/* do not allow top copying this class */
 	MavlinkStreamEstimatorStatus(MavlinkStreamEstimatorStatus &) = delete;
@@ -2711,7 +2710,6 @@ protected:
 		estimator_status_s est;
 
 		if (_est_sub.update(&est)) {
-			// ESTIMATOR_STATUS
 			mavlink_estimator_status_t est_msg{};
 			est_msg.time_usec = est.timestamp;
 			est_msg.vel_ratio = est.vel_test_ratio;
@@ -2725,29 +2723,165 @@ protected:
 			est_msg.flags = est.solution_status_flags;
 			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
-			// VIBRATION
+			return true;
+		}
+
+		return false;
+	}
+};
+
+class MavlinkStreamVibration : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return MavlinkStreamVibration::get_name_static();
+	}
+
+	static constexpr const char *get_name_static()
+	{
+		return "VIBRATION";
+	}
+
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_VIBRATION;
+	}
+
+	uint16_t get_id() override
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamVibration(mavlink);
+	}
+
+	unsigned get_size() override
+	{
+		const unsigned size = MAVLINK_MSG_ID_VIBRATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+		if (_sensor_selection_sub.advertised()) {
+			return size;
+		}
+
+		for (auto &x : _sensor_accel_status_sub) {
+			if (x.advertised()) {
+				return size;
+			}
+		}
+
+		for (auto &x : _sensor_gyro_status_sub) {
+			if (x.advertised()) {
+				return size;
+			}
+		}
+
+		return 0;
+	}
+
+private:
+	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
+
+	uORB::Subscription _sensor_accel_status_sub[3] {
+		{ORB_ID(sensor_accel_status), 0},
+		{ORB_ID(sensor_accel_status), 1},
+		{ORB_ID(sensor_accel_status), 2},
+	};
+
+	uORB::Subscription _sensor_gyro_status_sub[3] {
+		{ORB_ID(sensor_gyro_status), 0},
+		{ORB_ID(sensor_gyro_status), 1},
+		{ORB_ID(sensor_gyro_status), 2},
+	};
+
+	/* do not allow top copying this class */
+	MavlinkStreamVibration(MavlinkStreamVibration &) = delete;
+	MavlinkStreamVibration &operator = (const MavlinkStreamVibration &) = delete;
+
+protected:
+	explicit MavlinkStreamVibration(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	bool send(const hrt_abstime t) override
+	{
+		bool updated = _sensor_selection_sub.updated();
+
+		// check for sensor_accel_status update
+		if (!updated) {
+			for (int i = 0; i < 3; i++) {
+				if (_sensor_accel_status_sub[i].updated() || _sensor_gyro_status_sub[i].updated()) {
+					updated = true;
+					break;
+				}
+			}
+		}
+
+		if (updated) {
+
 			mavlink_vibration_t msg{};
-			msg.time_usec = est.timestamp;
-			msg.vibration_x = est.vibe[0];
-			msg.vibration_y = est.vibe[1];
-			msg.vibration_z = est.vibe[2];
+			msg.time_usec = hrt_absolute_time();
 
-			sensor_accel_status_s acc_status_0;
+			// VIBRATION usage not to mavlink spec, this is our current usage.
+			//  vibration_x : Primary gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
+			//  vibration_y : Primary gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
+			//  vibration_z : Primary accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 
-			if (_sensor_accel_status_0_sub.copy(&acc_status_0)) {
-				msg.clipping_0 = acc_status_0.clipping[0] + acc_status_0.clipping[1] + acc_status_0.clipping[2];
+			sensor_selection_s sensor_selection{};
+			_sensor_selection_sub.copy(&sensor_selection);
+
+			// primary gyro coning and high frequency vibration metrics
+			if (sensor_selection.gyro_device_id != 0) {
+				for (auto &x : _sensor_gyro_status_sub) {
+					sensor_gyro_status_s status;
+
+					if (x.copy(&status)) {
+						if (status.device_id == sensor_selection.gyro_device_id) {
+							msg.vibration_x = status.coning_vibration;
+							msg.vibration_y = status.vibration_metric;
+							break;
+						}
+					}
+				}
 			}
 
-			sensor_accel_status_s acc_status_1;
+			// primary accel high frequency vibration metric
+			if (sensor_selection.accel_device_id != 0) {
+				for (auto &x : _sensor_accel_status_sub) {
+					sensor_accel_status_s status;
 
-			if (_sensor_accel_status_1_sub.copy(&acc_status_1)) {
-				msg.clipping_1 = acc_status_1.clipping[0] + acc_status_1.clipping[1] + acc_status_1.clipping[2];
+					if (x.copy(&status)) {
+						if (status.device_id == sensor_selection.accel_device_id) {
+							msg.vibration_z = status.vibration_metric;
+							break;
+						}
+					}
+				}
 			}
 
-			sensor_accel_status_s acc_status_2;
+			// accel 0, 1, 2 cumulative clipping
+			for (int i = 0; i < 3; i++) {
+				sensor_accel_status_s acc_status;
 
-			if (_sensor_accel_status_2_sub.copy(&acc_status_2)) {
-				msg.clipping_2 = acc_status_2.clipping[0] + acc_status_2.clipping[1] + acc_status_2.clipping[2];
+				if (_sensor_accel_status_sub[i].copy(&acc_status)) {
+
+					const uint32_t clipping = acc_status.clipping[0] + acc_status.clipping[1] + acc_status.clipping[2];
+
+					switch (i) {
+					case 0:
+						msg.clipping_0 = clipping;
+						break;
+
+					case 1:
+						msg.clipping_1 = clipping;
+						break;
+
+					case 2:
+						msg.clipping_2 = clipping;
+						break;
+					}
+				}
 			}
 
 			mavlink_msg_vibration_send_struct(_mavlink->get_channel(), &msg);
@@ -5050,6 +5184,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamLocalPositionNED>(),
 	create_stream_list_item<MavlinkStreamOdometry>(),
 	create_stream_list_item<MavlinkStreamEstimatorStatus>(),
+	create_stream_list_item<MavlinkStreamVibration>(),
 	create_stream_list_item<MavlinkStreamAttPosMocap>(),
 	create_stream_list_item<MavlinkStreamHomePosition>(),
 	create_stream_list_item<MavlinkStreamServoOutputRaw<0> >(),

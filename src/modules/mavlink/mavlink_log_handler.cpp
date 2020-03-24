@@ -171,6 +171,11 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 		_pLogHandlerHelper = new LogListHelper;
 	}
 
+	if (!_pLogHandlerHelper) {
+		PX4_ERR("LogListHelper alloc failed");
+		return;
+	}
+
 	if (_pLogHandlerHelper->log_count) {
 		//-- Define (and clamp) range
 		_pLogHandlerHelper->next_entry = request.start < _pLogHandlerHelper->log_count ? request.start :

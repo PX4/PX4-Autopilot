@@ -880,7 +880,7 @@ IST8310::write_reg(uint8_t reg, uint8_t val)
 int
 IST8310::read_reg(uint8_t reg, uint8_t &val)
 {
-	uint8_t buf = val;
+	uint8_t buf = 0;
 	int ret = read(reg, &buf, 1);
 	val = buf;
 	return ret;

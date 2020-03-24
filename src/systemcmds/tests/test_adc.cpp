@@ -37,56 +37,36 @@
  */
 
 #include <px4_platform_common/time.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
-
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-
 #include "tests_main.h"
-
 #include <drivers/drv_adc.h>
+
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/adc_report.h>
 
 int test_adc(int argc, char *argv[])
 {
-	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
+	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
+	adc_report_s adc;
 
-	if (fd < 0) {
-		PX4_ERR("ERROR: can't open ADC device");
+	px4_usleep(50000);	// sleep 50ms and wait for adc report
+
+	if (_adc_sub.update(&adc)) {
+		PX4_INFO_RAW("DeviceID: %d\n", adc.device_id);
+		PX4_INFO_RAW("Resolution: %d\n", adc.resolution);
+		PX4_INFO_RAW("Voltage Reference: %f\n", adc.v_ref);
+
+		for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+			PX4_INFO_RAW("%d: %d  ", adc.channel_id[i], adc.raw_data[i]);
+		}
+
+		PX4_INFO_RAW("\n");
+
+		PX4_INFO_RAW("\t ADC test successful.\n");
+
+		return OK;
+
+	} else {
 		return 1;
 	}
-
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum number of channels */
-		px4_adc_msg_t data[PX4_MAX_ADC_CHANNELS];
-		/* read all channels available */
-		ssize_t count = px4_read(fd, data, sizeof(data));
-
-		if (count < 0) {
-			goto errout_with_dev;
-		}
-
-		unsigned channels = count / sizeof(data[0]);
-
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
-
-		printf("\n");
-		px4_usleep(150000);
-	}
-
-	printf("\t ADC test successful.\n");
-
-errout_with_dev:
-
-	if (fd != 0) { px4_close(fd); }
-
-	return OK;
 }

@@ -130,8 +130,6 @@ then
 	# Power Parameters
 	param set BAT_N_CELLS 4
 	param set BAT_A_PER_V 36.3675
-	param set BAT_CNT_V_CURR 0.0008
-	param set BAT_CNT_V_VOLT 0.0008
 	param set BAT_V_DIV 18.40697289
 
 	# Circuit breakers

@@ -199,6 +199,8 @@ private:
 	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
+	static constexpr float MAX_SAFE_TILT_DEG = 89.f; // Numerical issues above this value due to tanf
+
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	WeatherVane *_wv_controller{nullptr};
@@ -342,6 +344,18 @@ MulticopterPositionControl::parameters_update(bool force)
 		// update parameters from storage
 		ModuleParams::updateParams();
 		SuperBlock::updateParams();
+
+		if (_param_mpc_tiltmax_air.get() > MAX_SAFE_TILT_DEG) {
+			_param_mpc_tiltmax_air.set(MAX_SAFE_TILT_DEG);
+			_param_mpc_tiltmax_air.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Tilt constrained to safe value");
+		}
+
+		if (_param_mpc_tiltmax_lnd.get() > _param_mpc_tiltmax_air.get()) {
+			_param_mpc_tiltmax_lnd.set(_param_mpc_tiltmax_air.get());
+			_param_mpc_tiltmax_lnd.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Land tilt has been constrained by max tilt");
+		}
 
 		_control.setPositionGains(Vector3f(_param_mpc_xy_p.get(), _param_mpc_xy_p.get(), _param_mpc_z_p.get()));
 		_control.setVelocityGains(Vector3f(_param_mpc_xy_vel_p.get(), _param_mpc_xy_vel_p.get(), _param_mpc_z_vel_p.get()),
@@ -593,12 +607,34 @@ MulticopterPositionControl::Run()
 				constraints.speed_up = _param_mpc_z_vel_max_up.get();
 			}
 
+			// limit tilt during takeoff ramupup
+			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
+				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
+			}
+
+			// limit altitude only if local position is valid
+			if (PX4_ISFINITE(_states.position(2))) {
+				limit_altitude(setpoint);
+			}
+
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff,
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
-			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
+			const bool not_taken_off = _takeoff.getTakeoffState() < TakeoffState::rampup;
+			const bool flying = _takeoff.getTakeoffState() >= TakeoffState::flight;
+			const bool flying_but_ground_contact = flying && _vehicle_land_detected.ground_contact;
+
+			if (flying) {
+				_control.setThrustLimits(_param_mpc_thr_min.get(), _param_mpc_thr_max.get());
+
+			} else {
+				// allow zero thrust when taking off and landing
+				_control.setThrustLimits(0.f, _param_mpc_thr_max.get());
+			}
+
+			if (not_taken_off || flying_but_ground_contact) {
 				// we are not flying yet and need to avoid any corrections
 				reset_setpoint_to_nan(setpoint);
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
@@ -608,17 +644,11 @@ MulticopterPositionControl::Run()
 				setpoint.yawspeed = 0.f;
 				// prevent any integrator windup
 				_control.resetIntegral();
+			}
+
+			if (not_taken_off) {
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
-			}
-
-			if (_takeoff.getTakeoffState() < TakeoffState::flight && !PX4_ISFINITE(setpoint.thrust[2])) {
-				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
-			}
-
-			// limit altitude only if local position is valid
-			if (PX4_ISFINITE(_states.position(2))) {
-				limit_altitude(setpoint);
 			}
 
 			// Run position control
@@ -659,13 +689,6 @@ MulticopterPositionControl::Run()
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
 			_control.getAttitudeSetpoint(attitude_setpoint);
-
-			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
-			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
-			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
-			if (_takeoff.getTakeoffState() > TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
-				limit_thrust_during_landing(attitude_setpoint);
-			}
 
 			// publish attitude setpoint
 			// It's important to publish also when disarmed otheriwse the attitude setpoint stays uninitialized.
@@ -904,21 +927,6 @@ MulticopterPositionControl::start_flight_task()
 
 	} else if (should_disable_task) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
-	}
-}
-
-void
-MulticopterPositionControl::limit_thrust_during_landing(vehicle_attitude_setpoint_s &setpoint)
-{
-	if (_vehicle_land_detected.ground_contact
-	    || _vehicle_land_detected.maybe_landed) {
-		// we set the collective thrust to zero, this will help to decide if we are actually landed or not
-		setpoint.thrust_body[2] = 0.f;
-		// go level to avoid corrections but keep the heading we have
-		Quatf(AxisAngle<float>(0, 0, _states.yaw)).copyTo(setpoint.q_d);
-		setpoint.yaw_sp_move_rate = 0.f;
-		// prevent any position control integrator windup
-		_control.resetIntegral();
 	}
 }
 

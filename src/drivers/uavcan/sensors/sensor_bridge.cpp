@@ -73,7 +73,9 @@ UavcanCDevSensorBridgeBase::~UavcanCDevSensorBridgeBase()
 void
 UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 {
-	Channel *channel = nullptr;
+	assert(report != nullptr);
+
+	uavcan_bridge::Channel *channel = nullptr;
 
 	// Checking if such channel already exists
 	for (unsigned i = 0; i < _max_channels; i++) {
@@ -86,7 +88,7 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 	// No such channel - try to create one
 	if (channel == nullptr) {
 		if (_out_of_channels) {
-			return;           // Give up immediately - saves some CPU time
+			return;  // Give up immediately - saves some CPU time
 		}
 
 		DEVICE_LOG("adding channel %d...", node_id);
@@ -122,17 +124,19 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 		// Publish to the appropriate topic, abort on failure
 		channel->node_id        = node_id;
 		channel->class_instance = class_instance;
+		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
 
 		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->orb_instance, ORB_PRIO_VERY_HIGH);
 
 		if (channel->orb_advert == nullptr) {
-			DEVICE_LOG("ADVERTISE FAILED");
+			DEVICE_LOG("uORB advertise failed. Out of instances?");
 			(void)unregister_class_devname(_class_devname, class_instance);
-			*channel = Channel();
+			*channel = uavcan_bridge::Channel();
+			_out_of_channels = true;
 			return;
 		}
 
-		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
+		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->orb_instance);
 	}
 
 	assert(channel != nullptr);
@@ -140,8 +144,58 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
 }
 
-unsigned
-UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
+uavcan_bridge::Channel *UavcanCDevSensorBridgeBase::get_channel_for_node(int node_id)
+{
+	uavcan_bridge::Channel *channel = nullptr;
+
+	// Checking if such channel already exists
+	for (unsigned i = 0; i < _max_channels; i++) {
+		if (_channels[i].node_id == node_id) {
+			channel = _channels + i;
+			break;
+		}
+	}
+
+	// No such channel - try to create one
+	if (channel == nullptr) {
+		if (_out_of_channels) {
+			// We already determined we're out of class or uORB instances
+			return channel;
+		}
+
+		DEVICE_LOG("adding channel %d...", node_id);
+
+		// Search for the first free channel
+		for (unsigned i = 0; i < _max_channels; i++) {
+			if (_channels[i].node_id < 0) {
+				channel = _channels + i;
+				break;
+			}
+		}
+
+		// No free channels left
+		if (channel == nullptr) {
+			_out_of_channels = true;
+			DEVICE_LOG("out of channels");
+			return channel;
+		}
+
+		// initialize the driver, which registers the class device name and uORB publisher
+		channel->node_id = node_id;
+		int ret = init_driver(channel);
+
+		if (ret != PX4_OK) {
+			DEVICE_LOG("INIT ERROR node %d errno %d", channel->node_id, ret);
+			return channel;
+		}
+
+		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
+	}
+
+	return channel;
+}
+
+unsigned UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 {
 	unsigned out = 0;
 
@@ -154,8 +208,21 @@ UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 	return out;
 }
 
-void
-UavcanCDevSensorBridgeBase::print_status() const
+int8_t UavcanCDevSensorBridgeBase::get_channel_index_for_node(int node_id)
+{
+	int8_t ch = -1;
+
+	for (unsigned i = 0; i < _max_channels; i++) {
+		if (_channels[i].node_id == node_id) {
+			ch = i;
+			break;
+		}
+	}
+
+	return ch;
+}
+
+void UavcanCDevSensorBridgeBase::print_status() const
 {
 	printf("devname: %s\n", _class_devname);
 
