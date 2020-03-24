@@ -47,8 +47,6 @@ bool FlightTaskTransition::activate(vehicle_local_position_setpoint_s last_setpo
 	checkSetpoints(last_setpoint);
 	_transition_altitude = last_setpoint.z;
 	_transition_yaw = last_setpoint.yaw;
-	_acceleration_setpoint.setAll(0.f);
-	_velocity_prev = _velocity;
 	return FlightTask::activate(last_setpoint);
 }
 
@@ -60,28 +58,11 @@ void FlightTaskTransition::checkSetpoints(vehicle_local_position_setpoint_s &set
 	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
 }
 
-void FlightTaskTransition::updateAccelerationEstimate()
-{
-	// Estimate the acceleration by filtering the raw derivative of the velocity estimate
-	// This is done to provide a good estimate of the current acceleration to the next flight task after back-transition
-	_acceleration_setpoint = .9f * _acceleration_setpoint + .1f * (_velocity - _velocity_prev) / _deltatime;
-
-	if (!PX4_ISFINITE(_acceleration_setpoint(0)) ||
-	    !PX4_ISFINITE(_acceleration_setpoint(1)) ||
-	    !PX4_ISFINITE(_acceleration_setpoint(2))) {
-		_acceleration_setpoint.setZero();
-	}
-
-	_velocity_prev = _velocity;
-}
-
 bool FlightTaskTransition::update()
 {
 	// level wings during the transition, altitude should be controlled
 	_position_setpoint(2) = _transition_altitude;
 	_acceleration_setpoint.xy() = matrix::Vector2f(0.f, 0.f);
-
-	updateAccelerationEstimate();
 
 	_yaw_setpoint = _transition_yaw;
 	return true;
