@@ -92,7 +92,7 @@ __BEGIN_DECLS
 
 /* Count of peripheral clock user configurations */
 
-#define NUM_OF_PERIPHERAL_CLOCKS_0 18
+#define NUM_OF_PERIPHERAL_CLOCKS_0 14
 
 /* I2C busses */
 
