@@ -75,7 +75,7 @@ except AttributeError:
 
 
 @[for topic in (recv_topics + send_topics)]@
-@[    if version.parse(fastrtps_version) <= version.parse('1.7')]@
+@[    if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
 @[        if ros2_distro]@
 using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
 @[        else]@
@@ -117,7 +117,7 @@ private:
 @[end if]@
 
     /** Msg metada Getters **/
-@[if version.parse(fastrtps_version) <= version.parse('1.7') or not ros2_distro]@
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
     template <class T>
     inline uint64_t getMsgTimestamp(const T* msg) { return msg->timestamp_(); }
 
@@ -138,7 +138,7 @@ private:
 @[end if]@
 
     /** Msg metadata Setters **/
-@[if version.parse(fastrtps_version) <= version.parse('1.7') or not ros2_distro]@
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
     template <class T>
     inline uint64_t setMsgTimestamp(T* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
 
