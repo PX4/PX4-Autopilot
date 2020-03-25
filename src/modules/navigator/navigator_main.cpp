@@ -228,7 +228,31 @@ Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
-				if (true) {
+				bool reposition_valid = true;
+
+				if (have_geofence_position_data &&
+				    ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+				     (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN))) {
+
+					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+
+						vehicle_global_position_s test_reposition_validity {};
+						test_reposition_validity.lat = cmd.param5;
+						test_reposition_validity.lon = cmd.param6;
+
+						if (PX4_ISFINITE(cmd.param7)) {
+							test_reposition_validity.alt = cmd.param7;
+
+						} else {
+							test_reposition_validity.alt = get_global_position()->alt;
+						}
+
+						reposition_valid = _geofence.check(test_reposition_validity, _gps_pos, _home_pos,
+										   home_position_valid());
+					}
+				}
+
+				if (reposition_valid) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -299,6 +323,9 @@ Navigator::run()
 					rep->current.timestamp = hrt_absolute_time();
 
 					rep->next.valid = false;
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence");
 				}
 
 				// CMD_DO_REPOSITION is acknowledged by commander
