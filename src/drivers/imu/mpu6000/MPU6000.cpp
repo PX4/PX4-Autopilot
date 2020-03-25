@@ -65,8 +65,8 @@ MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_t
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20608:
-		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20608);
-		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20608);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20608G);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20608G);
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20689:
