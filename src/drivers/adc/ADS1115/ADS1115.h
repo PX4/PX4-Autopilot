@@ -34,6 +34,12 @@
 #pragma once
 
 #include <stdint.h>
+#include <drivers/device/i2c.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/adc_report.h>
+#include <uORB/Publication.hpp>
+#include <lib/perf/perf_counter.h>
+#include <drivers/drv_hrt.h>
 
 #define ADDRESSPOINTER_REG_CONVERSATION    0x00
 #define ADDRESSPOINTER_REG_CONFIG    0x01
@@ -87,52 +93,68 @@
 #define CONFIG_LOW_COMP_QU_AFTER4    0x02
 #define CONFIG_LOW_COMP_QU_DISABLE    0x03
 
-class I2C_Interface
-{
-public:
-	virtual int readReg(uint8_t addr, uint8_t *buf, size_t len) = 0;
-
-	virtual int writeReg(uint8_t addr, uint8_t *buf, size_t len) = 0;
-};
+using namespace time_literals;
 
 /*
- * Logical part of ADS1115 driver
  * This driver configure ADS1115 into 4 channels with gnd as baseline.
  * Start each sample cycle by setting sample channel.
  * PGA set to 6.144V
  * SPS set to 256
  * Valid output ranges from 0 to 32767 on each channel.
  */
-class ADS1115
+class ADS1115 : public device::I2C, public I2CSPIDriver<ADS1115>
 {
 public:
-	ADS1115() = delete;
-	explicit ADS1115(I2C_Interface *interface);
+	ADS1115(I2CSPIBusOption bus_option, int bus, int addr, int bus_frequency);
+	~ADS1115() override;
 
+	int Begin();
+
+	int init() override;
+
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+
+	static void print_usage();
+
+	void RunImpl();
+
+protected:
+
+	adc_report_s _adc_report = {};
+
+	void print_status() override;
+
+private:
+
+	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
+
+	static const hrt_abstime	SAMPLE_INTERVAL{50_ms};
+
+	perf_counter_t			_cycle_perf;
+
+	int     _channel_cycle_count = 0;
+
+	// ADS1115 logic part
 	enum ChannelSelection {
 		Invalid = -1, A0 = 0, A1, A2, A3
 	};
-
-	/* configure ads1115 into specific status */
-	int init();
-
 	/* set multiplexer to specific channel */
 	int setChannel(ChannelSelection ch);
-
 	/* return true if sample result is valid */
 	bool isSampleReady();
-
 	/*
 	 * get adc sample. return the channel being measured.
 	 * Invalid indicates sample failure.
 	 */
 	ChannelSelection getMeasurement(int16_t *value);
-
 	/*
 	 * get adc sample and automatically switch to next channel and start another measurement
 	 */
 	ChannelSelection cycleMeasure(int16_t *value);
 
-protected:
-	I2C_Interface *_interface;
+	int readReg(uint8_t addr, uint8_t *buf, size_t len);
+
+	int writeReg(uint8_t addr, uint8_t *buf, size_t len);
+
 };
