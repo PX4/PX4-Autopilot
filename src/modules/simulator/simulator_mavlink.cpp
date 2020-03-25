@@ -2,7 +2,7 @@
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *   Copyright (c) 2016 Anton Matosov. All rights reserved.
- *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -366,7 +366,8 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 		vbatt *= _battery.cell_count();
 
 		const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, true);
+		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, battery_status_s::BATTERY_SOURCE_POWER_MODULE,
+					     0, throttle);
 
 		_last_battery_timestamp = now_us;
 	}

@@ -103,9 +103,7 @@ EscBattery::Run()
 		average_voltage_v /= esc_status.esc_count;
 
 		const bool connected = true;
-		const bool selected_source = true;
 		const int priority = 0;
-		const bool should_publish = true;
 
 		actuator_controls_s ctrl;
 		_actuator_ctrl_0_sub.copy(&ctrl);
@@ -115,10 +113,9 @@ EscBattery::Run()
 			average_voltage_v,
 			total_current_a,
 			connected,
-			selected_source,
+			battery_status_s::BATTERY_SOURCE_ESCS,
 			priority,
-			ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-			should_publish);
+			ctrl.control[actuator_controls_s::INDEX_THROTTLE]);
 		_battery.publish();
 	}
 }

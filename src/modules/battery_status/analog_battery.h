@@ -47,12 +47,12 @@ public:
 	 * @param voltage_raw Battery voltage read from ADC, volts
 	 * @param current_raw Voltage of current sense resistor, volts
 	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
-	 * @param selected_source This battery is on the brick that the selected source for selected_source
+	 * @param source The source as defined by param BAT%d_SOURCE
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
 	 */
 	void updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw,
-				    bool selected_source, int priority, float throttle_normalized);
+				    int source, int priority, float throttle_normalized);
 
 	/**
 	 * Whether the ADC channel for the voltage of this battery is valid.

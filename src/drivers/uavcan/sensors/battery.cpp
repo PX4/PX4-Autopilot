@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -95,7 +95,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	// battery.average_time_to_empty = msg.;
 	battery.serial_number = msg.model_instance_id;
 	battery.connected = true;
-	battery.system_source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
+	battery.source = battery_status_s::BATTERY_SOURCE_POWER_MODULE;
 	// battery.priority = msg.;
 	// battery.is_powering_off = msg.;
 	// battery.warning = msg.;
