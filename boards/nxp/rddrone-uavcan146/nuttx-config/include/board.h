@@ -57,6 +57,8 @@
 
 #define BOARD_XTAL_FREQUENCY 8000000
 
+#define BOARD_FTM_FREQ       8000000
+
 /* The S32K146 will run at 112MHz */
 
 /* LED definitions **********************************************************/
