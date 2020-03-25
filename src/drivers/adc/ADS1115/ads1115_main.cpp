@@ -234,7 +234,7 @@ I2CSPIDriverBase *ADS1115_Wrapper::instantiate(const BusCLIArguments &cli, const
 void ADS1115_Wrapper::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("ads1115", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("adc");
+	PRINT_MODULE_USAGE_SUBCATEGORY("");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAM_INT('A', 0x48, 0, 0xff, "Address", true);
