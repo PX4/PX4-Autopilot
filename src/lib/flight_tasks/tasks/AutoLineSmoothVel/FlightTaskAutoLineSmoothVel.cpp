@@ -263,8 +263,8 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			const float z_speed = _getMaxZSpeed();
 
 			Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
-			math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed);
-			math::trajectory::clampToZNorm(vel_sp_constrained, z_speed);
+			math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
+			math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
 
 			for (int i = 0; i < 3; i++) {
 				// If available, use the existing velocity as a feedforward, otherwise replace it
