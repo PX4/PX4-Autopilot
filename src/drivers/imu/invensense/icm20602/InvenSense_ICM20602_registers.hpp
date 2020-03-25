@@ -70,6 +70,7 @@ enum class Register : uint8_t {
 
 	FIFO_EN       = 0x23,
 
+	INT_PIN_CFG   = 0x37,
 	INT_ENABLE    = 0x38,
 
 	TEMP_OUT_H    = 0x41,
@@ -126,6 +127,14 @@ enum ACCEL_CONFIG2_BIT : uint8_t {
 enum FIFO_EN_BIT : uint8_t {
 	GYRO_FIFO_EN  = Bit4,
 	ACCEL_FIFO_EN = Bit3,
+};
+
+// INT_PIN_CFG
+enum INT_PIN_CFG_BIT : uint8_t {
+	INT_LEVEL    = Bit7,
+
+	LATCH_INT_EN = Bit5,
+	INT_RD_CLEAR = Bit4,
 };
 
 // INT_ENABLE
