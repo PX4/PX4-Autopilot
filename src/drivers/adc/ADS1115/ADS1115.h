@@ -31,8 +31,7 @@
  *
  ****************************************************************************/
 
-#ifndef PX4_ADS1115_H
-#define PX4_ADS1115_H
+#pragma once
 
 #include <stdint.h>
 
@@ -137,6 +136,3 @@ public:
 protected:
 	I2C_Interface *_interface;
 };
-
-
-#endif //PX4_ADS1115_H
