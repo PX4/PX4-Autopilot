@@ -37,20 +37,19 @@
 
 #include <AttitudeControl.hpp>
 
-#include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 
 using namespace matrix;
 
-void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain)
+void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight)
 {
 	_proportional_gain = proportional_gain;
+	_yaw_w = math::constrain(yaw_weight, 0.f, 1.f);
 
-	// prepare yaw weight from the ratio between roll/pitch and yaw gains
-	const float roll_pitch_gain = (proportional_gain(0) + proportional_gain(1)) / 2.f;
-	_yaw_w = math::constrain(proportional_gain(2) / roll_pitch_gain, 0.f, 1.f);
-
-	_proportional_gain(2) = roll_pitch_gain;
+	// compensate for the effect of the yaw weight rescaling the output
+	if (_yaw_w > 1e-4f) {
+		_proportional_gain(2) /= _yaw_w;
+	}
 }
 
 matrix::Vector3f AttitudeControl::update(matrix::Quatf q, matrix::Quatf qd, const float yawspeed_feedforward)
