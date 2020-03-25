@@ -92,8 +92,13 @@ __BEGIN_DECLS
 
 /* Count of peripheral clock user configurations */
 
-#define NUM_OF_PERIPHERAL_CLOCKS_0 15
+#define NUM_OF_PERIPHERAL_CLOCKS_0 14
 
+
+/* High-resolution timer */
+#define HRT_TIMER              1  /* FTM timer for the HRT */
+#define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
+#define HRT_PPM_CHANNEL        1  /* Use TPM1 capture/compare channel 1 */
 
 /****************************************************************************
  * Public Types
