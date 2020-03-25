@@ -82,6 +82,25 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.5f);
 PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
 
 /**
+ * Yaw weight
+ *
+ * A fraction [0,1] deprioritizing yaw compared to roll and pitch in non-linear attitude control.
+ * Deprioritizing yaw is necessary because multicopters have much less control authority
+ * in yaw compared to the other axes and it makes sense because yaw is not critical for
+ * stable hovering or 3D navigation.
+ *
+ * For yaw control tuning use MC_YAW_P. This ratio has no inpact on the yaw gain.
+ *
+ * @unit 1/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAW_WEIGHT, 0.4f);
+
+/**
  * Max roll rate
  *
  * Limit for roll rate in manual and auto modes (except acro).
