@@ -89,7 +89,7 @@ px4_add_board(
 		config
 		dmesg
 		dumpfile
-		esc_calib
+		#esc_calib
 		hardfault_log
 		i2cdetect
 		led_control
