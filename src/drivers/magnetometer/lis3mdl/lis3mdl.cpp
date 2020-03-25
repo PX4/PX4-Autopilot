@@ -42,9 +42,9 @@
 #include <px4_platform_common/time.h>
 #include "lis3mdl.h"
 
-LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation) :
-	CDev("LIS3MDL", path),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+LIS3MDL::LIS3MDL(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus) :
+	CDev("LIS3MDL", nullptr),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_interface(interface),
 	_reports(nullptr),
 	_scale{},
@@ -91,9 +91,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 
 LIS3MDL::~LIS3MDL()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	if (_mag_topic != nullptr) {
 		orb_unadvertise(_mag_topic);
 	}
@@ -438,7 +435,7 @@ LIS3MDL::collect()
 }
 
 void
-LIS3MDL::Run()
+LIS3MDL::RunImpl()
 {
 	/* _measure_interval == 0  is used as _task_should_exit */
 	if (_measure_interval == 0) {
@@ -487,6 +484,9 @@ LIS3MDL::init()
 	reset();
 
 	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
+
+	_measure_interval = LIS3MDL_CONVERSION_INTERVAL;
+	start();
 
 	return PX4_OK;
 }
@@ -599,8 +599,9 @@ LIS3MDL::measure()
 }
 
 void
-LIS3MDL::print_info()
+LIS3MDL::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	PX4_INFO("poll interval:  %u", _measure_interval);
@@ -791,16 +792,6 @@ LIS3MDL::start()
 
 	/* schedule a cycle to start things */
 	ScheduleNow();
-}
-
-void
-LIS3MDL::stop()
-{
-	if (_measure_interval > 0) {
-		/* ensure no new items are queued while we cancel this one */
-		_measure_interval = 0;
-		ScheduleClear();
-	}
 }
 
 int

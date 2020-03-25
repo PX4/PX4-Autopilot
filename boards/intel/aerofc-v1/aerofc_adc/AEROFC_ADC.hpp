@@ -42,7 +42,7 @@
 #include <px4_platform_common/log.h>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_adc.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/adc_report.h>
 
@@ -52,17 +52,21 @@
 #define MAX_CHANNEL 5
 #define AEROFC_ADC_DEVICE_PATH "/dev/aerofc_adc"
 
-class AEROFC_ADC : public device::I2C, public px4::ScheduledWorkItem
+class AEROFC_ADC : public device::I2C, public I2CSPIDriver<AEROFC_ADC>
 {
 public:
-	AEROFC_ADC(uint8_t bus);
+	AEROFC_ADC(I2CSPIBusOption bus_option, int bus_number, int bus_frequency);
 	~AEROFC_ADC() override;
+
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
 	int init() override;
 
+	void RunImpl();
 private:
 	int probe() override;;
-	void Run() override;
 
 	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
 

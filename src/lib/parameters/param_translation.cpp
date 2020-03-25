@@ -118,6 +118,10 @@ bool param_modify_on_import(const char *name, bson_type_t type, void *value)
 		device_id.devid_s.devtype = DRV_IMU_DEVTYPE_MPU6000;
 	}
 
+	if (device_id.devid_s.devtype == DRV_ACC_DEVTYPE_MPU6500_LEGACY) {
+		device_id.devid_s.devtype = DRV_IMU_DEVTYPE_MPU6500;
+	}
+
 	if (device_id.devid_s.devtype == DRV_ACC_DEVTYPE_MPU9250_LEGACY) {
 		device_id.devid_s.devtype = DRV_IMU_DEVTYPE_MPU9250;
 	}
@@ -127,7 +131,7 @@ bool param_modify_on_import(const char *name, bson_type_t type, void *value)
 	}
 
 	if (device_id.devid_s.devtype == DRV_ACC_DEVTYPE_ICM20608_LEGACY) {
-		device_id.devid_s.devtype = DRV_IMU_DEVTYPE_ICM20608;
+		device_id.devid_s.devtype = DRV_IMU_DEVTYPE_ICM20608G;
 	}
 
 	if (device_id.devid_s.devtype == DRV_ACC_DEVTYPE_ICM20689_LEGACY) {

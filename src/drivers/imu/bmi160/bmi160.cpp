@@ -49,9 +49,10 @@ const uint8_t BMI160::_checked_registers[BMI160_NUM_CHECKED_REGISTERS] = {    BM
 									      BMIREG_NV_CONF
 									 };
 
-BMI160::BMI160(int bus, uint32_t device, enum Rotation rotation) :
-	SPI("BMI160", nullptr, bus, device, SPIDEV_MODE3, BMI160_BUS_SPEED),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
+BMI160::BMI160(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
+	       spi_mode_e spi_mode) :
+	SPI("BMI160", nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_accel_reads(perf_alloc(PC_COUNT, "bmi160_accel_read")),
@@ -63,15 +64,12 @@ BMI160::BMI160(int bus, uint32_t device, enum Rotation rotation) :
 	_reset_retries(perf_alloc(PC_COUNT, "bmi160_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "bmi160_duplicates"))
 {
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_BMI160);
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_BMI160);
+	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_BMI160);
+	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_BMI160);
 }
 
 BMI160::~BMI160()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_accel_reads);
@@ -494,26 +492,10 @@ BMI160::set_gyro_range(unsigned max_dps)
 void
 BMI160::start()
 {
-	/* make sure we are stopped first */
-	stop();
-
 	/* start polling at the specified rate */
 	ScheduleOnInterval((1_s / BMI160_GYRO_DEFAULT_RATE) - BMI160_TIMER_REDUCTION, 1000);
 
 	reset();
-}
-
-void
-BMI160::stop()
-{
-	ScheduleClear();
-}
-
-void
-BMI160::Run()
-{
-	/* make another measurement */
-	measure();
 }
 
 void
@@ -560,7 +542,7 @@ BMI160::check_registers(void)
 }
 
 void
-BMI160::measure()
+BMI160::RunImpl()
 {
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
@@ -690,8 +672,9 @@ BMI160::measure()
 }
 
 void
-BMI160::print_info()
+BMI160::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);

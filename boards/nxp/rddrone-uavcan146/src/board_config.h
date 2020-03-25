@@ -94,10 +94,6 @@ __BEGIN_DECLS
 
 #define NUM_OF_PERIPHERAL_CLOCKS_0 15
 
-/* I2C busses */
-
-#define PX4_I2C_BUS_ONBOARD                 PX4_BUS_NUMBER_TO_PX4(1)
-#define PX4_I2C_BUS_EXPANSION               PX4_BUS_NUMBER_TO_PX4(0)
 
 /****************************************************************************
  * Public Types

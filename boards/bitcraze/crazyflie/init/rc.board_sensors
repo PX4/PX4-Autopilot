@@ -6,7 +6,7 @@
 adc start
 
 # Onboard I2C
-mpu9250 -R 12 start
+mpu9250 -I -R 12 start
 
 # I2C bypass of mpu
 lps25h -I start

@@ -3,6 +3,7 @@ cerberus
 empy>=3.3
 jinja2>=2.8
 numpy>=1.13
+packaging
 pandas>=0.21
 psutil
 pygments

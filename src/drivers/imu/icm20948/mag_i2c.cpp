@@ -42,14 +42,12 @@
 
 #include <drivers/device/i2c.h>
 
-#ifdef USE_I2C
-
-device::Device *AK09916_I2C_interface(int bus);
+device::Device *AK09916_I2C_interface(int bus, int bus_frequency);
 
 class AK09916_I2C : public device::I2C
 {
 public:
-	AK09916_I2C(int bus);
+	AK09916_I2C(int bus, int bus_frequency);
 	~AK09916_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -61,13 +59,13 @@ protected:
 };
 
 device::Device *
-AK09916_I2C_interface(int bus)
+AK09916_I2C_interface(int bus, int bus_frequency)
 {
-	return new AK09916_I2C(bus);
+	return new AK09916_I2C(bus, bus_frequency);
 }
 
-AK09916_I2C::AK09916_I2C(int bus) :
-	I2C("AK09916_I2C", nullptr, bus, AK09916_I2C_ADDR, 400000)
+AK09916_I2C::AK09916_I2C(int bus, int bus_frequency) :
+	I2C("AK09916_I2C", nullptr, bus, AK09916_I2C_ADDR, bus_frequency)
 {
 	_device_id.devid_s.devtype = DRV_IMU_DEVTYPE_ICM20948;
 }
@@ -109,5 +107,3 @@ AK09916_I2C::probe()
 
 	return OK;
 }
-
-#endif // USE_I2C
