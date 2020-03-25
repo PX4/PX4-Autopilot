@@ -487,6 +487,22 @@ Navigator::run()
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
 					mavlink_log_critical(&_mavlink_log_pub, "Geofence violation");
+
+					/* If we are already in loiter it is very likely that we are doing a reposition
+					 * so we should block that by repositioning in the current location */
+					if (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN
+					    && get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+						position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+						rep->current.yaw = get_global_position()->yaw;
+						rep->current.lat = get_global_position()->lat;
+						rep->current.lon = get_global_position()->lon;
+						rep->current.alt = get_global_position()->alt;
+						rep->current.valid = true;
+
+						_pos_sp_triplet_updated = true;
+					}
+
 					_geofence_violation_warning_sent = true;
 				}
 
