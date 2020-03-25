@@ -32,15 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file MPU6000.hpp
+ * @file MPU6500.hpp
  *
- * Driver for the Invensense MPU6000 connected via SPI.
+ * Driver for the Invensense MPU6500 connected via SPI.
  *
  */
 
 #pragma once
 
-#include "InvenSense_MPU6000_registers.hpp"
+#include "InvenSense_MPU6500_registers.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
@@ -51,14 +51,14 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-using namespace InvenSense_MPU6000;
+using namespace InvenSense_MPU6500;
 
-class MPU6000 : public device::SPI, public I2CSPIDriver<MPU6000>
+class MPU6500 : public device::SPI, public I2CSPIDriver<MPU6500>
 {
 public:
-	MPU6000(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+	MPU6500(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
 		spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
-	~MPU6000() override;
+	~MPU6500() override;
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
@@ -78,9 +78,9 @@ protected:
 private:
 	// Sensor Configuration
 	static constexpr float FIFO_SAMPLE_DT{125.f};
-	static constexpr uint32_t SAMPLES_PER_TRANSFER{8};       // ensure at least 1 new accel sample per transfer
+	static constexpr uint32_t SAMPLES_PER_TRANSFER{2};       // ensure at least 1 new accel sample per transfer
 	static constexpr float GYRO_RATE{1e6f / FIFO_SAMPLE_DT}; // 8 kHz gyro
-	static constexpr float ACCEL_RATE{GYRO_RATE / 8.f};      // 1 kHz accel
+	static constexpr float ACCEL_RATE{GYRO_RATE / 2.f};      // 4 kHz accel
 
 	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
 
@@ -162,15 +162,17 @@ private:
 	uint8_t _fifo_accel_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / ACCEL_RATE))};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{7};
+	static constexpr uint8_t size_register_cfg{9};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
-		{ Register::PWR_MGMT_1,    PWR_MGMT_1_BIT::CLKSEL_0, PWR_MGMT_1_BIT::DEVICE_RESET | PWR_MGMT_1_BIT::SLEEP },
-		{ Register::ACCEL_CONFIG,  ACCEL_CONFIG_BIT::AFS_SEL_16G, 0 },
-		{ Register::GYRO_CONFIG,   GYRO_CONFIG_BIT::FS_SEL_2000_DPS, 0 },
-		{ Register::USER_CTRL,     USER_CTRL_BIT::FIFO_EN | USER_CTRL_BIT::I2C_IF_DIS, USER_CTRL_BIT::I2C_MST_EN},
-		{ Register::FIFO_EN,       FIFO_EN_BIT::XG_FIFO_EN | FIFO_EN_BIT::YG_FIFO_EN | FIFO_EN_BIT::ZG_FIFO_EN | FIFO_EN_BIT::ACCEL_FIFO_EN, FIFO_EN_BIT::TEMP_FIFO_EN },
-		{ Register::INT_PIN_CFG,   INT_PIN_CFG_BIT::INT_LEVEL, 0 },
-		{ Register::INT_ENABLE,    INT_ENABLE_BIT::DATA_RDY_INT_EN, 0 }
+		{ Register::PWR_MGMT_1,    PWR_MGMT_1_BIT::CLKSEL_0, PWR_MGMT_1_BIT::H_RESET | PWR_MGMT_1_BIT::SLEEP },
+		{ Register::ACCEL_CONFIG,  ACCEL_CONFIG_BIT::ACCEL_FS_SEL_16G, 0 },
+		{ Register::ACCEL_CONFIG2, ACCEL_CONFIG2_BIT::ACCEL_FCHOICE_B_BYPASS_DLPF, 0 },
+		{ Register::GYRO_CONFIG,   GYRO_CONFIG_BIT::GYRO_FS_SEL_2000_DPS, GYRO_CONFIG_BIT::FCHOICE_B_8KHZ_BYPASS_DLPF },
+		{ Register::CONFIG,        CONFIG_BIT::FIFO_MODE | CONFIG_BIT::DLPF_CFG_BYPASS_DLPF_8KHZ, 0 },
+		{ Register::USER_CTRL,     USER_CTRL_BIT::FIFO_EN, 0 },
+		{ Register::FIFO_EN,       FIFO_EN_BIT::GYRO_XOUT | FIFO_EN_BIT::GYRO_YOUT | FIFO_EN_BIT::GYRO_ZOUT | FIFO_EN_BIT::ACCEL, 0 },
+		{ Register::INT_PIN_CFG,   INT_PIN_CFG_BIT::ACTL, 0 },
+		{ Register::INT_ENABLE,    INT_ENABLE_BIT::RAW_RDY_EN, 0 }
 	};
 };

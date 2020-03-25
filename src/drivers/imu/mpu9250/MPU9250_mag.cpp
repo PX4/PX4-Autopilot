@@ -60,7 +60,7 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotati
 	_mag_overflows(perf_alloc(PC_COUNT, MODULE_NAME": mag_overflows")),
 	_mag_errors(perf_alloc(PC_COUNT, MODULE_NAME": mag_errors"))
 {
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MPU9250);
+	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK8963);
 	_px4_mag.set_scale(MPU9250_MAG_RANGE_GA);
 }
 

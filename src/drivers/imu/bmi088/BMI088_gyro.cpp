@@ -34,6 +34,7 @@
 #include "BMI088_gyro.hpp"
 #include "BMI088_accel.hpp"
 
+using namespace time_literals;
 
 /*
  * Global variable of the accelerometer temperature reading, to read it in the bmi055_gyro driver.
@@ -262,7 +263,7 @@ void
 BMI088_gyro::start()
 {
 	/* start polling at the specified rate */
-	ScheduleOnInterval(BMI088_GYRO_DEFAULT_RATE - BMI088_TIMER_REDUCTION, 1000);
+	ScheduleOnInterval((1_s / BMI088_GYRO_DEFAULT_RATE) - BMI088_TIMER_REDUCTION, 1000);
 }
 
 void

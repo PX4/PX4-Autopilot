@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,13 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__imu__invensense__icm20689
-	MAIN icm20689
+	MODULE drivers__imu__invensense__mpu6500
+	MAIN mpu6500
 	COMPILE_FLAGS
-		-Wno-error
 	SRCS
-		ICM20689.cpp
-		ICM20689.hpp
-		icm20689_main.cpp
+		MPU6500.cpp
+		MPU6500.hpp
+		mpu6500_main.cpp
 	DEPENDS
 		drivers_accelerometer
 		drivers_gyroscope

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,15 +31,15 @@
  *
  ****************************************************************************/
 
-#include "ICM20608G.hpp"
+#include "MPU6500.hpp"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
 void
-ICM20608G::print_usage()
+MPU6500::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("icm20608g", "driver");
+	PRINT_MODULE_USAGE_NAME("mpu9520", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
@@ -48,11 +48,11 @@ ICM20608G::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *ICM20608G::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
+I2CSPIDriverBase *MPU6500::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				       int runtime_instance)
 {
-	ICM20608G *instance = new ICM20608G(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					    cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+	MPU6500 *instance = new MPU6500(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
+					cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -67,15 +67,15 @@ I2CSPIDriverBase *ICM20608G::instantiate(const BusCLIArguments &cli, const BusIn
 	return instance;
 }
 
-void ICM20608G::custom_method(const BusCLIArguments &cli)
+void MPU6500::custom_method(const BusCLIArguments &cli)
 {
 	Reset();
 }
 
-extern "C" int icm20608g_main(int argc, char *argv[])
+extern "C" int mpu6500_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = ICM20608G;
+	using ThisDriver = MPU6500;
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
 
@@ -94,7 +94,7 @@ extern "C" int icm20608g_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_ICM20608G);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_MPU6500);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
