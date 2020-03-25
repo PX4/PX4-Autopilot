@@ -43,6 +43,7 @@ MPU9250::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('M', "Enable Magnetometer (AK8963)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -51,8 +52,9 @@ MPU9250::print_usage()
 I2CSPIDriverBase *MPU9250::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				       int runtime_instance)
 {
+	bool mag = (cli.custom1 == 1);
 	MPU9250 *instance = new MPU9250(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+					cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO(), mag);
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -79,8 +81,12 @@ extern "C" int mpu9250_main(int argc, char *argv[])
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getopt(argc, argv, "MR:")) != EOF) {
 		switch (ch) {
+		case 'M':
+			cli.custom1 = 1;
+			break;
+
 		case 'R':
 			cli.rotation = (enum Rotation)atoi(cli.optarg());
 			break;
