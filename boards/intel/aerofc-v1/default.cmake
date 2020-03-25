@@ -17,7 +17,7 @@ px4_add_board(
 		#differential_pressure # all available differential pressure drivers
 		distance_sensor
 		gps
-		imu/mpu9250
+		imu/invensense/mpu9250
 		#irlock
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
