@@ -54,7 +54,7 @@ static constexpr uint8_t Bit7 = (1 << 7);
 
 namespace InvenSense_ICM20689
 {
-static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8MHz SPI serial interface for communicating with all registers
+static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8MHz SPI serial interface
 static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x98;
@@ -70,6 +70,7 @@ enum class Register : uint8_t {
 
 	FIFO_EN       = 0x23,
 
+	INT_PIN_CFG   = 0x37,
 	INT_ENABLE    = 0x38,
 
 	TEMP_OUT_H    = 0x41,
@@ -125,6 +126,12 @@ enum FIFO_EN_BIT : uint8_t {
 	YG_FIFO_EN    = Bit5,
 	ZG_FIFO_EN    = Bit4,
 	ACCEL_FIFO_EN = Bit3,
+};
+
+// INT_PIN_CFG
+enum INT_PIN_CFG_BIT : uint8_t {
+	INT_LEVEL    = Bit7,
+	INT_RD_CLEAR = Bit4,
 };
 
 // INT_ENABLE
