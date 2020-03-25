@@ -31,10 +31,11 @@
  *
  ****************************************************************************/
 
+#include <uORB/Subscription.hpp>
+
 #include "ADC.hpp"
 
 ADC::ADC(uint32_t base_address, uint32_t channels) :
-	CDev(ADC0_DEVICE_PATH),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_base_address(base_address)
@@ -90,39 +91,14 @@ int ADC::init()
 		return ret_init;
 	}
 
-	/* create the device node */
-	int ret_cdev = CDev::init();
-
-	if (ret_cdev != PX4_OK) {
-		PX4_ERR("CDev init failed");
-		return ret_cdev;
-	}
-
 	// schedule regular updates
 	ScheduleOnInterval(kINTERVAL, kINTERVAL);
 
 	return PX4_OK;
 }
 
-ssize_t ADC::read(cdev::file_t *filp, char *buffer, size_t len)
-{
-	const size_t maxsize = sizeof(px4_adc_msg_t) * _channel_count;
-
-	if (len > maxsize) {
-		len = maxsize;
-	}
-
-	/* block interrupts while copying samples to avoid racing with an update */
-	lock();
-	memcpy(buffer, _samples, len);
-	unlock();
-
-	return len;
-}
-
 void ADC::Run()
 {
-	lock();
 	hrt_abstime now = hrt_absolute_time();
 
 	/* scan the channel set and sample each */
@@ -132,13 +108,13 @@ void ADC::Run()
 
 	update_adc_report(now);
 	update_system_power(now);
-	unlock();
 }
 
 void ADC::update_adc_report(hrt_abstime now)
 {
 	adc_report_s adc = {};
 	adc.timestamp = now;
+	adc.device_id = BUILTIN_ADC_DEVID;
 
 	unsigned max_num = _channel_count;
 
@@ -146,10 +122,19 @@ void ADC::update_adc_report(hrt_abstime now)
 		max_num = (sizeof(adc.channel_id) / sizeof(adc.channel_id[0]));
 	}
 
-	for (unsigned i = 0; i < max_num; i++) {
+	unsigned i;
+
+	for (i = 0; i < max_num; i++) {
 		adc.channel_id[i] = _samples[i].am_channel;
-		adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
+		adc.raw_data[i] = _samples[i].am_data;
 	}
+
+	for (; i < PX4_MAX_ADC_CHANNELS; ++i) {	// set unused channel id to -1
+		adc.channel_id[i] = -1;
+	}
+
+	adc.v_ref = px4_arch_adc_reference_v();
+	adc.resolution = px4_arch_adc_dn_fullcount();
 
 	_to_adc_report.publish(adc);
 }
@@ -252,35 +237,29 @@ uint32_t ADC::sample(unsigned channel)
 
 int ADC::test()
 {
-	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
+	uORB::Subscription	adc_sub_test{ORB_ID(adc_report)};
+	adc_report_s adc;
 
-	if (fd < 0) {
-		PX4_ERR("can't open ADC device %d", errno);
+	px4_usleep(20000);	// sleep 20ms and wait for adc report
+
+	if (adc_sub_test.update(&adc)) {
+		PX4_INFO_RAW("DeviceID: %d\n", adc.device_id);
+		PX4_INFO_RAW("Resolution: %d\n", adc.resolution);
+		PX4_INFO_RAW("Voltage Reference: %f\n", (double)adc.v_ref);
+
+		for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+			PX4_INFO_RAW("%d: %d  ", adc.channel_id[i], adc.raw_data[i]);
+		}
+
+		PX4_INFO_RAW("\n");
+
+		PX4_INFO_RAW("\t ADC test successful.\n");
+
+		return 0;
+
+	} else {
 		return 1;
 	}
-
-	for (unsigned i = 0; i < 20; i++) {
-		px4_adc_msg_t data[ADC_TOTAL_CHANNELS];
-		ssize_t count = px4_read(fd, data, sizeof(data));
-
-		if (count < 0) {
-			PX4_ERR("read error");
-			return 1;
-		}
-
-		unsigned channels = count / sizeof(data[0]);
-
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
-
-		printf("\n");
-		px4_usleep(100000);
-	}
-
-	px4_close(fd);
-
-	return 0;
 }
 
 int ADC::custom_command(int argc, char *argv[])

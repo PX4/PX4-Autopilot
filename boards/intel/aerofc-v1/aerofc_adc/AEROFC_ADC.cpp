@@ -36,12 +36,11 @@
 using namespace time_literals;
 
 AEROFC_ADC::AEROFC_ADC(uint8_t bus) :
-	I2C("AEROFC_ADC", ADC0_DEVICE_PATH, bus, SLAVE_ADDR, 400000),
+	I2C("AEROFC_ADC", AEROFC_ADC_DEVICE_PATH, bus, SLAVE_ADDR, 400000),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample"))
 {
-	_sample.am_channel = 1;
-	pthread_mutex_init(&_sample_mutex, nullptr);
+
 }
 
 AEROFC_ADC::~AEROFC_ADC()
@@ -95,26 +94,16 @@ error:
 	return -EIO;
 }
 
-ssize_t AEROFC_ADC::read(file *filp, char *buffer, size_t len)
-{
-	if (len < sizeof(_sample)) {
-		return -ENOSPC;
-	}
-
-	if (len > sizeof(_sample)) {
-		len = sizeof(_sample);
-	}
-
-	pthread_mutex_lock(&_sample_mutex);
-	memcpy(buffer, &_sample, len);
-	pthread_mutex_unlock(&_sample_mutex);
-
-	return len;
-}
-
 void AEROFC_ADC::Run()
 {
-	uint8_t buffer[2] {};
+	/*
+	 * https://github.com/intel-aero/intel-aero-fpga/blob/master/aero_sample/adc/adc.html
+	 * https://github.com/intel-aero/meta-intel-aero/wiki/95-(References)-FPGA
+	 * https://github.com/intel-aero/intel-aero-fpga/blob/master/aero_rtf_kit/RTL/adc.v
+	 */
+	perf_begin(_sample_perf);
+
+	uint8_t buffer[10] {};
 	buffer[0] = ADC_CHANNEL_REG;
 	int ret = transfer(buffer, 1, buffer, sizeof(buffer));
 
@@ -123,12 +112,24 @@ void AEROFC_ADC::Run()
 		return;
 	}
 
-	pthread_mutex_lock(&_sample_mutex);
-	_sample.am_data = (buffer[0] | (buffer[1] << 8));
-	pthread_mutex_unlock(&_sample_mutex);
-}
+	adc_report_s adc_report;
+	adc_report.device_id = this->get_device_id();
+	adc_report.timestamp = hrt_absolute_time();
+	adc_report.v_ref = 3.0f;
+	adc_report.resolution = 1 << 12;
 
-uint32_t px4_arch_adc_dn_fullcount()
-{
-	return 1 << 12; // 12 bit ADC
+	unsigned i;
+
+	for (i = 0; i < MAX_CHANNEL; ++i) {
+		adc_report.channel_id[i] = i;
+		adc_report.raw_data[i] = (buffer[i * 2] | (buffer[i * 2 + 1] << 8));
+	}
+
+	for (; i < PX4_MAX_ADC_CHANNELS; ++i) {	// set unused channel id to -1
+		adc_report.channel_id[i] = -1;
+	}
+
+	_to_adc_report.publish(adc_report);
+
+	perf_end(_sample_perf);
 }

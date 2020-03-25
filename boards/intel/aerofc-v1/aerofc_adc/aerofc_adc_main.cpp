@@ -63,30 +63,7 @@ static AEROFC_ADC *instance = nullptr;
 
 static int test()
 {
-	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("can't open ADC device");
-		return PX4_ERROR;
-	}
-
-	px4_adc_msg_t data[MAX_CHANNEL];
-	ssize_t count = px4_read(fd, data, sizeof(data));
-
-	if (count < 0) {
-		PX4_ERR("read error");
-		px4_close(fd);
-		return PX4_ERROR;
-	}
-
-	unsigned channels = count / sizeof(data[0]);
-
-	for (unsigned j = 0; j < channels; j++) {
-		printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-	}
-
-	printf("\n");
-	px4_close(fd);
+	PX4_INFO("test is currently unavailable");
 
 	return 0;
 }

@@ -18,10 +18,6 @@
 	path = src/lib/matrix
 	url = https://github.com/PX4/Matrix.git
 	branch = master
-[submodule "src/lib/ecl"]
-	path = src/lib/ecl
-	url = https://github.com/PX4/ecl.git
-	branch = master
 [submodule "boards/atlflight/cmake_hexagon"]
 	path = boards/atlflight/cmake_hexagon
 	url = https://github.com/PX4/cmake_hexagon.git
@@ -45,3 +41,6 @@
 [submodule "platforms/qurt/dspal"]
 	path = platforms/qurt/dspal
 	url = https://github.com/ATLFlight/dspal.git
+[submodule "src/lib/ecl"]
+	path = src/lib/ecl
+	url = https://github.com/uvify/ecl.git

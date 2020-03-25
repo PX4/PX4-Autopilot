@@ -157,12 +157,8 @@
 #define BOARD_ADC_POS_REF_V              (3.3f) // Default reference voltage for every channels
 #endif
 
-#ifndef BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN
-#define BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN (3.3f) // Reference voltage for reading out the current channel
-#endif
-
-#ifndef BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN
-#define BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN (3.3f) // Reference voltage for reading out the voltage channel
+#if !defined(ADC_DP_V_DIV)						// Analog differential pressure (analog airspeed sensor)
+#define ADC_DP_V_DIV                    (2.0f)	// The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
 /* Provide define for Bricks and Battery */

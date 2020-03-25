@@ -33,8 +33,6 @@
 
 #include "MPU6000.hpp"
 
-#include <px4_platform/board_dma_alloc.h>
-
 using namespace time_literals;
 using namespace InvenSense_MPU6000;
 
@@ -66,10 +64,6 @@ MPU6000::~MPU6000()
 {
 	Stop();
 
-	if (_dma_data_buffer != nullptr) {
-		board_dma_free(_dma_data_buffer, FIFO::SIZE);
-	}
-
 	perf_free(_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
@@ -98,14 +92,6 @@ bool MPU6000::Init()
 
 	if (!Reset()) {
 		PX4_ERR("reset failed");
-		return false;
-	}
-
-	// allocate DMA capable buffer
-	_dma_data_buffer = (uint8_t *)board_dma_alloc(FIFO::SIZE);
-
-	if (_dma_data_buffer == nullptr) {
-		PX4_ERR("DMA alloc failed");
 		return false;
 	}
 
@@ -285,20 +271,12 @@ void MPU6000::Run()
 	}
 
 	// Transfer data
-	struct TransferBuffer {
-		uint8_t cmd;
-		FIFO::DATA f[16]; // max 16 samples
-	};
-	static_assert(sizeof(TransferBuffer) == (sizeof(uint8_t) + 16 * sizeof(FIFO::DATA))); // ensure no struct padding
-
-	TransferBuffer *report = (TransferBuffer *)_dma_data_buffer;
+	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
-	memset(report, 0, transfer_size);
-	report->cmd = static_cast<uint8_t>(Register::FIFO_R_W) | DIR_READ;
 
 	perf_begin(_transfer_perf);
 
-	if (transfer(_dma_data_buffer, _dma_data_buffer, transfer_size) != PX4_OK) {
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_end(_transfer_perf);
 		return;
 	}
@@ -317,7 +295,7 @@ void MPU6000::Run()
 
 	// accel data is duplicated 8 times
 	for (int i = 0; i < accel.samples; i++) {
-		const FIFO::DATA &fifo_sample = report->f[i];
+		const FIFO::DATA &fifo_sample = buffer.f[i];
 
 		// coordinate convention (x forward, y right, z down)
 		accel.x[i] = combine(fifo_sample.ACCEL_XOUT_H, fifo_sample.ACCEL_XOUT_L);
@@ -326,7 +304,7 @@ void MPU6000::Run()
 	}
 
 	for (int i = 0; i < samples; i++) {
-		const FIFO::DATA &fifo_sample = report->f[i];
+		const FIFO::DATA &fifo_sample = buffer.f[i];
 
 		// coordinate convention (x forward, y right, z down)
 		gyro.x[i] = combine(fifo_sample.GYRO_XOUT_H, fifo_sample.GYRO_XOUT_L);

@@ -33,10 +33,7 @@
 
 #include "ISM330DLC.hpp"
 
-#include <px4_platform/board_dma_alloc.h>
-
 using namespace time_literals;
-using namespace ST_ISM330DLC;
 
 static constexpr int16_t combine(uint8_t lsb, uint8_t msb) { return (msb << 8u) | lsb; }
 
@@ -59,10 +56,6 @@ ISM330DLC::ISM330DLC(int bus, uint32_t device, enum Rotation rotation) :
 ISM330DLC::~ISM330DLC()
 {
 	Stop();
-
-	if (_dma_data_buffer != nullptr) {
-		board_dma_free(_dma_data_buffer, FIFO::SIZE);
-	}
 
 	perf_free(_interval_perf);
 	perf_free(_transfer_perf);
@@ -94,14 +87,6 @@ bool ISM330DLC::Init()
 
 	if (!Reset()) {
 		PX4_ERR("reset failed");
-		return false;
-	}
-
-	// allocate DMA capable buffer
-	_dma_data_buffer = (uint8_t *)board_dma_alloc(FIFO::SIZE);
-
-	if (_dma_data_buffer == nullptr) {
-		PX4_ERR("DMA alloc failed");
 		return false;
 	}
 
@@ -292,21 +277,12 @@ void ISM330DLC::Run()
 		return;
 	}
 
-	// Transfer data
-	struct TransferBuffer {
-		uint8_t cmd;
-		FIFO::DATA f[16]; // max 16 samples
-	};
-	static_assert(sizeof(TransferBuffer) == (sizeof(uint8_t) + 16 * sizeof(FIFO::DATA))); // ensure no struct padding
-
-	TransferBuffer *report = (TransferBuffer *)_dma_data_buffer;
+	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
-	memset(report, 0, transfer_size);
-	report->cmd = static_cast<uint8_t>(Register::FIFO_DATA_OUT_L) | DIR_READ;
 
 	perf_begin(_transfer_perf);
 
-	if (transfer(_dma_data_buffer, _dma_data_buffer, transfer_size) != PX4_OK) {
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_end(_transfer_perf);
 		return;
 	}
@@ -324,7 +300,7 @@ void ISM330DLC::Run()
 	gyro.dt = 1000000 / ST_ISM330DLC::G_ODR;
 
 	for (int i = 0; i < samples; i++) {
-		const FIFO::DATA &fifo_sample = report->f[i];
+		const FIFO::DATA &fifo_sample = buffer.f[i];
 
 		// sensor Z is up (RHC), flip y & z for publication
 		gyro.x[i] = combine(fifo_sample.OUTX_L_G, fifo_sample.OUTX_H_G);

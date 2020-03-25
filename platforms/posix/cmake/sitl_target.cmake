@@ -66,30 +66,34 @@ set(models none shell
 	standard_vtol tailsitter tiltrotor
 	rover boat
 	uuv_hippocampus)
+set(worlds none empty warehouse)
 set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})
 		foreach(model ${models})
-			if (debugger STREQUAL "none")
-				if (model STREQUAL "none")
-					set(_targ_name "${viewer}")
-				else()
-					set(_targ_name "${viewer}_${model}")
-				endif()
-			else()
-				if (model STREQUAL "none")
-					set(_targ_name "${viewer}___${debugger}")
-				else()
-					set(_targ_name "${viewer}_${model}_${debugger}")
-				endif()
-			endif()
+			foreach(world ${worlds})
+				if (world STREQUAL "none")
+					if (debugger STREQUAL "none")
+						if (model STREQUAL "none")
+							set(_targ_name "${viewer}")
+						else()
+							set(_targ_name "${viewer}_${model}")
+						endif()
+					else()
+						if (model STREQUAL "none")
+							set(_targ_name "${viewer}___${debugger}")
+						else()
+							set(_targ_name "${viewer}_${model}_${debugger}")
+						endif()
+					endif()
 
-			add_custom_target(${_targ_name}
+					add_custom_target(${_targ_name}
 					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 						$<TARGET_FILE:px4>
 						${debugger}
 						${viewer}
 						${model}
+						${world}
 						${PX4_SOURCE_DIR}
 						${PX4_BINARY_DIR}
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
@@ -97,12 +101,47 @@ foreach(viewer ${viewers})
 					DEPENDS
 						logs_symlink
 					)
-			list(APPEND all_posix_vmd_make_targets ${_targ_name})
-			if (viewer STREQUAL "gazebo")
-				add_dependencies(${_targ_name} px4 sitl_gazebo)
-			elseif(viewer STREQUAL "jmavsim")
-				add_dependencies(${_targ_name} px4 git_jmavsim)
-			endif()
+					list(APPEND all_posix_vmd_make_targets ${_targ_name})
+					if (viewer STREQUAL "gazebo")
+						add_dependencies(${_targ_name} px4 sitl_gazebo)
+					elseif(viewer STREQUAL "jmavsim")
+						add_dependencies(${_targ_name} px4 git_jmavsim)
+					endif()
+				else()
+					if (viewer STREQUAL "gazebo")
+						if (debugger STREQUAL "none")
+							if (model STREQUAL "none")
+								set(_targ_name "${viewer}___${world}")
+							else()
+								set(_targ_name "${viewer}_${model}__${world}")
+							endif()
+						else()
+							if (model STREQUAL "none")
+								set(_targ_name "${viewer}__${debugger}_${world}")
+							else()
+								set(_targ_name "${viewer}_${model}_${debugger}_${world}")
+							endif()
+						endif()
+
+						add_custom_target(${_targ_name}
+						COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+							$<TARGET_FILE:px4>
+							${debugger}
+							${viewer}
+							${model}
+							${world}
+							${PX4_SOURCE_DIR}
+							${PX4_BINARY_DIR}
+						WORKING_DIRECTORY ${SITL_WORKING_DIR}
+						USES_TERMINAL
+						DEPENDS
+							logs_symlink
+						)
+						list(APPEND all_posix_vmd_make_targets ${_targ_name})
+						add_dependencies(${_targ_name} px4 sitl_gazebo)
+					endif()
+				endif()
+			endforeach()
 		endforeach()
 	endforeach()
 endforeach()
