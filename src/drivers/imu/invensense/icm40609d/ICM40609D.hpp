@@ -76,22 +76,24 @@ protected:
 	void custom_method(const BusCLIArguments &cli) override;
 	void exit_and_cleanup() override;
 private:
-
 	// Sensor Configuration
-	static constexpr uint32_t GYRO_RATE{8000};  // 8 kHz gyro
-	static constexpr uint32_t ACCEL_RATE{8000}; // 8 kHz accel
-	static constexpr uint32_t FIFO_MAX_SAMPLES{ math::min(FIFO::SIZE / sizeof(FIFO::DATA) + 1, sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
+	static constexpr float FIFO_SAMPLE_DT{125.f};
+	static constexpr uint32_t SAMPLES_PER_TRANSFER{1}; // ensure at least 1 new accel sample per transfer
+	static constexpr float GYRO_RATE{1000000 / FIFO_SAMPLE_DT}; // 8 kHz gyro
+	static constexpr float ACCEL_RATE{GYRO_RATE};               // 8 kHz accel
+
+	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
 		uint8_t cmd{static_cast<uint8_t>(Register::BANK_0::INT_STATUS) | DIR_READ};
-		uint8_t INT_STATUS;
-		uint8_t FIFO_COUNTH;
-		uint8_t FIFO_COUNTL;
+		uint8_t INT_STATUS{0};
+		uint8_t FIFO_COUNTH{0};
+		uint8_t FIFO_COUNTL{0};
 		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
 	};
 	// ensure no struct padding
-	static_assert(sizeof(FIFOTransferBuffer) == (4 * sizeof(uint8_t) + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
+	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
 
 	struct register_bank0_config_t {
 		Register::BANK_0 reg;
@@ -105,6 +107,7 @@ private:
 	void ConfigureAccel();
 	void ConfigureGyro();
 	void ConfigureSampleRate(int sample_rate);
+	void ConfigureFIFOWatermark(uint8_t samples);
 
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
 	void DataReady();
@@ -112,18 +115,19 @@ private:
 	bool DataReadyInterruptDisable();
 
 	bool RegisterCheck(const register_bank0_config_t &reg_cfg, bool notify = false);
+
 	uint8_t RegisterRead(Register::BANK_0 reg);
 	void RegisterWrite(Register::BANK_0 reg, uint8_t value);
 	void RegisterSetAndClearBits(Register::BANK_0 reg, uint8_t setbits, uint8_t clearbits);
-	void RegisterSetBits(Register::BANK_0 reg, uint8_t setbits);
-	void RegisterClearBits(Register::BANK_0 reg, uint8_t clearbits);
+	void RegisterSetBits(Register::BANK_0 reg, uint8_t setbits) { RegisterSetAndClearBits(reg, setbits, 0); }
+	void RegisterClearBits(Register::BANK_0 reg, uint8_t clearbits) { RegisterSetAndClearBits(reg, 0, clearbits); }
 
 	uint16_t FIFOReadCount();
 	bool FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples);
 	void FIFOReset();
 
-	void ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples);
-	void ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, uint8_t samples);
+	void ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, const uint8_t samples);
+	void ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, const uint8_t samples);
 	void UpdateTemperature();
 
 	const spi_drdy_gpio_t _drdy_gpio;
@@ -156,7 +160,7 @@ private:
 
 	STATE _state{STATE::RESET};
 
-	uint16_t _fifo_empty_interval_us{500}; // default 500 us / 2000 Hz transfer interval
+	uint16_t _fifo_empty_interval_us{1000}; // default 1000 us / 1000 Hz transfer interval
 	uint8_t _fifo_gyro_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 	uint8_t _fifo_accel_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / ACCEL_RATE))};
 
