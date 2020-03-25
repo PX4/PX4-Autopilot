@@ -140,10 +140,5 @@ then
 	param set MAV_1_FORWARD 1
 	param set MAV_1_RATE 800000
 	param set SER_TEL2_BAUD 921600
-
-	# Disable internal magnetometer sensor
-	param set CAL_MAG0_EN 0
-	# Enable external magnetometer sensor
-	param set CAL_MAG1_EN 1
 fi
 
