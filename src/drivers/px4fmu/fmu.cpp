@@ -1119,14 +1119,15 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(10):
 	case PWM_SERVO_SET(9):
 	case PWM_SERVO_SET(8):
-		// if (_mode < MODE_14PWM) {
-		// 	ret = -EINVAL;
-		// 	break;
-		// }
+		if (_mode < MODE_14PWM) {
+			ret = -EINVAL;
+			break;
+		}
 
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
+	/* FALLTHROUGH */
 	case PWM_SERVO_SET(7):
 
 	/* FALLTHROUGH */

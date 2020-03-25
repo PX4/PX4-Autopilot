@@ -31,33 +31,12 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#include <px4_arch/i2c_hw_description.h>
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_MAG_DEVTYPE_RM3100, SPI::CS{GPIO::PortF, GPIO::Pin2}, SPI::DRDY{GPIO::PortE, GPIO::Pin4}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortG, GPIO::Pin6}, SPI::DRDY{GPIO::PortJ, GPIO::Pin0}),
-	}, {GPIO::PortE, GPIO::Pin3}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortF, GPIO::Pin5})
-	}),
-	initSPIBus(SPI::Bus::SPI4, {
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortG, GPIO::Pin10}),
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin4}, SPI::DRDY{GPIO::PortB, GPIO::Pin14}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin3}, SPI::DRDY{GPIO::PortB, GPIO::Pin15}),
-	}),
-	initSPIBusExternal(SPI::Bus::SPI5, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin4}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
-	}),
-	initSPIBus(SPI::Bus::SPI6, {
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortI, GPIO::Pin8}),
-		// TODO: ICM20649
-		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortI, GPIO::Pin12}, SPI::DRDY{GPIO::PortH, GPIO::Pin5}),
-	}),
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusExternal(1),
+	initI2CBusExternal(2),
+	initI2CBusInternal(3),
+	initI2CBusExternal(4),
 };
-
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
 

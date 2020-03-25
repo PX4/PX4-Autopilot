@@ -6,7 +6,3 @@
 # Start MAVLink on the USB port
 mavlink start -d /dev/ttyACM0
 
-# Start MAVLink on the uart port
-mavlink start -d /dev/ttyS3
-
-#gps start -d /dev/ttyS2
