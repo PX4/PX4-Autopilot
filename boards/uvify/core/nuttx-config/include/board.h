@@ -225,6 +225,7 @@
 
 /* UART8 has no alternate pin config */
 
+
 /*
  * CAN
  *

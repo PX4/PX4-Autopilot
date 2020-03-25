@@ -19,7 +19,8 @@ px4_add_board(
 		barometer/bmp280
 		dshot
 		gps
-		imu/mpu6000
+		imu/invensense/icm20689
+		imu/invensense/mpu6000
 		magnetometer
 		optical_flow/px4flow
 		osd

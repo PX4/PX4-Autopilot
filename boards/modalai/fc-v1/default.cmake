@@ -27,7 +27,6 @@ px4_add_board(
 		imu/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm42688p
-		imu/mpu6000
 		irlock
 		lights/blinkm
 		lights/rgbled

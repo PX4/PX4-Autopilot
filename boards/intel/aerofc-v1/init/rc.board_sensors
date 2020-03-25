@@ -9,7 +9,8 @@ if ! ms5611 -T 5607 start
 then
 	ms5611 start
 fi
-mpu9250 -s -R 14 start
+
+mpu9250 -s -R 0 start
 
 # Possible external compasses
 hmc5883 -X start
