@@ -39,7 +39,7 @@ using namespace time_literals;
 EscBattery::EscBattery() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_battery(3, this)
+	_battery(1, this)
 {
 	parameters_updated();
 }
