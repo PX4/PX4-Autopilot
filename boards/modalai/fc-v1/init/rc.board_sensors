@@ -13,13 +13,13 @@ voxlpm -X -b 3 -T P5VDC start
 mpu6000 -R 6 -s -T 20602 start
 
 # Internal SPI bus ICM-42688
-icm42688p -R 12 start
+icm42688p -R 12 -s start
 
 # Internal SPI bus BMI088 accel
-bmi088 -A -R 4 start
+bmi088 -A -R 4 -s start
 
 # Internal SPI bus BMI088 gyro
-bmi088 -G -R 4 start
+bmi088 -G -R 4 -s start
 
 # Possible external compasses
 ist8310 -X start
@@ -29,5 +29,5 @@ qmc5883 -X start
 # Internal I2C Baro
 bmp388 -I start
 
-# External RM3100 (I2C or SPI)
-rm3100 start
+# External RM3100
+rm3100 -X start

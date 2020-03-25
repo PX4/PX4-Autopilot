@@ -43,14 +43,12 @@
 
 #include "icm20948.h"
 
-#ifdef USE_I2C
-
-device::Device *ICM20948_I2C_interface(int bus, uint32_t address);
+device::Device *ICM20948_I2C_interface(int bus, uint32_t address, int bus_frequency);
 
 class ICM20948_I2C : public device::I2C
 {
 public:
-	ICM20948_I2C(int bus, uint32_t address);
+	ICM20948_I2C(int bus, uint32_t address, int bus_frequency);
 	~ICM20948_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -64,13 +62,13 @@ private:
 };
 
 device::Device *
-ICM20948_I2C_interface(int bus, uint32_t address)
+ICM20948_I2C_interface(int bus, uint32_t address, int bus_frequency)
 {
-	return new ICM20948_I2C(bus, address);
+	return new ICM20948_I2C(bus, address, bus_frequency);
 }
 
-ICM20948_I2C::ICM20948_I2C(int bus, uint32_t address) :
-	I2C("ICM20948_I2C", nullptr, bus, address, 400000)
+ICM20948_I2C::ICM20948_I2C(int bus, uint32_t address, int bus_frequency) :
+	I2C("ICM20948_I2C", nullptr, bus, address, bus_frequency)
 {
 	_device_id.devid_s.devtype = DRV_IMU_DEVTYPE_ICM20948;
 }
@@ -126,5 +124,3 @@ ICM20948_I2C::probe()
 
 	return -ENODEV;
 }
-
-#endif /* USE_I2C */

@@ -34,118 +34,83 @@
 #include "ICM40609D.hpp"
 
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-namespace icm40609d
+void ICM40609D::print_usage()
 {
-ICM40609D *g_dev{nullptr};
-
-static int start(enum Rotation rotation)
-{
-	if (g_dev != nullptr) {
-		PX4_WARN("already started");
-		return 0;
-	}
-
-	// create the driver
-#if defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_ICM_40609D)
-	g_dev = new ICM40609D(PX4_SPI_BUS_SENSORS, PX4_SPIDEV_ICM_40609D, rotation);
-#endif
-
-	if (g_dev == nullptr) {
-		PX4_ERR("driver start failed");
-		return -1;
-	}
-
-	if (!g_dev->Init()) {
-		PX4_ERR("driver init failed");
-		delete g_dev;
-		g_dev = nullptr;
-		return -1;
-	}
-
-	return 0;
+	PRINT_MODULE_USAGE_NAME("icm40609d", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_COMMAND("reset");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-static int stop()
+I2CSPIDriverBase *ICM40609D::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+		int runtime_instance)
 {
-	if (g_dev == nullptr) {
-		PX4_WARN("driver not running");
-		return -1;
+	ICM40609D *instance = new ICM40609D(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
+					    cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	g_dev->Stop();
-	delete g_dev;
-	g_dev = nullptr;
-
-	return 0;
-}
-
-static int reset()
-{
-	if (g_dev == nullptr) {
-		PX4_WARN("driver not running");
-		return 0;
+	if (OK != instance->init()) {
+		delete instance;
+		return nullptr;
 	}
 
-	return g_dev->Reset();
+	return instance;
 }
 
-static int status()
+void ICM40609D::custom_method(const BusCLIArguments &cli)
 {
-	if (g_dev == nullptr) {
-		PX4_INFO("driver not running");
-		return 0;
-	}
-
-	g_dev->PrintInfo();
-
-	return 0;
+	Reset();
 }
-
-static int usage()
-{
-	PX4_INFO("missing command: try 'start', 'stop', 'reset', 'status'");
-	PX4_INFO("options:");
-	PX4_INFO("    -R rotation");
-
-	return 0;
-}
-
-} // namespace icm40609d
 
 extern "C" int icm40609d_main(int argc, char *argv[])
 {
-	enum Rotation rotation = ROTATION_NONE;
-	int myoptind = 1;
-	int ch = 0;
-	const char *myoptarg = nullptr;
+	int ch;
+	using ThisDriver = ICM40609D;
+	BusCLIArguments cli{false, true};
+	cli.default_spi_frequency = SPI_SPEED;
 
-	// start options
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(myoptarg);
+			cli.rotation = (enum Rotation)atoi(cli.optarg());
 			break;
-
-		default:
-			return icm40609d::usage();
 		}
 	}
 
-	const char *verb = argv[myoptind];
+	const char *verb = cli.optarg();
 
-	if (!strcmp(verb, "start")) {
-		return icm40609d::start(rotation);
-
-	} else if (!strcmp(verb, "stop")) {
-		return icm40609d::stop();
-
-	} else if (!strcmp(verb, "status")) {
-		return icm40609d::status();
-
-	} else if (!strcmp(verb, "reset")) {
-		return icm40609d::reset();
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
 	}
 
-	return icm40609d::usage();
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_ICM40609D);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	if (!strcmp(verb, "reset")) {
+		return ThisDriver::module_custom_method(cli, iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }

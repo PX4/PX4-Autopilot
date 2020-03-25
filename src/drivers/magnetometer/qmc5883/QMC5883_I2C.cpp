@@ -37,34 +37,19 @@
  * I2C interface for QMC5883
  */
 
-/* XXX trim includes */
 #include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <debug.h>
-#include <errno.h>
-#include <unistd.h>
-
 #include <drivers/device/i2c.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_device.h>
 
 #include "qmc5883.h"
 
-#include "board_config.h"
-
-#define QMC5883L_ADDRESS		0x0D
-
-device::Device *QMC5883_I2C_interface(int bus);
+device::Device *QMC5883_I2C_interface(int bus, int bus_frequency, int i2c_address);
 
 class QMC5883_I2C : public device::I2C
 {
 public:
-	QMC5883_I2C(int bus);
+	QMC5883_I2C(int bus, int bus_frequency, int i2c_address);
 	virtual ~QMC5883_I2C() = default;
 
 	virtual int	read(unsigned address, void *data, unsigned count);
@@ -78,13 +63,13 @@ protected:
 };
 
 device::Device *
-QMC5883_I2C_interface(int bus)
+QMC5883_I2C_interface(int bus, int bus_frequency, int i2c_address)
 {
-	return new QMC5883_I2C(bus);
+	return new QMC5883_I2C(bus, bus_frequency, i2c_address);
 }
 
-QMC5883_I2C::QMC5883_I2C(int bus) :
-	I2C("QMC5883_I2C", nullptr, bus, QMC5883L_ADDRESS, 400000)
+QMC5883_I2C::QMC5883_I2C(int bus, int bus_frequency, int i2c_address) :
+	I2C("QMC5883_I2C", nullptr, bus, i2c_address, bus_frequency)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_QMC5883;
 }

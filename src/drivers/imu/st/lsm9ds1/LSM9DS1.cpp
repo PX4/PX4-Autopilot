@@ -73,20 +73,23 @@ int LSM9DS1::probe()
 	return PX4_ERROR;
 }
 
-bool LSM9DS1::Init()
+int LSM9DS1::init()
 {
-	if (SPI::init() != PX4_OK) {
-		return false;
+	int ret = SPI::init();
+
+	if (ret != OK) {
+		DEVICE_DEBUG("SPI init failed (%i)", ret);
+		return ret;
 	}
 
 	if (!Reset()) {
 		PX4_ERR("reset failed");
-		return false;
+		return PX4_ERROR;
 	}
 
 	Start();
 
-	return true;
+	return PX4_OK;
 }
 
 bool LSM9DS1::Reset()
@@ -172,16 +175,9 @@ void LSM9DS1::RegisterClearBits(Register reg, uint8_t clearbits)
 
 void LSM9DS1::Start()
 {
-	Stop();
-
 	ResetFIFO();
 
 	ScheduleOnInterval(_fifo_interval / 2, _fifo_interval);
-}
-
-void LSM9DS1::Stop()
-{
-	ScheduleClear();
 }
 
 void LSM9DS1::RunImpl()

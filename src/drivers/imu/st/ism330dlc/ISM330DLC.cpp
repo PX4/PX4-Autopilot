@@ -39,9 +39,11 @@ static constexpr int16_t combine(uint8_t lsb, uint8_t msb) { return (msb << 8u) 
 
 static constexpr uint32_t FIFO_INTERVAL{1000}; // 1000 us / 1000 Hz interval
 
-ISM330DLC::ISM330DLC(int bus, uint32_t device, enum Rotation rotation) :
-	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+ISM330DLC::ISM330DLC(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		     spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
+	SPI(MODULE_NAME, nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	_drdy_gpio(drdy_gpio),
 	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation)
 {
@@ -55,8 +57,6 @@ ISM330DLC::ISM330DLC(int bus, uint32_t device, enum Rotation rotation) :
 
 ISM330DLC::~ISM330DLC()
 {
-	Stop();
-
 	perf_free(_interval_perf);
 	perf_free(_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -66,33 +66,47 @@ ISM330DLC::~ISM330DLC()
 	perf_free(_drdy_interval_perf);
 }
 
+void ISM330DLC::exit_and_cleanup()
+{
+	if (_drdy_gpio != 0) {
+		// Disable data ready callback
+		px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr);
+
+		RegisterWrite(Register::INT1_CTRL, 0);
+	}
+
+	I2CSPIDriverBase::exit_and_cleanup();
+}
+
 int ISM330DLC::probe()
 {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
 	if (whoami != ISM330DLC_WHO_AM_I) {
-		PX4_WARN("unexpected WHO_AM_I 0x%02x", whoami);
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-bool ISM330DLC::Init()
+int ISM330DLC::init()
 {
-	if (SPI::init() != PX4_OK) {
-		PX4_ERR("SPI::init failed");
-		return false;
+	int ret = SPI::init();
+
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("SPI::init failed (%i)", ret);
+		return ret;
 	}
 
 	if (!Reset()) {
 		PX4_ERR("reset failed");
-		return false;
+		return PX4_ERROR;
 	}
 
 	Start();
 
-	return true;
+	return PX4_OK;
 }
 
 bool ISM330DLC::Reset()
@@ -193,41 +207,28 @@ void ISM330DLC::DataReady()
 
 void ISM330DLC::Start()
 {
-	Stop();
-
 	ResetFIFO();
 
-#if defined(GPIO_SPI2_DRDY1_ISM330) && false	// TODO: enable
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_SPI2_DRDY1_ISM330, true, true, false, &ISM330DLC::DataReadyInterruptCallback, this);
+	if (_drdy_gpio != 0 && false) { // TODO: enable
+		// Setup data ready on rising edge
+		px4_arch_gpiosetevent(_drdy_gpio, true, true, false, &ISM330DLC::DataReadyInterruptCallback, this);
 
-	// FIFO threshold level setting
-	// FIFO_CTRL1: FTH_[7:0]
-	// FIFO_CTRL2: FTH_[10:8]
-	const uint8_t fifo_threshold = 12;
-	RegisterWrite(Register::FIFO_CTRL1, fifo_threshold);
+		// FIFO threshold level setting
+		// FIFO_CTRL1: FTH_[7:0]
+		// FIFO_CTRL2: FTH_[10:8]
+		const uint8_t fifo_threshold = 12;
+		RegisterWrite(Register::FIFO_CTRL1, fifo_threshold);
 
-	// INT1: FIFO full, overrun, or threshold
-	RegisterWrite(Register::INT1_CTRL, INT1_CTRL_BIT::INT1_FULL_FLAG | INT1_CTRL_BIT::INT1_FIFO_OVR |
-		      INT1_CTRL_BIT::INT1_FTH);
-#else
-	ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
-#endif
+		// INT1: FIFO full, overrun, or threshold
+		RegisterWrite(Register::INT1_CTRL, INT1_CTRL_BIT::INT1_FULL_FLAG | INT1_CTRL_BIT::INT1_FIFO_OVR |
+			      INT1_CTRL_BIT::INT1_FTH);
+
+	} else {
+		ScheduleOnInterval(FIFO_INTERVAL, FIFO_INTERVAL);
+	}
 }
 
-void ISM330DLC::Stop()
-{
-#if defined(GPIO_SPI2_DRDY1_ISM330) && false	// TODO: enable
-	// Disable data ready callback
-	px4_arch_gpiosetevent(GPIO_SPI2_DRDY1_ISM330, false, false, false, nullptr, nullptr);
-
-	RegisterWrite(Register::INT1_CTRL, 0);
-#else
-	ScheduleClear();
-#endif
-}
-
-void ISM330DLC::Run()
+void ISM330DLC::RunImpl()
 {
 	perf_count(_interval_perf);
 
@@ -333,8 +334,9 @@ void ISM330DLC::Run()
 	_px4_accel.updateFIFO(accel);
 }
 
-void ISM330DLC::PrintInfo()
+void ISM330DLC::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_interval_perf);
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);

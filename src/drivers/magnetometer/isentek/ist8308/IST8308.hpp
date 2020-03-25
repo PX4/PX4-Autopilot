@@ -47,22 +47,31 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 using namespace iSentek_IST8308;
 
-class IST8308 : public device::I2C, public px4::ScheduledWorkItem
+class IST8308 : public device::I2C, public I2CSPIDriver<IST8308>
 {
 public:
-	IST8308(int bus, uint8_t address = I2C_ADDRESS_DEFAULT, enum Rotation rotation = ROTATION_NONE);
+	IST8308(I2CSPIBusOption bus_option, int bus, enum Rotation rotation, int bus_frequency);
 	~IST8308() override;
 
-	bool Init();
-	void Start();
-	void Stop();
-	bool Reset();
-	void PrintInfo();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
+	void print_status();
+
+	int init() override;
+
+	void Start();
+	bool Reset();
+
+	void     RunImpl();
+
+protected:
+	void custom_method(const BusCLIArguments &cli) override;
 private:
 
 	// Sensor Configuration
@@ -73,8 +82,6 @@ private:
 	};
 
 	int probe() override;
-
-	void Run() override;
 
 	bool Configure();
 
@@ -100,11 +107,9 @@ private:
 		WAIT_FOR_RESET,
 		CONFIGURE,
 		READ,
-		REQUEST_STOP,
-		STOPPED,
 	};
 
-	px4::atomic<STATE> _state{STATE::RESET};
+	STATE _state{STATE::RESET};
 
 	static constexpr uint8_t size_register_cfg{5};
 	register_config_t _register_cfg[size_register_cfg] {

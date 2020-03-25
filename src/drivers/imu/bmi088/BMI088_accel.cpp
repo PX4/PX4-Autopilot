@@ -52,9 +52,10 @@ const uint8_t BMI088_accel::_checked_registers[BMI088_ACCEL_NUM_CHECKED_REGISTER
 										      BMI088_ACC_PWR_CTRL,
 										     };
 
-BMI088_accel::BMI088_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation) :
-	BMI088("BMI088_ACCEL", path_accel, bus, device, SPIDEV_MODE3, BMI088_BUS_SPEED, rotation),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+BMI088_accel::BMI088_accel(I2CSPIBusOption bus_option, int bus, const char *path_accel, uint32_t device,
+			   enum Rotation rotation,
+			   int bus_frequency, spi_mode_e spi_mode) :
+	BMI088("bmi088_accel", path_accel, bus_option, bus, DRV_ACC_DEVTYPE_BMI088, device, spi_mode, bus_frequency, rotation),
 	_px4_accel(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi088_accel_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi088_accel_bad_transfers")),
@@ -67,9 +68,6 @@ BMI088_accel::BMI088_accel(int bus, const char *path_accel, uint32_t device, enu
 
 BMI088_accel::~BMI088_accel()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
@@ -326,28 +324,12 @@ BMI088_accel::set_accel_range(unsigned max_g)
 void
 BMI088_accel::start()
 {
-	/* make sure we are stopped first */
-	stop();
-
 	// Reset the accelerometer
 	reset();
 
 	/* start polling at the specified rate */
 	ScheduleOnInterval(BMI088_ACCEL_DEFAULT_RATE - BMI088_TIMER_REDUCTION, 1000);
 
-}
-
-void
-BMI088_accel::stop()
-{
-	ScheduleClear();
-}
-
-void
-BMI088_accel::Run()
-{
-	/* make another measurement */
-	measure();
 }
 
 void
@@ -394,7 +376,7 @@ BMI088_accel::check_registers(void)
 }
 
 void
-BMI088_accel::measure()
+BMI088_accel::RunImpl()
 {
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
@@ -530,8 +512,9 @@ BMI088_accel::measure()
 }
 
 void
-BMI088_accel::print_info()
+BMI088_accel::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	PX4_INFO("Accel");
 
 	perf_print_counter(_sample_perf);

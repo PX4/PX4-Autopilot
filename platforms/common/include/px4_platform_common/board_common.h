@@ -51,54 +51,6 @@
  * Definitions
  ************************************************************************************/
 
-/* SPI bus defining tools
- *
- * For new boards we use a board_config.h to define all the SPI functionality
- *  A board provides SPI bus definitions and a set of buses that should be
- *  enumerated as well as chip selects that will be iterateable
- *
- * We will use these in macros place of the uint32_t enumeration to select a
- * specific SPI device on given SPI1 bus.
- *
- * These macros will define BUS:DEV For clarity and indexing
- *
- * The board config then defines:
- * 1) PX4_SPI_BUS_xxx Ids -the buses as a 1 based PX4_SPI_BUS_xxx as n+1 aping to SPI n
- *       where n is {1-highest SPI supported by SoC}
- * 2) PX4_SPIDEV_yyyy handles - PX4_SPIDEV_xxxxx handles using the macros below.
- * 3) PX4_xxxx_BUS_CS_GPIO - a set of chip selects that are indexed by the handles. and of set to 0 are
- *       ignored.
- * 4) PX4_xxxx_BUS_FIRST_CS and PX4_xxxxx_BUS_LAST_CS as  PX4_SPIDEV_lll for the first CS and
- *       PX4_SPIDEV_hhhh as the last CS
- *
- * Example:
- *
- * The PX4_SPI_BUS_xxx
- * #define PX4_SPI_BUS_SENSORS  1
- * #define PX4_SPI_BUS_MEMORY   2
- *
- * the PX4_SPIDEV_yyyy
- * #define PX4_SPIDEV_ICM_20689      PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
- * #define PX4_SPIDEV_ICM_20602      PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
- * #define PX4_SPIDEV_BMI055_GYRO    PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,2)
- *
- * The PX4_xxxx_BUS_CS_GPIO
- * #define PX4_SENSOR_BUS_CS_GPIO    {GPIO_SPI_CS_ICM20689, GPIO_SPI_CS_ICM20602, GPIO_SPI_CS_BMI055_GYR,...
- *
- * The PX4_xxxx_BUS_FIRST_CS and PX4_xxxxx_BUS_LAST_CS
- * #define PX4_SENSORS_BUS_FIRST_CS  PX4_SPIDEV_ICM_20689
- * #define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACCEL
- *
- *
- */
-#define PX4_SPIDEV_ID(type, index)  ((((type) & 0xffff) << 16) | ((index) & 0xffff))
-
-#define PX4_SPI_DEVICE_ID         (1 << 12)
-#define PX4_MK_SPI_SEL(b,d)       PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, ((((b) & 0xff) << 8) | ((d) & 0xff)))
-#define PX4_SPI_BUS_ID(devid)     (((devid) >> 8) & 0xff)
-#define PX4_SPI_DEV_ID(devid)     ((devid) & 0xff)
-#define PX4_CHECK_ID(devid)       ((devid) & PX4_SPI_DEVICE_ID)
-
 /* I2C PX4 clock configuration
  *
  * A board may override BOARD_I2C_BUS_CLOCK_INIT simply by defining the #defines.

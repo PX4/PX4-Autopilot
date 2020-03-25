@@ -8,10 +8,10 @@ adc start
 mpu6000 -R 8 -s -T 20689 start
 
 # Internal SPI bus BMI088 accel
-bmi088 -A -R 10 start
+bmi088 -A -R 10 -s start
 
 # Internal SPI bus BMI088 gyro
-bmi088 -G -R 10 start
+bmi088 -G -R 10 -s start
 
 # Possible external compasses
 ist8310 -X start

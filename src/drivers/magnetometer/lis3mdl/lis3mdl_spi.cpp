@@ -55,8 +55,6 @@
 #include "board_config.h"
 #include "lis3mdl.h"
 
-#ifdef PX4_SPIDEV_LIS
-
 /* SPI protocol address bits */
 #define DIR_READ        (1<<7)
 #define DIR_WRITE       (0<<7)
@@ -65,7 +63,7 @@
 class LIS3MDL_SPI : public device::SPI
 {
 public:
-	LIS3MDL_SPI(int bus, uint32_t device);
+	LIS3MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~LIS3MDL_SPI() = default;
 
 	virtual int     init();
@@ -75,16 +73,16 @@ public:
 };
 
 device::Device *
-LIS3MDL_SPI_interface(int bus);
+LIS3MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
 device::Device *
-LIS3MDL_SPI_interface(int bus)
+LIS3MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
 {
-	return new LIS3MDL_SPI(bus, PX4_SPIDEV_LIS);
+	return new LIS3MDL_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-LIS3MDL_SPI::LIS3MDL_SPI(int bus, uint32_t device) :
-	SPI("LIS3MDL_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000 /* will be rounded to 10.4 MHz */)
+LIS3MDL_SPI::LIS3MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) :
+	SPI("LIS3MDL_SPI", nullptr, bus, devid, spi_mode, bus_frequency)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LIS3MDL;
 }
@@ -172,5 +170,3 @@ LIS3MDL_SPI::write(unsigned address, void *data, unsigned count)
 
 	return transfer(&buf[0], &buf[0], count + 1);
 }
-
-#endif /* PX4_SPIDEV_LIS */

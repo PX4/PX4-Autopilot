@@ -40,9 +40,11 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-ICM42688P::ICM42688P(int bus, uint32_t device, enum Rotation rotation) :
-	SPI(MODULE_NAME, nullptr, bus, device, SPIDEV_MODE3, SPI_SPEED),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+ICM42688P::ICM42688P(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		     spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
+	SPI(MODULE_NAME, nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	_drdy_gpio(drdy_gpio),
 	_px4_accel(get_device_id(), ORB_PRIO_VERY_HIGH, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_VERY_HIGH, rotation)
 {
@@ -56,8 +58,6 @@ ICM42688P::ICM42688P(int bus, uint32_t device, enum Rotation rotation) :
 
 ICM42688P::~ICM42688P()
 {
-	Stop();
-
 	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -67,36 +67,35 @@ ICM42688P::~ICM42688P()
 	perf_free(_drdy_interval_perf);
 }
 
-bool ICM42688P::Init()
+int ICM42688P::init()
 {
-	if (SPI::init() != PX4_OK) {
-		PX4_ERR("SPI::init failed");
-		return false;
+	int ret = SPI::init();
+
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("SPI::init failed (%i)", ret);
+		return ret;
 	}
 
-	return Reset();
-}
-
-void ICM42688P::Stop()
-{
-	// wait until stopped
-	while (_state.load() != STATE::STOPPED) {
-		_state.store(STATE::REQUEST_STOP);
-		ScheduleNow();
-		px4_usleep(10);
-	}
+	return Reset() ? 0 : -1;
 }
 
 bool ICM42688P::Reset()
 {
-	_state.store(STATE::RESET);
+	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void ICM42688P::PrintInfo()
+void ICM42688P::exit_and_cleanup()
 {
+	DataReadyInterruptDisable();
+	I2CSPIDriverBase::exit_and_cleanup();
+}
+
+void ICM42688P::print_status()
+{
+	I2CSPIDriverBase::print_status();
 	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us,
 		 static_cast<double>(1000000 / _fifo_empty_interval_us));
 
@@ -117,21 +116,21 @@ int ICM42688P::probe()
 	const uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
 	if (whoami != WHOAMI) {
-		PX4_WARN("unexpected WHO_AM_I 0x%02x", whoami);
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-void ICM42688P::Run()
+void ICM42688P::RunImpl()
 {
-	switch (_state.load()) {
+	switch (_state) {
 	case STATE::RESET:
 		// DEVICE_CONFIG: Software reset
 		RegisterWrite(Register::BANK_0::DEVICE_CONFIG, DEVICE_CONFIG_BIT::SOFT_RESET_CONFIG);
 		_reset_timestamp = hrt_absolute_time();
-		_state.store(STATE::WAIT_FOR_RESET);
+		_state = STATE::WAIT_FOR_RESET;
 		ScheduleDelayed(1_ms); // wait 1 ms for soft reset to be effective
 		break;
 
@@ -139,14 +138,14 @@ void ICM42688P::Run()
 		if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI)
 		    && (RegisterRead(Register::BANK_0::INT_STATUS) & INT_STATUS_BIT::RESET_DONE_INT)) {
 			// if reset succeeded then configure
-			_state.store(STATE::CONFIGURE);
+			_state = STATE::CONFIGURE;
 			ScheduleNow();
 
 		} else {
 			// RESET not complete
 			if (hrt_elapsed_time(&_reset_timestamp) > 10_ms) {
 				PX4_ERR("Reset failed, retrying");
-				_state.store(STATE::RESET);
+				_state = STATE::RESET;
 				ScheduleDelayed(10_ms);
 
 			} else {
@@ -160,7 +159,7 @@ void ICM42688P::Run()
 	case STATE::CONFIGURE:
 		if (Configure()) {
 			// if configure succeeded then start reading from FIFO
-			_state.store(STATE::FIFO_READ);
+			_state = STATE::FIFO_READ;
 
 			if (DataReadyInterruptConfigure()) {
 				_data_ready_interrupt_enabled = true;
@@ -238,7 +237,7 @@ void ICM42688P::Run()
 				} else {
 					// register check failed, force reconfigure
 					PX4_DEBUG("Health check failed, reconfiguring");
-					_state.store(STATE::CONFIGURE);
+					_state = STATE::CONFIGURE;
 					ScheduleNow();
 				}
 
@@ -251,16 +250,6 @@ void ICM42688P::Run()
 			}
 		}
 
-		break;
-
-	case STATE::REQUEST_STOP:
-		DataReadyInterruptDisable();
-		ScheduleClear();
-		_state.store(STATE::STOPPED);
-		break;
-
-	case STATE::STOPPED:
-		// DO NOTHING
 		break;
 	}
 }
@@ -392,29 +381,21 @@ void ICM42688P::DataReady()
 
 bool ICM42688P::DataReadyInterruptConfigure()
 {
-	int ret_setevent = -1;
+	if (_drdy_gpio == 0) {
+		return false;
+	}
 
 	// Setup data ready on falling edge
-	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_SPI2_DRDY1_ICM_42688)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI2_DRDY1_ICM_42688, false, true, true,
-					     &ICM42688P::DataReadyInterruptCallback, this);
-#endif
-
-	return (ret_setevent == 0);
+	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &ICM42688P::DataReadyInterruptCallback, this) == 0;
 }
 
 bool ICM42688P::DataReadyInterruptDisable()
 {
-	int ret_setevent = -1;
+	if (_drdy_gpio == 0) {
+		return false;
+	}
 
-	// Disable data ready callback
-	// TODO: cleanup horrible DRDY define mess
-#if defined(GPIO_SPI2_DRDY1_ICM_42688)
-	ret_setevent = px4_arch_gpiosetevent(GPIO_SPI2_DRDY1_ICM_42688, false, false, false, nullptr, nullptr);
-#endif
-
-	return (ret_setevent == 0);
+	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
 bool ICM42688P::RegisterCheck(const register_bank0_config_t &reg_cfg, bool notify)

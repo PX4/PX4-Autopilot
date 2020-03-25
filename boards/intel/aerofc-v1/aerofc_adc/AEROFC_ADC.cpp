@@ -35,17 +35,15 @@
 
 using namespace time_literals;
 
-AEROFC_ADC::AEROFC_ADC(uint8_t bus) :
-	I2C("AEROFC_ADC", AEROFC_ADC_DEVICE_PATH, bus, SLAVE_ADDR, 400000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+AEROFC_ADC::AEROFC_ADC(I2CSPIBusOption bus_option, int bus_number, int bus_frequency) :
+	I2C("AEROFC_ADC", AEROFC_ADC_DEVICE_PATH, bus_number, SLAVE_ADDR, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus_number),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample"))
 {
-
 }
 
 AEROFC_ADC::~AEROFC_ADC()
 {
-	ScheduleClear();
 	perf_free(_sample_perf);
 }
 
@@ -94,7 +92,7 @@ error:
 	return -EIO;
 }
 
-void AEROFC_ADC::Run()
+void AEROFC_ADC::RunImpl()
 {
 	/*
 	 * https://github.com/intel-aero/intel-aero-fpga/blob/master/aero_sample/adc/adc.html
@@ -112,8 +110,8 @@ void AEROFC_ADC::Run()
 		return;
 	}
 
-	adc_report_s adc_report;
-	adc_report.device_id = this->get_device_id();
+	adc_report_s adc_report{};
+	adc_report.device_id = get_device_id();
 	adc_report.timestamp = hrt_absolute_time();
 	adc_report.v_ref = 3.0f;
 	adc_report.resolution = 1 << 12;

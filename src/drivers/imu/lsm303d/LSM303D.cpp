@@ -53,9 +53,10 @@ static constexpr uint8_t _checked_registers[] = {
 	ADDR_CTRL_REG7
 };
 
-LSM303D::LSM303D(int bus, uint32_t device, enum Rotation rotation) :
-	SPI("LSM303D", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+LSM303D::LSM303D(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		 spi_mode_e spi_mode) :
+	SPI("LSM303D", nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_px4_mag(get_device_id(), ORB_PRIO_LOW, rotation),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: acc_read")),
@@ -71,9 +72,6 @@ LSM303D::LSM303D(int bus, uint32_t device, enum Rotation rotation) :
 
 LSM303D::~LSM303D()
 {
-	// make sure we are truly inactive
-	stop();
-
 	// delete the perf counter
 	perf_free(_accel_sample_perf);
 	perf_free(_mag_sample_perf);
@@ -89,8 +87,8 @@ LSM303D::init()
 	int ret = SPI::init();
 
 	if (ret != OK) {
-		PX4_ERR("SPI init failed (%i)", ret);
-		return PX4_ERROR;
+		DEVICE_DEBUG("SPI init failed (%i)", ret);
+		return ret;
 	}
 
 	reset();
@@ -407,21 +405,12 @@ LSM303D::mag_set_samplerate(unsigned frequency)
 void
 LSM303D::start()
 {
-	// make sure we are stopped first
-	stop();
-
 	// start polling at the specified rate
 	ScheduleOnInterval(_call_accel_interval - LSM303D_TIMER_REDUCTION);
 }
 
 void
-LSM303D::stop()
-{
-	ScheduleClear();
-}
-
-void
-LSM303D::Run()
+LSM303D::RunImpl()
 {
 	// make another accel measurement
 	measureAccelerometer();
@@ -581,8 +570,9 @@ LSM303D::measureMagnetometer()
 }
 
 void
-LSM303D::print_info()
+LSM303D::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_accel_sample_perf);
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);

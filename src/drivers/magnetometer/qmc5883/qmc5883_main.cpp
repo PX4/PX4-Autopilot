@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,25 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file rm3100_main.cpp
+ * @file qmc5883.cpp
  *
- * Driver for the RM3100 magnetometer connected via I2C or SPI.
+ * Driver for the QMC5883 magnetometer connected via I2C.
  */
 
-#include "rm3100.h"
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-I2CSPIDriverBase *RM3100::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+#include "QMC5883.hpp"
+#include "qmc5883.h"
+
+extern "C" __EXPORT int qmc5883_main(int argc, char *argv[]);
+
+I2CSPIDriverBase *QMC5883::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				       int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
 	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = RM3100_I2C_interface(iterator.bus(), cli.bus_frequency);
-
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = RM3100_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+		interface = QMC5883_I2C_interface(iterator.bus(), cli.bus_frequency, cli.i2c_address);
 	}
 
 	if (interface == nullptr) {
@@ -64,7 +65,7 @@ I2CSPIDriverBase *RM3100::instantiate(const BusCLIArguments &cli, const BusInsta
 		return nullptr;
 	}
 
-	RM3100 *dev = new RM3100(interface, cli.rotation, iterator.configuredBusOption(), iterator.bus());
+	QMC5883 *dev = new QMC5883(interface, cli.rotation, iterator.configuredBusOption(), iterator.bus(), cli.i2c_address);
 
 	if (dev == nullptr) {
 		delete interface;
@@ -79,30 +80,24 @@ I2CSPIDriverBase *RM3100::instantiate(const BusCLIArguments &cli, const BusInsta
 	return dev;
 }
 
-void
-RM3100::custom_method(const BusCLIArguments &cli)
+void QMC5883::print_usage()
 {
-	reset();
-}
-
-void RM3100::print_usage()
-{
-	PRINT_MODULE_USAGE_NAME("rm3100", "driver");
+	PRINT_MODULE_USAGE_NAME("qmc5883", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x0D);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int rm3100_main(int argc, char *argv[])
+extern "C" int qmc5883_main(int argc, char *argv[])
 {
-	using ThisDriver = RM3100;
+	using ThisDriver = QMC5883;
 	int ch;
-	BusCLIArguments cli{true, true};
+	BusCLIArguments cli{true, false};
+	cli.i2c_address = ADDR_ID_B;
 	cli.default_i2c_frequency = 400000;
-	cli.default_spi_frequency = 1 * 1000 * 1000;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -119,7 +114,7 @@ extern "C" int rm3100_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_RM3100);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_QMC5883);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
@@ -131,10 +126,6 @@ extern "C" int rm3100_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "reset")) {
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();

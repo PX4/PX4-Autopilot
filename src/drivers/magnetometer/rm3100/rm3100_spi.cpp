@@ -55,8 +55,6 @@
 #include "board_config.h"
 #include "rm3100.h"
 
-#if defined(PX4_SPIDEV_RM) || defined (PX4_SPIDEV_RM_EXT)
-
 /* SPI protocol address bits */
 #define DIR_READ        (1<<7)
 #define DIR_WRITE       (0<<7)
@@ -64,7 +62,7 @@
 class RM3100_SPI : public device::SPI
 {
 public:
-	RM3100_SPI(int bus, uint32_t device);
+	RM3100_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~RM3100_SPI() = default;
 
 	virtual int     init();
@@ -74,20 +72,16 @@ public:
 };
 
 device::Device *
-RM3100_SPI_interface(int bus);
+RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
 device::Device *
-RM3100_SPI_interface(int bus)
+RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
 {
-#ifdef PX4_SPIDEV_RM_EXT
-	return new RM3100_SPI(bus, PX4_SPIDEV_RM_EXT);
-#else
-	return new RM3100_SPI(bus, PX4_SPIDEV_RM);
-#endif
+	return new RM3100_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-RM3100_SPI::RM3100_SPI(int bus, uint32_t device) :
-	SPI("RM3100_SPI", nullptr, bus, device, SPIDEV_MODE3, 1 * 1000 * 1000 /* */)
+RM3100_SPI::RM3100_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) :
+	SPI("RM3100_SPI", nullptr, bus, devid, spi_mode, bus_frequency)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_RM3100;
 }
@@ -170,5 +164,3 @@ RM3100_SPI::write(unsigned address, void *data, unsigned count)
 
 	return transfer(&buf[0], &buf[0], count + 1);
 }
-
-#endif /* PX4_SPIDEV_RM || PX4_SPIDEV_RM_EXT */

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,41 +31,10 @@
  *
  ****************************************************************************/
 
-/**
- * @file drv_io_expander.h
- *
- * IO expander device API
- */
+#include <px4_arch/i2c_hw_description.h>
 
-#pragma once
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-/*
- * ioctl() definitions
- */
-
-#define _IOXIOCBASE		(0x2800)
-#define _IOXIOC(_n)		(_IOC(_IOXIOCBASE, _n))
-
-/** set a bitmask (non-blocking) */
-#define IOX_SET_MASK		_IOXIOC(1)
-
-/** get a bitmask (blocking) */
-#define IOX_GET_MASK		_IOXIOC(2)
-
-/** set device mode (non-blocking) */
-#define IOX_SET_MODE		_IOXIOC(3)
-
-/** set constant values (non-blocking) */
-#define IOX_SET_VALUE		_IOXIOC(4)
-
-/* ... to IOX_SET_VALUE + 8 */
-
-/* enum passed to RGBLED_SET_MODE ioctl()*/
-enum IOX_MODE {
-	IOX_MODE_OFF,
-	IOX_MODE_ON,
-	IOX_MODE_TEST_OUT
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusInternal(PX4_BUS_NUMBER_TO_PX4(1)),
+	initI2CBusExternal(PX4_BUS_NUMBER_TO_PX4(0)),
 };
+
