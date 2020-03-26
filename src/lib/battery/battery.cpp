@@ -153,14 +153,10 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 
 		static constexpr int uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
 				_battery_status.voltage_cell_v[0]);
-		int i;
 
-		for (i = 0; i < _params.n_cells && i < uorb_max_cells; i++) {
-			_battery_status.voltage_cell_v[i] = _voltage_filtered_v / _params.n_cells;
-		}
-
-		for (; i < uorb_max_cells; i++) {
-			_battery_status.voltage_cell_v[i] = 0.0f;
+		// Fill cell voltages with average values to work around BATTERY_STATUS message not allowing to report just total voltage
+		for (int i = 0; (i < _battery_status.cell_count) && (i < uorb_max_cells); i++) {
+			_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / _battery_status.cell_count;
 		}
 	}
 
