@@ -77,6 +77,10 @@
 #  define BOARD_ARMED_STATE_LED  LED_BLUE
 #endif
 
+/* SPI */
+#define GPIO_FYSNC_INT_ICM42688     /* PA0  */   (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN0)
+#define GPIO_FYSNC_INT_ICM20602     /* PH10 */   (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN10)
+
 /* I2C busses */
 
 /* Devices on the onboard bus.
@@ -180,7 +184,6 @@
 /* RC Serial port */
 
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
-#define RC_SERIAL_SINGLEWIRE
 
 /* Safety Switch: Enable the FMU to control it as there is no px4io in ModalAI FC-v1 */
 #define GPIO_SAFETY_SWITCH_IN              /* PF3 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTF|GPIO_PIN3)
@@ -251,7 +254,9 @@
 		GPIO_A71CH_nRST,                  \
 		GPIO_VOXL_STATUS_OUT,             \
 		GPIO_VOXL_STATUS_IN,              \
-		GPIO_SAFETY_SWITCH_IN             \
+		GPIO_SAFETY_SWITCH_IN,            \
+		GPIO_FYSNC_INT_ICM42688,          \
+		GPIO_FYSNC_INT_ICM20602           \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
