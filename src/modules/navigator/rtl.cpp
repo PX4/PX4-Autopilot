@@ -516,7 +516,8 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	float rtl_altitude;
 
 	if (destination_dist <= _param_rtl_min_dist.get()) {
-		rtl_altitude = _destination.alt + _param_rtl_descend_alt.get();
+		// we are very close to home, make sure we are above the RTL descend altitude
+		rtl_altitude = math::max(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
 
 	} else if (gpos.alt > _destination.alt + _param_rtl_return_alt.get() || cone_half_angle_deg >= 90.0f) {
 		rtl_altitude = gpos.alt;
