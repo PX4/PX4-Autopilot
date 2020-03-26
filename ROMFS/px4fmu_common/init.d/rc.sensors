@@ -113,6 +113,12 @@ then
 	pmw3901 -S start
 fi
 
+# Possible external paw3902 optical flow sensor
+if param greater -s SENS_EN_PAW3902 0
+then
+	paw3902 -S start
+fi
+
 ###############################################################################
 #                            End Optional drivers                             #
 ###############################################################################
