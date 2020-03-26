@@ -125,6 +125,8 @@ protected:
 
 	void print_status() override;
 
+	void exit_and_cleanup() override;
+
 private:
 
 	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};

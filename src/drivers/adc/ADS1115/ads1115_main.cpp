@@ -81,8 +81,18 @@ int ADS1115::Begin()
 	return PX4_OK;
 }
 
+void ADS1115::exit_and_cleanup()
+{
+	I2CSPIDriverBase::exit_and_cleanup();	// nothing to do
+}
+
 void ADS1115::RunImpl()
 {
+	if (should_exit()) {
+		PX4_INFO("stopping");
+		return;	// stop and return immediately to avoid unexpected schedule from stopping procedure
+	}
+
 	perf_begin(_cycle_perf);
 
 	_adc_report.timestamp = hrt_absolute_time();
