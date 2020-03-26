@@ -2145,15 +2145,26 @@ Commander::run()
 		    failure_detector_updated) {
 
 			if (_failure_detector.isFailure()) {
-				if ((hrt_elapsed_time(&_time_at_takeoff) < 3_s) &&
-				    !_lockdown_triggered) {
-					// This handles the case where something fails during the early takeoff phase
 
-					armed.lockdown = true;
-					_lockdown_triggered = true;
+				if (!_have_taken_off_since_arming) {
+					arm_disarm(false, true, &mavlink_log_pub, "Failure detector");
 					_status_changed = true;
 
-					mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: lockdown");
+					if (status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
+						mavlink_log_critical(&mavlink_log_pub, "ESCs did not respond to arm request");
+
+					}
+
+				} else if (hrt_elapsed_time(&_time_at_takeoff) < 3_s) {
+					// This handles the case where something fails during the early takeoff phase
+					if (!_lockdown_triggered) {
+
+						armed.lockdown = true;
+						_lockdown_triggered = true;
+						_status_changed = true;
+
+						mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: lockdown");
+					}
 
 				} else if (!status_flags.circuit_breaker_flight_termination_disabled &&
 					   !_flight_termination_triggered) {
