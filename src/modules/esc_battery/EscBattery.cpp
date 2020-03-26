@@ -86,7 +86,7 @@ EscBattery::Run()
 
 	if (_esc_status_sub.update(&esc_status)) {
 
-		if (hrt_elapsed_time(&esc_status.timestamp) < 500_ms ||
+		if (hrt_elapsed_time(&esc_status.timestamp) > 500_ms ||
 		    esc_status.esc_count == 0 ||
 		    esc_status.esc_count > 8) {
 			return;
