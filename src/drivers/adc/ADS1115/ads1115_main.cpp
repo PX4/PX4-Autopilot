@@ -44,7 +44,7 @@
 
 ADS1115::ADS1115(I2CSPIBusOption bus_option, int bus, int addr, int bus_frequency) :
 	I2C(MODULE_NAME, nullptr, bus, addr, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, addr),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample"))
 {
 	set_device_type(DRV_ADC_DEVTYPE_ADS1115);
