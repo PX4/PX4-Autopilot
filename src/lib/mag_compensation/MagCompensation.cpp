@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,71 +31,30 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /**
- * @file parameters.h
+ * @file MagCompensation.cpp
  *
- * defines the list of parameters that are used within the sensors module
- *
- * @author Beat Kueng <beat-kueng@gmx.net>
  */
 
-#include <lib/parameters/param.h>
+#include "MagCompensation.hpp"
+#include <mathlib/mathlib.h>
 
-namespace sensors
+MagCompensator::MagCompensator(ModuleParams *parent):
+	ModuleParams(parent)
 {
 
-struct Parameters {
-	float diff_pres_offset_pa;
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	float diff_pres_analog_scale;
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+}
 
-	int32_t board_rotation;
+void MagCompensator::calculate_mag_corrected(matrix::Vector3f &mag, const matrix::Vector3f &param_vect)
+{
+	if (_armed) {
+		int type = _param_mag_compensation_type.get();
 
-	float board_offset[3];
+		if (type == CompensationType::THROTTLE) {
+			mag = mag + param_vect * _throttle; //for param [gauss]
 
-	//parameters for current/throttle-based mag compensation
-	float mag_comp_paramX[4];
-	float mag_comp_paramY[4];
-	float mag_comp_paramZ[4];
-
-	int32_t air_cmodel;
-	float air_tube_length;
-	float air_tube_diameter_mm;
-};
-
-struct ParameterHandles {
-	param_t diff_pres_offset_pa;
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	param_t diff_pres_analog_scale;
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	param_t board_rotation;
-
-	param_t board_offset[3];
-
-	param_t mag_comp_paramX[4];
-	param_t mag_comp_paramY[4];
-	param_t mag_comp_paramZ[4];
-
-	param_t air_cmodel;
-	param_t air_tube_length;
-	param_t air_tube_diameter_mm;
-
-};
-
-/**
- * initialize ParameterHandles struct
- */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
-
-
-/**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
- */
-void update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
-
-} /* namespace sensors */
+		} else if (type == CompensationType::CURRENT) {
+			mag = mag + param_vect * _battery_current * 0.001; //for param [gauss/kA]
+		}
+	}
+}

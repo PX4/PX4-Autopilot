@@ -69,6 +69,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/battery_status.h>
 
 #include "parameters.h"
 #include "voted_sensors_update.h"
@@ -124,6 +125,7 @@ private:
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
 	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription	_vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+	uORB::Subscription	_battery_status_sub{ORB_ID(battery_status)};		/**< vehicle control mode subscription */
 
 	uORB::Publication<airspeed_s>			_airspeed_pub{ORB_ID(airspeed)};			/**< airspeed */
 	uORB::Publication<sensor_combined_s>		_sensor_pub{ORB_ID(sensor_combined)};			/**< combined sensor data topic */
@@ -464,6 +466,19 @@ void Sensors::Run()
 
 		if (_vcontrol_mode_sub.copy(&vcontrol_mode)) {
 			_armed = vcontrol_mode.flag_armed;
+			_voted_sensors_update.update_mag_comp_armed(_armed);
+		}
+
+		if (_actuator_ctrl_0_sub.updated()) {
+			actuator_controls_s controls {};
+			_actuator_ctrl_0_sub.copy(&controls);
+			_voted_sensors_update.update_mag_comp_throttle(controls.control[actuator_controls_s::INDEX_THROTTLE]);
+		}
+
+		if (_battery_status_sub.updated()) {
+			battery_status_s bat_stat {};
+			_battery_status_sub.copy(&bat_stat);
+			_voted_sensors_update.update_mag_comp_current(bat_stat.current_a);
 		}
 	}
 
