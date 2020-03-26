@@ -427,7 +427,7 @@ else
 	#
 	sh /etc/init.d/rc.serial
 
-	if [ $IO_PRESENT = no -o $USE_IO = no ]
+	if [ $IO_PRESENT = no ]
 	then
 		# Must be started after the serial config is read
 		rc_input start $RC_INPUT_ARGS
