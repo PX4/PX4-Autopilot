@@ -984,18 +984,19 @@ void Ekf::controlHeightFusion()
 			setControlRangeHeight();
 			fuse_height = _range_data_ready;
 
-		} else if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-			// we have just switched to using range finder, calculate height sensor offset such that current
-			// measurement matches our current height estimate
-			// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
-			if (_control_status.flags.in_air && isTerrainEstimateValid()) {
-				_hgt_sensor_offset = _terrain_vpos;
+			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
+				// we have just switched to using range finder, calculate height sensor offset such that current
+				// measurement matches our current height estimate
+				// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
+				if (_control_status.flags.in_air && isTerrainEstimateValid()) {
+					_hgt_sensor_offset = _terrain_vpos;
 
-			} else if (_control_status.flags.in_air) {
-				_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
+				} else if (_control_status.flags.in_air) {
+					_hgt_sensor_offset = _R_rng_to_earth_2_2 * _range_sample_delayed.rng + _state.pos(2);
 
-			} else {
-				_hgt_sensor_offset = _params.rng_gnd_clearance;
+				} else {
+					_hgt_sensor_offset = _params.rng_gnd_clearance;
+				}
 			}
 
 		} else if (_baro_data_ready && !_baro_hgt_faulty) {
