@@ -109,7 +109,7 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE = io -o $OUTPUT_MODE = uavcan_esc ]
+	if [ $OUTPUT_MODE = io ]
 	then
 		sh /etc/init.d/rc.io
 	fi
