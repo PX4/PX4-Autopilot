@@ -10,7 +10,7 @@ then
     set HIL_ARG $OUTPUT_MODE
 fi
 
-if [ $USE_IO = yes -a $IO_PRESENT = yes ]
+if [ $IO_PRESENT = yes ]
 then
 	if px4io start $HIL_ARG
 	then
