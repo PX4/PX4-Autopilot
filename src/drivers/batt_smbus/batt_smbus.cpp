@@ -137,7 +137,7 @@ void BATT_SMBUS::RunImpl()
 	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
 
 	// Calculate total discharged amount in mah.
-	new_report.discharged_mah = _batt_capacity - (float)result*_c_mult;
+	new_report.discharged_mah = _batt_capacity - (float)result * _c_mult;
 
 	// Read Relative SOC.
 	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
