@@ -221,6 +221,7 @@
                 "env": {
                     "GAZEBO_PLUGIN_PATH": "${workspaceRoot}/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models",
+                    "PX4_NO_OPTIMIZATION": "px4;^modules__uORB;^modules__systemlib$",
                     "PX4_SIM_SPEED_FACTOR": "1"
                 }
             },
@@ -261,6 +262,7 @@
                 "env": {
                     "GAZEBO_PLUGIN_PATH": "${workspaceRoot}/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models",
+                    "PX4_NO_OPTIMIZATION": "px4;^modules__uORB;^modules__systemlib$",
                     "PX4_SIM_SPEED_FACTOR": "1"
                 }
             },
