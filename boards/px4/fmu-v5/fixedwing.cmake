@@ -35,7 +35,7 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		pwm_input
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		px4io
 		rc_input
 		safety_button
