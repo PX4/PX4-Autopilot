@@ -36,13 +36,15 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		px4io.cpp
 		px4io_serial.cpp
 		px4io_uploader.cpp
+		PX4IO.cpp
+		PX4IO.hpp
 	DEPENDS
 		arch_px4io_serial
 		circuit_breaker
 		mixer
+		px4_work_queue
 	)
 
 # include the px4io binary in ROMFS
