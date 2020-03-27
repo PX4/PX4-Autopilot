@@ -25,7 +25,7 @@ px4_add_board(
 		#optical_flow/px4flow
 		#protocol_splitter
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		rc_input
 		tap_esc
 		#telemetry # all available telemetry drivers

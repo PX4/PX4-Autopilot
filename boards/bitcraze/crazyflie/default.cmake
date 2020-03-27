@@ -12,7 +12,7 @@ px4_add_board(
 		gps
 		imu/mpu9250
 		optical_flow/pmw3901
-		px4fmu
+		pwm_out
 	MODULES
 		attitude_estimator_q
 		#camera_feedback

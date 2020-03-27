@@ -31,7 +31,7 @@ px4_add_board(
 		lights/rgbled
 		magnetometer/hmc5883
 		#optical_flow/px4flow
-		px4fmu
+		pwm_out
 		px4io
 		tone_alarm
 	MODULES
