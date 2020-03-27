@@ -164,7 +164,7 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		},
 		.lpoclk        =                                   /* Low Power Clock configuration. */
 		{
-			.rtc_source  = SIM_RTCCLK_SEL_SOSCDIV1_CLK,      /* RTCCLKSEL */
+			.rtc_source  = SIM_RTCCLK_SEL_LPO_32K,           /* RTCCLKSEL */
 			.lpo_source  = SIM_LPO_CLK_SEL_LPO_128K,         /* LPOCLKSEL */
 			.initialize  = true,                             /* Initialize */
 			.lpo32k      = true,                             /* LPO32KCLKEN */
