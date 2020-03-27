@@ -135,8 +135,6 @@ public:
 
 	static int test();
 
-	static int fake(int argc, char *argv[]);
-
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	virtual int	init();
