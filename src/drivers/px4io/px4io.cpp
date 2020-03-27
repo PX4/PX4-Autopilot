@@ -155,18 +155,6 @@ public:
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 
 	/**
-	 * write handler.
-	 *
-	 * Handle writes to the PX4IO file descriptor.
-	 *
-	 * @param[in] filp file handle (not used). This function is always called directly through object reference
-	 * @param[in] buffer pointer to the data buffer to be written
-	 * @param[in] len size in bytes to be written
-	 * @return number of bytes written
-	 */
-	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
-
-	/**
 	 * Disable RC input handling
 	 */
 	int			disable_rc_handling();
@@ -2744,36 +2732,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	}
 
 	return ret;
-}
-
-ssize_t PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
-/* Make it obvious that file * isn't used here */
-{
-	unsigned count = len / 2;
-
-	if (count > _max_actuators) {
-		count = _max_actuators;
-	}
-
-	if (count > 0) {
-
-		perf_begin(_perf_write);
-
-		int ret = OK;
-
-		/* The write() is silently ignored in test mode. */
-		if (!_test_fmu_fail) {
-			ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
-		}
-
-		perf_end(_perf_write);
-
-		if (ret != OK) {
-			return ret;
-		}
-	}
-
-	return count * 2;
 }
 
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
