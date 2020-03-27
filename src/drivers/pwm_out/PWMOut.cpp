@@ -1802,48 +1802,6 @@ err_out_no_test:
 	return rv;
 }
 
-int PWMOut::fake(int argc, char *argv[])
-{
-	if (argc < 5) {
-		print_usage("not enough arguments");
-		return -1;
-	}
-
-	actuator_controls_s ac;
-
-	ac.control[0] = strtol(argv[1], 0, 0) / 100.0f;
-
-	ac.control[1] = strtol(argv[2], 0, 0) / 100.0f;
-
-	ac.control[2] = strtol(argv[3], 0, 0) / 100.0f;
-
-	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
-
-	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
-
-	if (handle == nullptr) {
-		PX4_ERR("advertise failed");
-		return -1;
-	}
-
-	orb_unadvertise(handle);
-
-	actuator_armed_s aa;
-
-	aa.armed = true;
-	aa.lockdown = false;
-
-	handle = orb_advertise(ORB_ID(actuator_armed), &aa);
-
-	if (handle == nullptr) {
-		PX4_ERR("advertise failed 2");
-		return -1;
-	}
-
-	orb_unadvertise(handle);
-	return 0;
-}
-
 int PWMOut::custom_command(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
@@ -1983,10 +1941,6 @@ int PWMOut::custom_command(int argc, char *argv[])
 		return test();
 	}
 
-	if (!strcmp(verb, "fake")) {
-		return fake(argc - 1, argv + 1);
-	}
-
 	return print_usage("unknown command");
 }
 
@@ -2115,8 +2069,6 @@ mixer files.
 	PRINT_MODULE_USAGE_ARG("<bus_id> <rate>", "Specify the bus id (>=0) and rate in Hz", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test inputs and outputs");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fake", "Arm and send an actuator controls command");
-	PRINT_MODULE_USAGE_ARG("<roll> <pitch> <yaw> <thrust>", "Control values in range [-100, 100]", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
