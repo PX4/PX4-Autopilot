@@ -52,7 +52,6 @@
  ****************************************************************************************************/
 
 /* PX4IO connection configuration */
-#define BOARD_USES_PX4IO_VERSION       2
 #define PX4IO_SERIAL_DEVICE     "/dev/ttyS4"
 #define PX4IO_SERIAL_TX_GPIO    GPIO_USART6_TX
 #define PX4IO_SERIAL_RX_GPIO    GPIO_USART6_RX
@@ -204,6 +203,7 @@
 #define BOARD_HAS_ON_RESET 1
 
 #define BOARD_HAS_STATIC_MANIFEST 1
+#define PX4_MFT_HW_SUPPORTED_PX4_MFT_PX4IO 1
 
 __BEGIN_DECLS
 

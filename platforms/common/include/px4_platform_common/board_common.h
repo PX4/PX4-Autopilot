@@ -201,26 +201,6 @@
 #define BOARD_BATTERY2_A_PER_V 0.0f
 #endif
 
-/* Conditional use of PX4 PIO is Used to determine if the board
- * has a PX4IO processor.
- * We then publish the logical BOARD_USES_PX4IO
- */
-#if defined(BOARD_USES_PX4IO_VERSION)
-#  define BOARD_USES_PX4IO	1
-#  if defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
-#     define PX4_MFT_HW_SUPPORTED_PX4_MFT_PX4IO 1
-#  endif
-/*  Allow a board_config to override the PX4IO FW search paths */
-#  if defined(BOARD_PX4IO_FW_SEARCH_PATHS)
-#    define PX4IO_FW_SEARCH_PATHS BOARD_PX4IO_FW_SEARCH_PATHS
-#  else
-/*  Use PX4IO FW search paths defaults based on version */
-#    if BOARD_USES_PX4IO_VERSION == 2
-#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4_io-v2_default.bin","/fs/microsd/px4_io-v2_default.bin", "/fs/microsd/px4io2.bin", nullptr }
-#    endif
-#  endif
-#endif
-
 /* Provide an overridable default nop
  * for BOARD_EEPROM_WP_CTRL
  */

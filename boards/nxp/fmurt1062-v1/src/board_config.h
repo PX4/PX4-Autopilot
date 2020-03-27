@@ -61,7 +61,6 @@
 
 #if 0 // There is no PX4IO Support on first out
 // This requires serial DMA driver
-#define BOARD_USES_PX4IO_VERSION       2
 #define PX4IO_SERIAL_DEVICE            "/dev/ttyS6"
 #define PX4IO_SERIAL_TX_GPIO           GPIO_LPUART8_TX_2
 #define PX4IO_SERIAL_RX_GPIO           GPIO_LPUART8_RX_2

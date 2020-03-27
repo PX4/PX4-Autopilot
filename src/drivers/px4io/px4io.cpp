@@ -110,21 +110,22 @@ public:
 	 *
 	 * Initialize all class variables.
 	 */
-	PX4IO(device::Device *interface);
+	PX4IO() = delete;
+	explicit PX4IO(device::Device *interface);
 
 	/**
 	 * Destructor.
 	 *
 	 * Wait for worker thread to terminate.
 	 */
-	virtual ~PX4IO();
+	~PX4IO() override;
 
 	/**
 	 * Initialize the PX4IO class.
 	 *
 	 * Retrieve relevant initial system parameters. Initialize PX4IO registers.
 	 */
-	virtual int		init();
+	int		init() override;
 
 	/**
 	 * Initialize the PX4IO class.
@@ -185,7 +186,7 @@ public:
 private:
 	void Run() override;
 
-	device::Device		*_interface;
+	device::Device		*_interface{nullptr};
 
 	unsigned		_hardware{0};		///< Hardware revision
 	unsigned		_max_actuators{0};		///< Maximum # of actuators supported by PX4IO
@@ -3079,7 +3080,7 @@ int px4io_main(int argc, char *argv[])
 
 		/* Assume we are using default paths */
 
-		const char *fn[4] = PX4IO_FW_SEARCH_PATHS;
+		const char *fn[4] {"/etc/extras/px4_io-v2_default.bin", "/fs/microsd/px4_io-v2_default.bin", "/fs/microsd/px4io2.bin", nullptr};
 
 		/* Override defaults if a path is passed on command line */
 		if (argc > 2) {
