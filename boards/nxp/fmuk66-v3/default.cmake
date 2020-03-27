@@ -44,7 +44,7 @@ px4_add_board(
 		power_monitor/ina226
 		#protocol_splitter
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		rc_input
 		roboclaw
 		safety_button

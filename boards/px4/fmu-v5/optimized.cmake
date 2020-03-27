@@ -43,7 +43,7 @@ px4_add_board(
 		optical_flow # all available optical flow drivers
 		#pwm_input
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		px4io
 		rc_input
 		#roboclaw

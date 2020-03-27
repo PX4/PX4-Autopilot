@@ -33,7 +33,7 @@ px4_add_board(
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		px4fmu
+		pwm_out
 		px4io
 		#telemetry # all available telemetry drivers
 		telemetry/iridiumsbd
