@@ -2984,105 +2984,6 @@ void bind(int argc, char *argv[])
 	exit(0);
 }
 
-void test(void)
-{
-	unsigned	servo_count = 0;
-	unsigned	pwm_value = 1000;
-	int		direction = 1;
-	int		ret;
-
-	int fd = open(PX4IO_DEVICE_PATH, O_WRONLY);
-
-	if (fd < 0) {
-		err(1, "failed to open device");
-	}
-
-	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count)) {
-		err(1, "failed to get servo count");
-	}
-
-	/* tell IO that its ok to disable its safety with the switch */
-	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
-
-	if (ret != OK) {
-		err(1, "PWM_SERVO_SET_ARM_OK");
-	}
-
-	if (ioctl(fd, PWM_SERVO_ARM, 0)) {
-		err(1, "failed to arm servos");
-	}
-
-	struct pollfd fds {};
-
-	fds.fd = 0; /* stdin */
-
-	fds.events = POLLIN;
-
-	warnx("Press CTRL-C or 'c' to abort.");
-
-	for (;;) {
-
-		/* sweep all servos between 1000..2000 */
-		servo_position_t servos[servo_count];
-
-		for (unsigned i = 0; i < servo_count; i++) {
-			servos[i] = pwm_value;
-		}
-
-		ret = write(fd, servos, sizeof(servos));
-
-		if (ret != (int)sizeof(servos)) {
-			err(1, "error writing PWM servo data, wrote %zu got %d", sizeof(servos), ret);
-		}
-
-		if (direction > 0) {
-			if (pwm_value < 2000) {
-				pwm_value++;
-
-			} else {
-				direction = -1;
-			}
-
-		} else {
-			if (pwm_value > 1000) {
-				pwm_value--;
-
-			} else {
-				direction = 1;
-			}
-		}
-
-		px4_usleep(250);
-
-		/* readback servo values */
-		for (unsigned i = 0; i < servo_count; i++) {
-			servo_position_t value;
-
-			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-				err(1, "error reading PWM servo %u", i);
-			}
-
-			if (value != servos[i]) {
-				warnx("servo %u readback error, got %hu expected %hu", i, value, servos[i]);
-			}
-		}
-
-		/* Check if user wants to quit */
-		char c;
-		ret = poll(&fds, 1, 0);
-
-		if (ret > 0) {
-
-			read(0, &c, 1);
-
-			if (c == 0x03 || c == 0x63 || c == 'q') {
-				warnx("User abort\n");
-				exit(0);
-			}
-		}
-	}
-}
-
 void monitor()
 {
 	/* clear screen */
@@ -3122,22 +3023,6 @@ void monitor()
 			errx(1, "driver not loaded, exiting");
 		}
 	}
-}
-
-void if_test(unsigned mode)
-{
-	device::Device *interface = get_interface();
-	int result;
-
-	if (interface) {
-		result = interface->ioctl(1, mode); /* XXX magic numbers */
-		delete interface;
-
-	} else {
-		errx(1, "interface not loaded, exiting");
-	}
-
-	errx(0, "test returned %d", result);
 }
 
 void lockdown(int argc, char *argv[])
@@ -3270,14 +3155,6 @@ int px4io_main(int argc, char *argv[])
 		}
 
 		return ret;
-	}
-
-	if (!strcmp(argv[1], "iftest")) {
-		if (g_dev != nullptr) {
-			errx(1, "can't iftest when started");
-		}
-
-		if_test((argc > 2) ? strtol(argv[2], NULL, 0) : 0);
 	}
 
 	if (!strcmp(argv[1], "forceupdate")) {
@@ -3417,10 +3294,6 @@ int px4io_main(int argc, char *argv[])
 		errx(0, "receiver type is automatically detected, option '%s' is deprecated", argv[1]);
 	}
 
-	if (!strcmp(argv[1], "test")) {
-		test();
-	}
-
 	if (!strcmp(argv[1], "monitor")) {
 		monitor();
 	}
@@ -3508,7 +3381,7 @@ int px4io_main(int argc, char *argv[])
 	}
 
 out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
+	errx(1, "need a command, try 'start', 'stop', 'status', 'monitor', 'debug <level>',\n"
 	     "'recovery', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
 	     "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm',\n"
 	     "'test_fmu_fail', 'test_fmu_ok'");
