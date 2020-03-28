@@ -31,7 +31,17 @@
 #
 ############################################################################
 
-add_subdirectory(ism330dlc)
-add_subdirectory(l3gd20)
-add_subdirectory(l3gd20h)
-add_subdirectory(lsm9ds1)
+px4_add_module(
+	MODULE drivers__imu__st__l3gd20h
+	MAIN l3gd20h
+	COMPILE_FLAGS
+		-DDEBUG_BUILD
+	SRCS
+		l3gd20h_main.cpp
+		L3GD20H.cpp
+		L3GD20H.hpp
+		ST_L3GD20H_Registers.hpp
+	DEPENDS
+		drivers_gyroscope
+		px4_work_queue
+	)

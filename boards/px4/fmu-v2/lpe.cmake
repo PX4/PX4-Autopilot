@@ -33,9 +33,9 @@ px4_add_board(
 		#heater
 		#imu/adis16448
 		#imu # all available imu drivers
-		imu/l3gd20
 		imu/lsm303d
 		imu/invensense/mpu6000
+		imu/st/l3gd20
 		#iridiumsbd
 		irlock
 		#lights/blinkm

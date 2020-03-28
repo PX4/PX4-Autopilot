@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,16 +36,13 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-L3GD20::print_usage()
+void L3GD20::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("l3gd20", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("regdump");
-	PRINT_MODULE_USAGE_COMMAND("testerror");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -53,7 +50,7 @@ I2CSPIDriverBase *L3GD20::instantiate(const BusCLIArguments &cli, const BusInsta
 				      int runtime_instance)
 {
 	L3GD20 *instance = new L3GD20(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-				      cli.bus_frequency, cli.spi_mode);
+				      cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -68,21 +65,12 @@ I2CSPIDriverBase *L3GD20::instantiate(const BusCLIArguments &cli, const BusInsta
 	return instance;
 }
 
-void L3GD20::custom_method(const BusCLIArguments &cli)
-{
-	switch (cli.custom1) {
-	case 0: print_registers(); break;
-
-	case 1: test_error(); break;
-	}
-}
-
 extern "C" int l3gd20_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = L3GD20;
 	BusCLIArguments cli{false, true};
-	cli.default_spi_frequency = 11 * 1000 * 1000;
+	cli.default_spi_frequency = ST_L3GD20::SPI_SPEED;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -111,16 +99,6 @@ extern "C" int l3gd20_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "regdump")) {
-		cli.custom1 = 0;
-		return ThisDriver::module_custom_method(cli, iterator);
-	}
-
-	if (!strcmp(verb, "testerror")) {
-		cli.custom1 = 1;
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();

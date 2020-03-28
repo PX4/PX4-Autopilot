@@ -28,10 +28,10 @@ px4_add_board(
 		distance_sensor/ll40ls
 		distance_sensor/sf0x
 		gps
-		imu/l3gd20
 		imu/lsm303d
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
+		imu/st/l3gd20
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
