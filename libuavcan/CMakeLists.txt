@@ -21,7 +21,7 @@ endif ()
 
 project(libuavcan)
 
-find_program(PYTHON python)
+find_package(PythonInterp)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(COMPILER_IS_GCC_COMPATIBLE 1)
@@ -33,7 +33,7 @@ endif ()
 # DSDL compiler invocation
 # Probably output files should be saved into CMake output dir?
 #
-execute_process(COMMAND ${PYTHON} setup.py build WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler OUTPUT_QUIET)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} setup.py build WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler OUTPUT_QUIET)
 set(DSDLC_INPUTS "test/dsdl_test/root_ns_a" "test/dsdl_test/root_ns_b" "${CMAKE_CURRENT_SOURCE_DIR}/../dsdl/uavcan")
 set(DSDLC_OUTPUT "include/dsdlc_generated")
 
@@ -43,7 +43,7 @@ foreach(DSDLC_INPUT ${DSDLC_INPUTS})
     set(DSDLC_INPUT_FILES ${DSDLC_INPUT_FILES} ${DSDLC_NEW_INPUT_FILES})
 endforeach(DSDLC_INPUT)
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/libuavcan_dsdlc_run.stamp
-                   COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+                   COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
                    COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/libuavcan_dsdlc_run.stamp
                    DEPENDS ${DSDLC_INPUT_FILES}
                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -76,7 +76,7 @@ add_dependencies(uavcan libuavcan_dsdlc)
 install(TARGETS uavcan                            DESTINATION lib)
 install(DIRECTORY include/uavcan                  DESTINATION include)
 install(DIRECTORY include/dsdlc_generated/uavcan  DESTINATION include)  # Generated and lib's .hpp
-install(CODE "execute_process(COMMAND ${PYTHON} setup.py install --record installed_files.log
+install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} setup.py install --record installed_files.log
                               WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dsdl_compiler)")
 
 #
