@@ -9,13 +9,21 @@ on:
     - '*'
 
 jobs:
-  build:
+  build_in_ubuntu_bionic:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-bionic:2020-03-16
+    container: px4io/px4-dev-base-bionic:2020-03-28
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
     - name: make
       run: make
-
+  build_in_ubuntu_focal:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-focal:2020-03-28
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+    - name: make
+      run: make
