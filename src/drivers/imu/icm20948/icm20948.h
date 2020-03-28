@@ -43,7 +43,7 @@
 
 #include "ICM20948_mag.h"
 
-#if defined(PX4_I2C_OBDEV_ICM20948) || defined(PX4_I2C_BUS_EXPANSION)
+#if defined(PX4_I2C_OBDEV_ICM20948)
 #  define USE_I2C
 #endif
 

@@ -75,6 +75,23 @@ public:
 	 */
 	int	write(unsigned reg, void *data, unsigned count) override;
 
+	/**
+	 * Read a register from the device.
+	 *
+	 * @param		The register to read.
+	 * @return		The value that was read.
+	 */
+	uint8_t read_reg(unsigned reg) override;
+
+	/**
+	 * Write a register to the device.
+	 *
+	 * @param reg		The register to write.
+	 * @param value		The new value to write.
+	 * @return		OK on success, negative errno otherwise.
+	 */
+	int write_reg(unsigned reg, uint8_t value) override;
+
 protected:
 	int probe() override;
 };
@@ -173,3 +190,37 @@ int FXAS21002C_SPI::write(unsigned reg, void *data, unsigned count)
 	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
+/**
+ * Read a register from the device.
+ *
+ * @param		The register to read.
+ * @return		The value that was read.
+ */
+uint8_t FXAS21002C_SPI::read_reg(unsigned reg)
+{
+	uint8_t cmd[2];
+
+	cmd[0] = DIR_READ(reg);
+	cmd[1] = 0;
+
+	transfer(cmd, cmd, sizeof(cmd));
+
+	return cmd[1];
+}
+
+/**
+ * Write a register to the device.
+ *
+ * @param reg		The register to write.
+ * @param value		The new value to write.
+ * @return		OK on success, negative errno otherwise.
+ */
+int FXAS21002C_SPI::write_reg(unsigned reg, uint8_t value)
+{
+	uint8_t cmd[2];
+
+	cmd[0] = DIR_WRITE(reg);
+	cmd[1] = value;
+
+	return transfer(cmd, nullptr, sizeof(cmd));
+}
