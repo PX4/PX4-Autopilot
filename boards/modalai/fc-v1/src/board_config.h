@@ -181,17 +181,19 @@
 #define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
 #define PX4_SPI_BUS_RAMTRON  PX4_SPI_BUS_MEMORY
 
-#define PX4_SPIDEV_ICM_20602        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS1,0)
+#include <drivers/drv_sensor.h>
+
+#define PX4_SPIDEV_ICM_20602        PX4_MK_SPI_SEL(0,DRV_IMU_DEVTYPE_ICM20602)
 #define PX4_SENSORS1_BUS_CS_GPIO    {GPIO_SPI1_nCS1_ICM20602}
 
-#define PX4_SPIDEV_ICM_42688        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS2,0)
+#define PX4_SPIDEV_ICM_42688        PX4_MK_SPI_SEL(0,DRV_DEVTYPE_UNUSED)
 #define PX4_SENSORS2_BUS_CS_GPIO    {GPIO_SPI2_nCS1_ICM_42688}
 
-#define PX4_SPIDEV_MEMORY           PX4_MK_SPI_SEL(PX4_SPI_BUS_MEMORY,0)
+#define PX4_SPIDEV_MEMORY           SPIDEV_FLASH(0)
 #define PX4_MEMORY_BUS_CS_GPIO      {GPIO_SPI5_nCS1_FRAM}
 
-#define PX4_SPIDEV_BMI088_GYR       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,0)
-#define PX4_SPIDEV_BMI088_ACC       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,1)
+#define PX4_SPIDEV_BMI088_GYR       PX4_MK_SPI_SEL(0,DRV_GYR_DEVTYPE_BMI088)
+#define PX4_SPIDEV_BMI088_ACC       PX4_MK_SPI_SEL(0,DRV_ACC_DEVTYPE_BMI088)
 #define PX4_SENSORS3_BUS_CS_GPIO    {GPIO_SPI6_nCS2_BMI088, GPIO_SPI6_nCS1_BMI088}
 
 /* I2C busses */
@@ -450,8 +452,6 @@ int stm32_sdio_initialize(void);
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
 

@@ -85,6 +85,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_accel_status.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_mag.h>
@@ -312,12 +313,12 @@ public:
 		return MavlinkStreamHeartbeat::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "HEARTBEAT";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_HEARTBEAT;
 	}
@@ -384,12 +385,12 @@ public:
 		return MavlinkStreamStatustext::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "STATUSTEXT";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_STATUSTEXT;
 	}
@@ -449,12 +450,12 @@ public:
 		return MavlinkStreamCommandLong::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "COMMAND_LONG";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_COMMAND_LONG;
 	}
@@ -518,12 +519,12 @@ public:
 		return MavlinkStreamSysStatus::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "SYS_STATUS";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_SYS_STATUS;
 	}
@@ -636,12 +637,12 @@ public:
 		return MavlinkStreamBatteryStatus::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "BATTERY_STATUS";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_BATTERY_STATUS;
 	}
@@ -768,12 +769,12 @@ public:
 		return MavlinkStreamHighresIMU::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "HIGHRES_IMU";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_HIGHRES_IMU;
 	}
@@ -903,6 +904,161 @@ protected:
 	}
 };
 
+template <int N, typename Derived>
+class MavlinkStreamScaledPressureBase : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return Derived::get_name_static();
+	}
+
+	uint16_t get_id() override
+	{
+		return Derived::get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new Derived(mavlink);
+	}
+
+private:
+	MavlinkOrbSubscription *_differential_pressure_sub;
+	MavlinkOrbSubscription *_sensor_baro_sub;
+
+	uint64_t _baro_timestamp;
+	uint64_t _dpres_timestamp;
+
+	/* do not allow top copying this class */
+	MavlinkStreamScaledPressureBase(MavlinkStreamScaledPressureBase &) = delete;
+	MavlinkStreamScaledPressureBase &operator = (const MavlinkStreamScaledPressureBase &) = delete;
+
+protected:
+	explicit MavlinkStreamScaledPressureBase(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_differential_pressure_sub(_mavlink->add_orb_subscription(ORB_ID(differential_pressure))),
+		_sensor_baro_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_baro), N)),
+		_baro_timestamp(0),
+		_dpres_timestamp(0)
+	{}
+
+	bool send(const hrt_abstime t) override
+	{
+		sensor_baro_s sensor_baro{};
+		differential_pressure_s differential_pressure{};
+
+		bool updated = false;
+		updated |= _sensor_baro_sub->update(&_baro_timestamp, &sensor_baro);
+		updated |= _differential_pressure_sub->update(&_dpres_timestamp, &differential_pressure);
+
+		if (updated) {
+			typename Derived::mav_msg_type msg{};
+			msg.time_boot_ms = sensor_baro.timestamp / 1000;
+			msg.press_abs = sensor_baro.pressure;
+			msg.press_diff = differential_pressure.differential_pressure_raw_pa;
+			msg.temperature = sensor_baro.temperature;
+
+
+			Derived::send(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+template <int N> class MavlinkStreamScaledPressure {};
+
+template <>
+class MavlinkStreamScaledPressure<0> : public MavlinkStreamScaledPressureBase<0, MavlinkStreamScaledPressure<0> >
+{
+public:
+	typedef MavlinkStreamScaledPressureBase<0, MavlinkStreamScaledPressure<0> > Base;
+	typedef mavlink_scaled_pressure_t mav_msg_type;
+
+	explicit MavlinkStreamScaledPressure(Mavlink *mavlink) : Base(mavlink) {}
+
+	static void send(mavlink_channel_t channel, const MavlinkStreamScaledPressure<0>::mav_msg_type *msg)
+	{
+		mavlink_msg_scaled_pressure_send_struct(channel, msg);
+	}
+
+	static const char *get_name_static()
+	{
+		return "SCALED_PRESSURE";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE;
+	}
+
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+};
+
+template <>
+class MavlinkStreamScaledPressure<1> : public MavlinkStreamScaledPressureBase<1, MavlinkStreamScaledPressure<1> >
+{
+public:
+	typedef MavlinkStreamScaledPressureBase<1, MavlinkStreamScaledPressure<1> > Base;
+	typedef mavlink_scaled_pressure2_t mav_msg_type;
+
+	explicit MavlinkStreamScaledPressure(Mavlink *mavlink) : Base(mavlink) {}
+
+	static void send(mavlink_channel_t channel, const MavlinkStreamScaledPressure<1>::mav_msg_type *msg)
+	{
+		mavlink_msg_scaled_pressure2_send_struct(channel, msg);
+	}
+
+	static const char *get_name_static()
+	{
+		return "SCALED_PRESSURE2";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE2;
+	}
+
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE2_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+};
+
+template <>
+class MavlinkStreamScaledPressure<2> : public MavlinkStreamScaledPressureBase<2, MavlinkStreamScaledPressure<2> >
+{
+public:
+	typedef MavlinkStreamScaledPressureBase<2, MavlinkStreamScaledPressure<2> > Base;
+	typedef mavlink_scaled_pressure3_t mav_msg_type;
+
+	explicit MavlinkStreamScaledPressure(Mavlink *mavlink) : Base(mavlink) {}
+
+	static void send(mavlink_channel_t channel, const MavlinkStreamScaledPressure<2>::mav_msg_type *msg)
+	{
+		mavlink_msg_scaled_pressure3_send_struct(channel, msg);
+	}
+
+	static const char *get_name_static()
+	{
+		return "SCALED_PRESSURE3";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE3;
+	}
+
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_SCALED_PRESSURE3_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+};
 
 class MavlinkStreamScaledIMU : public MavlinkStream
 {
@@ -1012,12 +1168,12 @@ public:
 		return MavlinkStreamScaledIMU2::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "SCALED_IMU2";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_SCALED_IMU2;
 	}
@@ -1110,13 +1266,12 @@ public:
 	{
 		return MavlinkStreamScaledIMU3::get_name_static();
 	}
-
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "SCALED_IMU3";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_SCALED_IMU3;
 	}
@@ -1211,12 +1366,12 @@ public:
 		return MavlinkStreamAttitude::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ATTITUDE";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ATTITUDE;
 	}
@@ -1290,12 +1445,12 @@ public:
 		return MavlinkStreamAttitudeQuaternion::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ATTITUDE_QUATERNION";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ATTITUDE_QUATERNION;
 	}
@@ -1389,12 +1544,12 @@ public:
 		return MavlinkStreamVFRHUD::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "VFR_HUD";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_VFR_HUD;
 	}
@@ -1518,12 +1673,12 @@ public:
 		return MavlinkStreamGPSRawInt::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "GPS_RAW_INT";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_GPS_RAW_INT;
 	}
@@ -1597,12 +1752,12 @@ public:
 		return MavlinkStreamGPS2Raw::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "GPS2_RAW";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_GPS2_RAW;
 	}
@@ -1673,12 +1828,12 @@ public:
 		return MavlinkStreamSystemTime::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "SYSTEM_TIME";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_SYSTEM_TIME;
 	}
@@ -1736,12 +1891,12 @@ public:
 		return MavlinkStreamTimesync::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "TIMESYNC";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_TIMESYNC;
 	}
@@ -1791,12 +1946,12 @@ public:
 		return MavlinkStreamADSBVehicle::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ADSB_VEHICLE";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ADSB_VEHICLE;
 	}
@@ -1888,12 +2043,12 @@ public:
 		return MavlinkStreamUTMGlobalPosition::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "UTM_GLOBAL_POSITION";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_UTM_GLOBAL_POSITION;
 	}
@@ -2077,12 +2232,12 @@ public:
 		return MavlinkStreamCollision::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "COLLISION";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_COLLISION;
 	}
@@ -2148,12 +2303,12 @@ public:
 		return MavlinkStreamCameraTrigger::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "CAMERA_TRIGGER";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_CAMERA_TRIGGER;
 	}
@@ -2256,12 +2411,12 @@ public:
 		return MavlinkStreamCameraImageCaptured::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "CAMERA_IMAGE_CAPTURED";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_CAMERA_IMAGE_CAPTURED;
 	}
@@ -2340,12 +2495,12 @@ public:
 		return MavlinkStreamGlobalPositionInt::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "GLOBAL_POSITION_INT";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_GLOBAL_POSITION_INT;
 	}
@@ -2457,12 +2612,12 @@ public:
 		return MavlinkStreamOdometry::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ODOMETRY";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ODOMETRY;
 	}
@@ -2592,12 +2747,12 @@ public:
 		return MavlinkStreamLocalPositionNED::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "LOCAL_POSITION_NED";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_LOCAL_POSITION_NED;
 	}
@@ -2663,12 +2818,12 @@ public:
 		return MavlinkStreamEstimatorStatus::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ESTIMATOR_STATUS";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_VIBRATION;
 	}
@@ -2770,12 +2925,12 @@ public:
 		return MavlinkStreamAttPosMocap::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ATT_POS_MOCAP";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ATT_POS_MOCAP;
 	}
@@ -2843,12 +2998,12 @@ public:
 		return MavlinkStreamHomePosition::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "HOME_POSITION";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_HOME_POSITION;
 	}
@@ -2932,7 +3087,7 @@ public:
 		return MavlinkStreamServoOutputRaw<N>::get_name_static();
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_SERVO_OUTPUT_RAW;
 	}
@@ -2942,7 +3097,7 @@ public:
 		return get_id_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		switch (N) {
 		case 0:
@@ -3023,7 +3178,7 @@ public:
 		return MavlinkStreamActuatorControlTarget<N>::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		switch (N) {
 		case 0:
@@ -3040,7 +3195,7 @@ public:
 		}
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET;
 	}
@@ -3124,12 +3279,12 @@ public:
 		return MavlinkStreamHILActuatorControls::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "HIL_ACTUATOR_CONTROLS";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS;
 	}
@@ -3285,12 +3440,12 @@ public:
 		return MavlinkStreamPositionTargetGlobalInt::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "POSITION_TARGET_GLOBAL_INT";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT;
 	}
@@ -3384,12 +3539,12 @@ public:
 		return MavlinkStreamLocalPositionSetpoint::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "POSITION_TARGET_LOCAL_NED";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED;
 	}
@@ -3462,12 +3617,12 @@ public:
 		return MavlinkStreamAttitudeTarget::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ATTITUDE_TARGET";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ATTITUDE_TARGET;
 	}
@@ -3516,17 +3671,7 @@ protected:
 			mavlink_attitude_target_t msg = {};
 
 			msg.time_boot_ms = att_sp.timestamp / 1000;
-
-			if (att_sp.q_d_valid) {
-				memcpy(&msg.q[0], &att_sp.q_d[0], sizeof(msg.q));
-
-			} else {
-				matrix::Quatf q = matrix::Eulerf(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body);
-
-				for (size_t i = 0; i < 4; i++) {
-					msg.q[i] = q(i);
-				}
-			}
+			matrix::Quatf(att_sp.q_d).copyTo(msg.q);
 
 			msg.body_roll_rate = att_rates_sp.roll;
 			msg.body_pitch_rate = att_rates_sp.pitch;
@@ -3552,12 +3697,12 @@ public:
 		return MavlinkStreamRCChannels::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "RC_CHANNELS";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_RC_CHANNELS;
 	}
@@ -3640,12 +3785,12 @@ public:
 		return MavlinkStreamManualControl::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "MANUAL_CONTROL";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_MANUAL_CONTROL;
 	}
@@ -3717,12 +3862,12 @@ public:
 		return MavlinkStreamTrajectoryRepresentationWaypoints::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "TRAJECTORY_REPRESENTATION_WAYPOINTS";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 	}
@@ -3826,12 +3971,12 @@ public:
 		return MavlinkStreamOpticalFlowRad::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "OPTICAL_FLOW_RAD";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_OPTICAL_FLOW_RAD;
 	}
@@ -3903,12 +4048,12 @@ public:
 		return MavlinkStreamNamedValueFloat::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "NAMED_VALUE_FLOAT";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
 	}
@@ -3972,12 +4117,12 @@ public:
 		return MavlinkStreamDebug::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "DEBUG";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_DEBUG;
 	}
@@ -4039,12 +4184,12 @@ public:
 		return MavlinkStreamDebugVect::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "DEBUG_VECT";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_DEBUG_VECT;
 	}
@@ -4110,12 +4255,12 @@ public:
 		return MavlinkStreamDebugFloatArray::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "DEBUG_FLOAT_ARRAY";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY;
 	}
@@ -4183,12 +4328,12 @@ public:
 		return MavlinkStreamNavControllerOutput::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "NAV_CONTROLLER_OUTPUT";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT;
 	}
@@ -4264,12 +4409,12 @@ public:
 		return MavlinkStreamCameraCapture::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "CAMERA_CAPTURE";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return 0;
 	}
@@ -4336,12 +4481,12 @@ public:
 		return MavlinkStreamDistanceSensor::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "DISTANCE_SENSOR";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_DISTANCE_SENSOR;
 	}
@@ -4427,12 +4572,12 @@ public:
 		return MavlinkStreamExtendedSysState::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "EXTENDED_SYS_STATE";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_EXTENDED_SYS_STATE;
 	}
@@ -4543,12 +4688,12 @@ public:
 		return MavlinkStreamAltitude::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ALTITUDE";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ALTITUDE;
 	}
@@ -4666,12 +4811,12 @@ public:
 		return MavlinkStreamWind::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "WIND_COV";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_WIND_COV;
 	}
@@ -4748,12 +4893,12 @@ public:
 		return MavlinkStreamMountOrientation::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "MOUNT_ORIENTATION";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_MOUNT_ORIENTATION;
 	}
@@ -4820,12 +4965,12 @@ public:
 		return MavlinkStreamGroundTruth::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "GROUND_TRUTH";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
 	}
@@ -4926,12 +5071,12 @@ public:
 		return MavlinkStreamPing::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "PING";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_PING;
 	}
@@ -4991,12 +5136,12 @@ public:
 		return MavlinkStreamOrbitStatus::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "ORBIT_EXECUTION_STATUS";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS;
 	}
@@ -5060,12 +5205,12 @@ public:
 		return MavlinkStreamObstacleDistance::get_name_static();
 	}
 
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "OBSTACLE_DISTANCE";
 	}
 
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_OBSTACLE_DISTANCE;
 	}
@@ -5103,19 +5248,20 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		obstacle_distance_s obstacke_distance;
+		obstacle_distance_s obstacle_distance;
 
-		if (_obstacle_distance_fused_sub->update(&_obstacle_distance_time, &obstacke_distance)) {
+		if (_obstacle_distance_fused_sub->update(&_obstacle_distance_time, &obstacle_distance)) {
 			mavlink_obstacle_distance_t msg = {};
 
-			msg.time_usec = obstacke_distance.timestamp;
-			msg.sensor_type = obstacke_distance.sensor_type;
-			memcpy(msg.distances, obstacke_distance.distances, sizeof(msg.distances));
+			msg.time_usec = obstacle_distance.timestamp;
+			msg.sensor_type = obstacle_distance.sensor_type;
+			memcpy(msg.distances, obstacle_distance.distances, sizeof(msg.distances));
 			msg.increment = 0;
-			msg.min_distance = obstacke_distance.min_distance;
-			msg.max_distance = obstacke_distance.max_distance;
-			msg.angle_offset = obstacke_distance.angle_offset;
-			msg.increment_f = obstacke_distance.increment;
+			msg.min_distance = obstacle_distance.min_distance;
+			msg.max_distance = obstacle_distance.max_distance;
+			msg.angle_offset = obstacle_distance.angle_offset;
+			msg.increment_f = obstacle_distance.increment;
+			msg.frame = obstacle_distance.frame;
 
 			mavlink_msg_obstacle_distance_send_struct(_mavlink->get_channel(), &msg);
 
@@ -5127,63 +5273,63 @@ protected:
 };
 
 static const StreamListItem streams_list[] = {
-	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
-	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
-	StreamListItem(&MavlinkStreamCommandLong::new_instance, &MavlinkStreamCommandLong::get_name_static, &MavlinkStreamCommandLong::get_id_static),
-	StreamListItem(&MavlinkStreamSysStatus::new_instance, &MavlinkStreamSysStatus::get_name_static, &MavlinkStreamSysStatus::get_id_static),
-	StreamListItem(&MavlinkStreamBatteryStatus::new_instance, &MavlinkStreamBatteryStatus::get_name_static, &MavlinkStreamBatteryStatus::get_id_static),
-	StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static, &MavlinkStreamHighresIMU::get_id_static),
-	StreamListItem(&MavlinkStreamScaledIMU::new_instance, &MavlinkStreamScaledIMU::get_name_static, &MavlinkStreamScaledIMU::get_id_static),
-	StreamListItem(&MavlinkStreamScaledIMU2::new_instance, &MavlinkStreamScaledIMU2::get_name_static, &MavlinkStreamScaledIMU2::get_id_static),
-	StreamListItem(&MavlinkStreamScaledIMU3::new_instance, &MavlinkStreamScaledIMU3::get_name_static, &MavlinkStreamScaledIMU3::get_id_static),
-	StreamListItem(&MavlinkStreamAttitude::new_instance, &MavlinkStreamAttitude::get_name_static, &MavlinkStreamAttitude::get_id_static),
-	StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static, &MavlinkStreamAttitudeQuaternion::get_id_static),
-	StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static, &MavlinkStreamVFRHUD::get_id_static),
-	StreamListItem(&MavlinkStreamGPSRawInt::new_instance, &MavlinkStreamGPSRawInt::get_name_static, &MavlinkStreamGPSRawInt::get_id_static),
-	StreamListItem(&MavlinkStreamGPS2Raw::new_instance, &MavlinkStreamGPS2Raw::get_name_static, &MavlinkStreamGPS2Raw::get_id_static),
-	StreamListItem(&MavlinkStreamSystemTime::new_instance, &MavlinkStreamSystemTime::get_name_static, &MavlinkStreamSystemTime::get_id_static),
-	StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static, &MavlinkStreamTimesync::get_id_static),
-	StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static, &MavlinkStreamGlobalPositionInt::get_id_static),
-	StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static, &MavlinkStreamLocalPositionNED::get_id_static),
-	StreamListItem(&MavlinkStreamOdometry::new_instance, &MavlinkStreamOdometry::get_name_static, &MavlinkStreamOdometry::get_id_static),
-	StreamListItem(&MavlinkStreamEstimatorStatus::new_instance, &MavlinkStreamEstimatorStatus::get_name_static, &MavlinkStreamEstimatorStatus::get_id_static),
-	StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static, &MavlinkStreamAttPosMocap::get_id_static),
-	StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static, &MavlinkStreamHomePosition::get_id_static),
-	StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static, &MavlinkStreamServoOutputRaw<0>::get_id_static),
-	StreamListItem(&MavlinkStreamServoOutputRaw<1>::new_instance, &MavlinkStreamServoOutputRaw<1>::get_name_static, &MavlinkStreamServoOutputRaw<1>::get_id_static),
-	StreamListItem(&MavlinkStreamHILActuatorControls::new_instance, &MavlinkStreamHILActuatorControls::get_name_static, &MavlinkStreamHILActuatorControls::get_id_static),
-	StreamListItem(&MavlinkStreamPositionTargetGlobalInt::new_instance, &MavlinkStreamPositionTargetGlobalInt::get_name_static, &MavlinkStreamPositionTargetGlobalInt::get_id_static),
-	StreamListItem(&MavlinkStreamLocalPositionSetpoint::new_instance, &MavlinkStreamLocalPositionSetpoint::get_name_static, &MavlinkStreamLocalPositionSetpoint::get_id_static),
-	StreamListItem(&MavlinkStreamAttitudeTarget::new_instance, &MavlinkStreamAttitudeTarget::get_name_static, &MavlinkStreamAttitudeTarget::get_id_static),
-	StreamListItem(&MavlinkStreamRCChannels::new_instance, &MavlinkStreamRCChannels::get_name_static, &MavlinkStreamRCChannels::get_id_static),
-	StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static, &MavlinkStreamManualControl::get_id_static),
-	StreamListItem(&MavlinkStreamTrajectoryRepresentationWaypoints::new_instance, &MavlinkStreamTrajectoryRepresentationWaypoints::get_name_static, &MavlinkStreamTrajectoryRepresentationWaypoints::get_id_static),
-	StreamListItem(&MavlinkStreamOpticalFlowRad::new_instance, &MavlinkStreamOpticalFlowRad::get_name_static, &MavlinkStreamOpticalFlowRad::get_id_static),
-	StreamListItem(&MavlinkStreamActuatorControlTarget<0>::new_instance, &MavlinkStreamActuatorControlTarget<0>::get_name_static, &MavlinkStreamActuatorControlTarget<0>::get_id_static),
-	//StreamListItem(&MavlinkStreamActuatorControlTarget<1>::new_instance, &MavlinkStreamActuatorControlTarget<1>::get_name_static, &MavlinkStreamActuatorControlTarget<1>::get_id_static),
-	//StreamListItem(&MavlinkStreamActuatorControlTarget<2>::new_instance, &MavlinkStreamActuatorControlTarget<2>::get_name_static, &MavlinkStreamActuatorControlTarget<2>::get_id_static),
-	//StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static, &MavlinkStreamActuatorControlTarget<3>::get_id_static),
-	StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static, &MavlinkStreamNamedValueFloat::get_id_static),
-	StreamListItem(&MavlinkStreamDebug::new_instance, &MavlinkStreamDebug::get_name_static, &MavlinkStreamDebug::get_id_static),
-	StreamListItem(&MavlinkStreamDebugVect::new_instance, &MavlinkStreamDebugVect::get_name_static, &MavlinkStreamDebugVect::get_id_static),
-	StreamListItem(&MavlinkStreamDebugFloatArray::new_instance, &MavlinkStreamDebugFloatArray::get_name_static, &MavlinkStreamDebugFloatArray::get_id_static),
-	StreamListItem(&MavlinkStreamNavControllerOutput::new_instance, &MavlinkStreamNavControllerOutput::get_name_static, &MavlinkStreamNavControllerOutput::get_id_static),
-	StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static, &MavlinkStreamCameraCapture::get_id_static),
-	StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static, &MavlinkStreamCameraTrigger::get_id_static),
-	StreamListItem(&MavlinkStreamCameraImageCaptured::new_instance, &MavlinkStreamCameraImageCaptured::get_name_static, &MavlinkStreamCameraImageCaptured::get_id_static),
-	StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static, &MavlinkStreamDistanceSensor::get_id_static),
-	StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static, &MavlinkStreamExtendedSysState::get_id_static),
-	StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static, &MavlinkStreamAltitude::get_id_static),
-	StreamListItem(&MavlinkStreamADSBVehicle::new_instance, &MavlinkStreamADSBVehicle::get_name_static, &MavlinkStreamADSBVehicle::get_id_static),
-	StreamListItem(&MavlinkStreamUTMGlobalPosition::new_instance, &MavlinkStreamUTMGlobalPosition::get_name_static, &MavlinkStreamUTMGlobalPosition::get_id_static),
-	StreamListItem(&MavlinkStreamCollision::new_instance, &MavlinkStreamCollision::get_name_static, &MavlinkStreamCollision::get_id_static),
-	StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
-	StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
-	StreamListItem(&MavlinkStreamHighLatency2::new_instance, &MavlinkStreamHighLatency2::get_name_static, &MavlinkStreamHighLatency2::get_id_static),
-	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
-	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
-	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
-	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static)
+	create_stream_list_item<MavlinkStreamHeartbeat>(),
+	create_stream_list_item<MavlinkStreamStatustext>(),
+	create_stream_list_item<MavlinkStreamCommandLong>(),
+	create_stream_list_item<MavlinkStreamSysStatus>(),
+	create_stream_list_item<MavlinkStreamBatteryStatus>(),
+	create_stream_list_item<MavlinkStreamHighresIMU>(),
+	create_stream_list_item<MavlinkStreamScaledIMU>(),
+	create_stream_list_item<MavlinkStreamScaledIMU2>(),
+	create_stream_list_item<MavlinkStreamScaledIMU3>(),
+	create_stream_list_item<MavlinkStreamScaledPressure<0> >(),
+	// create_stream_list_item<MavlinkStreamScaledPressure<1> >(),
+	// create_stream_list_item<MavlinkStreamScaledPressure<2> >(),
+	create_stream_list_item<MavlinkStreamAttitude>(),
+	create_stream_list_item<MavlinkStreamAttitudeQuaternion>(),
+	create_stream_list_item<MavlinkStreamVFRHUD>(),
+	create_stream_list_item<MavlinkStreamGPSRawInt>(),
+	create_stream_list_item<MavlinkStreamGPS2Raw>(),
+	create_stream_list_item<MavlinkStreamSystemTime>(),
+	create_stream_list_item<MavlinkStreamTimesync>(),
+	create_stream_list_item<MavlinkStreamGlobalPositionInt>(),
+	create_stream_list_item<MavlinkStreamLocalPositionNED>(),
+	create_stream_list_item<MavlinkStreamOdometry>(),
+	create_stream_list_item<MavlinkStreamEstimatorStatus>(),
+	create_stream_list_item<MavlinkStreamAttPosMocap>(),
+	create_stream_list_item<MavlinkStreamHomePosition>(),
+	create_stream_list_item<MavlinkStreamServoOutputRaw<0> >(),
+	create_stream_list_item<MavlinkStreamServoOutputRaw<1> >(),
+	create_stream_list_item<MavlinkStreamHILActuatorControls>(),
+	create_stream_list_item<MavlinkStreamPositionTargetGlobalInt>(),
+	create_stream_list_item<MavlinkStreamLocalPositionSetpoint>(),
+	create_stream_list_item<MavlinkStreamAttitudeTarget>(),
+	create_stream_list_item<MavlinkStreamRCChannels>(),
+	create_stream_list_item<MavlinkStreamManualControl>(),
+	create_stream_list_item<MavlinkStreamTrajectoryRepresentationWaypoints>(),
+	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
+	create_stream_list_item<MavlinkStreamActuatorControlTarget<0> >(),
+	create_stream_list_item<MavlinkStreamNamedValueFloat>(),
+	create_stream_list_item<MavlinkStreamDebug>(),
+	create_stream_list_item<MavlinkStreamDebugVect>(),
+	create_stream_list_item<MavlinkStreamDebugFloatArray>(),
+	create_stream_list_item<MavlinkStreamNavControllerOutput>(),
+	create_stream_list_item<MavlinkStreamCameraCapture>(),
+	create_stream_list_item<MavlinkStreamCameraTrigger>(),
+	create_stream_list_item<MavlinkStreamCameraImageCaptured>(),
+	create_stream_list_item<MavlinkStreamDistanceSensor>(),
+	create_stream_list_item<MavlinkStreamExtendedSysState>(),
+	create_stream_list_item<MavlinkStreamAltitude>(),
+	create_stream_list_item<MavlinkStreamADSBVehicle>(),
+	create_stream_list_item<MavlinkStreamUTMGlobalPosition>(),
+	create_stream_list_item<MavlinkStreamCollision>(),
+	create_stream_list_item<MavlinkStreamWind>(),
+	create_stream_list_item<MavlinkStreamMountOrientation>(),
+	create_stream_list_item<MavlinkStreamHighLatency2>(),
+	create_stream_list_item<MavlinkStreamGroundTruth>(),
+	create_stream_list_item<MavlinkStreamPing>(),
+	create_stream_list_item<MavlinkStreamOrbitStatus>(),
+	create_stream_list_item<MavlinkStreamObstacleDistance>()
 };
 
 const char *get_stream_name(const uint16_t msg_id)

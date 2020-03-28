@@ -61,10 +61,11 @@
 #define PX4_I2C_BUS_LED 1
 
 // SPI
+#include <drivers/drv_sensor.h>
 #define PX4_SPI_BUS_SENSORS    1
-#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0) // spidev1.0 - mpu9250
-#define PX4_SPIDEV_BARO        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1) // spidev1.1 - ms5611
-//#define PX4_SPIDEV_MPU2      PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2) // TODO: where is the 2nd mpu9250?
+#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(0, DRV_IMU_DEVTYPE_MPU9250) // spidev1.0 - mpu9250
+#define PX4_SPIDEV_BARO        PX4_MK_SPI_SEL(0, DRV_BARO_DEVTYPE_MS5611) // spidev1.1 - ms5611
+//#define PX4_SPIDEV_MPU2      PX4_MK_SPI_SEL(0, 2) // TODO: where is the 2nd mpu9250?
 
 #define PX4_SPI_BUS_BARO PX4_SPI_BUS_SENSORS
 

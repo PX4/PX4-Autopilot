@@ -70,7 +70,7 @@ MPU9250_I2C_interface(int bus, uint32_t address, uint8_t bus_mode, int32_t bus_f
 MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address, int32_t bus_freq_hz) :
 	I2C("MPU9250_I2C", nullptr, bus, address, bus_freq_hz)
 {
-	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
+	set_device_type(DRV_IMU_DEVTYPE_MPU9250);
 }
 
 int

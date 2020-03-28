@@ -6,6 +6,7 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
+	CONSTRAINED_FLASH
 	SERIAL_PORTS
 		TEL2:/dev/ttyS1
 		URT6:/dev/ttyS2
@@ -52,7 +53,7 @@ px4_add_board(
 		#fw_att_control
 		#fw_pos_control_l1
 		land_detector
-		landing_target_estimator
+		#landing_target_estimator
 		load_mon
 		#local_position_estimator
 		logger
@@ -97,7 +98,6 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

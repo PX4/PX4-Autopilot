@@ -121,9 +121,9 @@
 #define PX4_FLOW_BUS_CS_GPIO					{ GPIO_SPI1_CS0_EXT, GPIO_SPI1_CS1_EXT, GPIO_SPI1_CS2_EXT }
 
 /* SPI1 Devices */
-#define PX4_SPIDEV_EXPANSION_1      			PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 0)		// SD CARD BREAKOUT
-#define PX4_SPIDEV_EXPANSION_2      			PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 1) 		// OPTICAL FLOW BREAKOUT
-#define PX4_SPIDEV_EXPANSION_3      			PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 2)
+#define PX4_SPIDEV_EXPANSION_1      			SPIDEV_MMCSD(0)		// SD CARD BREAKOUT
+#define PX4_SPIDEV_EXPANSION_2      			PX4_MK_SPI_SEL(0, DRV_FLOW_DEVTYPE_PMW3901) 		// OPTICAL FLOW BREAKOUT
+#define PX4_SPIDEV_EXPANSION_3      			PX4_MK_SPI_SEL(0, DRV_DEVTYPE_UNUSED)
 
 #define PX4_FLOW_BUS_FIRST_CS  					PX4_SPIDEV_EXPANSION_1
 #define PX4_FLOW_BUS_LAST_CS  					PX4_SPIDEV_EXPANSION_3
@@ -260,8 +260,6 @@ extern void stm32_spiinitialize(void);
  ************************************************************************************/
 
 extern int stm32_spi_bus_initialize(void);
-
-void board_spi_reset(int ms);
 
 
 #include <px4_platform_common/board_common.h>
