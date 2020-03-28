@@ -93,7 +93,7 @@ foreach(DSDLC_INPUT ${DSDLC_INPUTS})
 	list(APPEND DSDLC_INPUT_FILES ${DSDLC_NEW_INPUT_FILES})
 endforeach(DSDLC_INPUT)
 add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
-	COMMAND ${PYTHON} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+	COMMAND ${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
 	COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
 	DEPENDS ${DSDLC_INPUT_FILES}
 	COMMENT "PX4 UAVCAN dsdl compiler"
