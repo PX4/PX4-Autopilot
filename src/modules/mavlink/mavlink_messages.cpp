@@ -399,9 +399,9 @@ private:
 	MavlinkStreamStatustext &operator = (const MavlinkStreamStatustext &) = delete;
 
 protected:
-	int id;
+	int _id{0};
 
-	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink), id(0)
+	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
 	bool send(const hrt_abstime t) override
@@ -417,16 +417,16 @@ protected:
 				constexpr unsigned max_chunk_size = sizeof(msg.text);
 				msg.severity = mavlink_log.severity;
 				msg.chunk_seq = 0;
-				msg.id = id++;
+				msg.id = _id++;
 				unsigned text_size;
 
 				while ((text_size = strlen(text)) > 0) {
 					unsigned chunk_size = math::min(text_size, max_chunk_size);
 
 					if (chunk_size < max_chunk_size) {
-						memcpy(&msg.text[0], &text[0], chunk_size + 1);
+						memcpy(&msg.text[0], &text[0], chunk_size);
 						// pad with zeros
-						memset(&msg.text + chunk_size, 0, max_chunk_size - chunk_size);
+						memset(&msg.text[0] + chunk_size, 0, max_chunk_size - chunk_size);
 
 					} else {
 						memcpy(&msg.text[0], &text[0], chunk_size);
