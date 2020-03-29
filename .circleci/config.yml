@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: px4io/px4-dev-nuttx:2020-03-16
+      - image: px4io/px4-dev-nuttx-bionic:2020-03-29
     steps:
       - checkout
       - run:
