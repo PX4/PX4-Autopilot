@@ -136,14 +136,18 @@ if [[ $INSTALL_SIM == "true" ]]; then
 			opencv \
 			protobuf \
 			vtk \
-			yay \
 			;
 
-		# enable multicore gazebo compilation
-		sudo sed -i '/MAKEFLAGS=/c\MAKEFLAGS="-j'$(($(nproc)+2))'"' /etc/makepkg.conf
+		# add community binary repository for gazebo and ROS
+		# https://wiki.archlinux.org/index.php/Unofficial_user_repositories#oscloud
+		if ! grep -q oscloud /etc/pacman.conf; then
+			echo "# ROS gazebo repository for PX4
+[oscloud]
+SigLevel = Never
+Server = http://repo.oscloud.info/" | sudo tee -a /etc/pacman.conf > /dev/null
+		fi
 
-		# install gazebo from AUR
-		yay -S gazebo --noconfirm
+		sudo pacman -Sy --noconfirm --needed gazebo
 
 		if sudo dmidecode -t system | grep -q "Manufacturer: VMware, Inc." ; then
 			# fix VMWare 3D graphics acceleration for gazebo
