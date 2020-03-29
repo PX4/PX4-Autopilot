@@ -11,7 +11,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-simulation-bionic:2020-03-16
+    strategy:
+      matrix:
+        ubuntu_release: [
+          bionic,
+          focal
+          ]
+    container: px4io/px4-dev-simulation-${{ matrix.ubuntu_release }}:2020-03-29
     steps:
     - uses: actions/checkout@v1
       with:
