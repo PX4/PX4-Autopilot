@@ -45,3 +45,6 @@
 [submodule "platforms/qurt/dspal"]
 	path = platforms/qurt/dspal
 	url = https://github.com/ATLFlight/dspal.git
+[submodule "src/drivers/uavcannode_v1/libcanard"]
+	path = src/drivers/uavcannode_v1/libcanard
+	url = https://github.com/UAVCAN/libcanard.git
