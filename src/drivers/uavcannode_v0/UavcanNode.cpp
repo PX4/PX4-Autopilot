@@ -495,7 +495,7 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	return rv;
 }
 
-extern "C" __EXPORT int uavcannode_main(int argc, char *argv[])
+extern "C" __EXPORT int uavcannode_v0_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();

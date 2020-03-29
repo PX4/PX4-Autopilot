@@ -55,7 +55,7 @@ px4_add_board(
 		#px4fmu
 		#safety_button
 		#tone_alarm
-		uavcannode
+		uavcannode_v0
 	MODULES
 		#ekf2
 		#load_mon

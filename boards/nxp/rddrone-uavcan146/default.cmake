@@ -42,7 +42,7 @@ px4_add_board(
 		#px4fmu
 		#safety_button
 		#tone_alarm
-		#uavcannode # TODO: CAN driver needed
+		uavcannode_v1
 	MODULES
 		#ekf2
 		#load_mon

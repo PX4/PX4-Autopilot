@@ -101,8 +101,8 @@ add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
 add_custom_target(px4_uavcan_dsdlc DEPENDS px4_uavcan_dsdlc_run.stamp)
 
 px4_add_module(
-	MODULE drivers__uavcannode
-	MAIN uavcannode
+	MODULE drivers__uavcannode_v0
+	MAIN uavcannode_v0
 	INCLUDES
 		${DSDLC_OUTPUT}
 		${LIBUAVCAN_DIR}/libuavcan/include
