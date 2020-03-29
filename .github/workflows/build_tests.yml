@@ -11,7 +11,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-bionic:2020-03-16
+    strategy:
+      matrix:
+        container: [
+          "px4io/px4-dev-base-bionic:2020-03-28",
+          "px4io/px4-dev-base-focal:2020-03-28"
+          ]
+    container: ${{ matrix.container }}
     steps:
     - uses: actions/checkout@v1
       with:
