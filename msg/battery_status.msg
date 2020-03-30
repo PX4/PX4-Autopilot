@@ -12,8 +12,8 @@ int32 cell_count		# Number of cells
 bool connected			# Whether or not a battery is connected, based on a voltage threshold
 
 uint8 BATTERY_SOURCE_POWER_MODULE = 0
-uint8 BATTERY_SOURCE_EXTERNAL = 0
-uint8 BATTERY_SOURCE_ESCS = 0
+uint8 BATTERY_SOURCE_EXTERNAL = 1
+uint8 BATTERY_SOURCE_ESCS = 2
 uint8 source		# Battery source
 uint8 priority        	# Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
 uint16 capacity         # actual capacity of the battery
