@@ -70,9 +70,8 @@ public:
 
 	void     RunImpl();
 
-protected:
-	void custom_method(const BusCLIArguments &cli) override;
 private:
+	void custom_method(const BusCLIArguments &cli) override;
 
 	// Sensor Configuration
 	struct register_config_t {
