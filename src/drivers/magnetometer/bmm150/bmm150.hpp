@@ -33,39 +33,14 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
 #include <px4_platform_common/log.h>
-
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <systemlib/conversions.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <board_config.h>
 #include <drivers/drv_hrt.h>
-
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
 #define BMM150_SLAVE_ADDRESS                 0x10
 
@@ -208,14 +183,11 @@
 /* This value is set based on Max output data rate value */
 #define BMM150_CONVERSION_INTERVAL          (1000000 / 100) /* microseconds */
 
-
-
 struct bmm150_data {
 	int16_t x;
 	int16_t y;
 	int16_t z;
 };
-
 
 class BMM150 : public device::I2C, public I2CSPIDriver<BMM150>
 {
@@ -228,8 +200,6 @@ public:
 	static void print_usage();
 
 	int             init() override;
-	ssize_t       read(struct file *filp, char *buffer, size_t buflen) override;
-	int       ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
 	void            print_status() override;
 
@@ -239,29 +209,18 @@ public:
 
 	void custom_method(const BusCLIArguments &cli) override;
 
-protected:
+private:
 	int       probe() override;
 
-private:
+	PX4Magnetometer _px4_mag;
 
 	/* altitude conversion calibration */
 	unsigned        _call_interval;
 
-
-	sensor_mag_s _report {};
-	ringbuffer::RingBuffer  *_reports;
-
 	bool            _collect_phase;
 
-	struct mag_calibration_s    _scale;
-	float           _range_scale;
-
-	orb_advert_t        _topic;
-	int         _orb_class_instance;
-	int         _class_instance;
 	uint8_t     _power;
 	uint8_t     _output_data_rate;
-	bool        _calibrated;        /**< the calibration is valid */
 
 	int8_t dig_x1;/**< trim x1 data */
 	int8_t dig_y1;/**< trim y1 data */
@@ -286,12 +245,9 @@ private:
 	perf_counter_t      _comms_errors;
 	perf_counter_t      _duplicates;
 
-	enum Rotation       _rotation;
 	bool            _got_duplicate;
 
-	sensor_mag_s   _last_report {};          /**< used for info() */
-
-	int             init_trim_registers(void);
+	int             init_trim_registers();
 
 	/**
 	 * Start automatic measurement.
@@ -376,11 +332,6 @@ private:
 	   depend on Data Rate, XY and Z repetitions
 	 */
 	int             set_presetmode(uint8_t presetmode);
-
-
-	/* do not allow to copy this class due to pointer data members */
-	BMM150(const BMM150 &);
-	BMM150 operator=(const BMM150 &);
 
 };
 
