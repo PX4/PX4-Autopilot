@@ -160,14 +160,14 @@ Mission::on_activation()
 	// we already reset the mission items
 	_execution_mode_changed = false;
 
-	if(PX4_ISFINITE(_navigator->get_global_position()->lat) &&
-			PX4_ISFINITE(_navigator->get_global_position()->lon) &&
-			PX4_ISFINITE(_navigator->get_global_position()->alt)){
+	if (PX4_ISFINITE(_navigator->get_global_position()->lat) &&
+	    PX4_ISFINITE(_navigator->get_global_position()->lon) &&
+	    PX4_ISFINITE(_navigator->get_global_position()->alt)) {
 		// use current position so we go along a 3D line to next waypoint
 		_navigator->get_position_setpoint_triplet()->current.lat = _navigator->get_global_position()->lat;
 		_navigator->get_position_setpoint_triplet()->current.lon = _navigator->get_global_position()->lon;
 		_navigator->get_position_setpoint_triplet()->current.alt = _navigator->get_global_position()->alt;
-		_navigator->get_position_setpoint_triplet()->current.alt_valid  =true;
+		_navigator->get_position_setpoint_triplet()->current.alt_valid = true;
 		_navigator->get_position_setpoint_triplet()->current.position_valid = true;
 		_navigator->get_position_setpoint_triplet()->current.valid = true;
 		_navigator->get_position_setpoint_triplet()->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -473,14 +473,14 @@ Mission::update_mission()
 	_navigator->reset_vroi();
 
 	/* use current position so we go along a line to next waypoint*/
-	if(PX4_ISFINITE(_navigator->get_global_position()->lat) &&
-			PX4_ISFINITE(_navigator->get_global_position()->lon) &&
-			PX4_ISFINITE(_navigator->get_global_position()->alt) &&
-			_navigator->is_planned_mission()){
+	if (PX4_ISFINITE(_navigator->get_global_position()->lat) &&
+	    PX4_ISFINITE(_navigator->get_global_position()->lon) &&
+	    PX4_ISFINITE(_navigator->get_global_position()->alt) &&
+	    _navigator->is_planned_mission()) {
 		_navigator->get_position_setpoint_triplet()->current.lat = _navigator->get_global_position()->lat;
 		_navigator->get_position_setpoint_triplet()->current.lon = _navigator->get_global_position()->lon;
 		_navigator->get_position_setpoint_triplet()->current.alt = _navigator->get_global_position()->alt;
-		_navigator->get_position_setpoint_triplet()->current.alt_valid  =true;
+		_navigator->get_position_setpoint_triplet()->current.alt_valid = true;
 		_navigator->get_position_setpoint_triplet()->current.position_valid = true;
 		_navigator->get_position_setpoint_triplet()->current.valid = true;
 		_navigator->get_position_setpoint_triplet()->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
