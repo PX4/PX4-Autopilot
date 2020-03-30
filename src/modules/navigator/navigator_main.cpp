@@ -300,13 +300,19 @@ Navigator::run()
 							rep->current.alt = get_global_position()->alt;
 						}
 
-					} else if (PX4_ISFINITE(cmd.param7) && curr->current.valid
-						   && PX4_ISFINITE(curr->current.lat)
-						   && PX4_ISFINITE(curr->current.lon)) {
+					} else if (PX4_ISFINITE(cmd.param7)) {
 
 						// Altitude without position change
-						rep->current.lat = curr->current.lat;
-						rep->current.lon = curr->current.lon;
+						// This condition is necessary for altitude changes just after takeoff where lat and lon are still nan
+						if (curr->current.valid && PX4_ISFINITE(curr->current.lat) && PX4_ISFINITE(curr->current.lon)) {
+							rep->current.lat = curr->current.lat;
+							rep->current.lon = curr->current.lon;
+
+						} else {
+							rep->current.lat = get_global_position()->lat;
+							rep->current.lon = get_global_position()->lon;
+						}
+
 						rep->current.alt = cmd.param7;
 
 					} else {
