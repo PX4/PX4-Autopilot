@@ -10,10 +10,4 @@ then
 	set AUTOCNF yes
 fi
 
-if [ $AUTOCNF = yes ]
-then
-	# Enable IMU thermal control
-	param set SENS_EN_THERMAL 1
-fi
-
 set LOGGER_BUF 64

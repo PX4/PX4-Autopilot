@@ -58,9 +58,9 @@
 #include "board_config.h"
 
 /* Define CS GPIO array */
-static constexpr uint32_t spi2selects_gpio[] = {GPIO_SPI2_CS_GYRO_MPU6500_2};
-static constexpr uint32_t spi3selects_gpio[] = {GPIO_SPI3_CS_GYRO_MPU6500_1};
-static constexpr uint32_t spi4selects_gpio[] = {GPIO_SPI4_CS_OSD_MAX7456};
+static constexpr uint32_t spi2selects_gpio[] = PX4_SENSORS1_BUS_CS_GPIO;
+static constexpr uint32_t spi3selects_gpio[] = PX4_SENSORS2_BUS_CS_GPIO;
+static constexpr uint32_t spi4selects_gpio[] = PX4_SENSORS3_BUS_CS_GPIO;
 
 /************************************************************************************
  * Name: stm32_spiinitialize
@@ -72,14 +72,6 @@ static constexpr uint32_t spi4selects_gpio[] = {GPIO_SPI4_CS_OSD_MAX7456};
 
 __EXPORT void stm32_spiinitialize()
 {
-#ifdef CONFIG_STM32H7_SPI1
-
-	for (auto gpio : spi1selects_gpio) {
-		px4_arch_configgpio(gpio);
-	}
-
-#endif // CONFIG_STM32H7_SPI1
-
 
 #if defined(CONFIG_STM32H7_SPI2)
 
@@ -89,6 +81,13 @@ __EXPORT void stm32_spiinitialize()
 
 #endif // CONFIG_STM32H7_SPI2
 
+#ifdef CONFIG_STM32H7_SPI3
+
+	for (auto gpio : spi3selects_gpio) {
+		px4_arch_configgpio(gpio);
+	}
+
+#endif // CONFIG_STM32H7_SPI3
 
 #ifdef CONFIG_STM32H7_SPI4
 
@@ -154,6 +153,8 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 #if defined(CONFIG_STM32H7_SPI2)
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
+	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS_1);
+
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi2selects_gpio) {
 		stm32_gpiowrite(cs, 1);
@@ -179,6 +180,9 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 #if defined(CONFIG_STM32H7_SPI3)
 __EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
+
+	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS_2);
+
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi3selects_gpio) {
 		stm32_gpiowrite(cs, 1);
@@ -288,9 +292,19 @@ __EXPORT void board_spi_reset(int ms)
 		stm32_configgpio(_PIN_OFF(cs));
 	}
 
-	stm32_configgpio(GPIO_SPI2_SCK_OFF);
-	stm32_configgpio(GPIO_SPI2_MISO_OFF);
-	stm32_configgpio(GPIO_SPI2_MOSI_OFF);
+	stm32_configgpio(_PIN_OFF(GPIO_SPI2_SCK));
+	stm32_configgpio(_PIN_OFF(GPIO_SPI2_MISO));
+	stm32_configgpio(_PIN_OFF(GPIO_SPI2_MOSI));
+
+	/*
+	for (auto cs : spi3selects_gpio) {
+		stm32_configgpio(_PIN_OFF(cs));
+	}
+
+	stm32_configgpio(_PIN_OFF(GPIO_SPI3_SCK));
+	stm32_configgpio(_PIN_OFF(GPIO_SPI3_MISO));
+	stm32_configgpio(_PIN_OFF(GPIO_SPI3_MOSI));
+	*/
 
 	/* set the sensor rail off */
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
@@ -315,4 +329,15 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI2_SCK);
 	stm32_configgpio(GPIO_SPI2_MISO);
 	stm32_configgpio(GPIO_SPI2_MOSI);
+
+	/* reconfigure the SPI pins */
+	/*
+	for (auto cs : spi3selects_gpio) {
+		stm32_configgpio(cs);
+	}
+
+	stm32_configgpio(GPIO_SPI3_SCK);
+	stm32_configgpio(GPIO_SPI3_MISO);
+	stm32_configgpio(GPIO_SPI3_MOSI);
+	*/
 }
