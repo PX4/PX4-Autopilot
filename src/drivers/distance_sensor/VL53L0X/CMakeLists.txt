@@ -32,10 +32,8 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__vl53lxx
-	MAIN vl53lxx
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
+	MODULE drivers__distance_sensor__vl53l0x
+	MAIN vl53l0x
 	SRCS
-		vl53lxx.cpp
+		vl53l0x.cpp
 	)
