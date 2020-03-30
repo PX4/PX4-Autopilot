@@ -2,7 +2,7 @@
 
 [![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware)
 
-[![Build Status](http://ci.px4.io:8080/buildStatus/icon?job=PX4/Firmware/master)](http://ci.px4.io:8080/blue/organizations/jenkins/PX4%2FFirmware/activity)
+[![Build Status](http://ci.px4.io:8080/buildStatus/icon?job=PX4/Firmware/master)](http://ci.px4.io:8080/blue/organizations/jenkins/PX4%2FFirmware/activity) ![Nuttx Targets](https://github.com/PX4/Firmware/workflows/nuttx/badge.svg) ![SITL Tests](https://github.com/PX4/Firmware/workflows/SITL%20Tests/badge.svg)
 
 [![Slack](https://px4-slack.herokuapp.com/badge.svg)](http://slack.px4.io)
 
