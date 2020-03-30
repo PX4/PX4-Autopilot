@@ -66,7 +66,6 @@ public:
 	virtual ~RM3100_SPI() = default;
 
 	virtual int     init();
-	virtual int     ioctl(unsigned operation, unsigned &arg);
 	virtual int     read(unsigned address, void *data, unsigned count);
 	virtual int     write(unsigned address, void *data, unsigned count);
 };
@@ -86,8 +85,7 @@ RM3100_SPI::RM3100_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e sp
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_RM3100;
 }
 
-int
-RM3100_SPI::init()
+int RM3100_SPI::init()
 {
 	int ret;
 
@@ -113,29 +111,7 @@ RM3100_SPI::init()
 	return OK;
 }
 
-int
-RM3100_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case MAGIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
-}
-
-int
-RM3100_SPI::read(unsigned address, void *data, unsigned count)
+int RM3100_SPI::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -150,8 +126,7 @@ RM3100_SPI::read(unsigned address, void *data, unsigned count)
 	return ret;
 }
 
-int
-RM3100_SPI::write(unsigned address, void *data, unsigned count)
+int RM3100_SPI::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
