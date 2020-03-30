@@ -22,7 +22,8 @@ px4_add_board(
 		gps
 		#heater
 		#imu # all available imu drivers
-		imu/mpu6000
+		#imu/mpu6000
+		imu/invensense/mpu6000
 		imu/invensense/icm20602
 		#irlock
 		#lights/blinkm
@@ -93,7 +94,7 @@ px4_add_board(
 		shutdown
 		#tests # tests and test runner
 		top
-		topic_listener
+		#topic_listener
 		tune_control
 		usb_connected
 		ver
