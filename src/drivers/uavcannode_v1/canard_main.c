@@ -56,7 +56,7 @@
 
 #include <poll.h>
 
-#include <nuttx/can/can.h>
+#include <nuttx/can.h>
 #include <netpacket/can.h>
 
 #include "o1heap.h"
@@ -508,7 +508,7 @@ int uavcannode_v1_main(int argc, FAR char *argv[])
 	}
 
 	ret = task_create("canard_daemon", CONFIG_EXAMPLES_LIBCANARDV1_DAEMON_PRIORITY,
-			  CONFIG_EXAMPLES_LIBCANARDV1_STACKSIZE, canard_daemon,
+			  CONFIG_EXAMPLES_LIBCANARDV1_NODE_MEM_POOL_SIZE, canard_daemon,
 			  NULL);
 
 	if (ret < 0) {
