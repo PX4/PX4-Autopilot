@@ -117,7 +117,4 @@ private:
 	perf_counter_t _mag_errors;
 	perf_counter_t _mag_overruns;
 	perf_counter_t _mag_overflows;
-
-	AK09916(const AK09916 &) = delete;
-	AK09916 operator=(const AK09916 &) = delete;
 };
