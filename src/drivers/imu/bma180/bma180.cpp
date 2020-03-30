@@ -616,7 +616,7 @@ BMA180::measure()
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	if (_accel_topic != nullptr && !(_pub_blocked)) {
+	if (_accel_topic != nullptr) {
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &report);
 	}
 
