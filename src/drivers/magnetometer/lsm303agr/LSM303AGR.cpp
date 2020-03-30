@@ -65,37 +65,28 @@ LSM303AGR::LSM303AGR(I2CSPIBusOption bus_option, int bus, int device, enum Rotat
 		     spi_mode_e spi_mode) :
 	SPI("LSM303AGR", nullptr, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_mag_sample_perf(perf_alloc(PC_ELAPSED, "LSM303AGR_mag_read")),
-	_bad_registers(perf_alloc(PC_COUNT, "LSM303AGR_bad_reg")),
-	_bad_values(perf_alloc(PC_COUNT, "LSM303AGR_bad_val")),
-	_rotation(rotation)
+	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag_read")),
+	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
+	_bad_values(perf_alloc(PC_COUNT, MODULE_NAME": bad_val"))
 {
-	/* Prime _mag with parents devid. */
-	_device_id.devid = _device_id.devid;
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LSM303AGR;
+	set_device_type(DRV_MAG_DEVTYPE_LSM303AGR);
 
-	_mag_scale.x_offset = 0.0f;
-	_mag_scale.x_scale = 1.0f;
-	_mag_scale.y_offset = 0.0f;
-	_mag_scale.y_scale = 1.0f;
-	_mag_scale.z_offset = 0.0f;
-	_mag_scale.z_scale = 1.0f;
+	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_LSM303AGR);
+	_px4_mag.set_external(external());
+
+	_px4_mag.set_scale(1.5f / 1000.f); // 1.5 milligauss/LSB
 }
 
 LSM303AGR::~LSM303AGR()
 {
-	if (_class_instance != -1) {
-		unregister_class_devname(MAG_BASE_DEVICE_PATH, _class_instance);
-	}
-
 	/* delete the perf counter */
 	perf_free(_mag_sample_perf);
 	perf_free(_bad_registers);
 	perf_free(_bad_values);
 }
 
-int
-LSM303AGR::init()
+int LSM303AGR::init()
 {
 	/* do SPI init (and probe) first */
 	int ret = SPI::init();
@@ -104,8 +95,6 @@ LSM303AGR::init()
 		DEVICE_DEBUG("SPI init failed (%i)", ret);
 		return ret;
 	}
-
-	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
 	reset();
 
@@ -122,8 +111,7 @@ LSM303AGR::init()
 	return ret;
 }
 
-int
-LSM303AGR::reset()
+int LSM303AGR::reset()
 {
 	// Single mode
 	// Output data rate configuration: 100Hz
@@ -138,11 +126,9 @@ LSM303AGR::reset()
 	return PX4_OK;
 }
 
-bool
-LSM303AGR::self_test()
+bool LSM303AGR::self_test()
 {
 	// Magnetometer self-test procedure (LSM303AGR DocID027765 Rev 5 page 25/68)
-
 	uint8_t status_m = 0;
 
 	write_reg(CFG_REG_A_M, 0x0C);
@@ -227,8 +213,7 @@ LSM303AGR::self_test()
 	return true;
 }
 
-int
-LSM303AGR::probe()
+int LSM303AGR::probe()
 {
 	/* verify that the device is attached and functioning */
 	bool success = (read_reg(WHO_AM_I_M) == LSM303AGR_WHO_AM_I_M);
@@ -240,87 +225,9 @@ LSM303AGR::probe()
 	return -EIO;
 }
 
-int
-LSM303AGR::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
-
-					/* set interval for next measurement to minimum legal value */
-					_measure_interval = (CONVERSION_INTERVAL);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
-
-					/* convert hz to tick interval via microseconds */
-					unsigned interval = (1000000 / arg);
-
-					/* check against maximum rate */
-					if (interval < CONVERSION_INTERVAL) {
-						return -EINVAL;
-					}
-
-					/* update interval for next measurement */
-					_measure_interval = interval;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	case SENSORIOCRESET:
-		return reset();
-
-	case MAGIOCSSCALE:
-		/* set new scale factors */
-		memcpy(&_mag_scale, (struct mag_calibration_s *)arg, sizeof(_mag_scale));
-
-		return 0;
-
-	case MAGIOCGSCALE:
-		/* copy out scale factors */
-		memcpy((struct mag_calibration_s *)arg, &_mag_scale, sizeof(_mag_scale));
-		return 0;
-
-	case MAGIOCGEXTERNAL:
-		return external();
-
-	default:
-		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
-	}
-}
-
-uint8_t
-LSM303AGR::read_reg(unsigned reg)
+uint8_t LSM303AGR::read_reg(unsigned reg)
 {
 	uint8_t cmd[2];
-
 	cmd[0] = reg | DIR_READ;
 	cmd[1] = 0;
 
@@ -329,19 +236,16 @@ LSM303AGR::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-void
-LSM303AGR::write_reg(unsigned reg, uint8_t value)
+void LSM303AGR::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t	cmd[2];
-
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
 	transfer(cmd, nullptr, sizeof(cmd));
 }
 
-void
-LSM303AGR::start()
+void LSM303AGR::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
@@ -350,8 +254,7 @@ LSM303AGR::start()
 	ScheduleNow();
 }
 
-void
-LSM303AGR::RunImpl()
+void LSM303AGR::RunImpl()
 {
 	if (_measure_interval == 0) {
 		return;
@@ -395,69 +298,31 @@ LSM303AGR::RunImpl()
 	}
 }
 
-void
-LSM303AGR::measure()
+void LSM303AGR::measure()
 {
-	/*
-	 * Send the command to begin a measurement.
-	 */
+	// Send the command to begin a measurement.
 	write_reg(CFG_REG_A_M, CFG_REG_A_M_MD0 | CFG_REG_A_M_ODR1 | CFG_REG_A_M_ODR0);
 }
 
-int
-LSM303AGR::collect()
+int LSM303AGR::collect()
 {
 	const uint8_t status = read_reg(STATUS_REG_M);
+
+	_px4_mag.set_error_count(perf_event_count(_bad_registers) + perf_event_count(_bad_values));
 
 	// only publish new data
 	if (status & STATUS_REG_M_Zyxda) {
 		/* start the performance counter */
 		perf_begin(_mag_sample_perf);
 
-		sensor_mag_s mag_report = {};
-		mag_report.timestamp = hrt_absolute_time();
+		const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 		// switch to right hand coordinate system in place
-		mag_report.x_raw = read_reg(OUTX_L_REG_M) + (read_reg(OUTX_H_REG_M) << 8);
-		mag_report.y_raw = read_reg(OUTY_L_REG_M) + (read_reg(OUTY_H_REG_M) << 8);
-		mag_report.z_raw = -(read_reg(OUTZ_L_REG_M) + (read_reg(OUTZ_H_REG_M) << 8));
+		float x_raw = read_reg(OUTX_L_REG_M) + (read_reg(OUTX_H_REG_M) << 8);
+		float y_raw = read_reg(OUTY_L_REG_M) + (read_reg(OUTY_H_REG_M) << 8);
+		float z_raw = -(read_reg(OUTZ_L_REG_M) + (read_reg(OUTZ_H_REG_M) << 8));
 
-		float xraw_f = mag_report.x_raw;
-		float yraw_f = mag_report.y_raw;
-		float zraw_f = mag_report.z_raw;
-
-		/* apply user specified rotation */
-		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-		mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-		mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-		mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-		mag_report.scaling = _mag_range_scale;
-		mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
-
-		/* remember the temperature. The datasheet isn't clear, but it
-		 * seems to be a signed offset from 25 degrees C in units of 0.125C
-		 */
-		//mag_report.temperature = 25 + (raw_mag_report.temperature * 0.125f);;
-		mag_report.device_id = _device_id.devid;
-		mag_report.is_external = external();
-
-		if (!(_pub_blocked)) {
-
-			if (_mag_topic != nullptr) {
-				/* publish it */
-				orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
-
-			} else {
-				_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mag_report, &_mag_orb_class_instance,
-								 (mag_report.is_external) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
-
-				if (_mag_topic == nullptr) {
-					DEVICE_DEBUG("ADVERT FAIL");
-				}
-			}
-		}
-
+		_px4_mag.update(timestamp_sample, x_raw, y_raw, z_raw);
 
 		/* stop the perf counter */
 		perf_end(_mag_sample_perf);
@@ -466,11 +331,11 @@ LSM303AGR::collect()
 	return OK;
 }
 
-void
-LSM303AGR::print_status()
+void LSM303AGR::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_bad_values);
+	_px4_mag.print_status();
 }
