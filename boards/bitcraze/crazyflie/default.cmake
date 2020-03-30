@@ -8,7 +8,7 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	DRIVERS
 		barometer/lps25h
-		distance_sensor/vl53lxx
+		distance_sensor/vl53l0x
 		gps
 		imu/mpu9250
 		optical_flow/pmw3901
