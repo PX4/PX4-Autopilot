@@ -476,6 +476,10 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 			continue;
 		}
 
+		if (cli.i2c_address != 0 && instance->_i2c_address == 0) {
+			PX4_ERR("Bug: driver %s does not pass the I2C address to I2CSPIDriverBase", instance->ItemName());
+		}
+
 		iterator.addInstance(instance);
 		started = true;
 
