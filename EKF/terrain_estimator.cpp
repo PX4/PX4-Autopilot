@@ -88,6 +88,11 @@ bool Ekf::initHagl()
 
 void Ekf::runTerrainEstimator()
 {
+	// If we are on ground, store the local position and time to use as a reference
+	if (!_control_status.flags.in_air) {
+		_last_on_ground_posD = _state.pos(2);
+	}
+
 	// Perform initialisation check and
 	// on ground, continuously reset the terrain estimator
 	if (!_terrain_initialised || !_control_status.flags.in_air) {

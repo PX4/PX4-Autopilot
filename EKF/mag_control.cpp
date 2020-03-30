@@ -41,20 +41,31 @@
 
 void Ekf::controlMagFusion()
 {
+	// handle undefined behaviour
+	if (_params.mag_fusion_type > MAG_FUSE_TYPE_NONE) {
+		return;
+	}
+
+	// When operating without a magnetometer, yaw fusion is run selectively to prevent
+	// enable yaw gyro bias learning hen stationary on ground and to prevent uncontrolled
+	// yaw variance growth
+	if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
+		_yaw_use_inhibit = true;
+		fuseHeading();
+		return;
+	}
+
 	updateMagFilter();
 	checkMagFieldStrength();
 
-	// If we are on ground, store the local position and time to use as a reference
-	// Also reset the flight alignment flag so that the mag fields will be re-initialised next time we achieve flight altitude
+	// If we are on ground, reset the flight alignment flag so that the mag fields will be
+	// re-initialised next time we achieve flight altitude
 	if (!_control_status.flags.in_air) {
-		_last_on_ground_posD = _state.pos(2);
 		_control_status.flags.mag_aligned_in_flight = false;
 		_num_bad_flight_yaw_events = 0;
 	}
 
-	if ((_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE)
-	    || _control_status.flags.mag_fault
-	    || !_control_status.flags.yaw_align) {
+	if (_control_status.flags.mag_fault || !_control_status.flags.yaw_align) {
 		stopMagFusion();
 		return;
 	}
@@ -143,12 +154,12 @@ void Ekf::runOnGroundYawReset()
 
 bool Ekf::isYawResetAuthorized() const
 {
-	return !_mag_use_inhibit;
+	return !_yaw_use_inhibit;
 }
 
 bool Ekf::canResetMagHeading() const
 {
-	return !isStrongMagneticDisturbance();
+	return !isStrongMagneticDisturbance() && (_params.mag_fusion_type != MAG_FUSE_TYPE_NONE);
 }
 
 void Ekf::runInAirYawReset()
@@ -255,8 +266,8 @@ void Ekf::checkMagDeclRequired()
 
 void Ekf::checkMagInhibition()
 {
-	_mag_use_inhibit = shouldInhibitMag();
-	if (!_mag_use_inhibit) {
+	_yaw_use_inhibit = shouldInhibitMag();
+	if (!_yaw_use_inhibit) {
 		_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
 	}
 
@@ -271,7 +282,8 @@ bool Ekf::shouldInhibitMag() const
 	// If the user has selected auto protection against indoor magnetic field errors, only use the magnetometer
 	// if a yaw angle relative to true North is required for navigation. If no GPS or other earth frame aiding
 	// is available, assume that we are operating indoors and the magnetometer should not be used.
-	// Also inhibit mag fusion when a strong magnetic field interference is detected
+	// Also inhibit mag fusion when a strong magnetic field interference is detected or the user
+	// has explicitly stopped magnetometer use.
 	const bool user_selected = (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR);
 
 	const bool heading_not_required_for_navigation = !_control_status.flags.gps
@@ -324,7 +336,6 @@ void Ekf::runMagAndMagDeclFusions()
 {
 	if (_control_status.flags.mag_3D) {
 		run3DMagAndDeclFusions();
-
 	} else if (_control_status.flags.mag_hdg) {
 		fuseHeading();
 	}

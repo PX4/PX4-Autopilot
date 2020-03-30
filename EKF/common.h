@@ -177,7 +177,7 @@ struct auxVelSample {
 #define MASK_USE_DRAG  (1<<5)		///< set to true to use the multi-rotor drag model to estimate wind
 #define MASK_ROTATE_EV  (1<<6)		///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
 #define MASK_USE_GPSYAW  (1<<7)		///< set to true to use GPS yaw data if available
-#define MASK_USE_EVVEL  (1<<8)		///< sset to true to use external vision velocity data
+#define MASK_USE_EVVEL  (1<<8)		///< set to true to use external vision velocity data
 
 enum TerrainFusionMask : int32_t {
 	TerrainFuseRangeFinder = (1 << 0),
@@ -265,6 +265,7 @@ struct parameters {
 	int32_t mag_fusion_type{0};		///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};		///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
 	float mag_yaw_rate_gate{0.25f};		///< yaw rate threshold used by mode select logic (rad/sec)
+	float quat_max_variance{0.0001f};	///< zero innovation yaw measurements will not be fused when the sum of quaternion variance is less than this
 
 	// airspeed fusion
 	float tas_innov_gate{5.0f};		///< True Airspeed innovation consistency gate size (STD)
@@ -365,7 +366,7 @@ struct parameters {
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
 	float EKFGSF_tas_default{15.0f};	///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	unsigned EKFGSF_reset_delay{1000000};	///< Number of uSec of bad innovations on main filter inpost takeoff phase before yaw is reset to EKF-GSF value
-	float EKFGSF_yaw_err_max{0.2f}; 	///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
+	float EKFGSF_yaw_err_max{0.262f}; 	///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
 };
 
 struct stateSample {
