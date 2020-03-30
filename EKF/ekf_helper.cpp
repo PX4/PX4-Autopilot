@@ -544,8 +544,8 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 			yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 		}
 
-	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _mag_use_inhibit) {
-		// we are operating without knowing the earth frame yaw angle
+	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _yaw_use_inhibit) {
+		// we are operating temporarily without knowing the earth frame yaw angle
 		return true;
 
 	} else {
@@ -1723,7 +1723,9 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 		_state_reset_status.quat_counter++;
 }
 
-// Reset main nav filter yaw to value from EKF-GSF and reset velocity and position to GPS
+// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
+// Resets the horizontal velocity and position to the default navigation sensor
+// Returns true if the reset was successful
 bool Ekf::resetYawToEKFGSF()
 {
 	// don't allow reet using the EKF-GSF estimate until the filter has started fusing velocity
@@ -1737,14 +1739,18 @@ bool Ekf::resetYawToEKFGSF()
 		resetVelocity();
 		resetPosition();
 
-		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
-		// and cause another navigation failure
-		_control_status.flags.mag_fault = true;
-
 		// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
 		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		_control_status.flags.yaw_align = true;
 
-		ECL_INFO_TIMESTAMPED("Emergency yaw reset - magnetometer use stopped");
+		if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
+			ECL_INFO_TIMESTAMPED("Yaw aligned using IMU and GPS");
+		} else {
+			// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
+			// and cause another navigation failure
+			_control_status.flags.mag_fault = true;
+			ECL_INFO_TIMESTAMPED("Emergency yaw reset - magnetometer use stopped");
+		}
 
 		return true;
 	}
@@ -1755,7 +1761,7 @@ bool Ekf::resetYawToEKFGSF()
 
 void Ekf::requestEmergencyNavReset()
 {
-	_do_emergency_yaw_reset = true;
+	_do_ekfgsf_yaw_reset = true;
 }
 
 bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF])
@@ -1801,5 +1807,20 @@ void Ekf::runYawEKFGSF()
 	// basic sanity check on GPS velocity data
 	if (_gps_data_ready && _gps_sample_delayed.vacc > FLT_EPSILON && ISFINITE(_gps_sample_delayed.vel(0)) && ISFINITE(_gps_sample_delayed.vel(1))) {
 		yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.vacc);
+	}
+}
+
+void Ekf::shrinkYawVariance()
+{
+	if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
+		// rolled more than pitched so use 321 rotation order to define yaw angle
+		// and fuse a zero innovation yaw to shrink quaternion yaw variance
+		fuseYaw321(0.0f, 0.25f, true);
+
+	} else {
+		// pitched more than rolled so use 312 rotation order to define yaw angle
+		// and fuse a zero innovation yaw to shrink quaternion yaw variance
+		fuseYaw312(0.0f, 0.25f, true);
+
 	}
 }

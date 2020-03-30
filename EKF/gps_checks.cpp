@@ -85,7 +85,13 @@ bool Ekf::collect_gps(const gps_message &gps)
 		_mag_strength_gps = 0.01f * get_mag_strength(lat, lon);
 
 		// request a reset of the yaw using the new declination
-		_mag_yaw_reset_req = true;
+		if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
+			// try to reset the yaw using the EKF-GSF yaw esitimator
+			_do_ekfgsf_yaw_reset = true;
+			_ekfgsf_yaw_reset_time = 0;
+		} else {
+			_mag_yaw_reset_req = true;
+		}
 		// save the horizontal and vertical position uncertainty of the origin
 		_gps_origin_eph = gps.eph;
 		_gps_origin_epv = gps.epv;

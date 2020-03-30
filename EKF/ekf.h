@@ -373,13 +373,13 @@ private:
 	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
 	uint8_t _num_bad_flight_yaw_events{0};	///< number of times a bad heading has been detected in flight and required a yaw reset
 	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetometer use was inhibited
-	bool _mag_use_inhibit{false};		///< true when magnetometer use is being inhibited
-	bool _mag_use_inhibit_prev{false};	///< true when magnetometer use was being inhibited the previous frame
 	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetometer inhibit has been active for long enough to require a yaw reset when conditions improve.
 	float _last_static_yaw{0.0f};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements
+
+	bool _yaw_use_inhibit{false};		///< true when yaw sensor use is being inhibited
 
 	matrix::SquareMatrix<float, _k_num_states> P;	///< state covariance matrix
 
@@ -539,6 +539,28 @@ private:
 
 	// fuse the first euler angle from either a 321 or 312 rotation sequence as the observation (currently measures yaw using the magnetometer)
 	void fuseHeading();
+
+	// fuse the yaw angle defined as the first rotation in a 321 Tait-Bryan rotation sequence
+	// yaw : angle observation defined as the first rotation in a 321 Tait-Bryan rotation sequence (rad)
+	// yaw_variance : variance of the yaw angle observation (rad^2)
+	// zero_innovation : Fuse data with innovation set to zero
+	void fuseYaw321(const float yaw, const float yaw_variance, bool zero_innovation);
+
+	// fuse the yaw angle defined as the first rotation in a 312 Tait-Bryan rotation sequence
+	// yaw : angle observation defined as the first rotation in a 312 Tait-Bryan rotation sequence (rad)
+	// yaw_variance : variance of the yaw angle observation (rad^2)
+	// zero_innovation : Fuse data with innovation set to zero
+	void fuseYaw312(const float yaw, const float yaw_variance, bool zero_innovation);
+
+	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
+	// innovation : prediction - measurement
+	// variance : observaton variance
+	// gate_sigma : innovation consistency check gate size (Sigma)
+	// jacobian : 4x1 vector of partial derivatives of observation wrt each quaternion state
+	void updateQuaternion(const float innovation, const float variance, const float gate_sigma, const float (&yaw_jacobian)[4]);
+
+	// shrinks the yaw axis uncertainty of quaternion covariances by fusing a zero innovation yaw observation
+	void shrinkYawVariance();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsAntYaw();
@@ -849,14 +871,15 @@ private:
 
 	// Declarations used to control use of the EKF-GSF yaw estimator
 
-	int64_t _emergency_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
+	int64_t _ekfgsf_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
 	uint64_t _time_last_on_ground_us{0};	///< last tine we were on the ground (uSec)
-	bool _do_emergency_yaw_reset{false};	// true when an emergency yaw reset has been requested
+	bool _do_ekfgsf_yaw_reset{false};	// true when an emergency yaw reset has been requested
 
 	// Call once per _imu_sample_delayed update after all main EKF data fusion oeprations have been completed
 	void runYawEKFGSF();
 
-	// Resets the main Nav EKf yaw to the esitmator from the EKF-GSF yaw estimator
+	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
+	// Resets the horizontal velocity and position to the default navigation sensor
 	// Returns true if the reset was successful
 	bool resetYawToEKFGSF();
 

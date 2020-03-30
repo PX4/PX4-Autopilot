@@ -435,7 +435,7 @@ void Ekf::fuseMag()
 	}
 }
 
-void Ekf::fuseHeading()
+void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 {
 	// assign intermediate state variables
 	const float q0 = _state.quat_nominal(0);
@@ -443,296 +443,206 @@ void Ekf::fuseHeading()
 	const float q2 = _state.quat_nominal(2);
 	const float q3 = _state.quat_nominal(3);
 
-	float R_YAW = 1.0f;
-	float predicted_hdg;
+	float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
+	float measurement = wrap_pi(yaw);
 	float H_YAW[4];
-	Vector3f mag_earth_pred;
-	float measured_hdg;
 
-	// determine if a 321 or 312 Euler sequence is best
-	if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
-		// calculate observation jacobian when we are observing the first rotation in a 321 sequence
-		float t9 = q0*q3;
-		float t10 = q1*q2;
-		float t2 = t9+t10;
-		float t3 = q0*q0;
-		float t4 = q1*q1;
-		float t5 = q2*q2;
-		float t6 = q3*q3;
-		float t7 = t3+t4-t5-t6;
+	// calculate observation jacobian when we are observing the first rotation in a 321 sequence
+	float t9 = q0*q3;
+	float t10 = q1*q2;
+	float t2 = t9+t10;
+	float t3 = q0*q0;
+	float t4 = q1*q1;
+	float t5 = q2*q2;
+	float t6 = q3*q3;
+	float t7 = t3+t4-t5-t6;
 
-		float t16 = q3*t3;
-		float t17 = q3*t5;
-		float t18 = q0*q1*q2*2.0f;
-		float t19 = t16+t17+t18-q3*t4+q3*t6;
+	float t16 = q3*t3;
+	float t17 = q3*t5;
+	float t18 = q0*q1*q2*2.0f;
+	float t19 = t16+t17+t18-q3*t4+q3*t6;
 
-		float t24 = q2*t4;
-		float t25 = q2*t6;
-		float t26 = q0*q1*q3*2.0f;
-		float t27 = t24+t25+t26-q2*t3+q2*t5;
-		float t28 = q1*t3;
-		float t29 = q1*t5;
-		float t30 = q0*q2*q3*2.0f;
-		float t31 = t28+t29+t30+q1*t4-q1*t6;
-		float t32 = q0*t4;
-		float t33 = q0*t6;
-		float t34 = q1*q2*q3*2.0f;
-		float t35 = t32+t33+t34+q0*t3-q0*t5;
+	float t24 = q2*t4;
+	float t25 = q2*t6;
+	float t26 = q0*q1*q3*2.0f;
+	float t27 = t24+t25+t26-q2*t3+q2*t5;
+	float t28 = q1*t3;
+	float t29 = q1*t5;
+	float t30 = q0*q2*q3*2.0f;
+	float t31 = t28+t29+t30+q1*t4-q1*t6;
+	float t32 = q0*t4;
+	float t33 = q0*t6;
+	float t34 = q1*q2*q3*2.0f;
+	float t35 = t32+t33+t34+q0*t3-q0*t5;
 
-		// two computational paths are provided to work around singularities in calculation of the Jacobians
-		float t8 = t7*t7;
-		float t15 = t2*t2;
-		if (t8 > t15 && t8 > 1E-6f) {
-			// this path has a singularities at yaw = +-90 degrees
-			t8 = 1.0f/t8;
-			float t11 = t2*t2;
-			float t12 = t8*t11*4.0f;
-			float t13 = t12+1.0f;
-			float t14 = 1.0f/t13;
+	// two computational paths are provided to work around singularities in calculation of the Jacobians
+	float t8 = t7*t7;
+	float t15 = t2*t2;
+	if (t8 > t15 && t8 > 1E-6f) {
+		// this path has a singularities at yaw = +-90 degrees
+		t8 = 1.0f/t8;
+		float t11 = t2*t2;
+		float t12 = t8*t11*4.0f;
+		float t13 = t12+1.0f;
+		float t14 = 1.0f/t13;
 
-			H_YAW[0] = t8*t14*t19*(-2.0f);
-			H_YAW[1] = t8*t14*t27*(-2.0f);
-			H_YAW[2] = t8*t14*t31*2.0f;
-			H_YAW[3] = t8*t14*t35*2.0f;
+		H_YAW[0] = t8*t14*t19*(-2.0f);
+		H_YAW[1] = t8*t14*t27*(-2.0f);
+		H_YAW[2] = t8*t14*t31*2.0f;
+		H_YAW[3] = t8*t14*t35*2.0f;
 
-		} else if (t15 > 1E-6f) {
-			// this path has singularities at yaw = 0 and +-180 deg
-			t15 = 1.0f/t15;
-			float t20 = t7*t7;
-			float t21 = t15*t20*0.25f;
-			float t22 = t21+1.0f;
+	} else if (t15 > 1E-6f) {
+		// this path has singularities at yaw = 0 and +-180 deg
+		t15 = 1.0f/t15;
+		float t20 = t7*t7;
+		float t21 = t15*t20*0.25f;
+		float t22 = t21+1.0f;
 
-			if (fabsf(t22) > 1E-6f) {
-				float t23 = 1.0f/t22;
+		if (fabsf(t22) > 1E-6f) {
+			float t23 = 1.0f/t22;
 
-				H_YAW[0] = t15*t19*t23*(-0.5f);
-				H_YAW[1] = t15*t23*t27*(-0.5f);
-				H_YAW[2] = t15*t23*t31*0.5f;
-				H_YAW[3] = t15*t23*t35*0.5f;
+			H_YAW[0] = t15*t19*t23*(-0.5f);
+			H_YAW[1] = t15*t23*t27*(-0.5f);
+			H_YAW[2] = t15*t23*t31*0.5f;
+			H_YAW[3] = t15*t23*t35*0.5f;
 
-			} else {
-				return;
-
-			}
 		} else {
 			return;
 
 		}
+	} else {
+		return;
 
-		// rotate the magnetometer measurement into earth frame
+	}
+
+	// calculate the yaw innovation and wrap to the interval between +-pi
+	float innovation;
+	if (zero_innovation) {
+		innovation = 0.0f;
+	} else {
 		Eulerf euler321(_state.quat_nominal);
-		predicted_hdg = euler321(2); // we will need the predicted heading to calculate the innovation
-
-		// calculate the observed yaw angle
-		if (_control_status.flags.mag_hdg) {
-			// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
-			euler321(2) = 0.0f;
-			const Dcmf R_to_earth(euler321);
-
-			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			if (_control_status.flags.mag_3D) {
-				// don't apply bias corrections if we are learning them
-				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
-
-			} else {
-				mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
-			}
-
-			// the angle of the projection onto the horizontal gives the yaw angle
-			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
-
-		} else if (_control_status.flags.ev_yaw) {
-			// calculate the yaw angle for a 321 sequence
-			// Expressions obtained from yaw_input_321.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw321.m
-			const float Tbn_1_0 = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)+_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
-			const float Tbn_0_0 = sq(_ev_sample_delayed.quat(0))+sq(_ev_sample_delayed.quat(1))-sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
-			measured_hdg = atan2f(Tbn_1_0,Tbn_0_0);
-
-		} else if (_mag_use_inhibit) {
-			// Special case where we either use the current or last known stationary value
-			// so set to current value as a safe default
-			measured_hdg = predicted_hdg;
-
-		} else {
-			// Should not be doing yaw fusion
-			return;
-
-		}
-
-	} else {
-		// calculate observation jacobian when we are observing a rotation in a 312 sequence
-		float t9 = q0*q3;
-		float t10 = q1*q2;
-		float t2 = t9-t10;
-		float t3 = q0*q0;
-		float t4 = q1*q1;
-		float t5 = q2*q2;
-		float t6 = q3*q3;
-		float t7 = t3-t4+t5-t6;
-
-		float t16 = q3*t3;
-		float t17 = q3*t4;
-		float t18 = t16+t17-q3*t5+q3*t6-q0*q1*q2*2.0f;
-		float t23 = q2*t3;
-		float t24 = q2*t4;
-		float t25 = t23+t24+q2*t5-q2*t6-q0*q1*q3*2.0f;
-		float t26 = q1*t5;
-		float t27 = q1*t6;
-		float t28 = t26+t27-q1*t3+q1*t4-q0*q2*q3*2.0f;
-		float t29 = q0*t5;
-		float t30 = q0*t6;
-		float t31 = t29+t30+q0*t3-q0*t4-q1*q2*q3*2.0f;
-
-		// two computational paths are provided to work around singularities in calculation of the Jacobians
-		float t8 = t7*t7;
-		float t15 = t2*t2;
-		if (t8 > t15 && t8 > 1E-6f) {
-			// this path has a singularities at yaw = +-90 degrees
-			t8 = 1.0f/t8;
-			float t11 = t2*t2;
-			float t12 = t8*t11*4.0f;
-			float t13 = t12+1.0f;
-			float t14 = 1.0f/t13;
-
-			H_YAW[0] = t8*t14*t18*(-2.0f);
-			H_YAW[1] = t8*t14*t25*(-2.0f);
-			H_YAW[2] = t8*t14*t28*2.0f;
-			H_YAW[3] = t8*t14*t31*2.0f;
-
-		} else if (t15 > 1E-6f) {
-			// this path has singularities at yaw = 0 and +-180 deg
-			t15 = 1.0f/t15;
-			float t19 = t7*t7;
-			float t20 = t15*t19*0.25f;
-			float t21 = t20+1.0f;
-
-			if (fabsf(t21) > 1E-6f) {
-				float t22 = 1.0f/t21;
-
-				H_YAW[0] = t15*t18*t22*(-0.5f);
-				H_YAW[1] = t15*t22*t25*(-0.5f);
-				H_YAW[2] = t15*t22*t28*0.5f;
-				H_YAW[3] = t15*t22*t31*0.5f;
-
-			} else {
-				return;
-
-			}
-
-		} else {
-			return;
-
-		}
-
-		// Use a Tait-Bryan 312 rotation sequence
-		Vector3f rotVec312;
-		predicted_hdg = atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1));
-		rotVec312(0) = 0.0f; // first rotation (yaw) set to zero for alter use when rotating the mag field into earth frame
-		rotVec312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
-		rotVec312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)); // third rotation (pitch)
-
-		// calculate the observed yaw angle
-		if (_control_status.flags.mag_hdg) {
-
-			// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
-			// with yaw angle set to to zero
-
-			const Dcmf R_to_earth = taitBryan312ToRotMat(rotVec312);
-			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			if (_control_status.flags.mag_3D) {
-				// don't apply bias corrections if we are learning them
-				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
-			} else {
-				mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
-			}
-
-			// the angle of the projection onto the horizontal gives the yaw angle
-			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
-
-		} else if (_control_status.flags.ev_yaw) {
-			// calculate the yaw angle for a 312 sequence
-			// Values from yaw_input_312.c file produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
-			float Tbn_0_1_neg = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)-_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
-			float Tbn_1_1 = sq(_ev_sample_delayed.quat(0))-sq(_ev_sample_delayed.quat(1))+sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
-			measured_hdg = atan2f(Tbn_0_1_neg,Tbn_1_1);
-
-		} else if (_mag_use_inhibit) {
-			// Special case where we either use the current or last known stationary value
-			// so set to current value as a safe default
-			measured_hdg = predicted_hdg;
-
-		} else {
-			// Should not be doing yaw fusion
-			return;
-
-		}
+		innovation = wrap_pi(atan2f(_R_to_earth(1, 0), _R_to_earth(0, 0)) - measurement);
 	}
 
-	// Calculate the observation variance
-	if (_control_status.flags.mag_hdg) {
-		// using magnetic heading tuning parameter
-		R_YAW = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
-
-	} else if (_control_status.flags.ev_yaw) {
-		// using error estimate from external vision data
-		R_YAW = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
-
-	} else {
-		// default value
-		R_YAW = 0.01f;
-	}
-
-	// wrap the heading to the interval between +-pi
-	measured_hdg = wrap_pi(measured_hdg);
-
-	// calculate the innovation and define the innovation gate
+	// define the innovation gate size
 	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
-	if (_mag_use_inhibit) {
-		// The magnetometer cannot be trusted but we need to fuse a heading to prevent a badly
-		// conditioned covariance matrix developing over time.
-		if (!_control_status.flags.vehicle_at_rest) {
-			// Vehicle is not at rest so fuse a zero innovation and record the
-			// predicted heading to use as an observation when movement ceases.
-			_heading_innov = 0.0f;
-			_last_static_yaw = predicted_hdg;
+
+	// Update the quaternion states and covariance matrix
+	updateQuaternion(innovation, R_YAW, innov_gate, H_YAW);
+}
+
+void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
+{
+	// assign intermediate state variables
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
+
+	float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
+	float measurement = wrap_pi(yaw);
+	float H_YAW[4];
+
+	// calculate observation jacobian when we are observing a rotation in a 312 sequence
+	float t9 = q0*q3;
+	float t10 = q1*q2;
+	float t2 = t9-t10;
+	float t3 = q0*q0;
+	float t4 = q1*q1;
+	float t5 = q2*q2;
+	float t6 = q3*q3;
+	float t7 = t3-t4+t5-t6;
+
+	float t16 = q3*t3;
+	float t17 = q3*t4;
+	float t18 = t16+t17-q3*t5+q3*t6-q0*q1*q2*2.0f;
+	float t23 = q2*t3;
+	float t24 = q2*t4;
+	float t25 = t23+t24+q2*t5-q2*t6-q0*q1*q3*2.0f;
+	float t26 = q1*t5;
+	float t27 = q1*t6;
+	float t28 = t26+t27-q1*t3+q1*t4-q0*q2*q3*2.0f;
+	float t29 = q0*t5;
+	float t30 = q0*t6;
+	float t31 = t29+t30+q0*t3-q0*t4-q1*q2*q3*2.0f;
+
+	// two computational paths are provided to work around singularities in calculation of the Jacobians
+	float t8 = t7*t7;
+	float t15 = t2*t2;
+	if (t8 > t15 && t8 > 1E-6f) {
+		// this path has a singularities at yaw = +-90 degrees
+		t8 = 1.0f/t8;
+		float t11 = t2*t2;
+		float t12 = t8*t11*4.0f;
+		float t13 = t12+1.0f;
+		float t14 = 1.0f/t13;
+
+		H_YAW[0] = t8*t14*t18*(-2.0f);
+		H_YAW[1] = t8*t14*t25*(-2.0f);
+		H_YAW[2] = t8*t14*t28*2.0f;
+		H_YAW[3] = t8*t14*t31*2.0f;
+
+	} else if (t15 > 1E-6f) {
+		// this path has singularities at yaw = 0 and +-180 deg
+		t15 = 1.0f/t15;
+		float t19 = t7*t7;
+		float t20 = t15*t19*0.25f;
+		float t21 = t20+1.0f;
+
+		if (fabsf(t21) > 1E-6f) {
+			float t22 = 1.0f/t21;
+
+			H_YAW[0] = t15*t18*t22*(-0.5f);
+			H_YAW[1] = t15*t22*t25*(-0.5f);
+			H_YAW[2] = t15*t22*t28*0.5f;
+			H_YAW[3] = t15*t22*t31*0.5f;
 
 		} else {
-			// Vehicle is at rest so use the last moving prediction as an observation
-			// to prevent the heading from drifting and to enable yaw gyro bias learning
-			// before takeoff.
-			_heading_innov = predicted_hdg - _last_static_yaw;
-			innov_gate = 5.0f;
+			return;
 
 		}
+
 	} else {
-		_heading_innov = predicted_hdg - measured_hdg;
-		_last_static_yaw = predicted_hdg;
+		return;
 
 	}
-	_mag_use_inhibit_prev = _mag_use_inhibit;
 
-	// wrap the innovation to the interval between +-pi
-	_heading_innov = wrap_pi(_heading_innov);
+	float innovation;
+	if (zero_innovation) {
+		innovation = 0.0f;
+	} else {
+		// calculate the the innovation and wrap to the interval between +-pi
+		innovation = wrap_pi(atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1)) - measurement);
+	}
 
+	// define the innovation gate size
+	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
+
+	// Update the quaternion states and covariance matrix
+	updateQuaternion(innovation, R_YAW, innov_gate, H_YAW);
+}
+
+// update quaternion states and covariances using the yaw innovation, yaw observation variance and yaw Jacobian
+void Ekf::updateQuaternion(const float innovation, const float variance, const float gate_sigma, const float (&yaw_jacobian)[4])
+{
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
 	// calculate the innovation variance
 	float PH[4];
-	_heading_innov_var = R_YAW;
-
+	_heading_innov_var = variance;
 	for (unsigned row = 0; row <= 3; row++) {
 		PH[row] = 0.0f;
 
 		for (uint8_t col = 0; col <= 3; col++) {
-			PH[row] += P(row,col) * H_YAW[col];
+			PH[row] += P(row,col) * yaw_jacobian[col];
 		}
 
-		_heading_innov_var += H_YAW[row] * PH[row];
+		_heading_innov_var += yaw_jacobian[row] * PH[row];
 	}
 
 	float heading_innov_var_inv;
 
 	// check if the innovation variance calculation is badly conditioned
-	if (_heading_innov_var >= R_YAW) {
+	if (_heading_innov_var >= variance) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
 		_fault_status.flags.bad_hdg = false;
 		heading_innov_var_inv = 1.0f / _heading_innov_var;
@@ -755,7 +665,7 @@ void Ekf::fuseHeading()
 		Kfusion[row] = 0.0f;
 
 		for (uint8_t col = 0; col <= 3; col++) {
-			Kfusion[row] += P(row,col) * H_YAW[col];
+			Kfusion[row] += P(row,col) * yaw_jacobian[col];
 		}
 
 		Kfusion[row] *= heading_innov_var_inv;
@@ -766,7 +676,7 @@ void Ekf::fuseHeading()
 			Kfusion[row] = 0.0f;
 
 			for (uint8_t col = 0; col <= 3; col++) {
-				Kfusion[row] += P(row,col) * H_YAW[col];
+				Kfusion[row] += P(row,col) * yaw_jacobian[col];
 			}
 
 			Kfusion[row] *= heading_innov_var_inv;
@@ -774,7 +684,7 @@ void Ekf::fuseHeading()
 	}
 
 	// innovation test ratio
-	_yaw_test_ratio = sq(_heading_innov) / (sq(innov_gate) * _heading_innov_var);
+	_yaw_test_ratio = sq(innovation) / (sq(gate_sigma) * _heading_innov_var);
 
 	// we are no longer using 3-axis fusion so set the reported test levels to zero
 	memset(_mag_test_ratio, 0, sizeof(_mag_test_ratio));
@@ -791,12 +701,13 @@ void Ekf::fuseHeading()
 
 		} else {
 			// constrain the innovation to the maximum set by the gate
-			float gate_limit = sqrtf((sq(innov_gate) * _heading_innov_var));
-			_heading_innov = math::constrain(_heading_innov, -gate_limit, gate_limit);
+			float gate_limit = sqrtf((sq(gate_sigma) * _heading_innov_var));
+			_heading_innov = math::constrain(innovation, -gate_limit, gate_limit);
 		}
 
 	} else {
 		_innov_check_fail_status.flags.reject_yaw = false;
+		_heading_innov = innovation;
 	}
 
 	// apply covariance correction via P_new = (I -K*H)*P
@@ -807,10 +718,10 @@ void Ekf::fuseHeading()
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 
-		KH[0] = Kfusion[row] * H_YAW[0];
-		KH[1] = Kfusion[row] * H_YAW[1];
-		KH[2] = Kfusion[row] * H_YAW[2];
-		KH[3] = Kfusion[row] * H_YAW[3];
+		KH[0] = Kfusion[row] * yaw_jacobian[0];
+		KH[1] = Kfusion[row] * yaw_jacobian[1];
+		KH[2] = Kfusion[row] * yaw_jacobian[2];
+		KH[3] = Kfusion[row] * yaw_jacobian[3];
 
 		for (unsigned column = 0; column < _k_num_states; column++) {
 			float tmp = KH[0] * P(0,column);
@@ -854,6 +765,165 @@ void Ekf::fuseHeading()
 
 		// apply the state corrections
 		fuse(Kfusion, _heading_innov);
+
+	}
+}
+
+void Ekf::fuseHeading()
+{
+
+	Vector3f mag_earth_pred;
+	float measured_hdg;
+	float predicted_hdg;
+
+	// Calculate the observation variance
+	float R_YAW;
+	if (_control_status.flags.mag_hdg) {
+		// using magnetic heading tuning parameter
+		R_YAW = sq(_params.mag_heading_noise);
+
+	} else if (_control_status.flags.ev_yaw) {
+		// using error estimate from external vision data
+		R_YAW = _ev_sample_delayed.angVar;
+
+	} else {
+		// default value
+		R_YAW = 0.01f;
+	}
+
+	// update transformation matrix from body to world frame using the current state estimate
+	_R_to_earth = Dcmf(_state.quat_nominal);
+
+	// determine if a 321 or 312 Euler sequence is best
+	if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
+		// rolled more than pitched so use 321 rotation order to calculate the observed yaw angle
+		Eulerf euler321(_state.quat_nominal);
+		predicted_hdg = euler321(2);
+		if (_control_status.flags.mag_hdg) {
+			// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
+			euler321(2) = 0.0f;
+			const Dcmf R_to_earth(euler321);
+			if (_control_status.flags.mag_3D) {
+				// don't apply bias corrections if we are learning them
+				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+
+			} else {
+				mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
+			}
+
+			// the angle of the projection onto the horizontal gives the yaw angle
+			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+
+		} else if (_control_status.flags.ev_yaw) {
+			// calculate the yaw angle for a 321 sequence
+			// Expressions obtained from yaw_input_321.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw321.m
+			const float Tbn_1_0 = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)+_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
+			const float Tbn_0_0 = sq(_ev_sample_delayed.quat(0))+sq(_ev_sample_delayed.quat(1))-sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
+			measured_hdg = atan2f(Tbn_1_0,Tbn_0_0);
+
+		} else {
+			measured_hdg = predicted_hdg;
+		}
+
+		// handle special case where yaw measurement is unavailable
+		bool fuse_zero_innov = false;
+		if (_yaw_use_inhibit) {
+			// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
+			// conditioned covariance matrix developing over time.
+			if (!_control_status.flags.vehicle_at_rest) {
+				// Vehicle is not at rest so fuse a zero innovation if necessary to prevent
+				// unconstrained quaterniion variance growth and record the predicted heading
+				// to use as an observation when movement ceases.
+				// TODO a better way of determining when this is necessary
+				float sumQuatVar = P(0,0) + P(1,1) + P(2,2) + P(3,3);
+				if (sumQuatVar > _params.quat_max_variance) {
+					fuse_zero_innov = true;
+					R_YAW = 0.25f;
+
+				}
+				_last_static_yaw = predicted_hdg;
+
+			} else {
+				// Vehicle is at rest so use the last moving prediction as an observation
+				// to prevent the heading from drifting and to enable yaw gyro bias learning
+				// before takeoff.
+				measured_hdg = _last_static_yaw;
+
+			}
+		} else {
+			_last_static_yaw = predicted_hdg;
+
+		}
+
+		fuseYaw321(measured_hdg, R_YAW, fuse_zero_innov);
+
+	} else {
+
+		// pitched more than rolled so use 312 rotation order to calculate the observed yaw angle
+		predicted_hdg = atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1));
+		if (_control_status.flags.mag_hdg) {
+
+			// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
+			// with yaw angle set to to zero
+			Vector3f rotVec312;
+			rotVec312(0) = 0.0f; // first rotation (yaw) set to zero for alter use when rotating the mag field into earth frame
+			rotVec312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
+			rotVec312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)); // third rotation (pitch)
+			const Dcmf R_to_earth = taitBryan312ToRotMat(rotVec312);
+
+			// rotate the magnetometer measurements into earth frame using a zero yaw angle
+			if (_control_status.flags.mag_3D) {
+				// don't apply bias corrections if we are learning them
+				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+			} else {
+				mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
+			}
+
+			// the angle of the projection onto the horizontal gives the yaw angle
+			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+
+		} else if (_control_status.flags.ev_yaw) {
+			// calculate the yaw angle for a 312 sequence
+			// Values from yaw_input_312.c file produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
+			float Tbn_0_1_neg = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)-_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
+			float Tbn_1_1 = sq(_ev_sample_delayed.quat(0))-sq(_ev_sample_delayed.quat(1))+sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
+			measured_hdg = atan2f(Tbn_0_1_neg,Tbn_1_1);
+
+		} else {
+			measured_hdg = predicted_hdg;
+		}
+
+		// handle special case where yaw measurement is unavailable
+		bool fuse_zero_innov = false;
+		if (_yaw_use_inhibit) {
+			// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
+			// conditioned covariance matrix developing over time.
+			if (!_control_status.flags.vehicle_at_rest) {
+				// Vehicle is not at rest so fuse a zero innovation if necessary to prevent
+				// unconstrained quaterniion variance growth and record the predicted heading
+				// to use as an observation when movement ceases.
+				// TODO a better way of determining when this is necessary
+				float sumQuatVar = P(0,0) + P(1,1) + P(2,2) + P(3,3);
+				if (sumQuatVar > _params.quat_max_variance) {
+					fuse_zero_innov = true;
+					R_YAW = 0.25f;
+
+				}
+				_last_static_yaw = predicted_hdg;
+
+			} else {
+				// Vehicle is at rest so use the last moving prediction as an observation
+				// to prevent the heading from drifting and to enable yaw gyro bias learning
+				// before takeoff.
+				measured_hdg = _last_static_yaw;
+
+			}
+		} else {
+			_last_static_yaw = predicted_hdg;
+
+		}
+
+		fuseYaw312(measured_hdg, R_YAW, fuse_zero_innov);
 
 	}
 }
