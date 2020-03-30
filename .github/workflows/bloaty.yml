@@ -1,4 +1,4 @@
-name: bloaty
+name: Bloaty Builds
 
 on:
   push:
