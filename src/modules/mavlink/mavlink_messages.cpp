@@ -5198,6 +5198,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamTrajectoryRepresentationWaypoints>(),
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 	create_stream_list_item<MavlinkStreamActuatorControlTarget<0> >(),
+	create_stream_list_item<MavlinkStreamActuatorControlTarget<1> >(),
 	create_stream_list_item<MavlinkStreamNamedValueFloat>(),
 	create_stream_list_item<MavlinkStreamDebug>(),
 	create_stream_list_item<MavlinkStreamDebugVect>(),
