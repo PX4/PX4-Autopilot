@@ -166,7 +166,7 @@ void ADS1115::print_usage()
 	PRINT_MODULE_USAGE_NAME("ads1115", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAM_INT('A', 0x48, 0, 0xff, "Address", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x48);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -184,12 +184,8 @@ extern "C" int ads1115_main(int argc, char *argv[])
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = 0x48;
 
-	while ((ch = cli.getopt(argc, argv, "A:")) != EOF) {
-		switch (ch) {
-		case 'A':
-			cli.i2c_address = atoi(cli.optarg());
-			break;
-		}
+	while ((ch = cli.getopt(argc, argv, "")) != EOF) {
+
 	}
 
 	const char *verb = cli.optarg();
