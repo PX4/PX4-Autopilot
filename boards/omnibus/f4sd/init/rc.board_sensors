@@ -5,7 +5,7 @@
 
 adc start
 
-if ! mpu6000 -R 12 -s start
+if ! mpu6000 -R 6 -s start
 then
 	# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
 	icm20602 -s -R 6 start
