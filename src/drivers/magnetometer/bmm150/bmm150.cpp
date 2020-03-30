@@ -43,7 +43,7 @@
 extern "C" __EXPORT int bmm150_main(int argc, char *argv[]);
 
 BMM150::BMM150(I2CSPIBusOption bus_option, const int bus, int bus_frequency, enum Rotation rotation) :
-	I2C("BMM150", nullptr, bus, BMM150_SLAVE_ADDRESS, bus_frequency),
+	I2C(DRV_MAG_DEVTYPE_BMM150, MODULE_NAME, bus, BMM150_SLAVE_ADDRESS, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_call_interval(0),
 	_reports(nullptr),
@@ -76,8 +76,6 @@ BMM150::BMM150(I2CSPIBusOption bus_option, const int bus, int bus_frequency, enu
 	_rotation(rotation),
 	_got_duplicate(false)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_BMM150;
-
 	// default scaling
 	_scale.x_offset = 0;
 	_scale.x_scale = 1.0f;

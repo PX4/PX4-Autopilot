@@ -46,11 +46,9 @@ LPS22HB::LPS22HB(I2CSPIBusOption bus_option, int bus, device::Device *interface)
 	CDev(nullptr),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, "lps22hb_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "lps22hb_comms_errors"))
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors"))
 {
-	// set the interface device type
-	_interface->set_device_type(DRV_BARO_DEVTYPE_LPS22HB);
 }
 
 LPS22HB::~LPS22HB()

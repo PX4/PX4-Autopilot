@@ -138,6 +138,10 @@ bool param_modify_on_import(const char *name, bson_type_t type, void *value)
 		device_id.devid_s.devtype = DRV_IMU_DEVTYPE_ICM20689;
 	}
 
+	if (device_id.devid_s.devtype == DRV_MAG_DEVTYPE_LSM303D_LEGACY) {
+		device_id.devid_s.devtype = DRV_IMU_DEVTYPE_LSM303D;
+	}
+
 	int32_t new_value = (int32_t)device_id.devid;
 
 	if (new_value != *ivalue) {

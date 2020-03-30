@@ -55,7 +55,7 @@ const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = 
 
 FXOS8701CQ::FXOS8701CQ(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
 		       spi_mode_e spi_mode) :
-	SPI("FXOS8701CQ", nullptr, bus, device, spi_mode, bus_frequency),
+	SPI(DRV_ACC_DEVTYPE_FXOS8701C, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), ORB_PRIO_LOW, rotation),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
@@ -66,12 +66,7 @@ FXOS8701CQ::FXOS8701CQ(I2CSPIBusOption bus_option, int bus, uint32_t device, enu
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad reg")),
 	_accel_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": acc dupe"))
 {
-	set_device_type(DRV_ACC_DEVTYPE_FXOS8701C);
-
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_FXOS8701C);
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	_px4_mag.set_device_type(DRV_ACC_DEVTYPE_FXOS8701C);
 	_px4_mag.set_scale(0.001f);
 #endif
 }

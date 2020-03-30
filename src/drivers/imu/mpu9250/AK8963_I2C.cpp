@@ -68,9 +68,9 @@ AK8963_I2C_interface(int bus, int bus_frequency)
 	return new AK8963_I2C(bus, bus_frequency);
 }
 
-AK8963_I2C::AK8963_I2C(int bus, int bus_frequency) : I2C("AK8963_I2C", nullptr, bus, AK8963_I2C_ADDR, bus_frequency)
+AK8963_I2C::AK8963_I2C(int bus, int bus_frequency) :
+	I2C(DRV_MAG_DEVTYPE_AK8963, "AK8963_I2C", bus, AK8963_I2C_ADDR, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_AK8963;
 }
 
 int
