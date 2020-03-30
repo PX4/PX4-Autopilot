@@ -39,20 +39,13 @@
 
 #pragma once
 
-#include <float.h>
-
 #include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mag.h>
-
-#include <lib/conversion/rotation.h>
-
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
-#include <systemlib/err.h>
-
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
 /**
  * RM3100 internal constants and data structures.
@@ -105,8 +98,7 @@ enum OPERATING_MODE {
 	SINGLE
 };
 
-
-class RM3100 : public device::CDev, public I2CSPIDriver<RM3100>
+class RM3100 : public I2CSPIDriver<RM3100>
 {
 public:
 	RM3100(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus);
@@ -118,11 +110,7 @@ public:
 
 	void custom_method(const BusCLIArguments &cli) override;
 
-	int init() override;
-
-	int ioctl(struct file *file_pointer, int cmd, unsigned long arg) override;
-
-	int read(struct file *file_pointer, char *buffer, size_t buffer_len) override;
+	int init();
 
 	void print_status() override;
 
@@ -132,18 +120,11 @@ public:
 	int set_default_register_values();
 
 	void RunImpl();
-protected:
-	Device *_interface;
 
 private:
+	PX4Magnetometer _px4_mag;
 
-	ringbuffer::RingBuffer *_reports;
-
-	struct mag_calibration_s _scale;
-
-	sensor_mag_s _last_report {};      /**< used for info() */
-
-	orb_advert_t _mag_topic;
+	device::Device *_interface;
 
 	perf_counter_t _comms_errors;
 	perf_counter_t _conf_errors;
@@ -151,18 +132,11 @@ private:
 	perf_counter_t _sample_perf;
 
 	/* status reporting */
-	bool _calibrated;                       /**< the calibration is valid */
 	bool _continuous_mode_set;
 
 	enum OPERATING_MODE _mode;
-	enum Rotation _rotation;
 
 	unsigned int _measure_interval;
-
-	int _class_instance;
-	int _orb_class_instance;
-
-	float _range_scale;
 
 	uint8_t _check_state_cnt;
 
@@ -210,8 +184,4 @@ private:
 	 */
 	void start();
 
-	/* this class has pointer data members, do not allow copying it */
-	RM3100(const RM3100 &);
-
-	RM3100 operator=(const RM3100 &);
 }; // class RM3100
