@@ -1,4 +1,4 @@
-name: nuttx
+name: Nuttx Targets
 
 on:
   push:
