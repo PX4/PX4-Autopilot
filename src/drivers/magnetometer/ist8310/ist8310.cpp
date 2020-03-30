@@ -338,7 +338,7 @@ extern "C" __EXPORT int ist8310_main(int argc, char *argv[]);
 
 IST8310::IST8310(I2CSPIBusOption bus_option, int bus_number, int address, enum Rotation rotation, int bus_frequency) :
 	I2C("IST8310", nullptr, bus_number, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus_number),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus_number, address),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ist8310_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ist8310_com_err")),
 	_range_errors(perf_alloc(PC_COUNT, "ist8310_rng_err")),
