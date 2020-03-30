@@ -164,9 +164,6 @@ then
 	param set MPC_XY_VEL_I 0.02
 	param set MPC_XY_VEL_D 0.016
 
-	param set MPC_JERK_MIN 10
-	param set MPC_JERK_MAX 20
-	param set MPC_ACC_HOR_MAX 3
 	param set MPC_SPOOLUP_TIME 0.5
 	param set MPC_TKO_RAMP_T 1
 

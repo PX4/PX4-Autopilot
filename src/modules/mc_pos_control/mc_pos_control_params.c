@@ -449,7 +449,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 /**
  * Maximum horizontal acceleration for auto mode and for manual mode
  *
- * Maximum deceleration for MPC_POS_MODE 1 and 2. Maximum acceleration and deceleration for MPC_POS_MODE 3.
+ * Maximum deceleration for MPC_POS_MODE 1. Maximum acceleration and deceleration for MPC_POS_MODE 3.
  *
  * @unit m/s/s
  * @min 2.0
@@ -531,7 +531,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 20.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.0f);
 
 /**
  * Velocity-based jerk limit
@@ -564,13 +564,13 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
  * agility.
  *
  * @unit m/s/s/s
- * @min 5.0
+ * @min 1.0
  * @max 80.0
  * @increment 1
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 8.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 4.0f);
 
 /**
  * Altitude control mode.
@@ -719,7 +719,6 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  *
  * @value 0 Default position control
  * @value 1 Smooth position control
- * @value 2 Sport position control
  * @value 3 Smooth position control (Velocity)
  * @group Multicopter Position Control
  */
