@@ -49,7 +49,7 @@
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 
-static constexpr const char reason_no_rc[] = "no RC";
+static constexpr const char reason_no_rc[] = "No manual control stick input";
 static constexpr const char reason_no_offboard[] = "no offboard";
 static constexpr const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
 static constexpr const char reason_no_local_position[] = "no local position";

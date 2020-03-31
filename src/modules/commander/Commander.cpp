@@ -2035,14 +2035,14 @@ Commander::run()
 			if (_manual_control_setpoint.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* set lockdown flag */
 				if (!armed.manual_lockdown) {
-					mavlink_log_emergency(&mavlink_log_pub, "Manual kill-switch engaged");
+					mavlink_and_console_log_info(&mavlink_log_pub, "Manual kill-switch engaged");
 					_status_changed = true;
 					armed.manual_lockdown = true;
 				}
 
 			} else if (_manual_control_setpoint.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 				if (armed.manual_lockdown) {
-					mavlink_log_emergency(&mavlink_log_pub, "Manual kill-switch disengaged");
+					mavlink_and_console_log_info(&mavlink_log_pub, "Manual kill-switch disengaged");
 					_status_changed = true;
 					armed.manual_lockdown = false;
 				}
@@ -3774,7 +3774,7 @@ void Commander::data_link_check()
 			status.data_link_lost = true;
 			status.data_link_lost_counter++;
 
-			mavlink_log_critical(&mavlink_log_pub, "Data link lost");
+			mavlink_log_critical(&mavlink_log_pub, "Connection to ground station lost");
 
 			_status_changed = true;
 		}
@@ -3785,7 +3785,7 @@ void Commander::data_link_check()
 	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > 5_s)
 	    && !_onboard_controller_lost) {
 
-		mavlink_log_critical(&mavlink_log_pub, "Onboard controller lost");
+		mavlink_log_critical(&mavlink_log_pub, "Connection to mission computer lost");
 		_onboard_controller_lost = true;
 		_status_changed = true;
 	}
