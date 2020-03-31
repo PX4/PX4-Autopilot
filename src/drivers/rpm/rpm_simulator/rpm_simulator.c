@@ -33,10 +33,12 @@
 
 /**
  * @file rpm_simulator.c
- * This simple app produces RPM message.
- * Usage: rpm_simulator 10
+ * Simple app for publishing RPM messages with custom value.
  *
- * @author Roman Dvorak <dvorakroman@thunderfly.cz>
+ * Usage: rpm_simulator <rpm_value>
+ * rpm_simulator 344.2 
+ *
+ * @author thunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -57,6 +59,7 @@ __EXPORT int rpm_simulator_main(int argc, char *argv[]);
 int rpm_simulator_main(int argc, char *argv[])
 {
 
+	// check input
 	if(argc != 2){
 		PX4_INFO("Usage: rpm_simulator <publeshed RPM>");
 		PX4_INFO("Exit. Without publishing any message.");
@@ -70,12 +73,13 @@ int rpm_simulator_main(int argc, char *argv[])
 	uint64_t timestamp_us = hrt_absolute_time();
 	float frequency = atof(argv[1]);
 
+	// prpepare RPM data message
 	rpm.timestamp = timestamp_us;
 	rpm.indicated_frequency_rpm = frequency;
 	rpm.estimated_accurancy_rpm = frequency/100.0f;
 
+	// publish data
 	orb_publish(ORB_ID(rpm), rpm_pub, &rpm);
-
 	PX4_INFO("RPM message with RPM=%.3f was published", (double)frequency);
 
 	return 0;
