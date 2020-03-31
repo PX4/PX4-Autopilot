@@ -337,7 +337,7 @@ void RCInput::Run()
 		constexpr hrt_abstime rc_scan_max = 300_ms;
 
 		bool sbus_failsafe, sbus_frame_drop;
-		unsigned frame_drops;
+		unsigned frame_drops = 0;
 		bool dsm_11_bit;
 
 		if (_report_lock && _rc_scan_locked) {
