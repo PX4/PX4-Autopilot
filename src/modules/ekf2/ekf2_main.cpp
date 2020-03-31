@@ -777,6 +777,12 @@ void Ekf2::Run()
 		imu_sample_new.delta_vel_dt = imu.dt * 1.e-6f;
 		imu_sample_new.delta_vel = Vector3f{imu.delta_velocity};
 
+		if (imu.delta_velocity_clipping > 0) {
+			imu_sample_new.delta_vel_clipping[0] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_X;
+			imu_sample_new.delta_vel_clipping[1] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Y;
+			imu_sample_new.delta_vel_clipping[2] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Z;
+		}
+
 		imu_dt = imu.dt;
 
 		bias.accel_device_id = imu.accel_device_id;
@@ -791,6 +797,12 @@ void Ekf2::Run()
 		imu_sample_new.delta_ang = Vector3f{sensor_combined.gyro_rad} * imu_sample_new.delta_ang_dt;
 		imu_sample_new.delta_vel_dt = sensor_combined.accelerometer_integral_dt * 1.e-6f;
 		imu_sample_new.delta_vel = Vector3f{sensor_combined.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
+
+		if (sensor_combined.accelerometer_clipping > 0) {
+			imu_sample_new.delta_vel_clipping[0] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_X;
+			imu_sample_new.delta_vel_clipping[1] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Y;
+			imu_sample_new.delta_vel_clipping[2] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Z;
+		}
 
 		imu_dt = sensor_combined.gyro_integral_dt;
 	}

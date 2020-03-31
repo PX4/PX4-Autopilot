@@ -121,8 +121,7 @@ void VehicleIMU::Run()
 		delta_velocity.copyTo(imu.delta_velocity);
 
 		imu.dt = accel.dt;
-		imu.integrated_samples = accel.samples;
-		imu.clip_count = accel.clip_count;
+		//imu.clip_count = accel.clip_count;
 		imu.timestamp = hrt_absolute_time();
 
 		_vehicle_imu_pub.publish(imu);

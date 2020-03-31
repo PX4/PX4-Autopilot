@@ -8,4 +8,5 @@ uint64 error_count
 float32[3] delta_angle    # delta angle in the NED board axis in rad/s over the integration time frame (dt)
 uint16 dt                 # integration time (microseconds)
 uint8 samples             # number of samples integrated
-uint8 clip_count          # total clip count per integration period on any axis
+
+uint8[3] clip_counter     # clip count per axis over the integration period
