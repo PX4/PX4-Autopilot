@@ -149,7 +149,8 @@ VOXLPM::measure()
 
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
-				_battery.updateBatteryStatus(tnow, _voltage, _amperage, true, true, 0, 0, true);
+				_battery.updateBatteryStatus(tnow, _voltage, _amperage, true,
+							     battery_status_s::BATTERY_SOURCE_POWER_MODULE, 0, 0);
 			}
 
 		// fallthrough
@@ -170,7 +171,8 @@ VOXLPM::measure()
 	} else {
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
-				_battery.updateBatteryStatus(tnow, 0.0, 0.0, true, true, 0, 0, true);
+				_battery.updateBatteryStatus(tnow, 0.0, 0.0, true,
+							     battery_status_s::BATTERY_SOURCE_POWER_MODULE, 0, 0);
 			}
 			break;
 

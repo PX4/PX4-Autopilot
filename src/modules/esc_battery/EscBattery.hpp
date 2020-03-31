@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,68 +33,45 @@
 
 #pragma once
 
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/esc_status.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/actuator_controls.h>
 #include <battery/battery.h>
-#include <parameters/param.h>
 
-class AnalogBattery : public Battery
+class EscBattery : public ModuleBase<EscBattery>, public ModuleParams, public px4::WorkItem
 {
 public:
-	AnalogBattery(int index, ModuleParams *parent);
+	EscBattery();
+	~EscBattery() = default;
 
-	/**
-	 * Update current battery status message.
-	 *
-	 * @param voltage_raw Battery voltage read from ADC, volts
-	 * @param current_raw Voltage of current sense resistor, volts
-	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
-	 * @param source The source as defined by param BAT%d_SOURCE
-	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
-	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
-	 */
-	void updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw,
-				    int source, int priority, float throttle_normalized);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Whether the ADC channel for the voltage of this battery is valid.
-	 * Corresponds to BOARD_BRICK_VALID_LIST
-	 */
-	bool is_valid();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	/**
-	 * Which ADC channel is used for voltage reading of this battery
-	 */
-	int get_voltage_channel();
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-	/**
-	 * Which ADC channel is used for current reading of this battery
-	 */
-	int get_current_channel();
+	bool init();
 
-protected:
+private:
+	void Run() override;
 
-	struct {
-		param_t v_offs_cur;
-		param_t v_div;
-		param_t a_per_v;
-		param_t v_channel;
-		param_t i_channel;
+	void parameters_updated();
 
-		param_t v_div_old;
-		param_t a_per_v_old;
-		param_t adc_channel_old;
-	} _analog_param_handles;
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};
+	uORB::SubscriptionCallbackWorkItem _esc_status_sub{this, ORB_ID(esc_status)};
 
-	struct {
-		float v_offs_cur;
-		float v_div;
-		float a_per_v;
-		int v_channel;
-		int i_channel;
-
-		float v_div_old;
-		float a_per_v_old;
-		int adc_channel_old;
-	} _analog_params;
-
-	virtual void updateParams() override;
+	Battery _battery;
 };

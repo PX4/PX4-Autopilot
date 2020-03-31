@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -88,10 +88,9 @@ INA226::INA226(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int
 		0.0,
 		0.0,
 		false,
-		false, // TODO: selected source?
+		battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 		0,
-		0.0,
-		true
+		0.0
 	);
 }
 
@@ -262,10 +261,9 @@ INA226::collect()
 			(float) _bus_voltage * INA226_VSCALE,
 			(float) _current * _current_lsb,
 			true,
-			true, // TODO: Determine if this is the selected source
+			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 			0,
-			_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE],
-			true
+			_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE]
 		);
 
 		ret = OK;
@@ -276,10 +274,9 @@ INA226::collect()
 			0.0,
 			0.0,
 			false,
-			false, // TODO: selected source?
+			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 			0,
-			0.0,
-			true
+			0.0
 		);
 		ret = -1;
 		perf_count(_comms_errors);
@@ -352,10 +349,9 @@ INA226::RunImpl()
 			0.0f,
 			0.0f,
 			false,
-			false,
+			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 			0,
-			0.0f,
-			true
+			0.0f
 		);
 
 		if (init() != OK) {
