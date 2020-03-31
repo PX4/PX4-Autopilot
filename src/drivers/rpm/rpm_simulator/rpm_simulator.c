@@ -60,26 +60,32 @@ int rpm_simulator_main(int argc, char *argv[])
 {
 
 	// check input
-	if(argc != 2){
+	if (argc != 2) {
 		PX4_INFO("Usage: rpm_simulator <published RPM>");
 		PX4_INFO("Exit. Without publishing any message.");
 		return 0;
 	}
 
 	struct rpm_s rpm;
+
 	memset(&rpm, 0, sizeof(rpm));
+
 	orb_advert_t rpm_pub = orb_advertise(ORB_ID(rpm), &rpm);
 
 	uint64_t timestamp_us = hrt_absolute_time();
+
 	float frequency = atof(argv[1]);
 
 	// prpepare RPM data message
 	rpm.timestamp = timestamp_us;
+
 	rpm.indicated_frequency_rpm = frequency;
-	rpm.estimated_accurancy_rpm = frequency/100.0f;
+
+	rpm.estimated_accurancy_rpm = frequency / 100.0f;
 
 	// publish data
 	orb_publish(ORB_ID(rpm), rpm_pub, &rpm);
+
 	PX4_INFO("RPM message with RPM=%.3f was published", (double)frequency);
 
 	return 0;
