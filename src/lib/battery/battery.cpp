@@ -86,7 +86,6 @@ Battery::Battery(int index, ModuleParams *parent) :
 	_param_handles.low_thr = param_find("BAT_LOW_THR");
 	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
-	_param_handles.source_common = param_find("BAT_SOURCE");
 
 	_param_handles.v_empty_old = param_find("BAT_V_EMPTY");
 	_param_handles.v_charged_old = param_find("BAT_V_CHARGED");
@@ -94,6 +93,7 @@ Battery::Battery(int index, ModuleParams *parent) :
 	_param_handles.capacity_old = param_find("BAT_CAPACITY");
 	_param_handles.v_load_drop_old = param_find("BAT_V_LOAD_DROP");
 	_param_handles.r_internal_old = param_find("BAT_R_INTERNAL");
+	_param_handles.source_old = param_find("BAT_SOURCE");
 
 	updateParams();
 }
@@ -332,7 +332,7 @@ void Battery::updateParams()
 				    &_params.v_load_drop, _first_parameter_update);
 		migrateParam<float>(_param_handles.r_internal_old, _param_handles.r_internal, &_params.r_internal_old,
 				    &_params.r_internal, _first_parameter_update);
-		migrateParam<int>(_param_handles.source_common, _param_handles.source, &_params.source_common, &_params.source,
+		migrateParam<int>(_param_handles.source_old, _param_handles.source, &_params.source_old, &_params.source,
 				  _first_parameter_update);
 
 	} else {

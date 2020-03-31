@@ -88,18 +88,3 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
  * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
-
-/**
- * Battery monitoring source.
- *
- * This parameter controls the source of battery data. The value 'Power Module'
- * means that measurements are expected to come from a power module. If the value is set to
- * 'External' then the system expects to receive mavlink or UAVCAN battery status messages.
- *
- * @min 0
- * @max 1
- * @value 0 Power Module
- * @value 1 External
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_SOURCE, 0);
