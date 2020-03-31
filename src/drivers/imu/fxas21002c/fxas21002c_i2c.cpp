@@ -114,7 +114,6 @@ FXAS21002C_I2C::probe()
 	uint8_t whoami = read_reg(FXAS21002C_WHO_AM_I);
 	bool success = (whoami == WHO_AM_I);
 
-	PX4_INFO("FXAS21002C_I2C::probe: %s, whoami: 0x%02x", (success ? "Succeeded" : "failed"), whoami);
 	return success ? OK : -EIO;
 }
 

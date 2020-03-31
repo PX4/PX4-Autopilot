@@ -192,30 +192,6 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 	return PX4_OK;
 }
 
-uint8_t
-SPI::read_reg(unsigned reg)
-{
-	uint8_t cmd[2];
-
-	cmd[0] = DIR_READ(reg);
-	cmd[1] = 0;
-
-	transfer(cmd, cmd, sizeof(cmd));
-
-	return cmd[1];
-}
-
-int
-SPI::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t cmd[2];
-
-	cmd[0] = DIR_WRITE(reg);
-	cmd[1] = value;
-
-	return transfer(cmd, nullptr, sizeof(cmd));
-}
-
 } // namespace device
 
 #endif // __PX4_LINUX

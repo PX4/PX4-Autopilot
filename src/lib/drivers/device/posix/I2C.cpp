@@ -173,30 +173,6 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 	return ret;
 }
 
-uint8_t
-I2C::read_reg(unsigned reg)
-{
-	uint8_t cmd[1];
-	uint8_t data[1];
-
-	cmd[0] = reg & 0x00FF;
-
-	transfer(cmd, 1, data, 1);
-
-	return data[0];
-}
-
-int
-I2C::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t cmd[2];
-
-	cmd[0] = reg & 0x00FF;
-	cmd[1] = value;
-
-	return transfer(cmd, 2, nullptr, 0);
-}
-
 } // namespace device
 
 #endif // __PX4_LINUX

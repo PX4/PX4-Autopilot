@@ -61,23 +61,6 @@ public:
 
 	virtual int	init() override;
 
-	/**
-	 * Read a register from the device.
-	 *
-	 * @param		The register to read.
-	 * @return		The value that was read.
-	 */
-	uint8_t read_reg(unsigned reg) override;
-
-	/**
-	 * Write a register in the device.
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 * @return		OK on success, negative errno otherwise.
-	 */
-	int write_reg(unsigned reg, uint8_t value) override;
-
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on

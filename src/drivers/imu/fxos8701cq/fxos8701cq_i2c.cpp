@@ -75,6 +75,23 @@ public:
 	 */
 	int	write(unsigned reg, void *data, unsigned count) override;
 
+	/**
+	 * Read a register from the device.
+	 *
+	 * @param		The register to read.
+	 * @return		The value that was read.
+	 */
+	uint8_t read_reg(unsigned reg) override;
+
+	/**
+	 * Write a register in the device.
+	 *
+	 * @param reg		The register to write.
+	 * @param value		The new value to write.
+	 * @return		OK on success, negative errno otherwise.
+	 */
+	int write_reg(unsigned reg, uint8_t value) override;
+
 protected:
 	int probe() override;
 };
@@ -150,4 +167,39 @@ int FXOS8701CQ_I2C::write(unsigned reg, void *data, unsigned count)
 	cmd[1] = *(uint8_t *)data;
 
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
+}
+
+/**
+ * Read a register from the device.
+ *
+ * @param		The register to read.
+ * @return		The value that was read.
+ */
+uint8_t FXOS8701CQ_I2C::read_reg(unsigned reg)
+{
+	uint8_t cmd[1];
+	uint8_t data[1];
+
+	cmd[0] = reg & 0x00FF;
+
+	transfer(cmd, 1, data, 1);
+
+	return data[0];
+}
+
+/**
+ * Write a register in the device.
+ *
+ * @param reg		The register to write.
+ * @param value		The new value to write.
+ * @return		OK on success, negative errno otherwise.
+ */
+int FXOS8701CQ_I2C::write_reg(unsigned reg, uint8_t value)
+{
+	uint8_t cmd[2];
+
+	cmd[0] = reg & 0x00FF;
+	cmd[1] = value;
+
+	return transfer(cmd, 2, nullptr, 0);
 }
