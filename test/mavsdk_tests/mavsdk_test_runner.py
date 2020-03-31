@@ -415,10 +415,21 @@ class Tester:
             self.verbose)
         self.active_runners.append(mavsdk_tests_runner)
 
+        abort = False
         for runner in self.active_runners:
             runner.set_log_filename(
                 self.determine_logfile_path(log_dir, runner.name))
-            runner.start()
+            try:
+                runner.start()
+            except TimeoutError:
+                abort = True
+                print("A timeout happened for runner: {}"
+                      .format(runner.name))
+                break
+
+        if abort:
+            self.stop_runners()
+            sys.exit(1)
 
     def stop_runners(self) -> None:
         for runner in self.active_runners:
