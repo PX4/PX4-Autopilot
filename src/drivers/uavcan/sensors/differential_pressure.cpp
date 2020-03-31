@@ -35,7 +35,7 @@
  * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
-#include "airspeed.hpp"
+#include "differential_pressure.hpp"
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
@@ -43,16 +43,17 @@
 #include <parameters/param.h>
 #include <systemlib/err.h>
 
-const char *const UavcanAirspeedBridge::NAME = "airspeed";
+const char *const UavcanDifferentialPressureBridge::NAME = "differential_pressure";
 
-UavcanAirspeedBridge::UavcanAirspeedBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_airspeed", "/dev/uavcan/airspeed", AIRSPEED_BASE_DEVICE_PATH,
+UavcanDifferentialPressureBridge::UavcanDifferentialPressureBridge(uavcan::INode &node) :
+	UavcanCDevSensorBridgeBase("uavcan_differential_pressure", "/dev/uavcan/differential_pressure",
+				   AIRSPEED_BASE_DEVICE_PATH,
 				   ORB_ID(differential_pressure)),
 	_sub_air(node)
 {
 }
 
-int UavcanAirspeedBridge::init()
+int UavcanDifferentialPressureBridge::init()
 {
 	int res = device::CDev::init();
 
@@ -63,7 +64,7 @@ int UavcanAirspeedBridge::init()
 	// Initialize the calibration offset
 	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
 
-	res = _sub_air.start(AirCbBinder(this, &UavcanAirspeedBridge::air_sub_cb));
+	res = _sub_air.start(AirCbBinder(this, &UavcanDifferentialPressureBridge::air_sub_cb));
 
 	if (res < 0) {
 		DEVICE_LOG("failed to start uavcan sub: %d", res);
@@ -73,7 +74,7 @@ int UavcanAirspeedBridge::init()
 	return 0;
 }
 
-int UavcanAirspeedBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
+int UavcanDifferentialPressureBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -89,9 +90,9 @@ int UavcanAirspeedBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-void UavcanAirspeedBridge::air_sub_cb(const
-				      uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData>
-				      &msg)
+void UavcanDifferentialPressureBridge::air_sub_cb(const
+		uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData>
+		&msg)
 {
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_UAVCAN;
 	_device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;

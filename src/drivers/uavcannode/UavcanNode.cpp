@@ -351,6 +351,8 @@ void UavcanNode::Run()
 			}
 
 			_power_battery_info_publisher.broadcast(battery_info);
+		}
+	}
 
 	// differential_pressure -> uavcan::equipment::air_data::RawAirData
 	if (_diff_pressure_sub.updated()) {

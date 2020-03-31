@@ -45,12 +45,12 @@
 
 #include <uavcan/equipment/air_data/RawAirData.hpp>
 
-class UavcanAirspeedBridge : public UavcanCDevSensorBridgeBase
+class UavcanDifferentialPressureBridge : public UavcanCDevSensorBridgeBase
 {
 public:
 	static const char *const NAME;
 
-	UavcanAirspeedBridge(uavcan::INode &node);
+	UavcanDifferentialPressureBridge(uavcan::INode &node);
 
 	const char *get_name() const override { return NAME; }
 
@@ -65,8 +65,8 @@ private:
 
 	void air_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &msg);
 
-	typedef uavcan::MethodBinder < UavcanAirspeedBridge *,
-		void (UavcanAirspeedBridge::*)
+	typedef uavcan::MethodBinder < UavcanDifferentialPressureBridge *,
+		void (UavcanDifferentialPressureBridge::*)
 		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &) >
 		AirCbBinder;
 

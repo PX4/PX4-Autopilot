@@ -38,7 +38,7 @@
 #include "sensor_bridge.hpp"
 #include <cassert>
 
-#include "airspeed.hpp"
+#include "differential_pressure.hpp"
 #include "baro.hpp"
 #include "battery.hpp"
 #include "gnss.hpp"
@@ -55,7 +55,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanGnssBridge(node));
 	list.add(new UavcanFlowBridge(node));
 	list.add(new UavcanBatteryBridge(node));
-	list.add(new UavcanAirspeedBridge(node));
+	list.add(new UavcanDifferentialPressureBridge(node));
 }
 
 /*
