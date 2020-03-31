@@ -120,7 +120,7 @@ int BMI088_accel::reset()
 	 * Setting it to 5ms.
 	 */
 
-	up_udelay(5000);
+	px4_usleep(5000);
 
 	// Perform a dummy read here to put the accelerometer part of the BMI088 back into SPI mode after the reset
 	// The dummy read basically pulls the chip select line low and then high
@@ -134,7 +134,7 @@ int BMI088_accel::reset()
 	 * Any communication with the sensor during this time should be avoided
 	 * (see section "Power Modes: Acceleromter" in the BMI datasheet) */
 
-	up_udelay(5000);
+	px4_usleep(5000);
 
 	// Set the PWR CONF to be active
 	write_checked_reg(BMI088_ACC_PWR_CONF, BMI088_ACC_PWR_CONF_ACTIVE); // Sets the accelerometer to active mode
