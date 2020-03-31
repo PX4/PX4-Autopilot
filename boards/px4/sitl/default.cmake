@@ -16,6 +16,7 @@ px4_add_board(
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
+		rpm/rpm_simulator
 		#telemetry # all available telemetry drivers
 		tone_alarm
 		#uavcan
