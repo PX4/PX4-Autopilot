@@ -77,7 +77,7 @@ MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device, uint8_t bus_mode, int32_t bus
 	SPI("MPU9250", nullptr, bus, device, (enum spi_mode_e)bus_mode, MPU9250_LOW_SPI_BUS_SPEED),
 	high_bus_speed(bus_freq_hz)
 {
-	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
+	set_device_type(DRV_IMU_DEVTYPE_MPU9250);
 }
 
 void

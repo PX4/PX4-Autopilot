@@ -56,14 +56,16 @@
         "C_Cpp.autoAddFileAssociations": false,
         "C_Cpp.clang_format_fallbackStyle": "none",
         "C_Cpp.default.browse.databaseFilename": "${workspaceRoot}/.vscode/browse.vc.db",
+        "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": true,
         "C_Cpp.default.cppStandard": "c++14",
         "C_Cpp.default.cStandard": "c11",
         "C_Cpp.default.intelliSenseMode": "gcc-x64",
+        "C_Cpp.default.macFrameworkPath": null,
         "C_Cpp.formatting": "Disabled",
         "C_Cpp.intelliSenseEngine": "Default",
         "C_Cpp.intelliSenseEngineFallback": "Enabled",
         "C_Cpp.vcpkg.enabled": false,
-        "C_Cpp.workspaceParsingPriority": "medium",
+        "C_Cpp.workspaceParsingPriority": "low",
         "cortex-debug.enableTelemetry": false,
         "debug.toolBarLocation": "docked",
         "editor.acceptSuggestionOnEnter": "off",
@@ -80,7 +82,7 @@
         "files.insertFinalNewline": true,
         "files.trimTrailingWhitespace": true,
         "files.watcherExclude": {
-                "${workspaceFolder}/build": true
+                "**/build/**": true
         },
         "git.detectSubmodulesLimit": 20,
         "git.ignoreLimitWarning": true,
@@ -176,5 +178,5 @@
         "workbench.statusBar.feedback.visible": false,
         "yaml.schemas": {
                 "${workspaceRoot}/validation/module_schema.yaml": "${workspaceRoot}/src/modules/*/module.yaml"
-        },
+        }
 }

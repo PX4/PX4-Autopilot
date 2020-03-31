@@ -41,6 +41,7 @@
 #define _DEVICE_SPI_H
 
 #include "../CDev.hpp"
+#include <px4_platform_common/spi.h>
 
 #ifdef __PX4_LINUX
 
