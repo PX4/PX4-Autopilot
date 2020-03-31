@@ -65,7 +65,9 @@
 #define BATT_SMBUS_ADDR                                 0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
 
 #define BATT_SMBUS_CURRENT                              0x0A            ///< current register
-#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B            ///< current register
+#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B            ///< average current register
+#define BATT_SMBUS_MAX_ERROR				0x0C		///< max error
+#define BATT_SMBUS_RELATIVE_SOC				0x0D		///< Relative State Of Charge
 #define BATT_SMBUS_TEMP                                 0x08            ///< temperature register
 #define BATT_SMBUS_VOLTAGE                              0x09            ///< voltage register
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY                 0x10            ///< capacity when fully charged
@@ -82,6 +84,7 @@
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
 #define BATT_SMBUS_MANUFACTURER_DATA                    0x23
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
+#define BATT_SMBUS_STATE_OF_HEALTH			0x4F		///< State of Health. The SOH information of the battery in percentage of Design Capacity
 #define BATT_SMBUS_SECURITY_KEYS                        0x0035
 #define BATT_SMBUS_CELL_1_VOLTAGE                       0x3F
 #define BATT_SMBUS_CELL_2_VOLTAGE                       0x3E
@@ -254,6 +257,9 @@ private:
 
 	/** @param _low_thr Low battery threshold param. */
 	float _low_thr{0.f};
+
+	/** @parama _c_mult Capacity/current multiplier param  */
+	float _c_mult{0.f};
 
 	/** @param _manufacturer_name Name of the battery manufacturer. */
 	char *_manufacturer_name{nullptr};
