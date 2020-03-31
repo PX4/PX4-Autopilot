@@ -271,8 +271,6 @@ if ros_version == '2' :
         ros2_distro = args.ros2_distro
     else :
         ros2_distro = os.environ.get('ROS_DISTRO')
-else :
-    raise ValueError
 
 # If nothing specified it's generated both
 if agent == False and client == False:
