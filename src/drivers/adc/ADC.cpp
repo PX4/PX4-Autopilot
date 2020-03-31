@@ -51,7 +51,7 @@ ADC::ADC(uint32_t base_address, uint32_t channels) :
 	}
 
 	if (_channel_count > PX4_MAX_ADC_CHANNELS) {
-		PX4_ERR("PX4_MAX_ADC_CHANNELS is too small:is %d needed:%d", PX4_MAX_ADC_CHANNELS, _channel_count);
+		PX4_ERR("PX4_MAX_ADC_CHANNELS is too small (%d, %d)", (unsigned)PX4_MAX_ADC_CHANNELS, _channel_count);
 	}
 
 	_samples = new px4_adc_msg_t[_channel_count];
