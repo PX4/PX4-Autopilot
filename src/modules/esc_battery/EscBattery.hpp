@@ -51,7 +51,7 @@ class EscBattery : public ModuleBase<EscBattery>, public ModuleParams, public px
 {
 public:
 	EscBattery();
-	~EscBattery() override;
+	~EscBattery() = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
