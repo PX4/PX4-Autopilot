@@ -8,7 +8,7 @@ import subprocess
 import threading
 import pathlib
 import errno
-from typing import Dict, List, TextIO, Optional
+from typing import Any, Dict, List, TextIO, Optional
 
 
 class Runner:
@@ -32,6 +32,7 @@ class Runner:
         self.log_dir = log_dir
         self.log_filename = ""
         self.wait_until_complete = False
+        self.stop_thread: Any[threading.Event] = None
 
     def set_log_filename(self, log_filename: str) -> None:
         self.log_filename = log_filename
@@ -62,7 +63,7 @@ class Runner:
         self.thread = threading.Thread(target=self.process_output)
         self.thread.start()
         if self.wait_until_complete:
-            if self.wait(1.0) != 0:
+            if self.wait(5.0) != 0:
                 raise TimeoutError("Command not completed")
 
     def process_output(self) -> None:
@@ -96,6 +97,9 @@ class Runner:
 
     def stop(self) -> int:
         atexit.unregister(self.stop)
+
+        if not self.stop_thread:
+            return 0
 
         self.stop_thread.set()
 

@@ -150,6 +150,14 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		_battery_status.connected = connected;
 		_battery_status.system_source = selected_source;
 		_battery_status.priority = priority;
+
+		static constexpr int uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
+				_battery_status.voltage_cell_v[0]);
+
+		// Fill cell voltages with average values to work around BATTERY_STATUS message not allowing to report just total voltage
+		for (int i = 0; (i < _battery_status.cell_count) && (i < uorb_max_cells); i++) {
+			_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / _battery_status.cell_count;
+		}
 	}
 
 	_battery_status.timestamp = timestamp;

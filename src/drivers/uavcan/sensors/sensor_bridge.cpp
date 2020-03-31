@@ -185,8 +185,13 @@ uavcan_bridge::Channel *UavcanCDevSensorBridgeBase::get_channel_for_node(int nod
 		int ret = init_driver(channel);
 
 		if (ret != PX4_OK) {
+			// Driver initialization failed - probably out of channels.  Return nullptr so
+			// the callback exits gracefully, and clear the assigned node_id for the channel
+			// so future callbacks exit immediately.
 			DEVICE_LOG("INIT ERROR node %d errno %d", channel->node_id, ret);
-			return channel;
+			channel->node_id = -1;
+			_out_of_channels = true;
+			return nullptr;
 		}
 
 		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);

@@ -399,6 +399,8 @@ private:
 	MavlinkStreamStatustext &operator = (const MavlinkStreamStatustext &) = delete;
 
 protected:
+	int _id{0};
+
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
@@ -411,11 +413,36 @@ protected:
 			if (_mavlink->get_logbuffer()->get(&mavlink_log)) {
 
 				mavlink_statustext_t msg{};
+				const char *text = mavlink_log.text;
+				constexpr unsigned max_chunk_size = sizeof(msg.text);
 				msg.severity = mavlink_log.severity;
-				strncpy(msg.text, (const char *)mavlink_log.text, sizeof(msg.text));
-				msg.text[sizeof(msg.text) - 1] = '\0';
+				msg.chunk_seq = 0;
+				msg.id = _id++;
+				unsigned text_size;
 
-				mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+				while ((text_size = strlen(text)) > 0) {
+					unsigned chunk_size = math::min(text_size, max_chunk_size);
+
+					if (chunk_size < max_chunk_size) {
+						memcpy(&msg.text[0], &text[0], chunk_size);
+						// pad with zeros
+						memset(&msg.text[0] + chunk_size, 0, max_chunk_size - chunk_size);
+
+					} else {
+						memcpy(&msg.text[0], &text[0], chunk_size);
+					}
+
+					mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+
+					if (text_size <= max_chunk_size) {
+						break;
+
+					} else {
+						text += max_chunk_size;
+					}
+
+					msg.chunk_seq += 1;
+				}
 
 				return true;
 			}
@@ -5198,6 +5225,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamTrajectoryRepresentationWaypoints>(),
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 	create_stream_list_item<MavlinkStreamActuatorControlTarget<0> >(),
+	create_stream_list_item<MavlinkStreamActuatorControlTarget<1> >(),
 	create_stream_list_item<MavlinkStreamNamedValueFloat>(),
 	create_stream_list_item<MavlinkStreamDebug>(),
 	create_stream_list_item<MavlinkStreamDebugVect>(),
