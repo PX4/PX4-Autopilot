@@ -36,7 +36,7 @@
  * Simple app for publishing RPM messages with custom value.
  *
  * Usage: rpm_simulator <rpm_value>
- * rpm_simulator 344.2 
+ * rpm_simulator 344.2
  *
  * @author thunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
  */
@@ -61,7 +61,7 @@ int rpm_simulator_main(int argc, char *argv[])
 
 	// check input
 	if(argc != 2){
-		PX4_INFO("Usage: rpm_simulator <publeshed RPM>");
+		PX4_INFO("Usage: rpm_simulator <published RPM>");
 		PX4_INFO("Exit. Without publishing any message.");
 		return 0;
 	}
