@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include "EscBattery.hpp"
-#include <drivers/drv_hrt.h>
 
 using namespace time_literals;
 
@@ -40,11 +39,6 @@ EscBattery::EscBattery() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
 	_battery(1, this)
-{
-	parameters_updated();
-}
-
-EscBattery::~EscBattery()
 {
 }
 
@@ -84,11 +78,10 @@ EscBattery::Run()
 
 	esc_status_s esc_status;
 
-	if (_esc_status_sub.update(&esc_status)) {
+	if (_esc_status_sub.copy(&esc_status)) {
 
-		if (hrt_elapsed_time(&esc_status.timestamp) > 500_ms ||
-		    esc_status.esc_count == 0 ||
-		    esc_status.esc_count > 8) {
+		if (esc_status.esc_count == 0 ||
+		    esc_status.esc_count > esc_status_s::CONNECTED_ESC_MAX) {
 			return;
 		}
 
