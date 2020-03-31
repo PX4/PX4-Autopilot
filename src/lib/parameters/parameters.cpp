@@ -1087,8 +1087,7 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_INT32: {
 				const int32_t i = s->val.i;
-
-				PX4_DEBUG("exporting: %s (%d) size: %d val: %d", name, s->param, size, i);
+				PX4_DEBUG("exporting: %s (%d) size: %lu val: %d", name, s->param, (long unsigned int)size, i);
 
 				if (bson_encoder_append_int(&encoder, name, i)) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1099,8 +1098,7 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_FLOAT: {
 				const double f = (double)s->val.f;
-
-				PX4_DEBUG("exporting: %s (%d) size: %d val: %.3f", name, s->param, size, (double)f);
+				PX4_DEBUG("exporting: %s (%d) size: %lu val: %.3f", name, s->param, (long unsigned int)size, (double)f);
 
 				if (bson_encoder_append_double(&encoder, name, f)) {
 					PX4_ERR("BSON append failed for '%s'", name);
