@@ -117,6 +117,7 @@ then
 
 	# TELEM1 ttyS1 - Wifi module
 	param set MAV_0_CONFIG 101
+	param set MAV_0_RATE 0
 	param set MAV_0_MODE 2	# onboard
 	param set SER_TEL1_BAUD 921600
 

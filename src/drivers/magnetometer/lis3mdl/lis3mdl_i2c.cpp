@@ -55,14 +55,12 @@
 #include "board_config.h"
 #include "lis3mdl.h"
 
-#if defined(PX4_I2C_BUS_ONBOARD) || defined(PX4_I2C_BUS_EXPANSION)
-
 #define LIS3MDLL_ADDRESS        0x1e
 
 class LIS3MDL_I2C : public device::I2C
 {
 public:
-	LIS3MDL_I2C(int bus);
+	LIS3MDL_I2C(int bus, int bus_frequency);
 	virtual ~LIS3MDL_I2C() = default;
 
 	virtual int     ioctl(unsigned operation, unsigned &arg);
@@ -75,16 +73,16 @@ protected:
 };
 
 device::Device *
-LIS3MDL_I2C_interface(int bus);
+LIS3MDL_I2C_interface(int bus, int bus_frequency);
 
 device::Device *
-LIS3MDL_I2C_interface(int bus)
+LIS3MDL_I2C_interface(int bus, int bus_frequency)
 {
-	return new LIS3MDL_I2C(bus);
+	return new LIS3MDL_I2C(bus, bus_frequency);
 }
 
-LIS3MDL_I2C::LIS3MDL_I2C(int bus) :
-	I2C("LIS3MDL_I2C", nullptr, bus, LIS3MDLL_ADDRESS, 400000)
+LIS3MDL_I2C::LIS3MDL_I2C(int bus, int bus_frequency) :
+	I2C("LIS3MDL_I2C", nullptr, bus, LIS3MDLL_ADDRESS, bus_frequency)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LIS3MDL;
 }
@@ -148,5 +146,3 @@ LIS3MDL_I2C::write(unsigned address, void *data, unsigned count)
 
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
-
-#endif /* PX4_I2C_OBDEV_LIS3MDL */

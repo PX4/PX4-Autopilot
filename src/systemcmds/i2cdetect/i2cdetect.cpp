@@ -135,7 +135,7 @@ int usage(const char *reason = nullptr)
 	PRINT_MODULE_DESCRIPTION("Utility to scan for I2C devices on a particular bus.");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("i2cdetect", "command");
-	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 4, PX4_I2C_BUS_EXPANSION, "I2C bus", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 4, 1, "I2C bus", true);
 
 	return PX4_OK;
 }
@@ -148,7 +148,7 @@ extern "C" {
 
 int i2cdetect_main(int argc, char *argv[])
 {
-	int i2c_bus = PX4_I2C_BUS_EXPANSION;
+	int i2c_bus = 1;
 
 	int myoptind = 1;
 	int ch = 0;

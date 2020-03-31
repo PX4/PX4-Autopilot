@@ -67,7 +67,7 @@ px4_add_board(
 		#reflect
 		#sd_bench
 		shutdown
-		#top
+		top
 		#topic_listener
 		#tune_control
 		ver

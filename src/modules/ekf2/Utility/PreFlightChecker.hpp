@@ -137,8 +137,6 @@ private:
 	bool preFlightCheckVertVelFailed(const estimator_innovations_s &innov, float alpha);
 	bool preFlightCheckHeightFailed(const estimator_innovations_s &innov, float alpha);
 
-	void resetPreFlightChecks();
-
 	bool _has_heading_failed{};
 	bool _has_horiz_vel_failed{};
 	bool _has_vert_vel_failed{};

@@ -96,9 +96,11 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 
 	_acceleration_setpoint.copyTo(vehicle_local_position_setpoint.acceleration);
 	_jerk_setpoint.copyTo(vehicle_local_position_setpoint.jerk);
-	_thrust_setpoint.copyTo(vehicle_local_position_setpoint.thrust);
 	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
 	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;
+
+	// deprecated, only kept for output logging
+	matrix::Vector3f(NAN, NAN, NAN).copyTo(vehicle_local_position_setpoint.thrust);
 
 	return vehicle_local_position_setpoint;
 }
@@ -109,7 +111,6 @@ void FlightTask::_resetSetpoints()
 	_velocity_setpoint.setNaN();
 	_acceleration_setpoint.setNaN();
 	_jerk_setpoint.setNaN();
-	_thrust_setpoint.setNaN();
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
 }
 

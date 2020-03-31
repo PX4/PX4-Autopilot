@@ -30,6 +30,7 @@ px4_add_board(
 		imu/adis16497
 		imu/invensense/icm20602
 		imu/invensense/icm20608g
+		imu/invensense/icm40609d
 		#imu/invensense/mpu9250
 		#imu/mpu6000 # legacy icm20602/icm20608g driver
 		imu/mpu9250

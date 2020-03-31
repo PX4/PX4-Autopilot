@@ -1,8 +1,6 @@
 #pragma once
 
 
-#include <string.h>
-
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <drivers/device/i2c.h>
@@ -13,10 +11,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 /* Configuration Constants */
-#define INA226_BUS_DEFAULT		                PX4_I2C_BUS_EXPANSION
 #define INA226_BASEADDR 	                    0x41 /* 7-bit address. 8-bit address is 0x41 */
 // If initialization is forced (with the -f flag on the command line), but it fails, the drive will try again to
 // connect to the INA226 every this many microseconds
@@ -110,13 +107,19 @@
 
 #define swap16(w)                       __builtin_bswap16((w))
 
-class INA226 : public device::I2C, px4::ScheduledWorkItem, ModuleParams
+class INA226 : public device::I2C, public ModuleParams, public I2CSPIDriver<INA226>
 {
 public:
-	INA226(int battery_index, int bus = INA226_BUS_DEFAULT, int address = INA226_BASEADDR);
+	INA226(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address, int battery_index);
 	virtual ~INA226();
 
-	virtual int 		  init() override;
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
+
+	void	RunImpl();
+
+	int 		  init() override;
 
 	/**
 	 * Tries to call the init() function. If it fails, then it will schedule to retry again in
@@ -129,12 +132,10 @@ public:
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
-	void				      print_info();
-
-	size_t index;
+	void				      print_status() override;
 
 protected:
-	virtual int	  		probe() override;
+	int	  		probe() override;
 
 private:
 	bool			        _sensor_ok{false};
@@ -166,6 +167,7 @@ private:
 	uORB::Subscription  _actuators_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription  _parameters_sub{ORB_ID(parameter_update)};
 
+
 	/**
 	* Test whetpower_monitorhe device supported by the driver is present at a
 	* specific address.
@@ -183,17 +185,6 @@ private:
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
 	void				      start();
-
-	/**
-	* Stop the automatic measurement state machine.
-	*/
-	void				      stop();
-
-	/**
-	* Perform a poll cycle; collect from the previous measurement
-	* and start a new one.
-	*/
-	void				     Run() override;
 
 	int					     measure();
 	int					     collect();

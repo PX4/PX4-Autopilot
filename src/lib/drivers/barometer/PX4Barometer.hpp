@@ -57,6 +57,8 @@ public:
 
 	void update(hrt_abstime timestamp, float pressure);
 
+	int get_class_instance() { return _class_device_instance; };
+
 	void print_status();
 
 private:

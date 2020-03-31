@@ -57,5 +57,4 @@ private:
 
 	float _transition_altitude = 0.0f;
 	float _transition_yaw = 0.0f;
-	matrix::Vector3f _velocity_prev{};
 };

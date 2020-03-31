@@ -61,9 +61,10 @@ static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
  */
 #define LSM303AGR_TIMER_REDUCTION				200
 
-LSM303AGR::LSM303AGR(int bus, const char *path, uint32_t device, enum Rotation rotation) :
-	SPI("LSM303AGR", path, bus, device, SPIDEV_MODE3, 8 * 1000 * 1000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+LSM303AGR::LSM303AGR(I2CSPIBusOption bus_option, int bus, int device, enum Rotation rotation, int bus_frequency,
+		     spi_mode_e spi_mode) :
+	SPI("LSM303AGR", nullptr, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "LSM303AGR_mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, "LSM303AGR_bad_reg")),
 	_bad_values(perf_alloc(PC_COUNT, "LSM303AGR_bad_val")),
@@ -83,9 +84,6 @@ LSM303AGR::LSM303AGR(int bus, const char *path, uint32_t device, enum Rotation r
 
 LSM303AGR::~LSM303AGR()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	if (_class_instance != -1) {
 		unregister_class_devname(MAG_BASE_DEVICE_PATH, _class_instance);
 	}
@@ -99,12 +97,12 @@ LSM303AGR::~LSM303AGR()
 int
 LSM303AGR::init()
 {
-	int ret = PX4_OK;
-
 	/* do SPI init (and probe) first */
-	if (SPI::init() != OK) {
-		PX4_ERR("SPI init failed");
-		return PX4_ERROR;
+	int ret = SPI::init();
+
+	if (ret != OK) {
+		DEVICE_DEBUG("SPI init failed (%i)", ret);
+		return ret;
 	}
 
 	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
@@ -117,6 +115,9 @@ LSM303AGR::init()
 
 	/* fill report structures */
 	measure();
+
+	_measure_interval = CONVERSION_INTERVAL;
+	start();
 
 	return ret;
 }
@@ -350,17 +351,7 @@ LSM303AGR::start()
 }
 
 void
-LSM303AGR::stop()
-{
-	if (_measure_interval > 0) {
-		/* ensure no new items are queued while we cancel this one */
-		_measure_interval = 0;
-		ScheduleClear();
-	}
-}
-
-void
-LSM303AGR::Run()
+LSM303AGR::RunImpl()
 {
 	if (_measure_interval == 0) {
 		return;
@@ -476,8 +467,9 @@ LSM303AGR::collect()
 }
 
 void
-LSM303AGR::print_info()
+LSM303AGR::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_bad_values);

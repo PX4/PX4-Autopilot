@@ -43,12 +43,12 @@
 
 #define LPS25H_ADDRESS		0x5D
 
-device::Device *LPS25H_I2C_interface(int bus);
+device::Device *LPS25H_I2C_interface(int bus, int bus_frequency);
 
 class LPS25H_I2C : public device::I2C
 {
 public:
-	LPS25H_I2C(int bus);
+	LPS25H_I2C(int bus, int bus_frequency);
 	virtual ~LPS25H_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -59,13 +59,13 @@ protected:
 
 };
 
-device::Device *LPS25H_I2C_interface(int bus)
+device::Device *LPS25H_I2C_interface(int bus, int bus_frequency)
 {
-	return new LPS25H_I2C(bus);
+	return new LPS25H_I2C(bus, bus_frequency);
 }
 
-LPS25H_I2C::LPS25H_I2C(int bus) :
-	I2C("LPS25H_I2C", nullptr, bus, LPS25H_ADDRESS, 400000)
+LPS25H_I2C::LPS25H_I2C(int bus, int bus_frequency) :
+	I2C("LPS25H_I2C", nullptr, bus, LPS25H_ADDRESS, bus_frequency)
 {
 	set_device_type(DRV_BARO_DEVTYPE_LPS25H);
 }

@@ -309,6 +309,7 @@ private:
 
 	FailureDetector	_failure_detector;
 	bool		_flight_termination_triggered{false};
+	bool		_lockdown_triggered{false};
 
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};

@@ -57,14 +57,12 @@
 #include "board_config.h"
 #include "rm3100.h"
 
-#if defined(PX4_I2C_BUS_ONBOARD) || defined(PX4_I2C_BUS_EXPANSION)
-
 #define RM3100_ADDRESS		0x20
 
 class RM3100_I2C : public device::I2C
 {
 public:
-	RM3100_I2C(int bus);
+	RM3100_I2C(int bus, int bus_frequency);
 	virtual ~RM3100_I2C() = default;
 
 	virtual int     init();
@@ -78,16 +76,16 @@ protected:
 };
 
 device::Device *
-RM3100_I2C_interface(int bus);
+RM3100_I2C_interface(int bus, int bus_frequency);
 
 device::Device *
-RM3100_I2C_interface(int bus)
+RM3100_I2C_interface(int bus, int bus_frequency)
 {
-	return new RM3100_I2C(bus);
+	return new RM3100_I2C(bus, bus_frequency);
 }
 
-RM3100_I2C::RM3100_I2C(int bus) :
-	I2C("RM300_I2C", nullptr, bus, RM3100_ADDRESS, 400000)
+RM3100_I2C::RM3100_I2C(int bus, int bus_frequency) :
+	I2C("RM300_I2C", nullptr, bus, RM3100_ADDRESS, bus_frequency)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_RM3100;
 }
@@ -170,5 +168,3 @@ RM3100_I2C::write(unsigned address, void *data, unsigned count)
 
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
-
-#endif /* PX4_I2C_OBDEV_RM3100 */
