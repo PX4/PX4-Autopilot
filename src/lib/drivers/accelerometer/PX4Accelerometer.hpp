@@ -74,9 +74,9 @@ public:
 		uint8_t samples; // number of samples
 		float dt; // in microseconds
 
-		int16_t x[16];
-		int16_t y[16];
-		int16_t z[16];
+		int16_t x[32];
+		int16_t y[32];
+		int16_t z[32];
 	};
 	static_assert(sizeof(FIFOSample::x) == sizeof(sensor_accel_fifo_s::x), "FIFOSample.x invalid size");
 	static_assert(sizeof(FIFOSample::y) == sizeof(sensor_accel_fifo_s::y), "FIFOSample.y invalid size");
