@@ -103,6 +103,9 @@ private:
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
 	uORB::Subscription	_adc_report_sub{ORB_ID(adc_report)};
 
+	static constexpr uint32_t SAMPLE_FREQUENCY_HZ = 100;
+	static constexpr uint32_t SAMPLE_INTERVAL_US  = 1_s / SAMPLE_FREQUENCY_HZ;
+
 	AnalogBattery _battery1;
 
 #if BOARD_NUMBER_BRICKS > 1
@@ -135,9 +138,9 @@ private:
 BatteryStatus::BatteryStatus() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_battery1(1, this),
+	_battery1(1, this, SAMPLE_INTERVAL_US),
 #if BOARD_NUMBER_BRICKS > 1
-	_battery2(2, this),
+	_battery2(2, this, SAMPLE_INTERVAL_US),
 #endif
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME))
 {
@@ -277,7 +280,7 @@ BatteryStatus::task_spawn(int argc, char *argv[])
 bool
 BatteryStatus::init()
 {
-	ScheduleOnInterval(10_ms); // 100 Hz
+	ScheduleOnInterval(SAMPLE_INTERVAL_US);
 
 	return true;
 }

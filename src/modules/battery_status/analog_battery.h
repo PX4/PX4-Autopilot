@@ -39,7 +39,7 @@
 class AnalogBattery : public Battery
 {
 public:
-	AnalogBattery(int index, ModuleParams *parent);
+	AnalogBattery(int index, ModuleParams *parent, const int sample_interval_us);
 
 	/**
 	 * Update current battery status message.

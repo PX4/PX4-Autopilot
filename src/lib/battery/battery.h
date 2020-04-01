@@ -64,7 +64,7 @@
 class Battery : public ModuleParams
 {
 public:
-	Battery(int index, ModuleParams *parent);
+	Battery(int index, ModuleParams *parent, const int sample_interval_us);
 
 	~Battery();
 
