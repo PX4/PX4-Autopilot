@@ -97,6 +97,8 @@ then
 	param set MPC_Z_TRAJ_P 0.3
 	param set MPC_Z_VEL_I 0.15
 	param set MPC_Z_VEL_P 0.25
+	param set MPC_LAND_ALT1 3
+	param set MPC_LAND_ALT2 1
 
 	# Navigator Parameters
 	param set NAV_ACC_RAD 2
