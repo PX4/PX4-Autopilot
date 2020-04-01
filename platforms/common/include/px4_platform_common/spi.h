@@ -164,4 +164,3 @@ private:
 	int _external_bus_counter{0};
 	int _bus_device_index{0};
 };
-

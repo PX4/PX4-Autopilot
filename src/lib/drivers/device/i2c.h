@@ -41,4 +41,3 @@
 #endif
 
 #include <board_config.h>
-

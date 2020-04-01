@@ -97,4 +97,3 @@ private:
 	int _index{-1};
 	int _external_bus_counter{0};
 };
-

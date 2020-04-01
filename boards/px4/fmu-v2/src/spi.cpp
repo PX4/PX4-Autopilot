@@ -199,4 +199,3 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 	// HW_VER_FMUV2X: treat as HW_VER_FMUV2
 };
 static constexpr bool unused = validateSPIConfig(px4_spi_buses_all_hw);
-
