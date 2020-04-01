@@ -708,18 +708,15 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * Manual-Position control sub-mode
  *
  * The supported sub-modes are:
- * 0 Default position control where sticks map to position/velocity directly. Maximum speeds
- * 	 is MPC_VEL_MANUAL.
- * 1 Smooth position control where setpoints are adjusted based on acceleration limits
- * 	 and jerk limits.
- * 2 Sport mode that is the same Default position control but with velocity limits set to
- * 	 the maximum allowed speeds (MPC_XY_VEL_MAX)
- * 3 Smooth position control with maximum acceleration and jerk limits (different algorithm
- *   than 1).
+ * 0 Simple position control where sticks map directly to velocity setpoints
+ *   without smoothing. Useful for velocity control tuning.
+ * 1 Smooth position control with maximum acceleration and jerk limits based on slew-rates.
+ * 3 Smooth position control with maximum acceleration and jerk limits based on
+ *   jerk optimized trajectory generator (different algorithm than 1).
  *
- * @value 0 Default position control
+ * @value 0 Simple position control
  * @value 1 Smooth position control
- * @value 3 Smooth position control (Velocity)
+ * @value 3 Smooth position control (Jerk optimized)
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_POS_MODE, 3);
