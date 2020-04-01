@@ -44,8 +44,8 @@
  * Address 0x6B - measures 5VDC ouptut voltage and current
  */
 VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOXLPM_CH_TYPE ch_type) :
-	I2C("voxlpm", nullptr, bus, (ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_LTC2946_ADDR_VBATT : VOXLPM_LTC2946_ADDR_P5VD,
-	    bus_frequency),
+	I2C(DRV_POWER_DEVTYPE_VOXLPM, MODULE_NAME, bus,
+	    (ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_LTC2946_ADDR_VBATT : VOXLPM_LTC2946_ADDR_P5VD, bus_frequency),
 	ModuleParams(nullptr),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),

@@ -220,7 +220,7 @@ private:
 
 BMA180::BMA180(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
 	       spi_mode_e spi_mode) :
-	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, spi_mode, bus_frequency),
+	SPI(DRV_ACC_DEVTYPE_BMA180, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_call_interval(0),
 	_reports(nullptr),
@@ -232,8 +232,6 @@ BMA180::BMA180(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotatio
 	_current_range(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bma180_read"))
 {
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_BMA180;
-
 	// default scale factors
 	_accel_scale.x_offset = 0;
 	_accel_scale.x_scale  = 1.0f;

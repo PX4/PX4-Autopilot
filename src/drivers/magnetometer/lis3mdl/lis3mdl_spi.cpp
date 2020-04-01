@@ -81,9 +81,8 @@ LIS3MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi
 }
 
 LIS3MDL_SPI::LIS3MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) :
-	SPI("LIS3MDL_SPI", nullptr, bus, devid, spi_mode, bus_frequency)
+	SPI(DRV_MAG_DEVTYPE_LIS3MDL, MODULE_NAME, bus, devid, spi_mode, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LIS3MDL;
 }
 
 int

@@ -64,7 +64,7 @@ LPS22HB_I2C_interface(int bus, int bus_frequency)
 }
 
 LPS22HB_I2C::LPS22HB_I2C(int bus, int bus_frequency) :
-	I2C("LPS22HB_I2C", nullptr, bus, LPS22HB_ADDRESS, bus_frequency)
+	I2C(DRV_BARO_DEVTYPE_LPS22HB, MODULE_NAME, bus, LPS22HB_ADDRESS, bus_frequency)
 {
 }
 

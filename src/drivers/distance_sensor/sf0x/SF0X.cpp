@@ -49,8 +49,6 @@ SF0X::SF0X(const char *port, uint8_t rotation) :
 
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
-
-	_px4_rangefinder.set_device_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 }
 
 SF0X::~SF0X()

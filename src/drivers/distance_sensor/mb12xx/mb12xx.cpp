@@ -74,7 +74,6 @@ using namespace time_literals;
 #define MB12XX_BASE_ADDR                        0x70   // 7-bit address is 0x70 = 112. 8-bit address is 0xE0 = 224.
 #define MB12XX_MIN_ADDR                         0x5A   // 7-bit address is 0x5A = 90.  8-bit address is 0xB4 = 180.
 #define MB12XX_BUS_SPEED                        100000 // 100kHz bus speed.
-#define MB12XX_DEVICE_PATH                      "/dev/mb12xx"
 
 /* MB12xx Registers addresses */
 #define MB12XX_TAKE_RANGE_REG                   0x51 // Measure range Register.
@@ -179,7 +178,7 @@ private:
 };
 
 MB12XX::MB12XX(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address) :
-	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, address, bus_frequency),
+	I2C(DRV_DIST_DEVTYPE_MB12XX, MODULE_NAME, bus, address, bus_frequency),
 	ModuleParams(nullptr),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {

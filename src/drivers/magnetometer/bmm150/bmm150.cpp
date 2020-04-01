@@ -41,7 +41,7 @@
 #include <px4_platform_common/module.h>
 
 BMM150::BMM150(I2CSPIBusOption bus_option, const int bus, int bus_frequency, enum Rotation rotation) :
-	I2C("BMM150", nullptr, bus, BMM150_SLAVE_ADDRESS, bus_frequency),
+	I2C(DRV_MAG_DEVTYPE_BMM150, MODULE_NAME, bus, BMM150_SLAVE_ADDRESS, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
 	_call_interval(0),
@@ -67,9 +67,6 @@ BMM150::BMM150(I2CSPIBusOption bus_option, const int bus, int bus_frequency, enu
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicates")),
 	_got_duplicate(false)
 {
-	set_device_type(DRV_MAG_DEVTYPE_BMM150);
-
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_BMM150);
 	_px4_mag.set_external(external());
 
 	// default range scale from from uT to gauss

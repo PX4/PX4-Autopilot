@@ -135,7 +135,6 @@
 #define MAPPYDOT_MAX_DISTANCE                               (4.f) // meters
 
 #define MAPPYDOT_BUS_CLOCK                                  400000 // 400kHz bus speed
-#define MAPPYDOT_DEVICE_PATH                                "/dev/mappydot"
 
 /* Configuration Constants */
 #define MAPPYDOT_BASE_ADDR                                  0x08
@@ -222,7 +221,7 @@ private:
 
 
 MappyDot::MappyDot(I2CSPIBusOption bus_option, const int bus, int bus_frequency) :
-	I2C("MappyDot", MAPPYDOT_DEVICE_PATH, bus, MAPPYDOT_BASE_ADDR, bus_frequency),
+	I2C(DRV_DIST_DEVTYPE_MAPPYDOT, MODULE_NAME, bus, MAPPYDOT_BASE_ADDR, bus_frequency),
 	ModuleParams(nullptr),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus)
 {}

@@ -75,9 +75,6 @@
 #define IRLOCK_TAN_ANG_PER_PIXEL_X	(2*IRLOCK_TAN_HALF_FOV_X/IRLOCK_RES_X)
 #define IRLOCK_TAN_ANG_PER_PIXEL_Y	(2*IRLOCK_TAN_HALF_FOV_Y/IRLOCK_RES_Y)
 
-#define IRLOCK_BASE_DEVICE_PATH	"/dev/irlock"
-#define IRLOCK0_DEVICE_PATH	"/dev/irlock0"
-
 #define IRLOCK_OBJECTS_MAX	5	/** up to 5 objects can be detected/reported **/
 
 struct irlock_target_s {
@@ -139,7 +136,7 @@ private:
 extern "C" __EXPORT int irlock_main(int argc, char *argv[]);
 
 IRLOCK::IRLOCK(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
-	I2C("irlock", IRLOCK0_DEVICE_PATH, bus, address, bus_frequency),
+	I2C(DRV_SENS_DEVTYPE_IRLOCK, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
 	_reports(nullptr),
 	_sensor_ok(false),

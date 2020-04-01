@@ -218,7 +218,7 @@ MK	*g_mk;
 } // namespace
 
 MK::MK(int bus, const char *_device_path) :
-	I2C("mkblctrl", "/dev/mkblctrl0", bus, 0, I2C_BUS_SPEED),
+	I2C(0, "mkblctrl", bus, 0, I2C_BUS_SPEED),
 	_update_rate(UPDATE_RATE),
 	_task(-1),
 	_t_actuators(-1),

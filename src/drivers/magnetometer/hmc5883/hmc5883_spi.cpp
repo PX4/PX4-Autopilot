@@ -72,9 +72,8 @@ HMC5883_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi
 }
 
 HMC5883_SPI::HMC5883_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI("HMC5883_SPI", nullptr, bus, device, spi_mode, bus_frequency)
+	SPI(DRV_MAG_DEVTYPE_HMC5883, MODULE_NAME, bus, device, spi_mode, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 }
 
 int HMC5883_SPI::init()

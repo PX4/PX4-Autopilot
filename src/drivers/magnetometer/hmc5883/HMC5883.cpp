@@ -48,8 +48,6 @@ HMC5883::HMC5883(device::Device *interface, enum Rotation rotation, I2CSPIBusOpt
 	_temperature_counter(0),
 	_temperature_error_count(0)
 {
-	_interface->set_device_type(DRV_MAG_DEVTYPE_HMC5883);
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_HMC5883);
 	_px4_mag.set_external(_interface->external());
 }
 
