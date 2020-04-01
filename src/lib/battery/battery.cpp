@@ -93,7 +93,6 @@ Battery::Battery(int index, ModuleParams *parent) :
 	_param_handles.capacity_old = param_find("BAT_CAPACITY");
 	_param_handles.v_load_drop_old = param_find("BAT_V_LOAD_DROP");
 	_param_handles.r_internal_old = param_find("BAT_R_INTERNAL");
-	_param_handles.source_old = param_find("BAT_SOURCE");
 
 	updateParams();
 }
