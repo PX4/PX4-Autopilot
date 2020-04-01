@@ -56,11 +56,12 @@ ICM20948_mag::ICM20948_mag(ICM20948 *parent, device::Device *interface, enum Rot
 	_px4_mag(parent->_interface->get_device_id(), (parent->_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH),
 		 rotation),
 	_parent(parent),
-	_mag_overruns(perf_alloc(PC_COUNT, MODULE_NAME": mag_overruns")),
-	_mag_overflows(perf_alloc(PC_COUNT, MODULE_NAME": mag_overflows")),
-	_mag_errors(perf_alloc(PC_COUNT, MODULE_NAME": mag_errors"))
+	_mag_overruns(perf_alloc(PC_COUNT, MODULE_NAME": mag overruns")),
+	_mag_overflows(perf_alloc(PC_COUNT, MODULE_NAME": mag overflows")),
+	_mag_errors(perf_alloc(PC_COUNT, MODULE_NAME": mag errors"))
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK09916);
+	_px4_mag.set_external(_parent->is_external());
 	_px4_mag.set_scale(ICM20948_MAG_RANGE_GA);
 }
 

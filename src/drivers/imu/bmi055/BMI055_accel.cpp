@@ -46,8 +46,7 @@ const uint8_t BMI055_accel::_checked_registers[BMI055_ACCEL_NUM_CHECKED_REGISTER
 
 BMI055_accel::BMI055_accel(I2CSPIBusOption bus_option, int bus, const char *path_accel, uint32_t device,
 			   enum Rotation rotation, int bus_frequency, spi_mode_e spi_mode) :
-	BMI055("bmi055_accel", path_accel, bus_option, bus, DRV_ACC_DEVTYPE_BMI055, device, spi_mode, bus_frequency,
-	       rotation),
+	BMI055(DRV_ACC_DEVTYPE_BMI055, "bmi055_accel", path_accel, bus_option, bus, device, spi_mode, bus_frequency, rotation),
 	_px4_accel(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_accel_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_accel_bad_transfers")),
@@ -55,7 +54,6 @@ BMI055_accel::BMI055_accel(I2CSPIBusOption bus_option, int bus, const char *path
 	_duplicates(perf_alloc(PC_COUNT, "bmi055_accel_duplicates")),
 	_got_duplicate(false)
 {
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_BMI055);
 }
 
 BMI055_accel::~BMI055_accel()

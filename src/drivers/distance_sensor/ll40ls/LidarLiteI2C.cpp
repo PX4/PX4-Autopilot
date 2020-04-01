@@ -43,9 +43,9 @@
 
 LidarLiteI2C::LidarLiteI2C(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
 			   const int address) :
-	I2C("LL40LS", nullptr, bus, address, bus_frequency),
+	I2C(DRV_RNG_DEVTYPE_LL40LS, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
+	_px4_rangefinder(get_device_id(), ORB_PRIO_DEFAULT, rotation)
 {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
 	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);

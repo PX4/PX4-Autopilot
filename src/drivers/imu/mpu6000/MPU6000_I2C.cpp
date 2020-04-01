@@ -70,7 +70,7 @@ MPU6000_I2C_interface(int bus, uint32_t devid, int device_type, bool external_bu
 }
 
 MPU6000_I2C::MPU6000_I2C(int bus, int device_type, int bus_frequency) :
-	I2C("MPU6000_I2C", nullptr, bus, PX4_I2C_MPU6050_ADDR, bus_frequency),
+	I2C(DRV_IMU_DEVTYPE_MPU6000, MODULE_NAME, bus, PX4_I2C_MPU6050_ADDR, bus_frequency)
 	_device_type(device_type)
 {
 }

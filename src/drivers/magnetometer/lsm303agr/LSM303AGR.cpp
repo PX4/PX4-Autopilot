@@ -63,16 +63,13 @@ static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
 
 LSM303AGR::LSM303AGR(I2CSPIBusOption bus_option, int bus, int device, enum Rotation rotation, int bus_frequency,
 		     spi_mode_e spi_mode) :
-	SPI("LSM303AGR", nullptr, bus, device, spi_mode, bus_frequency),
+	SPI(DRV_MAG_DEVTYPE_LSM303AGR, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
 	_bad_values(perf_alloc(PC_COUNT, MODULE_NAME": bad_val"))
 {
-	set_device_type(DRV_MAG_DEVTYPE_LSM303AGR);
-
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_LSM303AGR);
 	_px4_mag.set_external(external());
 
 	_px4_mag.set_scale(1.5f / 1000.f); // 1.5 milligauss/LSB

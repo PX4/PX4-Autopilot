@@ -81,9 +81,8 @@ LIS3MDL_I2C_interface(int bus, int bus_frequency)
 }
 
 LIS3MDL_I2C::LIS3MDL_I2C(int bus, int bus_frequency) :
-	I2C("LIS3MDL_I2C", nullptr, bus, LIS3MDLL_ADDRESS, bus_frequency)
+	I2C(DRV_MAG_DEVTYPE_LIS3MDL, MODULE_NAME, bus, LIS3MDLL_ADDRESS, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LIS3MDL;
 }
 
 int LIS3MDL_I2C::probe()

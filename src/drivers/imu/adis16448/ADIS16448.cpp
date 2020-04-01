@@ -39,18 +39,13 @@
 
 ADIS16448::ADIS16448(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
 		     spi_mode_e spi_mode) :
-	SPI("ADIS16448", nullptr, bus, device, spi_mode, bus_frequency),
+	SPI(DRV_IMU_DEVTYPE_ADIS16448, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), ORB_PRIO_MAX, rotation),
 	_px4_baro(get_device_id(), ORB_PRIO_MAX),
 	_px4_gyro(get_device_id(), ORB_PRIO_MAX, rotation),
 	_px4_mag(get_device_id(), ORB_PRIO_MAX, rotation)
 {
-	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ADIS16448);
-	_px4_baro.set_device_type(DRV_IMU_DEVTYPE_ADIS16448);
-	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ADIS16448);
-	_px4_mag.set_device_type(DRV_IMU_DEVTYPE_ADIS16448);
-
 	_px4_accel.set_scale(ADIS16448_ACCEL_SENSITIVITY);
 	_px4_gyro.set_scale(ADIS16448_GYRO_INITIAL_SENSITIVITY);
 	_px4_mag.set_scale(ADIS16448_MAG_SENSITIVITY);

@@ -80,9 +80,8 @@ RM3100_I2C_interface(int bus, int bus_frequency)
 }
 
 RM3100_I2C::RM3100_I2C(int bus, int bus_frequency) :
-	I2C("RM300_I2C", nullptr, bus, RM3100_ADDRESS, bus_frequency)
+	I2C(DRV_MAG_DEVTYPE_RM3100, MODULE_NAME, bus, RM3100_ADDRESS, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_RM3100;
 }
 
 int RM3100_I2C::probe()

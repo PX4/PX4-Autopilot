@@ -53,7 +53,7 @@
 class BMI088 : public device::SPI, public I2CSPIDriver<BMI088>
 {
 public:
-	BMI088(const char *name, const char *devname, I2CSPIBusOption bus_option, int bus, int type, uint32_t device,
+	BMI088(const char *name, const char *devname, I2CSPIBusOption bus_option, int bus, uint8_t type, uint32_t device,
 	       enum spi_mode_e mode, uint32_t frequency, enum Rotation rotation);
 	virtual ~BMI088() = default;
 

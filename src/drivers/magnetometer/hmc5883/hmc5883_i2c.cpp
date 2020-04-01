@@ -68,9 +68,8 @@ HMC5883_I2C_interface(int bus, int bus_frequency)
 }
 
 HMC5883_I2C::HMC5883_I2C(int bus, int bus_frequency) :
-	I2C("HMC5883_I2C", nullptr, bus, HMC5883L_ADDRESS, bus_frequency)
+	I2C(DRV_MAG_DEVTYPE_HMC5883, MODULE_NAME, bus, HMC5883L_ADDRESS, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 }
 
 int HMC5883_I2C::probe()

@@ -66,9 +66,8 @@ QMC5883_I2C_interface(int bus, int bus_frequency, int i2c_address)
 }
 
 QMC5883_I2C::QMC5883_I2C(int bus, int bus_frequency, int i2c_address) :
-	I2C("QMC5883_I2C", nullptr, bus, i2c_address, bus_frequency)
+	I2C(DRV_MAG_DEVTYPE_QMC5883, MODULE_NAME, bus, i2c_address, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_QMC5883;
 }
 
 int QMC5883_I2C::probe()

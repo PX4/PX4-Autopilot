@@ -50,7 +50,6 @@ BMP388::BMP388(I2CSPIBusOption bus_option, int bus, IBMP388 *interface) :
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
-	_px4_baro.set_device_type(DRV_BARO_DEVTYPE_BMP388);
 }
 
 BMP388::~BMP388()

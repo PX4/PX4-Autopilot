@@ -50,7 +50,6 @@
 #define ADC_ENABLE_REG 0x00
 #define ADC_CHANNEL_REG 0x03
 #define MAX_CHANNEL 5
-#define AEROFC_ADC_DEVICE_PATH "/dev/aerofc_adc"
 
 class AEROFC_ADC : public device::I2C, public I2CSPIDriver<AEROFC_ADC>
 {

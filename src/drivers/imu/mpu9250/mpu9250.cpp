@@ -82,8 +82,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, enum 
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": dupe"))
 {
-	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_MPU9250);
-	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_MPU9250);
 }
 
 MPU9250::~MPU9250()

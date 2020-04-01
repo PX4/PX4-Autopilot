@@ -35,11 +35,11 @@
 
 PAW3902::PAW3902(I2CSPIBusOption bus_option, int bus, int devid, enum Rotation yaw_rotation, int bus_frequency,
 		 spi_mode_e spi_mode) :
-	SPI("PAW3902", nullptr, bus, devid, spi_mode, bus_frequency),
+	SPI(DRV_FLOW_DEVTYPE_PAW3902, MODULE_NAME, bus, devid, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_sample_perf(perf_alloc(PC_ELAPSED, "paw3902: read")),
-	_comms_errors(perf_alloc(PC_COUNT, "paw3902: com_err")),
-	_dupe_count_perf(perf_alloc(PC_COUNT, "paw3902: duplicate reading")),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
+	_dupe_count_perf(perf_alloc(PC_COUNT, MODULE_NAME": duplicate reading")),
 	_yaw_rotation(yaw_rotation)
 {
 }

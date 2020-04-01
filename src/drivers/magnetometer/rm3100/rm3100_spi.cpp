@@ -80,9 +80,8 @@ RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_
 }
 
 RM3100_SPI::RM3100_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) :
-	SPI("RM3100_SPI", nullptr, bus, devid, spi_mode, bus_frequency)
+	SPI(DRV_MAG_DEVTYPE_RM3100, MODULE_NAME, bus, devid, spi_mode, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_RM3100;
 }
 
 int RM3100_SPI::init()
