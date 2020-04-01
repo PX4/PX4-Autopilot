@@ -322,6 +322,23 @@ void UavcanNode::Run()
 		PX4_ERR("node spin error %i", spin_res);
 	}
 
+	// battery_status -> uavcan::equipment::power::BatteryInfo
+	if (_battery_status_sub.updated()) {
+		battery_status_s battery;
+
+		if (_battery_status_sub.copy(&battery)) {
+			uavcan::equipment::power::BatteryInfo battery_info{};
+			battery_info.voltage = battery.voltage_v;
+			battery_info.current = battery.current_a;
+			battery_info.temperature = battery.temperature;
+			battery_info.full_charge_capacity_wh = battery.capacity;
+			battery_info.remaining_capacity_wh = battery.remaining * battery.capacity;
+			battery_info.model_instance_id = 0; // TODO: what goes here?
+			battery_info.status_flags = uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE; // TODO: is there a case where this is never true?
+			_power_battery_info_publisher.broadcast(battery_info);
+		}
+	}
+
 	// sensor_baro -> uavcan::equipment::air_data::StaticTemperature
 	if (_sensor_baro_sub.updated()) {
 		sensor_baro_s baro;
