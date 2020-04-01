@@ -149,7 +149,7 @@ PX4FLOW::PX4FLOW(I2CSPIBusOption bus_option, int bus, int address, uint8_t sonar
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
 	_sonar_rotation(sonar_rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT,  MODULE_NAME": com_err")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
 	_sensor_rotation(rotation)
 {
 }
