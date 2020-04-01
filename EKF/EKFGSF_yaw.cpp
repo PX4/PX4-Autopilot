@@ -154,28 +154,12 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index)
 		Vector3f accel = _ahrs_accel;
 
 		if (_true_airspeed > FLT_EPSILON) {
-			// turn rate is component of gyro rate about vertical (down) axis
-			const float turn_rate = gravity_direction_bf.dot(ang_rate);
-
-			// use measured airspeed to calculate centripetal acceleration if available
-			const float centripetal_accel = _true_airspeed * turn_rate;
-
-			// project Y body axis onto horizontal and multiply by centripetal acceleration to give estimated
-			// centripetal acceleration vector in earth frame due to coordinated turn
-			Vector3f centripetal_accel_vec_ef(_ahrs_ekf_gsf[model_index].R(0,1), _ahrs_ekf_gsf[model_index].R(1,1), 0.0f);
-			if (_ahrs_ekf_gsf[model_index].R(2,2) > 0.0f) {
-				// vehicle is upright
-				centripetal_accel_vec_ef *= centripetal_accel;
-			} else {
-				// vehicle is inverted
-				centripetal_accel_vec_ef *= - centripetal_accel;
-			}
-
-			// rotate into body frame
-			Vector3f centripetal_accel_vec_bf = R_to_body * centripetal_accel_vec_ef;
+			// Calculate body frame centripetal acceleration with assumption X axis is aligned with the airspeed vector
+			// Use cross product of body rate and body frame airspeed vector
+			const Vector3f centripetal_accel_bf = Vector3f(0.0f, _true_airspeed * ang_rate(2), - _true_airspeed * ang_rate(1));
 
 			// correct measured accel for centripetal acceleration
-			accel -= centripetal_accel_vec_bf;
+			accel -= centripetal_accel_bf;
 		}
 
 		tilt_correction = (gravity_direction_bf % accel) * _ahrs_accel_fusion_gain / _ahrs_accel_norm;
