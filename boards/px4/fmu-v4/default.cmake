@@ -46,7 +46,7 @@ px4_add_board(
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		rc_input
 		roboclaw
 		safety_button

@@ -57,11 +57,8 @@ public:
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
 protected:
 	virtual int	probe();
-
 };
 
 device::Device *
@@ -75,28 +72,7 @@ HMC5883_I2C::HMC5883_I2C(int bus, int bus_frequency) :
 {
 }
 
-int
-HMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case MAGIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
-}
-
-int
-HMC5883_I2C::probe()
+int HMC5883_I2C::probe()
 {
 	uint8_t data[3] = {0, 0, 0};
 
@@ -121,8 +97,7 @@ HMC5883_I2C::probe()
 	return OK;
 }
 
-int
-HMC5883_I2C::write(unsigned address, void *data, unsigned count)
+int HMC5883_I2C::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -136,8 +111,7 @@ HMC5883_I2C::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
 
-int
-HMC5883_I2C::read(unsigned address, void *data, unsigned count)
+int HMC5883_I2C::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,90 +31,86 @@
  *
  ****************************************************************************/
 
+/**
+ * @file VL53L0X.hpp
+ *
+ * Driver for the ST VL53L0X ToF Sensor connected via I2C.
+ */
+
 #pragma once
 
-
 #include <px4_platform_common/px4_config.h>
-#include <lib/perf/perf_counter.h>
-#include <systemlib/conversions.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/i2c.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <px4_platform_common/module.h>
+#include <drivers/device/i2c.h>
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 
-// in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit.
-static constexpr float AK09916_MAG_RANGE_GA = 1.5e-3f;
+/* Configuration Constants */
+#define VL53L0X_BASEADDR                                0x29
 
-static constexpr uint8_t AK09916_I2C_ADDR = 0x0C;
-
-static constexpr uint8_t AK09916_DEVICE_ID_A = 0x48;
-static constexpr uint8_t AK09916REG_WIA = 0x00;
-
-static constexpr uint8_t AK09916REG_ST1 = 0x10;
-static constexpr uint8_t AK09916REG_HXL = 0x11;
-static constexpr uint8_t AK09916REG_CNTL2 = 0x31;
-static constexpr uint8_t AK09916REG_CNTL3 = 0x32;
-
-static constexpr uint8_t AK09916_RESET = 0x01;
-static constexpr uint8_t AK09916_CNTL2_CONTINOUS_MODE_100HZ = 0x08;
-
-static constexpr uint8_t AK09916_ST1_DRDY = 0x01;
-static constexpr uint8_t AK09916_ST1_DOR = 0x02;
-
-static constexpr uint8_t AK09916_ST2_HOFL = 0x08;
-
-// Run at 100 Hz.
-static constexpr unsigned AK09916_CONVERSION_INTERVAL_us = 1000000 / 100;
-
-#pragma pack(push, 1)
-struct ak09916_regs {
-	int16_t x;
-	int16_t y;
-	int16_t z;
-	uint8_t tmps;
-	uint8_t st2;
-};
-#pragma pack(pop)
-
-
-class AK09916 : public device::I2C, public I2CSPIDriver<AK09916>
+class VL53L0X : public device::I2C, public I2CSPIDriver<VL53L0X>
 {
 public:
-	AK09916(I2CSPIBusOption bus_option, const int bus, int bus_frequency, enum Rotation rotation);
-	virtual ~AK09916();
+	VL53L0X(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
+		int address = VL53L0X_BASEADDR);
+
+	~VL53L0X() override;
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
 	static void print_usage();
 
-	int init() override;
-	void start();
+	/**
+	 * Diagnostics - print some basic information about the driver.
+	 */
 	void print_status() override;
-	int probe() override;
 
+	/**
+	 * Initialise the automatic measurement state machine and start it.
+	 */
+	void start();
+
+	/**
+	 * Perform a poll cycle; collect from the previous measurement
+	 * and start a new one.
+	 */
 	void RunImpl();
 
-protected:
-	int setup();
-	int setup_master_i2c();
-	bool check_id();
-	void try_measure();
-	bool is_ready();
-	void measure();
-	int reset();
-
-	uint8_t read_reg(uint8_t reg);
-	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
-	void write_reg(uint8_t reg, uint8_t value);
-
 private:
+	int probe() override;
 
-	PX4Magnetometer _px4_mag;
+	/**
+	 * Collects the most recent sensor measurement data from the i2c bus.
+	 */
+	int collect();
 
-	static constexpr uint32_t _cycle_interval{AK09916_CONVERSION_INTERVAL_us};
+	/**
+	 * Sends an i2c measure command to the sensor.
+	 */
+	int measure();
 
-	perf_counter_t _mag_reads;
-	perf_counter_t _mag_errors;
-	perf_counter_t _mag_overruns;
-	perf_counter_t _mag_overflows;
+	int readRegister(const uint8_t reg_address, uint8_t &value);
+	int readRegisterMulti(const uint8_t reg_address, uint8_t *value, const uint8_t length);
+
+	int writeRegister(const uint8_t reg_address, const uint8_t value);
+	int writeRegisterMulti(const uint8_t reg_address, const uint8_t *value, const uint8_t length);
+
+	int sensorInit();
+	int sensorTuning();
+	int singleRefCalibration(const uint8_t byte);
+	int spadCalculations();
+
+	PX4Rangefinder	_px4_rangefinder;
+
+	bool _collect_phase{false};
+	bool _measurement_started{false};
+	bool _new_measurement{true};
+
+	uint8_t _stop_variable{0};
+
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 };

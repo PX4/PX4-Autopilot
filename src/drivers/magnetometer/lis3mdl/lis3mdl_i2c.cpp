@@ -63,7 +63,6 @@ public:
 	LIS3MDL_I2C(int bus, int bus_frequency);
 	virtual ~LIS3MDL_I2C() = default;
 
-	virtual int     ioctl(unsigned operation, unsigned &arg);
 	virtual int     read(unsigned address, void *data, unsigned count);
 	virtual int     write(unsigned address, void *data, unsigned count);
 
@@ -86,24 +85,7 @@ LIS3MDL_I2C::LIS3MDL_I2C(int bus, int bus_frequency) :
 {
 }
 
-int
-LIS3MDL_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	switch (operation) {
-
-	case MAGIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default:
-		return  -EINVAL;
-	}
-}
-
-int
-LIS3MDL_I2C::probe()
+int LIS3MDL_I2C::probe()
 {
 	uint8_t data = 0;
 
@@ -124,15 +106,13 @@ LIS3MDL_I2C::probe()
 	return OK;
 }
 
-int
-LIS3MDL_I2C::read(unsigned address, void *data, unsigned count)
+int LIS3MDL_I2C::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
 
-int
-LIS3MDL_I2C::write(unsigned address, void *data, unsigned count)
+int LIS3MDL_I2C::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 

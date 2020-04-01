@@ -88,7 +88,7 @@ config_main(int argc, char *argv[])
 static void
 print_usage(void)
 {
-	PRINT_MODULE_DESCRIPTION("Configure a sensor driver (sampling & publication rate, range, etc.)");
+	PRINT_MODULE_DESCRIPTION("Configure a sensor driver (sampling & publication rate, etc.)");
 
 	PRINT_MODULE_USAGE_NAME("config", "command");
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The <file:dev> argument is typically one of /dev/{gyro,accel,mag}i");
@@ -102,8 +102,6 @@ print_usage(void)
 	PRINT_MODULE_USAGE_ARG("<file:dev> <rate>", "Sensor device file and sampling rate in Hz", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("rate", "Set sensor publication rate");
 	PRINT_MODULE_USAGE_ARG("<file:dev> <rate>", "Sensor device file and publication rate in Hz", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("range", "Set sensor measurement range");
-	PRINT_MODULE_USAGE_ARG("<file:dev> <rate>", "Sensor device file and range", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Perform sensor self-test (and print info)");
 	PRINT_MODULE_USAGE_ARG("<file:dev>", "Sensor device file", false);
 }
@@ -174,16 +172,6 @@ do_mag(int argc, char *argv[])
 
 			if (ret) {
 				PX4_ERR("pollrate could not be set");
-				return 1;
-			}
-
-		} else if (argc == 3 && !strcmp(argv[0], "range")) {
-
-			/* set the range to i G */
-			ret = ioctl(fd, MAGIOCSRANGE, strtoul(argv[2], NULL, 0));
-
-			if (ret) {
-				PX4_ERR("range could not be set");
 				return 1;
 			}
 

@@ -43,7 +43,6 @@ import shutil
 import filecmp
 import argparse
 import sys
-from packaging import version
 
 try:
     import em
@@ -62,6 +61,16 @@ except ImportError as e:
     print("")
     print("You may need to install it using:")
     print("    pip3 install --user pyros-genmsg")
+    print("")
+    sys.exit(1)
+
+try:
+    from packaging import version
+except ImportError as e:
+    print("Failed to import packaging: " + str(e))
+    print("")
+    print("You may need to install it using:")
+    print("    pip3 install --user packaging")
     print("")
     sys.exit(1)
 

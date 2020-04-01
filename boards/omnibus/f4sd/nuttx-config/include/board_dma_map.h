@@ -33,7 +33,6 @@
 
 #pragma once
 
-
 /*
 |    DMA1    | Stream 0         | Stream 1         | Stream 2         | Stream 3         | Stream 4         | Stream 5         | Stream 6         | Stream 7         |
 |------------|------------------|------------------|------------------|------------------|------------------|------------------|------------------|------------------|
@@ -49,7 +48,7 @@
 |            |   TIM5_UP_1      |   TIM5_TRIG_1    |                  |   TIM5_TRIG_2    |                  |                  |                  |                  |
 | Channel 7  | -                | TIM6_UP          | I2C2_RX          | I2C2_RX_1        | USART3_TX_2      | DAC1             | DAC2             | I2C2_TX          |
 |            |                  |                  |                  |                  |                  |                  |                  |                  |
-| Usage      |                  |                  |                  |                  |                  |                  |                  |                  |
+| Usage      |                  | TIM2_UP_1        | TIM3_UP          | SPI2_RX          | SPI2_TX          |                  |                  |                  |
 
 
 |    DMA2    | Stream 0         | Stream 1         | Stream 2         | Stream 3         | Stream 4         | Stream 5         | Stream 6         | Stream 7         |
@@ -69,19 +68,27 @@
 |            |                  |                  |                  |                  |                  |                  |                  |   TIM8_TRIG      |
 |            |                  |                  |                  |                  |                  |                  |                  |   TIM8_COM       |
 |            |                  |                  |                  |                  |                  |                  |                  |                  |
-| Usage      | SPI4_RX_1        | USART6_RX_1      | USART1_RX_1      |                  | SPI4_TX_2        |                  | SDIO             |                  |
+| Usage      | SPI1_RX_1        | USART6_RX_1      | USART1_RX_1      | SPI1_TX_1        |                  |                  | SDIO             |                  |
  */
 
 // DMA1 Channel/Stream Selections
 //--------------------------------------------//---------------------------//----------------
-
+//      AVAILABLE                             // DMA2, Stream 0
+//      DMAMAP_TIM2_UP                        // DMA1, Stream 1, Channel 3    (DSHOT)
+//      DMAMAP_TIM3_UP                        // DMA1, Stream 2, Channel 5    (DSHOT)
+#define DMACHAN_SPI2_RX    DMAMAP_SPI2_RX     // DMA1, Stream 3, Channel 0    (SPI2 RX)
+#define DMACHAN_SPI2_TX    DMAMAP_SPI2_TX     // DMA1, Stream 4, Channel 0    (SPI2 TX)
+//      AVAILABLE                             // DMA2, Stream 5
+//      AVAILABLE                             // DMA2, Stream 6
+//      AVAILABLE                             // DMA2, Stream 7
 
 //  DMA2 Channel/Stream Selections
 //--------------------------------------------//---------------------------//----------------
-#define DMACHAN_SPI4_RX    DMAMAP_SPI4_RX_1   // DMA2, Stream 0, Channel 4    (SPI sensors RX)
+#define DMACHAN_SPI1_RX    DMAMAP_SPI1_RX_1   // DMA2, Stream 0, Channel 3    (SPI1 RX)
 #define DMAMAP_USART6_RX   DMAMAP_USART6_RX_1 // DMA2, Stream 1, Channel 4
 #define DMAMAP_USART1_RX   DMAMAP_USART1_RX_1 // DMA2, Stream 2, Channel 4
-//      AVAILABLE                             // DMA2, Stream 3
-#define DMACHAN_SPI4_TX    DMAMAP_SPI4_TX_2   // DMA2, Stream 4, Channel 5    (SPI sensors TX)
-//      AVAILABLE                             // DMA2, Stream 5, Channel 6
+#define DMACHAN_SPI1_TX    DMAMAP_SPI1_TX_1   // DMA2, Stream 3, Channel 3    (SPI1 TX)
+//      AVAILABLE                             // DMA2, Stream 4
+//      AVAILABLE                             // DMA2, Stream 5
 #define DMAMAP_SDIO        DMAMAP_SDIO_2      // DMA2, Stream 6, Channel 4
+//      AVAILABLE                             // DMA2, Stream 7

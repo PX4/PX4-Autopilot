@@ -52,7 +52,7 @@ px4_add_board(
 		#lights/rgbled_ncp5623c
 		#magnetometer # all available magnetometer drivers
 		#optical_flow # all available optical flow drivers
-		#px4fmu
+		#pwm_out
 		#safety_button
 		#tone_alarm
 		uavcannode

@@ -45,6 +45,7 @@ PX4Magnetometer::PX4Magnetometer(uint32_t device_id, uint8_t priority, enum Rota
 
 	_sensor_mag_pub.get().device_id = device_id;
 	_sensor_mag_pub.get().scaling = 1.0f;
+	_sensor_mag_pub.get().temperature = NAN;
 }
 
 PX4Magnetometer::~PX4Magnetometer()
@@ -81,6 +82,9 @@ int PX4Magnetometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		}
 
 		return 0;
+
+	case MAGIOCGEXTERNAL:
+		return _sensor_mag_pub.get().is_external;
 
 	case DEVIOCGDEVICEID:
 		return _sensor_mag_pub.get().device_id;

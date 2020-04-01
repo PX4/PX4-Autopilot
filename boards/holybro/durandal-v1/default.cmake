@@ -48,7 +48,7 @@ px4_add_board(
 #		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
 #					   all arch dependant code there
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		px4io
 		roboclaw
 		tap_esc

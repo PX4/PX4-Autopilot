@@ -24,7 +24,7 @@ px4_add_board(
 		optical_flow/px4flow
 		osd
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		rc_input
 		telemetry
 		tone_alarm

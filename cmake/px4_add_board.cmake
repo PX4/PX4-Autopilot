@@ -102,7 +102,7 @@
 #				imu/bmi055
 #				imu/mpu6000
 #				magnetometer/ist8310
-#				px4fmu
+#				pwm_out
 #				px4io
 #				rgbled
 #			MODULES

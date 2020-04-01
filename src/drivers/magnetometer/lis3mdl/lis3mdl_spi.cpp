@@ -67,7 +67,6 @@ public:
 	virtual ~LIS3MDL_SPI() = default;
 
 	virtual int     init();
-	virtual int     ioctl(unsigned operation, unsigned &arg);
 	virtual int     read(unsigned address, void *data, unsigned count);
 	virtual int     write(unsigned address, void *data, unsigned count);
 };
@@ -89,9 +88,7 @@ LIS3MDL_SPI::LIS3MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e 
 int
 LIS3MDL_SPI::init()
 {
-	int ret;
-
-	ret = SPI::init();
+	int ret = SPI::init();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI init failed");
@@ -113,34 +110,7 @@ LIS3MDL_SPI::init()
 	return OK;
 }
 
-int
-LIS3MDL_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case MAGIOCGEXTERNAL:
-		/*
-		 * Even if this sensor is on the external SPI
-		 * bus it is still internal to the autopilot
-		 * assembly, so always return 0 for internal.
-		 */
-		return 0;
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
-}
-
-int
-LIS3MDL_SPI::read(unsigned address, void *data, unsigned count)
+int LIS3MDL_SPI::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -155,8 +125,7 @@ LIS3MDL_SPI::read(unsigned address, void *data, unsigned count)
 	return ret;
 }
 
-int
-LIS3MDL_SPI::write(unsigned address, void *data, unsigned count)
+int LIS3MDL_SPI::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 

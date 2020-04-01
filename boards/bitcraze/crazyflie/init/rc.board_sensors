@@ -12,4 +12,4 @@ mpu9250 -I -R 12 start
 lps25h -I start
 
 # Optical flow deck
-vl53lxx start -X
+vl53l0x start -X
