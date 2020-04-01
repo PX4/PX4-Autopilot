@@ -81,6 +81,8 @@
 #include <v2.0/mavlink_types.h>
 #include <lib/battery/battery.h>
 
+using namespace time_literals;
+
 //! Enumeration to use on the bitmask in HIL_SENSOR
 enum class SensorSource {
 	ACCEL		= 0b111,
@@ -193,7 +195,10 @@ private:
 	class SimulatorBattery : public Battery
 	{
 	public:
-		SimulatorBattery() : Battery(1, nullptr) {}
+		static constexpr uint32_t SIMLATOR_BATTERY_SAMPLE_FREQUENCY_HZ = 100; // Hz
+		static constexpr uint32_t SIMLATOR_BATTERY_SAMPLE_INTERVAL_US = 1_s / SIMLATOR_BATTERY_SAMPLE_FREQUENCY_HZ;
+
+		SimulatorBattery() : Battery(1, nullptr, SIMLATOR_BATTERY_SAMPLE_INTERVAL_US) {}
 
 		virtual void updateParams() override
 		{
