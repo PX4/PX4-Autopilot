@@ -116,4 +116,3 @@ BMP280_I2C::get_calibration(uint8_t addr)
 		return nullptr;
 	}
 }
-

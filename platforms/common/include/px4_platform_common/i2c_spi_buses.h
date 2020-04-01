@@ -245,5 +245,3 @@ protected:
 	}
 private:
 };
-
-

@@ -162,4 +162,3 @@ private:
 	 */
 	void			write_reg(unsigned reg, uint8_t value);
 };
-

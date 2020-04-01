@@ -73,4 +73,3 @@ __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
 
 	return rv;
 }
-
