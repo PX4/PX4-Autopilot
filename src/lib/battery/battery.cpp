@@ -45,15 +45,18 @@
 #include <cstring>
 #include <px4_platform_common/defines.h>
 
-Battery::Battery(int index, ModuleParams *parent) :
+using namespace time_literals;
+
+Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) :
 	ModuleParams(parent),
 	_index(index < 1 || index > 9 ? 1 : index),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
-	_voltage_filter_v.setParameters(.01f, 1.f);
-	_current_filter_a.setParameters(.01f, .5f);
-	_throttle_filter.setParameters(.01f, 1.f);
+	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
+	_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
+	_current_filter_a.setParameters(expected_filter_dt, .5f);
+	_throttle_filter.setParameters(expected_filter_dt, 1.f);
 
 	if (index > 9 || index < 1) {
 		PX4_ERR("Battery index must be between 1 and 9 (inclusive). Received %d. Defaulting to 1.", index);
