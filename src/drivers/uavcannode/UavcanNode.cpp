@@ -330,9 +330,10 @@ void UavcanNode::Run()
 			uavcan::equipment::power::BatteryInfo battery_info{};
 			battery_info.voltage = battery.voltage_v;
 			battery_info.current = battery.current_a;
-			battery_info.temperature = battery.temperature;
+			battery_info.temperature = battery.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // convert from C to K
 			battery_info.full_charge_capacity_wh = battery.capacity;
 			battery_info.remaining_capacity_wh = battery.remaining * battery.capacity;
+			battery_info.state_of_charge_pct = battery.remaining * 100;
 			battery_info.model_instance_id = 0; // TODO: what goes here?
 			battery_info.status_flags = uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE; // TODO: is there a case where this is never true?
 			_power_battery_info_publisher.broadcast(battery_info);
