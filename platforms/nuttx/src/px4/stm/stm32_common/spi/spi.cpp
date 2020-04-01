@@ -561,4 +561,3 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 #endif
 	}
 }
-

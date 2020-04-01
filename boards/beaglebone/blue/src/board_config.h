@@ -91,4 +91,3 @@ void rc_cleaning(void);
 #define rc_filter_butterworth_lowpass	rc_butterworth_lowpass
 
 #endif
-

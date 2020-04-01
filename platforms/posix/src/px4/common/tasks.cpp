@@ -449,4 +449,3 @@ int px4_prctl(int option, const char *arg2, px4_task_t pid)
 
 	return rv;
 }
-

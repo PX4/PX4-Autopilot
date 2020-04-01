@@ -123,4 +123,3 @@ static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI
 	ret.drdy_gpio = drdy_gpio;
 	return ret;
 }
-
