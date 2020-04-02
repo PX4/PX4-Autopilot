@@ -899,3 +899,16 @@ PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
  * @increment 0.1
  */
 PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
+
+/**
+ * Maximum allowed CPU load to still allow arming
+ *
+ * A negative value disables the check.
+ *
+ * @group Commander
+ * @unit %
+ * @min -1
+ * @max 100
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(COM_CPU_MAX, 90.0f);
