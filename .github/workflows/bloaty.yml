@@ -26,7 +26,7 @@ jobs:
           px4_fmu-v5x_default,
           px4_io-v2_default,
           ]
-    container: px4io/px4-dev-nuttx-${{ matrix.ubuntu_release }}:2020-03-29
+    container: px4io/px4-dev-nuttx-${{ matrix.ubuntu_release }}:2020-04-01
     steps:
     - uses: actions/checkout@v1
       with:
