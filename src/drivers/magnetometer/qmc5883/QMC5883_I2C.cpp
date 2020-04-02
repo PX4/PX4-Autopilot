@@ -55,11 +55,8 @@ public:
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
 protected:
 	virtual int	probe();
-
 };
 
 device::Device *
@@ -69,33 +66,11 @@ QMC5883_I2C_interface(int bus, int bus_frequency, int i2c_address)
 }
 
 QMC5883_I2C::QMC5883_I2C(int bus, int bus_frequency, int i2c_address) :
-	I2C("QMC5883_I2C", nullptr, bus, i2c_address, bus_frequency)
+	I2C(DRV_MAG_DEVTYPE_QMC5883, MODULE_NAME, bus, i2c_address, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_QMC5883;
 }
 
-int
-QMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case MAGIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
-}
-
-int
-QMC5883_I2C::probe()
+int QMC5883_I2C::probe()
 {
 	uint8_t data[2] = {0, 0};
 
@@ -140,8 +115,7 @@ QMC5883_I2C::probe()
 	return -EIO;
 }
 
-int
-QMC5883_I2C::write(unsigned address, void *data, unsigned count)
+int QMC5883_I2C::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -155,8 +129,7 @@ QMC5883_I2C::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
 
-int
-QMC5883_I2C::read(unsigned address, void *data, unsigned count)
+int QMC5883_I2C::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);

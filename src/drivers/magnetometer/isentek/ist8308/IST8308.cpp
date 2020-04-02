@@ -41,13 +41,10 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 }
 
 IST8308::IST8308(I2CSPIBusOption bus_option, int bus, enum Rotation rotation, int bus_frequency) :
-	I2C(MODULE_NAME, nullptr, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
+	I2C(DRV_MAG_DEVTYPE_IST8308, MODULE_NAME, bus, I2C_ADDRESS_DEFAULT, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_HIGH, rotation)
+	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation)
 {
-	set_device_type(DRV_MAG_DEVTYPE_IST8308);
-
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_IST8308);
 	_px4_mag.set_external(external());
 }
 
@@ -84,7 +81,6 @@ void IST8308::print_status()
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
-
 	_px4_mag.print_status();
 }
 
@@ -216,7 +212,6 @@ bool IST8308::Configure()
 
 	// 1 Microtesla = 0.01 Gauss
 	_px4_mag.set_scale(1.f / 6.6f * 0.01f); // 6.6 LSB/uT
-	_px4_mag.set_temperature(NAN); // temperature not available
 
 	return success;
 }

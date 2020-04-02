@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__ak09916
 	MAIN ak09916
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		ak09916.cpp
 	DEPENDS

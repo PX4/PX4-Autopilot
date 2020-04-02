@@ -36,13 +36,9 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_mag.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <systemlib/err.h>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
 // Register mapping
 static constexpr uint8_t WHO_AM_I_M = 0x4F;
@@ -100,15 +96,14 @@ public:
 
 	int		init() override;
 
-	int		ioctl(struct file *filp, int cmd, unsigned long arg) override;
-
 	void			print_status() override;
 
 	void			RunImpl();
-protected:
-	int		probe() override;
 
 private:
+	int		probe() override;
+
+	PX4Magnetometer		_px4_mag;
 
 	bool			_collect_phase{false};
 
@@ -116,23 +111,13 @@ private:
 
 	unsigned		_call_mag_interval{0};
 
-	mag_calibration_s	_mag_scale{};
-
-	static constexpr float	_mag_range_scale{1.5f / 1000.0f}; // 1.5 milligauss/LSB
 	static constexpr float	_mag_range_ga{49.152f};
-
-	int			_class_instance{-1};
 
 	unsigned		_mag_samplerate{100};
 
 	perf_counter_t		_mag_sample_perf;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_bad_values;
-
-	enum Rotation		_rotation;
-
-	orb_advert_t		_mag_topic{nullptr};
-	int					_mag_orb_class_instance{-1};
 
 	/**
 	 * Start automatic measurement.
@@ -144,7 +129,7 @@ private:
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	int				reset();
+	int			reset();
 
 
 	bool			self_test();
@@ -176,9 +161,5 @@ private:
 	 * @param value		The new value to write.
 	 */
 	void			write_reg(unsigned reg, uint8_t value);
-
-	/* this class cannot be copied */
-	LSM303AGR(const LSM303AGR &);
-	LSM303AGR operator=(const LSM303AGR &);
 };
 

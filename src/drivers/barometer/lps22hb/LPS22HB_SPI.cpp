@@ -64,9 +64,8 @@ LPS22HB_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi
 }
 
 LPS22HB_SPI::LPS22HB_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
-	: SPI("LPS22HB_SPI", nullptr, bus, device, spi_mode, bus_frequency)
+	: SPI(DRV_BARO_DEVTYPE_LPS22HB, MODULE_NAME, bus, device, spi_mode, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_LPS22HB;
 }
 
 int

@@ -63,7 +63,6 @@ BMI088_accel::BMI088_accel(I2CSPIBusOption bus_option, int bus, const char *path
 	_duplicates(perf_alloc(PC_COUNT, "bmi088_accel_duplicates")),
 	_got_duplicate(false)
 {
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_BMI088);
 }
 
 BMI088_accel::~BMI088_accel()

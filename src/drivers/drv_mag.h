@@ -74,19 +74,7 @@ struct mag_calibration_s {
 /** copy the mag scaling constants to the structure pointed to by (arg) */
 #define MAGIOCGSCALE		_MAGIOC(5)
 
-/** set the measurement range to handle (at least) arg Gauss */
-#define MAGIOCSRANGE		_MAGIOC(6)
-
-/** perform self-calibration, update scale factors to canonical units */
-#define MAGIOCCALIBRATE		_MAGIOC(8)
-
-/** excite strap */
-#define MAGIOCEXSTRAP		_MAGIOC(9)
-
 /** determine if mag is external or onboard */
 #define MAGIOCGEXTERNAL		_MAGIOC(11)
-
-/** enable/disable temperature compensation */
-#define MAGIOCSTEMPCOMP		_MAGIOC(12)
 
 #endif /* _DRV_MAG_H */

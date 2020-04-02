@@ -51,14 +51,12 @@ const uint8_t BMI055_gyro::_checked_registers[BMI055_GYRO_NUM_CHECKED_REGISTERS]
 
 BMI055_gyro::BMI055_gyro(I2CSPIBusOption bus_option, int bus, const char *path_gyro, uint32_t device,
 			 enum Rotation rotation, int bus_frequency, spi_mode_e spi_mode) :
-	BMI055("bmi055_gyro", path_gyro, bus_option, bus, DRV_GYR_DEVTYPE_BMI055, device, spi_mode, bus_frequency,
-	       rotation),
+	BMI055(DRV_GYR_DEVTYPE_BMI055, "bmi055_gyro", path_gyro, bus_option, bus, device, spi_mode, bus_frequency, rotation),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_gyro_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_registers"))
 {
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_BMI055);
 }
 
 BMI055_gyro::~BMI055_gyro()

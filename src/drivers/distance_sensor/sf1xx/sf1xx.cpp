@@ -75,8 +75,6 @@
 
 /* Configuration Constants */
 #define SF1XX_BASEADDR		0x66
-#define SF1XX_DEVICE_PATH	"/dev/sf1xx"
-
 
 class SF1XX : public device::I2C, public I2CSPIDriver<SF1XX>
 {
@@ -166,7 +164,7 @@ private:
 extern "C" __EXPORT int sf1xx_main(int argc, char *argv[]);
 
 SF1XX::SF1XX(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
-	I2C("SF1XX", SF1XX_DEVICE_PATH, bus, address, bus_frequency),
+	I2C(DRV_DIST_DEVTYPE_SF1XX, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_rotation(rotation)
 {

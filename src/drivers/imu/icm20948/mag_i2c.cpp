@@ -65,9 +65,8 @@ AK09916_I2C_interface(int bus, int bus_frequency)
 }
 
 AK09916_I2C::AK09916_I2C(int bus, int bus_frequency) :
-	I2C("AK09916_I2C", nullptr, bus, AK09916_I2C_ADDR, bus_frequency)
+	I2C(DRV_IMU_DEVTYPE_ICM20948, "AK09916_I2C", bus, AK09916_I2C_ADDR, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_IMU_DEVTYPE_ICM20948;
 }
 
 int
