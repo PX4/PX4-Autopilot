@@ -44,9 +44,6 @@ BMI160::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("reset");
-	PRINT_MODULE_USAGE_COMMAND("regdump");
-	PRINT_MODULE_USAGE_COMMAND("testerror");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -67,21 +64,6 @@ I2CSPIDriverBase *BMI160::instantiate(const BusCLIArguments &cli, const BusInsta
 	}
 
 	return instance;
-}
-
-void
-BMI160::custom_method(const BusCLIArguments &cli)
-{
-	switch (cli.custom1) {
-	case 0: reset();
-		break;
-
-	case 1: print_registers();
-		break;
-
-	case 2: test_error();
-		break;
-	}
 }
 
 extern "C" int bmi160_main(int argc, char *argv[])
@@ -118,21 +100,6 @@ extern "C" int bmi160_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "reset")) {
-		cli.custom1 = 0;
-		return ThisDriver::module_custom_method(cli, iterator);
-	}
-
-	if (!strcmp(verb, "regdump")) {
-		cli.custom1 = 1;
-		return ThisDriver::module_custom_method(cli, iterator);
-	}
-
-	if (!strcmp(verb, "testerror")) {
-		cli.custom1 = 2;
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();
