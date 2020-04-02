@@ -66,7 +66,7 @@ int rpm_simulator_main(int argc, char *argv[])
 		return 0;
 	}
 
-	struct rpm_s rpm;
+	rpm_s rpm{};
 
 	memset(&rpm, 0, sizeof(rpm));
 
