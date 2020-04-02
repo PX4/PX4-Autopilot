@@ -229,6 +229,8 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		return 0;
 	}
 
+	param_modify_on_import(node);
+
 	/*
 	 * Find the parameter this node represents.  If we don't know it,
 	 * ignore the node.
@@ -300,8 +302,6 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		debug("unrecognised node type");
 		goto out;
 	}
-
-	param_modify_on_import(node->name, node->type, v);
 
 	if (param_set_external(param, v, state->mark_saved, true)) {
 
