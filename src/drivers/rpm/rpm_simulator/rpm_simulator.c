@@ -84,7 +84,7 @@ int rpm_simulator_main(int argc, char *argv[])
 	rpm.estimated_accurancy_rpm = frequency / 100.0f;
 
 	// publish data
-	orb_publish(ORB_ID(rpm), rpm_pub, &rpm);
+	rpm_pub.publish(rpm);
 
 	PX4_INFO("RPM message with RPM=%.3f was published", (double)frequency);
 
