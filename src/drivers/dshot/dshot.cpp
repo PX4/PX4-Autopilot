@@ -604,6 +604,7 @@ void DShotOutput::handleNewTelemetryData(int motor_index, const DShotTelemetry::
 		++esc_status.counter;
 		// FIXME: mark all ESC's as online, otherwise commander complains even for a single dropout
 		esc_status.esc_online_flags = (1 << esc_status.esc_count) - 1;
+		esc_status.esc_armed_flags = (1 << esc_status.esc_count) - 1;
 
 		_telemetry->esc_status_pub.update();
 
