@@ -39,34 +39,26 @@
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
 
-bool param_modify_on_import(const char *name, bson_type_t type, void *value)
+bool param_modify_on_import(bson_node_t node)
 {
 
 	// migrate MC_DTERM_CUTOFF -> IMU_DGYRO_CUTOFF (2020-03-12). This can be removed after the next release (current release=1.10)
-	if (type == BSON_DOUBLE) {
-		if (strcmp("MC_DTERM_CUTOFF", name) == 0) {
-			param_t h = param_find("IMU_DGYRO_CUTOFF");
-
-			if (h == PX4_OK) {
-				float fvalue = *(float *)value;
-				PX4_INFO("param migrating MC_DTERM_CUTOFF (removed) -> IMU_DGYRO_CUTOFF: value=%.3f", (double)fvalue);
-				param_set_no_notification(h, value);
-				return true;
-			}
-
-			return false;
+	if (node->type == BSON_DOUBLE) {
+		if (strcmp("MC_DTERM_CUTOFF", node->name) == 0) {
+			strcpy(node->name, "IMU_DGYRO_CUTOFF");
+			PX4_INFO("param migrating MC_DTERM_CUTOFF (removed) -> IMU_DGYRO_CUTOFF: value=%.3f", node->d);
+			return true;
 		}
 	}
 
 
-
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
-	if (type != BSON_INT32) {
+	if (node->type != BSON_INT32) {
 		return false;
 	}
 
-	int32_t *ivalue = (int32_t *)value;
+	int64_t *ivalue = &node->i;
 
 	const char *cal_id_params[] = {
 		"CAL_ACC0_ID",
@@ -94,7 +86,7 @@ bool param_modify_on_import(const char *name, bson_type_t type, void *value)
 	bool found = false;
 
 	for (int i = 0; i < sizeof(cal_id_params) / sizeof(cal_id_params[0]); ++i) {
-		if (strcmp(cal_id_params[i], name) == 0) {
+		if (strcmp(cal_id_params[i], node->name) == 0) {
 			found = true;
 			break;
 		}
@@ -145,7 +137,7 @@ bool param_modify_on_import(const char *name, bson_type_t type, void *value)
 	int32_t new_value = (int32_t)device_id.devid;
 
 	if (new_value != *ivalue) {
-		PX4_INFO("param modify: %s, value=0x%x (old=0x%x)", name, new_value, *ivalue);
+		PX4_INFO("param modify: %s, value=0x%x (old=0x%x)", node->name, new_value, (int32_t)*ivalue);
 		*ivalue = new_value;
 		return true;
 	}
