@@ -99,7 +99,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 				int32_t device_id = -1;
 
-				if (magnometerCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
+				if (magnetometerCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
 
 					if ((prime_id > 0) && (device_id == prime_id)) {
 						prime_found = true;
