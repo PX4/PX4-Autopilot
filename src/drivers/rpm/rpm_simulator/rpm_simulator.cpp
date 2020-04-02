@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 ThunderFly s.r.o. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,26 +37,18 @@
  * Simple app for publishing RPM messages with custom value.
  *
  * Usage: rpm_simulator <rpm_value>
- * rpm_simulator 344.2
+ *  rpm_simulator 344.2
  *
- * @author thunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
+ * @author ThunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
  */
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <poll.h>
-#include <string.h>
-#include <math.h>
-
 #include <drivers/drv_hrt.h>
-#include <uORB/uORB.h>
+
+#include <uORB/Publication.hpp>
 #include <uORB/topics/rpm.h>
 
-__EXPORT int rpm_simulator_main(int argc, char *argv[]);
-
+extern "C" __EXPORT int rpm_simulator_main(int argc, char *argv[]);
 int rpm_simulator_main(int argc, char *argv[])
 {
 
@@ -67,26 +60,20 @@ int rpm_simulator_main(int argc, char *argv[])
 	}
 
 	rpm_s rpm{};
-
 	memset(&rpm, 0, sizeof(rpm));
 
 	uORB::Publication<rpm_s> rpm_pub{ORB_ID(rpm)};
-
 	uint64_t timestamp_us = hrt_absolute_time();
-
 	float frequency = atof(argv[1]);
 
 	// prpepare RPM data message
 	rpm.timestamp = timestamp_us;
-
 	rpm.indicated_frequency_rpm = frequency;
-
 	rpm.estimated_accurancy_rpm = frequency / 100.0f;
 
-	// publish data
+	// Publish data and let the user know what was published
 	rpm_pub.publish(rpm);
-
-	PX4_INFO("RPM message with RPM=%.3f was published", (double)frequency);
+	print_message(rpm);
 
 	return 0;
 }

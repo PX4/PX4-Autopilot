@@ -34,6 +34,6 @@ px4_add_module(
 	MODULE examples__rpm_simulator
 	MAIN rpm_simulator
 	SRCS
-		rpm_simulator.c
+		rpm_simulator.cpp
 	DEPENDS
 	)
