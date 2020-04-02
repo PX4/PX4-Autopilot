@@ -43,8 +43,8 @@
 
 using namespace time_literals;
 
-bool PreFlightCheck::magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				     const bool optional, int32_t &device_id, const bool report_fail)
+bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+				       const bool optional, int32_t &device_id, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
 	bool calibration_valid = false;
