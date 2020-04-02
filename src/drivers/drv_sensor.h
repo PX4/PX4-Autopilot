@@ -162,27 +162,4 @@
 
 #define DRV_DEVTYPE_UNUSED		0xff
 
-/*
- * ioctl() definitions
- *
- * Note that a driver may not implement all of these operations, but
- * if the operation is implemented it should conform to this API.
- */
-
-#define _SENSORIOCBASE		(0x2000)
-#define _SENSORIOC(_n)		(_PX4_IOC(_SENSORIOCBASE, _n))
-
-/**
- * Set the driver polling rate to (arg) Hz, or one of the SENSOR_POLLRATE
- * constants
- */
-#define SENSORIOCSPOLLRATE	_SENSORIOC(0)
-
-#define SENSOR_POLLRATE_DEFAULT		1000003	/**< poll at driver normal rate */
-
-/**
- * Reset the sensor to its default configuration
- */
-#define SENSORIOCRESET		_SENSORIOC(4)
-
 #endif /* _DRV_SENSOR_H */
