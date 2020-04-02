@@ -298,6 +298,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	failed = failed || !manualControlCheck(mavlink_log_pub, reportFailures);
+	failed = failed || !cpuResourceCheck(mavlink_log_pub, reportFailures);
 
 	/* Report status */
 	return !failed;
