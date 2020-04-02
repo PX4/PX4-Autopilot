@@ -186,6 +186,7 @@ then
 
 	param set TRIG_INTERFACE 3
 
+	param set COM_CPU_MAX -1
 fi
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.

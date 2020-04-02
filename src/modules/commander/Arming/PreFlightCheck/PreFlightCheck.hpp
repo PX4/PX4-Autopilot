@@ -115,4 +115,5 @@ private:
 	static bool check_calibration(const char *param_template, const int32_t device_id);
 	static bool manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
 	static bool airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status);
+	static bool cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
 };
