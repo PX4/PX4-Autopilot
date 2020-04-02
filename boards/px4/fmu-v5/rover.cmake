@@ -65,7 +65,6 @@ px4_add_board(
 		vmount
 	SYSTEMCMDS
 		bl_update
-		config
 		dmesg
 		dumpfile
 		esc_calib
