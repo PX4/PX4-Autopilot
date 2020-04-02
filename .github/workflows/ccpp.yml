@@ -17,7 +17,7 @@ jobs:
           bionic,
           focal
           ]
-    container: px4io/px4-dev-base-${{ matrix.ubuntu_release }}:2020-03-29
+    container: px4io/px4-dev-base-${{ matrix.ubuntu_release }}:2020-04-01
     steps:
     - uses: actions/checkout@v1
       with:

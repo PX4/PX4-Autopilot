@@ -303,7 +303,7 @@ private:
 	/**
 	 * Trampoline to the worker task
 	 */
-	static void		task_main_trampoline(int argc, char *argv[]);
+	static int		task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * worker task
@@ -882,7 +882,7 @@ PX4IO::init()
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 				   1500,
-				   (main_t)&PX4IO::task_main_trampoline,
+				   (px4_main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
 
 	if (_task < 0) {
@@ -893,10 +893,11 @@ PX4IO::init()
 	return OK;
 }
 
-void
+int
 PX4IO::task_main_trampoline(int argc, char *argv[])
 {
 	g_dev->task_main();
+	return 0;
 }
 
 void

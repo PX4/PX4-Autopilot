@@ -3796,13 +3796,12 @@ void Commander::battery_status_check()
 	battery_status_s batteries[ORB_MULTI_MAX_INSTANCES];
 	size_t num_connected_batteries = 0;
 
-
 	for (size_t i = 0; i < sizeof(_battery_subs) / sizeof(_battery_subs[0]); i++) {
-		if (_battery_subs[i].updated() && _battery_subs[i].copy(&batteries[num_connected_batteries])) {
-			// We need to update the status flag if ANY battery is updated, because the system source might have
-			// changed, or might be nothing (if there is no battery connected)
-			battery_sub_updated = true;
+		// We need to update the status flag if ANY battery is updated, because the system source might have
+		// changed, or might be nothing (if there is no battery connected)
+		battery_sub_updated |= _battery_subs[i].updated();
 
+		if (_battery_subs[i].copy(&batteries[num_connected_batteries])) {
 			if (batteries[num_connected_batteries].connected) {
 				num_connected_batteries++;
 			}

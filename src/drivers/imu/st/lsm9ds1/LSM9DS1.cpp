@@ -40,15 +40,11 @@ static constexpr int16_t combine(uint8_t lsb, uint8_t msb) { return (msb << 8u) 
 
 LSM9DS1::LSM9DS1(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
 		 spi_mode_e spi_mode) :
-	SPI(MODULE_NAME, nullptr, bus, device, spi_mode, bus_frequency),
+	SPI(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation)
 {
-	set_device_type(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG);
-	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG);
-	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG);
-
 	_px4_accel.set_update_rate(1000000 / _fifo_interval);
 	_px4_gyro.set_update_rate(1000000 / _fifo_interval);
 }

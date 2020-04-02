@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__px4fmu
-	MAIN fmu
-	COMPILE_FLAGS
+	MODULE drivers__distance_sensor__vl53l0x
+	MAIN vl53l0x
 	SRCS
-		fmu.cpp
+		VL53L0X.cpp
+		VL53L0X.hpp
 	DEPENDS
-		arch_io_pins
-		mixer
-		mixer_module
-		output_limit
+		drivers_rangefinder
+		px4_work_queue
 	)

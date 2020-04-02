@@ -441,7 +441,6 @@ void Sensors::Run()
 			sub.unregisterCallback();
 		}
 
-		_voted_sensors_update.deinit();
 		exit_and_cleanup();
 		return;
 	}

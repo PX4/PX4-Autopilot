@@ -51,7 +51,7 @@ const uint8_t BMI160::_checked_registers[BMI160_NUM_CHECKED_REGISTERS] = {    BM
 
 BMI160::BMI160(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotation rotation, int bus_frequency,
 	       spi_mode_e spi_mode) :
-	SPI("BMI160", nullptr, bus, device, spi_mode, bus_frequency),
+	SPI(DRV_IMU_DEVTYPE_BMI160, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
@@ -64,8 +64,6 @@ BMI160::BMI160(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotatio
 	_reset_retries(perf_alloc(PC_COUNT, "bmi160_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "bmi160_duplicates"))
 {
-	_px4_accel.set_device_type(DRV_IMU_DEVTYPE_BMI160);
-	_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_BMI160);
 }
 
 BMI160::~BMI160()

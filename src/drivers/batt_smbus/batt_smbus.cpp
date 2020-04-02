@@ -89,6 +89,9 @@ void BATT_SMBUS::RunImpl()
 	// Read data from sensor.
 	battery_status_s new_report = {};
 
+	// TODO(hyonlim): this driver should support multiple SMBUS going forward.
+	new_report.id = 1;
+
 	// Set time of reading.
 	new_report.timestamp = now;
 
@@ -108,13 +111,13 @@ void BATT_SMBUS::RunImpl()
 	// Read current.
 	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
-	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
+	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 	new_report.current_filtered_a = new_report.current_a;
 
 	// Read average current.
 	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
 
-	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
+	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 
 	new_report.average_current_a = average_current;
 
@@ -122,23 +125,34 @@ void BATT_SMBUS::RunImpl()
 	// a battery from cutting off while flying with high current near the end of the packs capacity.
 	set_undervoltage_protection(average_current);
 
-	// Read run time to empty.
+	// Read run time to empty (minutes).
 	ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result);
 	new_report.run_time_to_empty = result;
 
-	// Read average time to empty.
+	// Read average time to empty (minutes).
 	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, result);
 	new_report.average_time_to_empty = result;
 
 	// Read remaining capacity.
 	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
 
-	// Calculate remaining capacity percent with complementary filter.
-	new_report.remaining = 0.8f * _last_report.remaining + 0.2f * (1.0f - (float)((float)(_batt_capacity - result) /
-			       (float)_batt_capacity));
+	// Calculate total discharged amount in mah.
+	new_report.discharged_mah = _batt_capacity - (float)result * _c_mult;
 
-	// Calculate total discharged amount.
-	new_report.discharged_mah = _batt_startup_capacity - result;
+	// Read Relative SOC.
+	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
+
+	// Normalize 0.0 to 1.0
+	new_report.remaining = (float)result / 100.0f;
+
+	// Read SOH
+	// TODO(hyonlim): this value can be used for battery_status.warning mavlink message.
+	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, result);
+	new_report.state_of_health = result;
+
+	// Read Max Error
+	ret |= _interface->read_word(BATT_SMBUS_MAX_ERROR, result);
+	new_report.max_error = result;
 
 	// Check if max lifetime voltage delta is greater than allowed.
 	if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
@@ -304,8 +318,15 @@ int BATT_SMBUS::dataflash_write(uint16_t address, void *data, const unsigned len
 int BATT_SMBUS::get_startup_info()
 {
 	int result = 0;
+
 	// The name field is 21 characters, add one for null terminator.
 	const unsigned name_length = 22;
+
+	// Read battery threshold params on startup.
+	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
+	param_get(param_find("BAT_LOW_THR"), &_low_thr);
+	param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
+	param_get(param_find("BAT_C_MULT"), &_c_mult);
 
 	// Try and get battery SBS info.
 	if (_manufacturer_name == nullptr) {
@@ -334,9 +355,9 @@ int BATT_SMBUS::get_startup_info()
 
 	if (!result) {
 		_serial_number = serial_num;
-		_batt_startup_capacity = remaining_cap;
+		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
 		_cycle_count = cycle_count;
-		_batt_capacity = full_cap;
+		_batt_capacity = (uint16_t)((float)full_cap * _c_mult);
 	}
 
 	if (lifetime_data_flush() == PX4_OK) {
@@ -353,11 +374,6 @@ int BATT_SMBUS::get_startup_info()
 	} else {
 		PX4_WARN("Failed to flush lifetime data");
 	}
-
-	// Read battery threshold params on startup.
-	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
-	param_get(param_find("BAT_LOW_THR"), &_low_thr);
-	param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
 
 	return result;
 }

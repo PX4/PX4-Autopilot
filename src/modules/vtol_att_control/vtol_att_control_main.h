@@ -203,6 +203,9 @@ private:
 		param_t diff_thrust_scale;
 		param_t down_pitch_max;
 		param_t forward_thrust_scale;
+		param_t dec_to_pitch_ff;
+		param_t dec_to_pitch_i;
+		param_t back_trans_dec_sp;
 	} _params_handles{};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines

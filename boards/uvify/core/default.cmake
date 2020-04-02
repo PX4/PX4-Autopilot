@@ -33,7 +33,7 @@ px4_add_board(
 		pca9685
 		pwm_input
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		rc_input
 		tone_alarm
 		uavcan

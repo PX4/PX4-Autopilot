@@ -55,7 +55,7 @@ static constexpr uint8_t _checked_registers[] = {
 
 LSM303D::LSM303D(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
 		 spi_mode_e spi_mode) :
-	SPI("LSM303D", nullptr, bus, device, spi_mode, bus_frequency),
+	SPI(DRV_IMU_DEVTYPE_LSM303D, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_px4_mag(get_device_id(), ORB_PRIO_LOW, rotation),
@@ -65,8 +65,6 @@ LSM303D::LSM303D(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rota
 	_bad_values(perf_alloc(PC_COUNT, "lsm303d: bad_val")),
 	_accel_duplicates(perf_alloc(PC_COUNT, "lsm303d: acc_dupe"))
 {
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_LSM303D);
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_LSM303D);
 	_px4_mag.set_external(external());
 }
 

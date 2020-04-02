@@ -86,9 +86,8 @@ MPU9250_SPI_interface(int bus, uint32_t cs, int bus_frequency, spi_mode_e spi_mo
 }
 
 MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI("MPU9250", nullptr, bus, device, spi_mode, bus_frequency)
+	SPI(DRV_IMU_DEVTYPE_MPU9250, MODULE_NAME, bus, device, spi_mode, bus_frequency)
 {
-	set_device_type(DRV_IMU_DEVTYPE_MPU9250);
 }
 
 void

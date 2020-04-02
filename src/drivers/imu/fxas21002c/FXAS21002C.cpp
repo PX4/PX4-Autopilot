@@ -188,7 +188,7 @@ using namespace time_literals;
 
 FXAS21002C::FXAS21002C(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
 		       spi_mode_e spi_mode) :
-	SPI("FXAS21002C", nullptr, bus, device, spi_mode, bus_frequency),
+	SPI(DRV_GYR_DEVTYPE_FXAS2100C, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
@@ -196,7 +196,6 @@ FXAS21002C::FXAS21002C(I2CSPIBusOption bus_option, int bus, uint32_t device, enu
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicate reading"))
 {
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_FXAS2100C);
 }
 
 FXAS21002C::~FXAS21002C()

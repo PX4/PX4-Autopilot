@@ -95,11 +95,6 @@ public:
 	 */
 	void initializeSensors();
 
-	/**
-	 * deinitialize the object (we cannot use the destructor because it is called on the wrong thread)
-	 */
-	void deinit();
-
 	void printStatus();
 
 	/**
@@ -159,31 +154,21 @@ public:
 private:
 
 	struct SensorData {
-		SensorData()
-			: last_best_vote(0),
-			  subscription_count(0),
-			  voter(1),
-			  last_failover_count(0)
-		{
-			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
-				enabled[i] = true;
-				subscription[i] = -1;
-				priority[i] = 0;
-			}
-		}
+		SensorData() = delete;
+		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}, {meta, 3}} {}
 
-		bool enabled[SENSOR_COUNT_MAX];
-
-		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
-		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */
-		uint8_t last_best_vote; /**< index of the latest best vote */
-		int subscription_count;
-		DataValidatorGroup voter;
-		unsigned int last_failover_count;
+		uORB::Subscription subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
+		DataValidatorGroup voter{1};
+		unsigned int last_failover_count{0};
+		uint8_t priority[SENSOR_COUNT_MAX] {}; /**< sensor priority */
+		uint8_t last_best_vote{0}; /**< index of the latest best vote */
+		uint8_t subscription_count{0};
+		bool enabled[SENSOR_COUNT_MAX] {true, true, true, true};
+		bool advertised[SENSOR_COUNT_MAX] {false, false, false, false};
 		matrix::Vector3f power_compensation[SENSOR_COUNT_MAX];
 	};
 
-	void initSensorClass(const orb_metadata *meta, SensorData &sensor_data, uint8_t sensor_count_max);
+	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);
 
 	/**
 	 * Poll the accelerometer for updated data.
@@ -215,9 +200,9 @@ private:
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
-	SensorData _accel {};
-	SensorData _gyro {};
-	SensorData _mag {};
+	SensorData _accel{ORB_ID::sensor_accel_integrated};
+	SensorData _gyro{ORB_ID::sensor_gyro_integrated};
+	SensorData _mag{ORB_ID::sensor_mag};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 

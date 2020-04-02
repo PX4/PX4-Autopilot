@@ -101,14 +101,6 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
     if(mp_participant == nullptr)
             return false;
 
-@[if ros2_distro and (ros2_distro == "dashing" or ros2_distro == "eloquent")]@
-    // Type name should match the expected type name on ROS2
-    // Note: the change is being done here since the 'fastrtpsgen' example
-    // generator does not allow to change the type naming on the template of
-    // "*PubSubTypes.cpp" file
-    @(topic)DataType.setName("@(package)::msg::dds_::@(topic)_");
-@[end if]@
-
     //Register the type
     Domain::registerType(mp_participant, static_cast<TopicDataType*>(&@(topic)DataType));
 
