@@ -201,8 +201,17 @@ stm32_boardinitialize(void)
 	/* configure USB interfaces */
 
 	stm32_usbinitialize();
-
 }
+
+#if defined(SERIAL_HAVE_RXDMA)
+/* Poll at 1ms intervals for received bytes that have not triggered a DMA event. */
+static struct work_s serial_dma_callback_work;
+static void serial_dma_callback(void)
+{
+	stm32_serial_dma_poll();
+	work_queue(HPWORK, &serial_dma_callback_work, (worker_t)&serial_dma_callback, NULL, USEC2TICK(10000));
+}
+#endif
 
 /****************************************************************************
  * Name: board_app_initialize
@@ -255,23 +264,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
-	/* set up the serial DMA polling */
-	static struct hrt_call serial_dma_call;
-	struct timespec ts;
-
-	/*
-	 * Poll at 1ms intervals for received bytes that have not triggered
-	 * a DMA event.
-	 */
-	ts.tv_sec = 0;
-	ts.tv_nsec = 1000000;
-
-	hrt_call_every(&serial_dma_call,
-		       ts_to_abstime(&ts),
-		       ts_to_abstime(&ts),
-		       (hrt_callout)stm32_serial_dma_poll,
-		       NULL);
-
+#if defined(SERIAL_HAVE_RXDMA)
+	work_queue(HPWORK, &serial_dma_callback_work, (worker_t)&serial_dma_callback, NULL, USEC2TICK(10000));
+#endif
 
 	/* initial LED state */
 	drv_led_start();

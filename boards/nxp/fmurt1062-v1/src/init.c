@@ -218,6 +218,15 @@ __EXPORT void imxrt_boardinitialize(void)
 	fmurt1062_timer_initialize();
 }
 
+#if defined(SERIAL_HAVE_DMA)
+/* Poll at 1ms intervals for received bytes that have not triggered a DMA event. */
+static struct work_s serial_dma_callback_work;
+static void serial_dma_callback(void)
+{
+	imxrt_serial_dma_poll();
+	work_queue(HPWORK, &serial_dma_callback_work, (worker_t)&serial_dma_callback, NULL, USEC2TICK(10000));
+}
+#endif
 
 /****************************************************************************
  * Name: board_app_initialize
@@ -275,23 +284,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
-	/* set up the serial DMA polling */
-#ifdef SERIAL_HAVE_DMA
-	static struct hrt_call serial_dma_call;
-	struct timespec ts;
-
-	/*
-	 * Poll at 1ms intervals for received bytes that have not triggered
-	 * a DMA event.
-	 */
-	ts.tv_sec = 0;
-	ts.tv_nsec = 1000000;
-
-	hrt_call_every(&serial_dma_call,
-		       ts_to_abstime(&ts),
-		       ts_to_abstime(&ts),
-		       (hrt_callout)imxrt_serial_dma_poll,
-		       NULL);
+#if defined(SERIAL_HAVE_DMA)
+	work_queue(HPWORK, &serial_dma_callback_work, (worker_t)&serial_dma_callback, NULL, USEC2TICK(10000));
 #endif
 
 	/* initial LED state */
