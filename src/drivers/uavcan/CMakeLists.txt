@@ -71,7 +71,11 @@ add_definitions(
 	-DUAVCAN_PLATFORM=${UAVCAN_PLATFORM}
 )
 
-add_compile_options(-Wno-cast-align) # TODO: fix and enable
+add_compile_options(
+	-Wno-cast-align # TODO: fix and enable
+	-Wno-deprecated-copy # TODO: fix
+	-Wno-address-of-packed-member
+)
 add_subdirectory(${LIBUAVCAN_DIR} libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
