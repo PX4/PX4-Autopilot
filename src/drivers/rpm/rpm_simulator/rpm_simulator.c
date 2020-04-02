@@ -70,7 +70,7 @@ int rpm_simulator_main(int argc, char *argv[])
 
 	memset(&rpm, 0, sizeof(rpm));
 
-	orb_advert_t rpm_pub = orb_advertise(ORB_ID(rpm), &rpm);
+	uORB::Publication<rpm_s> rpm_pub{ORB_ID(rpm)};
 
 	uint64_t timestamp_us = hrt_absolute_time();
 
