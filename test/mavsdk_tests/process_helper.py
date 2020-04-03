@@ -72,6 +72,8 @@ class Runner:
             line = self.process.stdout.readline()
             if line == "\n":
                 continue
+            if not line:
+                continue
             self.output_queue.put(line)
             self.log_fd.write(line)
             self.log_fd.flush()
@@ -89,11 +91,12 @@ class Runner:
             print("stopped.")
             return errno.ETIMEDOUT
 
-    def get_output(self) -> Optional[str]:
-        try:
-            return self.output_queue.get(block=True, timeout=0.1)
-        except queue.Empty:
-            return None
+    def get_output_line(self) -> Optional[str]:
+        while True:
+            try:
+                return self.output_queue.get(block=True, timeout=0.1)
+            except queue.Empty:
+                return None
 
     def stop(self) -> int:
         atexit.unregister(self.stop)
