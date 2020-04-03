@@ -343,8 +343,8 @@ void UavcanNode::Run()
 
 			if (battery.current_a > 0.0f) {
 				battery_info.status_flags = uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING;
-			}
-			else {
+
+			} else {
 				battery_info.status_flags = uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
 			}
 
