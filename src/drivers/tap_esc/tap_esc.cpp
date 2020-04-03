@@ -573,6 +573,8 @@ void TAP_ESC::cycle()
 					_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 					_esc_feedback.counter++;
 					_esc_feedback.esc_count = num_outputs;
+					_esc_feedback.esc_online_flags = (1 << num_outputs) - 1;
+					_esc_feedback.esc_armed_flags = (1 << num_outputs) - 1;
 
 					_esc_feedback.timestamp = hrt_absolute_time();
 

@@ -1578,8 +1578,9 @@ FixedwingPositionControl::Run()
 
 				// only publish status in full FW mode
 				if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-				    && !_vehicle_status.in_transition_mode) {
+				    || _vehicle_status.in_transition_mode) {
 					status_publish();
+
 				}
 			}
 		}

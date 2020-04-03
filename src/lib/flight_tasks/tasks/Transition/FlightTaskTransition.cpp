@@ -60,10 +60,13 @@ void FlightTaskTransition::checkSetpoints(vehicle_local_position_setpoint_s &set
 
 bool FlightTaskTransition::update()
 {
-	// level wings during the transition, altitude should be controlled
-	_position_setpoint(2) = _transition_altitude;
 	_acceleration_setpoint.xy() = matrix::Vector2f(0.f, 0.f);
+	// demand zero vertical velocity and level attitude
+	// tailsitters will override attitude and thrust setpoint
+	// tiltrotors and standard vtol will overrride roll and pitch setpoint but keep vertical thrust setpoint
+	_position_setpoint.setAll(NAN);
+	_velocity_setpoint(2) = 0.0f;
 
-	_yaw_setpoint = _transition_yaw;
+	_yaw_setpoint = NAN;
 	return true;
 }
