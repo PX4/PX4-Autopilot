@@ -57,11 +57,11 @@ bool Ekf::initHagl()
 		initialized = true;
 
 	} else if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
-		   && _rng_hgt_valid
-		   && isRecent(latest_measurement.time_us, (uint64_t)2e5)
-		   && _R_rng_to_earth_2_2 > _params.range_cos_max_tilt) {
+		   && _range_sensor.isHealthy()
+		   && isRecent(latest_measurement.time_us, (uint64_t)2e5)) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
-		_terrain_vpos = _state.pos(2) + latest_measurement.rng * _R_rng_to_earth_2_2;
+		// TODO: the latest measurment did not go through the checks and could be invalid!
+		_terrain_vpos = _state.pos(2) + latest_measurement.rng * _range_sensor.getCosTilt();
 		// initialise state variance to variance of measurement
 		_terrain_var = sq(_params.range_noise);
 		// success
@@ -113,13 +113,8 @@ void Ekf::runTerrainEstimator()
 		_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);
 
 		// Fuse range finder data if available
-		if (_range_data_ready && _rng_hgt_valid) {
+		if (_range_sensor.isDataHealthy()) {
 			fuseHagl();
-
-			// update range sensor angle parameters in case they have changed
-			// we do this here to avoid doing those calculations at a high rate
-			_sin_tilt_rng = sinf(_params.rng_sens_pitch);
-			_cos_tilt_rng = cosf(_params.rng_sens_pitch);
 		}
 
 		if (_flow_for_terrain_data_ready) {
@@ -138,53 +133,47 @@ void Ekf::runTerrainEstimator()
 
 void Ekf::fuseHagl()
 {
-	// If the vehicle is excessively tilted, do not try to fuse range finder observations
-	if (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt) {
-		// get a height above ground measurement from the range finder assuming a flat earth
-		const float meas_hagl = _range_sample_delayed.rng * _R_rng_to_earth_2_2;
+	// get a height above ground measurement from the range finder assuming a flat earth
+	const float meas_hagl = _range_sensor.getRange() * _range_sensor.getCosTilt();
 
-		// predict the hagl from the vehicle position and terrain height
-		const float pred_hagl = _terrain_vpos - _state.pos(2);
+	// predict the hagl from the vehicle position and terrain height
+	const float pred_hagl = _terrain_vpos - _state.pos(2);
 
-		// calculate the innovation
-		_hagl_innov = pred_hagl - meas_hagl;
+	// calculate the innovation
+	_hagl_innov = pred_hagl - meas_hagl;
 
-		// calculate the observation variance adding the variance of the vehicles own height uncertainty
-		const float obs_variance = fmaxf(P(9,9) * _params.vehicle_variance_scaler, 0.0f)
-				     + sq(_params.range_noise)
-				     + sq(_params.range_noise_scaler * _range_sample_delayed.rng);
+	// calculate the observation variance adding the variance of the vehicles own height uncertainty
+	const float obs_variance = fmaxf(P(9,9) * _params.vehicle_variance_scaler, 0.0f)
+			     + sq(_params.range_noise)
+			     + sq(_params.range_noise_scaler * _range_sensor.getRange());
 
-		// calculate the innovation variance - limiting it to prevent a badly conditioned fusion
-		_hagl_innov_var = fmaxf(_terrain_var + obs_variance, obs_variance);
+	// calculate the innovation variance - limiting it to prevent a badly conditioned fusion
+	_hagl_innov_var = fmaxf(_terrain_var + obs_variance, obs_variance);
 
-		// perform an innovation consistency check and only fuse data if it passes
-		const float gate_size = fmaxf(_params.range_innov_gate, 1.0f);
-		_hagl_test_ratio = sq(_hagl_innov) / (sq(gate_size) * _hagl_innov_var);
+	// perform an innovation consistency check and only fuse data if it passes
+	const float gate_size = fmaxf(_params.range_innov_gate, 1.0f);
+	_hagl_test_ratio = sq(_hagl_innov) / (sq(gate_size) * _hagl_innov_var);
 
-		if (_hagl_test_ratio <= 1.0f) {
-			// calculate the Kalman gain
-			float gain = _terrain_var / _hagl_innov_var;
-			// correct the state
-			_terrain_vpos -= gain * _hagl_innov;
-			// correct the variance
-			_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
-			// record last successful fusion event
-			_time_last_hagl_fuse = _time_last_imu;
-			_innov_check_fail_status.flags.reject_hagl = false;
-
-		} else {
-			// If we have been rejecting range data for too long, reset to measurement
-			if (isTimedOut(_time_last_hagl_fuse, (uint64_t)10E6)) {
-				_terrain_vpos = _state.pos(2) + meas_hagl;
-				_terrain_var = obs_variance;
-
-			} else {
-				_innov_check_fail_status.flags.reject_hagl = true;
-			}
-		}
+	if (_hagl_test_ratio <= 1.0f) {
+		// calculate the Kalman gain
+		float gain = _terrain_var / _hagl_innov_var;
+		// correct the state
+		_terrain_vpos -= gain * _hagl_innov;
+		// correct the variance
+		_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
+		// record last successful fusion event
+		_time_last_hagl_fuse = _time_last_imu;
+		_innov_check_fail_status.flags.reject_hagl = false;
 
 	} else {
-		_innov_check_fail_status.flags.reject_hagl = true;
+		// If we have been rejecting range data for too long, reset to measurement
+		if (isTimedOut(_time_last_hagl_fuse, (uint64_t)10E6)) {
+			_terrain_vpos = _state.pos(2) + meas_hagl;
+			_terrain_var = obs_variance;
+
+		} else {
+			_innov_check_fail_status.flags.reject_hagl = true;
+		}
 	}
 }
 

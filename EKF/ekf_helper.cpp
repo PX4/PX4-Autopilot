@@ -50,7 +50,7 @@
 bool Ekf::resetVelocity()
 {
 	// used to calculate the velocity change due to the reset
-	Vector3f vel_before_reset = _state.vel;
+	const Vector3f vel_before_reset = _state.vel;
 
 	// reset EKF states
 	if (_control_status.flags.gps && isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us)) {
@@ -64,10 +64,10 @@ bool Ekf::resetVelocity()
 	} else if (_control_status.flags.opt_flow) {
 		ECL_INFO_TIMESTAMPED("reset velocity to flow");
 		// constrain height above ground to be above minimum possible
-		float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
+		const float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
 
 		// calculate absolute distance from focal point to centre of frame assuming a flat earth
-		float range = heightAboveGndEst / _R_rng_to_earth_2_2;
+		const float range = heightAboveGndEst / _range_sensor.getCosTilt();
 
 		if ((range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
 			// we should have reliable OF measurements so
@@ -227,7 +227,7 @@ void Ekf::resetHeight()
 
 	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
-		float new_pos_down = _hgt_sensor_offset - _range_sample_delayed.rng * _R_rng_to_earth_2_2;
+		const float new_pos_down = _hgt_sensor_offset - _range_sensor.getRange() * _range_sensor.getCosTilt();
 
 		// update the state and associated variance
 		_state.pos(2) = new_pos_down;
@@ -1052,9 +1052,9 @@ hagl_max : Maximum height above ground (meters). NaN when limiting is not needed
 void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max)
 {
 	// Calculate range finder limits
-	const float rangefinder_hagl_min = _rng_valid_min_val;
+	const float rangefinder_hagl_min = _range_sensor.getValidMinVal();
 	// Allow use of 75% of rangefinder maximum range to allow for angular motion
-	const float rangefinder_hagl_max = 0.75f * _rng_valid_max_val;
+	const float rangefinder_hagl_max = 0.75f * _range_sensor.getValidMaxVal();
 
 	// Calculate optical flow limits
 	// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion

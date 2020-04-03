@@ -312,7 +312,6 @@ private:
 	} _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
 
 	float _dt_ekf_avg{FILTER_UPDATE_PERIOD_S}; ///< average update rate of the ekf
-	float _dt_update{0.01f}; ///< delta time since last ekf update. This time can be used for filters which run at the same rate as the Ekf::update() function. (sec)
 
 	Vector3f _ang_rate_delayed_raw;	///< uncorrected angular rate vector at fusion time horizon (rad/sec)
 
@@ -331,7 +330,6 @@ private:
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 	bool _mag_data_ready{false};	///< true when new magnetometer data has fallen behind the fusion time horizon and is available to be fused
 	bool _baro_data_ready{false};	///< true when new baro height data has fallen behind the fusion time horizon and is available to be fused
-	bool _range_data_ready{false};	///< true when new range finder data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
 	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
@@ -348,7 +346,6 @@ private:
 	uint64_t _time_last_of_fuse{0};		///< time the last fusion of optical flow measurements were performed (uSec)
 	uint64_t _time_last_arsp_fuse{0};	///< time the last fusion of airspeed measurements were performed (uSec)
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
-	uint64_t _time_last_rng_ready{0};	///< time the last range finder measurement was ready (uSec)
 	uint64_t _time_last_mag{0};		///< measurement time of last magnetomter sample (uSec)
 	uint64_t _time_last_fake_pos{0};	///< last time we faked position measurements to constrain tilt errors during operation without external aiding (uSec)
 
@@ -491,17 +488,11 @@ private:
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
 	uint64_t _time_last_hagl_fuse{0};		///< last system time that the hagl measurement failed it's checks (uSec)
 	bool _terrain_initialised{false};	///< true when the terrain estimator has been initialized
-	float _sin_tilt_rng{0.0f};		///< sine of the range finder tilt rotation about the Y body axis
-	float _cos_tilt_rng{0.0f};		///< cosine of the range finder tilt rotation about the Y body axis
-	float _R_rng_to_earth_2_2{0.0f};	///< 2,2 element of the rotation matrix from sensor frame to earth frame
-	float _dt_last_range_update_filt_us{0.0f};	///< filtered value of the delta time elapsed since the last range measurement came into the filter (uSec)
 	bool _hagl_valid{false};		///< true when the height above ground estimate is valid
 
 	// height sensor status
 	bool _baro_hgt_faulty{false};		///< true if valid baro data is unavailable for use
 	bool _gps_hgt_intermittent{false};	///< true if gps height into the buffer is intermittent
-	bool _rng_hgt_valid{false};		///< true if range finder sample retrieved from buffer is valid
-	uint64_t _time_bad_rng_signal_quality{0};	///< timestamp at which range finder signal quality was 0 (used for hysteresis)
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -510,11 +501,6 @@ private:
 
 	// variables used to control range aid functionality
 	bool _is_range_aid_suitable{false};	///< true when range finder can be used in flight as the height reference instead of the primary height sensor
-	bool _range_aid_mode_selected{false};	///< true when range finder is being used as the height reference instead of the primary height sensor
-
-	// variables used to check range finder validity data
-	float _rng_stuck_min_val{0.0f};		///< minimum value for new rng measurement when being stuck
-	float _rng_stuck_max_val{0.0f};		///< maximum value for new rng measurement when being stuck
 
 	float _height_rate_lpf{0.0f};
 
@@ -745,12 +731,6 @@ private:
 	void checkRangeAidSuitability();
 	bool isRangeAidSuitable() { return _is_range_aid_suitable; }
 
-	// update _rng_hgt_valid, which indicates if the current range sample has passed validity checks
-	void updateRangeDataValidity();
-
-	// check for "stuck" range finder measurements when rng was not valid for certain period
-	void updateRangeDataStuck();
-
 	// return the square of two floating point numbers - used in auto coded sections
 	static constexpr float sq(float var) { return var * var; }
 
@@ -797,8 +777,6 @@ private:
 
 	// check that the range finder data is continuous
 	void updateRangeDataContinuity();
-
-	bool isRangeDataContinuous() { return _dt_last_range_update_filt_us < 2e6f; }
 
 	// Increase the yaw error variance of the quaternions
 	// Argument is additional yaw variance in rad**2

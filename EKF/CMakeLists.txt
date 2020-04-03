@@ -47,9 +47,9 @@ add_library(ecl_EKF
 	terrain_estimator.cpp
 	vel_pos_fusion.cpp
 	gps_yaw_fusion.cpp
-	range_finder_checks.cpp
 	imu_down_sampler.cpp
 	EKFGSF_yaw.cpp
+	sensor_range_finder.cpp
 )
 
 add_dependencies(ecl_EKF prebuild_targets)

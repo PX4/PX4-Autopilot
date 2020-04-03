@@ -288,8 +288,6 @@ struct parameters {
 	int32_t range_aid{0};			///< allow switching primary height source to range finder if certain conditions are met
 	float range_aid_innov_gate{1.0f}; 	///< gate size used for innovation consistency checks for range aid fusion
 	float range_cos_max_tilt{0.7071f};	///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
-	float range_stuck_threshold{0.1f};	///< minimum variation in range finder reading required to declare a range finder 'unstuck' when readings recommence after being out of range (m)
-	int32_t range_signal_hysteresis_ms{1000}; 	///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (ms)
 
 	// vision position fusion
         float ev_vel_innov_gate{3.0f};		///< vision velocity fusion innovation consistency gate size (STD)

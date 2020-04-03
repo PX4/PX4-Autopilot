@@ -48,6 +48,7 @@ set(SRCS
 	test_EKF_externalVision.cpp
 	test_EKF_airspeed.cpp
 	test_EKF_withReplayData.cpp
+	test_SensorRangeFinder.cpp
    )
 add_executable(ECL_GTESTS ${SRCS})
 
