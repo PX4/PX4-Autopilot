@@ -63,8 +63,10 @@ class Runner:
         self.thread = threading.Thread(target=self.process_output)
         self.thread.start()
         if self.wait_until_complete:
-            if self.wait(5.0) != 0:
-                raise TimeoutError("Command not completed")
+            timeout_s = 10.0
+            if self.wait(timeout_s) != 0:
+                raise TimeoutError("Command '{}' not completed within {}"
+                                   .format(self.cmd, timeout_s))
 
     def process_output(self) -> None:
         assert self.process.stdout is not None
