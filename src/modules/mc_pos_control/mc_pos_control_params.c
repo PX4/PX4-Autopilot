@@ -674,7 +674,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 5.0f);
 
 /**
  * Altitude for 2. step of slow landing (landing)
@@ -689,7 +689,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 2.0f);
 
 /**
  * Position control smooth takeoff ramp time constant
