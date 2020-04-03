@@ -166,7 +166,8 @@ private:
 	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
 
 	// uORB publisher handlers
-	uORB::Publication<battery_status_s>		_battery_pub{ORB_ID(battery_status)};
+	uORB::Publication<battery_status_s>		_battery_pub1{ORB_ID(battery_status)};
+	uORB::Publication<battery_status_s>		_battery_pub2{ORB_ID(battery_status)};
 	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
@@ -187,10 +188,10 @@ private:
 	hrt_abstime _last_sitl_timestamp{0};
 	hrt_abstime _last_battery_timestamp{0};
 
-	class SimulatorBattery : public Battery
+	class SimulatorBattery1 : public Battery
 	{
 	public:
-		SimulatorBattery() : Battery(1, nullptr) {}
+		SimulatorBattery1() : Battery(1, nullptr) {}
 
 		virtual void updateParams() override
 		{
@@ -206,7 +207,28 @@ private:
 			_params.emergen_thr = 0.05f;
 			_params.source = 0;
 		}
-	} _battery;
+	} _battery1;
+
+	class SimulatorBattery2 : public Battery
+	{
+	public:
+		SimulatorBattery2() : Battery(2, nullptr) {}
+
+		virtual void updateParams() override
+		{
+			Battery::updateParams();
+			_params.v_empty = 3.5f;
+			_params.v_charged = 4.05f;
+			_params.n_cells = 4;
+			_params.capacity = 10.0f;
+			_params.v_load_drop = 0.0f;
+			_params.r_internal = 0.0f;
+			_params.low_thr = 0.15f;
+			_params.crit_thr = 0.07f;
+			_params.emergen_thr = 0.05f;
+			_params.source = 0;
+		}
+	} _battery2;
 
 	void run();
 	void handle_message(const mavlink_message_t *msg);

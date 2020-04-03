@@ -362,11 +362,20 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 		float ibatt = -1.0f; // no current sensor in simulation
 
 		battery_percentage = math::max(battery_percentage, _battery_min_percentage.get() / 100.f);
-		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
-		vbatt *= _battery.cell_count();
+		float vbatt1 = math::gradual(battery_percentage, 0.f, 1.f, _battery1.empty_cell_voltage(),
+					     _battery1.full_cell_voltage());
+		vbatt1 *= _battery1.cell_count();
 
 		const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, true);
+		_battery1.updateBatteryStatus(now_us, vbatt1, ibatt, true, true, 0, throttle, true);
+
+		float vbatt2 = math::gradual(battery_percentage, 0.f, 1.f, _battery2.empty_cell_voltage(),
+					     _battery2.full_cell_voltage());
+
+		vbatt2 *= _battery2.cell_count();
+
+		const float throttle2 = 0.0f; // simulate no throttle compensation to make the estimate predictable
+		_battery2.updateBatteryStatus(now_us, vbatt2, ibatt, true, true, 0, throttle2, true);
 
 		_last_battery_timestamp = now_us;
 	}
