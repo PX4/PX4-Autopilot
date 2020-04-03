@@ -57,7 +57,7 @@ bool Ekf::initHagl()
 	} else if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
 		   && _range_sensor.isDataHealthy()) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
-		_terrain_vpos = _state.pos(2) + _range_sensor.getRange() * _range_sensor.getCosTilt();
+		_terrain_vpos = _state.pos(2) + _range_sensor.getDistBottom();
 		// initialise state variance to variance of measurement
 		_terrain_var = sq(_params.range_noise);
 		// success
@@ -130,7 +130,7 @@ void Ekf::runTerrainEstimator()
 void Ekf::fuseHagl()
 {
 	// get a height above ground measurement from the range finder assuming a flat earth
-	const float meas_hagl = _range_sensor.getRange() * _range_sensor.getCosTilt();
+	const float meas_hagl = _range_sensor.getDistBottom();
 
 	// predict the hagl from the vehicle position and terrain height
 	const float pred_hagl = _terrain_vpos - _state.pos(2);

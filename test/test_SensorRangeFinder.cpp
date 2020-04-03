@@ -297,3 +297,20 @@ TEST_F(SensorRangeFinderTest, continuity)
 	EXPECT_TRUE(_range_finder.isDataHealthy());
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
+
+TEST_F(SensorRangeFinderTest, distBottom)
+{
+	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
+	rangeSample sample{};
+	sample.rng = 1.f;
+	sample.time_us = 1e6;
+	sample.quality = 9;
+
+	_range_finder.setSample(sample);
+	_range_finder.runChecks(sample.time_us, attitude);
+	EXPECT_FLOAT_EQ(_range_finder.getDistBottom(), sample.rng);
+
+	const Dcmf attitude20{Eulerf(-0.35f, 0.f, 0.f)};
+	_range_finder.runChecks(sample.time_us, attitude20);
+	EXPECT_FLOAT_EQ(_range_finder.getDistBottom(), sample.rng * cosf(-0.35));
+}

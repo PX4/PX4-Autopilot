@@ -227,7 +227,7 @@ void Ekf::resetHeight()
 
 	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
-		const float new_pos_down = _hgt_sensor_offset - _range_sensor.getRange() * _range_sensor.getCosTilt();
+		const float new_pos_down = _hgt_sensor_offset - _range_sensor.getDistBottom();
 
 		// update the state and associated variance
 		_state.pos(2) = new_pos_down;
