@@ -47,7 +47,7 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		_range_finder.setTiltOffset(0.f);
+		_range_finder.setPitchOffset(0.f);
 		_range_finder.setCosMaxTilt(0.707f);
 		_range_finder.setLimits(_min_range, _max_range);
 	}

@@ -55,7 +55,7 @@ void SensorRangeFinder::updateSensorToEarthRotation(const Dcmf &R_to_earth)
 {
 	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
 	// this is required for use of range finder and flow data
-	_cos_tilt_rng_to_earth = R_to_earth(2, 0) * _sin_tilt_rng + R_to_earth(2, 2) * _cos_tilt_rng;
+	_cos_tilt_rng_to_earth = R_to_earth(2, 0) * _sin_pitch_offset + R_to_earth(2, 2) * _cos_pitch_offset;
 }
 
 void SensorRangeFinder::updateValidity(uint64_t current_time_us)

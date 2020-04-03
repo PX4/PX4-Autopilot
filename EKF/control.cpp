@@ -125,7 +125,7 @@ void Ekf::controlFusionModes()
 	_range_sensor.runChecks(_imu_sample_delayed.time_us, _R_to_earth);
 
 	// update range sensor angle parameters in case they have changed
-	_range_sensor.setTiltOffset(_params.rng_sens_pitch);
+	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 	}
 
