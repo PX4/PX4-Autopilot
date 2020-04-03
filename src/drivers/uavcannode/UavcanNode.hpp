@@ -69,6 +69,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_mag.h>
@@ -175,6 +176,7 @@ private:
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
+	uORB::SubscriptionCallbackWorkItem _battery_status_sub{this, ORB_ID(battery_status)};
 	uORB::SubscriptionCallbackWorkItem _sensor_baro_sub{this, ORB_ID(sensor_baro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_mag_sub{this, ORB_ID(sensor_mag)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_gps_position_sub{this, ORB_ID(vehicle_gps_position)};

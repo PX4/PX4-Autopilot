@@ -131,8 +131,10 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		vim-common \
 		;
 
-	# add user to dialout group (serial port access)
-	sudo usermod -a -G dialout $USER
+	if [ ! -z "$USER" ]; then
+		# add user to dialout group (serial port access)
+		sudo usermod -a -G dialout $USER
+	fi
 
 	# Remove modem manager (interferes with PX4 serial port/USB serial usage).
 	sudo apt-get remove modemmanager -y
