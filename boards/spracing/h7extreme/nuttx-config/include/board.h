@@ -65,7 +65,7 @@
 
 #define STM32_BOARD_XTAL        8000000ul
 
-#define STM32_HSI_FREQUENCY     64000000ul
+#define STM32_HSI_FREQUENCY     16000000ul
 #define STM32_LSI_FREQUENCY     32000
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
 #define STM32_LSE_FREQUENCY     32768
@@ -368,16 +368,6 @@
 
 #define DMAMAP_UART8_RX         DMAMAP_DMA12_UART8RX_0 /* DMA1:81 */
 #define DMAMAP_UART8_TX         DMAMAP_DMA12_UART8TX_0 /* DMA1:82 */
-
-/* CAN
- *
- * CAN1 is routed to transceiver.
- * CAN2 is routed to transceiver.
- */
-#define GPIO_CAN1_RX     GPIO_CAN1_RX_5        /* PI9  */
-#define GPIO_CAN1_TX     GPIO_CAN1_TX_4        /* PH13 */
-#define GPIO_CAN2_RX     GPIO_CAN2_RX_1        /* PB12 */
-#define GPIO_CAN2_TX     GPIO_CAN2_TX_1        /* PB13 */
 
 /* SPI
  * SPI2 is gyro 1

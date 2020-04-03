@@ -306,17 +306,9 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(_PIN_OFF(GPIO_SPI3_MOSI));
 	*/
 
-	/* set the sensor rail off */
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
-
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
 	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
-
-	/* re-enable power */
-
-	/* switch the sensor rail back on */
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);
