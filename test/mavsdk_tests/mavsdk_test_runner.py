@@ -325,11 +325,12 @@ class Tester:
         test_timeout_s = test['timeout_min']*60
         while self.active_runners[-1].time_elapsed_s() < test_timeout_s:
             returncode = self.active_runners[-1].poll()
+
+            self.collect_runner_output()
+
             if returncode is not None:
                 is_success = (returncode == 0)
                 break
-
-            self.collect_runner_output()
 
         else:
             print(colorize(
@@ -439,14 +440,15 @@ class Tester:
         max_name = max(len(runner.name) for runner in self.active_runners)
 
         for runner in self.active_runners:
-            output = runner.get_output()
-            if not output:
-                continue
+            while True:
+                line = runner.get_output_line()
+                if not line:
+                    break
 
-            output = self.add_name_prefix(max_name, runner.name, output)
-            self.add_to_combined_log(output)
-            if self.verbose:
-                print(output, end="")
+                line = self.add_name_prefix(max_name, runner.name, line)
+                self.add_to_combined_log(line)
+                if self.verbose:
+                    print(line, end="")
 
     def start_combined_log(self, filename: str) -> None:
         self.log_fd = open(filename, 'w')
