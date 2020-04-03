@@ -17,6 +17,7 @@ void RangeFinder::send(uint64_t time)
 {
 	_range_sample.time_us = time;
 	_ekf->setRangeData(_range_sample);
+	_ekf->set_rangefinder_limits(0.2f, 20.f); // This usually comes from the driver
 }
 
 void RangeFinder::setData(float range_data_meters, int8_t range_quality)
