@@ -46,8 +46,6 @@
 bool Ekf::initHagl()
 {
 	bool initialized = false;
-	// get most recent range measurement from buffer
-	const rangeSample &latest_measurement = _range_buffer.get_newest();
 
 	if (!_control_status.flags.in_air) {
 		// if on ground, do not trust the range sensor, but assume a ground clearance
@@ -57,11 +55,9 @@ bool Ekf::initHagl()
 		initialized = true;
 
 	} else if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
-		   && _range_sensor.isHealthy()
-		   && isRecent(latest_measurement.time_us, (uint64_t)2e5)) {
+		   && _range_sensor.isDataHealthy()) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
-		// TODO: the latest measurment did not go through the checks and could be invalid!
-		_terrain_vpos = _state.pos(2) + latest_measurement.rng * _range_sensor.getCosTilt();
+		_terrain_vpos = _state.pos(2) + _range_sensor.getRange() * _range_sensor.getCosTilt();
 		// initialise state variance to variance of measurement
 		_terrain_var = sq(_params.range_noise);
 		// success
