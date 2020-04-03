@@ -88,6 +88,8 @@ public:
 	void setRange(float rng) { _sample.rng = rng; }
 	float getRange() const { return _sample.rng; }
 
+	float getDistBottom() const { return _sample.rng * _cos_tilt_rng_to_earth; }
+
 	void setDataReadiness(bool is_ready) { _is_sample_ready = is_ready; }
 	void setValidity(bool is_valid) { _is_sample_valid = is_valid; }
 
