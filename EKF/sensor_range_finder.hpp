@@ -67,12 +67,12 @@ public:
 	// TODO: move the ring buffer here
 	rangeSample* getSampleAddress() { return &_sample; }
 
-	void setTiltOffset(float new_tilt_offset)
+	void setPitchOffset(float new_pitch_offset)
 	{
-		if (fabsf(_tilt_offset_rad - new_tilt_offset) > FLT_EPSILON) {
-			_sin_tilt_rng = sinf(new_tilt_offset);
-			_cos_tilt_rng = cosf(new_tilt_offset);
-			_tilt_offset_rad = new_tilt_offset;
+		if (fabsf(_pitch_offset_rad - new_pitch_offset) > FLT_EPSILON) {
+			_sin_pitch_offset = sinf(new_pitch_offset);
+			_cos_pitch_offset = cosf(new_pitch_offset);
+			_pitch_offset_rad = new_pitch_offset;
 		}
 	}
 
@@ -132,9 +132,9 @@ private:
 	 */
 	float _cos_tilt_rng_to_earth{};		///< 2,2 element of the rotation matrix from sensor frame to earth frame
 	float _range_cos_max_tilt{0.7071f};	///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
-	float _tilt_offset_rad{3.14f}; 		///< range finder tilt rotation about the Y body axis
-	float _sin_tilt_rng{0.0f}; 		///< sine of the range finder tilt rotation about the Y body axis
-	float _cos_tilt_rng{-1.0f}; 		///< cosine of the range finder tilt rotation about the Y body axis
+	float _pitch_offset_rad{3.14f}; 		///< range finder tilt rotation about the Y body axis
+	float _sin_pitch_offset{0.0f}; 		///< sine of the range finder tilt rotation about the Y body axis
+	float _cos_pitch_offset{-1.0f}; 		///< cosine of the range finder tilt rotation about the Y body axis
 
 	/*
 	 * Range check

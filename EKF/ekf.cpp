@@ -75,7 +75,7 @@ void Ekf::reset()
 
 	_filter_initialised = false;
 	_terrain_initialised = false;
-	_range_sensor.setTiltOffset(_params.rng_sens_pitch);
+	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 
 	_control_status.value = 0;
