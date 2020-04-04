@@ -339,6 +339,7 @@
 /* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
+#define SDMMC_PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_2MHz))
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
@@ -359,6 +360,11 @@
 		GPIO_nVDD_5V_HIPOWER_EN,          \
 		GPIO_nVDD_5V_HIPOWER_OC,          \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
+		SDMMC_PIN_OFF(GPIO_SDMMC1_D0),    \
+		SDMMC_PIN_OFF(GPIO_SDMMC1_D1),    \
+		SDMMC_PIN_OFF(GPIO_SDMMC1_D2),    \
+		SDMMC_PIN_OFF(GPIO_SDMMC1_D3),    \
+		SDMMC_PIN_OFF(GPIO_SDMMC1_CMD),   \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_RSSI_IN,                     \
