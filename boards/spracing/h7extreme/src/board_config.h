@@ -107,12 +107,13 @@
 /* I2C busses */
 
 #define PX4_I2C_BUS_ONBOARD         1
-#define PX4_I2C_BUS_EXPANSION       2 //TODO: add external i2c
+#define PX4_I2C_BUS_EXPANSION       2
+#define PX4_I2C_BUS_LED             PX4_I2C_BUS_EXPANSION
 
-#define BOARD_NUMBER_I2C_BUSES      1
-#define BOARD_I2C_BUS_CLOCK_INIT    {100000}
+#define BOARD_NUMBER_I2C_BUSES      2
+#define BOARD_I2C_BUS_CLOCK_INIT    {100000, 100000}
 
-#define PX4_I2C_OBDEV_BMP388        0x76
+#define PX4_I2C_OBDEV_BMP388		0x76
 
 /*
  * ADC channels

@@ -8,7 +8,7 @@ adc start
 mpu6000 -R 8 -s -T 20602 start
 
 # Internal I2C bus
-hmc5883 -C -T -I -R 12 start
+bmp388 -I start
 
 
 

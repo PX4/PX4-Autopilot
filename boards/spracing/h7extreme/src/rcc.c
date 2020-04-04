@@ -57,6 +57,10 @@
 
 #define HSERDY_TIMEOUT (100 * CONFIG_BOARD_LOOPSPERMSEC)
 
+/* Same for HSI */
+
+#define HSIRDY_TIMEOUT HSERDY_TIMEOUT
+
 /* HSE divisor to yield ~1MHz RTC clock */
 
 #define HSE_DIVISOR (STM32_HSE_FREQUENCY + 500000) / 1000000
@@ -413,6 +417,30 @@ __ramfunc__ void stm32_board_clockconfig(void)
 		}
 
 	  /* Configure I2C source clock */
+
+#if (STM32_RCC_D2CCIP2R_I2C123SRC == RCC_D2CCIP2R_I2C123SEL_HSI)
+	  /* Enable Internal High-Speed Clock (HSI) */
+
+	  regval  = getreg32(STM32_RCC_CR);
+	  regval |= RCC_CR_HSION;           /* Enable HSI */
+	  regval |= RCC_CR_HSIDIV_4;		/* Set HSI to 16 MHz */
+	  putreg32(regval, STM32_RCC_CR);
+
+	  /* Wait until the HSI is ready (or until a timeout elapsed) */
+
+	  for (timeout = HSIRDY_TIMEOUT; timeout > 0; timeout--)
+		{
+		  /* Check if the HSIRDY flag is the set in the CR */
+
+		  if ((getreg32(STM32_RCC_CR) & RCC_CR_HSIRDY) != 0)
+			{
+			  /* If so, then break-out with timeout > 0 */
+
+			  break;
+			}
+		}
+
+#endif
 
 #if defined(STM32_RCC_D2CCIP2R_I2C123SRC)
 	  regval = getreg32(STM32_RCC_D2CCIP2R);
