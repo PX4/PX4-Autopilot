@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE systemcmds__serial_test
 	MAIN serial_test
 	COMPILE_FLAGS
+	STACK_MAIN 4096
 	SRCS
 		serial_test.c
 	DEPENDS

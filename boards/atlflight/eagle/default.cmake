@@ -104,6 +104,7 @@ px4_add_board(
 		pwm
 		reboot
 		sd_bench
+		serial_test
 		shutdown
 		#tests # tests and test runner
 		#top

@@ -199,7 +199,7 @@ static void set_baud_divisor(int speed)
 
 	if (ioctl(g_mod._fd, TIOCGSERIAL, &ss) < 0) {
 		perror("TIOCGSERIAL failed");
-		exit(1);
+		system_exit(1);
 	}
 
 	ss.flags = (ss.flags & ~ASYNC_SPD_MASK) | ASYNC_SPD_CUST;
@@ -208,7 +208,7 @@ static void set_baud_divisor(int speed)
 
 	if (closest_speed < speed * 98 / 100 || closest_speed > speed * 102 / 100) {
 		fprintf(stderr, "Cannot set speed to %d, closest is %d\n", speed, closest_speed);
-		exit(1);
+		system_exit(1);
 	}
 
 	printf("closest baud = %i, base = %i, divisor = %i\n", closest_speed, ss.baud_base,
@@ -216,7 +216,7 @@ static void set_baud_divisor(int speed)
 
 	if (ioctl(g_mod._fd, TIOCSSERIAL, &ss) < 0) {
 		perror("TIOCSSERIAL failed");
-		exit(1);
+		system_exit(1);
 	}
 
 #endif
@@ -396,7 +396,7 @@ static void process_options(int argc, char *argv[])
 		case 0:
 		case 'h':
 			display_help();
-			exit(0);
+			system_exit(0);
 			break;
 
 		case 'b':
@@ -516,7 +516,7 @@ static void dump_serial_port_stats(void)
 #if !defined(__PX4_NUTTX)
 	struct serial_icounter_struct icount = { 0 };
 
-	int ret = ioctl(_fd, TIOCGICOUNT, &icount);
+	int ret = ioctl(g_mod._fd, TIOCGICOUNT, &icount);
 
 	if (ret != -1) {
 		printf("%s: TIOCGICOUNT: ret=%i, rx=%i, tx=%i, frame = %i, overrun = %i, parity = %i, brk = %i, buf_overrun = %i\n",
@@ -567,7 +567,7 @@ static void process_read_data(void)
 
 				if (g_cl._stop_on_error) {
 					dump_serial_port_stats();
-					exit(1);
+					system_exit(1);
 				}
 
 				g_mod._read_count_value = rb[i];
@@ -630,7 +630,7 @@ static void setup_serial_port(int baud)
 		if (g_mod._fd < 0) {
 			perror("Error opening serial port");
 			free(g_cl._port);
-			exit(1);
+			system_exit(1);
 		}
 	}
 
@@ -681,7 +681,7 @@ static void setup_serial_port(int baud)
 	tcsetattr(g_mod._fd, TCSANOW, &newtio);
 
 	/* enable/disable rs485 direction control */
-	if (ioctl(g_mod._fd, TIOCGRS485, (int) &rs485) < 0) {
+	if (ioctl(g_mod._fd, TIOCGRS485, (unsigned long) &rs485) < 0) {
 		if (g_cl._rs485_delay >= 0) {
 			/* error could be because hardware is missing rs485 support so only print when actually trying to activate it */
 			perror("Error getting RS-485 mode");
@@ -692,7 +692,7 @@ static void setup_serial_port(int baud)
 		rs485.delay_rts_after_send = g_cl._rs485_delay;
 		rs485.delay_rts_before_send = 0;
 
-		if (ioctl(g_mod._fd, TIOCSRS485, (int) &rs485) < 0) {
+		if (ioctl(g_mod._fd, TIOCSRS485, (unsigned long) &rs485) < 0) {
 			perror("Error setting RS-485 mode");
 		}
 
@@ -701,7 +701,7 @@ static void setup_serial_port(int baud)
 		rs485.delay_rts_after_send = 0;
 		rs485.delay_rts_before_send = 0;
 
-		if (ioctl(g_mod._fd, TIOCSRS485, (int) &rs485) < 0) {
+		if (ioctl(g_mod._fd, TIOCSRS485, (unsigned long) &rs485) < 0) {
 			perror("Error setting RS-232 mode");
 		}
 	}
@@ -722,7 +722,7 @@ static int diff_ms(const struct timespec *t1, const struct timespec *t2)
 	return (diff.tv_sec * 1000 + diff.tv_nsec / 1000000);
 }
 
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_POSIX)
 int serial_test_main(int argc, char *argv[])
 {
 	printf("serial test app\n");
