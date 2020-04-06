@@ -154,6 +154,60 @@ int main()
     Vector2f v8_check = {2, 6};
     TEST(isEqual(v8,v8_check));
 
+    // Different assignment operators
+    SquareMatrix3f O(data);
+    float operand_data [4] = {2, 1, -3, -1};
+    const SquareMatrix<float, 2> operand(operand_data);
+
+    O.slice<2,2>(1,0) += operand;
+    float O_check_data_1 [9] = {0, 2, 3,  6, 6, 6,  4, 7, 10};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_1)));
+
+    O = SquareMatrix3f(data);
+    O.slice<2,1>(1,1) += operand.slice<2,1>(0,0);
+    float O_check_data_2 [9] = {0, 2, 3,  4, 7, 6,  7, 5, 10};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_2)));
+
+    O = SquareMatrix3f(data);
+    O.slice<3,3>(0,0) += -1;
+    float O_check_data_3 [9] = {-1, 1, 2,  3, 4, 5,  6, 7, 9};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_3)));
+
+    O = SquareMatrix3f(data);
+    O.col(1) += Vector3f{1, -2, 3};
+    float O_check_data_4 [9] = {0, 3, 3,  4, 3, 6,  7, 11, 10};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_4)));
+
+    O = SquareMatrix3f(data);
+    O.slice<2,2>(1,0) -= operand;
+    float O_check_data_5 [9] = {0, 2, 3,  2, 4, 6,  10, 9, 10};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_5)));
+
+    O = SquareMatrix3f(data);
+    O.slice<2,1>(1,1) -= operand.slice<2,1>(0,0);
+    float O_check_data_6 [9] = {0, 2, 3,  4, 3, 6,  7, 11, 10};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_6)));
+
+    O = SquareMatrix3f(data);
+    O.slice<3,3>(0,0) -= -1;
+    float O_check_data_7 [9] = {1, 3, 4,  5, 6, 7,  8, 9, 11};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_7)));
+
+    O = SquareMatrix3f(data);
+    O.col(1) -= Vector3f{1, -2, 3};
+    float O_check_data_8 [9] = {0, 1, 3,  4, 7, 6,  7, 5, 10};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_8)));
+
+    O = SquareMatrix3f(data);
+    O.slice<2,1>(1,1) *= 5.f;
+    float O_check_data_9 [9] = {0, 2, 3,  4, 25, 6,  7, 40, 10};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_9)));
+
+    O = SquareMatrix3f(data);
+    O.slice<2,1>(1,1) /= 2.f;
+    float O_check_data_10 [9] = {0, 2, 3,  4, 2.5, 6,  7, 4, 10};
+    TEST(isEqual(O, SquareMatrix3f(O_check_data_10)));
+
     return 0;
 }
 

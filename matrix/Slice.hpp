@@ -100,6 +100,90 @@ public:
         return self;
     }
 
+    template<size_t MM, size_t NN>
+    Slice<Type, P, Q, M, N>& operator+=(const Slice<Type, P, Q, MM, NN>& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i, j) += other(i, j);
+            }
+        }
+        return self;
+    }
+
+    Slice<Type, P, Q, M, N>& operator+=(const Matrix<Type, P, Q>& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i, j) += other(i, j);
+            }
+        }
+        return self;
+    }
+
+    Slice<Type, P, Q, M, N>& operator+=(const Type& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i, j) += other;
+            }
+        }
+        return self;
+    }
+
+    template<size_t MM, size_t NN>
+    Slice<Type, P, Q, M, N>& operator-=(const Slice<Type, P, Q, MM, NN>& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i, j) -= other(i, j);
+            }
+        }
+        return self;
+    }
+
+    Slice<Type, P, Q, M, N>& operator-=(const Matrix<Type, P, Q>& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i, j) -= other(i, j);
+            }
+        }
+        return self;
+    }
+
+    Slice<Type, P, Q, M, N>& operator-=(const Type& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i, j) -= other;
+            }
+        }
+        return self;
+    }
+
+    Slice<Type, P, Q, M, N>& operator*=(const Type& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i, j) *= other;
+            }
+        }
+        return self;
+    }
+
+    Slice<Type, P, Q, M, N>& operator/=(const Type& other)
+    {
+        return operator*=(Type(1) / other);
+    }
+
     template<size_t R, size_t S>
     const Slice<Type, R, S, M, N> slice(size_t x0, size_t y0) const
     {
