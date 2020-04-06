@@ -2809,10 +2809,16 @@ MavlinkReceiver::Run()
 			updateParams();
 		}
 
-		if (poll(&fds[0], 1, timeout) > 0) {
+		int ret = poll(&fds[0], 1, timeout);
+
+		if (ret > 0) {
 			if (_mavlink->get_protocol() == Protocol::SERIAL) {
 				/* non-blocking read. read may return negative values */
 				nread = ::read(fds[0].fd, buf, sizeof(buf));
+
+				if (nread == -1 && errno == ENOTCONN) { // Not connected (can happen for USB)
+					usleep(100000);
+				}
 			}
 
 #if defined(MAVLINK_UDP)
@@ -2895,6 +2901,9 @@ MavlinkReceiver::Run()
 			}
 
 #endif // MAVLINK_UDP
+
+		} else if (ret == -1) {
+			usleep(10000);
 		}
 
 		hrt_abstime t = hrt_absolute_time();
