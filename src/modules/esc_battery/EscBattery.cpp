@@ -80,7 +80,9 @@ EscBattery::Run()
 
 	if (_esc_status_sub.copy(&esc_status)) {
 
-		if (esc_status.esc_count == 0 ||
+		int online_bitmask = (1 << esc_status.esc_count) - 1;
+
+		if (online_bitmask != esc_status.esc_online_flags || esc_status.esc_count == 0 ||
 		    esc_status.esc_count > esc_status_s::CONNECTED_ESC_MAX) {
 			return;
 		}
