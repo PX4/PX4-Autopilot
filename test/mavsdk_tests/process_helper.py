@@ -251,7 +251,7 @@ class GzmodelspawnRunner(Runner):
                      "/Tools/sitl_gazebo/models/" +
                      self.model + "/" + self.model + ".sdf",
                      "--model-name", self.model,
-                     "-x", "1.01", "-y", "0.98", "-z", "0.83"]
+                     "-x", "1.01", "-y", "0.98", "-z", "0.83", "--verbose"]
         self.wait_until_complete = True
 
 
