@@ -174,8 +174,6 @@ private:
 	uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature> _air_data_static_temperature_publisher;
 	uavcan::Publisher<uavcan::equipment::air_data::RawAirData> _raw_air_data_publisher;
 	hrt_abstime _last_static_temperature_publish{0};
-	hrt_abstime _last_diff_press_temperature_publish{0};
-
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
