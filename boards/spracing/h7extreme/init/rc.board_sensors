@@ -5,7 +5,8 @@
 adc start
 
 # Internal SPI bus ICM-20602
-mpu6000 -R 8 -s -T 20602 start
+mpu6000 -R 0 -s -T 20602 start #SPI 2
+#mpu6000 -R 1 -z -T 20602 start #SPI 3
 
 # Internal I2C bus
 bmp388 -I start

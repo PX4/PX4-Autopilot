@@ -153,7 +153,7 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 #if defined(CONFIG_STM32H7_SPI2)
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
-	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS_1);
+	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS);
 
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi2selects_gpio) {
@@ -181,7 +181,7 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 __EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 
-	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS_2);
+	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS_1);
 
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi3selects_gpio) {
@@ -295,8 +295,10 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(_PIN_OFF(GPIO_SPI2_SCK));
 	stm32_configgpio(_PIN_OFF(GPIO_SPI2_MISO));
 	stm32_configgpio(_PIN_OFF(GPIO_SPI2_MOSI));
+	stm32_configgpio(_PIN_OFF(GPIO_SPI2_DRDY1_ICM20602));
 
-	/*
+
+
 	for (auto cs : spi3selects_gpio) {
 		stm32_configgpio(_PIN_OFF(cs));
 	}
@@ -304,7 +306,7 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(_PIN_OFF(GPIO_SPI3_SCK));
 	stm32_configgpio(_PIN_OFF(GPIO_SPI3_MISO));
 	stm32_configgpio(_PIN_OFF(GPIO_SPI3_MOSI));
-	*/
+	stm32_configgpio(_PIN_OFF(GPIO_SPI3_DRDY1_ICM20602));
 
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
@@ -321,9 +323,8 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI2_SCK);
 	stm32_configgpio(GPIO_SPI2_MISO);
 	stm32_configgpio(GPIO_SPI2_MOSI);
+	stm32_configgpio(GPIO_SPI2_DRDY1_ICM20602);
 
-	/* reconfigure the SPI pins */
-	/*
 	for (auto cs : spi3selects_gpio) {
 		stm32_configgpio(cs);
 	}
@@ -331,5 +332,6 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_configgpio(GPIO_SPI3_SCK);
 	stm32_configgpio(GPIO_SPI3_MISO);
 	stm32_configgpio(GPIO_SPI3_MOSI);
-	*/
+	stm32_configgpio(GPIO_SPI3_DRDY1_ICM20602);
+
 }
