@@ -31,97 +31,69 @@
  *
  ****************************************************************************/
 
-#include "EscBattery.hpp"
+#include "WorkItemExample.hpp"
+
+#include <drivers/drv_hrt.h>
 
 using namespace time_literals;
 
-EscBattery::EscBattery() :
+WorkItemExample::WorkItemExample() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_battery(1, this)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1)
 {
 }
 
-bool
-EscBattery::init()
+WorkItemExample::~WorkItemExample()
 {
-	if (!_esc_status_sub.registerCallback()) {
-		PX4_ERR("esc_status callback registration failed!");
-		return false;
-	}
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
+}
+
+bool WorkItemExample::init()
+{
+	ScheduleOnInterval(1000_us); // 1000 us interval, 1000 Hz rate
 
 	return true;
 }
 
-void
-EscBattery::parameters_updated()
-{
-	ModuleParams::updateParams();
-}
-
-void
-EscBattery::Run()
+void WorkItemExample::Run()
 {
 	if (should_exit()) {
-		_esc_status_sub.unregisterCallback();
+		ScheduleClear();
 		exit_and_cleanup();
 		return;
 	}
 
-	if (_parameter_update_sub.updated()) {
-		// Clear update
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
+	perf_begin(_loop_perf);
+	perf_count(_loop_interval_perf);
 
-		parameters_updated();
-	}
 
-	esc_status_s esc_status;
+	// DO WORK
 
-	if (_esc_status_sub.copy(&esc_status)) {
 
-<<<<<<< HEAD
-		if (esc_status.esc_count == 0 ||
-=======
-		int online_bitmask = (1 << esc_status.esc_count) - 1;
 
-		if (online_bitmask != esc_status.esc_online_flags || esc_status.esc_count == 0 ||
->>>>>>> upstream/master
-		    esc_status.esc_count > esc_status_s::CONNECTED_ESC_MAX) {
-			return;
-		}
+	// Example
+	// grab latest accelerometer data
+	_sensor_accel_sub.update();
+	const sensor_accel_s &accel = _sensor_accel_sub.get();
 
-		float average_voltage_v = 0.0f;
-		float total_current_a = 0.0f;
 
-		for (unsigned i = 0; i < esc_status.esc_count; ++i) {
-			average_voltage_v += esc_status.esc[i].esc_voltage;
-			total_current_a += esc_status.esc[i].esc_current;
-		}
+	// Example
+	// publish some data
+	orb_test_s data{};
+	data.timestamp = hrt_absolute_time();
+	data.val = accel.device_id;
+	_orb_test_pub.publish(data);
 
-		average_voltage_v /= esc_status.esc_count;
 
-		const bool connected = true;
-		const int priority = 0;
 
-		actuator_controls_s ctrl;
-		_actuator_ctrl_0_sub.copy(&ctrl);
 
-		_battery.updateBatteryStatus(
-			esc_status.timestamp,
-			average_voltage_v,
-			total_current_a,
-			connected,
-			battery_status_s::BATTERY_SOURCE_ESCS,
-			priority,
-			ctrl.control[actuator_controls_s::INDEX_THROTTLE]);
-		_battery.publish();
-	}
+	perf_end(_loop_perf);
 }
 
-int EscBattery::task_spawn(int argc, char *argv[])
+int WorkItemExample::task_spawn(int argc, char *argv[])
 {
-	EscBattery *instance = new EscBattery();
+	WorkItemExample *instance = new WorkItemExample();
 
 	if (instance) {
 		_object.store(instance);
@@ -142,12 +114,19 @@ int EscBattery::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int EscBattery::custom_command(int argc, char *argv[])
+int WorkItemExample::print_status()
+{
+	perf_print_counter(_loop_perf);
+	perf_print_counter(_loop_interval_perf);
+	return 0;
+}
+
+int WorkItemExample::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int EscBattery::print_usage(const char *reason)
+int WorkItemExample::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -156,18 +135,18 @@ int EscBattery::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This implements using information from the ESC status and publish it as battery status.
+Example of a simple module running out of a work queue.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("esc_battery", "system");
+	PRINT_MODULE_USAGE_NAME("work_item_example", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-extern "C" __EXPORT int esc_battery_main(int argc, char *argv[])
+extern "C" __EXPORT int work_item_example_main(int argc, char *argv[])
 {
-	return EscBattery::main(argc, argv);
+	return WorkItemExample::main(argc, argv);
 }

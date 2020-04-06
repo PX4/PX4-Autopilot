@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,69 +33,44 @@
 
 #pragma once
 
-#include "WorkQueueManager.hpp"
-
-#include <containers/BlockingList.hpp>
-#include <containers/List.hpp>
-#include <containers/IntrusiveQueue.hpp>
-#include <px4_platform_common/atomic.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/sem.h>
-#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/topics/orb_test.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
-namespace px4
-{
-
-class WorkItem;
-
-class WorkQueue : public ListNode<WorkQueue *>
+class WorkItemExample : public ModuleBase<WorkItemExample>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	explicit WorkQueue(const wq_config_t &wq_config);
-	WorkQueue() = delete;
+	WorkItemExample();
+	~WorkItemExample() override;
 
-	~WorkQueue();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	const char *get_name() { return _config.name; }
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	bool Attach(WorkItem *item);
-	void Detach(WorkItem *item);
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-	void Add(WorkItem *item);
-	void Remove(WorkItem *item);
+	bool init();
 
-	void Clear();
-
-	void Run();
-
-	void request_stop() { _should_exit.store(true); }
-
-	void print_status(bool last = false);
+	int print_status() override;
 
 private:
+	void Run() override;
 
-	bool should_exit() const { return _should_exit.load(); }
+	uORB::Publication<orb_test_s> _orb_test_pub{ORB_ID(orb_test)};
 
-	inline void signal_worker_thread();
+	uORB::SubscriptionData<sensor_accel_s> _sensor_accel_sub{ORB_ID(sensor_accel)};
 
-#ifdef __PX4_NUTTX
-	// In NuttX work can be enqueued from an ISR
-	void work_lock() { _flags = enter_critical_section(); }
-	void work_unlock() { leave_critical_section(_flags); }
-	irqstate_t _flags;
-#else
-	// loop as the wait may be interrupted by a signal
-	void work_lock() { do {} while (px4_sem_wait(&_qlock) != 0); }
-	void work_unlock() { px4_sem_post(&_qlock); }
-	px4_sem_t _qlock;
-#endif
-
-	IntrusiveQueue<WorkItem *>	_q;
-	px4_sem_t			_process_lock;
-	const wq_config_t		&_config;
-	BlockingList<WorkItem *>	_work_items;
-	px4::atomic_bool		_should_exit{false};
-
+	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };
-
-} // namespace px4
