@@ -93,17 +93,11 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	// battery.run_time_to_empty = msg.;
 	// battery.average_time_to_empty = msg.;
 	battery.serial_number = msg.model_instance_id;
-<<<<<<< HEAD
 	battery.id = msg.getSrcNodeID().get();
 
 	// battery.voltage_cell_v[0] = msg.;
 	// battery.max_cell_voltage_delta = msg.;
 
-=======
-	battery.connected = true;
-	battery.source = battery_status_s::BATTERY_SOURCE_POWER_MODULE;
-	// battery.priority = msg.;
->>>>>>> upstream/master
 	// battery.is_powering_off = msg.;
 
 	determineWarning(battery.remaining);
