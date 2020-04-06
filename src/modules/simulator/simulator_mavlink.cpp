@@ -202,7 +202,49 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	// accel
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_param_sim_accel_block.get()) {
 		_px4_accel.set_temperature(sensors.temperature);
-		_px4_accel.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+
+		float x = sensors.xacc;
+		float y = sensors.yacc;
+		float z = sensors.zacc;
+
+		// simulated accelerometer clipping
+		if (_param_sim_accel_clip_x.get() || _param_sim_accel_clip_y.get() || _param_sim_accel_clip_z.get()) {
+
+			actuator_controls_s act{};
+			_actuator_controls_0_sub.copy(&act);
+
+			// magic throttle % = clipping
+			// TODO: is this remotely realistic?
+			static constexpr int CLIPPING_MAGIC_PERCENTAGE_MIN = 63;
+			static constexpr int CLIPPING_MAGIC_PERCENTAGE_MAX = 63;
+
+			static constexpr float ACCEL_MAX = CONSTANTS_ONE_G * 16.f;
+
+			int throttle_percentage = round(act.control[actuator_controls_s::INDEX_THROTTLE] * 100);
+
+			if (throttle_percentage >= CLIPPING_MAGIC_PERCENTAGE_MIN && throttle_percentage <= CLIPPING_MAGIC_PERCENTAGE_MAX) {
+
+				// X
+				if (_param_sim_accel_clip_x.get()) {
+					x = ACCEL_MAX * _last_clipping_high[0];
+					_last_clipping_high[0] = !_last_clipping_high[0];
+				}
+
+				// Y
+				if (_param_sim_accel_clip_y.get()) {
+					y = ACCEL_MAX * _last_clipping_high[1];
+					_last_clipping_high[1] = !_last_clipping_high[1];
+				}
+
+				// Z
+				if (_param_sim_accel_clip_z.get()) {
+					z = ACCEL_MAX * _last_clipping_high[2];
+					_last_clipping_high[2] = !_last_clipping_high[2];
+				}
+			}
+		}
+
+		_px4_accel.update(time, x, y, z);
 	}
 
 	// magnetometer

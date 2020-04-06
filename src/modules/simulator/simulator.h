@@ -58,6 +58,7 @@
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -249,6 +250,7 @@ private:
 	int _actuator_outputs_sub{-1};
 	actuator_outputs_s _actuator_outputs{};
 
+	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// hil map_ref data
@@ -276,12 +278,17 @@ private:
 	};
 #endif
 
+	bool _last_clipping_high[3] {false};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //< minimum battery percentage
 		(ParamFloat<px4::params::SIM_GPS_NOISE_X>) _param_sim_gps_noise_x,
 		(ParamBool<px4::params::SIM_GPS_BLOCK>) _param_sim_gps_block,
 		(ParamBool<px4::params::SIM_ACCEL_BLOCK>) _param_sim_accel_block,
+		(ParamBool<px4::params::SIM_ACCEL_CLIP_X>) _param_sim_accel_clip_x,
+		(ParamBool<px4::params::SIM_ACCEL_CLIP_Y>) _param_sim_accel_clip_y,
+		(ParamBool<px4::params::SIM_ACCEL_CLIP_Z>) _param_sim_accel_clip_z,
 		(ParamBool<px4::params::SIM_GYRO_BLOCK>) _param_sim_gyro_block,
 		(ParamBool<px4::params::SIM_BARO_BLOCK>) _param_sim_baro_block,
 		(ParamBool<px4::params::SIM_MAG_BLOCK>) _param_sim_mag_block,

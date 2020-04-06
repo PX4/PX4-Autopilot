@@ -136,3 +136,33 @@ PARAM_DEFINE_INT32(SIM_BARO_BLOCK, 0);
  * @group SITL
  */
 PARAM_DEFINE_INT32(SIM_DPRES_BLOCK, 0);
+
+/**
+ * Simulator accelerometer X axis clipping.
+ *
+ * Simulates accelerometer on X axis at certain throttle values.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_ACCEL_CLIP_X, 0);
+
+/**
+ * Simulator accelerometer Y axis clipping.
+ *
+ * Simulates accelerometer on Y axis at certain throttle values.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_ACCEL_CLIP_Y, 0);
+
+/**
+ * Simulator accelerometer Z axis clipping.
+ *
+ * Simulates accelerometer on Z axis at certain throttle values.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_ACCEL_CLIP_Z, 0);
