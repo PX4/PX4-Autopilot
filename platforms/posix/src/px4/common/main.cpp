@@ -119,6 +119,8 @@ int SITL_MAIN(int argc, char **argv)
 int main(int argc, char **argv)
 #endif
 {
+	abort();
+
 	bool is_client = false;
 	bool pxh_off = false;
 
