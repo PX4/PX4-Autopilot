@@ -42,7 +42,7 @@ jobs:
     - name: Enable coredumps
       run: ulimit -c unlimited
     - name: Set location of core dumps
-      run: echo '/tmp/core.%h.%e.%t' > /proc/sys/kernel/core_pattern
+      run: sysctl -w kernel.core_pattern=core
     - name: Run SITL tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --verbose test/mavsdk_tests/configs/sitl.json
     - name: Run SITL tests in Southern hemisphere
