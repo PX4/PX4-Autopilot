@@ -15,7 +15,7 @@ Imu::~Imu()
 
 void Imu::send(uint64_t time)
 {
-	imuSample imu_sample;
+	imuSample imu_sample{};
 	imu_sample.time_us = time;
 	imu_sample.delta_ang_dt = (time - _time_last_data_sent) * 1.e-6f;
 	imu_sample.delta_ang = _gyro_data * imu_sample.delta_ang_dt;
