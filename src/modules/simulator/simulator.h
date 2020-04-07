@@ -278,7 +278,7 @@ private:
 	};
 #endif
 
-	bool _last_clipping_high[3] {false};
+	bool _last_clipping_high[3] {};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
