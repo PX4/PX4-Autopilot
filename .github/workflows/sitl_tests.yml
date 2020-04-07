@@ -71,4 +71,4 @@ jobs:
         file: coverage/lcov.info
     - name: Check for core dumps
       if: always()
-      run: "ls $(cat /proc/sys/kernel/core_pattern | cut -d'|' -f2 | cut -d' ' -f1 | rev | cut -d'/' -f2- | rev)"
+      run: ls $(cat /proc/sys/kernel/core_pattern | cut -d'|' -f2 | cut -d' ' -f1 | rev | cut -d'/' -f2- | rev)
