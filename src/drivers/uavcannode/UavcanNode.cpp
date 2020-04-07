@@ -365,8 +365,8 @@ void UavcanNode::Run()
 			// raw_air_data.static_pressure =
 			raw_air_data.differential_pressure = diff_press.differential_pressure_raw_pa;
 			// raw_air_data.static_pressure_sensor_temperature =
-			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature;
-			raw_air_data.static_air_temperature = diff_press.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+			raw_air_data.static_air_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 			// raw_air_data.pitot_temperature
 			// raw_air_data.covariance
 			_raw_air_data_publisher.broadcast(raw_air_data);
