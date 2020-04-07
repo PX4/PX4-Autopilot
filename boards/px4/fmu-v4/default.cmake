@@ -63,6 +63,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
 		fw_att_control
 		fw_pos_control_l1
@@ -123,4 +124,5 @@ px4_add_board(
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		uuv_example_app
+		work_item
 	)

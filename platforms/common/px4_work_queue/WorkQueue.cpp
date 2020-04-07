@@ -149,7 +149,8 @@ void
 WorkQueue::Run()
 {
 	while (!should_exit()) {
-		px4_sem_wait(&_process_lock);
+		// loop as the wait may be interrupted by a signal
+		do {} while (px4_sem_wait(&_process_lock) != 0);
 
 		work_lock();
 
