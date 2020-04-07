@@ -8,6 +8,7 @@ import subprocess
 import threading
 import pathlib
 import errno
+import signal
 from typing import Any, Dict, List, TextIO, Optional
 
 
@@ -123,7 +124,7 @@ class Runner:
             if returncode is None:
                 if self.verbose:
                     print("Killing {}".format(self.cmd))
-                self.process.kill()
+                self.process.send_signal(signal.SIGQUIT)
                 returncode = self.process.poll()
 
         if self.verbose:
