@@ -128,8 +128,6 @@ UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 		channel->class_instance = class_instance;
 		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
 
-		DEVICE_LOG("channel %d class instance %d ok", channel->node_id, channel->class_instance);
-
 		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->orb_instance, ORB_PRIO_VERY_HIGH);
 
 		if (channel->orb_advert == nullptr) {
