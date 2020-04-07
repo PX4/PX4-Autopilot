@@ -116,7 +116,7 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
     Rparam.topic.topicName = "rt/@(topic)_PubSubTopic";
 @[    end if]@
 @[else]@
-    Rparam.topic.topicName = "@(topic)_PubSubTopic";
+    Rparam.topic.topicName = "@(topic)PubSubTopic";
 @[end if]@
     mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, static_cast<SubscriberListener*>(&m_listener));
     if(mp_subscriber == nullptr)
