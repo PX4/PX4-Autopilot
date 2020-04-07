@@ -226,19 +226,19 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 				// X
 				if (_param_sim_accel_clip_x.get()) {
-					x = ACCEL_MAX * _last_clipping_high[0];
+					x = _last_clipping_high[0] ? -ACCEL_MAX : ACCEL_MAX;
 					_last_clipping_high[0] = !_last_clipping_high[0];
 				}
 
 				// Y
 				if (_param_sim_accel_clip_y.get()) {
-					y = ACCEL_MAX * _last_clipping_high[1];
+					y = _last_clipping_high[1] ? -ACCEL_MAX : ACCEL_MAX;
 					_last_clipping_high[1] = !_last_clipping_high[1];
 				}
 
 				// Z
 				if (_param_sim_accel_clip_z.get()) {
-					z = ACCEL_MAX * _last_clipping_high[2];
+					z = _last_clipping_high[2] ? -ACCEL_MAX : ACCEL_MAX;
 					_last_clipping_high[2] = !_last_clipping_high[2];
 				}
 			}
