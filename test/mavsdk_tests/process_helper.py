@@ -112,9 +112,9 @@ class Runner:
         returncode = self.process.poll()
         if returncode is None:
 
-            if self.verbose:
-                print("Terminating {}".format(self.cmd))
-            self.process.terminate()
+            # if self.verbose:
+            #     print("Terminating {}".format(self.cmd))
+            # self.process.terminate()
 
             try:
                 returncode = self.process.wait(timeout=1)
