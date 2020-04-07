@@ -79,6 +79,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_power_battery_info_publisher(_node),
 	_air_data_static_pressure_publisher(_node),
 	_air_data_static_temperature_publisher(_node),
+	_raw_air_data_publisher(_node),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")),
 	_reset_timer(_node)
@@ -297,6 +298,7 @@ void UavcanNode::Run()
 
 		_node.setModeOperational();
 
+		_diff_pressure_sub.registerCallback();
 		_sensor_baro_sub.registerCallback();
 		_sensor_mag_sub.registerCallback();
 		_vehicle_gps_position_sub.registerCallback();
@@ -349,6 +351,25 @@ void UavcanNode::Run()
 			}
 
 			_power_battery_info_publisher.broadcast(battery_info);
+		}
+	}
+
+	// differential_pressure -> uavcan::equipment::air_data::RawAirData
+	if (_diff_pressure_sub.updated()) {
+		differential_pressure_s diff_press;
+
+		if (_diff_pressure_sub.copy(&diff_press)) {
+
+			uavcan::equipment::air_data::RawAirData raw_air_data{};
+
+			// raw_air_data.static_pressure =
+			raw_air_data.differential_pressure = diff_press.differential_pressure_raw_pa;
+			// raw_air_data.static_pressure_sensor_temperature =
+			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature;
+			raw_air_data.static_air_temperature = diff_press.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+			// raw_air_data.pitot_temperature
+			// raw_air_data.covariance
+			_raw_air_data_publisher.broadcast(raw_air_data);
 		}
 	}
 

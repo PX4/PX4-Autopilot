@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,51 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @author Jacob Dahl <dahl.jakejacob@gmail.com>
- * @author Alex Klimaj <alex@arkelectron.com>
- */
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-#include <uORB/topics/battery_status.h>
-#include <uavcan/equipment/power/BatteryInfo.hpp>
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/module_params.h>
+#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1:37 */
+#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1:38 */
 
-class UavcanBatteryBridge : public UavcanCDevSensorBridgeBase, public ModuleParams
-{
-public:
-	static const char *const NAME;
-
-	UavcanBatteryBridge(uavcan::INode &node);
-
-	const char *get_name() const override { return NAME; }
-
-	int init() override;
-
-private:
-
-	void battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg);
-	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void determineWarning(float remaining);
-
-	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
-		void (UavcanBatteryBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &) >
-		BatteryInfoCbBinder;
-
-	uavcan::Subscriber<uavcan::equipment::power::BatteryInfo, BatteryInfoCbBinder> _sub_battery;
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
-		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
-		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr
-	)
-
-	float _discharged_mah = 0.f;
-	float _discharged_mah_loop = 0.f;
-	uint8_t _warning;
-	hrt_abstime _last_timestamp;
-};
+#define DMAMAP_UART8_RX   DMAMAP_DMA12_UART8RX_0 /* DMA1:81 */
+#define DMAMAP_UART8_TX   DMAMAP_DMA12_UART8TX_0 /* DMA1:82 */

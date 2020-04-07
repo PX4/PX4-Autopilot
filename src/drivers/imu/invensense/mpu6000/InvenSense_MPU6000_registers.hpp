@@ -60,8 +60,8 @@ static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x68;
 
-static constexpr float TEMPERATURE_SENSITIVITY = 326.8f; // LSB/C
-static constexpr float ROOM_TEMPERATURE_OFFSET = 25.f; // C
+static constexpr float TEMPERATURE_SENSITIVITY = 340.f; // LSB/C
+static constexpr float TEMPERATURE_OFFSET = 36.53f; // C
 
 enum class Register : uint8_t {
 	CONFIG        = 0x1A,
