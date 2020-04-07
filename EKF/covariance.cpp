@@ -246,6 +246,20 @@ void Ekf::predictCovariance()
 
 	dvxVar = dvyVar = dvzVar = sq(dt * accel_noise);
 
+	// Accelerometer Clipping
+	// delta velocity X: increase process noise if sample contained any X axis clipping
+	if (_imu_sample_delayed.delta_vel_clipping[0]) {
+		dvxVar = sq(dt * BADACC_BIAS_PNOISE);
+	}
+	// delta velocity Y: increase process noise if sample contained any Y axis clipping
+	if (_imu_sample_delayed.delta_vel_clipping[1]) {
+		dvyVar = sq(dt * BADACC_BIAS_PNOISE);
+	}
+	// delta velocity Z: increase process noise if sample contained any Z axis clipping
+	if (_imu_sample_delayed.delta_vel_clipping[2]) {
+		dvzVar = sq(dt * BADACC_BIAS_PNOISE);
+	}
+
 	// predict the covariance
 
 	// intermediate calculations

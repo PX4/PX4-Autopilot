@@ -14,6 +14,9 @@ bool ImuDownSampler::update(const imuSample &imu_sample_new) {
 	_imu_down_sampled.delta_ang_dt += imu_sample_new.delta_ang_dt;
 	_imu_down_sampled.delta_vel_dt += imu_sample_new.delta_vel_dt;
 	_imu_down_sampled.time_us = imu_sample_new.time_us;
+	_imu_down_sampled.delta_vel_clipping[0] += imu_sample_new.delta_vel_clipping[0];
+	_imu_down_sampled.delta_vel_clipping[1] += imu_sample_new.delta_vel_clipping[1];
+	_imu_down_sampled.delta_vel_clipping[2] += imu_sample_new.delta_vel_clipping[2];
 
 	// use a quaternion to accumulate delta angle data
 	// this quaternion represents the rotation from the start to end of the accumulation period
@@ -51,6 +54,9 @@ void ImuDownSampler::reset() {
 	_imu_down_sampled.delta_vel.setZero();
 	_imu_down_sampled.delta_ang_dt = 0.0f;
 	_imu_down_sampled.delta_vel_dt = 0.0f;
+	_imu_down_sampled.delta_vel_clipping[0] = false;
+	_imu_down_sampled.delta_vel_clipping[1] = false;
+	_imu_down_sampled.delta_vel_clipping[2] = false;
 	_delta_angle_accumulated.setIdentity();
 	_do_reset = false;
 }
