@@ -2051,7 +2051,7 @@ PARAM_DEFINE_FLOAT(RC_AUTO_TH, 0.75f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_RATT_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_RATT_TH, 0.75f);
 
 /**
  * Threshold for selecting posctl mode
@@ -2067,7 +2067,7 @@ PARAM_DEFINE_FLOAT(RC_RATT_TH, 0.5f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.75f);
 
 /**
  * Threshold for selecting return to launch mode
@@ -2083,7 +2083,7 @@ PARAM_DEFINE_FLOAT(RC_POSCTL_TH, 0.5f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.75f);
 
 /**
  * Threshold for selecting loiter mode
@@ -2099,7 +2099,7 @@ PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.5f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.75f);
 
 /**
  * Threshold for selecting acro mode
@@ -2115,7 +2115,7 @@ PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.5f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.75f);
 
 /**
  * Threshold for selecting offboard mode
@@ -2131,7 +2131,7 @@ PARAM_DEFINE_FLOAT(RC_ACRO_TH, 0.5f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.75f);
 
 /**
  * Threshold for the kill switch
@@ -2147,7 +2147,7 @@ PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.5f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.25f);
+PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.75f);
 
 /**
  * Threshold for the arm switch
@@ -2163,7 +2163,7 @@ PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.25f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_ARMSWITCH_TH, 0.25f);
+PARAM_DEFINE_FLOAT(RC_ARMSWITCH_TH, 0.75f);
 
 /**
  * Threshold for the VTOL transition switch
@@ -2179,7 +2179,7 @@ PARAM_DEFINE_FLOAT(RC_ARMSWITCH_TH, 0.25f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_TRANS_TH, 0.25f);
+PARAM_DEFINE_FLOAT(RC_TRANS_TH, 0.75f);
 
 /**
  * Threshold for the landing gear switch
@@ -2195,7 +2195,7 @@ PARAM_DEFINE_FLOAT(RC_TRANS_TH, 0.25f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_GEAR_TH, 0.25f);
+PARAM_DEFINE_FLOAT(RC_GEAR_TH, 0.75f);
 
 /**
  * Threshold for the stabilize switch.
@@ -2227,7 +2227,7 @@ PARAM_DEFINE_FLOAT(RC_STAB_TH, 0.5f);
  * @max 1
  * @group Radio Switches
  */
-PARAM_DEFINE_FLOAT(RC_MAN_TH, 0.5f);
+PARAM_DEFINE_FLOAT(RC_MAN_TH, 0.75f);
 
 /**
  * Sample rate of the remote control values for the low pass filter on roll, pitch, yaw and throttle
