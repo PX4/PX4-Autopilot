@@ -2145,15 +2145,15 @@ Commander::run()
 		if (!_home_pub.get().manual_home) {
 			const vehicle_local_position_s &local_position = _local_position_sub.get();
 
-			if (armed.armed) {
-				if ((!_was_armed || (_was_landed && !_land_detector.landed)) &&
-				    (hrt_elapsed_time(&_boot_timestamp) > INAIR_RESTART_HOLDOFF_INTERVAL)) {
+			// set the home position when taking off, but only if we were previously disarmed
+			// and at least 500 ms from commander start spent to avoid setting home on in-air restart
+			if (_should_set_home_on_takeoff && _was_landed && !_land_detector.landed &&
+			    (hrt_elapsed_time(&_boot_timestamp) > INAIR_RESTART_HOLDOFF_INTERVAL)) {
+				_should_set_home_on_takeoff = false;
+				set_home_position();
+			}
 
-					/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
-					set_home_position();
-				}
-
-			} else {
+			if (!armed.armed) {
 				if (status_flags.condition_home_position_valid) {
 					if (_land_detector.landed && local_position.xy_valid && local_position.z_valid) {
 						/* distance from home */
@@ -2199,6 +2199,8 @@ Commander::run()
 				_param_flight_uuid.commit_no_notification();
 
 				_last_disarmed_timestamp = hrt_absolute_time();
+
+				_should_set_home_on_takeoff = true;
 			}
 		}
 
