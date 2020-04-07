@@ -317,7 +317,8 @@ bool VtolType::set_idle_fw()
 
 bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_type type)
 {
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	const char *dev = _params->vt_mc_on_fmu ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
+
 	int fd = px4_open(dev, 0);
 
 	if (fd < 0) {
