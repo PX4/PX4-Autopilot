@@ -81,8 +81,10 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		vim \
 		;
 
-	# add user to uucp group (to get serial port access)
-	sudo usermod -aG uucp $USER
+	if [ ! -z "$USER" ]; then
+		# add user to dialout group (serial port access)
+		sudo usermod -aG uucp $USER
+	fi
 
 	# remove modem manager (interferes with PX4 serial port usage)
 	sudo pacman -R modemmanager --noconfirm

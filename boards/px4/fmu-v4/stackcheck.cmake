@@ -30,9 +30,9 @@ px4_add_board(
 		#imu/adis16497
 		imu/invensense/icm20602
 		imu/invensense/icm20608g
+		#imu/invensense/icm40609d
+		#imu/invensense/mpu6500
 		#imu/invensense/mpu9250
-		#imu/mpu6000 # legacy icm20602/icm20608g driver
-		imu/mpu9250
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -122,4 +122,5 @@ px4_add_board(
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
 		#uuv_example_app
+		#work_item
 	)

@@ -3821,6 +3821,8 @@ void Commander::battery_status_check()
 	// oldest timestamp.
 	hrt_abstime oldest_update = hrt_absolute_time();
 
+	_battery_current = 0.0f;
+
 	// Only iterate over connected batteries. We don't care if a disconnected battery is not regularly publishing.
 	for (size_t i = 0; i < num_connected_batteries; i++) {
 		if (batteries[i].warning > worst_warning) {
@@ -3831,9 +3833,8 @@ void Commander::battery_status_check()
 			oldest_update = batteries[i].timestamp;
 		}
 
-		if (batteries[i].system_source) {
-			_battery_current = batteries[i].current_filtered_a;
-		}
+		// Sum up current from all batteries.
+		_battery_current += batteries[i].current_filtered_a;
 	}
 
 	bool battery_warning_level_increased_while_armed = false;

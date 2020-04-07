@@ -30,7 +30,7 @@ px4_add_board(
 		#heater
 		#imu # all available imu drivers
 		imu/bmi088
-		imu/mpu6000
+		imu/invensense/icm20602
 		imu/icm20948
 		irlock
 		lights/blinkm
@@ -121,4 +121,5 @@ px4_add_board(
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		uuv_example_app
+		work_item
 	)

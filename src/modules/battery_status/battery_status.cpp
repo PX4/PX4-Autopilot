@@ -176,11 +176,6 @@ BatteryStatus::adc_poll()
 	float bat_current_adc_readings[BOARD_NUMBER_BRICKS] {};
 	float bat_voltage_adc_readings[BOARD_NUMBER_BRICKS] {};
 
-	/* Based on the valid_chan, used to indicate the selected the lowest index
-	 * (highest priority) supply that is the source for the VDD_5V_IN
-	 * When < 0 none selected
-	 */
-
 	int selected_source = -1;
 
 	adc_report_s adc_report;
@@ -200,7 +195,6 @@ BatteryStatus::adc_poll()
 					 * VDD_5V_IN
 					 */
 					selected_source = b;
-
 				}
 
 				/* look for specific channels and process the raw voltage to measurement data */
@@ -221,19 +215,18 @@ BatteryStatus::adc_poll()
 		}
 
 		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-			if (_analogBatteries[b]->source() == 0) {
-				actuator_controls_s ctrl{};
-				_actuator_ctrl_0_sub.copy(&ctrl);
 
-				_analogBatteries[b]->updateBatteryStatusADC(
-					hrt_absolute_time(),
-					bat_voltage_adc_readings[b],
-					bat_current_adc_readings[b],
-					selected_source == b,
-					b,
-					ctrl.control[actuator_controls_s::INDEX_THROTTLE]
-				);
-			}
+			actuator_controls_s ctrl{};
+			_actuator_ctrl_0_sub.copy(&ctrl);
+
+			_analogBatteries[b]->updateBatteryStatusADC(
+				hrt_absolute_time(),
+				bat_voltage_adc_readings[b],
+				bat_current_adc_readings[b],
+				battery_status_s::BATTERY_SOURCE_POWER_MODULE,
+				b,
+				ctrl.control[actuator_controls_s::INDEX_THROTTLE]
+			);
 		}
 	}
 }

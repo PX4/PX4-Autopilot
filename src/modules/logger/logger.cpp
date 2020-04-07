@@ -1770,6 +1770,10 @@ void Logger::write_version(LogType type)
 		write_info(type, "sys_mcu", mcu_ver);
 	}
 
+	// data versioning: increase this on every larger data change (format/semantic)
+	// 1: switch to FIFO drivers (disabled on-chip DLPF)
+	write_info(type, "ver_data_format", 1);
+
 #ifndef BOARD_HAS_NO_UUID
 
 	/* write the UUID if enabled */

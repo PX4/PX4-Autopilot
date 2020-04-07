@@ -63,14 +63,18 @@ class Runner:
         self.thread = threading.Thread(target=self.process_output)
         self.thread.start()
         if self.wait_until_complete:
-            if self.wait(5.0) != 0:
-                raise TimeoutError("Command not completed")
+            timeout_s = 10.0
+            if self.wait(timeout_s) != 0:
+                raise TimeoutError("Command '{}' not completed within {}"
+                                   .format(self.cmd, timeout_s))
 
     def process_output(self) -> None:
         assert self.process.stdout is not None
         while not self.stop_thread.is_set():
             line = self.process.stdout.readline()
             if line == "\n":
+                continue
+            if not line:
                 continue
             self.output_queue.put(line)
             self.log_fd.write(line)
@@ -89,11 +93,12 @@ class Runner:
             print("stopped.")
             return errno.ETIMEDOUT
 
-    def get_output(self) -> Optional[str]:
-        try:
-            return self.output_queue.get(block=True, timeout=0.1)
-        except queue.Empty:
-            return None
+    def get_output_line(self) -> Optional[str]:
+        while True:
+            try:
+                return self.output_queue.get(block=True, timeout=0.1)
+            except queue.Empty:
+                return None
 
     def stop(self) -> int:
         atexit.unregister(self.stop)

@@ -69,7 +69,7 @@ static constexpr wq_config_t att_pos_ctrl{"wq:att_pos_ctrl", 7200, -13};
 
 static constexpr wq_config_t hp_default{"wq:hp_default", 1900, -14};
 
-static constexpr wq_config_t uavcan{"wq:uavcan", 2400, -15};
+static constexpr wq_config_t uavcan{"wq:uavcan", 3000, -15};
 
 static constexpr wq_config_t UART0{"wq:UART0", 1400, -16};
 static constexpr wq_config_t UART1{"wq:UART1", 1400, -17};
@@ -84,8 +84,8 @@ static constexpr wq_config_t UART_UNKNOWN{"wq:UART_UNKNOWN", 1400, -25};
 
 static constexpr wq_config_t lp_default{"wq:lp_default", 1700, -50};
 
-static constexpr wq_config_t test1{"wq:test1", 800, 0};
-static constexpr wq_config_t test2{"wq:test2", 800, 0};
+static constexpr wq_config_t test1{"wq:test1", 2000, 0};
+static constexpr wq_config_t test2{"wq:test2", 2000, 0};
 
 } // namespace wq_configurations
 
