@@ -39,7 +39,7 @@ jobs:
       run: DONT_RUN=1 make px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage gazebo mavsdk_tests
     - name: ccache post-run
       run: ccache -s && ccache -z
-    - name: store coredump
+    - name: Enable coredumps
       run: ulimit -c unlimited
     - name: Run SITL tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --verbose test/mavsdk_tests/configs/sitl.json
@@ -69,3 +69,6 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: mavsdk
         file: coverage/lcov.info
+    - name: Check for core dumps
+      if: always()
+      run: "ls $(cat /proc/sys/kernel/core_pattern | cut -d'|' -f2 | cut -d' ' -f1 | rev | cut -d'/' -f2- | rev)"
