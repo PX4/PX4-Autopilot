@@ -39,6 +39,8 @@ jobs:
       run: DONT_RUN=1 make px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage gazebo mavsdk_tests
     - name: ccache post-run
       run: ccache -s && ccache -z
+    - name: store coredump
+      run: ulimit -c unlimited
     - name: Run SITL tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --verbose test/mavsdk_tests/configs/sitl.json
     - name: Run SITL tests in Southern hemisphere
