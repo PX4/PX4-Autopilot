@@ -27,9 +27,6 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/fxas21002c
 		imu/fxos8701cq
-		imu/l3gd20
-		imu/mpu6000
-		imu/mpu9250
 		irlock
 		lights/blinkm
 		lights/rgbled

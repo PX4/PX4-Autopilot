@@ -623,7 +623,7 @@ bool ICM20602::ProcessTemperature(const FIFOTransferBuffer &buffer, const uint8_
 	}
 
 	// use average temperature reading
-	const float temperature_C = temperature_avg / TEMPERATURE_SENSITIVITY + ROOM_TEMPERATURE_OFFSET;
+	const float temperature_C = (temperature_avg / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
 	_px4_accel.set_temperature(temperature_C);
 	_px4_gyro.set_temperature(temperature_C);
 

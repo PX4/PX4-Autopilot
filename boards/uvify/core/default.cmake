@@ -22,8 +22,9 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		imu/mpu6000
-		imu/mpu9250
+		imu/invensense/icm20602
+		imu/invensense/icm20608g
+		imu/invensense/mpu9250
 		irlock
 		lights/rgbled_ncp5623c
 		magnetometer/bmm150

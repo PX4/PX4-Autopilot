@@ -627,7 +627,7 @@ void ICM20689::UpdateTemperature()
 	}
 
 	const int16_t TEMP_OUT = combine(temperature_buf[1], temperature_buf[2]);
-	const float TEMP_degC = ((TEMP_OUT - ROOM_TEMPERATURE_OFFSET) / TEMPERATURE_SENSITIVITY) + ROOM_TEMPERATURE_OFFSET;
+	const float TEMP_degC = (TEMP_OUT / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
 
 	if (PX4_ISFINITE(TEMP_degC)) {
 		_px4_accel.set_temperature(TEMP_degC);

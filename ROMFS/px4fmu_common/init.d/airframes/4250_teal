@@ -47,7 +47,6 @@ then
 	param set BAT_V_OFFS_CURR -0.0045
 
 	# sensor calibration
-	param set CAL_MAG0_ROT 0
 	param set CAL_MAG_SIDES 63
 	param set SENS_BOARD_ROT 0
 	param set COM_ARM_MAG_ANG -1
@@ -197,10 +196,7 @@ then
 	#mpu6500
 	param set CAL_GYRO_PRIME 2360330
 
-	param set CAL_MAG0_EN 1
-	param set CAL_MAG1_EN 0
 	param set CAL_MAG_PRIME 265738
-
 fi
 
 # Logger mode. Default(1) + estimator replay(2) + thermal calibration(4)

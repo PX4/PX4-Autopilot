@@ -188,10 +188,13 @@ void MPU6000::RunImpl()
 	case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = 0;
 
-			if (_data_ready_interrupt_enabled && (hrt_elapsed_time(&timestamp_sample) < (_fifo_empty_interval_us / 2))) {
+			if (_data_ready_interrupt_enabled) {
 				// re-schedule as watchdog timeout
 				ScheduleDelayed(10_ms);
+			}
 
+			if (_data_ready_interrupt_enabled && (hrt_elapsed_time(&timestamp_sample) < (_fifo_empty_interval_us / 2))) {
+				// use timestamp from data ready interrupt if enabled and seems valid
 				timestamp_sample = _fifo_watermark_interrupt_timestamp;
 
 			} else {
@@ -567,7 +570,7 @@ void MPU6000::UpdateTemperature()
 	}
 
 	const int16_t TEMP_OUT = combine(temperature_buf[1], temperature_buf[2]);
-	const float TEMP_degC = ((TEMP_OUT - ROOM_TEMPERATURE_OFFSET) / TEMPERATURE_SENSITIVITY) + ROOM_TEMPERATURE_OFFSET;
+	const float TEMP_degC = (TEMP_OUT / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
 
 	if (PX4_ISFINITE(TEMP_degC)) {
 		_px4_accel.set_temperature(TEMP_degC);

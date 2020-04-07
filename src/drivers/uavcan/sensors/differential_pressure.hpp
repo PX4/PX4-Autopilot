@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,51 +30,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @author Jacob Dahl <dahl.jakejacob@gmail.com>
- * @author Alex Klimaj <alex@arkelectron.com>
+ * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-#include <uORB/topics/battery_status.h>
-#include <uavcan/equipment/power/BatteryInfo.hpp>
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/module_params.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/differential_pressure.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
-class UavcanBatteryBridge : public UavcanCDevSensorBridgeBase, public ModuleParams
+#include "sensor_bridge.hpp"
+
+#include <uavcan/equipment/air_data/RawAirData.hpp>
+
+class UavcanDifferentialPressureBridge : public UavcanCDevSensorBridgeBase
 {
 public:
 	static const char *const NAME;
 
-	UavcanBatteryBridge(uavcan::INode &node);
+	UavcanDifferentialPressureBridge(uavcan::INode &node);
 
 	const char *get_name() const override { return NAME; }
 
 	int init() override;
 
 private:
+	float _diff_pres_offset {0.0f};
 
-	void battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg);
-	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void determineWarning(float remaining);
+	math::LowPassFilter2p _filter{10.f, 1.1f}; /// Adapted from MS5525 driver
 
-	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
-		void (UavcanBatteryBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &) >
-		BatteryInfoCbBinder;
+	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
-	uavcan::Subscriber<uavcan::equipment::power::BatteryInfo, BatteryInfoCbBinder> _sub_battery;
+	void air_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &msg);
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
-		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
-		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr
-	)
+	typedef uavcan::MethodBinder < UavcanDifferentialPressureBridge *,
+		void (UavcanDifferentialPressureBridge::*)
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &) >
+		AirCbBinder;
 
-	float _discharged_mah = 0.f;
-	float _discharged_mah_loop = 0.f;
-	uint8_t _warning;
-	hrt_abstime _last_timestamp;
+	uavcan::Subscriber<uavcan::equipment::air_data::RawAirData, AirCbBinder> _sub_air;
 };

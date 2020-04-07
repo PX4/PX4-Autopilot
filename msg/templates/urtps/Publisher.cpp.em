@@ -116,7 +116,7 @@ bool @(topic)_Publisher::init()
     Wparam.topic.topicName = "rt/@(topic)_PubSubTopic";
 @[    end if]@
 @[else]@
-    Wparam.topic.topicName = "@(topic)_PubSubTopic";
+    Wparam.topic.topicName = "@(topic)PubSubTopic";
 @[end if]@
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener*>(&m_listener));
     if(mp_publisher == nullptr)

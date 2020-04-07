@@ -35,18 +35,18 @@ fi
 # chip select pin. There are different boards with either one of them and the WHO_AM_I register
 # will prevent the incorrect driver from a successful initialization.
 
-# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
+# ICM20602 internal SPI bus ICM-20608-G
 if ! icm20602 -s -R 8 start
 then
-	# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
+	# ICM20608 internal SPI bus ICM-20602-G
 	icm20608g -s -R 8 start
 fi
 
 # For Teal One airframe
 if param compare SYS_AUTOSTART 4250
 then
-	mpu9250 -s -R 14 start
+	mpu6500 -s -R 0 start
 else
-	# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -s -R 2 start
+	# mpu9250 internal SPI bus mpu9250
+	mpu9250 -s -R 8 start
 fi

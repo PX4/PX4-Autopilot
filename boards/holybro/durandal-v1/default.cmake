@@ -32,8 +32,7 @@ px4_add_board(
 		imu/adis16477
 		imu/adis16497
 		imu/bmi088
-		imu/mpu6000
-		imu/mpu9250
+		imu/invensense/icm20689
 		irlock
 		lights/blinkm
 		lights/rgbled
