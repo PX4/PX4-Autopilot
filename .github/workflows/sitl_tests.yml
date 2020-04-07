@@ -51,6 +51,9 @@ jobs:
     - name: Run SITL tests far in the West
       run: PX4_HOME_LAT=59.6176928 PX4_HOME_LON=-151.1453163 PX4_HOME_ALT=48 |
         test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --verbose test/mavsdk_tests/configs/sitl.json
+    - name: Look for core files
+      if: always()
+      run: find . -name "core*"
 
     # Report test coverage
     - name: disable the keychain credential helper
@@ -71,9 +74,3 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: mavsdk
         file: coverage/lcov.info
-    - name: Print core dump path
-      if: always()
-      run: echo $(cat /proc/sys/kernel/core_pattern | cut -d'|' -f2 | cut -d' ' -f1 | rev | cut -d'/' -f2- | rev)
-    - name: Check for core dumps
-      if: always()
-      run: ls $(cat /proc/sys/kernel/core_pattern | cut -d'|' -f2 | cut -d' ' -f1 | rev | cut -d'/' -f2- | rev)
