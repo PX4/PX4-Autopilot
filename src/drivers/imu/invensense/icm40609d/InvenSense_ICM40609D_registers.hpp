@@ -60,7 +60,7 @@ static constexpr uint8_t DIR_READ = 0x80;
 static constexpr uint8_t WHOAMI = 0x3B;
 
 static constexpr float TEMPERATURE_SENSITIVITY = 132.48f; // LSB/C
-static constexpr float ROOM_TEMPERATURE_OFFSET = 25.f; // C
+static constexpr float TEMPERATURE_OFFSET = 25.f; // C
 
 namespace Register
 {
@@ -221,7 +221,6 @@ struct DATA {
 	uint8_t timestamp_l;
 	uint8_t timestamp_h;
 };
-static_assert(sizeof(DATA) == 16, "FIFO packet 16 bytes");
 
 // With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
 enum FIFO_HEADER_BIT : uint8_t {
