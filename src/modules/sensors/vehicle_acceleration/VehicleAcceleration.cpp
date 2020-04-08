@@ -83,30 +83,30 @@ void VehicleAcceleration::Stop()
 
 void VehicleAcceleration::CheckFilters()
 {
-	// check filter periodically (roughly once every 1-3 seconds depending on sensor configuration)
-	if (_interval_count > 2500) {
-		bool sample_rate_changed = false;
+	if (_interval_count > 1000) {
+		bool reset_filters = false;
 
 		// calculate sensor update rate
 		const float sample_interval_avg = _interval_sum / _interval_count;
 
 		if (PX4_ISFINITE(sample_interval_avg) && (sample_interval_avg > 0.0f)) {
 
-			const float update_rate_hz = 1.e6f / sample_interval_avg;
+			_update_rate_hz = 1.e6f / sample_interval_avg;
 
-			if ((fabsf(update_rate_hz) > 0.0f) && PX4_ISFINITE(update_rate_hz)) {
-				_update_rate_hz = update_rate_hz;
-
-				// check if sample rate error is greater than 1%
-				if ((fabsf(_update_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
-					sample_rate_changed = true;
-				}
+			// check if sample rate error is greater than 1%
+			if ((fabsf(_update_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
+				reset_filters = true;
 			}
 		}
 
-		const bool lp_updated = (fabsf(_lp_filter.get_cutoff_freq() - _param_imu_accel_cutoff.get()) > 0.01f);
+		if (!reset_filters) {
+			// accel low pass cutoff frequency changed
+			if (fabsf(_lp_filter.get_cutoff_freq() - _param_imu_accel_cutoff.get()) > 0.01f) {
+				reset_filters = true;
+			}
+		}
 
-		if (sample_rate_changed || lp_updated) {
+		if (reset_filters) {
 			PX4_DEBUG("resetting filters, sample rate: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)_update_rate_hz);
 			_filter_sample_rate = _update_rate_hz;
 
