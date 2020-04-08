@@ -55,7 +55,7 @@ jobs:
         test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --verbose test/mavsdk_tests/configs/sitl.json
     - name: Look for core files
       if: always()
-      run: ls '/tmp'
+      run: ls '/tmp' | grep 'core' | xargs gdb '{}' -ex "thread apply all bt" -ex "quit"
 
     # Report test coverage
     - name: disable the keychain credential helper
