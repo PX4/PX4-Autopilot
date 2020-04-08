@@ -316,7 +316,8 @@ MulticopterPositionControl::init()
 		return false;
 	}
 
-	_local_pos_sub.set_interval_us(20_ms); // 50 Hz max update rate
+	// limit to every other vehicle_local_position update (~62.5 Hz)
+	_local_pos_sub.set_interval_us(16_ms);
 
 	_time_stamp_last_loop = hrt_absolute_time();
 
