@@ -9,6 +9,7 @@ import psutil  # type: ignore
 import signal
 import subprocess
 import sys
+import time
 from logger_helper import color, colorize
 import process_helper as ph
 from typing import Any, Dict, List, NoReturn, TextIO, Optional
@@ -382,14 +383,6 @@ class Tester:
                     self.verbose)
                 self.active_runners.append(gzserver_runner)
 
-                waitforgz_runner = ph.WaitforgzRunner(
-                    os.getcwd(),
-                    log_dir,
-                    test['model'],
-                    case,
-                    self.verbose)
-                self.active_runners.append(waitforgz_runner)
-
                 gzmodelspawn_runner = ph.GzmodelspawnRunner(
                     os.getcwd(),
                     log_dir,
@@ -427,6 +420,11 @@ class Tester:
                 print("A timeout happened for runner: {}"
                       .format(runner.name))
                 break
+
+            # Workaround to prevent gz not being able to communicate
+            # with gzserver
+            if runner.name == "gzserver":
+                time.sleep(10)
 
         if abort:
             self.stop_runners()
