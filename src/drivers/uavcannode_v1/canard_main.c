@@ -59,6 +59,7 @@
 #include <nuttx/can.h>
 #include <netpacket/can.h>
 
+#include "socketcan.h"
 #include "o1heap.h"
 
 /****************************************************************************
@@ -91,7 +92,11 @@
 
 /* Arena for memory allocation, used by the library */
 
-static uint8_t canard_memory_pool[CONFIG_EXAMPLES_LIBCANARDV1_NODE_MEM_POOL_SIZE];
+#define O1_HEAP_SIZE CONFIG_EXAMPLES_LIBCANARDV1_NODE_MEM_POOL_SIZE
+
+O1HeapInstance *my_allocator;
+static uint8_t uavcan_heap[O1_HEAP_SIZE]
+__attribute__((aligned(O1HEAP_ALIGNMENT)));
 
 static uint8_t unique_id[UNIQUE_ID_LENGTH_BYTES] = {
 	0x00, 0x00, 0x00, 0x00,
@@ -114,14 +119,10 @@ int s; /* can raw socket */
 /* rcv msg */
 struct iovec recv_iov;
 struct msghdr recv_msg;
-struct canfd_frame recv_frame;
+char recv_buf[sizeof(struct canfd_frame)];
 char ctrlmsg[sizeof(struct cmsghdr) + sizeof(struct timeval)];
 
-#define O1_HEAP_SIZE 4096
 
-O1HeapInstance *my_allocator;
-static uint8_t uavcan_heap[O1_HEAP_SIZE]
-__attribute__((aligned(O1HEAP_ALIGNMENT)));
 
 /****************************************************************************
  * Public Functions
@@ -206,52 +207,6 @@ void process1HzTasks(CanardInstance *ins, uint64_t timestamp_usec)
 	}
 }
 
-static uint32_t pleaseTransmit(const CanardFrame *txf)
-{
-	struct iovec iov;
-	struct canfd_frame sockcan_frame;
-
-	sockcan_frame.can_id = txf->extended_can_id;
-	sockcan_frame.can_id |= CAN_EFF_FLAG;
-	sockcan_frame.len = txf->payload_size;
-	memcpy(&sockcan_frame.data, txf->payload, txf->payload_size);
-
-	iov.iov_base = &sockcan_frame;
-	iov.iov_len  = sizeof(sockcan_frame);
-
-	uint8_t control[sizeof(struct cmsghdr) + sizeof(struct timeval)];
-	memset(&control, 0x00, sizeof(control));
-
-	struct msghdr msg;
-	msg.msg_iov    = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_control = &control;
-	msg.msg_controllen = sizeof(control);
-
-	struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-	cmsg->cmsg_level = SOL_CAN_RAW;
-	cmsg->cmsg_type = CAN_RAW_TX_DEADLINE;
-	cmsg->cmsg_len = sizeof(struct timeval);
-	struct timeval *tv = (struct timeval *)CMSG_DATA(cmsg);
-	tv->tv_usec = txf->timestamp_usec % 1000000ULL;
-	tv->tv_sec = (txf->timestamp_usec - tv->tv_usec) / 1000000ULL;
-
-	const int res = sendmsg(s, &msg, 0);
-
-	if (res <= 0) {
-		if (errno == ENOBUFS || errno == EAGAIN) {  // Writing is not possible atm, not an error
-			return 0;
-		}
-
-		return res;
-	}
-
-	if (res != sizeof(sockcan_frame)) {
-		return -1;
-	}
-
-	return 1;
-}
 
 static void processReceivedTransfer(CanardTransfer *receive)
 {
@@ -268,14 +223,16 @@ static void processReceivedTransfer(CanardTransfer *receive)
  *
  ****************************************************************************/
 
-void processTxRxOnce(CanardInstance *ins, int timeout_msec)
+void processTxRxOnce(CanardInstance *ins, CanardSocketInstance *sock_ins, int timeout_msec)
 {
+	int32_t result;
+
 	/* Transmitting */
 
 
 	for (const CanardFrame *txf = NULL; (txf = canardTxPeek(ins)) != NULL;) { // Look at the top of the TX queue.
 		if (txf->timestamp_usec > getMonotonicTimestampUSec()) { // Check if the frame has timed out.
-			if (pleaseTransmit(txf) == 0) {           // Send the frame. Redundant interfaces may be used here.
+			if (socketcanTransmit(sock_ins, txf) == 0) {           // Send the frame. Redundant interfaces may be used here.
 				break;                             // If the driver is busy, break and retry later.
 			}
 		}
@@ -291,30 +248,9 @@ void processTxRxOnce(CanardInstance *ins, int timeout_msec)
 	}
 
 	/* Receiving */
-
-	int32_t result = recvmsg(s, &recv_msg, 0);
-
-	if (result < 0) {
-		if (errno == ENETDOWN) {
-			fprintf(stderr, "%s: interface down\n", CONFIG_EXAMPLES_LIBCANARDV1_DEV);
-		}
-
-		return;
-	}
-
 	CanardFrame received_frame;
 
-	received_frame.extended_can_id = recv_frame.can_id & CAN_EFF_MASK;
-	received_frame.payload_size = recv_frame.len;
-	memcpy(received_frame.payload, recv_frame.data, recv_frame.len);
-
-	struct cmsghdr *cmsg = CMSG_FIRSTHDR(&recv_msg);
-
-	if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
-		struct timeval tv;
-		memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
-		received_frame.timestamp_usec = tv.tv_sec * 1000000ULL + tv.tv_usec;
-	}
+	socketcanReceive(sock_ins, &received_frame);
 
 	CanardTransfer receive;
 	result = canardRxAccept(ins,
@@ -343,73 +279,6 @@ void processTxRxOnce(CanardInstance *ins, int timeout_msec)
 
 }
 
-
-static int create_can_socket()
-{
-	int s; /* can raw socket */
-	struct sockaddr_can addr;
-	struct canfd_frame frame;
-	struct ifreq ifr;
-
-	/* open socket */
-	if ((s = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
-		perror("socket");
-		return -1;
-	}
-
-	strncpy(ifr.ifr_name, CONFIG_EXAMPLES_LIBCANARDV1_DEV, IFNAMSIZ - 1);
-	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
-	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
-
-	if (!ifr.ifr_ifindex) {
-		perror("if_nametoindex");
-		return -1;
-	}
-
-	memset(&addr, 0, sizeof(addr));
-	addr.can_family = AF_CAN;
-	addr.can_ifindex = ifr.ifr_ifindex;
-
-	const int on = 1;
-	/* RX Timestamping */
-
-	if (setsockopt(s, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
-		return -1;
-	}
-
-	/* NuttX Feature: Enable TX deadline when sending CAN frames
-	 * When a deadline occurs the driver will remove the CAN frame
-	 */
-
-	if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
-		return -1;
-	}
-
-	if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
-		return -1;
-	}
-
-	if (bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		perror("bind");
-		return -1;
-	}
-
-	/* setup poll fd */
-	fd.fd = s;
-	fd.events = POLLIN;
-
-	/* setup recv msg structure */
-	recv_iov.iov_base = &recv_frame;
-	recv_msg.msg_iov = &recv_iov;
-	recv_msg.msg_iovlen = 1;
-	recv_msg.msg_control = &ctrlmsg;
-	recv_iov.iov_len = sizeof(recv_frame);
-	recv_msg.msg_controllen = sizeof(ctrlmsg);
-	recv_msg.msg_flags = 0;
-
-	return s;
-}
-
 /****************************************************************************
  * Name: canard_daemon
  *
@@ -419,25 +288,45 @@ static int create_can_socket()
 
 static int canard_daemon(int argc, char *argv[])
 {
-
 	int errval = 0;
-	int ret;
+	int can_fd = 0;
+
+	if (argc > 2) {
+		if (!strcmp(argv[2], "canfd")) {
+			can_fd = 1;
+		}
+	}
+
 
 	my_allocator = o1heapInit(&uavcan_heap, O1_HEAP_SIZE, NULL, NULL);
 
 	if (my_allocator == NULL) {
 		printf("o1heapInit failed with size %d\n", O1_HEAP_SIZE);
-		return;
+		errval = 2;
+		goto errout_with_dev;
 	}
 
 	CanardInstance ins = canardInit(&memAllocate, &memFree);
-	ins.mtu_bytes = CANARD_MTU_CAN_FD;  // Defaults to 64 (CAN FD);
-	ins.node_id   = 2;
+
+	if (can_fd) {
+		ins.mtu_bytes = CANARD_MTU_CAN_FD;
+
+	} else {
+		ins.mtu_bytes = CANARD_MTU_CAN_CLASSIC;
+	}
+
+	ins.node_id = CONFIG_EXAMPLES_LIBCANARDV1_NODE_ID;
 
 	/* Open the CAN device for reading */
-	s = create_can_socket();
+	CanardSocketInstance sock_ins;
+	socketcanOpen(&sock_ins, CONFIG_EXAMPLES_LIBCANARDV1_DEV, can_fd);
 
-	if (s < 0) {
+
+	/* setup poll fd */
+	fd.fd = sock_ins.s;
+	fd.events = POLLIN;
+
+	if (sock_ins.s < 0) {
 		printf("canard_daemon: ERROR: open %s failed: %d\n",
 		       CONFIG_EXAMPLES_LIBCANARDV1_DEV, errno);
 		errval = 2;
@@ -446,16 +335,16 @@ static int canard_daemon(int argc, char *argv[])
 
 
 	printf("canard_daemon: canard initialized\n");
-	printf("start node (ID: %d Name: %s)\n", ins.node_id,
-	       APP_NODE_NAME);
+	printf("start node (ID: %d Name: %s MTU: %d)\n", ins.node_id,
+	       APP_NODE_NAME, ins.mtu_bytes);
 
-	CanardRxSubscription heatbeat_subscription;
-	(void) canardRxSubscribe(&ins,
-				 CanardTransferKindMessage,  // Indicate that we want service responses.
-				 32085,                         // The Service-ID to subscribe to.
-				 1024,                        // The maximum payload size (max DSDL object size).
+	CanardRxSubscription heartbeat_subscription;
+	(void) canardRxSubscribe(&ins,   // Subscribe to messages uavcan.node.Heartbeat.
+				 CanardTransferKindMessage,
+				 32085,  // The fixed Subject-ID of the Heartbeat message type (see DSDL definition).
+				 7,      // The maximum payload size (max DSDL object size) from the DSDL definition.
 				 CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-				 &heatbeat_subscription);
+				 &heartbeat_subscription);
 
 	CanardRxSubscription my_subscription;
 	(void) canardRxSubscribe(&ins,
@@ -470,7 +359,7 @@ static int canard_daemon(int argc, char *argv[])
 	uint64_t next_1hz_service_at = getMonotonicTimestampUSec();
 
 	for (;;) {
-		processTxRxOnce(&ins, 10);
+		processTxRxOnce(&ins, &sock_ins, 10);
 
 		const uint64_t ts = getMonotonicTimestampUSec();
 
@@ -508,8 +397,8 @@ int uavcannode_v1_main(int argc, FAR char *argv[])
 	}
 
 	ret = task_create("canard_daemon", CONFIG_EXAMPLES_LIBCANARDV1_DAEMON_PRIORITY,
-			  CONFIG_EXAMPLES_LIBCANARDV1_NODE_MEM_POOL_SIZE, canard_daemon,
-			  NULL);
+			  CONFIG_EXAMPLES_LIBCANARDV1_DAEMON_STACK_SIZE, canard_daemon,
+			  argv);
 
 	if (ret < 0) {
 		int errcode = errno;
