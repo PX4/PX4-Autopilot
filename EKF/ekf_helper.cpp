@@ -112,11 +112,9 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel) {
 	_state.vel.xy() = new_horz_vel;
 
 	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		_output_buffer[index].vel(0) += delta_horz_vel(0);
-		_output_buffer[index].vel(1) += delta_horz_vel(1);
+		_output_buffer[index].vel.xy() += delta_horz_vel;
 	}
-	_output_new.vel(0) += delta_horz_vel(0);
-	_output_new.vel(1) += delta_horz_vel(1);
+	_output_new.vel.xy() += delta_horz_vel;
 
 	_state_reset_status.velNE_change = delta_horz_vel;
 	_state_reset_status.velNE_counter++;
@@ -193,11 +191,9 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos) {
 	_state.pos.xy() = new_horz_pos;
 
 	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		_output_buffer[index].pos(0) += delta_horz_pos(0);
-		_output_buffer[index].pos(1) += delta_horz_pos(1);
+		_output_buffer[index].pos.xy() += delta_horz_pos;
 	}
-	_output_new.pos(0) += delta_horz_pos(0);
-	_output_new.pos(1) += delta_horz_pos(1);
+	_output_new.pos.xy() += delta_horz_pos;
 
 	_state_reset_status.posNE_change = delta_horz_pos;
 	_state_reset_status.posNE_counter++;
