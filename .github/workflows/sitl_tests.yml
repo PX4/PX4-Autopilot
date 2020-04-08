@@ -17,7 +17,9 @@ jobs:
           bionic,
           focal
           ]
-    container: px4io/px4-dev-simulation-${{ matrix.ubuntu_release }}:2020-04-01
+    container:
+      image: px4io/px4-dev-simulation-${{ matrix.ubuntu_release }}:2020-04-01
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
       with:
@@ -39,10 +41,10 @@ jobs:
       run: DONT_RUN=1 make px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage gazebo mavsdk_tests
     - name: ccache post-run
       run: ccache -s && ccache -z
-    - name: Enable coredumps
-      run: ulimit -c unlimited
-    - name: Set location of core dumps
-      run: sysctl -w kernel.core_pattern=core
+    - name: Core dump settings
+      run: |
+          ulimit -c unlimited
+          echo '/tmp/core.%h.%e.%t' > /proc/sys/kernel/core_pattern
     - name: Run SITL tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --verbose test/mavsdk_tests/configs/sitl.json
     - name: Run SITL tests in Southern hemisphere
@@ -53,7 +55,7 @@ jobs:
         test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --verbose test/mavsdk_tests/configs/sitl.json
     - name: Look for core files
       if: always()
-      run: find . -name "core*"
+      run: ls '/tmp'
 
     # Report test coverage
     - name: disable the keychain credential helper
