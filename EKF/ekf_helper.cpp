@@ -142,12 +142,6 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel) {
 // gps measurement then use for position initialisation
 bool Ekf::resetPosition()
 {
-	// ECL_INFO_TIMESTAMPED("Reset Position");
-	// used to calculate the position change due to the reset
-	Vector2f posNE_before_reset;
-	posNE_before_reset(0) = _state.pos(0);
-	posNE_before_reset(1) = _state.pos(1);
-
 	// let the next odometry update know that the previous value of states cannot be used to calculate the change in position
 	_hpos_prev_available = false;
 
@@ -155,8 +149,7 @@ bool Ekf::resetPosition()
 		ECL_INFO_TIMESTAMPED("reset position to GPS");
 
 		// this reset is only called if we have new gps data at the fusion time horizon
-		_state.pos(0) = _gps_sample_delayed.pos(0);
-		_state.pos(1) = _gps_sample_delayed.pos(1);
+		resetHorizontalPositionTo(Vector2f(_gps_sample_delayed.pos));
 
 		// use GPS accuracy to reset variances
 		P.uncorrelateCovarianceSetVariance<2>(7, sq(_gps_sample_delayed.hacc));
@@ -169,10 +162,7 @@ bool Ekf::resetPosition()
 		if(_params.fusion_mode & MASK_ROTATE_EV){
 			_ev_pos = _R_ev_to_ekf *_ev_sample_delayed.pos;
 		}
-		_state.pos(0) = _ev_pos(0);
-		_state.pos(1) = _ev_pos(1);
-
-		// use EV accuracy to reset variances
+		resetHorizontalPositionTo(Vector2f(_ev_pos));
 		P.uncorrelateCovarianceSetVariance<2>(7, _ev_sample_delayed.posVar.slice<2, 1>(0, 0));
 
 	} else if (_control_status.flags.opt_flow) {
@@ -180,14 +170,9 @@ bool Ekf::resetPosition()
 
 		if (!_control_status.flags.in_air) {
 			// we are likely starting OF for the first time so reset the horizontal position
-			_state.pos(0) = 0.0f;
-			_state.pos(1) = 0.0f;
-
+			resetHorizontalPositionTo(Vector2f(0.f, 0.f));
 		} else {
-			// set to the last known position
-			_state.pos(0) = _last_known_posNE(0);
-			_state.pos(1) = _last_known_posNE(1);
-
+			resetHorizontalPositionTo(_last_known_posNE);
 		}
 
 		// estimate is relative to initial position in this mode, so we start with zero error.
@@ -196,29 +181,26 @@ bool Ekf::resetPosition()
 	} else {
 		ECL_INFO_TIMESTAMPED("reset position to last known position");
 		// Used when falling back to non-aiding mode of operation
-		_state.pos(0) = _last_known_posNE(0);
-		_state.pos(1) = _last_known_posNE(1);
+		resetHorizontalPositionTo(_last_known_posNE);
 		P.uncorrelateCovarianceSetVariance<2>(7, sq(_params.pos_noaid_noise));
 	}
 
-	// calculate the change in position and apply to the output predictor state history
-	const Vector2f posNE_change{_state.pos(0) - posNE_before_reset(0), _state.pos(1) - posNE_before_reset(1)};
+	return true;
+}
+
+void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos) {
+	const Vector2f delta_horz_pos = new_horz_pos - Vector2f(_state.pos);
+	_state.pos.xy() = new_horz_pos;
 
 	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		_output_buffer[index].pos(0) += posNE_change(0);
-		_output_buffer[index].pos(1) += posNE_change(1);
+		_output_buffer[index].pos(0) += delta_horz_pos(0);
+		_output_buffer[index].pos(1) += delta_horz_pos(1);
 	}
+	_output_new.pos(0) += delta_horz_pos(0);
+	_output_new.pos(1) += delta_horz_pos(1);
 
-	// apply the change in position to our newest position estimate
-	// which was already taken out from the output buffer
-	_output_new.pos(0) += posNE_change(0);
-	_output_new.pos(1) += posNE_change(1);
-
-	// capture the reset event
-	_state_reset_status.posNE_change = posNE_change;
+	_state_reset_status.posNE_change = delta_horz_pos;
 	_state_reset_status.posNE_counter++;
-
-	return true;
 }
 
 // Reset height state using the last height measurement

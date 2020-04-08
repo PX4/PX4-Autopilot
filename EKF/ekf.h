@@ -583,6 +583,8 @@ private:
 
 	inline void resetVerticalVelocityTo(float new_vert_vel);
 
+	inline void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
 
