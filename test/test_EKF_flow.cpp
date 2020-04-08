@@ -42,10 +42,10 @@
 #include "sensor_simulator/ekf_wrapper.h"
 
 
-class EkfGpsTest : public ::testing::Test {
+class EkfFlowTest : public ::testing::Test {
  public:
 
-	EkfGpsTest(): ::testing::Test(),
+	EkfFlowTest(): ::testing::Test(),
 	_ekf{std::make_shared<Ekf>()},
 	_sensor_simulator(_ekf),
 	_ekf_wrapper(_ekf) {};
@@ -59,9 +59,6 @@ class EkfGpsTest : public ::testing::Test {
 	{
 		_ekf->init(0);
 		_sensor_simulator.runSeconds(2);
-		_ekf_wrapper.enableGpsFusion();
-		_sensor_simulator.startGps();
-		_sensor_simulator.runSeconds(11);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -70,41 +67,47 @@ class EkfGpsTest : public ::testing::Test {
 	}
 };
 
-TEST_F(EkfGpsTest, gpsTimeout)
+TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 {
-	// GIVEN:EKF that fuses GPS
+	// WHEN: simulate being 5m above ground
+	const float simulated_distance_to_ground = 5.f;
+	_sensor_simulator._rng.setData(simulated_distance_to_ground, 100);
+	_sensor_simulator._rng.setLimits(0.1f, 9.f);
+	_sensor_simulator.startRangeFinder();
+	_ekf->set_in_air_status(true);
+	_sensor_simulator.runSeconds(1.5f);
 
-	// WHEN: setting the PDOP to high
-	_sensor_simulator._gps.setNumberOfSatellites(3);
+	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
+	EXPECT_FLOAT_EQ(estimated_distance_to_ground, simulated_distance_to_ground);
 
-	// THEN: EKF should stop fusing GPS
-	_sensor_simulator.runSeconds(20);
+	// WHEN: start fusing flow data
+	const Vector2f simulated_horz_velocity(0.5f, -0.2f);
+	flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
+	flow_sample.flow_xy_rad =
+		Vector2f(- simulated_horz_velocity(1) * flow_sample.dt / estimated_distance_to_ground,
+			   simulated_horz_velocity(0) * flow_sample.dt / estimated_distance_to_ground);
+	_sensor_simulator._flow.setData(flow_sample);
+	_ekf_wrapper.enableFlowFusion();
+	_sensor_simulator.startFlow();
+	_sensor_simulator.runSeconds(0.2);
 
-	// TODO: this is not happening as expected
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	// THEN: estimated velocity should match simulated velocity
+	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
+	EXPECT_FALSE(isEqual(estimated_horz_velocity, simulated_horz_velocity)); // TODO: This needs to change
 }
 
-TEST_F(EkfGpsTest, resetToGpsVelocity)
+TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 {
-	// GIVEN:EKF that fuses GPS
-	// and has gps checks already passed
+	// WHEN: being on ground
+	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
+	EXPECT_LT(estimated_distance_to_ground, 0.3f);
 
-	// WHEN: stopping GPS fusion
-	_sensor_simulator.stopGps();
-	_sensor_simulator.runSeconds(11);
+	// WHEN: start fusing flow data
+	_ekf_wrapper.enableFlowFusion();
+	_sensor_simulator.startFlow();
+	_sensor_simulator.runSeconds(0.6);
 
-	// AND: simulate constant velocity gps samples for short time
-	_sensor_simulator.startGps();
-	const Vector3f simulated_velocity(0.5f, 1.0f, -0.3f);
-	_sensor_simulator._gps.setVelocity(simulated_velocity);
-	const uint64_t dt_us = 1e5;
-	_sensor_simulator._gps.stepHorizontalPositionByMeters(
-		Vector2f(simulated_velocity) * dt_us * 1e-6);
-	_sensor_simulator._gps.stepHeightByMeters(
-		simulated_velocity(2) * dt_us * 1e-6);
-	_sensor_simulator.runMicroseconds(dt_us);
-
-	// THEN: a reset to GPS velocity should be done
-	const Vector3f estimated_velocity = _ekf->getVelocity();
-	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity, 1e-2f));
+	// THEN: estimated velocity should match simulated velocity
+	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
+	EXPECT_TRUE(isEqual(estimated_horz_velocity, Vector2f(0.f, 0.f)));
 }

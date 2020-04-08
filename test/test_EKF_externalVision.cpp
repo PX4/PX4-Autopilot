@@ -101,6 +101,47 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_FALSE(_ekf->global_position_is_valid());
 }
 
+TEST_F(EkfExternalVisionTest, visionVelocityReset)
+{
+	const Vector3f simulated_velocity(0.3f, -1.0f, 0.4f);
+
+	_sensor_simulator._vio.setVelocity(simulated_velocity);
+	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_sensor_simulator.startExternalVision();
+	_sensor_simulator.runMicroseconds(6e5);
+
+	// THEN: a reset to Vision velocity should be done
+	const Vector3f estimated_velocity = _ekf->getVelocity();
+	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity, 1e-5f));
+}
+
+TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
+{
+	// GIVEN: Drone is pointing north, and we use mag (ROTATE_EV)
+	//        Heading of drone in EKF frame is 0°
+
+	// WHEN: Vision frame is rotate +90°. The reported heading is -90°
+	Quatf vision_to_ekf(Eulerf(0.0f,0.0f,math::radians(-90.0f)));
+	_sensor_simulator._vio.setOrientation(vision_to_ekf.inversed());
+	_ekf_wrapper.enableExternalVisionAlignment();
+
+	const Vector3f simulated_velocity_in_vision_frame(0.3f, -1.0f, 0.4f);
+	const Vector3f simulated_velocity_in_ekf_frame =
+		Dcmf(vision_to_ekf) * simulated_velocity_in_vision_frame;
+	_sensor_simulator._vio.setVelocity(simulated_velocity_in_vision_frame);
+	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_sensor_simulator.startExternalVision();
+	_sensor_simulator.runMicroseconds(6e5);
+
+	// THEN: a reset to Vision velocity should be done
+	const Vector3f estimated_velocity_in_ekf_frame = _ekf->getVelocity();
+	EXPECT_TRUE(isEqual(estimated_velocity_in_ekf_frame, simulated_velocity_in_ekf_frame, 1e-5f));
+	// And: the frame offset should be estimated correctly
+	Quatf estimatedExternalVisionFrameOffset = _ekf->getVisionAlignmentQuaternion();
+	EXPECT_TRUE(matrix::isEqual(vision_to_ekf.canonical(),
+				    estimatedExternalVisionFrameOffset.canonical()));
+}
+
 TEST_F(EkfExternalVisionTest, visionVarianceCheck)
 {
 	const Vector3f velVar_init = _ekf->getVelocityVariance();

@@ -104,7 +104,7 @@ void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 	_has_replay_data = true;
 }
 
-void SensorSimulator::setSensorDataToDefault()
+void SensorSimulator::setSensorRateToDefault()
 {
 	_imu.setRateHz(250);
 	_mag.setRateHz(80);
@@ -115,7 +115,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_vio.setRateHz(30);
 	_airspeed.setRateHz(100);
 }
-void SensorSimulator::setSensorRateToDefault()
+void SensorSimulator::setSensorDataToDefault()
 {
 	_imu.setData(Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G},
 		     Vector3f{0.0f,0.0f,0.0f});

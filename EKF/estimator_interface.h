@@ -302,7 +302,7 @@ public:
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
 	float getVerticalPositionDerivative() const
 	{
-		return _output_vert_new.vel_d - _vel_imu_rel_body_ned(2);
+		return _output_vert_new.vert_vel - _vel_imu_rel_body_ned(2);
 	}
 
 	// get the position of the body frame origin in local earth frame
