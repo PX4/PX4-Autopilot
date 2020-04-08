@@ -505,6 +505,28 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 			_last_sensor_data[uorb_index].accelerometer_m_s2[1] = accel_data(1);
 			_last_sensor_data[uorb_index].accelerometer_m_s2[2] = accel_data(2);
 
+			// record if there's any clipping per axis
+			_last_sensor_data[uorb_index].accelerometer_clipping = 0;
+
+			if (accel_report.clip_counter[0] > 0 || accel_report.clip_counter[1] > 0 || accel_report.clip_counter[2] > 0) {
+
+				const Vector3f sensor_clip_count{(float)accel_report.clip_counter[0], (float)accel_report.clip_counter[1], (float)accel_report.clip_counter[2]};
+				const Vector3f clipping{_board_rotation * sensor_clip_count};
+				static constexpr float CLIP_COUNT_THRESHOLD = 1.f;
+
+				if (fabsf(clipping(0)) >= CLIP_COUNT_THRESHOLD) {
+					_last_sensor_data[uorb_index].accelerometer_clipping |= sensor_combined_s::CLIPPING_X;
+				}
+
+				if (fabsf(clipping(1)) >= CLIP_COUNT_THRESHOLD) {
+					_last_sensor_data[uorb_index].accelerometer_clipping |= sensor_combined_s::CLIPPING_Y;
+				}
+
+				if (fabsf(clipping(2)) >= CLIP_COUNT_THRESHOLD) {
+					_last_sensor_data[uorb_index].accelerometer_clipping |= sensor_combined_s::CLIPPING_Z;
+				}
+			}
+
 			_last_accel_timestamp[uorb_index] = accel_report.timestamp;
 			_accel.voter.put(uorb_index, accel_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
 					 accel_report.error_count, _accel.priority[uorb_index]);
@@ -519,6 +541,8 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 	if (best_index >= 0) {
 		raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
 		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[best_index].accelerometer_m_s2, sizeof(raw.accelerometer_m_s2));
+
+		raw.accelerometer_clipping = _last_sensor_data[best_index].accelerometer_clipping;
 
 		if (best_index != _accel.last_best_vote) {
 			_accel.last_best_vote = (uint8_t)best_index;
