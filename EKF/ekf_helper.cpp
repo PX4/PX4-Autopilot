@@ -49,16 +49,11 @@
 // gps measurement then use for velocity initialisation
 bool Ekf::resetVelocity()
 {
-	// used to calculate the velocity change due to the reset
-	const Vector3f vel_before_reset = _state.vel;
-
-	// reset EKF states
 	if (_control_status.flags.gps && isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us)) {
 		ECL_INFO_TIMESTAMPED("reset velocity to GPS");
 		// this reset is only called if we have new gps data at the fusion time horizon
-		_state.vel = _gps_sample_delayed.vel;
+		resetVelocityTo(_gps_sample_delayed.vel);
 
-		// use GPS accuracy to reset variances
 		P.uncorrelateCovarianceSetVariance<3>(4, sq(_gps_sample_delayed.sacc));
 
 	} else if (_control_status.flags.opt_flow) {
@@ -78,16 +73,11 @@ bool Ekf::resetVelocity()
 			vel_optflow_body(2) = 0.0f;
 
 			// rotate from body to earth frame
-			Vector3f vel_optflow_earth;
-			vel_optflow_earth = _R_to_earth * vel_optflow_body;
+			const Vector3f vel_optflow_earth = _R_to_earth * vel_optflow_body;
 
-			// take x and Y components
-			_state.vel(0) = vel_optflow_earth(0);
-			_state.vel(1) = vel_optflow_earth(1);
-
+			resetHorizontalVelocityTo(Vector2f(vel_optflow_earth));
 		} else {
-			_state.vel(0) = 0.0f;
-			_state.vel(1) = 0.0f;
+			resetHorizontalVelocityTo(Vector2f{0.f, 0.f});
 		}
 
 		// reset the horizontal velocity variance using the optical flow noise variance
@@ -99,35 +89,53 @@ bool Ekf::resetVelocity()
 		if(_params.fusion_mode & MASK_ROTATE_EV){
 			_ev_vel = _R_ev_to_ekf *_ev_sample_delayed.vel;
 		}
-		_state.vel = _ev_vel;
+		resetVelocityTo(_ev_vel);
 		P.uncorrelateCovarianceSetVariance<3>(4, _ev_sample_delayed.velVar);
+
 	} else {
 		ECL_INFO_TIMESTAMPED("reset velocity to zero");
 		// Used when falling back to non-aiding mode of operation
-		_state.vel(0) = 0.0f;
-		_state.vel(1) = 0.0f;
+		resetHorizontalVelocityTo(Vector2f{0.f, 0.f});
 		P.uncorrelateCovarianceSetVariance<2>(4, 25.0f);
 	}
 
-	// calculate the change in velocity and apply to the output predictor state history
-	const Vector3f velocity_change = _state.vel - vel_before_reset;
+	return true;
+}
+
+void Ekf::resetVelocityTo(const Vector3f &new_vel) {
+	resetHorizontalVelocityTo(Vector2f(new_vel));
+	resetVerticalVelocityTo(new_vel(2));
+}
+
+void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel) {
+	const Vector2f delta_horz_vel = new_horz_vel - Vector2f(_state.vel);
+	_state.vel.xy() = new_horz_vel;
 
 	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		_output_buffer[index].vel += velocity_change;
+		_output_buffer[index].vel(0) += delta_horz_vel(0);
+		_output_buffer[index].vel(1) += delta_horz_vel(1);
 	}
+	_output_new.vel(0) += delta_horz_vel(0);
+	_output_new.vel(1) += delta_horz_vel(1);
 
-	// apply the change in velocity to our newest velocity estimate
-	// which was already taken out from the output buffer
-	_output_new.vel += velocity_change;
-
-	// capture the reset event
-	_state_reset_status.velNE_change(0) = velocity_change(0);
-	_state_reset_status.velNE_change(1) = velocity_change(1);
-	_state_reset_status.velD_change = velocity_change(2);
+	_state_reset_status.velNE_change = delta_horz_vel;
 	_state_reset_status.velNE_counter++;
-	_state_reset_status.velD_counter++;
+}
 
-	return true;
+void Ekf::resetVerticalVelocityTo(float new_vert_vel) {
+	const float delta_vert_vel = new_vert_vel - _state.vel(2);
+	_state.vel(2) = new_vert_vel;
+
+	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
+		_output_buffer[index].vel(2) += delta_vert_vel;
+		_output_vert_buffer[index].vert_vel += delta_vert_vel;
+	}
+	_output_new.vel(2) += delta_vert_vel;
+	_output_vert_delayed.vert_vel = new_vert_vel;
+	_output_vert_new.vert_vel += delta_vert_vel;
+
+	_state_reset_status.velD_change = delta_vert_vel;
+	_state_reset_status.velD_counter++;
 }
 
 // Reset position states. If we have a recent and valid
@@ -222,8 +230,6 @@ void Ekf::resetHeight()
 	// store the current vertical position and velocity for reference so we can calculate and publish the reset amount
 	float old_vert_pos = _state.pos(2);
 	bool vert_pos_reset = false;
-	float old_vert_vel = _state.vel(2);
-	bool vert_vel_reset = false;
 
 	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
@@ -297,32 +303,24 @@ void Ekf::resetHeight()
 	// reset the vertical velocity state
 	if (_control_status.flags.gps && !_gps_hgt_intermittent) {
 		// If we are using GPS, then use it to reset the vertical velocity
-		_state.vel(2) = gps_newest.vel(2);
+		resetVerticalVelocityTo(gps_newest.vel(2));
 
 		// the state variance is the same as the observation
 		P.uncorrelateCovarianceSetVariance<1>(6, sq(1.5f * gps_newest.sacc));
 
 	} else {
 		// we don't know what the vertical velocity is, so set it to zero
-		_state.vel(2) = 0.0f;
+		resetVerticalVelocityTo(0.0f);
 
 		// Set the variance to a value large enough to allow the state to converge quickly
 		// that does not destabilise the filter
 		P.uncorrelateCovarianceSetVariance<1>(6, 10.0f);
-
 	}
-
-	vert_vel_reset = true;
 
 	// store the reset amount and time to be published
 	if (vert_pos_reset) {
 		_state_reset_status.posD_change = _state.pos(2) - old_vert_pos;
 		_state_reset_status.posD_counter++;
-	}
-
-	if (vert_vel_reset) {
-		_state_reset_status.velD_change = _state.vel(2) - old_vert_vel;
-		_state_reset_status.velD_counter++;
 	}
 
 	// apply the change in height / height rate to our newest height / height rate estimate
@@ -331,32 +329,18 @@ void Ekf::resetHeight()
 		_output_new.pos(2) += _state_reset_status.posD_change;
 	}
 
-	if (vert_vel_reset) {
-		_output_new.vel(2) += _state_reset_status.velD_change;
-	}
-
 	// add the reset amount to the output observer buffered data
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
 		if (vert_pos_reset) {
 			_output_buffer[i].pos(2) += _state_reset_status.posD_change;
-			_output_vert_buffer[i].vel_d_integ += _state_reset_status.posD_change;
-		}
-
-		if (vert_vel_reset) {
-			_output_buffer[i].vel(2) += _state_reset_status.velD_change;
-			_output_vert_buffer[i].vel_d += _state_reset_status.velD_change;
+			_output_vert_buffer[i].vert_vel_integ += _state_reset_status.posD_change;
 		}
 	}
 
 	// add the reset amount to the output observer vertical position state
 	if (vert_pos_reset) {
-		_output_vert_delayed.vel_d_integ = _state.pos(2);
-		_output_vert_new.vel_d_integ = _state.pos(2);
-	}
-
-	if (vert_vel_reset) {
-		_output_vert_delayed.vel_d = _state.vel(2);
-		_output_vert_new.vel_d = _state.vel(2);
+		_output_vert_delayed.vert_vel_integ = _state.pos(2);
+		_output_vert_new.vert_vel_integ = _state.pos(2);
 	}
 }
 

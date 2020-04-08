@@ -577,6 +577,12 @@ private:
 	// reset velocity states of the ekf
 	bool resetVelocity();
 
+	void resetVelocityTo(const Vector3f &vel);
+
+	inline void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
+
+	inline void resetVerticalVelocityTo(float new_vert_vel);
+
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
 

@@ -369,13 +369,13 @@ void Ekf::calculateOutputStates()
 	// increment the INS velocity states by the measurement plus corrections
 	// do the same for vertical state used by alternative correction algorithm
 	_output_new.vel += delta_vel_earth;
-	_output_vert_new.vel_d += delta_vel_earth(2);
+	_output_vert_new.vert_vel += delta_vel_earth(2);
 
 	// use trapezoidal integration to calculate the INS position states
 	// do the same for vertical state used by alternative correction algorithm
 	const Vector3f delta_pos_NED = (_output_new.vel + vel_last) * (imu.delta_vel_dt * 0.5f);
 	_output_new.pos += delta_pos_NED;
-	_output_vert_new.vel_d_integ += delta_pos_NED(2);
+	_output_vert_new.vert_vel_integ += delta_pos_NED(2);
 
 	// accumulate the time for each update
 	_output_vert_new.dt += imu.delta_vel_dt;
@@ -447,21 +447,21 @@ void Ekf::calculateOutputStates()
 		const float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
 		{
 			/*
-			 * Calculate a correction to be applied to vel_d that casues vel_d_integ to track the EKF
+			 * Calculate a correction to be applied to vert_vel that casues vert_vel_integ to track the EKF
 			 * down position state at the fusion time horizon using an alternative algorithm to what
-			 * is used for the vel and pos state tracking. The algorithm applies a correction to the vel_d
-			 * state history and propagates vel_d_integ forward in time using the corrected vel_d history.
+			 * is used for the vel and pos state tracking. The algorithm applies a correction to the vert_vel
+			 * state history and propagates vert_vel_integ forward in time using the corrected vert_vel history.
 			 * This provides an alternative vertical velocity output that is closer to the first derivative
 			 * of the position but does degrade tracking relative to the EKF state.
 			 */
 
 			// calculate down velocity and position tracking errors
-			const float vel_d_err = (_state.vel(2) - _output_vert_delayed.vel_d);
-			const float pos_d_err = (_state.pos(2) - _output_vert_delayed.vel_d_integ);
+			const float vert_vel_err = (_state.vel(2) - _output_vert_delayed.vert_vel);
+			const float vert_vel_integ_err = (_state.pos(2) - _output_vert_delayed.vert_vel_integ);
 
 			// calculate a velocity correction that will be applied to the output state history
 			// using a PD feedback tuned to a 5% overshoot
-			const float vel_d_correction = pos_d_err * pos_gain + vel_d_err * pos_gain * 1.1f;
+			const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * pos_gain * 1.1f;
 
 			/*
 			 * Calculate corrections to be applied to vel and pos output state history.
@@ -470,7 +470,7 @@ void Ekf::calculateOutputStates()
 			 */
 
 			// loop through the vertical output filter state history starting at the oldest and apply the corrections to the
-			// vel_d states and propagate vel_d_integ forward using the corrected vel_d
+			// vert_vel states and propagate vert_vel_integ forward using the corrected vert_vel
 			uint8_t index = _output_vert_buffer.get_oldest_index();
 
 			const uint8_t size = _output_vert_buffer.get_length();
@@ -482,13 +482,13 @@ void Ekf::calculateOutputStates()
 
 				// correct the velocity
 				if (counter == 0) {
-					current_state.vel_d += vel_d_correction;
+					current_state.vert_vel += vert_vel_correction;
 				}
 
-				next_state.vel_d += vel_d_correction;
+				next_state.vert_vel += vert_vel_correction;
 
 				// position is propagated forward using the corrected velocity and a trapezoidal integrator
-				next_state.vel_d_integ = current_state.vel_d_integ + (current_state.vel_d + next_state.vel_d) * 0.5f * next_state.dt;
+				next_state.vert_vel_integ = current_state.vert_vel_integ + (current_state.vert_vel + next_state.vert_vel) * 0.5f * next_state.dt;
 
 				// advance the index
 				index = (index + 1) % size;

@@ -496,6 +496,9 @@ void Ekf::controlOpticalFlowFusion()
 				// if we are not using GPS or external vision aiding, then the velocity and position states and covariances need to be set
 				const bool flow_aid_only = !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow);
 				if (flow_aid_only) {
+					// TODO: Issue: First time we want to reset the optical flow velocity
+					// we will use _flow_compensated_XY_rad in the resetVelocity() function,
+					// but _flow_compensated_XY_rad is this zero as it gets updated for the first time below here.
 					resetVelocity();
 					resetPosition();
 
