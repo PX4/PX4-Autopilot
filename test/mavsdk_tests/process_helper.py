@@ -6,7 +6,6 @@ import os
 import atexit
 import subprocess
 import threading
-import pathlib
 import errno
 from typing import Any, Dict, List, TextIO, Optional
 
@@ -31,7 +30,6 @@ class Runner:
         self.start_time = time.time()
         self.log_dir = log_dir
         self.log_filename = ""
-        self.wait_until_complete = False
         self.stop_thread: Any[threading.Event] = None
 
     def set_log_filename(self, log_filename: str) -> None:
@@ -62,11 +60,6 @@ class Runner:
         self.stop_thread = threading.Event()
         self.thread = threading.Thread(target=self.process_output)
         self.thread.start()
-        if self.wait_until_complete:
-            timeout_s = 10.0
-            if self.wait(timeout_s) != 0:
-                raise TimeoutError("Command '{}' not completed within {}"
-                                   .format(self.cmd, timeout_s))
 
     def process_output(self) -> None:
         assert self.process.stdout is not None
@@ -211,24 +204,6 @@ class GzserverRunner(Runner):
             self.env[var] = os.environ[var]
 
 
-class WaitforgzRunner(Runner):
-    def __init__(self,
-                 workspace_dir: str,
-                 log_dir: str,
-                 model: str,
-                 case: str,
-                 verbose: bool):
-        super().__init__(log_dir, model, case, verbose)
-        self.name = "waitforgz"
-        self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH'],
-                    "HOME": os.environ['HOME']}
-        script_dir = pathlib.Path(__file__).parent.absolute()
-        self.cmd = os.path.join(script_dir, "waitforgz.sh")
-        self.args = []
-        self.wait_until_complete = True
-
-
 class GzmodelspawnRunner(Runner):
     def __init__(self,
                  workspace_dir: str,
@@ -252,7 +227,6 @@ class GzmodelspawnRunner(Runner):
                      self.model + "/" + self.model + ".sdf",
                      "--model-name", self.model,
                      "-x", "1.01", "-y", "0.98", "-z", "0.83"]
-        self.wait_until_complete = True
 
 
 class GzclientRunner(Runner):
