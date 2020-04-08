@@ -423,7 +423,7 @@ class Tester:
 
             # Workaround to prevent gz not being able to communicate
             # with gzserver
-            if runner.name == "gzserver":
+            if os.getenv("GITHUB_WORKFLOW") and runner.name == "gzserver":
                 time.sleep(10)
 
         if abort:
