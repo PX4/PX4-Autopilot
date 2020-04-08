@@ -48,7 +48,9 @@ bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);
 	reset();
-
+	_accel_lpf.setAlpha(.1f);
+	_gyro_lpf.setAlpha(.1f);
+	_mag_lpf.setAlpha(.1f);
 	return ret;
 }
 

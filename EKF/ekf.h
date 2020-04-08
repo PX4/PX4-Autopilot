@@ -458,11 +458,11 @@ private:
 	bool _is_first_imu_sample{true};
 	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
-	AlphaFilterVector3f _accel_lpf;		///< filtered accelerometer measurement used to align tilt (m/s/s)
-	AlphaFilterVector3f _gyro_lpf;		///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
+	AlphaFilter<Vector3f> _accel_lpf;	///< filtered accelerometer measurement used to align tilt (m/s/s)
+	AlphaFilter<Vector3f> _gyro_lpf;	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
 	// Variables used to perform in flight resets and switch between height sources
-	AlphaFilterVector3f _mag_lpf;		///< filtered magnetometer measurement for instant reset (Gauss)
+	AlphaFilter<Vector3f> _mag_lpf;		///< filtered magnetometer measurement for instant reset (Gauss)
 	float _hgt_sensor_offset{0.0f};		///< set as necessary if desired to maintain the same height after a height reset (m)
 	float _baro_hgt_offset{0.0f};		///< baro height reading at the local NED origin (m)
 
