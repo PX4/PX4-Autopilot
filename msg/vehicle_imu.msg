@@ -11,5 +11,7 @@ float32[3] delta_velocity       # delta velocity in the NED board axis in m/s ov
 
 uint16 dt                       # integration period in us
 
-uint8 integrated_samples        # number of samples integrated
-uint8 clip_count                # total clip count per integration period on any axis
+uint8 CLIPPING_X = 1
+uint8 CLIPPING_Y = 2
+uint8 CLIPPING_Z = 4
+uint8 delta_velocity_clipping   # bitfield indicating if there was any accelerometer clipping (per axis) during the integration time frame

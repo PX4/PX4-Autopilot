@@ -120,17 +120,16 @@ private:
 
 	uint64_t		_error_count{0};
 
-	uint32_t		_clipping[3] {};
+	uint32_t		_clipping_total[3] {};
 
 	uint16_t		_update_rate{1000};
 
 	// integrator
 	hrt_abstime		_timestamp_sample_prev{0};
 	matrix::Vector3f	_integration_raw{};
+	matrix::Vector3f	_integrator_clipping{};
 	int16_t			_last_sample[3] {};
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};
-	uint8_t			_integrator_clipping{0};
-
 };
