@@ -43,7 +43,6 @@ void ICM42688P::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -64,11 +63,6 @@ I2CSPIDriverBase *ICM42688P::instantiate(const BusCLIArguments &cli, const BusIn
 	}
 
 	return instance;
-}
-
-void ICM42688P::custom_method(const BusCLIArguments &cli)
-{
-	Reset();
 }
 
 extern "C" int icm42688p_main(int argc, char *argv[])
@@ -105,10 +99,6 @@ extern "C" int icm42688p_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "reset")) {
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();
