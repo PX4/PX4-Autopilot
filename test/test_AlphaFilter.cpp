@@ -31,6 +31,12 @@
  *
  ****************************************************************************/
 
+/**
+ * @file test_AlphaFilter.cpp
+ *
+ * @brief Unit tests for the alpha filter class
+ */
+
 #include <gtest/gtest.h>
 #include <cmath>
 #include <matrix/math.hpp>
@@ -39,26 +45,23 @@
 
 using matrix::Vector3f;
 
-class AlphaFilterTest : public ::testing::Test {
- public:
-	AlphaFilter<float> filter_float{};
-	AlphaFilter<Vector3f> filter_v3{};
-};
-
-TEST_F(AlphaFilterTest, initializeToZero)
+TEST(AlphaFilterTest, initializeToZero)
 {
+	AlphaFilter<float> filter_float{};
 	ASSERT_EQ(filter_float.getState(), 0.f);
 }
 
-TEST_F(AlphaFilterTest, resetToValue)
+TEST(AlphaFilterTest, resetToValue)
 {
+	AlphaFilter<float> filter_float{};
 	const float reset_value = 42.42f;
 	filter_float.reset(reset_value);
 	ASSERT_EQ(filter_float.getState(), reset_value);
 }
 
-TEST_F(AlphaFilterTest, runZero)
+TEST(AlphaFilterTest, runZero)
 {
+	AlphaFilter<float> filter_float{};
 	const float input = 0.f;
 	for (int i = 0; i < 10; i++) {
 		filter_float.update(input);
@@ -66,10 +69,12 @@ TEST_F(AlphaFilterTest, runZero)
 	ASSERT_EQ(filter_float.getState(), input);
 }
 
-TEST_F(AlphaFilterTest, runPositive)
+TEST(AlphaFilterTest, runPositive)
 {
-	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.1)
+	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
+	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
+	filter_float.setAlpha(.1f);
 
 	// WHEN we run the filter 9 times
 	for (int i = 0; i < 9; i++) {
@@ -80,10 +85,12 @@ TEST_F(AlphaFilterTest, runPositive)
 	ASSERT_NEAR(filter_float.getState(), 0.63f, 0.02);
 }
 
-TEST_F(AlphaFilterTest, runNegative)
+TEST(AlphaFilterTest, runNegative)
 {
-	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.1)
+	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
+	AlphaFilter<float> filter_float{};
 	const float input = -1.f;
+	filter_float.setAlpha(.1f);
 
 	// WHEN we run the filter 9 times
 	for (int i = 0; i < 9; i++) {
@@ -94,10 +101,12 @@ TEST_F(AlphaFilterTest, runNegative)
 	ASSERT_NEAR(filter_float.getState(), -0.63f, 0.02);
 }
 
-TEST_F(AlphaFilterTest, riseTime)
+TEST(AlphaFilterTest, riseTime)
 {
-	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.1)
+	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
+	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
+	filter_float.setAlpha(.1f);
 
 	// WHEN we run the filter 27 times (3 * time constant)
 	for (int i = 0; i < 3 * 9; i++) {
@@ -108,10 +117,12 @@ TEST_F(AlphaFilterTest, riseTime)
 	ASSERT_NEAR(filter_float.getState(), 0.95f, 0.02f);
 }
 
-TEST_F(AlphaFilterTest, convergence)
+TEST(AlphaFilterTest, convergence)
 {
-	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.1)
+	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
+	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
+	filter_float.setAlpha(.1f);
 
 	// WHEN we run the filter 45 times (5 * time constant)
 	for (int i = 0; i < 5 * 9; i++) {
@@ -122,10 +133,12 @@ TEST_F(AlphaFilterTest, convergence)
 	ASSERT_NEAR(filter_float.getState(), 1.f, 0.01f);
 }
 
-TEST_F(AlphaFilterTest, convergenceVector3f)
+TEST(AlphaFilterTest, convergenceVector3f)
 {
-	// GIVEN an Vector3f input in a filter with a default time constant of 9 (alpha = 0.1)
+	// GIVEN an Vector3f input in a filter with a default time constant of 9 (alpha = 0.9)
+	AlphaFilter<Vector3f> filter_v3{};
 	const Vector3f input = {3.f, 7.f, -11.f};
+	filter_v3.setAlpha(.1f);
 
 	// WHEN we run the filter 45 times (5 * time constant)
 	for (int i = 0; i < 5 * 9; i++) {
@@ -139,17 +152,18 @@ TEST_F(AlphaFilterTest, convergenceVector3f)
 	}
 }
 
-TEST_F(AlphaFilterTest, convergenceVector3fAlpha)
+TEST(AlphaFilterTest, convergenceVector3fAlpha)
 {
 	// GIVEN a Vector3f input in a filter with a defined time constant and the default sampling time
+	AlphaFilter<Vector3f> filter_v3{};
 	const Vector3f input = {3.f, 7.f, -11.f};
 	const float tau = 18.f;
 	const float dt = 1.f;
-	const float alpha = dt / tau;
+	filter_v3.setParameters(dt, tau);
 
 	// WHEN we run the filter 18 times (1 * time constant)
 	for (int i = 0; i < 18; i++) {
-		filter_v3.update(input, alpha); // dt is assumed equal to 1
+		filter_v3.update(input); // dt is assumed equal to 1
 	}
 
 	// THEN the state of the filter should have reached 65% (2% error allowed)
@@ -159,17 +173,19 @@ TEST_F(AlphaFilterTest, convergenceVector3fAlpha)
 	}
 }
 
-TEST_F(AlphaFilterTest, convergenceVector3fTauDt)
+TEST(AlphaFilterTest, convergenceVector3fTauDt)
 {
 	// GIVEN a Vector3f input in a filter with a defined time constant and sampling time
+	AlphaFilter<Vector3f> filter_v3{};
 	const Vector3f input = {51.f, 7.f, -11.f};
 	const float tau = 2.f;
 	const float dt = 0.1f;
+	filter_v3.setParameters(dt, tau);
 
 	// WHEN we run the filter (1 * time constant)
 	const float n = tau / dt;
 	for (int i = 0; i < n; i++) {
-		filter_v3.update(input, tau, dt);
+		filter_v3.update(input);
 	}
 
 	// THEN the state of the filter should have reached 65% (2% error allowed)
@@ -187,4 +203,58 @@ TEST_F(AlphaFilterTest, convergenceVector3fTauDt)
 	for (int i = 0; i < 3; i++) {
 		ASSERT_EQ(output(i), reset_vector(i));
 	}
+}
+
+TEST(AlphaFilterTest, AllZeroTest)
+{
+	AlphaFilter<float> _alpha_filter;
+	_alpha_filter.update(0.f);
+	EXPECT_FLOAT_EQ(_alpha_filter.getState(), 0.f);
+}
+
+TEST(AlphaFilterTest, AlphaOneTest)
+{
+	AlphaFilter<float> _alpha_filter;
+	_alpha_filter.setParameters(1e-5f, 1e5f);
+
+	for (int i = 0; i < 100; i++) {
+		_alpha_filter.update(1.f);
+		EXPECT_NEAR(_alpha_filter.getState(), 0.f, 1e-4f);
+	}
+}
+
+TEST(AlphaFilterTest, AlphaZeroTest)
+{
+	AlphaFilter<float> _alpha_filter;
+	_alpha_filter.setParameters(.1f, 0.f);
+
+	for (int i = 0; i < 100; i++) {
+		const float new_smaple = static_cast<float>(i);
+		_alpha_filter.update(new_smaple);
+		EXPECT_FLOAT_EQ(_alpha_filter.getState(), new_smaple);
+	}
+}
+
+TEST(AlphaFilterTest, ConvergenceTest)
+{
+	AlphaFilter<float> _alpha_filter;
+	_alpha_filter.setParameters(.1f, 1.f);
+
+	float last_value{0.f};
+
+	for (int i = 0; i < 100; i++) {
+		_alpha_filter.update(1.f);
+		EXPECT_GE(_alpha_filter.getState(), last_value);
+		last_value = _alpha_filter.getState();
+	}
+
+	EXPECT_NEAR(last_value, 1.f, 1e-4f);
+
+	for (int i = 0; i < 1000; i++) {
+		_alpha_filter.update(-100.f);
+		EXPECT_LE(_alpha_filter.getState(), last_value);
+		last_value = _alpha_filter.getState();
+	}
+
+	EXPECT_NEAR(last_value, -100.f, 1e-4f);
 }

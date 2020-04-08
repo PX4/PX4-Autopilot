@@ -59,8 +59,6 @@ class EstimatorInterface
 {
 
 public:
-	typedef AlphaFilter<Vector3f> AlphaFilterVector3f;
-
 	EstimatorInterface():_imu_down_sampler(FILTER_UPDATE_PERIOD_S){};
 	virtual ~EstimatorInterface() = default;
 

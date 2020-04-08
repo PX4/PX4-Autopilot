@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,32 +32,60 @@
  ****************************************************************************/
 
 /**
- * First order "alpha" IIR digital filter
+ * @file AlphaFilter.hpp
+ *
+ * @brief First order "alpha" IIR digital filter also known as leaky integrator or forgetting average.
+ *
  * @author Mathieu Bresciani <brescianimathieu@gmail.com>
+ * @author Matthias Grob <maetugr@gmail.com>
  */
 
 #pragma once
 
 template <typename T>
-class AlphaFilter final {
+class AlphaFilter {
 public:
 	AlphaFilter() = default;
 	~AlphaFilter() = default;
 
-	void reset(const T &val) { _x = val; }
-
-	void update(const T &input, float tau, float dt) {
-		const float alpha = dt / tau;
-		update(input, alpha);
+	/**
+	 * Set filter parameters for time abstraction
+	 *
+	 * Both parameters have to be provided in the same units.
+	 *
+	 * @param sample_interval interval between two samples
+	 * @param time_constant filter time constant determining convergence
+	 */
+	void setParameters(float sample_interval, float time_constant) {
+		setAlpha(sample_interval / (time_constant + sample_interval));
 	}
 
-	void update(const T &input, float alpha) { _x = (1.f - alpha) * _x + alpha * input; }
+	/**
+	 * Set filter parameter alpha directly without time abstraction
+	 *
+	 * @param alpha [0,1] filter weight for the previous state. High value - long time constant.
+	 */
+	void setAlpha(float alpha) { _alpha = alpha; }
 
-	// Typical 0.9/0.1 lowpass filter
-	void update(const T &input) { update(input, 0.1f); }
+	/**
+	 * Set filter state to an initial value
+	 *
+	 * @param sample new initial value
+	 */
+	void reset(const T &sample) { _filter_state = sample; }
 
-	const T &getState() const { return _x; }
+	/**
+	 * Add a new raw value to the filter
+	 *
+	 * @return retrieve the filtered result
+	 */
+	void update(const T &sample) { _filter_state = updateCalculation(sample); }
 
-private:
-	T _x{};  ///< current state of the filter
+	const T &getState() const { return _filter_state; }
+
+protected:
+	T updateCalculation(const T &sample) { return (1.f - _alpha) * _filter_state + _alpha * sample; }
+
+	float _alpha{0.f};
+	T _filter_state{};
 };
