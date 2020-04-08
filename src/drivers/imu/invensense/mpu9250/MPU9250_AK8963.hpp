@@ -61,7 +61,6 @@ public:
 	~MPU9250_AK8963() override;
 
 	bool Init();
-	void Start();
 	void Stop();
 	bool Reset();
 	void PrintInfo();
