@@ -122,7 +122,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 		option(ECL_TESTS "Build ECL tests" ON)
 
 		add_custom_target(check
-			COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C Debug
+			COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -C Debug
 			DEPENDS ecl_EKF
 			USES_TERMINAL
 		)
