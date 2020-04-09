@@ -228,76 +228,111 @@ Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
-				position_setpoint_triplet_s *rep = get_reposition_triplet();
-				position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
+				bool reposition_valid = true;
 
-				// store current position as previous position and goal as next
-				rep->previous.yaw = get_global_position()->yaw;
-				rep->previous.lat = get_global_position()->lat;
-				rep->previous.lon = get_global_position()->lon;
-				rep->previous.alt = get_global_position()->alt;
+				if (have_geofence_position_data &&
+				    ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+				     (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN))) {
 
-				rep->current.loiter_radius = get_loiter_radius();
-				rep->current.loiter_direction = 1;
-				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 
-				// If no argument for ground speed, use default value.
-				if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
-					rep->current.cruising_speed = get_cruising_speed();
+						vehicle_global_position_s test_reposition_validity {};
+						test_reposition_validity.lat = cmd.param5;
+						test_reposition_validity.lon = cmd.param6;
 
-				} else {
-					rep->current.cruising_speed = cmd.param1;
+						if (PX4_ISFINITE(cmd.param7)) {
+							test_reposition_validity.alt = cmd.param7;
+
+						} else {
+							test_reposition_validity.alt = get_global_position()->alt;
+						}
+
+						reposition_valid = _geofence.check(test_reposition_validity, _gps_pos, _home_pos,
+										   home_position_valid());
+					}
 				}
 
-				rep->current.cruising_throttle = get_cruising_throttle();
-				rep->current.acceptance_radius = get_acceptance_radius();
+				if (reposition_valid) {
+					position_setpoint_triplet_s *rep = get_reposition_triplet();
+					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
-				// Go on and check which changes had been requested
-				if (PX4_ISFINITE(cmd.param4)) {
-					rep->current.yaw = cmd.param4;
-					rep->current.yaw_valid = true;
+					// store current position as previous position and goal as next
+					rep->previous.yaw = get_global_position()->yaw;
+					rep->previous.lat = get_global_position()->lat;
+					rep->previous.lon = get_global_position()->lon;
+					rep->previous.alt = get_global_position()->alt;
 
-				} else {
-					rep->current.yaw = NAN;
-					rep->current.yaw_valid = false;
-				}
+					rep->current.loiter_radius = get_loiter_radius();
+					rep->current.loiter_direction = 1;
+					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 
-				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					// If no argument for ground speed, use default value.
+					if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
+						rep->current.cruising_speed = get_cruising_speed();
 
-					// Position change with optional altitude change
-					rep->current.lat = cmd.param5;
-					rep->current.lon = cmd.param6;
+					} else {
+						rep->current.cruising_speed = cmd.param1;
+					}
 
-					if (PX4_ISFINITE(cmd.param7)) {
+					rep->current.cruising_throttle = get_cruising_throttle();
+					rep->current.acceptance_radius = get_acceptance_radius();
+
+					// Go on and check which changes had been requested
+					if (PX4_ISFINITE(cmd.param4)) {
+						rep->current.yaw = cmd.param4;
+						rep->current.yaw_valid = true;
+
+					} else {
+						rep->current.yaw = NAN;
+						rep->current.yaw_valid = false;
+					}
+
+					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+
+						// Position change with optional altitude change
+						rep->current.lat = cmd.param5;
+						rep->current.lon = cmd.param6;
+
+						if (PX4_ISFINITE(cmd.param7)) {
+							rep->current.alt = cmd.param7;
+
+						} else {
+							rep->current.alt = get_global_position()->alt;
+						}
+
+					} else if (PX4_ISFINITE(cmd.param7)) {
+
+						// Altitude without position change
+						// This condition is necessary for altitude changes just after takeoff where lat and lon are still nan
+						if (curr->current.valid && PX4_ISFINITE(curr->current.lat) && PX4_ISFINITE(curr->current.lon)) {
+							rep->current.lat = curr->current.lat;
+							rep->current.lon = curr->current.lon;
+
+						} else {
+							rep->current.lat = get_global_position()->lat;
+							rep->current.lon = get_global_position()->lon;
+						}
+
 						rep->current.alt = cmd.param7;
 
 					} else {
+						// All three set to NaN - hold in current position
+						rep->current.lat = get_global_position()->lat;
+						rep->current.lon = get_global_position()->lon;
 						rep->current.alt = get_global_position()->alt;
 					}
 
-				} else if (PX4_ISFINITE(cmd.param7) && curr->current.valid
-					   && PX4_ISFINITE(curr->current.lat)
-					   && PX4_ISFINITE(curr->current.lon)) {
+					rep->previous.valid = true;
+					rep->previous.timestamp = hrt_absolute_time();
 
-					// Altitude without position change
-					rep->current.lat = curr->current.lat;
-					rep->current.lon = curr->current.lon;
-					rep->current.alt = cmd.param7;
+					rep->current.valid = true;
+					rep->current.timestamp = hrt_absolute_time();
+
+					rep->next.valid = false;
 
 				} else {
-					// All three set to NaN - hold in current position
-					rep->current.lat = get_global_position()->lat;
-					rep->current.lon = get_global_position()->lon;
-					rep->current.alt = get_global_position()->alt;
+					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence");
 				}
-
-				rep->previous.valid = true;
-				rep->previous.timestamp = hrt_absolute_time();
-
-				rep->current.valid = true;
-				rep->current.timestamp = hrt_absolute_time();
-
-				rep->next.valid = false;
 
 				// CMD_DO_REPOSITION is acknowledged by commander
 
@@ -458,6 +493,22 @@ Navigator::run()
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
 					mavlink_log_critical(&_mavlink_log_pub, "Geofence violation");
+
+					/* If we are already in loiter it is very likely that we are doing a reposition
+					 * so we should block that by repositioning in the current location */
+					if (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN
+					    && get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+						position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+						rep->current.yaw = get_global_position()->yaw;
+						rep->current.lat = get_global_position()->lat;
+						rep->current.lon = get_global_position()->lon;
+						rep->current.alt = get_global_position()->alt;
+						rep->current.valid = true;
+
+						_pos_sp_triplet_updated = true;
+					}
+
 					_geofence_violation_warning_sent = true;
 				}
 

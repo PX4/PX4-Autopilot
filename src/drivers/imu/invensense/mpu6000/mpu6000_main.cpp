@@ -36,15 +36,13 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-MPU6000::print_usage()
+void MPU6000::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("mpu6000", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -67,17 +65,12 @@ I2CSPIDriverBase *MPU6000::instantiate(const BusCLIArguments &cli, const BusInst
 	return instance;
 }
 
-void MPU6000::custom_method(const BusCLIArguments &cli)
-{
-	Reset();
-}
-
 extern "C" int mpu6000_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = MPU6000;
 	BusCLIArguments cli{false, true};
-	cli.default_spi_frequency = InvenSense_MPU6000::SPI_SPEED;
+	cli.default_spi_frequency = SPI_SPEED;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -106,10 +99,6 @@ extern "C" int mpu6000_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "reset")) {
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();

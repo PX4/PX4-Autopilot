@@ -69,13 +69,9 @@ public:
 	int init() override;
 	void print_status() override;
 
-	void Start();
-	bool Reset();
-
-protected:
-	void custom_method(const BusCLIArguments &cli) override;
-	void exit_and_cleanup() override;
 private:
+	void exit_and_cleanup() override;
+
 	// Sensor Configuration
 	static constexpr float FIFO_SAMPLE_DT{125.f};
 	static constexpr uint32_t SAMPLES_PER_TRANSFER{8};       // ensure at least 1 new accel sample per transfer
@@ -99,6 +95,8 @@ private:
 	};
 
 	int probe() override;
+
+	bool Reset();
 
 	bool Configure();
 	void ConfigureAccel();
