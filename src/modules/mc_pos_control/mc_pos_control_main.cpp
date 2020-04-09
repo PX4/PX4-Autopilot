@@ -480,8 +480,8 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 	if (PX4_ISFINITE(_local_pos.vx) && PX4_ISFINITE(_local_pos.vy) && _local_pos.v_xy_valid) {
 		_states.velocity(0) = _local_pos.vx;
 		_states.velocity(1) = _local_pos.vy;
-		_states.acceleration(0) = _vel_x_deriv.update(-_states.velocity(0));
-		_states.acceleration(1) = _vel_y_deriv.update(-_states.velocity(1));
+		_states.acceleration(0) = _vel_x_deriv.update(_states.velocity(0));
+		_states.acceleration(1) = _vel_y_deriv.update(_states.velocity(1));
 
 	} else {
 		_states.velocity(0) = _states.velocity(1) = NAN;
