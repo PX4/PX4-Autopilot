@@ -361,7 +361,9 @@ void Tiltrotor::update_transition_state()
 		_mc_yaw_weight = 1.0f;
 
 		// control backtransition deceleration using pitch.
-		_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
+		if (_v_control_mode->flag_control_climb_rate_enabled) {
+			_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
+		}
 
 		// while we quickly rotate back the motors keep throttle at idle
 		if (time_since_trans_start < 1.0f) {
@@ -379,7 +381,6 @@ void Tiltrotor::update_transition_state()
 
 	const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 	q_sp.copyTo(_v_att_sp->q_d);
-
 
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
 	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
