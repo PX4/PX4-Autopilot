@@ -145,7 +145,7 @@ void PositionControl::_velocityControl(const float dt)
 {
 	// PID velocity control
 	Vector3f vel_error = _vel_sp - _vel;
-	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int + _vel_dot.emult(_gain_vel_d);
+	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int - _vel_dot.emult(_gain_vel_d);
 
 	// For backwards compatibility of the gains to non-acceleration based control, needs to be overcome with configuration conversion
 	acc_sp_velocity *= CONSTANTS_ONE_G / _hover_thrust;
