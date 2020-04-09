@@ -44,7 +44,7 @@ jobs:
     - name: Core dump settings
       run: |
           ulimit -c unlimited
-          echo '/tmp/%e.core' > /proc/sys/kernel/core_pattern
+          echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
     - name: Run SITL tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
     - name: Run SITL tests in Southern hemisphere
@@ -55,13 +55,13 @@ jobs:
         test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
     - name: Look at core files
       if: failure()
-      run: gdb build/px4_sitl_default/bin/px4 /tmp/px4.core -ex "thread apply all bt" -ex "quit"
+      run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
     - name: Upload px4 coredump
       if: failure()
       uses: actions/upload-artifact@v1
       with:
         name: coredump
-        path: /tmp/px4.core
+        path: px4.core
     - name: Upload px4 binary
       if: failure()
       uses: actions/upload-artifact@v1
