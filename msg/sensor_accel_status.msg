@@ -3,6 +3,7 @@ uint64 timestamp          # time since system start (microseconds)
 uint32 device_id          # unique device ID for the sensor that does not change between power cycles
 
 uint64 error_count
+uint64 fifo_time_slip     # cumulative time difference between sensor and system (based on FIFO samples)
 
 float32 temperature
 

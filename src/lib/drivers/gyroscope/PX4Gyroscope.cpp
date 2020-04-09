@@ -326,6 +326,16 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 
 
 	PublishStatus();
+
+	// monitor time difference with sensor
+	_elapsed_time_fifo_sum += N * dt;
+
+	if (_elapsed_time_fifo_sum_start == 0) {
+		_elapsed_time_fifo_sum_start = sample.timestamp_sample - N * dt;
+	}
+
+	_fifo_time_slip = sample.timestamp_sample - _elapsed_time_fifo_sum_start - _elapsed_time_fifo_sum;
+	_fifo_time_ratio = (float)(sample.timestamp_sample - _elapsed_time_fifo_sum_start) / (float)_elapsed_time_fifo_sum;
 }
 
 void PX4Gyroscope::PublishStatus()
@@ -336,6 +346,7 @@ void PX4Gyroscope::PublishStatus()
 
 		status.device_id = _device_id;
 		status.error_count = _error_count;
+		status.fifo_time_slip = _fifo_time_slip;
 		status.full_scale_range = _range;
 		status.rotation = _rotation;
 		status.measure_rate_hz = _update_rate;
@@ -387,4 +398,9 @@ void PX4Gyroscope::print_status()
 
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));
+
+	if (_fifo_time_slip != 0) {
+		PX4_INFO("FIFO time slip: %" PRId64 " us (%.3f%% clock difference)", _fifo_time_slip,
+			 100 - (double)_fifo_time_ratio * 100);
+	}
 }

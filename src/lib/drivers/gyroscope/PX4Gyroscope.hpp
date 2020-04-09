@@ -126,6 +126,11 @@ private:
 
 	uint16_t		_update_rate{1000};
 
+	hrt_abstime		_elapsed_time_fifo_sum{0};
+	hrt_abstime		_elapsed_time_fifo_sum_start{0};
+	hrt_abstime		_fifo_time_slip{0};
+	float			_fifo_time_ratio{0.f};
+
 	// integrator
 	hrt_abstime		_timestamp_sample_prev{0};
 	matrix::Vector3f	_integration_raw{};
