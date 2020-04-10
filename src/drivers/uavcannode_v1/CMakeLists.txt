@@ -50,12 +50,15 @@ px4_add_module(
 	MAIN uavcannode_v1
 	COMPILE_FLAGS
 		-Wno-error
-	    -DUINT32_C\(x\)='x\#\#ull'
+	    -DUINT32_C\(x\)=__UINT32_C\(x\)
 	INCLUDES
 		${LIBCANARD_DIR}/libcanard/
 	SRCS
 		canard_main.c
 		socketcan.c
+		socketcan.h
+		uorb_converter.c
+		uorb_converter.h
 		o1heap.c
 		o1heap.h
 		${LIBCANARD_DIR}/libcanard/canard_dsdl.c

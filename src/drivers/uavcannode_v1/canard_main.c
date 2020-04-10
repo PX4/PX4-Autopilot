@@ -61,6 +61,7 @@
 
 #include "socketcan.h"
 #include "o1heap.h"
+#include "uorb_converter.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -114,15 +115,6 @@ static bool g_canard_daemon_started;
 static uint8_t my_message_transfer_id;  // Must be static or heap-allocated to retain state between calls.
 
 struct pollfd fd;
-int s; /* can raw socket */
-
-/* rcv msg */
-struct iovec recv_iov;
-struct msghdr recv_msg;
-char recv_buf[sizeof(struct canfd_frame)];
-char ctrlmsg[sizeof(struct cmsghdr) + sizeof(struct timeval)];
-
-
 
 /****************************************************************************
  * Public Functions
@@ -266,7 +258,7 @@ void processTxRxOnce(CanardInstance *ins, CanardSocketInstance *sock_ins, int ti
 		fprintf(stderr, "Receive error %d\n", result);
 
 	} else if (result == 1) {
-		processReceivedTransfer(&receive);  // A transfer has been received, process it.
+		uorbProcessPub(&receive);  // A transfer has been received, process it.
 		ins->memory_free(ins, (void *)receive.payload); // Deallocate the dynamic memory afterwards.
 
 	} else {
@@ -290,13 +282,23 @@ static int canard_daemon(int argc, char *argv[])
 {
 	int errval = 0;
 	int can_fd = 0;
+	int pub = 1;
 
 	if (argc > 2) {
-		if (!strcmp(argv[2], "canfd")) {
-			can_fd = 1;
+		for (int args = 2; args < argc; args++) {
+			if (!strcmp(argv[args], "canfd")) {
+				can_fd = 1;
+			}
+
+			if (!strcmp(argv[args], "pub")) {
+				pub = 1;
+			}
+
+			if (!strcmp(argv[args], "sub")) {
+				pub = 0;
+			}
 		}
 	}
-
 
 	my_allocator = o1heapInit(&uavcan_heap, O1_HEAP_SIZE, NULL, NULL);
 
@@ -335,8 +337,8 @@ static int canard_daemon(int argc, char *argv[])
 
 
 	printf("canard_daemon: canard initialized\n");
-	printf("start node (ID: %d Name: %s MTU: %d)\n", ins.node_id,
-	       APP_NODE_NAME, ins.mtu_bytes);
+	printf("start node (ID: %d Name: %s MTU: %d PUB: %d)\n", ins.node_id,
+	       APP_NODE_NAME, ins.mtu_bytes, pub);
 
 	CanardRxSubscription heartbeat_subscription;
 	(void) canardRxSubscribe(&ins,   // Subscribe to messages uavcan.node.Heartbeat.
@@ -348,12 +350,14 @@ static int canard_daemon(int argc, char *argv[])
 
 	CanardRxSubscription my_subscription;
 	(void) canardRxSubscribe(&ins,
-				 CanardTransferKindResponse,  // Indicate that we want service responses.
-				 123,                         // The Service-ID to subscribe to.
-				 1024,                        // The maximum payload size (max DSDL object size).
+				 CanardTransferKindMessage,
+				 PORT_ID,                     // The Service-ID to subscribe to.
+				 256,                  // The maximum payload size (max DSDL object size).
 				 CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				 &my_subscription);
 
+	/* Initialize uORB publishers & subscribers */
+	uorbConverterInit(&ins);
 
 	g_canard_daemon_started = true;
 	uint64_t next_1hz_service_at = getMonotonicTimestampUSec();
@@ -361,12 +365,16 @@ static int canard_daemon(int argc, char *argv[])
 	for (;;) {
 		processTxRxOnce(&ins, &sock_ins, 10);
 
-		const uint64_t ts = getMonotonicTimestampUSec();
+		if (pub) {
+			uorbProcessSub(10);
+		}
+
+		/*const uint64_t ts = getMonotonicTimestampUSec();
 
 		if (ts >= next_1hz_service_at) {
 			next_1hz_service_at += 1000000;
 			process1HzTasks(&ins, ts);
-		}
+		}*/
 	}
 
 errout_with_dev:
