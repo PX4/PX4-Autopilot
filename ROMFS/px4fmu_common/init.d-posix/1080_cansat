@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# @name Cansat SITL
+#
+# @type Quadrotor Wide
+#
+# @maintainer Jaeyoung Lim <jaeyoung@auterion.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_w
+
