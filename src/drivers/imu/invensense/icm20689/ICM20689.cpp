@@ -264,23 +264,23 @@ void ICM20689::ConfigureAccel()
 
 	switch (ACCEL_FS_SEL) {
 	case ACCEL_FS_SEL_2G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384);
-		_px4_accel.set_range(2 * CONSTANTS_ONE_G);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384.f);
+		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192);
-		_px4_accel.set_range(4 * CONSTANTS_ONE_G);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
+		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096);
-		_px4_accel.set_range(8 * CONSTANTS_ONE_G);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
+		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048);
-		_px4_accel.set_range(16 * CONSTANTS_ONE_G);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 		break;
 	}
 }
@@ -374,7 +374,7 @@ bool ICM20689::DataReadyInterruptConfigure()
 	}
 
 	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &ICM20689::DataReadyInterruptCallback, this) == 0;
+	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
 }
 
 bool ICM20689::DataReadyInterruptDisable()
@@ -493,8 +493,8 @@ bool ICM20689::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 		// force check if there is somehow fewer samples actually in the FIFO (potentially a serious error)
 		_force_fifo_count_check = true;
 
-	} else if (fifo_count_samples > samples + 4) {
-		// if we're more than a few samples behind force FIFO_COUNT check
+	} else if (fifo_count_samples >= samples + 2) {
+		// if we're more than a couple samples behind force FIFO_COUNT check
 		_force_fifo_count_check = true;
 
 	} else {
@@ -504,8 +504,14 @@ bool ICM20689::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 
 	if (valid_samples > 0) {
 		ProcessGyro(timestamp_sample, buffer, valid_samples);
-		return ProcessAccel(timestamp_sample, buffer, valid_samples);
+
+		if (ProcessAccel(timestamp_sample, buffer, valid_samples)) {
+			return true;
+		}
 	}
+
+	// force FIFO count check if there was any other error
+	_force_fifo_count_check = true;
 
 	return false;
 }
