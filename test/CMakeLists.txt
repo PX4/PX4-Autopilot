@@ -50,6 +50,7 @@ set(SRCS
 	test_EKF_withReplayData.cpp
 	test_EKF_flow.cpp
 	test_SensorRangeFinder.cpp
+	test_geo.cpp
    )
 add_executable(ECL_GTESTS ${SRCS})
 
