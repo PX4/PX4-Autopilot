@@ -509,6 +509,81 @@ pipeline {
           }
         }
 
+        stage("px4_fmu-v5_stackcheck") {
+          stages {
+            stage("build px4_fmu-v5_stackcheck") {
+              agent {
+                docker {
+                  image 'px4io/px4-dev-nuttx-bionic:2020-04-01'
+                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                }
+              }
+              steps {
+                sh 'export'
+                sh 'make distclean'
+                sh 'ccache -s'
+                sh 'git fetch --tags'
+                sh 'make px4_fmu-v5_stackcheck'
+                sh 'make sizes'
+                sh 'ccache -s'
+                stash includes: 'build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf', name: 'px4_fmu-v5_stackcheck'
+              }
+              post {
+                always {
+                    sh 'make distclean'
+                }
+              }
+            } // stage build
+            stage("test") {
+              agent {
+                label 'px4_fmu-v5'
+              }
+              stages {
+                stage("flash") {
+                  steps {
+                    sh 'export'
+                    sh 'find /dev/serial'
+                    unstash 'px4_fmu-v5_stackcheck'
+                    // flash board and watch bootup
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf'
+                    sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+                  }
+                }
+                stage("configure") {
+                  steps {
+                    // configure
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'   // disable buzzer
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set IMU_GYRO_RATEMAX 250"' // limit cpu usage
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set MAV_0_CONFIG 0"'       // limit cpu usage
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 4001"'   // generic multicopter
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                         // reboot to apply
+                  }
+                }
+                stage("status") {
+                  steps {
+                    statusFTDI()
+                  }
+                }
+                stage("tests") {
+                  steps {
+                    // run tests
+                    sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+                  }
+                }
+                stage("reset") {
+                  steps {
+                    cleanupFTDI();
+                  }
+                }
+              }
+              options {
+                timeout(time: 60, unit: 'MINUTES')
+              }
+            } // stage test
+          }
+        }
+
         stage("modalai_fc-v1_default") {
           stages {
             stage("build modalai_fc-v1_default") {
@@ -641,93 +716,6 @@ pipeline {
                   steps {
                     // run tests
                     sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
-                  }
-                }
-                stage("reset") {
-                  steps {
-                    cleanupFTDI();
-                  }
-                }
-              }
-              options {
-                timeout(time: 60, unit: 'MINUTES')
-              }
-            } // stage test
-          }
-        }
-
-        stage("holybro_durandal-v1_stackcheck") {
-          stages {
-            stage("build holybro_durandal-v1_stackcheck") {
-              agent {
-                docker {
-                  image 'px4io/px4-dev-nuttx-bionic:2020-04-01'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-                }
-              }
-              steps {
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
-                sh 'make holybro_durandal-v1_stackcheck'
-                sh 'make sizes'
-                sh 'ccache -s'
-                stash includes: 'build/holybro_durandal-v1_stackcheck/holybro_durandal-v1_stackcheck.elf', name: 'holybro_durandal-v1_stackcheck'
-              }
-              post {
-                always {
-                    sh 'make distclean'
-                }
-              }
-            } // stage build
-            stage("test") {
-              agent {
-                label 'holybro_durandal-v1'
-              }
-              stages {
-                stage("flash") {
-                  steps {
-                    sh 'export'
-                    sh 'find /dev/serial'
-                    unstash 'holybro_durandal-v1_stackcheck'
-                    // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/holybro_durandal-v1_stackcheck/holybro_durandal-v1_stackcheck.elf'
-                    sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
-                  }
-                }
-                stage("configure") {
-                  steps {
-                    // configure
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 13000"' // generic vtol standard
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_BL_UPDATE 1"'     // update bootloader
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                        // reboot to apply
-                  }
-                }
-                stage("status") {
-                  steps {
-                    statusFTDI()
-                  }
-                }
-                stage("tests") {
-                  steps {
-                    // run tests
-                    sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
-                  }
-                }
-                stage("stop modules") {
-                  steps {
-                    // manually stop everything
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "commander stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "navigator stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io stop"'
                   }
                 }
                 stage("reset") {
