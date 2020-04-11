@@ -77,6 +77,7 @@ int ICM20602::init()
 bool ICM20602::Reset()
 {
 	_state = STATE::RESET;
+	DataReadyInterruptDisable();
 	ScheduleClear();
 	ScheduleNow();
 	return true;
@@ -126,7 +127,7 @@ void ICM20602::RunImpl()
 		RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
 		_reset_timestamp = hrt_absolute_time();
 		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(1_ms);
+		ScheduleDelayed(2_ms);
 		break;
 
 	case STATE::WAIT_FOR_RESET:
@@ -191,7 +192,14 @@ void ICM20602::RunImpl()
 				ScheduleDelayed(10_ms);
 
 				// timestamp set in data ready interrupt
-				samples = _fifo_read_samples.load();
+				if (!_force_fifo_count_check) {
+					samples = _fifo_read_samples.load();
+
+				} else {
+					const uint16_t fifo_count = FIFOReadCount();
+					samples = (fifo_count / sizeof(FIFO::DATA) / SAMPLES_PER_TRANSFER) * SAMPLES_PER_TRANSFER; // round down to nearest
+				}
+
 				timestamp_sample = _fifo_watermark_interrupt_timestamp;
 			}
 
@@ -226,6 +234,21 @@ void ICM20602::RunImpl()
 				perf_count(_fifo_empty_perf);
 			}
 
+			if (failure) {
+				// full reset if things are failing consecutively
+				if (_consecutive_failures > 1000) {
+					Reset();
+					_consecutive_failures = 0;
+					return;
+
+				} else {
+					++_consecutive_failures;
+				}
+
+			} else {
+				_consecutive_failures = 0;
+			}
+
 			if (failure || hrt_elapsed_time(&_last_config_check_timestamp) > 10_ms) {
 				// check registers incrementally
 				if (RegisterCheck(_register_cfg[_checked_register], true)) {
@@ -252,22 +275,22 @@ void ICM20602::ConfigureAccel()
 	switch (ACCEL_FS_SEL) {
 	case ACCEL_FS_SEL_2G:
 		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384.f);
-		_px4_accel.set_range(2 * CONSTANTS_ONE_G);
+		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_4G:
 		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
-		_px4_accel.set_range(4 * CONSTANTS_ONE_G);
+		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_8G:
 		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
-		_px4_accel.set_range(8 * CONSTANTS_ONE_G);
+		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_16G:
 		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
-		_px4_accel.set_range(16 * CONSTANTS_ONE_G);
+		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 		break;
 	}
 }
@@ -374,7 +397,7 @@ bool ICM20602::DataReadyInterruptConfigure()
 	}
 
 	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &ICM20602::DataReadyInterruptCallback, this) == 0;
+	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
 }
 
 bool ICM20602::DataReadyInterruptDisable()
@@ -463,7 +486,7 @@ bool ICM20602::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 {
 	perf_begin(_transfer_perf);
 	FIFOTransferBuffer buffer{};
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
+	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 3, FIFO::SIZE);
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_end(_transfer_perf);
@@ -473,21 +496,59 @@ bool ICM20602::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 
 	perf_end(_transfer_perf);
 
-	bool bad_data = false;
+	const uint16_t fifo_count_bytes = combine(buffer.FIFO_COUNTH, buffer.FIFO_COUNTL);
+	const uint16_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
 
-	ProcessGyro(timestamp_sample, buffer, samples);
-
-	if (!ProcessAccel(timestamp_sample, buffer, samples)) {
-		bad_data = true;
+	if (fifo_count_samples == 0) {
+		_force_fifo_count_check = true;
+		perf_count(_fifo_empty_perf);
+		return false;
 	}
 
-	// limit temperature updates to 1 Hz
-	if (hrt_elapsed_time(&_temperature_update_timestamp) > 1_s) {
-		_temperature_update_timestamp = timestamp_sample;
+	if (fifo_count_bytes >= FIFO::SIZE) {
+		_force_fifo_count_check = true;
+		perf_count(_fifo_overflow_perf);
+		FIFOReset();
+		return false;
+	}
 
-		if (!ProcessTemperature(buffer, samples)) {
+	const uint16_t valid_samples = math::min(samples, fifo_count_samples);
+
+	if (fifo_count_samples < samples) {
+		// force check if there is somehow fewer samples actually in the FIFO (potentially a serious error)
+		_force_fifo_count_check = true;
+
+	} else if (fifo_count_samples >= samples + 2) {
+		// if we're more than a couple samples behind force FIFO_COUNT check
+		_force_fifo_count_check = true;
+
+	} else {
+		// skip earlier FIFO_COUNT and trust DRDY count if we're in sync
+		_force_fifo_count_check = false;
+	}
+
+	bool bad_data = false;
+
+	if (valid_samples > 0) {
+		ProcessGyro(timestamp_sample, buffer, valid_samples);
+
+		if (!ProcessAccel(timestamp_sample, buffer, valid_samples)) {
 			bad_data = true;
 		}
+
+		// limit temperature updates/checks to 10 Hz
+		if (hrt_elapsed_time(&_temperature_update_timestamp) > 100_ms) {
+			_temperature_update_timestamp = timestamp_sample;
+
+			if (!ProcessTemperature(buffer, valid_samples)) {
+				bad_data = true;
+			}
+		}
+	}
+
+	// force FIFO count check if there was any other error
+	if (bad_data) {
+		_force_fifo_count_check = true;
 	}
 
 	return !bad_data;
