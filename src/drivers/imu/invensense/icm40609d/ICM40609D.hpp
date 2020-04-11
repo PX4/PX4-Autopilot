@@ -73,10 +73,10 @@ private:
 	void exit_and_cleanup() override;
 
 	// Sensor Configuration
-	static constexpr float FIFO_SAMPLE_DT{125.f};
-	static constexpr uint32_t SAMPLES_PER_TRANSFER{1}; // ensure at least 1 new accel sample per transfer
-	static constexpr float GYRO_RATE{1000000 / FIFO_SAMPLE_DT}; // 8 kHz gyro
-	static constexpr float ACCEL_RATE{GYRO_RATE};               // 8 kHz accel
+	static constexpr float FIFO_SAMPLE_DT{125.f};            // 8 kHz = 125 us/sample
+	static constexpr uint32_t SAMPLES_PER_TRANSFER{1};       // ensure at least 1 new accel sample per transfer
+	static constexpr float GYRO_RATE{1e6f / FIFO_SAMPLE_DT}; // 8 kHz gyro
+	static constexpr float ACCEL_RATE{GYRO_RATE};            // 8 kHz accel
 
 	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
 
@@ -145,9 +145,11 @@ private:
 	hrt_abstime _last_config_check_timestamp{0};
 	hrt_abstime _fifo_watermark_interrupt_timestamp{0};
 	hrt_abstime _temperature_update_timestamp{0};
+	int _consecutive_failures{0};
 
 	px4::atomic<uint8_t> _fifo_read_samples{0};
 	bool _data_ready_interrupt_enabled{false};
+	bool _force_fifo_count_check{true};
 
 	enum class STATE : uint8_t {
 		RESET,
