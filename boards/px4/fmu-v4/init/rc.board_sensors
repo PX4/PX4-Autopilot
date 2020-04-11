@@ -11,7 +11,7 @@ adc start
 # schematic and BOM, leading to sensor brownouts
 # on boot. Original Pixracers following the
 # open hardware design do not require this.
-fmu sensor_reset 50
+pwm_out sensor_reset 50
 
 
 # External I2C bus
