@@ -74,9 +74,9 @@ private:
 
 	// Sensor Configuration
 	static constexpr float FIFO_SAMPLE_DT{125.f};
-	static constexpr uint32_t SAMPLES_PER_TRANSFER{2}; // ensure at least 1 new accel sample per transfer
-	static constexpr float GYRO_RATE{1000000 / FIFO_SAMPLE_DT}; // 8 kHz gyro
-	static constexpr float ACCEL_RATE{GYRO_RATE / 2.f};         // 4 kHz accel
+	static constexpr uint32_t SAMPLES_PER_TRANSFER{2};       // ensure at least 1 new accel sample per transfer
+	static constexpr float GYRO_RATE{1e6f / FIFO_SAMPLE_DT}; // 8 kHz gyro
+	static constexpr float ACCEL_RATE{GYRO_RATE / 2.f};      // 4 kHz accel
 
 	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
 
