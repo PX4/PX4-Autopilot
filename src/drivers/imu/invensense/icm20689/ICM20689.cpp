@@ -77,6 +77,7 @@ int ICM20689::init()
 bool ICM20689::Reset()
 {
 	_state = STATE::RESET;
+	DataReadyInterruptDisable();
 	ScheduleClear();
 	ScheduleNow();
 	return true;
@@ -126,7 +127,7 @@ void ICM20689::RunImpl()
 		RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
 		_reset_timestamp = hrt_absolute_time();
 		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(1_ms);
+		ScheduleDelayed(100_ms);
 		break;
 
 	case STATE::WAIT_FOR_RESET:
@@ -230,6 +231,21 @@ void ICM20689::RunImpl()
 			} else if (samples == 0) {
 				failure = true;
 				perf_count(_fifo_empty_perf);
+			}
+
+			if (failure) {
+				// full reset if things are failing consecutively
+				if (_consecutive_failures > 1000) {
+					Reset();
+					_consecutive_failures = 0;
+					return;
+
+				} else {
+					++_consecutive_failures;
+				}
+
+			} else {
+				_consecutive_failures = 0;
 			}
 
 			if (failure || hrt_elapsed_time(&_last_config_check_timestamp) > 10_ms) {
@@ -477,11 +493,13 @@ bool ICM20689::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 	const uint16_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
 
 	if (fifo_count_samples == 0) {
+		_force_fifo_count_check = true;
 		perf_count(_fifo_empty_perf);
 		return false;
 	}
 
 	if (fifo_count_bytes >= FIFO::SIZE) {
+		_force_fifo_count_check = true;
 		perf_count(_fifo_overflow_perf);
 		FIFOReset();
 		return false;

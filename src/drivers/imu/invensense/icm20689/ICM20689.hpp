@@ -143,6 +143,7 @@ private:
 	hrt_abstime _last_config_check_timestamp{0};
 	hrt_abstime _fifo_watermark_interrupt_timestamp{0};
 	hrt_abstime _temperature_update_timestamp{0};
+	int _consecutive_failures{0};
 
 	px4::atomic<uint8_t> _data_ready_count{0};
 	px4::atomic<uint8_t> _fifo_read_samples{0};
