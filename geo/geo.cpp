@@ -524,10 +524,10 @@ float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float a
 		double lat_next, double lon_next, float alt_next,
 		float *dist_xy, float *dist_z)
 {
-	double current_x_rad = lat_next / 180.0 * M_PI;
-	double current_y_rad = lon_next / 180.0 * M_PI;
-	double x_rad = lat_now / 180.0 * M_PI;
-	double y_rad = lon_now / 180.0 * M_PI;
+	double current_x_rad = math::radians(lat_next);
+	double current_y_rad = math::radians(lon_next);
+	double x_rad = math::radians(lat_now);
+	double y_rad = math::radians(lon_now);
 
 	double d_lat = x_rad - current_x_rad;
 	double d_lon = y_rad - current_y_rad;

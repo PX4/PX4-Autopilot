@@ -57,19 +57,29 @@
 
 namespace math {
 template <typename Type>
-Type min(Type val1, Type val2) { return (val1 < val2) ? val1 : val2; }
+Type min(Type val1, Type val2) {
+	return (val1 < val2) ? val1 : val2;
+}
 
 template <typename Type>
-Type max(Type val1, Type val2) { return (val1 > val2) ? val1 : val2; }
+Type max(Type val1, Type val2) {
+	return (val1 > val2) ? val1 : val2;
+}
 
 template <typename Type>
-Type constrain(Type val, Type min, Type max) { return (val < min) ? min : ((val > max) ? max : val); }
+Type constrain(Type val, Type min, Type max) {
+	return (val < min) ? min : ((val > max) ? max : val);
+}
 
 template <typename Type>
-Type radians(Type degrees) { return (degrees / Type(180)) * Type(M_PI); }
+Type radians(Type degrees) {
+	return (degrees / Type(180)) * Type(M_PI);
+}
 
 template <typename Type>
-Type degrees(Type radians) { return (radians * Type(180)) / Type(M_PI); }
+Type degrees(Type radians) {
+	return (radians * Type(180)) / Type(M_PI);
+}
 
 }  // namespace math
 #else
