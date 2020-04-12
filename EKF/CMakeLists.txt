@@ -55,7 +55,7 @@ add_library(ecl_EKF
 add_dependencies(ecl_EKF prebuild_targets)
 target_compile_definitions(ecl_EKF PRIVATE -DMODULE_NAME="ecl/EKF")
 target_include_directories(ecl_EKF PUBLIC ${ECL_SOURCE_DIR})
-target_link_libraries(ecl_EKF PRIVATE ecl_geo ecl_geo_lookup mathlib)
+target_link_libraries(ecl_EKF PRIVATE ecl_geo ecl_geo_lookup)
 
 set_target_properties(ecl_EKF PROPERTIES PUBLIC_HEADER "ekf.h")
 
