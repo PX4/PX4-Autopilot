@@ -40,6 +40,7 @@
 #include "EKF/ekf.h"
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "test_helper/reset_logging_checker.h"
 
 
 class EkfExternalVisionTest : public ::testing::Test {
@@ -103,6 +104,9 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 
 TEST_F(EkfExternalVisionTest, visionVelocityReset)
 {
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
 	const Vector3f simulated_velocity(0.3f, -1.0f, 0.4f);
 
 	_sensor_simulator._vio.setVelocity(simulated_velocity);
@@ -113,10 +117,18 @@ TEST_F(EkfExternalVisionTest, visionVelocityReset)
 	// THEN: a reset to Vision velocity should be done
 	const Vector3f estimated_velocity = _ekf->getVelocity();
 	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity, 1e-5f));
+
+	// AND: the reset in velocity should be saved correctly
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-5f));
 }
 
 TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 {
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
 	// GIVEN: Drone is pointing north, and we use mag (ROTATE_EV)
 	//        Heading of drone in EKF frame is 0°
 
@@ -140,6 +152,12 @@ TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 	Quatf estimatedExternalVisionFrameOffset = _ekf->getVisionAlignmentQuaternion();
 	EXPECT_TRUE(matrix::isEqual(vision_to_ekf.canonical(),
 				    estimatedExternalVisionFrameOffset.canonical()));
+
+	// AND: the reset in velocity should be saved correctly
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-5f));
 }
 
 TEST_F(EkfExternalVisionTest, visionVarianceCheck)

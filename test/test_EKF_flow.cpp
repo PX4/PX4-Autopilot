@@ -40,6 +40,7 @@
 #include "EKF/ekf.h"
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "test_helper/reset_logging_checker.h"
 
 
 class EkfFlowTest : public ::testing::Test {
@@ -69,6 +70,8 @@ class EkfFlowTest : public ::testing::Test {
 
 TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 {
+	ResetLoggingChecker reset_logging_checker(_ekf);
+
 	// WHEN: simulate being 5m above ground
 	const float simulated_distance_to_ground = 5.f;
 	_sensor_simulator._rng.setData(simulated_distance_to_ground, 100);
@@ -79,6 +82,8 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
 	EXPECT_FLOAT_EQ(estimated_distance_to_ground, simulated_distance_to_ground);
+
+	reset_logging_checker.capturePreResetState();
 
 	// WHEN: start fusing flow data
 	const Vector2f simulated_horz_velocity(0.5f, -0.2f);
@@ -94,13 +99,23 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	// THEN: estimated velocity should match simulated velocity
 	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
 	EXPECT_FALSE(isEqual(estimated_horz_velocity, simulated_horz_velocity)); // TODO: This needs to change
+
+	// AND: the reset in velocity should be saved correctly
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-9f));
 }
 
 TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 {
+	ResetLoggingChecker reset_logging_checker(_ekf);
+
 	// WHEN: being on ground
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
 	EXPECT_LT(estimated_distance_to_ground, 0.3f);
+
+	reset_logging_checker.capturePreResetState();
 
 	// WHEN: start fusing flow data
 	_ekf_wrapper.enableFlowFusion();
@@ -110,4 +125,10 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 	// THEN: estimated velocity should match simulated velocity
 	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
 	EXPECT_TRUE(isEqual(estimated_horz_velocity, Vector2f(0.f, 0.f)));
+
+	// AND: the reset in velocity should be saved correctly
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-9f));
 }

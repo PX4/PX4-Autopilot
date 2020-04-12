@@ -31,30 +31,10 @@
 #
 ############################################################################
 
-include(gtest.cmake)
-
-add_subdirectory(sensor_simulator)
-add_subdirectory(test_helper)
 
 set(SRCS
-	main.cpp
-	test_EKF_basics.cpp
-	test_EKF_ringbuffer.cpp
-	test_EKF_measurementSampling.cpp
-	test_EKF_imuSampling.cpp
-	test_AlphaFilter.cpp
-	test_EKF_fusionLogic.cpp
-	test_EKF_initialization.cpp
-	test_EKF_gps.cpp
-	test_EKF_externalVision.cpp
-	test_EKF_airspeed.cpp
-	test_EKF_withReplayData.cpp
-	test_EKF_flow.cpp
-	test_SensorRangeFinder.cpp
-	test_geo.cpp
+	reset_logging_checker.cpp
    )
-add_executable(ECL_GTESTS ${SRCS})
 
-target_link_libraries(ECL_GTESTS gtest_main ecl_EKF ecl_sensor_sim ecl_test_helper)
-
-add_test(NAME ECL_GTESTS COMMAND ECL_GTESTS)
+add_library(ecl_test_helper ${SRCS})
+target_link_libraries(ecl_test_helper ecl_EKF)

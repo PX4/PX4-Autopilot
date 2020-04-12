@@ -40,7 +40,7 @@
 #include "EKF/ekf.h"
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
-
+#include "test_helper/reset_logging_checker.h"
 
 class EkfGpsTest : public ::testing::Test {
  public:
@@ -86,12 +86,15 @@ TEST_F(EkfGpsTest, gpsTimeout)
 
 TEST_F(EkfGpsTest, resetToGpsVelocity)
 {
+	ResetLoggingChecker reset_logging_checker(_ekf);
 	// GIVEN:EKF that fuses GPS
 	// and has gps checks already passed
 
 	// WHEN: stopping GPS fusion
 	_sensor_simulator.stopGps();
 	_sensor_simulator.runSeconds(11);
+
+	reset_logging_checker.capturePreResetState();
 
 	// AND: simulate constant velocity gps samples for short time
 	_sensor_simulator.startGps();
@@ -107,4 +110,10 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 	// THEN: a reset to GPS velocity should be done
 	const Vector3f estimated_velocity = _ekf->getVelocity();
 	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity, 1e-2f));
+
+	// AND: the reset in velocity should be saved correctly
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-2f));
 }
