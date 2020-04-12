@@ -51,14 +51,25 @@
 #define M_PI_2_F (M_PI / 2.0f)
 #endif
 
-namespace math {
-// using namespace Eigen;
+#ifndef M_PI
+#define M_PI 3.141592653589793238462643383280
+#endif
 
-float min(float val1, float val2);
-float max(float val1, float val2);
-float constrain(float val, float min, float max);
-float radians(float degrees);
-float degrees(float radians);
+namespace math {
+template <typename Type>
+Type min(Type val1, Type val2) { return (val1 < val2) ? val1 : val2; }
+
+template <typename Type>
+Type max(Type val1, Type val2) { return (val1 > val2) ? val1 : val2; }
+
+template <typename Type>
+Type constrain(Type val, Type min, Type max) { return (val < min) ? min : ((val > max) ? max : val); }
+
+template <typename Type>
+Type radians(Type degrees) { return (degrees / Type(180)) * Type(M_PI); }
+
+template <typename Type>
+Type degrees(Type radians) { return (radians * Type(180)) / Type(M_PI); }
 
 }  // namespace math
 #else

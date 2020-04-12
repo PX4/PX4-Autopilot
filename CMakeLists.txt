@@ -142,9 +142,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	add_dependencies(prebuild_targets matrix)
 	include_directories(${CMAKE_BINARY_DIR}/matrix-prefix/src/matrix)
 
-	# mathlib only needed in standalone build
-	add_subdirectory(mathlib)
-
 endif()
 
 # santiziers (ASAN)
