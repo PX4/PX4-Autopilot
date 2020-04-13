@@ -50,6 +50,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -107,6 +108,7 @@ private:
 	vehicle_status_s status;
 	vehicle_local_position_s lpos;
 	sensor_gyro_s gyro;
+	sensor_gyro_fifo_s gyro_fifo;
 };
 
 bool MicroBenchORB::run_tests()
@@ -136,6 +138,8 @@ void MicroBenchORB::reset()
 	lpos.dist_bottom_valid = rand();
 
 	gyro.timestamp = rand();
+
+	gyro_fifo.timestamp = rand();
 }
 
 ut_declare_test_c(test_microbench_uorb, MicroBenchORB)
@@ -145,6 +149,7 @@ bool MicroBenchORB::time_px4_uorb()
 	int fd_status = orb_subscribe(ORB_ID(vehicle_status));
 	int fd_lpos = orb_subscribe(ORB_ID(vehicle_local_position));
 	int fd_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+	int fd_gyro_fifo = orb_subscribe(ORB_ID(sensor_gyro_fifo));
 
 	int ret = 0;
 	bool updated = false;
@@ -165,6 +170,11 @@ bool MicroBenchORB::time_px4_uorb()
 
 	printf("\n");
 
+	PERF("orb_check sensor_gyro_fifo", ret = orb_check(fd_gyro_fifo, &updated), 100);
+	PERF("orb_copy sensor_gyro_fifo", ret = orb_copy(ORB_ID(sensor_gyro_fifo), fd_gyro_fifo, &gyro_fifo), 100);
+
+	printf("\n");
+
 	PERF("orb_exists sensor_accel 0", ret = orb_exists(ORB_ID(sensor_accel), 0), 100);
 	PERF("orb_exists sensor_accel 1", ret = orb_exists(ORB_ID(sensor_accel), 1), 100);
 	PERF("orb_exists sensor_accel 2", ret = orb_exists(ORB_ID(sensor_accel), 2), 100);
@@ -180,6 +190,7 @@ bool MicroBenchORB::time_px4_uorb()
 	orb_unsubscribe(fd_status);
 	orb_unsubscribe(fd_lpos);
 	orb_unsubscribe(fd_gyro);
+	orb_unsubscribe(fd_gyro_fifo);
 
 	return true;
 }
@@ -226,6 +237,13 @@ bool MicroBenchORB::time_px4_uorb_direct()
 		uORB::Subscription sens_gyro3{ORB_ID(sensor_gyro), 3};
 		PERF("uORB::Subscription orb_check sensor_gyro:3", ret = sens_gyro3.updated(), 100);
 		PERF("uORB::Subscription orb_copy sensor_gyro:3", ret = sens_gyro3.copy(&gyro), 100);
+	}
+
+	{
+		printf("\n");
+		uORB::Subscription sens_gyro_fifo0{ORB_ID(sensor_gyro_fifo), 0};
+		PERF("uORB::Subscription orb_check sensor_gyro_fifo:0", ret = sens_gyro_fifo0.updated(), 100);
+		PERF("uORB::Subscription orb_copy sensor_gyro_fifo:0", ret = sens_gyro_fifo0.copy(&gyro_fifo), 100);
 	}
 
 	return true;
