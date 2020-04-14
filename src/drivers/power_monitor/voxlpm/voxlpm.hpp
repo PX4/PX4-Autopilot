@@ -38,7 +38,7 @@
  *
  * This is roughly what's goin on:
  *
- * - VOXLPM v2 (QTY2 LTC2946) -
+ * - VOXLPM v0 (QTY2 LTC2946) -
  *
  *             +~~~~~~~~~~~~~~+
  *  VBATT -----| RSENSE_VBATT | ----------+---------------------> VBATT TO ESCS
@@ -55,7 +55,7 @@
  *     # LTC2946, 0x6a #              # LTC2946, 0x6b #
  *     #################              #################
  *
-  * - VOXLPM v3 (QTY2 INA231) -
+  * - VOXLPM v1 (QTY2 INA231) -
  *
  *             +~~~~~~~~~~~~~~+
  *  VBATT -----| RSENSE_VBATT | ----------+---------------------> VBATT TO ESCS
@@ -89,12 +89,13 @@
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/power_monitor.h>
 #include <uORB/topics/parameter_update.h>
 
 /*
- * VOXLPM v2 - Note that these are unshifted addresses.
+ * VOXLPM v0 - Note that these are unshifted addresses.
  */
 #define VOXLPM_LTC2946_ADDR_VBATT		0x6a // 0x6a  = 0xd4 >> 1
 #define VOXLPM_LTC2946_ADDR_P5VD		0x6b // 0x6b  = 0xd6 >> 1
@@ -160,16 +161,54 @@
 #define VOXLPM_RSENSE_5VOUT			0.005f
 
 /*
- * VOXLPM v3
+ * VOXLPM v1 - Coniguration from SBOS644C –FEBRUARY 2013–REVISED MARCH 2018
+ *             http://www.ti.com/lit/ds/symlink/ina231.pdf
  */
 #define VOXLPM_INA231_ADDR_VBATT		0x44
 #define VOXLPM_INA231_ADDR_P5_12VDC		0x45
 
+/* INA231 Registers addresses */
+#define INA231_REG_CONFIG			0x00
+#define INA231_REG_SHUNTVOLTAGE			0x01
+#define INA231_REG_BUSVOLTAGE			0x02
+#define INA231_REG_POWER			0x03
+#define INA231_REG_CURRENT			0x04
+#define INA231_REG_CALIBRATION			0x05
+#define INA231_REG_MASKENABLE			0x06
+#define INA231_REG_ALERTLIMIT			0x07
+
+/* [0:2] Mode - Shunt and bus, 111, continuous (INA231A default) */
+#define INA231_CONFIG_MODE			(0x07 << 0)
+/* [5:3] Shunt Voltage Conversion Time, 100, 1.1ms (INA231A default) */
+#define INA231_CONFIG_SHUNT_CT			(0x04 << 3)
+/* [8:6] Shunt Voltage Conversion Time, 100, 1.1ms (INA231A default) */
+#define INA231_CONFIG_BUS_CT			(0x04 << 6)
+/* [11:9] Averaging Mode, 011, 64 */
+#define INA231_CONFIG_AVG			(0x03 << 9)
+/* [1] Reset bit */
+#define INA231_RST_BIT				(0x01 << 15)
+/* Configuration register settings */
+#define INA231_CONFIG				(INA231_CONFIG_MODE+INA231_CONFIG_SHUNT_CT+INA231_CONFIG_BUS_CT+INA231_CONFIG_AVG)
+
+#define INA231_CONST				0.00512f  /* is an internal fixed value used to ensure scaling is maintained properly  */
+#define INA231_VSCALE				0.00125f  /* LSB of voltage is 1.25 mV  */
+
+/* From SCH-M00041 REVB */
+#define VOXLPM_INA231_VBAT_SHUNT		0.0005f   /* VBAT shunt is 500 micro-ohm */
+#define VOXLPM_INA231_VREG_SHUNT		0.005f    /* VREG output shunt is 5 milli-ohm */
+#define VOXLPM_INA231_VBAT_MAX_AMPS		90.0f     /* 90.0 Amps max through VBAT sense resistor */
+#define VOXLPM_INA231_VREG_MAX_AMPS		6.0f      /* 6.0 Amps max through VREG sense resistor */
+
+/* ina231.pdf section 8.5 */
+#define VOXLPM_INA231_VBAT_I_LSB		(VOXLPM_INA231_VBAT_MAX_AMPS/32768.0f)
+#define VOXLPM_INA231_VREG_I_LSB		(VOXLPM_INA231_VREG_MAX_AMPS/32768.0f)
+#define VOXLPM_INA231_VBAT_CAL			(INA231_CONST/(VOXLPM_INA231_VBAT_I_LSB*VOXLPM_INA231_VBAT_SHUNT))
+#define VOXLPM_INA231_VREG_CAL			(INA231_CONST/(VOXLPM_INA231_VREG_I_LSB*VOXLPM_INA231_VREG_SHUNT))
 
 enum VOXLPM_TYPE {
 	VOXLPM_UNKOWN,
-	VOXLPM_TYPE_V2_LTC,
-	VOXLPM_TYPE_V3_INA
+	VOXLPM_TYPE_V0_LTC,
+	VOXLPM_TYPE_V1_INA
 };
 
 enum VOXLPM_CH_TYPE {
@@ -195,13 +234,14 @@ public:
 private:
 	void 			start();
 	int 			measure();
-	int 			init_ltc();
-	int 			init_ina();
-	int 			measure_ltc();
-	int 			measure_ina();
+	int 			init_ltc2946();
+	int 			init_ina231();
+	int 			measure_ltc2946();
+	int 			measure_ina231();
 
 	static constexpr unsigned 		_meas_interval{100000}; // 100ms
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
 
 	uORB::PublicationMulti<power_monitor_s>		_pm_pub_topic{ORB_ID(power_monitor)};
 	uORB::Subscription _parameter_sub{ORB_ID(parameter_update)};
@@ -215,8 +255,11 @@ private:
 	float			_rsense{0.0f};
 
 	Battery 		_battery;
+	uORB::Subscription	_actuators_sub{ORB_ID(actuator_controls_0)};
+	actuator_controls_s	_actuator_controls{};
 
 	uint8_t 		read_reg(uint8_t addr);
 	int 			read_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
 	int 			write_reg(uint8_t value, uint8_t addr);
+	int 			write_reg_buf(uint8_t value, uint8_t *buf, uint8_t len);
 };

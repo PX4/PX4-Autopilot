@@ -107,7 +107,7 @@ voxlpm_main(int argc, char *argv[])
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_POWER_DEVTYPE_VOXLPM);
 
 	if (!strcmp(verb, "start")) {
-		// we first try the Power Module (v2) addresses (which uses LTC ICs)
+		// we first try the Power Module (v0) addresses (which uses LTC ICs)
 		if (cli.type == VOXLPM_CH_TYPE_VBATT) {
 			cli.i2c_address = (uint8_t)VOXLPM_LTC2946_ADDR_VBATT;
 
@@ -117,7 +117,7 @@ voxlpm_main(int argc, char *argv[])
 
 		int res = ThisDriver::module_start(cli, iterator);
 
-		// If that failed, let's try the Power Module v3 addresses (which uses the TI INA ICs)
+		// If that failed, let's try the Power Module v1 addresses (which uses the TI INA ICs)
 		if (res) {
 			if (cli.type == VOXLPM_CH_TYPE_VBATT) {
 				cli.i2c_address = (uint8_t)VOXLPM_INA231_ADDR_VBATT;
