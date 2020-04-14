@@ -112,3 +112,17 @@ PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_PSHER_RMP_DT, 3.0f);
+
+/**
+ * Enable/disable usage of fixed-wing actuators in hover to generate forward force.
+ * Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL).
+ *
+ * @value 0 Disable FW forward actuation in hover.
+ * @value 1 Enable FW forward actuation in hover in altitude, position and auto modes (except LANDING).
+ * @value 2 Enable FW forward actuation in hover in altitude, position and auto modes (in LANDING mode: disable if below MPC_LAND_ALT1).
+ * @value 3 Enable FW forward actuation in hover in altitude, position and auto modes (in LANDING mode: disable if below MPC_LAND_ALT2).
+ * @value 4 Enable FW forward actuation in hover in altitude, position and auto modes.
+ *
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FWD_THRUST_EN, 0);
