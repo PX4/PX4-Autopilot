@@ -244,6 +244,7 @@
 
 /* QSPI clock source */
 #define STM32_RCC_D1CCIPR_QSPISEL    RCC_D1CCIPR_QSPISEL_PLL2
+#define BOARD_QSPI_CLK               RCC_D1CCIPR_QSPISEL_PLL2
 
 
 /* FLASH wait states
@@ -463,6 +464,20 @@
 # define PROBE(n,s)
 # define PROBE_MARK(n)
 #endif
+
+/* QSPI configuration */
+
+#define CONFIG_STM32H7_QUADSPI
+#define CONFIG_STM32H7_QSPI_FLASH_SIZE		16777216 /* bytes */
+#define CONFIG_STM32H7_QSPI_FIFO_THESHOLD 	1
+#define CONFIG_STM32H7_QSPI_CSHT			1 /* HIGH TIME 1 CYCLE */
+
+#define GPIO_QSPI_CS	GPIO_QUADSPI_BK1_NCS_3	/* PB10 */
+#define GPIO_QSPI_IO0	GPIO_QUADSPI_BK1_IO0_3	/* PD11 */
+#define GPIO_QSPI_IO1	GPIO_QUADSPI_BK1_IO1_3	/* PD12 */
+#define GPIO_QSPI_IO2	GPIO_QUADSPI_BK1_IO2_1	/* PE2 */
+#define GPIO_QSPI_IO3	GPIO_QUADSPI_BK1_IO3_2	/* PD13 */
+#define GPIO_QSPI_SCK	GPIO_QUADSPI_CLK_1		/* PB2 */
 
 /************************************************************************************
  * Public Data

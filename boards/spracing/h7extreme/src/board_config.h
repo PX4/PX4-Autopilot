@@ -53,6 +53,9 @@
  * Definitions
  ****************************************************************************************************/
 
+#define  FLASH_BASED_PARAMS
+#define  FLASH_BASED_PARAMS_EXT
+
 /* PX4IO connection configuration */
 
 #define BOARD_USES_PX4IO_VERSION       2
@@ -253,6 +256,19 @@ extern void stm32_usbinitialize(void);
 extern void board_peripheral_reset(int ms);
 
 #include <px4_platform_common/board_common.h>
+
+/****************************************************************************************************
+ * Progmem external flash functions:
+ *
+ * This board has custom progmem functions. It is used to save data to external flash.
+ *
+ ****************************************************************************************************/
+void flash_w25q128_init(void);
+
+#include <sys/types.h>
+__ramfunc__ ssize_t up_progmem_ext_getpage(size_t addr);
+__ramfunc__ ssize_t up_progmem_ext_eraseblock(size_t block);
+__ramfunc__ ssize_t up_progmem_ext_write(size_t addr, FAR const void *buf, size_t count);
 
 #endif /* __ASSEMBLY__ */
 

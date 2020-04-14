@@ -117,7 +117,7 @@ MEMORY
 	sram3 (xrw) : ORIGIN = 0x38000000,  LENGTH = 64K
 	itcm  (xrw) : ORIGIN = 0x00000000,  LENGTH = 64K
 	flash (xrw) : ORIGIN = 0x08000000,  LENGTH = 128K
-	qspi  (xrw) : ORIGIN = 0x90000000,  LENGTH = 4096K
+	qspi  (xrw) : ORIGIN = 0x90000000,  LENGTH = 2048K
 }
 
 OUTPUT_ARCH(arm)
