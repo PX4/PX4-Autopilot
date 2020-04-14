@@ -274,40 +274,21 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 	}
 }
 
-void
-MavlinkParametersManager::send(const hrt_abstime t)
+bool MavlinkParametersManager::send(const hrt_abstime t)
 {
-	int max_num_to_send;
+	if (_mavlink->get_free_tx_buf() >= get_size()) {
+		if (send_uavcan()) {
+			return true;
 
-	if (_mavlink->get_protocol() == Protocol::SERIAL && !_mavlink->is_usb_uart()) {
-		max_num_to_send = 3;
+		} else if (send_one()) {
+			return true;
 
-	} else {
-		// speed up parameter loading via UDP or USB: try to send 20 at once
-		max_num_to_send = 20;
+		} else if (send_untransmitted()) {
+			return true;
+		}
 	}
 
-	int i = 0;
-
-	// Send while burst is not exceeded, we still have buffer space and still something to send
-	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && send_params()) {}
-}
-
-bool
-MavlinkParametersManager::send_params()
-{
-	if (send_uavcan()) {
-		return true;
-
-	} else if (send_one()) {
-		return true;
-
-	} else if (send_untransmitted()) {
-		return true;
-
-	} else {
-		return false;
-	}
+	return false;
 }
 
 bool

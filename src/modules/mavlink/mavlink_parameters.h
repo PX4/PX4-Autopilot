@@ -66,7 +66,7 @@ public:
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
 	 * @param t current time
 	 */
-	void send(const hrt_abstime t);
+	bool send(const hrt_abstime t);
 
 	unsigned get_size();
 
@@ -83,11 +83,6 @@ protected:
 	/// send a single param if a PARAM_REQUEST_LIST is in progress
 	/// @return true if a parameter was sent
 	bool send_one();
-
-	/**
-	 * Handle any open param send transfer
-	 */
-	bool send_params();
 
 	/**
 	 * Send UAVCAN params

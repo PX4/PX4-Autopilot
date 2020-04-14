@@ -2907,22 +2907,22 @@ MavlinkReceiver::Run()
 			usleep(10000);
 		}
 
-		hrt_abstime t = hrt_absolute_time();
+		const hrt_abstime t = hrt_absolute_time();
 
 		if (t - last_send_update > timeout * 1000) {
 			_mission_manager.check_active_mission();
 			_mission_manager.send(t);
 
-			_parameters_manager.send(t);
-
-			if (_mavlink->ftp_enabled()) {
-				_mavlink_ftp.send(t);
-			}
-
-			_mavlink_log_handler.send(t);
 			last_send_update = t;
 		}
 
+		_parameters_manager.send(t);
+
+		if (_mavlink->ftp_enabled()) {
+			_mavlink_ftp.send(t);
+		}
+
+		_mavlink_log_handler.send(t);
 	}
 }
 
