@@ -665,10 +665,10 @@ private:
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 	)
 
-	perf_counter_t		_loop_perf{perf_alloc(PC_ELAPSED, "mavlink_el")};		/**< loop performance counter */
-	perf_counter_t		_loop_interval_perf{perf_alloc(PC_INTERVAL, "mavlink_int")};	/**< loop interval performance counter */
-	perf_counter_t		_send_byte_error_perf{perf_alloc(PC_COUNT, "mavlink_send_bytes_error")};	/**< send bytes error count */
-	perf_counter_t		_send_start_tx_buf_low{perf_alloc(PC_COUNT, "mavlink_tx_buf_low")};	/**< available tx buffer smaller than message */
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": tx run elapsed")};                      /**< loop performance counter */
+	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": tx run interval")};           /**< loop interval performance counter */
+	perf_counter_t _send_byte_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": send_bytes error")};           /**< send bytes error count */
+	perf_counter_t _send_start_tx_buf_low{perf_alloc(PC_COUNT, MODULE_NAME": send_start tx buffer full")}; /**< available tx buffer smaller than message */
 
 	void			mavlink_update_parameters();
 

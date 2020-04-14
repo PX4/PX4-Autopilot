@@ -187,11 +187,6 @@ Mavlink::Mavlink() :
 
 Mavlink::~Mavlink()
 {
-	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
-	perf_free(_send_byte_error_perf);
-	perf_free(_send_start_tx_buf_low);
-
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
@@ -214,6 +209,8 @@ Mavlink::~Mavlink()
 
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
+	perf_free(_send_byte_error_perf);
+	perf_free(_send_start_tx_buf_low);
 }
 
 void
