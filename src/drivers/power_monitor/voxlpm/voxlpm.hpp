@@ -34,9 +34,11 @@
 /**
  * @file voxlpm.hpp
  *
- * Shared defines for the voxlpm (QTY2 LTC2946) driver.
+ * Shared defines for the voxlpm driver.
  *
  * This is roughly what's goin on:
+ *
+ * - VOXLPM v2 (QTY2 LTC2946) -
  *
  *             +~~~~~~~~~~~~~~+
  *  VBATT -----| RSENSE_VBATT | ----------+---------------------> VBATT TO ESCS
@@ -52,6 +54,24 @@
  *     #################              #################
  *     # LTC2946, 0x6a #              # LTC2946, 0x6b #
  *     #################              #################
+ *
+  * - VOXLPM v3 (QTY2 INA231) -
+ *
+ *             +~~~~~~~~~~~~~~+
+ *  VBATT -----| RSENSE_VBATT | ----------+---------------------> VBATT TO ESCS
+ *     |       +~~~~~~~~~~~~~~+           |
+ *     |              |          +--------+------+
+ *     +----+    +----+          | 5/12V REGULATOR  |
+ *          |    |               +--------+------+
+ *          |    |                        |   +~~~~~~~~~~~~~~+
+ *          |    |                        +---| RSENSE_5VOUT |---> 5/12VDC TO COMPUTE/PERIPHERAL
+ *          |    |                        |   +~~~~~~~~~~~~~~+
+ *          |    |                        |         |
+ *         V|    |A                      V|         |A
+ *     #################              #################
+ *     # INA231, 0x44  #              # INA231, 0x45  #
+ *     #################              #################
+ *
  *
  *     Publishes:                     Publishes:
  *     - ORB_ID(battery_status)
@@ -74,7 +94,7 @@
 #include <uORB/topics/parameter_update.h>
 
 /*
- * Note that these are unshifted addresses.
+ * VOXLPM v2 - Note that these are unshifted addresses.
  */
 #define VOXLPM_LTC2946_ADDR_VBATT		0x6a // 0x6a  = 0xd4 >> 1
 #define VOXLPM_LTC2946_ADDR_P5VD		0x6b // 0x6b  = 0xd6 >> 1
@@ -104,7 +124,7 @@
  * 2:0 - [Channel Configuration]
  *       000 --> Alternate Voltage, Current Measurement
  */
-#define DEFAULT_CTRLA_REG_VAL			0x18
+#define DEFAULT_LTC2946_CTRLA_REG_VAL		0x18
 
 /*
  * CTRLB (Address 0x01 - LTC2946_CTRLA_REG)
@@ -122,7 +142,7 @@
  * 1:0 - [Auto-Reset Mode/Reset]
  *       01 --> Enable Auto-Reset
  */
-#define DEFAULT_CTRLB_REG_VAL			0x01
+#define DEFAULT_LTC2946_CTRLB_REG_VAL		0x01
 
 /* 12 bits */
 #define VOXLPM_LTC2946_RESOLUTION 		4095.0f
@@ -139,15 +159,29 @@
 /* Power sense resistor for 5VDC output current */
 #define VOXLPM_RSENSE_5VOUT			0.005f
 
+/*
+ * VOXLPM v3
+ */
+#define VOXLPM_INA231_ADDR_VBATT		0x44
+#define VOXLPM_INA231_ADDR_P5_12VDC		0x45
+
+
+enum VOXLPM_TYPE {
+	VOXLPM_UNKOWN,
+	VOXLPM_TYPE_V2_LTC,
+	VOXLPM_TYPE_V3_INA
+};
+
 enum VOXLPM_CH_TYPE {
 	VOXLPM_CH_TYPE_VBATT = 0,
-	VOXLPM_CH_TYPE_P5VDC
+	VOXLPM_CH_TYPE_P5VDC,
+	VOXLPM_CH_TYPE_P12VDC
 };
 
 class VOXLPM : public device::I2C, public ModuleParams, public I2CSPIDriver<VOXLPM>
 {
 public:
-	VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOXLPM_CH_TYPE ch_type);
+	VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, uint8_t address, VOXLPM_CH_TYPE ch_type);
 	virtual ~VOXLPM();
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
@@ -161,6 +195,10 @@ public:
 private:
 	void 			start();
 	int 			measure();
+	int 			init_ltc();
+	int 			init_ina();
+	int 			measure_ltc();
+	int 			measure_ina();
 
 	static constexpr unsigned 		_meas_interval{100000}; // 100ms
 	perf_counter_t		_sample_perf;
@@ -170,6 +208,7 @@ private:
 
 	power_monitor_s 	_pm_status{};
 
+	VOXLPM_TYPE		_pm_type{VOXLPM_UNKOWN};
 	const VOXLPM_CH_TYPE	_ch_type;
 	float			_voltage{0.0f};
 	float			_amperage{0.0f};

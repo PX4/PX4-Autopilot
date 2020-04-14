@@ -39,15 +39,18 @@
 #include "voxlpm.hpp"
 
 /*
- * The VOXLPM has two LTC2946 ICs on it.
+ * The VOXLPM v2 has two LTC2946 ICs on it.
  * Address 0x6A - measures battery voltage and current with a 0.0005 ohm sense resistor
  * Address 0x6B - measures 5VDC ouptut voltage and current
+ *
+ * The VOXLPM v3 has two INA231 ICs on it.
+ * Address 0x44 - measures battery voltage and current with a 0.0005 ohm sense resistor
+ * Address 0x45 - measures 5VDC/12VDC ouptut voltage and current
  */
-VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOXLPM_CH_TYPE ch_type) :
-	I2C(DRV_POWER_DEVTYPE_VOXLPM, MODULE_NAME, bus,
-	    (ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_LTC2946_ADDR_VBATT : VOXLPM_LTC2946_ADDR_P5VD, bus_frequency),
+VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, uint8_t address, VOXLPM_CH_TYPE ch_type) :
+	I2C(DRV_POWER_DEVTYPE_VOXLPM, MODULE_NAME, bus, address, bus_frequency),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_ch_type(ch_type),
 	_battery(1, this)
@@ -75,8 +78,18 @@ VOXLPM::init()
 		return ret;
 	}
 
-	write_reg(DEFAULT_CTRLA_REG_VAL, VOXLPM_LTC2946_CTRLA_REG);
-	write_reg(DEFAULT_CTRLB_REG_VAL, VOXLPM_LTC2946_CTRLB_REG);
+	uint8_t addr = get_device_address();
+
+	if (addr == VOXLPM_LTC2946_ADDR_VBATT || addr == VOXLPM_LTC2946_ADDR_P5VD) {
+		_pm_type = VOXLPM_TYPE_V2_LTC;
+		write_reg(DEFAULT_LTC2946_CTRLA_REG_VAL, VOXLPM_LTC2946_CTRLA_REG);
+		write_reg(DEFAULT_LTC2946_CTRLB_REG_VAL, VOXLPM_LTC2946_CTRLB_REG);
+
+	} else if (addr == VOXLPM_INA231_ADDR_VBATT || addr == VOXLPM_INA231_ADDR_P5_12VDC) {
+		_pm_type = VOXLPM_TYPE_V3_INA;
+
+		// TB TODO
+	}
 
 	_battery.reset();
 
@@ -90,11 +103,35 @@ VOXLPM::print_status()
 {
 	perf_print_counter(_sample_perf);
 
-	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
-		printf("- type: BATT\n");
+	switch (_pm_type) {
+	case VOXLPM_TYPE_V2_LTC:
+		printf("- ver: 2 (LTC)\n");
+		break;
 
-	} else {
+	case VOXLPM_TYPE_V3_INA:
+		printf("- ver: 3 (INA)\n");
+		break;
+
+	default:
+		break;
+	}
+
+	switch (_ch_type) {
+	case VOXLPM_CH_TYPE_VBATT:
+		printf("- type: BATT\n");
+		break;
+
+	case VOXLPM_CH_TYPE_P5VDC:
 		printf("- type: P5VDC\n");
+		break;
+
+	case VOXLPM_CH_TYPE_P12VDC:
+		printf("- type: P12VDC\n");
+		break;
+
+	default:
+		printf("- type: UNKOWN\n");
+		break;
 	}
 
 	printf("  - voltage: %9.2f VDC \n", (double)_voltage);
@@ -118,13 +155,34 @@ VOXLPM::RunImpl()
 int
 VOXLPM::measure()
 {
+	int res = -1;
 	parameter_update_s update;
 
 	if (_parameter_sub.update(&update)) {
 		updateParams();
 	}
 
+	switch (_pm_type) {
+	case VOXLPM_TYPE_V2_LTC:
+		res = measure_ltc();
+		break;
 
+	case VOXLPM_TYPE_V3_INA:
+		res = measure_ina();
+		break;
+
+	default:
+		break;
+	}
+
+	perf_end(_sample_perf);
+
+	return res;
+}
+
+int
+VOXLPM::measure_ltc()
+{
 	_voltage = 0.0f;
 	_amperage = 0.0f;
 
@@ -154,8 +212,8 @@ VOXLPM::measure()
 			}
 
 		// fallthrough
-
-		case VOXLPM_CH_TYPE_P5VDC: {
+		case VOXLPM_CH_TYPE_P5VDC:
+		case VOXLPM_CH_TYPE_P12VDC: {
 				memset(&_pm_status, 0x00, sizeof(_pm_status));
 				_pm_status.timestamp = tnow;
 				_pm_status.voltage_v = (float) _voltage;
@@ -181,9 +239,15 @@ VOXLPM::measure()
 		}
 	}
 
-	perf_end(_sample_perf);
+	return 0;
+}
 
-	return OK;
+int
+VOXLPM::measure_ina()
+{
+	// TB TODO
+
+	return -1;
 }
 
 uint8_t

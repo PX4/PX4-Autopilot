@@ -40,7 +40,7 @@ I2CSPIDriverBase *VOXLPM::instantiate(const BusCLIArguments &cli, const BusInsta
 				      int runtime_instance)
 {
 	VOXLPM *instance = new VOXLPM(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
-				      (VOXLPM_CH_TYPE)cli.type);
+				      cli.i2c_address, (VOXLPM_CH_TYPE)cli.type);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -62,7 +62,7 @@ VOXLPM::print_usage()
 
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAM_STRING('T', "VBATT", "VBATT|P5VDC", "Type", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('T', "VBATT", "VBATT|P5VDC|P12VDC", "Type", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -74,6 +74,7 @@ voxlpm_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	cli.type = VOXLPM_CH_TYPE_VBATT;
+	cli.i2c_address = (uint8_t)VOXLPM_LTC2946_ADDR_VBATT;
 
 	while ((ch = cli.getopt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
@@ -83,6 +84,9 @@ voxlpm_main(int argc, char *argv[])
 
 			} else if (strcmp(cli.optarg(), "P5VDC") == 0) {
 				cli.type = VOXLPM_CH_TYPE_P5VDC;
+
+			} else if (strcmp(cli.optarg(), "P12VDC") == 0) {
+				cli.type = VOXLPM_CH_TYPE_P12VDC; //  same as P5VDC
 
 			} else {
 				PX4_ERR("unknown type");
@@ -103,7 +107,29 @@ voxlpm_main(int argc, char *argv[])
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_POWER_DEVTYPE_VOXLPM);
 
 	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
+		// we first try the Power Module (v2) addresses (which uses LTC ICs)
+		if (cli.type == VOXLPM_CH_TYPE_VBATT) {
+			cli.i2c_address = (uint8_t)VOXLPM_LTC2946_ADDR_VBATT;
+
+		} else {
+			cli.i2c_address = (uint8_t)VOXLPM_LTC2946_ADDR_P5VD;
+		}
+
+		int res = ThisDriver::module_start(cli, iterator);
+
+		// If that failed, let's try the Power Module v3 addresses (which uses the TI INA ICs)
+		if (res) {
+			if (cli.type == VOXLPM_CH_TYPE_VBATT) {
+				cli.i2c_address = (uint8_t)VOXLPM_INA231_ADDR_VBATT;
+
+			} else {
+				cli.i2c_address = (uint8_t)VOXLPM_INA231_ADDR_P5_12VDC;
+			}
+
+			res = ThisDriver::module_start(cli, iterator);
+		}
+
+		return res;
 	}
 
 	if (!strcmp(verb, "stop")) {
