@@ -106,7 +106,7 @@ void mavlink_start_uart_send(mavlink_channel_t chan, int length)
 	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
-		(void)m->begin_send();
+		m->send_start(length);
 #ifdef MAVLINK_PRINT_PACKETS
 		printf("START PACKET (%u): ", (unsigned)chan);
 #endif
@@ -118,7 +118,7 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
-		(void)m->send_packet();
+		m->send_finish();
 #ifdef MAVLINK_PRINT_PACKETS
 		printf("\n");
 #endif
@@ -187,6 +187,11 @@ Mavlink::Mavlink() :
 
 Mavlink::~Mavlink()
 {
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
+	perf_free(_send_byte_error_perf);
+	perf_free(_send_start_tx_buf_low);
+
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
@@ -749,12 +754,13 @@ Mavlink::get_free_tx_buf()
 	} else
 #endif // MAVLINK_UDP
 	{
-		// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
-#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
-		//Linux cp210x does not support TIOCOUTQ
-		buf_free = 256;
-#else
+
+#if defined(__PX4_NUTTX)
 		(void) ioctl(_uart_fd, FIONSPACE, (unsigned long)&buf_free);
+#else
+		// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
+		//Linux cp210x does not support TIOCOUTQ
+		buf_free = MAVLINK_MAX_PACKET_LEN;
 #endif
 
 		if (_flow_control_mode == FLOW_CONTROL_AUTO && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
@@ -774,45 +780,64 @@ Mavlink::get_free_tx_buf()
 	return buf_free;
 }
 
-int
-Mavlink::send_packet()
+void Mavlink::send_start(int length)
 {
+	pthread_mutex_lock(&_send_mutex);
+	_last_write_try_time = hrt_absolute_time();
+
+	// check if there is space in the buffer
+	if (length > (int)get_free_tx_buf()) {
+		// not enough space in buffer to send
+		count_txerrbytes(length);
+
+		// prevent writes
+		_tx_buffer_low = true;
+
+		perf_count(_send_start_tx_buf_low);
+
+	} else {
+		_tx_buffer_low = false;
+	}
+}
+
+void Mavlink::send_finish()
+{
+	if (_tx_buffer_low || (_buf_fill == 0)) {
+		pthread_mutex_unlock(&_send_mutex);
+		return;
+	}
+
 	int ret = -1;
+
+	// send message to UART
+	if (get_protocol() == Protocol::SERIAL) {
+		ret = ::write(_uart_fd, _buf, _buf_fill);
+	}
 
 #if defined(MAVLINK_UDP)
 
-	/* Only send packets if there is something in the buffer. */
-	if (_network_buf_len == 0) {
-		pthread_mutex_unlock(&_send_mutex);
-		return 0;
-	}
+	else if (get_protocol() == Protocol::UDP) {
 
-	if (get_protocol() == Protocol::UDP) {
-
-#ifdef CONFIG_NET
+# if defined(CONFIG_NET)
 
 		if (_src_addr_initialized) {
-#endif
-			ret = sendto(_socket_fd, _network_buf, _network_buf_len, 0,
-				     (struct sockaddr *)&_src_addr, sizeof(_src_addr));
-#ifdef CONFIG_NET
+# endif // CONFIG_NET
+			ret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+# if defined(CONFIG_NET)
 		}
 
-#endif
+# endif // CONFIG_NET
 
-		/* resend message via broadcast if no valid connection exists */
 		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
-		    (!get_client_source_initialized()
-		     || (hrt_elapsed_time(&_tstatus.heartbeat_time) > 3_s))) {
+		    (!get_client_source_initialized() || (hrt_elapsed_time(&_tstatus.heartbeat_time) > 3_s))) {
 
 			if (!_broadcast_address_found) {
 				find_broadcast_address();
 			}
 
-			if (_broadcast_address_found && _network_buf_len > 0) {
+			if (_broadcast_address_found && _buf_fill > 0) {
 
-				int bret = sendto(_socket_fd, _network_buf, _network_buf_len, 0,
-						  (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+				int bret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 				if (bret <= 0) {
 					if (!_broadcast_failed_warned) {
@@ -825,69 +850,38 @@ Mavlink::send_packet()
 				}
 			}
 		}
-
-	}
-
-	_network_buf_len = 0;
-
-#endif // MAVLINK_UDP
-
-	pthread_mutex_unlock(&_send_mutex);
-	return ret;
-}
-
-void
-Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
-{
-	_last_write_try_time = hrt_absolute_time();
-
-	if (_mavlink_start_time == 0) {
-		_mavlink_start_time = _last_write_try_time;
-	}
-
-	if (get_protocol() == Protocol::SERIAL) {
-		/* check if there is space in the buffer, let it overflow else */
-		unsigned buf_free = get_free_tx_buf();
-
-		if (buf_free < packet_len) {
-			/* not enough space in buffer to send */
-			count_txerrbytes(packet_len);
-			return;
-		}
-	}
-
-	size_t ret = -1;
-
-	/* send message to UART */
-	if (get_protocol() == Protocol::SERIAL) {
-		ret = ::write(_uart_fd, buf, packet_len);
-	}
-
-#if defined(MAVLINK_UDP)
-
-	else {
-		if (_network_buf_len + packet_len < sizeof(_network_buf) / sizeof(_network_buf[0])) {
-			memcpy(&_network_buf[_network_buf_len], buf, packet_len);
-			_network_buf_len += packet_len;
-
-			ret = packet_len;
-		}
 	}
 
 #endif // MAVLINK_UDP
 
-	if (ret != (size_t) packet_len) {
-		count_txerrbytes(packet_len);
+	if (ret == (int)_buf_fill) {
+		count_txbytes(_buf_fill);
+		_last_write_success_time = _last_write_try_time;
 
 	} else {
-		_last_write_success_time = _last_write_try_time;
-		count_txbytes(packet_len);
+		count_txerrbytes(_buf_fill);
+	}
+
+	_buf_fill = 0;
+
+	pthread_mutex_unlock(&_send_mutex);
+}
+
+void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
+{
+	if (!_tx_buffer_low) {
+		if (_buf_fill + packet_len < sizeof(_buf)) {
+			memcpy(&_buf[_buf_fill], buf, packet_len);
+			_buf_fill += packet_len;
+
+		} else {
+			perf_count(_send_byte_error_perf);
+		}
 	}
 }
 
 #ifdef MAVLINK_UDP
-void
-Mavlink::find_broadcast_address()
+void Mavlink::find_broadcast_address()
 {
 #if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 	struct ifconf ifconf;
@@ -2209,6 +2203,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* start the MAVLink receiver last to avoid a race */
 	MavlinkReceiver::receive_start(&_receive_thread, this);
+
+	_mavlink_start_time = hrt_absolute_time();
 
 	while (!_task_should_exit) {
 		/* main loop */
