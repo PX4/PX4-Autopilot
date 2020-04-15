@@ -1627,10 +1627,16 @@ Commander::run()
 			}
 
 			// Auto disarm after 5 seconds if kill switch is engaged
-			_auto_disarm_killed.set_state_and_update(armed.manual_lockdown, hrt_absolute_time());
+			_auto_disarm_killed.set_state_and_update(armed.manual_lockdown || armed.lockdown, hrt_absolute_time());
 
 			if (_auto_disarm_killed.get_state()) {
-				arm_disarm(false, true, &mavlink_log_pub, "Kill-switch still engaged, disarming");
+				if (armed.manual_lockdown) {
+					arm_disarm(false, true, &mavlink_log_pub, "Kill-switch still engaged, disarming");
+
+				} else {
+					arm_disarm(false, true, &mavlink_log_pub, "System in lockdown, disarming");
+				}
+
 			}
 
 		} else {
@@ -2152,10 +2158,9 @@ Commander::run()
 
 					if (status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
 						mavlink_log_critical(&mavlink_log_pub, "ESCs did not respond to arm request");
-
 					}
 
-				} else if (hrt_elapsed_time(&_time_at_takeoff) < 3_s) {
+				} else if (hrt_elapsed_time(&_time_at_takeoff) < (1_s * _param_com_lkdown_tko.get())) {
 					// This handles the case where something fails during the early takeoff phase
 					if (!_lockdown_triggered) {
 
@@ -2167,7 +2172,7 @@ Commander::run()
 					}
 
 				} else if (!status_flags.circuit_breaker_flight_termination_disabled &&
-					   !_flight_termination_triggered) {
+					   !_flight_termination_triggered && !_lockdown_triggered) {
 
 					armed.force_failsafe = true;
 					_flight_termination_triggered = true;
