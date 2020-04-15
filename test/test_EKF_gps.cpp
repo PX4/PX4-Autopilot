@@ -117,3 +117,26 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-2f));
 }
+
+TEST_F(EkfGpsTest, resetToGpsPosition)
+{
+	// GIVEN:EKF that fuses GPS
+	// and has gps checks already passed
+	const Vector3f previous_position = _ekf->getPosition();
+
+	// WHEN: stopping GPS fusion
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(11);
+
+	// AND: simulate jump in position
+	_sensor_simulator.startGps();
+	const Vector3f simulated_position_change(2.0f, -1.0f, 0.f);
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(
+		Vector2f(simulated_position_change));
+	_sensor_simulator.runMicroseconds(1e5);
+
+	// THEN: a reset to the new GPS position should be done
+	const Vector3f estimated_position = _ekf->getPosition();
+	EXPECT_TRUE(isEqual(estimated_position,
+		previous_position + simulated_position_change, 1e-2f));
+}
