@@ -343,7 +343,7 @@ void MPU9250::ConfigureGyro()
 void MPU9250::ConfigureSampleRate(int sample_rate)
 {
 	if (sample_rate == 0) {
-		sample_rate = 1000; // default to 1 kHz
+		sample_rate = 800; // default to 800 Hz
 	}
 
 	// round down to nearest FIFO sample dt * SAMPLES_PER_TRANSFER
