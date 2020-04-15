@@ -99,6 +99,11 @@ int MPU9250::init()
 
 bool MPU9250::Reset()
 {
+	for (const auto &reg_cfg : _register_cfg) {
+		PX4_DEBUG("Register 0x%02hhX: 0x%02hhX, set bits: 0x%02hhX clear bits: 0x%02hhX", (uint8_t)reg_cfg.reg,
+			  RegisterRead(reg_cfg.reg), reg_cfg.set_bits, reg_cfg.set_bits);
+	}
+
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
@@ -263,7 +268,7 @@ void MPU9250::RunImpl()
 
 			if (failure) {
 				// full reset if things are failing consecutively
-				if (_consecutive_failures > 1000) {
+				if (_consecutive_failures > 500) {
 					Reset();
 					_consecutive_failures = 0;
 					return;

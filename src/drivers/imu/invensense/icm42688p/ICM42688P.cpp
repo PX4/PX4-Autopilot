@@ -76,6 +76,11 @@ int ICM42688P::init()
 
 bool ICM42688P::Reset()
 {
+	for (const auto &reg_cfg : _register_bank0_cfg) {
+		PX4_DEBUG("Register 0x%02hhX: 0x%02hhX, set bits: 0x%02hhX clear bits: 0x%02hhX", (uint8_t)reg_cfg.reg,
+			  RegisterRead(reg_cfg.reg), reg_cfg.set_bits, reg_cfg.set_bits);
+	}
+
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
@@ -232,7 +237,7 @@ void ICM42688P::RunImpl()
 
 			if (failure) {
 				// full reset if things are failing consecutively
-				if (_consecutive_failures > 1000) {
+				if (_consecutive_failures > 500) {
 					Reset();
 					_consecutive_failures = 0;
 					return;

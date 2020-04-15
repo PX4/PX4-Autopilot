@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm42688p
 	MAIN icm42688p
 	COMPILE_FLAGS
+		-DDEBUG_BUILD
 	SRCS
 		icm42688p_main.cpp
 		ICM42688P.cpp

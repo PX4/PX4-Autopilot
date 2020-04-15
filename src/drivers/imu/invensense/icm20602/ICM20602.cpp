@@ -76,6 +76,11 @@ int ICM20602::init()
 
 bool ICM20602::Reset()
 {
+	for (const auto &reg_cfg : _register_cfg) {
+		PX4_DEBUG("Register 0x%02hhX: 0x%02hhX, set bits: 0x%02hhX clear bits: 0x%02hhX", (uint8_t)reg_cfg.reg,
+			  RegisterRead(reg_cfg.reg), reg_cfg.set_bits, reg_cfg.set_bits);
+	}
+
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
@@ -236,7 +241,7 @@ void ICM20602::RunImpl()
 
 			if (failure) {
 				// full reset if things are failing consecutively
-				if (_consecutive_failures > 1000) {
+				if (_consecutive_failures > 500) {
 					Reset();
 					_consecutive_failures = 0;
 					return;
