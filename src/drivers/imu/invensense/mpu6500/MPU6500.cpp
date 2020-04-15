@@ -77,6 +77,7 @@ int MPU6500::init()
 bool MPU6500::Reset()
 {
 	_state = STATE::RESET;
+	DataReadyInterruptDisable();
 	ScheduleClear();
 	ScheduleNow();
 	return true;
@@ -227,6 +228,21 @@ void MPU6500::RunImpl()
 				perf_count(_fifo_empty_perf);
 			}
 
+			if (failure) {
+				// full reset if things are failing consecutively
+				if (_consecutive_failures > 1000) {
+					Reset();
+					_consecutive_failures = 0;
+					return;
+
+				} else {
+					++_consecutive_failures;
+				}
+
+			} else {
+				_consecutive_failures = 0;
+			}
+
 			if (failure || hrt_elapsed_time(&_last_config_check_timestamp) > 10_ms) {
 				// check registers incrementally
 				if (RegisterCheck(_register_cfg[_checked_register], true)) {
@@ -259,23 +275,23 @@ void MPU6500::ConfigureAccel()
 
 	switch (ACCEL_FS_SEL) {
 	case ACCEL_FS_SEL_2G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384);
-		_px4_accel.set_range(2 * CONSTANTS_ONE_G);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384.f);
+		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192);
-		_px4_accel.set_range(4 * CONSTANTS_ONE_G);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
+		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096);
-		_px4_accel.set_range(8 * CONSTANTS_ONE_G);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
+		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
 		break;
 
 	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048);
-		_px4_accel.set_range(16 * CONSTANTS_ONE_G);
+		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 		break;
 	}
 }
@@ -369,7 +385,7 @@ bool MPU6500::DataReadyInterruptConfigure()
 	}
 
 	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &MPU6500::DataReadyInterruptCallback, this) == 0;
+	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
 }
 
 bool MPU6500::DataReadyInterruptDisable()
