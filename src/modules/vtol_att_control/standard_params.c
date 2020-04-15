@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
  * @max 2.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.0f);
+PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.7f);
 
 /**
  * Back transition MC motor ramp up time
