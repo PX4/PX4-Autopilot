@@ -601,14 +601,16 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 	if (CHECK_SYSID_COMPID_MISSION(wpa)) {
 		if ((msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid)) {
 			if (_state == MAVLINK_WPM_STATE_SENDLIST && _mission_type == wpa.mission_type) {
+
 				_time_last_recv = hrt_absolute_time();
 
-				if (_transfer_seq == current_item_count()) {
+				if (wpa.type == MAV_MISSION_ACCEPTED && _transfer_seq == current_item_count()) {
 					PX4_DEBUG("WPM: MISSION_ACK OK all items sent, switch to state IDLE");
 
-				} else {
-					_mavlink->send_statustext_critical("WPM: ERR: not all items sent -> IDLE");
+				} else if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
+					PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
 
+				} else {
 					PX4_DEBUG("WPM: MISSION_ACK ERROR: not all items sent, switch to state IDLE anyway");
 				}
 
@@ -627,6 +629,11 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 						_int_mode = true;
 						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 					}
+
+				} else if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
+					PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
+					switch_to_idle_state();
+					_transfer_in_progress = false;
 
 				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
 					PX4_WARN("Mission ack result was %d", wpa.type);
