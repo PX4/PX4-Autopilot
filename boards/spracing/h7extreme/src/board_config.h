@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Authors: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,8 +100,10 @@
 #define GPIO_SPI3_DRDY1_ICM20602		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN4)
 
 /* SPI4. */
+#define PX4_SPI_BUS_OSD			4
 #define GPIO_SPI4_CS_OSD_MAX7456		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN11)
-#define PX4_SENSORS3_BUS_CS_GPIO		{GPIO_SPI4_CS_OSD_MAX7456}
+#define PX4_OSD_BUS_CS_GPIO				{GPIO_SPI4_CS_OSD_MAX7456}
+#define PX4_SPIDEV_OSD			1
 /*
  *  Define the ability to shut off off the sensor signals
  *  by changing the signals to inputs

@@ -60,7 +60,7 @@
 /* Define CS GPIO array */
 static constexpr uint32_t spi2selects_gpio[] = PX4_SENSORS1_BUS_CS_GPIO;
 static constexpr uint32_t spi3selects_gpio[] = PX4_SENSORS2_BUS_CS_GPIO;
-static constexpr uint32_t spi4selects_gpio[] = PX4_SENSORS3_BUS_CS_GPIO;
+static constexpr uint32_t spi4selects_gpio[] = PX4_OSD_BUS_CS_GPIO;
 
 /************************************************************************************
  * Name: stm32_spiinitialize

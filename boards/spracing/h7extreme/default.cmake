@@ -41,7 +41,7 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		mkblctrl
 		#optical_flow # all available optical flow drivers
-		#osd
+		osd
 		pca9685
 		#power_monitor/ina226
 		#protocol_splitter
