@@ -2,7 +2,7 @@
  * nuttx-configs/spracing/h7extreme/include/board.h
  *
  *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
- *   Authors: David Sidrane <david.sidrane@nscdg.com>
+ *   Authors: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -145,16 +145,16 @@
 				 RCC_PLLCFGR_DIVP3EN | \
 				 RCC_PLLCFGR_DIVQ3EN | \
 				 RCC_PLLCFGR_DIVR3EN)
-#define STM32_PLLCFG_PLL3M      RCC_PLLCKSELR_DIVM3(4)
-#define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(128)
-#define STM32_PLLCFG_PLL3P      RCC_PLL3DIVR_P3(4)
-#define STM32_PLLCFG_PLL3Q      RCC_PLL3DIVR_Q3(4)
-#define STM32_PLLCFG_PLL3R      RCC_PLL3DIVR_R3(16)
+#define STM32_PLLCFG_PLL3M      RCC_PLLCKSELR_DIVM3(2)
+#define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(50)
+#define STM32_PLLCFG_PLL3P      RCC_PLL3DIVR_P3(2)
+#define STM32_PLLCFG_PLL3Q      RCC_PLL3DIVR_Q3(2)
+#define STM32_PLLCFG_PLL3R      RCC_PLL3DIVR_R3(2)
 
-#define STM32_VCO3_FREQUENCY    ((STM32_HSE_FREQUENCY / 4) * 128)
-#define STM32_PLL3P_FREQUENCY   (STM32_VCO3_FREQUENCY / 4)
-#define STM32_PLL3Q_FREQUENCY   (STM32_VCO3_FREQUENCY / 4)
-#define STM32_PLL3R_FREQUENCY   (STM32_VCO3_FREQUENCY / 16)
+#define STM32_VCO3_FREQUENCY    ((STM32_HSE_FREQUENCY / 2) * 50)
+#define STM32_PLL3P_FREQUENCY   (STM32_VCO3_FREQUENCY / 2)
+#define STM32_PLL3Q_FREQUENCY   (STM32_VCO3_FREQUENCY / 2)
+#define STM32_PLL3R_FREQUENCY   (STM32_VCO3_FREQUENCY / 2)
 
 /* SYSCLK = PLL1P = 400MHz
  * CPUCLK = SYSCLK / 1 = 400 MHz
@@ -240,12 +240,10 @@
 
 /* ADC 1 2 3 clock source */
 
-#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
+#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL3
 
 /* QSPI clock source */
 #define STM32_RCC_D1CCIPR_QSPISEL    RCC_D1CCIPR_QSPISEL_PLL2
-#define BOARD_QSPI_CLK               RCC_D1CCIPR_QSPISEL_PLL2
-
 
 /* FLASH wait states
  *
