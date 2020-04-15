@@ -80,6 +80,8 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	bool failed = false;
 
+	failed = failed || !airframeCheck(mavlink_log_pub, status);
+
 	/* ---- MAG ---- */
 	if (checkSensors) {
 		int32_t sys_has_mag = 1;
