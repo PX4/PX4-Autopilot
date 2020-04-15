@@ -2910,6 +2910,8 @@ MavlinkReceiver::Run()
 		hrt_abstime t = hrt_absolute_time();
 
 		if (t - last_send_update > timeout * 1000) {
+
+			pthread_mutex_lock(&_mavlink->send_mutex());
 			_mission_manager.check_active_mission();
 			_mission_manager.send(t);
 
@@ -2920,6 +2922,8 @@ MavlinkReceiver::Run()
 			}
 
 			_mavlink_log_handler.send(t);
+			pthread_mutex_unlock(&_mavlink->send_mutex());
+
 			last_send_update = t;
 		}
 

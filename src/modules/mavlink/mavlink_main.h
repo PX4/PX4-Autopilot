@@ -318,7 +318,7 @@ public:
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
 	 */
-	void 			begin_send() { pthread_mutex_lock(&_send_mutex); }
+	void 			begin_send() {}
 
 	/**
 	 * Send bytes out on the link.
@@ -521,6 +521,8 @@ public:
 	struct ping_statistics_s &get_ping_statistics() { return _ping_stats; }
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
+
+	pthread_mutex_t &send_mutex() { return _send_mutex; }
 
 protected:
 	Mavlink			*next{nullptr};

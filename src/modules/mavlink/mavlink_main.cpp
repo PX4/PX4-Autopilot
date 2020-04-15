@@ -783,7 +783,6 @@ Mavlink::send_packet()
 
 	/* Only send packets if there is something in the buffer. */
 	if (_network_buf_len == 0) {
-		pthread_mutex_unlock(&_send_mutex);
 		return 0;
 	}
 
@@ -832,7 +831,6 @@ Mavlink::send_packet()
 
 #endif // MAVLINK_UDP
 
-	pthread_mutex_unlock(&_send_mutex);
 	return ret;
 }
 
@@ -1215,7 +1213,9 @@ Mavlink::send_autopilot_capabilites()
 		msg.uid += mavlink_system.sysid - 1;
 		msg.uid2[0] += mavlink_system.sysid - 1;
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
+		pthread_mutex_lock(&send_mutex());
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
+		pthread_mutex_unlock(&send_mutex());
 	}
 }
 
@@ -1236,7 +1236,9 @@ Mavlink::send_protocol_version()
 	int curr_proto_ver = _protocol_version;
 	set_proto_version(2);
 	// Send response - if it passes through the link its fine to use MAVLink 2
+	pthread_mutex_lock(&send_mutex());
 	mavlink_msg_protocol_version_send_struct(get_channel(), &msg);
+	pthread_mutex_unlock(&send_mutex());
 	// Reset to previous value
 	set_proto_version(curr_proto_ver);
 }
@@ -2324,7 +2326,9 @@ Mavlink::task_main(int argc, char *argv[])
 				// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
 				//bool _transmitting_enabled_temp = _transmitting_enabled;
 				//_transmitting_enabled = true;
+				pthread_mutex_lock(&send_mutex());
 				mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+				pthread_mutex_unlock(&send_mutex());
 				//_transmitting_enabled = _transmitting_enabled_temp;
 			}
 		}
@@ -2337,6 +2341,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* check for shell output */
 		if (_mavlink_shell && _mavlink_shell->available() > 0) {
+			pthread_mutex_lock(&send_mutex());
+
 			if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
 				mavlink_serial_control_t msg;
 				msg.baudrate = 0;
@@ -2346,6 +2352,8 @@ Mavlink::task_main(int argc, char *argv[])
 				msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
 				mavlink_msg_serial_control_send_struct(get_channel(), &msg);
 			}
+
+			pthread_mutex_unlock(&send_mutex());
 		}
 
 		/* check for ulog streaming messages */
@@ -2375,8 +2383,19 @@ Mavlink::task_main(int argc, char *argv[])
 
 		check_requested_subscriptions();
 
+		pthread_mutex_lock(&send_mutex());
+
 		/* update streams */
 		for (const auto &stream : _streams) {
+
+			unsigned size = stream->get_size();
+			const unsigned free_buf = get_free_tx_buf();
+
+			if (size > free_buf) {
+				count_txerrbytes(size);
+				continue;
+			}
+
 			stream->update(t);
 
 			if (!_first_heartbeat_sent) {
@@ -2392,6 +2411,8 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 			}
 		}
+
+		pthread_mutex_unlock(&send_mutex());
 
 		/* pass messages from other UARTs */
 		if (_forwarding_on) {

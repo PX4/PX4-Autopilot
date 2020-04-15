@@ -66,7 +66,17 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				rsync.tc1 = now * 1000ULL;
 				rsync.ts1 = tsync.ts1;
 
-				mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &rsync);
+				const unsigned len = MAVLINK_MSG_ID_TIMESYNC_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+				pthread_mutex_lock(&_mavlink->send_mutex());
+
+				if (_mavlink->get_free_tx_buf() >= len) {
+					mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &rsync);
+
+				} else {
+					_mavlink->count_txerrbytes(len);
+				}
+
+				pthread_mutex_unlock(&_mavlink->send_mutex());
 
 				return;
 
