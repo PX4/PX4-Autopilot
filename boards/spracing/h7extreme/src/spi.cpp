@@ -153,7 +153,7 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 #if defined(CONFIG_STM32H7_SPI2)
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
-	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS);
+	//ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS);
 
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi2selects_gpio) {
@@ -181,7 +181,7 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 __EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
 
-	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS_1);
+	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSORS1);
 
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi3selects_gpio) {
