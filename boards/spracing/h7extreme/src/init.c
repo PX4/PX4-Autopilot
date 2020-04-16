@@ -234,7 +234,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-#if 0
+
 #ifdef CONFIG_MMCSD
 	int ret = stm32_sdio_initialize();
 
@@ -244,7 +244,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
-#endif
 
 
 	/* W25128 external flash memory:
