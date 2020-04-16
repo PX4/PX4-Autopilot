@@ -761,6 +761,8 @@ private:
 	void startBaroHgtFusion();
 	void startGpsHgtFusion();
 
+	void updateBaroHgtOffset();
+
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar();
 
