@@ -1487,6 +1487,17 @@ void Ekf::startBaroHgtFusion()
 	}
 }
 
+void Ekf::startGpsHgtFusion()
+{
+	setControlGPSHeight();
+
+	// we have just switched to using gps height, calculate height sensor offset such that current
+	// measurement matches our current height estimate
+	if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
+		_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+	}
+}
+
 // update the rotation matrix which rotates EV measurements into the EKF's navigation frame
 void Ekf::calcExtVisRotMat()
 {

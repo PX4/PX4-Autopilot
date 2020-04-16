@@ -822,7 +822,7 @@ void Ekf::controlHeightSensorTimeouts()
 				// set height sensor health
 				_baro_hgt_faulty = true;
 
-				setControlGPSHeight();
+				startGpsHgtFusion();
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to GPS");
@@ -1018,14 +1018,8 @@ void Ekf::controlHeightFusion()
 			}
 
 		} else if (!do_range_aid && _gps_data_ready && !_gps_hgt_intermittent && _gps_checks_passed) {
-			setControlGPSHeight();
 			fuse_height = true;
-
-			// we have just switched to using gps height, calculate height sensor offset such that current
-			// measurement matches our current height estimate
-			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
-				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
-			}
+			startGpsHgtFusion();
 
 		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
