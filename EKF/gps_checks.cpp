@@ -100,9 +100,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 
 		if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
 			ECL_INFO_TIMESTAMPED("GPS checks passed (WGS-84 origin set, using GPS height)");
-			setControlGPSHeight();
-			// zero the sensor offset
-			_hgt_sensor_offset = 0.0f;
+			startGpsHgtFusion();
 		} else {
 			ECL_INFO_TIMESTAMPED("GPS checks passed (WGS-84 origin set)");
 		}
