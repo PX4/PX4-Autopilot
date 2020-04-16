@@ -848,7 +848,7 @@ void Ekf::controlHeightSensorTimeouts()
 						     _gps_hgt_intermittent);
 
 			if (reset_to_baro) {
-				setControlBaroHeight();
+				startBaroHgtFusion();
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to baro");
@@ -865,7 +865,7 @@ void Ekf::controlHeightSensorTimeouts()
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to rng hgt");
 
 			} else if (!_baro_hgt_faulty) {
-				setControlBaroHeight();
+				startBaroHgtFusion();
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to baro");
@@ -881,7 +881,7 @@ void Ekf::controlHeightSensorTimeouts()
 				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to ev hgt");
 
 			} else if (!_baro_hgt_faulty) {
-				setControlBaroHeight();
+				startBaroHgtFusion();
 
 				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to baro");
@@ -961,22 +961,8 @@ void Ekf::controlHeightFusion()
 			}
 
 		} else if (!do_range_aid && _baro_data_ready && !_baro_hgt_faulty) {
-			setControlBaroHeight();
+			startBaroHgtFusion();
 			fuse_height = true;
-
-			// we have just switched to using baro height, we don't need to set a height sensor offset
-			// since we track a separate _baro_hgt_offset
-			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
-				_hgt_sensor_offset = 0.0f;
-			}
-
-			// Turn off ground effect compensation if it times out
-			if (_control_status.flags.gnd_effect) {
-				if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
-
-					_control_status.flags.gnd_effect = false;
-				}
-			}
 
 		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_intermittent) {
 			// switch to gps if there was a reset to gps
@@ -1012,14 +998,8 @@ void Ekf::controlHeightFusion()
 			}
 
 		} else if (_baro_data_ready && !_baro_hgt_faulty) {
-			setControlBaroHeight();
+			startBaroHgtFusion();
 			fuse_height = true;
-
-			// we have just switched to using baro height, we don't need to set a height sensor offset
-			// since we track a separate _baro_hgt_offset
-			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
-				_hgt_sensor_offset = 0.0f;
-			}
 		}
 
 		break;
@@ -1050,12 +1030,6 @@ void Ekf::controlHeightFusion()
 		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			fuse_height = true;
-
-			// we have just switched to using baro height, we don't need to set a height sensor offset
-			// since we track a separate _baro_hgt_offset
-			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
-				_hgt_sensor_offset = 0.0f;
-			}
 		}
 
 		break;
@@ -1072,12 +1046,6 @@ void Ekf::controlHeightFusion()
 		if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
 			fuse_height = true;
-
-			// we have just switched to using baro height, we don't need to set a height sensor offset
-			// since we track a separate _baro_hgt_offset
-			if (_control_status_prev.flags.baro_hgt != _control_status.flags.baro_hgt) {
-				_hgt_sensor_offset = 0.0f;
-			}
 		}
 
 		// determine if we should use the vertical position observation
@@ -1119,7 +1087,7 @@ void Ekf::controlHeightFusion()
 			Vector3f baro_hgt_obs_var;
 
 			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			_baro_hgt_innov(2) = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
+			_baro_hgt_innov(2) = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset;
 			// observation variance - user parameter defined
 			baro_hgt_obs_var(2) = sq(fmaxf(_params.baro_noise, 0.01f));
 			// innovation gate size
