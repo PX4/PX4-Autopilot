@@ -2152,15 +2152,20 @@ Commander::run()
 
 			if (_failure_detector.isFailure()) {
 
-				if (!_have_taken_off_since_arming) {
-					arm_disarm(false, true, &mavlink_log_pub, "Failure detector");
-					_status_changed = true;
+				const hrt_abstime time_at_arm = armed.armed_time_ms * 1000;
+
+				if (hrt_elapsed_time(&time_at_arm) < 500_ms) {
+					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
 
 					if (status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
+						arm_disarm(false, true, &mavlink_log_pub, "Failure detector");
+						_status_changed = true;
 						mavlink_log_critical(&mavlink_log_pub, "ESCs did not respond to arm request");
 					}
 
-				} else if (hrt_elapsed_time(&_time_at_takeoff) < (1_s * _param_com_lkdown_tko.get())) {
+				}
+
+				if (hrt_elapsed_time(&_time_at_takeoff) < (1_s * _param_com_lkdown_tko.get())) {
 					// This handles the case where something fails during the early takeoff phase
 					if (!_lockdown_triggered) {
 
