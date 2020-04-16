@@ -82,21 +82,21 @@ int UavcanAirspeedBridge::init()
 
 void
 UavcanAirspeedBridge::oat_sub_cb(const
-				uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg)
+				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg)
 {
 	last_oat_k = msg.static_temperature;
 }
 
 void
 UavcanAirspeedBridge::tas_sub_cb(const
-				uavcan::ReceivedDataStructure<uavcan::equipment::air_data::TrueAirspeed> &msg)
+				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::TrueAirspeed> &msg)
 {
 	last_tas_m_s = msg.true_airspeed;
 }
 
 void
 UavcanAirspeedBridge::ias_sub_cb(const
-				uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg)
+				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg)
 {
 	airspeed_s report{};
 
