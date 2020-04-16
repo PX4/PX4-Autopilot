@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
 #include <drivers/drv_hrt.h>
 #include "airspeed.hpp"
 #include <math.h>
+#include <lib/ecl/geo/geo.h> // For CONSTANTS_*
 
 const char *const UavcanAirspeedBridge::NAME = "airspeed";
 
@@ -84,14 +85,14 @@ void
 UavcanAirspeedBridge::oat_sub_cb(const
 				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg)
 {
-	last_oat_k = msg.static_temperature;
+	_last_outside_air_temp_k = msg.static_temperature;
 }
 
 void
 UavcanAirspeedBridge::tas_sub_cb(const
 				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::TrueAirspeed> &msg)
 {
-	last_tas_m_s = msg.true_airspeed;
+	_last_tas_m_s = msg.true_airspeed;
 }
 
 void
@@ -109,8 +110,8 @@ UavcanAirspeedBridge::ias_sub_cb(const
 	 */
 	report.timestamp   		= hrt_absolute_time();
 	report.indicated_airspeed_m_s   = msg.indicated_airspeed;
-	report.true_airspeed_m_s   	= last_tas_m_s;
-	report.air_temperature_celsius 	= last_oat_k + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	report.true_airspeed_m_s   	= _last_tas_m_s;
+	report.air_temperature_celsius 	= _last_outside_air_temp_k + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 	publish(msg.getSrcNodeID().get(), &report);
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,7 +81,7 @@ private:
 	uavcan::Subscriber<uavcan::equipment::air_data::TrueAirspeed, TASCbBinder> _sub_tas_data;
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, OATCbBinder> _sub_oat_data;
 
-	float last_tas_m_s{0.0f};
-	float last_oat_k{0.0f};
+	float _last_tas_m_s{0.0f};
+	float _last_outside_air_temp_k{0.0f};
 
 };
