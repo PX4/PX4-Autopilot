@@ -262,12 +262,11 @@ void processTxRxOnce(CanardInstance *ins, CanardSocketInstance *sock_ins, int ti
 		ins->memory_free(ins, (void *)receive.payload); // Deallocate the dynamic memory afterwards.
 
 	} else {
-		printf("RX canard %d\r\n", result);
+		// printf("RX canard %d\r\n", result);
 		// Nothing to do.
 		// The received frame is either invalid or it's a non-last frame of a multi-frame transfer.
 		// Reception of an invalid frame is NOT reported as an error because it is not an error.
 	}
-
 
 }
 
@@ -317,7 +316,7 @@ static int canard_daemon(int argc, char *argv[])
 		ins.mtu_bytes = CANARD_MTU_CAN_CLASSIC;
 	}
 
-	ins.node_id = CONFIG_EXAMPLES_LIBCANARDV1_NODE_ID;
+	ins.node_id = (pub ? CONFIG_EXAMPLES_LIBCANARDV1_NODE_ID : CONFIG_EXAMPLES_LIBCANARDV1_NODE_ID + 1);
 
 	/* Open the CAN device for reading */
 	CanardSocketInstance sock_ins;
@@ -337,8 +336,8 @@ static int canard_daemon(int argc, char *argv[])
 
 
 	printf("canard_daemon: canard initialized\n");
-	printf("start node (ID: %d Name: %s MTU: %d PUB: %d)\n", ins.node_id,
-	       APP_NODE_NAME, ins.mtu_bytes, pub);
+	printf("start node (ID: %d Name: %s MTU: %d PUB: %d TOPIC_SIZE: %d)\n", ins.node_id,
+	       APP_NODE_NAME, ins.mtu_bytes, pub, TOPIC_SIZE);
 
 	CanardRxSubscription heartbeat_subscription;
 	(void) canardRxSubscribe(&ins,   // Subscribe to messages uavcan.node.Heartbeat.
@@ -352,7 +351,7 @@ static int canard_daemon(int argc, char *argv[])
 	(void) canardRxSubscribe(&ins,
 				 CanardTransferKindMessage,
 				 PORT_ID,                     // The Service-ID to subscribe to.
-				 256,                  // The maximum payload size (max DSDL object size).
+				 TOPIC_SIZE,                  // The maximum payload size (max DSDL object size).
 				 CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				 &my_subscription);
 

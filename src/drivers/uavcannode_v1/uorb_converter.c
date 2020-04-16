@@ -102,10 +102,11 @@ void uorbProcessPub(CanardTransfer *pub_msg)
 {
 
 	if (pub_msg->port_id == PORT_ID) {
-		PX4_INFO("Publishing UAVCAN data to uORB topic");
 
 		/* TODO uORB parsing and DSDL conversion */
 		memcpy(&att, pub_msg->payload, pub_msg->payload_size);
+
+                PX4_INFO("Publishing UAVCAN data to uORB topic TS: %lld", (long long)att.timestamp);
 
 		orb_publish(ORB_ID(vehicle_gps_position), att_pub, &att);
 	}
