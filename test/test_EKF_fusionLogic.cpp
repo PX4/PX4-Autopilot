@@ -139,7 +139,7 @@ TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
 	const Vector3f pos_old = _ekf->getPosition();
 	const Vector3f vel_old = _ekf->getVelocity();
 	const Vector3f accel_bias_old = _ekf->getAccelBias();
-	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f{10.0f, 0.0f});
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f{20.0f, 0.0f});
 	_sensor_simulator.runSeconds(2);
 
 	// THEN: The estimate should not change much in the short run
