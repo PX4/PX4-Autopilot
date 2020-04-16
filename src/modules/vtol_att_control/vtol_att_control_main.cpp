@@ -85,6 +85,10 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
+	_params_handles.dec_to_pitch_ff = param_find("VT_B_DEC_FF");
+	_params_handles.dec_to_pitch_i = param_find("VT_B_DEC_I");
+	_params_handles.back_trans_dec_sp = param_find("VT_B_DEC_MSS");
+
 
 	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
@@ -285,6 +289,14 @@ VtolAttitudeControl::parameters_update()
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 
+	param_get(_params_handles.back_trans_dec_sp, &v);
+	// increase the target deceleration setpoint provided to the controller by 20%
+	// to make overshooting the transition waypoint less likely in the presence of tracking errors
+	_params.back_trans_dec_sp = 1.2f * v;
+
+	param_get(_params_handles.dec_to_pitch_ff, &_params.dec_to_pitch_ff);
+	param_get(_params_handles.dec_to_pitch_i, &_params.dec_to_pitch_i);
+
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
 		_vtol_type->parameters_update();
@@ -365,23 +377,21 @@ VtolAttitudeControl::Run()
 		bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
 		// update the vtol state machine which decides which mode we are in
-		if (mc_att_sp_updated || fw_att_sp_updated) {
-			_vtol_type->update_vtol_state();
+		_vtol_type->update_vtol_state();
 
-			// reset transition command if not auto control
-			if (_v_control_mode.flag_control_manual_enabled) {
-				if (_vtol_type->get_mode() == mode::ROTARY_WING) {
-					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		// reset transition command if not auto control
+		if (_v_control_mode.flag_control_manual_enabled) {
+			if (_vtol_type->get_mode() == mode::ROTARY_WING) {
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-				} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
-					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 
-				} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
-					/* We want to make sure that a mode change (manual>auto) during the back transition
-					 * doesn't result in an unsafe state. This prevents the instant fall back to
-					 * fixed-wing on the switch from manual to auto */
-					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-				}
+			} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
+				/* We want to make sure that a mode change (manual>auto) during the back transition
+				 * doesn't result in an unsafe state. This prevents the instant fall back to
+				 * fixed-wing on the switch from manual to auto */
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 			}
 		}
 

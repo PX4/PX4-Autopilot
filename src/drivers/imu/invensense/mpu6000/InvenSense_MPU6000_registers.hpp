@@ -40,6 +40,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
 static constexpr uint8_t Bit1 = (1 << 1);
@@ -52,10 +54,14 @@ static constexpr uint8_t Bit7 = (1 << 7);
 
 namespace InvenSense_MPU6000
 {
-static constexpr uint32_t SPI_SPEED = 20 * 1000 * 1000;
+static constexpr uint32_t SPI_SPEED = 1 * 1000 * 1000;
+static constexpr uint32_t SPI_SPEED_SENSOR = 10 * 1000 * 1000; // 20MHz for reading sensor and interrupt registers
 static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x68;
+
+static constexpr float TEMPERATURE_SENSITIVITY = 340.f; // LSB/C
+static constexpr float TEMPERATURE_OFFSET = 36.53f; // C
 
 enum class Register : uint8_t {
 	CONFIG        = 0x1A,
@@ -63,13 +69,17 @@ enum class Register : uint8_t {
 	ACCEL_CONFIG  = 0x1C,
 
 	FIFO_EN       = 0x23,
+	I2C_MST_CTRL  = 0x24,
+
+	INT_PIN_CFG   = 0x37,
+	INT_ENABLE    = 0x38,
 
 	INT_STATUS    = 0x3A,
 
-	INT_ENABLE    = 0x38,
-
 	TEMP_OUT_H    = 0x41,
 	TEMP_OUT_L    = 0x42,
+
+	SIGNAL_PATH_RESET = 0x68,
 
 	USER_CTRL     = 0x6A,
 	PWR_MGMT_1    = 0x6B,
@@ -112,6 +122,14 @@ enum FIFO_EN_BIT : uint8_t {
 	ACCEL_FIFO_EN = Bit3,
 };
 
+// INT_PIN_CFG
+enum INT_PIN_CFG_BIT : uint8_t {
+	INT_LEVEL    = Bit7,
+
+	INT_RD_CLEAR = Bit4,
+
+};
+
 // INT_ENABLE
 enum INT_ENABLE_BIT : uint8_t {
 	FIFO_OFLOW_EN   = Bit4,
@@ -124,21 +142,33 @@ enum INT_STATUS_BIT : uint8_t {
 	DATA_RDY_INT   = Bit0,
 };
 
+// SIGNAL_PATH_RESET
+enum SIGNAL_PATH_RESET_BIT : uint8_t {
+	GYRO_RESET  = Bit2,
+	ACCEL_RESET = Bit1,
+	TEMP_RESET  = Bit0,
+};
+
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
-	FIFO_EN    = Bit6,
-	FIFO_RESET = Bit2,
+	FIFO_EN        = Bit6,
+	I2C_MST_EN     = Bit5,
+	I2C_IF_DIS     = Bit4,
+
+	FIFO_RESET     = Bit2,
+
+	SIG_COND_RESET = Bit0,
 };
 
 // PWR_MGMT_1
 enum PWR_MGMT_1_BIT : uint8_t {
 	DEVICE_RESET = Bit7,
+	SLEEP        = Bit6,
 
-	CLKSEL_2   = Bit2,
-	CLKSEL_1   = Bit1,
-	CLKSEL_0   = Bit0,
+	CLKSEL_2     = Bit2,
+	CLKSEL_1     = Bit1,
+	CLKSEL_0     = Bit0,
 };
-
 
 namespace FIFO
 {

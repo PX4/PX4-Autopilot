@@ -490,7 +490,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * If set to '3-axis' 3-axis field fusion is used at all times.
  * If set to 'VTOL custom' the behaviour is the same as 'Automatic', but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states. This can be used by VTOL platforms with large magnetic field disturbances to prevent incorrect bias states being learned during forward flight operation which can adversely affect estimation accuracy after transition to hovering flight.
  * If set to 'MC custom' the behaviour is the same as 'Automatic, but if there are no earth frame position or velocity observations being used, the magnetometer will not be used. This enables vehicles to operate with no GPS in environments where the magnetic field cannot be used to provide a heading reference. Prior to flight, the yaw angle is assumed to be constant if movement tests controlled by the EKF2_MOVE_TEST parameter indicate that the vehicle is static. This allows the vehicle to be placed on the ground to learn the yaw gyro bias prior to flight.
- * If set to 'None' the magnetometer will not be used under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
+ * If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GPS velocity measurements to align the yaw angle with the timer required (depending on the amount of movement and GPS data quality). Other external sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
  * @group EKF2
  * @value 0 Automatic
  * @value 1 Magnetic heading
@@ -643,6 +643,21 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
+
+/**
+ * Integer bitmask controlling fusion sources of the terrain estimator
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Set to true to use range finder data if available
+ * 1 : Set to true to use optical flow data if available
+ *
+ * @group EKF2
+ * @min 0
+ * @max 3
+ * @bit 0 use range finder
+ * @bit 1 use optical flow
+ */
+PARAM_DEFINE_INT32(EKF2_TERR_MASK, 3);
 
 /**
  * Maximum lapsed time from last fusion of measurements that constrain velocity drift before the EKF will report the horizontal nav solution as invalid.
@@ -1430,3 +1445,15 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  * @boolean
  */
 PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 0);
+
+/**
+ * Default value of true airspeed used in EKF-GSF AHRS calculation.
+ * If no airspeed measurements are avalable, the EKF-GSF AHRS calculation will assume this value of true airspeed when compensating for centripetal acceleration during turns. Set to zero to disable centripetal acceleration compensation during fixed wing flight modes.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @unit m/s
+ * @max 100.0
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_GSF_TAS, 15.0f);

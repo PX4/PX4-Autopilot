@@ -49,6 +49,7 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
+#include <mathlib/math/Limits.hpp>
 
 class AttitudeControl
 {
@@ -59,8 +60,9 @@ public:
 	/**
 	 * Set proportional attitude control gain
 	 * @param proportional_gain 3D vector containing gains for roll, pitch, yaw
+	 * @param yaw_weight A fraction [0,1] deprioritizing yaw compared to roll and pitch
 	 */
-	void setProportionalGain(const matrix::Vector3f &proportional_gain);
+	void setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight);
 
 	/**
 	 * Set hard limit for output rate setpoints
@@ -80,5 +82,5 @@ public:
 private:
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
-	float _yaw_w = 0.0f; /**< yaw weight [0,1] to prioritize roll and pitch */
+	float _yaw_w{0.f}; /**< yaw weight [0,1] to prioritize roll and pitch */
 };

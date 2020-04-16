@@ -41,7 +41,9 @@
  * and background parameter saving.
  */
 
+#define PARAM_IMPLEMENTATION
 #include "param.h"
+#include "param_translation.h"
 #include <parameters/px4_parameters.h>
 #include "tinybson/tinybson.h"
 
@@ -1174,6 +1176,8 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		PX4_DEBUG("end of parameters");
 		return 0;
 	}
+
+	param_modify_on_import(node);
 
 	/*
 	 * Find the parameter this node represents.  If we don't know it,

@@ -1,4 +1,4 @@
-name: compile nuttx
+name: Nuttx Targets
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx:2020-01-13
+    container: px4io/px4-dev-nuttx-bionic:2020-04-01
     strategy:
       matrix:
         config: [
@@ -20,7 +20,7 @@ jobs:
           bitcraze_crazyflie_default,
           holybro_durandal-v1_default,
           holybro_durandal-v1_stackcheck,
-          holybro_kakutef7,
+          holybro_kakutef7_default,
           intel_aerofc-v1_default,
           modalai_fc-v1_default,
           mro_ctrl-zero-f7_default,
@@ -39,10 +39,12 @@ jobs:
           px4_fmu-v3_default,
           px4_fmu-v4_cannode,
           px4_fmu-v4_default,
+          px4_fmu-v4_optimized,
           px4_fmu-v4pro_default,
           px4_fmu-v5_default,
           px4_fmu-v5_fixedwing,
           px4_fmu-v5_multicopter,
+          px4_fmu-v5_optimized,
           px4_fmu-v5_rover,
           px4_fmu-v5_rtps,
           px4_fmu-v5_stackcheck,
@@ -54,6 +56,22 @@ jobs:
     steps:
     - uses: actions/checkout@v1
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-    - name: make ${{ matrix.config }}
-      run: make ${{ matrix.config }}
+        token: ${{secrets.ACCESS_TOKEN}}
+    - uses: actions/cache@v1.1.0
+      id: ccache-persistence
+      with:
+        path: ~/.ccache
+        key: ccache-nuttx-${{matrix.config}}
+        restore-keys: |
+          ccache-nuttx-${{matrix.config}}
+    - name: setup ccache
+      run: mkdir -p ~/.ccache && echo "max_size = 300M" > ~/.ccache/ccache.conf && ccache -z && ccache -s
+    - name: make ${{matrix.config}}
+      run: make ${{matrix.config}}
+    - name: ccache post-run
+      run: ccache -s && ccache -z
+    - name: Upload px4 package
+      uses: actions/upload-artifact@v1
+      with:
+        name: px4_package_${{matrix.config}}
+        path: build/${{matrix.config}}/${{matrix.config}}.px4

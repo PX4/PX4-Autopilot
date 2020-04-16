@@ -33,8 +33,9 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/l3gd20
 		imu/lsm303d
-		imu/mpu6000
-		imu/mpu9250
+		imu/invensense/icm20608g
+		imu/invensense/mpu6000
+		imu/invensense/mpu9250
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -48,7 +49,7 @@ px4_add_board(
 		protocol_splitter
 		pwm_input
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		px4io
 		roboclaw
 		tap_esc
@@ -115,7 +116,6 @@ px4_add_board(
 		work_queue
 
 	EXAMPLES
-		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test

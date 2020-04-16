@@ -8,11 +8,11 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	DRIVERS
 		barometer/lps25h
-		distance_sensor/vl53lxx
+		distance_sensor/vl53l0x
 		gps
 		imu/mpu9250
 		optical_flow/pmw3901
-		px4fmu
+		pwm_out
 	MODULES
 		attitude_estimator_q
 		#camera_feedback
@@ -27,6 +27,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		navigator

@@ -58,8 +58,21 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
 	parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
 
-	/* Barometer QNH */
-	parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
+	/* mag compensation */
+	parameter_handles.mag_comp_paramX[0] = param_find("CAL_MAG0_XCOMP");
+	parameter_handles.mag_comp_paramX[1] = param_find("CAL_MAG1_XCOMP");
+	parameter_handles.mag_comp_paramX[2] = param_find("CAL_MAG2_XCOMP");
+	parameter_handles.mag_comp_paramX[3] = param_find("CAL_MAG3_XCOMP");
+
+	parameter_handles.mag_comp_paramY[0] = param_find("CAL_MAG0_YCOMP");
+	parameter_handles.mag_comp_paramY[1] = param_find("CAL_MAG1_YCOMP");
+	parameter_handles.mag_comp_paramY[2] = param_find("CAL_MAG2_YCOMP");
+	parameter_handles.mag_comp_paramY[3] = param_find("CAL_MAG3_YCOMP");
+
+	parameter_handles.mag_comp_paramZ[0] = param_find("CAL_MAG0_ZCOMP");
+	parameter_handles.mag_comp_paramZ[1] = param_find("CAL_MAG1_ZCOMP");
+	parameter_handles.mag_comp_paramZ[2] = param_find("CAL_MAG2_ZCOMP");
+	parameter_handles.mag_comp_paramZ[3] = param_find("CAL_MAG3_ZCOMP");
 
 	parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
 	parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
@@ -107,7 +120,20 @@ void update_parameters(const ParameterHandles &parameter_handles, Parameters &pa
 	param_get(parameter_handles.board_offset[1], &(parameters.board_offset[1]));
 	param_get(parameter_handles.board_offset[2], &(parameters.board_offset[2]));
 
-	param_get(parameter_handles.baro_qnh, &(parameters.baro_qnh));
+	param_get(parameter_handles.mag_comp_paramX[0], &(parameters.mag_comp_paramX[0]));
+	param_get(parameter_handles.mag_comp_paramX[1], &(parameters.mag_comp_paramX[1]));
+	param_get(parameter_handles.mag_comp_paramX[2], &(parameters.mag_comp_paramX[2]));
+	param_get(parameter_handles.mag_comp_paramX[3], &(parameters.mag_comp_paramX[3]));
+
+	param_get(parameter_handles.mag_comp_paramY[0], &(parameters.mag_comp_paramY[0]));
+	param_get(parameter_handles.mag_comp_paramY[1], &(parameters.mag_comp_paramY[1]));
+	param_get(parameter_handles.mag_comp_paramY[2], &(parameters.mag_comp_paramY[2]));
+	param_get(parameter_handles.mag_comp_paramY[3], &(parameters.mag_comp_paramY[3]));
+
+	param_get(parameter_handles.mag_comp_paramZ[0], &(parameters.mag_comp_paramZ[0]));
+	param_get(parameter_handles.mag_comp_paramZ[1], &(parameters.mag_comp_paramZ[1]));
+	param_get(parameter_handles.mag_comp_paramZ[2], &(parameters.mag_comp_paramZ[2]));
+	param_get(parameter_handles.mag_comp_paramZ[3], &(parameters.mag_comp_paramZ[3]));
 
 	param_get(parameter_handles.air_cmodel, &parameters.air_cmodel);
 	param_get(parameter_handles.air_tube_length, &parameters.air_tube_length);

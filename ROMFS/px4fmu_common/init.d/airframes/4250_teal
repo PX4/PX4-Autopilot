@@ -5,17 +5,20 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @board px4_fmu-v2 exclude
-# @board px4_fmu-v3 exclude
-# @board px4_fmu-v4pro exclude
-# @board px4_fmu-v5 exclude
-#
 # @output MAIN1 motor 1
 # @output MAIN2 motor 2
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
 #
 # @maintainer Matt McFadden <matt.mcfadden@tealdrones.com>
+#
+# @board px4_fmu-v2 exclude
+# @board px4_fmu-v3 exclude
+# @board px4_fmu-v4pro exclude
+# @board px4_fmu-v5 exclude
+# @board px4_fmu-v5x exclude
+# @board intel_aerofc-v1 exclude
+# @board bitcraze_crazyflie exclude
 #
 
 echo "Executing 4250_teal script."
@@ -44,7 +47,6 @@ then
 	param set BAT_V_OFFS_CURR -0.0045
 
 	# sensor calibration
-	param set CAL_MAG0_ROT 0
 	param set CAL_MAG_SIDES 63
 	param set SENS_BOARD_ROT 0
 	param set COM_ARM_MAG_ANG -1
@@ -194,10 +196,7 @@ then
 	#mpu6500
 	param set CAL_GYRO_PRIME 2360330
 
-	param set CAL_MAG0_EN 1
-	param set CAL_MAG1_EN 0
 	param set CAL_MAG_PRIME 265738
-
 fi
 
 # Logger mode. Default(1) + estimator replay(2) + thermal calibration(4)

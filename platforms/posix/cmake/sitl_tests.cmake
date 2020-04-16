@@ -4,8 +4,10 @@
 
 # TODO: find a way to keep this in sync with tests_main
 set(tests
+	atomic_bitset
 	autodeclination
 	bezier
+	bitset
 	bson
 	commander
 	controllib
@@ -59,6 +61,7 @@ foreach(test_name ${tests})
 			none
 			none
 			test_${test_name}_generated
+			none
 			${PX4_SOURCE_DIR}
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -77,6 +80,7 @@ add_test(NAME mavlink
 		none
 		none
 		test_mavlink
+		none
 		${PX4_SOURCE_DIR}
 		${PX4_BINARY_DIR}
 	WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -94,6 +98,7 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 			none
 			none
 			test_shutdown
+			none
 			${PX4_SOURCE_DIR}
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -110,6 +115,7 @@ add_test(NAME dyn
 		none
 		none
 		test_dyn_hello
+		none
 		${PX4_SOURCE_DIR}
 		${PX4_BINARY_DIR}
 		$<TARGET_FILE:examples__dyn_hello>
@@ -133,6 +139,7 @@ foreach(cmd_name ${test_cmds})
 			none
 			none
 			cmd_${cmd_name}_generated
+			none
 			${PX4_SOURCE_DIR}
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})

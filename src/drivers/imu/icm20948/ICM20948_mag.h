@@ -101,9 +101,7 @@ struct ak09916_regs {
 };
 #pragma pack(pop)
 
-extern device::Device *AK09916_I2C_interface(int bus);
-
-typedef device::Device *(*ICM20948_mag_constructor)(int, bool);
+extern device::Device *AK09916_I2C_interface(int bus, int bus_frequency);
 
 /**
  * Helper class implementing the magnetometer driver node.

@@ -74,9 +74,9 @@ public:
 		uint8_t samples; // number of samples
 		float dt; // in microseconds
 
-		int16_t x[16];
-		int16_t y[16];
-		int16_t z[16];
+		int16_t x[32];
+		int16_t y[32];
+		int16_t z[32];
 	};
 	static_assert(sizeof(FIFOSample::x) == sizeof(sensor_accel_fifo_s::x), "FIFOSample.x invalid size");
 	static_assert(sizeof(FIFOSample::y) == sizeof(sensor_accel_fifo_s::y), "FIFOSample.y invalid size");
@@ -120,17 +120,16 @@ private:
 
 	uint64_t		_error_count{0};
 
-	uint32_t		_clipping[3] {};
+	uint32_t		_clipping_total[3] {};
 
 	uint16_t		_update_rate{1000};
 
 	// integrator
 	hrt_abstime		_timestamp_sample_prev{0};
 	matrix::Vector3f	_integration_raw{};
+	matrix::Vector3f	_integrator_clipping{};
 	int16_t			_last_sample[3] {};
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};
-	uint8_t			_integrator_clipping{0};
-
 };

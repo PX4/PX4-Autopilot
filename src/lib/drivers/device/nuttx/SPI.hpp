@@ -43,6 +43,7 @@
 #include "../CDev.hpp"
 
 #include <nuttx/spi/spi.h>
+#include <px4_platform_common/spi.h>
 
 namespace device __EXPORT
 {
@@ -63,14 +64,14 @@ protected:
 	/**
 	 * Constructor
 	 *
+	 * @param device_type	The device type (see drv_sensor.h)
 	 * @param name		Driver name
-	 * @param devname	Device node name
 	 * @param bus		SPI bus on which the device lives
 	 * @param device	Device handle (used by SPI_SELECT)
 	 * @param mode		SPI clock/data mode
 	 * @param frequency	SPI clock frequency
 	 */
-	SPI(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency);
+	SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency);
 	virtual ~SPI();
 
 	/**
@@ -157,7 +158,7 @@ private:
 	uint32_t		_device;
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
-	struct spi_dev_s	*_dev;
+	struct spi_dev_s	*_dev {nullptr};
 
 	LockMode		_locking_mode{LOCK_THREADS};	/**< selected locking mode */
 
@@ -166,7 +167,7 @@ protected:
 
 	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
-	virtual bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
+	bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
 
 };
 

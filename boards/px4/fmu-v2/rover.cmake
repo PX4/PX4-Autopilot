@@ -26,12 +26,12 @@ px4_add_board(
 		gps
 		imu/l3gd20
 		imu/lsm303d
-		imu/mpu6000
-		#imu/mpu9250
+		imu/invensense/mpu6000
+		#imu/invensense/mpu9250
 		lights/rgbled
 		magnetometer/hmc5883
 		optical_flow/px4flow
-		px4fmu
+		pwm_out
 		px4io
 		tone_alarm
 

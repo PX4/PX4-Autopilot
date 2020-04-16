@@ -1,7 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Author: @author Peter van der Perk <peter.vanderperk@nxp.com>
+ *                   David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +41,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <errno.h>
 #include <nuttx/board.h>
+#include <hardware/s32k1xx_rcm.h>
 
 
 #ifdef CONFIG_BOARDCTL_RESET
@@ -87,16 +89,14 @@ int board_set_bootload_mode(board_reset_e mode)
 		break;
 
 	case board_reset_enter_bootloader:
-		regvalue = 0xb007b007;
+		regvalue = RCM_PARAM_ESW;
 		break;
 
 	default:
 		return -EINVAL;
 	}
 
-//todo need nvram for reboot to botloader
-	UNUSED(regvalue);
-	//*((uint32_t *) KINETIS_VBATR_BASE) = regvalue;
+	*((uint32_t *) S32K1XX_RCM_SRS) = regvalue;
 	return OK;
 }
 

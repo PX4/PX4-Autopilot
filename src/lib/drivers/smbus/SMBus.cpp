@@ -46,7 +46,7 @@
 #include "SMBus.hpp"
 
 SMBus::SMBus(int bus_num, uint16_t address) :
-	I2C("BATT_SMBUS_I2C", nullptr, bus_num, address, 100000)
+	I2C(DRV_BAT_DEVTYPE_SMBUS, MODULE_NAME, bus_num, address, 100000)
 {
 }
 
@@ -97,6 +97,10 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, 
 	uint8_t rx_data[32 + 5];
 
 	int result = transfer(&cmd_code, 1, (uint8_t *)&rx_data[3], length + 2);
+
+	if (result != PX4_OK) {
+		return result;
+	}
 
 	uint8_t device_address = get_device_address();
 	rx_data[0] = (device_address << 1) | 0x00;

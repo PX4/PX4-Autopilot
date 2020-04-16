@@ -31,7 +31,9 @@ px4_add_board(
 		imu/adis16477
 		imu/adis16497
 		imu/bmi055
-		imu/mpu6000
+		imu/invensense/icm20602
+		imu/invensense/icm20689
+		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -46,7 +48,7 @@ px4_add_board(
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		px4io
 		rc_input
 		roboclaw
@@ -74,6 +76,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		#micrortps_bridge
@@ -114,7 +117,6 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test
@@ -123,4 +125,5 @@ px4_add_board(
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		uuv_example_app
+		work_item
 	)

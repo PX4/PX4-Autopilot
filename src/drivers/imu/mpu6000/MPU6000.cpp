@@ -39,8 +39,9 @@
  */
 constexpr uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 
-MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_type) :
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_type, I2CSPIBusOption bus_option,
+		 int bus) :
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, 0, device_type),
 	_interface(interface),
 	_device_type(device_type),
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
@@ -54,33 +55,33 @@ MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_t
 	switch (_device_type) {
 	default:
 	case MPU_DEVICE_TYPE_MPU6000:
-		_px4_accel.set_device_type(DRV_ACC_DEVTYPE_MPU6000);
-		_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_MPU6000);
+		_interface->set_device_type(DRV_IMU_DEVTYPE_MPU6000);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_MPU6000);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_MPU6000);
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20602:
-		_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20602);
-		_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20602);
+		_interface->set_device_type(DRV_IMU_DEVTYPE_ICM20602);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20602);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20602);
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20608:
-		_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20608);
-		_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20608);
+		_interface->set_device_type(DRV_IMU_DEVTYPE_ICM20608G);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20608G);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20608G);
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20689:
-		_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20689);
-		_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20689);
+		_interface->set_device_type(DRV_IMU_DEVTYPE_ICM20689);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20689);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20689);
 		break;
 	}
 }
 
 MPU6000::~MPU6000()
 {
-	/* make sure we are truly inactive */
-	stop();
-
-	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
@@ -379,7 +380,7 @@ MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
   about 200ms and will return OK if the current values are within 14%
   of the expected values (as per datasheet)
  */
-int
+void
 MPU6000::factory_self_test()
 {
 	_in_factory_test = true;
@@ -515,7 +516,6 @@ MPU6000::factory_self_test()
 		::printf("PASSED\n");
 	}
 
-	return ret;
 }
 #endif
 
@@ -710,7 +710,7 @@ MPU6000::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU6000_NUM_CHECKED_REGISTERS;
 }
 
-void MPU6000::Run()
+void MPU6000::RunImpl()
 {
 	if (_in_factory_test) {
 		// don't publish any data while in factory test mode
@@ -873,8 +873,10 @@ void MPU6000::Run()
 }
 
 void
-MPU6000::print_info()
+MPU6000::print_status()
 {
+	I2CSPIDriverBase::print_status();
+	PX4_INFO("Device type: %i", _device_type);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);

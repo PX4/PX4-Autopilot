@@ -183,19 +183,6 @@ uORB::DeviceNode::copy(void *dst, unsigned &generation)
 	return updated;
 }
 
-uint64_t
-uORB::DeviceNode::copy_and_get_timestamp(void *dst, unsigned &generation)
-{
-	ATOMIC_ENTER;
-
-	const hrt_abstime update_time = _last_update;
-	copy_locked(dst, generation);
-
-	ATOMIC_LEAVE;
-
-	return update_time;
-}
-
 ssize_t
 uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
@@ -216,12 +203,12 @@ uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 	 */
 	ATOMIC_ENTER;
 
-	copy_locked(buffer, sd->generation);
-
 	// if subscriber has an interval track the last update time
 	if (sd->update_interval) {
-		sd->update_interval->last_update = _last_update;
+		sd->update_interval->last_update = hrt_absolute_time();
 	}
+
+	copy_locked(buffer, sd->generation);
 
 	ATOMIC_LEAVE;
 
@@ -279,10 +266,6 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 	memcpy(_data + (_meta->o_size * (generation % _queue_size)), buffer, _meta->o_size);
 
-	/* update the timestamp and generation count */
-	_last_update = hrt_absolute_time();
-
-
 	// callbacks
 	for (auto item : _callbacks) {
 		item->call();
@@ -302,13 +285,6 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 	SubscriberData *sd = filp_to_sd(filp);
 
 	switch (cmd) {
-	case ORBIOCLASTUPDATE: {
-			ATOMIC_ENTER;
-			*(hrt_abstime *)arg = _last_update;
-			ATOMIC_LEAVE;
-			return PX4_OK;
-		}
-
 	case ORBIOCUPDATED: {
 			ATOMIC_ENTER;
 			*(bool *)arg = appears_updated(sd);
