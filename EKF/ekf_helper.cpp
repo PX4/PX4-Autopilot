@@ -252,7 +252,7 @@ void Ekf::resetHeight()
 		const baroSample &baro_newest = _baro_buffer.get_newest();
 
 		if (!_baro_hgt_faulty) {
-			_state.pos(2) = _hgt_sensor_offset - baro_newest.hgt + _baro_hgt_offset;
+			_state.pos(2) = -baro_newest.hgt + _baro_hgt_offset;
 
 			// the state variance is the same as the observation
 			P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.baro_noise));
@@ -1467,6 +1467,23 @@ void Ekf::startMag3DFusion()
 		zeroMagCov();
 		loadMagCovData();
 		_control_status.flags.mag_3D = true;
+	}
+}
+
+void Ekf::startBaroHgtFusion()
+{
+	setControlBaroHeight();
+
+	// We don't need to set a height sensor offset
+	// since we track a separate _baro_hgt_offset
+	_hgt_sensor_offset = 0.0f;
+
+	// Turn off ground effect compensation if it times out
+	if (_control_status.flags.gnd_effect) {
+		if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
+
+			_control_status.flags.gnd_effect = false;
+		}
 	}
 }
 
