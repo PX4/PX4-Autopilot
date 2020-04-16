@@ -129,30 +129,29 @@
 /* Mask definitions for Gyro bandwidth */
 #define BMI088_GYRO_BW_MASK                  0x0F
 
-class BMI088_gyro : public BMI088, public px4::ScheduledWorkItem
+class BMI088_gyro : public BMI088
 {
 public:
-	BMI088_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation);
+	BMI088_gyro(I2CSPIBusOption bus_option, int bus, const char *path_accel, uint32_t device, enum Rotation rotation,
+		    int bus_frequency, spi_mode_e spi_mode);
 	virtual ~BMI088_gyro();
 
-	virtual int     init();
+	int     init() override;
 
 	// Start automatic measurement.
-	void            start();
+	void            start() override;
 
-	/**
-	    * Diagnostics - print some basic information about the driver.
-	    */
-	void            print_info();
+	void            print_status() override;
 
-	void            print_registers();
+	void            print_registers() override;
 
 	// deliberately cause a sensor error
-	void            test_error();
+	void            test_error() override;
 
+	void RunImpl() override;
 protected:
 
-	virtual int     probe();
+	int     probe() override;
 
 private:
 
@@ -174,18 +173,11 @@ private:
 	float           _last_temperature;
 
 	/**
-	     * Stop automatic measurement.
-	     */
-	void            stop();
-
-	/**
 	     * Reset chip.
 	     *
 	     * Resets the chip and measurements ranges, but not scale and offset.
 	     */
 	int         reset();
-
-	void     Run() override;
 
 	/**
 	     * Static trampoline from the hrt_call context; because we don't have a
@@ -197,11 +189,6 @@ private:
 	     * @param arg       Instance pointer for the driver that is polling.
 	     */
 	static void     measure_trampoline(void *arg);
-
-	/**
-	     * Fetch measurements from the sensor and update the report buffers.
-	     */
-	void            measure();
 
 	/**
 	     * Modify a register in the BMI088_gyro

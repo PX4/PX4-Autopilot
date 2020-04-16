@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-/*
- * @file drv_io_timer.c
+/**
+ * @file io_timer.c
  *
  * Servo driver supporting PWM servos connected to imxrt FLEXPWM blocks.
  */
@@ -61,6 +61,15 @@
 #include <chip.h>
 #include "hardware/imxrt_flexpwm.h"
 #include "imxrt_periphclks.h"
+
+static int io_timer_handler0(int irq, void *context, void *arg);
+static int io_timer_handler1(int irq, void *context, void *arg);
+static int io_timer_handler2(int irq, void *context, void *arg);
+static int io_timer_handler3(int irq, void *context, void *arg);
+static int io_timer_handler4(int irq, void *context, void *arg);
+static int io_timer_handler5(int irq, void *context, void *arg);
+static int io_timer_handler6(int irq, void *context, void *arg);
+static int io_timer_handler7(int irq, void *context, void *arg);
 
 #if !defined(BOARD_PWM_FREQ)
 #define BOARD_PWM_FREQ 1000000
@@ -169,26 +178,39 @@ static int io_timer_handler(uint16_t timer_index)
 
 int io_timer_handler0(int irq, void *context, void *arg)
 {
-
 	return io_timer_handler(0);
 }
 
 int io_timer_handler1(int irq, void *context, void *arg)
 {
 	return io_timer_handler(1);
-
 }
 
 int io_timer_handler2(int irq, void *context, void *arg)
 {
 	return io_timer_handler(2);
-
 }
 
 int io_timer_handler3(int irq, void *context, void *arg)
 {
 	return io_timer_handler(3);
+}
 
+int io_timer_handler4(int irq, void *context, void *arg)
+{
+	return io_timer_handler(4);
+}
+int io_timer_handler5(int irq, void *context, void *arg)
+{
+	return io_timer_handler(5);
+}
+int io_timer_handler6(int irq, void *context, void *arg)
+{
+	return io_timer_handler(6);
+}
+int io_timer_handler7(int irq, void *context, void *arg)
+{
+	return io_timer_handler(7);
 }
 
 static inline int is_timer_uninitalized(unsigned timer)
@@ -245,6 +267,26 @@ int io_timer_validate_channel_index(unsigned channel)
 	}
 
 	return rv;
+}
+
+uint32_t io_timer_channel_get_gpio_output(unsigned channel)
+{
+	if (io_timer_validate_channel_index(channel) != 0) {
+		return 0;
+	}
+
+	return timer_io_channels[channel].gpio_portpin | (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP
+			| IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST);
+	return 0;
+}
+
+uint32_t io_timer_channel_get_as_pwm_input(unsigned channel)
+{
+	if (io_timer_validate_channel_index(channel) != 0) {
+		return 0;
+	}
+
+	return timer_io_channels[channel].gpio_in;
 }
 
 int io_timer_get_mode_channels(io_timer_channel_mode_t mode)
@@ -409,8 +451,10 @@ void io_timer_trigger(void)
 		action_cache[actions].base = io_timers[timer].base;
 
 		if (action_cache[actions].base) {
-			for (uint32_t channel = io_timers[timer].first_channel_index;
-			     channel <= io_timers[timer].last_channel_index; channel++) {
+			uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
+			uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
+
+			for (uint32_t channel = first_channel_index; channel < last_channel_index; channel++) {
 				mask = get_channel_mask(channel);
 
 				if (oneshots & mask) {
@@ -467,8 +511,10 @@ int io_timer_init_timer(unsigned timer)
 			break;
 		}
 
-		for (uint32_t chan = io_timers[timer].first_channel_index;
-		     chan <= io_timers[timer].last_channel_index; chan++) {
+		uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
+		uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
+
+		for (uint32_t chan = first_channel_index; chan < last_channel_index; chan++) {
 
 			/* Clear all Faults */
 			rFSTS0(timer) = FSTS_FFLAG_MASK;

@@ -108,128 +108,17 @@
 //#define GPIO_GPIO4_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM5_CH2OUT)
 //#define GPIO_GPIO5_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM1_CH1OUT)
 
-/*----------------------------------------------------------*/
-/*         OMNIBUSF4SD SPI chip selects and DRDY            */
-/*----------------------------------------------------------*/
-
-/* SPI chip selects */
-/*
- * Define the Chip Selects for SPI1
- *
- * MPU6000: PA4
- *
- */
-#define GPIO_SPI_CS_MEMS           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
-
-/*
- * Define the Chip Selects for SPI2
- *
- * SD Card: PB12
- *
- */
-#define GPIO_SPI_CS_SDCARD         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN12)
-
-/*
- * Define the Chip Selects for SPI3
- *
- * BMP280: PB3
- * ABT7456: PA15
- *
- */
-
-#define GPIO_SPI3_CS_BARO          (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN3)
-#define GPIO_SPI3_CS_OSD           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN15)
-
-/*
- *  Define the ability to shut off off the sensor signals
- *  by changing the signals to inputs
- */
-
-#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
-
-/* SPI 1 bus off */
-#define GPIO_SPI1_SCK_OFF            _PIN_OFF(GPIO_SPI1_SCK)
-#define GPIO_SPI1_MISO_OFF           _PIN_OFF(GPIO_SPI1_MISO)
-#define GPIO_SPI1_MOSI_OFF           _PIN_OFF(GPIO_SPI1_MOSI)
-/* SPI 1 CS's  off */
-#define GPIO_SPI1_CS_MEMS_OFF         _PIN_OFF(GPIO_SPI_CS_MEMS)
-
-/* SPI 2 bus off */
-#define GPIO_SPI2_SCK_OFF            _PIN_OFF(GPIO_SPI2_SCK)
-#define GPIO_SPI2_MISO_OFF           _PIN_OFF(GPIO_SPI2_MISO)
-#define GPIO_SPI2_MOSI_OFF           _PIN_OFF(GPIO_SPI2_MOSI)
-/* SPI 2 CS's  off */
-#define GPIO_SPI2_CS_SDCARD_OFF         _PIN_OFF(GPIO_SPI_CS_SDCARD)
-
-/* SPI 3 bus off */
-#define GPIO_SPI3_SCK_OFF            _PIN_OFF(GPIO_SPI3_SCK)
-#define GPIO_SPI3_MISO_OFF           _PIN_OFF(GPIO_SPI3_MISO)
-#define GPIO_SPI3_MOSI_OFF           _PIN_OFF(GPIO_SPI3_MOSI)
-/* SPI 3 CS's  off */
-#define GPIO_SPI3_CS_BARO_OFF        _PIN_OFF(GPIO_SPI3_CS_BARO)
-#define GPIO_SPI3_CS_OSD_OFF        _PIN_OFF(GPIO_SPI3_CS_OSD)
-
-// One device per bus
-#define PX4_SPI_BUS_SENSORS         1
-#define PX4_SPIDEV_MPU              1
-#define PX4_SPIDEV_ICM_20602        1
-#define PX4_SPIDEV_BARO_BUS         3
-#define PX4_SPIDEV_BARO             1
-#define PX4_SPIDEV_OSD              2
-
 /* USB OTG FS
  *
  * PA9  OTG_FS_VBUS VBUS sensing
  */
 #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTC|GPIO_PIN5)
 
-/*----------------------------------------------------------*/
-/*        End OMNIBUSF4SD SPI chip selects and DRDY         */
-/*----------------------------------------------------------*/
-
-#define PX4_SPI_BUS_BARO         3
-#define PX4_SPI_BUS_OSD			 3
-
-#define PX4_I2C_BUS_EXPANSION    2
-#define PX4_I2C_BUS_LED          PX4_I2C_BUS_EXPANSION
-
 /* PWM
  *
- * 6 PWM outputs are configured.
- *
  * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
- *
- * Pins:
- *
- * INPUTS:
- *  CH1 : PB8 : TIM10_CH1 // PPM
- *  CH2 : PB9 : TIM4_CH4
- *  CH3 : PC6 : TIM8_CH1 // OR UART6_TX
- *  CH4 : PC7 : TIM8_CH2 // OR UART6_RX
- *  CH5 : PC8 : TIM8_CH3
- *  CH6 : PC9 : TIM8_CH4
- *
- * OUTPUTS:
- *  M1 : PB0 : TIM3_CH3
- *  M2 : PB1 : TIM3_CH4
- *  M3 : PA3 : TIM2_CH3
- *  M4 : PA2 : TIM2_CH4
- *  M5 : PA1 : TIM5_CH2 // UART4_RX
- *  M6 : PA8 : TIM1_CH1 // USART2_TX
  */
-
-#define GPIO_TIM3_CH3OUT        GPIO_TIM3_CH3OUT_1 //PB0 S1_OUT D1_ST7
-#define GPIO_TIM3_CH4OUT        GPIO_TIM3_CH4OUT_1 //PB1 S2_OUT D1_ST2
-#define GPIO_TIM2_CH4OUT        GPIO_TIM2_CH4OUT_1 //PA3 S3_OUT D1_ST6
-#define GPIO_TIM2_CH3OUT        GPIO_TIM2_CH3OUT_1 //PA2 S4_OUT D1_ST1
-
 #define DIRECT_PWM_OUTPUT_CHANNELS      4
-
-#define GPIO_TIM3_CH3IN         GPIO_TIM3_CH3IN_1
-#define GPIO_TIM3_CH4IN         GPIO_TIM3_CH4IN_1
-#define GPIO_TIM2_CH4IN         GPIO_TIM2_CH4IN_1
-#define GPIO_TIM2_CH3IN         GPIO_TIM2_CH3IN_1
-
 #define DIRECT_INPUT_TIMER_CHANNELS  4
 
 // Has pwm outputs
@@ -260,7 +149,7 @@
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
-#define BOARD_DMA_ALLOC_POOL_SIZE    5120
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 #define BOARD_HAS_ON_RESET 1
 
@@ -291,14 +180,9 @@ __BEGIN_DECLS
  * Description:
  *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
  *
- *   mask - is bus selection
- *   1 - 1 << 0
- *   2 - 1 << 1
- *
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-void board_spi_reset(int ms);
 
 
 /****************************************************************************************************

@@ -38,6 +38,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/device/integrator.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/PublicationQueuedMulti.hpp>
 #include <uORB/topics/sensor_gyro.h>
@@ -45,7 +46,7 @@
 #include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_gyro_status.h>
 
-class PX4Gyroscope : public cdev::CDev
+class PX4Gyroscope : public cdev::CDev, public ModuleParams
 {
 public:
 	PX4Gyroscope(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
@@ -55,9 +56,12 @@ public:
 
 	uint32_t get_device_id() const { return _device_id; }
 
+	float get_max_rate_hz() const { return _param_imu_gyro_rate_max.get(); }
+
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _error_count += error_count; }
+	void set_error_count(uint64_t error_count) { _error_count = error_count; }
+	void increase_error_count() { _error_count++; }
 	void set_range(float range) { _range = range; UpdateClipLimit(); }
 	void set_scale(float scale) { _scale = scale; UpdateClipLimit(); }
 	void set_temperature(float temperature) { _temperature = temperature; }
@@ -72,9 +76,9 @@ public:
 		uint8_t samples; // number of samples
 		float dt; // in microseconds
 
-		int16_t x[16];
-		int16_t y[16];
-		int16_t z[16];
+		int16_t x[32];
+		int16_t y[32];
+		int16_t z[32];
 	};
 	static_assert(sizeof(FIFOSample::x) == sizeof(sensor_gyro_fifo_s::x), "FIFOSample.x invalid size");
 	static_assert(sizeof(FIFOSample::y) == sizeof(sensor_gyro_fifo_s::y), "FIFOSample.y invalid size");
@@ -118,17 +122,20 @@ private:
 
 	uint64_t		_error_count{0};
 
-	uint32_t		_clipping[3] {};
+	uint32_t		_clipping_total[3] {};
 
 	uint16_t		_update_rate{1000};
 
 	// integrator
 	hrt_abstime		_timestamp_sample_prev{0};
 	matrix::Vector3f	_integration_raw{};
+	matrix::Vector3f	_integrator_clipping{};
 	int16_t			_last_sample[3] {};
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};
-	uint8_t			_integrator_clipping{0};
 
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
+	)
 };

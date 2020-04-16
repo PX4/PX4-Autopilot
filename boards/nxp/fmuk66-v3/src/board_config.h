@@ -53,6 +53,8 @@ __BEGIN_DECLS
 #include <hardware/kinetis_pinmux.h>
 #include <arch/board/board.h>
 
+__END_DECLS
+
 /* FMUK66 GPIOs ***********************************************************************************/
 /* LEDs */
 /* An RGB LED is connected through GPIO as shown below:
@@ -189,31 +191,6 @@ __BEGIN_DECLS
 
 //#define GPIO_SD_CARDDETECT (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN10)
 
-/* SPI
- *
- *  SD Card is on SPI 0
- *	FXOS8700CQ Accelerometer & Magnetometer is on SPI 1
- *	FXAS21002CQ Gyro is on SPI 2
- */
-
-/* SPI Bus assignments */
-
-#define PX4_SPI_BUS_MEMORY                  PX4_BUS_NUMBER_TO_PX4(0)
-#define PX4_SPI_BUS_SENSORS                 PX4_BUS_NUMBER_TO_PX4(1)
-#define PX4_SPI_BUS_EXTERNAL                PX4_BUS_NUMBER_TO_PX4(2)
-#define PX4_SPI_BUS_RAMTRON                 PX4_SPI_BUS_MEMORY
-#define PX4_SPI_BUS_EXT                     PX4_SPI_BUS_EXTERNAL
-
-
-/* SPI chip selects */
-
-#define GPIO_SPI_CS_MEMORY                  (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN2)
-#define GPIO_SPI_CS_FXAS21002CQ_GYRO        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN9)
-#define GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG    (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN10)
-#define GPIO_SPI1_CS_CALMEM                 (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN19)
-#define GPIO_SPI2_CS                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN20)
-#define GPIO_SPI2_EXT                       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN15)
-
 /* SPI device reset signals
  * In Active state
  */
@@ -230,42 +207,6 @@ __BEGIN_DECLS
 #define GPIO_EXTI_ACCEL_MAG_INT2            (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN10)
 #define GPIO_EXTI_BARO_INT1                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN11)
 #define GPIO_EXTI_BARO_INT2                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN7)
-
-/* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
-
-#define PX4_SPIDEV_MEMORY                   PX4_MK_SPI_SEL(PX4_SPI_BUS_MEMORY,0)
-#define PX4_MEMORY_BUS_CS_GPIO              {GPIO_SPI_CS_MEMORY}
-#define PX4_MEMORY_BUS_FIRST_CS             PX4_SPIDEV_MEMORY
-#define PX4_MEMORY_BUS_LAST_CS              PX4_SPIDEV_MEMORY
-
-#define PX4_SPIDEV_ACCEL_MAG                PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
-#define PX4_SPIDEV_GYRO                     PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
-#define PX4_SPIDEV_CALMEM                   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,2)
-#define PX4_SENSOR_BUS_CS_GPIO              {GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG, GPIO_SPI_CS_FXAS21002CQ_GYRO, GPIO_SPI1_CS_CALMEM}
-#define PX4_SENSOR_BUS_FIRST_CS             PX4_SPIDEV_ACCEL_MAG
-#define PX4_SENSOR_BUS_LAST_CS              PX4_SPIDEV_CALMEM
-
-#define PX4_SPIDEV_EXTERNAL1                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,0)
-#define PX4_SPIDEV_EXTERNAL2                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,1)
-#define PX4_EXTERNAL_BUS_CS_GPIO            {GPIO_SPI2_CS, GPIO_SPI2_EXT}
-#define PX4_EXTERNAL_BUS_FIRST_CS           PX4_SPIDEV_EXTERNAL1
-#define PX4_EXTERNAL_BUS_LAST_CS            PX4_SPIDEV_EXTERNAL2
-
-#define PX4_SPIDEV_ICM_20602                PX4_SPIDEV_EXTERNAL1
-#define PX4_SPIDEV_ICM_20608                PX4_SPIDEV_EXTERNAL1
-#define PX4_SPIDEV_ICM_20689                PX4_SPIDEV_EXTERNAL1
-#define PX4_SPIDEV_EXT_MPU                  PX4_SPIDEV_EXTERNAL1
-#define PX4_SPIDEV_MPU                      PX4_SPIDEV_EXTERNAL1
-
-/* I2C busses */
-
-#define PX4_I2C_BUS_ONBOARD                 PX4_BUS_NUMBER_TO_PX4(1)
-#define PX4_I2C_BUS_EXPANSION               PX4_BUS_NUMBER_TO_PX4(0)
-
-
-#define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION
-
-#define PX4_I2C_OBDEV_BMP280                0x76
 
 /*
  * ADC channels
@@ -320,40 +261,7 @@ __BEGIN_DECLS
 
 /* User GPIOs
  *
- * GPIO-
- * Define as GPIO input / GPIO outputs and timers IO
  */
-
-#define PX4_MK_GPIO(pin_ftmx, io)    ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) |(io))
-#define PX4_MK_GPIO_INPUT(pin_ftmx)    PX4_MK_GPIO(pin_ftmx, GPIO_PULLUP)
-#define PX4_MK_GPIO_OUTPUT(pin_ftmx)   PX4_MK_GPIO(pin_ftmx, GPIO_HIGHDRIVE)
-
-#define GPIO_GPIO0_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH0OUT) /* FMU_CH1 */
-#define GPIO_GPIO1_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH3OUT) /* FMU_CH2 */
-#define GPIO_GPIO2_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH4OUT) /* FMU_CH3 */
-#define GPIO_GPIO3_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM0_CH5OUT) /* FMU_CH4 */
-#define GPIO_GPIO4_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH6OUT) /* FMU_CH5 */
-#define GPIO_GPIO5_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH7OUT) /* FMU_CH6 */
-
-#define GPIO_GPIO6_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM3_CH0OUT) /* U_TRI   */
-#define GPIO_GPIO7_INPUT    PX4_MK_GPIO_INPUT(GPIO_FTM2_CH0OUT) /* U_ECHO  */
-
-#define GPIO_GPIO0_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH0OUT) /* FMU_CH1 */
-#define GPIO_GPIO1_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH3OUT) /* FMU_CH2 */
-#define GPIO_GPIO2_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH4OUT) /* FMU_CH3 */
-#define GPIO_GPIO3_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM0_CH5OUT) /* FMU_CH4 */
-#define GPIO_GPIO4_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH6OUT) /* FMU_CH5 */
-#define GPIO_GPIO5_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH7OUT) /* FMU_CH6 */
-
-#define GPIO_GPIO6_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM3_CH0OUT) /* U_TRI   */
-#define GPIO_GPIO7_OUTPUT   PX4_MK_GPIO_OUTPUT(GPIO_FTM2_CH0OUT) /* U_ECHO  */
-
-/* P13 Ultrasonic Sensors
- * Timer Capture driver the the Trigger and sample the response on Echo
- */
-
-#define GPIO_TRI                 GPIO_GPIO6_OUTPUT
-#define GPIO_ECH                 GPIO_GPIO7_INPUT
 
 /* Timer I/O PWM and capture
  *
@@ -432,22 +340,11 @@ __BEGIN_DECLS
 #define LED_TIM3_CH4OUT   /* PTC8  RGB_B */ PIN_FTM3_CH4_1
 
 /* This board provides a DMA pool and APIs */
-
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 /* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
-
-#define PX4_GPIO_PWM_INIT_LIST { \
-		GPIO_GPIO5_INPUT, \
-		GPIO_GPIO4_INPUT, \
-		GPIO_GPIO3_INPUT, \
-		GPIO_GPIO2_INPUT, \
-		GPIO_GPIO1_INPUT, \
-		GPIO_GPIO0_INPUT, \
-		GPIO_TRI,         \
-	}
 
 #define PX4_GPIO_INIT_LIST {  \
 		GPIO_LED_R,           \
@@ -461,7 +358,6 @@ __BEGIN_DECLS
 		GPIO_GM_nRST,         \
 		GPIO_A_RST,           \
 		GPIO_USB_VBUS_VALID,  \
-		GPIO_ECH,             \
 		GPIO_ENET_RST,        \
 		GPIO_ENET_EN,         \
 		GPIO_ENET_INH,        \
@@ -526,6 +422,8 @@ __BEGIN_DECLS
  * Public data
  ************************************************************************************/
 
+__BEGIN_DECLS
+
 #ifndef __ASSEMBLY__
 
 /************************************************************************************
@@ -559,7 +457,6 @@ int  fmuk66_spi_bus_initialize(void);
  *   Called to reset SPI and the perferal bus
  *
  ****************************************************************************************************/
-void board_spi_reset(int ms);
 void board_peripheral_reset(int ms);
 
 /************************************************************************************

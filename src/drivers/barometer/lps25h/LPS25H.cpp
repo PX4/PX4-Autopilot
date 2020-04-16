@@ -33,21 +33,17 @@
 
 #include "LPS25H.hpp"
 
-LPS25H::LPS25H(device::Device *interface) :
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+LPS25H::LPS25H(I2CSPIBusOption bus_option, int bus, device::Device *interface) :
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors"))
 {
-	_interface->set_device_type(DRV_BARO_DEVTYPE_LPS25H);
-	_px4_barometer.set_device_type(DRV_BARO_DEVTYPE_LPS25H);
 }
 
 LPS25H::~LPS25H()
 {
-	stop();
-
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 
@@ -74,11 +70,6 @@ void LPS25H::start()
 	ScheduleNow();
 }
 
-void LPS25H::stop()
-{
-	ScheduleClear();
-}
-
 int LPS25H::reset()
 {
 	// Power on
@@ -96,7 +87,7 @@ int LPS25H::reset()
 	return ret;
 }
 
-void LPS25H::Run()
+void LPS25H::RunImpl()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -115,7 +106,7 @@ void LPS25H::Run()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_interval > (LPS25H_CONVERSION_INTERVAL)) {
+		if (_measure_interval > LPS25H_CONVERSION_INTERVAL) {
 			/* schedule a fresh cycle call when we are ready to measure again */
 			ScheduleDelayed(_measure_interval - LPS25H_CONVERSION_INTERVAL);
 
@@ -203,8 +194,9 @@ int LPS25H::read_reg(uint8_t reg, uint8_t &val)
 	return ret;
 }
 
-void LPS25H::print_info()
+void LPS25H::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 

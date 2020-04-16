@@ -40,7 +40,7 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
@@ -62,20 +62,25 @@
 #define SRF02_CONVERSION_INTERVAL 		100000	// 60ms for one sonar.
 #define SRF02_INTERVAL_BETWEEN_SUCCESIVE_FIRES 	100000	// 30ms between each sonar measurement (watch out for interference!).
 
-class SRF02 : public device::I2C, public px4::ScheduledWorkItem
+class SRF02 : public device::I2C, public I2CSPIDriver<SRF02>
 {
 public:
-	SRF02(int bus, int address = SRF02_BASEADDR, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	SRF02(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
+	      int address = SRF02_BASEADDR);
 	~SRF02() override;
 
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
+
 	int init() override;
-	void print_info();
+	void print_status() override;
+
+	void RunImpl();
 
 private:
 
-	void Run() override;
 	void start();
-	void stop();
 	int collect();
 	int measure();
 

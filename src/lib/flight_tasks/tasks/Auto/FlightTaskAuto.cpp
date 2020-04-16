@@ -142,6 +142,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_type = WaypointType::loiter;
 		_yaw_setpoint = _yaw;
 		_yawspeed_setpoint = NAN;
+		_target_acceptance_radius = _sub_triplet_setpoint.get().current.acceptance_radius;
 		_updateInternalWaypoints();
 		return true;
 	}
@@ -493,7 +494,7 @@ bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
 		// and multiply by the sign given of cross product of x and v.
 		// Dot product: (x(0)*v(0)+(x(1)*v(1)) = v(0)
 		// Cross product: x(0)*v(1) - v(0)*x(1) = v(1)
-		heading =  math::sign(v(1)) * wrap_pi(acosf(v(0)));
+		heading =  sign(v(1)) * wrap_pi(acosf(v(0)));
 		return true;
 	}
 

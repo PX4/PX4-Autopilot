@@ -271,7 +271,7 @@ if (NOT CATKIN_DEVEL_PREFIX)
 	# We have a custom error message to tell users how to install python3.
 	if (NOT PYTHONINTERP_FOUND)
 		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-			"    Ubuntu: sudo apt install python3 python3-devel python3-pip\n"
+			"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
 			"    macOS: brew install python")
 	endif()
 else()
@@ -368,18 +368,19 @@ list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/gtest/)
 include(px4_add_gtest)
 if(BUILD_TESTING)
 	include(gtest)
+
+	add_custom_target(test_results
+			COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -R ${TESTFILTER} USES_TERMINAL
+			DEPENDS
+				px4
+				examples__dyn_hello
+				test_mixer_multirotor
+			USES_TERMINAL
+			COMMENT "Running tests"
+			WORKING_DIRECTORY ${PX4_BINARY_DIR})
+	set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
 
-add_custom_target(test_results
-		COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -R ${TESTFILTER} USES_TERMINAL
-		DEPENDS
-			px4
-			examples__dyn_hello
-			test_mixer_multirotor
-		USES_TERMINAL
-		COMMENT "Running tests"
-		WORKING_DIRECTORY ${PX4_BINARY_DIR})
-set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 #=============================================================================
 # subdirectories

@@ -11,6 +11,7 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
+from packaging import version
 import genmsg.msgs
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
@@ -68,7 +69,7 @@ except AttributeError:
 #include <fastrtps/fastrtps_fwd.h>
 #include <fastrtps/publisher/PublisherListener.h>
 
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
 #include "@(topic)_PubSubTypes.h"
 @[else]@
 #include "@(topic)PubSubTypes.h"
@@ -77,6 +78,24 @@ except AttributeError:
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
 
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
+@[    if ros2_distro]@
+using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
+using @(topic)_msg_datatype = @(package)::msg::dds_::@(topic)_PubSubType;
+@[    else]@
+using @(topic)_msg_t = @(topic)_;
+using @(topic)_msg_datatype = @(topic)_PubSubType;
+@[    end if]@
+@[else]@
+@[    if ros2_distro]@
+using @(topic)_msg_t = @(package)::msg::@(topic);
+using @(topic)_msg_datatype = @(package)::msg::@(topic)PubSubType;
+@[    else]@
+using @(topic)_msg_t = @(topic);
+using @(topic)_msg_datatype = @(topic)PubSubType;
+@[    end if]@
+@[end if]@
+
 class @(topic)_Publisher
 {
 public:
@@ -84,19 +103,7 @@ public:
     virtual ~@(topic)_Publisher();
     bool init();
     void run();
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-    void publish(@(package)::msg::dds_::@(topic)_* st);
-@[    else]@
-    void publish(@(topic)_* st);
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-    void publish(@(package)::msg::@(topic)* st);
-@[    else]@
-    void publish(@(topic)* st);
-@[    end if]@
-@[end if]@
+    void publish(@(topic)_msg_t* st);
 private:
     Participant *mp_participant;
     Publisher *mp_publisher;
@@ -109,19 +116,7 @@ private:
         void onPublicationMatched(Publisher* pub, MatchingInfo& info);
         int n_matched;
     } m_listener;
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-    @(package)::msg::dds_::@(topic)_PubSubType @(topic)DataType;
-@[    else]@
-    @(topic)_PubSubType @(topic)DataType;
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-    @(package)::msg::@(topic)PubSubType @(topic)DataType;
-@[    else]@
-    @(topic)PubSubType @(topic)DataType;
-@[    end if]@
-@[end if]@
+    @(topic)_msg_datatype @(topic)DataType;
 };
 
 #endif // _@(topic)__PUBLISHER_H_

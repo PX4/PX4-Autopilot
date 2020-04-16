@@ -45,7 +45,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <drivers/device/i2c.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/rpm.h>
@@ -54,19 +54,24 @@
 /* Configuration Constants */
 #define PCF8583_BASEADDR_DEFAULT             0x50
 
-class PCF8583 : public device::I2C, public px4::ScheduledWorkItem, public ModuleParams
+class PCF8583 : public device::I2C, public ModuleParams, public I2CSPIDriver<PCF8583>
 {
 public:
-	PCF8583(int bus = PX4_I2C_BUS_EXPANSION, int address = PCF8583_BASEADDR_DEFAULT);
-	~PCF8583() override;
+	PCF8583(I2CSPIBusOption bus_option, const int bus, int bus_frequency);
+	~PCF8583() override = default;
+
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
+
+	void		RunImpl();
 
 	int    init() override;
-	void   print_info();
+	void   print_status() override;
 
 private:
 
 	int  probe() override;
-	void Run() override ; // Perform a poll cycle; overide for ScheduledWorkItem
 
 	int            getCounter();
 	void           resetCounter();

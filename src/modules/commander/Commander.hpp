@@ -61,6 +61,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
@@ -132,6 +133,8 @@ private:
 	 */
 	void data_link_check();
 
+	void avoidance_check();
+
 	void esc_status_check(const esc_status_s &esc_status);
 
 	void estimator_check();
@@ -196,7 +199,6 @@ private:
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
 
 		(ParamBool<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
-		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,
 
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
 
@@ -251,7 +253,9 @@ private:
 		// Mavlink
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
-		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type
+		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
+
+		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist
 	)
 
 	enum class PrearmedMode {
@@ -272,7 +276,6 @@ private:
 
 	static constexpr float STICK_ON_OFF_LIMIT{0.9f};
 
-	static constexpr uint64_t OFFBOARD_TIMEOUT{500_ms};
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t PRINT_MODE_REJECT_INTERVAL{500_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
@@ -281,6 +284,8 @@ private:
 	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */
 
 	PreFlightCheck::arm_requirements_t	_arm_requirements{};
+
+	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
 
 	hrt_abstime	_last_gpos_fail_time_us{0};	/**< Last time that the global position validity recovery check failed (usec) */
 	hrt_abstime	_last_lpos_fail_time_us{0};	/**< Last time that the local position validity recovery check failed (usec) */
@@ -304,6 +309,7 @@ private:
 
 	FailureDetector	_failure_detector;
 	bool		_flight_termination_triggered{false};
+	bool		_lockdown_triggered{false};
 
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
@@ -324,8 +330,7 @@ private:
 
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};
-
-	bool		_print_avoidance_msg_once{false};
+	Hysteresis	_offboard_available{false};
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
@@ -357,10 +362,10 @@ private:
 	bool		_status_changed{true};
 	bool		_arm_tune_played{false};
 	bool		_was_landed{true};
-	bool		_was_falling{false};
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
+	bool		_should_set_home_on_takeoff{true};
 	bool		_flight_termination_printed{false};
 
 	main_state_t	_main_state_pre_offboard{commander_state_s::MAIN_STATE_MANUAL};
@@ -374,9 +379,21 @@ private:
 
 	// Subscriptions
 	uORB::Subscription					_actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
-	uORB::Subscription					_battery_sub{ORB_ID(battery_status)};
-	uORB::Subscription					_cmd_sub{ORB_ID(vehicle_command)};
+#if BOARD_NUMBER_BRICKS > 1
+	uORB::Subscription					_battery_subs[ORB_MULTI_MAX_INSTANCES] {
+		uORB::Subscription(ORB_ID(battery_status), 0),
+		uORB::Subscription(ORB_ID(battery_status), 1),
+		uORB::Subscription(ORB_ID(battery_status), 2),
+		uORB::Subscription(ORB_ID(battery_status), 3),
+	};
+#else
+	uORB::Subscription					_battery_subs[1] {
+		uORB::Subscription(ORB_ID(battery_status), 0)
+	};
+#endif
+	uORB::Subscription					_cmd_sub {ORB_ID(vehicle_command)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
+	uORB::Subscription					_sub_distance_sensor[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}}; /**< distance data received from onboard rangefinders */
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};

@@ -57,7 +57,7 @@ bool FlightTaskAutoMapper::update()
 	// vehicle exits idle.
 
 	if (_type_previous == WaypointType::idle) {
-		_thrust_setpoint.setNaN();
+		_acceleration_setpoint.setNaN();
 	}
 
 	// during mission and reposition, raise the landing gears but only
@@ -122,7 +122,7 @@ void FlightTaskAutoMapper::_prepareIdleSetpoints()
 	// Send zero thrust setpoint
 	_position_setpoint.setNaN(); // Don't require any position/velocity setpoints
 	_velocity_setpoint.setNaN();
-	_thrust_setpoint.zero();
+	_acceleration_setpoint = Vector3f(0.f, 0.f, 100.f); // High downwards acceleration to make sure there's no thrust
 }
 
 void FlightTaskAutoMapper::_prepareLandSetpoints()
@@ -142,9 +142,7 @@ void FlightTaskAutoMapper::_prepareTakeoffSetpoints()
 {
 	// Takeoff is completely defined by target position
 	_position_setpoint = _target;
-	const float speed_tko = (_dist_to_ground > _param_mpc_land_alt1.get()) ? _constraints.speed_up :
-				_param_mpc_tko_speed.get();
-	_velocity_setpoint = Vector3f(NAN, NAN, -speed_tko); // Limit the maximum vertical speed
+	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
 
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }

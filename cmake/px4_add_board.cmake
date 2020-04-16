@@ -57,6 +57,7 @@
 #			[ SERIAL_PORTS <list> ]
 #			[ CONSTRAINED_FLASH ]
 #			[ TESTING ]
+#			[ LINKER_PREFIX <string> ]
 #			)
 #
 #	Input:
@@ -78,6 +79,7 @@
 #		SERIAL_PORTS		: mapping of user configurable serial ports and param facing name
 #		CONSTRAINED_FLASH	: flag to enable constrained flash options (eg limit init script status text)
 #		TESTING			: flag to enable automatic inclusion of PX4 testing modules
+#		LINKER_PREFIX	: optional to prefix on the Linker script.
 #
 #
 #	Example:
@@ -100,7 +102,7 @@
 #				imu/bmi055
 #				imu/mpu6000
 #				magnetometer/ist8310
-#				px4fmu
+#				pwm_out
 #				px4io
 #				rgbled
 #			MODULES
@@ -140,6 +142,7 @@ function(px4_add_board)
 			IO
 			BOOTLOADER
 			UAVCAN_INTERFACES
+			LINKER_PREFIX
 		MULTI_VALUE
 			DRIVERS
 			MODULES
@@ -227,6 +230,12 @@ function(px4_add_board)
 
 	if(TESTING)
 		set(PX4_TESTING "1" CACHE INTERNAL "testing enabled" FORCE)
+	endif()
+
+	if(LINKER_PREFIX)
+		set(PX4_BOARD_LINKER_PREFIX ${LINKER_PREFIX} CACHE STRING "PX4 board linker prefix" FORCE)
+	else()
+		set(PX4_BOARD_LINKER_PREFIX "" CACHE STRING "PX4 board linker prefix" FORCE)
 	endif()
 
 	include(px4_impl_os)

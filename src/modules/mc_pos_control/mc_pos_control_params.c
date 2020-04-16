@@ -74,6 +74,17 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 
 /**
+ * Hover thrust source selector
+ *
+ * Set false to use the fixed parameter MPC_THR_HOVER
+ * Set true to use the value computed by the hover thrust estimator
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_USE_HTE, 1);
+
+/**
  * Thrust curve in Manual Mode
  *
  * This parameter defines how the throttle stick input is mapped to commanded thrust
@@ -295,7 +306,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
  *
  * @unit deg
  * @min 20.0
- * @max 180.0
+ * @max 89.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -308,7 +319,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  *
  * @unit deg
  * @min 10.0
- * @max 90.0
+ * @max 89.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -438,7 +449,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 /**
  * Maximum horizontal acceleration for auto mode and for manual mode
  *
- * Maximum deceleration for MPC_POS_MODE 1 and 2. Maximum acceleration and deceleration for MPC_POS_MODE 3.
+ * Maximum deceleration for MPC_POS_MODE 1. Maximum acceleration and deceleration for MPC_POS_MODE 3.
  *
  * @unit m/s/s
  * @min 2.0
@@ -520,7 +531,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 20.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.0f);
 
 /**
  * Velocity-based jerk limit
@@ -553,13 +564,13 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
  * agility.
  *
  * @unit m/s/s/s
- * @min 5.0
+ * @min 1.0
  * @max 80.0
  * @increment 1
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 8.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 4.0f);
 
 /**
  * Altitude control mode.
@@ -663,7 +674,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 5.0f);
 
 /**
  * Altitude for 2. step of slow landing (landing)
@@ -678,7 +689,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 2.0f);
 
 /**
  * Position control smooth takeoff ramp time constant
@@ -697,19 +708,15 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * Manual-Position control sub-mode
  *
  * The supported sub-modes are:
- * 0 Default position control where sticks map to position/velocity directly. Maximum speeds
- * 	 is MPC_VEL_MANUAL.
- * 1 Smooth position control where setpoints are adjusted based on acceleration limits
- * 	 and jerk limits.
- * 2 Sport mode that is the same Default position control but with velocity limits set to
- * 	 the maximum allowed speeds (MPC_XY_VEL_MAX)
- * 3 Smooth position control with maximum acceleration and jerk limits (different algorithm
- *   than 1).
+ * 0 Simple position control where sticks map directly to velocity setpoints
+ *   without smoothing. Useful for velocity control tuning.
+ * 1 Smooth position control with maximum acceleration and jerk limits based on slew-rates.
+ * 3 Smooth position control with maximum acceleration and jerk limits based on
+ *   jerk optimized trajectory generator (different algorithm than 1).
  *
- * @value 0 Default position control
+ * @value 0 Simple position control
  * @value 1 Smooth position control
- * @value 2 Sport position control
- * @value 3 Smooth position control (Velocity)
+ * @value 3 Smooth position control (Jerk optimized)
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_POS_MODE, 3);

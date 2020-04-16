@@ -47,7 +47,7 @@
 
 #if defined (CONFIG_NXP_FMURT1062_V3_HYPER_FLASH)
 __attribute__((section(".boot_hdr.conf")))
-const struct flexspi_nor_config_s flash_config = {
+const struct flexspi_nor_config_s g_flash_config = {
 	.mem_config               =
 	{
 		.tag                    = FLEXSPI_CFG_BLK_TAG,
@@ -84,7 +84,7 @@ const struct flexspi_nor_config_s flash_config = {
 
 #elif defined (CONFIG_NXP_FMURT1062_V3_QSPI_FLASH)
 __attribute__((section(".boot_hdr.conf")))
-const struct flexspi_nor_config_s flash_config = {
+const struct flexspi_nor_config_s g_flash_config = {
 	.mem_config =
 	{
 		.tag                    = FLEXSPI_CFG_BLK_TAG,

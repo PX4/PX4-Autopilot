@@ -66,6 +66,7 @@
 #include <arch/board/board.h>
 #include "up_internal.h"
 
+#include <px4_arch/io_timer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
@@ -88,10 +89,9 @@ static int configure_switch(void);
  ************************************************************************************/
 __EXPORT void board_on_reset(int status)
 {
-	/* configure the GPIO pins to outputs and keep them low */
-
-	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
-	px4_gpio_init(gpio, arraySize(gpio));
+	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
+	}
 
 	if (status >= 0) {
 		up_mdelay(6);
@@ -206,8 +206,8 @@ static int configure_switch(void)
 {
 	int ret = PX4_ERROR;
 
-	// attach to the i2c bus
-	struct i2c_master_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
+	// attach to the i2c bus (internal)
+	struct i2c_master_s *i2c = px4_i2cbus_initialize(3);
 
 	if (i2c == NULL) {
 		syslog(LOG_ERR, "[boot] I2C device not opened\n");

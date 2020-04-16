@@ -67,121 +67,9 @@
 #define BOARD_ARMED_LED        LED_BLUE
 #define BOARD_ARMED_STATE_LED  LED_GREEN
 
-/**
- * The MPU9250 is default. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
-#define GPIO_SPI1_CS_PORTC_PIN2      (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
-
-/**
- * The ICM20608G is default. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
-#define GPIO_SPI1_CS_PORTC_PIN15     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
-
-/**
- * Reserved. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
- */
-#define GPIO_SPI1_CS_PORTE_PIN15     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
-
-/* Define the Data Ready interrupts On SPI 1. */
-#define GPIO_DRDY_PORTD_PIN15        (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN15)
-#define GPIO_DRDY_PORTC_PIN14        (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN14)
-#define GPIO_DRDY_PORTE_PIN12        (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTE|GPIO_PIN12)
-
-
-/* Define the Chip Selects for SPI2. */
-#define GPIO_SPI2_CS_MS5611          (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN7)
-#define GPIO_SPI2_CS_FRAM            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
-
-/* Define the Chip Selects for SPI4. */
-
 #ifdef CONFIG_STM32_SPI4
 #  define BOARD_HAS_BUS_MANIFEST 1 // We support a bus manifest because spi 4 is optional
-#  define GPIO_SPI4_CS_1         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN8)  //ESP_RTS_PIN
 #endif /* CONFIG_STM32_SPI4 */
-/**
- * Define the ability to shut off off the sensor signals
- * by changing the signals to inputs.
- */
-#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
-
-/* SPI 1 bus off. */
-#define GPIO_SPI1_SCK_OFF            _PIN_OFF(GPIO_SPI1_SCK)
-#define GPIO_SPI1_MISO_OFF           _PIN_OFF(GPIO_SPI1_MISO)
-#define GPIO_SPI1_MOSI_OFF           _PIN_OFF(GPIO_SPI1_MOSI)
-
-/* SPI 1 CS's  off. */
-#define GPIO_SPI1_CS_OFF_PORTC_PIN2  _PIN_OFF(GPIO_SPI1_CS_PORTC_PIN2)
-#define GPIO_SPI1_CS_OFF_PORTC_PIN15 _PIN_OFF(GPIO_SPI1_CS_PORTC_PIN15)
-#define GPIO_SPI1_CS_OFF_PORTE_PIN15 _PIN_OFF(GPIO_SPI1_CS_PORTE_PIN15)
-
-/* SPI 1 DRDY's off. */
-#define GPIO_DRDY_OFF_PORTD_PIN15    _PIN_OFF(GPIO_DRDY_PORTD_PIN15)
-#define GPIO_DRDY_OFF_PORTC_PIN14    _PIN_OFF(GPIO_DRDY_PORTC_PIN14)
-#define GPIO_DRDY_OFF_PORTE_PIN12    _PIN_OFF(GPIO_DRDY_PORTE_PIN12)
-
-/* SPI 4 bus off. */
-#ifdef CONFIG_STM32_SPI4
-#  define GPIO_SPI4_SCK_OFF          _PIN_OFF(GPIO_SPI4_SCK)
-#  define GPIO_SPI4_MISO_OFF         _PIN_OFF(GPIO_SPI4_MISO)
-#  define GPIO_SPI4_MOSI_OFF         _PIN_OFF(GPIO_SPI4_MOSI)
-#endif /* CONFIG_STM32_SPI4 */
-
-/**
- * N.B we do not have control over the SPI 2 buss powered devices
- * so the the ms5611 is not resetable.
- *
- */
-
-#define PX4_SPI_BUS_SENSORS          1
-#define PX4_SPI_BUS_RAMTRON          2
-#define PX4_SPI_BUS_BARO             PX4_SPI_BUS_RAMTRON
-
-#ifdef CONFIG_STM32_SPI4
-#  define PX4_SPI_BUS_EXTERNAL       4
-/* The mask passes to init the SPI bus pins
- * N.B This works ONLY with buss numbers that are powers of 2
- * Adding SPI3 would break this!
- */
-#  define   SPI_BUS_INIT_MASK_EXT     PX4_SPI_BUS_EXTERNAL
-#endif /* CONFIG_STM32_SPI4 */
-
-#define SPI_BUS_INIT_MASK        (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS)
-
-/* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_GYRO              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
-#define PX4_SPIDEV_ACCEL_MAG         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
-#define PX4_SPIDEV_MPU               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
-#define PX4_SPIDEV_HMC               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 5)
-#define PX4_SPIDEV_ICM               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 6)
-#define PX4_SPIDEV_LIS               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 7)
-#define PX4_SPIDEV_BMI               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 8)
-#define PX4_SPIDEV_BMA               PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 9)
-#define PX4_SPIDEV_ICM_20608         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 10)
-#define PX4_SPIDEV_ICM_20602         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 11)
-#define PX4_SPIDEV_BMI055_ACC        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 12)
-#define PX4_SPIDEV_BMI055_GYR        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 13)
-#define PX4_SPIDEV_MPU2              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 14)
-
-/**
- * Onboard MS5611 and FRAM are both on bus SPI2.
- * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver.
- * PX4_MK_SPI_SEL  differentiate by adding in PX4_SPI_DEVICE_ID.
- */
-#define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO, 3)
-
-#ifdef CONFIG_STM32_SPI4
-#  define PX4_SPIDEV_EXTERNAL       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL, 1)
-#endif /* CONFIG_STM32_SPI4 */
-
-/* I2C busses. */
-#define PX4_I2C_BUS_EXPANSION        1
-#define PX4_I2C_BUS_LED              PX4_I2C_BUS_EXPANSION
-
-/**
- * Devices on the external bus.
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_BMP280         0x76
 
 /**
  * ADC channels:
@@ -199,29 +87,9 @@
 #define BOARD_BATTERY1_V_DIV         (10.14f)
 #define BOARD_BATTERY1_A_PER_V       (18.18f)
 
-
-/**
- * User GPIOs:
- * GPIO0-5 are the PWM servo outputs.
- */
-#define GPIO_GPIO0_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN14)
-#define GPIO_GPIO1_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN13)
-#define GPIO_GPIO2_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN11)
-#define GPIO_GPIO3_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN9)
-#define GPIO_GPIO4_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_GPIO5_INPUT             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN14)
-
-#define GPIO_GPIO0_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN14)
-#define GPIO_GPIO1_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN13)
-#define GPIO_GPIO2_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN11)
-#define GPIO_GPIO3_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
-#define GPIO_GPIO4_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_GPIO5_OUTPUT            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
-
 /* Power supply control and monitoring GPIOs. */
 #define GPIO_VDD_BRICK_VALID         (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
 #define GPIO_VDD_USB_VALID           (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
-#define GPIO_VDD_3V3_SENSORS_EN      (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
 
 /* Tone alarm output. */
 #define TONE_ALARM_TIMER             2    /* timer 2 */
@@ -229,39 +97,10 @@
 #define GPIO_TONE_ALARM_IDLE         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
 #define GPIO_TONE_ALARM              (GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
 
-/**
- * PWM:
- *
- * Six PWM outputs are configured.
- *
- * Pins:
- *
- * CH1 : PE14 : TIM1_CH4
- * CH2 : PE13 : TIM1_CH3
- * CH3 : PE11 : TIM1_CH2
- * CH4 : PE9  : TIM1_CH1
- * CH5 : PD13 : TIM4_CH2
- * CH6 : PD14 : TIM4_CH3
+/*
+ * PWM
  */
-
-/**
- * N.B. the added pull down, on the timer being disabled the PD
- * will keep the channel low
- */
-#define GPIO_TIM1_CH1OUT             (GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
-#define GPIO_TIM1_CH2OUT             (GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN11)
-#define GPIO_TIM1_CH3OUT             (GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN13)
-#define GPIO_TIM1_CH4OUT             (GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN14)
-#define GPIO_TIM4_CH2OUT             (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_TIM4_CH3OUT             (GPIO_ALT|GPIO_AF2|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PUSHPULL|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN14)
 #define DIRECT_PWM_OUTPUT_CHANNELS   6
-
-#define GPIO_TIM1_CH1IN              GPIO_TIM1_CH1IN_2
-#define GPIO_TIM1_CH2IN              GPIO_TIM1_CH2IN_2
-#define GPIO_TIM1_CH3IN              GPIO_TIM1_CH3IN_2
-#define GPIO_TIM1_CH4IN              GPIO_TIM1_CH4IN_2
-#define GPIO_TIM4_CH2IN              GPIO_TIM4_CH2IN_2
-#define GPIO_TIM4_CH3IN              GPIO_TIM4_CH3IN_2
 #define DIRECT_INPUT_TIMER_CHANNELS  6
 
 /**
@@ -339,8 +178,8 @@
 
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
-/* This board provides a DMA pool and APIs. */
-#define BOARD_DMA_ALLOC_POOL_SIZE    5120
+/* This board provides a DMA pool and APIs */
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 #define BOARD_HAS_ON_RESET 1
 
@@ -371,14 +210,9 @@ __BEGIN_DECLS
  * Description:
  *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
  *
- *   mask - is bus selection
- *   1 - 1 << 0
- *   2 - 1 << 1
- *
  ****************************************************************************************************/
 
-extern void stm32_spiinitialize(int mask);
-void board_spi_reset(int ms);
+extern void stm32_spiinitialize(void);
 
 extern void stm32_usbinitialize(void);
 

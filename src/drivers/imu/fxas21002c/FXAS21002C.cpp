@@ -186,24 +186,20 @@ static constexpr uint8_t _checked_registers[] {
 
 using namespace time_literals;
 
-FXAS21002C::FXAS21002C(int bus, uint32_t device, enum Rotation rotation) :
-	SPI("FXAS21002C", nullptr, bus, device, SPIDEV_MODE0, 2 * 1000 * 1000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
+FXAS21002C::FXAS21002C(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		       spi_mode_e spi_mode) :
+	SPI(DRV_GYR_DEVTYPE_FXAS2100C, MODULE_NAME, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicate reading"))
 {
-	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_FXAS2100C);
 }
 
 FXAS21002C::~FXAS21002C()
 {
-	/* make sure we are truly inactive */
-	stop();
-
-	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_errors);
 	perf_free(_bad_registers);
@@ -471,24 +467,8 @@ FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
 void
 FXAS21002C::start()
 {
-	/* make sure we are stopped first */
-	stop();
-
 	/* start polling at the specified rate */
 	ScheduleOnInterval((1_s / FXAS21002C_DEFAULT_RATE) - FXAS21002C_TIMER_REDUCTION, 10000);
-}
-
-void
-FXAS21002C::stop()
-{
-	ScheduleClear();
-}
-
-void
-FXAS21002C::Run()
-{
-	/* make another measurement */
-	measure();
 }
 
 void
@@ -522,7 +502,7 @@ FXAS21002C::check_registers(void)
 }
 
 void
-FXAS21002C::measure()
+FXAS21002C::RunImpl()
 {
 	// start the performance counter
 	perf_begin(_sample_perf);
@@ -589,8 +569,9 @@ FXAS21002C::measure()
 }
 
 void
-FXAS21002C::print_info()
+FXAS21002C::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	printf("gyro reads:          %u\n", _read);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_errors);

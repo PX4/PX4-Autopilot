@@ -45,6 +45,7 @@
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_range_finder.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -52,6 +53,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/bitmask.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
@@ -78,6 +80,34 @@
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
 #include <lib/battery/battery.h>
+
+//! Enumeration to use on the bitmask in HIL_SENSOR
+enum class SensorSource {
+	ACCEL		= 0b111,
+	GYRO		= 0b111000,
+	MAG		= 0b111000000,
+	BARO		= 0b1101000000000,
+	DIFF_PRESS	= 0b10000000000
+};
+ENABLE_BIT_OPERATORS(SensorSource)
+
+//! AND operation for the enumeration and unsigned types that returns the bitmask
+template<typename A, typename B>
+static inline SensorSource operator &(A lhs, B rhs)
+{
+	// make it type safe
+	static_assert((std::is_same<A, uint32_t>::value || std::is_same<A, SensorSource>::value),
+		      "first argument is not uint32_t or SensorSource enum type");
+	static_assert((std::is_same<B, uint32_t>::value || std::is_same<B, SensorSource>::value),
+		      "second argument is not uint32_t or SensorSource enum type");
+
+	typedef typename std::underlying_type<SensorSource>::type underlying;
+
+	return static_cast<SensorSource>(
+		       static_cast<underlying>(lhs) &
+		       static_cast<underlying>(rhs)
+	       );
+}
 
 class Simulator : public ModuleParams
 {
@@ -111,6 +141,10 @@ private:
 		perf_free(_perf_sim_delay);
 		perf_free(_perf_sim_interval);
 
+		for (size_t i = 0; i < sizeof(_dist_pubs) / sizeof(_dist_pubs[0]); i++) {
+			delete _dist_pubs[i];
+		}
+
 		_instance = nullptr;
 	}
 
@@ -134,10 +168,12 @@ private:
 	// uORB publisher handlers
 	uORB::Publication<battery_status_s>		_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
-	uORB::PublicationMulti<distance_sensor_s>	_dist_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+
+	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS] {};
+	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS] {};
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
@@ -191,7 +227,7 @@ private:
 	void send_controls();
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
-	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu);
+	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors);
 
 	static void *sending_trampoline(void *);
 

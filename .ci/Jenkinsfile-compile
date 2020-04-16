@@ -9,10 +9,10 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            armhf: "px4io/px4-dev-armhf:2020-01-13",
-            base: "px4io/px4-dev-base-bionic:2020-01-13",
-            nuttx: "px4io/px4-dev-nuttx:2020-01-13",
-            snapdragon: "lorenzmeier/px4-dev-snapdragon:2020-01-13"
+            armhf: "px4io/px4-dev-armhf:2020-04-01",
+            base: "px4io/px4-dev-base-bionic:2020-04-01",
+            nuttx: "px4io/px4-dev-nuttx-bionic:2020-04-01",
+            snapdragon: "lorenzmeier/px4-dev-snapdragon:2020-04-01"
           ]
 
           def armhf_builds = [
@@ -32,19 +32,38 @@ pipeline {
                      "airmind_mindpx-v2_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie_default",
-                     "holybro_kakutef7", "holybro_durandal-v1_default", "holybro_durandal-v1_stackcheck",
+                     "holybro_durandal-v1_default",
+                     "holybro_durandal-v1_stackcheck",
+                     "holybro_kakutef7",
                      "intel_aerofc-v1_default",
                      "modalai_fc-v1_default",
-                     "mro_x21_default", "mro_ctrl-zero-f7_default", "mro_x21-777_default",
+                     "mro_ctrl-zero-f7_default",
+                     "mro_x21-777_default",
+                     "mro_x21_default",
                      "nxp_fmuk66-v3_default",
                      "nxp_fmurt1062-v1_default",
+                     "nxp_rddrone-uavcan146_default",
                      "omnibus_f4sd_default",
-                     "px4_fmu-v2_default", "px4_fmu-v2_fixedwing", "px4_fmu-v2_lpe", "px4_fmu-v2_multicopter", "px4_fmu-v2_rover", "px4_fmu-v2_test",
+                     "px4_fmu-v2_default",
+                     "px4_fmu-v2_fixedwing",
+                     "px4_fmu-v2_lpe",
+                     "px4_fmu-v2_multicopter",
+                     "px4_fmu-v2_rover",
+                     "px4_fmu-v2_test",
                      "px4_fmu-v3_default",
+                     "px4_fmu-v4_cannode",
                      "px4_fmu-v4_default",
+                     "px4_fmu-v4_optimized",
                      "px4_fmu-v4pro_default",
-                     "px4_fmu-v5_default", "px4_fmu-v5_fixedwing", "px4_fmu-v5_multicopter", "px4_fmu-v5_rover", "px4_fmu-v5_rtps", "px4_fmu-v5_stackcheck",
-                     "px4_fmu-v5x_default", "px4_fmu-v5x_p2_base_phy_LAN8742Ai",
+                     "px4_fmu-v5_default",
+                     "px4_fmu-v5_fixedwing",
+                     "px4_fmu-v5_multicopter",
+                     "px4_fmu-v5_optimized",
+                     "px4_fmu-v5_rover",
+                     "px4_fmu-v5_rtps",
+                     "px4_fmu-v5_stackcheck",
+                     "px4_fmu-v5x_default",
+                     "px4_fmu-v5x_p2_base_phy_LAN8742Ai",
                      "px4_io-v2_default",
                      "uvify_core_default"
             ],
@@ -79,7 +98,7 @@ pipeline {
     // TODO: actually upload artifacts to S3
     // stage('S3 Upload') {
     //   agent {
-    //     docker { image 'px4io/px4-dev-base-bionic:2020-01-13' }
+    //     docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
     //   }
     //   options {
     //         skipDefaultCheckout()
@@ -103,7 +122,7 @@ pipeline {
     CI = true
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '2', artifactDaysToKeepStr: '14'))
+    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '14'))
     timeout(time: 60, unit: 'MINUTES')
   }
 }
@@ -113,7 +132,7 @@ def createBuildNode(Boolean archive, String docker_image, String target) {
 
     // TODO: fix the snapdragon image
     bypass_entrypoint = ''
-    if (docker_image == 'lorenzmeier/px4-dev-snapdragon:2020-01-13') {
+    if (docker_image == 'lorenzmeier/px4-dev-snapdragon:2020-04-01') {
       bypass_entrypoint = ' --entrypoint=""'
     }
 

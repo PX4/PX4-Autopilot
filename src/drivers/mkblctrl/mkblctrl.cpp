@@ -218,7 +218,7 @@ MK	*g_mk;
 } // namespace
 
 MK::MK(int bus, const char *_device_path) :
-	I2C("mkblctrl", "/dev/mkblctrl0", bus, 0, I2C_BUS_SPEED),
+	I2C(0, "mkblctrl", bus, 0, I2C_BUS_SPEED),
 	_update_rate(UPDATE_RATE),
 	_task(-1),
 	_t_actuators(-1),
@@ -611,6 +611,8 @@ MK::task_main()
 			esc.timestamp = hrt_absolute_time();
 			esc.esc_count = (uint8_t) _num_outputs;
 			esc.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_I2C;
+			esc.esc_online_flags = (1 << esc.esc_count) - 1;
+			esc.esc_armed_flags = (1 << esc.esc_count) - 1;
 
 			for (unsigned int i = 0; i < _num_outputs; i++) {
 				esc.esc[i].esc_address = (uint8_t) BLCTRL_BASE_ADDR + i;

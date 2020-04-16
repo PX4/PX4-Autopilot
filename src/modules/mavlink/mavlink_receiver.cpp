@@ -241,6 +241,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_obstacle_distance(msg);
 		break;
 
+	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER:
+		handle_message_trajectory_representation_bezier(msg);
+		break;
+
 	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS:
 		handle_message_trajectory_representation_waypoints(msg);
 		break;
@@ -516,6 +520,28 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		if (!stream_found) {
 			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 		}
+
+	} else if (cmd_mavlink.command == MAV_CMD_SET_CAMERA_ZOOM) {
+		struct actuator_controls_s actuator_controls = {};
+		actuator_controls.timestamp = hrt_absolute_time();
+
+		for (size_t i = 0; i < 8; i++) {
+			actuator_controls.control[i] = NAN;
+		}
+
+		switch ((int)(cmd_mavlink.param1 + 0.5f)) {
+		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_RANGE:
+			actuator_controls.control[actuator_controls_s::INDEX_CAMERA_ZOOM] = cmd_mavlink.param2 / 50.0f - 1.0f;
+			break;
+
+		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_STEP:
+		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_CONTINUOUS:
+		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_FOCAL_LENGTH:
+		default:
+			send_ack = false;
+		}
+
+		_actuator_controls_pubs[actuator_controls_s::GROUP_INDEX_GIMBAL].publish(actuator_controls);
 
 	} else {
 
@@ -1367,6 +1393,7 @@ void MavlinkReceiver::fill_thrust(float *thrust_body_array, uint8_t vehicle_type
 	case MAV_TYPE_OCTOROTOR:
 	case MAV_TYPE_TRICOPTER:
 	case MAV_TYPE_HELICOPTER:
+	case MAV_TYPE_COAXIAL:
 		thrust_body_array[2] = -thrust;
 		break;
 
@@ -1491,7 +1518,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
 						matrix::Quatf q(set_attitude_target.q);
 						q.copyTo(att_sp.q_d);
-						att_sp.q_d_valid = true;
 
 						matrix::Eulerf euler{q};
 						att_sp.roll_body = euler.phi();
@@ -1778,6 +1804,29 @@ MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
 }
 
 void
+MavlinkReceiver::handle_message_trajectory_representation_bezier(mavlink_message_t *msg)
+{
+	mavlink_trajectory_representation_bezier_t trajectory;
+	mavlink_msg_trajectory_representation_bezier_decode(msg, &trajectory);
+
+	vehicle_trajectory_bezier_s trajectory_bezier{};
+
+	trajectory_bezier.timestamp =  _mavlink_timesync.sync_stamp(trajectory.time_usec);
+
+	for (int i = 0; i < vehicle_trajectory_bezier_s::NUMBER_POINTS; ++i) {
+		trajectory_bezier.control_points[i].position[0] = trajectory.pos_x[i];
+		trajectory_bezier.control_points[i].position[1] = trajectory.pos_y[i];
+		trajectory_bezier.control_points[i].position[2] = trajectory.pos_z[i];
+
+		trajectory_bezier.control_points[i].delta = trajectory.delta[i];
+		trajectory_bezier.control_points[i].yaw = trajectory.pos_yaw[i];
+	}
+
+	trajectory_bezier.bezier_order = math::min(trajectory.valid_points, vehicle_trajectory_bezier_s::NUMBER_POINTS);
+	_trajectory_bezier_pub.publish(trajectory_bezier);
+}
+
+void
 MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_message_t *msg)
 {
 	mavlink_trajectory_representation_waypoints_t trajectory;
@@ -1936,7 +1985,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		return;
 	}
 
-	if (_mavlink->get_manual_input_mode_generation()) {
+	if (_mavlink->should_generate_virtual_rc_input()) {
 
 		input_rc_s rc{};
 		rc.timestamp = hrt_absolute_time();
@@ -2466,9 +2515,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
 		hil_global_pos.lon = hil_state.lon / ((double)1e7);
 		hil_global_pos.alt = hil_state.alt / 1000.0f;
-		hil_global_pos.vel_n = hil_state.vx / 100.0f;
-		hil_global_pos.vel_e = hil_state.vy / 100.0f;
-		hil_global_pos.vel_d = hil_state.vz / 100.0f;
 		hil_global_pos.eph = 2.0f;
 		hil_global_pos.epv = 4.0f;
 
@@ -2764,10 +2810,16 @@ MavlinkReceiver::Run()
 			updateParams();
 		}
 
-		if (poll(&fds[0], 1, timeout) > 0) {
+		int ret = poll(&fds[0], 1, timeout);
+
+		if (ret > 0) {
 			if (_mavlink->get_protocol() == Protocol::SERIAL) {
 				/* non-blocking read. read may return negative values */
 				nread = ::read(fds[0].fd, buf, sizeof(buf));
+
+				if (nread == -1 && errno == ENOTCONN) { // Not connected (can happen for USB)
+					usleep(100000);
+				}
 			}
 
 #if defined(MAVLINK_UDP)
@@ -2850,6 +2902,9 @@ MavlinkReceiver::Run()
 			}
 
 #endif // MAVLINK_UDP
+
+		} else if (ret == -1) {
+			usleep(10000);
 		}
 
 		hrt_abstime t = hrt_absolute_time();

@@ -43,7 +43,7 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
@@ -111,27 +111,32 @@
  */
 #define FXOS8701C_TIMER_REDUCTION				240
 
-class FXOS8701CQ : public device::SPI, public px4::ScheduledWorkItem
+class FXOS8701CQ : public device::SPI, public I2CSPIDriver<FXOS8701CQ>
 {
 public:
-	FXOS8701CQ(int bus, uint32_t device, enum Rotation rotation);
+	FXOS8701CQ(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		   spi_mode_e spi_mode);
 	virtual ~FXOS8701CQ();
 
-	virtual int		init();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	void			print_info();
+	int		init() override;
+
+	void			print_status() override;
+
+	void			RunImpl();
+
 	void			print_registers();
 	void			test_error();
-
 protected:
-	virtual int		probe();
+	int		probe() override;
+	void custom_method(const BusCLIArguments &cli) override;
 
 private:
 
-	void Run() override;
-
 	void			start();
-	void			stop();
 	void			reset();
 
 	/**

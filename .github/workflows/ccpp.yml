@@ -11,11 +11,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-bionic:2020-01-13
+    strategy:
+      matrix:
+        ubuntu_release: [
+          bionic,
+          focal
+          ]
+    container: px4io/px4-dev-base-${{ matrix.ubuntu_release }}:2020-04-01
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
     - name: make
       run: make
-

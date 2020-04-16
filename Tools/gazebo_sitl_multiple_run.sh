@@ -35,6 +35,12 @@ then
 	exit 1
 fi
 
+if [ $num_vehicles -gt 255 ]
+then
+	echo "Tried spawning $num_vehicles vehicles. The maximum number of supported vehicles is 255"
+	exit 1
+fi
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 src_path="$SCRIPT_DIR/.."
 

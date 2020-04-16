@@ -273,7 +273,7 @@ class SourceParser(object):
     re_remove_dots = re.compile(r'\.+$')
     re_remove_carriage_return = re.compile('\n+')
 
-    valid_tags = set(["url", "maintainer", "output", "arch", "name", "type"])
+    valid_tags = set(["url", "maintainer", "output", "arch", "name", "type", "desc"])
 
     # Order of parameter groups
     priority = {
@@ -394,6 +394,9 @@ class SourceParser(object):
                 airframe_class = tags[tag]
             elif tag == "name":
                 airframe_name = tags[tag]
+            elif tag == "desc":
+                # General documentation - not a parameter to be saved.
+                pass
             elif tag not in self.valid_tags:
                 sys.stderr.write("Aborting due to invalid documentation tag: '%s'\n" % tag)
                 return False

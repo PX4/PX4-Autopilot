@@ -230,7 +230,7 @@ excelsior_rtps: atlflight_excelsior_rtps atlflight_excelsior_qurt-rtps
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware check_rtps
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware check_rtps
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware
@@ -256,11 +256,6 @@ misc_qgc_extra_firmware: \
 	check_px4_fmu-v2_lpe \
 	sizes
 
-# Other NuttX firmware
-alt_firmware: \
-	check_px4_cannode-v1_default \
-	sizes
-
 # builds with RTPS
 check_rtps: \
 	check_px4_fmu-v3_rtps \
@@ -275,7 +270,7 @@ sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
 
 # All default targets that don't require a special build environment
-check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware tests check_format
+check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware tests check_format
 
 # quick_check builds a single nuttx and SITL target, runs testing, and checks the style
 quick_check: check_px4_sitl_test check_px4_fmu-v5_default tests check_format
@@ -421,7 +416,7 @@ px4_sitl_default-clang:
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/px4_sitl_default-clang
 
 clang-tidy: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .

@@ -53,9 +53,10 @@ const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = 
 	FXOS8701CQ_M_CTRL_REG2,
 };
 
-FXOS8701CQ::FXOS8701CQ(int bus, uint32_t device, enum Rotation rotation) :
-	SPI("FXOS8701CQ", nullptr, bus, device, SPIDEV_MODE0, 1 * 1000 * 1000),
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+FXOS8701CQ::FXOS8701CQ(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
+		       spi_mode_e spi_mode) :
+	SPI(DRV_ACC_DEVTYPE_FXOS8701C, MODULE_NAME, bus, device, spi_mode, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_px4_accel(get_device_id(), ORB_PRIO_LOW, rotation),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_px4_mag(get_device_id(), ORB_PRIO_LOW, rotation),
@@ -65,21 +66,13 @@ FXOS8701CQ::FXOS8701CQ(int bus, uint32_t device, enum Rotation rotation) :
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad reg")),
 	_accel_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": acc dupe"))
 {
-	set_device_type(DRV_ACC_DEVTYPE_FXOS8701C);
-
-	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_FXOS8701C);
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	_px4_mag.set_device_type(DRV_ACC_DEVTYPE_FXOS8701C);
 	_px4_mag.set_scale(0.001f);
 #endif
 }
 
 FXOS8701CQ::~FXOS8701CQ()
 {
-	// make sure we are truly inactive
-	stop();
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	perf_free(_mag_sample_perf);
 #endif
@@ -284,17 +277,8 @@ FXOS8701CQ::accel_set_samplerate(unsigned frequency)
 void
 FXOS8701CQ::start()
 {
-	// make sure we are stopped first
-	stop();
-
 	// start polling at the specified rate
 	ScheduleOnInterval(1000000 / (FXOS8701C_ACCEL_DEFAULT_RATE) - FXOS8701C_TIMER_REDUCTION, 10000);
-}
-
-void
-FXOS8701CQ::stop()
-{
-	ScheduleClear();
 }
 
 void
@@ -328,7 +312,7 @@ FXOS8701CQ::check_registers(void)
 }
 
 void
-FXOS8701CQ::Run()
+FXOS8701CQ::RunImpl()
 {
 	// start the performance counter
 	perf_begin(_accel_sample_perf);
@@ -407,8 +391,9 @@ FXOS8701CQ::Run()
 }
 
 void
-FXOS8701CQ::print_info()
+FXOS8701CQ::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_accel_sample_perf);
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
