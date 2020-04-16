@@ -30,9 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file FlightTaskAuto.cpp
+ * @file FlightTaskOffboard.cpp
  */
+
 #include "FlightTaskOffboard.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
