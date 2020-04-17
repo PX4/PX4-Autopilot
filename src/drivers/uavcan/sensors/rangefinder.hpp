@@ -41,7 +41,7 @@
 #include <drivers/drv_range_finder.h>
 #include <uORB/topics/distance_sensor.h>
 
-#include <uavcan/equipment/range_sensor/Measurement.hpp>
+#include <com/avanon/equipment/range_sensor/Measurement.hpp>
 
 class UavcanRangefinderBridge : public UavcanCDevSensorBridgeBase
 {
@@ -56,16 +56,13 @@ public:
 
 private:
 
-	void range_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg);
+	void range_sub_cb(const uavcan::ReceivedDataStructure<com::avanon::equipment::range_sensor::Measurement> &msg);
 
 	typedef uavcan::MethodBinder < UavcanRangefinderBridge *,
 		void (UavcanRangefinderBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &) >
+		(const uavcan::ReceivedDataStructure<com::avanon::equipment::range_sensor::Measurement> &) >
 		RangeCbBinder;
 
-	uavcan::Subscriber<uavcan::equipment::range_sensor::Measurement, RangeCbBinder> _sub_range_data;
-
-	// float last_tas_m_s{0.0f};
-	// float last_oat_k{0.0f};
+	uavcan::Subscriber<com::avanon::equipment::range_sensor::Measurement, RangeCbBinder> _sub_range_data;
 
 };

@@ -66,7 +66,7 @@ int UavcanRangefinderBridge::init()
 
 void
 UavcanRangefinderBridge::range_sub_cb(const
-				      uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg)
+				      uavcan::ReceivedDataStructure<com::avanon::equipment::range_sensor::Measurement> &msg)
 {
 	distance_sensor_s report{};
 
@@ -82,7 +82,8 @@ UavcanRangefinderBridge::range_sub_cb(const
 	report.h_fov			= msg.field_of_view;
 	report.v_fov			= msg.field_of_view;
 
-	// report.min_distance =
+	report.min_distance 		= msg.range_min;
+	report.max_distance 		= msg.range_max;
 
 	report.variance   		= 0.0f;	// Unknown
 	report.signal_quality		= -1;
