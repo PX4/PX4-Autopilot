@@ -79,6 +79,7 @@ UavcanRangefinderBridge::range_sub_cb(const
 	 */
 	report.timestamp   		= hrt_absolute_time();
 	report.current_distance   	= msg.range;
+	report.orientation		= distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	report.h_fov			= msg.field_of_view;
 	report.v_fov			= msg.field_of_view;
 
