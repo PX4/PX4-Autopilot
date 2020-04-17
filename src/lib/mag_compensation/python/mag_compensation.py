@@ -9,7 +9,7 @@ Github: https://github.com/baumanta
 Description:
     Computes linear coefficients for mag compensation from thrust and current
 Usage:
-    python mag_compensation.py /path/to/log/logfile.ulg
+    python mag_compensation.py /path/to/log/logfile.ulg current --instance 1
 
 Remark:
     If your logfile does not contain some of the topics, e.g.battery_status/current_a
@@ -24,19 +24,26 @@ from pyulog.px4 import PX4ULog
 from pylab import *
 import numpy as np
 import textwrap as tw
-import sys
+import argparse
 
 #arguments
-arguments = len(sys.argv) - 1
-if arguments < 1:
-    print("Give logfile name as argument")
-    sys.exit(-1)
-log_name = sys.argv[1]
+parser = argparse.ArgumentParser(description='Calculate compensation parameters from ulog')
 
+parser.add_argument('logfile', type=str, nargs='?', default=[],
+                    help='full path to ulog file')
+parser.add_argument('type', type=str, nargs='?', choices=['current', 'thrust'], default=[],
+                    help='Power signal used for compensation, supported is "current" or "thrust".')
+parser.add_argument('--instance', type=int, nargs='?', default=0,
+                    help='instance of the current or thrust signal to use (0 or 1)')
+
+args = parser.parse_args()
+log_name = args.logfile
+comp_type = args.type
+comp_instance = args.instance
 
 #Load the log data (produced by pyulog)
 log = ULog(log_name)
-pxlog = PX4ULog(log);
+pxlog = PX4ULog(log)
 
 def get_data(topic_name, variable_name, index):
    try:
@@ -46,7 +53,7 @@ def get_data(topic_name, variable_name, index):
       return []
 
 def ms2s_list(time_ms_list):
-    if(len(time_ms_list) > 0):
+    if len(time_ms_list) > 0:
         return 1e-6 * time_ms_list
     else:
         return time_ms_list
@@ -55,12 +62,26 @@ def ms2s_list(time_ms_list):
 armed = get_data('vehicle_status', 'arming_state', 0)
 t_armed =  ms2s_list(get_data('vehicle_status', 'timestamp', 0))
 
-thrust_z = get_data('vehicle_rates_setpoint', 'thrust_body[2]', 0)
-t_thrust =  ms2s_list(get_data('vehicle_rates_setpoint', 'timestamp', 0))
+if comp_type == "thrust":
+	power = get_data('vehicle_rates_setpoint', 'thrust_body[2]', comp_instance)
+	power_t = ms2s_list(get_data('vehicle_rates_setpoint', 'timestamp', comp_instance))
+	comp_type_param = 1
+	factor = 1
+	unit = "[G]"
+elif comp_type == "current":
+	power = get_data('battery_status', 'current_a', comp_instance)
+	power = np.true_divide(power, 1000) #kA
+	power_t = ms2s_list(get_data('battery_status', 'timestamp', comp_instance))
+	comp_type_param = 2 + comp_instance
+	factor = -1
+	unit = "[G/kA]"
+else:
+	print("unknown compensation type {}. Supported is either 'thrust' or 'current'.".format(comp_type))
+	sys.exit(1)
 
-current = get_data('battery_status', 'current_a', 0)
-current = np.true_divide(current, 1000) #kA
-t_current =  ms2s_list(get_data('battery_status', 'timestamp', 0))
+if len(power) == 0:
+	print("could not retrieve power signal from log, zero data points")
+	sys.exit(1)
 
 mag0X_body = get_data('sensor_mag', 'x', 0)
 mag0Y_body = get_data('sensor_mag', 'y', 0)
@@ -166,131 +187,86 @@ for idx in range(n_mag):
 
 
 #resample data
-thrust_resampled = []
-current_resampled = []
+power_resampled = []
 
 for idx in range(n_mag):
-    thrust_resampled.append(interp(t_mag[idx], t_thrust, thrust_z))
-    current_resampled.append(np.interp(t_mag[idx], t_current, current))
+    power_resampled.append(interp(t_mag[idx], power_t, power))
 
 #fit linear to get coefficients
-px_th = []
-py_th = []
-pz_th = []
-
-px_curr = []
-py_curr = []
-pz_curr = []
+px = []
+py = []
+pz = []
 
 for idx in range(n_mag):
-    px_th_temp, res_x_th, _, _, _ = polyfit(thrust_resampled[idx], magX_body[idx], 1,full = True)
-    py_th_temp, res_y_th, _, _, _ = polyfit(thrust_resampled[idx], magY_body[idx], 1,full = True)
-    pz_th_temp, res_z_th, _, _, _ = polyfit(thrust_resampled[idx], magZ_body[idx], 1, full = True)
+    px_temp, res_x, _, _, _ = polyfit(power_resampled[idx], magX_body[idx], 1,full = True)
+    py_temp, res_y, _, _, _ = polyfit(power_resampled[idx], magY_body[idx], 1,full = True)
+    pz_temp, res_z, _, _, _ = polyfit(power_resampled[idx], magZ_body[idx], 1, full = True)
 
-    px_curr_temp, res_x_curr, _, _, _ = polyfit(current_resampled[idx], magX_body[idx], 1,full = True)
-    py_curr_temp, res_y_curr, _, _, _ = polyfit(current_resampled[idx], magY_body[idx], 1,full = True)
-    pz_curr_temp, res_z_curr, _, _, _ = polyfit(current_resampled[idx], magZ_body[idx], 1, full = True)
-
-    px_th.append(px_th_temp)
-    py_th.append(py_th_temp)
-    pz_th.append(pz_th_temp)
-    px_curr.append(px_curr_temp)
-    py_curr.append(py_curr_temp)
-    pz_curr.append(pz_curr_temp)
+    px.append(px_temp)
+    py.append(py_temp)
+    pz.append(pz_temp)
 
 #print to console
 for idx in range(n_mag):
     print('Mag{} device ID {} (calibration instance {})'.format(idx, mag_id[idx], calibration_instance[idx]))
-print('\033[91m \nthrust-based compensation: \033[0m')
-print('\nparam set CAL_MAG_COMP_TYP 1')
+print('\033[91m \n{}-based compensation: \033[0m'.format(comp_type))
+print('\nparam set CAL_MAG_COMP_TYP {}'.format(comp_type_param))
 for idx in range(n_mag):
-   print('\nparam set CAL_MAG{}_XCOMP {:.3f}'.format(calibration_instance[idx], px_th[idx][0]))
-   print('param set CAL_MAG{}_YCOMP {:.3f}'.format(calibration_instance[idx], py_th[idx][0]))
-   print('param set CAL_MAG{}_ZCOMP {:.3f}'.format(calibration_instance[idx], pz_th[idx][0]))
-
-print('\n\033[91mcurrent-based compensation: \033[0m')
-print('\nparam set CAL_MAG_COMP_TYP 2')
-for idx in range(n_mag):
-   print('\nparam set CAL_MAG{}_XCOMP {:.3f}'.format(calibration_instance[idx], -px_curr[idx][0]))
-   print('param set CAL_MAG{}_YCOMP {:.3f}'.format(calibration_instance[idx], -py_curr[idx][0]))
-   print('param set CAL_MAG{}_ZCOMP {:.3f}'.format(calibration_instance[idx], -pz_curr[idx][0]))
+    print('\nparam set CAL_MAG{}_XCOMP {:.3f}'.format(calibration_instance[idx], factor * px[idx][0]))
+    print('param set CAL_MAG{}_YCOMP {:.3f}'.format(calibration_instance[idx], factor * py[idx][0]))
+    print('param set CAL_MAG{}_ZCOMP {:.3f}'.format(calibration_instance[idx], factor * pz[idx][0]))
 
 #plot data
 
 for idx in range(n_mag):
     fig = plt.figure(num=None, figsize=(25, 14), dpi=80, facecolor='w', edgecolor='k')
-    fig.suptitle('Thrust and Current Compensation Parameter Fit \n{} \nmag {} ID: {} (calibration instance {})'.format(log_name, idx, mag_id[idx], calibration_instance[idx]), fontsize=14, fontweight='bold')
+    fig.suptitle('Compensation Parameter Fit \n{} \nmag {} ID: {} (calibration instance {})'.format(log_name, idx, mag_id[idx], calibration_instance[idx]), fontsize=14, fontweight='bold')
 
-
-    plt.subplot(2,3,1)
-    plt.plot(current_resampled[idx], magX_body[idx], 'yo', current_resampled[idx], px_curr[idx][0]*current_resampled[idx]+px_curr[idx][1], '--k')
+    plt.subplot(1,3,1)
+    plt.plot(power_resampled[idx], magX_body[idx], 'yo', power_resampled[idx], px[idx][0]*power_resampled[idx]+px[idx][1], '--k')
     plt.xlabel('current [kA]')
     plt.ylabel('mag X [G]')
 
-    plt.subplot(2,3,2)
-    plt.plot(current_resampled[idx], magY_body[idx], 'yo', current_resampled[idx], py_curr[idx][0]*current_resampled[idx]+py_curr[idx][1], '--k')
+    plt.subplot(1,3,2)
+    plt.plot(power_resampled[idx], magY_body[idx], 'yo', power_resampled[idx], py[idx][0]*power_resampled[idx]+py[idx][1], '--k')
     plt.xlabel('current [kA]')
     plt.ylabel('mag Y [G]')
 
-
-    plt.subplot(2,3,3)
-    plt.plot(current_resampled[idx], magZ_body[idx], 'yo', current_resampled[idx], pz_curr[idx][0]*current_resampled[idx]+pz_curr[idx][1], '--k')
+    plt.subplot(1,3,3)
+    plt.plot(power_resampled[idx], magZ_body[idx], 'yo', power_resampled[idx], pz[idx][0]*power_resampled[idx]+pz[idx][1], '--k')
     plt.xlabel('current [kA]')
-    plt.ylabel('mag Z [G]')
-
-
-    plt.subplot(2,3,4)
-    plt.plot(thrust_resampled[idx], magX_body[idx], 'yo', thrust_resampled[idx], px_th[idx][0]*thrust_resampled[idx]+px_th[idx][1], '--k')
-    plt.xlabel('thrust []')
-    plt.ylabel('mag X [G]')
-
-    plt.subplot(2,3,5)
-    plt.plot(thrust_resampled[idx], magY_body[idx], 'yo', thrust_resampled[idx], py_th[idx][0]*thrust_resampled[idx]+py_th[idx][1], '--k')
-    plt.xlabel('thrust []')
-    plt.ylabel('mag Y [G]')
-
-
-    plt.subplot(2,3,6)
-    plt.plot(thrust_resampled[idx], magZ_body[idx], 'yo', thrust_resampled[idx], pz_th[idx][0]*thrust_resampled[idx]+pz_th[idx][1], '--k')
-    plt.xlabel('thrust []')
     plt.ylabel('mag Z [G]')
 
     # display results
-    plt.figtext(0.24, 0.03, 'Thrust CAL_MAG{}_XCOMP: {:.3f}[G] \nCurrent CAL_MAG{}_XCOMP: {:.3f}[G/kA]'.format(calibration_instance[idx],px_th[idx][0],calibration_instance[idx],-px_curr[idx][0]), horizontalalignment='center', fontsize=12, multialignment='left', bbox=dict(boxstyle="round", facecolor='#D8D8D8', ec="0.5", pad=0.5, alpha=1), fontweight='bold')
-
-    plt.figtext(0.51, 0.03, 'Thrust CAL_MAG{}_YCOMP: {:.3f}[G] \nCurrent CAL_MAG{}_YCOMP: {:.3f}[G/kA]'.format(calibration_instance[idx],py_th[idx][0],calibration_instance[idx], -py_curr[idx][0]), horizontalalignment='center', fontsize=12, multialignment='left', bbox=dict(boxstyle="round", facecolor='#D8D8D8', ec="0.5", pad=0.5, alpha=1), fontweight='bold')
-
-    plt.figtext(0.79, 0.03, ' Thrust CAL_MAG{}_ZCOMP: {:.3f}[G] \nCurrent CAL_MAG{}_ZCOMP: {:.3f}[G/kA]'.format(calibration_instance[idx],pz_th[idx][0], calibration_instance[idx],-pz_curr[idx][0]), horizontalalignment='center', fontsize=12, multialignment='left', bbox=dict(boxstyle="round", facecolor='#D8D8D8', ec="0.5", pad=0.5, alpha=1), fontweight='bold')
+    plt.figtext(0.24, 0.03, 'CAL_MAG{}_XCOMP: {:.3f} {}'.format(calibration_instance[idx],factor * px[idx][0],unit), horizontalalignment='center', fontsize=12, multialignment='left', bbox=dict(boxstyle="round", facecolor='#D8D8D8', ec="0.5", pad=0.5, alpha=1), fontweight='bold')
+    plt.figtext(0.51, 0.03, 'CAL_MAG{}_YCOMP: {:.3f} {}'.format(calibration_instance[idx],factor * py[idx][0],unit), horizontalalignment='center', fontsize=12, multialignment='left', bbox=dict(boxstyle="round", facecolor='#D8D8D8', ec="0.5", pad=0.5, alpha=1), fontweight='bold')
+    plt.figtext(0.79, 0.03, 'CAL_MAG{}_ZCOMP: {:.3f} {}'.format(calibration_instance[idx],factor * pz[idx][0],unit), horizontalalignment='center', fontsize=12, multialignment='left', bbox=dict(boxstyle="round", facecolor='#D8D8D8', ec="0.5", pad=0.5, alpha=1), fontweight='bold')
 
 
 #compensation comparison plots
 for idx in range(n_mag):
     fig = plt.figure(num=None, figsize=(25, 14), dpi=80, facecolor='w', edgecolor='k')
-    fig.suptitle('Thrust vs. Current Compensation \n{}\nmag {} ID: {} (calibration instance {})'.format(log_name, idx, mag_id[idx], calibration_instance[idx]), fontsize=14, fontweight='bold')
+    fig.suptitle('Original Data vs. Compensation \n{}\nmag {} ID: {} (calibration instance {})'.format(log_name, idx, mag_id[idx], calibration_instance[idx]), fontsize=14, fontweight='bold')
 
     plt.subplot(3,1,1)
     original_x, = plt.plot(t_mag[idx], magX_body[idx], label='original')
-    current_x, = plt.plot(t_mag[idx],magX_body[idx] - px_curr[idx][0] * current_resampled[idx], label='current compensated')
-    thrust_x, = plt.plot(t_mag[idx],magX_body[idx] - px_th[idx][0] * thrust_resampled[idx], label='thrust compensated')
-    plt.legend(handles=[original_x, current_x, thrust_x])
+    power_x, = plt.plot(t_mag[idx],magX_body[idx] - px[idx][0] * power_resampled[idx], label='compensated')
+    plt.legend(handles=[original_x, power_x])
     plt.xlabel('Time [s]')
-    plt.ylabel('Max X corrected[G]')
-
+    plt.ylabel('Mag X corrected[G]')
 
     plt.subplot(3,1,2)
     original_y, = plt.plot(t_mag[idx], magY_body[idx], label='original')
-    current_y, = plt.plot(t_mag[idx],magY_body[idx] - py_curr[idx][0] * current_resampled[idx], label='current compensated')
-    thrust_y, = plt.plot(t_mag[idx],magY_body[idx] - py_th[idx][0] * thrust_resampled[idx], label='thrust compensated')
-    plt.legend(handles=[original_y, current_y, thrust_y])
+    power_y, = plt.plot(t_mag[idx],magY_body[idx] - py[idx][0] * power_resampled[idx], label='compensated')
+    plt.legend(handles=[original_y, power_y])
     plt.xlabel('Time [s]')
-    plt.ylabel('Max Y corrected[G]')
+    plt.ylabel('Mag Y corrected[G]')
 
     plt.subplot(3,1,3)
     original_z, = plt.plot(t_mag[idx], magZ_body[idx], label='original')
-    current_z, = plt.plot(t_mag[idx],magZ_body[idx] - pz_curr[idx][0] * current_resampled[idx], label='current compensated')
-    thrust_z, = plt.plot(t_mag[idx],magZ_body[idx] - pz_th[idx][0] * thrust_resampled[idx], label='thrust compensated')
-    plt.legend(handles=[original_z, current_z, thrust_z])
+    power_z, = plt.plot(t_mag[idx],magZ_body[idx] - pz[idx][0] * power_resampled[idx], label='compensated')
+    plt.legend(handles=[original_z, power_z])
     plt.xlabel('Time [s]')
-    plt.ylabel('Max Z corrected[G]')
+    plt.ylabel('Mag Z corrected[G]')
 
 plt.show()
