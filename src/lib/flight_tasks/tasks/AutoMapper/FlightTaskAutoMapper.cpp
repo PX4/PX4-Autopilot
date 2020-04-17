@@ -49,6 +49,7 @@ bool FlightTaskAutoMapper::activate(vehicle_local_position_setpoint_s last_setpo
 
 bool FlightTaskAutoMapper::update()
 {
+	FlightTaskAuto::update();
 	// always reset constraints because they might change depending on the type
 	_setDefaultConstraints();
 

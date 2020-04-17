@@ -48,6 +48,8 @@ bool FlightTaskDescend::activate(vehicle_local_position_setpoint_s last_setpoint
 
 bool FlightTaskDescend::update()
 {
+	FlightTask::update();
+
 	if (PX4_ISFINITE(_velocity(2))) {
 		// land with landspeed
 		_velocity_setpoint(2) = _param_mpc_land_speed.get();

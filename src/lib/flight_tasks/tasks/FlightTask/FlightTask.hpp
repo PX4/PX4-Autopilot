@@ -97,7 +97,7 @@ public:
 	 * To be called regularly in the control loop cycle to execute the task
 	 * @return true on success, false on error
 	 */
-	virtual bool update() = 0;
+	virtual bool update();
 
 	/**
 	 * Call after update()
@@ -193,8 +193,8 @@ protected:
 	/**
 	 * Monitor the EKF reset counters and
 	 * call the appropriate handling functions in case of a reset event
+	 * TODO: add the delta values to all the handlers
 	 */
-	void _initEkfResetCounters();
 	void _checkEkfResetCounters();
 	virtual void _ekfResetHandlerPositionXY() {};
 	virtual void _ekfResetHandlerVelocityXY() {};

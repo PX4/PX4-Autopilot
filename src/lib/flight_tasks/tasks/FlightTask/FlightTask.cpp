@@ -13,7 +13,6 @@ bool FlightTask::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();
-	_initEkfResetCounters();
 	_time_stamp_activate = hrt_absolute_time();
 	_gear = empty_landing_gear_default_keep;
 	return true;
@@ -37,17 +36,13 @@ bool FlightTask::updateInitialize()
 
 	_evaluateVehicleLocalPosition();
 	_evaluateDistanceToGround();
-	_checkEkfResetCounters();
 	return true;
 }
 
-void FlightTask::_initEkfResetCounters()
+bool FlightTask::update()
 {
-	_reset_counters.xy = _sub_vehicle_local_position.get().xy_reset_counter;
-	_reset_counters.vxy = _sub_vehicle_local_position.get().vxy_reset_counter;
-	_reset_counters.z = _sub_vehicle_local_position.get().z_reset_counter;
-	_reset_counters.vz = _sub_vehicle_local_position.get().vz_reset_counter;
-	_reset_counters.quat = _sub_attitude.get().quat_reset_counter;
+	_checkEkfResetCounters();
+	return true;
 }
 
 void FlightTask::_checkEkfResetCounters()

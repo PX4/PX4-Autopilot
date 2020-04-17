@@ -363,6 +363,7 @@ bool FlightTaskManualAltitude::_checkTakeoff()
 
 bool FlightTaskManualAltitude::update()
 {
+	FlightTaskManual::update();
 	_updateConstraintsFromEstimator();
 	_scaleSticks();
 	_updateSetpoints();
