@@ -90,7 +90,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	sudo pacman -R modemmanager --noconfirm
 
 	# arm-none-eabi-gcc
-	NUTTX_GCC_VERSION="7-2017-q4-major"
+	NUTTX_GCC_VERSION="9-2019-q4-major-x86_64"
 	GCC_VER_STR=$(arm-none-eabi-gcc --version)
 	STATUSRETVAL=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
 
@@ -98,17 +98,26 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		echo "arm-none-eabi-gcc-${NUTTX_GCC_VERSION} found, skipping installation"
 	else
 		echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 && \
+		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 && \
 			sudo tar -jxf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 -C /opt/;
 
 		# add arm-none-eabi-gcc to user's PATH
-		exportline="export PATH=/opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}/bin:\$PATH"
+		exportline="export PATH=\/opt\/gcc-arm-none-eabi-"
+		exportline_with_version="export PATH=/opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}/bin:\$PATH"
 
-		if grep -Fxq "$exportline" $HOME/.profile;
+		if grep -q "$exportline" $HOME/.profile;
 		then
-			echo "${NUTTX_GCC_VERSION} path already set.";
+			existing_export_line="$(grep -q "$NUTTX_GCC_VERSION" $HOME/.profile)" | tr -d '\n'
+			if [[ $existing_export_line == $exportline_with_version ]];
+			then
+				echo "A previous version was already set. Updating path..."
+				sed "/${exportline}/d" $HOME/.profile
+				echo $exportline_with_version >> $HOME/.profile
+			else
+				echo "${NUTTX_GCC_VERSION} path already set.";
+			fi
 		else
-			echo $exportline >> $HOME/.profile;
+			echo $exportline_with_version >> $HOME/.profile
 		fi
 	fi
 fi
