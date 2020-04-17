@@ -401,9 +401,10 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			while (cur_node) {
 
 				if (!print_active_only || cur_node->pub_msg_delta > 0) {
-					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %5i %i\n", (int)max_topic_name_length,
+					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %5i %4i %4i %5i %i\n", (int)max_topic_name_length,
 						     cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
-						     (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
+						     (int)cur_node->node->subscriber_count(), (int)cur_node->node->get_priority(),
+						     cur_node->pub_msg_delta,
 						     (int)cur_node->lost_msg_delta, cur_node->node->get_queue_size());
 				}
 
