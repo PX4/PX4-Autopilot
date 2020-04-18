@@ -423,31 +423,29 @@ bool VtolType::is_channel_set(const int channel, const int target)
 float VtolType::pusher_assist()
 {
 	// disable pusher assist depending on setting of forward_thrust_enable_mode:
-	bool in_auto_land_mode = _attc->get_pos_sp_triplet()->current.valid
-				 && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
-				 && _v_control_mode->flag_control_auto_enabled;
-
 	switch (_params->vt_forward_thrust_enable_mode) {
 	case DISABLE: // disable in all modes
 		return 0.0f;
 		break;
 
 	case ENABLE_WITHOUT_LAND: // disable in land mode
-		if (in_auto_land_mode) {
+		if (_attc->get_pos_sp_triplet()->current.valid
+		    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+		    && _v_control_mode->flag_control_auto_enabled) {
 			return 0.0f;
 		}
 
 		break;
 
-	case ENABLE_FROM_MPC_LAND_ALT1: // disable if in land mode and below MPC_LAND_ALT1
-		if (in_auto_land_mode && -(_local_pos->z) < _params->mpc_land_alt1) {
+	case ENABLE_FROM_MPC_LAND_ALT1: // disable if below MPC_LAND_ALT1
+		if (-(_local_pos->z) < _params->mpc_land_alt1) {
 			return 0.0f;
 		}
 
 		break;
 
-	case ENABLE_FROM_MPC_LAND_ALT2: // disable if in land mode and below MPC_LAND_ALT2
-		if (in_auto_land_mode && -(_local_pos->z) < _params->mpc_land_alt2) {
+	case ENABLE_FROM_MPC_LAND_ALT2: // disable if below MPC_LAND_ALT2
+		if (-(_local_pos->z) < _params->mpc_land_alt2) {
 			return 0.0f;
 		}
 

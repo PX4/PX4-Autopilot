@@ -50,8 +50,8 @@
  *
  * @value 0 Disable FW forward actuation in hover.
  * @value 1 Enable FW forward actuation in hover in altitude, position and auto modes (except LANDING).
- * @value 2 Enable FW forward actuation in hover in altitude, position and auto modes (in LANDING mode: disable if below MPC_LAND_ALT1).
- * @value 3 Enable FW forward actuation in hover in altitude, position and auto modes (in LANDING mode: disable if below MPC_LAND_ALT2).
+ * @value 2 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT1.
+ * @value 3 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT2.
  * @value 4 Enable FW forward actuation in hover in altitude, position and auto modes.
  *
  * @group VTOL Attitude Control

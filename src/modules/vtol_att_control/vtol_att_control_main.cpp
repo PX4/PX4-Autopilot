@@ -98,6 +98,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.mpc_land_alt1 = param_find("MPC_LAND_ALT1");
 	_params_handles.mpc_land_alt2 = param_find("MPC_LAND_ALT2");
 
+	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
+	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
 	/* fetch initial parameter values */
 	parameters_update();
 
