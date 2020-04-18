@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,35 +87,23 @@ public:
 	 */
 	float full_cell_voltage() { return _params.v_charged; }
 
-	int source() { return _params.source; }
-
 	/**
 	 * Update current battery status message.
 	 *
 	 * @param voltage_raw: Battery voltage, in Volts
 	 * @param current_raw: Battery current, in Amps
 	 * @param timestamp: Time at which the ADC was read (use hrt_absolute_time())
-	 * @param selected_source: This battery is on the brick that the selected source for selected_source
+	 * @param source: Source type in relation to BAT%d_SOURCE param.
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 * @param throttle_normalized: Throttle of the vehicle, between 0 and 1
-	 * @param should_publish If True, this function published a battery_status uORB message.
 	 */
 	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, bool connected,
-				 bool selected_source, int priority, float throttle_normalized, bool should_publish);
+				 int source, int priority, float throttle_normalized);
 
 	/**
 	 * Publishes the uORB battery_status message with the most recently-updated data.
 	 */
 	void publish();
-
-	/**
-	 * Some old functionality expects the primary battery to be published on instance 0. To maintain backwards
-	 * compatibility, this function allows the advertisements (and therefore instances) of 2 batteries to be swapped.
-	 * However, this should not be relied upon anywhere, and should be considered for all intents deprecated.
-	 *
-	 * The proper way to uniquely identify batteries is by the `id` field in the `battery_status` message.
-	 */
-	void swapUorbAdvert(Battery &other);
 
 protected:
 	struct {

@@ -74,6 +74,7 @@ void unlock()
 		reset(); \
 		perf_counter_t p = perf_alloc(PC_ELAPSED, name); \
 		for (int i = 0; i < count; i++) { \
+			px4_usleep(1); \
 			lock(); \
 			perf_begin(p); \
 			op; \
@@ -110,8 +111,8 @@ private:
 #endif
 	}
 
-	uint64_t u_64;
-	uint64_t u_64_out;
+	volatile uint64_t u_64;
+	volatile uint64_t u_64_out;
 };
 
 bool MicroBenchHRT::run_tests()

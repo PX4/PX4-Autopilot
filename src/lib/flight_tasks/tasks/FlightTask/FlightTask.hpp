@@ -165,7 +165,11 @@ public:
 	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {}
 
 	void updateVelocityControllerIO(const matrix::Vector3f &vel_sp,
-					const matrix::Vector3f &thrust_sp) {_velocity_setpoint_feedback = vel_sp; _thrust_setpoint_feedback = thrust_sp; }
+					const matrix::Vector3f &acc_sp)
+	{
+		_velocity_setpoint_feedback = vel_sp;
+		_acceleration_setpoint_feedback = acc_sp;
+	}
 
 protected:
 	uORB::SubscriptionData<vehicle_local_position_s> _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
@@ -225,12 +229,10 @@ protected:
 	matrix::Vector3f _velocity_setpoint;
 	matrix::Vector3f _acceleration_setpoint;
 	matrix::Vector3f _jerk_setpoint;
-	matrix::Vector3f _thrust_setpoint;
 	float _yaw_setpoint{};
 	float _yawspeed_setpoint{};
-
 	matrix::Vector3f _velocity_setpoint_feedback;
-	matrix::Vector3f _thrust_setpoint_feedback;
+	matrix::Vector3f _acceleration_setpoint_feedback;
 
 	/* Counters for estimator local position resets */
 	struct {

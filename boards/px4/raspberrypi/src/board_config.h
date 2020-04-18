@@ -48,14 +48,13 @@
 /*
  * I2C busses
  */
-#define PX4_I2C_BUS_ONBOARD     1
-#define PX4_I2C_BUS_EXPANSION   0
-
 #define PX4_NUMBER_I2C_BUSES    2
 
-// SPI
-#define PX4_SPI_BUS_SENSORS    0
-#define PX4_SPIDEV_MPU         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0) // spidev0.0
+#define ADC_BATTERY_VOLTAGE_CHANNEL	0
+#define ADC_BATTERY_CURRENT_CHANNEL	-1
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL 2
+
+#define ADC_DP_V_DIV 1.0f
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>

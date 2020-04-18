@@ -220,8 +220,6 @@ class Graph(object):
     #   (the expectation is that the previous matching ORB_ID() will be passed
     #   to this, so that we can ignore it)
         special_cases_sub = [
-    ('sensors', r'voted_sensors_update\.cpp$', r'\binitSensorClass\b\(([^,)]+)', r'^meta$'),
-    ('mavlink', r'.*', r'\badd_orb_subscription\b\(([^,)]+)', r'^_topic$'),
     ('listener', r'.*', None, r'^(id)$'),
     ('logger', r'.*', None, r'^(topic|sub\.metadata|_polling_topic_meta)$'),
 

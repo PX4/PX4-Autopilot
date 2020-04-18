@@ -64,46 +64,6 @@
 
 #define  FLASH_BASED_PARAMS
 
-/* SPI busses
- */
-#define PX4_SPI_BUS_SD_CARD   1
-#define PX4_SPI_BUS_OSD   	2
-#define PX4_SPI_BUS_SENSORS   4
-
-/*  Define the Chip Selects, Data Ready and Control signals per SPI bus */
-
-#define GPIO_SPI1_CS1_SD_CARD    /* PA4 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
-
-#define PX4_SD_CARD_BUS_CS_GPIO      {GPIO_SPI1_CS1_SD_CARD}
-
-#define GPIO_SPI2_CS1_OSD    /* PB12 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN12)
-#define PX4_SPIDEV_OSD              1
-
-#define PX4_OSD_BUS_CS_GPIO      {GPIO_SPI2_CS1_OSD}
-
-/* SPI 4 CS (SPI4_SS) */
-
-#define GPIO_SPI4_CS1_ICM20689    /* PE4 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
-
-
-/*  Define the SPI4 Data Ready interrupts */
-
-#define GPIO_SPI4_DRDY1_ICM20689    /* PE1 */   (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTE|GPIO_PIN1)
-
-
-#define PX4_SPIDEV_MPU              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
-#define PX4_SPIDEV_ICM_20689        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
-#define PX4_SENSOR_BUS_CS_GPIO      {GPIO_SPI4_CS1_ICM20689}
-
-/* I2C busses */
-
-#define PX4_I2C_BUS_EXPANSION       1
-#define PX4_I2C_BUS_LED             PX4_I2C_BUS_EXPANSION
-
-#define BOARD_NUMBER_I2C_BUSES      1
-#define BOARD_I2C_BUS_CLOCK_INIT    {100000}
-
-#define PX4_I2C_OBDEV_BMP280        0x76
 
 /*
  * ADC channels
@@ -205,8 +165,6 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
 

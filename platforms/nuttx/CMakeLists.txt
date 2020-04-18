@@ -60,6 +60,10 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 		bootloader_lib
 		drivers_board
 	)
+else()
+	if(NOT "${PX4_BOARD_LINKER_PREFIX}" STREQUAL "")
+		set(SCRIPT_PREFIX ${PX4_BOARD_LINKER_PREFIX}-)
+	endif()
 endif()
 
 list(APPEND nuttx_libs

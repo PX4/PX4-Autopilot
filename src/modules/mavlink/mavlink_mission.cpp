@@ -601,14 +601,16 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 	if (CHECK_SYSID_COMPID_MISSION(wpa)) {
 		if ((msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid)) {
 			if (_state == MAVLINK_WPM_STATE_SENDLIST && _mission_type == wpa.mission_type) {
+
 				_time_last_recv = hrt_absolute_time();
 
-				if (_transfer_seq == current_item_count()) {
+				if (wpa.type == MAV_MISSION_ACCEPTED && _transfer_seq == current_item_count()) {
 					PX4_DEBUG("WPM: MISSION_ACK OK all items sent, switch to state IDLE");
 
-				} else {
-					_mavlink->send_statustext_critical("WPM: ERR: not all items sent -> IDLE");
+				} else if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
+					PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
 
+				} else {
 					PX4_DEBUG("WPM: MISSION_ACK ERROR: not all items sent, switch to state IDLE anyway");
 				}
 
@@ -627,6 +629,11 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 						_int_mode = true;
 						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 					}
+
+				} else if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
+					PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
+					switch_to_idle_state();
+					_transfer_in_progress = false;
 
 				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
 					PX4_WARN("Mission ack result was %d", wpa.type);
@@ -684,6 +691,14 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 	mavlink_msg_mission_request_list_decode(msg, &wprl);
 
 	if (CHECK_SYSID_COMPID_MISSION(wprl)) {
+		const bool maybe_completed = (_transfer_seq == current_item_count());
+
+		// If all mission items have been sent and a new mission request list comes in, we can proceed even if  MISSION_ACK was
+		// never received. This could happen on a quick reconnect that doesn't trigger MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT
+		if (maybe_completed) {
+			switch_to_idle_state();
+		}
+
 		if (_state == MAVLINK_WPM_STATE_IDLE || (_state == MAVLINK_WPM_STATE_SENDLIST
 				&& (uint8_t)_mission_type == wprl.mission_type)) {
 			_time_last_recv = hrt_absolute_time();
@@ -722,7 +737,7 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 		} else {
 			PX4_DEBUG("WPM: MISSION_REQUEST_LIST ERROR: busy");
 
-			_mavlink->send_statustext_critical("IGN REQUEST LIST: Busy");
+			_mavlink->send_statustext_info("Mission download request ignored, already active");
 		}
 	}
 }
@@ -1379,6 +1394,10 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			break;
 
+		case MAV_CMD_CONDITION_GATE:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
+
 		case MAV_CMD_NAV_FENCE_RETURN_POINT:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
@@ -1454,14 +1473,18 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_IMAGE_STOP_CAPTURE:
 		case MAV_CMD_VIDEO_START_CAPTURE:
 		case MAV_CMD_VIDEO_STOP_CAPTURE:
+		case MAV_CMD_DO_CONTROL_VIDEO:
 		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		case MAV_CMD_SET_CAMERA_MODE:
+		case MAV_CMD_SET_CAMERA_ZOOM:
 		case MAV_CMD_DO_VTOL_TRANSITION:
 		case MAV_CMD_NAV_DELAY:
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 		case MAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 		case MAV_CMD_DO_SET_ROI_NONE:
+		case MAV_CMD_CONDITION_DELAY:
+		case MAV_CMD_CONDITION_DISTANCE:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
 
@@ -1524,12 +1547,14 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_IMAGE_STOP_CAPTURE:
 		case NAV_CMD_VIDEO_START_CAPTURE:
 		case NAV_CMD_VIDEO_STOP_CAPTURE:
+		case NAV_CMD_DO_CONTROL_VIDEO:
 		case NAV_CMD_DO_MOUNT_CONFIGURE:
 		case NAV_CMD_DO_MOUNT_CONTROL:
 		case NAV_CMD_DO_SET_ROI:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 		case NAV_CMD_SET_CAMERA_MODE:
+		case NAV_CMD_SET_CAMERA_ZOOM:
 		case NAV_CMD_DO_VTOL_TRANSITION:
 			break;
 

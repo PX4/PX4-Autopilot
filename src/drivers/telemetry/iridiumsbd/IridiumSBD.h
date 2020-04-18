@@ -139,7 +139,7 @@ private:
 	/*
 	 * Entry point of the task, has to be a static function
 	 */
-	static void main_loop_helper(int argc, char *argv[]);
+	static int main_loop_helper(int argc, char *argv[]);
 
 	/*
 	 * Main driver loop

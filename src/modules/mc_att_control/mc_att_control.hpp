@@ -139,6 +139,7 @@ private:
 		(ParamFloat<px4::params::MC_ROLL_P>) _param_mc_roll_p,
 		(ParamFloat<px4::params::MC_PITCH_P>) _param_mc_pitch_p,
 		(ParamFloat<px4::params::MC_YAW_P>) _param_mc_yaw_p,
+		(ParamFloat<px4::params::MC_YAW_WEIGHT>) _param_mc_yaw_weight,
 
 		(ParamFloat<px4::params::MC_ROLLRATE_MAX>) _param_mc_rollrate_max,
 		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _param_mc_pitchrate_max,

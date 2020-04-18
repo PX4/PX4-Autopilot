@@ -198,13 +198,13 @@ else
 	#
 	# Start system state indicator.
 	#
-	rgbled start
-	rgbled_ncp5623c start
+	rgbled start -X
+	rgbled_ncp5623c start -X
 	rgbled_pwm start
 
 	if param greater LIGHT_EN_BLINKM 0
 	then
-		if blinkm start
+		if blinkm start -X
 		then
 			blinkm systemstate
 		fi
@@ -348,7 +348,16 @@ else
 
 		sh /etc/init.d/rc.sensors
 
-		battery_status start
+		if param compare -s BAT1_SOURCE 2
+		then
+			esc_battery start
+		fi
+
+		if ! param compare BAT1_SOURCE 1
+		then
+			battery_status start
+		fi
+
 		commander start
 	fi
 
@@ -427,7 +436,7 @@ else
 	#
 	sh /etc/init.d/rc.serial
 
-	if [ $IO_PRESENT = no -o $USE_IO = no ]
+	if [ $IO_PRESENT = no ]
 	then
 		# Must be started after the serial config is read
 		rc_input start $RC_INPUT_ARGS
@@ -467,16 +476,16 @@ else
 		vmount start
 	fi
 
-	# Check for flow sensor, launched as a background task to scan
+	# Check for flow sensor
 	if param compare SENS_EN_PX4FLOW 1
 	then
-		px4flow start &
+		px4flow start -X
 	fi
 
 	# Blacksheep telemetry
 	if param greater TEL_BST_EN 0
 	then
-		bst start
+		bst start -X
 	fi
 
 	#

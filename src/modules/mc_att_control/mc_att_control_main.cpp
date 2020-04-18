@@ -94,7 +94,8 @@ void
 MulticopterAttitudeControl::parameters_updated()
 {
 	// Store some of the parameters in a more convenient way & precompute often-used values
-	_attitude_control.setProportionalGain(Vector3f(_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get()));
+	_attitude_control.setProportionalGain(Vector3f(_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get()),
+					      _param_mc_yaw_weight.get());
 
 	// angular rate limits
 	using math::radians;
@@ -214,7 +215,6 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	/* copy quaternion setpoint to attitude setpoint topic */
 	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	q_sp.copyTo(attitude_setpoint.q_d);
-	attitude_setpoint.q_d_valid = true;
 
 	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
 	attitude_setpoint.timestamp = hrt_absolute_time();

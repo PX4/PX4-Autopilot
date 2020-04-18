@@ -36,139 +36,73 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-namespace srf02
+void
+SRF02::print_usage()
 {
-
-SRF02 *g_dev{nullptr};
-
-static int start_bus(uint8_t rotation, int i2c_bus)
-{
-	if (g_dev != nullptr) {
-		PX4_ERR("already started");
-		return PX4_ERROR;
-	}
-
-	// Create the driver.
-	g_dev = new SRF02(rotation, i2c_bus);
-
-	if (g_dev == nullptr) {
-		PX4_ERR("failed to instantiate the device");
-		return PX4_ERROR;
-	}
-
-	if (OK != g_dev->init()) {
-		PX4_ERR("failed to initialize the device");
-		delete g_dev;
-		g_dev = nullptr;
-		return -1;
-	}
-
-	return 0;
+	PRINT_MODULE_USAGE_NAME("srf02", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-static int start(uint8_t rotation)
+I2CSPIDriverBase *SRF02::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				     int runtime_instance)
 {
-	if (g_dev != nullptr) {
-		PX4_WARN("already started");
-		return -1;
+	SRF02 *instance = new SRF02(iterator.configuredBusOption(), iterator.bus(), cli.orientation, cli.bus_frequency);
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	for (unsigned i = 0; i < NUM_I2C_BUS_OPTIONS; i++) {
-		if (start_bus(rotation, i2c_bus_options[i]) == PX4_OK) {
-			return PX4_OK;
-		}
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		return nullptr;
 	}
 
-	return PX4_ERROR;
+	instance->start();
+	return instance;
 }
-
-static int stop()
-{
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-
-	} else {
-		return -1;
-	}
-
-	return 0;
-}
-
-static int status()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return -1;
-	}
-
-	g_dev->print_info();
-
-	return 0;
-}
-
-static int usage()
-{
-	PX4_INFO("usage: srf02 command [options]");
-	PX4_INFO("options:");
-	PX4_INFO("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_EXPANSION);
-	PX4_INFO("\t-a --all");
-	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	PX4_INFO("command:");
-	PX4_INFO("\tstart|stop|test|reset|info");
-	return PX4_OK;
-}
-
-} // namespace srf02
 
 extern "C" __EXPORT int srf02_main(int argc, char *argv[])
 {
-	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	int i2c_bus = PX4_I2C_BUS_EXPANSION;
-	bool start_all = false;
 	int ch;
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
+	using ThisDriver = SRF02;
+	BusCLIArguments cli{true, false};
+	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	cli.default_i2c_frequency = 100000;
 
-	while ((ch = px4_getopt(argc, argv, "R:ab:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (uint8_t)atoi(myoptarg);
+			cli.orientation = atoi(cli.optarg());
 			break;
-
-		case 'b':
-			i2c_bus = atoi(myoptarg);
-			break;
-
-		case 'a':
-			start_all = true;
-			break;
-
-		default:
-			srf02::usage();
-			return -1;
 		}
 	}
 
-	if (myoptind >= argc) {
-		srf02::usage();
+	const char *verb = cli.optarg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
 		return -1;
 	}
 
-	if (!strcmp(argv[myoptind], "start")) {
-		if (start_all) {
-			return srf02::start(rotation);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_SRF02);
 
-		} else {
-			return srf02::start_bus(rotation, i2c_bus);
-		}
-
-	} else if (!strcmp(argv[myoptind], "stop")) {
-		return srf02::stop();
-
-	} else if (!strcmp(argv[myoptind], "status")) {
-		return srf02::status();
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	return srf02::usage();
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }

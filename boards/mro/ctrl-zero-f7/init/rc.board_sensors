@@ -6,23 +6,21 @@
 adc start
 
 # Internal ICM-20602
-mpu6000 -R 10 -s -T 20602 start
+icm20602 -s -R 4 start
 
-# Internal ICM-20689
-#icm20689 -R 10 20689 start
+# Internal SPI bus BMI088 accel & gyro
+bmi088 -A -R 10 -s start
+bmi088 -G -R 10 -s start
 
-# Internal SPI bus BMI088 accel
-bmi088 -A -R 10 start
-
-# Internal SPI bus BMI088 gyro
-bmi088 -G -R 10 start
+# Internal ICM-20948
+icm20948 -s -R 10 start
 
 # Interal DPS310 (barometer)
 dps310 -s start
 
 # Possible external compasses
-ist8310 -b 1 start
-ist8310 -b 2 start
-hmc5883 -C -T -X start
+ist8310 -X start
+hmc5883 -T -X start
 qmc5883 -X start
 lis3mdl -X start
+rm3100 -X start

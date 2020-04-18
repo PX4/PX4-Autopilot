@@ -48,6 +48,11 @@ static int start(const char *port, uint8_t rotation)
 		return -1;
 	}
 
+	if (port == nullptr) {
+		PX4_ERR("no device specified");
+		return -1;
+	}
+
 	/* create the driver */
 	g_dev = new SF0X(port, rotation);
 

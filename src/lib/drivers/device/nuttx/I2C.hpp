@@ -41,6 +41,7 @@
 #define _DEVICE_I2C_H
 
 #include "../CDev.hpp"
+#include <px4_platform_common/i2c.h>
 
 #include <nuttx/i2c/i2c_master.h>
 
@@ -69,8 +70,6 @@ public:
 
 	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
 
-	static unsigned	int	_bus_clocks[BOARD_NUMBER_I2C_BUSES];
-
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
@@ -81,13 +80,13 @@ protected:
 	/**
 	 * @ Constructor
 	 *
+	 * @param device_type	The device type (see drv_sensor.h)
 	 * @param name		Driver name
-	 * @param devname	Device node name
 	 * @param bus		I2C bus on which the device lives
 	 * @param address	I2C bus address, or zero if set_address will be used
 	 * @param frequency	I2C bus frequency for the device (currently not used)
 	 */
-	I2C(const char *name, const char *devname, const int bus, const uint16_t address, const uint32_t frequency);
+	I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency);
 	virtual ~I2C();
 
 	/**
@@ -109,10 +108,12 @@ protected:
 	 */
 	int		transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len);
 
-	virtual bool	external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
+	bool	external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
-	uint32_t		_frequency{0};
+	static unsigned	int	_bus_clocks[PX4_NUMBER_I2C_BUSES];
+
+	const uint32_t		_frequency;
 	i2c_master_s		*_dev{nullptr};
 
 };

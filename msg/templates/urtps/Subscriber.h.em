@@ -11,6 +11,7 @@
 @#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
+from packaging import version
 import genmsg.msgs
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
@@ -68,7 +69,7 @@ except AttributeError:
 #include <fastrtps/fastrtps_fwd.h>
 #include <fastrtps/subscriber/SubscriberListener.h>
 #include <fastrtps/subscriber/SampleInfo.h>
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
 #include "@(topic)_PubSubTypes.h"
 @[else]@
 #include "@(topic)PubSubTypes.h"
@@ -81,6 +82,24 @@ except AttributeError:
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
 
+@[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
+@[    if ros2_distro]@
+using @(topic)_msg_t = @(package)::msg::dds_::@(topic)_;
+using @(topic)_msg_datatype = @(package)::msg::dds_::@(topic)_PubSubType;
+@[    else]@
+using @(topic)_msg_t = @(topic)_;
+using @(topic)_msg_datatype = @(topic)_PubSubType;
+@[    end if]@
+@[else]@
+@[    if ros2_distro]@
+using @(topic)_msg_t = @(package)::msg::@(topic);
+using @(topic)_msg_datatype = @(package)::msg::@(topic)PubSubType;
+@[    else]@
+using @(topic)_msg_t = @(topic);
+using @(topic)_msg_datatype = @(topic)PubSubType;
+@[    end if]@
+@[end if]@
+
 class @(topic)_Subscriber
 {
 public:
@@ -89,19 +108,7 @@ public:
     bool init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue);
     void run();
     bool hasMsg();
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-    @(package)::msg::dds_::@(topic)_ getMsg();
-@[    else]@
-    @(topic)_ getMsg();
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-    @(package)::msg::@(topic) getMsg();
-@[    else]@
-    @(topic) getMsg();
-@[    end if]@
-@[end if]@
+    @(topic)_msg_t getMsg();
     void unlockMsg();
 
 private:
@@ -118,19 +125,7 @@ private:
         SampleInfo_t m_info;
         int n_matched;
         int n_msg;
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-        @(package)::msg::dds_::@(topic)_ msg;
-@[    else]@
-        @(topic)_ msg;
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-        @(package)::msg::@(topic) msg;
-@[    else]@
-        @(topic) msg;
-@[    end if]@
-@[end if]@
+        @(topic)_msg_t msg;
         std::atomic_bool has_msg;
         uint8_t topic_ID;
         std::condition_variable* t_send_queue_cv;
@@ -140,19 +135,7 @@ private:
         std::mutex has_msg_mutex;
 
     } m_listener;
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-    @(package)::msg::dds_::@(topic)_PubSubType @(topic)DataType;
-@[    else]@
-    @(topic)_PubSubType @(topic)DataType;
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-    @(package)::msg::@(topic)PubSubType @(topic)DataType;
-@[    else]@
-    @(topic)PubSubType @(topic)DataType;
-@[    end if]@
-@[end if]@
+    @(topic)_msg_datatype @(topic)DataType;
 };
 
 #endif // _@(topic)__SUBSCRIBER_H_

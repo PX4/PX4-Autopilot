@@ -49,10 +49,10 @@
 #include <perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/topics/battery_status.h>
 
-#include "board_config.h"
+#include <board_config.h>
 
 #define MAC_DATA_BUFFER_SIZE                            32
 
@@ -65,7 +65,9 @@
 #define BATT_SMBUS_ADDR                                 0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
 
 #define BATT_SMBUS_CURRENT                              0x0A            ///< current register
-#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B            ///< current register
+#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B            ///< average current register
+#define BATT_SMBUS_MAX_ERROR				0x0C		///< max error
+#define BATT_SMBUS_RELATIVE_SOC				0x0D		///< Relative State Of Charge
 #define BATT_SMBUS_TEMP                                 0x08            ///< temperature register
 #define BATT_SMBUS_VOLTAGE                              0x09            ///< voltage register
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY                 0x10            ///< capacity when fully charged
@@ -82,6 +84,7 @@
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
 #define BATT_SMBUS_MANUFACTURER_DATA                    0x23
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
+#define BATT_SMBUS_STATE_OF_HEALTH			0x4F		///< State of Health. The SOH information of the battery in percentage of Design Capacity
 #define BATT_SMBUS_SECURITY_KEYS                        0x0035
 #define BATT_SMBUS_CELL_1_VOLTAGE                       0x3F
 #define BATT_SMBUS_CELL_2_VOLTAGE                       0x3E
@@ -95,51 +98,22 @@
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
 
-#define NUM_BUS_OPTIONS (sizeof(smbus_bus_options)/sizeof(smbus_bus_options[0]))
-
-enum BATT_SMBUS_BUS {
-	BATT_SMBUS_BUS_ALL = 0,
-	BATT_SMBUS_BUS_I2C_INTERNAL,
-	BATT_SMBUS_BUS_I2C_EXTERNAL,
-	BATT_SMBUS_BUS_I2C_EXTERNAL1,
-	BATT_SMBUS_BUS_I2C_EXTERNAL2
-};
-
-struct batt_smbus_bus_option {
-	enum BATT_SMBUS_BUS busid;
-	const char *devpath;
-	uint8_t busnum;
-} const smbus_bus_options[] = {
-	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", PX4_I2C_BUS_EXPANSION},
-#ifdef PX4_I2C_BUS_EXPANSION1
-	{ BATT_SMBUS_BUS_I2C_EXTERNAL1, "/dev/batt_smbus_ext1", PX4_I2C_BUS_EXPANSION1},
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION2
-	{ BATT_SMBUS_BUS_I2C_EXTERNAL2, "/dev/batt_smbus_ext2", PX4_I2C_BUS_EXPANSION2},
-#endif
-#ifdef PX4_I2C_BUS_ONBOARD
-	{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", PX4_I2C_BUS_ONBOARD},
-#endif
-};
-
-class BATT_SMBUS : public ModuleBase<BATT_SMBUS>, public px4::ScheduledWorkItem
+class BATT_SMBUS : public I2CSPIDriver<BATT_SMBUS>
 {
 public:
-
-	BATT_SMBUS(SMBus *interface, const char *path);
+	BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interface);
 
 	~BATT_SMBUS();
 
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
+
 	friend SMBus;
 
-	/** @see ModuleBase */
-	static int print_usage();
+	void RunImpl();
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	void custom_method(const BusCLIArguments &cli) override;
 
 	/**
 	 * @brief Reads data from flash.
@@ -156,7 +130,7 @@ public:
 	 * @param length The number of bytes being written.
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
-	int dataflash_write(uint16_t &address, void *data, const unsigned length);
+	int dataflash_write(uint16_t address, void *data, const unsigned length);
 
 	/**
 	 * @brief Returns the SBS serial number of the battery device.
@@ -244,8 +218,6 @@ public:
 
 private:
 
-	void Run() override;
-
 	SMBus *_interface;
 
 	perf_counter_t _cycle{perf_alloc(PC_ELAPSED, "batt_smbus_cycle")};
@@ -285,6 +257,9 @@ private:
 
 	/** @param _low_thr Low battery threshold param. */
 	float _low_thr{0.f};
+
+	/** @parama _c_mult Capacity/current multiplier param  */
+	float _c_mult{0.f};
 
 	/** @param _manufacturer_name Name of the battery manufacturer. */
 	char *_manufacturer_name{nullptr};

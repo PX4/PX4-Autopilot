@@ -175,7 +175,7 @@ float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float constraint
 
 float FlightTaskAutoLineSmoothVel::_constrainAbs(float val, float max)
 {
-	return math::sign(val) * math::min(fabsf(val), fabsf(max));
+	return sign(val) * math::min(fabsf(val), fabsf(max));
 }
 
 float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
@@ -263,8 +263,8 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			const float z_speed = _getMaxZSpeed();
 
 			Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
-			math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed);
-			math::trajectory::clampToZNorm(vel_sp_constrained, z_speed);
+			math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
+			math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
 
 			for (int i = 0; i < 3; i++) {
 				// If available, use the existing velocity as a feedforward, otherwise replace it
@@ -301,7 +301,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		else if (z_pos_setpoint_valid) {
 			// Use Z position setpoint to generate a Z velocity setpoint
 
-			const float z_dir = math::sign(_position_setpoint(2) - _trajectory[2].getCurrentPosition());
+			const float z_dir = sign(_position_setpoint(2) - _trajectory[2].getCurrentPosition());
 			const float vel_sp_z = z_dir * _getMaxZSpeed();
 
 			// If available, use the existing velocity as a feedforward, otherwise replace it

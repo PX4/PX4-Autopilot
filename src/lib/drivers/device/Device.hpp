@@ -166,7 +166,6 @@ public:
 	 * @return The bus type
 	 */
 	DeviceBusType	get_device_bus_type() const { return _device_id.devid_s.bus_type; }
-	void		set_device_bus_type(DeviceBusType bus_type) { _device_id.devid_s.bus_type = bus_type; }
 
 	static const char *get_device_bus_string(DeviceBusType bus)
 	{
@@ -195,7 +194,6 @@ public:
 	 * @return The bus ID
 	 */
 	uint8_t get_device_bus() const { return _device_id.devid_s.bus; }
-	void	set_device_bus(uint8_t bus) { _device_id.devid_s.bus = bus; }
 
 	/**
 	 * Return the bus address of the device.
@@ -242,26 +240,15 @@ protected:
 	const char	*_name{nullptr};		/**< driver name */
 	bool		_debug_enabled{false};		/**< if true, debug messages are printed */
 
-	explicit Device(const char *name) : _name(name)
-	{
-		set_device_bus_type(DeviceBusType_UNKNOWN);
-	}
+	Device() = delete;
+	explicit Device(const char *name) : _name(name) {}
 
-	Device(const char *name, DeviceBusType bus_type, uint8_t bus, uint8_t address, uint8_t devtype = 0)
-		: _name(name)
+	Device(uint8_t devtype, const char *name, DeviceBusType bus_type, uint8_t bus, uint8_t address) : _name(name)
 	{
-		set_device_bus_type(bus_type);
-		set_device_bus(bus);
-		set_device_address(address);
 		set_device_type(devtype);
-	}
-
-	Device(DeviceBusType bus_type, uint8_t bus, uint8_t address, uint8_t devtype = 0)
-	{
-		set_device_bus_type(bus_type);
-		set_device_bus(bus);
+		_device_id.devid_s.bus_type = bus_type;
+		_device_id.devid_s.bus = bus;
 		set_device_address(address);
-		set_device_type(devtype);
 	}
 
 };

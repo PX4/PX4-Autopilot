@@ -66,11 +66,11 @@ bool VehicleIMU::Start()
 
 void VehicleIMU::Stop()
 {
-	Deinit();
-
 	// clear all registered callbacks
 	_sensor_accel_integrated_sub.unregisterCallback();
 	_sensor_gyro_integrated_sub.unregisterCallback();
+
+	Deinit();
 }
 
 void VehicleIMU::ParametersUpdate(bool force)
@@ -121,8 +121,7 @@ void VehicleIMU::Run()
 		delta_velocity.copyTo(imu.delta_velocity);
 
 		imu.dt = accel.dt;
-		imu.integrated_samples = accel.samples;
-		imu.clip_count = accel.clip_count;
+		//imu.clip_count = accel.clip_count;
 		imu.timestamp = hrt_absolute_time();
 
 		_vehicle_imu_pub.publish(imu);

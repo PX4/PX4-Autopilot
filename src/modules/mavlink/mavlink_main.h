@@ -79,7 +79,6 @@
 
 #include "mavlink_command_sender.h"
 #include "mavlink_messages.h"
-#include "mavlink_orb_subscription.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
@@ -319,21 +318,17 @@ public:
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
 	 */
-	void 			begin_send() { pthread_mutex_lock(&_send_mutex); }
+	void 			send_start(int length);
 
 	/**
-	 * Send bytes out on the link.
-	 *
-	 * On a network port these might actually get buffered to form a packet.
+	 * Buffer bytes to send out on the link.
 	 */
 	void			send_bytes(const uint8_t *buf, unsigned packet_len);
 
 	/**
 	 * Flush the transmit buffer and send one MAVLink packet
-	 *
-	 * @return the number of bytes sent or -1 in case of error
 	 */
-	int             	send_packet();
+	void             	send_finish();
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
@@ -341,15 +336,6 @@ public:
 	void			resend_message(mavlink_message_t *msg) { _mavlink_resend_uart(_channel, msg); }
 
 	void			handle_message(const mavlink_message_t *msg);
-
-	/**
-	 * Add a mavlink orb topic subscription while ensuring that only a single object exists
-	 * for a given topic id and instance.
-	 * @param topic orb topic id
-	 * @param instance topic instance
-	 * @param disable_sharing if true, force creating a new instance
-	 */
-	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic, int instance = 0, bool disable_sharing = false);
 
 	int			get_instance_id() const { return _instance_id; }
 
@@ -565,7 +551,6 @@ private:
 
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
-	List<MavlinkOrbSubscription *>	_subscriptions;
 	List<MavlinkStream *>		_streams;
 
 	MavlinkShell		*_mavlink_shell{nullptr};
@@ -630,12 +615,15 @@ private:
 	bool			_broadcast_address_found{false};
 	bool			_broadcast_address_not_found_warned{false};
 	bool			_broadcast_failed_warned{false};
-	uint8_t			_network_buf[MAVLINK_MAX_PACKET_LEN] {};
-	unsigned		_network_buf_len{0};
 
 	unsigned short		_network_port{14556};
 	unsigned short		_remote_port{DEFAULT_REMOTE_PORT_UDP};
 #endif // MAVLINK_UDP
+
+	uint8_t			_buf[MAVLINK_MAX_PACKET_LEN] {};
+	unsigned		_buf_fill{0};
+
+	bool			_tx_buffer_low{false};
 
 	const char 		*_interface_name{nullptr};
 
@@ -677,8 +665,10 @@ private:
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 	)
 
-	perf_counter_t		_loop_perf{perf_alloc(PC_ELAPSED, "mavlink_el")};		/**< loop performance counter */
-	perf_counter_t		_loop_interval_perf{perf_alloc(PC_INTERVAL, "mavlink_int")};	/**< loop interval performance counter */
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": tx run elapsed")};                      /**< loop performance counter */
+	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": tx run interval")};           /**< loop interval performance counter */
+	perf_counter_t _send_byte_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": send_bytes error")};           /**< send bytes error count */
+	perf_counter_t _send_start_tx_buf_low{perf_alloc(PC_COUNT, MODULE_NAME": send_start tx buffer full")}; /**< available tx buffer smaller than message */
 
 	void			mavlink_update_parameters();
 

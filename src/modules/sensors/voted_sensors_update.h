@@ -44,7 +44,6 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
-#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
@@ -52,6 +51,7 @@
 
 #include <lib/ecl/validation/data_validator.h>
 #include <lib/ecl/validation/data_validator_group.h>
+#include <lib/mag_compensation/MagCompensation.hpp>
 
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
@@ -62,7 +62,6 @@
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_selection.h>
-#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/subsystem_info.h>
 
@@ -76,7 +75,7 @@ namespace sensors
  *
  * Handling of sensor updates with voting
  */
-class VotedSensorsUpdate
+class VotedSensorsUpdate : public ModuleParams
 {
 public:
 	/**
@@ -96,11 +95,6 @@ public:
 	 */
 	void initializeSensors();
 
-	/**
-	 * deinitialize the object (we cannot use the destructor because it is called on the wrong thread)
-	 */
-	void deinit();
-
 	void printStatus();
 
 	/**
@@ -112,7 +106,7 @@ public:
 	/**
 	 * read new sensor data
 	 */
-	void sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s &airdata, vehicle_magnetometer_s &magnetometer);
+	void sensorsPoll(sensor_combined_s &raw, vehicle_magnetometer_s &magnetometer);
 
 	/**
 	 * set the relative timestamps of each sensor timestamp, based on the last sensorsPoll,
@@ -125,11 +119,7 @@ public:
 	 */
 	void checkFailover();
 
-	int numGyros() const { return _gyro.subscription_count; }
-
-	int gyroFd(int idx) const { return _gyro.subscription[idx]; }
-
-	int bestGyroFd() const { return _gyro.subscription[_gyro.last_best_vote]; }
+	int bestGyroID() const { return _gyro_device_id[_gyro.last_best_vote]; }
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
@@ -146,33 +136,39 @@ public:
 	 */
 	void calcMagInconsistency(sensor_preflight_s &preflt);
 
+	/**
+	 * Update armed flag for mag compensation.
+	 */
+	void update_mag_comp_armed(bool armed);
+
+	/**
+	 * Update throttle for mag compensation.
+	 */
+	void update_mag_comp_throttle(float throttle);
+
+	/**
+	 * Update current for mag compensation.
+	 */
+	void update_mag_comp_current(float current);
+
 private:
 
 	struct SensorData {
-		SensorData()
-			: last_best_vote(0),
-			  subscription_count(0),
-			  voter(1),
-			  last_failover_count(0)
-		{
-			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
-				enabled[i] = true;
-				subscription[i] = -1;
-				priority[i] = 0;
-			}
-		}
+		SensorData() = delete;
+		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}, {meta, 3}} {}
 
-		bool enabled[SENSOR_COUNT_MAX];
-
-		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
-		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */
-		uint8_t last_best_vote; /**< index of the latest best vote */
-		int subscription_count;
-		DataValidatorGroup voter;
-		unsigned int last_failover_count;
+		uORB::Subscription subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
+		DataValidatorGroup voter{1};
+		unsigned int last_failover_count{0};
+		uint8_t priority[SENSOR_COUNT_MAX] {}; /**< sensor priority */
+		uint8_t last_best_vote{0}; /**< index of the latest best vote */
+		uint8_t subscription_count{0};
+		bool enabled[SENSOR_COUNT_MAX] {true, true, true, true};
+		bool advertised[SENSOR_COUNT_MAX] {false, false, false, false};
+		matrix::Vector3f power_compensation[SENSOR_COUNT_MAX];
 	};
 
-	void initSensorClass(const orb_metadata *meta, SensorData &sensor_data, uint8_t sensor_count_max);
+	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);
 
 	/**
 	 * Poll the accelerometer for updated data.
@@ -199,23 +195,14 @@ private:
 	void magPoll(vehicle_magnetometer_s &magnetometer);
 
 	/**
-	 * Poll the barometer for updated data.
-	 *
-	 * @param raw	Combined sensor data structure into which
-	 *		data should be returned.
-	 */
-	void baroPoll(vehicle_air_data_s &airdata);
-
-	/**
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
-	SensorData _accel {};
-	SensorData _gyro {};
-	SensorData _mag {};
-	SensorData _baro {};
+	SensorData _accel{ORB_ID::sensor_accel_integrated};
+	SensorData _gyro{ORB_ID::sensor_gyro_integrated};
+	SensorData _mag{ORB_ID::sensor_mag};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -226,7 +213,6 @@ private:
 	uORB::Subscription _corrections_sub{ORB_ID(sensor_correction)};
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
-	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX] {};		/**< latest sensor data from all sensors instances */
 	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
 
 	matrix::Dcmf _board_rotation {};		/**< rotation matrix for the orientation that the board is mounted */
@@ -241,8 +227,10 @@ private:
 	float _gyro_diff[3][2] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
 	float _mag_angle_diff[2] {};			/**< filtered mag angle differences between sensor instances (Ga) */
 
+	/* Magnetometer interference compensation */
+	MagCompensator _mag_compensator;
+
 	uint32_t _accel_device_id[SENSOR_COUNT_MAX] {};	/**< accel driver device id for each uorb instance */
-	uint32_t _baro_device_id[SENSOR_COUNT_MAX] {};	/**< baro driver device id for each uorb instance */
 	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] {};	/**< gyro driver device id for each uorb instance */
 	uint32_t _mag_device_id[SENSOR_COUNT_MAX] {};	/**< mag driver device id for each uorb instance */
 

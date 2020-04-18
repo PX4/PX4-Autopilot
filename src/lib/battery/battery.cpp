@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -121,8 +121,8 @@ Battery::reset()
 
 void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
-			     bool connected, bool selected_source, int priority,
-			     float throttle_normalized, bool should_publish)
+			     bool connected, int source, int priority,
+			     float throttle_normalized)
 {
 	reset();
 	_battery_status.timestamp = timestamp;
@@ -148,11 +148,21 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		_battery_status.warning = _warning;
 		_battery_status.remaining = _remaining;
 		_battery_status.connected = connected;
-		_battery_status.system_source = selected_source;
+		_battery_status.source = source;
 		_battery_status.priority = priority;
+
+		static constexpr int uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
+				_battery_status.voltage_cell_v[0]);
+
+		// Fill cell voltages with average values to work around BATTERY_STATUS message not allowing to report just total voltage
+		for (int i = 0; (i < _battery_status.cell_count) && (i < uorb_max_cells); i++) {
+			_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / _battery_status.cell_count;
+		}
 	}
 
 	_battery_status.timestamp = timestamp;
+
+	const bool should_publish = (source == _params.source);
 
 	if (should_publish) {
 		publish();
@@ -163,14 +173,6 @@ void
 Battery::publish()
 {
 	orb_publish_auto(ORB_ID(battery_status), &_orb_advert, &_battery_status, &_orb_instance, ORB_PRIO_DEFAULT);
-}
-
-void
-Battery::swapUorbAdvert(Battery &other)
-{
-	orb_advert_t tmp = _orb_advert;
-	_orb_advert = other._orb_advert;
-	other._orb_advert = tmp;
 }
 
 void

@@ -73,9 +73,11 @@
 
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
+
+#include <drivers/drv_pwm_output.h>
+#include <px4_arch/io_timer.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -146,7 +148,7 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
 
-	/*
+	/**
 	 * On resets invoked from system (not boot) insure we establish a low
 	 * output state (discharge the pins) on PWM pins before they become inputs.
 	 */
@@ -191,12 +193,6 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_BRICK_VALID);
 	stm32_configgpio(GPIO_VDD_USB_VALID);
 
-	/**
-	 * Start with Sensor voltage off We will enable it
-	 * in board_app_initialize.
-	 */
-	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
-
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
@@ -207,15 +203,10 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_BTN_SAFETY);
 	stm32_configgpio(GPIO_PPM_IN);
 
-	int spi_init_mask = SPI_BUS_INIT_MASK;
-
 #if defined(CONFIG_STM32_SPI4)
 
 	/* We have SPI4 is GPIO_PB4 pin 3 Low */
-	if (stm32_gpioread(GPIO_PB4) == 0) {
-		spi_init_mask |= SPI_BUS_INIT_MASK_EXT;
-
-	} else {
+	if (stm32_gpioread(GPIO_PB4) != 0) {
 #endif /* CONFIG_STM32_SPI4 */
 
 		stm32_configgpio(GPIO_PE5);
@@ -226,8 +217,8 @@ stm32_boardinitialize(void)
 
 #endif /* CONFIG_STM32_SPI4 */
 
-// Configure SPI all interfaces GPIO.
-	stm32_spiinitialize(spi_init_mask);
+	// Configure SPI all interfaces GPIO & enable power.
+	stm32_spiinitialize();
 
 	// Configure heater GPIO.
 	stm32_configgpio(GPIO_HEATER_INPUT);
@@ -302,9 +293,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-	// Power up the sensors.
-	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
-
 	// Power down the heater.
 	stm32_gpiowrite(GPIO_HEATER_OUTPUT, 0);
 
@@ -322,9 +310,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_HMC, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
 	// Get the SPI port for the FRAM.
@@ -345,8 +330,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi2, 20 * 1000 * 1000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	SPI_SELECT(spi2, SPIDEV_FLASH(0), false);
-	SPI_SELECT(spi2, PX4_SPIDEV_BARO, false);
 
 #if defined(CONFIG_STM32_SPI4)
 
@@ -364,7 +347,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			SPI_SETFREQUENCY(spi4, 20 * 1000 * 1000);
 			SPI_SETBITS(spi4, 8);
 			SPI_SETMODE(spi4, SPIDEV_MODE3);
-			SPI_SELECT(spi4, PX4_SPIDEV_EXTERNAL, false);
 		}
 	}
 

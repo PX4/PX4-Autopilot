@@ -60,7 +60,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/battery_status.h>
+#include <uORB/topics/adc_report.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include "analog_battery.h"
@@ -99,10 +99,9 @@ public:
 private:
 	void Run() override;
 
-	int  _adc_fd{-1};			/**< ADC file handle */
-
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
+	uORB::Subscription	_adc_report_sub{ORB_ID(adc_report)};
 
 	AnalogBattery _battery1;
 
@@ -116,10 +115,6 @@ private:
 		&_battery2,
 #endif
 	}; // End _analogBatteries
-
-#if BOARD_NUMBER_BRICKS > 1
-	int 			_battery_pub_intance0ndx {0}; /**< track the index of instance 0 */
-#endif /* BOARD_NUMBER_BRICKS > 1 */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -171,84 +166,67 @@ BatteryStatus::parameter_update_poll(bool forced)
 void
 BatteryStatus::adc_poll()
 {
-	/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-	px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
-
-	/* read all channels available */
-	int ret = px4_read(_adc_fd, &buf_adc, sizeof(buf_adc));
-
 	/* For legacy support we publish the battery_status for the Battery that is
-	 * associated with the Brick that is the selected source for VDD_5V_IN
-	 * Selection is done in HW ala a LTC4417 or similar, or may be hard coded
-	 * Like in the FMUv4
-	 */
+	* associated with the Brick that is the selected source for VDD_5V_IN
+	* Selection is done in HW ala a LTC4417 or similar, or may be hard coded
+	* Like in the FMUv4
+	*/
 
 	/* Per Brick readings with default unread channels at 0 */
-	int32_t bat_current_adc_readings[BOARD_NUMBER_BRICKS] {};
-	int32_t bat_voltage_adc_readings[BOARD_NUMBER_BRICKS] {};
-
-	/* Based on the valid_chan, used to indicate the selected the lowest index
-	 * (highest priority) supply that is the source for the VDD_5V_IN
-	 * When < 0 none selected
-	 */
+	float bat_current_adc_readings[BOARD_NUMBER_BRICKS] {};
+	float bat_voltage_adc_readings[BOARD_NUMBER_BRICKS] {};
 
 	int selected_source = -1;
 
-	if (ret >= (int)sizeof(buf_adc[0])) {
+	adc_report_s adc_report;
+
+	if (_adc_report_sub.update(&adc_report)) {
 
 		/* Read add channels we got */
-		for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-			{
-				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+		for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+			for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
-					/* Once we have subscriptions, Do this once for the lowest (highest priority
-					 * supply on power controller) that is valid.
+				/* Once we have subscriptions, Do this once for the lowest (highest priority
+				 * supply on power controller) that is valid.
+				 */
+				if (selected_source < 0 && _analogBatteries[b]->is_valid()) {
+					/* Indicate the lowest brick (highest priority supply on power controller)
+					 * that is valid as the one that is the selected source for the
+					 * VDD_5V_IN
 					 */
-					if (selected_source < 0 && _analogBatteries[b]->is_valid()) {
-						/* Indicate the lowest brick (highest priority supply on power controller)
-						 * that is valid as the one that is the selected source for the
-						 * VDD_5V_IN
-						 */
-						selected_source = b;
-#  if BOARD_NUMBER_BRICKS > 1
-
-						/* Move the selected_source to instance 0 */
-						if (_battery_pub_intance0ndx != selected_source) {
-							_analogBatteries[_battery_pub_intance0ndx]->swapUorbAdvert(
-								*_analogBatteries[selected_source]
-							);
-							_battery_pub_intance0ndx = selected_source;
-						}
-
-#  endif /* BOARD_NUMBER_BRICKS > 1 */
-					}
-
-					/* look for specific channels and process the raw voltage to measurement data */
-					if (_analogBatteries[b]->get_voltage_channel() == buf_adc[i].am_channel) {
-						/* Voltage in volts */
-						bat_voltage_adc_readings[b] = buf_adc[i].am_data;
-
-					} else if (_analogBatteries[b]->get_current_channel() == buf_adc[i].am_channel) {
-						bat_current_adc_readings[b] = buf_adc[i].am_data;
-					}
+					selected_source = b;
 				}
+
+				/* look for specific channels and process the raw voltage to measurement data */
+
+				if (adc_report.channel_id[i] == _analogBatteries[b]->get_voltage_channel()) {
+					/* Voltage in volts */
+					bat_voltage_adc_readings[b] = adc_report.raw_data[i] *
+								      adc_report.v_ref /
+								      adc_report.resolution;
+
+				} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_current_channel()) {
+					bat_current_adc_readings[b] = adc_report.raw_data[i] *
+								      adc_report.v_ref /
+								      adc_report.resolution;
+				}
+
 			}
 		}
 
 		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-			if (_analogBatteries[b]->source() == 0) {
-				actuator_controls_s ctrl{};
-				_actuator_ctrl_0_sub.copy(&ctrl);
 
-				_analogBatteries[b]->updateBatteryStatusRawADC(
-					hrt_absolute_time(),
-					bat_voltage_adc_readings[b],
-					bat_current_adc_readings[b],
-					selected_source == b,
-					b,
-					ctrl.control[actuator_controls_s::INDEX_THROTTLE]
-				);
-			}
+			actuator_controls_s ctrl{};
+			_actuator_ctrl_0_sub.copy(&ctrl);
+
+			_analogBatteries[b]->updateBatteryStatusADC(
+				hrt_absolute_time(),
+				bat_voltage_adc_readings[b],
+				bat_current_adc_readings[b],
+				battery_status_s::BATTERY_SOURCE_POWER_MODULE,
+				b,
+				ctrl.control[actuator_controls_s::INDEX_THROTTLE]
+			);
 		}
 	}
 }
@@ -262,15 +240,6 @@ BatteryStatus::Run()
 	}
 
 	perf_begin(_loop_perf);
-
-	if (_adc_fd < 0) {
-		_adc_fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
-
-		if (_adc_fd < 0) {
-			PX4_ERR("unable to open ADC: %s", ADC0_DEVICE_PATH);
-			return;
-		}
-	}
 
 	/* check parameters for updates */
 	parameter_update_poll();

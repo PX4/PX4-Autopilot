@@ -46,7 +46,7 @@ px4_add_board(
 	DRIVERS
 		barometer/bmp280
 		gps
-		imu/mpu9250
+		imu/invensense/mpu9250
 		#magnetometer/hmc5883
 		qshell/qurt
 		snapdragon_pwm_out
@@ -62,6 +62,7 @@ px4_add_board(
 		landing_target_estimator
 		local_position_estimator
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		muorb/adsp
