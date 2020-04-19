@@ -54,8 +54,8 @@
  * Definitions
  ****************************************************************************************************/
 
-#define  FLASH_BASED_PARAMS
-#define  FLASH_BASED_PARAMS_EXT
+#define FLASH_BASED_PARAMS
+#define FLASH_BASED_PARAMS_EXT
 
 /* PX4IO connection configuration */
 

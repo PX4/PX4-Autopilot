@@ -24,5 +24,11 @@ then
 	param set ATT_W_GYRO_BIAS 0.0000
 
 	param set SYS_HAS_MAG 0
+	
+	param set DSHOT_CONFIG 600
+	
+	param set BAT_V_CHARGED 4.20
+	param set BAT_N_CELLS 4
+	param set BAT_V_DIV 10.133
 fi
 
