@@ -328,12 +328,6 @@
 #define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
 #define LED_IDLE           8 /* MCU is in sleep mode     ON     OFF   OFF  */
 
-/* Thus if the Green LED is statically on, NuttX has successfully booted and
- * is, apparently, running normally.  If the Red LED is flashing at
- * approximately 2Hz, then a fatal error has been detected and the system
- * has halted.
- */
-
 /* Alternate function pin selections ************************************************/
 
 #define GPIO_USART1_RX   GPIO_USART1_RX_1      /* PB15 */
