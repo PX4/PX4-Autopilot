@@ -127,14 +127,10 @@ void FlightTaskAutoMapper::_prepareIdleSetpoints()
 
 void FlightTaskAutoMapper::_prepareLandSetpoints()
 {
-	float land_speed = _getLandSpeed();
-
 	// Keep xy-position and go down with landspeed
+	float land_speed = _getLandSpeed();
 	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
 	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, land_speed));
-
-	// set constraints
-	_constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 

@@ -60,8 +60,6 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 	_velocity_setpoint(2) = 0.f;
 	_setDefaultConstraints();
 
-	_constraints.tilt = math::radians(_param_mpc_man_tilt_max.get());
-
 	_updateConstraintsFromEstimator();
 
 	_max_speed_up = _constraints.speed_up;
