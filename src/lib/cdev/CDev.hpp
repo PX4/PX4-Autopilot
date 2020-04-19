@@ -311,4 +311,11 @@ private:
 
 } // namespace cdev
 
+// class instance for primary driver of each class
+enum CLASS_DEVICE {
+	CLASS_DEVICE_PRIMARY = 0,
+	CLASS_DEVICE_SECONDARY = 1,
+	CLASS_DEVICE_TERTIARY = 2
+};
+
 #endif /* _CDEV_HPP */
