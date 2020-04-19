@@ -181,7 +181,7 @@ void FlightTask::_setDefaultConstraints()
 	_constraints.speed_xy = _param_mpc_xy_vel_max.get();
 	_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 	_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
-	_constraints.tilt = math::radians(_param_mpc_tiltmax_air.get());
+	_constraints.tilt = NAN;
 	_constraints.min_distance_to_ground = NAN;
 	_constraints.max_distance_to_ground = NAN;
 	_constraints.want_takeoff = false;
