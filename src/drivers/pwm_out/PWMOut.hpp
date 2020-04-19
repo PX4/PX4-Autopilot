@@ -36,11 +36,12 @@
 #include <float.h>
 #include <math.h>
 
-#include <board_config.h>
-#include <drivers/device/device.h>
-#include <drivers/device/i2c.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_input_capture.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/cdev/CDev.hpp>
@@ -48,10 +49,6 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -61,6 +58,14 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
+
+#if defined(__PX4_NUTTX)
+#include <drivers/device/i2c.h>
+#endif // __PX4_NUTTX
+
+#if defined(BOARD_HAS_CAPTURE)
+#include <drivers/drv_input_capture.h>
+#endif // BOARD_HAS_CAPTURE
 
 using namespace time_literals;
 
@@ -76,12 +81,14 @@ enum PortMode {
 	PORT_PWM3,
 	PORT_PWM2,
 	PORT_PWM1,
+#if defined(BOARD_HAS_CAPTURE)
 	PORT_PWM3CAP1,
 	PORT_PWM4CAP1,
 	PORT_PWM4CAP2,
 	PORT_PWM5CAP1,
 	PORT_PWM2CAP2,
 	PORT_CAPTURE,
+#endif // BOARD_HAS_CAPTURE
 };
 
 #if !defined(BOARD_HAS_PWM)
@@ -133,20 +140,20 @@ public:
 	/** change the FMU mode of the running module */
 	static int fmu_new_mode(PortMode new_mode);
 
-	static int test();
-
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
+	virtual int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	virtual int	init();
 
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
 
-	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
+#if defined(BOARD_HAS_CAPTURE)
+	static int test();
 
 	static void	capture_trampoline(void *context, uint32_t chan_index,
 					   hrt_abstime edge_time, uint32_t edge_state,
 					   uint32_t overflow);
+#endif // BOARD_HAS_CAPTURE
 
 	void update_pwm_trims();
 
@@ -169,7 +176,6 @@ private:
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
-
 	unsigned	_num_outputs{0};
 	int		_class_instance{-1};
 
@@ -182,20 +188,18 @@ private:
 
 	perf_counter_t	_cycle_perf;
 
-	void		capture_callback(uint32_t chan_index,
-					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	void		update_current_rate();
-	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
-	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
+	int		pwm_ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
 	void		update_pwm_out_state(bool on);
 
 	void		update_params();
 
-	static void		sensor_reset(int ms);
-	static void		peripheral_reset(int ms);
-
+#if defined(BOARD_HAS_CAPTURE)
+	void		capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 	int		capture_ioctl(file *filp, int cmd, unsigned long arg);
+#endif // BOARD_HAS_CAPTURE
 
 	PWMOut(const PWMOut &) = delete;
 	PWMOut operator=(const PWMOut &) = delete;
