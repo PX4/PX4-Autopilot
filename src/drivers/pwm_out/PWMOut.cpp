@@ -379,11 +379,6 @@ int PWMOut::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_
 	return OK;
 }
 
-int PWMOut::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
-{
-	return device::I2C::set_bus_clock(bus, clock_hz);
-}
-
 void PWMOut::update_current_rate()
 {
 	/*
@@ -505,6 +500,7 @@ int PWMOut::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
+#if defined(BOARD_HAS_CAPTURE)
 void PWMOut::capture_trampoline(void *context, uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
@@ -515,8 +511,10 @@ void PWMOut::capture_trampoline(void *context, uint32_t chan_index,
 void PWMOut::capture_callback(uint32_t chan_index,
 			      hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	fprintf(stdout, "FMU: Capture chan:%d time:%lld state:%d overflow:%d\n", chan_index, edge_time, edge_state, overflow);
+	fprintf(stdout, "PWMOut: Capture chan:%d time:%lld state:%d overflow:%d\n", chan_index, edge_time, edge_state,
+		overflow);
 }
+#endif // BOARD_HAS_CAPTURE
 
 void PWMOut::update_pwm_out_state(bool on)
 {
@@ -603,16 +601,19 @@ void PWMOut::update_params()
 	updateParams();
 }
 
-int PWMOut::ioctl(file *filp, int cmd, unsigned long arg)
+int PWMOut::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
-	int ret;
+	int ret = -ENOTTY;
 
+#if defined(BOARD_HAS_CAPTURE)
 	/* try it as a Capture ioctl next */
 	ret = capture_ioctl(filp, cmd, arg);
 
 	if (ret != -ENOTTY) {
 		return ret;
 	}
+
+#endif // BOARD_HAS_CAPTURE
 
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
 	switch (_mode) {
@@ -621,11 +622,14 @@ int PWMOut::ioctl(file *filp, int cmd, unsigned long arg)
 	case MODE_3PWM:
 	case MODE_4PWM:
 	case MODE_5PWM:
+#if defined(BOARD_HAS_CAPTURE)
 	case MODE_2PWM2CAP:
 	case MODE_3PWM1CAP:
 	case MODE_4PWM1CAP:
 	case MODE_4PWM2CAP:
 	case MODE_5PWM1CAP:
+#endif // BOARD_HAS_CAPTURE
+
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 	case MODE_6PWM:
 #endif
@@ -651,7 +655,7 @@ int PWMOut::ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
+int PWMOut::pwm_ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -927,6 +931,8 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(11):
 	case PWM_SERVO_SET(10):
 	case PWM_SERVO_SET(9):
+
+	// FALLTHROUGH
 	case PWM_SERVO_SET(8):
 		if (_mode < MODE_14PWM) {
 			ret = -EINVAL;
@@ -936,9 +942,10 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
+	// FALLTHROUGH
 	case PWM_SERVO_SET(7):
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_SET(6):
 		if (_mode < MODE_8PWM) {
 			ret = -EINVAL;
@@ -949,7 +956,7 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_SET(5):
 		if (_mode < MODE_6PWM) {
 			ret = -EINVAL;
@@ -959,7 +966,7 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_SET(4):
 		if (_mode < MODE_5PWM) {
 			ret = -EINVAL;
@@ -968,21 +975,21 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 #endif
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_SET(3):
 		if (_mode < MODE_4PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_SET(2):
 		if (_mode < MODE_3PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_SET(1):
 	case PWM_SERVO_SET(0):
 		if (arg <= 2100) {
@@ -1008,9 +1015,10 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 #endif
+
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_GET(7):
 	case PWM_SERVO_GET(6):
 		if (_mode < MODE_8PWM) {
@@ -1022,7 +1030,7 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_GET(5):
 		if (_mode < MODE_6PWM) {
 			ret = -EINVAL;
@@ -1030,9 +1038,10 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 #endif
+
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_GET(4):
 		if (_mode < MODE_5PWM) {
 			ret = -EINVAL;
@@ -1041,21 +1050,21 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 #endif
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_GET(3):
 		if (_mode < MODE_4PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_GET(2):
 		if (_mode < MODE_3PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
-	/* FALLTHROUGH */
+	// FALLTHROUGH
 	case PWM_SERVO_GET(1):
 	case PWM_SERVO_GET(0):
 		*(servo_position_t *)arg = up_pwm_servo_get(cmd - PWM_SERVO_GET(0));
@@ -1300,29 +1309,10 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-void PWMOut::sensor_reset(int ms)
-{
-	if (ms < 1) {
-		ms = 1;
-	}
-
-	board_spi_reset(ms, 0xffff);
-}
-
-void PWMOut::peripheral_reset(int ms)
-{
-	if (ms < 1) {
-		ms = 10;
-	}
-
-	board_peripheral_reset(ms);
-}
-
-int PWMOut::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	int	ret = -EINVAL;
-
 #if defined(BOARD_HAS_CAPTURE)
+int PWMOut::capture_ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
+{
+	int ret = -EINVAL;
 
 	lock();
 
@@ -1463,11 +1453,9 @@ int PWMOut::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	unlock();
 
-#else
-	ret = -ENOTTY;
-#endif
 	return ret;
 }
+#endif // BOARD_HAS_CAPTURE
 
 int PWMOut::fmu_new_mode(PortMode new_mode)
 {
@@ -1475,9 +1463,7 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 		return -1;
 	}
 
-	PWMOut::Mode servo_mode;
-
-	servo_mode = PWMOut::MODE_NONE;
+	PWMOut::Mode servo_mode = PWMOut::MODE_NONE;
 
 	switch (new_mode) {
 	case PORT_FULL_GPIO:
@@ -1600,17 +1586,7 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 	return OK;
 }
 
-
-namespace
-{
-
-int fmu_new_i2c_speed(unsigned bus, unsigned clock_hz)
-{
-	return PWMOut::set_i2c_bus_clock(bus, clock_hz);
-}
-
-} // namespace
-
+#if defined(BOARD_HAS_CAPTURE)
 int PWMOut::test()
 {
 	int	 fd;
@@ -1801,18 +1777,22 @@ err_out_no_test:
 	::close(fd);
 	return rv;
 }
+#endif // BOARD_HAS_CAPTURE
 
 int PWMOut::custom_command(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[0];
 
-	/* does not operate on a FMU instance */
+#if defined(__PX4_NUTTX)
+
+	/* does not operate on a PWMOut instance */
 	if (!strcmp(verb, "i2c")) {
+		// TODO: remove sensor reset from drivers/pwm_out
 		if (argc > 2) {
 			int bus = strtol(argv[1], 0, 0);
 			int clock_hz = strtol(argv[2], 0, 0);
-			int ret = fmu_new_i2c_speed(bus, clock_hz);
+			int ret = device::I2C::set_bus_clock(bus, clock_hz);
 
 			if (ret) {
 				PX4_ERR("setting I2C clock failed");
@@ -1825,31 +1805,34 @@ int PWMOut::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "sensor_reset")) {
+		// TODO: remove sensor reset from drivers/pwm_out
 		if (argc > 1) {
 			int reset_time = strtol(argv[1], nullptr, 0);
-			sensor_reset(reset_time);
+			board_spi_reset(math::max(reset_time, 1), 0xffff);
 
 		} else {
-			sensor_reset(0);
 			PX4_INFO("reset default time");
+			// 1 millisecond
+			board_spi_reset(1, 0xffff);
 		}
-
-		return 0;
 	}
 
 	if (!strcmp(verb, "peripheral_reset")) {
+		// TODO: remove peripheral reset from drivers/pwm_out
 		if (argc > 2) {
 			int reset_time = strtol(argv[2], 0, 0);
-			peripheral_reset(reset_time);
+			// minimum 10 millisecond
+			board_peripheral_reset(math::max(10, reset_time));
 
 		} else {
-			peripheral_reset(0);
 			PX4_INFO("reset default time");
+			board_peripheral_reset(10);
 		}
 
 		return 0;
 	}
 
+#endif // __PX4_NUTTX
 
 	/* start the FMU if not running */
 	if (!is_running()) {
@@ -1937,9 +1920,13 @@ int PWMOut::custom_command(int argc, char *argv[])
 		return PWMOut::fmu_new_mode(new_mode);
 	}
 
+#if defined(BOARD_HAS_CAPTURE)
+
 	if (!strcmp(verb, "test")) {
 		return test();
 	}
+
+#endif // BOARD_HAS_CAPTURE
 
 	return print_usage("unknown command");
 }
@@ -1957,31 +1944,33 @@ int PWMOut::print_status()
 
 	case MODE_2PWM: mode_str = "pwm2"; break;
 
-	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
-
 	case MODE_3PWM: mode_str = "pwm3"; break;
 
-	case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
-
 	case MODE_4PWM: mode_str = "pwm4"; break;
+
+	case MODE_5PWM: mode_str = "pwm5"; break;
+
+	case MODE_6PWM: mode_str = "pwm6"; break;
+
+	case MODE_8PWM: mode_str = "pwm8"; break;
+#if defined(BOARD_HAS_CAPTURE)
+
+	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
+
+	case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
 
 	case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
 
 	case MODE_4PWM2CAP: mode_str = "pwm4cap2"; break;
 
-	case MODE_5PWM: mode_str = "pwm5"; break;
-
 	case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
-
-	case MODE_6PWM: mode_str = "pwm6"; break;
-
-	case MODE_8PWM: mode_str = "pwm8"; break;
 
 	case MODE_4CAP: mode_str = "cap4"; break;
 
 	case MODE_5CAP: mode_str = "cap5"; break;
 
 	case MODE_6CAP: mode_str = "cap6"; break;
+#endif // BOARD_HAS_CAPTURE
 
 	default:
 		break;
@@ -2042,24 +2031,27 @@ mixer files.
 	PRINT_MODULE_USAGE_COMMAND("mode_gpio");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode_pwm", "Select all available pins as PWM");
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm8");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm8");
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm6");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm5");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm5cap1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm6");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm5");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm4");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap1");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap2");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
+#if defined(BOARD_HAS_CAPTURE)
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm5cap1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap2");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
+#endif // BOARD_HAS_CAPTURE
 #endif
 #if defined(BOARD_HAS_PWM)
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm1");
 #endif
 
+#if defined(__PX4_NUTTX)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_reset", "Do a sensor reset (SPI bus)");
 	PRINT_MODULE_USAGE_ARG("<ms>", "Delay time in ms between reset and re-enabling", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("peripheral_reset", "Reset board peripherals");
@@ -2067,6 +2059,7 @@ mixer files.
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("i2c", "Configure I2C clock rate");
 	PRINT_MODULE_USAGE_ARG("<bus_id> <rate>", "Specify the bus id (>=0) and rate in Hz", false);
+#endif // __PX4_NUTTX
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test inputs and outputs");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
