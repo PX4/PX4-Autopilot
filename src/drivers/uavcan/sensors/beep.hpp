@@ -32,7 +32,7 @@
 ****************************************************************************/
 
 /**
- * @file beep.cpp
+ * @file beep.hpp
  *
  * @author CUAVcaijie <caijie@cuav.net>
  */
@@ -48,7 +48,7 @@
 #include <lib/tunes/tunes.h>
 
 /**
- * @brief The beep class
+ * @brief The UavcanUavcanBeep class
  */
 
 class UavcanUavcanBeep
