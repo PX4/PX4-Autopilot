@@ -55,6 +55,14 @@
 #include <uORB/topics/home_position.h>
 #include <lib/weather_vane/WeatherVane.hpp>
 
+struct ekf_reset_counters_s {
+	uint8_t xy;
+	uint8_t vxy;
+	uint8_t z;
+	uint8_t vz;
+	uint8_t quat;
+};
+
 class FlightTask : public ModuleParams
 {
 public:
@@ -113,6 +121,9 @@ public:
 	 */
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
+	const ekf_reset_counters_s getResetCounters() const { return _reset_counters; }
+	void setResetCounters(ekf_reset_counters_s counters) { _reset_counters = counters; }
+
 	/**
 	 * Get vehicle constraints.
 	 * The constraints can vary with task.
@@ -138,6 +149,11 @@ public:
 	 * All setpoints are set to NAN.
 	 */
 	static const vehicle_local_position_setpoint_s empty_setpoint;
+
+	/**.
+	 * All counters are set to 0.
+	 */
+	static const ekf_reset_counters_s zero_reset_counters;
 
 	/**
 	 * Empty constraints.
@@ -234,14 +250,7 @@ protected:
 	matrix::Vector3f _velocity_setpoint_feedback;
 	matrix::Vector3f _acceleration_setpoint_feedback;
 
-	/* Counters for estimator local position resets */
-	struct {
-		uint8_t xy;
-		uint8_t vxy;
-		uint8_t z;
-		uint8_t vz;
-		uint8_t quat;
-	} _reset_counters{};
+	ekf_reset_counters_s _reset_counters{}; ///< Counters for estimator local position resets
 
 	/**
 	 * Vehicle constraints.
