@@ -192,6 +192,8 @@ private:
 
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
 
+	bool _hover_thrust_initialized{false};
+
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
 	/** number of tries before switching to a failsafe flight task */
@@ -381,16 +383,17 @@ MulticopterPositionControl::parameters_update(bool force)
 			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed");
 		}
 
-		if (!_param_mpc_use_hte.get()) {
-			if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
-			    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
-				_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
-							 _param_mpc_thr_max.get()));
-				_param_mpc_thr_hover.commit();
-				mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
-			}
+		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
+		    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
+			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
+						 _param_mpc_thr_max.get()));
+			_param_mpc_thr_hover.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
+		}
 
-			_control.updateHoverThrust(_param_mpc_thr_hover.get());
+		if (!_param_mpc_use_hte.get() || !_hover_thrust_initialized) {
+			_control.setHoverThrust(_param_mpc_thr_hover.get());
+			_hover_thrust_initialized = true;
 		}
 
 		_flight_tasks.handleParameterUpdate();
