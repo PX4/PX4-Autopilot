@@ -2,7 +2,7 @@
 #
 # @name HolyBro QAV250
 #
-# @url https://docs.px4.io/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html
+# @url https://docs.px4.io/master/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html
 #
 # @type Quadrotor x
 # @class Copter
