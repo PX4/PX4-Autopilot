@@ -57,21 +57,6 @@
 #define FLASH_BASED_PARAMS
 #define FLASH_BASED_PARAMS_EXT
 
-/* PX4IO connection configuration */
-
-#define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS6"
-#define PX4IO_SERIAL_TX_GPIO           GPIO_UART8_TX
-#define PX4IO_SERIAL_RX_GPIO           GPIO_UART8_RX
-#define PX4IO_SERIAL_BASE              STM32_UART8_BASE
-#define PX4IO_SERIAL_VECTOR            STM32_IRQ_UART8
-#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_UART8_TX
-#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_UART8_RX
-#define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB1LENR
-#define PX4IO_SERIAL_RCC_EN            RCC_APB1LENR_UART8EN
-#define PX4IO_SERIAL_CLOCK             STM32_PCLK1_FREQUENCY
-#define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
-
 #define BOARD_HAS_USB_VALID            1 // LTC Has No USB valid
 
 /* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
@@ -133,10 +118,6 @@
  * can be used by the Px4 Firmware in the adc driver
  */
 
-/* ADC defines to be used in sensors.cpp to read from a particular channel */
-
-#define ADC1_CH(n)                  (n)
-
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below */
 #define PX4_ADC_GPIO  \
 	/* PC4 */  GPIO_ADC12_INP4,  \
@@ -145,14 +126,11 @@
 
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_RSSI_IN_CHANNEL                 /* PC4 */  ADC1_CH(4)
-#define ADC_BATTERY_VOLTAGE_CHANNEL         /* PC1 */  ADC1_CH(11)
-#define ADC_BATTERY_CURRENT_CHANNEL         /* PC0 */  ADC1_CH(10)
+#define ADC_RSSI_IN_CHANNEL                 /* PC4 */  4
+#define ADC_BATTERY_VOLTAGE_CHANNEL         /* PC1 */  11
+#define ADC_BATTERY_CURRENT_CHANNEL         /* PC0 */  10
 
-#define ADC_CHANNELS \
-	((1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
-	 (1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
-	 (1 << ADC_RSSI_IN_CHANNEL))
+#define ADC_CHANNELS (1 << 4) | (1 << 10) | (1 << 11)
 
 /* Define Battery 1 Voltage Divider and A per V
  */
@@ -161,11 +139,8 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  10
-#define DIRECT_INPUT_TIMER_CHANNELS  6
-#define GPIO_nPOWER_IN_C                /* PG3  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN3)
-#define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
-
+#define DIRECT_PWM_OUTPUT_CHANNELS  4
+#define DIRECT_INPUT_TIMER_CHANNELS 4
 
 /* Tone alarm output */
 #define GPIO_TONE_ALARM_IDLE    /* PE5 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN5)
@@ -183,22 +158,13 @@
 
 /* RC Serial port */
 
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
+#define RC_SERIAL_PORT          "/dev/ttyS1"
 
-#define GPIO_RSSI_IN                       /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
+#define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
-#define SDIO_SLOTNO                    0  /* Only one slot */
-#define SDIO_MINOR                     0
+#define SDIO_SLOTNO             0  /* Only one slot */
+#define SDIO_MINOR              0
 
-
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
-#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
-
-#define BOARD_ADC_SERVO_VALID     (1)
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
@@ -209,7 +175,6 @@
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
-		GPIO_nPOWER_IN_C,                 \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_RSSI_IN,                \
 	}
