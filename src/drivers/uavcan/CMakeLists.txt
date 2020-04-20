@@ -130,6 +130,7 @@ px4_add_module(
 		sensors/flow.cpp
 		sensors/gnss.cpp
 		sensors/mag.cpp
+		sensors/beep.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc
