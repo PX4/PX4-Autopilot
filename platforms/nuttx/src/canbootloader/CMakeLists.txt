@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,30 +31,18 @@
 #
 ############################################################################
 
-set(SRCS)
+px4_add_library(canbootloader
+	arch/stm32/board_identity.c
+	arch/stm32/drivers/can/driver.c
+	common/boot_app_shared.c
+	fs/flash.c
+	protocol/uavcan.c
+	sched/timer.c
+	uavcan/main.c
+	util/crc.c
+	util/random.c
+)
 
-if (NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
-	list(APPEND SRCS
-		px4_log.cpp
-		)
-endif()
-
-add_library(px4_platform
-	board_identity.c
-	i2c.cpp
-	i2c_spi_buses.cpp
-	module.cpp
-	px4_getopt.c
-	px4_cli.cpp
-	shutdown.cpp
-	spi.cpp
-	${SRCS}
-	)
-add_dependencies(px4_platform prebuild_targets)
-
-if (NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2")
-	target_link_libraries(px4_platform PRIVATE modules__uORB) # px4_log awkward dependency with uORB, TODO: orb should part of the platform layer
-endif()
-
-add_subdirectory(px4_work_queue)
-add_subdirectory(work_queue)
+include_directories(include)
+target_include_directories(canbootloader INTERFACE include)
+target_compile_options(canbootloader PRIVATE -Wno-error)
