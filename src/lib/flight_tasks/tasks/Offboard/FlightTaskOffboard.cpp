@@ -66,6 +66,8 @@ bool FlightTaskOffboard::activate(vehicle_local_position_setpoint_s last_setpoin
 
 bool FlightTaskOffboard::update()
 {
+	FlightTask::update();
+
 	// reset setpoint for every loop
 	_resetSetpoints();
 
