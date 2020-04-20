@@ -48,7 +48,7 @@ bool FlightTaskDescend::activate(vehicle_local_position_setpoint_s last_setpoint
 
 bool FlightTaskDescend::update()
 {
-	FlightTask::update();
+	bool ret = FlightTask::update();
 
 	if (PX4_ISFINITE(_velocity(2))) {
 		// land with landspeed
@@ -61,5 +61,5 @@ bool FlightTaskDescend::update()
 		_acceleration_setpoint(2) = .3f;
 	}
 
-	return true;
+	return ret;
 }

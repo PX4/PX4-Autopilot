@@ -66,7 +66,7 @@ bool FlightTaskOffboard::activate(vehicle_local_position_setpoint_s last_setpoin
 
 bool FlightTaskOffboard::update()
 {
-	FlightTask::update();
+	bool ret = FlightTask::update();
 
 	// reset setpoint for every loop
 	_resetSetpoints();
@@ -106,7 +106,7 @@ bool FlightTaskOffboard::update()
 		}
 
 		// don't have to continue
-		return true;
+		return ret;
 
 	} else {
 		_position_lock.setAll(NAN);
@@ -124,7 +124,7 @@ bool FlightTaskOffboard::update()
 		}
 
 		// don't have to continue
-		return true;
+		return ret;
 
 	} else {
 		_position_lock.setAll(NAN);
@@ -144,7 +144,7 @@ bool FlightTaskOffboard::update()
 		}
 
 		// don't have to continue
-		return true;
+		return ret;
 
 	} else {
 		_position_lock.setAll(NAN);
@@ -155,7 +155,7 @@ bool FlightTaskOffboard::update()
 		_position_setpoint.setNaN(); // Don't require any position/velocity setpoints
 		_velocity_setpoint.setNaN();
 		_acceleration_setpoint = Vector3f(0.f, 0.f, 100.f); // High downwards acceleration to make sure there's no thrust
-		return true;
+		return ret;
 	}
 
 	// Possible inputs:
@@ -240,5 +240,5 @@ bool FlightTaskOffboard::update()
 	// use default conditions of upwards position or velocity to take off
 	_constraints.want_takeoff = _checkTakeoff();
 
-	return true;
+	return ret;
 }
