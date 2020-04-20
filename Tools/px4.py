@@ -63,16 +63,26 @@ def get_version():
     px4_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     if os.path.isdir(os.path.join(px4_dir, '.git')):
-        # Get the version using "git describe".
-        cmd = 'git describe --abbrev=0 --tags'.split()
+        # If inside a clone PX4 Firmware repository, get version from "git describe"
+        cmd = 'git describe --abbrev=0 --tags'
         try:
             version = subprocess.check_output(
-                cmd, cwd=px4_dir).decode().strip()
+                cmd, cwd=px4_dir, shell=True).decode().strip()
         except subprocess.CalledProcessError:
             print('Unable to get version number from git tags')
             exit(1)
+    else:
+        # Else, get it from remote repo tags (requires network access)
+        cmd = "git ls-remote --tags git://github.com/PX4/Firmware.git | cut -d/ -f3- | sort -n -t. -k1,1 -k2,2 -k3,3 | awk '/^v[^{]*$/{version=$1}END{print version}'"
 
-        return version
+        try:
+            version = subprocess.check_output(
+                cmd, cwd=px4_dir, shell=True).decode().strip()
+        except subprocess.CalledProcessError:
+            print('Unable to get version number from git remote tags')
+            exit(1)
+
+    return version
 
 
 # Detect python version
