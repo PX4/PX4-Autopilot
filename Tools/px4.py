@@ -34,6 +34,7 @@
 
 """
     Basic central executable for PX4 maintenance.
+    Used by PX4 Homebrew formulae - https://github.com/PX4/homebrew-px4.
 """
 
 # For python2.7 compatibility
