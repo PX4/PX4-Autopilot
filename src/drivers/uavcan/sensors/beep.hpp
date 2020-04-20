@@ -42,8 +42,7 @@
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/indication/BeepCommand.hpp>
-#include <perf/perf_counter.h>
-#include <lib/led/led.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/tune_control.h>
 #include <lib/tunes/tunes.h>
 
