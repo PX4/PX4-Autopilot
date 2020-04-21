@@ -342,7 +342,13 @@ void RTL::set_rtl_item()
 		}
 
 	case RTL_STATE_DESCEND: {
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+
+			} else {
+				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			}
+
 			_mission_item.lat = _destination.lat;
 			_mission_item.lon = _destination.lon;
 			_mission_item.altitude = loiter_altitude;
