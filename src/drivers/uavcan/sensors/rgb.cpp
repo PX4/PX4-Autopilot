@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,6 @@ UavcanUavcanRgb::UavcanUavcanRgb(uavcan::INode &node) :
 	_rgb_pub(node),
 	_timer(node)
 {
-
 }
 
 int
@@ -85,7 +84,7 @@ UavcanUavcanRgb::periodic_update(const uavcan::TimerEvent &)
 			_r = 0; _g = 0; _b = 255;
 			break;
 
-		case led_control_s::COLOR_AMBER: //make it the same as yellow
+		case led_control_s::COLOR_AMBER: // make it the same as yellow
 		case led_control_s::COLOR_YELLOW:
 			_r = 255; _g = 255; _b = 0;
 			break;
