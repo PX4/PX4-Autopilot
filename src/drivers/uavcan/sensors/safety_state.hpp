@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
  * @file safety_state.hpp
  *
  * @author CUAVcaijie <caijie@cuav.net>
+ *
+ * @brief According to actuator_armed to control the CAN SafetyState led
  */
 
 #pragma once
@@ -44,9 +46,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 
-/**
- * @brief The UavcanUavcanSafetyState class
- */
 
 class UavcanUavcanSafetyState
 {
@@ -54,27 +53,30 @@ public:
 	UavcanUavcanSafetyState(uavcan::INode &node);
 
 	/*
-	* setup periodic updater
-	*/
+	 * setup periodic updater
+	 */
 	int init();
 
 private:
 	/*
 	 * Max update rate to avoid exessive bus traffic
 	 */
-	static constexpr unsigned			MAX_RATE_HZ = 10;
+	static constexpr unsigned MAX_RATE_HZ = 10;
 
+	/*
+	 * Setup timer and call back function for periodic updates
+	 */
 	void periodic_update(const uavcan::TimerEvent &);
 
 	typedef uavcan::MethodBinder<UavcanUavcanSafetyState *, void (UavcanUavcanSafetyState::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
 	/*
-	 * libuavcan related things
+	 * Publish CAN Safety state led
 	 */
 	uavcan::Publisher<com::hex::equipment::indication::SafetyStateCommand> _safety_state_pub;
 
-	uavcan::TimerEventForwarder<TimerCbBinder>			_timer;
+	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	actuator_armed_s _actuator_armed{};
