@@ -34,8 +34,8 @@
 /**
  * @file init.c
  *
- * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * Board-specific early startup code.  This file implements the
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.
@@ -65,13 +65,12 @@
 #include <arch/board/board.h>
 #include "up_internal.h"
 
+#include <px4_arch/io_timer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
-#include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
-#include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
 
 # if defined(FLASH_BASED_PARAMS)
@@ -96,7 +95,6 @@ extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
-
 
 /************************************************************************************
  * Name: board_peripheral_reset
@@ -242,9 +240,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 		return ret;
 	}
+#endif
 
-#endif /* CONFIG_MMCSD */
-
+	up_udelay(20);
 
 	/* W25128 external flash memory:
 	 * 0x90000000 - 0x90200000 -> 2MB for PX4 firmware

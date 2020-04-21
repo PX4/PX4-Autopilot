@@ -67,50 +67,6 @@
 #define BOARD_ARMED_STATE_LED  LED_RED
 #define BOARD_OVERLOAD_LED     LED_RED
 
-/*  Define the Chip Selects, Data Ready and Control signals per SPI bus */
-
-/* SPI2. */
-#if 0 //Some problem here. Gyro return 0x1B instead 0x12 for whoami
-#define PX4_SPI_BUS_SENSORS		2
-#define PX4_SPIDEV_ICM_20602			PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0)
-#endif
-#define GPIO_SPI2_CS_GYRO_ICM20602_2	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN12)
-#define PX4_SENSORS1_BUS_CS_GPIO		{GPIO_SPI2_CS_GYRO_ICM20602_2}
-#define GPIO_SPI2_DRDY1_ICM20602		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTE|GPIO_PIN15)
-
-
-/* SPI3. */
-#define PX4_SPI_BUS_SENSORS1	3
-#define PX4_SPIDEV_ICM_20602			PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS1, 0)
-#define GPIO_SPI3_CS_GYRO_ICM20602_1	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN15)
-#define PX4_SENSORS2_BUS_CS_GPIO		{GPIO_SPI3_CS_GYRO_ICM20602_1}
-#define GPIO_SPI3_DRDY1_ICM20602		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN4)
-
-/* SPI4. */
-#define PX4_SPI_BUS_OSD			4
-#define GPIO_SPI4_CS_OSD_MAX7456		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN11)
-#define PX4_OSD_BUS_CS_GPIO				{GPIO_SPI4_CS_OSD_MAX7456}
-#define PX4_SPIDEV_OSD			1
-/*
- *  Define the ability to shut off off the sensor signals
- *  by changing the signals to inputs
- */
-
-#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
-
-
-
-/* I2C busses */
-
-#define PX4_I2C_BUS_ONBOARD         1
-#define PX4_I2C_BUS_EXPANSION       2
-#define PX4_I2C_BUS_LED             PX4_I2C_BUS_EXPANSION
-
-#define BOARD_NUMBER_I2C_BUSES      2
-#define BOARD_I2C_BUS_CLOCK_INIT    {100000, 100000}
-
-#define PX4_I2C_OBDEV_BMP388		0x76
-
 /*
  * ADC channels
  *
@@ -218,8 +174,6 @@ int stm32_sdio_initialize(void);
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-void board_spi_reset(int ms);
 
 extern void stm32_usbinitialize(void);
 

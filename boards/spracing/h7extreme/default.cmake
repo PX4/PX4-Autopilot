@@ -7,10 +7,6 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	#BUILD_BOOTLOADER
-	#IO px4_io-v2_default
-#	TESTING
-#	UAVCAN_INTERFACES 2  - No H7 or FD can support in UAVCAN
 	SERIAL_PORTS
 #		GPS1:/dev/ttyS0
 		RC:/dev/ttyS1
@@ -35,12 +31,12 @@ px4_add_board(
 		imu/mpu6000
 		#imu/mpu9250
 		#irlock
-		#lights/blinkm
-		#lights/rgbled
-		#lights/rgbled_ncp5623c
-		#magnetometer # all available magnetometer drivers
+		lights/blinkm
+		lights/rgbled
+		lights/rgbled_ncp5623c
+		magnetometer # all available magnetometer drivers
 		#mkblctrl
-		#optical_flow # all available optical flow drivers
+		optical_flow # all available optical flow drivers
 		osd
 		#pca9685
 		#power_monitor/ina226
@@ -48,7 +44,7 @@ px4_add_board(
 #		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
 #					   all arch dependant code there
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		#roboclaw
 		#tap_esc
 		rc_input
@@ -74,6 +70,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		navigator
@@ -81,12 +78,11 @@ px4_add_board(
 		#rover_pos_control
 		sensors
 		#sih
-		#temperature_compensation
-		#vmount
+		temperature_compensation
+		vmount
 		#vtol_att_control
 	SYSTEMCMDS
 		#bl_update
-		config
 		dmesg
 		dumpfile
 		esc_calib
