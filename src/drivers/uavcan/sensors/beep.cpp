@@ -46,8 +46,7 @@ UavcanBeep::UavcanBeep(uavcan::INode &node) :
 {
 }
 
-int
-UavcanBeep::init()
+int UavcanBeep::init()
 {
 	/*
 	 * Setup timer and call back function for periodic updates
@@ -61,8 +60,7 @@ UavcanBeep::init()
 	return 0;
 }
 
-void
-UavcanBeep::periodic_update(const uavcan::TimerEvent &)
+void UavcanBeep::periodic_update(const uavcan::TimerEvent &)
 {
 	if (_tune_control_sub.updated()) {
 		_tune_control_sub.copy(&_tune);
