@@ -954,12 +954,7 @@ void VotedSensorsUpdate::update_mag_comp_armed(bool armed)
 	_mag_compensator.update_armed_flag(armed);
 }
 
-void VotedSensorsUpdate::update_mag_comp_throttle(float throttle)
+void VotedSensorsUpdate::update_mag_comp_power(float power)
 {
-	_mag_compensator.update_throttle(throttle);
-}
-
-void VotedSensorsUpdate::update_mag_comp_current(float current)
-{
-	_mag_compensator.update_current(current);
+	_mag_compensator.update_power(power);
 }
