@@ -45,8 +45,7 @@ UavcanSafetyState::UavcanSafetyState(uavcan::INode &node) :
 {
 }
 
-int
-UavcanSafetyState::init()
+int UavcanSafetyState::init()
 {
 	/*
 	 * Setup timer and call back function for periodic updates
@@ -59,8 +58,7 @@ UavcanSafetyState::init()
 	return 0;
 }
 
-void
-UavcanSafetyState::periodic_update(const uavcan::TimerEvent &)
+void UavcanSafetyState::periodic_update(const uavcan::TimerEvent &)
 {
 	if (_actuator_armed_sub.updated()) {
 		_actuator_armed_sub.copy(&_actuator_armed);
