@@ -61,7 +61,7 @@ private:
 	/*
 	 * Max update rate to avoid exessive bus traffic
 	 */
-	static constexpr unsigned MAX_RATE_HZ = 100;
+	static constexpr unsigned MAX_RATE_HZ = 20;
 
 	/*
 	 * Setup timer and call back function for periodic updates
