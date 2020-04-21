@@ -201,7 +201,7 @@ private:
 	UavcanEscController		_esc_controller;
 	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
 	UavcanHardpointController	_hardpoint_controller;
-	UavcanUavcanSafetyState         _safety_state_controller;
+	UavcanSafetyState         	_safety_state_controller;
 	uavcan::GlobalTimeSyncMaster	_time_sync_master;
 	uavcan::GlobalTimeSyncSlave	_time_sync_slave;
 	uavcan::NodeStatusMonitor	_node_status_monitor;

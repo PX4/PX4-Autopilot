@@ -47,10 +47,10 @@
 #include <uORB/topics/actuator_armed.h>
 
 
-class UavcanUavcanSafetyState
+class UavcanSafetyState
 {
 public:
-	UavcanUavcanSafetyState(uavcan::INode &node);
+	UavcanSafetyState(uavcan::INode &node);
 
 	/*
 	 * setup periodic updater
@@ -68,7 +68,7 @@ private:
 	 */
 	void periodic_update(const uavcan::TimerEvent &);
 
-	typedef uavcan::MethodBinder<UavcanUavcanSafetyState *, void (UavcanUavcanSafetyState::*)(const uavcan::TimerEvent &)>
+	typedef uavcan::MethodBinder<UavcanSafetyState *, void (UavcanSafetyState::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
 	/*

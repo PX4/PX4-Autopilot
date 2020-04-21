@@ -39,20 +39,20 @@
 
 #include "safety_state.hpp"
 
-UavcanUavcanSafetyState::UavcanUavcanSafetyState(uavcan::INode &node) :
+UavcanSafetyState::UavcanSafetyState(uavcan::INode &node) :
 	_safety_state_pub(node),
 	_timer(node)
 {
 }
 
 int
-UavcanUavcanSafetyState::init()
+UavcanSafetyState::init()
 {
 	/*
 	 * Setup timer and call back function for periodic updates
 	 */
 	if (!_timer.isRunning()) {
-		_timer.setCallback(TimerCbBinder(this, &UavcanUavcanSafetyState::periodic_update));
+		_timer.setCallback(TimerCbBinder(this, &UavcanSafetyState::periodic_update));
 		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
 
@@ -60,7 +60,7 @@ UavcanUavcanSafetyState::init()
 }
 
 void
-UavcanUavcanSafetyState::periodic_update(const uavcan::TimerEvent &)
+UavcanSafetyState::periodic_update(const uavcan::TimerEvent &)
 {
 	if (_actuator_armed_sub.updated()) {
 		_actuator_armed_sub.copy(&_actuator_armed);
