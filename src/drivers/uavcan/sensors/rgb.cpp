@@ -47,8 +47,7 @@ UavcanRgb::UavcanRgb(uavcan::INode &node) :
 {
 }
 
-int
-UavcanRgb::init()
+int UavcanRgb::init()
 {
 	/*
 	 * Setup timer and call back function for periodic updates
@@ -61,8 +60,7 @@ UavcanRgb::init()
 	return 0;
 }
 
-void
-UavcanRgb::periodic_update(const uavcan::TimerEvent &)
+void UavcanRgb::periodic_update(const uavcan::TimerEvent &)
 {
 	LedControlData led_control_data;
 
