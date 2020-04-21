@@ -41,20 +41,20 @@
 #include <systemlib/err.h>
 
 
-UavcanUavcanRgb::UavcanUavcanRgb(uavcan::INode &node) :
+UavcanRgb::UavcanRgb(uavcan::INode &node) :
 	_rgb_pub(node),
 	_timer(node)
 {
 }
 
 int
-UavcanUavcanRgb::init()
+UavcanRgb::init()
 {
 	/*
 	 * Setup timer and call back function for periodic updates
 	 */
 	if (!_timer.isRunning()) {
-		_timer.setCallback(TimerCbBinder(this, &UavcanUavcanRgb::periodic_update));
+		_timer.setCallback(TimerCbBinder(this, &UavcanRgb::periodic_update));
 		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
 
@@ -62,7 +62,7 @@ UavcanUavcanRgb::init()
 }
 
 void
-UavcanUavcanRgb::periodic_update(const uavcan::TimerEvent &)
+UavcanRgb::periodic_update(const uavcan::TimerEvent &)
 {
 	LedControlData led_control_data;
 

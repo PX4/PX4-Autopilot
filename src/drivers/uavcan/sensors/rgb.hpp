@@ -47,10 +47,10 @@
 #include <lib/led/led.h>
 
 
-class UavcanUavcanRgb
+class UavcanRgb
 {
 public:
-	UavcanUavcanRgb(uavcan::INode &node);
+	UavcanRgb(uavcan::INode &node);
 
 	/*
 	 * setup periodic updater
@@ -68,7 +68,7 @@ private:
 	 */
 	void periodic_update(const uavcan::TimerEvent &);
 
-	typedef uavcan::MethodBinder<UavcanUavcanRgb *, void (UavcanUavcanRgb::*)(const uavcan::TimerEvent &)>
+	typedef uavcan::MethodBinder<UavcanRgb *, void (UavcanRgb::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 	LedController _led_controller;
 
