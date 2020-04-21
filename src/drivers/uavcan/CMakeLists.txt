@@ -127,10 +127,10 @@ px4_add_module(
 		sensors/differential_pressure.cpp
 		sensors/baro.cpp
 		sensors/battery.cpp
+		sensors/beep.cpp
 		sensors/flow.cpp
 		sensors/gnss.cpp
 		sensors/mag.cpp
-		sensors/beep.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc
