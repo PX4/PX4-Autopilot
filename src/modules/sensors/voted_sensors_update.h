@@ -142,14 +142,10 @@ public:
 	void update_mag_comp_armed(bool armed);
 
 	/**
-	 * Update throttle for mag compensation.
+	 * Update power signal for mag compensation.
+	 * power: either throttle value [0,1] or current measurement in [kA]
 	 */
-	void update_mag_comp_throttle(float throttle);
-
-	/**
-	 * Update current for mag compensation.
-	 */
-	void update_mag_comp_current(float current);
+	void update_mag_comp_power(float power);
 
 private:
 
