@@ -50,10 +50,10 @@
 #include <lib/tunes/tunes.h>
 
 
-class UavcanUavcanBeep
+class UavcanBeep
 {
 public:
-	UavcanUavcanBeep(uavcan::INode &node);
+	UavcanBeep(uavcan::INode &node);
 
 	/*
 	* setup periodic updater
@@ -71,7 +71,7 @@ private:
 	 */
 	void periodic_update(const uavcan::TimerEvent &);
 
-	typedef uavcan::MethodBinder<UavcanUavcanBeep *, void (UavcanUavcanBeep::*)(const uavcan::TimerEvent &)>
+	typedef uavcan::MethodBinder<UavcanBeep *, void (UavcanBeep::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
 	/*

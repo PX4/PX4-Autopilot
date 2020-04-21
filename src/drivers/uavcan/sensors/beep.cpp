@@ -40,21 +40,21 @@
 
 #include "beep.hpp"
 
-UavcanUavcanBeep::UavcanUavcanBeep(uavcan::INode &node) :
+UavcanBeep::UavcanBeep(uavcan::INode &node) :
 	_beep_pub(node),
 	_timer(node)
 {
 }
 
 int
-UavcanUavcanBeep::init()
+UavcanBeep::init()
 {
 	/*
 	 * Setup timer and call back function for periodic updates
 	 */
 
 	if (!_timer.isRunning()) {
-		_timer.setCallback(TimerCbBinder(this, &UavcanUavcanBeep::periodic_update));
+		_timer.setCallback(TimerCbBinder(this, &UavcanBeep::periodic_update));
 		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
 
@@ -62,7 +62,7 @@ UavcanUavcanBeep::init()
 }
 
 void
-UavcanUavcanBeep::periodic_update(const uavcan::TimerEvent &)
+UavcanBeep::periodic_update(const uavcan::TimerEvent &)
 {
 	if (_tune_control_sub.updated()) {
 		_tune_control_sub.copy(&_tune);
