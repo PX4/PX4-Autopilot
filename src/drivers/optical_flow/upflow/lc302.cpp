@@ -39,23 +39,22 @@
 
 
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_workqueue.h>
-#include <px4_module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/px4_workqueue.h>
+#include <px4_platform_common/px4_module.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <math.h>
 #include <arch/board/board.h>
-#include <math.h>
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/optical_flow.h>
