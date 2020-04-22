@@ -122,7 +122,7 @@ public:
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
 	const ekf_reset_counters_s getResetCounters() const { return _reset_counters; }
-	void setResetCounters(ekf_reset_counters_s counters) { _reset_counters = counters; }
+	void setResetCounters(const ekf_reset_counters_s &counters) { _reset_counters = counters; }
 
 	/**
 	 * Get vehicle constraints.

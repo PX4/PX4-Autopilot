@@ -74,8 +74,8 @@ FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index)
 	}
 
 	// Save current setpoints for the next FlightTask
-	vehicle_local_position_setpoint_s last_setpoint = getPositionSetpoint();
-	ekf_reset_counters_s last_reset_counters = getResetCounters();
+	const vehicle_local_position_setpoint_s last_setpoint = getPositionSetpoint();
+	const ekf_reset_counters_s last_reset_counters = getResetCounters();
 
 	if (_initTask(new_task_index)) {
 		// invalid task

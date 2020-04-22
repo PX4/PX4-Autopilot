@@ -82,7 +82,7 @@ public:
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
 	/**
-	 * Get the reset counters from the current task
+	 * Get the local frame and attitude reset counters of the estimator from the current task
 	 * @return the reset counters
 	 */
 	const ekf_reset_counters_s getResetCounters();
