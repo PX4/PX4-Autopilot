@@ -118,8 +118,15 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.useHoverThrustEstimate, &use_hover_thrust_estimate);
 	_params.useHoverThrustEstimate = (use_hover_thrust_estimate == 1);
 
-	if (!_params.useHoverThrustEstimate) {
+	if (!_params.useHoverThrustEstimate || !_hover_thrust_initialized) {
 		param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
+
+		// HTE runs based on the position controller so, even if we wish to use
+		// the estimate, it is only available in altitude and position modes.
+		// Therefore, we need to always initialize the hoverThrottle using the hover
+		// thrust parameter in case we fly in stabilized
+		// TODO: this can be removed once HTE runs in all modes
+		_hover_thrust_initialized = true;
 	}
 }
 
