@@ -95,7 +95,7 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  4
+#define DIRECT_PWM_OUTPUT_CHANNELS  8
 #define DIRECT_INPUT_TIMER_CHANNELS 4
 
 /* Tone alarm output */
@@ -137,7 +137,7 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
-#define BOARD_NUM_IO_TIMERS 3
+#define BOARD_NUM_IO_TIMERS 2
 
 __BEGIN_DECLS
 
