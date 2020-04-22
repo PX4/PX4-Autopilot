@@ -422,6 +422,13 @@ bool VtolType::is_channel_set(const int channel, const int target)
 
 float VtolType::pusher_assist()
 {
+	// Altitude above ground is distance sensor altitude if available, otherwise local z-position
+	float dist_to_ground = -_local_pos->z;
+
+	if (_local_pos->dist_bottom_valid) {
+		dist_to_ground = _local_pos->dist_bottom;
+	}
+
 	// disable pusher assist depending on setting of forward_thrust_enable_mode:
 	switch (_params->vt_forward_thrust_enable_mode) {
 	case DISABLE: // disable in all modes
@@ -437,15 +444,15 @@ float VtolType::pusher_assist()
 
 		break;
 
-	case ENABLE_FROM_MPC_LAND_ALT1: // disable if below MPC_LAND_ALT1
-		if (-(_local_pos->z) < _params->mpc_land_alt1) {
+	case ENABLE_ABOVE_MPC_LAND_ALT1: // disable if below MPC_LAND_ALT1
+		if (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt1)) {
 			return 0.0f;
 		}
 
 		break;
 
-	case ENABLE_FROM_MPC_LAND_ALT2: // disable if below MPC_LAND_ALT2
-		if (-(_local_pos->z) < _params->mpc_land_alt2) {
+	case ENABLE_ABOVE_MPC_LAND_ALT2: // disable if below MPC_LAND_ALT2
+		if (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt2)) {
 			return 0.0f;
 		}
 
