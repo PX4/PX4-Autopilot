@@ -166,7 +166,7 @@ $ upflow_lc302 stop
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("upflow_lc302", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("flow_sensor");
+	PRINT_MODULE_USAGE_SUBCATEGORY("optical_flow");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
