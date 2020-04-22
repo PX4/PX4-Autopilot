@@ -42,7 +42,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/px4_work_queue/px4_workqueue.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/px4_module.h>
 
 #include <stdlib.h>
