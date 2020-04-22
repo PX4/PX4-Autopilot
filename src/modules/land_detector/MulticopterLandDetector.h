@@ -129,6 +129,8 @@ private:
 	vehicle_control_mode_s            _vehicle_control_mode {};
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
 
+	bool _hover_thrust_initialized{false};
+
 	hrt_abstime _min_trust_start{0};	///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
 
