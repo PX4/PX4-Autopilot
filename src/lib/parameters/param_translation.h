@@ -36,4 +36,3 @@
 #include "tinybson/tinybson.h"
 
 __EXPORT bool param_modify_on_import(bson_node_t node);
-

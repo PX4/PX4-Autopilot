@@ -49,6 +49,8 @@ bool FlightTaskFailsafe::activate(vehicle_local_position_setpoint_s last_setpoin
 
 bool FlightTaskFailsafe::update()
 {
+	bool ret = FlightTask::update();
+
 	if (PX4_ISFINITE(_position(0)) && PX4_ISFINITE(_position(1))) {
 		// stay at current position setpoint
 		_velocity_setpoint(0) = _velocity_setpoint(1) = 0.f;
@@ -72,5 +74,5 @@ bool FlightTaskFailsafe::update()
 		_acceleration_setpoint(2) = NAN;
 	}
 
-	return true;
+	return ret;
 }

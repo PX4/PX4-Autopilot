@@ -109,7 +109,7 @@ public:
 
 	/**
 	 * Set the maximum tilt angle in radians the output attitude is allowed to have
-	 * @param tilt angle from level orientation in radians
+	 * @param tilt angle in radians from level orientation
 	 */
 	void setTiltLimit(const float tilt) { _lim_tilt = tilt; }
 

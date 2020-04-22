@@ -231,12 +231,6 @@
 #define BMI160_GYRO_MAX_RATE                3200
 #define BMI160_GYRO_MAX_PUBLISH_RATE        BMI160_ACCEL_MAX_PUBLISH_RATE
 
-#define BMI160_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ	324
-#define BMI160_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	50
-
-#define BMI160_GYRO_DEFAULT_ONCHIP_FILTER_FREQ	254.6f
-#define BMI160_GYRO_DEFAULT_DRIVER_FILTER_FREQ	50
-
 #define BMI160_BUS_SPEED				10*1000*1000
 
 #define BMI160_TIMER_REDUCTION				200
@@ -253,23 +247,12 @@ public:
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
 	static void print_usage();
-
 	int		init() override;
-
-	void			print_status() override;
-
-	void			print_registers();
-
-	// deliberately cause a sensor error
-	void 			test_error();
-
-	void			RunImpl();
-
-protected:
-	int		probe() override;
-	void custom_method(const BusCLIArguments &cli) override;
+	void		print_status() override;
+	void		RunImpl();
 
 private:
+	int		probe() override;
 
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
@@ -324,8 +307,7 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg);
-	uint16_t		read_reg16(unsigned reg);
+	uint8_t			read_reg(uint8_t reg);
 
 	/**
 	 * Write a register in the BMI160
@@ -333,7 +315,7 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	void			write_reg(unsigned reg, uint8_t value);
+	void			write_reg(uint8_t reg, uint8_t value);
 
 	/**
 	 * Modify a register in the BMI160
@@ -344,7 +326,7 @@ private:
 	 * @param clearbits	Bits in the register to clear.
 	 * @param setbits	Bits in the register to set.
 	 */
-	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
+	void			modify_reg(uint8_t reg, uint8_t clearbits, uint8_t setbits);
 
 	/**
 	 * Write a register in the BMI160, updating _checked_values
@@ -352,7 +334,7 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	void			write_checked_reg(unsigned reg, uint8_t value);
+	void			write_checked_reg(uint8_t reg, uint8_t value);
 
 	/**
 	 * Set the BMI160 measurement range.
@@ -364,16 +346,6 @@ private:
 	int			set_accel_range(unsigned max_g);
 	int			set_gyro_range(unsigned max_dps);
 
-	/**
-	 * Swap a 16-bit value read from the BMI160 to native byte order.
-	 */
-	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
-
-	/*
-	  set low pass filter frequency
-	 */
-	void _set_dlpf_filter(uint16_t frequency_hz);
-
 	/*
 	  set sample rate (approximate) - 10 - 952 Hz
 	*/
@@ -382,11 +354,7 @@ private:
 	/*
 	  check that key registers still have the right value
 	 */
-	void check_registers(void);
-
-	/* do not allow to copy this class due to pointer data members */
-	BMI160(const BMI160 &);
-	BMI160 operator=(const BMI160 &);
+	void check_registers();
 
 #pragma pack(push, 1)
 	/**

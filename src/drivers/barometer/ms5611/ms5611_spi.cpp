@@ -259,4 +259,3 @@ MS5611_SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
 	return transfer(send, recv, len);
 }
-

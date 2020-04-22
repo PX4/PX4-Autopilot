@@ -145,7 +145,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			if (diff_pres.error_count != 0) {
 				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu64 ")",
 							 diff_pres.error_count);
-				calibration_log_critical(mavlink_log_pub, "[cal] Check your wiring before trying again");
+				calibration_log_critical(mavlink_log_pub, "[cal] Check wiring, reboot vehicle, and try again");
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
 			}

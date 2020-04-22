@@ -162,7 +162,7 @@ bool FlightTaskOrbit::activate(vehicle_local_position_setpoint_s last_setpoint)
 bool FlightTaskOrbit::update()
 {
 	// update altitude
-	FlightTaskManualAltitudeSmooth::update();
+	bool ret = FlightTaskManualAltitudeSmooth::update();
 
 	// stick input adjusts parameters within a fixed time frame
 	const float r = _r - _sticks_expo(0) * _deltatime * (_radius_max / 8.f);
@@ -186,7 +186,7 @@ bool FlightTaskOrbit::update()
 	// publish information to UI
 	sendTelemetry();
 
-	return true;
+	return ret;
 }
 
 void FlightTaskOrbit::generate_circle_approach_setpoints()

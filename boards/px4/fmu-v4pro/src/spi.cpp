@@ -53,4 +53,3 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIConfigExternal(SPI::CS{GPIO::PortG, GPIO::Pin11}),
 	}),
 };
-

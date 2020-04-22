@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE systemcmds__config
-	MAIN config
-	STACK_MAIN 4096
-	COMPILE_FLAGS
-	SRCS
-		config.c
-	DEPENDS
-	)
 
+px4_add_library(canbootloader
+	arch/stm32/board_identity.c
+	arch/stm32/drivers/can/driver.c
+	common/boot_app_shared.c
+	fs/flash.c
+	protocol/uavcan.c
+	sched/timer.c
+	uavcan/main.c
+	util/crc.c
+	util/random.c
+)
+
+include_directories(include)
+target_include_directories(canbootloader INTERFACE include)
+target_compile_options(canbootloader PRIVATE -Wno-error)

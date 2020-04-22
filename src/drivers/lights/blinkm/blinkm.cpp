@@ -255,7 +255,7 @@ extern "C" __EXPORT int blinkm_main(int argc, char *argv[]);
 
 BlinkM::BlinkM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
 	I2C(DRV_LED_DEVTYPE_BLINKM, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
 	led_color_1(LED_OFF),
 	led_color_2(LED_OFF),
 	led_color_3(LED_OFF),
