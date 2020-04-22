@@ -87,14 +87,11 @@
 struct __attribute__((__packed__)) reading_msg {
 	uint8_t head_first;		// The beginning of the packet (fixed value 0xFE)
 	uint8_t head_second;		// Number of packet bytes (fixed value 0x0A)
-	int16_t flow_x_integral;	// Accumulated displacement during the accumulation of X pixels, (radians*10000),
-					// [The actual displacement(mm) is divided by 10000, and then multiplies the height(mm)]
-	int16_t flow_y_integral; 	// Accumulated displacement during the accumulation of Y pixels, (radians*10000),
-					// [The actual displacement(mm) is divided by 10000, and then multiplies the height(mm)]
+	int16_t flow_x_integral;	// Accumulated displacement during the accumulation of X pixels, (radians*10000) [The actual displacement(mm) is divided by 10000, and then multiplies the height(mm)]
+	int16_t flow_y_integral; 	// Accumulated displacement during the accumulation of Y pixels, (radians*10000) [The actual displacement(mm) is divided by 10000, and then multiplies the height(mm)]
 	uint16_t integration_timespan;  // The accumulative time (us) from the last transmission of optical data to the current transmission of optical data.
 	uint16_t ground_distance;	// Reserved. Default value is 999(0x03E7)
-	uint8_t valid;			// State value: 0 (0x00), optical-flow data is invalid;
-					// 245 (0xF5), is optical-flow data is valid.
+	uint8_t valid;			// State value: 0 (0x00), optical-flow data is invalid; 245 (0xF5) is optical-flow data is valid.
 	uint8_t version; 		// Version of the optical-flow module
 	uint8_t crc_xor;		// Check value (Byte 3~12 Bytes XOR)
 	uint8_t tail;			// Ending packet identifier (fixed value 0x55)
@@ -140,7 +137,7 @@ private:
 	perf_counter_t _comm_error;
 	perf_counter_t _sample_perf;
 
-	optical_flow_s _report={};
+	optical_flow_s _report = {};
 	//struct reading_msg _report_msg={};
 	int _fd_open();
 	bool _request();
