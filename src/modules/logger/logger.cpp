@@ -486,7 +486,21 @@ bool Logger::initialize_topics()
 		}
 	}
 
-	if (!logged_topics.initialize_logged_topics(sdlog_profile)) {
+	if (logged_topics.initialize_logged_topics(sdlog_profile)) {
+
+		// if no polling configured then use sensor_combined if Estimator Replay profile is enabled
+		if (!_polling_topic_meta && (sdlog_profile & SDLogProfileMask::ESTIMATOR_REPLAY)) {
+			const auto &topics = orb_get_topics();
+
+			for (size_t i = 0; i < orb_topics_count(); i++) {
+				if (strcmp("sensor_combined", topics[i]->o_name) == 0) {
+					_polling_topic_meta = topics[i];
+					break;
+				}
+			}
+		}
+
+	} else {
 		return false;
 	}
 
@@ -503,8 +517,14 @@ bool Logger::initialize_topics()
 
 		for (int i = 0; i < logged_topics.subscriptions().count; ++i) {
 			const LoggedTopics::RequestedSubscription &sub = logged_topics.subscriptions().sub[i];
-			// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
-			uint16_t interval_ms = _polling_topic_meta ? 0 : sub.interval_ms;
+
+			uint16_t interval_ms = sub.interval_ms;
+
+			if (_polling_topic_meta && (get_orb_meta(sub.id) ==  _polling_topic_meta)) {
+				// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
+				interval_ms = 0;
+			}
+
 			_subscriptions[i] = LoggerSubscription(sub.id, interval_ms, sub.instance);
 			_subscriptions[i].subscribe();
 		}
