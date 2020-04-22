@@ -206,6 +206,7 @@ private:
 		param_t dec_to_pitch_ff;
 		param_t dec_to_pitch_i;
 		param_t back_trans_dec_sp;
+		param_t vt_mc_on_fmu;
 	} _params_handles{};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
