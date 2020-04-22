@@ -31,13 +31,11 @@
  *
  ****************************************************************************/
 
-
-
-
-
-
-
-
+/**
+ * @author Stone White <stone@thone.io>
+ *
+ * Driver for the Upixels UPFLOW LC302 optical flow sensor
+ */
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
