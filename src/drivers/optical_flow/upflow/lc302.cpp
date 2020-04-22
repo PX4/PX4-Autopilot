@@ -41,7 +41,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/px4_workqueue.h>
 #include <px4_platform_common/px4_module.h>
 
@@ -62,8 +62,8 @@
 #include <board_config.h>
 
 
-#define upflow_MAX_DISTANCE 5.01f
-#define upflow_MIN_DISTANCE 0.0f
+#define UPFLOW_MAX_DISTANCE 5.01f
+#define UPFLOW_MIN_DISTANCE 0.0f
 
 #define NAME "upflow_lc302"
 #define DEVICE_PATH "/dev/" NAME
