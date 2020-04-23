@@ -195,6 +195,8 @@ UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::E
 int
 UavcanNode::save_params(int remote_node_id)
 {
+	pthread_mutex_lock(&_node_mutex);
+
 	uavcan::protocol::param::ExecuteOpcode::Request opcode_req;
 	opcode_req.opcode = opcode_req.OPCODE_SAVE;
 	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> client(_node);
@@ -204,14 +206,19 @@ UavcanNode::save_params(int remote_node_id)
 
 	if (call_res >= 0) {
 		while (client.hasPendingCalls()) {
+			pthread_mutex_unlock(&_node_mutex);
 			usleep(10000);
+			pthread_mutex_lock(&_node_mutex);
 		}
 	}
 
 	if (!_callback_success) {
 		std::printf("Failed to save parameters: %d\n", call_res);
+		pthread_mutex_unlock(&_node_mutex);
 		return -1;
 	}
+
+	pthread_mutex_unlock(&_node_mutex);
 
 	return 0;
 }
@@ -290,6 +297,8 @@ UavcanNode::cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::G
 int
 UavcanNode::get_set_param(int remote_node_id, const char *name, uavcan::protocol::param::GetSet::Request &req)
 {
+	pthread_mutex_lock(&_node_mutex);
+
 	if (name != nullptr) {
 		req.name = name;
 	}
@@ -300,15 +309,18 @@ UavcanNode::get_set_param(int remote_node_id, const char *name, uavcan::protocol
 	int call_res = client.call(remote_node_id, req);
 
 	if (call_res >= 0) {
-
 		while (client.hasPendingCalls()) {
+			pthread_mutex_unlock(&_node_mutex);
 			usleep(10000);
+			pthread_mutex_lock(&_node_mutex);
 		}
 
 		if (!_callback_success) {
 			call_res = -1;
 		}
 	}
+
+	pthread_mutex_lock(&_node_mutex);
 
 	return call_res;
 }
