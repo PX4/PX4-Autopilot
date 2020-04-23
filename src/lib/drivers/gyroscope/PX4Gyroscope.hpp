@@ -100,7 +100,7 @@ private:
 
 	hrt_abstime	_status_last_publish{0};
 
-	Integrator		_integrator{4000, true};
+	Integrator		_integrator{2500, true};
 
 	matrix::Vector3f	_calibration_offset{0.f, 0.f, 0.f};
 

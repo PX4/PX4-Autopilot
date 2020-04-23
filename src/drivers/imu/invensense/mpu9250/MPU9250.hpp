@@ -167,7 +167,7 @@ private:
 
 	STATE _state{STATE::RESET};
 
-	uint16_t _fifo_empty_interval_us{1000}; // default 1000 us / 1000 Hz transfer interval
+	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
 	uint8_t _fifo_gyro_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 	uint8_t _fifo_accel_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / ACCEL_RATE))};
 
