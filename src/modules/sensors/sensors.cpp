@@ -199,7 +199,7 @@ private:
 
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_voted_sensors_update(_parameters, hil_enabled)

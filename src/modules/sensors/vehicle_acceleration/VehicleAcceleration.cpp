@@ -43,7 +43,7 @@ namespace sensors
 
 VehicleAcceleration::VehicleAcceleration() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_corrections(this, SensorCorrections::SensorType::Accelerometer)
 {
 	_lp_filter.set_cutoff_frequency(kInitialRateHz, _param_imu_accel_cutoff.get());
