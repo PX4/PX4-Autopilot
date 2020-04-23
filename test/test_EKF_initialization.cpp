@@ -49,7 +49,7 @@ class EkfInitializationTest : public ::testing::Test {
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
-	const float _init_tilt_period = 0.5; // seconds
+	const float _init_tilt_period = 1.0; // seconds
 
 	// GTests is calling this
 	void SetUp() override
@@ -155,7 +155,10 @@ TEST_F(EkfInitializationTest, initializeWithTilt)
 
 TEST_F(EkfInitializationTest, initializeWithPitch90)
 {
-	const Quatf quat_sim(0.0f, 0.7071068f, 0.0f, 0.7071068f);
+	const float pitch = math::radians(90.0f);
+	const float roll = math::radians(0.0f);
+	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
+	const Quatf quat_sim(euler_angles_sim);
 
 	_sensor_simulator.simulateOrientation(quat_sim);
 	_sensor_simulator.runSeconds(_init_tilt_period);
@@ -167,7 +170,10 @@ TEST_F(EkfInitializationTest, initializeWithPitch90)
 
 TEST_F(EkfInitializationTest, initializeWithRoll90)
 {
-	const Quatf quat_sim(0.7071068f, 0.7071068f, 0.0f, 0.0f);
+	const float pitch = math::radians(0.0f);
+	const float roll = math::radians(90.0f);
+	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
+	const Quatf quat_sim(euler_angles_sim);
 
 	_sensor_simulator.simulateOrientation(quat_sim);
 	_sensor_simulator.runSeconds(_init_tilt_period);

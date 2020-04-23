@@ -59,7 +59,7 @@ class EkfExternalVisionTest : public ::testing::Test {
 	void SetUp() override
 	{
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(2);
+		_sensor_simulator.runSeconds(3);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -112,17 +112,19 @@ TEST_F(EkfExternalVisionTest, visionVelocityReset)
 	_sensor_simulator._vio.setVelocity(simulated_velocity);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
-	_sensor_simulator.runMicroseconds(6e5);
+	// Note: test duration needs to allow time for tilt alignment to complete
+	_sensor_simulator.runMicroseconds(2e5);
 
 	// THEN: a reset to Vision velocity should be done
+	// Note: velocity will drift after reset due to INAV errors so the tolerance needs to allow for this
 	const Vector3f estimated_velocity = _ekf->getVelocity();
-	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity, 1e-5f));
+	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity, 0.01f));
 
 	// AND: the reset in velocity should be saved correctly
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
-	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-5f));
+	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(0.01f));
 }
 
 TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
@@ -143,11 +145,11 @@ TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 	_sensor_simulator._vio.setVelocity(simulated_velocity_in_vision_frame);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
-	_sensor_simulator.runMicroseconds(6e5);
+	_sensor_simulator.runMicroseconds(2e5);
 
 	// THEN: a reset to Vision velocity should be done
 	const Vector3f estimated_velocity_in_ekf_frame = _ekf->getVelocity();
-	EXPECT_TRUE(isEqual(estimated_velocity_in_ekf_frame, simulated_velocity_in_ekf_frame, 1e-5f));
+	EXPECT_TRUE(isEqual(estimated_velocity_in_ekf_frame, simulated_velocity_in_ekf_frame, 0.01f));
 	// And: the frame offset should be estimated correctly
 	Quatf estimatedExternalVisionFrameOffset = _ekf->getVisionAlignmentQuaternion();
 	EXPECT_TRUE(matrix::isEqual(vision_to_ekf.canonical(),
@@ -157,7 +159,7 @@ TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
-	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-5f));
+	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(0.01f));
 }
 
 TEST_F(EkfExternalVisionTest, visionVarianceCheck)

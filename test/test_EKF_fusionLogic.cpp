@@ -335,14 +335,14 @@ TEST_F(EkfFusionLogicTest, doRangeHeightFusion)
 	// WHEN: commanding range height and sending range data
 	_ekf_wrapper.setRangeHeight();
 	_sensor_simulator.startRangeFinder();
-	_sensor_simulator.runSeconds(2);
+	_sensor_simulator.runSeconds(2.5);
 
 	// THEN: EKF should intend to fuse range height
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 
 	// WHEN: stop sending range data
 	_sensor_simulator.stopRangeFinder();
-	_sensor_simulator.runSeconds(2);
+	_sensor_simulator.runSeconds(2.5);
 
 	// THEN: EKF should stop to intend to use range height
 	EXPECT_FALSE(_ekf_wrapper.isIntendingRangeHeightFusion());
