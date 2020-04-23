@@ -78,6 +78,13 @@ public:
 	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint) { _attitude_setpoint_q = qd; _yawspeed_setpoint = yawspeed_setpoint; }
 
 	/**
+	 * Adjust last known attitude setpoint by a delta rotation
+	 * Optional use to avoid glitches when attitude estimate reference e.g. heading changes.
+	 * @param q_delta delta rotation to apply
+	 */
+	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta) { _attitude_setpoint_q = q_delta * _attitude_setpoint_q; }
+
+	/**
 	 * Run one control loop cycle calculation
 	 * @param q estimation of the current vehicle attitude unit quaternion
 	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
