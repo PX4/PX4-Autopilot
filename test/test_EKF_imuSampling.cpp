@@ -76,8 +76,10 @@ TEST_P(EkfImuSamplingTest, imuSamplingAtMultipleRates)
 	imu_sample.delta_vel = accel * imu_sample.delta_vel_dt;
 
 	// The higher the imu rate is the more measurements we have to set before reaching the FILTER_UPDATE_PERIOD
+	int n_samples = 0;
 	for(int i = 0; i<(int)20/std::get<0>(GetParam()); ++i)
 	{
+		n_samples++;
 		imu_sample.time_us = _t_us;
 		_ekf.setIMUData(imu_sample);
 		_t_us += dt_us;
@@ -90,8 +92,9 @@ TEST_P(EkfImuSamplingTest, imuSamplingAtMultipleRates)
 
 	// WHEN: downsampling the imu measurement
 	// THEN: the delta vel should be accumulated correctly
-	EXPECT_TRUE(matrix::isEqual(ang_vel, imu_sample_buffered.delta_ang/imu_sample_buffered.delta_ang_dt, 1e-7f));
-	EXPECT_TRUE(matrix::isEqual(accel, imu_sample_buffered.delta_vel/imu_sample_buffered.delta_vel_dt, 1e-7f));
+	// Allow for accumulation of rounding error with each sample
+	EXPECT_TRUE(matrix::isEqual(ang_vel, imu_sample_buffered.delta_ang/imu_sample_buffered.delta_ang_dt, float(n_samples) * 1e-7f));
+	EXPECT_TRUE(matrix::isEqual(accel, imu_sample_buffered.delta_vel/imu_sample_buffered.delta_vel_dt, float(n_samples) * 1e-7f));
 }
 
 INSTANTIATE_TEST_SUITE_P(imuSamplingAtMultipleRates,
