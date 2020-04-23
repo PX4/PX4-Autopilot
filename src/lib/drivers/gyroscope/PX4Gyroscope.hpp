@@ -112,7 +112,6 @@ private:
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
-	const matrix::Dcmf	_rotation_dcm;
 
 	float			_range{math::radians(2000.f)};
 	float			_scale{1.f};

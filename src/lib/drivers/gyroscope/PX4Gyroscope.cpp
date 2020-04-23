@@ -71,8 +71,7 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	_sensor_integrated_pub{ORB_ID(sensor_gyro_integrated), priority},
 	_sensor_status_pub{ORB_ID(sensor_gyro_status), priority},
 	_device_id{device_id},
-	_rotation{rotation},
-	_rotation_dcm{get_rot_matrix(rotation)}
+	_rotation{rotation}
 {
 	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
@@ -268,16 +267,14 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 
 		if (_integrator_fifo_samples > 0 && (_integrator_samples >= _integrator_reset_samples)) {
 
-			// Apply rotation and scale
-			// integrated in microseconds, convert to seconds
-			const Vector3f delta_angle_uncalibrated{_rotation_dcm *_integration_raw * _scale};
+			// Apply rotation (before scaling)
+			rotate_3f(_rotation, _integration_raw(0), _integration_raw(1), _integration_raw(2));
 
-			// scale calibration offset to number of samples
-			const Vector3f offset{_calibration_offset * _integrator_fifo_samples};
+			// integrated in microseconds, convert to seconds
+			const Vector3f delta_angle_uncalibrated{_integration_raw * 1e-6f * dt * _scale};
 
 			// Apply calibration and scale to seconds
-			Vector3f delta_angle{delta_angle_uncalibrated - offset};
-			delta_angle *= 1e-6f * dt;
+			const Vector3f delta_angle{delta_angle_uncalibrated - _calibration_offset};
 
 			// fill sensor_gyro_integrated and publish
 			sensor_gyro_integrated_s report;
@@ -289,7 +286,8 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			report.dt = _integrator_fifo_samples * dt; // time span in microseconds
 			report.samples = _integrator_fifo_samples;
 
-			const Vector3f clipping{_rotation_dcm * _integrator_clipping};
+			rotate_3f(_rotation, _integrator_clipping(0), _integrator_clipping(1), _integrator_clipping(2));
+			const Vector3f clipping{_integrator_clipping};
 
 			for (int i = 0; i < 3; i++) {
 				report.clip_counter[i] = fabsf(roundf(clipping(i)));
