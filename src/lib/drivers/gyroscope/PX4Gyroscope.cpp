@@ -126,7 +126,7 @@ void PX4Gyroscope::set_update_rate(uint16_t rate)
 	const uint32_t update_interval = 1000000 / rate;
 
 	// TODO: set this intelligently
-	_integrator_reset_samples = 4000 / update_interval;
+	_integrator_reset_samples = 2500 / update_interval;
 }
 
 void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float z)
