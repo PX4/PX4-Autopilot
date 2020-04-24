@@ -139,7 +139,7 @@ public:
 
 	T reset(const T &sample);
 
-	T update(float sample_freq, float notch_freq, float bandwidth);
+	void update(float sample_freq, float notch_freq, float bandwidth);
 
 protected:
 	float _notch_freq{};
@@ -215,7 +215,7 @@ T NotchFilter<T>::reset(const T &sample)
  * Note: This method will only work if using the applyDF1 function (Direct Form I).
  */
 template<typename T>
-T NotchFilter<T>::update(float sample_freq, float notch_freq, float bandwidth)
+void NotchFilter<T>::update(float sample_freq, float notch_freq, float bandwidth)
 {
 	// backup state
 	T delay_element_1_bkup = _delay_element_1;
