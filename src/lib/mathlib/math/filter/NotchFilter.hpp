@@ -37,6 +37,7 @@
  * @brief Implementation of a Notch filter.
  *
  * @author Mathieu Bresciani <brescianimathieu@gmail.com>
+ * @author Samuel Garcin <samuel.garcin@wecorpindustries.com>
  */
 
 #pragma once
@@ -69,7 +70,7 @@ public:
 	void setParameters(float sample_freq, float notch_freq, float bandwidth);
 
 	/**
-	 * Add a new raw value to the filter
+	 * Add a new raw value to the filter using the Direct form II
 	 *
 	 * @return retrieve the filtered result
 	 */
@@ -81,6 +82,27 @@ public:
 
 		_delay_element_2 = _delay_element_1;
 		_delay_element_1 = delay_element_0;
+
+		return output;
+	}
+
+	/**
+	 * Add a new raw value to the filter using the Direct Form I
+	 *
+	 * @return retrieve the filtered result
+	 */
+	inline T applyDF1(const T &sample)
+	{
+		// Direct Form I implementation
+		const T output = _b0 * sample + _b1 * _delay_element_1 + _b2 * _delay_element_2 - _a1 * _delay_element_output_1 - _a2 * _delay_element_output_2;
+
+		// shift inputs
+		_delay_element_2 = _delay_element_1;
+		_delay_element_1 = sample;
+
+		// shift outputs
+		_delay_element_output_2 = _delay_element_output_1;
+		_delay_element_output_1 = output;
 
 		return output;
 	}
@@ -99,7 +121,25 @@ public:
 		b[2] = _b2;
 	}
 
+	/**
+	 * Bypasses the filter update to directly set different filter coefficients.
+	 * Note: the filtered frequency and quality factor saved on the filter lose their
+	 * physical meaning if you use this method to change the filter's coefficients.
+	 * Used for creating clones of a specific filter.
+	 */
+	void setCoefficients(float a[2], float b[3])
+	{
+		_a1 = a[0];
+		_a2 = a[1];
+		_b0 = b[0];
+		_b1 = b[1];
+		_b2 = b[2];
+	}
+
+
 	T reset(const T &sample);
+
+	T update(float sample_freq, float notch_freq, float bandwidth);
 
 protected:
 	float _notch_freq{};
@@ -115,6 +155,8 @@ protected:
 
 	T _delay_element_1;
 	T _delay_element_2;
+	T _delay_element_output_1;
+	T _delay_element_output_2;
 };
 
 template<typename T>
@@ -125,6 +167,8 @@ void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float ba
 
 	_delay_element_1 = {};
 	_delay_element_2 = {};
+	_delay_element_output_1 = {};
+	_delay_element_output_2 = {};
 
 	if (notch_freq <= 0.f) {
 		// no filtering
@@ -163,6 +207,29 @@ T NotchFilter<T>::reset(const T &sample)
 	_delay_element_2 = dval;
 
 	return apply(sample);
+}
+
+/**
+ * Allows to dynamically update the filtered frequency, refresh rate and quality factor.
+ * Changes the filter's coefficients while conserving the filter's history
+ * Note: This method will only work if using the applyDF1 function (Direct Form I).
+ */
+template<typename T>
+T NotchFilter<T>::update(float sample_freq, float notch_freq, float bandwidth)
+{
+	// backup state
+	T delay_element_1_bkup = _delay_element_1;
+	T delay_element_2_bkup = _delay_element_2;
+	T delay_element_output_1_bkup = _delay_element_output_1;
+	T delay_element_output_2_bkup = _delay_element_output_2;
+
+	setParameters(sample_freq, notch_freq, bandwidth);
+
+	// restore state
+	_delay_element_1 = delay_element_1_bkup;
+	_delay_element_2 = delay_element_2_bkup;
+	_delay_element_output_1 = delay_element_output_1_bkup;
+	_delay_element_output_2 = delay_element_output_2_bkup;
 }
 
 } // namespace math
