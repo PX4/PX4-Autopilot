@@ -72,6 +72,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	_v_att_sp.q_d[0] = 1.f;
 
 	parameters_updated();
+
+	// get desired control and mux it
 }
 
 MulticopterAttitudeControl::~MulticopterAttitudeControl()
