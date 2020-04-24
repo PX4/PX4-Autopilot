@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -67,7 +67,7 @@ public:
 		Block(parent, name),
 		_kP(this, "") // only one param, no need to name
 	{}
-	virtual ~BlockP() {}
+	virtual ~BlockP() = default;
 	float update(float input)
 	{
 		return getKP() * input;

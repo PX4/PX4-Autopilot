@@ -44,6 +44,7 @@ enum class ULogMessageType : uint8_t {
 	SYNC = 'S',
 	DROPOUT = 'O',
 	LOGGING = 'L',
+	LOGGING_TAGGED = 'C',
 	FLAG_BITS = 'B',
 };
 
@@ -129,6 +130,16 @@ struct ulog_message_logging_s {
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::LOGGING);
 
 	uint8_t log_level; //same levels as in the linux kernel
+	uint64_t timestamp;
+	char message[128]; //defines the maximum length of a logged message string
+};
+
+struct ulog_message_logging_tagged_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::LOGGING_TAGGED);
+
+	uint8_t log_level; //same levels as in the linux kernel
+	uint16_t tag;
 	uint64_t timestamp;
 	char message[128]; //defines the maximum length of a logged message string
 };

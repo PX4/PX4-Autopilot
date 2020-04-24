@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file i2c.cpp
+ * @file I2C.cpp
  *
  * Base class for devices attached via the I2C bus.
  *
@@ -42,6 +42,8 @@
 
 #include "I2C.hpp"
 
+#include <nuttx/i2c/i2c_master.h>
+
 namespace device
 {
 /*
@@ -49,19 +51,17 @@ namespace device
  *  All calls to init() will NOT set the buss frequency
  */
 
-unsigned int I2C::_bus_clocks[BOARD_NUMBER_I2C_BUSES] = BOARD_I2C_BUS_CLOCK_INIT;
+unsigned int I2C::_bus_clocks[PX4_NUMBER_I2C_BUSES] = PX4_I2C_BUS_CLOCK_INIT;
 
-I2C::I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency) :
-	CDev(name, devname),
+I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
+	CDev(name, nullptr),
 	_frequency(frequency)
 {
-	DEVICE_DEBUG("I2C::I2C name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a I2C device
+	_device_id.devid_s.devtype = device_type;
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
-	// devtype needs to be filled in by the driver
-	_device_id.devid_s.devtype = 0;
 }
 
 I2C::~I2C()
@@ -153,8 +153,8 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	DEVICE_LOG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
-		   get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+		     get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
 
@@ -167,21 +167,21 @@ out:
 }
 
 int
-I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
 {
-	px4_i2c_msg_t msgv[2];
-	unsigned msgs;
 	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
 	if (_dev == nullptr) {
 		PX4_ERR("I2C device not opened");
-		return 1;
+		return PX4_ERROR;
 	}
 
 	do {
 		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
-		msgs = 0;
+
+		i2c_msg_s msgv[2] {};
+		unsigned msgs = 0;
 
 		if (send_len > 0) {
 			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];
@@ -205,10 +205,15 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 			return -EINVAL;
 		}
 
-		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
+		int ret_transfer = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
-		/* success */
-		if (ret == PX4_OK) {
+		if (ret_transfer != 0) {
+			DEVICE_DEBUG("I2C transfer failed, result %d", ret_transfer);
+			ret = PX4_ERROR;
+
+		} else {
+			// success
+			ret = PX4_OK;
 			break;
 		}
 

@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL (RTPS)
+#
+# @type Quadrotor Wide
+#
+
+sh /etc/init.d-posix/10016_iris

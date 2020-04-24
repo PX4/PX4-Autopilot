@@ -51,7 +51,7 @@
 
 #include "PCA9685.h"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 using namespace linux_pwm_out;
 

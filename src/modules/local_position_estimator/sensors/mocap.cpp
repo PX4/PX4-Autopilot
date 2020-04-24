@@ -106,7 +106,8 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	Vector<float, n_y_mocap> y;
 
 	if (mocapMeasure(y) != OK) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap data invalid. eph: %f epv: %f", _mocap_eph, _mocap_epv);
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap data invalid. eph: %f epv: %f", (double)_mocap_eph,
+					     (double)_mocap_epv);
 		return;
 	}
 
@@ -122,37 +123,42 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	R.setZero();
 
 	// use std dev from mocap data if available
-	if (_mocap_eph > _mocap_p_stddev.get()) {
+	if (_mocap_eph > _param_lpe_vic_p.get()) {
 		R(Y_mocap_x, Y_mocap_x) = _mocap_eph * _mocap_eph;
 		R(Y_mocap_y, Y_mocap_y) = _mocap_eph * _mocap_eph;
 
 	} else {
-		R(Y_mocap_x, Y_mocap_x) = _mocap_p_stddev.get() * _mocap_p_stddev.get();
-		R(Y_mocap_y, Y_mocap_y) = _mocap_p_stddev.get() * _mocap_p_stddev.get();
+		R(Y_mocap_x, Y_mocap_x) = _param_lpe_vic_p.get() * _param_lpe_vic_p.get();
+		R(Y_mocap_y, Y_mocap_y) = _param_lpe_vic_p.get() * _param_lpe_vic_p.get();
 	}
 
-	if (_mocap_epv > _mocap_p_stddev.get()) {
+	if (_mocap_epv > _param_lpe_vic_p.get()) {
 		R(Y_mocap_z, Y_mocap_z) = _mocap_epv * _mocap_epv;
 
 	} else {
-		R(Y_mocap_z, Y_mocap_z) = _mocap_p_stddev.get() * _mocap_p_stddev.get();
+		R(Y_mocap_z, Y_mocap_z) = _param_lpe_vic_p.get() * _param_lpe_vic_p.get();
 	}
 
 	// residual
 	Vector<float, n_y_mocap> r = y - C * _x;
 	// residual covariance
-	Matrix<float, n_y_mocap, n_y_mocap> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_mocap, n_y_mocap> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
-	for (size_t i = 0; i < 3; i++) {
-		_pub_innov.get().vel_pos_innov[i] = r(i);
-		_pub_innov.get().vel_pos_innov_var[i] = S(i, i);
-	}
+	_pub_innov.get().ev_hpos[0] = r(0);
+	_pub_innov.get().ev_hpos[1] = r(1);
+	_pub_innov.get().ev_vpos    = r(2);
+	_pub_innov.get().ev_hvel[0] = NAN;
+	_pub_innov.get().ev_hvel[1] = NAN;
+	_pub_innov.get().ev_vvel    = NAN;
 
-	for (size_t i = 3; i < 6; i++) {
-		_pub_innov.get().vel_pos_innov[i] = 0;
-		_pub_innov.get().vel_pos_innov_var[i] = 1;
-	}
+	// publish innovation variances
+	_pub_innov_var.get().ev_hpos[0] = S(0, 0);
+	_pub_innov_var.get().ev_hpos[1] = S(1, 1);
+	_pub_innov_var.get().ev_vpos    = S(2, 2);
+	_pub_innov_var.get().ev_hvel[0] = NAN;
+	_pub_innov_var.get().ev_hvel[1] = NAN;
+	_pub_innov_var.get().ev_vvel    = NAN;
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_mocap, n_y_mocap> S_I = inv<float, n_y_mocap>(S);
@@ -172,10 +178,10 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	}
 
 	// kalman filter correction always
-	Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_mocap> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 }
 
 void BlockLocalPositionEstimator::mocapCheckTimeout()

@@ -65,7 +65,7 @@
 #ifndef _SYSTEMLIB_ERR_H
 #define _SYSTEMLIB_ERR_H
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <stdlib.h>

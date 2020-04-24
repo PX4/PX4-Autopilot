@@ -37,21 +37,18 @@
  * I2C interface for ICM20948
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
 
 #include "icm20948.h"
 
-#ifdef USE_I2C
-
-device::Device *ICM20948_I2C_interface(int bus, uint32_t address, bool external_bus);
+device::Device *ICM20948_I2C_interface(int bus, uint32_t address, int bus_frequency);
 
 class ICM20948_I2C : public device::I2C
 {
 public:
-	ICM20948_I2C(int bus, uint32_t address);
+	ICM20948_I2C(int bus, uint32_t address, int bus_frequency);
 	~ICM20948_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -65,27 +62,26 @@ private:
 };
 
 device::Device *
-ICM20948_I2C_interface(int bus, uint32_t address, bool external_bus)
+ICM20948_I2C_interface(int bus, uint32_t address, int bus_frequency)
 {
-	return new ICM20948_I2C(bus, address);
+	return new ICM20948_I2C(bus, address, bus_frequency);
 }
 
-ICM20948_I2C::ICM20948_I2C(int bus, uint32_t address) :
-	I2C("ICM20948_I2C", nullptr, bus, address, 400000)
+ICM20948_I2C::ICM20948_I2C(int bus, uint32_t address, int bus_frequency) :
+	I2C(DRV_IMU_DEVTYPE_ICM20948, MODULE_NAME, bus, address, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
 }
 
 int
 ICM20948_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
+	uint8_t cmd[2] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
 	}
 
-	cmd[0] = MPU9250_REG(reg_speed);
+	cmd[0] = ICM20948_REG(reg_speed);
 	cmd[1] = *(uint8_t *)data;
 	return transfer(&cmd[0], count + 1, nullptr, 0);
 }
@@ -100,7 +96,7 @@ ICM20948_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	 * after that. Foe anthing else we must return it
 	 */
 	uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, status);
-	uint8_t cmd = MPU9250_REG(reg_speed);
+	uint8_t cmd = ICM20948_REG(reg_speed);
 	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count);
 }
 
@@ -110,7 +106,7 @@ ICM20948_I2C::probe()
 	uint8_t whoami = 0;
 	uint8_t register_select = REG_BANK(BANK0);  // register bank containing WHOAMI for ICM20948
 
-	// Try first for mpu9250/6500
+	// Try first for icm20948/6500
 	read(MPUREG_WHOAMI, &whoami, 1);
 
 	/*
@@ -127,5 +123,3 @@ ICM20948_I2C::probe()
 
 	return -ENODEV;
 }
-
-#endif /* USE_I2C */

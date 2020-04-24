@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__rpi_rc_in
 	MAIN rpi_rc_in
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		rpi_rc_in.cpp

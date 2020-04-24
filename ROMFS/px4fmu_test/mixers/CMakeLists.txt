@@ -44,7 +44,7 @@ px4_add_romfs_files(
 	quad_+.main.mix
 	quad_test.mix
 	quad_+_vtol.main.mix
-	ugv_generic.main.mix
+	rover_generic.main.mix
 	vtol1_test.mix
 	vtol2_test.mix
 	vtol_AAERT.aux.mix

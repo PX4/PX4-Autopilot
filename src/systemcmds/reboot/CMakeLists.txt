@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE systemcmds__reboot
 	MAIN reboot
-	STACK_MAIN 800
 	COMPILE_FLAGS
 	SRCS
 		reboot.c

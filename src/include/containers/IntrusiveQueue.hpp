@@ -95,6 +95,59 @@ public:
 		return ret;
 	}
 
+	bool remove(T removeNode)
+	{
+		// base case
+		if (removeNode == _head) {
+			if (_head->next_intrusive_queue_node() != nullptr) {
+				_head = _head->next_intrusive_queue_node();
+				removeNode->set_next_intrusive_queue_node(nullptr);
+
+			} else {
+				_head = nullptr;
+				_tail = nullptr;
+			}
+
+			return true;
+		}
+
+		for (T node = _head; node != nullptr; node = node->next_intrusive_queue_node()) {
+			// is sibling the node to remove?
+			if (node->next_intrusive_queue_node() == removeNode) {
+				if (removeNode == _tail) {
+					_tail = node;
+				}
+
+				// replace sibling
+				node->set_next_intrusive_queue_node(removeNode->next_intrusive_queue_node());
+				removeNode->set_next_intrusive_queue_node(nullptr);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	struct Iterator {
+		T node;
+		Iterator(T v) : node(v) {}
+
+		operator T() const { return node; }
+		operator T &() { return node; }
+		T operator* () const { return node; }
+		Iterator &operator++ ()
+		{
+			if (node) {
+				node = node->next_intrusive_queue_node();
+			};
+
+			return *this;
+		}
+	};
+
+	Iterator begin() { return Iterator(_head); }
+	Iterator end() { return Iterator(nullptr); }
+
 private:
 
 	T _head{nullptr};

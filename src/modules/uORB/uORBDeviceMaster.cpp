@@ -40,8 +40,12 @@
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
-#include <px4_sem.hpp>
+#include <px4_platform_common/sem.hpp>
 #include <systemlib/px4_macros.h>
+
+#ifndef __PX4_QURT // QuRT has no poll()
+#include <poll.h>
+#endif // PX4_QURT
 
 uORB::DeviceMaster::DeviceMaster()
 {
@@ -55,7 +59,7 @@ uORB::DeviceMaster::~DeviceMaster()
 }
 
 int
-uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, int priority)
+uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, int priority)
 {
 	int ret = PX4_ERROR;
 
@@ -102,10 +106,10 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 			return -ENOMEM;
 		}
 
-		/* construct the new node */
+		/* construct the new node, passing the ownership of path to it */
 		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath, priority);
 
-		/* if we didn't get a device, that's bad */
+		/* if we didn't get a device, that's bad, free the path too */
 		if (node == nullptr) {
 			free((void *)devpath);
 			return -ENOMEM;
@@ -119,26 +123,47 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 			delete node;
 
 			if (ret == -EEXIST) {
-				/* if the node exists already, get the existing one and check if
-				 * something has been published yet. */
+				/* if the node exists already, get the existing one and check if it's advertised. */
 				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
 
-				if ((existing_node != nullptr) && !(existing_node->is_published())) {
-					/* nothing has been published yet, lets claim it */
-					existing_node->set_priority(priority);
+				/*
+				 * We can claim an existing node in these cases:
+				 * - The node is not advertised (yet). It means there is already one or more subscribers or it was
+				 *   unadvertised.
+				 * - We are a single-instance advertiser requesting the first instance.
+				 *   (Usually we don't end up here, but we might in case of a race condition between 2
+				 *   advertisers).
+				 * - We are a subscriber requesting a certain instance.
+				 *   (Also we usually don't end up in that case, but we might in case of a race condtion
+				 *   between an advertiser and subscriber).
+				 */
+				bool is_single_instance_advertiser = is_advertiser && !instance;
+
+				if (existing_node != nullptr &&
+				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
+					if (is_advertiser) {
+						existing_node->set_priority((ORB_PRIO)priority);
+						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
+						 * could get the same instance).
+						 */
+						existing_node->mark_as_advertised();
+					}
+
 					ret = PX4_OK;
 
 				} else {
-					/* otherwise: data has already been published, keep looking */
+					/* otherwise: already advertised, keep looking */
 				}
 			}
 
-			/* also discard the name now */
-			free((void *)devpath);
-
 		} else {
-			// add to the node map;.
+			if (is_advertiser) {
+				node->mark_as_advertised();
+			}
+
+			// add to the node map.
 			_node_list.add(node);
+			_node_exists[node->get_instance()].set((uint8_t)node->id(), true);
 		}
 
 		group_tries++;
@@ -161,22 +186,38 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 	PX4_INFO("TOPIC, NR LOST MSGS");
 	bool had_print = false;
 
+	/* Add all nodes to a list while locked, and then print them in unlocked state, to avoid potential
+	 * dead-locks (where printing blocks) */
 	lock();
+	DeviceNodeStatisticsData *first_node = nullptr;
+	DeviceNodeStatisticsData *cur_node = nullptr;
+	size_t max_topic_name_length = 0;
+	int num_topics = 0;
+	int ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, nullptr, 0);
+	unlock();
 
-	for (const auto &node : _node_list) {
-		if (node->print_statistics(reset)) {
-			had_print = true;
-		}
+	if (ret != 0) {
+		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
 	}
 
-	unlock();
+	cur_node = first_node;
+
+	while (cur_node) {
+		if (cur_node->node->print_statistics(reset)) {
+			had_print = true;
+		}
+
+		DeviceNodeStatisticsData *prev = cur_node;
+		cur_node = cur_node->next;
+		delete prev;
+	}
 
 	if (!had_print) {
 		PX4_INFO("No lost messages");
 	}
 }
 
-void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
+int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
 		size_t &max_topic_name_length, char **topic_filter, int num_filters)
 {
 	DeviceNodeStatisticsData *cur_node = nullptr;
@@ -227,8 +268,7 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		}
 
 		if (!last_node) {
-			PX4_ERR("mem alloc failed");
-			break;
+			return -ENOMEM;
 		}
 
 		last_node->node = node;
@@ -242,6 +282,8 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		last_node->last_lost_msg_count = last_node->node->lost_message_count();
 		last_node->last_pub_msg_count = last_node->node->published_message_count();
 	}
+
+	return 0;
 }
 
 #define CLEAR_LINE "\033[K"
@@ -284,12 +326,16 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 	DeviceNodeStatisticsData *cur_node = nullptr;
 	size_t max_topic_name_length = 0;
 	int num_topics = 0;
-	addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+	int ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
 
 	/* a DeviceNode is never deleted, so it's save to unlock here and still access the DeviceNodes */
 	unlock();
 
-#ifdef __PX4_QURT //QuRT has no poll()
+	if (ret != 0) {
+		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
+	}
+
+#ifdef __PX4_QURT // QuRT has no poll()
 	only_once = true;
 #else
 	const int stdin_fileno = 0;
@@ -310,7 +356,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 		for (int k = 0; k < 5; k++) {
 			char c;
 
-			int ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
+			ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
 
 			if (ret > 0) {
 
@@ -365,8 +411,13 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			}
 
 			lock();
-			addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+			ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
 			unlock();
+
+			if (ret != 0) {
+				PX4_ERR("addNewDeviceNodes failed (%i)", ret);
+			}
+
 		}
 
 		if (only_once) {
@@ -402,8 +453,25 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 	return nullptr;
 }
 
+bool uORB::DeviceMaster::deviceNodeExists(ORB_ID id, const uint8_t instance)
+{
+	if ((id == ORB_ID::INVALID) || (instance > ORB_MULTI_MAX_INSTANCES - 1)) {
+		return false;
+	}
+
+	return _node_exists[instance][(uint8_t)id];
+}
+
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
 {
+	if (meta == nullptr) {
+		return nullptr;
+	}
+
+	if (!deviceNodeExists(static_cast<ORB_ID>(meta->o_id), instance)) {
+		return nullptr;
+	}
+
 	lock();
 	uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
 	unlock();

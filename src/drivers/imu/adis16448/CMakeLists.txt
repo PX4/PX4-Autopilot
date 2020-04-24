@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,17 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__adis16448
+	MODULE drivers__imu__adis16448
 	MAIN adis16448
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		adis16448.cpp
+		ADIS16448.cpp
+		adis16448_main.cpp
+	DEPENDS
+		px4_work_queue
+		drivers_accelerometer
+		drivers_barometer
+		drivers_gyroscope
+		drivers_magnetometer
 	)

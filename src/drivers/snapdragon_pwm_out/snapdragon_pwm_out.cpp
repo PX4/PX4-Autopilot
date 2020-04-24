@@ -33,14 +33,14 @@
 
 #include <stdint.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 #include <errno.h>
-#include <cmath>	// NAN
+#include <math.h>	// NAN
 #include <string.h>
 
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
@@ -48,12 +48,13 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <mixer/mixer.h>
-#include <mixer/mixer_load.h>
-#include <mixer/mixer_multirotor_normalized.generated.h>
-#include <parameters/param.h>
-#include <perf/perf_counter.h>
-#include <pwm_limit/pwm_limit.h>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+#include <lib/mixer/MixerGroup.hpp>
+#include <lib/mixer/mixer_load.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/output_limit/output_limit.h>
+
 #include <dev_fs_lib_pwm.h>
 
 /*
@@ -105,7 +106,7 @@ px4_pollfd_struct_t _poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 uint32_t	_groups_required = 0;
 
 // limit for pwm
-pwm_limit_t     _pwm_limit;
+output_limit_t     _pwm_limit;
 
 // esc parameters
 int32_t _pwm_disarmed;
@@ -174,55 +175,30 @@ void update_params(Mixer::Airmode &airmode)
 
 int initialize_mixer(const char *mixer_filename)
 {
-
 	char buf[2048];
 	size_t buflen = sizeof(buf);
 	PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 	int fd_load = ::open(mixer_filename, O_RDONLY);
 
-	if (fd_load != -1) {
-		int nRead = ::read(fd_load, buf, buflen);
-		close(fd_load);
+	int nRead = ::read(fd_load, buf, buflen);
+	close(fd_load);
 
-		if (nRead > 0) {
-			_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
+	if (nRead > 0) {
+		_mixer = MultirotorMixer::from_text(mixer_control_callback, (uintptr_t)&_controls, buf, buflen);
 
-			if (_mixer != nullptr) {
-				PX4_INFO("Successfully initialized mixer from config file");
-				return 0;
-
-			} else {
-				PX4_ERR("Unable to parse from mixer config file");
-				return -1;
-			}
+		if (_mixer != nullptr) {
+			PX4_INFO("Successfully initialized mixer from config file");
+			return 0;
 
 		} else {
-			PX4_WARN("Unable to read from mixer config file");
-			return -2;
-		}
-
-	} else {
-		PX4_WARN("No mixer config file found, using default mixer.");
-
-		/* Mixer file loading failed, fall back to default mixer configuration for
-		* QUAD_X airframe. */
-		float roll_scale = 1;
-		float pitch_scale = 1;
-		float yaw_scale = 1;
-		float deadband = 0;
-
-		_mixer = new MultirotorMixer(mixer_control_callback, (uintptr_t)&_controls,
-					     MultirotorGeometry::QUAD_X,
-					     roll_scale, pitch_scale, yaw_scale, deadband);
-
-		if (_mixer == nullptr) {
+			PX4_ERR("Unable to parse from mixer config file");
 			return -1;
 		}
 
-		return 0;
-
+	} else {
+		PX4_WARN("Unable to read from mixer config file");
+		return -2;
 	}
-
 }
 
 void subscribe()
@@ -357,14 +333,14 @@ void task_main(int argc, char *argv[])
 
 	Mixer::Airmode airmode = Mixer::Airmode::disabled;
 	update_params(airmode);
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	// Start disarmed
 	_armed.armed = false;
 	_armed.prearmed = false;
 
 	// set max min pwm
-	pwm_limit_init(&_pwm_limit);
+	output_limit_init(&_pwm_limit);
 
 	_perf_control_latency = perf_alloc(PC_ELAPSED, "snapdragon_pwm_out control latency");
 
@@ -439,9 +415,9 @@ void task_main(int argc, char *argv[])
 
 
 		// TODO FIXME: pre-armed seems broken -> copied and pasted from pwm_out_rc_in: needs to be tested
-		pwm_limit_calc(_armed.armed,
-			       false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask, disarmed_pwm,
-			       min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
+		output_limit_calc(_armed.armed,
+				  false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask, disarmed_pwm,
+				  min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
 
 		// send and publish outputs
 		if (_armed.lockdown || _armed.manual_lockdown || timeout) {
@@ -471,13 +447,13 @@ void task_main(int argc, char *argv[])
 			}
 		}
 
-		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			// update parameters from storage
 			update_params(airmode);
 		}
 	}
@@ -491,7 +467,6 @@ void task_main(int argc, char *argv[])
 	}
 
 	orb_unsubscribe(_armed_sub);
-	orb_unsubscribe(params_sub);
 
 	perf_free(_perf_control_latency);
 

@@ -39,19 +39,14 @@
  */
 constexpr uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 
-MPU6000::MPU6000(device::Device *interface, const char *path, enum Rotation rotation, int device_type) :
-	CDev(path),
+MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_type, I2CSPIBusOption bus_option,
+		 int bus) :
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, 0, device_type),
 	_interface(interface),
 	_device_type(device_type),
-#if defined(USE_I2C)
-	_use_hrt(false),
-#else
-	_use_hrt(true),
-#endif
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6k_read")),
-	_measure_interval(perf_alloc(PC_INTERVAL, "mpu6k_measure_interval")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6k_bad_trans")),
 	_bad_registers(perf_alloc(PC_COUNT, "mpu6k_bad_reg")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6k_reset")),
@@ -60,35 +55,34 @@ MPU6000::MPU6000(device::Device *interface, const char *path, enum Rotation rota
 	switch (_device_type) {
 	default:
 	case MPU_DEVICE_TYPE_MPU6000:
-		_px4_accel.set_device_type(DRV_ACC_DEVTYPE_MPU6000);
-		_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_MPU6000);
+		_interface->set_device_type(DRV_IMU_DEVTYPE_MPU6000);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_MPU6000);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_MPU6000);
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20602:
-		_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20602);
-		_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20602);
+		_interface->set_device_type(DRV_IMU_DEVTYPE_ICM20602);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20602);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20602);
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20608:
-		_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20608);
-		_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20608);
+		_interface->set_device_type(DRV_IMU_DEVTYPE_ICM20608G);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20608G);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20608G);
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20689:
-		_px4_accel.set_device_type(DRV_ACC_DEVTYPE_ICM20689);
-		_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ICM20689);
+		_interface->set_device_type(DRV_IMU_DEVTYPE_ICM20689);
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ICM20689);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ICM20689);
 		break;
 	}
 }
 
 MPU6000::~MPU6000()
 {
-	/* make sure we are truly inactive */
-	stop();
-
-	/* delete the perf counter */
 	perf_free(_sample_perf);
-	perf_free(_measure_interval);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 	perf_free(_reset_retries);
@@ -98,26 +92,12 @@ MPU6000::~MPU6000()
 int
 MPU6000::init()
 {
-
-#if defined(USE_I2C)
-	use_i2c(_interface->get_device_bus_type() == Device::DeviceBusType_I2C);
-#endif
-
 	/* probe again to get our settings that are based on the device type */
 	int ret = probe();
 
 	/* if probe failed, bail now */
 	if (ret != OK) {
-		PX4_DEBUG("CDev init failed");
-		return ret;
-	}
-
-	/* do init */
-	ret = CDev::init();
-
-	/* if init failed, bail now */
-	if (ret != OK) {
-		PX4_DEBUG("CDev init failed");
+		PX4_DEBUG("probe init failed");
 		return ret;
 	}
 
@@ -153,7 +133,8 @@ int MPU6000::reset()
 		up_udelay(1000);
 
 		// Enable I2C bus or Disable I2C bus (recommended on data sheet)
-		write_checked_reg(MPUREG_USER_CTRL, is_i2c() ? 0 : BIT_I2C_IF_DIS);
+		const bool is_i2c = (_interface->get_device_bus_type() == device::Device::DeviceBusType_I2C);
+		write_checked_reg(MPUREG_USER_CTRL, is_i2c ? 0 : BIT_I2C_IF_DIS);
 
 		px4_leave_critical_section(state);
 
@@ -271,6 +252,7 @@ MPU6000::probe()
 	case ICM20608_REV_FF:
 	case ICM20689_REV_FE:
 	case ICM20689_REV_03:
+	case ICM20689_REV_04:
 	case ICM20602_REV_01:
 	case ICM20602_REV_02:
 	case MPU6050_REV_D8:
@@ -392,12 +374,13 @@ MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
 	write_checked_reg(ICMREG_ACCEL_CONFIG2, filter);
 }
 
+#ifndef CONSTRAINED_FLASH
 /*
   perform a self-test comparison to factory trim values. This takes
   about 200ms and will return OK if the current values are within 14%
   of the expected values (as per datasheet)
  */
-int
+void
 MPU6000::factory_self_test()
 {
 	_in_factory_test = true;
@@ -533,8 +516,8 @@ MPU6000::factory_self_test()
 		::printf("PASSED\n");
 	}
 
-	return ret;
 }
+#endif
 
 /*
   deliberately trigger an error in the sensor to trigger recovery
@@ -654,79 +637,16 @@ MPU6000::start()
 	stop();
 	_call_interval = last_call_interval;
 
-	if (!is_i2c()) {
-
-		_call.period = _call_interval - MPU6000_TIMER_REDUCTION;
-
-		/* start polling at the specified rate */
-		hrt_call_every(&_call,
-			       1000,
-			       _call_interval - MPU6000_TIMER_REDUCTION,
-			       (hrt_callout)&MPU6000::measure_trampoline, this);
-
-	} else {
-#ifdef USE_I2C
-		/* schedule a cycle to start things */
-		work_queue(HPWORK, &_work, (worker_t)&MPU6000::cycle_trampoline, this, 1);
-#endif
-	}
+	ScheduleOnInterval(_call_interval - MPU6000_TIMER_REDUCTION, 1000);
 }
 
 void
 MPU6000::stop()
 {
-	if (!is_i2c()) {
-		hrt_cancel(&_call);
-
-	} else {
-#ifdef USE_I2C
-		_call_interval = 0;
-		work_cancel(HPWORK, &_work);
-#endif
-	}
+	ScheduleClear();
 
 	/* reset internal states */
 	memset(_last_accel, 0, sizeof(_last_accel));
-}
-
-#if defined(USE_I2C)
-void
-MPU6000::cycle_trampoline(void *arg)
-{
-	MPU6000 *dev = (MPU6000 *)arg;
-
-	dev->cycle();
-}
-
-void
-MPU6000::cycle()
-{
-	int ret = measure();
-
-	if (ret != OK) {
-		/* issue a reset command to the sensor */
-		reset();
-		start();
-		return;
-	}
-
-	if (_call_interval != 0) {
-		work_queue(HPWORK,
-			   &_work,
-			   (worker_t)&MPU6000::cycle_trampoline,
-			   this,
-			   USEC2TICK(_call_interval - MPU6000_TIMER_REDUCTION));
-	}
-}
-#endif
-
-void
-MPU6000::measure_trampoline(void *arg)
-{
-	MPU6000 *dev = reinterpret_cast<MPU6000 *>(arg);
-
-	/* make another measurement */
-	dev->measure();
 }
 
 void
@@ -790,19 +710,16 @@ MPU6000::check_registers(void)
 	_checked_next = (_checked_next + 1) % MPU6000_NUM_CHECKED_REGISTERS;
 }
 
-int
-MPU6000::measure()
+void MPU6000::RunImpl()
 {
-	perf_count(_measure_interval);
-
 	if (_in_factory_test) {
 		// don't publish any data while in factory test mode
-		return OK;
+		return;
 	}
 
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
-		return OK;
+		return;
 	}
 
 	struct MPUReport mpu_report;
@@ -831,7 +748,8 @@ MPU6000::measure()
 	if (sizeof(mpu_report) != _interface->read(MPU6000_SET_SPEED(MPUREG_INT_STATUS, MPU6000_HIGH_BUS_SPEED),
 			(uint8_t *)&mpu_report, sizeof(mpu_report))) {
 
-		return -EIO;
+		perf_end(_sample_perf);
+		return;
 	}
 
 	check_registers();
@@ -849,8 +767,10 @@ MPU6000::measure()
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
 		_got_duplicate = true;
-		return OK;
+		return;
 	}
+
+	perf_end(_sample_perf);
 
 	memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
 	_got_duplicate = false;
@@ -879,20 +799,19 @@ MPU6000::measure()
 
 		// all zero data - probably a SPI bus error
 		perf_count(_bad_transfers);
-		perf_end(_sample_perf);
 
 		// note that we don't call reset() here as a reset()
 		// costs 20ms with interrupts disabled. That means if
 		// the mpu6k does go bad it would cause a FMU failure,
 		// regardless of whether another sensor is available,
-		return -EIO;
+		return;
 	}
 
 	if (_register_wait != 0) {
 		// we are waiting for some good transfers before using
 		// the sensor again, don't return any data yet
 		_register_wait--;
-		return OK;
+		return;
 	}
 
 
@@ -951,17 +870,14 @@ MPU6000::measure()
 
 	_px4_accel.update(timestamp_sample, report.accel_x, report.accel_y, report.accel_z);
 	_px4_gyro.update(timestamp_sample, report.gyro_x, report.gyro_y, report.gyro_z);
-
-	/* stop measuring */
-	perf_end(_sample_perf);
-	return OK;
 }
 
 void
-MPU6000::print_info()
+MPU6000::print_status()
 {
+	I2CSPIDriverBase::print_status();
+	PX4_INFO("Device type: %i", _device_type);
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_measure_interval);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_reset_retries);

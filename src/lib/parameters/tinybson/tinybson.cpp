@@ -37,7 +37,7 @@
  * A simple subset SAX-style BSON parser and generator.
  */
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>

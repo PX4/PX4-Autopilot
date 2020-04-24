@@ -33,11 +33,12 @@
 px4_add_module(
 	MODULE drivers__rc_input
 	MAIN rc_input
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		RCInput.cpp
 		crsf_telemetry.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		rc
 	)

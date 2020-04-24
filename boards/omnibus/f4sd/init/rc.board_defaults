@@ -4,15 +4,12 @@
 #------------------------------------------------------------------------------
 
 
-# transition from params file to flash-based params (2018-12-20)
-if [ -f $PARAM_FILE ]
+# transition from LPE+Q to Q estimator (2019-06-05)
+if param compare SYS_MC_EST_GROUP 1
 then
-	param load $PARAM_FILE
-	param save
-	# create a backup
-	mv $PARAM_FILE ${PARAM_FILE}.bak
-	reboot
+	param set SYS_MC_EST_GROUP 3
 fi
+
 
 if [ $AUTOCNF = yes ]
 then
@@ -20,7 +17,7 @@ then
 	param set CBRK_IO_SAFETY 22027
 
 	# use the Q attitude estimator, it works w/o mag or GPS.
-	param set SYS_MC_EST_GROUP 1
+	param set SYS_MC_EST_GROUP 3
 	param set ATT_ACC_COMP 0
 	param set ATT_W_ACC 0.4000
 	param set ATT_W_GYRO_BIAS 0.0000
@@ -28,4 +25,3 @@ then
 	param set SYS_HAS_MAG 0
 fi
 
-set MIXER_AUX none

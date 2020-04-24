@@ -34,11 +34,9 @@ px4_add_module(
 	MODULE drivers__iridiumsbd
 	MAIN iridiumsbd
 	STACK 1024
-	STACK_MAIN 1024
 	COMPILE_FLAGS
 	SRCS
 		IridiumSBD.cpp
-		iridiumsbd_params.c
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

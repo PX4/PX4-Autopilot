@@ -55,7 +55,7 @@ public:
 	static constexpr Backend BackendMavlink = 1 << 1;
 	static constexpr Backend BackendAll = BackendFile | BackendMavlink;
 
-	LogWriter(Backend configured_backend, size_t file_buffer_size, unsigned int queue_size);
+	LogWriter(Backend configured_backend, size_t file_buffer_size);
 	~LogWriter();
 
 	bool init();

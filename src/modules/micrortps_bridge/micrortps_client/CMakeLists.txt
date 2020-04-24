@@ -45,6 +45,14 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 		list(APPEND receive_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
 	endforeach()
 
+	if (NOT "${config_rtps_send_alias_topics}" STREQUAL "")
+		set(config_rtps_send_topics "${config_rtps_send_topics};${config_rtps_send_alias_topics}")
+	endif()
+
+	if (NOT "${config_rtps_receive_alias_topics}" STREQUAL "")
+		set(config_rtps_receive_topics "${config_rtps_receive_topics};${config_rtps_receive_alias_topics}")
+	endif()
+
 	foreach(topic ${config_rtps_send_topics})
 		list(APPEND topic_bridge_files_out ${msg_out_path}/micrortps_agent/${topic}_Publisher.cpp)
 		list(APPEND topic_bridge_files_out ${msg_out_path}/micrortps_agent/${topic}_Publisher.h)
@@ -54,16 +62,6 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 		list(APPEND topic_bridge_files_out ${msg_out_path}/micrortps_agent/${topic}_Subscriber.cpp)
 		list(APPEND topic_bridge_files_out ${msg_out_path}/micrortps_agent/${topic}_Subscriber.h)
 	endforeach()
-
-	set(send_topic_files_opt)
-	if (NOT "${send_topic_files}" STREQUAL "")
-		set(send_topic_opt "--send")
-	endif()
-
-	set(receive_topic_files_opt)
-	if (NOT "${receive_topic_files}" STREQUAL "")
-		set(receive_topic_opt "--receive")
-	endif()
 
 	list(APPEND topic_bridge_files_out
 		${msg_out_path}/micrortps_client/microRTPS_client.cpp
@@ -83,7 +81,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			--agent-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_client
 			--idl-dir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent/idl
-			>micrortps_bridge.log > /dev/null
+			>micrortps_bridge.log >/dev/null
 		DEPENDS ${send_topic_files} ${receive_topic_files}
 		COMMENT "Generating RTPS topic bridge"
 	)

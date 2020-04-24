@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_status.h>
 
 #include "MulticopterLandDetector.h"
@@ -52,33 +52,30 @@ namespace land_detector
 class VtolLandDetector : public MulticopterLandDetector
 {
 public:
-	VtolLandDetector();
+	VtolLandDetector() = default;
+	~VtolLandDetector() override = default;
 
 protected:
-	void _initialize_topics() override;
-	void _update_params() override;
 	void _update_topics() override;
 	bool _get_landed_state() override;
 	bool _get_maybe_landed_state() override;
+	bool _get_freefall_state() override;
 
 private:
-	struct {
-		param_t maxAirSpeed;
-	} _paramHandle{};
 
-	struct {
-		float maxAirSpeed;
-	} _params{};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	int _airspeedSub{-1};
-	int _vehicle_status_sub{-1};
-
-	airspeed_s		_airspeed{};
-	vehicle_status_s	_vehicle_status{};
+	airspeed_validated_s _airspeed_validated{};
+	vehicle_status_s _vehicle_status{};
 
 	bool _was_in_air{false}; /**< indicates whether the vehicle was in the air in the previous iteration */
 	float _airspeed_filtered{0.0f}; /**< low pass filtered airspeed */
-};
 
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		MulticopterLandDetector,
+		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd_max
+	);
+};
 
 } // namespace land_detector

@@ -44,8 +44,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/micro_hal.h>
 
 #include <matrix/math.hpp>
 
@@ -76,6 +76,7 @@ void unlock()
 		reset(); \
 		perf_counter_t p = perf_alloc(PC_ELAPSED, name); \
 		for (int i = 0; i < count; i++) { \
+			px4_usleep(1); \
 			lock(); \
 			perf_begin(p); \
 			op; \
@@ -101,7 +102,9 @@ private:
 	matrix::Quatf q;
 	matrix::Eulerf e;
 	matrix::Dcmf d;
-
+	matrix::Matrix<float, 16, 6> A16;
+	matrix::Matrix<float, 6, 16> B16;
+	matrix::Matrix<float, 6, 16> B16_4;
 };
 
 bool MicroBenchMatrix::run_tests()
@@ -126,20 +129,34 @@ void MicroBenchMatrix::reset()
 	q = matrix::Quatf(rand(), rand(), rand(), rand());
 	e = matrix::Eulerf(random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI));
 	d = q;
+
+	for (size_t j = 0; j < 6; j++) {
+		for (size_t i = 0; i < 16; i++) {
+			B16(j, i) = random(-10.0, 10.0);
+		}
+
+		for (size_t i = 0; i < 4; i++) {
+			B16_4(j, i) = random(-10.0, 10.0);
+		}
+	}
+
 }
 
 ut_declare_test_c(test_microbench_matrix, MicroBenchMatrix)
 
 bool MicroBenchMatrix::time_px4_matrix()
 {
-	PERF("matrix Euler from Quaternion", e = q, 1000);
-	PERF("matrix Euler from Dcm", e = d, 1000);
+	PERF("matrix Euler from Quaternion", e = q, 100);
+	PERF("matrix Euler from Dcm", e = d, 100);
 
-	PERF("matrix Quaternion from Euler", q = e, 1000);
-	PERF("matrix Quaternion from Dcm", q = d, 1000);
+	PERF("matrix Quaternion from Euler", q = e, 100);
+	PERF("matrix Quaternion from Dcm", q = d, 100);
 
-	PERF("matrix Dcm from Euler", d = e, 1000);
-	PERF("matrix Dcm from Quaternion", d = q, 1000);
+	PERF("matrix Dcm from Euler", d = e, 100);
+	PERF("matrix Dcm from Quaternion", d = q, 100);
+
+	PERF("matrix 6x16 pseudo inverse (all non-zero columns)", A16 = matrix::geninv(B16), 100);
+	PERF("matrix 6x16 pseudo inverse (4 non-zero columns)", A16 = matrix::geninv(B16_4), 100);
 
 	return true;
 }

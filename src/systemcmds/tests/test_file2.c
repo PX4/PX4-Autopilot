@@ -36,7 +36,7 @@
  * File write test.
  */
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <stdio.h>
@@ -46,7 +46,7 @@
 #include <perf/perf_counter.h>
 #include <string.h>
 #include <stdlib.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 #include "tests_main.h"
 

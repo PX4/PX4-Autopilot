@@ -37,8 +37,8 @@
 #include "px4muorb_KraitRpcWrapper.hpp"
 #include <rpcmem.h>
 #include <px4muorb.h>
-#include "px4_log.h"
-#include <shmem.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/shmem.h>
 #include <drivers/drv_hrt.h>
 #include <string.h>
 
@@ -96,8 +96,7 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 		return -1;
 	}
 
-	char buffer[21];
-	memset(buffer, 0, sizeof(buffer));
+	char buffer[21] {};
 	int bytes_read = read(fd, buffer, sizeof(buffer));
 
 	if (bytes_read < 0) {

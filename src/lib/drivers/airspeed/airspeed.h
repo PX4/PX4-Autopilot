@@ -37,49 +37,43 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/uORB.h>
-
-/* Default I2C bus */
-static constexpr uint8_t PX4_I2C_BUS_DEFAULT = PX4_I2C_BUS_EXPANSION;
+#include <uORB/PublicationMulti.hpp>
 
 class __EXPORT Airspeed : public device::I2C
 {
 public:
-	Airspeed(int bus, int address, unsigned conversion_interval, const char *path);
+	Airspeed(int bus, int bus_frequency, int address, unsigned conversion_interval);
 	virtual ~Airspeed();
 
-	virtual int	init();
+	int	init() override;
 
-	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	int	ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 private:
-	/* this class has pointer data members and should not be copied */
-	Airspeed(const Airspeed &);
-	Airspeed &operator=(const Airspeed &);
+	Airspeed(const Airspeed &) = delete;
+	Airspeed &operator=(const Airspeed &) = delete;
 
 protected:
-	virtual int	probe();
+	int	probe() override;
 
 	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	virtual void	cycle() = 0;
 	virtual int	measure() = 0;
 	virtual int	collect() = 0;
 
-	work_s			_work;
 	bool			_sensor_ok;
-	int				_measure_ticks;
+	int				_measure_interval;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 
-	orb_advert_t		_airspeed_pub;
+	uORB::PublicationMulti<differential_pressure_s>	_airspeed_pub{ORB_ID(differential_pressure)};
+
 	int			_airspeed_orb_class_instance;
 
 	int			_class_instance;
@@ -88,34 +82,6 @@ protected:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-
-	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
-	void	start();
-
-	/**
-	* Stop the automatic measurement state machine.
-	*/
-	void	stop();
-
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void	cycle_trampoline(void *arg);
-
-	/**
-	* add a new report to the reports queue
-	*
-	* @param report		differential_pressure_s report
-	*/
-	void	new_report(const differential_pressure_s &report);
 };
 
 

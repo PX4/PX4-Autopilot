@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #############################################################################
+
+add_subdirectory(Utility)
+
 px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
 	COMPILE_FLAGS
-	STACK_MAIN 2500
-	STACK_MAX 4000
+	STACK_MAX 2400
 	SRCS
 		ekf2_main.cpp
 	DEPENDS
@@ -43,4 +45,5 @@ px4_add_module(
 		ecl_EKF
 		ecl_geo
 		perf
+		Ekf2Utility
 	)

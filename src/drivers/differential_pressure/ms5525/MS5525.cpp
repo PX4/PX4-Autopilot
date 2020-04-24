@@ -259,10 +259,7 @@ MS5525::collect()
 		.device_id = _device_id.devid
 	};
 
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &diff_pressure);
-	}
+	_airspeed_pub.publish(diff_pressure);
 
 	ret = OK;
 
@@ -272,7 +269,7 @@ MS5525::collect()
 }
 
 void
-MS5525::cycle()
+MS5525::RunImpl()
 {
 	int ret = PX4_ERROR;
 
@@ -283,8 +280,9 @@ MS5525::cycle()
 
 		if (OK != ret) {
 			/* restart the measurement state machine */
-			start();
+			_collect_phase = false;
 			_sensor_ok = false;
+			ScheduleNow();
 			return;
 		}
 
@@ -292,11 +290,10 @@ MS5525::cycle()
 		_collect_phase = false;
 
 		// is there a collect->measure gap?
-		if (_measure_ticks > USEC2TICK(CONVERSION_INTERVAL)) {
+		if (_measure_interval > CONVERSION_INTERVAL) {
 
 			// schedule a fresh cycle call when we are ready to measure again
-			work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this,
-				   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -315,5 +312,5 @@ MS5525::cycle()
 	_collect_phase = true;
 
 	// schedule a fresh cycle call when the measurement is done
-	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, USEC2TICK(CONVERSION_INTERVAL));
+	ScheduleDelayed(CONVERSION_INTERVAL);
 }

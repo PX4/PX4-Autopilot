@@ -31,15 +31,17 @@
 #
 ############################################################################
 
-px4_add_library(drivers_board
+add_library(drivers_board
+	i2c.cpp
 	init.c
-	manifest.c
 	sdio.c
-	spi.c
-	timer_config.c
+	spi.cpp
+	timer_config.cpp
 )
+
 target_link_libraries(drivers_board
 	PRIVATE
+		arch_spi
 		drivers__led # drv_led_start
 		nuttx_arch # sdio
 		nuttx_drivers # sdio

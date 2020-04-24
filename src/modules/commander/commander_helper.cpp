@@ -41,8 +41,8 @@
  *
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -63,13 +63,12 @@
 #include <drivers/drv_tone_alarm.h>
 
 #include "commander_helper.h"
-#include "DevMgr.hpp"
 
-using namespace DriverFramework;
-
+#define VEHICLE_TYPE_FIXED_WING 1
 #define VEHICLE_TYPE_QUADROTOR 2
 #define VEHICLE_TYPE_COAXIAL 3
 #define VEHICLE_TYPE_HELICOPTER 4
+#define VEHICLE_TYPE_GROUND_ROVER 10
 #define VEHICLE_TYPE_HEXAROTOR 13
 #define VEHICLE_TYPE_OCTOROTOR 14
 #define VEHICLE_TYPE_TRICOPTER 15
@@ -108,23 +107,36 @@ bool is_vtol(const struct vehicle_status_s *current_status)
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
 }
 
-static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
-static hrt_abstime tune_end = 0;		// end time of currently played tune, 0 for repeating tunes or silence
-static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be interrupted after tune_end
-static unsigned int tune_durations[TONE_NUMBER_OF_TUNES];
+bool is_vtol_tailsitter(const struct vehicle_status_s *current_status)
+{
+	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
+}
 
-static DevHandle h_leds;
-static DevHandle h_buzzer;
-static led_control_s led_control = {};
+bool is_fixed_wing(const struct vehicle_status_s *current_status)
+{
+	return current_status->system_type == VEHICLE_TYPE_FIXED_WING;
+}
+
+bool is_ground_rover(const struct vehicle_status_s *current_status)
+{
+	return current_status->system_type == VEHICLE_TYPE_GROUND_ROVER;
+}
+
+static hrt_abstime blink_msg_end = 0; // end time for currently blinking LED message, 0 if no blink message
+static hrt_abstime tune_end = 0; // end time of currently played tune, 0 for repeating tunes or silence
+static int tune_current = TONE_STOP_TUNE; // currently playing tune, can be interrupted after tune_end
+static unsigned int tune_durations[TONE_NUMBER_OF_TUNES] {};
+
+static int fd_leds{-1};
+
+static led_control_s led_control {};
 static orb_advert_t led_control_pub = nullptr;
-static tune_control_s tune_control = {};
+static tune_control_s tune_control {};
 static orb_advert_t tune_control_pub = nullptr;
 
 int buzzer_init()
 {
-	tune_end = 0;
-	tune_current = 0;
-	memset(tune_durations, 0, sizeof(tune_durations));
 	tune_durations[TONE_NOTIFY_POSITIVE_TUNE] = 800000;
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
@@ -133,7 +145,7 @@ int buzzer_init()
 	tune_durations[TONE_BATTERY_WARNING_FAST_TUNE] = 800000;
 	tune_durations[TONE_BATTERY_WARNING_SLOW_TUNE] = 800000;
 	tune_durations[TONE_SINGLE_BEEP_TUNE] = 300000;
-	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, tune_control_s::ORB_QUEUE_LENGTH);
 	return PX4_OK;
 }
 
@@ -278,28 +290,29 @@ int led_init()
 	led_control.mode = led_control_s::MODE_OFF;
 	led_control.priority = 0;
 	led_control.timestamp = hrt_absolute_time();
-	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
+	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, led_control_s::ORB_QUEUE_LENGTH);
 
 	/* first open normal LEDs */
-	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
+	fd_leds = px4_open(LED0_DEVICE_PATH, O_RDWR);
 
-	if (!h_leds.isValid()) {
-		PX4_WARN("LED: getHandle fail\n");
-		return PX4_ERROR;
+	if (fd_leds < 0) {
+		// there might not be an LED available, so don't make this an error
+		PX4_INFO("LED: open %s failed (%i)", LED0_DEVICE_PATH, errno);
+		return -errno;
 	}
 
 	/* the green LED is only available on FMUv5 */
-	(void)h_leds.ioctl(LED_ON, LED_GREEN);
+	px4_ioctl(fd_leds, LED_ON, LED_GREEN);
 
 	/* the blue LED is only available on AeroCore but not FMUv2 */
-	(void)h_leds.ioctl(LED_ON, LED_BLUE);
+	px4_ioctl(fd_leds, LED_ON, LED_BLUE);
 
 	/* switch blue off */
 	led_off(LED_BLUE);
 
 	/* we consider the amber led mandatory */
-	if (h_leds.ioctl(LED_ON, LED_AMBER)) {
-		PX4_WARN("Amber LED: ioctl fail\n");
+	if (px4_ioctl(fd_leds, LED_ON, LED_AMBER)) {
+		PX4_WARN("Amber LED: ioctl fail");
 		return PX4_ERROR;
 	}
 
@@ -312,22 +325,22 @@ int led_init()
 void led_deinit()
 {
 	orb_unadvertise(led_control_pub);
-	DevMgr::releaseHandle(h_leds);
+	px4_close(fd_leds);
 }
 
 int led_toggle(int led)
 {
-	return h_leds.ioctl(LED_TOGGLE, led);
+	return px4_ioctl(fd_leds, LED_TOGGLE, led);
 }
 
 int led_on(int led)
 {
-	return h_leds.ioctl(LED_ON, led);
+	return px4_ioctl(fd_leds, LED_ON, led);
 }
 
 int led_off(int led)
 {
-	return h_leds.ioctl(LED_OFF, led);
+	return px4_ioctl(fd_leds, LED_OFF, led);
 }
 
 void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio)

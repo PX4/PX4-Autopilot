@@ -51,7 +51,7 @@ Integrator::Integrator(uint32_t auto_reset_interval, bool coning_compensation) :
 }
 
 bool
-Integrator::put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral,
+Integrator::put(const hrt_abstime &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral,
 		uint32_t &integral_dt)
 {
 	if (_last_integration_time == 0) {
@@ -63,13 +63,13 @@ Integrator::put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::
 		return false;
 	}
 
-	double dt = 0.0;
+	float dt = 0.0f;
 
 	// Integrate:
 	// Leave dt at 0 if the integration time does not make sense.
 	// Without this check the integral is likely to explode.
 	if (timestamp >= _last_integration_time) {
-		dt = (double)(timestamp - _last_integration_time) / 1000000.0;
+		dt = static_cast<float>(timestamp - _last_integration_time) * 1e-6f;
 	}
 
 	// Use trapezoidal integration to calculate the delta integral
@@ -112,50 +112,6 @@ Integrator::put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::
 	} else {
 		return false;
 	}
-}
-
-bool
-Integrator::put_with_interval(unsigned interval_us, matrix::Vector3f &val, matrix::Vector3f &integral,
-			      uint32_t &integral_dt)
-{
-	if (_last_integration_time == 0) {
-		/* this is the first item in the integrator */
-		uint64_t now = hrt_absolute_time();
-		_last_integration_time = now;
-		_last_reset_time = now;
-		_last_val = val;
-
-		return false;
-	}
-
-	// Create the timestamp artifically.
-	const uint64_t timestamp = _last_integration_time + interval_us;
-
-	return put(timestamp, val, integral, integral_dt);
-}
-
-matrix::Vector3f
-Integrator::get(bool reset, uint32_t &integral_dt)
-{
-	matrix::Vector3f val = _alpha;
-
-	if (reset) {
-		_reset(integral_dt);
-	}
-
-	return val;
-}
-
-matrix::Vector3f
-Integrator::get_and_filtered(bool reset, uint32_t &integral_dt, matrix::Vector3f &filtered_val)
-{
-	// Do the usual get with reset first but don't return yet.
-	const matrix::Vector3f ret_integral = get(reset, integral_dt);
-
-	// Because we need both the integral and the integral_dt.
-	filtered_val = ret_integral * 1000000 / integral_dt;
-
-	return ret_integral;
 }
 
 void

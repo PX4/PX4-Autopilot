@@ -59,11 +59,27 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * @value 0 when armed until disarm (default)
  * @value 1 from boot until disarm
  * @value 2 from boot until shutdown
+ * @value 3 depending on AUX1 RC channel
  *
  * @reboot_required true
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_MODE, 0);
+
+/**
+ * Battery-only Logging
+ *
+ * When enabled, logging will not start from boot if battery power is not detected
+ * (e.g. powered via USB on a test bench). This prevents extraneous flight logs from
+ * being created during bench testing.
+ *
+ * Note that this only applies to log-from-boot modes. This has no effect on arm-based
+ * modes.
+ *
+ * @boolean
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_BOOT_BAT, 0);
 
 /**
  * Mission Log

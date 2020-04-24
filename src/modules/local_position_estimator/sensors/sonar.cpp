@@ -67,7 +67,7 @@ int BlockLocalPositionEstimator::sonarMeasure(Vector<float, n_y_sonar> &y)
 	_time_last_sonar = _timeStamp;
 	y.setZero();
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
-	y(0) = (d + _sonar_z_offset.get()) *
+	y(0) = (d + _param_lpe_snr_off_z.get()) *
 	       cosf(euler.phi()) *
 	       cosf(euler.theta());
 	return OK;
@@ -90,7 +90,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 
 	if (cov < 1.0e-3f) {
 		// use sensor value if reasoanble
-		cov = _sonar_z_stddev.get() * _sonar_z_stddev.get();
+		cov = _param_lpe_snr_z.get() * _param_lpe_snr_z.get();
 	}
 
 	// sonar measurement matrix and noise matrix
@@ -109,11 +109,11 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	// residual
 	Vector<float, n_y_sonar> r = y - C * _x;
 	// residual covariance
-	Matrix<float, n_y_sonar, n_y_sonar> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_sonar, n_y_sonar> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
-	_pub_innov.get().hagl_innov = r(0);
-	_pub_innov.get().hagl_innov_var = S(0, 0);
+	_pub_innov.get().hagl = r(0);
+	_pub_innov_var.get().hagl = S(0, 0);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_sonar, n_y_sonar> S_I = inv<float, n_y_sonar>(S);
@@ -138,10 +138,10 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	// kalman filter correction if no fault
 	if (!(_sensorFault & SENSOR_SONAR)) {
 		Matrix<float, n_x, n_y_sonar> K =
-			_P * C.transpose() * S_I;
+			m_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
-		_P -= K * C * _P;
+		m_P -= K * C * m_P;
 	}
 }
 

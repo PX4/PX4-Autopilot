@@ -1,0 +1,6 @@
+module_name: Roboclaw Driver
+serial_config:
+  - command: roboclaw start ${SERIAL_DEV} ${BAUD_PARAM}
+    port_config_param:
+      name: RBCLW_SER_CFG
+      group: Roboclaw

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file i2c.cpp
+ * @file I2C.cpp
  *
  * Base class for devices attached via the I2C bus.
  *
@@ -43,40 +43,27 @@
 #include "I2C.hpp"
 
 #ifdef __PX4_LINUX
+
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
-#endif
-
-#ifdef __PX4_QURT
-#define PX4_SIMULATE_I2C 1
-#else
-#define PX4_SIMULATE_I2C 0
-#endif
-
-static constexpr const int simulate = PX4_SIMULATE_I2C;
-
 
 namespace device
 {
 
-I2C::I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency) :
-	CDev(name, devname)
+I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
+	CDev(name, nullptr)
 {
-	DEVICE_DEBUG("I2C::I2C name = %s devname = %s", name, devname);
 	// fill in _device_id fields for a I2C device
+	_device_id.devid_s.devtype = device_type;
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
-	// devtype needs to be filled in by the driver
-	_device_id.devid_s.devtype = 0;
 }
 
 I2C::~I2C()
 {
 	if (_fd >= 0) {
-#ifndef __PX4_QURT
 		::close(_fd);
-#endif /* !__PX4_QURT */
 		_fd = -1;
 	}
 }
@@ -84,59 +71,64 @@ I2C::~I2C()
 int
 I2C::init()
 {
-	// Assume the driver set the desired bus frequency. There is no standard
-	// way to set it from user space.
+	int ret = PX4_ERROR;
 
-	// do base class init, which will create device node, etc
-	int ret = CDev::init();
+	// Open the actual I2C device
+	char dev_path[16] {};
+	snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", get_device_bus());
+	_fd = ::open(dev_path, O_RDWR);
 
-	if (ret != PX4_OK) {
-		DEVICE_DEBUG("CDev::init failed");
-		return ret;
+	if (_fd < 0) {
+		DEVICE_DEBUG("failed to init I2C");
+		ret = -ENOENT;
+		goto out;
 	}
 
-	if (simulate) {
-		_fd = 10000;
+	// call the probe function to check whether the device is present
+	ret = probe();
 
-	} else {
-#ifndef __PX4_QURT
+	if (ret != OK) {
+		DEVICE_DEBUG("probe failed");
+		goto out;
+	}
 
-		// Open the actual I2C device
-		char dev_path[16];
-		snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", get_device_bus());
-		_fd = ::open(dev_path, O_RDWR);
+	// do base class init, which will create device node, etc
+	ret = CDev::init();
 
-		if (_fd < 0) {
-			PX4_ERR("could not open %s", dev_path);
-			px4_errno = errno;
-			return PX4_ERROR;
-		}
+	if (ret != OK) {
+		DEVICE_DEBUG("cdev init failed");
+		goto out;
+	}
 
-#endif /* !__PX4_QURT */
+	// tell the world where we are
+	DEVICE_DEBUG("on I2C bus %d at 0x%02x", get_device_bus(), get_device_address());
+
+out:
+
+	if ((ret != OK) && !(_fd < 0)) {
+		::close(_fd);
+		_fd = -1;
 	}
 
 	return ret;
 }
 
 int
-I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
 {
-#ifndef __PX4_LINUX
-	return PX4_ERROR;
-#else
-	struct i2c_msg msgv[2];
-	unsigned msgs;
 	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
 	if (_fd < 0) {
 		PX4_ERR("I2C device not opened");
-		return 1;
+		return PX4_ERROR;
 	}
 
 	do {
 		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
-		msgs = 0;
+
+		unsigned msgs = 0;
+		struct i2c_msg msgv[2] {};
 
 		if (send_len > 0) {
 			msgv[msgs].addr = get_device_address();
@@ -148,7 +140,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 
 		if (recv_len > 0) {
 			msgv[msgs].addr = get_device_address();
-			msgv[msgs].flags = I2C_M_READ;
+			msgv[msgs].flags = I2C_M_RD;
 			msgv[msgs].buf = recv;
 			msgv[msgs].len = recv_len;
 			msgs++;
@@ -158,37 +150,27 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 			return -EINVAL;
 		}
 
-		struct i2c_rdwr_ioctl_data packets;
-
+		i2c_rdwr_ioctl_data packets{};
 		packets.msgs  = msgv;
-
 		packets.nmsgs = msgs;
 
-		if (simulate) {
-			DEVICE_DEBUG("I2C SIM: transfer_4 on %s", get_devname());
-			ret = PX4_OK;
+		int ret_ioctl = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
+
+		if (ret_ioctl == -1) {
+			DEVICE_DEBUG("I2C transfer failed");
+			ret = PX4_ERROR;
 
 		} else {
-			ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
-
-			if (ret == -1) {
-				DEVICE_DEBUG("I2C transfer failed");
-				ret = PX4_ERROR;
-
-			} else {
-				ret = PX4_OK;
-			}
-		}
-
-		/* success */
-		if (ret == PX4_OK) {
+			// success
+			ret = PX4_OK;
 			break;
 		}
 
 	} while (retry_count++ < _retries);
 
 	return ret;
-#endif
 }
 
 } // namespace device
+
+#endif // __PX4_LINUX

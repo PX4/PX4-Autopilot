@@ -84,6 +84,8 @@ enum Rotation {
 	ROTATION_PITCH_9_YAW_180 = 32,
 	ROTATION_PITCH_45 = 33,
 	ROTATION_PITCH_315 = 34,
+	ROTATION_ROLL_90_YAW_270 = 35,
+	ROTATION_ROLL_270_YAW_180 = 41,
 	ROTATION_MAX
 };
 
@@ -129,13 +131,21 @@ const rot_lookup_t rot_lookup[] = {
 	{  0,   9, 180 },
 	{ 0,   45,   0 },
 	{ 0,  315,   0 },
+	{ 90,   0, 270 },
+	{270,   0, 180 },
 };
 
 /**
  * Get the rotation matrix
  */
+__EXPORT matrix::Dcmf
+get_rot_matrix(enum Rotation rot);
 
-__EXPORT matrix::Dcmf get_rot_matrix(enum Rotation rot);
+/**
+ * Get the rotation quaternion
+ */
+__EXPORT matrix::Quatf
+get_rot_quaternion(enum Rotation rot);
 
 /**
  * rotate a 3 element float vector in-place

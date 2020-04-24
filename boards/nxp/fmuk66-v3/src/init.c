@@ -45,7 +45,8 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform/gpio.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -62,7 +63,7 @@
 
 #include <kinetis.h>
 #include <kinetis_uart.h>
-#include <chip/kinetis_uart.h>
+#include <hardware/kinetis_uart.h>
 #include "board_config.h"
 
 #include "up_arch.h"
@@ -73,7 +74,9 @@
 
 #include <systemlib/px4_macros.h>
 
-#include <px4_init.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -112,10 +115,12 @@ __END_DECLS
 
 void board_on_reset(int status)
 {
-	/* configure the GPIO pins to outputs and keep them low */
+	for (int i = 0; i < 6; ++i) {
+		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
+	}
 
-	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	px4_arch_configgpio(io_timer_channel_get_gpio_output(6)); // Echo trigger pin
+	px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(7)));
 
 	if (status >= 0) {
 		up_mdelay(6);
@@ -137,41 +142,6 @@ void board_on_reset(int status)
 int board_read_VBUS_state(void)
 {
 	return BOARD_ADC_USB_CONNECTED ? 0 : 1;
-}
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
-{
-
-	irqstate_t irqstate = px4_enter_critical_section();
-
-	uint8_t s2 =  getreg8(KINETIS_UART_S2_OFFSET + uxart_base);
-	uint8_t c3 =  getreg8(KINETIS_UART_C3_OFFSET + uxart_base);
-
-	/* {R|T}XINV bit fields can written any time */
-
-	if (invert_on) {
-		s2 |= (UART_S2_RXINV);
-		c3 |= (UART_C3_TXINV);
-
-	} else {
-		s2 &= ~(UART_S2_RXINV);
-		c3 &= ~(UART_C3_TXINV);
-	}
-
-	putreg8(s2, KINETIS_UART_S2_OFFSET + uxart_base);
-	putreg8(c3, KINETIS_UART_C3_OFFSET + uxart_base);
-
-	leave_critical_section(irqstate);
 }
 
 /************************************************************************************
@@ -212,7 +182,7 @@ kinetis_boardinitialize(void)
 	board_autoled_initialize();
 
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	fmuk66_timer_initialize();
 

@@ -36,10 +36,10 @@
  * Entry point for syslink module used to communicate with the NRF module on a Crazyflie
  */
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/defines.h>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -57,10 +57,6 @@
 #include <drivers/drv_board_led.h>
 
 #include <systemlib/err.h>
-
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/input_rc.h>
 
 #include <board_config.h>
 
@@ -100,9 +96,6 @@ Syslink::Syslink() :
 	_fd(0),
 	_queue(2, sizeof(syslink_message_t)),
 	_writebuffer(16, sizeof(crtp_message_t)),
-	_battery_pub(nullptr),
-	_rc_pub(nullptr),
-	_cmd_pub(nullptr),
 	_rssi(RC_INPUT_RSSI_MAX),
 	_bstate(BAT_DISCHARGING)
 {
@@ -295,7 +288,7 @@ Syslink::task_main()
 	_memory = new SyslinkMemory(this);
 	_memory->init();
 
-	_battery.reset(&_battery_status);
+	_battery.reset();
 
 
 	//	int ret;
@@ -418,7 +411,8 @@ Syslink::handle_message(syslink_message_t *msg)
 		memcpy(&vbat, &msg->data[1], sizeof(float));
 		//memcpy(&iset, &msg->data[5], sizeof(float));
 
-		_battery.updateBatteryStatus(t, vbat, -1, true, true, 0, 0, false, &_battery_status);
+		_battery.updateBatteryStatus(t, vbat, -1, true,
+					     battery_status_s::BATTERY_SOURCE_POWER_MODULE, 0, 0);
 
 
 		// Update battery charge state
@@ -427,20 +421,11 @@ Syslink::handle_message(syslink_message_t *msg)
 		}
 
 		/* With the usb plugged in and battery disconnected, it appears to be charged. The voltage check ensures that a battery is connected  */
-		else if (powered && !charging && _battery_status.voltage_filtered_v > 3.7f) {
+		else if (powered && !charging && vbat > 3.7f) {
 			_bstate = BAT_CHARGED;
 
 		} else {
 			_bstate = BAT_DISCHARGING;
-		}
-
-
-		// announce the battery status if needed, just publish else
-		if (_battery_pub != nullptr) {
-			orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
-
-		} else {
-			_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
 		}
 
 	} else if (msg->type == SYSLINK_RADIO_RSSI) {
@@ -572,12 +557,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 		rc.values[3] = cmd->thrust * 1000 / USHRT_MAX + 1000;
 		rc.values[4] = 1000; // Dummy channel as px4 needs at least 5
 
-		if (_rc_pub == nullptr) {
-			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
-
-		} else {
-			orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
-		}
+		_rc_pub.publish(rc);
 
 	} else if (c->port == CRTP_PORT_MAVLINK) {
 		_count_in++;

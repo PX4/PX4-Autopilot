@@ -33,7 +33,6 @@
 px4_add_module(
     MODULE systemcmds__motor_ramp
     MAIN motor_ramp
-    STACK_MAIN 1200
     COMPILE_FLAGS
         -Wno-write-strings
     SRCS

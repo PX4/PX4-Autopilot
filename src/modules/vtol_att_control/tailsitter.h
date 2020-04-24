@@ -43,7 +43,7 @@
 #define TAILSITTER_H
 
 #include "vtol_type.h"
-#include <perf/perf_counter.h>  /** is it necsacery? **/
+
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
@@ -64,16 +64,14 @@ public:
 private:
 
 	struct {
-		float front_trans_dur_p2;
 		float fw_pitch_sp_offset;
 	} _params_tailsitter{};
 
 	struct {
-		param_t front_trans_dur_p2;
 		param_t fw_pitch_sp_offset;
 	} _params_handles_tailsitter{};
 
-	enum vtol_mode {
+	enum class vtol_mode {
 		MC_MODE = 0,			/**< vtol is in multicopter mode */
 		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
 		TRANSITION_BACK,		/**< vtol is in back transition mode */

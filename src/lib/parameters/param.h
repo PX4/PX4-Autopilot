@@ -410,27 +410,6 @@ __EXPORT void	param_print_status(void);
  */
 __EXPORT void	param_control_autosave(bool enable);
 
-/*
- * Macros creating static parameter definitions.
- *
- * Note that these structures are not known by name; they are
- * collected into a section that is iterated by the parameter
- * code.
- *
- * Note that these macros cannot be used in C++ code due to
- * their use of designated initializers.  They should probably
- * be refactored to avoid the use of a union for param_value_u.
- */
-
-/** define an int32 parameter */
-#define PARAM_DEFINE_INT32(_name, _default)
-
-/** define a float parameter */
-#define PARAM_DEFINE_FLOAT(_name, _default)
-
-/** define a parameter that points to a structure */
-#define PARAM_DEFINE_STRUCT(_name, _default)
-
 /**
  * Parameter value union.
  */
@@ -473,7 +452,7 @@ __END_DECLS
 
 
 
-#ifdef	__cplusplus
+#if defined(__cplusplus) && !defined(PARAM_IMPLEMENTATION)
 #if 0 // set to 1 to debug param type mismatches
 #include <cstdio>
 #define CHECK_PARAM_TYPE(param, type) \
@@ -488,17 +467,19 @@ __END_DECLS
 // param is a C-interface. This means there is no overloading, and thus no type-safety for param_get().
 // So for C++ code we redefine param_get() to inlined overloaded versions, which gives us type-safety
 // w/o having to use a different interface
-static inline int param_get(param_t param, float *val)
+static inline int param_get_cplusplus(param_t param, float *val)
 {
 	CHECK_PARAM_TYPE(param, PARAM_TYPE_FLOAT);
 	return param_get(param, (void *)val);
 }
-static inline int param_get(param_t param, int32_t *val)
+static inline int param_get_cplusplus(param_t param, int32_t *val)
 {
 	CHECK_PARAM_TYPE(param, PARAM_TYPE_INT32);
 	return param_get(param, (void *)val);
 }
 #undef CHECK_PARAM_TYPE
+
+#define param_get(param, val) param_get_cplusplus(param, val)
 
 #endif /* __cplusplus */
 

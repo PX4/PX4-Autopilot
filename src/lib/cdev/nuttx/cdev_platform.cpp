@@ -39,7 +39,7 @@
 #include "cdev_platform.hpp"
 #include "../CDev.hpp"
 
-#include "px4_posix.h"
+#include <px4_platform_common/posix.h>
 #include "drivers/drv_device.h"
 #include <sys/ioctl.h>
 

@@ -69,8 +69,6 @@ private:
 	struct {
 		float pusher_ramp_dt;
 		float back_trans_ramp;
-		float down_pitch_max;
-		float forward_thrust_scale;
 		float pitch_setpoint_offset;
 		float reverse_output;
 		float reverse_delay;
@@ -79,14 +77,12 @@ private:
 	struct {
 		param_t pusher_ramp_dt;
 		param_t back_trans_ramp;
-		param_t down_pitch_max;
-		param_t forward_thrust_scale;
 		param_t pitch_setpoint_offset;
 		param_t reverse_output;
 		param_t reverse_delay;
 	} _params_handles_standard;
 
-	enum vtol_mode {
+	enum class vtol_mode {
 		MC_MODE = 0,
 		TRANSITION_TO_FW,
 		TRANSITION_TO_MC,

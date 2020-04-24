@@ -129,7 +129,9 @@ class ManualInput(object):
         mode = offboard_control_mode()
         mode.ignore_thrust = ignore_thrust
         mode.ignore_attitude = ignore_attitude
-        mode.ignore_bodyrate = ignore_bodyrate
+        mode.ignore_bodyrate_x = ignore_bodyrate
+        mode.ignore_bodyrate_y = ignore_bodyrate
+        mode.ignore_bodyrate_z = ignore_bodyrate
         mode.ignore_position = ignore_position
         mode.ignore_velocity = ignore_velocity
         mode.ignore_acceleration_force = ignore_acceleration_force

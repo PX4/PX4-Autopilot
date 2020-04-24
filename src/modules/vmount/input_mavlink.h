@@ -43,13 +43,11 @@
 #include "input_rc.h"
 #include <cstdint>
 
-#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_roi.h>
 
 namespace vmount
 {
-
-
 /**
  ** class InputMavlinkROI
  ** Input based on the vehicle_roi topic
@@ -95,7 +93,6 @@ private:
 	void _ack_vehicle_command(vehicle_command_s *cmd);
 
 	int _vehicle_command_sub = -1;
-	orb_advert_t _vehicle_command_ack_pub = nullptr;
 	bool _stabilize[3] = { false, false, false };
 
 	int32_t _mav_sys_id{1}; ///< our mavlink system id

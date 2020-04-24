@@ -38,7 +38,7 @@ namespace px4
 namespace logger
 {
 
-LogWriter::LogWriter(Backend configured_backend, size_t file_buffer_size, unsigned int queue_size)
+LogWriter::LogWriter(Backend configured_backend, size_t file_buffer_size)
 	: _backend(configured_backend)
 {
 	if (configured_backend & BackendFile) {
@@ -50,7 +50,7 @@ LogWriter::LogWriter(Backend configured_backend, size_t file_buffer_size, unsign
 	}
 
 	if (configured_backend & BackendMavlink) {
-		_log_writer_mavlink_for_write = _log_writer_mavlink = new LogWriterMavlink(queue_size);
+		_log_writer_mavlink_for_write = _log_writer_mavlink = new LogWriterMavlink();
 
 		if (!_log_writer_mavlink) {
 			PX4_ERR("LogWriterMavlink allocation failed");

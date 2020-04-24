@@ -12,6 +12,7 @@ then
 	param set FW_AIRSPD_MAX 25
 	param set FW_AIRSPD_MIN 14
 	param set FW_AIRSPD_TRIM 16
+	param set FW_L1_PERIOD 12
 
 	param set MC_ROLLRATE_P 0.3
 
@@ -35,13 +36,8 @@ then
 
 	param set VT_F_TRANS_DUR 1.5
 	param set VT_F_TRANS_THR 0.7
-	param set VT_MOT_COUNT 0
 	param set VT_TYPE 0
 
-	param set WEST_EN 1
-
-	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
-	param set V19_VT_ROLLDIR 0
 fi
 
 set MAV_TYPE 20

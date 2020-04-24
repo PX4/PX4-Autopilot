@@ -56,8 +56,11 @@ endif
 # directory build/px4_fmu-v2_default and then call make
 # in that directory with the target upload.
 
-#  explicity set default build target
+# explicity set default build target
 all: px4_sitl_default
+
+# define a space character to be able to explicitly find it in strings
+space := $(subst ,, )
 
 # Parsing
 # --------------------------------------------------------------------
@@ -138,6 +141,11 @@ else
 
 endif
 
+# Pick up specific Python path if set
+ifdef PYTHON_EXECUTABLE
+	CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
@@ -165,8 +173,8 @@ define cmake-cache-check
 	@$(eval CACHED_CMAKE_OPTIONS = $(shell cd $(BUILD_DIR) 2>/dev/null && cmake -L 2>/dev/null | sed -n 's/\([^[:blank:]]*\):[^[:blank:]]*\(=[^[:blank:]]*\)/\1\2/gp' ))
 	@# transform the options in CMAKE_ARGS into the OPTION=VALUE format without -D
 	@$(eval DESIRED_CMAKE_OPTIONS = $(shell echo $(CMAKE_ARGS) | sed -n 's/-D\([^[:blank:]]*=[^[:blank:]]*\)/\1/gp' ))
-	@# find each currently desired option in the already cached ones
-	@$(eval VERIFIED_CMAKE_OPTIONS = $(foreach option,$(DESIRED_CMAKE_OPTIONS),$(findstring $(option),$(CACHED_CMAKE_OPTIONS))))
+	@# find each currently desired option in the already cached ones making sure the complete configured string value is the same
+	@$(eval VERIFIED_CMAKE_OPTIONS = $(foreach option,$(DESIRED_CMAKE_OPTIONS),$(strip $(findstring $(option)$(space),$(CACHED_CMAKE_OPTIONS)))))
 	@# if the complete list of desired options is found in the list of verified options we don't need to reconfigure and CMAKE_CACHE_CHECK stays empty
 	@$(eval CMAKE_CACHE_CHECK = $(if $(findstring $(DESIRED_CMAKE_OPTIONS),$(VERIFIED_CMAKE_OPTIONS)),,y))
 endef
@@ -201,29 +209,19 @@ $(CONFIG_TARGETS_DEFAULT):
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
-posix: px4_sitl_default
-
 # board reorganization deprecation warnings (2018-11-22)
 define deprecation_warning
 	$(warning $(1) has been deprecated and will be removed, please use $(2)!)
 endef
 
-px4fmu-%_default:
-	$(call deprecation_warning, ${@},$(subst px4fmu,px4_fmu,$@))
-	$(MAKE) $(subst px4fmu,px4_fmu, $@)
-
-posix_sitl_default:
-	$(call deprecation_warning, ${@},px4_sitl_default)
-	$(MAKE) px4_sitl_default
-
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix px4_sitl_default all_config_targets all_default_targets
+.PHONY: all px4_sitl_default all_config_targets all_default_targets
 
 # Multi- config targets.
-eagle_default: atlflight_eagle_default atlflight_eagle_qurt-default
+eagle_default: atlflight_eagle_default atlflight_eagle_qurt
 eagle_rtps: atlflight_eagle_rtps atlflight_eagle_qurt-rtps
 
-excelsior_default: atlflight_excelsior_default atlflight_excelsior_qurt-default
+excelsior_default: atlflight_excelsior_default atlflight_excelsior_qurt
 excelsior_rtps: atlflight_excelsior_rtps atlflight_excelsior_qurt-rtps
 
 .PHONY: eagle_default eagle_rtps
@@ -232,7 +230,7 @@ excelsior_rtps: atlflight_excelsior_rtps atlflight_excelsior_qurt-rtps
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware alt_firmware check_rtps
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware check_rtps
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware
@@ -245,23 +243,17 @@ px4fmu_firmware: \
 	check_px4_fmu-v4_default \
 	check_px4_fmu-v4pro_default \
 	check_px4_fmu-v5_default \
+	check_px4_fmu-v5x_default \
 	sizes
 
 misc_qgc_extra_firmware: \
+	check_nxp_fmuk66-v3_default \
+	check_nxp_fmurt1062-v1_default \
 	check_intel_aerofc-v1_default \
-	check_auav_x21_default \
+	check_mro_x21_default \
 	check_bitcraze_crazyflie_default \
 	check_airmind_mindpx-v2_default \
 	check_px4_fmu-v2_lpe \
-	sizes
-
-# Other NuttX firmware
-alt_firmware: \
-	check_nxp_fmuk66-v3_default \
-	check_px4_cannode-v1_default \
-	check_px4_esc-v1_default \
-	check_auav_esc35-v1_default \
-	check_thiemar_s2740vc-v1_default \
 	sizes
 
 # builds with RTPS
@@ -278,9 +270,9 @@ sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
 
 # All default targets that don't require a special build environment
-check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware tests check_format
+check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware tests check_format
 
-# quick_check builds a single nuttx and posix target, runs testing, and checks the style
+# quick_check builds a single nuttx and SITL target, runs testing, and checks the style
 quick_check: check_px4_sitl_test check_px4_fmu-v5_default tests check_format
 
 check_%:
@@ -338,15 +330,15 @@ format:
 # Testing
 # --------------------------------------------------------------------
 .PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
-.PHONY: rostest python_coverage test_mixer_multirotor
+.PHONY: rostest python_coverage
 
-test_mixer_multirotor:
-	@$(MAKE) -C "$(SRC_DIR)"/src/lib/mixer --no-print-directory tests
-
-tests: test_mixer_multirotor
-	@$(MAKE) --no-print-directory px4_sitl_test test_results \
-	ASAN_OPTIONS="color=always:check_initialization_order=1:detect_stack_use_after_return=1" \
-	UBSAN_OPTIONS="color=always"
+tests:
+	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
+	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test)
 
 tests_coverage:
 	@$(MAKE) clean
@@ -355,6 +347,20 @@ tests_coverage:
 
 rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+
+tests_integration: px4_sitl_default
+	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 100
+
+tests_integration_coverage:
+	@$(MAKE) clean
+	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 100
+	@mkdir -p coverage
+	@lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
 
 tests_mission: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test
@@ -374,8 +380,9 @@ tests_offboard: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
 
-tests_avoidance:
+tests_avoidance: rostest
 	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_avoidance.test
+	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_safe_landing.test
 
 python_coverage:
 	@mkdir -p "$(SRC_DIR)"/build/python_coverage
@@ -423,7 +430,7 @@ clang-tidy-quiet: px4_sitl_default-clang
 # TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
 cppcheck: px4_sitl_default
 	@mkdir -p "$(SRC_DIR)"/build/cppcheck
-	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++11 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_sitl_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml > /dev/null
+	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++14 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_sitl_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml > /dev/null
 	@cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck --source-dir="$(SRC_DIR)"/src/
 
 shellcheck_all:
@@ -464,10 +471,9 @@ distclean: gazeboclean
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
 %:
 	$(if $(filter $(FIRST_ARG),$@), \
-		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
+		$(error "Make target $@ not found. It either does not exist or $@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
 # Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
-space := $(subst ,, )
 help:
 	@echo "Usage: $(MAKE) <target>"
 	@echo "Where <target> is one of:"

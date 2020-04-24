@@ -334,19 +334,18 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 0);
 /**
  * Early landing configuration deployment
  *
- * When set to 0/disabled, the landing configuration (flaps, landing airspeed, etc.) is only activated
- * on the final approach to landing. When set to 1/enabled, it is already activated when entering the
- * final loiter-down (loiter-to-alt) WP before the landing approach. This shifts the (often large)
+ * When disabled, the landing configuration (flaps, landing airspeed, etc.) is only activated
+ * on the final approach to landing. When enabled, it is already activated when entering the
+ * final loiter-down (loiter-to-alt) waypoint before the landing approach. This shifts the (often large)
  * altitude and airspeed errors caused by the configuration change away from the ground such that
  * these are not so critical. It also gives the controller enough time to adapt to the new
  * configuration such that the landing approach starts with a cleaner initial state.
  *
- * @value 0 Disable early land configuration deployment
- * @value 1 Enable early land configuration deployment
+ * @boolean
  *
  * @group FW L1 Control
  */
-PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 1);
+PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
 
 /**
  * Flare, minimum pitch
@@ -397,7 +396,7 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
 /**
  * Throttle time constant factor for landing
  *
- * Set this parameter to <1.0 to make the TECS throttle loop react faster during
+ * Set this parameter to less than 1.0 to make the TECS throttle loop react faster during
  * landing than during normal flight (i.e. giving efficiency and low motor wear at
  * high altitudes but control accuracy during landing). During landing, the TECS
  * throttle time constant (FW_T_THRO_CONST) is multiplied by this value.
@@ -603,24 +602,6 @@ PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
 PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
 
 /**
- * Complementary filter "omega" parameter for height
- *
- * This is the cross-over frequency (in radians/second) of the complementary
- * filter used to fuse vertical acceleration and barometric height to obtain
- * an estimate of height rate and height. Increasing this frequency weights
- * the solution more towards use of the barometer, whilst reducing it weights
- * the solution more towards use of the accelerometer data.
- *
- * @unit rad/s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
-
-/**
  * Complementary filter "omega" parameter for speed
  *
  * This is the cross-over frequency (in radians/second) of the complementary
@@ -728,3 +709,18 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.8f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
+
+/**
+ * Minimum groundspeed
+ *
+ * The controller will increase the commanded airspeed to maintain
+ * this minimum groundspeed to the next waypoint.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);

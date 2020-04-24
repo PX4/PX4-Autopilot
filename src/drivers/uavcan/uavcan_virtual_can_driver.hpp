@@ -402,7 +402,7 @@ class VirtualCanDriver : public uavcan::ICanDriver,
 			int count;
 			int rv = px4_sem_getvalue(&sem, &count);
 
-			if (rv > 0 && count <= 0) {
+			if (rv == 0 && count <= 0) {
 				px4_sem_post(&sem);
 			}
 		}

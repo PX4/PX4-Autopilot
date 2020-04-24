@@ -36,8 +36,8 @@
  * Tests for the data manager.
  */
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/posix.h>
 
 #include <sys/types.h>
 
@@ -46,8 +46,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-
-#include <arch/board/board.h>
 
 #include <drivers/drv_board_led.h>
 #include <drivers/drv_hrt.h>

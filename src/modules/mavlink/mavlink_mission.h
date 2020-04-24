@@ -46,7 +46,9 @@
 #pragma once
 
 #include <dataman/dataman.h>
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/mission_result.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
@@ -77,7 +79,7 @@ class MavlinkMissionManager
 public:
 	explicit MavlinkMissionManager(Mavlink *mavlink);
 
-	~MavlinkMissionManager();
+	~MavlinkMissionManager() = default;
 
 	/**
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
@@ -124,12 +126,12 @@ private:
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
-	int			_offboard_mission_sub{-1};
-	int			_mission_result_sub{-1};
+	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
 
-	orb_advert_t		_offboard_mission_pub{nullptr};
+	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
 	static uint16_t		_geofence_update_counter;
+	static uint16_t		_safepoint_update_counter;
 	bool			_geofence_locked{false};		///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
 
 	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
@@ -143,7 +145,7 @@ private:
 		DM_KEY_FENCE_POINTS_MAX - 1,
 		DM_KEY_SAFE_POINTS_MAX - 1
 	};	/**< Maximum number of mission items for each type
-					(fence & save points use the first item for the stats) */
+					(fence & safe points use the first item for the stats) */
 
 	/** get the maximum number of item count for the current _mission_type */
 	uint16_t current_max_item_count();

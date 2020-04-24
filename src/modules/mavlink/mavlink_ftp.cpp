@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,8 +43,14 @@
 #include <cstring>
 
 #include "mavlink_ftp.h"
-#include "mavlink_main.h"
 #include "mavlink_tests/mavlink_ftp_test.h"
+
+#ifndef MAVLINK_FTP_UNIT_TEST
+#include "mavlink_main.h"
+#else
+#include <v2.0/standard/mavlink.h>
+#endif
+
 
 constexpr const char MavlinkFTP::_root_dir[];
 
@@ -57,13 +63,8 @@ MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
 
 MavlinkFTP::~MavlinkFTP()
 {
-	if (_work_buffer1) {
-		delete[] _work_buffer1;
-	}
-
-	if (_work_buffer2) {
-		delete[] _work_buffer2;
-	}
+	delete[] _work_buffer1;
+	delete[] _work_buffer2;
 }
 
 unsigned
@@ -132,18 +133,23 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 		mavlink_msg_file_transfer_protocol_decode(msg, &ftp_request);
 
 #ifdef MAVLINK_FTP_DEBUG
-		PX4_INFO("FTP: received ftp protocol message target_system: %d", ftp_request.target_system);
+		PX4_INFO("FTP: received ftp protocol message target_system: %d target_component: %d",
+			 ftp_request.target_system, ftp_request.target_component);
 #endif
 
-		if (ftp_request.target_system == _getServerSystemId()) {
-			_process_request(&ftp_request, msg->sysid);
+		if ((ftp_request.target_system == _getServerSystemId() || ftp_request.target_system == 0) &&
+		    (ftp_request.target_component == _getServerComponentId() || ftp_request.target_component == 0)) {
+			_process_request(&ftp_request, msg->sysid, msg->compid);
 		}
 	}
 }
 
 /// @brief Processes an FTP message
 void
-MavlinkFTP::_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t target_system_id)
+MavlinkFTP::_process_request(
+	mavlink_file_transfer_protocol_t *ftp_req,
+	uint8_t target_system_id,
+	uint8_t target_comp_id)
 {
 	bool stream_send = false;
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
@@ -171,7 +177,11 @@ MavlinkFTP::_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t 
 		if (payload->seq_number + 1 == last_payload->seq_number) {
 			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
 			// resent the request
+#ifdef MAVLINK_FTP_UNIT_TEST
+			_utRcvMsgFunc(last_reply, _worker_data);
+#else
 			mavlink_msg_file_transfer_protocol_send_struct(_mavlink->get_channel(), last_reply);
+#endif
 			return;
 		}
 	}
@@ -216,7 +226,7 @@ MavlinkFTP::_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t 
 		break;
 
 	case kCmdBurstReadFile:
-		errorCode = _workBurst(payload, target_system_id);
+		errorCode = _workBurst(payload, target_system_id, target_comp_id);
 		stream_send = true;
 		break;
 
@@ -269,10 +279,12 @@ out:
 
 		if (r_errno == EEXIST) {
 			errorCode = kErrFailFileExists;
+
+		} else if (r_errno == ENOENT && errorCode == kErrFailErrno) {
+			errorCode = kErrFileNotFound;
 		}
 
 		payload->data[0] = errorCode;
-
 
 		if (errorCode == kErrFailErrno) {
 			payload->size = 2;
@@ -286,6 +298,8 @@ out:
 	if (!stream_send || errorCode != kErrNone) {
 		// respond to the request
 		ftp_req->target_system = target_system_id;
+		ftp_req->target_network = 0;
+		ftp_req->target_component = target_comp_id;
 		_reply(ftp_req);
 	}
 }
@@ -309,7 +323,6 @@ bool MavlinkFTP::_ensure_buffers_exist()
 void
 MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 {
-
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
 	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
@@ -325,8 +338,6 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	PX4_INFO("FTP: %s seq_number: %d", payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 #endif
 
-	ftp_req->target_network = 0;
-	ftp_req->target_component = 0;
 #ifdef MAVLINK_FTP_UNIT_TEST
 	// Unit test hook is set, call that instead
 	_utRcvMsgFunc(ftp_req, _worker_data);
@@ -338,7 +349,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 
 /// @brief Responds to a List command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
+MavlinkFTP::_workList(PayloadHeader *payload)
 {
 	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
 	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
@@ -351,14 +362,8 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 	DIR *dp = opendir(_work_buffer1);
 
 	if (dp == nullptr) {
-#ifdef MAVLINK_FTP_UNIT_TEST
 		PX4_WARN("File open failed %s", _work_buffer1);
-#else
-		_mavlink->send_statustext_critical("FTP: can't open path (file system corrupted?)");
-		_mavlink->send_statustext_critical(_work_buffer1);
-#endif
-		// this is not an FTP error, abort directory by simulating eof
-		return kErrEOF;
+		return kErrFileNotFound;
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
@@ -370,7 +375,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 	// move to the requested offset
 	int requested_offset = payload->offset;
 
-	while (requested_offset-- > 0 && readdir(dp));
+	while (requested_offset-- > 0 && readdir(dp)) {}
 
 	for (;;) {
 		errno = 0;
@@ -379,13 +384,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 		// read the directory entry
 		if (result == nullptr) {
 			if (errno) {
-#ifdef MAVLINK_FTP_UNIT_TEST
 				PX4_WARN("readdir failed");
-#else
-				_mavlink->send_statustext_critical("FTP: list readdir failure");
-				_mavlink->send_statustext_critical(_work_buffer1);
-#endif
-
 				payload->data[offset++] = kDirentSkip;
 				*((char *)&payload->data[offset]) = '\0';
 				offset++;
@@ -440,8 +439,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 #else
 		case DT_DIR:
 #endif
-			if ((!list_hidden && (strncmp(result->d_name, ".", 1) == 0)) ||
-			    strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0) {
+			if (strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0) {
 				// Don't bother sending these back
 				direntType = kDirentSkip;
 
@@ -584,7 +582,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 /// @brief Responds to a Stream command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id)
+MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id)
 {
 	if (payload->session != 0 && _session_info.fd < 0) {
 		return kErrInvalidSession;
@@ -599,6 +597,7 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id)
 	_session_info.stream_chunk_transmitted = 0;
 	_session_info.stream_seq_number = payload->seq_number + 1;
 	_session_info.stream_target_system_id = target_system_id;
+	_session_info.stream_target_component_id = target_component_id;
 
 	return kErrNone;
 }
@@ -1088,6 +1087,8 @@ void MavlinkFTP::send(const hrt_abstime t)
 		}
 
 		ftp_msg.target_system = _session_info.stream_target_system_id;
+		ftp_msg.target_network = 0;
+		ftp_msg.target_component = _session_info.stream_target_component_id;
 		_reply(&ftp_msg);
 	} while (more_data);
 }

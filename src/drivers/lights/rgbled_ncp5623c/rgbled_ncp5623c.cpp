@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,32 +39,17 @@
  * @author CUAVcaijie <caijie@cuav.net>
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <string.h>
 
 #include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-
-#include <px4_workqueue.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
-
-#include <drivers/drv_led.h>
 #include <lib/led/led.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
-#include "uORB/topics/parameter_update.h"
 
 #define ADDR			0x39	/**< I2C adress of NCP5623C */
 
@@ -77,33 +62,36 @@
 #define NCP5623_LED_OFF		0x00	/**< off */
 
 
-class RGBLED_NPC5623C : public device::I2C
+class RGBLED_NPC5623C : public device::I2C, public I2CSPIDriver<RGBLED_NPC5623C>
 {
 public:
-	RGBLED_NPC5623C(int bus, int rgbled);
-	virtual ~RGBLED_NPC5623C();
+	RGBLED_NPC5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
+	virtual ~RGBLED_NPC5623C() = default;
 
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	virtual int		init();
-	virtual int		probe();
+	int		init() override;
+	int		probe() override;
+
+	void			RunImpl();
+
 private:
-	work_s			_work;
 
-	float			_brightness;
-	float			_max_brightness;
+	float			_brightness{1.0f};
+	float			_max_brightness{1.0f};
 
-	uint8_t			_r;
-	uint8_t			_g;
-	uint8_t			_b;
-	volatile bool		_running;
-	volatile bool		_should_run;
-	bool			_leds_enabled;
-	int			_param_sub;
+	uint8_t			_r{0};
+	uint8_t			_g{0};
+	uint8_t			_b{0};
+	volatile bool		_running{false};
+	volatile bool		_should_run{true};
+	bool			_leds_enabled{true};
+
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	LedController		_led_controller;
-
-	static void		led_trampoline(void *arg);
-	void			led();
 
 	int			send_led_rgb();
 	void			update_params();
@@ -111,43 +99,10 @@ private:
 	int			write(uint8_t reg, uint8_t data);
 };
 
-/* for now, we only support one RGBLED */
-namespace
+RGBLED_NPC5623C::RGBLED_NPC5623C(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
+	I2C(DRV_LED_DEVTYPE_RGBLED_NCP5623C, MODULE_NAME, bus, address, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
-RGBLED_NPC5623C *g_rgbled = nullptr;
-}
-
-void rgbled_ncp5623c_usage();
-
-extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[]);
-
-RGBLED_NPC5623C::RGBLED_NPC5623C(int bus, int rgbled) :
-	I2C("rgbled1", RGBLED1_DEVICE_PATH, bus, rgbled
-#ifdef __PX4_NUTTX
-	    , 100000 /* maximum speed supported */
-#endif
-	   ),
-	_work{},
-	_brightness(1.0f),
-	_max_brightness(1.0f),
-	_r(0),
-	_g(0),
-	_b(0),
-	_running(false),
-	_should_run(true),
-	_leds_enabled(true),
-	_param_sub(-1)
-{
-}
-
-RGBLED_NPC5623C::~RGBLED_NPC5623C()
-{
-	_should_run = false;
-	int counter = 0;
-
-	while (_running && ++counter < 10) {
-		usleep(100000);
-	}
 }
 
 int
@@ -164,8 +119,7 @@ RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
 int
 RGBLED_NPC5623C::init()
 {
-	int ret;
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	if (ret != OK) {
 		return ret;
@@ -174,7 +128,8 @@ RGBLED_NPC5623C::init()
 	update_params();
 
 	_running = true;
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED_NPC5623C::led_trampoline, this, 0);
+
+	ScheduleNow();
 
 	return OK;
 }
@@ -188,54 +143,19 @@ RGBLED_NPC5623C::probe()
 }
 
 void
-RGBLED_NPC5623C::led_trampoline(void *arg)
+RGBLED_NPC5623C::RunImpl()
 {
-	RGBLED_NPC5623C *rgbl = reinterpret_cast<RGBLED_NPC5623C *>(arg);
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	rgbl->led();
-}
+		// update parameters from storage
+		update_params();
 
-/**
- * Main loop function
- */
-void
-RGBLED_NPC5623C::led()
-{
-	if (!_should_run) {
-		if (_param_sub >= 0) {
-			orb_unsubscribe(_param_sub);
-		}
-
-		int led_control_sub = _led_controller.led_control_subscription();
-
-		if (led_control_sub >= 0) {
-			orb_unsubscribe(led_control_sub);
-		}
-
-		_running = false;
-		return;
-	}
-
-	if (_param_sub < 0) {
-		_param_sub = orb_subscribe(ORB_ID(parameter_update));
-	}
-
-	if (!_led_controller.is_init()) {
-		int led_control_sub = orb_subscribe(ORB_ID(led_control));
-		_led_controller.init(led_control_sub);
-	}
-
-	if (_param_sub >= 0) {
-		bool updated = false;
-		orb_check(_param_sub, &updated);
-
-		if (updated) {
-			parameter_update_s pupdate;
-			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-			update_params();
-			// Immediately update to change brightness
-			send_led_rgb();
-		}
+		// Immediately update to change brightness
+		send_led_rgb();
 	}
 
 	LedControlData led_control_data;
@@ -282,8 +202,7 @@ RGBLED_NPC5623C::led()
 	}
 
 	/* re-queue ourselves to run again later */
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED_NPC5623C::led_trampoline, this,
-		   USEC2TICK(_led_controller.maximum_update_interval()));
+	ScheduleDelayed(_led_controller.maximum_update_interval());
 }
 
 /**
@@ -320,108 +239,63 @@ RGBLED_NPC5623C::update_params()
 }
 
 void
-rgbled_ncp5623c_usage()
+RGBLED_NPC5623C::print_usage()
 {
-	PX4_INFO("missing command: try 'start', 'stop'");
-	PX4_INFO("options:");
-	PX4_INFO("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
-	PX4_INFO("    -a addr (0x%x)", ADDR);
+	PRINT_MODULE_USAGE_NAME("rgbled", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x39);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int
-rgbled_ncp5623c_main(int argc, char *argv[])
+I2CSPIDriverBase *RGBLED_NPC5623C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+		int runtime_instance)
 {
-	int i2cdevice = -1;
-	int rgbledadr = ADDR; /* 7bit */
+	RGBLED_NPC5623C *instance = new RGBLED_NPC5623C(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
+			cli.i2c_address);
 
-	int ch;
-
-	/* jump over start/off/etc and look at options first */
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-
-	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'a':
-			rgbledadr = strtol(myoptarg, nullptr, 0);
-			break;
-
-		case 'b':
-			i2cdevice = strtol(myoptarg, nullptr, 0);
-			break;
-
-		default:
-			rgbled_ncp5623c_usage();
-			return 1;
-		}
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	if (myoptind >= argc) {
-		rgbled_ncp5623c_usage();
-		return 1;
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		return nullptr;
 	}
 
-	const char *verb = argv[myoptind];
+	return instance;
+}
+
+extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
+{
+	using ThisDriver = RGBLED_NPC5623C;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = ADDR;
+
+	const char *verb = cli.parseDefaultArguments(argc, argv);
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli,
+				     DRV_LED_DEVTYPE_RGBLED_NCP5623C);
 
 	if (!strcmp(verb, "start")) {
-		if (g_rgbled != nullptr) {
-			PX4_WARN("already started");
-			return 1;
-		}
-
-		if (i2cdevice == -1) {
-			// try the external bus first
-			i2cdevice = PX4_I2C_BUS_EXPANSION;
-			g_rgbled = new RGBLED_NPC5623C(PX4_I2C_BUS_EXPANSION, rgbledadr);
-
-			if (g_rgbled != nullptr && OK != g_rgbled->init()) {
-				delete g_rgbled;
-				g_rgbled = nullptr;
-			}
-
-			if (g_rgbled == nullptr) {
-				// fall back to default bus
-				if (PX4_I2C_BUS_LED == PX4_I2C_BUS_EXPANSION) {
-					PX4_WARN("no RGB led on bus #%d", i2cdevice);
-					return 1;
-				}
-
-				i2cdevice = PX4_I2C_BUS_LED;
-			}
-		}
-
-		if (g_rgbled == nullptr) {
-			g_rgbled = new RGBLED_NPC5623C(i2cdevice, rgbledadr);
-
-			if (g_rgbled == nullptr) {
-				PX4_WARN("alloc failed");
-				return 1;
-			}
-
-			if (OK != g_rgbled->init()) {
-				delete g_rgbled;
-				g_rgbled = nullptr;
-				PX4_WARN("no RGB led on bus #%d", i2cdevice);
-				return 1;
-			}
-		}
-
-		return 0;
-	}
-
-	/* need the driver past this point */
-	if (g_rgbled == nullptr) {
-		PX4_WARN("not started");
-		rgbled_ncp5623c_usage();
-		return 1;
+		return ThisDriver::module_start(cli, iterator);
 	}
 
 	if (!strcmp(verb, "stop")) {
-		delete g_rgbled;
-		g_rgbled = nullptr;
-		return 0;
+		return ThisDriver::module_stop(iterator);
 	}
 
-	rgbled_ncp5623c_usage();
-	return 1;
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }

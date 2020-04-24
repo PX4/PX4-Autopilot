@@ -43,7 +43,7 @@ A few different modes are available:
 
 
 Running
-=======
+========
 
 menuconfig.py can be run either as a standalone executable or by calling the
 menuconfig() function with an existing Kconfig instance. The second option is a

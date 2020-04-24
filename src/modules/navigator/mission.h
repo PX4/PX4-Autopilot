@@ -52,7 +52,8 @@
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -90,6 +91,9 @@ public:
 	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
 	bool get_mission_changed() const { return _mission_changed ; }
 	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
+	double get_landing_lat() { return _landing_lat; }
+	double get_landing_lon() { return _landing_lon; }
+	float get_landing_alt() { return _landing_alt; }
 
 	void set_closest_item_as_current();
 
@@ -173,7 +177,8 @@ private:
 	 * @return true if current mission item available
 	 */
 	bool prepare_mission_items(mission_item_s *mission_item,
-				   mission_item_s *next_position_mission_item, bool *has_next_position_item);
+				   mission_item_s *next_position_mission_item, bool *has_next_position_item,
+				   mission_item_s *next_next_position_mission_item = nullptr, bool *has_next_next_position_item = nullptr);
 
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item
@@ -214,9 +219,9 @@ private:
 	void reset_mission(struct mission_s &mission);
 
 	/**
-	 * Returns true if we need to reset the mission
+	 * Returns true if we need to reset the mission (call this only when inactive)
 	 */
-	bool need_to_reset_mission(bool active);
+	bool need_to_reset_mission();
 
 	/**
 	 * Project current location with heading to far away location and fill setpoint.
@@ -236,19 +241,23 @@ private:
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_dist_1wp,
-		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_dist_between_wps,
-		(ParamInt<px4::params::MIS_ALTMODE>) _param_altmode,
-		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl
+		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
+		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
+		(ParamInt<px4::params::MIS_ALTMODE>) _param_mis_altmode,
+		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
 	)
 
-	struct mission_s _mission {};
+	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
+	mission_s		_mission {};
 
 	int32_t _current_mission_index{-1};
 
 	// track location of planned mission landing
 	bool	_land_start_available{false};
 	uint16_t _land_start_index{UINT16_MAX};		/**< index of DO_LAND_START, INVALID_DO_LAND_START if no planned landing */
+	double _landing_lat{0.0};
+	double _landing_lon{0.0};
+	float _landing_alt{0.0f};
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 

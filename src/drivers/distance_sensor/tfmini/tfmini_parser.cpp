@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,89 +63,89 @@ const char *parser_state[] = {
 };
 #endif
 
-int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum TFMINI_PARSE_STATE *state, float *dist)
+int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, TFMINI_PARSE_STATE *state, float *dist)
 {
 	int ret = -1;
 	//char *end;
 
 	switch (*state) {
-	case TFMINI_PARSE_STATE6_GOT_CHECKSUM:
+	case TFMINI_PARSE_STATE::STATE6_GOT_CHECKSUM:
 		if (c == 'Y') {
-			*state = TFMINI_PARSE_STATE1_SYNC_1;
+			*state = TFMINI_PARSE_STATE::STATE1_SYNC_1;
 			parserbuf[*parserbuf_index] = c;
 			(*parserbuf_index)++;
 
 		} else {
-			*state = TFMINI_PARSE_STATE0_UNSYNC;
+			*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
 		}
 
 		break;
 
-	case TFMINI_PARSE_STATE0_UNSYNC:
+	case TFMINI_PARSE_STATE::STATE0_UNSYNC:
 		if (c == 'Y') {
-			*state = TFMINI_PARSE_STATE1_SYNC_1;
+			*state = TFMINI_PARSE_STATE::STATE1_SYNC_1;
 			parserbuf[*parserbuf_index] = c;
 			(*parserbuf_index)++;
 		}
 
 		break;
 
-	case TFMINI_PARSE_STATE1_SYNC_1:
+	case TFMINI_PARSE_STATE::STATE1_SYNC_1:
 		if (c == 'Y') {
-			*state = TFMINI_PARSE_STATE1_SYNC_2;
+			*state = TFMINI_PARSE_STATE::STATE1_SYNC_2;
 			parserbuf[*parserbuf_index] = c;
 			(*parserbuf_index)++;
 
 		} else {
-			*state = TFMINI_PARSE_STATE0_UNSYNC;
+			*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
 			*parserbuf_index = 0;
 		}
 
 		break;
 
-	case TFMINI_PARSE_STATE1_SYNC_2:
-		*state = TFMINI_PARSE_STATE2_GOT_DIST_L;
+	case TFMINI_PARSE_STATE::STATE1_SYNC_2:
+		*state = TFMINI_PARSE_STATE::STATE2_GOT_DIST_L;
 		parserbuf[*parserbuf_index] = c;
 		(*parserbuf_index)++;
 
 		break;
 
-	case TFMINI_PARSE_STATE2_GOT_DIST_L:
-		*state = TFMINI_PARSE_STATE2_GOT_DIST_H;
+	case TFMINI_PARSE_STATE::STATE2_GOT_DIST_L:
+		*state = TFMINI_PARSE_STATE::STATE2_GOT_DIST_H;
 		parserbuf[*parserbuf_index] = c;
 		(*parserbuf_index)++;
 
 		break;
 
-	case TFMINI_PARSE_STATE2_GOT_DIST_H:
-		*state = TFMINI_PARSE_STATE3_GOT_STRENGTH_L;
+	case TFMINI_PARSE_STATE::STATE2_GOT_DIST_H:
+		*state = TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_L;
 		parserbuf[*parserbuf_index] = c;
 		(*parserbuf_index)++;
 
 		break;
 
-	case TFMINI_PARSE_STATE3_GOT_STRENGTH_L:
-		*state = TFMINI_PARSE_STATE3_GOT_STRENGTH_H;
+	case TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_L:
+		*state = TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_H;
 		parserbuf[*parserbuf_index] = c;
 		(*parserbuf_index)++;
 
 		break;
 
-	case TFMINI_PARSE_STATE3_GOT_STRENGTH_H:
-		*state = TFMINI_PARSE_STATE4_GOT_RESERVED;
+	case TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_H:
+		*state = TFMINI_PARSE_STATE::STATE4_GOT_RESERVED;
 		parserbuf[*parserbuf_index] = c;
 		(*parserbuf_index)++;
 
 		break;
 
-	case TFMINI_PARSE_STATE4_GOT_RESERVED:
-		*state = TFMINI_PARSE_STATE5_GOT_QUALITY;
+	case TFMINI_PARSE_STATE::STATE4_GOT_RESERVED:
+		*state = TFMINI_PARSE_STATE::STATE5_GOT_QUALITY;
 		parserbuf[*parserbuf_index] = c;
 		(*parserbuf_index)++;
 
 		break;
 
-	case TFMINI_PARSE_STATE5_GOT_QUALITY:
+	case TFMINI_PARSE_STATE::STATE5_GOT_QUALITY:
 		// Find the checksum
 		unsigned char cksm = 0;
 
@@ -160,12 +160,12 @@ int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum TFMINI
 			t2 <<= 8;
 			t2 += t1;
 			*dist = ((float)t2) / 100;
-			*state = TFMINI_PARSE_STATE6_GOT_CHECKSUM;
+			*state = TFMINI_PARSE_STATE::STATE6_GOT_CHECKSUM;
 			*parserbuf_index = 0;
 			ret = 0;
 
 		} else {
-			*state = TFMINI_PARSE_STATE0_UNSYNC;
+			*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
 			*parserbuf_index = 0;
 		}
 

@@ -33,9 +33,10 @@
 px4_add_module(
 	MODULE drivers__bmm150
 	MAIN bmm150
-	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		bmm150.cpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
 	)
