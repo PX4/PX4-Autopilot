@@ -153,6 +153,7 @@ public:
 	uint32_t devid() const;
 	spi_drdy_gpio_t DRDYGPIO() const;
 	bool external() const;
+	int externalBusIndex() const;
 
 	void addInstance(I2CSPIInstance *instance);
 
