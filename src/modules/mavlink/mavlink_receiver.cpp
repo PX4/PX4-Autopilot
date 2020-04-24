@@ -47,7 +47,6 @@
 #include <drivers/drv_tone_alarm.h>
 #include <ecl/geo/geo.h>
 #include <systemlib/px4_macros.h>
-#include <lib/tunes/tunes.h>
 
 #include <math.h>
 #include <poll.h>
@@ -83,6 +82,8 @@ using matrix::wrap_2pi;
 
 MavlinkReceiver::~MavlinkReceiver()
 {
+	delete _tunes;
+	delete[] _tune_buffer;
 	delete _px4_accel;
 	delete _px4_baro;
 	delete _px4_gyro;
@@ -1769,7 +1770,7 @@ MavlinkReceiver::handle_message_play_tune(mavlink_message_t *msg)
 		// Let's make sure the input is 0 terminated, so we don't ever overrun it.
 		play_tune.tune2[sizeof(play_tune.tune2) - 1] = '\0';
 
-		publish_tune(play_tune.tune);
+		schedule_tune(play_tune.tune);
 	}
 }
 
@@ -1790,26 +1791,78 @@ MavlinkReceiver::handle_message_play_tune_v2(mavlink_message_t *msg)
 		// Let's make sure the input is 0 terminated, so we don't ever overrun it.
 		play_tune_v2.tune[sizeof(play_tune_v2.tune) - 1] = '\0';
 
-		publish_tune(play_tune_v2.tune);
+		schedule_tune(play_tune_v2.tune);
 	}
 }
 
-void MavlinkReceiver::publish_tune(const char *tune)
+void MavlinkReceiver::schedule_tune(const char *tune)
 {
+	// The tune string needs to be 0 terminated.
+	const unsigned tune_len = strlen(tune);
 
-	tune_control_s tune_control {};
-	tune_control.tune_id = 0;
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+	// We don't expect the tune string to be longer than what can come in via MAVLink including 0 termination.
+	if (tune_len >= MAX_TUNE_LEN) {
+		PX4_ERR("Tune string too long.");
+		return;
+	}
 
-	Tunes tunes;
-	tunes.set_string(tune, tune_control.volume);
+	// We only allocate the buffer and the tunes object if we ever use it but we
+	// don't remove it to avoid fragmentation over time.
+	if (_tune_buffer == nullptr) {
+		_tune_buffer = new char[MAX_TUNE_LEN];
+
+		if (_tune_buffer == nullptr) {
+			PX4_ERR("Could not allocate tune buffer");
+			return;
+		}
+	}
+
+	if (_tunes == nullptr) {
+		_tunes = new Tunes();
+
+		if (_tunes == nullptr) {
+			PX4_ERR("Could not allocate tune");
+			return;
+		}
+	}
+
+	strncpy(_tune_buffer, tune, MAX_TUNE_LEN);
+
+	_tunes->set_string(_tune_buffer, tune_control_s::VOLUME_LEVEL_DEFAULT);
+
+	// Send first one straightaway.
+	const hrt_abstime now = hrt_absolute_time();
+	_next_tune_time = now;
+	send_next_tune(now);
+}
+
+
+void MavlinkReceiver::send_next_tune(const hrt_abstime now)
+{
+	if (_tune_buffer == nullptr || _tunes == nullptr) {
+		return;
+	}
+
+	if (_next_tune_time == 0) {
+		// Nothing to play.
+		return;
+	}
+
+	if (now < _next_tune_time) {
+		// Too early, try again later.
+		return;
+	}
 
 	unsigned frequency;
 	unsigned duration;
 	unsigned silence;
 	uint8_t volume;
 
-	while (tunes.get_next_note(frequency, duration, silence, volume) > 0) {
+	if (_tunes->get_next_note(frequency, duration, silence, volume) > 0) {
+		tune_control_s tune_control {};
+		tune_control.tune_id = 0;
+		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+
 		tune_control.tune_id = 0;
 		tune_control.frequency = static_cast<uint16_t>(frequency);
 		tune_control.duration = static_cast<uint32_t>(duration);
@@ -1818,8 +1871,11 @@ void MavlinkReceiver::publish_tune(const char *tune)
 		tune_control.timestamp = hrt_absolute_time();
 		_tune_control_pub.publish(tune_control);
 
-		// FIXME: this blocks this receiver thread
-		px4_usleep(duration + silence);
+		_next_tune_time = now + duration + silence;
+
+	} else {
+		// We're done, let's reset.
+		_next_tune_time = 0;
 	}
 }
 
@@ -2970,6 +3026,7 @@ MavlinkReceiver::Run()
 			last_send_update = t;
 		}
 
+		send_next_tune(t);
 	}
 }
 
