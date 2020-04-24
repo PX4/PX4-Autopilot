@@ -9,9 +9,9 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	SERIAL_PORTS
 #		GPS1:/dev/ttyS0
-		RC:/dev/ttyS1
-		TEL2:/dev/ttyS2
-		TEL4:/dev/ttyS3
+#		RC:/dev/ttyS1
+#		TEL2:/dev/ttyS2
+#		TEL4:/dev/ttyS3
 	DRIVERS
 		adc
 		barometer # all available barometer drivers

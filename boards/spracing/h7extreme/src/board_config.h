@@ -114,7 +114,7 @@
 
 /* RC Serial port */
 
-#define RC_SERIAL_PORT          "/dev/ttyS1"
+#define RC_SERIAL_PORT          "/dev/ttyS0"
 
 #define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
