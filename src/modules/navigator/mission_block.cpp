@@ -236,8 +236,7 @@ MissionBlock::is_mission_item_reached()
 				_time_first_inside_orbit = 0;
 			}
 
-		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
-			   (_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
+		} else if ((_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
 
 			// NAV_CMD_LOITER_TO_ALT only uses mission item altitude once it's in the loiter
