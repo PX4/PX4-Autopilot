@@ -57,6 +57,9 @@
 #include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/param/ExecuteOpcode.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
+
+#include <uavcan/equipment/esc/RawCommand.hpp>
+#include <uavcan/equipment/esc/Status.hpp>
 #include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
 #include <uavcan/equipment/air_data/RawAirData.hpp>
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
@@ -71,6 +74,10 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+
+#include <uORB/PublicationMulti.hpp>
+
+#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
@@ -168,6 +175,13 @@ private:
 	void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
 				     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp);
 
+	// Received messages callbacks
+	void esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand> &cmd);
+
+	// Callback binders
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand>&)> RawCommandCbBinder;
+
 
 	uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2> _ahrs_magnetic_field_strength2_publisher;
 	uavcan::Publisher<uavcan::equipment::gnss::Fix2> _gnss_fix2_publisher;
@@ -176,7 +190,12 @@ private:
 	uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature> _air_data_static_temperature_publisher;
 	uavcan::Publisher<uavcan::equipment::air_data::RawAirData> _raw_air_data_publisher;
 	uavcan::Publisher<uavcan::equipment::range_sensor::Measurement> _range_sensor_measurement;
+	uavcan::Publisher<uavcan::equipment::esc::Status> _esc_status_publisher;
 
+	uavcan::Subscriber<uavcan::equipment::esc::RawCommand, RawCommandCbBinder>	_uavcan_esc_raw_command_sub;
+
+
+	hrt_abstime _last_esc_status_publish{0};
 	hrt_abstime _last_static_temperature_publish{0};
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
@@ -192,6 +211,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_baro_sub{this, ORB_ID(sensor_baro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_mag_sub{this, ORB_ID(sensor_mag)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_gps_position_sub{this, ORB_ID(vehicle_gps_position)};
+
+	uORB::PublicationMulti<actuator_outputs_s> _actuator_outputs_pub{ORB_ID(actuator_outputs)};
 
 	perf_counter_t _cycle_perf;
 	perf_counter_t _interval_perf;

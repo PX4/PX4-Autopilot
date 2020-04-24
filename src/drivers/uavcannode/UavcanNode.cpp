@@ -81,6 +81,8 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_air_data_static_temperature_publisher(_node),
 	_raw_air_data_publisher(_node),
 	_range_sensor_measurement(_node),
+	_esc_status_publisher(_node),
+	_uavcan_esc_raw_command_sub(_node),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")),
 	_reset_timer(_node)
@@ -266,6 +268,14 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
+	// Start subscriptions
+	PX4_INFO("registering esc RawCommand CB");
+	int res = _uavcan_esc_raw_command_sub.start(RawCommandCbBinder(this, &UavcanNode::esc_raw_command_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("ESC status sub failed %i", res);
+	}
+
 	return _node.start();
 }
 
@@ -280,6 +290,18 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 		return true; // Will never be executed BTW
 	}
 } restart_request_handler;
+
+void
+UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand> &cmd)
+{
+	actuator_outputs_s outputs;
+
+	for (size_t i = 0; i < cmd.cmd.size(); i++) {
+		outputs.output[i] = cmd.cmd.at(i);
+	}
+
+	_actuator_outputs_pub.publish(outputs);
+}
 
 void UavcanNode::Run()
 {
@@ -328,6 +350,23 @@ void UavcanNode::Run()
 
 	if (spin_res < 0) {
 		PX4_ERR("node spin error %i", spin_res);
+	}
+
+	// FIXME: always publish ESC status with fake information -- we need telemetry from connected ESCs for this to "work correctly"
+	int32_t esc_mask = 0;
+	(void)param_get(param_find("CANNODE_ESC_MASK"), &esc_mask);
+
+	// Supports controlling 8 ESCs -- check the mask and only update status of ESCs we use
+	if (hrt_elapsed_time(&_last_esc_status_publish) > 1_s)
+	{
+		for (size_t i = 0; i < 8; i++) {
+			if (esc_mask & 1<<i) {
+				uavcan::equipment::esc::Status esc_status{}; // TODO: this assumes PWM ESC with no telemtry feedback
+				esc_status.esc_index = i;
+				_esc_status_publisher.broadcast(esc_status);
+			}
+		}
+		_last_esc_status_publish = hrt_absolute_time();
 	}
 
 	// battery_status -> uavcan::equipment::power::BatteryInfo

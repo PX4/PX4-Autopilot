@@ -50,3 +50,15 @@ PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
+
+/**
+ * Bitmask which sets the number of ESCs controlled by the cannode. Each
+ * bit in the mask corresponds to one of the 8 actuator outputs.
+ *
+ * eg: cannode controls actuator 1,2,3,4 :: CANNODE_ESC_MASK = 15 (00001111)
+ *
+ * @min 0
+ * @max 255
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CANNODE_ESC_MASK, 15);

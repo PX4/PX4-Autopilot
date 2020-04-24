@@ -81,7 +81,7 @@ px4_add_board(
 		#sd_bench
 		#shutdown
 		top
-		#topic_listener
+		topic_listener
 		#tune_control
 		ver
 		work_queue
