@@ -341,13 +341,18 @@ void RTL::set_rtl_item()
 			break;
 		}
 
-	case RTL_STATE_DESCEND: {
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+	case RTL_MOVE_TO_LAND_HOVER_VTOL: {
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.lat = _destination.lat;
+			_mission_item.lon = _destination.lon;
+			_mission_item.altitude = loiter_altitude;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _mission_item.lat, _mission_item.lon);
+			break;
+		}
 
-			} else {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			}
+	case RTL_STATE_DESCEND: {
+			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 
 			_mission_item.lat = _destination.lat;
 			_mission_item.lon = _destination.lon;
@@ -394,7 +399,7 @@ void RTL::set_rtl_item()
 
 			_navigator->set_can_loiter_at_sp(true);
 
-			if (autoland && (get_time_inside(_mission_item) > FLT_EPSILON)) {
+			if (autoland) {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs",
 						 (double)get_time_inside(_mission_item));
@@ -461,20 +466,40 @@ void RTL::set_rtl_item()
 
 void RTL::advance_rtl()
 {
+	// determines if the vehicle should loiter above land
+	const bool descend_and_loiter = _param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA;
+
+	// vehicle is a vtol and currently in fixed wing mode
+	const bool vtol_in_fw_mode = _navigator->get_vstatus()->is_vtol
+				     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB:
 		_rtl_state = RTL_STATE_RETURN;
 		break;
 
 	case RTL_STATE_RETURN:
-		_rtl_state = RTL_STATE_DESCEND;
+
+		if (vtol_in_fw_mode || descend_and_loiter) {
+			_rtl_state = RTL_STATE_DESCEND;
+
+		} else {
+			_rtl_state = RTL_STATE_LAND;
+		}
+
 		break;
 
 
 	case RTL_STATE_TRANSITION_TO_MC:
 
-		// Only go to land if autoland is enabled.
-		if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
+		_rtl_state = RTL_MOVE_TO_LAND_HOVER_VTOL;
+
+		break;
+
+	case RTL_MOVE_TO_LAND_HOVER_VTOL:
+
+		if (descend_and_loiter) {
 			_rtl_state = RTL_STATE_LOITER;
 
 		} else {
@@ -486,12 +511,11 @@ void RTL::advance_rtl()
 	case RTL_STATE_DESCEND:
 
 		// If the vehicle is a vtol in fixed wing mode, then first transition to hover
-		if (_navigator->get_vstatus()->is_vtol
-		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		if (vtol_in_fw_mode) {
 			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
 
-		} else if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
-			_rtl_state = RTL_STATE_DESCEND;
+		} else if (descend_and_loiter) {
+			_rtl_state = RTL_STATE_LOITER;
 
 		} else {
 			_rtl_state = RTL_STATE_LAND;
