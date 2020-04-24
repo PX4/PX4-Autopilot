@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,7 @@
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/tunes/tunes.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
@@ -208,7 +209,8 @@ private:
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 
-	void publish_tune(const char *tune);
+	void schedule_tune(const char *tune);
+	void send_next_tune(hrt_abstime now);
 
 	/**
 	 * @brief Updates the battery, optical flow, and flight ID subscribed parameters.
@@ -297,6 +299,13 @@ private:
 	bool				_hil_local_proj_inited{false};
 
 	hrt_abstime			_last_utm_global_pos_com{0};
+
+	static constexpr unsigned MAX_TUNE_LEN {248};
+
+	// Allocated if needed.
+	Tunes *_tunes {nullptr};
+	char *_tune_buffer {nullptr};
+	hrt_abstime _next_tune_time {0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
