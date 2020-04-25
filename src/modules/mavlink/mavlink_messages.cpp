@@ -2572,23 +2572,25 @@ protected:
 			msg.q[2] = odom.q[2];
 			msg.q[3] = odom.q[3];
 
-			if (odom.velocity_frame == odom.BODY_FRAME_FRD) {
-				msg.vx = odom.vx;
-				msg.vy = odom.vy;
-				msg.vz = odom.vz;
-			}
+			switch(odom.velocity_frame) {
+				case odom.BODY_FRAME_FRD:
+					msg.vx = odom.vx;
+					msg.vy = odom.vy;
+					msg.vz = odom.vz;
+					break;
+				case odom.LOCAL_FRAME_FRD:
+				case odom.LOCAL_FRAME_NED:
+					// Body frame to local frame
+					const matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
 
-			if (odom.velocity_frame == odom.LOCAL_FRAME_FRD ||
-			    odom.velocity_frame == odom.LOCAL_FRAME_NED) {
-				// Body frame to local frame
-				matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
+					// Rotate linear velocity from local to body frame
+					const matrix::Vector3f linvel_body(R_body_to_local.transpose() *
+									   matrix::Vector3f(odom.vx, odom.vy, odom.vz));
 
-				// Rotate linear velocity from local to body frame
-				matrix::Vector3f linvel_body(R_body_to_local.transpose() * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
-
-				msg.vx = linvel_body(0);
-				msg.vy = linvel_body(1);
-				msg.vz = linvel_body(2);
+					msg.vx = linvel_body(0);
+					msg.vy = linvel_body(1);
+					msg.vz = linvel_body(2);
+					break;
 			}
 
 			// Current body rates
