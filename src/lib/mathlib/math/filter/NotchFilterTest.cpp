@@ -224,8 +224,8 @@ TEST_F(NotchFilterTest, updateFilter)
 	float new_bandwidth = 10.f;
 	_notch_float.update(_sample_freq, new_notch_freq, new_bandwidth);
 
-    	EXPECT_EQ(new_notch_freq, _notch_float.getNotchFreq());
-    	EXPECT_EQ(new_bandwidth, _notch_float.getBandwidth());
+	EXPECT_EQ(new_notch_freq, _notch_float.getNotchFreq());
+	EXPECT_EQ(new_bandwidth, _notch_float.getBandwidth());
 
 }
 
@@ -323,7 +323,8 @@ TEST_F(NotchFilterTest, disabled)
 	}
 }
 
-TEST_F(NotchFilterTest, setCoefficients){
+TEST_F(NotchFilterTest, setCoefficients)
+{
 
 	float a_new[2] = {1.f, 2.f};
 	float b_new[3] = {1.f, 2.f, 3.f};
@@ -333,8 +334,9 @@ TEST_F(NotchFilterTest, setCoefficients){
 	_notch_float.setCoefficients(a_new, b_new);
 	_notch_float.getCoefficients(a, b);
 
-	for (int i = 0; i < 3; i++){
+	for (int i = 0; i < 3; i++) {
 		if (i >= 1) {EXPECT_EQ(a[i], a_new[i - 1]);} //a0 is not part of set function
+
 		EXPECT_EQ(b[i], b_new[i]);
 	}
 }

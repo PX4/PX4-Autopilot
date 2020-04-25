@@ -94,7 +94,8 @@ public:
 	inline T applyDF1(const T &sample)
 	{
 		// Direct Form I implementation
-		const T output = _b0 * sample + _b1 * _delay_element_1 + _b2 * _delay_element_2 - _a1 * _delay_element_output_1 - _a2 * _delay_element_output_2;
+		const T output = _b0 * sample + _b1 * _delay_element_1 + _b2 * _delay_element_2 - _a1 * _delay_element_output_1 - _a2 *
+				 _delay_element_output_2;
 
 		// shift inputs
 		_delay_element_2 = _delay_element_1;
