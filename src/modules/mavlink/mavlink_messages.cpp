@@ -90,7 +90,6 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_gyro_status.h>
-#include <uORB/topics/rpm.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/tecs_status.h>
