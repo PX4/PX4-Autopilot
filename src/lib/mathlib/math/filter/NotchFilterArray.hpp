@@ -37,6 +37,7 @@
  * @brief Notch filter with array input/output
  *
  * @author Mathieu Bresciani <brescianimathieu@gmail.com>
+ * @author Samuel Garcin <samuel.garcin@wecorpindustries.com>
  */
 
 #pragma once
