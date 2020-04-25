@@ -77,6 +77,9 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
 	updateParams();
+
+	// set reasonable default, driver should be setting real value
+	set_update_rate(800);
 }
 
 PX4Gyroscope::~PX4Gyroscope()
@@ -122,11 +125,19 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 
 void PX4Gyroscope::set_update_rate(uint16_t rate)
 {
-	_update_rate = rate;
-	const uint32_t update_interval = 1000000 / rate;
+	_update_rate = math::constrain((int)rate, 50, 32000);
+	const uint32_t update_interval = 1000000 / _update_rate;
 
-	// TODO: set this intelligently
-	_integrator_reset_samples = 2500 / update_interval;
+	// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
+	int32_t imu_integration_time_us = math::constrain(_param_imu_integ_time.get(), 1000, 20000);
+
+	if (imu_integration_time_us != _param_imu_integ_time.get()) {
+		_param_imu_integ_time.set(imu_integration_time_us);
+		_param_imu_integ_time.commit_no_notification();
+	}
+
+	_integrator_reset_samples = _param_imu_integ_time.get() / update_interval;
+	_integrator.set_autoreset_interval(_param_imu_integ_time.get());
 }
 
 void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float z)

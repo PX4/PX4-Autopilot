@@ -39,6 +39,7 @@
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/device/integrator.h>
 #include <lib/ecl/geo/geo.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/PublicationQueuedMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
@@ -46,7 +47,7 @@
 #include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_accel_status.h>
 
-class PX4Accelerometer : public cdev::CDev
+class PX4Accelerometer : public cdev::CDev, public ModuleParams
 {
 public:
 	PX4Accelerometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
@@ -132,4 +133,8 @@ private:
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::IMU_INTEG_TIME>) _param_imu_integ_time
+	)
 };
