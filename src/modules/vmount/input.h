@@ -40,6 +40,8 @@
 #pragma once
 
 #include "common.h"
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_armed.h>
 
 namespace vmount
 {
@@ -72,6 +74,7 @@ public:
 	/** report status to stdout */
 	virtual void print_status() = 0;
 
+	void set_failsafe_action(int32_t action) { _failsafe_action = action; }
 protected:
 	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active) = 0;
 
@@ -80,10 +83,14 @@ protected:
 	void control_data_set_lon_lat(double lon, double lat, float altitude, float roll_angle = 0.f,
 				      float pitch_fixed_angle = -10.f);
 
+
 	ControlData _control_data;
 
 private:
 	bool _initialized = false;
+	bool _failsafe_triggered = false;
+	int _failsafe_action = 0;
+	uORB::Subscription					_actuator_armed_sub {ORB_ID(actuator_armed)};
 };
 
 
