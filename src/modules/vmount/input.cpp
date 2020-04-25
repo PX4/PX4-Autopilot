@@ -62,6 +62,7 @@ int InputBase::update(unsigned int timeout_ms, ControlData **control_data, bool 
 
 	if (_failsafe_action == 1 && !_failsafe_triggered && _actuator_armed_sub.updated()) {
 		actuator_armed_s armed;
+
 		if (_actuator_armed_sub.copy(&armed)) {
 			if (armed.force_failsafe) {
 				_control_data.type = ControlData::Type::Angle;
@@ -79,6 +80,7 @@ int InputBase::update(unsigned int timeout_ms, ControlData **control_data, bool 
 			}
 		}
 	}
+
 	return update_impl(timeout_ms, control_data, already_active);
 }
 
