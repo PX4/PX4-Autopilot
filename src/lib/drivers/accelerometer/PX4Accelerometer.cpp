@@ -268,11 +268,11 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			// Apply rotation (before scaling)
 			rotate_3f(_rotation, _integration_raw(0), _integration_raw(1), _integration_raw(2));
 
-			// integrated in microseconds, convert to seconds
-			const Vector3f delta_velocity_uncalibrated{_integration_raw * 1e-6f * dt * _scale};
+			// scale calibration offset to number of samples
+			const Vector3f offset{_calibration_offset * _integrator_fifo_samples};
 
 			// Apply calibration and scale to seconds
-			const Vector3f delta_velocity{(delta_velocity_uncalibrated - _calibration_offset).emult(_calibration_scale)};
+			const Vector3f delta_velocity{((_integration_raw * _scale) - offset).emult(_calibration_scale) * 1e-6f * dt};
 
 			// fill sensor_accel_integrated and publish
 			sensor_accel_integrated_s report;

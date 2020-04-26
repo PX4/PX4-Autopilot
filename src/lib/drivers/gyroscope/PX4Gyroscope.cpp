@@ -270,11 +270,11 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			// Apply rotation (before scaling)
 			rotate_3f(_rotation, _integration_raw(0), _integration_raw(1), _integration_raw(2));
 
-			// integrated in microseconds, convert to seconds
-			const Vector3f delta_angle_uncalibrated{_integration_raw * 1e-6f * dt * _scale};
+			// scale calibration offset to number of samples
+			const Vector3f offset{_calibration_offset * _integrator_fifo_samples};
 
 			// Apply calibration and scale to seconds
-			const Vector3f delta_angle{delta_angle_uncalibrated - _calibration_offset};
+			const Vector3f delta_angle{((_integration_raw * _scale) - offset) * 1e-6f * dt};
 
 			// fill sensor_gyro_integrated and publish
 			sensor_gyro_integrated_s report;
