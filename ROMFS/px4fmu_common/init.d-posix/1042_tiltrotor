@@ -36,8 +36,9 @@ then
 
 	param set VT_F_TRANS_DUR 5.0
 	param set VT_F_TRANS_THR 0.75
-	param set VT_TILT_FW 3.1415
-	param set VT_TILT_TRANS 1.2
+	param set VT_FWD_THRUST_SC 1.1
+	param set VT_TILT_FW 1
+	param set VT_TILT_TRANS 0.6
 	param set VT_ELEV_MC_LOCK 0
 	param set VT_TYPE 1
 	param set VT_B_TRANS_DUR 8
