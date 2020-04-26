@@ -287,7 +287,7 @@ static int vmount_thread_main(int argc, char *argv[])
 					alloc_failed = true;
 
 				} else {
-					thread_data.input_objs[i]->set_failsafe_action(params.mnt_fs_action);
+					thread_data.input_objs[i]->set_failsafe_action((FailsafeAction)params.mnt_fs_action);
 				}
 			}
 

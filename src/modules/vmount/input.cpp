@@ -60,7 +60,8 @@ int InputBase::update(unsigned int timeout_ms, ControlData **control_data, bool 
 		return 0;
 	}
 
-	if (_failsafe_action == 1 && !_failsafe_triggered && _actuator_armed_sub.updated()) {
+	// pitch 45 degrees up if failsafe is forced
+	if (_failsafe_action == MNT_FS_ACTION_PITCH_M45 && !_failsafe_triggered && _actuator_armed_sub.updated()) {
 		actuator_armed_s armed;
 
 		if (_actuator_armed_sub.copy(&armed)) {
