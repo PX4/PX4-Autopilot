@@ -107,7 +107,7 @@ class UavcanNode : public px4::ScheduledWorkItem
 	static constexpr unsigned FramePerSecond   = MaxBitRatePerSec / bitPerFrame;
 	static constexpr unsigned FramePerMSecond  = ((FramePerSecond / 1000) + 1);
 
-	static constexpr unsigned ScheduleIntervalMs = 10;
+	static constexpr unsigned ScheduleIntervalMs = 1;
 
 	/*
 	 * This memory is reserved for uavcan to use for queuing CAN frames.
@@ -160,6 +160,7 @@ private:
 	int _pwm_min{1100}; // us
 	int _pwm_max{1950}; // us
 	int _pwm_disarmed{900}; // us
+	int _esc_mask{0};
 
 	static UavcanNode	*_instance;			///< singleton pointer
 

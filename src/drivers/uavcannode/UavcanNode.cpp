@@ -258,6 +258,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	param_get(param_find("PWM_MIN"), &_pwm_min);
 	param_get(param_find("PWM_MAX"), &_pwm_max);
 	param_get(param_find("PWM_DISARMED"), &_pwm_disarmed);
+	param_get(param_find("CANNODE_ESC_MASK"), &_esc_mask);
 
 	// Fill node info
 	_node.setName(HW_UAVCAN_NAME);
@@ -369,21 +370,19 @@ void UavcanNode::Run()
 		// update parameters from storage
 	}
 
+	// Calls subscription callbacks here
 	const int spin_res = _node.spin(uavcan::MonotonicTime());
 
 	if (spin_res < 0) {
 		PX4_ERR("node spin error %i", spin_res);
 	}
 
-	// FIXME: always publish ESC status with fake information -- we need telemetry from connected ESCs for this to "work correctly"
-	int32_t esc_mask = 0;
-	(void)param_get(param_find("CANNODE_ESC_MASK"), &esc_mask);
-
 	// Supports controlling 8 ESCs -- check the mask and only update status of ESCs we use
 	if (hrt_elapsed_time(&_last_esc_status_publish) > 1_s)
 	{
+		// FIXME: always publish ESC status with fake information -- we need telemetry from connected ESCs for this to "work correctly"
 		for (size_t i = 0; i < 8; i++) {
-			if (esc_mask & 1<<i) {
+			if (_esc_mask & 1<<i) {
 				uavcan::equipment::esc::Status esc_status{}; // TODO: this assumes PWM ESC with no telemtry feedback
 				esc_status.esc_index = i;
 				_esc_status_publisher.broadcast(esc_status);

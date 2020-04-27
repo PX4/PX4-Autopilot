@@ -55,12 +55,13 @@
 #include <px4_platform_common/module.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
-class PWMCannode : public ModuleBase<PWMCannode>
+class PWMCannode : public ModuleBase<PWMCannode>, public px4::WorkItem
 {
 public:
 	enum Mode {
@@ -90,9 +91,6 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static PWMCannode *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
@@ -101,11 +99,11 @@ public:
 	/** @see ModuleBase */
 	int print_status() override;
 
-	/** @see ModuleBase */
-	void run() override;
 
 private:
 	// Functions
+	void Run() override;
+	bool init();
 	bool updateOutputs();
 
 	int set_mode(Mode mode);
@@ -125,9 +123,13 @@ private:
 	uint32_t	_pwm_mask{0};
 	bool		_pwm_initialized{false};
 
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _actuator_outputs_sub{ORB_ID(actuator_outputs)};
+	// uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+
+	uORB::SubscriptionCallbackWorkItem _actuator_outputs_sub{this, ORB_ID(actuator_outputs)};
+
+	// uORB::Subscription _actuator_outputs_sub{ORB_ID(actuator_outputs)};
 
 
 	perf_counter_t	_cycle_perf;
+	perf_counter_t	_interval_perf;
 };

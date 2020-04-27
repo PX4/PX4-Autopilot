@@ -34,7 +34,9 @@
 #include "PWMCannode.hpp"
 
 PWMCannode::PWMCannode() :
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval"))
 {
 	// Anything to do?
 }
@@ -44,6 +46,20 @@ PWMCannode::~PWMCannode()
 	up_pwm_servo_deinit();
 
 	perf_free(_cycle_perf);
+	perf_free(_interval_perf);
+}
+
+bool PWMCannode::init()
+{
+	if (!_actuator_outputs_sub.registerCallback()) {
+		PX4_ERR("actuator_outputs callback registration failed!");
+		return false;
+	}
+
+	// TODO: have this as a command line option or something
+	set_mode(MODE_6PWM); // fmu-v4 has 6 PWM
+
+	return true;
 }
 
 int PWMCannode::set_mode(Mode mode)
@@ -374,65 +390,59 @@ bool PWMCannode::updateOutputs()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 int PWMCannode::task_spawn(int argc, char *argv[])
 {
-	px4_main_t entry_point = (px4_main_t)&run_trampoline;
-	int stack_size = 1256;
+	PWMCannode *instance = new PWMCannode();
 
-	int task_id = px4_task_spawn_cmd("pwm_out", SCHED_DEFAULT,
-					 SCHED_PRIORITY_ACTUATOR_OUTPUTS, stack_size,
-					 entry_point, (char *const *)argv);
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
-	if (task_id < 0) {
-		task_id = -1;
-		return -errno;
-	}
-
-	_task_id = task_id;
-
-	return PX4_OK;
-}
-
-PWMCannode *PWMCannode::instantiate(int argc, char *argv[])
-{
-	PWMCannode *pwmCannode = new PWMCannode();
-	PX4_INFO("Driver started");
-
-	return pwmCannode;
-}
-
-void PWMCannode::run()
-{
-	// TODO: have this as a command line option or something
-	set_mode(MODE_6PWM); // fmu-v4 has 6 PWM
-
-	while (!should_exit()) {
-
-		perf_begin(_cycle_perf);
-
-		// bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.armed().in_esc_calibration_mode;
-
-		// TODO: check system status message from FC to determine if we should be armed or not
-		bool pwm_on = true;
-
-		if (_pwm_on != pwm_on) {
-			_pwm_on = pwm_on;
-			update_pwm_out_state(pwm_on);
+		if (instance->init()) {
+			return PX4_OK;
 		}
 
-		// check for parameter updates
-		// if (_parameter_update_sub.updated()) {
-		// 	parameter_update_s pupdate;
-		// 	_parameter_update_sub.copy(&pupdate);
-		// 	updateParams();
-		// }
-
-		updateOutputs();
-
-		perf_end(_cycle_perf);
-
-		usleep(1000);
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	return;
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+void PWMCannode::Run()
+{
+	if (should_exit()) {
+		_actuator_outputs_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}
+
+
+	perf_begin(_cycle_perf);
+	perf_count(_interval_perf);
+
+	// bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.armed().in_esc_calibration_mode;
+
+	// TODO: check system status message from FC to determine if we should be armed or not
+	bool pwm_on = true;
+
+	if (_pwm_on != pwm_on) {
+		_pwm_on = pwm_on;
+		update_pwm_out_state(pwm_on);
+	}
+
+	// check for parameter updates
+	// if (_parameter_update_sub.updated()) {
+	// 	parameter_update_s pupdate;
+	// 	_parameter_update_sub.copy(&pupdate);
+	// 	updateParams();
+	// }
+
+	updateOutputs();
+
+	perf_end(_cycle_perf);
 }
 
 int PWMCannode::custom_command(int argc, char *argv[])
