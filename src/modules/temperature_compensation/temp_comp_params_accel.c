@@ -43,8 +43,7 @@
  * Thermal compensation for accelerometer sensors.
  *
  * @group Thermal Compensation
- * @min 0
- * @max 1
+ * @reboot_required true
  * @boolean
  */
 PARAM_DEFINE_INT32(TC_A_ENABLE, 0);
