@@ -155,7 +155,11 @@ private:
 
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
-	bool		_initialized{false};		///< number of actuators currently available
+	bool		_initialized{false};
+
+	int _pwm_min{1100}; // us
+	int _pwm_max{1950}; // us
+	int _pwm_disarmed{900}; // us
 
 	static UavcanNode	*_instance;			///< singleton pointer
 

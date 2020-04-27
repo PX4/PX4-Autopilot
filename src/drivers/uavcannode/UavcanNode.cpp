@@ -254,6 +254,12 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 
 int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
+	// Getting initial parameter values
+	param_get(param_find("PWM_MIN"), &_pwm_min);
+	param_get(param_find("PWM_MAX"), &_pwm_max);
+	param_get(param_find("PWM_DISARMED"), &_pwm_disarmed);
+
+	// Fill node info
 	_node.setName(HW_UAVCAN_NAME);
 	_node.setNodeID(node_id);
 
@@ -296,8 +302,25 @@ UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 {
 	actuator_outputs_s outputs;
 
+	// If message is empty, the vehicle is disarmed
+	if (cmd.cmd.size() == 0) {
+		// TODO: add a function that sets all PWM outputs to their disarmed value and returns an actuator_output_s
+		for (size_t i = 0; i < sizeof(outputs.output)/sizeof(outputs.output[0]); i++) {
+			outputs.output[i] = _pwm_disarmed; // right now this just sets every output (all 16) to PWM_DISARMED
+		}
+	}
+
 	for (size_t i = 0; i < cmd.cmd.size(); i++) {
-		outputs.output[i] = cmd.cmd.at(i);
+		// NOTE: the uavcan driver px4 FC side should publish an empty message if disarmed, this is
+		// not the case. Upon boot, the FC will publish empty messages, but after it's been armed/disarmed
+		// once, it will publish a message with zeroes for each output if disarmed.
+		if (cmd.cmd.at(i) == 0) {
+			outputs.output[i] = _pwm_disarmed;
+
+		} else {
+			// Convert from normalized -8192/+8192 to PWM
+			outputs.output[i] = _pwm_min + (static_cast<float>(cmd.cmd.at(i)) / 8192.0f) * (_pwm_max - _pwm_min);
+		}
 	}
 
 	_actuator_outputs_pub.publish(outputs);

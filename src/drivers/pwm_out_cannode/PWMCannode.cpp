@@ -355,13 +355,17 @@ bool PWMCannode::updateOutputs()
 		// output to the servos
 		for (size_t i = 0; i < _num_outputs; i++) {
 			auto val = static_cast<servo_position_t>(outputs.output[i]);
+
 			up_pwm_servo_set(i, val);
 		}
 
 		// Trigger all timer's channels in Oneshot mode to fire the oneshots with updated values.
 		up_pwm_update();
-
 	}
+
+	// TODO: do we need a timeout? If CAN is unplugged for example, we won't get actuator output updates,
+	// causing the pwm_output value to latch to last value. Although, if the cannode is powered via CAN
+	// then we're screwed regardless
 
 	return true;
 }
@@ -397,9 +401,6 @@ PWMCannode *PWMCannode::instantiate(int argc, char *argv[])
 
 void PWMCannode::run()
 {
-	// Getting initial parameter values
-	// updateParams();
-
 	// TODO: have this as a command line option or something
 	set_mode(MODE_6PWM); // fmu-v4 has 6 PWM
 
