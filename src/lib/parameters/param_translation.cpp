@@ -41,6 +41,15 @@
 
 bool param_modify_on_import(bson_node_t node)
 {
+	// migrate MPC_*_VEL_* -> MPC_*_VEL_*_ACC (2020-04-27). This can be removed after the next release (current release=1.10)
+	if (node->type == BSON_DOUBLE) {
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_P");
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_I");
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_D");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_P");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_I");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_D");
+	}
 
 	// migrate MC_DTERM_CUTOFF -> IMU_DGYRO_CUTOFF (2020-03-12). This can be removed after the next release (current release=1.10)
 	if (node->type == BSON_DOUBLE) {
@@ -147,4 +156,13 @@ bool param_modify_on_import(bson_node_t node)
 	}
 
 	return false;
+}
+
+void param_migrate_velocity_gain(bson_node_t node, const char *parameter_name)
+{
+	if (strcmp(parameter_name, node->name) == 0) {
+		strcat(node->name, "_ACC");
+		node->d *= 20.0;
+		PX4_INFO("migrating %s (removed) -> %s: new value=%.3f", parameter_name, node->name, node->d);
+	}
 }
