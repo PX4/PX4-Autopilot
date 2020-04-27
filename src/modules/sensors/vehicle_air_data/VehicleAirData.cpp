@@ -93,22 +93,18 @@ void VehicleAirData::SensorCorrectionsUpdate()
 			switch (_sensor_correction_index[baro_index]) {
 			case 0:
 				_offset[baro_index] = corrections.baro_offset_0;
-				_scale[baro_index] = corrections.baro_scale_0;
 				break;
 
 			case 1:
 				_offset[baro_index] = corrections.baro_offset_1;
-				_scale[baro_index] = corrections.baro_scale_1;
 				break;
 
 			case 2:
 				_offset[baro_index] = corrections.baro_offset_2;
-				_scale[baro_index] = corrections.baro_scale_2;
 				break;
 
 			default:
 				_offset[baro_index] = 0.f;
-				_scale[baro_index] = 1.f;
 			}
 		}
 	}
@@ -164,8 +160,8 @@ void VehicleAirData::Run()
 				// millibar to Pa
 				const float raw_pressure_pascals = _last_data[uorb_index].pressure * 100.f;
 
-				// pressure corrected with offset and scale (if available)
-				const float pressure_corrected = (raw_pressure_pascals - _offset[uorb_index]) * _scale[uorb_index];
+				// pressure corrected with offset (if available)
+				const float pressure_corrected = (raw_pressure_pascals - _offset[uorb_index]);
 
 				float vect[3] {pressure_corrected, _last_data[uorb_index].temperature, 0.f};
 				_voter.put(uorb_index, _last_data[uorb_index].timestamp, vect, _last_data[uorb_index].error_count,
@@ -203,8 +199,7 @@ void VehicleAirData::Run()
 		out.baro_temp_celcius = baro.temperature;
 
 		// Convert from millibar to Pa and apply temperature compensation
-		out.baro_pressure_pa = (100.0f * baro.pressure - _offset[_selected_sensor_sub_index]) *
-				       _scale[_selected_sensor_sub_index];
+		out.baro_pressure_pa = 100.0f * baro.pressure - _offset[_selected_sensor_sub_index];
 
 		// calculate altitude using the hypsometric equation
 		static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin

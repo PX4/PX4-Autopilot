@@ -55,9 +55,9 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_tone_alarm.h>
 #include <matrix/math.hpp>
-#include <systemlib/mavlink_log.h>
-#include <parameters/param.h>
-#include <systemlib/err.h>
+#include <lib/systemlib/mavlink_log.h>
+#include <lib/parameters/param.h>
+#include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/vehicle_angular_velocity.h>
 
 static constexpr char sensor_name[] {"mag"};
@@ -345,9 +345,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 static calibrate_return mag_calibration_worker(detect_orientation_return orientation, int cancel_sub, void *data)
 {
 	calibrate_return result = calibrate_return_ok;
-
 	unsigned int calibration_counter_side;
-
 	mag_worker_data_t *worker_data = (mag_worker_data_t *)(data);
 
 	// notify user to start rotating
@@ -371,7 +369,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 	const float gyro_int_thresh_rad = 0.5f;
 
-	int sub_gyro = orb_subscribe(ORB_ID(vehicle_angular_velocity));
+	uORB::SubscriptionBlocking<vehicle_angular_velocity_s> sub_gyro{ORB_ID(vehicle_angular_velocity)};
 
 	while (fabsf(gyro_integral(0)) < gyro_int_thresh_rad &&
 	       fabsf(gyro_integral(1)) < gyro_int_thresh_rad &&
@@ -380,7 +378,6 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		/* abort on request */
 		if (calibrate_cancel_check(worker_data->mavlink_log_pub, cancel_sub)) {
 			result = calibrate_return_cancelled;
-			orb_unsubscribe(sub_gyro);
 			return result;
 		}
 
@@ -393,16 +390,9 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 
 		/* Wait clocking for new data on all gyro */
-		px4_pollfd_struct_t fds[1];
-		fds[0].fd = sub_gyro;
-		fds[0].events = POLLIN;
-		size_t fd_count = 1;
+		vehicle_angular_velocity_s gyro{};
 
-		int poll_ret = px4_poll(fds, fd_count, 1000);
-
-		if (poll_ret > 0) {
-			vehicle_angular_velocity_s gyro{};
-			orb_copy(ORB_ID(vehicle_angular_velocity), sub_gyro, &gyro);
+		if (sub_gyro.updateBlocking(gyro, 100000)) {
 
 			/* ensure we have a valid first timestamp */
 			if (last_gyro > 0) {
@@ -414,8 +404,6 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 			last_gyro = gyro.timestamp;
 		}
 	}
-
-	orb_unsubscribe(sub_gyro);
 
 	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_useconds;
 	unsigned poll_errcount = 0;

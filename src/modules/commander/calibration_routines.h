@@ -89,7 +89,6 @@ static const unsigned detect_orientation_side_count = 6;
 ///		and ready for measurements
 enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
 		int	cancel_sub,			///< Cancel subscription from calibration_cancel_subscribe
-		int	accel_sub,			///< Orb subcription to accel sensor
 		bool	lenient_still_detection);	///< true: Use more lenient still position detection
 
 /// Returns the human readable string representation of the orientation

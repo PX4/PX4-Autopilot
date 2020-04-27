@@ -96,7 +96,6 @@ private:
 	bool _advertised[MAX_SENSOR_COUNT] {};
 
 	float _offset[MAX_SENSOR_COUNT] {0.f, 0.f, 0.f};
-	float _scale[MAX_SENSOR_COUNT] {1.f, 1.f, 1.f};
 
 	int8_t _sensor_correction_index[MAX_SENSOR_COUNT] {-1, -1, -1};
 	uint8_t _priority[MAX_SENSOR_COUNT] {};

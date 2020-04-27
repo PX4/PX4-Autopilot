@@ -55,6 +55,12 @@ void SensorCorrections::set_device_id(uint32_t device_id)
 	}
 }
 
+matrix::Vector3f SensorCorrections::Correct(const matrix::Vector3f &data)
+{
+	SensorCorrectionsUpdate();
+	return _board_rotation * matrix::Vector3f{(data - _offset - _thermal_offset).emult(_scale)};
+}
+
 const char *SensorCorrections::SensorString() const
 {
 	switch (_type) {
@@ -144,7 +150,6 @@ void SensorCorrections::SensorCorrectionsUpdate(bool force)
 
 				// find sensor_corrections index
 				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-
 					switch (_type) {
 					case SensorType::Accelerometer:
 						if (corrections.accel_device_ids[i] == _device_id) {
@@ -167,16 +172,13 @@ void SensorCorrections::SensorCorrectionsUpdate(bool force)
 			case SensorType::Accelerometer:
 				switch (_corrections_selected_instance) {
 				case 0:
-					_offset = Vector3f{corrections.accel_offset_0};
-					_scale = Vector3f{corrections.accel_scale_0};
+					_thermal_offset = Vector3f{corrections.accel_offset_0};
 					return;
 				case 1:
-					_offset = Vector3f{corrections.accel_offset_1};
-					_scale = Vector3f{corrections.accel_scale_1};
+					_thermal_offset = Vector3f{corrections.accel_offset_1};
 					return;
 				case 2:
-					_offset = Vector3f{corrections.accel_offset_2};
-					_scale = Vector3f{corrections.accel_scale_2};
+					_thermal_offset = Vector3f{corrections.accel_offset_2};
 					return;
 				}
 
@@ -185,16 +187,13 @@ void SensorCorrections::SensorCorrectionsUpdate(bool force)
 			case SensorType::Gyroscope:
 				switch (_corrections_selected_instance) {
 				case 0:
-					_offset = Vector3f{corrections.gyro_offset_0};
-					_scale = Vector3f{corrections.gyro_scale_0};
+					_thermal_offset = Vector3f{corrections.gyro_offset_0};
 					return;
 				case 1:
-					_offset = Vector3f{corrections.gyro_offset_1};
-					_scale = Vector3f{corrections.gyro_scale_1};
+					_thermal_offset = Vector3f{corrections.gyro_offset_1};
 					return;
 				case 2:
-					_offset = Vector3f{corrections.gyro_offset_2};
-					_scale = Vector3f{corrections.gyro_scale_2};
+					_thermal_offset = Vector3f{corrections.gyro_offset_2};
 					return;
 				}
 
@@ -215,43 +214,51 @@ void SensorCorrections::ParametersUpdate()
 	// get transformation matrix from sensor/board to body frame
 	_board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
 
-	// temperature calibration disabled
-	if (_corrections_selected_instance < 0) {
-		int calibration_index = FindCalibrationIndex(_device_id);
 
-		if (calibration_index >= 0) {
-			_offset = CalibrationOffset(calibration_index);
+	int calibration_index = FindCalibrationIndex(_device_id);
 
-			// gyroscope doesn't have a scale factor calibration
-			if (_type != SensorType::Gyroscope) {
-				_scale = CalibrationScale(calibration_index);
+	if (calibration_index >= 0) {
+		_offset = CalibrationOffset(calibration_index);
 
-			} else {
-				_scale = Vector3f{1.f, 1.f, 1.f};
-			}
+		// gyroscope doesn't have a scale factor calibration
+		if (_type != SensorType::Gyroscope) {
+			_scale = CalibrationScale(calibration_index);
 
 		} else {
-			_offset.zero();
 			_scale = Vector3f{1.f, 1.f, 1.f};
 		}
+
+	} else {
+		_offset.zero();
+		_scale = Vector3f{1.f, 1.f, 1.f};
+	}
+
+	// temperature calibration disabled
+	if (_corrections_selected_instance < 0) {
+		_thermal_offset.zero();
 	}
 }
 
 void SensorCorrections::PrintStatus()
 {
+	PX4_INFO("%s %d offset: [%.4f %.4f %.4f]", SensorString(), _device_id,
+		 (double)_offset(0), (double)_offset(1), (double)_offset(2));
+
+	if (_type == SensorType::Accelerometer) {
+		PX4_INFO("%s %d scale: [%.4f %.4f %.4f]", SensorString(), _device_id,
+			 (double)_scale(0), (double)_scale(1), (double)_scale(2));
+	}
+
 	if (_corrections_selected_instance >= 0) {
-		PX4_INFO("%s %d temperature calibration enabled", SensorString(), _device_id);
-	}
-
-	if (_offset.norm() > 0.f) {
-		PX4_INFO("%s %d offset: [%.3f %.3f %.3f]", SensorString(), _device_id, (double)_offset(0), (double)_offset(1),
-			 (double)_offset(2));
-	}
-
-	if (fabsf(_scale.norm_squared() - 3.f) > FLT_EPSILON) {
-		PX4_INFO("%s %d scale: [%.3f %.3f %.3f]", SensorString(), _device_id, (double)_scale(0), (double)_scale(1),
-			 (double)_scale(2));
+		PX4_INFO("%s %d temperature offset: [%.3f %.3f %.3f]", SensorString(), _device_id,
+			 (double)_thermal_offset(0), (double)_thermal_offset(1), (double)_thermal_offset(2));
 	}
 }
+
+void SensorCorrections::updateParams()
+{
+	ModuleParams::updateParams();
+	ParametersUpdate();
+};
 
 } // namespace sensors

@@ -163,16 +163,6 @@ void TemperatureCalibration::task_main()
 		}
 	}
 
-	// reset params
-	for (int i = 0; i < num_calibrators; ++i) {
-		calibrators[i]->reset_calibration();
-	}
-
-	// make sure the system updates the changed parameters
-	param_notify_changes();
-
-	px4_usleep(300000); // wait a bit for the system to apply the parameters
-
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
 	// control LED's: blink, then turn solid according to progress

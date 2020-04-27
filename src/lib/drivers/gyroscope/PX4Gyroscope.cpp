@@ -172,14 +172,35 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 	const uint8_t N = sample.samples;
 	const float dt = sample.dt;
 
+	// reset integrator if previous sample was too long ago
+	if ((sample.timestamp_sample > _timestamp_sample_prev)
+	    && ((sample.timestamp_sample - _timestamp_sample_prev) > (N * dt * 2.0f))) {
+
+		ResetIntegrator();
+	}
+
+	_timestamp_sample_prev = sample.timestamp_sample;
+
+	// trapezoidal integration (equally spaced, scaled by dt later)
+	_integrator_samples += 1;
+	_integrator_fifo_samples += N;
+	const Vector3f integration_raw{
+		(0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)),
+		(0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)),
+		(0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1))
+	};
+
+	_integration_raw += integration_raw;
+	_last_sample[0] = sample.x[N - 1];
+	_last_sample[1] = sample.y[N - 1];
+	_last_sample[2] = sample.z[N - 1];
+
 	// publish raw data immediately
 	{
-		// average
-		float x = (float)sum(sample.x, N) / (float)N;
-		float y = (float)sum(sample.y, N) / (float)N;
-		float z = (float)sum(sample.z, N) / (float)N;
-
 		// Apply rotation (before scaling)
+		float x = integration_raw(0) / (float)N;
+		float y = integration_raw(1) / (float)N;
+		float z = integration_raw(2) / (float)N;
 		rotate_3f(_rotation, x, y, z);
 
 		// Apply range scale
@@ -213,63 +234,39 @@ void PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 	_integrator_clipping(2) += clip_count_z;
 
 	// integrated data (INS)
-	{
-		// reset integrator if previous sample was too long ago
-		if ((sample.timestamp_sample > _timestamp_sample_prev)
-		    && ((sample.timestamp_sample - _timestamp_sample_prev) > (N * dt * 2.0f))) {
+	if (_integrator_fifo_samples > 0 && (_integrator_samples >= _integrator_reset_samples)) {
 
-			ResetIntegrator();
+		// Apply rotation (before scaling)
+		rotate_3f(_rotation, _integration_raw(0), _integration_raw(1), _integration_raw(2));
+
+		// Apply calibration and scale to seconds
+		const Vector3f delta_angle{_integration_raw *_scale * 1e-6f * dt};
+
+		// fill sensor_gyro_integrated and publish
+		sensor_gyro_integrated_s report;
+
+		report.timestamp_sample = sample.timestamp_sample;
+		report.error_count = _error_count;
+		report.device_id = _device_id;
+		delta_angle.copyTo(report.delta_angle);
+		report.dt = _integrator_fifo_samples * dt; // time span in microseconds
+		report.samples = _integrator_fifo_samples;
+
+		rotate_3f(_rotation, _integrator_clipping(0), _integrator_clipping(1), _integrator_clipping(2));
+		const Vector3f clipping{_integrator_clipping};
+
+		for (int i = 0; i < 3; i++) {
+			report.clip_counter[i] = fabsf(roundf(clipping(i)));
 		}
 
-		// integrate
-		_integrator_samples += 1;
-		_integrator_fifo_samples += N;
+		report.timestamp = hrt_absolute_time();
+		_sensor_integrated_pub.publish(report);
 
-		// trapezoidal integration (equally spaced, scaled by dt later)
-		_integration_raw(0) += (0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1));
-		_integration_raw(1) += (0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1));
-		_integration_raw(2) += (0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1));
-		_last_sample[0] = sample.x[N - 1];
-		_last_sample[1] = sample.y[N - 1];
-		_last_sample[2] = sample.z[N - 1];
+		// update vibration metrics
+		UpdateVibrationMetrics(delta_angle);
 
-
-		if (_integrator_fifo_samples > 0 && (_integrator_samples >= _integrator_reset_samples)) {
-
-			// Apply rotation (before scaling)
-			rotate_3f(_rotation, _integration_raw(0), _integration_raw(1), _integration_raw(2));
-
-			// Apply calibration and scale to seconds
-			const Vector3f delta_angle{_integration_raw *_scale * 1e-6f * dt};
-
-			// fill sensor_gyro_integrated and publish
-			sensor_gyro_integrated_s report;
-
-			report.timestamp_sample = sample.timestamp_sample;
-			report.error_count = _error_count;
-			report.device_id = _device_id;
-			delta_angle.copyTo(report.delta_angle);
-			report.dt = _integrator_fifo_samples * dt; // time span in microseconds
-			report.samples = _integrator_fifo_samples;
-
-			rotate_3f(_rotation, _integrator_clipping(0), _integrator_clipping(1), _integrator_clipping(2));
-			const Vector3f clipping{_integrator_clipping};
-
-			for (int i = 0; i < 3; i++) {
-				report.clip_counter[i] = fabsf(roundf(clipping(i)));
-			}
-
-			report.timestamp = hrt_absolute_time();
-			_sensor_integrated_pub.publish(report);
-
-			// update vibration metrics
-			UpdateVibrationMetrics(delta_angle);
-
-			// reset integrator
-			ResetIntegrator();
-		}
-
-		_timestamp_sample_prev = sample.timestamp_sample;
+		// reset integrator
+		ResetIntegrator();
 	}
 
 	// publish sensor fifo
@@ -322,8 +319,6 @@ void PX4Gyroscope::ResetIntegrator()
 	_integrator_fifo_samples = 0;
 	_integration_raw.zero();
 	_integrator_clipping.zero();
-
-	_timestamp_sample_prev = 0;
 }
 
 void PX4Gyroscope::UpdateClipLimit()
