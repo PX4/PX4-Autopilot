@@ -150,12 +150,12 @@ private:
 		// Position Control
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p,
 		(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
-		(ParamFloat<px4::params::MPC_XY_VEL_P>) _param_mpc_xy_vel_p,
-		(ParamFloat<px4::params::MPC_XY_VEL_I>) _param_mpc_xy_vel_i,
-		(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d,
-		(ParamFloat<px4::params::MPC_Z_VEL_P>) _param_mpc_z_vel_p,
-		(ParamFloat<px4::params::MPC_Z_VEL_I>) _param_mpc_z_vel_i,
-		(ParamFloat<px4::params::MPC_Z_VEL_D>) _param_mpc_z_vel_d,
+		(ParamFloat<px4::params::MPC_XY_VEL_P_ACC>) _param_mpc_xy_vel_p_acc,
+		(ParamFloat<px4::params::MPC_XY_VEL_I_ACC>) _param_mpc_xy_vel_i_acc,
+		(ParamFloat<px4::params::MPC_XY_VEL_D_ACC>) _param_mpc_xy_vel_d_acc,
+		(ParamFloat<px4::params::MPC_Z_VEL_P_ACC>) _param_mpc_z_vel_p_acc,
+		(ParamFloat<px4::params::MPC_Z_VEL_I_ACC>) _param_mpc_z_vel_i_acc,
+		(ParamFloat<px4::params::MPC_Z_VEL_D_ACC>) _param_mpc_z_vel_d_acc,
 		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
@@ -362,12 +362,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		}
 
 		_control.setPositionGains(Vector3f(_param_mpc_xy_p.get(), _param_mpc_xy_p.get(), _param_mpc_z_p.get()));
-		// backwards compatibility scale for velocity gains to non-acceleration based control, needs to be overcome with configuration conversion
-		const float hover_scale = 20.f;
-		_control.setVelocityGains(Vector3f(_param_mpc_xy_vel_p.get(), _param_mpc_xy_vel_p.get(),
-						   _param_mpc_z_vel_p.get()) * hover_scale,
-					  Vector3f(_param_mpc_xy_vel_i.get(), _param_mpc_xy_vel_i.get(), _param_mpc_z_vel_i.get()) * hover_scale,
-					  Vector3f(_param_mpc_xy_vel_d.get(), _param_mpc_xy_vel_d.get(), _param_mpc_z_vel_d.get()) * hover_scale);
+		_control.setVelocityGains(
+			Vector3f(_param_mpc_xy_vel_p_acc.get(), _param_mpc_xy_vel_p_acc.get(), _param_mpc_z_vel_p_acc.get()),
+			Vector3f(_param_mpc_xy_vel_i_acc.get(), _param_mpc_xy_vel_i_acc.get(), _param_mpc_z_vel_i_acc.get()),
+			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
 		_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
 		_control.setThrustLimits(_param_mpc_thr_min.get(), _param_mpc_thr_max.get());
 		_control.setTiltLimit(M_DEG_TO_RAD_F * _param_mpc_tiltmax_air.get()); // convert to radians!
@@ -407,7 +405,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		// set trigger time for takeoff delay
 		_takeoff.setSpoolupTime(_param_mpc_spoolup_time.get());
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
-		_takeoff.generateInitialRampValue(_param_mpc_thr_hover.get(), _param_mpc_z_vel_p.get());
+		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();
