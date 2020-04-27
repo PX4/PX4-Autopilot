@@ -46,12 +46,12 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "mavlink_timesync.h"
+#include "tune_publisher.h"
 
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-#include <lib/tunes/tunes.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
@@ -210,7 +210,6 @@ private:
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 
 	void schedule_tune(const char *tune);
-	void send_next_tune(hrt_abstime now);
 
 	/**
 	 * @brief Updates the battery, optical flow, and flight ID subscribed parameters.
@@ -272,7 +271,6 @@ private:
 	uORB::PublicationQueued<transponder_report_s>	_transponder_report_pub{ORB_ID(transponder_report)};
 	uORB::PublicationQueued<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::PublicationQueued<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
-	uORB::PublicationQueued<tune_control_s>		_tune_control_pub{ORB_ID(tune_control)};
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
@@ -300,12 +298,8 @@ private:
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
-	static constexpr unsigned MAX_TUNE_LEN {248};
-
 	// Allocated if needed.
-	Tunes *_tunes {nullptr};
-	char *_tune_buffer {nullptr};
-	hrt_abstime _next_tune_time {0};
+	TunePublisher *_tune_publisher{nullptr};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
