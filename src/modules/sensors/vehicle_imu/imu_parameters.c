@@ -38,9 +38,9 @@
 * delta angles and delta velocities.
 *
 * @min 1000
-* @max 5000
+* @max 10000
 * @unit us
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_INT32(IMU_INTEG_TIME, 2500);
+PARAM_DEFINE_INT32(IMU_INTEG_TIME, 5000);
