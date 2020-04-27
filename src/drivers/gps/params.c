@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,7 +64,6 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
  */
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
-
 /**
  * Heading/Yaw offset for dual antenna GPS
  *
@@ -86,3 +85,55 @@ PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
  */
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
 
+
+/**
+ * NMEA GPS baudrate
+ *
+ * This parameter is used to set the NMEA GPS driver's baudrate
+ *
+ * @min 0
+ * @max 6460800
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_NMEA_BAUD, 38400);
+
+/**
+* GPS1 ptotocol type
+*
+* This parameter is used to set if use manual gps mode or auto gps mode
+*
+* @min 0
+* @max 5
+* @value 0 set gps mode to GPS_DRIVER_MODE_AUTO
+* @value 1 set gps mode to GPS_DRIVER_MODE_UBX
+* @value 2 set gps mode to GPS_DRIVER_MODE_MTK
+* @value 3 set gps mode to GPS_DRIVER_MODE_ASHTECH
+* @value 4 set gps mode to GPS_DRIVER_MODE_EMLIDREACH
+* @value 5 set gps mode to GPS_DRIVER_MODE_NMEA
+* @reboot_required true
+*
+* @group GPS
+*/
+PARAM_DEFINE_INT32(GPS_1_PROTOCOL, 0);
+
+/**
+* GPS2 ptotocol type
+*
+* This parameter is used to set if use manual gps mode or auto gps mode
+*
+* @min 0
+* @max 5
+* @value 0 set gps mode to GPS_DRIVER_MODE_AUTO
+* @value 1 set gps mode to GPS_DRIVER_MODE_UBX
+* @value 2 set gps mode to GPS_DRIVER_MODE_MTK
+* @value 3 set gps mode to GPS_DRIVER_MODE_ASHTECH
+* @value 4 set gps mode to GPS_DRIVER_MODE_EMLIDREACH
+* @value 5 set gps mode to GPS_DRIVER_MODE_NMEA
+* @reboot_required true
+*
+* @group GPS
+*/
+PARAM_DEFINE_INT32(GPS_2_PROTOCOL, 0);
