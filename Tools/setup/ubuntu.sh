@@ -6,7 +6,7 @@
 ## Installs:
 ## - Common dependencies and tools for nuttx, jMAVSim, Gazebo
 ## - NuttX toolchain (omit with arg: --no-nuttx)
-## - jMAVSim, Gazebo9 and FlightGear simulator (omit with arg: --no-sim-tools)
+## - jMAVSim and Gazebo9 simulator (omit with arg: --no-sim-tools)
 ##
 ## Not Installs:
 ## - FastRTPS and FastCDR
@@ -109,7 +109,7 @@ fi
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-python3 -m pip install --user -r ${DIR}/requirements.txt
+pip3 install --user -r ${DIR}/requirements.txt
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -199,10 +199,6 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		pkg-config \
 		protobuf-compiler \
 		;
-
-	# FlightGear
-	sudo add-apt-repository -y -u ppa:saiarcot895/flightgear
-	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet install flightgear
 
 fi
 
