@@ -163,34 +163,34 @@ endforeach()
 
 #add flighgear targets
 if( ENABLE_LOCKSTEP_SCHEDULER STREQUAL "no")
-    set(models
-        rascal
-        rascal-electric
-        tf-g1
-        tf-r1
-        )
-    set(all_posix_vmd_make_targets)
+	set(models
+		rascal
+		rascal-electric
+		tf-g1
+		tf-r1
+		)
+	set(all_posix_vmd_make_targets)
 
-    foreach(model ${models})
-	    set(_targ_name "flightgear_${model}")
-        add_custom_target(${_targ_name}
-	        COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-		        $<TARGET_FILE:px4>
-		        none
-		        flightgear
-		        ${model}
-		        none
-		        ${PX4_SOURCE_DIR}
-		        ${PX4_BINARY_DIR}
-	        WORKING_DIRECTORY ${SITL_WORKING_DIR}
-	        USES_TERMINAL
-	        DEPENDS
-		        logs_symlink
-            )
+	foreach(model ${models})
+		set(_targ_name "flightgear_${model}")
+		add_custom_target(${_targ_name}
+			COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+				$<TARGET_FILE:px4>
+				none
+				flightgear
+				${model}
+				none
+				${PX4_SOURCE_DIR}
+				${PX4_BINARY_DIR}
+			WORKING_DIRECTORY ${SITL_WORKING_DIR}
+			USES_TERMINAL
+			DEPENDS
+				logs_symlink
+			)
 
-        add_dependencies(${_targ_name} px4 flightgear_bridge)
-        list(APPEND all_posix_vmd_make_targets ${_targ_name})
-    endforeach()
+		add_dependencies(${_targ_name} px4 flightgear_bridge)
+		list(APPEND all_posix_vmd_make_targets ${_targ_name})
+	endforeach()
 endif()
 
 string(REPLACE ";" "," posix_vmd_make_target_list "${all_posix_vmd_make_targets}")
