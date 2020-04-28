@@ -58,6 +58,7 @@ bool PWMCannode::init()
 
 	// TODO: have this as a command line option or something
 	set_mode(MODE_6PWM); // fmu-v4 has 6 PWM
+	set_pwm_rate(0b1111, 400, 400);
 
 	return true;
 }
