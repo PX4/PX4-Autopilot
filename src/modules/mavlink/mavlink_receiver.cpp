@@ -773,7 +773,9 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 
 	vehicle_odometry_s mocap_odom{};
 
-	mocap_odom.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
+	mocap_odom.timestamp = hrt_absolute_time();
+	mocap_odom.timestamp_sample = _mavlink_timesync.sync_stamp(mocap.time_usec);
+
 	mocap_odom.x = mocap.x;
 	mocap_odom.y = mocap.y;
 	mocap_odom.z = mocap.z;
@@ -1251,7 +1253,9 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 
 	vehicle_odometry_s visual_odom{};
 
-	visual_odom.timestamp = _mavlink_timesync.sync_stamp(ev.usec);
+	visual_odom.timestamp = hrt_absolute_time();
+	visual_odom.timestamp_sample = _mavlink_timesync.sync_stamp(ev.usec);
+
 	visual_odom.x = ev.x;
 	visual_odom.y = ev.y;
 	visual_odom.z = ev.z;
@@ -1291,7 +1295,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 	vehicle_odometry_s odometry{};
 
-	odometry.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
+	odometry.timestamp = hrt_absolute_time();
+	odometry.timestamp_sample = _mavlink_timesync.sync_stamp(odom.time_usec);
 
 	/* The position is in a local FRD frame */
 	odometry.x = odom.x;
