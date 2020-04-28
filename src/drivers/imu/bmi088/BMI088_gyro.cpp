@@ -60,7 +60,7 @@ BMI088_gyro::BMI088_gyro(I2CSPIBusOption bus_option, int bus, const char *path_g
 			 enum Rotation rotation, int bus_frequency, spi_mode_e spi_mode) :
 	BMI088("bmi088_gyro", path_gyro, bus_option, bus, DRV_GYR_DEVTYPE_BMI088, device, spi_mode, bus_frequency,
 	       rotation),
-	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
+	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi088_gyro_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_registers"))

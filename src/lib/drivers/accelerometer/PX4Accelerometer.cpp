@@ -63,7 +63,7 @@ static constexpr unsigned clipping(const int16_t samples[16], int16_t clip_limit
 	return clip_count;
 }
 
-PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
+PX4Accelerometer::PX4Accelerometer(uint32_t device_id, ORB_PRIO priority, enum Rotation rotation) :
 	CDev(nullptr),
 	_sensor_pub{ORB_ID(sensor_accel), priority},
 	_sensor_fifo_pub{ORB_ID(sensor_accel_fifo), priority},
@@ -72,7 +72,11 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Ro
 	_device_id{device_id},
 	_rotation{rotation}
 {
+	// register class and advertise immediately to keep instance numbering in sync
 	_class_device_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
+	_sensor_pub.advertise();
+	_sensor_integrated_pub.advertise();
+	_sensor_status_pub.advertise();
 }
 
 PX4Accelerometer::~PX4Accelerometer()
@@ -80,6 +84,11 @@ PX4Accelerometer::~PX4Accelerometer()
 	if (_class_device_instance != -1) {
 		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _class_device_instance);
 	}
+
+	_sensor_pub.unadvertise();
+	_sensor_fifo_pub.unadvertise();
+	_sensor_integrated_pub.unadvertise();
+	_sensor_status_pub.unadvertise();
 }
 
 int PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)

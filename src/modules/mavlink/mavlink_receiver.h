@@ -54,7 +54,6 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
