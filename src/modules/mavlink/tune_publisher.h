@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,33 +31,25 @@
  *
  ****************************************************************************/
 
-/**
- * @file MagCompensation.hpp
- * @author Roman Bapst <roman@auterion.com>
- *
- *  Library for magnetometer data compensation.
- *
- */
-
 #pragma once
 
-#include <px4_platform_common/module_params.h>
-#include <matrix/matrix/math.hpp>
+#include <uORB/PublicationQueued.hpp>
+#include <drivers/drv_hrt.h>
+#include <lib/tunes/tunes.h>
 
-class MagCompensator : public ModuleParams
+
+class TunePublisher
 {
 public:
-	MagCompensator(ModuleParams *parent);
-
-	~MagCompensator() = default;
-
-	void update_armed_flag(bool armed) { _armed = armed; }
-
-	void update_power(float power) { _power = power; }
-
-	void calculate_mag_corrected(matrix::Vector3f &mag, const matrix::Vector3f &param_vect);
+	void set_tune_string(const char *tune, const hrt_abstime &now);
+	void publish_next_tune(const hrt_abstime now);
 
 private:
-	float _power{0};
-	bool _armed{false};
+	static constexpr unsigned MAX_TUNE_LEN {248};
+
+	Tunes _tunes {};
+	char _tune_buffer[MAX_TUNE_LEN] {0};
+	hrt_abstime _next_publish_time {0};
+
+	uORB::PublicationQueued<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 };

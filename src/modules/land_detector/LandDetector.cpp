@@ -47,7 +47,7 @@ namespace land_detector
 
 LandDetector::LandDetector() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers)
 {}
 
 LandDetector::~LandDetector()

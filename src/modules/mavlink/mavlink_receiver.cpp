@@ -82,6 +82,7 @@ using matrix::wrap_2pi;
 
 MavlinkReceiver::~MavlinkReceiver()
 {
+	delete _tune_publisher;
 	delete _px4_accel;
 	delete _px4_baro;
 	delete _px4_gyro;
@@ -235,6 +236,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_PLAY_TUNE:
 		handle_message_play_tune(msg);
+		break;
+
+	case MAVLINK_MSG_ID_PLAY_TUNE_V2:
+		handle_message_play_tune_v2(msg);
 		break;
 
 	case MAVLINK_MSG_ID_OBSTACLE_DISTANCE:
@@ -768,7 +773,9 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 
 	vehicle_odometry_s mocap_odom{};
 
-	mocap_odom.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
+	mocap_odom.timestamp = hrt_absolute_time();
+	mocap_odom.timestamp_sample = _mavlink_timesync.sync_stamp(mocap.time_usec);
+
 	mocap_odom.x = mocap.x;
 	mocap_odom.y = mocap.y;
 	mocap_odom.z = mocap.z;
@@ -1246,7 +1253,9 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 
 	vehicle_odometry_s visual_odom{};
 
-	visual_odom.timestamp = _mavlink_timesync.sync_stamp(ev.usec);
+	visual_odom.timestamp = hrt_absolute_time();
+	visual_odom.timestamp_sample = _mavlink_timesync.sync_stamp(ev.usec);
+
 	visual_odom.x = ev.x;
 	visual_odom.y = ev.y;
 	visual_odom.z = ev.z;
@@ -1286,7 +1295,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 	vehicle_odometry_s odometry{};
 
-	odometry.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
+	odometry.timestamp = hrt_absolute_time();
+	odometry.timestamp_sample = _mavlink_timesync.sync_stamp(odom.time_usec);
 
 	/* The position is in a local FRD frame */
 	odometry.x = odom.x;
@@ -1758,23 +1768,57 @@ MavlinkReceiver::handle_message_play_tune(mavlink_message_t *msg)
 	mavlink_play_tune_t play_tune;
 	mavlink_msg_play_tune_decode(msg, &play_tune);
 
-	char *tune = play_tune.tune;
+	if ((mavlink_system.sysid == play_tune.target_system || play_tune.target_system == 0) &&
+	    (mavlink_system.compid == play_tune.target_component || play_tune.target_component == 0)) {
 
-	if ((mavlink_system.sysid == play_tune.target_system ||
-	     play_tune.target_system == 0) &&
-	    (mavlink_system.compid == play_tune.target_component ||
-	     play_tune.target_component == 0)) {
+		// Let's make sure the input is 0 terminated, so we don't ever overrun it.
+		play_tune.tune2[sizeof(play_tune.tune2) - 1] = '\0';
 
-		if (*tune == 'M') {
-			int fd = px4_open(TONE_ALARM0_DEVICE_PATH, PX4_F_WRONLY);
-
-			if (fd >= 0) {
-				px4_write(fd, tune, strlen(tune) + 1);
-				px4_close(fd);
-			}
-		}
+		schedule_tune(play_tune.tune);
 	}
 }
+
+void
+MavlinkReceiver::handle_message_play_tune_v2(mavlink_message_t *msg)
+{
+	mavlink_play_tune_v2_t play_tune_v2;
+	mavlink_msg_play_tune_v2_decode(msg, &play_tune_v2);
+
+	if ((mavlink_system.sysid == play_tune_v2.target_system || play_tune_v2.target_system == 0) &&
+	    (mavlink_system.compid == play_tune_v2.target_component || play_tune_v2.target_component == 0)) {
+
+		if (play_tune_v2.format != TUNE_FORMAT_QBASIC1_1) {
+			PX4_ERR("Tune format %d not supported", play_tune_v2.format);
+			return;
+		}
+
+		// Let's make sure the input is 0 terminated, so we don't ever overrun it.
+		play_tune_v2.tune[sizeof(play_tune_v2.tune) - 1] = '\0';
+
+		schedule_tune(play_tune_v2.tune);
+	}
+}
+
+void MavlinkReceiver::schedule_tune(const char *tune)
+{
+	// We only allocate the TunePublisher object if we ever use it but we
+	// don't remove it to avoid fragmentation over time.
+	if (_tune_publisher == nullptr) {
+		_tune_publisher = new TunePublisher();
+
+		if (_tune_publisher == nullptr) {
+			PX4_ERR("Could not allocate tune publisher");
+			return;
+		}
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	_tune_publisher->set_tune_string(tune, now);
+	// Send first one straightaway.
+	_tune_publisher->publish_next_tune(now);
+}
+
 
 void
 MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
@@ -2923,6 +2967,9 @@ MavlinkReceiver::Run()
 			last_send_update = t;
 		}
 
+		if (_tune_publisher != nullptr) {
+			_tune_publisher->publish_next_tune(t);
+		}
 	}
 }
 

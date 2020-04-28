@@ -57,6 +57,7 @@ struct Parameters {
 	float board_offset[3];
 
 	//parameters for current/throttle-based mag compensation
+	int32_t mag_comp_type;
 	float mag_comp_paramX[4];
 	float mag_comp_paramY[4];
 	float mag_comp_paramZ[4];
@@ -76,6 +77,7 @@ struct ParameterHandles {
 
 	param_t board_offset[3];
 
+	param_t mag_comp_type;
 	param_t mag_comp_paramX[4];
 	param_t mag_comp_paramY[4];
 	param_t mag_comp_paramZ[4];
