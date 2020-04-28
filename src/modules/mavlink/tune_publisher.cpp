@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,33 +31,64 @@
  *
  ****************************************************************************/
 
-/**
- * @file MagCompensation.hpp
- * @author Roman Bapst <roman@auterion.com>
- *
- *  Library for magnetometer data compensation.
- *
- */
 
-#pragma once
+#include "tune_publisher.h"
+#include "string.h"
+#include <px4_platform_common/log.h>
 
-#include <px4_platform_common/module_params.h>
-#include <matrix/matrix/math.hpp>
-
-class MagCompensator : public ModuleParams
+void TunePublisher::set_tune_string(const char *tune, const hrt_abstime &now)
 {
-public:
-	MagCompensator(ModuleParams *parent);
+	// The tune string needs to be 0 terminated.
+	const unsigned tune_len = strlen(tune);
 
-	~MagCompensator() = default;
+	// We don't expect the tune string to be longer than what can come in via MAVLink including 0 termination.
+	if (tune_len >= MAX_TUNE_LEN) {
+		PX4_ERR("Tune string too long.");
+		return;
+	}
 
-	void update_armed_flag(bool armed) { _armed = armed; }
+	strncpy(_tune_buffer, tune, MAX_TUNE_LEN);
 
-	void update_power(float power) { _power = power; }
+	_tunes.set_string(_tune_buffer, tune_control_s::VOLUME_LEVEL_DEFAULT);
 
-	void calculate_mag_corrected(matrix::Vector3f &mag, const matrix::Vector3f &param_vect);
+	_next_publish_time = now;
+}
 
-private:
-	float _power{0};
-	bool _armed{false};
-};
+
+void TunePublisher::publish_next_tune(const hrt_abstime now)
+{
+	if (_next_publish_time == 0) {
+		// Nothing to play.
+		return;
+	}
+
+	if (now < _next_publish_time) {
+		// Too early, try again later.
+		return;
+	}
+
+	unsigned frequency;
+	unsigned duration;
+	unsigned silence;
+	uint8_t volume;
+
+	if (_tunes.get_next_note(frequency, duration, silence, volume) > 0) {
+		tune_control_s tune_control {};
+		tune_control.tune_id = 0;
+		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+
+		tune_control.tune_id = 0;
+		tune_control.frequency = static_cast<uint16_t>(frequency);
+		tune_control.duration = static_cast<uint32_t>(duration);
+		tune_control.silence = static_cast<uint32_t>(silence);
+		tune_control.volume = static_cast<uint8_t>(volume);
+		tune_control.timestamp = now;
+		_tune_control_pub.publish(tune_control);
+
+		_next_publish_time = now + duration + silence;
+
+	} else {
+		// We're done, let's reset.
+		_next_publish_time = 0;
+	}
+}

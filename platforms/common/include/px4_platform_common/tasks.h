@@ -101,7 +101,7 @@ typedef struct {
 #endif
 
 // PX4 work queue starting high priority
-#define PX4_WQ_HP_BASE (SCHED_PRIORITY_MAX - 12)
+#define PX4_WQ_HP_BASE (SCHED_PRIORITY_MAX - 15)
 
 // Fast drivers - they need to run as quickly as possible to minimize control
 // latency.

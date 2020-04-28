@@ -284,7 +284,7 @@ private:
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
