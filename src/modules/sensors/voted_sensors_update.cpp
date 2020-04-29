@@ -709,7 +709,7 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 				int ctr_valid = 0;
 
 				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
-					if (sensor.priority[i] > 1) {
+					if (sensor.priority[i] > ORB_PRIO_MIN) {
 						ctr_valid++;
 					}
 
