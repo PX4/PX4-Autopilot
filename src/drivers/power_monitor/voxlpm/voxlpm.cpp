@@ -47,10 +47,10 @@
  * Address 0x44 - measures battery voltage and current with a 0.0005 ohm sense resistor
  * Address 0x45 - measures 5VDC/12VDC ouptut voltage and current
  */
-VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, uint8_t address, VOXLPM_CH_TYPE ch_type) :
-	I2C(DRV_POWER_DEVTYPE_VOXLPM, MODULE_NAME, bus, address, bus_frequency),
+VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOXLPM_CH_TYPE ch_type) :
+	I2C(DRV_POWER_DEVTYPE_VOXLPM, MODULE_NAME, bus, VOXLPM_INA231_ADDR_VBATT, bus_frequency),
 	ModuleParams(nullptr),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
 	_ch_type(ch_type),
@@ -67,13 +67,15 @@ VOXLPM::~VOXLPM()
 int
 VOXLPM::init()
 {
+	_initialized = false;
 	int ret = PX4_ERROR;
 
-	/* do I2C init (and probe) first */
+	/* do I2C init, it will probe the bus for two possible configurations, LTC2946 or INA231 */
 	if (I2C::init() != OK) {
 		return ret;
 	}
 
+	/* If we've probed and succeeded we'll have an accurate address here for the VBat addr */
 	uint8_t addr = get_device_address();
 
 	if (addr == VOXLPM_LTC2946_ADDR_VBATT || addr == VOXLPM_LTC2946_ADDR_P5VD) {
@@ -89,7 +91,55 @@ VOXLPM::init()
 
 	if (ret == PX4_OK) {
 		_battery.reset();
+		_initialized = true;
 		start();
+	}
+
+	return ret;
+}
+
+int
+VOXLPM::force_init()
+{
+	int ret = init();
+	start();
+	return ret;
+}
+
+int
+VOXLPM::probe()
+{
+	int ret = PX4_ERROR;
+	uint8_t data[2];
+
+	uint8_t addr;
+
+	/* Try LTC2946 first */
+	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
+		addr = VOXLPM_LTC2946_ADDR_VBATT;
+
+	} else {
+		addr = VOXLPM_LTC2946_ADDR_P5VD;
+	}
+
+	set_device_address(addr);
+
+	/* Check status register */
+	ret = read_reg_buf(VOXLPM_LTC2946_STATUS_REG, data, sizeof(data));
+
+	if (ret) {
+		/* Try INA231 next */
+		if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
+			addr = VOXLPM_INA231_ADDR_VBATT;
+
+		} else {
+			addr = VOXLPM_INA231_ADDR_P5_12VDC;
+		}
+
+		set_device_address(addr);
+
+		/* Check config register */
+		ret = read_reg_buf(INA231_REG_CONFIG, data, sizeof(data));
 	}
 
 	return ret;
@@ -106,27 +156,23 @@ VOXLPM::init_ltc2946()
 int
 VOXLPM::init_ina231()
 {
+	uint16_t cmd;
+
 	/* Reset */
-	uint16_t cmd = INA231_RST_BIT;
-	write_reg_buf(INA231_REG_CONFIG, (uint8_t *)&cmd, sizeof(cmd));
+	cmd = INA231_RST_BIT;
+	write_reg_uint16(INA231_REG_CONFIG, cmd);
 
-	px4_usleep(100);
-
-	/* Configure */
-	cmd = INA231_CONFIG;
-	write_reg_buf(INA231_REG_CONFIG, (uint8_t *)&cmd, sizeof(cmd));
-
-	/* Set calibration */
-	int16_t cal;
+	px4_usleep(1000);
 
 	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
-		cal = (int16_t)VOXLPM_INA231_VBAT_CAL;
+		_cal = VOXLPM_INA231_VBAT_CAL;
 
 	} else {
-		cal = (int16_t)VOXLPM_INA231_VREG_CAL;
+		_cal = VOXLPM_INA231_VREG_CAL;
 	}
 
-	write_reg_buf(INA231_REG_CALIBRATION, (uint8_t *)&cal, sizeof(cal));
+	/* Set calibration */
+	write_reg_uint16(INA231_REG_CALIBRATION, _cal);
 
 	return PX4_OK;
 }
@@ -189,6 +235,15 @@ int
 VOXLPM::measure()
 {
 	int ret = PX4_ERROR;
+
+	if (!_initialized) {
+		ret = init();
+
+		if (ret) {
+			return ret;
+		}
+	}
+
 	parameter_update_s update;
 
 	if (_parameter_sub.update(&update)) {
@@ -275,7 +330,7 @@ VOXLPM::measure_ltc2946()
 	uint8_t vraw[2];
 	uint8_t iraw[2];
 
-	int amp_ret = read_reg_buf(VOXLPM_LTC2946_DELTA_SENSE_MSB_REG, iraw, sizeof(iraw)); // 0x14
+	int amp_ret = read_reg_buf(VOXLPM_LTC2946_DELTA_SENSE_MSB_REG, iraw, sizeof(iraw));  // 0x14
 	int volt_ret = read_reg_buf(VOXLPM_LTC2946_VIN_MSB_REG, vraw, sizeof(vraw));         // 0x1E
 
 	if ((amp_ret == 0) && (volt_ret == 0)) {
@@ -297,25 +352,38 @@ VOXLPM::measure_ina231()
 {
 	int ret = PX4_ERROR;
 
-	uint8_t raw_amps[2];
+	uint8_t raw_vshunt[2];
 	uint8_t raw_vbus[2];
+	uint8_t raw_amps[2];
+
+	int16_t vshunt = -1;
 	int16_t vbus = -1;
-	int16_t amps = -1;
+	uint16_t amps = 0;
 
+	int vshunt_ret = read_reg_buf(INA231_REG_SHUNTVOLTAGE, raw_vshunt, sizeof(raw_vshunt));
+	int vbus_ret = read_reg_buf(INA231_REG_BUSVOLTAGE, raw_vbus, sizeof(raw_vbus));
 	int amp_ret = read_reg_buf(INA231_REG_CURRENT, raw_amps, sizeof(raw_amps));
-	int volt_ret = read_reg_buf(INA231_REG_BUSVOLTAGE, raw_vbus, sizeof(raw_vbus));
 
-	if ((amp_ret == 0) && (volt_ret == 0)) {
+	if ((vshunt_ret == 0) && (vbus_ret == 0) && (amp_ret == 0)) {
+		memcpy(&vshunt, raw_vshunt, sizeof(vshunt));
 		memcpy(&vbus, raw_vbus, sizeof(vbus));
 		memcpy(&amps, raw_amps, sizeof(amps));
+		vshunt = swap16(vshunt);
+		vbus = swap16(vbus);
+		amps = swap16(amps);
 
 		_voltage = (float) vbus * INA231_VSCALE;
 
+
 		if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
-			_amperage = (float) amps * VOXLPM_INA231_VBAT_I_LSB;
+			//_amperage = (float) amps * VOXLPM_INA231_VBAT_I_LSB;
+			/* vshunt is in microvolts, convert to AMPs */
+			_amperage = ((float) vshunt / VOXLPM_INA231_VBAT_SHUNT) / 1000000.0f;
 
 		} else {
-			_amperage = (float) amps * VOXLPM_INA231_VREG_I_LSB;
+			//_amperage = (float) amps * VOXLPM_INA231_VREG_I_LSB;
+			/* vshunt is in microvolts, convert to AMPs */
+			_amperage = ((float) vshunt / VOXLPM_INA231_VREG_SHUNT) / 1000000.0f;
 		}
 
 		ret = PX4_OK;
@@ -347,10 +415,11 @@ VOXLPM::write_reg(uint8_t addr, uint8_t value)
 }
 
 int
-VOXLPM::write_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len)
+VOXLPM::write_reg_uint16(uint8_t addr, uint16_t value)
 {
-	uint8_t cmd[len + 1] = {};
-	cmd[0] = addr;
-	memcpy(&cmd[1], buf, len);
-	return transfer(cmd, sizeof(cmd), nullptr, 0);
+	uint8_t data[3] = {};
+	data[0] = addr;
+	data[1] = (value & 0xFF00) >> 8;
+	data[2] = (value & 0x00FF) >> 8;
+	return transfer(data, sizeof(data), nullptr, 0);
 }

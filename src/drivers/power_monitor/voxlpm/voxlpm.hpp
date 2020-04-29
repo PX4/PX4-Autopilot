@@ -106,6 +106,7 @@
 #define VOXLPM_LTC2946_POWER_MSB2_REG		0x05
 #define VOXLPM_LTC2946_CTRLB_MSG1_REG		0x06
 #define VOXLPM_LTC2946_CTRLB_LSB_REG		0x07
+#define VOXLPM_LTC2946_STATUS_REG		0x80
 
 #define VOXLPM_LTC2946_DELTA_SENSE_MSB_REG	0x14
 #define VOXLPM_LTC2946_DELTA_SENSE_LSB_REG	0x15
@@ -183,8 +184,8 @@
 #define INA231_CONFIG_SHUNT_CT			(0x04 << 3)
 /* [8:6] Shunt Voltage Conversion Time, 100, 1.1ms (INA231A default) */
 #define INA231_CONFIG_BUS_CT			(0x04 << 6)
-/* [11:9] Averaging Mode, 011, 64 */
-#define INA231_CONFIG_AVG			(0x03 << 9)
+/* [11:9] Averaging Mode, 000, 1 */
+#define INA231_CONFIG_AVG			(0x00 << 9)
 /* [1] Reset bit */
 #define INA231_RST_BIT				(0x01 << 15)
 /* Configuration register settings */
@@ -205,6 +206,8 @@
 #define VOXLPM_INA231_VBAT_CAL			(INA231_CONST/(VOXLPM_INA231_VBAT_I_LSB*VOXLPM_INA231_VBAT_SHUNT))
 #define VOXLPM_INA231_VREG_CAL			(INA231_CONST/(VOXLPM_INA231_VREG_I_LSB*VOXLPM_INA231_VREG_SHUNT))
 
+#define swap16(w)				__builtin_bswap16((w))
+
 enum VOXLPM_TYPE {
 	VOXLPM_UNKOWN,
 	VOXLPM_TYPE_V0_LTC,
@@ -220,7 +223,7 @@ enum VOXLPM_CH_TYPE {
 class VOXLPM : public device::I2C, public ModuleParams, public I2CSPIDriver<VOXLPM>
 {
 public:
-	VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, uint8_t address, VOXLPM_CH_TYPE ch_type);
+	VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOXLPM_CH_TYPE ch_type);
 	virtual ~VOXLPM();
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
@@ -228,10 +231,13 @@ public:
 	static void print_usage();
 
 	virtual int		init();
+	int			force_init();
 	void			print_status() override;
 
 	void 			RunImpl();
+
 private:
+	int			probe() override;
 	void 			start();
 	int 			measure();
 	int 			init_ltc2946();
@@ -239,6 +245,7 @@ private:
 	int 			measure_ltc2946();
 	int 			measure_ina231();
 
+	bool			_initialized;
 	static constexpr unsigned 		_meas_interval{100000}; // 100ms
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -253,6 +260,7 @@ private:
 	float			_voltage{0.0f};
 	float			_amperage{0.0f};
 	float			_rsense{0.0f};
+	int16_t			_cal{0};
 
 	Battery 		_battery;
 	uORB::Subscription	_actuators_sub{ORB_ID(actuator_controls_0)};
@@ -260,6 +268,6 @@ private:
 
 	uint8_t 		read_reg(uint8_t addr);
 	int 			read_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
-	int 			write_reg(uint8_t value, uint8_t addr);
-	int 			write_reg_buf(uint8_t value, uint8_t *buf, uint8_t len);
+	int 			write_reg(uint8_t addr, uint8_t value);
+	int 			write_reg_uint16(uint8_t addr, uint16_t value);
 };

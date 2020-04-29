@@ -40,14 +40,20 @@ I2CSPIDriverBase *VOXLPM::instantiate(const BusCLIArguments &cli, const BusInsta
 				      int runtime_instance)
 {
 	VOXLPM *instance = new VOXLPM(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
-				      cli.i2c_address, (VOXLPM_CH_TYPE)cli.type);
+				      (VOXLPM_CH_TYPE)cli.type);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (OK != instance->init()) {
+	if (cli.custom1 == 1) {
+		if (OK != instance->force_init()) {
+			PX4_INFO("Failed to init voxlpm type: %d on bus: %d, but will try again periodically.", (VOXLPM_CH_TYPE)cli.type,
+				 iterator.bus());
+		}
+
+	} else if (OK != instance->init()) {
 		delete instance;
 		return nullptr;
 	}
@@ -63,6 +69,7 @@ VOXLPM::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAM_STRING('T', "VBATT", "VBATT|P5VDC|P12VDC", "Type", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('K', "if initialization (probing) fails, keep retrying periodically", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -74,9 +81,8 @@ voxlpm_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	cli.type = VOXLPM_CH_TYPE_VBATT;
-	cli.i2c_address = (uint8_t)VOXLPM_LTC2946_ADDR_VBATT;
 
-	while ((ch = cli.getopt(argc, argv, "T:")) != EOF) {
+	while ((ch = cli.getopt(argc, argv, "KT:")) != EOF) {
 		switch (ch) {
 		case 'T':
 			if (strcmp(cli.optarg(), "VBATT") == 0) {
@@ -94,6 +100,10 @@ voxlpm_main(int argc, char *argv[])
 			}
 
 			break;
+
+		case 'K': // keep retrying
+			cli.custom1 = 1;
+			break;
 		}
 	}
 
@@ -107,29 +117,7 @@ voxlpm_main(int argc, char *argv[])
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_POWER_DEVTYPE_VOXLPM);
 
 	if (!strcmp(verb, "start")) {
-		// we first try the Power Module (v0) addresses (which uses LTC ICs)
-		if (cli.type == VOXLPM_CH_TYPE_VBATT) {
-			cli.i2c_address = (uint8_t)VOXLPM_LTC2946_ADDR_VBATT;
-
-		} else {
-			cli.i2c_address = (uint8_t)VOXLPM_LTC2946_ADDR_P5VD;
-		}
-
-		int res = ThisDriver::module_start(cli, iterator);
-
-		// If that failed, let's try the Power Module v1 addresses (which uses the TI INA ICs)
-		if (res) {
-			if (cli.type == VOXLPM_CH_TYPE_VBATT) {
-				cli.i2c_address = (uint8_t)VOXLPM_INA231_ADDR_VBATT;
-
-			} else {
-				cli.i2c_address = (uint8_t)VOXLPM_INA231_ADDR_P5_12VDC;
-			}
-
-			res = ThisDriver::module_start(cli, iterator);
-		}
-
-		return res;
+		return ThisDriver::module_start(cli, iterator);
 	}
 
 	if (!strcmp(verb, "stop")) {
