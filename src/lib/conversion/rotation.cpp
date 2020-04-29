@@ -202,8 +202,10 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 		}
 
 	case ROTATION_ROLL_270_YAW_90: {
-			tmp = z; z = -y; y = tmp;
-			tmp = x; x = -y; y = tmp;
+			tmp = x;
+			x = -z;
+			z = -y;
+			y = tmp;
 			return;
 		}
 
@@ -216,8 +218,10 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 		}
 
 	case ROTATION_ROLL_270_YAW_270: {
-			tmp = z; z = -y; y = tmp;
-			tmp = x; x = y; y = -tmp;
+			tmp = x;
+			x = z;
+			z = -y;
+			y = -tmp;
 			return;
 		}
 
@@ -246,9 +250,9 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 		}
 
 	case ROTATION_YAW_293_PITCH_68_ROLL_90: {
-			float tmpx = x;
-			float tmpy = y;
-			float tmpz = z;
+			const float tmpx = x;
+			const float tmpy = y;
+			const float tmpz = z;
 			x =  -0.390731f * tmpy - 0.920505f * tmpz;
 			y = 0.374607f * tmpx - 0.853477f * tmpy + 0.362280f * tmpz;
 			z = -0.927184f * tmpx - 0.344827f * tmpy +  0.146371f * tmpz;
@@ -256,9 +260,9 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 		}
 
 	case ROTATION_PITCH_9_YAW_180: {
-			float tmpx = x;
-			float tmpy = y;
-			float tmpz = z;
+			const float tmpx = x;
+			const float tmpy = y;
+			const float tmpz = z;
 			x = -0.987688f * tmpx +  0.000000f * tmpy + -0.156434f * tmpz;
 			y =  0.000000f * tmpx + -1.000000f * tmpy +  0.000000f * tmpz;
 			z = -0.156434f * tmpx +  0.000000f * tmpy +  0.987688f * tmpz;
@@ -376,9 +380,9 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 		}
 
 	case ROTATION_ROLL_90_PITCH_68_YAW_293: {
-			float tmpx = x;
-			float tmpy = y;
-			float tmpz = z;
+			const float tmpx = x;
+			const float tmpy = y;
+			const float tmpz = z;
 			x = 0.146371f * tmpx + 0.362280f * tmpy - 0.920505f * tmpz;
 			y = -0.344827f * tmpx - 0.853477f * tmpy - 0.390731f * tmpz;
 			z = -0.927184f * tmpx + 0.374607f * tmpy;
@@ -386,9 +390,9 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 		}
 
 	case ROTATION_ROLL_90_PITCH_315: {
-			float tmpx = x;
-			float tmpy = y;
-			float tmpz = z;
+			const float tmpx = x;
+			const float tmpy = y;
+			const float tmpz = z;
 			x = 0.707107f * tmpx - 0.707107f * tmpy;
 			y = -tmpz;
 			z = 0.707107f * tmpx + 0.707107f * tmpy;
