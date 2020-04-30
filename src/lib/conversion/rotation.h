@@ -93,9 +93,8 @@ enum Rotation {
 	ROTATION_ROLL_270_YAW_180    = 41,
 	ROTATION_ROLL_270_YAW_270    = 42,
 	ROTATION_PITCH_90_YAW_180    = 43,
-	ROTATION_YAW_293_PITCH_68_ROLL_90 = 44,
-	ROTATION_PITCH_9_YAW_180     = 45,
-	ROTATION_PITCH_45            = 46,
+	ROTATION_PITCH_9_YAW_180     = 44,
+	ROTATION_PITCH_45            = 45,
 	ROTATION_MAX
 };
 
@@ -150,7 +149,6 @@ const rot_lookup_t rot_lookup[] = {
 	{270,   0, 180 },
 	{270,   0, 270 },
 	{  0,  90, 180 },
-	{293,  68,  90 },
 	{  0,   9, 180 },
 	{  0,  45,   0 },
 };
