@@ -6,7 +6,6 @@ import os
 import atexit
 import subprocess
 import threading
-import pathlib
 import errno
 from typing import Any, Dict, List, TextIO, Optional
 
@@ -31,7 +30,6 @@ class Runner:
         self.start_time = time.time()
         self.log_dir = log_dir
         self.log_filename = ""
-        self.wait_until_complete = False
         self.stop_thread: Any[threading.Event] = None
 
     def set_log_filename(self, log_filename: str) -> None:
@@ -62,11 +60,6 @@ class Runner:
         self.stop_thread = threading.Event()
         self.thread = threading.Thread(target=self.process_output)
         self.thread.start()
-        if self.wait_until_complete:
-            timeout_s = 10.0
-            if self.wait(timeout_s) != 0:
-                raise TimeoutError("Command '{}' not completed within {}"
-                                   .format(self.cmd, timeout_s))
 
     def process_output(self) -> None:
         assert self.process.stdout is not None
@@ -139,6 +132,10 @@ class Runner:
     def time_elapsed_s(self) -> float:
         return time.time() - self.start_time
 
+    def add_to_env_if_set(self, var: str) -> None:
+        if var in os.environ:
+            self.env[var] = os.environ[var]
+
 
 class Px4Runner(Runner):
     def __init__(self, workspace_dir: str, log_dir: str,
@@ -196,8 +193,8 @@ class GzserverRunner(Runner):
                     workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": str(speed_factor),
-                    "DISPLAY": os.environ['DISPLAY']}
+                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
+        self.add_to_env_if_set("DISPLAY")
         self.add_to_env_if_set("PX4_HOME_LAT")
         self.add_to_env_if_set("PX4_HOME_LON")
         self.add_to_env_if_set("PX4_HOME_ALT")
@@ -205,28 +202,6 @@ class GzserverRunner(Runner):
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
                      "empty.world"]
-
-    def add_to_env_if_set(self, var: str) -> None:
-        if var in os.environ:
-            self.env[var] = os.environ[var]
-
-
-class WaitforgzRunner(Runner):
-    def __init__(self,
-                 workspace_dir: str,
-                 log_dir: str,
-                 model: str,
-                 case: str,
-                 verbose: bool):
-        super().__init__(log_dir, model, case, verbose)
-        self.name = "waitforgz"
-        self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH'],
-                    "HOME": os.environ['HOME']}
-        script_dir = pathlib.Path(__file__).parent.absolute()
-        self.cmd = os.path.join(script_dir, "waitforgz.sh")
-        self.args = []
-        self.wait_until_complete = True
 
 
 class GzmodelspawnRunner(Runner):
@@ -244,15 +219,14 @@ class GzmodelspawnRunner(Runner):
                     "GAZEBO_PLUGIN_PATH":
                     workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
-                    workspace_dir + "/Tools/sitl_gazebo/models",
-                    "DISPLAY": os.environ['DISPLAY']}
+                    workspace_dir + "/Tools/sitl_gazebo/models"}
+        self.add_to_env_if_set("DISPLAY")
         self.cmd = "gz"
         self.args = ["model", "--spawn-file", workspace_dir +
                      "/Tools/sitl_gazebo/models/" +
                      self.model + "/" + self.model + ".sdf",
                      "--model-name", self.model,
                      "-x", "1.01", "-y", "0.98", "-z", "0.83"]
-        self.wait_until_complete = True
 
 
 class GzclientRunner(Runner):
@@ -268,8 +242,8 @@ class GzclientRunner(Runner):
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
                     "GAZEBO_MODEL_PATH":
-                    workspace_dir + "/Tools/sitl_gazebo/models",
-                    "DISPLAY": os.environ['DISPLAY']}
+                    workspace_dir + "/Tools/sitl_gazebo/models"}
+        self.add_to_env_if_set("DISPLAY")
         self.cmd = "gzclient"
         self.args = ["--verbose"]
 

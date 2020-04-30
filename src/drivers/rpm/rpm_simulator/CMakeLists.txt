@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,9 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE systemcmds__config
-	MAIN config
-	STACK_MAIN 4096
-	COMPILE_FLAGS
+	MODULE examples__rpm_simulator
+	MAIN rpm_simulator
 	SRCS
-		config.c
+		rpm_simulator.cpp
 	DEPENDS
 	)
-

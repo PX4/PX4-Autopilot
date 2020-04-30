@@ -36,15 +36,13 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-ICM20689::print_usage()
+void ICM20689::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("icm20689", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -65,11 +63,6 @@ I2CSPIDriverBase *ICM20689::instantiate(const BusCLIArguments &cli, const BusIns
 	}
 
 	return instance;
-}
-
-void ICM20689::custom_method(const BusCLIArguments &cli)
-{
-	Reset();
 }
 
 extern "C" int icm20689_main(int argc, char *argv[])
@@ -106,10 +99,6 @@ extern "C" int icm20689_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "reset")) {
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();

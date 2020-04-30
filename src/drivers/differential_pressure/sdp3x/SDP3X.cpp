@@ -81,7 +81,7 @@ SDP3X::init_sdp3x()
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
-		PX4_ERR("config failed");
+		DEVICE_DEBUG("config failed");
 		return false;
 	}
 

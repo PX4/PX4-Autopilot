@@ -30,6 +30,9 @@
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
 	branch = master
+[submodule "src/drivers/uavcannode_v1/libcanard"]
+	path = src/drivers/uavcannode_v1/libcanard
+	url = https://github.com/UAVCAN/libcanard.git
 [submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
 	url = https://github.com/PX4/micro-CDR.git
@@ -45,6 +48,6 @@
 [submodule "platforms/qurt/dspal"]
 	path = platforms/qurt/dspal
 	url = https://github.com/ATLFlight/dspal.git
-[submodule "src/drivers/uavcannode_v1/libcanard"]
-	path = src/drivers/uavcannode_v1/libcanard
-	url = https://github.com/UAVCAN/libcanard.git
+[submodule "Tools/flightgear_bridge"]
+	path = Tools/flightgear_bridge
+	url = https://github.com/PX4/PX4-FlightGear-Bridge.git

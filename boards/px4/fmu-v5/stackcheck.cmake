@@ -67,6 +67,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		#esc_battery
 		events
 		fw_att_control
 		fw_pos_control_l1
@@ -91,7 +92,6 @@ px4_add_board(
 		vtol_att_control
 	SYSTEMCMDS
 		bl_update
-		config
 		dmesg
 		dumpfile
 		esc_calib

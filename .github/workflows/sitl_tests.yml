@@ -17,7 +17,9 @@ jobs:
           bionic,
           focal
           ]
-    container: px4io/px4-dev-simulation-${{ matrix.ubuntu_release }}:2020-04-01
+    container:
+      image: px4io/px4-dev-simulation-${{ matrix.ubuntu_release }}:2020-04-01
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
       with:
@@ -39,6 +41,10 @@ jobs:
       run: DONT_RUN=1 make px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage gazebo mavsdk_tests
     - name: ccache post-run
       run: ccache -s && ccache -z
+    - name: Core dump settings
+      run: |
+          ulimit -c unlimited
+          echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
     - name: Run SITL tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
     - name: Run SITL tests in Southern hemisphere
@@ -47,6 +53,21 @@ jobs:
     - name: Run SITL tests far in the West
       run: PX4_HOME_LAT=59.6176928 PX4_HOME_LON=-151.1453163 PX4_HOME_ALT=48 |
         test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
+    - name: Look at core files
+      if: failure()
+      run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
+    - name: Upload px4 coredump
+      if: failure()
+      uses: actions/upload-artifact@v2-preview
+      with:
+        name: coredump
+        path: px4.core
+    - name: Upload px4 binary
+      if: failure()
+      uses: actions/upload-artifact@v2-preview
+      with:
+        name: binary
+        path: build/px4_sitl_default/bin/px4
 
     # Report test coverage
     - name: disable the keychain credential helper

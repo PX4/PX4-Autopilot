@@ -86,8 +86,8 @@ void RoverPositionControl::parameters_update(bool force)
 		pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
 		pid_set_parameters(&_speed_ctrl,
 				   _param_speed_p.get(),
-				   _param_speed_d.get(),
 				   _param_speed_i.get(),
+				   _param_speed_d.get(),
 				   _param_speed_imax.get(),
 				   _param_gndspeed_max.get());
 	}

@@ -69,18 +69,14 @@ public:
 	int init() override;
 	void print_status() override;
 
-	void Start();
-	bool Reset();
-
-protected:
-	void custom_method(const BusCLIArguments &cli) override;
-	void exit_and_cleanup() override;
 private:
+	void exit_and_cleanup() override;
+
 	// Sensor Configuration
 	static constexpr float FIFO_SAMPLE_DT{125.f};
-	static constexpr uint32_t SAMPLES_PER_TRANSFER{2}; // ensure at least 1 new accel sample per transfer
-	static constexpr float GYRO_RATE{1000000 / FIFO_SAMPLE_DT}; // 8 kHz gyro
-	static constexpr float ACCEL_RATE{GYRO_RATE / 2.f};         // 4 kHz accel
+	static constexpr uint32_t SAMPLES_PER_TRANSFER{2};       // ensure at least 1 new accel sample per transfer
+	static constexpr float GYRO_RATE{1e6f / FIFO_SAMPLE_DT}; // 8 kHz gyro
+	static constexpr float ACCEL_RATE{GYRO_RATE / 2.f};      // 4 kHz accel
 
 	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
 
@@ -101,6 +97,8 @@ private:
 	};
 
 	int probe() override;
+
+	bool Reset();
 
 	bool Configure();
 	void ConfigureAccel();
@@ -160,7 +158,7 @@ private:
 
 	STATE _state{STATE::RESET};
 
-	uint16_t _fifo_empty_interval_us{1000}; // default 1000 us / 1000 Hz transfer interval
+	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
 	uint8_t _fifo_gyro_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 	uint8_t _fifo_accel_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / ACCEL_RATE))};
 

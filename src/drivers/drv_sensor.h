@@ -69,13 +69,13 @@
 #define DRV_ACC_DEVTYPE_MPU6000_LEGACY  0x13
 #define DRV_ACC_DEVTYPE_ACCELSIM 0x14
 #define DRV_ACC_DEVTYPE_MPU9250_LEGACY  0x16
-#define DRV_ACC_DEVTYPE_BMI160   0x17
+#define DRV_IMU_DEVTYPE_BMI160   0x17
 
 #define DRV_IMU_DEVTYPE_MPU6000  0x21
 #define DRV_GYR_DEVTYPE_L3GD20   0x22
 #define DRV_GYR_DEVTYPE_GYROSIM  0x23
 #define DRV_IMU_DEVTYPE_MPU9250  0x24
-#define DRV_GYR_DEVTYPE_BMI160   0x25
+#define DRV_IMU_DEVTYPE_ICM20649 0x25
 #define DRV_IMU_DEVTYPE_ICM42688P 0x26
 #define DRV_IMU_DEVTYPE_ICM40609D 0x27
 
@@ -161,28 +161,5 @@
 #define DRV_DIST_DEVTYPE_UAVCAN	0x89
 
 #define DRV_DEVTYPE_UNUSED		0xff
-
-/*
- * ioctl() definitions
- *
- * Note that a driver may not implement all of these operations, but
- * if the operation is implemented it should conform to this API.
- */
-
-#define _SENSORIOCBASE		(0x2000)
-#define _SENSORIOC(_n)		(_PX4_IOC(_SENSORIOCBASE, _n))
-
-/**
- * Set the driver polling rate to (arg) Hz, or one of the SENSOR_POLLRATE
- * constants
- */
-#define SENSORIOCSPOLLRATE	_SENSORIOC(0)
-
-#define SENSOR_POLLRATE_DEFAULT		1000003	/**< poll at driver normal rate */
-
-/**
- * Reset the sensor to its default configuration
- */
-#define SENSORIOCRESET		_SENSORIOC(4)
 
 #endif /* _DRV_SENSOR_H */

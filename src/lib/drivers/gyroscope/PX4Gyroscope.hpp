@@ -100,7 +100,7 @@ private:
 
 	hrt_abstime	_status_last_publish{0};
 
-	Integrator		_integrator{4000, true};
+	Integrator		_integrator{2500, true};
 
 	matrix::Vector3f	_calibration_offset{0.f, 0.f, 0.f};
 
@@ -112,7 +112,6 @@ private:
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
-	const matrix::Dcmf	_rotation_dcm;
 
 	float			_range{math::radians(2000.f)};
 	float			_scale{1.f};
@@ -122,18 +121,18 @@ private:
 
 	uint64_t		_error_count{0};
 
-	uint32_t		_clipping[3] {};
+	uint32_t		_clipping_total[3] {};
 
 	uint16_t		_update_rate{1000};
 
 	// integrator
 	hrt_abstime		_timestamp_sample_prev{0};
 	matrix::Vector3f	_integration_raw{};
+	matrix::Vector3f	_integrator_clipping{};
 	int16_t			_last_sample[3] {};
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};
-	uint8_t			_integrator_clipping{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max

@@ -334,5 +334,3 @@ private:
 	int             set_presetmode(uint8_t presetmode);
 
 };
-
-

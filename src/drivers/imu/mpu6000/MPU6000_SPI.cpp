@@ -208,4 +208,3 @@ MPU6000_SPI::probe()
 
 	return (read(MPUREG_WHOAMI, &whoami, 1) > 0 && (whoami == expected)) ? 0 : -EIO;
 }
-

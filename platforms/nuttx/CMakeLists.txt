@@ -60,6 +60,17 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 		bootloader_lib
 		drivers_board
 	)
+elseif("${PX4_BOARD_LABEL}" STREQUAL "canbootloader")
+	set(SCRIPT_PREFIX ${PX4_BOARD_LABEL}_)
+	add_subdirectory(src/canbootloader)
+	list(APPEND nuttx_libs
+		canbootloader
+		drivers_board
+	)
+
+	target_link_libraries(px4 PRIVATE
+		-Wl,-wrap,sched_process_timer -Wl,-wrap,sem_post -Wl,-wrap,sem_wait
+	)
 else()
 	if(NOT "${PX4_BOARD_LINKER_PREFIX}" STREQUAL "")
 		set(SCRIPT_PREFIX ${PX4_BOARD_LINKER_PREFIX}-)

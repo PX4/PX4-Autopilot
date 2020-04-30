@@ -43,7 +43,7 @@ namespace sensors
 
 VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_sensor_accel_integrated_sub(this, ORB_ID(sensor_accel_integrated), accel_index),
 	_sensor_gyro_integrated_sub(this, ORB_ID(sensor_gyro_integrated), gyro_index),
 	_accel_corrections(this, SensorCorrections::SensorType::Accelerometer),
@@ -121,8 +121,7 @@ void VehicleIMU::Run()
 		delta_velocity.copyTo(imu.delta_velocity);
 
 		imu.dt = accel.dt;
-		imu.integrated_samples = accel.samples;
-		imu.clip_count = accel.clip_count;
+		//imu.clip_count = accel.clip_count;
 		imu.timestamp = hrt_absolute_time();
 
 		_vehicle_imu_pub.publish(imu);
