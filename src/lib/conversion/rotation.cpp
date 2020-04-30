@@ -249,16 +249,6 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			return;
 		}
 
-	case ROTATION_YAW_293_PITCH_68_ROLL_90: {
-			const float tmpx = x;
-			const float tmpy = y;
-			const float tmpz = z;
-			x =  -0.390731f * tmpy - 0.920505f * tmpz;
-			y = 0.374607f * tmpx - 0.853477f * tmpy + 0.362280f * tmpz;
-			z = -0.927184f * tmpx - 0.344827f * tmpy +  0.146371f * tmpz;
-			return;
-		}
-
 	case ROTATION_PITCH_9_YAW_180: {
 			const float tmpx = x;
 			const float tmpy = y;
