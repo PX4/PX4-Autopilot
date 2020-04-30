@@ -140,6 +140,14 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 	}
 
+	if (arm_requirements.esc_check && status_flags.condition_escs_failure) {
+		if (prearm_ok) {
+			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! One or more ESCs have a failure"); }
+
+			prearm_ok = false;
+		}
+	}
+
 	if (status.is_vtol) {
 
 		if (status.in_transition_mode) {
