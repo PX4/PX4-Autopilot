@@ -92,6 +92,7 @@ void Ekf::controlFusionModes()
 	_gps_hgt_intermittent = !isRecent(gps_init.time_us, 2 * GPS_MAX_INTERVAL);
 
 	// check for arrival of new sensor data at the fusion time horizon
+	_time_prev_gps_us = _gps_sample_delayed.time_us;
 	_gps_data_ready = _gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 	_mag_data_ready = _mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
 
@@ -560,6 +561,9 @@ void Ekf::controlGpsFusion()
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
 
+		// Detect if coming back after significant time without GPS data
+		bool gps_signal_was_lost = isTimedOut(_time_prev_gps_us, 1000000);
+
 		// GPS yaw aiding selection logic
 		if ((_params.fusion_mode & MASK_USE_GPSYAW)
 				&& ISFINITE(_gps_sample_delayed.yaw)
@@ -661,7 +665,7 @@ void Ekf::controlGpsFusion()
 			}
 		}
 
-		// handle the case when we now have GPS, but have not been using it for an extended period
+		// handle the case when we now have GPS, but have not been fusing it for an extended period
 		if (_control_status.flags.gps) {
 			// We are relying on aiding to constrain drift so after a specified time
 			// with no aiding we need to do something
@@ -678,6 +682,8 @@ void Ekf::controlGpsFusion()
 			// This special case reset can also be requested externally.
 			// The minimum time interval between resets to the EKF-GSF estimate must be limited to
 			// allow the EKF-GSF time to improve its estimate if the first reset was not successful.
+			// Don't perform the reset if getting GPS back after a significant period of no data because the timeout
+			// could have been caused by bad GPS
 			const bool stopped_following_gps_velocity = isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay) &&
 							   (_time_last_hor_vel_fuse > _time_last_on_ground_us);
 			if (!_control_status.flags.in_air) {
@@ -686,7 +692,8 @@ void Ekf::controlGpsFusion()
 			const bool recent_takeoff = _control_status.flags.in_air && !isTimedOut(_time_last_on_ground_us, 30000000);
 			const bool do_yaw_vel_pos_reset = (do_vel_pos_reset || _do_ekfgsf_yaw_reset || stopped_following_gps_velocity) &&
 								recent_takeoff &&
-								isTimedOut(_ekfgsf_yaw_reset_time, 5000000);
+								isTimedOut(_ekfgsf_yaw_reset_time, 5000000) &&
+								!gps_signal_was_lost;
 
 			if (do_yaw_vel_pos_reset) {
 				if (resetYawToEKFGSF()) {
