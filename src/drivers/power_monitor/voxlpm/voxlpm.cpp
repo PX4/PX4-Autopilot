@@ -156,13 +156,26 @@ VOXLPM::init_ltc2946()
 int
 VOXLPM::init_ina231()
 {
+	int ret = PX4_OK;
 	uint16_t cmd;
 
 	/* Reset */
 	cmd = INA231_RST_BIT;
-	write_reg_uint16(INA231_REG_CONFIG, cmd);
+	ret = write_word_swapped(INA231_REG_CONFIG, cmd);
 
-	px4_usleep(1000);
+	if (ret) {
+		PX4_ERR("Failed to reset INA231");
+		return ret;
+	}
+
+	/* Config */
+	cmd = INA231_CONFIG;
+	ret = write_word_swapped(INA231_REG_CONFIG, cmd);
+
+	if (ret) {
+		PX4_ERR("Failed to config INA231");
+		return ret;
+	}
 
 	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
 		_cal = VOXLPM_INA231_VBAT_CAL;
@@ -172,7 +185,12 @@ VOXLPM::init_ina231()
 	}
 
 	/* Set calibration */
-	write_reg_uint16(INA231_REG_CALIBRATION, _cal);
+	ret = write_word_swapped(INA231_REG_CALIBRATION, _cal);
+
+	if (ret) {
+		PX4_ERR("Failed to calibrate INA231");
+		return ret;
+	}
 
 	return PX4_OK;
 }
@@ -213,10 +231,11 @@ VOXLPM::print_status()
 		break;
 	}
 
-	printf("  - voltage: %9.2f VDC \n", (double)_voltage);
-	printf("  - current: %9.2f ADC \n", (double)_amperage);
-	printf("  - rsense: %9.6f ohm \n", (double)_rsense);
 	printf("  - meas interval:  %u us \n", _meas_interval);
+	printf("  - voltage: %9.4f VDC \n", (double)_voltage);
+	printf("  - current: %9.4f ADC \n", (double)_amperage);
+	printf("  - shunt: %9.4f mV, %9.4f mA\n", (double)_vshunt * 1000, (double)_vshuntamps * 1000);
+	printf("  - rsense: %9.6f ohm, cal: %i\n", (double)_rsense, _cal);
 }
 
 void
@@ -357,7 +376,7 @@ VOXLPM::measure_ina231()
 	uint8_t raw_amps[2];
 
 	int16_t vshunt = -1;
-	int16_t vbus = -1;
+	uint16_t vbus = -1;
 	uint16_t amps = 0;
 
 	int vshunt_ret = read_reg_buf(INA231_REG_SHUNTVOLTAGE, raw_vshunt, sizeof(raw_vshunt));
@@ -365,25 +384,22 @@ VOXLPM::measure_ina231()
 	int amp_ret = read_reg_buf(INA231_REG_CURRENT, raw_amps, sizeof(raw_amps));
 
 	if ((vshunt_ret == 0) && (vbus_ret == 0) && (amp_ret == 0)) {
-		memcpy(&vshunt, raw_vshunt, sizeof(vshunt));
-		memcpy(&vbus, raw_vbus, sizeof(vbus));
-		memcpy(&amps, raw_amps, sizeof(amps));
-		vshunt = swap16(vshunt);
-		vbus = swap16(vbus);
-		amps = swap16(amps);
+		vshunt = (((int16_t)raw_vshunt[0]) << 8) | raw_vshunt[1];  // MSB first
+		vbus   = (((uint16_t)raw_vbus[0]) << 8) | raw_vbus[1];  // MSB first
+		amps   = (((uint16_t)raw_amps[0]) << 8) | raw_amps[1];  // MSB first
 
-		_voltage = (float) vbus * INA231_VSCALE;
-
+		_voltage = (float) vbus * INA231_VBUSSCALE;
+		_vshunt = (float) vshunt * INA231_VSHUNTSCALE;
 
 		if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
-			//_amperage = (float) amps * VOXLPM_INA231_VBAT_I_LSB;
 			/* vshunt is in microvolts, convert to AMPs */
-			_amperage = ((float) vshunt / VOXLPM_INA231_VBAT_SHUNT) / 1000000.0f;
+			_vshuntamps = ((float) _vshunt / VOXLPM_INA231_VBAT_SHUNT);
+			_amperage = (float) amps * VOXLPM_INA231_VBAT_I_LSB;
 
 		} else {
-			//_amperage = (float) amps * VOXLPM_INA231_VREG_I_LSB;
 			/* vshunt is in microvolts, convert to AMPs */
-			_amperage = ((float) vshunt / VOXLPM_INA231_VREG_SHUNT) / 1000000.0f;
+			_vshuntamps = ((float) _vshunt / VOXLPM_INA231_VREG_SHUNT);
+			_amperage = (float) amps * VOXLPM_INA231_VREG_I_LSB;
 		}
 
 		ret = PX4_OK;
@@ -415,11 +431,11 @@ VOXLPM::write_reg(uint8_t addr, uint8_t value)
 }
 
 int
-VOXLPM::write_reg_uint16(uint8_t addr, uint16_t value)
+VOXLPM::write_word_swapped(uint8_t addr, uint16_t value)
 {
 	uint8_t data[3] = {};
 	data[0] = addr;
 	data[1] = (value & 0xFF00) >> 8;
-	data[2] = (value & 0x00FF) >> 8;
+	data[2] = (value & 0x00FF);
 	return transfer(data, sizeof(data), nullptr, 0);
 }

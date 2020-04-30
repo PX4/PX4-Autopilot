@@ -184,15 +184,16 @@
 #define INA231_CONFIG_SHUNT_CT			(0x04 << 3)
 /* [8:6] Shunt Voltage Conversion Time, 100, 1.1ms (INA231A default) */
 #define INA231_CONFIG_BUS_CT			(0x04 << 6)
-/* [11:9] Averaging Mode, 000, 1 */
-#define INA231_CONFIG_AVG			(0x00 << 9)
+/* [11:9] Averaging Mode, 010, 16 */
+#define INA231_CONFIG_AVG			(0x02 << 9)
 /* [1] Reset bit */
 #define INA231_RST_BIT				(0x01 << 15)
 /* Configuration register settings */
 #define INA231_CONFIG				(INA231_CONFIG_MODE+INA231_CONFIG_SHUNT_CT+INA231_CONFIG_BUS_CT+INA231_CONFIG_AVG)
 
 #define INA231_CONST				0.00512f  /* is an internal fixed value used to ensure scaling is maintained properly  */
-#define INA231_VSCALE				0.00125f  /* LSB of voltage is 1.25 mV  */
+#define INA231_VBUSSCALE			0.00125f  /* LSB of bus voltage is 1.25 mV  */
+#define INA231_VSHUNTSCALE			0.0000025f /* LSB of shunt voltage is 2.5 uV  */
 
 /* From SCH-M00041 REVB */
 #define VOXLPM_INA231_VBAT_SHUNT		0.0005f   /* VBAT shunt is 500 micro-ohm */
@@ -260,6 +261,8 @@ private:
 	float			_voltage{0.0f};
 	float			_amperage{0.0f};
 	float			_rsense{0.0f};
+	float			_vshunt{0.0f};
+	float			_vshuntamps{0.0f};
 	int16_t			_cal{0};
 
 	Battery 		_battery;
@@ -269,5 +272,5 @@ private:
 	uint8_t 		read_reg(uint8_t addr);
 	int 			read_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
 	int 			write_reg(uint8_t addr, uint8_t value);
-	int 			write_reg_uint16(uint8_t addr, uint16_t value);
+	int 			write_word_swapped(uint8_t addr, uint16_t value);
 };
