@@ -107,6 +107,15 @@ SECTIONS
     __param_end = ABSOLUTE(.);
   } > dflash
 
+  /*
+   * Construction data for parameters.
+   */
+  __param ALIGN(4): {
+    __param_start = ABSOLUTE(.);
+    KEEP(*(__param*))
+    __param_end = ABSOLUTE(.);
+  } > dflash
+
   .ARM.extab :
   {
     *(.ARM.extab*)
