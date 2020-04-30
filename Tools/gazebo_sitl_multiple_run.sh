@@ -17,17 +17,19 @@ then
 	exit 1
 fi
 
-while getopts n:m: option
+while getopts n:m:w: option
 do
 	case "${option}"
 	in
 		n) NUM_VEHICLES=${OPTARG};;
 		m) VEHICLE_MODEL=${OPTARG};;
+		w) WORLD=${OPTARG};;
 	esac
 done
 
 num_vehicles=${NUM_VEHICLES:=3}
 export PX4_SIM_MODEL=${VEHICLE_MODEL:=iris}
+world=${WORLD:=empty}
 
 if [ "$PX4_SIM_MODEL" != "iris" ] && [ "$PX4_SIM_MODEL" != "plane" ] && [ "$PX4_SIM_MODEL" != "standard_vtol" ]
 then
@@ -47,7 +49,6 @@ src_path="$SCRIPT_DIR/.."
 build_path=${src_path}/build/px4_sitl_default
 mavlink_udp_port=14560
 mavlink_tcp_port=4560
-world="empty"
 
 echo "killing running instances"
 pkill -x px4 || true

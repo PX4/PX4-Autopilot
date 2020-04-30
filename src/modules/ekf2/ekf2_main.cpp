@@ -542,7 +542,7 @@ private:
 
 Ekf2::Ekf2(bool replay_mode):
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_replay_mode(replay_mode),
 	_ekf_update_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": update")),
 	_params(_ekf.getParamHandle()),
@@ -1120,12 +1120,12 @@ void Ekf2::Run()
 				// velocity measurement error from ev_data or parameters
 				float param_evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
-				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])
-				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE])
-				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE])) {
-					ev_data.velVar(0) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE]);
-					ev_data.velVar(1) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE]);
-					ev_data.velVar(2) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]);
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])
+				    && PX4_ISFINITE(_ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE])
+				    && PX4_ISFINITE(_ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE])) {
+					ev_data.velVar(0) = fmaxf(param_evv_noise_var, _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE]);
+					ev_data.velVar(1) = fmaxf(param_evv_noise_var, _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE]);
+					ev_data.velVar(2) = fmaxf(param_evv_noise_var, _ev_odom.velocity_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]);
 
 				} else {
 					ev_data.velVar.setAll(param_evv_noise_var);
@@ -1169,7 +1169,7 @@ void Ekf2::Run()
 			}
 
 			// use timestamp from external computer, clocks are synchronized when using MAVROS
-			ev_data.time_us = _ev_odom.timestamp;
+			ev_data.time_us = _ev_odom.timestamp_sample;
 			_ekf.setExtVisionData(ev_data);
 
 			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)_ev_odom.timestamp / 100 -
@@ -1230,7 +1230,9 @@ void Ekf2::Run()
 				vehicle_odometry_s odom{};
 
 				lpos.timestamp = now;
-				odom.timestamp = lpos.timestamp;
+
+				odom.timestamp = hrt_absolute_time();
+				odom.timestamp_sample = now;
 
 				odom.local_frame = odom.LOCAL_FRAME_NED;
 

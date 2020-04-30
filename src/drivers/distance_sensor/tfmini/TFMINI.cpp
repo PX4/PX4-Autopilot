@@ -33,6 +33,8 @@
 
 #include "TFMINI.hpp"
 
+#include <fcntl.h>
+
 TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_px4_rangefinder(0 /* TODO: device id */, ORB_PRIO_DEFAULT, rotation)

@@ -70,8 +70,7 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Ro
 	_sensor_integrated_pub{ORB_ID(sensor_accel_integrated), priority},
 	_sensor_status_pub{ORB_ID(sensor_accel_status), priority},
 	_device_id{device_id},
-	_rotation{rotation},
-	_rotation_dcm{get_rot_matrix(rotation)}
+	_rotation{rotation}
 {
 	_class_device_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 }
@@ -124,7 +123,7 @@ void PX4Accelerometer::set_update_rate(uint16_t rate)
 	const uint32_t update_interval = 1000000 / rate;
 
 	// TODO: set this intelligently
-	_integrator_reset_samples = 4000 / update_interval;
+	_integrator_reset_samples = 2500 / update_interval;
 }
 
 void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, float z)
@@ -266,16 +265,14 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 
 		if (_integrator_fifo_samples > 0 && (_integrator_samples >= _integrator_reset_samples)) {
 
-			// Apply rotation and scale
-			// integrated in microseconds, convert to seconds
-			const Vector3f delta_velocity_uncalibrated{_rotation_dcm *_integration_raw * _scale};
+			// Apply rotation (before scaling)
+			rotate_3f(_rotation, _integration_raw(0), _integration_raw(1), _integration_raw(2));
 
 			// scale calibration offset to number of samples
 			const Vector3f offset{_calibration_offset * _integrator_fifo_samples};
 
 			// Apply calibration and scale to seconds
-			Vector3f delta_velocity{((delta_velocity_uncalibrated - offset).emult(_calibration_scale))};
-			delta_velocity *= 1e-6f * dt;
+			const Vector3f delta_velocity{((_integration_raw * _scale) - offset).emult(_calibration_scale) * 1e-6f * dt};
 
 			// fill sensor_accel_integrated and publish
 			sensor_accel_integrated_s report;
@@ -287,7 +284,8 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			report.dt = _integrator_fifo_samples * dt; // time span in microseconds
 			report.samples = _integrator_fifo_samples;
 
-			const Vector3f clipping{_rotation_dcm * _integrator_clipping};
+			rotate_3f(_rotation, _integrator_clipping(0), _integrator_clipping(1), _integrator_clipping(2));
+			const Vector3f clipping{_integrator_clipping};
 
 			for (int i = 0; i < 3; i++) {
 				report.clip_counter[i] = fabsf(roundf(clipping(i)));

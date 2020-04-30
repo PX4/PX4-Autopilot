@@ -98,7 +98,7 @@ private:
 
 	hrt_abstime	_status_last_publish{0};
 
-	Integrator		_integrator{4000, false};
+	Integrator		_integrator{2500, false};
 
 	matrix::Vector3f	_calibration_scale{1.f, 1.f, 1.f};
 	matrix::Vector3f	_calibration_offset{0.f, 0.f, 0.f};
@@ -110,7 +110,6 @@ private:
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
-	const matrix::Dcmf	_rotation_dcm;
 
 	float			_range{16 * CONSTANTS_ONE_G};
 	float			_scale{1.f};

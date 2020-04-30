@@ -1011,6 +1011,7 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 	struct vehicle_odometry_s odom;
 
 	odom.timestamp = timestamp;
+	odom.timestamp_sample = timestamp;
 
 	const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
 

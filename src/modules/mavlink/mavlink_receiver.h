@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "mavlink_timesync.h"
+#include "tune_publisher.h"
 
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
@@ -85,6 +86,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/tune_control.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -158,6 +160,7 @@ private:
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
 	void handle_message_ping(mavlink_message_t *msg);
 	void handle_message_play_tune(mavlink_message_t *msg);
+	void handle_message_play_tune_v2(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
@@ -205,6 +208,8 @@ private:
 	void send_storage_information(int storage_id);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
+
+	void schedule_tune(const char *tune);
 
 	/**
 	 * @brief Updates the battery, optical flow, and flight ID subscribed parameters.
@@ -292,6 +297,9 @@ private:
 	bool				_hil_local_proj_inited{false};
 
 	hrt_abstime			_last_utm_global_pos_com{0};
+
+	// Allocated if needed.
+	TunePublisher *_tune_publisher{nullptr};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

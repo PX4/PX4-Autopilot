@@ -284,7 +284,7 @@ private:
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
@@ -318,8 +318,8 @@ MulticopterPositionControl::init()
 		return false;
 	}
 
-	// limit to every other vehicle_local_position update (~62.5 Hz)
-	_local_pos_sub.set_interval_us(16_ms);
+	// limit to every other vehicle_local_position update (50 Hz)
+	_local_pos_sub.set_interval_us(20_ms);
 
 	_time_stamp_last_loop = hrt_absolute_time();
 

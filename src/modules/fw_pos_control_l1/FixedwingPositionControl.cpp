@@ -37,7 +37,7 @@
 
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_launchDetector(this),
@@ -615,29 +615,51 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 		_tecs.set_time_const_throt(_param_fw_t_thro_const.get());
 
-		/* current waypoint (the one currently heading for) */
-		Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
+		Vector2f curr_wp{0.0f, 0.0f};
+		Vector2f prev_wp{0.0f, 0.0f};
+
+		if (_vehicle_status.in_transition_to_fw) {
+
+			if (!PX4_ISFINITE(_transition_waypoint(0))) {
+				double lat_transition, lon_transition;
+				// create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
+				// during the transition
+				waypoint_from_heading_and_distance(_current_latitude, _current_longitude, _yaw, HDG_HOLD_DIST_NEXT, &lat_transition,
+								   &lon_transition);
+
+				_transition_waypoint(0) = (float)lat_transition;
+				_transition_waypoint(1) = (float)lon_transition;
+			}
+
+
+			curr_wp = prev_wp = _transition_waypoint;
+
+		} else {
+			/* current waypoint (the one currently heading for) */
+			curr_wp = Vector2f((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
+
+			if (pos_sp_prev.valid) {
+				prev_wp(0) = (float)pos_sp_prev.lat;
+				prev_wp(1) = (float)pos_sp_prev.lon;
+
+			} else {
+				/*
+				 * No valid previous waypoint, go for the current wp.
+				 * This is automatically handled by the L1 library.
+				 */
+				prev_wp(0) = (float)pos_sp_curr.lat;
+				prev_wp(1) = (float)pos_sp_curr.lon;
+			}
+
+
+			/* reset transition waypoint, will be set upon entering front transition */
+			_transition_waypoint.setNaN();
+		}
 
 		/* Initialize attitude controller integrator reset flags to 0 */
 		_att_sp.roll_reset_integral = false;
 		_att_sp.pitch_reset_integral = false;
 		_att_sp.yaw_reset_integral = false;
-
-		/* previous waypoint */
-		Vector2f prev_wp{0.0f, 0.0f};
-
-		if (pos_sp_prev.valid) {
-			prev_wp(0) = (float)pos_sp_prev.lat;
-			prev_wp(1) = (float)pos_sp_prev.lon;
-
-		} else {
-			/*
-			 * No valid previous waypoint, go for the current wp.
-			 * This is automatically handled by the L1 library.
-			 */
-			prev_wp(0) = (float)pos_sp_curr.lat;
-			prev_wp(1) = (float)pos_sp_curr.lon;
-		}
 
 		float mission_airspeed = _param_fw_airspd_trim.get();
 

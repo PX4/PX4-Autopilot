@@ -2558,7 +2558,7 @@ protected:
 		}
 
 		if (odom_updated) {
-			msg.time_usec = odom.timestamp;
+			msg.time_usec = odom.timestamp_sample;
 			msg.child_frame_id = MAV_FRAME_BODY_FRD;
 
 			// Current position
@@ -2972,7 +2972,7 @@ protected:
 		if (_mocap_sub.update(&mocap)) {
 			mavlink_att_pos_mocap_t msg{};
 
-			msg.time_usec = mocap.timestamp;
+			msg.time_usec = mocap.timestamp_sample;
 			msg.q[0] = mocap.q[0];
 			msg.q[1] = mocap.q[1];
 			msg.q[2] = mocap.q[2];
