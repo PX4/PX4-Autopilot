@@ -127,6 +127,19 @@ elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	"${src_path}/Tools/flightgear_bridge/FG_run.py" "models/"${model}".json" 0
 	"${build_path}/build_flightgear_bridge/flightgear_bridge" 0 `./get_FGbridge_params.py "models/"${model}".json"` &
 	FG_BRIDGE_PID=`echo $!`
+elif [ "$program" == "airsim" ] && [ ! -n "$no_sim" ]; then
+	if [ "$model" == "iris" ]; then
+		if [ -f ${AIRSIM_APPLICATION_PATH} ]  && [ ! -z ${AIRSIM_APPLICATION_PATH} ]; then
+			${AIRSIM_APPLICATION_PATH} -windowed -ResX 640 -ResY 480 > /dev/null 2>&1 &
+			SIM_PID=`echo $!`
+		else
+			echo "Could not find Airsim at AIRSIM_APPLICATION_PATH=${AIRSIM_APPLICATION_PATH}"
+			exit 1
+		fi
+	else
+		echo "Airsim is only supported for [iris] model"
+		exit 1
+	fi
 fi
 
 pushd "$rootfs" >/dev/null
@@ -180,4 +193,7 @@ elif [ "$program" == "gazebo" ]; then
 elif [ "$program" == "flightgear" ]; then
 	kill $FG_BRIDGE_PID
 	kill -9 `cat /tmp/px4fgfspid_0`
+elif [ "$program" == "airsim" ]; then
+	pkill -9 -P $SIM_PID
+	kill -9 $SIM_PID
 fi
