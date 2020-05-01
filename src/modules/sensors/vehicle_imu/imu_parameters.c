@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
-* IMU integration period.
+* IMU integration time.
 *
 * The length of time in microseconds raw IMU data is integrated to produce
 * delta angles and delta velocities.
