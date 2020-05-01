@@ -84,11 +84,11 @@ int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 	}
 
 	if (!_vision_xy_valid || !_vision_z_valid) {
-		_time_last_vision_p = _sub_visual_odom.get().timestamp;
+		_time_last_vision_p = _sub_visual_odom.get().timestamp_sample;
 		return -1;
 
 	} else {
-		_time_last_vision_p = _sub_visual_odom.get().timestamp;
+		_time_last_vision_p = _sub_visual_odom.get().timestamp_sample;
 
 		if (PX4_ISFINITE(_sub_visual_odom.get().x)) {
 			y.setZero();
@@ -147,7 +147,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// vision delayed x
 	uint8_t i_hist = 0;
 
-	float vision_delay = (_timeStamp - _sub_visual_odom.get().timestamp) * 1e-6f;	// measurement delay in seconds
+	float vision_delay = (_timeStamp - _sub_visual_odom.get().timestamp_sample) * 1e-6f;	// measurement delay in seconds
 
 	if (vision_delay < 0.0f) { vision_delay = 0.0f; }
 

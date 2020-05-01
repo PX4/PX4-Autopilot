@@ -1169,7 +1169,7 @@ void Ekf2::Run()
 			}
 
 			// use timestamp from external computer, clocks are synchronized when using MAVROS
-			ev_data.time_us = _ev_odom.timestamp;
+			ev_data.time_us = _ev_odom.timestamp_sample;
 			_ekf.setExtVisionData(ev_data);
 
 			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)_ev_odom.timestamp / 100 -
@@ -1230,7 +1230,9 @@ void Ekf2::Run()
 				vehicle_odometry_s odom{};
 
 				lpos.timestamp = now;
-				odom.timestamp = lpos.timestamp;
+
+				odom.timestamp = hrt_absolute_time();
+				odom.timestamp_sample = now;
 
 				odom.local_frame = odom.LOCAL_FRAME_NED;
 
