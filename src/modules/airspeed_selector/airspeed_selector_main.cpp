@@ -263,6 +263,14 @@ AirspeedModule::check_for_connected_airspeed_sensors()
 void
 AirspeedModule::Run()
 {
+	_time_now_usec = hrt_absolute_time(); //hrt time of the current cycle
+
+	/* do not run the airspeed selector until 2s after system boot, as data from airspeed sensor
+	and estimator may not be valid yet*/
+	if (_time_now_usec < 2_s) {
+		return;
+	}
+
 	perf_begin(_perf_elapsed);
 
 	if (!_initialized) {
@@ -276,7 +284,7 @@ AirspeedModule::Run()
 		update_params();
 	}
 
-	_time_now_usec = hrt_absolute_time(); //hrt time of the current cycle
+
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
