@@ -352,11 +352,6 @@
 #define GPIO_UART8_RX    GPIO_UART8_RX_1       /* PE0 */
 #define GPIO_UART8_TX    GPIO_UART8_TX_1       /* PE1 */
 
-/* UART RX DMA configurations */
-
-#define DMAMAP_UART8_RX         DMAMAP_DMA12_UART8RX_0 /* DMA1:81 */
-#define DMAMAP_UART8_TX         DMAMAP_DMA12_UART8TX_0 /* DMA1:82 */
-
 /* SPI
  * SPI2 is gyro 1
  * SPI3 is gyro 2

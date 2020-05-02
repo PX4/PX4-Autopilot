@@ -120,10 +120,31 @@
 
 #if defined(CONFIG_STM32H7_CUSTOM_CLOCKCONFIG)
 
+  extern uint32_t _start_itcm;
+  extern uint32_t _end_itcm;
+  extern uint32_t _load_itcm;
+
+  extern uint32_t _start_sram;
+  extern uint32_t _end_sram;
+  extern uint32_t _load_sram;
+
 __ramfunc__ void stm32_board_clockconfig(void)
 {
   volatile uint32_t regval = 0;
   volatile int32_t timeout;
+
+  const uint32_t *src;
+  uint32_t *dest;
+
+  for (src = &_load_itcm, dest = &_start_itcm; dest < &_end_itcm; )
+  {
+    *dest++ = *src++;
+  }
+
+  for (src = &_load_sram, dest = &_start_sram; dest < &_end_sram; )
+  {
+    *dest++ = *src++;
+  }
 
 #ifdef STM32_BOARD_USEHSI
   /* Enable Internal High-Speed Clock (HSI) */

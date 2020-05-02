@@ -95,7 +95,7 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  8
+#define DIRECT_PWM_OUTPUT_CHANNELS  4
 #define DIRECT_INPUT_TIMER_CHANNELS 4
 
 /* Tone alarm output */

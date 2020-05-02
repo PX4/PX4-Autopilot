@@ -117,7 +117,9 @@ MEMORY
 	sram3 (xrw) : ORIGIN = 0x38000000,  LENGTH = 64K
 	itcm  (xrw) : ORIGIN = 0x00000000,  LENGTH = 64K
 	flash (xrw) : ORIGIN = 0x08000000,  LENGTH = 128K
-	qspi  (xrw) : ORIGIN = 0x90000000,  LENGTH = 2048K
+	qspi  (xrw) : ORIGIN = 0x90000000,  LENGTH = 1536K
+	qspi2 (xrw) : ORIGIN = 0x90180000,  LENGTH = 256K
+	conf  (xrw) : ORIGIN = 0x90200000,  LENGTH = 32K
 }
 
 OUTPUT_ARCH(arm)
@@ -133,6 +135,29 @@ EXTERN(_bootdelay_signature)
 
 SECTIONS
 {
+
+	.itcm_code : {
+		_start_itcm = ABSOLUTE(.);
+		. = ALIGN(4);
+		
+		*mc_att_control_main.cpp.obj(.text* .rodata*)
+		*MulticopterHoverThrustEstimator.cpp.obj(.text* .rodata*)
+		*mc_pos_control_main.cpp.obj(.text* .rodata*)
+		*MulticopterRateControl.cpp.obj(.text* .rodata*)
+		*rc_update.cpp.obj(.text* .rodata*)
+	
+		_end_itcm = ABSOLUTE(.);
+	} > itcm AT > qspi2
+	_load_itcm = LOADADDR(.itcm_code);
+	
+	.sram_code : {
+		_start_sram = ABSOLUTE(.);
+		. = ALIGN(4);
+	
+		_end_sram = ABSOLUTE(.);
+	} > dtcm AT > qspi2
+	_load_sram = LOADADDR(.sram_code);
+	
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
@@ -146,7 +171,6 @@ SECTIONS
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -162,9 +186,11 @@ SECTIONS
 		__errno = get_errno_ptr;
 	} > qspi
 	
+	
 	.ramfunc : {
 		_sramfuncs = ABSOLUTE(.);
 		. = ALIGN(4);
+		*(.rodata .rodata.*)
 		*(.ramfunc  .ramfunc.*)
 		_eramfuncs = ABSOLUTE(.);
 	} > sram AT > qspi
@@ -207,7 +233,7 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > qspi
+	} > dtcm AT > qspi
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
@@ -216,7 +242,7 @@ SECTIONS
 		*(COMMON)
 		. = ALIGN(4);
 		_ebss = ABSOLUTE(.);
-	} > sram
+	} > dtcm
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
