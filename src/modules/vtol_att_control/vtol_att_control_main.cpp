@@ -163,8 +163,11 @@ VtolAttitudeControl::handle_command()
 
 		uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
-		// deny transition in auto takeoff mode
-		if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) {
+		// deny any transition in auto takeoff mode, plus transition from RW to FW in land or RTL mode
+		if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+		    || (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			&& (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))) {
 			result = vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
 
 		} else {
