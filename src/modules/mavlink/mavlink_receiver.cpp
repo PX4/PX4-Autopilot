@@ -57,13 +57,6 @@
 #include <netinet/in.h>
 #endif
 
-#ifdef __PX4_DARWIN
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
-#include <sys/statfs.h>
-#endif
-
 #ifndef __PX4_POSIX
 #include <termios.h>
 #endif
@@ -337,6 +330,7 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 
 	switch (command) {
 
+	case MAV_CMD_REQUEST_MESSAGE:
 	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
 	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
 		/* broadcast and ignore component */
@@ -367,46 +361,6 @@ MavlinkReceiver::send_flight_information()
 
 	flight_info.time_boot_ms = hrt_absolute_time() / 1000;
 	mavlink_msg_flight_information_send_struct(_mavlink->get_channel(), &flight_info);
-}
-
-void
-MavlinkReceiver::send_storage_information(int storage_id)
-{
-	mavlink_storage_information_t storage_info{};
-	const char *microsd_dir = PX4_STORAGEDIR;
-
-	if (storage_id == 0 || storage_id == 1) { // request is for all or the first storage
-		storage_info.storage_id = 1;
-
-		struct statfs statfs_buf;
-		uint64_t total_bytes = 0;
-		uint64_t avail_bytes = 0;
-
-		if (statfs(microsd_dir, &statfs_buf) == 0) {
-			total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
-			avail_bytes = (uint64_t)statfs_buf.f_bavail * statfs_buf.f_bsize;
-		}
-
-		if (total_bytes == 0) { // on NuttX we get 0 total bytes if no SD card is inserted
-			storage_info.storage_count = 0;
-			storage_info.status = 0; // not available
-
-		} else {
-			storage_info.storage_count = 1;
-			storage_info.status = 2; // available & formatted
-			storage_info.total_capacity = total_bytes / 1024. / 1024.;
-			storage_info.available_capacity = avail_bytes / 1024. / 1024.;
-			storage_info.used_capacity = (total_bytes - avail_bytes) / 1024. / 1024.;
-		}
-
-	} else {
-		// only one storage supported
-		storage_info.storage_id = storage_id;
-		storage_info.storage_count = 1;
-	}
-
-	storage_info.time_boot_ms = hrt_absolute_time() / 1000;
-	mavlink_msg_storage_information_send_struct(_mavlink->get_channel(), &storage_info);
 }
 
 void
@@ -503,27 +457,34 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
 		send_flight_information();
 
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
-		if ((int)roundf(cmd_mavlink.param1) == 1) {
-			send_storage_information((int)roundf(cmd_mavlink.param1));
-		}
-
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
 		uint16_t message_id = (uint16_t)roundf(cmd_mavlink.param1);
 		bool stream_found = false;
 
-		for (const auto &stream : _mavlink->get_streams()) {
+		for (const auto stream : _mavlink->get_streams()) {
 			if (stream->get_id() == message_id) {
-				stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
-							vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-				stream_found = true;
+				stream_found = stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
+								       vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
 				break;
 			}
 		}
 
-		// TODO: Handle the case where a message is requested which could be sent, but for which there is no stream.
 		if (!stream_found) {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+			MavlinkStream *stream = create_mavlink_stream(message_id, _mavlink);
+
+			if (stream == nullptr) {
+				result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+
+			} else {
+				bool message_sent = stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
+						    vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+
+				if (!message_sent) {
+					result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+				}
+
+				delete stream;
+			}
 		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_CAMERA_ZOOM) {
