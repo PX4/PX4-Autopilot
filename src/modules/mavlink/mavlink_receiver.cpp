@@ -347,23 +347,6 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 }
 
 void
-MavlinkReceiver::send_flight_information()
-{
-	mavlink_flight_information_t flight_info{};
-	flight_info.flight_uuid = static_cast<uint64_t>(_param_com_flight_uuid.get());
-
-	actuator_armed_s actuator_armed{};
-	bool ret = _actuator_armed_sub.copy(&actuator_armed);
-
-	if (ret && actuator_armed.timestamp != 0) {
-		flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time_ms;
-	}
-
-	flight_info.time_boot_ms = hrt_absolute_time() / 1000;
-	mavlink_msg_flight_information_send_struct(_mavlink->get_channel(), &flight_info);
-}
-
-void
 MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 {
 	/* command */
@@ -445,9 +428,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 		get_message_interval((int)roundf(cmd_mavlink.param1));
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
-		send_flight_information();
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
 		uint16_t message_id = (uint16_t)roundf(cmd_mavlink.param1);
