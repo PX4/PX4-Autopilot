@@ -5212,8 +5212,8 @@ public:
 		return MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
-	virtual bool request_message(float param1 = 0.0, float param2 = 0.0, float param3 = 0.0, float param4 = 0.0,
-				     float param5 = 0.0, float param6 = 0.0, float param7 = 0.0)
+	bool request_message(float param1 = 0.0, float param2 = 0.0, float param3 = 0.0, float param4 = 0.0,
+			     float param5 = 0.0, float param6 = 0.0, float param7 = 0.0) override
 	{
 		storage_id = (int)roundf(param2);
 		return send(hrt_absolute_time());
@@ -5236,7 +5236,7 @@ protected:
 		const char *microsd_dir = PX4_STORAGEDIR;
 
 		if (storage_id == 0 || storage_id == 1) { // request is for all or the first storage
-			storage_info.storage_id = storage_id; // replace by 1
+			storage_info.storage_id = 1;
 
 			struct statfs statfs_buf;
 			uint64_t total_bytes = 0;
