@@ -46,6 +46,7 @@
 #include "mavlink_high_latency2.h"
 
 #include "streams/autopilot_version.h"
+#include "streams/flight_information.h"
 #include "streams/protocol_version.h"
 #include "streams/storage_information.h"
 
