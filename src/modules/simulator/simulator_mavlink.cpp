@@ -1048,7 +1048,7 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 
 		/* the linear velocities needs to be transformed from the body frame to the local frame */
 		const matrix::Vector3<float> linvel_local(R_body_to_local *
-						matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
+				matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
 
 		/* The velocity in the local NED frame */
 		odom.vx = linvel_local(0);
