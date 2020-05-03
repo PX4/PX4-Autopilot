@@ -1019,27 +1019,24 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 		mavlink_odometry_t odom_msg;
 		mavlink_msg_odometry_decode(odom_mavlink, &odom_msg);
 
+		/* The quaternion of the ODOMETRY msg represents a rotation from
+		 * FRD body frame to the NED local frame */
+		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
+		q.normalize();
+		q.copyTo(odom.q);
+
 		/* Dcm rotation matrix from body frame to local NED frame */
-		matrix::Dcm<float> Rbl;
+		const matrix::Dcmf R_body_to_local(q);
 
 		/* since odom.child_frame_id == MAV_FRAME_BODY_FRD, WRT to estimated vehicle body-fixed frame */
-		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
 		/* No need to transform the covariance matrices since the non-diagonal values are all zero */
-		Rbl = matrix::Dcm<float>(matrix::Quatf(odom_msg.q)).I();
-
-		/* the linear velocities needs to be transformed to the local NED frame */
-		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
 
 		/* The position in the local NED frame */
 		odom.x = odom_msg.x;
 		odom.y = odom_msg.y;
 		odom.z = odom_msg.z;
-		/* The quaternion of the ODOMETRY msg represents a rotation from
-		 * NED earth/local frame to XYZ body frame */
-		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
-		q.copyTo(odom.q);
 
-		odom.local_frame = odom.LOCAL_FRAME_NED;
+		odom.local_frame = odom.LOCAL_FRAME_FRD;
 
 		static_assert(POS_URT_SIZE == (sizeof(odom_msg.pose_covariance) / sizeof(odom_msg.pose_covariance[0])),
 			      "Odometry Pose Covariance matrix URT array size mismatch");
@@ -1048,6 +1045,10 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 		for (size_t i = 0; i < POS_URT_SIZE; i++) {
 			odom.pose_covariance[i] = odom_msg.pose_covariance[i];
 		}
+
+		/* the linear velocities needs to be transformed from the body frame to the local frame */
+		const matrix::Vector3<float> linvel_local(R_body_to_local *
+						matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
 
 		/* The velocity in the local NED frame */
 		odom.vx = linvel_local(0);
