@@ -117,8 +117,8 @@ MEMORY
 	sram3 (xrw) : ORIGIN = 0x38000000,  LENGTH = 64K
 	itcm  (xrw) : ORIGIN = 0x00000000,  LENGTH = 64K
 	flash (xrw) : ORIGIN = 0x08000000,  LENGTH = 128K
-	qspi  (xrw) : ORIGIN = 0x90000000,  LENGTH = 1536K
-	qspi2 (xrw) : ORIGIN = 0x90180000,  LENGTH = 256K
+	qspi  (xrw) : ORIGIN = 0x90000000,  LENGTH = 1024K
+	qspi2 (xrw) : ORIGIN = 0x90140000,  LENGTH = 512K
 	conf  (xrw) : ORIGIN = 0x90200000,  LENGTH = 32K
 }
 
@@ -140,12 +140,19 @@ SECTIONS
 		_start_itcm = ABSOLUTE(.);
 		. = ALIGN(4);
 		
-		*mc_att_control_main.cpp.obj(.text* .rodata*)
-		*MulticopterHoverThrustEstimator.cpp.obj(.text* .rodata*)
-		*mc_pos_control_main.cpp.obj(.text* .rodata*)
-		*MulticopterRateControl.cpp.obj(.text* .rodata*)
-		*rc_update.cpp.obj(.text* .rodata*)
-	
+		*modules__mc_att_control.a:*(.text* .rodata*)
+		*modules__mc_rate_control.a:*(.text* .rodata*)
+		*modules__rc_update.a:*(.text* .rodata*)
+		*drivers__dshot.a:*(.text* .rodata*)
+		*drivers__mpu6000.a:*(.text* .rodata*)
+		*drivers__imu__invensense__icm20602.a:*(.text* .rodata*)
+		*drivers__device.a:*(.text* .rodata*)
+		*drivers__pwm_out.a:*(.text* .rodata*)
+		*vehicle_acceleration.a:*(.text* .rodata*)
+		*vehicle_angular_velocity.a:*(.text* .rodata*)
+		*modules__attitude_estimator_q.a:*(.text* .rodata*)
+		*stm32_spi.o(.text* .rodata*)
+		
 		_end_itcm = ABSOLUTE(.);
 	} > itcm AT > qspi2
 	_load_itcm = LOADADDR(.itcm_code);
@@ -153,9 +160,21 @@ SECTIONS
 	.sram_code : {
 		_start_sram = ABSOLUTE(.);
 		. = ALIGN(4);
-	
+		
+		*modules__mc_pos_control.a:*(.text* .rodata*)
+		*modules__mc_hover_thrust_estimator.a:*(.text* .rodata*)
+		*modules__sensors.a:*(.text* .rodata*)
+		*libc.a:*(.text* .rodata*)
+		*modules__commander.a:*(.text* .rodata*)
+		*modules__dataman.a:*(.text* .rodata*)
+		*modules__events.a:*(.text* .rodata*)
+		*modules__load_mon.a:*(.text* .rodata*)
+		*modules__logger.a:*(.text* .rodata*)
+		*battery_status.a:*(.text* .rodata*)
+		*land_detector.a:*(.text* .rodata*)
+
 		_end_sram = ABSOLUTE(.);
-	} > dtcm AT > qspi2
+	} > sram AT > qspi2
 	_load_sram = LOADADDR(.sram_code);
 	
 	.text : {
@@ -169,6 +188,7 @@ SECTIONS
 		FILL(0xffecc2925d7d05c5)
 		. += 8;
 		*(.text .text.*)
+		*(.rodata .rodata.*)
 		*(.fixup)
 		*(.gnu.warning)
 		*(.gnu.linkonce.t.*)
@@ -186,11 +206,9 @@ SECTIONS
 		__errno = get_errno_ptr;
 	} > qspi
 	
-	
 	.ramfunc : {
 		_sramfuncs = ABSOLUTE(.);
 		. = ALIGN(4);
-		*(.rodata .rodata.*)
 		*(.ramfunc  .ramfunc.*)
 		_eramfuncs = ABSOLUTE(.);
 	} > sram AT > qspi

@@ -30,5 +30,7 @@ then
 	param set BAT_V_CHARGED 4.20
 	param set BAT_N_CELLS 4
 	param set BAT_V_DIV 10.133
+	
+	param set SENS_BOARD_ROT 10
 fi
 
