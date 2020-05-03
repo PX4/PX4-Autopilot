@@ -45,6 +45,8 @@
 #include "mavlink_simple_analyzer.h"
 #include "mavlink_high_latency2.h"
 
+#include "streams/autopilot_version.h"
+#include "streams/protocol_version.h"
 #include "streams/storage_information.h"
 
 #include <commander/px4_custom_mode.h>

@@ -10,6 +10,8 @@
 #include <sys/statfs.h>
 #endif
 
+#include <math.h>
+
 class MavlinkStreamStorageInformation : public MavlinkStream
 {
 public:
