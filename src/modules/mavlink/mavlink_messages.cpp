@@ -5237,6 +5237,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamPing>(),
 	create_stream_list_item<MavlinkStreamOrbitStatus>(),
 	create_stream_list_item<MavlinkStreamObstacleDistance>(),
+	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
+	create_stream_list_item<MavlinkStreamProtocolVersion>(),
+	create_stream_list_item<MavlinkStreamFlightInformation>(),
 	create_stream_list_item<MavlinkStreamStorageInformation>()
 };
 
