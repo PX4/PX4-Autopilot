@@ -3353,111 +3353,120 @@ void *commander_low_prio_loop(void *arg)
 			switch (cmd.command) {
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
-					int calib_ret = PX4_ERROR;
+					if ((status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+					    || status.arming_state == vehicle_status_s::ARMING_STATE_SHUTDOWN) {
 
-					/* try to go to INIT/PREFLIGHT arming state */
-					if (TRANSITION_DENIED == arming_state_transition(&status, safety_s{}, vehicle_status_s::ARMING_STATE_INIT, &armed,
-							false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
-							PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
-							30_s) // time since boot not relevant for switching to ARMING_STATE_INIT
-					   ) {
-
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
-						break;
+						// reject if armed or shutting down
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED, command_ack_pub);
 
 					} else {
-						status_flags.condition_calibration_enabled = true;
-					}
 
-					if ((int)(cmd.param1) == 1) {
-						/* gyro calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						calib_ret = do_gyro_calibration(&mavlink_log_pub);
+						int calib_ret = PX4_ERROR;
 
-					} else if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
-						   (int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
-						   (int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
-						/* temperature calibration: handled in events module */
-						break;
+						/* try to go to INIT/PREFLIGHT arming state */
+						if (TRANSITION_DENIED == arming_state_transition(&status, safety_s{}, vehicle_status_s::ARMING_STATE_INIT, &armed,
+								false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
+								PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
+								30_s) // time since boot not relevant for switching to ARMING_STATE_INIT
+						   ) {
 
-					} else if ((int)(cmd.param2) == 1) {
-						/* magnetometer calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						calib_ret = do_mag_calibration(&mavlink_log_pub);
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
+							break;
 
-					} else if ((int)(cmd.param3) == 1) {
-						/* zero-altitude pressure calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
-
-					} else if ((int)(cmd.param4) == 1) {
-						/* RC calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						/* disable RC control input completely */
-						status_flags.rc_input_blocked = true;
-						calib_ret = OK;
-						mavlink_log_info(&mavlink_log_pub, "Calibration: Disabling RC input");
-
-					} else if ((int)(cmd.param4) == 2) {
-						/* RC trim calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						calib_ret = do_trim_calibration(&mavlink_log_pub);
-
-					} else if ((int)(cmd.param5) == 1) {
-						/* accelerometer calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						calib_ret = do_accel_calibration(&mavlink_log_pub);
-
-					} else if ((int)(cmd.param5) == 2) {
-						// board offset calibration
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						calib_ret = do_level_calibration(&mavlink_log_pub);
-
-					} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
-						// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
-						/* airspeed calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						calib_ret = do_airspeed_calibration(&mavlink_log_pub);
-
-					} else if ((int)(cmd.param7) == 1) {
-						/* do esc calibration */
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						calib_ret = do_esc_calibration(&mavlink_log_pub, &armed);
-
-					} else if ((int)(cmd.param4) == 0) {
-						/* RC calibration ended - have we been in one worth confirming? */
-						if (status_flags.rc_input_blocked) {
-							/* enable RC control input */
-							status_flags.rc_input_blocked = false;
-							mavlink_log_info(&mavlink_log_pub, "Calibration: Restoring RC input");
+						} else {
+							status_flags.condition_calibration_enabled = true;
 						}
 
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						/* this always succeeds */
-						calib_ret = OK;
+						if ((int)(cmd.param1) == 1) {
+							/* gyro calibration */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_gyro_calibration(&mavlink_log_pub);
 
-					} else {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, command_ack_pub);
-					}
+						} else if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
+							   (int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
+							   (int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+							/* temperature calibration: handled in events module */
+							break;
 
-					status_flags.condition_calibration_enabled = false;
+						} else if ((int)(cmd.param2) == 1) {
+							/* magnetometer calibration */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_mag_calibration(&mavlink_log_pub);
 
-					if (calib_ret == OK) {
-						tune_positive(true);
+						} else if ((int)(cmd.param3) == 1) {
+							/* zero-altitude pressure calibration */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
 
-						// time since boot not relevant here
-						if (PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, false, false, true, 30_s)) {
+						} else if ((int)(cmd.param4) == 1) {
+							/* RC calibration */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							/* disable RC control input completely */
+							status_flags.rc_input_blocked = true;
+							calib_ret = OK;
+							mavlink_log_info(&mavlink_log_pub, "Calibration: Disabling RC input");
 
-							status_flags.condition_system_sensors_initialized = true;
+						} else if ((int)(cmd.param4) == 2) {
+							/* RC trim calibration */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_trim_calibration(&mavlink_log_pub);
+
+						} else if ((int)(cmd.param5) == 1) {
+							/* accelerometer calibration */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_accel_calibration(&mavlink_log_pub);
+
+						} else if ((int)(cmd.param5) == 2) {
+							// board offset calibration
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_level_calibration(&mavlink_log_pub);
+
+						} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
+							// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
+							/* airspeed calibration */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_airspeed_calibration(&mavlink_log_pub);
+
+						} else if ((int)(cmd.param7) == 1) {
+							/* do esc calibration */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_esc_calibration(&mavlink_log_pub, &armed);
+
+						} else if ((int)(cmd.param4) == 0) {
+							/* RC calibration ended - have we been in one worth confirming? */
+							if (status_flags.rc_input_blocked) {
+								/* enable RC control input */
+								status_flags.rc_input_blocked = false;
+								mavlink_log_info(&mavlink_log_pub, "Calibration: Restoring RC input");
+							}
+
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							/* this always succeeds */
+							calib_ret = OK;
+
+						} else {
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, command_ack_pub);
 						}
 
-						arming_state_transition(&status, safety_s{}, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
-									false /* fRunPreArmChecks */,
-									&mavlink_log_pub, &status_flags,
-									PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_STANDBY
-									30_s); // time since boot not relevant for switching to ARMING_STATE_STANDBY
+						status_flags.condition_calibration_enabled = false;
 
-					} else {
-						tune_negative(true);
+						if (calib_ret == OK) {
+							tune_positive(true);
+
+							// time since boot not relevant here
+							if (PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, false, false, true, 30_s)) {
+
+								status_flags.condition_system_sensors_initialized = true;
+							}
+
+							arming_state_transition(&status, safety_s{}, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+										false /* fRunPreArmChecks */,
+										&mavlink_log_pub, &status_flags,
+										PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_STANDBY
+										30_s); // time since boot not relevant for switching to ARMING_STATE_STANDBY
+
+						} else {
+							tune_negative(true);
+						}
 					}
 
 					break;
@@ -3465,59 +3474,68 @@ void *commander_low_prio_loop(void *arg)
 
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE: {
 
-					if (((int)(cmd.param1)) == 0) {
-						int ret = param_load_default();
+					if ((status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+					    || status.arming_state == vehicle_status_s::ARMING_STATE_SHUTDOWN) {
 
-						if (ret == OK) {
-							mavlink_log_info(&mavlink_log_pub, "Settings loaded");
-							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+						// reject if armed or shutting down
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED, command_ack_pub);
 
-						} else {
-							mavlink_log_critical(&mavlink_log_pub, "Error loading settings");
+					} else {
 
-							/* convenience as many parts of NuttX use negative errno */
-							if (ret < 0) {
-								ret = -ret;
+						if (((int)(cmd.param1)) == 0) {
+							int ret = param_load_default();
+
+							if (ret == OK) {
+								mavlink_log_info(&mavlink_log_pub, "Settings loaded");
+								answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+
+							} else {
+								mavlink_log_critical(&mavlink_log_pub, "Error loading settings");
+
+								/* convenience as many parts of NuttX use negative errno */
+								if (ret < 0) {
+									ret = -ret;
+								}
+
+								if (ret < 1000) {
+									mavlink_log_critical(&mavlink_log_pub, "Error: %s", strerror(ret));
+								}
+
+								answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub);
 							}
 
-							if (ret < 1000) {
-								mavlink_log_critical(&mavlink_log_pub, "Error: %s", strerror(ret));
+						} else if (((int)(cmd.param1)) == 1) {
+
+							int ret = param_save_default();
+
+							if (ret == OK) {
+								/* do not spam MAVLink, but provide the answer / green led mechanism */
+								answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+
+							} else {
+								mavlink_log_critical(&mavlink_log_pub, "Error saving settings");
+
+								/* convenience as many parts of NuttX use negative errno */
+								if (ret < 0) {
+									ret = -ret;
+								}
+
+								if (ret < 1000) {
+									mavlink_log_critical(&mavlink_log_pub, "Error: %s", strerror(ret));
+								}
+
+								answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub);
 							}
 
-							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub);
-						}
+						} else if (((int)(cmd.param1)) == 2) {
 
-					} else if (((int)(cmd.param1)) == 1) {
+							/* reset parameters and save empty file */
+							param_reset_all();
 
-						int ret = param_save_default();
-
-						if (ret == OK) {
 							/* do not spam MAVLink, but provide the answer / green led mechanism */
+							mavlink_log_critical(&mavlink_log_pub, "Onboard parameters reset");
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-
-						} else {
-							mavlink_log_critical(&mavlink_log_pub, "Error saving settings");
-
-							/* convenience as many parts of NuttX use negative errno */
-							if (ret < 0) {
-								ret = -ret;
-							}
-
-							if (ret < 1000) {
-								mavlink_log_critical(&mavlink_log_pub, "Error: %s", strerror(ret));
-							}
-
-							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub);
 						}
-
-					} else if (((int)(cmd.param1)) == 2) {
-
-						/* reset parameters and save empty file */
-						param_reset_all();
-
-						/* do not spam MAVLink, but provide the answer / green led mechanism */
-						mavlink_log_critical(&mavlink_log_pub, "Onboard parameters reset");
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 					}
 
 					break;
