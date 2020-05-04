@@ -639,7 +639,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 			if (device_ids[cur_mag] != 0) {
 				// Get priority
-				int32_t prio;
+				ORB_PRIO prio = ORB_PRIO_UNINITIALIZED;
 				orb_priority(worker_data.sub_mag[cur_mag], &prio);
 
 				if (prio > device_prio_max) {

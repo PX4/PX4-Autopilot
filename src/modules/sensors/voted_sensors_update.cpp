@@ -154,7 +154,7 @@ void VotedSensorsUpdate::parametersUpdate()
 				_gyro.enabled[driver_index] = (device_enabled == 1);
 
 				if (!_gyro.enabled[driver_index]) {
-					_gyro.priority[driver_index] = 0;
+					_gyro.priority[driver_index] = ORB_PRIO_UNINITIALIZED;
 				}
 
 				gyro_calibration_s gscale{};
@@ -250,7 +250,7 @@ void VotedSensorsUpdate::parametersUpdate()
 				_accel.enabled[driver_index] = (device_enabled == 1);
 
 				if (!_accel.enabled[driver_index]) {
-					_accel.priority[driver_index] = 0;
+					_accel.priority[driver_index] = ORB_PRIO_UNINITIALIZED;
 				}
 
 				accel_calibration_s ascale{};
@@ -387,7 +387,7 @@ void VotedSensorsUpdate::parametersUpdate()
 				// the mags that were published after the initial parameterUpdate
 				// would be given the priority even if disabled. Reset it to 0 in this case
 				if (!_mag.enabled[topic_instance]) {
-					_mag.priority[topic_instance] = 0;
+					_mag.priority[topic_instance] = ORB_PRIO_UNINITIALIZED;
 				}
 
 				mag_calibration_s mscale{};
@@ -702,14 +702,16 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
 
 				// reduce priority of failed sensor to the minimum
-				sensor.priority[failover_index] = 1;
+				sensor.priority[failover_index] = ORB_PRIO_MIN;
 
 				PX4_ERR("Sensor %s #%i failed. Reconfiguring sensor priorities.", sensor_name, failover_index);
 
 				int ctr_valid = 0;
 
 				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
-					if (sensor.priority[i] > 1) { ctr_valid++; }
+					if (sensor.priority[i] > ORB_PRIO_MIN) {
+						ctr_valid++;
+					}
 
 					PX4_WARN("Remaining sensors after failover event %u: %s #%u priority: %u", failover_index, sensor_name, i,
 						 sensor.priority[i]);

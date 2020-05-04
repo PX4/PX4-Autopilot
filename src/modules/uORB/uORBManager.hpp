@@ -161,8 +161,8 @@ public:
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
-	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					 int priority, unsigned int queue_size = 1);
+	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance, ORB_PRIO priority,
+					 unsigned int queue_size = 1);
 
 	/**
 	 * Unadvertise a topic.
@@ -318,7 +318,7 @@ public:
 	 *      independent of the startup order of the associated publishers.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_priority(int handle, int32_t *priority);
+	int  orb_priority(int handle, enum ORB_PRIO *priority);
 
 	/**
 	 * Set the minimum interval between which updates are seen for a subscription.
@@ -376,12 +376,6 @@ public:
 #endif /* ORB_COMMUNICATOR */
 
 private: // class methods
-	/**
-	 * Advertise a node; don't consider it an error if the node has
-	 * already been advertised.
-	 */
-	int node_advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance = nullptr,
-			   int priority = ORB_PRIO_DEFAULT);
 
 	/**
 	 * Common implementation for orb_advertise and orb_subscribe.
@@ -390,7 +384,7 @@ private: // class methods
 	 * advertisers.
 	 */
 	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr,
-		      int priority = ORB_PRIO_DEFAULT);
+		      ORB_PRIO priority = ORB_PRIO_DEFAULT);
 
 private: // data members
 	static Manager *_Instance;
