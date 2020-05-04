@@ -34,21 +34,11 @@
 /**
  * @file bootloader_main.c
  *
- * PX4FMU-specific early startup code for bootloader
+ * FMU-specific early startup code for bootloader
 */
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
 
 #include "board_config.h"
 #include "bl.h"
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
@@ -59,14 +49,11 @@
 
 extern int sercon_main(int c, char **argv);
 
-/****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
-__EXPORT void
-stm32_boardinitialize(void)
+__EXPORT void board_on_reset(int status) {}
+
+__EXPORT void stm32_boardinitialize(void)
 {
 	/* configure USB interfaces */
-
 	stm32_usbinitialize();
 }
 

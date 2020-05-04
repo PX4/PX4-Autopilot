@@ -398,7 +398,6 @@ private:
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription					_power_button_state_sub{ORB_ID(power_button_state)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_sp_man_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_subsys_sub{ORB_ID(subsystem_info)};
@@ -406,6 +405,10 @@ private:
 	uORB::Subscription					_telemetry_status_sub{ORB_ID(telemetry_status)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+
+#if defined(BOARD_HAS_POWER_CONTROL)
+	uORB::Subscription					_power_button_state_sub {ORB_ID(power_button_state)};
+#endif // BOARD_HAS_POWER_CONTROL
 
 	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
