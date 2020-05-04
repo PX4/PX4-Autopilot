@@ -95,7 +95,6 @@ typedef enum VEHICLE_MODE_FLAG {
 
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
-static orb_advert_t power_button_state_pub = nullptr;
 
 /* flags */
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
@@ -116,6 +115,8 @@ void *commander_low_prio_loop(void *arg);
 static void answer_command(const vehicle_command_s &cmd, unsigned result,
 			   uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
 
+#if defined(BOARD_HAS_POWER_CONTROL)
+static orb_advert_t power_button_state_pub = nullptr;
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
 {
 	// Note: this can be called from IRQ handlers, so we publish a message that will be handled
@@ -155,6 +156,7 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 
 	return ret;
 }
+#endif // BOARD_HAS_POWER_CONTROL
 
 #ifndef CONSTRAINED_FLASH
 static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN, float param3 = NAN,
@@ -231,9 +233,6 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 		thread_should_exit = true;
 
 		Commander::main(argc, argv);
-
-		PX4_INFO("terminated.");
-
 		return 0;
 	}
 
@@ -992,50 +991,47 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 		cmd_result = handle_command_motor_test(cmd);
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
+	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
 
-		// do nothing for autopilot
-		if (((int)(cmd.param1)) == 0) {
-			answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+			const int param1 = cmd.param1;
 
-			break;
-		}
-
-		if (shutdown_if_allowed()) {
-			bool shutdown_ret_val = PX4_ERROR;
-
-			if (((int)(cmd.param1)) == 1) {
+			if (param1 == 0) {
+				// 0: Do nothing for autopilot
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-				px4_usleep(200000);
-				// reboot
-				shutdown_ret_val = px4_shutdown_request(true, false);
 
-			} else if (((int)(cmd.param1)) == 2) {
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-				px4_usleep(200000);
-				// shutdown
-				shutdown_ret_val = px4_shutdown_request(false, false);
+#if defined(CONFIG_BOARDCTL_RESET)
 
-			} else if (((int)(cmd.param1)) == 3) {
+			} else if ((param1 == 1) && shutdown_if_allowed() && (px4_reboot_request(false, 400_ms) == 0)) {
+				// 1: Reboot autopilot
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-				px4_usleep(200000);
-				// reboot to bootloader
-				shutdown_ret_val = px4_shutdown_request(true, true);
+
+				while (1) { px4_usleep(1); }
+
+#endif // CONFIG_BOARDCTL_RESET
+
+#if defined(CONFIG_BOARDCTL_POWEROFF)
+
+			} else if ((param1 == 2) && shutdown_if_allowed() && (px4_shutdown_request(400_ms) == 0)) {
+				// 2: Shutdown autopilot
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+
+				while (1) { px4_usleep(1); }
+
+#endif // CONFIG_BOARDCTL_POWEROFF
+
+#if defined(CONFIG_BOARDCTL_RESET)
+
+			} else if ((param1 == 3) && shutdown_if_allowed() && (px4_reboot_request(true, 400_ms) == 0)) {
+				// 3: Reboot autopilot and keep it in the bootloader until upgraded.
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+
+				while (1) { px4_usleep(1); }
+
+#endif // CONFIG_BOARDCTL_RESET
 
 			} else {
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
-				break;
 			}
-
-			if (shutdown_ret_val) {
-				mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
-
-			} else {
-				while (1) { px4_usleep(1); }
-			}
-
-		} else {
-			answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
 		}
 
 		break;
@@ -1219,6 +1215,7 @@ Commander::run()
 	led_init();
 	buzzer_init();
 
+#if defined(BOARD_HAS_POWER_CONTROL)
 	{
 		// we need to do an initial publication to make sure uORB allocates the buffer, which cannot happen
 		// in IRQ context.
@@ -1234,6 +1231,7 @@ Commander::run()
 		PX4_ERR("Failed to register power notification callback");
 	}
 
+#endif // BOARD_HAS_POWER_CONTROL
 
 	get_circuit_breaker_params();
 
@@ -1409,16 +1407,26 @@ Commander::run()
 		/* Update OA parameter */
 		status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
+#if defined(BOARD_HAS_POWER_CONTROL)
+
 		/* handle power button state */
 		if (_power_button_state_sub.updated()) {
 			power_button_state_s button_state;
 
 			if (_power_button_state_sub.copy(&button_state)) {
 				if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN) {
-					px4_shutdown_request(false, false);
+#if defined(CONFIG_BOARDCTL_POWEROFF)
+
+					if (shutdown_if_allowed() && (px4_shutdown_request() == 0)) {
+						while (1) { px4_usleep(1); }
+					}
+
+#endif // CONFIG_BOARDCTL_POWEROFF
 				}
 			}
 		}
+
+#endif // BOARD_HAS_POWER_CONTROL
 
 		_sp_man_sub.update(&_sp_man);
 
@@ -1439,8 +1447,10 @@ Commander::run()
 					status_flags.condition_power_input_valid = true;
 				}
 
+#if defined(CONFIG_BOARDCTL_RESET)
+
 				/* if the USB hardware connection went away, reboot */
-				if (status_flags.usb_connected && !system_power.usb_connected && shutdown_if_allowed()) {
+				if (status_flags.usb_connected && !system_power.usb_connected) {
 					/*
 					 * Apparently the USB cable went away but we are still powered,
 					 * so we bring the system back to a nominal state for flight.
@@ -1449,10 +1459,14 @@ Commander::run()
 					 * for flight and continuing to run it would add a software risk
 					 * without a need. The clean approach to unload it is to reboot.
 					 */
-					mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting for flight safety")
-					px4_usleep(400000);
-					px4_shutdown_request(true, false);
+					if (shutdown_if_allowed() && (px4_reboot_request(400_ms) == 0)) {
+						mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting for flight safety");
+
+						while (1) { px4_usleep(1); }
+					}
 				}
+
+#endif // CONFIG_BOARDCTL_RESET
 			}
 		}
 
@@ -3471,12 +3485,6 @@ void *commander_low_prio_loop(void *arg)
 
 					} else if (((int)(cmd.param1)) == 1) {
 
-#ifdef __PX4_QURT
-						// TODO FIXME: on snapdragon the save happens too early when the params
-						// are not set yet. We therefore need to wait some time first.
-						px4_usleep(1000000);
-#endif
-
 						int ret = param_save_default();
 
 						if (ret == OK) {
@@ -3883,18 +3891,19 @@ void Commander::battery_status_check()
 	// Handle shutdown request from emergency battery action
 	if (update_internal_battery_state) {
 
-		if ((_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
-			mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
-			px4_usleep(200000);
+		if (_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+#if defined(CONFIG_BOARDCTL_POWEROFF)
 
-			int ret_val = px4_shutdown_request(false, false);
+			if (shutdown_if_allowed() && (px4_shutdown_request(400_ms) == 0)) {
+				mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
 
-			if (ret_val) {
-				mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
+				while (1) { px4_usleep(1); }
 
 			} else {
-				while (1) { px4_usleep(1); }
+				mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
 			}
+
+#endif // CONFIG_BOARDCTL_POWEROFF
 		}
 	}
 }

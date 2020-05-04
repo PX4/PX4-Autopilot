@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,82 +33,39 @@
  ****************************************************************************/
 
 /**
- * @file reboot.c
- * Tool similar to UNIX reboot command
- *
- * @author Lorenz Meier <lorenz@px4.io>
+ * @file board_reset.cpp
+ * Implementation of IMXRT based Board RESET API
  */
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/shutdown.h>
-#include <string.h>
+#include <errno.h>
+#include <nuttx/board.h>
+#include <up_arch.h>
+#include <hardware/imxrt_snvs.h>
 
-__EXPORT int reboot_main(int argc, char *argv[]);
+#define PX4_IMXRT_RTC_REBOOT_REG 3 // Must be common with bootloader and:
 
-static void print_usage(void)
+#if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
+#  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
+#endif
+
+static int board_reset_enter_bootloader()
 {
-	PRINT_MODULE_DESCRIPTION("Reboot the system");
-
-	PRINT_MODULE_USAGE_NAME_SIMPLE("reboot", "command");
-	PRINT_MODULE_USAGE_PARAM_FLAG('b', "Reboot into bootloader", true);
-
-	PRINT_MODULE_USAGE_ARG("lock|unlock", "Take/release the shutdown lock (for testing)", true);
+	uint32_t regvalue = 0xb007b007;
+	putreg32(regvalue, IMXRT_SNVS_LPGPR(PX4_IMXRT_RTC_REBOOT_REG));
+	return OK;
 }
 
-int reboot_main(int argc, char *argv[])
+int board_reset(int status)
 {
-	int ch;
-	bool to_bootloader = false;
-
-	int myoptind = 1;
-	const char *myoptarg = NULL;
-
-	while ((ch = px4_getopt(argc, argv, "b", &myoptind, &myoptarg)) != -1) {
-		switch (ch) {
-		case 'b':
-			to_bootloader = true;
-			break;
-
-		default:
-			print_usage();
-			return 1;
-
-		}
+	if (status == 1) {
+		board_reset_enter_bootloader();
 	}
 
-	if (myoptind >= 0 && myoptind < argc) {
-		int ret = -1;
+#if defined(BOARD_HAS_ON_RESET)
+	board_on_reset(status);
+#endif
 
-		if (strcmp(argv[myoptind], "lock") == 0) {
-			ret = px4_shutdown_lock();
-
-			if (ret != 0) {
-				PX4_ERR("lock failed (%i)", ret);
-			}
-		}
-
-		if (strcmp(argv[myoptind], "unlock") == 0) {
-			ret = px4_shutdown_unlock();
-
-			if (ret != 0) {
-				PX4_ERR("unlock failed (%i)", ret);
-			}
-		}
-
-		return ret;
-	}
-
-	int ret = px4_shutdown_request(true, to_bootloader);
-
-	if (ret < 0) {
-		PX4_ERR("reboot failed (%i)", ret);
-		return -1;
-	}
-
-	while (1) { px4_usleep(1); } // this command should not return on success
-
+	up_systemreset();
 	return 0;
 }

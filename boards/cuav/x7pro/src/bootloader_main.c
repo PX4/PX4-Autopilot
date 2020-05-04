@@ -49,6 +49,8 @@
 
 extern int sercon_main(int c, char **argv);
 
+__EXPORT void board_on_reset(int status) {}
+
 __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure USB interfaces */
