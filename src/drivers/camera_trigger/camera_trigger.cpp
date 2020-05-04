@@ -56,7 +56,7 @@
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/camera_capture.h>

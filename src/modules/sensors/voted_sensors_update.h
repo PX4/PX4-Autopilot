@@ -54,7 +54,6 @@
 #include <lib/mag_compensation/MagCompensation.hpp>
 
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_accel_integrated.h>
 #include <uORB/topics/sensor_combined.h>
@@ -156,7 +155,7 @@ private:
 		uORB::Subscription subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		DataValidatorGroup voter{1};
 		unsigned int last_failover_count{0};
-		uint8_t priority[SENSOR_COUNT_MAX] {}; /**< sensor priority */
+		ORB_PRIO priority[SENSOR_COUNT_MAX] {}; /**< sensor priority */
 		uint8_t last_best_vote{0}; /**< index of the latest best vote */
 		uint8_t subscription_count{0};
 		bool enabled[SENSOR_COUNT_MAX] {true, true, true, true};

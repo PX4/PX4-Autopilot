@@ -40,7 +40,7 @@
 #include <lib/drivers/device/integrator.h>
 #include <lib/ecl/geo/geo.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/PublicationQueuedMulti.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_fifo.h>
 #include <uORB/topics/sensor_accel_integrated.h>
@@ -49,7 +49,7 @@
 class PX4Accelerometer : public cdev::CDev
 {
 public:
-	PX4Accelerometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
+	PX4Accelerometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Accelerometer() override;
 
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;

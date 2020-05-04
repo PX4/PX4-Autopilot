@@ -50,14 +50,13 @@ orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const void *da
 	return uORB::Manager::get_instance()->orb_advertise(meta, data, queue_size);
 }
 
-orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-				 int priority)
+orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance, ORB_PRIO priority)
 {
 	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, priority);
 }
 
 orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
-				       int priority, unsigned int queue_size)
+				       ORB_PRIO priority, unsigned int queue_size)
 {
 	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, priority, queue_size);
 }
@@ -113,7 +112,7 @@ int  orb_group_count(const struct orb_metadata *meta)
 	return instance;
 }
 
-int  orb_priority(int handle, int32_t *priority)
+int  orb_priority(int handle, enum ORB_PRIO *priority)
 {
 	return uORB::Manager::get_instance()->orb_priority(handle, priority);
 }
