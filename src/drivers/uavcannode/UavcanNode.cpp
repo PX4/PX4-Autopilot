@@ -223,7 +223,7 @@ void UavcanNode::busevent_signal_trampoline()
 
 static void cb_reboot(const uavcan::TimerEvent &)
 {
-	px4_systemreset(false);
+	board_reset(0);
 }
 
 void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request>
@@ -276,7 +276,7 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 	{
 		PX4_INFO("UAVCAN: Restarting by request from %i\n", int(request_source.get()));
 		usleep(20 * 1000 * 1000);
-		px4_systemreset(false);
+		board_reset(0);
 		return true; // Will never be executed BTW
 	}
 } restart_request_handler;

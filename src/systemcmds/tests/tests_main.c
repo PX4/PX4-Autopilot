@@ -69,6 +69,7 @@ const struct {
 #ifdef __PX4_NUTTX
 	{"file",		test_file,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"led",			test_led,		0},
+	{"mount",		test_mount,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"time",		test_time,		OPT_NOJIGTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
 	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -102,7 +103,6 @@ const struct {
 	{"microbench_uorb",	test_microbench_uorb,	0},
 	{"mixer",		test_mixer,		OPT_NOJIGTEST},
 	{"mixer",		test_mixer,		OPT_NOJIGTEST},
-	{"mount",		test_mount,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"param",		test_param,		0},
 	{"parameters",		test_parameters,	0},
 	{"perf",		test_perf,		OPT_NOJIGTEST},

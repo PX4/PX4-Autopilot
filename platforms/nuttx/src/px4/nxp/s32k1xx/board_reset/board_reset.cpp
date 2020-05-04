@@ -1,7 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Author: @author Peter van der Perk <peter.vanderperk@nxp.com>
+ *                   David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,21 +34,24 @@
  ****************************************************************************/
 
 /**
- * @file board_reset.c
- * Implementation of STM32 based Board RESET API
+ * @file board_reset.cpp
+ * Implementation of kinetis based Board RESET API
  */
 
 #include <px4_platform_common/px4_config.h>
 #include <errno.h>
-#include <stm32_pwr.h>
-#include <stm32_rtc.h>
 #include <nuttx/board.h>
+#include <hardware/s32k1xx_rcm.h>
+
 
 #ifdef CONFIG_BOARDCTL_RESET
 
-/****************************************************************************
- * Public functions
- ****************************************************************************/
+static int board_reset_enter_bootloader()
+{
+	uint32_t regvalue = RCM_PARAM_ESW;
+	*((uint32_t *) S32K1XX_RCM_SRS) = regvalue;
+	return OK;
+}
 
 /****************************************************************************
  * Name: board_reset
@@ -71,51 +75,16 @@
 
 int board_reset(int status)
 {
+	if (status == 1) {
+		board_reset_enter_bootloader();
+	}
+
+#if defined(BOARD_HAS_ON_RESET)
+	board_on_reset(status);
+#endif
+
 	up_systemreset();
 	return 0;
 }
 
 #endif /* CONFIG_BOARDCTL_RESET */
-
-int board_set_bootload_mode(board_reset_e mode)
-{
-	uint32_t regvalue = 0;
-
-	switch (mode) {
-	case board_reset_normal:
-	case board_reset_extended:
-		break;
-
-	case board_reset_enter_bootloader:
-		regvalue = 0xb007b007;
-		break;
-
-	default:
-		return -EINVAL;
-	}
-
-	stm32_pwr_enablebkp(true);
-
-// Check if we can to use the new register definition
-#ifndef STM32_RTC_BK0R
-	*(uint32_t *)STM32_BKP_BASE = regvalue;
-#else
-	*(uint32_t *)STM32_RTC_BK0R = regvalue;
-#endif
-	stm32_pwr_enablebkp(false);
-	return OK;
-}
-
-
-void board_system_reset(int status)
-{
-#if defined(BOARD_HAS_ON_RESET)
-	board_on_reset(status);
-#endif
-
-#ifdef CONFIG_BOARDCTL_RESET
-	board_reset(status);
-#endif
-
-	while (1);
-}

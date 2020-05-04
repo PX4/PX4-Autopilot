@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Copyright (C) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,59 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file board_reset.c
- * Implementation of IMXRT based Board RESET API
+ * @file shutdown.c
+ * Tool similar to UNIX shutdown command.
  */
+#include <px4_platform_common/shutdown.h>
+#include <px4_platform_common/tasks.h>
 
-#include <px4_platform_common/px4_config.h>
-#include <errno.h>
-#include <nuttx/board.h>
-#include <up_arch.h>
-#include <hardware/imxrt_snvs.h>
-
-#define PX4_IMXRT_RTC_REBOOT_REG 3 // Must be common with bootloader and:
-
-#if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
-#  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
-#endif
-
-int board_reset(int status)
+extern "C" __EXPORT int shutdown_main(int argc, char *argv[])
 {
-	up_systemreset();
-	return 0;
-}
-
-int board_set_bootload_mode(board_reset_e mode)
-{
-	uint32_t regvalue = 0;
-
-	switch (mode) {
-	case board_reset_normal:
-	case board_reset_extended:
-		break;
-
-	case board_reset_enter_bootloader:
-		regvalue = 0xb007b007;
-		break;
-
-	default:
-		return -EINVAL;
-	}
-
-	putreg32(regvalue, IMXRT_SNVS_LPGPR(PX4_IMXRT_RTC_REBOOT_REG));
-	return OK;
-}
-
-
-void board_system_reset(int status)
-{
-#if defined(BOARD_HAS_ON_RESET)
-	board_on_reset(status);
-#endif
-
-#ifdef CONFIG_BOARDCTL_RESET
-	board_reset(status);
-#endif
-
-	while (1);
+	return px4_shutdown_request();
 }

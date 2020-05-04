@@ -149,10 +149,6 @@ typedef int (*px4_main_t)(int argc, char *argv[]);
 
 __BEGIN_DECLS
 
-/** Reboots the board (without waiting for clean shutdown). Modules should use px4_shutdown_request() in most cases.
- */
-__EXPORT void px4_systemreset(bool to_bootloader) noreturn_function;
-
 /** Starts a task and performs any specific accounting, scheduler setup, etc. */
 __EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
 				       int scheduler,
