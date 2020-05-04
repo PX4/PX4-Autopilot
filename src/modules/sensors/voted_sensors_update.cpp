@@ -698,12 +698,11 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 				int ctr_valid = 0;
 
 				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
-					if (sensor.priority[i] > ORB_PRIO_MIN) {
+					if (sensor.enabled[i] && (sensor.priority[i] > ORB_PRIO_MIN)) {
 						ctr_valid++;
+						PX4_INFO("Remaining sensors after failover %u: %s #%u priority: %u", failover_index, sensor_name, i,
+							 sensor.priority[i]);
 					}
-
-					PX4_WARN("Remaining sensors after failover event %u: %s #%u priority: %u", failover_index, sensor_name, i,
-						 sensor.priority[i]);
 				}
 
 				if (ctr_valid < 2) {
