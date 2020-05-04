@@ -1860,8 +1860,11 @@ Commander::run()
 
 			} else {
 				if (status.rc_signal_lost) {
-					mavlink_log_info(&mavlink_log_pub, "Manual control regained after %llums",
-							 hrt_elapsed_time(&_rc_signal_lost_timestamp) / 1000);
+					if (_rc_signal_lost_timestamp > 0) {
+						mavlink_log_info(&mavlink_log_pub, "Manual control regained after %.1fs",
+								 hrt_elapsed_time(&_rc_signal_lost_timestamp) * 1e-6);
+					}
+
 					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, status_flags.rc_calibration_valid, status);
 					_status_changed = true;
 				}
@@ -2019,7 +2022,7 @@ Commander::run()
 			/* no else case: do not change lockdown flag in unconfigured case */
 
 		} else {
-			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
+			if (!status_flags.rc_input_blocked && !status.rc_signal_lost && status_flags.rc_signal_found_once) {
 				mavlink_log_critical(&mavlink_log_pub, "Manual control lost");
 				status.rc_signal_lost = true;
 				_rc_signal_lost_timestamp = _sp_man.timestamp;
