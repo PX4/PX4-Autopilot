@@ -556,7 +556,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 
 		if (device_id[cur_accel] != 0) {
 			// Get priority
-			int32_t prio;
+			ORB_PRIO prio = ORB_PRIO_UNINITIALIZED;
 			orb_priority(worker_data.subs[cur_accel], &prio);
 
 			if (prio > device_prio_max) {

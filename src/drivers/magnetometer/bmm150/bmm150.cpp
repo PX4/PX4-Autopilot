@@ -96,8 +96,8 @@ int BMM150::init()
 
 	/* Bring the device to sleep mode */
 	modify_reg(BMM150_POWER_CTRL_REG, 1, 1);
-	up_udelay(10000);
 
+	px4_usleep(10000);
 
 	/* check id*/
 	if (read_reg(BMM150_CHIP_ID_REG) != BMM150_CHIP_ID) {
@@ -115,7 +115,7 @@ int BMM150::init()
 		return -EIO;
 	}
 
-	up_udelay(10000);
+	px4_usleep(10000);
 
 	if (collect()) {
 		return -EIO;
@@ -342,11 +342,13 @@ int BMM150::reset()
 
 	/* Soft-reset */
 	modify_reg(BMM150_POWER_CTRL_REG, BMM150_SOFT_RESET_MASK, BMM150_SOFT_RESET_VALUE);
-	up_udelay(5000);
+
+	px4_usleep(5000);
 
 	/* Enable Magnetometer in normal mode */
 	ret += set_power_mode(BMM150_DEFAULT_POWER_MODE);
-	up_udelay(1000);
+
+	px4_usleep(1000);
 
 	/* Set the data rate to default */
 	ret += set_data_rate(BMM150_DEFAULT_ODR);

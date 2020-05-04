@@ -63,7 +63,7 @@ static constexpr unsigned clipping(const int16_t samples[16], int16_t clip_limit
 	return clip_count;
 }
 
-PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
+PX4Gyroscope::PX4Gyroscope(uint32_t device_id, ORB_PRIO priority, enum Rotation rotation) :
 	CDev(nullptr),
 	ModuleParams(nullptr),
 	_sensor_pub{ORB_ID(sensor_gyro), priority},
@@ -73,7 +73,11 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	_device_id{device_id},
 	_rotation{rotation}
 {
+	// register class and advertise immediately to keep instance numbering in sync
 	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+	_sensor_pub.advertise();
+	_sensor_integrated_pub.advertise();
+	_sensor_status_pub.advertise();
 
 	updateParams();
 }
@@ -83,6 +87,11 @@ PX4Gyroscope::~PX4Gyroscope()
 	if (_class_device_instance != -1) {
 		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_device_instance);
 	}
+
+	_sensor_pub.unadvertise();
+	_sensor_fifo_pub.unadvertise();
+	_sensor_integrated_pub.unadvertise();
+	_sensor_status_pub.unadvertise();
 }
 
 int PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)

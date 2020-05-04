@@ -51,7 +51,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/version/version.h>
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"

@@ -100,7 +100,7 @@ MPU6000_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	 */
 	uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, status);
 	uint8_t cmd = MPU6000_REG(reg_speed);
-	int ret = transfer(&cmd, 1, &((uint8_t *)data)[offset], count);
+	int ret = transfer(&cmd, 1, &((uint8_t *)data)[offset], count - offset);
 	return ret == OK ? count : ret;
 }
 

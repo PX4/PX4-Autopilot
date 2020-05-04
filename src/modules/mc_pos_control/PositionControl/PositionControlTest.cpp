@@ -76,7 +76,7 @@ public:
 	PositionControlBasicTest()
 	{
 		_position_control.setPositionGains(Vector3f(1.f, 1.f, 1.f));
-		_position_control.setVelocityGains(Vector3f(1.f, 1.f, 1.f), Vector3f(1.f, 1.f, 1.f), Vector3f(1.f, 1.f, 1.f));
+		_position_control.setVelocityGains(Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f));
 		_position_control.setVelocityLimits(1.f, 1.f, 1.f);
 		_position_control.setThrustLimits(0.1f, 0.9f);
 		_position_control.setTiltLimit(1.f);
@@ -387,6 +387,4 @@ TEST_F(PositionControlBasicTest, UpdateHoverThrust)
 	// THEN: the integral is updated to avoid discontinuities and
 	// the output is still the same
 	EXPECT_EQ(_output_setpoint.thrust[2], -hover_thrust);
-	const Vector3f integrator_new(_position_control.getIntegral());
-	EXPECT_EQ(integrator_new(2) - hover_thrust_new, -hover_thrust);
 }
