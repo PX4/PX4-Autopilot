@@ -633,17 +633,6 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 			// First publication with data
 			if (_mag.priority[uorb_index] == 0) {
 				_mag.priority[uorb_index] = _mag.subscription[uorb_index].get_priority();
-
-				/* force a scale and offset update the first time we get data */
-				parametersUpdate();
-
-				if (!_mag.enabled[uorb_index]) {
-					/* in case the data on the mag topic comes after the initial parameterUpdate(), we would get here since the sensor
-					 * is enabled by default. The latest parameterUpdate() call would set enabled to false and reset priority to zero
-					 * for disabled sensors, and we shouldn't cal voter.put() in that case
-					 */
-					continue;
-				}
 			}
 
 			Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
@@ -750,6 +739,7 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 
 void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max)
 {
+	bool added = false;
 	int max_sensor_index = -1;
 
 	for (unsigned i = 0; i < sensor_count_max; i++) {
@@ -761,7 +751,10 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 
 			if (i > 0) {
 				/* the first always exists, but for each further sensor, add a new validator */
-				if (!sensor_data.voter.add_new_validator()) {
+				if (sensor_data.voter.add_new_validator()) {
+					added = true;
+
+				} else {
 					PX4_ERR("failed to add validator for sensor %s %i", sensor_data.subscription[i].get_topic()->o_name, i);
 				}
 			}
@@ -771,6 +764,11 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 	// never decrease the sensor count, as we could end up with mismatching validators
 	if (max_sensor_index + 1 > sensor_data.subscription_count) {
 		sensor_data.subscription_count = max_sensor_index + 1;
+	}
+
+	if (added) {
+		// force parameter refresh if anything was added
+		parametersUpdate();
 	}
 }
 
