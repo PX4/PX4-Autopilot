@@ -51,7 +51,8 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
  * This parameter is deprecated. Please use BAT1_ADC_CHANNEL.
  *
  * @group Battery Calibration
- */PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
+ */
+PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
 
 /**
  * VOXL Power Monitor Shunt, Battery
