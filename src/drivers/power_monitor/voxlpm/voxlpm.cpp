@@ -41,11 +41,11 @@
 /*
  * The VOXLPM v0 has two LTC2946 ICs on it.
  * Address 0x6A - measures battery voltage and current with a 0.0005 ohm sense resistor
- * Address 0x6B - measures 5VDC ouptut voltage and current
+ * Address 0x6B - measures 5VDC ouptut voltage and current with a 0.005 ohm sense resistor
  *
  * The VOXLPM v1 has two INA231 ICs on it.
  * Address 0x44 - measures battery voltage and current with a 0.0005 ohm sense resistor
- * Address 0x45 - measures 5VDC/12VDC ouptut voltage and current
+ * Address 0x45 - measures 5VDC/12VDC ouptut voltage and current with a 0.005 ohm sense resistor
  */
 VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOXLPM_CH_TYPE ch_type) :
 	I2C(DRV_POWER_DEVTYPE_VOXLPM, MODULE_NAME, bus, VOXLPM_INA231_ADDR_VBATT, bus_frequency),
@@ -80,13 +80,17 @@ VOXLPM::init()
 
 	if (addr == VOXLPM_LTC2946_ADDR_VBATT || addr == VOXLPM_LTC2946_ADDR_P5VD) {
 		_pm_type = VOXLPM_TYPE_V0_LTC;
-		_rsense = (_ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_RSENSE_VBATT : VOXLPM_RSENSE_5VOUT;
+		load_params(_pm_type, _ch_type);
 		ret = init_ltc2946();
 
 	} else if (addr == VOXLPM_INA231_ADDR_VBATT || addr == VOXLPM_INA231_ADDR_P5_12VDC) {
 		_pm_type = VOXLPM_TYPE_V1_INA;
-		_rsense = (_ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_INA231_VBAT_SHUNT : VOXLPM_INA231_VREG_SHUNT;
+		load_params(_pm_type, _ch_type);
 		ret = init_ina231();
+
+	} else {
+		PX4_ERR("Unkown device address");
+		ret = PX4_ERROR;
 	}
 
 	if (ret == PX4_OK) {
@@ -146,6 +150,44 @@ VOXLPM::probe()
 }
 
 int
+VOXLPM::load_params(VOXLPM_TYPE pm_type, VOXLPM_CH_TYPE ch_type)
+{
+	if (pm_type == VOXLPM_TYPE_V0_LTC) {
+		/* No configuration needed */
+		_rshunt = (ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_LTC2946_VBAT_SHUNT : VOXLPM_LTC2946_VREG_SHUNT;
+
+	} else if (pm_type == VOXLPM_TYPE_V1_INA) {
+
+		_rshunt = -1.0f;
+		float fvalue = -1.0f;
+		param_t ph;
+
+		/* Allow for configuration */
+		if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
+			ph = param_find("VOXLPM_SHUNT_BAT");
+
+			if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
+				_rshunt = fvalue;
+			}
+
+		} else {
+			ph = param_find("VOXLPM_SHUNT_REG");
+
+			if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
+				_rshunt = fvalue;
+			}
+		}
+
+		if (_rshunt < 0) {
+			_rshunt = (_ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_INA231_VBAT_SHUNT : VOXLPM_INA231_VREG_SHUNT;
+		}
+
+	}
+
+	return PX4_OK;
+}
+
+int
 VOXLPM::init_ltc2946()
 {
 	write_reg(VOXLPM_LTC2946_CTRLA_REG, DEFAULT_LTC2946_CTRLA_REG_VAL);
@@ -178,10 +220,10 @@ VOXLPM::init_ina231()
 	}
 
 	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
-		_cal = VOXLPM_INA231_VBAT_CAL;
+		_cal = (INA231_CONST / (VOXLPM_INA231_VBAT_I_LSB * _rshunt));
 
 	} else {
-		_cal = VOXLPM_INA231_VREG_CAL;
+		_cal = (INA231_CONST / (VOXLPM_INA231_VREG_I_LSB * _rshunt));
 	}
 
 	/* Set calibration */
@@ -235,7 +277,7 @@ VOXLPM::print_status()
 	printf("  - voltage: %9.4f VDC \n", (double)_voltage);
 	printf("  - current: %9.4f ADC \n", (double)_amperage);
 	printf("  - shunt: %9.4f mV, %9.4f mA\n", (double)_vshunt * 1000, (double)_vshuntamps * 1000);
-	printf("  - rsense: %9.6f ohm, cal: %i\n", (double)_rsense, _cal);
+	printf("  - rsense: %9.6f ohm, cal: %i\n", (double)_rshunt, _cal);
 }
 
 void
@@ -359,7 +401,7 @@ VOXLPM::measure_ltc2946()
 
 		uint16_t curr16 = (((uint16_t)iraw[0]) << 8) | iraw[1];   // MSB first
 		curr16        >>= 4;                                      // data is 12 bit and left-aligned
-		_amperage       = curr16 / VOXLPM_LTC2946_RESOLUTION * VOXLPM_LTC2946_VFS_DELTA_SENSE / _rsense;
+		_amperage       = curr16 / VOXLPM_LTC2946_RESOLUTION * VOXLPM_LTC2946_VFS_DELTA_SENSE / _rshunt;
 		ret = PX4_OK;
 	}
 

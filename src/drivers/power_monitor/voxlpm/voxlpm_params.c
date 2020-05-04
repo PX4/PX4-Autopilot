@@ -52,3 +52,23 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
  *
  * @group Battery Calibration
  */PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
+
+/**
+ * VOXL Power Monitor Shunt, Battery
+ *
+ * @min 0.000000001
+ * @max 0.1
+ * @decimal 10
+ * @increment .000000001
+ */
+PARAM_DEFINE_FLOAT(VOXLPM_SHUNT_BAT, 0.00058f);
+
+/**
+ * VOXL Power Monitor Shunt, Regulator
+ *
+ * @min 0.000000001
+ * @max 0.1
+ * @decimal 10
+ * @increment .000000001
+ */
+PARAM_DEFINE_FLOAT(VOXLPM_SHUNT_REG, 0.0058f);

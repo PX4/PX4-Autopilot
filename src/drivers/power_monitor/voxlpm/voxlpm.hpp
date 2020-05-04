@@ -156,10 +156,10 @@
 #define VOXLPM_LTC2946_VFS_DELTA_SENSE 		0.1024f
 
 /* Power sense resistor for battery current */
-#define VOXLPM_RSENSE_VBATT			0.0005f
+#define VOXLPM_LTC2946_VBAT_SHUNT		0.0005f
 
 /* Power sense resistor for 5VDC output current */
-#define VOXLPM_RSENSE_5VOUT			0.005f
+#define VOXLPM_LTC2946_VREG_SHUNT		0.005f
 
 /*
  * VOXLPM v1 - Coniguration from SBOS644C –FEBRUARY 2013–REVISED MARCH 2018
@@ -204,8 +204,6 @@
 /* ina231.pdf section 8.5 */
 #define VOXLPM_INA231_VBAT_I_LSB		(VOXLPM_INA231_VBAT_MAX_AMPS/32768.0f)
 #define VOXLPM_INA231_VREG_I_LSB		(VOXLPM_INA231_VREG_MAX_AMPS/32768.0f)
-#define VOXLPM_INA231_VBAT_CAL			(INA231_CONST/(VOXLPM_INA231_VBAT_I_LSB*VOXLPM_INA231_VBAT_SHUNT))
-#define VOXLPM_INA231_VREG_CAL			(INA231_CONST/(VOXLPM_INA231_VREG_I_LSB*VOXLPM_INA231_VREG_SHUNT))
 
 #define swap16(w)				__builtin_bswap16((w))
 
@@ -241,6 +239,7 @@ private:
 	int			probe() override;
 	void 			start();
 	int 			measure();
+	int 			load_params(VOXLPM_TYPE pm_type, VOXLPM_CH_TYPE ch_type);
 	int 			init_ltc2946();
 	int 			init_ina231();
 	int 			measure_ltc2946();
@@ -260,7 +259,7 @@ private:
 	const VOXLPM_CH_TYPE	_ch_type;
 	float			_voltage{0.0f};
 	float			_amperage{0.0f};
-	float			_rsense{0.0f};
+	float			_rshunt{0.0005f};
 	float			_vshunt{0.0f};
 	float			_vshuntamps{0.0f};
 	int16_t			_cal{0};
