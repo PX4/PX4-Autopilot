@@ -616,6 +616,7 @@ MulticopterPositionControl::Run()
 			// limit tilt during takeoff ramupup
 			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
 				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
+				setpoint.acceleration[2] = NAN;
 			}
 
 			// limit altitude only if local position is valid
