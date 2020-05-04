@@ -1436,7 +1436,7 @@ Commander::run()
 			system_power_s system_power{};
 			_system_power_sub.copy(&system_power);
 
-			if (hrt_elapsed_time(&system_power.timestamp) < 200_ms) {
+			if (hrt_elapsed_time(&system_power.timestamp) < 1_s) {
 				if (system_power.servo_valid &&
 				    !system_power.brick_valid &&
 				    !system_power.usb_connected) {
@@ -1449,24 +1449,28 @@ Commander::run()
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
-				/* if the USB hardware connection went away, reboot */
-				if (status_flags.usb_connected && !system_power.usb_connected) {
-					/*
-					 * Apparently the USB cable went away but we are still powered,
-					 * so we bring the system back to a nominal state for flight.
-					 * This is important to unload the USB stack of the OS which is
-					 * a relatively complex piece of software that is non-essential
-					 * for flight and continuing to run it would add a software risk
-					 * without a need. The clean approach to unload it is to reboot.
-					 */
-					if (shutdown_if_allowed() && (px4_reboot_request(400_ms) == 0)) {
-						mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting for flight safety");
+				if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {
+					/* if the USB hardware connection went away, reboot */
+					if (_system_power_usb_connected && !system_power.usb_connected) {
+						/*
+						 * Apparently the USB cable went away but we are still powered,
+						 * so we bring the system back to a nominal state for flight.
+						 * This is important to unload the USB stack of the OS which is
+						 * a relatively complex piece of software that is non-essential
+						 * for flight and continuing to run it would add a software risk
+						 * without a need. The clean approach to unload it is to reboot.
+						 */
+						if (shutdown_if_allowed() && (px4_reboot_request(false, 400_ms) == 0)) {
+							mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting for flight safety");
 
-						while (1) { px4_usleep(1); }
+							while (1) { px4_usleep(1); }
+						}
 					}
 				}
 
 #endif // CONFIG_BOARDCTL_RESET
+
+				_system_power_usb_connected = system_power.usb_connected;
 			}
 		}
 
