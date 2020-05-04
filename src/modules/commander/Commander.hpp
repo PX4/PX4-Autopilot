@@ -366,6 +366,7 @@ private:
 	bool		_have_taken_off_since_arming{false};
 	bool		_should_set_home_on_takeoff{true};
 	bool		_flight_termination_printed{false};
+	bool		_system_power_usb_connected{false};
 
 	main_state_t	_main_state_pre_offboard{commander_state_s::MAIN_STATE_MANUAL};
 
