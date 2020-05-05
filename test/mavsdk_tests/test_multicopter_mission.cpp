@@ -48,7 +48,8 @@ TEST_CASE("Takeoff and Land", "[multicopter][vtol]")
 	tester.takeoff();
 	tester.wait_until_hovering();
 	tester.land();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(15);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
 TEST_CASE("Fly square Multicopter Missions", "[multicopter][vtol]")
