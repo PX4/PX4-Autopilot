@@ -75,6 +75,7 @@ FXAS21002C::FXAS21002C(device::Device *interface, I2CSPIBusOption bus_option, in
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicate reading"))
 {
+	_px4_gyro.set_update_rate(FXAS21002C_DEFAULT_RATE);
 }
 
 FXAS21002C::~FXAS21002C()
