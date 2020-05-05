@@ -51,6 +51,8 @@ class NotchFilterArray : public NotchFilter<T>
 {
 	using NotchFilter<T>::_delay_element_1;
 	using NotchFilter<T>::_delay_element_2;
+	using NotchFilter<T>::_delay_element_output_1;
+	using NotchFilter<T>::_delay_element_output_2;
 	using NotchFilter<T>::_a1;
 	using NotchFilter<T>::_a2;
 	using NotchFilter<T>::_b0;

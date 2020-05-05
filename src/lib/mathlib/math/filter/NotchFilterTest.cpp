@@ -80,6 +80,7 @@ TEST_F(NotchFilterTest, simple)
 TEST_F(NotchFilterTest, filteringLowSide)
 {
 	// Send a 25Hz sinusoidal signal into a 50Hz notch filter
+	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 25.f;
 	const float omega = 2.f * M_PI_F * signal_freq;
@@ -104,6 +105,7 @@ TEST_F(NotchFilterTest, filteringLowSide)
 TEST_F(NotchFilterTest, filteringLowSideDF1)
 {
 	// Send a 25Hz sinusoidal signal into a 50Hz notch filter
+	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 25.f;
 	const float omega = 2.f * M_PI_F * signal_freq;
@@ -128,6 +130,7 @@ TEST_F(NotchFilterTest, filteringLowSideDF1)
 TEST_F(NotchFilterTest, filteringHighSide)
 {
 	// Send a 98 sinusoidal signal into a 50Hz notch filter
+	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 98.4f;
 	const float omega = 2.f * M_PI_F * signal_freq;
@@ -152,6 +155,7 @@ TEST_F(NotchFilterTest, filteringHighSide)
 TEST_F(NotchFilterTest, filteringHighSideDF1)
 {
 	// Send a 98 sinusoidal signal into a 50Hz notch filter
+	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 98.4f;
 	const float omega = 2.f * M_PI_F * signal_freq;
@@ -176,6 +180,7 @@ TEST_F(NotchFilterTest, filteringHighSideDF1)
 TEST_F(NotchFilterTest, filterOnNotch)
 {
 	// Send a 50 sinusoidal signal into a 50Hz notch filter
+	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 50.0f;
 	const float omega = 2.f * M_PI_F * signal_freq;
@@ -198,6 +203,7 @@ TEST_F(NotchFilterTest, filterOnNotch)
 TEST_F(NotchFilterTest, filterOnNotchDF1)
 {
 	// Send a 50 sinusoidal signal into a 50Hz notch filter
+	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 50.0f;
 	const float omega = 2.f * M_PI_F * signal_freq;
@@ -219,10 +225,11 @@ TEST_F(NotchFilterTest, filterOnNotchDF1)
 
 TEST_F(NotchFilterTest, updateFilter)
 {
+	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	float new_notch_freq = 100.f;
 	float new_bandwidth = 10.f;
-	_notch_float.update(_sample_freq, new_notch_freq, new_bandwidth);
+	_notch_float.setParameters(_sample_freq, new_notch_freq, new_bandwidth);
 
 	EXPECT_EQ(new_notch_freq, _notch_float.getNotchFreq());
 	EXPECT_EQ(new_bandwidth, _notch_float.getBandwidth());

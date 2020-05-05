@@ -67,6 +67,7 @@ public:
 	NotchFilter() = default;
 	~NotchFilter() = default;
 
+
 	void setParameters(float sample_freq, float notch_freq, float bandwidth);
 
 	/**
@@ -160,16 +161,17 @@ protected:
 	T _delay_element_output_2;
 };
 
+/**
+ * Initialises the filter by setting its parameters and coefficients.
+ * If using the direct form I (applyDF1) method, allows to dynamically
+ * update the filtered frequency, refresh rate and quality factor while
+ * conserving the filter's history
+ */
 template<typename T>
 void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float bandwidth)
 {
 	_notch_freq = notch_freq;
 	_bandwidth = bandwidth;
-
-	_delay_element_1 = {};
-	_delay_element_2 = {};
-	_delay_element_output_1 = {};
-	_delay_element_output_2 = {};
 
 	if (notch_freq <= 0.f) {
 		// no filtering
@@ -206,31 +208,10 @@ T NotchFilter<T>::reset(const T &sample)
 
 	_delay_element_1 = dval;
 	_delay_element_2 = dval;
+	_delay_element_output_1 = {};
+	_delay_element_output_2 = {};
 
 	return apply(sample);
-}
-
-/**
- * Allows to dynamically update the filtered frequency, refresh rate and quality factor.
- * Changes the filter's coefficients while conserving the filter's history
- * Note: This method will only work if using the applyDF1 function (Direct Form I).
- */
-template<typename T>
-void NotchFilter<T>::update(float sample_freq, float notch_freq, float bandwidth)
-{
-	// backup state
-	T delay_element_1_bkup = _delay_element_1;
-	T delay_element_2_bkup = _delay_element_2;
-	T delay_element_output_1_bkup = _delay_element_output_1;
-	T delay_element_output_2_bkup = _delay_element_output_2;
-
-	setParameters(sample_freq, notch_freq, bandwidth);
-
-	// restore state
-	_delay_element_1 = delay_element_1_bkup;
-	_delay_element_2 = delay_element_2_bkup;
-	_delay_element_output_1 = delay_element_output_1_bkup;
-	_delay_element_output_2 = delay_element_output_2_bkup;
 }
 
 } // namespace math
