@@ -1,0 +1,115 @@
+{{ composite_type | definition_begin }}
+{
+{%- if T.fixed_port_id is not None %}
+	static constexpr CanardPortID PORT_ID = {{T.fixed_port_id}};
+{%- endif %}
+
+{%- set total_size = namespace(value=0) -%}
+{%- for field in composite_type.fields -%}
+    {% set total_size.value = total_size.value + field.data_type.bit_length_set|max %}
+{%- endfor %}
+	static constexpr size_t SIZE = {{total_size.value}};
+
+	static constexpr auto getDataTypeFullName() { return "{{T}}"; }
+
+{% for constant in composite_type.constants %}
+	static constexpr {{ constant.data_type | declaration }} {{ constant.name | id }} = {{ constant.value.native_value.numerator }} / {{ constant.value.native_value.denominator }};
+{%- endfor -%}
+
+{% if composite_type is UnionType %}
+#error "TODO: UnionType
+{% else %}
+
+{% for field in composite_type.fields -%}
+    {%- if field is not padding %}
+        {%- if field.data_type is FloatType %}
+            {%- if field.data_type.bit_length_set|max <= 32 %}
+	float {{ field | id }}{NAN};
+            {%- else %}
+	double {{ field | id }}{NAN};
+            {%- endif %}
+        {%- elif field.data_type is BooleanType %}
+	bool {{ field | id }}{false};
+        {%- else %}
+	{{ field.data_type | declaration }} {{ field | id }}{};
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor %}
+{% endif %}
+
+	void serializeToBuffer(uint8_t* const buffer, const size_t starting_bit = 0)
+	{
+{%- set bit_offset = namespace(value=0) -%}
+{%- for field in composite_type.fields -%}
+    {%- if field is not padding %}
+      {%- if field.data_type is SerializableType %}
+        {%- if field.data_type is IntegerType %}
+		canardDSDLSetUxx(buffer, starting_bit + {{ bit_offset.value }}, {{ field.name }}, {{ field.data_type.bit_length_set | max }});
+        {%- elif field.data_type is BooleanType %}
+		canardDSDLSetBit(buffer, starting_bit + {{ field.data_type.bit_length_set | max }}, {{ field.name }});
+        {%- elif field.data_type is FloatType %}
+            {%- if field.data_type.bit_length_set == 16 %}
+		canardDSDLSetF16(buffer, starting_bit + {{ field.data_type.bit_length_set | max }}, {{ field.name }});
+            {%- elif field.data_type.bit_length_set == 32 %}
+		canardDSDLSetF32(buffer, starting_bit + {{ field.data_type.bit_length_set | max }}, {{ field.name }});
+            {%- elif field.data_type.bit_length_set == 64 %}
+		canardDSDLSetF64(buffer, starting_bit + {{ field.data_type.bit_length_set | max }}, {{ field.name }});
+            {%- endif %}
+        {%- else %}
+		{{ field.name }}.serializeToBuffer(buffer, starting_bit + {{ bit_offset.value }});
+        {%- endif %}
+      {%- endif -%}
+    {%- endif -%}
+    {% set bit_offset.value = bit_offset.value + field.data_type.bit_length_set|max %}
+{%- endfor %}
+	}
+
+	static {{T | full_reference_name}} deserializeFromBuffer(const uint8_t* const buffer, const size_t buf_size, const size_t starting_bit = 0)
+	{
+		{{T | full_reference_name}} msg;
+{% set bit_offset = namespace(value=0) %}
+{%- for field in composite_type.fields -%}
+    {%- if field is not padding %}
+      {%- if field.data_type is SerializableType %}
+        {%- if field.data_type is UnsignedIntegerType %}
+            {%- if field.data_type.bit_length_set|max<= 8 %}
+		msg.{{ field.name }} = canardDSDLGetU8(buffer, buf_size, starting_bit + {{ bit_offset.value }}, {{ field.data_type.bit_length_set | max }});
+            {%- elif field.data_type.bit_length_set|max <= 16 %}
+		msg.{{ field.name }} = canardDSDLGetU16(buffer, buf_size, starting_bit + {{ bit_offset.value }}, {{ field.data_type.bit_length_set | max }});
+            {%- elif field.data_type.bit_length_set|max <= 32 %}
+		msg.{{ field.name }} = canardDSDLGetU32(buffer, buf_size, starting_bit + {{ bit_offset.value }}, {{ field.data_type.bit_length_set | max }});
+            {%- elif field.data_type.bit_length_set|max <= 64 %}
+		msg.{{ field.name }} = canardDSDLGetU64(buffer, buf_size, starting_bit + {{ bit_offset.value }}, {{ field.data_type.bit_length_set | max }});
+            {%- endif %}
+        {%- elif field.data_type is SignedIntegerType %}
+            {%- if field.data_type.bit_length_set|max<= 8 %}
+		msg.{{ field.name }} = canardDSDLGetI8(buffer, buf_size, starting_bit + {{ bit_offset.value }}, {{ field.data_type.bit_length_set | max }});
+            {%- elif field.data_type.bit_length_set|max <= 16 %}
+		msg.{{ field.name }} = canardDSDLGetI16(buffer, buf_size, starting_bit + {{ bit_offset.value }}, {{ field.data_type.bit_length_set | max }});
+            {%- elif field.data_type.bit_length_set|max <= 32 %}
+		msg.{{ field.name }} = canardDSDLGetI32(buffer, buf_size, starting_bit + {{ bit_offset.value }}, {{ field.data_type.bit_length_set | max }});
+            {%- elif field.data_type.bit_length_set|max <= 64 %}
+		msg.{{ field.name }} = canardDSDLGetI64(buffer, buf_size, starting_bit + {{ bit_offset.value }}, {{ field.data_type.bit_length_set | max }});
+            {%- endif %}
+        {%- elif field.data_type is BooleanType %}
+		msg.{{ field.name }} = canardDSDLGetBit(buffer, buf_size, starting_bit + {{ bit_offset.value }});
+        {%- elif field.data_type is FloatType %}
+            {%- if field.data_type.bit_length_set == 16 %}
+		msg.{{ field.name }} = canardDSDLGetF16(buffer, buf_size, starting_bit + {{ bit_offset.value }});
+            {%- elif field.data_type.bit_length_set == 32 %}
+		msg.{{ field.name }} = canardDSDLGetF32(buffer, buf_size, starting_bit + {{ bit_offset.value }});
+            {%- elif field.data_type.bit_length_set == 64 %}
+		msg.{{ field.name }} = canardDSDLGetF64(buffer, buf_size, starting_bit + {{ bit_offset.value }});
+            {%- endif %}
+        {%- else %}
+		msg.{{ field.name }} = {{ field.data_type | declaration }}::deserializeFromBuffer(buffer, buf_size, starting_bit + {{ bit_offset.value }});
+        {%- endif %}
+      {%- endif -%}
+    {%- endif -%}
+    {% set bit_offset.value = bit_offset.value + field.data_type.bit_length_set|max %}
+{%- endfor %}
+
+		return msg;
+	}
+
+}{{ composite_type | definition_end }}
