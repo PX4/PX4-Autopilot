@@ -111,13 +111,13 @@ fi
 # Possible external pmw3901 optical flow sensor
 if param greater -s SENS_EN_PMW3901 0
 then
-	pmw3901 -S start
+	pmw3901 start -S
 fi
 
 # Possible external paw3902 optical flow sensor
 if param greater -s SENS_EN_PAW3902 0
 then
-	paw3902 -S start
+	paw3902 start -S
 fi
 
 ###############################################################################
