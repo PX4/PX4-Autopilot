@@ -116,13 +116,13 @@
 
 /* Preset modes - Repetitions-XY Rates */
 #define BMM150_LOWPOWER_REPXY                 1
-#define BMM150_REGULAR_REPXY                  4
+#define BMM150_REGULAR_REPXY                  10
 #define BMM150_HIGHACCURACY_REPXY             23
 #define BMM150_ENHANCED_REPXY                 7
 
 /* Preset modes - Repetitions-Z Rates */
 #define BMM150_LOWPOWER_REPZ                  2
-#define BMM150_REGULAR_REPZ                   14
+#define BMM150_REGULAR_REPZ                   30
 #define BMM150_HIGHACCURACY_REPZ              82
 #define BMM150_ENHANCED_REPZ                  26
 
@@ -215,28 +215,33 @@ private:
 	PX4Magnetometer _px4_mag;
 
 	/* altitude conversion calibration */
-	unsigned        _call_interval;
+	unsigned        _call_interval{0};
 
-	bool            _collect_phase;
+	bool            _collect_phase{false};
 
-	uint8_t     _power;
-	uint8_t     _output_data_rate;
+	uint8_t     _power{BMM150_DEFAULT_POWER_MODE};
+	uint8_t     _output_data_rate{BMM150_DEFAULT_POWER_MODE};
 
-	int8_t dig_x1;/**< trim x1 data */
-	int8_t dig_y1;/**< trim y1 data */
+	int8_t _dig_x1{0};/**< trim x1 data */
+	int8_t _dig_y1{0};/**< trim y1 data */
 
-	int8_t dig_x2;/**< trim x2 data */
-	int8_t dig_y2;/**< trim y2 data */
+	int8_t _dig_x2{0};/**< trim x2 data */
+	int8_t _dig_y2{0};/**< trim y2 data */
 
-	uint16_t dig_z1;/**< trim z1 data */
-	int16_t dig_z2;/**< trim z2 data */
-	int16_t dig_z3;/**< trim z3 data */
-	int16_t dig_z4;/**< trim z4 data */
+	uint16_t _dig_z1{0};/**< trim z1 data */
+	int16_t _dig_z2{0};/**< trim z2 data */
+	int16_t _dig_z3{0};/**< trim z3 data */
+	int16_t _dig_z4{0};/**< trim z4 data */
 
-	uint8_t dig_xy1;/**< trim xy1 data */
-	int8_t dig_xy2;/**< trim xy2 data */
+	uint8_t _dig_xy1{0};/**< trim xy1 data */
+	int8_t _dig_xy2{0};/**< trim xy2 data */
 
-	uint16_t dig_xyz1;/**< trim xyz1 data */
+	uint16_t _dig_xyz1{0};/**< trim xyz1 data */
+
+	int16_t _last_raw_x{0};
+	int16_t _last_raw_y{0};
+	int16_t _last_raw_z{0};
+	uint16_t _last_resistance{0};
 
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _bad_transfers;
@@ -244,8 +249,6 @@ private:
 	perf_counter_t      _measure_perf;
 	perf_counter_t      _comms_errors;
 	perf_counter_t      _duplicates;
-
-	bool            _got_duplicate;
 
 	int             init_trim_registers();
 
