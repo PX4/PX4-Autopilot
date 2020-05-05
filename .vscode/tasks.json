@@ -24,7 +24,7 @@
             "label": "jmavsim",
             "type": "shell",
             "dependsOn": "jmavsim build",
-            "command": "java -Djava.ext.dirs= -jar jmavsim_run.jar -r 200 -lockstep -tcp localhost:4560 -qgc",
+            "command": "java -Djava.ext.dirs= -jar jmavsim_run.jar -r 250 -lockstep -tcp localhost:4560 -qgc",
             "options": {
                 "cwd": "${workspaceRoot}/Tools/jMAVSim/out/production",
                 "env": {

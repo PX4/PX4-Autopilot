@@ -138,15 +138,17 @@ void PX4Accelerometer::set_update_rate(uint16_t rate)
 	const uint32_t update_interval = 1000000 / _update_rate;
 
 	// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
-	int32_t imu_integration_time_us = math::constrain(_param_imu_integ_time.get(), 1000, 20000);
+	int32_t imu_integration_rate_hz = math::constrain(_param_imu_integ_rate.get(), 50, 1000);
 
-	if (imu_integration_time_us != _param_imu_integ_time.get()) {
-		_param_imu_integ_time.set(imu_integration_time_us);
-		_param_imu_integ_time.commit_no_notification();
+	if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
+		_param_imu_integ_rate.set(imu_integration_rate_hz);
+		_param_imu_integ_rate.commit_no_notification();
 	}
 
-	_integrator_reset_samples = _param_imu_integ_time.get() / update_interval;
-	_integrator.set_autoreset_interval(_param_imu_integ_time.get());
+	const int32_t imu_integration_interval_us = 1000000 / imu_integration_rate_hz;
+
+	_integrator_reset_samples = imu_integration_interval_us / update_interval;
+	_integrator.set_autoreset_interval(imu_integration_interval_us);
 }
 
 void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, float z)

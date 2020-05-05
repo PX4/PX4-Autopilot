@@ -32,15 +32,14 @@
  ****************************************************************************/
 
 /**
-* IMU integration time.
+* IMU integration rate.
 *
-* The length of time in microseconds raw IMU data is integrated to produce
-* delta angles and delta velocities.
+* The rate at which raw IMU data is integrated to produce delta angles and delta velocities.
 *
-* @min 1000
-* @max 10000
-* @unit us
+* @min 100
+* @max 1000
+* @unit Hz
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_INT32(IMU_INTEG_TIME, 5000);
+PARAM_DEFINE_INT32(IMU_INTEG_RATE, 200);

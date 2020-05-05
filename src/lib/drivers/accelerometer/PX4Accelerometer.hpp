@@ -99,7 +99,7 @@ private:
 
 	hrt_abstime	_status_last_publish{0};
 
-	Integrator		_integrator{2500, false};
+	Integrator		_integrator{5000, false}; // 200 Hz default
 
 	matrix::Vector3f	_calibration_scale{1.f, 1.f, 1.f};
 	matrix::Vector3f	_calibration_offset{0.f, 0.f, 0.f};
@@ -134,6 +134,6 @@ private:
 	uint8_t			_integrator_fifo_samples{0};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_INTEG_TIME>) _param_imu_integ_time
+		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate
 	)
 };

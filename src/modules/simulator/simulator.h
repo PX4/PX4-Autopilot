@@ -134,8 +134,8 @@ private:
 	Simulator() : ModuleParams(nullptr)
 	{
 		// current default
-		_px4_accel.set_update_rate(200);
-		_px4_gyro.set_update_rate(200);
+		_px4_accel.set_update_rate(250);
+		_px4_gyro.set_update_rate(250);
 	}
 
 	~Simulator()
