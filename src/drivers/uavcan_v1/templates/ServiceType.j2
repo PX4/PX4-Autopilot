@@ -1,0 +1,10 @@
+{% extends "Header.j2" %}
+{%- block object -%}
+{{ T | definition_begin }}
+{
+{% set composite_type = T.request_type -%}
+{% include '_composite_type.j2' %}
+{% set composite_type = T.response_type -%}
+{% include '_composite_type.j2' %}
+}{{ T | definition_end }}
+{% endblock -%}
