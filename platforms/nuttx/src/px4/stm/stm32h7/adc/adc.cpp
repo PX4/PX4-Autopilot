@@ -176,9 +176,9 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	while ((rCR(base_address) & ADC_CR_ADCAL)) {
 
-		/* don't wait for more than 7000us, since that means something broke
+		/* don't wait for more than 15000us, since that means something broke
 		 * should reset here if we see this */
-		if ((hrt_absolute_time() - now) > 7000) {
+		if ((hrt_absolute_time() - now) > 15000) {
 			return -1;
 		}
 	}

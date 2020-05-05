@@ -58,8 +58,7 @@ uORB::DeviceMaster::~DeviceMaster()
 	px4_sem_destroy(&_lock);
 }
 
-int
-uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, int priority)
+int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, ORB_PRIO priority)
 {
 	int ret = PX4_ERROR;
 

@@ -295,16 +295,15 @@ uint8_t BMI160::read_reg(uint8_t reg)
 	return cmd[1];
 }
 
-void BMI160::write_reg(uint8_t reg, uint8_t value)
+int BMI160::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t	cmd[2];
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
-	transfer(cmd, nullptr, sizeof(cmd));
+	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
-void
-BMI160::modify_reg(uint8_t reg, uint8_t clearbits, uint8_t setbits)
+void BMI160::modify_reg(uint8_t reg, uint8_t clearbits, uint8_t setbits)
 {
 	uint8_t	val = read_reg(reg);
 	val &= ~clearbits;

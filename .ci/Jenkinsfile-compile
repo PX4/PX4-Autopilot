@@ -32,6 +32,7 @@ pipeline {
                      "airmind_mindpx-v2_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie_default",
+                     "cuav_x7pro_default",
                      "holybro_durandal-v1_default",
                      "holybro_durandal-v1_stackcheck",
                      "holybro_kakutef7",

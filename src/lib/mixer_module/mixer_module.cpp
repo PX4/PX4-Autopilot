@@ -35,7 +35,7 @@
 
 #include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <px4_platform_common/log.h>
 
 using namespace time_literals;
