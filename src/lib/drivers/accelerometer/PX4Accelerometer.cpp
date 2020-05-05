@@ -399,10 +399,12 @@ void PX4Accelerometer::UpdateVibrationMetrics(const Vector3f &delta_velocity)
 
 void PX4Accelerometer::print_status()
 {
+#if !defined(CONSTRAINED_FLASH)
 	PX4_INFO(ACCEL_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 
 	PX4_INFO("calibration scale: %.5f %.5f %.5f", (double)_calibration_scale(0), (double)_calibration_scale(1),
 		 (double)_calibration_scale(2));
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));
+#endif // !CONSTRAINED_FLASH
 }

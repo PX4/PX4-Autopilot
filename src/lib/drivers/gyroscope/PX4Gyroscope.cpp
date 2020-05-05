@@ -403,8 +403,10 @@ void PX4Gyroscope::UpdateVibrationMetrics(const Vector3f &delta_angle)
 
 void PX4Gyroscope::print_status()
 {
+#if !defined(CONSTRAINED_FLASH)
 	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));
+#endif // !CONSTRAINED_FLASH
 }
