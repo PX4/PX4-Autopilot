@@ -1,4 +1,4 @@
-!/bin/sh
+#!/bin/sh
 #
 # @name Aion Robotics R1 Rover
 # @type Rover
