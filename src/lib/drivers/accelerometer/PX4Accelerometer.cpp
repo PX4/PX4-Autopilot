@@ -148,7 +148,7 @@ void PX4Accelerometer::set_update_rate(uint16_t rate)
 	const float imu_integration_interval_us = 1e6f / (float)imu_integration_rate_hz;
 
 	_integrator_reset_samples = roundf(imu_integration_interval_us / update_interval_us);
-	_integrator.set_autoreset_interval(imu_integration_interval_us);
+	_integrator.set_autoreset_interval(_integrator_reset_samples * update_interval_us);
 }
 
 void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, float z)
