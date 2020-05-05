@@ -552,6 +552,49 @@ void BMM150::print_status()
 	_px4_mag.print_status();
 }
 
+int BMM150::self_test()
+{
+	/* normal self-test */
+	set_power_mode(BMM150_SLEEP_MODE);
+
+	modify_reg(BMM150_CTRL_REG, 0, 1);
+	int i;
+
+	for (i = 0; i < 100; ++i) {
+		px4_usleep(1000);
+		uint8_t ctrl_reg = read_reg(BMM150_CTRL_REG);
+
+		if ((ctrl_reg & 1) == 0) {
+			break;
+		}
+	}
+
+	if (i == 100) {
+		PX4_ERR("timeout");
+		return -1;
+	}
+
+	uint8_t results[3];
+	results[0] = read_reg(BMM150_DATA_X_LSB_REG);
+	results[1] = read_reg(BMM150_DATA_Y_LSB_REG);
+	results[2] = read_reg(BMM150_DATA_Z_LSB_REG);
+	bool failed = false;
+
+	for (i = 0; i < 3; ++i) {
+		if ((results[i] & 1) == 0) {
+			PX4_ERR("Self-test failed for axis %i", i);
+			failed = true;
+		}
+	}
+
+	if (failed) {
+		return -1;
+	}
+
+	PX4_INFO("Success");
+	return reset();
+}
+
 void BMM150::print_registers()
 {
 	printf("BMM150 registers\n");
@@ -584,6 +627,7 @@ void BMM150::print_usage()
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_COMMAND("regdump");
+	PRINT_MODULE_USAGE_COMMAND("selftest");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -594,6 +638,9 @@ void BMM150::custom_method(const BusCLIArguments &cli)
 		break;
 
 	case 1: print_registers();
+		break;
+
+	case 2: self_test();
 		break;
 	}
 }
@@ -660,6 +707,11 @@ extern "C" __EXPORT int bmm150_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "regdump")) {
 		cli.custom1 = 1;
+		return ThisDriver::module_custom_method(cli, iterator);
+	}
+
+	if (!strcmp(verb, "selftest")) {
+		cli.custom1 = 2;
 		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
