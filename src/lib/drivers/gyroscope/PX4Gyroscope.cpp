@@ -134,7 +134,6 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 void PX4Gyroscope::set_update_rate(uint16_t rate)
 {
 	_update_rate = math::constrain((int)rate, 50, 32000);
-	const uint32_t update_interval = 1000000 / _update_rate;
 
 	// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
 	int32_t imu_integration_rate_hz = math::constrain(_param_imu_integ_rate.get(), 50, 1000);
@@ -144,9 +143,10 @@ void PX4Gyroscope::set_update_rate(uint16_t rate)
 		_param_imu_integ_rate.commit_no_notification();
 	}
 
-	const int32_t imu_integration_interval_us = 1000000 / imu_integration_rate_hz;
+	const float update_interval_us = 1e6f / _update_rate;
+	const float imu_integration_interval_us = 1e6f / (float)imu_integration_rate_hz;
 
-	_integrator_reset_samples = imu_integration_interval_us / update_interval;
+	_integrator_reset_samples = roundf(imu_integration_interval_us / update_interval_us);
 	_integrator.set_autoreset_interval(imu_integration_interval_us);
 }
 
