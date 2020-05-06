@@ -193,27 +193,35 @@ void Simulator::send_controls()
 
 void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
+	// temperature only updated with baro
+	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
+		float temperature = sensors.temperature;
+
+		if (PX4_ISFINITE(temperature)) {
+			_px4_accel.set_temperature(temperature);
+			_px4_baro.set_temperature(temperature);
+			_px4_gyro.set_temperature(temperature);
+			_px4_mag.set_temperature(temperature);
+		}
+	}
+
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO && !_param_sim_gyro_block.get()) {
-		_px4_gyro.set_temperature(sensors.temperature);
 		_px4_gyro.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 	}
 
 	// accel
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_param_sim_accel_block.get()) {
-		_px4_accel.set_temperature(sensors.temperature);
 		_px4_accel.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 	}
 
 	// magnetometer
 	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG && !_param_sim_mag_block.get()) {
-		_px4_mag.set_temperature(sensors.temperature);
 		_px4_mag.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
 	}
 
 	// baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_param_sim_baro_block.get()) {
-		_px4_baro.set_temperature(sensors.temperature);
 		_px4_baro.update(time, sensors.abs_pressure);
 	}
 
