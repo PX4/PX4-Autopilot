@@ -70,6 +70,18 @@ VOXLPM::init()
 	_initialized = false;
 	int ret = PX4_ERROR;
 
+	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
+		_battery.updateBatteryStatus(
+			hrt_absolute_time(),
+			0.0,
+			0.0,
+			false,
+			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
+			0,
+			0.0
+		);
+	}
+
 	/* do I2C init, it will probe the bus for two possible configurations, LTC2946 or INA231 */
 	if (I2C::init() != OK) {
 		return ret;
@@ -94,7 +106,6 @@ VOXLPM::init()
 	}
 
 	if (ret == PX4_OK) {
-		_battery.reset();
 		_initialized = true;
 		start();
 	}
