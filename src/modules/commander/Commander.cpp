@@ -1045,14 +1045,18 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			struct actuator_controls_s actuator_controls = {};
 			actuator_controls.timestamp = hrt_absolute_time();
 
-			for (size_t i = 0; i < 8; i++) {
+			for (size_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
 				actuator_controls.control[i] = NAN;
 			}
 
 			// scale 0 to 2000 to -1 to 1
-			actuator_controls.control[(int)cmd.param1] = 1.0f / 1000 * cmd.param2 - 1.0f;
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-			_actuator_controls_2_pub.publish(actuator_controls);
+			if ((int)cmd.param1 >= 0 && (int)cmd.param1 < actuator_controls_s::NUM_ACTUATOR_CONTROLS) {
+				actuator_controls.control[(int)cmd.param1] = 1.0f / 1000 * cmd.param2 - 1.0f;
+				_actuator_controls_2_pub.publish(actuator_controls);
+
+			} else {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+			}
 		}
 
 		break;
@@ -1062,7 +1066,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			struct actuator_controls_s actuator_controls = {};
 			actuator_controls.timestamp = hrt_absolute_time();
 
-			for (size_t i = 0; i < 8; i++) {
+			for (size_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
 				actuator_controls.control[i] = NAN;
 			}
 
