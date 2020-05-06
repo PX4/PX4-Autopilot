@@ -313,6 +313,8 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 		}
 	}
 
+	PX4_INFO_RAW("\033[2J\n"); //clear screen
+
 	lock();
 
 	if (_node_list.empty()) {
