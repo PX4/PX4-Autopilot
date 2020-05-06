@@ -33,89 +33,39 @@
  ****************************************************************************/
 
 /**
- * @file board_reset.c
- * Implementation of STM32 based Board RESET API
+ * @file board_reset.cpp
+ * Implementation of IMXRT based Board RESET API
  */
 
 #include <px4_platform_common/px4_config.h>
 #include <errno.h>
-#include <stm32_pwr.h>
-#include <stm32_rtc.h>
 #include <nuttx/board.h>
+#include <up_arch.h>
+#include <hardware/imxrt_snvs.h>
 
-#ifdef CONFIG_BOARDCTL_RESET
+#define PX4_IMXRT_RTC_REBOOT_REG 3 // Must be common with bootloader and:
 
-/****************************************************************************
- * Public functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: board_reset
- *
- * Description:
- *   Reset board.  Support for this function is required by board-level
- *   logic if CONFIG_BOARDCTL_RESET is selected.
- *
- * Input Parameters:
- *   status - Status information provided with the reset event.  This
- *            meaning of this status information is board-specific.  If not
- *            used by a board, the value zero may be provided in calls to
- *            board_reset().
- *
- * Returned Value:
- *   If this function returns, then it was not possible to power-off the
- *   board due to some constraints.  The return value int this case is a
- *   board-specific reason for the failure to shutdown.
- *
- ****************************************************************************/
-
-int board_reset(int status)
-{
-	up_systemreset();
-	return 0;
-}
-
-#endif /* CONFIG_BOARDCTL_RESET */
-
-int board_set_bootload_mode(board_reset_e mode)
-{
-	uint32_t regvalue = 0;
-
-	switch (mode) {
-	case board_reset_normal:
-	case board_reset_extended:
-		break;
-
-	case board_reset_enter_bootloader:
-		regvalue = 0xb007b007;
-		break;
-
-	default:
-		return -EINVAL;
-	}
-
-	stm32_pwr_enablebkp(true);
-
-// Check if we can to use the new register definition
-#ifndef STM32_RTC_BK0R
-	*(uint32_t *)STM32_BKP_BASE = regvalue;
-#else
-	*(uint32_t *)STM32_RTC_BK0R = regvalue;
+#if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
+#  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
 #endif
-	stm32_pwr_enablebkp(false);
+
+static int board_reset_enter_bootloader()
+{
+	uint32_t regvalue = 0xb007b007;
+	putreg32(regvalue, IMXRT_SNVS_LPGPR(PX4_IMXRT_RTC_REBOOT_REG));
 	return OK;
 }
 
-
-void board_system_reset(int status)
+int board_reset(int status)
 {
+	if (status == 1) {
+		board_reset_enter_bootloader();
+	}
+
 #if defined(BOARD_HAS_ON_RESET)
 	board_on_reset(status);
 #endif
 
-#ifdef CONFIG_BOARDCTL_RESET
-	board_reset(status);
-#endif
-
-	while (1);
+	up_systemreset();
+	return 0;
 }

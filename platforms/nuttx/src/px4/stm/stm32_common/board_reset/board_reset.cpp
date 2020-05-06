@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,66 +33,66 @@
  ****************************************************************************/
 
 /**
- * @file tasks.cpp
- * Implementation of existing task API for NuttX
+ * @file board_reset.cpp
+ * Implementation of STM32 based Board RESET API
  */
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/tasks.h>
-
+#include <errno.h>
+#include <stm32_pwr.h>
+#include <stm32_rtc.h>
 #include <nuttx/board.h>
 
-#include <sys/wait.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <string.h>
-#include <sched.h>
-#include <errno.h>
-#include <stdbool.h>
+#ifdef CONFIG_BOARDCTL_RESET
 
-int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
+static int board_reset_enter_bootloader()
 {
-	sched_lock();
+	stm32_pwr_enablebkp(true);
 
-#if !defined(CONFIG_DISABLE_ENVIRON)
-	/* None of the modules access the environment variables (via getenv() for instance), so delete them
-	 * all. They are only used within the startup script, and NuttX automatically exports them to the children
-	 * tasks.
-	 * This frees up a considerable amount of RAM.
-	 */
-	clearenv();
+	uint32_t regvalue = 0xb007b007;
+
+// Check if we can to use the new register definition
+#ifndef STM32_RTC_BK0R
+	*(uint32_t *)STM32_BKP_BASE = regvalue;
+#else
+	*(uint32_t *)STM32_RTC_BK0R = regvalue;
 #endif
+	stm32_pwr_enablebkp(false);
+	return OK;
+}
 
-	/* create the task */
-	int pid = task_create(name, priority, stack_size, entry, argv);
+/****************************************************************************
+ * Name: board_reset
+ *
+ * Description:
+ *   Reset board.  Support for this function is required by board-level
+ *   logic if CONFIG_BOARDCTL_RESET is selected.
+ *
+ * Input Parameters:
+ *   status - Status information provided with the reset event.  This
+ *            meaning of this status information is board-specific.  If not
+ *            used by a board, the value zero may be provided in calls to
+ *            board_reset().
+ *
+ * Returned Value:
+ *   If this function returns, then it was not possible to power-off the
+ *   board due to some constraints.  The return value int this case is a
+ *   board-specific reason for the failure to shutdown.
+ *
+ ****************************************************************************/
 
-	if (pid > 0) {
-		/* configure the scheduler */
-		struct sched_param param = { .sched_priority = priority };
-		sched_setscheduler(pid, scheduler, &param);
+int board_reset(int status)
+{
+	if (status == 1) {
+		board_reset_enter_bootloader();
 	}
 
-	sched_unlock();
-
-	return pid;
-}
-
-int px4_task_delete(int pid)
-{
-	return task_delete(pid);
-}
-
-const char *px4_get_taskname(void)
-{
-#if CONFIG_TASK_NAME_SIZE > 0
-	FAR struct tcb_s	*thisproc = sched_self();
-
-	return thisproc->name;
-#else
-	return "app";
+#if defined(BOARD_HAS_ON_RESET)
+	board_on_reset(status);
 #endif
+
+	up_systemreset();
+	return 0;
 }
+
+#endif /* CONFIG_BOARDCTL_RESET */

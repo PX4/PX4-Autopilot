@@ -65,6 +65,7 @@ BMI088_gyro::BMI088_gyro(I2CSPIBusOption bus_option, int bus, const char *path_g
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_registers"))
 {
+	_px4_gyro.set_update_rate(BMI088_GYRO_DEFAULT_RATE);
 }
 
 BMI088_gyro::~BMI088_gyro()

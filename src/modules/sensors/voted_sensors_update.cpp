@@ -633,17 +633,6 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 			// First publication with data
 			if (_mag.priority[uorb_index] == 0) {
 				_mag.priority[uorb_index] = _mag.subscription[uorb_index].get_priority();
-
-				/* force a scale and offset update the first time we get data */
-				parametersUpdate();
-
-				if (!_mag.enabled[uorb_index]) {
-					/* in case the data on the mag topic comes after the initial parameterUpdate(), we would get here since the sensor
-					 * is enabled by default. The latest parameterUpdate() call would set enabled to false and reset priority to zero
-					 * for disabled sensors, and we shouldn't cal voter.put() in that case
-					 */
-					continue;
-				}
 			}
 
 			Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
@@ -704,17 +693,12 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 				// reduce priority of failed sensor to the minimum
 				sensor.priority[failover_index] = ORB_PRIO_MIN;
 
-				PX4_ERR("Sensor %s #%i failed. Reconfiguring sensor priorities.", sensor_name, failover_index);
-
 				int ctr_valid = 0;
 
 				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
-					if (sensor.priority[i] > ORB_PRIO_MIN) {
+					if (sensor.enabled[i] && (sensor.priority[i] > ORB_PRIO_MIN)) {
 						ctr_valid++;
 					}
-
-					PX4_WARN("Remaining sensors after failover event %u: %s #%u priority: %u", failover_index, sensor_name, i,
-						 sensor.priority[i]);
 				}
 
 				if (ctr_valid < 2) {
@@ -750,6 +734,7 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 
 void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max)
 {
+	bool added = false;
 	int max_sensor_index = -1;
 
 	for (unsigned i = 0; i < sensor_count_max; i++) {
@@ -761,7 +746,10 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 
 			if (i > 0) {
 				/* the first always exists, but for each further sensor, add a new validator */
-				if (!sensor_data.voter.add_new_validator()) {
+				if (sensor_data.voter.add_new_validator()) {
+					added = true;
+
+				} else {
 					PX4_ERR("failed to add validator for sensor %s %i", sensor_data.subscription[i].get_topic()->o_name, i);
 				}
 			}
@@ -771,6 +759,11 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 	// never decrease the sensor count, as we could end up with mismatching validators
 	if (max_sensor_index + 1 > sensor_data.subscription_count) {
 		sensor_data.subscription_count = max_sensor_index + 1;
+	}
+
+	if (added) {
+		// force parameter refresh if anything was added
+		parametersUpdate();
 	}
 }
 
@@ -827,7 +820,7 @@ VotedSensorsUpdate::calcAccelInconsistency(sensor_preflight_s &preflt)
 	for (int sensor_index = 0; sensor_index < _accel.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
-		if ((_accel.priority[sensor_index] > 0) && (sensor_index != _accel.last_best_vote)) {
+		if (_accel.enabled[sensor_index] && (_accel.priority[sensor_index] > 0) && (sensor_index != _accel.last_best_vote)) {
 
 			float accel_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison agains the primary
 
@@ -876,7 +869,7 @@ void VotedSensorsUpdate::calcGyroInconsistency(sensor_preflight_s &preflt)
 	for (int sensor_index = 0; sensor_index < _gyro.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
-		if ((_gyro.priority[sensor_index] > 0) && (sensor_index != _gyro.last_best_vote)) {
+		if (_gyro.enabled[sensor_index] && (_gyro.priority[sensor_index] > 0) && (sensor_index != _gyro.last_best_vote)) {
 
 			float gyro_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison against the primary
 
@@ -925,7 +918,7 @@ void VotedSensorsUpdate::calcMagInconsistency(sensor_preflight_s &preflt)
 	// Check each sensor against the primary
 	for (int i = 0; i < _mag.subscription_count; i++) {
 		// check that the sensor we are checking against is not the same as the primary
-		if ((_mag.priority[i] > 0) && (i != _mag.last_best_vote)) {
+		if (_mag.enabled[i] && (_mag.priority[i] > 0) && (i != _mag.last_best_vote)) {
 			// calculate angle to 3D magnetic field vector of the primary sensor
 			Vector3f current_mag(_last_magnetometer[i].magnetometer_ga);
 			float angle_error = AxisAnglef(Quatf(current_mag, primary_mag)).angle();

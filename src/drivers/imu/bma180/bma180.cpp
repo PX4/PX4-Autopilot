@@ -182,6 +182,7 @@ BMA180::BMA180(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotatio
 	_px4_accel(get_device_id(), ORB_PRIO_MAX, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read"))
 {
+	_px4_accel.set_update_rate(1000);
 }
 
 BMA180::~BMA180()

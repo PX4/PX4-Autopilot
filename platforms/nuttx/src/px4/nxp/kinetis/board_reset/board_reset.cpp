@@ -1,8 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author Peter van der Perk <peter.vanderperk@nxp.com>
- *                   David Sidrane <david_s5@nscdg.com>
+ *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,21 +33,22 @@
  ****************************************************************************/
 
 /**
- * @file board_reset.c
+ * @file board_reset.cpp
  * Implementation of kinetis based Board RESET API
  */
 
 #include <px4_platform_common/px4_config.h>
 #include <errno.h>
 #include <nuttx/board.h>
-#include <hardware/s32k1xx_rcm.h>
-
 
 #ifdef CONFIG_BOARDCTL_RESET
 
-/****************************************************************************
- * Public functions
- ****************************************************************************/
+static int board_reset_enter_bootloader()
+{
+	uint32_t regvalue = 0xb007b007;
+	*((uint32_t *) KINETIS_VBATR_BASE) = regvalue;
+	return OK;
+}
 
 /****************************************************************************
  * Name: board_reset
@@ -72,38 +72,16 @@
 
 int board_reset(int status)
 {
+	if (status == 1) {
+		board_reset_enter_bootloader();
+	}
+
+#if defined(BOARD_HAS_ON_RESET)
+	board_on_reset(status);
+#endif
+
 	up_systemreset();
 	return 0;
 }
 
 #endif /* CONFIG_BOARDCTL_RESET */
-
-
-int board_set_bootload_mode(board_reset_e mode)
-{
-	uint32_t regvalue = 0;
-
-	switch (mode) {
-	case board_reset_normal:
-	case board_reset_extended:
-		break;
-
-	case board_reset_enter_bootloader:
-		regvalue = RCM_PARAM_ESW;
-		break;
-
-	default:
-		return -EINVAL;
-	}
-
-	*((uint32_t *) S32K1XX_RCM_SRS) = regvalue;
-	return OK;
-}
-
-
-void board_system_reset(int status)
-{
-	board_reset(status);
-
-	while (1);
-}
