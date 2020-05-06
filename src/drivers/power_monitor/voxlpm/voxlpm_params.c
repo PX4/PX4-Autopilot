@@ -57,6 +57,8 @@ PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
 /**
  * VOXL Power Monitor Shunt, Battery
  *
+ * @reboot_required true
+ *
  * @min 0.000000001
  * @max 0.1
  * @decimal 10
@@ -66,6 +68,8 @@ PARAM_DEFINE_FLOAT(VOXLPM_SHUNT_BAT, 0.00058f);
 
 /**
  * VOXL Power Monitor Shunt, Regulator
+ *
+ * @reboot_required true
  *
  * @min 0.000000001
  * @max 0.1
