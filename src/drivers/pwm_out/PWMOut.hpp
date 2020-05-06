@@ -181,6 +181,7 @@ private:
 	unsigned	_num_disarmed_set{0};
 
 	perf_counter_t	_cycle_perf;
+	perf_counter_t	_interval_perf;
 
 	void		capture_callback(uint32_t chan_index,
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
