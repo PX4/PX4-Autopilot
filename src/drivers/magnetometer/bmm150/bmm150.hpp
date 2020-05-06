@@ -145,7 +145,7 @@
 #define BMM150_DEFAULT_ODR                  BMM150_DATA_RATE_30HZ
 
 /* Maximum output data rate */
-#define BMM150_MAX_DATA_RATE                100
+#define BMM150_MAX_DATA_RATE                30
 
 /* Default BMM150_INT_SETT_CTRL_REG Value */
 #define BMM150_DEFAULT_INT_SETT             0x3F
@@ -181,7 +181,7 @@
 #define BMM150_SOFT_RESET_MASK              0x82
 
 /* This value is set based on Max output data rate value */
-#define BMM150_CONVERSION_INTERVAL          (1000000 / 100) /* microseconds */
+#define BMM150_CONVERSION_INTERVAL          (1000000 / BMM150_MAX_DATA_RATE) /* microseconds */
 
 struct bmm150_data {
 	int16_t x;
