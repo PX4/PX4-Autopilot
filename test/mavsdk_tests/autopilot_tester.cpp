@@ -124,10 +124,10 @@ void AutopilotTester::transition_to_multicopter()
 	REQUIRE(result == Action::Result::SUCCESS);
 }
 
-void AutopilotTester::wait_until_disarmed()
+void AutopilotTester::wait_until_disarmed(std::chrono::seconds timeout_duration)
 {
 	REQUIRE(poll_condition_with_timeout(
-	[this]() { return !_telemetry->armed(); }, std::chrono::seconds(60)));
+	[this]() { return !_telemetry->armed(); }, timeout_duration));
 }
 
 void AutopilotTester::wait_until_hovering()

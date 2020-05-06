@@ -34,7 +34,7 @@ px4_add_board(
 		#differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
 		#dshot
-		#gps
+		gps
 		#imu # all available imu drivers
 		#lights
 		#magnetometer # all available magnetometer drivers
@@ -66,7 +66,6 @@ px4_add_board(
 		reboot
 		#reflect
 		#sd_bench
-		shutdown
 		top
 		#topic_listener
 		#tune_control

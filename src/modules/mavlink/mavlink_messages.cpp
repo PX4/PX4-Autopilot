@@ -4925,10 +4925,10 @@ public:
 	}
 
 private:
-	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _gpos_sub{ORB_ID(vehicle_global_position)};
-	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity_groundtruth)};
+	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude_groundtruth)};
+	uORB::Subscription _gpos_sub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position_groundtruth)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamGroundTruth(MavlinkStreamGroundTruth &) = delete;

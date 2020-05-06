@@ -332,7 +332,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (worker_data.device_id[cur_gyro] != 0) {
 			// Get priority
-			int32_t prio;
+			ORB_PRIO prio = ORB_PRIO_UNINITIALIZED;
 			orb_priority(worker_data.gyro_sensor_sub[cur_gyro], &prio);
 
 			if (prio > device_prio_max) {

@@ -47,7 +47,7 @@ static constexpr unsigned orb_maxpath = 64;
 struct orb_advertdata {
 	const struct orb_metadata *meta;
 	int *instance;
-	int priority;
+	ORB_PRIO priority;
 };
 
 }

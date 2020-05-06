@@ -63,7 +63,7 @@ static constexpr unsigned clipping(const int16_t samples[16], int16_t clip_limit
 	return clip_count;
 }
 
-PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
+PX4Gyroscope::PX4Gyroscope(uint32_t device_id, ORB_PRIO priority, enum Rotation rotation) :
 	CDev(nullptr),
 	ModuleParams(nullptr),
 	_sensor_pub{ORB_ID(sensor_gyro), priority},
@@ -73,9 +73,16 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	_device_id{device_id},
 	_rotation{rotation}
 {
+	// register class and advertise immediately to keep instance numbering in sync
 	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+	_sensor_pub.advertise();
+	_sensor_integrated_pub.advertise();
+	_sensor_status_pub.advertise();
 
 	updateParams();
+
+	// set reasonable default, driver should be setting real value
+	set_update_rate(800);
 }
 
 PX4Gyroscope::~PX4Gyroscope()
@@ -83,6 +90,11 @@ PX4Gyroscope::~PX4Gyroscope()
 	if (_class_device_instance != -1) {
 		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_device_instance);
 	}
+
+	_sensor_pub.unadvertise();
+	_sensor_fifo_pub.unadvertise();
+	_sensor_integrated_pub.unadvertise();
+	_sensor_status_pub.unadvertise();
 }
 
 int PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
@@ -121,11 +133,21 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 
 void PX4Gyroscope::set_update_rate(uint16_t rate)
 {
-	_update_rate = rate;
-	const uint32_t update_interval = 1000000 / rate;
+	_update_rate = math::constrain((int)rate, 50, 32000);
 
-	// TODO: set this intelligently
-	_integrator_reset_samples = 2500 / update_interval;
+	// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
+	int32_t imu_integration_rate_hz = math::constrain(_param_imu_integ_rate.get(), 50, 1000);
+
+	if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
+		_param_imu_integ_rate.set(imu_integration_rate_hz);
+		_param_imu_integ_rate.commit_no_notification();
+	}
+
+	const float update_interval_us = 1e6f / _update_rate;
+	const float imu_integration_interval_us = 1e6f / (float)imu_integration_rate_hz;
+
+	_integrator_reset_samples = roundf(imu_integration_interval_us / update_interval_us);
+	_integrator.set_autoreset_interval(_integrator_reset_samples * update_interval_us);
 }
 
 void PX4Gyroscope::update(hrt_abstime timestamp_sample, float x, float y, float z)
@@ -381,8 +403,10 @@ void PX4Gyroscope::UpdateVibrationMetrics(const Vector3f &delta_angle)
 
 void PX4Gyroscope::print_status()
 {
+#if !defined(CONSTRAINED_FLASH)
 	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));
+#endif // !CONSTRAINED_FLASH
 }

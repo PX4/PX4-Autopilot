@@ -190,6 +190,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		gstreamer1.0-plugins-base \
 		gstreamer1.0-plugins-good \
 		gstreamer1.0-plugins-ugly \
+		gstreamer1.0-libav \
 		libeigen3-dev \
 		libgazebo9-dev \
 		libgstreamer-plugins-base1.0-dev \

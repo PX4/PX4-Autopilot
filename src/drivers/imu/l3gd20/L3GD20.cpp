@@ -45,6 +45,7 @@ L3GD20::L3GD20(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotati
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": dupe"))
 {
+	_px4_gyro.set_update_rate(L3GD20_DEFAULT_RATE);
 }
 
 L3GD20::~L3GD20()
@@ -117,7 +118,7 @@ L3GD20::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-void
+int
 L3GD20::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t	cmd[2] {};
@@ -125,7 +126,7 @@ L3GD20::write_reg(unsigned reg, uint8_t value)
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-	transfer(cmd, nullptr, sizeof(cmd));
+	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
 void

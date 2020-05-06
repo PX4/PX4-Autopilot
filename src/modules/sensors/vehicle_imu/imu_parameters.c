@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,63 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file PublicationQueued.hpp
- *
- */
-
-#pragma once
-
-#include <px4_platform_common/defines.h>
-#include <systemlib/err.h>
-#include <uORB/uORB.h>
-
-namespace uORB
-{
-
-/**
- * Queued publication with queue length set as a message constant (ORB_QUEUE_LENGTH)
- */
-template<typename T>
-class PublicationQueued
-{
-public:
-
-	/**
-	 * Constructor
-	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
-	 */
-	PublicationQueued(const orb_metadata *meta) : _meta(meta) {}
-	~PublicationQueued()
-	{
-		//orb_unadvertise(_handle);
-	}
-
-	/**
-	 * Publish the struct
-	 * @param data The uORB message struct we are updating.
-	 */
-	bool publish(const T &data)
-	{
-		if (_handle != nullptr) {
-			return (orb_publish(_meta, _handle, &data) == PX4_OK);
-
-		} else {
-			orb_advert_t handle = orb_advertise_queue(_meta, &data, T::ORB_QUEUE_LENGTH);
-
-			if (handle != nullptr) {
-				_handle = handle;
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-protected:
-	const orb_metadata *_meta;
-
-	orb_advert_t _handle{nullptr};
-};
-
-} // namespace uORB
+* IMU integration rate.
+*
+* The rate at which raw IMU data is integrated to produce delta angles and delta velocities.
+*
+* @min 100
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_INT32(IMU_INTEG_RATE, 200);

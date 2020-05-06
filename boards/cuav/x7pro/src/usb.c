@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,70 +32,27 @@
  ****************************************************************************/
 
 /**
- * @file PublicationQueuedMulti.hpp
+ * @file usb.c
  *
+ * Board-specific USB functions.
  */
 
-#pragma once
+#include "board_config.h"
+#include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/usbdev_trace.h>
+#include <stm32_otg.h>
 
-#include <px4_platform_common/defines.h>
-#include <systemlib/err.h>
-#include <uORB/uORB.h>
-
-namespace uORB
+/************************************************************************************
+ * Name:  stm32_usbsuspend
+ *
+ * Description:
+ *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver is
+ *   used.  This function is called whenever the USB enters or leaves suspend mode.
+ *   This is an opportunity for the board logic to shutdown clocks, power, etc.
+ *   while the USB is suspended.
+ *
+ ************************************************************************************/
+__EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
-
-/**
- * Queued publication with queue length set as a message constant (ORB_QUEUE_LENGTH)
- */
-template<typename T>
-class PublicationQueuedMulti
-{
-public:
-
-	/**
-	 * Constructor
-	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
-	 */
-	PublicationQueuedMulti(const orb_metadata *meta, uint8_t priority = ORB_PRIO_DEFAULT) :
-		_meta(meta),
-		_priority(priority)
-	{}
-
-	~PublicationQueuedMulti()
-	{
-		//orb_unadvertise(_handle);
-	}
-
-	/**
-	 * Publish the struct
-	 * @param data The uORB message struct we are updating.
-	 */
-	bool publish(const T &data)
-	{
-		if (_handle != nullptr) {
-			return (orb_publish(_meta, _handle, &data) == PX4_OK);
-
-		} else {
-			int instance = 0;
-			orb_advert_t handle = orb_advertise_multi_queue(_meta, &data, &instance, _priority, T::ORB_QUEUE_LENGTH);
-
-			if (handle != nullptr) {
-				_handle = handle;
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-protected:
-	const orb_metadata *_meta;
-
-	orb_advert_t _handle{nullptr};
-
-	const uint8_t _priority;
-};
-
-} // namespace uORB
+	uinfo("resume: %d\n", resume);
+}

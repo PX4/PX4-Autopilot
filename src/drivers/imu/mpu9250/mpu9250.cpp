@@ -189,6 +189,8 @@ MPU9250::reset_mpu()
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
+	_px4_accel.set_update_rate(_sample_rate);
+	_px4_gyro.set_update_rate(_sample_rate);
 
 	_set_dlpf_filter(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ);
 
@@ -495,7 +497,7 @@ MPU9250::check_registers()
 
 	if ((v = read_reg(_checked_registers[_checked_next], MPU9250_HIGH_BUS_SPEED)) != _checked_values[_checked_next]) {
 
-		PX4_DEBUG("reg: %d = %d (should be %d) _reset_wait: %llu", _checked_registers[_checked_next], v,
+		PX4_DEBUG("reg: %d = %d (should be %d) _reset_wait: %lu", _checked_registers[_checked_next], v,
 			  _checked_values[_checked_next], _reset_wait);
 
 		/*

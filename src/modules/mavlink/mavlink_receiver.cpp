@@ -2196,6 +2196,9 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 			if (_px4_gyro == nullptr) {
 				PX4_ERR("PX4Gyroscope alloc failed");
+
+			} else {
+				_px4_gyro->set_update_rate(200); // TODO: measure actual
 			}
 		}
 
@@ -2213,6 +2216,9 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 			if (_px4_accel == nullptr) {
 				PX4_ERR("PX4Accelerometer alloc failed");
+
+			} else {
+				_px4_accel->set_update_rate(200); // TODO: measure actual
 			}
 		}
 

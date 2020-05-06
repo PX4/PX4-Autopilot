@@ -65,9 +65,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 			  && !status_flags.condition_calibration_enabled);
 
 	const bool checkSensors = !hil_enabled;
-	const bool checkRC = (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
 	const bool checkDynamic = !hil_enabled;
-	const bool checkPower = (status_flags.condition_power_input_valid && !status_flags.circuit_breaker_engaged_power_check);
 
 	bool checkAirspeed = false;
 
@@ -245,7 +243,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	/* ---- RC CALIBRATION ---- */
-	if (checkRC) {
+	if (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT) {
 		if (rcCalibrationCheck(mavlink_log_pub, reportFailures, status.is_vtol) != OK) {
 			if (reportFailures) {
 				mavlink_log_critical(mavlink_log_pub, "RC calibration check failed");
@@ -265,7 +263,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	/* ---- SYSTEM POWER ---- */
-	if (checkPower) {
+	if (status_flags.condition_power_input_valid && !status_flags.circuit_breaker_engaged_power_check) {
 		if (!powerCheck(mavlink_log_pub, status, reportFailures, prearm)) {
 			failed = true;
 		}

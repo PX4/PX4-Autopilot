@@ -51,7 +51,7 @@ ADC::ADC(uint32_t base_address, uint32_t channels) :
 	}
 
 	if (_channel_count > PX4_MAX_ADC_CHANNELS) {
-		PX4_ERR("PX4_MAX_ADC_CHANNELS is too small:is %d needed:%d", PX4_MAX_ADC_CHANNELS, _channel_count);
+		PX4_ERR("PX4_MAX_ADC_CHANNELS is too small (%d, %d)", (unsigned)PX4_MAX_ADC_CHANNELS, _channel_count);
 	}
 
 	_samples = new px4_adc_msg_t[_channel_count];
@@ -143,7 +143,6 @@ void ADC::update_system_power(hrt_abstime now)
 {
 #if defined (BOARD_ADC_USB_CONNECTED)
 	system_power_s system_power {};
-	system_power.timestamp = now;
 
 	/* Assume HW provides only ADC_SCALED_V5_SENSE */
 	int cnt = 1;
@@ -191,7 +190,7 @@ void ADC::update_system_power(hrt_abstime now)
 	system_power.usb_valid = BOARD_ADC_USB_VALID;
 #else
 	/* If not provided then use connected */
-	system_power.usb_valid  = system_power.usb_connected;
+	system_power.usb_valid = system_power.usb_connected;
 #endif
 
 #if defined(BOARD_BRICK_VALID_LIST)
@@ -205,18 +204,20 @@ void ADC::update_system_power(hrt_abstime now)
 
 #endif
 
-	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
-
-#ifdef BOARD_ADC_PERIPH_5V_OC
-	// OC pins are active low
-	system_power.periph_5v_oc  = BOARD_ADC_PERIPH_5V_OC;
+#if defined(BOARD_ADC_SERVO_VALID)
+	system_power.servo_valid = BOARD_ADC_SERVO_VALID;
 #endif
 
-#ifdef BOARD_ADC_HIPOWER_5V_OC
+#if defined(BOARD_ADC_PERIPH_5V_OC)
+	// OC pins are active low
+	system_power.periph_5v_oc = BOARD_ADC_PERIPH_5V_OC;
+#endif
+
+#if defined(BOARD_ADC_HIPOWER_5V_OC)
 	system_power.hipower_5v_oc = BOARD_ADC_HIPOWER_5V_OC;
 #endif
 
-	/* lazily publish */
+	system_power.timestamp = hrt_absolute_time();
 	_to_system_power.publish(system_power);
 
 #endif // BOARD_ADC_USB_CONNECTED

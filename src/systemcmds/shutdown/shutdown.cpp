@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,21 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file sitl_board_shutdown.c
- *
- * sitl board shutdown backend.
+ * @file shutdown.c
+ * Tool similar to UNIX shutdown command.
  */
-
+#include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
-#include <board_config.h>
 
-int board_register_power_state_notification_cb(power_button_state_notification_t cb)
+extern "C" __EXPORT int shutdown_main(int argc, char *argv[])
 {
-	return 0;
-}
-
-int board_shutdown()
-{
-	px4_systemreset(false);
-	return 0;
+	return px4_shutdown_request();
 }

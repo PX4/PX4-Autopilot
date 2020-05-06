@@ -40,6 +40,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/shutdown.h>
 
 #include <sys/stat.h>
 #include <dirent.h>
@@ -56,8 +57,7 @@
 const int fsync_tries = 1;
 const int abort_tries = 10;
 
-int
-test_mount(int argc, char *argv[])
+int test_mount(int argc, char *argv[])
 {
 	const unsigned iterations = 2000;
 	const unsigned alignments = 10;
@@ -289,7 +289,7 @@ test_mount(int argc, char *argv[])
 	fsync(fileno(stdout));
 	fsync(fileno(stderr));
 	px4_usleep(50000);
-	px4_systemreset(false);
+	px4_reboot_request();
 
 	/* never going to get here */
 	return 0;

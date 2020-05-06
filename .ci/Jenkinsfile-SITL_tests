@@ -60,6 +60,12 @@ pipeline {
               mission: "",
               vehicle: "iris"
             ],
+            [
+              name: "MC_offboard_rpyrt",
+              test: "mavros_posix_tests_offboard_rpyrt_ctl.test",
+              mission: "",
+              vehicle: "iris"
+            ],
 
             [
               name: "Rover 1",

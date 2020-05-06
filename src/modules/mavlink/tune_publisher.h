@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/tunes/tunes.h>
 
