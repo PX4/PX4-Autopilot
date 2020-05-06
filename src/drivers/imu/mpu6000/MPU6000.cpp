@@ -160,6 +160,8 @@ int MPU6000::reset()
 
 	// SAMPLE RATE
 	_set_sample_rate(1000);
+	_px4_accel.set_update_rate(1000);
+	_px4_gyro.set_update_rate(1000);
 	px4_usleep(1000);
 
 	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
