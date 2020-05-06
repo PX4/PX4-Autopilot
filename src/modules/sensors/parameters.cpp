@@ -82,6 +82,8 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 
 	(void)param_find("BAT_V_DIV");
 	(void)param_find("BAT_A_PER_V");
+	(void)param_find("BAT_AVG_I_MC");
+	(void)param_find("BAT_AVG_I_FW");
 
 	(void)param_find("CAL_ACC0_ID");
 	(void)param_find("CAL_GYRO0_ID");
