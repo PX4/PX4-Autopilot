@@ -35,6 +35,7 @@ px4_add_board(
 		#load_mon
 		local_position_estimator
 		logger
+		lta_att_control
 		mavlink
 		mc_att_control
 		mc_hover_thrust_estimator
