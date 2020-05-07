@@ -116,6 +116,8 @@ private:
 	float			_scale{1.f};
 	float			_temperature{0.f};
 
+	matrix::Vector3f	_raw_prev{0.f, 0.f, 0.f};
+
 	int16_t			_clip_limit{(int16_t)(_range / _scale)};
 
 	uint64_t		_error_count{0};

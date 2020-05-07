@@ -158,6 +158,12 @@ void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, fl
 
 	const Vector3f raw{x, y, z};
 
+	if (matrix::isEqual(raw, _raw_prev)) {
+		return;
+	}
+
+	_raw_prev = raw;
+
 	// Clipping (check unscaled raw values)
 	for (int i = 0; i < 3; i++) {
 		if (fabsf(raw(i)) > _clip_limit) {
