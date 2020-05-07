@@ -1335,7 +1335,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	 * local NED frame. The angular velocity needs to be expressed in the
 	 * body (fcu_frd) frame.
 	 */
-	if (odom.child_frame_id == MAV_FRAME_RESERVED_12) {
+	if (odom.child_frame_id == MAV_FRAME_RESERVED_12) {  // MAV_FRAME_BODY_FRD
 		/* Linear velocity has to be rotated to the local NED frame
 		 * Angular velocities are already in the right body frame  */
 		const matrix::Dcmf R_body_to_local = matrix::Dcmf(q_body_to_local);
@@ -1377,7 +1377,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	if (odom.frame_id == MAV_FRAME_LOCAL_FRD) {
 		_visual_odometry_pub.publish(odometry);
 
-	} else if (odom.frame_id == MAV_FRAME_RESERVED_14) {
+	} else if (odom.frame_id == MAV_FRAME_RESERVED_14) {  // MAV_FRAME_MOCAP_NED
 		_mocap_odometry_pub.publish(odometry);
 
 	} else {
