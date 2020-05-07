@@ -258,6 +258,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	param_get(param_find("PWM_MIN"), &_pwm_min);
 	param_get(param_find("PWM_MAX"), &_pwm_max);
 	param_get(param_find("PWM_DISARMED"), &_pwm_disarmed);
+	param_get(param_find("CANNODE_ESC_EN"), &_cannode_esc_en);
 	param_get(param_find("CANNODE_ESC_MASK"), &_esc_mask);
 
 	// Fill node info
@@ -275,12 +276,14 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
-	// Start subscriptions
-	PX4_INFO("registering esc RawCommand CB");
-	int res = _uavcan_esc_raw_command_sub.start(RawCommandCbBinder(this, &UavcanNode::esc_raw_command_sub_cb));
 
-	if (res < 0) {
-		PX4_ERR("ESC status sub failed %i", res);
+	if (_cannode_esc_en) {
+		PX4_INFO("registering esc.RawCommand CB");
+		int res = _uavcan_esc_raw_command_sub.start(RawCommandCbBinder(this, &UavcanNode::esc_raw_command_sub_cb));
+
+		if (res < 0) {
+			PX4_ERR("ESC status sub failed %i", res);
+		}
 	}
 
 	return _node.start();
@@ -377,20 +380,46 @@ void UavcanNode::Run()
 		PX4_ERR("node spin error %i", spin_res);
 	}
 
-	// Supports controlling 8 ESCs -- check the mask and only update status of ESCs we use
-	if (hrt_elapsed_time(&_last_esc_status_publish) > 1_s)
-	{
-		// FIXME: always publish ESC status with fake information -- we need telemetry from connected ESCs for this to "work correctly"
-		for (size_t i = 0; i < 8; i++) {
-			if (_esc_mask & 1<<i) {
-				uavcan::equipment::esc::Status esc_status{}; // TODO: this assumes PWM ESC with no telemtry feedback
-				esc_status.esc_index = i;
-				_esc_status_publisher.broadcast(esc_status);
-			}
-		}
-		_last_esc_status_publish = hrt_absolute_time();
-	}
+	// Send uavcan messages with data from the system
+	send_esc_status();
+	send_battery_info();
+	send_raw_air_data();
+	send_static_pressure();
+	send_magnetic_field_strength2();
+	send_gnss_fix2();
 
+	perf_end(_cycle_perf);
+
+	pthread_mutex_unlock(&_node_mutex);
+
+	if (_task_should_exit.load()) {
+		ScheduleClear();
+		_instance = nullptr;
+	}
+}
+
+void UavcanNode::send_esc_status()
+{
+	// Supports controlling 8 ESCs -- check the mask and only update status of ESCs we use
+	if (_cannode_esc_en) {
+
+		if (hrt_elapsed_time(&_last_esc_status_publish) > 1_s)
+		{
+			// FIXME: always publish ESC status with fake information -- we need telemetry from connected ESCs for this to "work correctly"
+			for (size_t i = 0; i < 8; i++) {
+				if (_esc_mask & 1<<i) {
+					uavcan::equipment::esc::Status esc_status{}; // TODO: this assumes PWM ESC with no telemtry feedback
+					esc_status.esc_index = i;
+					_esc_status_publisher.broadcast(esc_status);
+				}
+			}
+			_last_esc_status_publish = hrt_absolute_time();
+		}
+	}
+}
+
+void UavcanNode::send_battery_info()
+{
 	// battery_status -> uavcan::equipment::power::BatteryInfo
 	if (_battery_status_sub.updated()) {
 		battery_status_s battery;
@@ -420,7 +449,10 @@ void UavcanNode::Run()
 			_power_battery_info_publisher.broadcast(battery_info);
 		}
 	}
+}
 
+void UavcanNode::send_raw_air_data()
+{
 	// differential_pressure -> uavcan::equipment::air_data::RawAirData
 	if (_diff_pressure_sub.updated()) {
 		differential_pressure_s diff_press;
@@ -439,37 +471,10 @@ void UavcanNode::Run()
 			_raw_air_data_publisher.broadcast(raw_air_data);
 		}
 	}
+}
 
-	// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		distance_sensor_s dist;
-
-		if (_distance_sensor_sub[i].update(&dist)) {
-			uavcan::equipment::range_sensor::Measurement range_sensor{};
-
-			range_sensor.sensor_id = i;
-			range_sensor.range = dist.current_distance;
-			range_sensor.field_of_view = dist.h_fov;
-			range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED;
-
-			// reading_type
-			if (dist.current_distance >= dist.max_distance) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_FAR;
-
-			} else if (dist.current_distance <= dist.min_distance) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_CLOSE;
-
-			} else if (dist.signal_quality != 0) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE;
-
-			} else {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_UNDEFINED;
-			}
-
-			_range_sensor_measurement.broadcast(range_sensor);
-		}
-	}
-
+void UavcanNode::send_static_pressure()
+{
 	// sensor_baro -> uavcan::equipment::air_data::StaticTemperature
 	if (_sensor_baro_sub.updated()) {
 		sensor_baro_s baro;
@@ -487,7 +492,9 @@ void UavcanNode::Run()
 			}
 		}
 	}
-
+}
+void UavcanNode::send_magnetic_field_strength2()
+{
 	// sensor_mag -> uavcan::equipment::ahrs::MagneticFieldStrength2
 	if (_sensor_mag_sub.updated()) {
 		sensor_mag_s mag;
@@ -501,7 +508,10 @@ void UavcanNode::Run()
 			_ahrs_magnetic_field_strength2_publisher.broadcast(magnetic_field);
 		}
 	}
+}
 
+void UavcanNode::send_gnss_fix2()
+{
 	// vehicle_gps_position -> uavcan::equipment::gnss::Fix2
 	if (_vehicle_gps_position_sub.updated()) {
 		vehicle_gps_position_s gps;
@@ -536,14 +546,38 @@ void UavcanNode::Run()
 			_gnss_fix2_publisher.broadcast(fix2);
 		}
 	}
+}
 
-	perf_end(_cycle_perf);
+void UavcanNode::send_range_sensor_measurement()
+{
+	// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		distance_sensor_s dist;
 
-	pthread_mutex_unlock(&_node_mutex);
+		if (_distance_sensor_sub[i].update(&dist)) {
+			uavcan::equipment::range_sensor::Measurement range_sensor{};
 
-	if (_task_should_exit.load()) {
-		ScheduleClear();
-		_instance = nullptr;
+			range_sensor.sensor_id = i;
+			range_sensor.range = dist.current_distance;
+			range_sensor.field_of_view = dist.h_fov;
+			range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED;
+
+			// reading_type
+			if (dist.current_distance >= dist.max_distance) {
+				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_FAR;
+
+			} else if (dist.current_distance <= dist.min_distance) {
+				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_CLOSE;
+
+			} else if (dist.signal_quality != 0) {
+				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE;
+
+			} else {
+				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_UNDEFINED;
+			}
+
+			_range_sensor_measurement.broadcast(range_sensor);
+		}
 	}
 }
 
@@ -605,8 +639,6 @@ static void print_usage()
 
 extern "C" int uavcannode_start(int argc, char *argv[])
 {
-	//board_app_initialize(nullptr);
-
 	// CAN bitrate
 	int32_t bitrate = 0;
 

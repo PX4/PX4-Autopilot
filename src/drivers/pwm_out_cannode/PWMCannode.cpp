@@ -56,9 +56,33 @@ bool PWMCannode::init()
 		return false;
 	}
 
-	// TODO: have this as a command line option or something
-	set_mode(MODE_6PWM); // fmu-v4 has 6 PWM
-	set_pwm_rate(0b1111, 400, 400);
+	// Check CANNODE_ESC_MASK to determine how many ESCs we are controlling
+	int esc_mask = 0;
+	param_get(param_find("CANNODE_ESC_MASK"), &esc_mask);
+	Mode pwm_mode = MODE_NONE;
+
+	if (esc_mask >= 0b01111111) {
+		pwm_mode = MODE_8PWM;
+	} else if (esc_mask >= 0b00111111) {
+		pwm_mode = MODE_6PWM;
+	} else if (esc_mask >= 0b00011111) {
+		pwm_mode = MODE_5PWM;
+	} else if (esc_mask >= 0b00001111) {
+		pwm_mode = MODE_4PWM;
+	} else if (esc_mask >= 0b00000111) {
+		pwm_mode = MODE_3PWM;
+	} else if (esc_mask >= 0b00000011) {
+		pwm_mode = MODE_2PWM;
+	} else if (esc_mask >= 0b00000001) {
+		pwm_mode = MODE_1PWM;
+	}
+
+	set_mode(pwm_mode);
+
+	int pwm_rate = 0;
+	param_get(param_find("PWM_RATE"), &pwm_rate);
+
+	set_pwm_rate(esc_mask, pwm_rate, pwm_rate);
 
 	return true;
 }
@@ -369,7 +393,7 @@ bool PWMCannode::updateOutputs()
 		actuator_outputs_s outputs;
 		_actuator_outputs_sub.copy(&outputs);
 
-		// output to the servos
+		// Output to the servos
 		for (size_t i = 0; i < _num_outputs; i++) {
 			auto val = static_cast<servo_position_t>(outputs.output[i]);
 
@@ -420,26 +444,10 @@ void PWMCannode::Run()
 		return;
 	}
 
-
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
-	// bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.armed().in_esc_calibration_mode;
-
-	// TODO: check system status message from FC to determine if we should be armed or not
-	bool pwm_on = true;
-
-	if (_pwm_on != pwm_on) {
-		_pwm_on = pwm_on;
-		update_pwm_out_state(pwm_on);
-	}
-
-	// check for parameter updates
-	// if (_parameter_update_sub.updated()) {
-	// 	parameter_update_s pupdate;
-	// 	_parameter_update_sub.copy(&pupdate);
-	// 	updateParams();
-	// }
+	update_pwm_out_state(true); // always update the PWM output state with the values we have
 
 	updateOutputs();
 

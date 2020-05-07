@@ -52,6 +52,16 @@ PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
 PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
 
 /**
+ * UAVCANNODE ESC control enable.
+ *
+ * @reboot_required true
+ *
+ * @boolean
+ * @group UAVCANNODE
+ */
+PARAM_DEFINE_INT32(CANNODE_ESC_EN, 0);
+
+/**
  * Bitmask which sets the number of ESCs controlled by the cannode. Each
  * bit in the mask corresponds to one of the 8 actuator outputs.
  *

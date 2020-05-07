@@ -105,5 +105,7 @@ fi
 
 uavcannode start
 
-# TODO: use a param to enable ESC control
-pwm_out_cannode start
+if param compare CANNODE_ESC_EN 1
+then
+	pwm_out_cannode start
+fi
