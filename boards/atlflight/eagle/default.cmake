@@ -89,7 +89,6 @@ px4_add_board(
 		vtol_att_control
 	SYSTEMCMDS
 		#bl_update
-		#config
 		#dumpfile
 		esc_calib
 		#hardfault_log
@@ -102,7 +101,6 @@ px4_add_board(
 		param
 		perf
 		pwm
-		reboot
 		sd_bench
 		shutdown
 		#tests # tests and test runner

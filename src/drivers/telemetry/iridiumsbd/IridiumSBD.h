@@ -40,7 +40,6 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/subsystem_info.h>
 

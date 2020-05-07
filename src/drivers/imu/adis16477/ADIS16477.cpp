@@ -69,8 +69,10 @@ ADIS16477::ADIS16477(I2CSPIBusOption bus_option, int bus, int32_t device, enum R
 #endif // GPIO_SPI1_RESET_ADIS16477
 
 	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // accel 1.25 mg/LSB
+	_px4_accel.set_update_rate(ADIS16477_DEFAULT_RATE);
 
 	_px4_gyro.set_scale(math::radians(0.025f)); // gyro 0.025 °/sec/LSB
+	_px4_gyro.set_update_rate(ADIS16477_DEFAULT_RATE);
 }
 
 ADIS16477::~ADIS16477()
@@ -245,13 +247,13 @@ ADIS16477::read_reg16(uint8_t reg)
 	return cmd[0];
 }
 
-void
+int
 ADIS16477::write_reg(uint8_t reg, uint8_t val)
 {
 	uint8_t cmd[2] {};
 	cmd[0] = reg | 0x8;
 	cmd[1] = val;
-	transfer(cmd, cmd, sizeof(cmd));
+	return transfer(cmd, cmd, sizeof(cmd));
 }
 
 void

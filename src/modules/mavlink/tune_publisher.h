@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,20 +31,25 @@
  *
  ****************************************************************************/
 
-/**
- * @file shutdown.c
- * Tool similar to UNIX shutdown command.
- */
+#pragma once
 
-#include <px4_platform_common/tasks.h>
+#include <uORB/Publication.hpp>
+#include <drivers/drv_hrt.h>
+#include <lib/tunes/tunes.h>
 
-__EXPORT int shutdown_main(int argc, char *argv[]);
 
-int shutdown_main(int argc, char *argv[])
+class TunePublisher
 {
-	(void)argc;
-	(void)argv;
+public:
+	void set_tune_string(const char *tune, const hrt_abstime &now);
+	void publish_next_tune(const hrt_abstime now);
 
-	const bool to_bootloader = false;
-	px4_systemreset(to_bootloader);
-}
+private:
+	static constexpr unsigned MAX_TUNE_LEN {248};
+
+	Tunes _tunes {};
+	char _tune_buffer[MAX_TUNE_LEN] {0};
+	hrt_abstime _next_publish_time {0};
+
+	uORB::PublicationQueued<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
+};

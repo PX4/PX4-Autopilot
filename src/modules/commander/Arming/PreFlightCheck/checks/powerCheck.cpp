@@ -54,31 +54,37 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 	system_power_sub.update();
 	const system_power_s &system_power = system_power_sub.get();
 
-	if (hrt_elapsed_time(&system_power.timestamp) < 200_ms) {
+	if (hrt_elapsed_time(&system_power.timestamp) < 1_s) {
+		// Check avionics rail voltages (if USB isn't connected)
+		if (!system_power.usb_connected) {
+			float avionics_power_rail_voltage = system_power.voltage5v_v;
 
-		/* copy avionics voltage */
-		float avionics_power_rail_voltage = system_power.voltage5v_v;
+			if (avionics_power_rail_voltage < 4.5f) {
+				success = false;
 
-		// avionics rail
-		// Check avionics rail voltages
-		if (avionics_power_rail_voltage < 4.5f) {
-			success = false;
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Avionics Power low: %6.2f Volt",
+							     (double)avionics_power_rail_voltage);
+				}
 
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Avionics Power low: %6.2f Volt",
-						     (double)avionics_power_rail_voltage);
-			}
+			} else if (avionics_power_rail_voltage < 4.9f) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+				}
 
-		} else if (avionics_power_rail_voltage < 4.9f) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
-			}
-
-		} else if (avionics_power_rail_voltage > 5.4f) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power high: %6.2f Volt", (double)avionics_power_rail_voltage);
+			} else if (avionics_power_rail_voltage > 5.4f) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power high: %6.2f Volt", (double)avionics_power_rail_voltage);
+				}
 			}
 		}
+
+	} else {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "system power unavailable");
+		}
+
+		success = false;
 	}
 
 	return success;

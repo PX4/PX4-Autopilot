@@ -19,7 +19,7 @@ static const char *msg_label = "[lpe] ";	// rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 
 	// this block has no parent, and has name LPE
 	SuperBlock(nullptr, "LPE"),
@@ -636,7 +636,8 @@ void BlockLocalPositionEstimator::publishOdom()
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
 	    && PX4_ISFINITE(_x(X_vz))) {
-		_pub_odom.get().timestamp = _timeStamp;
+		_pub_odom.get().timestamp = hrt_absolute_time();
+		_pub_odom.get().timestamp_sample = _timeStamp;
 		_pub_odom.get().local_frame = _pub_odom.get().LOCAL_FRAME_NED;
 
 		// position

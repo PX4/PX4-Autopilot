@@ -1,6 +1,8 @@
 # Vehicle odometry data. Fits ROS REP 147 for aerial vehicles
 uint64 timestamp		# time since system start (microseconds)
 
+uint64 timestamp_sample
+
 # Covariance matrix index constants
 uint8 COVARIANCE_MATRIX_X_VARIANCE=0
 uint8 COVARIANCE_MATRIX_Y_VARIANCE=6

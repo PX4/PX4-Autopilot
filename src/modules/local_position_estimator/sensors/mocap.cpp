@@ -79,11 +79,11 @@ int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 	}
 
 	if (!_mocap_xy_valid || !_mocap_z_valid) {
-		_time_last_mocap = _sub_mocap_odom.get().timestamp;
+		_time_last_mocap = _sub_mocap_odom.get().timestamp_sample;
 		return -1;
 
 	} else {
-		_time_last_mocap = _sub_mocap_odom.get().timestamp;
+		_time_last_mocap = _sub_mocap_odom.get().timestamp_sample;
 
 		if (PX4_ISFINITE(_sub_mocap_odom.get().x)) {
 			y.setZero();

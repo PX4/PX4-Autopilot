@@ -63,7 +63,7 @@ BMP280::init()
 
 	// check id
 	if (_interface->get_reg(BMP280_ADDR_ID) != BMP280_VALUE_ID) {
-		PX4_WARN("id of your baro is not: 0x%02x", BMP280_VALUE_ID);
+		PX4_DEBUG("id of your baro is not: 0x%02x", BMP280_VALUE_ID);
 		return -EIO;
 	}
 

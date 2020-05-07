@@ -54,7 +54,6 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/home_position.h>
@@ -284,7 +283,7 @@ private:
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
@@ -363,9 +362,12 @@ MulticopterPositionControl::parameters_update(bool force)
 		}
 
 		_control.setPositionGains(Vector3f(_param_mpc_xy_p.get(), _param_mpc_xy_p.get(), _param_mpc_z_p.get()));
-		_control.setVelocityGains(Vector3f(_param_mpc_xy_vel_p.get(), _param_mpc_xy_vel_p.get(), _param_mpc_z_vel_p.get()),
-					  Vector3f(_param_mpc_xy_vel_i.get(), _param_mpc_xy_vel_i.get(), _param_mpc_z_vel_i.get()),
-					  Vector3f(_param_mpc_xy_vel_d.get(), _param_mpc_xy_vel_d.get(), _param_mpc_z_vel_d.get()));
+		// backwards compatibility scale for velocity gains to non-acceleration based control, needs to be overcome with configuration conversion
+		const float hover_scale = 20.f;
+		_control.setVelocityGains(Vector3f(_param_mpc_xy_vel_p.get(), _param_mpc_xy_vel_p.get(),
+						   _param_mpc_z_vel_p.get()) * hover_scale,
+					  Vector3f(_param_mpc_xy_vel_i.get(), _param_mpc_xy_vel_i.get(), _param_mpc_z_vel_i.get()) * hover_scale,
+					  Vector3f(_param_mpc_xy_vel_d.get(), _param_mpc_xy_vel_d.get(), _param_mpc_z_vel_d.get()) * hover_scale);
 		_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
 		_control.setThrustLimits(_param_mpc_thr_min.get(), _param_mpc_thr_max.get());
 		_control.setTiltLimit(M_DEG_TO_RAD_F * _param_mpc_tiltmax_air.get()); // convert to radians!
@@ -616,6 +618,7 @@ MulticopterPositionControl::Run()
 			// limit tilt during takeoff ramupup
 			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
 				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
+				setpoint.acceleration[2] = NAN;
 			}
 
 			// limit altitude only if local position is valid

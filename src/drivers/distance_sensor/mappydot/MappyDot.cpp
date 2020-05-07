@@ -180,7 +180,7 @@ private:
 	/**
 	 * Sends an i2c measure command to check for presence of a sensor.
 	 */
-	int probe();
+	int probe() override;
 
 	/**
 	 * Collects the most recent sensor measurement data from the i2c bus.
@@ -195,7 +195,7 @@ private:
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses {};
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
 
-	size_t _sensor_count{0};
+	int _sensor_count{0};
 
 	orb_advert_t _distance_sensor_topic{nullptr};
 
@@ -245,7 +245,7 @@ MappyDot::collect()
 	perf_begin(_sample_perf);
 
 	// Increment the sensor index, (limited to the number of sensors connected).
-	for (size_t index = 0; index < _sensor_count; index++) {
+	for (int index = 0; index < _sensor_count; index++) {
 
 		// Set address of the current sensor to collect data from.
 		set_device_address(_sensor_addresses[index]);
@@ -332,7 +332,7 @@ MappyDot::init()
 
 	// Check for connected rangefinders on each i2c port,
 	// starting from the base address 0x08 and incrementing
-	for (size_t i = 0; i <= RANGE_FINDER_MAX_SENSORS; i++) {
+	for (int i = 0; i <= RANGE_FINDER_MAX_SENSORS; i++) {
 		set_device_address(MAPPYDOT_BASE_ADDR + i);
 
 		// Check if a sensor is present.

@@ -48,13 +48,6 @@ MagCompensator::MagCompensator(ModuleParams *parent):
 void MagCompensator::calculate_mag_corrected(matrix::Vector3f &mag, const matrix::Vector3f &param_vect)
 {
 	if (_armed) {
-		int type = _param_mag_compensation_type.get();
-
-		if (type == CompensationType::THROTTLE) {
-			mag = mag + param_vect * _throttle; //for param [gauss]
-
-		} else if (type == CompensationType::CURRENT) {
-			mag = mag + param_vect * _battery_current * 0.001; //for param [gauss/kA]
-		}
+		mag = mag + param_vect * _power;
 	}
 }

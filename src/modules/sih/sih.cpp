@@ -95,6 +95,8 @@ Sih::Sih() :
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": execution")),
 	_sampling_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sampling"))
 {
+	_px4_accel.set_update_rate(LOOP_INTERVAL);
+	_px4_gyro.set_update_rate(LOOP_INTERVAL);
 }
 
 void Sih::run()
@@ -198,7 +200,7 @@ void Sih::parameters_updated()
 
 	_LAT0 = (double)_sih_lat0.get() * 1.0e-7;
 	_LON0 = (double)_sih_lon0.get() * 1.0e-7;
-	_COS_LAT0 = cosl(radians(_LAT0));
+	_COS_LAT0 = cosl((long double)radians(_LAT0));
 
 	_MASS = _sih_mass.get();
 

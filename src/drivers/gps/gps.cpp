@@ -53,7 +53,7 @@
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/gps_dump.h>
