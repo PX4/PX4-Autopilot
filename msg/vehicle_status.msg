@@ -52,6 +52,7 @@ uint8 VEHICLE_TYPE_UNKNOWN = 0
 uint8 VEHICLE_TYPE_ROTARY_WING = 1
 uint8 VEHICLE_TYPE_FIXED_WING = 2
 uint8 VEHICLE_TYPE_ROVER = 3
+uint8 VEHICLE_TYPE_LTA = 4
 
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
