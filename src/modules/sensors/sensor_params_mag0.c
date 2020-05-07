@@ -102,9 +102,11 @@ PARAM_DEFINE_INT32(CAL_MAG0_EN, 1);
  * @value 43 Pitch 90°, Yaw 180°
  * @value 44 Pitch 9°, Yaw 180°
  * @value 45 Pitch 45°
+ * @value 46 Roll 270°, Yaw 225°
+ * @value 47 Roll 270°, Yaw 315°
  *
  * @min -1
- * @max 45
+ * @max 47
  * @reboot_required true
  * @category system
  * @group Sensor Calibration

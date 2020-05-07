@@ -389,5 +389,21 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			return;
 		}
 
+	case ROTATION_ROLL_270_YAW_225: {
+			tmp = z; z = -y; y = tmp;
+			tmp = M_SQRT1_2_F * (y - x);
+			y   = -M_SQRT1_2_F * (x + y);
+			x = tmp;
+			return;
+		}
+
+	case ROTATION_ROLL_270_YAW_315: {
+			tmp = z; z = -y; y = tmp;
+			tmp = M_SQRT1_2_F * (x + y);
+			y   = M_SQRT1_2_F * (y - x);
+			x = tmp;
+			return;
+		}
+
 	}
 }
