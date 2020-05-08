@@ -33,6 +33,8 @@
 
 #include "BMI055_accel.hpp"
 
+using namespace time_literals;
+
 /*
   list of registers that will be checked in check_registers(). Note
   that ADDR_WHO_AM_I must be first in the list.
@@ -215,7 +217,7 @@ void
 BMI055_accel::start()
 {
 	/* start polling at the specified rate */
-	ScheduleOnInterval(BMI055_ACCEL_DEFAULT_RATE - BMI055_TIMER_REDUCTION, 1000);
+	ScheduleOnInterval((1_s / BMI055_ACCEL_DEFAULT_RATE) - BMI055_TIMER_REDUCTION, 1000);
 }
 
 void
