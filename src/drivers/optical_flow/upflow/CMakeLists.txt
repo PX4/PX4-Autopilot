@@ -31,12 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__optical_flow__upflow_lc302
-	MAIN upflow_lc302
+	MODULE drivers__optical_flow__upflow
+	MAIN upflow
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		lc302.cpp
+		upflow.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
