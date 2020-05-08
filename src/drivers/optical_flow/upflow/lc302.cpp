@@ -95,13 +95,13 @@ struct __attribute__((__packed__)) reading_msg {
 
 };
 
-class upflow_lc302 : public cdev::CDev
+class upflow_lc302 : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	upflow_lc302(const char *device_path, const char *serial_port, uint8_t rotation);
 	virtual ~upflow_lc302();
 
-	virtual int init();
+	virtual int init() override;
 	void start();
 	void stop();
 
@@ -109,7 +109,7 @@ public:
 
 private:
 	uint8_t _sonar_rotation;
-	work_s _work;
+
 	ringbuffer::RingBuffer *_reports = nullptr;
 
 	int _fd = -1;
@@ -117,12 +117,8 @@ private:
 	uint8_t _buffer[sizeof(struct reading_msg)];
 	uint8_t _buffer_len = 0;
 
-
-
-
 	orb_advert_t _upflow_lc302_topic = nullptr;
 	orb_advert_t _distance_sensor_topic;
-
 
 	enum {
 		state_waiting_reading = 0,
@@ -142,7 +138,7 @@ private:
 	void _publish(struct reading_msg *msg);
 	int _cycle();
 
-	static void cycle_trampoline(void *arg);
+	void Run() override;
 };
 
 extern "C" __EXPORT int upflow_lc302_main(int argc, char *argv[]);
@@ -280,12 +276,12 @@ int upflow_lc302_main(int argc, char *argv[])
 
 upflow_lc302::upflow_lc302(const char *device_path, const char *serial_port, uint8_t rotation):
 	CDev(device_path),
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_sonar_rotation(rotation),
 	_collect_timeout_perf(perf_alloc(PC_COUNT, "upflow_lc302_collect_timeout")),
 	_comm_error(perf_alloc(PC_COUNT, "lupflow_lc302_comm_errors")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "upflow_lc302_sample"))
 {
-	memset(&_work, 0, sizeof(_work));
 	_serial_port = strdup(serial_port);
 }
 
@@ -414,7 +410,7 @@ int upflow_lc302::init()
 void
 upflow_lc302::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void upflow_lc302::start()
@@ -427,23 +423,20 @@ void upflow_lc302::start()
 	::close(_fd);
 	_fd = -1;
 
-	work_queue(HPWORK, &_work, (worker_t)&upflow_lc302::cycle_trampoline, this, USEC2TICK(WORK_USEC_INTERVAL));
+	ScheduleDelayed(WORK_USEC_INTERVAL);
 }
 
 void
-upflow_lc302::cycle_trampoline(void *arg)
+upflow_lc302::Run()
 {
-	upflow_lc302 *dev = reinterpret_cast<upflow_lc302 * >(arg);
-
-	if (dev->_fd != -1) {
-		dev->_cycle();
+	if (_fd != -1) {
+		_cycle();
 
 	} else {
-		dev->_fd_open();
+		_fd_open();
 	}
 
-	work_queue(HPWORK, &(dev->_work), (worker_t)&upflow_lc302::cycle_trampoline,
-		   dev, USEC2TICK(WORK_USEC_INTERVAL));
+	ScheduleDelayed(WORK_USEC_INTERVAL);
 }
 
 void upflow_lc302::_publish(struct reading_msg* msg)
