@@ -588,9 +588,8 @@ Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
 	ret(2,2) += R(2,0) * g(1) - R(2,1) * g(0);
 
 	// Renormalise rows
-	float rowLengthSq;
 	for (uint8_t r = 0; r < 3; r++) {
-		rowLengthSq = ret.row(r).norm_squared();
+		const float rowLengthSq = ret.row(r).norm_squared();
 		if (rowLengthSq > FLT_EPSILON) {
 			// Use linear approximation for inverse sqrt taking advantage of the row length being close to 1.0
 			const float rowLengthInv = 1.5f - 0.5f * rowLengthSq;
