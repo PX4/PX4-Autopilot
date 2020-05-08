@@ -63,7 +63,7 @@
 #define UPFLOW_MAX_DISTANCE 5.01f
 #define UPFLOW_MIN_DISTANCE 0.0f
 
-#define NAME "upflow_lc302"
+#define NAME "upflow"
 #define DEVICE_PATH "/dev/" NAME
 
 #define SENSOR_READING_FREQ 10.0f
@@ -95,11 +95,11 @@ struct __attribute__((__packed__)) reading_msg {
 
 };
 
-class upflow_lc302 : public cdev::CDev, public px4::ScheduledWorkItem
+class upflow : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
-	upflow_lc302(const char *device_path, const char *serial_port, uint8_t rotation);
-	virtual ~upflow_lc302();
+	upflow(const char *device_path, const char *serial_port, uint8_t rotation);
+	virtual ~upflow();
 
 	virtual int init() override;
 	void start();
@@ -117,7 +117,7 @@ private:
 	uint8_t _buffer[sizeof(struct reading_msg)];
 	uint8_t _buffer_len = 0;
 
-	orb_advert_t _upflow_lc302_topic = nullptr;
+	orb_advert_t _upflow_topic = nullptr;
 	orb_advert_t _distance_sensor_topic;
 
 	enum {
@@ -141,7 +141,7 @@ private:
 	void Run() override;
 };
 
-extern "C" __EXPORT int upflow_lc302_main(int argc, char *argv[]);
+extern "C" __EXPORT int upflow_main(int argc, char *argv[]);
 
 static void help()
 {
@@ -154,12 +154,12 @@ Serial bus driver for the Upixels UPFLOW LC302.
 ### Examples
 
 Attempt to start driver on a specified serial device.
-$ upflow_lc302 start -d /dev/ttyS2
+$ upflow start -d /dev/ttyS2
 Stop driver
-$ upflow_lc302 stop
+$ upflow stop
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("upflow_lc302", "driver");
+	PRINT_MODULE_USAGE_NAME("upflow", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("optical_flow");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
@@ -169,14 +169,14 @@ $ upflow_lc302 stop
 
 }
 
-int upflow_lc302_main(int argc, char *argv[])
+int upflow_main(int argc, char *argv[])
 {
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 	const char *serial_port = "/dev/ttyS2";
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	static upflow_lc302 *inst = nullptr;
+	static upflow *inst = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "d:r", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -186,7 +186,7 @@ int upflow_lc302_main(int argc, char *argv[])
 
 		case 'r':
 			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting upflow_lc302 sonar orientation to %d", (int)rotation);
+			PX4_INFO("Setting upflow sonar orientation to %d", (int)rotation);
 			break;
 
 		default:
@@ -204,13 +204,13 @@ int upflow_lc302_main(int argc, char *argv[])
 	const char *verb = argv[myoptind];
 
 	if (!strcmp(verb, "start")) {
-		inst = new upflow_lc302(DEVICE_PATH, serial_port, rotation);
+		inst = new upflow(DEVICE_PATH, serial_port, rotation);
 
 		if (!inst) {
 			PX4_ERR("No memory to allocate " NAME);
 			return PX4_ERROR;
 		}else{
-			PX4_INFO("new upflow_lc302 success");
+			PX4_INFO("new upflow success");
 		}
 
 		if (inst->init() != PX4_OK) {
@@ -224,9 +224,9 @@ int upflow_lc302_main(int argc, char *argv[])
 		if(!inst){
 			delete inst;
 			inst = nullptr;
-			PX4_INFO("upflow_lc302 stop");
+			PX4_INFO("upflow stop");
 		}else{
-			PX4_INFO("upflow_lc302 not start");
+			PX4_INFO("upflow not start");
 		}
 
 
@@ -274,18 +274,18 @@ int upflow_lc302_main(int argc, char *argv[])
 	return PX4_OK;
 }
 
-upflow_lc302::upflow_lc302(const char *device_path, const char *serial_port, uint8_t rotation):
+upflow::upflow(const char *device_path, const char *serial_port, uint8_t rotation):
 	CDev(device_path),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
 	_sonar_rotation(rotation),
-	_collect_timeout_perf(perf_alloc(PC_COUNT, "upflow_lc302_collect_timeout")),
-	_comm_error(perf_alloc(PC_COUNT, "lupflow_lc302_comm_errors")),
-	_sample_perf(perf_alloc(PC_ELAPSED, "upflow_lc302_sample"))
+	_collect_timeout_perf(perf_alloc(PC_COUNT, "upflow_collect_timeout")),
+	_comm_error(perf_alloc(PC_COUNT, "upflow_comm_errors")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "upflow_sample"))
 {
 	_serial_port = strdup(serial_port);
 }
 
-upflow_lc302::~upflow_lc302()
+upflow::~upflow()
 {
 	stop();
 
@@ -299,8 +299,8 @@ upflow_lc302::~upflow_lc302()
 		delete _reports;
 	}
 
-	if (_upflow_lc302_topic) {
-		orb_unadvertise(_upflow_lc302_topic);
+	if (_upflow_topic) {
+		orb_unadvertise(_upflow_topic);
 	}
 
 	perf_free(_sample_perf);
@@ -308,7 +308,7 @@ upflow_lc302::~upflow_lc302()
 	perf_free(_comm_error);
 }
 
-int upflow_lc302::_fd_open()
+int upflow::_fd_open()
 {
 	if (!_serial_port) {
 		return -1;
@@ -317,7 +317,7 @@ int upflow_lc302::_fd_open()
 	_fd = ::open(_serial_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (_fd < 0) {
-		PX4_ERR("open upflow_lc302_serial_port:%s faild",_serial_port);
+		PX4_ERR("open upflow_serial_port:%s faild",_serial_port);
 		return -1;
 	}
 
@@ -362,7 +362,7 @@ error:
 	return PX4_ERROR;
 }
 
-int upflow_lc302::init()
+int upflow::init()
 {
 	if (CDev::init()) {
 		PX4_ERR("Unable to initialize device\n");
@@ -408,12 +408,12 @@ int upflow_lc302::init()
 }
 
 void
-upflow_lc302::stop()
+upflow::stop()
 {
 	ScheduleClear();
 }
 
-void upflow_lc302::start()
+void upflow::start()
 {
 	/*
 	 * file descriptor can only be accessed by the process that opened it
@@ -427,7 +427,7 @@ void upflow_lc302::start()
 }
 
 void
-upflow_lc302::Run()
+upflow::Run()
 {
 	if (_fd != -1) {
 		_cycle();
@@ -439,7 +439,7 @@ upflow_lc302::Run()
 	ScheduleDelayed(WORK_USEC_INTERVAL);
 }
 
-void upflow_lc302::_publish(struct reading_msg* msg)
+void upflow::_publish(struct reading_msg* msg)
 {
 	_report.timestamp = hrt_absolute_time();
 	_report.pixel_flow_x_integral = static_cast<float>(msg->flow_x_integral) / 10000.0f; // convert to radians
@@ -459,15 +459,15 @@ void upflow_lc302::_publish(struct reading_msg* msg)
 	_report.max_ground_distance = 30.0f; // Datasheet: infinity;
 
 
-	if (_upflow_lc302_topic == nullptr) {
-		_upflow_lc302_topic = orb_advertise(ORB_ID(optical_flow), &_report);
+	if (_upflow_topic == nullptr) {
+		_upflow_topic = orb_advertise(ORB_ID(optical_flow), &_report);
 
 	} else {
-		orb_publish(ORB_ID(optical_flow), _upflow_lc302_topic, &_report);
+		orb_publish(ORB_ID(optical_flow), _upflow_topic, &_report);
 	}
 }
 
-bool upflow_lc302::_request()
+bool upflow::_request()
 {
 	/* flush anything in RX buffer */
 	tcflush(_fd, TCIFLUSH);
@@ -497,7 +497,7 @@ static uint8_t _calc_crc8(struct reading_msg *msg)
  * returns 0 when still waiting for reading_msg, 1 when frame was read or
  * -1 in case of error
  */
-int upflow_lc302::_collect()
+int upflow::_collect()
 {
 	struct reading_msg *msg;
 
@@ -561,7 +561,7 @@ int upflow_lc302::_collect()
 	return 1;
 }
 
-int upflow_lc302::_cycle()
+int upflow::_cycle()
 {
 	int ret = 0;
 	const hrt_abstime now = hrt_absolute_time();
@@ -610,7 +610,7 @@ int upflow_lc302::_cycle()
 	return ret;
 }
 
-ssize_t upflow_lc302::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t upflow::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct reading_msg);
 	struct reading_msg *rbuf = reinterpret_cast<struct reading_msg *>(buffer);
