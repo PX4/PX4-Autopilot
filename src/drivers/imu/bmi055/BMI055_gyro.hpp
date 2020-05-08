@@ -162,6 +162,7 @@ private:
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
+	perf_counter_t      _duplicates;
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
@@ -170,6 +171,8 @@ private:
 	static const uint8_t    _checked_registers[BMI055_GYRO_NUM_CHECKED_REGISTERS];
 	uint8_t         _checked_values[BMI055_GYRO_NUM_CHECKED_REGISTERS];
 	uint8_t         _checked_bad[BMI055_GYRO_NUM_CHECKED_REGISTERS];
+
+	int16_t _gyro_prev[3] {};
 
 	/**
 	 * Reset chip.
