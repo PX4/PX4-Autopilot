@@ -276,7 +276,7 @@ int upflow_lc302_main(int argc, char *argv[])
 
 upflow_lc302::upflow_lc302(const char *device_path, const char *serial_port, uint8_t rotation):
 	CDev(device_path),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
 	_sonar_rotation(rotation),
 	_collect_timeout_perf(perf_alloc(PC_COUNT, "upflow_lc302_collect_timeout")),
 	_comm_error(perf_alloc(PC_COUNT, "lupflow_lc302_comm_errors")),
