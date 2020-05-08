@@ -313,7 +313,7 @@ bool Ekf::resetGpsAntYaw()
 
 		// save a copy of the quaternion state for later use in calculating the amount of reset change
 		const Quatf quat_before_reset = _state.quat_nominal;
-		Quatf quat_after_reset = _state.quat_nominal;
+		Quatf quat_after_reset;
 
 		// obtain the yaw angle using the best conditioned from either a Tait-Bryan 321 or 312 sequence
 		// to avoid gimbal lock
