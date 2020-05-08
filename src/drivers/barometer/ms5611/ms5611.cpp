@@ -41,6 +41,8 @@
 
 #include <cdev/CDev.hpp>
 
+#include <cstring>
+
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type,
 	       I2CSPIBusOption bus_option, int bus) :
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, 0, device_type),
@@ -122,6 +124,11 @@ MS5611::init()
 		case MS5607_DEVICE:
 			_interface->set_device_type(DRV_BARO_DEVTYPE_MS5607);
 			_px4_barometer.set_device_type(DRV_BARO_DEVTYPE_MS5607);
+			break;
+
+		case MS5837_DEVICE:
+			_interface->set_device_type(DRV_BARO_DEVTYPE_MS5837);
+			_px4_barometer.set_device_type(DRV_BARO_DEVTYPE_MS5837);
 			break;
 		}
 
@@ -306,16 +313,67 @@ MS5611::collect()
 				_OFF  -= OFF2;
 				_SENS -= SENS2;
 			}
+
+		} else if (_device_type == MS5837_DEVICE) {
+			/* Perform MS5837 Caculation */
+			/* Similar to MS5611 but with second order temperature compensation for high temperatures. Have fun in warm water! */
+			_OFF  = ((int64_t)_prom.c2_pressure_offset << 16) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
+			_SENS = ((int64_t)_prom.c1_pressure_sens << 15) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
+
+			/* MS5837 temperature compensation */
+			if (TEMP < 2000) {
+
+				int64_t T2 = 3 * POW2((int64_t)dT) >> 33;
+
+				int64_t f = POW2((int64_t)TEMP - 2000);
+				int64_t OFF2 = 3 * f >> 1;
+				int64_t SENS2 = 5 * f >> 3;
+
+				if (TEMP < -1500) {
+
+					int64_t f2 = POW2(TEMP + 1500);
+					OFF2 += 7 * f2;
+					SENS2 += 4 * f2;
+				}
+
+				TEMP -= T2;
+				_OFF  -= OFF2;
+				_SENS -= SENS2;
+
+			} else if (TEMP >= 2000) {
+				/* Casting because shifting 37 bits makes little sense on int32 */
+				int64_t T2 = 2 * POW2((int64_t)dT) >> 37;
+
+				int64_t f = POW2((int64_t)TEMP - 2000) >> 4;
+				int64_t OFF2 = 3 * f >> 1;;
+
+				TEMP -= T2;
+				_OFF  -= OFF2;
+			}
+
 		}
 
 		float temperature = TEMP / 100.0f;
 		_px4_barometer.set_temperature(temperature);
 
 	} else {
-		/* pressure calculation, result in Pa */
-		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
+		float pressure;
+		int32_t P;
 
-		float pressure = P / 100.0f;		/* convert to millibar */
+		if (_device_type == MS5837_DEVICE) {
+			/* MS5837, 0.1 mbar resolution */
+			/* pressure calculation, result in Pa */
+			P = (((raw * _SENS) >> 21) - _OFF) >> 13;
+
+			pressure = P / 10.0f;		/* convert to millibar */
+
+		} else {
+			/* MS5611 or MS5607, 0.01 mbar resolution */
+			/* pressure calculation, result in Pa */
+			P = (((raw * _SENS) >> 21) - _OFF) >> 15;
+
+			pressure = P / 100.0f;		/* convert to millibar */
+		}
 
 		_px4_barometer.update(timestamp_sample, pressure);
 	}
@@ -334,7 +392,23 @@ void MS5611::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 
-	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
+	char device_name[10] {};
+
+	switch (_device_type) {
+	case MS5611_DEVICE:
+		strncpy(device_name, "ms5611", sizeof(device_name));
+		break;
+
+	case MS5607_DEVICE:
+		strncpy(device_name, "ms5607", sizeof(device_name));
+		break;
+
+	case MS5837_DEVICE:
+		strncpy(device_name, "ms5837", sizeof(device_name));
+		break;
+	}
+
+	printf("device:         %s\n", device_name);
 
 	_px4_barometer.print_status();
 }

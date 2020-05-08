@@ -45,6 +45,7 @@
 enum MS56XX_DEVICE_TYPES {
 	MS5611_DEVICE	= 5611,
 	MS5607_DEVICE	= 5607,
+	MS5837_DEVICE   = 5837,
 };
 
 /* helper macro for handling report buffer indices */
