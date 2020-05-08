@@ -25,7 +25,6 @@ px4_add_board(
 		dshot
 		gps
 		imu/bmi088
-		#imu/mpu6000
 		imu/invensense/icm20602
 		imu/invensense/icm42688p
 		irlock
