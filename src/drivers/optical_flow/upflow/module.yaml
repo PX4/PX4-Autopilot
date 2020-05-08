@@ -1,6 +1,6 @@
 module_name: Upflow-LC302
 serial_config:
-    - command: upflow_lc302 start -d ${SERIAL_DEV}
+    - command: upflow start -d ${SERIAL_DEV}
       port_config_param:
         name: SENS_UPFLOW_CFG
         group: Sensors
