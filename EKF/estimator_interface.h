@@ -540,7 +540,7 @@ protected:
 	// timestamps of latest in buffer saved measurement in microseconds
 	uint64_t _time_last_imu{0};
 	uint64_t _time_last_gps{0};
-	uint64_t _time_last_mag{0};
+	uint64_t _time_last_mag{0}; ///< measurement time of last magnetomter sample (uSec)
 	uint64_t _time_last_baro{0};
 	uint64_t _time_last_range{0};
 	uint64_t _time_last_airspeed{0};
