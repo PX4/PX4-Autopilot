@@ -1800,18 +1800,3 @@ void Ekf::runYawEKFGSF()
 		yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.vacc);
 	}
 }
-
-void Ekf::shrinkYawVariance()
-{
-	if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
-		// rolled more than pitched so use 321 rotation order to define yaw angle
-		// and fuse a zero innovation yaw to shrink quaternion yaw variance
-		fuseYaw321(0.0f, 0.25f, true);
-
-	} else {
-		// pitched more than rolled so use 312 rotation order to define yaw angle
-		// and fuse a zero innovation yaw to shrink quaternion yaw variance
-		fuseYaw312(0.0f, 0.25f, true);
-
-	}
-}
