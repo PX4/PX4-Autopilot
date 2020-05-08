@@ -483,6 +483,18 @@ BMI088_accel::RunImpl()
 		return;
 	}
 
+	// don't publish duplicated reads
+	if ((report.accel_x == _accel_prev[0]) && (report.accel_y == _accel_prev[1]) && (report.accel_z == _accel_prev[2])) {
+		perf_count(_duplicates);
+		perf_end(_sample_perf);
+		return;
+
+	} else {
+		_accel_prev[0] = report.accel_x;
+		_accel_prev[1] = report.accel_y;
+		_accel_prev[2] = report.accel_z;
+	}
+
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
