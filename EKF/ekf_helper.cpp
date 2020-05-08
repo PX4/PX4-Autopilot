@@ -295,15 +295,13 @@ void Ekf::resetHeight()
 		P.uncorrelateCovarianceSetVariance<1>(6, 10.0f);
 	}
 
-	// store the reset amount and time to be published
 	if (vert_pos_reset) {
+		// store the reset amount and time to be published
 		_state_reset_status.posD_change = _state.pos(2) - old_vert_pos;
 		_state_reset_status.posD_counter++;
-	}
 
-	// apply the change in height / height rate to our newest height / height rate estimate
-	// which have already been taken out from the output buffer
-	if (vert_pos_reset) {
+		// apply the change in height / height rate to our newest height / height rate estimate
+		// which have already been taken out from the output buffer
 		_output_new.pos(2) += _state_reset_status.posD_change;
 	}
 
