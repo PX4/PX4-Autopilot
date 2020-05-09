@@ -32,12 +32,12 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__lta_att_control
-	MAIN lta_att_control
+	MODULE modules__airship_att_control
+	MAIN airship_att_control
 	STACK_MAX 3500
 	COMPILE_FLAGS
 	SRCS
-		lta_att_control_main.cpp
+		airship_att_control_main.cpp
 	DEPENDS
 		circuit_breaker
 		conversion

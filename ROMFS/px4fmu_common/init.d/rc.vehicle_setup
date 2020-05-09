@@ -150,11 +150,11 @@ fi
 #
 # Airship setup.
 #
-if [ $VEHICLE_TYPE = lta ]
+if [ $VEHICLE_TYPE = airship ]
 then
 	if [ $MIXER = none ]
 	then
-		echo "LTA mixer undefined"
+		echo "Airship mixer undefined"
 	fi
 
 	if [ $MAV_TYPE = none ]
@@ -169,8 +169,8 @@ then
 	# Load mixer and configure outputs.
 	sh /etc/init.d/rc.interface
 
-	# Start standard airship apps.
-	sh /etc/init.d/rc.lta_apps
+	# Start airship apps.
+	sh /etc/init.d/rc.airship_apps
 fi
 
 #

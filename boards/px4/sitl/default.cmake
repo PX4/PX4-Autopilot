@@ -21,6 +21,7 @@ px4_add_board(
 		tone_alarm
 		#uavcan
 	MODULES
+		airship_att_control
 		airspeed_selector
 		attitude_estimator_q
 		camera_feedback
@@ -35,7 +36,6 @@ px4_add_board(
 		#load_mon
 		local_position_estimator
 		logger
-		lta_att_control
 		mavlink
 		mc_att_control
 		mc_hover_thrust_estimator
