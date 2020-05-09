@@ -236,8 +236,7 @@ protected:
 
 	virtual ~I2CSPIDriver() = default;
 
-	void Run() final
-	{
+	void Run() final {
 		static_cast<T *>(this)->RunImpl();
 
 		if (should_exit()) {
