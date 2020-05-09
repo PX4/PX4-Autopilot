@@ -150,10 +150,10 @@ public:
 protected:
 	void Run() override;
 private:
-	void update_parameters();
+	int	init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
 
-	void	fill_node_info();
-	int		init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
+	void update_parameters();
+	void fill_node_info();
 
 	void send_esc_status();
 	void send_battery_info();

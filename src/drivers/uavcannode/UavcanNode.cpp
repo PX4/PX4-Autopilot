@@ -403,14 +403,14 @@ void UavcanNode::Run()
 
 void UavcanNode::send_esc_status()
 {
-	// Supports controlling 8 ESCs -- check the mask and only update status of ESCs we use
+	// Check the CANNODE_ESC_MASK and only report status of ESCs we use
 	if (_cannode_esc_en) {
 
 		if (hrt_elapsed_time(&_last_esc_status_publish) > 1_s) {
-			// FIXME: always publish ESC status with fake information -- we need telemetry from connected ESCs for this to "work correctly"
+			// FIXME: always publish ESC status with fake information -- we need telemetry from connected ESCs for this to funtion as intended.
 			for (size_t i = 0; i < 8; i++) {
 				if (_esc_mask & 1 << i) {
-					uavcan::equipment::esc::Status esc_status{}; // TODO: this assumes PWM ESC with no telemtry feedback
+					uavcan::equipment::esc::Status esc_status{};
 					esc_status.esc_index = i;
 					_esc_status_publisher.broadcast(esc_status);
 				}
