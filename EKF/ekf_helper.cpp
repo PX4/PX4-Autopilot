@@ -50,56 +50,71 @@
 bool Ekf::resetVelocity()
 {
 	if (_control_status.flags.gps && isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us)) {
-		ECL_INFO_TIMESTAMPED("reset velocity to GPS");
 		// this reset is only called if we have new gps data at the fusion time horizon
-		resetVelocityTo(_gps_sample_delayed.vel);
-
-		P.uncorrelateCovarianceSetVariance<3>(4, sq(_gps_sample_delayed.sacc));
+		resetVelocityToGps();
 
 	} else if (_control_status.flags.opt_flow) {
-		ECL_INFO_TIMESTAMPED("reset velocity to flow");
-		// constrain height above ground to be above minimum possible
-		const float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
-
-		// calculate absolute distance from focal point to centre of frame assuming a flat earth
-		const float range = heightAboveGndEst / _range_sensor.getCosTilt();
-
-		if ((range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
-			// we should have reliable OF measurements so
-			// calculate X and Y body relative velocities from OF measurements
-			Vector3f vel_optflow_body;
-			vel_optflow_body(0) = - range * _flow_compensated_XY_rad(1) / _flow_sample_delayed.dt;
-			vel_optflow_body(1) =   range * _flow_compensated_XY_rad(0) / _flow_sample_delayed.dt;
-			vel_optflow_body(2) = 0.0f;
-
-			// rotate from body to earth frame
-			const Vector3f vel_optflow_earth = _R_to_earth * vel_optflow_body;
-
-			resetHorizontalVelocityTo(Vector2f(vel_optflow_earth));
-		} else {
-			resetHorizontalVelocityTo(Vector2f{0.f, 0.f});
-		}
-
-		// reset the horizontal velocity variance using the optical flow noise variance
-		P.uncorrelateCovarianceSetVariance<2>(4, sq(range) * calcOptFlowMeasVar());
+		resetHorizontalVelocityToOpticalFlow();
 
 	} else if (_control_status.flags.ev_vel) {
-		ECL_INFO_TIMESTAMPED("reset velocity to ev velocity");
-		Vector3f _ev_vel = _ev_sample_delayed.vel;
-		if(_params.fusion_mode & MASK_ROTATE_EV){
-			_ev_vel = _R_ev_to_ekf *_ev_sample_delayed.vel;
-		}
-		resetVelocityTo(_ev_vel);
-		P.uncorrelateCovarianceSetVariance<3>(4, _ev_sample_delayed.velVar);
+		resetVelocityToVision();
 
 	} else {
-		ECL_INFO_TIMESTAMPED("reset velocity to zero");
-		// Used when falling back to non-aiding mode of operation
-		resetHorizontalVelocityTo(Vector2f{0.f, 0.f});
-		P.uncorrelateCovarianceSetVariance<2>(4, 25.0f);
+		resetHorizontalVelocityToZero();
 	}
 
 	return true;
+}
+
+void Ekf::resetVelocityToGps() {
+	ECL_INFO_TIMESTAMPED("reset velocity to GPS");
+	resetVelocityTo(_gps_sample_delayed.vel);
+	P.uncorrelateCovarianceSetVariance<3>(4, sq(_gps_sample_delayed.sacc));
+}
+
+void Ekf::resetHorizontalVelocityToOpticalFlow() {
+	ECL_INFO_TIMESTAMPED("reset velocity to flow");
+	// constrain height above ground to be above minimum possible
+	const float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
+
+	// calculate absolute distance from focal point to centre of frame assuming a flat earth
+	const float range = heightAboveGndEst / _range_sensor.getCosTilt();
+
+	if ((range - _params.rng_gnd_clearance) > 0.3f && _flow_sample_delayed.dt > 0.05f) {
+		// we should have reliable OF measurements so
+		// calculate X and Y body relative velocities from OF measurements
+		Vector3f vel_optflow_body;
+		vel_optflow_body(0) = - range * _flow_compensated_XY_rad(1) / _flow_sample_delayed.dt;
+		vel_optflow_body(1) =   range * _flow_compensated_XY_rad(0) / _flow_sample_delayed.dt;
+		vel_optflow_body(2) = 0.0f;
+
+		// rotate from body to earth frame
+		const Vector3f vel_optflow_earth = _R_to_earth * vel_optflow_body;
+
+		resetHorizontalVelocityTo(Vector2f(vel_optflow_earth));
+	} else {
+		resetHorizontalVelocityTo(Vector2f{0.f, 0.f});
+	}
+
+	// reset the horizontal velocity variance using the optical flow noise variance
+	P.uncorrelateCovarianceSetVariance<2>(4, sq(range) * calcOptFlowMeasVar());
+}
+
+void Ekf::resetVelocityToVision() {
+	ECL_INFO_TIMESTAMPED("reset to vision velocity");
+	Vector3f _ev_vel = _ev_sample_delayed.vel;
+	if(_params.fusion_mode & MASK_ROTATE_EV){
+		_ev_vel = _R_ev_to_ekf *_ev_sample_delayed.vel;
+	}
+	resetVelocityTo(_ev_vel);
+	P.uncorrelateCovarianceSetVariance<3>(4, _ev_sample_delayed.velVar);
+}
+
+void Ekf::resetHorizontalVelocityToZero() {
+	ECL_INFO_TIMESTAMPED("reset velocity to zero");
+	// Used when falling back to non-aiding mode of operation
+	resetHorizontalVelocityTo(Vector2f{0.f, 0.f});
+	P.uncorrelateCovarianceSetVariance<2>(4, 25.0f);
 }
 
 void Ekf::resetVelocityTo(const Vector3f &new_vel) {

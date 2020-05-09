@@ -574,6 +574,14 @@ private:
 	// reset velocity states of the ekf
 	bool resetVelocity();
 
+	void resetVelocityToGps();
+
+	void resetHorizontalVelocityToOpticalFlow();
+
+	void resetVelocityToVision();
+
+	void resetHorizontalVelocityToZero();
+
 	void resetVelocityTo(const Vector3f &vel);
 
 	inline void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
