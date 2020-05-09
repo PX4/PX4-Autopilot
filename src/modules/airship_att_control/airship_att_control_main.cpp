@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file lta_att_control_main.cpp
+ * @file airship_att_control_main.cpp
  * Multicopter attitude controller.
  *
  * @author Lorenz Meier		<lorenz@px4.io>
@@ -43,7 +43,7 @@
  * @author Daniel Robinson  <daniel@flycloudline.com>
  */
 
-#include "lta_att_control.hpp"
+#include "airship_att_control.hpp"
 
 #include <conversion/rotation.h>
 #include <drivers/drv_hrt.h>
@@ -54,10 +54,10 @@
 
 using namespace matrix;
 
-LTAAttitudeControl::LTAAttitudeControl() :
+AirshipAttitudeControl::AirshipAttitudeControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "lta_att_control"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "airship_att_control"))
 {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
@@ -72,13 +72,13 @@ LTAAttitudeControl::LTAAttitudeControl() :
 	parameters_updated();
 }
 
-LTAAttitudeControl::~LTAAttitudeControl()
+AirshipAttitudeControl::~AirshipAttitudeControl()
 {
 	perf_free(_loop_perf);
 }
 
 bool
-LTAAttitudeControl::init()
+AirshipAttitudeControl::init()
 {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("vehicle_angular_velocity callback registration failed!");
@@ -89,13 +89,13 @@ LTAAttitudeControl::init()
 }
 
 void
-LTAAttitudeControl::parameters_updated()
+AirshipAttitudeControl::parameters_updated()
 {
 
 }
 
 void
-LTAAttitudeControl::parameter_update_poll()
+AirshipAttitudeControl::parameter_update_poll()
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -109,7 +109,7 @@ LTAAttitudeControl::parameter_update_poll()
 }
 
 void
-LTAAttitudeControl::vehicle_status_poll()
+AirshipAttitudeControl::vehicle_status_poll()
 {
 	/* check if there is new status information */
 	if (_vehicle_status_sub.update(&_vehicle_status)) {
@@ -134,7 +134,7 @@ LTAAttitudeControl::vehicle_status_poll()
 }
 
 bool
-LTAAttitudeControl::vehicle_attitude_poll()
+AirshipAttitudeControl::vehicle_attitude_poll()
 {
 	/* check if there is a new message */
 	const uint8_t prev_quat_reset_counter = _v_att.quat_reset_counter;
@@ -153,7 +153,7 @@ LTAAttitudeControl::vehicle_attitude_poll()
 }
 
 float
-LTAAttitudeControl::get_landing_gear_state()
+AirshipAttitudeControl::get_landing_gear_state()
 {
 	// Only switch the landing gear up if we are not landed and if
 	// the user switched from gear down to gear up.
@@ -177,7 +177,7 @@ LTAAttitudeControl::get_landing_gear_state()
 }
 
 void
-LTAAttitudeControl::publish_rates_setpoint()
+AirshipAttitudeControl::publish_rates_setpoint()
 {
 	_v_rates_sp.roll = _rates_sp(0);
 	_v_rates_sp.pitch = -_rates_sp(1);
@@ -191,7 +191,7 @@ LTAAttitudeControl::publish_rates_setpoint()
 }
 
 void
-LTAAttitudeControl::publish_rate_controller_status()
+AirshipAttitudeControl::publish_rate_controller_status()
 {
 	rate_ctrl_status_s rate_ctrl_status = {};
 	rate_ctrl_status.timestamp = hrt_absolute_time();
@@ -199,14 +199,14 @@ LTAAttitudeControl::publish_rate_controller_status()
 }
 
 void
-LTAAttitudeControl::publish_actuator_controls()
+AirshipAttitudeControl::publish_actuator_controls()
 {
 	_actuators.control[0] = 0.0f;
 	_actuators.control[1] = _manual_control_sp.x;
 	_actuators.control[2] = _manual_control_sp.r;
 	_actuators.control[3] = _manual_control_sp.z;
 	_actuators.control[7] = (float)_landing_gear.landing_gear;
-	// note: _actuators.timestamp_sample is set in LTAAttitudeControl::Run()
+	// note: _actuators.timestamp_sample is set in AirshipAttitudeControl::Run()
 	_actuators.timestamp = hrt_absolute_time();
 
 	if (!_actuators_0_circuit_breaker_enabled) {
@@ -215,7 +215,7 @@ LTAAttitudeControl::publish_actuator_controls()
 }
 
 void
-LTAAttitudeControl::Run()
+AirshipAttitudeControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
@@ -328,9 +328,9 @@ LTAAttitudeControl::Run()
 	perf_end(_loop_perf);
 }
 
-int LTAAttitudeControl::task_spawn(int argc, char *argv[])
+int AirshipAttitudeControl::task_spawn(int argc, char *argv[])
 {
-	LTAAttitudeControl *instance = new LTAAttitudeControl();
+	AirshipAttitudeControl *instance = new AirshipAttitudeControl();
 
 	if (instance) {
 		_object.store(instance);
@@ -351,7 +351,7 @@ int LTAAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int LTAAttitudeControl::print_status()
+int AirshipAttitudeControl::print_status()
 {
 	PX4_INFO("Running");
 
@@ -362,12 +362,12 @@ int LTAAttitudeControl::print_status()
 	return 0;
 }
 
-int LTAAttitudeControl::custom_command(int argc, char *argv[])
+int AirshipAttitudeControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int LTAAttitudeControl::print_usage(const char *reason)
+int AirshipAttitudeControl::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -394,14 +394,14 @@ To reduce control latency, the module directly polls on the gyro topic published
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("lta_att_control", "controller");
+	PRINT_MODULE_USAGE_NAME("airship_att_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-int lta_att_control_main(int argc, char *argv[])
+int airship_att_control_main(int argc, char *argv[])
 {
-	return LTAAttitudeControl::main(argc, argv);
+	return AirshipAttitudeControl::main(argc, argv);
 }

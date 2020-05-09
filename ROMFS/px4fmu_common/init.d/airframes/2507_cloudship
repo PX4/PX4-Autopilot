@@ -9,7 +9,7 @@
 # @output MAIN3 motor 2 port
 # @output MAIN4 rudder motor
 
-sh /etc/init.d/rc.lta_defaults
+sh /etc/init.d/rc.airship_defaults
 
 param set PWM_MAX 2000
 param set PWM_MIN 1000

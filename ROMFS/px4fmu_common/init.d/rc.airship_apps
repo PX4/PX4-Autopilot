@@ -51,7 +51,7 @@ fi
 #
 # Start Airship Attitude Controller.
 #
-lta_att_control start
+airship_att_control start
 
 #
 # Start Position Controller.

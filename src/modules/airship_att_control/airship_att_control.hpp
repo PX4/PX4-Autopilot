@@ -63,15 +63,15 @@
 /**
  * Multicopter attitude control app start / stop handling function
  */
-extern "C" __EXPORT int lta_att_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int airship_att_control_main(int argc, char *argv[]);
 
-class LTAAttitudeControl : public ModuleBase<LTAAttitudeControl>, public ModuleParams,
+class AirshipAttitudeControl : public ModuleBase<AirshipAttitudeControl>, public ModuleParams,
 	public px4::WorkItem
 {
 public:
-	LTAAttitudeControl();
+	AirshipAttitudeControl();
 
-	virtual ~LTAAttitudeControl();
+	virtual ~AirshipAttitudeControl();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
