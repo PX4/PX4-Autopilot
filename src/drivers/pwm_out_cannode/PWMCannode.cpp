@@ -63,16 +63,22 @@ bool PWMCannode::init()
 
 	if (esc_mask >= 0b01111111) {
 		pwm_mode = MODE_8PWM;
+
 	} else if (esc_mask >= 0b00111111) {
 		pwm_mode = MODE_6PWM;
+
 	} else if (esc_mask >= 0b00011111) {
 		pwm_mode = MODE_5PWM;
+
 	} else if (esc_mask >= 0b00001111) {
 		pwm_mode = MODE_4PWM;
+
 	} else if (esc_mask >= 0b00000111) {
 		pwm_mode = MODE_3PWM;
+
 	} else if (esc_mask >= 0b00000011) {
 		pwm_mode = MODE_2PWM;
+
 	} else if (esc_mask >= 0b00000001) {
 		pwm_mode = MODE_1PWM;
 	}

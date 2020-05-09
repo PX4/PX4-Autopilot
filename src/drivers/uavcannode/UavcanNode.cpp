@@ -309,7 +309,7 @@ UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	// If message is empty, the vehicle is disarmed
 	if (cmd.cmd.size() == 0) {
 		// TODO: add a function that sets all PWM outputs to their disarmed value and returns an actuator_output_s
-		for (size_t i = 0; i < sizeof(outputs.output)/sizeof(outputs.output[0]); i++) {
+		for (size_t i = 0; i < sizeof(outputs.output) / sizeof(outputs.output[0]); i++) {
 			outputs.output[i] = _pwm_disarmed; // right now this just sets every output (all 16) to PWM_DISARMED
 		}
 	}
@@ -403,16 +403,16 @@ void UavcanNode::send_esc_status()
 	// Supports controlling 8 ESCs -- check the mask and only update status of ESCs we use
 	if (_cannode_esc_en) {
 
-		if (hrt_elapsed_time(&_last_esc_status_publish) > 1_s)
-		{
+		if (hrt_elapsed_time(&_last_esc_status_publish) > 1_s) {
 			// FIXME: always publish ESC status with fake information -- we need telemetry from connected ESCs for this to "work correctly"
 			for (size_t i = 0; i < 8; i++) {
-				if (_esc_mask & 1<<i) {
+				if (_esc_mask & 1 << i) {
 					uavcan::equipment::esc::Status esc_status{}; // TODO: this assumes PWM ESC with no telemtry feedback
 					esc_status.esc_index = i;
 					_esc_status_publisher.broadcast(esc_status);
 				}
 			}
+
 			_last_esc_status_publish = hrt_absolute_time();
 		}
 	}
