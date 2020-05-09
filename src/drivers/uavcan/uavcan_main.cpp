@@ -645,8 +645,11 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return -EINVAL;
 	}
 
+	int update_rate = 0;
+	param_get(param_find("UAVCAN_ESC_RATE"), &update_rate);
+
 	_mixing_interface.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
-	_mixing_interface.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
+	_mixing_interface.mixingOutput().setMaxTopicUpdateRate(1000000 / update_rate);
 
 	param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
 	enable_idle_throttle_when_armed(true);

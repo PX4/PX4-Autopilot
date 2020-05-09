@@ -85,3 +85,13 @@ PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ESC_IDLT, 1);
+
+/**
+ * UAVCAN ESC update rate. Reducing this value will reduce CAN bus congestion, but increase latency.
+ *
+ * @unit Hz
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_ESC_RATE, 200);
+

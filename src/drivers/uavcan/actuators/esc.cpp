@@ -61,6 +61,8 @@ UavcanEscController::~UavcanEscController()
 int
 UavcanEscController::init()
 {
+	param_get(param_find("UAVCAN_ESC_RATE"), &_esc_update_rate);
+
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 
@@ -92,7 +94,7 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 	 */
 	const auto timestamp = _node.getMonotonicTime();
 
-	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
+	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / _esc_update_rate)) {
 		return;
 	}
 
