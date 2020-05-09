@@ -254,12 +254,7 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 
 int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
-	// Getting initial parameter values
-	param_get(param_find("PWM_MIN"), &_pwm_min);
-	param_get(param_find("PWM_MAX"), &_pwm_max);
-	param_get(param_find("PWM_DISARMED"), &_pwm_disarmed);
-	param_get(param_find("CANNODE_ESC_EN"), &_cannode_esc_en);
-	param_get(param_find("CANNODE_ESC_MASK"), &_esc_mask);
+	update_parameters();
 
 	// Fill node info
 	_node.setName(HW_UAVCAN_NAME);
@@ -289,6 +284,15 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	return _node.start();
 }
 
+void UavcanNode::update_parameters()
+{
+	param_get(param_find("PWM_MIN"), &_pwm_min);
+	param_get(param_find("PWM_MAX"), &_pwm_max);
+	param_get(param_find("PWM_DISARMED"), &_pwm_disarmed);
+	param_get(param_find("CANNODE_ESC_EN"), &_cannode_esc_en);
+	param_get(param_find("CANNODE_ESC_MASK"), &_esc_mask);
+}
+
 // Restart handler
 class RestartRequestHandler: public uavcan::IRestartRequestHandler
 {
@@ -308,9 +312,8 @@ UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 	// If message is empty, the vehicle is disarmed
 	if (cmd.cmd.size() == 0) {
-		// TODO: add a function that sets all PWM outputs to their disarmed value and returns an actuator_output_s
 		for (size_t i = 0; i < sizeof(outputs.output) / sizeof(outputs.output[0]); i++) {
-			outputs.output[i] = _pwm_disarmed; // right now this just sets every output (all 16) to PWM_DISARMED
+			outputs.output[i] = _pwm_disarmed;
 		}
 	}
 
@@ -322,7 +325,7 @@ UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 			outputs.output[i] = _pwm_disarmed;
 
 		} else {
-			// Convert from normalized -8192/+8192 to PWM
+			// Scale from normalized -8192/+8192 to PWM_MIN / PWM_MAX
 			outputs.output[i] = _pwm_min + (static_cast<float>(cmd.cmd.at(i)) / 8192.0f) * (_pwm_max - _pwm_min);
 		}
 	}
@@ -370,7 +373,7 @@ void UavcanNode::Run()
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		// update parameters from storage
+		update_parameters();
 	}
 
 	// Calls subscription callbacks here
