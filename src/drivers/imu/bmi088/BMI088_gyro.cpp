@@ -266,7 +266,7 @@ void
 BMI088_gyro::start()
 {
 	/* start polling at the specified rate */
-	ScheduleOnInterval((1_s / BMI088_GYRO_DEFAULT_RATE) - BMI088_TIMER_REDUCTION, 1000);
+	ScheduleOnInterval((1_s / BMI088_GYRO_DEFAULT_RATE) / 2, 1000);
 }
 
 void

@@ -217,7 +217,7 @@ void
 BMI055_accel::start()
 {
 	/* start polling at the specified rate */
-	ScheduleOnInterval((1_s / BMI055_ACCEL_DEFAULT_RATE) - BMI055_TIMER_REDUCTION, 1000);
+	ScheduleOnInterval((1_s / BMI055_ACCEL_DEFAULT_RATE) / 2, 1000);
 }
 
 void
