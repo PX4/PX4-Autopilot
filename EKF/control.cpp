@@ -311,8 +311,7 @@ void Ekf::controlExternalVisionFusion()
 
 				// record observation and estimate for use next time
 				_pos_meas_prev = _ev_sample_delayed.pos;
-				_hpos_pred_prev(0) = _state.pos(0);
-				_hpos_pred_prev(1) = _state.pos(1);
+				_hpos_pred_prev = _state.pos.xy();
 
 			} else {
 				// use the absolute position
@@ -380,7 +379,7 @@ void Ekf::controlExternalVisionFusion()
 
 			ev_vel_obs_var = matrix::max(ev_vel_var.diag(), sq(0.01f));
 
-			ev_vel_innov_gates(0) = ev_vel_innov_gates(1) = fmaxf(_params.ev_vel_innov_gate, 1.0f);
+			ev_vel_innov_gates.setAll(fmaxf(_params.ev_vel_innov_gate, 1.0f));
 
 			fuseHorizontalVelocity(_ev_vel_innov, ev_vel_innov_gates,ev_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
 			fuseVerticalVelocity(_ev_vel_innov, ev_vel_innov_gates, ev_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
@@ -472,7 +471,6 @@ void Ekf::controlOpticalFlowFusion()
 
 			} else if (isTimedOut(_time_last_of_fuse, (uint64_t)_params.reset_timeout_max)) {
 				stopFlowFusion();
-
 			}
 		}
 
@@ -530,11 +528,10 @@ void Ekf::controlOpticalFlowFusion()
 
 			if (!flow_quality_good && !_control_status.flags.in_air) {
 				// when on the ground with poor flow quality, assume zero ground relative velocity and LOS rate
-				_flow_compensated_XY_rad.zero();
+				_flow_compensated_XY_rad.setZero();
 			} else {
 				// compensate for body motion to give a LOS rate
-				_flow_compensated_XY_rad(0) = _flow_sample_delayed.flow_xy_rad(0) - _flow_sample_delayed.gyro_xyz(0);
-				_flow_compensated_XY_rad(1) = _flow_sample_delayed.flow_xy_rad(1) - _flow_sample_delayed.gyro_xyz(1);
+				_flow_compensated_XY_rad = _flow_sample_delayed.flow_xy_rad - _flow_sample_delayed.gyro_xyz.xy();
 			}
 		} else {
 			// don't use this flow data and wait for the next data to arrive
@@ -548,8 +545,7 @@ void Ekf::controlOpticalFlowFusion()
 		// but use a relaxed time criteria to enable it to coast through bad range finder data
 		if (_control_status.flags.opt_flow && isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
 			fuseOptFlow();
-			_last_known_posNE(0) = _state.pos(0);
-			_last_known_posNE(1) = _state.pos(1);
+			_last_known_posNE = _state.pos.xy();
 		}
 
 		_flow_data_ready = false;
@@ -705,8 +701,8 @@ void Ekf::controlGpsFusion()
 					_time_last_delpos_fuse = _time_last_imu;
 					_time_last_hor_vel_fuse = _time_last_imu;
 					_time_last_of_fuse = _time_last_imu;
-
 				}
+
 			} else if (do_vel_pos_reset) {
 				// use GPS velocity data to check and correct yaw angle if a FW vehicle
 				if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
@@ -722,13 +718,11 @@ void Ekf::controlGpsFusion()
 				// Reset the timeout counters
 				_time_last_hor_pos_fuse = _time_last_imu;
 				_time_last_hor_vel_fuse = _time_last_imu;
-
 			}
 		}
 
 		// Only use GPS data for position and velocity aiding if enabled
 		if (_control_status.flags.gps) {
-
 
 			Vector2f gps_vel_innov_gates; // [horizontal vertical]
 			Vector2f gps_pos_innov_gates; // [horizontal vertical]
@@ -743,8 +737,7 @@ void Ekf::controlGpsFusion()
 
 			// correct position and height for offset relative to IMU
 			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-			_gps_sample_delayed.pos(0) -= pos_offset_earth(0);
-			_gps_sample_delayed.pos(1) -= pos_offset_earth(1);
+			_gps_sample_delayed.pos -= pos_offset_earth.xy();
 			_gps_sample_delayed.hgt += pos_offset_earth(2);
 
 			const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
@@ -761,15 +754,12 @@ void Ekf::controlGpsFusion()
 				gps_pos_obs_var(0) = gps_pos_obs_var(1) = sq(math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit));
 			}
 
-			gps_vel_obs_var(0) = gps_vel_obs_var(1) = gps_vel_obs_var(2) = sq(fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+			gps_vel_obs_var.setAll(sq(fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise)));
 			gps_vel_obs_var(2) = sq(1.5f) * gps_vel_obs_var(2);
 
 			// calculate innovations
-			_gps_vel_innov(0) = _state.vel(0) - _gps_sample_delayed.vel(0);
-			_gps_vel_innov(1) = _state.vel(1) - _gps_sample_delayed.vel(1);
-			_gps_vel_innov(2) = _state.vel(2) - _gps_sample_delayed.vel(2);
-			_gps_pos_innov(0) = _state.pos(0) - _gps_sample_delayed.pos(0);
-			_gps_pos_innov(1) = _state.pos(1) - _gps_sample_delayed.pos(1);
+			_gps_vel_innov = _state.vel - _gps_sample_delayed.vel;
+			_gps_pos_innov.xy() = Vector2f(_state.pos) - _gps_sample_delayed.pos;
 
 			// set innovation gate size
 			gps_pos_innov_gates(0) = fmaxf(_params.gps_pos_innov_gate, 1.0f);
@@ -1189,12 +1179,10 @@ void Ekf::controlAirDataFusion()
 
 	if (_control_status.flags.wind && airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)) {
 		_control_status.flags.wind = false;
-
 	}
 
 	if (_control_status.flags.fuse_aspd && airspeed_timed_out) {
 		_control_status.flags.fuse_aspd = false;
-
 	}
 
 	// Always try to fuse airspeed data if available and we are in flight
@@ -1214,11 +1202,9 @@ void Ekf::controlAirDataFusion()
 			// reset the wind speed states and corresponding covariances
 			resetWindStates();
 			resetWindCovariance();
-
 		}
 
 		fuseAirspeed();
-
 	}
 }
 
@@ -1269,12 +1255,10 @@ void Ekf::controlDragFusion()
 
 			} else if (_drag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_drag_sample_delayed)) {
 				fuseDrag();
-
 			}
 
 		} else {
 			_control_status.flags.wind = false;
-
 		}
 	}
 }
@@ -1294,8 +1278,6 @@ void Ekf::controlFakePosFusion()
 		if (isTimedOut(_time_last_fake_pos, (uint64_t)2e5)) {
 
 			Vector3f fake_pos_obs_var;
-			Vector2f fake_pos_innov_gate;
-
 
 			// Reset position and velocity states if we re-commence this aiding method
 			if (isTimedOut(_time_last_fake_pos, (uint64_t)4e5)) {
@@ -1317,11 +1299,10 @@ void Ekf::controlFakePosFusion()
 				fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.5f);
 			}
 
-			_gps_pos_innov(0) = _state.pos(0) - _last_known_posNE(0);
-			_gps_pos_innov(1) = _state.pos(1) - _last_known_posNE(1);
+			_gps_pos_innov.xy() = Vector2f(_state.pos) - _last_known_posNE;
 
 			// glitch protection is not required so set gate to a large value
-			fake_pos_innov_gate(0) = 100.0f;
+			const Vector2f fake_pos_innov_gate(100.0f, 100.0f);
 
 			fuseHorizontalPosition(_gps_pos_innov, fake_pos_innov_gate, fake_pos_obs_var,
 						_gps_pos_innov_var, _gps_pos_test_ratio);
@@ -1335,22 +1316,19 @@ void Ekf::controlFakePosFusion()
 
 void Ekf::controlAuxVelFusion()
 {
-	bool data_ready = _auxvel_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
+	const bool data_ready = _auxvel_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
 
 	if (data_ready && isHorizontalAidingActive()) {
 
-		Vector2f aux_vel_innov_gate;
-		Vector3f aux_vel_obs_var;
+		const Vector2f aux_vel_innov_gate(_params.auxvel_gate, _params.auxvel_gate);
 
 		_aux_vel_innov = _state.vel - _auxvel_sample_delayed.vel;
-		aux_vel_obs_var = _auxvel_sample_delayed.velVar;
-		aux_vel_innov_gate(0) = _params.auxvel_gate;
 
-		fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, aux_vel_obs_var,
+		fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
 				_aux_vel_innov_var, _aux_vel_test_ratio);
 
 		// Can be enabled after bit for this is added to EKF_AID_MASK
-		// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, aux_vel_obs_var,
+		// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
 		//		_aux_vel_innov_var, _aux_vel_test_ratio);
 
 	}
