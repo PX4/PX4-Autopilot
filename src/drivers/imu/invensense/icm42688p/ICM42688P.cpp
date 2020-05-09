@@ -324,9 +324,6 @@ void ICM42688P::ConfigureSampleRate(int sample_rate)
 
 	_fifo_accel_samples = math::min(_fifo_empty_interval_us / (1e6f / ACCEL_RATE), (float)FIFO_MAX_SAMPLES);
 
-	_px4_accel.set_update_rate(1e6f / _fifo_empty_interval_us);
-	_px4_gyro.set_update_rate(1e6f / _fifo_empty_interval_us);
-
 	ConfigureFIFOWatermark(_fifo_gyro_samples);
 }
 

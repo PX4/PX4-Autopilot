@@ -45,7 +45,6 @@ L3GD20::L3GD20(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotati
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": dupe"))
 {
-	_px4_gyro.set_update_rate(L3GD20_DEFAULT_RATE);
 }
 
 L3GD20::~L3GD20()

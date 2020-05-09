@@ -55,12 +55,11 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_accel_integrated.h>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
-#include <uORB/topics/sensor_correction.h>
-#include <uORB/topics/sensor_gyro_integrated.h>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/subsystem_info.h>
 
@@ -81,7 +80,8 @@ public:
 	 * @param parameters parameter values. These do not have to be initialized when constructing this object.
 	 * Only when calling init(), they have to be initialized.
 	 */
-	VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled);
+	VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled,
+			   uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[3]);
 
 	/**
 	 * initialize subscriptions etc.
@@ -117,8 +117,6 @@ public:
 	 * check if a failover event occured. if so, report it.
 	 */
 	void checkFailover();
-
-	int bestGyroID() const { return _gyro_device_id[_gyro.last_best_vote]; }
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
@@ -166,20 +164,12 @@ private:
 	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);
 
 	/**
-	 * Poll the accelerometer for updated data.
-	 *
-	 * @param raw	Combined sensor data structure into which
-	 *		data should be returned.
-	 */
-	void accelPoll(sensor_combined_s &raw);
-
-	/**
 	 * Poll the gyro for updated data.
 	 *
 	 * @param raw	Combined sensor data structure into which
 	 *		data should be returned.
 	 */
-	void gyroPoll(sensor_combined_s &raw);
+	void imuPoll(sensor_combined_s &raw);
 
 	/**
 	 * Poll the magnetometer for updated data.
@@ -195,8 +185,8 @@ private:
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
-	SensorData _accel{ORB_ID::sensor_accel_integrated};
-	SensorData _gyro{ORB_ID::sensor_gyro_integrated};
+	SensorData _accel{ORB_ID::sensor_accel};
+	SensorData _gyro{ORB_ID::sensor_gyro};
 	SensorData _mag{ORB_ID::sensor_mag};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
@@ -204,8 +194,8 @@ private:
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */
 	uORB::PublicationQueued<subsystem_info_s> _info_pub{ORB_ID(subsystem_info)};	/* subsystem info publication */
 
-	/* sensor thermal compensation */
-	uORB::Subscription _corrections_sub{ORB_ID(sensor_correction)};
+	// references
+	uORB::SubscriptionCallbackWorkItem(&_vehicle_imu_sub)[3];
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
 	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
@@ -231,7 +221,6 @@ private:
 
 	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX] {};	/**< latest full timestamp */
 
-	sensor_correction_s _corrections {};		/**< struct containing the sensor corrections to be published to the uORB */
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
 	subsystem_info_s _info {};			/**< subsystem info publication */
 };
