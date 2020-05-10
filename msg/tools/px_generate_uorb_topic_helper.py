@@ -298,7 +298,9 @@ def print_field(field):
     if field.name == 'timestamp':
         print(("if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" + field.name +
               ": " + c_type + "  (%.6f seconds ago)\\n\", " + field_name +
-              ", hrt_elapsed_time(&message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}"))
+              ", (now - message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}"))
+    elif field.name == 'timestamp_sample':
+        print(("\n\tPX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "  (" + c_type + " us before timestamp)\\n\", " + field_name + ", message.timestamp - message.timestamp_sample);\n\t"))
     elif field.name == 'device_id':
         print("char device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), message.device_id);")
