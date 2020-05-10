@@ -596,7 +596,7 @@ void VotedSensorsUpdate::gyroPoll(struct sensor_combined_s &raw)
 			_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);
 			_last_sensor_data[uorb_index].gyro_rad[2] = gyro_rate(2);
 
-			_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp;
+			_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp_sample;
 			_gyro.voter.put(uorb_index, gyro_report.timestamp, _last_sensor_data[uorb_index].gyro_rad,
 					gyro_report.error_count, _gyro.priority[uorb_index]);
 		}
