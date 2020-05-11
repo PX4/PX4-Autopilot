@@ -2200,7 +2200,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 	} while (retries > 0);
 
 	if (retries == 0) {
-		mavlink_and_console_log_info(&_mavlink_log_pub, "[IO] mixer upload fail");
+		mavlink_log_info(&_mavlink_log_pub, "[IO] mixer upload fail");
 		/* load must have failed for some reason */
 		return -EINVAL;
 

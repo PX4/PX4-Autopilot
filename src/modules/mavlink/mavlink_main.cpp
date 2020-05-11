@@ -2253,11 +2253,11 @@ Mavlink::task_main(int argc, char *argv[])
 				    (_first_heartbeat_sent)) {
 
 					_transmitting_enabled = false;
-					mavlink_and_console_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s", _device_name);
+					mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s", _device_name);
 
 				} else if (!_transmitting_enabled && !status.high_latency_data_link_lost) {
 					_transmitting_enabled = true;
-					mavlink_and_console_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s", _device_name);
+					mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s", _device_name);
 				}
 			}
 		}
@@ -2269,8 +2269,8 @@ Mavlink::task_main(int argc, char *argv[])
 			    (_mode == MAVLINK_MODE_IRIDIUM)) {
 				if (vehicle_cmd.param1 > 0.5f) {
 					if (!_transmitting_enabled) {
-						mavlink_and_console_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command",
-									     _device_name);
+						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command",
+								 _device_name);
 					}
 
 					_transmitting_enabled = true;
@@ -2278,8 +2278,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 				} else {
 					if (_transmitting_enabled) {
-						mavlink_and_console_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command",
-									     _device_name);
+						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command",
+								 _device_name);
 					}
 
 					_transmitting_enabled = false;
