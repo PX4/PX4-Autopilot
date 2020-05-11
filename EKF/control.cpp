@@ -325,7 +325,7 @@ void Ekf::controlExternalVisionFusion()
 				_ev_pos_innov(1) = _state.pos(1) - ev_pos_meas(1);
 
 				ev_pos_obs_var(0) = fmaxf(ev_pos_var(0, 0), sq(0.01f));
-				ev_pos_obs_var(1) = fmaxf(ev_pos_var(1, 0), sq(0.01f));
+				ev_pos_obs_var(1) = fmaxf(ev_pos_var(1, 1), sq(0.01f));
 
 				// check if we have been deadreckoning too long
 				if (isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)) {
