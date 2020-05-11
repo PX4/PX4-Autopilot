@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(ak09916)
-add_subdirectory(bmm150)
-add_subdirectory(hmc5883)
-add_subdirectory(qmc5883)
-add_subdirectory(isentek)
-add_subdirectory(ist8310)
-add_subdirectory(lis2mdl)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(rm3100)
+px4_add_module(
+	MODULE drivers__lis2mdl
+	MAIN lis2mdl
+	SRCS
+		lis2mdl_i2c.cpp
+		lis2mdl_spi.cpp
+		lis2mdl_main.cpp
+		lis2mdl.cpp
+	)

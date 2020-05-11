@@ -257,10 +257,7 @@ void VehicleAngularVelocity::Run()
 			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
 
 			// correct for in-run bias errors
-			Vector3f angular_velocity_raw = _corrections.Correct(val) - _bias;
-
-			// correct for in-run bias errors
-			angular_velocity_raw -= _bias;
+			const Vector3f angular_velocity_raw = _corrections.Correct(val) - _bias;
 
 			// Differentiate angular velocity (after notch filter)
 			const Vector3f angular_velocity_notched{_notch_filter_velocity.apply(angular_velocity_raw)};
