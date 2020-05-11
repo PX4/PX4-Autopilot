@@ -550,10 +550,10 @@ Navigator::run()
 				case RTL::RTL_CLOSEST:
 					if (rtl_activated) {
 						if (rtl_type() == RTL::RTL_LAND) {
-							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+							mavlink_log_info(get_mavlink_log_pub(), "RTL LAND activated");
 
 						} else {
-							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Closest landing point activated");
+							mavlink_log_info(get_mavlink_log_pub(), "RTL Closest landing point activated");
 						}
 
 					}
@@ -588,7 +588,7 @@ Navigator::run()
 						}
 
 						if (rtl_activated) {
-							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
+							mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
 						}
 
 						navigation_mode_new = &_mission;
@@ -610,14 +610,14 @@ Navigator::run()
 							}
 
 							if (rtl_activated) {
-								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse");
+								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse");
 							}
 
 							navigation_mode_new = &_mission;
 
 						} else {
 							if (rtl_activated) {
-								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home");
+								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home");
 							}
 
 							navigation_mode_new = &_rtl;
@@ -628,7 +628,7 @@ Navigator::run()
 
 				default:
 					if (rtl_activated) {
-						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL HOME activated");
+						mavlink_log_info(get_mavlink_log_pub(), "RTL HOME activated");
 					}
 
 					navigation_mode_new = &_rtl;

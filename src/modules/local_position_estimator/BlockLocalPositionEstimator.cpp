@@ -207,13 +207,13 @@ void BlockLocalPositionEstimator::Run()
 				    s->get().orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
 				    _sub_lidar == nullptr) {
 					_sub_lidar = s;
-					mavlink_and_console_log_info(&mavlink_log_pub, "%sDownward-facing Lidar detected with ID %zu", msg_label, i);
+					mavlink_log_info(&mavlink_log_pub, "%sDownward-facing Lidar detected with ID %zu", msg_label, i);
 
 				} else if (s->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
 					   s->get().orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
 					   _sub_sonar == nullptr) {
 					_sub_sonar = s;
-					mavlink_and_console_log_info(&mavlink_log_pub, "%sDownward-facing Sonar detected with ID %zu", msg_label, i);
+					mavlink_log_info(&mavlink_log_pub, "%sDownward-facing Sonar detected with ID %zu", msg_label, i);
 				}
 			}
 		}
@@ -346,8 +346,8 @@ void BlockLocalPositionEstimator::Run()
 		// set timestamp when origin was set to current time
 		_time_origin = _timeStamp;
 
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
-					     double(_param_lpe_lat.get()), double(_param_lpe_lon.get()), double(_altOrigin));
+		mavlink_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
+				 double(_param_lpe_lat.get()), double(_param_lpe_lon.get()), double(_altOrigin));
 	}
 
 	// reinitialize x if necessary
@@ -359,7 +359,7 @@ void BlockLocalPositionEstimator::Run()
 		// don't want it to take too long
 		if (!PX4_ISFINITE(_x(i))) {
 			reinit_x = true;
-			mavlink_and_console_log_info(&mavlink_log_pub, "%sreinit x, x(%zu) not finite", msg_label, i);
+			mavlink_log_info(&mavlink_log_pub, "%sreinit x, x(%zu) not finite", msg_label, i);
 			break;
 		}
 	}
@@ -369,7 +369,7 @@ void BlockLocalPositionEstimator::Run()
 			_x(i) = 0;
 		}
 
-		mavlink_and_console_log_info(&mavlink_log_pub, "%sreinit x", msg_label);
+		mavlink_log_info(&mavlink_log_pub, "%sreinit x", msg_label);
 	}
 
 	// force P symmetry and reinitialize P if necessary
@@ -378,16 +378,16 @@ void BlockLocalPositionEstimator::Run()
 	for (size_t i = 0; i < n_x; i++) {
 		for (size_t j = 0; j <= i; j++) {
 			if (!PX4_ISFINITE(m_P(i, j))) {
-				mavlink_and_console_log_info(&mavlink_log_pub,
-							     "%sreinit P (%zu, %zu) not finite", msg_label, i, j);
+				mavlink_log_info(&mavlink_log_pub,
+						 "%sreinit P (%zu, %zu) not finite", msg_label, i, j);
 				reinit_P = true;
 			}
 
 			if (i == j) {
 				// make sure diagonal elements are positive
 				if (m_P(i, i) <= 0) {
-					mavlink_and_console_log_info(&mavlink_log_pub,
-								     "%sreinit P (%zu, %zu) negative", msg_label, i, j);
+					mavlink_log_info(&mavlink_log_pub,
+							 "%sreinit P (%zu, %zu) negative", msg_label, i, j);
 					reinit_P = true;
 				}
 
@@ -1006,7 +1006,7 @@ int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)
 	*periods = i_hist;
 
 	if (t_delay > DELAY_MAX) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "%sdelayed data old: %8.4f", msg_label, double(t_delay));
+		mavlink_log_info(&mavlink_log_pub, "%sdelayed data old: %8.4f", msg_label, double(t_delay));
 		return -1;
 	}
 
