@@ -220,12 +220,12 @@ AirspeedModule::init()
 		_valid_airspeed_index = math::min(_param_airspeed_primary_index.get(), _number_of_airspeed_sensors);
 
 		if (_number_of_airspeed_sensors == 0) {
-			mavlink_and_console_log_info(&_mavlink_log_pub,
-						     "No airspeed sensor detected. Switch to non-airspeed mode.");
+			mavlink_log_info(&_mavlink_log_pub,
+					 "No airspeed sensor detected. Switch to non-airspeed mode.");
 
 		} else {
-			mavlink_and_console_log_info(&_mavlink_log_pub,
-						     "Primary airspeed index bigger than number connected sensors. Take last sensor.");
+			mavlink_log_info(&_mavlink_log_pub,
+					 "Primary airspeed index bigger than number connected sensors. Take last sensor.");
 		}
 
 	} else {
@@ -399,7 +399,7 @@ void AirspeedModule::update_params()
 				-1.0f);  // set it to a negative value to start estimation inside wind estimator
 
 		} else {
-			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
 			_param_west_scale_estimation_on.set(0); // reset this param to 0 as estimation was not turned on
 			_param_west_scale_estimation_on.commit_no_notification();
 		}
@@ -413,11 +413,11 @@ void AirspeedModule::update_params()
 			_param_west_airspeed_scale.commit_no_notification();
 			_airspeed_validator[_valid_airspeed_index - 1].set_airspeed_scale_manual(_param_west_airspeed_scale.get());
 
-			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ASPD_ASPD_SCALE): %0.2f",
-						     (double)_airspeed_validator[_valid_airspeed_index - 1].get_EAS_scale());
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ASPD_ASPD_SCALE): %0.2f",
+					 (double)_airspeed_validator[_valid_airspeed_index - 1].get_EAS_scale());
 
 		} else {
-			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
 		}
 	}
 

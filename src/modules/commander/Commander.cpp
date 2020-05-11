@@ -884,7 +884,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			/* switch to RTL which ends the mission */
 			if (TRANSITION_CHANGED == main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
 					&_internal_state)) {
-				mavlink_and_console_log_info(&mavlink_log_pub, "Returning to launch");
+				mavlink_log_info(&mavlink_log_pub, "Returning to launch");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -913,7 +913,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
 			if (TRANSITION_CHANGED == main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags,
 					&_internal_state)) {
-				mavlink_and_console_log_info(&mavlink_log_pub, "Landing at current position");
+				mavlink_log_info(&mavlink_log_pub, "Landing at current position");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -926,7 +926,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_NAV_PRECLAND: {
 			if (TRANSITION_CHANGED == main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_PRECLAND,
 					status_flags, &_internal_state)) {
-				mavlink_and_console_log_info(&mavlink_log_pub, "Precision landing");
+				mavlink_log_info(&mavlink_log_pub, "Precision landing");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -1582,10 +1582,10 @@ Commander::run()
 			if (armed.armed) {
 				if (_was_landed != _land_detector.landed) {
 					if (_land_detector.landed) {
-						mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
+						mavlink_log_info(&mavlink_log_pub, "Landing detected");
 
 					} else {
-						mavlink_and_console_log_info(&mavlink_log_pub, "Takeoff detected");
+						mavlink_log_info(&mavlink_log_pub, "Takeoff detected");
 						_have_taken_off_since_arming = true;
 
 						// Set all position and velocity test probation durations to takeoff value
@@ -1599,7 +1599,7 @@ Commander::run()
 
 				if (was_falling != _land_detector.freefall) {
 					if (_land_detector.freefall) {
-						mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
+						mavlink_log_info(&mavlink_log_pub, "Freefall detected");
 					}
 				}
 			}
