@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -71,8 +71,6 @@ int InputTest::update(unsigned int timeout_ms, ControlData **control_data, bool 
 
 	for (int i = 0; i < 3; ++i) {
 		_control_data.type_data.angle.angles[i] = _angles[i] * M_DEG_TO_RAD_F;
-
-		_control_data.stabilize_axis[i] = true;
 	}
 
 	_control_data.gimbal_shutter_retract = false;

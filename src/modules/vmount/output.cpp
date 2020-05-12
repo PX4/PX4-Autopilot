@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -74,6 +74,13 @@ void OutputBase::publish()
 	_mount_orientation_pub.publish(mount_orientation);
 }
 
+void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool yaw_stabilize)
+{
+	_stabilize[0] = roll_stabilize;
+	_stabilize[1] = pitch_stabilize;
+	_stabilize[2] = yaw_stabilize;
+}
+
 float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 				   const vehicle_global_position_s &global_position)
 {
@@ -96,18 +103,26 @@ void OutputBase::_set_angle_setpoints(const ControlData *control_data)
 	_cur_control_data = control_data;
 
 	for (int i = 0; i < 3; ++i) {
-		_stabilize[i] = control_data->stabilize_axis[i];
 		_angle_speeds[i] = 0.f;
 	}
 
 	switch (control_data->type) {
 	case ControlData::Type::Angle:
 		for (int i = 0; i < 3; ++i) {
-			if (control_data->type_data.angle.frames[i] == ControlData::TypeData::TypeAngle::Frame::AngularRate) {
+			switch (control_data->type_data.angle.frames[i]) {
+			case ControlData::TypeData::TypeAngle::Frame::AngularRate:
 				_angle_speeds[i] = control_data->type_data.angle.angles[i];
+				break;
 
-			} else {
+			case ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame:
+				_absolute_angle[i] = false;
 				_angle_setpoints[i] = control_data->type_data.angle.angles[i];
+				break;
+
+			case ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame:
+				_absolute_angle[i] = true;
+				_angle_setpoints[i] = control_data->type_data.angle.angles[i];
+				break;
 			}
 		}
 
@@ -188,13 +203,23 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 	vehicle_attitude_s vehicle_attitude{};
 	matrix::Eulerf euler;
 
-	if (_stabilize[0] || _stabilize[1] || _stabilize[2]) {
+	// We only need to apply additional compensation if the required angle is
+	// absolute (world frame) as well as the gimbal is not capable of doing that
+	// calculation. (Most gimbals stabilize at least roll and pitch
+	// and only need compensation for yaw, if at all.)
+	bool compensate[3];
+
+	for (int i = 0; i < 3; ++i) {
+		compensate[i] = _stabilize[i] && _absolute_angle[i];
+	}
+
+	if (compensate[0] || compensate[1] || compensate[2]) {
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
 		euler = matrix::Quatf(vehicle_attitude.q);
 	}
 
 	for (int i = 0; i < 3; ++i) {
-		if (_stabilize[i]) {
+		if (compensate[i]) {
 			_angle_outputs[i] = _angle_setpoints[i] - euler(i);
 
 		} else {

@@ -42,7 +42,7 @@
 
 #include <uORB/topics/actuator_controls.h>
 #include <px4_platform_common/defines.h>
-
+#include <matrix/matrix/math.hpp>
 
 namespace vmount
 {
@@ -73,6 +73,8 @@ int OutputRC::update(const ControlData *control_data)
 	actuator_controls.control[2] = (_angle_outputs[2] + _config.yaw_offset) * _config.yaw_scale;
 	actuator_controls.control[3] = _retract_gimbal ? _config.gimbal_retracted_mode_value : _config.gimbal_normal_mode_value;
 
+	_stream_device_attitude_status();
+
 	_actuator_controls_pub.publish(actuator_controls);
 
 	_last_update = t;
@@ -85,5 +87,26 @@ void OutputRC::print_status()
 	PX4_INFO("Output: AUX");
 }
 
-} /* namespace vmount */
+void OutputRC::_stream_device_attitude_status()
+{
+	gimbal_device_attitude_status_s attitude_status{};
+	attitude_status.timestamp = hrt_absolute_time();
+	attitude_status.target_system = 0;
+	attitude_status.target_component = 0;
+	attitude_status.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_NEUTRAL |
+				       gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK |
+				       gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK |
+				       gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_LOCK;
 
+	matrix::Eulerf euler(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]);
+	matrix::Quatf q(euler);
+	attitude_status.q[0] = q(0);
+	attitude_status.q[1] = q(1);
+	attitude_status.q[2] = q(2);
+	attitude_status.q[3] = q(3);
+
+	attitude_status.failure_flags = 0;
+	_attitude_status_pub.publish(attitude_status);
+}
+
+} /* namespace vmount */

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -43,8 +43,17 @@
 #include "input_rc.h"
 #include <cstdint>
 
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
+#include <uORB/topics/gimbal_device_attitude_status.h>
+#include <uORB/topics/gimbal_device_information.h>
+#include <uORB/topics/gimbal_manager_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_roi.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <lib/ecl/geo/geo.h>
+
 
 namespace vmount
 {
@@ -69,7 +78,7 @@ private:
 
 	int _vehicle_roi_sub = -1;
 	int _position_setpoint_triplet_sub = -1;
-	uint8_t _cur_roi_mode = vehicle_roi_s::ROI_NONE;
+	uint8_t _cur_roi_mode {vehicle_roi_s::ROI_NONE};
 };
 
 
@@ -80,7 +89,7 @@ private:
 class InputMavlinkCmdMount : public InputBase
 {
 public:
-	InputMavlinkCmdMount(bool stabilize);
+	InputMavlinkCmdMount();
 	virtual ~InputMavlinkCmdMount();
 
 	virtual void print_status();
@@ -93,11 +102,55 @@ private:
 	void _ack_vehicle_command(vehicle_command_s *cmd);
 
 	int _vehicle_command_sub = -1;
-	bool _stabilize[3] = { false, false, false };
 
 	int32_t _mav_sys_id{1}; ///< our mavlink system id
 	int32_t _mav_comp_id{1}; ///< our mavlink component id
 };
 
+class InputMavlinkGimbalV2 : public InputBase
+{
+public:
+	InputMavlinkGimbalV2(bool has_v2_gimbal_device);
+	virtual ~InputMavlinkGimbalV2();
+
+	virtual void print_status();
+
+protected:
+	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active);
+	virtual int initialize();
+
+private:
+
+	void _transform_lon_lat_to_angle(const double roi_lon, const double roi_lat, const double roi_alt);
+	float _calculate_pitch(double lon, double lat, float altitude,
+			       const vehicle_global_position_s &global_position);
+	void _read_lat_lon_alt_from_position_setpoint_sub(double &lon_sp, double &lat_sp, double &alt_sp);
+	void _set_control_data_from_set_attitude(const uint32_t flags, const float pitch_angle, const float pitch_rate,
+			const float yaw_angle, const float yaw_rate, float roll_angle = 0, float roll_rate = 0);
+	void _ack_vehicle_command(vehicle_command_s *cmd);
+	void _stream_gimbal_manager_information();
+	void _request_gimbal_device_information();
+	void _stream_gimbal_manager_status();
+
+	int _vehicle_roi_sub = -1;
+	int _gimbal_manager_set_attitude_sub = -1;
+	int _position_setpoint_triplet_sub = -1;
+	int _vehicle_command_sub = -1;
+
+	int32_t _mav_sys_id{1}; ///< our mavlink system id
+	int32_t _mav_comp_id{1}; ///< our mavlink component id
+
+	bool _is_roi_set{false};
+
+	uORB::Subscription _gimbal_device_attitude_status_sub{ORB_ID(gimbal_device_attitude_status)};
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<gimbal_device_information_s> _gimbal_device_info_pub{ORB_ID(gimbal_device_information)};
+	uORB::Publication<gimbal_manager_status_s> _gimbal_manager_status_pub{ORB_ID(gimbal_manager_status)};
+	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
+	uint8_t _cur_roi_mode = vehicle_roi_s::ROI_NONE;
+
+	gimbal_device_attitude_status_s _gimbal_device_attitude_status{};
+
+};
 
 } /* namespace vmount */
