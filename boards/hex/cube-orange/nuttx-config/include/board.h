@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_HOLYBRO_DURANDAL_V1_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_HOLYBRO_DURANDAL_V1_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_HEX_CUBE_ORANGE_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_HEX_CUBE_ORANGE_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -55,19 +55,19 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The holybro durandal v1  board provides the following clock sources:
+/* The hex CubeOrange board provides the following clock sources:
  *
- *   X1: 16 MHz crystal for HSE
+ *   X1: 24 MHz crystal for HSE
  *
  * So we have these clock source available within the STM32
  *
- *   HSI: 16 MHz RC factory-trimmed
- *   HSE: 16 MHz crystal for HSE
+ *   HSI: 24 MHz RC factory-trimmed
+ *   HSE: 24 MHz crystal for HSE
  */
 
-#define STM32_BOARD_XTAL        16000000ul
+#define STM32_BOARD_XTAL        24000000ul
 
-#define STM32_HSI_FREQUENCY     16000000ul
+#define STM32_HSI_FREQUENCY     24000000ul
 #define STM32_LSI_FREQUENCY     32000
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
 #define STM32_LSE_FREQUENCY     32768
@@ -111,13 +111,13 @@
 				 RCC_PLLCFGR_DIVP1EN | \
 				 RCC_PLLCFGR_DIVQ1EN | \
 				 RCC_PLLCFGR_DIVR1EN)
-#define STM32_PLLCFG_PLL1M       RCC_PLLCKSELR_DIVM1(1)
-#define STM32_PLLCFG_PLL1N       RCC_PLL1DIVR_N1(60)
+#define STM32_PLLCFG_PLL1M       RCC_PLLCKSELR_DIVM1(2)
+#define STM32_PLLCFG_PLL1N       RCC_PLL1DIVR_N1(80)
 #define STM32_PLLCFG_PLL1P       RCC_PLL1DIVR_P1(2)
 #define STM32_PLLCFG_PLL1Q       RCC_PLL1DIVR_Q1(4)
 #define STM32_PLLCFG_PLL1R       RCC_PLL1DIVR_R1(8)
 
-#define STM32_VCO1_FREQUENCY     ((STM32_HSE_FREQUENCY / 1) * 60)
+#define STM32_VCO1_FREQUENCY     ((STM32_HSE_FREQUENCY / 2) * 80)
 #define STM32_PLL1P_FREQUENCY    (STM32_VCO1_FREQUENCY / 2)
 #define STM32_PLL1Q_FREQUENCY    (STM32_VCO1_FREQUENCY / 4)
 #define STM32_PLL1R_FREQUENCY    (STM32_VCO1_FREQUENCY / 8)
@@ -130,12 +130,12 @@
 				  RCC_PLLCFGR_DIVQ2EN | \
 				  RCC_PLLCFGR_DIVR2EN)
 #define STM32_PLLCFG_PLL2M       RCC_PLLCKSELR_DIVM2(4)
-#define STM32_PLLCFG_PLL2N       RCC_PLL2DIVR_N2(48)
+#define STM32_PLLCFG_PLL2N       RCC_PLL2DIVR_N2(32)
 #define STM32_PLLCFG_PLL2P       RCC_PLL2DIVR_P2(2)
 #define STM32_PLLCFG_PLL2Q       RCC_PLL2DIVR_Q2(2)
 #define STM32_PLLCFG_PLL2R       RCC_PLL2DIVR_R2(2)
 
-#define STM32_VCO2_FREQUENCY     ((STM32_HSE_FREQUENCY / 4) * 48)
+#define STM32_VCO2_FREQUENCY     ((STM32_HSE_FREQUENCY / 4) * 32)
 #define STM32_PLL2P_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
 #define STM32_PLL2Q_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
 #define STM32_PLL2R_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
@@ -146,12 +146,12 @@
 				 RCC_PLLCFGR_PLL3RGE_4_8_MHZ | \
 				 RCC_PLLCFGR_DIVQ3EN)
 #define STM32_PLLCFG_PLL3M      RCC_PLLCKSELR_DIVM3(4)
-#define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(48)
+#define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(32)
 #define STM32_PLLCFG_PLL3P      RCC_PLL3DIVR_P3(2)
 #define STM32_PLLCFG_PLL3Q      RCC_PLL3DIVR_Q3(4)
 #define STM32_PLLCFG_PLL3R      RCC_PLL3DIVR_R3(2)
 
-#define STM32_VCO3_FREQUENCY    ((STM32_HSE_FREQUENCY / 4) * 48)
+#define STM32_VCO3_FREQUENCY    ((STM32_HSE_FREQUENCY / 4) * 32)
 #define STM32_PLL3P_FREQUENCY   (STM32_VCO3_FREQUENCY / 2)
 #define STM32_PLL3Q_FREQUENCY   (STM32_VCO3_FREQUENCY / 4)
 #define STM32_PLL3R_FREQUENCY   (STM32_VCO3_FREQUENCY / 2)
@@ -543,4 +543,4 @@ void stm32_boardinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /*__NUTTX_CONFIG_HOLYBRO_DURANDAL_V1_INCLUDE_BOARD_H  */
+#endif  /*__NUTTX_CONFIG_HEX_CUBE_ORANGE_INCLUDE_BOARD_H  */
