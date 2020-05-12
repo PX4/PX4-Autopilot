@@ -36,26 +36,23 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+	// Internal: ICM20649, MS5611
 	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortF, GPIO::Pin2}, SPI::DRDY{GPIO::PortB, GPIO::Pin4}),
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin4}, SPI::DRDY{GPIO::PortB, GPIO::Pin14}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortG, GPIO::Pin10}, SPI::DRDY{GPIO::PortB, GPIO::Pin15}),
-		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortH, GPIO::Pin5}),
-	}, {GPIO::PortE, GPIO::Pin3}),
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+		initSPIDevice(DRV_BARO_DEVTYPE_MS5611,  SPI::CS{GPIO::PortD, GPIO::Pin7} /* No DRDY available */ ),
+	}),
+
+	// FRAM
 	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortF, GPIO::Pin5})
+		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
 	}),
-	initSPIBus(SPI::Bus::SPI4, {
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortF, GPIO::Pin10}),
-	}),
-	initSPIBusExternal(SPI::Bus::SPI5, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin4}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
-	}),
-	initSPIBusExternal(SPI::Bus::SPI6, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin6}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin7}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin8})
+
+	// External (on the Vibration Damped IMU board): ICM20602, ICM20948, MS5611
+	initSPIBusExternal(SPI::Bus::SPI4, {
+		initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin13}), // ICM20602 -- accel/gyro
+		initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin15}), // ICM20948 -- accel/gyro/mag -- TODO: not sure about this. Either PC15 or PE4
+		initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}), // MS5611
+
 	}),
 };
 

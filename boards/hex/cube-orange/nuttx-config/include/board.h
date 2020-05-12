@@ -359,6 +359,10 @@
 #define GPIO_USART3_RTS  GPIO_USART3_RTS_2     /* PD12 */
 #define GPIO_USART3_CTS  GPIO_USART3_CTS_NSS_2 /* PD11 */
 
+// IO
+#define GPIO_USART6_RX   GPIO_USART6_RX_1      /* PC7 */
+#define GPIO_USART6_TX   GPIO_USART6_TX_1      /* PC6 */
+
 /* CAN
  *
  * CAN1 is routed to transceiver.
@@ -372,7 +376,7 @@
 #define GPIO_CAN2_TX     GPIO_CAN2_TX_2        /* PB6 */
 
 /* SPI
- * SPI1 interNal
+ * SPI1 internal
  * SPI2 is FRAM.
  * SPI4 is external
  */
