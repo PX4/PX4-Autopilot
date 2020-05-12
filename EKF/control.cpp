@@ -216,41 +216,14 @@ void Ekf::controlExternalVisionFusion()
 
 		// external vision yaw aiding selection logic
 		if (!_control_status.flags.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
-			// don't start using EV data unless daa is arriving frequently
+			// don't start using EV data unless data is arriving frequently
 			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
-				// reset the yaw angle to the value from the observation quaternion
-				// get the roll, pitch, yaw estimates from the quaternion states
-				Eulerf euler_init(_state.quat_nominal);
+				// reset the yaw angle to the value from the vision quaternion
+				const Eulerf euler_obs(_ev_sample_delayed.quat);
+				const float yaw = euler_obs(2);
+				const float yaw_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
 
-				// get initial yaw from the observation quaternion
-				const extVisionSample &ev_newest = _ext_vision_buffer.get_newest();
-				const Eulerf euler_obs(ev_newest.quat);
-				euler_init(2) = euler_obs(2);
-
-				// save a copy of the quaternion state for later use in calculating the amount of reset change
-				const Quatf quat_before_reset = _state.quat_nominal;
-
-				// calculate initial quaternion states for the ekf
-				_state.quat_nominal = Quatf(euler_init);
-				uncorrelateQuatFromOtherStates();
-
-				// adjust the quaternion covariances estimated yaw error
-				increaseQuatYawErrVariance(fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f)));
-
-				// calculate the amount that the quaternion has changed by
-				_state_reset_status.quat_change = _state.quat_nominal * quat_before_reset.inversed();
-
-				// add the reset amount to the output observer buffered data
-				for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-					_output_buffer[i].quat_nominal = _state_reset_status.quat_change * _output_buffer[i].quat_nominal;
-				}
-
-				// apply the change in attitude quaternion to our newest quaternion estimate
-				// which was already taken out from the output buffer
-				_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
-
-				// capture the reset event
-				_state_reset_status.quat_counter++;
+				resetQuatStateYaw(yaw, yaw_variance, true);
 
 				// flag the yaw as aligned
 				_control_status.flags.yaw_align = true;
