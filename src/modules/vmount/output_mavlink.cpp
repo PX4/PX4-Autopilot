@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@
 #include "output_mavlink.h"
 
 #include <math.h>
+#include <matrix/matrix/math.hpp>
 
 #include <uORB/topics/vehicle_command.h>
 #include <px4_platform_common/defines.h>
@@ -49,12 +50,12 @@
 namespace vmount
 {
 
-OutputMavlink::OutputMavlink(const OutputConfig &output_config)
+OutputMavlinkV1::OutputMavlinkV1(const OutputConfig &output_config)
 	: OutputBase(output_config)
 {
 }
 
-int OutputMavlink::update(const ControlData *control_data)
+int OutputMavlinkV1::update(const ControlData *control_data)
 {
 	vehicle_command_s vehicle_command{};
 	vehicle_command.timestamp = hrt_absolute_time();
@@ -83,9 +84,9 @@ int OutputMavlink::update(const ControlData *control_data)
 			vehicle_command.param7 = static_cast<float>(control_data->type_data.angle.frames[2]);
 		}
 
-		vehicle_command.param2 = control_data->stabilize_axis[0];
-		vehicle_command.param3 = control_data->stabilize_axis[1];
-		vehicle_command.param4 = control_data->stabilize_axis[2];
+		vehicle_command.param2 = _stabilize[0] ? 1.0f : 0.0f;
+		vehicle_command.param3 = _stabilize[1] ? 1.0f : 0.0f;
+		vehicle_command.param4 = _stabilize[2] ? 1.0f : 0.0f;
 
 		_vehicle_command_pub.publish(vehicle_command);
 	}
@@ -112,10 +113,87 @@ int OutputMavlink::update(const ControlData *control_data)
 	return 0;
 }
 
-void OutputMavlink::print_status()
+void OutputMavlinkV1::print_status()
 {
-	PX4_INFO("Output: Mavlink");
+	PX4_INFO("Output: MAVLink gimbal protocol v1");
+}
+
+OutputMavlinkV2::OutputMavlinkV2(const OutputConfig &output_config)
+	: OutputBase(output_config)
+{
+}
+
+int OutputMavlinkV2::update(const ControlData *control_data)
+{
+	if (control_data) {
+		//got new command
+		_set_angle_setpoints(control_data);
+		_publish_gimbal_device_set_attitude(control_data);
+	}
+
+	_handle_position_update();
+
+	hrt_abstime t = hrt_absolute_time();
+	_calculate_output_angles(t);
+
+	_last_update = t;
+
+	return 0;
+}
+
+void OutputMavlinkV2::print_status()
+{
+	PX4_INFO("Output: MAVLink gimbal protocol v2");
+}
+
+void OutputMavlinkV2::_publish_gimbal_device_set_attitude(const ControlData *control_data)
+{
+	gimbal_device_set_attitude_s set_attitude{};
+	set_attitude.timestamp = hrt_absolute_time();
+	set_attitude.target_system = (uint8_t)_config.mavlink_sys_id;
+	set_attitude.target_component = (uint8_t)_config.mavlink_comp_id;
+
+	matrix::Eulerf euler(control_data->type_data.angle.angles[0], control_data->type_data.angle.angles[1],
+			     control_data->type_data.angle.angles[2]);
+	matrix::Quatf q(euler);
+
+	set_attitude.q[0] = q(0);
+	set_attitude.q[1] = q(1);
+	set_attitude.q[2] = q(2);
+	set_attitude.q[3] = q(3);
+
+
+	if (control_data->type_data.angle.frames[0] == ControlData::TypeData::TypeAngle::Frame::AngularRate) {
+		set_attitude.angular_velocity_x = control_data->type_data.angle.angles[0]; //roll
+	}
+
+	if (control_data->type_data.angle.frames[1] == ControlData::TypeData::TypeAngle::Frame::AngularRate) {
+		set_attitude.angular_velocity_y = control_data->type_data.angle.angles[1]; //pitch
+
+	}
+
+	if (control_data->type_data.angle.frames[2] == ControlData::TypeData::TypeAngle::Frame::AngularRate) {
+		set_attitude.angular_velocity_z = control_data->type_data.angle.angles[2];
+	}
+
+	if (control_data->type == ControlData::Type::Neutral) {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_NEUTRAL;
+	}
+
+	if (control_data->type_data.angle.frames[0] == ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame) {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_ROLL_LOCK;
+	}
+
+	if (control_data->type_data.angle.frames[1] == ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame) {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_PITCH_LOCK;
+	}
+
+	if (control_data->type_data.angle.frames[2] == ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame) {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_LOCK;
+	}
+
+	_gimbal_device_set_attitude_pub.publish(set_attitude);
+
 }
 
 } /* namespace vmount */
-

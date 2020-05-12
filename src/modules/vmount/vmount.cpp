@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -243,20 +243,22 @@ static int vmount_thread_main(int argc, char *argv[])
 				case 0:
 
 					// Automatic
-					thread_data.input_objs[0] = new InputMavlinkCmdMount(params.mnt_do_stab);
+					thread_data.input_objs[0] = new InputMavlinkCmdMount();
 					thread_data.input_objs[1] = new InputMavlinkROI();
 
 					// RC is on purpose last here so that if there are any mavlink
 					// messages, they will take precedence over RC.
 					// This logic is done further below while update() is called.
-					thread_data.input_objs[2] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch,
+					thread_data.input_objs[2] = new InputRC(params.mnt_man_roll,
+										params.mnt_man_pitch,
 										params.mnt_man_yaw);
 					thread_data.input_objs_len = 3;
 
 					break;
 
 				case 1: //RC
-					thread_data.input_objs[0] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch,
+					thread_data.input_objs[0] = new InputRC(params.mnt_man_roll,
+										params.mnt_man_pitch,
 										params.mnt_man_yaw);
 					break;
 
@@ -265,7 +267,11 @@ static int vmount_thread_main(int argc, char *argv[])
 					break;
 
 				case 3: //MAVLINK_DO_MOUNT
-					thread_data.input_objs[0] = new InputMavlinkCmdMount(params.mnt_do_stab);
+					thread_data.input_objs[0] = new InputMavlinkCmdMount();
+					break;
+
+				case 4: //MAVLINK_V2
+					thread_data.input_objs[0] = new InputMavlinkGimbalV2(params.mnt_mode_out == 2);
 					break;
 
 				default:
@@ -288,8 +294,15 @@ static int vmount_thread_main(int argc, char *argv[])
 
 				break;
 
-			case 1: //MAVLINK
-				thread_data.output_obj = new OutputMavlink(output_config);
+			case 1: //MAVLink v1 gimbal protocol
+				thread_data.output_obj = new OutputMavlinkV1(output_config);
+
+				if (!thread_data.output_obj) { alloc_failed = true; }
+
+				break;
+
+			case 2: //MAVLink v2 gimbal protocol
+				thread_data.output_obj = new OutputMavlinkV2(output_config);
 
 				if (!thread_data.output_obj) { alloc_failed = true; }
 
@@ -317,6 +330,16 @@ static int vmount_thread_main(int argc, char *argv[])
 				PX4_ERR("failed to initialize output mode (%i)", ret);
 				thread_should_exit = true;
 				break;
+			}
+
+			if (params.mnt_do_stab == 1) {
+				thread_data.output_obj->set_stabilize(true, true, true);
+
+			} else if (params.mnt_do_stab == 2) {
+				thread_data.output_obj->set_stabilize(false, false, true);
+
+			} else {
+				thread_data.output_obj->set_stabilize(false, false, false);
 			}
 		}
 
