@@ -53,7 +53,7 @@ fi
 
 
 # check ubuntu version
-# instructions for 16.04, 18.04
+# instructions for 16.04, 18.04, 20.04
 # otherwise warn and point to docker?
 UBUNTU_RELEASE=`lsb_release -rs`
 
@@ -64,6 +64,8 @@ elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 	echo "Ubuntu 16.04"
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 	echo "Ubuntu 18.04"
+elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+	echo "Ubuntu 20.04"
 fi
 
 
