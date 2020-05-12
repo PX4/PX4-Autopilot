@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Holybro Durandal V1 specific board sensors init
+#------------------------------------------------------------------------------
+adc start
+
+# Internal SPI bus ICM-20689
+icm20689 -R 2 -s start
+
+# Internal SPI bus BMI088 accel
+bmi088 -A -R 10 -s start
+
+# Internal SPI bus BMI088 gyro
+bmi088 -G -R 10 -s start
+
+# Possible external compasses
+ist8310 -X start
+hmc5883 -T -X start
+qmc5883 -X start
+lis3mdl -X start
+
+# Possible internal compass
+ist8310 -I start
+
+# Baro on internal SPI
+ms5611 -s start
