@@ -233,13 +233,6 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 void
 MulticopterAttitudeControl::control_attitude()
 {
-	if (_vehicle_attitude_setpoint_sub.updated()) {
-		vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
-		_vehicle_attitude_setpoint_sub.update(&vehicle_attitude_setpoint);
-		_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
-		_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
-	}
-
 	_rates_sp = _attitude_control.update(Quatf(_v_att.q));
 }
 
@@ -283,10 +276,18 @@ MulticopterAttitudeControl::Run()
 
 	if (_vehicle_attitude_sub.update(&_v_att)) {
 
+		// Check for new attitude setpoint
+		if (_vehicle_attitude_setpoint_sub.updated()) {
+			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+			_vehicle_attitude_setpoint_sub.update(&vehicle_attitude_setpoint);
+			_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+			_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+		}
+
 		// Check for a heading reset
 		if (prev_quat_reset_counter != _v_att.quat_reset_counter) {
-			// we only extract the heading change from the delta quaternion
 			const Quatf delta_q_reset(_v_att.delta_q_reset);
+			// for stabilized attitude generation only extract the heading change from the delta quaternion
 			_man_yaw_sp += Eulerf(delta_q_reset).psi();
 			_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
 		}
