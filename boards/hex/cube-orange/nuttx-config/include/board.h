@@ -347,10 +347,6 @@
 
 /* Alternate function pin selections ************************************************/
 
-// unused
-// #define GPIO_USART1_RX   GPIO_USART1_RX_3
-// #define GPIO_USART1_TX   GPIO_USART1_TX_3
-
 // Telem1
 #define GPIO_USART2_RX   GPIO_USART2_RX_2      /* PD6 */
 #define GPIO_USART2_TX   GPIO_USART2_TX_2      /* PD5 */
@@ -362,24 +358,6 @@
 #define GPIO_USART3_TX   GPIO_USART3_TX_3      /* PD8  */
 #define GPIO_USART3_RTS  GPIO_USART3_RTS_2     /* PD12 */
 #define GPIO_USART3_CTS  GPIO_USART3_CTS_NSS_2 /* PD11 */
-
-// unused
-// #define GPIO_UART4_RX    GPIO_UART4_RX_5
-// #define GPIO_UART4_TX    GPIO_UART4_TX_5
-
-// unused
-// #define GPIO_USART6_RX   GPIO_USART6_RX_2
-// #define GPIO_USART6_TX   GPIO_USART6_TX_2
-// #define GPIO_USART6_RTS  GPIO_USART6_RTS_2
-// #define GPIO_USART6_CTS  GPIO_USART6_CTS_NSS_2
-
-// unused
-// #define GPIO_UART7_RX    GPIO_UART7_RX_4
-// #define GPIO_UART7_TX    GPIO_UART7_TX_3
-
-// unused
-// #define GPIO_UART8_RX    GPIO_UART8_RX_1
-// #define GPIO_UART8_TX    GPIO_UART8_TX_1
 
 /* CAN
  *
@@ -394,66 +372,43 @@
 #define GPIO_CAN2_TX     GPIO_CAN2_TX_2        /* PB6 */
 
 /* SPI
- * SPI1 sensors
+ * SPI1 interNal
  * SPI2 is FRAM.
- * SPI4 is BARO
- * SPI6 Reserved
+ * SPI4 is external
  */
 
+#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1    /* PA5 */
 #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1   /* PA6 */
-#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_3   /* PD7 */
-#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_3    /* PG11 */
+#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1   /* PA7 */
 
-#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_3   /* PI2 */
-#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_4   /* PI3 */
-#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_6    /* PI1 */
+#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_4    /* PB13 */
+#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1   /* PB14 */
+#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1   /* PB15 */
 
-#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_1   /* PE13 */
-#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2   /* PE6 */
 #define GPIO_SPI4_SCK    GPIO_SPI4_SCK_2    /* PE2 */
+#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2   /* PE5 */
+#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2   /* PE6 */
 
-#define GPIO_SPI5_MISO   GPIO_SPI5_MISO_1   /* PF8 */
-#define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_2   /* PF9 */
-#define GPIO_SPI5_SCK    GPIO_SPI5_SCK_1    /* PF7 */
-
-#define GPIO_SPI6_MISO   GPIO_SPI6_MISO_1   /* PG12 */
-#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_3   /* PB5 */
-#define GPIO_SPI6_SCK    GPIO_SPI6_SCK_1    /* PG13 */
 
 /* I2C
- *
- *   Each I2C is associated with a U[S]ART
- *   hence the naming I2C2_SDA_UART4 in FMU USAGE spreadsheet
  *
  *   The optional _GPIO configurations allow the I2C driver to manually
  *   reset the bus to clear stuck slaves.  They match the pin configuration,
  *   but are normally-high GPIOs.
- *
  */
 
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
-#define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9  */
+#define GPIO_I2C1_SDA GPIO_I2C2_SDA_1       /* PB11  */
 
 #define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN8)
 #define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN9)
 
-#define GPIO_I2C2_SCL GPIO_I2C2_SCL_2       /* PF1 */
-#define GPIO_I2C2_SDA GPIO_I2C2_SDA_2       /* PF0 */
+#define GPIO_I2C2_SCL GPIO_I2C2_SCL_1       /* PB10 */
+#define GPIO_I2C2_SDA GPIO_I2C2_SDA_2       /* PB11 */
 
-#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN1)
-#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN0)
+#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN10)
+#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN11)
 
-#define GPIO_I2C3_SCL GPIO_I2C3_SCL_2       /* PH7 */
-#define GPIO_I2C3_SDA GPIO_I2C3_SDA_2       /* PH8 */
-
-#define GPIO_I2C3_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTH | GPIO_PIN7)
-#define GPIO_I2C3_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTH | GPIO_PIN8)
-
-#define GPIO_I2C4_SCL GPIO_I2C4_SCL_2       /* PF14 */
-#define GPIO_I2C4_SDA GPIO_I2C4_SDA_2       /* PF15 */
-
-#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN14)
-#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN15)
 
 /* SDMMC1
  *
