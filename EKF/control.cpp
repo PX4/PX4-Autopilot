@@ -202,14 +202,14 @@ void Ekf::controlExternalVisionFusion()
 				if (_params.fusion_mode & MASK_USE_EVPOS && !_control_status.flags.ev_pos) {
 					_control_status.flags.ev_pos = true;
 					resetPosition();
-					ECL_INFO_TIMESTAMPED("commencing external vision position fusion");
+					ECL_INFO_TIMESTAMPED("starting vision pos fusion");
 				}
 
 				// turn on use of external vision measurements for velocity
 				if (_params.fusion_mode & MASK_USE_EVVEL && !_control_status.flags.ev_vel) {
 					_control_status.flags.ev_vel = true;
 					resetVelocity();
-					ECL_INFO_TIMESTAMPED("commencing external vision velocity fusion");
+					ECL_INFO_TIMESTAMPED("starting vision vel fusion");
 				}
 			}
 		}
@@ -235,7 +235,7 @@ void Ekf::controlExternalVisionFusion()
 				stopMagHdgFusion();
 				stopMag3DFusion();
 
-				ECL_INFO_TIMESTAMPED("commencing external vision yaw fusion");
+				ECL_INFO_TIMESTAMPED("starting vision yaw fusion");
 			}
 		}
 
@@ -324,22 +324,7 @@ void Ekf::controlExternalVisionFusion()
 			Vector3f ev_vel_obs_var;
 			Vector2f ev_vel_innov_gates;
 
-			Vector3f vel_aligned{_ev_sample_delayed.vel};
-			Matrix3f ev_vel_var = matrix::diag(_ev_sample_delayed.velVar);
-
-			// rotate measurement into correct earth frame if required
-			if (_params.fusion_mode & MASK_ROTATE_EV) {
-				vel_aligned = _R_ev_to_ekf * _ev_sample_delayed.vel;
-				ev_vel_var = _R_ev_to_ekf * ev_vel_var * _R_ev_to_ekf.transpose();
-			}
-
-			// correct velocity for offset relative to IMU
-			const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
-			const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
-			const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-			vel_aligned -= vel_offset_earth;
-
-			_ev_vel_innov = _state.vel - vel_aligned;
+			_ev_vel_innov = _state.vel - getVisionVelocityInEkfFrame();
 
 			// check if we have been deadreckoning too long
 			if (isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)) {
@@ -350,7 +335,7 @@ void Ekf::controlExternalVisionFusion()
 				}
 			}
 
-			ev_vel_obs_var = matrix::max(ev_vel_var.diag(), sq(0.01f));
+			ev_vel_obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
 
 			ev_vel_innov_gates.setAll(fmaxf(_params.ev_vel_innov_gate, 1.0f));
 
@@ -368,7 +353,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// Turn off EV fusion mode if no data has been received
 		stopEvFusion();
-		ECL_INFO_TIMESTAMPED("External Vision Data Stopped");
+		ECL_INFO_TIMESTAMPED("vision data stopped");
 
 	}
 }

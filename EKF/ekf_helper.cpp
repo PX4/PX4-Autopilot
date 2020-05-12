@@ -106,8 +106,8 @@ void Ekf::resetVelocityToVision() {
 	if(_params.fusion_mode & MASK_ROTATE_EV){
 		_ev_vel = _R_ev_to_ekf *_ev_sample_delayed.vel;
 	}
-	resetVelocityTo(_ev_vel);
-	P.uncorrelateCovarianceSetVariance<3>(4, _ev_sample_delayed.velVar);
+	resetVelocityTo(getVisionVelocityInEkfFrame());
+	P.uncorrelateCovarianceSetVariance<3>(4, getVisionVelocityVarianceInEkfFrame());
 }
 
 void Ekf::resetHorizontalVelocityToZero() {
@@ -310,13 +310,15 @@ void Ekf::resetHeight()
 		P.uncorrelateCovarianceSetVariance<1>(6, 10.0f);
 	}
 
+	// store the reset amount and time to be published
 	if (vert_pos_reset) {
-		// store the reset amount and time to be published
 		_state_reset_status.posD_change = _state.pos(2) - old_vert_pos;
 		_state_reset_status.posD_counter++;
+	}
 
-		// apply the change in height / height rate to our newest height / height rate estimate
-		// which have already been taken out from the output buffer
+	// apply the change in height / height rate to our newest height / height rate estimate
+	// which have already been taken out from the output buffer
+	if (vert_pos_reset) {
 		_output_new.pos(2) += _state_reset_status.posD_change;
 	}
 
@@ -392,11 +394,11 @@ bool Ekf::realignYawGPS()
 
 		// correct yaw angle using GPS ground course if compass yaw bad or yaw is previously not aligned
 		if (badMagYaw || !_control_status.flags.yaw_align) {
-			ECL_WARN_TIMESTAMPED("bad yaw corrected using GPS course");
+			ECL_WARN_TIMESTAMPED("bad yaw, using GPS course");
 
 			// declare the magnetometer as failed if a bad yaw has occurred more than once
 			if (_control_status.flags.mag_aligned_in_flight && (_num_bad_flight_yaw_events >= 2) && !_control_status.flags.mag_fault) {
-				ECL_WARN_TIMESTAMPED("stopping magnetometer use");
+				ECL_WARN_TIMESTAMPED("stopping mag use");
 				_control_status.flags.mag_fault = true;
 			}
 
@@ -1504,6 +1506,51 @@ void Ekf::updateBaroHgtOffset()
 	}
 }
 
+Vector3f Ekf::getVisionVelocityInEkfFrame()
+{
+	Vector3f vel;
+	// correct velocity for offset relative to IMU
+	const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
+	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+
+	// rotate measurement into correct earth frame if required
+	switch(_ev_sample_delayed.vel_frame) {
+		case BODY_FRAME_FRD:
+			vel = _R_to_earth * (_ev_sample_delayed.vel - vel_offset_body);
+			break;
+		case LOCAL_FRAME_FRD:
+			const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
+			if (_params.fusion_mode & MASK_ROTATE_EV)
+			{
+				vel = _R_ev_to_ekf *_ev_sample_delayed.vel - vel_offset_earth;
+			} else {
+				vel = _ev_sample_delayed.vel - vel_offset_earth;
+			}
+			break;
+	}
+	return vel;
+}
+
+Vector3f Ekf::getVisionVelocityVarianceInEkfFrame()
+{
+	Matrix3f ev_vel_cov = _ev_sample_delayed.velCov;
+
+	// rotate measurement into correct earth frame if required
+	switch(_ev_sample_delayed.vel_frame) {
+		case BODY_FRAME_FRD:
+			ev_vel_cov = _R_to_earth * ev_vel_cov * _R_to_earth.transpose();
+			break;
+
+		case LOCAL_FRAME_FRD:
+			if(_params.fusion_mode & MASK_ROTATE_EV)
+			{
+				ev_vel_cov = _R_ev_to_ekf * ev_vel_cov * _R_ev_to_ekf.transpose();
+			}
+			break;
+	}
+	return ev_vel_cov.diag();
+}
+
 // update the rotation matrix which rotates EV measurements into the EKF's navigation frame
 void Ekf::calcExtVisRotMat()
 {
@@ -1755,7 +1802,7 @@ bool Ekf::resetYawToEKFGSF()
 			// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
 			// and cause another navigation failure
 			_control_status.flags.mag_fault = true;
-			ECL_INFO_TIMESTAMPED("Emergency yaw reset - magnetometer use stopped");
+			ECL_INFO_TIMESTAMPED("Emergency yaw reset - mag use stopped");
 		}
 
 		return true;

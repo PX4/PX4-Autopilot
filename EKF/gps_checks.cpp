@@ -99,11 +99,9 @@ bool Ekf::collect_gps(const gps_message &gps)
 		// if the user has selected GPS as the primary height source, switch across to using it
 
 		if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
-			ECL_INFO_TIMESTAMPED("GPS checks passed (WGS-84 origin set, using GPS height)");
 			startGpsHgtFusion();
-		} else {
-			ECL_INFO_TIMESTAMPED("GPS checks passed (WGS-84 origin set)");
 		}
+		ECL_INFO_TIMESTAMPED("GPS checks passed (WGS-84 origin set)");
 	}
 
 	// start collecting GPS if there is a 3D fix and the NED origin has been set
