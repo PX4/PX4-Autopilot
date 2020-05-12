@@ -1428,9 +1428,8 @@ void Ekf2::Run()
 					aligned_ev_odom.y = aligned_pos(1);
 					aligned_ev_odom.z = aligned_pos(2);
 
-					switch(_ev_odom.velocity_frame) {
-						case _ev_odom.BODY_FRAME_FRD:
-						{
+					switch (_ev_odom.velocity_frame) {
+					case _ev_odom.BODY_FRAME_FRD: {
 							const Vector3f aligned_vel = Dcmf(_ekf.getQuaternion()) *
 										     Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
 							aligned_ev_odom.vx = aligned_vel(0);
@@ -1438,8 +1437,8 @@ void Ekf2::Run()
 							aligned_ev_odom.vz = aligned_vel(2);
 							break;
 						}
-						case _ev_odom.LOCAL_FRAME_FRD:
-						{
+
+					case _ev_odom.LOCAL_FRAME_FRD: {
 							const Vector3f aligned_vel = ev_rot_mat *
 										     Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
 							aligned_ev_odom.vx = aligned_vel(0);
