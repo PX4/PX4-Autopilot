@@ -66,6 +66,12 @@ set(msg_files
 	follow_target.msg
 	generator_status.msg
 	geofence_result.msg
+	gimbal_device_set_attitude.msg
+	gimbal_manager_set_attitude.msg
+	gimbal_device_attitude_status.msg
+	gimbal_device_information.msg
+	gimbal_manager_information.msg
+	gimbal_manager_status.msg
 	gps_dump.msg
 	gps_inject_data.msg
 	heater_status.msg
