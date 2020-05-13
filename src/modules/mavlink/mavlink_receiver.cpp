@@ -792,7 +792,7 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 		mocap_odom.pose_covariance[i] = mocap.covariance[i];
 	}
 
-	mocap_odom.velocity_frame = mocap_odom.LOCAL_FRAME_FRD;
+	mocap_odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 	mocap_odom.vx = NAN;
 	mocap_odom.vy = NAN;
 	mocap_odom.vz = NAN;
@@ -1267,7 +1267,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	// - add a MAV_FRAME_*_OTHER to the Mavlink MAV_FRAME enum IOT define
 	// a frame of reference which is not aligned with NED or ENU
 	// - add usage on the estimator side
-	visual_odom.local_frame = visual_odom.LOCAL_FRAME_NED;
+	visual_odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 	const size_t URT_SIZE = sizeof(visual_odom.pose_covariance) / sizeof(visual_odom.pose_covariance[0]);
 	static_assert(URT_SIZE == (sizeof(ev.covariance) / sizeof(ev.covariance[0])),
@@ -1277,7 +1277,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 		visual_odom.pose_covariance[i] = ev.covariance[i];
 	}
 
-	visual_odom.velocity_frame = visual_odom.LOCAL_FRAME_FRD;
+	visual_odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 	visual_odom.vx = NAN;
 	visual_odom.vy = NAN;
 	visual_odom.vz = NAN;
@@ -1314,7 +1314,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	// TODO:
 	// add usage of this information on the estimator side
 	// The heading of the local frame is not aligned with north
-	odometry.local_frame = odometry.LOCAL_FRAME_FRD;
+	odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 
 	// pose_covariance
 	static constexpr size_t POS_URT_SIZE = sizeof(odometry.pose_covariance) / sizeof(odometry.pose_covariance[0]);
@@ -1339,7 +1339,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	 */
 	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) {
 
-		odometry.velocity_frame = odometry.BODY_FRAME_FRD;
+		odometry.velocity_frame = vehicle_odometry_s::BODY_FRAME_FRD;
 		odometry.vx = odom.vx;
 		odometry.vy = odom.vy;
 		odometry.vz = odom.vz;

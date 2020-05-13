@@ -2573,14 +2573,14 @@ protected:
 			msg.q[3] = odom.q[3];
 
 			switch (odom.velocity_frame) {
-			case odom.BODY_FRAME_FRD:
+			case vehicle_odometry_s::BODY_FRAME_FRD:
 				msg.vx = odom.vx;
 				msg.vy = odom.vy;
 				msg.vz = odom.vz;
 				break;
 
-			case odom.LOCAL_FRAME_FRD:
-			case odom.LOCAL_FRAME_NED:
+			case vehicle_odometry_s::LOCAL_FRAME_FRD:
+			case vehicle_odometry_s::LOCAL_FRAME_NED:
 				// Body frame to local frame
 				const matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
 

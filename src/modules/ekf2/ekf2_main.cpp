@@ -1117,7 +1117,7 @@ void Ekf2::Run()
 				ev_data.vel(1) = _ev_odom.vy;
 				ev_data.vel(2) = _ev_odom.vz;
 
-				if (_ev_odom.velocity_frame == _ev_odom.BODY_FRAME_FRD) {
+				if (_ev_odom.velocity_frame == vehicle_odometry_s::BODY_FRAME_FRD) {
 					ev_data.vel_frame = estimator::BODY_FRAME_FRD;
 
 				} else {
@@ -1244,7 +1244,7 @@ void Ekf2::Run()
 				odom.timestamp = hrt_absolute_time();
 				odom.timestamp_sample = now;
 
-				odom.local_frame = odom.LOCAL_FRAME_NED;
+				odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 				// Position of body origin in local NED frame
 				Vector3f position = _ekf.getPosition();
@@ -1266,7 +1266,7 @@ void Ekf2::Run()
 				lpos.vz = velocity(2);
 
 				// Vehicle odometry linear velocity
-				odom.velocity_frame = odom.LOCAL_FRAME_FRD;
+				odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 				odom.vx = lpos.vx;
 				odom.vy = lpos.vy;
 				odom.vz = lpos.vz;
@@ -1429,7 +1429,7 @@ void Ekf2::Run()
 					aligned_ev_odom.z = aligned_pos(2);
 
 					switch (_ev_odom.velocity_frame) {
-					case _ev_odom.BODY_FRAME_FRD: {
+					case vehicle_odometry_s::BODY_FRAME_FRD: {
 							const Vector3f aligned_vel = Dcmf(_ekf.getQuaternion()) *
 										     Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
 							aligned_ev_odom.vx = aligned_vel(0);
@@ -1438,7 +1438,7 @@ void Ekf2::Run()
 							break;
 						}
 
-					case _ev_odom.LOCAL_FRAME_FRD: {
+					case vehicle_odometry_s::LOCAL_FRAME_FRD: {
 							const Vector3f aligned_vel = ev_rot_mat *
 										     Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
 							aligned_ev_odom.vx = aligned_vel(0);
@@ -1448,7 +1448,7 @@ void Ekf2::Run()
 						}
 					}
 
-					aligned_ev_odom.velocity_frame = aligned_ev_odom.LOCAL_FRAME_NED;
+					aligned_ev_odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 					// Compute orientation in EKF navigation frame
 					Quatf ev_quat_aligned = quat_ev2ekf * matrix::Quatf(_ev_odom.q) ;
