@@ -153,31 +153,31 @@ void board_autoled_on(int led)
 		break;
 
 	case LED_HEAPALLOCATE:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_IRQSENABLED:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_STACKCREATED:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_INIRQ:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_SIGNAL:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_ASSERTION:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_PANIC:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_IDLE : /* IDLE */
@@ -201,19 +201,19 @@ void board_autoled_off(int led)
 		break;
 
 	case LED_SIGNAL:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_INIRQ:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_ASSERTION:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_PANIC:
-		phy_set_led(BOARD_LED_AMBER, false);
+		phy_set_led(BOARD_LED_AMBER, true);
 		break;
 
 	case LED_IDLE : /* IDLE */

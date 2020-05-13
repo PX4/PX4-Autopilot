@@ -159,6 +159,19 @@ __EXPORT void board_on_reset(int status)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	// // DEBUG: Use probes
+	// PROBE_INIT(0x1);
+
+	// // DEBUG
+	// while(1)
+	// {
+	// 	// spin
+	// 	up_mdelay(500);
+	// 	PROBE(1, false);
+	// 	up_mdelay(500);
+	// 	PROBE(1, true);
+	// }
+
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
