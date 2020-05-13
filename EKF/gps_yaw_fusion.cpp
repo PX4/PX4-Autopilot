@@ -174,7 +174,7 @@ void Ekf::fuseGpsAntYaw()
 
 		// we reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
-		ECL_ERR_TIMESTAMPED("GPS yaw fusion numerical error - covariance reset");
+		ECL_ERR_TIMESTAMPED("GPS yaw numerical error - covariance reset");
 		return;
 	}
 

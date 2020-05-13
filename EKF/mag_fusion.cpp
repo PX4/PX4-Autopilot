@@ -93,6 +93,7 @@ void Ekf::fuseMag()
 	// X axis innovation variance
 	_mag_innov_var[0] = (P(19,19) + R_MAG + P(1,19)*SH_MAG[0] - P(2,19)*SH_MAG[1] + P(3,19)*SH_MAG[2] - P(16,19)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + (2.0f*q0*q3 + 2.0f*q1*q2)*(P(19,17) + P(1,17)*SH_MAG[0] - P(2,17)*SH_MAG[1] + P(3,17)*SH_MAG[2] - P(16,17)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,17)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,17)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,17)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) - (2.0f*q0*q2 - 2.0f*q1*q3)*(P(19,18) + P(1,18)*SH_MAG[0] - P(2,18)*SH_MAG[1] + P(3,18)*SH_MAG[2] - P(16,18)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,18)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,18)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,18)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) + (SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)*(P(19,0) + P(1,0)*SH_MAG[0] - P(2,0)*SH_MAG[1] + P(3,0)*SH_MAG[2] - P(16,0)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,0)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,0)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,0)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) + P(17,19)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,19)*(2.0f*q0*q2 - 2.0f*q1*q3) + SH_MAG[0]*(P(19,1) + P(1,1)*SH_MAG[0] - P(2,1)*SH_MAG[1] + P(3,1)*SH_MAG[2] - P(16,1)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,1)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,1)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,1)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) - SH_MAG[1]*(P(19,2) + P(1,2)*SH_MAG[0] - P(2,2)*SH_MAG[1] + P(3,2)*SH_MAG[2] - P(16,2)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,2)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,2)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,2)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) + SH_MAG[2]*(P(19,3) + P(1,3)*SH_MAG[0] - P(2,3)*SH_MAG[1] + P(3,3)*SH_MAG[2] - P(16,3)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,3)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,3)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,3)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) - (SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6])*(P(19,16) + P(1,16)*SH_MAG[0] - P(2,16)*SH_MAG[1] + P(3,16)*SH_MAG[2] - P(16,16)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,16)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,16)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,16)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) + P(0,19)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2));
 	// check for a badly conditioned covariance matrix
+	const char* numerical_error_covariance_reset_string = "numerical error - covariance reset";
 
 	if (_mag_innov_var[0] >= R_MAG) {
 		// the innovation variance contribution from the state covariances is non-negative - no fault
@@ -104,7 +105,7 @@ void Ekf::fuseMag()
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagRelatedCovariances();
-		ECL_ERR_TIMESTAMPED("magX fusion numerical error - covariance reset");
+		ECL_ERR("magX %s", numerical_error_covariance_reset_string);
 		return;
 
 	}
@@ -123,7 +124,7 @@ void Ekf::fuseMag()
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagRelatedCovariances();
-		ECL_ERR_TIMESTAMPED("magY fusion numerical error - covariance reset");
+		ECL_ERR("magY %s", numerical_error_covariance_reset_string);
 		return;
 
 	}
@@ -142,7 +143,7 @@ void Ekf::fuseMag()
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagRelatedCovariances();
-		ECL_ERR_TIMESTAMPED("magZ fusion numerical error - covariance reset");
+		ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
 		return;
 
 	}

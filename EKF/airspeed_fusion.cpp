@@ -94,16 +94,18 @@ void Ekf::fuseAirspeed()
 			_fault_status.flags.bad_airspeed = true;
 
 			// if we are getting aiding from other sources, warn and reset the wind states and covariances only
+			const char* action_string = nullptr;
 			if (update_wind_only) {
 				resetWindStates();
 				resetWindCovariance();
-				ECL_ERR_TIMESTAMPED("airspeed fusion badly conditioned - wind covariance reset");
+				action_string = "wind";
 
 			} else {
 				initialiseCovariance();
 				_state.wind_vel.setZero();
-				ECL_ERR_TIMESTAMPED("airspeed fusion badly conditioned - full covariance reset");
+				action_string = "full";
 			}
+			ECL_ERR("airspeed badly conditioned - %s covariance reset", action_string);
 
 			return;
 		}

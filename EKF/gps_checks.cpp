@@ -101,7 +101,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 		if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
 			startGpsHgtFusion();
 		}
-		ECL_INFO_TIMESTAMPED("GPS checks passed (WGS-84 origin set)");
+		ECL_INFO_TIMESTAMPED("GPS checks passed");
 	}
 
 	// start collecting GPS if there is a 3D fix and the NED origin has been set
