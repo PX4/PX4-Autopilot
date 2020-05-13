@@ -48,57 +48,51 @@ ulog = ULog(ulog_file_name, None)
 data = ulog.data_list
 
 # extract gyro data
-sensor_instance = 0
 num_gyros = 0
 for d in data:
     if d.name == 'sensor_gyro':
-        if sensor_instance == 0:
+        if d.multi_id == 0:
             sensor_gyro_0 = d.data
             print('found gyro 0 data')
-            num_gyros = 1
-        if sensor_instance == 1:
+            num_gyros += 1
+        elif d.multi_id == 1:
             sensor_gyro_1 = d.data
             print('found gyro 1 data')
-            num_gyros = 2
-        if sensor_instance == 2:
+            num_gyros += 1
+        elif d.multi_id == 2:
             sensor_gyro_2 = d.data
             print('found gyro 2 data')
-            num_gyros = 3
-        sensor_instance = sensor_instance +1
+            num_gyros += 1
 
 # extract accel data
-sensor_instance = 0
 num_accels = 0
 for d in data:
     if d.name == 'sensor_accel':
-        if sensor_instance == 0:
+        if d.multi_id == 0:
             sensor_accel_0 = d.data
             print('found accel 0 data')
-            num_accels = 1
-        if sensor_instance == 1:
+            num_accels += 1
+        elif d.multi_id == 1:
             sensor_accel_1 = d.data
             print('found accel 1 data')
-            num_accels = 2
-        if sensor_instance == 2:
+            num_accels += 1
+        elif d.multi_id == 2:
             sensor_accel_2 = d.data
             print('found accel 2 data')
-            num_accels = 3
-        sensor_instance = sensor_instance +1
+            num_accels += 1
 
 # extract baro data
-sensor_instance = 0
 num_baros = 0
 for d in data:
     if d.name == 'sensor_baro':
-        if sensor_instance == 0:
+        if d.multi_id == 0:
             sensor_baro_0 = d.data
             print('found baro 0 data')
-            num_baros = 1
-        if sensor_instance == 1:
+            num_baros += 1
+        elif d.multi_id == 1:
             sensor_baro_1 = d.data
             print('found baro 1 data')
-            num_baros = 2
-        sensor_instance = sensor_instance +1
+            num_baros += 1
 
 # open file to save plots to PDF
 from matplotlib.backends.backend_pdf import PdfPages
