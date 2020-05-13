@@ -912,3 +912,16 @@ PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
  * @increment 1
  */
 PARAM_DEFINE_FLOAT(COM_CPU_MAX, 90.0f);
+
+/**
+ * 5V Avionics rail voltage below which the operator gets warnings
+ *
+ * A negative value disables the warning.
+ *
+ * @group Commander
+ * @unit %
+ * @min -1
+ * @max 6
+ * @increment 0.1
+ */
+PARAM_DEFINE_FLOAT(COM_5V_WARN_THR, 4.9f);

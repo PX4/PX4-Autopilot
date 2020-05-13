@@ -35,6 +35,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
+#include <lib/parameters/param.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/system_power.h>
 
@@ -57,7 +58,10 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 	if (hrt_elapsed_time(&system_power.timestamp) < 1_s) {
 		// Check avionics rail voltages (if USB isn't connected)
 		if (!system_power.usb_connected) {
-			float avionics_power_rail_voltage = system_power.voltage5v_v;
+			const float avionics_power_rail_voltage = system_power.voltage5v_v;
+
+			float low_voltage_5v_threshold;
+			param_get(param_find("COM_5V_WARN_THR"), &low_voltage_5v_threshold);
 
 			if (avionics_power_rail_voltage < 4.5f) {
 				success = false;
@@ -67,7 +71,7 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 							     (double)avionics_power_rail_voltage);
 				}
 
-			} else if (avionics_power_rail_voltage < 4.9f) {
+			} else if (avionics_power_rail_voltage < low_voltage_5v_threshold) {
 				if (report_fail) {
 					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
 				}
