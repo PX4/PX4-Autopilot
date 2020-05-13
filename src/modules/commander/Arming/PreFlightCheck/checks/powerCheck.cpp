@@ -67,7 +67,7 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 							     (double)avionics_power_rail_voltage);
 				}
 
-			} else if (avionics_power_rail_voltage < 4.9f) {
+			} else if (avionics_power_rail_voltage < 4.8f) {
 				if (report_fail) {
 					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
 				}
