@@ -71,14 +71,14 @@ void Ekf::controlFusionModes()
 				height_source = "gps";
 
 			} else if (_control_status.flags.rng_hgt) {
-				height_source = "range";
+				height_source = "rng";
 
 			} else {
 				height_source = "unknown";
 
 			}
 			if(height_source){
-				ECL_INFO("%llu: EKF aligned, (%s height, IMU buf: %i, OBS buf: %i)",
+				ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
 					(unsigned long long)_imu_sample_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			}
 		}
@@ -537,7 +537,7 @@ void Ekf::controlGpsFusion()
 				stopMagHdgFusion();
 				stopMag3DFusion();
 
-				ECL_INFO_TIMESTAMPED("commencing GPS yaw fusion");
+				ECL_INFO_TIMESTAMPED("starting GPS yaw fusion");
 			}
 		}
 
@@ -588,7 +588,7 @@ void Ekf::controlGpsFusion()
 					}
 
 					if (_control_status.flags.gps) {
-						ECL_INFO_TIMESTAMPED("commencing GPS fusion");
+						ECL_INFO_TIMESTAMPED("starting GPS fusion");
 						_time_last_gps = _time_last_imu;
 					}
 				}
@@ -606,7 +606,7 @@ void Ekf::controlGpsFusion()
 			if (_control_status.flags.ev_pos && !(_params.fusion_mode & MASK_ROTATE_EV)) {
 				resetPosition();
 			}
-			ECL_WARN_TIMESTAMPED("GPS data quality poor - stopping use");
+			ECL_WARN_TIMESTAMPED("GPS quality poor - stopping use");
 		}
 
 		// handle case where we are not currently using GPS, but need to align yaw angle using EKF-GSF before
@@ -760,6 +760,8 @@ void Ekf::controlHeightSensorTimeouts()
 	if (hgt_fusion_timeout || continuous_bad_accel_hgt) {
 
 		bool request_height_reset = false;
+		const char* failing_height_source = nullptr;
+		const char* new_height_source = nullptr;
 
 		if (_control_status.flags.baro_hgt) {
 			// check if GPS height is available
@@ -780,11 +782,13 @@ void Ekf::controlHeightSensorTimeouts()
 				startGpsHgtFusion();
 
 				request_height_reset = true;
-				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to GPS");
+				failing_height_source = "baro";
+				new_height_source = "gps";
 
 			} else if (!_baro_hgt_faulty) {
 				request_height_reset = true;
-				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to baro");
+				failing_height_source = "baro";
+				new_height_source = "baro";
 			}
 
 		} else if (_control_status.flags.gps_hgt) {
@@ -806,24 +810,28 @@ void Ekf::controlHeightSensorTimeouts()
 				startBaroHgtFusion();
 
 				request_height_reset = true;
-				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to baro");
+				failing_height_source = "gps";
+				new_height_source = "baro";
 
 			} else if (!_gps_hgt_intermittent) {
 				request_height_reset = true;
-				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to GPS");
+				failing_height_source = "gps";
+				new_height_source = "gps";
 			}
 
 		} else if (_control_status.flags.rng_hgt) {
 
 			if (_range_sensor.isHealthy()) {
 				request_height_reset = true;
-				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to rng hgt");
+				failing_height_source = "rng";
+				new_height_source = "rng";
 
 			} else if (!_baro_hgt_faulty) {
 				startBaroHgtFusion();
 
 				request_height_reset = true;
-				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to baro");
+				failing_height_source = "rng";
+				new_height_source = "baro";
 			}
 
 		} else if (_control_status.flags.ev_hgt) {
@@ -833,14 +841,20 @@ void Ekf::controlHeightSensorTimeouts()
 
 			if (ev_data_available) {
 				request_height_reset = true;
-				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to ev hgt");
+				failing_height_source = "ev";
+				new_height_source = "ev";
 
 			} else if (!_baro_hgt_faulty) {
 				startBaroHgtFusion();
 
 				request_height_reset = true;
-				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to baro");
+				failing_height_source = "ev";
+				new_height_source = "baro";
 			}
+		}
+
+		if (failing_height_source && new_height_source) {
+			ECL_WARN("%s hgt timeout - reset to %s", failing_height_source, new_height_source);
 		}
 
 		// Reset vertical position and velocity states to the last measurement
@@ -901,7 +915,7 @@ void Ekf::controlHeightFusion()
 
 	switch (_params.vdist_sensor_type) {
 	default:
-		ECL_ERR("Invalid height mode: %d", _params.vdist_sensor_type);
+		ECL_ERR("Invalid hgt mode: %d", _params.vdist_sensor_type);
 
 	// FALLTHROUGH
 	case VDIST_SENSOR_BARO:
