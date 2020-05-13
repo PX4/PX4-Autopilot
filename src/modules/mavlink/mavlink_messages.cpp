@@ -2572,16 +2572,27 @@ protected:
 			msg.q[2] = odom.q[2];
 			msg.q[3] = odom.q[3];
 
-			// Body-FRD frame to local NED frame Dcm matrix
-			matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
+			switch (odom.velocity_frame) {
+			case vehicle_odometry_s::BODY_FRAME_FRD:
+				msg.vx = odom.vx;
+				msg.vy = odom.vy;
+				msg.vz = odom.vz;
+				break;
 
-			// Rotate linear and angular velocity from local NED to body-NED frame
-			matrix::Vector3f linvel_body(R_body_to_local.transpose() * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
+			case vehicle_odometry_s::LOCAL_FRAME_FRD:
+			case vehicle_odometry_s::LOCAL_FRAME_NED:
+				// Body frame to local frame
+				const matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
 
-			// Current linear velocity
-			msg.vx = linvel_body(0);
-			msg.vy = linvel_body(1);
-			msg.vz = linvel_body(2);
+				// Rotate linear velocity from local to body frame
+				const matrix::Vector3f linvel_body(R_body_to_local.transpose() *
+								   matrix::Vector3f(odom.vx, odom.vy, odom.vz));
+
+				msg.vx = linvel_body(0);
+				msg.vy = linvel_body(1);
+				msg.vz = linvel_body(2);
+				break;
+			}
 
 			// Current body rates
 			msg.rollspeed = odom.rollspeed;

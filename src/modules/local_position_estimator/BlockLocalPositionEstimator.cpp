@@ -638,7 +638,7 @@ void BlockLocalPositionEstimator::publishOdom()
 	    && PX4_ISFINITE(_x(X_vz))) {
 		_pub_odom.get().timestamp = hrt_absolute_time();
 		_pub_odom.get().timestamp_sample = _timeStamp;
-		_pub_odom.get().local_frame = _pub_odom.get().LOCAL_FRAME_NED;
+		_pub_odom.get().local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 		// position
 		_pub_odom.get().x = xLP(X_x);	// north
@@ -656,6 +656,7 @@ void BlockLocalPositionEstimator::publishOdom()
 		q.copyTo(_pub_odom.get().q);
 
 		// linear velocity
+		_pub_odom.get().velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 		_pub_odom.get().vx = xLP(X_vx);		// vel north
 		_pub_odom.get().vy = xLP(X_vy);		// vel east
 		_pub_odom.get().vz = xLP(X_vz);		// vel down
