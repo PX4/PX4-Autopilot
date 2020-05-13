@@ -93,6 +93,10 @@ for d in data:
             sensor_baro_1 = d.data
             print('found baro 1 data')
             num_baros += 1
+        elif d.multi_id == 2:
+            sensor_baro_2 = d.data
+            print('found baro 2 data')
+            num_baros += 1
 
 # open file to save plots to PDF
 from matplotlib.backends.backend_pdf import PdfPages
@@ -754,7 +758,7 @@ baro_1_params = {
 
 if num_baros >= 2:
 
-    # curve fit the data for baro 0 corrections
+    # curve fit the data for baro 1 corrections
     baro_1_params['TC_B1_ID'] = int(np.median(sensor_baro_1['device_id']))
 
     # find the min, max and reference temperature
@@ -784,6 +788,59 @@ if num_baros >= 2:
     plt.plot(sensor_baro_1['temperature'],100*sensor_baro_1['pressure']-100*median_pressure,'b')
     plt.plot(temp_resample,baro_1_x_resample,'r')
     plt.title('Baro 1 Bias vs Temperature')
+    plt.ylabel('Z bias (Pa)')
+    plt.xlabel('temperature (degC)')
+    plt.grid()
+
+    pp.savefig()
+
+# define data dictionary of baro 1 thermal correction  parameters
+baro_2_params = {
+'TC_B2_ID':0,
+'TC_B2_TMIN':0.0,
+'TC_B2_TMAX':0.0,
+'TC_B2_TREF':0.0,
+'TC_B2_X0':0.0,
+'TC_B2_X1':0.0,
+'TC_B2_X2':0.0,
+'TC_B2_X3':0.0,
+'TC_B2_X4':0.0,
+'TC_B2_X5':0.0,
+'TC_B2_SCL':1.0,
+}
+
+if num_baros >= 3:
+
+    # curve fit the data for baro 2 corrections
+    baro_2_params['TC_B2_ID'] = int(np.median(sensor_baro_2['device_id']))
+
+    # find the min, max and reference temperature
+    baro_2_params['TC_B2_TMIN'] = np.amin(sensor_baro_2['temperature'])
+    baro_2_params['TC_B2_TMAX'] = np.amax(sensor_baro_2['temperature'])
+    baro_2_params['TC_B2_TREF'] = 0.5 * (baro_2_params['TC_B2_TMIN'] + baro_2_params['TC_B2_TMAX'])
+    temp_rel = sensor_baro_2['temperature'] - baro_2_params['TC_B2_TREF']
+    temp_rel_resample = np.linspace(baro_2_params['TC_B2_TMIN']-baro_2_params['TC_B2_TREF'], baro_2_params['TC_B2_TMAX']-baro_2_params['TC_B2_TREF'], 100)
+    temp_resample = temp_rel_resample + baro_2_params['TC_B2_TREF']
+
+    # fit data
+    median_pressure = np.median(sensor_baro_2['pressure']);
+    coef_baro_2_x = np.polyfit(temp_rel,100*(sensor_baro_2['pressure']-median_pressure),5) # convert from hPa to Pa
+    baro_2_params['TC_B2_X5'] = coef_baro_2_x[0]
+    baro_2_params['TC_B2_X4'] = coef_baro_2_x[1]
+    baro_2_params['TC_B2_X3'] = coef_baro_2_x[2]
+    baro_2_params['TC_B2_X2'] = coef_baro_2_x[3]
+    baro_2_params['TC_B2_X1'] = coef_baro_2_x[4]
+    baro_2_params['TC_B2_X0'] = coef_baro_2_x[5]
+    fit_coef_baro_2_x = np.poly1d(coef_baro_2_x)
+    baro_2_x_resample = fit_coef_baro_2_x(temp_rel_resample)
+
+    # baro 2 vs temperature
+    plt.figure(8,figsize=(20,13))
+
+    # draw plots
+    plt.plot(sensor_baro_2['temperature'],100*sensor_baro_2['pressure']-100*median_pressure,'b')
+    plt.plot(temp_resample,baro_2_x_resample,'r')
+    plt.title('Baro 2 Bias vs Temperature')
     plt.ylabel('Z bias (Pa)')
     plt.xlabel('temperature (degC)')
     plt.grid()
@@ -854,6 +911,16 @@ for key in key_list_baro:
     else:
         type = "9"
     file.write("1"+"\t"+"1"+"\t"+key+"\t"+str(baro_1_params[key])+"\t"+type+"\n")
+
+# baro 2 corrections
+key_list_baro = list(baro_2_params.keys())
+key_list_baro.sort
+for key in key_list_baro:
+    if key == 'TC_B2_ID':
+        type = "6"
+    else:
+        type = "9"
+    file.write("1"+"\t"+"1"+"\t"+key+"\t"+str(baro_2_params[key])+"\t"+type+"\n")
 
 # gyro 0 corrections
 key_list_gyro = list(gyro_0_params.keys())
