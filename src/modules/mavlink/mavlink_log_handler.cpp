@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,7 +87,7 @@ MavlinkLogHandler::MavlinkLogHandler(Mavlink *mavlink)
 }
 MavlinkLogHandler::~MavlinkLogHandler()
 {
-	_close_and_ulink_files();
+	_close_and_unlink_files();
 }
 
 //-------------------------------------------------------------------
@@ -148,7 +148,7 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 		//-- Is this a new request?
 		if ((request.end - request.start) > _log_count) {
 			_current_status = LOG_HANDLER_STATE::INACTIVE;
-			_close_and_ulink_files();
+			_close_and_unlink_files();
 
 		} else {
 			_current_status = LOG_HANDLER_STATE::IDLE;
@@ -159,16 +159,9 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 	if (_current_status == LOG_HANDLER_STATE::INACTIVE) {
 		//-- Prepare new request
 
-		_next_entry = 0;
-		_last_entry = 0;
-		_log_count = 0;
+		_reset_list_helper();
+		_init_list_helper();
 		_current_status = LOG_HANDLER_STATE::IDLE;
-		_current_log_index = UINT16_MAX;
-		_current_log_size = 0;
-		_current_log_data_offset = 0;
-		_current_log_data_remaining = 0;
-		_current_log_filep = nullptr;
-		_init();
 	}
 
 	if (_log_count) {
@@ -251,7 +244,7 @@ MavlinkLogHandler::_log_request_erase(const mavlink_message_t * /*msg*/)
 	mavlink_msg_log_erase_decode(msg, &request);
 	*/
 	_current_status = LOG_HANDLER_STATE::INACTIVE;
-	_close_and_ulink_files();
+	_close_and_unlink_files();
 
 	//-- Delete all logs
 	_delete_all(kLogRoot);
@@ -264,7 +257,7 @@ MavlinkLogHandler::_log_request_end(const mavlink_message_t * /*msg*/)
 	PX4LOG_WARN("MavlinkLogHandler::_log_request_end");
 
 	_current_status = LOG_HANDLER_STATE::INACTIVE;
-	_close_and_ulink_files();
+	_close_and_unlink_files();
 }
 
 //-------------------------------------------------------------------
@@ -327,14 +320,14 @@ MavlinkLogHandler::_log_send_data()
 }
 
 //-------------------------------------------------------------------
-void MavlinkLogHandler::_close_and_ulink_files(void)
+void MavlinkLogHandler::_close_and_unlink_files(void)
 {
 	if (_current_log_filep) {
 		::fclose(_current_log_filep);
+		_reset_list_helper();
 	}
 
 	// Remove log data files (if any)
-	//TODO: is there need to check that kLogData and kTmpData exist?
 	unlink(kLogData);
 	unlink(kTmpData);
 }
@@ -423,9 +416,22 @@ MavlinkLogHandler::_get_log_data(uint8_t len, uint8_t *buffer)
 	return result;
 }
 
-//-------------------------------------------------------------------
+
 void
-MavlinkLogHandler::_init()
+MavlinkLogHandler::_reset_list_helper()
+{
+	_next_entry = 0;
+	_last_entry = 0;
+	_log_count = 0;
+	_current_log_index = UINT16_MAX;
+	_current_log_size = 0;
+	_current_log_data_offset = 0;
+	_current_log_data_remaining = 0;
+	_current_log_filep = nullptr;
+}
+
+void
+MavlinkLogHandler::_init_list_helper()
 {
 	/*
 
@@ -435,6 +441,7 @@ MavlinkLogHandler::_init()
 	*/
 
 	_current_log_filename[0] = 0;
+
 	// Remove old log data file (if any)
 	unlink(kLogData);
 	// Open log directory
