@@ -348,8 +348,8 @@
 // Telem2
 #define GPIO_USART3_RX   GPIO_USART3_RX_3      /* PD9  */
 #define GPIO_USART3_TX   GPIO_USART3_TX_3      /* PD8  */
-#define GPIO_USART3_RTS  GPIO_USART3_RTS_2     /* PD12 */
-#define GPIO_USART3_CTS  GPIO_USART3_CTS_NSS_2 /* PD11 */
+// #define GPIO_USART3_RTS  GPIO_USART3_RTS_2     /* PD12 */
+// #define GPIO_USART3_CTS  GPIO_USART3_CTS_NSS_2 /* PD11 */
 
 // IO
 #define GPIO_USART6_RX   GPIO_USART6_RX_1      /* PC7 */

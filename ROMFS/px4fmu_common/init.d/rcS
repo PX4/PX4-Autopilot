@@ -434,7 +434,7 @@ else
 	# Start UART/Serial device drivers.
 	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 	#
-	sh /etc/init.d/rc.serial
+	# sh /etc/init.d/rc.serial
 
 	if [ $IO_PRESENT = no ]
 	then
