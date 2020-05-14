@@ -96,7 +96,6 @@ __BEGIN_DECLS
 /* High-resolution timer */
 #define HRT_TIMER              1  /* FTM timer for the HRT */
 #define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
-#define HRT_PPM_CHANNEL        1  /* Use TPM1 capture/compare channel 1 */
 
 /* Timer I/O PWM and capture
  *
