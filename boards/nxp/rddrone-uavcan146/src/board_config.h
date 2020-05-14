@@ -90,13 +90,32 @@ __BEGIN_DECLS
 
 /* Count of peripheral clock user configurations */
 
-#define NUM_OF_PERIPHERAL_CLOCKS_0 14
+#define NUM_OF_PERIPHERAL_CLOCKS_0 18
 
 
 /* High-resolution timer */
-#define HRT_TIMER              1  /* FTM timer for the HRT */
+#define HRT_TIMER              5  /* FTM timer for the HRT */
 #define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
-#define HRT_PPM_CHANNEL        1  /* Use TPM1 capture/compare channel 1 */
+
+/* Timer I/O PWM and capture
+ *
+ * ?? PWM outputs are configured.
+ * ?? Timer inputs are configured.
+ *
+ * Pins:
+ *      Defined in board.h
+ */
+// todo:Design this!
+
+#define DIRECT_PWM_OUTPUT_CHANNELS  1
+
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_HAS_LED_PWM              1
+
+#define LED_TIM3_CH1OUT   /* PTD1  RGB_R */ PIN_FTM3_CH1_1
+#define LED_TIM3_CH5OUT   /* PTC9  RGB_G */ PIN_FTM3_CH5_1
+#define LED_TIM3_CH4OUT   /* PTC8  RGB_B */ PIN_FTM3_CH4_1
 
 /****************************************************************************
  * Public Types
