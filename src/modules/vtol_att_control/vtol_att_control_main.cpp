@@ -159,7 +159,7 @@ VtolAttitudeControl::handle_command()
 	if (_vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
 
 		vehicle_status_s vehicle_status = {};
-		_vehicle_status_sub.update(&vehicle_status);
+		_vehicle_status_sub.copy(&vehicle_status);
 
 		uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
