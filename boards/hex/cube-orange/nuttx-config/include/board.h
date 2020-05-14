@@ -363,6 +363,10 @@
 #define GPIO_UART7_RX    GPIO_UART7_RX_3       /* PE7 */
 #define GPIO_UART7_TX    GPIO_UART7_TX_3       /* PE8 */
 
+// GPS2 | ttyS5
+#define GPIO_UART8_RX    GPIO_UART8_RX_1       /* PE0 */
+#define GPIO_UART8_TX    GPIO_UART8_TX_1       /* PE1 */
+
 /* CAN
  *
  * CAN1 is routed to transceiver.
@@ -393,6 +397,11 @@
 #define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2   /* PE5 */
 #define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2   /* PE6 */
 
+// TODO see if any INTERNAL/EXTERNAL defines needed
+//#define PX4_SPIDEV_EXTERNAL1_1      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1,0)
+//#define PX4_SPIDEV_EXTERNAL1_2      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1,1)
+//#define PX4_EXTERNAL1_BUS_CS_GPIO   {SPI5_CS1_EXTERNAL1, SPI5_CS2_EXTERNAL1}
+
 
 /* I2C
  *
@@ -413,6 +422,11 @@
 #define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN10)
 #define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN11)
 
+// TODO are these needed?  Used by some drivers
+#define PX4_I2C_BUS_EXPANSION       1
+#define PX4_I2C_BUS_ONBOARD         2
+
+#define BOARD_I2C_BUS_CLOCK_INIT    {100000, 100000}
 
 /* SDMMC1
  *
