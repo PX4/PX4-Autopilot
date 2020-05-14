@@ -975,26 +975,37 @@ void Ekf::controlHeightFusion()
 
 	case VDIST_SENSOR_GPS:
 
-		// Determine if GPS should be used as the height source
-		if (do_range_aid && _range_sensor.isDataHealthy()) {
+		// NOTE: emergency fallback due to extended loss of currently selected sensor data or failure
+		// to pass innovation cinsistency checks is handled elsewhere in Ekf::controlHeightSensorTimeouts.
+		// Do switching between GPS and rangefinder if using range finder as a height source when close
+		// to ground and moving slowly. Also handle switch back from emergency Baro sensor when GPS recovers.
+		if (!_control_status_prev.flags.rng_hgt && do_range_aid && _range_sensor.isDataHealthy()) {
 			setControlRangeHeight();
-			fuse_height = true;
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurement matches our current height estimate
-			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				_hgt_sensor_offset = _terrain_vpos;
+			_hgt_sensor_offset = _terrain_vpos;
+
+		} else if (_control_status_prev.flags.rng_hgt && !do_range_aid) {
+			// must stop using range finder so find another sensor now
+			if (!_gps_hgt_intermittent && _gps_checks_passed) {
+				// GPS quality OK
+				startGpsHgtFusion();
+			} else if (!_baro_hgt_faulty) {
+				// Use baro as a fallback
+				startBaroHgtFusion();
 			}
-
-		} else if (!do_range_aid && _gps_data_ready && !_gps_hgt_intermittent && _gps_checks_passed) {
-			fuse_height = true;
+		} else if (_control_status.flags.baro_hgt && !do_range_aid && !_gps_hgt_intermittent && _gps_checks_passed) {
+			// In baro fallback mode and GPS has recovered so start using it
 			startGpsHgtFusion();
-
+		}
+		if (_control_status.flags.gps_hgt && _gps_data_ready) {
+			fuse_height = true;
+		} else if (_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
+			fuse_height = true;
 		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
-			// switch to baro if there was a reset to baro
 			fuse_height = true;
 		}
-
 		break;
 
 	case VDIST_SENSOR_EV:
