@@ -106,19 +106,6 @@ RCUpdate::init()
 void
 RCUpdate::parameters_updated()
 {
-	if (_param_rc_flt_smp_rate.get() < 1.0f) {
-		_param_rc_flt_smp_rate.set(1.0f);
-		_param_rc_flt_smp_rate.commit_no_notification();
-	}
-
-	// make sure the filter is in its stable region -> fc < fs/2
-	const float flt_cutoff_max = _param_rc_flt_smp_rate.get() / 2.0f - 1.0f;
-
-	if (_param_rc_flt_cutoff.get() > flt_cutoff_max) {
-		_param_rc_flt_cutoff.set(flt_cutoff_max);
-		_param_rc_flt_cutoff.commit_no_notification();
-	}
-
 	// rc values
 	for (unsigned int i = 0; i < RC_MAX_CHAN_COUNT; i++) {
 
@@ -185,16 +172,6 @@ RCUpdate::update_rc_functions()
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
 	}
-
-	/* update the RC low pass filter frequencies */
-	_filter_roll.set_cutoff_frequency(_param_rc_flt_smp_rate.get(), _param_rc_flt_cutoff.get());
-	_filter_pitch.set_cutoff_frequency(_param_rc_flt_smp_rate.get(), _param_rc_flt_cutoff.get());
-	_filter_yaw.set_cutoff_frequency(_param_rc_flt_smp_rate.get(), _param_rc_flt_cutoff.get());
-	_filter_throttle.set_cutoff_frequency(_param_rc_flt_smp_rate.get(), _param_rc_flt_cutoff.get());
-	_filter_roll.reset(0.f);
-	_filter_pitch.reset(0.f);
-	_filter_yaw.reset(0.f);
-	_filter_throttle.reset(0.f);
 }
 
 void
@@ -480,12 +457,6 @@ RCUpdate::Run()
 			manual.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
 			manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
 			manual.aux6 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_6, -1.0, 1.0);
-
-			/* filter controls */
-			manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
-			manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
-			manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
-			manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
 
 			if (_param_rc_map_fltmode.get() > 0) {
 				/* number of valid slots */
