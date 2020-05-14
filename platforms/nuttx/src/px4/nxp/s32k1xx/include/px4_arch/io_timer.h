@@ -48,7 +48,7 @@ __BEGIN_DECLS
 #ifdef BOARD_NUM_IO_TIMERS
 #define MAX_IO_TIMERS			BOARD_NUM_IO_TIMERS
 #else
-#define MAX_IO_TIMERS			2
+#define MAX_IO_TIMERS			3
 #endif
 #define MAX_TIMER_IO_CHANNELS	16
 

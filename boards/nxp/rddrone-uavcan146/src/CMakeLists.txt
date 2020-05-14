@@ -41,6 +41,7 @@ add_library(drivers_board
 	init.c
 	periphclocks.c
 	spi.c
+	timer_config.cpp
 	userleds.c
 )
 
