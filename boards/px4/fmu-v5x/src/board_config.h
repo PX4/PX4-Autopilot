@@ -77,13 +77,13 @@
 
 /* PX4FMU GPIOs ***********************************************************************************/
 
-/* Trace Clock and D0-D3 are available on the debug connector and adjacent pads
+/* Trace Clock and D0-D3 are available on the trace connector
  *
- * TRACECLK PE2  - Dedicated  - Debug Connector Pin 7
- * TRACED0  PE3  - nLED_RED   - Debug Connector Pin 8
- * TRACED1  PE4  - nLED_GREEN - Test Point next to Debug Connector
- * TRACED2  PE5  - nLED_BLUE  - Test Point next to Debug Connector
- * TRACED3  PC12 - nARMED     - Test Point next to Debug Connector
+ * TRACECLK PE2  - Dedicated  - Trace Connector Pin 1
+ * TRACED0  PE3  - nLED_RED   - Trace Connector Pin 3
+ * TRACED1  PE4  - nLED_GREEN - Trace Connector Pin 5
+ * TRACED2  PE5  - nLED_BLUE  - Trace Connector Pin 7
+ * TRACED3  PC12 - nARMED     - Trace Connector Pin 8
 
  */
 #undef TRACE_PINS
