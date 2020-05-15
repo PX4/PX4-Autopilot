@@ -146,37 +146,42 @@ void Ekf::predictCovariance()
 	const float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
 
 	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
+	// xy accel bias learning is also disabled on ground as those states are poorly observable when perpendicular to the gravity vector
 	const float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
 	const float beta = 1.0f - alpha;
 	_ang_rate_magnitude_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_ang.norm(), beta * _ang_rate_magnitude_filt);
 	_accel_magnitude_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_vel.norm(), beta * _accel_magnitude_filt);
 	_accel_vec_filt = alpha * dt_inv * _imu_sample_delayed.delta_vel + beta * _accel_vec_filt;
 
-	if (_ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
-	    || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim
-	    || _bad_vert_accel_detected) {
+	const bool is_manoeuvre_level_high = _ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
+					    || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim;
 
-		// store the bias state variances to be reinstated later
-		if (!_accel_bias_inhibit) {
-			_prev_dvel_bias_var = P.slice<3,3>(13,13).diag();
-		}
+	const bool do_inhibit_all_axes = (_params.fusion_mode & MASK_INHIBIT_ACC_BIAS)
+					 || is_manoeuvre_level_high
+					 || _bad_vert_accel_detected;
 
-		_accel_bias_inhibit = true;
+	for (unsigned stateIndex = 13; stateIndex <= 15; stateIndex++) {
+		const unsigned index = stateIndex - 13;
 
-	} else {
-		if (_accel_bias_inhibit) {
-			// reinstate the bias state variances
-			P(13,13) = _prev_dvel_bias_var(0);
-			P(14,14) = _prev_dvel_bias_var(1);
-			P(15,15) = _prev_dvel_bias_var(2);
+		// TODO: When on ground, only consider an accel bias observable if aligned with the gravity vector
+		// const bool is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.8f) || _control_status.flags.in_air;
+		const bool is_bias_observable = true;
+		const bool do_inhibit_axis = do_inhibit_all_axes || !is_bias_observable;
+
+		if (do_inhibit_axis) {
+			// store the bias state variances to be reinstated later
+			if (!_accel_bias_inhibit[index]) {
+				_prev_dvel_bias_var(index) = P(stateIndex, stateIndex);
+				_accel_bias_inhibit[index] = true;
+			}
 
 		} else {
-			// store the bias state variances to be reinstated later
-			_prev_dvel_bias_var = P.slice<3,3>(13,13).diag();
-
+			if (_accel_bias_inhibit[index]) {
+				// reinstate the bias state variances
+				P(stateIndex, stateIndex) = _prev_dvel_bias_var(index);
+				_accel_bias_inhibit[index] = false;
+			}
 		}
-
-		_accel_bias_inhibit = false;
 	}
 
 	// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
@@ -431,68 +436,43 @@ void Ekf::predictCovariance()
 		nextP(i,i) = kahanSummation(nextP(i,i), process_noise(i), _delta_angle_bias_var_accum(index));
 	}
 
-	// Don't calculate these covariance terms if IMU delta velocity bias estimation is inhibited
-	if (!(_params.fusion_mode & MASK_INHIBIT_ACC_BIAS) && !_accel_bias_inhibit) {
+	for (unsigned i = 13; i <= 15; i++) {
+		const unsigned index = i - 13;
 
-		// calculate variances and upper diagonal covariances for IMU delta velocity bias states
-		nextP(0,13) = P(0,13) + P(1,13)*SF[9] + P(2,13)*SF[11] + P(3,13)*SF[10] + P(10,13)*SF[14] + P(11,13)*SF[15] + P(12,13)*SPP[10];
-		nextP(1,13) = P(1,13) + P(0,13)*SF[8] + P(2,13)*SF[7] + P(3,13)*SF[11] - P(12,13)*SF[15] + P(11,13)*SPP[10] - (P(10,13)*q0)/2;
-		nextP(2,13) = P(2,13) + P(0,13)*SF[6] + P(1,13)*SF[10] + P(3,13)*SF[8] + P(12,13)*SF[14] - P(10,13)*SPP[10] - (P(11,13)*q0)/2;
-		nextP(3,13) = P(3,13) + P(0,13)*SF[7] + P(1,13)*SF[6] + P(2,13)*SF[9] + P(10,13)*SF[15] - P(11,13)*SF[14] - (P(12,13)*q0)/2;
-		nextP(4,13) = P(4,13) + P(0,13)*SF[5] + P(1,13)*SF[3] - P(3,13)*SF[4] + P(2,13)*SPP[0] + P(13,13)*SPP[3] + P(14,13)*SPP[6] - P(15,13)*SPP[9];
-		nextP(5,13) = P(5,13) + P(0,13)*SF[4] + P(2,13)*SF[3] + P(3,13)*SF[5] - P(1,13)*SPP[0] - P(13,13)*SPP[8] + P(14,13)*SPP[2] + P(15,13)*SPP[5];
-		nextP(6,13) = P(6,13) + P(1,13)*SF[4] - P(2,13)*SF[5] + P(3,13)*SF[3] + P(0,13)*SPP[0] + P(13,13)*SPP[4] - P(14,13)*SPP[7] - P(15,13)*SPP[1];
-		nextP(7,13) = P(7,13) + P(4,13)*dt;
-		nextP(8,13) = P(8,13) + P(5,13)*dt;
-		nextP(9,13) = P(9,13) + P(6,13)*dt;
-		nextP(10,13) = P(10,13);
-		nextP(11,13) = P(11,13);
-		nextP(12,13) = P(12,13);
-		nextP(13,13) = P(13,13);
-		nextP(0,14) = P(0,14) + P(1,14)*SF[9] + P(2,14)*SF[11] + P(3,14)*SF[10] + P(10,14)*SF[14] + P(11,14)*SF[15] + P(12,14)*SPP[10];
-		nextP(1,14) = P(1,14) + P(0,14)*SF[8] + P(2,14)*SF[7] + P(3,14)*SF[11] - P(12,14)*SF[15] + P(11,14)*SPP[10] - (P(10,14)*q0)/2;
-		nextP(2,14) = P(2,14) + P(0,14)*SF[6] + P(1,14)*SF[10] + P(3,14)*SF[8] + P(12,14)*SF[14] - P(10,14)*SPP[10] - (P(11,14)*q0)/2;
-		nextP(3,14) = P(3,14) + P(0,14)*SF[7] + P(1,14)*SF[6] + P(2,14)*SF[9] + P(10,14)*SF[15] - P(11,14)*SF[14] - (P(12,14)*q0)/2;
-		nextP(4,14) = P(4,14) + P(0,14)*SF[5] + P(1,14)*SF[3] - P(3,14)*SF[4] + P(2,14)*SPP[0] + P(13,14)*SPP[3] + P(14,14)*SPP[6] - P(15,14)*SPP[9];
-		nextP(5,14) = P(5,14) + P(0,14)*SF[4] + P(2,14)*SF[3] + P(3,14)*SF[5] - P(1,14)*SPP[0] - P(13,14)*SPP[8] + P(14,14)*SPP[2] + P(15,14)*SPP[5];
-		nextP(6,14) = P(6,14) + P(1,14)*SF[4] - P(2,14)*SF[5] + P(3,14)*SF[3] + P(0,14)*SPP[0] + P(13,14)*SPP[4] - P(14,14)*SPP[7] - P(15,14)*SPP[1];
-		nextP(7,14) = P(7,14) + P(4,14)*dt;
-		nextP(8,14) = P(8,14) + P(5,14)*dt;
-		nextP(9,14) = P(9,14) + P(6,14)*dt;
-		nextP(10,14) = P(10,14);
-		nextP(11,14) = P(11,14);
-		nextP(12,14) = P(12,14);
-		nextP(13,14) = P(13,14);
-		nextP(14,14) = P(14,14);
-		nextP(0,15) = P(0,15) + P(1,15)*SF[9] + P(2,15)*SF[11] + P(3,15)*SF[10] + P(10,15)*SF[14] + P(11,15)*SF[15] + P(12,15)*SPP[10];
-		nextP(1,15) = P(1,15) + P(0,15)*SF[8] + P(2,15)*SF[7] + P(3,15)*SF[11] - P(12,15)*SF[15] + P(11,15)*SPP[10] - (P(10,15)*q0)/2;
-		nextP(2,15) = P(2,15) + P(0,15)*SF[6] + P(1,15)*SF[10] + P(3,15)*SF[8] + P(12,15)*SF[14] - P(10,15)*SPP[10] - (P(11,15)*q0)/2;
-		nextP(3,15) = P(3,15) + P(0,15)*SF[7] + P(1,15)*SF[6] + P(2,15)*SF[9] + P(10,15)*SF[15] - P(11,15)*SF[14] - (P(12,15)*q0)/2;
-		nextP(4,15) = P(4,15) + P(0,15)*SF[5] + P(1,15)*SF[3] - P(3,15)*SF[4] + P(2,15)*SPP[0] + P(13,15)*SPP[3] + P(14,15)*SPP[6] - P(15,15)*SPP[9];
-		nextP(5,15) = P(5,15) + P(0,15)*SF[4] + P(2,15)*SF[3] + P(3,15)*SF[5] - P(1,15)*SPP[0] - P(13,15)*SPP[8] + P(14,15)*SPP[2] + P(15,15)*SPP[5];
-		nextP(6,15) = P(6,15) + P(1,15)*SF[4] - P(2,15)*SF[5] + P(3,15)*SF[3] + P(0,15)*SPP[0] + P(13,15)*SPP[4] - P(14,15)*SPP[7] - P(15,15)*SPP[1];
-		nextP(7,15) = P(7,15) + P(4,15)*dt;
-		nextP(8,15) = P(8,15) + P(5,15)*dt;
-		nextP(9,15) = P(9,15) + P(6,15)*dt;
-		nextP(10,15) = P(10,15);
-		nextP(11,15) = P(11,15);
-		nextP(12,15) = P(12,15);
-		nextP(13,15) = P(13,15);
-		nextP(14,15) = P(14,15);
-		nextP(15,15) = P(15,15);
+		if (!_accel_bias_inhibit[index]) {
+			// calculate variances and upper diagonal covariances for IMU delta velocity bias states
+			nextP(0,i) = P(0,i) + P(1,i)*SF[9] + P(2,i)*SF[11] + P(3,i)*SF[10] + P(10,i)*SF[14] + P(11,i)*SF[15] + P(12,i)*SPP[10];
+			nextP(1,i) = P(1,i) + P(0,i)*SF[8] + P(2,i)*SF[7] + P(3,i)*SF[11] - P(12,i)*SF[15] + P(11,i)*SPP[10] - (P(10,i)*q0)/2;
+			nextP(2,i) = P(2,i) + P(0,i)*SF[6] + P(1,i)*SF[10] + P(3,i)*SF[8] + P(12,i)*SF[14] - P(10,i)*SPP[10] - (P(11,i)*q0)/2;
+			nextP(3,i) = P(3,i) + P(0,i)*SF[7] + P(1,i)*SF[6] + P(2,i)*SF[9] + P(10,i)*SF[15] - P(11,i)*SF[14] - (P(12,i)*q0)/2;
+			nextP(4,i) = P(4,i) + P(0,i)*SF[5] + P(1,i)*SF[3] - P(3,i)*SF[4] + P(2,i)*SPP[0] + P(13,i)*SPP[3] + P(14,i)*SPP[6] - P(15,i)*SPP[9];
+			nextP(5,i) = P(5,i) + P(0,i)*SF[4] + P(2,i)*SF[3] + P(3,i)*SF[5] - P(1,i)*SPP[0] - P(13,i)*SPP[8] + P(14,i)*SPP[2] + P(15,i)*SPP[5];
+			nextP(6,i) = P(6,i) + P(1,i)*SF[4] - P(2,i)*SF[5] + P(3,i)*SF[3] + P(0,i)*SPP[0] + P(13,i)*SPP[4] - P(14,i)*SPP[7] - P(15,i)*SPP[1];
+			nextP(7,i) = P(7,i) + P(4,i)*dt;
+			nextP(8,i) = P(8,i) + P(5,i)*dt;
+			nextP(9,i) = P(9,i) + P(6,i)*dt;
+			nextP(10,i) = P(10,i);
+			nextP(11,i) = P(11,i);
+			nextP(12,i) = P(12,i);
+			nextP(13,i) = P(13,i);
 
-		// add process noise that is not from the IMU
-		// process noise contributiton for delta velocity states can be very small compared to
-		// the variances, therefore use algorithm to minimise numerical error
-		for (unsigned i = 13; i <= 15; i++) {
-			const int index = i-13;
+			if (i > 13) {
+				nextP(14,i) = P(14,i);
+			}
+
+			if (i > 14) {
+				nextP(15,i) = P(15,i);
+			}
+
+			// add process noise that is not from the IMU
+			// process noise contributiton for delta velocity states can be very small compared to
+			// the variances, therefore use algorithm to minimise numerical error
 			nextP(i,i) = kahanSummation(nextP(i,i), process_noise(i), _delta_vel_bias_var_accum(index));
-		}
 
-	} else {
-		// Inhibit delta velocity bias learning by zeroing the covariance terms
-		nextP.uncorrelateCovarianceSetVariance<3>(13, 0.0f);
-		_delta_vel_bias_var_accum.setZero();
+		} else {
+			nextP.uncorrelateCovarianceSetVariance<1>(i, 0.f);
+			_delta_vel_bias_var_accum(index) = 0.f;
+		}
 	}
 
 	// Don't do covariance prediction on magnetic field states unless we are using 3-axis fusion
@@ -757,16 +737,17 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	// by ensuring the corresponding covariance matrix values are kept at zero
 
 	// accelerometer bias states
-	if ((_params.fusion_mode & MASK_INHIBIT_ACC_BIAS) || _accel_bias_inhibit) {
-		P.uncorrelateCovarianceSetVariance<3>(13, 0.0f);
-
-	} else {
+	if (!_accel_bias_inhibit[0] || !_accel_bias_inhibit[1] || !_accel_bias_inhibit[2]) {
 		// Find the maximum delta velocity bias state variance and request a covariance reset if any variance is below the safe minimum
 		const float minSafeStateVar = 1e-9f;
 		float maxStateVar = minSafeStateVar;
 		bool resetRequired = false;
 
 		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
+			if (_accel_bias_inhibit[stateIndex - 13]) {
+				// Skip the check for the inhibited axis
+				continue;
+			}
 			if (P(stateIndex,stateIndex) > maxStateVar) {
 				maxStateVar = P(stateIndex,stateIndex);
 
@@ -782,6 +763,10 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		float minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
 
 		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
+			if (_accel_bias_inhibit[stateIndex - 13]) {
+				// Skip the check for the inhibited axis
+				continue;
+			}
 			P(stateIndex,stateIndex) = math::constrain(P(stateIndex,stateIndex), minAllowedStateVar, sq(0.1f * CONSTANTS_ONE_G * _dt_ekf_avg));
 		}
 
@@ -792,7 +777,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 		// Run additional checks to see if the delta velocity bias has hit limits in a direction that is clearly wrong
 		// calculate accel bias term aligned with the gravity vector
-		float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
+		const float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
 		float down_dvel_bias = 0.0f;
 
 		for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
