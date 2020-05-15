@@ -61,7 +61,7 @@
  *
  * So we have these clock source available within the STM32
  *
- *   HSI: 24 MHz RC factory-trimmed
+ *   HSI: 16 MHz RC factory-trimmed internal oscillator
  *   HSE: 24 MHz crystal for HSE
  */
 
@@ -225,10 +225,6 @@
 /* I2C123 clock source */
 
 #define STM32_RCC_D2CCIP2R_I2C123SRC RCC_D2CCIP2R_I2C123SEL_HSI
-
-/* I2C4 clock source */
-
-#define STM32_RCC_D3CCIPR_I2C4SRC    RCC_D3CCIPR_I2C4SEL_HSI
 
 /* SPI123 clock source */
 
