@@ -477,7 +477,7 @@ private:
 	gps_check_fail_status_u _gps_check_fail_status{};
 
 	// variables used to inhibit accel bias learning
-	bool _accel_bias_inhibit{false};	///< true when the accel bias learning is being inhibited
+	bool _accel_bias_inhibit[3]{};		///< true when the accel bias learning is being inhibited for the specified axis
 	Vector3f _accel_vec_filt;		///< acceleration vector after application of a low pass filter (m/sec**2)
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
