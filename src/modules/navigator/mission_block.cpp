@@ -450,8 +450,12 @@ MissionBlock::is_mission_item_reached()
 
 	// all acceptance criteria must be met in the same iteration
 	_waypoint_position_reached_previously = _waypoint_position_reached;
-	_waypoint_position_reached = false;
-	_waypoint_yaw_reached = false;
+
+	if (!(_mission_item.nav_cmd == NAV_CMD_DELAY)) {
+		_waypoint_position_reached = false;
+		_waypoint_yaw_reached = false;
+	}
+
 	return false;
 }
 
