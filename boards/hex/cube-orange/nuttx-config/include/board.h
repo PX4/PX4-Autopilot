@@ -418,12 +418,6 @@
 #define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN10)
 #define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN11)
 
-// TODO are these needed?  Used by some drivers
-#define PX4_I2C_BUS_EXPANSION       1
-#define PX4_I2C_BUS_ONBOARD         2
-
-#define BOARD_I2C_BUS_CLOCK_INIT    {100000, 100000}
-
 /* SDMMC1
  *
  *      VDD 3.3
