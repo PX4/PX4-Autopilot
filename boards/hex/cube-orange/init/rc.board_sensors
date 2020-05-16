@@ -4,30 +4,17 @@
 #------------------------------------------------------------------------------
 adc start
 
-# Internal SPI bus ICM-20689
-icm20689 -R 2 -s start
+# Internal SPI bus ICM-20948
+# TODO: review driver
+# icm20948 -s -R 6 start
 
-# Internal SPI bus BMI088 accel
-bmi088 -A -R 10 -s start
-
-# Internal SPI bus BMI088 gyro
-bmi088 -G -R 10 -s start
-
-# Possible external compasses
-ist8310 -X start
-hmc5883 -T -X start
-qmc5883 -X start
-lis3mdl -X start
-
-# Possible internal compass
-ist8310 -I start
-
-# Baro on internal SPI
+# Baro on internal SPI1
 ms5611 -s start
 
-# ICM20948 as external magnetometer on I2C (e.g. Here GPS)
-if ! icm20948 -X -R 6 start
-then
-	# external emulated AK09916 (Here2) is rotated 270 degrees yaw
-	ak09916 -X -R 6 start
-fi
+# External Vibration isolated sensors on SPI4
+icm20649 -S -b 4 -c 1 -R 12 start
+icm20602 -S -b 4 -c 2 -R 14 start
+
+# Baro on external SPI4
+ms5611 -S -b 4 -c 3 start
+

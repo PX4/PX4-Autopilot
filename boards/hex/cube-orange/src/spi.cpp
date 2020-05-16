@@ -36,9 +36,9 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	// Internal: ICM20649, MS5611
+	// Internal: ICM20948, MS5611
 	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20948, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
 		initSPIDevice(DRV_BARO_DEVTYPE_MS5611,  SPI::CS{GPIO::PortD, GPIO::Pin7} /* No DRDY available */),
 	}),
 
@@ -47,29 +47,12 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
 	}),
 
-	// External (on the Vibration Damped IMU board): ICM20602, ICM20948, MS5611
-	initSPIBusExternal(SPI::Bus::SPI4, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin13}), // ICM20602 -- accel/gyro
-		initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin15}), // ICM20948 -- accel/gyro/mag -- TODO: not sure about this. Either PC15 or PE4
-		initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}), // MS5611
-
+	// External (on the Vibration Damped IMU board): ICM20649, ICM20602, MS5611
+	initSPIBus(SPI::Bus::SPI4, {
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortE, GPIO::Pin4}), 	// ICM20649
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin13}),	// ICM20602
+		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, 	SPI::CS{GPIO::PortC, GPIO::Pin14}),	// MS5611
 	}),
-
-	/// TODO -- for reference...
-	// initSPIBus(SPI::Bus::SPI1, {
-	// 	initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-	// 	initSPIDevice(DRV_IMU_DEVTYPE_ICM20948, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-	// 	initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}, SPI::DRDY{GPIO::PortB, GPIO::Pin0}),
-	// }, {GPIO::PortE, GPIO::Pin3}
-	// 	  ),
-
-	// initSPIBus(SPI::Bus::SPI4, {
-	// 	initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG, SPI::CS{GPIO::PortC, GPIO::Pin13}),
-	// 	initSPIDevice(DRV_MAG_DEVTYPE_ST_LSM9DS1_M, SPI::CS{GPIO::PortC, GPIO::Pin15}),
-	// 	initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}),
-	// 	initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin13}),
-	// 	initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortC, GPIO::Pin14}),
-	// }),
 };
 
 

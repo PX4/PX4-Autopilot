@@ -221,7 +221,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
 	VDD_5V_PERIPH_EN(true);
-	VDD_5V_HIPOWER_EN(true);
+	// VDD_5V_HIPOWER_EN(true);
 	board_control_spi_sensors_power(true, 0xffff);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
@@ -280,8 +280,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	// Ensure Power is off for > 10 mS
 	usleep(15 * 1000);
-	VDD_3V3_SD_CARD_EN(true);
-	usleep(500 * 1000);
+	// VDD_3V3_SD_CARD_EN(true);
+	// usleep(500 * 1000);
 
 #ifdef CONFIG_MMCSD
 	int ret = stm32_sdio_initialize();
