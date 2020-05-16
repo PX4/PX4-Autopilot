@@ -309,105 +309,13 @@ bool Ekf::resetGpsAntYaw()
 		const float measured_yaw = _gps_sample_delayed.yaw + _gps_yaw_offset;
 
 		// calculate the amount the yaw needs to be rotated by
-		float yaw_delta = wrap_pi(measured_yaw - predicted_yaw);
+		const float yaw_delta = wrap_pi(measured_yaw - predicted_yaw);
 
-		// save a copy of the quaternion state for later use in calculating the amount of reset change
-		const Quatf quat_before_reset = _state.quat_nominal;
-		Quatf quat_after_reset;
-
-		// obtain the yaw angle using the best conditioned from either a Tait-Bryan 321 or 312 sequence
-		// to avoid gimbal lock
-		if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
-			// get the roll, pitch, yaw estimates from the quaternion states using a 321 Tait-Bryan rotation sequence
-			Eulerf euler_init(_state.quat_nominal);
-
-			// correct the yaw angle
-			euler_init(2) += yaw_delta;
-			euler_init(2) = wrap_pi(euler_init(2));
-
-			quat_after_reset = Quatf(euler_init);
-
-		} else {
-			// Calculate the 312 Tait-Bryan sequence euler angles that rotate from earth to body frame
-			// PX4 math library does not support this so are using equations from
-			// http://www.atacolorado.com/eulersequences.doc
-			Vector3f euler312;
-			euler312(0) = atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1));  // first rotation (yaw)
-			euler312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
-			euler312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2));  // third rotation (pitch)
-
-			// correct the yaw angle
-			euler312(0) += yaw_delta;
-			euler312(0) = wrap_pi(euler312(0));
-
-			// Calculate the body to earth frame rotation matrix from the corrected euler angles
-			float c2 = cosf(euler312(2));
-			float s2 = sinf(euler312(2));
-			float s1 = sinf(euler312(1));
-			float c1 = cosf(euler312(1));
-			float s0 = sinf(euler312(0));
-			float c0 = cosf(euler312(0));
-
-			Dcmf R_to_earth;
-			R_to_earth(0, 0) = c0 * c2 - s0 * s1 * s2;
-			R_to_earth(1, 1) = c0 * c1;
-			R_to_earth(2, 2) = c2 * c1;
-			R_to_earth(0, 1) = -c1 * s0;
-			R_to_earth(0, 2) = s2 * c0 + c2 * s1 * s0;
-			R_to_earth(1, 0) = c2 * s0 + s2 * s1 * c0;
-			R_to_earth(1, 2) = s0 * s2 - s1 * c0 * c2;
-			R_to_earth(2, 0) = -s2 * c1;
-			R_to_earth(2, 1) = s1;
-
-			// update the quaternions
-			quat_after_reset = Quatf(R_to_earth);
-		}
-
-		// calculate the amount that the quaternion has changed by
-		const Quatf q_error( (_state.quat_nominal * quat_before_reset.inversed()).normalized() );
-
-		// convert the quaternion delta to a delta angle
-		Vector3f delta_ang_error;
-		float scalar;
-
-		if (q_error(0) >= 0.0f) {
-			scalar = -2.0f;
-
-		} else {
-			scalar = 2.0f;
-		}
-
-		delta_ang_error(0) = scalar * q_error(1);
-		delta_ang_error(1) = scalar * q_error(2);
-		delta_ang_error(2) = scalar * q_error(3);
-
-		// update the quaternion state estimates and corresponding covariances only if the change in angle has been large or the yaw is not yet aligned
-		if (delta_ang_error.norm() > math::radians(15.0f) || !_control_status.flags.yaw_align) {
-			// update quaternion states
-			_state.quat_nominal = quat_after_reset;
-			uncorrelateQuatFromOtherStates();
-
-			// record the state change
-			_state_reset_status.quat_change = q_error;
-
-			// update transformation matrix from body to world frame using the current estimate
-			_R_to_earth = Dcmf(_state.quat_nominal);
-
-			// update the yaw angle variance using the variance of the measurement
-			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
-
-			// add the reset amount to the output observer buffered data
-			for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-				_output_buffer[i].quat_nominal = _state_reset_status.quat_change * _output_buffer[i].quat_nominal;
-			}
-
-			// apply the change in attitude quaternion to our newest quaternion estimate
-			// which was already taken out from the output buffer
-			_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
-
-			// capture the reset event
-			_state_reset_status.quat_counter++;
-
+		// update the quaternion state estimates and corresponding covariances only if
+		// the change in angle has been large or the yaw is not yet aligned
+		if(fabs(yaw_delta) > math::radians(15.0f) || !_control_status.flags.yaw_align) {
+			const float yaw_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+			resetQuatStateYaw(measured_yaw, yaw_variance, true);
 		}
 
 		return true;
