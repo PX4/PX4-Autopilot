@@ -308,7 +308,7 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 void
 UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand> &cmd)
 {
-	actuator_outputs_s outputs;
+	actuator_outputs_s outputs = {};
 
 	// If message is empty, the vehicle is disarmed
 	if (cmd.cmd.size() == 0) {
