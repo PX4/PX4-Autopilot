@@ -192,7 +192,6 @@ void VehicleIMU::Run()
 		}
 	}
 
-
 	// update gyro
 	sensor_gyro_s gyro;
 
