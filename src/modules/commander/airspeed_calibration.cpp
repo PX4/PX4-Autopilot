@@ -88,7 +88,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	bool paramreset_successful = false;
 	int  fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 
-	if (fd > 0) {
+	if (fd >= 0) {
 		if (PX4_OK == px4_ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 			paramreset_successful = true;
 
@@ -168,7 +168,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		int fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;
 
-		if (fd_scale > 0) {
+		if (fd_scale >= 0) {
 			if (PX4_OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 				calibration_log_critical(mavlink_log_pub, "[cal] airspeed offset update failed");
 			}
