@@ -61,7 +61,7 @@ public:
 	bool Attach(WorkItem *item);
 	void Detach(WorkItem *item);
 
-	void Add(WorkItem *item);
+	bool Add(WorkItem *item);
 	void Remove(WorkItem *item);
 
 	void Clear();

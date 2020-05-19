@@ -57,11 +57,20 @@ public:
 	WorkItem(WorkItem &&) = delete;
 	WorkItem &operator=(WorkItem &&) = delete;
 
-	inline void ScheduleNow()
+	/**
+	 * Schedule the WorkItem to run immediately.
+	 *
+	 * @return true if the WorkItem was scheduled successfully, false otherwise.
+	 */
+	inline bool ScheduleNow()
 	{
 		if (_wq != nullptr) {
-			_wq->Add(this);
+			if ((_configured_interval_us == 0) || (hrt_elapsed_time_atomic(&_time_last_run) >= _configured_interval_us)) {
+				return _wq->Add(this);
+			}
 		}
+
+		return false;
 	}
 
 	virtual void print_run_status() const;
@@ -76,6 +85,18 @@ public:
 	bool ChangeWorkQeue(const wq_config_t &config) { return Init(config); }
 
 	const char *ItemName() const { return _item_name; }
+
+	/**
+	 * Configure a minimum interval (max rate) between runs.
+	 *
+	 * @param interval_us The minimum interval between runs in microseconds.
+	 */
+	void set_minimum_interval_us(uint32_t interval_us)
+	{
+#if !defined(ENABLE_LOCKSTEP_SCHEDULER)
+		_configured_interval_us = interval_us;
+#endif // ENABLE_LOCKSTEP_SCHEDULER
+	}
 
 protected:
 
@@ -94,6 +115,10 @@ protected:
 	void RunPreamble()
 	{
 		_run_count++;
+
+		if (_configured_interval_us > 0) {
+			_time_last_run = hrt_absolute_time();
+		}
 
 		if (_time_first_run == 0) {
 			_time_first_run = hrt_absolute_time();
@@ -118,8 +143,10 @@ protected:
 	float average_rate() const;
 	float average_interval() const;
 
+	hrt_abstime     _time_last_run{0};
 	hrt_abstime	_time_first_run{0};
 	const char 	*_item_name;
+	uint32_t        _configured_interval_us{0};
 	uint32_t	_run_count{0};
 
 private:

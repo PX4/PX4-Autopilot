@@ -103,13 +103,15 @@ void WorkQueue::Detach(WorkItem *item)
 	work_unlock();
 }
 
-void WorkQueue::Add(WorkItem *item)
+bool WorkQueue::Add(WorkItem *item)
 {
 	work_lock();
-	_q.push(item);
+	bool ret = _q.push(item);
 	work_unlock();
 
 	SignalWorkerThread();
+
+	return ret;
 }
 
 void WorkQueue::SignalWorkerThread()
