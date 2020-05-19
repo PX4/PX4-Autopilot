@@ -248,11 +248,20 @@ int ADC::test()
 		PX4_INFO_RAW("Resolution: %d\n", adc.resolution);
 		PX4_INFO_RAW("Voltage Reference: %f\n", (double)adc.v_ref);
 
-		for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
-			PX4_INFO_RAW("%d: %d  ", adc.channel_id[i], adc.raw_data[i]);
-		}
+		for (unsigned l = 0; l < 20; ++l) {
+			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+				if (adc.channel_id[i] >= 0) {
+					PX4_INFO_RAW("% 2d:% 6d", adc.channel_id[i], adc.raw_data[i]);
+				}
+			}
 
-		PX4_INFO_RAW("\n");
+			PX4_INFO_RAW("\n");
+			px4_usleep(500000);
+
+			if (!adc_sub_test.update(&adc)) {
+				PX4_INFO_RAW("\t ADC test failed.\n");
+			}
+		}
 
 		PX4_INFO_RAW("\t ADC test successful.\n");
 
