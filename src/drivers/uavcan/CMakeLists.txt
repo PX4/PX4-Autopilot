@@ -32,7 +32,7 @@
 ############################################################################
 
 set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/drivers/uavcan/libuavcan)
-set(LIBUAVCAN_DIR_DRIVERS ${PX4_SOURCE_DIR}/src/drivers/uavcan/uavcan_drivers)
+set(LIBUAVCAN_DIR_DRIVERS ${PX4_SOURCE_DIR}/src/drivers/uavcan/libuavcan/libuavcan_drivers)
 
 px4_add_git_submodule(TARGET git_uavcan PATH ${LIBUAVCAN_DIR})
 
@@ -44,8 +44,16 @@ if(CONFIG_ARCH_CHIP)
 		set(UAVCAN_DRIVER "kinetis")
 		set(UAVCAN_TIMER 1)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32")
-		set(UAVCAN_DRIVER "stm32")
-		set(UAVCAN_TIMER 5) # The default timer the 5
+		if(${CONFIG_ARCH_CHIP} MATCHES "stm32h7")
+			message("*************** YUP **********")
+			set(UAVCAN_DRIVER "stm32h7")
+			set(UAVCAN_TIMER 5) # The default timer is TIM5?
+			message("Set CHIP to STM32H7")
+		else()
+			set(UAVCAN_DRIVER "stm32")
+			set(UAVCAN_TIMER 5) # The default timer the 5
+			message("Set CHIP to STM32")
+		endif()
 	endif()
 endif()
 

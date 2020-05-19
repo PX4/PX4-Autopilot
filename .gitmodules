@@ -4,7 +4,7 @@
 	branch = master
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
-	url = https://github.com/PX4/uavcan.git
+	url = git@github.com:volans-i/libuavcan.git
 	branch = px4
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
