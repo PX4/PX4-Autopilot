@@ -90,11 +90,11 @@ __BEGIN_DECLS
 
 /* Count of peripheral clock user configurations */
 
-#define NUM_OF_PERIPHERAL_CLOCKS_0 14
+#define NUM_OF_PERIPHERAL_CLOCKS_0 18
 
 
 /* High-resolution timer */
-#define HRT_TIMER              1  /* FTM timer for the HRT */
+#define HRT_TIMER              5  /* FTM timer for the HRT */
 #define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
 
 /* Timer I/O PWM and capture
