@@ -39,7 +39,7 @@
 #include <containers/IntrusiveQueue.hpp>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
-
+#include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 
 namespace px4
@@ -91,7 +91,14 @@ protected:
 	void ScheduleClear();
 protected:
 
-	void RunPreamble() { _run_count++; }
+	void RunPreamble()
+	{
+		_run_count++;
+
+		if (_time_first_run == 0) {
+			_time_first_run = hrt_absolute_time();
+		}
+	}
 
 	friend void WorkQueue::Run();
 	virtual void Run() = 0;
@@ -111,10 +118,9 @@ protected:
 	float average_rate() const;
 	float average_interval() const;
 
-
-	hrt_abstime	_start_time{0};
-	unsigned	_run_count{0};
+	hrt_abstime	_time_first_run{0};
 	const char 	*_item_name;
+	uint32_t	_run_count{0};
 
 private:
 
