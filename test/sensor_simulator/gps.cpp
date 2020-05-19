@@ -44,6 +44,10 @@ void Gps::setVelocity(const Vector3f& vel)
 	_gps_data.vel_ned = vel;
 }
 
+void Gps::setYaw(float yaw) {
+	_gps_data.yaw = yaw;
+}
+
 void Gps::setFixType(int n)
 {
 	_gps_data.fix_type = n;
