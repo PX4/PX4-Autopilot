@@ -2341,6 +2341,26 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+		check_requested_subscriptions();
+
+		/* update streams */
+		for (const auto &stream : _streams) {
+			stream->update(t);
+
+			if (!_first_heartbeat_sent) {
+				if (_mode == MAVLINK_MODE_IRIDIUM) {
+					if (stream->get_id() == MAVLINK_MSG_ID_HIGH_LATENCY2) {
+						_first_heartbeat_sent = stream->first_message_sent();
+					}
+
+				} else {
+					if (stream->get_id() == MAVLINK_MSG_ID_HEARTBEAT) {
+						_first_heartbeat_sent = stream->first_message_sent();
+					}
+				}
+			}
+		}
+
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {
 			if (_mavlink_ulog_stop_requested) {
@@ -2362,26 +2382,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 					_mavlink_ulog->stop();
 					_mavlink_ulog = nullptr;
-				}
-			}
-		}
-
-		check_requested_subscriptions();
-
-		/* update streams */
-		for (const auto &stream : _streams) {
-			stream->update(t);
-
-			if (!_first_heartbeat_sent) {
-				if (_mode == MAVLINK_MODE_IRIDIUM) {
-					if (stream->get_id() == MAVLINK_MSG_ID_HIGH_LATENCY2) {
-						_first_heartbeat_sent = stream->first_message_sent();
-					}
-
-				} else {
-					if (stream->get_id() == MAVLINK_MSG_ID_HEARTBEAT) {
-						_first_heartbeat_sent = stream->first_message_sent();
-					}
 				}
 			}
 		}
