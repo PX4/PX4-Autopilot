@@ -244,7 +244,7 @@
 
 /* Spare GPIO */
 
-#define GPIO_PH11                       /* PH11  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTH|GPIO_PIN1)
+#define GPIO_PH11                       /* PH11  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTH|GPIO_PIN11)
 
 /* ETHERNET GPIO */
 
