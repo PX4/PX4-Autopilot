@@ -103,7 +103,7 @@ class EkfInitializationTest : public ::testing::Test {
 		EXPECT_TRUE(pos_var(1) > pos_variance_limit) << "pos_var(1)" << pos_var(1);
 		EXPECT_TRUE(pos_var(2) > pos_variance_limit) << "pos_var(2)" << pos_var(2);
 
-		const float vel_variance_limit = 0.4f;
+		const float vel_variance_limit = 0.3f;
 		EXPECT_TRUE(vel_var(0) > vel_variance_limit) << "vel_var(0)" << vel_var(0);
 		EXPECT_TRUE(vel_var(1) > vel_variance_limit) << "vel_var(1)" << vel_var(1);
 		EXPECT_TRUE(vel_var(2) > vel_variance_limit) << "vel_var(2)" << vel_var(2);
