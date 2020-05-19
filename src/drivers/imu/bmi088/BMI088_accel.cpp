@@ -62,8 +62,7 @@ BMI088_accel::BMI088_accel(I2CSPIBusOption bus_option, int bus, const char *path
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi088_accel_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi088_accel_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi088_accel_bad_registers")),
-	_duplicates(perf_alloc(PC_COUNT, "bmi088_accel_duplicates")),
-	_got_duplicate(false)
+	_duplicates(perf_alloc(PC_COUNT, "bmi088_accel_duplicates"))
 {
 	_px4_accel.set_update_rate(BMI088_ACCEL_DEFAULT_RATE);
 }
@@ -385,13 +384,6 @@ BMI088_accel::RunImpl()
 		return;
 	}
 
-	struct Report {
-		int16_t     accel_x;
-		int16_t     accel_y;
-		int16_t     accel_z;
-		int16_t     temp;
-	} report;
-
 	/* start measuring */
 	perf_begin(_sample_perf);
 
@@ -402,15 +394,10 @@ BMI088_accel::RunImpl()
 	if (!(status & BMI088_ACC_STATUS_DRDY)) {
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
-		_got_duplicate = true;
 		return;
 	}
 
-	_got_duplicate = false;
-
-	/*
-	     * Fetch the full set of measurements from the BMI088 in one pass.
-	     */
+	// Fetch the full set of measurements from the BMI088 in one pass.
 	uint8_t index = 0;
 	uint8_t accel_data[8]; // Need an extra byte for the command, and an an extra dummy byte for the read (see section "SPI interface of accelerometer part" of the BMI088 datasheet)
 	accel_data[index] = BMI088_ACC_X_L | DIR_READ;
@@ -418,56 +405,33 @@ BMI088_accel::RunImpl()
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	if (OK != transfer(accel_data, accel_data, sizeof(accel_data))) {
+		perf_count(_bad_transfers);
+		perf_end(_sample_perf);
 		return;
 	}
-
-	check_registers();
 
 	/* Extracting accel data from the read data */
 	index = 2; // Skip the dummy byte at index=1
-	uint16_t lsb, msb, msblsb;
+
+	uint16_t lsb = (uint16_t)accel_data[index++];
+	uint16_t msb = (uint16_t)accel_data[index++];
+	uint16_t msblsb = (msb << 8) | lsb;
+	int16_t accel_x = (int16_t)msblsb; /* Data in X axis */
 
 	lsb = (uint16_t)accel_data[index++];
 	msb = (uint16_t)accel_data[index++];
 	msblsb = (msb << 8) | lsb;
-	report.accel_x = (int16_t)msblsb; /* Data in X axis */
+	int16_t accel_y = (int16_t)msblsb; /* Data in Y axis */
 
 	lsb = (uint16_t)accel_data[index++];
 	msb = (uint16_t)accel_data[index++];
 	msblsb = (msb << 8) | lsb;
-	report.accel_y = (int16_t)msblsb; /* Data in Y axis */
+	int16_t accel_z = (int16_t)msblsb; /* Data in Z axis */
 
-	lsb = (uint16_t)accel_data[index++];
-	msb = (uint16_t)accel_data[index++];
-	msblsb = (msb << 8) | lsb;
-	report.accel_z = (int16_t)msblsb; /* Data in Z axis */
+	if (accel_x == 0 &&
+	    accel_y == 0 &&
+	    accel_z == 0) {
 
-	// Extract the temperature data
-	// Note: the temp sensor data is only updated every 1.28s (see "Register 0x22-0x23 Temperature Sensor Data" section in BMI088 Datasheet)
-	index = 0;
-	accel_data[index] = BMI088_ACC_TEMP_H | DIR_READ;
-
-	// Need to perform a dummy read, hence the num bytes to read is 3 (plus 1 send byte)
-	if (OK != transfer(accel_data, accel_data, 4)) {
-		return;
-	}
-
-	index = 2;
-	msb = (uint16_t)accel_data[index++];
-	lsb = (uint16_t)accel_data[index++];
-	uint16_t temp = msb * 8 + lsb / 32;
-
-	if (temp > 1023) {
-		report.temp = temp - 2048;
-
-	} else {
-		report.temp = temp;
-	}
-
-
-	if (report.accel_x == 0 &&
-	    report.accel_y == 0 &&
-	    report.accel_z == 0) {
 		// all zero data - probably a SPI bus error
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
@@ -478,48 +442,66 @@ BMI088_accel::RunImpl()
 		return;
 	}
 
-	if (_register_wait != 0) {
-		// we are waiting for some good transfers before using
-		// the sensor again, but don't return any data yet
-		_register_wait--;
-		return;
-	}
-
 	// don't publish duplicated reads
-	if ((report.accel_x == _accel_prev[0]) && (report.accel_y == _accel_prev[1]) && (report.accel_z == _accel_prev[2])) {
+	if ((accel_x == _accel_prev[0]) && (accel_y == _accel_prev[1]) && (accel_z == _accel_prev[2])) {
 		perf_count(_duplicates);
 		perf_end(_sample_perf);
 		return;
 
 	} else {
-		_accel_prev[0] = report.accel_x;
-		_accel_prev[1] = report.accel_y;
-		_accel_prev[2] = report.accel_z;
+		_accel_prev[0] = accel_x;
+		_accel_prev[1] = accel_y;
+		_accel_prev[2] = accel_z;
 	}
 
-	// report the error count as the sum of the number of bad
-	// transfers and bad register reads. This allows the higher
-	// level code to decide if it should use this sensor based on
-	// whether it has had failures
-	const uint64_t error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
-	_px4_accel.set_error_count(error_count);
+	// report the error count as the sum of the number of bad transfers and bad register reads.
+	_px4_accel.set_error_count(perf_event_count(_bad_transfers) + perf_event_count(_bad_registers));
 
-	// Convert the bit-wise representation of temperature to degrees C
-	_accel_last_temperature_copy = (report.temp * 0.125f) + 23.0f;
-	_px4_accel.set_temperature(_accel_last_temperature_copy);
+	_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
 
-	/*
-	     * 1) Scale raw value to SI units using scaling from datasheet.
-	     * 2) Subtract static offset (in SI units)
-	     * 3) Scale the statically calibrated values with a linear
-	     *    dynamically obtained factor
-	     *
-	     * Note: the static sensor offset is the number the sensor outputs
-	     *   at a nominally 'zero' input. Therefore the offset has to
-	     *   be subtracted.
-	     *
-	     */
-	_px4_accel.update(timestamp_sample, report.accel_x, report.accel_y, report.accel_z);
+	check_registers();
+
+	if (_register_wait != 0) {
+		// we are waiting for some good transfers before using
+		// the sensor again, but don't return any data yet
+		_register_wait--;
+		perf_end(_sample_perf);
+		return;
+	}
+
+	// temperature
+	// Note: the temp sensor data is only updated every 1.28s (see "Register 0x22-0x23 Temperature Sensor Data" section in BMI088 Datasheet)
+	if (hrt_elapsed_time(&_last_temperature_update) >= 1280_ms) {
+		// Note: the temp sensor data is only updated every 1.28s (see "Register 0x22-0x23 Temperature Sensor Data" section in BMI088 Datasheet)
+		index = 0;
+		accel_data[index] = BMI088_ACC_TEMP_H | DIR_READ;
+
+		// Need to perform a dummy read, hence the num bytes to read is 3 (plus 1 send byte)
+		if (OK != transfer(accel_data, accel_data, 4)) {
+			perf_end(_sample_perf);
+			perf_count(_bad_transfers);
+			return;
+		}
+
+		index = 2;
+		msb = (uint16_t)accel_data[index++];
+		lsb = (uint16_t)accel_data[index++];
+		uint16_t temp = msb * 8 + lsb / 32;
+
+		float temperature = 0.f;
+
+		if (temp > 1023) {
+			temperature = temp - 2048;
+
+		} else {
+			temperature = temp;
+		}
+
+		// Convert the bit-wise representation of temperature to degrees C
+		_accel_last_temperature_copy = (temperature * 0.125f) + 23.0f;
+		_px4_accel.set_temperature(_accel_last_temperature_copy);
+		_last_temperature_update = timestamp_sample;
+	}
 
 	/* stop measuring */
 	perf_end(_sample_perf);

@@ -188,6 +188,8 @@ private:
 
 	PX4Accelerometer	_px4_accel;
 
+	hrt_abstime _last_temperature_update{0};
+
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
@@ -202,8 +204,6 @@ private:
 	static const uint8_t    _checked_registers[BMI088_ACCEL_NUM_CHECKED_REGISTERS];
 	uint8_t         _checked_values[BMI088_ACCEL_NUM_CHECKED_REGISTERS];
 	uint8_t         _checked_bad[BMI088_ACCEL_NUM_CHECKED_REGISTERS];
-
-	bool            _got_duplicate;
 
 	/**
 	     * Reset chip.
