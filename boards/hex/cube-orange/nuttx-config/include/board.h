@@ -175,10 +175,10 @@
 #define STM32_HCLK_FREQUENCY    (STM32_CPUCLK_FREQUENCY / 2)    /* HCLK in D2, HCLK4 in D3 */
 #define STM32_BOARD_HCLK        STM32_HCLK_FREQUENCY            /* same as above, to satisfy compiler */
 
-/* APB1 clock (PCLK1) is HCLK/2 (120 MHz) */
+/* APB1 clock (PCLK1) is HCLK/4 (120 MHz) */
 
-#define STM32_RCC_D2CFGR_D2PPRE1  RCC_D2CFGR_D2PPRE1_HCLKd4       /* PCLK1 = HCLK / 4 (Max 80MHz for FDCAN)*/
-#define STM32_PCLK1_FREQUENCY     (STM32_HCLK_FREQUENCY/4)
+#define STM32_RCC_D2CFGR_D2PPRE1  RCC_D2CFGR_D2PPRE1_HCLKd2       /* PCLK1 = HCLK / 2 */
+#define STM32_PCLK1_FREQUENCY     (STM32_HCLK_FREQUENCY/2)
 
 /* APB2 clock (PCLK2) is HCLK/2 (120 MHz) */
 
@@ -245,6 +245,11 @@
 /* ADC 1 2 3 clock source */
 
 #define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
+
+/* FDCAN clock source */
+
+#define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE
+#define STM32_FDCANCLK               STM32_HSE_FREQUENCY
 
 /* FLASH wait states
  *
