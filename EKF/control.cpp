@@ -201,7 +201,7 @@ void Ekf::controlExternalVisionFusion()
 				// turn on use of external vision measurements for position
 				if (_params.fusion_mode & MASK_USE_EVPOS && !_control_status.flags.ev_pos) {
 					_control_status.flags.ev_pos = true;
-					resetPosition();
+					resetHorizontalPosition();
 					ECL_INFO_TIMESTAMPED("starting vision pos fusion");
 				}
 
@@ -308,7 +308,7 @@ void Ekf::controlExternalVisionFusion()
 						resetVelocity();
 					}
 
-					resetPosition();
+					resetHorizontalPosition();
 				}
 			}
 
@@ -457,7 +457,7 @@ void Ekf::controlOpticalFlowFusion()
 					// we will use _flow_compensated_XY_rad in the resetVelocity() function,
 					// but _flow_compensated_XY_rad is this zero as it gets updated for the first time below here.
 					resetVelocity();
-					resetPosition();
+					resetHorizontalPosition();
 
 					// align the output observer to the EKF states
 					alignOutputFilter();
@@ -475,7 +475,7 @@ void Ekf::controlOpticalFlowFusion()
 
 			if (do_reset) {
 				resetVelocity();
-				resetPosition();
+				resetHorizontalPosition();
 			}
 		}
 
@@ -577,12 +577,12 @@ void Ekf::controlGpsFusion()
 					_control_status.flags.gps = true;
 
 					if (!_control_status.flags.opt_flow) {
-						if (!resetPosition() || !resetVelocity()) {
+						if (!resetHorizontalPosition() || !resetVelocity()) {
 							_control_status.flags.gps = false;
 
 						}
 
-					} else if (!resetPosition()) {
+					} else if (!resetHorizontalPosition()) {
 						_control_status.flags.gps = false;
 
 					}
@@ -604,7 +604,7 @@ void Ekf::controlGpsFusion()
 			stopGpsFusion();
 			// Reset position state to external vision if we are going to use absolute values
 			if (_control_status.flags.ev_pos && !(_params.fusion_mode & MASK_ROTATE_EV)) {
-				resetPosition();
+				resetHorizontalPosition();
 			}
 			ECL_WARN_TIMESTAMPED("GPS quality poor - stopping use");
 		}
@@ -669,7 +669,7 @@ void Ekf::controlGpsFusion()
 				}
 
 				resetVelocity();
-				resetPosition();
+				resetHorizontalPosition();
 				_velpos_reset_request = false;
 				ECL_WARN_TIMESTAMPED("GPS fusion timeout - reset to GPS");
 
@@ -1264,7 +1264,7 @@ void Ekf::controlFakePosFusion()
 
 			// Reset position and velocity states if we re-commence this aiding method
 			if (isTimedOut(_time_last_fake_pos, (uint64_t)4e5)) {
-				resetPosition();
+				resetHorizontalPosition();
 				resetVelocity();
 				_fuse_hpos_as_odom = false;
 

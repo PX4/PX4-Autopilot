@@ -588,7 +588,15 @@ private:
 
 	inline void resetVerticalVelocityTo(float new_vert_vel);
 
+	bool resetHorizontalPosition();
+
+	inline void resetHorizontalPositionToGps();
+
+	inline void resetHorizontalPositionToVision();
+
 	inline void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+
+	void resetHeight();
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
@@ -632,12 +640,6 @@ private:
 
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
-
-	// reset position states of the ekf (only horizontal position)
-	bool resetPosition();
-
-	// reset height state of the ekf
-	void resetHeight();
 
 	// modify output filter to match the the EKF state at the fusion time horizon
 	void alignOutputFilter();

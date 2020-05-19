@@ -184,7 +184,7 @@ void Ekf::runVelPosReset()
 {
 	if (_velpos_reset_request) {
 		resetVelocity();
-		resetPosition();
+		resetHorizontalPosition();
 		_velpos_reset_request = false;
 	}
 }
