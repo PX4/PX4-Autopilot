@@ -106,8 +106,7 @@ FXAS21002C::init()
 	return PX4_OK;
 }
 
-void
-FXAS21002C::reset()
+void FXAS21002C::reset()
 {
 	/* write 0 0 0 000 00 = 0x00 to CTRL_REG1 to place FXOS21002 in Standby
 	 * [6]: RST=0
@@ -133,12 +132,9 @@ FXAS21002C::reset()
 	set_samplerate(FXAS21002C_DEFAULT_RATE);
 	set_range(FXAS21002C_DEFAULT_RANGE_DPS);
 	set_onchip_lowpass_filter(FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ);
-
-	_read = 0;
 }
 
-void
-FXAS21002C::write_checked_reg(unsigned reg, uint8_t value)
+void FXAS21002C::write_checked_reg(unsigned reg, uint8_t value)
 {
 	write_reg(reg, value);
 
@@ -149,8 +145,7 @@ FXAS21002C::write_checked_reg(unsigned reg, uint8_t value)
 	}
 }
 
-void
-FXAS21002C::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
+void FXAS21002C::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
 	uint8_t	val = read_reg(reg);
 	val &= ~clearbits;
@@ -158,8 +153,7 @@ FXAS21002C::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 	write_checked_reg(reg, val);
 }
 
-int
-FXAS21002C::set_range(unsigned max_dps)
+int FXAS21002C::set_range(unsigned max_dps)
 {
 	uint8_t bits = CTRL_REG0_FS_250_DPS;
 	float new_range_scale_dps_digit;
@@ -202,8 +196,7 @@ FXAS21002C::set_range(unsigned max_dps)
 	return OK;
 }
 
-void
-FXAS21002C::set_standby(int rate, bool standby_true)
+void FXAS21002C::set_standby(int rate, bool standby_true)
 {
 	uint8_t c = 0;
 	uint8_t s = 0;
@@ -224,8 +217,7 @@ FXAS21002C::set_standby(int rate, bool standby_true)
 	usleep(wait_ms * 1000);
 }
 
-int
-FXAS21002C::set_samplerate(unsigned frequency)
+int FXAS21002C::set_samplerate(unsigned frequency)
 {
 	uint8_t bits = 0;
 
@@ -274,8 +266,7 @@ FXAS21002C::set_samplerate(unsigned frequency)
 	return OK;
 }
 
-void
-FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
+void FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
 {
 	int high = 256 / (800 / _current_rate);
 	int med = high / 2 ;
@@ -310,15 +301,13 @@ FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
 	set_standby(_current_rate, false);
 }
 
-void
-FXAS21002C::start()
+void FXAS21002C::start()
 {
 	/* start polling at the specified rate */
-	ScheduleOnInterval((1_s / FXAS21002C_DEFAULT_RATE) - FXAS21002C_TIMER_REDUCTION, 10000);
+	ScheduleOnInterval((1_s / FXAS21002C_DEFAULT_RATE) - FXAS21002C_TIMER_REDUCTION);
 }
 
-void
-FXAS21002C::check_registers(void)
+void FXAS21002C::check_registers()
 {
 	uint8_t v;
 
@@ -347,14 +336,10 @@ FXAS21002C::check_registers(void)
 	_checked_next = (_checked_next + 1) % FXAS21002C_NUM_CHECKED_REGISTERS;
 }
 
-void
-FXAS21002C::RunImpl()
+void FXAS21002C::RunImpl()
 {
 	// start the performance counter
 	perf_begin(_sample_perf);
-
-	/* status register and data as read back from the device */
-	RawGyroReport raw_gyro_report{};
 
 	check_registers();
 
@@ -367,6 +352,7 @@ FXAS21002C::RunImpl()
 	}
 
 	/* fetch data from the sensor */
+	RawGyroReport raw_gyro_report{};
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	_interface->read(FXAS21002C_STATUS, (uint8_t *)&raw_gyro_report, sizeof(raw_gyro_report));
@@ -377,40 +363,45 @@ FXAS21002C::RunImpl()
 		return;
 	}
 
-	/*
-	 * The TEMP register contains an 8-bit 2's complement temperature value with a range
-	 * of –128 °C to +127 °C and a scaling of 1 °C/LSB. The temperature data is only
-	 * compensated (factory trim values applied) when the device is operating in the Active
-	 * mode and actively measuring the angular rate.
-	 */
-	if ((_read % _current_rate) == 0) {
-		const float temperature = read_reg(FXAS21002C_TEMP) * 1.0f;
-		_px4_gyro.set_temperature(temperature);
-	}
-
-	// report the error count as the number of bad
-	// register reads. This allows the higher level
-	// code to decide if it should use this sensor based on
-	// whether it has had failures
-	_px4_gyro.set_error_count(perf_event_count(_bad_registers));
-
 	int16_t x_raw = swap16(raw_gyro_report.x);
 	int16_t y_raw = swap16(raw_gyro_report.y);
 	int16_t z_raw = swap16(raw_gyro_report.z);
 
+	// don't publish duplicated reads
+	if ((x_raw == _gyro_prev[0]) && (y_raw == _gyro_prev[1]) && (z_raw == _gyro_prev[2])) {
+		perf_count(_duplicates);
+		perf_end(_sample_perf);
+		return;
+
+	} else {
+		_gyro_prev[0] = x_raw;
+		_gyro_prev[1] = y_raw;
+		_gyro_prev[2] = z_raw;
+	}
+
+	// report the error count as the number of bad register reads. This allows the higher level
+	_px4_gyro.set_error_count(perf_event_count(_bad_registers));
 	_px4_gyro.update(timestamp_sample, x_raw, y_raw, z_raw);
 
-	_read++;
+	if (hrt_elapsed_time(&_last_temperature_update) > 100_ms) {
+		/*
+		 * The TEMP register contains an 8-bit 2's complement temperature value with a range
+		 * of –128 °C to +127 °C and a scaling of 1 °C/LSB. The temperature data is only
+		 * compensated (factory trim values applied) when the device is operating in the Active
+		 * mode and actively measuring the angular rate.
+		 */
+		const float temperature = read_reg(FXAS21002C_TEMP) * 1.0f;
+		_px4_gyro.set_temperature(temperature);
+		_last_temperature_update = timestamp_sample;
+	}
 
 	/* stop the perf counter */
 	perf_end(_sample_perf);
 }
 
-void
-FXAS21002C::print_status()
+void FXAS21002C::print_status()
 {
 	I2CSPIDriverBase::print_status();
-	printf("gyro reads:          %u\n", _read);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_errors);
 	perf_print_counter(_bad_registers);
