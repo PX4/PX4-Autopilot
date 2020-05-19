@@ -55,7 +55,7 @@ fi
 # check ubuntu version
 # instructions for 16.04, 18.04, 20.04
 # otherwise warn and point to docker?
-UBUNTU_RELEASE=`lsb_release -rs`
+UBUNTU_RELEASE="`lsb_release -rs`"
 
 if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
 	echo "Ubuntu 14.04 unsupported, see docker px4io/px4-dev-base"
@@ -133,7 +133,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		vim-common \
 		;
 
-	if [ ! -z "$USER" ]; then
+	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
 		sudo usermod -a -G dialout $USER
 	fi
@@ -146,7 +146,7 @@ if [ $(which arm-none-eabi-gcc) ]; then
 	GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
 fi
 
-	if [[ ! -z $GCC_FOUND_VER && $GCC_FOUND_VER -eq "1" ]]; then
+	if [[ "$GCC_FOUND_VER" == "1" ]]; then
 		echo "arm-none-eabi-gcc-${NUTTX_GCC_VERSION} found, skipping installation"
 
 	else
