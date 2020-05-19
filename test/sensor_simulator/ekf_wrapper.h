@@ -64,6 +64,10 @@ public:
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
 
+	void enableGpsHeadingFusion();
+	void disableGpsHeadingFusion();
+	bool isIntendingGpsHeadingFusion() const;
+
 	void enableFlowFusion();
 	void disableFlowFusion();
 	bool isIntendingFlowFusion() const;
@@ -86,7 +90,9 @@ public:
 	bool isWindVelocityEstimated() const;
 
 	Eulerf getEulerAngles() const;
+	float getYawAngle() const;
 	matrix::Vector<float, 4> getQuaternionVariance() const;
+	int getQuaternionResetCounter() const;
 
 private:
 	std::shared_ptr<Ekf> _ekf;

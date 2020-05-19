@@ -75,6 +75,23 @@ bool EkfWrapper::isIntendingGpsFusion() const
 	return control_status.flags.gps;
 }
 
+void EkfWrapper::enableGpsHeadingFusion()
+{
+	_ekf_params->fusion_mode |= MASK_USE_GPSYAW;
+}
+
+void EkfWrapper::disableGpsHeadingFusion()
+{
+	_ekf_params->fusion_mode &= ~MASK_USE_GPSYAW;
+}
+
+bool EkfWrapper::isIntendingGpsHeadingFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.gps_yaw;
+}
+
 void EkfWrapper::enableFlowFusion()
 {
 	_ekf_params->fusion_mode |= MASK_USE_OF;
@@ -165,7 +182,21 @@ Eulerf EkfWrapper::getEulerAngles() const
 	return Eulerf(_ekf->getQuaternion());
 }
 
+float EkfWrapper::getYawAngle() const
+{
+	const Eulerf euler(_ekf->getQuaternion());
+	return euler(2);
+}
+
 matrix::Vector<float, 4> EkfWrapper::getQuaternionVariance() const
 {
 	return matrix::Vector<float, 4>(_ekf->orientation_covariances().diag());
+}
+
+int EkfWrapper::getQuaternionResetCounter() const
+{
+	float tmp[4];
+	uint8_t counter;
+	_ekf->get_quat_reset(tmp, &counter);
+	return static_cast<int>(counter);
 }
