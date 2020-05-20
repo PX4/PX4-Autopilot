@@ -71,11 +71,9 @@ class EkfFusionLogicTest : public ::testing::Test {
 TEST_F(EkfFusionLogicTest, doNoFusion)
 {
 	// GIVEN: a tilt and heading aligned filter
-	// WHEN: having no aiding source EKF should not have a valid position estimate
-
-	// TODO: for the first 5 second it still has some valid local position
-	//       that needs to change
-	EXPECT_TRUE(_ekf->local_position_is_valid());
+	// WHEN: having no aiding source
+	// THEN: EKF should not have a valid position estimate
+	EXPECT_FALSE(_ekf->local_position_is_valid());
 
 	_sensor_simulator.runSeconds(4);
 
