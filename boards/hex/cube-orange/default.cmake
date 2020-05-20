@@ -31,9 +31,9 @@ px4_add_board(
 		imu/adis16477
 		imu/adis16497
 		imu/bmi088
-		imu/icm20948 # TODO: driver is busted right now?
 		imu/invensense/icm20602
 		imu/invensense/icm20649
+		imu/invensense/icm20948
 		irlock
 		lights/blinkm
 		lights/rgbled
