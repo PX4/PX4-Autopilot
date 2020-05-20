@@ -204,9 +204,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	gyro_worker_data_t worker_data{};
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 
-	enum ORB_PRIO device_prio_max = ORB_PRIO_UNINITIALIZED;
-	int32_t device_id_primary = 0;
-
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
 	const unsigned orb_gyro_count = orb_group_count(ORB_ID(sensor_gyro));
 
@@ -223,16 +220,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		worker_data.device_id[cur_gyro] = report.device_id;
 
-		if (worker_data.device_id[cur_gyro] != 0) {
-			// Get priority
-			enum ORB_PRIO prio = gyro_sensor_sub.get_priority();
-
-			if (prio > device_prio_max) {
-				device_prio_max = prio;
-				device_id_primary = worker_data.device_id[cur_gyro];
-			}
-
-		} else {
+		if (worker_data.device_id[cur_gyro] == 0) {
 			calibration_log_critical(mavlink_log_pub, "Gyro #%u no device id, abort", cur_gyro);
 		}
 	}
@@ -295,7 +283,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	if (res == PX4_OK) {
 
 		/* set offset parameters to new values */
-		bool failed = (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &device_id_primary));
+		bool failed = false;
 
 		for (unsigned uorb_index = 0; uorb_index < MAX_GYROS; uorb_index++) {
 

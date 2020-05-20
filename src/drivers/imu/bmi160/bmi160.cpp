@@ -53,15 +53,15 @@ BMI160::BMI160(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotatio
 	       spi_mode_e spi_mode) :
 	SPI(DRV_IMU_DEVTYPE_BMI160, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
-	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation),
+	_px4_accel(get_device_id(), rotation),
+	_px4_gyro(get_device_id(), rotation),
 	_accel_reads(perf_alloc(PC_COUNT, MODULE_NAME": accel read")),
-	_gyro_reads(perf_alloc(PC_COUNT, MODULE_NAME":gyro read")),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME":read")),
-	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME":bad transfers")),
-	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME":bad registers")),
-	_good_transfers(perf_alloc(PC_COUNT, MODULE_NAME":good transfers")),
-	_reset_retries(perf_alloc(PC_COUNT, MODULE_NAME":reset retries")),
+	_gyro_reads(perf_alloc(PC_COUNT, MODULE_NAME": gyro read")),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
+	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad registers")),
+	_good_transfers(perf_alloc(PC_COUNT, MODULE_NAME": good transfers")),
+	_reset_retries(perf_alloc(PC_COUNT, MODULE_NAME": reset retries")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicates"))
 {
 }

@@ -36,7 +36,7 @@
 QMC5883::QMC5883(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus,
 		 int i2c_address) :
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, i2c_address),
-	_px4_mag(interface->get_device_id(), interface->external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+	_px4_mag(interface->get_device_id(), rotation),
 	_interface(interface),
 	_collect_phase(false),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),

@@ -127,7 +127,6 @@ public:
 
 	uint8_t  get_instance() const { return _instance; }
 	unsigned get_last_generation() const { return _last_generation; }
-	ORB_PRIO get_priority() { return advertised() ? _node->get_priority() : ORB_PRIO_UNINITIALIZED; }
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
 
 protected:

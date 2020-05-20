@@ -114,31 +114,7 @@ void VotedSensorsUpdate::parametersUpdate()
 
 		if (imu.get().timestamp > 0 && imu.get().accel_device_id > 0 && imu.get().gyro_device_id > 0) {
 
-			if (_accel.priority[uorb_index] == ORB_PRIO_UNINITIALIZED) {
-				// find corresponding sensor_accel publication
-				for (uint8_t i = 0; i < ACCEL_COUNT_MAX; i++) {
-					uORB::SubscriptionData<sensor_accel_s> sensor_accel{ORB_ID(sensor_accel), i};
-					sensor_accel.update();
-
-					if (imu.get().accel_device_id == sensor_accel.get().device_id) {
-						_accel.priority[uorb_index] = sensor_accel.get_priority();
-						break;
-					}
-				}
-			}
-
-			if (_gyro.priority[uorb_index] == ORB_PRIO_UNINITIALIZED) {
-				// find corresponding sensor_gyro publication
-				for (uint8_t i = 0; i < GYRO_COUNT_MAX; i++) {
-					uORB::SubscriptionData<sensor_accel_s> sensor_gyro{ORB_ID(sensor_gyro), i};
-					sensor_gyro.update();
-
-					if (imu.get().gyro_device_id == sensor_gyro.get().device_id) {
-						_gyro.priority[uorb_index] = sensor_gyro.get_priority();
-						break;
-					}
-				}
-			}
+			// TODO
 		}
 	}
 
@@ -151,9 +127,6 @@ void VotedSensorsUpdate::parametersUpdate()
 	/* first we have to reset all possible mags, since we are looping through the uORB instances instead of the drivers,
 	 * and not all uORB instances have to be published yet at the initial call of parametersUpdate()
 	 */
-	for (int i = 0; i < MAG_COUNT_MAX; i++) {
-		_mag.enabled[i] = true;
-	}
 
 	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX
 	     && topic_instance < _mag.subscription_count; ++topic_instance) {
@@ -214,14 +187,8 @@ void VotedSensorsUpdate::parametersUpdate()
 
 			/* if the calibration is for this device, apply it */
 			if ((uint32_t)device_id == _mag_device_id[topic_instance]) {
-				_mag.enabled[topic_instance] = (device_enabled == 1);
 				_mag.power_compensation[topic_instance] = {_parameters.mag_comp_paramX[i], _parameters.mag_comp_paramY[i], _parameters.mag_comp_paramZ[i]};
 
-				// the mags that were published after the initial parameterUpdate
-				// would be given the priority even if disabled. Reset it to 0 in this case
-				if (!_mag.enabled[topic_instance]) {
-					_mag.priority[topic_instance] = ORB_PRIO_UNINITIALIZED;
-				}
 
 				mag_calibration_s mscale{};
 
@@ -301,20 +268,11 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	for (int uorb_index = 0; uorb_index < 3; uorb_index++) {
 		vehicle_imu_s imu_report;
 
-		if (_accel.enabled[uorb_index] && _gyro.enabled[uorb_index] && _vehicle_imu_sub[uorb_index].update(&imu_report)) {
+		if (_vehicle_imu_sub[uorb_index].update(&imu_report)) {
 
 			// copy corresponding vehicle_imu_status for accel & gyro error counts
 			vehicle_imu_status_s imu_status{};
 			_vehicle_imu_status_sub[uorb_index].copy(&imu_status);
-
-			// First publication with data
-			if (_accel.priority[uorb_index] == 0) {
-				_accel.priority[uorb_index] = _accel.subscription[uorb_index].get_priority();
-			}
-
-			if (_gyro.priority[uorb_index] == 0) {
-				_gyro.priority[uorb_index] = _gyro.subscription[uorb_index].get_priority();
-			}
 
 			_accel_device_id[uorb_index] = imu_report.accel_device_id;
 			_gyro_device_id[uorb_index] = imu_report.gyro_device_id;
@@ -403,12 +361,7 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 	for (int uorb_index = 0; uorb_index < _mag.subscription_count; uorb_index++) {
 		sensor_mag_s mag_report;
 
-		if (_mag.enabled[uorb_index] && _mag.subscription[uorb_index].update(&mag_report)) {
-
-			// First publication with data
-			if (_mag.priority[uorb_index] == 0) {
-				_mag.priority[uorb_index] = _mag.subscription[uorb_index].get_priority();
-			}
+		if (_mag.subscription[uorb_index].update(&mag_report)) {
 
 			Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
 
@@ -473,16 +426,13 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 					_last_error_message = now;
 				}
 
-				// reduce priority of failed sensor to the minimum
-				sensor.priority[failover_index] = ORB_PRIO_MIN;
-
 				int ctr_valid = 0;
 
-				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
-					if (sensor.enabled[i] && (sensor.priority[i] > ORB_PRIO_MIN)) {
-						ctr_valid++;
-					}
-				}
+				// for (uint8_t i = 0; i < sensor.subscription_count; i++) {
+				// 	if (sensor.enabled[i]) {
+				// 		ctr_valid++;
+				// 	}
+				// }
 
 				if (ctr_valid < 2) {
 					if (ctr_valid == 0) {
@@ -598,7 +548,7 @@ VotedSensorsUpdate::calcAccelInconsistency(sensor_preflight_s &preflt)
 	for (int sensor_index = 0; sensor_index < _accel.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
-		if (_accel.enabled[sensor_index] && (_accel.priority[sensor_index] > 0) && (sensor_index != _accel.last_best_vote)) {
+		if ((sensor_index != _accel.last_best_vote)) {
 
 			float accel_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison agains the primary
 
@@ -647,7 +597,7 @@ void VotedSensorsUpdate::calcGyroInconsistency(sensor_preflight_s &preflt)
 	for (int sensor_index = 0; sensor_index < _gyro.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
-		if (_gyro.enabled[sensor_index] && (_gyro.priority[sensor_index] > 0) && (sensor_index != _gyro.last_best_vote)) {
+		if ((sensor_index != _gyro.last_best_vote)) {
 
 			float gyro_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison against the primary
 
@@ -696,7 +646,7 @@ void VotedSensorsUpdate::calcMagInconsistency(sensor_preflight_s &preflt)
 	// Check each sensor against the primary
 	for (int i = 0; i < _mag.subscription_count; i++) {
 		// check that the sensor we are checking against is not the same as the primary
-		if (_mag.enabled[i] && (_mag.priority[i] > 0) && (i != _mag.last_best_vote)) {
+		if ((i != _mag.last_best_vote)) {
 			// calculate angle to 3D magnetic field vector of the primary sensor
 			Vector3f current_mag(_last_magnetometer[i].magnetometer_ga);
 			float angle_error = AxisAnglef(Quatf(current_mag, primary_mag)).angle();

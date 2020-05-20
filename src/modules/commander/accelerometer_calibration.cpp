@@ -176,8 +176,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	int res = PX4_OK;
 
 	int32_t device_id[MAX_ACCEL_SENS] {};
-	int device_prio_max = 0;
-	int32_t device_id_primary = 0;
 	unsigned active_sensors = 0;
 
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
@@ -194,13 +192,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		device_id[cur_accel] = accel_sub.get().device_id;
 
 		if (device_id[cur_accel] != 0) {
-			// Get priority
-			int32_t prio = accel_sub.get_priority();
-
-			if (prio > device_prio_max) {
-				device_prio_max = prio;
-				device_id_primary = device_id[cur_accel];
-			}
 
 			active_sensors++;
 
@@ -230,8 +221,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	param_get(param_find("SENS_BOARD_ROT"), &board_rotation_int);
 	const Dcmf board_rotation = get_rot_matrix((enum Rotation)board_rotation_int);
 	const Dcmf board_rotation_t = board_rotation.transpose();
-
-	param_set_no_notification(param_find("CAL_ACC_PRIME"), &device_id_primary);
 
 	for (unsigned uorb_index = 0; uorb_index < MAX_ACCEL_SENS; uorb_index++) {
 

@@ -44,7 +44,7 @@
 
 LIS2MDL::LIS2MDL(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus) :
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
-	_px4_mag(interface->get_device_id(), interface->external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+	_px4_mag(interface->get_device_id(), rotation),
 	_interface(interface),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
 	_conf_errors(perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")),

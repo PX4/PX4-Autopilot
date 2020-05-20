@@ -65,7 +65,7 @@ LSM303AGR::LSM303AGR(I2CSPIBusOption bus_option, int bus, int device, enum Rotat
 		     spi_mode_e spi_mode) :
 	SPI(DRV_MAG_DEVTYPE_LSM303AGR, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+	_px4_mag(get_device_id(), rotation),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
 	_bad_values(perf_alloc(PC_COUNT, MODULE_NAME": bad_val"))

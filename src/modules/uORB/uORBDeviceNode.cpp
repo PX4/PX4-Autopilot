@@ -55,10 +55,9 @@ uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(cdev::file_t *fil
 }
 
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path,
-			     ORB_PRIO priority, uint8_t queue_size) :
+			     uint8_t queue_size) :
 	CDev(path),
 	_meta(meta),
-	_priority(priority),
 	_instance(instance),
 	_queue_size(queue_size)
 {
@@ -326,10 +325,6 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		*(uintptr_t *)arg = (uintptr_t)this;
 		return PX4_OK;
 
-	case ORBIOCGPRIORITY:
-		*(int *)arg = get_priority();
-		return PX4_OK;
-
 	case ORBIOCSETQUEUESIZE: {
 			lock();
 			int ret = update_queue_size(arg);
@@ -432,7 +427,7 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 }
 
 #ifdef ORB_COMMUNICATOR
-int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta, ORB_PRIO priority)
+int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 {
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
@@ -445,7 +440,7 @@ int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta, ORB_PRIO pr
 
 /*
 //TODO: Check if we need this since we only unadvertise when things all shutdown and it doesn't actually remove the device
-int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta, ORB_PRIO priority)
+int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta)
 {
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 	if (ch != nullptr && meta != nullptr) {

@@ -186,7 +186,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 void
 Battery::publish()
 {
-	orb_publish_auto(ORB_ID(battery_status), &_orb_advert, &_battery_status, &_orb_instance, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(battery_status), &_orb_advert, &_battery_status, &_orb_instance);
 }
 
 void

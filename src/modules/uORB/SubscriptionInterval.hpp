@@ -136,7 +136,6 @@ public:
 
 	uint8_t		get_instance() const { return _subscription.get_instance(); }
 	unsigned	get_last_generation() const { return _subscription.get_last_generation(); }
-	ORB_PRIO	get_priority() { return _subscription.get_priority(); }
 	orb_id_t	get_topic() const { return _subscription.get_topic(); }
 
 	/**

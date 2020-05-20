@@ -87,10 +87,7 @@ bool param_modify_on_import(bson_node_t node)
 		"CAL_MAG2_ID",
 		"TC_A2_ID",
 		"TC_B2_ID",
-		"TC_G2_ID",
-		"CAL_ACC_PRIME",
-		"CAL_GYRO_PRIME",
-		"CAL_MAG_PRIME",
+		"TC_G2_ID"
 	};
 	bool found = false;
 

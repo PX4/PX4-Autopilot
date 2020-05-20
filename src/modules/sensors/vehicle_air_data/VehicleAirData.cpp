@@ -153,11 +153,6 @@ void VehicleAirData::Run()
 			updated[uorb_index] = _sensor_sub[uorb_index].update(&_last_data[uorb_index]);
 
 			if (updated[uorb_index]) {
-				if (_priority[uorb_index] == 0) {
-					// set initial priority
-					_priority[uorb_index] = _sensor_sub[uorb_index].get_priority();
-				}
-
 				// millibar to Pa
 				const float raw_pressure_pascals = _last_data[uorb_index].pressure * 100.f;
 
@@ -261,7 +256,7 @@ void VehicleAirData::Run()
 				}
 
 				// reduce priority of failed sensor to the minimum
-				_priority[failover_index] = ORB_PRIO_MIN;
+				_priority[failover_index] = 1;
 			}
 		}
 	}

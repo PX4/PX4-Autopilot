@@ -71,8 +71,6 @@ static constexpr float MAG_MAX_OFFSET_LEN =
 
 int32_t	device_ids[max_mags];
 bool internal[max_mags];
-int device_prio_max = 0;
-int32_t device_id_primary = 0;
 static unsigned _last_mag_progress = 0;
 
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask);
@@ -635,17 +633,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				break;
 			}
 
-			if (device_ids[cur_mag] != 0) {
-				// Get priority
-				ORB_PRIO prio = ORB_PRIO_UNINITIALIZED;
-				orb_priority(worker_data.sub_mag[cur_mag], &prio);
-
-				if (prio > device_prio_max) {
-					device_prio_max = prio;
-					device_id_primary = device_ids[cur_mag];
-				}
-
-			} else {
+			if (device_ids[cur_mag] == 0) {
 				calibration_log_critical(mavlink_log_pub, "Mag #%u no device id, abort", cur_mag);
 				result = calibrate_return_error;
 				break;
@@ -896,9 +884,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			}
 		}
 
-		// Trigger a param set on the last step so the whole
-		// system updates
-		(void)param_set(param_find("CAL_MAG_PRIME"), &(device_id_primary));
+		param_notify_changes();
 	}
 
 	return result;

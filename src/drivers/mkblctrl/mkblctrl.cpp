@@ -481,8 +481,7 @@ MK::task_main()
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 	int dummy;
-	_t_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
-					 &outputs, &dummy, ORB_PRIO_HIGH);
+	_t_outputs = orb_advertise_multi(ORB_ID(actuator_outputs), &outputs, &dummy);
 
 	/*
 	 * advertise the blctrl status.

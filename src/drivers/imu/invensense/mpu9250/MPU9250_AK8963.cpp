@@ -48,7 +48,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 MPU9250_AK8963::MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation) :
 	ScheduledWorkItem("mpu9250_ak8963", px4::device_bus_to_wq(mpu9250.get_device_id())),
 	_mpu9250(mpu9250),
-	_px4_mag(mpu9250.get_device_id(), ORB_PRIO_DEFAULT, rotation)
+	_px4_mag(mpu9250.get_device_id(), rotation)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK8963);
 	_px4_mag.set_external(mpu9250.external());
