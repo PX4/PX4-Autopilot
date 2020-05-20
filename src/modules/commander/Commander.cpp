@@ -680,7 +680,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				const bool enforce = (static_cast<int>(roundf(cmd.param2)) == 21196);
 
 				if (!enforce) {
-					if (!_land_detector.landed && !is_ground_rover(&status)) {
+					if (!(_land_detector.landed || _land_detector.maybe_landed) && !is_ground_rover(&status)) {
 						if (cmd_arms) {
 							if (armed_local->armed) {
 								mavlink_log_warning(&mavlink_log_pub, "Arming denied! Already armed");
