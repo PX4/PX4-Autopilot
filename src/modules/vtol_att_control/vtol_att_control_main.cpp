@@ -156,18 +156,29 @@ VtolAttitudeControl::vehicle_cmd_poll()
 void
 VtolAttitudeControl::handle_command()
 {
-	// update transition command if necessary
 	if (_vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
-		_transition_command = int(_vehicle_cmd.param1 + 0.5f);
 
-		// Report that we have received the command no matter what we actually do with it.
-		// This might not be optimal but is better than no response at all.
+		vehicle_status_s vehicle_status = {};
+		_vehicle_status_sub.copy(&vehicle_status);
+
+		uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
+		// deny any transition in auto takeoff mode, plus transition from RW to FW in land or RTL mode
+		if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+		    || (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			&& (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))) {
+			result = vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
+
+		} else {
+			_transition_command = int(_vehicle_cmd.param1 + 0.5f);
+		}
 
 		if (_vehicle_cmd.from_external) {
 			vehicle_command_ack_s command_ack{};
 			command_ack.timestamp = hrt_absolute_time();
 			command_ack.command = _vehicle_cmd.command;
-			command_ack.result = (uint8_t)vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+			command_ack.result = result;
 			command_ack.target_system = _vehicle_cmd.source_system;
 			command_ack.target_component = _vehicle_cmd.source_component;
 
