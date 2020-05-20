@@ -313,7 +313,7 @@ bool Ekf::resetGpsAntYaw()
 
 		// update the quaternion state estimates and corresponding covariances only if
 		// the change in angle has been large or the yaw is not yet aligned
-		if(fabs(yaw_delta) > math::radians(15.0f) || !_control_status.flags.yaw_align) {
+		if(fabsf(yaw_delta) > math::radians(15.0f) || !_control_status.flags.yaw_align) {
 			const float yaw_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 			resetQuatStateYaw(measured_yaw, yaw_variance, true);
 		}
