@@ -54,6 +54,8 @@ VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 	const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
 	_accel_integrator.set_reset_interval(configured_interval_us);
 	_gyro_integrator.set_reset_interval(configured_interval_us);
+
+	_vehicle_imu_pub.advertise();
 }
 
 VehicleIMU::~VehicleIMU()
@@ -69,7 +71,7 @@ bool VehicleIMU::Start()
 	// force initial updates
 	ParametersUpdate(true);
 
-	return _sensor_accel_sub.registerCallback() && _sensor_gyro_sub.registerCallback();
+	return _sensor_gyro_sub.registerCallback();
 }
 
 void VehicleIMU::Stop()
@@ -269,28 +271,18 @@ void VehicleIMU::UpdateIntergratorConfiguration()
 		// relaxed minimum reset interval (closest we can get to configured interval minus half a sample interval to tolerate any jitter)
 		const float relaxed_reset_interval_min = roundf(interval_us - 0.5f * _gyro_interval.update_interval);
 
+		// let the gyro set the configuration and scheduling
+		// accel integrator will be forced to reset when gyro integrator is ready
 		_gyro_integrator.set_reset_samples(integral_samples);
 		_gyro_integrator.set_reset_interval(relaxed_reset_interval_min);
+		_accel_integrator.set_reset_samples(1);
+		_accel_integrator.set_reset_interval(0);
 
 		_sensor_accel_sub.set_required_updates(integral_samples);
 		_sensor_gyro_sub.set_required_updates(integral_samples);
 
-		if ((_accel_corrections.get_device_id() == _gyro_corrections.get_device_id())
-		    && fabsf(_accel_interval.update_interval - _gyro_interval.update_interval) < 10) {
-
-			// if accel and gyro are coming form the same device and data rates are extremely close we can schedule as an integer multipe of samples
-			_accel_integrator.set_reset_samples(integral_samples);
-			_accel_integrator.set_reset_interval(relaxed_reset_interval_min);
-
-		} else {
-			// otherwise let the gyro set the configuration and scheduling
-			// set conservative minimum for accel integrator reset (it will be forced to reset when gyro integrator is ready)
-			_accel_integrator.set_reset_samples(1);
-			_accel_integrator.set_reset_interval(0);
-
-			// run when there are enough new gyro samples, unregister accel
-			_sensor_accel_sub.unregisterCallback();
-		}
+		// run when there are enough new gyro samples, unregister accel
+		_sensor_accel_sub.unregisterCallback();
 
 		PX4_DEBUG("accel (%d) gyro (%d) interval updated: %.0f us, gyro samples: %.0f",
 			  _accel_corrections.get_device_id(), _gyro_corrections.get_device_id(), (double)interval_us, (double)integral_samples);

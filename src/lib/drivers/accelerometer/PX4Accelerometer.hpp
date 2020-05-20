@@ -99,7 +99,7 @@ private:
 	float			_scale{1.f};
 	float			_temperature{0.f};
 
-	int16_t			_clip_limit{(int16_t)(_range / _scale)};
+	float			_clip_limit{_range / _scale};
 
 	uint32_t		_error_count{0};
 

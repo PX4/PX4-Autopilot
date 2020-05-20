@@ -94,8 +94,8 @@ private:
 	SensorCorrections _accel_corrections;
 	SensorCorrections _gyro_corrections;
 
-	Integrator _accel_integrator{5000, false}; // 200 Hz default
-	Integrator _gyro_integrator{5000, true};   // 200 Hz default, coning compensation enabled
+	Integrator _accel_integrator{}; // 200 Hz default
+	Integrator _gyro_integrator{true};   // 200 Hz default, coning compensation enabled
 
 	hrt_abstime _last_timestamp_sample_accel{0};
 	hrt_abstime _last_timestamp_sample_gyro{0};

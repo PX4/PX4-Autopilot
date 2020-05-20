@@ -164,7 +164,7 @@ private:
 	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);
 
 	/**
-	 * Poll the gyro for updated data.
+	 * Poll IMU for updated data.
 	 *
 	 * @param raw	Combined sensor data structure into which
 	 *		data should be returned.

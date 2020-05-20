@@ -48,7 +48,7 @@
 class Integrator
 {
 public:
-	Integrator(uint32_t reset_interval = 5000, bool coning_compensation = false) : _coning_comp_on(coning_compensation) {}
+	Integrator(bool coning_compensation = false) : _coning_comp_on(coning_compensation) {}
 	~Integrator() = default;
 
 	/**
@@ -91,7 +91,7 @@ public:
 	uint8_t get_reset_samples() const { return _reset_samples_min; }
 
 	/**
-	 * Set required samples for reset. This won't reset the integrator.
+	 * Is the Integrator ready to reset?
 	 *
 	 * @return		true if integrator has sufficient data (minimum interval & samples satisfied) to reset.
 	 */
@@ -114,7 +114,7 @@ private:
 	matrix::Vector3f _last_val{0.f, 0.f, 0.f};         /**< previous input */
 	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from previous previous sampling interval */
 
-	uint32_t _reset_interval_min{5000}; /**< the interval after which the content will be published and the integrator reset */
+	uint32_t _reset_interval_min{0}; /**< the interval after which the content will be published and the integrator reset */
 
 	uint8_t _integrated_samples{0};
 	uint8_t _reset_samples_min{1};

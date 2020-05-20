@@ -163,52 +163,54 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 	const uint8_t N = sample.samples;
 	const float dt = sample.dt;
 
-	// trapezoidal integration (equally spaced, scaled by dt later)
-	Vector3f integral{
-		(0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)),
-		(0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)),
-		(0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)),
-	};
+	{
+		// trapezoidal integration (equally spaced, scaled by dt later)
+		Vector3f integral{
+			(0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)),
+			(0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)),
+			(0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)),
+		};
 
-	_last_sample[0] = sample.x[N - 1];
-	_last_sample[1] = sample.y[N - 1];
-	_last_sample[2] = sample.z[N - 1];
+		_last_sample[0] = sample.x[N - 1];
+		_last_sample[1] = sample.y[N - 1];
+		_last_sample[2] = sample.z[N - 1];
 
-	// clipping
-	float clip_count_x = clipping(sample.x, _clip_limit, N);
-	float clip_count_y = clipping(sample.y, _clip_limit, N);
-	float clip_count_z = clipping(sample.z, _clip_limit, N);
+		// clipping
+		float clip_count_x = clipping(sample.x, _clip_limit, N);
+		float clip_count_y = clipping(sample.y, _clip_limit, N);
+		float clip_count_z = clipping(sample.z, _clip_limit, N);
 
-	rotate_3f(_rotation, clip_count_x, clip_count_y, clip_count_z);
-
-	// Apply rotation (before scaling)
-	rotate_3f(_rotation, integral(0), integral(1), integral(2));
-
-	// average
-	float x = integral(0) / (float)N;
-	float y = integral(1) / (float)N;
-	float z = integral(2) / (float)N;
-
-	// Apply range scale and the calibrating offset/scale
-	const Vector3f val_calibrated{((Vector3f{x, y, z} * _scale) - _calibration_offset).emult(_calibration_scale)};
+		rotate_3f(_rotation, clip_count_x, clip_count_y, clip_count_z);
 
 
-	// publish
-	sensor_accel_s report;
+		// Apply rotation (before scaling)
+		rotate_3f(_rotation, integral(0), integral(1), integral(2));
 
-	report.timestamp_sample = sample.timestamp_sample;
-	report.device_id = _device_id;
-	report.temperature = _temperature;
-	report.error_count = _error_count;
-	report.x = val_calibrated(0);
-	report.y = val_calibrated(1);
-	report.z = val_calibrated(2);
-	report.clip_counter[0] = fabsf(roundf(clip_count_x));
-	report.clip_counter[1] = fabsf(roundf(clip_count_y));
-	report.clip_counter[2] = fabsf(roundf(clip_count_z));
-	report.timestamp = hrt_absolute_time();
+		// average
+		const float x = integral(0) / (float)N;
+		const float y = integral(1) / (float)N;
+		const float z = integral(2) / (float)N;
 
-	_sensor_pub.publish(report);
+		// Apply range scale and the calibration offset/scale
+		const Vector3f val_calibrated{((Vector3f{x, y, z} * _scale) - _calibration_offset).emult(_calibration_scale)};
+
+		// publish
+		sensor_accel_s report;
+
+		report.timestamp_sample = sample.timestamp_sample;
+		report.device_id = _device_id;
+		report.temperature = _temperature;
+		report.error_count = _error_count;
+		report.x = val_calibrated(0);
+		report.y = val_calibrated(1);
+		report.z = val_calibrated(2);
+		report.clip_counter[0] = fabsf(roundf(clip_count_x));
+		report.clip_counter[1] = fabsf(roundf(clip_count_y));
+		report.clip_counter[2] = fabsf(roundf(clip_count_z));
+		report.timestamp = hrt_absolute_time();
+
+		_sensor_pub.publish(report);
+	}
 
 
 	// publish fifo
