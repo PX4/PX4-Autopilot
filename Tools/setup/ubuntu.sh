@@ -173,6 +173,11 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	echo
 	echo "Installing PX4 simulation dependencies"
 
+	# General simulation dependencies
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		bc \
+		;
+
 	# Java 8 (jmavsim or fastrtps)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		ant \
