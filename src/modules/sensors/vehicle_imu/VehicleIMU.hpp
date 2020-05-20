@@ -33,9 +33,10 @@
 
 #pragma once
 
+#include "Integrator.hpp"
+
 #include <sensor_corrections/SensorCorrections.hpp>
 
-#include <lib/drivers/device/integrator.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
