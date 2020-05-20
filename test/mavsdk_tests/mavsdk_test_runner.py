@@ -341,6 +341,8 @@ class Tester:
             is_success = False
 
         self.stop_runners()
+        # Collect what was left in output buffers.
+        self.collect_runner_output()
         self.stop_combined_log()
 
         result = {'success': is_success,
