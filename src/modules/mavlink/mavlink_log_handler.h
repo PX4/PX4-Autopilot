@@ -65,11 +65,11 @@ public:
 	unsigned get_size();
 
 private:
-	enum class LOG_HANDLER_STATE {
-		INACTIVE,     //There is no active action of log handler
-		IDLE,         //The log handler is not sending list/data, but list has been sent
-		LISTING,      //File list is being send
-		SENDING_DATA  //File Data is being send
+	enum class LogHandlerState {
+		Inactive,     //There is no active action of log handler
+		Idle,         //The log handler is not sending list/data, but list has been sent
+		Listing,      //File list is being send
+		SendingData  //File Data is being send
 	};
 	void _log_message(const mavlink_message_t *msg);
 	void _log_request_list(const mavlink_message_t *msg);
@@ -91,7 +91,7 @@ private:
 	size_t _log_send_listing();
 	size_t _log_send_data();
 
-	LOG_HANDLER_STATE _current_status{LOG_HANDLER_STATE::INACTIVE};
+	LogHandlerState _current_status{LogHandlerState::Inactive};
 	Mavlink *_mavlink;
 
 	int         _next_entry{0};

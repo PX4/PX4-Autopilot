@@ -122,14 +122,14 @@ MavlinkLogHandler::send(const hrt_abstime /*t*/)
 	size_t count = 0;
 
 	//-- Log Entries
-	while (_current_status == LOG_HANDLER_STATE::LISTING
+	while (_current_status == LogHandlerState::Listing
 	       && _mavlink->get_free_tx_buf() > MAVLINK_MSG_ID_LOG_ENTRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
 	       && count < MAX_BYTES_SEND) {
 		count += _log_send_listing();
 	}
 
 	//-- Log Data
-	while (_current_status == LOG_HANDLER_STATE::SENDING_DATA
+	while (_current_status == LogHandlerState::SendingData
 	       && _mavlink->get_free_tx_buf() > MAVLINK_MSG_ID_LOG_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
 	       && count < MAX_BYTES_SEND) {
 		count += _log_send_data();
@@ -144,24 +144,24 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 	mavlink_msg_log_request_list_decode(msg, &request);
 
 	//-- Check for re-requests (data loss) or new request
-	if (_current_status != LOG_HANDLER_STATE::INACTIVE) {
+	if (_current_status != LogHandlerState::Inactive) {
 		//-- Is this a new request?
 		if ((request.end - request.start) > _log_count) {
-			_current_status = LOG_HANDLER_STATE::INACTIVE;
+			_current_status = LogHandlerState::Inactive;
 			_close_and_unlink_files();
 
 		} else {
-			_current_status = LOG_HANDLER_STATE::IDLE;
+			_current_status = LogHandlerState::Idle;
 
 		}
 	}
 
-	if (_current_status == LOG_HANDLER_STATE::INACTIVE) {
+	if (_current_status == LogHandlerState::Inactive) {
 		//-- Prepare new request
 
 		_reset_list_helper();
 		_init_list_helper();
-		_current_status = LOG_HANDLER_STATE::IDLE;
+		_current_status = LogHandlerState::Idle;
 	}
 
 	if (_log_count) {
@@ -177,7 +177,7 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 		    _last_entry,
 		    _log_count);
 	//-- Enable streaming
-	_current_status = LOG_HANDLER_STATE::LISTING;
+	_current_status = LogHandlerState::Listing;
 }
 
 //-------------------------------------------------------------------
@@ -185,7 +185,7 @@ void
 MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 {
 	//-- If we haven't listed, we can't do much
-	if (_current_status == LOG_HANDLER_STATE::INACTIVE) {
+	if (_current_status == LogHandlerState::Inactive) {
 		PX4LOG_WARN("MavlinkLogHandler::_log_request_data Log request with no list requested.");
 		return;
 	}
@@ -201,7 +201,7 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 	}
 
 	//-- If we were sending log entries, stop it
-	_current_status = LOG_HANDLER_STATE::IDLE;
+	_current_status = LogHandlerState::Idle;
 
 	if (_current_log_index != request.id) {
 		//-- Init send log dataset
@@ -232,7 +232,7 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 	}
 
 	//-- Enable streaming
-	_current_status = LOG_HANDLER_STATE::SENDING_DATA;
+	_current_status = LogHandlerState::SendingData;
 }
 
 //-------------------------------------------------------------------
@@ -243,7 +243,7 @@ MavlinkLogHandler::_log_request_erase(const mavlink_message_t * /*msg*/)
 	mavlink_log_erase_t request;
 	mavlink_msg_log_erase_decode(msg, &request);
 	*/
-	_current_status = LOG_HANDLER_STATE::INACTIVE;
+	_current_status = LogHandlerState::Inactive;
 	_close_and_unlink_files();
 
 	//-- Delete all logs
@@ -256,7 +256,7 @@ MavlinkLogHandler::_log_request_end(const mavlink_message_t * /*msg*/)
 {
 	PX4LOG_WARN("MavlinkLogHandler::_log_request_end");
 
-	_current_status = LOG_HANDLER_STATE::INACTIVE;
+	_current_status = LogHandlerState::Inactive;
 	_close_and_unlink_files();
 }
 
@@ -276,7 +276,7 @@ MavlinkLogHandler::_log_send_listing()
 
 	//-- If we're done listing, flag it.
 	if (_next_entry == _last_entry) {
-		_current_status = LOG_HANDLER_STATE::IDLE;
+		_current_status = LogHandlerState::Idle;
 
 	} else {
 		_next_entry++;
@@ -313,14 +313,14 @@ MavlinkLogHandler::_log_send_data()
 	_current_log_data_remaining -= read_size;
 
 	if (read_size < sizeof(response.data) || _current_log_data_remaining == 0) {
-		_current_status = LOG_HANDLER_STATE::IDLE;
+		_current_status = LogHandlerState::Idle;
 	}
 
 	return sizeof(response);
 }
 
 //-------------------------------------------------------------------
-void MavlinkLogHandler::_close_and_unlink_files(void)
+void MavlinkLogHandler::_close_and_unlink_files()
 {
 	if (_current_log_filep) {
 		::fclose(_current_log_filep);
