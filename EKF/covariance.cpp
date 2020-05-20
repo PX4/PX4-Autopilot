@@ -935,7 +935,7 @@ void Ekf::resetWindCovariance()
 
 	} else {
 		// without airspeed, start with a small initial uncertainty to improve the initial estimate
-		P.uncorrelateCovarianceSetVariance<2>(22, 1.0f);
+		P.uncorrelateCovarianceSetVariance<2>(22, _params.initial_wind_uncertainty);
 
 	}
 }
