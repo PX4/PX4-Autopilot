@@ -424,9 +424,11 @@ class Tester:
                 break
 
             # Workaround to prevent gz not being able to communicate
-            # with gzserver
+            # with gzserver. In CI it tends to take longer.
             if os.getenv("GITHUB_WORKFLOW") and runner.name == "gzserver":
                 time.sleep(10)
+            else:
+                time.sleep(2)
 
         if abort:
             self.stop_runners()
