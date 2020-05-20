@@ -53,7 +53,7 @@ class Runner:
             cwd=self.cwd,
             env=self.env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             universal_newlines=True
         )
 
