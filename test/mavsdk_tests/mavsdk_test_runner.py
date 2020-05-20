@@ -134,7 +134,7 @@ class Tester:
         self.gui = gui
         self.verbose = verbose
         self.start_time = datetime.datetime.now()
-        self.combined_log_fd = TextIO
+        self.log_fd: Any[TextIO] = None
 
     @classmethod
     def determine_tests(cls,
@@ -456,7 +456,8 @@ class Tester:
         self.log_fd = open(filename, 'w')
 
     def stop_combined_log(self) -> None:
-        self.log_fd.close()
+        if self.log_fd:
+            self.log_fd.close()
 
     def add_to_combined_log(self, output: str) -> None:
         self.log_fd.write(output)
