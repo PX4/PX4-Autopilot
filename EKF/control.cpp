@@ -631,28 +631,50 @@ void Ekf::controlGpsFusion()
 			// We haven't had an absolute position fix for a longer time so need to do something
 			do_vel_pos_reset = do_vel_pos_reset || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);
 
-			// A reset to the EKF-GSF estimate can be performed after a recent takeoff which will enable
-			// recovery from a bad magnetometer or field estimate.
-			// This special case reset can also be requested externally.
-			// The minimum time interval between resets to the EKF-GSF estimate must be limited to
-			// allow the EKF-GSF time to improve its estimate if the first reset was not successful.
-			// Don't perform the reset if getting GPS back after a significant period of no data because the timeout
-			// could have been caused by bad GPS
-			const bool stopped_following_gps_velocity = isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay) &&
-							   (_time_last_hor_vel_fuse > _time_last_on_ground_us);
+			/* Logic controlling the reset of navigation filter yaw to the EKF-GSF estimate to recover from loss of
+			   navigation casued by a bad yaw estimate.
+
+			   A rapid reset to the EKF-GSF estimate is performed after a recent takeoff if horizontal velocity
+			   innovation checks fail. This enables recovery from a bad yaw estimate. After 30 seconds from takeoff,
+			   different test criteria are used that take longer to trigger and reduce false positives. A reset is
+			   not performed if the fault condition was present before flight to prevent triggering due to GPS glitches
+			   or other sensor errors.
+
+			   The yaw reset to the EKF-GSF estimate can be requested externally at any time during flight.
+
+			   The total number of resets allowed per boot cycle is limited.
+
+			   The minimum time interval between resets to the EKF-GSF estimate is limited to allow the EKF-GSF time
+			   to improve its estimate if the previous reset was not successful.
+
+			   A reset is not performed when getting GPS back after a significant period of no data because the timeout
+			   could have been caused by bad GPS.
+			*/
+
 			if (!_control_status.flags.in_air) {
 				_time_last_on_ground_us = _time_last_imu;
 			}
-			const bool recent_takeoff = _control_status.flags.in_air && !isTimedOut(_time_last_on_ground_us, 30000000);
-			const bool do_yaw_vel_pos_reset = (do_vel_pos_reset || _do_ekfgsf_yaw_reset || stopped_following_gps_velocity) &&
-								recent_takeoff &&
-								isTimedOut(_ekfgsf_yaw_reset_time, 5000000) &&
-								!gps_signal_was_lost;
+
+			const bool recent_takeoff_nav_failure = _control_status.flags.in_air &&
+								!isTimedOut(_time_last_on_ground_us, 30000000) &&
+								isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay) &&
+								(_time_last_hor_vel_fuse > _time_last_on_ground_us);
+
+			const bool inflight_nav_failure = _control_status.flags.in_air &&
+							  do_vel_pos_reset &&
+							  (_time_last_hor_vel_fuse > _time_last_on_ground_us) &&
+							  (_time_last_hor_pos_fuse > _time_last_on_ground_us);
+
+			const bool do_yaw_vel_pos_reset = (_do_ekfgsf_yaw_reset || recent_takeoff_nav_failure || inflight_nav_failure) &&
+							  _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit &&
+							  isTimedOut(_ekfgsf_yaw_reset_time, 5000000) &&
+							  !gps_signal_was_lost;
 
 			if (do_yaw_vel_pos_reset) {
 				if (resetYawToEKFGSF()) {
 					_ekfgsf_yaw_reset_time = _time_last_imu;
 					_do_ekfgsf_yaw_reset = false;
+					_ekfgsf_yaw_reset_count++;
 
 					// Reset the timeout counters
 					_time_last_hor_pos_fuse = _time_last_imu;
