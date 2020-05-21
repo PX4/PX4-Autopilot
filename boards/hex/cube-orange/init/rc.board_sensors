@@ -11,7 +11,7 @@ ms5611 -s start # SPI1
 icm20602 -s -R 14 start # Vibration isolation, SPI4
 
 # TODO: review driver
-icm20948 -s -R 6 start 	# Not isolated, but also SPI4
+icm20948 -s -M -R 6 start 	# Not isolated, but also SPI4
 
 ms5611 -S -b 4 -c 3 start # SPI4
 
