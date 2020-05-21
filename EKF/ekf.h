@@ -876,6 +876,7 @@ private:
 	int64_t _ekfgsf_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
 	uint64_t _time_last_on_ground_us{0};	///< last tine we were on the ground (uSec)
 	bool _do_ekfgsf_yaw_reset{false};	// true when an emergency yaw reset has been requested
+	uint8_t _ekfgsf_yaw_reset_count{0};	// number of times the yaw has been reset to the EKF-GSF estimate
 
 	// Call once per _imu_sample_delayed update after all main EKF data fusion oeprations have been completed
 	void runYawEKFGSF();
