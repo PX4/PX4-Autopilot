@@ -341,8 +341,13 @@ int board_determine_hw_info()
 	int rv = determine_hw_info(&hw_revision, &hw_version);
 
 	if (rv == OK) {
-		hw_info[HW_INFO_INIT_REV] = board_get_hw_revision() + '0';
-		hw_info[HW_INFO_INIT_VER] = board_get_hw_version() + '0';
+
+		hw_info[HW_INFO_INIT_REV] = board_get_hw_revision() < 10 ?
+					    board_get_hw_revision() + '0' :
+					    board_get_hw_revision() + 'a' - 10;
+		hw_info[HW_INFO_INIT_VER] = board_get_hw_version()  < 10 ?
+					    board_get_hw_version() + '0' :
+					    board_get_hw_version()  + 'a' - 10;
 	}
 
 	return rv;
