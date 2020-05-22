@@ -112,7 +112,7 @@ gpio_main(int argc, char *argv[])
 		mask |= ((port - 'A') << GPIO_PORT_SHIFT) & GPIO_PORT_MASK;
 	} else if ('a' <= port && port <= 'k') {
 		mask |= ((port - 'a') << GPIO_PORT_SHIFT) & GPIO_PORT_MASK;
-	}else {
+	} else {
 		usage("invalid port");
 		return -1;
 	}
@@ -154,7 +154,7 @@ gpio_main(int argc, char *argv[])
 				mask |= GPIO_PULLUP;
 			} else if (strcasecmp(extra, "PULLDOWN") == 0) {
 				mask |= GPIO_PULLDOWN;
-			} else if (argc == 5 && !force_apply){
+			} else if (argc == 5 && !force_apply) {
 				usage ("extra read argument not PULLUP or PULLDOWN");
 				return -1;
 			}
