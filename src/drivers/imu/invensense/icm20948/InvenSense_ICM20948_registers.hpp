@@ -125,10 +125,12 @@ enum class BANK_3 : uint8_t {
 //---------------- BANK0 Register bits
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
+	DMP_EN     	= Bit7,
 	FIFO_EN     = Bit6,
 	I2C_MST_EN  = Bit5, // Enable the I2C Master I/F module
 	I2C_IF_DIS  = Bit4, // Reset I2C Slave module and put the serial interface in SPI mode only
-
+	DMP_RST		= Bit3, // Reset DMP module. Reset is asynchronous. This bit auto clears after one clock cycle of the internal 20 MHz clock.
+	SRAM_RST	= Bit2, // Reset SRAM module. Reset is asynchronous. This bit auto clears after one clock cycle of the internal 20 MHz clock.
 	I2C_MST_RST = Bit1, // Reset I2C Master module.
 };
 

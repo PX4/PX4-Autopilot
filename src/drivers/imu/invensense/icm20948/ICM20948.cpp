@@ -738,7 +738,7 @@ void ICM20948::I2CSlaveRegisterWrite(uint8_t slave_i2c_addr, uint8_t reg, uint8_
 	RegisterWrite(Register::BANK_3::I2C_SLV0_ADDR, slave_i2c_addr);
 	RegisterWrite(Register::BANK_3::I2C_SLV0_REG, reg);
 	RegisterWrite(Register::BANK_3::I2C_SLV0_DO, val);
-	RegisterSetBits(Register::BANK_3::I2C_SLV0_CTRL, 1 | I2C_SLV0_CTRL_BIT::I2C_SLV0_EN);
+	RegisterSetBits(Register::BANK_3::I2C_SLV0_CTRL, 1);
 }
 
 void ICM20948::I2CSlaveExternalSensorDataEnable(uint8_t slave_i2c_addr, uint8_t reg, uint8_t size)

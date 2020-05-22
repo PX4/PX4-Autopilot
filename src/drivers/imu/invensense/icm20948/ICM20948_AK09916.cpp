@@ -62,6 +62,7 @@ ICM20948_AK09916::~ICM20948_AK09916()
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_duplicate_data_perf);
+	perf_free(_data_not_ready);
 }
 
 bool ICM20948_AK09916::Init()
@@ -83,6 +84,7 @@ void ICM20948_AK09916::PrintInfo()
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_duplicate_data_perf);
+	perf_print_counter(_data_not_ready);
 
 	_px4_mag.print_status();
 }
@@ -113,6 +115,7 @@ void ICM20948_AK09916::Run()
 
 			if (WIA == WHOAMI) {
 				// if reset succeeded then configure
+				PX4_DEBUG("AK09916 reset successful, configuring..");
 				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
 
@@ -137,7 +140,8 @@ void ICM20948_AK09916::Run()
 	case STATE::CONFIGURE:
 		if (Configure()) {
 			// if configure succeeded then start reading
-			_icm20948.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::HXL, sizeof(TransferBuffer));
+			PX4_DEBUG("AK09916 configure successful, reading..");
+			_icm20948.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ST1, sizeof(TransferBuffer));
 			_state = STATE::READ;
 			ScheduleOnInterval(20_ms, 20_ms); // 50 Hz
 
@@ -158,7 +162,7 @@ void ICM20948_AK09916::Run()
 
 			perf_end(_transfer_perf);
 
-			if (success && !(buffer.ST2 & ST2_BIT::HOFL)) {
+			if (success && !(buffer.ST2 & ST2_BIT::HOFL) && (buffer.ST1 & ST1_BIT::DRDY)) {
 				// sensor's frame is +y forward (x), -x right, +z down
 				int16_t x = combine(buffer.HYH, buffer.HYL); // +Y
 				int16_t y = combine(buffer.HXH, buffer.HXL); // +X
@@ -182,6 +186,8 @@ void ICM20948_AK09916::Run()
 				} else {
 					success = false;
 				}
+			} else {
+				perf_count(_data_not_ready);
 			}
 
 			if (!success) {

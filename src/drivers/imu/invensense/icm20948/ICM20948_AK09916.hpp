@@ -69,13 +69,14 @@ public:
 private:
 
 	struct TransferBuffer {
-		//uint8_t ST1;
+		uint8_t ST1;
 		uint8_t HXL;
 		uint8_t HXH;
 		uint8_t HYL;
 		uint8_t HYH;
 		uint8_t HZL;
 		uint8_t HZH;
+		uint8_t TMPS;
 		uint8_t ST2;
 	};
 
@@ -105,6 +106,8 @@ private:
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_ak09916: bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_ak09916: bad transfer")};
 	perf_counter_t _duplicate_data_perf{perf_alloc(PC_COUNT, MODULE_NAME"_ak09916: duplicate data")};
+	perf_counter_t _data_not_ready{perf_alloc(PC_COUNT, MODULE_NAME"_ak09916: data not ready")};
+
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
@@ -124,7 +127,7 @@ private:
 	static constexpr uint8_t size_register_cfg{1};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                       | Set bits, Clear bits
-		{ AKM_AK09916::Register::CNTL2,   AKM_AK09916::CNTL2_BIT::MODE3, Bit0 },
+		{ AKM_AK09916::Register::CNTL2,   AKM_AK09916::CNTL2_BIT::MODE3, (uint8_t)~AKM_AK09916::CNTL2_BIT::MODE3 },
 	};
 };
 
