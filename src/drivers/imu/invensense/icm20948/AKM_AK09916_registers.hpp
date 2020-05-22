@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,23 +31,75 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+/**
+ * @file AKM_AK09916_registers.hpp
+ *
+ * Asahi Kasei Microdevices (AKM) AK09916 registers.
+ *
+ */
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20948, SPI::CS{GPIO::PortE, GPIO::Pin15}, SPI::DRDY{GPIO::PortE, GPIO::Pin12}),
-	}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10}),
-		initSPIDevice(DRV_BARO_DEVTYPE_DPS310, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-	}),
-	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin10}, SPI::DRDY{GPIO::PortF, GPIO::Pin3}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin6}, SPI::DRDY{GPIO::PortF, GPIO::Pin1}),
-	}),
+#pragma once
+
+#include <cstdint>
+
+namespace AKM_AK09916
+{
+
+// TODO: move to a central header
+static constexpr uint8_t Bit0 = (1 << 0);
+static constexpr uint8_t Bit1 = (1 << 1);
+static constexpr uint8_t Bit2 = (1 << 2);
+static constexpr uint8_t Bit3 = (1 << 3);
+static constexpr uint8_t Bit4 = (1 << 4);
+static constexpr uint8_t Bit5 = (1 << 5);
+static constexpr uint8_t Bit6 = (1 << 6);
+static constexpr uint8_t Bit7 = (1 << 7);
+
+static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001100;
+
+static constexpr uint8_t WHOAMI = 0x09;
+
+enum class Register : uint8_t {
+	WIA   = 0x01,   // Device ID
+
+	ST1   = 0x10,   // Status 1
+	HXL   = 0x11,
+	HXH   = 0x12,
+	HYL   = 0x13,
+	HYH   = 0x14,
+	HZL   = 0x15,
+	HZH   = 0x16,
+
+	ST2   = 0x18,   // Status 2
+
+	CNTL2 = 0x31,   // Control 2
+	CNTL3 = 0x32,   // Control 3
 };
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+// ST1
+enum ST1_BIT : uint8_t {
+	DOR  = Bit1,    // Data overrun
+	DRDY = Bit0,    // Data is ready
+};
+
+// ST2
+enum ST2_BIT : uint8_t {
+	BITM = Bit4, // Output bit setting (mirror)
+	HOFL = Bit3, // Magnetic sensor overflow
+};
+
+// CNTL2
+enum CNTL2_BIT : uint8_t {
+	MODE1 = Bit1,        // Continuous measurement mode 1 (10Hz)
+	MODE2 = Bit2,        // Continuous measurement mode 2 (20Hz)
+	MODE3 = Bit2 | Bit1, // Continuous measurement mode 3 (50Hz)
+	MODE4 = Bit3,        // Continuous measurement mode 4 (100Hz)
+};
+
+// CNTL3
+enum CNTL3_BIT : uint8_t {
+	SRST = Bit0,
+};
+
+} // namespace AKM_AK09916
