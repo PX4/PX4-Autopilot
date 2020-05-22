@@ -12,8 +12,8 @@ icm20602 -s -R 4 start
 bmi088 -A -R 10 -s start
 bmi088 -G -R 10 -s start
 
-# Internal ICM-20948
-icm20948 -s -R 10 start
+# Internal ICM-20948 (with magnetometer)
+icm20948 -s -R 2 -M start
 
 # Interal DPS310 (barometer)
 dps310 -s start

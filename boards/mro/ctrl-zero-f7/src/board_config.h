@@ -118,6 +118,7 @@
 #define BOARD_NUMBER_BRICKS             1
 
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PE4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
+#define GPIO_VDD_3V3_SENSORS_EN         /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
 
 
 /* Define True logic Power Control in arch agnostic form */
@@ -200,6 +201,7 @@
 		GPIO_CAN1_SILENT_S0,              \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
+		GPIO_VDD_3V3_SENSORS_EN,          \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_SAFETY_SWITCH_IN,            \
 	}
