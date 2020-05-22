@@ -31,7 +31,7 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/bmi088
 		imu/invensense/icm20602
-		imu/icm20948
+		imu/invensense/icm20948
 		irlock
 		lights/blinkm
 		lights/rgbled

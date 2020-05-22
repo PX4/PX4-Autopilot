@@ -108,7 +108,6 @@ private:
 	perf_counter_t _duplicate_data_perf{perf_alloc(PC_COUNT, MODULE_NAME"_ak09916: duplicate data")};
 	perf_counter_t _data_not_ready{perf_alloc(PC_COUNT, MODULE_NAME"_ak09916: data not ready")};
 
-
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
 

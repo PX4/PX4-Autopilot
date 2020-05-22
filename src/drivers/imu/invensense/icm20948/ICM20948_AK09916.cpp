@@ -111,11 +111,9 @@ void ICM20948_AK09916::Run()
 			uint8_t WIA = 0;
 			_icm20948.I2CSlaveExternalSensorDataRead(&WIA, 1);
 
-			PX4_INFO("WIA: %d", WIA);
-
 			if (WIA == WHOAMI) {
 				// if reset succeeded then configure
-				PX4_DEBUG("AK09916 reset successful, configuring..");
+				PX4_DEBUG("AK09916 reset successful, configuring");
 				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
 
@@ -140,7 +138,7 @@ void ICM20948_AK09916::Run()
 	case STATE::CONFIGURE:
 		if (Configure()) {
 			// if configure succeeded then start reading
-			PX4_DEBUG("AK09916 configure successful, reading..");
+			PX4_DEBUG("AK09916 configure successful, reading");
 			_icm20948.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ST1, sizeof(TransferBuffer));
 			_state = STATE::READ;
 			ScheduleOnInterval(20_ms, 20_ms); // 50 Hz
@@ -186,6 +184,7 @@ void ICM20948_AK09916::Run()
 				} else {
 					success = false;
 				}
+
 			} else {
 				perf_count(_data_not_ready);
 			}

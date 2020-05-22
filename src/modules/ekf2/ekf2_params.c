@@ -750,7 +750,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
  * Measurement noise for vision angle observations used to lower bound or replace the uncertainty included in the message
  *
  * @group EKF2
- * @min 0.01
+ * @min 0.05
  * @unit rad
  * @decimal 2
  */

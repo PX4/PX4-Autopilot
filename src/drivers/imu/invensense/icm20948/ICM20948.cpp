@@ -50,8 +50,6 @@ ICM20948::ICM20948(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Ro
 	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation)
 {
-	_debug_enabled = true;
-
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 
 	if (enable_magnetometer) {
@@ -136,22 +134,7 @@ void ICM20948::print_status()
 
 int ICM20948::probe()
 {
-	// select BANK_0
-	uint8_t cmd_bank_sel[2] {};
-	cmd_bank_sel[0] = static_cast<uint8_t>(Register::BANK_0::REG_BANK_SEL);
-	cmd_bank_sel[1] = 0;
-	transfer(cmd_bank_sel, cmd_bank_sel, sizeof(cmd_bank_sel));
-
 	const uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
-
-	for (int i = 0; i < 127; i++) {
-		uint8_t cmd_bank_read[2] {};
-		cmd_bank_read[0] = i | DIR_READ;
-		cmd_bank_read[1] = 0;
-		//PX4_INFO("%d: 0x%02x : 0x%02x", i, cmd_bank_read[0], cmd_bank_read[1]);
-		transfer(cmd_bank_read, cmd_bank_read, sizeof(cmd_bank_read));
-		//PX4_INFO("%d: 0x%02x : 0x%02x", i, cmd_bank_read[0], cmd_bank_read[1]);
-	}
 
 	if (whoami != WHOAMI) {
 		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
@@ -283,9 +266,9 @@ void ICM20948::RunImpl()
 			if (failure || hrt_elapsed_time(&_last_config_check_timestamp) > 10_ms) {
 				// check BANK_0 & BANK_2 registers incrementally
 				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0], true)
-				    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2], true)) {
-					// TODO: check bank 3
-
+				    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2], true)
+				    && RegisterCheck(_register_bank3_cfg[_checked_register_bank3], true)
+				   ) {
 					_last_config_check_timestamp = timestamp_sample;
 					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
 					_checked_register_bank2 = (_checked_register_bank2 + 1) % size_register_bank2_cfg;
@@ -368,7 +351,7 @@ void ICM20948::ConfigureGyro()
 void ICM20948::ConfigureSampleRate(int sample_rate)
 {
 	if (sample_rate == 0) {
-		sample_rate = 1000; // default to ~1 kHz
+		sample_rate = 800; // default to ~800 Hz
 	}
 
 	// round down to nearest FIFO sample dt * SAMPLES_PER_TRANSFER

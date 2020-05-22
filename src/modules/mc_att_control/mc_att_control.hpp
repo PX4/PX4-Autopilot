@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <vtol_att_control/vtol_type.h>
+#include <lib/ecl/EKF/AlphaFilter.hpp>
 
 #include <AttitudeControl.hpp>
 
@@ -130,6 +131,9 @@ private:
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
 
 	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
+	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
+	AlphaFilter<float> _man_x_input_filter;
+	AlphaFilter<float> _man_y_input_filter;
 
 	hrt_abstime _last_run{0};
 
@@ -157,12 +161,10 @@ private:
 		_param_mpc_thr_hover,			/**< throttle at which vehicle is at hover equilibrium */
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,				/**< throttle curve behavior */
 
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
+		(ParamFloat<px4::params::MC_MAN_TILT_TAU>) _param_mc_man_tilt_tau
 	)
 
 	bool _is_tailsitter{false};
-
-	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
-
 };
 
