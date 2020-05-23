@@ -30,20 +30,37 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__imu__icm20948
-	MAIN icm20948
-	SRCS
-		AKM_AK09916_registers.hpp
-		ICM20948.cpp
-		ICM20948.hpp
-		ICM20948_AK09916.cpp
-		ICM20948_AK09916.hpp
-		icm20948_main.cpp
-		InvenSense_ICM20948_registers.hpp
-	DEPENDS
-		px4_work_queue
-		drivers_accelerometer
-		drivers_gyroscope
-		drivers_magnetometer
+if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+	add_library(drivers_board
+		bootloader_main.c
+		usb.c
 	)
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch
+			nuttx_drivers
+			bootloader
+	)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader)
+
+else()
+	add_library(drivers_board
+		i2c.cpp
+		init.c
+		led.c
+		spi.cpp
+		timer_config.cpp
+		usb.c
+	)
+	add_dependencies(drivers_board arch_board_hw_info)
+
+	target_link_libraries(drivers_board
+		PRIVATE
+			arch_spi
+			arch_board_hw_info
+			drivers__led
+			nuttx_arch
+			nuttx_drivers
+			px4_layer
+	)
+endif()
