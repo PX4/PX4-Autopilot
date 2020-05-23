@@ -31,71 +31,75 @@
  *
  ****************************************************************************/
 
+/**
+ * @file AKM_AK09916_registers.hpp
+ *
+ * Asahi Kasei Microdevices (AKM) AK09916 registers.
+ *
+ */
+
 #pragma once
 
-#include "WorkQueueManager.hpp"
+#include <cstdint>
 
-#include <containers/BlockingList.hpp>
-#include <containers/List.hpp>
-#include <containers/IntrusiveQueue.hpp>
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/sem.h>
-#include <px4_platform_common/tasks.h>
-
-namespace px4
+namespace AKM_AK09916
 {
 
-class WorkItem;
+// TODO: move to a central header
+static constexpr uint8_t Bit0 = (1 << 0);
+static constexpr uint8_t Bit1 = (1 << 1);
+static constexpr uint8_t Bit2 = (1 << 2);
+static constexpr uint8_t Bit3 = (1 << 3);
+static constexpr uint8_t Bit4 = (1 << 4);
+static constexpr uint8_t Bit5 = (1 << 5);
+static constexpr uint8_t Bit6 = (1 << 6);
+static constexpr uint8_t Bit7 = (1 << 7);
 
-class WorkQueue : public ListNode<WorkQueue *>
-{
-public:
-	explicit WorkQueue(const wq_config_t &wq_config);
-	WorkQueue() = delete;
+static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001100;
 
-	~WorkQueue();
+static constexpr uint8_t WHOAMI = 0x09;
 
-	const char *get_name() { return _config.name; }
+enum class Register : uint8_t {
+	WIA   = 0x01,   // Device ID
 
-	bool Attach(WorkItem *item);
-	void Detach(WorkItem *item);
+	ST1   = 0x10,   // Status 1
+	HXL   = 0x11,
+	HXH   = 0x12,
+	HYL   = 0x13,
+	HYH   = 0x14,
+	HZL   = 0x15,
+	HZH   = 0x16,
 
-	void Add(WorkItem *item);
-	void Remove(WorkItem *item);
+	ST2   = 0x18,   // Status 2
 
-	void Clear();
-
-	void Run();
-
-	void request_stop() { _should_exit.store(true); }
-
-	void print_status(bool last = false);
-
-private:
-
-	bool should_exit() const { return _should_exit.load(); }
-
-	inline void SignalWorkerThread();
-
-#ifdef __PX4_NUTTX
-	// In NuttX work can be enqueued from an ISR
-	void work_lock() { _flags = enter_critical_section(); }
-	void work_unlock() { leave_critical_section(_flags); }
-	irqstate_t _flags;
-#else
-	// loop as the wait may be interrupted by a signal
-	void work_lock() { do {} while (px4_sem_wait(&_qlock) != 0); }
-	void work_unlock() { px4_sem_post(&_qlock); }
-	px4_sem_t _qlock;
-#endif
-
-	IntrusiveQueue<WorkItem *>	_q;
-	px4_sem_t			_process_lock;
-	const wq_config_t		&_config;
-	BlockingList<WorkItem *>	_work_items;
-	px4::atomic_bool		_should_exit{false};
-
+	CNTL2 = 0x31,   // Control 2
+	CNTL3 = 0x32,   // Control 3
 };
 
-} // namespace px4
+// ST1
+enum ST1_BIT : uint8_t {
+	DOR  = Bit1,    // Data overrun
+	DRDY = Bit0,    // Data is ready
+};
+
+// ST2
+enum ST2_BIT : uint8_t {
+	BITM = Bit4, // Output bit setting (mirror)
+	HOFL = Bit3, // Magnetic sensor overflow
+};
+
+// CNTL2
+enum CNTL2_BIT : uint8_t {
+	MODE1 = Bit1,        // Continuous measurement mode 1 (10Hz)
+	MODE2 = Bit2,        // Continuous measurement mode 2 (20Hz)
+	MODE3 = Bit2 | Bit1, // Continuous measurement mode 3 (50Hz)
+	MODE4 = Bit3,        // Continuous measurement mode 4 (100Hz)
+};
+
+// CNTL3
+enum CNTL3_BIT : uint8_t {
+	SRST = Bit0,
+};
+
+} // namespace AKM_AK09916
