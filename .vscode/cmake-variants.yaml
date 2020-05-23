@@ -66,6 +66,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x7pro_default
+    hex_cube-orange_default:
+      short: hex_cube-orange
+      buildType: MinSizeRel
+      settings:
+        CONFIG: hex_cube-orange_default
     holybro_durandal-v1_default:
       short: holybro_durandal-v1
       buildType: MinSizeRel
