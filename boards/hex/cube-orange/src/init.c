@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,34 +34,19 @@
 /**
  * @file init.c
  *
- * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * FMU-specific early startup code. This file implements the
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.
  */
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
 #include "board_config.h"
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-#include <chip.h>
-#include <stm32_uart.h>
 #include <arch/board/board.h>
 #include "up_internal.h"
 
@@ -71,28 +56,13 @@
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
-#include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
 
-/****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
 __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
-
 
 /************************************************************************************
  * Name: board_peripheral_reset
@@ -102,26 +72,15 @@ __END_DECLS
  ************************************************************************************/
 __EXPORT void board_peripheral_reset(int ms)
 {
-	/* set the peripheral rails off */
-
-	VDD_5V_PERIPH_EN(false);
-	board_control_spi_sensors_power(false, 0xffff);
-
-	bool last = READ_VDD_3V3_SPEKTRUM_POWER_EN();
-	/* Keep Spektum on to discharge rail*/
-	VDD_3V3_SPEKTRUM_POWER_EN(false);
+	/* Power off Interfaces */
+	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, true);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
 	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
-
-	/* switch the peripheral rail back on */
-	VDD_3V3_SPEKTRUM_POWER_EN(last);
-	board_control_spi_sensors_power(true, 0xffff);
-	VDD_5V_PERIPH_EN(true);
-
+	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, false);
 }
 
 /************************************************************************************
@@ -155,40 +114,17 @@ __EXPORT void board_on_reset(int status)
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
-
-__EXPORT void
-stm32_boardinitialize(void)
+__EXPORT void stm32_boardinitialize(void)
 {
-	// // DEBUG: Use probes
-	// PROBE_INIT(0x1);
-
-	// // DEBUG
-	// while(1)
-	// {
-	// 	// spin
-	// 	up_mdelay(500);
-	// 	PROBE(1, false);
-	// 	up_mdelay(500);
-	// 	PROBE(1, true);
-	// }
-
-	board_on_reset(-1); /* Reset PWM first thing */
-
-	/* configure LEDs */
-
-	board_autoled_initialize();
+	/* Reset PWM first thing */
+	board_on_reset(-1);
 
 	/* configure pins */
-
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
-	board_control_spi_sensors_power_configgpio();
-
-	/* configure USB interfaces */
-
-	stm32_usbinitialize();
-
+	/* configure LEDs */
+	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -202,71 +138,27 @@ stm32_boardinitialize(void)
  * Input Parameters:
  *   arg - The boardctl() argument is passed to the board_app_initialize()
  *         implementation without modification.  The argument has no
- *         meaning to NuttX; the meaning of the argument is a contract
- *         between the board-specific initalization logic and the the
- *         matching application logic.  The value cold be such things as a
- *         mode enumeration value, a set of DIP switch switch settings, a
- *         pointer to configuration data read from a file or serial FLASH,
- *         or whatever you would like to do with it.  Every implementation
- *         should accept zero/NULL as a default configuration.
+ *         meaning to NuttX;
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-
-
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-	VDD_5V_PERIPH_EN(true);
-	// VDD_5V_HIPOWER_EN(true);
-	board_control_spi_sensors_power(true, 0xffff);
-	VDD_3V3_SPEKTRUM_POWER_EN(true);
-
-	/* Need hrt running before using the ADC */
+	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, true);
+	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, false);
 
 	px4_platform_init();
-
-
-	if (OK == board_determine_hw_info()) {
-		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
-		       board_get_hw_type_name());
-
-	} else {
-		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
-	}
-
-	/* configure SPI interfaces (after we determined the HW version) */
 
 	stm32_spiinitialize();
 
 	/* configure the DMA allocator */
-
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
-
-#if 0 // serial DMA is not yet implemented in NuttX for stm32h7
-	/* set up the serial DMA polling */
-	static struct hrt_call serial_dma_call;
-	struct timespec ts;
-
-	/*
-	 * Poll at 1ms intervals for received bytes that have not triggered
-	 * a DMA event.
-	 */
-	ts.tv_sec = 0;
-	ts.tv_nsec = 1000000;
-
-	hrt_call_every(&serial_dma_call,
-		       ts_to_abstime(&ts),
-		       ts_to_abstime(&ts),
-		       (hrt_callout)stm32_serial_dma_poll,
-		       NULL);
-#endif
-
 
 	/* initial LED state */
 	drv_led_start();
@@ -278,19 +170,23 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-	// Ensure Power is off for > 10 mS
-	usleep(15 * 1000);
-	// VDD_3V3_SD_CARD_EN(true);
-	// usleep(500 * 1000);
-
 #ifdef CONFIG_MMCSD
-	int ret = stm32_sdio_initialize();
+	/* Mount the SDIO-based MMC/SD block driver */
+	/* First, get an instance of the SDIO interface */
+	struct sdio_dev_s *sdio_dev = sdio_initialize(0); // SDIO_SLOTNO 0 Only one slot
 
-	if (ret != OK) {
-		led_on(LED_RED);
-		return ret;
+	if (!sdio_dev) {
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", 0);
+		return ERROR;
 	}
 
+	if (mmcsd_slotinitialize(0, sdio_dev) != OK) {
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver\n");
+		return ERROR;
+	}
+
+	/* Assume that the SD card is inserted.  What choice do we have? */
+	sdio_mediachange(sdio_dev, true);
 #endif /* CONFIG_MMCSD */
 
 	return OK;

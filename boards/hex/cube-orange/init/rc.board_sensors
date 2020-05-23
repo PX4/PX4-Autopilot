@@ -1,18 +1,20 @@
 #!/bin/sh
 #
-# Cube Orange specific board sensors init
+# Board specific sensors init
 #------------------------------------------------------------------------------
 adc start
 
-icm20649 -s -R 12 start # Vibration isolated, SPI1
+# SPI1
+ms5611 -s -b 1 start
+icm20649 -s -b 1 start
 
-ms5611 -s start # SPI1
+# SPI4
+ms5611 -s -b 4 start
+icm20602 -s -b 4 -R 12 start
+icm20948 -s -b 4 -R 10 -M start
 
-icm20602 -s -R 8 start # Vibration isolation, SPI4
-
-# TODO: review driver
-# TODO: Check/Fix Rotation
-icm20948 -s -M -R 6 start 	# Not isolated, but also SPI4
-
-ms5611 -S -b 4 -c 3 start # SPI4
-
+# Possible external compasses
+ist8310 -X start
+hmc5883 -T -X start
+qmc5883 -X start
+lis3mdl -X start

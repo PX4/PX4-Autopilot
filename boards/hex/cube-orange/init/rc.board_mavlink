@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Durandal specific specific board MAVLink startup script.
+# Board specific MAVLink startup script.
 #------------------------------------------------------------------------------
 
 # Start MAVLink on the USB port

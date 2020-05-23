@@ -37,24 +37,20 @@
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI1, {
-		// initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortC, GPIO::Pin2} /* No DRDY available */),
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611,  SPI::CS{GPIO::PortD, GPIO::Pin7} /* No DRDY available */),
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}), // MPU_CS, MPU_DRDY
+		initSPIDevice(DRV_BARO_DEVTYPE_MS5611,  SPI::CS{GPIO::PortD, GPIO::Pin7}), // BARO_CS
 	}),
 
-	// FRAM
 	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10}) // FRAM_CS
 	}),
 
 	initSPIBus(SPI::Bus::SPI4, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20948, SPI::CS{GPIO::PortE, GPIO::Pin4}), 	// ICM20948
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin13}),	// ICM20602
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, 	SPI::CS{GPIO::PortC, GPIO::Pin14}),	// MS5611
-		initSPIDevice(DRV_IMU_DEVTYPE_LSM303D, 	SPI::CS{GPIO::PortC, GPIO::Pin15}),	// LSM303D
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20948, SPI::CS{GPIO::PortE, GPIO::Pin4}),  // MPU_EXT_CS
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin13}), // GYRO_EXT_CS
+		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, 	SPI::CS{GPIO::PortC, GPIO::Pin14}), // BARO_EXT_CS
+		initSPIDevice(DRV_IMU_DEVTYPE_LSM303D, 	SPI::CS{GPIO::PortC, GPIO::Pin15}), // ACCEL_MAG_EXT_CS
 	}),
 };
-
-
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);

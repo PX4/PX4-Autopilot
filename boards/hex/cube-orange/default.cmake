@@ -12,9 +12,13 @@ px4_add_board(
 	TESTING
 	UAVCAN_INTERFACES 2 # - No H7 or FD can support in UAVCAN
 	SERIAL_PORTS
-		TEL1:/dev/ttyS0
-		TEL2:/dev/ttyS1
-		GPS1:/dev/ttyS2
+		# IO DEBUG:/dev/ttyS0
+		TEL1:/dev/ttyS1
+		TEL2:/dev/ttyS2
+		GPS1:/dev/ttyS3
+		# PX4IO:/dev/ttyS4
+		# CONSOLE:/dev/tty5
+		GPS2:/dev/ttyS6
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
@@ -25,7 +29,6 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		heater
 		#imu # all available imu drivers
 		imu/adis16448
 		imu/adis16477
@@ -46,8 +49,6 @@ px4_add_board(
 		pca9685
 		power_monitor/ina226
 		#protocol_splitter
-#		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
-#					   all arch dependant code there
 		pwm_out_sim
 		pwm_out
 		px4io
@@ -56,7 +57,7 @@ px4_add_board(
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
-		uavcan # - No H7 or FD can support in UAVCAN yet
+#		uavcan - No H7 or FD can support in UAVCAN yet
 	MODULES
 		airspeed_selector
 		attitude_estimator_q

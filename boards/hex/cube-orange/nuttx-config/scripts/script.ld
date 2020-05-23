@@ -1,7 +1,7 @@
 /****************************************************************************
  * scripts/script.ld
  *
- *   Copyright (C) 2016, 2019 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2020 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  *
@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* The Durandal-v1 uses an STM32H743II has 2048Kb of main FLASH memory.
+/* The board uses an STM32H743XIH6 and has 2048Kb of main FLASH memory.
  * The flash memory is partitioned into a User Flash memory and a System
  * Flash memory. Each of these memories has two banks:
  *
@@ -59,8 +59,8 @@
  *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
  *      ST programmed value: System bootloader at 0x1FF0:0000
  *
- * The Durandal has a Swtich on board, the BOOT0 pin is at ground so by default,
- * the STM32 will boot to address 0x0800:0000 in FLASH unless the swiutch is
+ * There's a switch on board, the BOOT0 pin is at ground so by default,
+ * the STM32 will boot to address 0x0800:0000 in FLASH unless the switch is
  * drepresed, then the boot will be from 0x1FF0:0000
  *
  * The STM32H743ZI also has 1024Kb of data SRAM.
@@ -109,16 +109,16 @@
 
 MEMORY
 {
-	itcm  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
-	flash (rx)  : ORIGIN = 0x08020000, LENGTH = 1920K
-	dtcm1 (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
-	dtcm2 (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
-	sram  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K
-	sram1 (rwx) : ORIGIN = 0x30000000, LENGTH =  128K
-	sram2 (rwx) : ORIGIN = 0x30020000, LENGTH =  128K
-	sram3 (rwx) : ORIGIN = 0x30040000, LENGTH =   32K
-	sram4 (rwx) : ORIGIN = 0x38000000, LENGTH =   64K
-	bbram (rwx) : ORIGIN = 0x38800000, LENGTH =    4K
+	ITCM_RAM  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
+	FLASH      (rx) : ORIGIN = 0x08020000, LENGTH = 1920K
+	DTCM1_RAM (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
+	DTCM2_RAM (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
+	AXI_SRAM  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K /* D1 domain AXI bus */
+	SRAM1     (rwx) : ORIGIN = 0x30000000, LENGTH =  128K /* D2 domain AHB bus */
+	SRAM2     (rwx) : ORIGIN = 0x30020000, LENGTH =  128K /* D2 domain AHB bus */
+	SRAM3     (rwx) : ORIGIN = 0x30040000, LENGTH =   32K /* D2 domain AHB bus */
+	SRAM4     (rwx) : ORIGIN = 0x38000000, LENGTH =   64K /* D3 domain */
+	BKPRAM    (rwx) : ORIGIN = 0x38800000, LENGTH =    4K
 }
 
 OUTPUT_ARCH(arm)
@@ -161,7 +161,7 @@ SECTIONS
 		 * use the NuttX get_errno_ptr() function.
 		 */
 		__errno = get_errno_ptr;
-	} > flash
+	} > FLASH
 
 	/*
 	 * Init functions (static constructors and the like)
@@ -170,7 +170,7 @@ SECTIONS
 		_sinit = ABSOLUTE(.);
 		KEEP(*(.init_array .init_array.*))
 		_einit = ABSOLUTE(.);
-	} > flash
+	} > FLASH
 
 	/*
 	 * Construction data for parameters.
@@ -179,16 +179,16 @@ SECTIONS
 		__param_start = ABSOLUTE(.);
 		KEEP(*(__param*))
 		__param_end = ABSOLUTE(.);
-	} > flash
+	} > FLASH
 
 	.ARM.extab : {
 		*(.ARM.extab*)
-	} > flash
+	} > FLASH
 
 	__exidx_start = ABSOLUTE(.);
 	.ARM.exidx : {
 		*(.ARM.exidx*)
-	} > flash
+	} > FLASH
 	__exidx_end = ABSOLUTE(.);
 
 	_eronly = ABSOLUTE(.);
@@ -199,7 +199,7 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > flash
+	} > AXI_SRAM AT > FLASH
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
@@ -208,7 +208,7 @@ SECTIONS
 		*(COMMON)
 		. = ALIGN(4);
 		_ebss = ABSOLUTE(.);
-	} > sram
+	} > AXI_SRAM
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
