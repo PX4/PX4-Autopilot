@@ -76,7 +76,7 @@ private:
 
 	bool should_exit() const { return _should_exit.load(); }
 
-	inline void signal_worker_thread();
+	inline void SignalWorkerThread();
 
 #ifdef __PX4_NUTTX
 	// In NuttX work can be enqueued from an ISR

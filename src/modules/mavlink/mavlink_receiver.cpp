@@ -2328,6 +2328,18 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		landing_target_pose.z_abs = landing_target.z;
 
 		_landing_target_pose_pub.publish(landing_target_pose);
+
+	} else {
+		irlock_report_s irlock_report{};
+
+		irlock_report.timestamp = hrt_absolute_time();
+		irlock_report.signature = landing_target.target_num;
+		irlock_report.pos_x = landing_target.angle_x;
+		irlock_report.pos_y = landing_target.angle_y;
+		irlock_report.size_x = landing_target.size_x;
+		irlock_report.size_y = landing_target.size_y;
+
+		_irlock_report_pub.publish(irlock_report);
 	}
 }
 
