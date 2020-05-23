@@ -255,7 +255,7 @@ protected:
 	union DeviceId	_device_id {};            	/**< device identifier information */
 
 	const char	*_name{nullptr};		/**< driver name */
-	bool		_debug_enabled{true};		/**< if true, debug messages are printed */
+	bool		_debug_enabled{false};		/**< if true, debug messages are printed */
 
 	Device() = delete;
 	explicit Device(const char *name) : _name(name) {}
