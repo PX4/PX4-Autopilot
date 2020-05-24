@@ -10,7 +10,7 @@ px4_add_board(
 	BUILD_BOOTLOADER
 	IO px4_io-v2_default
 	TESTING
-	UAVCAN_INTERFACES 2 # - No H7 or FD can support in UAVCAN
+	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		# IO DEBUG:/dev/ttyS0
 		TEL1:/dev/ttyS1
@@ -55,7 +55,7 @@ px4_add_board(
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
-#		uavcan - No H7 or FD can support in UAVCAN yet
+		uavcan
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
