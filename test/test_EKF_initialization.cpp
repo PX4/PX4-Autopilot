@@ -108,6 +108,25 @@ class EkfInitializationTest : public ::testing::Test {
 		EXPECT_TRUE(vel_var(1) > vel_variance_limit) << "vel_var(1)" << vel_var(1);
 		EXPECT_TRUE(vel_var(2) > vel_variance_limit) << "vel_var(2)" << vel_var(2);
 	}
+
+	void learningCorrectAccelBias()
+	{
+		const Dcmf R_to_earth = Dcmf(_ekf->getQuaternion());
+		const Vector3f dvel_bias_var = _ekf_wrapper.getDeltaVelBiasVariance();
+		const Vector3f accel_bias = _ekf->getAccelBias();
+
+		for (int i = 0; i < 3; i++){
+			if (fabsf(R_to_earth(2, i)) > 0.8f) {
+				// Highly observable, the variance decreases
+				EXPECT_LT(dvel_bias_var(i), 2.0e-6f) << "axis " << i;
+
+			} else {
+				// Poorly observable, the variance is set to 0
+				EXPECT_FLOAT_EQ(dvel_bias_var(i), 0.f) << "axis" << i;
+				EXPECT_FLOAT_EQ(accel_bias(i), 0.f) << "axis" << i;
+			}
+		}
+	}
 };
 
 TEST_F(EkfInitializationTest, initializeWithZeroTilt)
@@ -122,6 +141,9 @@ TEST_F(EkfInitializationTest, initializeWithZeroTilt)
 
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	validStateAfterOrientationInitialization();
+
+	_sensor_simulator.runSeconds(1.f);
+	learningCorrectAccelBias();
 }
 
 TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt)
@@ -137,6 +159,9 @@ TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt)
 
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	validStateAfterOrientationInitialization();
+
+	_sensor_simulator.runSeconds(1.f);
+	learningCorrectAccelBias();
 }
 
 TEST_F(EkfInitializationTest, initializeWithTilt)
@@ -151,6 +176,9 @@ TEST_F(EkfInitializationTest, initializeWithTilt)
 
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	validStateAfterOrientationInitialization();
+
+	_sensor_simulator.runSeconds(1.f);
+	learningCorrectAccelBias();
 }
 
 TEST_F(EkfInitializationTest, initializeWithPitch90)
@@ -166,6 +194,9 @@ TEST_F(EkfInitializationTest, initializeWithPitch90)
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	// TODO: Quaternion Variance is smaller in this case than in the other cases
 	validStateAfterOrientationInitialization();
+
+	_sensor_simulator.runSeconds(1.f);
+	learningCorrectAccelBias();
 }
 
 TEST_F(EkfInitializationTest, initializeWithRoll90)
@@ -180,4 +211,7 @@ TEST_F(EkfInitializationTest, initializeWithRoll90)
 
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	validStateAfterOrientationInitialization();
+
+	_sensor_simulator.runSeconds(1.f);
+	learningCorrectAccelBias();
 }
