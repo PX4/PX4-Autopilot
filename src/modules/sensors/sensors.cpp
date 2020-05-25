@@ -443,6 +443,10 @@ void Sensors::InitializeVehicleIMU()
 						delete imu;
 					}
 				}
+
+			} else {
+				// abort on first failure, try again later
+				return;
 			}
 		}
 	}
