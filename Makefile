@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2015 - 2019 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 - 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -69,7 +69,13 @@ space := $(subst ,, )
 # by cmake in the subdirectory
 FIRST_ARG := $(firstword $(MAKECMDGOALS))
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-j ?= 4
+
+# Get -j or --jobs argument as suggested in:
+# https://stackoverflow.com/a/33616144/8548472
+MAKE_PID := $(shell echo $$PPID)
+j := $(shell ps T | sed -n 's/.*$(MAKE_PID).*$(MAKE).* \(-j\|--jobs\) *\([0-9][0-9]*\).*/\2/p')
+# Default to 4
+j := $(or $(j),4)
 
 NINJA_BIN := ninja
 ifndef NO_NINJA_BUILD
