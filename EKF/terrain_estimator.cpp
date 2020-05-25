@@ -52,6 +52,7 @@ bool Ekf::initHagl()
 		_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
 		// use the ground clearance value as our uncertainty
 		_terrain_var = sq(_params.rng_gnd_clearance);
+		_time_last_fake_hagl_fuse = _time_last_imu;
 		initialized = true;
 
 	} else if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
@@ -289,6 +290,9 @@ void Ekf::updateTerrainValidity()
 						    && !_control_status.flags.opt_flow;
 
 	_hagl_valid = (_terrain_initialised && (recent_range_fusion || recent_flow_for_terrain_fusion));
+
+	_hagl_sensor_status.flags.range_finder = recent_range_fusion && (_time_last_fake_hagl_fuse != _time_last_hagl_fuse);
+	_hagl_sensor_status.flags.flow = recent_flow_for_terrain_fusion;
 }
 
 // get the estimated vertical position of the terrain relative to the NED origin
