@@ -110,6 +110,11 @@ void FlightTaskAuto::_limitYawRate()
 
 		_yaw_setpoint = yaw_setpoint_sat;
 		_yaw_sp_prev = _yaw_setpoint;
+
+		if (!PX4_ISFINITE(_yawspeed_setpoint) && (_deltatime > FLT_EPSILON)) {
+			// Create a feedforward
+			_yawspeed_setpoint = dyaw / _deltatime;
+		}
 	}
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
