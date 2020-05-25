@@ -92,9 +92,9 @@ ifdef NINJA_BUILD
 	PX4_MAKE := $(NINJA_BIN)
 
 	ifdef VERBOSE
-		PX4_MAKE_ARGS := -v
+		PX4_MAKE_ARGS := -j $(j) -v
 	else
-		PX4_MAKE_ARGS :=
+		PX4_MAKE_ARGS := -j $(j)
 	endif
 else
 	ifdef SYSTEMROOT
