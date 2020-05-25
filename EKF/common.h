@@ -497,4 +497,12 @@ union ekf_solution_status {
 	uint16_t value;
 };
 
+union terrain_fusion_status_u {
+	struct {
+		bool range_finder: 1;	///< 0 - true if we are fusing range finder data
+		bool flow: 1;			///< 1 - true if we are fusing flow data
+	} flags;
+	uint8_t value;
+};
+
 }

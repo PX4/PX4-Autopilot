@@ -221,6 +221,8 @@ public:
 
 	bool isTerrainEstimateValid() const override;
 
+	uint8_t getTerrainEstimateSensorBitfield() const override {return _hagl_sensor_status.value;}
+
 	void updateTerrainValidity();
 
 	// get the estimated terrain vertical position relative to the NED origin
@@ -486,9 +488,11 @@ private:
 	// Terrain height state estimation
 	float _terrain_vpos{0.0f};		///< estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
-	uint64_t _time_last_hagl_fuse{0};		///< last system time that the hagl measurement failed it's checks (uSec)
+	uint64_t _time_last_hagl_fuse{0};		///< last system time that a range sample was fused by the terrain estimator
+	uint64_t _time_last_fake_hagl_fuse{0};	///< last system time that a fake range sample was fused by the terrain estimator
 	bool _terrain_initialised{false};	///< true when the terrain estimator has been initialized
 	bool _hagl_valid{false};		///< true when the height above ground estimate is valid
+	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
 	// height sensor status
 	bool _baro_hgt_faulty{false};		///< true if valid baro data is unavailable for use

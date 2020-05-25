@@ -271,6 +271,8 @@ public:
 	//[[deprecated("Replaced by isTerrainEstimateValid")]]
 	bool get_terrain_valid() { return isTerrainEstimateValid(); }
 
+	virtual uint8_t getTerrainEstimateSensorBitfield() const = 0;
+
 	// get the estimated terrain vertical position relative to the NED origin
 	virtual float getTerrainVertPos() const = 0;
 
