@@ -378,14 +378,6 @@ void FixedwingAttitudeControl::Run()
 		bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled
 				       || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && ! _vehicle_status.in_transition_mode);
 
-		/* Simple handling of failsafe: deploy parachute if failsafe is on */
-		if (_vcontrol_mode.flag_control_termination_enabled) {
-			_actuators_airframe.control[7] = 1.0f;
-
-		} else {
-			_actuators_airframe.control[7] = 0.0f;
-		}
-
 		/* if we are in rotary wing mode, do nothing */
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
 			perf_end(_loop_perf);
@@ -642,16 +634,12 @@ void FixedwingAttitudeControl::Run()
 		/* lazily publish the setpoint only once available */
 		_actuators.timestamp = hrt_absolute_time();
 		_actuators.timestamp_sample = _att.timestamp;
-		_actuators_airframe.timestamp = hrt_absolute_time();
-		_actuators_airframe.timestamp_sample = _att.timestamp;
 
 		/* Only publish if any of the proper modes are enabled */
 		if (_vcontrol_mode.flag_control_rates_enabled ||
 		    _vcontrol_mode.flag_control_attitude_enabled ||
 		    _vcontrol_mode.flag_control_manual_enabled) {
-
 			_actuators_0_pub.publish(_actuators);
-			_actuators_2_pub.publish(_actuators_airframe);
 		}
 	}
 

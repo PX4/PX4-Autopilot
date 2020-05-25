@@ -216,12 +216,14 @@ private:
 
 	unsigned _current_rate{800};
 
-	unsigned _read{0};
+	int16_t _gyro_prev[3] {};
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _errors;
 	perf_counter_t _bad_registers;
 	perf_counter_t _duplicates;
+
+	hrt_abstime _last_temperature_update{0};
 
 	uint8_t _register_wait{0};
 

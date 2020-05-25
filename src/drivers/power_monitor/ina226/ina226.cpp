@@ -49,7 +49,7 @@ INA226::INA226(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int
 	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
 	_collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
 	_measure_errors(perf_alloc(PC_COUNT, "ina226_measurement_err")),
-	_battery(battery_index, this)
+	_battery(battery_index, this, INA226_SAMPLE_INTERVAL_US)
 {
 	float fvalue = MAX_CURRENT;
 	_max_current = fvalue;

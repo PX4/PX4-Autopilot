@@ -350,7 +350,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	static uint64_t last_integration_us = 0;
 
 	// battery simulation (limit update to 100Hz)
-	if (hrt_elapsed_time(&_last_battery_timestamp) >= 10_ms) {
+	if (hrt_elapsed_time(&_last_battery_timestamp) >= SimulatorBattery::SIMLATOR_BATTERY_SAMPLE_INTERVAL_US) {
 
 		const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
 
@@ -369,7 +369,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 		float ibatt = -1.0f; // no current sensor in simulation
 
-		battery_percentage = math::max(battery_percentage, _battery_min_percentage.get() / 100.f);
+		battery_percentage = math::max(battery_percentage, _param_bat_min_pct.get() / 100.f);
 		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
 		vbatt *= _battery.cell_count();
 

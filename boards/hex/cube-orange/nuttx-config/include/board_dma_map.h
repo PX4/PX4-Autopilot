@@ -33,48 +33,12 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/esc_status.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_controls.h>
-#include <battery/battery.h>
+// DMAMUX1
+#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1:37 */
+#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1:38 */
 
-using namespace time_literals;
+#define DMAMAP_USART6_RX   DMAMAP_DMA12_USART6RX_1 /* DMA1:71 */
+#define DMAMAP_USART6_TX   DMAMAP_DMA12_USART6TX_1 /* DMA1:72 */
 
-class EscBattery : public ModuleBase<EscBattery>, public ModuleParams, public px4::WorkItem
-{
-public:
-	EscBattery();
-	~EscBattery() = default;
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	bool init();
-
-private:
-	void Run() override;
-
-	void parameters_updated();
-
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};
-	uORB::SubscriptionCallbackWorkItem _esc_status_sub{this, ORB_ID(esc_status)};
-
-	static constexpr uint32_t ESC_BATTERY_INTERVAL_US = 20_ms; // assume higher frequency esc feedback than 50Hz
-	Battery _battery;
-};
+#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_0 /* DMA1:83 */
+#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_0 /* DMA1:84 */

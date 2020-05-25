@@ -2053,7 +2053,7 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 int
 PX4IO::print_debug()
 {
-#ifdef CONFIG_ARCH_BOARD_PX4_FMU_V2
+#if defined(CONFIG_ARCH_BOARD_PX4_FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4_FMU_V3) ||  defined(CONFIG_ARCH_BOARD_HEX_CUBE_ORANGE)
 	int io_fd = -1;
 
 	if (io_fd <= 0) {

@@ -31,50 +31,80 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file led.c
+ *
+ * LED backend.
+ */
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/esc_status.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_controls.h>
-#include <battery/battery.h>
+#include <px4_platform_common/px4_config.h>
 
-using namespace time_literals;
+#include <stdbool.h>
 
-class EscBattery : public ModuleBase<EscBattery>, public ModuleParams, public px4::WorkItem
-{
-public:
-	EscBattery();
-	~EscBattery() = default;
+#include "chip.h"
+#include "stm32_gpio.h"
+#include "board_config.h"
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+#include <nuttx/board.h>
+#include <arch/board/board.h>
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	bool init();
-
-private:
-	void Run() override;
-
-	void parameters_updated();
-
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};
-	uORB::SubscriptionCallbackWorkItem _esc_status_sub{this, ORB_ID(esc_status)};
-
-	static constexpr uint32_t ESC_BATTERY_INTERVAL_US = 20_ms; // assume higher frequency esc feedback than 50Hz
-	Battery _battery;
+#  define xlat(p) (p)
+static uint32_t g_ledmap[] = {
+	GPIO_nLED_AMBER,
 };
+
+__EXPORT void led_init(void)
+{
+	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
+		if (g_ledmap[l] != 0) {
+			stm32_configgpio(g_ledmap[l]);
+		}
+	}
+}
+
+static void phy_set_led(int led, bool state)
+{
+	/* Drive Low to switch on */
+	if (g_ledmap[led] != 0) {
+		stm32_gpiowrite(g_ledmap[led], !state);
+	}
+}
+
+static bool phy_get_led(int led)
+{
+	/* If Low it is on */
+	if (g_ledmap[led] != 0) {
+		return !stm32_gpioread(g_ledmap[led]);
+	}
+
+	return false;
+}
+
+__EXPORT void led_on(int led)
+{
+	phy_set_led(xlat(led), true);
+}
+
+__EXPORT void led_off(int led)
+{
+	phy_set_led(xlat(led), false);
+}
+
+__EXPORT void led_toggle(int led)
+{
+	phy_set_led(xlat(led), !phy_get_led(xlat(led)));
+}

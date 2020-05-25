@@ -13,6 +13,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
+using namespace time_literals;
+
 /* Configuration Constants */
 #define INA226_BASEADDR 	                    0x41 /* 7-bit address. 8-bit address is 0x41 */
 // If initialization is forced (with the -f flag on the command line), but it fails, the drive will try again to
@@ -98,7 +100,9 @@
 #define INA226_SUL                           (1 << 14)
 #define INA226_SOL                           (1 << 15)
 
-#define INA226_CONVERSION_INTERVAL 	          (100000-7) /* 100 ms / 10 Hz */
+#define INA226_SAMPLE_FREQUENCY_HZ            10
+#define INA226_SAMPLE_INTERVAL_US             (1_s / INA226_SAMPLE_FREQUENCY_HZ)
+#define INA226_CONVERSION_INTERVAL            (INA226_SAMPLE_INTERVAL_US - 7)
 #define MAX_CURRENT                           164.0f    /* 164 Amps */
 #define DN_MAX                                32768.0f  /* 2^15 */
 #define INA226_CONST                          0.00512f  /* is an internal fixed value used to ensure scaling is maintained properly  */
@@ -139,7 +143,7 @@ protected:
 
 private:
 	bool			        _sensor_ok{false};
-	int				        _measure_interval{0};
+	unsigned                        _measure_interval{0};
 	bool			        _collect_phase{false};
 	bool 					_initialized{false};
 
