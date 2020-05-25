@@ -142,6 +142,7 @@ class ModuleDocumentation(object):
             self._handle_usage_param_int(['\'m\'', '-1', '0', '3', "\"SPI mode\"", 'true'])
 
         self._handle_usage_param_int(['\'f\'', '-1', '0', '1000000', "\"bus frequency in kHz\"", 'true'])
+        self._handle_usage_param_flag(['\'q\'', "\"quiet startup (no message if no device found)\"", 'true'])
         self._paring_implicit_options = False
 
     def _handle_usage_params_i2c_address(self, args):
