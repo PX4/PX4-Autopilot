@@ -69,7 +69,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 
 	/* initialize quaternions in messages to be valid */
 	_v_att.q[0] = 1.f;
-	_v_att_sp.q_d[0] = 1.f;
 
 	parameters_updated();
 }
@@ -234,8 +233,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 void
 MulticopterAttitudeControl::control_attitude()
 {
-	_v_att_sp_sub.update(&_v_att_sp);
-	_rates_sp = _attitude_control.update(Quatf(_v_att.q), Quatf(_v_att_sp.q_d), _v_att_sp.yaw_sp_move_rate);
+	_rates_sp = _attitude_control.update(Quatf(_v_att.q));
 }
 
 void
@@ -246,9 +244,7 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 	v_rates_sp.roll = _rates_sp(0);
 	v_rates_sp.pitch = _rates_sp(1);
 	v_rates_sp.yaw = _rates_sp(2);
-	v_rates_sp.thrust_body[0] = _v_att_sp.thrust_body[0];
-	v_rates_sp.thrust_body[1] = _v_att_sp.thrust_body[1];
-	v_rates_sp.thrust_body[2] = _v_att_sp.thrust_body[2];
+	_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
 	v_rates_sp.timestamp = hrt_absolute_time();
 
 	_v_rates_sp_pub.publish(v_rates_sp);
@@ -280,10 +276,20 @@ MulticopterAttitudeControl::Run()
 
 	if (_vehicle_attitude_sub.update(&_v_att)) {
 
+		// Check for new attitude setpoint
+		if (_vehicle_attitude_setpoint_sub.updated()) {
+			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+			_vehicle_attitude_setpoint_sub.update(&vehicle_attitude_setpoint);
+			_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+			_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+		}
+
 		// Check for a heading reset
 		if (prev_quat_reset_counter != _v_att.quat_reset_counter) {
-			// we only extract the heading change from the delta quaternion
-			_man_yaw_sp += Eulerf(Quatf(_v_att.delta_q_reset)).psi();
+			const Quatf delta_q_reset(_v_att.delta_q_reset);
+			// for stabilized attitude generation only extract the heading change from the delta quaternion
+			_man_yaw_sp += Eulerf(delta_q_reset).psi();
+			_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
 		}
 
 		const hrt_abstime now = hrt_absolute_time();
