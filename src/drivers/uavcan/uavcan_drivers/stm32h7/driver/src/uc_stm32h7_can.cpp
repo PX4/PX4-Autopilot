@@ -647,9 +647,9 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 
 	// Location of this interface's message RAM - address in CPU memory address
 	// and relative address (in words) used for configuration
-	const uint32_t ram_base = (2560 / 2) * self_index_;
-	const uint32_t gl_ram_base = ram_base + SRAMCAN_BASE;
-	uint32_t ram_offset = ram_base;
+	const uint32_t iface_ram_base = (2560 / 2) * self_index_;
+	const uint32_t gl_ram_base = SRAMCAN_BASE;
+	uint32_t ram_offset = iface_ram_base;
 
 	// Standard ID Filters: Allow space for 128 filters (128 words)
 	const uint8_t n_stdid = 128;
