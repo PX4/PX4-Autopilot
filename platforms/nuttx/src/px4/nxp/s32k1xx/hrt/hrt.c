@@ -357,7 +357,7 @@ static void hrt_tim_init(void)
 
 	rCNV_HRT  = 1000;
 
-	/* Use external clock source and enable the timer. Set prescaler for HRT_TIMER_FREQ */
+	/* Use external clock source (selected in periphclocks.c) and enable the timer. Set prescaler for HRT_TIMER_FREQ */
 
 	rSC |= (FTM_SC_TOIE | FTM_SC_CLKS_EXTCLK |
 		(LOG_2(HRT_TIMER_CLOCK / HRT_TIMER_FREQ) << FTM_SC_PS_SHIFT
