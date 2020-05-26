@@ -74,8 +74,6 @@ ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 # https://stackoverflow.com/a/33616144/8548472
 MAKE_PID := $(shell echo $$PPID)
 j := $(shell ps T | sed -n 's/.*$(MAKE_PID).*$(MAKE).* \(-j\|--jobs\) *\([0-9][0-9]*\).*/\2/p')
-# Default to 4
-j := $(or $(j),4)
 
 NINJA_BIN := ninja
 ifndef NO_NINJA_BUILD
@@ -92,9 +90,14 @@ ifdef NINJA_BUILD
 	PX4_MAKE := $(NINJA_BIN)
 
 	ifdef VERBOSE
-		PX4_MAKE_ARGS := -j $(j) -v
+		PX4_MAKE_ARGS := -v
 	else
-		PX4_MAKE_ARGS := -j $(j)
+		PX4_MAKE_ARGS :=
+	endif
+
+	# Only override ninja default if -j is set.
+	ifneq ($(j),)
+		PX4_MAKE_ARGS := $(PX4_MAKE_ARGS) -j$(j)
 	endif
 else
 	ifdef SYSTEMROOT
@@ -103,6 +106,9 @@ else
 	else
 		PX4_CMAKE_GENERATOR := "Unix\ Makefiles"
 	endif
+
+	# For non-ninja builds we default to -j4
+	j := $(or $(j),4)
 	PX4_MAKE = $(MAKE)
 	PX4_MAKE_ARGS = -j$(j) --no-print-directory
 endif
