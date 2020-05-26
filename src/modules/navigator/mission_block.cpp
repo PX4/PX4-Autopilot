@@ -141,11 +141,11 @@ MissionBlock::is_mission_item_reached()
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
 
-		float altitude_amsl = _mission_item.altitude_is_relative
-				      ? _mission_item.altitude + _navigator->get_home_position()->alt
-				      : _mission_item.altitude;
+		float mission_item_altitude_amsl = _mission_item.altitude_is_relative
+						   ? _mission_item.altitude + _navigator->get_home_position()->alt
+						   : _mission_item.altitude;
 
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, altitude_amsl,
+		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
 				_navigator->get_global_position()->lat,
 				_navigator->get_global_position()->lon,
 				_navigator->get_global_position()->alt,
@@ -171,7 +171,7 @@ MissionBlock::is_mission_item_reached()
 
 			/* require only altitude for takeoff for multicopter */
 			if (_navigator->get_global_position()->alt >
-			    altitude_amsl - altitude_acceptance_radius) {
+			    mission_item_altitude_amsl - altitude_acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 
@@ -218,7 +218,7 @@ MissionBlock::is_mission_item_reached()
 			//  first check if the altitude setpoint is the mission setpoint
 			position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
 
-			if (fabsf(curr_sp->alt - altitude_amsl) >= FLT_EPSILON) {
+			if (fabsf(curr_sp->alt - mission_item_altitude_amsl) >= FLT_EPSILON) {
 				// check if the initial loiter has been accepted
 				dist_xy = -1.0f;
 				dist_z = -1.0f;
@@ -234,7 +234,7 @@ MissionBlock::is_mission_item_reached()
 				    && dist_z <= _navigator->get_default_altitude_acceptance_radius()) {
 
 					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
-					curr_sp->alt = altitude_amsl;
+					curr_sp->alt = mission_item_altitude_amsl;
 					_navigator->set_position_setpoint_triplet_updated();
 				}
 
