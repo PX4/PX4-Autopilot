@@ -42,64 +42,20 @@
 // TODO:Stubbed out for now
 #include <stdint.h>
 
-#include <s32k1xx_pin.h>
 #include "hardware/s32k1xx_pcc.h"
 #include "hardware/s32k1xx_ftm.h"
+#include "s32k1xx_pin.h"
 
 #include <drivers/drv_pwm_output.h>
 #include <px4_arch/io_timer_hw_description.h>
 
 #include "board_config.h"
 
-constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::FTM0),
-	initIOTimer(Timer::FTM3),
-	initIOTimer(Timer::FTM2),
-};
+/****************************************************************************
+ * Definitions
+ ****************************************************************************/
 
-constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel0}, {GPIO::PortC, GPIO::Pin1}),
-	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel3}, {GPIO::PortA, GPIO::Pin6}),
-	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel4}, {GPIO::PortD, GPIO::Pin4}),
-	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel5}, {GPIO::PortD, GPIO::Pin5}),
-	initIOTimerChannel(io_timers, {Timer::FTM3, Timer::Channel6}, {GPIO::PortE, GPIO::Pin11}),
-	initIOTimerChannel(io_timers, {Timer::FTM3, Timer::Channel7}, {GPIO::PortE, GPIO::Pin12}),
-	initIOTimerChannel(io_timers, {Timer::FTM3, Timer::Channel0}, {GPIO::PortD, GPIO::Pin0}),
-	initIOTimerChannel(io_timers, {Timer::FTM2, Timer::Channel0}, {GPIO::PortA, GPIO::Pin10}),
-};
-
-constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
-	initIOTimerChannelMapping(io_timers, timer_io_channels);
-
-const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
-	{
-		.base = S32K1XX_FTM3_BASE,
-		.clock_register = S32K1XX_PCC_FTM3,
-		.clock_bit = PCC_CGC,
-		.vectorno =  0,
-	},
-};
-
-const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
-	{
-		.gpio_out = LED_TIM3_CH1OUT, // RGB_R
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 2,
-	},
-	{
-		.gpio_out = LED_TIM3_CH5OUT, // RGB_G
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 6,
-	},
-	{
-		.gpio_out = LED_TIM3_CH4OUT, // RGB_B
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 5,
-	},
-};
+/* Register accessors */
 
 #define _REG(_addr)	(*(volatile uint32_t *)(_addr))
 
@@ -148,14 +104,58 @@ const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 #define rSWOCTRL(t)    REG(t,S32K1XX_FTM_SWOCTRL_OFFSET)
 #define rPWMLOAD(t)    REG(t,S32K1XX_FTM_PWMLOAD_OFFSET)
 
-#if !defined(BOARD_PWM_SRC_CLOCK_FREQ)
-#define BOARD_PWM_SRC_CLOCK_FREQ 16000000
-#endif
+constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
+	initIOTimer(Timer::FTM0),
+	//initIOTimer(Timer::FTM2),
+};
 
+constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+	initIOTimerChannel(io_timers, {Timer::FTM0, Timer::Channel7}, {GPIO::PortE, GPIO::Pin9}),
+	//initIOTimerChannel(io_timers, {Timer::FTM2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
+};
+
+constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
+	initIOTimerChannelMapping(io_timers, timer_io_channels);
+
+const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
+	// To Do: Remove or add the right definitions.
+	/*
+	{
+		.base = S32K1XX_FTM0_BASE,
+		.clock_register = S32K1XX_PCC_FTM0,
+		.clock_bit = PCC_CGC,
+		//.vectorno =  0,
+	},
+	*/
+};
+
+const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
+	// To Do: Remove or add the right definitions.
+	/*
+	{
+		.gpio_out = LED_TIM3_CH1OUT, // RGB_R
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 2,
+	},
+	{
+		.gpio_out = LED_TIM3_CH5OUT, // RGB_G
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 6,
+	},
+	{
+		.gpio_out = LED_TIM3_CH4OUT, // RGB_B
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 5,
+	},
+	*/
+};
 
 void ucans32k_timer_initialize(void)
 {
-	/* Select FTM input clock as source for FTM0, FTM2, and FTM3 */
+	/* Select external clock (set to SOSC in periphclocks.c) as source for FTM0, and FTM2 */
 
 	uint32_t regval = _REG(S32K1XX_FTM0_SC);
 	regval &= ~(FTM_SC_CLKS_MASK);
@@ -167,12 +167,7 @@ void ucans32k_timer_initialize(void)
 	regval |= FTM_SC_CLKS_FTM;
 	_REG(S32K1XX_FTM2_SC) = regval;
 
-	regval = _REG(S32K1XX_FTM3_SC);
-	regval &= ~(FTM_SC_CLKS_MASK);
-	regval |= FTM_SC_CLKS_FTM;
-	_REG(S32K1XX_FTM3_SC) = regval;
-
-	/* Enabled System Clock Gating Control for FTM0, FTM2, and FTM3 */
+	/* Enabled System Clock Gating Control for FTM0, and FTM2 */
 
 	regval = _REG(S32K1XX_PCC_FTM0);
 	regval |= PCC_CGC;
@@ -181,8 +176,4 @@ void ucans32k_timer_initialize(void)
 	regval = _REG(S32K1XX_PCC_FTM2);
 	regval |= PCC_CGC;
 	_REG(S32K1XX_PCC_FTM2) = regval;
-
-	regval = _REG(S32K1XX_PCC_FTM3);
-	regval |= PCC_CGC;
-	_REG(S32K1XX_PCC_FTM3) = regval;
 }
