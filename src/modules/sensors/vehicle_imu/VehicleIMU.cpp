@@ -151,7 +151,10 @@ void VehicleIMU::Run()
 
 		bool update_integrator_config = false;
 
-		// integrate all available (queued) gyro
+		// integrate available (queued) gyro
+		// only integrate the minimum number of required samples if we haven't fallen behind by more than 1 message
+		bool integrated_required_only = (_sensor_gyro_sub.updates_available() <= _gyro_integrator.get_reset_samples() + 1);
+
 		sensor_gyro_s gyro;
 
 		while (_sensor_gyro_sub.update(&gyro)) {
@@ -165,6 +168,11 @@ void VehicleIMU::Run()
 			// collect sample interval average for filters
 			if (UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
 				update_integrator_config = true;
+			}
+
+			// break (potentially early) if we have all the necessary gyro integrated
+			if (integrated_required_only && _gyro_integrator.integral_ready()) {
+				break;
 			}
 		}
 
