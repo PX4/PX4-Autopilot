@@ -629,8 +629,10 @@ MulticopterPositionControl::Run()
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
-			const bool not_taken_off = _takeoff.getTakeoffState() < TakeoffState::rampup;
-			const bool flying = _takeoff.getTakeoffState() >= TakeoffState::flight;
+			const bool is_vtol_in_forward_flight = _vehicle_status.is_vtol
+							       && (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			const bool not_taken_off = _takeoff.getTakeoffState() < TakeoffState::rampup && ! is_vtol_in_forward_flight;
+			const bool flying = _takeoff.getTakeoffState() >= TakeoffState::flight || is_vtol_in_forward_flight;
 			const bool flying_but_ground_contact = flying && _vehicle_land_detected.ground_contact;
 
 			if (flying) {
