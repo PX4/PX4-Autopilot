@@ -350,7 +350,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	static uint64_t last_integration_us = 0;
 
 	// battery simulation (limit update to 100Hz)
-	if (hrt_elapsed_time(&_last_battery_timestamp) >= 10_ms) {
+	if (hrt_elapsed_time(&_last_battery_timestamp) >= SimulatorBattery::SIMLATOR_BATTERY_SAMPLE_INTERVAL_US) {
 
 		const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
 
@@ -369,7 +369,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 		float ibatt = -1.0f; // no current sensor in simulation
 
-		battery_percentage = math::max(battery_percentage, _battery_min_percentage.get() / 100.f);
+		battery_percentage = math::max(battery_percentage, _param_bat_min_pct.get() / 100.f);
 		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
 		vbatt *= _battery.cell_count();
 
@@ -1027,24 +1027,17 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 		mavlink_odometry_t odom_msg;
 		mavlink_msg_odometry_decode(odom_mavlink, &odom_msg);
 
-		/* The quaternion of the ODOMETRY msg represents a rotation from
-		 * FRD body frame to the NED local frame */
-		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
-		q.normalize();
-		q.copyTo(odom.q);
-
-		/* Dcm rotation matrix from body frame to local NED frame */
-		const matrix::Dcmf R_body_to_local(q);
-
-		/* since odom.child_frame_id == MAV_FRAME_BODY_FRD, WRT to estimated vehicle body-fixed frame */
-		/* No need to transform the covariance matrices since the non-diagonal values are all zero */
-
 		/* The position in the local NED frame */
 		odom.x = odom_msg.x;
 		odom.y = odom_msg.y;
 		odom.z = odom_msg.z;
 
-		odom.local_frame = odom.LOCAL_FRAME_FRD;
+		/* The quaternion of the ODOMETRY msg represents a rotation from
+		 * NED earth/local frame to XYZ body frame */
+		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
+		q.copyTo(odom.q);
+
+		odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 
 		static_assert(POS_URT_SIZE == (sizeof(odom_msg.pose_covariance) / sizeof(odom_msg.pose_covariance[0])),
 			      "Odometry Pose Covariance matrix URT array size mismatch");
@@ -1054,14 +1047,12 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 			odom.pose_covariance[i] = odom_msg.pose_covariance[i];
 		}
 
-		/* the linear velocities needs to be transformed from the body frame to the local frame */
-		const matrix::Vector3<float> linvel_local(R_body_to_local *
-				matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
+		/* The velocity in the body-fixed frame */
+		odom.velocity_frame = vehicle_odometry_s::BODY_FRAME_FRD;
+		odom.vx = odom_msg.vx;
+		odom.vy = odom_msg.vy;
+		odom.vz = odom_msg.vz;
 
-		/* The velocity in the local NED frame */
-		odom.vx = linvel_local(0);
-		odom.vy = linvel_local(1);
-		odom.vz = linvel_local(2);
 		/* The angular velocity in the body-fixed frame */
 		odom.rollspeed = odom_msg.rollspeed;
 		odom.pitchspeed = odom_msg.pitchspeed;
@@ -1089,7 +1080,7 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 		q.copyTo(odom.q);
 
-		odom.local_frame = odom.LOCAL_FRAME_NED;
+		odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 		static_assert(POS_URT_SIZE == (sizeof(ev.covariance) / sizeof(ev.covariance[0])),
 			      "Vision Position Estimate Pose Covariance matrix URT array size mismatch");

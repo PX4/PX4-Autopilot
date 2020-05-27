@@ -52,8 +52,10 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
-matrix::Vector3f AttitudeControl::update(matrix::Quatf q, matrix::Quatf qd, const float yawspeed_feedforward)
+matrix::Vector3f AttitudeControl::update(matrix::Quatf q) const
 {
+	Quatf qd = _attitude_setpoint_q;
+
 	// ensure input quaternions are exactly normalized because acosf(1.00001) == NaN
 	q.normalize();
 	qd.normalize();
@@ -93,13 +95,13 @@ matrix::Vector3f AttitudeControl::update(matrix::Quatf q, matrix::Quatf qd, cons
 	matrix::Vector3f rate_setpoint = eq.emult(_proportional_gain);
 
 	// Feed forward the yaw setpoint rate.
-	// yaw_sp_move_rate is the feed forward commanded rotation around the world z-axis,
+	// yawspeed_setpoint is the feed forward commanded rotation around the world z-axis,
 	// but we need to apply it in the body frame (because _rates_sp is expressed in the body frame).
 	// Therefore we infer the world z-axis (expressed in the body frame) by taking the last column of R.transposed (== q.inversed)
-	// and multiply it by the yaw setpoint rate (yaw_sp_move_rate).
+	// and multiply it by the yaw setpoint rate (yawspeed_setpoint).
 	// This yields a vector representing the commanded rotatation around the world z-axis expressed in the body frame
 	// such that it can be added to the rates setpoint.
-	rate_setpoint += q.inversed().dcm_z() * yawspeed_feedforward;
+	rate_setpoint += q.inversed().dcm_z() * _yawspeed_setpoint;
 
 	// limit rates
 	for (int i = 0; i < 3; i++) {

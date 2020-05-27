@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <vtol_att_control/vtol_type.h>
+#include <lib/ecl/EKF/AlphaFilter.hpp>
 
 #include <AttitudeControl.hpp>
 
@@ -104,7 +105,7 @@ private:
 
 	AttitudeControl _attitude_control; ///< class for attitude control calculations
 
-	uORB::Subscription _v_att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint subscription */
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _v_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint subscription */
 	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< parameter updates subscription */
@@ -118,7 +119,6 @@ private:
 	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub;
 
 	struct vehicle_attitude_s		_v_att {};		/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s	_v_att_sp {};		/**< vehicle attitude setpoint */
 	struct vehicle_rates_setpoint_s		_v_rates_sp {};		/**< vehicle rates setpoint */
 	struct manual_control_setpoint_s	_manual_control_sp {};	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode {};	/**< vehicle control mode */
@@ -127,9 +127,13 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
-	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
+	matrix::Vector3f _thrust_setpoint_body; ///< body frame 3D thrust vector
+	matrix::Vector3f _rates_sp; ///< angular rates setpoint
 
 	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
+	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
+	AlphaFilter<float> _man_x_input_filter;
+	AlphaFilter<float> _man_y_input_filter;
 
 	hrt_abstime _last_run{0};
 
@@ -157,12 +161,10 @@ private:
 		_param_mpc_thr_hover,			/**< throttle at which vehicle is at hover equilibrium */
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,				/**< throttle curve behavior */
 
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
+		(ParamFloat<px4::params::MC_MAN_TILT_TAU>) _param_mc_man_tilt_tau
 	)
 
 	bool _is_tailsitter{false};
-
-	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
-
 };
 

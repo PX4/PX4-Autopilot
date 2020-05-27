@@ -54,7 +54,7 @@ VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOX
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
 	_ch_type(ch_type),
-	_battery(1, this)
+	_battery(1, this, _meas_interval_us)
 {
 }
 
@@ -284,17 +284,17 @@ VOXLPM::print_status()
 		break;
 	}
 
-	printf("  - meas interval:  %u us \n", _meas_interval);
 	printf("  - voltage: %9.4f VDC \n", (double)_voltage);
 	printf("  - current: %9.4f ADC \n", (double)_amperage);
 	printf("  - shunt: %9.4f mV, %9.4f mA\n", (double)_vshunt * 1000, (double)_vshuntamps * 1000);
 	printf("  - rsense: %9.6f ohm, cal: %i\n", (double)_rshunt, _cal);
+	printf("  - meas interval:  %u us \n", _meas_interval_us);
 }
 
 void
 VOXLPM::start()
 {
-	ScheduleOnInterval(_meas_interval, 1000);
+	ScheduleOnInterval(_meas_interval_us, 1000);
 }
 
 void

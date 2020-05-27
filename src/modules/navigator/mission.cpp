@@ -1468,8 +1468,8 @@ Mission::do_abort_landing()
 	mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
 	_navigator->set_position_setpoint_triplet_updated();
 
-	mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing.",
-				     (int)(alt_sp - alt_landing));
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing.",
+			 (int)(alt_sp - alt_landing));
 
 	// reset mission index to start of landing
 	if (_land_start_available) {

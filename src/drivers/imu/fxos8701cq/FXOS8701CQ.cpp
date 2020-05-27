@@ -259,15 +259,13 @@ FXOS8701CQ::accel_set_samplerate(unsigned frequency)
 	return OK;
 }
 
-void
-FXOS8701CQ::start()
+void FXOS8701CQ::start()
 {
 	// start polling at the specified rate
-	ScheduleOnInterval(1000000 / (FXOS8701C_ACCEL_DEFAULT_RATE) - FXOS8701C_TIMER_REDUCTION, 10000);
+	ScheduleOnInterval((1_s / FXOS8701C_ACCEL_DEFAULT_RATE) / 2);
 }
 
-void
-FXOS8701CQ::check_registers(void)
+void FXOS8701CQ::check_registers()
 {
 	uint8_t v;
 
@@ -296,14 +294,10 @@ FXOS8701CQ::check_registers(void)
 	_checked_next = (_checked_next + 1) % FXOS8701C_NUM_CHECKED_REGISTERS;
 }
 
-void
-FXOS8701CQ::RunImpl()
+void FXOS8701CQ::RunImpl()
 {
 	// start the performance counter
 	perf_begin(_accel_sample_perf);
-
-	// status register and data as read back from the device
-	RawAccelMagReport raw_accel_mag_report{};
 
 	check_registers();
 
@@ -316,6 +310,7 @@ FXOS8701CQ::RunImpl()
 	}
 
 	/* fetch data from the sensor */
+	RawAccelMagReport raw_accel_mag_report{};
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	_interface->read(FXOS8701CQ_DR_STATUS, (uint8_t *)&raw_accel_mag_report, sizeof(raw_accel_mag_report));
@@ -326,27 +321,40 @@ FXOS8701CQ::RunImpl()
 		return;
 	}
 
-	/*
-	 * Eight-bit 2’s complement sensor temperature value with 0.96 °C/LSB sensitivity.
-	 * Temperature data is only valid between –40 °C and 125 °C. The temperature sensor
-	 * output is only valid when M_CTRL_REG1[m_hms] > 0b00. Please note that the
-	 * temperature sensor is uncalibrated and its output for a given temperature will vary from
-	 * one device to the next
-	 */
-	float temperature = (read_reg(FXOS8701CQ_TEMP)) * 0.96f;
-
-	_px4_accel.set_temperature(temperature);
-
-	// report the error count as the sum of the number of bad
-	// register reads and bad values. This allows the higher level
-	// code to decide if it should use this sensor based on
-	// whether it has had failures
-	_px4_accel.set_error_count(perf_event_count(_bad_registers));
-
 	int16_t x = swap16RightJustify14(raw_accel_mag_report.x);
 	int16_t y = swap16RightJustify14(raw_accel_mag_report.y);
 	int16_t z = swap16RightJustify14(raw_accel_mag_report.z);
+
+	// don't publish duplicated reads
+	if ((x == _accel_prev[0]) && (y == _accel_prev[1]) && (z == _accel_prev[2])) {
+		perf_count(_accel_duplicates);
+		perf_end(_accel_sample_perf);
+		return;
+
+	} else {
+		_accel_prev[0] = x;
+		_accel_prev[1] = y;
+		_accel_prev[2] = z;
+	}
+
+	// report the error count as the sum of the number of bad register reads and bad values.
+	_px4_accel.set_error_count(perf_event_count(_bad_registers));
 	_px4_accel.update(timestamp_sample, x, y, z);
+
+	if (hrt_elapsed_time(&_last_temperature_update) > 100_ms) {
+		/*
+		 * Eight-bit 2’s complement sensor temperature value with 0.96 °C/LSB sensitivity.
+		 * Temperature data is only valid between –40 °C and 125 °C. The temperature sensor
+		 * output is only valid when M_CTRL_REG1[m_hms] > 0b00. Please note that the
+		 * temperature sensor is uncalibrated and its output for a given temperature will vary from
+		 * one device to the next
+		 */
+		_last_temperature_update = timestamp_sample;
+		float temperature = (read_reg(FXOS8701CQ_TEMP)) * 0.96f;
+
+		_px4_accel.set_temperature(temperature);
+	}
+
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 
