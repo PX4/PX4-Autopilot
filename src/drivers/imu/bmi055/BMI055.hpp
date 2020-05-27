@@ -48,8 +48,6 @@
 
 #define BMI055_BUS_SPEED				10*1000*1000
 
-#define BMI055_TIMER_REDUCTION				200
-
 class BMI055 : public device::SPI, public I2CSPIDriver<BMI055>
 {
 public:

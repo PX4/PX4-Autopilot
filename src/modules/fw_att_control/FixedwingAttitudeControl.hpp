@@ -109,13 +109,11 @@ private:
 	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
 	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
-	uORB::Publication<actuator_controls_s>		_actuators_2_pub{ORB_ID(actuator_controls_2)};		/**< actuator control group 1 setpoint (Airframe) */
 	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub;
 	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
-	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
 	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
 	vehicle_attitude_s			_att {};		/**< vehicle attitude setpoint */
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */

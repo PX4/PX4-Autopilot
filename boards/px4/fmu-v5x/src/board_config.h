@@ -77,13 +77,13 @@
 
 /* PX4FMU GPIOs ***********************************************************************************/
 
-/* Trace Clock and D0-D3 are available on the debug connector and adjacent pads
+/* Trace Clock and D0-D3 are available on the trace connector
  *
- * TRACECLK PE2  - Dedicated  - Debug Connector Pin 7
- * TRACED0  PE3  - nLED_RED   - Debug Connector Pin 8
- * TRACED1  PE4  - nLED_GREEN - Test Point next to Debug Connector
- * TRACED2  PE5  - nLED_BLUE  - Test Point next to Debug Connector
- * TRACED3  PC12 - nARMED     - Test Point next to Debug Connector
+ * TRACECLK PE2  - Dedicated  - Trace Connector Pin 1
+ * TRACED0  PE3  - nLED_RED   - Trace Connector Pin 3
+ * TRACED1  PE4  - nLED_GREEN - Trace Connector Pin 5
+ * TRACED2  PE5  - nLED_BLUE  - Trace Connector Pin 7
+ * TRACED3  PC12 - nARMED     - Trace Connector Pin 8
 
  */
 #undef TRACE_PINS
@@ -111,10 +111,10 @@
  *
  * Note that these are unshifted addresses.
  */
-#define PX4_I2C_OBDEV_A71CH         0x49
+#define PX4_I2C_OBDEV_SE050         0x48
 
 #define GPIO_I2C4_DRDY1_BMP388      /* PG5  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
-#define GPIO_SE050_nRST             /* PG6  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN6)
+#define GPIO_PG6                    /* PG6  */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN6)
 
 /*
  * ADC channels
@@ -244,7 +244,7 @@
 
 /* Spare GPIO */
 
-#define GPIO_PH11                       /* PH11  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTH|GPIO_PIN1)
+#define GPIO_PH11                       /* PH11  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTH|GPIO_PIN11)
 
 /* ETHERNET GPIO */
 
@@ -264,7 +264,6 @@
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
 #define VDD_3V3_ETH_POWER_EN(on_true)      px4_arch_gpiowrite(GPIO_ETH_POWER_EN, (on_true))
-#define SE050_RESET(reset_true)            px4_arch_gpiowrite(GPIO_SE050_nRST, !(reset_true))
 
 
 /* Tone alarm output */
@@ -422,7 +421,7 @@
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN,            \
-		GPIO_SE050_nRST,                  \
+		GPIO_PG6,                         \
 		GPIO_nARMED_INIT                  \
 	}
 
