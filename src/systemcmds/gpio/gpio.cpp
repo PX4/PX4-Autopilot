@@ -203,4 +203,18 @@ OK
 
 )DESCR_STR");
 
+	PRINT_MODULE_DESCRIPTION("This command is used to read and write GPIOs.");
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("gpio", "command");
+
+	PRINT_MODULE_USAGE_COMMAND("read");
+	PRINT_MODULE_USAGE_ARG("<PORT> <PIN>", "GPIO port and pin", false);
+	PRINT_MODULE_USAGE_ARG("PULLDOWN|PULLUP", "Pulldown/Pullup", true);
+	PRINT_MODULE_USAGE_ARG("--force", "Force (ignore board gpio list)", true);
+
+	PRINT_MODULE_USAGE_COMMAND("write");
+	PRINT_MODULE_USAGE_ARG("<PORT> <PIN>", "GPIO port and pin", false);
+	PRINT_MODULE_USAGE_ARG("<VALUE>", "Value to write", false);
+	PRINT_MODULE_USAGE_ARG("PULLDOWN|PULLUP", "Pulldown/Pullup", true);
+	PRINT_MODULE_USAGE_ARG("--force", "Force (ignore board gpio list)", true);
 }
