@@ -230,7 +230,7 @@ void VehicleIMU::Run()
 			if (_accel_integrator.reset(delta_velocity, accel_integral_dt)
 			    && _gyro_integrator.reset(delta_angle, gyro_integral_dt)) {
 
-				// publich vehicle_imu
+				// publish vehicle_imu
 				vehicle_imu_s imu{};
 
 				imu.timestamp_sample = _last_timestamp_sample_gyro;
