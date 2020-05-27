@@ -291,6 +291,18 @@ void UavcanNode::update_parameters()
 	param_get(param_find("PWM_DISARMED"), &_pwm_disarmed);
 	param_get(param_find("CANNODE_ESC_EN"), &_cannode_esc_en);
 	param_get(param_find("CANNODE_ESC_MASK"), &_esc_mask);
+
+	// TODO: there's probably a more clever way to do this using string operations. Is it worth it?
+	param_get(param_find("CANNODE_ESC0_MAP"), &_esc_map[0]);
+	param_get(param_find("CANNODE_ESC1_MAP"), &_esc_map[1]);
+	param_get(param_find("CANNODE_ESC2_MAP"), &_esc_map[2]);
+	param_get(param_find("CANNODE_ESC3_MAP"), &_esc_map[3]);
+	param_get(param_find("CANNODE_ESC4_MAP"), &_esc_map[4]);
+	param_get(param_find("CANNODE_ESC5_MAP"), &_esc_map[5]);
+	param_get(param_find("CANNODE_ESC6_MAP"), &_esc_map[6]);
+	param_get(param_find("CANNODE_ESC7_MAP"), &_esc_map[7]);
+
+	// TODO: there could be problems if two incoming channels are mapped to the same output channel. How should we handle this?
 }
 
 // Restart handler
@@ -305,8 +317,7 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 	}
 } restart_request_handler;
 
-void
-UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand> &cmd)
+void UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand> &cmd)
 {
 	actuator_outputs_s outputs = {};
 
@@ -330,7 +341,27 @@ UavcanNode::esc_raw_command_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		}
 	}
 
+	// Now remap the indices
+	remap_esc_indices(outputs);
+
 	_actuator_outputs_pub.publish(outputs);
+}
+
+void UavcanNode::remap_esc_indices(actuator_outputs_s& outputs)
+{
+	// Check to ensure parameters are within buffer size
+	for (size_t i = 0; i < (sizeof(_esc_map) / sizeof(_esc_map[0])); i++) {
+		if (_esc_map[i] > (int)(sizeof(outputs.output) / sizeof(outputs.output[0]))) {
+			PX4_ERR("ESC mapping is configured incorrectly!");
+			return;
+		}
+	}
+
+	// Do the remapping
+	actuator_outputs_s copy = outputs;
+	for (size_t i = 0; i < (sizeof(_esc_map) / sizeof(_esc_map[0])); i++) {
+		outputs.output[_esc_map[i]] = copy.output[i];
+	}
 }
 
 void UavcanNode::Run()

@@ -163,6 +163,8 @@ private:
 	void send_gnss_fix2();
 	void send_range_sensor_measurement();
 
+	void remap_esc_indices(actuator_outputs_s& outputs);
+
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
 	bool		_initialized{false};
@@ -172,6 +174,9 @@ private:
 	int _pwm_disarmed{900}; // us
 	int _esc_mask{0};
 	int _cannode_esc_en{0};
+
+	// assumes 8 pwm outputs
+	int _esc_map[8];
 
 	static UavcanNode	*_instance;			///< singleton pointer
 
