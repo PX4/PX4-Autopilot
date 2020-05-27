@@ -39,11 +39,11 @@
 #include "voxlpm.hpp"
 
 /*
- * The VOXLPM v0 has two LTC2946 ICs on it.
+ * The VOXLPM v2 has two LTC2946 ICs on it.
  * Address 0x6A - measures battery voltage and current with a 0.0005 ohm sense resistor
  * Address 0x6B - measures 5VDC ouptut voltage and current with a 0.005 ohm sense resistor
  *
- * The VOXLPM v1 has two INA231 ICs on it.
+ * The VOXLPM v3 has two INA231 ICs on it.
  * Address 0x44 - measures battery voltage and current with a 0.0005 ohm sense resistor
  * Address 0x45 - measures 5VDC/12VDC ouptut voltage and current with a 0.005 ohm sense resistor
  */
@@ -91,12 +91,12 @@ VOXLPM::init()
 	uint8_t addr = get_device_address();
 
 	if (addr == VOXLPM_LTC2946_ADDR_VBATT || addr == VOXLPM_LTC2946_ADDR_P5VD) {
-		_pm_type = VOXLPM_TYPE_V0_LTC;
+		_pm_type = VOXLPM_TYPE_V2_LTC;
 		load_params(_pm_type, _ch_type);
 		ret = init_ltc2946();
 
 	} else if (addr == VOXLPM_INA231_ADDR_VBATT || addr == VOXLPM_INA231_ADDR_P5_12VDC) {
-		_pm_type = VOXLPM_TYPE_V1_INA;
+		_pm_type = VOXLPM_TYPE_V3_INA;
 		load_params(_pm_type, _ch_type);
 		ret = init_ina231();
 
@@ -163,11 +163,11 @@ VOXLPM::probe()
 int
 VOXLPM::load_params(VOXLPM_TYPE pm_type, VOXLPM_CH_TYPE ch_type)
 {
-	if (pm_type == VOXLPM_TYPE_V0_LTC) {
+	if (pm_type == VOXLPM_TYPE_V2_LTC) {
 		/* No configuration needed */
 		_rshunt = (ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_LTC2946_VBAT_SHUNT : VOXLPM_LTC2946_VREG_SHUNT;
 
-	} else if (pm_type == VOXLPM_TYPE_V1_INA) {
+	} else if (pm_type == VOXLPM_TYPE_V3_INA) {
 
 		_rshunt = -1.0f;
 		float fvalue = -1.0f;
@@ -254,12 +254,12 @@ VOXLPM::print_status()
 	perf_print_counter(_sample_perf);
 
 	switch (_pm_type) {
-	case VOXLPM_TYPE_V0_LTC:
-		printf("- V0 (LTC2964)\n");
+	case VOXLPM_TYPE_V2_LTC:
+		printf("- V2 (LTC2964)\n");
 		break;
 
-	case VOXLPM_TYPE_V1_INA:
-		printf("- V1 (INA231)\n");
+	case VOXLPM_TYPE_V3_INA:
+		printf("- V3 (INA231)\n");
 		break;
 
 	default:
@@ -329,11 +329,11 @@ VOXLPM::measure()
 	hrt_abstime tnow = hrt_absolute_time();
 
 	switch (_pm_type) {
-	case VOXLPM_TYPE_V0_LTC:
+	case VOXLPM_TYPE_V2_LTC:
 		ret = measure_ltc2946();
 		break;
 
-	case VOXLPM_TYPE_V1_INA:
+	case VOXLPM_TYPE_V3_INA:
 		ret = measure_ina231();
 		break;
 

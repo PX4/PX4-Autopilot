@@ -38,7 +38,7 @@
  *
  * This is roughly what's goin on:
  *
- * - VOXLPM v0 (QTY2 LTC2946) -
+ * - VOXLPM v2 (QTY2 LTC2946) -
  *
  *             +~~~~~~~~~~~~~~+
  *  VBATT -----| RSENSE_VBATT | ----------+---------------------> VBATT TO ESCS
@@ -55,7 +55,7 @@
  *     # LTC2946, 0x6a #              # LTC2946, 0x6b #
  *     #################              #################
  *
-  * - VOXLPM v1 (QTY2 INA231) -
+  * - VOXLPM v3 (QTY2 INA231) -
  *
  *             +~~~~~~~~~~~~~~+
  *  VBATT -----| RSENSE_VBATT | ----------+---------------------> VBATT TO ESCS
@@ -97,7 +97,7 @@
 using namespace time_literals;
 
 /*
- * VOXLPM v0 - Note that these are unshifted addresses.
+ * VOXLPM v2 - Note that these are unshifted addresses.
  */
 #define VOXLPM_LTC2946_ADDR_VBATT		0x6a // 0x6a  = 0xd4 >> 1
 #define VOXLPM_LTC2946_ADDR_P5VD		0x6b // 0x6b  = 0xd6 >> 1
@@ -164,7 +164,7 @@ using namespace time_literals;
 #define VOXLPM_LTC2946_VREG_SHUNT		0.005f
 
 /*
- * VOXLPM v1 - Coniguration from SBOS644C –FEBRUARY 2013–REVISED MARCH 2018
+ * VOXLPM v3 - Coniguration from SBOS644C –FEBRUARY 2013–REVISED MARCH 2018
  *             http://www.ti.com/lit/ds/symlink/ina231.pdf
  */
 #define VOXLPM_INA231_ADDR_VBATT		0x44
@@ -211,8 +211,8 @@ using namespace time_literals;
 
 enum VOXLPM_TYPE {
 	VOXLPM_UNKOWN,
-	VOXLPM_TYPE_V0_LTC,
-	VOXLPM_TYPE_V1_INA
+	VOXLPM_TYPE_V2_LTC,
+	VOXLPM_TYPE_V3_INA
 };
 
 enum VOXLPM_CH_TYPE {
