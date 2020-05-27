@@ -903,12 +903,15 @@ void UavcanMixingInterface::Run()
 void UavcanMixingInterface::mixerChanged()
 {
 	int rotor_count = 0;
+	int actuator_count = 0;
 
 	if (_mixing_output.mixers()) {
 		rotor_count = _mixing_output.mixers()->get_multirotor_count();
+		actuator_count = _mixing_output.mixers()->get_actuator_count();
 	}
 
 	_esc_controller.set_rotor_count(rotor_count);
+	_actuator_controller.set_actuator_count(rotor_count); /// TODO
 }
 
 void

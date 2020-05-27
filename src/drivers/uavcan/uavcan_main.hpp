@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,7 @@
 #include "uavcan_driver.hpp"
 #include "uavcan_servers.hpp"
 #include "allocator.hpp"
+#include "actuators/actuator.hpp"
 #include "actuators/esc.hpp"
 #include "actuators/hardpoint.hpp"
 #include "sensors/sensor_bridge.hpp"
@@ -80,10 +81,12 @@ class UavcanNode;
 class UavcanMixingInterface : public OutputModuleInterface
 {
 public:
-	UavcanMixingInterface(pthread_mutex_t &node_mutex, UavcanEscController &esc_controller)
+	UavcanMixingInterface(pthread_mutex_t &node_mutex, UavcanEscController &esc_controller,
+			      UavcanActuatorController &actuator_controller)
 		: OutputModuleInterface(MODULE_NAME "-actuators", px4::wq_configurations::uavcan),
 		  _node_mutex(node_mutex),
-		  _esc_controller(esc_controller) {}
+		  _esc_controller(esc_controller) {},
+	_actuator_controller(actuator_controller) {}
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
@@ -98,6 +101,7 @@ private:
 	friend class UavcanNode;
 	pthread_mutex_t &_node_mutex;
 	UavcanEscController &_esc_controller;
+	UavcanActuatorController &_actuator_controller;
 	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 };
 
@@ -198,7 +202,8 @@ private:
 	pthread_mutex_t			_node_mutex;
 	px4_sem_t			_server_command_sem;
 	UavcanEscController		_esc_controller;
-	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
+	UavcanActuatorController	_actuator_controller;
+	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller, _actuator_controller};
 	UavcanHardpointController	_hardpoint_controller;
 	uavcan::GlobalTimeSyncMaster	_time_sync_master;
 	uavcan::GlobalTimeSyncSlave	_time_sync_slave;

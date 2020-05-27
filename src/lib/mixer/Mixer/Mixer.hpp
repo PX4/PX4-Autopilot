@@ -229,6 +229,8 @@ public:
 
 	virtual unsigned		get_multirotor_count()  { return 0; }
 
+	virtual unsigned		get_actuator_count()  { return 0; }
+
 protected:
 
 	/** client-supplied callback used when fetching control values */

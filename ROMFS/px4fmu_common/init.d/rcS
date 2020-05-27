@@ -22,6 +22,7 @@ set +e
 #
 set AUTOCNF no
 set AUX_MODE pwm
+set CAN_OUTPUT no
 set DATAMAN_OPT ""
 set FAILSAFE none
 set FAILSAFE_AUX none
@@ -410,7 +411,8 @@ else
 
 				if param greater UAVCAN_ENABLE 2
 				then
-					set OUTPUT_MODE uavcan_esc
+					#set OUTPUT_MODE uavcan_esc
+					set CAN_OUTPUT yes
 				fi
 			fi
 		else

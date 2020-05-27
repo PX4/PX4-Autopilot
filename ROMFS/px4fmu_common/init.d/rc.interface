@@ -179,6 +179,12 @@ then
 		tune_control play -t 20
 	fi
 
+	if [ $CAN_OUTPUT = yes ]
+	then
+		# UAVCAN output requested; load mixer to UAVCAN
+		mixer load /dev/uavcan/esc ${MIXER_FILE}
+	fi
+
 else
 	if [ $MIXER != skip ]
 	then
