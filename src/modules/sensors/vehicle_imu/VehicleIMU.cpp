@@ -63,9 +63,6 @@ VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 VehicleIMU::~VehicleIMU()
 {
 	Stop();
-	perf_free(_publish_interval_perf);
-	perf_free(_accel_update_perf);
-	perf_free(_gyro_update_perf);
 }
 
 bool VehicleIMU::Start()
@@ -158,7 +155,6 @@ void VehicleIMU::Run()
 		sensor_gyro_s gyro;
 
 		while (_sensor_gyro_sub.update(&gyro)) {
-			perf_count_interval(_gyro_update_perf, gyro.timestamp_sample);
 			_gyro_corrections.set_device_id(gyro.device_id);
 			_gyro_error_count = gyro.error_count;
 
@@ -176,7 +172,6 @@ void VehicleIMU::Run()
 		sensor_accel_s accel;
 
 		while (_sensor_accel_sub.update(&accel)) {
-			perf_count_interval(_accel_update_perf, accel.timestamp_sample);
 			_accel_corrections.set_device_id(accel.device_id);
 			_accel_error_count = accel.error_count;
 
@@ -249,8 +244,6 @@ void VehicleIMU::Run()
 				imu.timestamp = hrt_absolute_time();
 
 				_vehicle_imu_pub.publish(imu);
-
-				perf_count_interval(_publish_interval_perf, imu.timestamp);
 
 				UpdateAccelVibrationMetrics(delta_velocity);
 				UpdateGyroVibrationMetrics(delta_angle);
@@ -342,9 +335,6 @@ void VehicleIMU::PublishStatus()
 void VehicleIMU::PrintStatus()
 {
 	PX4_INFO("selected IMU: accel: %d gyro: %d ", _accel_corrections.get_device_id(), _gyro_corrections.get_device_id());
-	perf_print_counter(_publish_interval_perf);
-	perf_print_counter(_accel_update_perf);
-	perf_print_counter(_gyro_update_perf);
 	_accel_corrections.PrintStatus();
 	_gyro_corrections.PrintStatus();
 }
