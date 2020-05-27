@@ -42,14 +42,141 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_config.h>
 
+static void usage(const char *reason);
 
-__BEGIN_DECLS
-__EXPORT int gpio_main(int argc, char *argv[]);
-__END_DECLS
+extern "C" __EXPORT int gpio_main(int argc, char *argv[])
+{
+	if (argc < 4) {
+		usage("not enough arguments");
+		return -1;
+	}
 
+	const char *command = argv[1];
+	bool is_read = false;
+	uint32_t mask = 0;
 
-static void
-usage(const char *reason)
+	if (strcmp(command, "read") == 0) {
+		is_read = true;
+		mask |= GPIO_INPUT;
+
+	} else if (strcmp(command, "write") == 0) {
+		if (argc < 5) {
+			usage("not enough arguments");
+			return -1;
+		}
+
+		mask |= GPIO_OUTPUT;
+
+	} else {
+		usage("command not read or write");
+		return -1;
+	}
+
+	const char *port_string = argv[2];
+
+	if (strlen(port_string) != 1) {
+		usage("port not a single character");
+	}
+
+	char port = port_string[0];
+
+	if ('A' <= port && port <= 'K') {
+		mask |= ((port - 'A') << GPIO_PORT_SHIFT) & GPIO_PORT_MASK;
+
+	} else if ('a' <= port && port <= 'k') {
+		mask |= ((port - 'a') << GPIO_PORT_SHIFT) & GPIO_PORT_MASK;
+
+	} else {
+		usage("invalid port");
+		return -1;
+	}
+
+	char *end;
+	int32_t pin = strtol(argv[3], &end, 10);
+
+	if (errno == 0 && *end == '\0' && 0 <= pin && pin <= 15) {
+		mask |= (pin << GPIO_PIN_SHIFT) & GPIO_PIN_MASK;;
+
+	} else {
+		usage("invalid pin");
+		return -1;
+	}
+
+	bool matches_default_config = false;
+#if defined(PX4_GPIO_INIT_LIST)
+	const uint32_t default_gpios[] = PX4_GPIO_INIT_LIST;
+
+	// check that GPIO matches initialization list for port/pin and input/output
+	for (uint32_t i = 0; i < arraySize(default_gpios); i++) {
+		if ((((default_gpios[i] & GPIO_INPUT) == (mask & GPIO_INPUT)) ||
+		     ((default_gpios[i] & GPIO_OUTPUT) == (mask & GPIO_OUTPUT)))
+		    && ((default_gpios[i] & GPIO_PORT_MASK) == (mask & GPIO_PORT_MASK))
+		    && ((default_gpios[i] & GPIO_PIN_MASK) == (mask & GPIO_PIN_MASK))
+		   ) {
+			matches_default_config = true;
+		}
+	}
+
+#endif // PX4_GPIO_INIT_LIST
+	bool force_apply = strcasecmp(argv[argc - 1], "--force") == 0;
+
+	if (!matches_default_config && !force_apply) {
+		usage("does not match board initialization list, and --force not specified");
+		return -1;
+	}
+
+	if (is_read) {
+		if (argc >= 5) {
+			const char *extra = argv[4];
+
+			if (strcasecmp(extra, "PULLUP") == 0) {
+				mask |= GPIO_PULLUP;
+
+			} else if (strcasecmp(extra, "PULLDOWN") == 0) {
+				mask |= GPIO_PULLDOWN;
+
+			} else if (argc == 5 && !force_apply) {
+				usage("extra read argument not PULLUP or PULLDOWN");
+				return -1;
+			}
+		}
+
+		px4_arch_configgpio(mask);
+		int value = px4_arch_gpioread(mask);
+		printf("%d OK\n", value);
+
+	} else {
+		int32_t value = strtol(argv[4], &end, 10);
+
+		if (errno != 0 || *end != '\0' || (value != 0 && value != 1)) {
+			usage("value not 0 or 1");
+			return -1;
+		}
+
+		if (argc >= 6) {
+			const char *extra = argv[5];
+
+			if (strcasecmp(extra, "PUSHPULL") == 0) {
+				mask |= GPIO_PUSHPULL;
+
+			} else if (strcasecmp(extra, "OPENDRAIN") == 0) {
+				mask |= GPIO_OPENDRAIN;
+
+			} else if (argc == 6 && !force_apply) {
+				usage("extra write argument not PUSHPULL or OPENDRAIN");
+				return -1;
+			}
+		}
+
+		px4_arch_configgpio(mask);
+		px4_arch_gpiowrite(mask, value);
+		printf("OK\n");
+	}
+
+	return 0;
+}
+
+void usage(const char *reason)
 {
 	printf("FAIL\n");
 
@@ -76,115 +203,4 @@ OK
 
 )DESCR_STR");
 
-}
-
-int
-gpio_main(int argc, char *argv[])
-{
-	if (argc < 4) {
-		usage("not enough arguments");
-		return -1;
-	}
-
-	const char* command = argv[1];
-	bool is_read = false;
-	uint32_t mask = 0;
-	if (strcmp(command, "read") == 0) {
-		is_read = true;
-		mask |= GPIO_INPUT;
-	} else if (strcmp(command, "write") == 0) {
-		if (argc < 5) {
-			usage("not enough arguments");
-			return -1;
-		}
-		mask |= GPIO_OUTPUT;
-	} else {
-		usage("command not read or write");
-		return -1;
-	}
-
-	const char* port_string = argv[2];
-	if (strlen(port_string) != 1) {
-		usage("port not a single character");
-	}
-	char port = port_string[0];
-	if ('A' <= port && port <= 'K') {
-		mask |= ((port - 'A') << GPIO_PORT_SHIFT) & GPIO_PORT_MASK;
-	} else if ('a' <= port && port <= 'k') {
-		mask |= ((port - 'a') << GPIO_PORT_SHIFT) & GPIO_PORT_MASK;
-	} else {
-		usage("invalid port");
-		return -1;
-	}
-
-	char *end;
-	int32_t pin = strtol(argv[3], &end, 10);
-	if (errno == 0 && *end == '\0' && 0 <= pin && pin <= 15) {
-		mask |= (pin << GPIO_PIN_SHIFT) & GPIO_PIN_MASK;;
-	} else {
-		usage("invalid pin");
-		return -1;
-	}
-
-	bool matches_default_config = false;
-#ifdef PX4_GPIO_INIT_LIST
-	const uint32_t default_gpios[] = PX4_GPIO_INIT_LIST;
-	// check that GPIO matches initialization list for port/pin and input/output
-	for (uint32_t i = 0; i < arraySize(default_gpios); i++) {
-		if ((((default_gpios[i] & GPIO_INPUT) == (mask & GPIO_INPUT)) ||
-		    ((default_gpios[i] & GPIO_OUTPUT) == (mask & GPIO_OUTPUT)))
-		    && ((default_gpios[i] & GPIO_PORT_MASK) == (mask & GPIO_PORT_MASK))
-		    && ((default_gpios[i] & GPIO_PIN_MASK) == (mask & GPIO_PIN_MASK))
-		) {
-			matches_default_config = true;
-		}
-	}
-#endif
-	bool force_apply = strcasecmp(argv[argc-1], "--force") == 0;
-
-	if (!matches_default_config && !force_apply) {
-		usage ("does not match board initialization list, and --force not specified");
-		return -1;
-	}
-
-	if (is_read) {
-		if (argc >= 5) {
-			const char* extra = argv[4];
-			if (strcasecmp(extra, "PULLUP") == 0) {
-				mask |= GPIO_PULLUP;
-			} else if (strcasecmp(extra, "PULLDOWN") == 0) {
-				mask |= GPIO_PULLDOWN;
-			} else if (argc == 5 && !force_apply) {
-				usage ("extra read argument not PULLUP or PULLDOWN");
-				return -1;
-			}
-		}
-
-		px4_arch_configgpio(mask);
-		int value = px4_arch_gpioread(mask);
-		printf("%d OK\n", value);
-	} else {
-		int32_t value = strtol(argv[4], &end, 10);
-		if (errno != 0 || *end != '\0' || (value != 0 && value != 1)) {
-			usage("value not 0 or 1");
-			return -1;
-		}
-
-		if (argc >= 6) {
-			const char* extra = argv[5];
-			if (strcasecmp(extra, "PUSHPULL") == 0) {
-				mask |= GPIO_PUSHPULL;
-			} else if (strcasecmp(extra, "OPENDRAIN") == 0) {
-				mask |= GPIO_OPENDRAIN;
-			} else if (argc == 6 && !force_apply) {
-				usage("extra write argument not PUSHPULL or OPENDRAIN");
-				return -1;
-			}
-		}
-
-		px4_arch_configgpio(mask);
-		px4_arch_gpiowrite(mask, value);
-		printf("OK\n");
-	}
-	return 0;
 }
