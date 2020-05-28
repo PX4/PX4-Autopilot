@@ -39,10 +39,6 @@
 *
 * @min 100
 * @max 1000
-* @value 100
-* @value 200
-* @value 400
-* @value 800
 * @unit Hz
 * @reboot_required true
 * @group Sensors
