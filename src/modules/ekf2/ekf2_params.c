@@ -370,7 +370,7 @@ PARAM_DEFINE_FLOAT(EKF2_NOAID_NOISE, 10.0f);
  * @unit m
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 2.0f);
+PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 3.5f);
 
 /**
  * Measurement noise for magnetic heading fusion.
