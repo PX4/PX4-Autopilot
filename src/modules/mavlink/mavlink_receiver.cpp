@@ -418,8 +418,22 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		return;
 	}
 
-	if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
-		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+	// First we handle legacy support requests which were used before we had
+	// the generic MAV_CMD_REQUEST_MESSAGE.
+	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+		result = handle_request_message_command(MAVLINK_MSG_ID_AUTOPILOT_VERSION);
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
+		result = handle_request_message_command(MAVLINK_MSG_ID_PROTOCOL_VERSION);
+
+	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
+		result = handle_request_message_command(MAVLINK_MSG_ID_HOME_POSITION);
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
+		result = handle_request_message_command(MAVLINK_MSG_ID_FLIGHT_INFORMATION);
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
+		result = handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval((int)roundf(cmd_mavlink.param1), cmd_mavlink.param2, cmd_mavlink.param3)) {
