@@ -2548,13 +2548,15 @@ protected:
 
 		if (_mavlink->odometry_loopback_enabled()) {
 			odom_updated = _vodom_sub.update(&odom);
-			// frame matches the external vision system
-			msg.frame_id = MAV_FRAME_VISION_NED;
+			msg.frame_id = MAV_FRAME_LOCAL_NED;
+			// source: external vision system
+			msg.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
 
 		} else {
 			odom_updated = _odom_sub.update(&odom);
-			// frame matches the PX4 local NED frame
-			msg.frame_id = MAV_FRAME_ESTIM_NED;
+			msg.frame_id = MAV_FRAME_LOCAL_NED;
+			// source: PX4 estimator
+			msg.estimator_type = MAV_ESTIMATOR_TYPE_AUTOPILOT;
 		}
 
 		if (odom_updated) {

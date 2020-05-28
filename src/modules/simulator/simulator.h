@@ -176,6 +176,7 @@ private:
 	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 
 	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS] {};
 	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS] {};

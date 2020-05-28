@@ -1263,10 +1263,6 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 	q.copyTo(visual_odom.q);
 
-	// TODO:
-	// - add a MAV_FRAME_*_OTHER to the Mavlink MAV_FRAME enum IOT define
-	// a frame of reference which is not aligned with NED or ENU
-	// - add usage on the estimator side
 	visual_odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 	const size_t URT_SIZE = sizeof(visual_odom.pose_covariance) / sizeof(visual_odom.pose_covariance[0]);
@@ -1305,15 +1301,14 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odometry.y = odom.y;
 	odometry.z = odom.z;
 
-	/* The quaternion of the ODOMETRY msg represents a rotation from body frame to
-	 * a local frame*/
+	/**
+	 * The quaternion of the ODOMETRY msg represents a rotation from body frame
+	 * to a local frame
+	 */
 	matrix::Quatf q_body_to_local(odom.q);
 	q_body_to_local.normalize();
 	q_body_to_local.copyTo(odometry.q);
 
-	// TODO:
-	// add usage of this information on the estimator side
-	// The heading of the local frame is not aligned with north
 	odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
 
 	// pose_covariance
@@ -1331,7 +1326,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odometry.pose_covariance[i] = odom.pose_covariance[i];
 	}
 
-	/*
+	/**
 	 * PX4 expects the body's linear velocity in the local frame,
 	 * the linear velocity is rotated from the odom child_frame to the
 	 * local NED frame. The angular velocity needs to be expressed in the
@@ -1356,11 +1351,25 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
 	}
 
-	if (odom.frame_id == MAV_FRAME_LOCAL_FRD) {
-		_visual_odometry_pub.publish(odometry);
+	/**
+	 * Supported local frame of reference is MAV_FRAME_LOCAL_NED or MAV_FRAME_LOCAL_FRD
+	 * The supported sources of the data/tesimator type are MAV_ESTIMATOR_TYPE_VISION,
+	 * MAV_ESTIMATOR_TYPE_VIO and MAV_ESTIMATOR_TYPE_MOCAP
+	 *
+	 * @note Regarding the local frames of reference, the appropriate EKF_AID_MASK
+	 * should be set in order to match a frame aligned (NED) or not aligned (FRD)
+	 * with true North
+	 */
+	if (odom.frame_id == MAV_FRAME_LOCAL_NED || odom.frame_id == MAV_FRAME_LOCAL_FRD) {
+		if (odom.estimator_type == MAV_ESTIMATOR_TYPE_VISION || odom.estimator_type == MAV_ESTIMATOR_TYPE_VIO) {
+			_visual_odometry_pub.publish(odometry);
 
-	} else if (odom.frame_id == MAV_FRAME_MOCAP_NED) {
-		_mocap_odometry_pub.publish(odometry);
+		} else if (odom.estimator_type == MAV_ESTIMATOR_TYPE_MOCAP) {
+			_mocap_odometry_pub.publish(odometry);
+
+		} else {
+			PX4_ERR("Estimator source %u not supported. Unable to publish pose and velocity", odom.estimator_type);
+		}
 
 	} else {
 		PX4_ERR("Local frame %u not supported. Unable to publish pose and velocity", odom.frame_id);
