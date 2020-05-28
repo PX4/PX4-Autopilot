@@ -2089,9 +2089,6 @@ MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 
 	bool found_id = false;
 
-
-	// The interval between two messages is in microseconds.
-	// Set to -1 to disable and 0 to request default rate
 	if (msgId != 0) {
 		const char *stream_name = get_stream_name(msgId);
 
