@@ -1309,8 +1309,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	q_body_to_local.normalize();
 	q_body_to_local.copyTo(odometry.q);
 
-	odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
-
 	// pose_covariance
 	static constexpr size_t POS_URT_SIZE = sizeof(odometry.pose_covariance) / sizeof(odometry.pose_covariance[0]);
 	static_assert(POS_URT_SIZE == (sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0])),
@@ -1361,6 +1359,14 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	 * with true North
 	 */
 	if (odom.frame_id == MAV_FRAME_LOCAL_NED || odom.frame_id == MAV_FRAME_LOCAL_FRD) {
+
+		if (odom.frame_id == MAV_FRAME_LOCAL_NED) {
+			odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+
+		} else {
+			odometry.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+		}
+
 		if (odom.estimator_type == MAV_ESTIMATOR_TYPE_VISION || odom.estimator_type == MAV_ESTIMATOR_TYPE_VIO) {
 			_visual_odometry_pub.publish(odometry);
 
