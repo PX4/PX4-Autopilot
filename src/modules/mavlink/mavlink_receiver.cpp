@@ -517,8 +517,6 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 {
 	bool stream_found = false;
 
-	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-
 	for (const auto stream : _mavlink->get_streams()) {
 		if (stream->get_id() == message_id) {
 			stream_found = stream->request_message(param2, param3, param4, param5, param6, param7);
@@ -527,23 +525,23 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 	}
 
 	if (!stream_found) {
-		MavlinkStream *stream = create_mavlink_stream(message_id, _mavlink);
+		// If we don't find the stream, we can configure it with rate 0 and then trigger it once.
+		const char *stream_name = get_stream_name(message_id);
 
-		if (stream == nullptr) {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+		if (stream_name != nullptr) {
+			_mavlink->configure_stream_threadsafe(stream_name, 0.0f);
 
-		} else {
-			bool message_sent = stream->request_message(param2, param3, param4, param5, param6, param7);
-
-			if (!message_sent) {
-				result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+			// Now we try again to send it.
+			for (const auto stream : _mavlink->get_streams()) {
+				if (stream->get_id() == message_id) {
+					stream_found = stream->request_message(param2, param3, param4, param5, param6, param7);
+					break;
+				}
 			}
-
-			delete stream;
 		}
 	}
 
-	return result;
+	return (stream_found ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
 }
 
 
