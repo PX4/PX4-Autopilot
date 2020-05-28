@@ -1321,6 +1321,7 @@ Mission::heading_sp_update()
 		case vehicle_roi_s::ROI_TARGET:
 		case vehicle_roi_s::ROI_ENUM_END:
 		default: {
+				return;
 			}
 		}
 
@@ -1339,6 +1340,13 @@ Mission::heading_sp_update()
 			_mission_item.yaw = yaw;
 			pos_sp_triplet->current.yaw = _mission_item.yaw;
 			pos_sp_triplet->current.yaw_valid = true;
+
+		} else {
+			if (!pos_sp_triplet->current.yaw_valid) {
+				_mission_item.yaw = _navigator->get_local_position()->yaw;
+				pos_sp_triplet->current.yaw = _mission_item.yaw;
+				pos_sp_triplet->current.yaw_valid = true;
+			}
 		}
 
 		// we set yaw directly so we can run this in parallel to the FOH update
