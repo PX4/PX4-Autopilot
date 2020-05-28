@@ -1266,11 +1266,6 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 		}
 	}
 
-	if (interval == 0) {
-		/* stream was not active and is requested to be disabled, do nothing */
-		return OK;
-	}
-
 	// search for stream with specified name in supported streams list
 	// create new instance if found
 	MavlinkStream *stream = create_mavlink_stream(stream_name, this);
