@@ -80,7 +80,7 @@ private:
 	};
 
 	bool UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstime &timestamp_sample);
-	void UpdateIntergratorConfiguration();
+	void UpdateIntegratorConfiguration();
 	void UpdateGyroVibrationMetrics(const matrix::Vector3f &delta_angle);
 	void UpdateAccelVibrationMetrics(const matrix::Vector3f &delta_velocity);
 

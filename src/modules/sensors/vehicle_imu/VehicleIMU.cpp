@@ -40,6 +40,8 @@
 using namespace matrix;
 using namespace time_literals;
 
+using math::constrain;
+
 namespace sensors
 {
 
@@ -102,7 +104,7 @@ void VehicleIMU::ParametersUpdate(bool force)
 		_gyro_corrections.ParametersUpdate();
 
 		// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
-		int32_t imu_integration_rate_hz = math::constrain(_param_imu_integ_rate.get(), 50, 1000);
+		int32_t imu_integration_rate_hz = constrain(_param_imu_integ_rate.get(), 50, 1000);
 
 		if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
 			_param_imu_integ_rate.set(imu_integration_rate_hz);
@@ -224,7 +226,7 @@ void VehicleIMU::Run()
 
 	// reconfigure integrators if calculated sensor intervals have changed
 	if (update_integrator_config) {
-		UpdateIntergratorConfiguration();
+		UpdateIntegratorConfiguration();
 	}
 
 	// publish if both accel & gyro integrators are ready
@@ -281,18 +283,18 @@ void VehicleIMU::Run()
 	}
 }
 
-void VehicleIMU::UpdateIntergratorConfiguration()
+void VehicleIMU::UpdateIntegratorConfiguration()
 {
 	if ((_accel_interval.update_interval > 0) && (_gyro_interval.update_interval > 0)) {
 
 		const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
 
-		// determine closest number of sensor samples that will get closest to the desired integration interval
-		const uint8_t accel_integral_samples = math::constrain((uint8_t)roundf(configured_interval_us /
-						       _accel_interval.update_interval), (uint8_t)1, sensor_accel_s::ORB_QUEUE_LENGTH);
+		// determine number of sensor samples that will get closest to the desired integration interval
+		const uint8_t accel_integral_samples = constrain(roundf(configured_interval_us / _accel_interval.update_interval),
+						       1.f, (float)sensor_accel_s::ORB_QUEUE_LENGTH);
 
-		const uint8_t gyro_integral_samples = math::constrain((uint8_t)roundf(configured_interval_us /
-						      _gyro_interval.update_interval), (uint8_t)1, sensor_gyro_s::ORB_QUEUE_LENGTH);
+		const uint8_t gyro_integral_samples = constrain(roundf(configured_interval_us / _gyro_interval.update_interval),
+						      1.f, (float)sensor_gyro_s::ORB_QUEUE_LENGTH);
 
 		// let the gyro set the configuration and scheduling
 		// accel integrator will be forced to reset when gyro integrator is ready
@@ -309,8 +311,8 @@ void VehicleIMU::UpdateIntergratorConfiguration()
 		// run when there are enough new gyro samples, unregister accel
 		_sensor_accel_sub.unregisterCallback();
 
-		PX4_DEBUG("accel (%d) gyro (%d) gyro samples: %.0f",
-			  _accel_corrections.get_device_id(), _gyro_corrections.get_device_id(), (double)gyro_integral_samples);
+		PX4_DEBUG("accel (%d), gyro (%d), accel samples: %d, gyro samples: %d",
+			  _accel_corrections.get_device_id(), _gyro_corrections.get_device_id(), accel_integral_samples, gyro_integral_samples);
 	}
 }
 
