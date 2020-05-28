@@ -99,8 +99,7 @@ public:
 	virtual bool request_message(float param2 = 0.0, float param3 = 0.0, float param4 = 0.0,
 				     float param5 = 0.0, float param6 = 0.0, float param7 = 0.0)
 	{
-		reset_last_sent();
-		return true;
+		return send(hrt_absolute_time());
 	}
 
 	/**
