@@ -52,8 +52,14 @@ VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 	_gyro_corrections(this, SensorCorrections::SensorType::Gyroscope)
 {
 	const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
+
 	_accel_integrator.set_reset_interval(configured_interval_us);
+	_accel_integrator.set_reset_samples(1);
+	_sensor_accel_sub.set_required_updates(1);
+
 	_gyro_integrator.set_reset_interval(configured_interval_us);
+	_gyro_integrator.set_reset_samples(sensor_gyro_s::ORB_QUEUE_LENGTH / 2);
+	_sensor_gyro_sub.set_required_updates(1);
 
 	// advertise immediately to ensure consistent ordering
 	_vehicle_imu_pub.advertise();
@@ -147,153 +153,143 @@ void VehicleIMU::Run()
 	_accel_corrections.SensorCorrectionsUpdate();
 	_gyro_corrections.SensorCorrectionsUpdate();
 
-	while (_sensor_gyro_sub.updated() || _sensor_accel_sub.updated()) {
+	bool update_integrator_config = false;
 
-		bool update_integrator_config = false;
+	// integrate queued gyro
+	sensor_gyro_s gyro;
 
-		// integrate available (queued) gyro
-		// only integrate the minimum number of required samples if we haven't fallen behind by more than 1 message
-		bool integrated_required_only = (_sensor_gyro_sub.updates_available() <= _gyro_integrator.get_reset_samples() + 1);
+	while (!_gyro_integrator.integral_ready() && _sensor_gyro_sub.update(&gyro)) {
+		_gyro_corrections.set_device_id(gyro.device_id);
+		_gyro_error_count = gyro.error_count;
 
-		sensor_gyro_s gyro;
+		const Vector3f gyro_corrected{_gyro_corrections.Correct(Vector3f{gyro.x, gyro.y, gyro.z})};
+		_gyro_integrator.put(gyro.timestamp_sample, gyro_corrected);
+		_last_timestamp_sample_gyro = gyro.timestamp_sample;
 
-		while (_sensor_gyro_sub.update(&gyro)) {
-			_gyro_corrections.set_device_id(gyro.device_id);
-			_gyro_error_count = gyro.error_count;
+		// collect sample interval average for filters
+		if (UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
+			update_integrator_config = true;
+		}
+	}
 
-			const Vector3f gyro_corrected{_gyro_corrections.Correct(Vector3f{gyro.x, gyro.y, gyro.z})};
-			_gyro_integrator.put(gyro.timestamp_sample, gyro_corrected);
-			_last_timestamp_sample_gyro = gyro.timestamp_sample;
+	// update accel, stopping once caught up to the last gyro sample
+	sensor_accel_s accel;
 
-			// collect sample interval average for filters
-			if (UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
-				update_integrator_config = true;
+	while (_sensor_accel_sub.update(&accel)) {
+		_accel_corrections.set_device_id(accel.device_id);
+		_accel_error_count = accel.error_count;
+
+		const Vector3f accel_corrected{_accel_corrections.Correct(Vector3f{accel.x, accel.y, accel.z})};
+		_accel_integrator.put(accel.timestamp_sample, accel_corrected);
+		_last_timestamp_sample_accel = accel.timestamp_sample;
+
+		// collect sample interval average for filters
+		if (UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
+			update_integrator_config = true;
+		}
+
+		if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
+
+			const Vector3f sensor_clip_count{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]};
+			const Vector3f clipping{_accel_corrections.getBoardRotation() *sensor_clip_count};
+			static constexpr float CLIP_COUNT_THRESHOLD = 1.f;
+
+			if (fabsf(clipping(0)) >= CLIP_COUNT_THRESHOLD) {
+				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_X;
+				_delta_velocity_clipping_total[0] += fabsf(clipping(0));
 			}
 
-			// break (potentially early) if we have all the necessary gyro integrated
-			if (integrated_required_only && _gyro_integrator.integral_ready()) {
-				break;
+			if (fabsf(clipping(1)) >= CLIP_COUNT_THRESHOLD) {
+				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Y;
+				_delta_velocity_clipping_total[1] += fabsf(clipping(1));
+			}
+
+			if (fabsf(clipping(2)) >= CLIP_COUNT_THRESHOLD) {
+				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Z;
+				_delta_velocity_clipping_total[2] += fabsf(clipping(2));
 			}
 		}
 
-		// update accel, stopping once caught up to the last gyro sample
-		sensor_accel_s accel;
-
-		while (_sensor_accel_sub.update(&accel)) {
-			_accel_corrections.set_device_id(accel.device_id);
-			_accel_error_count = accel.error_count;
-
-			const Vector3f accel_corrected{_accel_corrections.Correct(Vector3f{accel.x, accel.y, accel.z})};
-			_accel_integrator.put(accel.timestamp_sample, accel_corrected);
-			_last_timestamp_sample_accel = accel.timestamp_sample;
-
-			// collect sample interval average for filters
-			if (UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
-				update_integrator_config = true;
-			}
-
-			if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
-
-				const Vector3f sensor_clip_count{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]};
-				const Vector3f clipping{_accel_corrections.getBoardRotation() *sensor_clip_count};
-				static constexpr float CLIP_COUNT_THRESHOLD = 1.f;
-
-				if (fabsf(clipping(0)) >= CLIP_COUNT_THRESHOLD) {
-					_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_X;
-					_delta_velocity_clipping_total[0] += fabsf(clipping(0));
-				}
-
-				if (fabsf(clipping(1)) >= CLIP_COUNT_THRESHOLD) {
-					_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Y;
-					_delta_velocity_clipping_total[1] += fabsf(clipping(1));
-				}
-
-				if (fabsf(clipping(2)) >= CLIP_COUNT_THRESHOLD) {
-					_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Z;
-					_delta_velocity_clipping_total[2] += fabsf(clipping(2));
-				}
-			}
-
-			// break once caught up to gyro (only after rate sensor publication rate is known)
-			if ((_accel_interval.update_interval > 0)
-			    && (_last_timestamp_sample_accel >= (_last_timestamp_sample_gyro - 0.5f * _accel_interval.update_interval))) {
-
-				break;
-			}
+		// break once caught up to gyro
+		if (_last_timestamp_sample_accel >= (_last_timestamp_sample_gyro - 0.5f * _accel_interval.update_interval)) {
+			break;
 		}
+	}
 
-		// reconfigure integrators if calculated sensor intervals have changed
-		if (update_integrator_config) {
-			UpdateIntergratorConfiguration();
-		}
+	// reconfigure integrators if calculated sensor intervals have changed
+	if (update_integrator_config) {
+		UpdateIntergratorConfiguration();
+	}
 
-		// publish if both accel & gyro integrators are ready
-		if (_accel_integrator.integral_ready() && _gyro_integrator.integral_ready()) {
+	// publish if both accel & gyro integrators are ready
+	if (_accel_integrator.integral_ready() && _gyro_integrator.integral_ready()) {
 
-			uint32_t accel_integral_dt;
-			uint32_t gyro_integral_dt;
-			Vector3f delta_angle;
-			Vector3f delta_velocity;
+		uint32_t accel_integral_dt;
+		uint32_t gyro_integral_dt;
+		Vector3f delta_angle;
+		Vector3f delta_velocity;
 
-			if (_accel_integrator.reset(delta_velocity, accel_integral_dt)
-			    && _gyro_integrator.reset(delta_angle, gyro_integral_dt)) {
+		if (_accel_integrator.reset(delta_velocity, accel_integral_dt)
+		    && _gyro_integrator.reset(delta_angle, gyro_integral_dt)) {
 
-				// publish vehicle_imu
-				vehicle_imu_s imu{};
+			// publish vehicle_imu
+			vehicle_imu_s imu;
 
-				imu.timestamp_sample = _last_timestamp_sample_gyro;
-				imu.accel_device_id = _accel_corrections.get_device_id();
-				imu.gyro_device_id = _gyro_corrections.get_device_id();
-				delta_angle.copyTo(imu.delta_angle);
-				delta_velocity.copyTo(imu.delta_velocity);
-				imu.delta_angle_dt = gyro_integral_dt;
-				imu.delta_velocity_dt = accel_integral_dt;
-				imu.delta_velocity_clipping = _delta_velocity_clipping;
-				imu.timestamp = hrt_absolute_time();
+			imu.timestamp_sample = _last_timestamp_sample_gyro;
+			imu.accel_device_id = _accel_corrections.get_device_id();
+			imu.gyro_device_id = _gyro_corrections.get_device_id();
+			delta_angle.copyTo(imu.delta_angle);
+			delta_velocity.copyTo(imu.delta_velocity);
+			imu.delta_angle_dt = gyro_integral_dt;
+			imu.delta_velocity_dt = accel_integral_dt;
+			imu.delta_velocity_clipping = _delta_velocity_clipping;
+			imu.timestamp = hrt_absolute_time();
 
-				_vehicle_imu_pub.publish(imu);
+			_vehicle_imu_pub.publish(imu);
 
-				UpdateAccelVibrationMetrics(delta_velocity);
-				UpdateGyroVibrationMetrics(delta_angle);
+			UpdateAccelVibrationMetrics(delta_velocity);
+			UpdateGyroVibrationMetrics(delta_angle);
 
-				PublishStatus();
+			PublishStatus();
 
-				// reset
-				_delta_velocity_clipping = 0;
+			// reset
+			_delta_velocity_clipping = 0;
 
-				return;
-			}
+			return;
 		}
 	}
 }
 
 void VehicleIMU::UpdateIntergratorConfiguration()
 {
-	const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
-
 	if ((_accel_interval.update_interval > 0) && (_gyro_interval.update_interval > 0)) {
 
+		const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
+
 		// determine closest number of sensor samples that will get closest to the desired integration interval
-		const uint8_t integral_samples = math::constrain((uint8_t)roundf(configured_interval_us /
-						 _gyro_interval.update_interval), (uint8_t)1, sensor_gyro_s::ORB_QUEUE_LENGTH);
+		const uint8_t accel_integral_samples = math::constrain((uint8_t)roundf(configured_interval_us /
+						       _accel_interval.update_interval), (uint8_t)1, sensor_accel_s::ORB_QUEUE_LENGTH);
+
+		const uint8_t gyro_integral_samples = math::constrain((uint8_t)roundf(configured_interval_us /
+						      _gyro_interval.update_interval), (uint8_t)1, sensor_gyro_s::ORB_QUEUE_LENGTH);
 
 		// let the gyro set the configuration and scheduling
 		// accel integrator will be forced to reset when gyro integrator is ready
-		_gyro_integrator.set_reset_samples(integral_samples);
+		_gyro_integrator.set_reset_samples(gyro_integral_samples);
 		_accel_integrator.set_reset_samples(1);
 
-		// no minimum integration time required
-		_gyro_integrator.set_reset_interval(0);
-		_accel_integrator.set_reset_interval(0);
+		// relaxed minimum integration time required
+		_accel_integrator.set_reset_interval(roundf((accel_integral_samples - 0.5f) * _accel_interval.update_interval));
+		_gyro_integrator.set_reset_interval(roundf((gyro_integral_samples - 0.5f) * _gyro_interval.update_interval));
 
-		_sensor_accel_sub.set_required_updates(integral_samples);
-		_sensor_gyro_sub.set_required_updates(integral_samples);
+		_sensor_accel_sub.set_required_updates(accel_integral_samples);
+		_sensor_gyro_sub.set_required_updates(gyro_integral_samples);
 
 		// run when there are enough new gyro samples, unregister accel
 		_sensor_accel_sub.unregisterCallback();
 
 		PX4_DEBUG("accel (%d) gyro (%d) gyro samples: %.0f",
-			  _accel_corrections.get_device_id(), _gyro_corrections.get_device_id(), (double)integral_samples);
+			  _accel_corrections.get_device_id(), _gyro_corrections.get_device_id(), (double)gyro_integral_samples);
 	}
 }
 
@@ -321,23 +317,27 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &delta_angle)
 
 void VehicleIMU::PublishStatus()
 {
-	vehicle_imu_status_s status{};
+	if (hrt_elapsed_time(&_publish_status_last) >= 100_ms) {
+		vehicle_imu_status_s status;
 
-	status.accel_device_id = _accel_corrections.get_device_id();
-	status.gyro_device_id = _gyro_corrections.get_device_id();
-	status.accel_error_count = _accel_error_count;
-	status.gyro_error_count = _gyro_error_count;
-	status.accel_rate_hz = 1e6f / _accel_interval.update_interval;
-	status.gyro_rate_hz = 1e6f / _gyro_interval.update_interval;
-	status.accel_vibration_metric = _accel_vibration_metric;
-	status.gyro_vibration_metric = _gyro_vibration_metric;
-	status.gyro_coning_vibration = _gyro_coning_vibration;
-	status.accel_clipping[0] = _delta_velocity_clipping_total[0];
-	status.accel_clipping[1] = _delta_velocity_clipping_total[1];
-	status.accel_clipping[2] = _delta_velocity_clipping_total[2];
-	status.timestamp = hrt_absolute_time();
+		status.accel_device_id = _accel_corrections.get_device_id();
+		status.gyro_device_id = _gyro_corrections.get_device_id();
+		status.accel_error_count = _accel_error_count;
+		status.gyro_error_count = _gyro_error_count;
+		status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
+		status.gyro_rate_hz = round(1e6f / _gyro_interval.update_interval);
+		status.accel_vibration_metric = _accel_vibration_metric;
+		status.gyro_vibration_metric = _gyro_vibration_metric;
+		status.gyro_coning_vibration = _gyro_coning_vibration;
+		status.accel_clipping[0] = _delta_velocity_clipping_total[0];
+		status.accel_clipping[1] = _delta_velocity_clipping_total[1];
+		status.accel_clipping[2] = _delta_velocity_clipping_total[2];
+		status.timestamp = hrt_absolute_time();
 
-	_vehicle_imu_status_pub.publish(status);
+		_vehicle_imu_status_pub.publish(status);
+
+		_publish_status_last = status.timestamp;
+	}
 }
 
 void VehicleIMU::PrintStatus()

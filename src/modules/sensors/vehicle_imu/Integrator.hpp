@@ -95,7 +95,7 @@ public:
 	 *
 	 * @return		true if integrator has sufficient data (minimum interval & samples satisfied) to reset.
 	 */
-	bool integral_ready() const { return (_integrated_samples >= _reset_samples_min) && (_last_integration_time >= (_last_reset_time + _reset_interval_min)); }
+	bool integral_ready() const { return (_integrated_samples >= _reset_samples_min) || (_last_integration_time >= (_last_reset_time + _reset_interval_min)); }
 
 	/* Reset integrator and return current integral & integration time
 	 *
@@ -114,7 +114,7 @@ private:
 	matrix::Vector3f _last_val{0.f, 0.f, 0.f};         /**< previous input */
 	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from previous previous sampling interval */
 
-	uint32_t _reset_interval_min{0}; /**< the interval after which the content will be published and the integrator reset */
+	uint32_t _reset_interval_min{1}; /**< the interval after which the content will be published and the integrator reset */
 
 	uint8_t _integrated_samples{0};
 	uint8_t _reset_samples_min{1};

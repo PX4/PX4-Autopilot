@@ -114,7 +114,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_gyro", 1000);
 	add_topic_multi("sensor_mag", 1000);
 	add_topic_multi("vehicle_gps_position", 1000);
-	add_topic_multi("vehicle_imu", 1000);
+	add_topic_multi("vehicle_imu");
 	add_topic_multi("vehicle_imu_status", 1000);
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL

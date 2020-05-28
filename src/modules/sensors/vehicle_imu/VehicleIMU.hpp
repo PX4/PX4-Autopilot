@@ -103,6 +103,8 @@ private:
 	IntervalAverage _accel_interval{};
 	IntervalAverage _gyro_interval{};
 
+	hrt_abstime _publish_status_last{0};
+
 	uint32_t _accel_error_count{0};
 	uint32_t _gyro_error_count{0};
 
