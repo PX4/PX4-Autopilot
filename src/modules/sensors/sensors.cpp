@@ -620,7 +620,9 @@ int Sensors::print_status()
 	_voted_sensors_update.printStatus();
 
 	PX4_INFO_RAW("\n");
+	_vehicle_air_data.PrintStatus();
 
+	PX4_INFO_RAW("\n");
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
 
@@ -631,13 +633,9 @@ int Sensors::print_status()
 	_vehicle_angular_velocity.PrintStatus();
 
 	PX4_INFO_RAW("\n");
-	_vehicle_air_data.PrintStatus();
-
-	PX4_INFO_RAW("\n");
 
 	for (auto &i : _vehicle_imu_list) {
 		if (i != nullptr) {
-			PX4_INFO_RAW("\n");
 			i->PrintStatus();
 		}
 	}

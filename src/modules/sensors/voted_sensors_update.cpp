@@ -711,8 +711,12 @@ void VotedSensorsUpdate::printStatus()
 {
 	PX4_INFO("gyro status:");
 	_gyro.voter.print();
+
+	PX4_INFO_RAW("\n");
 	PX4_INFO("accel status:");
 	_accel.voter.print();
+
+	PX4_INFO_RAW("\n");
 	PX4_INFO("mag status:");
 	_mag.voter.print();
 }
