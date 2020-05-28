@@ -47,7 +47,7 @@ namespace sensors
 
 VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_sensor_accel_sub(this, ORB_ID(sensor_accel), accel_index),
 	_sensor_gyro_sub(this, ORB_ID(sensor_gyro), gyro_index),
 	_accel_corrections(this, SensorCorrections::SensorType::Accelerometer),
@@ -56,11 +56,11 @@ VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 	const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
 
 	_accel_integrator.set_reset_interval(configured_interval_us);
-	_accel_integrator.set_reset_samples(1);
+	_accel_integrator.set_reset_samples(sensor_accel_s::ORB_QUEUE_LENGTH);
 	_sensor_accel_sub.set_required_updates(1);
 
 	_gyro_integrator.set_reset_interval(configured_interval_us);
-	_gyro_integrator.set_reset_samples(sensor_gyro_s::ORB_QUEUE_LENGTH / 2);
+	_gyro_integrator.set_reset_samples(sensor_gyro_s::ORB_QUEUE_LENGTH);
 	_sensor_gyro_sub.set_required_updates(1);
 
 	// advertise immediately to ensure consistent ordering
@@ -151,6 +151,9 @@ bool VehicleIMU::UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstim
 
 void VehicleIMU::Run()
 {
+	// backup schedule
+	ScheduleDelayed(10_ms);
+
 	ParametersUpdate();
 	_accel_corrections.SensorCorrectionsUpdate();
 	_gyro_corrections.SensorCorrectionsUpdate();

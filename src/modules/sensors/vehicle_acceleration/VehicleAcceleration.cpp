@@ -43,7 +43,7 @@ namespace sensors
 
 VehicleAcceleration::VehicleAcceleration() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
 	_corrections(this, SensorCorrections::SensorType::Accelerometer)
 {
 	_lp_filter.set_cutoff_frequency(kInitialRateHz, _param_imu_accel_cutoff.get());
@@ -65,7 +65,10 @@ bool VehicleAcceleration::Start()
 		return false;
 	}
 
-	ScheduleNow();
+	if (!SensorSelectionUpdate(true)) {
+		ScheduleDelayed(10_ms);
+	}
+
 	return true;
 }
 
@@ -198,6 +201,9 @@ void VehicleAcceleration::ParametersUpdate(bool force)
 
 void VehicleAcceleration::Run()
 {
+	// backup schedule
+	ScheduleDelayed(10_ms);
+
 	// update corrections first to set _selected_sensor
 	bool selection_updated = SensorSelectionUpdate();
 

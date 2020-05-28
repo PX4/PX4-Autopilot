@@ -42,7 +42,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -55,7 +55,7 @@
 namespace sensors
 {
 
-class VehicleIMU : public ModuleParams, public px4::WorkItem
+class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	VehicleIMU() = delete;

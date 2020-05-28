@@ -206,7 +206,7 @@ private:
 	const Parameters &_parameters;
 	const bool _hil_enabled{false};			/**< is hardware-in-the-loop mode enabled? */
 
-	bool _selection_changed{false};			/**< true when a sensor selection has changed and not been published */
+	bool _selection_changed{true};			/**< true when a sensor selection has changed and not been published */
 
 	float _accel_diff[3][2] {};			/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2] {};			/**< filtered gyro differences between IMU uinits (rad/s) */

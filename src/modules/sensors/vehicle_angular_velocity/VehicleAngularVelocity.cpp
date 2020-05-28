@@ -43,7 +43,7 @@ namespace sensors
 
 VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_corrections(this, SensorCorrections::SensorType::Gyroscope)
 {
 	_lp_filter_velocity.set_cutoff_frequency(kInitialRateHz, _param_imu_gyro_cutoff.get());
@@ -68,7 +68,10 @@ bool VehicleAngularVelocity::Start()
 		return false;
 	}
 
-	ScheduleNow();
+	if (!SensorSelectionUpdate(true)) {
+		ScheduleDelayed(10_ms);
+	}
+
 	return true;
 }
 
@@ -218,6 +221,9 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 
 void VehicleAngularVelocity::Run()
 {
+	// backup schedule
+	ScheduleDelayed(10_ms);
+
 	// update corrections first to set _selected_sensor
 	bool selection_updated = SensorSelectionUpdate();
 

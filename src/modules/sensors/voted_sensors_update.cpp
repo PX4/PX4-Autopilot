@@ -532,13 +532,13 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 		raw.gyro_integral_dt = _last_sensor_data[gyro_best_index].gyro_integral_dt;
 		raw.accelerometer_clipping = _last_sensor_data[accel_best_index].accelerometer_clipping;
 
-		if (accel_best_index != _accel.last_best_vote) {
+		if ((accel_best_index != _accel.last_best_vote) || (_selection.accel_device_id != _accel_device_id[accel_best_index])) {
 			_accel.last_best_vote = (uint8_t)accel_best_index;
 			_selection.accel_device_id = _accel_device_id[accel_best_index];
 			_selection_changed = true;
 		}
 
-		if (_gyro.last_best_vote != gyro_best_index) {
+		if ((_gyro.last_best_vote != gyro_best_index) || (_selection.gyro_device_id != _gyro_device_id[gyro_best_index])) {
 			_gyro.last_best_vote = (uint8_t)gyro_best_index;
 			_selection.gyro_device_id = _gyro_device_id[gyro_best_index];
 			_selection_changed = true;
@@ -724,11 +724,12 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_magnetomete
 
 	// publish sensor selection if changed
 	if (_selection_changed) {
-		_selection.timestamp = hrt_absolute_time();
-
-		_sensor_selection_pub.publish(_selection);
-
-		_selection_changed = false;
+		// don't publish until selected IDs are valid
+		if (_selection.accel_device_id > 0 && _selection.gyro_device_id > 0) {
+			_selection.timestamp = hrt_absolute_time();
+			_sensor_selection_pub.publish(_selection);
+			_selection_changed = false;
+		}
 	}
 }
 
