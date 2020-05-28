@@ -190,23 +190,29 @@ void VehicleIMU::Run()
 
 		if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
 
-			const Vector3f sensor_clip_count{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]};
-			const Vector3f clipping{_accel_corrections.getBoardRotation() *sensor_clip_count};
-			static constexpr float CLIP_COUNT_THRESHOLD = 1.f;
+			// rotate sensor clip counts into vehicle body frame
+			const Vector3f clipping{_accel_corrections.getBoardRotation() *
+				Vector3f{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]}};
 
-			if (fabsf(clipping(0)) >= CLIP_COUNT_THRESHOLD) {
+			// round to get reasonble clip counts per axis (after board rotation)
+			const uint8_t clip_x = roundf(fabsf(clipping(0)));
+			const uint8_t clip_y = roundf(fabsf(clipping(1)));
+			const uint8_t clip_z = roundf(fabsf(clipping(2)));
+
+			_delta_velocity_clipping_total[0] += clip_x;
+			_delta_velocity_clipping_total[1] += clip_y;
+			_delta_velocity_clipping_total[2] += clip_z;
+
+			if (clip_x > 0) {
 				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_X;
-				_delta_velocity_clipping_total[0] += fabsf(clipping(0));
 			}
 
-			if (fabsf(clipping(1)) >= CLIP_COUNT_THRESHOLD) {
+			if (clip_y > 0) {
 				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Y;
-				_delta_velocity_clipping_total[1] += fabsf(clipping(1));
 			}
 
-			if (fabsf(clipping(2)) >= CLIP_COUNT_THRESHOLD) {
+			if (clip_z > 0) {
 				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Z;
-				_delta_velocity_clipping_total[2] += fabsf(clipping(2));
 			}
 		}
 
@@ -232,9 +238,30 @@ void VehicleIMU::Run()
 		if (_accel_integrator.reset(delta_velocity, accel_integral_dt)
 		    && _gyro_integrator.reset(delta_angle, gyro_integral_dt)) {
 
+			UpdateAccelVibrationMetrics(delta_velocity);
+			UpdateGyroVibrationMetrics(delta_angle);
+
+			// vehicle_imu_status
+			//  publish first so that error counts are available synchronously if needed
+			vehicle_imu_status_s status;
+			status.accel_device_id = _accel_corrections.get_device_id();
+			status.gyro_device_id = _gyro_corrections.get_device_id();
+			status.accel_error_count = _accel_error_count;
+			status.gyro_error_count = _gyro_error_count;
+			status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
+			status.gyro_rate_hz = round(1e6f / _gyro_interval.update_interval);
+			status.accel_vibration_metric = _accel_vibration_metric;
+			status.gyro_vibration_metric = _gyro_vibration_metric;
+			status.gyro_coning_vibration = _gyro_coning_vibration;
+			status.accel_clipping[0] = _delta_velocity_clipping_total[0];
+			status.accel_clipping[1] = _delta_velocity_clipping_total[1];
+			status.accel_clipping[2] = _delta_velocity_clipping_total[2];
+			status.timestamp = hrt_absolute_time();
+			_vehicle_imu_status_pub.publish(status);
+
+
 			// publish vehicle_imu
 			vehicle_imu_s imu;
-
 			imu.timestamp_sample = _last_timestamp_sample_gyro;
 			imu.accel_device_id = _accel_corrections.get_device_id();
 			imu.gyro_device_id = _gyro_corrections.get_device_id();
@@ -244,15 +271,9 @@ void VehicleIMU::Run()
 			imu.delta_velocity_dt = accel_integral_dt;
 			imu.delta_velocity_clipping = _delta_velocity_clipping;
 			imu.timestamp = hrt_absolute_time();
-
 			_vehicle_imu_pub.publish(imu);
 
-			UpdateAccelVibrationMetrics(delta_velocity);
-			UpdateGyroVibrationMetrics(delta_angle);
-
-			PublishStatus();
-
-			// reset
+			// reset clip counts
 			_delta_velocity_clipping = 0;
 
 			return;
@@ -313,31 +334,6 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &delta_angle)
 	_gyro_coning_vibration = 0.99f * _gyro_coning_vibration + 0.01f * coning_metric.norm();
 
 	_delta_angle_prev = delta_angle;
-}
-
-void VehicleIMU::PublishStatus()
-{
-	if (hrt_elapsed_time(&_publish_status_last) >= 100_ms) {
-		vehicle_imu_status_s status;
-
-		status.accel_device_id = _accel_corrections.get_device_id();
-		status.gyro_device_id = _gyro_corrections.get_device_id();
-		status.accel_error_count = _accel_error_count;
-		status.gyro_error_count = _gyro_error_count;
-		status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
-		status.gyro_rate_hz = round(1e6f / _gyro_interval.update_interval);
-		status.accel_vibration_metric = _accel_vibration_metric;
-		status.gyro_vibration_metric = _gyro_vibration_metric;
-		status.gyro_coning_vibration = _gyro_coning_vibration;
-		status.accel_clipping[0] = _delta_velocity_clipping_total[0];
-		status.accel_clipping[1] = _delta_velocity_clipping_total[1];
-		status.accel_clipping[2] = _delta_velocity_clipping_total[2];
-		status.timestamp = hrt_absolute_time();
-
-		_vehicle_imu_status_pub.publish(status);
-
-		_publish_status_last = status.timestamp;
-	}
 }
 
 void VehicleIMU::PrintStatus()

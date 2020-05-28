@@ -466,6 +466,10 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 		if (_accel.enabled[uorb_index] && _gyro.enabled[uorb_index] && _vehicle_imu_sub[uorb_index].update(&imu_report)) {
 
+			// copy corresponding vehicle_imu_status for accel & gyro error counts
+			vehicle_imu_status_s imu_status{};
+			_vehicle_imu_status_sub[uorb_index].copy(&imu_status);
+
 			// First publication with data
 			if (_accel.priority[uorb_index] == 0) {
 				_accel.priority[uorb_index] = _accel.subscription[uorb_index].get_priority();
@@ -501,13 +505,11 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 			_last_accel_timestamp[uorb_index] = imu_report.timestamp_sample;
 
-			uint64_t accel_error_count = 0; // TODO
-			uint64_t gyro_error_count = 0; // TODO
+			_accel.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
+					 imu_status.accel_error_count, _accel.priority[uorb_index]);
 
-			_accel.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2, accel_error_count,
-					 _accel.priority[uorb_index]);
-			_gyro.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].gyro_rad, gyro_error_count,
-					_gyro.priority[uorb_index]);
+			_gyro.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].gyro_rad,
+					imu_status.gyro_error_count, _gyro.priority[uorb_index]);
 		}
 	}
 
@@ -516,6 +518,9 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	int gyro_best_index;
 	_accel.voter.get_best(hrt_absolute_time(), &accel_best_index);
 	_gyro.voter.get_best(hrt_absolute_time(), &gyro_best_index);
+
+	checkFailover(_accel, "Accel", subsystem_info_s::SUBSYSTEM_TYPE_ACC);
+	checkFailover(_gyro, "Gyro", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
 
 	// write data for the best sensor to output variables
 	if ((accel_best_index >= 0) && (gyro_best_index >= 0)) {
@@ -529,10 +534,14 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 		if (accel_best_index != _accel.last_best_vote) {
 			_accel.last_best_vote = (uint8_t)accel_best_index;
+			_selection.accel_device_id = _accel_device_id[accel_best_index];
+			_selection_changed = true;
 		}
 
 		if (_gyro.last_best_vote != gyro_best_index) {
 			_gyro.last_best_vote = (uint8_t)gyro_best_index;
+			_selection.gyro_device_id = _gyro_device_id[gyro_best_index];
+			_selection_changed = true;
 
 			// clear all registered callbacks
 			for (auto &sub : _vehicle_imu_sub) {
@@ -548,18 +557,6 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 					}
 				}
 			}
-
-
-		}
-
-		if (_selection.accel_device_id != _accel_device_id[accel_best_index]) {
-			_selection_changed = true;
-			_selection.accel_device_id = _accel_device_id[accel_best_index];
-		}
-
-		if (_selection.gyro_device_id != _gyro_device_id[gyro_best_index]) {
-			_selection_changed = true;
-			_selection.gyro_device_id = _gyro_device_id[gyro_best_index];
 		}
 	}
 }
@@ -595,6 +592,8 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 
 	int best_index;
 	_mag.voter.get_best(hrt_absolute_time(), &best_index);
+
+	checkFailover(_mag, "Mag", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
 
 	if (best_index >= 0) {
 		magnetometer = _last_magnetometer[best_index];
@@ -731,13 +730,6 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_magnetomete
 
 		_selection_changed = false;
 	}
-}
-
-void VotedSensorsUpdate::checkFailover()
-{
-	checkFailover(_accel, "Accel", subsystem_info_s::SUBSYSTEM_TYPE_ACC);
-	checkFailover(_gyro, "Gyro", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
-	checkFailover(_mag, "Mag", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
 }
 
 void VotedSensorsUpdate::setRelativeTimestamps(sensor_combined_s &raw)

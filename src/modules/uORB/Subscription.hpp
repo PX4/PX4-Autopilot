@@ -130,23 +130,6 @@ public:
 	ORB_PRIO get_priority() { return advertised() ? _node->get_priority() : ORB_PRIO_UNINITIALIZED; }
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
 
-	uint8_t updates_available() const
-	{
-		if (valid()) {
-			const uint32_t published_message_count = _node->published_message_count();
-
-			if (published_message_count >= get_last_generation()) {
-				return math::min((uint8_t)(published_message_count - get_last_generation()), _node->get_queue_size());
-
-			} else {
-				// TODO: properly handle wrap around?
-				return 1;
-			}
-		}
-
-		return 0;
-	}
-
 protected:
 
 	friend class SubscriptionCallback;

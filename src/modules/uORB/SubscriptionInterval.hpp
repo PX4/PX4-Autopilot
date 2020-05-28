@@ -138,8 +138,6 @@ public:
 	orb_id_t	get_topic() const { return _subscription.get_topic(); }
 	ORB_PRIO	get_priority() { return _subscription.get_priority(); }
 
-	uint8_t         updates_available() const { return _subscription.updates_available(); }
-
 	/**
 	 * Set the interval in microseconds
 	 * @param interval The interval in microseconds.

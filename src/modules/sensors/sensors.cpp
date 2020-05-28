@@ -523,9 +523,6 @@ void Sensors::Run()
 
 	diff_pres_poll();
 
-	// check failover
-	_voted_sensors_update.checkFailover();
-
 	if ((magnetometer.timestamp != 0) && (magnetometer.timestamp != _magnetometer_prev_timestamp)) {
 		_magnetometer_pub.publish(magnetometer);
 		_magnetometer_prev_timestamp = magnetometer.timestamp;

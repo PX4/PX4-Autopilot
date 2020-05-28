@@ -60,6 +60,7 @@
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_imu.h>
+#include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/subsystem_info.h>
 
@@ -112,11 +113,6 @@ public:
 	 * so that the data can be published.
 	 */
 	void setRelativeTimestamps(sensor_combined_s &raw);
-
-	/**
-	 * check if a failover event occured. if so, report it.
-	 */
-	void checkFailover();
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
@@ -194,8 +190,12 @@ private:
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */
 	uORB::PublicationQueued<subsystem_info_s> _info_pub{ORB_ID(subsystem_info)};	/* subsystem info publication */
 
-	// references
 	uORB::SubscriptionCallbackWorkItem(&_vehicle_imu_sub)[3];
+	uORB::Subscription _vehicle_imu_status_sub[ACCEL_COUNT_MAX] {
+		{ORB_ID(vehicle_imu_status), 0},
+		{ORB_ID(vehicle_imu_status), 1},
+		{ORB_ID(vehicle_imu_status), 2},
+	};
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
 	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */

@@ -79,7 +79,6 @@ private:
 		float update_interval{0.f};
 	};
 
-	void PublishStatus();
 	bool UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstime &timestamp_sample);
 	void UpdateIntergratorConfiguration();
 	void UpdateGyroVibrationMetrics(const matrix::Vector3f &delta_angle);
@@ -102,8 +101,6 @@ private:
 
 	IntervalAverage _accel_interval{};
 	IntervalAverage _gyro_interval{};
-
-	hrt_abstime _publish_status_last{0};
 
 	uint32_t _accel_error_count{0};
 	uint32_t _gyro_error_count{0};
