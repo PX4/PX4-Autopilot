@@ -129,7 +129,9 @@ private:
 	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
 					 const vehicle_command_s &vehicle_command);
 
-	uint8_t handle_request_message_command(const vehicle_command_s &vehicle_command);
+	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
+					       float param4 = 0.0f,
+					       float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
 
 	void handle_message(mavlink_message_t *msg);
 

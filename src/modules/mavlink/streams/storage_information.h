@@ -45,7 +45,7 @@ public:
 		return MAVLINK_MSG_ID_STORAGE_INFORMATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
-	bool request_message(float param1, float param2, float param3, float param4,
+	bool request_message(float param2, float param3, float param4,
 			     float param5, float param6, float param7) override
 	{
 		storage_id = (int)roundf(param2);
