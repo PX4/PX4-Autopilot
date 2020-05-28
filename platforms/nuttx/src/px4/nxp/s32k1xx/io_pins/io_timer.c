@@ -586,7 +586,7 @@ int io_timer_init_timer(unsigned timer)
 
 		/* disable and configure the timer */
 
-		rSC(timer)      = FTM_SC_CLKS_NONE;
+		rSC(timer)      = FTM_SC_CLKS_DIS;
 		rCNT(timer)     = 0;
 
 		rMODE(timer)    = 0;
@@ -806,7 +806,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	case IOTimerChanMode_PWMIn:
 	case IOTimerChanMode_Capture:
 		if (state) {
-			bits |= FTM_CSC_CHIE;
+			bits |= FTM_CNSC_CHIE;
 		}
 
 		break;
@@ -925,7 +925,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 			irqstate_t flags = px4_enter_critical_section();
 			uint32_t save = rSC(timer);
 			rSC(timer) = save & ~(FTM_SC_CLKS_MASK);
-			REG(timer, S32K1XX_FTM_CV_OFFSET(timer_io_channels[channel].timer_channel - 1)) = value;
+			REG(timer, S32K1XX_FTM_CNV_OFFSET(timer_io_channels[channel].timer_channel - 1)) = value;
 			rSC(timer) = save;
 			px4_leave_critical_section(flags);
 		}
@@ -944,7 +944,7 @@ uint16_t io_channel_get_ccr(unsigned channel)
 		if ((mode == IOTimerChanMode_PWMOut) ||
 		    (mode == IOTimerChanMode_OneShot) ||
 		    (mode == IOTimerChanMode_Trigger)) {
-			value = REG(channels_timer(channel), S32K1XX_FTM_CV_OFFSET(timer_io_channels[channel].timer_channel - 1));
+			value = REG(channels_timer(channel), S32K1XX_FTM_CNV_OFFSET(timer_io_channels[channel].timer_channel - 1));
 		}
 	}
 
