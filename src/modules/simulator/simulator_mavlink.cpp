@@ -1037,7 +1037,12 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
 		q.copyTo(odom.q);
 
-		odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+		if (odom_msg.frame_id == MAV_FRAME_LOCAL_NED) {
+			odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+
+		} else {
+			odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+		}
 
 		static_assert(POS_URT_SIZE == (sizeof(odom_msg.pose_covariance) / sizeof(odom_msg.pose_covariance[0])),
 			      "Odometry Pose Covariance matrix URT array size mismatch");
