@@ -53,6 +53,10 @@ enum Timer {
 	FTM1,
 	FTM2,
 	FTM3,
+	FTM4,
+	FTM5,
+	FTM6,
+	FTM7,
 };
 enum Channel {
 	Channel0 = 0,
@@ -80,6 +84,14 @@ static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 	case Timer::FTM2: return S32K1XX_FTM2_BASE;
 
 	case Timer::FTM3: return S32K1XX_FTM3_BASE;
+
+	case Timer::FTM4: return S32K1XX_FTM4_BASE;
+
+	case Timer::FTM5: return S32K1XX_FTM5_BASE;
+
+	case Timer::FTM6: return S32K1XX_FTM6_BASE;
+
+	case Timer::FTM7: return S32K1XX_FTM7_BASE;
 	}
 
 	return 0;
