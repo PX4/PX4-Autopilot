@@ -853,12 +853,10 @@ void Ekf2::Run()
 
 					if (_imu_sub_index < 0) {
 						if (_sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
-							PX4_WARN("accel id changed, resetting IMU bias");
 							_imu_bias_reset_request = true;
 						}
 
 						if (_sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
-							PX4_WARN("gyro id changed, resetting IMU bias");
 							_imu_bias_reset_request = true;
 						}
 					}
