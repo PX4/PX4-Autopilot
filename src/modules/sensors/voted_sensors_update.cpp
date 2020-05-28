@@ -709,15 +709,15 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 
 void VotedSensorsUpdate::printStatus()
 {
-	PX4_INFO("gyro status:");
+	PX4_INFO("selected gyro: %d (%d)", _selection.gyro_device_id, _gyro.last_best_vote);
 	_gyro.voter.print();
 
 	PX4_INFO_RAW("\n");
-	PX4_INFO("accel status:");
+	PX4_INFO("selected accel: %d (%d)", _selection.accel_device_id, _accel.last_best_vote);
 	_accel.voter.print();
 
 	PX4_INFO_RAW("\n");
-	PX4_INFO("mag status:");
+	PX4_INFO("selected mag: %d (%d)", _selection.mag_device_id, _mag.last_best_vote);
 	_mag.voter.print();
 }
 

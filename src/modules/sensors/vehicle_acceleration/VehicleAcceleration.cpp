@@ -265,11 +265,9 @@ void VehicleAcceleration::Run()
 
 void VehicleAcceleration::PrintStatus()
 {
-	PX4_INFO("selected sensor: %d (%d)", _selected_sensor_device_id, _selected_sensor_sub_index);
-	PX4_INFO("bias: [%.3f %.3f %.3f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
-
-	PX4_INFO("sample rate: %.3f Hz", (double)_update_rate_hz);
-
+	PX4_INFO("selected sensor: %d (%d), rate: %.1f Hz",
+		 _selected_sensor_device_id, _selected_sensor_sub_index, (double)_update_rate_hz);
+	PX4_INFO("estimated bias: [%.3f %.3f %.3f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
 	_corrections.PrintStatus();
 }
 

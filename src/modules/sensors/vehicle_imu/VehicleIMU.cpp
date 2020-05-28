@@ -343,7 +343,10 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &delta_angle)
 
 void VehicleIMU::PrintStatus()
 {
-	PX4_INFO("selected IMU: accel: %d gyro: %d ", _accel_corrections.get_device_id(), _gyro_corrections.get_device_id());
+	PX4_INFO("Accel ID: %d, interval: %.1f us, Gyro ID: %d, interval: %.1f us",
+		 _accel_corrections.get_device_id(), (double)_accel_interval.update_interval,
+		 _gyro_corrections.get_device_id(), (double)_gyro_interval.update_interval);
+
 	_accel_corrections.PrintStatus();
 	_gyro_corrections.PrintStatus();
 }
