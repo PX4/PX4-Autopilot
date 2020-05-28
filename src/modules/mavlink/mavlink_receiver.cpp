@@ -430,34 +430,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		get_message_interval((int)roundf(cmd_mavlink.param1));
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
-		uint16_t message_id = (uint16_t)roundf(cmd_mavlink.param1);
-		bool stream_found = false;
-
-		for (const auto stream : _mavlink->get_streams()) {
-			if (stream->get_id() == message_id) {
-				stream_found = stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
-								       vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-				break;
-			}
-		}
-
-		if (!stream_found) {
-			MavlinkStream *stream = create_mavlink_stream(message_id, _mavlink);
-
-			if (stream == nullptr) {
-				result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
-
-			} else {
-				bool message_sent = stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
-						    vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-
-				if (!message_sent) {
-					result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
-				}
-
-				delete stream;
-			}
-		}
+		result = handle_request_message_command(vehicle_command);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_CAMERA_ZOOM) {
 		struct actuator_controls_s actuator_controls = {};
@@ -520,6 +493,43 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, result);
 	}
 }
+
+uint8_t MavlinkReceiver::handle_request_message_command(const vehicle_command_s &vehicle_command)
+{
+	uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
+	bool stream_found = false;
+
+	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
+	for (const auto stream : _mavlink->get_streams()) {
+		if (stream->get_id() == message_id) {
+			stream_found = stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
+							       vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+			break;
+		}
+	}
+
+	if (!stream_found) {
+		MavlinkStream *stream = create_mavlink_stream(message_id, _mavlink);
+
+		if (stream == nullptr) {
+			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+
+		} else {
+			bool message_sent = stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
+					    vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+
+			if (!message_sent) {
+				result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+			}
+
+			delete stream;
+		}
+	}
+
+	return result;
+}
+
 
 void
 MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)

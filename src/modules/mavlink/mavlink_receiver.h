@@ -129,6 +129,8 @@ private:
 	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
 					 const vehicle_command_s &vehicle_command);
 
+	uint8_t handle_request_message_command(const vehicle_command_s &vehicle_command);
+
 	void handle_message(mavlink_message_t *msg);
 
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
