@@ -71,13 +71,17 @@ public:
 	}
 private:
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+	param_t _param_com_flight_uuid;
 
 	/* do not allow top copying this class */
 	MavlinkStreamFlightInformation(MavlinkStreamFlightInformation &) = delete;
 	MavlinkStreamFlightInformation &operator = (const MavlinkStreamFlightInformation &) = delete;
 protected:
 	explicit MavlinkStreamFlightInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
+	{
+
+		_param_com_flight_uuid = param_find("COM_FLIGHT_UUID");
+	}
 
 	bool send(const hrt_abstime t) override
 	{
@@ -85,9 +89,8 @@ protected:
 		bool ret = _armed_sub.copy(&actuator_armed);
 
 		if (ret && actuator_armed.timestamp != 0) {
-			const param_t param_com_flight_uuid = param_find("COM_FLIGHT_UUID");
 			int32_t flight_uuid;
-			param_get(param_com_flight_uuid, &flight_uuid);
+			param_get(_param_com_flight_uuid, &flight_uuid);
 
 			mavlink_flight_information_t flight_info{};
 			flight_info.flight_uuid = static_cast<uint64_t>(flight_uuid);

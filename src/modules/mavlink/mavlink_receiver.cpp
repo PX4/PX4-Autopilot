@@ -517,7 +517,7 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 {
 	bool stream_found = false;
 
-	for (const auto stream : _mavlink->get_streams()) {
+	for (const auto &stream : _mavlink->get_streams()) {
 		if (stream->get_id() == message_id) {
 			stream_found = stream->request_message(param2, param3, param4, param5, param6, param7);
 			break;
@@ -532,7 +532,7 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 			_mavlink->configure_stream_threadsafe(stream_name, 0.0f);
 
 			// Now we try again to send it.
-			for (const auto stream : _mavlink->get_streams()) {
+			for (const auto &stream : _mavlink->get_streams()) {
 				if (stream->get_id() == message_id) {
 					stream_found = stream->request_message(param2, param3, param4, param5, param6, param7);
 					break;
