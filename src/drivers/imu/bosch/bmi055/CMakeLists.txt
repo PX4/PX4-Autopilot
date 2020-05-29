@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__bmi055
+	MODULE drivers__imu__bosch__bmi055
 	MAIN bmi055
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		BMI055_accel.cpp
-		BMI055_gyro.cpp
+		Bosch_BMI055_Accelerometer_Registers.hpp
+		Bosch_BMI055_Gyroscope_Registers.hpp
+
+		BMI055.cpp
+		BMI055.hpp
+		BMI055_Accelerometer.cpp
+		BMI055_Accelerometer.hpp
+		BMI055_Gyroscope.cpp
+		BMI055_Gyroscope.hpp
+
 		bmi055_main.cpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
 	)

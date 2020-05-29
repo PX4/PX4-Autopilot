@@ -29,7 +29,7 @@ px4_add_board(
 		#imu/adis16477
 		#imu/adis16497
 		#imu # all available imu drivers
-		imu/bmi055
+		imu/bosch/bmi055
 		imu/mpu6000
 		irlock
 		lights/blinkm
