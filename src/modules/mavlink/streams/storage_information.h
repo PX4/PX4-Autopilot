@@ -80,11 +80,11 @@ public:
 	bool request_message(float param2, float param3, float param4,
 			     float param5, float param6, float param7) override
 	{
-		storage_id = (int)roundf(param2);
+		_storage_id = (int)roundf(param2);
 		return send(hrt_absolute_time());
 	}
 private:
-	int storage_id = 0;
+	int _storage_id = 0;
 
 	/* do not allow top copying this class */
 	MavlinkStreamStorageInformation(MavlinkStreamStorageInformation &) = delete;
@@ -100,7 +100,7 @@ protected:
 		mavlink_storage_information_t storage_info{};
 		const char *microsd_dir = PX4_STORAGEDIR;
 
-		if (storage_id == 0 || storage_id == 1) { // request is for all or the first storage
+		if (_storage_id == 0 || _storage_id == 1) { // request is for all or the first storage
 			storage_info.storage_id = 1;
 
 			struct statfs statfs_buf;
