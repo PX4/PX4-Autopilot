@@ -71,7 +71,7 @@ px4_add_board(
 		#sd_bench
 		system_time
 		top
-		#topic_listener
+		topic_listener
 		#tune_control
 		ver
 		work_queue
