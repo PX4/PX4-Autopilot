@@ -264,7 +264,7 @@ BMP388::validate_trimming_param()
 }
 
 uint32_t
-BMP388::get_measurement_time(uint8_t osr_t, uint8_t osr_p)
+BMP388::get_measurement_time()
 {
 	/*
 	  From BST-BMP388-DS001.pdf, page 25, table 21
@@ -325,7 +325,7 @@ BMP388::get_measurement_time(uint8_t osr_t, uint8_t osr_p)
 bool
 BMP388::set_sensor_settings()
 {
-	_measure_interval = get_measurement_time(osr_t, osr_p);
+	_measure_interval = get_measurement_time();
 
 	if (_measure_interval == 0) {
 		PX4_WARN("unsupported oversampling selected");
