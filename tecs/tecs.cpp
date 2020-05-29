@@ -74,7 +74,7 @@ void TECS::update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &ro
 	}
 
 	if (reset_altitude) {
-		_states_initalized = false;
+		_states_initialized = false;
 	}
 
 	_state_update_timestamp = now;
@@ -100,7 +100,7 @@ void TECS::update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &ro
 	}
 
 	if (!_in_air) {
-		_states_initalized = false;
+		_states_initialized = false;
 	}
 
 }
@@ -477,7 +477,7 @@ void TECS::_update_pitch_setpoint()
 void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_altitude, float pitch_min_climbout,
 			      float EAS2TAS)
 {
-	if (_pitch_update_timestamp == 0 || _dt > DT_MAX || !_in_air || !_states_initalized) {
+	if (_pitch_update_timestamp == 0 || _dt > DT_MAX || !_in_air || !_states_initialized) {
 		// On first time through or when not using TECS of if there has been a large time slip,
 		// states must be reset to allow filters to a clean start
 		_vert_vel_state = 0.0f;
@@ -525,7 +525,7 @@ void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_alt
 		_uncommanded_descent_recovery = false;
 	}
 
-	_states_initalized = true;
+	_states_initialized = true;
 }
 
 void TECS::_update_STE_rate_lim()

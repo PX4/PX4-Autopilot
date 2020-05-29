@@ -89,7 +89,7 @@ public:
 	float get_pitch_setpoint() { return _pitch_setpoint; }
 	float get_speed_weight() { return _pitch_speed_weight; }
 
-	void reset_state() { _states_initalized = false; }
+	void reset_state() { _states_initialized = false; }
 
 	enum ECL_TECS_MODE {
 		ECL_TECS_MODE_NORMAL = 0,
@@ -270,7 +270,7 @@ private:
 	bool _uncommanded_descent_recovery{false};			///< true when a continuous descent caused by an unachievable airspeed demand has been detected
 	bool _climbout_mode_active{false};				///< true when in climbout mode
 	bool _airspeed_enabled{false};					///< true when airspeed use has been enabled
-	bool _states_initalized{false};					///< true when TECS states have been iniitalized
+	bool _states_initialized{false};					///< true when TECS states have been iniitalized
 	bool _in_air{false};						///< true when the vehicle is flying
 
 	/**
