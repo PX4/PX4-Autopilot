@@ -89,10 +89,6 @@
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
-/* CAN Silence Silent mode control */
-#define GPIO_CAN1_SILENT_S0  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
-#define GPIO_CAN2_SILENT_S1  /* PH3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN3)
-
 /* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  6
 #define GPIO_PWM_VOLT_SEL    /* PB4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN4)
@@ -161,8 +157,6 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN2_TX,                     \
 		GPIO_CAN2_RX,                     \
-		GPIO_CAN1_SILENT_S0,              \
-		GPIO_CAN2_SILENT_S1,              \
 		GPIO_PWM_VOLT_SEL,                \
 		GPIO_nVDD_BRICK1_VALID,           \
 		GPIO_nVDD_BRICK1_VALID,           \
