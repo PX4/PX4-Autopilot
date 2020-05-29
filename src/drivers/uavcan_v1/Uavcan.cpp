@@ -235,7 +235,7 @@ void UavcanNode::Run()
 			if (_battery_status_sub.update(&battery_status)) {
 				regulated::drone::sensor::BMSStatus_1_0 bmsstatus{};
 				//bmsstatus.timestamp = battery_status.timestamp;
-				bmsstatus.remaining_capacity = battery_status.remaining;
+				//bmsstatus.remaining_capacity = battery_status.remaining;
 
 				bmsstatus.serializeToBuffer(_regulated_drone_sensor_bmsstatus_buffer);
 
@@ -320,7 +320,8 @@ void UavcanNode::Run()
 
 				battery_status_s battery_status{};
 				battery_status.id = bms_status.battery_id;
-				battery_status.remaining = bms_status.remaining_capacity;
+                                battery_status.voltage_v = bms_status.voltage;
+				//battery_status.remaining = bms_status.remaining_capacity;
 				battery_status.timestamp = hrt_absolute_time();
 				_battery_status_pub.publish(battery_status);
 			}
