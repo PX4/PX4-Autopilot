@@ -516,10 +516,12 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 		float param5, float param6, float param7)
 {
 	bool stream_found = false;
+	bool message_sent = false;
 
 	for (const auto &stream : _mavlink->get_streams()) {
 		if (stream->get_id() == message_id) {
-			stream_found = stream->request_message(param2, param3, param4, param5, param6, param7);
+			stream_found = true;
+			message_sent = stream->request_message(param2, param3, param4, param5, param6, param7);
 			break;
 		}
 	}
@@ -534,14 +536,14 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 			// Now we try again to send it.
 			for (const auto &stream : _mavlink->get_streams()) {
 				if (stream->get_id() == message_id) {
-					stream_found = stream->request_message(param2, param3, param4, param5, param6, param7);
+					message_sent = stream->request_message(param2, param3, param4, param5, param6, param7);
 					break;
 				}
 			}
 		}
 	}
 
-	return (stream_found ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+	return (message_sent ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
 }
 
 
