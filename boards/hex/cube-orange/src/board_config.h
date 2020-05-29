@@ -110,7 +110,7 @@
 #define RCC_APB1ENR_TIM5EN		RCC_APB1LENR_TIM5EN /* This is stupid and only applies for H7 */
 #define RCC_APB1RSTR_TIM5RST		RCC_APB1LRSTR_TIM5RST /* This is stupid and only applies for H7 */
 #define TONE_ALARM_TIMER        2  /* timer 2 */
-#define TONE_ALARM_CHANNEL      1  /* PE15 TIM2_CH1 */
+#define TONE_ALARM_CHANNEL      1  /* PA15 TIM2_CH1 */
 
 #define GPIO_BUZZER_1           /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15) // ALARM
 
