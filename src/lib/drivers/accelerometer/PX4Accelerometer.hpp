@@ -54,6 +54,8 @@ public:
 
 	uint32_t get_device_id() const { return _device_id; }
 
+	float get_max_rate_hz() const { return _param_imu_gyro_rate_max.get(); }
+
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint64_t error_count) { _error_count = error_count; }
@@ -104,4 +106,8 @@ private:
 	uint32_t		_error_count{0};
 
 	int16_t			_last_sample[3] {};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
+	)
 };
