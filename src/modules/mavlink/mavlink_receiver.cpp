@@ -2188,15 +2188,8 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	/* gyro */
 	{
 		if (_px4_gyro == nullptr) {
-			// 2294028: DRV_GYR_DEVTYPE_GYROSIM, BUS: 1, ADDR: 2, TYPE: SIMULATION
-			_px4_gyro = new PX4Gyroscope(2294028);
-
-			if (_px4_gyro == nullptr) {
-				PX4_ERR("PX4Gyroscope alloc failed");
-
-			} else {
-				_px4_gyro->set_update_rate(200); // TODO: measure actual
-			}
+			// 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+			_px4_gyro = new PX4Gyroscope(1311244);
 		}
 
 		if (_px4_gyro != nullptr) {
@@ -2208,15 +2201,8 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	/* accelerometer */
 	{
 		if (_px4_accel == nullptr) {
-			// 1311244: DRV_ACC_DEVTYPE_ACCELSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+			// 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 			_px4_accel = new PX4Accelerometer(1311244);
-
-			if (_px4_accel == nullptr) {
-				PX4_ERR("PX4Accelerometer alloc failed");
-
-			} else {
-				_px4_accel->set_update_rate(200); // TODO: measure actual
-			}
 		}
 
 		if (_px4_accel != nullptr) {
@@ -2230,10 +2216,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		if (_px4_mag == nullptr) {
 			// 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 			_px4_mag = new PX4Magnetometer(197388);
-
-			if (_px4_mag == nullptr) {
-				PX4_ERR("PX4Magnetometer alloc failed");
-			}
 		}
 
 		if (_px4_mag != nullptr) {
@@ -2247,10 +2229,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		if (_px4_baro == nullptr) {
 			// 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 			_px4_baro = new PX4Barometer(6620172);
-
-			if (_px4_baro == nullptr) {
-				PX4_ERR("PX4Barometer alloc failed");
-			}
 		}
 
 		if (_px4_baro != nullptr) {
@@ -2629,7 +2607,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	/* accelerometer */
 	{
 		if (_px4_accel == nullptr) {
-			// 1311244: DRV_ACC_DEVTYPE_ACCELSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+			// 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 			_px4_accel = new PX4Accelerometer(1311244);
 
 			if (_px4_accel == nullptr) {
@@ -2647,8 +2625,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	/* gyroscope */
 	{
 		if (_px4_gyro == nullptr) {
-			// 2294028: DRV_GYR_DEVTYPE_GYROSIM, BUS: 1, ADDR: 2, TYPE: SIMULATION
-			_px4_gyro = new PX4Gyroscope(2294028);
+			// 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+			_px4_gyro = new PX4Gyroscope(1311244);
 
 			if (_px4_gyro == nullptr) {
 				PX4_ERR("PX4Gyroscope alloc failed");

@@ -47,8 +47,6 @@ ISM330DLC::ISM330DLC(I2CSPIBusOption bus_option, int bus, uint32_t device, enum 
 	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation)
 {
-	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
-	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);
 }
 
 ISM330DLC::~ISM330DLC()

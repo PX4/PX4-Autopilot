@@ -772,9 +772,9 @@ void Ekf2::Run()
 		updated = _vehicle_imu_subs[_imu_sub_index].update(&imu);
 
 		imu_sample_new.time_us = imu.timestamp_sample;
-		imu_sample_new.delta_ang_dt = imu.dt * 1.e-6f;
+		imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
 		imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
-		imu_sample_new.delta_vel_dt = imu.dt * 1.e-6f;
+		imu_sample_new.delta_vel_dt = imu.delta_velocity_dt * 1.e-6f;
 		imu_sample_new.delta_vel = Vector3f{imu.delta_velocity};
 
 		if (imu.delta_velocity_clipping > 0) {
@@ -783,7 +783,7 @@ void Ekf2::Run()
 			imu_sample_new.delta_vel_clipping[2] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Z;
 		}
 
-		imu_dt = imu.dt;
+		imu_dt = imu.delta_angle_dt;
 
 		bias.accel_device_id = imu.accel_device_id;
 		bias.gyro_device_id = imu.gyro_device_id;
@@ -853,12 +853,10 @@ void Ekf2::Run()
 
 					if (_imu_sub_index < 0) {
 						if (_sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
-							PX4_WARN("accel id changed, resetting IMU bias");
 							_imu_bias_reset_request = true;
 						}
 
 						if (_sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
-							PX4_WARN("gyro id changed, resetting IMU bias");
 							_imu_bias_reset_request = true;
 						}
 					}

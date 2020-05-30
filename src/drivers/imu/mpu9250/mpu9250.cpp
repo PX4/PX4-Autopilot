@@ -189,8 +189,6 @@ MPU9250::reset_mpu()
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
-	_px4_accel.set_update_rate(_sample_rate);
-	_px4_gyro.set_update_rate(_sample_rate);
 
 	_set_dlpf_filter(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ);
 
