@@ -278,6 +278,5 @@ void VehicleAirData::PrintStatus()
 		PX4_INFO("selected barometer: %d (%d)", _last_data[_selected_sensor_sub_index].device_id, _selected_sensor_sub_index);
 	}
 
-	perf_print_counter(_cycle_perf);
 	_voter.print();
 }

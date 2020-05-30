@@ -64,7 +64,6 @@ BMI160::BMI160(I2CSPIBusOption bus_option, int bus, int32_t device, enum Rotatio
 	_reset_retries(perf_alloc(PC_COUNT, MODULE_NAME":reset retries")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicates"))
 {
-	_px4_gyro.set_update_rate(BMI160_GYRO_DEFAULT_RATE);
 }
 
 BMI160::~BMI160()

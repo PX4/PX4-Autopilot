@@ -66,8 +66,6 @@ FXOS8701CQ::FXOS8701CQ(device::Device *interface, I2CSPIBusOption bus_option, in
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad reg")),
 	_accel_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": acc dupe"))
 {
-	_px4_accel.set_update_rate(FXOS8701C_ACCEL_DEFAULT_RATE);
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_px4_mag.set_scale(0.001f);
 #endif

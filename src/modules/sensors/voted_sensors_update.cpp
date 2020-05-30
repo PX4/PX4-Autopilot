@@ -52,18 +52,14 @@ using namespace sensors;
 using namespace matrix;
 using math::radians;
 
-VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
-	: ModuleParams(nullptr), _parameters(parameters), _hil_enabled(hil_enabled), _mag_compensator(this)
+VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled,
+				       uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[3]) :
+	ModuleParams(nullptr),
+	_vehicle_imu_sub(vehicle_imu_sub),
+	_parameters(parameters),
+	_hil_enabled(hil_enabled),
+	_mag_compensator(this)
 {
-	for (unsigned i = 0; i < 3; i++) {
-		_corrections.gyro_scale_0[i] = 1.0f;
-		_corrections.accel_scale_0[i] = 1.0f;
-		_corrections.gyro_scale_1[i] = 1.0f;
-		_corrections.accel_scale_1[i] = 1.0f;
-		_corrections.gyro_scale_2[i] = 1.0f;
-		_corrections.accel_scale_2[i] = 1.0f;
-	}
-
 	_mag.voter.set_timeout(300000);
 	_mag.voter.set_equal_value_threshold(1000);
 
@@ -463,162 +459,104 @@ void VotedSensorsUpdate::parametersUpdate()
 
 }
 
-void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
+void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 {
-	float *offsets[] = {_corrections.accel_offset_0, _corrections.accel_offset_1, _corrections.accel_offset_2 };
-	float *scales[] = {_corrections.accel_scale_0, _corrections.accel_scale_1, _corrections.accel_scale_2 };
+	for (int uorb_index = 0; uorb_index < 3; uorb_index++) {
+		vehicle_imu_s imu_report;
 
-	for (int uorb_index = 0; uorb_index < _accel.subscription_count; uorb_index++) {
+		if (_accel.enabled[uorb_index] && _gyro.enabled[uorb_index] && _vehicle_imu_sub[uorb_index].update(&imu_report)) {
 
-		sensor_accel_integrated_s accel_report;
-
-		if (_accel.enabled[uorb_index] && _accel.subscription[uorb_index].update(&accel_report)) {
+			// copy corresponding vehicle_imu_status for accel & gyro error counts
+			vehicle_imu_status_s imu_status{};
+			_vehicle_imu_status_sub[uorb_index].copy(&imu_status);
 
 			// First publication with data
 			if (_accel.priority[uorb_index] == 0) {
 				_accel.priority[uorb_index] = _accel.subscription[uorb_index].get_priority();
 			}
 
-			_accel_device_id[uorb_index] = accel_report.device_id;
-
-			/*
-			 * Correct the raw sensor data for scale factor errors
-			 * and offsets due to temperature variation. It is assumed that any filtering of input
-			 * data required is performed in the sensor driver, preferably before downsampling.
-			*/
-
-			// convert the delta velocities to an equivalent acceleration before application of corrections
-			const float dt_inv = 1.e6f / (float)accel_report.dt;
-			Vector3f accel_data = Vector3f{accel_report.delta_velocity} * dt_inv;
-
-			_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.dt;
-
-			// apply temperature compensation
-			accel_data(0) = (accel_data(0) - offsets[uorb_index][0]) * scales[uorb_index][0]; // X
-			accel_data(1) = (accel_data(1) - offsets[uorb_index][1]) * scales[uorb_index][1]; // Y
-			accel_data(2) = (accel_data(2) - offsets[uorb_index][2]) * scales[uorb_index][2]; // Z
-
-			// rotate corrected measurements from sensor to body frame
-			accel_data = _board_rotation * accel_data;
-
-			_last_sensor_data[uorb_index].accelerometer_m_s2[0] = accel_data(0);
-			_last_sensor_data[uorb_index].accelerometer_m_s2[1] = accel_data(1);
-			_last_sensor_data[uorb_index].accelerometer_m_s2[2] = accel_data(2);
-
-			// record if there's any clipping per axis
-			_last_sensor_data[uorb_index].accelerometer_clipping = 0;
-
-			if (accel_report.clip_counter[0] > 0 || accel_report.clip_counter[1] > 0 || accel_report.clip_counter[2] > 0) {
-
-				const Vector3f sensor_clip_count{(float)accel_report.clip_counter[0], (float)accel_report.clip_counter[1], (float)accel_report.clip_counter[2]};
-				const Vector3f clipping{_board_rotation * sensor_clip_count};
-				static constexpr float CLIP_COUNT_THRESHOLD = 1.f;
-
-				if (fabsf(clipping(0)) >= CLIP_COUNT_THRESHOLD) {
-					_last_sensor_data[uorb_index].accelerometer_clipping |= sensor_combined_s::CLIPPING_X;
-				}
-
-				if (fabsf(clipping(1)) >= CLIP_COUNT_THRESHOLD) {
-					_last_sensor_data[uorb_index].accelerometer_clipping |= sensor_combined_s::CLIPPING_Y;
-				}
-
-				if (fabsf(clipping(2)) >= CLIP_COUNT_THRESHOLD) {
-					_last_sensor_data[uorb_index].accelerometer_clipping |= sensor_combined_s::CLIPPING_Z;
-				}
-			}
-
-			_last_accel_timestamp[uorb_index] = accel_report.timestamp;
-			_accel.voter.put(uorb_index, accel_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
-					 accel_report.error_count, _accel.priority[uorb_index]);
-		}
-	}
-
-	// find the best sensor
-	int best_index;
-	_accel.voter.get_best(hrt_absolute_time(), &best_index);
-
-	// write the best sensor data to the output variables
-	if (best_index >= 0) {
-		raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
-		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[best_index].accelerometer_m_s2, sizeof(raw.accelerometer_m_s2));
-
-		raw.accelerometer_clipping = _last_sensor_data[best_index].accelerometer_clipping;
-
-		if (best_index != _accel.last_best_vote) {
-			_accel.last_best_vote = (uint8_t)best_index;
-		}
-
-		if (_selection.accel_device_id != _accel_device_id[best_index]) {
-			_selection_changed = true;
-			_selection.accel_device_id = _accel_device_id[best_index];
-		}
-	}
-}
-
-void VotedSensorsUpdate::gyroPoll(struct sensor_combined_s &raw)
-{
-	float *offsets[] = {_corrections.gyro_offset_0, _corrections.gyro_offset_1, _corrections.gyro_offset_2 };
-	float *scales[] = {_corrections.gyro_scale_0, _corrections.gyro_scale_1, _corrections.gyro_scale_2 };
-
-	for (int uorb_index = 0; uorb_index < _gyro.subscription_count; uorb_index++) {
-		sensor_gyro_integrated_s gyro_report;
-
-		if (_gyro.enabled[uorb_index] && _gyro.subscription[uorb_index].update(&gyro_report)) {
-
-			// First publication with data
 			if (_gyro.priority[uorb_index] == 0) {
 				_gyro.priority[uorb_index] = _gyro.subscription[uorb_index].get_priority();
 			}
 
-			_gyro_device_id[uorb_index] = gyro_report.device_id;
+			_accel_device_id[uorb_index] = imu_report.accel_device_id;
+			_gyro_device_id[uorb_index] = imu_report.gyro_device_id;
 
-			/*
-			 * Correct the raw sensor data for scale factor errors
-			 * and offsets due to temperature variation. It is assumed that any filtering of input
-			 * data required is performed in the sensor driver, preferably before downsampling.
-			*/
+			// convert the delta velocities to an equivalent acceleration
+			const float accel_dt_inv = 1.e6f / (float)imu_report.delta_velocity_dt;
+			Vector3f accel_data = Vector3f{imu_report.delta_velocity} * accel_dt_inv;
 
-			// convert the delta angles to an equivalent angular rate before application of corrections
-			const float dt_inv = 1.e6f / (float)gyro_report.dt;
-			Vector3f gyro_rate = Vector3f{gyro_report.delta_angle} * dt_inv;
 
-			_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.dt;
+			// convert the delta angles to an equivalent angular rate
+			const float gyro_dt_inv = 1.e6f / (float)imu_report.delta_angle_dt;
+			Vector3f gyro_rate = Vector3f{imu_report.delta_angle} * gyro_dt_inv;
 
-			// apply temperature compensation
-			gyro_rate(0) = (gyro_rate(0) - offsets[uorb_index][0]) * scales[uorb_index][0]; // X
-			gyro_rate(1) = (gyro_rate(1) - offsets[uorb_index][1]) * scales[uorb_index][1]; // Y
-			gyro_rate(2) = (gyro_rate(2) - offsets[uorb_index][2]) * scales[uorb_index][2]; // Z
-
-			// rotate corrected measurements from sensor to body frame
-			gyro_rate = _board_rotation * gyro_rate;
-
+			_last_sensor_data[uorb_index].timestamp = imu_report.timestamp_sample;
+			_last_sensor_data[uorb_index].accelerometer_m_s2[0] = accel_data(0);
+			_last_sensor_data[uorb_index].accelerometer_m_s2[1] = accel_data(1);
+			_last_sensor_data[uorb_index].accelerometer_m_s2[2] = accel_data(2);
+			_last_sensor_data[uorb_index].accelerometer_integral_dt = imu_report.delta_velocity_dt;
+			_last_sensor_data[uorb_index].accelerometer_clipping = imu_report.delta_velocity_clipping;
 			_last_sensor_data[uorb_index].gyro_rad[0] = gyro_rate(0);
 			_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);
 			_last_sensor_data[uorb_index].gyro_rad[2] = gyro_rate(2);
+			_last_sensor_data[uorb_index].gyro_integral_dt = imu_report.delta_angle_dt;
 
-			_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp_sample;
-			_gyro.voter.put(uorb_index, gyro_report.timestamp, _last_sensor_data[uorb_index].gyro_rad,
-					gyro_report.error_count, _gyro.priority[uorb_index]);
+
+			_last_accel_timestamp[uorb_index] = imu_report.timestamp_sample;
+
+			_accel.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
+					 imu_status.accel_error_count, _accel.priority[uorb_index]);
+
+			_gyro.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].gyro_rad,
+					imu_status.gyro_error_count, _gyro.priority[uorb_index]);
 		}
 	}
 
 	// find the best sensor
-	int best_index;
-	_gyro.voter.get_best(hrt_absolute_time(), &best_index);
+	int accel_best_index;
+	int gyro_best_index;
+	_accel.voter.get_best(hrt_absolute_time(), &accel_best_index);
+	_gyro.voter.get_best(hrt_absolute_time(), &gyro_best_index);
+
+	checkFailover(_accel, "Accel", subsystem_info_s::SUBSYSTEM_TYPE_ACC);
+	checkFailover(_gyro, "Gyro", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
 
 	// write data for the best sensor to output variables
-	if (best_index >= 0) {
-		raw.timestamp = _last_sensor_data[best_index].timestamp;
-		raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
-		memcpy(&raw.gyro_rad, &_last_sensor_data[best_index].gyro_rad, sizeof(raw.gyro_rad));
+	if ((accel_best_index >= 0) && (gyro_best_index >= 0)) {
+		raw.timestamp = _last_sensor_data[gyro_best_index].timestamp;
+		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[accel_best_index].accelerometer_m_s2,
+		       sizeof(raw.accelerometer_m_s2));
+		memcpy(&raw.gyro_rad, &_last_sensor_data[gyro_best_index].gyro_rad, sizeof(raw.gyro_rad));
+		raw.accelerometer_integral_dt = _last_sensor_data[accel_best_index].accelerometer_integral_dt;
+		raw.gyro_integral_dt = _last_sensor_data[gyro_best_index].gyro_integral_dt;
+		raw.accelerometer_clipping = _last_sensor_data[accel_best_index].accelerometer_clipping;
 
-		if (_gyro.last_best_vote != best_index) {
-			_gyro.last_best_vote = (uint8_t)best_index;
+		if ((accel_best_index != _accel.last_best_vote) || (_selection.accel_device_id != _accel_device_id[accel_best_index])) {
+			_accel.last_best_vote = (uint8_t)accel_best_index;
+			_selection.accel_device_id = _accel_device_id[accel_best_index];
+			_selection_changed = true;
 		}
 
-		if (_selection.gyro_device_id != _gyro_device_id[best_index]) {
+		if ((_gyro.last_best_vote != gyro_best_index) || (_selection.gyro_device_id != _gyro_device_id[gyro_best_index])) {
+			_gyro.last_best_vote = (uint8_t)gyro_best_index;
+			_selection.gyro_device_id = _gyro_device_id[gyro_best_index];
 			_selection_changed = true;
-			_selection.gyro_device_id = _gyro_device_id[best_index];
+
+			// clear all registered callbacks
+			for (auto &sub : _vehicle_imu_sub) {
+				sub.unregisterCallback();
+			}
+
+			for (int i = 0; i < GYRO_COUNT_MAX; i++) {
+				vehicle_imu_s report{};
+
+				if (_vehicle_imu_sub[i].copy(&report)) {
+					if ((report.gyro_device_id != 0) && (report.gyro_device_id == _gyro_device_id[gyro_best_index])) {
+						_vehicle_imu_sub[i].registerCallback();
+					}
+				}
+			}
 		}
 	}
 }
@@ -654,6 +592,8 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 
 	int best_index;
 	_mag.voter.get_best(hrt_absolute_time(), &best_index);
+
+	checkFailover(_mag, "Mag", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
 
 	if (best_index >= 0) {
 		magnetometer = _last_magnetometer[best_index];
@@ -769,37 +709,32 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 
 void VotedSensorsUpdate::printStatus()
 {
-	PX4_INFO("gyro status:");
+	PX4_INFO("selected gyro: %d (%d)", _selection.gyro_device_id, _gyro.last_best_vote);
 	_gyro.voter.print();
-	PX4_INFO("accel status:");
+
+	PX4_INFO_RAW("\n");
+	PX4_INFO("selected accel: %d (%d)", _selection.accel_device_id, _accel.last_best_vote);
 	_accel.voter.print();
-	PX4_INFO("mag status:");
+
+	PX4_INFO_RAW("\n");
+	PX4_INFO("selected mag: %d (%d)", _selection.mag_device_id, _mag.last_best_vote);
 	_mag.voter.print();
 }
 
 void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_magnetometer_s &magnetometer)
 {
-	_corrections_sub.update(&_corrections);
-
-	accelPoll(raw);
-	gyroPoll(raw);
+	imuPoll(raw);
 	magPoll(magnetometer);
 
 	// publish sensor selection if changed
 	if (_selection_changed) {
-		_selection.timestamp = hrt_absolute_time();
-
-		_sensor_selection_pub.publish(_selection);
-
-		_selection_changed = false;
+		// don't publish until selected IDs are valid
+		if (_selection.accel_device_id > 0 && _selection.gyro_device_id > 0) {
+			_selection.timestamp = hrt_absolute_time();
+			_sensor_selection_pub.publish(_selection);
+			_selection_changed = false;
+		}
 	}
-}
-
-void VotedSensorsUpdate::checkFailover()
-{
-	checkFailover(_accel, "Accel", subsystem_info_s::SUBSYSTEM_TYPE_ACC);
-	checkFailover(_gyro, "Gyro", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
-	checkFailover(_mag, "Mag", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
 }
 
 void VotedSensorsUpdate::setRelativeTimestamps(sensor_combined_s &raw)

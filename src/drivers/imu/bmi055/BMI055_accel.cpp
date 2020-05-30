@@ -56,7 +56,6 @@ BMI055_accel::BMI055_accel(I2CSPIBusOption bus_option, int bus, const char *path
 	_duplicates(perf_alloc(PC_COUNT, "bmi055_accel_duplicates")),
 	_got_duplicate(false)
 {
-	_px4_accel.set_update_rate(BMI055_ACCEL_DEFAULT_RATE);
 }
 
 BMI055_accel::~BMI055_accel()

@@ -95,8 +95,6 @@ Sih::Sih() :
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": execution")),
 	_sampling_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sampling"))
 {
-	_px4_accel.set_update_rate(LOOP_INTERVAL);
-	_px4_gyro.set_update_rate(LOOP_INTERVAL);
 }
 
 void Sih::run()

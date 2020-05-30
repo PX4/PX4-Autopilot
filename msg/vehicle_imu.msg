@@ -8,8 +8,8 @@ uint32 gyro_device_id           # Gyroscope unique device ID for the sensor that
 
 float32[3] delta_angle          # delta angle in the NED board axis in rad/s over the integration time frame (dt)
 float32[3] delta_velocity       # delta velocity in the NED board axis in m/s over the integration time frame (dt)
-
-uint16 dt                       # integration period in us
+uint16 delta_angle_dt           # integration period in us
+uint16 delta_velocity_dt        # integration period in us
 
 uint8 CLIPPING_X = 1
 uint8 CLIPPING_Y = 2
