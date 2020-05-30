@@ -69,7 +69,7 @@ public:
 	void land();
 	void transition_to_fixedwing();
 	void transition_to_multicopter();
-	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(60));
+	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(90));
 	void wait_until_hovering();
 	void prepare_square_mission(MissionOptions mission_options);
 	void execute_mission();
@@ -86,10 +86,9 @@ private:
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
 		const MissionOptions &mission_options,
 		const mavsdk::geometry::CoordinateTransformation &ct);
-	Telemetry::GroundTruth get_ground_truth_position();
 
 	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
-	bool estimated_position_close_to(const Offboard::PositionNEDYaw &target_position, float acceptance_radius_m);
+	bool estimated_position_close_to(const Offboard::PositionNEDYaw &target_pos, float acceptance_radius_m);
 	bool estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw &target_pos, float acceptance_radius_m);
 
 	mavsdk::Mavsdk _mavsdk{};

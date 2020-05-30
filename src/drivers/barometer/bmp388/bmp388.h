@@ -343,7 +343,7 @@ private:
 	void 			start();
 	int 			measure();
 	int			collect(); //get results and publish
-	uint32_t		get_measurement_time(uint8_t osr_t, uint8_t osr_p);
+	uint32_t		get_measurement_time();
 
 	bool			soft_reset();
 	bool			get_calib_data();
