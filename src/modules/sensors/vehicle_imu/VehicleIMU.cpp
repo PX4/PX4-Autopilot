@@ -71,6 +71,11 @@ VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 VehicleIMU::~VehicleIMU()
 {
 	Stop();
+
+	perf_free(_accel_generation_gap_perf);
+	perf_free(_accel_update_perf);
+	perf_free(_gyro_generation_gap_perf);
+	perf_free(_gyro_update_perf);
 }
 
 bool VehicleIMU::Start()
@@ -78,7 +83,7 @@ bool VehicleIMU::Start()
 	// force initial updates
 	ParametersUpdate(true);
 
-	return _sensor_gyro_sub.registerCallback();
+	return _sensor_gyro_sub.registerCallback() && _sensor_accel_sub.registerCallback();
 }
 
 void VehicleIMU::Stop()
@@ -121,30 +126,27 @@ bool VehicleIMU::UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstim
 		intavg.interval_sum += (timestamp_sample - intavg.timestamp_sample_last);
 		intavg.interval_count++;
 
-	} else {
-		intavg.interval_sum = 0.f;
-		intavg.interval_count = 0.f;
+		// periodically calculate sensor update rate
+		if (intavg.interval_count > 10000 || ((intavg.update_interval <= FLT_EPSILON) && intavg.interval_count > 100)) {
+
+			const float sample_interval_avg = intavg.interval_sum / intavg.interval_count;
+
+			if (PX4_ISFINITE(sample_interval_avg) && (sample_interval_avg > 0.f)) {
+				// update if interval has changed by more than 0.5%
+				if ((fabsf(intavg.update_interval - sample_interval_avg) / intavg.update_interval) > 0.005f) {
+
+					intavg.update_interval = sample_interval_avg;
+					updated = true;
+				}
+			}
+
+			// reset sample interval accumulator
+			intavg.interval_sum = 0.f;
+			intavg.interval_count = 0.f;
+		}
 	}
 
 	intavg.timestamp_sample_last = timestamp_sample;
-
-	// periodically calculate sensor update rate
-	if (intavg.interval_count > 10000 || ((intavg.update_interval <= FLT_EPSILON) && intavg.interval_count > 100)) {
-
-		const float sample_interval_avg = intavg.interval_sum / intavg.interval_count;
-
-		if (PX4_ISFINITE(sample_interval_avg) && (sample_interval_avg > 0.f)) {
-			// update if interval has changed by more than 1%
-			if ((fabsf(intavg.update_interval - sample_interval_avg) / intavg.update_interval) > 0.01f) {
-
-				intavg.update_interval = sample_interval_avg;
-				updated = true;
-			}
-		}
-
-		// reset sample interval accumulator
-		intavg.timestamp_sample_last = 0;
-	}
 
 	return updated;
 }
@@ -163,7 +165,15 @@ void VehicleIMU::Run()
 	// integrate queued gyro
 	sensor_gyro_s gyro;
 
-	while (!_gyro_integrator.integral_ready() && _sensor_gyro_sub.update(&gyro)) {
+	while (_sensor_gyro_sub.update(&gyro)) {
+		perf_count_interval(_gyro_update_perf, gyro.timestamp_sample);
+
+		if (_sensor_gyro_sub.get_last_generation() != _gyro_last_generation + 1) {
+			perf_count(_gyro_generation_gap_perf);
+		}
+
+		_gyro_last_generation = _sensor_gyro_sub.get_last_generation();
+
 		_gyro_corrections.set_device_id(gyro.device_id);
 		_gyro_error_count = gyro.error_count;
 
@@ -175,12 +185,24 @@ void VehicleIMU::Run()
 		if (UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
 			update_integrator_config = true;
 		}
+
+		if (_intervals_configured && _gyro_integrator.integral_ready()) {
+			break;
+		}
 	}
 
 	// update accel, stopping once caught up to the last gyro sample
 	sensor_accel_s accel;
 
 	while (_sensor_accel_sub.update(&accel)) {
+		perf_count_interval(_accel_update_perf, accel.timestamp_sample);
+
+		if (_sensor_accel_sub.get_last_generation() != _accel_last_generation + 1) {
+			perf_count(_accel_generation_gap_perf);
+		}
+
+		_accel_last_generation = _sensor_accel_sub.get_last_generation();
+
 		_accel_corrections.set_device_id(accel.device_id);
 		_accel_error_count = accel.error_count;
 
@@ -222,7 +244,9 @@ void VehicleIMU::Run()
 		}
 
 		// break once caught up to gyro
-		if (_last_timestamp_sample_accel >= (_last_timestamp_sample_gyro - 0.5f * _accel_interval.update_interval)) {
+		if (_intervals_configured
+		    && (_last_timestamp_sample_accel >= (_last_timestamp_sample_gyro - 0.5f * _accel_interval.update_interval))) {
+
 			break;
 		}
 	}
@@ -314,8 +338,11 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		// run when there are enough new gyro samples, unregister accel
 		_sensor_accel_sub.unregisterCallback();
 
-		PX4_DEBUG("accel (%d), gyro (%d), accel samples: %d, gyro samples: %d",
-			  _accel_corrections.get_device_id(), _gyro_corrections.get_device_id(), accel_integral_samples, gyro_integral_samples);
+		_intervals_configured = true;
+
+		PX4_DEBUG("accel (%d), gyro (%d), accel samples: %d, gyro samples: %d, accel interval: %.1f, gyro interval: %.1f",
+			  _accel_corrections.get_device_id(), _gyro_corrections.get_device_id(), accel_integral_samples, gyro_integral_samples,
+			  (double)_accel_interval.update_interval, (double)_gyro_interval.update_interval);
 	}
 }
 
@@ -346,6 +373,11 @@ void VehicleIMU::PrintStatus()
 	PX4_INFO("Accel ID: %d, interval: %.1f us, Gyro ID: %d, interval: %.1f us",
 		 _accel_corrections.get_device_id(), (double)_accel_interval.update_interval,
 		 _gyro_corrections.get_device_id(), (double)_gyro_interval.update_interval);
+
+	perf_print_counter(_accel_generation_gap_perf);
+	perf_print_counter(_gyro_generation_gap_perf);
+	perf_print_counter(_accel_update_perf);
+	perf_print_counter(_gyro_update_perf);
 
 	_accel_corrections.PrintStatus();
 	_gyro_corrections.PrintStatus();
