@@ -636,6 +636,7 @@ int Sensors::print_status()
 
 	for (auto &i : _vehicle_imu_list) {
 		if (i != nullptr) {
+			PX4_INFO_RAW("\n");
 			i->PrintStatus();
 		}
 	}
