@@ -78,7 +78,7 @@ private:
 	static constexpr float GYRO_RATE{1000000 / FIFO_SAMPLE_DT}; // 8 kHz gyro
 	static constexpr float ACCEL_RATE{GYRO_RATE};               // 8 kHz accel
 
-	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(PX4Gyroscope::FIFOSample::x) / sizeof(PX4Gyroscope::FIFOSample::x[0]))};
+	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0]))};
 
 	// Transfer data
 	struct FIFOTransferBuffer {

@@ -59,7 +59,7 @@ private:
 	static constexpr uint32_t ACCEL_RATE{1600}; // 1600 Hz accel
 	static constexpr float FIFO_SAMPLE_DT{1e6f / ACCEL_RATE};
 
-	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(PX4Accelerometer::FIFOSample::x) / sizeof(PX4Accelerometer::FIFOSample::x[0]))};
+	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
 
 	// Transfer data
 	struct FIFOTransferBuffer {

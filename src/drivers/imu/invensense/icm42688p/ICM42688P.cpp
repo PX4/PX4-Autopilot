@@ -552,7 +552,7 @@ void ICM42688P::FIFOReset()
 void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer,
 			     const uint8_t samples)
 {
-	PX4Accelerometer::FIFOSample accel;
+	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = _fifo_empty_interval_us / _fifo_accel_samples;
 
@@ -580,7 +580,7 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTran
 void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer,
 			    const uint8_t samples)
 {
-	PX4Gyroscope::FIFOSample gyro;
+	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = _fifo_empty_interval_us / _fifo_gyro_samples;
