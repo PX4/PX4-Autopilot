@@ -67,9 +67,6 @@ AirshipAttitudeControl::AirshipAttitudeControl() :
 
 	_rates_sp.zero();
 	_thrust_sp = 0.0f;
-	_att_control.zero();
-
-	parameters_updated();
 }
 
 AirshipAttitudeControl::~AirshipAttitudeControl()
@@ -86,12 +83,6 @@ AirshipAttitudeControl::init()
 	}
 
 	return true;
-}
-
-void
-AirshipAttitudeControl::parameters_updated()
-{
-
 }
 
 void
@@ -119,12 +110,6 @@ AirshipAttitudeControl::vehicle_status_poll()
 				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
 				_attitude_sp_id = ORB_ID(mc_virtual_attitude_setpoint);
 
-				int32_t vt_type = -1;
-
-				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-					_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
-				}
-
 			} else {
 				_actuators_id = ORB_ID(actuator_controls_0);
 				_attitude_sp_id = ORB_ID(vehicle_attitude_setpoint);
@@ -150,30 +135,6 @@ AirshipAttitudeControl::vehicle_attitude_poll()
 	}
 
 	return false;
-}
-
-float
-AirshipAttitudeControl::get_landing_gear_state()
-{
-	// Only switch the landing gear up if we are not landed and if
-	// the user switched from gear down to gear up.
-	// If the user had the switch in the gear up position and took off ignore it
-	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-	if (_vehicle_land_detected.landed) {
-		_gear_state_initialized = false;
-	}
-
-	float landing_gear = landing_gear_s::GEAR_DOWN; // default to down
-
-	if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized) {
-		landing_gear = landing_gear_s::GEAR_UP;
-
-	} else if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		// Switching the gear off does put it into a safe defined state
-		_gear_state_initialized = true;
-	}
-
-	return landing_gear;
 }
 
 void
@@ -205,7 +166,7 @@ AirshipAttitudeControl::publish_actuator_controls()
 	_actuators.control[1] = _manual_control_sp.x;
 	_actuators.control[2] = _manual_control_sp.r;
 	_actuators.control[3] = _manual_control_sp.z;
-	_actuators.control[7] = (float)_landing_gear.landing_gear;
+
 	// note: _actuators.timestamp_sample is set in AirshipAttitudeControl::Run()
 	_actuators.timestamp = hrt_absolute_time();
 
@@ -247,14 +208,10 @@ AirshipAttitudeControl::Run()
 
 		/* check for updates in other topics */
 		_v_control_mode_sub.update(&_v_control_mode);
-		_battery_status_sub.update(&_battery_status);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
-		_landing_gear_sub.update(&_landing_gear);
 		vehicle_status_poll();
 		const bool manual_control_updated = _manual_control_sp_sub.update(&_manual_control_sp);
 		const bool attitude_updated = vehicle_attitude_poll();
-
-		_attitude_dt += dt;
 
 		bool attitude_setpoint_generated = _v_control_mode.flag_control_altitude_enabled
 						   || _v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_position_enabled;
@@ -299,12 +256,10 @@ AirshipAttitudeControl::Run()
 			}
 		}
 
-
 		if (_v_control_mode.flag_control_termination_enabled) {
 			if (!_vehicle_status.is_vtol) {
 				_rates_sp.zero();
 				_thrust_sp = 0.0f;
-				_att_control.zero();
 				publish_actuator_controls();
 			}
 		}
@@ -376,18 +331,11 @@ int AirshipAttitudeControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This implements the multicopter attitude and rate controller. It takes attitude
-setpoints (`vehicle_attitude_setpoint`) or rate setpoints (in acro mode
+This implements the airship attitude and rate controller. Ideally it would
+take attitude setpoints (`vehicle_attitude_setpoint`) or rate setpoints (in acro mode
 via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
 
-The controller has two loops: a P loop for angular error and a PID loop for angular rate error.
-
-Publication documenting the implemented Quaternion Attitude Control:
-Nonlinear Quadrocopter Attitude Control (2013)
-by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
-Institute for Dynamic Systems and Control (IDSC), ETH Zurich
-
-https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf
+Currently it is feeding the `manual_control_setpoint` topic directly to the actuators.
 
 ### Implementation
 To reduce control latency, the module directly polls on the gyro topic published by the IMU driver.

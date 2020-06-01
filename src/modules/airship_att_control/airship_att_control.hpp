@@ -32,22 +32,13 @@
  ****************************************************************************/
 
 #include <lib/mixer/Mixer/Mixer.hpp> // Airmode
-#include <matrix/matrix/math.hpp>
-#include <perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -57,11 +48,9 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/landing_gear.h>
-#include <vtol_att_control/vtol_type.h>
 
 /**
- * Multicopter attitude control app start / stop handling function
+ * Airship attitude control app start / stop handling function
  */
 extern "C" __EXPORT int airship_att_control_main(int argc, char *argv[]);
 
@@ -101,34 +90,11 @@ private:
 	 */
 	void		parameter_update_poll();
 	bool		vehicle_attitude_poll();
-	void		vehicle_motor_limits_poll();
 	void		vehicle_status_poll();
 
 	void		publish_actuator_controls();
 	void		publish_rates_setpoint();
 	void		publish_rate_controller_status();
-
-	/**
-	 * Generate & publish an attitude setpoint from stick inputs
-	 */
-	void		generate_attitude_setpoint(float dt, bool reset_yaw_sp);
-
-	/**
-	 * Get the landing gear state based on the manual control switch position
-	 * @return vehicle_attitude_setpoint_s::LANDING_GEAR_UP or vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN
-	 */
-	float		get_landing_gear_state();
-
-
-	/**
-	 * Attitude controller.
-	 */
-	void		control_attitude();
-
-	/**
-	 * Attitude rates controller.
-	 */
-	void		control_attitude_rates(float dt, const matrix::Vector3f &rates);
 
 	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};			/**< vehicle attitude subscription */
 	uORB::Subscription _v_att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint subscription */
@@ -137,19 +103,14 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
 	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
-	uORB::Subscription _motor_limits_sub{ORB_ID(multirotor_motor_limits)};		/**< motor limits subscription */
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
-	uORB::Subscription _landing_gear_sub{ORB_ID(landing_gear)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
 	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status), ORB_PRIO_DEFAULT};	/**< controller status publication */
-	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
 
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
-	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
 
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
 	orb_id_t _attitude_sp_id{nullptr};	/**< pointer to correct attitude setpoint uORB metadata structure */
@@ -163,9 +124,7 @@ private:
 	struct vehicle_control_mode_s		_v_control_mode {};	/**< vehicle control mode */
 	struct actuator_controls_s		_actuators {};		/**< actuator controls */
 	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
-	struct battery_status_s			_battery_status {};	/**< battery status */
 	struct vehicle_land_detected_s		_vehicle_land_detected {};
-	struct landing_gear_s 			_landing_gear {};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -174,23 +133,12 @@ private:
 
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
 
-	matrix::Vector3f _att_control;			/**< attitude control vector */
 	float		_thrust_sp{0.0f};		/**< thrust setpoint */
-
 	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
-	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
 	hrt_abstime _task_start{hrt_absolute_time()};
 	hrt_abstime _last_run{0};
 	float _dt_accumulator{0.0f};
 	int _loop_counter{0};
-
-	bool _reset_yaw_sp{true};
-	float _attitude_dt{0.0f};
-
-	bool _is_tailsitter{false};
-
-	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
-	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
 
 };
