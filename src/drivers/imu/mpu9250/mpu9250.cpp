@@ -670,7 +670,5 @@ MPU9250::print_status()
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 	_mag.print_status();
 }

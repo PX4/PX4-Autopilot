@@ -38,6 +38,6 @@ px4_add_library(vehicle_acceleration
 target_link_libraries(vehicle_acceleration
 	PRIVATE
 		mathlib
-		sensor_corrections
+		sensor_calibration
 		px4_work_queue
 )

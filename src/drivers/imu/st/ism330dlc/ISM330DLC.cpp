@@ -339,6 +339,4 @@ void ISM330DLC::print_status()
 	perf_print_counter(_drdy_count_perf);
 	perf_print_counter(_drdy_interval_perf);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }

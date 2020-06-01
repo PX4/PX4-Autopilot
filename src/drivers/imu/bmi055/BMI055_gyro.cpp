@@ -437,7 +437,6 @@ BMI055_gyro::print_status()
 		}
 	}
 
-	_px4_gyro.print_status();
 }
 
 void

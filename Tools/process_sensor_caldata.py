@@ -122,10 +122,7 @@ gyro_0_params = {
 'TC_G0_X0_2':0.0,
 'TC_G0_X1_2':0.0,
 'TC_G0_X2_2':0.0,
-'TC_G0_X3_2':0.0,
-'TC_G0_SCL_0':1.0,
-'TC_G0_SCL_1':1.0,
-'TC_G0_SCL_2':1.0
+'TC_G0_X3_2':0.0
 }
 
 # curve fit the data for gyro 0 corrections
@@ -218,10 +215,7 @@ gyro_1_params = {
 'TC_G1_X0_2':0.0,
 'TC_G1_X1_2':0.0,
 'TC_G1_X2_2':0.0,
-'TC_G1_X3_2':0.0,
-'TC_G1_SCL_0':1.0,
-'TC_G1_SCL_1':1.0,
-'TC_G1_SCL_2':1.0
+'TC_G1_X3_2':0.0
 }
 
 # curve fit the data for gyro 1 corrections
@@ -314,10 +308,7 @@ gyro_2_params = {
 'TC_G2_X0_2':0.0,
 'TC_G2_X1_2':0.0,
 'TC_G2_X2_2':0.0,
-'TC_G2_X3_2':0.0,
-'TC_G2_SCL_0':1.0,
-'TC_G2_SCL_1':1.0,
-'TC_G2_SCL_2':1.0
+'TC_G2_X3_2':0.0
 }
 
 # curve fit the data for gyro 2 corrections
@@ -410,10 +401,7 @@ accel_0_params = {
 'TC_A0_X0_2':0.0,
 'TC_A0_X1_2':0.0,
 'TC_A0_X2_2':0.0,
-'TC_A0_X3_2':0.0,
-'TC_A0_SCL_0':1.0,
-'TC_A0_SCL_1':1.0,
-'TC_A0_SCL_2':1.0
+'TC_A0_X3_2':0.0
 }
 
 # curve fit the data for accel 0 corrections
@@ -509,10 +497,7 @@ accel_1_params = {
 'TC_A1_X0_2':0.0,
 'TC_A1_X1_2':0.0,
 'TC_A1_X2_2':0.0,
-'TC_A1_X3_2':0.0,
-'TC_A1_SCL_0':1.0,
-'TC_A1_SCL_1':1.0,
-'TC_A1_SCL_2':1.0
+'TC_A1_X3_2':0.0
 }
 
 # curve fit the data for accel 1 corrections
@@ -608,10 +593,7 @@ accel_2_params = {
 'TC_A2_X0_2':0.0,
 'TC_A2_X1_2':0.0,
 'TC_A2_X2_2':0.0,
-'TC_A2_X3_2':0.0,
-'TC_A2_SCL_0':1.0,
-'TC_A2_SCL_1':1.0,
-'TC_A2_SCL_2':1.0
+'TC_A2_X3_2':0.0
 }
 
 # curve fit the data for accel 2 corrections
@@ -701,8 +683,7 @@ baro_0_params = {
 'TC_B0_X2':0.0,
 'TC_B0_X3':0.0,
 'TC_B0_X4':0.0,
-'TC_B0_X5':0.0,
-'TC_B0_SCL':1.0,
+'TC_B0_X5':0.0
 }
 
 # curve fit the data for baro 0 corrections
@@ -753,7 +734,6 @@ baro_1_params = {
 'TC_B1_X3':0.0,
 'TC_B1_X4':0.0,
 'TC_B1_X5':0.0,
-'TC_B1_SCL':1.0,
 }
 
 if num_baros >= 2:

@@ -37,4 +37,4 @@ px4_add_library(vehicle_imu
 	VehicleIMU.cpp
 	VehicleIMU.hpp
 )
-target_link_libraries(vehicle_imu PRIVATE sensor_corrections px4_work_queue)
+target_link_libraries(vehicle_imu PRIVATE sensor_calibration px4_work_queue)

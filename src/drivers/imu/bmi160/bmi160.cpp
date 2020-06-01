@@ -599,6 +599,4 @@ void BMI160::print_status()
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }

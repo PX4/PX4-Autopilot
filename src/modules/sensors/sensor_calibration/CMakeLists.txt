@@ -31,7 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(sensor_corrections
-	SensorCorrections.cpp
-	SensorCorrections.hpp
+px4_add_library(sensor_calibration
+	SensorCalibration.cpp
+	SensorCalibration.hpp
 )
+
+target_include_directories(sensor_calibration PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)

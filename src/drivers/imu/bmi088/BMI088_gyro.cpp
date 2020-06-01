@@ -442,7 +442,6 @@ BMI088_gyro::print_status()
 		}
 	}
 
-	_px4_gyro.print_status();
 }
 
 void

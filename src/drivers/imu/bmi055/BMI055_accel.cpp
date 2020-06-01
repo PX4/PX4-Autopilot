@@ -412,7 +412,6 @@ BMI055_accel::print_status()
 		}
 	}
 
-	_px4_accel.print_status();
 }
 
 void

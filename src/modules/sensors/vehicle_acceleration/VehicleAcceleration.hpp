@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <sensor_corrections/SensorCorrections.hpp>
+#include <sensor_calibration/SensorCalibration.hpp>
 
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -88,7 +88,7 @@ private:
 		{this, ORB_ID(sensor_accel), 2}
 	};
 
-	SensorCorrections _corrections;
+	SensorCalibration _calibration{SensorCalibration::SensorType::Accelerometer};
 
 	matrix::Vector3f _bias{0.f, 0.f, 0.f};
 
