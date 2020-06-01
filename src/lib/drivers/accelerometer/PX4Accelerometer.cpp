@@ -107,13 +107,19 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 	Publish(timestamp_sample, x, y, z, clip_count);
 }
 
-void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
+void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 {
-	const uint8_t N = sample.samples;
-	const float dt = sample.dt;
+	// publish fifo
+	sample.device_id = _device_id;
+	sample.scale = _scale;
+	sample.rotation = _rotation;
+
+	sample.timestamp = hrt_absolute_time();
+	_sensor_fifo_pub.publish(sample);
 
 	{
 		// trapezoidal integration (equally spaced, scaled by dt later)
+		const uint8_t N = sample.samples;
 		const Vector3f integral{
 			(0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)),
 			(0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)),
@@ -138,23 +144,6 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 		// publish
 		Publish(sample.timestamp_sample, x, y, z, clip_count);
 	}
-
-	// publish fifo
-	sensor_accel_fifo_s fifo{};
-
-	fifo.device_id = _device_id;
-	fifo.timestamp_sample = sample.timestamp_sample;
-	fifo.dt = dt;
-	fifo.scale = _scale;
-	fifo.samples = N;
-	fifo.rotation = _rotation;
-
-	memcpy(fifo.x, sample.x, sizeof(sample.x[0]) * N);
-	memcpy(fifo.y, sample.y, sizeof(sample.y[0]) * N);
-	memcpy(fifo.z, sample.z, sizeof(sample.z[0]) * N);
-
-	fifo.timestamp = hrt_absolute_time();
-	_sensor_fifo_pub.publish(fifo);
 }
 
 void PX4Accelerometer::Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t clip_count[3])

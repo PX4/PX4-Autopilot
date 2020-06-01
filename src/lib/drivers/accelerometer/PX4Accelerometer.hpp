@@ -61,20 +61,7 @@ public:
 
 	void update(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
-	struct FIFOSample {
-		hrt_abstime timestamp_sample;
-		uint8_t samples; // number of samples
-		float dt; // in microseconds
-
-		int16_t x[32];
-		int16_t y[32];
-		int16_t z[32];
-	};
-	static_assert(sizeof(FIFOSample::x) == sizeof(sensor_accel_fifo_s::x), "FIFOSample.x invalid size");
-	static_assert(sizeof(FIFOSample::y) == sizeof(sensor_accel_fifo_s::y), "FIFOSample.y invalid size");
-	static_assert(sizeof(FIFOSample::z) == sizeof(sensor_accel_fifo_s::z), "FIFOSample.z invalid size");
-
-	void updateFIFO(const FIFOSample &sample);
+	void updateFIFO(sensor_accel_fifo_s &sample);
 
 private:
 	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t clip_count[3]);
