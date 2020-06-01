@@ -185,6 +185,7 @@ private:
 	SensorData _gyro{ORB_ID::sensor_gyro};
 	SensorData _mag{ORB_ID::sensor_mag};
 
+	hrt_abstime _last_error_message{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */

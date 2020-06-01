@@ -252,13 +252,18 @@ void VehicleAirData::Run()
 
 		} else {
 			if (failover_index != -1) {
-				mavlink_log_emergency(&_mavlink_log_pub, "sensor_baro:#%i failed: %s%s%s%s%s!, reconfiguring priorities",
-						      failover_index,
-						      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+				const hrt_abstime now = hrt_absolute_time();
+
+				if (now - _last_error_message > 3_s) {
+					mavlink_log_emergency(&_mavlink_log_pub, "sensor_baro:#%i failed: %s%s%s%s%s!, reconfiguring priorities",
+							      failover_index,
+							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+					_last_error_message = now;
+				}
 
 				// reduce priority of failed sensor to the minimum
 				_priority[failover_index] = ORB_PRIO_MIN;

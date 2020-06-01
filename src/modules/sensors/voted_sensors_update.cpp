@@ -50,6 +50,7 @@
 
 using namespace sensors;
 using namespace matrix;
+using namespace time_literals;
 using math::radians;
 
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled,
@@ -615,20 +616,26 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 
 		if (flags == DataValidator::ERROR_FLAG_NO_ERROR) {
 			if (failover_index != -1) {
-				//we switched due to a non-critical reason. No need to panic.
+				// we switched due to a non-critical reason. No need to panic.
 				PX4_INFO("%s sensor switch from #%i", sensor_name, failover_index);
 			}
 
 		} else {
 			if (failover_index != -1) {
-				mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
-						      sensor_name,
-						      failover_index,
-						      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
-						      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+
+				const hrt_abstime now = hrt_absolute_time();
+
+				if (now - _last_error_message > 3_s) {
+					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
+							      sensor_name,
+							      failover_index,
+							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+					_last_error_message = now;
+				}
 
 				// reduce priority of failed sensor to the minimum
 				sensor.priority[failover_index] = ORB_PRIO_MIN;
