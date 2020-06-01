@@ -100,6 +100,22 @@ void VehicleAcceleration::CheckFilters()
 			if ((fabsf(_update_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
 				reset_filters = true;
 			}
+
+			if (reset_filters || (_required_sample_updates == 0)) {
+				if (_param_imu_integ_rate.get() > 0) {
+					// determine number of sensor samples that will get closest to the desired rate
+					const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
+					const uint8_t samples = math::constrain(roundf(configured_interval_us / sample_interval_avg), 1.f,
+										(float)sensor_accel_s::ORB_QUEUE_LENGTH);
+
+					_sensor_sub[_selected_sensor_sub_index].set_required_updates(samples);
+					_required_sample_updates = samples;
+
+				} else {
+					_sensor_sub[_selected_sensor_sub_index].set_required_updates(1);
+					_required_sample_updates = 1;
+				}
+			}
 		}
 
 		if (!reset_filters) {
@@ -170,6 +186,7 @@ bool VehicleAcceleration::SensorSelectionUpdate(bool force)
 
 						// reset sample interval accumulator on sensor change
 						_timestamp_sample_last = 0;
+						_required_sample_updates = 0;
 
 						return true;
 					}
@@ -256,7 +273,6 @@ void VehicleAcceleration::Run()
 				v_acceleration.timestamp = hrt_absolute_time();
 				_vehicle_acceleration_pub.publish(v_acceleration);
 
-				_last_publish = v_acceleration.timestamp_sample;
 				return;
 			}
 		}
