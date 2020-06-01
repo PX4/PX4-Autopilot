@@ -103,6 +103,8 @@ private:
 	static constexpr const float kInitialRateHz{1000.0f}; /**< sensor update rate used for initialization */
 	float _update_rate_hz{kInitialRateHz}; /**< current rate-controller loop update rate in [Hz] */
 
+	uint8_t _required_sample_updates{0}; /**< number or sensor publications required for configured rate */
+
 	// angular velocity filters
 	math::LowPassFilter2pVector3f _lp_filter_velocity{kInitialRateHz, 30.0f};
 	math::NotchFilter<matrix::Vector3f> _notch_filter_velocity{};
