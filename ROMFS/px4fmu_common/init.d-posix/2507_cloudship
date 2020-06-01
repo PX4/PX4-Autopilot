@@ -11,26 +11,16 @@
 
 sh /etc/init.d/rc.airship_defaults
 
-param set PWM_MAX 2000
-param set PWM_MIN 1000
+if [ $AUTOCNF = yes ]
+then
+    param set MPC_MAN_Y_MAX 360.0
 
-param set MPC_MANTHR_MIN 0.00
-param set MPC_THR_MIN 0.00
-param set MPC_THR_CURVE 1
-param set MPC_THR_HOVER 0.0
+    # do not trigger the land detecter unless in hanger
+    param set LNDMC_Z_VEL_MAX 0.01
+    param set LNDMC_XY_VEL_MAX 0.01
+    param set LNDMC_LOW_T_THR 0.01
+    param set LNDMC_ROT_MAX 1.0
 
-param set NAV_DLL_ACT 0
-param set NAV_RCL_ACT 0
-
-param set MC_ACRO_Y_MAX 360.0
-param set MPC_MAN_Y_MAX 360.0
-
-param set LNDMC_Z_VEL_MAX 0.01
-param set LNDMC_XY_VEL_MAX 0.01
-param set LNDMC_LOW_T_THR 0.01
-param set LNDMC_ROT_MAX 1.0
+fi
 
 set MIXER cloudship
-
-# Configure this as airship.
-# set MAV_TYPE 7
