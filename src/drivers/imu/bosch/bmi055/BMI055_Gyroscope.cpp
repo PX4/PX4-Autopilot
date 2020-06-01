@@ -407,7 +407,7 @@ bool BMI055_Gyroscope::FIFORead(const hrt_abstime &timestamp_sample, uint8_t sam
 
 	perf_end(_transfer_perf);
 
-	PX4Gyroscope::FIFOSample gyro;
+	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = FIFO_SAMPLE_DT;

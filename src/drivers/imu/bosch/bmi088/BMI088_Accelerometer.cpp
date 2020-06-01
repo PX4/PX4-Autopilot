@@ -464,7 +464,7 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 
 	perf_end(_transfer_perf);
 
-	PX4Accelerometer::FIFOSample accel;
+	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
 	accel.dt = FIFO_SAMPLE_DT;

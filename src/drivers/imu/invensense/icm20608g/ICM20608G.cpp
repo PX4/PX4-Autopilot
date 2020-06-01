@@ -513,7 +513,7 @@ static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
 
 bool ICM20608G::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
-	PX4Accelerometer::FIFOSample accel;
+	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
 	accel.dt = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
@@ -566,7 +566,7 @@ bool ICM20608G::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 
 void ICM20608G::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
-	PX4Gyroscope::FIFOSample gyro;
+	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = FIFO_SAMPLE_DT;
