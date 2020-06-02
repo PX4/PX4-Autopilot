@@ -14,8 +14,9 @@ EKFGSF_yaw::EKFGSF_yaw()
 }
 
 void EKFGSF_yaw::update(const imuSample& imu_sample,
-                	bool run_EKF,           // set to true when flying or movement is suitable for yaw estimation
-                	float airspeed)   	// true airspeed used for centripetal accel compensation - set to 0 when not required.
+			bool run_EKF,			// set to true when flying or movement is suitable for yaw estimation
+			float airspeed,			// true airspeed used for centripetal accel compensation - set to 0 when not required.
+			const Vector3f &imu_gyro_bias)  // estimated rate gyro bias (rad/sec)
 {
 	// copy to class variables
 	_delta_ang = imu_sample.delta_ang;
@@ -60,6 +61,11 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 		if (!_ekf_gsf_vel_fuse_started) {
 			initialiseEKFGSF();
 			ahrsAlignYaw();
+			// Initialise to gyro bias estimate from main filter because there could be a large
+			// uncorrected rate gyro bias error about the gravity vector
+			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
+				_ahrs_ekf_gsf[model_index].gyro_bias = imu_gyro_bias;
+			}
 			_ekf_gsf_vel_fuse_started = true;
 		} else {
 			bool bad_update = false;
