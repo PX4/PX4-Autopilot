@@ -391,7 +391,11 @@ private:
 	Vector3f _delta_angle_bias_var_accum;	///< kahan summation algorithm accumulator for delta angle bias variance
 
 	Vector3f _last_vel_obs;			///< last velocity observation (m/s)
-	Vector2f _last_fail_hvel_innov;	///< last failed horizontal velocity innovation (m/s)**2
+	Vector2f _last_fail_hvel_innov;		///< last failed horizontal velocity innovation (m/s)**2
+	float _vert_pos_innov_ratio;		///< standard deviation of vertical position innovation
+	uint64_t _vert_pos_fuse_time_us;	///< last system time in usec vertical position measurement fuson was attempted
+	float _vert_vel_innov_ratio;		///< standard deviation of vertical velocity innovation
+	uint64_t _vert_vel_fuse_time_us;	///< last system time in usec time vertical velocity measurement fuson was attempted
 
 	Vector3f _gps_vel_innov;	///< GPS velocity innovations (m/sec)
 	Vector3f _gps_vel_innov_var;	///< GPS velocity innovation variances ((m/sec)**2)
@@ -511,6 +515,8 @@ private:
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
 	uint64_t _time_good_vert_accel{0};	///< last time a good vertical accel was detected (uSec)
+	bool _bad_vert_accel_detected{false};	///< true when bad vertical accelerometer data has been detected
+	uint16_t _clip_counter{0};		///< counter that increments when clipping ad decrements when not
 
 	// variables used to control range aid functionality
 	bool _is_range_aid_suitable{false};	///< true when range finder can be used in flight as the height reference instead of the primary height sensor

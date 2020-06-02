@@ -895,22 +895,45 @@ void Ekf::checkVerticalAccelerationHealth()
 	// innovations being positive and not stale.
 	// Clipping causes the average accel reading to move towards zero which makes the INS
 	// think it is falling and produces positive vertical innovations
+	// Don't use stale innovation data.
+	bool is_inertial_nav_falling = false;
+	bool are_vertical_pos_and_vel_independant = false;
+	if (_time_last_imu < _vert_pos_fuse_time_us + 1000000) {
+		if (_time_last_imu < _vert_vel_fuse_time_us + 1000000) {
+			// If vertical position and velocity come from independent sensors then we can
+			// trust them more if they disagree with the IMU, but need to check that they agree
+			const bool using_gps_for_both = _control_status.flags.gps_hgt && _control_status.flags.gps;
+			const bool using_ev_for_both = _control_status.flags.ev_hgt && _control_status.flags.ev_vel;
+			are_vertical_pos_and_vel_independant = !(using_gps_for_both || using_ev_for_both);
+			if (are_vertical_pos_and_vel_independant) {
+				if (_vert_pos_innov_ratio > 0.0f && _vert_vel_innov_ratio > 0.0f) {
+					is_inertial_nav_falling = _vert_pos_innov_ratio * _vert_vel_innov_ratio > 0.5f * sq(_params.vert_innov_test_lim);
+				}
+			} else {
+				is_inertial_nav_falling = _vert_vel_innov_ratio > _params.vert_innov_test_lim || _vert_pos_innov_ratio > _params.vert_innov_test_lim;
+			}
+		} else {
+			// only height sensing available
+			is_inertial_nav_falling = _vert_pos_innov_ratio > _params.vert_innov_test_lim;
+		}
+	}
 
-	const float var_product_lim = sq(_params.vert_innov_test_lim) * sq(_params.vert_innov_test_lim);
-	const bool is_fusing_gps_vel = !_gps_hgt_intermittent;
-	const bool is_fusing_baro_alt = _control_status.flags.baro_hgt && !_baro_hgt_faulty;
-	const bool are_vertical_pos_and_vel_independant = is_fusing_gps_vel && is_fusing_baro_alt; // TODO: should we add range hgt here?
-	const float pos_vel_innov_product = _gps_pos_innov(2) * fmaxf(fabsf(_gps_vel_innov(2)),fabsf(_ev_vel_innov(2)));
-	const float pos_vel_innov_var_product = _gps_pos_innov_var(2) * fmaxf(fabsf(_gps_vel_innov_var(2)),fabsf(_ev_vel_innov_var(2)));
-	const bool are_pos_vel_sensor_in_agreement = sq(pos_vel_innov_product) > var_product_lim * (pos_vel_innov_var_product);
+	// Check for > 50% clipping affected IMU samples within the past 1 second
+	const uint16_t clip_count_limit = 1000 / FILTER_UPDATE_PERIOD_MS;
+	if (_imu_sample_delayed.delta_vel_clipping[0] ||
+	    _imu_sample_delayed.delta_vel_clipping[1] ||
+	    _imu_sample_delayed.delta_vel_clipping[2]) {
+		if (_clip_counter < clip_count_limit) {
+			_clip_counter++;
+		}
+	} else if (_clip_counter > 0) {
+		_clip_counter--;
+	}
 
-	// A positive innovation indicates that the inertial nav thinks it is falling
-	// This is caused by average of the Z accelerometer being 0, due to clipping
-	const bool is_inertial_nav_falling = _gps_vel_innov(2) > 0.0f || _ev_vel_innov(2) > 0.0f;
-
-	const bool bad_vert_accel = are_vertical_pos_and_vel_independant &&
-			      are_pos_vel_sensor_in_agreement &&
-			      is_inertial_nav_falling;
+	// if vertical velocity and position are independent and agree, then do not require evidence of clipping if
+	// innovations are large
+	const bool bad_vert_accel = (are_vertical_pos_and_vel_independant || _clip_counter > clip_count_limit / 2) &&
+				is_inertial_nav_falling;
 
 	if (bad_vert_accel) {
 		_time_bad_vert_accel =  _time_last_imu;
