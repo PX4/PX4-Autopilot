@@ -79,7 +79,8 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 
 	innov_var(2) = P(6, 6) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
-
+	_vert_vel_innov_ratio = innov(2) / sqrtf(innov_var(2));
+	_vert_vel_fuse_time_us = _time_last_imu;
 	const bool innov_check_pass = (test_ratio(1) <= 1.0f);
 
 	if (innov_check_pass) {
@@ -138,13 +139,13 @@ bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate
 
 	innov_var(2) = P(9, 9) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
-
+	_vert_pos_innov_ratio = innov(2) / sqrtf(innov_var(2));
+	_vert_pos_fuse_time_us = _time_last_imu;
 	const bool innov_check_pass = test_ratio(1) <= 1.0f;
 
 	if (innov_check_pass) {
 		_time_last_hgt_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_ver_pos = false;
-
 		fuseVelPosHeight(innov(2), innov_var(2), 5);
 
 		return true;
