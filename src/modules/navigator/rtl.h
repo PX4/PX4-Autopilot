@@ -129,6 +129,8 @@ private:
 
 	RTLPosition _destination{}; ///< the RTL position to fly to (typically the home position or a safe point)
 
+	hrt_abstime _destination_check_time{0};
+
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
 

@@ -46,6 +46,8 @@
 
 static constexpr float DELAY_SIGMA = 0.01f;
 
+using namespace time_literals;
+
 RTL::RTL(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
@@ -73,6 +75,13 @@ RTL::on_inactive()
 void
 RTL::find_RTL_destination()
 {
+	// don't update RTL destination faster than 1 Hz
+	if (hrt_elapsed_time(&_destination_check_time) < 1_s) {
+		return;
+	}
+
+	_destination_check_time = hrt_absolute_time();
+
 	// get home position:
 	home_position_s &home_landing_position = *_navigator->get_home_position();
 	// get global position
