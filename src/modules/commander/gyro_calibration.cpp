@@ -98,24 +98,24 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data
 		if (gyro_sub[0].updatedBlocking(100000)) {
 			unsigned update_count = calibration_count;
 
-			for (unsigned s = 0; s < MAX_GYROS; s++) {
-				if (calibration_counter[s] >= calibration_count) {
+			for (unsigned gyro_index = 0; gyro_index < MAX_GYROS; gyro_index++) {
+				if (calibration_counter[gyro_index] >= calibration_count) {
 					// Skip if instance has enough samples
 					continue;
 				}
 
 				sensor_gyro_s gyro_report;
 
-				if (gyro_sub[s].update(&gyro_report)) {
+				if (gyro_sub[gyro_index].update(&gyro_report)) {
 
 					// fetch optional thermal offset corrections in sensor/board frame
 					Vector3f offset{0, 0, 0};
 					sensor_correction_sub.update(&sensor_correction);
 
 					if (sensor_correction.timestamp > 0 && gyro_report.device_id != 0) {
-						for (uint8_t i = 0; i < MAX_GYROS; i++) {
-							if (sensor_correction.gyro_device_ids[i] == gyro_report.device_id) {
-								switch (i) {
+						for (uint8_t correction_index = 0; correction_index < MAX_GYROS; correction_index++) {
+							if (sensor_correction.gyro_device_ids[correction_index] == gyro_report.device_id) {
+								switch (correction_index) {
 								case 0:
 									offset = Vector3f{sensor_correction.gyro_offset_0};
 									break;
@@ -130,17 +130,17 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data
 						}
 					}
 
-					worker_data.offset[s] += Vector3f{gyro_report.x, gyro_report.y, gyro_report.z} - offset;
-					calibration_counter[s]++;
+					worker_data.offset[gyro_index] += Vector3f{gyro_report.x, gyro_report.y, gyro_report.z} - offset;
+					calibration_counter[gyro_index]++;
 
-					if (s == 0) {
+					if (gyro_index == 0) {
 						worker_data.last_sample_0 = Vector3f{gyro_report.x, gyro_report.y, gyro_report.z};
 					}
 				}
 
 				// Maintain the sample count of the slowest sensor
-				if (calibration_counter[s] && calibration_counter[s] < update_count) {
-					update_count = calibration_counter[s];
+				if (calibration_counter[gyro_index] && calibration_counter[gyro_index] < update_count) {
+					update_count = calibration_counter[gyro_index];
 				}
 			}
 

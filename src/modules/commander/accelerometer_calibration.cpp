@@ -416,18 +416,18 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 	/* use the first sensor to pace the readout, but do per-sensor counts */
 	while (counts[0] < samples_num) {
 		if (accel_sub[0].updatedBlocking(100000)) {
-			for (unsigned s = 0; s < MAX_ACCEL_SENS; s++) {
+			for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
 				sensor_accel_s arp;
 
-				if (accel_sub[s].update(&arp)) {
+				if (accel_sub[accel_index].update(&arp)) {
 					// fetch optional thermal offset corrections in sensor/board frame
 					Vector3f offset{0, 0, 0};
 					sensor_correction_sub.update(&sensor_correction);
 
 					if (sensor_correction.timestamp > 0 && arp.device_id != 0) {
-						for (uint8_t i = 0; i < MAX_ACCEL_SENS; i++) {
-							if (sensor_correction.accel_device_ids[i] == arp.device_id) {
-								switch (i) {
+						for (uint8_t correction_index = 0; correction_index < MAX_ACCEL_SENS; correction_index++) {
+							if (sensor_correction.accel_device_ids[correction_index] == arp.device_id) {
+								switch (correction_index) {
 								case 0:
 									offset = Vector3f{sensor_correction.accel_offset_0};
 									break;
@@ -442,8 +442,8 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 						}
 					}
 
-					accel_sum[s] += Vector3f{arp.x, arp.y, arp.z} - offset;
-					counts[s]++;
+					accel_sum[accel_index] += Vector3f{arp.x, arp.y, arp.z} - offset;
+					counts[accel_index]++;
 				}
 			}
 
