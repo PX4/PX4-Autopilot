@@ -1858,7 +1858,8 @@ void Ekf::runYawEKFGSF()
 		TAS = _airspeed_sample_delayed.true_airspeed;
 	}
 
-	yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS);
+	const Vector3f imu_gyro_bias = getGyroBias();
+	yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
 
 	// basic sanity check on GPS velocity data
 	if (_gps_data_ready && _gps_sample_delayed.vacc > FLT_EPSILON && ISFINITE(_gps_sample_delayed.vel(0)) && ISFINITE(_gps_sample_delayed.vel(1))) {

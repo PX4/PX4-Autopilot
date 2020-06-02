@@ -31,11 +31,12 @@ public:
 
     	// Update Filter States - this should be called whenever new IMU data is available
 	void update(const imuSample &imu_sample,
-                	bool run_EKF,           // set to true when flying or movement is suitable for yaw estimation
-                	float airspeed);   	// true airspeed used for centripetal accel compensation - set to 0 when not required.
+			bool run_EKF,  			// set to true when flying or movement is suitable for yaw estimation
+			float airspeed,			// true airspeed used for centripetal accel compensation - set to 0 when not required.
+			const Vector3f &imu_gyro_bias); // estimated rate gyro bias (rad/sec)
 
-	void setVelocity(const Vector2f &velocity,	// NE velocity measurement (m/s)
-                     	float accuracy);	// 1-sigma accuracy of velocity measurement (m/s)
+	void setVelocity(const Vector2f &velocity, // NE velocity measurement (m/s)
+			float accuracy);	   // 1-sigma accuracy of velocity measurement (m/s)
 
 	// get solution data for logging
 	bool getLogData(float *yaw_composite,
