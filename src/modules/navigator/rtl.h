@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,9 +77,9 @@ public:
 
 	void find_RTL_destination();
 
-	void set_return_alt_min(bool min);
+	void set_return_alt_min(bool min) { _rtl_alt_min = min; }
 
-	int rtl_type() const;
+	int rtl_type() const { return _param_rtl_type.get(); }
 
 	int rtl_destination();
 
@@ -87,12 +87,12 @@ private:
 	/**
 	 * Set the RTL item
 	 */
-	void		set_rtl_item();
+	void set_rtl_item();
 
 	/**
 	 * Move to next RTL item
 	 */
-	void		advance_rtl();
+	void advance_rtl();
 
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);

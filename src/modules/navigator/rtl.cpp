@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,26 +54,22 @@ RTL::RTL(Navigator *navigator) :
 {
 }
 
-void
-RTL::on_inactivation()
+void RTL::on_inactivation()
 {
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
 	}
 }
 
-void
-RTL::on_inactive()
+void RTL::on_inactive()
 {
 	// Reset RTL state.
 	_rtl_state = RTL_STATE_NONE;
 
 	find_RTL_destination();
-
 }
 
-void
-RTL::find_RTL_destination()
+void RTL::find_RTL_destination()
 {
 	// don't update RTL destination faster than 1 Hz
 	if (hrt_elapsed_time(&_destination_check_time) < 1_s) {
@@ -84,11 +80,13 @@ RTL::find_RTL_destination()
 
 	// get home position:
 	home_position_s &home_landing_position = *_navigator->get_home_position();
+
 	// get global position
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
 	// set destination to home per default, then check if other valid landing spot is closer
 	_destination.set(home_landing_position);
+
 	// get distance to home position
 	double dlat = home_landing_position.lat - global_position.lat;
 	double dlon = home_landing_position.lon - global_position.lon;
@@ -184,14 +182,7 @@ RTL::find_RTL_destination()
 
 }
 
-int
-RTL::rtl_type() const
-{
-	return _param_rtl_type.get();
-}
-
-void
-RTL::on_activation()
+void RTL::on_activation()
 {
 
 	// output the correct message, depending on where the RTL destination is
@@ -234,13 +225,11 @@ RTL::on_activation()
 	set_rtl_item();
 }
 
-void
-RTL::on_active()
+void RTL::on_active()
 {
 	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item();
-
 	}
 
 	if (_rtl_state == RTL_STATE_LAND && _param_rtl_pld_md.get() > 0) {
@@ -251,14 +240,7 @@ RTL::on_active()
 	}
 }
 
-void
-RTL::set_return_alt_min(bool min)
-{
-	_rtl_alt_min = min;
-}
-
-void
-RTL::set_rtl_item()
+void RTL::set_rtl_item()
 {
 	// RTL_TYPE: mission landing.
 	// Landing using planned mission landing, fly to DO_LAND_START instead of returning _destination.
@@ -454,8 +436,7 @@ RTL::set_rtl_item()
 	}
 }
 
-void
-RTL::advance_rtl()
+void RTL::advance_rtl()
 {
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB:
@@ -507,7 +488,6 @@ RTL::advance_rtl()
 		break;
 	}
 }
-
 
 float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 {
