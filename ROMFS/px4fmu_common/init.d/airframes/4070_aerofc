@@ -70,7 +70,7 @@ then
 	param set SER_TEL2_BAUD 921600
 fi
 
-if param compare SYS_HITL 0
+if ! param greater SYS_HITL 0
 then
   tap_esc start -d /dev/ttyS0 -n 4
   usleep 300000
