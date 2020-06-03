@@ -55,6 +55,8 @@ class EkfExternalVisionTest : public ::testing::Test {
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
+	static constexpr float _tilt_align_time = 7.f;
+
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
@@ -69,7 +71,7 @@ class EkfExternalVisionTest : public ::testing::Test {
 
 TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 {
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time); // Let the tilt align
 	_ekf_wrapper.enableExternalVisionPositionFusion();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(2);
@@ -104,7 +106,7 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 
 TEST_F(EkfExternalVisionTest, visionVelocityReset)
 {
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time);
 	ResetLoggingChecker reset_logging_checker(_ekf);
 	reset_logging_checker.capturePreResetState();
 
@@ -130,7 +132,7 @@ TEST_F(EkfExternalVisionTest, visionVelocityReset)
 
 TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 {
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time);
 	ResetLoggingChecker reset_logging_checker(_ekf);
 	reset_logging_checker.capturePreResetState();
 	// GIVEN: Drone is pointing north, and we use mag (ROTATE_EV)
@@ -166,7 +168,7 @@ TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 
 TEST_F(EkfExternalVisionTest, visionHorizontalPositionReset)
 {
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time);
 	const Vector3f simulated_position(8.3f, -1.0f, 0.0f);
 
 	_sensor_simulator._vio.setPosition(simulated_position);
@@ -181,7 +183,7 @@ TEST_F(EkfExternalVisionTest, visionHorizontalPositionReset)
 
 TEST_F(EkfExternalVisionTest, visionHorizontalPositionResetWithAlignment)
 {
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time);
 	// GIVEN: Drone is pointing north, and we use mag (ROTATE_EV)
 	//        Heading of drone in EKF frame is 0°
 
@@ -206,7 +208,7 @@ TEST_F(EkfExternalVisionTest, visionHorizontalPositionResetWithAlignment)
 
 TEST_F(EkfExternalVisionTest, visionVarianceCheck)
 {
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time);
 	const Vector3f velVar_init = _ekf->getVelocityVariance();
 	EXPECT_NEAR(velVar_init(0), velVar_init(1), 0.0001);
 
@@ -221,7 +223,7 @@ TEST_F(EkfExternalVisionTest, visionVarianceCheck)
 
 TEST_F(EkfExternalVisionTest, visionAlignment)
 {
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time);
 	// GIVEN: Drone is pointing north, and we use mag (ROTATE_EV)
 	//        Heading of drone in EKF frame is 0°
 
@@ -256,7 +258,7 @@ TEST_F(EkfExternalVisionTest, velocityFrameBody)
 	// GIVEN: Drone is turned 90 degrees
 	const Quatf quat_sim(Eulerf(0.0f, 0.0f, math::radians(90.0f)));
 	_sensor_simulator.simulateOrientation(quat_sim);
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time);
 
 	// Without any measurement x and y velocity variance are close
 	const Vector3f velVar_init = _ekf->getVelocityVariance();
@@ -291,7 +293,7 @@ TEST_F(EkfExternalVisionTest, velocityFrameLocal)
 	// GIVEN: Drone is turned 90 degrees
 	const Quatf quat_sim(Eulerf(0.0f, 0.0f, math::radians(90.0f)));
 	_sensor_simulator.simulateOrientation(quat_sim);
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(_tilt_align_time);
 
 	// Without any measurement x and y velocity variance are close
 	const Vector3f velVar_init = _ekf->getVelocityVariance();

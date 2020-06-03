@@ -58,7 +58,7 @@ class EkfFusionLogicTest : public ::testing::Test {
 	void SetUp() override
 	{
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(2);
+		_sensor_simulator.runSeconds(7);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test

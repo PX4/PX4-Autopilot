@@ -59,7 +59,7 @@ class EkfFlowTest : public ::testing::Test {
 	void SetUp() override
 	{
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(2);
+		_sensor_simulator.runSeconds(7);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -78,7 +78,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	_sensor_simulator._rng.setLimits(0.1f, 9.f);
 	_sensor_simulator.startRangeFinder();
 	_ekf->set_in_air_status(true);
-	_sensor_simulator.runSeconds(1.5f);
+	_sensor_simulator.runSeconds(5.f);
 
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
 	EXPECT_FLOAT_EQ(estimated_distance_to_ground, simulated_distance_to_ground);
@@ -93,12 +93,18 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 			   simulated_horz_velocity(0) * flow_sample.dt / estimated_distance_to_ground);
 	_sensor_simulator._flow.setData(flow_sample);
 	_ekf_wrapper.enableFlowFusion();
+	const float max_flow_rate = 5.f;
+	const float min_ground_distance = 0.f;
+	const float max_ground_distance = 50.f;
+	_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
 	_sensor_simulator.startFlow();
-	_sensor_simulator.runSeconds(0.2);
+	_sensor_simulator.runSeconds(0.12); // Let it reset but not fuse more measurements
 
 	// THEN: estimated velocity should match simulated velocity
 	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
-	EXPECT_FALSE(isEqual(estimated_horz_velocity, simulated_horz_velocity)); // TODO: This needs to change
+	EXPECT_FALSE(isEqual(estimated_horz_velocity, simulated_horz_velocity))
+		<< "estimated vel = " << estimated_horz_velocity(0) << ", "
+		<< estimated_horz_velocity(1); // TODO: This needs to change (reset is always 0)
 
 	// AND: the reset in velocity should be saved correctly
 	reset_logging_checker.capturePostResetState();

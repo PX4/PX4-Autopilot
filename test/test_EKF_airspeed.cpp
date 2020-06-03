@@ -61,7 +61,7 @@ class EkfAirspeedTest : public ::testing::Test {
 	{
 		_ekf->init(0);
 		_sensor_simulator.simulateOrientation(_quat_sim);
-		_sensor_simulator.runSeconds(2);
+		_sensor_simulator.runSeconds(7);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -113,6 +113,6 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	const float expected_height_after_pressure_correction = height_before_pressure_correction -
 								expected_height_difference;
 
-	EXPECT_NEAR(height_after_pressure_correction, expected_height_after_pressure_correction, 1e-5f);
+	EXPECT_NEAR(height_after_pressure_correction, expected_height_after_pressure_correction, 1e-3f);
 
 }

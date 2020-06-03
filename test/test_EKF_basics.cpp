@@ -51,7 +51,7 @@ class EkfBasicsTest : public ::testing::Test {
 
 
 	// Duration of initalization with only providing baro,mag and IMU
-	const uint32_t _init_duration_s{3};
+	const uint32_t _init_duration_s{7};
 
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
@@ -164,27 +164,32 @@ TEST_F(EkfBasicsTest, gpsFusion)
 	EXPECT_EQ(0, (int) control_status.flags.synthetic_mag_z);
 }
 
-TEST_F(EkfBasicsTest, accleBiasEstimation)
+TEST_F(EkfBasicsTest, accelBiasEstimation)
 {
-	// GIVEN: initialized EKF with default IMU, baro and mag input for 3s
+	// GIVEN: initialized EKF with default IMU, baro and mag input
 	// WHEN: Added more sensor measurements with accel bias and gps measurements
 	const Vector3f accel_bias_sim = {0.0f,0.0f,0.1f};
 
 	_sensor_simulator.startGps();
-	_sensor_simulator.setImuBias(accel_bias_sim, Vector3f{0.0f,0.0f,0.0f});
-	_sensor_simulator.runSeconds(10);
+	_sensor_simulator.setImuBias(accel_bias_sim, Vector3f(0.0f,0.0f,0.0f));
+	_ekf->set_min_required_gps_health_time(1e6);
+	_sensor_simulator.runSeconds(30);
 
 	const Vector3f pos = _ekf->getPosition();
 	const Vector3f vel = _ekf->getVelocity();
 	const Vector3f accel_bias = _ekf->getAccelBias();
 	const Vector3f gyro_bias = _ekf->getGyroBias();
-	const Vector3f zero{0.0f, 0.0f, 0.0f};
+	const Vector3f zero = {0.0f, 0.0f, 0.0f};
 
 	// THEN: EKF should stay or converge to zero
-	EXPECT_TRUE(matrix::isEqual(pos, zero, 0.01f));
-	EXPECT_TRUE(matrix::isEqual(vel, zero, 0.005f));
-	EXPECT_TRUE(matrix::isEqual(accel_bias, accel_bias_sim, 0.001f));
-	EXPECT_TRUE(matrix::isEqual(gyro_bias, zero, 0.001f));
+	EXPECT_TRUE(matrix::isEqual(pos, zero, 0.05f))
+		<< "pos = " << pos(0) << ", " << pos(1) << ", " << pos(2);
+	EXPECT_TRUE(matrix::isEqual(vel, zero, 0.02f))
+		<< "vel = " << vel(0) << ", " << vel(1) << ", " << vel(2);
+	EXPECT_TRUE(matrix::isEqual(accel_bias, accel_bias_sim, 0.01f))
+		<< "accel_bias = " << accel_bias(0) << ", " << accel_bias(1) << ", " << accel_bias(2);
+	EXPECT_TRUE(matrix::isEqual(gyro_bias, zero, 0.001f))
+		<< "gyro_bias = " << gyro_bias(0) << ", " << gyro_bias(1) << ", " << gyro_bias(2);
 }
 
 // TODO: Add sampling tests
