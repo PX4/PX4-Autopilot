@@ -15,7 +15,17 @@ Gps::~Gps()
 
 void Gps::send(uint64_t time)
 {
+	const float dt = static_cast<float>(time - _gps_data.time_usec) * 1e-6f;
+
 	_gps_data.time_usec = time;
+
+	if (fabsf(_gps_pos_rate(0)) > FLT_EPSILON || fabsf(_gps_pos_rate(1)) > FLT_EPSILON) {
+		stepHorizontalPositionByMeters(Vector2f(_gps_pos_rate) * dt);
+	}
+	if (fabsf(_gps_pos_rate(2)) > FLT_EPSILON) {
+		stepHeightByMeters(-_gps_pos_rate(2) * dt);
+	}
+
 	_ekf->setGpsData(_gps_data);
 }
 
@@ -84,7 +94,6 @@ void Gps::stepHorizontalPositionByMeters(Vector2f hpos_change)
 	_gps_data.lon = static_cast<int32_t>(lon_new * 1e7);
 	_gps_data.lat = static_cast<int32_t>(lat_new * 1e7);
 }
-
 
 gps_message Gps::getDefaultGpsData()
 {

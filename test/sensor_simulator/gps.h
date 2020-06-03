@@ -53,6 +53,7 @@ public:
 	void setData(const gps_message& gps);
 	void stepHeightByMeters(float hgt_change);
 	void stepHorizontalPositionByMeters(Vector2f hpos_change);
+	void setPositionRateNED(const Vector3f& rate) { _gps_pos_rate = rate; }
 	void setAltitude(int32_t alt);
 	void setLatitude(int32_t lat);
 	void setLongitude(int32_t lon);
@@ -66,6 +67,7 @@ public:
 
 private:
 	gps_message _gps_data;
+	Vector3f _gps_pos_rate{};
 
 	void send(uint64_t time) override;
 
