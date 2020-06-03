@@ -65,7 +65,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/master/en/co
   * Obstacle Avoidance - [Martina Rivizzigno](https://github.com/mrivi)
   * RTPS/ROS2 Interface - [Nuno Marques](https://github.com/TSC21)
 
-See also [About Us](http://px4.io/about-us/#development_team) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
+See also [Maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
 
 ## Supported Hardware
 
