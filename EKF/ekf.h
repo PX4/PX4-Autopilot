@@ -625,6 +625,9 @@ private:
 	// return true if the initialisation is successful
 	bool initHagl();
 
+	bool shouldUseRangeFinderForHagl() const;
+	bool shouldUseOpticalFlowForHagl() const;
+
 	// run the terrain estimator
 	void runTerrainEstimator();
 

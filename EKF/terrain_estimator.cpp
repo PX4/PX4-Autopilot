@@ -55,7 +55,7 @@ bool Ekf::initHagl()
 		_time_last_fake_hagl_fuse = _time_last_imu;
 		initialized = true;
 
-	} else if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
+	} else if (shouldUseRangeFinderForHagl()
 		   && _range_sensor.isDataHealthy()) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
 		_terrain_vpos = _state.pos(2) + _range_sensor.getDistBottom();
@@ -64,7 +64,7 @@ bool Ekf::initHagl()
 		// success
 		initialized = true;
 
-	} else if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow)
+	} else if (shouldUseOpticalFlowForHagl()
 		   && _flow_for_terrain_data_ready) {
 		// initialise terrain vertical position to origin as this is the best guess we have
 		_terrain_vpos = fmaxf(0.0f,  _state.pos(2));
@@ -81,6 +81,16 @@ bool Ekf::initHagl()
 	}
 
 	return initialized;
+}
+
+bool Ekf::shouldUseRangeFinderForHagl() const
+{
+	return (_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder);
+}
+
+bool Ekf::shouldUseOpticalFlowForHagl() const
+{
+	return (_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow);
 }
 
 void Ekf::runTerrainEstimator()
@@ -110,11 +120,13 @@ void Ekf::runTerrainEstimator()
 		_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);
 
 		// Fuse range finder data if available
-		if (_range_sensor.isDataHealthy()) {
+		if (shouldUseRangeFinderForHagl()
+		    && _range_sensor.isDataHealthy()) {
 			fuseHagl();
 		}
 
-		if (_flow_for_terrain_data_ready) {
+		if (shouldUseOpticalFlowForHagl()
+		    && _flow_for_terrain_data_ready) {
 			fuseFlowForTerrain();
 			_flow_for_terrain_data_ready = false;
 		}
@@ -291,8 +303,11 @@ void Ekf::updateTerrainValidity()
 
 	_hagl_valid = (_terrain_initialised && (recent_range_fusion || recent_flow_for_terrain_fusion));
 
-	_hagl_sensor_status.flags.range_finder = recent_range_fusion && (_time_last_fake_hagl_fuse != _time_last_hagl_fuse);
-	_hagl_sensor_status.flags.flow = recent_flow_for_terrain_fusion;
+	_hagl_sensor_status.flags.range_finder = shouldUseRangeFinderForHagl()
+						 && recent_range_fusion
+						 && (_time_last_fake_hagl_fuse != _time_last_hagl_fuse);
+	_hagl_sensor_status.flags.flow = shouldUseOpticalFlowForHagl()
+					 && recent_flow_for_terrain_fusion;
 }
 
 // get the estimated vertical position of the terrain relative to the NED origin
