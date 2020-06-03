@@ -7,6 +7,7 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
+	CONSTRAINED_FLASH
 	SERIAL_PORTS
 		TEL1:/dev/ttyS0 # UART1
 		TEL2:/dev/ttyS1 # UART2

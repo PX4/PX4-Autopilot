@@ -6,6 +6,7 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
+	CONSTRAINED_FLASH
 	DRIVERS
 		barometer/lps25h
 		distance_sensor/vl53l0x

@@ -7,7 +7,7 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	BUILD_BOOTLOADER
+	#BUILD_BOOTLOADER
 	IO px4_io-v2_default
 	TESTING
 #	UAVCAN_INTERFACES 2  - No H7 or FD can support in UAVCAN
@@ -23,7 +23,7 @@ px4_add_board(
 		batt_smbus
 		#camera_capture
 		#camera_trigger
-		differential_pressure # all available differential pressure drivers
+		#differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		#dshot
 		gps
@@ -65,6 +65,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		#esc_battery
 		events
 		fw_att_control
 		fw_pos_control_l1
@@ -78,16 +79,17 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		#rover_pos_control
 		sensors
 		#sih
-		temperature_compensation
-		vmount
+		#temperature_compensation
+		#vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		dmesg
 		dumpfile
 		esc_calib

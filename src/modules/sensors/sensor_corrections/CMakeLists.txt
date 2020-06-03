@@ -35,3 +35,4 @@ px4_add_library(sensor_corrections
 	SensorCorrections.cpp
 	SensorCorrections.hpp
 )
+target_compile_options(sensor_corrections PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
