@@ -130,6 +130,7 @@ bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate
 		fuseVelPosHeight(innov(2), innov_var(2), 5);
 
 		return true;
+
 	} else {
 		_innov_check_fail_status.flags.reject_ver_pos = true;
 		return false;

@@ -367,6 +367,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample& flow)
 			// when there are other aiding sources available
 			const float flow_rate_magnitude = flow.flow_xy_rad.norm() / delta_time;
 			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
+
 		} else {
 			// protect against overflow caused by division with very small delta_time
 			delta_time = delta_time_min;

@@ -179,7 +179,7 @@ void Ekf::fuseFlowForTerrain()
 	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 	// correct for gyro bias errors in the data used to do the motion compensation
 	// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
-	const Vector2f opt_flow_rate = Vector2f{_flow_compensated_XY_rad} / _flow_sample_delayed.dt + Vector2f{_flow_gyro_bias};
+	const Vector2f opt_flow_rate = Vector2f(_flow_compensated_XY_rad) / _flow_sample_delayed.dt + Vector2f(_flow_gyro_bias);
 
 	// get latest estimated orientation
 	const float q0 = _state.quat_nominal(0);
