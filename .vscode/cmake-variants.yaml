@@ -71,6 +71,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: hex_cube-orange_default
+    hex_cube-yellow_default:
+      short: hex_cube-yellow
+      buildType: MinSizeRel
+      settings:
+        CONFIG: hex_cube-yellow_default
     holybro_durandal-v1_default:
       short: holybro_durandal-v1
       buildType: MinSizeRel
