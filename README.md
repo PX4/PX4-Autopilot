@@ -65,14 +65,11 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/master/en/co
   * Obstacle Avoidance - [Martina Rivizzigno](https://github.com/mrivi)
   * RTPS/ROS2 Interface - [Nuno Marques](https://github.com/TSC21)
 
-See also [Maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
+See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
 
 ## Supported Hardware
 
 This repository contains code supporting these boards:
-  * [Snapdragon Flight](https://docs.px4.io/master/en/flight_controller/snapdragon_flight.html)
-  * [Intel Aero](https://docs.px4.io/master/en/flight_controller/intel_aero.html)
-  * [Raspberry PI with Navio 2](https://docs.px4.io/master/en/flight_controller/raspberry_pi_navio2.html)
   * FMUv2
     * [Pixhawk](https://docs.px4.io/master/en/flight_controller/pixhawk.html)
     * [Pixfalcon](https://docs.px4.io/master/en/flight_controller/pixfalcon.html)
@@ -92,9 +89,9 @@ This repository contains code supporting these boards:
   * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
   * [Bitcraze Crazyflie 2.0](https://docs.px4.io/master/en/flight_controller/crazyflie2.html)
   * [Omnibus F4 SD](https://docs.px4.io/master/en/flight_controller/omnibus_f4_sd.html)
-  * [BeagleBone Blue](https://docs.px4.io/master/en/flight_controller/beaglebone_blue.html)
   * [Holybro Durandal](https://docs.px4.io/master/en/flight_controller/durandal.html)
   * [Holybro Kakute F7](https://docs.px4.io/master/en/flight_controller/kakutef7.html)
+  * [Raspberry PI with Navio 2](https://docs.px4.io/master/en/flight_controller/raspberry_pi_navio2.html)
 
 Additional information about supported hardware can be found in [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/master/en/flight_controller/).
 
