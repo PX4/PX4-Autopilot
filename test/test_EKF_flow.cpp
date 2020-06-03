@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Test the gps fusion
+ * Test the flow fusion
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
 
@@ -89,8 +89,8 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	const Vector2f simulated_horz_velocity(0.5f, -0.2f);
 	flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
 	flow_sample.flow_xy_rad =
-		Vector2f(- simulated_horz_velocity(1) * flow_sample.dt / estimated_distance_to_ground,
-			   simulated_horz_velocity(0) * flow_sample.dt / estimated_distance_to_ground);
+		Vector2f( simulated_horz_velocity(1) * flow_sample.dt / estimated_distance_to_ground,
+			 -simulated_horz_velocity(0) * flow_sample.dt / estimated_distance_to_ground);
 	_sensor_simulator._flow.setData(flow_sample);
 	_ekf_wrapper.enableFlowFusion();
 	const float max_flow_rate = 5.f;

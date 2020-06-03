@@ -51,6 +51,7 @@ set(SRCS
 	test_EKF_airspeed.cpp
 	test_EKF_withReplayData.cpp
 	test_EKF_flow.cpp
+	test_EKF_terrain_estimator.cpp
 	test_SensorRangeFinder.cpp
 	test_geo.cpp
    )
