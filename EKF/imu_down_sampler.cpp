@@ -45,6 +45,7 @@ bool ImuDownSampler::update(const imuSample &imu_sample_new) {
 		return true;
 
 	} else {
+
 		return false;
 	}
 }
