@@ -177,6 +177,40 @@ bool EkfWrapper::isWindVelocityEstimated() const
 	return control_status.flags.wind;
 }
 
+void EkfWrapper::enableTerrainRngFusion()
+{
+	_ekf_params->terrain_fusion_mode |= TerrainFusionMask::TerrainFuseRangeFinder;
+}
+
+void EkfWrapper::disableTerrainRngFusion()
+{
+	_ekf_params->terrain_fusion_mode &= ~TerrainFusionMask::TerrainFuseRangeFinder;
+}
+
+bool EkfWrapper::isIntendingTerrainRngFusion() const
+{
+	terrain_fusion_status_u terrain_status;
+	terrain_status.value = _ekf->getTerrainEstimateSensorBitfield();
+	return terrain_status.flags.range_finder;
+}
+
+void EkfWrapper::enableTerrainFlowFusion()
+{
+	_ekf_params->terrain_fusion_mode |= TerrainFusionMask::TerrainFuseOpticalFlow;
+}
+
+void EkfWrapper::disableTerrainFlowFusion()
+{
+	_ekf_params->terrain_fusion_mode &= ~TerrainFusionMask::TerrainFuseOpticalFlow;
+}
+
+bool EkfWrapper::isIntendingTerrainFlowFusion() const
+{
+	terrain_fusion_status_u terrain_status;
+	terrain_status.value = _ekf->getTerrainEstimateSensorBitfield();
+	return terrain_status.flags.flow;
+}
+
 Eulerf EkfWrapper::getEulerAngles() const
 {
 	return Eulerf(_ekf->getQuaternion());

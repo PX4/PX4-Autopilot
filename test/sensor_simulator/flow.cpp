@@ -15,7 +15,7 @@ Flow::~Flow()
 
 void Flow::send(uint64_t time)
 {
-	_flow_data.dt = time - _time_last_data_sent;
+	_flow_data.dt = static_cast<float>(time - _time_last_data_sent) * 1e-6f;
 	_flow_data.time_us = time;
 	_ekf->setOpticalFlowData(_flow_data);
 }
