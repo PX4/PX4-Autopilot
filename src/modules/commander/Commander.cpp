@@ -1561,9 +1561,10 @@ Commander::run()
 			}
 		}
 
-		if (_esc_status_sub.updated()) {
+		if (_esc_status_sub.updated() || _esc_status_was_updated) {
 			/* ESCs status changed */
-			esc_status_s esc_status{};
+			esc_status_s esc_status;
+			_esc_status_was_updated = true;
 
 			if (_esc_status_sub.copy(&esc_status)) {
 				esc_status_check(esc_status);
@@ -4084,79 +4085,91 @@ Commander::offboard_control_update()
 
 void Commander::esc_status_check(const esc_status_s &esc_status)
 {
-	status_flags.condition_escs_failure = false;
+	if ((esc_status.esc_count > 0) && (hrt_elapsed_time(&esc_status.timestamp) < 500_ms)) {
 
-	for (int index = 0; index < esc_status.esc_count; index++) {
+		char esc_fail_msg[50];
+		esc_fail_msg[0] = '\0';
 
-		if (esc_status.esc[index].failures > esc_report_s::FAILURE_NONE) {
-			status_flags.condition_escs_failure = true;
+		int online_bitmask = (1 << esc_status.esc_count) - 1;
 
-			if (esc_status.esc[index].failures != _last_esc_failure[index]) {
+		// Check if ALL the ESCs are online
+		if (online_bitmask == esc_status.esc_online_flags) {
 
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_CURRENT_MASK) {
-					mavlink_log_critical(&mavlink_log_pub, "ESC%d: over current", index + 1);
+			status_flags.condition_escs_error = false;
+			_last_esc_online_flags = esc_status.esc_online_flags;
+
+		} else if (_last_esc_online_flags == esc_status.esc_online_flags)  {
+
+			// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded in the ESC driver
+
+			status_flags.condition_escs_error = true;
+
+		} else if (esc_status.esc_online_flags < _last_esc_online_flags) {
+
+			// Only warn the user when an ESC goes from ONLINE to OFFLINE. This is done to prevent showing Offline ESCs warnings at boot
+
+			for (int index = 0; index < esc_status.esc_count; index++) {
+				if ((esc_status.esc_online_flags & (1 << index)) == 0) {
+					snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", index + 1);
+					esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
 				}
-
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_VOLTAGE_MASK) {
-					mavlink_log_critical(&mavlink_log_pub, "ESC%d: over voltage", index + 1);
-				}
-
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_TEMPERATURE_MASK) {
-					mavlink_log_critical(&mavlink_log_pub, "ESC%d: over temperature", index + 1);
-				}
-
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_RPM_MASK) {
-					mavlink_log_critical(&mavlink_log_pub, "ESC%d: over RPM", index + 1);
-				}
-
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_INCONSISTENT_CMD_MASK) {
-					mavlink_log_critical(&mavlink_log_pub, "ESC%d: command inconsistency", index + 1);
-				}
-
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_MOTOR_STUCK_MASK) {
-					mavlink_log_critical(&mavlink_log_pub, "ESC%d: motor stuck", index + 1);
-				}
-
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_GENERIC_MASK) {
-					mavlink_log_critical(&mavlink_log_pub, "ESC%d: generic failure - code %d", index, esc_status.esc[index].esc_state);
-				}
-
 			}
 
-			_last_esc_failure[index] = esc_status.esc[index].failures;
+			mavlink_log_critical(&mavlink_log_pub, "%soffline", esc_fail_msg);
+
+			_last_esc_online_flags = esc_status.esc_online_flags;
+			status_flags.condition_escs_error = true;
 		}
-	}
 
-	char esc_fail_msg[50];
-	esc_fail_msg[0] = '\0';
-
-	int online_bitmask = (1 << esc_status.esc_count) - 1;
-
-	// Check if ALL the ESCs are online
-	if (online_bitmask == esc_status.esc_online_flags) {
-		status_flags.condition_escs_error = false;
-		_last_esc_online_flags = esc_status.esc_online_flags;
-
-	} else if (_last_esc_online_flags == esc_status.esc_online_flags || esc_status.esc_count == 0)  {
-
-		// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded in the ESC driver
-
-		status_flags.condition_escs_error = true;
-
-	} else if (esc_status.esc_online_flags < _last_esc_online_flags) {
-
-		// Only warn the user when an ESC goes from ONLINE to OFFLINE. This is done to prevent showing Offline ESCs warnings at boot
+		status_flags.condition_escs_failure = false;
 
 		for (int index = 0; index < esc_status.esc_count; index++) {
-			if ((esc_status.esc_online_flags & (1 << index)) == 0) {
-				snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", index + 1);
-				esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
+
+			if (esc_status.esc[index].failures > esc_report_s::FAILURE_NONE) {
+				status_flags.condition_escs_failure = true;
+
+				if (esc_status.esc[index].failures != _last_esc_failure[index]) {
+
+					if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_CURRENT_MASK) {
+						mavlink_log_critical(&mavlink_log_pub, "ESC%d: over current", index + 1);
+					}
+
+					if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_VOLTAGE_MASK) {
+						mavlink_log_critical(&mavlink_log_pub, "ESC%d: over voltage", index + 1);
+					}
+
+					if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_TEMPERATURE_MASK) {
+						mavlink_log_critical(&mavlink_log_pub, "ESC%d: over temperature", index + 1);
+					}
+
+					if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_RPM_MASK) {
+						mavlink_log_critical(&mavlink_log_pub, "ESC%d: over RPM", index + 1);
+					}
+
+					if (esc_status.esc[index].failures & esc_report_s::FAILURE_INCONSISTENT_CMD_MASK) {
+						mavlink_log_critical(&mavlink_log_pub, "ESC%d: command inconsistency", index + 1);
+					}
+
+					if (esc_status.esc[index].failures & esc_report_s::FAILURE_MOTOR_STUCK_MASK) {
+						mavlink_log_critical(&mavlink_log_pub, "ESC%d: motor stuck", index + 1);
+					}
+
+					if (esc_status.esc[index].failures & esc_report_s::FAILURE_GENERIC_MASK) {
+						mavlink_log_critical(&mavlink_log_pub, "ESC%d: generic failure - code %d", index, esc_status.esc[index].esc_state);
+					}
+
+				}
+
+				_last_esc_failure[index] = esc_status.esc[index].failures;
 			}
 		}
 
-		mavlink_log_critical(&mavlink_log_pub, "%soffline", esc_fail_msg);
+	} else {
 
-		_last_esc_online_flags = esc_status.esc_online_flags;
+		if (!status_flags.condition_escs_error) {
+			mavlink_log_critical(&mavlink_log_pub, "ESCs telemetry timeout");
+		}
+
 		status_flags.condition_escs_error = true;
 	}
 }
