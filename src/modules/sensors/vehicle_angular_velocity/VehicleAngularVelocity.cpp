@@ -282,18 +282,21 @@ void VehicleAngularVelocity::Run()
 			// correct for in-run bias errors
 			const Vector3f angular_velocity_raw = _corrections.Correct(val) - _bias;
 
-			// Differentiate angular velocity (after notch filter)
-			const Vector3f angular_velocity_notched{_notch_filter_velocity.apply(angular_velocity_raw)};
-			const Vector3f angular_acceleration_raw = (angular_velocity_notched - _angular_velocity_prev) / dt;
+			// Gyro filtering:
+			// - Apply general notch filter (IMU_GYRO_NF_FREQ)
+			// - Apply general low-pass filter (IMU_GYRO_CUTOFF)
+			// - Differentiate & apply specific angular acceleration (D-term) low-pass (IMU_DGYRO_CUTOFF)
 
-			_angular_velocity_prev = angular_velocity_notched;
+			const Vector3f angular_velocity_notched{_notch_filter_velocity.apply(angular_velocity_raw)};
+
+			const Vector3f angular_velocity{_lp_filter_velocity.apply(angular_velocity_notched)};
+
+			const Vector3f angular_acceleration_raw = (angular_velocity - _angular_velocity_prev) / dt;
+			_angular_velocity_prev = angular_velocity;
 			_angular_acceleration_prev = angular_acceleration_raw;
+			const Vector3f angular_acceleration{_lp_filter_acceleration.apply(angular_acceleration_raw)};
 
 			CheckFilters();
-
-			// Filter: apply low-pass
-			const Vector3f angular_acceleration{_lp_filter_acceleration.apply(angular_acceleration_raw)};
-			const Vector3f angular_velocity{_lp_filter_velocity.apply(angular_velocity_notched)};
 
 			// publish once all new samples are processed
 			sensor_updated = _sensor_sub[_selected_sensor_sub_index].updated();
