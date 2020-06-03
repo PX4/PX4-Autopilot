@@ -64,7 +64,7 @@
 
 /* Main PLL Configuration.
  *
- * PLL source is HSE = 16,000,000
+ * PLL source is HSE = 24,000,000
  *
  * PLL_VCOx = (STM32_HSE_FREQUENCY / PLLM) * PLLN
  * Subject to:
@@ -86,7 +86,7 @@
 
 /* PLL1, wide 4 - 8 MHz input, enable DIVP, DIVQ, DIVR
  *
- *   PLL1_VCO = (16,000,000 / 1) * 60 = 960 MHz
+ *   PLL1_VCO = (24,000,000 / 2) * 80 = 960 MHz
  *
  *   PLL1P = PLL1_VCO/2  = 960 MHz / 2   = 480 MHz
  *   PLL1Q = PLL1_VCO/4  = 960 MHz / 4   = 240 MHz
