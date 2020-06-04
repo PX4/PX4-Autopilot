@@ -893,4 +893,5 @@ private:
 	// Returns true if the reset was successful
 	bool resetYawToEKFGSF();
 
+	void resetGpsDriftCheckFilters();
 };
