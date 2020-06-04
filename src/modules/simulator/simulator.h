@@ -283,8 +283,9 @@ private:
 #endif
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
-		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct, //< minimum battery percentage
+		(ParamFloat<px4::params::BAT_AVG_I_MC>) _param_bat_avg_i_mc,
+		(ParamFloat<px4::params::BAT_AVG_I_FW>) _param_bat_avg_i_fw,
+		(ParamFloat<px4::params::BAT_AVG_I_ROV>) _param_bat_avg_i_rov,
 		(ParamFloat<px4::params::SIM_GPS_NOISE_X>) _param_sim_gps_noise_x,
 		(ParamBool<px4::params::SIM_GPS_BLOCK>) _param_sim_gps_block,
 		(ParamBool<px4::params::SIM_ACCEL_BLOCK>) _param_sim_accel_block,

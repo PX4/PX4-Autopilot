@@ -348,17 +348,31 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	static float battery_percentage = 1.0f;
 	static uint64_t last_integration_us = 0;
+	static float consumed_mah = 0.0f;
 
 	// battery simulation (limit update to 100Hz)
 	if (hrt_elapsed_time(&_last_battery_timestamp) >= SimulatorBattery::SIMLATOR_BATTERY_SAMPLE_INTERVAL_US) {
 
-		const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
-
+		float ibatt = 0.0f; // no current if not armed
 		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 		if (armed) {
-			if (last_integration_us != 0) {
-				battery_percentage -= (now_us - last_integration_us) / discharge_interval_us;
+			if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+				ibatt = _param_bat_avg_i_mc.get();
+
+			} else if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				ibatt = _param_bat_avg_i_fw.get();
+
+			} else if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+				ibatt = _param_bat_avg_i_rov.get();
+
+			} else {
+				ibatt = -1.0f;
+			}
+
+
+			if (last_integration_us != 0 && ibatt >= 0.0f) {
+				consumed_mah += (now_us - last_integration_us) / 3.6e6f * ibatt; //1 uAs = 3.6e-6 mAh
 			}
 
 			last_integration_us = now_us;
@@ -367,9 +381,8 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 			last_integration_us = 0;
 		}
 
-		float ibatt = -1.0f; // no current sensor in simulation
-
-		battery_percentage = math::max(battery_percentage, _param_bat_min_pct.get() / 100.f);
+		battery_percentage = 1.0f - consumed_mah / _battery.capacity();
+		battery_percentage = math::constrain(battery_percentage, 0.0f, 1.0f);
 		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
 		vbatt *= _battery.cell_count();
 

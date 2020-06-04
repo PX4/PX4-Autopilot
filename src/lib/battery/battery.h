@@ -89,6 +89,11 @@ public:
 	float full_cell_voltage() { return _params.v_charged; }
 
 	/**
+	 * Get the battery capacity
+	 */
+	float capacity() { return _params.capacity; }
+
+	/**
 	 * Update current battery status message.
 	 *
 	 * @param voltage_raw: Battery voltage, in Volts
