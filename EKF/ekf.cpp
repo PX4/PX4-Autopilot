@@ -93,6 +93,10 @@ void Ekf::reset()
 	_accel_magnitude_filt = 0.0f;
 	_ang_rate_magnitude_filt = 0.0f;
 	_prev_dvel_bias_var.zero();
+
+	_gps_alt_ref = 0.0f;
+
+	resetGpsDriftCheckFilters();
 }
 
 bool Ekf::update()
@@ -188,10 +192,6 @@ bool Ekf::initialiseFilter()
 	} else {
 		// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
 		setControlBaroHeight();
-
-		// reset variables that are shared with post alignment GPS checks
-		_gps_pos_deriv_filt(2) = 0.0f;
-		_gps_alt_ref = 0.0f;
 
 		if(!initialiseTilt()){
 			return false;

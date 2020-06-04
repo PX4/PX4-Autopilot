@@ -1866,3 +1866,9 @@ void Ekf::runYawEKFGSF()
 		yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.vacc);
 	}
 }
+
+void Ekf::resetGpsDriftCheckFilters()
+{
+	_gps_velNE_filt.setZero();
+	_gps_pos_deriv_filt.setZero();
+}

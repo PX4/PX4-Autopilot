@@ -194,10 +194,13 @@ bool Ekf::gps_is_good(const gps_message &gps)
 		_gps_check_fail_status.flags.hspeed = false;
 		_gps_drift_updated = false;
 
+		resetGpsDriftCheckFilters();
+
 	} else {
 		// This is the case where the vehicle is on ground and IMU movement is blocking the drift calculation
 		_gps_drift_updated = true;
 
+		resetGpsDriftCheckFilters();
 	}
 
 	// save GPS fix for next time
