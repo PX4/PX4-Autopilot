@@ -95,7 +95,7 @@ private:
 
 	float			_range{math::radians(2000.f)};
 	float			_scale{1.f};
-	float			_temperature{0.f};
+	float			_temperature{NAN};
 
 	uint32_t		_error_count{0};
 
