@@ -7,13 +7,6 @@
 
 set VEHICLE_TYPE airship
 
-if [ $AUTOCNF = yes ]
-then
-	param set PWM_MAX 2000
-	param set PWM_MIN 1000
-	param set PWM_RATE 400
-fi
-
 #
 # This is the gimbal pass mixer.
 #
