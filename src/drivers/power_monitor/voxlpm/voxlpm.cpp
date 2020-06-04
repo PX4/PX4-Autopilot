@@ -50,7 +50,7 @@ VOXLPM::VOXLPM(I2CSPIBusOption bus_option, const int bus, int bus_frequency, VOX
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_ch_type(ch_type),
-	_battery(1, this)
+	_battery(1, this, _meas_interval_us)
 {
 	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
 		_rsense = VOXLPM_RSENSE_VBATT;
@@ -100,13 +100,13 @@ VOXLPM::print_status()
 	printf("  - voltage: %9.2f VDC \n", (double)_voltage);
 	printf("  - current: %9.2f ADC \n", (double)_amperage);
 	printf("  - rsense: %9.6f ohm \n", (double)_rsense);
-	printf("  - meas interval:  %u us \n", _meas_interval);
+	printf("  - meas interval:  %u us \n", _meas_interval_us);
 }
 
 void
 VOXLPM::start()
 {
-	ScheduleOnInterval(_meas_interval, 1000);
+	ScheduleOnInterval(_meas_interval_us, 1000);
 }
 
 void

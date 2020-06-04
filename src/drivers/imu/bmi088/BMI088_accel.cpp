@@ -33,6 +33,8 @@
 
 #include "BMI088_accel.hpp"
 
+using namespace time_literals;
+
 /*
  * Global variable of the accelerometer temperature reading, to read it in the bmi055_gyro driver. The variable is changed in bmi055_accel.cpp.
  * This is a HACK! The driver should be rewritten with the gyro as subdriver.
@@ -63,7 +65,6 @@ BMI088_accel::BMI088_accel(I2CSPIBusOption bus_option, int bus, const char *path
 	_duplicates(perf_alloc(PC_COUNT, "bmi088_accel_duplicates")),
 	_got_duplicate(false)
 {
-	_px4_accel.set_update_rate(BMI088_ACCEL_DEFAULT_RATE);
 }
 
 BMI088_accel::~BMI088_accel()
@@ -328,7 +329,7 @@ BMI088_accel::start()
 	reset();
 
 	/* start polling at the specified rate */
-	ScheduleOnInterval(BMI088_ACCEL_DEFAULT_RATE - BMI088_TIMER_REDUCTION, 1000);
+	ScheduleOnInterval((1_s / BMI088_ACCEL_DEFAULT_RATE) / 2, 1000);
 
 }
 
@@ -483,6 +484,18 @@ BMI088_accel::RunImpl()
 		return;
 	}
 
+	// don't publish duplicated reads
+	if ((report.accel_x == _accel_prev[0]) && (report.accel_y == _accel_prev[1]) && (report.accel_z == _accel_prev[2])) {
+		perf_count(_duplicates);
+		perf_end(_sample_perf);
+		return;
+
+	} else {
+		_accel_prev[0] = report.accel_x;
+		_accel_prev[1] = report.accel_y;
+		_accel_prev[2] = report.accel_z;
+	}
+
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
@@ -521,27 +534,6 @@ BMI088_accel::print_status()
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);
-
-	::printf("checked_next: %u\n", _checked_next);
-
-	for (uint8_t i = 0; i < BMI088_ACCEL_NUM_CHECKED_REGISTERS; i++) {
-		uint8_t v = read_reg(_checked_registers[i]);
-
-		if (v != _checked_values[i]) {
-			::printf("reg %02x:%02x should be %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
-				 (unsigned)_checked_values[i]);
-		}
-
-		if (v != _checked_bad[i]) {
-			::printf("reg %02x:%02x was bad %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
-				 (unsigned)_checked_bad[i]);
-		}
-	}
-
 	_px4_accel.print_status();
 }
 

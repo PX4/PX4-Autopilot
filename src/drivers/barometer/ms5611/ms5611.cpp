@@ -107,6 +107,11 @@ MS5611::init()
 				/* This is likely not this device, abort */
 				ret = -EINVAL;
 				break;
+
+			} else if (brp.pressure > 1500.0f) {
+				/* This is likely not this device, abort */
+				ret = -EINVAL;
+				break;
 			}
 		}
 

@@ -68,7 +68,7 @@ public:
 	 * @param hover_thrust normalized thrsut value with which the vehicle hovers
 	 * @param velocity_p_gain proportional gain of the velocity controller to calculate the thrust
 	 */
-	void generateInitialRampValue(const float hover_thrust, const float velocity_p_gain);
+	void generateInitialRampValue(const float velocity_p_gain);
 
 	/**
 	 * Update the state for the takeoff.
