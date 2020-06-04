@@ -97,7 +97,7 @@ private:
 
 	float			_range{16 * CONSTANTS_ONE_G};
 	float			_scale{1.f};
-	float			_temperature{0.f};
+	float			_temperature{NAN};
 
 	float			_clip_limit{_range / _scale};
 

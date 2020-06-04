@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,32 +31,62 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#include "BMI088.hpp"
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-	}, {GPIO::PortI, GPIO::Pin11}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ST_ISM330DLC, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortH, GPIO::Pin12}),
-	}, {GPIO::PortD, GPIO::Pin15}),
-	initSPIBus(SPI::Bus::SPI3, {
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin8}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin4}),
-	}, {GPIO::PortE, GPIO::Pin7}),
-//	initSPIBus(SPI::Bus::SPI4, {
-//		// no devices
-// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS4_EN from board_config.h
-//	}, {GPIO::PortG, GPIO::Pin8}),
-	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-	}),
-	initSPIBusExternal(SPI::Bus::SPI6, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-	}),
-};
+#include "BMI088_Accelerometer.hpp"
+#include "BMI088_Gyroscope.hpp"
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+I2CSPIDriverBase *BMI088::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
+{
+	BMI088 *instance = nullptr;
+
+	if (cli.type == DRV_ACC_DEVTYPE_BMI088) {
+		instance = new Bosch::BMI088::Accelerometer::BMI088_Accelerometer(iterator.configuredBusOption(), iterator.bus(),
+				iterator.devid(), cli.rotation, cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+
+	} else if (cli.type == DRV_GYR_DEVTYPE_BMI088) {
+		instance = new Bosch::BMI088::Gyroscope::BMI088_Gyroscope(iterator.configuredBusOption(), iterator.bus(),
+				iterator.devid(), cli.rotation, cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+	}
+
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
+	if (OK != instance->init()) {
+		delete instance;
+		return nullptr;
+	}
+
+	return instance;
+}
+
+BMI088::BMI088(uint8_t devtype, const char *name, I2CSPIBusOption bus_option, int bus, uint32_t device,
+	       enum spi_mode_e mode, uint32_t frequency, spi_drdy_gpio_t drdy_gpio) :
+	SPI(devtype, name, bus, device, mode, frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, devtype),
+	_drdy_gpio(drdy_gpio)
+{
+}
+
+int BMI088::init()
+{
+	int ret = SPI::init();
+
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("SPI::init failed (%i)", ret);
+		return ret;
+	}
+
+	return Reset() ? 0 : -1;
+}
+
+bool BMI088::Reset()
+{
+	_state = STATE::RESET;
+	ScheduleClear();
+	ScheduleNow();
+	return true;
+}

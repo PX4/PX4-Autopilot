@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,66 +33,54 @@
 
 #pragma once
 
-#include <drivers/device/spi.h>
-#include <ecl/geo/geo.h>
-#include <lib/conversion/rotation.h>
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/device/spi.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-#define DIR_READ                0x80
-#define DIR_WRITE               0x00
-
-//Soft-reset command Value
-#define BMI088_SOFT_RESET       0xB6
-
-#define BMI088_BUS_SPEED				10*1000*1000
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
 class BMI088 : public device::SPI, public I2CSPIDriver<BMI088>
 {
 public:
-	BMI088(const char *name, const char *devname, I2CSPIBusOption bus_option, int bus, uint8_t type, uint32_t device,
-	       enum spi_mode_e mode, uint32_t frequency, enum Rotation rotation);
+	BMI088(uint8_t devtype, const char *name, I2CSPIBusOption bus_option, int bus, uint32_t device, enum spi_mode_e mode,
+	       uint32_t frequency, spi_drdy_gpio_t drdy_gpio);
+
 	virtual ~BMI088() = default;
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
 	static void print_usage();
 
-	virtual void start() = 0;
-
 	virtual void RunImpl() = 0;
 
+	int init() override;
+	virtual void print_status() = 0;
+
 protected:
-	virtual void print_registers() = 0;
-	virtual void test_error() = 0;
 
-	void custom_method(const BusCLIArguments &cli) override;
+	bool Reset();
 
-	uint8_t         _whoami;    ///< whoami result
+	const spi_drdy_gpio_t _drdy_gpio;
 
-	uint8_t         _register_wait;
-	uint64_t        _reset_wait;
+	hrt_abstime _reset_timestamp{0};
+	hrt_abstime _last_config_check_timestamp{0};
+	hrt_abstime _temperature_update_timestamp{0};
+	unsigned _consecutive_failures{0};
+	unsigned _total_failures{0};
 
-	enum Rotation       _rotation;
+	px4::atomic<uint8_t> _drdy_fifo_read_samples{0};
+	bool _data_ready_interrupt_enabled{false};
 
-	uint8_t         _checked_next;
+	enum class STATE : uint8_t {
+		RESET,
+		WAIT_FOR_RESET,
+		CONFIGURE,
+		FIFO_READ,
+	};
 
-	/**
-	* Read a register from the BMI088
-	*
-	* @param       The register to read.
-	* @return      The value that was read.
-	*/
-	uint8_t         read_reg(unsigned reg) override;
-	virtual uint16_t        read_reg16(unsigned reg);
+	STATE _state{STATE::RESET};
 
-	/**
-	* Write a register in the BMI088
-	*
-	* @param reg       The register to write.
-	* @param value     The new value to write.
-	* @return	   OK on success, negative errno otherwise.
-	*/
-	int            write_reg(unsigned reg, uint8_t value) override;
+	uint16_t _fifo_empty_interval_us{2500}; // 2500 us / 400 Hz transfer interval
+
 };

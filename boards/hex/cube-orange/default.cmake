@@ -33,7 +33,6 @@ px4_add_board(
 		imu/adis16448
 		imu/adis16477
 		imu/adis16497
-		imu/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm20649
 		imu/invensense/icm20948
