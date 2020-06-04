@@ -33,24 +33,17 @@
 
 /**
  * @file airship_att_control_main.cpp
- * Multicopter attitude controller.
+ * Airship attitude controller.
  *
  * @author Lorenz Meier		<lorenz@px4.io>
  * @author Anton Babushkin	<anton.babushkin@me.com>
  * @author Sander Smeets	<sander@droneslab.com>
  * @author Matthias Grob	<maetugr@gmail.com>
  * @author Beat Küng		<beat-kueng@gmx.net>
- * @author Daniel Robinson  <daniel@flycloudline.com>
+ * @author Daniel Robinson  	<daniel@flycloudline.com>
  */
 
 #include "airship_att_control.hpp"
-
-#include <conversion/rotation.h>
-#include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
-#include <circuit_breaker/circuit_breaker.h>
-#include <mathlib/math/Limits.hpp>
-#include <mathlib/math/Functions.hpp>
 
 using namespace matrix;
 
@@ -190,11 +183,6 @@ AirshipAttitudeControl::Run()
 	vehicle_angular_velocity_s angular_velocity;
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
-		const hrt_abstime now = hrt_absolute_time();
-
-		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
-		_last_run = now;
 
 		const Vector3f rates{angular_velocity.xyz};
 
@@ -261,19 +249,6 @@ AirshipAttitudeControl::Run()
 				_rates_sp.zero();
 				_thrust_sp = 0.0f;
 				publish_actuator_controls();
-			}
-		}
-
-		/* calculate loop update rate while disarmed or at least a few times (updating the filter is expensive) */
-		if (!_v_control_mode.flag_armed || (now - _task_start) < 3300000) {
-			_dt_accumulator += dt;
-			++_loop_counter;
-
-			if (_dt_accumulator > 1.f) {
-				const float loop_update_rate = (float)_loop_counter / _dt_accumulator;
-				_loop_update_rate_hz = _loop_update_rate_hz * 0.5f + loop_update_rate * 0.5f;
-				_dt_accumulator = 0;
-				_loop_counter = 0;
 			}
 		}
 

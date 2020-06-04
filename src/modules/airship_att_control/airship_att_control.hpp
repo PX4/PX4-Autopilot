@@ -128,17 +128,9 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
-	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
-
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
 
 	float		_thrust_sp{0.0f};		/**< thrust setpoint */
-	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
-
-	hrt_abstime _task_start{hrt_absolute_time()};
-	hrt_abstime _last_run{0};
-	float _dt_accumulator{0.0f};
-	int _loop_counter{0};
+	float 		_man_yaw_sp{0.f};		/**< current yaw setpoint in manual mode */
 
 };
