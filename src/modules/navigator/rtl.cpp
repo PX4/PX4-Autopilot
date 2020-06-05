@@ -281,11 +281,9 @@ void RTL::set_rtl_item()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	// Check if we are pretty close to the destination already.
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
-
-	// Compute the loiter altitude.
-	const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
+	const float descend_altitude_target = math::min(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
+	const float loiter_altitude = math::min(descend_altitude_target, _rtl_alt);
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
@@ -545,40 +543,32 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	// horizontal distance to destination
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
 
-	float rtl_altitude;
+	// minium rtl altitude to use when outside of horizontal acceptance radius of target position.
+	// We choose the minimum height to be two times the distance from the land position in order to
+	// avoid the vehicle touching the ground while still moving horizontally.
+	const float return_altitude_min_outside_acceptance_rad_amsl = _destination.alt + 2.0f *
+			_navigator->get_acceptance_radius();
 
-	if (destination_dist <= _param_rtl_min_dist.get()) {
-		// we are very close to home, make sure we are above the RTL descend altitude
-		rtl_altitude = math::max(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
+	float return_altitude_amsl = _destination.alt + _param_rtl_return_alt.get();
 
-	} else if (gpos.alt > _destination.alt + _param_rtl_return_alt.get() || cone_half_angle_deg >= 90.0f) {
-		rtl_altitude = gpos.alt;
-
-	} else if (cone_half_angle_deg <= 0) {
-		rtl_altitude = _destination.alt + _param_rtl_return_alt.get();
+	if (destination_dist <= _navigator->get_acceptance_radius()) {
+		return_altitude_amsl = _destination.alt + 2.0f * destination_dist;
 
 	} else {
 
-		// constrain cone half angle to meaningful values. All other cases are already handled above.
-		const float cone_half_angle_rad = math::radians(math::constrain(cone_half_angle_deg, 1.0f, 89.0f));
+		if (cone_half_angle_deg > 0.0f && destination_dist <= _param_rtl_min_dist.get()) {
 
-		// minimum height above destination required
-		float height_above_destination_min = destination_dist / tanf(cone_half_angle_rad);
+			// constrain cone half angle to meaningful values. All other cases are already handled above.
+			const float cone_half_angle_rad = math::radians(math::constrain(cone_half_angle_deg, 1.0f, 89.0f));
 
-		// minimum altitude we need in order to be within the user defined cone
-		const float altitude_min = math::constrain(height_above_destination_min + _destination.alt, _destination.alt,
-					   _destination.alt + _param_rtl_return_alt.get());
+			// minimum altitude we need in order to be within the user defined cone
+			const float cone_intersection_altitude_amsl = destination_dist / tanf(cone_half_angle_rad) + _destination.alt;
 
-		if (gpos.alt < altitude_min) {
-			rtl_altitude = altitude_min;
-
-		} else {
-			rtl_altitude = gpos.alt;
+			return_altitude_amsl = math::min(cone_intersection_altitude_amsl, return_altitude_amsl);
 		}
+
+		return_altitude_amsl = math::max(return_altitude_amsl, return_altitude_min_outside_acceptance_rad_amsl);
 	}
 
-	// always demand altitude which is higher or equal the RTL descend altitude
-	rtl_altitude = math::max(rtl_altitude, _destination.alt + _param_rtl_descend_alt.get());
-
-	return rtl_altitude;
+	return math::max(return_altitude_amsl, gpos.alt);
 }
