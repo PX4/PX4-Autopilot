@@ -395,11 +395,12 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
+		_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 		vehicle_cmd_poll();
 
-		// check if mc and fw sp were updated
-		bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
-		bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
+		// check if fw sp were updated
+		bool fw_att_sp_updated = _fw_virtual_att_sp_sub.updated();
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
@@ -432,11 +433,8 @@ VtolAttitudeControl::Run()
 			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == mode::TRANSITION_TO_FW);
 
 			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
-
-			if (mc_att_sp_updated || fw_att_sp_updated) {
-				_vtol_type->update_transition_state();
-				_v_att_sp_pub.publish(_v_att_sp);
-			}
+			_vtol_type->update_transition_state();
+			_v_att_sp_pub.publish(_v_att_sp);
 
 			break;
 
