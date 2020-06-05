@@ -155,6 +155,10 @@ PAW3902::changeMode(Mode newMode)
 		_mode = newMode;
 	}
 
+	_bright_to_low_counter = 0;
+	_low_to_superlow_counter = 0;
+	_low_to_bright_counter = 0;
+	_superlow_to_low_counter = 0;
 	// Approximate Resolution = (Register Value + 1) * (50 / 8450) ≈ 0.6% of data point in Figure 19
 	// The maximum register value is 0xA8. The minimum register value is 0.
 	uint8_t resolution = registerRead(Register::Resolution);
@@ -589,21 +593,38 @@ PAW3902::RunImpl()
 
 	switch (_mode) {
 	case Mode::Bright:
-		if ((shutter >= 0x1FFE) && (buf.data.RawData_Sum < 0x3C)) { // AND valid for 10 consecutive frames?
-			// Bright -> LowLight
-			changeMode(Mode::LowLight);
+		if ((shutter >= 0x1FFE) && (buf.data.RawData_Sum < 0x3C)) {
+			_bright_to_low_counter++;
+
+			if (_bright_to_low_counter >= 10) { // AND valid for 10 consecutive frames
+				// Bright -> LowLight
+				changeMode(Mode::LowLight);
+			}
+
+		} else {
+			_bright_to_low_counter = 0;
 		}
 
 		break;
 
 	case Mode::LowLight:
-		if ((shutter >= 0x1FFE) && (buf.data.RawData_Sum < 0x5A)) {	// AND valid for 10 consecutive frames?
-			// LowLight -> SuperLowLight
-			changeMode(Mode::SuperLowLight);
+		if ((shutter >= 0x1FFE) && (buf.data.RawData_Sum < 0x5A)) {
+			_low_to_bright_counter = 0;
+			_low_to_superlow_counter++;
 
-		} else if ((shutter < 0x0BB8)) {	// AND valid for 10 consecutive frames?
-			// LowLight -> Bright
-			changeMode(Mode::Bright);
+			if (_low_to_superlow_counter >= 10) { // AND valid for 10 consecutive frames
+				// LowLight -> SuperLowLight
+				changeMode(Mode::SuperLowLight);
+			}
+
+		} else if ((shutter < 0x0BB8)) {
+			_low_to_superlow_counter = 0;
+			_low_to_bright_counter++;
+
+			if (_low_to_bright_counter >= 10) { // AND valid for 10 consecutive frames
+				// LowLight -> Bright
+				changeMode(Mode::Bright);
+			}
 		}
 
 		break;
@@ -611,13 +632,15 @@ PAW3902::RunImpl()
 	case Mode::SuperLowLight:
 
 		// SuperLowLight -> LowLight
-		if ((shutter < 0x03E8)) { // AND valid for 10 consecutive frames?
-			changeMode(Mode::LowLight);
-		}
+		if ((shutter < 0x03E8)) {
+			_superlow_to_low_counter++;
 
-		// PAW3902JF should not operate with Shutter < 0x01F4 in Mode 2
-		if (shutter >= 0x01F4) {
-			changeMode(Mode::LowLight);
+			if (_superlow_to_low_counter >= 10) { // AND valid for 10 consecutive frames
+				changeMode(Mode::LowLight);
+			}
+
+		} else {
+			_superlow_to_low_counter = 0;
 		}
 
 		break;
