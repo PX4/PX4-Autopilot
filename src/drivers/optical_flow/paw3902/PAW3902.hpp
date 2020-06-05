@@ -119,5 +119,9 @@ private:
 	int		_flow_sum_y{0};
 
 	Mode		_mode{Mode::LowLight};
+	uint8_t 	_bright_to_low_counter{0};
+	uint8_t 	_low_to_superlow_counter{0};
+	uint8_t 	_low_to_bright_counter{0};
+	uint8_t 	_superlow_to_low_counter{0};
 
 };
