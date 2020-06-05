@@ -129,6 +129,8 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 		unregister();
 		_interface.ScheduleClear();
 
+		bool callback_registered = false;
+
 		// if subscribed to control group 0 or 1 then move to the rate_ctrl WQ
 		const bool sub_group_0 = (_groups_required & (1 << 0));
 		const bool sub_group_1 = (_groups_required & (1 << 1));
@@ -145,10 +147,18 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 
 		// register callback to all required actuator control groups
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if ((i > 1) && callback_registered) {
+				// don't register additional callbacks if actuator_controls_0 or actuator_controls_1 are already registered
+				break;
+			}
+
 			if (_groups_required & (1 << i)) {
 				PX4_DEBUG("subscribe to actuator_controls_%d", i);
 
-				if (!_control_subs[i].registerCallback()) {
+				if (_control_subs[i].registerCallback()) {
+					callback_registered = true;
+
+				} else {
 					PX4_ERR("actuator_controls_%d register callback failed!", i);
 				}
 			}
