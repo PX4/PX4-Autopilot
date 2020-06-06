@@ -78,7 +78,12 @@ void AutopilotTester::wait_until_ready_local_position_only()
 void AutopilotTester::store_home()
 {
 	request_ground_truth();
-	_home = get_ground_truth_position();
+	std::cout << "Waiting to get home position" << std::endl;
+	CHECK(poll_condition_with_timeout(
+	[this]() {
+		_home = _telemetry->ground_truth();
+		return std::isfinite(_home.latitude_deg) && std::isfinite(_home.longitude_deg);
+	}, std::chrono::seconds(10)));
 }
 
 void AutopilotTester::check_home_within(float acceptance_radius_m)
@@ -241,12 +246,6 @@ bool AutopilotTester::estimated_horizontal_position_close_to(const Offboard::Pos
 void AutopilotTester::request_ground_truth()
 {
 	CHECK(_telemetry->set_rate_ground_truth(15) == Telemetry::Result::SUCCESS);
-	std::this_thread::sleep_for(std::chrono::milliseconds(100));
-}
-
-Telemetry::GroundTruth AutopilotTester::get_ground_truth_position()
-{
-	return _telemetry->ground_truth();
 }
 
 bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos,
@@ -262,6 +261,17 @@ bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry:
 	CHECK(std::isfinite(current_pos.latitude_deg));
 	CHECK(std::isfinite(current_pos.longitude_deg));
 	LocalCoordinate local_pos = ct.local_from_global(GlobalCoordinate{current_pos.latitude_deg, current_pos.longitude_deg});
+	const double distance = sqrt(sq(local_pos.north_m) + sq(local_pos.east_m));
+	const bool pass = distance < acceptance_radius_m;
 
-	return sq(local_pos.north_m) + sq(local_pos.east_m) < sq(acceptance_radius_m);
+	if (!pass) {
+		std::cout << "target_pos.lat: " << target_pos.latitude_deg << std::endl;
+		std::cout << "target_pos.lon: " << target_pos.longitude_deg << std::endl;
+		std::cout << "current.lat: " << current_pos.latitude_deg << std::endl;
+		std::cout << "current.lon: " << current_pos.longitude_deg << std::endl;
+		std::cout << "Distance: " << distance << std::endl;
+		std::cout << "Acceptance radius: " << acceptance_radius_m << std::endl;
+	}
+
+	return pass;
 }

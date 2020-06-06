@@ -35,6 +35,7 @@
 * IMU integration rate.
 *
 * The rate at which raw IMU data is integrated to produce delta angles and delta velocities.
+* Recommended to set this to a multiple of the estimator update period (currently 10 ms for ekf2).
 *
 * @min 100
 * @max 1000

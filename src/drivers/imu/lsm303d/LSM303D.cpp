@@ -127,7 +127,6 @@ LSM303D::reset()
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
-	_px4_accel.set_update_rate(LSM303D_ACCEL_DEFAULT_RATE);
 
 	// we setup the anti-alias on-chip filter as 50Hz. We believe
 	// this operates in the analog domain, and is critical for

@@ -81,6 +81,8 @@
 #include <v2.0/mavlink_types.h>
 #include <lib/battery/battery.h>
 
+using namespace time_literals;
+
 //! Enumeration to use on the bitmask in HIL_SENSOR
 enum class SensorSource {
 	ACCEL		= 0b111,
@@ -133,9 +135,6 @@ public:
 private:
 	Simulator() : ModuleParams(nullptr)
 	{
-		// current default
-		_px4_accel.set_update_rate(250);
-		_px4_gyro.set_update_rate(250);
 	}
 
 	~Simulator()
@@ -160,8 +159,8 @@ private:
 	static Simulator *_instance;
 
 	// simulated sensor instances
-	PX4Accelerometer	_px4_accel{1311244, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 1311244: DRV_ACC_DEVTYPE_ACCELSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope		_px4_gyro{2294028, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 2294028: DRV_GYR_DEVTYPE_GYROSIM, BUS: 1, ADDR: 2, TYPE: SIMULATION
+	PX4Accelerometer	_px4_accel{1311244, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Gyroscope		_px4_gyro{1311244, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Magnetometer		_px4_mag{197388, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	PX4Barometer		_px4_baro{6620172, ORB_PRIO_DEFAULT}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 
@@ -174,6 +173,7 @@ private:
 	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 
 	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS] {};
 	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS] {};
@@ -193,7 +193,10 @@ private:
 	class SimulatorBattery : public Battery
 	{
 	public:
-		SimulatorBattery() : Battery(1, nullptr) {}
+		static constexpr uint32_t SIMLATOR_BATTERY_SAMPLE_FREQUENCY_HZ = 100; // Hz
+		static constexpr uint32_t SIMLATOR_BATTERY_SAMPLE_INTERVAL_US = 1_s / SIMLATOR_BATTERY_SAMPLE_FREQUENCY_HZ;
+
+		SimulatorBattery() : Battery(1, nullptr, SIMLATOR_BATTERY_SAMPLE_INTERVAL_US) {}
 
 		virtual void updateParams() override
 		{
@@ -281,7 +284,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
-		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //< minimum battery percentage
+		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct, //< minimum battery percentage
 		(ParamFloat<px4::params::SIM_GPS_NOISE_X>) _param_sim_gps_noise_x,
 		(ParamBool<px4::params::SIM_GPS_BLOCK>) _param_sim_gps_block,
 		(ParamBool<px4::params::SIM_ACCEL_BLOCK>) _param_sim_accel_block,

@@ -115,9 +115,6 @@ bool ADIS16448::reset()
 		return false;
 	}
 
-	_px4_accel.set_update_rate(_sample_rate);
-	_px4_gyro.set_update_rate(_sample_rate);
-
 	// Set gyroscope scale to default value.
 	//if (!set_gyro_dyn_range(GYRO_INITIAL_SENSITIVITY)) {
 	//	return false;

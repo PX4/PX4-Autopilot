@@ -47,7 +47,7 @@ px4_add_board(
 		#pca9685
 		#power_monitor/ina226
 		#protocol_splitter
-		pwm_input
+		#pwm_input
 		pwm_out_sim
 		pwm_out
 		px4io
@@ -61,7 +61,7 @@ px4_add_board(
 		#uavcan
 	MODULES
 		airspeed_selector
-		attitude_estimator_q
+		#attitude_estimator_q
 		battery_status
 		#camera_feedback
 		commander
@@ -84,11 +84,11 @@ px4_add_board(
 		#micrortps_bridge
 		navigator
 		rc_update
-		rover_pos_control
+		#rover_pos_control
 		sensors
-		sih
-		temperature_compensation
-		vmount
+		#sih
+		#temperature_compensation
+		#vmount
 		vtol_att_control
 	SYSTEMCMDS
 		bl_update

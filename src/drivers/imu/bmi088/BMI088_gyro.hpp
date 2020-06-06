@@ -160,6 +160,9 @@ private:
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
+	perf_counter_t      _duplicates;
+
+	int16_t _gyro_prev[3] {};
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor

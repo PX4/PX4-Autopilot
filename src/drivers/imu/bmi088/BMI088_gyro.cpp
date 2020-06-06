@@ -63,9 +63,9 @@ BMI088_gyro::BMI088_gyro(I2CSPIBusOption bus_option, int bus, const char *path_g
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi088_gyro_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_transfers")),
-	_bad_registers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_registers"))
+	_bad_registers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_registers")),
+	_duplicates(perf_alloc(PC_COUNT, "bmi088_gyro_duplicates"))
 {
-	_px4_gyro.set_update_rate(BMI088_GYRO_DEFAULT_RATE);
 }
 
 BMI088_gyro::~BMI088_gyro()
@@ -74,6 +74,7 @@ BMI088_gyro::~BMI088_gyro()
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
+	perf_free(_duplicates);
 }
 
 int
@@ -264,7 +265,7 @@ void
 BMI088_gyro::start()
 {
 	/* start polling at the specified rate */
-	ScheduleOnInterval((1_s / BMI088_GYRO_DEFAULT_RATE) - BMI088_TIMER_REDUCTION, 1000);
+	ScheduleOnInterval((1_s / BMI088_GYRO_DEFAULT_RATE) / 2, 1000);
 }
 
 void
@@ -368,6 +369,18 @@ BMI088_gyro::RunImpl()
 		return;
 	}
 
+	// don't publish duplicated reads
+	if ((report.gyro_x == _gyro_prev[0]) && (report.gyro_y == _gyro_prev[1]) && (report.gyro_z == _gyro_prev[2])) {
+		perf_count(_duplicates);
+		perf_end(_sample_perf);
+		return;
+
+	} else {
+		_gyro_prev[0] = report.gyro_x;
+		_gyro_prev[1] = report.gyro_y;
+		_gyro_prev[2] = report.gyro_z;
+	}
+
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
@@ -407,26 +420,7 @@ BMI088_gyro::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
-
-	::printf("checked_next: %u\n", _checked_next);
-
-	for (uint8_t i = 0; i < BMI088_GYRO_NUM_CHECKED_REGISTERS; i++) {
-		uint8_t v = read_reg(_checked_registers[i]);
-
-		if (v != _checked_values[i]) {
-			::printf("reg %02x:%02x should be %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
-				 (unsigned)_checked_values[i]);
-		}
-
-		if (v != _checked_bad[i]) {
-			::printf("reg %02x:%02x was bad %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
-				 (unsigned)_checked_bad[i]);
-		}
-	}
+	perf_print_counter(_duplicates);
 
 	_px4_gyro.print_status();
 }

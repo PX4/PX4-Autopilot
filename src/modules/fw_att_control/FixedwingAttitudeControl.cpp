@@ -235,7 +235,7 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 {
 	_airspeed_validated_sub.update();
-	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().indicated_airspeed_m_s)
+	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().equivalent_airspeed_m_s)
 				    && (hrt_elapsed_time(&_airspeed_validated_sub.get().timestamp) < 1_s);
 
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
@@ -243,7 +243,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 
 	if ((_param_fw_arsp_mode.get() == 0) && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-		airspeed = math::max(0.5f, _airspeed_validated_sub.get().indicated_airspeed_m_s);
+		airspeed = math::max(0.5f, _airspeed_validated_sub.get().equivalent_airspeed_m_s);
 
 	} else {
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
@@ -377,14 +377,6 @@ void FixedwingAttitudeControl::Run()
 		/* lock integrator until control is started */
 		bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled
 				       || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && ! _vehicle_status.in_transition_mode);
-
-		/* Simple handling of failsafe: deploy parachute if failsafe is on */
-		if (_vcontrol_mode.flag_control_termination_enabled) {
-			_actuators_airframe.control[7] = 1.0f;
-
-		} else {
-			_actuators_airframe.control[7] = 0.0f;
-		}
 
 		/* if we are in rotary wing mode, do nothing */
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
@@ -642,16 +634,12 @@ void FixedwingAttitudeControl::Run()
 		/* lazily publish the setpoint only once available */
 		_actuators.timestamp = hrt_absolute_time();
 		_actuators.timestamp_sample = _att.timestamp;
-		_actuators_airframe.timestamp = hrt_absolute_time();
-		_actuators_airframe.timestamp_sample = _att.timestamp;
 
 		/* Only publish if any of the proper modes are enabled */
 		if (_vcontrol_mode.flag_control_rates_enabled ||
 		    _vcontrol_mode.flag_control_attitude_enabled ||
 		    _vcontrol_mode.flag_control_manual_enabled) {
-
 			_actuators_0_pub.publish(_actuators);
-			_actuators_2_pub.publish(_actuators_airframe);
 		}
 	}
 

@@ -42,6 +42,7 @@
 #include <uORB/topics/uORBTopics.hpp>
 
 #include <px4_platform_common/defines.h>
+#include <lib/mathlib/mathlib.h>
 
 #include "uORBDeviceNode.hpp"
 #include "uORBManager.hpp"
@@ -124,17 +125,19 @@ public:
 	 */
 	bool copy(void *dst) { return advertised() ? _node->copy(dst, _last_generation) : false; }
 
-	uint8_t		get_instance() const { return _instance; }
-	orb_id_t	get_topic() const { return get_orb_meta(_orb_id); }
-	ORB_PRIO	get_priority() { return advertised() ? _node->get_priority() : ORB_PRIO_UNINITIALIZED; }
+	uint8_t  get_instance() const { return _instance; }
+	unsigned get_last_generation() const { return _last_generation; }
+	ORB_PRIO get_priority() { return advertised() ? _node->get_priority() : ORB_PRIO_UNINITIALIZED; }
+	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
 
 protected:
 
 	friend class SubscriptionCallback;
+	friend class SubscriptionCallbackWorkItem;
 
-	DeviceNode		*get_node() { return _node; }
+	DeviceNode *get_node() { return _node; }
 
-	DeviceNode		*_node{nullptr};
+	DeviceNode *_node{nullptr};
 
 	unsigned _last_generation{0}; /**< last generation the subscriber has seen */
 
