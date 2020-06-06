@@ -113,6 +113,7 @@ private:
 
 	uint8_t _delta_velocity_clipping{0};
 
+	bool _intervals_update{true};
 	bool _intervals_configured{false};
 
 	perf_counter_t _accel_update_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": accel update interval")};
