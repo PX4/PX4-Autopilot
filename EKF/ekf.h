@@ -578,7 +578,7 @@ private:
 	// reset velocity states of the ekf
 	bool resetVelocity();
 
-	inline void resetVelocityToGps();
+	void resetVelocityToGps();
 
 	inline void resetHorizontalVelocityToOpticalFlow();
 
@@ -594,7 +594,7 @@ private:
 
 	bool resetHorizontalPosition();
 
-	inline void resetHorizontalPositionToGps();
+	void resetHorizontalPositionToGps();
 
 	inline void resetHorizontalPositionToVision();
 
