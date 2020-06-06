@@ -75,7 +75,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("safety", 1000);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_correction", 1000);
-	add_topic("sensor_preflight", 200);
+	add_topic("sensor_preflight_imu", 200);
+	add_topic("sensor_preflight_mag", 200);
 	add_topic("sensor_selection");
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
