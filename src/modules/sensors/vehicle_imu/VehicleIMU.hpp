@@ -106,17 +106,12 @@ private:
 	unsigned _accel_last_generation{0};
 	unsigned _gyro_last_generation{0};
 
-	uint32_t _accel_error_count{0};
-	uint32_t _gyro_error_count{0};
-
 	matrix::Vector3f _delta_angle_prev{0.f, 0.f, 0.f};	// delta angle from the previous IMU measurement
 	matrix::Vector3f _delta_velocity_prev{0.f, 0.f, 0.f};	// delta velocity from the previous IMU measurement
-	float _accel_vibration_metric{0.f};	// high frequency vibration level in the IMU delta velocity data (m/s)
-	float _gyro_vibration_metric{0.f};	// high frequency vibration level in the IMU delta angle data (rad)
-	float _gyro_coning_vibration{0.f};	// Level of coning vibration in the IMU delta angles (rad^2)
+
+	vehicle_imu_status_s _status{};
 
 	uint8_t _delta_velocity_clipping{0};
-	uint32_t _delta_velocity_clipping_total[3] {};
 
 	bool _intervals_configured{false};
 
