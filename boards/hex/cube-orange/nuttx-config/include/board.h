@@ -60,11 +60,11 @@
 #define STM32_HSI_FREQUENCY     16000000ul
 #define STM32_LSI_FREQUENCY     32000
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
-#define STM32_LSE_FREQUENCY     32768
+#define STM32_LSE_FREQUENCY     0
 
 /* Main PLL Configuration.
  *
- * PLL source is HSE = 16,000,000
+ * PLL source is HSE = 24,000,000
  *
  * PLL_VCOx = (STM32_HSE_FREQUENCY / PLLM) * PLLN
  * Subject to:
@@ -86,7 +86,7 @@
 
 /* PLL1, wide 4 - 8 MHz input, enable DIVP, DIVQ, DIVR
  *
- *   PLL1_VCO = (16,000,000 / 1) * 60 = 960 MHz
+ *   PLL1_VCO = (24,000,000 / 2) * 80 = 960 MHz
  *
  *   PLL1P = PLL1_VCO/2  = 960 MHz / 2   = 480 MHz
  *   PLL1Q = PLL1_VCO/4  = 960 MHz / 4   = 240 MHz
@@ -250,15 +250,17 @@
 #define GPIO_CAN2_TX     GPIO_CAN2_TX_2        /* PB6 */
 
 /* SPI */
-#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1    /* PA5 */
+#define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
+
+#define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_1) /* PA5 */
 #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1   /* PA6 */
 #define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1   /* PA7 */
 
-#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_4    /* PB13 */
+#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_4) /* PB13 */
 #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1   /* PB14 */
 #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1   /* PB15 */
 
-#define GPIO_SPI4_SCK    GPIO_SPI4_SCK_2    /* PE2 */
+#define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_2) /* PE2 */
 #define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2   /* PE5 */
 #define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2   /* PE6 */
 

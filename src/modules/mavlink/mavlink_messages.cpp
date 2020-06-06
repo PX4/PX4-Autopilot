@@ -45,6 +45,11 @@
 #include "mavlink_simple_analyzer.h"
 #include "mavlink_high_latency2.h"
 
+#include "streams/autopilot_version.h"
+#include "streams/flight_information.h"
+#include "streams/protocol_version.h"
+#include "streams/storage_information.h"
+
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/conversion/rotation.h>
@@ -5231,7 +5236,11 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamGroundTruth>(),
 	create_stream_list_item<MavlinkStreamPing>(),
 	create_stream_list_item<MavlinkStreamOrbitStatus>(),
-	create_stream_list_item<MavlinkStreamObstacleDistance>()
+	create_stream_list_item<MavlinkStreamObstacleDistance>(),
+	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
+	create_stream_list_item<MavlinkStreamProtocolVersion>(),
+	create_stream_list_item<MavlinkStreamFlightInformation>(),
+	create_stream_list_item<MavlinkStreamStorageInformation>()
 };
 
 const char *get_stream_name(const uint16_t msg_id)
@@ -5254,6 +5263,18 @@ MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink)
 			if (strcmp(stream_name, stream.get_name()) == 0) {
 				return stream.new_instance(mavlink);
 			}
+		}
+	}
+
+	return nullptr;
+}
+
+MavlinkStream *create_mavlink_stream(const uint16_t msg_id, Mavlink *mavlink)
+{
+	// search for stream with specified name in supported streams list
+	for (const auto &stream : streams_list) {
+		if (msg_id == stream.get_id()) {
+			return stream.new_instance(mavlink);
 		}
 	}
 

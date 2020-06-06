@@ -129,6 +129,10 @@ private:
 	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
 					 const vehicle_command_s &vehicle_command);
 
+	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
+					       float param4 = 0.0f,
+					       float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
+
 	void handle_message(mavlink_message_t *msg);
 
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
@@ -203,9 +207,6 @@ private:
 	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
 
 	bool evaluate_target_ok(int command, int target_system, int target_component);
-
-	void send_flight_information();
-	void send_storage_information(int storage_id);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 

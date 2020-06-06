@@ -1143,8 +1143,8 @@ Mavlink::send_statustext_emergency(const char *string)
 	mavlink_log_emergency(&_mavlink_log_pub, "%s", string);
 }
 
-void
-Mavlink::send_autopilot_capabilites()
+bool
+Mavlink::send_autopilot_capabilities()
 {
 	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
 	vehicle_status_s status;
@@ -1207,7 +1207,10 @@ Mavlink::send_autopilot_capabilites()
 		msg.uid2[0] += mavlink_system.sysid - 1;
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
+		return true;
 	}
+
+	return false;
 }
 
 void
@@ -1261,11 +1264,6 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 			return OK;
 		}
-	}
-
-	if (interval == 0) {
-		/* stream was not active and is requested to be disabled, do nothing */
-		return OK;
 	}
 
 	// search for stream with specified name in supported streams list
@@ -2203,7 +2201,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* if the protocol is serial, we send the system version blindly */
 	if (get_protocol() == Protocol::SERIAL) {
-		send_autopilot_capabilites();
+		send_autopilot_capabilities();
 	}
 
 	/* start the MAVLink receiver last to avoid a race */

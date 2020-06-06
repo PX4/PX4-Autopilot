@@ -57,13 +57,6 @@
 #include <netinet/in.h>
 #endif
 
-#ifdef __PX4_DARWIN
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
-#include <sys/statfs.h>
-#endif
-
 #ifndef __PX4_POSIX
 #include <termios.h>
 #endif
@@ -337,6 +330,7 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 
 	switch (command) {
 
+	case MAV_CMD_REQUEST_MESSAGE:
 	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
 	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
 		/* broadcast and ignore component */
@@ -350,63 +344,6 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 	}
 
 	return target_ok;
-}
-
-void
-MavlinkReceiver::send_flight_information()
-{
-	mavlink_flight_information_t flight_info{};
-	flight_info.flight_uuid = static_cast<uint64_t>(_param_com_flight_uuid.get());
-
-	actuator_armed_s actuator_armed{};
-	bool ret = _actuator_armed_sub.copy(&actuator_armed);
-
-	if (ret && actuator_armed.timestamp != 0) {
-		flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time_ms;
-	}
-
-	flight_info.time_boot_ms = hrt_absolute_time() / 1000;
-	mavlink_msg_flight_information_send_struct(_mavlink->get_channel(), &flight_info);
-}
-
-void
-MavlinkReceiver::send_storage_information(int storage_id)
-{
-	mavlink_storage_information_t storage_info{};
-	const char *microsd_dir = PX4_STORAGEDIR;
-
-	if (storage_id == 0 || storage_id == 1) { // request is for all or the first storage
-		storage_info.storage_id = 1;
-
-		struct statfs statfs_buf;
-		uint64_t total_bytes = 0;
-		uint64_t avail_bytes = 0;
-
-		if (statfs(microsd_dir, &statfs_buf) == 0) {
-			total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
-			avail_bytes = (uint64_t)statfs_buf.f_bavail * statfs_buf.f_bsize;
-		}
-
-		if (total_bytes == 0) { // on NuttX we get 0 total bytes if no SD card is inserted
-			storage_info.storage_count = 0;
-			storage_info.status = 0; // not available
-
-		} else {
-			storage_info.storage_count = 1;
-			storage_info.status = 2; // available & formatted
-			storage_info.total_capacity = total_bytes / 1024. / 1024.;
-			storage_info.available_capacity = avail_bytes / 1024. / 1024.;
-			storage_info.used_capacity = (total_bytes - avail_bytes) / 1024. / 1024.;
-		}
-
-	} else {
-		// only one storage supported
-		storage_info.storage_id = storage_id;
-		storage_info.storage_count = 1;
-	}
-
-	storage_info.time_boot_ms = hrt_absolute_time() / 1000;
-	mavlink_msg_storage_information_send_struct(_mavlink->get_channel(), &storage_info);
 }
 
 void
@@ -481,16 +418,22 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		return;
 	}
 
+	// First we handle legacy support requests which were used before we had
+	// the generic MAV_CMD_REQUEST_MESSAGE.
 	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
-		/* send autopilot version message */
-		_mavlink->send_autopilot_capabilites();
+		result = handle_request_message_command(MAVLINK_MSG_ID_AUTOPILOT_VERSION);
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
-		/* send protocol version message */
-		_mavlink->send_protocol_version();
+		result = handle_request_message_command(MAVLINK_MSG_ID_PROTOCOL_VERSION);
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
-		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
+		result = handle_request_message_command(MAVLINK_MSG_ID_HOME_POSITION);
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
+		result = handle_request_message_command(MAVLINK_MSG_ID_FLIGHT_INFORMATION);
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
+		result = handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval((int)roundf(cmd_mavlink.param1), cmd_mavlink.param2, cmd_mavlink.param3)) {
@@ -500,31 +443,12 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 		get_message_interval((int)roundf(cmd_mavlink.param1));
 
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
-		send_flight_information();
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
-		if ((int)roundf(cmd_mavlink.param1) == 1) {
-			send_storage_information((int)roundf(cmd_mavlink.param1));
-		}
-
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
-		uint16_t message_id = (uint16_t)roundf(cmd_mavlink.param1);
-		bool stream_found = false;
 
-		for (const auto &stream : _mavlink->get_streams()) {
-			if (stream->get_id() == message_id) {
-				stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
-							vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-				stream_found = true;
-				break;
-			}
-		}
-
-		// TODO: Handle the case where a message is requested which could be sent, but for which there is no stream.
-		if (!stream_found) {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
-		}
+		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
+		result = handle_request_message_command(message_id,
+							vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+							vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_CAMERA_ZOOM) {
 		struct actuator_controls_s actuator_controls = {};
@@ -587,6 +511,41 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, result);
 	}
 }
+
+uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, float param2, float param3, float param4,
+		float param5, float param6, float param7)
+{
+	bool stream_found = false;
+	bool message_sent = false;
+
+	for (const auto &stream : _mavlink->get_streams()) {
+		if (stream->get_id() == message_id) {
+			stream_found = true;
+			message_sent = stream->request_message(param2, param3, param4, param5, param6, param7);
+			break;
+		}
+	}
+
+	if (!stream_found) {
+		// If we don't find the stream, we can configure it with rate 0 and then trigger it once.
+		const char *stream_name = get_stream_name(message_id);
+
+		if (stream_name != nullptr) {
+			_mavlink->configure_stream_threadsafe(stream_name, 0.0f);
+
+			// Now we try again to send it.
+			for (const auto &stream : _mavlink->get_streams()) {
+				if (stream->get_id() == message_id) {
+					message_sent = stream->request_message(param2, param3, param4, param5, param6, param7);
+					break;
+				}
+			}
+		}
+	}
+
+	return (message_sent ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+}
+
 
 void
 MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
@@ -2130,9 +2089,6 @@ MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 
 	bool found_id = false;
 
-
-	// The interval between two messages is in microseconds.
-	// Set to -1 to disable and 0 to request default rate
 	if (msgId != 0) {
 		const char *stream_name = get_stream_name(msgId);
 
