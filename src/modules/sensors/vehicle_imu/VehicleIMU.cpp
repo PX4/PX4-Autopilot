@@ -159,6 +159,7 @@ void VehicleIMU::Run()
 	ParametersUpdate();
 
 	bool update_integrator_config = false;
+	bool publish_status = false;
 
 	// integrate queued gyro
 	sensor_gyro_s gyro;
@@ -173,7 +174,11 @@ void VehicleIMU::Run()
 		_gyro_last_generation = _sensor_gyro_sub.get_last_generation();
 
 		_gyro_corrections.set_device_id(gyro.device_id);
-		_gyro_error_count = gyro.error_count;
+
+		if (gyro.error_count != _status.gyro_error_count) {
+			publish_status = true;
+			_status.gyro_error_count = gyro.error_count;
+		}
 
 		_gyro_integrator.put(gyro.timestamp_sample, Vector3f{gyro.x, gyro.y, gyro.z});
 		_last_timestamp_sample_gyro = gyro.timestamp_sample;
@@ -181,6 +186,8 @@ void VehicleIMU::Run()
 		// collect sample interval average for filters
 		if (UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
 			update_integrator_config = true;
+			publish_status = true;
+			_status.gyro_rate_hz = roundf(1e6f / _gyro_interval.update_interval);
 		}
 
 		if (_intervals_configured && _gyro_integrator.integral_ready()) {
@@ -201,7 +208,11 @@ void VehicleIMU::Run()
 		_accel_last_generation = _sensor_accel_sub.get_last_generation();
 
 		_accel_corrections.set_device_id(accel.device_id);
-		_accel_error_count = accel.error_count;
+
+		if (accel.error_count != _status.accel_error_count) {
+			publish_status = true;
+			_status.accel_error_count = accel.error_count;
+		}
 
 		_accel_integrator.put(accel.timestamp_sample, Vector3f{accel.x, accel.y, accel.z});
 		_last_timestamp_sample_accel = accel.timestamp_sample;
@@ -209,6 +220,8 @@ void VehicleIMU::Run()
 		// collect sample interval average for filters
 		if (UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
 			update_integrator_config = true;
+			publish_status = true;
+			_status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
 		}
 
 		if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
@@ -222,9 +235,9 @@ void VehicleIMU::Run()
 			const uint8_t clip_y = roundf(fabsf(clipping(1)));
 			const uint8_t clip_z = roundf(fabsf(clipping(2)));
 
-			_delta_velocity_clipping_total[0] += clip_x;
-			_delta_velocity_clipping_total[1] += clip_y;
-			_delta_velocity_clipping_total[2] += clip_z;
+			_status.accel_clipping[0] += clip_x;
+			_status.accel_clipping[1] += clip_y;
+			_status.accel_clipping[2] += clip_z;
 
 			if (clip_x > 0) {
 				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_X;
@@ -237,6 +250,8 @@ void VehicleIMU::Run()
 			if (clip_z > 0) {
 				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Z;
 			}
+
+			publish_status = true;
 		}
 
 		// break once caught up to gyro
@@ -277,22 +292,13 @@ void VehicleIMU::Run()
 			UpdateGyroVibrationMetrics(delta_angle_corrected);
 
 			// vehicle_imu_status
-			//  publish first so that error counts are available synchronously if needed
-			vehicle_imu_status_s status;
-			status.accel_device_id = _accel_corrections.get_device_id();
-			status.gyro_device_id = _gyro_corrections.get_device_id();
-			status.accel_error_count = _accel_error_count;
-			status.gyro_error_count = _gyro_error_count;
-			status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
-			status.gyro_rate_hz = round(1e6f / _gyro_interval.update_interval);
-			status.accel_vibration_metric = _accel_vibration_metric;
-			status.gyro_vibration_metric = _gyro_vibration_metric;
-			status.gyro_coning_vibration = _gyro_coning_vibration;
-			status.accel_clipping[0] = _delta_velocity_clipping_total[0];
-			status.accel_clipping[1] = _delta_velocity_clipping_total[1];
-			status.accel_clipping[2] = _delta_velocity_clipping_total[2];
-			status.timestamp = hrt_absolute_time();
-			_vehicle_imu_status_pub.publish(status);
+			//  publish before vehicle_imu so that error counts are available synchronously if needed
+			if (publish_status || (hrt_elapsed_time(&_status.timestamp) >= 100_ms)) {
+				_status.accel_device_id = _accel_corrections.get_device_id();
+				_status.gyro_device_id = _gyro_corrections.get_device_id();
+				_status.timestamp = hrt_absolute_time();
+				_vehicle_imu_status_pub.publish(_status);
+			}
 
 
 			// publish vehicle_imu
@@ -356,7 +362,7 @@ void VehicleIMU::UpdateAccelVibrationMetrics(const Vector3f &delta_velocity)
 {
 	// Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 	const Vector3f delta_velocity_diff = delta_velocity - _delta_velocity_prev;
-	_accel_vibration_metric = 0.99f * _accel_vibration_metric + 0.01f * delta_velocity_diff.norm();
+	_status.accel_vibration_metric = 0.99f * _status.accel_vibration_metric + 0.01f * delta_velocity_diff.norm();
 
 	_delta_velocity_prev = delta_velocity;
 }
@@ -365,11 +371,11 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &delta_angle)
 {
 	// Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 	const Vector3f delta_angle_diff = delta_angle - _delta_angle_prev;
-	_gyro_vibration_metric = 0.99f * _gyro_vibration_metric + 0.01f * delta_angle_diff.norm();
+	_status.gyro_vibration_metric = 0.99f * _status.gyro_vibration_metric + 0.01f * delta_angle_diff.norm();
 
 	// Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
 	const Vector3f coning_metric = delta_angle % _delta_angle_prev;
-	_gyro_coning_vibration = 0.99f * _gyro_coning_vibration + 0.01f * coning_metric.norm();
+	_status.gyro_coning_vibration = 0.99f * _status.gyro_coning_vibration + 0.01f * coning_metric.norm();
 
 	_delta_angle_prev = delta_angle;
 }
