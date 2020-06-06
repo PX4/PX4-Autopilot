@@ -151,8 +151,6 @@ then
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
 
-	# Simulator IMU data provided at 250 Hz
-	param set IMU_INTEG_RATE 250
 
 	param set MC_PITCH_P 6
 	param set MC_PITCHRATE_P 0.2
@@ -192,6 +190,9 @@ then
 fi
 
 param set COM_CPU_MAX -1 # disable check, no CPU load reported on posix yet
+
+# Simulator IMU data provided at 250 Hz
+param set IMU_INTEG_RATE 250
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ ! -z $PX4_SIM_SPEED_FACTOR ]; then

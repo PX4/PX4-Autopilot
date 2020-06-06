@@ -51,5 +51,8 @@ then
 	# disable RC filtering
 	param set RC_FLT_CUTOFF 0
 
+	param set IMU_DGYRO_CUTOFF 50
+	param set IMU_GYRO_CUTOFF 90
+
 	param set CBRK_IO_SAFETY 22027
 fi
