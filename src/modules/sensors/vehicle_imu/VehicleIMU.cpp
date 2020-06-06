@@ -157,8 +157,6 @@ void VehicleIMU::Run()
 	ScheduleDelayed(10_ms);
 
 	ParametersUpdate();
-	_accel_corrections.SensorCorrectionsUpdate();
-	_gyro_corrections.SensorCorrectionsUpdate();
 
 	bool update_integrator_config = false;
 
@@ -177,8 +175,7 @@ void VehicleIMU::Run()
 		_gyro_corrections.set_device_id(gyro.device_id);
 		_gyro_error_count = gyro.error_count;
 
-		const Vector3f gyro_corrected{_gyro_corrections.Correct(Vector3f{gyro.x, gyro.y, gyro.z})};
-		_gyro_integrator.put(gyro.timestamp_sample, gyro_corrected);
+		_gyro_integrator.put(gyro.timestamp_sample, Vector3f{gyro.x, gyro.y, gyro.z});
 		_last_timestamp_sample_gyro = gyro.timestamp_sample;
 
 		// collect sample interval average for filters
@@ -206,8 +203,7 @@ void VehicleIMU::Run()
 		_accel_corrections.set_device_id(accel.device_id);
 		_accel_error_count = accel.error_count;
 
-		const Vector3f accel_corrected{_accel_corrections.Correct(Vector3f{accel.x, accel.y, accel.z})};
-		_accel_integrator.put(accel.timestamp_sample, accel_corrected);
+		_accel_integrator.put(accel.timestamp_sample, Vector3f{accel.x, accel.y, accel.z});
 		_last_timestamp_sample_accel = accel.timestamp_sample;
 
 		// collect sample interval average for filters
@@ -267,8 +263,18 @@ void VehicleIMU::Run()
 		if (_accel_integrator.reset(delta_velocity, accel_integral_dt)
 		    && _gyro_integrator.reset(delta_angle, gyro_integral_dt)) {
 
-			UpdateAccelVibrationMetrics(delta_velocity);
-			UpdateGyroVibrationMetrics(delta_angle);
+			// delta angle: apply offsets, scale, and board rotation
+			_gyro_corrections.SensorCorrectionsUpdate();
+			const float gyro_dt = 1.e-6f * gyro_integral_dt;
+			const Vector3f delta_angle_corrected{_gyro_corrections.Correct(delta_angle * gyro_dt) / gyro_dt};
+
+			// delta velocity: apply offsets, scale, and board rotation
+			_accel_corrections.SensorCorrectionsUpdate();
+			const float accel_dt = 1.e-6f * accel_integral_dt;
+			Vector3f delta_velocity_corrected{_accel_corrections.Correct(delta_velocity * accel_dt) / accel_dt};
+
+			UpdateAccelVibrationMetrics(delta_velocity_corrected);
+			UpdateGyroVibrationMetrics(delta_angle_corrected);
 
 			// vehicle_imu_status
 			//  publish first so that error counts are available synchronously if needed
@@ -294,8 +300,8 @@ void VehicleIMU::Run()
 			imu.timestamp_sample = _last_timestamp_sample_gyro;
 			imu.accel_device_id = _accel_corrections.get_device_id();
 			imu.gyro_device_id = _gyro_corrections.get_device_id();
-			delta_angle.copyTo(imu.delta_angle);
-			delta_velocity.copyTo(imu.delta_velocity);
+			delta_angle_corrected.copyTo(imu.delta_angle);
+			delta_velocity_corrected.copyTo(imu.delta_velocity);
 			imu.delta_angle_dt = gyro_integral_dt;
 			imu.delta_velocity_dt = accel_integral_dt;
 			imu.delta_velocity_clipping = _delta_velocity_clipping;
