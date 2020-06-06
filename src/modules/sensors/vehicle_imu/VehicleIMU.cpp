@@ -103,6 +103,8 @@ void VehicleIMU::ParametersUpdate(bool force)
 		parameter_update_s param_update;
 		_params_sub.copy(&param_update);
 
+		const auto imu_integ_rate_prev = _param_imu_integ_rate.get();
+
 		updateParams();
 
 		_accel_corrections.ParametersUpdate();
@@ -114,6 +116,13 @@ void VehicleIMU::ParametersUpdate(bool force)
 		if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
 			_param_imu_integ_rate.set(imu_integration_rate_hz);
 			_param_imu_integ_rate.commit_no_notification();
+		}
+
+		if (_param_imu_integ_rate.get() != imu_integ_rate_prev) {
+			// force update
+			_intervals_update = true;
+			_accel_interval.timestamp_sample_last = 0;
+			_gyro_interval.timestamp_sample_last = 0;
 		}
 	}
 }
@@ -144,6 +153,11 @@ bool VehicleIMU::UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstim
 			intavg.interval_sum = 0.f;
 			intavg.interval_count = 0.f;
 		}
+
+	} else {
+		// reset
+		intavg.interval_sum = 0.f;
+		intavg.interval_count = 0.f;
 	}
 
 	intavg.timestamp_sample_last = timestamp_sample;
@@ -169,6 +183,10 @@ void VehicleIMU::Run()
 
 		if (_sensor_gyro_sub.get_last_generation() != _gyro_last_generation + 1) {
 			perf_count(_gyro_generation_gap_perf);
+
+			// if there's a gap in data start monitoring publication interval again
+			_intervals_update = true;
+			_gyro_interval.timestamp_sample_last = 0;
 		}
 
 		_gyro_last_generation = _sensor_gyro_sub.get_last_generation();
@@ -184,7 +202,7 @@ void VehicleIMU::Run()
 		_last_timestamp_sample_gyro = gyro.timestamp_sample;
 
 		// collect sample interval average for filters
-		if (UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
+		if (_intervals_update && UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
 			update_integrator_config = true;
 			publish_status = true;
 			_status.gyro_rate_hz = roundf(1e6f / _gyro_interval.update_interval);
@@ -203,6 +221,10 @@ void VehicleIMU::Run()
 
 		if (_sensor_accel_sub.get_last_generation() != _accel_last_generation + 1) {
 			perf_count(_accel_generation_gap_perf);
+
+			// if there's a gap in data start monitoring publication interval again
+			_intervals_update = true;
+			_accel_interval.timestamp_sample_last = 0;
 		}
 
 		_accel_last_generation = _sensor_accel_sub.get_last_generation();
@@ -218,7 +240,7 @@ void VehicleIMU::Run()
 		_last_timestamp_sample_accel = accel.timestamp_sample;
 
 		// collect sample interval average for filters
-		if (UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
+		if (_intervals_update && UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
 			update_integrator_config = true;
 			publish_status = true;
 			_status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
@@ -351,6 +373,7 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		_sensor_accel_sub.unregisterCallback();
 
 		_intervals_configured = true;
+		_intervals_update = false; // stop monitoring topic publication rate
 
 		PX4_DEBUG("accel (%d), gyro (%d), accel samples: %d, gyro samples: %d, accel interval: %.1f, gyro interval: %.1f",
 			  _accel_corrections.get_device_id(), _gyro_corrections.get_device_id(), accel_integral_samples, gyro_integral_samples,
