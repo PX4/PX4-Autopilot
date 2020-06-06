@@ -125,6 +125,9 @@ VtolAttitudeControl::~VtolAttitudeControl()
 bool
 VtolAttitudeControl::init()
 {
+	// prevent excessive back to back execution
+	set_minimum_interval_us(2000);
+
 	if (!_actuator_inputs_mc.registerCallback()) {
 		PX4_ERR("MC actuator controls callback registration failed!");
 		return false;
