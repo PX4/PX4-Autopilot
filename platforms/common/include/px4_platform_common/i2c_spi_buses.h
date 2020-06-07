@@ -241,8 +241,7 @@ protected:
 	{
 		static_cast<T *>(this)->RunImpl();
 
-		if (should_exit())
-		{
+		if (should_exit()) {
 			exit_and_cleanup();
 		}
 	}
