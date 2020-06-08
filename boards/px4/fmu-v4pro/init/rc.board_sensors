@@ -21,10 +21,3 @@ lis3mdl -s -R 0 start
 
 # Internal SPI
 ms5611 -s start
-
-# Possible external compasses
-hmc5883 -T -X start
-lis3mdl -X start
-ist8310 -X start
-qmc5883 -X start
-rm3100 -X start

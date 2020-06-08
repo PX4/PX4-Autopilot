@@ -15,16 +15,9 @@ icm20649 -R 2 -s start
 # Internal SPI bus ISM300DLC
 ism330dlc -s start
 
-# Internal SPI bus BMI088 accel
+# Internal SPI bus BMI088 accel/gyro
 bmi088 -A -R 12 -s start
-
-# Internal SPI bus BMI088 gyro
 bmi088 -G -R 12 -s start
-
-# Possible external compasses
-ist8310 -X start
-hmc5883 -T -X start
-qmc5883 -X start
 
 # Possible internal compass
 bmm150 -I start
@@ -35,6 +28,3 @@ bmp388 -I -a 0x77 start
 
 # Baro on I2C3
 ms5611 -X start
-
-# External RM3100
-rm3100 -X start
