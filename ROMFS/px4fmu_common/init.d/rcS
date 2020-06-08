@@ -200,7 +200,6 @@ else
 	#
 	rgbled start -X
 	rgbled_ncp5623c start -X
-	rgbled_pwm start
 
 	if param greater LIGHT_EN_BLINKM 0
 	then
