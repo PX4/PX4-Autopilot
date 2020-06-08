@@ -67,7 +67,7 @@ pipeline {
                      "px4_fmu-v5_rtps",
                      "px4_fmu-v5_stackcheck",
                      "px4_fmu-v5x_default",
-                     "px4_fmu-v5x_p2_base_phy_LAN8742Ai",
+                     "px4_fmu-v5x_base_phy_DP83848C",
                      "px4_io-v2_default",
                      "uvify_core_default"
             ],
