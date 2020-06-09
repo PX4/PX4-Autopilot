@@ -201,6 +201,16 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 	add_topic("vehicle_visual_odometry", 30);
 }
 
+void LoggedTopics::add_raw_imu_gyro_fifo()
+{
+	add_topic("sensor_gyro_fifo");
+}
+
+void LoggedTopics::add_raw_imu_accel_fifo()
+{
+	add_topic("sensor_accel_fifo");
+}
+
 void LoggedTopics::add_system_identification_topics()
 {
 	// for system id need to log imu and controls at full rate
@@ -400,5 +410,13 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 
 	if (profile & SDLogProfileMask::VISION_AND_AVOIDANCE) {
 		add_vision_and_avoidance_topics();
+	}
+
+	if (profile & SDLogProfileMask::RAW_IMU_GYRO_FIFO) {
+		add_raw_imu_gyro_fifo();
+	}
+
+	if (profile & SDLogProfileMask::RAW_IMU_ACCEL_FIFO) {
+		add_raw_imu_accel_fifo();
 	}
 }
