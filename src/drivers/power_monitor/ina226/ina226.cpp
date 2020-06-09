@@ -112,7 +112,7 @@ int INA226::read(uint8_t address)
 
 	int ret = transfer(&address, 1, &data.b[0], sizeof(data.b));
 
-	if (OK != ret) {
+	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
 		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return -1;
@@ -133,7 +133,7 @@ INA226::init()
 	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
-	if (I2C::init() != OK) {
+	if (I2C::init() != PX4_OK) {
 		return ret;
 	}
 
@@ -151,13 +151,13 @@ INA226::init()
 		ret = write(INA226_REG_CONFIGURATION, _config);
 
 	} else {
-		ret = OK;
+		ret = PX4_OK;
 	}
 
 	start();
 	_sensor_ok = true;
 
-	_initialized = ret == OK;
+	_initialized = ret == PX4_OK;
 	return ret;
 }
 
@@ -196,13 +196,13 @@ INA226::probe()
 		return -1;
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 int
 INA226::measure()
 {
-	int ret = OK;
+	int ret = PX4_OK;
 
 	if (_mode_triggered) {
 		ret = write(INA226_REG_CONFIGURATION, _config);
@@ -266,7 +266,7 @@ INA226::collect()
 			_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE]
 		);
 
-		ret = OK;
+		ret = PX4_OK;
 
 	} else {
 		_battery.updateBatteryStatus(
@@ -281,7 +281,7 @@ INA226::collect()
 		ret = -1;
 	}
 
-	if (ret != OK) {
+	if (ret != PX4_OK) {
 		PX4_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 	}
@@ -309,9 +309,8 @@ INA226::RunImpl()
 {
 	if (_initialized) {
 		if (_collect_phase) {
-
 			/* perform collection */
-			if (OK != collect()) {
+			if (collect() != PX4_OK) {
 				perf_count(_collection_errors);
 				/* if error restart the measurement state machine */
 				start();
@@ -322,7 +321,6 @@ INA226::RunImpl()
 			_collect_phase = !_mode_triggered;
 
 			if (_measure_interval > INA226_CONVERSION_INTERVAL) {
-
 				/* schedule a fresh cycle call when we are ready to measure again */
 				ScheduleDelayed(_measure_interval - INA226_CONVERSION_INTERVAL);
 				return;
@@ -332,7 +330,7 @@ INA226::RunImpl()
 		/* Measurement  phase */
 
 		/* Perform measurement */
-		if (OK != measure()) {
+		if (measure() != PX4_OK) {
 			perf_count(_measure_errors);
 		}
 
@@ -353,7 +351,7 @@ INA226::RunImpl()
 			0.0f
 		);
 
-		if (init() != OK) {
+		if (init() != PX4_OK) {
 			ScheduleDelayed(INA226_INIT_RETRY_INTERVAL_US);
 		}
 	}

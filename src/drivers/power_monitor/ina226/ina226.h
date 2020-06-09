@@ -129,7 +129,7 @@ public:
 	 * Tries to call the init() function. If it fails, then it will schedule to retry again in
 	 * INA226_INIT_RETRY_INTERVAL_US microseconds. It will keep retrying at this interval until initialization succeeds.
 	 *
-	 * @return OK if initialization succeeded on the first try. Negative value otherwise.
+	 * @return PX4_OK if initialization succeeded on the first try. Negative value otherwise.
 	 */
 	int force_init();
 
@@ -171,16 +171,8 @@ private:
 	uORB::Subscription  _actuators_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription  _parameters_sub{ORB_ID(parameter_update)};
 
-
-	/**
-	* Test whetpower_monitorhe device supported by the driver is present at a
-	* specific address.
-	*
-	* @param address	The I2C bus address to read or write.
-	* @return			.
-	*/
-	int               read(uint8_t address);
-	int               write(uint8_t address, uint16_t data);
+	int read(uint8_t address);
+	int write(uint8_t address, uint16_t data);
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
