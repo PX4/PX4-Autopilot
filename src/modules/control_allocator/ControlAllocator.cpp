@@ -316,7 +316,7 @@ ControlAllocator::getActuatorTrim()
 void
 ControlAllocator::update_allocation_method()
 {
-	int method = _param_ca_method.get();
+	AllocationMethod method = (AllocationMethod)_param_ca_method.get();
 
 	if (_allocation_method_id != method) {
 
@@ -331,11 +331,11 @@ ControlAllocator::update_allocation_method()
 		ControlAllocation *tmp = nullptr;
 
 		switch (method) {
-		case 0:
+		case AllocationMethod::PSEUDO_INVERSE:
 			tmp = new ControlAllocationPseudoInverse();
 			break;
 
-		case 1:
+		case AllocationMethod::SEQUENTIAL_DESATURATION:
 			tmp = new ControlAllocationSequentialDesaturation();
 			break;
 
@@ -349,7 +349,7 @@ ControlAllocator::update_allocation_method()
 		if (tmp == nullptr) {
 			// It did not work, forget about it
 			PX4_ERR("Control allocation init failed");
-			_param_ca_method.set(_allocation_method_id);
+			_param_ca_method.set((int)_allocation_method_id);
 
 		} else if (_control_allocation == tmp) {
 			// Nothing has changed, this should not happen
@@ -379,7 +379,7 @@ ControlAllocator::update_allocation_method()
 	if (_control_allocation == nullptr) {
 		PX4_ERR("Falling back to ControlAllocationPseudoInverse");
 		_control_allocation = new ControlAllocationPseudoInverse();
-		_allocation_method_id = 0;
+		_allocation_method_id = AllocationMethod::PSEUDO_INVERSE;
 	}
 }
 
@@ -606,7 +606,20 @@ int ControlAllocator::task_spawn(int argc, char *argv[])
 int ControlAllocator::print_status()
 {
 	PX4_INFO("Running");
-	PX4_INFO("Allocation method: %d", _allocation_method_id);
+
+	switch(_allocation_method_id) {
+		case AllocationMethod::NONE:
+			PX4_INFO("Method: None");
+			break;
+
+		case AllocationMethod::PSEUDO_INVERSE:
+			PX4_INFO("Method: Pseudo-inverse");
+			break;
+
+		case AllocationMethod::SEQUENTIAL_DESATURATION:
+			PX4_INFO("Method: Sequential desaturation");
+			break;
+	}
 
 	perf_print_counter(_loop_perf);
 
