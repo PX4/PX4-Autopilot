@@ -153,8 +153,8 @@ private:
 	perf_counter_t 		_measure_errors;
 
 	int16_t           _bus_voltage{0};
-	int16_t           _power{-1};
-	int16_t           _current{-1};
+	int16_t           _power{0};
+	int16_t           _current{0};
 	int16_t           _shunt{0};
 	int16_t           _cal{0};
 	bool              _mode_triggered{false};
@@ -171,7 +171,7 @@ private:
 	uORB::Subscription  _actuators_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription  _parameters_sub{ORB_ID(parameter_update)};
 
-	int read(uint8_t address);
+	int read(uint8_t address, int16_t &data);
 	int write(uint8_t address, uint16_t data);
 
 	/**
