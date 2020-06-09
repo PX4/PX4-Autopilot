@@ -191,7 +191,7 @@ AngularVelocityController::Run()
 			}
 
 			// run rate controller
-			_control.update(angular_velocity, _angular_acceleration, _angular_velocity_sp, dt, _maybe_landed || _landed);
+			_control.update(angular_velocity, _angular_velocity_sp, _angular_acceleration, dt, _maybe_landed || _landed);
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};

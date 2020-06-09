@@ -90,13 +90,13 @@ public:
 	/**
 	 * Run one control loop cycle calculation
 	 * @param angular_velocity estimation of the current vehicle angular velocity
-	 * @param angular_acceleration estimation of the current vehicle angular acceleration
 	 * @param angular_velocity_sp desired vehicle angular velocity setpoint
+	 * @param angular_acceleration estimation of the current vehicle angular acceleration
 	 * @param dt elapsed time since last update
 	 * @param landed whether the vehicle is on the ground
 	 */
-	void update(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration,
-		    const matrix::Vector3f &angular_velocity_sp, const float dt, const bool landed);
+	void update(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_velocity_sp,
+		    const matrix::Vector3f &angular_acceleration, const float dt, const bool landed);
 
 	/**
 	 * Get the desired angular acceleration
