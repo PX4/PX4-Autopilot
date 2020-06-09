@@ -108,7 +108,13 @@ private:
 	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> getEffectivenessMatrix();
 	const matrix::Vector<float, NUM_ACTUATORS> getActuatorTrim();
 
-	int _allocation_method_id{-1};
+	enum class AllocationMethod {
+		NONE = -1,
+		PSEUDO_INVERSE = 0,
+		SEQUENTIAL_DESATURATION = 1,
+	};
+
+	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation{nullptr}; 	///< class for control allocation calculations
 
 	enum class Airframe {
