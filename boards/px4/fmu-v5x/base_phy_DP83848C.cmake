@@ -3,7 +3,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL fmu-v5x
-	LABEL p2_base_phy_LAN8742Ai
+	LABEL base_phy_DP83848C
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common

@@ -43,9 +43,8 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIDevice(DRV_OSD_DEVTYPE_ATXXXX, SPI::CS{GPIO::PortB, GPIO::Pin12}),
 	}),
 	initSPIBus(SPI::Bus::SPI4, {
-		// Note: DRDY is disabled as it caused bad IMU transfers (on a Kopis 2 with ICM20689)
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortE, GPIO::Pin4}),
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4}),
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
+		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
 	}),
 };
 
