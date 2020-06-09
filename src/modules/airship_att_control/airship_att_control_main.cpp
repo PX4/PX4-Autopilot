@@ -97,17 +97,7 @@ AirshipAttitudeControl::vehicle_status_poll()
 {
 	/* check if there is new status information */
 	if (_vehicle_status_sub.update(&_vehicle_status)) {
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (_actuators_id == nullptr) {
-			if (_vehicle_status.is_vtol) {
-				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
-				_attitude_sp_id = ORB_ID(mc_virtual_attitude_setpoint);
 
-			} else {
-				_actuators_id = ORB_ID(actuator_controls_0);
-				_attitude_sp_id = ORB_ID(vehicle_attitude_setpoint);
-			}
-		}
 	}
 }
 
@@ -164,7 +154,7 @@ AirshipAttitudeControl::publish_actuator_controls()
 	_actuators.timestamp = hrt_absolute_time();
 
 	if (!_actuators_0_circuit_breaker_enabled) {
-		orb_publish_auto(_actuators_id, &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
+		orb_publish_auto(ORB_ID(actuator_controls_0), &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
 	}
 }
 

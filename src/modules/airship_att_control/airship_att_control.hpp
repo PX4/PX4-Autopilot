@@ -111,10 +111,6 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
 
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
-
-	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
-	orb_id_t _attitude_sp_id{nullptr};	/**< pointer to correct attitude setpoint uORB metadata structure */
-
 	bool		_actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 
 	struct vehicle_attitude_s		_v_att {};		/**< vehicle attitude */
