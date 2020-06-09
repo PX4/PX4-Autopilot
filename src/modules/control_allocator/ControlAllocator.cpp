@@ -607,20 +607,48 @@ int ControlAllocator::print_status()
 {
 	PX4_INFO("Running");
 
-	switch(_allocation_method_id) {
-		case AllocationMethod::NONE:
-			PX4_INFO("Method: None");
-			break;
+	// Print current allocation method
+	switch (_allocation_method_id) {
+	case AllocationMethod::NONE:
+		PX4_INFO("Method: None");
+		break;
 
-		case AllocationMethod::PSEUDO_INVERSE:
-			PX4_INFO("Method: Pseudo-inverse");
-			break;
+	case AllocationMethod::PSEUDO_INVERSE:
+		PX4_INFO("Method: Pseudo-inverse");
+		break;
 
-		case AllocationMethod::SEQUENTIAL_DESATURATION:
-			PX4_INFO("Method: Sequential desaturation");
-			break;
+	case AllocationMethod::SEQUENTIAL_DESATURATION:
+		PX4_INFO("Method: Sequential desaturation");
+		break;
 	}
 
+	// Print current airframe
+	switch ((Airframe)_param_ca_airframe.get()) {
+	case Airframe::QUAD_W:
+		PX4_INFO("Airframe: Quad W");
+		break;
+
+	case Airframe::HEXA_X:
+		PX4_INFO("Airframe: Hexa X");
+		break;
+
+	case Airframe::STANDARD_VTOL:
+		PX4_INFO("Airframe: Standard VTOL");
+		break;
+
+	case Airframe::TILTROTOR_VTOL:
+		PX4_INFO("Airframe: Tiltrotor VTOL");
+		break;
+	}
+
+	// Print current effectiveness matrix
+	if (_control_allocation != nullptr) {
+		const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness = _control_allocation->getEffectivenessMatrix();
+		PX4_INFO("Effectiveness:");
+		effectiveness.print();
+	}
+
+	// Print perf
 	perf_print_counter(_loop_perf);
 
 	return 0;
