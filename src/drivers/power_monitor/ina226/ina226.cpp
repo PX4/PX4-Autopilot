@@ -103,22 +103,21 @@ INA226::~INA226()
 	perf_free(_measure_errors);
 }
 
-int INA226::read(uint8_t address)
+int INA226::read(uint8_t address, int16_t &data)
 {
-	union {
-		uint16_t reg;
-		uint8_t  b[2] = {};
-	} data;
+	// read desired little-endian value via I2C
+	uint16_t received_bytes;
+	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
 
-	int ret = transfer(&address, 1, &data.b[0], sizeof(data.b));
+	if (ret == PX4_OK) {
+		data = swap16(received_bytes);
 
-	if (ret != PX4_OK) {
+	} else {
 		perf_count(_comms_errors);
 		PX4_DEBUG("i2c::transfer returned %d", ret);
-		return -1;
 	}
 
-	return swap16(data.reg);
+	return ret;
 }
 
 int INA226::write(uint8_t address, uint16_t value)
@@ -174,24 +173,14 @@ INA226::force_init()
 int
 INA226::probe()
 {
-	int value = read(INA226_MFG_ID);
+	int16_t value{0};
 
-	if (value < 0) {
-		perf_count(_comms_errors);
-	}
-
-	if (value != INA226_MFG_ID_TI) {
+	if (read(INA226_MFG_ID, value) != PX4_OK || value != INA226_MFG_ID_TI) {
 		PX4_DEBUG("probe mfgid %d", value);
 		return -1;
 	}
 
-	value = read(INA226_MFG_DIEID);
-
-	if (value < 0) {
-		perf_count(_comms_errors);
-	}
-
-	if (value != INA226_MFG_DIE) {
+	if (read(INA226_MFG_DIEID, value) != PX4_OK || value != INA226_MFG_DIE) {
 		PX4_DEBUG("probe die id %d", value);
 		return -1;
 	}
@@ -219,75 +208,47 @@ INA226::measure()
 int
 INA226::collect()
 {
-	int ret = -EIO;
-
-	/* read from the sensor */
 	perf_begin(_sample_perf);
-
-	if (_initialized) {
-
-		_bus_voltage = read(INA226_REG_BUSVOLTAGE);
-		_power = read(INA226_REG_POWER);
-		_current = read(INA226_REG_CURRENT);
-		_shunt = read(INA226_REG_SHUNTVOLTAGE);
-
-	} else {
-		init();
-
-		_bus_voltage = -1.0f;
-		_power = -1.0f;
-		_current = -1.0f;
-		_shunt = -1.0f;
-	}
 
 	parameter_update_s param_update;
 
 	if (_parameters_sub.copy(&param_update)) {
-		// Currently, this INA226 driver doesn't really use ModuleParams. This call to updateParams() is just to
-		// update the battery, which is registered as a child.
 		updateParams();
 	}
 
-	// Note: If the power module is connected backwards, then the values of _power, _current, and _shunt will
-	//  be negative but otherwise valid. This isn't important, because why should we support the case where
-	//  the power module is used incorrectly?
-	if (_bus_voltage >= 0 && _power >= 0 && _current >= 0 && _shunt >= 0) {
+	// read from the sensor
+	// Note: If the power module is connected backwards, then the values of _power, _current, and _shunt will be negative but otherwise valid.
+	bool success{true};
+	success = success && (read(INA226_REG_BUSVOLTAGE, _bus_voltage) == PX4_OK);
+	// success = success && (read(INA226_REG_POWER, _power) == PX4_OK);
+	success = success && (read(INA226_REG_CURRENT, _current) == PX4_OK);
+	// success = success && (read(INA226_REG_SHUNTVOLTAGE, _shunt) == PX4_OK);
 
-		_actuators_sub.copy(&_actuator_controls);
-
-		/* publish it */
-		_battery.updateBatteryStatus(
-			hrt_absolute_time(),
-			(float) _bus_voltage * INA226_VSCALE,
-			(float) _current * _current_lsb,
-			true,
-			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-			0,
-			_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE]
-		);
-
-		ret = PX4_OK;
-
-	} else {
-		_battery.updateBatteryStatus(
-			hrt_absolute_time(),
-			0.0,
-			0.0,
-			false,
-			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-			0,
-			0.0
-		);
-		ret = -1;
+	if (!success) {
+		PX4_DEBUG("error reading from sensor");
+		_bus_voltage = _power = _current = _shunt = 0;
 	}
 
-	if (ret != PX4_OK) {
-		PX4_DEBUG("error reading from sensor: %d", ret);
-		perf_count(_comms_errors);
-	}
+	_actuators_sub.copy(&_actuator_controls);
+
+	_battery.updateBatteryStatus(
+		hrt_absolute_time(),
+		(float) _bus_voltage * INA226_VSCALE,
+		(float) _current * _current_lsb,
+		success,
+		battery_status_s::BATTERY_SOURCE_POWER_MODULE,
+		0,
+		_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE]
+	);
 
 	perf_end(_sample_perf);
-	return ret;
+
+	if (success) {
+		return PX4_OK;
+
+	} else {
+		return PX4_ERROR;
+	}
 }
 
 void
