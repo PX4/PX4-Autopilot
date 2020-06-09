@@ -533,8 +533,10 @@ ControlAllocator::publish_control_allocator_status()
 	control_allocator_status.unallocated_thrust[2] = unallocated_control(5);
 
 	// Allocation success flags
-	control_allocator_status.torque_setpoint_achieved = (Vector3f(unallocated_control(0), unallocated_control(1), unallocated_control(2)).norm() < FLT_EPSILON);
-	control_allocator_status.thrust_setpoint_achieved = (Vector3f(unallocated_control(3), unallocated_control(4), unallocated_control(5)).norm() < FLT_EPSILON);
+	control_allocator_status.torque_setpoint_achieved = (Vector3f(unallocated_control(0), unallocated_control(1),
+			unallocated_control(2)).norm() < FLT_EPSILON);
+	control_allocator_status.thrust_setpoint_achieved = (Vector3f(unallocated_control(3), unallocated_control(4),
+			unallocated_control(5)).norm() < FLT_EPSILON);
 
 	// Actuator saturation
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
