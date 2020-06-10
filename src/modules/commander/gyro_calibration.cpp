@@ -47,6 +47,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/time.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
@@ -65,14 +66,28 @@ static const char *sensor_name = "gyro";
 static constexpr unsigned max_gyros = 3;
 
 /// Data passed to calibration worker routine
-typedef struct  {
+struct gyro_worker_data_t {
 	orb_advert_t		*mavlink_log_pub;
 	int32_t			device_id[max_gyros];
 	int			gyro_sensor_sub[max_gyros];
 	int			sensor_correction_sub;
 	struct gyro_calibration_s	gyro_scale[max_gyros];
-	float last_sample_0[3];
-} gyro_worker_data_t;
+
+	static constexpr int last_num_samples = 9; ///< number of samples for the motion detection median filter
+	float last_sample_0_x[last_num_samples];
+	float last_sample_0_y[last_num_samples];
+	float last_sample_0_z[last_num_samples];
+	int last_sample_0_idx;
+};
+
+static int float_cmp(const void *elem1, const void *elem2)
+{
+	if (*(const float *)elem1 < * (const float *)elem2) {
+		return -1;
+	}
+
+	return *(const float *)elem1 > *(const float *)elem2;
+}
 
 static calibrate_return gyro_calibration_worker(int cancel_sub, void *data)
 {
@@ -99,7 +114,10 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void *data)
 		fds[s].events = POLLIN;
 	}
 
-	memset(&worker_data->last_sample_0, 0, sizeof(worker_data->last_sample_0));
+	memset(&worker_data->last_sample_0_x, 0, sizeof(worker_data->last_sample_0_x));
+	memset(&worker_data->last_sample_0_y, 0, sizeof(worker_data->last_sample_0_y));
+	memset(&worker_data->last_sample_0_z, 0, sizeof(worker_data->last_sample_0_z));
+	worker_data->last_sample_0_idx = 0;
 
 	/* use slowest gyro to pace, but count correctly per-gyro for statistics */
 	while (slow_count < calibration_count) {
@@ -139,9 +157,10 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void *data)
 						sample[1] = (gyro_report.y - sensor_correction.gyro_offset_0[1]) * sensor_correction.gyro_scale_0[1];
 						sample[2] = (gyro_report.z - sensor_correction.gyro_offset_0[2]) * sensor_correction.gyro_scale_0[2];
 
-						for (int i = 0; i < 3; ++i) {
-							worker_data->last_sample_0[i] = sample[i];
-						}
+						worker_data->last_sample_0_x[worker_data->last_sample_0_idx] = sample[0];
+						worker_data->last_sample_0_y[worker_data->last_sample_0_idx] = sample[1];
+						worker_data->last_sample_0_z[worker_data->last_sample_0_idx] = sample[2];
+						worker_data->last_sample_0_idx = (worker_data->last_sample_0_idx + 1) % gyro_worker_data_t::last_num_samples;
 
 					} else if (s == 1) {
 						sample[0] = (gyro_report.x - sensor_correction.gyro_offset_1[0]) * sensor_correction.gyro_scale_1[0];
@@ -364,13 +383,19 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			res = PX4_ERROR;
 
 		} else {
-			/* check offsets */
-			float xdiff = worker_data.last_sample_0[0] - worker_data.gyro_scale[0].x_offset;
-			float ydiff = worker_data.last_sample_0[1] - worker_data.gyro_scale[0].y_offset;
-			float zdiff = worker_data.last_sample_0[2] - worker_data.gyro_scale[0].z_offset;
+			/* check offsets using a median filter */
+			qsort(worker_data.last_sample_0_x, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
+			qsort(worker_data.last_sample_0_y, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
+			qsort(worker_data.last_sample_0_z, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
+			float xdiff = worker_data.last_sample_0_x[gyro_worker_data_t::last_num_samples / 2] -
+				      worker_data.gyro_scale[0].x_offset;
+			float ydiff = worker_data.last_sample_0_y[gyro_worker_data_t::last_num_samples / 2] -
+				      worker_data.gyro_scale[0].y_offset;
+			float zdiff = worker_data.last_sample_0_z[gyro_worker_data_t::last_num_samples / 2] -
+				      worker_data.gyro_scale[0].z_offset;
 
 			/* maximum allowable calibration error */
-			const float maxoff = math::radians(0.4f);
+			const float maxoff = math::radians(0.6f);
 
 			if (!PX4_ISFINITE(worker_data.gyro_scale[0].x_offset) ||
 			    !PX4_ISFINITE(worker_data.gyro_scale[0].y_offset) ||
