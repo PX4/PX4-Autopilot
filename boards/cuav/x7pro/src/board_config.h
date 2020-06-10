@@ -176,8 +176,8 @@
 /* RSSI_IN */
 #define GPIO_RSSI_IN                   /* PB0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
-/* Safety Switch is only on PX4IO */
-#define GPIO_nSAFETY_SWITCH_LED_OUT   /* PE12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN12) // FMU_LED_AMBER
+/* Safety Switch is only on FMU */
+#define GPIO_LED_SAFETY               /* PE12 */ (GPIO_OUTPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN12) // FMU_LED_AMBER
 #define GPIO_BTN_SAFETY               /* PE10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN10) // SAFETY_SW
 
 /* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
@@ -233,7 +233,7 @@
 		GPIO_OTGFS_VBUS,                  \
 		PX4_GPIO_PIN_OFF(GPIO_HS_USB_EN), \
 		GPIO_RSSI_IN,                     \
-		GPIO_nSAFETY_SWITCH_LED_OUT,      \
+		GPIO_LED_SAFETY,                  \
 		GPIO_BTN_SAFETY,                  \
 	}
 

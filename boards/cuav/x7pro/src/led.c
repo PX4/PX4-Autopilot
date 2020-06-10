@@ -66,14 +66,14 @@ __END_DECLS
 static uint32_t g_ledmap[] = {
 	GPIO_nLED_BLUE,                     // Indexed by LED_BLUE
 	GPIO_nLED_RED,                      // Indexed by LED_RED, LED_AMBER
-	GPIO_nSAFETY_SWITCH_LED_OUT,        // Indexed by LED_SAFETY (defaulted to an input)
+	GPIO_LED_SAFETY,                    // Indexed by LED_SAFETY
 	GPIO_nLED_GREEN,                    // Indexed by LED_GREEN
 };
 
 __EXPORT void led_init(void)
 {
 	/* Configure LED GPIOs for output */
-	g_ledmap[2] = GPIO_nSAFETY_SWITCH_LED_OUT;
+	g_ledmap[2] = GPIO_LED_SAFETY;
 
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		if (g_ledmap[l] != 0) {
