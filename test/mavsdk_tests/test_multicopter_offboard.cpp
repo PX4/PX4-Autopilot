@@ -42,7 +42,7 @@
 TEST_CASE("Offboard takeoff and land", "[multicopter][offboard][nogps]")
 {
 	AutopilotTester tester;
-	Offboard::PositionNEDYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
+	Offboard::PositionNedYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
 	tester.connect(connection_url);
 	tester.wait_until_ready_local_position_only();
 	tester.store_home();
@@ -57,10 +57,10 @@ TEST_CASE("Offboard takeoff and land", "[multicopter][offboard][nogps]")
 TEST_CASE("Offboard position control", "[multicopter][offboard][nogps]")
 {
 	AutopilotTester tester;
-	Offboard::PositionNEDYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
-	Offboard::PositionNEDYaw setpoint_1 {0.0f, 5.0f, -2.0f, 180.0f};
-	Offboard::PositionNEDYaw setpoint_2 {5.0f, 5.0f, -4.0f, 180.0f};
-	Offboard::PositionNEDYaw setpoint_3 {5.0f, 0.0f, -4.0f, 90.0f};
+	Offboard::PositionNedYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
+	Offboard::PositionNedYaw setpoint_1 {0.0f, 5.0f, -2.0f, 180.0f};
+	Offboard::PositionNedYaw setpoint_2 {5.0f, 5.0f, -4.0f, 180.0f};
+	Offboard::PositionNedYaw setpoint_3 {5.0f, 0.0f, -4.0f, 90.0f};
 	tester.connect(connection_url);
 	tester.wait_until_ready_local_position_only();
 	tester.store_home();
