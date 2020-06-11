@@ -43,14 +43,13 @@ namespace Bosch::BMI088::Accelerometer
 BMI088_Accelerometer::BMI088_Accelerometer(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation,
 		int bus_frequency, spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio) :
 	BMI088(DRV_ACC_DEVTYPE_BMI088, "BMI088_Accelerometer", bus_option, bus, device, spi_mode, bus_frequency, drdy_gpio),
-	ModuleParams(nullptr),
 	_px4_accel(get_device_id(), ORB_PRIO_HIGH, rotation)
 {
 	if (drdy_gpio != 0) {
 		_drdy_interval_perf = perf_alloc(PC_INTERVAL, MODULE_NAME"_accel: DRDY interval");
 	}
 
-	ConfigureSampleRate(_param_imu_gyro_rate_max.get());
+	ConfigureSampleRate(_px4_accel.get_max_rate_hz());
 }
 
 BMI088_Accelerometer::~BMI088_Accelerometer()
@@ -286,7 +285,7 @@ void BMI088_Accelerometer::ConfigureAccel()
 
 void BMI088_Accelerometer::ConfigureSampleRate(int sample_rate)
 {
-	if (sample_rate == 0 || sample_rate > 800) {
+	if (sample_rate == 0) {
 		sample_rate = 800; // default to 800 Hz
 	}
 
