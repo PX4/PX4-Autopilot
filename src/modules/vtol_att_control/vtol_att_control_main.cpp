@@ -277,7 +277,7 @@ VtolAttitudeControl::parameters_update()
 	 * Open loop transition time needs to be larger than minimum transition time,
 	 * anything else makes no sense and can potentially lead to numerical problems.
 	 */
-	if (_params.front_trans_time_openloop * 0.9f < _params.front_trans_time_min) {
+	if (_params.front_trans_time_openloop < _params.front_trans_time_min * 1.1f) {
 		_params.front_trans_time_openloop = _params.front_trans_time_min * 1.1f;
 		param_set_no_notification(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
 		mavlink_log_critical(&_mavlink_log_pub, "OL transition time set larger than min transition time");
