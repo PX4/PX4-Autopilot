@@ -36,14 +36,13 @@
 #include "BMI088.hpp"
 
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <px4_platform_common/module_params.h>
 
 #include "Bosch_BMI088_Accelerometer_Registers.hpp"
 
 namespace Bosch::BMI088::Accelerometer
 {
 
-class BMI088_Accelerometer : public BMI088, public ModuleParams
+class BMI088_Accelerometer : public BMI088
 {
 public:
 	BMI088_Accelerometer(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
@@ -130,10 +129,6 @@ private:
 		{ Register::INT1_IO_CONF,          INT1_IO_CONF_BIT::int1_out, 0 },
 		{ Register::INT1_INT2_MAP_DATA,    INT1_INT2_MAP_DATA_BIT::int1_fwm, 0},
 	};
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
-	)
 };
 
 } // namespace Bosch::BMI088::Accelerometer
