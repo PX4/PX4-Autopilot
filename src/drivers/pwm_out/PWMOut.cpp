@@ -944,7 +944,7 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
-	case PWM_SERVO_SET(7):
+//	case PWM_SERVO_SET(7):
 
 	/* FALLTHROUGH */
 	case PWM_SERVO_SET(6):
