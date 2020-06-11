@@ -407,7 +407,7 @@ public:
      * Rotates vector v_2 in frame 2 to vector v_1 in frame 1
      * using the rotation quaternion q_21
      * describing the rotation from frame 1 to 2
-     * v_1 = q_21^-1 * v_1 * q_21
+     * v_1 = q_21^-1 * v_2 * q_21
      *
      * @param vec vector to rotate in frame 2 (typically reference frame)
      * @return rotated vector in frame 1 (typically body frame)
