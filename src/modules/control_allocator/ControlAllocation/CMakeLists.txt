@@ -33,8 +33,11 @@
 
 px4_add_library(ControlAllocation
 	ControlAllocation.cpp
+	ControlAllocation.hpp
 	ControlAllocationPseudoInverse.cpp
+	ControlAllocationPseudoInverse.hpp
 	ControlAllocationSequentialDesaturation.cpp
+	ControlAllocationSequentialDesaturation.hpp
 )
 
 target_include_directories(ControlAllocation

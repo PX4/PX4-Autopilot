@@ -45,12 +45,12 @@
  *
  * This is used to retrieve pre-computed control effectiveness matrix
  *
- * @value 0 Test
  * @min 0
  * @max 2
- * @value 0 quad wide
- * @value 1 hexa x
+ * @value 0 multirotor
+ * @value 1 quad w
  * @value 2 standard vtol
+ * @value 3 tiltrotor vtol
  * @group Control Allocation
  */
 PARAM_DEFINE_INT32(CA_AIRFRAME, 0);

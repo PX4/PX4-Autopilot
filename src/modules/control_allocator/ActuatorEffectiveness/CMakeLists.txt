@@ -31,21 +31,25 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(ActuatorEffectiveness)
-add_subdirectory(ControlAllocation)
-
-px4_add_module(
-	MODULE modules__control_allocator
-	MAIN control_allocator
-	COMPILE_FLAGS
-	SRCS
-		ControlAllocator.cpp
-		ControlAllocator.hpp
-	DEPENDS
-		mathlib
-		ActuatorEffectiveness
-		ControlAllocation
-		mixer
-		px4_work_queue
+px4_add_library(ActuatorEffectiveness
+	ActuatorEffectiveness.hpp
+	ActuatorEffectivenessMultirotor.cpp
+	ActuatorEffectivenessMultirotor.hpp
+	ActuatorEffectivenessStandardVTOL.cpp
+	ActuatorEffectivenessStandardVTOL.hpp
+	ActuatorEffectivenessTiltrotorVTOL.cpp
+	ActuatorEffectivenessTiltrotorVTOL.hpp
 )
+
+target_include_directories(ActuatorEffectiveness
+	PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(ActuatorEffectiveness
+	PRIVATE
+		mathlib
+		ControlAllocation
+)
+
+# px4_add_unit_gtest(SRC ActuatorEffectivenessMultirotorTest.cpp LINKLIBS ActuatorEffectiveness)

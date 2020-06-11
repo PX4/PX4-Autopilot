@@ -60,6 +60,7 @@ ControlAllocator::ControlAllocator() :
 ControlAllocator::~ControlAllocator()
 {
 	free(_control_allocation);
+	free(_actuator_effectiveness);
 	perf_free(_loop_perf);
 }
 
@@ -82,8 +83,9 @@ ControlAllocator::init()
 void
 ControlAllocator::parameters_updated()
 {
-	// Allocation method
+	// Allocation method & effectiveness source
 	// Do this first: in case a new method is loaded, it will be configured below
+	update_effectiveness_source();
 	update_allocation_method();
 
 	// Minimum actuator values
@@ -126,192 +128,13 @@ ControlAllocator::parameters_updated()
 	actuator_max(15) = _param_ca_act15_max.get();
 	_control_allocation->setActuatorMax(actuator_max);
 
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness = getEffectivenessMatrix();
-	matrix::Vector<float, NUM_ACTUATORS> trim = getActuatorTrim();
+	// Get actuator effectiveness and trim
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness = _actuator_effectiveness->getEffectivenessMatrix();
+	matrix::Vector<float, NUM_ACTUATORS> trim = _actuator_effectiveness->getActuatorTrim();
 
 	// Assign control effectiveness matrix
 	_control_allocation->setEffectivenessMatrix(effectiveness, trim);
 }
-
-const matrix::Matrix<float, ControlAllocator::NUM_AXES, ControlAllocator::NUM_ACTUATORS>
-ControlAllocator::getEffectivenessMatrix()
-{
-	// Control effectiveness
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B;
-
-	switch ((Airframe)_param_ca_airframe.get()) {
-	case Airframe::QUAD_W: {
-			const float B_quad_w[NUM_AXES][NUM_ACTUATORS] = {
-				// quad_w
-				{-0.5717536f,  0.43756646f,  0.5717536f, -0.43756646f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.35355328f, -0.35355328f,  0.35355328f, -0.35355328f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.28323701f,  0.28323701f, -0.28323701f, -0.28323701f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-			};
-			B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_quad_w);
-			break;
-		}
-
-	case Airframe::HEXA_X: {
-			const float B_hexa_x[NUM_AXES][NUM_ACTUATORS] = {
-				{-0.333333f,  0.333333f,  0.166667f, -0.166667f, -0.166667f,  0.166667f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.288675f, -0.288675f,  0.288675f, -0.288675f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{-0.166667f,  0.166667f, -0.166667f,  0.166667f,  0.166667f, -0.166667f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f     },
-				{ 0.f,  0.f,  0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f    },
-				{-0.166667f, -0.166667f, -0.166667f, -0.166667f, -0.166667f, -0.166667f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-			};
-			B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_hexa_x);
-			break;
-		}
-
-	case Airframe::STANDARD_VTOL: {
-			switch (_flight_phase) {
-			case FlightPhase::HOVER_FLIGHT:  {
-					const float B_standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
-						{-0.5f,  0.5f,  0.5f, -0.5f, 0.f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.5f, -0.5f,  0.5f, -0.5f, 0.f, 0.f, 0.f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.25f,  0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-					};
-					B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol);
-					break;
-				}
-
-			case FlightPhase::FORWARD_FLIGHT: {
-					const float B_standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
-						{ 0.f, 0.f, 0.f, 0.f, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-					};
-					B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol);
-					break;
-				}
-
-			case FlightPhase::TRANSITION_HF_TO_FF:
-			case FlightPhase::TRANSITION_FF_TO_HF: {
-					const float B_standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
-						{ -0.5f,  0.5f,  0.5f, -0.5f, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{  0.5f, -0.5f,  0.5f, -0.5f, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{  0.25f,  0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{  0.f,  0.f,  0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-						{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-					};
-					B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol);
-					break;
-				}
-			}
-
-			break;
-		}
-
-	case Airframe::TILTROTOR_VTOL: {
-			matrix::Vector<float, NUM_ACTUATORS> act = getActuatorTrim();
-
-			const float B_tiltrotor_vtol[NUM_AXES][NUM_ACTUATORS] = {
-				{-0.5f * cosf(act(4)),  0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), 0.5f * act(0) *sinf(act(4)), -0.5f * act(1) *sinf(act(5)), -0.5f * act(2) *sinf(act(6)), 0.5f * act(3) *sinf(act(7)), -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.5f * cosf(act(4)), -0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), -0.5f * act(0) *sinf(act(4)),  0.5f * act(1) *sinf(act(5)), -0.5f * act(2) *sinf(act(6)), 0.5f * act(3) *sinf(act(7)), 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{-0.5f * sinf(act(4)),  0.5f * sinf(act(5)),  0.5f * sinf(act(6)), -0.5f * sinf(act(7)), -0.5f * act(0) *cosf(act(4)), 0.5f * act(1) *cosf(act(5)), 0.5f * act(2) *cosf(act(6)), -0.5f * act(3) *cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.25f * sinf(act(4)), 0.25f * sinf(act(5)), 0.25f * sinf(act(6)), 0.25f * sinf(act(7)), 0.25f * act(0) *cosf(act(4)), 0.25f * act(1) *cosf(act(5)), 0.25f * act(2) *cosf(act(6)), 0.25f * act(3) *cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{-0.25f * cosf(act(4)), -0.25f * cosf(act(5)), -0.25f * cosf(act(6)), -0.25f * cosf(act(7)), 0.25f * act(0) *sinf(act(4)), 0.25f * act(1) *sinf(act(5)), 0.25f * act(2) *sinf(act(6)), 0.25f * act(3) *sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-			};
-			B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_tiltrotor_vtol);
-
-			// Temporarily disable a few controls (WIP)
-			for (size_t j = 4; j < 8; j++) {
-				B(3, j) = 0.0f;
-				B(4, j) = 0.0f;
-				B(5, j) = 0.0f;
-			}
-
-			break;
-		}
-
-	default:
-		// none
-		break;
-	}
-
-	matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
-	matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
-
-	// Set 0 effectiveness for actuators that are disabled (act_min >= act_max)
-	for (size_t j = 0; j < NUM_ACTUATORS; j++) {
-		if (actuator_min(j) >= actuator_max(j)) {
-			for (size_t i = 0; i < NUM_AXES; i++) {
-				B(i, j) = 0.0f;
-			}
-
-		}
-	}
-
-	return B;
-}
-
-const matrix::Vector<float, ControlAllocator::NUM_ACTUATORS>
-ControlAllocator::getActuatorTrim()
-{
-	matrix::Vector<float, ControlAllocator::NUM_ACTUATORS> act_trim;
-
-	// Current actuator
-	// matrix::Vector<float, ControlAllocator::NUM_ACTUATORS> act = _control_allocation->getActuatorSetpoint();
-
-	switch ((Airframe)_param_ca_airframe.get()) {
-	case Airframe::QUAD_W:
-	case Airframe::HEXA_X:
-	case Airframe::STANDARD_VTOL: {
-			// zero trim
-			act_trim = matrix::Vector<float, NUM_ACTUATORS>();
-			break;
-		}
-
-	case Airframe::TILTROTOR_VTOL: {
-			float tilt = 0.0f;
-
-			switch (_flight_phase) {
-			case FlightPhase::HOVER_FLIGHT:  {
-					tilt = 0.0f;
-					break;
-				}
-
-			case FlightPhase::FORWARD_FLIGHT: {
-					tilt = 1.5f;
-					break;
-				}
-
-			case FlightPhase::TRANSITION_FF_TO_HF:
-			case FlightPhase::TRANSITION_HF_TO_FF: {
-					tilt = 1.0f;
-					break;
-				}
-			}
-
-			// Trim: half throttle, tilted motors
-			act_trim(0) = 0.5f;
-			act_trim(1) = 0.5f;
-			act_trim(2) = 0.5f;
-			act_trim(3) = 0.5f;
-			act_trim(4) = tilt;
-			act_trim(5) = tilt;
-			act_trim(6) = tilt;
-			act_trim(7) = tilt;
-
-			break;
-		}
-	}
-
-	return act_trim;
-}
-
 
 void
 ControlAllocator::update_allocation_method()
@@ -384,6 +207,67 @@ ControlAllocator::update_allocation_method()
 }
 
 void
+ControlAllocator::update_effectiveness_source()
+{
+	EffectivenessSource source = (EffectivenessSource)_param_ca_airframe.get();
+
+	if (_effectiveness_source_id != source) {
+
+		// try to instanciate new effectiveness source
+		ActuatorEffectiveness *tmp = nullptr;
+
+		switch (source) {
+		case EffectivenessSource::NONE:
+		case EffectivenessSource::QUAD_W:
+		case EffectivenessSource::MC_PARAMS:
+			tmp = new ActuatorEffectivenessMultirotor();
+			break;
+
+		case EffectivenessSource::STANDARD_VTOL:
+			tmp = new ActuatorEffectivenessStandardVTOL();
+			break;
+
+		case EffectivenessSource::TILTROTOR_VTOL:
+			tmp = new ActuatorEffectivenessTiltrotorVTOL();
+			break;
+		}
+
+		// Replace previous source with new one
+		if (tmp == nullptr) {
+			// It did not work, forget about it
+			PX4_ERR("Actuator effectiveness init failed");
+			_param_ca_method.set((int)_effectiveness_source_id);
+
+		} else if (_actuator_effectiveness == tmp) {
+			// Nothing has changed, this should not happen
+			PX4_ERR("Actuator effectiveness init error");
+			_effectiveness_source_id = source;
+
+		} else {
+			// Successful update
+			PX4_INFO("Actuator effectiveness init success");
+
+			// Swap effectiveness sources
+			if (_actuator_effectiveness != nullptr) {
+				free(_actuator_effectiveness);
+			}
+
+			_actuator_effectiveness = tmp;
+
+			// Save source id
+			_effectiveness_source_id = source;
+		}
+	}
+
+	// Guard against bad initialization
+	if (_actuator_effectiveness == nullptr) {
+		PX4_ERR("Falling back to ActuatorEffectivenessMultirotor");
+		_actuator_effectiveness = new ActuatorEffectivenessMultirotor();
+		_effectiveness_source_id = EffectivenessSource::MC_PARAMS;
+	}
+}
+
+void
 ControlAllocator::Run()
 {
 	if (should_exit()) {
@@ -409,24 +293,28 @@ ControlAllocator::Run()
 		vehicle_status_s vehicle_status = {};
 		_vehicle_status_sub.update(&vehicle_status);
 
+		ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
+
 		// Check if the current flight phase is HOVER or FIXED_WING
 		if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			_flight_phase = FlightPhase::HOVER_FLIGHT;
+			flight_phase = ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT;
 
 		} else {
-			_flight_phase = FlightPhase::FORWARD_FLIGHT;
+			flight_phase = ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
 		}
 
 		// Special cases for VTOL in transition
 		if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
 			if (vehicle_status.in_transition_to_fw) {
-				_flight_phase = FlightPhase::TRANSITION_HF_TO_FF;
+				flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_HF_TO_FF;
 
 			} else {
-				_flight_phase = FlightPhase::TRANSITION_FF_TO_HF;
+				flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
 			}
 		}
 
+		// Forward to effectiveness source
+		_actuator_effectiveness->setFlightPhase(flight_phase);
 	}
 
 	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
@@ -461,12 +349,28 @@ ControlAllocator::Run()
 	if (do_update) {
 
 		// Update effectiveness matrix if needed
-		matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectivenessMatrix();
-		matrix::Vector<float, NUM_ACTUATORS> trim = getActuatorTrim();
+		if (_actuator_effectiveness->update()) {
+			matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness = _actuator_effectiveness->getEffectivenessMatrix();
+			matrix::Vector<float, NUM_ACTUATORS> trim = _actuator_effectiveness->getActuatorTrim();
 
-		// Assign control effectiveness matrix
-		if ((B - _control_allocation->getEffectivenessMatrix()).abs().max() > 1e-5f) {
-			_control_allocation->setEffectivenessMatrix(B, trim);
+			// Set 0 effectiveness for actuators that are disabled (act_min >= act_max)
+			matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
+			matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
+
+			for (size_t j = 0; j < NUM_ACTUATORS; j++) {
+				if (actuator_min(j) >= actuator_max(j)) {
+					for (size_t i = 0; i < NUM_AXES; i++) {
+						effectiveness(i, j) = 0.0f;
+					}
+
+				}
+			}
+
+			// Assign control effectiveness matrix
+			if ((effectiveness - _control_allocation->getEffectivenessMatrix()).abs().max() > 1e-5f) {
+				_control_allocation->setEffectivenessMatrix(effectiveness, trim);
+			}
+
 		}
 
 		// Set control setpoint vector
@@ -623,21 +527,25 @@ int ControlAllocator::print_status()
 	}
 
 	// Print current airframe
-	switch ((Airframe)_param_ca_airframe.get()) {
-	case Airframe::QUAD_W:
-		PX4_INFO("Airframe: Quad W");
+	switch ((EffectivenessSource)_param_ca_airframe.get()) {
+	case EffectivenessSource::NONE:
+		PX4_INFO("EffectivenessSource: None");
 		break;
 
-	case Airframe::HEXA_X:
-		PX4_INFO("Airframe: Hexa X");
+	case EffectivenessSource::MC_PARAMS:
+		PX4_INFO("EffectivenessSource: MC parameters");
 		break;
 
-	case Airframe::STANDARD_VTOL:
-		PX4_INFO("Airframe: Standard VTOL");
+	case EffectivenessSource::QUAD_W:
+		PX4_INFO("EffectivenessSource: Quad W");
 		break;
 
-	case Airframe::TILTROTOR_VTOL:
-		PX4_INFO("Airframe: Tiltrotor VTOL");
+	case EffectivenessSource::STANDARD_VTOL:
+		PX4_INFO("EffectivenessSource: Standard VTOL");
+		break;
+
+	case EffectivenessSource::TILTROTOR_VTOL:
+		PX4_INFO("EffectivenessSource: Tiltrotor VTOL");
 		break;
 	}
 
