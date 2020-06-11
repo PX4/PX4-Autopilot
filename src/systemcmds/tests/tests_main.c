@@ -41,6 +41,7 @@
 #include "tests_main.h"
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -114,7 +115,6 @@ const struct {
 	{"servo",		test_servo,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"sleep",		test_sleep,		OPT_NOJIGTEST},
 	{"smoothz", 		test_smooth_z,		0},
-	{"tone",		test_tone,		0},
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_send",		test_uart_send,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"versioning",		test_versioning,	0},
@@ -246,51 +246,26 @@ test_runner(unsigned option)
 	return (failcount > 0);
 }
 
-__EXPORT int tests_main(int argc, char *argv[]);
-
-/**
- * Executes system tests.
- */
-int tests_main(int argc, char *argv[])
+__EXPORT int tests_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		printf("tests: missing test name - 'tests help' for a list of tests\n");
+		PX4_WARN("tests: missing test name - 'tests help' for a list of tests");
 		return 1;
-	}
-
-	int tone_test_index = -1;
-	char *tone_test = {"tone"};
-	char *tone_fail[2] = {NULL, "2"};
-	char *tone_pass[2] = {NULL, "14"};
-
-	// Identify the tone test index for later use.
-	for (size_t i = 0; tests[i].name; i++) {
-		if (*tone_test == *tests[i].name) {
-			tone_test_index = i;
-		}
 	}
 
 	for (size_t i = 0; tests[i].name; i++) {
 		if (!strcmp(tests[i].name, argv[1])) {
 			if (tests[i].fn(argc - 1, argv + 1) == 0) {
-				if (tone_test_index != -1) {
-					tests[tone_test_index].fn(2, tone_pass); // Play a notification.
-				}
-
-				printf("%s PASSED\n", tests[i].name);
+				PX4_INFO("%s PASSED", tests[i].name);
 				return 0;
 
 			} else {
-				if (tone_test_index != -1) {
-					tests[tone_test_index].fn(2, tone_fail); // Play an error notification.
-				}
-
-				printf("%s FAILED\n", tests[i].name);
+				PX4_ERR("%s FAILED", tests[i].name);
 				return -1;
 			}
 		}
 	}
 
-	printf("tests: no test called '%s' - 'tests help' for a list of tests\n", argv[1]);
+	PX4_WARN("tests: no test called '%s' - 'tests help' for a list of tests", argv[1]);
 	return 1;
 }

@@ -1593,7 +1593,7 @@ Commander::run()
 				if (_safety.safety_switch_available && previous_safety_off != _safety.safety_off) {
 
 					if (_safety.safety_off) {
-						set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+						set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
 
 					} else {
 						tune_neutral(true);
@@ -2271,7 +2271,7 @@ Commander::run()
 						armed.force_failsafe = true;
 						_flight_termination_triggered = true;
 						mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: terminate flight");
-						set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
+						set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
 					}
 				}
 			}
@@ -2439,25 +2439,25 @@ Commander::run()
 		    (_safety.safety_switch_available || (_safety.safety_switch_available && _safety.safety_off))) {
 
 			/* play tune when armed */
-			set_tune(TONE_ARMING_WARNING_TUNE);
+			set_tune(tune_control_s::TUNE_ID_ARMING_WARNING);
 			_arm_tune_played = true;
 
 		} else if (!status_flags.usb_connected &&
 			   (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			/* play tune on battery critical */
-			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
+			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			/* play tune on battery warning */
-			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
+			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
 
 		} else if (status.failsafe) {
 			tune_failsafe(true);
 
 		} else {
-			set_tune(TONE_STOP_TUNE);
+			set_tune(tune_control_s::TUNE_ID_STOP);
 		}
 
 		/* reset arm_tune_played when disarmed */
@@ -2477,7 +2477,7 @@ Commander::run()
 		if (!sensor_fail_tune_played && (!status_flags.condition_system_sensors_initialized
 						 && status_flags.condition_system_hotplug_timeout)) {
 
-			set_tune_override(TONE_GPS_WARNING_TUNE);
+			set_tune_override(tune_control_s::TUNE_ID_GPS_WARNING);
 			sensor_fail_tune_played = true;
 			_status_changed = true;
 		}
