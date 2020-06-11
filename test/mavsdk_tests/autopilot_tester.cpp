@@ -101,10 +101,12 @@ void AutopilotTester::connect(const std::string uri)
 
 	auto &system = _mavsdk.system();
 
-	_telemetry.reset(new Telemetry(system));
 	_action.reset(new Action(system));
+	_failure.reset(new Failure(system));
 	_mission.reset(new Mission(system));
 	_offboard.reset(new Offboard(system));
+	_param.reset(new Param(system));
+	_telemetry.reset(new Telemetry(system));
 }
 
 void AutopilotTester::wait_until_ready()
@@ -262,6 +264,36 @@ void AutopilotTester::execute_mission()
 	[this]() {
 		auto result = _mission->is_mission_finished();
 		return result.first == Mission::Result::Success && result.second;
+	}, std::chrono::seconds(60)));
+
+	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+}
+
+void AutopilotTester::execute_mission_and_lose_gps()
+{
+	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
+
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+
+	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
+		std::cout << "Progress: " << progress.current << "/" << progress.total;
+
+		if (progress.current == 1) {
+			CHECK(_failure->inject(Failure::FailureUnit::SensorGps, Failure::FailureType::Off)
+			      == Failure::Result::Success);
+		}
+	});
+
+	_mission->start_mission_async([&prom](Mission::Result result) {
+		REQUIRE(Mission::Result::Success == result);
+		prom.set_value();
+	});
+
+	REQUIRE(poll_condition_with_timeout(
+	[this]() {
+		auto flight_mode = _telemetry->flight_mode();
+		return flight_mode == Telemetry::FlightMode::Land;
 	}, std::chrono::seconds(60)));
 
 	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
