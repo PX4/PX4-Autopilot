@@ -41,6 +41,11 @@
 
 #pragma once
 
+#include <ActuatorEffectiveness.hpp>
+#include <ActuatorEffectivenessMultirotor.hpp>
+#include <ActuatorEffectivenessStandardVTOL.hpp>
+#include <ActuatorEffectivenessTiltrotorVTOL.hpp>
+
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
 #include <ControlAllocationSequentialDesaturation.hpp>
@@ -98,15 +103,13 @@ private:
 	void parameters_updated();
 
 	void update_allocation_method();
+	void update_effectiveness_source();
 
 	void publish_actuator_setpoint();
 	void publish_control_allocator_status();
 
 	void publish_legacy_actuator_controls();
 	void publish_legacy_multirotor_motor_limits();
-
-	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> getEffectivenessMatrix();
-	const matrix::Vector<float, NUM_ACTUATORS> getActuatorTrim();
 
 	enum class AllocationMethod {
 		NONE = -1,
@@ -117,12 +120,16 @@ private:
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation{nullptr}; 	///< class for control allocation calculations
 
-	enum class Airframe {
-		QUAD_W = 0,
-		HEXA_X = 1,
+	enum class EffectivenessSource {
+		NONE = -1,
+		MC_PARAMS = 0,
+		QUAD_W = 1,
 		STANDARD_VTOL = 2,
 		TILTROTOR_VTOL = 3,
 	};
+
+	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
+	ActuatorEffectiveness *_actuator_effectiveness{nullptr}; 	///< class providing actuator effectiveness
 
 	// Inputs
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};  /**< vehicle torque setpoint subscription */
@@ -146,14 +153,6 @@ private:
 
 	// float _battery_scale_factor{1.0f};
 	// float _airspeed_scale_factor{1.0f};
-
-	enum class FlightPhase {
-		HOVER_FLIGHT = 0,
-		FORWARD_FLIGHT = 1,
-		TRANSITION_HF_TO_FF = 2,
-		TRANSITION_FF_TO_HF = 3
-	};
-	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
