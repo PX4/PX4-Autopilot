@@ -120,17 +120,17 @@
 #define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_ADC /* Brick 2 is Chosen  */
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C   /* USB     is Chosen */
 
-#define GPIO_nVDD_5V_HIPOWER_EN         /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN11)
+#define GPIO_VDD_5V_HIPOWER_EN          /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN11)
 #define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_VDD_5V_RC_EN               /* PG5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN5)
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PG7  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN7)
 
-#define GPIO_nVDD_5V_HIPOWER_OC         /* PJ3 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTJ|GPIO_PIN3)
+#define GPIO_VDD_5V_HIPOWER_OC          /* PJ3 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTJ|GPIO_PIN3)
 #define GPIO_nVDD_5V_PERIPH_OC          /* PJ4 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTJ|GPIO_PIN4)
 
 /* Power switch controls ******************************************************/
 #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
-#define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
+#define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_VDD_5V_HIPOWER_EN, (on_true))
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
 
 #define SPEKTRUM_POWER(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))
@@ -187,7 +187,7 @@
 #define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
 #define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
-#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
+#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC))
 
 
 /* This board provides a DMA pool and APIs */
@@ -218,8 +218,8 @@
 		GPIO_nPOWER_IN_C,                 \
 		GPIO_nVDD_5V_PERIPH_EN,           \
 		GPIO_nVDD_5V_PERIPH_OC,           \
-		GPIO_nVDD_5V_HIPOWER_EN,          \
-		GPIO_nVDD_5V_HIPOWER_OC,          \
+		GPIO_VDD_5V_HIPOWER_EN,           \
+		GPIO_VDD_5V_HIPOWER_OC,          \
 		GPIO_VDD_5V_RC_EN,                \
 		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D0), \
 		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D1), \
