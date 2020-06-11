@@ -184,6 +184,24 @@ public:
         return operator*=(Type(1) / other);
     }
 
+    Matrix<Type, P, Q> operator*(const Type& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        Matrix<Type, P, Q> res;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                res(i, j) = self(i, j) * other;
+            }
+        }
+        return res;
+    }
+
+    Matrix<Type, P, Q> operator/(const Type& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        return self * (Type(1) / other);
+    }
+
     template<size_t R, size_t S>
     const Slice<Type, R, S, M, N> slice(size_t x0, size_t y0) const
     {

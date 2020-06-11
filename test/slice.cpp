@@ -208,6 +208,16 @@ int main()
     float O_check_data_10 [9] = {0, 2, 3,  4, 2.5, 6,  7, 4, 10};
     TEST(isEqual(O, SquareMatrix3f(O_check_data_10)));
 
+    // Different operations
+    O = SquareMatrix3f(data);
+    SquareMatrix<float, 2> res_11(O.slice<2,2>(1,1) * 2.f);
+    float O_check_data_11 [4] = {10, 12, 16, 20};
+    TEST(isEqual(res_11, SquareMatrix<float, 2>(O_check_data_11)));
+
+    O = SquareMatrix3f(data);
+    SquareMatrix<float, 2> res_12(O.slice<2,2>(1,1) / 2.f);
+    float O_check_data_12 [4] = {2.5, 3, 4, 5};
+    TEST(isEqual(res_12, SquareMatrix<float, 2>(O_check_data_12)));
     return 0;
 }
 
