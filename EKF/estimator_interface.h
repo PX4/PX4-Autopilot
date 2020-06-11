@@ -44,7 +44,7 @@
 #include <ecl.h>
 #include "common.h"
 #include "RingBuffer.h"
-#include "AlphaFilter.hpp"
+#include <AlphaFilter/AlphaFilter.hpp>
 #include "imu_down_sampler.hpp"
 #include "EKFGSF_yaw.h"
 #include "sensor_range_finder.hpp"
