@@ -42,8 +42,6 @@
 
 #pragma once
 
-#include "../ecl.h"
-
 template <typename T>
 class AlphaFilter {
 public:
@@ -59,7 +57,11 @@ public:
 	 * @param time_constant filter time constant determining convergence
 	 */
 	void setParameters(float sample_interval, float time_constant) {
-		setAlpha(sample_interval / (time_constant + sample_interval));
+		const float denominator = time_constant + sample_interval;
+
+		if (denominator > FLT_EPSILON) {
+			setAlpha(sample_interval / denominator);
+		}
 	}
 
 	/**
@@ -67,11 +69,7 @@ public:
 	 *
 	 * @param alpha [0,1] filter weight for the previous state. High value - long time constant.
 	 */
-	void setAlpha(float alpha) {
-		if (ISFINITE(alpha)) {
-			_alpha = alpha;
-		}
-	}
+	void setAlpha(float alpha) { _alpha = alpha; }
 
 	/**
 	 * Set filter state to an initial value
