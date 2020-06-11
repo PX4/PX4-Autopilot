@@ -36,9 +36,11 @@
 #include <mavsdk/mavsdk.h>
 #include <mavsdk/geometry.h>
 #include <mavsdk/plugins/action/action.h>
+#include <mavsdk/plugins/failure/failure.h>
 #include <mavsdk/plugins/mission/mission.h>
 #include <mavsdk/plugins/offboard/offboard.h>
 #include <mavsdk/plugins/telemetry/telemetry.h>
+#include <mavsdk/plugins/param/param.h>
 #include "catch2/catch.hpp"
 #include <chrono>
 #include <memory>
@@ -75,6 +77,7 @@ public:
 	void prepare_square_mission(MissionOptions mission_options);
 	void prepare_straight_mission(MissionOptions mission_options);
 	void execute_mission();
+	void execute_mission_and_lose_gps();
 	void execute_rtl();
 	void offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m = 0.3f,
 			   std::chrono::seconds timeout_duration = std::chrono::seconds(60));
@@ -96,10 +99,12 @@ private:
 	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 
 	mavsdk::Mavsdk _mavsdk{};
-	std::unique_ptr<mavsdk::Telemetry> _telemetry{};
 	std::unique_ptr<mavsdk::Action> _action{};
+	std::unique_ptr<mavsdk::Failure> _failure{};
 	std::unique_ptr<mavsdk::Mission> _mission{};
 	std::unique_ptr<mavsdk::Offboard> _offboard{};
+	std::unique_ptr<mavsdk::Param> _param{};
+	std::unique_ptr<mavsdk::Telemetry> _telemetry{};
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 };
