@@ -308,7 +308,7 @@ void ICM40609D::ConfigureGyro()
 void ICM40609D::ConfigureSampleRate(int sample_rate)
 {
 	if (sample_rate == 0) {
-		sample_rate = 1000; // default to 1 kHz
+		sample_rate = 800; // default to 800 Hz
 	}
 
 	// round down to nearest FIFO sample dt * SAMPLES_PER_TRANSFER
@@ -321,9 +321,6 @@ void ICM40609D::ConfigureSampleRate(int sample_rate)
 	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
 
 	_fifo_accel_samples = math::min(_fifo_empty_interval_us / (1e6f / ACCEL_RATE), (float)FIFO_MAX_SAMPLES);
-
-	_px4_accel.set_update_rate(1e6f / _fifo_empty_interval_us);
-	_px4_gyro.set_update_rate(1e6f / _fifo_empty_interval_us);
 
 	ConfigureFIFOWatermark(_fifo_gyro_samples);
 }

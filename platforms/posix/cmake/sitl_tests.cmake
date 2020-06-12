@@ -104,7 +104,7 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
 
 	#set_tests_properties(shutdown PROPERTIES FAIL_REGULAR_EXPRESSION "shutdown FAILED")
-	set_tests_properties(shutdown PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
+	set_tests_properties(shutdown PROPERTIES PASS_REGULAR_EXPRESSION "Exiting NOW.")
 	sanitizer_fail_test_on_error(shutdown)
 endif()
 
@@ -145,7 +145,7 @@ foreach(cmd_name ${test_cmds})
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
 
 	sanitizer_fail_test_on_error(posix_${cmd_name})
-	set_tests_properties(posix_${cmd_name} PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
+	set_tests_properties(posix_${cmd_name} PROPERTIES PASS_REGULAR_EXPRESSION "Exiting NOW.")
 endforeach()
 
 if(CMAKE_BUILD_TYPE STREQUAL Coverage)

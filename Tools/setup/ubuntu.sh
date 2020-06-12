@@ -53,9 +53,9 @@ fi
 
 
 # check ubuntu version
-# instructions for 16.04, 18.04
+# instructions for 16.04, 18.04, 20.04
 # otherwise warn and point to docker?
-UBUNTU_RELEASE=`lsb_release -rs`
+UBUNTU_RELEASE="`lsb_release -rs`"
 
 if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
 	echo "Ubuntu 14.04 unsupported, see docker px4io/px4-dev-base"
@@ -64,6 +64,8 @@ elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 	echo "Ubuntu 16.04"
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 	echo "Ubuntu 18.04"
+elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+	echo "Ubuntu 20.04"
 fi
 
 
@@ -131,7 +133,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		vim-common \
 		;
 
-	if [ ! -z "$USER" ]; then
+	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
 		sudo usermod -a -G dialout $USER
 	fi
@@ -144,7 +146,7 @@ if [ $(which arm-none-eabi-gcc) ]; then
 	GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
 fi
 
-	if [ ! ${GCC_FOUND_VER+x} && $GCC_FOUND_VER -eq "1" ]; then
+	if [[ "$GCC_FOUND_VER" == "1" ]]; then
 		echo "arm-none-eabi-gcc-${NUTTX_GCC_VERSION} found, skipping installation"
 
 	else
@@ -171,6 +173,11 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	echo
 	echo "Installing PX4 simulation dependencies"
 
+	# General simulation dependencies
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		bc \
+		;
+
 	# Java 8 (jmavsim or fastrtps)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		ant \
@@ -190,6 +197,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		gstreamer1.0-plugins-base \
 		gstreamer1.0-plugins-good \
 		gstreamer1.0-plugins-ugly \
+		gstreamer1.0-libav \
 		libeigen3-dev \
 		libgazebo9-dev \
 		libgstreamer-plugins-base1.0-dev \

@@ -852,7 +852,7 @@ Replay::run()
 
 		//TODO: add parameter -q?
 		replay_file.close();
-		px4_shutdown_request(false, false);
+		px4_shutdown_request();
 	}
 
 	onExitMainLoop();

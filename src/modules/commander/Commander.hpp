@@ -46,7 +46,6 @@
 
 // publications
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/test_motor.h>
@@ -367,6 +366,7 @@ private:
 	bool		_have_taken_off_since_arming{false};
 	bool		_should_set_home_on_takeoff{true};
 	bool		_flight_termination_printed{false};
+	bool		_system_power_usb_connected{false};
 
 	main_state_t	_main_state_pre_offboard{commander_state_s::MAIN_STATE_MANUAL};
 
@@ -399,7 +399,6 @@ private:
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription					_power_button_state_sub{ORB_ID(power_button_state)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_sp_man_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_subsys_sub{ORB_ID(subsystem_info)};
@@ -407,6 +406,10 @@ private:
 	uORB::Subscription					_telemetry_status_sub{ORB_ID(telemetry_status)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+
+#if defined(BOARD_HAS_POWER_CONTROL)
+	uORB::Subscription					_power_button_state_sub {ORB_ID(power_button_state)};
+#endif // BOARD_HAS_POWER_CONTROL
 
 	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};

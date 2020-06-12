@@ -152,13 +152,13 @@ extern orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const v
  * @see uORB::Manager::orb_advertise_multi()
  */
 extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					int priority) __EXPORT;
+					enum ORB_PRIO priority) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_advertise_multi()
  */
 extern orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
-		int priority, unsigned int queue_size) __EXPORT;
+		enum ORB_PRIO priority, unsigned int queue_size) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_unadvertise()
@@ -179,8 +179,7 @@ extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, con
  * @see uORB::Manager::orb_advertise_multi() for meaning of the individual parameters
  */
 static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data,
-				   int *instance,
-				   int priority)
+				   int *instance, enum ORB_PRIO priority)
 {
 	if (!*handle) {
 		*handle = orb_advertise_multi(meta, data, instance, priority);
@@ -237,7 +236,7 @@ extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
 /**
  * @see uORB::Manager::orb_priority()
  */
-extern int	orb_priority(int handle, int32_t *priority) __EXPORT;
+extern int	orb_priority(int handle, enum ORB_PRIO *priority) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_set_interval()

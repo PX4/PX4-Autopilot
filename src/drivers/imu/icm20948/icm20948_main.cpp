@@ -103,7 +103,7 @@ icm20948_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = ICM20948;
 	BusCLIArguments cli{true, true};
-	cli.default_spi_frequency = 1000 * 1000; // low speed freq
+	cli.default_spi_frequency = 20 * 1000 * 1000;
 	cli.default_i2c_frequency = 400000;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {

@@ -45,7 +45,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/uORBTopics.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -488,6 +488,19 @@ bool Logger::initialize_topics()
 
 	if (!logged_topics.initialize_logged_topics(sdlog_profile)) {
 		return false;
+	}
+
+	if ((sdlog_profile & SDLogProfileMask::RAW_IMU_ACCEL_FIFO) || (sdlog_profile & SDLogProfileMask::RAW_IMU_GYRO_FIFO)) {
+		// if we are logging high-rate FIFO, reduce the logging interval & increase process priority to avoid missing samples
+		PX4_INFO("Logging FIFO data: increasing task prio and logging rate");
+		_log_interval = 800;
+		sched_param param{};
+		param.sched_priority = SCHED_PRIORITY_ATTITUDE_CONTROL;
+		int ret = pthread_setschedparam(pthread_self(), SCHED_DEFAULT, &param);
+
+		if (ret != 0) {
+			PX4_ERR("pthread_setschedparam failed (%i)", ret);
+		}
 	}
 
 	delete[](_subscriptions);
@@ -1207,7 +1220,7 @@ void Logger::start_log_file(LogType type)
 
 	if (type == LogType::Full) {
 		/* print logging path, important to find log file later */
-		mavlink_log_info(&_mavlink_log_pub, "[logger] file:%s", file_name);
+		mavlink_log_info(&_mavlink_log_pub, "[logger] %s", file_name);
 	}
 
 	_writer.start_log_file(type, file_name);

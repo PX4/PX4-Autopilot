@@ -39,7 +39,7 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/sensor_gyro.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/atomic.h>

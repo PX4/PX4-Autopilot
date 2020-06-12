@@ -149,11 +149,10 @@ private:
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
 
 	int _measure_interval{MB12XX_MEASURE_INTERVAL};	// Initialize the measure interval for a single sensor.
-	int _orb_class_instance{-1};
 
-	size_t _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
+	int _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
 
-	size_t _sensor_count{0};
+	int _sensor_count{0};
 
 	orb_advert_t _distance_sensor_topic{nullptr};
 
@@ -347,8 +346,8 @@ MB12XX::print_status()
 	perf_print_counter(_comms_error);
 	PX4_INFO("poll interval:  %ums", _measure_interval / 1000);
 
-	for (size_t i = 0; i < _sensor_count; i++) {
-		PX4_INFO("sensor: %u, address %u", i, _sensor_addresses[i]);
+	for (int i = 0; i < _sensor_count; i++) {
+		PX4_INFO("sensor: %i, address %u", i, _sensor_addresses[i]);
 	}
 }
 

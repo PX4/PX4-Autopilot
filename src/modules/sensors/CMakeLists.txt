@@ -41,7 +41,6 @@ add_subdirectory(vehicle_imu)
 px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
-	PRIORITY "SCHED_PRIORITY_MAX-5"
 	SRCS
 		voted_sensors_update.cpp
 		sensors.cpp

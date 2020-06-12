@@ -58,7 +58,6 @@ set(srcs
 	test_microbench_matrix.cpp
 	test_microbench_uorb.cpp
 	test_mixer.cpp
-	test_mount.c
 	test_param.c
 	test_parameters.cpp
 	test_perf.c
@@ -80,6 +79,7 @@ set(srcs
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
 	list(APPEND srcs
+		test_mount.cpp
 		test_time.c
 		test_uart_break.c
 		)

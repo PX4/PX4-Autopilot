@@ -29,9 +29,9 @@ px4_add_board(
 		gps
 		#heater
 		#imu # all available imu drivers
-		imu/bmi088
+		imu/bosch/bmi088
 		imu/invensense/icm20602
-		imu/icm20948
+		imu/invensense/icm20948
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -103,7 +103,6 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
 		tests # tests and test runner
 		top
 		topic_listener

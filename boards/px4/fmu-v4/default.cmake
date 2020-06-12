@@ -91,6 +91,7 @@ px4_add_board(
 		#dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -105,7 +106,6 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
 		tests # tests and test runner
 		top
 		topic_listener

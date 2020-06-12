@@ -73,6 +73,8 @@
 #include <uORB/topics/power_monitor.h>
 #include <uORB/topics/parameter_update.h>
 
+using namespace time_literals;
+
 /*
  * Note that these are unshifted addresses.
  */
@@ -162,7 +164,7 @@ private:
 	void 			start();
 	int 			measure();
 
-	static constexpr unsigned 		_meas_interval{100000}; // 100ms
+	static constexpr unsigned _meas_interval_us{100_ms};
 	perf_counter_t		_sample_perf;
 
 	uORB::PublicationMulti<power_monitor_s>		_pm_pub_topic{ORB_ID(power_monitor)};

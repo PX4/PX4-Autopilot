@@ -166,7 +166,7 @@ private:
 
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl)
+	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers)
 {
 	_vel_prev.zero();
 	_pos_acc.zero();
@@ -274,7 +274,7 @@ AttitudeEstimatorQ::Run()
 					// vision external heading usage (ATT_EXT_HDG_M 1)
 					if (_param_att_ext_hdg_m.get() == 1) {
 						// Check for timeouts on data
-						_ext_hdg_good = vision.timestamp > 0 && (hrt_elapsed_time(&vision.timestamp) < 500000);
+						_ext_hdg_good = vision.timestamp_sample > 0 && (hrt_elapsed_time(&vision.timestamp_sample) < 500000);
 					}
 				}
 			}
@@ -303,7 +303,7 @@ AttitudeEstimatorQ::Run()
 					// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
 					if (_param_att_ext_hdg_m.get() == 2) {
 						// Check for timeouts on data
-						_ext_hdg_good = mocap.timestamp > 0 && (hrt_elapsed_time(&mocap.timestamp) < 500000);
+						_ext_hdg_good = mocap.timestamp_sample > 0 && (hrt_elapsed_time(&mocap.timestamp_sample) < 500000);
 					}
 				}
 			}

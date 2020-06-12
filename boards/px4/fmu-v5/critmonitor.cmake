@@ -107,7 +107,6 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
 		tests # tests and test runner
 		top
 		topic_listener

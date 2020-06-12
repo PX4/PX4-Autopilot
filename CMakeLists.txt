@@ -181,6 +181,18 @@ if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE ${PX4_BUILD_TYPE} CACHE STRING "Build type" FORCE)
 endif()
 
+if((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "Coverage"))
+	set(MAX_CUSTOM_OPT_LEVEL -O0)
+elseif(CMAKE_BUILD_TYPE MATCHES "Sanitizer")
+	set(MAX_CUSTOM_OPT_LEVEL -O1)
+else()
+	if(px4_constrained_flash_build)
+		set(MAX_CUSTOM_OPT_LEVEL -Os)
+	else()
+		set(MAX_CUSTOM_OPT_LEVEL -O2)
+	endif()
+endif()
+
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage;AddressSanitizer;UndefinedBehaviorSanitizer")
 message(STATUS "cmake build type: ${CMAKE_BUILD_TYPE}")
 

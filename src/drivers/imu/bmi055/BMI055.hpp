@@ -48,8 +48,6 @@
 
 #define BMI055_BUS_SPEED				10*1000*1000
 
-#define BMI055_TIMER_REDUCTION				200
-
 class BMI055 : public device::SPI, public I2CSPIDriver<BMI055>
 {
 public:
@@ -86,7 +84,7 @@ protected:
 	* @param       The register to read.
 	* @return      The value that was read.
 	*/
-	uint8_t         read_reg(unsigned reg);
+	uint8_t         read_reg(unsigned reg) override;
 	uint16_t        read_reg16(unsigned reg);
 
 	/**
@@ -94,7 +92,8 @@ protected:
 	*
 	* @param reg       The register to write.
 	* @param value     The new value to write.
+	* @return	   OK on success, negative errno otherwise.
 	*/
-	void            write_reg(unsigned reg, uint8_t value);
+	int            write_reg(unsigned reg, uint8_t value) override;
 
 };

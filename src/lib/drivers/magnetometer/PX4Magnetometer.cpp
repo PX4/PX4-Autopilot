@@ -36,12 +36,14 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-PX4Magnetometer::PX4Magnetometer(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
+PX4Magnetometer::PX4Magnetometer(uint32_t device_id, ORB_PRIO priority, enum Rotation rotation) :
 	CDev(nullptr),
 	_sensor_mag_pub{ORB_ID(sensor_mag), priority},
 	_rotation{rotation}
 {
 	_class_device_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
+
+	_sensor_mag_pub.advertise();
 
 	_sensor_mag_pub.get().device_id = device_id;
 	_sensor_mag_pub.get().scaling = 1.0f;
@@ -53,6 +55,8 @@ PX4Magnetometer::~PX4Magnetometer()
 	if (_class_device_instance != -1) {
 		unregister_class_devname(MAG_BASE_DEVICE_PATH, _class_device_instance);
 	}
+
+	_sensor_mag_pub.unadvertise();
 }
 
 int PX4Magnetometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)

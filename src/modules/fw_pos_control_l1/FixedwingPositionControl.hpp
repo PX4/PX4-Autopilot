@@ -253,6 +253,8 @@ private:
 
 	bool _vtol_tailsitter{false};
 
+	Vector2f _transition_waypoint{NAN, NAN};
+
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position
 	uint8_t _alt_reset_counter{0};				///< captures the number of times the estimator has reset the altitude state

@@ -33,6 +33,7 @@
 
 #include "SF0X.hpp"
 
+#include <fcntl.h>
 #include <termios.h>
 
 /* Configuration Constants */

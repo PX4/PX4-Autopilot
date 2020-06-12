@@ -949,8 +949,7 @@ param_get_default_file()
 	return (param_user_file != nullptr) ? param_user_file : param_default_file;
 }
 
-int
-param_save_default()
+int param_save_default()
 {
 	int res = PX4_ERROR;
 
@@ -965,11 +964,22 @@ param_save_default()
 		return res;
 	}
 
+	int shutdown_lock_ret = px4_shutdown_lock();
+
+	if (shutdown_lock_ret) {
+		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
+	}
+
 	/* write parameters to temp file */
 	int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		PX4_ERR("failed to open param file: %s", filename);
+
+		if (shutdown_lock_ret == 0) {
+			px4_shutdown_unlock();
+		}
+
 		return PX4_ERROR;
 	}
 
@@ -990,6 +1000,10 @@ param_save_default()
 	}
 
 	PARAM_CLOSE(fd);
+
+	if (shutdown_lock_ret == 0) {
+		px4_shutdown_unlock();
+	}
 
 	return res;
 }
@@ -1087,8 +1101,7 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_INT32: {
 				const int32_t i = s->val.i;
-
-				PX4_DEBUG("exporting: %s (%d) size: %d val: %d", name, s->param, size, i);
+				PX4_DEBUG("exporting: %s (%d) size: %lu val: %d", name, s->param, (long unsigned int)size, i);
 
 				if (bson_encoder_append_int(&encoder, name, i)) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1099,8 +1112,7 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_FLOAT: {
 				const double f = (double)s->val.f;
-
-				PX4_DEBUG("exporting: %s (%d) size: %d val: %.3f", name, s->param, size, (double)f);
+				PX4_DEBUG("exporting: %s (%d) size: %lu val: %.3f", name, s->param, (long unsigned int)size, (double)f);
 
 				if (bson_encoder_append_double(&encoder, name, f)) {
 					PX4_ERR("BSON append failed for '%s'", name);

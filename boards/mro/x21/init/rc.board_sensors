@@ -5,12 +5,6 @@
 
 adc start
 
-# External I2C bus
-hmc5883 -T -X start
-lis3mdl -X start
-ist8310 -X start
-qmc5883 -X start
-
 # Internal SPI bus ICM-20608-G
 icm20608g -s -R 8 start
 

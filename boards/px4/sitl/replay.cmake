@@ -11,7 +11,6 @@ px4_add_board(
 	SYSTEMCMDS
 		param
 		perf
-		reboot
 		shutdown
 		topic_listener
 		ver

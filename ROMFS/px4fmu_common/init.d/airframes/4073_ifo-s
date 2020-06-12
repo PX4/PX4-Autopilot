@@ -90,18 +90,17 @@ then
 
 	# Position control
 	param set MPC_Z_P 1.10000
-	param set MPC_Z_VEL_P 0.30000
-	param set MPC_Z_VEL_I 0.05000
-	param set MPC_Z_VEL_D 0.00000
+	param set MPC_Z_VEL_P_ACC 6
+	param set MPC_Z_VEL_I_ACC 1
 
 	param set MPC_THR_MIN 0.06000
 	param set MPC_THR_HOVER 0.4400
 
 	param set MIS_TAKEOFF_ALT 1.1000
 	param set MPC_XY_P 1.7000
-	param set MPC_XY_VEL_P 0.1300
-	param set MPC_XY_VEL_I 0.0600
-	param set MPC_XY_VEL_D 0.0100
+	param set MPC_XY_VEL_P_ACC 2.6
+	param set MPC_XY_VEL_I_ACC 1.2
+	param set MPC_XY_VEL_D_ACC 0.2
 	param set MPC_TKO_RAMP_T 1.0000
 	param set MPC_TKO_SPEED 1.1000
 	param set MPC_VEL_MANUAL 3.0000

@@ -170,11 +170,11 @@ AK09916::check_id()
 	return (AK09916_DEVICE_ID_A == deviceid);
 }
 
-void
+int
 AK09916::write_reg(uint8_t reg, uint8_t value)
 {
 	const uint8_t cmd[2] = { reg, value};
-	transfer(cmd, 2, nullptr, 0);
+	return transfer(cmd, 2, nullptr, 0);
 }
 
 int

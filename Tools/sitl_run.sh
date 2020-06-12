@@ -9,7 +9,7 @@ fi
 
 if [[ -n "$DONT_RUN" ]]; then
 	echo "Not running simulation (DONT_RUN is set)."
-    exit 0
+	exit 0
 fi
 
 sitl_bin="$1"
@@ -121,6 +121,12 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
+elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
+	echo "FG setup"
+	cd "${src_path}/Tools/flightgear_bridge/"
+	"${src_path}/Tools/flightgear_bridge/FG_run.py" "models/"${model}".json" 0
+	"${build_path}/build_flightgear_bridge/flightgear_bridge" 0 `./get_FGbridge_params.py "models/"${model}".json"` &
+	FG_BRIDGE_PID=`echo $!`
 fi
 
 pushd "$rootfs" >/dev/null
@@ -171,4 +177,7 @@ elif [ "$program" == "gazebo" ]; then
 	if [[ ! -n "$HEADLESS" ]]; then
 		kill -9 $GUI_PID
 	fi
+elif [ "$program" == "flightgear" ]; then
+	kill $FG_BRIDGE_PID
+	kill -9 `cat /tmp/px4fgfspid_0`
 fi

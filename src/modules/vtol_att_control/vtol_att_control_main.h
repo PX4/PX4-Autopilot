@@ -79,7 +79,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-
+#include <uORB/topics/vehicle_status.h>
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
@@ -146,6 +146,7 @@ private:
 	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};		//vehicle attitude subscription
 	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};	//vehicle control mode subscription
 	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<actuator_controls_s>		_actuators_0_pub{ORB_ID(actuator_controls_0)};		//input for the mixer (roll,pitch,yaw,thrust)
 	uORB::Publication<actuator_controls_s>		_actuators_1_pub{ORB_ID(actuator_controls_1)};
@@ -207,6 +208,9 @@ private:
 		param_t dec_to_pitch_i;
 		param_t back_trans_dec_sp;
 		param_t vt_mc_on_fmu;
+		param_t vt_forward_thrust_enable_mode;
+		param_t mpc_land_alt1;
+		param_t mpc_land_alt2;
 	} _params_handles{};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
