@@ -342,8 +342,10 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!");
 				return false;
 			}
+
 			// get the parameter for min take off altitude in meters
 			float takeoff_alt_min = _navigator->get_takeoff_min_alt();
+
 			// check if it is set to something meaning full and if the take off altitude is set above the parameter
 			if (takeoff_alt_min > 0 && takeoff_alt < takeoff_alt_min) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!");
