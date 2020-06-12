@@ -130,6 +130,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		libncurses-dev \
 		libtool \
 		pkg-config \
+		screen \
 		vim-common \
 		;
 
