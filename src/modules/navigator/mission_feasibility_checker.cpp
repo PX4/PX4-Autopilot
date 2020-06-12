@@ -323,7 +323,7 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 		}
 
 		// look for a takeoff waypoint
-		if (missionitem.nav_cmd == NAV_CMD_TAKEOFF) {
+		if (missionitem.nav_cmd == NAV_CMD_TAKEOFF || missionitem.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 			// make sure that the altitude of the waypoint is at least one meter larger than the acceptance radius
 			// this makes sure that the takeoff waypoint is not reached before we are at least one meter in the air
 
@@ -339,6 +339,13 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 			}
 
 			if (takeoff_alt - 1.0f < acceptance_radius) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!");
+				return false;
+			}
+			// get the parameter for min take off altitude in meters
+			float takeoff_alt_min = _navigator->get_takeoff_min_alt();
+			// check if it is set to something meaning full and if the take off altitude is set above the parameter
+			if (takeoff_alt_min>0 && takeoff_alt < takeoff_alt_min) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!");
 				return false;
 			}
