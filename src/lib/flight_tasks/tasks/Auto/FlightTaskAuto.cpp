@@ -102,11 +102,10 @@ void FlightTaskAuto::_limitYawRate()
 		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
 		const float dyaw_max = yawrate_max * _deltatime;
 		const float dyaw = math::constrain(dyaw_desired, -dyaw_max, dyaw_max);
-		float yaw_setpoint_sat = _yaw_sp_prev + dyaw;
-		yaw_setpoint_sat = matrix::wrap_pi(yaw_setpoint_sat);
+		const float yaw_setpoint_sat = matrix::wrap_pi(_yaw_sp_prev + dyaw);
 
 		// The yaw setpoint is aligned when it is within tolerance
-		_yaw_sp_aligned = fabsf(_yaw_setpoint - yaw_setpoint_sat) < math::radians(_param_mis_yaw_err.get());
+		_yaw_sp_aligned = fabsf(matrix::wrap_pi(_yaw_setpoint - yaw_setpoint_sat)) < math::radians(_param_mis_yaw_err.get());
 
 		_yaw_setpoint = yaw_setpoint_sat;
 		_yaw_sp_prev = _yaw_setpoint;
@@ -121,7 +120,7 @@ void FlightTaskAuto::_limitYawRate()
 		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
 
 		// The yaw setpoint is aligned when its rate is not saturated
-		_yaw_sp_aligned = fabsf(_yawspeed_setpoint) < yawrate_max;
+		_yaw_sp_aligned = _yaw_sp_aligned && (fabsf(_yawspeed_setpoint) < yawrate_max);
 	}
 }
 
