@@ -52,6 +52,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		ext_state_est
 		events
 		land_detector
 		load_mon

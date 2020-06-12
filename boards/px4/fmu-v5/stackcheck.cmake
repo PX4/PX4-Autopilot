@@ -68,6 +68,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		ext_state_est
 		#esc_battery
 		events
 		fw_att_control
