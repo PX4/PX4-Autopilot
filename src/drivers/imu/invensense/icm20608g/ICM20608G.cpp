@@ -309,27 +309,28 @@ void ICM20608G::ConfigureGyro()
 {
 	const uint8_t FS_SEL = RegisterRead(Register::GYRO_CONFIG) & (Bit4 | Bit3); // [4:3] FS_SEL[1:0]
 
+	float range_dps = 0.f;
+
 	switch (FS_SEL) {
 	case FS_SEL_250_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 131.f));
-		_px4_gyro.set_range(math::radians(250.f));
+		range_dps = 250.f;
 		break;
 
 	case FS_SEL_500_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 65.5f));
-		_px4_gyro.set_range(math::radians(500.f));
+		range_dps = 500.f;
 		break;
 
 	case FS_SEL_1000_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 32.8f));
-		_px4_gyro.set_range(math::radians(1000.f));
+		range_dps = 1000.f;
 		break;
 
 	case FS_SEL_2000_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 16.4f));
-		_px4_gyro.set_range(math::radians(2000.f));
+		range_dps = 2000.f;
 		break;
 	}
+
+	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
+	_px4_gyro.set_range(math::radians(range_dps));
 }
 
 void ICM20608G::ConfigureSampleRate(int sample_rate)
