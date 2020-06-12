@@ -31,47 +31,62 @@
  *
  ****************************************************************************/
 
-#include <mavsdk/mavsdk.h>
-#include <mavsdk/plugins/action/action.h>
-#include <mavsdk/plugins/telemetry/telemetry.h>
-#include <iostream>
-#include <string>
-#include "autopilot_tester.h"
+#include "BMI088.hpp"
 
+#include "BMI088_Accelerometer.hpp"
+#include "BMI088_Gyroscope.hpp"
 
-TEST_CASE("Offboard takeoff and land", "[multicopter][offboard][nogps]")
+I2CSPIDriverBase *BMI088::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
 {
-	AutopilotTester tester;
-	Offboard::PositionNedYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
-	tester.connect(connection_url);
-	tester.wait_until_ready_local_position_only();
-	tester.store_home();
-	tester.arm();
-	std::chrono::seconds goto_timeout = std::chrono::seconds(20);
-	tester.offboard_goto(takeoff_position, 0.1f, goto_timeout);
-	tester.offboard_land();
-	tester.wait_until_disarmed(goto_timeout);
-	tester.check_home_within(1.0f);
+	BMI088 *instance = nullptr;
+
+	if (cli.type == DRV_ACC_DEVTYPE_BMI088) {
+		instance = new Bosch::BMI088::Accelerometer::BMI088_Accelerometer(iterator.configuredBusOption(), iterator.bus(),
+				iterator.devid(), cli.rotation, cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+
+	} else if (cli.type == DRV_GYR_DEVTYPE_BMI088) {
+		instance = new Bosch::BMI088::Gyroscope::BMI088_Gyroscope(iterator.configuredBusOption(), iterator.bus(),
+				iterator.devid(), cli.rotation, cli.bus_frequency, cli.spi_mode, iterator.DRDYGPIO());
+	}
+
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
+	if (OK != instance->init()) {
+		delete instance;
+		return nullptr;
+	}
+
+	return instance;
 }
 
-TEST_CASE("Offboard position control", "[multicopter][offboard][nogps]")
+BMI088::BMI088(uint8_t devtype, const char *name, I2CSPIBusOption bus_option, int bus, uint32_t device,
+	       enum spi_mode_e mode, uint32_t frequency, spi_drdy_gpio_t drdy_gpio) :
+	SPI(devtype, name, bus, device, mode, frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, devtype),
+	_drdy_gpio(drdy_gpio)
 {
-	AutopilotTester tester;
-	Offboard::PositionNedYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
-	Offboard::PositionNedYaw setpoint_1 {0.0f, 5.0f, -2.0f, 180.0f};
-	Offboard::PositionNedYaw setpoint_2 {5.0f, 5.0f, -4.0f, 180.0f};
-	Offboard::PositionNedYaw setpoint_3 {5.0f, 0.0f, -4.0f, 90.0f};
-	tester.connect(connection_url);
-	tester.wait_until_ready_local_position_only();
-	tester.store_home();
-	tester.arm();
-	std::chrono::seconds goto_timeout = std::chrono::seconds(20);
-	tester.offboard_goto(takeoff_position, 0.1f, goto_timeout);
-	tester.offboard_goto(setpoint_1, 0.1f, goto_timeout);
-	tester.offboard_goto(setpoint_2, 0.1f, goto_timeout);
-	tester.offboard_goto(setpoint_3, 0.1f, goto_timeout);
-	tester.offboard_goto(takeoff_position, 0.1f, goto_timeout);
-	tester.offboard_land();
-	tester.wait_until_disarmed(goto_timeout);
-	tester.check_home_within(1.0f);
+}
+
+int BMI088::init()
+{
+	int ret = SPI::init();
+
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("SPI::init failed (%i)", ret);
+		return ret;
+	}
+
+	return Reset() ? 0 : -1;
+}
+
+bool BMI088::Reset()
+{
+	_state = STATE::RESET;
+	ScheduleClear();
+	ScheduleNow();
+	return true;
 }

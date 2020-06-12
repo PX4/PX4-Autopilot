@@ -65,14 +65,14 @@
  * where the code expects to begin execution by jumping to the entry point in
  * the 0x0800:0000 address range.
  *
- * Bootloader reserves the first 32K bank (2 Mbytes Flash memory single bank)
+ * Bootloader reserves three 32K banks (2 Mbytes Flash memory single bank)
  * organization (256 bits read width)
  */
 
 MEMORY
 {
-    FLASH_ITCM (rx) : ORIGIN = 0x00208000, LENGTH = 2016K
-    FLASH_AXIM (rx) : ORIGIN = 0x08008000, LENGTH = 2016K
+    FLASH_ITCM (rx) : ORIGIN = 0x00218000, LENGTH = 1952K
+    FLASH_AXIM (rx) : ORIGIN = 0x08018000, LENGTH = 1952K
 
     ITCM_RAM (rwx) : ORIGIN = 0x00000000, LENGTH = 16K
     DTCM_RAM (rwx) : ORIGIN = 0x20000000, LENGTH = 128K

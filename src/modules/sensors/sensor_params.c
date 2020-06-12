@@ -191,3 +191,14 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
+
+/**
+ * External I2C probe.
+ *
+ * Probe for optional external I2C devices.
+ *
+ * @boolean
+ * @category system
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_EXT_I2C_PRB, 1);
