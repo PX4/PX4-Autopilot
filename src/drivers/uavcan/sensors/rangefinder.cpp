@@ -42,7 +42,8 @@
 const char *const UavcanRangefinderBridge::NAME = "rangefinder";
 
 UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_rangefinder", "/dev/uavcan/rangefinder", RANGE_FINDER_BASE_DEVICE_PATH, ORB_ID(distance_sensor)),
+	UavcanCDevSensorBridgeBase("uavcan_rangefinder", "/dev/uavcan/rangefinder", RANGE_FINDER_BASE_DEVICE_PATH,
+				   ORB_ID(distance_sensor)),
 	_sub_range_data(node)
 { }
 
@@ -90,17 +91,20 @@ UavcanRangefinderBridge::range_sub_cb(const
 	report.signal_quality		= -1;
 
 	switch (msg.sensor_type) {
-		case 0:	// Undefined - Assume laser
-			report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	case 0:	// Undefined - Assume laser
+		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 		break;
-		case 1:	// Sonar
-			report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+
+	case 1:	// Sonar
+		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 		break;
-		case 2:	// Lidar
-			report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+
+	case 2:	// Lidar
+		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 		break;
-		case 3:	// Radar
-			report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
+
+	case 3:	// Radar
+		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
 		break;
 	}
 
