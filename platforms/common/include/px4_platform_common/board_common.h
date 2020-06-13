@@ -229,9 +229,17 @@
 #endif
 
 /*
- * Defined when a board has capture and uses channels.
+ * Defined when a board has capture support.
+ *
+ * Note that pins labeled as PWM *output* also support PWM capture.
  */
-#if defined(DIRECT_INPUT_TIMER_CHANNELS) && DIRECT_INPUT_TIMER_CHANNELS > 0
+#if defined(DIRECT_PWM_CAPTURE_CHANNELS)
+#define DIRECT_IO_TIMER_CHANNELS DIRECT_PWM_OUTPUT_CHANNELS + DIRECT_PWM_CAPTURE_CHANNELS
+#else
+#define DIRECT_IO_TIMER_CHANNELS DIRECT_PWM_OUTPUT_CHANNELS
+#endif
+
+#if DIRECT_IO_TIMER_CHANNELS > 0
 #define BOARD_HAS_CAPTURE 1
 #endif
 

@@ -93,9 +93,9 @@ static inline constexpr io_timers_channel_mapping_t initIOTimerChannelMapping(co
 		++num_channels;
 	}
 
-	constexpr_assert(DIRECT_PWM_OUTPUT_CHANNELS == num_channels, "DIRECT_PWM_OUTPUT_CHANNELS misconfigured");
-	constexpr_assert(DIRECT_PWM_OUTPUT_CHANNELS <= MAX_TIMER_IO_CHANNELS,
-			 "DIRECT_PWM_OUTPUT_CHANNELS > MAX_TIMER_IO_CHANNELS");
+	constexpr_assert(DIRECT_IO_TIMER_CHANNELS == num_channels, "DIRECT_IO_TIMER_CHANNELS misconfigured");
+	constexpr_assert(DIRECT_IO_TIMER_CHANNELS <= MAX_TIMER_IO_CHANNELS,
+			 "DIRECT_IO_TIMER_CHANNELS > MAX_TIMER_IO_CHANNELS");
 
 	return ret;
 }
