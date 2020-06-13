@@ -101,7 +101,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  9
-#define DIRECT_INPUT_TIMER_CHANNELS  9
 
 /* High-resolution timer */
 #define HRT_TIMER		     5  /* use timer5 for the HRT */

@@ -99,12 +99,11 @@
 #define GPIO_TONE_ALARM              (GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
 
 /**
- * PWM:
+ * PWM Output
  *
- * Six PWM outputs are configured.
+ * Six PWM Output are configured.
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   6
-#define DIRECT_INPUT_TIMER_CHANNELS  6
+#define DIRECT_PWM_OUTPUT_CHANNELS 6
 
 /**
  * USB OTG FS:

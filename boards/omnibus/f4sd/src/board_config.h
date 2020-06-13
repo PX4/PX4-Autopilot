@@ -118,8 +118,7 @@
  *
  * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS      4
-#define DIRECT_INPUT_TIMER_CHANNELS  4
+#define DIRECT_PWM_OUTPUT_CHANNELS 4
 
 // Has pwm outputs
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS

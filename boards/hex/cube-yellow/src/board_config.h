@@ -132,7 +132,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  6
-#define DIRECT_INPUT_TIMER_CHANNELS  6
 
 /* Power supply control and monitoring GPIOs */
 #define BOARD_NUMBER_BRICKS             2

@@ -265,7 +265,7 @@ __END_DECLS
 
 /* Timer I/O PWM and capture
  *
- * 14 PWM outputs are configured.
+ * 14 PWM Output are configured.
  * 14 Timer inputs are configured.
  *
  * Pins:
@@ -273,8 +273,7 @@ __END_DECLS
  */
 // todo:Design this!
 
-#define DIRECT_PWM_OUTPUT_CHANNELS  8
-#define DIRECT_INPUT_TIMER_CHANNELS 8
+#define DIRECT_PWM_OUTPUT_CHANNELS 8
 
 /* Power supply control and monitoring GPIOs */
 // None
