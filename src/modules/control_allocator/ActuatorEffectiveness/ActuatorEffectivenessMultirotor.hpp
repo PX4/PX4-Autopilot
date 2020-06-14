@@ -44,6 +44,8 @@
 #include "ActuatorEffectiveness.hpp"
 
 #include <px4_platform_common/module_params.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 class ActuatorEffectivenessMultirotor: public ModuleParams, public ActuatorEffectiveness
 {
@@ -58,7 +60,33 @@ public:
 	 */
 	virtual bool update() override;
 
+	static constexpr int NUM_ROTORS_MAX = 8;
+
+	typedef struct {
+		float position_x;
+		float position_y;
+		float position_z;
+		float axis_x;
+		float axis_y;
+		float axis_z;
+		float k_thrust;
+		float k_moment;
+	} RotorGeometry;
+
+	typedef struct {
+		RotorGeometry rotors[NUM_ROTORS_MAX];
+	} MultirotorGeometry;
+
+	static matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> computeEffectivenessMatrix(MultirotorGeometry);
+
 private:
+	/**
+	 * initialize some vectors/matrices from parameters
+	 */
+	void parameters_updated();
+
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CA_MC_R0_PX>) _param_ca_mc_r0_px,
 		(ParamFloat<px4::params::CA_MC_R0_PY>) _param_ca_mc_r0_py,
