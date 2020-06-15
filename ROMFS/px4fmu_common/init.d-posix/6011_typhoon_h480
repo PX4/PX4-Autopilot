@@ -9,12 +9,6 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF = yes ]
 then
-	param set MC_PITCHRATE_P 0.1
-	param set MC_PITCHRATE_I 0.05
-	param set MC_PITCH_P 6.0
-	param set MC_ROLLRATE_P 0.15
-	param set MC_ROLLRATE_I 0.1
-	param set MC_ROLL_P 6.0
 	param set MPC_XY_VEL_I_ACC 4
 	param set MPC_XY_VEL_P_ACC 3
 
@@ -26,15 +20,15 @@ then
 	param set MNT_MODE_IN 0
 	param set MAV_PROTO_VER 2
 
-	param set VM_INERTIA_XX 0.005
-	param set VM_INERTIA_YY 0.005
-	param set VM_INERTIA_ZZ 0.01
+	param set MPC_USE_HTE 0
 
-	param set AVC_X_D 0.0
-	param set AVC_Y_D 0.0
-	param set AVC_Z_D 0.0
+	param set VM_MASS 2.66
+	param set VM_INERTIA_XX 0.03
+	param set VM_INERTIA_YY 0.03
+	param set VM_INERTIA_ZZ 0.05
 
 	param set CA_AIRFRAME 0
+	param set CA_METHOD 1
 	param set CA_ACT0_MIN 0.0
 	param set CA_ACT1_MIN 0.0
 	param set CA_ACT2_MIN 0.0
@@ -47,6 +41,31 @@ then
 	param set CA_ACT3_MAX 1.0
 	param set CA_ACT4_MAX 1.0
 	param set CA_ACT5_MAX 1.0
+
+	param set CA_MC_R0_PX 0.0
+	param set CA_MC_R0_PY 1.0
+	param set CA_MC_R0_CT 9.5
+	param set CA_MC_R0_KM -0.05
+	param set CA_MC_R1_PX 0.0
+	param set CA_MC_R1_PY -1.0
+	param set CA_MC_R1_CT 9.5
+	param set CA_MC_R1_KM 0.05
+	param set CA_MC_R2_PX 0.866025
+	param set CA_MC_R2_PY -0.5
+	param set CA_MC_R2_CT 9.5
+	param set CA_MC_R2_KM -0.05
+	param set CA_MC_R3_PX -0.866025
+	param set CA_MC_R3_PY 0.5
+	param set CA_MC_R3_CT 9.5
+	param set CA_MC_R3_KM 0.05
+	param set CA_MC_R4_PX 0.866025
+	param set CA_MC_R4_PY 0.5
+	param set CA_MC_R4_CT 9.5
+	param set CA_MC_R4_KM 0.05
+	param set CA_MC_R5_PX -0.866025
+	param set CA_MC_R5_PY -0.5
+	param set CA_MC_R5_CT 9.5
+	param set CA_MC_R5_KM -0.05
 fi
 
 set MAV_TYPE 13
