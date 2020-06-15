@@ -117,10 +117,10 @@ void FlightTaskAuto::_limitYawRate()
 	}
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
-		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
-
 		// The yaw setpoint is aligned when its rate is not saturated
 		_yaw_sp_aligned = _yaw_sp_aligned && (fabsf(_yawspeed_setpoint) < yawrate_max);
+
+		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
 	}
 }
 
