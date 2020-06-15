@@ -11,6 +11,8 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF = yes ]
 then
+	param set MPC_USE_HTE 0
+
 	param set VM_MASS 1.5
 	param set VM_INERTIA_XX 0.03
 	param set VM_INERTIA_YY 0.03
