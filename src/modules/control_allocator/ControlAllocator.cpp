@@ -218,8 +218,7 @@ ControlAllocator::update_effectiveness_source()
 
 		switch (source) {
 		case EffectivenessSource::NONE:
-		case EffectivenessSource::QUAD_W:
-		case EffectivenessSource::MC_PARAMS:
+		case EffectivenessSource::MULTIROTOR:
 			tmp = new ActuatorEffectivenessMultirotor();
 			break;
 
@@ -263,7 +262,7 @@ ControlAllocator::update_effectiveness_source()
 	if (_actuator_effectiveness == nullptr) {
 		PX4_ERR("Falling back to ActuatorEffectivenessMultirotor");
 		_actuator_effectiveness = new ActuatorEffectivenessMultirotor();
-		_effectiveness_source_id = EffectivenessSource::MC_PARAMS;
+		_effectiveness_source_id = EffectivenessSource::MULTIROTOR;
 	}
 }
 
@@ -532,12 +531,8 @@ int ControlAllocator::print_status()
 		PX4_INFO("EffectivenessSource: None");
 		break;
 
-	case EffectivenessSource::MC_PARAMS:
+	case EffectivenessSource::MULTIROTOR:
 		PX4_INFO("EffectivenessSource: MC parameters");
-		break;
-
-	case EffectivenessSource::QUAD_W:
-		PX4_INFO("EffectivenessSource: Quad W");
 		break;
 
 	case EffectivenessSource::STANDARD_VTOL:
