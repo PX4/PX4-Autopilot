@@ -33,7 +33,8 @@
 
 #pragma once
 
-#include <lib/ecl/validation/data_validator_group.h>
+#include "data_validator/DataValidatorGroup.hpp"
+
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
