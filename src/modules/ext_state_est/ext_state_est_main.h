@@ -31,8 +31,16 @@
  *
  ****************************************************************************/
 
+/**
+ * @file ext_state_est_main.h
+ * Passtrough for external state to the controller
+ *
+ * @author Christian Brommer and Alessandro Fornasier
+ */
+
 #pragma once
 
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -49,22 +57,16 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 
-extern "C" __EXPORT int ext_state_est_main(int argc, char *argv[]);
+class ExtStateEst final : public ModuleBase<ExtStateEst>,
+                          public ModuleParams,
+                          public px4::ScheduledWorkItem {
 
-class ExtStateEst : public ModuleBase<ExtStateEst>,
-                    public ModuleParams,
-                    public px4::ScheduledWorkItem {
 public:
-  ExtStateEst();
+  explicit ExtStateEst();
   ~ExtStateEst() override;
 
   /** @see ModuleBase */
   static int task_spawn(int argc, char *argv[]);
-
-  bool init();
-
-  /** @see ModuleBase */
-  static ExtStateEst *instantiate(int argc, char *argv[]);
 
   /** @see ModuleBase */
   static int custom_command(int argc, char *argv[]);
@@ -72,34 +74,25 @@ public:
   /** @see ModuleBase */
   static int print_usage(const char *reason = nullptr);
 
+  bool init();
+
+  int print_status() override;
+
+private:
   /** @see ModuleBase::run() */
   void Run() override;
 
-  /** @see ModuleBase::print_status() */
-  int print_status() override;
+  perf_counter_t _ext_state_perf;
 
   uORB::SubscriptionCallbackWorkItem _ext_state_sub;
+  uORB::SubscriptionCallbackWorkItem _mocap_odom_sub;
   uORB::Publication<vehicle_attitude_s> _att_pub;
   uORB::PublicationData<vehicle_global_position_s> _vehicle_global_position_pub;
   uORB::PublicationData<vehicle_local_position_s> _vehicle_local_position_pub;
 
-private:
-  /**
-   * Check for parameter changes and update them if needed.
-   * @param parameter_update_sub uorb subscription to parameter_update
-   * @param force for a parameter update
-   */
-  void parameters_update(bool force = false);
-
-  //	DEFINE_PARAMETERS(
-  //		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,
-  ///**<
-  // example parameter */
-  //		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig
-  ///**<
-  // another parameter */
-  //	)
-
-  //	// Subscriptions
-  //	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
+  bool _callback_registered{false};
 };
+
+extern "C" __EXPORT int ext_state_est_main(int argc, char *argv[]) {
+  return ExtStateEst::main(argc, argv);
+}

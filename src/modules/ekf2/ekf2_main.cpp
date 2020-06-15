@@ -747,8 +747,6 @@ bool Ekf2::update_mag_decl(Param &mag_decl_param)
 
 void Ekf2::Run()
 {
-  PX4_WARN("EKF2 Run");
-
 	if (should_exit()) {
 		_sensor_combined_sub.unregisterCallback();
 
@@ -877,6 +875,7 @@ void Ekf2::Run()
 		_ekf.setIMUData(imu_sample_new);
 
 		// publish attitude immediately (uses quaternion from output predictor)
+    PX4_WARN("EKF2 Run");
 		publish_attitude(now);
 
 		// read mag data
@@ -2450,6 +2449,7 @@ int Ekf2::custom_command(int argc, char *argv[])
 
 int Ekf2::task_spawn(int argc, char *argv[])
 {
+  PX4_INFO("Task spawn");
 	bool replay_mode = false;
 
 	if (argc > 1 && !strcmp(argv[1], "-r")) {

@@ -33,6 +33,7 @@
 
 #include "ext_state_est_main.h"
 
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -52,36 +53,15 @@
 #include <uORB/topics/vehicle_odometry.h>
 
 int ExtStateEst::print_status() {
-  PX4_INFO("Running");
-  // TODO: print additional runtime information about the state of the module
-
-  vehicle_odometry_s odom;
-
-  uORB::Publication<vehicle_odometry_s> _vehicle_odometry_pub{
-      ORB_ID(vehicle_odometry)};
-  _vehicle_odometry_pub.publish(odom);
+  perf_print_counter(_ext_state_perf);
   return 0;
 }
 
 int ExtStateEst::custom_command(int argc, char *argv[]) {
-  /*
-  if (!is_running()) {
-          print_usage("not running");
-          return 1;
-  }
-
-  // additional custom commands can be handled like this:
-  if (!strcmp(argv[0], "do-something")) {
-          get_instance()->do_something();
-          return 0;
-  }
-   */
-
   return print_usage("unknown command");
 }
 
 int ExtStateEst::task_spawn(int argc, char *argv[]) {
-
   ExtStateEst *instance = new ExtStateEst();
 
   if (instance) {
@@ -104,47 +84,62 @@ int ExtStateEst::task_spawn(int argc, char *argv[]) {
 }
 
 bool ExtStateEst::init() {
+  bool callback_status = true;
+  if (!_mocap_odom_sub.registerCallback()) {
+    callback_status = false;
+  }
   if (!_ext_state_sub.registerCallback()) {
-    PX4_ERR("sensor combined callback registration failed!");
-    return false;
+    callback_status = false;
   }
 
-  PX4_INFO("Init");
-  return true;
+  if (callback_status) {
+    PX4_INFO("Callbacks registered");
+    _callback_registered = true;
+    return true;
+  }
+
+  PX4_WARN("failed to register callback, retrying in 1 second");
+  ScheduleDelayed(1000000); // retry in 1 second
+
+  return false;
 }
 
 ExtStateEst::ExtStateEst()
     : ModuleParams(nullptr),
       ScheduledWorkItem(MODULE_NAME,
                         px4::wq_configurations::navigation_and_controllers),
+      _ext_state_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": update")),
       _ext_state_sub{this, ORB_ID(ext_core_state)},
+      _mocap_odom_sub{this, ORB_ID(vehicle_mocap_odometry)},
       _att_pub{ORB_ID(vehicle_attitude)},
       _vehicle_global_position_pub{ORB_ID(vehicle_global_position)},
-      _vehicle_local_position_pub{ORB_ID(vehicle_local_position)} {
-  PX4_WARN("RUN..");
-  // initialise parameter cache
-  updateParams();
-}
+      _vehicle_local_position_pub{ORB_ID(vehicle_local_position)} {}
 
-ExtStateEst::~ExtStateEst() {}
+ExtStateEst::~ExtStateEst() { perf_free(_ext_state_perf); }
 
 void ExtStateEst::Run() {
-  PX4_WARN("ExtState Run");
 
   if (should_exit()) {
     _ext_state_sub.unregisterCallback();
+    _mocap_odom_sub.unregisterCallback();
     exit_and_cleanup();
     return;
   }
 
+  if (!_callback_registered) {
+    init();
+    return;
+  }
+
+  perf_begin(_ext_state_perf);
+
   vehicle_odometry_s ext_state_in;
+  if (_mocap_odom_sub.update(&ext_state_in)) {
+  }
 
   if (_ext_state_sub.update(&ext_state_in)) {
 
-    PX4_WARN("Got measurement");
-
     uint64_t timestamp = ext_state_in.timestamp;
-    // vehicle_global_position_s position;
 
     vehicle_local_position_s &position = _vehicle_local_position_pub.get();
     position.timestamp = timestamp;
@@ -162,18 +157,8 @@ void ExtStateEst::Run() {
     _vehicle_local_position_pub.update();
     _att_pub.publish(attitude);
   }
-}
 
-void ExtStateEst::parameters_update(bool force) {
-  //	// check for parameter updates
-  //	if (_parameter_update_sub.updated() || force) {
-  //		// clear update
-  //		parameter_update_s update;
-  //		_parameter_update_sub.copy(&update);
-
-  //		// update parameters from storage
-  //		updateParams();
-  //	}
+  perf_end(_ext_state_perf);
 }
 
 int ExtStateEst::print_usage(const char *reason) {
@@ -181,32 +166,5 @@ int ExtStateEst::print_usage(const char *reason) {
     PX4_WARN("%s\n", reason);
   }
 
-  PRINT_MODULE_DESCRIPTION(
-      R"DESCR_STR(
-### Description
-Section that describes the provided module functionality.
-
-This is a template for a module running as a task in the background with start/stop/status functionality.
-
-### Implementation
-Section describing the high-level implementation of this module.
-
-### Examples
-CLI usage example:
-$ module start -f -p 42
-
-)DESCR_STR");
-
-  PRINT_MODULE_USAGE_NAME("module", "template");
-  PRINT_MODULE_USAGE_COMMAND("start");
-  PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
-  PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1000, "Optional example parameter",
-                               true);
-  PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
   return 0;
-}
-
-int ext_state_est_main(int argc, char *argv[]) {
-  return ExtStateEst::main(argc, argv);
 }
