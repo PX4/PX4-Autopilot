@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE modules__rover_pos_control
-	MAIN rover_pos_control
-	SRCS
-		RoverPositionControl.cpp
-		RoverPositionControl.hpp
-	DEPENDS
-		l1
-		pid
-	)
+
+px4_add_library(l1
+	ECL_L1_Pos_Controller.cpp
+	ECL_L1_Pos_Controller.hpp
+)
+
+add_dependencies(l1 git_ecl)
+target_link_libraries(l1 PRIVATE ecl_geo)
