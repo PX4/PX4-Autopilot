@@ -122,10 +122,9 @@ private:
 
 	enum class EffectivenessSource {
 		NONE = -1,
-		MC_PARAMS = 0,
-		QUAD_W = 1,
-		STANDARD_VTOL = 2,
-		TILTROTOR_VTOL = 3,
+		MULTIROTOR = 0,
+		STANDARD_VTOL = 1,
+		TILTROTOR_VTOL = 2,
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};

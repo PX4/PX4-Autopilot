@@ -44,7 +44,7 @@ then
 	# param set VT_TYPE 1
 	param set VT_TYPE 2
 
-	param set CA_AIRFRAME 3
+	param set CA_AIRFRAME 2
 
 	param set CA_ACT0_MIN 0
 	param set CA_ACT0_MAX 1
