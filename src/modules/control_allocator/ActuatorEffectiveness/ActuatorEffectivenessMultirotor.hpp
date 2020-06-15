@@ -69,8 +69,8 @@ public:
 		float axis_x;
 		float axis_y;
 		float axis_z;
-		float k_thrust;
-		float k_moment;
+		float thrust_coef;
+		float moment_ratio;
 	} RotorGeometry;
 
 	typedef struct {
@@ -94,7 +94,7 @@ private:
 		(ParamFloat<px4::params::CA_MC_R0_AX>) _param_ca_mc_r0_ax,
 		(ParamFloat<px4::params::CA_MC_R0_AY>) _param_ca_mc_r0_ay,
 		(ParamFloat<px4::params::CA_MC_R0_AZ>) _param_ca_mc_r0_az,
-		(ParamFloat<px4::params::CA_MC_R0_KT>) _param_ca_mc_r0_kt,
+		(ParamFloat<px4::params::CA_MC_R0_CT>) _param_ca_mc_r0_ct,
 		(ParamFloat<px4::params::CA_MC_R0_KM>) _param_ca_mc_r0_km,
 
 		(ParamFloat<px4::params::CA_MC_R1_PX>) _param_ca_mc_r1_px,
@@ -103,7 +103,7 @@ private:
 		(ParamFloat<px4::params::CA_MC_R1_AX>) _param_ca_mc_r1_ax,
 		(ParamFloat<px4::params::CA_MC_R1_AY>) _param_ca_mc_r1_ay,
 		(ParamFloat<px4::params::CA_MC_R1_AZ>) _param_ca_mc_r1_az,
-		(ParamFloat<px4::params::CA_MC_R1_KT>) _param_ca_mc_r1_kt,
+		(ParamFloat<px4::params::CA_MC_R1_CT>) _param_ca_mc_r1_ct,
 		(ParamFloat<px4::params::CA_MC_R1_KM>) _param_ca_mc_r1_km,
 
 		(ParamFloat<px4::params::CA_MC_R2_PX>) _param_ca_mc_r2_px,
@@ -112,7 +112,7 @@ private:
 		(ParamFloat<px4::params::CA_MC_R2_AX>) _param_ca_mc_r2_ax,
 		(ParamFloat<px4::params::CA_MC_R2_AY>) _param_ca_mc_r2_ay,
 		(ParamFloat<px4::params::CA_MC_R2_AZ>) _param_ca_mc_r2_az,
-		(ParamFloat<px4::params::CA_MC_R2_KT>) _param_ca_mc_r2_kt,
+		(ParamFloat<px4::params::CA_MC_R2_CT>) _param_ca_mc_r2_ct,
 		(ParamFloat<px4::params::CA_MC_R2_KM>) _param_ca_mc_r2_km,
 
 		(ParamFloat<px4::params::CA_MC_R3_PX>) _param_ca_mc_r3_px,
@@ -121,7 +121,7 @@ private:
 		(ParamFloat<px4::params::CA_MC_R3_AX>) _param_ca_mc_r3_ax,
 		(ParamFloat<px4::params::CA_MC_R3_AY>) _param_ca_mc_r3_ay,
 		(ParamFloat<px4::params::CA_MC_R3_AZ>) _param_ca_mc_r3_az,
-		(ParamFloat<px4::params::CA_MC_R3_KT>) _param_ca_mc_r3_kt,
+		(ParamFloat<px4::params::CA_MC_R3_CT>) _param_ca_mc_r3_ct,
 		(ParamFloat<px4::params::CA_MC_R3_KM>) _param_ca_mc_r3_km,
 
 		(ParamFloat<px4::params::CA_MC_R4_PX>) _param_ca_mc_r4_px,
@@ -130,7 +130,7 @@ private:
 		(ParamFloat<px4::params::CA_MC_R4_AX>) _param_ca_mc_r4_ax,
 		(ParamFloat<px4::params::CA_MC_R4_AY>) _param_ca_mc_r4_ay,
 		(ParamFloat<px4::params::CA_MC_R4_AZ>) _param_ca_mc_r4_az,
-		(ParamFloat<px4::params::CA_MC_R4_KT>) _param_ca_mc_r4_kt,
+		(ParamFloat<px4::params::CA_MC_R4_CT>) _param_ca_mc_r4_ct,
 		(ParamFloat<px4::params::CA_MC_R4_KM>) _param_ca_mc_r4_km,
 
 		(ParamFloat<px4::params::CA_MC_R5_PX>) _param_ca_mc_r5_px,
@@ -139,7 +139,7 @@ private:
 		(ParamFloat<px4::params::CA_MC_R5_AX>) _param_ca_mc_r5_ax,
 		(ParamFloat<px4::params::CA_MC_R5_AY>) _param_ca_mc_r5_ay,
 		(ParamFloat<px4::params::CA_MC_R5_AZ>) _param_ca_mc_r5_az,
-		(ParamFloat<px4::params::CA_MC_R5_KT>) _param_ca_mc_r5_kt,
+		(ParamFloat<px4::params::CA_MC_R5_CT>) _param_ca_mc_r5_ct,
 		(ParamFloat<px4::params::CA_MC_R5_KM>) _param_ca_mc_r5_km,
 
 		(ParamFloat<px4::params::CA_MC_R6_PX>) _param_ca_mc_r6_px,
@@ -148,7 +148,7 @@ private:
 		(ParamFloat<px4::params::CA_MC_R6_AX>) _param_ca_mc_r6_ax,
 		(ParamFloat<px4::params::CA_MC_R6_AY>) _param_ca_mc_r6_ay,
 		(ParamFloat<px4::params::CA_MC_R6_AZ>) _param_ca_mc_r6_az,
-		(ParamFloat<px4::params::CA_MC_R6_KT>) _param_ca_mc_r6_kt,
+		(ParamFloat<px4::params::CA_MC_R6_CT>) _param_ca_mc_r6_ct,
 		(ParamFloat<px4::params::CA_MC_R6_KM>) _param_ca_mc_r6_km,
 
 		(ParamFloat<px4::params::CA_MC_R7_PX>) _param_ca_mc_r7_px,
@@ -157,7 +157,7 @@ private:
 		(ParamFloat<px4::params::CA_MC_R7_AX>) _param_ca_mc_r7_ax,
 		(ParamFloat<px4::params::CA_MC_R7_AY>) _param_ca_mc_r7_ay,
 		(ParamFloat<px4::params::CA_MC_R7_AZ>) _param_ca_mc_r7_az,
-		(ParamFloat<px4::params::CA_MC_R7_KT>) _param_ca_mc_r7_kt,
+		(ParamFloat<px4::params::CA_MC_R7_CT>) _param_ca_mc_r7_ct,
 		(ParamFloat<px4::params::CA_MC_R7_KM>) _param_ca_mc_r7_km
 	)
 };
