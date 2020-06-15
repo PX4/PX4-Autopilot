@@ -277,6 +277,12 @@ then
 			pwm disarmed -c 6 -p p:PWM_AUX_DIS6 -d ${OUTPUT_AUX_DEV}
 			pwm disarmed -c 7 -p p:PWM_AUX_DIS7 -d ${OUTPUT_AUX_DEV}
 			pwm disarmed -c 8 -p p:PWM_AUX_DIS8 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -m 0x100 -p p:PWM_MAIN_DIS9 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -m 0x200 -p p:PWM_MAIN_DIS10 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -m 0x400 -p p:PWM_MAIN_DIS11 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -m 0x800 -p p:PWM_MAIN_DIS12 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -m 0x1000 -p p:PWM_MAIN_DIS13 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -m 0x2000 -p p:PWM_MAIN_DIS14 -d ${OUTPUT_AUX_DEV}
 
 			#
 			# Per channel min settings.
@@ -289,6 +295,12 @@ then
 			pwm min -c 6 -p p:PWM_AUX_MIN6 -d ${OUTPUT_AUX_DEV}
 			pwm min -c 7 -p p:PWM_AUX_MIN7 -d ${OUTPUT_AUX_DEV}
 			pwm min -c 8 -p p:PWM_AUX_MIN8 -d ${OUTPUT_AUX_DEV}
+			pwm min -m 0x100 -p p:PWM_MAIN_MIN9 -d ${OUTPUT_AUX_DEV}
+			pwm min -m 0x200 -p p:PWM_MAIN_MIN10 -d ${OUTPUT_AUX_DEV}
+			pwm min -m 0x400 -p p:PWM_MAIN_MIN11 -d ${OUTPUT_AUX_DEV}
+			pwm min -m 0x800 -p p:PWM_MAIN_MIN12 -d ${OUTPUT_AUX_DEV}
+			pwm min -m 0x1000 -p p:PWM_MAIN_MIN13 -d ${OUTPUT_AUX_DEV}
+			pwm min -m 0x2000 -p p:PWM_MAIN_MIN14 -d ${OUTPUT_AUX_DEV}
 
 			#
 			# Per channel max settings.
@@ -301,6 +313,12 @@ then
 			pwm max -c 6 -p p:PWM_AUX_MAX6 -d ${OUTPUT_AUX_DEV}
 			pwm max -c 7 -p p:PWM_AUX_MAX7 -d ${OUTPUT_AUX_DEV}
 			pwm max -c 8 -p p:PWM_AUX_MAX8 -d ${OUTPUT_AUX_DEV}
+			pwm max -m 0x100 -p p:PWM_MAIN_MAX9 -d ${OUTPUT_AUX_DEV}
+			pwm max -m 0x200 -p p:PWM_MAIN_MAX10 -d ${OUTPUT_AUX_DEV}
+			pwm max -m 0x400 -p p:PWM_MAIN_MAX11 -d ${OUTPUT_AUX_DEV}
+			pwm max -m 0x800 -p p:PWM_MAIN_MAX12 -d ${OUTPUT_AUX_DEV}
+			pwm max -m 0x1000 -p p:PWM_MAIN_MAX13 -d ${OUTPUT_AUX_DEV}
+			pwm max -m 0x2000 -p p:PWM_MAIN_MAX14 -d ${OUTPUT_AUX_DEV}
 
 			if [ $FAILSAFE_AUX != none ]
 			then
@@ -318,6 +336,12 @@ then
 			pwm failsafe -c 6 -p p:PWM_AUX_FAIL6 -d ${OUTPUT_AUX_DEV}
 			pwm failsafe -c 7 -p p:PWM_AUX_FAIL7 -d ${OUTPUT_AUX_DEV}
 			pwm failsafe -c 8 -p p:PWM_AUX_FAIL8 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -m 0x100 -p p:PWM_MAIN_FAIL9 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -m 0x200 -p p:PWM_MAIN_FAIL10 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -m 0x400 -p p:PWM_MAIN_FAIL11 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -m 0x800 -p p:PWM_MAIN_FAIL12 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -m 0x1000 -p p:PWM_MAIN_FAIL13 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -m 0x2000 -p p:PWM_MAIN_FAIL14 -d ${OUTPUT_AUX_DEV}
 		fi
 	fi
 fi

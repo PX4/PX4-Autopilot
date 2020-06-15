@@ -73,6 +73,7 @@ enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
 	PORT_FULL_PWM,
+	PORT_PWM14,
 	PORT_PWM8,
 	PORT_PWM6,
 	PORT_PWM5,
@@ -972,6 +973,13 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				break;
 #endif
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=14
+
+			case 14:
+				set_mode(MODE_14PWM);
+				break;
+#endif
+
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >=8
 
 			case 8:
@@ -1039,6 +1047,10 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			case PWM_SERVO_MODE_8PWM:
 				ret = set_mode(MODE_8PWM);
+				break;
+
+			case PWM_SERVO_MODE_14PWM:
+				ret = set_mode(MODE_14PWM);
 				break;
 
 			case PWM_SERVO_MODE_4CAP:
@@ -1275,7 +1287,13 @@ DShotOutput::module_new_mode(PortMode new_mode)
 		/* select 2-pin PWM mode */
 		mode = DShotOutput::MODE_1PWM;
 		break;
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
 
+	case PORT_PWM14:
+		/* select 14-pin PWM mode */
+		mode = DShotOutput::MODE_14PWM;
+		break;
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case PORT_PWM8:
@@ -1521,6 +1539,12 @@ int DShotOutput::custom_command(int argc, char *argv[])
 		new_mode = PORT_PWM2CAP2;
 #  endif
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	} else if (!strcmp(verb, "mode_pwm14")) {
+		new_mode = PORT_PWM14;
+#endif
+
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	} else if (!strcmp(verb, "mode_pwm8")) {
@@ -1569,6 +1593,8 @@ int DShotOutput::print_status()
 	case MODE_6PWM: mode_str = "outputs6"; break;
 
 	case MODE_8PWM: mode_str = "outputs8"; break;
+
+	case MODE_14PWM: mode_str = "outputs14"; break;
 
 	case MODE_4CAP: mode_str = "cap4"; break;
 
@@ -1628,23 +1654,26 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 
 	PRINT_MODULE_USAGE_COMMAND("mode_gpio");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode_pwm", "Select all available pins as PWM");
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm14");
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm8");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm8");
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm6");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm5");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm5cap1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm6");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm5");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm5cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm4");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap1");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap2");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap2");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2");
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
 #endif
 #if defined(BOARD_HAS_PWM)
-  PRINT_MODULE_USAGE_COMMAND("mode_pwm1");
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm1");
 #endif
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("telemetry", "Enable Telemetry on a UART");
