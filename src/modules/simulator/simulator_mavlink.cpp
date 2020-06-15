@@ -309,13 +309,6 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 		gps.satellites_used = hil_gps.satellites_visible;
 		gps.s_variance_m_s = 0.25f;
 
-		// use normal distribution for noise
-		if (_param_sim_gps_noise_x.get() > 0.0f) {
-			std::normal_distribution<float> normal_distribution(0.0f, 1.0f);
-			gps.lat += (int32_t)(_param_sim_gps_noise_x.get() * normal_distribution(_gen));
-			gps.lon += (int32_t)(_param_sim_gps_noise_x.get() * normal_distribution(_gen));
-		}
-
 		_vehicle_gps_position_pub.publish(gps);
 	}
 }
