@@ -11,11 +11,13 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF = yes ]
 then
-	param set VM_INERTIA_XX 0.0083
-	param set VM_INERTIA_YY 0.0083
-	param set VM_INERTIA_ZZ 0.0286
+	param set VM_MASS 1.5
+	param set VM_INERTIA_XX 0.03
+	param set VM_INERTIA_YY 0.03
+	param set VM_INERTIA_ZZ 0.05
 
 	param set CA_AIRFRAME 0
+	param set CA_METHOD 1
 	param set CA_ACT0_MIN 0.0
 	param set CA_ACT1_MIN 0.0
 	param set CA_ACT2_MIN 0.0
@@ -27,16 +29,16 @@ then
 
 	param set CA_MC_R0_PX 0.1515
 	param set CA_MC_R0_PY 0.245
-	param set CA_MC_R0_CT 5.0
+	param set CA_MC_R0_CT 6.5
 	param set CA_MC_R1_PX -0.1515
 	param set CA_MC_R1_PY -0.1875
-	param set CA_MC_R1_CT 5.0
+	param set CA_MC_R1_CT 6.5
 	param set CA_MC_R2_PX 0.1515
 	param set CA_MC_R2_PY -0.245
-	param set CA_MC_R2_CT 5.0
+	param set CA_MC_R2_CT 6.5
 	param set CA_MC_R3_PX -0.1515
 	param set CA_MC_R3_PY 0.1875
-	param set CA_MC_R3_CT 5.0
+	param set CA_MC_R3_CT 6.5
 
 fi
 
