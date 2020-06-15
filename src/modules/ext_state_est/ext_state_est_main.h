@@ -33,26 +33,27 @@
 
 #pragma once
 
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/time.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/external_state.h>
+#include <uORB/topics/ext_core_state.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_odometry.h>
-
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_posix.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-
+#include <uORB/topics/vehicle_odometry.h>
 
 extern "C" __EXPORT int ext_state_est_main(int argc, char *argv[]);
 
 class ExtStateEst : public ModuleBase<ExtStateEst>,
                     public ModuleParams,
-                    public px4::WorkItem {
+                    public px4::ScheduledWorkItem {
 public:
   ExtStateEst();
   ~ExtStateEst() override;
@@ -91,10 +92,12 @@ private:
   void parameters_update(bool force = false);
 
   //	DEFINE_PARAMETERS(
-  //		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**<
-  //example parameter */
-  //		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**<
-  //another parameter */
+  //		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,
+  ///**<
+  // example parameter */
+  //		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig
+  ///**<
+  // another parameter */
   //	)
 
   //	// Subscriptions

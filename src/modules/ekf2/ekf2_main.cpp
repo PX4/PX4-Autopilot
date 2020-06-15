@@ -747,6 +747,8 @@ bool Ekf2::update_mag_decl(Param &mag_decl_param)
 
 void Ekf2::Run()
 {
+  PX4_WARN("EKF2 Run");
+
 	if (should_exit()) {
 		_sensor_combined_sub.unregisterCallback();
 

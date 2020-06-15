@@ -33,12 +33,18 @@
 
 #include "ext_state_est_main.h"
 
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/time.h>
 
 #include <uORB/Publication.hpp>
-#include <uORB/topics/external_state.h>
+#include <uORB/SubscriptionCallback.hpp>
+
+#include <uORB/Publication.hpp>
+#include <uORB/topics/ext_core_state.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -109,8 +115,9 @@ bool ExtStateEst::init() {
 
 ExtStateEst::ExtStateEst()
     : ModuleParams(nullptr),
-      WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
-      _ext_state_sub{this, ORB_ID(ext_state_est_odometry)},
+      ScheduledWorkItem(MODULE_NAME,
+                        px4::wq_configurations::navigation_and_controllers),
+      _ext_state_sub{this, ORB_ID(ext_core_state)},
       _att_pub{ORB_ID(vehicle_attitude)},
       _vehicle_global_position_pub{ORB_ID(vehicle_global_position)},
       _vehicle_local_position_pub{ORB_ID(vehicle_local_position)} {
@@ -122,7 +129,7 @@ ExtStateEst::ExtStateEst()
 ExtStateEst::~ExtStateEst() {}
 
 void ExtStateEst::Run() {
-  PX4_WARN("RUN..");
+  PX4_WARN("ExtState Run");
 
   if (should_exit()) {
     _ext_state_sub.unregisterCallback();
