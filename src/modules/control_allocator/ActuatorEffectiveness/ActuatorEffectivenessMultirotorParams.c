@@ -84,25 +84,24 @@ PARAM_DEFINE_FLOAT(CA_MC_R0_AZ, -1.0);
 /**
  * Thrust coefficient of rotor 0
  *
- * The thrust coefficient if defined as Thrust = KT * u^2,
+ * The thrust coefficient if defined as Thrust = CT * u^2,
  * where u is the output signal send to the motor controller.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R0_KT, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R0_CT, 0.0);
 
 /**
  * Moment coefficient of rotor 0
  *
- * The moment coefficient if defined as Torque = KM * u^2,
- * where u is the output signal send to the motor controller.
+ * The moment coefficient if defined as Torque = KM * Thrust
  *
  * Use a positive value for a rotor with CCW rotation.
  * Use a negative value for a rotor with CW rotation.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R0_KM, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R0_KM, 0.05);
 
 /**
  * Position of rotor 1 along X body axis
@@ -149,25 +148,24 @@ PARAM_DEFINE_FLOAT(CA_MC_R1_AZ, -1.0);
 /**
  * Thrust coefficient of rotor 1
  *
- * The thrust coefficient if defined as Thrust = KT * u^2,
+ * The thrust coefficient if defined as Thrust = CT * u^2,
  * where u is the output signal send to the motor controller.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R1_KT, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R1_CT, 0.0);
 
 /**
  * Moment coefficient of rotor 1
  *
- * The moment coefficient if defined as Torque = KM * u^2,
- * where u is the output signal send to the motor controller.
+ * The moment coefficient if defined as Torque = KM * Thrust,
  *
  * Use a positive value for a rotor with CCW rotation.
  * Use a negative value for a rotor with CW rotation.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R1_KM, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R1_KM, 0.05);
 
 /**
  * Position of rotor 2 along X body axis
@@ -214,25 +212,24 @@ PARAM_DEFINE_FLOAT(CA_MC_R2_AZ, -1.0);
 /**
  * Thrust coefficient of rotor 2
  *
- * The thrust coefficient if defined as Thrust = KT * u^2,
+ * The thrust coefficient if defined as Thrust = CT * u^2,
  * where u is the output signal send to the motor controller.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R2_KT, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R2_CT, 0.0);
 
 /**
  * Moment coefficient of rotor 2
  *
- * The moment coefficient if defined as Torque = KM * u^2,
- * where u is the output signal send to the motor controller.
+ * The moment coefficient if defined as Torque = KM * Thrust
  *
  * Use a positive value for a rotor with CCW rotation.
  * Use a negative value for a rotor with CW rotation.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R2_KM, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R2_KM, 0.05);
 
 /**
  * Position of rotor 3 along X body axis
@@ -279,25 +276,24 @@ PARAM_DEFINE_FLOAT(CA_MC_R3_AZ, -1.0);
 /**
  * Thrust coefficient of rotor 3
  *
- * The thrust coefficient if defined as Thrust = KT * u^2,
+ * The thrust coefficient if defined as Thrust = CT * u^2,
  * where u is the output signal send to the motor controller.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R3_KT, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R3_CT, 0.0);
 
 /**
  * Moment coefficient of rotor 3
  *
- * The moment coefficient if defined as Torque = KM * u^2,
- * where u is the output signal send to the motor controller.
+ * The moment coefficient if defined as Torque = KM * Thrust
  *
  * Use a positive value for a rotor with CCW rotation.
  * Use a negative value for a rotor with CW rotation.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R3_KM, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R3_KM, 0.05);
 
 /**
  * Position of rotor 4 along X body axis
@@ -344,25 +340,24 @@ PARAM_DEFINE_FLOAT(CA_MC_R4_AZ, -1.0);
 /**
  * Thrust coefficient of rotor 4
  *
- * The thrust coefficient if defined as Thrust = KT * u^2,
+ * The thrust coefficient if defined as Thrust = CT * u^2,
  * where u is the output signal send to the motor controller.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R4_KT, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R4_CT, 0.0);
 
 /**
  * Moment coefficient of rotor 4
  *
- * The moment coefficient if defined as Torque = KM * u^2,
- * where u is the output signal send to the motor controller.
+ * The moment coefficient if defined as Torque = KM * Thrust
  *
  * Use a positive value for a rotor with CCW rotation.
  * Use a negative value for a rotor with CW rotation.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R4_KM, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R4_KM, 0.05);
 
 /**
  * Position of rotor 5 along X body axis
@@ -409,25 +404,24 @@ PARAM_DEFINE_FLOAT(CA_MC_R5_AZ, -1.0);
 /**
  * Thrust coefficient of rotor 5
  *
- * The thrust coefficient if defined as Thrust = KT * u^2,
+ * The thrust coefficient if defined as Thrust = CT * u^2,
  * where u is the output signal send to the motor controller.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R5_KT, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R5_CT, 0.0);
 
 /**
  * Moment coefficient of rotor 5
  *
- * The moment coefficient if defined as Torque = KM * u^2,
- * where u is the output signal send to the motor controller.
+ * The moment coefficient if defined as Torque = KM * Thrust
  *
  * Use a positive value for a rotor with CCW rotation.
  * Use a negative value for a rotor with CW rotation.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R5_KM, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R5_KM, 0.05);
 
 /**
  * Position of rotor 6 along X body axis
@@ -474,25 +468,24 @@ PARAM_DEFINE_FLOAT(CA_MC_R6_AZ, -1.0);
 /**
  * Thrust coefficient of rotor 6
  *
- * The thrust coefficient if defined as Thrust = KT * u^2,
+ * The thrust coefficient if defined as Thrust = CT * u^2,
  * where u is the output signal send to the motor controller.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R6_KT, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R6_CT, 0.0);
 
 /**
  * Moment coefficient of rotor 6
  *
- * The moment coefficient if defined as Torque = KM * u^2,
- * where u is the output signal send to the motor controller.
+ * The moment coefficient if defined as Torque = KM * Thrust
  *
  * Use a positive value for a rotor with CCW rotation.
  * Use a negative value for a rotor with CW rotation.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R6_KM, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R6_KM, 0.05);
 
 /**
  * Position of rotor 7 along X body axis
@@ -539,22 +532,21 @@ PARAM_DEFINE_FLOAT(CA_MC_R7_AZ, -1.0);
 /**
  * Thrust coefficient of rotor 7
  *
- * The thrust coefficient if defined as Thrust = KT * u^2,
+ * The thrust coefficient if defined as Thrust = CT * u^2,
  * where u is the output signal send to the motor controller.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R7_KT, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R7_CT, 0.0);
 
 /**
  * Moment coefficient of rotor 7
  *
- * The moment coefficient if defined as Torque = KM * u^2,
- * where u is the output signal send to the motor controller.
+ * The moment coefficient if defined as Torque = KM * Thrust
  *
  * Use a positive value for a rotor with CCW rotation.
  * Use a negative value for a rotor with CW rotation.
  *
  * @group Control Allocation
  */
-PARAM_DEFINE_FLOAT(CA_MC_R7_KM, 0.0);
+PARAM_DEFINE_FLOAT(CA_MC_R7_KM, 0.05);
