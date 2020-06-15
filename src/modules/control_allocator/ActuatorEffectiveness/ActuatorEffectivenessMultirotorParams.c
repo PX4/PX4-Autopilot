@@ -85,7 +85,8 @@ PARAM_DEFINE_FLOAT(CA_MC_R0_AZ, -1.0);
  * Thrust coefficient of rotor 0
  *
  * The thrust coefficient if defined as Thrust = CT * u^2,
- * where u is the output signal send to the motor controller.
+ * where u (with value between CA_ACT0_MIN and CA_ACT0_MAX)
+ * is the output signal sent to the motor controller.
  *
  * @group Control Allocation
  */
@@ -149,7 +150,8 @@ PARAM_DEFINE_FLOAT(CA_MC_R1_AZ, -1.0);
  * Thrust coefficient of rotor 1
  *
  * The thrust coefficient if defined as Thrust = CT * u^2,
- * where u is the output signal send to the motor controller.
+ * where u (with value between CA_ACT1_MIN and CA_ACT1_MAX)
+ * is the output signal sent to the motor controller.
  *
  * @group Control Allocation
  */
@@ -213,7 +215,8 @@ PARAM_DEFINE_FLOAT(CA_MC_R2_AZ, -1.0);
  * Thrust coefficient of rotor 2
  *
  * The thrust coefficient if defined as Thrust = CT * u^2,
- * where u is the output signal send to the motor controller.
+ * where u (with value between CA_ACT2_MIN and CA_ACT2_MAX)
+ * is the output signal sent to the motor controller.
  *
  * @group Control Allocation
  */
@@ -277,7 +280,8 @@ PARAM_DEFINE_FLOAT(CA_MC_R3_AZ, -1.0);
  * Thrust coefficient of rotor 3
  *
  * The thrust coefficient if defined as Thrust = CT * u^2,
- * where u is the output signal send to the motor controller.
+ * where u (with value between CA_ACT3_MIN and CA_ACT3_MAX)
+ * is the output signal sent to the motor controller.
  *
  * @group Control Allocation
  */
@@ -341,7 +345,8 @@ PARAM_DEFINE_FLOAT(CA_MC_R4_AZ, -1.0);
  * Thrust coefficient of rotor 4
  *
  * The thrust coefficient if defined as Thrust = CT * u^2,
- * where u is the output signal send to the motor controller.
+ * where u (with value between CA_ACT4_MIN and CA_ACT4_MAX)
+ * is the output signal sent to the motor controller.
  *
  * @group Control Allocation
  */
@@ -405,7 +410,8 @@ PARAM_DEFINE_FLOAT(CA_MC_R5_AZ, -1.0);
  * Thrust coefficient of rotor 5
  *
  * The thrust coefficient if defined as Thrust = CT * u^2,
- * where u is the output signal send to the motor controller.
+ * where u (with value between CA_ACT5_MIN and CA_ACT5_MAX)
+ * is the output signal sent to the motor controller.
  *
  * @group Control Allocation
  */
@@ -469,7 +475,8 @@ PARAM_DEFINE_FLOAT(CA_MC_R6_AZ, -1.0);
  * Thrust coefficient of rotor 6
  *
  * The thrust coefficient if defined as Thrust = CT * u^2,
- * where u is the output signal send to the motor controller.
+ * where u (with value between CA_ACT6_MIN and CA_ACT6_MAX)
+ * is the output signal sent to the motor controller.
  *
  * @group Control Allocation
  */
@@ -533,7 +540,8 @@ PARAM_DEFINE_FLOAT(CA_MC_R7_AZ, -1.0);
  * Thrust coefficient of rotor 7
  *
  * The thrust coefficient if defined as Thrust = CT * u^2,
- * where u is the output signal send to the motor controller.
+ * where u (with value between CA_ACT7_MIN and CA_ACT7_MAX)
+ * is the output signal sent to the motor controller.
  *
  * @group Control Allocation
  */
