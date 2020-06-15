@@ -48,6 +48,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 
 #include <uORB/topics/control_allocator_status.h>
+#include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_angular_acceleration.h>
@@ -108,6 +109,7 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};			/**< vehicle land detected subscription */
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};			/**< vehicle rates setpoint subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};					/**< vehicle status subscription */
+	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
@@ -129,6 +131,8 @@ private:
 	matrix::Vector3f _angular_velocity_sp;		/**< angular velocity setpoint */
 	matrix::Vector3f _angular_acceleration;		/**< angular acceleration (estimated) */
 	matrix::Vector3f _thrust_sp;			/**< thrust setpoint */
+
+	float _hover_thrust{0.5f};			/**< Normalized hover thrust **/
 
 	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
@@ -158,12 +162,16 @@ private:
 		(ParamFloat<px4::params::AVC_Z_FF>) _param_avc_z_ff,
 		(ParamFloat<px4::params::AVC_Z_K>) _param_avc_z_k,
 
+		(ParamFloat<px4::params::VM_MASS>) _param_vm_mass,
 		(ParamFloat<px4::params::VM_INERTIA_XX>) _param_vm_inertia_xx,
 		(ParamFloat<px4::params::VM_INERTIA_YY>) _param_vm_inertia_yy,
 		(ParamFloat<px4::params::VM_INERTIA_ZZ>) _param_vm_inertia_zz,
 		(ParamFloat<px4::params::VM_INERTIA_XY>) _param_vm_inertia_xy,
 		(ParamFloat<px4::params::VM_INERTIA_XZ>) _param_vm_inertia_xz,
-		(ParamFloat<px4::params::VM_INERTIA_YZ>) _param_vm_inertia_yz
+		(ParamFloat<px4::params::VM_INERTIA_YZ>) _param_vm_inertia_yz,
+
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
+		(ParamBool<px4::params::MPC_USE_HTE>) _param_mpc_use_hte
 	)
 
 };
