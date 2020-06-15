@@ -309,7 +309,21 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 		gps.satellites_used = hil_gps.satellites_visible;
 		gps.s_variance_m_s = 0.25f;
 
-		_vehicle_gps_position_pub.publish(gps);
+		// New publishers will be created based on the HIL_GPS ID's being different or not
+		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
+			if (_vehicle_gps_position_pubs[i] && _gps_ids[i] == hil_gps.id) {
+				_vehicle_gps_position_pubs[i]->publish(gps);
+				break;
+
+			}
+
+			if (_vehicle_gps_position_pubs[i] == nullptr) {
+				_vehicle_gps_position_pubs[i] = new uORB::PublicationMulti<vehicle_gps_position_s> {ORB_ID(vehicle_gps_position)};
+				_gps_ids[i] = hil_gps.id;
+				_vehicle_gps_position_pubs[i]->publish(gps);
+				break;
+			}
+		}
 	}
 }
 
