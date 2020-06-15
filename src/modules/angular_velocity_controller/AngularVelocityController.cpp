@@ -37,6 +37,7 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
+#include <ecl/geo/geo.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -94,6 +95,10 @@ AngularVelocityController::parameters_updated()
 	};
 	_control.setInertiaMatrix(matrix::Matrix3f(inertia));
 
+	// Hover thrust
+	if (!_param_mpc_use_hte.get()) {
+		_hover_thrust = _param_mpc_thr_hover.get();
+	}
 }
 
 void
@@ -143,6 +148,15 @@ AngularVelocityController::Run()
 			}
 		}
 
+		// Check for updates of hover thrust
+		if (_param_mpc_use_hte.get()) {
+			hover_thrust_estimate_s hte;
+
+			if (_hover_thrust_estimate_sub.update(&hte)) {
+				_hover_thrust = hte.hover_thrust;
+			}
+		}
+
 		// check angular acceleration topic
 		vehicle_angular_acceleration_s vehicle_angular_acceleration;
 
@@ -158,6 +172,9 @@ AngularVelocityController::Run()
 			_angular_velocity_sp(1) = vehicle_rates_setpoint.pitch;
 			_angular_velocity_sp(2) = vehicle_rates_setpoint.yaw;
 			_thrust_sp = Vector3f(vehicle_rates_setpoint.thrust_body);
+
+			// Scale _thrust_sp in Newton, assuming _hover_thrust is equivalent to 1G
+			_thrust_sp *= (_param_vm_mass.get() * CONSTANTS_ONE_G / _hover_thrust);
 		}
 
 		// run the controller
