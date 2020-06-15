@@ -24,6 +24,20 @@ then
 	param set CA_ACT1_MAX 1.0
 	param set CA_ACT2_MAX 1.0
 	param set CA_ACT3_MAX 1.0
+
+	param set CA_MC_R0_PX 0.1515
+	param set CA_MC_R0_PY 0.245
+	param set CA_MC_R0_CT 5.0
+	param set CA_MC_R1_PX -0.1515
+	param set CA_MC_R1_PY -0.1875
+	param set CA_MC_R1_CT 5.0
+	param set CA_MC_R2_PX 0.1515
+	param set CA_MC_R2_PY -0.245
+	param set CA_MC_R2_CT 5.0
+	param set CA_MC_R3_PX -0.1515
+	param set CA_MC_R3_PY 0.1875
+	param set CA_MC_R3_CT 5.0
+
 fi
 
 # set MIXER quad_w
