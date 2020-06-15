@@ -547,8 +547,8 @@ int ControlAllocator::print_status()
 	// Print current effectiveness matrix
 	if (_control_allocation != nullptr) {
 		const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness = _control_allocation->getEffectivenessMatrix();
-		PX4_INFO("Effectiveness:");
-		effectiveness.print();
+		PX4_INFO("Effectiveness.T =");
+		effectiveness.T().print();
 	}
 
 	// Print perf
