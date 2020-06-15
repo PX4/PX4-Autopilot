@@ -235,7 +235,7 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &att, con
 	*/
 
 	// take thrust as
-	thrust_u = _param_direct_thrust.get();
+	thrust_u = _vehicle_attitude_sp.thrust_body[0];
 
 	constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_u);
 	/* Geometric Controller END*/
