@@ -2830,6 +2830,17 @@ MavlinkReceiver::Run()
 				}
 			}
 
+#if defined(MAVLINK_TCP)
+
+			else if (_mavlink->get_protocol() == Protocol::TCP) {
+				if (fds[0].revents & POLLIN) {
+					nread = recvfrom(_mavlink->get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
+				}
+			}
+
+#endif // MAVLINK_TCP
+
+
 #if defined(MAVLINK_UDP)
 
 			else if (_mavlink->get_protocol() == Protocol::UDP) {

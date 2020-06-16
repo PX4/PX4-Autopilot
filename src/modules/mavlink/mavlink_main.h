@@ -56,6 +56,7 @@
 #if defined(CONFIG_NET) || !defined(__PX4_NUTTX)
 #include <net/if.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #endif
 
 #include <containers/List.hpp>
@@ -87,13 +88,23 @@
 
 #define HASH_PARAM              "_HASH_CHECK"
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if (defined(CONFIG_NET) && defined(CONFIG_NET_TCP)) || defined(__PX4_POSIX)
+# define MAVLINK_TCP
+# define DEFAULT_PORT_TCP 5760
+#endif // (CONFIG_NET && CONFIG_NET_TCP) || __PX4_POSIX
+
+#if (defined(CONFIG_NET) && defined(CONFIG_NET_UDP)) || defined(__PX4_POSIX)
 # define MAVLINK_UDP
+# define DEFAULT_PORT_UDP 14556
 # define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
-#endif // CONFIG_NET || __PX4_POSIX
+#endif // (CONFIG_NET && CONFIG_NET_UDP) || __PX4_POSIX
+
 
 enum class Protocol {
 	SERIAL = 0,
+#if defined(MAVLINK_TCP)
+	TCP,
+#endif // MAVLINK_TCP
 #if defined(MAVLINK_UDP)
 	UDP,
 #endif // MAVLINK_UDP
@@ -446,9 +457,9 @@ public:
 
 	bool			_task_should_exit{false};	/**< Mavlink task should exit iff true. */
 
-#if defined(MAVLINK_UDP)
+#if defined(MAVLINK_TCP) || defined(MAVLINK_UDP)
 	unsigned short		get_network_port() { return _network_port; }
-
+#if defined(MAVLINK_UDP)
 	unsigned short		get_remote_port() { return _remote_port; }
 
 	const in_addr		query_netmask_addr(const int socket_fd, const ifreq &ifreq);
@@ -458,9 +469,9 @@ public:
 	struct sockaddr_in 	&get_client_source_address() { return _src_addr; }
 
 	void			set_client_source_initialized() { _src_addr_initialized = true; }
-
 	bool			get_client_source_initialized() { return _src_addr_initialized; }
-#endif
+#endif // MAVLINK_UDP
+#endif // MAVLINK_TCP || MAVLINK_UDP
 
 	uint64_t		get_start_time() { return _mavlink_start_time; }
 
@@ -606,19 +617,22 @@ private:
 	unsigned		_bytes_rx{0};
 	uint64_t		_bytes_timestamp{0};
 
-#if defined(MAVLINK_UDP)
+#if defined(MAVLINK_TCP) || defined(MAVLINK_UDP)
 	sockaddr_in		_myaddr {};
 	sockaddr_in		_src_addr {};
 	sockaddr_in		_bcast_addr {};
 
-	bool			_src_addr_initialized{false};
+	unsigned short		_network_port{0};
+
+#if defined(MAVLINK_UDP)
+	bool			_src_addr_initialized {false};
 	bool			_broadcast_address_found{false};
 	bool			_broadcast_address_not_found_warned{false};
 	bool			_broadcast_failed_warned{false};
 
-	unsigned short		_network_port{14556};
 	unsigned short		_remote_port{DEFAULT_REMOTE_PORT_UDP};
 #endif // MAVLINK_UDP
+#endif // MAVLINK_TCP || MAVLINK_UDP
 
 	uint8_t			_buf[MAVLINK_MAX_PACKET_LEN] {};
 	unsigned		_buf_fill{0};
@@ -728,6 +742,10 @@ private:
 	 * Update rate mult so total bitrate will be equal to _datarate.
 	 */
 	void update_rate_mult();
+
+#if defined(MAVLINK_TCP)
+	void init_tcp();
+#endif // MAVLINK_TCP
 
 #if defined(MAVLINK_UDP)
 	void find_broadcast_address();

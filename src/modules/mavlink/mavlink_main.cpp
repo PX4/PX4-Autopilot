@@ -339,9 +339,8 @@ Mavlink::get_instance_for_device(const char *device_name)
 	return nullptr;
 }
 
-#ifdef MAVLINK_UDP
-Mavlink *
-Mavlink::get_instance_for_network_port(unsigned long port)
+#if defined(MAVLINK_TCP) || defined(MAVLINK_UDP)
+Mavlink *Mavlink::get_instance_for_network_port(unsigned long port)
 {
 	Mavlink *inst;
 
@@ -353,7 +352,7 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 
 	return nullptr;
 }
-#endif // MAVLINK_UDP
+#endif // MAVLINK_TCP || MAVLINK_UDP
 
 int
 Mavlink::destroy_all_instances()
@@ -850,6 +849,15 @@ void Mavlink::send_finish()
 	}
 
 #endif // MAVLINK_UDP
+#if defined(MAVLINK_TCP)
+
+	else if (get_protocol() == Protocol::TCP) {
+		if (_src_addr_initialized) {
+			ret = ::send(_socket_fd, _buf, _buf_fill, 0);
+		}
+	}
+
+#endif // MAVLINK_TCP
 
 	if (ret == (int)_buf_fill) {
 		count_txbytes(_buf_fill);
@@ -877,7 +885,7 @@ void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 	}
 }
 
-#ifdef MAVLINK_UDP
+#if defined(MAVLINK_UDP)
 void Mavlink::find_broadcast_address()
 {
 #if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
@@ -991,7 +999,7 @@ void Mavlink::find_broadcast_address()
 		}
 	}
 
-#elif defined (CONFIG_NET) && defined (__PX4_NUTTX)
+#elif defined(CONFIG_NET) && defined(__PX4_NUTTX)
 	int ret;
 
 	PX4_INFO("using network interface");
@@ -1032,7 +1040,7 @@ void Mavlink::find_broadcast_address()
 
 #endif
 
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || (defined(CONFIG_NET) && defined(__PX4_NUTTX))
 
 	if (_broadcast_address_found) {
 		_bcast_addr.sin_port = htons(_remote_port);
@@ -1052,7 +1060,7 @@ void Mavlink::find_broadcast_address()
 		}
 	}
 
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN)
 	delete[] ifconf.ifc_req;
 #endif
 
@@ -1060,9 +1068,8 @@ void Mavlink::find_broadcast_address()
 }
 #endif // MAVLINK_UDP
 
-#ifdef __PX4_POSIX
-const in_addr
-Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
+#if defined(__PX4_POSIX)
+const in_addr Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
 {
 	struct ifreq netmask_ifreq;
 	memset(&netmask_ifreq, 0, sizeof(netmask_ifreq));
@@ -1072,8 +1079,7 @@ Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
 	return ((struct sockaddr_in *)&netmask_ifreq.ifr_addr)->sin_addr;
 }
 
-const in_addr
-Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
+const in_addr Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
 {
 	struct in_addr broadcast_addr;
 	broadcast_addr.s_addr = ~netmask_addr.s_addr | host_addr.s_addr;
@@ -1082,10 +1088,47 @@ Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask
 }
 #endif
 
-#ifdef MAVLINK_UDP
-void
-Mavlink::init_udp()
+#if defined(MAVLINK_TCP)
+void Mavlink::init_tcp()
 {
+	if (_network_port == 0) {
+		_network_port = DEFAULT_PORT_TCP;
+	}
+
+	PX4_DEBUG("Setting up TCP with port %d", _network_port);
+
+	_myaddr.sin_family = AF_INET;
+	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	_myaddr.sin_port = htons(_network_port);
+
+	if ((_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
+		return;
+	}
+
+	int yes = 1;
+	int ret = setsockopt(_socket_fd, IPPROTO_TCP, TCP_NODELAY, (char *) &yes, sizeof(int));
+
+	if (ret != 0) {
+		PX4_ERR("setsockopt failed: %d %s", ret, strerror(errno));
+	}
+
+	ret = connect(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr));
+
+	if (ret != 0) {
+		PX4_ERR("TCP connect failed: %d %s", ret, strerror(errno));
+	}
+
+}
+#endif // MAVLINK_TCP
+
+#if defined(MAVLINK_UDP)
+void Mavlink::init_udp()
+{
+	if (_network_port == 0) {
+		_network_port = DEFAULT_PORT_UDP;
+	}
+
 	PX4_DEBUG("Setting up UDP with port %d", _network_port);
 
 	_myaddr.sin_family = AF_INET;
@@ -1882,6 +1925,23 @@ Mavlink::task_main(int argc, char *argv[])
 			_interface_name = myoptarg;
 			break;
 
+#if defined(MAVLINK_TCP)
+
+		case 'p':
+			temp_int_arg = strtoul(myoptarg, &eptr, 10);
+
+			if (*eptr == '\0') {
+				_network_port = temp_int_arg;
+				set_protocol(Protocol::TCP);
+
+			} else {
+				PX4_ERR("invalid data tcp_port '%s'", myoptarg);
+				err_flag = true;
+			}
+
+			break;
+#endif // MAVLINK_TCP
+
 #if defined(MAVLINK_UDP)
 
 		case 'u':
@@ -2087,6 +2147,20 @@ Mavlink::task_main(int argc, char *argv[])
 		fflush(stdout);
 	}
 
+#if defined(MAVLINK_TCP)
+
+	else if (get_protocol() == Protocol::TCP) {
+		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
+			PX4_ERR("port %d already occupied", _network_port);
+			return PX4_ERROR;
+		}
+
+		PX4_INFO("mode: %s, data rate: %d B/s on tcp port %hu",
+			 mavlink_mode_str(_mode), _datarate, _network_port);
+	}
+
+#endif // MAVLINK_TCP
+
 #if defined(MAVLINK_UDP)
 
 	else if (get_protocol() == Protocol::UDP) {
@@ -2192,6 +2266,15 @@ Mavlink::task_main(int argc, char *argv[])
 			return PX4_OK;
 		}
 	}
+
+#if defined(MAVLINK_TCP)
+
+	/* init socket if necessary */
+	if (get_protocol() == Protocol::TCP) {
+		init_tcp();
+	}
+
+#endif // MAVLINK_UDP
 
 #if defined(MAVLINK_UDP)
 
@@ -2790,6 +2873,12 @@ Mavlink::display_status()
 	printf("\ttransport protocol: ");
 
 	switch (_protocol) {
+#if defined(MAVLINK_TCP)
+
+	case Protocol::TCP:
+		printf("TCP (%i)\n", _network_port);
+		break;
+#endif // MAVLINK_TCP
 #if defined(MAVLINK_UDP)
 
 	case Protocol::UDP:
@@ -2902,7 +2991,7 @@ Mavlink::stream_command(int argc, char *argv[])
 			stream_name = argv[i + 1];
 			i++;
 
-#ifdef MAVLINK_UDP
+#if defined(MAVLINK_UDP)
 
 		} else if (0 == strcmp(argv[i], "-u") && i < argc - 1) {
 			provided_network_port = true;
@@ -2932,7 +3021,7 @@ Mavlink::stream_command(int argc, char *argv[])
 		if (provided_device && !provided_network_port) {
 			inst = get_instance_for_device(device_name);
 
-#ifdef MAVLINK_UDP
+#if defined(MAVLINK_UDP)
 
 		} else if (provided_network_port && !provided_device) {
 			inst = get_instance_for_network_port(network_port);
@@ -2959,7 +3048,7 @@ Mavlink::stream_command(int argc, char *argv[])
 
 			}
 
-#ifdef MAVLINK_UDP
+#if defined(MAVLINK_UDP)
 
 			else {
 				PX4_WARN("mavlink for network on port %hu is not running", network_port);
@@ -2978,8 +3067,7 @@ Mavlink::stream_command(int argc, char *argv[])
 	return OK;
 }
 
-void
-Mavlink::set_boot_complete()
+void Mavlink::set_boot_complete()
 {
 	_boot_complete = true;
 
@@ -2993,7 +3081,6 @@ Mavlink::set_boot_complete()
 		}
 	}
 #endif // MAVLINK_UDP
-
 }
 
 static void usage()
@@ -3064,8 +3151,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('s', nullptr, nullptr, "Mavlink stream to configure", false);
 	PRINT_MODULE_USAGE_PARAM_FLOAT('r', -1.0f, 0.0f, 2000.0f, "Rate in Hz (0 = turn off, -1 = set to default)", false);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("boot_complete",
-					 "Enable sending of messages. (Must be) called as last step in startup script.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("boot_complete", "Enable sending of messages. (Must be) called as last step in startup script.");
 
 }
 
