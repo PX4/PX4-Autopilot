@@ -355,40 +355,6 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	update_sensors(now_us, imu);
 
-	static float battery_percentage = 1.0f;
-	static uint64_t last_integration_us = 0;
-
-	// battery simulation (limit update to 100Hz)
-	if (hrt_elapsed_time(&_last_battery_timestamp) >= SimulatorBattery::SIMLATOR_BATTERY_SAMPLE_INTERVAL_US) {
-
-		const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
-
-		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-
-		if (armed) {
-			if (last_integration_us != 0) {
-				battery_percentage -= (now_us - last_integration_us) / discharge_interval_us;
-			}
-
-			last_integration_us = now_us;
-
-		} else {
-			last_integration_us = 0;
-		}
-
-		float ibatt = -1.0f; // no current sensor in simulation
-
-		battery_percentage = math::max(battery_percentage, _param_bat_min_pct.get() / 100.f);
-		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
-		vbatt *= _battery.cell_count();
-
-		const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-					     0, throttle);
-
-		_last_battery_timestamp = now_us;
-	}
-
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 	if (!_has_initialized.load()) {
