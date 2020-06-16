@@ -300,8 +300,5 @@ else
 fi
 sh etc/init.d/rc.logging
 
-# Start new apps for control allocation
-sh etc/init.d/rc.control_allocation
-
 mavlink boot_complete
 replay trystart
