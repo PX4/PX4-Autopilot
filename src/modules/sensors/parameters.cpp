@@ -95,6 +95,7 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	(void)param_find("CAL_MAG2_ROT");
 	(void)param_find("CAL_MAG3_ROT");
 	(void)param_find("CAL_MAG_SIDES");
+	(void)param_find("CAL_MAG_ROT_AUTO");
 
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
