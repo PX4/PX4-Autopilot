@@ -85,9 +85,6 @@ int ExtStateEst::task_spawn(int argc, char *argv[]) {
 
 bool ExtStateEst::init() {
   bool callback_status = true;
-  if (!_mocap_odom_sub.registerCallback()) {
-    callback_status = false;
-  }
   if (!_ext_state_sub.registerCallback()) {
     callback_status = false;
   }
@@ -110,7 +107,6 @@ ExtStateEst::ExtStateEst()
                         px4::wq_configurations::navigation_and_controllers),
       _ext_state_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": update")),
       _ext_state_sub{this, ORB_ID(ext_core_state)},
-      _mocap_odom_sub{this, ORB_ID(vehicle_mocap_odometry)},
       _att_pub{ORB_ID(vehicle_attitude)},
       _vehicle_global_position_pub{ORB_ID(vehicle_global_position)},
       _vehicle_local_position_pub{ORB_ID(vehicle_local_position)} {}
@@ -121,7 +117,6 @@ void ExtStateEst::Run() {
 
   if (should_exit()) {
     _ext_state_sub.unregisterCallback();
-    _mocap_odom_sub.unregisterCallback();
     exit_and_cleanup();
     return;
   }
@@ -133,26 +128,26 @@ void ExtStateEst::Run() {
 
   perf_begin(_ext_state_perf);
 
-  vehicle_odometry_s ext_state_in;
-  if (_mocap_odom_sub.update(&ext_state_in)) {
-  }
+  ext_core_state_s ext_state_in;
 
   if (_ext_state_sub.update(&ext_state_in)) {
 
-    uint64_t timestamp = ext_state_in.timestamp;
+    // Alessandro: wtf?? timestamps and synchronizations needs ti be tested!
+    // uint64_t timestamp = ext_state_in.timestamp;
+    uint64_t timestamp_sample = ext_state_in.timestamp_sample;
 
     vehicle_local_position_s &position = _vehicle_local_position_pub.get();
-    position.timestamp = timestamp;
-    position.x = ext_state_in.x;
-    position.y = ext_state_in.y;
-    position.z = ext_state_in.z;
+    position.timestamp = timestamp_sample;
+    position.x = ext_state_in.p_wi[0];
+    position.y = ext_state_in.p_wi[1];
+    position.z = ext_state_in.p_wi[2];
 
     vehicle_attitude_s attitude;
-    attitude.timestamp = timestamp;
-    attitude.q[0] = ext_state_in.q[0];
-    attitude.q[1] = ext_state_in.q[1];
-    attitude.q[2] = ext_state_in.q[2];
-    attitude.q[3] = ext_state_in.q[3];
+    attitude.timestamp = timestamp_sample;
+    attitude.q[0] = ext_state_in.q_wi[0];
+    attitude.q[1] = ext_state_in.q_wi[1];
+    attitude.q[2] = ext_state_in.q_wi[2];
+    attitude.q[3] = ext_state_in.q_wi[3];
 
     _vehicle_local_position_pub.update();
     _att_pub.publish(attitude);

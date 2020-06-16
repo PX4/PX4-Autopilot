@@ -55,7 +55,6 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_odometry.h>
 
 class ExtStateEst final : public ModuleBase<ExtStateEst>,
                           public ModuleParams,
@@ -85,7 +84,6 @@ private:
   perf_counter_t _ext_state_perf;
 
   uORB::SubscriptionCallbackWorkItem _ext_state_sub;
-  uORB::SubscriptionCallbackWorkItem _mocap_odom_sub;
   uORB::Publication<vehicle_attitude_s> _att_pub;
   uORB::PublicationData<vehicle_global_position_s> _vehicle_global_position_pub;
   uORB::PublicationData<vehicle_local_position_s> _vehicle_local_position_pub;

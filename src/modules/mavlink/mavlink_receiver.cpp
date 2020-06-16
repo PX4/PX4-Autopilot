@@ -271,6 +271,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_statustext(msg);
 		break;
 
+  case MAVLINK_MSG_ID_EXT_CORE_STATE:
+    handle_message_ext_core_state(msg);
+    break;
+
 	default:
 		break;
 	}
@@ -2781,6 +2785,41 @@ void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
 
 		_log_message_pub.publish(log_message);
 	}
+}
+
+void
+MavlinkReceiver::handle_message_ext_core_state(mavlink_message_t *msg)
+{
+  mavlink_ext_core_state_t ml_ecs;
+  mavlink_msg_ext_core_state_decode(msg, &ml_ecs);
+
+  ext_core_state_s ecs{};
+
+  ecs.timestamp = hrt_absolute_time();
+  ecs.timestamp_sample = _mavlink_timesync.sync_stamp(ml_ecs.usec);
+
+  // Alessandro: check possible data defrag
+  memcpy(ecs.p_wi, ml_ecs.p_wi, sizeof(ml_ecs.p_wi));
+  memcpy(ecs.v_wi, ml_ecs.v_wi, sizeof(ml_ecs.v_wi));
+  memcpy(ecs.q_wi, ml_ecs.q_wi, sizeof(ml_ecs.q_wi));
+  memcpy(ecs.b_a, ml_ecs.b_a, sizeof(ml_ecs.b_a));
+  memcpy(ecs.b_w, ml_ecs.b_w, sizeof(ml_ecs.b_w));
+
+//  std::copy(std::begin(ml_ecs.p_wi), std::end(ml_ecs.p_wi), std::begin(ecs.p_wi));
+//  std::copy(std::begin(ml_ecs.v_wi), std::end(ml_ecs.v_wi), std::begin(ecs.v_wi));
+//  std::copy(std::begin(ml_ecs.q_wi), std::end(ml_ecs.q_wi), std::begin(ecs.q_wi));
+//  std::copy(std::begin(ml_ecs.b_a), std::end(ml_ecs.b_a), std::begin(ecs.b_a));
+//  std::copy(std::begin(ml_ecs.b_w), std::end(ml_ecs.b_w), std::begin(ecs.b_w));
+
+  const size_t URT_SIZE = sizeof(ecs.cov_urt) / sizeof(ecs.cov_urt[0]);
+  static_assert(URT_SIZE == (sizeof(ml_ecs.cov_urt) / sizeof(ml_ecs.cov_urt[0])),
+          "External state estimate Covariance matrix URT array size mismatch");
+
+  for (size_t i = 0; i < URT_SIZE; i++) {
+    ecs.cov_urt[i] = ml_ecs.cov_urt[i];
+  }
+
+  _ext_core_state_pub.publish(ecs);
 }
 
 /**
