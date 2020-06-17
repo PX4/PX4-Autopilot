@@ -170,6 +170,8 @@ private:
 	float				_rate{0.0f};					///< position update rate
 	float				_rate_rtcm_injection{0.0f};			///< RTCM message injection rate
 	unsigned			_last_rate_rtcm_injection_count{0};		///< counter for number of RTCM messages
+	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
+	unsigned			_rate_reading{0}; 				///< reading rate in B/s
 
 	const bool			_fake_gps;					///< fake gps output
 
@@ -392,6 +394,10 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 			ret = ::read(_serial_fd, buf, buf_length);
 
+			if (ret > 0) {
+				_num_bytes_read += ret;
+			}
+
 		} else {
 			ret = -1;
 		}
@@ -470,6 +476,12 @@ int GPS::setBaudrate(unsigned baud)
 
 	case 230400: speed = B230400; break;
 
+#ifndef B460800
+#define B460800 460800
+#endif
+
+	case 460800: speed = B460800; break;
+
 	default:
 		PX4_ERR("ERR: unknown baudrate: %d", baud);
 		return -EINVAL;
@@ -547,6 +559,10 @@ void GPS::initializeCommunicationDump()
 
 	if (param_dump_comm != 1) {
 		return; //dumping disabled
+	}
+
+	if (_instance != Instance::Main) {
+		return;
 	}
 
 	_dump_from_device = new gps_dump_s();
@@ -773,9 +789,11 @@ GPS::run()
 						float dt = (float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f;
 						_rate = last_rate_count / dt;
 						_rate_rtcm_injection = _last_rate_rtcm_injection_count / dt;
+						_rate_reading = _num_bytes_read / dt;
 						last_rate_measurement = hrt_absolute_time();
 						last_rate_count = 0;
 						_last_rate_rtcm_injection_count = 0;
+						_num_bytes_read = 0;
 						_helper->storeUpdateRates();
 						_helper->resetUpdateRates();
 					}
@@ -901,6 +919,7 @@ GPS::print_status()
 
 	PX4_INFO("status: %s, port: %s, baudrate: %d", _healthy ? "OK" : "NOT OK", _port, _baudrate);
 	PX4_INFO("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
+	PX4_INFO("rate reading: \t\t%6i B/s", _rate_reading);
 
 	if (_report_gps_pos.timestamp != 0) {
 		if (_helper) {
