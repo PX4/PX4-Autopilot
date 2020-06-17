@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <malloc.h>
 #include <poll.h>
 #include <signal.h>
 #include <crc32.h>
