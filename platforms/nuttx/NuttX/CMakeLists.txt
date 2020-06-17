@@ -54,11 +54,21 @@ set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config)
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${NUTTX_SRC_DIR}/nuttx)
 file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
 
+execute_process(
+	COMMAND git rev-parse --git-dir
+	OUTPUT_VARIABLE nuttx_git_dir
+	WORKING_DIRECTORY ${NUTTX_SRC_DIR}/nuttx
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 # setup custom command to copy changes later
 file(GLOB_RECURSE copy_nuttx_files LIST_DIRECTORIES false ${NUTTX_SRC_DIR}/nuttx/*)
+list(REMOVE_ITEM copy_nuttx_files ${NUTTX_SRC_DIR}/nuttx/.git)
+
 add_custom_command(
 	OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST}
+	COMMAND echo "gitdir: ${nuttx_git_dir}" > ${CP_DST}/nuttx/.git
 	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	DEPENDS
 		git_nuttx
