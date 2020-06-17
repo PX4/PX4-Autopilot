@@ -409,6 +409,10 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 void GPS::handleInjectDataTopic()
 {
+	if (!_helper->shouldInjectRTCM()) {
+		return;
+	}
+
 	bool updated = false;
 
 	// Limit maximum number of GPS injections to 6 since usually
@@ -644,6 +648,24 @@ GPS::run()
 		param_get(handle, &gps_ubx_dynmodel);
 	}
 
+	handle = param_find("GPS_UBX_MODE");
+
+	GPSDriverUBX::UBXMode ubx_mode{GPSDriverUBX::UBXMode::Normal};
+
+	if (handle != PARAM_INVALID) {
+		int32_t gps_ubx_mode = 0;
+		param_get(handle, &gps_ubx_mode);
+
+		if (gps_ubx_mode == 1) { // heading
+			if (_instance == Instance::Main) {
+				ubx_mode = GPSDriverUBX::UBXMode::RoverWithMovingBase;
+
+			} else {
+				ubx_mode = GPSDriverUBX::UBXMode::MovingBase;
+			}
+		}
+	}
+
 	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
@@ -696,7 +718,7 @@ GPS::run()
 			/* FALLTHROUGH */
 			case GPS_DRIVER_MODE_UBX:
 				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
-							   gps_ubx_dynmodel);
+							   gps_ubx_dynmodel, heading_offset, ubx_mode);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:

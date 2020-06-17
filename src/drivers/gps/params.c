@@ -64,6 +64,27 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
  */
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
+/**
+ * u-blox GPS Mode
+ *
+ * Select the u-blox configuration setup. Most setups will use the default, including RTK and
+ * dual GPS without heading.
+ *
+ * The Heading mode requires 2 F9P devices to be attached. The main GPS will act as rover and output
+ * heading information, whereas the secondary will act as moving base, sending RTCM on UART2 to
+ * the rover GPS.
+ * RTK is still possible with this setup.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Default
+ * @value 1 Heading
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MODE, 0);
+
 
 /**
  * Heading/Yaw offset for dual antenna GPS
