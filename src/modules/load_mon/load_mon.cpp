@@ -38,6 +38,7 @@
  * @author Julian Oes <julian@oes.ch
  * @author Andreas Antener <andreas@uaventure.com>
  */
+#include <malloc.h>
 
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
@@ -200,11 +201,7 @@ float LoadMon::_ram_used()
 #ifdef __PX4_NUTTX
 	struct mallinfo mem;
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
 	mem = mallinfo();
-#else
-	(void)mallinfo(&mem);
-#endif /* CONFIG_CAN_PASS_STRUCTS */
 
 	// mem.arena: total ram (bytes)
 	// mem.uordblks: used (bytes)
