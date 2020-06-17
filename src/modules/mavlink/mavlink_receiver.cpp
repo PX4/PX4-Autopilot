@@ -48,6 +48,8 @@
 #include <ecl/geo/geo.h>
 #include <systemlib/px4_macros.h>
 
+#include <float.h>
+
 #include <math.h>
 #include <poll.h>
 
@@ -2181,7 +2183,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	}
 
 	/* baro */
-	{
+	if (imu.abs_pressure > FLT_MIN) {
 		if (_px4_baro == nullptr) {
 			// 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 			_px4_baro = new PX4Barometer(6620172);
