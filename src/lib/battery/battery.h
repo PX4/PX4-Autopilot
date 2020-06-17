@@ -53,7 +53,7 @@
 #include <px4_platform_common/board_common.h>
 #include <math.h>
 #include <float.h>
-#include <lib/ecl/EKF/AlphaFilter.hpp>
+#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
 
 /**
  * BatteryBase is a base class for any type of battery.

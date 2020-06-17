@@ -278,7 +278,7 @@ void VehicleAirData::PrintStatus()
 		PX4_INFO("selected barometer: %d (%d)", _last_data[_selected_sensor_sub_index].device_id, _selected_sensor_sub_index);
 
 		if (fabsf(_thermal_offset[_selected_sensor_sub_index]) > 0.f) {
-			PX4_INFO("%d temperature offset: %.3f", _last_data[_selected_sensor_sub_index].device_id,
+			PX4_INFO("%d temperature offset: %.4f", _last_data[_selected_sensor_sub_index].device_id,
 				 (double)_thermal_offset[_selected_sensor_sub_index]);
 		}
 	}

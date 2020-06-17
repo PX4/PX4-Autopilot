@@ -36,17 +36,20 @@
 #include <drivers/drv_hrt.h>
 #include <lib/conversion/rotation.h>
 #include <lib/ecl/geo/geo.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_fifo.h>
 
-class PX4Accelerometer
+class PX4Accelerometer : public ModuleParams
 {
 public:
 	PX4Accelerometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
-	~PX4Accelerometer();
+	~PX4Accelerometer() override;
 
 	uint32_t get_device_id() const { return _device_id; }
+
+	float get_max_rate_hz() const { return _param_imu_gyro_rate_max.get(); }
 
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
@@ -85,11 +88,15 @@ private:
 
 	float			_range{16 * CONSTANTS_ONE_G};
 	float			_scale{1.f};
-	float			_temperature{0.f};
+	float			_temperature{NAN};
 
 	float			_clip_limit{_range / _scale};
 
 	uint32_t		_error_count{0};
 
 	int16_t			_last_sample[3] {};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
+	)
 };

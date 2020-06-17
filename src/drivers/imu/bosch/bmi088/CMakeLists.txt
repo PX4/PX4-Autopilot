@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__bmi88
+	MODULE drivers__imu__bosch__bmi088
 	MAIN bmi088
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		BMI088_accel.cpp
-		BMI088_gyro.cpp
+		Bosch_BMI088_Accelerometer_Registers.hpp
+		Bosch_BMI088_Gyroscope_Registers.hpp
+
+		BMI088.cpp
+		BMI088.hpp
+		BMI088_Accelerometer.cpp
+		BMI088_Accelerometer.hpp
+		BMI088_Gyroscope.cpp
+		BMI088_Gyroscope.hpp
+
 		bmi088_main.cpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
 	)

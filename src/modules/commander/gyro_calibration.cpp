@@ -67,13 +67,27 @@ struct gyro_worker_data_t {
 	orb_advert_t *mavlink_log_pub{nullptr};
 	int32_t device_id[MAX_GYROS] {};
 	Vector3f offset[MAX_GYROS] {};
-	Vector3f last_sample_0{};
+
+	static constexpr int last_num_samples = 9; ///< number of samples for the motion detection median filter
+	float last_sample_0_x[last_num_samples];
+	float last_sample_0_y[last_num_samples];
+	float last_sample_0_z[last_num_samples];
+	int last_sample_0_idx;
 };
+
+static int float_cmp(const void *elem1, const void *elem2)
+{
+	if (*(const float *)elem1 < * (const float *)elem2) {
+		return -1;
+	}
+
+	return *(const float *)elem1 > *(const float *)elem2;
+}
 
 static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data_t &worker_data)
 {
 	unsigned calibration_counter[MAX_GYROS] {};
-	static constexpr unsigned calibration_count = 250;
+	static constexpr unsigned CALIBRATION_COUNT = 250;
 	unsigned poll_errcount = 0;
 
 	uORB::Subscription sensor_correction_sub{ORB_ID(sensor_correction)};
@@ -85,21 +99,24 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data
 		{ORB_ID(sensor_gyro), 0, 2},
 	};
 
-	worker_data.last_sample_0.zero();
+	memset(&worker_data.last_sample_0_x, 0, sizeof(worker_data.last_sample_0_x));
+	memset(&worker_data.last_sample_0_y, 0, sizeof(worker_data.last_sample_0_y));
+	memset(&worker_data.last_sample_0_z, 0, sizeof(worker_data.last_sample_0_z));
+	worker_data.last_sample_0_idx = 0;
 
 	/* use slowest gyro to pace, but count correctly per-gyro for statistics */
 	unsigned slow_count = 0;
 
-	while (slow_count < calibration_count) {
+	while (slow_count < CALIBRATION_COUNT) {
 		if (calibrate_cancel_check(worker_data.mavlink_log_pub, cancel_sub)) {
 			return calibrate_return_cancelled;
 		}
 
 		if (gyro_sub[0].updatedBlocking(100000)) {
-			unsigned update_count = calibration_count;
+			unsigned update_count = CALIBRATION_COUNT;
 
 			for (unsigned gyro_index = 0; gyro_index < MAX_GYROS; gyro_index++) {
-				if (calibration_counter[gyro_index] >= calibration_count) {
+				if (calibration_counter[gyro_index] >= CALIBRATION_COUNT) {
 					// Skip if instance has enough samples
 					continue;
 				}
@@ -134,7 +151,10 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data
 					calibration_counter[gyro_index]++;
 
 					if (gyro_index == 0) {
-						worker_data.last_sample_0 = Vector3f{gyro_report.x, gyro_report.y, gyro_report.z};
+						worker_data.last_sample_0_x[worker_data.last_sample_0_idx] = gyro_report.x - offset(0);
+						worker_data.last_sample_0_y[worker_data.last_sample_0_idx] = gyro_report.y - offset(1);
+						worker_data.last_sample_0_z[worker_data.last_sample_0_idx] = gyro_report.z - offset(2);
+						worker_data.last_sample_0_idx = (worker_data.last_sample_0_idx + 1) % gyro_worker_data_t::last_num_samples;
 					}
 				}
 
@@ -144,8 +164,8 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data
 				}
 			}
 
-			if (update_count % (calibration_count / 20) == 0) {
-				calibration_log_info(worker_data.mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (update_count * 100) / calibration_count);
+			if (update_count % (CALIBRATION_COUNT / 20) == 0) {
+				calibration_log_info(worker_data.mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (update_count * 100) / CALIBRATION_COUNT);
 			}
 
 			// Propagate out the slowest sensor's count
@@ -164,7 +184,7 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data
 	}
 
 	for (unsigned s = 0; s < MAX_GYROS; s++) {
-		if (worker_data.device_id[s] != 0 && calibration_counter[s] < calibration_count / 2) {
+		if ((worker_data.device_id[s] != 0) && (calibration_counter[s] < CALIBRATION_COUNT / 2)) {
 			calibration_log_critical(worker_data.mavlink_log_pub, "ERROR: missing data, sensor %d", s)
 			return calibrate_return_error;
 		}
@@ -236,16 +256,22 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			res = PX4_ERROR;
 
 		} else {
-			/* check offsets */
-			Vector3f diff = worker_data.last_sample_0 - worker_data.offset[0];
+			/* check offsets using a median filter */
+			qsort(worker_data.last_sample_0_x, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
+			qsort(worker_data.last_sample_0_y, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
+			qsort(worker_data.last_sample_0_z, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
+
+			float xdiff = worker_data.last_sample_0_x[gyro_worker_data_t::last_num_samples / 2] - worker_data.offset[0](0);
+			float ydiff = worker_data.last_sample_0_y[gyro_worker_data_t::last_num_samples / 2] - worker_data.offset[0](1);
+			float zdiff = worker_data.last_sample_0_z[gyro_worker_data_t::last_num_samples / 2] - worker_data.offset[0](2);
 
 			/* maximum allowable calibration error */
-			const float maxoff = math::radians(0.4f);
+			const float maxoff = math::radians(0.6f);
 
-			if (!PX4_ISFINITE(worker_data.offset[0](0))
-			    || !PX4_ISFINITE(worker_data.offset[0](1))
-			    || !PX4_ISFINITE(worker_data.offset[0](2)) ||
-			    fabsf(diff(0)) > maxoff || fabsf(diff(1)) > maxoff || fabsf(diff(2)) > maxoff) {
+			if (!PX4_ISFINITE(worker_data.offset[0](0)) ||
+			    !PX4_ISFINITE(worker_data.offset[0](1)) ||
+			    !PX4_ISFINITE(worker_data.offset[0](2)) ||
+			    fabsf(xdiff) > maxoff || fabsf(ydiff) > maxoff || fabsf(zdiff) > maxoff) {
 
 				calibration_log_critical(mavlink_log_pub, "motion, retrying..");
 				res = PX4_ERROR;

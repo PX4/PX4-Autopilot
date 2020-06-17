@@ -64,6 +64,7 @@ static constexpr uint8_t clipping(const int16_t samples[16], int16_t clip_limit,
 }
 
 PX4Accelerometer::PX4Accelerometer(uint32_t device_id, ORB_PRIO priority, enum Rotation rotation) :
+	ModuleParams(nullptr),
 	_sensor_pub{ORB_ID(sensor_accel), priority},
 	_sensor_fifo_pub{ORB_ID(sensor_accel_fifo), priority},
 	_device_id{device_id},
@@ -71,6 +72,8 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, ORB_PRIO priority, enum R
 {
 	// advertise immediately to keep instance numbering in sync
 	_sensor_pub.advertise();
+
+	updateParams();
 }
 
 PX4Accelerometer::~PX4Accelerometer()

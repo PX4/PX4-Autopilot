@@ -244,7 +244,7 @@ void SensorCalibration::PrintStatus()
 	}
 
 	if (_thermal_offset.norm() > 0.f) {
-		PX4_INFO("%s %d temperature offset: [%.3f %.3f %.3f]", SensorString(), _device_id,
+		PX4_INFO("%s %d temperature offset: [%.4f %.4f %.4f]", SensorString(), _device_id,
 			 (double)_thermal_offset(0), (double)_thermal_offset(1), (double)_thermal_offset(2));
 	}
 }

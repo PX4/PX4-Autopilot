@@ -345,8 +345,7 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 }
 
 static calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub,
-		Vector3f(&accel_offs)[MAX_ACCEL_SENS],
-		Matrix3f(&accel_T)[MAX_ACCEL_SENS], unsigned active_sensors)
+		Vector3f(&accel_offs)[MAX_ACCEL_SENS], Matrix3f(&accel_T)[MAX_ACCEL_SENS], unsigned active_sensors)
 {
 	calibrate_return result = calibrate_return_ok;
 
