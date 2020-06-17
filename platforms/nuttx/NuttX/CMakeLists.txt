@@ -54,6 +54,17 @@ set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config)
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${NUTTX_SRC_DIR}/nuttx)
 file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
 
+file(GLOB_RECURSE ver_nuttx_files LIST_DIRECTORIES false ${NUTTX_SRC_DIR}/nuttx/*)
+list(REMOVE_ITEM ver_nuttx_files ${NUTTX_SRC_DIR}/nuttx/.version)
+add_custom_command(
+	OUTPUT ${NUTTX_SRC_DIR}/nuttx/.version
+	COMMAND ${NUTTX_SRC_DIR}/nuttx/tools/version.sh .version
+	DEPENDS
+		git_nuttx
+		${ver_nuttx_files}
+	COMMENT "Creating NuttX Version File}"
+	WORKING_DIRECTORY ${NUTTX_SRC_DIR}/nuttx
+)
 # setup custom command to copy changes later
 file(GLOB_RECURSE copy_nuttx_files LIST_DIRECTORIES false ${NUTTX_SRC_DIR}/nuttx/*)
 add_custom_command(
@@ -62,6 +73,7 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	DEPENDS
 		git_nuttx
+		${NUTTX_SRC_DIR}/nuttx/.version
 		${copy_nuttx_files}
 	COMMENT "Copying NuttX/nuttx to ${CP_DST}"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
