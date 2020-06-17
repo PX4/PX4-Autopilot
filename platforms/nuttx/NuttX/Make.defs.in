@@ -36,6 +36,19 @@
 include $(TOPDIR)/.config
 include $(TOPDIR)/tools/Config.mk
 
+CINCPATH := $(shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include)
+CXXINCPATH := $(shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include$(DELIM)cxx)
+
+ARCHINCLUDES += $(CINCPATH)
+ARCHXXINCLUDES += $(CINCPATH) $(CXXINCPATH)
+
+ifeq ($(CONFIG_CYGWIN_WINTOOL),y)
+  ARCHSCRIPT = -T "$(shell cygpath -w $(BOARD_DIR)$(DELIM)scripts$(DELIM)flash.ld)"
+else
+  ARCHSCRIPT = -T$(BOARD_DIR)$(DELIM)scripts$(DELIM)flash.ld
+endif
+
+
 CC = ${CMAKE_C_COMPILER}
 CXX = ${CMAKE_CXX_COMPILER}
 CPP = ${CMAKE_C_COMPILER} -E
@@ -46,23 +59,8 @@ NM = ${CMAKE_NM}
 OBJCOPY = ${CMAKE_OBJCOPY}
 OBJDUMP = ${CMAKE_OBJDUMP}
 
-# Include paths with Cygwin path conversion
-ifneq (, $(findstring CYGWIN, $(shell uname)))
-  WINTOOL = y
-  ARCHINCLUDES = -I. -isystem "$(shell cygpath -w $(TOPDIR)/include)"
-  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem "$(shell cygpath -w $(TOPDIR)/include/cxx)"
-else
-  MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
-  ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
-  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem $(TOPDIR)/include/cxx
-endif
-
-# Windows toolchain (MSYS & Cygwin) symbolic link handling
-ifeq ($(WINTOOL),y)
-  DIRLINK = $(TOPDIR)/tools/copydir.sh
-  DIRUNLINK = $(TOPDIR)/tools/unlink.sh
-  MKDEP = $(TOPDIR)/tools/mknulldeps.sh
-endif
+ARCHCCVERSION = $(shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q')
+ARCHCCMAJOR = $(shell echo $(ARCHCCVERSION) | cut -d'.' -f1)
 
 ifeq ($(CONFIG_BOARD_USE_PROBES),y)
    ARCHINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP)
@@ -154,5 +152,5 @@ define ASSEMBLE
 endef
 
 define ARCHIVE
-	$(Q) $(AR) $1 $(2)
+    $(AR) $1 $(2)
 endef
