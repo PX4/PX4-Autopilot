@@ -78,9 +78,9 @@ int px4_platform_init(void)
 
 		(void)fs_dupfd2(0, 1);
 		(void)fs_dupfd2(0, 2);
-		(void)fs_fdopen(0, O_RDONLY,         NULL);
-		(void)fs_fdopen(1, O_WROK | O_CREAT, NULL);
-		(void)fs_fdopen(2, O_WROK | O_CREAT, NULL);
+		(void)fs_fdopen(0, O_RDONLY,         NULL, NULL);
+		(void)fs_fdopen(1, O_WROK | O_CREAT, NULL, NULL);
+		(void)fs_fdopen(2, O_WROK | O_CREAT, NULL, NULL);
 
 	} else {
 		/* We failed to open /dev/null OR for some reason, we opened
