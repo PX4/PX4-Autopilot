@@ -51,7 +51,7 @@
 
 #include <nuttx/board.h>
 
-#include "up_internal.h"
+#include "arm_internal.h"
 #include <systemlib/hardfault_log.h>
 
 #if defined(CONFIG_STM32F7_BBSRAM) && defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
@@ -366,14 +366,14 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 		char *dead = "Memory wiped - dump not saved!";
 
 		while (*dead) {
-			up_lowputc(*dead++);
+			arm_lowputc(*dead++);
 		}
 
 	} else if (rv == -ENOSPC) {
 
 		/* hard fault again */
 
-		up_lowputc('!');
+		arm_lowputc('!');
 	}
 
 #endif /* BOARD_CRASHDUMP_RESET_ONLY */
