@@ -302,13 +302,13 @@ void VehicleIMU::Run()
 
 			// delta angle: apply offsets, scale, and board rotation
 			_gyro_corrections.SensorCorrectionsUpdate();
-			const float gyro_dt = 1.e-6f * gyro_integral_dt;
-			const Vector3f delta_angle_corrected{_gyro_corrections.Correct(delta_angle * gyro_dt) / gyro_dt};
+			const float gyro_dt_inv = 1.e6f * gyro_integral_dt;
+			const Vector3f delta_angle_corrected{_gyro_corrections.Correct(delta_angle * gyro_dt_inv) / gyro_dt_inv};
 
 			// delta velocity: apply offsets, scale, and board rotation
 			_accel_corrections.SensorCorrectionsUpdate();
-			const float accel_dt = 1.e-6f * accel_integral_dt;
-			Vector3f delta_velocity_corrected{_accel_corrections.Correct(delta_velocity * accel_dt) / accel_dt};
+			const float accel_dt_inv = 1.e6f * accel_integral_dt;
+			Vector3f delta_velocity_corrected{_accel_corrections.Correct(delta_velocity * accel_dt_inv) / accel_dt_inv};
 
 			UpdateAccelVibrationMetrics(delta_velocity_corrected);
 			UpdateGyroVibrationMetrics(delta_angle_corrected);
