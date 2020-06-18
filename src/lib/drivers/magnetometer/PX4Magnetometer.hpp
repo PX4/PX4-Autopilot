@@ -43,22 +43,20 @@
 
 class PX4Magnetometer : public cdev::CDev
 {
-
 public:
 	PX4Magnetometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Magnetometer() override;
 
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
-	bool external() { return _sensor_mag_pub.get().is_external; }
+	bool external() { return _external; }
 
 	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_mag_pub.get().error_count = error_count; }
-	void increase_error_count() { _sensor_mag_pub.get().error_count++; }
-	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
-	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
-	void set_sensitivity(float x, float y, float z) { _sensitivity = matrix::Vector3f{x, y, z}; }
+	void set_error_count(uint32_t error_count) { _error_count = error_count; }
+	void increase_error_count() { _error_count++; }
+	void set_scale(float scale) { _scale = scale; }
+	void set_temperature(float temperature) { _temperature = temperature; }
+	void set_external(bool external) { _external = external; }
 
 	void update(hrt_abstime timestamp_sample, float x, float y, float z);
 
@@ -67,16 +65,19 @@ public:
 	void print_status();
 
 private:
+	uORB::PublicationMulti<sensor_mag_s> _sensor_mag_pub;
 
-	uORB::PublicationMultiData<sensor_mag_s>	_sensor_mag_pub;
+	matrix::Vector3f _calibration_scale{1.f, 1.f, 1.f};
+	matrix::Vector3f _calibration_offset{0.f, 0.f, 0.f};
 
-	const enum Rotation	_rotation;
+	const enum Rotation _rotation;
+	uint32_t _device_id{0};
+	float _temperature{NAN};
+	float _scale{1.f};
 
-	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
-	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+	uint32_t _error_count{0};
 
-	matrix::Vector3f	_sensitivity{1.0f, 1.0f, 1.0f};
+	bool _external{false};
 
-	int			_class_device_instance{-1};
-
+	int _class_device_instance{-1};
 };
