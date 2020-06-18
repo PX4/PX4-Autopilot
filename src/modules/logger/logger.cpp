@@ -516,9 +516,7 @@ bool Logger::initialize_topics()
 
 		for (int i = 0; i < logged_topics.subscriptions().count; ++i) {
 			const LoggedTopics::RequestedSubscription &sub = logged_topics.subscriptions().sub[i];
-			// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
-			uint16_t interval_ms = _polling_topic_meta ? 0 : sub.interval_ms;
-			_subscriptions[i] = LoggerSubscription(sub.id, interval_ms, sub.instance);
+			_subscriptions[i] = LoggerSubscription(sub.id, sub.interval_ms, sub.instance);
 			_subscriptions[i].subscribe();
 		}
 	}
