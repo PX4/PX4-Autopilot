@@ -34,7 +34,7 @@
 /**
  * @file AKM_AK8963_registers.hpp
  *
- * AKM AK8963 registers.
+ * Asahi Kasei Microdevices (AKM) AK8963 registers.
  *
  */
 
@@ -58,7 +58,7 @@ static constexpr uint8_t Bit7 = (1 << 7);
 static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x0C;
 
-static constexpr uint8_t WHOAMI = 0x48;
+static constexpr uint8_t Device_ID = 0x48; // Device ID of AKM
 
 enum class Register : uint8_t {
 	WIA   = 0x00, // Device ID
@@ -99,6 +99,7 @@ enum CNTL1_BIT : uint8_t {
 	SINGLE_MEASUREMENT_MODE = Bit0,
 	CONTINUOUS_MODE_1       = Bit1,        //   8 Hz
 	CONTINUOUS_MODE_2       = Bit2 | Bit1, // 100 Hz
+	FUSE_ROM_ACCESS_MODE    = Bit3 | Bit2 | Bit1 | Bit0, // MODE[3:0]=“1111”
 };
 
 // CNTL2
@@ -106,5 +107,4 @@ enum CNTL2_BIT : uint8_t {
 	SRST = Bit0, // Reset
 };
 
-
-} // namespace InvenSense_MPU9250
+} // namespace AKM_AK8963
