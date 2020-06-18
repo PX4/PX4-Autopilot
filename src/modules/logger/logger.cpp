@@ -844,7 +844,7 @@ void Logger::run()
 			px4_pollfd_struct_t fds[1];
 			fds[0].fd = polling_topic_sub;
 			fds[0].events = POLLIN;
-			int pret = px4_poll(fds, 1, 1000);
+			int pret = px4_poll(fds, 1, 20);
 
 			if (pret < 0) {
 				PX4_ERR("poll failed (%i)", pret);
