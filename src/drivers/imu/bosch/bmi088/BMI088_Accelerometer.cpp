@@ -82,8 +82,6 @@ void BMI088_Accelerometer::print_status()
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
 	perf_print_counter(_drdy_interval_perf);
-
-	_px4_accel.print_status();
 }
 
 int BMI088_Accelerometer::probe()

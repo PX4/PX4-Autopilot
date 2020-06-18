@@ -33,24 +33,19 @@
 
 #pragma once
 
-#include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/ecl/geo/geo.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_fifo.h>
 
-class PX4Accelerometer : public cdev::CDev, public ModuleParams
+class PX4Accelerometer : public ModuleParams
 {
 public:
 	PX4Accelerometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Accelerometer() override;
-
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	uint32_t get_device_id() const { return _device_id; }
 
@@ -64,9 +59,7 @@ public:
 	void set_scale(float scale) { _scale = scale; UpdateClipLimit(); }
 	void set_temperature(float temperature) { _temperature = temperature; }
 
-	void update(hrt_abstime timestamp_sample, float x, float y, float z);
-
-	void print_status();
+	void update(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
 	struct FIFOSample {
 		hrt_abstime timestamp_sample;
@@ -84,15 +77,11 @@ public:
 	void updateFIFO(const FIFOSample &sample);
 
 private:
+	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t clip_count[3]);
 	void UpdateClipLimit();
 
-	uORB::PublicationQueuedMulti<sensor_accel_s>      _sensor_pub;
-	uORB::PublicationMulti<sensor_accel_fifo_s>       _sensor_fifo_pub;
-
-	matrix::Vector3f	_calibration_scale{1.f, 1.f, 1.f};
-	matrix::Vector3f	_calibration_offset{0.f, 0.f, 0.f};
-
-	int			_class_device_instance{-1};
+	uORB::PublicationQueuedMulti<sensor_accel_s> _sensor_pub;
+	uORB::PublicationMulti<sensor_accel_fifo_s>  _sensor_fifo_pub;
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;

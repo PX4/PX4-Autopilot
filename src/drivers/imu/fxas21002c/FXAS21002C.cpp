@@ -418,7 +418,6 @@ void FXAS21002C::print_status()
 		}
 	}
 
-	_px4_gyro.print_status();
 }
 
 void

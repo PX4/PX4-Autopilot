@@ -308,9 +308,6 @@ ADIS16448::print_status()
 	perf_print_counter(_perf_bad_transfer);
 	perf_print_counter(_perf_crc_bad);
 
-	_px4_accel.print_status();
-	_px4_baro.print_status();
-	_px4_gyro.print_status();
 	_px4_mag.print_status();
 }
 

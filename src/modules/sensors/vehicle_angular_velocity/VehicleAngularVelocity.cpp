@@ -43,8 +43,7 @@ namespace sensors
 
 VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-	_corrections(this, SensorCorrections::SensorType::Gyroscope)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	_lp_filter_velocity.set_cutoff_frequency(kInitialRateHz, _param_imu_gyro_cutoff.get());
 	_notch_filter_velocity.setParameters(kInitialRateHz, _param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
@@ -202,7 +201,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(bool force)
 						// clear bias and corrections
 						_bias.zero();
 
-						_corrections.set_device_id(report.device_id);
+						_calibration.set_device_id(report.device_id);
 
 						// reset sample interval accumulator on sensor change
 						_timestamp_sample_last = 0;
@@ -232,7 +231,7 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 
 		updateParams();
 
-		_corrections.ParametersUpdate();
+		_calibration.ParametersUpdate();
 	}
 }
 
@@ -244,7 +243,7 @@ void VehicleAngularVelocity::Run()
 	// update corrections first to set _selected_sensor
 	bool selection_updated = SensorSelectionUpdate();
 
-	_corrections.SensorCorrectionsUpdate(selection_updated);
+	_calibration.SensorCorrectionsUpdate(selection_updated);
 	SensorBiasUpdate(selection_updated);
 	ParametersUpdate();
 
@@ -280,7 +279,7 @@ void VehicleAngularVelocity::Run()
 			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
 
 			// correct for in-run bias errors
-			const Vector3f angular_velocity_raw = _corrections.Correct(val) - _bias;
+			const Vector3f angular_velocity_raw = _calibration.Correct(val) - _bias;
 
 			// Gyro filtering:
 			// - Apply general notch filter (IMU_GYRO_NF_FREQ)
@@ -339,8 +338,8 @@ void VehicleAngularVelocity::PrintStatus()
 {
 	PX4_INFO("selected sensor: %d (%d), rate: %.1f Hz",
 		 _selected_sensor_device_id, _selected_sensor_sub_index, (double)_update_rate_hz);
-	PX4_INFO("estimated bias: [%.3f %.3f %.3f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
-	_corrections.PrintStatus();
+	PX4_INFO("estimated bias: [%.4f %.4f %.4f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
+	_calibration.PrintStatus();
 }
 
 } // namespace sensors

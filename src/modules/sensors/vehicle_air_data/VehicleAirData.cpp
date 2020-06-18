@@ -72,43 +72,35 @@ void VehicleAirData::Stop()
 	}
 }
 
-void VehicleAirData::SensorCorrectionsUpdate()
+void VehicleAirData::SensorCorrectionsUpdate(bool force)
 {
-	// check if the selected sensor has updated
-	sensor_correction_s corrections;
+	if (_sensor_correction_sub.updated() || force) {
+		sensor_correction_s corrections;
 
-	if (_sensor_correction_sub.update(&corrections)) {
-		for (int baro_index = 0; baro_index < MAX_SENSOR_COUNT; baro_index++) {
-			const sensor_baro_s &baro = _last_data[baro_index];
+		if (_sensor_correction_sub.copy(&corrections)) {
+			for (int baro_index = 0; baro_index < MAX_SENSOR_COUNT; baro_index++) {
+				// find sensor (by device id) in sensor_correction
+				const uint32_t device_id = _last_data[baro_index].device_id;
 
-			// find sensor (by device id) in sensor_correction
-			if (_sensor_correction_index[baro_index] < 0) {
-				for (int correction_index = 0; correction_index < MAX_SENSOR_COUNT; correction_index++) {
-					if ((baro.device_id > 0) && (corrections.baro_device_ids[correction_index] == baro.device_id)) {
-						_sensor_correction_index[baro_index] = correction_index;
+				if (device_id != 0) {
+					for (int correction_index = 0; correction_index < MAX_SENSOR_COUNT; correction_index++) {
+						if (corrections.baro_device_ids[correction_index] == device_id) {
+							switch (correction_index) {
+							case 0:
+								_thermal_offset[baro_index] = corrections.baro_offset_0;
+								break;
+
+							case 1:
+								_thermal_offset[baro_index] = corrections.baro_offset_1;
+								break;
+
+							case 2:
+								_thermal_offset[baro_index] = corrections.baro_offset_2;
+								break;
+							}
+						}
 					}
 				}
-			}
-
-			switch (_sensor_correction_index[baro_index]) {
-			case 0:
-				_offset[baro_index] = corrections.baro_offset_0;
-				_scale[baro_index] = corrections.baro_scale_0;
-				break;
-
-			case 1:
-				_offset[baro_index] = corrections.baro_offset_1;
-				_scale[baro_index] = corrections.baro_scale_1;
-				break;
-
-			case 2:
-				_offset[baro_index] = corrections.baro_offset_2;
-				_scale[baro_index] = corrections.baro_scale_2;
-				break;
-
-			default:
-				_offset[baro_index] = 0.f;
-				_scale[baro_index] = 1.f;
 			}
 		}
 	}
@@ -130,6 +122,8 @@ void VehicleAirData::Run()
 {
 	perf_begin(_cycle_perf);
 
+	SensorCorrectionsUpdate();
+
 	bool updated[MAX_SENSOR_COUNT] {};
 
 	for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
@@ -146,6 +140,9 @@ void VehicleAirData::Run()
 					}
 
 					_advertised[uorb_index] = true;
+
+					// force temperature correction update
+					SensorCorrectionsUpdate(true);
 
 				} else {
 					_last_data[uorb_index].timestamp = hrt_absolute_time();
@@ -164,8 +161,8 @@ void VehicleAirData::Run()
 				// millibar to Pa
 				const float raw_pressure_pascals = _last_data[uorb_index].pressure * 100.f;
 
-				// pressure corrected with offset and scale (if available)
-				const float pressure_corrected = (raw_pressure_pascals - _offset[uorb_index]) * _scale[uorb_index];
+				// pressure corrected with offset (if available)
+				const float pressure_corrected = (raw_pressure_pascals - _thermal_offset[uorb_index]);
 
 				float vect[3] {pressure_corrected, _last_data[uorb_index].temperature, 0.f};
 				_voter.put(uorb_index, _last_data[uorb_index].timestamp, vect, _last_data[uorb_index].error_count,
@@ -192,7 +189,6 @@ void VehicleAirData::Run()
 
 	if ((_selected_sensor_sub_index >= 0) && updated[_selected_sensor_sub_index]) {
 		ParametersUpdate();
-		SensorCorrectionsUpdate();
 
 		const sensor_baro_s &baro = _last_data[_selected_sensor_sub_index];
 
@@ -203,8 +199,7 @@ void VehicleAirData::Run()
 		out.baro_temp_celcius = baro.temperature;
 
 		// Convert from millibar to Pa and apply temperature compensation
-		out.baro_pressure_pa = (100.0f * baro.pressure - _offset[_selected_sensor_sub_index]) *
-				       _scale[_selected_sensor_sub_index];
+		out.baro_pressure_pa = 100.0f * baro.pressure - _thermal_offset[_selected_sensor_sub_index];
 
 		// calculate altitude using the hypsometric equation
 		static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
@@ -281,6 +276,11 @@ void VehicleAirData::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
 		PX4_INFO("selected barometer: %d (%d)", _last_data[_selected_sensor_sub_index].device_id, _selected_sensor_sub_index);
+
+		if (fabsf(_thermal_offset[_selected_sensor_sub_index]) > 0.f) {
+			PX4_INFO("%d temperature offset: %.4f", _last_data[_selected_sensor_sub_index].device_id,
+				 (double)_thermal_offset[_selected_sensor_sub_index]);
+		}
 	}
 
 	_voter.print();

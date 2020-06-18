@@ -414,7 +414,6 @@ L3GD20::print_status()
 		}
 	}
 
-	_px4_gyro.print_status();
 }
 
 void
