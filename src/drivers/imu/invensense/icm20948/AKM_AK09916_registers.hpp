@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,12 +58,14 @@ static constexpr uint8_t Bit7 = (1 << 7);
 static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001100;
 
-static constexpr uint8_t WHOAMI = 0x09;
+static constexpr uint8_t Company_ID = 0x48;
+static constexpr uint8_t Device_ID = 0x09;
 
 enum class Register : uint8_t {
-	WIA   = 0x01,   // Device ID
+	WIA1  = 0x00, // Company ID of AKM
+	WIA2  = 0x01, // Device ID of AK09916
 
-	ST1   = 0x10,   // Status 1
+	ST1   = 0x10, // Status 1
 	HXL   = 0x11,
 	HXH   = 0x12,
 	HYL   = 0x13,
@@ -71,30 +73,30 @@ enum class Register : uint8_t {
 	HZL   = 0x15,
 	HZH   = 0x16,
 
-	ST2   = 0x18,   // Status 2
+	ST2   = 0x18, // Status 2
 
-	CNTL2 = 0x31,   // Control 2
-	CNTL3 = 0x32,   // Control 3
+	CNTL2 = 0x31, // Control 2
+	CNTL3 = 0x32, // Control 3
 };
 
 // ST1
 enum ST1_BIT : uint8_t {
-	DOR  = Bit1,    // Data overrun
-	DRDY = Bit0,    // Data is ready
+	DOR  = Bit1, // Data overrun
+	DRDY = Bit0, // Data is ready
 };
 
 // ST2
 enum ST2_BIT : uint8_t {
-	BITM = Bit4, // Output bit setting (mirror)
 	HOFL = Bit3, // Magnetic sensor overflow
 };
 
 // CNTL2
 enum CNTL2_BIT : uint8_t {
-	MODE1 = Bit1,        // Continuous measurement mode 1 (10Hz)
-	MODE2 = Bit2,        // Continuous measurement mode 2 (20Hz)
-	MODE3 = Bit2 | Bit1, // Continuous measurement mode 3 (50Hz)
-	MODE4 = Bit3,        // Continuous measurement mode 4 (100Hz)
+	// MODE[4:0] bits
+	MODE1 = Bit1,        // “00010”: Continuous measurement mode 1 (10Hz)
+	MODE2 = Bit2,        // “00100”: Continuous measurement mode 2 (20Hz)
+	MODE3 = Bit2 | Bit1, // “00110”: Continuous measurement mode 3 (50Hz)
+	MODE4 = Bit3,        // “01000”: Continuous measurement mode 4 (100Hz)
 };
 
 // CNTL3

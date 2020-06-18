@@ -105,7 +105,6 @@ enum class BANK_2 : uint8_t {
 };
 
 enum class BANK_3 : uint8_t {
-	I2C_MST_ODR_CONFIG   = 0x00,
 	I2C_MST_CTRL         = 0x01,
 	I2C_MST_DELAY_CTRL   = 0x02,
 
