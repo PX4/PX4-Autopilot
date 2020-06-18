@@ -434,13 +434,17 @@ LidarLiteI2C::collect()
 		}
 	}
 
-	// Final data quality evaluation. This is based on the datasheet and simple heuristics retrieved from experiments
-	// Step 1: Normalize signal strength to 0...100 percent using the absolute signal peak strength.
-	uint8_t signal_quality = 100 * math::max(signal_value - signal_min, 0) / (signal_max - signal_min);
+	uint8_t signal_quality;
 
-	// Step 2: Filter physically impossible measurements, which removes some crazy outliers that appear on LL40LS.
-	if (distance_m < LL40LS_MIN_DISTANCE) {
+	if (!_is_v3hp && distance_m < LL40LS_MIN_DISTANCE) {
+		//for Lidar lites that are not v3hp we need to filter physically impossible measurements, which removes some crazy outliers that appear on LL40LS.
 		signal_quality = 0;
+
+	} else {
+		//Final data quality evaluation. This is based on the datasheet and simple heuristics retrieved from experiments
+		//Normalize signal strength to 0...100 percent using the absolute signal peak strength.
+		signal_quality = 100 * math::max(signal_value - signal_min, 0) / (signal_max - signal_min);
+
 	}
 
 	_px4_rangefinder.update(timestamp_sample, distance_m, signal_quality);
