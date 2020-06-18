@@ -146,6 +146,10 @@ private:
 
 		px4_lockstep_unregister_component(_lockstep_component);
 
+		for (size_t i = 0; i < sizeof(_sensor_gps_pubs) / sizeof(_sensor_gps_pubs[0]); i++) {
+			delete _sensor_gps_pubs[i];
+		}
+
 		_instance = nullptr;
 	}
 
