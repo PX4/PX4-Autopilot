@@ -78,7 +78,6 @@ enum class Register : uint8_t {
 
 	I2C_SLV4_CTRL      = 0x34,
 
-	I2C_MST_STATUS     = 0x36,
 	INT_PIN_CFG        = 0x37,
 	INT_ENABLE         = 0x38,
 
