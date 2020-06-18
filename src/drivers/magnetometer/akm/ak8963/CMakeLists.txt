@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(akm)
-add_subdirectory(bmm150)
-add_subdirectory(hmc5883)
-add_subdirectory(qmc5883)
-add_subdirectory(isentek)
-add_subdirectory(ist8310)
-add_subdirectory(lis2mdl)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(rm3100)
+px4_add_module(
+	MODULE drivers__magnetometer__akm__ak8963
+	MAIN ak8963
+	COMPILE_FLAGS
+	SRCS
+		AKM_AK8963_registers.hpp
+		AK8963.cpp
+		AK8963.hpp
+		ak8963_main.cpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)

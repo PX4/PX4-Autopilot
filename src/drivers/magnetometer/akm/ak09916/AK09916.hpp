@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,90 +31,94 @@
  *
  ****************************************************************************/
 
+/**
+ * @file AK09916.hpp
+ *
+ * Driver for the AKM AK09916 connected via I2C.
+ *
+ */
+
 #pragma once
 
+#include "AKM_AK09916_registers.hpp"
 
-#include <px4_platform_common/px4_config.h>
-#include <lib/perf/perf_counter.h>
-#include <systemlib/conversions.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/device/i2c.h>
-#include <px4_platform_common/i2c_spi_buses.h>
+#include <lib/drivers/device/i2c.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 
-// in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit.
-static constexpr float AK09916_MAG_RANGE_GA = 1.5e-3f;
-
-static constexpr uint8_t AK09916_I2C_ADDR = 0x0C;
-
-static constexpr uint8_t AK09916_DEVICE_ID_A = 0x48;
-static constexpr uint8_t AK09916REG_WIA = 0x00;
-
-static constexpr uint8_t AK09916REG_ST1 = 0x10;
-static constexpr uint8_t AK09916REG_HXL = 0x11;
-static constexpr uint8_t AK09916REG_CNTL2 = 0x31;
-static constexpr uint8_t AK09916REG_CNTL3 = 0x32;
-
-static constexpr uint8_t AK09916_RESET = 0x01;
-static constexpr uint8_t AK09916_CNTL2_CONTINOUS_MODE_100HZ = 0x08;
-
-static constexpr uint8_t AK09916_ST1_DRDY = 0x01;
-static constexpr uint8_t AK09916_ST1_DOR = 0x02;
-
-static constexpr uint8_t AK09916_ST2_HOFL = 0x08;
-
-// Run at 100 Hz.
-static constexpr unsigned AK09916_CONVERSION_INTERVAL_us = 1000000 / 100;
-
-#pragma pack(push, 1)
-struct ak09916_regs {
-	int16_t x;
-	int16_t y;
-	int16_t z;
-	uint8_t tmps;
-	uint8_t st2;
-};
-#pragma pack(pop)
-
+using namespace AKM_AK09916;
 
 class AK09916 : public device::I2C, public I2CSPIDriver<AK09916>
 {
 public:
-	AK09916(I2CSPIBusOption bus_option, const int bus, int bus_frequency, enum Rotation rotation);
-	virtual ~AK09916();
+	AK09916(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation = ROTATION_NONE);
+	~AK09916() override;
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
 	static void print_usage();
 
-	int init() override;
-	void start();
-	void print_status() override;
-	int probe() override;
-
 	void RunImpl();
 
-protected:
-	int setup();
-	int setup_master_i2c();
-	bool check_id();
-	void try_measure();
-	bool is_ready();
-	void measure();
-	int reset();
-
-	uint8_t read_reg(uint8_t reg);
-	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
-	int write_reg(uint8_t reg, uint8_t value);
+	int init() override;
+	void print_status() override;
 
 private:
 
+	struct TransferBuffer {
+		uint8_t ST1;
+		uint8_t HXL;
+		uint8_t HXH;
+		uint8_t HYL;
+		uint8_t HYH;
+		uint8_t HZL;
+		uint8_t HZH;
+		uint8_t TMPS;
+		uint8_t ST2;
+	};
+
+	struct register_config_t {
+		Register reg;
+		uint8_t set_bits{0};
+		uint8_t clear_bits{0};
+	};
+
+	int probe() override;
+
+	bool Reset();
+
+	bool Configure();
+
+	bool RegisterCheck(const register_config_t &reg_cfg);
+
+	uint8_t RegisterRead(Register reg);
+	void RegisterWrite(Register reg, uint8_t value);
+	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
+
 	PX4Magnetometer _px4_mag;
 
-	static constexpr uint32_t _cycle_interval{AK09916_CONVERSION_INTERVAL_us};
+	perf_counter_t _transfer_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": transfer")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _magnetic_sensor_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": magnetic sensor overflow")};
 
-	perf_counter_t _mag_reads;
-	perf_counter_t _mag_errors;
-	perf_counter_t _mag_overruns;
-	perf_counter_t _mag_overflows;
+	hrt_abstime _reset_timestamp{0};
+	hrt_abstime _last_config_check_timestamp{0};
+	unsigned _consecutive_failures{0};
+
+	enum class STATE : uint8_t {
+		RESET,
+		WAIT_FOR_RESET,
+		CONFIGURE,
+		READ,
+	} _state{STATE::RESET};
+
+	uint8_t _checked_register{0};
+	static constexpr uint8_t size_register_cfg{1};
+	register_config_t _register_cfg[size_register_cfg] {
+		// Register          | Set bits, Clear bits
+		{ Register::CNTL2,   CNTL2_BIT::MODE3, 0 },
+	};
 };
