@@ -41,8 +41,6 @@
 
 #include "parameters.h"
 
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 

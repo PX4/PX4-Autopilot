@@ -239,6 +239,8 @@ Sensors::~Sensors()
 			i->Stop();
 		}
 	}
+
+	perf_free(_loop_perf);
 }
 
 bool Sensors::init()

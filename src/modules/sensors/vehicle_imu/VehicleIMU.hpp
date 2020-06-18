@@ -35,7 +35,7 @@
 
 #include "Integrator.hpp"
 
-#include <sensor_corrections/SensorCorrections.hpp>
+#include <sensor_calibration/SensorCalibration.hpp>
 
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -91,8 +91,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
 
-	SensorCorrections _accel_corrections;
-	SensorCorrections _gyro_corrections;
+	SensorCalibration _accel_calibration{SensorCalibration::SensorType::Accelerometer};
+	SensorCalibration _gyro_calibration{SensorCalibration::SensorType::Gyroscope};
 
 	Integrator _accel_integrator{}; // 200 Hz default
 	Integrator _gyro_integrator{true};   // 200 Hz default, coning compensation enabled

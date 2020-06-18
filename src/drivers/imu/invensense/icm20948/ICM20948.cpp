@@ -124,8 +124,6 @@ void ICM20948::print_status()
 	perf_print_counter(_fifo_reset_perf);
 	perf_print_counter(_drdy_interval_perf);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 
 	if (_slave_ak09916_magnetometer) {
 		_slave_ak09916_magnetometer->PrintInfo();

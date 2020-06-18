@@ -66,7 +66,7 @@ private:
 	void Run() override;
 
 	void ParametersUpdate();
-	void SensorCorrectionsUpdate();
+	void SensorCorrectionsUpdate(bool force = false);
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
@@ -96,10 +96,8 @@ private:
 	sensor_baro_s _last_data[MAX_SENSOR_COUNT] {};
 	bool _advertised[MAX_SENSOR_COUNT] {};
 
-	float _offset[MAX_SENSOR_COUNT] {0.f, 0.f, 0.f};
-	float _scale[MAX_SENSOR_COUNT] {1.f, 1.f, 1.f};
+	float _thermal_offset[MAX_SENSOR_COUNT] {0.f, 0.f, 0.f};
 
-	int8_t _sensor_correction_index[MAX_SENSOR_COUNT] {-1, -1, -1};
 	uint8_t _priority[MAX_SENSOR_COUNT] {};
 
 	int8_t _selected_sensor_sub_index{-1};

@@ -102,8 +102,6 @@ void ICM20649::print_status()
 	perf_print_counter(_fifo_reset_perf);
 	perf_print_counter(_drdy_interval_perf);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }
 
 int ICM20649::probe()

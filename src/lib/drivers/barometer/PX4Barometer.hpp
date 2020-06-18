@@ -59,8 +59,6 @@ public:
 
 	int get_class_instance() { return _class_device_instance; };
 
-	void print_status();
-
 private:
 
 	uORB::PublicationMultiData<sensor_baro_s>	_sensor_baro_pub;
