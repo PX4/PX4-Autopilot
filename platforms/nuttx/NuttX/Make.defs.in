@@ -115,7 +115,8 @@ CFLAGS = $(ARCHINCLUDES) \
 	-Wno-nonnull-compare \
 	-Wno-old-style-declaration \
 	-Wno-sign-compare \
-	-Wno-type-limits
+	-Wno-type-limits \
+	${CMAKE_C_COMP_DEP_FLAGS}
 
 CXXFLAGS = $(ARCHXXINCLUDES) \
 	-std=c++14 \

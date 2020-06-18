@@ -156,6 +156,9 @@ add_custom_command(
 )
 add_custom_target(nuttx_copy_config_dir_target DEPENDS ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp)
 
+if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.3)
+	set(CMAKE_C_COMP_DEP_FLAGS -Wno-stringop-truncation)
+endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
 
