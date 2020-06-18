@@ -273,14 +273,6 @@ private:
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
-
-	int _ekf2_timestamps_sub{-1};
-
-	enum class State {
-		WaitingForFirstEkf2Timestamp = 0,
-		WaitingForActuatorControls = 1,
-		WaitingForEkf2Timestamp = 2,
-	};
 #endif
 
 	DEFINE_PARAMETERS(

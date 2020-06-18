@@ -253,6 +253,7 @@ private:
 	};
 	int _imu_sub_index{-1};
 	bool _callback_registered{false};
+	int _lockstep_component{-1};
 
 	// because we can have several distance sensor instances with different orientations
 	static constexpr int MAX_RNG_SENSOR_COUNT = 4;
@@ -658,6 +659,7 @@ Ekf2::Ekf2(bool replay_mode):
 
 Ekf2::~Ekf2()
 {
+	px4_lockstep_unregister_component(_lockstep_component);
 	perf_free(_ekf_update_perf);
 }
 
@@ -1733,6 +1735,12 @@ void Ekf2::Run()
 
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
+
+		if (_lockstep_component == -1) {
+			_lockstep_component = px4_lockstep_register_component();
+		}
+
+		px4_lockstep_progress(_lockstep_component);
 	}
 }
 
