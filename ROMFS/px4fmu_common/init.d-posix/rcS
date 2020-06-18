@@ -32,7 +32,8 @@ set PWM_OUT                     none
 set SDCARD_MIXERS_PATH          etc/mixers
 set USE_IO                      no
 set VEHICLE_TYPE                none
-set LOGGER_BUF			1000
+set LOGGER_ARGS                 ""
+set LOGGER_BUF                  1000
 
 set RUN_MINIMAL_SHELL           no
 
@@ -287,6 +288,12 @@ mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $ud
 [ -e "$autostart_file".post ] && sh "$autostart_file".post
 
 # Run script to start logging
+if param compare SYS_MC_EST_GROUP 2
+then
+	set LOGGER_ARGS "-p ekf2_timestamps"
+else
+	set LOGGER_ARGS "-p vehicle_attitude"
+fi
 sh etc/init.d/rc.logging
 
 mavlink boot_complete

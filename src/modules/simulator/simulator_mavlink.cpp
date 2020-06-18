@@ -604,71 +604,29 @@ void Simulator::send()
 	fds_actuator_outputs[0].fd = _actuator_outputs_sub;
 	fds_actuator_outputs[0].events = POLLIN;
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	px4_pollfd_struct_t fds_ekf2_timestamps[1] = {};
-	fds_ekf2_timestamps[0].fd = _ekf2_timestamps_sub;
-	fds_ekf2_timestamps[0].events = POLLIN;
-
-	State state = State::WaitingForFirstEkf2Timestamp;
-#endif
-
 	while (true) {
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		// Wait for up to 100ms for data.
+		int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
 
-		if (state == State::WaitingForActuatorControls) {
-#endif
-			// Wait for up to 100ms for data.
-			int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
-
-			if (pret == 0) {
-				// Timed out, try again.
-				continue;
-			}
-
-			if (pret < 0) {
-				PX4_ERR("poll error %s", strerror(errno));
-				continue;
-			}
-
-			if (fds_actuator_outputs[0].revents & POLLIN) {
-				// Got new data to read, update all topics.
-				parameters_update(false);
-				_vehicle_status_sub.update(&_vehicle_status);
-				send_controls();
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-				state = State::WaitingForEkf2Timestamp;
-#endif
-			}
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		if (pret == 0) {
+			// Timed out, try again.
+			continue;
 		}
 
-#endif
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-
-		if (state == State::WaitingForFirstEkf2Timestamp || state == State::WaitingForEkf2Timestamp) {
-			int pret = px4_poll(&fds_ekf2_timestamps[0], 1, 100);
-
-			if (pret == 0) {
-				// Timed out, try again.
-				continue;
-			}
-
-			if (pret < 0) {
-				PX4_ERR("poll error %s", strerror(errno));
-				continue;
-			}
-
-			if (fds_ekf2_timestamps[0].revents & POLLIN) {
-				ekf2_timestamps_s timestamps;
-				orb_copy(ORB_ID(ekf2_timestamps), _ekf2_timestamps_sub, &timestamps);
-				state = State::WaitingForActuatorControls;
-			}
+		if (pret < 0) {
+			PX4_ERR("poll error %s", strerror(errno));
+			continue;
 		}
 
-#endif
+		if (fds_actuator_outputs[0].revents & POLLIN) {
+			// Got new data to read, update all topics.
+			parameters_update(false);
+			_vehicle_status_sub.update(&_vehicle_status);
+			send_controls();
+			// Wait for other modules, such as logger or ekf2
+			px4_lockstep_wait_for_components();
+		}
 	}
 }
 
@@ -812,10 +770,6 @@ void Simulator::run()
 	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	_ekf2_timestamps_sub = orb_subscribe(ORB_ID(ekf2_timestamps));
-#endif
-
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
@@ -878,9 +832,6 @@ void Simulator::run()
 	}
 
 	orb_unsubscribe(_actuator_outputs_sub);
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	orb_unsubscribe(_ekf2_timestamps_sub);
-#endif
 }
 
 #ifdef ENABLE_UART_RC_INPUT

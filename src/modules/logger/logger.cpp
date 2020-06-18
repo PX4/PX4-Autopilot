@@ -644,6 +644,10 @@ void Logger::run()
 	hrt_abstime next_subscribe_check = 0;
 	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
+	if (polling_topic_sub >= 0) {
+		_lockstep_component = px4_lockstep_register_component();
+	}
+
 	while (!should_exit()) {
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
 		const bool logging_started = start_stop_logging();
@@ -790,42 +794,7 @@ void Logger::run()
 				}
 			}
 
-
-#ifndef ORB_USE_PUBLISHER_RULES
-
-			// publish logger status
-			//  - this is disabled in replay builds to ensure all data in ekf2 replay logs only contain
-			//    the same time range, otherwise the plots can be unreadable using common tools
-			if (hrt_elapsed_time(&_logger_status_last) >= 1_s) {
-				for (int i = 0; i < (int)LogType::Count; ++i) {
-
-					const LogType log_type = static_cast<LogType>(i);
-
-					if (_writer.is_started(log_type)) {
-
-						const size_t buffer_fill_count_file = _writer.get_buffer_fill_count_file(log_type);
-
-						const float kb_written = _writer.get_total_written_file(log_type) / 1024.0f;
-						const float seconds = hrt_elapsed_time(&_statistics[i].start_time_file) * 1e-6f;
-
-						logger_status_s status;
-						status.type = i;
-						status.backend = _writer.backend();
-						status.total_written_kb = kb_written;
-						status.write_rate_kb_s = kb_written / seconds;
-						status.dropouts = _statistics[i].write_dropouts;
-						status.buffer_used_bytes = buffer_fill_count_file;
-						status.buffer_size_bytes = _writer.get_buffer_size_file(log_type);
-						status.num_messages = _num_subscriptions;
-						status.timestamp = hrt_absolute_time();
-						_logger_status_pub[i].publish(status);
-					}
-				}
-
-				_logger_status_last = hrt_absolute_time();
-			}
-
-#endif // !ORB_USE_PUBLISHER_RULES
+			publish_logger_status();
 
 			/* release the log buffer */
 			_writer.unlock();
@@ -870,6 +839,8 @@ void Logger::run()
 
 		// wait for next loop iteration...
 		if (polling_topic_sub >= 0) {
+			px4_lockstep_progress(_lockstep_component);
+
 			px4_pollfd_struct_t fds[1];
 			fds[0].fd = polling_topic_sub;
 			fds[0].events = POLLIN;
@@ -896,6 +867,8 @@ void Logger::run()
 			while (px4_sem_wait(&timer_callback_data.semaphore) != 0) {}
 		}
 	}
+
+	px4_lockstep_unregister_component(_lockstep_component);
 
 	stop_log_file(LogType::Full);
 	stop_log_file(LogType::Mission);
@@ -937,6 +910,38 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 	}
 
 #endif /* DBGPRINT */
+}
+
+void Logger::publish_logger_status()
+{
+	if (hrt_elapsed_time(&_logger_status_last) >= 1_s) {
+		for (int i = 0; i < (int)LogType::Count; ++i) {
+
+			const LogType log_type = static_cast<LogType>(i);
+
+			if (_writer.is_started(log_type)) {
+
+				const size_t buffer_fill_count_file = _writer.get_buffer_fill_count_file(log_type);
+
+				const float kb_written = _writer.get_total_written_file(log_type) / 1024.0f;
+				const float seconds = hrt_elapsed_time(&_statistics[i].start_time_file) * 1e-6f;
+
+				logger_status_s status;
+				status.type = i;
+				status.backend = _writer.backend();
+				status.total_written_kb = kb_written;
+				status.write_rate_kb_s = kb_written / seconds;
+				status.dropouts = _statistics[i].write_dropouts;
+				status.buffer_used_bytes = buffer_fill_count_file;
+				status.buffer_size_bytes = _writer.get_buffer_size_file(log_type);
+				status.num_messages = _num_subscriptions;
+				status.timestamp = hrt_absolute_time();
+				_logger_status_pub[i].publish(status);
+			}
+		}
+
+		_logger_status_last = hrt_absolute_time();
+	}
 }
 
 bool Logger::get_disable_boot_logging()
