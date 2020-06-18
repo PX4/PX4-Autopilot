@@ -240,8 +240,11 @@ then
 fi
 
 dataman start
-replay tryapplyparams
-simulator start -c $simulator_tcp_port
+# only start the simulator if not in replay mode, as both control the lockstep time
+if ! replay tryapplyparams
+then
+	simulator start -c $simulator_tcp_port
+fi
 tone_alarm start
 rc_update start
 sensors start
