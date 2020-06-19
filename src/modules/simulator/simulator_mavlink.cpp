@@ -193,11 +193,13 @@ void Simulator::send_controls()
 
 void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
+	float temperature = NAN;
+
 	// temperature only updated with baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
-		float temperature = sensors.temperature;
+		if (PX4_ISFINITE(sensors.temperature)) {
+			temperature = sensors.temperature;
 
-		if (PX4_ISFINITE(temperature)) {
 			_px4_accel.set_temperature(temperature);
 			_px4_baro.set_temperature(temperature);
 			_px4_gyro.set_temperature(temperature);
@@ -229,7 +231,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_param_sim_dpres_block.get()) {
 		differential_pressure_s report{};
 		report.timestamp = time;
-		report.temperature = sensors.temperature;
+		report.temperature = temperature;
 		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 
