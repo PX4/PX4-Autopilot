@@ -62,6 +62,10 @@ all: px4_sitl_default
 # define a space character to be able to explicitly find it in strings
 space := $(subst ,, )
 
+define make_list
+     $(shell cat .github/workflows/compile_${1}.yml | sed -E 's/[[:space:]]+(.*),/check_\1/g' | grep check_${2})
+endef
+
 # Parsing
 # --------------------------------------------------------------------
 # assume 1st argument passed is the main target, the
@@ -503,3 +507,15 @@ help:
 # Print a list of all config targets.
 list_config_targets:
 	@for targ in $(patsubst %_default,%[_default],$(ALL_CONFIG_TARGETS)); do echo $$targ; done
+
+check_nuttx : $(call make_list,nuttx) \
+	sizes
+
+check_linux : $(call make_list,linux) \
+	sizes
+
+check_px4: $(call make_list,nuttx,"px4") \
+	sizes
+
+check_nxp: $(call make_list,nuttx,"nxp") \
+	sizes
