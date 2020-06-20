@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         ubuntu_release: [
-          bionic,
+          #bionic,
           focal
           ]
     container:
