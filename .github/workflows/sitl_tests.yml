@@ -24,35 +24,55 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+
     - name: Download MAVSDK
       run: wget https://github.com/mavlink/MAVSDK/releases/download/v0.27.0/mavsdk_0.27.0_ubuntu18.04_amd64.deb
     - name: Install MAVSDK
       run: dpkg -i mavsdk_0.27.0_ubuntu18.04_amd64.deb
-    - uses: actions/cache@v1.1.0
-      id: ccache-persistence
+
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+    - name: ccache cache files
+      uses: actions/cache@v1.1.0
       with:
         path: ~/.ccache
-        key: ccache-sitl-tests
-        restore-keys: |
-          ccache-sitl-tests
+        key: ${{matrix.ubuntu_release}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: ${{matrix.ubuntu_release}}-ccache-
     - name: setup ccache
-      run: mkdir -p ~/.ccache && echo "max_size = 1G" > ~/.ccache/ccache.conf && ccache -z && ccache -s
+      run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = 400M" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
+
     - name: Build PX4 in SITL integration test mode
       run: DONT_RUN=1 make px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage gazebo mavsdk_tests
     - name: ccache post-run
-      run: ccache -s && ccache -z
+      run: ccache -s
+
     - name: Core dump settings
       run: |
           ulimit -c unlimited
           echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
+
     - name: Run SITL tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
+
     - name: Run SITL tests in Southern hemisphere
       run: PX4_HOME_LAT=-37.8134048 PX4_HOME_LON=175.304109 PX4_HOME_ALT=32 |
         test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
+
     - name: Run SITL tests far in the West
       run: PX4_HOME_LAT=59.6176928 PX4_HOME_LON=-151.1453163 PX4_HOME_ALT=48 |
         test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
+
     - name: Look at core files
       if: failure()
       run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
@@ -62,6 +82,7 @@ jobs:
       with:
         name: coredump
         path: px4.core
+
     - name: Upload px4 binary
       if: failure()
       uses: actions/upload-artifact@v2-preview
