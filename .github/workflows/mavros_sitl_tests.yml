@@ -40,8 +40,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: sitl_tests-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: sitl_tests-ccache-
+        key: sitl_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: sitl_tests-${{matrix.config.build_type}}-ccache-
     - name: setup ccache
       run: |
           mkdir -p ~/.ccache
@@ -78,9 +78,7 @@ jobs:
         TEST_FILE: "mavros_posix_test_mission.test"
         TEST_MISSION: ${{matrix.config.mission}}
         TEST_VEHICLE: ${{matrix.config.vehicle}}
-      run: |
-        export
-        make rostest_run
+      run: make rostest_run
 
     - name: Look at core files
       if: failure()
@@ -94,7 +92,7 @@ jobs:
 
     - name: Upload logs to flight review
       #run: ./Tools/upload_log.py -q --description "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}" --feedback "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID} ${GITHUB_REPOSITORY} ${GITHUB_REF}" --source CI .ros/log/*/*.ulg
-      run: find . -name \*.ulg
+      run: find . -name *.ulg
 
     - name: Upload px4 binary
       if: failure()
