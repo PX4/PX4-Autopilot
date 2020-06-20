@@ -42,8 +42,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: sitl_tests-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: sitl_tests-ccache-
+        key: sitl_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: sitl_tests-${{matrix.config.build_type}}-ccache-
     - name: setup ccache
       run: |
           mkdir -p ~/.ccache
@@ -92,9 +92,7 @@ jobs:
         PX4_HOME_LON: ${{matrix.config.longitude}}
         PX4_HOME_ALT: ${{matrix.config.altitude}}
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-      run: |
-          export
-          test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
+      run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early test/mavsdk_tests/configs/sitl.json
 
     - name: Look at core files
       if: failure()
@@ -119,7 +117,7 @@ jobs:
 
     # Report test coverage
     - name: Upload coverage
-      if: ${{matrix.config.build_type}} == 'Coverage'
+      if: contains(matrix.config.build_type, 'Coverage')
       run: |
           git config --global credential.helper "" # disable the keychain credential helper
           git config --global --add credential.helper store # enable the local store credential helper
@@ -128,7 +126,7 @@ jobs:
           mkdir -p coverage
           lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
     - name: Upload coverage information to Codecov
-      if: ${{matrix.config.build_type}} == 'Coverage'
+      if: contains(matrix.config.build_type, 'Coverage')
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
