@@ -1,4 +1,4 @@
-name: Build Tests
+name: Tests
 
 on:
   push:
@@ -38,8 +38,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: ${{matrix.ubuntu_release}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: ${{matrix.ubuntu_release}}-ccache-
+        key: tests_${{matrix.ubuntu_release}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: tests_${{matrix.ubuntu_release}}-ccache-
     - name: setup ccache
       run: |
           mkdir -p ~/.ccache

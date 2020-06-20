@@ -87,6 +87,18 @@ jobs:
 
     - name: make ${{matrix.config}}
       run: make ${{matrix.config}}
+    - name: make ${{matrix.config}} bloaty_compileunits
+      run: make ${{matrix.config}} bloaty_compileunits
+    - name: make ${{matrix.config}} bloaty_inlines
+      run: make ${{matrix.config}} bloaty_inlines
+    - name: make ${{matrix.config}} bloaty_segments
+      run: make ${{matrix.config}} bloaty_segments
+    - name: make ${{matrix.config}} bloaty_symbols
+      run: make ${{matrix.config}} bloaty_symbols
+    - name: make ${{matrix.config}} bloaty_templates
+      run: make ${{matrix.config}} bloaty_templates
+    - name: make ${{matrix.config}} bloaty_compare_master
+      run: make ${{matrix.config}} bloaty_compare_master
     - name: ccache post-run
       run: ccache -s
 
