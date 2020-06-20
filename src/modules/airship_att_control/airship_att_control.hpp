@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-#include <lib/mixer/Mixer/Mixer.hpp> // Airmode
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
@@ -40,14 +39,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_land_detected.h>
 
 /**
  * Airship attitude control app start / stop handling function
@@ -81,52 +73,22 @@ public:
 private:
 
 	/**
-	 * initialize some vectors/matrices from parameters
-	 */
-	void		parameters_updated();
-
-	/**
 	 * Check for parameter update and handle it.
 	 */
 	void		parameter_update_poll();
-	bool		vehicle_attitude_poll();
-	void		vehicle_status_poll();
 
 	void		publish_actuator_controls();
-	void		publish_rates_setpoint();
-	void		publish_rate_controller_status();
 
-	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};			/**< vehicle attitude subscription */
-	uORB::Subscription _v_att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint subscription */
-	uORB::Subscription _v_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint subscription */
-	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
 	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
-	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status), ORB_PRIO_DEFAULT};	/**< controller status publication */
-	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
-
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
-	bool		_actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 
-	struct vehicle_attitude_s		_v_att {};		/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s	_v_att_sp {};		/**< vehicle attitude setpoint */
-	struct vehicle_rates_setpoint_s		_v_rates_sp {};		/**< vehicle rates setpoint */
 	struct manual_control_setpoint_s	_manual_control_sp {};	/**< manual control setpoint */
-	struct vehicle_control_mode_s		_v_control_mode {};	/**< vehicle control mode */
 	struct actuator_controls_s		_actuators {};		/**< actuator controls */
-	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
-	struct vehicle_land_detected_s		_vehicle_land_detected {};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
-	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
-
-	float		_thrust_sp{0.0f};		/**< thrust setpoint */
-	float 		_man_yaw_sp{0.f};		/**< current yaw setpoint in manual mode */
 
 };

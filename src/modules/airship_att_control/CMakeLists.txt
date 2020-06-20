@@ -39,8 +39,5 @@ px4_add_module(
 	SRCS
 		airship_att_control_main.cpp
 	DEPENDS
-		circuit_breaker
-		conversion
-		mathlib
 		px4_work_queue
 	)

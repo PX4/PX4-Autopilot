@@ -52,13 +52,3 @@ fi
 # Start Airship Attitude Controller.
 #
 airship_att_control start
-
-#
-# Start Position Controller.
-#
-mc_pos_control start
-
-#
-# Start Land Detector.
-#
-land_detector start multicopter

@@ -35,12 +35,7 @@
  * @file airship_att_control_main.cpp
  * Airship attitude controller.
  *
- * @author Lorenz Meier		<lorenz@px4.io>
- * @author Anton Babushkin	<anton.babushkin@me.com>
- * @author Sander Smeets	<sander@droneslab.com>
- * @author Matthias Grob	<maetugr@gmail.com>
- * @author Beat Küng		<beat-kueng@gmx.net>
- * @author Daniel Robinson  	<daniel@flycloudline.com>
+ * @author Anton Erasmus	<anton@flycloudline.com>
  */
 
 #include "airship_att_control.hpp"
@@ -52,14 +47,6 @@ AirshipAttitudeControl::AirshipAttitudeControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "airship_att_control"))
 {
-	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-
-	/* initialize quaternions in messages to be valid */
-	_v_att.q[0] = 1.f;
-	_v_att_sp.q_d[0] = 1.f;
-
-	_rates_sp.zero();
-	_thrust_sp = 0.0f;
 }
 
 AirshipAttitudeControl::~AirshipAttitudeControl()
@@ -70,11 +57,6 @@ AirshipAttitudeControl::~AirshipAttitudeControl()
 bool
 AirshipAttitudeControl::init()
 {
-	if (!_vehicle_angular_velocity_sub.registerCallback()) {
-		PX4_ERR("vehicle_angular_velocity callback registration failed!");
-		return false;
-	}
-
 	return true;
 }
 
@@ -93,56 +75,6 @@ AirshipAttitudeControl::parameter_update_poll()
 }
 
 void
-AirshipAttitudeControl::vehicle_status_poll()
-{
-	/* check if there is new status information */
-	if (_vehicle_status_sub.update(&_vehicle_status)) {
-
-	}
-}
-
-bool
-AirshipAttitudeControl::vehicle_attitude_poll()
-{
-	/* check if there is a new message */
-	const uint8_t prev_quat_reset_counter = _v_att.quat_reset_counter;
-
-	if (_v_att_sub.update(&_v_att)) {
-		// Check for a heading reset
-		if (prev_quat_reset_counter != _v_att.quat_reset_counter) {
-			// we only extract the heading change from the delta quaternion
-			_man_yaw_sp += Eulerf(Quatf(_v_att.delta_q_reset)).psi();
-		}
-
-		return true;
-	}
-
-	return false;
-}
-
-void
-AirshipAttitudeControl::publish_rates_setpoint()
-{
-	_v_rates_sp.roll = _rates_sp(0);
-	_v_rates_sp.pitch = -_rates_sp(1);
-	_v_rates_sp.yaw = _rates_sp(2);
-	_v_rates_sp.thrust_body[0] = 0.0f;
-	_v_rates_sp.thrust_body[1] = 0.0f;
-	_v_rates_sp.thrust_body[2] = -_thrust_sp;
-	_v_rates_sp.timestamp = hrt_absolute_time();
-
-	_v_rates_sp_pub.publish(_v_rates_sp);
-}
-
-void
-AirshipAttitudeControl::publish_rate_controller_status()
-{
-	rate_ctrl_status_s rate_ctrl_status = {};
-	rate_ctrl_status.timestamp = hrt_absolute_time();
-	_controller_status_pub.publish(rate_ctrl_status);
-}
-
-void
 AirshipAttitudeControl::publish_actuator_controls()
 {
 	_actuators.control[0] = 0.0f;
@@ -153,16 +85,13 @@ AirshipAttitudeControl::publish_actuator_controls()
 	// note: _actuators.timestamp_sample is set in AirshipAttitudeControl::Run()
 	_actuators.timestamp = hrt_absolute_time();
 
-	if (!_actuators_0_circuit_breaker_enabled) {
-		orb_publish_auto(ORB_ID(actuator_controls_0), &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
-	}
+	orb_publish_auto(ORB_ID(actuator_controls_0), &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
 }
 
 void
 AirshipAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -181,66 +110,10 @@ AirshipAttitudeControl::Run()
 		/* run the rate controller immediately after a gyro update */
 		if (_v_control_mode.flag_control_rates_enabled) {
 			publish_actuator_controls();
-			publish_rate_controller_status();
 		}
 
-		/* check for updates in other topics */
-		_v_control_mode_sub.update(&_v_control_mode);
-		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
-		vehicle_status_poll();
-		const bool manual_control_updated = _manual_control_sp_sub.update(&_manual_control_sp);
-		const bool attitude_updated = vehicle_attitude_poll();
-
-		bool attitude_setpoint_generated = _v_control_mode.flag_control_altitude_enabled
-						   || _v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_position_enabled;
-
-		if (attitude_setpoint_generated) {
-			if (attitude_updated) {
-
-				if (_v_control_mode.flag_control_yawrate_override_enabled) {
-					/* Yaw rate override enabled, overwrite the yaw setpoint */
-					_v_rates_sp_sub.update(&_v_rates_sp);
-					const auto yawrate_reference = _v_rates_sp.yaw;
-					_rates_sp(2) = yawrate_reference;
-				}
-
-				publish_rates_setpoint();
-			}
-
-		} else {
-			/* attitude controller disabled, poll rates setpoint topic */
-			if (_v_control_mode.flag_control_manual_enabled) {
-				if (manual_control_updated) {
-					/* manual control - feed RC commands to actuators directly */
-					_v_att_sp.thrust_body[0] = _manual_control_sp.x;
-					_v_att_sp.thrust_body[2] = _manual_control_sp.z;
-					_rates_sp(2) = _manual_control_sp.r;
-
-					// PX4_INFO("\nManual X: %.2f\nManual Z: %.2f\nManual R: %.2f\n",
-					// 	(double)_manual_control_sp.x, (double)_manual_control_sp.z,
-					// 	(double)_manual_control_sp.r);
-
-					publish_rates_setpoint();
-				}
-
-			} else {
-				/* attitude controller disabled, poll rates setpoint topic */
-				if (_v_rates_sp_sub.update(&_v_rates_sp)) {
-					_rates_sp(0) = _v_rates_sp.roll;
-					_rates_sp(1) = _v_rates_sp.pitch;
-					_rates_sp(2) = _v_rates_sp.yaw;
-					_thrust_sp = -_v_rates_sp.thrust_body[2];
-				}
-			}
-		}
-
-		if (_v_control_mode.flag_control_termination_enabled) {
-			if (!_vehicle_status.is_vtol) {
-				_rates_sp.zero();
-				_thrust_sp = 0.0f;
-				publish_actuator_controls();
-			}
-		}
+		/* check for updates in manual control topic */
+		_manual_control_sp_sub.update(&_manual_control_sp);
 
 		parameter_update_poll();
 	}

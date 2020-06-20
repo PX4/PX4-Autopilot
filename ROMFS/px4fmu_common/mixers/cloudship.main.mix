@@ -1,20 +1,32 @@
-Stabilator/thruster/rudder mixer for PX4FMU
+Thrust tilt/ Starboard Thrust / Port Thrust / Tail Thrust mixer for PX4FMU
 =======================================================
 
 This file defines mixers suitable for controlling an airship with
-stabilator, rudder rotor, starboard and port thruster using PX4FMU.
-The configuration assumes the stabilator servo is connected to PX4FMU servo
-output 0, starboard thruster to output 1, port thruster to output 2, and the
-rudder rotor to output 3.
+a thrust tilt, starboard and port thruster and a tail thruster using PX4FMU.
+The configuration assumes the starboard thruster is connected to PX4FMU
+output 0, port thruster to output 1, tilt servo to output 2, and the
+tail thruster to output 3.
 
-Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
-(roll), 1 (pitch), 2 (yaw) and 3 (thrust) 4 (flaps).
+Inputs to the mixer come from channel group 0 (vehicle attitude),
+channels 0 (roll), 1 (pitch), 2 (yaw) and 3 (thrust).
 
-Servo controlling stabilator mixer
+Starboard and port thruster mixer
+-----------------
+Two scalers total (output, thrust).
+
+By default mixer output is normalized. The input is in the (0 - 1) range.
+
+M: 1
+S: 0 3  10000  10000           0 -10000  10000
+
+M: 1
+S: 0 3  10000  10000           0 -10000  10000
+
+Servo controlling tilt mixer
 ------------
-Two scalers total (output, thrust angle).
+Two scalers total (output, tilt angle).
 
-This mixer assumes that the stabilator servo is set up correctly mechanically;
+This mixer assumes that the tilt servo is set up correctly mechanically;
 depending on the actual configuration it may be necessary to reverse the scaling
 factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
@@ -22,27 +34,11 @@ endpoints to suit.
 M: 1
 S: 0 1  10000  10000      0 -10000  10000
 
-Starboard and port thruster mixer
------------------
-Two scalers total (output, thrust).
-
-By default mixer output is normalized. In the case of certain input controllers
-the commented lines generate a full-range output (-1 to 1) from an input in the
-(0 - 1) range. Inputs below zero are treated as zero.
-
-M: 1
-S: 0 3  10000  10000           0 -10000  10000
-#S: 0 3  20000  20000       -10000 -10000  10000
-
-M: 1
-S: 0 3  10000  10000           0 -10000  10000
-#S: 0 3  20000  20000       -10000 -10000  10000
-
-Rudder rotor mixer
+Tail thruster mixer
 ------------
 Two scalers total (output, yaw).
 
-This mixer assumes that the rudder rotor is set up correctly mechanically;
+This mixer assumes that the tail thruster is set up correctly mechanically;
 depending on the actual configuration it may be necessary to reverse the scaling
 factors (to reverse the motor movement) and adjust the offset, scaling and
 endpoints to suit.

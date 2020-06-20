@@ -4,23 +4,12 @@
 # @type Airship
 # @class Airship
 #
-# @output MAIN1 stabilator
-# @output MAIN2 motor 1 starboard
-# @output MAIN3 motor 2 port
-# @output MAIN4 rudder motor
+# @output MAIN1 thrust tilt
+# @output MAIN2 starboard thruster
+# @output MAIN3 port thruster
+# @output MAIN4 tail thruster
 
 sh /etc/init.d/rc.airship_defaults
 
-if [ $AUTOCNF = yes ]
-then
-    param set MPC_MAN_Y_MAX 360.0
-
-    # do not trigger the land detecter unless in hanger
-    param set LNDMC_Z_VEL_MAX 0.01
-    param set LNDMC_XY_VEL_MAX 0.01
-    param set LNDMC_LOW_T_THR 0.01
-    param set LNDMC_ROT_MAX 1.0
-
-fi
-
 set MIXER cloudship
+set PWM_OUT 1234
