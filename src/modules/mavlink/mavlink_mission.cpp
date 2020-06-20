@@ -261,9 +261,9 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 }
 
 void
-MavlinkMissionManager::send_mission_current(uint16_t seq)
+MavlinkMissionManager::send_mission_current(int32_t seq)
 {
-	unsigned item_count = _count[MAV_MISSION_TYPE_MISSION];
+	int32_t item_count = _count[MAV_MISSION_TYPE_MISSION];
 
 	if (seq < item_count) {
 		mavlink_mission_current_t wpc;
@@ -272,7 +272,7 @@ MavlinkMissionManager::send_mission_current(uint16_t seq)
 
 		mavlink_msg_mission_current_send_struct(_mavlink->get_channel(), &wpc);
 
-	} else if (seq == 0 && item_count == 0) {
+	} else if (seq <= 0 && item_count == 0) {
 		/* don't broadcast if no WPs */
 
 	} else {
