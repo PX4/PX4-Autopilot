@@ -76,6 +76,9 @@ jobs:
     - name: Look at core files
       if: failure()
       run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
+    - name: Upload logs to flight review
+      if: failure()
+      run: ./Tools/upload_log.py -q --description "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}" --feedback "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID} ${GITHUB_REPOSITORY} ${GITHUB_REF}" --source CI ./build/px4_sitl_default/tmp/rootfs/log/*/*.ulg
     - name: Upload px4 coredump
       if: failure()
       uses: actions/upload-artifact@v2-preview
