@@ -36,6 +36,7 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <parameters/param.h>
 #include "rangefinder.hpp"
 #include <math.h>
 
@@ -54,6 +55,10 @@ int UavcanRangefinderBridge::init()
 	if (res < 0) {
 		return res;
 	}
+
+	// Initialize min/max range from params
+	param_get(param_find("UAVCAN_RNG_MIN"), &_range_min_m);
+	param_get(param_find("UAVCAN_RNG_MAX"), &_range_max_m);
 
 	res = _sub_range_data.start(RangeCbBinder(this, &UavcanRangefinderBridge::range_sub_cb));
 
@@ -83,6 +88,9 @@ UavcanRangefinderBridge::range_sub_cb(const
 	report.orientation		= distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	report.h_fov			= msg.field_of_view;
 	report.v_fov			= msg.field_of_view;
+
+	report.min_distance 		= _range_min_m;
+	report.max_distance 		= _range_max_m;
 
 	report.variance   		= 0.0f;	// Unknown
 	report.signal_quality		= -1;

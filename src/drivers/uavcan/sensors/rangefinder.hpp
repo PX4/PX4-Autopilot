@@ -65,4 +65,8 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::range_sensor::Measurement, RangeCbBinder> _sub_range_data;
 
+	float _range_min_m{0.0f};
+	float _range_max_m{0.0f};
+
+
 };
