@@ -19,8 +19,10 @@ jobs:
           - {vehicle: "rover",         mission: "rover_mission_1", build_type: "RelWithDebInfo"}
           - {vehicle: "plane",         mission: "FW_mission_1",    build_type: "RelWithDebInfo"}
           - {vehicle: "standard_vtol", mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
+          - {vehicle: "standard_vtol", mission: "VTOL_mission_1",  build_type: "Coverage"}
+          - {vehicle: "standard_vtol", mission: "VTOL_mission_1",  build_type: "AddressSanitizer"}
           #- {vehicle: "tailsitter",    mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
-          #- {vehicle: "tiltrotor",     mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
+          - {vehicle: "tiltrotor",     mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
 
     container:
       image: px4io/px4-dev-ros-melodic:2020-04-01
@@ -54,18 +56,14 @@ jobs:
 
     - name: check environment
       run: export
-    - name: Build PX4
+    - name: Build PX4 and sitl_gazebo
       env:
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-      run: make px4_sitl_default
-    - name: ccache post-run px4/firmware
-      run: ccache -s
-    - name: Build SITL Gazebo
-      env:
-        PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-      run: make px4_sitl_default sitl_gazebo
-    - name: ccache post-run sitl_gazebo
-      run: ccache -s
+      run: |
+        ccache -z
+        make px4_sitl_default
+        make px4_sitl_default sitl_gazebo
+        ccache -s
 
     - name: Core dump settings
       run: |
@@ -91,8 +89,9 @@ jobs:
         path: px4.core
 
     - name: Upload logs to flight review
-      #run: ./Tools/upload_log.py -q --description "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}" --feedback "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID} ${GITHUB_REPOSITORY} ${GITHUB_REF}" --source CI .ros/log/*/*.ulg
-      run: find . -name *.ulg
+      run: |
+        find ~ -name *.ulg
+        ./Tools/upload_log.py -q --description "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}" --feedback "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID} ${GITHUB_REPOSITORY} ${GITHUB_REF}" --source CI ~/.ros/log/*/*.ulg
 
     - name: Upload px4 binary
       if: failure()
