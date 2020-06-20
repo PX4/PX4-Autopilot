@@ -50,6 +50,8 @@ jobs:
           ccache -s
           ccache -z
 
+    - name: make
+      run: make px4_sitl_test
     - name: main tests
       run: make tests
     - name: ccache post-run
