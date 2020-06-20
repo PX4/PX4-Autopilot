@@ -102,8 +102,6 @@ void ICM20649::print_status()
 	perf_print_counter(_fifo_reset_perf);
 	perf_print_counter(_drdy_interval_perf);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }
 
 int ICM20649::probe()
@@ -291,27 +289,28 @@ void ICM20649::ConfigureGyro()
 {
 	const uint8_t GYRO_FS_SEL = RegisterRead(Register::BANK_2::GYRO_CONFIG_1) & (Bit2 | Bit1); // 2:1 GYRO_FS_SEL[1:0]
 
+	float range_dps = 0.f;
+
 	switch (GYRO_FS_SEL) {
 	case GYRO_FS_SEL_500_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 65.5f));
-		_px4_gyro.set_range(math::radians(500.f));
+		range_dps = 500.f;
 		break;
 
 	case GYRO_FS_SEL_1000_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 32.8f));
-		_px4_gyro.set_range(math::radians(1000.f));
+		range_dps = 1000.f;
 		break;
 
 	case GYRO_FS_SEL_2000_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 16.4f));
-		_px4_gyro.set_range(math::radians(2000.f));
+		range_dps = 2000.f;
 		break;
 
 	case GYRO_FS_SEL_4000_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 8.2f));
-		_px4_gyro.set_range(math::radians(4000.f));
+		range_dps = 4000.f;
 		break;
 	}
+
+	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
+	_px4_gyro.set_range(math::radians(range_dps));
 }
 
 void ICM20649::ConfigureSampleRate(int sample_rate)
@@ -575,7 +574,7 @@ static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
 bool ICM20649::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer,
 			    const uint8_t samples)
 {
-	PX4Accelerometer::FIFOSample accel;
+	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = _fifo_empty_interval_us / _fifo_accel_samples;
 
@@ -626,7 +625,7 @@ bool ICM20649::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTrans
 
 void ICM20649::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, const uint8_t samples)
 {
-	PX4Gyroscope::FIFOSample gyro;
+	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = _fifo_empty_interval_us / _fifo_gyro_samples;

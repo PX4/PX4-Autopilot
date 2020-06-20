@@ -2120,80 +2120,91 @@ MavlinkReceiver::get_message_interval(int msgId)
 void
 MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 {
-	mavlink_hil_sensor_t imu;
-	mavlink_msg_hil_sensor_decode(msg, &imu);
+	mavlink_hil_sensor_t hil_sensor;
+	mavlink_msg_hil_sensor_decode(msg, &hil_sensor);
 
 	const uint64_t timestamp = hrt_absolute_time();
 
-	/* airspeed */
-	{
-		airspeed_s airspeed{};
+	// temperature only updated with baro
+	float temperature = NAN;
 
-		float ias = calc_IAS(imu.diff_pressure * 1e2f);
-		float scale = 1.0f; //assume no instrument or pitot placement errors
-		float eas = calc_EAS_from_IAS(ias, scale);
-		float tas = calc_TAS_from_EAS(eas, imu.abs_pressure * 100, imu.temperature);
-
-		airspeed.timestamp = timestamp;
-		airspeed.indicated_airspeed_m_s = ias;
-		airspeed.true_airspeed_m_s = tas;
-
-		_airspeed_pub.publish(airspeed);
+	if ((hil_sensor.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
+		temperature = hil_sensor.temperature;
 	}
 
-	/* gyro */
-	{
+	// gyro
+	if ((hil_sensor.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
 		if (_px4_gyro == nullptr) {
 			// 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 			_px4_gyro = new PX4Gyroscope(1311244);
 		}
 
 		if (_px4_gyro != nullptr) {
-			_px4_gyro->set_temperature(imu.temperature);
-			_px4_gyro->update(timestamp, imu.xgyro, imu.ygyro, imu.zgyro);
+			if (PX4_ISFINITE(temperature)) {
+				_px4_gyro->set_temperature(temperature);
+			}
+
+			_px4_gyro->update(timestamp, hil_sensor.xgyro, hil_sensor.ygyro, hil_sensor.zgyro);
 		}
 	}
 
-	/* accelerometer */
-	{
+	// accelerometer
+	if ((hil_sensor.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
 		if (_px4_accel == nullptr) {
 			// 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 			_px4_accel = new PX4Accelerometer(1311244);
 		}
 
 		if (_px4_accel != nullptr) {
-			_px4_accel->set_temperature(imu.temperature);
-			_px4_accel->update(timestamp, imu.xacc, imu.yacc, imu.zacc);
+			if (PX4_ISFINITE(temperature)) {
+				_px4_accel->set_temperature(temperature);
+			}
+
+			_px4_accel->update(timestamp, hil_sensor.xacc, hil_sensor.yacc, hil_sensor.zacc);
 		}
 	}
 
-	/* magnetometer */
-	{
+	// magnetometer
+	if ((hil_sensor.fields_updated & SensorSource::MAG) == SensorSource::MAG) {
 		if (_px4_mag == nullptr) {
 			// 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 			_px4_mag = new PX4Magnetometer(197388);
 		}
 
 		if (_px4_mag != nullptr) {
-			_px4_mag->set_temperature(imu.temperature);
-			_px4_mag->update(timestamp, imu.xmag, imu.ymag, imu.zmag);
+			if (PX4_ISFINITE(temperature)) {
+				_px4_mag->set_temperature(temperature);
+			}
+
+			_px4_mag->update(timestamp, hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag);
 		}
 	}
 
-	/* baro */
-	{
+	// baro
+	if ((hil_sensor.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
 		if (_px4_baro == nullptr) {
 			// 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 			_px4_baro = new PX4Barometer(6620172);
 		}
 
 		if (_px4_baro != nullptr) {
-			_px4_baro->set_temperature(imu.temperature);
-			_px4_baro->update(timestamp, imu.abs_pressure);
+			_px4_baro->set_temperature(hil_sensor.temperature);
+			_px4_baro->update(timestamp, hil_sensor.abs_pressure);
 		}
 	}
 
-	/* battery status */
+	// differential pressure
+	if ((hil_sensor.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS) {
+		differential_pressure_s report{};
+		report.timestamp = timestamp;
+		report.temperature = hil_sensor.temperature;
+		report.differential_pressure_filtered_pa = hil_sensor.diff_pressure * 100.0f; // convert from millibar to bar;
+		report.differential_pressure_raw_pa = hil_sensor.diff_pressure * 100.0f; // convert from millibar to bar;
+
+		_differential_pressure_pub.publish(report);
+	}
+
+	// battery status
 	{
 		battery_status_s hil_battery_status{};
 

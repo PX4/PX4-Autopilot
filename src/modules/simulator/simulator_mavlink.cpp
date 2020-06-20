@@ -212,11 +212,13 @@ void Simulator::send_controls()
 
 void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
+	float temperature = NAN;
+
 	// temperature only updated with baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
-		float temperature = sensors.temperature;
+		if (PX4_ISFINITE(sensors.temperature)) {
+			temperature = sensors.temperature;
 
-		if (PX4_ISFINITE(temperature)) {
 			_px4_accel.set_temperature(temperature);
 			_px4_baro.set_temperature(temperature);
 			_px4_gyro.set_temperature(temperature);
@@ -248,7 +250,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_param_sim_dpres_block.get()) {
 		differential_pressure_s report{};
 		report.timestamp = time;
-		report.temperature = sensors.temperature;
+		report.temperature = temperature;
 		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 
@@ -328,14 +330,21 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 		gps.satellites_used = hil_gps.satellites_visible;
 		gps.s_variance_m_s = 0.25f;
 
-		// use normal distribution for noise
-		if (_param_sim_gps_noise_x.get() > 0.0f) {
-			std::normal_distribution<float> normal_distribution(0.0f, 1.0f);
-			gps.lat += (int32_t)(_param_sim_gps_noise_x.get() * normal_distribution(_gen));
-			gps.lon += (int32_t)(_param_sim_gps_noise_x.get() * normal_distribution(_gen));
-		}
+		// New publishers will be created based on the HIL_GPS ID's being different or not
+		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
+			if (_vehicle_gps_position_pubs[i] && _gps_ids[i] == hil_gps.id) {
+				_vehicle_gps_position_pubs[i]->publish(gps);
+				break;
 
-		_vehicle_gps_position_pub.publish(gps);
+			}
+
+			if (_vehicle_gps_position_pubs[i] == nullptr) {
+				_vehicle_gps_position_pubs[i] = new uORB::PublicationMulti<vehicle_gps_position_s> {ORB_ID(vehicle_gps_position)};
+				_gps_ids[i] = hil_gps.id;
+				_vehicle_gps_position_pubs[i]->publish(gps);
+				break;
+			}
+		}
 	}
 }
 

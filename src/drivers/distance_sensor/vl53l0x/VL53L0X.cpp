@@ -177,7 +177,6 @@ void VL53L0X::print_status()
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sample_perf);
-	_px4_rangefinder.print_status();
 }
 
 int VL53L0X::probe()

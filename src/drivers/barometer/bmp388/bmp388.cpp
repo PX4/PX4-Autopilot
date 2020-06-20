@@ -105,8 +105,6 @@ BMP388::print_status()
 	perf_print_counter(_measure_perf);
 	perf_print_counter(_comms_errors);
 	printf("measurement interval:  %u us \n", _measure_interval);
-
-	_px4_baro.print_status();
 }
 
 void

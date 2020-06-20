@@ -52,14 +52,12 @@
 #include <math.h>
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_tone_alarm.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_gyro.h>
 
 static const char *sensor_name = "mag";
 static constexpr unsigned max_mags = 4;

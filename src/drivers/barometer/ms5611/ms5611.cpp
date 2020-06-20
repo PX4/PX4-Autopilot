@@ -340,8 +340,6 @@ void MS5611::print_status()
 	perf_print_counter(_comms_errors);
 
 	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
-
-	_px4_barometer.print_status();
 }
 
 namespace ms5611

@@ -31,7 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(sensor_corrections) # used by vehicle_{acceleration, angular_velocity, imu}
+add_subdirectory(data_validator)
+
+add_subdirectory(sensor_calibration) # used by vehicle_{acceleration, angular_velocity, imu}
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(vehicle_acceleration)
 add_subdirectory(vehicle_angular_velocity)
@@ -48,9 +50,9 @@ px4_add_module(
 	DEPENDS
 		airspeed
 		conversion
+		data_validator
 		drivers__device
 		git_ecl
-		ecl_validation
 		mathlib
 		vehicle_acceleration
 		vehicle_angular_velocity

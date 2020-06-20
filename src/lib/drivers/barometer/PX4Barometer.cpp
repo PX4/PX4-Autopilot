@@ -79,11 +79,3 @@ PX4Barometer::update(hrt_abstime timestamp, float pressure)
 
 	_sensor_baro_pub.update();
 }
-
-void
-PX4Barometer::print_status()
-{
-	PX4_INFO(BARO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
-
-	print_message(_sensor_baro_pub.get());
-}
