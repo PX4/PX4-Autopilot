@@ -508,10 +508,9 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 
 		} else {
 			// pitched more than rolled so use 312 rotation order
-			Vector3f rotVec312;
-			rotVec312(0) = 0.0f;  // first rotation (yaw)
-			rotVec312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
-			rotVec312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2));  // third rotation (pitch)
+			const Vector3f rotVec312(0.0f,  // yaw
+						 asinf(_R_to_earth(2, 1)),  // roll
+						 atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)));  // pitch
 			R_to_earth = taitBryan312ToRotMat(rotVec312);
 
 		}

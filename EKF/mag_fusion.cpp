@@ -863,10 +863,9 @@ void Ekf::fuseHeading()
 
 			// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
 			// with yaw angle set to to zero
-			Vector3f rotVec312;
-			rotVec312(0) = 0.0f; // first rotation (yaw) set to zero for alter use when rotating the mag field into earth frame
-			rotVec312(1) = asinf(_R_to_earth(2, 1)); // second rotation (roll)
-			rotVec312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)); // third rotation (pitch)
+			const Vector3f rotVec312(0.0f,  // yaw
+						 asinf(_R_to_earth(2, 1)),  // roll
+						 atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)));  // pitch
 			const Dcmf R_to_earth = taitBryan312ToRotMat(rotVec312);
 
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
