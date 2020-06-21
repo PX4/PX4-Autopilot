@@ -261,11 +261,7 @@ void Ekf::fuseGpsAntYaw()
 	if (healthy) {
 		_time_last_gps_yaw_fuse = _time_last_imu;
 		// apply the covariance corrections
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P(row,column) = P(row,column) - KHP(row,column);
-			}
-		}
+		P -= KHP;
 
 		// correct the covariance matrix for gross errors
 		fixCovarianceErrors(true);
