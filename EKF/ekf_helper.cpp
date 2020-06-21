@@ -776,17 +776,17 @@ void Ekf::getHeadingInnovRatio(float &heading_innov_ratio) const
 
 void Ekf::getMagInnov(float mag_innov[3]) const
 {
-	memcpy(mag_innov, _mag_innov, sizeof(_mag_innov));
+	_mag_innov.copyTo(mag_innov);
 }
 
 void Ekf::getMagInnovVar(float mag_innov_var[3]) const
 {
-	memcpy(mag_innov_var, _mag_innov_var, sizeof(_mag_innov_var));
+	_mag_innov_var.copyTo(mag_innov_var);
 }
 
 void Ekf::getMagInnovRatio(float &mag_innov_ratio) const
 {
-	mag_innov_ratio = math::max(math::max(_mag_test_ratio[0], _mag_test_ratio[1]), _mag_test_ratio[2]);
+	mag_innov_ratio = _mag_test_ratio.max();
 }
 
 void Ekf::getDragInnov(float drag_innov[2]) const
@@ -1105,7 +1105,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	// return the integer bitmask containing the consistency check pass/fail status
 	status = _innov_check_fail_status.value;
 	// return the largest magnetometer innovation test ratio
-	mag = sqrtf(math::max(_yaw_test_ratio, math::max(math::max(_mag_test_ratio[0], _mag_test_ratio[1]), _mag_test_ratio[2])));
+	mag = sqrtf(math::max(_yaw_test_ratio,_mag_test_ratio.max()));
 	// return the largest velocity innovation test ratio
 	vel = math::max(sqrtf(math::max(_gps_vel_test_ratio(0), _gps_vel_test_ratio(1))),
 			sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1))));
@@ -1139,7 +1139,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_horiz_abs;
 	bool gps_vel_innov_bad = (_gps_vel_test_ratio(0) > 1.0f) || (_gps_vel_test_ratio(1) > 1.0f);
 	bool gps_pos_innov_bad = (_gps_pos_test_ratio(0) > 1.0f);
-	bool mag_innov_good = (_mag_test_ratio[0] < 1.0f) && (_mag_test_ratio[1] < 1.0f) && (_mag_test_ratio[2] < 1.0f) && (_yaw_test_ratio < 1.0f);
+	bool mag_innov_good = (_mag_test_ratio.max() < 1.0f) && (_yaw_test_ratio < 1.0f);
 	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad) && mag_innov_good;
 	soln_status.flags.accel_error = _bad_vert_accel_detected;
 	*status = soln_status.value;
