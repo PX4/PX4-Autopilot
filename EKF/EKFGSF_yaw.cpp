@@ -536,30 +536,6 @@ bool EKFGSF_yaw::getLogData(float *yaw_composite, float *yaw_variance, float yaw
 	return false;
 }
 
-Dcmf EKFGSF_yaw::taitBryan312ToRotMat(const Vector3f &rot312)
-{
-	// Calculate the frame2 to frame 1 rotation matrix from a 312 rotation sequence
-	const float c2 = cosf(rot312(2));
-	const float s2 = sinf(rot312(2));
-	const float s1 = sinf(rot312(1));
-	const float c1 = cosf(rot312(1));
-	const float s0 = sinf(rot312(0));
-	const float c0 = cosf(rot312(0));
-
-	Dcmf R;
-	R(0, 0) = c0 * c2 - s0 * s1 * s2;
-	R(1, 1) = c0 * c1;
-	R(2, 2) = c2 * c1;
-	R(0, 1) = -c1 * s0;
-	R(0, 2) = s2 * c0 + c2 * s1 * s0;
-	R(1, 0) = c2 * s0 + s2 * s1 * c0;
-	R(1, 2) = s0 * s2 - s1 * c0 * c2;
-	R(2, 0) = -s2 * c1;
-	R(2, 1) = s1;
-
-	return R;
-}
-
 float EKFGSF_yaw::ahrsCalcAccelGain() const
 {
 	// Calculate the acceleration fusion gain using a continuous function that is unity at 1g and zero

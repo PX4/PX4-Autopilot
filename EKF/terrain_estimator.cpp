@@ -203,7 +203,7 @@ void Ekf::fuseFlowForTerrain()
 	const float R_LOS = calcOptFlowMeasVar();
 
 	// get rotation matrix from earth to body
-	const Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
+	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
 
 	// calculate the sensor position relative to the IMU
 	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;

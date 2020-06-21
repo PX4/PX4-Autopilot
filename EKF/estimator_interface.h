@@ -48,6 +48,7 @@
 #include "imu_down_sampler.hpp"
 #include "EKFGSF_yaw.h"
 #include "sensor_range_finder.hpp"
+#include "utils.hpp"
 
 #include <geo/geo.h>
 #include <matrix/math.hpp>
@@ -579,9 +580,6 @@ protected:
 
 	// this is the previous status of the filter control modes - used to detect mode transitions
 	filter_control_status_u _control_status_prev{};
-
-	// calculate the inverse rotation matrix from a quaternion rotation
-	Matrix3f quat_to_invrotmat(const Quatf &quat);
 
 	inline void setDragData();
 

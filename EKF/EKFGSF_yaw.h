@@ -5,6 +5,7 @@
 #include <mathlib/mathlib.h>
 
 #include "common.h"
+#include "utils.hpp"
 
 using matrix::AxisAnglef;
 using matrix::Dcmf;
@@ -123,14 +124,6 @@ private:
 	bool updateEKF(const uint8_t model_index);
 
 	inline float sq(float x) const { return x * x; };
-
-	// converts Tait-Bryan 312 sequence of rotations from frame 1 to frame 2
-	// to the corresponding rotation matrix that rotates from frame 2 to frame 1
-	// rot312(0) - First rotation is a RH rotation about the Z axis (rad)
-	// rot312(1) - Second rotation is a RH rotation about the X axis (rad)
-	// rot312(2) - Third rotation is a RH rotation about the Y axis (rad)
-	// See http://www.atacolorado.com/eulersequences.doc
-	Dcmf taitBryan312ToRotMat(const Vector3f &rot312);
 
 	// Declarations used by the Gaussian Sum Filter (GSF) that combines the individual EKF yaw estimates
 

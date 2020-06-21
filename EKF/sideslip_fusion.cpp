@@ -73,7 +73,7 @@ void Ekf::fuseSideslip()
 	rel_wind(1) = ve - vwe;
 	rel_wind(2) = vd;
 
-	const Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
+	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
 
 	// rotate into body axes
 	rel_wind = earth_to_body * rel_wind;

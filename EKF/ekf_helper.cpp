@@ -1219,35 +1219,6 @@ void Ekf::update_deadreckoning_status()
 	_deadreckon_time_exceeded = (_time_last_aiding == 0) || isTimedOut(_time_last_aiding, (uint64_t)_params.valid_timeout_max);
 }
 
-// calculate the inverse rotation matrix from a quaternion rotation
-// this produces the inverse rotation to that produced by the math library quaternion to Dcmf operator
-Matrix3f EstimatorInterface::quat_to_invrotmat(const Quatf &quat)
-{
-	float q00 = quat(0) * quat(0);
-	float q11 = quat(1) * quat(1);
-	float q22 = quat(2) * quat(2);
-	float q33 = quat(3) * quat(3);
-	float q01 = quat(0) * quat(1);
-	float q02 = quat(0) * quat(2);
-	float q03 = quat(0) * quat(3);
-	float q12 = quat(1) * quat(2);
-	float q13 = quat(1) * quat(3);
-	float q23 = quat(2) * quat(3);
-
-	Matrix3f dcm;
-	dcm(0, 0) = q00 + q11 - q22 - q33;
-	dcm(1, 1) = q00 - q11 + q22 - q33;
-	dcm(2, 2) = q00 - q11 - q22 + q33;
-	dcm(1, 0) = 2.0f * (q12 - q03);
-	dcm(2, 0) = 2.0f * (q13 + q02);
-	dcm(0, 1) = 2.0f * (q12 + q03);
-	dcm(2, 1) = 2.0f * (q23 - q01);
-	dcm(0, 2) = 2.0f * (q13 - q02);
-	dcm(1, 2) = 2.0f * (q23 + q01);
-
-	return dcm;
-}
-
 // calculate the variances for the rotation vector equivalent
 Vector3f Ekf::calcRotVecVariances()
 {
@@ -1640,14 +1611,6 @@ void Ekf::loadMagCovData()
 	}
 }
 
-float Ekf::kahanSummation(float sum_previous, float input, float &accumulator) const
-{
-	float y = input - accumulator;
-	float t = sum_previous + y;
-	accumulator = (t - sum_previous) - y;
-	return t;
-}
-
 void Ekf::stopGpsFusion()
 {
 	stopGpsPosFusion();
@@ -1823,30 +1786,6 @@ void Ekf::requestEmergencyNavReset()
 bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF])
 {
 	return yawEstimator.getLogData(yaw_composite,yaw_variance,yaw,innov_VN,innov_VE,weight);
-}
-
-Dcmf Ekf::taitBryan312ToRotMat(const Vector3f &rot312)
-{
-		// Calculate the frame2 to frame 1 rotation matrix from a 312 Tait-Bryan rotation sequence
-		const float c2 = cosf(rot312(2)); // third rotation is pitch
-		const float s2 = sinf(rot312(2));
-		const float s1 = sinf(rot312(1)); // second rotation is roll
-		const float c1 = cosf(rot312(1));
-		const float s0 = sinf(rot312(0)); // first rotation is yaw
-		const float c0 = cosf(rot312(0));
-
-		Dcmf R;
-		R(0, 0) = c0 * c2 - s0 * s1 * s2;
-		R(1, 1) = c0 * c1;
-		R(2, 2) = c2 * c1;
-		R(0, 1) = -c1 * s0;
-		R(0, 2) = s2 * c0 + c2 * s1 * s0;
-		R(1, 0) = c2 * s0 + s2 * s1 * c0;
-		R(1, 2) = s0 * s2 - s1 * c0 * c2;
-		R(2, 0) = -s2 * c1;
-		R(2, 1) = s1;
-
-		return R;
 }
 
 void Ekf::runYawEKFGSF()
