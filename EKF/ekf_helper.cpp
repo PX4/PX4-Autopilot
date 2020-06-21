@@ -727,12 +727,12 @@ void Ekf::getAuxVelInnovRatio(float &aux_vel_innov_ratio) const
 
 void Ekf::getFlowInnov(float flow_innov[2]) const
 {
-	memcpy(flow_innov, _flow_innov, sizeof(_flow_innov));
+	_flow_innov.copyTo(flow_innov);
 }
 
 void Ekf::getFlowInnovVar(float flow_innov_var[2]) const
 {
-	memcpy(flow_innov_var, _flow_innov_var, sizeof(_flow_innov_var));
+	_flow_innov_var.copyTo(flow_innov_var);
 }
 
 void Ekf::getFlowInnovRatio(float &flow_innov_ratio) const
@@ -983,7 +983,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv)
 
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
-			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * sqrtf(sq(_flow_innov[0]) + sq(_flow_innov[1]));
+			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * _flow_innov.norm();
 		}
 
 		if (_control_status.flags.gps) {
@@ -1667,9 +1667,9 @@ void Ekf::stopAuxVelFusion()
 void Ekf::stopFlowFusion()
 {
 	_control_status.flags.opt_flow = false;
-	memset(_flow_innov,0.0f,sizeof(_flow_innov));
-	memset(_flow_innov_var,0.0f,sizeof(_flow_innov_var));
-	memset(&_optflow_test_ratio,0.0f,sizeof(_optflow_test_ratio));
+	_flow_innov.setZero();
+	_flow_innov_var.setZero();
+	_optflow_test_ratio = 0.0f;
 }
 
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
