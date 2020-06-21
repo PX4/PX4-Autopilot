@@ -195,7 +195,7 @@ param set COM_CPU_MAX -1 # disable check, no CPU load reported on posix yet
 param set IMU_INTEG_RATE 250
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
-if [ ! -z $PX4_SIM_SPEED_FACTOR ]; then
+if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	COM_DL_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
 	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
 	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
