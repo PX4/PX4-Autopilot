@@ -104,8 +104,8 @@ void Ekf::fuseOptFlow()
 	const Vector2f opt_flow_rate = _flow_compensated_XY_rad / _flow_sample_delayed.dt + Vector2f(_flow_gyro_bias);
 
 	if (opt_flow_rate.norm() < _flow_max_rate) {
-		_flow_innov[0] =  vel_body(1) / range - opt_flow_rate(0); // flow around the X axis
-		_flow_innov[1] = -vel_body(0) / range - opt_flow_rate(1); // flow around the Y axis
+		_flow_innov(0) =  vel_body(1) / range - opt_flow_rate(0); // flow around the X axis
+		_flow_innov(1) = -vel_body(0) / range - opt_flow_rate(1); // flow around the Y axis
 
 	} else {
 		return;
@@ -225,7 +225,7 @@ void Ekf::fuseOptFlow()
 			// calculate innovation variance for X axis observation and protect against a badly conditioned calculation
 			if (t77 >= R_LOS) {
 				t78 = 1.0f / t77;
-				_flow_innov_var[0] = t77;
+				_flow_innov_var(0) = t77;
 
 			} else {
 				// we need to reinitialise the covariance matrix and abort this fusion step
@@ -367,7 +367,7 @@ void Ekf::fuseOptFlow()
 			// calculate innovation variance for Y axis observation and protect against a badly conditioned calculation
 			if (t77 >= R_LOS) {
 				t78 = 1.0f / t77;
-				_flow_innov_var[1] = t77;
+				_flow_innov_var(1) = t77;
 
 			} else {
 				// we need to reinitialise the covariance matrix and abort this fusion step
@@ -407,8 +407,8 @@ void Ekf::fuseOptFlow()
 	// run the innovation consistency check and record result
 	bool flow_fail = false;
 	float test_ratio[2];
-	test_ratio[0] = sq(_flow_innov[0]) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var[0]);
-	test_ratio[1] = sq(_flow_innov[1]) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var[1]);
+	test_ratio[0] = sq(_flow_innov(0)) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var(0));
+	test_ratio[1] = sq(_flow_innov(1)) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var(1));
 	_optflow_test_ratio = math::max(test_ratio[0],test_ratio[1]);
 
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
@@ -493,7 +493,7 @@ void Ekf::fuseOptFlow()
 			fixCovarianceErrors(true);
 
 			// apply the state corrections
-			fuse(gain, _flow_innov[obs_index]);
+			fuse(gain, _flow_innov(obs_index));
 
 			_time_last_of_fuse = _time_last_imu;
 		}

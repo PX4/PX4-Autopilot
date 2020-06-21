@@ -428,8 +428,8 @@ private:
 	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
 
 	// optical flow processing
-	float _flow_innov[2] {};	///< flow measurement innovation (rad/sec)
-	float _flow_innov_var[2] {};	///< flow innovation variance ((rad/sec)**2)
+	Vector2f _flow_innov;		///< flow measurement innovation (rad/sec)
+	Vector2f _flow_innov_var;	///< flow innovation variance ((rad/sec)**2)
 	Vector3f _flow_gyro_bias;	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector3f _imu_del_ang_of;	///< bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates (rad)
 	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
