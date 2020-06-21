@@ -101,9 +101,7 @@ void Ekf::fuseOptFlow()
 	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 	// correct for gyro bias errors in the data used to do the motion compensation
 	// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
-	Vector2f opt_flow_rate;
-	opt_flow_rate(0) = _flow_compensated_XY_rad(0) / _flow_sample_delayed.dt + _flow_gyro_bias(0);
-	opt_flow_rate(1) = _flow_compensated_XY_rad(1) / _flow_sample_delayed.dt + _flow_gyro_bias(1);
+	const Vector2f opt_flow_rate = _flow_compensated_XY_rad / _flow_sample_delayed.dt + Vector2f(_flow_gyro_bias);
 
 	if (opt_flow_rate.norm() < _flow_max_rate) {
 		_flow_innov[0] =  vel_body(1) / range - opt_flow_rate(0); // flow around the X axis
