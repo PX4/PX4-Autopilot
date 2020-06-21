@@ -53,8 +53,6 @@ void Ekf::fuseGpsAntYaw()
 	const float q2 = _state.quat_nominal(2);
 	const float q3 = _state.quat_nominal(3);
 
-	float H_YAW[4];
-
 	// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
 	const float measured_hdg = wrap_pi(_gps_sample_delayed.yaw + _gps_yaw_offset);
 
@@ -117,6 +115,7 @@ void Ekf::fuseGpsAntYaw()
 	float t34 = q0*t2*2.0f;
 	float t35 = t33+t34;
 
+	float H_YAW[4];
 	H_YAW[0] = (t35/(t11-t2*(t4-q1*q2*2.0f))-t16*t18*t32)/(t18*t21+1.0f);
 	H_YAW[1] = -t30*(t26*(t27-q2*t3*2.0f)+t16*t22*t25);
 	H_YAW[2] = t30*(t25*t26-t16*t22*(t27-q2*t3*2.0f));
@@ -126,7 +125,7 @@ void Ekf::fuseGpsAntYaw()
 	const float R_YAW = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 
 	// calculate the innovation and define the innovation gate
-	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
+	const float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
 	_heading_innov = predicted_hdg - measured_hdg;
 
 	// wrap the innovation to the interval between +-pi
