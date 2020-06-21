@@ -571,37 +571,19 @@ float Ekf::getMagDeclination()
 
 void Ekf::constrainStates()
 {
-	for (int i = 0; i < 4; i++) {
-		_state.quat_nominal(i) = math::constrain(_state.quat_nominal(i), -1.0f, 1.0f);
-	}
+	_state.quat_nominal = matrix::constrain(_state.quat_nominal, -1.0f, 1.0f);
+	_state.vel = matrix::constrain(_state.vel, -1000.0f, 1000.0f);
+	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
-	for (int i = 0; i < 3; i++) {
-		_state.vel(i) = math::constrain(_state.vel(i), -1000.0f, 1000.0f);
-	}
+	const float delta_ang_bias_limit = math::radians(20.f) * _dt_ekf_avg;
+	_state.delta_ang_bias = matrix::constrain(_state.delta_ang_bias, -delta_ang_bias_limit, delta_ang_bias_limit);
 
-	for (int i = 0; i < 3; i++) {
-		_state.pos(i) = math::constrain(_state.pos(i), -1.e6f, 1.e6f);
-	}
+	const float delta_vel_bias_limit = _params.acc_bias_lim * _dt_ekf_avg;
+	_state.delta_vel_bias = matrix::constrain(_state.delta_vel_bias, -delta_vel_bias_limit, delta_vel_bias_limit);
 
-	for (int i = 0; i < 3; i++) {
-		_state.delta_ang_bias(i) = math::constrain(_state.delta_ang_bias(i), -math::radians(20.f) * _dt_ekf_avg, math::radians(20.f) * _dt_ekf_avg);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		_state.delta_vel_bias(i) = math::constrain(_state.delta_vel_bias(i), -_params.acc_bias_lim * _dt_ekf_avg, _params.acc_bias_lim * _dt_ekf_avg);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		_state.mag_I(i) = math::constrain(_state.mag_I(i), -1.0f, 1.0f);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		_state.mag_B(i) = math::constrain(_state.mag_B(i), -0.5f, 0.5f);
-	}
-
-	for (int i = 0; i < 2; i++) {
-		_state.wind_vel(i) = math::constrain(_state.wind_vel(i), -100.0f, 100.0f);
-	}
+	_state.mag_I = matrix::constrain(_state.mag_I, -1.0f, 1.0f);
+	_state.mag_B = matrix::constrain(_state.mag_B, -0.5f, 0.5f);
+	_state.wind_vel = matrix::constrain(_state.wind_vel, -100.0f, 100.0f);
 }
 
 float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated)
