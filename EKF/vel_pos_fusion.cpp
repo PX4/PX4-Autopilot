@@ -187,12 +187,10 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 		}
 	}
 
-	// only apply covariance and state corrections if healthy
 	if (healthy) {
 		// apply the covariance corrections
 		P -= KHP;
 
-		// correct the covariance matrix for gross errors
 		fixCovarianceErrors(true);
 
 		// apply the state corrections

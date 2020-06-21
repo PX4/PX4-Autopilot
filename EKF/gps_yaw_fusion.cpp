@@ -245,25 +245,20 @@ void Ekf::fuseGpsAntYaw()
 
 	for (int i = 0; i < _k_num_states; i++) {
 		if (P(i,i) < KHP(i,i)) {
-			// zero rows and columns
 			P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
 
-			//flag as unhealthy
 			healthy = false;
 
-			// update individual measurement health status
 			_fault_status.flags.bad_hdg = true;
 
 		}
 	}
 
-	// only apply covariance and state corrections if healthy
 	if (healthy) {
 		_time_last_gps_yaw_fuse = _time_last_imu;
 		// apply the covariance corrections
 		P -= KHP;
 
-		// correct the covariance matrix for gross errors
 		fixCovarianceErrors(true);
 
 		// apply the state corrections
