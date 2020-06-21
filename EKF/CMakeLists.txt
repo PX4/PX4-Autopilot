@@ -50,6 +50,7 @@ add_library(ecl_EKF
 	imu_down_sampler.cpp
 	EKFGSF_yaw.cpp
 	sensor_range_finder.cpp
+	utils.cpp
 )
 
 add_dependencies(ecl_EKF prebuild_targets)

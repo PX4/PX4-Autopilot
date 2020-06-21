@@ -822,12 +822,6 @@ private:
 	// uncorrelate quaternion states from other states
 	void uncorrelateQuatFromOtherStates();
 
-	// Use Kahan summation algorithm to get the sum of "sum_previous" and "input".
-	// This function relies on the caller to be responsible for keeping a copy of
-	// "accumulator" and passing this value at the next iteration.
-	// Ref: https://en.wikipedia.org/wiki/Kahan_summation_algorithm
-	float kahanSummation(float sum_previous, float input, float &accumulator) const;
-
 	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
 	// sensor measurement
 	float calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const Vector3f &mag_earth_predicted);
@@ -869,14 +863,6 @@ private:
 	// yaw_variance : yaw error variance (rad^2)
 	// update_buffer : true if the state change should be also applied to the output observer buffer
 	void resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer);
-
-	// converts Tait-Bryan 312 sequence of rotations from frame 1 to frame 2
-	// to the corresponding rotation matrix that rotates from frame 2 to frame 1
-	// rot312(0) - First rotation is a RH rotation about the Z axis (rad)
-	// rot312(1) - Second rotation is a RH rotation about the X axis (rad)
-	// rot312(2) - Third rotation is a RH rotation about the Y axis (rad)
-	// See http://www.atacolorado.com/eulersequences.doc
-	Dcmf taitBryan312ToRotMat(const Vector3f &rot312);
 
 	// Declarations used to control use of the EKF-GSF yaw estimator
 
