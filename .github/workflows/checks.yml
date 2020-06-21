@@ -1,4 +1,4 @@
-name: Tests
+name: Checks
 
 on:
   push:
@@ -12,21 +12,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
+        check: [
+          "check_format",
+          "tests",
+          "px4_fmu-v2_default stack_check",
+          "validate_module_configs",
+          "shellcheck_all",
+          "NO_NINJA_BUILD=1 px4_fmu-v5_default",
+          "NO_NINJA_BUILD=1 px4_sitl_default",
+          "airframe_metadata",
+          "module_documentation",
+          "parameters_metadata",
+        ]
         ubuntu_release: [
           bionic,
           focal
           ]
-    container: px4io/px4-dev-base-${{ matrix.ubuntu_release }}:2020-04-01
+    container: px4io/px4-dev-nuttx-${{ matrix.ubuntu_release }}:2020-04-01
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
-
-    - name: check_format
-      env:
-        CI: true
-      run: make check_format
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
@@ -50,9 +58,5 @@ jobs:
           ccache -s
           ccache -z
 
-    - name: make
-      run: make px4_sitl_test
-    - name: main tests
-      run: make tests
-    - name: ccache post-run
-      run: ccache -s
+    - name: ${{matrix.check}}
+      run: make ${{matrix.check}}
