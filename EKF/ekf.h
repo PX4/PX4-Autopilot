@@ -412,8 +412,8 @@ private:
 	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
 	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
 
-	float _mag_innov[3] {};		///< earth magnetic field innovations (Gauss)
-	float _mag_innov_var[3] {};	///< earth magnetic field innovation variance (Gauss**2)
+	Vector3f _mag_innov;		///< earth magnetic field innovations (Gauss)
+	Vector3f _mag_innov_var;	///< earth magnetic field innovation variance (Gauss**2)
 
 	float _drag_innov[2] {};	///< multirotor drag measurement innovation (m/sec**2)
 	float _drag_innov_var[2] {};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
