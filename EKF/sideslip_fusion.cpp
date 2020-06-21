@@ -67,19 +67,13 @@ void Ekf::fuseSideslip()
 	const float vwn = _state.wind_vel(0);
 	const float vwe = _state.wind_vel(1);
 
-	// relative wind velocity in earth frame
-	Vector3f rel_wind;
-	rel_wind(0) = vn - vwn;
-	rel_wind(1) = ve - vwe;
-	rel_wind(2) = vd;
-
+	// calculate relative wind velocity in earth frame and rotate into body frame
+	const Vector3f rel_wind_earth(vn - vwn, ve - vwe, vd);
 	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
-
-	// rotate into body axes
-	rel_wind = earth_to_body * rel_wind;
+	const Vector3f rel_wind_body = earth_to_body * rel_wind_earth;
 
 	// perform fusion of assumed sideslip  = 0
-	if (rel_wind.norm() > 7.0f) {
+	if (rel_wind_body.norm() > 7.0f) {
 		// Calculate the observation jacobians
 
 		// intermediate variable from algebraic optimisation
@@ -89,9 +83,9 @@ void Ekf::fuseSideslip()
 			return;
 		}
 
-		SH_BETA[1] = (ve - vwe)*(sq(q0) - sq(q1) + sq(q2) - sq(q3)) + vd*(2.0f*q0*q1 + 2.0f*q2*q3) - (vn - vwn)*(2.0f*q0*q3 - 2.0f*q1*q2);
-		SH_BETA[2] = vn - vwn;
-		SH_BETA[3] = ve - vwe;
+		SH_BETA[1] = rel_wind_earth(1)*(sq(q0) - sq(q1) + sq(q2) - sq(q3)) + vd*(2.0f*q0*q1 + 2.0f*q2*q3) - rel_wind_earth(0)*(2.0f*q0*q3 - 2.0f*q1*q2);
+		SH_BETA[2] = rel_wind_earth(0);
+		SH_BETA[3] = rel_wind_earth(1);
 		SH_BETA[4] = 1.0f/sq(SH_BETA[0]);
 		SH_BETA[5] = 1.0f/SH_BETA[0];
 		SH_BETA[6] = SH_BETA[5]*(sq(q0) - sq(q1) + sq(q2) - sq(q3));
@@ -200,7 +194,7 @@ void Ekf::fuseSideslip()
 		Kfusion[23] = SK_BETA[0]*(P(23,0)*SK_BETA[5] + P(23,1)*SK_BETA[4] - P(23,4)*SK_BETA[1] + P(23,5)*SK_BETA[2] + P(23,2)*SK_BETA[6] + P(23,6)*SK_BETA[3] - P(23,3)*SK_BETA[7] + P(23,22)*SK_BETA[1] - P(23,23)*SK_BETA[2]);
 
 		// Calculate predicted sideslip angle and innovation using small angle approximation
-		_beta_innov = rel_wind(1) / rel_wind(0);
+		_beta_innov = rel_wind_body(1) / rel_wind_body(0);
 
 		// Compute the ratio of innovation to gate size
 		_beta_test_ratio = sq(_beta_innov) / (sq(fmaxf(_params.beta_innov_gate, 1.0f)) * _beta_innov_var);
