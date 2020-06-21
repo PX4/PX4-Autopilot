@@ -416,11 +416,7 @@ void Ekf::fuseMag()
 		// only apply covariance and state corrections if healthy
 		if (healthy) {
 			// apply the covariance corrections
-			for (unsigned row = 0; row < _k_num_states; row++) {
-				for (unsigned column = 0; column < _k_num_states; column++) {
-					P(row,column) = P(row,column) - KHP(row,column);
-				}
-			}
+			P -= KHP;
 
 			// correct the covariance matrix for gross errors
 			fixCovarianceErrors(true);
@@ -752,11 +748,7 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 	// only apply covariance and state corrections if healthy
 	if (healthy) {
 		// apply the covariance corrections
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P(row,column) = P(row,column) - KHP(row,column);
-			}
-		}
+		P -= KHP;
 
 		// correct the covariance matrix for gross errors
 		fixCovarianceErrors(true);
@@ -1045,11 +1037,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 	// only apply covariance and state corrections if healthy
 	if (healthy) {
 		// apply the covariance corrections
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				P(row,column) = P(row,column) - KHP(row,column);
-			}
-		}
+		P -= KHP;
 
 		// correct the covariance matrix for gross errors
 		fixCovarianceErrors(true);

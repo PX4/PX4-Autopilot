@@ -215,7 +215,7 @@ void Ekf::fuseAirspeed()
 		// only apply covariance and state corrections if healthy
 		if (healthy) {
 			// apply the covariance corrections
-			P = P - KHP;
+			P -= KHP;
 
 			// correct the covariance matrix for gross errors
 			fixCovarianceErrors(true);
