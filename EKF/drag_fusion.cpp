@@ -78,13 +78,10 @@ void Ekf::fuseDrag()
 	const float vwe = _state.wind_vel(1);
 
 	// predicted specific forces
-	// calculate relative wind velocity in earth frame and rotte into body frame
-	Vector3f rel_wind;
-	rel_wind(0) = vn - vwn;
-	rel_wind(1) = ve - vwe;
-	rel_wind(2) = vd;
+	// calculate relative wind velocity in earth frame and rotate into body frame
+	const Vector3f rel_wind_earth(vn - vwn, ve - vwe, vd);
 	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
-	rel_wind = earth_to_body * rel_wind;
+	const Vector3f rel_wind_body = earth_to_body * rel_wind_earth;
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
@@ -151,14 +148,14 @@ void Ekf::fuseDrag()
 			// calculate the predicted acceleration and innovation measured along the X body axis
 			float drag_sign;
 
-			if (rel_wind(axis_index) >= 0.0f) {
+			if (rel_wind_body(axis_index) >= 0.0f) {
 				drag_sign = 1.0f;
 
 			} else {
 				drag_sign = -1.0f;
 			}
 
-			const float predAccel = -BC_inv_x * 0.5f * rho * sq(rel_wind(axis_index)) * drag_sign;
+			const float predAccel = -BC_inv_x * 0.5f * rho * sq(rel_wind_body(axis_index)) * drag_sign;
 			_drag_innov[axis_index] = predAccel - mea_acc;
 			_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
 
@@ -226,14 +223,14 @@ void Ekf::fuseDrag()
 			// calculate the predicted acceleration and innovation measured along the Y body axis
 			float drag_sign;
 
-			if (rel_wind(axis_index) >= 0.0f) {
+			if (rel_wind_body(axis_index) >= 0.0f) {
 				drag_sign = 1.0f;
 
 			} else {
 				drag_sign = -1.0f;
 			}
 
-			const float predAccel = -BC_inv_y * 0.5f * rho * sq(rel_wind(axis_index)) * drag_sign;
+			const float predAccel = -BC_inv_y * 0.5f * rho * sq(rel_wind_body(axis_index)) * drag_sign;
 			_drag_innov[axis_index] = predAccel - mea_acc;
 			_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
 
