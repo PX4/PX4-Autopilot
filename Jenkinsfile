@@ -180,13 +180,6 @@ pipeline {
           }
         }
 
-      } // parallel
-    } // stage Analysis
-
-    stage('Generate Metadata') {
-
-      parallel {
-
         stage('Airframe') {
           agent {
             docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
