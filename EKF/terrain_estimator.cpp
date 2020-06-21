@@ -222,10 +222,10 @@ void Ekf::fuseFlowForTerrain()
 
 	// constrain terrain to minimum allowed value and predict height above ground
 	_terrain_vpos = fmaxf(_terrain_vpos, _params.rng_gnd_clearance + _state.pos(2));
-	const float pred_hagl = _terrain_vpos - _state.pos(2);
+	const float pred_hagl_inv = 1.f / (_terrain_vpos - _state.pos(2));
 
 	// Calculate observation matrix for flow around the vehicle x axis
-	const float Hx = vel_body(1) * t0 / (pred_hagl * pred_hagl);
+	const float Hx = vel_body(1) * t0 * pred_hagl_inv * pred_hagl_inv;
 
 	// Constrain terrain variance to be non-negative
 	_terrain_var = fmaxf(_terrain_var, 0.0f);
@@ -237,7 +237,7 @@ void Ekf::fuseFlowForTerrain()
 	const float Kx = _terrain_var * Hx / _flow_innov_var[0];
 
 	// calculate prediced optical flow about x axis
-	const float pred_flow_x = vel_body(1) * earth_to_body(2, 2) / pred_hagl;
+	const float pred_flow_x = vel_body(1) * earth_to_body(2, 2) * pred_hagl_inv;
 
 	// calculate flow innovation (x axis)
 	_flow_innov[0] = pred_flow_x - opt_flow_rate(0);
@@ -258,7 +258,7 @@ void Ekf::fuseFlowForTerrain()
 	}
 
 	// Calculate observation matrix for flow around the vehicle y axis
-	const float Hy = -vel_body(0) * t0 / (pred_hagl * pred_hagl);
+	const float Hy = -vel_body(0) * t0 * pred_hagl_inv * pred_hagl_inv;
 
 	// Calculuate innovation variance
 	_flow_innov_var[1] = Hy * Hy * _terrain_var + R_LOS;
@@ -267,7 +267,7 @@ void Ekf::fuseFlowForTerrain()
 	const float Ky = _terrain_var * Hy / _flow_innov_var[1];
 
 	// calculate prediced optical flow about y axis
-	const float pred_flow_y = -vel_body(0) * earth_to_body(2, 2) / pred_hagl;
+	const float pred_flow_y = -vel_body(0) * earth_to_body(2, 2) * pred_hagl_inv;
 
 	// calculate flow innovation (y axis)
 	_flow_innov[1] = pred_flow_y - opt_flow_rate(1);
