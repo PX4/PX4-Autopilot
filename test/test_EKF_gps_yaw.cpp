@@ -58,8 +58,10 @@ class EkfGpsHeadingTest : public ::testing::Test {
 	void SetUp() override
 	{
 		_ekf->init(0);
+		_sensor_simulator._gps.setYaw(NAN);
 		_sensor_simulator.runSeconds(2);
 		_ekf_wrapper.enableGpsFusion();
+		_ekf_wrapper.enableGpsHeadingFusion();
 		_sensor_simulator.startGps();
 		_sensor_simulator.runSeconds(11);
 	}
@@ -121,11 +123,13 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 TEST_F(EkfGpsHeadingTest, fallBackToMag)
 {
 	// GIVEN: an initial GPS yaw, not aligned with the current one
+	// GPS yaw is expected to arrive a bit later, first feed some NANs
+	// to the filter
+	_sensor_simulator.runSeconds(6);
 	float gps_heading = _ekf_wrapper.getYawAngle() + math::radians(10.f);
 	_sensor_simulator._gps.setYaw(gps_heading);
 
 	// WHEN: the GPS yaw fusion is activated
-	_ekf_wrapper.enableGpsHeadingFusion();
 	_sensor_simulator.runSeconds(1);
 
 	// THEN: GPS heading fusion should have started, and mag
