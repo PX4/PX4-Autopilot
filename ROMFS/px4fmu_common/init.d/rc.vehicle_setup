@@ -26,10 +26,10 @@ then
 	param set MAV_TYPE ${MAV_TYPE}
 
 	# Load mixer and configure outputs.
-	sh /etc/init.d/rc.interface
+	. /etc/init.d/rc.interface
 
 	# Start standard fixedwing apps.
-	sh /etc/init.d/rc.fw_apps
+	. /etc/init.d/rc.fw_apps
 fi
 
 #
@@ -78,10 +78,10 @@ then
 	param set MAV_TYPE ${MAV_TYPE}
 
 	# Load mixer and configure outputs.
-	sh /etc/init.d/rc.interface
+	. /etc/init.d/rc.interface
 
 	# Start standard multicopter apps.
-	sh /etc/init.d/rc.mc_apps
+	. /etc/init.d/rc.mc_apps
 fi
 
 #
@@ -105,10 +105,10 @@ then
 	param set MAV_TYPE ${MAV_TYPE}
 
 	# Load mixer and configure outputs.
-	sh /etc/init.d/rc.interface
+	. /etc/init.d/rc.interface
 
 	# Start standard UGV apps.
-	sh /etc/init.d/rc.rover_apps
+	. /etc/init.d/rc.rover_apps
 fi
 
 #
@@ -141,10 +141,10 @@ then
 	param set MAV_TYPE ${MAV_TYPE}
 
 	# Load mixer and configure outputs.
-	sh /etc/init.d/rc.interface
+	. /etc/init.d/rc.interface
 
 	# Start standard vtol apps.
-	sh /etc/init.d/rc.vtol_apps
+	. /etc/init.d/rc.vtol_apps
 fi
 
 #
@@ -167,10 +167,10 @@ then
 	param set MAV_TYPE ${MAV_TYPE}
 
 	# Load mixer and configure outputs.
-	sh /etc/init.d/rc.interface
+	. /etc/init.d/rc.interface
 
 	# Start airship apps.
-	sh /etc/init.d/rc.airship_apps
+	. /etc/init.d/rc.airship_apps
 fi
 
 #
@@ -184,10 +184,10 @@ then
 	fi
 
 	# Load mixer and configure outputs.
-	sh /etc/init.d/rc.interface
+	. /etc/init.d/rc.interface
 
 	# Start standard vtol apps.
-	sh /etc/init.d/rc.uuv_apps
+	. /etc/init.d/rc.uuv_apps
 
 fi
 

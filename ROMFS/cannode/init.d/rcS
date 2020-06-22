@@ -61,7 +61,7 @@ set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
 if [ -f $BOARD_RC_DEFAULTS ]
 then
 	echo "Board defaults: ${BOARD_RC_DEFAULTS}"
-	sh $BOARD_RC_DEFAULTS
+	. $BOARD_RC_DEFAULTS
 fi
 unset BOARD_RC_DEFAULTS
 
@@ -87,7 +87,7 @@ set BOARD_RC_SENSORS /etc/init.d/rc.board_sensors
 if [ -f $BOARD_RC_SENSORS ]
 then
 	echo "Board sensors: ${BOARD_RC_SENSORS}"
-	sh $BOARD_RC_SENSORS
+	. $BOARD_RC_SENSORS
 fi
 unset BOARD_RC_SENSORS
 
@@ -95,7 +95,7 @@ unset BOARD_RC_SENSORS
 # Start UART/Serial device drivers.
 # Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 #
-sh /etc/init.d/rc.serial
+. /etc/init.d/rc.serial
 
 # Check for flow sensor
 if param compare SENS_EN_PX4FLOW 1
