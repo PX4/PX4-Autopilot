@@ -24,10 +24,13 @@ jobs:
 
     - uses: actions/cache@v2
       with:
-        path: ~/Library/Caches/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        path: |
+          ~/Library/Caches/pip
+          ~/Library/Caches/Homebrew
+          /usr/local/Homebrew
+        key: ${{runner.os}}-px4-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{runner.os}}-px4-
 
     - name: setup
       run: ./Tools/setup/OSX.sh
