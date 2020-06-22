@@ -605,19 +605,19 @@ void FixedwingAttitudeControl::Run()
 						_rates_sp.thrust_body[0] : 0.0f;
 			}
 
-			rate_ctrl_status_s rate_ctrl_status{};
-			rate_ctrl_status.timestamp = hrt_absolute_time();
-			rate_ctrl_status.rollspeed_integ = _roll_ctrl.get_integrator();
-			rate_ctrl_status.pitchspeed_integ = _pitch_ctrl.get_integrator();
+			// rate_ctrl_status_s rate_ctrl_status{};
+			// rate_ctrl_status.timestamp = hrt_absolute_time();
+			// rate_ctrl_status.rollspeed_integ = _roll_ctrl.get_integrator();
+			// rate_ctrl_status.pitchspeed_integ = _pitch_ctrl.get_integrator();
 
-			if (wheel_control) {
-				rate_ctrl_status.additional_integ1 = _wheel_ctrl.get_integrator();
+			// if (wheel_control) {
+			// 	rate_ctrl_status.additional_integ1 = _wheel_ctrl.get_integrator();
 
-			} else {
-				rate_ctrl_status.yawspeed_integ = _yaw_ctrl.get_integrator();
-			}
+			// } else {
+			// 	rate_ctrl_status.yawspeed_integ = _yaw_ctrl.get_integrator();
+			// }
 
-			_rate_ctrl_status_pub.publish(rate_ctrl_status);
+			//_rate_ctrl_status_pub.publish(rate_ctrl_status);
 		}
 
 		// Add feed-forward from roll control output to yaw control output
