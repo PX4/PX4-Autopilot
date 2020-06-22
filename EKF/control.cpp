@@ -518,26 +518,29 @@ void Ekf::controlGpsFusion()
 		// Detect if coming back after significant time without GPS data
 		bool gps_signal_was_lost = isTimedOut(_time_prev_gps_us, 1000000);
 
-		// GPS yaw aiding selection logic
-		if ((_params.fusion_mode & MASK_USE_GPSYAW)
-				&& ISFINITE(_gps_sample_delayed.yaw)
-				&& _control_status.flags.tilt_align
-				&& !_control_status.flags.gps_yaw
-				&& !_gps_hgt_intermittent) {
+		if (!(_params.fusion_mode & MASK_USE_GPSYAW)) {
+			stopGpsYawFusion();
 
-			if (resetGpsAntYaw()) {
-				// flag the yaw as aligned
-				_control_status.flags.yaw_align = true;
+		} else {
+			if (ISFINITE(_gps_sample_delayed.yaw)) {
+				if (!_control_status.flags.gps_yaw
+				    && _control_status.flags.tilt_align
+				    && !_gps_hgt_intermittent) {
 
-				startGpsYawFusion();
+					// Activate GPS yaw fusion
+					if (resetGpsAntYaw()) {
+						_control_status.flags.yaw_align = true;
 
-				ECL_INFO_TIMESTAMPED("starting GPS yaw fusion");
+						startGpsYawFusion();
+
+						ECL_INFO_TIMESTAMPED("starting GPS yaw fusion");
+					}
+				}
+
+				if (_control_status.flags.gps_yaw) {
+					fuseGpsAntYaw();
+				}
 			}
-		}
-
-		// fuse the yaw observation
-		if (_control_status.flags.gps_yaw) {
-			fuseGpsAntYaw();
 		}
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
