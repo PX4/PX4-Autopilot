@@ -522,20 +522,14 @@ void Ekf::controlGpsFusion()
 		if ((_params.fusion_mode & MASK_USE_GPSYAW)
 				&& ISFINITE(_gps_sample_delayed.yaw)
 				&& _control_status.flags.tilt_align
-				&& (!_control_status.flags.gps_yaw || !_control_status.flags.yaw_align)
+				&& !_control_status.flags.gps_yaw
 				&& !_gps_hgt_intermittent) {
 
 			if (resetGpsAntYaw()) {
 				// flag the yaw as aligned
 				_control_status.flags.yaw_align = true;
 
-				// turn on fusion of external vision yaw measurements and disable all other yaw fusion
-				_control_status.flags.gps_yaw = true;
-				_control_status.flags.ev_yaw = false;
-				_control_status.flags.mag_dec = false;
-
-				stopMagHdgFusion();
-				stopMag3DFusion();
+				startGpsYawFusion();
 
 				ECL_INFO_TIMESTAMPED("starting GPS yaw fusion");
 			}

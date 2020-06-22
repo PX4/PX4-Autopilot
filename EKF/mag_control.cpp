@@ -46,12 +46,15 @@ void Ekf::controlMagFusion()
 		return;
 	}
 
-	// When operating without a magnetometer, yaw fusion is run selectively to prevent
-	// enable yaw gyro bias learning hen stationary on ground and to prevent uncontrolled
-	// yaw variance growth
+	// When operating without a magnetometer and no other source of yaw aiding is active,
+	// yaw fusion is run selectively to enable yaw gyro bias learning when stationary on
+	// ground and to prevent uncontrolled yaw variance growth
 	if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
-		_yaw_use_inhibit = true;
-		fuseHeading();
+		if (noOtherYawAidingThanMag())
+		{
+			_yaw_use_inhibit = true;
+			fuseHeading();
+		}
 		return;
 	}
 
@@ -70,7 +73,7 @@ void Ekf::controlMagFusion()
 		return;
 	}
 
-	if (canRunMagFusion()) {
+	if (noOtherYawAidingThanMag() && _mag_data_ready) {
 		if (_control_status.flags.in_air) {
 			checkHaglYawResetReq();
 			runInAirYawReset();
@@ -116,11 +119,10 @@ void Ekf::updateMagFilter()
 	}
 }
 
-bool Ekf::canRunMagFusion() const
+bool Ekf::noOtherYawAidingThanMag() const
 {
-	// check for new magnetometer data that has fallen behind the fusion time horizon
 	// If we are using external vision data or GPS-heading for heading then no magnetometer fusion is used
-	return !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw && _mag_data_ready;
+	return !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw;
 }
 
 void Ekf::checkHaglYawResetReq()
