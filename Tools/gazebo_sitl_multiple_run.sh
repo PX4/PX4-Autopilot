@@ -42,7 +42,8 @@ function spawn_model() {
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]
 then
-	echo "Usage: $0 [-n <num_vehicles>] [-m <vehicle_model>]"
+	echo "Usage: $0 [-n <num_vehicles>] [-m <vehicle_model>] [-w <world>] [-s <script>]"
+	echo "-s flag is used to script spawning vehicles e.g. $0 -s iris:3, plane:2"
 	exit 1
 fi
 
@@ -94,10 +95,11 @@ if [ -z ${SCRIPT} ]; then
 		n=$(($n + 1))
 	done
 else
+	IFS=,
 	for target in ${SCRIPT}; do
-		echo ${target}
-		target_vehicle=$(echo ${target} | cut -d ":" -f 1)
-		target_number=$(echo ${target} | cut -d ":" -f 2)
+		target="$(echo "$target" | tr -d ' ')" #Remove spaces
+		target_vehicle="${target%:*}"
+		target_number="${target#*:}"
 
 		if [ $n -gt 255 ]
 		then
