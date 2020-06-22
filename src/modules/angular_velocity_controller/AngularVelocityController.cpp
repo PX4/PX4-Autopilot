@@ -180,7 +180,7 @@ AngularVelocityController::Run()
 		// run the controller
 		if (_vehicle_control_mode.flag_control_rates_enabled) {
 			// reset integral if disarmed
-			if (!_vehicle_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			if (!_vehicle_control_mode.flag_armed) {
 				_control.resetIntegral();
 			}
 
