@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 
 class ExtStateEst final : public ModuleBase<ExtStateEst>,
                           public ModuleParams,

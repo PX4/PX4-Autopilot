@@ -142,6 +142,20 @@ void ExtStateEst::Run() {
     position.y = ext_state_in.p_wi[1];
     position.z = ext_state_in.p_wi[2];
 
+    position.epv = 0;
+    position.eph = 0;
+    position.xy_valid = true;
+    position.z_valid = true;
+
+    position.vx = ext_state_in.v_wi[0];
+    position.vy = ext_state_in.v_wi[1];
+    position.vz = ext_state_in.v_wi[2];
+
+    position.evv = 0;
+    position.evh = 0;
+    position.v_xy_valid = true;
+    position.v_z_valid = true;
+
     vehicle_attitude_s attitude;
     attitude.timestamp = timestamp_sample;
     attitude.q[0] = ext_state_in.q_wi[0];
