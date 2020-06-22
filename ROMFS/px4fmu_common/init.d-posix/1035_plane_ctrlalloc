@@ -1,0 +1,70 @@
+#!/bin/sh
+#
+# @name Plane SITL
+#
+
+param set CA_AIRFRAME 3
+
+sh /etc/init.d/rc.fw_defaults
+sh /etc/init.d/rc.ctrlalloc
+
+if [ $AUTOCNF = yes ]
+then
+	param set EKF2_ARSP_THR 8
+	param set EKF2_FUSE_BETA 1
+	param set EKF2_MAG_ACCLIM 0
+	param set EKF2_MAG_YAWLIM 0
+
+	param set FW_LND_AIRSPD_SC 1
+	param set FW_LND_ANG 8
+	param set FW_THR_LND_MAX 0
+
+	param set FW_L1_PERIOD 15
+
+	param set FW_P_TC 0.5
+	param set FW_PR_FF 0.40
+	param set FW_PR_I 0.05
+	param set FW_PR_P 0.05
+
+	param set FW_R_TC 0.7
+	param set FW_RR_FF 0.20
+	param set FW_RR_I 0.02
+	param set FW_RR_P 0.22
+
+	param set FW_L1_PERIOD 12
+
+	param set FW_W_EN 1
+
+	param set MIS_LTRMIN_ALT 30
+	param set MIS_TAKEOFF_ALT 30
+
+	param set NAV_ACC_RAD 15
+	param set NAV_DLL_ACT 2
+	param set NAV_LOITER_RAD 50
+
+	param set RWTO_TKOFF 1
+
+	param set CA_AIRFRAME 3
+
+	param set CA_ACT0_MIN 0.0
+	param set CA_ACT1_MIN 0.0
+	param set CA_ACT2_MIN 0.0
+	param set CA_ACT3_MIN 0.0
+	param set CA_ACT0_MAX 1.0
+	param set CA_ACT1_MAX 1.0
+	param set CA_ACT2_MAX 1.0
+	param set CA_ACT3_MAX 1.0
+
+	param set CA_ACT4_MIN 0.0
+	param set CA_ACT4_MAX 1.0
+
+	param set CA_ACT5_MIN -1.0
+	param set CA_ACT5_MAX 1.0
+	param set CA_ACT6_MIN -1.0
+	param set CA_ACT6_MAX 1.0
+	param set CA_ACT7_MIN -1.0
+	param set CA_ACT7_MAX 1.0
+
+fi
+
+set MIXER direct
