@@ -8,7 +8,7 @@
 # @maintainer Roman Bapst <roman@auterion.com>
 #
 
-sh /etc/init.d/rc.vtol_defaults
+. /etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF = yes ]
 then

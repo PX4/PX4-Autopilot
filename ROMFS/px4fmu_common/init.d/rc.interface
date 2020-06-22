@@ -111,7 +111,7 @@ then
 
 	if [ $OUTPUT_MODE = io ]
 	then
-		sh /etc/init.d/rc.io
+		. /etc/init.d/rc.io
 	fi
 
 	#
@@ -121,7 +121,7 @@ then
 	then
 		if [ $OUTPUT_MODE != io ]
 		then
-			sh /etc/init.d/rc.io
+			. /etc/init.d/rc.io
 		fi
 	fi
 fi
