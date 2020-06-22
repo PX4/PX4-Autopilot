@@ -117,3 +117,30 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 	EXPECT_NEAR(yaw_est, gps_heading, math::radians(0.5f))
 		<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(gps_heading);
 }
+
+TEST_F(EkfGpsHeadingTest, fallBackToMag)
+{
+	// GIVEN: an initial GPS yaw, not aligned with the current one
+	float gps_heading = _ekf_wrapper.getYawAngle() + math::radians(10.f);
+	_sensor_simulator._gps.setYaw(gps_heading);
+
+	// WHEN: the GPS yaw fusion is activated
+	_ekf_wrapper.enableGpsHeadingFusion();
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: GPS heading fusion should have started, and mag
+	// fusion should be disabled
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+
+	// BUT WHEN: the GPS yaw is suddenly invalid
+	gps_heading = NAN;
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator.runSeconds(6);
+
+	// THEN: after a few seconds, the fusion should stop and
+	// the estimator should fall back to mag fusion
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+}

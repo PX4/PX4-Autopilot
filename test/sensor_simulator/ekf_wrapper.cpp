@@ -170,6 +170,20 @@ void EkfWrapper::disableExternalVisionAlignment()
 	_ekf_params->fusion_mode &= ~MASK_ROTATE_EV;
 }
 
+bool EkfWrapper::isIntendingMagHeadingFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.mag_hdg;
+}
+
+bool EkfWrapper::isIntendingMag3DFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.mag_3D;
+}
+
 bool EkfWrapper::isWindVelocityEstimated() const
 {
 	filter_control_status_u control_status;
