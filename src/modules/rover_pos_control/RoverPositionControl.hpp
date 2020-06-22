@@ -106,7 +106,7 @@ private:
 	int		_control_mode_sub{-1};		/**< control mode subscription */
 	int		_global_pos_sub{-1};
 	int		_local_pos_sub{-1};
-	int		_manual_control_sub{-1};		/**< notification of manual control updates */
+	int		_manual_control_setpoint_sub{-1};		/**< notification of manual control updates */
 	int		_pos_sp_triplet_sub{-1};
 	int		_att_sp_sub{-1};
 	int		_vehicle_attitude_sub{-1};
@@ -114,7 +114,7 @@ private:
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
-	manual_control_setpoint_s		_manual{};			    /**< r/c channel data */
+	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< attitude setpoint > */
 	vehicle_control_mode_s			_control_mode{};		/**< control mode */

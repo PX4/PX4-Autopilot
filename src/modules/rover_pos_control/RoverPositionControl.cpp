@@ -108,10 +108,10 @@ void
 RoverPositionControl::manual_control_setpoint_poll()
 {
 	bool manual_updated;
-	orb_check(_manual_control_sub, &manual_updated);
+	orb_check(_manual_control_setpoint_sub, &manual_updated);
 
 	if (manual_updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sub, &_manual);
+		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &_manual_control_setpoint);
 	}
 }
 
@@ -352,7 +352,7 @@ RoverPositionControl::run()
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 
@@ -374,7 +374,7 @@ RoverPositionControl::run()
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _manual_control_sub;
+	fds[1].fd = _manual_control_setpoint_sub;
 	fds[1].events = POLLIN;
 	fds[2].fd = _sensor_combined_sub;
 	fds[2].events = POLLIN;
@@ -494,15 +494,15 @@ RoverPositionControl::run()
 
 			// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
 			// returning immediately and this loop will eat up resources.
-			orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sub, &_manual);
+			orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &_manual_control_setpoint);
 
 			if (manual_mode) {
 				/* manual/direct control */
 				//PX4_INFO("Manual mode!");
-				_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual.y;
-				_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual.x;
-				_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual.r; //TODO: Readd yaw scale param
-				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
+				_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual_control_setpoint.y;
+				_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual_control_setpoint.x;
+				_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual_control_setpoint.r; //TODO: Readd yaw scale param
+				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual_control_setpoint.z;
 			}
 		}
 
@@ -528,7 +528,7 @@ RoverPositionControl::run()
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
-	orb_unsubscribe(_manual_control_sub);
+	orb_unsubscribe(_manual_control_setpoint_sub);
 	orb_unsubscribe(_pos_sp_triplet_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
 	orb_unsubscribe(_sensor_combined_sub);

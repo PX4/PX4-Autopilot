@@ -2036,7 +2036,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual.z = man.z / 1000.0f;
 		manual.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 
-		_manual_pub.publish(manual);
+		_manual_control_setpoint_pub.publish(manual);
 	}
 }
 

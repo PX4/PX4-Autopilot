@@ -965,11 +965,11 @@ bool Logger::start_stop_logging()
 
 	if (_log_mode == LogMode::rc_aux1) {
 		// aux1-based logging
-		manual_control_setpoint_s manual_sp;
+		manual_control_setpoint_s manual_control_setpoint;
 
-		if (_manual_control_sp_sub.update(&manual_sp)) {
+		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 
-			desired_state = (manual_sp.aux1 > 0.3f);
+			desired_state = (manual_control_setpoint.aux1 > 0.3f);
 			updated = true;
 		}
 
