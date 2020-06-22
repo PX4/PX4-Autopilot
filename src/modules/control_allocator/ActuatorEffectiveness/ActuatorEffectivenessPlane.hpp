@@ -32,87 +32,36 @@
  ****************************************************************************/
 
 /**
- * @file ActuatorEffectiveness.hpp
+ * @file ActuatorEffectivenessPlane.hpp
  *
- * Interface for Actuator Effectiveness
+ * Actuator effectiveness for a plane.
  *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
  */
 
 #pragma once
 
-#include <ControlAllocation/ControlAllocation.hpp>
+#include "ActuatorEffectiveness.hpp"
 
-#include <matrix/matrix/math.hpp>
-#include <uORB/topics/vehicle_actuator_setpoint.h>
-
-class ActuatorEffectiveness
+class ActuatorEffectivenessPlane: public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectiveness() = default;
-	virtual ~ActuatorEffectiveness() = default;
-
-	static constexpr uint8_t NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
-	static constexpr uint8_t NUM_AXES = ControlAllocation::NUM_AXES;
-
-	enum class FlightPhase {
-		HOVER_FLIGHT = 0,
-		FORWARD_FLIGHT = 1,
-		TRANSITION_HF_TO_FF = 2,
-		TRANSITION_FF_TO_HF = 3
-	};
+	ActuatorEffectivenessPlane();
+	virtual ~ActuatorEffectivenessPlane() = default;
 
 	/**
 	 * Update effectiveness matrix
 	 *
 	 * @return True if the effectiveness matrix has changed
 	 */
-	virtual bool update() = 0;
+	virtual bool update() override;
 
 	/**
-	 * Set the current flight phase
+	 * Set the current airspeed scaling
 	 *
-	 * @param Flight phase
+	 * @param Airspeed scaling
 	 */
-	virtual void setFlightPhase(const FlightPhase &flight_phase)
-	{
-		_flight_phase = flight_phase;
-	};
-
-	virtual void updateAirspeedScaling(const float airspeed_scaling) {};
-
-	/**
-	 * Get the control effectiveness matrix
-	 *
-	 * @return Effectiveness matrix
-	 */
-	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrix() const
-	{
-		return _effectiveness;
-	};
-
-	/**
-	 * Get the actuator trims
-	 *
-	 * @return Actuator trims
-	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorTrim() const
-	{
-		return _trim;
-	};
-
-	/**
-	 * Get the current flight phase
-	 *
-	 * @return Flight phase
-	 */
-	const FlightPhase &getFlightPhase() const
-	{
-		return _flight_phase;
-	};
+	void updateAirspeedScaling(const float airspeed_scaling) override;
 
 protected:
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  //< Effectiveness matrix
-	matrix::Vector<float, NUM_ACTUATORS> _trim;			//< Actuator trim
-	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		//< Current flight phase
+	bool _updated{false};
 };

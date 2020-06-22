@@ -229,6 +229,10 @@ ControlAllocator::update_effectiveness_source()
 		case EffectivenessSource::TILTROTOR_VTOL:
 			tmp = new ActuatorEffectivenessTiltrotorVTOL();
 			break;
+
+		case EffectivenessSource::PLANE:
+			tmp = new ActuatorEffectivenessPlane();
+			break;
 		}
 
 		// Replace previous source with new one
@@ -314,6 +318,17 @@ ControlAllocator::Run()
 
 		// Forward to effectiveness source
 		_actuator_effectiveness->setFlightPhase(flight_phase);
+	}
+
+	if (_airspeed_sub.updated()) {
+		airspeed_validated_s airspeed = {};
+
+		_airspeed_sub.update(&airspeed);
+
+		if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s)) {
+			const float airspeed_scaling = _param_airspeed_ias_trim.get() / math::max(airspeed.indicated_airspeed_m_s, 3.0f);
+			_actuator_effectiveness->updateAirspeedScaling(airspeed_scaling);
+		}
 	}
 
 	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
@@ -541,6 +556,10 @@ int ControlAllocator::print_status()
 
 	case EffectivenessSource::TILTROTOR_VTOL:
 		PX4_INFO("EffectivenessSource: Tiltrotor VTOL");
+		break;
+
+	case EffectivenessSource::PLANE:
+		PX4_INFO("EffectivenessSource: Plane");
 		break;
 	}
 

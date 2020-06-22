@@ -39,6 +39,8 @@ px4_add_library(ActuatorEffectiveness
 	ActuatorEffectivenessStandardVTOL.hpp
 	ActuatorEffectivenessTiltrotorVTOL.cpp
 	ActuatorEffectivenessTiltrotorVTOL.hpp
+	ActuatorEffectivenessPlane.cpp
+	ActuatorEffectivenessPlane.hpp
 )
 
 target_include_directories(ActuatorEffectiveness
