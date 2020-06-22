@@ -3776,11 +3776,12 @@ public:
 
 	unsigned get_size() override
 	{
-		return _manual_sub.advertised() ? (MAVLINK_MSG_ID_MANUAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _manual_control_setpoint_sub.advertised() ?
+		       (MAVLINK_MSG_ID_MANUAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-	uORB::Subscription _manual_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamManualControl(MavlinkStreamManualControl &) = delete;
@@ -3792,24 +3793,24 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		manual_control_setpoint_s manual;
+		manual_control_setpoint_s manual_control_setpoint;
 
-		if (_manual_sub.update(&manual)) {
+		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 			mavlink_manual_control_t msg{};
 
 			msg.target = mavlink_system.sysid;
-			msg.x = manual.x * 1000;
-			msg.y = manual.y * 1000;
-			msg.z = manual.z * 1000;
-			msg.r = manual.r * 1000;
+			msg.x = manual_control_setpoint.x * 1000;
+			msg.y = manual_control_setpoint.y * 1000;
+			msg.z = manual_control_setpoint.z * 1000;
+			msg.r = manual_control_setpoint.r * 1000;
 			unsigned shift = 2;
 			msg.buttons = 0;
-			msg.buttons |= (manual.mode_switch << (shift * 0));
-			msg.buttons |= (manual.return_switch << (shift * 1));
-			msg.buttons |= (manual.posctl_switch << (shift * 2));
-			msg.buttons |= (manual.loiter_switch << (shift * 3));
-			msg.buttons |= (manual.acro_switch << (shift * 4));
-			msg.buttons |= (manual.offboard_switch << (shift * 5));
+			msg.buttons |= (manual_control_setpoint.mode_switch << (shift * 0));
+			msg.buttons |= (manual_control_setpoint.return_switch << (shift * 1));
+			msg.buttons |= (manual_control_setpoint.posctl_switch << (shift * 2));
+			msg.buttons |= (manual_control_setpoint.loiter_switch << (shift * 3));
+			msg.buttons |= (manual_control_setpoint.acro_switch << (shift * 4));
+			msg.buttons |= (manual_control_setpoint.offboard_switch << (shift * 5));
 
 			mavlink_msg_manual_control_send_struct(_mavlink->get_channel(), &msg);
 

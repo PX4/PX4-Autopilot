@@ -109,10 +109,10 @@ MulticopterRateControl::get_landing_gear_state()
 
 	float landing_gear = landing_gear_s::GEAR_DOWN; // default to down
 
-	if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized) {
+	if (_manual_control_setpoint.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized) {
 		landing_gear = landing_gear_s::GEAR_UP;
 
-	} else if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+	} else if (_manual_control_setpoint.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 		// Switching the gear off does put it into a safe defined state
 		_gear_state_initialized = true;
 	}
@@ -173,7 +173,7 @@ MulticopterRateControl::Run()
 
 		_vehicle_status_sub.update(&_vehicle_status);
 
-		const bool manual_control_updated = _manual_control_sp_sub.update(&_manual_control_sp);
+		const bool manual_control_updated = _manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 		// generate the rate setpoint from sticks?
 		bool manual_rate_sp = false;
@@ -199,8 +199,8 @@ MulticopterRateControl::Run()
 			//  if true then use published rate setpoint, otherwise generate from manual_control_setpoint (like acro)
 			if (_v_control_mode.flag_control_rattitude_enabled) {
 				manual_rate_sp =
-					(fabsf(_manual_control_sp.y) > _param_mc_ratt_th.get()) ||
-					(fabsf(_manual_control_sp.x) > _param_mc_ratt_th.get());
+					(fabsf(_manual_control_setpoint.y) > _param_mc_ratt_th.get()) ||
+					(fabsf(_manual_control_setpoint.x) > _param_mc_ratt_th.get());
 			}
 
 		} else {
@@ -212,12 +212,12 @@ MulticopterRateControl::Run()
 
 				// manual rates control - ACRO mode
 				const Vector3f man_rate_sp{
-					math::superexpo(_manual_control_sp.y, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(-_manual_control_sp.x, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(_manual_control_sp.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
+					math::superexpo(_manual_control_setpoint.y, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
+					math::superexpo(-_manual_control_setpoint.x, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
+					math::superexpo(_manual_control_setpoint.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
 
 				_rates_sp = man_rate_sp.emult(_acro_rate_max);
-				_thrust_sp = _manual_control_sp.z;
+				_thrust_sp = _manual_control_setpoint.z;
 
 				// publish rate setpoint
 				vehicle_rates_setpoint_s v_rates_sp{};
