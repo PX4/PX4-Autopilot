@@ -31,8 +31,8 @@ then
 	param set BAT1_A_PER_V 17
 	param set BAT2_A_PER_V 17
 
-	# Enable IMU thermal control
-	param set SENS_EN_THERMAL -1
+	# Disable IMU thermal control
+	param set SENS_EN_THERMAL 0
 fi
 
 set LOGGER_BUF 64
