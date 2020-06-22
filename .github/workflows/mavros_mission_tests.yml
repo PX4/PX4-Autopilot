@@ -89,7 +89,7 @@ jobs:
 
     - name: ecl EKF analysis
       if: always()
-      run: ./Tools/ecl_ekf/process_logdata_ekf.py ~/.ros/log/*/*.ulg
+      run: ./Tools/ecl_ekf/process_logdata_ekf.py ~/.ros/log/*/*.ulg || true
 
     - name: Upload logs to flight review
       if: always()
