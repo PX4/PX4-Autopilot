@@ -19,28 +19,37 @@ do
 done
 
 # install Homebrew
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" < /dev/null
-
-# confirm Homebrew installed correctly
-brew doctor
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 
 # Install px4-dev formula
-echo
-echo "Installing PX4 general dependencies (homebrew px4-dev)"
-
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
+  echo "Re-installing PX4 general dependencies (homebrew px4-dev)"
+
+  # confirm Homebrew installed correctly
+  brew doctor
+
   brew tap PX4/px4
-  brew reinstall px4-dev
-elif brew ls --versions px4-dev > /dev/null; then
-  brew tap PX4/px4
-  brew install px4-dev
+  brew reinstall px4-dev ccache
+
+  # python dependencies
+  brew install python3
+  sudo -H python3 -m pip install --upgrade pip
+else
+  if brew ls --versions px4-dev > /dev/null; then
+    echo "px4-dev already installed"
+  else
+    echo "Installing PX4 general dependencies (homebrew px4-dev)"
+    brew tap PX4/px4
+    brew install px4-dev ccache
+
+    # python dependencies
+    brew install python3
+    sudo -H python3 -m pip install --upgrade pip
+  fi
 fi
 
 # Python3 dependencies
-echo
 echo "Installing PX4 Python3 dependencies"
-brew install python3
-sudo -H python3 -m pip install --upgrade pip
 sudo -H python3 -m pip install -r ${DIR}/requirements.txt
 
 # Optional, but recommended additional simulation tools:
