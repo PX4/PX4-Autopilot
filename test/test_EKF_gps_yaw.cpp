@@ -88,26 +88,32 @@ TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
 	_sensor_simulator.runSeconds(11);
 
 	// THEN: after a while the fusion should be stopped
-	// TODO: THIS IS NOT HAPPENING
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 }
 
-TEST_F(EkfGpsHeadingTest, fusionStartWithoutReset)
+TEST_F(EkfGpsHeadingTest, yawConvergence)
 {
-	// GIVEN:EKF that fuses GPS
-
-	// WHEN: enabling GPS heading fusion and heading difference is smaller than 15 degrees
-	const float gps_heading = _ekf_wrapper.getYawAngle() + math::radians(10.f);
+	// GIVEN: an initial GPS yaw, not aligned with the current one
+	float gps_heading = _ekf_wrapper.getYawAngle() + math::radians(10.f);
 	_sensor_simulator._gps.setYaw(gps_heading);
+
+	// WHEN: the GPS yaw fusion is activated
 	_ekf_wrapper.enableGpsHeadingFusion();
-	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
-	_sensor_simulator.runSeconds(0.2);
+	_sensor_simulator.runSeconds(5);
 
-	// THEN: GPS heading fusion should have started;
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	// THEN: the estimate is reset and stays close to the measurement
+	float yaw_est = _ekf_wrapper.getYawAngle();
+	EXPECT_NEAR(yaw_est, gps_heading, math::radians(0.05f))
+		<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(gps_heading);
 
-	// AND: no reset to GPS heading should be performed
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
+	// AND WHEN: the the measurement changes
+	gps_heading += math::radians(2.f);
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator.runSeconds(6);
 
-	// TODO: investigate why heading is not converging exactly to GPS heading
+	// THEN: the estimate slowly converges to the new measurement
+	// Note that the process is slow, because the gyro did not detect any motion
+	yaw_est = _ekf_wrapper.getYawAngle();
+	EXPECT_NEAR(yaw_est, gps_heading, math::radians(0.5f))
+		<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(gps_heading);
 }

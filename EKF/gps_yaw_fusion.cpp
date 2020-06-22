@@ -303,20 +303,11 @@ bool Ekf::resetGpsAntYaw()
 			return false;
 		}
 
-		const float predicted_yaw =  atan2f(ant_vec_ef(1),ant_vec_ef(0));
-
 		// get measurement and correct for antenna array yaw offset
 		const float measured_yaw = _gps_sample_delayed.yaw + _gps_yaw_offset;
 
-		// calculate the amount the yaw needs to be rotated by
-		const float yaw_delta = wrap_pi(measured_yaw - predicted_yaw);
-
-		// update the quaternion state estimates and corresponding covariances only if
-		// the change in angle has been large or the yaw is not yet aligned
-		if(fabsf(yaw_delta) > math::radians(15.0f) || !_control_status.flags.yaw_align) {
-			const float yaw_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
-			resetQuatStateYaw(measured_yaw, yaw_variance, true);
-		}
+		const float yaw_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+		resetQuatStateYaw(measured_yaw, yaw_variance, true);
 
 		return true;
 	}

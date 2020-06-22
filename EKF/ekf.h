@@ -693,7 +693,7 @@ private:
 	void controlMagFusion();
 	void updateMagFilter();
 
-	bool canRunMagFusion() const;
+	bool noOtherYawAidingThanMag() const;
 
 	void checkHaglYawResetReq();
 	float getTerrainVPos() const;
@@ -842,6 +842,7 @@ private:
 
 	void stopGpsVelFusion();
 
+	void startGpsYawFusion();
 	void stopGpsYawFusion();
 
 	void stopEvFusion();
