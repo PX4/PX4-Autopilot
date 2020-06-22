@@ -102,7 +102,7 @@ gps_message Gps::getDefaultGpsData()
 	gps_data.lat = 473566094;
 	gps_data.lon = 85190237;
 	gps_data.alt = 422056;
-	gps_data.yaw = 0.0f;
+	gps_data.yaw = NAN;
 	gps_data.yaw_offset = 0.0f;
 	gps_data.fix_type = 3;
 	gps_data.eph = 0.5f;

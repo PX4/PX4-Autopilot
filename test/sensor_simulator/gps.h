@@ -66,7 +66,7 @@ public:
 	gps_message getDefaultGpsData();
 
 private:
-	gps_message _gps_data;
+	gps_message _gps_data{};
 	Vector3f _gps_pos_rate{};
 
 	void send(uint64_t time) override;

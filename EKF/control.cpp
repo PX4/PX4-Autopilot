@@ -526,6 +526,7 @@ void Ekf::controlGpsFusion()
 
 		} else {
 			if (ISFINITE(_gps_sample_delayed.yaw)) {
+
 				if (!_control_status.flags.gps_yaw
 				    && _control_status.flags.tilt_align
 				    && !_gps_hgt_intermittent) {
@@ -548,7 +549,8 @@ void Ekf::controlGpsFusion()
 			// Check if the data is constantly fused by the estimator,
 			// if not, declare the sensor faulty and stop the fusion
 			// By doing this, another source of yaw aiding is allowed to start
-			if (isTimedOut(_time_last_gps_yaw_fuse, (uint64_t)5e6)) {
+			if (isTimedOut(_time_last_gps_yaw_fuse, (uint64_t)5e6)
+			    && _control_status.flags.gps_yaw) {
 				_is_gps_yaw_faulty = true;
 				stopGpsYawFusion();
 			}
