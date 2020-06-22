@@ -229,17 +229,17 @@ FixedwingPositionControl::get_demanded_airspeed()
 	float altctrl_airspeed = 0;
 
 	// neutral throttle corresponds to trim airspeed
-	if (_manual.z < 0.5f) {
+	if (_manual_control_setpoint.z < 0.5f) {
 		// lower half of throttle is min to trim airspeed
 		altctrl_airspeed = _param_fw_airspd_min.get() +
 				   (_param_fw_airspd_trim.get() - _param_fw_airspd_min.get()) *
-				   _manual.z * 2;
+				   _manual_control_setpoint.z * 2;
 
 	} else {
 		// upper half of throttle is trim to max airspeed
 		altctrl_airspeed = _param_fw_airspd_trim.get() +
 				   (_param_fw_airspd_max.get() - _param_fw_airspd_trim.get()) *
-				   (_manual.z * 2 - 1);
+				   (_manual_control_setpoint.z * 2 - 1);
 	}
 
 	return altctrl_airspeed;
@@ -481,15 +481,15 @@ FixedwingPositionControl::update_desired_altitude(float dt)
 	 * an axis. Positive X means to rotate positively around
 	 * the X axis in NED frame, which is pitching down
 	 */
-	if (_manual.x > deadBand) {
+	if (_manual_control_setpoint.x > deadBand) {
 		/* pitching down */
-		float pitch = -(_manual.x - deadBand) / factor;
+		float pitch = -(_manual_control_setpoint.x - deadBand) / factor;
 		_hold_alt += (_param_fw_t_sink_max.get() * dt) * pitch;
 		_was_in_deadband = false;
 
-	} else if (_manual.x < - deadBand) {
+	} else if (_manual_control_setpoint.x < - deadBand) {
 		/* pitching up */
-		float pitch = -(_manual.x + deadBand) / factor;
+		float pitch = -(_manual_control_setpoint.x + deadBand) / factor;
 		_hold_alt += (_param_fw_t_clmb_max.get() * dt) * pitch;
 		_was_in_deadband = false;
 		climbout_mode = (pitch > MANUAL_THROTTLE_CLIMBOUT_THRESH);
@@ -791,7 +791,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 			/* reset setpoints from other modes (auto) otherwise we won't
 			 * level out without new manual input */
-			_att_sp.roll_body = _manual.y * radians(_param_fw_man_r_max.get());
+			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
 			_att_sp.yaw_body = 0;
 		}
 
@@ -811,7 +811,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		/* throttle limiting */
 		throttle_max = _param_fw_thr_max.get();
 
-		if (_vehicle_land_detected.landed && (fabsf(_manual.z) < THROTTLE_THRESH)) {
+		if (_vehicle_land_detected.landed && (fabsf(_manual_control_setpoint.z) < THROTTLE_THRESH)) {
 			throttle_max = 0.0f;
 		}
 
@@ -827,8 +827,8 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 					   tecs_status_s::TECS_MODE_NORMAL);
 
 		/* heading control */
-		if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH &&
-		    fabsf(_manual.r) < HDG_HOLD_MAN_INPUT_THRESH) {
+		if (fabsf(_manual_control_setpoint.y) < HDG_HOLD_MAN_INPUT_THRESH &&
+		    fabsf(_manual_control_setpoint.r) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 			/* heading / roll is zero, lock onto current heading */
 			if (fabsf(_vehicle_rates_sub.get().xyz[2]) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
@@ -879,12 +879,12 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			}
 		}
 
-		if (!_yaw_lock_engaged || fabsf(_manual.y) >= HDG_HOLD_MAN_INPUT_THRESH ||
-		    fabsf(_manual.r) >= HDG_HOLD_MAN_INPUT_THRESH) {
+		if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.y) >= HDG_HOLD_MAN_INPUT_THRESH ||
+		    fabsf(_manual_control_setpoint.r) >= HDG_HOLD_MAN_INPUT_THRESH) {
 
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = false;
-			_att_sp.roll_body = _manual.y * radians(_param_fw_man_r_max.get());
+			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
 			_att_sp.yaw_body = 0;
 		}
 
@@ -913,7 +913,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		/* throttle limiting */
 		throttle_max = _param_fw_thr_max.get();
 
-		if (_vehicle_land_detected.landed && (fabsf(_manual.z) < THROTTLE_THRESH)) {
+		if (_vehicle_land_detected.landed && (fabsf(_manual_control_setpoint.z) < THROTTLE_THRESH)) {
 			throttle_max = 0.0f;
 		}
 
@@ -928,7 +928,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 					   climbout_requested ? radians(10.0f) : pitch_limit_min,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
-		_att_sp.roll_body = _manual.y * radians(_param_fw_man_r_max.get());
+		_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
 		_att_sp.yaw_body = 0;
 
 	} else {
@@ -1544,7 +1544,7 @@ FixedwingPositionControl::Run()
 		_pos_reset_counter = _local_pos.vxy_reset_counter;
 
 		airspeed_poll();
-		_manual_control_sub.update(&_manual);
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
 		vehicle_attitude_poll();
 		vehicle_command_poll();

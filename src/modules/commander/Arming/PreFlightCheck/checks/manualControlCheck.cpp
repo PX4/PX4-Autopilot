@@ -45,12 +45,12 @@ bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const boo
 
 	uORB::SubscriptionData<manual_control_setpoint_s> manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	manual_control_setpoint_sub.update();
-	const manual_control_setpoint_s &manual_control = manual_control_setpoint_sub.get();
+	const manual_control_setpoint_s &manual_control_setpoint = manual_control_setpoint_sub.get();
 
-	if (hrt_elapsed_time(&manual_control.timestamp) < 1_s) {
+	if (hrt_elapsed_time(&manual_control_setpoint.timestamp) < 1_s) {
 
 		//check action switches
-		if (manual_control.return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		if (manual_control_setpoint.return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 			success = false;
 
 			if (report_fail) {
@@ -58,7 +58,7 @@ bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const boo
 			}
 		}
 
-		if (manual_control.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		if (manual_control_setpoint.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 			success = false;
 
 			if (report_fail) {
@@ -66,7 +66,7 @@ bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const boo
 			}
 		}
 
-		if (manual_control.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		if (manual_control_setpoint.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 			success = false;
 
 			if (report_fail) {
@@ -74,7 +74,7 @@ bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const boo
 			}
 		}
 
-		if (manual_control.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		if (manual_control_setpoint.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 			success = false;
 
 			if (report_fail) {
