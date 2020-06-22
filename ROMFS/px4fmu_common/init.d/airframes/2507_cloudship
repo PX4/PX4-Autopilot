@@ -9,7 +9,7 @@
 # @output MAIN3 thrust tilt
 # @output MAIN4 tail thruster
 
-sh /etc/init.d/rc.airship_defaults
+. /etc/init.d/rc.airship_defaults
 
 if [ $AUTOCNF = yes ]
 then
