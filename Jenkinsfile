@@ -120,28 +120,6 @@ pipeline {
           }
         }
 
-        stage('Clang tidy') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-clang:2020-04-01'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'git fetch --tags'
-            retry (3) {
-              sh 'make clang-tidy-quiet'
-            }
-          }
-          post {
-            always {
-              sh 'make distclean'
-            }
-          }
-        }
-
         stage('Cppcheck') {
           agent {
             docker {
