@@ -518,7 +518,10 @@ void Ekf::controlGpsFusion()
 		// Detect if coming back after significant time without GPS data
 		bool gps_signal_was_lost = isTimedOut(_time_prev_gps_us, 1000000);
 
-		if (!(_params.fusion_mode & MASK_USE_GPSYAW)) {
+
+		if (!(_params.fusion_mode & MASK_USE_GPSYAW)
+		    || _is_gps_yaw_faulty) {
+
 			stopGpsYawFusion();
 
 		} else {
@@ -540,6 +543,14 @@ void Ekf::controlGpsFusion()
 				if (_control_status.flags.gps_yaw) {
 					fuseGpsAntYaw();
 				}
+			}
+
+			// Check if the data is constantly fused by the estimator,
+			// if not, declare the sensor faulty and stop the fusion
+			// By doing this, another source of yaw aiding is allowed to start
+			if (isTimedOut(_time_last_gps_yaw_fuse, (uint64_t)5e6)) {
+				_is_gps_yaw_faulty = true;
+				stopGpsYawFusion();
 			}
 		}
 
