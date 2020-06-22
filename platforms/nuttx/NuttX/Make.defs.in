@@ -48,7 +48,6 @@ else
   ARCHSCRIPT = -T$(BOARD_DIR)$(DELIM)scripts$(DELIM)flash.ld
 endif
 
-
 CC = ${CMAKE_C_COMPILER}
 CXX = ${CMAKE_CXX_COMPILER}
 CPP = ${CMAKE_C_COMPILER} -E
@@ -94,6 +93,8 @@ FLAGS = $(MAXOPTIMIZATION) -g2 \
 	-Wno-unused-parameter \
 	-Wpointer-arith
 
+FLAGS += $(EXTRAFLAGS)
+
 # enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 	FLAGS += -finstrument-functions -ffixed-r10
@@ -132,7 +133,7 @@ CXXFLAGS = $(ARCHXXINCLUDES) \
 	-Wno-double-promotion \
 	-Wno-missing-declarations
 
-CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS)
 AFLAGS = $(CFLAGS) -D__ASSEMBLY__
 
 ASMEXT = .S
