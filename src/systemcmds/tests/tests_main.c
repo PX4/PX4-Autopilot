@@ -80,7 +80,6 @@ const struct {
 
 	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"atomic_bitset",	test_atomic_bitset,	0},
-	{"autodeclination",	test_autodeclination,	0},
 	{"bezier",		test_bezierQuad,	0},
 	{"bitset",		test_bitset,		0},
 	{"bson",		test_bson,		0},

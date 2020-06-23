@@ -75,10 +75,6 @@ class TestHadrwareMethods(unittest.TestCase):
     TEST_DEVICE = 0
     TEST_BAUDRATE = 0
 
-    def test_autodeclination(self):
-        print("runnig test device " + self.TEST_DEVICE)
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "autodeclination"))
-
     def test_bezier(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bezier"))
 

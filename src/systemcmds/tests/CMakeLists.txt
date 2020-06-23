@@ -34,7 +34,6 @@
 set(srcs
 	test_adc.cpp
 	test_atomic_bitset.cpp
-	test_autodeclination.cpp
 	test_bezierQuad.cpp
 	test_bitset.cpp
 	test_bson.cpp
