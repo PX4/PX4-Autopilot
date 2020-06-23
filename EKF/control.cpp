@@ -534,10 +534,7 @@ void Ekf::controlGpsFusion()
 					// Activate GPS yaw fusion
 					if (resetGpsAntYaw()) {
 						_control_status.flags.yaw_align = true;
-
 						startGpsYawFusion();
-
-						ECL_INFO_TIMESTAMPED("starting GPS yaw fusion");
 					}
 				}
 
