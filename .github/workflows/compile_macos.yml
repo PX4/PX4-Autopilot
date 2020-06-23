@@ -22,16 +22,6 @@ jobs:
       with:
         token: ${{secrets.ACCESS_TOKEN}}
 
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/Library/Caches/pip
-          ~/Library/Caches/Homebrew
-          /usr/local/Homebrew
-        key: ${{runner.os}}-px4-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{runner.os}}-px4-
-
     - name: setup
       run: ./Tools/setup/OSX.sh
 
@@ -45,8 +35,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: ${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: ${{matrix.config}}-ccache-
+        key: macos_${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: macos_${{matrix.config}}-ccache-
     - name: setup ccache
       run: |
           mkdir -p ~/.ccache
