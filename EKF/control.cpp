@@ -893,8 +893,8 @@ void Ekf::checkVerticalAccelerationHealth()
 {
 	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical
 	// innovations being positive and not stale.
-	// Clipping causes the average accel reading to move towards zero which makes the INS
-	// think it is falling and produces positive vertical innovations
+	// Clipping usually causes the average accel reading to move towards zero which makes the INS
+	// think it is falling and produces positive vertical innovations.
 	// Don't use stale innovation data.
 	bool is_inertial_nav_falling = false;
 	bool are_vertical_pos_and_vel_independant = false;
@@ -905,13 +905,8 @@ void Ekf::checkVerticalAccelerationHealth()
 			const bool using_gps_for_both = _control_status.flags.gps_hgt && _control_status.flags.gps;
 			const bool using_ev_for_both = _control_status.flags.ev_hgt && _control_status.flags.ev_vel;
 			are_vertical_pos_and_vel_independant = !(using_gps_for_both || using_ev_for_both);
-			if (are_vertical_pos_and_vel_independant) {
-				if (_vert_pos_innov_ratio > 0.0f && _vert_vel_innov_ratio > 0.0f) {
-					is_inertial_nav_falling = _vert_pos_innov_ratio * _vert_vel_innov_ratio > 0.5f * sq(_params.vert_innov_test_lim);
-				}
-			} else {
-				is_inertial_nav_falling = _vert_vel_innov_ratio > _params.vert_innov_test_lim || _vert_pos_innov_ratio > _params.vert_innov_test_lim;
-			}
+			is_inertial_nav_falling |= _vert_vel_innov_ratio > _params.vert_innov_test_lim && _vert_pos_innov_ratio > 0.0f;
+			is_inertial_nav_falling |= _vert_pos_innov_ratio > _params.vert_innov_test_lim && _vert_vel_innov_ratio > 0.0f;
 		} else {
 			// only height sensing available
 			is_inertial_nav_falling = _vert_pos_innov_ratio > _params.vert_innov_test_lim;

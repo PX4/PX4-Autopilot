@@ -354,7 +354,7 @@ struct parameters {
 	float bcoef_y{25.0f};			///< ballistic coefficient along the Y-axis (kg/m**2)
 
 	// control of accel error detection and mitigation (IMU clipping)
-	float vert_innov_test_lim{4.5f};	///< Number of standard deviations allowed before the combined vertical velocity and position test is declared as failed
+	float vert_innov_test_lim{3.0f};	///< Number of standard deviations allowed before the combined vertical velocity and position test is declared as failed
 	int bad_acc_reset_delay_us{500000};	///< Continuous time that the vertical position and velocity innovation test must fail before the states are reset (uSec)
 
 	// auxiliary velocity fusion
