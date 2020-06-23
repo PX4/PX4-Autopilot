@@ -104,9 +104,9 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 				gzserver "$PX4_SITL_WORLD" &
 			fi
 		fi
+		SIM_PID=`echo $!`
 		gz model --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83
 
-		SIM_PID=`echo $!`
 
 		if [[ -n "$HEADLESS" ]]; then
 			echo "not running gazebo gui"
