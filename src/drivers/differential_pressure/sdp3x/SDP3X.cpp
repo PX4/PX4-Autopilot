@@ -127,22 +127,25 @@ SDP3X::collect()
 {
 	perf_begin(_sample_perf);
 
-	// read 9 bytes from the sensor
+	// read 6 bytes from the sensor
 	uint8_t val[6];
 	int ret = transfer(nullptr, 0, &val[0], sizeof(val));
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
-		return ret;
+		ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
+
+		if (ret != PX4_OK) {
+			return ret;
+		}
+
+		return 10000; // wait 10 ms until next measure
 	}
 
 	// Check the CRC
 	if (!crc(&val[0], 2, val[2]) || !crc(&val[3], 2, val[5])) {
 		perf_count(_comms_errors);
-		return EAGAIN;
-
-	} else {
-		ret = 0;
+		return -EAGAIN;
 	}
 
 	int16_t P = (((int16_t)val[0]) << 8) | val[1];
@@ -162,8 +165,6 @@ SDP3X::collect()
 
 	_airspeed_pub.publish(report);
 
-	ret = OK;
-
 	perf_end(_sample_perf);
 
 	return ret;
@@ -177,13 +178,17 @@ SDP3X::RunImpl()
 	// measurement phase
 	ret = collect();
 
-	if (PX4_OK != ret) {
+	uint32_t delay_us = CONVERSION_INTERVAL;
+
+	if (ret < 0) {
 		_sensor_ok = false;
 		DEVICE_DEBUG("measure error");
+
+	} else if (ret > 0) {
+		delay_us = ret;
 	}
 
-	// schedule a fresh cycle call when the measurement is done
-	ScheduleDelayed(CONVERSION_INTERVAL);
+	ScheduleDelayed(delay_us);
 }
 
 bool SDP3X::crc(const uint8_t data[], unsigned size, uint8_t checksum)
