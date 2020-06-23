@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(bmp280)
-add_subdirectory(bmp388)
-add_subdirectory(dps310)
-add_subdirectory(lps22hb)
-#add_subdirectory(lps25h) # not ready for general inclusion
-add_subdirectory(lps33hw)
-#add_subdirectory(mpl3115a2) # not ready for general inclusion
-add_subdirectory(ms5611)
+px4_add_module(
+	MODULE drivers__barometer__lps33hw
+	MAIN lps33hw
+	SRCS
+		lps33hw.cpp
+		lps33hw.hpp
+		lps33hw_i2c.cpp
+		lps33hw_spi.cpp
+		lps33hw_main.cpp
+	DEPENDS
+		drivers_barometer
+		px4_work_queue
+	)
