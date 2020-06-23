@@ -77,11 +77,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	astyle \
 	build-essential \
 	ccache \
-	clang \
-	clang-tidy \
 	cmake \
 	cppcheck \
-	doxygen \
 	file \
 	g++ \
 	gcc \
@@ -98,7 +95,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	rsync \
 	shellcheck \
 	unzip \
-	xsltproc \
 	zip \
 	;
 
@@ -111,7 +107,8 @@ fi
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-pip3 install --user -r ${DIR}/requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install --user -r ${DIR}/requirements.txt
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -124,6 +121,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		automake \
 		bison \
 		bzip2 \
+		file \
 		flex \
 		gdb-multiarch \
 		gperf \
@@ -142,10 +140,10 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"
 
-if [ $(which arm-none-eabi-gcc) ]; then
-	GCC_VER_STR=$(arm-none-eabi-gcc --version)
-	GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
-fi
+	if [ $(which arm-none-eabi-gcc) ]; then
+		GCC_VER_STR=$(arm-none-eabi-gcc --version)
+		GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
+	fi
 
 	if [[ "$GCC_FOUND_VER" == "1" ]]; then
 		echo "arm-none-eabi-gcc-${NUTTX_GCC_VERSION} found, skipping installation"
@@ -165,7 +163,6 @@ fi
 			echo $exportline >> $HOME/.profile;
 		fi
 	fi
-
 fi
 
 # Simulation tools
@@ -186,8 +183,8 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		openjdk-8-jdk \
 		;
 
-    # Set Java 8 as default
-    sudo update-alternatives --set java $(update-alternatives --list java | grep "java-8")
+	# Set Java 8 as default
+	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-8")
 
 	# Gazebo
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
