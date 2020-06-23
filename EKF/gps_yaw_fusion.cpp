@@ -53,17 +53,14 @@ void Ekf::fuseGpsAntYaw()
 	const float q2 = _state.quat_nominal(2);
 	const float q3 = _state.quat_nominal(3);
 
-	float R_YAW = 1.0f;
-	float predicted_hdg;
 	float H_YAW[4];
-	float measured_hdg;
 
 	// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-	measured_hdg = _gps_sample_delayed.yaw + _gps_yaw_offset;
+	const float measured_hdg = wrap_pi(_gps_sample_delayed.yaw + _gps_yaw_offset);
 
 	// define the predicted antenna array vector and rotate into earth frame
-	Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
-	Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
+	const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
+	const Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
 
 	// check if antenna array vector is within 30 degrees of vertical and therefore unable to provide a reliable heading
 	if (fabsf(ant_vec_ef(2)) > cosf(math::radians(30.0f)))  {
@@ -71,7 +68,7 @@ void Ekf::fuseGpsAntYaw()
 	}
 
 	// calculate predicted antenna yaw angle
-	predicted_hdg =  atan2f(ant_vec_ef(1),ant_vec_ef(0));
+	const float predicted_hdg =  atan2f(ant_vec_ef(1),ant_vec_ef(0));
 
 	// calculate observation jacobian
 	float t2 = sinf(_gps_yaw_offset);
@@ -126,10 +123,7 @@ void Ekf::fuseGpsAntYaw()
 	H_YAW[3] = t30*(t26*t32+t16*t22*t35);
 
 	// using magnetic heading tuning parameter
-	R_YAW = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
-
-	// wrap the heading to the interval between +-pi
-	measured_hdg = wrap_pi(measured_hdg);
+	const float R_YAW = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 
 	// calculate the innovation and define the innovation gate
 	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
