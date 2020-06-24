@@ -24,9 +24,9 @@ then
 	param set MPC_USE_HTE 0
 
 	param set VM_MASS 2.66
-	param set VM_INERTIA_XX 0.03
-	param set VM_INERTIA_YY 0.03
-	param set VM_INERTIA_ZZ 0.05
+	param set VM_INERTIA_XX 0.06
+	param set VM_INERTIA_YY 0.06
+	param set VM_INERTIA_ZZ 0.10
 
 	param set CA_AIRFRAME 0
 	param set CA_METHOD 1
