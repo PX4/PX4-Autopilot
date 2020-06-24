@@ -11,18 +11,6 @@
             "timeout_min": 10
         },
         {
-            "model": "iris_dual_gps",
-            "vehicle": "iris_dual_gps",
-            "test_filter": "[multicopter]",
-            "timeout_min": 10
-        },
-        {
-            "model": "iris_opt_flow_mockup",
-            "vehicle": "iris_opt_flow_mockup",
-            "test_filter": "[multicopter][offboard][nogps]",
-            "timeout_min": 10
-        },
-        {
             "model": "standard_vtol",
             "vehicle": "standard_vtol",
             "test_filter": "[multicopter][vtol]",
