@@ -42,7 +42,6 @@
 
 #pragma once
 
-#include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_range_finder.h>
@@ -59,7 +58,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
@@ -79,7 +77,6 @@
 
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
-#include <lib/battery/battery.h>
 
 using namespace time_literals;
 
@@ -168,7 +165,6 @@ private:
 	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
 
 	// uORB publisher handlers
-	uORB::Publication<battery_status_s>		_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
@@ -188,31 +184,7 @@ private:
 
 	hrt_abstime _last_sim_timestamp{0};
 	hrt_abstime _last_sitl_timestamp{0};
-	hrt_abstime _last_battery_timestamp{0};
 
-	class SimulatorBattery : public Battery
-	{
-	public:
-		static constexpr uint32_t SIMLATOR_BATTERY_SAMPLE_FREQUENCY_HZ = 100; // Hz
-		static constexpr uint32_t SIMLATOR_BATTERY_SAMPLE_INTERVAL_US = 1_s / SIMLATOR_BATTERY_SAMPLE_FREQUENCY_HZ;
-
-		SimulatorBattery() : Battery(1, nullptr, SIMLATOR_BATTERY_SAMPLE_INTERVAL_US) {}
-
-		virtual void updateParams() override
-		{
-			Battery::updateParams();
-			_params.v_empty = 3.5f;
-			_params.v_charged = 4.05f;
-			_params.n_cells = 4;
-			_params.capacity = 10.0f;
-			_params.v_load_drop = 0.0f;
-			_params.r_internal = 0.0f;
-			_params.low_thr = 0.15f;
-			_params.crit_thr = 0.07f;
-			_params.emergen_thr = 0.05f;
-			_params.source = 0;
-		}
-	} _battery;
 
 	void run();
 	void handle_message(const mavlink_message_t *msg);
@@ -276,8 +248,6 @@ private:
 #endif
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
-		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct, //< minimum battery percentage
 		(ParamBool<px4::params::SIM_GPS_BLOCK>) _param_sim_gps_block,
 		(ParamBool<px4::params::SIM_ACCEL_BLOCK>) _param_sim_accel_block,
 		(ParamBool<px4::params::SIM_GYRO_BLOCK>) _param_sim_gyro_block,
