@@ -403,6 +403,34 @@ ControlAllocator::publish_actuator_setpoint()
 {
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
 
+	// ---
+	// Simulate actuator failure if desired, TODO: remove this
+	matrix::Vector<bool, NUM_ACTUATORS> actuator_fail;
+	actuator_fail(0) = _param_ca_act0_fail.get();
+	actuator_fail(1) = _param_ca_act1_fail.get();
+	actuator_fail(2) = _param_ca_act2_fail.get();
+	actuator_fail(3) = _param_ca_act3_fail.get();
+	actuator_fail(4) = _param_ca_act4_fail.get();
+	actuator_fail(5) = _param_ca_act5_fail.get();
+	actuator_fail(6) = _param_ca_act6_fail.get();
+	actuator_fail(7) = _param_ca_act7_fail.get();
+	actuator_fail(8) = _param_ca_act8_fail.get();
+	actuator_fail(9) = _param_ca_act9_fail.get();
+	actuator_fail(10) = _param_ca_act10_fail.get();
+	actuator_fail(11) = _param_ca_act11_fail.get();
+	actuator_fail(12) = _param_ca_act12_fail.get();
+	actuator_fail(13) = _param_ca_act13_fail.get();
+	actuator_fail(14) = _param_ca_act14_fail.get();
+	actuator_fail(15) = _param_ca_act15_fail.get();
+
+	for (size_t i = 0; i < NUM_ACTUATORS; i++) {
+		if (actuator_fail(i)) {
+			actuator_sp(i) = _control_allocation->getActuatorMin()(i);
+		}
+	}
+
+	// ---
+
 	vehicle_actuator_setpoint_s vehicle_actuator_setpoint{};
 	vehicle_actuator_setpoint.timestamp = hrt_absolute_time();
 	vehicle_actuator_setpoint.timestamp_sample = _timestamp_sample;
@@ -470,7 +498,38 @@ ControlAllocator::publish_legacy_actuator_controls()
 	actuator_controls_4.timestamp_sample = _timestamp_sample;
 	actuator_controls_5.timestamp_sample = _timestamp_sample;
 
+	// Get allocated actuator setpoints
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
+
+	// ---
+	// Simulate actuator failure if desired, TODO: remove this
+	matrix::Vector<bool, NUM_ACTUATORS> actuator_fail;
+	actuator_fail(0) = _param_ca_act0_fail.get();
+	actuator_fail(1) = _param_ca_act1_fail.get();
+	actuator_fail(2) = _param_ca_act2_fail.get();
+	actuator_fail(3) = _param_ca_act3_fail.get();
+	actuator_fail(4) = _param_ca_act4_fail.get();
+	actuator_fail(5) = _param_ca_act5_fail.get();
+	actuator_fail(6) = _param_ca_act6_fail.get();
+	actuator_fail(7) = _param_ca_act7_fail.get();
+	actuator_fail(8) = _param_ca_act8_fail.get();
+	actuator_fail(9) = _param_ca_act9_fail.get();
+	actuator_fail(10) = _param_ca_act10_fail.get();
+	actuator_fail(11) = _param_ca_act11_fail.get();
+	actuator_fail(12) = _param_ca_act12_fail.get();
+	actuator_fail(13) = _param_ca_act13_fail.get();
+	actuator_fail(14) = _param_ca_act14_fail.get();
+	actuator_fail(15) = _param_ca_act15_fail.get();
+
+	for (size_t i = 0; i < NUM_ACTUATORS; i++) {
+		if (actuator_fail(i)) {
+			actuator_sp(i) = _control_allocation->getActuatorMin()(i);
+		}
+	}
+
+	// ---
+
+	// Normalize actuator setpoints
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp_normalized = _control_allocation->normalizeActuatorSetpoint(
 				actuator_sp);
 

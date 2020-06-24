@@ -195,7 +195,23 @@ private:
 		(ParamFloat<px4::params::CA_ACT12_MAX>) _param_ca_act12_max,
 		(ParamFloat<px4::params::CA_ACT13_MAX>) _param_ca_act13_max,
 		(ParamFloat<px4::params::CA_ACT14_MAX>) _param_ca_act14_max,
-		(ParamFloat<px4::params::CA_ACT15_MAX>) _param_ca_act15_max
+		(ParamFloat<px4::params::CA_ACT15_MAX>) _param_ca_act15_max,
+		(ParamBool<px4::params::CA_ACT0_FAIL>) _param_ca_act0_fail,
+		(ParamBool<px4::params::CA_ACT1_FAIL>) _param_ca_act1_fail,
+		(ParamBool<px4::params::CA_ACT2_FAIL>) _param_ca_act2_fail,
+		(ParamBool<px4::params::CA_ACT3_FAIL>) _param_ca_act3_fail,
+		(ParamBool<px4::params::CA_ACT4_FAIL>) _param_ca_act4_fail,
+		(ParamBool<px4::params::CA_ACT5_FAIL>) _param_ca_act5_fail,
+		(ParamBool<px4::params::CA_ACT6_FAIL>) _param_ca_act6_fail,
+		(ParamBool<px4::params::CA_ACT7_FAIL>) _param_ca_act7_fail,
+		(ParamBool<px4::params::CA_ACT8_FAIL>) _param_ca_act8_fail,
+		(ParamBool<px4::params::CA_ACT9_FAIL>) _param_ca_act9_fail,
+		(ParamBool<px4::params::CA_ACT10_FAIL>) _param_ca_act10_fail,
+		(ParamBool<px4::params::CA_ACT11_FAIL>) _param_ca_act11_fail,
+		(ParamBool<px4::params::CA_ACT12_FAIL>) _param_ca_act12_fail,
+		(ParamBool<px4::params::CA_ACT13_FAIL>) _param_ca_act13_fail,
+		(ParamBool<px4::params::CA_ACT14_FAIL>) _param_ca_act14_fail,
+		(ParamBool<px4::params::CA_ACT15_FAIL>) _param_ca_act15_fail
 	)
 
 };

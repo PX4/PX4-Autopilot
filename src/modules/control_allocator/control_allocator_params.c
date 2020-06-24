@@ -313,3 +313,182 @@ PARAM_DEFINE_FLOAT(CA_ACT14_MAX, 0.0);
  * @group Control Allocation
  */
 PARAM_DEFINE_FLOAT(CA_ACT15_MAX, 0.0);
+
+
+
+
+/**
+ * Failure simulation for actuator 0
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT0_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 1
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT1_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 2
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT2_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 3
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT3_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 4
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT4_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 5
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT5_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 6
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT6_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 7
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT7_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 8
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT8_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 9
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT9_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 10
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT10_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 11
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT11_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 12
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT12_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 13
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT13_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 14
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT14_FAIL, 0);
+
+/**
+ * Failure simulation for actuator 15
+ *
+ * When true, sets the actuator to CA_ACTx_MIN
+ *
+ * @boolean
+ *
+ * @group Control Allocation
+ */
+PARAM_DEFINE_INT32(CA_ACT15_FAIL, 0);
