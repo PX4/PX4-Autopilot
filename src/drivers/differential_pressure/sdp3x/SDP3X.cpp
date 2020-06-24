@@ -40,10 +40,19 @@
 
 #include "SDP3X.hpp"
 
+using namespace time_literals;
+
 int
 SDP3X::probe()
 {
-	return !init_sdp3x();
+	_require_initialization = !init_sdp3x();
+
+	if (_require_initialization && _keep_retrying) {
+		PX4_INFO("no sensor found, but will keep retrying");
+		return 0;
+	}
+
+	return _require_initialization ? -1 : 0;
 }
 
 int SDP3X::write_command(uint16_t command)
@@ -57,14 +66,12 @@ int SDP3X::write_command(uint16_t command)
 bool
 SDP3X::init_sdp3x()
 {
-	int ret;
-
 	if (get_device_address() == I2C_ADDRESS_1_SDP3X) { // since we are broadcasting, only do it for the first device address
-		// step 1 - reset on broadcast
+		// reset on broadcast
 		uint16_t prev_addr = get_device_address();
 		set_device_address(SDP3X_RESET_ADDR);
 		uint8_t reset_cmd = SDP3X_RESET_CMD;
-		ret = transfer(&reset_cmd, 1, nullptr, 0);
+		int ret = transfer(&reset_cmd, 1, nullptr, 0);
 		set_device_address(prev_addr);
 
 		if (ret != PX4_OK) {
@@ -76,31 +83,36 @@ SDP3X::init_sdp3x()
 		px4_usleep(20000);
 	}
 
-	// step 2 - configure
-	ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
+	return configure() == 0;
+}
+
+int
+SDP3X::configure()
+{
+	int ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
 		DEVICE_DEBUG("config failed");
-		return false;
+		return ret;
 	}
 
 	px4_usleep(10000);
 
-	// step 3 - get scale
+	// get scale
 	uint8_t val[9];
 	ret = transfer(nullptr, 0, &val[0], sizeof(val));
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
 		PX4_ERR("get scale failed");
-		return false;
+		return ret;
 	}
 
 	// Check the CRC
 	if (!crc(&val[0], 2, val[2]) || !crc(&val[3], 2, val[5]) || !crc(&val[6], 2, val[8])) {
 		perf_count(_comms_errors);
-		return false;
+		return PX4_ERROR;
 	}
 
 	_scale = (((uint16_t)val[6]) << 8) | val[7];
@@ -119,7 +131,7 @@ SDP3X::init_sdp3x()
 		break;
 	}
 
-	return true;
+	return PX4_OK;
 }
 
 int
@@ -173,10 +185,18 @@ SDP3X::collect()
 void
 SDP3X::RunImpl()
 {
-	int ret = PX4_ERROR;
+	if (_require_initialization) {
+		if (configure() == PX4_OK) {
+			_require_initialization = false;
 
-	// measurement phase
-	ret = collect();
+		} else {
+			// periodically retry to configure
+			ScheduleDelayed(300_ms);
+			return;
+		}
+	}
+
+	int ret = collect();
 
 	uint32_t delay_us = CONVERSION_INTERVAL;
 
