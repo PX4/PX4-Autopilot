@@ -69,7 +69,7 @@ jobs:
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
       run: |
         export
-        ./test/rostest_avoidance_run.sh ${{matrix.config.test_file}} mission:=${{matrix.config.mission}} vehicle:=${{matrix.config.vehicle}} || true
+        ./test/rostest_avoidance_run.sh ${{matrix.config.test_file}} mission:=${{matrix.config.mission}} vehicle:=${{matrix.config.vehicle}}
 
     - name: Look at core files
       if: failure()
