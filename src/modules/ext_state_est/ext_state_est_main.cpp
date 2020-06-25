@@ -133,11 +133,11 @@ void ExtStateEst::Run() {
   if (_ext_state_sub.update(&ext_state_in)) {
 
     // Alessandro: wtf?? timestamps and synchronizations needs ti be tested!
-    // uint64_t timestamp = ext_state_in.timestamp;
-    uint64_t timestamp_sample = ext_state_in.timestamp_sample;
+    uint64_t timestamp = ext_state_in.timestamp;
+    //uint64_t timestamp_sample = ext_state_in.timestamp_sample;
 
     vehicle_local_position_s &position = _vehicle_local_position_pub.get();
-    position.timestamp = timestamp_sample;
+    position.timestamp = timestamp;
     position.x = ext_state_in.p_wi[0];
     position.y = ext_state_in.p_wi[1];
     position.z = ext_state_in.p_wi[2];
@@ -157,7 +157,7 @@ void ExtStateEst::Run() {
     position.v_z_valid = true;
 
     vehicle_attitude_s attitude;
-    attitude.timestamp = timestamp_sample;
+    attitude.timestamp = timestamp;
     attitude.q[0] = ext_state_in.q_wi[0];
     attitude.q[1] = ext_state_in.q_wi[1];
     attitude.q[2] = ext_state_in.q_wi[2];

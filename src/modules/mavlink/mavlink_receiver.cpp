@@ -2798,7 +2798,6 @@ MavlinkReceiver::handle_message_ext_core_state(mavlink_message_t *msg)
   ecs.timestamp = hrt_absolute_time();
   ecs.timestamp_sample = _mavlink_timesync.sync_stamp(ml_ecs.usec);
 
-  // Alessandro: check possible data defrag
   memcpy(ecs.p_wi, ml_ecs.p_wi, sizeof(ml_ecs.p_wi));
   memcpy(ecs.v_wi, ml_ecs.v_wi, sizeof(ml_ecs.v_wi));
   memcpy(ecs.q_wi, ml_ecs.q_wi, sizeof(ml_ecs.q_wi));
