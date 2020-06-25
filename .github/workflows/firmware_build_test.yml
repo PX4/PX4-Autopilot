@@ -31,7 +31,7 @@ jobs:
     - name: Configure Firmware to include current ECL version
       working-directory: ../Firmware/src/lib/ecl
       run: |
-        git fetch origin +${{ github.ref }}
+        git fetch origin ${{ github.ref }}
         git checkout ${{ github.sha }}
     - name: Add and commit new ECL version
       run: |
