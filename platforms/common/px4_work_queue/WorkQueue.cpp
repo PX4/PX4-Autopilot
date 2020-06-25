@@ -145,6 +145,8 @@ void WorkQueue::Run()
 		// loop as the wait may be interrupted by a signal
 		do {} while (px4_sem_wait(&_process_lock) != 0);
 
+		int lockstep_component = px4_lockstep_register_component();
+
 		work_lock();
 
 		// process queued work
@@ -159,6 +161,9 @@ void WorkQueue::Run()
 		}
 
 		work_unlock();
+
+		px4_lockstep_progress(lockstep_component);
+		px4_lockstep_unregister_component(lockstep_component);
 	}
 
 	PX4_DEBUG("%s: exiting", _config.name);
