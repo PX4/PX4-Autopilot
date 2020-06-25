@@ -55,29 +55,35 @@
 #define M_PI 3.141592653589793238462643383280
 #endif
 
-namespace math {
+namespace math
+{
 template <typename Type>
-static constexpr Type min(Type val1, Type val2) {
+static constexpr Type min(Type val1, Type val2)
+{
 	return (val1 < val2) ? val1 : val2;
 }
 
 template <typename Type>
-static constexpr Type max(Type val1, Type val2) {
+static constexpr Type max(Type val1, Type val2)
+{
 	return (val1 > val2) ? val1 : val2;
 }
 
 template <typename Type>
-static constexpr Type constrain(Type val, Type min, Type max) {
+static constexpr Type constrain(Type val, Type min, Type max)
+{
 	return (val < min) ? min : ((val > max) ? max : val);
 }
 
 template <typename Type>
-static constexpr Type radians(Type degrees) {
+static constexpr Type radians(Type degrees)
+{
 	return (degrees / Type(180)) * Type(M_PI);
 }
 
 template <typename Type>
-static constexpr Type degrees(Type radians) {
+static constexpr Type degrees(Type radians)
+{
 	return (radians * Type(180)) / Type(M_PI);
 }
 

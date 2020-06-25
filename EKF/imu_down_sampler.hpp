@@ -44,14 +44,16 @@
 
 using namespace estimator;
 
-class ImuDownSampler {
+class ImuDownSampler
+{
 public:
 	explicit ImuDownSampler(float target_dt_sec);
 	~ImuDownSampler() = default;
 
 	bool update(const imuSample &imu_sample_new);
 
-	imuSample getDownSampledImuAndTriggerReset() {
+	imuSample getDownSampledImuAndTriggerReset()
+	{
 		_do_reset = true;
 		return _imu_down_sampled;
 	}

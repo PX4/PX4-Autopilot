@@ -46,7 +46,8 @@
 #include "ekf.h"
 
 bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
-				 Vector3f &innov_var, Vector2f &test_ratio) {
+				 Vector3f &innov_var, Vector2f &test_ratio)
+{
 
 	innov_var(0) = P(4, 4) + obs_var(0);
 	innov_var(1) = P(5, 5) + obs_var(1);
@@ -54,6 +55,7 @@ bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_ga
 			      sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
 
 	const bool innov_check_pass = (test_ratio(0) <= 1.0f);
+
 	if (innov_check_pass) {
 		_time_last_hor_vel_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_hor_vel = false;
@@ -62,6 +64,7 @@ bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_ga
 		fuseVelPosHeight(innov(1), innov_var(1), 1);
 
 		return true;
+
 	} else {
 		_innov_check_fail_status.flags.reject_hor_vel = true;
 		return false;
@@ -69,12 +72,14 @@ bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_ga
 }
 
 bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
-			       Vector3f &innov_var, Vector2f &test_ratio) {
+			       Vector3f &innov_var, Vector2f &test_ratio)
+{
 
 	innov_var(2) = P(6, 6) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
 
 	const bool innov_check_pass = (test_ratio(1) <= 1.0f);
+
 	if (innov_check_pass) {
 		_time_last_ver_vel_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_ver_vel = false;
@@ -82,6 +87,7 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 		fuseVelPosHeight(innov(2), innov_var(2), 2);
 
 		return true;
+
 	} else {
 		_innov_check_fail_status.flags.reject_ver_vel = true;
 		return false;
@@ -89,7 +95,8 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 }
 
 bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
-				 Vector3f &innov_var, Vector2f &test_ratio) {
+				 Vector3f &innov_var, Vector2f &test_ratio)
+{
 
 	innov_var(0) = P(7, 7) + obs_var(0);
 	innov_var(1) = P(8, 8) + obs_var(1);
@@ -97,6 +104,7 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_ga
 			      sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
 
 	const bool innov_check_pass = test_ratio(0) <= 1.0f;
+
 	if (innov_check_pass) {
 		if (!_fuse_hpos_as_odom) {
 			_time_last_hor_pos_fuse = _time_last_imu;
@@ -104,12 +112,14 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_ga
 		} else {
 			_time_last_delpos_fuse = _time_last_imu;
 		}
+
 		_innov_check_fail_status.flags.reject_hor_pos = false;
 
 		fuseVelPosHeight(innov(0), innov_var(0), 3);
 		fuseVelPosHeight(innov(1), innov_var(1), 4);
 
 		return true;
+
 	} else {
 		_innov_check_fail_status.flags.reject_hor_pos = true;
 		return false;
@@ -117,12 +127,14 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_ga
 }
 
 bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
-			       Vector3f &innov_var, Vector2f &test_ratio) {
+			       Vector3f &innov_var, Vector2f &test_ratio)
+{
 
 	innov_var(2) = P(9, 9) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
 
 	const bool innov_check_pass = test_ratio(1) <= 1.0f;
+
 	if (innov_check_pass) {
 		_time_last_hgt_fuse = _time_last_imu;
 		_innov_check_fail_status.flags.reject_ver_pos = false;
@@ -138,7 +150,8 @@ bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate
 }
 
 // Helper function that fuses a single velocity or position measurement
-void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int obs_index) {
+void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int obs_index)
+{
 
 	float Kfusion[24];  // Kalman gain vector for any single observation - sequential fusion is used.
 	const unsigned state_index = obs_index + 4;  // we start with vx and this is the 4. state
@@ -191,7 +204,8 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 	}
 }
 
-void Ekf::setVelPosFaultStatus(const int index, const bool status) {
+void Ekf::setVelPosFaultStatus(const int index, const bool status)
+{
 	if (index == 0) {
 		_fault_status.flags.bad_vel_N = status;
 
