@@ -91,9 +91,9 @@ AirshipAttitudeControl::publish_actuator_controls()
 
 	} else {
 		_actuator_controls.control[0] = 0.0f;
-		_actuator_controls.control[1] = _manual_control_sp.x;
-		_actuator_controls.control[2] = _manual_control_sp.r;
-		_actuator_controls.control[3] = _manual_control_sp.z;
+		_actuator_controls.control[1] = _manual_control_setpoint.x;
+		_actuator_controls.control[2] = _manual_control_setpoint.r;
+		_actuator_controls.control[3] = _manual_control_setpoint.z;
 	}
 
 	// note: _actuator_controls.timestamp_sample is set in AirshipAttitudeControl::Run()
@@ -150,7 +150,7 @@ AirshipAttitudeControl::Run()
 		publishThrustSetpoint(angular_velocity.timestamp_sample);
 
 		/* check for updates in manual control topic */
-		_manual_control_sp_sub.update(&_manual_control_sp);
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 		/* check for updates in vehicle status topic */
 		_vehicle_status_sub.update(&_vehicle_status);

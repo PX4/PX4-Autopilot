@@ -2129,22 +2129,22 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 {
-	mavlink_manual_control_t man;
-	mavlink_msg_manual_control_decode(msg, &man);
+	mavlink_manual_control_t mavlink_manual_control;
+	mavlink_msg_manual_control_decode(msg, &mavlink_manual_control);
 
 	// Check target
-	if (man.target != 0 && man.target != _mavlink->get_system_id()) {
+	if (mavlink_manual_control.target != 0 && mavlink_manual_control.target != _mavlink->get_system_id()) {
 		return;
 	}
 
-	manual_control_setpoint_s manual{};
-	manual.x = man.x / 1000.0f;
-	manual.y = man.y / 1000.0f;
-	manual.r = man.r / 1000.0f;
-	manual.z = man.z / 1000.0f;
-	manual.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
-	manual.timestamp = manual.timestamp_sample = hrt_absolute_time();
-	_manual_control_input_pub.publish(manual);
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.x = mavlink_manual_control.x / 1000.0f;
+	manual_control_setpoint.y = mavlink_manual_control.y / 1000.0f;
+	manual_control_setpoint.r = mavlink_manual_control.r / 1000.0f;
+	manual_control_setpoint.z = mavlink_manual_control.z / 1000.0f;
+	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
+	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
+	_manual_control_input_pub.publish(manual_control_setpoint);
 }
 
 void
