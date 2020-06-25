@@ -82,9 +82,9 @@ private:
 	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};        /**< parameter updates subscription */
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};                         /**< vehicle status subscription */
-	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};             /**< manual control setpoint subscription */
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
@@ -92,10 +92,10 @@ private:
 	uORB::Publication<vehicle_thrust_setpoint_s>    _vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>    _vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
-	manual_control_setpoint_s       _manual_control_sp {};  /**< manual control setpoint */
-	vehicle_status_s                _vehicle_status {};     /**< vehicle status */
-	actuator_controls_s             _actuator_controls {};          /**< actuator controls */
+	manual_control_setpoint_s       _manual_control_setpoint{};
+	vehicle_status_s                _vehicle_status{};
+	actuator_controls_s             _actuator_controls{};
 
-	perf_counter_t  _loop_perf;     /**< loop performance counter */
+	perf_counter_t _loop_perf;
 
 };
