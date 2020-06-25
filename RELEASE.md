@@ -9,9 +9,6 @@ As a one-time task the release repository must be created, after verifying the d
 `Makefile`.
 ```shell
 $ make init-release RELEASE_ARGS="-F private=false" RELEASE_ORG="PX4-release" RELEASE_REPO="Firmware"
-```
-
-```shell
 $ make release
 ```
 
@@ -36,6 +33,21 @@ ROSDISTRO_INDEX_URL=https://raw.githubusercontent.com/ros/rosdistro/master/index
 	--override-release-repository-push-url git@github.com:PX4-release/Firmware.git \
 	--rosdistro melodic --track melodic px4
 make[1]: Leaving directory '/home/test/src/upstream/PX4/Firmware'
+```
+
+## Internal ROS Buildfarm
+This tooling can be used to build packages with an internal buildfarm.
+
+The release process can be customized by using [`direnv`](http://direnv.net/) and a `.envrc` file with local changes.
+```shell
+export RELEASE_REPO=MyPX4-Firmware-fork
+export RELEASE_ORG=MyOrg-release
+export RELEASE_ARGS="-F private=true"
+export RELEASE_PUSH_URL="git@github.com:${RELEASE_ORG}/${RELEASE_REPO}.git"
+export RELEASE_REPO_URL="https://github.com/${RELEASE_ORG}/${RELEASE_REPO}.git"
+export ROS_DISTRO=melodic
+export ROSDISTRO_INDEX_URL="http://repo.example.com/myorg/rosdistro/index.yaml"
+export ROS_PACKAGE=px4
 ```
 
 ## Tag release
