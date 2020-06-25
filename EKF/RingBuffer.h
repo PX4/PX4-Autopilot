@@ -42,9 +42,11 @@
 #include <cstring>
 
 template <typename data_type>
-class RingBuffer {
+class RingBuffer
+{
 public:
-	RingBuffer() {
+	RingBuffer()
+	{
 		if (allocate(1)) {
 			// initialize with one empty sample
 			data_type d = {};
@@ -59,7 +61,8 @@ public:
 	RingBuffer(RingBuffer &&) = delete;
 	RingBuffer &operator=(RingBuffer &&) = delete;
 
-	bool allocate(uint8_t size) {
+	bool allocate(uint8_t size)
+	{
 
 		if (_buffer != nullptr) {
 			delete[] _buffer;
@@ -87,12 +90,14 @@ public:
 		return true;
 	}
 
-	void unallocate() {
+	void unallocate()
+	{
 		delete[] _buffer;
 		_buffer = nullptr;
 	}
 
-	void push(const data_type &sample) {
+	void push(const data_type &sample)
+	{
 
 		uint8_t head_new = _head;
 
@@ -121,7 +126,8 @@ public:
 
 	uint8_t get_oldest_index() const { return _tail; }
 
-	bool pop_first_older_than(const uint64_t &timestamp, data_type *sample) {
+	bool pop_first_older_than(const uint64_t &timestamp, data_type *sample)
+	{
 		// start looking from newest observation data
 		for (uint8_t i = 0; i < _size; i++) {
 			int index = (_head - i);

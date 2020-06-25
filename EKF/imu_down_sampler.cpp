@@ -5,7 +5,8 @@ ImuDownSampler::ImuDownSampler(float target_dt_sec) : _target_dt{target_dt_sec} 
 // integrate imu samples until target dt reached
 // assumes that dt of the gyroscope is close to the dt of the accelerometer
 // returns true if target dt is reached
-bool ImuDownSampler::update(const imuSample &imu_sample_new) {
+bool ImuDownSampler::update(const imuSample &imu_sample_new)
+{
 	if (_do_reset) {
 		reset();
 	}
@@ -50,7 +51,8 @@ bool ImuDownSampler::update(const imuSample &imu_sample_new) {
 	}
 }
 
-void ImuDownSampler::reset() {
+void ImuDownSampler::reset()
+{
 	_imu_down_sampled.delta_ang.setZero();
 	_imu_down_sampled.delta_vel.setZero();
 	_imu_down_sampled.delta_ang_dt = 0.0f;
