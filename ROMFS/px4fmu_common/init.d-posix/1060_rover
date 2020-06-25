@@ -34,4 +34,4 @@ fi
 
 set MAV_TYPE 10
 
-set MIXER_FILE etc/mixers-sitl/rover_sitl.main.mix
+set MIXER_FILE etc/mixers-sitl/rover_ackermann_sitl.main.mix
