@@ -39,7 +39,7 @@
 #include "autopilot_tester.h"
 
 
-TEST_CASE("Land on GPS lost during mission", "[multicopter]")
+TEST_CASE("Land on GPS lost during mission", "[multicopter][vtol]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
