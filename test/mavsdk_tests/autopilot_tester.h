@@ -114,9 +114,9 @@ bool poll_condition_with_timeout(
 	unsigned iteration = 0;
 
 	while (!fun()) {
-		std::this_thread::sleep_for(duration_ms / 10);
+		std::this_thread::sleep_for(duration_ms / 100);
 
-		if (iteration++ >= 10) {
+		if (iteration++ >= 100) {
 			return false;
 		}
 	}
