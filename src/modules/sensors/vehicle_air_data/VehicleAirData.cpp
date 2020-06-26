@@ -187,7 +187,11 @@ void VehicleAirData::Run()
 		}
 	}
 
-	if ((_selected_sensor_sub_index >= 0) && updated[_selected_sensor_sub_index]) {
+	const uint32_t failover_state = _voter.failover_state();
+
+	if ((_selected_sensor_sub_index >= 0) && updated[_selected_sensor_sub_index]
+	    && (failover_state == DataValidator::ERROR_FLAG_NO_ERROR)) {
+
 		ParametersUpdate();
 
 		const sensor_baro_s &baro = _last_data[_selected_sensor_sub_index];
@@ -236,10 +240,10 @@ void VehicleAirData::Run()
 
 	// check failover and report
 	if (_last_failover_count != _voter.failover_count()) {
-		uint32_t flags = _voter.failover_state();
+
 		int failover_index = _voter.failover_index();
 
-		if (flags == DataValidator::ERROR_FLAG_NO_ERROR) {
+		if (failover_state == DataValidator::ERROR_FLAG_NO_ERROR) {
 			if (failover_index != -1) {
 				// we switched due to a non-critical reason. No need to panic.
 				PX4_INFO("sensor_baro switch from #%i", failover_index);
@@ -252,11 +256,11 @@ void VehicleAirData::Run()
 				if (now - _last_error_message > 3_s) {
 					mavlink_log_emergency(&_mavlink_log_pub, "sensor_baro:#%i failed: %s%s%s%s%s!, reconfiguring priorities",
 							      failover_index,
-							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+							      ((failover_state & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
+							      ((failover_state & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
+							      ((failover_state & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
+							      ((failover_state & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
+							      ((failover_state & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
 					_last_error_message = now;
 				}
 
