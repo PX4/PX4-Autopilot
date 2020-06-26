@@ -273,9 +273,6 @@ void AutopilotTester::execute_mission_and_lose_gps()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	std::promise<void> prom;
-	auto fut = prom.get_future();
-
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
 		std::cout << "Progress: " << progress.current << "/" << progress.total;
 
@@ -285,10 +282,13 @@ void AutopilotTester::execute_mission_and_lose_gps()
 		}
 	});
 
+	std::promise<void> prom;
+	auto fut = prom.get_future();
 	_mission->start_mission_async([&prom](Mission::Result result) {
 		REQUIRE(Mission::Result::Success == result);
 		prom.set_value();
 	});
+	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 
 	// We expect that a blind land is performed.
 	REQUIRE(poll_condition_with_timeout(
@@ -296,16 +296,11 @@ void AutopilotTester::execute_mission_and_lose_gps()
 		auto flight_mode = _telemetry->flight_mode();
 		return flight_mode == Telemetry::FlightMode::Land;
 	}, std::chrono::seconds(60)));
-
-	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 }
 
 void AutopilotTester::execute_mission_and_lose_mag()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
-
-	std::promise<void> prom;
-	auto fut = prom.get_future();
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
 		std::cout << "Progress: " << progress.current << "/" << progress.total;
@@ -316,10 +311,13 @@ void AutopilotTester::execute_mission_and_lose_mag()
 		}
 	});
 
+	std::promise<void> prom;
+	auto fut = prom.get_future();
 	_mission->start_mission_async([&prom](Mission::Result result) {
 		REQUIRE(Mission::Result::Success == result);
 		prom.set_value();
 	});
+	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 
 	// We except the mission to continue without mag just fine.
 	REQUIRE(poll_condition_with_timeout(
@@ -328,7 +326,36 @@ void AutopilotTester::execute_mission_and_lose_mag()
 		return progress.current == progress.total;
 	}, std::chrono::seconds(60)));
 
+}
+
+void AutopilotTester::execute_mission_and_lose_baro()
+{
+	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
+
+	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
+		std::cout << "Progress: " << progress.current << "/" << progress.total;
+
+		if (progress.current == 1) {
+			CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Off)
+			      == Failure::Result::Success);
+		}
+	});
+
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+	_mission->start_mission_async([&prom](Mission::Result result) {
+		REQUIRE(Mission::Result::Success == result);
+		prom.set_value();
+	});
 	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+	// We except the mission to continue without baro just fine.
+	REQUIRE(poll_condition_with_timeout(
+	[this]() {
+		auto progress = _mission->mission_progress();
+		return progress.current == progress.total;
+	}, std::chrono::seconds(60)));
+
 }
 
 CoordinateTransformation AutopilotTester::get_coordinate_transformation()
