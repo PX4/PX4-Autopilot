@@ -79,6 +79,7 @@ public:
 	void execute_mission();
 	void execute_mission_and_lose_gps();
 	void execute_mission_and_lose_mag();
+	void execute_mission_and_get_mag_stuck();
 	void execute_mission_and_lose_baro();
 	void execute_mission_and_get_baro_stuck();
 	void execute_rtl();

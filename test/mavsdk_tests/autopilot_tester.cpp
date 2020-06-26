@@ -386,6 +386,35 @@ void AutopilotTester::execute_mission_and_get_baro_stuck()
 	}, std::chrono::seconds(60)));
 }
 
+void AutopilotTester::execute_mission_and_get_mag_stuck()
+{
+	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
+
+	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
+		std::cout << "Progress: " << progress.current << "/" << progress.total;
+
+		if (progress.current == 1) {
+			CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Stuck)
+			      == Failure::Result::Success);
+		}
+	});
+
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+	_mission->start_mission_async([&prom](Mission::Result result) {
+		REQUIRE(Mission::Result::Success == result);
+		prom.set_value();
+	});
+	REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+
+	// We except the mission to continue with a stuck mag just fine.
+	REQUIRE(poll_condition_with_timeout(
+	[this]() {
+		auto progress = _mission->mission_progress();
+		return progress.current == progress.total;
+	}, std::chrono::seconds(60)));
+}
+
 CoordinateTransformation AutopilotTester::get_coordinate_transformation()
 {
 	const auto home = _telemetry->home();

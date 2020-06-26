@@ -259,8 +259,13 @@ private:
 	bool _baro_blocked{false};
 	bool _baro_stuck{false};
 	bool _mag_blocked{false};
+	bool _mag_stuck{false};
 	bool _gps_blocked{false};
 	bool _airspeed_blocked{false};
+
+	float _last_magx{0.0f};
+	float _last_magy{0.0f};
+	float _last_magz{0.0f};
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
