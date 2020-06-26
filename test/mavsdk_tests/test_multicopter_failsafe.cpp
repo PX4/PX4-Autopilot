@@ -52,3 +52,17 @@ TEST_CASE("Land on GPS lost during mission", "[multicopter][vtol]")
 	tester.execute_mission_and_lose_gps();
 	tester.wait_until_disarmed();
 }
+
+TEST_CASE("Continue on mag lost during mission", "[multicopter][vtol]")
+{
+	AutopilotTester tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+
+	AutopilotTester::MissionOptions mission_options;
+	mission_options.rtl_at_end = true;
+	tester.prepare_square_mission(mission_options);
+	tester.arm();
+	tester.execute_mission_and_lose_mag();
+	tester.wait_until_disarmed();
+}
