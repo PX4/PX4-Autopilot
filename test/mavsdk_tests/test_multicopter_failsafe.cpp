@@ -80,3 +80,17 @@ TEST_CASE("Continue on baro lost during mission", "[multicopter][vtol]")
 	tester.execute_mission_and_lose_baro();
 	tester.wait_until_disarmed();
 }
+
+TEST_CASE("Continue on baro stuck during mission", "[multicopter][vtol]")
+{
+	AutopilotTester tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+
+	AutopilotTester::MissionOptions mission_options;
+	mission_options.rtl_at_end = true;
+	tester.prepare_square_mission(mission_options);
+	tester.arm();
+	tester.execute_mission_and_get_baro_stuck();
+	tester.wait_until_disarmed();
+}

@@ -253,8 +253,14 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 	// baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
-		_px4_baro_0.update(time, sensors.abs_pressure);
-		_px4_baro_1.update(time, sensors.abs_pressure);
+		if (_baro_stuck) {
+			_px4_baro_0.update(time, _px4_baro_0.get().pressure);
+			_px4_baro_1.update(time, _px4_baro_1.get().pressure);
+
+		} else {
+			_px4_baro_0.update(time, sensors.abs_pressure);
+			_px4_baro_1.update(time, sensors.abs_pressure);
+		}
 	}
 
 	// differential pressure
@@ -994,6 +1000,11 @@ void Simulator::check_failure_injections()
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
 				supported = true;
 				_baro_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				supported = true;
+				_baro_stuck = true;
+				_baro_blocked = false;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
 				supported = true;

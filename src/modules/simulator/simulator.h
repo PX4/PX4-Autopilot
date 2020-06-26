@@ -257,6 +257,7 @@ private:
 	bool _accel_blocked{false};
 	bool _gyro_blocked{false};
 	bool _baro_blocked{false};
+	bool _baro_stuck{false};
 	bool _mag_blocked{false};
 	bool _gps_blocked{false};
 	bool _airspeed_blocked{false};
