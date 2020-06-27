@@ -484,6 +484,12 @@ else
 	#
 	. ${R}etc/init.d/rc.thermal_cal
 
+	# Heater driver for temperature regulated IMUs.
+	if param compare -s SENS_EN_THERMAL 1
+	then
+		heater start
+	fi
+
 	#
 	# Start gimbal to control mounts such as gimbals, disabled by default.
 	#
