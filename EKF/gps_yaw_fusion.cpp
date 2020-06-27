@@ -169,8 +169,6 @@ void Ekf::fuseGpsAntYaw()
 	float Kfusion[_k_num_states] = {};
 
 	for (uint8_t row = 0; row <= 15; row++) {
-		Kfusion[row] = 0.0f;
-
 		for (uint8_t col = 0; col <= 3; col++) {
 			Kfusion[row] += P(row,col) * H_YAW[col];
 		}
@@ -180,8 +178,6 @@ void Ekf::fuseGpsAntYaw()
 
 	if (_control_status.flags.wind) {
 		for (uint8_t row = 22; row <= 23; row++) {
-			Kfusion[row] = 0.0f;
-
 			for (uint8_t col = 0; col <= 3; col++) {
 				Kfusion[row] += P(row,col) * H_YAW[col];
 			}

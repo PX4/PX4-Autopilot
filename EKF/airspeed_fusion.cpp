@@ -112,13 +112,7 @@ void Ekf::fuseAirspeed()
 
 		SK_TAS[1] = SH_TAS[1];
 
-		if (update_wind_only) {
-			// If we are getting aiding from other sources, then don't allow the airspeed measurements to affect the non-windspeed states
-			for (unsigned row = 0; row <= 21; row++) {
-				Kfusion[row] = 0.0f;
-			}
-
-		} else {
+		if (!update_wind_only) {
 			// we have no other source of aiding, so use airspeed measurements to correct states
 			Kfusion[0] = SK_TAS[0]*(P(0,4)*SH_TAS[2] - P(0,22)*SH_TAS[2] + P(0,5)*SK_TAS[1] - P(0,23)*SK_TAS[1] + P(0,6)*vd*SH_TAS[0]);
 			Kfusion[1] = SK_TAS[0]*(P(1,4)*SH_TAS[2] - P(1,22)*SH_TAS[2] + P(1,5)*SK_TAS[1] - P(1,23)*SK_TAS[1] + P(1,6)*vd*SH_TAS[0]);
