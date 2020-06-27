@@ -1621,62 +1621,62 @@ void Ekf::stopFlowFusion()
 
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 {
-		// save a copy of the quaternion state for later use in calculating the amount of reset change
-		const Quatf quat_before_reset = _state.quat_nominal;
+	// save a copy of the quaternion state for later use in calculating the amount of reset change
+	const Quatf quat_before_reset = _state.quat_nominal;
 
-		// update transformation matrix from body to world frame using the current estimate
-		_R_to_earth = Dcmf(_state.quat_nominal);
+	// update transformation matrix from body to world frame using the current estimate
+	_R_to_earth = Dcmf(_state.quat_nominal);
 
-		// update the rotation matrix using the new yaw value
-		// determine if a 321 or 312 Euler sequence is best
-		if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
-			// use a 321 sequence
-			Eulerf euler321(_R_to_earth);
-			euler321(2) = yaw;
-			_R_to_earth = Dcmf(euler321);
+	// update the rotation matrix using the new yaw value
+	// determine if a 321 or 312 Euler sequence is best
+	if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
+		// use a 321 sequence
+		Eulerf euler321(_R_to_earth);
+		euler321(2) = yaw;
+		_R_to_earth = Dcmf(euler321);
 
-		} else {
-			// Calculate the 312 Tait-Bryan rotation sequence that rotates from earth to body frame
-			// We use a 312 sequence as an alternate when there is more pitch tilt than roll tilt
-			// to avoid gimbal lock
-			Vector3f rot312;
-			rot312(0) = yaw;
-			rot312(1) = asinf(_R_to_earth(2, 1));
-			rot312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2));
-			_R_to_earth = taitBryan312ToRotMat(rot312);
+	} else {
+		// Calculate the 312 Tait-Bryan rotation sequence that rotates from earth to body frame
+		// We use a 312 sequence as an alternate when there is more pitch tilt than roll tilt
+		// to avoid gimbal lock
+		Vector3f rot312;
+		rot312(0) = yaw;
+		rot312(1) = asinf(_R_to_earth(2, 1));
+		rot312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2));
+		_R_to_earth = taitBryan312ToRotMat(rot312);
 
+	}
+
+	// calculate the amount that the quaternion has changed by
+	const Quatf quat_after_reset(_R_to_earth);
+	const Quatf q_error((quat_after_reset * quat_before_reset.inversed()).normalized());
+
+	// update quaternion states
+	_state.quat_nominal = quat_after_reset;
+	uncorrelateQuatFromOtherStates();
+
+	// record the state change
+	_state_reset_status.quat_change = q_error;
+
+	// update the yaw angle variance
+	if (yaw_variance > FLT_EPSILON) {
+		increaseQuatYawErrVariance(yaw_variance);
+	}
+
+	// add the reset amount to the output observer buffered data
+	if (update_buffer) {
+		for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+			_output_buffer[i].quat_nominal = _state_reset_status.quat_change * _output_buffer[i].quat_nominal;
 		}
 
-		// calculate the amount that the quaternion has changed by
-		const Quatf quat_after_reset(_R_to_earth);
-		const Quatf q_error((quat_after_reset * quat_before_reset.inversed()).normalized());
+		// apply the change in attitude quaternion to our newest quaternion estimate
+		// which was already taken out from the output buffer
+		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
 
-		// update quaternion states
-		_state.quat_nominal = quat_after_reset;
-		uncorrelateQuatFromOtherStates();
+	}
 
-		// record the state change
-		_state_reset_status.quat_change = q_error;
-
-		// update the yaw angle variance
-		if (yaw_variance > FLT_EPSILON) {
-			increaseQuatYawErrVariance(yaw_variance);
-		}
-
-		// add the reset amount to the output observer buffered data
-		if (update_buffer) {
-			for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-				_output_buffer[i].quat_nominal = _state_reset_status.quat_change * _output_buffer[i].quat_nominal;
-			}
-
-			// apply the change in attitude quaternion to our newest quaternion estimate
-			// which was already taken out from the output buffer
-			_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
-
-		}
-
-		// capture the reset event
-		_state_reset_status.quat_counter++;
+	// capture the reset event
+	_state_reset_status.quat_counter++;
 }
 
 // Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
@@ -1738,7 +1738,8 @@ void Ekf::runYawEKFGSF()
 	yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
 
 	// basic sanity check on GPS velocity data
-	if (_gps_data_ready && _gps_sample_delayed.vacc > FLT_EPSILON && ISFINITE(_gps_sample_delayed.vel(0)) && ISFINITE(_gps_sample_delayed.vel(1))) {
+	if (_gps_data_ready && _gps_sample_delayed.vacc > FLT_EPSILON &&
+	    ISFINITE(_gps_sample_delayed.vel(0)) && ISFINITE(_gps_sample_delayed.vel(1))) {
 		yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.vacc);
 	}
 }
