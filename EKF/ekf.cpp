@@ -188,43 +188,41 @@ bool Ekf::initialiseFilter()
 
 	if (not_enough_baro_samples_accumulated || not_enough_mag_samples_accumulated) {
 		return false;
-
-	} else {
-		// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
-		setControlBaroHeight();
-
-		if(!initialiseTilt()){
-			return false;
-		}
-
-		// calculate the initial magnetic field and yaw alignment
-		_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState(), false, false);
-
-		// initialise the state covariance matrix now we have starting values for all the states
-		initialiseCovariance();
-
-		// update the yaw angle variance using the variance of the measurement
-		if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
-			// using magnetic heading tuning parameter
-			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
-		}
-
-		// try to initialise the terrain estimator
-		_terrain_initialised = initHagl();
-
-		// reset the essential fusion timeout counters
-		_time_last_hgt_fuse = _time_last_imu;
-		_time_last_hor_pos_fuse = _time_last_imu;
-		_time_last_delpos_fuse = _time_last_imu;
-		_time_last_hor_vel_fuse = _time_last_imu;
-		_time_last_hagl_fuse = _time_last_imu;
-		_time_last_of_fuse = _time_last_imu;
-
-		// reset the output predictor state history to match the EKF initial values
-		alignOutputFilter();
-
-		return true;
 	}
+	// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
+	setControlBaroHeight();
+
+	if(!initialiseTilt()){
+		return false;
+	}
+
+	// calculate the initial magnetic field and yaw alignment
+	_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState(), false, false);
+
+	// initialise the state covariance matrix now we have starting values for all the states
+	initialiseCovariance();
+
+	// update the yaw angle variance using the variance of the measurement
+	if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+		// using magnetic heading tuning parameter
+		increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
+	}
+
+	// try to initialise the terrain estimator
+	_terrain_initialised = initHagl();
+
+	// reset the essential fusion timeout counters
+	_time_last_hgt_fuse = _time_last_imu;
+	_time_last_hor_pos_fuse = _time_last_imu;
+	_time_last_delpos_fuse = _time_last_imu;
+	_time_last_hor_vel_fuse = _time_last_imu;
+	_time_last_hagl_fuse = _time_last_imu;
+	_time_last_of_fuse = _time_last_imu;
+
+	// reset the output predictor state history to match the EKF initial values
+	alignOutputFilter();
+
+	return true;
 }
 
 bool Ekf::initialiseTilt()
