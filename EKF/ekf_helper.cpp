@@ -840,37 +840,14 @@ void Ekf::get_gps_check_status(uint16_t *val)
 matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 {
 	matrix::Vector<float, 24> state;
-	for (int i = 0; i < 4; i++) {
-		state(i) = _state.quat_nominal(i);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		state(i + 4) = _state.vel(i);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		state(i + 7) = _state.pos(i);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		state(i + 10) = _state.delta_ang_bias(i);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		state(i + 13) = _state.delta_vel_bias(i);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		state(i + 16) = _state.mag_I(i);
-	}
-
-	for (int i = 0; i < 3; i++) {
-		state(i + 19) = _state.mag_B(i);
-	}
-
-	for (int i = 0; i < 2; i++) {
-		state(i + 22) = _state.wind_vel(i);
-	}
+	state.slice<4, 1>(0, 0) = _state.quat_nominal;
+	state.slice<3, 1>(4, 0) = _state.vel;
+	state.slice<3, 1>(7, 0) = _state.pos;
+	state.slice<3, 1>(10, 0) = _state.delta_ang_bias;
+	state.slice<3, 1>(13, 0) = _state.delta_vel_bias;
+	state.slice<3, 1>(16, 0) = _state.mag_I;
+	state.slice<3, 1>(19, 0) = _state.mag_B;
+	state.slice<2, 1>(22, 0) = _state.wind_vel;
 	return state;
 }
 
