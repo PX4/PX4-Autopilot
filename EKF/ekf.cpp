@@ -454,7 +454,7 @@ void Ekf::calculateOutputStates()
 
 			// calculate a velocity correction that will be applied to the output state history
 			// using a PD feedback tuned to a 5% overshoot
-			const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * pos_gain * 1.1f;
+			const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * vel_gain * 1.1f;
 
 			/*
 			 * Calculate corrections to be applied to vel and pos output state history.
