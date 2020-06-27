@@ -47,6 +47,9 @@
 class Ekf : public EstimatorInterface
 {
 public:
+	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
+	typedef matrix::Vector<float, _k_num_states> Vector24f;
+	typedef matrix::SquareMatrix<float, _k_num_states> SquareMatrix24f;
 
 	Ekf() = default;
 	virtual ~Ekf() = default;
@@ -297,9 +300,6 @@ public:
 	void requestEmergencyNavReset() override;
 
 private:
-
-	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
-
 	struct {
 		uint8_t velNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
 		uint8_t velD_counter;	///< number of vertical velocity reset events (allow to wrap if count exceeds 255)
@@ -382,7 +382,7 @@ private:
 
 	bool _yaw_use_inhibit{false};		///< true when yaw sensor use is being inhibited
 
-	matrix::SquareMatrix<float, _k_num_states> P;	///< state covariance matrix
+	SquareMatrix24f P;	///< state covariance matrix
 
 	Vector3f _delta_vel_bias_var_accum;		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum;	///< kahan summation algorithm accumulator for delta angle bias variance

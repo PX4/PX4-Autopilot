@@ -161,7 +161,7 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 		Kfusion[row] = P(row, state_index) / innov_var;
 	}
 
-	matrix::SquareMatrix<float, _k_num_states> KHP;
+	SquareMatrix24f KHP;
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < _k_num_states; column++) {

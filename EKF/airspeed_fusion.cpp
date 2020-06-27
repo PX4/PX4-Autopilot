@@ -172,7 +172,7 @@ void Ekf::fuseAirspeed()
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
-		matrix::SquareMatrix<float, _k_num_states> KHP;
+		SquareMatrix24f KHP;
 		float KH[5];
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
