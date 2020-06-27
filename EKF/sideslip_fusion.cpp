@@ -148,14 +148,8 @@ void Ekf::fuseSideslip()
 		SK_BETA[7] = SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8];
 
 		// Calculate Kalman gains
-		if (update_wind_only) {
-			// If we are getting aiding from other sources, then don't allow the sideslip fusion to affect the non-windspeed states
-			for (unsigned row = 0; row <= 21; row++) {
-				Kfusion[row] = 0.0f;
+		if (!update_wind_only) {
 
-			}
-
-		} else {
 		        Kfusion[0] = SK_BETA[0]*(P(0,0)*SK_BETA[5] + P(0,1)*SK_BETA[4] - P(0,4)*SK_BETA[1] + P(0,5)*SK_BETA[2] + P(0,2)*SK_BETA[6] + P(0,6)*SK_BETA[3] - P(0,3)*SK_BETA[7] + P(0,22)*SK_BETA[1] - P(0,23)*SK_BETA[2]);
 		        Kfusion[1] = SK_BETA[0]*(P(1,0)*SK_BETA[5] + P(1,1)*SK_BETA[4] - P(1,4)*SK_BETA[1] + P(1,5)*SK_BETA[2] + P(1,2)*SK_BETA[6] + P(1,6)*SK_BETA[3] - P(1,3)*SK_BETA[7] + P(1,22)*SK_BETA[1] - P(1,23)*SK_BETA[2]);
 		        Kfusion[2] = SK_BETA[0]*(P(2,0)*SK_BETA[5] + P(2,1)*SK_BETA[4] - P(2,4)*SK_BETA[1] + P(2,5)*SK_BETA[2] + P(2,2)*SK_BETA[6] + P(2,6)*SK_BETA[3] - P(2,3)*SK_BETA[7] + P(2,22)*SK_BETA[1] - P(2,23)*SK_BETA[2]);
@@ -182,11 +176,6 @@ void Ekf::fuseSideslip()
 				Kfusion[20] = SK_BETA[0]*(P(20,0)*SK_BETA[5] + P(20,1)*SK_BETA[4] - P(20,4)*SK_BETA[1] + P(20,5)*SK_BETA[2] + P(20,2)*SK_BETA[6] + P(20,6)*SK_BETA[3] - P(20,3)*SK_BETA[7] + P(20,22)*SK_BETA[1] - P(20,23)*SK_BETA[2]);
 				Kfusion[21] = SK_BETA[0]*(P(21,0)*SK_BETA[5] + P(21,1)*SK_BETA[4] - P(21,4)*SK_BETA[1] + P(21,5)*SK_BETA[2] + P(21,2)*SK_BETA[6] + P(21,6)*SK_BETA[3] - P(21,3)*SK_BETA[7] + P(21,22)*SK_BETA[1] - P(21,23)*SK_BETA[2]);
 
-			} else {
-				for (int i = 16; i <= 21; i++) {
-					Kfusion[i] = 0.0f;
-
-				}
 			}
 		}
 

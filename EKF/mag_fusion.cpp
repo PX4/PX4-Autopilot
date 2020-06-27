@@ -216,13 +216,6 @@ void Ekf::fuseMag()
 				Kfusion[15] = SK_MX[0]*(P(15,19) + P(15,1)*SH_MAG[0] - P(15,2)*SH_MAG[1] + P(15,3)*SH_MAG[2] + P(15,0)*SK_MX[2] - P(15,16)*SK_MX[1] + P(15,17)*SK_MX[4] - P(15,18)*SK_MX[3]);
 				Kfusion[22] = SK_MX[0]*(P(22,19) + P(22,1)*SH_MAG[0] - P(22,2)*SH_MAG[1] + P(22,3)*SH_MAG[2] + P(22,0)*SK_MX[2] - P(22,16)*SK_MX[1] + P(22,17)*SK_MX[4] - P(22,18)*SK_MX[3]);
 				Kfusion[23] = SK_MX[0]*(P(23,19) + P(23,1)*SH_MAG[0] - P(23,2)*SH_MAG[1] + P(23,3)*SH_MAG[2] + P(23,0)*SK_MX[2] - P(23,16)*SK_MX[1] + P(23,17)*SK_MX[4] - P(23,18)*SK_MX[3]);
-			} else {
-				for (uint8_t i = 0; i < 16; i++) {
-					Kfusion[i] = 0.0f;
-				}
-
-				Kfusion[22] = 0.0f;
-				Kfusion[23] = 0.0f;
 			}
 
 			Kfusion[16] = SK_MX[0]*(P(16,19) + P(16,1)*SH_MAG[0] - P(16,2)*SH_MAG[1] + P(16,3)*SH_MAG[2] + P(16,0)*SK_MX[2] - P(16,16)*SK_MX[1] + P(16,17)*SK_MX[4] - P(16,18)*SK_MX[3]);
@@ -271,13 +264,6 @@ void Ekf::fuseMag()
 				Kfusion[15] = SK_MY[0]*(P(15,20) + P(15,0)*SH_MAG[2] + P(15,1)*SH_MAG[1] + P(15,2)*SH_MAG[0] - P(15,3)*SK_MY[2] - P(15,17)*SK_MY[1] - P(15,16)*SK_MY[3] + P(15,18)*SK_MY[4]);
 				Kfusion[22] = SK_MY[0]*(P(22,20) + P(22,0)*SH_MAG[2] + P(22,1)*SH_MAG[1] + P(22,2)*SH_MAG[0] - P(22,3)*SK_MY[2] - P(22,17)*SK_MY[1] - P(22,16)*SK_MY[3] + P(22,18)*SK_MY[4]);
 				Kfusion[23] = SK_MY[0]*(P(23,20) + P(23,0)*SH_MAG[2] + P(23,1)*SH_MAG[1] + P(23,2)*SH_MAG[0] - P(23,3)*SK_MY[2] - P(23,17)*SK_MY[1] - P(23,16)*SK_MY[3] + P(23,18)*SK_MY[4]);
-			} else {
-				for (uint8_t i = 0; i < 16; i++) {
-					Kfusion[i] = 0.0f;
-				}
-
-				Kfusion[22] = 0.0f;
-				Kfusion[23] = 0.0f;
 			}
 
 			Kfusion[16] = SK_MY[0]*(P(16,20) + P(16,0)*SH_MAG[2] + P(16,1)*SH_MAG[1] + P(16,2)*SH_MAG[0] - P(16,3)*SK_MY[2] - P(16,17)*SK_MY[1] - P(16,16)*SK_MY[3] + P(16,18)*SK_MY[4]);
@@ -332,13 +318,6 @@ void Ekf::fuseMag()
 				Kfusion[15] = SK_MZ[0]*(P(15,21) + P(15,0)*SH_MAG[1] - P(15,1)*SH_MAG[2] + P(15,3)*SH_MAG[0] + P(15,2)*SK_MZ[2] + P(15,18)*SK_MZ[1] + P(15,16)*SK_MZ[4] - P(15,17)*SK_MZ[3]);
 				Kfusion[22] = SK_MZ[0]*(P(22,21) + P(22,0)*SH_MAG[1] - P(22,1)*SH_MAG[2] + P(22,3)*SH_MAG[0] + P(22,2)*SK_MZ[2] + P(22,18)*SK_MZ[1] + P(22,16)*SK_MZ[4] - P(22,17)*SK_MZ[3]);
 				Kfusion[23] = SK_MZ[0]*(P(23,21) + P(23,0)*SH_MAG[1] - P(23,1)*SH_MAG[2] + P(23,3)*SH_MAG[0] + P(23,2)*SK_MZ[2] + P(23,18)*SK_MZ[1] + P(23,16)*SK_MZ[4] - P(23,17)*SK_MZ[3]);
-			} else {
-				for (uint8_t i = 0; i < 16; i++) {
-					Kfusion[i] = 0.0f;
-				}
-
-				Kfusion[22] = 0.0f;
-				Kfusion[23] = 0.0f;
 			}
 
 			Kfusion[16] = SK_MZ[0]*(P(16,21) + P(16,0)*SH_MAG[1] - P(16,1)*SH_MAG[2] + P(16,3)*SH_MAG[0] + P(16,2)*SK_MZ[2] + P(16,18)*SK_MZ[1] + P(16,16)*SK_MZ[4] - P(16,17)*SK_MZ[3]);
@@ -654,8 +633,6 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 	float Kfusion[_k_num_states] = {};
 
 	for (uint8_t row = 0; row <= 15; row++) {
-		Kfusion[row] = 0.0f;
-
 		for (uint8_t col = 0; col <= 3; col++) {
 			Kfusion[row] += P(row,col) * yaw_jacobian[col];
 		}
@@ -665,8 +642,6 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 
 	if (_control_status.flags.wind) {
 		for (uint8_t row = 22; row <= 23; row++) {
-			Kfusion[row] = 0.0f;
-
 			for (uint8_t col = 0; col <= 3; col++) {
 				Kfusion[row] += P(row,col) * yaw_jacobian[col];
 			}
