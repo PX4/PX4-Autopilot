@@ -173,6 +173,10 @@ void Ekf::fuseMag()
 	// before they are used to constrain heading drift
 	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6);
 
+	_fault_status.flags.bad_mag_x = false;
+	_fault_status.flags.bad_mag_y = false;
+	_fault_status.flags.bad_mag_z = false;
+
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
 
@@ -365,9 +369,6 @@ void Ekf::fuseMag()
 
 		// if the covariance correction will result in a negative variance, then
 		// the covariance matrix is unhealthy and must be corrected
-		_fault_status.flags.bad_mag_x = false;
-		_fault_status.flags.bad_mag_y = false;
-		_fault_status.flags.bad_mag_z = false;
 
 		for (int i = 0; i < _k_num_states; i++) {
 			if (P(i,i) < KHP(i,i)) {
