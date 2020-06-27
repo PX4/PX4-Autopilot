@@ -184,9 +184,9 @@ public:
         return operator*=(Type(1) / other);
     }
 
-    Matrix<Type, P, Q> operator*(const Type& other)
+    Matrix<Type, P, Q> operator*(const Type& other) const
     {
-        Slice<Type, P, Q, M, N>& self = *this;
+        const Slice<Type, P, Q, M, N>& self = *this;
         Matrix<Type, P, Q> res;
         for (size_t i = 0; i < P; i++) {
             for (size_t j = 0; j < Q; j++) {
@@ -196,9 +196,9 @@ public:
         return res;
     }
 
-    Matrix<Type, P, Q> operator/(const Type& other)
+    Matrix<Type, P, Q> operator/(const Type& other) const
     {
-        Slice<Type, P, Q, M, N>& self = *this;
+        const Slice<Type, P, Q, M, N>& self = *this;
         return self * (Type(1) / other);
     }
 
