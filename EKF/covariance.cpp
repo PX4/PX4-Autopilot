@@ -218,7 +218,7 @@ void Ekf::predictCovariance()
 	}
 
 	// compute noise variance for stationary processes
-	matrix::Vector<float, _k_num_states> process_noise;
+	Vector24f process_noise;
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
@@ -328,7 +328,7 @@ void Ekf::predictCovariance()
 	SPP[10] = SF[16];
 
 	// covariance update
-	matrix::SquareMatrix<float, _k_num_states> nextP;
+	SquareMatrix24f nextP;
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	nextP(0,0) = P(0,0) + P(1,0)*SF[9] + P(2,0)*SF[11] + P(3,0)*SF[10] + P(10,0)*SF[14] + P(11,0)*SF[15] + P(12,0)*SPP[10] + (daxVar*SQ[10])/4 + SF[9]*(P(0,1) + P(1,1)*SF[9] + P(2,1)*SF[11] + P(3,1)*SF[10] + P(10,1)*SF[14] + P(11,1)*SF[15] + P(12,1)*SPP[10]) + SF[11]*(P(0,2) + P(1,2)*SF[9] + P(2,2)*SF[11] + P(3,2)*SF[10] + P(10,2)*SF[14] + P(11,2)*SF[15] + P(12,2)*SPP[10]) + SF[10]*(P(0,3) + P(1,3)*SF[9] + P(2,3)*SF[11] + P(3,3)*SF[10] + P(10,3)*SF[14] + P(11,3)*SF[15] + P(12,3)*SPP[10]) + SF[14]*(P(0,10) + P(1,10)*SF[9] + P(2,10)*SF[11] + P(3,10)*SF[10] + P(10,10)*SF[14] + P(11,10)*SF[15] + P(12,10)*SPP[10]) + SF[15]*(P(0,11) + P(1,11)*SF[9] + P(2,11)*SF[11] + P(3,11)*SF[10] + P(10,11)*SF[14] + P(11,11)*SF[15] + P(12,11)*SPP[10]) + SPP[10]*(P(0,12) + P(1,12)*SF[9] + P(2,12)*SF[11] + P(3,12)*SF[10] + P(10,12)*SF[14] + P(11,12)*SF[15] + P(12,12)*SPP[10]) + (dayVar*sq(q2))/4 + (dazVar*sq(q3))/4;
