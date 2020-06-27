@@ -327,8 +327,6 @@ void Ekf::fuseMag()
 			Kfusion(20) = SK_MZ[0]*(P(20,21) + P(20,0)*SH_MAG[1] - P(20,1)*SH_MAG[2] + P(20,3)*SH_MAG[0] + P(20,2)*SK_MZ[2] + P(20,18)*SK_MZ[1] + P(20,16)*SK_MZ[4] - P(20,17)*SK_MZ[3]);
 			Kfusion(21) = SK_MZ[0]*(P(21,21) + P(21,0)*SH_MAG[1] - P(21,1)*SH_MAG[2] + P(21,3)*SH_MAG[0] + P(21,2)*SK_MZ[2] + P(21,18)*SK_MZ[1] + P(21,16)*SK_MZ[4] - P(21,17)*SK_MZ[3]);
 
-		} else {
-			return;
 		}
 
 		// apply covariance correction via P_new = (I -K*H)*P
