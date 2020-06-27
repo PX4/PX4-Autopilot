@@ -153,19 +153,19 @@ bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate
 void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int obs_index)
 {
 
-	float Kfusion[24];  // Kalman gain vector for any single observation - sequential fusion is used.
+	Vector24f Kfusion;  // Kalman gain vector for any single observation - sequential fusion is used.
 	const unsigned state_index = obs_index + 4;  // we start with vx and this is the 4. state
 
 	// calculate kalman gain K = PHS, where S = 1/innovation variance
 	for (int row = 0; row < _k_num_states; row++) {
-		Kfusion[row] = P(row, state_index) / innov_var;
+		Kfusion(row) = P(row, state_index) / innov_var;
 	}
 
 	SquareMatrix24f KHP;
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < _k_num_states; column++) {
-			KHP(row, column) = Kfusion[row] * P(state_index, column);
+			KHP(row, column) = Kfusion(row) * P(state_index, column);
 		}
 	}
 

@@ -48,7 +48,7 @@ void Ekf::fuseDrag()
 	float SH_ACC[4] = {}; // Variable used to optimise calculations of measurement jacobian
 	float H_ACC[24] = {}; // Observation Jacobian
 	float SK_ACC[9] = {}; // Variable used to optimise calculations of the Kalman gain vector
-	float Kfusion[24] = {}; // Kalman gain vector
+	Vector24f Kfusion; // Kalman gain vector
 	// TODO: resolve variance vs stdDev bug
 	const float R_ACC = _params.drag_noise; // observation noise variance in specific force drag (m/sec**2)**2
 
@@ -120,30 +120,30 @@ void Ekf::fuseDrag()
 			SK_ACC[5] = 2.0f*q0*q2 - 2.0f*q1*q3;
 			SK_ACC[6] = SH_ACC[3];
 // Don't allow modification of any states other than wind velocity at this stage of development - we only need a wind estimate.
-//			Kfusion[0] = -SK_ACC[0]*(Kacc*P(0,4)*SH_ACC[0] - Kacc*P(0,22)*SH_ACC[0] + Kacc*P(0,0)*SK_ACC[3] - Kacc*P(0,2)*SK_ACC[2] + Kacc*P(0,3)*SK_ACC[1] + Kacc*P(0,1)*SK_ACC[4] + Kacc*P(0,5)*SK_ACC[6] - Kacc*P(0,6)*SK_ACC[5] - Kacc*P(0,23)*SK_ACC[6]);
-//			Kfusion[1] = -SK_ACC[0]*(Kacc*P(1,4)*SH_ACC[0] - Kacc*P(1,22)*SH_ACC[0] + Kacc*P(1,0)*SK_ACC[3] - Kacc*P(1,2)*SK_ACC[2] + Kacc*P(1,3)*SK_ACC[1] + Kacc*P(1,1)*SK_ACC[4] + Kacc*P(1,5)*SK_ACC[6] - Kacc*P(1,6)*SK_ACC[5] - Kacc*P(1,23)*SK_ACC[6]);
-//			Kfusion[2] = -SK_ACC[0]*(Kacc*P(2,4)*SH_ACC[0] - Kacc*P(2,22)*SH_ACC[0] + Kacc*P(2,0)*SK_ACC[3] - Kacc*P(2,2)*SK_ACC[2] + Kacc*P(2,3)*SK_ACC[1] + Kacc*P(2,1)*SK_ACC[4] + Kacc*P(2,5)*SK_ACC[6] - Kacc*P(2,6)*SK_ACC[5] - Kacc*P(2,23)*SK_ACC[6]);
-//			Kfusion[3] = -SK_ACC[0]*(Kacc*P(3,4)*SH_ACC[0] - Kacc*P(3,22)*SH_ACC[0] + Kacc*P(3,0)*SK_ACC[3] - Kacc*P(3,2)*SK_ACC[2] + Kacc*P(3,3)*SK_ACC[1] + Kacc*P(3,1)*SK_ACC[4] + Kacc*P(3,5)*SK_ACC[6] - Kacc*P(3,6)*SK_ACC[5] - Kacc*P(3,23)*SK_ACC[6]);
-//			Kfusion[4] = -SK_ACC[0]*(Kacc*P(4,4)*SH_ACC[0] - Kacc*P(4,22)*SH_ACC[0] + Kacc*P(4,0)*SK_ACC[3] - Kacc*P(4,2)*SK_ACC[2] + Kacc*P(4,3)*SK_ACC[1] + Kacc*P(4,1)*SK_ACC[4] + Kacc*P(4,5)*SK_ACC[6] - Kacc*P(4,6)*SK_ACC[5] - Kacc*P(4,23)*SK_ACC[6]);
-//			Kfusion[5] = -SK_ACC[0]*(Kacc*P(5,4)*SH_ACC[0] - Kacc*P(5,22)*SH_ACC[0] + Kacc*P(5,0)*SK_ACC[3] - Kacc*P(5,2)*SK_ACC[2] + Kacc*P(5,3)*SK_ACC[1] + Kacc*P(5,1)*SK_ACC[4] + Kacc*P(5,5)*SK_ACC[6] - Kacc*P(5,6)*SK_ACC[5] - Kacc*P(5,23)*SK_ACC[6]);
-//			Kfusion[6] = -SK_ACC[0]*(Kacc*P(6,4)*SH_ACC[0] - Kacc*P(6,22)*SH_ACC[0] + Kacc*P(6,0)*SK_ACC[3] - Kacc*P(6,2)*SK_ACC[2] + Kacc*P(6,3)*SK_ACC[1] + Kacc*P(6,1)*SK_ACC[4] + Kacc*P(6,5)*SK_ACC[6] - Kacc*P(6,6)*SK_ACC[5] - Kacc*P(6,23)*SK_ACC[6]);
-//			Kfusion[7] = -SK_ACC[0]*(Kacc*P(7,4)*SH_ACC[0] - Kacc*P(7,22)*SH_ACC[0] + Kacc*P(7,0)*SK_ACC[3] - Kacc*P(7,2)*SK_ACC[2] + Kacc*P(7,3)*SK_ACC[1] + Kacc*P(7,1)*SK_ACC[4] + Kacc*P(7,5)*SK_ACC[6] - Kacc*P(7,6)*SK_ACC[5] - Kacc*P(7,23)*SK_ACC[6]);
-//			Kfusion[8] = -SK_ACC[0]*(Kacc*P(8,4)*SH_ACC[0] - Kacc*P(8,22)*SH_ACC[0] + Kacc*P(8,0)*SK_ACC[3] - Kacc*P(8,2)*SK_ACC[2] + Kacc*P(8,3)*SK_ACC[1] + Kacc*P(8,1)*SK_ACC[4] + Kacc*P(8,5)*SK_ACC[6] - Kacc*P(8,6)*SK_ACC[5] - Kacc*P(8,23)*SK_ACC[6]);
-//			Kfusion[9] = -SK_ACC[0]*(Kacc*P(9,4)*SH_ACC[0] - Kacc*P(9,22)*SH_ACC[0] + Kacc*P(9,0)*SK_ACC[3] - Kacc*P(9,2)*SK_ACC[2] + Kacc*P(9,3)*SK_ACC[1] + Kacc*P(9,1)*SK_ACC[4] + Kacc*P(9,5)*SK_ACC[6] - Kacc*P(9,6)*SK_ACC[5] - Kacc*P(9,23)*SK_ACC[6]);
-//			Kfusion[10] = -SK_ACC[0]*(Kacc*P(10,4)*SH_ACC[0] - Kacc*P(10,22)*SH_ACC[0] + Kacc*P(10,0)*SK_ACC[3] - Kacc*P(10,2)*SK_ACC[2] + Kacc*P(10,3)*SK_ACC[1] + Kacc*P(10,1)*SK_ACC[4] + Kacc*P(10,5)*SK_ACC[6] - Kacc*P(10,6)*SK_ACC[5] - Kacc*P(10,23)*SK_ACC[6]);
-//			Kfusion[11] = -SK_ACC[0]*(Kacc*P(11,4)*SH_ACC[0] - Kacc*P(11,22)*SH_ACC[0] + Kacc*P(11,0)*SK_ACC[3] - Kacc*P(11,2)*SK_ACC[2] + Kacc*P(11,3)*SK_ACC[1] + Kacc*P(11,1)*SK_ACC[4] + Kacc*P(11,5)*SK_ACC[6] - Kacc*P(11,6)*SK_ACC[5] - Kacc*P(11,23)*SK_ACC[6]);
-//			Kfusion[12] = -SK_ACC[0]*(Kacc*P(12,4)*SH_ACC[0] - Kacc*P(12,22)*SH_ACC[0] + Kacc*P(12,0)*SK_ACC[3] - Kacc*P(12,2)*SK_ACC[2] + Kacc*P(12,3)*SK_ACC[1] + Kacc*P(12,1)*SK_ACC[4] + Kacc*P(12,5)*SK_ACC[6] - Kacc*P(12,6)*SK_ACC[5] - Kacc*P(12,23)*SK_ACC[6]);
-//			Kfusion[13] = -SK_ACC[0]*(Kacc*P(13,4)*SH_ACC[0] - Kacc*P(13,22)*SH_ACC[0] + Kacc*P(13,0)*SK_ACC[3] - Kacc*P(13,2)*SK_ACC[2] + Kacc*P(13,3)*SK_ACC[1] + Kacc*P(13,1)*SK_ACC[4] + Kacc*P(13,5)*SK_ACC[6] - Kacc*P(13,6)*SK_ACC[5] - Kacc*P(13,23)*SK_ACC[6]);
-//			Kfusion[14] = -SK_ACC[0]*(Kacc*P(14,4)*SH_ACC[0] - Kacc*P(14,22)*SH_ACC[0] + Kacc*P(14,0)*SK_ACC[3] - Kacc*P(14,2)*SK_ACC[2] + Kacc*P(14,3)*SK_ACC[1] + Kacc*P(14,1)*SK_ACC[4] + Kacc*P(14,5)*SK_ACC[6] - Kacc*P(14,6)*SK_ACC[5] - Kacc*P(14,23)*SK_ACC[6]);
-//			Kfusion[15] = -SK_ACC[0]*(Kacc*P(15,4)*SH_ACC[0] - Kacc*P(15,22)*SH_ACC[0] + Kacc*P(15,0)*SK_ACC[3] - Kacc*P(15,2)*SK_ACC[2] + Kacc*P(15,3)*SK_ACC[1] + Kacc*P(15,1)*SK_ACC[4] + Kacc*P(15,5)*SK_ACC[6] - Kacc*P(15,6)*SK_ACC[5] - Kacc*P(15,23)*SK_ACC[6]);
-//			Kfusion[16] = -SK_ACC[0]*(Kacc*P(16,4)*SH_ACC[0] - Kacc*P(16,22)*SH_ACC[0] + Kacc*P(16,0)*SK_ACC[3] - Kacc*P(16,2)*SK_ACC[2] + Kacc*P(16,3)*SK_ACC[1] + Kacc*P(16,1)*SK_ACC[4] + Kacc*P(16,5)*SK_ACC[6] - Kacc*P(16,6)*SK_ACC[5] - Kacc*P(16,23)*SK_ACC[6]);
-//			Kfusion[17] = -SK_ACC[0]*(Kacc*P(17,4)*SH_ACC[0] - Kacc*P(17,22)*SH_ACC[0] + Kacc*P(17,0)*SK_ACC[3] - Kacc*P(17,2)*SK_ACC[2] + Kacc*P(17,3)*SK_ACC[1] + Kacc*P(17,1)*SK_ACC[4] + Kacc*P(17,5)*SK_ACC[6] - Kacc*P(17,6)*SK_ACC[5] - Kacc*P(17,23)*SK_ACC[6]);
-//			Kfusion[18] = -SK_ACC[0]*(Kacc*P(18,4)*SH_ACC[0] - Kacc*P(18,22)*SH_ACC[0] + Kacc*P(18,0)*SK_ACC[3] - Kacc*P(18,2)*SK_ACC[2] + Kacc*P(18,3)*SK_ACC[1] + Kacc*P(18,1)*SK_ACC[4] + Kacc*P(18,5)*SK_ACC[6] - Kacc*P(18,6)*SK_ACC[5] - Kacc*P(18,23)*SK_ACC[6]);
-//			Kfusion[19] = -SK_ACC[0]*(Kacc*P(19,4)*SH_ACC[0] - Kacc*P(19,22)*SH_ACC[0] + Kacc*P(19,0)*SK_ACC[3] - Kacc*P(19,2)*SK_ACC[2] + Kacc*P(19,3)*SK_ACC[1] + Kacc*P(19,1)*SK_ACC[4] + Kacc*P(19,5)*SK_ACC[6] - Kacc*P(19,6)*SK_ACC[5] - Kacc*P(19,23)*SK_ACC[6]);
-//			Kfusion[20] = -SK_ACC[0]*(Kacc*P(20,4)*SH_ACC[0] - Kacc*P(20,22)*SH_ACC[0] + Kacc*P(20,0)*SK_ACC[3] - Kacc*P(20,2)*SK_ACC[2] + Kacc*P(20,3)*SK_ACC[1] + Kacc*P(20,1)*SK_ACC[4] + Kacc*P(20,5)*SK_ACC[6] - Kacc*P(20,6)*SK_ACC[5] - Kacc*P(20,23)*SK_ACC[6]);
-//			Kfusion[21] = -SK_ACC[0]*(Kacc*P(21,4)*SH_ACC[0] - Kacc*P(21,22)*SH_ACC[0] + Kacc*P(21,0)*SK_ACC[3] - Kacc*P(21,2)*SK_ACC[2] + Kacc*P(21,3)*SK_ACC[1] + Kacc*P(21,1)*SK_ACC[4] + Kacc*P(21,5)*SK_ACC[6] - Kacc*P(21,6)*SK_ACC[5] - Kacc*P(21,23)*SK_ACC[6]);
-			Kfusion[22] = -SK_ACC[0]*(Kacc*P(22,4)*SH_ACC[0] - Kacc*P(22,22)*SH_ACC[0] + Kacc*P(22,0)*SK_ACC[3] - Kacc*P(22,2)*SK_ACC[2] + Kacc*P(22,3)*SK_ACC[1] + Kacc*P(22,1)*SK_ACC[4] + Kacc*P(22,5)*SK_ACC[6] - Kacc*P(22,6)*SK_ACC[5] - Kacc*P(22,23)*SK_ACC[6]);
-			Kfusion[23] = -SK_ACC[0]*(Kacc*P(23,4)*SH_ACC[0] - Kacc*P(23,22)*SH_ACC[0] + Kacc*P(23,0)*SK_ACC[3] - Kacc*P(23,2)*SK_ACC[2] + Kacc*P(23,3)*SK_ACC[1] + Kacc*P(23,1)*SK_ACC[4] + Kacc*P(23,5)*SK_ACC[6] - Kacc*P(23,6)*SK_ACC[5] - Kacc*P(23,23)*SK_ACC[6]);
+//			Kfusion(0) = -SK_ACC[0]*(Kacc*P(0,4)*SH_ACC[0] - Kacc*P(0,22)*SH_ACC[0] + Kacc*P(0,0)*SK_ACC[3] - Kacc*P(0,2)*SK_ACC[2] + Kacc*P(0,3)*SK_ACC[1] + Kacc*P(0,1)*SK_ACC[4] + Kacc*P(0,5)*SK_ACC[6] - Kacc*P(0,6)*SK_ACC[5] - Kacc*P(0,23)*SK_ACC[6]);
+//			Kfusion(1) = -SK_ACC[0]*(Kacc*P(1,4)*SH_ACC[0] - Kacc*P(1,22)*SH_ACC[0] + Kacc*P(1,0)*SK_ACC[3] - Kacc*P(1,2)*SK_ACC[2] + Kacc*P(1,3)*SK_ACC[1] + Kacc*P(1,1)*SK_ACC[4] + Kacc*P(1,5)*SK_ACC[6] - Kacc*P(1,6)*SK_ACC[5] - Kacc*P(1,23)*SK_ACC[6]);
+//			Kfusion(2) = -SK_ACC[0]*(Kacc*P(2,4)*SH_ACC[0] - Kacc*P(2,22)*SH_ACC[0] + Kacc*P(2,0)*SK_ACC[3] - Kacc*P(2,2)*SK_ACC[2] + Kacc*P(2,3)*SK_ACC[1] + Kacc*P(2,1)*SK_ACC[4] + Kacc*P(2,5)*SK_ACC[6] - Kacc*P(2,6)*SK_ACC[5] - Kacc*P(2,23)*SK_ACC[6]);
+//			Kfusion(3) = -SK_ACC[0]*(Kacc*P(3,4)*SH_ACC[0] - Kacc*P(3,22)*SH_ACC[0] + Kacc*P(3,0)*SK_ACC[3] - Kacc*P(3,2)*SK_ACC[2] + Kacc*P(3,3)*SK_ACC[1] + Kacc*P(3,1)*SK_ACC[4] + Kacc*P(3,5)*SK_ACC[6] - Kacc*P(3,6)*SK_ACC[5] - Kacc*P(3,23)*SK_ACC[6]);
+//			Kfusion(4) = -SK_ACC[0]*(Kacc*P(4,4)*SH_ACC[0] - Kacc*P(4,22)*SH_ACC[0] + Kacc*P(4,0)*SK_ACC[3] - Kacc*P(4,2)*SK_ACC[2] + Kacc*P(4,3)*SK_ACC[1] + Kacc*P(4,1)*SK_ACC[4] + Kacc*P(4,5)*SK_ACC[6] - Kacc*P(4,6)*SK_ACC[5] - Kacc*P(4,23)*SK_ACC[6]);
+//			Kfusion(5) = -SK_ACC[0]*(Kacc*P(5,4)*SH_ACC[0] - Kacc*P(5,22)*SH_ACC[0] + Kacc*P(5,0)*SK_ACC[3] - Kacc*P(5,2)*SK_ACC[2] + Kacc*P(5,3)*SK_ACC[1] + Kacc*P(5,1)*SK_ACC[4] + Kacc*P(5,5)*SK_ACC[6] - Kacc*P(5,6)*SK_ACC[5] - Kacc*P(5,23)*SK_ACC[6]);
+//			Kfusion(6) = -SK_ACC[0]*(Kacc*P(6,4)*SH_ACC[0] - Kacc*P(6,22)*SH_ACC[0] + Kacc*P(6,0)*SK_ACC[3] - Kacc*P(6,2)*SK_ACC[2] + Kacc*P(6,3)*SK_ACC[1] + Kacc*P(6,1)*SK_ACC[4] + Kacc*P(6,5)*SK_ACC[6] - Kacc*P(6,6)*SK_ACC[5] - Kacc*P(6,23)*SK_ACC[6]);
+//			Kfusion(7) = -SK_ACC[0]*(Kacc*P(7,4)*SH_ACC[0] - Kacc*P(7,22)*SH_ACC[0] + Kacc*P(7,0)*SK_ACC[3] - Kacc*P(7,2)*SK_ACC[2] + Kacc*P(7,3)*SK_ACC[1] + Kacc*P(7,1)*SK_ACC[4] + Kacc*P(7,5)*SK_ACC[6] - Kacc*P(7,6)*SK_ACC[5] - Kacc*P(7,23)*SK_ACC[6]);
+//			Kfusion(8) = -SK_ACC[0]*(Kacc*P(8,4)*SH_ACC[0] - Kacc*P(8,22)*SH_ACC[0] + Kacc*P(8,0)*SK_ACC[3] - Kacc*P(8,2)*SK_ACC[2] + Kacc*P(8,3)*SK_ACC[1] + Kacc*P(8,1)*SK_ACC[4] + Kacc*P(8,5)*SK_ACC[6] - Kacc*P(8,6)*SK_ACC[5] - Kacc*P(8,23)*SK_ACC[6]);
+//			Kfusion(9) = -SK_ACC[0]*(Kacc*P(9,4)*SH_ACC[0] - Kacc*P(9,22)*SH_ACC[0] + Kacc*P(9,0)*SK_ACC[3] - Kacc*P(9,2)*SK_ACC[2] + Kacc*P(9,3)*SK_ACC[1] + Kacc*P(9,1)*SK_ACC[4] + Kacc*P(9,5)*SK_ACC[6] - Kacc*P(9,6)*SK_ACC[5] - Kacc*P(9,23)*SK_ACC[6]);
+//			Kfusion(10) = -SK_ACC[0]*(Kacc*P(10,4)*SH_ACC[0] - Kacc*P(10,22)*SH_ACC[0] + Kacc*P(10,0)*SK_ACC[3] - Kacc*P(10,2)*SK_ACC[2] + Kacc*P(10,3)*SK_ACC[1] + Kacc*P(10,1)*SK_ACC[4] + Kacc*P(10,5)*SK_ACC[6] - Kacc*P(10,6)*SK_ACC[5] - Kacc*P(10,23)*SK_ACC[6]);
+//			Kfusion(11) = -SK_ACC[0]*(Kacc*P(11,4)*SH_ACC[0] - Kacc*P(11,22)*SH_ACC[0] + Kacc*P(11,0)*SK_ACC[3] - Kacc*P(11,2)*SK_ACC[2] + Kacc*P(11,3)*SK_ACC[1] + Kacc*P(11,1)*SK_ACC[4] + Kacc*P(11,5)*SK_ACC[6] - Kacc*P(11,6)*SK_ACC[5] - Kacc*P(11,23)*SK_ACC[6]);
+//			Kfusion(12) = -SK_ACC[0]*(Kacc*P(12,4)*SH_ACC[0] - Kacc*P(12,22)*SH_ACC[0] + Kacc*P(12,0)*SK_ACC[3] - Kacc*P(12,2)*SK_ACC[2] + Kacc*P(12,3)*SK_ACC[1] + Kacc*P(12,1)*SK_ACC[4] + Kacc*P(12,5)*SK_ACC[6] - Kacc*P(12,6)*SK_ACC[5] - Kacc*P(12,23)*SK_ACC[6]);
+//			Kfusion(13) = -SK_ACC[0]*(Kacc*P(13,4)*SH_ACC[0] - Kacc*P(13,22)*SH_ACC[0] + Kacc*P(13,0)*SK_ACC[3] - Kacc*P(13,2)*SK_ACC[2] + Kacc*P(13,3)*SK_ACC[1] + Kacc*P(13,1)*SK_ACC[4] + Kacc*P(13,5)*SK_ACC[6] - Kacc*P(13,6)*SK_ACC[5] - Kacc*P(13,23)*SK_ACC[6]);
+//			Kfusion(14) = -SK_ACC[0]*(Kacc*P(14,4)*SH_ACC[0] - Kacc*P(14,22)*SH_ACC[0] + Kacc*P(14,0)*SK_ACC[3] - Kacc*P(14,2)*SK_ACC[2] + Kacc*P(14,3)*SK_ACC[1] + Kacc*P(14,1)*SK_ACC[4] + Kacc*P(14,5)*SK_ACC[6] - Kacc*P(14,6)*SK_ACC[5] - Kacc*P(14,23)*SK_ACC[6]);
+//			Kfusion(15) = -SK_ACC[0]*(Kacc*P(15,4)*SH_ACC[0] - Kacc*P(15,22)*SH_ACC[0] + Kacc*P(15,0)*SK_ACC[3] - Kacc*P(15,2)*SK_ACC[2] + Kacc*P(15,3)*SK_ACC[1] + Kacc*P(15,1)*SK_ACC[4] + Kacc*P(15,5)*SK_ACC[6] - Kacc*P(15,6)*SK_ACC[5] - Kacc*P(15,23)*SK_ACC[6]);
+//			Kfusion(16) = -SK_ACC[0]*(Kacc*P(16,4)*SH_ACC[0] - Kacc*P(16,22)*SH_ACC[0] + Kacc*P(16,0)*SK_ACC[3] - Kacc*P(16,2)*SK_ACC[2] + Kacc*P(16,3)*SK_ACC[1] + Kacc*P(16,1)*SK_ACC[4] + Kacc*P(16,5)*SK_ACC[6] - Kacc*P(16,6)*SK_ACC[5] - Kacc*P(16,23)*SK_ACC[6]);
+//			Kfusion(17) = -SK_ACC[0]*(Kacc*P(17,4)*SH_ACC[0] - Kacc*P(17,22)*SH_ACC[0] + Kacc*P(17,0)*SK_ACC[3] - Kacc*P(17,2)*SK_ACC[2] + Kacc*P(17,3)*SK_ACC[1] + Kacc*P(17,1)*SK_ACC[4] + Kacc*P(17,5)*SK_ACC[6] - Kacc*P(17,6)*SK_ACC[5] - Kacc*P(17,23)*SK_ACC[6]);
+//			Kfusion(18) = -SK_ACC[0]*(Kacc*P(18,4)*SH_ACC[0] - Kacc*P(18,22)*SH_ACC[0] + Kacc*P(18,0)*SK_ACC[3] - Kacc*P(18,2)*SK_ACC[2] + Kacc*P(18,3)*SK_ACC[1] + Kacc*P(18,1)*SK_ACC[4] + Kacc*P(18,5)*SK_ACC[6] - Kacc*P(18,6)*SK_ACC[5] - Kacc*P(18,23)*SK_ACC[6]);
+//			Kfusion(19) = -SK_ACC[0]*(Kacc*P(19,4)*SH_ACC[0] - Kacc*P(19,22)*SH_ACC[0] + Kacc*P(19,0)*SK_ACC[3] - Kacc*P(19,2)*SK_ACC[2] + Kacc*P(19,3)*SK_ACC[1] + Kacc*P(19,1)*SK_ACC[4] + Kacc*P(19,5)*SK_ACC[6] - Kacc*P(19,6)*SK_ACC[5] - Kacc*P(19,23)*SK_ACC[6]);
+//			Kfusion(20) = -SK_ACC[0]*(Kacc*P(20,4)*SH_ACC[0] - Kacc*P(20,22)*SH_ACC[0] + Kacc*P(20,0)*SK_ACC[3] - Kacc*P(20,2)*SK_ACC[2] + Kacc*P(20,3)*SK_ACC[1] + Kacc*P(20,1)*SK_ACC[4] + Kacc*P(20,5)*SK_ACC[6] - Kacc*P(20,6)*SK_ACC[5] - Kacc*P(20,23)*SK_ACC[6]);
+//			Kfusion(21) = -SK_ACC[0]*(Kacc*P(21,4)*SH_ACC[0] - Kacc*P(21,22)*SH_ACC[0] + Kacc*P(21,0)*SK_ACC[3] - Kacc*P(21,2)*SK_ACC[2] + Kacc*P(21,3)*SK_ACC[1] + Kacc*P(21,1)*SK_ACC[4] + Kacc*P(21,5)*SK_ACC[6] - Kacc*P(21,6)*SK_ACC[5] - Kacc*P(21,23)*SK_ACC[6]);
+			Kfusion(22) = -SK_ACC[0]*(Kacc*P(22,4)*SH_ACC[0] - Kacc*P(22,22)*SH_ACC[0] + Kacc*P(22,0)*SK_ACC[3] - Kacc*P(22,2)*SK_ACC[2] + Kacc*P(22,3)*SK_ACC[1] + Kacc*P(22,1)*SK_ACC[4] + Kacc*P(22,5)*SK_ACC[6] - Kacc*P(22,6)*SK_ACC[5] - Kacc*P(22,23)*SK_ACC[6]);
+			Kfusion(23) = -SK_ACC[0]*(Kacc*P(23,4)*SH_ACC[0] - Kacc*P(23,22)*SH_ACC[0] + Kacc*P(23,0)*SK_ACC[3] - Kacc*P(23,2)*SK_ACC[2] + Kacc*P(23,3)*SK_ACC[1] + Kacc*P(23,1)*SK_ACC[4] + Kacc*P(23,5)*SK_ACC[6] - Kacc*P(23,6)*SK_ACC[5] - Kacc*P(23,23)*SK_ACC[6]);
 
 			// calculate the predicted acceleration and innovation measured along the X body axis
 			float drag_sign;
@@ -195,30 +195,30 @@ void Ekf::fuseDrag()
 			SK_ACC[7] = 2.0f*q0*q1 + 2.0f*q2*q3;
 			SK_ACC[8] = SH_ACC[0];
 // Don't allow modification of any states other than wind velocity at this stage of development - we only need a wind estimate.
-//			Kfusion[0] = -SK_ACC[0]*(Kacc*P(0,0)*SK_ACC[3] + Kacc*P(0,1)*SK_ACC[2] - Kacc*P(0,3)*SK_ACC[1] + Kacc*P(0,2)*SK_ACC[4] - Kacc*P(0,4)*SK_ACC[5] + Kacc*P(0,5)*SK_ACC[8] + Kacc*P(0,6)*SK_ACC[7] + 2*Kacc*P(0,22)*SK_ACC[6] - Kacc*P(0,23)*SK_ACC[8]);
-//			Kfusion[1] = -SK_ACC[0]*(Kacc*P(1,0)*SK_ACC[3] + Kacc*P(1,1)*SK_ACC[2] - Kacc*P(1,3)*SK_ACC[1] + Kacc*P(1,2)*SK_ACC[4] - Kacc*P(1,4)*SK_ACC[5] + Kacc*P(1,5)*SK_ACC[8] + Kacc*P(1,6)*SK_ACC[7] + 2*Kacc*P(1,22)*SK_ACC[6] - Kacc*P(1,23)*SK_ACC[8]);
-//			Kfusion[2] = -SK_ACC[0]*(Kacc*P(2,0)*SK_ACC[3] + Kacc*P(2,1)*SK_ACC[2] - Kacc*P(2,3)*SK_ACC[1] + Kacc*P(2,2)*SK_ACC[4] - Kacc*P(2,4)*SK_ACC[5] + Kacc*P(2,5)*SK_ACC[8] + Kacc*P(2,6)*SK_ACC[7] + 2*Kacc*P(2,22)*SK_ACC[6] - Kacc*P(2,23)*SK_ACC[8]);
-//			Kfusion[3] = -SK_ACC[0]*(Kacc*P(3,0)*SK_ACC[3] + Kacc*P(3,1)*SK_ACC[2] - Kacc*P(3,3)*SK_ACC[1] + Kacc*P(3,2)*SK_ACC[4] - Kacc*P(3,4)*SK_ACC[5] + Kacc*P(3,5)*SK_ACC[8] + Kacc*P(3,6)*SK_ACC[7] + 2*Kacc*P(3,22)*SK_ACC[6] - Kacc*P(3,23)*SK_ACC[8]);
-//			Kfusion[4] = -SK_ACC[0]*(Kacc*P(4,0)*SK_ACC[3] + Kacc*P(4,1)*SK_ACC[2] - Kacc*P(4,3)*SK_ACC[1] + Kacc*P(4,2)*SK_ACC[4] - Kacc*P(4,4)*SK_ACC[5] + Kacc*P(4,5)*SK_ACC[8] + Kacc*P(4,6)*SK_ACC[7] + 2*Kacc*P(4,22)*SK_ACC[6] - Kacc*P(4,23)*SK_ACC[8]);
-//			Kfusion[5] = -SK_ACC[0]*(Kacc*P(5,0)*SK_ACC[3] + Kacc*P(5,1)*SK_ACC[2] - Kacc*P(5,3)*SK_ACC[1] + Kacc*P(5,2)*SK_ACC[4] - Kacc*P(5,4)*SK_ACC[5] + Kacc*P(5,5)*SK_ACC[8] + Kacc*P(5,6)*SK_ACC[7] + 2*Kacc*P(5,22)*SK_ACC[6] - Kacc*P(5,23)*SK_ACC[8]);
-//			Kfusion[6] = -SK_ACC[0]*(Kacc*P(6,0)*SK_ACC[3] + Kacc*P(6,1)*SK_ACC[2] - Kacc*P(6,3)*SK_ACC[1] + Kacc*P(6,2)*SK_ACC[4] - Kacc*P(6,4)*SK_ACC[5] + Kacc*P(6,5)*SK_ACC[8] + Kacc*P(6,6)*SK_ACC[7] + 2*Kacc*P(6,22)*SK_ACC[6] - Kacc*P(6,23)*SK_ACC[8]);
-//			Kfusion[7] = -SK_ACC[0]*(Kacc*P(7,0)*SK_ACC[3] + Kacc*P(7,1)*SK_ACC[2] - Kacc*P(7,3)*SK_ACC[1] + Kacc*P(7,2)*SK_ACC[4] - Kacc*P(7,4)*SK_ACC[5] + Kacc*P(7,5)*SK_ACC[8] + Kacc*P(7,6)*SK_ACC[7] + 2*Kacc*P(7,22)*SK_ACC[6] - Kacc*P(7,23)*SK_ACC[8]);
-//			Kfusion[8] = -SK_ACC[0]*(Kacc*P(8,0)*SK_ACC[3] + Kacc*P(8,1)*SK_ACC[2] - Kacc*P(8,3)*SK_ACC[1] + Kacc*P(8,2)*SK_ACC[4] - Kacc*P(8,4)*SK_ACC[5] + Kacc*P(8,5)*SK_ACC[8] + Kacc*P(8,6)*SK_ACC[7] + 2*Kacc*P(8,22)*SK_ACC[6] - Kacc*P(8,23)*SK_ACC[8]);
-//			Kfusion[9] = -SK_ACC[0]*(Kacc*P(9,0)*SK_ACC[3] + Kacc*P(9,1)*SK_ACC[2] - Kacc*P(9,3)*SK_ACC[1] + Kacc*P(9,2)*SK_ACC[4] - Kacc*P(9,4)*SK_ACC[5] + Kacc*P(9,5)*SK_ACC[8] + Kacc*P(9,6)*SK_ACC[7] + 2*Kacc*P(9,22)*SK_ACC[6] - Kacc*P(9,23)*SK_ACC[8]);
-//			Kfusion[10] = -SK_ACC[0]*(Kacc*P(10,0)*SK_ACC[3] + Kacc*P(10,1)*SK_ACC[2] - Kacc*P(10,3)*SK_ACC[1] + Kacc*P(10,2)*SK_ACC[4] - Kacc*P(10,4)*SK_ACC[5] + Kacc*P(10,5)*SK_ACC[8] + Kacc*P(10,6)*SK_ACC[7] + 2*Kacc*P(10,22)*SK_ACC[6] - Kacc*P(10,23)*SK_ACC[8]);
-//			Kfusion[11] = -SK_ACC[0]*(Kacc*P(11,0)*SK_ACC[3] + Kacc*P(11,1)*SK_ACC[2] - Kacc*P(11,3)*SK_ACC[1] + Kacc*P(11,2)*SK_ACC[4] - Kacc*P(11,4)*SK_ACC[5] + Kacc*P(11,5)*SK_ACC[8] + Kacc*P(11,6)*SK_ACC[7] + 2*Kacc*P(11,22)*SK_ACC[6] - Kacc*P(11,23)*SK_ACC[8]);
-//			Kfusion[12] = -SK_ACC[0]*(Kacc*P(12,0)*SK_ACC[3] + Kacc*P(12,1)*SK_ACC[2] - Kacc*P(12,3)*SK_ACC[1] + Kacc*P(12,2)*SK_ACC[4] - Kacc*P(12,4)*SK_ACC[5] + Kacc*P(12,5)*SK_ACC[8] + Kacc*P(12,6)*SK_ACC[7] + 2*Kacc*P(12,22)*SK_ACC[6] - Kacc*P(12,23)*SK_ACC[8]);
-//			Kfusion[13] = -SK_ACC[0]*(Kacc*P(13,0)*SK_ACC[3] + Kacc*P(13,1)*SK_ACC[2] - Kacc*P(13,3)*SK_ACC[1] + Kacc*P(13,2)*SK_ACC[4] - Kacc*P(13,4)*SK_ACC[5] + Kacc*P(13,5)*SK_ACC[8] + Kacc*P(13,6)*SK_ACC[7] + 2*Kacc*P(13,22)*SK_ACC[6] - Kacc*P(13,23)*SK_ACC[8]);
-//			Kfusion[14] = -SK_ACC[0]*(Kacc*P(14,0)*SK_ACC[3] + Kacc*P(14,1)*SK_ACC[2] - Kacc*P(14,3)*SK_ACC[1] + Kacc*P(14,2)*SK_ACC[4] - Kacc*P(14,4)*SK_ACC[5] + Kacc*P(14,5)*SK_ACC[8] + Kacc*P(14,6)*SK_ACC[7] + 2*Kacc*P(14,22)*SK_ACC[6] - Kacc*P(14,23)*SK_ACC[8]);
-//			Kfusion[15] = -SK_ACC[0]*(Kacc*P(15,0)*SK_ACC[3] + Kacc*P(15,1)*SK_ACC[2] - Kacc*P(15,3)*SK_ACC[1] + Kacc*P(15,2)*SK_ACC[4] - Kacc*P(15,4)*SK_ACC[5] + Kacc*P(15,5)*SK_ACC[8] + Kacc*P(15,6)*SK_ACC[7] + 2*Kacc*P(15,22)*SK_ACC[6] - Kacc*P(15,23)*SK_ACC[8]);
-//			Kfusion[16] = -SK_ACC[0]*(Kacc*P(16,0)*SK_ACC[3] + Kacc*P(16,1)*SK_ACC[2] - Kacc*P(16,3)*SK_ACC[1] + Kacc*P(16,2)*SK_ACC[4] - Kacc*P(16,4)*SK_ACC[5] + Kacc*P(16,5)*SK_ACC[8] + Kacc*P(16,6)*SK_ACC[7] + 2*Kacc*P(16,22)*SK_ACC[6] - Kacc*P(16,23)*SK_ACC[8]);
-//			Kfusion[17] = -SK_ACC[0]*(Kacc*P(17,0)*SK_ACC[3] + Kacc*P(17,1)*SK_ACC[2] - Kacc*P(17,3)*SK_ACC[1] + Kacc*P(17,2)*SK_ACC[4] - Kacc*P(17,4)*SK_ACC[5] + Kacc*P(17,5)*SK_ACC[8] + Kacc*P(17,6)*SK_ACC[7] + 2*Kacc*P(17,22)*SK_ACC[6] - Kacc*P(17,23)*SK_ACC[8]);
-//			Kfusion[18] = -SK_ACC[0]*(Kacc*P(18,0)*SK_ACC[3] + Kacc*P(18,1)*SK_ACC[2] - Kacc*P(18,3)*SK_ACC[1] + Kacc*P(18,2)*SK_ACC[4] - Kacc*P(18,4)*SK_ACC[5] + Kacc*P(18,5)*SK_ACC[8] + Kacc*P(18,6)*SK_ACC[7] + 2*Kacc*P(18,22)*SK_ACC[6] - Kacc*P(18,23)*SK_ACC[8]);
-//			Kfusion[19] = -SK_ACC[0]*(Kacc*P(19,0)*SK_ACC[3] + Kacc*P(19,1)*SK_ACC[2] - Kacc*P(19,3)*SK_ACC[1] + Kacc*P(19,2)*SK_ACC[4] - Kacc*P(19,4)*SK_ACC[5] + Kacc*P(19,5)*SK_ACC[8] + Kacc*P(19,6)*SK_ACC[7] + 2*Kacc*P(19,22)*SK_ACC[6] - Kacc*P(19,23)*SK_ACC[8]);
-//			Kfusion[20] = -SK_ACC[0]*(Kacc*P(20,0)*SK_ACC[3] + Kacc*P(20,1)*SK_ACC[2] - Kacc*P(20,3)*SK_ACC[1] + Kacc*P(20,2)*SK_ACC[4] - Kacc*P(20,4)*SK_ACC[5] + Kacc*P(20,5)*SK_ACC[8] + Kacc*P(20,6)*SK_ACC[7] + 2*Kacc*P(20,22)*SK_ACC[6] - Kacc*P(20,23)*SK_ACC[8]);
-//			Kfusion[21] = -SK_ACC[0]*(Kacc*P(21,0)*SK_ACC[3] + Kacc*P(21,1)*SK_ACC[2] - Kacc*P(21,3)*SK_ACC[1] + Kacc*P(21,2)*SK_ACC[4] - Kacc*P(21,4)*SK_ACC[5] + Kacc*P(21,5)*SK_ACC[8] + Kacc*P(21,6)*SK_ACC[7] + 2*Kacc*P(21,22)*SK_ACC[6] - Kacc*P(21,23)*SK_ACC[8]);
-			Kfusion[22] = -SK_ACC[0]*(Kacc*P(22,0)*SK_ACC[3] + Kacc*P(22,1)*SK_ACC[2] - Kacc*P(22,3)*SK_ACC[1] + Kacc*P(22,2)*SK_ACC[4] - Kacc*P(22,4)*SK_ACC[5] + Kacc*P(22,5)*SK_ACC[8] + Kacc*P(22,6)*SK_ACC[7] + 2*Kacc*P(22,22)*SK_ACC[6] - Kacc*P(22,23)*SK_ACC[8]);
-			Kfusion[23] = -SK_ACC[0]*(Kacc*P(23,0)*SK_ACC[3] + Kacc*P(23,1)*SK_ACC[2] - Kacc*P(23,3)*SK_ACC[1] + Kacc*P(23,2)*SK_ACC[4] - Kacc*P(23,4)*SK_ACC[5] + Kacc*P(23,5)*SK_ACC[8] + Kacc*P(23,6)*SK_ACC[7] + 2*Kacc*P(23,22)*SK_ACC[6] - Kacc*P(23,23)*SK_ACC[8]);
+//			Kfusion(0) = -SK_ACC[0]*(Kacc*P(0,0)*SK_ACC[3] + Kacc*P(0,1)*SK_ACC[2] - Kacc*P(0,3)*SK_ACC[1] + Kacc*P(0,2)*SK_ACC[4] - Kacc*P(0,4)*SK_ACC[5] + Kacc*P(0,5)*SK_ACC[8] + Kacc*P(0,6)*SK_ACC[7] + 2*Kacc*P(0,22)*SK_ACC[6] - Kacc*P(0,23)*SK_ACC[8]);
+//			Kfusion(1) = -SK_ACC[0]*(Kacc*P(1,0)*SK_ACC[3] + Kacc*P(1,1)*SK_ACC[2] - Kacc*P(1,3)*SK_ACC[1] + Kacc*P(1,2)*SK_ACC[4] - Kacc*P(1,4)*SK_ACC[5] + Kacc*P(1,5)*SK_ACC[8] + Kacc*P(1,6)*SK_ACC[7] + 2*Kacc*P(1,22)*SK_ACC[6] - Kacc*P(1,23)*SK_ACC[8]);
+//			Kfusion(2) = -SK_ACC[0]*(Kacc*P(2,0)*SK_ACC[3] + Kacc*P(2,1)*SK_ACC[2] - Kacc*P(2,3)*SK_ACC[1] + Kacc*P(2,2)*SK_ACC[4] - Kacc*P(2,4)*SK_ACC[5] + Kacc*P(2,5)*SK_ACC[8] + Kacc*P(2,6)*SK_ACC[7] + 2*Kacc*P(2,22)*SK_ACC[6] - Kacc*P(2,23)*SK_ACC[8]);
+//			Kfusion(3) = -SK_ACC[0]*(Kacc*P(3,0)*SK_ACC[3] + Kacc*P(3,1)*SK_ACC[2] - Kacc*P(3,3)*SK_ACC[1] + Kacc*P(3,2)*SK_ACC[4] - Kacc*P(3,4)*SK_ACC[5] + Kacc*P(3,5)*SK_ACC[8] + Kacc*P(3,6)*SK_ACC[7] + 2*Kacc*P(3,22)*SK_ACC[6] - Kacc*P(3,23)*SK_ACC[8]);
+//			Kfusion(4) = -SK_ACC[0]*(Kacc*P(4,0)*SK_ACC[3] + Kacc*P(4,1)*SK_ACC[2] - Kacc*P(4,3)*SK_ACC[1] + Kacc*P(4,2)*SK_ACC[4] - Kacc*P(4,4)*SK_ACC[5] + Kacc*P(4,5)*SK_ACC[8] + Kacc*P(4,6)*SK_ACC[7] + 2*Kacc*P(4,22)*SK_ACC[6] - Kacc*P(4,23)*SK_ACC[8]);
+//			Kfusion(5) = -SK_ACC[0]*(Kacc*P(5,0)*SK_ACC[3] + Kacc*P(5,1)*SK_ACC[2] - Kacc*P(5,3)*SK_ACC[1] + Kacc*P(5,2)*SK_ACC[4] - Kacc*P(5,4)*SK_ACC[5] + Kacc*P(5,5)*SK_ACC[8] + Kacc*P(5,6)*SK_ACC[7] + 2*Kacc*P(5,22)*SK_ACC[6] - Kacc*P(5,23)*SK_ACC[8]);
+//			Kfusion(6) = -SK_ACC[0]*(Kacc*P(6,0)*SK_ACC[3] + Kacc*P(6,1)*SK_ACC[2] - Kacc*P(6,3)*SK_ACC[1] + Kacc*P(6,2)*SK_ACC[4] - Kacc*P(6,4)*SK_ACC[5] + Kacc*P(6,5)*SK_ACC[8] + Kacc*P(6,6)*SK_ACC[7] + 2*Kacc*P(6,22)*SK_ACC[6] - Kacc*P(6,23)*SK_ACC[8]);
+//			Kfusion(7) = -SK_ACC[0]*(Kacc*P(7,0)*SK_ACC[3] + Kacc*P(7,1)*SK_ACC[2] - Kacc*P(7,3)*SK_ACC[1] + Kacc*P(7,2)*SK_ACC[4] - Kacc*P(7,4)*SK_ACC[5] + Kacc*P(7,5)*SK_ACC[8] + Kacc*P(7,6)*SK_ACC[7] + 2*Kacc*P(7,22)*SK_ACC[6] - Kacc*P(7,23)*SK_ACC[8]);
+//			Kfusion(8) = -SK_ACC[0]*(Kacc*P(8,0)*SK_ACC[3] + Kacc*P(8,1)*SK_ACC[2] - Kacc*P(8,3)*SK_ACC[1] + Kacc*P(8,2)*SK_ACC[4] - Kacc*P(8,4)*SK_ACC[5] + Kacc*P(8,5)*SK_ACC[8] + Kacc*P(8,6)*SK_ACC[7] + 2*Kacc*P(8,22)*SK_ACC[6] - Kacc*P(8,23)*SK_ACC[8]);
+//			Kfusion(9) = -SK_ACC[0]*(Kacc*P(9,0)*SK_ACC[3] + Kacc*P(9,1)*SK_ACC[2] - Kacc*P(9,3)*SK_ACC[1] + Kacc*P(9,2)*SK_ACC[4] - Kacc*P(9,4)*SK_ACC[5] + Kacc*P(9,5)*SK_ACC[8] + Kacc*P(9,6)*SK_ACC[7] + 2*Kacc*P(9,22)*SK_ACC[6] - Kacc*P(9,23)*SK_ACC[8]);
+//			Kfusion(10) = -SK_ACC[0]*(Kacc*P(10,0)*SK_ACC[3] + Kacc*P(10,1)*SK_ACC[2] - Kacc*P(10,3)*SK_ACC[1] + Kacc*P(10,2)*SK_ACC[4] - Kacc*P(10,4)*SK_ACC[5] + Kacc*P(10,5)*SK_ACC[8] + Kacc*P(10,6)*SK_ACC[7] + 2*Kacc*P(10,22)*SK_ACC[6] - Kacc*P(10,23)*SK_ACC[8]);
+//			Kfusion(11) = -SK_ACC[0]*(Kacc*P(11,0)*SK_ACC[3] + Kacc*P(11,1)*SK_ACC[2] - Kacc*P(11,3)*SK_ACC[1] + Kacc*P(11,2)*SK_ACC[4] - Kacc*P(11,4)*SK_ACC[5] + Kacc*P(11,5)*SK_ACC[8] + Kacc*P(11,6)*SK_ACC[7] + 2*Kacc*P(11,22)*SK_ACC[6] - Kacc*P(11,23)*SK_ACC[8]);
+//			Kfusion(12) = -SK_ACC[0]*(Kacc*P(12,0)*SK_ACC[3] + Kacc*P(12,1)*SK_ACC[2] - Kacc*P(12,3)*SK_ACC[1] + Kacc*P(12,2)*SK_ACC[4] - Kacc*P(12,4)*SK_ACC[5] + Kacc*P(12,5)*SK_ACC[8] + Kacc*P(12,6)*SK_ACC[7] + 2*Kacc*P(12,22)*SK_ACC[6] - Kacc*P(12,23)*SK_ACC[8]);
+//			Kfusion(13) = -SK_ACC[0]*(Kacc*P(13,0)*SK_ACC[3] + Kacc*P(13,1)*SK_ACC[2] - Kacc*P(13,3)*SK_ACC[1] + Kacc*P(13,2)*SK_ACC[4] - Kacc*P(13,4)*SK_ACC[5] + Kacc*P(13,5)*SK_ACC[8] + Kacc*P(13,6)*SK_ACC[7] + 2*Kacc*P(13,22)*SK_ACC[6] - Kacc*P(13,23)*SK_ACC[8]);
+//			Kfusion(14) = -SK_ACC[0]*(Kacc*P(14,0)*SK_ACC[3] + Kacc*P(14,1)*SK_ACC[2] - Kacc*P(14,3)*SK_ACC[1] + Kacc*P(14,2)*SK_ACC[4] - Kacc*P(14,4)*SK_ACC[5] + Kacc*P(14,5)*SK_ACC[8] + Kacc*P(14,6)*SK_ACC[7] + 2*Kacc*P(14,22)*SK_ACC[6] - Kacc*P(14,23)*SK_ACC[8]);
+//			Kfusion(15) = -SK_ACC[0]*(Kacc*P(15,0)*SK_ACC[3] + Kacc*P(15,1)*SK_ACC[2] - Kacc*P(15,3)*SK_ACC[1] + Kacc*P(15,2)*SK_ACC[4] - Kacc*P(15,4)*SK_ACC[5] + Kacc*P(15,5)*SK_ACC[8] + Kacc*P(15,6)*SK_ACC[7] + 2*Kacc*P(15,22)*SK_ACC[6] - Kacc*P(15,23)*SK_ACC[8]);
+//			Kfusion(16) = -SK_ACC[0]*(Kacc*P(16,0)*SK_ACC[3] + Kacc*P(16,1)*SK_ACC[2] - Kacc*P(16,3)*SK_ACC[1] + Kacc*P(16,2)*SK_ACC[4] - Kacc*P(16,4)*SK_ACC[5] + Kacc*P(16,5)*SK_ACC[8] + Kacc*P(16,6)*SK_ACC[7] + 2*Kacc*P(16,22)*SK_ACC[6] - Kacc*P(16,23)*SK_ACC[8]);
+//			Kfusion(17) = -SK_ACC[0]*(Kacc*P(17,0)*SK_ACC[3] + Kacc*P(17,1)*SK_ACC[2] - Kacc*P(17,3)*SK_ACC[1] + Kacc*P(17,2)*SK_ACC[4] - Kacc*P(17,4)*SK_ACC[5] + Kacc*P(17,5)*SK_ACC[8] + Kacc*P(17,6)*SK_ACC[7] + 2*Kacc*P(17,22)*SK_ACC[6] - Kacc*P(17,23)*SK_ACC[8]);
+//			Kfusion(18) = -SK_ACC[0]*(Kacc*P(18,0)*SK_ACC[3] + Kacc*P(18,1)*SK_ACC[2] - Kacc*P(18,3)*SK_ACC[1] + Kacc*P(18,2)*SK_ACC[4] - Kacc*P(18,4)*SK_ACC[5] + Kacc*P(18,5)*SK_ACC[8] + Kacc*P(18,6)*SK_ACC[7] + 2*Kacc*P(18,22)*SK_ACC[6] - Kacc*P(18,23)*SK_ACC[8]);
+//			Kfusion(19) = -SK_ACC[0]*(Kacc*P(19,0)*SK_ACC[3] + Kacc*P(19,1)*SK_ACC[2] - Kacc*P(19,3)*SK_ACC[1] + Kacc*P(19,2)*SK_ACC[4] - Kacc*P(19,4)*SK_ACC[5] + Kacc*P(19,5)*SK_ACC[8] + Kacc*P(19,6)*SK_ACC[7] + 2*Kacc*P(19,22)*SK_ACC[6] - Kacc*P(19,23)*SK_ACC[8]);
+//			Kfusion(20) = -SK_ACC[0]*(Kacc*P(20,0)*SK_ACC[3] + Kacc*P(20,1)*SK_ACC[2] - Kacc*P(20,3)*SK_ACC[1] + Kacc*P(20,2)*SK_ACC[4] - Kacc*P(20,4)*SK_ACC[5] + Kacc*P(20,5)*SK_ACC[8] + Kacc*P(20,6)*SK_ACC[7] + 2*Kacc*P(20,22)*SK_ACC[6] - Kacc*P(20,23)*SK_ACC[8]);
+//			Kfusion(21) = -SK_ACC[0]*(Kacc*P(21,0)*SK_ACC[3] + Kacc*P(21,1)*SK_ACC[2] - Kacc*P(21,3)*SK_ACC[1] + Kacc*P(21,2)*SK_ACC[4] - Kacc*P(21,4)*SK_ACC[5] + Kacc*P(21,5)*SK_ACC[8] + Kacc*P(21,6)*SK_ACC[7] + 2*Kacc*P(21,22)*SK_ACC[6] - Kacc*P(21,23)*SK_ACC[8]);
+			Kfusion(22) = -SK_ACC[0]*(Kacc*P(22,0)*SK_ACC[3] + Kacc*P(22,1)*SK_ACC[2] - Kacc*P(22,3)*SK_ACC[1] + Kacc*P(22,2)*SK_ACC[4] - Kacc*P(22,4)*SK_ACC[5] + Kacc*P(22,5)*SK_ACC[8] + Kacc*P(22,6)*SK_ACC[7] + 2*Kacc*P(22,22)*SK_ACC[6] - Kacc*P(22,23)*SK_ACC[8]);
+			Kfusion(23) = -SK_ACC[0]*(Kacc*P(23,0)*SK_ACC[3] + Kacc*P(23,1)*SK_ACC[2] - Kacc*P(23,3)*SK_ACC[1] + Kacc*P(23,2)*SK_ACC[4] - Kacc*P(23,4)*SK_ACC[5] + Kacc*P(23,5)*SK_ACC[8] + Kacc*P(23,6)*SK_ACC[7] + 2*Kacc*P(23,22)*SK_ACC[6] - Kacc*P(23,23)*SK_ACC[8]);
 
 			// calculate the predicted acceleration and innovation measured along the Y body axis
 			float drag_sign;
@@ -246,15 +246,15 @@ void Ekf::fuseDrag()
 
 			for (unsigned row = 0; row < _k_num_states; row++) {
 
-				KH[0] = Kfusion[row] * H_ACC[0];
-				KH[1] = Kfusion[row] * H_ACC[1];
-				KH[2] = Kfusion[row] * H_ACC[2];
-				KH[3] = Kfusion[row] * H_ACC[3];
-				KH[4] = Kfusion[row] * H_ACC[4];
-				KH[5] = Kfusion[row] * H_ACC[5];
-				KH[6] = Kfusion[row] * H_ACC[6];
-				KH[7] = Kfusion[row] * H_ACC[22];
-				KH[8] = Kfusion[row] * H_ACC[23];
+				KH[0] = Kfusion(row) * H_ACC[0];
+				KH[1] = Kfusion(row) * H_ACC[1];
+				KH[2] = Kfusion(row) * H_ACC[2];
+				KH[3] = Kfusion(row) * H_ACC[3];
+				KH[4] = Kfusion(row) * H_ACC[4];
+				KH[5] = Kfusion(row) * H_ACC[5];
+				KH[6] = Kfusion(row) * H_ACC[6];
+				KH[7] = Kfusion(row) * H_ACC[22];
+				KH[8] = Kfusion(row) * H_ACC[23];
 
 				for (unsigned column = 0; column < _k_num_states; column++) {
 					float tmp = KH[0] * P(0,column);

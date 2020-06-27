@@ -166,23 +166,23 @@ void Ekf::fuseGpsAntYaw()
 
 	// calculate the Kalman gains
 	// only calculate gains for states we are using
-	float Kfusion[_k_num_states] = {};
+	Vector24f Kfusion;
 
 	for (uint8_t row = 0; row <= 15; row++) {
 		for (uint8_t col = 0; col <= 3; col++) {
-			Kfusion[row] += P(row,col) * H_YAW[col];
+			Kfusion(row) += P(row,col) * H_YAW[col];
 		}
 
-		Kfusion[row] *= heading_innov_var_inv;
+		Kfusion(row) *= heading_innov_var_inv;
 	}
 
 	if (_control_status.flags.wind) {
 		for (uint8_t row = 22; row <= 23; row++) {
 			for (uint8_t col = 0; col <= 3; col++) {
-				Kfusion[row] += P(row,col) * H_YAW[col];
+				Kfusion(row) += P(row,col) * H_YAW[col];
 			}
 
-			Kfusion[row] *= heading_innov_var_inv;
+			Kfusion(row) *= heading_innov_var_inv;
 		}
 	}
 
@@ -219,10 +219,10 @@ void Ekf::fuseGpsAntYaw()
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 
-		KH[0] = Kfusion[row] * H_YAW[0];
-		KH[1] = Kfusion[row] * H_YAW[1];
-		KH[2] = Kfusion[row] * H_YAW[2];
-		KH[3] = Kfusion[row] * H_YAW[3];
+		KH[0] = Kfusion(row) * H_YAW[0];
+		KH[1] = Kfusion(row) * H_YAW[1];
+		KH[2] = Kfusion(row) * H_YAW[2];
+		KH[3] = Kfusion(row) * H_YAW[3];
 
 		for (unsigned column = 0; column < _k_num_states; column++) {
 			float tmp = KH[0] * P(0,column);
