@@ -418,15 +418,7 @@ void Ekf::calculateOutputStates()
 		// calculate a corrrection to the delta angle
 		// that will cause the INS to track the EKF quaternions
 		_delta_angle_corr = delta_ang_error * att_gain;
-
-		// calculate velocity and position tracking errors
-		const Vector3f vel_err(_state.vel - _output_sample_delayed.vel);
-		const Vector3f pos_err(_state.pos - _output_sample_delayed.pos);
-
-		// collect magnitude tracking error for diagnostics
 		_output_tracking_error(0) = delta_ang_error.norm();
-		_output_tracking_error(1) = vel_err.norm();
-		_output_tracking_error(2) = pos_err.norm();
 
 		/*
 		 * Loop through the output filter state history and apply the corrections to the velocity and position states.
@@ -494,6 +486,13 @@ void Ekf::calculateOutputStates()
 			 * The vel and pos state history are corrected individually so they track the EKF states at
 			 * the fusion time horizon. This option provides the most accurate tracking of EKF states.
 			 */
+
+			// calculate velocity and position tracking errors
+			const Vector3f vel_err(_state.vel - _output_sample_delayed.vel);
+			const Vector3f pos_err(_state.pos - _output_sample_delayed.pos);
+
+			_output_tracking_error(1) = vel_err.norm();
+			_output_tracking_error(2) = pos_err.norm();
 
 			// calculate a velocity correction that will be applied to the output state history
 			_vel_err_integ += vel_err;
