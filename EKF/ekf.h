@@ -670,7 +670,7 @@ private:
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
-	void fuse(float *K, float innovation);
+	void fuse(const Vector24f& K, float innovation);
 
 	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) override;
 

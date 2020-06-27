@@ -1126,42 +1126,17 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	*status = soln_status.value;
 }
 
-// fuse measurement
-void Ekf::fuse(float *K, float innovation)
+void Ekf::fuse(const Vector24f& K, float innovation)
 {
-	for (unsigned i = 0; i < 4; i++) {
-		_state.quat_nominal(i) = _state.quat_nominal(i) - K[i] * innovation;
-	}
-
+	_state.quat_nominal -= K.slice<4, 1>(0, 0) * innovation;
 	_state.quat_nominal.normalize();
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.vel(i) = _state.vel(i) - K[i + 4] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.pos(i) = _state.pos(i) - K[i + 7] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.delta_ang_bias(i) = _state.delta_ang_bias(i) - K[i + 10] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.delta_vel_bias(i) = _state.delta_vel_bias(i) - K[i + 13] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.mag_I(i) = _state.mag_I(i) - K[i + 16] * innovation;
-	}
-
-	for (unsigned i = 0; i < 3; i++) {
-		_state.mag_B(i) = _state.mag_B(i) - K[i + 19] * innovation;
-	}
-
-	for (unsigned i = 0; i < 2; i++) {
-		_state.wind_vel(i) = _state.wind_vel(i) - K[i + 22] * innovation;
-	}
+	_state.vel -= K.slice<3, 1>(4, 0) * innovation;
+	_state.pos -= K.slice<3, 1>(7, 0) * innovation;
+	_state.delta_ang_bias -= K.slice<3, 1>(10, 0) * innovation;
+	_state.delta_vel_bias -= K.slice<3, 1>(13, 0) * innovation;
+	_state.mag_I -= K.slice<3, 1>(16, 0) * innovation;
+	_state.mag_B -= K.slice<3, 1>(19, 0) * innovation;
+	_state.wind_vel -= K.slice<2, 1>(22, 0) * innovation;
 }
 
 void Ekf::uncorrelateQuatFromOtherStates()

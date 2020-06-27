@@ -431,10 +431,10 @@ void Ekf::fuseOptFlow()
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
 
 		// copy the Kalman gain vector for the axis we are fusing
-		float gain[24];
+		Vector24f gain;
 
 		for (unsigned row = 0; row <= 23; row++) {
-			gain[row] = Kfusion[row][obs_index];
+			gain(row) = Kfusion[row][obs_index];
 		}
 
 		// apply covariance correction via P_new = (I -K*H)*P
@@ -445,13 +445,13 @@ void Ekf::fuseOptFlow()
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
 
-			KH[0] = gain[row] * H_LOS[obs_index][0];
-			KH[1] = gain[row] * H_LOS[obs_index][1];
-			KH[2] = gain[row] * H_LOS[obs_index][2];
-			KH[3] = gain[row] * H_LOS[obs_index][3];
-			KH[4] = gain[row] * H_LOS[obs_index][4];
-			KH[5] = gain[row] * H_LOS[obs_index][5];
-			KH[6] = gain[row] * H_LOS[obs_index][6];
+			KH[0] = gain(row) * H_LOS[obs_index][0];
+			KH[1] = gain(row) * H_LOS[obs_index][1];
+			KH[2] = gain(row) * H_LOS[obs_index][2];
+			KH[3] = gain(row) * H_LOS[obs_index][3];
+			KH[4] = gain(row) * H_LOS[obs_index][4];
+			KH[5] = gain(row) * H_LOS[obs_index][5];
+			KH[6] = gain(row) * H_LOS[obs_index][6];
 
 			for (unsigned column = 0; column < _k_num_states; column++) {
 				float tmp = KH[0] * P(0,column);
