@@ -62,8 +62,8 @@ bool Ekf::collect_gps(const gps_message &gps)
 	_gps_checks_passed = gps_is_good(gps);
 	if (!_NED_origin_initialised && _gps_checks_passed) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-		const double lat = gps.lat / 1.0e7;
-		const double lon = gps.lon / 1.0e7;
+		const double lat = gps.lat * 1.0e-7;
+		const double lon = gps.lon * 1.0e-7;
 		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 
 		// if we are already doing aiding, correct for the change in position since the EKF started navigationg

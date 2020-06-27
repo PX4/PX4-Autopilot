@@ -408,14 +408,7 @@ void Ekf::calculateOutputStates()
 		const Quatf q_error( (_state.quat_nominal.inversed() * _output_sample_delayed.quat_nominal).normalized() );
 
 		// convert the quaternion delta to a delta angle
-		float scalar;
-
-		if (q_error(0) >= 0.0f) {
-			scalar = -2.0f;
-
-		} else {
-			scalar = 2.0f;
-		}
+		const float scalar = (q_error(0) >= 0.0f) ? -2.f : 2.f;
 
 		const Vector3f delta_ang_error{scalar * q_error(1), scalar * q_error(2), scalar * q_error(3)};
 
