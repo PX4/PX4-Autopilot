@@ -456,12 +456,6 @@ void Ekf::calculateOutputStates()
 			// using a PD feedback tuned to a 5% overshoot
 			const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * vel_gain * 1.1f;
 
-			/*
-			 * Calculate corrections to be applied to vel and pos output state history.
-			 * The vel and pos state history are corrected individually so they track the EKF states at
-			 * the fusion time horizon. This option provides the most accurate tracking of EKF states.
-			 */
-
 			// loop through the vertical output filter state history starting at the oldest and apply the corrections to the
 			// vert_vel states and propagate vert_vel_integ forward using the corrected vert_vel
 			uint8_t index = _output_vert_buffer.get_oldest_index();
