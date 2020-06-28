@@ -299,37 +299,29 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		for (unsigned uorb_index = 0; uorb_index < MAX_GYROS; uorb_index++) {
 
-			char str[30] {};
+			int32_t device_id = worker_data.device_id[uorb_index];
+			Vector3f offset{worker_data.offset[uorb_index]};
 
 			if (uorb_index < orb_gyro_count) {
-				float x_offset = worker_data.offset[uorb_index](0);
-				sprintf(str, "CAL_GYRO%u_XOFF", uorb_index);
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &x_offset));
-
-				float y_offset = worker_data.offset[uorb_index](1);
-				sprintf(str, "CAL_GYRO%u_YOFF", uorb_index);
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &y_offset));
-
-				float z_offset = worker_data.offset[uorb_index](2);
-				sprintf(str, "CAL_GYRO%u_ZOFF", uorb_index);
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &z_offset));
-
-				int32_t device_id = worker_data.device_id[uorb_index];
-				sprintf(str, "CAL_GYRO%u_ID", uorb_index);
-				failed |= (PX4_OK != param_set_no_notification(param_find(str), &device_id));
+				PX4_INFO("[cal] %s %u offset: [%.4f %.4f %.4f]", "GYRO", device_id,
+					 (double)offset(0), (double)offset(1), (double)offset(2));
 
 			} else {
-				// reset unused calibration offsets
-				sprintf(str, "CAL_GYRO%u_XOFF", uorb_index);
-				param_reset(param_find(str));
-				sprintf(str, "CAL_GYRO%u_YOFF", uorb_index);
-				param_reset(param_find(str));
-				sprintf(str, "CAL_GYRO%u_ZOFF", uorb_index);
-				param_reset(param_find(str));
+				device_id = 0;
+				offset.zero();
+			}
 
-				// reset unused calibration device ID
-				sprintf(str, "CAL_GYRO%u_ID", uorb_index);
-				param_reset(param_find(str));
+			char str[20] {};
+
+			sprintf(str, "CAL_%s%u_ID", "GYRO", uorb_index);
+			param_set_no_notification(param_find(str), &device_id);
+
+			for (int axis = 0; axis < 3; axis++) {
+				char axis_char = 'X' + axis;
+
+				// offsets
+				sprintf(str, "CAL_%s%u_%cOFF", "GYRO", uorb_index, axis_char);
+				param_set_no_notification(param_find(str), &offset(axis));
 			}
 		}
 
