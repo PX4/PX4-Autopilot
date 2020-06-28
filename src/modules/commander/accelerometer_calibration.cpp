@@ -175,24 +175,21 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	int res = PX4_OK;
 
 	int32_t device_id[MAX_ACCEL_SENS] {};
+	int32_t enabled[MAX_ACCEL_SENS] {1, 1, 1};
+
 	ORB_PRIO device_prio_max = ORB_PRIO_UNINITIALIZED;
 	int32_t device_id_primary = 0;
+
 	unsigned active_sensors = 0;
 
-	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
-	const unsigned orb_accel_count = orb_group_count(ORB_ID(sensor_accel));
-
-	// Warn that we will not calibrate more than max_accels accelerometers
-	if (orb_accel_count > MAX_ACCEL_SENS) {
-		calibration_log_critical(mavlink_log_pub, "Detected %u accels, but will calibrate only %u", orb_accel_count,
-					 MAX_ACCEL_SENS);
-	}
-
-	for (uint8_t cur_accel = 0; cur_accel < orb_accel_count && cur_accel < MAX_ACCEL_SENS; cur_accel++) {
+	for (uint8_t cur_accel = 0; cur_accel < MAX_ACCEL_SENS; cur_accel++) {
 		uORB::SubscriptionData<sensor_accel_s> accel_sub{ORB_ID(sensor_accel), cur_accel};
-		device_id[cur_accel] = accel_sub.get().device_id;
+		accel_sub.update();
 
-		if (device_id[cur_accel] != 0) {
+		if (accel_sub.advertised() && (accel_sub.get().device_id != 0) && (accel_sub.get().timestamp > 0)) {
+
+			device_id[cur_accel] = accel_sub.get().device_id;
+
 			// Get priority
 			ORB_PRIO prio = accel_sub.get_priority();
 
@@ -201,11 +198,22 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				device_id_primary = device_id[cur_accel];
 			}
 
-			active_sensors++;
+			// preserve existing CAL_ACCx_EN parameter
+			for (uint8_t cal_index = 0; cal_index < MAX_ACCEL_SENS; cal_index++) {
+				char str[20] {};
+				sprintf(str, "CAL_%s%u_ID", "ACC", cal_index);
+				int32_t cal_device_id = 0;
 
-		} else {
-			calibration_log_critical(mavlink_log_pub, "Accel #%u no device id, abort", cur_accel);
-			return PX4_ERROR;
+				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
+					if ((cal_device_id != 0) && (cal_device_id == device_id[cur_accel])) {
+						// CAL_ACCx_EN
+						sprintf(str, "CAL_%s%u_EN", "ACC", cal_index);
+						param_get(param_find(str), &enabled[cur_accel]);
+					}
+				}
+			}
+
+			active_sensors++;
 		}
 	}
 
@@ -234,12 +242,10 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	for (unsigned uorb_index = 0; uorb_index < MAX_ACCEL_SENS; uorb_index++) {
 
-		char str[20] {};
+		Vector3f offset;
+		Vector3f scale;
 
-		Vector3f offset{0.f, 0.f, 0.f};
-		Vector3f scale{1.f, 1.f, 1.f};
-
-		if (uorb_index < active_sensors) {
+		if (device_id[uorb_index] != 0) {
 			/* handle individual sensors, one by one */
 			const Vector3f accel_offs_rotated = board_rotation_t *accel_offs[uorb_index];
 			const Matrix3f accel_T_rotated = board_rotation_t *accel_T[uorb_index] * board_rotation;
@@ -250,10 +256,20 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			PX4_INFO("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "ACC", device_id[uorb_index],
 				 (double)offset(0), (double)offset(1), (double)offset(2),
 				 (double)scale(0), (double)scale(1), (double)scale(2));
+
+		} else {
+			// all unused parameters set to default values
+			offset.zero();
+			scale = Vector3f{1.f, 1.f, 1.f};
+			enabled[uorb_index] = 1;
 		}
+
+		char str[20] {};
 
 		sprintf(str, "CAL_%s%u_ID", "ACC", uorb_index);
 		param_set_no_notification(param_find(str), &device_id[uorb_index]);
+		sprintf(str, "CAL_%s%u_EN", "ACC", uorb_index);
+		param_set_no_notification(param_find(str), &enabled[uorb_index]);
 
 		for (int axis = 0; axis < 3; axis++) {
 			char axis_char = 'X' + axis;
