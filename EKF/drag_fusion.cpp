@@ -146,14 +146,7 @@ void Ekf::fuseDrag()
 			Kfusion(23) = -SK_ACC[0]*(Kacc*P(23,4)*SH_ACC[0] - Kacc*P(23,22)*SH_ACC[0] + Kacc*P(23,0)*SK_ACC[3] - Kacc*P(23,2)*SK_ACC[2] + Kacc*P(23,3)*SK_ACC[1] + Kacc*P(23,1)*SK_ACC[4] + Kacc*P(23,5)*SK_ACC[6] - Kacc*P(23,6)*SK_ACC[5] - Kacc*P(23,23)*SK_ACC[6]);
 
 			// calculate the predicted acceleration and innovation measured along the X body axis
-			float drag_sign;
-
-			if (rel_wind_body(axis_index) >= 0.0f) {
-				drag_sign = 1.0f;
-
-			} else {
-				drag_sign = -1.0f;
-			}
+			const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? 1.f : -1.f;
 
 			const float predAccel = -BC_inv_x * 0.5f * rho * sq(rel_wind_body(axis_index)) * drag_sign;
 			_drag_innov[axis_index] = predAccel - mea_acc;
@@ -221,14 +214,7 @@ void Ekf::fuseDrag()
 			Kfusion(23) = -SK_ACC[0]*(Kacc*P(23,0)*SK_ACC[3] + Kacc*P(23,1)*SK_ACC[2] - Kacc*P(23,3)*SK_ACC[1] + Kacc*P(23,2)*SK_ACC[4] - Kacc*P(23,4)*SK_ACC[5] + Kacc*P(23,5)*SK_ACC[8] + Kacc*P(23,6)*SK_ACC[7] + 2*Kacc*P(23,22)*SK_ACC[6] - Kacc*P(23,23)*SK_ACC[8]);
 
 			// calculate the predicted acceleration and innovation measured along the Y body axis
-			float drag_sign;
-
-			if (rel_wind_body(axis_index) >= 0.0f) {
-				drag_sign = 1.0f;
-
-			} else {
-				drag_sign = -1.0f;
-			}
+			const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? 1.f : -1.f;
 
 			const float predAccel = -BC_inv_y * 0.5f * rho * sq(rel_wind_body(axis_index)) * drag_sign;
 			_drag_innov[axis_index] = predAccel - mea_acc;
