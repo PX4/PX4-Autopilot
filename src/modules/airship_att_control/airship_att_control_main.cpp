@@ -62,6 +62,7 @@ AirshipAttitudeControl::init()
 		PX4_ERR("vehicle_angular_velocity callback registration failed!");
 		return false;
 	}
+
 	return true;
 }
 
@@ -83,10 +84,11 @@ void
 AirshipAttitudeControl::publish_actuator_controls()
 {
 	// zero actuators if not armed
-	if(_vehicle_status.arming_state != 2) {
-		for(uint8_t i = 0 ; i < 4 ; i++) {
+	if (_vehicle_status.arming_state != 2) {
+		for (uint8_t i = 0 ; i < 4 ; i++) {
 			_actuators.control[i] = 0.0f;
 		}
+
 	} else {
 		_actuators.control[0] = 0.0f;
 		_actuators.control[1] = _manual_control_sp.x;
