@@ -222,7 +222,6 @@ void Ekf::predictCovariance()
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
-	process_noise.slice<10,1>(0,0) = 0.0f;
 
 	// delta angle bias states
 	process_noise.slice<3,1>(10,0) = sq(d_ang_bias_sig);
@@ -422,11 +421,6 @@ void Ekf::predictCovariance()
 	nextP(10,12) = P(10,12);
 	nextP(11,12) = P(11,12);
 	nextP(12,12) = P(12,12);
-
-	// add process noise that is not from the IMU
-	for (unsigned i = 0; i <= 9; i++) {
-		nextP(i,i) += process_noise(i);
-	}
 
 	// process noise contribution for delta angle states can be very small compared to
 	// the variances, therefore use algorithm to minimise numerical error
