@@ -39,9 +39,9 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		#imu/invensense/icm20608g
+		#imu/invensense/icm20948
 		imu/invensense/mpu6000
 		#imu/invensense/mpu9250
-		#imu/icm20948
 		#imu/mpu6000 # legacy mpu6000
 		#iridiumsbd
 		#irlock

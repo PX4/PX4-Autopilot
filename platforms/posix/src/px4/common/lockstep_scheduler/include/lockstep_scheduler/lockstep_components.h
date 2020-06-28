@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,78 +31,48 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+#include <cstdint>
+#include <atomic>
+
+#include <px4_platform_common/sem.h>
+
 /**
- * @file mag_i2c.cpp
- *
- * I2C interface for AK09916
+ * @class LockstepComponents
+ * Allows to register components (threads) that need to be updated or waited for in every lockstep cycle (barrier).
+ * Registered components need to ensure they poll on topics that is updated in every lockstep cycle.
  */
-
-#include "icm20948.h"
-#include "ICM20948_mag.h"
-
-#include <drivers/device/i2c.h>
-
-device::Device *AK09916_I2C_interface(int bus, int bus_frequency);
-
-class AK09916_I2C : public device::I2C
+class LockstepComponents
 {
 public:
-	AK09916_I2C(int bus, int bus_frequency);
-	~AK09916_I2C() override = default;
+	LockstepComponents();
+	~LockstepComponents();
 
-	int	read(unsigned address, void *data, unsigned count) override;
-	int	write(unsigned address, void *data, unsigned count) override;
+	/**
+	 * Register a component
+	 * @return a valid component ID > 0 or 0 on error (or unsupported)
+	 */
+	int register_component();
+	void unregister_component(int component);
 
-protected:
-	int	probe() override;
+	/**
+	 * signal an update from a component
+	 * @param component component ID
+	 */
+	void lockstep_progress(int component);
 
+	/**
+	 * Wait for all registered components to call lockstep_progress()
+	 * Note: only 1 thread can call this
+	 */
+	void wait_for_components();
+
+private:
+
+	px4_sem_t _components_sem;
+
+	std::atomic_int _components_used_bitset{0};
+	std::atomic_int _components_progress_bitset{0};
 };
 
-device::Device *
-AK09916_I2C_interface(int bus, int bus_frequency)
-{
-	return new AK09916_I2C(bus, bus_frequency);
-}
-
-AK09916_I2C::AK09916_I2C(int bus, int bus_frequency) :
-	I2C(DRV_IMU_DEVTYPE_ICM20948, "AK09916_I2C", bus, AK09916_I2C_ADDR, bus_frequency)
-{
-}
-
-int
-AK09916_I2C::write(unsigned reg_speed, void *data, unsigned count)
-{
-	uint8_t cmd[2] {};
-
-	if (sizeof(cmd) < (count + 1)) {
-		return -EIO;
-	}
-
-	cmd[0] = ICM20948_REG(reg_speed);
-	cmd[1] = *(uint8_t *)data;
-	return transfer(&cmd[0], count + 1, nullptr, 0);
-}
-
-int
-AK09916_I2C::read(unsigned reg_speed, void *data, unsigned count)
-{
-	uint8_t cmd = ICM20948_REG(reg_speed);
-	return transfer(&cmd, 1, (uint8_t *)data, count);
-}
-
-int
-AK09916_I2C::probe()
-{
-	uint8_t whoami = 0;
-	uint8_t expected = AK09916_DEVICE_ID;
-
-	if (PX4_OK != read(AK09916REG_WIA, &whoami, 1)) {
-		return -EIO;
-	}
-
-	if (whoami != expected) {
-		return -EIO;
-	}
-
-	return OK;
-}

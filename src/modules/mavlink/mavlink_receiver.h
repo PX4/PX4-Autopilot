@@ -265,7 +265,7 @@ private:
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
 	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc), ORB_PRIO_LOW};
-	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_LOW};
+	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_setpoint_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_LOW};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping), ORB_PRIO_LOW};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status), ORB_PRIO_LOW};
 

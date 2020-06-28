@@ -109,7 +109,7 @@ private:
 	uORB::Subscription _v_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint subscription */
 	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< parameter updates subscription */
-	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 
@@ -120,7 +120,7 @@ private:
 
 	struct vehicle_attitude_s		_v_att {};		/**< vehicle attitude */
 	struct vehicle_rates_setpoint_s		_v_rates_sp {};		/**< vehicle rates setpoint */
-	struct manual_control_setpoint_s	_manual_control_sp {};	/**< manual control setpoint */
+	struct manual_control_setpoint_s	_manual_control_setpoint {};	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode {};	/**< vehicle control mode */
 	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 	struct vehicle_land_detected_s		_vehicle_land_detected {};

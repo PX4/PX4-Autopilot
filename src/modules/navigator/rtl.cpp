@@ -202,7 +202,12 @@ void RTL::on_activation()
 
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
-	_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
+
+	} else {
+		_rtl_alt = math::max(global_position.alt, _destination.alt + _param_rtl_return_alt.get());
+	}
 
 	if (_navigator->get_land_detected()->landed) {
 		// For safety reasons don't go into RTL if landed.

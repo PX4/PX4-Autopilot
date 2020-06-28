@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,80 +31,46 @@
  *
  ****************************************************************************/
 
-/**
- * @file main.cpp
- *
- * Driver for the Invensense icm20948 connected via I2C or SPI.
- */
+#include "AK09916.hpp"
 
-#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-#include "icm20948.h"
-
-void
-ICM20948::print_usage()
+I2CSPIDriverBase *AK09916::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				       int runtime_instance)
 {
-	PRINT_MODULE_USAGE_NAME("icm20948", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
+	AK09916 *instance = new AK09916(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
 
-I2CSPIDriverBase *ICM20948::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					int runtime_instance)
-{
-	device::Device *interface = nullptr;
-	device::Device *mag_interface = nullptr;
-
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = ICM20948_I2C_interface(iterator.bus(), PX4_I2C_EXT_ICM20948_1, cli.bus_frequency);
-		// For i2c interfaces, connect to the magnetometer directly
-		mag_interface = AK09916_I2C_interface(iterator.bus(), cli.bus_frequency);
-
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = ICM20948_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
-	}
-
-	if (interface == nullptr) {
+	if (!instance) {
 		PX4_ERR("alloc failed");
-		delete mag_interface;
 		return nullptr;
 	}
 
-	if (interface->init() != OK) {
-		delete interface;
-		delete mag_interface;
+	if (instance->init() != PX4_OK) {
+		delete instance;
 		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
 		return nullptr;
 	}
 
-	ICM20948 *dev = new ICM20948(interface, mag_interface, cli.rotation, iterator.configuredBusOption(), iterator.bus());
-
-	if (dev == nullptr) {
-		delete interface;
-		delete mag_interface;
-		return nullptr;
-	}
-
-	if (OK != dev->init()) {
-		delete dev;
-		return nullptr;
-	}
-
-	return dev;
+	return instance;
 }
 
-extern "C" int
-icm20948_main(int argc, char *argv[])
+void AK09916::print_usage()
+{
+	PRINT_MODULE_USAGE_NAME("ak09916", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+extern "C" __EXPORT int ak09916_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = ICM20948;
-	BusCLIArguments cli{true, true};
-	cli.default_spi_frequency = 20 * 1000 * 1000;
-	cli.default_i2c_frequency = 400000;
+	using ThisDriver = AK09916;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = I2C_SPEED;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -121,7 +87,7 @@ icm20948_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_ICM20948);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_AK09916);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

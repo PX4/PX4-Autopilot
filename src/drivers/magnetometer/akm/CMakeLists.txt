@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__ak09916
-	MAIN ak09916
-	COMPILE_FLAGS
-	SRCS
-		ak09916.cpp
-	DEPENDS
-		drivers_magnetometer
-		px4_work_queue
-	)
 
+add_subdirectory(ak8963)
+add_subdirectory(ak09916)

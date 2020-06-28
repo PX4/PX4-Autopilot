@@ -126,12 +126,12 @@ private:
 	int	_vehicle_attitude_sub{-1};	/**< control state subscription */
 	int	_angular_velocity_sub{-1};	/**< vehicle angular velocity subscription */
 	int	_local_pos_sub{-1};		/**< local position subscription */
-	int	_manual_control_sub{-1};	/**< notification of manual control updates */
+	int	_manual_control_setpoint_sub{-1};	/**< notification of manual control updates */
 	int	_vcontrol_mode_sub{-1};		/**< vehicle status subscription */
 	int	_sensor_combined_sub{-1};	/**< sensor combined subscription */
 
 	actuator_controls_s		_actuators {};		/**< actuator control inputs */
-	manual_control_setpoint_s	_manual {};		/**< r/c channel data */
+	manual_control_setpoint_s	_manual_control_setpoint {};		/**< r/c channel data */
 	vehicle_attitude_s		_vehicle_attitude {};	/**< control state */
 	vehicle_angular_velocity_s	_angular_velocity{};	/**< angular velocity */
 	vehicle_attitude_setpoint_s	_vehicle_attitude_sp {};/**< vehicle attitude setpoint */

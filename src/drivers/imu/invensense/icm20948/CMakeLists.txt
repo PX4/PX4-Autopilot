@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE drivers__imu__icm20948
 	MAIN icm20948
+	COMPILE_FLAGS
 	SRCS
 		AKM_AK09916_registers.hpp
 		ICM20948.cpp
