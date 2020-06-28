@@ -97,7 +97,7 @@ void Ekf::initialiseCovariance()
 
 	// wind
 	P(22,22) = sq(_params.initial_wind_uncertainty);
-	P(23,23) = sq(_params.initial_wind_uncertainty);
+	P(23,23) = P(22,22);
 
 }
 
@@ -237,10 +237,11 @@ void Ekf::predictCovariance()
 
 	// assign IMU noise variances
 	// inputs to the system are 3 delta angles and 3 delta velocities
-	float daxVar, dayVar, dazVar;
-	float dvxVar, dvyVar, dvzVar;
 	float gyro_noise = math::constrain(_params.gyro_noise, 0.0f, 1.0f);
-	daxVar = dayVar = dazVar = sq(dt * gyro_noise);
+	const float daxVar = sq(dt * gyro_noise);
+	const float dayVar = daxVar;
+	const float dazVar = daxVar;
+
 	float accel_noise = math::constrain(_params.accel_noise, 0.0f, 1.0f);
 
 	if (_bad_vert_accel_detected) {
@@ -249,6 +250,7 @@ void Ekf::predictCovariance()
 		accel_noise = BADACC_BIAS_PNOISE;
 	}
 
+	float dvxVar, dvyVar, dvzVar;
 	dvxVar = dvyVar = dvzVar = sq(dt * accel_noise);
 
 	// Accelerometer Clipping
@@ -264,8 +266,6 @@ void Ekf::predictCovariance()
 	if (_imu_sample_delayed.delta_vel_clipping[2]) {
 		dvzVar = sq(dt * BADACC_BIAS_PNOISE);
 	}
-
-	// predict the covariance
 
 	// intermediate calculations
 	float SF[21];
@@ -314,7 +314,7 @@ void Ekf::predictCovariance()
 	SQ[9] = sq(SG[0]);
 	SQ[10] = sq(q1);
 
-	float SPP[11] = {};
+	float SPP[11];
 	SPP[0] = SF[12] + SF[13] - 2*q2*SF[2];
 	SPP[1] = SF[17] - SF[18] - SF[19] + SF[20];
 	SPP[2] = SF[17] - SF[18] + SF[19] - SF[20];
