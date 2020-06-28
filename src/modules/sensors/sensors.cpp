@@ -45,7 +45,6 @@
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <lib/airspeed/airspeed.h>
-#include <lib/conversion/rotation.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -65,19 +64,17 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/sensor_preflight_imu.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
-#include <uORB/topics/vehicle_magnetometer.h>
-#include <uORB/topics/battery_status.h>
 
-#include "parameters.h"
 #include "voted_sensors_update.h"
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 #include "vehicle_air_data/VehicleAirData.hpp"
 #include "vehicle_imu/VehicleIMU.hpp"
+#include "vehicle_magnetometer/VehicleMagnetometer.hpp"
 
 using namespace sensors;
 using namespace time_literals;
@@ -116,10 +113,9 @@ private:
 
 	hrt_abstime     _last_config_update{0};
 	hrt_abstime     _sensor_combined_prev_timestamp{0};
-	hrt_abstime     _magnetometer_prev_timestamp{0};
 
 	sensor_combined_s _sensor_combined{};
-	sensor_preflight_s _sensor_preflight{};
+	sensor_preflight_imu_s _sensor_preflight_imu{};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[3] {
 		{this, ORB_ID(vehicle_imu), 0},
@@ -127,26 +123,14 @@ private:
 		{this, ORB_ID(vehicle_imu), 2}
 	};
 
-	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
-	uORB::Subscription	_diff_pres_sub{ORB_ID(differential_pressure)};			/**< raw differential pressure subscription */
-	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
-	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
-	uORB::Subscription	_vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
-	uORB::Subscription	_battery_status_sub{ORB_ID(battery_status), 0};		/**< battery_status instance 0 subscription */
+	uORB::Subscription _diff_pres_sub{ORB_ID(differential_pressure)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
-	uORB::Publication<airspeed_s>			_airspeed_pub{ORB_ID(airspeed)};			/**< airspeed */
-	uORB::Publication<sensor_combined_s>		_sensor_pub{ORB_ID(sensor_combined)};			/**< combined sensor data topic */
-	uORB::Publication<sensor_preflight_s>		_sensor_preflight_pub{ORB_ID(sensor_preflight)};		/**< sensor preflight topic */
-	uORB::Publication<vehicle_magnetometer_s>	_magnetometer_pub{ORB_ID(vehicle_magnetometer)};	/**< combined sensor data topic */
-
-	enum class MagCompensationType {
-		Disabled = 0,
-		Throttle,
-		Current_inst0,
-		Current_inst1
-	};
-
-	MagCompensationType _mag_comp_type{MagCompensationType::Disabled};
+	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
+	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
+	uORB::Publication<sensor_preflight_imu_s> _sensor_preflight_imu_pub{ORB_ID(sensor_preflight_imu)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -161,14 +145,35 @@ private:
 	uORB::PublicationMulti<differential_pressure_s>	_diff_pres_pub{ORB_ID(differential_pressure)};		/**< differential_pressure */
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
-	Parameters		_parameters{};			/**< local copies of interesting parameters */
-	ParameterHandles	_parameter_handles{};		/**< handles for interesting parameters */
+
+	struct Parameters {
+		float diff_pres_offset_pa;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+		float diff_pres_analog_scale;
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+
+		int32_t air_cmodel;
+		float air_tube_length;
+		float air_tube_diameter_mm;
+	} _parameters{}; /**< local copies of interesting parameters */
+
+	struct ParameterHandles {
+		param_t diff_pres_offset_pa;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+		param_t diff_pres_analog_scale;
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+
+		param_t air_cmodel;
+		param_t air_tube_length;
+		param_t air_tube_diameter_mm;
+	} _parameter_handles{};		/**< handles for interesting parameters */
 
 	VotedSensorsUpdate _voted_sensors_update;
 
 	VehicleAcceleration	_vehicle_acceleration;
 	VehicleAngularVelocity	_vehicle_angular_velocity;
 	VehicleAirData          *_vehicle_air_data{nullptr};
+	VehicleMagnetometer     _vehicle_magnetometer;
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
@@ -213,15 +218,43 @@ Sensors::Sensors(bool hil_enabled) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
-	_voted_sensors_update(_parameters, hil_enabled, _vehicle_imu_sub)
+	_voted_sensors_update(hil_enabled, _vehicle_imu_sub)
 {
-	initialize_parameter_handles(_parameter_handles);
+	/* Differential pressure offset */
+	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+
+	_parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
+	_parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
+	_parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
+
+	param_find("BAT_V_DIV");
+	param_find("BAT_A_PER_V");
+
+	param_find("CAL_ACC0_ID");
+	param_find("CAL_GYRO0_ID");
+
+	param_find("SYS_PARAM_VER");
+	param_find("SYS_AUTOSTART");
+	param_find("SYS_AUTOCONFIG");
+	param_find("TRIG_MODE");
+	param_find("UAVCAN_ENABLE");
+
+	// Parameters controlling the on-board sensor thermal calibrator
+	param_find("SYS_CAL_TDEL");
+	param_find("SYS_CAL_TMAX");
+	param_find("SYS_CAL_TMIN");
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
 
 	_vehicle_acceleration.Start();
 	_vehicle_angular_velocity.Start();
+	_vehicle_magnetometer.Start();
+
+	InitializeVehicleIMU();
 }
 
 Sensors::~Sensors()
@@ -233,6 +266,7 @@ Sensors::~Sensors()
 
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
+	_vehicle_magnetometer.Stop();
 
 	if (_vehicle_air_data) {
 		_vehicle_air_data->Stop();
@@ -265,8 +299,15 @@ int Sensors::parameters_update()
 		return 0;
 	}
 
-	/* read the parameter values into _parameters */
-	update_parameters(_parameter_handles, _parameters);
+	/* Airspeed offset */
+	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+	param_get(_parameter_handles.diff_pres_analog_scale, &(_parameters.diff_pres_analog_scale));
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+
+	param_get(_parameter_handles.air_cmodel, &_parameters.air_cmodel);
+	param_get(_parameter_handles.air_tube_length, &_parameters.air_tube_length);
+	param_get(_parameter_handles.air_tube_diameter_mm, &_parameters.air_tube_diameter_mm);
 
 	_voted_sensors_update.parametersUpdate();
 
@@ -505,56 +546,15 @@ void Sensors::Run()
 
 		if (_vcontrol_mode_sub.copy(&vcontrol_mode)) {
 			_armed = vcontrol_mode.flag_armed;
-			_voted_sensors_update.update_mag_comp_armed(_armed);
-		}
-
-		//check mag power compensation type (change battery current subscription instance if necessary)
-		if ((MagCompensationType)_parameters.mag_comp_type == MagCompensationType::Current_inst0
-		    && _mag_comp_type != MagCompensationType::Current_inst0) {
-			_battery_status_sub = uORB::Subscription{ORB_ID(battery_status), 0};
-		}
-
-		if ((MagCompensationType)_parameters.mag_comp_type == MagCompensationType::Current_inst1
-		    && _mag_comp_type != MagCompensationType::Current_inst1) {
-			_battery_status_sub = uORB::Subscription{ORB_ID(battery_status), 1};
-		}
-
-		_mag_comp_type = (MagCompensationType)_parameters.mag_comp_type;
-
-		//update power signal for mag compensation
-		if (_mag_comp_type == MagCompensationType::Throttle) {
-			actuator_controls_s controls {};
-
-			if (_actuator_ctrl_0_sub.update(&controls)) {
-				_voted_sensors_update.update_mag_comp_power(controls.control[actuator_controls_s::INDEX_THROTTLE]);
-			}
-
-		} else if (_mag_comp_type == MagCompensationType::Current_inst0
-			   || _mag_comp_type == MagCompensationType::Current_inst1) {
-			battery_status_s bat_stat {};
-
-			if (_battery_status_sub.update(&bat_stat)) {
-				_voted_sensors_update.update_mag_comp_power(bat_stat.current_a * 0.001f); //current in [kA]
-			}
 		}
 	}
 
-	vehicle_magnetometer_s magnetometer{};
-	_voted_sensors_update.sensorsPoll(_sensor_combined, magnetometer);
+	_voted_sensors_update.sensorsPoll(_sensor_combined);
 
 	// check analog airspeed
 	adc_poll();
 
 	diff_pres_poll();
-
-	if ((magnetometer.timestamp != 0) && (magnetometer.timestamp != _magnetometer_prev_timestamp)) {
-		_magnetometer_pub.publish(magnetometer);
-		_magnetometer_prev_timestamp = magnetometer.timestamp;
-
-		if (!_armed) {
-			_voted_sensors_update.calcMagInconsistency(_sensor_preflight);
-		}
-	}
 
 	if (_sensor_combined.timestamp != _sensor_combined_prev_timestamp) {
 
@@ -565,11 +565,11 @@ void Sensors::Run()
 		// If the the vehicle is disarmed calculate the length of the maximum difference between
 		// IMU units as a consistency metric and publish to the sensor preflight topic
 		if (!_armed) {
-			_voted_sensors_update.calcAccelInconsistency(_sensor_preflight);
-			_voted_sensors_update.calcGyroInconsistency(_sensor_preflight);
+			_voted_sensors_update.calcAccelInconsistency(_sensor_preflight_imu);
+			_voted_sensors_update.calcGyroInconsistency(_sensor_preflight_imu);
 
-			_sensor_preflight.timestamp = hrt_absolute_time();
-			_sensor_preflight_pub.publish(_sensor_preflight);
+			_sensor_preflight_imu.timestamp = hrt_absolute_time();
+			_sensor_preflight_imu_pub.publish(_sensor_preflight_imu);
 		}
 	}
 
@@ -644,6 +644,9 @@ int Sensors::print_status()
 {
 	_voted_sensors_update.printStatus();
 
+	PX4_INFO_RAW("\n");
+	_vehicle_magnetometer.PrintStatus();
+
 	if (_vehicle_air_data) {
 		PX4_INFO_RAW("\n");
 		_vehicle_air_data->PrintStatus();
@@ -696,7 +699,7 @@ The provided functionality includes:
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
   on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
   sensor drivers must already be running when `sensors` is started.
-- Do preflight sensor consistency checks and publish the `sensor_preflight` topic.
+- Do preflight sensor consistency checks and publish the `sensor_preflight_imu` topic.
 
 ### Implementation
 It runs in its own thread and polls on the currently selected gyro topic.

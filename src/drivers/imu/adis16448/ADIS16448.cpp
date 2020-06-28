@@ -307,8 +307,6 @@ ADIS16448::print_status()
 	perf_print_counter(_perf_transfer);
 	perf_print_counter(_perf_bad_transfer);
 	perf_print_counter(_perf_crc_bad);
-
-	_px4_mag.print_status();
 }
 
 void

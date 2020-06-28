@@ -306,5 +306,4 @@ void QMC5883::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("interval:  %u us\n", _measure_interval);
-	_px4_mag.print_status();
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,33 +31,62 @@
  *
  ****************************************************************************/
 
-/**
- * @file MagCompensation.hpp
- * @author Roman Bapst <roman@auterion.com>
- *
- *  Library for magnetometer data compensation.
- *
- */
-
 #pragma once
 
-#include <px4_platform_common/module_params.h>
-#include <matrix/matrix/math.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <lib/conversion/rotation.h>
+#include <lib/matrix/matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/battery_status.h>
 
-class MagCompensator : public ModuleParams
+namespace sensors
+{
+
+class MagnetometerCalibration
 {
 public:
-	MagCompensator(ModuleParams *parent);
+	MagnetometerCalibration() = default;
+	~MagnetometerCalibration() = default;
 
-	~MagCompensator() = default;
+	void PrintStatus();
 
-	void update_armed_flag(bool armed) { _armed = armed; }
+	void set_device_id(uint32_t device_id);
+	void set_external(bool external = true) { _external = external; }
 
-	void update_power(float power) { _power = power; }
+	uint32_t device_id() const { return _device_id; }
+	bool enabled() const { return _enabled; }
+	bool external() const { return _external; }
 
-	void calculate_mag_corrected(matrix::Vector3f &mag, const matrix::Vector3f &param_vect);
+	// apply offsets and scale
+	// rotate corrected measurements from sensor to body frame
+	matrix::Vector3f Correct(const matrix::Vector3f &data);
+
+	void ParametersUpdate();
+	void SensorCorrectionsUpdate(bool force = false);
+
+	void UpdatePower(float power) { _power = power; }
 
 private:
-	float _power{0};
-	bool _armed{false};
+
+	static constexpr int MAX_SENSOR_COUNT = 4;
+
+	int FindCalibrationIndex(uint32_t device_id) const;
+
+	static constexpr const char *SensorString() { return "MAG"; }
+
+	matrix::Dcmf _rotation;
+
+	matrix::Vector3f _offset;
+	matrix::Matrix3f _scale;
+	matrix::Vector3f _power_compensation;
+	float _power{0.f};
+
+	uint32_t _device_id{0};
+
+	bool _enabled{true};
+	bool _external{false};
 };
+
+} // namespace sensors

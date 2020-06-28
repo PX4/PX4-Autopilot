@@ -62,3 +62,16 @@ PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
+
+/**
+ * Type of magnetometer compensation
+ *
+ * @value 0 Disabled
+ * @value 1 Throttle-based compensation
+ * @value 2 Current-based compensation (battery_status instance 0)
+ * @value 3 Current-based compensation (battery_status instance 1)
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(CAL_MAG_COMP_TYP, 0);

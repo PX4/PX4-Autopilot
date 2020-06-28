@@ -49,7 +49,6 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_device.h>
 
@@ -581,7 +580,6 @@ void IST8310::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u interval\n", _measure_interval);
-	_px4_mag.print_status();
 }
 
 I2CSPIDriverBase *

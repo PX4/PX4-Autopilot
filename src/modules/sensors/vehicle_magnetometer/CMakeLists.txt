@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,4 +31,11 @@
 #
 ############################################################################
 
-px4_add_library(mag_compensation MagCompensation.cpp)
+px4_add_library(vehicle_magnetometer
+	MagnetometerCalibration.cpp
+	MagnetometerCalibration.hpp
+	VehicleMagnetometer.cpp
+	VehicleMagnetometer.hpp
+)
+#target_compile_options(vehicle_magnetometer PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_link_libraries(vehicle_magnetometer PRIVATE px4_work_queue)

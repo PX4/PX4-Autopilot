@@ -334,5 +334,4 @@ void LSM303AGR::print_status()
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_bad_values);
-	_px4_mag.print_status();
 }

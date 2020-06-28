@@ -39,34 +39,32 @@
  * @author Beat Kueng <beat-kueng@gmx.net>
  */
 
-#include "parameters.h"
-
 #include "data_validator/DataValidator.hpp"
 #include "data_validator/DataValidatorGroup.hpp"
 
-#include <drivers/drv_mag.h>
+#include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
-
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-
-#include <lib/mag_compensation/MagCompensation.hpp>
-
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/sensor_preflight_imu.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_imu_status.h>
-#include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/subsystem_info.h>
-
-#include "common.h"
 
 namespace sensors
 {
+
+static constexpr uint8_t GYRO_COUNT_MAX = 3;
+static constexpr uint8_t ACCEL_COUNT_MAX = 3;
+
+static constexpr uint8_t SENSOR_COUNT_MAX = math::max(GYRO_COUNT_MAX, ACCEL_COUNT_MAX);
 
 /**
  ** class VotedSensorsUpdate
@@ -80,8 +78,7 @@ public:
 	 * @param parameters parameter values. These do not have to be initialized when constructing this object.
 	 * Only when calling init(), they have to be initialized.
 	 */
-	VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled,
-			   uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[3]);
+	VotedSensorsUpdate(bool hil_enabled, uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[3]);
 
 	/**
 	 * initialize subscriptions etc.
@@ -105,7 +102,7 @@ public:
 	/**
 	 * read new sensor data
 	 */
-	void sensorsPoll(sensor_combined_s &raw, vehicle_magnetometer_s &magnetometer);
+	void sensorsPoll(sensor_combined_s &raw);
 
 	/**
 	 * set the relative timestamps of each sensor timestamp, based on the last sensorsPoll,
@@ -116,34 +113,22 @@ public:
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
 	 */
-	void calcAccelInconsistency(sensor_preflight_s &preflt);
+	void calcAccelInconsistency(sensor_preflight_imu_s &preflt);
 
 	/**
 	 * Calculates the magnitude in rad/s of the largest difference between the primary and any other gyro sensor
 	 */
-	void calcGyroInconsistency(sensor_preflight_s &preflt);
-
-	/**
-	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
-	 */
-	void calcMagInconsistency(sensor_preflight_s &preflt);
-
-	/**
-	 * Update armed flag for mag compensation.
-	 */
-	void update_mag_comp_armed(bool armed);
-
-	/**
-	 * Update power signal for mag compensation.
-	 * power: either throttle value [0,1] or current measurement in [kA]
-	 */
-	void update_mag_comp_power(float power);
+	void calcGyroInconsistency(sensor_preflight_imu_s &preflt);
 
 private:
 
+	static constexpr uint8_t GYRO_COUNT_MAX = 3;
+	static constexpr uint8_t ACCEL_COUNT_MAX = 3;
+	static constexpr uint8_t SENSOR_COUNT_MAX = 3;
+
 	struct SensorData {
 		SensorData() = delete;
-		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}, {meta, 3}} {}
+		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}} {}
 
 		uORB::Subscription subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		DataValidatorGroup voter{1};
@@ -151,9 +136,8 @@ private:
 		ORB_PRIO priority[SENSOR_COUNT_MAX] {}; /**< sensor priority */
 		uint8_t last_best_vote{0}; /**< index of the latest best vote */
 		uint8_t subscription_count{0};
-		bool enabled[SENSOR_COUNT_MAX] {true, true, true, true};
-		bool advertised[SENSOR_COUNT_MAX] {false, false, false, false};
-		matrix::Vector3f power_compensation[SENSOR_COUNT_MAX];
+		bool enabled[SENSOR_COUNT_MAX] {true, true, true};
+		bool advertised[SENSOR_COUNT_MAX] {false, false, false};
 	};
 
 	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);
@@ -167,14 +151,6 @@ private:
 	void imuPoll(sensor_combined_s &raw);
 
 	/**
-	 * Poll the magnetometer for updated data.
-	 *
-	 * @param raw	Combined sensor data structure into which
-	 *		data should be returned.
-	 */
-	void magPoll(vehicle_magnetometer_s &magnetometer);
-
-	/**
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
@@ -182,7 +158,6 @@ private:
 
 	SensorData _accel{ORB_ID::sensor_accel};
 	SensorData _gyro{ORB_ID::sensor_gyro};
-	SensorData _mag{ORB_ID::sensor_mag};
 
 	hrt_abstime _last_error_message{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
@@ -198,26 +173,16 @@ private:
 	};
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
-	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
 
-	matrix::Dcmf _board_rotation {};		/**< rotation matrix for the orientation that the board is mounted */
-	matrix::Dcmf _mag_rotation[MAG_COUNT_MAX] {};	/**< rotation matrix for the orientation that the external mag0 is mounted */
-
-	const Parameters &_parameters;
 	const bool _hil_enabled{false};			/**< is hardware-in-the-loop mode enabled? */
 
 	bool _selection_changed{true};			/**< true when a sensor selection has changed and not been published */
 
 	float _accel_diff[3][2] {};			/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
-	float _mag_angle_diff[2] {};			/**< filtered mag angle differences between sensor instances (Ga) */
-
-	/* Magnetometer interference compensation */
-	MagCompensator _mag_compensator;
 
 	uint32_t _accel_device_id[SENSOR_COUNT_MAX] {};	/**< accel driver device id for each uorb instance */
 	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] {};	/**< gyro driver device id for each uorb instance */
-	uint32_t _mag_device_id[SENSOR_COUNT_MAX] {};	/**< mag driver device id for each uorb instance */
 
 	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX] {};	/**< latest full timestamp */
 

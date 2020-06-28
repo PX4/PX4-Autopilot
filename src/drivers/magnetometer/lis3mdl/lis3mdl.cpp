@@ -194,7 +194,6 @@ void LIS3MDL::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	PX4_INFO("poll interval:  %u", _measure_interval);
-	_px4_mag.print_status();
 }
 
 int LIS3MDL::reset()
