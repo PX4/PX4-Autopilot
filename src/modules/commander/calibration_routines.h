@@ -36,6 +36,8 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
+
 /**
  * Least-squares fit of a sphere to a set of points.
  *
@@ -83,8 +85,7 @@ static constexpr unsigned detect_orientation_side_count = 6;
 ///	@return Returns detect_orientation_return according to orientation when vehicle
 ///		and ready for measurements
 enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
-		int	cancel_sub,			///< Cancel subscription from calibration_cancel_subscribe
-		bool	lenient_still_detection);	///< true: Use more lenient still position detection
+		bool lenient_still_detection);	///< true: Use more lenient still position detection
 
 /// Returns the human readable string representation of the orientation
 ///	@param orientation Orientation to return string for, "error" if buffer is too small
@@ -98,29 +99,18 @@ enum calibrate_return {
 
 typedef calibrate_return(*calibration_from_orientation_worker_t)(detect_orientation_return
 		orientation,	///< Orientation which was detected
-		int				cancel_sub,	///< Cancel subscription from calibration_cancel_subscribe
-		void				*worker_data);	///< Opaque worker data
+		void *worker_data);	///< Opaque worker data
 
 /// Perform calibration sequence which require a rest orientation detection prior to calibration.
 ///	@return OK: Calibration succeeded, ERROR: Calibration failed
-calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,		///< uORB handle to write output to
-		int		cancel_sub,						///< Cancel subscription from calibration_cancel_subscribe
-		bool	side_data_collected[detect_orientation_side_count],	///< Sides for which data still needs calibration
-		calibration_from_orientation_worker_t calibration_worker,		///< Worker routine which performs the actual calibration
-		void	*worker_data,						///< Opaque data passed to worker routine
-		bool	lenient_still_detection);				///< true: Use more lenient still position detection
-
-/// Called at the beginning of calibration in order to subscribe to the cancel command
-///	@return Handle to vehicle_command subscription
-int calibrate_cancel_subscribe(void);
-
-/// Called to cancel the subscription to the cancel command
-///	@param cancel_sub Cancel subcription from calibration_cancel_subscribe
-void calibrate_cancel_unsubscribe(int cancel_sub);
+calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
+		bool side_data_collected[detect_orientation_side_count],	///< Sides for which data still needs calibration
+		calibration_from_orientation_worker_t calibration_worker,	///< Worker routine which performs the actual calibration
+		void *worker_data,						///< Opaque data passed to worker routine
+		bool lenient_still_detection);					///< true: Use more lenient still position detection
 
 /// Used to periodically check for a cancel command
-bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
-			    int cancel_sub);	///< Cancel subcription fromcalibration_cancel_subscribe
+bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started);
 
 
 // TODO FIXME: below are workarounds for QGC. The issue is that sometimes

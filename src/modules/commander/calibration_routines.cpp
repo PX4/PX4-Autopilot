@@ -50,9 +50,11 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <matrix/math.hpp>
 
+#include <uORB/Publication.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include "calibration_routines.h"
 #include "calibration_messages.h"
@@ -713,19 +715,17 @@ const char *detect_orientation_str(enum detect_orientation_return orientation)
 }
 
 calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
-		int		cancel_sub,
-		bool	side_data_collected[detect_orientation_side_count],
-		calibration_from_orientation_worker_t calibration_worker,
-		void	*worker_data,
-		bool	lenient_still_position)
+		bool side_data_collected[detect_orientation_side_count], calibration_from_orientation_worker_t calibration_worker,
+		void *worker_data, bool lenient_still_position)
 {
+	const hrt_abstime calibration_started = hrt_absolute_time();
 	calibrate_return result = calibrate_return_ok;
 
 	unsigned orientation_failures = 0;
 
 	// Rotate through all requested orientation
 	while (true) {
-		if (calibrate_cancel_check(mavlink_log_pub, cancel_sub)) {
+		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
 			result = calibrate_return_cancelled;
 			break;
 		}
@@ -790,7 +790,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		orientation_failures = 0;
 
 		// Call worker routine
-		result = calibration_worker(orient, cancel_sub, worker_data);
+		result = calibration_worker(orient, worker_data);
 
 		if (result != calibrate_return_ok) {
 			break;
@@ -815,74 +815,51 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 	return result;
 }
 
-int calibrate_cancel_subscribe()
+bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started)
 {
-	int vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	bool ret = false;
 
-	if (vehicle_command_sub >= 0) {
-		// make sure we won't read any old messages
-		struct vehicle_command_s cmd;
-		bool update;
+	uORB::Subscription vehicle_command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s cmd;
 
-		while (orb_check(vehicle_command_sub, &update) == 0 && update) {
-			orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &cmd);
-		}
-	}
+	while (vehicle_command_sub.update(&cmd)) {
+		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION) {
+			// only handle commands sent after calibration started from external sources
+			if ((cmd.timestamp > calibration_started) && cmd.from_external) {
 
-	return vehicle_command_sub;
-}
+				vehicle_command_ack_s command_ack{};
 
-void calibrate_cancel_unsubscribe(int cmd_sub)
-{
-	orb_unsubscribe(cmd_sub);
-}
+				if ((int)cmd.param1 == 0 &&
+				    (int)cmd.param2 == 0 &&
+				    (int)cmd.param3 == 0 &&
+				    (int)cmd.param4 == 0 &&
+				    (int)cmd.param5 == 0 &&
+				    (int)cmd.param6 == 0) {
 
-static void calibrate_answer_command(orb_advert_t *mavlink_log_pub, struct vehicle_command_s &cmd, unsigned result)
-{
-	switch (result) {
-	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
-		tune_positive(true);
-		break;
+					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
+					tune_positive(true);
+					ret = true;
 
-	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
-		mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %u", cmd.command);
-		tune_negative(true);
-		break;
+				} else {
+					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+					mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %u", cmd.command);
+					tune_negative(true);
+					ret = false;
+				}
 
-	default:
-		break;
-	}
-}
+				command_ack.command = cmd.command;
+				command_ack.target_system = cmd.source_system;
+				command_ack.target_component = cmd.source_component;
+				command_ack.timestamp = hrt_absolute_time();
 
-bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
-{
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd = cancel_sub;
-	fds[0].events = POLLIN;
+				uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+				command_ack_pub.publish(command_ack);
 
-	if (px4_poll(&fds[0], 1, 0) > 0) {
-		struct vehicle_command_s cmd;
-
-		orb_copy(ORB_ID(vehicle_command), cancel_sub, &cmd);
-
-		// ignore internal commands, such as VEHICLE_CMD_DO_MOUNT_CONTROL from vmount
-		if (cmd.from_external) {
-			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION &&
-			    (int)cmd.param1 == 0 &&
-			    (int)cmd.param2 == 0 &&
-			    (int)cmd.param3 == 0 &&
-			    (int)cmd.param4 == 0 &&
-			    (int)cmd.param5 == 0 &&
-			    (int)cmd.param6 == 0) {
-				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-				mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
-				return true;
-
-			} else {
-				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
+				return ret;
 			}
 		}
 	}
 
-	return false;
+	return ret;
 }

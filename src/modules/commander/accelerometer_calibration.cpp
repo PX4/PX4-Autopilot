@@ -286,7 +286,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	return res;
 }
 
-static calibrate_return accel_calibration_worker(detect_orientation_return orientation, int cancel_sub, void *data)
+static calibrate_return accel_calibration_worker(detect_orientation_return orientation, void *data)
 {
 	const unsigned samples_num = 750;
 	accel_worker_data_t *worker_data = (accel_worker_data_t *)(data);
@@ -319,11 +319,7 @@ static calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_
 	bool data_collected[detect_orientation_side_count] {};
 
 	if (result == calibrate_return_ok) {
-		int cancel_sub = calibrate_cancel_subscribe();
-		result = calibrate_from_orientation(mavlink_log_pub, cancel_sub, data_collected, accel_calibration_worker, &worker_data,
-						    false);
-
-		calibrate_cancel_unsubscribe(cancel_sub);
+		result = calibrate_from_orientation(mavlink_log_pub, data_collected, accel_calibration_worker, &worker_data, false);
 	}
 
 	if (result == calibrate_return_ok) {

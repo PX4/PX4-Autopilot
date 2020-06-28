@@ -84,8 +84,9 @@ static int float_cmp(const void *elem1, const void *elem2)
 	return *(const float *)elem1 > *(const float *)elem2;
 }
 
-static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data_t &worker_data)
+static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 {
+	const hrt_abstime calibration_started = hrt_absolute_time();
 	unsigned calibration_counter[MAX_GYROS] {};
 	static constexpr unsigned CALIBRATION_COUNT = 250;
 	unsigned poll_errcount = 0;
@@ -108,7 +109,7 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, gyro_worker_data
 	unsigned slow_count = 0;
 
 	while (slow_count < CALIBRATION_COUNT) {
-		if (calibrate_cancel_check(worker_data.mavlink_log_pub, cancel_sub)) {
+		if (calibrate_cancel_check(worker_data.mavlink_log_pub, calibration_started)) {
 			return calibrate_return_cancelled;
 		}
 
@@ -237,15 +238,13 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		}
 	}
 
-	int cancel_sub = calibrate_cancel_subscribe();
-
 	unsigned try_count = 0;
 	unsigned max_tries = 20;
 	res = PX4_ERROR;
 
 	do {
 		// Calibrate gyro and ensure user didn't move
-		calibrate_return cal_return = gyro_calibration_worker(cancel_sub, worker_data);
+		calibrate_return cal_return = gyro_calibration_worker(worker_data);
 
 		if (cal_return == calibrate_return_cancelled) {
 			// Cancel message already sent, we are done here
@@ -289,8 +288,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		calibration_log_critical(mavlink_log_pub, "ERROR: Motion during calibration");
 		res = PX4_ERROR;
 	}
-
-	calibrate_cancel_unsubscribe(cancel_sub);
 
 	if (res == PX4_OK) {
 
