@@ -95,56 +95,6 @@ int SensorCalibration::FindCalibrationIndex(uint32_t device_id) const
 	return -1;
 }
 
-bool SensorCalibration::CalibrationEnabled(uint8_t calibration_index) const
-{
-	char str[20] {};
-	sprintf(str, "CAL_%s%u_EN", SensorString(), calibration_index);
-	int32_t enabled_val = 1;
-	param_get(param_find(str), &enabled_val);
-
-	return (enabled_val != 0);
-}
-
-Vector3f SensorCalibration::CalibrationOffset(uint8_t calibration_index) const
-{
-	// offsets (x, y, z)
-	Vector3f offset{0.f, 0.f, 0.f};
-	char str[20] {};
-
-	sprintf(str, "CAL_%s%u_XOFF", SensorString(), calibration_index);
-	param_get(param_find(str), &offset(0));
-
-	sprintf(str, "CAL_%s%u_YOFF", SensorString(), calibration_index);
-	param_get(param_find(str), &offset(1));
-
-	sprintf(str, "CAL_%s%u_ZOFF", SensorString(), calibration_index);
-	param_get(param_find(str), &offset(2));
-
-	return offset;
-}
-
-Vector3f SensorCalibration::CalibrationScale(uint8_t calibration_index) const
-{
-	// scale factors (x, y, z)
-	Vector3f scale{1.f, 1.f, 1.f};
-
-	// gyroscope doesn't have a scale factor calibration
-	if (_type != SensorType::Gyroscope) {
-		char str[20] {};
-
-		sprintf(str, "CAL_%s%u_XSCALE", SensorString(), calibration_index);
-		param_get(param_find(str), &scale(0));
-
-		sprintf(str, "CAL_%s%u_YSCALE", SensorString(), calibration_index);
-		param_get(param_find(str), &scale(1));
-
-		sprintf(str, "CAL_%s%u_ZSCALE", SensorString(), calibration_index);
-		param_get(param_find(str), &scale(2));
-	}
-
-	return scale;
-}
-
 void SensorCalibration::SensorCorrectionsUpdate(bool force)
 {
 	// check if the selected sensor has updated
@@ -196,6 +146,10 @@ void SensorCalibration::SensorCorrectionsUpdate(bool force)
 
 void SensorCalibration::ParametersUpdate()
 {
+	if (_device_id == 0) {
+		return;
+	}
+
 	if (!_external) {
 		// fine tune the rotation
 		float x_offset = 0.f;
@@ -221,9 +175,29 @@ void SensorCalibration::ParametersUpdate()
 	int calibration_index = FindCalibrationIndex(_device_id);
 
 	if (calibration_index >= 0) {
-		_enabled = CalibrationEnabled(calibration_index);
-		_offset = CalibrationOffset(calibration_index);
-		_scale = CalibrationScale(calibration_index);
+
+		char str[30] {};
+
+		sprintf(str, "CAL_%s%u_EN", SensorString(), calibration_index);
+		int32_t enabled_val = 0;
+		param_get(param_find(str), &enabled_val);
+
+		_enabled = (enabled_val == 1);
+
+		for (int axis = 0; axis < 3; axis++) {
+			char axis_char = 'X' + axis;
+
+			// offsets
+			sprintf(str, "CAL_%s%u_%cOFF", SensorString(), calibration_index, axis_char);
+			param_get(param_find(str), &_offset(axis));
+
+			// scale
+			// gyroscope doesn't have a scale factor calibration
+			if (_type != SensorType::Gyroscope) {
+				sprintf(str, "CAL_%s%u_%cSCALE", SensorString(), calibration_index, axis_char);
+				param_get(param_find(str), &_scale(axis));
+			}
+		}
 
 	} else {
 		_enabled = true;

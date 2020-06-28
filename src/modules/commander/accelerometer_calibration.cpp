@@ -176,7 +176,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	int res = PX4_OK;
 
 	int32_t device_id[MAX_ACCEL_SENS] {};
-	int device_prio_max = 0;
+	ORB_PRIO device_prio_max = ORB_PRIO_UNINITIALIZED;
 	int32_t device_id_primary = 0;
 	unsigned active_sensors = 0;
 
@@ -195,7 +195,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (device_id[cur_accel] != 0) {
 			// Get priority
-			int32_t prio = accel_sub.get_priority();
+			ORB_PRIO prio = accel_sub.get_priority();
 
 			if (prio > device_prio_max) {
 				device_prio_max = prio;
@@ -235,72 +235,37 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	for (unsigned uorb_index = 0; uorb_index < MAX_ACCEL_SENS; uorb_index++) {
 
+		char str[20] {};
+
+		Vector3f offset{0.f, 0.f, 0.f};
+		Vector3f scale{1.f, 1.f, 1.f};
+
 		if (uorb_index < active_sensors) {
 			/* handle individual sensors, one by one */
 			const Vector3f accel_offs_rotated = board_rotation_t *accel_offs[uorb_index];
 			const Matrix3f accel_T_rotated = board_rotation_t *accel_T[uorb_index] * board_rotation;
 
-			PX4_INFO("found offset %d: x: %.6f, y: %.6f, z: %.6f", uorb_index,
-				 (double)accel_offs_rotated(0), (double)accel_offs_rotated(1), (double)accel_offs_rotated(2));
+			offset = accel_offs_rotated;
+			scale = accel_T_rotated.diag();
 
-			PX4_INFO("found scale %d: x: %.6f, y: %.6f, z: %.6f", uorb_index,
-				 (double)accel_T_rotated(0, 0), (double)accel_T_rotated(1, 1), (double)accel_T_rotated(2, 2));
+			PX4_INFO("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "ACC", device_id[uorb_index],
+				 (double)offset(0), (double)offset(1), (double)offset(2),
+				 (double)scale(0), (double)scale(1), (double)scale(2));
+		}
 
-			char str[30] {};
+		sprintf(str, "CAL_%s%u_ID", "ACC", uorb_index);
+		param_set_no_notification(param_find(str), &device_id[uorb_index]);
 
-			// calibration offsets
-			float x_offset = accel_offs_rotated(0);
-			sprintf(str, "CAL_ACC%u_XOFF", uorb_index);
-			param_set_no_notification(param_find(str), &x_offset);
+		for (int axis = 0; axis < 3; axis++) {
+			char axis_char = 'X' + axis;
 
-			float y_offset = accel_offs_rotated(1);
-			sprintf(str, "CAL_ACC%u_YOFF", uorb_index);
-			param_set_no_notification(param_find(str), &y_offset);
+			// offsets
+			sprintf(str, "CAL_%s%u_%cOFF", "ACC", uorb_index, axis_char);
+			param_set_no_notification(param_find(str), &offset(axis));
 
-			float z_offset = accel_offs_rotated(2);
-			sprintf(str, "CAL_ACC%u_ZOFF", uorb_index);
-			param_set_no_notification(param_find(str), &z_offset);
-
-
-			// calibration scale
-			float x_scale = accel_T_rotated(0, 0);
-			sprintf(str, "CAL_ACC%u_XSCALE", uorb_index);
-			param_set_no_notification(param_find(str), &x_scale);
-
-			float y_scale = accel_T_rotated(1, 1);
-			sprintf(str, "CAL_ACC%u_YSCALE", uorb_index);
-			param_set_no_notification(param_find(str), &y_scale);
-
-			float z_scale = accel_T_rotated(2, 2);
-			sprintf(str, "CAL_ACC%u_ZSCALE", uorb_index);
-			param_set_no_notification(param_find(str), &z_scale);
-
-			// calibration device ID
-			sprintf(str, "CAL_ACC%u_ID", uorb_index);
-			param_set_no_notification(param_find(str), &device_id[uorb_index]);
-
-		} else {
-			char str[30] {};
-
-			// reset calibration offsets
-			sprintf(str, "CAL_ACC%u_XOFF", uorb_index);
-			param_reset(param_find(str));
-			sprintf(str, "CAL_ACC%u_YOFF", uorb_index);
-			param_reset(param_find(str));
-			sprintf(str, "CAL_ACC%u_ZOFF", uorb_index);
-			param_reset(param_find(str));
-
-			// reset calibration scale
-			sprintf(str, "CAL_ACC%u_XSCALE", uorb_index);
-			param_reset(param_find(str));
-			sprintf(str, "CAL_ACC%u_YSCALE", uorb_index);
-			param_reset(param_find(str));
-			sprintf(str, "CAL_ACC%u_ZSCALE", uorb_index);
-			param_reset(param_find(str));
-
-			// reset calibration device ID
-			sprintf(str, "CAL_ACC%u_ID", uorb_index);
-			param_reset(param_find(str));
+			// scale
+			sprintf(str, "CAL_%s%u_%cSCALE", "ACC", uorb_index, axis_char);
+			param_set_no_notification(param_find(str), &scale(axis));
 		}
 	}
 
