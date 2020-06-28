@@ -4,8 +4,8 @@ Thrust tilt/ Starboard Thrust / Port Thrust / Tail Thrust mixer for PX4FMU
 This file defines mixers suitable for controlling an airship with
 a thrust tilt, starboard and port thruster and a tail thruster using PX4FMU.
 The configuration assumes the starboard thruster is connected to PX4FMU
-output 0, port thruster to output 1, tilt servo to output 2, and the
-tail thruster to output 3.
+output 1, port thruster to output 2, tilt servo to output 3, and the
+tail thruster to output 4.
 
 Inputs to the mixer come from channel group 0 (vehicle attitude),
 channels 0 (roll), 1 (pitch), 2 (yaw) and 3 (thrust).
@@ -17,10 +17,10 @@ Two scalers total (output, thrust).
 By default mixer output is normalized. The input is in the (0 - 1) range.
 
 M: 1
-S: 0 3  10000  10000           0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
 
 M: 1
-S: 0 3  10000  10000           0 -10000  10000
+S: 0 3      0  20000 -10000 -10000  10000
 
 Servo controlling tilt mixer
 ------------

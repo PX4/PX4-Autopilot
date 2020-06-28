@@ -33,9 +33,10 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/PublicationMulti.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -80,13 +81,15 @@ private:
 	void		publish_actuator_controls();
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
 	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
-	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
+	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
 
 	struct manual_control_setpoint_s	_manual_control_sp {};	/**< manual control setpoint */
+	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 	struct actuator_controls_s		_actuators {};		/**< actuator controls */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */

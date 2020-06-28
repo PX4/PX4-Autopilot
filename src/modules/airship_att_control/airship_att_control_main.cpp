@@ -45,6 +45,7 @@ using namespace matrix;
 AirshipAttitudeControl::AirshipAttitudeControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_actuators_0_pub(ORB_ID(actuator_controls_0)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "airship_att_control"))
 {
 }
@@ -57,6 +58,10 @@ AirshipAttitudeControl::~AirshipAttitudeControl()
 bool
 AirshipAttitudeControl::init()
 {
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+		PX4_ERR("vehicle_angular_velocity callback registration failed!");
+		return false;
+	}
 	return true;
 }
 
@@ -77,21 +82,29 @@ AirshipAttitudeControl::parameter_update_poll()
 void
 AirshipAttitudeControl::publish_actuator_controls()
 {
-	_actuators.control[0] = 0.0f;
-	_actuators.control[1] = _manual_control_sp.x;
-	_actuators.control[2] = _manual_control_sp.r;
-	_actuators.control[3] = _manual_control_sp.z;
+	// zero actuators if not armed
+	if(_vehicle_status.arming_state != 2) {
+		for(uint8_t i = 0 ; i < 4 ; i++) {
+			_actuators.control[i] = 0.0f;
+		}
+	} else {
+		_actuators.control[0] = 0.0f;
+		_actuators.control[1] = _manual_control_sp.x;
+		_actuators.control[2] = _manual_control_sp.r;
+		_actuators.control[3] = _manual_control_sp.z;
+	}
 
 	// note: _actuators.timestamp_sample is set in AirshipAttitudeControl::Run()
 	_actuators.timestamp = hrt_absolute_time();
 
-	orb_publish_auto(ORB_ID(actuator_controls_0), &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
+	_actuators_0_pub.publish(_actuators);
 }
 
 void
 AirshipAttitudeControl::Run()
 {
 	if (should_exit()) {
+		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -108,12 +121,17 @@ AirshipAttitudeControl::Run()
 		_actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
 		/* run the rate controller immediately after a gyro update */
-		if (_v_control_mode.flag_control_rates_enabled) {
-			publish_actuator_controls();
-		}
+		publish_actuator_controls();
 
 		/* check for updates in manual control topic */
-		_manual_control_sp_sub.update(&_manual_control_sp);
+		if (_manual_control_sp_sub.updated()) {
+			_manual_control_sp_sub.update(&_manual_control_sp);
+		}
+
+		/* check for updates in vehicle status topic */
+		if (_vehicle_status_sub.updated()) {
+			_vehicle_status_sub.update(&_vehicle_status);
+		}
 
 		parameter_update_poll();
 	}

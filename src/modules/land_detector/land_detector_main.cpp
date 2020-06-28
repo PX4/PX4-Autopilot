@@ -49,6 +49,7 @@
 #include "MulticopterLandDetector.h"
 #include "RoverLandDetector.h"
 #include "VtolLandDetector.h"
+#include "AirshipLandDetector.h"
 
 
 namespace land_detector
@@ -79,6 +80,8 @@ int LandDetector::task_spawn(int argc, char *argv[])
 	} else if (strcmp(argv[1], "rover") == 0) {
 		obj = new RoverLandDetector();
 
+	} else if (strcmp(argv[1], "airship") == 0) {
+		obj = new AirshipLandDetector();
 	} else {
 		print_usage("unknown mode");
 		return PX4_ERROR;
