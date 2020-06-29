@@ -779,31 +779,31 @@ pipeline {
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
-                stage("configure") {
-                  steps {
-                    // configure
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 4001"'  // generic multicopter
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                        // reboot to apply
-                  }
-                }
-                stage("status") {
-                  steps {
-                    statusFTDI()
-                  }
-                }
-                stage("tests") {
-                  steps {
-                    // run tests
-                    sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*` || true' // ignore failures for now (flaky console on test rack)
-                  }
-                }
-                stage("reset") {
-                  steps {
-                    cleanupFTDI();
-                  }
-                }
+                // stage("configure") {
+                //   steps {
+                //     // configure
+                //     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+                //     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 4001"'  // generic multicopter
+                //     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
+                //     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                        // reboot to apply
+                //   }
+                // }
+                // stage("status") {
+                //   steps {
+                //     statusFTDI()
+                //   }
+                // }
+                // stage("tests") {
+                //   steps {
+                //     // run tests
+                //     sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*` || true' // ignore failures for now (flaky console on test rack)
+                //   }
+                // }
+                // stage("reset") {
+                //   steps {
+                //     cleanupFTDI();
+                //   }
+                // }
               }
               options {
                 timeout(time: 60, unit: 'MINUTES')
