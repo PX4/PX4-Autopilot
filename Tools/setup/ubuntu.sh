@@ -107,7 +107,6 @@ fi
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-python3 -m pip install --upgrade pip
 python3 -m pip install --user -r ${DIR}/requirements.txt
 
 # NuttX toolchain (arm-none-eabi-gcc)
