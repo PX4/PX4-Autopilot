@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-## Bash script to setup PX4 development environment on Ubuntu LTS (18.04, 16.04).
+## Bash script to setup PX4 development environment on Ubuntu LTS (20.04, 18.04, 16.04).
 ## Can also be used in docker.
 ##
 ## Installs:
@@ -156,8 +156,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		# add arm-none-eabi-gcc to user's PATH
 		exportline="export PATH=/opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}/bin:\$PATH"
 
-		if grep -Fxq "$exportline" $HOME/.profile;
-		then
+		if grep -Fxq "$exportline" $HOME/.profile; then
 			echo "${NUTTX_GCC_VERSION} path already set.";
 		else
 			echo $exportline >> $HOME/.profile;
@@ -210,5 +209,5 @@ fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
-	echo "Reboot or logout, login computer before attempting to build NuttX targets"
+	echo "Relogin or reboot computer before attempting to build NuttX targets"
 fi
