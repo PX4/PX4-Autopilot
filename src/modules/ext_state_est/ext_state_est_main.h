@@ -50,11 +50,13 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ext_core_state.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 
 class ExtStateEst final : public ModuleBase<ExtStateEst>,
@@ -88,8 +90,12 @@ private:
   uORB::Publication<vehicle_attitude_s> _att_pub;
   uORB::PublicationData<vehicle_global_position_s> _vehicle_global_position_pub;
   uORB::PublicationData<vehicle_local_position_s> _vehicle_local_position_pub;
+  uORB::Publication<estimator_status_s> _estimator_status_pub;
+
+  uORB::Publication<vehicle_odometry_s> _vehicle_odometry_pub;
 
   bool _callback_registered{false};
+  const matrix::Quatf _unitq;
 };
 
 extern "C" __EXPORT int ext_state_est_main(int argc, char *argv[]) {
