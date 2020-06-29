@@ -1061,7 +1061,8 @@ void Ekf2::Run()
 				flow.time_us = optical_flow.timestamp;
 
 				if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
-				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral)) {
+				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral) &&
+				    flow.dt < 1) {
 
 					_ekf.setOpticalFlowData(flow);
 				}
