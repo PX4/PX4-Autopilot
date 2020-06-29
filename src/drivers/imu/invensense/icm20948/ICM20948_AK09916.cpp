@@ -48,7 +48,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 ICM20948_AK09916::ICM20948_AK09916(ICM20948 &icm20948, enum Rotation rotation) :
 	ScheduledWorkItem("icm20948_ak09916", px4::device_bus_to_wq(icm20948.get_device_id())),
 	_icm20948(icm20948),
-	_px4_mag(icm20948.get_device_id(), ORB_PRIO_DEFAULT, rotation)
+	_px4_mag(icm20948.get_device_id(), rotation)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK09916);
 	_px4_mag.set_external(icm20948.external());

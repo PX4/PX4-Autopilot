@@ -59,6 +59,7 @@
 
 static constexpr char sensor_name[] {"gyro"};
 static constexpr unsigned MAX_GYROS = 3;
+static constexpr uint8_t GYRO_DEFAULT_PRIORITY = 50;
 
 using matrix::Vector3f;
 
@@ -208,10 +209,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	gyro_worker_data_t worker_data{};
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 
-	int32_t enabled[MAX_GYROS] {1, 1, 1};
-
-	ORB_PRIO device_prio_max = ORB_PRIO_UNINITIALIZED;
-	int32_t device_id_primary = 0;
+	int32_t priority[MAX_GYROS] {GYRO_DEFAULT_PRIORITY, GYRO_DEFAULT_PRIORITY, GYRO_DEFAULT_PRIORITY};
 
 	for (uint8_t cur_gyro = 0; cur_gyro < MAX_GYROS; cur_gyro++) {
 
@@ -222,15 +220,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 			worker_data.device_id[cur_gyro] = gyro_sub.get().device_id;
 
-			// Get priority
-			ORB_PRIO prio = gyro_sub.get_priority();
-
-			if (prio > device_prio_max) {
-				device_prio_max = prio;
-				device_id_primary = worker_data.device_id[cur_gyro];
-			}
-
-			// preserve existing CAL_GYROx_EN parameter
+			// preserve existing CAL_GYROx_PRIO parameter
 			for (uint8_t cal_index = 0; cal_index < MAX_GYROS; cal_index++) {
 				char str[20] {};
 				sprintf(str, "CAL_%s%u_ID", "GYRO", cal_index);
@@ -238,9 +228,14 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
 					if ((cal_device_id != 0) && (cal_device_id == worker_data.device_id[cur_gyro])) {
-						// CAL_GYROx_EN
-						sprintf(str, "CAL_%s%u_EN", "GYRO", cal_index);
-						param_get(param_find(str), &enabled[cur_gyro]);
+						// CAL_GYROx_PRIO
+						sprintf(str, "CAL_%s%u_PRIO", "GYRO", cal_index);
+						param_get(param_find(str), &priority[cur_gyro]);
+
+						// check configured priority and reset if necessary
+						if (priority[cur_gyro] < 0 || priority[cur_gyro] > 100) {
+							priority[cur_gyro] = GYRO_DEFAULT_PRIORITY;
+						}
 					}
 				}
 			}
@@ -304,7 +299,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	if (res == PX4_OK) {
 
 		/* set offset parameters to new values */
-		bool failed = (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &device_id_primary));
+		bool failed = false;
 
 		for (unsigned uorb_index = 0; uorb_index < MAX_GYROS; uorb_index++) {
 
@@ -321,7 +316,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			} else {
 				// all unused parameters set to default values
 				device_id = 0;
-				enabled[uorb_index] = 1;
+				priority[uorb_index] = GYRO_DEFAULT_PRIORITY;
 				offset.zero();
 			}
 
@@ -329,8 +324,8 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 			sprintf(str, "CAL_%s%u_ID", "GYRO", uorb_index);
 			param_set_no_notification(param_find(str), &device_id);
-			sprintf(str, "CAL_%s%u_EN", "GYRO", uorb_index);
-			param_set_no_notification(param_find(str), &enabled[uorb_index]);
+			sprintf(str, "CAL_%s%u_PRIO", "GYRO", uorb_index);
+			param_set_no_notification(param_find(str), &priority[uorb_index]);
 
 			for (int axis = 0; axis < 3; axis++) {
 				char axis_char = 'X' + axis;

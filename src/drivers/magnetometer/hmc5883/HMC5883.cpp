@@ -35,7 +35,7 @@
 
 HMC5883::HMC5883(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus) :
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
-	_px4_mag(interface->get_device_id(), interface->external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+	_px4_mag(interface->get_device_id(), rotation),
 	_interface(interface),
 	_range_ga(1.9f),
 	_collect_phase(false),

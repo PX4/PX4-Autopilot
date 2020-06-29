@@ -123,8 +123,22 @@ void VehicleMagnetometer::ParametersUpdate(bool force)
 
 		_mag_comp_type = mag_comp_typ;
 
-		for (auto &cal : _calibration) {
-			cal.ParametersUpdate();
+		// update mag priority (CAL_MAGx_PRIO)
+		for (int mag = 0; mag < MAX_SENSOR_COUNT; mag++) {
+			const int32_t priority_old = _calibration[mag].priority();
+			_calibration[mag].ParametersUpdate();
+
+			if (priority_old != _calibration[mag].priority()) {
+				if (_calibration[mag].priority() == 0) {
+					// disabled
+					_priority[mag] = 0;
+
+				} else {
+					// change relative priority to incorporate any sensor faults
+					int priority_change = _calibration[mag].priority() - priority_old;
+					_priority[mag] = math::constrain(_priority[mag] + priority_change, 1, 100);
+				}
+			}
 		}
 	}
 }
@@ -208,24 +222,24 @@ void VehicleMagnetometer::Run()
 			updated[uorb_index] = _sensor_sub[uorb_index].update(&report);
 
 			if (updated[uorb_index]) {
-				if (_priority[uorb_index] == 0) {
-					// set initial priority
-					_priority[uorb_index] = _sensor_sub[uorb_index].get_priority();
+				if (_calibration[uorb_index].device_id() != report.device_id) {
+					_calibration[uorb_index].set_external(report.is_external);
+					_calibration[uorb_index].set_device_id(report.device_id);
+					_priority[uorb_index] = _calibration[uorb_index].priority();
 				}
 
-				_calibration[uorb_index].set_device_id(report.device_id);
+				if (_calibration[uorb_index].enabled()) {
+					Vector3f vect = _calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z});
 
-				Vector3f vect = _calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z});
+					_last_data[uorb_index].timestamp_sample = report.timestamp_sample;
+					_last_data[uorb_index].device_id = report.device_id;
+					_last_data[uorb_index].x = vect(0);
+					_last_data[uorb_index].y = vect(1);
+					_last_data[uorb_index].z = vect(2);
 
-				_last_data[uorb_index].timestamp_sample = report.timestamp_sample;
-				_last_data[uorb_index].device_id = report.device_id;
-				_last_data[uorb_index].x = vect(0);
-				_last_data[uorb_index].y = vect(1);
-				_last_data[uorb_index].z = vect(2);
-
-				float mag_array[3];
-				vect.copyTo(mag_array);
-				_voter.put(uorb_index, report.timestamp, mag_array, report.error_count, _priority[uorb_index]);
+					float mag_array[3] {vect(0), vect(1), vect(2)};
+					_voter.put(uorb_index, report.timestamp, mag_array, report.error_count, _priority[uorb_index]);
+				}
 			}
 		}
 	}
@@ -288,7 +302,7 @@ void VehicleMagnetometer::Run()
 				}
 
 				// reduce priority of failed sensor to the minimum
-				_priority[failover_index] = ORB_PRIO_MIN;
+				_priority[failover_index] = 1;
 			}
 		}
 	}
@@ -317,7 +331,7 @@ void VehicleMagnetometer::calcMagInconsistency()
 	// Check each sensor against the primary
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 		// check that the sensor we are checking against is not the same as the primary
-		if ((_priority[i] > 0) && (i != _selected_sensor_sub_index)) {
+		if (_advertised[i] && (_priority[i] > 0) && (i != _selected_sensor_sub_index)) {
 			// calculate angle to 3D magnetic field vector of the primary sensor
 			const sensor_mag_s &current_mag_report = _last_data[i];
 			Vector3f current_mag{current_mag_report.x, current_mag_report.y, current_mag_report.z};

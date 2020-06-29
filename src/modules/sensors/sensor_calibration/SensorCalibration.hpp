@@ -78,6 +78,8 @@ private:
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
+	static constexpr uint8_t DEFAULT_PRIORITY = 50;
+
 	int FindCalibrationIndex(uint32_t device_id) const;
 
 	const char *SensorString() const;

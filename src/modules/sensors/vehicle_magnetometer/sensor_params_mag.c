@@ -32,14 +32,6 @@
  ****************************************************************************/
 
 /**
- * Primary mag ID
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
-
-/**
  * Bitfield selecting mag sides for calibration
  *
  * If set to two side calibration, only the offsets are estimated, the scale

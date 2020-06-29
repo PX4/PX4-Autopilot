@@ -69,6 +69,9 @@ static constexpr unsigned int calibraton_duration_s = 42; 	///< The total durati
 static constexpr float MAG_MAX_OFFSET_LEN =
 	1.3f;	///< The maximum measurement range is ~1.9 Ga, the earth field is ~0.6 Ga, so an offset larger than ~1.3 Ga means the mag will saturate in some directions.
 
+static constexpr uint8_t MAG_DEFAULT_PRIORITY = 50;
+static constexpr uint8_t MAG_DEFAULT_EXTERNAL_PRIORITY = 75;
+
 static unsigned calibration_sides = 6;			///< The total number of sides
 static unsigned last_mag_progress = 0;
 
@@ -89,7 +92,7 @@ typedef struct  {
 	float		*z[MAX_MAGS];
 	int32_t		device_ids[MAX_MAGS];
 	bool		internal[MAX_MAGS];
-	int32_t		enabled[MAX_MAGS];
+	int32_t		priority[MAX_MAGS];
 	int32_t		rotation[MAX_MAGS];
 	Vector3f	scale_existing[MAX_MAGS];
 	Vector3f	offset_existing[MAX_MAGS];
@@ -474,7 +477,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		worker_data.existing_calibration_available[cur_mag] = false;
 		worker_data.device_ids[cur_mag] = 0;
 		worker_data.internal[cur_mag] = false;
-		worker_data.enabled[cur_mag] = 1;
+		worker_data.priority[cur_mag] = MAG_DEFAULT_PRIORITY;
 		worker_data.rotation[cur_mag] = -1;
 		worker_data.scale_existing[cur_mag] = Vector3f{1.f, 1.f, 1.f};
 		worker_data.offset_existing[cur_mag].zero();
@@ -494,9 +497,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	const unsigned int calibration_points_maxcount = calibration_sides * worker_data.calibration_points_perside;
 
-	ORB_PRIO device_prio_max = ORB_PRIO_UNINITIALIZED;
-	int32_t device_id_primary = 0;
-
 	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
 		uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), cur_mag};
@@ -509,17 +509,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 			if (worker_data.internal[cur_mag]) {
 				worker_data.rotation[cur_mag] = -1; // internal mags match have no configurable rotation
+				worker_data.priority[cur_mag] = MAG_DEFAULT_PRIORITY;
 
 			} else {
 				worker_data.rotation[cur_mag] = ROTATION_NONE; // external default rotation none
-			}
-
-			// Get priority
-			ORB_PRIO prio = mag_sub.get_priority();
-
-			if (prio > device_prio_max) {
-				device_prio_max = prio;
-				device_id_primary = worker_data.device_ids[cur_mag];
+				worker_data.priority[cur_mag] = MAG_DEFAULT_EXTERNAL_PRIORITY;
 			}
 
 			// preserve any existing power compensation or configured rotation (external only)
@@ -541,9 +535,14 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 							}
 						}
 
-						// CAL_MAGx_EN
-						sprintf(str, "CAL_%s%u_EN", "MAG", cal_index);
-						param_get(param_find(str), &worker_data.enabled[cur_mag]);
+						// CAL_MAGx_PRIO
+						sprintf(str, "CAL_%s%u_PRIO", "MAG", cal_index);
+						param_get(param_find(str), &worker_data.priority[cur_mag]);
+
+						// check configured priority and reset if necessary
+						if (worker_data.priority[cur_mag] < 0 || worker_data.priority[cur_mag] > 100) {
+							worker_data.priority[cur_mag] = worker_data.internal[cur_mag] ? MAG_DEFAULT_PRIORITY : MAG_DEFAULT_EXTERNAL_PRIORITY;
+						}
 
 						for (int axis = 0; axis < 3; axis++) {
 							char axis_char = 'X' + axis;
@@ -834,7 +833,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				// all unused parameters set to default values
 				worker_data.device_ids[cur_mag] = 0;
 				worker_data.rotation[cur_mag] = -1;
-				worker_data.enabled[cur_mag] = 1;
+				worker_data.priority[cur_mag] = MAG_DEFAULT_PRIORITY;
 
 				offset.zero();
 				scale = Vector3f{1.f, 1.f, 1.f};
@@ -848,8 +847,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			param_set_no_notification(param_find(str), &worker_data.device_ids[cur_mag]);
 			sprintf(str, "CAL_%s%u_ROT", "MAG", cur_mag);
 			param_set_no_notification(param_find(str), &worker_data.rotation[cur_mag]);
-			sprintf(str, "CAL_%s%u_EN", "MAG", cur_mag);
-			param_set_no_notification(param_find(str), &worker_data.enabled[cur_mag]);
+			sprintf(str, "CAL_%s%u_PRIO", "MAG", cur_mag);
+			param_set_no_notification(param_find(str), &worker_data.priority[cur_mag]);
 
 			for (int axis = 0; axis < 3; axis++) {
 				char axis_char = 'X' + axis;
@@ -867,8 +866,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				param_set_no_notification(param_find(str), &worker_data.power_compensation[cur_mag](axis));
 			}
 		}
-
-		param_set_no_notification(param_find("CAL_MAG_PRIME"), &device_id_primary);
 
 		param_notify_changes();
 	}

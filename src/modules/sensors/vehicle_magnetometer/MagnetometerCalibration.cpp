@@ -116,11 +116,18 @@ void MagnetometerCalibration::ParametersUpdate()
 			_rotation = get_rot_matrix((enum Rotation)rotation);
 		}
 
-		sprintf(str, "CAL_%s%u_EN", SensorString(), calibration_index);
-		int32_t enabled_val = 0;
-		param_get(param_find(str), &enabled_val);
+		// CAL_MAGx_PRIO
+		sprintf(str, "CAL_%s%u_PRIO", SensorString(), calibration_index);
+		param_get(param_find(str), &_priority);
 
-		_enabled = (enabled_val == 1);
+		if (_priority < 0 || _priority > UINT8_MAX) {
+			// reset to default
+			int32_t new_priority = _external ? MAG_DEFAULT_EXTERNAL_PRIORITY : MAG_DEFAULT_PRIORITY;
+			PX4_ERR("%s invalid value %d, resetting to %d", str, _priority, new_priority);
+			_priority = new_priority;
+			param_set_no_notification(param_find(str), &_priority);
+		}
+
 
 		for (int axis = 0; axis < 3; axis++) {
 			char axis_char = 'X' + axis;
@@ -139,7 +146,7 @@ void MagnetometerCalibration::ParametersUpdate()
 		}
 
 	} else {
-		_enabled = true;
+		_priority = _external ? MAG_DEFAULT_EXTERNAL_PRIORITY : MAG_DEFAULT_PRIORITY;
 		_offset.zero();
 		_scale.setIdentity();
 		_power_compensation.zero();
@@ -150,7 +157,7 @@ void MagnetometerCalibration::ParametersUpdate()
 
 void MagnetometerCalibration::PrintStatus()
 {
-	PX4_INFO("%s %d EN: %d, offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", SensorString(), _device_id, _enabled,
+	PX4_INFO("%s %d EN: %d, offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", SensorString(), device_id(), enabled(),
 		 (double)_offset(0), (double)_offset(1), (double)_offset(2),
 		 (double)_scale(0, 0), (double)_scale(1, 1), (double)_scale(2, 2));
 }

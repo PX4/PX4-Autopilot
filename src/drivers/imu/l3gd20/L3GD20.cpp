@@ -39,7 +39,7 @@ L3GD20::L3GD20(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotati
 	       spi_mode_e spi_mode) :
 	SPI(DRV_GYR_DEVTYPE_L3GD20, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation),
+	_px4_gyro(get_device_id(), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),

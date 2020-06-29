@@ -40,13 +40,19 @@
 PARAM_DEFINE_INT32(CAL_ACC1_ID, 0);
 
 /**
- * Accelerometer 1 enabled
+ * Accelerometer 1 priority.
  *
- * @boolean
+ * @value 0   Disabled
+ * @value 1   Min
+ * @value 25  Low
+ * @value 50  Medium (Default)
+ * @value 75  High
+ * @value 100 Max
+ *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_ACC1_EN, 1);
+PARAM_DEFINE_INT32(CAL_ACC1_PRIO, 50);
 
 /**
  * Accelerometer X-axis offset

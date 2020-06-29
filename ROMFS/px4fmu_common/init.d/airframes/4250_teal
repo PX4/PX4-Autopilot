@@ -186,17 +186,11 @@ then
 	param set RTL_RETURN_ALT 25
 
 	# calibration
-	param set CAL_ACC0_EN 1
-	param set CAL_ACC1_EN 0
-	#mpu6500
-	param set CAL_ACC_PRIME 1442826
+	param set CAL_ACC0_PRIO 255
+	param set CAL_ACC1_PRIO 0
 
-	param set CAL_GYRO0_EN 1
-	param set CAL_GYRO1_EN 0
-	#mpu6500
-	param set CAL_GYRO_PRIME 2360330
-
-	param set CAL_MAG_PRIME 265738
+	param set CAL_GYRO0_PRIO 255
+	param set CAL_GYRO1_PRIO 0
 fi
 
 # Logger mode. Default(1) + estimator replay(2) + thermal calibration(4)

@@ -56,7 +56,8 @@ public:
 	void set_external(bool external = true) { _external = external; }
 
 	uint32_t device_id() const { return _device_id; }
-	bool enabled() const { return _enabled; }
+	int32_t priority() const { return _priority; }
+	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
 
 	// apply offsets and scale
@@ -76,6 +77,9 @@ private:
 
 	static constexpr const char *SensorString() { return "MAG"; }
 
+	static constexpr uint8_t MAG_DEFAULT_PRIORITY = 50;
+	static constexpr uint8_t MAG_DEFAULT_EXTERNAL_PRIORITY = 50;
+
 	matrix::Dcmf _rotation;
 
 	matrix::Vector3f _offset;
@@ -85,7 +89,7 @@ private:
 
 	uint32_t _device_id{0};
 
-	bool _enabled{true};
+	int32_t _priority{MAG_DEFAULT_PRIORITY};
 	bool _external{false};
 };
 

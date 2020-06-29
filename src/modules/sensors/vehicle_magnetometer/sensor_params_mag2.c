@@ -40,13 +40,19 @@
 PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
 
 /**
- * Mag 2 enabled
+ * Mag 2 priority.
  *
- * @boolean
+ * @value 0   Disabled
+ * @value 1   Min
+ * @value 25  Low
+ * @value 50  Medium (Default)
+ * @value 75  High
+ * @value 100 Max
+ *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG2_EN, 1);
+PARAM_DEFINE_INT32(CAL_MAG2_PRIO, 50);
 
 /**
  * Rotation of magnetometer 2 relative to airframe.

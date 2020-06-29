@@ -147,8 +147,8 @@ using namespace matrix;
 using math::radians;
 
 static constexpr char sensor_name[] {"accel"};
-
 static constexpr unsigned MAX_ACCEL_SENS = 3;
+static constexpr uint8_t ACCEL_DEFAULT_PRIORITY = 50;
 
 static calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub,
 		Vector3f(&accel_offs)[MAX_ACCEL_SENS],
@@ -175,10 +175,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	int res = PX4_OK;
 
 	int32_t device_id[MAX_ACCEL_SENS] {};
-	int32_t enabled[MAX_ACCEL_SENS] {1, 1, 1};
-
-	ORB_PRIO device_prio_max = ORB_PRIO_UNINITIALIZED;
-	int32_t device_id_primary = 0;
+	int32_t priority[MAX_ACCEL_SENS] {ACCEL_DEFAULT_PRIORITY, ACCEL_DEFAULT_PRIORITY, ACCEL_DEFAULT_PRIORITY};
 
 	unsigned active_sensors = 0;
 
@@ -190,15 +187,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 			device_id[cur_accel] = accel_sub.get().device_id;
 
-			// Get priority
-			ORB_PRIO prio = accel_sub.get_priority();
-
-			if (prio > device_prio_max) {
-				device_prio_max = prio;
-				device_id_primary = device_id[cur_accel];
-			}
-
-			// preserve existing CAL_ACCx_EN parameter
+			// preserve existing CAL_ACCx_PRIO parameter
 			for (uint8_t cal_index = 0; cal_index < MAX_ACCEL_SENS; cal_index++) {
 				char str[20] {};
 				sprintf(str, "CAL_%s%u_ID", "ACC", cal_index);
@@ -206,9 +195,14 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
 					if ((cal_device_id != 0) && (cal_device_id == device_id[cur_accel])) {
-						// CAL_ACCx_EN
-						sprintf(str, "CAL_%s%u_EN", "ACC", cal_index);
-						param_get(param_find(str), &enabled[cur_accel]);
+						// CAL_ACCx_PRIO
+						sprintf(str, "CAL_%s%u_PRIO", "ACC", cal_index);
+						param_get(param_find(str), &priority[cur_accel]);
+
+						// check configured priority and reset if necessary
+						if (priority[cur_accel] < 0 || priority[cur_accel] > 100) {
+							priority[cur_accel] = ACCEL_DEFAULT_PRIORITY;
+						}
 					}
 				}
 			}
@@ -238,8 +232,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	const Dcmf board_rotation = get_rot_matrix((enum Rotation)board_rotation_int);
 	const Dcmf board_rotation_t = board_rotation.transpose();
 
-	param_set_no_notification(param_find("CAL_ACC_PRIME"), &device_id_primary);
-
 	for (unsigned uorb_index = 0; uorb_index < MAX_ACCEL_SENS; uorb_index++) {
 
 		Vector3f offset;
@@ -261,15 +253,15 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			// all unused parameters set to default values
 			offset.zero();
 			scale = Vector3f{1.f, 1.f, 1.f};
-			enabled[uorb_index] = 1;
+			priority[uorb_index] = ACCEL_DEFAULT_PRIORITY;
 		}
 
 		char str[20] {};
 
 		sprintf(str, "CAL_%s%u_ID", "ACC", uorb_index);
 		param_set_no_notification(param_find(str), &device_id[uorb_index]);
-		sprintf(str, "CAL_%s%u_EN", "ACC", uorb_index);
-		param_set_no_notification(param_find(str), &enabled[uorb_index]);
+		sprintf(str, "CAL_%s%u_PRIO", "ACC", uorb_index);
+		param_set_no_notification(param_find(str), &priority[uorb_index]);
 
 		for (int axis = 0; axis < 3; axis++) {
 			char axis_char = 'X' + axis;

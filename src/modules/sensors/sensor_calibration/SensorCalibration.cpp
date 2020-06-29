@@ -178,11 +178,18 @@ void SensorCalibration::ParametersUpdate()
 
 		char str[30] {};
 
-		sprintf(str, "CAL_%s%u_EN", SensorString(), calibration_index);
-		int32_t enabled_val = 0;
-		param_get(param_find(str), &enabled_val);
+		sprintf(str, "CAL_%s%u_PRIO", SensorString(), calibration_index);
+		int32_t priority_val = DEFAULT_PRIORITY;
+		param_get(param_find(str), &priority_val);
 
-		_enabled = (enabled_val == 1);
+		if (priority_val < 0 || priority_val > 100) {
+			// reset to default
+			int32_t new_priority = DEFAULT_PRIORITY;
+			PX4_ERR("%s invalid value %d, resetting to %d", str, priority_val, new_priority);
+			param_set_no_notification(param_find(str), &new_priority);
+		}
+
+		_enabled = (priority_val > 0);
 
 		for (int axis = 0; axis < 3; axis++) {
 			char axis_char = 'X' + axis;

@@ -88,28 +88,58 @@ void VotedSensorsUpdate::parametersUpdate()
 
 		if (imu.get().timestamp > 0 && imu.get().accel_device_id > 0 && imu.get().gyro_device_id > 0) {
 
-			if (_accel.priority[uorb_index] == ORB_PRIO_UNINITIALIZED) {
-				// find corresponding sensor_accel publication
-				for (uint8_t i = 0; i < ACCEL_COUNT_MAX; i++) {
-					uORB::SubscriptionData<sensor_accel_s> sensor_accel{ORB_ID(sensor_accel), i};
-					sensor_accel.update();
+			// find corresponding configured accel priority
+			for (uint8_t cal_index = 0; cal_index < ACCEL_COUNT_MAX; cal_index++) {
+				char str[20] {};
+				sprintf(str, "CAL_%s%u_ID", "ACC", cal_index);
+				int32_t cal_device_id = 0;
 
-					if (imu.get().accel_device_id == sensor_accel.get().device_id) {
-						_accel.priority[uorb_index] = sensor_accel.get_priority();
-						break;
+				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
+					if ((cal_device_id != 0) && ((uint32_t)cal_device_id == imu.get().accel_device_id)) {
+						// found matching CAL_ACCx_PRIO
+						int32_t accel_priority_old = _accel.priority_configured[uorb_index];
+						sprintf(str, "CAL_%s%u_PRIO", "ACC", cal_index);
+						param_get(param_find(str), &_accel.priority_configured[uorb_index]);
+
+						if (accel_priority_old != _accel.priority_configured[uorb_index]) {
+							if (_accel.priority_configured[uorb_index] == 0) {
+								// disabled
+								_accel.priority[uorb_index] = 0;
+
+							} else {
+								// change relative priority to incorporate any sensor faults
+								int priority_change = _accel.priority_configured[uorb_index] - accel_priority_old;
+								_accel.priority[uorb_index] = math::constrain(_accel.priority[uorb_index] + priority_change, 1, 100);
+							}
+						}
 					}
 				}
 			}
 
-			if (_gyro.priority[uorb_index] == ORB_PRIO_UNINITIALIZED) {
-				// find corresponding sensor_gyro publication
-				for (uint8_t i = 0; i < GYRO_COUNT_MAX; i++) {
-					uORB::SubscriptionData<sensor_accel_s> sensor_gyro{ORB_ID(sensor_gyro), i};
-					sensor_gyro.update();
+			// find corresponding configured gyro priority
+			for (uint8_t cal_index = 0; cal_index < ACCEL_COUNT_MAX; cal_index++) {
+				char str[20] {};
+				sprintf(str, "CAL_%s%u_ID", "GYRO", cal_index);
+				int32_t cal_device_id = 0;
 
-					if (imu.get().gyro_device_id == sensor_gyro.get().device_id) {
-						_gyro.priority[uorb_index] = sensor_gyro.get_priority();
-						break;
+				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
+					if ((cal_device_id != 0) && ((uint32_t)cal_device_id == imu.get().gyro_device_id)) {
+						// found matching CAL_GYROx_PRIO
+						int32_t gyro_priority_old = _gyro.priority_configured[uorb_index];
+						sprintf(str, "CAL_%s%u_PRIO", "GYRO", cal_index);
+						param_get(param_find(str), &_gyro.priority_configured[uorb_index]);
+
+						if (gyro_priority_old != _gyro.priority_configured[uorb_index]) {
+							if (_gyro.priority_configured[uorb_index] == 0) {
+								// disabled
+								_gyro.priority[uorb_index] = 0;
+
+							} else {
+								// change relative priority to incorporate any sensor faults
+								int priority_change = _gyro.priority_configured[uorb_index] - gyro_priority_old;
+								_gyro.priority[uorb_index] = math::constrain(_gyro.priority[uorb_index] + priority_change, 1, 100);
+							}
+						}
 					}
 				}
 			}
@@ -122,20 +152,12 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	for (int uorb_index = 0; uorb_index < 3; uorb_index++) {
 		vehicle_imu_s imu_report;
 
-		if (_accel.enabled[uorb_index] && _gyro.enabled[uorb_index] && _vehicle_imu_sub[uorb_index].update(&imu_report)) {
+		if ((_accel.priority[uorb_index] > 0) && (_gyro.priority[uorb_index] > 0)
+		    && _vehicle_imu_sub[uorb_index].update(&imu_report)) {
 
 			// copy corresponding vehicle_imu_status for accel & gyro error counts
 			vehicle_imu_status_s imu_status{};
 			_vehicle_imu_status_sub[uorb_index].copy(&imu_status);
-
-			// First publication with data
-			if (_accel.priority[uorb_index] == 0) {
-				_accel.priority[uorb_index] = _accel.subscription[uorb_index].get_priority();
-			}
-
-			if (_gyro.priority[uorb_index] == 0) {
-				_gyro.priority[uorb_index] = _gyro.subscription[uorb_index].get_priority();
-			}
 
 			_accel_device_id[uorb_index] = imu_report.accel_device_id;
 			_gyro_device_id[uorb_index] = imu_report.gyro_device_id;
@@ -250,12 +272,12 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 				}
 
 				// reduce priority of failed sensor to the minimum
-				sensor.priority[failover_index] = ORB_PRIO_MIN;
+				sensor.priority[failover_index] = 1;
 
 				int ctr_valid = 0;
 
 				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
-					if (sensor.enabled[i] && (sensor.priority[i] > ORB_PRIO_MIN)) {
+					if (sensor.priority[i] > 1) {
 						ctr_valid++;
 					}
 				}
@@ -300,6 +322,8 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 
 		if (!sensor_data.advertised[i] && sensor_data.subscription[i].advertised()) {
 			sensor_data.advertised[i] = true;
+			sensor_data.priority[i] = DEFAULT_PRIORITY;
+			sensor_data.priority_configured[i] = DEFAULT_PRIORITY;
 
 			if (i > 0) {
 				/* the first always exists, but for each further sensor, add a new validator */
@@ -366,7 +390,7 @@ void VotedSensorsUpdate::calcAccelInconsistency(sensor_preflight_imu_s &preflt)
 	for (int sensor_index = 0; sensor_index < _accel.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
-		if (_accel.enabled[sensor_index] && (_accel.priority[sensor_index] > 0) && (sensor_index != _accel.last_best_vote)) {
+		if (_accel.advertised[sensor_index] && (_accel.priority[sensor_index] > 0) && (sensor_index != _accel.last_best_vote)) {
 
 			float accel_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison agains the primary
 
@@ -415,7 +439,7 @@ void VotedSensorsUpdate::calcGyroInconsistency(sensor_preflight_imu_s &preflt)
 	for (int sensor_index = 0; sensor_index < _gyro.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
-		if (_gyro.enabled[sensor_index] && (_gyro.priority[sensor_index] > 0) && (sensor_index != _gyro.last_best_vote)) {
+		if (_gyro.advertised[sensor_index] && (_gyro.priority[sensor_index] > 0) && (sensor_index != _gyro.last_best_vote)) {
 
 			float gyro_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison against the primary
 
