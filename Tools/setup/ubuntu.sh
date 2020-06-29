@@ -139,6 +139,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"
 
+	source $HOME/.profile # load changed path for the case the script is reran before relogin
 	if [ $(which arm-none-eabi-gcc) ]; then
 		GCC_VER_STR=$(arm-none-eabi-gcc --version)
 		GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
