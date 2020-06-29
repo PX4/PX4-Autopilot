@@ -927,7 +927,7 @@ void Ekf::checkVerticalAccelerationHealth()
 
 	// if vertical velocity and position are independent and agree, then do not require evidence of clipping if
 	// innovations are large
-	const bool bad_vert_accel = (are_vertical_pos_and_vel_independant || _clip_counter > clip_count_limit / 2) &&
+	const bool bad_vert_accel = (are_vertical_pos_and_vel_independant || _clip_counter > 0) &&
 				is_inertial_nav_falling;
 
 	if (bad_vert_accel) {
