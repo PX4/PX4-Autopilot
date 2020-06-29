@@ -373,7 +373,7 @@ bool LoggedTopics::initialize_logged_topics(SDLogProfileMask profile)
 		initialize_configured_topics(profile);
 	}
 
-	return true;
+	return _subscriptions.count > 0;
 }
 
 void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
