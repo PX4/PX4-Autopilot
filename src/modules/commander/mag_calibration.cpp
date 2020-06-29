@@ -319,9 +319,9 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 	uORB::SubscriptionBlocking<sensor_mag_s> mag_sub[MAX_MAGS] {
 		{ORB_ID(sensor_mag), interval_us, 0},
-		{ORB_ID(sensor_mag), interval_us, 1},
-		{ORB_ID(sensor_mag), interval_us, 2},
-		{ORB_ID(sensor_mag), interval_us, 3},
+		{ORB_ID(sensor_mag), 0, 1},
+		{ORB_ID(sensor_mag), 0, 2},
+		{ORB_ID(sensor_mag), 0, 3},
 	};
 
 	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_us;
@@ -337,50 +337,60 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 
 		if (mag_sub[0].updatedBlocking(1000_ms)) {
-			int prev_count[MAX_MAGS];
 			bool rejected = false;
+			Vector3f new_samples[MAX_MAGS] {};
 
 			for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-
-				prev_count[cur_mag] = worker_data->calibration_counter_total[cur_mag];
-
 				sensor_mag_s mag;
 
-				if (mag_sub[cur_mag].update(&mag)) {
+				if (worker_data->device_ids[cur_mag] != 0) {
+					if (mag_sub[cur_mag].update(&mag)) {
 
-					// Check if this measurement is good to go in
-					rejected = rejected || reject_sample(mag.x, mag.y, mag.z,
-									     worker_data->x[cur_mag], worker_data->y[cur_mag], worker_data->z[cur_mag],
-									     worker_data->calibration_counter_total[cur_mag],
-									     calibration_sides * worker_data->calibration_points_perside);
+						if (worker_data->append_to_existing_calibration && worker_data->existing_calibration_available[cur_mag]) {
+							// keep and update the existing calibration when we are not doing a full 6-axis calibration
+							const Vector3f offset{worker_data->offset_existing[cur_mag]};
+							const Vector3f scale{worker_data->scale_existing[cur_mag]};
 
-					if (worker_data->append_to_existing_calibration && worker_data->existing_calibration_available[cur_mag]) {
-						// keep and update the existing calibration when we are not doing a full 6-axis calibration
-						const Vector3f offset{worker_data->offset_existing[cur_mag]};
-						const Vector3f scale{worker_data->scale_existing[cur_mag]};
+							const Vector3f m{(Vector3f{mag.x, mag.y, mag.z} - offset).emult(scale)};
 
-						const Vector3f m{(Vector3f{mag.x, mag.y, mag.z} - offset).emult(scale)};
+							mag.x = m(0);
+							mag.y = m(1);
+							mag.z = m(2);
+						}
 
-						mag.x = m(0);
-						mag.y = m(1);
-						mag.z = m(2);
+						// Check if this measurement is good to go in
+						bool reject = reject_sample(mag.x, mag.y, mag.z,
+									    worker_data->x[cur_mag], worker_data->y[cur_mag], worker_data->z[cur_mag],
+									    worker_data->calibration_counter_total[cur_mag],
+									    calibration_sides * worker_data->calibration_points_perside);
+
+						if (reject) {
+							rejected = true;
+							PX4_DEBUG("Mag: %d rejected X: %.3f Y: %.3f Z: %.3f", cur_mag, (double)mag.x, (double)mag.y, (double)mag.z);
+
+						} else {
+							new_samples[cur_mag](0) = mag.x;
+							new_samples[cur_mag](1) = mag.y;
+							new_samples[cur_mag](2) = mag.z;
+						}
+
+					} else {
+						rejected = true;
 					}
-
-					worker_data->x[cur_mag][worker_data->calibration_counter_total[cur_mag]] = mag.x;
-					worker_data->y[cur_mag][worker_data->calibration_counter_total[cur_mag]] = mag.y;
-					worker_data->z[cur_mag][worker_data->calibration_counter_total[cur_mag]] = mag.z;
-					worker_data->calibration_counter_total[cur_mag]++;
 				}
 			}
 
 			// Keep calibration of all mags in lockstep
-			if (rejected) {
-				// Reset counts, since one of the mags rejected the measurement
+			if (!rejected) {
 				for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-					worker_data->calibration_counter_total[cur_mag] = prev_count[cur_mag];
+					if (worker_data->device_ids[cur_mag] != 0) {
+						worker_data->x[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](0);
+						worker_data->y[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](1);
+						worker_data->z[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](2);
+						worker_data->calibration_counter_total[cur_mag]++;
+					}
 				}
 
-			} else {
 				calibration_counter_side++;
 
 				unsigned new_progress = progress_percentage(worker_data) +
@@ -392,7 +402,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 					calibration_log_info(worker_data->mavlink_log_pub,
 							     "[cal] %s side calibration: progress <%u>",
 							     detect_orientation_str(orientation), new_progress);
-					px4_usleep(20000);
+					px4_usleep(10000);
 
 					last_mag_progress = new_progress;
 				}
@@ -524,6 +534,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						if (!worker_data.internal[cur_mag]) {
 							sprintf(str, "CAL_%s%u_ROT", "MAG", cal_index);
 							param_get(param_find(str), &worker_data.rotation[cur_mag]);
+
+							// check configured rotation and reset if necessary
+							if (worker_data.rotation[cur_mag] < 0 || worker_data.rotation[cur_mag] > ROTATION_MAX) {
+								worker_data.rotation[cur_mag] = ROTATION_NONE;
+							}
 						}
 
 						// CAL_MAGx_EN
@@ -654,6 +669,126 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 #endif // DO NOT REMOVE! Critical validation data!
 	}
 
+
+	// Attempt to automatically determine external mag rotations
+	if (result == calibrate_return_ok) {
+		int32_t param_cal_mag_rot_auto = 0;
+		param_get(param_find("CAL_MAG_ROT_AUTO"), &param_cal_mag_rot_auto);
+
+		if ((calibration_sides >= 3) && (param_cal_mag_rot_auto == 1)) {
+
+			// find first internal mag to use as reference
+			int internal_index = -1;
+
+			for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+				if (worker_data.internal[cur_mag] && (worker_data.device_ids[cur_mag] != 0)) {
+					internal_index = cur_mag;
+					break;
+				}
+			}
+
+			// only proceed if there's a valid internal
+			if (internal_index >= 0) {
+
+				// apply new calibrations to all raw sensor data before comparison
+				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+					if (worker_data.device_ids[cur_mag] != 0) {
+						for (unsigned i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
+
+							const Vector3f sample{worker_data.x[cur_mag][i], worker_data.y[cur_mag][i], worker_data.z[cur_mag][i]};
+
+							// apply calibration
+							const Vector3f m{(sample - sphere[cur_mag]).emult(diag[cur_mag])};
+
+							// store back in worker_data
+							worker_data.x[cur_mag][i] = m(0);
+							worker_data.y[cur_mag][i] = m(1);
+							worker_data.z[cur_mag][i] = m(2);
+						}
+					}
+				}
+
+				// rotate internal mag data to board
+				param_t board_rotation_h = param_find("SENS_BOARD_ROT");
+				int32_t board_rotation_int = 0;
+				param_get(board_rotation_h, &(board_rotation_int));
+				const enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
+
+				if (board_rotation_int != ROTATION_NONE) {
+					for (unsigned i = 0; i < worker_data.calibration_counter_total[internal_index]; i++) {
+						rotate_3f(board_rotation_id,
+							  worker_data.x[internal_index][i],
+							  worker_data.y[internal_index][i],
+							  worker_data.z[internal_index][i]
+							 );
+					}
+				}
+
+				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+					if (!worker_data.internal[cur_mag] && (worker_data.device_ids[cur_mag] != 0)) {
+
+						const int last_sample_index = math::min(worker_data.calibration_counter_total[internal_index],
+											worker_data.calibration_counter_total[cur_mag]);
+
+						float diff_sum[ROTATION_MAX] {};
+
+						float min_diff = FLT_MAX;
+						int32_t best_rotation = ROTATION_NONE;
+
+						for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
+							for (int i = 0; i < last_sample_index; i++) {
+
+								float x = worker_data.x[cur_mag][i];
+								float y = worker_data.y[cur_mag][i];
+								float z = worker_data.z[cur_mag][i];
+								rotate_3f((enum Rotation)r, x, y, z);
+
+								Vector3f diff = Vector3f{x, y, z} - Vector3f{worker_data.x[internal_index][i], worker_data.y[internal_index][i], worker_data.z[internal_index][i]};
+
+								diff_sum[r] += diff.norm();
+							}
+
+							if (diff_sum[r] < min_diff) {
+								min_diff = diff_sum[r];
+								best_rotation = r;
+							}
+						}
+
+
+						// Check that the best rotation is at least twice as good as the next best
+						bool smallest_check_passed = true;
+
+						for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
+							if (r != best_rotation) {
+								if (diff_sum[r] < (min_diff * 2.f)) {
+									smallest_check_passed = false;
+								}
+							}
+						}
+
+
+						// Check that the average error across all samples (relative to internal mag) is less than the minimum earth field (~ 0.25 Gauss)
+						const float mag_error_ga = (min_diff / last_sample_index);
+						bool total_error_check_passed = (mag_error_ga < 0.25f);
+
+						if (smallest_check_passed && total_error_check_passed) {
+							if (best_rotation != worker_data.rotation[cur_mag]) {
+								calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%d), determined rotation: %d", cur_mag,
+										     worker_data.device_ids[cur_mag], best_rotation);
+
+								worker_data.rotation[cur_mag] = best_rotation;
+							}
+						}
+
+						for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
+							PX4_DEBUG("Mag: %d, rotation: %d error: %.6f", cur_mag, r, (double)diff_sum[r]);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Data points are no longer needed
 	for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 		free(worker_data.x[cur_mag]);
@@ -663,8 +798,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	if (result == calibrate_return_ok) {
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-			Vector3f offset{0.f, 0.f, 0.f};
-			Vector3f scale{1.f, 1.f, 1.f};
+			Vector3f offset;
+			Vector3f scale;
 
 			if (worker_data.device_ids[cur_mag] != 0) {
 				if (worker_data.append_to_existing_calibration && worker_data.existing_calibration_available[cur_mag]) {
@@ -694,6 +829,16 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						 (double)offset(0), (double)offset(1), (double)offset(2),
 						 (double)scale(0), (double)scale(1), (double)scale(2));
 				}
+
+			} else {
+				// all unused parameters set to default values
+				worker_data.device_ids[cur_mag] = 0;
+				worker_data.rotation[cur_mag] = -1;
+				worker_data.enabled[cur_mag] = 1;
+
+				offset.zero();
+				scale = Vector3f{1.f, 1.f, 1.f};
+				worker_data.power_compensation[cur_mag].zero();
 			}
 
 			// save calibration

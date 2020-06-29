@@ -63,6 +63,7 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	}
 
 	param_find("CAL_MAG_SIDES");
+	param_find("CAL_MAG_ROT_AUTO");
 
 	_voter.set_timeout(SENSOR_TIMEOUT);
 	_voter.set_equal_value_threshold(1000);

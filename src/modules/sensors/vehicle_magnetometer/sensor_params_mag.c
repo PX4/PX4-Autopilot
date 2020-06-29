@@ -75,3 +75,13 @@ PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG_COMP_TYP, 0);
+
+/**
+ * Automatically set external rotations.
+ *
+ * During calibration attempt to automatically determine the rotation of external magnetometers.
+ *
+ * @boolean
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(CAL_MAG_ROT_AUTO, 1);
