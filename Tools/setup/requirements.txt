@@ -4,7 +4,7 @@ cerberus
 coverage
 empy>=3.3
 jinja2>=2.8
-matplotlib==3.0.*
+matplotlib>=3.0.*
 numpy>=1.13
 packaging
 pandas>=0.21
