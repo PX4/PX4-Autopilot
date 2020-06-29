@@ -205,6 +205,10 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		protobuf-compiler \
 		;
 
+	if sudo dmidecode -t system | grep -q "Manufacturer: VMware, Inc." ; then
+		# fix VMWare 3D graphics acceleration for gazebo
+		echo "export SVGA_VGPU10=0" >> ~/.profile
+	fi
 fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
