@@ -809,25 +809,25 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					offset = worker_data.offset_existing[cur_mag] + sphere[cur_mag].edivide(worker_data.scale_existing[cur_mag]);
 					scale = worker_data.scale_existing[cur_mag].emult(diag[cur_mag]);
 
-					PX4_INFO("[cal] %s %u updating offset: [%.4f %.4f %.4f] -> [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
-						 (double)worker_data.offset_existing[cur_mag](0),
-						 (double)worker_data.offset_existing[cur_mag](1),
-						 (double)worker_data.offset_existing[cur_mag](2),
-						 (double)offset(0), (double)offset(1), (double)offset(2));
+					PX4_DEBUG("[cal] %s %u updating offset: [%.4f %.4f %.4f] -> [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
+						  (double)worker_data.offset_existing[cur_mag](0),
+						  (double)worker_data.offset_existing[cur_mag](1),
+						  (double)worker_data.offset_existing[cur_mag](2),
+						  (double)offset(0), (double)offset(1), (double)offset(2));
 
-					PX4_INFO("[cal] %s %u updating scale: [%.4f %.4f %.4f] -> [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
-						 (double)worker_data.scale_existing[cur_mag](0),
-						 (double)worker_data.scale_existing[cur_mag](1),
-						 (double)worker_data.scale_existing[cur_mag](2),
-						 (double)scale(0), (double)scale(1), (double)scale(2));
+					PX4_DEBUG("[cal] %s %u updating scale: [%.4f %.4f %.4f] -> [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
+						  (double)worker_data.scale_existing[cur_mag](0),
+						  (double)worker_data.scale_existing[cur_mag](1),
+						  (double)worker_data.scale_existing[cur_mag](2),
+						  (double)scale(0), (double)scale(1), (double)scale(2));
 
 				} else {
 					offset = sphere[cur_mag];
 					scale = diag[cur_mag];
 
-					PX4_INFO("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
-						 (double)offset(0), (double)offset(1), (double)offset(2),
-						 (double)scale(0), (double)scale(1), (double)scale(2));
+					PX4_DEBUG("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
+						  (double)offset(0), (double)offset(1), (double)offset(2),
+						  (double)scale(0), (double)scale(1), (double)scale(2));
 				}
 
 			} else {

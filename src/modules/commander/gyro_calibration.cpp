@@ -315,8 +315,8 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				device_id = worker_data.device_id[uorb_index];
 				offset = worker_data.offset[uorb_index];
 
-				PX4_INFO("[cal] %s %u offset: [%.4f %.4f %.4f]", "GYRO", device_id,
-					 (double)offset(0), (double)offset(1), (double)offset(2));
+				PX4_DEBUG("[cal] %s %u offset: [%.4f %.4f %.4f]", "GYRO", device_id,
+					  (double)offset(0), (double)offset(1), (double)offset(2));
 
 			} else {
 				// all unused parameters set to default values

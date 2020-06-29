@@ -253,9 +253,9 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			offset = accel_offs_rotated;
 			scale = accel_T_rotated.diag();
 
-			PX4_INFO("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "ACC", device_id[uorb_index],
-				 (double)offset(0), (double)offset(1), (double)offset(2),
-				 (double)scale(0), (double)scale(1), (double)scale(2));
+			PX4_DEBUG("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "ACC", device_id[uorb_index],
+				  (double)offset(0), (double)offset(1), (double)offset(2),
+				  (double)scale(0), (double)scale(1), (double)scale(2));
 
 		} else {
 			// all unused parameters set to default values
