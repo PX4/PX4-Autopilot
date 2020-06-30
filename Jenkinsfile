@@ -5,7 +5,12 @@ pipeline {
   stages {
 
     stage('Analysis') {
-
+      when {
+        anyOf {
+          branch 'master'
+          branch 'pr-jenkins' // for testing
+        }
+      }
       parallel {
 
         // TODO: temporarily disabled 2020-06-03 waiting on mavlink update
