@@ -898,8 +898,8 @@ void Ekf::checkVerticalAccelerationHealth()
 	// Don't use stale innovation data.
 	bool is_inertial_nav_falling = false;
 	bool are_vertical_pos_and_vel_independant = false;
-	if (_time_last_imu < _vert_pos_fuse_time_us + 1000000) {
-		if (_time_last_imu < _vert_vel_fuse_time_us + 1000000) {
+	if (isRecent(_vert_pos_fuse_time_us, 1000000)) {
+		if (isRecent(_vert_vel_fuse_time_us, 1000000)) {
 			// If vertical position and velocity come from independent sensors then we can
 			// trust them more if they disagree with the IMU, but need to check that they agree
 			const bool using_gps_for_both = _control_status.flags.gps_hgt && _control_status.flags.gps;
