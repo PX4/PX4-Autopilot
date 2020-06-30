@@ -54,6 +54,9 @@ class EkfGpsHeadingTest : public ::testing::Test {
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
+	void runConvergenceScenario(float yaw_offset_rad = 0.f, float antenna_offset_rad = 0.f);
+	void checkConvergence(float truth, float tolerance = FLT_EPSILON);
+
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
@@ -66,6 +69,29 @@ class EkfGpsHeadingTest : public ::testing::Test {
 		_sensor_simulator.runSeconds(11);
 	}
 };
+
+void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float antenna_offset_rad)
+{
+	// GIVEN: an initial GPS yaw, not aligned with the current one
+	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + yaw_offset_rad);
+
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps.setYawOffset(antenna_offset_rad);
+
+	// WHEN: the GPS yaw fusion is activated
+	_ekf_wrapper.enableGpsHeadingFusion();
+	_sensor_simulator.runSeconds(5);
+
+	// THEN: the estimate is reset and stays close to the measurement
+	checkConvergence(gps_heading, 0.05f);
+}
+
+void EkfGpsHeadingTest::checkConvergence(float truth, float tolerance)
+{
+	const float yaw_est = _ekf_wrapper.getYawAngle();
+	EXPECT_NEAR(yaw_est, truth, math::radians(tolerance))
+		<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(truth);
+}
 
 TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
 {
@@ -96,7 +122,9 @@ TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
 TEST_F(EkfGpsHeadingTest, yawConvergence)
 {
 	// GIVEN: an initial GPS yaw, not aligned with the current one
-	float gps_heading = _ekf_wrapper.getYawAngle() + math::radians(10.f);
+	const float initial_yaw = math::radians(10.f);
+	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + initial_yaw);
+
 	_sensor_simulator._gps.setYaw(gps_heading);
 
 	// WHEN: the GPS yaw fusion is activated
@@ -104,9 +132,7 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 	_sensor_simulator.runSeconds(5);
 
 	// THEN: the estimate is reset and stays close to the measurement
-	float yaw_est = _ekf_wrapper.getYawAngle();
-	EXPECT_NEAR(yaw_est, gps_heading, math::radians(0.05f))
-		<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(gps_heading);
+	checkConvergence(gps_heading, 0.05f);
 
 	// AND WHEN: the the measurement changes
 	gps_heading += math::radians(2.f);
@@ -115,9 +141,40 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 
 	// THEN: the estimate slowly converges to the new measurement
 	// Note that the process is slow, because the gyro did not detect any motion
-	yaw_est = _ekf_wrapper.getYawAngle();
-	EXPECT_NEAR(yaw_est, gps_heading, math::radians(0.5f))
-		<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(gps_heading);
+	checkConvergence(gps_heading, 0.5f);
+}
+
+TEST_F(EkfGpsHeadingTest, yaw0)
+{
+	runConvergenceScenario();
+}
+
+TEST_F(EkfGpsHeadingTest, yaw60)
+{
+	const float yaw_offset_rad = math::radians(60.f);
+	const float antenna_offset_rad = math::radians(80.f);
+	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
+}
+
+TEST_F(EkfGpsHeadingTest, yaw180)
+{
+	const float yaw_offset_rad = math::radians(180.f);
+	const float antenna_offset_rad = math::radians(-20.f);
+	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
+}
+
+TEST_F(EkfGpsHeadingTest, yawMinus120)
+{
+	const float yaw_offset_rad = math::radians(120.f);
+	const float antenna_offset_rad = math::radians(-42.f);
+	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
+}
+
+TEST_F(EkfGpsHeadingTest, yawMinus30)
+{
+	const float yaw_offset_rad = math::radians(-30.f);
+	const float antenna_offset_rad = math::radians(10.f);
+	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
 }
 
 TEST_F(EkfGpsHeadingTest, fallBackToMag)
