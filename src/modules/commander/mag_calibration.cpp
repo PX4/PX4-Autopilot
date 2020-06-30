@@ -97,6 +97,7 @@ typedef struct  {
 	int32_t		rotation[MAX_MAGS];
 	Vector3f	scale_existing[MAX_MAGS];
 	Vector3f	offset_existing[MAX_MAGS];
+	Vector3f	off_diagonal_existing[MAX_MAGS];
 	Vector3f	power_compensation[MAX_MAGS];
 } mag_worker_data_t;
 
@@ -351,10 +352,22 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 						if (worker_data->append_to_existing_calibration && worker_data->existing_calibration_available[cur_mag]) {
 							// keep and update the existing calibration when we are not doing a full 6-axis calibration
-							const Vector3f offset{worker_data->offset_existing[cur_mag]};
-							const Vector3f scale{worker_data->scale_existing[cur_mag]};
 
-							const Vector3f m{(Vector3f{mag.x, mag.y, mag.z} - offset).emult(scale)};
+							const Vector3f sample{mag.x, mag.y, mag.z};
+
+							const auto &diag = worker_data->scale_existing[cur_mag];
+							const auto &offdiag = worker_data->off_diagonal_existing[cur_mag];
+
+							float scale[9] {
+								diag(0),    offdiag(0), offdiag(1),
+								offdiag(0),    diag(1), offdiag(2),
+								offdiag(1), offdiag(2),    diag(2)
+							};
+
+							const Vector3f offset{worker_data->offset_existing[cur_mag]};
+
+							// apply calibration
+							const Vector3f m{Matrix3f{scale} *(sample - offset)};
 
 							mag.x = m(0);
 							mag.y = m(1);
@@ -475,6 +488,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		worker_data.priority[cur_mag] = MAG_DEFAULT_PRIORITY;
 		worker_data.rotation[cur_mag] = -1;
 		worker_data.scale_existing[cur_mag] = Vector3f{1.f, 1.f, 1.f};
+		worker_data.off_diagonal_existing[cur_mag].zero();
 		worker_data.offset_existing[cur_mag].zero();
 		worker_data.power_compensation[cur_mag].zero();
 
@@ -544,6 +558,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 							// scale
 							sprintf(str, "CAL_%s%u_%cSCALE", "MAG", cal_index, axis_char);
 							param_get(param_find(str), &worker_data.scale_existing[cur_mag](axis));
+
+							// off diagonal factors
+							sprintf(str, "CAL_%s%u_%cODIAG", "MAG", cur_mag, axis_char);
+							param_get(param_find(str), &worker_data.off_diagonal_existing[cur_mag](axis));
 
 							// power compensation
 							sprintf(str, "CAL_%s%u_%cCOMP", "MAG", cal_index, axis_char);
@@ -721,8 +739,14 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 							const Vector3f sample{worker_data.x[cur_mag][i], worker_data.y[cur_mag][i], worker_data.z[cur_mag][i]};
 
+							float scale_data[9] {
+								diag[cur_mag](0),    offdiag[cur_mag](0), offdiag[cur_mag](1),
+								offdiag[cur_mag](0),    diag[cur_mag](1), offdiag[cur_mag](2),
+								offdiag[cur_mag](1), offdiag[cur_mag](2),    diag[cur_mag](2)
+							};
+
 							// apply calibration
-							const Vector3f m{(sample - sphere[cur_mag]).emult(diag[cur_mag])};
+							const Vector3f m{Matrix3f{scale_data} *(sample - sphere[cur_mag])};
 
 							// store back in worker_data
 							worker_data.x[cur_mag][i] = m(0);
@@ -824,14 +848,16 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 			Vector3f offset;
 			Vector3f scale;
+			Vector3f off_diagonal;
 
 			if (worker_data.device_ids[cur_mag] != 0) {
 				if (worker_data.append_to_existing_calibration && worker_data.existing_calibration_available[cur_mag]) {
 					// Update calibration
 					// The formula for applying the calibration is:
-					//   mag_value = (mag_readout - (offset_existing + offset_new/scale_existing)) * scale_existing * scale_new
+					//   mag_value = (mag_readout - (offset_existing + offset_new/scale_existing)) * scale_existing
 					offset = worker_data.offset_existing[cur_mag] + sphere[cur_mag].edivide(worker_data.scale_existing[cur_mag]);
-					scale = worker_data.scale_existing[cur_mag].emult(diag[cur_mag]);
+					scale = worker_data.scale_existing[cur_mag]; // keep existing
+					off_diagonal = worker_data.off_diagonal_existing[cur_mag]; // keep existing
 
 					PX4_DEBUG("[cal] %s %u updating offset: [%.4f %.4f %.4f] -> [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
 						  (double)worker_data.offset_existing[cur_mag](0),
@@ -839,15 +865,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						  (double)worker_data.offset_existing[cur_mag](2),
 						  (double)offset(0), (double)offset(1), (double)offset(2));
 
-					PX4_DEBUG("[cal] %s %u updating scale: [%.4f %.4f %.4f] -> [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
-						  (double)worker_data.scale_existing[cur_mag](0),
-						  (double)worker_data.scale_existing[cur_mag](1),
-						  (double)worker_data.scale_existing[cur_mag](2),
-						  (double)scale(0), (double)scale(1), (double)scale(2));
-
 				} else {
 					offset = sphere[cur_mag];
 					scale = diag[cur_mag];
+					off_diagonal = offdiag[cur_mag];
 
 					PX4_DEBUG("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
 						  (double)offset(0), (double)offset(1), (double)offset(2),
@@ -862,6 +883,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 				offset.zero();
 				scale = Vector3f{1.f, 1.f, 1.f};
+				off_diagonal.zero();
 				worker_data.power_compensation[cur_mag].zero();
 			}
 
@@ -885,6 +907,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				// scale
 				sprintf(str, "CAL_%s%u_%cSCALE", "MAG", cur_mag, axis_char);
 				param_set_no_notification(param_find(str), &scale(axis));
+
+				// off diagonal factors
+				sprintf(str, "CAL_%s%u_%cODIAG", "MAG", cur_mag, axis_char);
+				param_set_no_notification(param_find(str), &off_diagonal(axis));
 
 				// power compensation (preserved)
 				sprintf(str, "CAL_%s%u_%cCOMP", "MAG", cur_mag, axis_char);

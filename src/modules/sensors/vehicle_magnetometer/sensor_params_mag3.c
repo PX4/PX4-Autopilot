@@ -166,6 +166,30 @@ PARAM_DEFINE_FLOAT(CAL_MAG3_YSCALE, 1.0f);
 PARAM_DEFINE_FLOAT(CAL_MAG3_ZSCALE, 1.0f);
 
 /**
+ * Magnetometer X-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG3_XODIAG, 0.0f);
+
+/**
+ * Magnetometer Y-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG3_YODIAG, 0.0f);
+
+/**
+ * Magnetometer Z-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG3_ZODIAG, 0.0f);
+
+/**
 * Coefficient describing linear relationship between
 * X component of magnetometer in body frame axis
 * and either current or throttle depending on value of CAL_MAG_COMP_TYP
