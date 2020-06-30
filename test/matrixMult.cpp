@@ -56,6 +56,15 @@ int main()
     Matrix<float, 4, 2> m42_check(data_42);
     TEST(isEqual(m42, m42_check))
 
+    float data_42_plus2[8] = {17,34,
+                              13,26,
+                              19,35,
+                              29,45
+                             };
+    Matrix<float, 4, 2> m42_plus2_check(data_42_plus2);
+    Matrix<float, 4, 2> m42_plus2 = m42 - (-2);
+    TEST(isEqual(m42_plus2, m42_plus2_check));
+
     return 0;
 }
 
