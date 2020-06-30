@@ -238,13 +238,21 @@ public:
     void operator+=(const Matrix<Type, M, N> &other)
     {
         Matrix<Type, M, N> &self = *this;
-        self = self + other;
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                self(i, j) += other(i, j);
+            }
+        }
     }
 
     void operator-=(const Matrix<Type, M, N> &other)
     {
         Matrix<Type, M, N> &self = *this;
-        self = self - other;
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                self(i, j) -= other(i, j);
+            }
+        }
     }
 
     template<size_t P>
@@ -302,7 +310,7 @@ public:
 
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                self(i, j) = self(i, j) * scalar;
+                self(i, j) *= scalar;
             }
         }
     }
@@ -310,17 +318,23 @@ public:
     void operator/=(Type scalar)
     {
         Matrix<Type, M, N> &self = *this;
-        self = self * (Type(1) / scalar);
+        self *= (Type(1) / scalar);
     }
 
     inline void operator+=(Type scalar)
     {
-        *this = (*this) + scalar;
+        Matrix<Type, M, N> &self = *this;
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                self(i, j) += scalar;
+            }
+        }
     }
 
     inline void operator-=(Type scalar)
     {
-        *this = (*this) - scalar;
+        Matrix<Type, M, N> &self = *this;
+        self += (-scalar);
     }
 
     bool operator==(const Matrix<Type, M, N> &other) const
