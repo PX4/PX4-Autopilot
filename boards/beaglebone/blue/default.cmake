@@ -65,6 +65,7 @@ px4_add_board(
 		dyn
 		esc_calib
 		led_control
+		mag_test
 		mixer
 		motor_ramp
 		param

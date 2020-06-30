@@ -93,6 +93,7 @@ px4_add_board(
 		esc_calib
 		#hardfault_log
 		led_control
+		mag_test
 		mixer
 		motor_ramp
 		motor_test

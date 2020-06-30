@@ -78,7 +78,7 @@ private:
 	static constexpr const char *SensorString() { return "MAG"; }
 
 	static constexpr uint8_t MAG_DEFAULT_PRIORITY = 50;
-	static constexpr uint8_t MAG_DEFAULT_EXTERNAL_PRIORITY = 50;
+	static constexpr uint8_t MAG_DEFAULT_EXTERNAL_PRIORITY = 75;
 
 	matrix::Dcmf _rotation;
 

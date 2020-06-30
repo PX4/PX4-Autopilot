@@ -74,6 +74,7 @@ px4_add_board(
 		vtol_att_control
 	SYSTEMCMDS
 		led_control
+		mag_test
 		mixer
 		#motor_ramp
 		motor_test

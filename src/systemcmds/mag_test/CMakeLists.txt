@@ -30,14 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-px4_add_library(vehicle_magnetometer
-	VehicleMagnetometer.cpp
-	VehicleMagnetometer.hpp
-)
-
-target_link_libraries(vehicle_magnetometer
-	PRIVATE
+px4_add_module(
+	MODULE systemcmds__mag_test
+	MAIN mag_test
+	SRCS
+		mag_test.cpp
+	DEPENDS
 		calibration
-		px4_work_queue
-)
+	)

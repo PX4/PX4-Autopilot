@@ -93,6 +93,7 @@ px4_add_board(
 		hardfault_log
 		i2cdetect
 		led_control
+		mag_test
 		mixer
 		motor_ramp
 		motor_test

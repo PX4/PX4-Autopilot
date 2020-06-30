@@ -120,7 +120,7 @@ void MagnetometerCalibration::ParametersUpdate()
 		sprintf(str, "CAL_%s%u_PRIO", SensorString(), calibration_index);
 		param_get(param_find(str), &_priority);
 
-		if (_priority < 0 || _priority > UINT8_MAX) {
+		if (_priority < 0 || _priority > 100) {
 			// reset to default
 			int32_t new_priority = _external ? MAG_DEFAULT_EXTERNAL_PRIORITY : MAG_DEFAULT_PRIORITY;
 			PX4_ERR("%s invalid value %d, resetting to %d", str, _priority, new_priority);
