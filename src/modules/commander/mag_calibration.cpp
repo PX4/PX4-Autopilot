@@ -49,6 +49,7 @@
 #include <drivers/drv_tone_alarm.h>
 #include <matrix/math.hpp>
 #include <lib/conversion/rotation.h>
+#include <lib/ecl/geo_lookup/geo_mag_declination.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/parameters/param.h>
 #include <lib/systemlib/err.h>
@@ -56,13 +57,14 @@
 #include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 using namespace matrix;
 using namespace time_literals;
 
 static constexpr char sensor_name[] {"mag"};
 static constexpr unsigned MAX_MAGS = 4;
-static constexpr float MAG_SPHERE_RADIUS = 0.2f;
+static constexpr float MAG_SPHERE_RADIUS_DEFAULT = 0.2f;
 static constexpr unsigned int calibration_total_points = 240;	///< The total points per magnetometer
 static constexpr unsigned int calibraton_duration_s = 42; 	///< The total duration the routine is allowed to take
 
@@ -175,7 +177,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 static bool reject_sample(float sx, float sy, float sz, float x[], float y[], float z[], unsigned count,
 			  unsigned max_count)
 {
-	float min_sample_dist = fabsf(5.4f * MAG_SPHERE_RADIUS / sqrtf(max_count)) / 3.0f;
+	float min_sample_dist = fabsf(5.4f * MAG_SPHERE_RADIUS_DEFAULT / sqrtf(max_count)) / 3.0f;
 
 	for (size_t i = 0; i < count; i++) {
 		float dx = sx - x[i];
@@ -467,12 +469,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		}
 	}
 
-	// calibration values for each mag
-	Vector3f sphere[MAX_MAGS];
-	Vector3f diag[MAX_MAGS];
-	Vector3f offdiag[MAX_MAGS];
-	float sphere_radius[MAX_MAGS];
-
 	for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 		worker_data.existing_calibration_available[cur_mag] = false;
 		worker_data.device_ids[cur_mag] = 0;
@@ -488,11 +484,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		worker_data.y[cur_mag] = nullptr;
 		worker_data.z[cur_mag] = nullptr;
 		worker_data.calibration_counter_total[cur_mag] = 0;
-
-		sphere[cur_mag].zero();
-		diag[cur_mag] = Vector3f{1.f, 1.f, 1.f};
-		offdiag[cur_mag].zero();
-		sphere_radius[cur_mag] = MAG_SPHERE_RADIUS;
 	}
 
 	const unsigned int calibration_points_maxcount = calibration_sides * worker_data.calibration_points_perside;
@@ -588,8 +579,41 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						    true);				// true: lenient still detection
 	}
 
-	// Sphere fit the data to get calibration values
+	// calibration values for each mag
+	Vector3f sphere[MAX_MAGS];
+	Vector3f diag[MAX_MAGS];
+	Vector3f offdiag[MAX_MAGS];
+	float sphere_radius[MAX_MAGS];
+
+	for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+		sphere_radius[cur_mag] = MAG_SPHERE_RADIUS_DEFAULT;
+		sphere[cur_mag].zero();
+		diag[cur_mag] = Vector3f{1.f, 1.f, 1.f};
+		offdiag[cur_mag].zero();
+	}
+
 	if (result == calibrate_return_ok) {
+
+		// if GPS is available use real field intensity from world magnetic model
+		uORB::SubscriptionData<vehicle_gps_position_s> gps_sub{ORB_ID(vehicle_gps_position)};
+		gps_sub.update();
+		const vehicle_gps_position_s &gps = gps_sub.get();
+
+		if (hrt_elapsed_time(&gps.timestamp) < 10_s && (gps.fix_type >= 2) && (gps.eph < 1000)) {
+			const double lat = gps.lat / 1.e7;
+			const double lon = gps.lon / 1.e7;
+
+			// magnetic field data returned by the geo library using the current GPS position
+			const float mag_strength_gps = 0.01f * get_mag_strength(lat, lon); // centi-Gauss (micro-Tesla) -> Gauss
+
+			PX4_INFO("[cal] using current GPS for field strength: %.4f Gauss", (double)mag_strength_gps);
+
+			for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+				sphere_radius[cur_mag] = mag_strength_gps;
+			}
+		}
+
+		// Sphere fit the data to get calibration values
 		for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 			if (worker_data.device_ids[cur_mag] != 0) {
 				// Mag in this slot is available and we should have values for it to calibrate
@@ -611,6 +635,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 								  diag[cur_mag](0), diag[cur_mag](1), diag[cur_mag](2),
 								  offdiag[cur_mag](0), offdiag[cur_mag](1), offdiag[cur_mag](2),
 								  mavlink_log_pub, cur_mag, worker_data.internal);
+
+				PX4_DEBUG("mag #%u sphere_radius: %.5f", cur_mag, (double)sphere_radius[cur_mag]);
 
 				if (result == calibrate_return_error) {
 					break;
