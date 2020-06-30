@@ -74,16 +74,15 @@ static constexpr float MAG_MAX_OFFSET_LEN =
 static constexpr uint8_t MAG_DEFAULT_PRIORITY = 50;
 static constexpr uint8_t MAG_DEFAULT_EXTERNAL_PRIORITY = 75;
 
-static unsigned calibration_sides = 6;			///< The total number of sides
-static unsigned last_mag_progress = 0;
-
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask);
 
 /// Data passed to calibration worker routine
 typedef struct  {
 	orb_advert_t	*mavlink_log_pub;
 	bool		append_to_existing_calibration;
+	unsigned	last_mag_progress;
 	unsigned	done_count;
+	unsigned	calibration_sides;					///< The total number of sides
 	bool		side_data_collected[detect_orientation_side_count];
 	unsigned int	calibration_points_perside;
 	uint64_t	calibration_interval_perside_us;
@@ -136,8 +135,6 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 		PX4_ERR("unable to reset %s", str);
 	}
 
-	last_mag_progress = 0;
-
 	// Collect: As defined by configuration
 	// start with a full mask, all six bits set
 	int32_t cal_mask = (1 << 6) - 1;
@@ -186,6 +183,9 @@ static bool reject_sample(float sx, float sy, float sz, float x[], float y[], fl
 		float dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
 		if (dist < min_sample_dist) {
+			PX4_DEBUG("rejected X: %.3f Y: %.3f Z: %.3f (%.3f < %.3f) (%d/%d) ", (double)sx, (double)sy, (double)sz, (double)dist,
+				  (double)min_sample_dist, count, max_count);
+
 			return true;
 		}
 	}
@@ -195,7 +195,7 @@ static bool reject_sample(float sx, float sy, float sz, float x[], float y[], fl
 
 static unsigned progress_percentage(mag_worker_data_t *worker_data)
 {
-	return 100 * ((float)worker_data->done_count) / calibration_sides;
+	return 100 * ((float)worker_data->done_count) / worker_data->calibration_sides;
 }
 
 // Returns calibrate_return_error if any parameter is not finite
@@ -320,10 +320,8 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 	}
 
-	uint32_t interval_us = worker_data->calibration_interval_perside_us / worker_data->calibration_points_perside;
-
 	uORB::SubscriptionBlocking<sensor_mag_s> mag_sub[MAX_MAGS] {
-		{ORB_ID(sensor_mag), interval_us, 0},
+		{ORB_ID(sensor_mag), 0, 0},
 		{ORB_ID(sensor_mag), 0, 1},
 		{ORB_ID(sensor_mag), 0, 2},
 		{ORB_ID(sensor_mag), 0, 3},
@@ -367,11 +365,10 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 						bool reject = reject_sample(mag.x, mag.y, mag.z,
 									    worker_data->x[cur_mag], worker_data->y[cur_mag], worker_data->z[cur_mag],
 									    worker_data->calibration_counter_total[cur_mag],
-									    calibration_sides * worker_data->calibration_points_perside);
+									    worker_data->calibration_sides * worker_data->calibration_points_perside);
 
 						if (reject) {
 							rejected = true;
-							PX4_DEBUG("Mag: %d rejected X: %.3f Y: %.3f Z: %.3f", cur_mag, (double)mag.x, (double)mag.y, (double)mag.z);
 
 						} else {
 							new_samples[cur_mag](0) = mag.x;
@@ -399,19 +396,21 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 				calibration_counter_side++;
 
 				unsigned new_progress = progress_percentage(worker_data) +
-							(unsigned)((100 / calibration_sides) * ((float)calibration_counter_side / (float)
+							(unsigned)((100 / worker_data->calibration_sides) * ((float)calibration_counter_side / (float)
 									worker_data->calibration_points_perside));
 
-				if (new_progress - last_mag_progress > 3) {
+				if (new_progress - worker_data->last_mag_progress > 0) {
 					// Progress indicator for side
 					calibration_log_info(worker_data->mavlink_log_pub,
 							     "[cal] %s side calibration: progress <%u>",
 							     detect_orientation_str(orientation), new_progress);
-					px4_usleep(10000);
+					px4_usleep(20000);
 
-					last_mag_progress = new_progress;
+					worker_data->last_mag_progress = new_progress;
 				}
 			}
+
+			PX4_DEBUG("side counter %d / %d", calibration_counter_side, worker_data->calibration_points_perside);
 
 		} else {
 			poll_errcount++;
@@ -445,18 +444,18 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	// keep and update the existing calibration when we are not doing a full 6-axis calibration
 	worker_data.append_to_existing_calibration = cal_mask < ((1 << 6) - 1);
 	worker_data.mavlink_log_pub = mavlink_log_pub;
+	worker_data.last_mag_progress = 0;
+	worker_data.calibration_sides = 0;
 	worker_data.done_count = 0;
 	worker_data.calibration_points_perside = calibration_total_points / detect_orientation_side_count;
 	worker_data.calibration_interval_perside_us = (calibraton_duration_s / detect_orientation_side_count) * 1000 * 1000;
-
-	calibration_sides = 0;
 
 	for (unsigned i = 0; i < (sizeof(worker_data.side_data_collected) / sizeof(worker_data.side_data_collected[0])); i++) {
 
 		if ((cal_mask & (1 << i)) > 0) {
 			// mark as missing
 			worker_data.side_data_collected[i] = false;
-			calibration_sides++;
+			worker_data.calibration_sides++;
 
 		} else {
 			// mark as completed from the beginning
@@ -486,7 +485,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		worker_data.calibration_counter_total[cur_mag] = 0;
 	}
 
-	const unsigned int calibration_points_maxcount = calibration_sides * worker_data.calibration_points_perside;
+	const unsigned int calibration_points_maxcount = worker_data.calibration_sides * worker_data.calibration_points_perside;
 
 	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
@@ -621,7 +620,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				// Estimate only the offsets if two-sided calibration is selected, as the problem is not constrained
 				// enough to reliably estimate both scales and offsets with 2 sides only (even if the existing calibration
 				// is already close)
-				bool sphere_fit_only = calibration_sides <= 2;
+				bool sphere_fit_only = worker_data.calibration_sides <= 2;
 				ellipsoid_fit_least_squares(worker_data.x[cur_mag], worker_data.y[cur_mag], worker_data.z[cur_mag],
 							    worker_data.calibration_counter_total[cur_mag], 100,
 							    &sphere[cur_mag](0), &sphere[cur_mag](1), &sphere[cur_mag](2),
@@ -700,7 +699,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		int32_t param_cal_mag_rot_auto = 0;
 		param_get(param_find("CAL_MAG_ROT_AUTO"), &param_cal_mag_rot_auto);
 
-		if ((calibration_sides >= 3) && (param_cal_mag_rot_auto == 1)) {
+		if ((worker_data.calibration_sides >= 3) && (param_cal_mag_rot_auto == 1)) {
 
 			// find first internal mag to use as reference
 			int internal_index = -1;
