@@ -913,21 +913,21 @@ void Ekf::checkVerticalAccelerationHealth()
 		}
 	}
 
-	// Check for > 50% clipping affected IMU samples within the past 1 second
+	// Check for more than 50% clipping affected IMU samples within the past 1 second
 	const uint16_t clip_count_limit = 1000 / FILTER_UPDATE_PERIOD_MS;
-	if (_imu_sample_delayed.delta_vel_clipping[0] ||
-	    _imu_sample_delayed.delta_vel_clipping[1] ||
-	    _imu_sample_delayed.delta_vel_clipping[2]) {
-		if (_clip_counter < clip_count_limit) {
+	const bool is_clipping = _imu_sample_delayed.delta_vel_clipping[0] ||
+				 _imu_sample_delayed.delta_vel_clipping[1] ||
+				 _imu_sample_delayed.delta_vel_clipping[2];
+	if (is_clipping &&_clip_counter < clip_count_limit) {
 			_clip_counter++;
-		}
 	} else if (_clip_counter > 0) {
 		_clip_counter--;
 	}
+	const bool is_clipping_frequently = _clip_counter > 0;
 
 	// if vertical velocity and position are independent and agree, then do not require evidence of clipping if
 	// innovations are large
-	const bool bad_vert_accel = (are_vertical_pos_and_vel_independant || _clip_counter > 0) &&
+	const bool bad_vert_accel = (are_vertical_pos_and_vel_independant || is_clipping_frequently) &&
 				is_inertial_nav_falling;
 
 	if (bad_vert_accel) {
