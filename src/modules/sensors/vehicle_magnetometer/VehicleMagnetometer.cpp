@@ -206,7 +206,7 @@ void VehicleMagnetometer::Run()
 					if (uorb_index > 0) {
 						/* the first always exists, but for each further sensor, add a new validator */
 						if (!_voter.add_new_validator()) {
-							PX4_ERR("failed to add validator for sensor_mag:%i", uorb_index);
+							PX4_ERR("failed to add validator for %s %i", "MAG", uorb_index);
 						}
 					}
 
@@ -255,12 +255,19 @@ void VehicleMagnetometer::Run()
 				sub.unregisterCallback();
 			}
 
+			if (_selected_sensor_sub_index >= 0) {
+				PX4_INFO("%s switch from #%u -> #%d", "MAG", _selected_sensor_sub_index, best_index);
+			}
+
 			_selected_sensor_sub_index = best_index;
 			_sensor_sub[_selected_sensor_sub_index].registerCallback();
 		}
 	}
 
-	if ((_selected_sensor_sub_index >= 0) && updated[_selected_sensor_sub_index]) {
+	if ((_selected_sensor_sub_index >= 0)
+	    && (_voter.get_sensor_state(_selected_sensor_sub_index) == DataValidator::ERROR_FLAG_NO_ERROR)
+	    && updated[_selected_sensor_sub_index]) {
+
 		const sensor_mag_s &mag = _last_data[_selected_sensor_sub_index];
 
 		// populate vehicle_magnetometer with primary mag and publish
@@ -280,18 +287,13 @@ void VehicleMagnetometer::Run()
 		uint32_t flags = _voter.failover_state();
 		int failover_index = _voter.failover_index();
 
-		if (flags == DataValidator::ERROR_FLAG_NO_ERROR) {
-			if (failover_index != -1) {
-				// we switched due to a non-critical reason. No need to panic.
-				PX4_INFO("sensor_mag switch from #%i", failover_index);
-			}
-
-		} else {
+		if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
 			if (failover_index != -1) {
 				const hrt_abstime now = hrt_absolute_time();
 
 				if (now - _last_error_message > 3_s) {
-					mavlink_log_emergency(&_mavlink_log_pub, "sensor_mag:#%i failed: %s%s%s%s%s!, reconfiguring priorities",
+					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!",
+							      "MAG",
 							      failover_index,
 							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
 							      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
@@ -305,6 +307,8 @@ void VehicleMagnetometer::Run()
 				_priority[failover_index] = 1;
 			}
 		}
+
+		_last_failover_count = _voter.failover_count();
 	}
 
 	if (!_armed) {
@@ -372,7 +376,7 @@ void VehicleMagnetometer::PrintStatus()
 	_voter.print();
 
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-		if (_advertised[i]) {
+		if (_advertised[i] && (_priority[i] > 0)) {
 			_calibration[i].PrintStatus();
 		}
 	}

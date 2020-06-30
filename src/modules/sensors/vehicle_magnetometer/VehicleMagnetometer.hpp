@@ -35,7 +35,7 @@
 
 #include "data_validator/DataValidatorGroup.hpp"
 
-#include "lib/calibration/MagnetometerCalibration.hpp"
+#include <lib/calibration/MagnetometerCalibration.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
