@@ -273,8 +273,8 @@ bool Ekf::resetGpsAntYaw()
 		return false;
 	}
 
-	// get measurement and correct for antenna array yaw offset
-	const float measured_yaw = _gps_sample_delayed.yaw + _gps_yaw_offset;
+	// GPS yaw measurement is alreday compensated for antenna offset in the driver
+	const float measured_yaw = _gps_sample_delayed.yaw;
 
 	const float yaw_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 	resetQuatStateYaw(measured_yaw, yaw_variance, true);
