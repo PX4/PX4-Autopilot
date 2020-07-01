@@ -130,25 +130,24 @@
 #include <px4_platform_common/time.h>
 
 #include <drivers/drv_hrt.h>
+#include <lib/sensor_calibration/Accelerometer.hpp>
+#include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/ecl/geo/geo.h>
 #include <matrix/math.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/parameters/param.h>
-#include <systemlib/err.h>
-#include <systemlib/mavlink_log.h>
+#include <lib/systemlib/err.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_correction.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
 
-using namespace time_literals;
 using namespace matrix;
-using math::radians;
+using namespace time_literals;
 
 static constexpr char sensor_name[] {"accel"};
 static constexpr unsigned MAX_ACCEL_SENS = 3;
-static constexpr uint8_t ACCEL_DEFAULT_PRIORITY = 50;
 
 static calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub,
 		Vector3f(&accel_offs)[MAX_ACCEL_SENS],
@@ -174,41 +173,20 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	int res = PX4_OK;
 
-	int32_t device_id[MAX_ACCEL_SENS] {};
-	int32_t priority[MAX_ACCEL_SENS] {ACCEL_DEFAULT_PRIORITY, ACCEL_DEFAULT_PRIORITY, ACCEL_DEFAULT_PRIORITY};
+	calibration::Accelerometer calibrations[MAX_ACCEL_SENS] {};
 
 	unsigned active_sensors = 0;
 
 	for (uint8_t cur_accel = 0; cur_accel < MAX_ACCEL_SENS; cur_accel++) {
 		uORB::SubscriptionData<sensor_accel_s> accel_sub{ORB_ID(sensor_accel), cur_accel};
-		accel_sub.update();
 
 		if (accel_sub.advertised() && (accel_sub.get().device_id != 0) && (accel_sub.get().timestamp > 0)) {
-
-			device_id[cur_accel] = accel_sub.get().device_id;
-
-			// preserve existing CAL_ACCx_PRIO parameter
-			for (uint8_t cal_index = 0; cal_index < MAX_ACCEL_SENS; cal_index++) {
-				char str[20] {};
-				sprintf(str, "CAL_%s%u_ID", "ACC", cal_index);
-				int32_t cal_device_id = 0;
-
-				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
-					if ((cal_device_id != 0) && (cal_device_id == device_id[cur_accel])) {
-						// CAL_ACCx_PRIO
-						sprintf(str, "CAL_%s%u_PRIO", "ACC", cal_index);
-						param_get(param_find(str), &priority[cur_accel]);
-
-						// check configured priority and reset if necessary
-						if (priority[cur_accel] < 0 || priority[cur_accel] > 100) {
-							priority[cur_accel] = ACCEL_DEFAULT_PRIORITY;
-						}
-					}
-				}
-			}
-
+			calibrations[cur_accel].set_device_id(accel_sub.get().device_id);
 			active_sensors++;
 		}
+
+		// reset calibration index to match uORB numbering
+		calibrations[cur_accel].set_calibration_index(cur_accel);
 	}
 
 	/* measure and calculate offsets & scales */
@@ -227,53 +205,25 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	/* measurements completed successfully, rotate calibration values */
-	int32_t board_rotation_int = 0;
-	param_get(param_find("SENS_BOARD_ROT"), &board_rotation_int);
-	const Dcmf board_rotation = get_rot_matrix((enum Rotation)board_rotation_int);
+	const Dcmf board_rotation = calibration::GetBoardRotation();
 	const Dcmf board_rotation_t = board_rotation.transpose();
 
 	for (unsigned uorb_index = 0; uorb_index < MAX_ACCEL_SENS; uorb_index++) {
-
-		Vector3f offset;
-		Vector3f scale;
-
-		if (device_id[uorb_index] != 0) {
+		if (calibrations[uorb_index].device_id() != 0) {
 			/* handle individual sensors, one by one */
 			const Vector3f accel_offs_rotated = board_rotation_t *accel_offs[uorb_index];
 			const Matrix3f accel_T_rotated = board_rotation_t *accel_T[uorb_index] * board_rotation;
 
-			offset = accel_offs_rotated;
-			scale = accel_T_rotated.diag();
-
-			PX4_DEBUG("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "ACC", device_id[uorb_index],
-				  (double)offset(0), (double)offset(1), (double)offset(2),
-				  (double)scale(0), (double)scale(1), (double)scale(2));
+			calibrations[uorb_index].set_offset(accel_offs_rotated);
+			calibrations[uorb_index].set_scale(accel_T_rotated.diag());
 
 		} else {
-			// all unused parameters set to default values
-			offset.zero();
-			scale = Vector3f{1.f, 1.f, 1.f};
-			priority[uorb_index] = ACCEL_DEFAULT_PRIORITY;
+			calibrations[uorb_index].Reset();
 		}
 
-		char str[20] {};
-
-		sprintf(str, "CAL_%s%u_ID", "ACC", uorb_index);
-		param_set_no_notification(param_find(str), &device_id[uorb_index]);
-		sprintf(str, "CAL_%s%u_PRIO", "ACC", uorb_index);
-		param_set_no_notification(param_find(str), &priority[uorb_index]);
-
-		for (int axis = 0; axis < 3; axis++) {
-			char axis_char = 'X' + axis;
-
-			// offsets
-			sprintf(str, "CAL_%s%u_%cOFF", "ACC", uorb_index, axis_char);
-			param_set_no_notification(param_find(str), &offset(axis));
-
-			// scale
-			sprintf(str, "CAL_%s%u_%cSCALE", "ACC", uorb_index, axis_char);
-			param_set_no_notification(param_find(str), &scale(axis));
-		}
+		// save all instances to reset empty slots
+		calibrations[uorb_index].set_calibration_index(uorb_index);
+		calibrations[uorb_index].ParametersSave();
 	}
 
 	param_notify_changes();
@@ -351,18 +301,7 @@ static calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_
 static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS][detect_orientation_side_count][3],
 		unsigned orient, unsigned samples_num)
 {
-	/* get total sensor board rotation matrix */
-	float board_offset[3] {};
-	param_get(param_find("SENS_BOARD_X_OFF"), &board_offset[0]);
-	param_get(param_find("SENS_BOARD_Y_OFF"), &board_offset[1]);
-	param_get(param_find("SENS_BOARD_Z_OFF"), &board_offset[2]);
-
-	const Dcmf board_rotation_offset{Eulerf{math::radians(board_offset[0]), math::radians(board_offset[1]), math::radians(board_offset[2])}};
-
-	int32_t board_rotation_int = 0;
-	param_get(param_find("SENS_BOARD_ROT"), &board_rotation_int);
-
-	const Dcmf board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)board_rotation_int);
+	const Dcmf board_rotation = calibration::GetBoardRotation();
 
 	Vector3f accel_sum[MAX_ACCEL_SENS] {};
 	unsigned counts[MAX_ACCEL_SENS] {};

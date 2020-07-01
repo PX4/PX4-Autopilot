@@ -193,7 +193,7 @@ void uORB::DeviceMaster::printStatistics()
 		return;
 	}
 
-	PX4_INFO_RAW("%-*s INST #SUB #Q SIZE PRIO PATH\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+	PX4_INFO_RAW("%-*s INST #SUB #Q SIZE PATH\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 
 	cur_node = first_node;
 

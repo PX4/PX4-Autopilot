@@ -492,14 +492,13 @@ uORB::DeviceNode::print_statistics(int max_topic_length)
 	lock();
 
 	const uint8_t instance = get_instance();
-	const uint8_t priority = get_priority();
 	const int8_t sub_count = subscriber_count();
 	const uint8_t queue_size = get_queue_size();
 
 	unlock();
 
-	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %4i %s\n", max_topic_length, get_meta()->o_name, (int)instance, (int)sub_count,
-		     queue_size, get_meta()->o_size, priority, get_devname());
+	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %s\n", max_topic_length, get_meta()->o_name, (int)instance, (int)sub_count,
+		     queue_size, get_meta()->o_size, get_devname());
 
 	return true;
 }

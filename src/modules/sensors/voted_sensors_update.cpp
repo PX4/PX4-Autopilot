@@ -39,10 +39,10 @@
 
 #include "voted_sensors_update.h"
 
-#include <systemlib/mavlink_log.h>
-
+#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/ecl/geo/geo.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
-#include <ecl/geo/geo.h>
 
 using namespace sensors;
 using namespace matrix;
@@ -89,57 +89,45 @@ void VotedSensorsUpdate::parametersUpdate()
 		if (imu.get().timestamp > 0 && imu.get().accel_device_id > 0 && imu.get().gyro_device_id > 0) {
 
 			// find corresponding configured accel priority
-			for (uint8_t cal_index = 0; cal_index < ACCEL_COUNT_MAX; cal_index++) {
-				char str[20] {};
-				sprintf(str, "CAL_%s%u_ID", "ACC", cal_index);
-				int32_t cal_device_id = 0;
+			int8_t accel_cal_index = calibration::FindCalibrationIndex("ACC", imu.get().accel_device_id);
 
-				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
-					if ((cal_device_id != 0) && ((uint32_t)cal_device_id == imu.get().accel_device_id)) {
-						// found matching CAL_ACCx_PRIO
-						int32_t accel_priority_old = _accel.priority_configured[uorb_index];
-						sprintf(str, "CAL_%s%u_PRIO", "ACC", cal_index);
-						param_get(param_find(str), &_accel.priority_configured[uorb_index]);
+			if (accel_cal_index >= 0) {
+				// found matching CAL_ACCx_PRIO
+				int32_t accel_priority_old = _accel.priority_configured[uorb_index];
 
-						if (accel_priority_old != _accel.priority_configured[uorb_index]) {
-							if (_accel.priority_configured[uorb_index] == 0) {
-								// disabled
-								_accel.priority[uorb_index] = 0;
+				_accel.priority_configured[uorb_index] = calibration::GetCalibrationParam("ACC", "PRIO", accel_cal_index);
 
-							} else {
-								// change relative priority to incorporate any sensor faults
-								int priority_change = _accel.priority_configured[uorb_index] - accel_priority_old;
-								_accel.priority[uorb_index] = math::constrain(_accel.priority[uorb_index] + priority_change, 1, 100);
-							}
-						}
+				if (accel_priority_old != _accel.priority_configured[uorb_index]) {
+					if (_accel.priority_configured[uorb_index] == 0) {
+						// disabled
+						_accel.priority[uorb_index] = 0;
+
+					} else {
+						// change relative priority to incorporate any sensor faults
+						int priority_change = _accel.priority_configured[uorb_index] - accel_priority_old;
+						_accel.priority[uorb_index] = math::constrain(_accel.priority[uorb_index] + priority_change, 1, 100);
 					}
 				}
 			}
 
 			// find corresponding configured gyro priority
-			for (uint8_t cal_index = 0; cal_index < ACCEL_COUNT_MAX; cal_index++) {
-				char str[20] {};
-				sprintf(str, "CAL_%s%u_ID", "GYRO", cal_index);
-				int32_t cal_device_id = 0;
+			int8_t gyro_cal_index = calibration::FindCalibrationIndex("GYRO", imu.get().gyro_device_id);
 
-				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
-					if ((cal_device_id != 0) && ((uint32_t)cal_device_id == imu.get().gyro_device_id)) {
-						// found matching CAL_GYROx_PRIO
-						int32_t gyro_priority_old = _gyro.priority_configured[uorb_index];
-						sprintf(str, "CAL_%s%u_PRIO", "GYRO", cal_index);
-						param_get(param_find(str), &_gyro.priority_configured[uorb_index]);
+			if (gyro_cal_index >= 0) {
+				// found matching CAL_GYROx_PRIO
+				int32_t gyro_priority_old = _gyro.priority_configured[uorb_index];
 
-						if (gyro_priority_old != _gyro.priority_configured[uorb_index]) {
-							if (_gyro.priority_configured[uorb_index] == 0) {
-								// disabled
-								_gyro.priority[uorb_index] = 0;
+				_gyro.priority_configured[uorb_index] = calibration::GetCalibrationParam("GYRO", "PRIO", gyro_cal_index);
 
-							} else {
-								// change relative priority to incorporate any sensor faults
-								int priority_change = _gyro.priority_configured[uorb_index] - gyro_priority_old;
-								_gyro.priority[uorb_index] = math::constrain(_gyro.priority[uorb_index] + priority_change, 1, 100);
-							}
-						}
+				if (gyro_priority_old != _gyro.priority_configured[uorb_index]) {
+					if (_gyro.priority_configured[uorb_index] == 0) {
+						// disabled
+						_gyro.priority[uorb_index] = 0;
+
+					} else {
+						// change relative priority to incorporate any sensor faults
+						int priority_change = _gyro.priority_configured[uorb_index] - gyro_priority_old;
+						_gyro.priority[uorb_index] = math::constrain(_gyro.priority[uorb_index] + priority_change, 1, 100);
 					}
 				}
 			}

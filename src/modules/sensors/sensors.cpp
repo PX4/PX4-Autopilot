@@ -173,7 +173,7 @@ private:
 	VehicleAcceleration	_vehicle_acceleration;
 	VehicleAngularVelocity	_vehicle_angular_velocity;
 	VehicleAirData          *_vehicle_air_data{nullptr};
-	VehicleMagnetometer     _vehicle_magnetometer;
+	VehicleMagnetometer     *_vehicle_magnetometer{nullptr};
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
@@ -207,9 +207,11 @@ private:
 
 	void		InitializeVehicleAirData();
 	void		InitializeVehicleIMU();
+	void		InitializeVehicleMagnetometer();
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro
+		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
+		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
 	)
 };
 
@@ -252,9 +254,6 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_vehicle_acceleration.Start();
 	_vehicle_angular_velocity.Start();
-	_vehicle_magnetometer.Start();
-
-	InitializeVehicleIMU();
 }
 
 Sensors::~Sensors()
@@ -266,11 +265,15 @@ Sensors::~Sensors()
 
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
-	_vehicle_magnetometer.Stop();
 
 	if (_vehicle_air_data) {
 		_vehicle_air_data->Stop();
 		delete _vehicle_air_data;
+	}
+
+	if (_vehicle_magnetometer) {
+		_vehicle_magnetometer->Stop();
+		delete _vehicle_magnetometer;
 	}
 
 	for (auto &vehicle_imu : _vehicle_imu_list) {
@@ -514,6 +517,21 @@ void Sensors::InitializeVehicleIMU()
 	}
 }
 
+void Sensors::InitializeVehicleMagnetometer()
+{
+	if (_param_sys_has_mag.get()) {
+		if (_vehicle_magnetometer == nullptr) {
+			if (orb_exists(ORB_ID(sensor_mag), 0) == PX4_OK) {
+				_vehicle_magnetometer = new VehicleMagnetometer();
+
+				if (_vehicle_magnetometer) {
+					_vehicle_magnetometer->Start();
+				}
+			}
+		}
+	}
+}
+
 void Sensors::Run()
 {
 	if (should_exit()) {
@@ -530,6 +548,7 @@ void Sensors::Run()
 	if (_last_config_update == 0) {
 		InitializeVehicleAirData();
 		InitializeVehicleIMU();
+		InitializeVehicleMagnetometer();
 		_voted_sensors_update.init(_sensor_combined);
 		parameter_update_poll(true);
 	}
@@ -578,6 +597,7 @@ void Sensors::Run()
 		_voted_sensors_update.initializeSensors();
 		InitializeVehicleAirData();
 		InitializeVehicleIMU();
+		InitializeVehicleMagnetometer();
 		_last_config_update = hrt_absolute_time();
 
 	} else {
@@ -643,8 +663,10 @@ int Sensors::print_status()
 {
 	_voted_sensors_update.printStatus();
 
-	PX4_INFO_RAW("\n");
-	_vehicle_magnetometer.PrintStatus();
+	if (_vehicle_magnetometer) {
+		PX4_INFO_RAW("\n");
+		_vehicle_magnetometer->PrintStatus();
+	}
 
 	if (_vehicle_air_data) {
 		PX4_INFO_RAW("\n");

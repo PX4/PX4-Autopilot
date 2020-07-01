@@ -298,7 +298,7 @@ rtps:
   - msg: telemetry_heartbeat
     id: 133
   - msg: sensor_preflight_mag
-    id: 133
+    id: 134
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150

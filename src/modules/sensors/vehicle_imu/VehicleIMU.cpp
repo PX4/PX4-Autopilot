@@ -274,7 +274,7 @@ void VehicleIMU::Run()
 		if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
 
 			// rotate sensor clip counts into vehicle body frame
-			const Vector3f clipping{_accel_calibration.getBoardRotation() *
+			const Vector3f clipping{_accel_calibration.getRotation() *
 				Vector3f{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]}};
 
 			// round to get reasonble clip counts per axis (after board rotation)

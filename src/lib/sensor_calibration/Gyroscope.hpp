@@ -33,27 +33,36 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
 #include <lib/conversion/rotation.h>
 #include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_correction.h>
 
-namespace sensors
+namespace calibration
 {
-
-class MagnetometerCalibration
+class Gyroscope
 {
 public:
-	MagnetometerCalibration() = default;
-	~MagnetometerCalibration() = default;
+	static constexpr int MAX_SENSOR_COUNT = 3;
+
+	static constexpr uint8_t DEFAULT_PRIORITY = 50;
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
+
+	static constexpr const char *SensorString() { return "GYRO"; }
+
+	Gyroscope();
+	explicit Gyroscope(uint32_t device_id);
+
+	~Gyroscope() = default;
 
 	void PrintStatus();
 
+	void set_calibration_index(uint8_t calibration_index) { _calibration_index = calibration_index; }
 	void set_device_id(uint32_t device_id);
 	void set_external(bool external = true) { _external = external; }
+	void set_offset(const matrix::Vector3f &offset) { _offset = offset; }
 
 	uint32_t device_id() const { return _device_id; }
 	int32_t priority() const { return _priority; }
@@ -62,35 +71,32 @@ public:
 
 	// apply offsets and scale
 	// rotate corrected measurements from sensor to body frame
-	matrix::Vector3f Correct(const matrix::Vector3f &data);
+	inline matrix::Vector3f Correct(const matrix::Vector3f &data)
+	{
+		SensorCorrectionsUpdate();
+		return _rotation * matrix::Vector3f{data - _thermal_offset - _offset};
+	}
 
+	bool ParametersSave();
 	void ParametersUpdate();
+
+	void Reset();
+
 	void SensorCorrectionsUpdate(bool force = false);
 
-	void UpdatePower(float power) { _power = power; }
+	const matrix::Dcmf &getRotation() const { return _rotation; }
 
 private:
-
-	static constexpr int MAX_SENSOR_COUNT = 4;
-
-	int FindCalibrationIndex(uint32_t device_id) const;
-
-	static constexpr const char *SensorString() { return "MAG"; }
-
-	static constexpr uint8_t MAG_DEFAULT_PRIORITY = 50;
-	static constexpr uint8_t MAG_DEFAULT_EXTERNAL_PRIORITY = 75;
+	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 
 	matrix::Dcmf _rotation;
+	matrix::Vector3f _offset{0.f, 0.f, 0.f};
+	matrix::Vector3f _thermal_offset{0.f, 0.f, 0.f};
 
-	matrix::Vector3f _offset;
-	matrix::Matrix3f _scale;
-	matrix::Vector3f _power_compensation;
-	float _power{0.f};
-
+	int8_t _calibration_index{-1};
 	uint32_t _device_id{0};
+	int32_t _priority{DEFAULT_PRIORITY};
 
-	int32_t _priority{MAG_DEFAULT_PRIORITY};
 	bool _external{false};
 };
-
-} // namespace sensors
+} // namespace calibration

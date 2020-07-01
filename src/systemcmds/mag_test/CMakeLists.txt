@@ -36,5 +36,5 @@ px4_add_module(
 	SRCS
 		mag_test.cpp
 	DEPENDS
-		calibration
+		sensor_calibration
 	)

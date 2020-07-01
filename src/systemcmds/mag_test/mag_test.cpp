@@ -36,7 +36,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
 
-#include <lib/calibration/MagnetometerCalibration.hpp>
+#include <lib/sensor_calibration/Magnetometer.hpp>
 #include <lib/ecl/geo_lookup/geo_mag_declination.h>
 #include <lib/matrix/matrix/math.hpp>
 #include <uORB/Subscription.hpp>
@@ -76,7 +76,7 @@ extern "C" __EXPORT int mag_test_main(int argc, char *argv[])
 		{ORB_ID(sensor_mag), 3}
 	};
 
-	sensors::MagnetometerCalibration calibration[MAX_SENSOR_COUNT];
+	calibration::Magnetometer calibration[MAX_SENSOR_COUNT];
 
 	uORB::Subscription sensor_combined_sub{ORB_ID(sensor_combined)};
 	uORB::Subscription vehicle_gps_position_sub {ORB_ID(vehicle_gps_position)};
@@ -92,7 +92,7 @@ extern "C" __EXPORT int mag_test_main(int argc, char *argv[])
 				const double lon = gps.lon / 1.e7;
 
 				// set the magnetic field data returned by the geo library using the current GPS position
-				float declination = math::radians(get_mag_declination(lat, lon));
+				float declination = get_mag_declination_radians(lat, lon);
 
 				if (fabsf(declination - mag_declination) > 0.5f) {
 					PX4_INFO("declination updated %.3f -> %.3f", (double)mag_declination, (double)declination);
