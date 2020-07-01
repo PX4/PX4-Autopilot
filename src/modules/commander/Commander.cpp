@@ -257,8 +257,14 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
 
 			} else if (!strcmp(argv[2], "mag")) {
-				// magnetometer calibration: param2 = 1
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+				if (argc > 3 && (strcmp(argv[3], "quick") == 0)) {
+					// magnetometer quick calibration: param2 = 2
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+
+				} else {
+					// magnetometer calibration: param2 = 1
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+				}
 
 			} else if (!strcmp(argv[2], "accel")) {
 				if (argc > 3 && (strcmp(argv[3], "quick") == 0)) {
@@ -3506,6 +3512,11 @@ void *commander_low_prio_loop(void *arg)
 							/* magnetometer calibration */
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 							calib_ret = do_mag_calibration(&mavlink_log_pub);
+
+						} else if ((int)(cmd.param2) == 2) {
+							/* magnetometer calibration quick (requires GPS & attitude) */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_mag_calibration_quick(&mavlink_log_pub);
 
 						} else if ((int)(cmd.param3) == 1) {
 							/* zero-altitude pressure calibration */
