@@ -59,6 +59,7 @@
 #include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
 using namespace matrix;
@@ -696,7 +697,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						bool total_error_check_passed = (mag_error_ga < 0.25f);
 
 						if (smallest_check_passed && total_error_check_passed) {
-							if (best_rotation != worker_data.calibration[cur_mag].rotation()) {
+							if (best_rotation != worker_data.calibration[cur_mag].rotation_enum()) {
 								calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%d), determined rotation: %d", cur_mag,
 										     worker_data.calibration[cur_mag].device_id(), best_rotation);
 
@@ -766,4 +767,85 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	}
 
 	return result;
+}
+
+int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radians)
+{
+	// magnetometer quick calibration
+	//  if GPS available use world magnetic model to zero mag offsets
+
+	matrix::Vector3f mag_earth_pred{};
+	bool mag_earth_available = false;
+
+	uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	vehicle_gps_position_s gps;
+
+	if (vehicle_gps_position_sub.copy(&gps)) {
+		if (gps.eph < 1000) {
+			const double lat = gps.lat / 1.e7;
+			const double lon = gps.lon / 1.e7;
+
+			// magnetic field data returned by the geo library using the current GPS position
+			const float mag_declination_gps = get_mag_declination_radians(lat, lon);
+			const float mag_inclination_gps = get_mag_inclination_radians(lat, lon);
+			const float mag_strength_gps = get_mag_strength_gauss(lat, lon);
+
+			mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) * Vector3f(mag_strength_gps, 0, 0);
+
+			mag_earth_available = true;
+		}
+	}
+
+	if (!mag_earth_available) {
+		calibration_log_critical(mavlink_log_pub, "GPS required for mag quick cal");
+		return calibrate_return_error;
+
+	} else {
+
+		uORB::Subscription vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+		vehicle_attitude_s attitude;
+
+		if (vehicle_attitude_sub.copy(&attitude)) {
+
+			calibration_log_critical(mavlink_log_pub, "Assuming vehicle is facing heading %.1fº",
+						 (double)math::radians(heading_radians));
+
+			matrix::Eulerf euler{matrix::Quatf{attitude.q}};
+			euler(2) = heading_radians;
+
+			Vector3f expected_field = Dcmf{euler} .transpose() * mag_earth_pred;
+
+			for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+				uORB::Subscription mag_sub{ORB_ID(sensor_mag), cur_mag};
+				sensor_mag_s mag{};
+				mag_sub.copy(&mag);
+
+				calibration::Magnetometer calibration{mag.device_id};
+
+				// clear any existing calibration
+				calibration.Reset();
+
+				// force calibration index to uORB index
+				calibration.set_calibration_index(cur_mag);
+
+				if (mag_sub.advertised() && (hrt_elapsed_time(&mag.timestamp) < 1_s)) {
+
+					const matrix::Dcmf rotation = calibration.rotation();
+
+					const Vector3f offset = (rotation * Vector3f{mag.x, mag.y, mag.z}) - expected_field;
+					calibration.set_offset(rotation.transpose() * offset);
+				}
+
+				// save new calibration
+				calibration.ParametersSave();
+			}
+
+			param_notify_changes();
+
+			calibration_log_info(mavlink_log_pub, "Mag quick calibration finished");
+			return calibrate_return_ok;
+		}
+	}
+
+	return calibrate_return_error;
 }

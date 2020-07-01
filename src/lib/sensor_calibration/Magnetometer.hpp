@@ -107,7 +107,8 @@ public:
 
 	void Reset();
 
-	const Rotation &rotation() { return _rotation_enum; }
+	const matrix::Dcmf &rotation() const { return _rotation; }
+	const Rotation &rotation_enum() const { return _rotation_enum; }
 	void set_rotation(Rotation rotation)
 	{
 		_rotation_enum = rotation;
