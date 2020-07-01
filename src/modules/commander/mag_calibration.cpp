@@ -61,6 +61,7 @@
 
 using namespace matrix;
 using namespace time_literals;
+using math::radians;
 
 static constexpr char sensor_name[] {"mag"};
 static constexpr unsigned MAX_MAGS = 4;
@@ -76,8 +77,20 @@ static constexpr uint8_t MAG_DEFAULT_EXTERNAL_PRIORITY = 75;
 
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask);
 
+struct MagCalibration {
+	uint8_t instance{0};
+	int32_t device_id{0};
+	int32_t rotation{-1};
+	int32_t priority{MAG_DEFAULT_PRIORITY};
+	Vector3f offset{0.f, 0.f, 0.f};
+	Vector3f diag{1.f, 1.f, 1.f};
+	Vector3f off_diag{0.f, 0.f, 0.f};
+	Vector3f power_compensation{0.f, 0.f, 0.f};
+	bool internal{true};
+};
+
 /// Data passed to calibration worker routine
-typedef struct  {
+struct mag_worker_data_t {
 	orb_advert_t	*mavlink_log_pub;
 	bool		append_to_existing_calibration;
 	unsigned	last_mag_progress;
@@ -86,20 +99,13 @@ typedef struct  {
 	bool		side_data_collected[detect_orientation_side_count];
 	unsigned int	calibration_points_perside;
 	uint64_t	calibration_interval_perside_us;
-	bool		existing_calibration_available[MAX_MAGS];
 	unsigned int	calibration_counter_total[MAX_MAGS];
 	float		*x[MAX_MAGS];
 	float		*y[MAX_MAGS];
 	float		*z[MAX_MAGS];
-	int32_t		device_ids[MAX_MAGS];
-	bool		internal[MAX_MAGS];
-	int32_t		priority[MAX_MAGS];
-	int32_t		rotation[MAX_MAGS];
-	Vector3f	scale_existing[MAX_MAGS];
-	Vector3f	offset_existing[MAX_MAGS];
-	Vector3f	off_diagonal_existing[MAX_MAGS];
-	Vector3f	power_compensation[MAX_MAGS];
-} mag_worker_data_t;
+
+	MagCalibration  calibration[MAX_MAGS] {};
+};
 
 
 int do_mag_calibration(orb_advert_t *mavlink_log_pub)
@@ -347,16 +353,16 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 			for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 				sensor_mag_s mag;
 
-				if (worker_data->device_ids[cur_mag] != 0) {
+				if (worker_data->calibration[cur_mag].device_id != 0) {
 					if (mag_sub[cur_mag].update(&mag)) {
 
-						if (worker_data->append_to_existing_calibration && worker_data->existing_calibration_available[cur_mag]) {
+						if (worker_data->append_to_existing_calibration) {
 							// keep and update the existing calibration when we are not doing a full 6-axis calibration
 
 							const Vector3f sample{mag.x, mag.y, mag.z};
 
-							const auto &diag = worker_data->scale_existing[cur_mag];
-							const auto &offdiag = worker_data->off_diagonal_existing[cur_mag];
+							const auto &diag = worker_data->calibration[cur_mag].diag;
+							const auto &offdiag = worker_data->calibration[cur_mag].off_diag;
 
 							float scale[9] {
 								diag(0),    offdiag(0), offdiag(1),
@@ -364,7 +370,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 								offdiag(1), offdiag(2),    diag(2)
 							};
 
-							const Vector3f offset{worker_data->offset_existing[cur_mag]};
+							const Vector3f offset{worker_data->calibration[cur_mag].offset};
 
 							// apply calibration
 							const Vector3f m{Matrix3f{scale} *(sample - offset)};
@@ -398,7 +404,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 			// Keep calibration of all mags in lockstep
 			if (!rejected) {
 				for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-					if (worker_data->device_ids[cur_mag] != 0) {
+					if (worker_data->calibration[cur_mag].device_id != 0) {
 						worker_data->x[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](0);
 						worker_data->y[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](1);
 						worker_data->z[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](2);
@@ -448,11 +454,139 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	return result;
 }
 
+// returns mag calibration for an instance if it exists, otherwise returns defaults
+static MagCalibration GetMagCalibration(uint8_t instance)
+{
+	MagCalibration calibration{};
+	calibration.instance = instance;
+
+	uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), instance};
+	mag_sub.update();
+
+	if (mag_sub.advertised() && (mag_sub.get().device_id != 0) && (mag_sub.get().timestamp > 0)) {
+
+		calibration.device_id = mag_sub.get().device_id;
+		calibration.internal = !mag_sub.get().is_external;
+
+		if (calibration.internal) {
+			calibration.rotation = -1; // internal mags match have no configurable rotation
+			calibration.priority = MAG_DEFAULT_PRIORITY;
+
+		} else {
+			calibration.rotation = ROTATION_NONE; // external default rotation none
+			calibration.priority = MAG_DEFAULT_EXTERNAL_PRIORITY;
+		}
+
+		// preserve any existing power compensation or configured rotation (external only)
+		for (uint8_t cal_index = 0; cal_index < MAX_MAGS; cal_index++) {
+			char str[20] {};
+			sprintf(str, "CAL_%s%u_ID", "MAG", cal_index);
+			int32_t cal_device_id = 0;
+
+			if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
+				if ((cal_device_id != 0) && (cal_device_id == calibration.device_id)) {
+					// if external preserve configured rotation
+					if (!calibration.internal) {
+						sprintf(str, "CAL_%s%u_ROT", "MAG", cal_index);
+						param_get(param_find(str), &calibration.rotation);
+
+						// check configured rotation and reset if necessary
+						if (calibration.rotation < 0 || calibration.rotation > ROTATION_MAX) {
+							calibration.rotation = ROTATION_NONE;
+						}
+					}
+
+					// CAL_MAGx_PRIO
+					sprintf(str, "CAL_%s%u_PRIO", "MAG", cal_index);
+					param_get(param_find(str), &calibration.priority);
+
+					// check configured priority and reset if necessary
+					if (calibration.priority < 0 || calibration.priority > 100) {
+						calibration.priority = calibration.internal ? MAG_DEFAULT_PRIORITY : MAG_DEFAULT_EXTERNAL_PRIORITY;
+					}
+
+					for (int axis = 0; axis < 3; axis++) {
+						char axis_char = 'X' + axis;
+
+						// offsets CAL_MAGn_{X,Y,Z}OFF
+						sprintf(str, "CAL_%s%u_%cOFF", "MAG", cal_index, axis_char);
+						param_get(param_find(str), &calibration.offset(axis));
+
+						// scale (diagonal) CAL_MAGn_{X,Y,Z}SCALE
+						sprintf(str, "CAL_%s%u_%cSCALE", "MAG", cal_index, axis_char);
+						param_get(param_find(str), &calibration.diag(axis));
+
+						// off diagonal factors CAL_MAGn_{X,Y,Z}ODIAG
+						sprintf(str, "CAL_%s%u_%cODIAG", "MAG", cal_index, axis_char);
+						param_get(param_find(str), &calibration.off_diag(axis));
+
+						// power compensation CAL_MAGn_{X,Y,Z}COMP
+						sprintf(str, "CAL_%s%u_%cCOMP", "MAG", cal_index, axis_char);
+						param_get(param_find(str), &calibration.power_compensation(axis));
+					}
+				}
+			}
+		}
+	}
+
+	return calibration;
+}
+
+static void SaveCalibration(MagCalibration &cal)
+{
+	char str[20] {};
+
+	sprintf(str, "CAL_%s%u_ID", "MAG", cal.instance);
+	param_set_no_notification(param_find(str), &cal.device_id);
+	sprintf(str, "CAL_%s%u_ROT", "MAG", cal.instance);
+	param_set_no_notification(param_find(str), &cal.rotation);
+	sprintf(str, "CAL_%s%u_PRIO", "MAG", cal.instance);
+	param_set_no_notification(param_find(str), &cal.priority);
+
+	for (int axis = 0; axis < 3; axis++) {
+		char axis_char = 'X' + axis;
+
+		// offsets CAL_MAGn_{X,Y,Z}OFF
+		sprintf(str, "CAL_%s%u_%cOFF", "MAG", cal.instance, axis_char);
+		param_set_no_notification(param_find(str), &cal.offset(axis));
+
+		// scale (diagonal) CAL_MAGn_{X,Y,Z}SCALE
+		sprintf(str, "CAL_%s%u_%cSCALE", "MAG", cal.instance, axis_char);
+		param_set_no_notification(param_find(str), &cal.diag(axis));
+
+		// off diagonal factors CAL_MAGn_{X,Y,Z}ODIAG
+		sprintf(str, "CAL_%s%u_%cODIAG", "MAG", cal.instance, axis_char);
+		param_set_no_notification(param_find(str), &cal.off_diag(axis));
+
+		// power compensation CAL_MAGn_{X,Y,Z}COMP
+		sprintf(str, "CAL_%s%u_%cCOMP", "MAG", cal.instance, axis_char);
+		param_set_no_notification(param_find(str), &cal.power_compensation(axis));
+	}
+}
+
+static matrix::Dcmf GetBoardRotation()
+{
+	float x_offset = 0.f;
+	float y_offset = 0.f;
+	float z_offset = 0.f;
+	param_get(param_find("SENS_BOARD_X_OFF"), &x_offset);
+	param_get(param_find("SENS_BOARD_Y_OFF"), &y_offset);
+	param_get(param_find("SENS_BOARD_Z_OFF"), &z_offset);
+
+	const Dcmf board_rotation_offset(Eulerf(radians(x_offset), radians(y_offset), radians(z_offset)));
+
+	// get transformation matrix from sensor/board to body frame
+	int32_t board_rot = 0;
+	param_get(param_find("SENS_BOARD_ROT"), &board_rot);
+
+	return board_rotation_offset * get_rot_matrix((enum Rotation)board_rot);
+}
+
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask)
 {
 	calibrate_return result = calibrate_return_ok;
 
-	mag_worker_data_t worker_data;
+	mag_worker_data_t worker_data{};
 
 	// keep and update the existing calibration when we are not doing a full 6-axis calibration
 	worker_data.append_to_existing_calibration = cal_mask < ((1 << 6) - 1);
@@ -482,16 +616,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	}
 
 	for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-		worker_data.existing_calibration_available[cur_mag] = false;
-		worker_data.device_ids[cur_mag] = 0;
-		worker_data.internal[cur_mag] = false;
-		worker_data.priority[cur_mag] = MAG_DEFAULT_PRIORITY;
-		worker_data.rotation[cur_mag] = -1;
-		worker_data.scale_existing[cur_mag] = Vector3f{1.f, 1.f, 1.f};
-		worker_data.off_diagonal_existing[cur_mag].zero();
-		worker_data.offset_existing[cur_mag].zero();
-		worker_data.power_compensation[cur_mag].zero();
-
 		// Initialize to no memory allocated
 		worker_data.x[cur_mag] = nullptr;
 		worker_data.y[cur_mag] = nullptr;
@@ -502,77 +626,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	const unsigned int calibration_points_maxcount = worker_data.calibration_sides * worker_data.calibration_points_perside;
 
 	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+		worker_data.calibration[cur_mag] = GetMagCalibration(cur_mag);
 
-		uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), cur_mag};
-		mag_sub.update();
-
-		if (mag_sub.advertised() && (mag_sub.get().device_id != 0) && (mag_sub.get().timestamp > 0)) {
-
-			worker_data.device_ids[cur_mag] = mag_sub.get().device_id;
-			worker_data.internal[cur_mag] = !mag_sub.get().is_external;
-
-			if (worker_data.internal[cur_mag]) {
-				worker_data.rotation[cur_mag] = -1; // internal mags match have no configurable rotation
-				worker_data.priority[cur_mag] = MAG_DEFAULT_PRIORITY;
-
-			} else {
-				worker_data.rotation[cur_mag] = ROTATION_NONE; // external default rotation none
-				worker_data.priority[cur_mag] = MAG_DEFAULT_EXTERNAL_PRIORITY;
-			}
-
-			// preserve any existing power compensation or configured rotation (external only)
-			for (uint8_t cal_index = 0; cal_index < MAX_MAGS; cal_index++) {
-				char str[20] {};
-				sprintf(str, "CAL_%s%u_ID", "MAG", cal_index);
-				int32_t cal_device_id = 0;
-
-				if (param_get(param_find(str), &cal_device_id) == PX4_OK) {
-					if ((cal_device_id != 0) && (cal_device_id == worker_data.device_ids[cur_mag])) {
-						// if external preserve configured rotation
-						if (!worker_data.internal[cur_mag]) {
-							sprintf(str, "CAL_%s%u_ROT", "MAG", cal_index);
-							param_get(param_find(str), &worker_data.rotation[cur_mag]);
-
-							// check configured rotation and reset if necessary
-							if (worker_data.rotation[cur_mag] < 0 || worker_data.rotation[cur_mag] > ROTATION_MAX) {
-								worker_data.rotation[cur_mag] = ROTATION_NONE;
-							}
-						}
-
-						// CAL_MAGx_PRIO
-						sprintf(str, "CAL_%s%u_PRIO", "MAG", cal_index);
-						param_get(param_find(str), &worker_data.priority[cur_mag]);
-
-						// check configured priority and reset if necessary
-						if (worker_data.priority[cur_mag] < 0 || worker_data.priority[cur_mag] > 100) {
-							worker_data.priority[cur_mag] = worker_data.internal[cur_mag] ? MAG_DEFAULT_PRIORITY : MAG_DEFAULT_EXTERNAL_PRIORITY;
-						}
-
-						for (int axis = 0; axis < 3; axis++) {
-							char axis_char = 'X' + axis;
-
-							// offsets
-							sprintf(str, "CAL_%s%u_%cOFF", "MAG", cal_index, axis_char);
-							param_get(param_find(str), &worker_data.offset_existing[cur_mag](axis));
-
-							// scale
-							sprintf(str, "CAL_%s%u_%cSCALE", "MAG", cal_index, axis_char);
-							param_get(param_find(str), &worker_data.scale_existing[cur_mag](axis));
-
-							// off diagonal factors
-							sprintf(str, "CAL_%s%u_%cODIAG", "MAG", cur_mag, axis_char);
-							param_get(param_find(str), &worker_data.off_diagonal_existing[cur_mag](axis));
-
-							// power compensation
-							sprintf(str, "CAL_%s%u_%cCOMP", "MAG", cal_index, axis_char);
-							param_get(param_find(str), &worker_data.power_compensation[cur_mag](axis));
-						}
-
-						worker_data.existing_calibration_available[cur_mag] = true;
-					}
-				}
-			}
-
+		if (worker_data.calibration[cur_mag].device_id != 0) {
 			worker_data.x[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
 			worker_data.y[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
 			worker_data.z[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
@@ -632,7 +688,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 		// Sphere fit the data to get calibration values
 		for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-			if (worker_data.device_ids[cur_mag] != 0) {
+			if (worker_data.calibration[cur_mag].device_id != 0) {
 				// Mag in this slot is available and we should have values for it to calibrate
 
 				// Estimate only the offsets if two-sided calibration is selected, as the problem is not constrained
@@ -651,7 +707,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 								  sphere_radius[cur_mag],
 								  diag[cur_mag](0), diag[cur_mag](1), diag[cur_mag](2),
 								  offdiag[cur_mag](0), offdiag[cur_mag](1), offdiag[cur_mag](2),
-								  mavlink_log_pub, cur_mag, worker_data.internal);
+								  mavlink_log_pub, cur_mag, &worker_data.calibration[cur_mag].internal);
 
 				PX4_DEBUG("mag #%u sphere_radius: %.5f", cur_mag, (double)sphere_radius[cur_mag]);
 
@@ -723,7 +779,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			int internal_index = -1;
 
 			for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-				if (worker_data.internal[cur_mag] && (worker_data.device_ids[cur_mag] != 0)) {
+				if (worker_data.calibration[cur_mag].internal && (worker_data.calibration[cur_mag].device_id != 0)) {
 					internal_index = cur_mag;
 					break;
 				}
@@ -734,7 +790,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 				// apply new calibrations to all raw sensor data before comparison
 				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-					if (worker_data.device_ids[cur_mag] != 0) {
+					if (worker_data.calibration[cur_mag].device_id != 0) {
 						for (unsigned i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
 
 							const Vector3f sample{worker_data.x[cur_mag][i], worker_data.y[cur_mag][i], worker_data.z[cur_mag][i]};
@@ -757,23 +813,20 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				}
 
 				// rotate internal mag data to board
-				param_t board_rotation_h = param_find("SENS_BOARD_ROT");
-				int32_t board_rotation_int = 0;
-				param_get(board_rotation_h, &(board_rotation_int));
-				const enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
+				const matrix::Dcmf board_rotation = GetBoardRotation();
 
-				if (board_rotation_int != ROTATION_NONE) {
-					for (unsigned i = 0; i < worker_data.calibration_counter_total[internal_index]; i++) {
-						rotate_3f(board_rotation_id,
-							  worker_data.x[internal_index][i],
-							  worker_data.y[internal_index][i],
-							  worker_data.z[internal_index][i]
-							 );
-					}
+				for (unsigned i = 0; i < worker_data.calibration_counter_total[internal_index]; i++) {
+
+					const Vector3f m = board_rotation * Vector3f{worker_data.x[internal_index][i],
+							worker_data.y[internal_index][i], worker_data.z[internal_index][i]};
+
+					worker_data.x[internal_index][i] = m(0);
+					worker_data.y[internal_index][i] = m(1);
+					worker_data.z[internal_index][i] = m(2);
 				}
 
 				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-					if (!worker_data.internal[cur_mag] && (worker_data.device_ids[cur_mag] != 0)) {
+					if (!worker_data.calibration[cur_mag].internal && (worker_data.calibration[cur_mag].device_id != 0)) {
 
 						const int last_sample_index = math::min(worker_data.calibration_counter_total[internal_index],
 											worker_data.calibration_counter_total[cur_mag]);
@@ -820,11 +873,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						bool total_error_check_passed = (mag_error_ga < 0.25f);
 
 						if (smallest_check_passed && total_error_check_passed) {
-							if (best_rotation != worker_data.rotation[cur_mag]) {
+							if (best_rotation != worker_data.calibration[cur_mag].rotation) {
 								calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%d), determined rotation: %d", cur_mag,
-										     worker_data.device_ids[cur_mag], best_rotation);
+										     worker_data.calibration[cur_mag].device_id, best_rotation);
 
-								worker_data.rotation[cur_mag] = best_rotation;
+								worker_data.calibration[cur_mag].rotation = best_rotation;
 							}
 						}
 
@@ -846,76 +899,25 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	if (result == calibrate_return_ok) {
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-			Vector3f offset;
-			Vector3f scale;
-			Vector3f off_diagonal;
 
-			if (worker_data.device_ids[cur_mag] != 0) {
-				if (worker_data.append_to_existing_calibration && worker_data.existing_calibration_available[cur_mag]) {
+			MagCalibration &current_cal = worker_data.calibration[cur_mag];
+
+			if (current_cal.device_id != 0) {
+				if (worker_data.append_to_existing_calibration) {
 					// Update calibration
 					// The formula for applying the calibration is:
 					//   mag_value = (mag_readout - (offset_existing + offset_new/scale_existing)) * scale_existing
-					offset = worker_data.offset_existing[cur_mag] + sphere[cur_mag].edivide(worker_data.scale_existing[cur_mag]);
-					scale = worker_data.scale_existing[cur_mag]; // keep existing
-					off_diagonal = worker_data.off_diagonal_existing[cur_mag]; // keep existing
-
-					PX4_DEBUG("[cal] %s %u updating offset: [%.4f %.4f %.4f] -> [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
-						  (double)worker_data.offset_existing[cur_mag](0),
-						  (double)worker_data.offset_existing[cur_mag](1),
-						  (double)worker_data.offset_existing[cur_mag](2),
-						  (double)offset(0), (double)offset(1), (double)offset(2));
+					current_cal.offset = current_cal.offset + sphere[cur_mag].edivide(current_cal.diag);
 
 				} else {
-					offset = sphere[cur_mag];
-					scale = diag[cur_mag];
-					off_diagonal = offdiag[cur_mag];
-
-					PX4_DEBUG("[cal] %s %u offset: [%.4f %.4f %.4f] scale: [%.4f %.4f %.4f]", "MAG", worker_data.device_ids[cur_mag],
-						  (double)offset(0), (double)offset(1), (double)offset(2),
-						  (double)scale(0), (double)scale(1), (double)scale(2));
+					current_cal.offset = sphere[cur_mag];
+					current_cal.diag = diag[cur_mag];
+					current_cal.off_diag = offdiag[cur_mag];
 				}
-
-			} else {
-				// all unused parameters set to default values
-				worker_data.device_ids[cur_mag] = 0;
-				worker_data.rotation[cur_mag] = -1;
-				worker_data.priority[cur_mag] = MAG_DEFAULT_PRIORITY;
-
-				offset.zero();
-				scale = Vector3f{1.f, 1.f, 1.f};
-				off_diagonal.zero();
-				worker_data.power_compensation[cur_mag].zero();
 			}
 
 			// save calibration
-			char str[20] {};
-
-			sprintf(str, "CAL_%s%u_ID", "MAG", cur_mag);
-			param_set_no_notification(param_find(str), &worker_data.device_ids[cur_mag]);
-			sprintf(str, "CAL_%s%u_ROT", "MAG", cur_mag);
-			param_set_no_notification(param_find(str), &worker_data.rotation[cur_mag]);
-			sprintf(str, "CAL_%s%u_PRIO", "MAG", cur_mag);
-			param_set_no_notification(param_find(str), &worker_data.priority[cur_mag]);
-
-			for (int axis = 0; axis < 3; axis++) {
-				char axis_char = 'X' + axis;
-
-				// offsets
-				sprintf(str, "CAL_%s%u_%cOFF", "MAG", cur_mag, axis_char);
-				param_set_no_notification(param_find(str), &offset(axis));
-
-				// scale
-				sprintf(str, "CAL_%s%u_%cSCALE", "MAG", cur_mag, axis_char);
-				param_set_no_notification(param_find(str), &scale(axis));
-
-				// off diagonal factors
-				sprintf(str, "CAL_%s%u_%cODIAG", "MAG", cur_mag, axis_char);
-				param_set_no_notification(param_find(str), &off_diagonal(axis));
-
-				// power compensation (preserved)
-				sprintf(str, "CAL_%s%u_%cCOMP", "MAG", cur_mag, axis_char);
-				param_set_no_notification(param_find(str), &worker_data.power_compensation[cur_mag](axis));
-			}
+			SaveCalibration(worker_data.calibration[cur_mag]);
 		}
 
 		param_notify_changes();
