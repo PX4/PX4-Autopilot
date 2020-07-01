@@ -851,10 +851,14 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 								worker_data.calibration[cur_mag].rotation = best_rotation;
 							}
-						}
 
-						for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
-							PX4_DEBUG("Mag: %d, rotation: %d error: %.6f", cur_mag, r, (double)diff_sum[r]);
+						} else {
+							PX4_ERR("External Mag: %d (%d), determining rotation failed", cur_mag, worker_data.calibration[cur_mag].device_id);
+
+							for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
+								PX4_ERR("Mag: %d (%d), rotation: %d, error: %.3f", cur_mag, worker_data.calibration[cur_mag].device_id, r,
+									(double)diff_sum[r]);
+							}
 						}
 					}
 				}
