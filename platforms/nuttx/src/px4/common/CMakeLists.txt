@@ -51,7 +51,7 @@ if(NOT PX4_BOARD MATCHES "px4_io")
 			arch_board_reset
 			arch_board_critmon
 			arch_version
-			nuttx_apps # up_cxxinitialize
+			nuttx_apps
 			nuttx_sched
 			px4_work_queue
 		)
