@@ -515,15 +515,12 @@ void Ekf::controlGpsFusion()
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
 
-		// Detect if coming back after significant time without GPS data
-		bool gps_signal_was_lost = isTimedOut(_time_prev_gps_us, 1000000);
-
 		controlGpsYawFusion();
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
-		bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
-		bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
+		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
+		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 		if ((_params.fusion_mode & MASK_USE_GPS) && !_control_status.flags.gps) {
 			if (_control_status.flags.tilt_align && _NED_origin_initialised && gps_checks_passing) {
 				// If the heading is not aligned, reset the yaw and magnetic field states
@@ -577,7 +574,7 @@ void Ekf::controlGpsFusion()
 
 		// handle case where we are not currently using GPS, but need to align yaw angle using EKF-GSF before
 		// we can start using GPS
-		bool align_yaw_using_gsf = !_control_status.flags.gps && _do_ekfgsf_yaw_reset && isTimedOut(_ekfgsf_yaw_reset_time, 5000000);
+		const bool align_yaw_using_gsf = !_control_status.flags.gps && _do_ekfgsf_yaw_reset && isTimedOut(_ekfgsf_yaw_reset_time, 5000000);
 		if (align_yaw_using_gsf) {
 			if (resetYawToEKFGSF()) {
 				_ekfgsf_yaw_reset_time = _time_last_imu;
@@ -631,6 +628,8 @@ void Ekf::controlGpsFusion()
 							  (_time_last_hor_vel_fuse > _time_last_on_ground_us) &&
 							  (_time_last_hor_pos_fuse > _time_last_on_ground_us);
 
+			// Detect if coming back after significant time without GPS data
+			const bool gps_signal_was_lost = isTimedOut(_time_prev_gps_us, 1000000);
 			const bool do_yaw_vel_pos_reset = (_do_ekfgsf_yaw_reset || recent_takeoff_nav_failure || inflight_nav_failure) &&
 							  _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit &&
 							  isTimedOut(_ekfgsf_yaw_reset_time, 5000000) &&
