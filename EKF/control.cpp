@@ -548,7 +548,6 @@ void Ekf::controlGpsFusion()
 
 					ECL_INFO_TIMESTAMPED("starting GPS fusion");
 					_control_status.flags.gps = true;
-					_time_last_gps = _time_last_imu;
 				}
 			}
 
