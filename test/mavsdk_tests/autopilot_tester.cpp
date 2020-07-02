@@ -159,6 +159,18 @@ void AutopilotTester::set_takeoff_altitude(const float altitude_m)
 	CHECK(result.second == Approx(altitude_m));
 }
 
+void AutopilotTester::set_height_source(AutopilotTester::HeightSource height_source)
+{
+	switch (height_source) {
+	case HeightSource::Baro:
+		CHECK(_param->set_param_int("EKF2_HGT_MODE", 0) == Param::Result::Success);
+		break;
+
+	case HeightSource::Gps:
+		CHECK(_param->set_param_int("EKF2_HGT_MODE", 1) == Param::Result::Success);
+	}
+}
+
 void AutopilotTester::arm()
 {
 	const auto result = _action->arm();
