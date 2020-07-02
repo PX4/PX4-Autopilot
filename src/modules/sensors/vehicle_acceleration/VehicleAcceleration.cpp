@@ -253,22 +253,23 @@ void VehicleAcceleration::Run()
 
 			CheckFilters();
 
-			// Filter: apply low-pass
-			const Vector3f accel_filtered = _lp_filter.apply(Vector3f{sensor_data.x, sensor_data.y, sensor_data.z});
+			// Apply calibration and filter
+			//  - calibration offsets, scale factors, and thermal scale (if available)
+			//  - estimated in run bias (if available)
+			//  - biquad low-pass filter
+			const Vector3f accel_corrected = _calibration.Correct(Vector3f{sensor_data.x, sensor_data.y, sensor_data.z}) - _bias;
+			const Vector3f accel_filtered = _lp_filter.apply(accel_corrected);
 
-			_acceleration_prev = accel_filtered;
+			_acceleration_prev = accel_corrected;
 
 			// publish once all new samples are processed
 			sensor_updated = _sensor_sub[_selected_sensor_sub_index].updated();
 
 			if (!sensor_updated) {
-				// correct for in-run bias errors
-				const Vector3f accel = _calibration.Correct(accel_filtered) - _bias;
-
 				// Publish vehicle_acceleration
 				vehicle_acceleration_s v_acceleration;
 				v_acceleration.timestamp_sample = sensor_data.timestamp_sample;
-				accel.copyTo(v_acceleration.xyz);
+				accel_filtered.copyTo(v_acceleration.xyz);
 				v_acceleration.timestamp = hrt_absolute_time();
 				_vehicle_acceleration_pub.publish(v_acceleration);
 
