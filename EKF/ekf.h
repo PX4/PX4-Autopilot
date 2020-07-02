@@ -578,8 +578,7 @@ private:
 	// fuse single velocity and position measurement
 	void fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
 
-	// reset velocity states of the ekf
-	bool resetVelocity();
+	void resetVelocity();
 
 	void resetVelocityToGps();
 
@@ -595,7 +594,7 @@ private:
 
 	inline void resetVerticalVelocityTo(float new_vert_vel);
 
-	bool resetHorizontalPosition();
+	void resetHorizontalPosition();
 
 	void resetHorizontalPositionToGps();
 
