@@ -45,7 +45,7 @@
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::fuseGpsAntYaw()
+void Ekf::fuseGpsYaw()
 {
 	// assign intermediate state variables
 	const float q0 = _state.quat_nominal(0);
@@ -262,7 +262,7 @@ void Ekf::fuseGpsAntYaw()
 	}
 }
 
-bool Ekf::resetGpsAntYaw()
+bool Ekf::resetYawToGps()
 {
 	// define the predicted antenna array vector and rotate into earth frame
 	const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
@@ -278,6 +278,8 @@ bool Ekf::resetGpsAntYaw()
 
 	const float yaw_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 	resetQuatStateYaw(measured_yaw, yaw_variance, true);
+
+	_time_last_gps_yaw_fuse = _time_last_imu;
 
 	return true;
 }

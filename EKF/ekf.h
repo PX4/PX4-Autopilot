@@ -553,11 +553,11 @@ private:
 	void updateQuaternion(const float innovation, const float variance, const float gate_sigma, const float (&yaw_jacobian)[4]);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsAntYaw();
+	void fuseGpsYaw();
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetGpsAntYaw();
+	bool resetYawToGps();
 
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
@@ -691,6 +691,7 @@ private:
 
 	// control fusion of GPS observations
 	void controlGpsFusion();
+	void controlGpsYawFusion();
 
 	// control fusion of magnetometer observations
 	void controlMagFusion();
