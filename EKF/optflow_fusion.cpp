@@ -220,18 +220,16 @@ void Ekf::fuseOptFlow()
 			float t87 = t2*t22*t56;
 			float t92 = t2*t7*t69;
 			float t77 = R_LOS+t37+t43+t50+t63+t76-t87-t92;
-			float t78;
 
-			// calculate innovation variance for X axis observation and protect against a badly conditioned calculation
-			if (t77 >= R_LOS) {
-				t78 = 1.0f / t77;
-				_flow_innov_var(0) = t77;
-
-			} else {
+			// protect against a badly conditioned calculation
+			if (t77 < R_LOS) {
 				// we need to reinitialise the covariance matrix and abort this fusion step
 				initialiseCovariance();
 				return;
 			}
+
+			float t78 = 1.0f / t77;
+			_flow_innov_var(0) = t77;
 
 			// calculate Kalman gains for X-axis observation
 			Kfusion[0][0] = t78*(t12-P(0,4)*t2*t7+P(0,1)*t2*t15+P(0,6)*t2*t10+P(0,2)*t2*t19-P(0,3)*t2*t22+P(0,5)*t2*t27);
@@ -363,17 +361,16 @@ void Ekf::fuseOptFlow()
 			float t85 = t2*t19*t49;
 			float t94 = t2*t10*t76;
 			float t77 = R_LOS+t37+t43+t56+t63+t70-t85-t94;
-			float t78;
-			// calculate innovation variance for Y axis observation and protect against a badly conditioned calculation
-			if (t77 >= R_LOS) {
-				t78 = 1.0f / t77;
-				_flow_innov_var(1) = t77;
 
-			} else {
+			// protect against a badly conditioned calculation
+			if (t77 < R_LOS) {
 				// we need to reinitialise the covariance matrix and abort this fusion step
 				initialiseCovariance();
 				return;
 			}
+
+			float t78 = 1.0f / t77;
+			_flow_innov_var(1) = t77;
 
 			// calculate Kalman gains for Y-axis observation
 			Kfusion[0][1] = -t78*(t12+P(0,5)*t2*t8-P(0,6)*t2*t10+P(0,1)*t2*t16-P(0,2)*t2*t19+P(0,3)*t2*t22+P(0,4)*t2*t27);

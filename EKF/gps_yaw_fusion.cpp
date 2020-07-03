@@ -146,13 +146,10 @@ void Ekf::fuseGpsYaw()
 		_heading_innov_var += H_YAW[row] * PH[row];
 	}
 
-	float heading_innov_var_inv;
-
 	// check if the innovation variance calculation is badly conditioned
 	if (_heading_innov_var >= R_YAW) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
 		_fault_status.flags.bad_hdg = false;
-		heading_innov_var_inv = 1.0f / _heading_innov_var;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
@@ -163,6 +160,8 @@ void Ekf::fuseGpsYaw()
 		ECL_ERR_TIMESTAMPED("GPS yaw numerical error - covariance reset");
 		return;
 	}
+
+	const float heading_innov_var_inv = 1.f / _heading_innov_var;
 
 	// calculate the Kalman gains
 	// only calculate gains for states we are using
