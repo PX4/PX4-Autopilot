@@ -106,10 +106,6 @@ void Ekf::fuseSideslip()
 		H_BETA[22] = SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7];
 		H_BETA[23] = SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2) - SH_BETA[6];
 
-		for (uint8_t i = 7; i <= 21; i++) {
-			H_BETA[i] = 0.0f;
-		}
-
 		// determine if we need the sideslip fusion to correct states other than wind
 		bool update_wind_only = !_is_wind_dead_reckoning;
 
