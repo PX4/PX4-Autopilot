@@ -324,7 +324,7 @@ void Ekf::calculateOutputStates()
 	const float dt_scale_correction = _dt_imu_avg / _dt_ekf_avg;
 
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
-	const Vector3f delta_angle{imu.delta_ang - _state.delta_ang_bias * dt_scale_correction + _delta_angle_corr};
+	const Vector3f delta_angle(imu.delta_ang - _state.delta_ang_bias * dt_scale_correction + _delta_angle_corr);
 
 	// calculate a yaw change about the earth frame vertical
 	const float spin_del_ang_D = _R_to_earth_now(2, 0) * delta_angle(0) +
@@ -363,7 +363,7 @@ void Ekf::calculateOutputStates()
 	}
 
 	// save the previous velocity so we can use trapezoidal integration
-	const Vector3f vel_last{_output_new.vel};
+	const Vector3f vel_last(_output_new.vel);
 
 	// increment the INS velocity states by the measurement plus corrections
 	// do the same for vertical state used by alternative correction algorithm
