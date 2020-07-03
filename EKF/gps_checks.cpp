@@ -139,7 +139,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	constexpr float filt_time_const = 10.0f;
-	const float dt = fminf(fmaxf(float(int64_t(_time_last_imu) - int64_t(_gps_pos_prev.timestamp)) * 1e-6f, 0.001f), filt_time_const);
+	const float dt = math::constrain(float(int64_t(_time_last_imu) - int64_t(_gps_pos_prev.timestamp)) * 1e-6f, 0.001f, filt_time_const);
 	const float filter_coef = dt / filt_time_const;
 
 	// The following checks are only valid when the vehicle is at rest
@@ -209,7 +209,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 	// Check  the filtered difference between GPS and EKF vertical velocity
 	const float vz_diff_limit = 10.0f * _params.req_vdrift;
-	float vertVel = fminf(fmaxf((gps.vel_ned(2) - _state.vel(2)), -vz_diff_limit), vz_diff_limit);
+	const float vertVel = math::constrain(gps.vel_ned(2) - _state.vel(2), -vz_diff_limit, vz_diff_limit);
 	_gps_velD_diff_filt = vertVel * filter_coef + _gps_velD_diff_filt * (1.0f - filter_coef);
 	_gps_check_fail_status.flags.vspeed = (fabsf(_gps_velD_diff_filt) > _params.req_vdrift);
 
