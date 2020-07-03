@@ -46,10 +46,6 @@
 
 void Ekf::fuseSideslip()
 {
-	float SH_BETA[13] = {}; // Variable used to optimise calculations of measurement jacobian
-	float H_BETA[24] = {}; // Observation Jacobian
-	float SK_BETA[8] = {}; // Variable used to optimise calculations of the Kalman gain vector
-	Vector24f Kfusion; // Kalman gain vector
 	float R_BETA = _params.beta_noise;
 
 	// get latest estimated orientation
@@ -76,7 +72,8 @@ void Ekf::fuseSideslip()
 	if (rel_wind_body.norm() > 7.0f) {
 		// Calculate the observation jacobians
 
-		// intermediate variable from algebraic optimisation
+		float SH_BETA[13];  // intermediate variable for algebraic optimisation
+
 		SH_BETA[0] = (vn - vwn)*(sq(q0) + sq(q1) - sq(q2) - sq(q3)) - vd*(2.0f*q0*q2 - 2.0f*q1*q3) + (ve - vwe)*(2.0f*q0*q3 + 2.0f*q1*q2);
 
 		if (fabsf(SH_BETA[0]) <= 1e-9f) {
@@ -96,6 +93,8 @@ void Ekf::fuseSideslip()
 		SH_BETA[11] = 2.0f*q1*SH_BETA[2] + 2.0f*q2*SH_BETA[3] + 2.0f*q3*vd;
 		SH_BETA[12] = 2.0f*q0*q3;
 
+		float H_BETA[24] = {}; // Observation Jacobian
+
 		H_BETA[0] = SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9];
 		H_BETA[1] = SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11];
 		H_BETA[2] = SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10];
@@ -109,10 +108,8 @@ void Ekf::fuseSideslip()
 		// determine if we need the sideslip fusion to correct states other than wind
 		bool update_wind_only = !_is_wind_dead_reckoning;
 
-		// intermediate variables - note SK_BETA[0] is 1/(innovation variance)
 		_beta_innov_var = (R_BETA - (SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7])*(P(22,4)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,4)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,4)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,4)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,4)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,4)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,4)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,4)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,4)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))) + (SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7])*(P(22,22)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,22)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,22)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,22)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,22)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,22)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,22)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,22)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,22)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))) + (SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2))*(P(22,5)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,5)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,5)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,5)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,5)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,5)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,5)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,5)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,5)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))) - (SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2))*(P(22,23)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,23)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,23)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,23)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,23)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,23)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,23)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,23)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,23)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))) + (SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9])*(P(22,0)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,0)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,0)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,0)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,0)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,0)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,0)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,0)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,0)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))) + (SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11])*(P(22,1)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,1)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,1)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,1)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,1)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,1)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,1)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,1)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,1)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))) + (SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10])*(P(22,2)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,2)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,2)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,2)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,2)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,2)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,2)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,2)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,2)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))) - (SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8])*(P(22,3)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,3)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,3)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,3)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,3)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,3)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,3)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,3)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,3)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))) + (SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))*(P(22,6)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) - P(4,6)*(SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7]) + P(5,6)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) - P(23,6)*(SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2)) + P(0,6)*(SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9]) + P(1,6)*(SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11]) + P(2,6)*(SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10]) - P(3,6)*(SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8]) + P(6,6)*(SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3))));
 		if (_beta_innov_var >= R_BETA) {
-			SK_BETA[0] = 1.0f / _beta_innov_var;
 			_fault_status.flags.bad_sideslip = false;
 
 		} else { // Reset the estimator
@@ -135,6 +132,9 @@ void Ekf::fuseSideslip()
 			return;
 		}
 
+		// intermediate variables for optimising calculations of the Kalman gain
+		float SK_BETA[8];
+		SK_BETA[0] = 1.0f / _beta_innov_var;
 		SK_BETA[1] = SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7];
 		SK_BETA[2] = SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2);
 		SK_BETA[3] = SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3);
@@ -143,7 +143,8 @@ void Ekf::fuseSideslip()
 		SK_BETA[6] = SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10];
 		SK_BETA[7] = SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8];
 
-		// Calculate Kalman gains
+		Vector24f Kfusion; // Kalman gain
+
 		if (!update_wind_only) {
 		        Kfusion(0) = SK_BETA[0]*(P(0,0)*SK_BETA[5] + P(0,1)*SK_BETA[4] - P(0,4)*SK_BETA[1] + P(0,5)*SK_BETA[2] + P(0,2)*SK_BETA[6] + P(0,6)*SK_BETA[3] - P(0,3)*SK_BETA[7] + P(0,22)*SK_BETA[1] - P(0,23)*SK_BETA[2]);
 		        Kfusion(1) = SK_BETA[0]*(P(1,0)*SK_BETA[5] + P(1,1)*SK_BETA[4] - P(1,4)*SK_BETA[1] + P(1,5)*SK_BETA[2] + P(1,2)*SK_BETA[6] + P(1,6)*SK_BETA[3] - P(1,3)*SK_BETA[7] + P(1,22)*SK_BETA[1] - P(1,23)*SK_BETA[2]);
