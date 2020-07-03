@@ -250,7 +250,6 @@ void Ekf::fuseGpsYaw()
 	}
 
 	if (healthy) {
-		_time_last_gps_yaw_fuse = _time_last_imu;
 		// apply the covariance corrections
 		P -= KHP;
 
@@ -259,6 +258,7 @@ void Ekf::fuseGpsYaw()
 		// apply the state corrections
 		fuse(Kfusion, _heading_innov);
 
+		_time_last_gps_yaw_fuse = _time_last_imu;
 	}
 }
 
