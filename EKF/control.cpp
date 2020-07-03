@@ -391,12 +391,7 @@ void Ekf::controlOpticalFlowFusion()
 	if (_flow_data_ready) {
 		// Inhibit flow use if motion is un-suitable or we have good quality GPS
 		// Apply hysteresis to prevent rapid mode switching
-		float gps_err_norm_lim;
-		if (_control_status.flags.opt_flow) {
-			gps_err_norm_lim = 0.7f;
-		} else {
-			gps_err_norm_lim = 1.0f;
-		}
+		const float gps_err_norm_lim = _control_status.flags.opt_flow ? 0.7f : 1.0f;
 
 		// Check if we are in-air and require optical flow to control position drift
 		bool flow_required = _control_status.flags.in_air &&
