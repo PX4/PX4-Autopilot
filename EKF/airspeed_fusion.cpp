@@ -46,11 +46,6 @@
 
 void Ekf::fuseAirspeed()
 {
-	float SH_TAS[3] = {}; // Variable used to optimise calculations of measurement jacobian
-	float H_TAS[24] = {}; // Observation Jacobian
-	float SK_TAS[2] = {}; // Variable used to optimise calculations of the Kalman gain vector
-	Vector24f Kfusion; // Kalman gain vector
-
 	const float vn = _state.vel(0); // Velocity in north direction
 	const float ve = _state.vel(1); // Velocity in east direction
 	const float vd = _state.vel(2); // Velocity in downwards direction
@@ -69,25 +64,23 @@ void Ekf::fuseAirspeed()
 		// determine if we need the sideslip fusion to correct states other than wind
 		const bool update_wind_only = !_is_wind_dead_reckoning;
 
-		// Calculate the observation jacobian
 		// intermediate variable from algebraic optimisation
+		float SH_TAS[3];
 		SH_TAS[0] = 1.0f/v_tas_pred;
 		SH_TAS[1] = (SH_TAS[0]*(2.0f*ve - 2.0f*vwe))*0.5f;
 		SH_TAS[2] = (SH_TAS[0]*(2.0f*vn - 2.0f*vwn))*0.5f;
 
-		for (uint8_t i = 0; i < _k_num_states; i++) { H_TAS[i] = 0.0f; }
-
+		// Observation Jacobian
+		float H_TAS[24] = {};
 		H_TAS[4] = SH_TAS[2];
 		H_TAS[5] = SH_TAS[1];
 		H_TAS[6] = vd*SH_TAS[0];
 		H_TAS[22] = -SH_TAS[2];
 		H_TAS[23] = -SH_TAS[1];
 
-		// We don't want to update the innovation variance if the calculation is ill conditioned
-		const float _airspeed_innov_var_temp = (R_TAS + SH_TAS[2]*(P(4,4)*SH_TAS[2] + P(5,4)*SH_TAS[1] - P(22,4)*SH_TAS[2] - P(23,4)*SH_TAS[1] + P(6,4)*vd*SH_TAS[0]) + SH_TAS[1]*(P(4,5)*SH_TAS[2] + P(5,5)*SH_TAS[1] - P(22,5)*SH_TAS[2] - P(23,5)*SH_TAS[1] + P(6,5)*vd*SH_TAS[0]) - SH_TAS[2]*(P(4,22)*SH_TAS[2] + P(5,22)*SH_TAS[1] - P(22,22)*SH_TAS[2] - P(23,22)*SH_TAS[1] + P(6,22)*vd*SH_TAS[0]) - SH_TAS[1]*(P(4,23)*SH_TAS[2] + P(5,23)*SH_TAS[1] - P(22,23)*SH_TAS[2] - P(23,23)*SH_TAS[1] + P(6,23)*vd*SH_TAS[0]) + vd*SH_TAS[0]*(P(4,6)*SH_TAS[2] + P(5,6)*SH_TAS[1] - P(22,6)*SH_TAS[2] - P(23,6)*SH_TAS[1] + P(6,6)*vd*SH_TAS[0]));
+		_airspeed_innov_var = (R_TAS + SH_TAS[2]*(P(4,4)*SH_TAS[2] + P(5,4)*SH_TAS[1] - P(22,4)*SH_TAS[2] - P(23,4)*SH_TAS[1] + P(6,4)*vd*SH_TAS[0]) + SH_TAS[1]*(P(4,5)*SH_TAS[2] + P(5,5)*SH_TAS[1] - P(22,5)*SH_TAS[2] - P(23,5)*SH_TAS[1] + P(6,5)*vd*SH_TAS[0]) - SH_TAS[2]*(P(4,22)*SH_TAS[2] + P(5,22)*SH_TAS[1] - P(22,22)*SH_TAS[2] - P(23,22)*SH_TAS[1] + P(6,22)*vd*SH_TAS[0]) - SH_TAS[1]*(P(4,23)*SH_TAS[2] + P(5,23)*SH_TAS[1] - P(22,23)*SH_TAS[2] - P(23,23)*SH_TAS[1] + P(6,23)*vd*SH_TAS[0]) + vd*SH_TAS[0]*(P(4,6)*SH_TAS[2] + P(5,6)*SH_TAS[1] - P(22,6)*SH_TAS[2] - P(23,6)*SH_TAS[1] + P(6,6)*vd*SH_TAS[0]));
 
-		if (_airspeed_innov_var_temp >= R_TAS) { // Check for badly conditioned calculation
-			SK_TAS[0] = 1.0f / _airspeed_innov_var_temp;
+		if (_airspeed_innov_var >= R_TAS) { // Check for badly conditioned calculation
 			_fault_status.flags.bad_airspeed = false;
 
 		} else { // Reset the estimator covariance matrix
@@ -110,8 +103,12 @@ void Ekf::fuseAirspeed()
 			return;
 		}
 
+		// Variable used to optimise calculations of the Kalman gain
+		float SK_TAS[2];
+		SK_TAS[0] = 1.0f / _airspeed_innov_var;
 		SK_TAS[1] = SH_TAS[1];
 
+		Vector24f Kfusion; // Kalman gain
 		if (!update_wind_only) {
 			// we have no other source of aiding, so use airspeed measurements to correct states
 			Kfusion(0) = SK_TAS[0]*(P(0,4)*SH_TAS[2] - P(0,22)*SH_TAS[2] + P(0,5)*SK_TAS[1] - P(0,23)*SK_TAS[1] + P(0,6)*vd*SH_TAS[0]);
@@ -143,9 +140,6 @@ void Ekf::fuseAirspeed()
 		// Calculate measurement innovation
 		_airspeed_innov = v_tas_pred -
 				  _airspeed_sample_delayed.true_airspeed;
-
-		// Calculate the innovation variance
-		_airspeed_innov_var = 1.0f / SK_TAS[0];
 
 		// Compute the ratio of innovation to gate size
 		_tas_test_ratio = sq(_airspeed_innov) / (sq(fmaxf(_params.tas_innov_gate, 1.0f)) * _airspeed_innov_var);

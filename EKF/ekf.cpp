@@ -251,7 +251,6 @@ void Ekf::predictState()
 {
 	// apply imu bias corrections
 	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _state.delta_ang_bias;
-	const Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - _state.delta_vel_bias;
 
 	// subtract component of angular rate due to earth rotation
 	corrected_delta_ang -= _R_to_earth.transpose() * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
@@ -259,17 +258,12 @@ void Ekf::predictState()
 	const Quatf dq(AxisAnglef{corrected_delta_ang});
 
 	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
-	_state.quat_nominal = _state.quat_nominal * dq;
-
-	// quaternions must be normalised whenever they are modified
-	_state.quat_nominal.normalize();
-
-	// save the previous value of velocity so we can use trapzoidal integration
-	const Vector3f vel_last = _state.vel;
+	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
 
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity
+	const Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - _state.delta_vel_bias;
 	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
 
 	// calculate a filtered horizontal acceleration with a 1 sec time constant
@@ -277,6 +271,8 @@ void Ekf::predictState()
 	float alpha = 1.0f - _imu_sample_delayed.delta_vel_dt;
 	_accel_lpf_NE(0) = _accel_lpf_NE(0) * alpha + corrected_delta_vel_ef(0);
 	_accel_lpf_NE(1) = _accel_lpf_NE(1) * alpha + corrected_delta_vel_ef(1);
+	// save the previous value of velocity so we can use trapzoidal integration
+	const Vector3f vel_last = _state.vel;
 
 	// calculate the increment in velocity using the current orientation
 	_state.vel += corrected_delta_vel_ef;

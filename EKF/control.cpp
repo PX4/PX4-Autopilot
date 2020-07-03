@@ -1279,8 +1279,6 @@ void Ekf::controlFakePosFusion()
 		// Fuse synthetic position observations every 200msec
 		if (isTimedOut(_time_last_fake_pos, (uint64_t)2e5)) {
 
-			Vector3f fake_pos_obs_var;
-
 			// Reset position and velocity states if we re-commence this aiding method
 			if (isTimedOut(_time_last_fake_pos, (uint64_t)4e5)) {
 				resetHorizontalPosition();
@@ -1293,6 +1291,8 @@ void Ekf::controlFakePosFusion()
 
 			}
 			_time_last_fake_pos = _time_last_imu;
+
+			Vector3f fake_pos_obs_var;
 
 			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
 				fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise));
