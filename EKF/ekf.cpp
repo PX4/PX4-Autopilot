@@ -236,8 +236,7 @@ bool Ekf::initialiseTilt()
 	}
 
 	// get initial roll and pitch estimate from delta velocity vector, assuming vehicle is static
-	Vector3f gravity_in_body = _accel_lpf.getState();
-	gravity_in_body.normalize();
+	const Vector3f gravity_in_body = _accel_lpf.getState().normalized();
 	const float pitch = asinf(gravity_in_body(0));
 	const float roll = atan2f(-gravity_in_body(1), -gravity_in_body(2));
 
