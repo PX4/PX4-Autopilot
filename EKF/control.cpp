@@ -132,8 +132,8 @@ void Ekf::controlFusionModes()
 
 	if (_range_sensor.isDataHealthy()) {
 		// correct the range data for position offset relative to the IMU
-		Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-		Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+		const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
+		const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 		_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 	}
 

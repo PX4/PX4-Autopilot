@@ -792,7 +792,7 @@ void Ekf::fuseHeading()
 				// unconstrained quaternion variance growth and record the predicted heading
 				// to use as an observation when movement ceases.
 				// TODO a better way of determining when this is necessary
-				float sumQuatVar = P(0,0) + P(1,1) + P(2,2) + P(3,3);
+				const float sumQuatVar = P(0,0) + P(1,1) + P(2,2) + P(3,3);
 				if (sumQuatVar > _params.quat_max_variance) {
 					fuse_zero_innov = true;
 					R_YAW = 0.25f;
@@ -859,7 +859,7 @@ void Ekf::fuseHeading()
 				// unconstrained quaterniion variance growth and record the predicted heading
 				// to use as an observation when movement ceases.
 				// TODO a better way of determining when this is necessary
-				float sumQuatVar = P(0,0) + P(1,1) + P(2,2) + P(3,3);
+				const float sumQuatVar = P(0,0) + P(1,1) + P(2,2) + P(3,3);
 				if (sumQuatVar > _params.quat_max_variance) {
 					fuse_zero_innov = true;
 					R_YAW = 0.25f;
@@ -891,7 +891,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 	const float magE = _state.mag_I(1);
 
 	// minimum horizontal field strength before calculation becomes badly conditioned (T)
-	const float h_field_min = 0.001f;
+	constexpr float h_field_min = 0.001f;
 
 	// observation variance (rad**2)
 	const float R_DECL = sq(decl_sigma);
@@ -1050,7 +1050,7 @@ void Ekf::limitDeclination()
 	}
 
 	// do not allow the declination estimate to vary too much relative to the reference value
-	const float decl_tolerance = 0.5f;
+	constexpr float decl_tolerance = 0.5f;
 	const float decl_max = decl_reference + decl_tolerance;
 	const float decl_min = decl_reference - decl_tolerance;
 	const float decl_estimate = atan2f(_state.mag_I(1) , _state.mag_I(0));

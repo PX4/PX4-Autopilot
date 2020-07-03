@@ -411,7 +411,7 @@ bool Ekf::realignYawGPS()
 		if (!_control_status.flags.mag_aligned_in_flight) {
 			// This is our first flight alignment so we can assume that the recent change in velocity has occurred due to a
 			// forward direction takeoff or launch and therefore the inertial and GPS ground course discrepancy is due to yaw error
-			Eulerf euler321(_state.quat_nominal);
+			const Eulerf euler321(_state.quat_nominal);
 			yaw_new = euler321(2) + courseYawError;
 			_control_status.flags.mag_aligned_in_flight = true;
 
@@ -1639,10 +1639,9 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 		// Calculate the 312 Tait-Bryan rotation sequence that rotates from earth to body frame
 		// We use a 312 sequence as an alternate when there is more pitch tilt than roll tilt
 		// to avoid gimbal lock
-		Vector3f rot312;
-		rot312(0) = yaw;
-		rot312(1) = asinf(_R_to_earth(2, 1));
-		rot312(2) = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2));
+		const Vector3f rot312(yaw,
+				      asinf(_R_to_earth(2, 1)),
+				      atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)));
 		_R_to_earth = taitBryan312ToRotMat(rot312);
 
 	}
