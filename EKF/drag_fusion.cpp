@@ -59,8 +59,7 @@ void Ekf::fuseDrag()
 		return;
 	}
 
-	const float BC_inv_x = 1.0f / _params.bcoef_x;
-	const float BC_inv_y = 1.0f / _params.bcoef_y;
+	const Vector2f ballistic_coef_inv_xy(1.f / _params.bcoef_x, 1.f / _params.bcoef_y);
 
 	// get latest estimated orientation
 	const float q0 = _state.quat_nominal(0);
@@ -85,16 +84,15 @@ void Ekf::fuseDrag()
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
-		// calculate observation jacobiam and Kalman gain vectors
+		// Estimate the airspeed from the measured drag force and ballistic coefficient
+		const float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
+		const float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (ballistic_coef_inv_xy(axis_index) * rho));
+
+		// Limit lower value to prevent arithmetic exceptions
+		const float Kacc = fmaxf(1e-1f, rho * ballistic_coef_inv_xy(axis_index) * airSpd);
+
 		if (axis_index == 0) {
-			// Estimate the airspeed from the measured drag force and ballistic coefficient
-			const float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
-			const float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_x * rho));
-
 			// Estimate the derivative of specific force wrt airspeed along the X axis
-			// Limit lower value to prevent arithmetic exceptions
-			const float Kacc = fmaxf(1e-1f, rho * BC_inv_x * airSpd);
-
 			SH_ACC[0] = sq(q0) + sq(q1) - sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
 			SH_ACC[2] = ve - vwe;
@@ -145,21 +143,7 @@ void Ekf::fuseDrag()
 			Kfusion(22) = -SK_ACC[0]*(Kacc*P(22,4)*SH_ACC[0] - Kacc*P(22,22)*SH_ACC[0] + Kacc*P(22,0)*SK_ACC[3] - Kacc*P(22,2)*SK_ACC[2] + Kacc*P(22,3)*SK_ACC[1] + Kacc*P(22,1)*SK_ACC[4] + Kacc*P(22,5)*SK_ACC[6] - Kacc*P(22,6)*SK_ACC[5] - Kacc*P(22,23)*SK_ACC[6]);
 			Kfusion(23) = -SK_ACC[0]*(Kacc*P(23,4)*SH_ACC[0] - Kacc*P(23,22)*SH_ACC[0] + Kacc*P(23,0)*SK_ACC[3] - Kacc*P(23,2)*SK_ACC[2] + Kacc*P(23,3)*SK_ACC[1] + Kacc*P(23,1)*SK_ACC[4] + Kacc*P(23,5)*SK_ACC[6] - Kacc*P(23,6)*SK_ACC[5] - Kacc*P(23,23)*SK_ACC[6]);
 
-			// calculate the predicted acceleration and innovation measured along the X body axis
-			const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? 1.f : -1.f;
-
-			const float predAccel = -BC_inv_x * 0.5f * rho * sq(rel_wind_body(axis_index)) * drag_sign;
-			_drag_innov[axis_index] = predAccel - mea_acc;
-			_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
-
 		} else if (axis_index == 1) {
-			// Estimate the airspeed from the measured drag force and ballistic coefficient
-			const float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
-			const float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_y * rho));
-
-			// Estimate the derivative of specific force wrt airspeed along the X axis
-			// Limit lower value to prevent arithmetic exceptions
-			const float Kacc = fmaxf(1e-1f, rho * BC_inv_y * airSpd);
 
 			SH_ACC[0] = sq(q0) - sq(q1) + sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
@@ -212,15 +196,14 @@ void Ekf::fuseDrag()
 //			Kfusion(21) = -SK_ACC[0]*(Kacc*P(21,0)*SK_ACC[3] + Kacc*P(21,1)*SK_ACC[2] - Kacc*P(21,3)*SK_ACC[1] + Kacc*P(21,2)*SK_ACC[4] - Kacc*P(21,4)*SK_ACC[5] + Kacc*P(21,5)*SK_ACC[8] + Kacc*P(21,6)*SK_ACC[7] + 2*Kacc*P(21,22)*SK_ACC[6] - Kacc*P(21,23)*SK_ACC[8]);
 			Kfusion(22) = -SK_ACC[0]*(Kacc*P(22,0)*SK_ACC[3] + Kacc*P(22,1)*SK_ACC[2] - Kacc*P(22,3)*SK_ACC[1] + Kacc*P(22,2)*SK_ACC[4] - Kacc*P(22,4)*SK_ACC[5] + Kacc*P(22,5)*SK_ACC[8] + Kacc*P(22,6)*SK_ACC[7] + 2*Kacc*P(22,22)*SK_ACC[6] - Kacc*P(22,23)*SK_ACC[8]);
 			Kfusion(23) = -SK_ACC[0]*(Kacc*P(23,0)*SK_ACC[3] + Kacc*P(23,1)*SK_ACC[2] - Kacc*P(23,3)*SK_ACC[1] + Kacc*P(23,2)*SK_ACC[4] - Kacc*P(23,4)*SK_ACC[5] + Kacc*P(23,5)*SK_ACC[8] + Kacc*P(23,6)*SK_ACC[7] + 2*Kacc*P(23,22)*SK_ACC[6] - Kacc*P(23,23)*SK_ACC[8]);
-
-			// calculate the predicted acceleration and innovation measured along the Y body axis
-			const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? 1.f : -1.f;
-
-			const float predAccel = -BC_inv_y * 0.5f * rho * sq(rel_wind_body(axis_index)) * drag_sign;
-			_drag_innov[axis_index] = predAccel - mea_acc;
-			_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
-
 		}
+
+		// calculate the predicted acceleration and innovation measured along body axis
+		const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? 1.f : -1.f;
+
+		const float predAccel = -0.5f * ballistic_coef_inv_xy(axis_index) * rho * sq(rel_wind_body(axis_index)) * drag_sign;
+		_drag_innov[axis_index] = predAccel - mea_acc;
+		_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
 
 		// if the innovation consistency check fails then don't fuse the sample
 		if (_drag_test_ratio[axis_index] <= 1.0f) {
