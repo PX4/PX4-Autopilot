@@ -429,91 +429,93 @@ void Ekf::calculateOutputStates()
 		// Complementary filter gains
 		const float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
 		const float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
-		{
-			/*
-			 * Calculate a correction to be applied to vert_vel that casues vert_vel_integ to track the EKF
-			 * down position state at the fusion time horizon using an alternative algorithm to what
-			 * is used for the vel and pos state tracking. The algorithm applies a correction to the vert_vel
-			 * state history and propagates vert_vel_integ forward in time using the corrected vert_vel history.
-			 * This provides an alternative vertical velocity output that is closer to the first derivative
-			 * of the position but does degrade tracking relative to the EKF state.
-			 */
 
-			// calculate down velocity and position tracking errors
-			const float vert_vel_err = (_state.vel(2) - _output_vert_delayed.vert_vel);
-			const float vert_vel_integ_err = (_state.pos(2) - _output_vert_delayed.vert_vel_integ);
-
-			// calculate a velocity correction that will be applied to the output state history
-			// using a PD feedback tuned to a 5% overshoot
-			const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * vel_gain * 1.1f;
-
-			// loop through the vertical output filter state history starting at the oldest and apply the corrections to the
-			// vert_vel states and propagate vert_vel_integ forward using the corrected vert_vel
-			uint8_t index = _output_vert_buffer.get_oldest_index();
-
-			const uint8_t size = _output_vert_buffer.get_length();
-
-			for (uint8_t counter = 0; counter < (size - 1); counter++) {
-				const uint8_t index_next = (index + 1) % size;
-				outputVert &current_state = _output_vert_buffer[index];
-				outputVert &next_state = _output_vert_buffer[index_next];
-
-				// correct the velocity
-				if (counter == 0) {
-					current_state.vert_vel += vert_vel_correction;
-				}
-
-				next_state.vert_vel += vert_vel_correction;
-
-				// position is propagated forward using the corrected velocity and a trapezoidal integrator
-				next_state.vert_vel_integ = current_state.vert_vel_integ + (current_state.vert_vel + next_state.vert_vel) * 0.5f * next_state.dt;
-
-				// advance the index
-				index = (index + 1) % size;
-			}
-
-			// update output state to corrected values
-			_output_vert_new = _output_vert_buffer.get_newest();
-
-			// reset time delta to zero for the next accumulation of full rate IMU data
-			_output_vert_new.dt = 0.0f;
-		}
-
-		{
-			/*
-			 * Calculate corrections to be applied to vel and pos output state history.
-			 * The vel and pos state history are corrected individually so they track the EKF states at
-			 * the fusion time horizon. This option provides the most accurate tracking of EKF states.
-			 */
-
-			// calculate velocity and position tracking errors
-			const Vector3f vel_err(_state.vel - _output_sample_delayed.vel);
-			const Vector3f pos_err(_state.pos - _output_sample_delayed.pos);
-
-			_output_tracking_error(1) = vel_err.norm();
-			_output_tracking_error(2) = pos_err.norm();
-
-			// calculate a velocity correction that will be applied to the output state history
-			_vel_err_integ += vel_err;
-			const Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(vel_gain) * 0.1f;
-
-			// calculate a position correction that will be applied to the output state history
-			_pos_err_integ += pos_err;
-			const Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
-
-			// loop through the output filter state history and apply the corrections to the velocity and position states
-			for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-				// a constant velocity correction is applied
-				_output_buffer[index].vel += vel_correction;
-
-				// a constant position correction is applied
-				_output_buffer[index].pos += pos_correction;
-			}
-
-			// update output state to corrected values
-			_output_new = _output_buffer.get_newest();
-		}
+		applyCorrectionToVerticalOutputBuffer(vel_gain, pos_gain);
+		applyCorrectionToOutputBuffer(vel_gain, pos_gain);
 	}
+}
+
+/*
+* Calculate a correction to be applied to vert_vel that casues vert_vel_integ to track the EKF
+* down position state at the fusion time horizon using an alternative algorithm to what
+* is used for the vel and pos state tracking. The algorithm applies a correction to the vert_vel
+* state history and propagates vert_vel_integ forward in time using the corrected vert_vel history.
+* This provides an alternative vertical velocity output that is closer to the first derivative
+* of the position but does degrade tracking relative to the EKF state.
+*/
+void Ekf::applyCorrectionToVerticalOutputBuffer(float vel_gain, float pos_gain){
+	// calculate down velocity and position tracking errors
+	const float vert_vel_err = (_state.vel(2) - _output_vert_delayed.vert_vel);
+	const float vert_vel_integ_err = (_state.pos(2) - _output_vert_delayed.vert_vel_integ);
+
+	// calculate a velocity correction that will be applied to the output state history
+	// using a PD feedback tuned to a 5% overshoot
+	const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * vel_gain * 1.1f;
+
+	// loop through the vertical output filter state history starting at the oldest and apply the corrections to the
+	// vert_vel states and propagate vert_vel_integ forward using the corrected vert_vel
+	uint8_t index = _output_vert_buffer.get_oldest_index();
+
+	const uint8_t size = _output_vert_buffer.get_length();
+
+	for (uint8_t counter = 0; counter < (size - 1); counter++) {
+		const uint8_t index_next = (index + 1) % size;
+		outputVert &current_state = _output_vert_buffer[index];
+		outputVert &next_state = _output_vert_buffer[index_next];
+
+		// correct the velocity
+		if (counter == 0) {
+			current_state.vert_vel += vert_vel_correction;
+		}
+
+		next_state.vert_vel += vert_vel_correction;
+
+		// position is propagated forward using the corrected velocity and a trapezoidal integrator
+		next_state.vert_vel_integ = current_state.vert_vel_integ + (current_state.vert_vel + next_state.vert_vel) * 0.5f * next_state.dt;
+
+		// advance the index
+		index = (index + 1) % size;
+	}
+
+	// update output state to corrected values
+	_output_vert_new = _output_vert_buffer.get_newest();
+
+	// reset time delta to zero for the next accumulation of full rate IMU data
+	_output_vert_new.dt = 0.0f;
+}
+
+/*
+* Calculate corrections to be applied to vel and pos output state history.
+* The vel and pos state history are corrected individually so they track the EKF states at
+* the fusion time horizon. This option provides the most accurate tracking of EKF states.
+*/
+void Ekf::applyCorrectionToOutputBuffer(float vel_gain, float pos_gain){
+	// calculate velocity and position tracking errors
+	const Vector3f vel_err(_state.vel - _output_sample_delayed.vel);
+	const Vector3f pos_err(_state.pos - _output_sample_delayed.pos);
+
+	_output_tracking_error(1) = vel_err.norm();
+	_output_tracking_error(2) = pos_err.norm();
+
+	// calculate a velocity correction that will be applied to the output state history
+	_vel_err_integ += vel_err;
+	const Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(vel_gain) * 0.1f;
+
+	// calculate a position correction that will be applied to the output state history
+	_pos_err_integ += pos_err;
+	const Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
+
+	// loop through the output filter state history and apply the corrections to the velocity and position states
+	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
+		// a constant velocity correction is applied
+		_output_buffer[index].vel += vel_correction;
+
+		// a constant position correction is applied
+		_output_buffer[index].pos += pos_correction;
+	}
+
+	// update output state to corrected values
+	_output_new = _output_buffer.get_newest();
 }
 
 /*
