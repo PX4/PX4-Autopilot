@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2013-2020 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
  *   which in turn is based on initial work of
  *   Jonathan Challinger, 2012.
  */
+
 #ifndef ECL_YAW_CONTROLLER_H
 #define ECL_YAW_CONTROLLER_H
 
