@@ -60,6 +60,7 @@ pipeline {
                      "px4_fmu-v4_optimized",
                      "px4_fmu-v4pro_default",
                      "px4_fmu-v5_default",
+                     "px4_fmu-v5_debug",
                      "px4_fmu-v5_fixedwing",
                      "px4_fmu-v5_multicopter",
                      "px4_fmu-v5_optimized",
