@@ -45,27 +45,7 @@
 
 float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
-	switch (_coordinated_method) {
-	case COORD_METHOD_OPEN:
-		return control_attitude_impl_openloop(ctl_data);
 
-	case COORD_METHOD_CLOSEACC:
-		return control_attitude_impl_accclosedloop(ctl_data);
-
-	default:
-		static hrt_abstime last_print = 0;
-
-		if (hrt_elapsed_time(&last_print) > 5e6) {
-			PX4_WARN("invalid param setting FW_YCO_METHOD");
-			last_print = hrt_absolute_time();
-		}
-	}
-
-	return _rate_setpoint;
-}
-
-float ECL_YawController::control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data)
-{
 	/* Do not calculate control signal with bad inputs */
 	if (!(PX4_ISFINITE(ctl_data.roll) &&
 	      PX4_ISFINITE(ctl_data.pitch) &&
@@ -143,24 +123,6 @@ float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data
 		lock_integrator = true;
 	}
 
-	/* Close the acceleration loop if _coordinated_method wants this: change body_rate setpoint */
-	if (_coordinated_method == COORD_METHOD_CLOSEACC) {
-
-		/* input conditioning */
-		float airspeed = ctl_data.airspeed;
-
-		if (!PX4_ISFINITE(airspeed)) {
-			/* airspeed is NaN, +- INF or not available, pick center of band */
-			airspeed = 0.5f * (ctl_data.airspeed_min + ctl_data.airspeed_max);
-
-		} else if (airspeed < ctl_data.airspeed_min) {
-			airspeed = ctl_data.airspeed_min;
-		}
-
-		// XXX lateral acceleration needs to go into integrator with a gain
-		//_bodyrate_setpoint -= (ctl_data.acc_body_y / (airspeed * cosf(ctl_data.pitch)));
-	}
-
 	/* Calculate body angular rate error */
 	_rate_error = _bodyrate_setpoint - ctl_data.body_z_rate;
 
@@ -192,14 +154,6 @@ float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data
 		       + _integrator;
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
-}
-
-float ECL_YawController::control_attitude_impl_accclosedloop(const struct ECL_ControlData &ctl_data)
-{
-	(void)ctl_data; // unused
-
-	/* dont set a rate setpoint */
-	return 0.0f;
 }
 
 float ECL_YawController::control_euler_rate(const struct ECL_ControlData &ctl_data)
