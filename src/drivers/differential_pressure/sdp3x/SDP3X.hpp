@@ -85,12 +85,20 @@ public:
 
 	void	RunImpl();
 
+	void start();
+
 private:
+	enum class State {
+		RequireConfig,
+		Configuring,
+		Running
+	};
 
 	int	measure() override { return 0; }
 	int	collect() override;
 	int	probe() override;
 	int	configure();
+	int	read_scale();
 
 	math::LowPassFilter2p _filter{SPD3X_MEAS_RATE, SDP3X_MEAS_DRIVER_FILTER_FREQ};
 
@@ -108,5 +116,5 @@ private:
 
 	uint16_t _scale{0};
 	const bool _keep_retrying;
-	bool _require_initialization{true};
+	State _state{State::RequireConfig};
 };
