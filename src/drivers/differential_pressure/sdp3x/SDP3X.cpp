@@ -45,14 +45,14 @@ using namespace time_literals;
 int
 SDP3X::probe()
 {
-	_require_initialization = !init_sdp3x();
+	bool require_initialization = !init_sdp3x();
 
-	if (_require_initialization && _keep_retrying) {
+	if (require_initialization && _keep_retrying) {
 		PX4_INFO("no sensor found, but will keep retrying");
 		return 0;
 	}
 
-	return _require_initialization ? -1 : 0;
+	return require_initialization ? -1 : 0;
 }
 
 int SDP3X::write_command(uint16_t command)
@@ -94,14 +94,21 @@ SDP3X::configure()
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
 		DEVICE_DEBUG("config failed");
+		_state = State::RequireConfig;
 		return ret;
 	}
 
-	px4_usleep(10000);
+	_state = State::Configuring;
 
+	return ret;
+}
+
+int
+SDP3X::read_scale()
+{
 	// get scale
 	uint8_t val[9];
-	ret = transfer(nullptr, 0, &val[0], sizeof(val));
+	int ret = transfer(nullptr, 0, &val[0], sizeof(val));
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
@@ -134,6 +141,12 @@ SDP3X::configure()
 	return PX4_OK;
 }
 
+void SDP3X::start()
+{
+	// make sure to wait 10ms after configuring the measurement mode
+	ScheduleDelayed(10_ms);
+}
+
 int
 SDP3X::collect()
 {
@@ -145,13 +158,7 @@ SDP3X::collect()
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
-		ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
-
-		if (ret != PX4_OK) {
-			return ret;
-		}
-
-		return 10000; // wait 10 ms until next measure
+		return ret;
 	}
 
 	// Check the CRC
@@ -185,30 +192,41 @@ SDP3X::collect()
 void
 SDP3X::RunImpl()
 {
-	if (_require_initialization) {
+	switch (_state) {
+	case State::RequireConfig:
 		if (configure() == PX4_OK) {
-			_require_initialization = false;
+			ScheduleDelayed(10_ms);
 
 		} else {
 			// periodically retry to configure
 			ScheduleDelayed(300_ms);
-			return;
 		}
+
+		break;
+
+	case State::Configuring:
+		if (read_scale() == 0) {
+			_state = State::Running;
+
+		} else {
+			_state = State::RequireConfig;
+		}
+
+		ScheduleDelayed(10_ms);
+		break;
+
+	case State::Running:
+		int ret = collect();
+
+		if (ret != 0 && ret != -EAGAIN) {
+			_sensor_ok = false;
+			DEVICE_DEBUG("measure error");
+			_state = State::RequireConfig;
+		}
+
+		ScheduleDelayed(CONVERSION_INTERVAL);
+		break;
 	}
-
-	int ret = collect();
-
-	uint32_t delay_us = CONVERSION_INTERVAL;
-
-	if (ret < 0) {
-		_sensor_ok = false;
-		DEVICE_DEBUG("measure error");
-
-	} else if (ret > 0) {
-		delay_us = ret;
-	}
-
-	ScheduleDelayed(delay_us);
 }
 
 bool SDP3X::crc(const uint8_t data[], unsigned size, uint8_t checksum)
