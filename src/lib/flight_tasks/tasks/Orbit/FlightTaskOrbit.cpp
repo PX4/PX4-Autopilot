@@ -97,6 +97,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 	// perpendicularly approach the orbit circle again when new parameters get commanded
 	_in_circle_approach = true;
+	_circle_approach_line.reset();
 
 	return ret;
 }
