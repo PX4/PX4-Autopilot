@@ -51,7 +51,7 @@ I2CSPIDriverBase *SDP3X::instantiate(const BusCLIArguments &cli, const BusInstan
 		return nullptr;
 	}
 
-	instance->ScheduleNow();
+	instance->start();
 	return instance;
 }
 
