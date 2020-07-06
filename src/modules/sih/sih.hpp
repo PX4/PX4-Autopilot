@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -36,16 +36,17 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <matrix/matrix/math.hpp>   // matrix, vectors, dcm, quaterions
 #include <conversion/rotation.h>    // math::radians,
-#include <ecl/geo/geo.h>            // to get the physical constants
+#include <lib/ecl/geo/geo.h>        // to get the physical constants
 #include <drivers/drv_hrt.h>        // to get the real time
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -58,20 +59,14 @@
 
 using namespace time_literals;
 
-extern "C" __EXPORT int sih_main(int argc, char *argv[]);
-
-class Sih : public ModuleBase<Sih>, public ModuleParams
+class Sih : public ModuleBase<Sih>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	Sih();
-
-	virtual ~Sih() = default;
+	~Sih() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static Sih *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -79,25 +74,16 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
-
 	static float generate_wgn();    // generate white Gaussian noise sample
 
 	// generate white Gaussian noise sample as a 3D vector with specified std
 	static matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
 
-	// timer called periodically to post the semaphore
-	static void timer_callback(void *sem);
+	bool init();
 
 private:
+	void Run() override;
 
-	/**
-	* Check for parameter changes and update them if needed.
-	* @param parameter_update_sub uorb subscription to parameter_update
-	* @param force for a parameter update
-	*/
-	void parameters_update_poll();
 	void parameters_updated();
 
 	// simulated sensor instances
@@ -130,7 +116,6 @@ private:
 	static constexpr float T1_C = 15.0f;                        // ground temperature in celcius
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
-	static constexpr hrt_abstime LOOP_INTERVAL = 4000;      // 4ms => 250 Hz real-time
 
 	void init_variables();
 	void init_sensors();
@@ -138,22 +123,19 @@ private:
 	void generate_force_and_torques();
 	void equations_of_motion();
 	void reconstruct_sensors_signals();
-	void send_IMU();
 	void send_gps();
 	void publish_sih();
-	void inner_loop();
 
-	perf_counter_t  _loop_perf;
-	perf_counter_t  _sampling_perf;
+	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t  _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 
-	px4_sem_t       _data_semaphore;
-
-	hrt_call    _timer_call;
-	hrt_abstime _last_run;
-	hrt_abstime _gps_time;
-	hrt_abstime _serial_time;
-	hrt_abstime _now;
-	float       _dt;            // sampling time [s]
+	hrt_abstime _last_run{0};
+	hrt_abstime _baro_time{0};
+	hrt_abstime _gps_time{0};
+	hrt_abstime _mag_time{0};
+	hrt_abstime _serial_time{0};
+	hrt_abstime _now{0};
+	float       _dt{0};         // sampling time [s]
 	bool        _grounded{true};// whether the vehicle is on the ground
 
 	matrix::Vector3f    _T_B;           // thrust force in body frame [N]
@@ -194,6 +176,8 @@ private:
 
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
+
 		(ParamFloat<px4::params::SIH_MASS>) _sih_mass,
 		(ParamFloat<px4::params::SIH_IXX>) _sih_ixx,
 		(ParamFloat<px4::params::SIH_IYY>) _sih_iyy,
