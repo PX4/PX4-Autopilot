@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,61 +47,19 @@
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
 
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <termios.h>
-
 using namespace math;
 using namespace matrix;
-
-
-int Sih::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
-
-
-int Sih::task_spawn(int argc, char *argv[])
-{
-	_task_id = px4_task_spawn_cmd("sih",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX,
-				      1024,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
-
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
-	}
-
-	return 0;
-}
-
-Sih *Sih::instantiate(int argc, char *argv[])
-{
-	Sih *instance = new Sih();
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-	}
-
-	return instance;
-}
+using namespace time_literals;
 
 Sih::Sih() :
 	ModuleParams(nullptr),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": execution")),
-	_sampling_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sampling"))
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
-}
+	_px4_accel.set_temperature(T1_C);
+	_px4_gyro.set_temperature(T1_C);
+	_px4_mag.set_temperature(T1_C);
 
-void Sih::run()
-{
-	// initialize parameters
-	parameters_update_poll();
-
+	parameters_updated();
 	init_variables();
 	init_sensors();
 
@@ -109,39 +67,47 @@ void Sih::run()
 	_last_run = task_start;
 	_gps_time = task_start;
 	_serial_time = task_start;
+}
 
-	px4_sem_init(&_data_semaphore, 0, 0);
+Sih::~Sih()
+{
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
+}
 
-	hrt_call_every(&_timer_call, LOOP_INTERVAL, LOOP_INTERVAL, timer_callback, &_data_semaphore);
+bool Sih::init()
+{
+	int rate = _imu_gyro_ratemax.get();
 
-	perf_begin(_sampling_perf);
-
-	while (!should_exit()) {
-		px4_sem_wait(&_data_semaphore);     // periodic real time wakeup
-
-		perf_end(_sampling_perf);
-		perf_begin(_sampling_perf);
-
-		perf_begin(_loop_perf);
-
-		inner_loop();   // main execution function
-
-		perf_end(_loop_perf);
+	// default to 250 Hz (4000 us interval)
+	if (rate <= 0) {
+		rate = 250;
 	}
 
-	hrt_cancel(&_timer_call);   // close the periodic timer interruption
-	px4_sem_destroy(&_data_semaphore);
+	// 200 - 2000 Hz
+	int interval_us = math::constrain(int(roundf(1e6f / rate)), 500, 5000);
+	ScheduleOnInterval(interval_us);
+
+	return true;
 }
 
-// timer_callback() is used as a real time callback to post the semaphore
-void Sih::timer_callback(void *sem)
+void Sih::Run()
 {
-	px4_sem_post((px4_sem_t *)sem);
-}
+	perf_count(_loop_interval_perf);
 
-// this is the main execution waken up periodically by the semaphore
-void Sih::inner_loop()
-{
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+		parameters_updated();
+	}
+
+	perf_begin(_loop_perf);
+
 	_now = hrt_absolute_time();
 	_dt = (_now - _last_run) * 1e-6f;
 	_last_run = _now;
@@ -154,35 +120,39 @@ void Sih::inner_loop()
 
 	reconstruct_sensors_signals();
 
-	send_IMU();
+	// update IMU every iteration
+	_px4_accel.update(_now, _acc(0), _acc(1), _acc(2));
+	_px4_gyro.update(_now, _gyro(0), _gyro(1), _gyro(2));
 
-	if (_now - _gps_time >= 50000) { // gps published at 20Hz
+	// magnetometer published at 50 Hz
+	if (_now - _mag_time >= 20_ms) {
+		_mag_time = _now;
+
+		_px4_mag.update(_now, _mag(0), _mag(1), _mag(2));
+	}
+
+	// baro published at 20 Hz
+	if (_now - _baro_time >= 50_ms) {
+		_baro_time = _now;
+		_px4_baro.set_temperature(_baro_temp_c);
+		_px4_baro.update(_now, _baro_p_mBar);
+	}
+
+
+	// gps published at 20Hz
+	if (_now - _gps_time >= 50_ms) {
 		_gps_time = _now;
 		send_gps();
 	}
 
 	// send uart message every 40 ms
-	if (_now - _serial_time >= 40000) {
+	if (_now - _serial_time >= 40_ms) {
 		_serial_time = _now;
 
 		publish_sih();  // publish _sih message for debug purpose
-
-		parameters_update_poll();   // update the parameters if needed
 	}
-}
 
-void Sih::parameters_update_poll()
-{
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		updateParams();
-		parameters_updated();
-	}
+	perf_end(_loop_perf);
 }
 
 // store the parameters in a more convenient form
@@ -330,25 +300,6 @@ void Sih::reconstruct_sensors_signals()
 	_gps_vel = _v_I + noiseGauss3f(0.06f, 0.077f, 0.158f);
 }
 
-void Sih::send_IMU()
-{
-	// gyro
-	_px4_gyro.set_temperature(T1_C);
-	_px4_gyro.update(_now, _gyro(0), _gyro(1), _gyro(2));
-
-	// accel
-	_px4_accel.set_temperature(T1_C);
-	_px4_accel.update(_now, _acc(0), _acc(1), _acc(2));
-
-	// magnetometer
-	_px4_mag.set_temperature(T1_C);
-	_px4_mag.update(_now, _mag(0), _mag(1), _mag(2));
-
-	// baro
-	_px4_baro.set_temperature(_baro_temp_c);
-	_px4_baro.update(_now, _baro_p_mBar);
-}
-
 void Sih::send_gps()
 {
 	_sensor_gps.timestamp = _now;
@@ -430,9 +381,32 @@ Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
 	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
 }
 
-int sih_main(int argc, char *argv[])
+int Sih::task_spawn(int argc, char *argv[])
 {
-	return Sih::main(argc, argv);
+	Sih *instance = new Sih();
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+int Sih::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
 }
 
 int Sih::print_usage(const char *reason)
@@ -467,4 +441,9 @@ Most of the variables are declared global in the .hpp file to avoid stack overfl
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
+}
+
+extern "C" __EXPORT int sih_main(int argc, char *argv[])
+{
+	return Sih::main(argc, argv);
 }
