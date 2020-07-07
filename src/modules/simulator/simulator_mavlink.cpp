@@ -222,9 +222,6 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 			_px4_accel_0.set_temperature(temperature);
 			_px4_accel_1.set_temperature(temperature);
 
-			_px4_baro_0.set_temperature(temperature);
-			_px4_baro_1.set_temperature(temperature);
-
 			_px4_gyro_0.set_temperature(temperature);
 			_px4_gyro_1.set_temperature(temperature);
 
@@ -264,11 +261,15 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
 		if (_baro_stuck) {
 			_px4_baro_0.update(time, _px4_baro_0.get().pressure);
+			_px4_baro_0.set_temperature(time, _px4_baro_0.get().temperature);
 			_px4_baro_1.update(time, _px4_baro_1.get().pressure);
+			_px4_baro_1.set_temperature(time, _px4_baro_1.get().temperature);
 
 		} else {
 			_px4_baro_0.update(time, sensors.abs_pressure);
+			_px4_baro_0.set_temperature(temperature);
 			_px4_baro_1.update(time, sensors.abs_pressure);
+			_px4_baro_1.set_temperature(temperature);
 		}
 	}
 
