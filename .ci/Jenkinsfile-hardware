@@ -341,6 +341,7 @@ pipeline {
                     // configure
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 13000"' // generic vtol standard
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set IMU_GYRO_RATEMAX 2000"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io forceupdate 14662 /etc/extras/px4_io-v2_default.bin"' // force px4io update
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                        // reboot to apply
