@@ -51,6 +51,8 @@
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/vehicle_air_data.h>
 
+namespace sensors
+{
 class VehicleAirData : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -70,10 +72,6 @@ private:
 	void SensorCorrectionsUpdate(bool force = false);
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh
-	)
 
 	uORB::Publication<vehicle_air_data_s> _vehicle_air_data_pub{ORB_ID(vehicle_air_data)};
 
@@ -102,4 +100,9 @@ private:
 	uint8_t _priority[MAX_SENSOR_COUNT] {};
 
 	int8_t _selected_sensor_sub_index{-1};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh
+	)
 };
+}; // namespace sensors
