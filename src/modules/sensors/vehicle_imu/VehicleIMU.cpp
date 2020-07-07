@@ -108,10 +108,12 @@ void VehicleIMU::ParametersUpdate(bool force)
 		_accel_calibration.ParametersUpdate();
 		_gyro_calibration.ParametersUpdate();
 
-		// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
-		int32_t imu_integration_rate_hz = constrain(_param_imu_integ_rate.get(), 50, 1000);
+		// constrain IMU integration time 1-10 milliseconds (100-1000 Hz)
+		int32_t imu_integration_rate_hz = constrain(_param_imu_integ_rate.get(),
+						  100, math::max(_param_imu_gyro_ratemax.get(), 1000));
 
 		if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
+			PX4_WARN("IMU_INTEG_RATE updated %d -> %d", _param_imu_integ_rate.get(), imu_integration_rate_hz);
 			_param_imu_integ_rate.set(imu_integration_rate_hz);
 			_param_imu_integ_rate.commit_no_notification();
 		}
@@ -129,8 +131,13 @@ bool VehicleIMU::UpdateIntervalAverage(IntervalAverage &intavg, const hrt_abstim
 {
 	bool updated = false;
 
-	if ((intavg.timestamp_sample_last > 0) && (timestamp_sample > intavg.timestamp_sample_last)) {
-		intavg.interval_sum += (timestamp_sample - intavg.timestamp_sample_last);
+	const float interval_us = (timestamp_sample - intavg.timestamp_sample_last);
+	const float imu_integ_interval_us = 1e6f / _param_imu_integ_rate.get();
+
+	if ((intavg.timestamp_sample_last > 0) && (timestamp_sample > intavg.timestamp_sample_last)
+	    && (interval_us <= imu_integ_interval_us)) {
+
+		intavg.interval_sum += interval_us;
 		intavg.interval_count++;
 
 		// periodically calculate sensor update rate
@@ -185,6 +192,14 @@ void VehicleIMU::Run()
 			// if there's a gap in data start monitoring publication interval again
 			_intervals_update = true;
 			_gyro_interval.timestamp_sample_last = 0;
+
+		} else {
+			// collect sample interval average for filters
+			if (_intervals_update && UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
+				update_integrator_config = true;
+				publish_status = true;
+				_status.gyro_rate_hz = roundf(1e6f / _gyro_interval.update_interval);
+			}
 		}
 
 		_gyro_last_generation = _sensor_gyro_sub.get_last_generation();
@@ -198,13 +213,6 @@ void VehicleIMU::Run()
 
 		_gyro_integrator.put(gyro.timestamp_sample, Vector3f{gyro.x, gyro.y, gyro.z});
 		_last_timestamp_sample_gyro = gyro.timestamp_sample;
-
-		// collect sample interval average for filters
-		if (_intervals_update && UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
-			update_integrator_config = true;
-			publish_status = true;
-			_status.gyro_rate_hz = roundf(1e6f / _gyro_interval.update_interval);
-		}
 
 		if (_intervals_configured && _gyro_integrator.integral_ready()) {
 			break;
@@ -223,6 +231,14 @@ void VehicleIMU::Run()
 			// if there's a gap in data start monitoring publication interval again
 			_intervals_update = true;
 			_accel_interval.timestamp_sample_last = 0;
+
+		} else {
+			// collect sample interval average for filters
+			if (_intervals_update && UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
+				update_integrator_config = true;
+				publish_status = true;
+				_status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
+			}
 		}
 
 		_accel_last_generation = _sensor_accel_sub.get_last_generation();
@@ -236,13 +252,6 @@ void VehicleIMU::Run()
 
 		_accel_integrator.put(accel.timestamp_sample, Vector3f{accel.x, accel.y, accel.z});
 		_last_timestamp_sample_accel = accel.timestamp_sample;
-
-		// collect sample interval average for filters
-		if (_intervals_update && UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
-			update_integrator_config = true;
-			publish_status = true;
-			_status.accel_rate_hz = roundf(1e6f / _accel_interval.update_interval);
-		}
 
 		if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
 
@@ -349,11 +358,8 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
 
 		// determine number of sensor samples that will get closest to the desired integration interval
-		const uint8_t accel_integral_samples = constrain(roundf(configured_interval_us / _accel_interval.update_interval),
-						       1.f, (float)sensor_accel_s::ORB_QUEUE_LENGTH);
-
-		const uint8_t gyro_integral_samples = constrain(roundf(configured_interval_us / _gyro_interval.update_interval),
-						      1.f, (float)sensor_gyro_s::ORB_QUEUE_LENGTH);
+		const uint8_t accel_integral_samples = math::max(1.f, roundf(configured_interval_us / _accel_interval.update_interval));
+		const uint8_t gyro_integral_samples = math::max(1.f, roundf(configured_interval_us / _gyro_interval.update_interval));
 
 		// let the gyro set the configuration and scheduling
 		// accel integrator will be forced to reset when gyro integrator is ready
@@ -364,18 +370,24 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		_accel_integrator.set_reset_interval(roundf((accel_integral_samples - 0.5f) * _accel_interval.update_interval));
 		_gyro_integrator.set_reset_interval(roundf((gyro_integral_samples - 0.5f) * _gyro_interval.update_interval));
 
-		_sensor_accel_sub.set_required_updates(accel_integral_samples);
-		_sensor_gyro_sub.set_required_updates(gyro_integral_samples);
+		// gyro: find largest integer multiple of gyro_integral_samples
+		for (int n = sensor_gyro_s::ORB_QUEUE_LENGTH; n > 0; n--) {
+			if (gyro_integral_samples % n == 0) {
+				_sensor_gyro_sub.set_required_updates(n);
 
-		// run when there are enough new gyro samples, unregister accel
-		_sensor_accel_sub.unregisterCallback();
+				// run when there are enough new gyro samples, unregister accel
+				_sensor_accel_sub.unregisterCallback();
 
-		_intervals_configured = true;
-		_intervals_update = false; // stop monitoring topic publication rate
+				_intervals_configured = true;
+				_intervals_update = false; // stop monitoring topic publication rates
 
-		PX4_DEBUG("accel (%d), gyro (%d), accel samples: %d, gyro samples: %d, accel interval: %.1f, gyro interval: %.1f",
-			  _accel_calibration.device_id(), _gyro_calibration.device_id(), accel_integral_samples, gyro_integral_samples,
-			  (double)_accel_interval.update_interval, (double)_gyro_interval.update_interval);
+				PX4_DEBUG("accel (%d), gyro (%d), accel samples: %d, gyro samples: %d, accel interval: %.1f, gyro interval: %.1f sub samples: %d",
+					  _accel_calibration.device_id(), _gyro_calibration.device_id(), accel_integral_samples, gyro_integral_samples,
+					  (double)_accel_interval.update_interval, (double)_gyro_interval.update_interval, n);
+
+				return;
+			}
+		}
 	}
 }
 

@@ -122,7 +122,8 @@ private:
 	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate
+		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax
 	)
 };
 
