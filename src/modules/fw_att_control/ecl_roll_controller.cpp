@@ -49,7 +49,6 @@ float ECL_RollController::control_attitude(const struct ECL_ControlData &ctl_dat
 	if (!(PX4_ISFINITE(ctl_data.roll_setpoint) &&
 	      PX4_ISFINITE(ctl_data.roll))) {
 
-		PX4_WARN("not controlling roll");
 		return _rate_setpoint;
 	}
 

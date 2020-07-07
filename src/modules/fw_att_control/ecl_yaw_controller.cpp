@@ -52,7 +52,6 @@ float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data
 	      PX4_ISFINITE(ctl_data.roll_rate_setpoint) &&
 	      PX4_ISFINITE(ctl_data.pitch_rate_setpoint))) {
 
-		PX4_WARN("not controlling yaw");
 		return _rate_setpoint;
 	}
 

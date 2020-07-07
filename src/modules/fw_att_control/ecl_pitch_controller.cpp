@@ -52,7 +52,6 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 	      PX4_ISFINITE(ctl_data.pitch) &&
 	      PX4_ISFINITE(ctl_data.airspeed))) {
 
-		PX4_WARN("not controlling pitch");
 		return _rate_setpoint;
 	}
 
