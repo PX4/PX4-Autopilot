@@ -105,9 +105,7 @@ private:
 
 	unsigned _accel_last_generation{0};
 	unsigned _gyro_last_generation{0};
-
-	unsigned _accel_consecutive_generation_gap{0};
-	unsigned _gyro_consecutive_generation_gap{0};
+	unsigned _consecutive_data_gap{0};
 
 	matrix::Vector3f _delta_angle_prev{0.f, 0.f, 0.f};	// delta angle from the previous IMU measurement
 	matrix::Vector3f _delta_velocity_prev{0.f, 0.f, 0.f};	// delta velocity from the previous IMU measurement

@@ -120,9 +120,7 @@ void VehicleIMU::ParametersUpdate(bool force)
 
 		if (_param_imu_integ_rate.get() != imu_integ_rate_prev) {
 			// force update
-			_intervals_configured = false;
-			_accel_interval.timestamp_sample_last = 0;
-			_gyro_interval.timestamp_sample_last = 0;
+			UpdateIntegratorConfiguration();
 		}
 	}
 }
@@ -185,6 +183,7 @@ void VehicleIMU::Run()
 
 	ParametersUpdate();
 
+	bool sensor_data_gap = false;
 	bool update_integrator_config = false;
 	bool publish_status = false;
 
@@ -195,19 +194,12 @@ void VehicleIMU::Run()
 		perf_count_interval(_gyro_update_perf, gyro.timestamp_sample);
 
 		if (_sensor_gyro_sub.get_last_generation() != _gyro_last_generation + 1) {
-			_gyro_consecutive_generation_gap++;
+			sensor_data_gap = true;
 			perf_count(_gyro_generation_gap_perf);
-
-			// if there's consistently a gap in data start monitoring publication interval again
-			if (_gyro_consecutive_generation_gap > 10) {
-				_intervals_configured = true;
-			}
 
 			_gyro_interval.timestamp_sample_last = 0; // invalidate any ongoing publication rate averaging
 
 		} else {
-			_gyro_consecutive_generation_gap = 0;
-
 			// collect sample interval average for filters
 			if (!_intervals_configured && UpdateIntervalAverage(_gyro_interval, gyro.timestamp_sample)) {
 				update_integrator_config = true;
@@ -228,7 +220,7 @@ void VehicleIMU::Run()
 		_gyro_integrator.put(gyro.timestamp_sample, Vector3f{gyro.x, gyro.y, gyro.z});
 		_last_timestamp_sample_gyro = gyro.timestamp_sample;
 
-		if (_intervals_configured && _gyro_integrator.integral_ready()) {
+		if (!sensor_data_gap && _intervals_configured && _gyro_integrator.integral_ready()) {
 			break;
 		}
 	}
@@ -240,19 +232,12 @@ void VehicleIMU::Run()
 		perf_count_interval(_accel_update_perf, accel.timestamp_sample);
 
 		if (_sensor_accel_sub.get_last_generation() != _accel_last_generation + 1) {
-			_accel_consecutive_generation_gap++;
+			sensor_data_gap = true;
 			perf_count(_accel_generation_gap_perf);
 
-			// if there's consistently a gap in data start monitoring publication interval again
-			if (_accel_consecutive_generation_gap > 10) {
-				_intervals_configured = false;
-			}
-
-			_accel_interval.timestamp_sample_last = 0;  // invalidate any ongoing publication rate averaging
+			_accel_interval.timestamp_sample_last = 0; // invalidate any ongoing publication rate averaging
 
 		} else {
-			_accel_consecutive_generation_gap = 0;
-
 			// collect sample interval average for filters
 			if (!_intervals_configured && UpdateIntervalAverage(_accel_interval, accel.timestamp_sample)) {
 				update_integrator_config = true;
@@ -304,11 +289,23 @@ void VehicleIMU::Run()
 		}
 
 		// break once caught up to gyro
-		if (_intervals_configured
+		if (!sensor_data_gap && _intervals_configured
 		    && (_last_timestamp_sample_accel >= (_last_timestamp_sample_gyro - 0.5f * _accel_interval.update_interval))) {
 
 			break;
 		}
+	}
+
+	if (sensor_data_gap) {
+		_consecutive_data_gap++;
+
+		// if there's consistently a gap in data start monitoring publication interval again
+		if (_consecutive_data_gap > 10) {
+			_intervals_configured = false;
+		}
+
+	} else {
+		_consecutive_data_gap = 0;
 	}
 
 	// reconfigure integrators if calculated sensor intervals have changed
