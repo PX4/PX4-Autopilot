@@ -310,6 +310,7 @@ private:
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+    uORB::Subscription  _actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -369,7 +370,8 @@ private:
 		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _param_sens_flow_maxhgt,
 		(ParamFloat<px4::params::SENS_FLOW_MAXR>)   _param_sens_flow_maxr,
 		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _param_sens_flow_minhgt,
-		(ParamInt<px4::params::SENS_FLOW_ROT>)      _param_sens_flow_rot
+		(ParamInt<px4::params::SENS_FLOW_ROT>)      _param_sens_flow_rot,
+		(ParamInt<px4::params::MAV_ACT_IN_MODE>)    _param_mav_act_in_mode
 	);
 
 	// Disallow copy construction and move assignment.

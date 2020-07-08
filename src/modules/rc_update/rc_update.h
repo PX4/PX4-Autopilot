@@ -162,6 +162,8 @@ private:
 
 	uORB::Subscription _rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
 
+    uORB::Subscription  _actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
+
 	uORB::Publication<rc_channels_s> _rc_channels_pub{ORB_ID(rc_channels)};
 	uORB::PublicationMulti<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
 	uORB::Publication<manual_control_switches_s> _manual_control_switches_pub{ORB_ID(manual_control_switches)};
@@ -239,7 +241,9 @@ private:
 		(ParamFloat<px4::params::RC_MAN_TH>) _param_rc_man_th,
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 
-		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
+		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt,
+
+		(ParamInt<px4::params::MAV_ACT_IN_MODE>) _param_mav_act_in_mode
 	)
 };
 } /* namespace RCUpdate */

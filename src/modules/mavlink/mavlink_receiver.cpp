@@ -46,6 +46,7 @@
 #include <drivers/drv_rc_input.h>
 #include <ecl/geo/geo.h>
 #include <systemlib/px4_macros.h>
+#include <systemlib/mavlink_log.h>
 
 #include <math.h>
 #include <poll.h>
@@ -69,6 +70,8 @@
 #else
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 0
 #endif
+
+extern orb_advert_t mavlink_log_pub;
 
 using matrix::wrap_2pi;
 
@@ -487,8 +490,58 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			send_ack = true;
 		}
 
-	} else {
+	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) {
+        mavlink_log_info(&mavlink_log_pub, "setting");
+        int input_mode = _param_mav_act_in_mode.get();
+        if (input_mode == 1) {
+            // Actuator control strictly on RC mode, so ignore this message
+            return;
+        }
 
+        actuator_controls_s actuator_controls{};
+        actuator_controls.timestamp = hrt_absolute_time();
+
+        //PX4_INFO("Hello!");
+        // copy the existing values in order to change only one output
+        //orb_copy(ORB_ID(actuator_controls_3), _actuator_controls_3_sub,
+                //&actuator_controls);
+        _actuator_controls_3_sub.update(&actuator_controls);
+        //PX4_INFO("Hello!");
+
+        bool updated = false;
+        if (PX4_ISFINITE(vehicle_command.param1)) {
+            actuator_controls.control[5] = vehicle_command.param1;
+            updated = true;
+        }
+        if (PX4_ISFINITE(vehicle_command.param2)) {
+            actuator_controls.control[6] = vehicle_command.param2;
+            updated = true;
+        }
+        if (PX4_ISFINITE(vehicle_command.param3)) {
+            actuator_controls.control[7] = vehicle_command.param3;
+            updated = true;
+        }
+        PX4_INFO("Hello! %d %d %f", updated, ((int) vehicle_command.param7 == 0),
+                (double) vehicle_command.param7);
+
+        // as of now we don't support more than 3 values
+        // (for aux1, aux2, and aux3, respectively)
+        // so if the offset index is > 0, we don't need to do anything
+        if (updated && ((int) vehicle_command.param7 == 0)) {
+            // useful for debugging, not removing this until after testing
+            PX4_INFO("Setting actuators (normalized): %f %f %f",
+                    (double) vehicle_command.param1,
+                    (double) vehicle_command.param2,
+                    (double) vehicle_command.param3);
+            mavlink_log_info(&mavlink_log_pub, "Setting actuators (normalized): %f %f %f",
+                    (double) vehicle_command.param1,
+                    (double) vehicle_command.param2,
+                    (double) vehicle_command.param3);
+
+            _actuator_controls_pubs[3].publish(actuator_controls);
+        }
+
+    } else {
 		send_ack = false;
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {

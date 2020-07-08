@@ -450,6 +450,40 @@ void RCUpdate::Run()
 
 			UpdateManualSwitches(input_rc.timestamp_last_signal);
 
+			// TODO: move this
+			/* copy from mapped manual_control_setpoint control to control group 3 */
+			actuator_controls_s actuator_group_3{};
+
+			actuator_group_3.timestamp = rc_input.timestamp_last_signal;
+
+			actuator_group_3.control[0] = manual_control_setpoint.y;
+			actuator_group_3.control[1] = manual_control_setpoint.x;
+			actuator_group_3.control[2] = manual_control_setpoint.r;
+			actuator_group_3.control[3] = manual_control_setpoint.z;
+			actuator_group_3.control[4] = manual_control_setpoint.flaps;
+
+			int actuator_mode = _param_mav_act_in_mode.get();
+			if (actuator_mode == 2) {
+			    // Actuator control via MAVLink only, ignore RC
+			    // copy existing values
+			    actuator_controls_s actuator_group_3_tmp{};
+                _actuator_controls_3_sub.update(&actuator_group_3_tmp);
+                actuator_group_3.control[5] = actuator_group_3_tmp.control[5];
+                actuator_group_3.control[6] = actuator_group_3_tmp.control[6];
+                actuator_group_3.control[7] = actuator_group_3_tmp.control[7];
+            //} else if (actuator_mode == 1) {
+            } else {
+                // RC only, so carry on as usual
+                actuator_group_3.control[5] = manual_control_setpoint.aux1;
+                actuator_group_3.control[6] = manual_control_setpoint.aux2;
+                actuator_group_3.control[7] = manual_control_setpoint.aux3;
+            }
+            //} else {
+                //// Auto mode
+
+			/* publish actuator_controls_3 topic */
+			_actuator_group_3_pub.publish(actuator_group_3);
+
 			/* Update parameters from RC Channels (tuning with RC) if activated */
 			if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1_s) {
 				set_params_from_rc();

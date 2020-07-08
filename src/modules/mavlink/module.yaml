@@ -95,3 +95,21 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [true, true, true]
+        MAV_ACT_IN_MODE:
+            description:
+                short: Input mode for manual actuator control
+                long: |
+                    Sets the input source used to control actuators manually.
+                    
+                    Options are RC control, MAVLink control (see MAV_CMD_DO_SET_ACTUATOR),
+                    and `auto`.
+
+                    Set to `auto` automatically uses the latest value.
+
+            type: enum
+            reboot_required: true
+            values:
+                0: Auto
+                1: RC
+                2: MAVLink
+            default: 0
