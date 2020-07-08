@@ -74,13 +74,6 @@ bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const boo
 			}
 		}
 
-		if (manual_control_setpoint.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Failure: VTOL transition switch engaged");
-			}
-		}
 	}
 
 	return success;
