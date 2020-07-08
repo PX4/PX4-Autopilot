@@ -46,6 +46,8 @@ void LoggedTopics::add_default_topics()
 {
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
+	add_topic("actuator_controls_4", 100);
+	add_topic("actuator_controls_5", 100);
 	add_topic("airspeed", 1000);
 	add_topic("airspeed_validated", 1000);
 	add_topic("camera_capture");
@@ -96,6 +98,13 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("yaw_estimator_status", 200);
+
+	// Control allocaton topics
+	add_topic("vehicle_angular_acceleration_setpoint", 20);
+	add_topic("vehicle_angular_acceleration", 20);
+	add_topic("vehicle_thrust_setpoint", 20);
+	add_topic("vehicle_torque_setpoint", 20);
+	add_topic("vehicle_actuator_setpoint", 20);
 
 	// multi topics
 	add_topic_multi("actuator_outputs", 100);
