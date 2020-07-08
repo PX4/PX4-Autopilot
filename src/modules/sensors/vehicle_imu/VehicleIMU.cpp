@@ -385,7 +385,7 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 					  _accel_calibration.device_id(), _gyro_calibration.device_id(), accel_integral_samples, gyro_integral_samples,
 					  (double)_accel_interval.update_interval, (double)_gyro_interval.update_interval, n);
 
-				return;
+				break;
 			}
 		}
 	}
