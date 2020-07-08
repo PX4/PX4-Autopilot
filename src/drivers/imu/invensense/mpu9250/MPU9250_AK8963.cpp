@@ -59,7 +59,6 @@ MPU9250_AK8963::MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation) :
 
 MPU9250_AK8963::~MPU9250_AK8963()
 {
-	perf_free(_transfer_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_magnetic_sensor_overflow_perf);
 }
@@ -74,7 +73,6 @@ bool MPU9250_AK8963::Reset()
 
 void MPU9250_AK8963::PrintInfo()
 {
-	perf_print_counter(_transfer_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_magnetic_sensor_overflow_perf);
 
@@ -167,11 +165,9 @@ void MPU9250_AK8963::Run()
 		break;
 
 	case STATE::READ: {
-			perf_begin(_transfer_perf);
 			TransferBuffer buffer{};
 			const hrt_abstime timestamp_sample = hrt_absolute_time();
 			bool ret = _mpu9250.I2CSlaveExternalSensorDataRead((uint8_t *)&buffer, sizeof(TransferBuffer));
-			perf_end(_transfer_perf);
 
 			bool success = false;
 
