@@ -130,6 +130,10 @@ bool FlightTaskOrbit::setRadius(float r)
 		_v = sign(_v) * sqrtf(_acceleration_max * r);
 	}
 
+	if (fabs(_r - r) > FLT_EPSILON) {
+		_circle_approach_line.reset();
+	}
+
 	_r = r;
 	return true;
 }
