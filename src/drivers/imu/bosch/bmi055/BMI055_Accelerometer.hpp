@@ -110,7 +110,7 @@ private:
 	uint8_t _fifo_accel_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / ACCEL_RATE))};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{8};
+	static constexpr uint8_t size_register_cfg{7};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                    | Set bits, Clear bits
 		{ Register::PMU_RANGE,         PMU_RANGE_BIT::range_16g, Bit1 | Bit0},
@@ -118,7 +118,6 @@ private:
 		{ Register::INT_EN_1,          INT_EN_1_BIT::int_fwm_en, 0},
 		{ Register::INT_MAP_1,         INT_MAP_1_BIT::int1_fwm, 0},
 		{ Register::INT_OUT_CTRL,      0, INT_OUT_CTRL_BIT::int1_od | INT_OUT_CTRL_BIT::int1_lvl},
-		{ Register::INT_RST_LATCH,     INT_RST_LATCH_BIT::temporary_250us, 0},
 		{ Register::FIFO_CONFIG_0,     0, 0 }, // fifo_water_mark_level_trigger_retain<5:0>
 		{ Register::FIFO_CONFIG_1,     FIFO_CONFIG_1_BIT::fifo_mode, 0},
 	};
