@@ -93,7 +93,7 @@ private:
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
-	unsigned _consecutive_failures{0};
+	int _failure_count{0};
 
 	bool _sensitivity_adjustments_loaded{false};
 	float _sensitivity[3] {1.f, 1.f, 1.f};
