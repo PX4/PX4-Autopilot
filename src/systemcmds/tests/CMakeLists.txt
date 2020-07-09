@@ -52,6 +52,7 @@ set(srcs
 	test_List.cpp
 	test_mathlib.cpp
 	test_matrix.cpp
+	test_microbench_atomic.cpp
 	test_microbench_hrt.cpp
 	test_microbench_math.cpp
 	test_microbench_matrix.cpp

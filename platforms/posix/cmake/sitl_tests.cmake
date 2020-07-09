@@ -20,6 +20,7 @@ set(tests
 	List
 	mathlib
 	matrix
+	microbench_atomic
 	microbench_hrt
 	microbench_math
 	microbench_matrix
