@@ -223,6 +223,13 @@ void BMI055_Accelerometer::RunImpl()
 					perf_count(_bad_register_perf);
 					Reset();
 				}
+
+			} else {
+				// periodically update temperature (~1 Hz)
+				if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
+					UpdateTemperature();
+					_temperature_update_timestamp = now;
+				}
 			}
 		}
 
