@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,30 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(GeofenceBreachAvoidance)
+px4_add_library(geofence_breach_avoidance
+	geofence_breach_avoidance.cpp
+	geofence_breach_avoidance.h
+)
 
-px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	SRCS
-		navigator_main.cpp
-		navigator_mode.cpp
-		mission_block.cpp
-		mission.cpp
-		loiter.cpp
-		rtl.cpp
-		takeoff.cpp
-		land.cpp
-		precland.cpp
-		mission_feasibility_checker.cpp
-		geofence.cpp
-		enginefailure.cpp
-		gpsfailure.cpp
-		follow_target.cpp
-	DEPENDS
-		git_ecl
-		ecl_geo
-		landing_slope
-		geofence_breach_avoidance
-		motion_planning
-	)
+px4_add_functional_gtest(SRC GeofenceBreachAvoidanceTest.cpp LINKLIBS geofence_breach_avoidance modules__navigator ecl_geo motion_planning)
