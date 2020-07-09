@@ -38,7 +38,7 @@
 
 #pragma once
 
-#include "VelocitySmoothing.hpp"
+#include <motion_planning/VelocitySmoothing.hpp>
 
 class ManualVelocitySmoothingZ final
 {
