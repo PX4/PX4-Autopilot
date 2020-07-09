@@ -55,7 +55,7 @@ static constexpr uint8_t Bit7 = (1 << 7);
 namespace InvenSense_MPU6000
 {
 static constexpr uint32_t SPI_SPEED = 1 * 1000 * 1000;
-static constexpr uint32_t SPI_SPEED_SENSOR = 10 * 1000 * 1000; // 20MHz for reading sensor and interrupt registers
+static constexpr uint32_t SPI_SPEED_SENSOR = 5 * 1000 * 1000; // 20MHz for reading sensor and interrupt registers
 static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x68;
