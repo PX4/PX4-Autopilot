@@ -81,6 +81,7 @@ public:
 	void offboard_land();
 	void request_ground_truth();
 	void check_mission_item_speed_above(int item_index, float min_speed);
+	void check_tracks_mission(float corridor_radius_m = 1.0f);
 
 
 private:
