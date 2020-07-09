@@ -42,6 +42,8 @@
 
 #include <cstdint>
 
+namespace InvenSense_ICM20649
+{
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
 static constexpr uint8_t Bit1 = (1 << 1);
@@ -52,8 +54,6 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_ICM20649
-{
 static constexpr uint32_t SPI_SPEED = 7 * 1000 * 1000; // 7 MHz SPI
 static constexpr uint8_t DIR_READ = 0x80;
 
