@@ -22,6 +22,7 @@ if(MAVSDK_FOUND)
         MAVSDK::mavsdk
         MAVSDK::mavsdk_action
         MAVSDK::mavsdk_failure
+        MAVSDK::mavsdk_info
         MAVSDK::mavsdk_mission
         MAVSDK::mavsdk_offboard
         MAVSDK::mavsdk_param
