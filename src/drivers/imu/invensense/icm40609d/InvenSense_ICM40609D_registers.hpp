@@ -42,6 +42,8 @@
 
 #include <cstdint>
 
+namespace InvenSense_ICM40609D
+{
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
 static constexpr uint8_t Bit1 = (1 << 1);
@@ -52,8 +54,6 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_ICM40609D
-{
 static constexpr uint32_t SPI_SPEED = 24 * 1000 * 1000; // 24 MHz SPI
 static constexpr uint8_t DIR_READ = 0x80;
 
@@ -141,7 +141,7 @@ enum PWR_MGMT0_BIT : uint8_t {
 // GYRO_CONFIG0
 enum GYRO_CONFIG0_BIT : uint8_t {
 	// 7:5 GYRO_FS_SEL
-	GYRO_FS_SEL_2000_DPS = 0,            // 0b000 = 000: ±2000dps (default)
+	GYRO_FS_SEL_2000_DPS = 0,            // 0b000 = ±2000dps (default)
 	GYRO_FS_SEL_1000_DPS = Bit5,         // 0b001 = ±1000 dps
 	GYRO_FS_SEL_500_DPS  = Bit6,         // 0b010 = ±500 dps
 	GYRO_FS_SEL_250_DPS  = Bit6 | Bit5,  // 0b011 = ±250 dps
@@ -194,6 +194,14 @@ enum INT_SOURCE0_BIT : uint8_t {
 	UI_DRDY_INT1_EN    = Bit3,
 	FIFO_THS_INT1_EN   = Bit2, // FIFO threshold interrupt routed to INT1
 	FIFO_FULL_INT1_EN  = Bit1,
+};
+
+// REG_BANK_SEL
+enum REG_BANK_SEL_BIT : uint8_t {
+	USER_BANK_0 = 0,           // 0: Select USER BANK 0.
+	USER_BANK_1 = Bit4,        // 1: Select USER BANK 1.
+	USER_BANK_2 = Bit5,        // 2: Select USER BANK 2.
+	USER_BANK_3 = Bit5 | Bit4, // 3: Select USER BANK 3.
 };
 
 namespace FIFO
