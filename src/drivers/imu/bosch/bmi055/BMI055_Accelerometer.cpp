@@ -54,7 +54,6 @@ BMI055_Accelerometer::BMI055_Accelerometer(I2CSPIBusOption bus_option, int bus, 
 
 BMI055_Accelerometer::~BMI055_Accelerometer()
 {
-	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -75,7 +74,6 @@ void BMI055_Accelerometer::print_status()
 
 	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
 
-	perf_print_counter(_transfer_perf);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
@@ -392,15 +390,10 @@ bool BMI055_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
 
-	perf_begin(_transfer_perf);
-
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
-		perf_end(_transfer_perf);
 		perf_count(_bad_transfer_perf);
 		return false;
 	}
-
-	perf_end(_transfer_perf);
 
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;

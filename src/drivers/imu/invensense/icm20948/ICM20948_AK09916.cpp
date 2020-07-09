@@ -59,7 +59,6 @@ ICM20948_AK09916::ICM20948_AK09916(ICM20948 &icm20948, enum Rotation rotation) :
 
 ICM20948_AK09916::~ICM20948_AK09916()
 {
-	perf_free(_transfer_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_magnetic_sensor_overflow_perf);
 }
@@ -74,7 +73,6 @@ bool ICM20948_AK09916::Reset()
 
 void ICM20948_AK09916::PrintInfo()
 {
-	perf_print_counter(_transfer_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_magnetic_sensor_overflow_perf);
 
@@ -128,11 +126,9 @@ void ICM20948_AK09916::Run()
 		break;
 
 	case STATE::READ: {
-			perf_begin(_transfer_perf);
 			TransferBuffer buffer{};
 			const hrt_abstime timestamp_sample = hrt_absolute_time();
 			bool ret = _icm20948.I2CSlaveExternalSensorDataRead((uint8_t *)&buffer, sizeof(TransferBuffer));
-			perf_end(_transfer_perf);
 
 			bool success = false;
 
