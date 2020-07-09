@@ -41,7 +41,7 @@
 #pragma once
 
 #include "FlightTaskAutoMapper.hpp"
-#include "VelocitySmoothing.hpp"
+#include <motion_planning/VelocitySmoothing.hpp>
 
 class FlightTaskAutoLineSmoothVel : public FlightTaskAutoMapper
 {
