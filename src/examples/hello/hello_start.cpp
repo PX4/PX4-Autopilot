@@ -69,7 +69,7 @@ int hello_main(int argc, char *argv[])
 
 		daemon_task = px4_task_spawn_cmd("hello",
 						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
+						 SCHED_PRIORITY_DEFAULT,
 						 2000,
 						 PX4_MAIN,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);

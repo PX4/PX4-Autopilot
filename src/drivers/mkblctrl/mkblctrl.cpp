@@ -305,7 +305,7 @@ MK::init(unsigned motors)
 	/* start the IO interface task */
 	_task = px4_task_spawn_cmd("mkblctrl",
 				   SCHED_DEFAULT,
-				   SCHED_PRIORITY_MAX - 20,
+				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 				   1500,
 				   (main_t)&MK::task_main_trampoline,
 				   nullptr);
