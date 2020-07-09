@@ -97,12 +97,13 @@ void AutopilotTester::connect(const std::string uri)
 
 	std::cout << "Waiting for system connect" << std::endl;
 	REQUIRE(poll_condition_with_timeout(
-	[this]() { return _mavsdk.is_connected(); }, std::chrono::seconds(25)));
+	[this]() { return _mavsdk.is_connected(); }, adjust_to_lockstep_speed(std::chrono::seconds(25))));
 
 	auto &system = _mavsdk.system();
 
 	_action.reset(new Action(system));
 	_failure.reset(new Failure(system));
+	_info.reset(new Info(system));
 	_mission.reset(new Mission(system));
 	_offboard.reset(new Offboard(system));
 	_param.reset(new Param(system));
@@ -568,4 +569,23 @@ bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry:
 	}
 
 	return pass;
+}
+
+std::chrono::milliseconds AutopilotTester::adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms)
+{
+	if (_info == nullptr) {
+		return duration_ms;
+	}
+
+	auto speed_factor = _info->get_speed_factor();
+
+	if (speed_factor.first == Info::Result::Success) {
+		return static_cast<std::chrono::milliseconds>(
+			       static_cast<unsigned long>(
+				       std::round(
+					       static_cast<double>(duration_ms.count()) / speed_factor.second)));
+
+	} else {
+		return duration_ms;
+	}
 }
