@@ -37,6 +37,7 @@
 #include <mavsdk/geometry.h>
 #include <mavsdk/plugins/action/action.h>
 #include <mavsdk/plugins/failure/failure.h>
+#include <mavsdk/plugins/info/info.h>
 #include <mavsdk/plugins/mission/mission.h>
 #include <mavsdk/plugins/offboard/offboard.h>
 #include <mavsdk/plugins/telemetry/telemetry.h>
@@ -108,9 +109,35 @@ private:
 	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 
+	std::chrono::milliseconds adjust_to_lockstep_speed(std::chrono::milliseconds duration_ms);
+
+	template<typename Rep, typename Period>
+	bool poll_condition_with_timeout(
+		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
+	{
+		// We need millisecond resolution for sleeping.
+		std::chrono::milliseconds duration_ms(duration);
+		adjust_to_lockstep_speed(duration_ms);
+
+		unsigned iteration = 0;
+
+		while (!fun()) {
+			std::this_thread::sleep_for(duration_ms / 100);
+
+			if (iteration++ >= 100) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	static float sq(float x) { return x * x; };
+
 	mavsdk::Mavsdk _mavsdk{};
 	std::unique_ptr<mavsdk::Action> _action{};
 	std::unique_ptr<mavsdk::Failure> _failure{};
+	std::unique_ptr<mavsdk::Info> _info{};
 	std::unique_ptr<mavsdk::Mission> _mission{};
 	std::unique_ptr<mavsdk::Offboard> _offboard{};
 	std::unique_ptr<mavsdk::Param> _param{};
@@ -118,25 +145,3 @@ private:
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 };
-
-template<typename Rep, typename Period>
-bool poll_condition_with_timeout(
-	std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
-{
-	// We need millisecond resolution for sleeping.
-	const std::chrono::milliseconds duration_ms(duration);
-
-	unsigned iteration = 0;
-
-	while (!fun()) {
-		std::this_thread::sleep_for(duration_ms / 100);
-
-		if (iteration++ >= 100) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-inline float sq(float x) { return x * x; };
