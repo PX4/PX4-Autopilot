@@ -164,6 +164,30 @@ void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
 	REQUIRE(fut.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
 }
 
+void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
+{
+	const auto ct = get_coordinate_transformation();
+
+	Mission::MissionPlan mission_plan {};
+	mission_plan.mission_items.push_back(create_mission_item({0, 0.}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({mission_options.leg_length_m, 0}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({2 * mission_options.leg_length_m, 0}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({3 * mission_options.leg_length_m, 0}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({4 * mission_options.leg_length_m, 0}, mission_options, ct));
+
+	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
+
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+
+	_mission->upload_mission_async(mission_plan, [&prom](Mission::Result result) {
+		REQUIRE(Mission::Result::Success == result);
+		prom.set_value();
+	});
+
+	REQUIRE(fut.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+}
+
 void AutopilotTester::execute_mission()
 {
 	std::promise<void> prom;
@@ -203,6 +227,7 @@ Mission::MissionItem  AutopilotTester::create_mission_item(
 	mission_item.latitude_deg = pos_north.latitude_deg;
 	mission_item.longitude_deg = pos_north.longitude_deg;
 	mission_item.relative_altitude_m = mission_options.relative_altitude_m;
+	mission_item.is_fly_through = mission_options.fly_through;
 	return mission_item;
 }
 
@@ -219,6 +244,18 @@ void AutopilotTester::offboard_goto(const Offboard::PositionNedYaw &target, floa
 	CHECK(poll_condition_with_timeout(
 	[ = ]() { return estimated_position_close_to(target, acceptance_radius_m); }, timeout_duration));
 	std::cout << "Target position reached" << std::endl;
+}
+
+void AutopilotTester::check_mission_item_speed_above(int item_index, float min_speed)
+{
+	_telemetry->subscribe_velocity_ned([item_index, min_speed, this](Telemetry::VelocityNed velocity) {
+		float horizontal = std::hypot(velocity.north_m_s, velocity.east_m_s);
+		auto progress = _mission->mission_progress();
+
+		if (progress.current == item_index) {
+			CHECK(horizontal > min_speed);
+		}
+	});
 }
 
 void AutopilotTester::offboard_land()

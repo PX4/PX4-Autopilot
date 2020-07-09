@@ -56,6 +56,7 @@ public:
 		double leg_length_m {20.0};
 		double relative_altitude_m {10.0};
 		bool rtl_at_end {false};
+		bool fly_through {false};
 	};
 
 	void connect(const std::string uri);
@@ -72,12 +73,14 @@ public:
 	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(90));
 	void wait_until_hovering();
 	void prepare_square_mission(MissionOptions mission_options);
+	void prepare_straight_mission(MissionOptions mission_options);
 	void execute_mission();
 	void execute_rtl();
 	void offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m = 0.3f,
 			   std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void offboard_land();
 	void request_ground_truth();
+	void check_mission_item_speed_above(int item_index, float min_speed);
 
 
 private:
