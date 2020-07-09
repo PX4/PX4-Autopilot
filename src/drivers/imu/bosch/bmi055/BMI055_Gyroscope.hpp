@@ -108,7 +108,7 @@ private:
 	uint8_t _fifo_gyro_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{9};
+	static constexpr uint8_t size_register_cfg{8};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                    | Set bits, Clear bits
 		{ Register::RANGE,             RANGE_BIT::gyro_range_2000_dps, 0 },
@@ -117,7 +117,6 @@ private:
 		{ Register::INT_EN_1,          0, INT_EN_1_BIT::int1_od | INT_EN_1_BIT::int1_lvl },
 		{ Register::INT_MAP_1,         INT_MAP_1_BIT::int1_fifo, 0 },
 		{ Register::FIFO_WM_ENABLE,    FIFO_WM_ENABLE_BIT::fifo_wm_enable, 0 },
-		{ Register::INT_RST_LATCH,     INT_RST_LATCH_BIT::temporary_250us, 0 },
 		{ Register::FIFO_CONFIG_0,     0, FIFO_CONFIG_0_BIT::tag }, // fifo_water_mark_level_trigger_retain<6:0>
 		{ Register::FIFO_CONFIG_1,     FIFO_CONFIG_1_BIT::fifo_mode, 0 },
 	};
