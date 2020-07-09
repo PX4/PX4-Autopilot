@@ -100,7 +100,6 @@ private:
 
 	PX4Accelerometer _px4_accel;
 
-	perf_counter_t _transfer_perf{perf_alloc(PC_ELAPSED, MODULE_NAME"_accel: transfer")};
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: bad transfer")};
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: FIFO empty")};

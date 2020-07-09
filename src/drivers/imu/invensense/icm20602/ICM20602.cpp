@@ -53,7 +53,6 @@ ICM20602::ICM20602(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Ro
 
 ICM20602::~ICM20602()
 {
-	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -94,7 +93,6 @@ void ICM20602::print_status()
 	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us,
 		 static_cast<double>(1000000 / _fifo_empty_interval_us));
 
-	perf_print_counter(_transfer_perf);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
@@ -457,17 +455,14 @@ uint16_t ICM20602::FIFOReadCount()
 
 bool ICM20602::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 {
-	perf_begin(_transfer_perf);
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
-		perf_end(_transfer_perf);
 		perf_count(_bad_transfer_perf);
 		return false;
 	}
 
-	perf_end(_transfer_perf);
 
 	bool bad_data = false;
 
