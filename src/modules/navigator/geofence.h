@@ -42,6 +42,7 @@
 
 #include <float.h>
 
+#include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
@@ -62,7 +63,7 @@ public:
 	Geofence(Navigator *navigator);
 	Geofence(const Geofence &) = delete;
 	Geofence &operator=(const Geofence &) = delete;
-	~Geofence();
+	virtual ~Geofence();
 
 	/* Altitude mode, corresponding to the param GF_ALTMODE */
 	enum {
@@ -97,6 +98,13 @@ public:
 	 */
 	bool check(const struct mission_item_s &mission_item);
 
+
+	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
+
+	bool isBelowMaxAltitude(float altitude);
+
+	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
+
 	int clearDm();
 
 	bool valid();
@@ -129,6 +137,14 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	bool isHomeRequired();
+
+	/**
+	 * Check if a point passes the Geofence test.
+	 * In addition to checkPolygons(), this takes all additional parameters into account.
+	 *
+	 * @return false for a geofence violation
+	 */
+	bool checkAll(double lat, double lon, float altitude);
 
 	/**
 	 * print Geofence status to the console
@@ -188,13 +204,7 @@ private:
 	 */
 	bool checkPolygons(double lat, double lon, float altitude);
 
-	/**
-	 * Check if a point passes the Geofence test.
-	 * In addition to checkPolygons(), this takes all additional parameters into account.
-	 *
-	 * @return false for a geofence violation
-	 */
-	bool checkAll(double lat, double lon, float altitude);
+
 
 	bool checkAll(const vehicle_global_position_s &global_position);
 	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
