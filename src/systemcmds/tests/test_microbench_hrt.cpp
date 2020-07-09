@@ -111,8 +111,8 @@ private:
 #endif
 	}
 
-	volatile uint64_t u_64;
-	volatile uint64_t u_64_out;
+	uint64_t u_64;
+	uint64_t u_64_out;
 };
 
 bool MicroBenchHRT::run_tests()
@@ -143,7 +143,8 @@ ut_declare_test_c(test_microbench_hrt, MicroBenchHRT)
 bool MicroBenchHRT::time_px4_hrt()
 {
 	PERF("hrt_absolute_time()", u_64_out = hrt_absolute_time(), 1000);
-	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time_atomic(&u_64), 1000);
+	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time(&u_64), 1000);
+	PERF("hrt_elapsed_time_atomic()", u_64_out = hrt_elapsed_time_atomic(&u_64), 1000);
 
 	return true;
 }
