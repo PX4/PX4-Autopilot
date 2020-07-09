@@ -1765,6 +1765,15 @@ Commander::run()
 						break;
 					}
 
+				case (geofence_result_s::GF_ACTION_LAND) : {
+						if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags,
+								&_internal_state)) {
+							_geofence_land_on = true;
+						}
+
+						break;
+					}
+
 				case (geofence_result_s::GF_ACTION_TERMINATE) : {
 						PX4_WARN("Flight termination because of geofence");
 						mavlink_log_critical(&mavlink_log_pub, "Geofence violation! Flight terminated");
@@ -1794,12 +1803,21 @@ Commander::run()
 				_geofence_rtl_on = false;
 			}
 
-			_geofence_warning_action_on = _geofence_warning_action_on || (_geofence_loiter_on || _geofence_rtl_on);
+			// reset if no longer in LAND or if manually switched to LAND
+			const bool in_land_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND;
+
+			if (!in_land_mode) {
+				_geofence_land_on = false;
+			}
+
+			_geofence_warning_action_on = _geofence_warning_action_on || (_geofence_loiter_on || _geofence_rtl_on
+						      || _geofence_land_on);
 
 		} else {
 			// No geofence checks, reset flags
 			_geofence_loiter_on = false;
 			_geofence_rtl_on = false;
+			_geofence_land_on = false;
 			_geofence_warning_action_on = false;
 			_geofence_violated_prev = false;
 		}
