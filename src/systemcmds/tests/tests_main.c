@@ -96,6 +96,7 @@ const struct {
 	{"List",		test_List,		0},
 	{"mathlib",		test_mathlib,		0},
 	{"matrix",		test_matrix,		0},
+	{"microbench_atomic",	test_microbench_atomic,	0},
 	{"microbench_hrt",	test_microbench_hrt,	0},
 	{"microbench_math",	test_microbench_math,	0},
 	{"microbench_matrix",	test_microbench_matrix,	0},
