@@ -86,7 +86,3 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 
 	_distance_sensor_pub.update();
 }
-
-void PX4Rangefinder::print_status()
-{
-}

@@ -84,9 +84,6 @@ ADIS16497::ADIS16497(I2CSPIBusOption bus_option, int bus, int32_t device, enum R
 	// Configure hardware reset line
 	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16497);
 #endif // GPIO_SPI1_RESET_ADIS16497
-
-	_px4_accel.set_update_rate(ADIS16497_DEFAULT_RATE);
-	_px4_gyro.set_update_rate(ADIS16497_DEFAULT_RATE);
 }
 
 ADIS16497::~ADIS16497()
@@ -508,6 +505,4 @@ ADIS16497::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }

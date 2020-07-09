@@ -72,9 +72,6 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 bool inverse4x4(float m[], float invOut[]);
 bool mat_inverse(float *A, float *inv, uint8_t n);
 
-// FIXME: Change the name
-static const unsigned max_accel_sens = 3;
-
 // The order of these cannot change since the calibration calculations depend on them in this order
 enum detect_orientation_return {
 	DETECT_ORIENTATION_TAIL_DOWN,
@@ -92,7 +89,6 @@ static const unsigned detect_orientation_side_count = 6;
 ///		and ready for measurements
 enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
 		int	cancel_sub,			///< Cancel subscription from calibration_cancel_subscribe
-		int	accel_sub,			///< Orb subcription to accel sensor
 		bool	lenient_still_detection);	///< true: Use more lenient still position detection
 
 /// Returns the human readable string representation of the orientation
@@ -139,7 +135,7 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub,	///< uORB handle to w
 
 #define calibration_log_info(_pub, _text, ...)			\
 	do { \
-		mavlink_and_console_log_info(_pub, _text, ##__VA_ARGS__); \
+		mavlink_log_info(_pub, _text, ##__VA_ARGS__); \
 		px4_usleep(10000); \
 	} while(0);
 

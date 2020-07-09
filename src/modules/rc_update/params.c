@@ -2228,26 +2228,3 @@ PARAM_DEFINE_FLOAT(RC_STAB_TH, 0.5f);
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_MAN_TH, 0.75f);
-
-/**
- * Sample rate of the remote control values for the low pass filter on roll, pitch, yaw and throttle
- *
- * Has an influence on the cutoff frequency precision.
- *
- * @min 1.0
- * @unit Hz
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
-
-/**
- * Cutoff frequency for the low pass filter on roll, pitch, yaw and throttle
- *
- * Does not get set unless below RC_FLT_SMP_RATE/2 because of filter instability characteristics.
- * Set to 0 to disable the filter.
- *
- * @min 0
- * @unit Hz
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);

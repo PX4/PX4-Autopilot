@@ -91,6 +91,7 @@ px4_add_board(
 		#dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -113,6 +114,7 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

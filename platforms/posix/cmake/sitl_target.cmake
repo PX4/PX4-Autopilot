@@ -44,6 +44,7 @@ ExternalProject_Add(sitl_gazebo
 	USES_TERMINAL_BUILD true
 	EXCLUDE_FROM_ALL true
 	BUILD_ALWAYS 1
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> -- -j2
 )
 
 ExternalProject_Add(mavsdk_tests
@@ -76,12 +77,12 @@ ExternalProject_Add(flightgear_bridge
 set(viewers none jmavsim gazebo)
 set(debuggers none ide gdb lldb ddd valgrind callgrind)
 set(models none shell
-	if750a iris iris_opt_flow iris_opt_flow_mockup iris_vision iris_rplidar iris_irlock iris_obs_avoid iris_rtps px4vision solo typhoon_h480
+	if750a iris iris_dual_gps iris_opt_flow iris_opt_flow_mockup iris_vision iris_rplidar iris_irlock iris_obs_avoid iris_rtps px4vision solo typhoon_h480
 	plane plane_cam plane_catapult plane_lidar
 	standard_vtol tailsitter tiltrotor
 	rover r1_rover boat
 	uuv_hippocampus)
-set(worlds none empty baylands ksql_airport mcmillan_airfield sonoma_raceway warehouse)
+set(worlds none empty baylands ksql_airport mcmillan_airfield sonoma_raceway warehouse windy)
 set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})

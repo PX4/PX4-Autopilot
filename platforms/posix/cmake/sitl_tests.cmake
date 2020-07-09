@@ -5,7 +5,6 @@
 # TODO: find a way to keep this in sync with tests_main
 set(tests
 	atomic_bitset
-	autodeclination
 	bezier
 	bitset
 	bson

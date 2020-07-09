@@ -102,21 +102,25 @@ void FlightTaskAuto::_limitYawRate()
 		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
 		const float dyaw_max = yawrate_max * _deltatime;
 		const float dyaw = math::constrain(dyaw_desired, -dyaw_max, dyaw_max);
-		float yaw_setpoint_sat = _yaw_sp_prev + dyaw;
-		yaw_setpoint_sat = matrix::wrap_pi(yaw_setpoint_sat);
+		const float yaw_setpoint_sat = matrix::wrap_pi(_yaw_sp_prev + dyaw);
 
 		// The yaw setpoint is aligned when it is within tolerance
-		_yaw_sp_aligned = fabsf(_yaw_setpoint - yaw_setpoint_sat) < math::radians(_param_mis_yaw_err.get());
+		_yaw_sp_aligned = fabsf(matrix::wrap_pi(_yaw_setpoint - yaw_setpoint_sat)) < math::radians(_param_mis_yaw_err.get());
 
 		_yaw_setpoint = yaw_setpoint_sat;
 		_yaw_sp_prev = _yaw_setpoint;
+
+		if (!PX4_ISFINITE(_yawspeed_setpoint) && (_deltatime > FLT_EPSILON)) {
+			// Create a feedforward
+			_yawspeed_setpoint = dyaw / _deltatime;
+		}
 	}
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
-		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
-
 		// The yaw setpoint is aligned when its rate is not saturated
-		_yaw_sp_aligned = fabsf(_yawspeed_setpoint) < yawrate_max;
+		_yaw_sp_aligned = _yaw_sp_aligned && (fabsf(_yawspeed_setpoint) < yawrate_max);
+
+		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
 	}
 }
 
@@ -191,13 +195,16 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// TODO This is a hack and it would be much better if the navigator only sends out a waypoints once they have changed.
 
 	bool triplet_update = true;
+	const bool prev_next_validity_changed = (_prev_was_valid != _sub_triplet_setpoint.get().previous.valid)
+						|| (_next_was_valid != _sub_triplet_setpoint.get().next.valid);
 
 	if (PX4_ISFINITE(_triplet_target(0))
 	    && PX4_ISFINITE(_triplet_target(1))
 	    && PX4_ISFINITE(_triplet_target(2))
 	    && fabsf(_triplet_target(0) - tmp_target(0)) < 0.001f
 	    && fabsf(_triplet_target(1) - tmp_target(1)) < 0.001f
-	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f) {
+	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f
+	    && !prev_next_validity_changed) {
 		// Nothing has changed: just keep old waypoints.
 		triplet_update = false;
 
@@ -227,6 +234,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_triplet_prev_wp = _position;
 		}
 
+		_prev_was_valid = _sub_triplet_setpoint.get().previous.valid;
+
 		if (_type == WaypointType::loiter) {
 			_triplet_next_wp = _triplet_target;
 
@@ -238,6 +247,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 		} else {
 			_triplet_next_wp = _triplet_target;
 		}
+
+		_next_was_valid = _sub_triplet_setpoint.get().next.valid;
 	}
 
 	if (_ext_yaw_handler != nullptr) {

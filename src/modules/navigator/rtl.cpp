@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,32 +46,47 @@
 
 static constexpr float DELAY_SIGMA = 0.01f;
 
+using namespace time_literals;
+
 RTL::RTL(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
 {
 }
 
-void
-RTL::on_inactive()
+void RTL::on_inactivation()
+{
+	if (_navigator->get_precland()->is_activated()) {
+		_navigator->get_precland()->on_inactivation();
+	}
+}
+
+void RTL::on_inactive()
 {
 	// Reset RTL state.
 	_rtl_state = RTL_STATE_NONE;
 
 	find_RTL_destination();
-
 }
 
-void
-RTL::find_RTL_destination()
+void RTL::find_RTL_destination()
 {
+	// don't update RTL destination faster than 1 Hz
+	if (hrt_elapsed_time(&_destination_check_time) < 1_s) {
+		return;
+	}
+
+	_destination_check_time = hrt_absolute_time();
+
 	// get home position:
 	home_position_s &home_landing_position = *_navigator->get_home_position();
+
 	// get global position
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
 	// set destination to home per default, then check if other valid landing spot is closer
 	_destination.set(home_landing_position);
+
 	// get distance to home position
 	double dlat = home_landing_position.lat - global_position.lat;
 	double dlon = home_landing_position.lon - global_position.lon;
@@ -167,34 +182,32 @@ RTL::find_RTL_destination()
 
 }
 
-int
-RTL::rtl_type() const
-{
-	return _param_rtl_type.get();
-}
-
-void
-RTL::on_activation()
+void RTL::on_activation()
 {
 
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:
-		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at home position.");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at home position.");
 		break;
 
 	case RTL_DESTINATION_MISSION_LANDING:
-		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at mission landing.");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at mission landing.");
 		break;
 
 	case RTL_DESTINATION_SAFE_POINT:
-		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at safe landing point.");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at safe landing point.");
 		break;
 	}
 
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
-	_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
+
+	} else {
+		_rtl_alt = math::max(global_position.alt, _destination.alt + _param_rtl_return_alt.get());
+	}
 
 	if (_navigator->get_land_detected()->landed) {
 		// For safety reasons don't go into RTL if landed.
@@ -217,23 +230,22 @@ RTL::on_activation()
 	set_rtl_item();
 }
 
-void
-RTL::on_active()
+void RTL::on_active()
 {
 	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item();
 	}
+
+	if (_rtl_state == RTL_STATE_LAND && _param_rtl_pld_md.get() > 0) {
+		_navigator->get_precland()->on_active();
+
+	} else if (_navigator->get_precland()->is_activated()) {
+		_navigator->get_precland()->on_inactivation();
+	}
 }
 
-void
-RTL::set_return_alt_min(bool min)
-{
-	_rtl_alt_min = min;
-}
-
-void
-RTL::set_rtl_item()
+void RTL::set_rtl_item()
 {
 	// RTL_TYPE: mission landing.
 	// Landing using planned mission landing, fly to DO_LAND_START instead of returning _destination.
@@ -241,7 +253,7 @@ RTL::set_rtl_item()
 	if (_destination.type == RTL_DESTINATION_MISSION_LANDING) {
 		if (_rtl_state > RTL_STATE_CLIMB) {
 			if (_navigator->start_mission_landing()) {
-				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");
 				return;
 
 			} else {
@@ -277,8 +289,8 @@ RTL::set_rtl_item()
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above destination)",
-						     (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above destination)",
+					 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
 			break;
 		}
 
@@ -306,8 +318,8 @@ RTL::set_rtl_item()
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above destination)",
-						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above destination)",
+					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
 
 			break;
 		}
@@ -342,8 +354,8 @@ RTL::set_rtl_item()
 			// Disable previous setpoint to prevent drift.
 			pos_sp_triplet->previous.valid = false;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above destination)",
-						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above destination)",
+					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
 			break;
 		}
 
@@ -366,12 +378,12 @@ RTL::set_rtl_item()
 
 			if (autoland && (get_time_inside(_mission_item) > FLT_EPSILON)) {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
-				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs",
-							     (double)get_time_inside(_mission_item));
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs",
+						 (double)get_time_inside(_mission_item));
 
 			} else {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering");
 			}
 
 			break;
@@ -389,8 +401,18 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.land_precision = _param_rtl_pld_md.get();
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination");
+			if (_mission_item.land_precision == 1) {
+				_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+				_navigator->get_precland()->on_activation();
+
+			} else if (_mission_item.land_precision == 2) {
+				_navigator->get_precland()->set_mode(PrecLandMode::Required);
+				_navigator->get_precland()->on_activation();
+			}
+
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination");
 			break;
 		}
 
@@ -419,8 +441,7 @@ RTL::set_rtl_item()
 	}
 }
 
-void
-RTL::advance_rtl()
+void RTL::advance_rtl()
 {
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB:
@@ -472,7 +493,6 @@ RTL::advance_rtl()
 		break;
 	}
 }
-
 
 float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 {

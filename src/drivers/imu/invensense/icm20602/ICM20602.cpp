@@ -102,8 +102,6 @@ void ICM20602::print_status()
 	perf_print_counter(_fifo_reset_perf);
 	perf_print_counter(_drdy_interval_perf);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }
 
 int ICM20602::probe()
@@ -276,27 +274,28 @@ void ICM20602::ConfigureGyro()
 {
 	const uint8_t FS_SEL = RegisterRead(Register::GYRO_CONFIG) & (Bit4 | Bit3); // [4:3] FS_SEL[1:0]
 
+	float range_dps = 0.f;
+
 	switch (FS_SEL) {
 	case FS_SEL_250_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 131.f));
-		_px4_gyro.set_range(math::radians(250.f));
+		range_dps = 250.f;
 		break;
 
 	case FS_SEL_500_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 65.5f));
-		_px4_gyro.set_range(math::radians(500.f));
+		range_dps = 500.f;
 		break;
 
 	case FS_SEL_1000_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 32.8f));
-		_px4_gyro.set_range(math::radians(1000.f));
+		range_dps = 1000.f;
 		break;
 
 	case FS_SEL_2000_DPS:
-		_px4_gyro.set_scale(math::radians(1.f / 16.4f));
-		_px4_gyro.set_range(math::radians(2000.f));
+		range_dps = 2000.f;
 		break;
 	}
+
+	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
+	_px4_gyro.set_range(math::radians(range_dps));
 }
 
 void ICM20602::ConfigureSampleRate(int sample_rate)
@@ -315,9 +314,6 @@ void ICM20602::ConfigureSampleRate(int sample_rate)
 	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
 
 	_fifo_accel_samples = math::min(_fifo_empty_interval_us / (1e6f / ACCEL_RATE), (float)FIFO_MAX_SAMPLES);
-
-	_px4_accel.set_update_rate(1e6f / _fifo_empty_interval_us);
-	_px4_gyro.set_update_rate(1e6f / _fifo_empty_interval_us);
 
 	ConfigureFIFOWatermark(_fifo_gyro_samples);
 }
@@ -524,7 +520,7 @@ static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
 bool ICM20602::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer,
 			    const uint8_t samples)
 {
-	PX4Accelerometer::FIFOSample accel;
+	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = _fifo_empty_interval_us / _fifo_accel_samples;
 
@@ -575,7 +571,7 @@ bool ICM20602::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFOTrans
 
 void ICM20602::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFOTransferBuffer &buffer, const uint8_t samples)
 {
-	PX4Gyroscope::FIFOSample gyro;
+	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = _fifo_empty_interval_us / _fifo_gyro_samples;

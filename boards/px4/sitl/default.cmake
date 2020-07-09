@@ -75,6 +75,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		dyn_hello # dynamically loading modules example
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
@@ -98,9 +99,5 @@ set(REPLAY_FILE "$ENV{replay}")
 if(REPLAY_FILE)
 	message(STATUS "Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
-
-	message(STATUS "Building without lockstep for replay")
-	set(ENABLE_LOCKSTEP_SCHEDULER no)
-else()
-	set(ENABLE_LOCKSTEP_SCHEDULER yes)
 endif()
+set(ENABLE_LOCKSTEP_SCHEDULER yes)

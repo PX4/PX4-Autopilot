@@ -148,7 +148,7 @@ bool MPU9250_mag::_measure(const hrt_abstime &timestamp_sample, const ak8963_reg
 	int16_t x = combine(data.HXH, data.HXL);
 	int16_t y = -combine(data.HYH, data.HYL);
 	int16_t z = -combine(data.HZH, data.HZL);
-	_px4_mag.update(timestamp_sample, x, y, z);
+	_px4_mag.update(timestamp_sample, x * _ak8963_ASA[0], y * _ak8963_ASA[1], z * _ak8963_ASA[2]);
 
 	return true;
 }
@@ -244,18 +244,16 @@ MPU9250_mag::ak8963_read_adjustments()
 
 	write_reg_through_mpu9250(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
 
-	float ak8963_ASA[3] {};
+
 
 	for (int i = 0; i < 3; i++) {
 		if (0 != response[i] && 0xff != response[i]) {
-			ak8963_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
+			_ak8963_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
 
 		} else {
 			return false;
 		}
 	}
-
-	_px4_mag.set_sensitivity(ak8963_ASA[0], ak8963_ASA[1], ak8963_ASA[2]);
 
 	return true;
 }
