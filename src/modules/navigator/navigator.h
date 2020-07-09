@@ -55,6 +55,8 @@
 
 #include "navigation.h"
 
+#include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
+
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -378,6 +380,7 @@ private:
 
 	Geofence	_geofence;			/**< class that handles the geofence */
 	bool		_geofence_violation_warning_sent{false}; /**< prevents spaming to mavlink */
+	GeofenceBreachAvoidance _gf_breach_avoidance;
 
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
