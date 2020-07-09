@@ -304,6 +304,7 @@ private:
 
 	bool		_geofence_loiter_on{false};
 	bool		_geofence_rtl_on{false};
+	bool		_geofence_land_on{false};
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
 
