@@ -86,7 +86,7 @@ void MPU9250_AK8963::Run()
 		// CNTL2 SRST: Soft reset
 		_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL2, CNTL2_BIT::SRST);
 		_reset_timestamp = hrt_absolute_time();
-		_consecutive_failures = 0;
+		_failure_count = 0;
 		_state = STATE::READ_WHO_AM_I;
 		ScheduleDelayed(100_ms);
 		break;
@@ -190,7 +190,9 @@ void MPU9250_AK8963::Run()
 
 					success = true;
 
-					_consecutive_failures = 0;
+					if (_failure_count > 0) {
+						_failure_count--;
+					}
 
 					ScheduleDelayed(20_ms); // ~50 Hz
 					return;
@@ -199,9 +201,9 @@ void MPU9250_AK8963::Run()
 
 			if (!success) {
 				perf_count(_bad_transfer_perf);
-				_consecutive_failures++;
+				_failure_count++;
 
-				if (_consecutive_failures > 100) {
+				if (_failure_count > 10) {
 					Reset();
 					return;
 				}
