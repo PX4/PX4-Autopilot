@@ -238,10 +238,8 @@ class GzclientRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzclient"
         self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH'],
-                    "HOME": os.environ['HOME'],
-                    "GAZEBO_MODEL_PATH":
-                    workspace_dir + "/Tools/sitl_gazebo/models"}
+        self.env = dict(os.environ, **{
+            "GAZEBO_MODEL_PATH": workspace_dir + "/Tools/sitl_gazebo/models"})
         self.add_to_env_if_set("DISPLAY")
         self.cmd = "gzclient"
         self.args = ["--verbose"]
