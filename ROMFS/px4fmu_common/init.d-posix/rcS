@@ -133,14 +133,10 @@ then
 	param set CBRK_AIRSPD_CHK 0
 	param set CBRK_SUPPLY_CHK 894281
 
-	param set COM_DISARM_LAND 0.5
-	param set COM_OBL_ACT 2
-	param set COM_OBL_RC_ACT 0
+	# Don't require RC calibration and configuration
 	param set COM_RC_IN_MODE 1
 
-	param set EKF2_AID_MASK 1
 	param set EKF2_ANGERR_INIT 0.01
-	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
 
 	# Prevent high accel bias
@@ -152,14 +148,11 @@ then
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
 
-
 	param set MC_PITCH_P 6
 	param set MC_PITCHRATE_P 0.2
 	param set MC_ROLL_P 6
 	param set MC_ROLLRATE_P 0.2
 
-	param set MPC_ALT_MODE 0
-	param set MPC_HOLD_MAX_Z 2
 	param set MPC_Z_VEL_P_ACC 12.0
 	param set MPC_Z_VEL_I_ACC 3.0
 	param set MPC_XY_P 0.8
@@ -167,14 +160,6 @@ then
 	param set MPC_XY_VEL_I_ACC 0.4
 	param set MPC_XY_VEL_D_ACC 0.32
 
-	param set MPC_SPOOLUP_TIME 0.5
-	param set MPC_TKO_RAMP_T 1
-
-	param set NAV_ACC_RAD 2
-	param set NAV_DLL_ACT 2
-
-	param set RTL_DESCEND_ALT 5
-	param set RTL_LAND_DELAY 5
 	param set RTL_RETURN_ALT 30
 
 	# By default log from boot until first disarm.
