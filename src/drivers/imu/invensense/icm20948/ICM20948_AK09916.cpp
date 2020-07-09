@@ -86,7 +86,7 @@ void ICM20948_AK09916::Run()
 		// CNTL3 SRST: Soft reset
 		_icm20948.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL3, CNTL3_BIT::SRST);
 		_reset_timestamp = hrt_absolute_time();
-		_consecutive_failures = 0;
+		_failure_count = 0;
 		_state = STATE::READ_WHO_AM_I;
 		ScheduleDelayed(100_ms);
 		break;
@@ -146,15 +146,17 @@ void ICM20948_AK09916::Run()
 
 					success = true;
 
-					_consecutive_failures = 0;
+					if (_failure_count > 0) {
+						_failure_count--;
+					}
 				}
 			}
 
 			if (!success) {
 				perf_count(_bad_transfer_perf);
-				_consecutive_failures++;
+				_failure_count++;
 
-				if (_consecutive_failures > 10) {
+				if (_failure_count > 10) {
 					Reset();
 					return;
 				}
