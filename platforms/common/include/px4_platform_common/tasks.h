@@ -100,35 +100,28 @@ typedef struct {
 #error "No target OS defined"
 #endif
 
-// PX4 work queue starting high priority
-#define PX4_WQ_HP_BASE (SCHED_PRIORITY_MAX - 15)
-
-// Fast drivers - they need to run as quickly as possible to minimize control
-// latency.
-#define SCHED_PRIORITY_FAST_DRIVER		(SCHED_PRIORITY_MAX - 0)
+// keep in sync with wq_configurations (platforms/common/include/px4_platform_common/px4_work_queue/WorkQueueManager.hpp)
+#define PX4_WQ_RATE_CONTROL     (SCHED_PRIORITY_MAX - 8)
+#define PX4_WQ_ATTITUDE_CONTROL (SCHED_PRIORITY_MAX - 14)
+#define PX4_WQ_POSITION_CONTROL (SCHED_PRIORITY_MAX - 15)
+#define PX4_WQ_HP_BASE          (SCHED_PRIORITY_MAX - 16)
+#define PX4_WQ_UART_MAX         (SCHED_PRIORITY_MAX - 18)
 
 // Actuator outputs should run as soon as the rate controller publishes
 // the actuator controls topic
-#define SCHED_PRIORITY_ACTUATOR_OUTPUTS		(PX4_WQ_HP_BASE - 3)
+#define SCHED_PRIORITY_ACTUATOR_OUTPUTS		(PX4_WQ_RATE_CONTROL)
 
 // Attitude controllers typically are in a blocking wait on driver data
 // they should be the first to run on an update, using the current sensor
 // data and the *previous* attitude reference from the position controller
 // which typically runs at a slower rate
-#define SCHED_PRIORITY_ATTITUDE_CONTROL		(PX4_WQ_HP_BASE - 4)
-
-// Estimators should run after the attitude controller but before anything
-// else in the system. They wait on sensor data which is either coming
-// from the sensor hub or from a driver. Keeping this class at a higher
-// priority ensures that the estimator runs first if it can, but will
-// wait for the sensor hub if its data is coming from it.
-#define SCHED_PRIORITY_ESTIMATOR		(PX4_WQ_HP_BASE - 5)
+#define SCHED_PRIORITY_ATTITUDE_CONTROL		(PX4_WQ_ATTITUDE_CONTROL)
 
 // Position controllers typically are in a blocking wait on estimator data
 // so when new sensor data is available they will run last. Keeping them
 // on a high priority ensures that they are the first process to be run
 // when the estimator updates.
-#define SCHED_PRIORITY_POSITION_CONTROL		(PX4_WQ_HP_BASE - 7)
+#define SCHED_PRIORITY_POSITION_CONTROL		(PX4_WQ_POSITION_CONTROL)
 
 // The log capture (which stores log data into RAM) should run faster
 // than other components, but should not run before the control pipeline
@@ -136,13 +129,11 @@ typedef struct {
 
 // Slow drivers should run at a rate where they do not impact the overall
 // system execution
-#define SCHED_PRIORITY_SLOW_DRIVER		(PX4_WQ_HP_BASE - 35)
+#define SCHED_PRIORITY_SLOW_DRIVER		(PX4_WQ_UART_MAX + 1)
 
 // The navigation system needs to execute regularly but has no realtime needs
 #define SCHED_PRIORITY_NAVIGATION		(SCHED_PRIORITY_DEFAULT + 5)
 //      SCHED_PRIORITY_DEFAULT
-#define SCHED_PRIORITY_LOG_WRITER		(SCHED_PRIORITY_DEFAULT - 10)
-#define SCHED_PRIORITY_PARAMS			(SCHED_PRIORITY_DEFAULT - 15)
 //      SCHED_PRIORITY_IDLE
 
 typedef int (*px4_main_t)(int argc, char *argv[]);

@@ -102,7 +102,7 @@ int matlab_csv_serial_main(int argc, char *argv[])
 		thread_should_exit = false;
 		daemon_task = px4_task_spawn_cmd("matlab_csv_serial",
 						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
+						 SCHED_PRIORITY_DEFAULT,
 						 2000,
 						 matlab_csv_serial_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
