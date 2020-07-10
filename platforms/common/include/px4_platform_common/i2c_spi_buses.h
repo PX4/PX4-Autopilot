@@ -173,7 +173,7 @@ private:
  * @class I2CSPIDriverBase
  * Base class for I2C/SPI driver modules (non-templated, used by I2CSPIDriver)
  */
-class I2CSPIDriverBase : public px4::ScheduledWorkItem, public I2CSPIInstance
+class I2CSPIDriverBase : virtual public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
 	I2CSPIDriverBase(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus,
@@ -232,7 +232,8 @@ public:
 protected:
 	I2CSPIDriver(const char *module_name, const px4::wq_config_t &config, I2CSPIBusOption bus_option, int bus,
 		     uint8_t i2c_address = 0, uint16_t type = 0)
-		: I2CSPIDriverBase(module_name, config, bus_option, bus, i2c_address, type) {}
+		: ScheduledWorkItem(MODULE_NAME, config),
+		  I2CSPIDriverBase(module_name, config, bus_option, bus, i2c_address, type) {}
 
 	virtual ~I2CSPIDriver() = default;
 

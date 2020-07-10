@@ -71,6 +71,7 @@ class SDP3X : public Airspeed, public I2CSPIDriver<SDP3X>
 public:
 	SDP3X(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_SDP3X,
 	      bool keep_retrying = false) :
+		ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
 		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address),
 		_keep_retrying{keep_retrying}

@@ -83,7 +83,8 @@ protected:
 extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
 
 ETSAirspeed::ETSAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address)
-	: Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
+	: ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+	  Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
 	  I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS4525;

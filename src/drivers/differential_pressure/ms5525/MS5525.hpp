@@ -52,6 +52,7 @@ class MS5525 : public Airspeed, public I2CSPIDriver<MS5525>
 {
 public:
 	MS5525(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_1_MS5525DSO) :
+		ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 		Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
 		I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 	{

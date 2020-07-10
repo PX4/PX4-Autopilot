@@ -44,6 +44,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 
 MPU9250::MPU9250(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
 		 spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio, bool enable_magnetometer) :
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	SPI(DRV_IMU_DEVTYPE_MPU9250, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_drdy_gpio(drdy_gpio),
