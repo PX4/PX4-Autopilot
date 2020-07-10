@@ -85,7 +85,7 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 	geofence_violation_type_u gf_violation;
 	gf_violation.flags.fence_violation = true;
 
-	gf_avoidance.setTestPointDistance(20.0f);
+	gf_avoidance.setHorizontalTestPointDistance(20.0f);
 	gf_avoidance.setTestPointBearing(0.0f);
 	gf_avoidance.setCurrentPosition(home_global(0), home_global(1), 0);
 
@@ -146,7 +146,7 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 	geofence_violation_type_u gf_violation;
 	gf_violation.flags.fence_violation = true;
 
-	gf_avoidance.setTestPointDistance(30.0f);
+	gf_avoidance.setHorizontalTestPointDistance(30.0f);
 	gf_avoidance.setTestPointBearing(0.0f);
 	gf_avoidance.setCurrentPosition(home_global(0), home_global(1), 0);
 	// vehicle is approaching the fence at a crazy velocity
@@ -158,7 +158,7 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 	Vector2d loiter_point = gf_avoidance.generateLoiterPointForMultirotor(gf_violation, &geo);
 
 	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(home_global, 0.0f,
-					  20.0f - gf_avoidance.getMinDistToFenceMulticopter());
+					  20.0f - gf_avoidance.getMinHorDistToFenceMulticopter());
 
 	float error = get_distance_to_next_waypoint(loiter_point(0), loiter_point(1), loiter_point_predicted(0),
 			loiter_point_predicted(1));
@@ -215,7 +215,6 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 	geofence_violation_type_u gf_violation;
 	gf_violation.flags.max_altitude_exceeded = true;
 
-
 	gf_avoidance.setClimbRate(climbrate);
 	gf_avoidance.setCurrentPosition(0, 0, current_alt_amsl);
 	gf_avoidance.computeVerticalBrakingDistanceMultirotor();
@@ -230,4 +229,67 @@ TEST(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 	loiter_alt_amsl = gf_avoidance.generateLoiterAltitudeForMulticopter(gf_violation);
 
 	EXPECT_EQ(loiter_alt_amsl, current_alt_amsl);
+}
+
+TEST(GeofenceBreachAvoidance, maxDistToHomeViolationMulticopter)
+{
+	GeofenceBreachAvoidance gf_avoidance;
+	FakeGeofence geo;
+	struct map_projection_reference_s ref = {};
+	Vector2d home_global(42.1, 8.2);
+	map_projection_init(&ref, home_global(0), home_global(1));
+	geofence_violation_type_u gf_violation;
+	gf_violation.flags.dist_to_home_exceeded = true;
+
+	const float hor_vel = 8.0f;
+	const float test_point_distance = 30.0f;
+	const float test_point_bearing = 0.0f;
+	const float max_dist_to_home = 100.0f;
+
+	gf_avoidance.setHorizontalVelocity(hor_vel);
+	gf_avoidance.computeBrakingDistanceMultirotor();
+	gf_avoidance.setHorizontalTestPointDistance(test_point_distance);
+	gf_avoidance.setTestPointBearing(test_point_bearing);
+
+	Vector2d current_pos = gf_avoidance.waypointFromBearingAndDistance(home_global, test_point_bearing, 90.0f);
+	gf_avoidance.setCurrentPosition(current_pos(0), current_pos(1), 0);
+	gf_avoidance.setMaxHorDistHome(max_dist_to_home);
+	gf_avoidance.setHomePosition(home_global(0), home_global(1), 0);
+
+	Vector2d loiter_point_lat_lon = gf_avoidance.generateLoiterPointForMultirotor(gf_violation, &geo);
+
+	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(home_global, test_point_bearing,
+					  max_dist_to_home - gf_avoidance.getMinHorDistToFenceMulticopter());
+
+	EXPECT_EQ(loiter_point_predicted, loiter_point_lat_lon);
+}
+
+TEST(GeofenceBreachAvoidance, maxDistToHomeViolationFixedWing)
+{
+	GeofenceBreachAvoidance gf_avoidance;
+	FakeGeofence geo;
+	struct map_projection_reference_s ref = {};
+	Vector2d home_global(42.1, 8.2);
+	map_projection_init(&ref, home_global(0), home_global(1));
+	geofence_violation_type_u gf_violation;
+	gf_violation.flags.dist_to_home_exceeded = true;
+
+	const float test_point_distance = 30.0f;
+	const float max_dist_to_home = 100.0f;
+	const float test_point_bearing = 0.0f;
+
+	gf_avoidance.setHorizontalTestPointDistance(test_point_distance);
+	gf_avoidance.setTestPointBearing(test_point_bearing);
+
+	Vector2d current_pos = gf_avoidance.waypointFromBearingAndDistance(home_global, test_point_bearing, 90.0f);
+	gf_avoidance.setCurrentPosition(current_pos(0), current_pos(1), 0);
+	gf_avoidance.setMaxHorDistHome(max_dist_to_home);
+	gf_avoidance.setHomePosition(home_global(0), home_global(1), 0);
+
+	Vector2d loiter_point_lat_lon = gf_avoidance.generateLoiterPointForFixedWing(gf_violation, &geo);
+
+	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(home_global, test_point_bearing,
+					  max_dist_to_home - 2.0f * test_point_distance);
+
+	EXPECT_EQ(loiter_point_predicted, loiter_point_lat_lon);
 }
