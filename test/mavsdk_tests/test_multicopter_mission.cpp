@@ -91,7 +91,7 @@ TEST_CASE("Fly straight Multicopter Mission", "[multicopter]")
 	mission_options.fly_through = true;
 	tester.prepare_straight_mission(mission_options);
 	tester.check_mission_item_speed_above(2, 4.5);
-	tester.check_tracks_mission(0.8f);
+	tester.check_tracks_mission(0.9f);
 	tester.arm();
 	tester.execute_mission();
 	tester.wait_until_hovering();
