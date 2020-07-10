@@ -46,7 +46,7 @@
 void Ekf::fuseDrag()
 {
 	float SH_ACC[4] = {}; // Variable used to optimise calculations of measurement jacobian
-	float H_ACC[24] = {}; // Observation Jacobian
+	Vector24f H_ACC; // Observation Jacobian
 	float SK_ACC[9] = {}; // Variable used to optimise calculations of the Kalman gain vector
 	Vector24f Kfusion; // Kalman gain vector
 	// TODO: resolve variance vs stdDev bug
@@ -97,15 +97,15 @@ void Ekf::fuseDrag()
 			SH_ACC[1] = vn - vwn;
 			SH_ACC[2] = ve - vwe;
 			SH_ACC[3] = 2.0f*q0*q3 + 2.0f*q1*q2;
-			H_ACC[0] = -Kacc*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd);
-			H_ACC[1] = -Kacc*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd);
-			H_ACC[2] = Kacc*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd);
-			H_ACC[3] = -Kacc*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd);
-			H_ACC[4] = -Kacc*SH_ACC[0];
-			H_ACC[5] = -Kacc*SH_ACC[3];
-			H_ACC[6] = Kacc*(2.0f*q0*q2 - 2.0f*q1*q3);
-			H_ACC[22] = Kacc*SH_ACC[0];
-			H_ACC[23] = Kacc*SH_ACC[3];
+			H_ACC(0) = -Kacc*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd);
+			H_ACC(1) = -Kacc*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd);
+			H_ACC(2) = Kacc*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd);
+			H_ACC(3) = -Kacc*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd);
+			H_ACC(4) = -Kacc*SH_ACC[0];
+			H_ACC(5) = -Kacc*SH_ACC[3];
+			H_ACC(6) = Kacc*(2.0f*q0*q2 - 2.0f*q1*q3);
+			H_ACC(22) = Kacc*SH_ACC[0];
+			H_ACC(23) = Kacc*SH_ACC[3];
 			_drag_innov_var[0] = (R_ACC + Kacc*SH_ACC[0]*(Kacc*P(4,4)*SH_ACC[0] + Kacc*P(5,4)*SH_ACC[3] - Kacc*P(22,4)*SH_ACC[0] - Kacc*P(23,4)*SH_ACC[3] - Kacc*P(6,4)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,4)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,4)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,4)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,4)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)) + Kacc*SH_ACC[3]*(Kacc*P(4,5)*SH_ACC[0] + Kacc*P(5,5)*SH_ACC[3] - Kacc*P(22,5)*SH_ACC[0] - Kacc*P(23,5)*SH_ACC[3] - Kacc*P(6,5)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,5)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,5)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,5)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,5)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)) - Kacc*SH_ACC[0]*(Kacc*P(4,22)*SH_ACC[0] + Kacc*P(5,22)*SH_ACC[3] - Kacc*P(22,22)*SH_ACC[0] - Kacc*P(23,22)*SH_ACC[3] - Kacc*P(6,22)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,22)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,22)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,22)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,22)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)) - Kacc*SH_ACC[3]*(Kacc*P(4,23)*SH_ACC[0] + Kacc*P(5,23)*SH_ACC[3] - Kacc*P(22,23)*SH_ACC[0] - Kacc*P(23,23)*SH_ACC[3] - Kacc*P(6,23)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,23)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,23)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,23)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,23)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)) - Kacc*(2.0f*q0*q2 - 2.0f*q1*q3)*(Kacc*P(4,6)*SH_ACC[0] + Kacc*P(5,6)*SH_ACC[3] - Kacc*P(22,6)*SH_ACC[0] - Kacc*P(23,6)*SH_ACC[3] - Kacc*P(6,6)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,6)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,6)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,6)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,6)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)) + Kacc*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)*(Kacc*P(4,0)*SH_ACC[0] + Kacc*P(5,0)*SH_ACC[3] - Kacc*P(22,0)*SH_ACC[0] - Kacc*P(23,0)*SH_ACC[3] - Kacc*P(6,0)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,0)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,0)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,0)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,0)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)) + Kacc*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd)*(Kacc*P(4,1)*SH_ACC[0] + Kacc*P(5,1)*SH_ACC[3] - Kacc*P(22,1)*SH_ACC[0] - Kacc*P(23,1)*SH_ACC[3] - Kacc*P(6,1)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,1)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,1)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,1)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,1)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)) - Kacc*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd)*(Kacc*P(4,2)*SH_ACC[0] + Kacc*P(5,2)*SH_ACC[3] - Kacc*P(22,2)*SH_ACC[0] - Kacc*P(23,2)*SH_ACC[3] - Kacc*P(6,2)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,2)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,2)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,2)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,2)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)) + Kacc*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)*(Kacc*P(4,3)*SH_ACC[0] + Kacc*P(5,3)*SH_ACC[3] - Kacc*P(22,3)*SH_ACC[0] - Kacc*P(23,3)*SH_ACC[3] - Kacc*P(6,3)*(2.0f*q0*q2 - 2.0f*q1*q3) + Kacc*P(0,3)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd) + Kacc*P(1,3)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(2,3)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(3,3)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)));
 			if (_drag_innov_var[0] < R_ACC) {
 				return;
@@ -148,15 +148,15 @@ void Ekf::fuseDrag()
 			SH_ACC[0] = sq(q0) - sq(q1) + sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
 			SH_ACC[2] = ve - vwe;
-			H_ACC[0] = -Kacc*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd);
-			H_ACC[1] = -Kacc*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd);
-			H_ACC[2] = -Kacc*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd);
-			H_ACC[3] = Kacc*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd);
-			H_ACC[4] = Kacc*(2.0f*q0*q3 - 2.0f*q1*q2);
-			H_ACC[5] = -Kacc*SH_ACC[0];
-			H_ACC[6] = -Kacc*(2.0f*q0*q1 + 2.0f*q2*q3);
-			H_ACC[22] = -2.0f*Kacc*(q0*q3 - q1*q2);
-			H_ACC[23] = Kacc*SH_ACC[0];
+			H_ACC(0) = -Kacc*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd);
+			H_ACC(1) = -Kacc*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd);
+			H_ACC(2) = -Kacc*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd);
+			H_ACC(3) = Kacc*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd);
+			H_ACC(4) = Kacc*(2.0f*q0*q3 - 2.0f*q1*q2);
+			H_ACC(5) = -Kacc*SH_ACC[0];
+			H_ACC(6) = -Kacc*(2.0f*q0*q1 + 2.0f*q2*q3);
+			H_ACC(22) = -2.0f*Kacc*(q0*q3 - q1*q2);
+			H_ACC(23) = Kacc*SH_ACC[0];
 			_drag_innov_var[1] = (R_ACC + Kacc*SH_ACC[0]*(Kacc*P(5,5)*SH_ACC[0] - Kacc*P(23,5)*SH_ACC[0] - Kacc*P(4,5)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,5)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,5)*(q0*q3 - q1*q2) + Kacc*P(0,5)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,5)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,5)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,5)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)) - Kacc*SH_ACC[0]*(Kacc*P(5,23)*SH_ACC[0] - Kacc*P(23,23)*SH_ACC[0] - Kacc*P(4,23)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,23)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,23)*(q0*q3 - q1*q2) + Kacc*P(0,23)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,23)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,23)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,23)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)) - Kacc*(2.0f*q0*q3 - 2.0f*q1*q2)*(Kacc*P(5,4)*SH_ACC[0] - Kacc*P(23,4)*SH_ACC[0] - Kacc*P(4,4)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,4)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,4)*(q0*q3 - q1*q2) + Kacc*P(0,4)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,4)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,4)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,4)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)) + Kacc*(2.0f*q0*q1 + 2.0f*q2*q3)*(Kacc*P(5,6)*SH_ACC[0] - Kacc*P(23,6)*SH_ACC[0] - Kacc*P(4,6)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,6)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,6)*(q0*q3 - q1*q2) + Kacc*P(0,6)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,6)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,6)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,6)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)) + 2*Kacc*(q0*q3 - q1*q2)*(Kacc*P(5,22)*SH_ACC[0] - Kacc*P(23,22)*SH_ACC[0] - Kacc*P(4,22)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,22)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,22)*(q0*q3 - q1*q2) + Kacc*P(0,22)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,22)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,22)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,22)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)) + Kacc*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd)*(Kacc*P(5,0)*SH_ACC[0] - Kacc*P(23,0)*SH_ACC[0] - Kacc*P(4,0)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,0)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,0)*(q0*q3 - q1*q2) + Kacc*P(0,0)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,0)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,0)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,0)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)) + Kacc*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd)*(Kacc*P(5,1)*SH_ACC[0] - Kacc*P(23,1)*SH_ACC[0] - Kacc*P(4,1)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,1)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,1)*(q0*q3 - q1*q2) + Kacc*P(0,1)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,1)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,1)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,1)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)) + Kacc*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd)*(Kacc*P(5,2)*SH_ACC[0] - Kacc*P(23,2)*SH_ACC[0] - Kacc*P(4,2)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,2)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,2)*(q0*q3 - q1*q2) + Kacc*P(0,2)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,2)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,2)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,2)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)) - Kacc*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)*(Kacc*P(5,3)*SH_ACC[0] - Kacc*P(23,3)*SH_ACC[0] - Kacc*P(4,3)*(2.0f*q0*q3 - 2.0f*q1*q2) + Kacc*P(6,3)*(2.0f*q0*q1 + 2.0f*q2*q3) + 2*Kacc*P(22,3)*(q0*q3 - q1*q2) + Kacc*P(0,3)*(2.0f*q0*SH_ACC[2] - 2.0f*q3*SH_ACC[1] + 2.0f*q1*vd) + Kacc*P(1,3)*(2.0f*q2*SH_ACC[1] - 2.0f*q1*SH_ACC[2] + 2.0f*q0*vd) + Kacc*P(2,3)*(2.0f*q1*SH_ACC[1] + 2.0f*q2*SH_ACC[2] + 2.0f*q3*vd) - Kacc*P(3,3)*(2.0f*q0*SH_ACC[1] + 2.0f*q3*SH_ACC[2] - 2.0f*q2*vd)));
 			if (_drag_innov_var[1] < R_ACC) {
 				// calculation is badly conditioned
@@ -215,15 +215,15 @@ void Ekf::fuseDrag()
 
 			for (unsigned row = 0; row < _k_num_states; row++) {
 
-				KH[0] = Kfusion(row) * H_ACC[0];
-				KH[1] = Kfusion(row) * H_ACC[1];
-				KH[2] = Kfusion(row) * H_ACC[2];
-				KH[3] = Kfusion(row) * H_ACC[3];
-				KH[4] = Kfusion(row) * H_ACC[4];
-				KH[5] = Kfusion(row) * H_ACC[5];
-				KH[6] = Kfusion(row) * H_ACC[6];
-				KH[7] = Kfusion(row) * H_ACC[22];
-				KH[8] = Kfusion(row) * H_ACC[23];
+				KH[0] = Kfusion(row) * H_ACC(0);
+				KH[1] = Kfusion(row) * H_ACC(1);
+				KH[2] = Kfusion(row) * H_ACC(2);
+				KH[3] = Kfusion(row) * H_ACC(3);
+				KH[4] = Kfusion(row) * H_ACC(4);
+				KH[5] = Kfusion(row) * H_ACC(5);
+				KH[6] = Kfusion(row) * H_ACC(6);
+				KH[7] = Kfusion(row) * H_ACC(22);
+				KH[8] = Kfusion(row) * H_ACC(23);
 
 				for (unsigned column = 0; column < _k_num_states; column++) {
 					float tmp = KH[0] * P(0,column);
