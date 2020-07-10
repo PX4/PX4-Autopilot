@@ -246,14 +246,16 @@ void AutopilotTester::offboard_goto(const Offboard::PositionNedYaw &target, floa
 	std::cout << "Target position reached" << std::endl;
 }
 
-void AutopilotTester::check_mission_item_speed_above(int item_index, float min_speed)
+void AutopilotTester::check_mission_item_speed_above(int item_index, float min_speed_m_s)
 {
-	_telemetry->subscribe_velocity_ned([item_index, min_speed, this](Telemetry::VelocityNed velocity) {
+
+	_telemetry->set_rate_velocity_ned(10);
+	_telemetry->subscribe_velocity_ned([item_index, min_speed_m_s, this](Telemetry::VelocityNed velocity) {
 		float horizontal = std::hypot(velocity.north_m_s, velocity.east_m_s);
 		auto progress = _mission->mission_progress();
 
 		if (progress.current == item_index) {
-			CHECK(horizontal > min_speed);
+			CHECK(horizontal > min_speed_m_s);
 		}
 	});
 }

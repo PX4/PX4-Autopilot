@@ -80,7 +80,7 @@ public:
 			   std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void offboard_land();
 	void request_ground_truth();
-	void check_mission_item_speed_above(int item_index, float min_speed);
+	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.0f);
 
 
