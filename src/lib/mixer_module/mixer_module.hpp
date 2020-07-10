@@ -56,7 +56,7 @@
  * @class OutputModuleInterface
  * Base class for an output module.
  */
-class OutputModuleInterface : public px4::ScheduledWorkItem, public ModuleParams
+class OutputModuleInterface : virtual public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
 	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;

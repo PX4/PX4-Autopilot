@@ -40,6 +40,7 @@
 #include <uORB/topics/parameter_update.h>
 
 PWMSim::PWMSim(bool hil_mode_enabled) :
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {

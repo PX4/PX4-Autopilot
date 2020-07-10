@@ -108,6 +108,7 @@ private:
 };
 
 PWMDriverWrapper::PWMDriverWrapper() :
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	CDev(PCA9685_DEVICE_BASE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
