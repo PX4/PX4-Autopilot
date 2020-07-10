@@ -37,6 +37,44 @@
 
 std::string connection_url {"udp://"};
 
+namespace
+{
+std::array<float, 3> get_local_mission_item(const Mission::MissionItem &item, const CoordinateTransformation &ct)
+{
+	using GlobalCoordinate = mavsdk::geometry::CoordinateTransformation::GlobalCoordinate;
+	GlobalCoordinate global;
+	global.latitude_deg = item.latitude_deg;
+	global.longitude_deg = item.longitude_deg;
+	auto local = ct.local_from_global(global);
+	return {static_cast<float>(local.north_m), static_cast<float>(local.east_m), -item.relative_altitude_m};
+}
+
+float point_to_line_distance(const std::array<float, 3> &point, const std::array<float, 3> &line_start,
+			     const std::array<float, 3> &line_end)
+{
+	// norm_dir = (line_end - line_start).normalize();
+	std::array<float, 3> dir { line_end[0] - line_start[0], line_end[1] - line_start[1], line_end[2] - line_start[2]};
+	float norm = std::sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+	std::array<float, 3> norm_dir {dir[0] / norm, dir[1] / norm, dir[2] / norm};
+
+	// dir_component = point - line_start
+	std::array<float, 3> dir_component {point[0] - line_start[0], point[1] - line_start[1], point[2] - line_start[2]};
+
+	// t = norm_dir.dot(dir_component);
+	float t = norm_dir[0] * dir_component[0] + norm_dir[1] * dir_component[1] + norm_dir[2] * dir_component[2];
+
+	// closest_on_line = line_start + t * norm_dir;
+	std::array<float, 3> closest_on_line { line_start[0] + t *norm_dir[0], line_start[1] + t *norm_dir[1], line_start[2] + t *norm_dir[2]};
+
+	// distance = (closest_on_line - point).norm();
+	std::array<float, 3> vec_to_line {closest_on_line[0] - point[0], closest_on_line[1] - point[1], closest_on_line[2] - point[2]};
+	float distance_to_trajectory = std::sqrt(vec_to_line[0] * vec_to_line[0] + vec_to_line[1] * vec_to_line[1] +
+				       vec_to_line[2] * vec_to_line[2]);
+	return distance_to_trajectory;
+}
+
+}
+
 void AutopilotTester::connect(const std::string uri)
 {
 	ConnectionResult ret = _mavsdk.add_any_connection(uri);
@@ -268,49 +306,21 @@ void AutopilotTester::check_tracks_mission(float corridor_radius_m)
 	std::vector<Mission::MissionItem> mission_items = mission.second.mission_items;
 	auto ct = get_coordinate_transformation();
 
-	auto get_local_mission_item = [mission_items, ct](int item_index) -> std::array<float, 3> {
-		using GlobalCoordinate = mavsdk::geometry::CoordinateTransformation::GlobalCoordinate;
-		auto item = mission_items[item_index];
-		GlobalCoordinate global;
-		global.latitude_deg = item.latitude_deg;
-		global.longitude_deg = item.longitude_deg;
-		auto local = ct.local_from_global(global);
-		std::array<float, 3> res = {static_cast<float>(local.north_m), static_cast<float>(local.east_m), -item.relative_altitude_m};
-
-		return res;
-	};
-
 	_telemetry->set_rate_position_velocity_ned(5);
-	_telemetry->subscribe_position_velocity_ned([get_local_mission_item, corridor_radius_m,
-				this](Telemetry::PositionVelocityNed position_velocity_ned) {
+	_telemetry->subscribe_position_velocity_ned([ct, mission_items, corridor_radius_m,
+	    this](Telemetry::PositionVelocityNed position_velocity_ned) {
 		auto progress = _mission->mission_progress();
 
 		if (progress.current > 0 && progress.current < progress.total) {
 			// Get shortest distance of current position to 3D line between previous and next waypoint
+
 			std::array<float, 3> current { position_velocity_ned.position.north_m,
 						       position_velocity_ned.position.east_m,
 						       position_velocity_ned.position.down_m };
-			std::array<float, 3> wp_prev = get_local_mission_item(progress.current - 1);
-			std::array<float, 3> wp_next = get_local_mission_item(progress.current);
+			std::array<float, 3> wp_prev = get_local_mission_item(mission_items[progress.current - 1], ct);
+			std::array<float, 3> wp_next = get_local_mission_item(mission_items[progress.current], ct);
 
-			// wp_dir_norm = (wp_next - wp_prev).normalize();
-			std::array<float, 3> wp_dir { wp_next[0] - wp_prev[0], wp_next[1] - wp_prev[1], wp_next[2] - wp_prev[2]};
-			float norm = std::sqrt(wp_dir[0] * wp_dir[0] + wp_dir[1] * wp_dir[1] + wp_dir[2] * wp_dir[2]);
-			std::array<float, 3> wp_dir_norm {wp_dir[0] / norm, wp_dir[1] / norm, wp_dir[2] / norm};
-
-			// travelled = current - wp_prev
-			std::array<float, 3> travelled {current[0] - wp_prev[0], current[1] - wp_prev[1], current[2] - wp_prev[2]};
-
-			// t = wp_dir_norm.dot(travelled);
-			float t = wp_dir_norm[0] * travelled[0] + wp_dir_norm[1] * travelled[1] + wp_dir_norm[2] * travelled[2];
-
-			// closest_on_line = wp_prev + t * wp_dir_norm;
-			std::array<float, 3> closest_on_line { wp_prev[0] + t *wp_dir_norm[0], wp_prev[1] + t *wp_dir_norm[1], wp_prev[2] + t *wp_dir_norm[2]};
-
-			// distance = (closest_on_line - current).norm();
-			std::array<float, 3> vec_to_line {closest_on_line[0] - current[0], closest_on_line[1] - current[1], closest_on_line[2] - current[2]};
-			float distance_to_trajectory = std::sqrt(vec_to_line[0] * vec_to_line[0] * vec_to_line[1] * vec_to_line[1] *
-						       vec_to_line[2] * vec_to_line[2]);
+			float distance_to_trajectory = point_to_line_distance(current, wp_prev, wp_next);
 
 			CHECK(distance_to_trajectory < corridor_radius_m);
 		}
