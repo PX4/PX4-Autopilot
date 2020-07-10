@@ -68,35 +68,17 @@ void GeofenceBreachAvoidance::updateParameters()
 	updateMinHorDistToFenceMultirotor();
 }
 
-void GeofenceBreachAvoidance::setTestPointBearing(float test_point_bearing)
-{
-	_test_point_bearing = test_point_bearing;
-}
-
-void GeofenceBreachAvoidance::setTestPointDistance(float test_point_distance)
-{
-	_test_point_distance = test_point_distance;
-}
-
-void GeofenceBreachAvoidance::setVerticalTestPointDistance(float distance)
-{
-	_vertical_test_point_distance = distance;
-}
-
-void GeofenceBreachAvoidance::setHorizontalVelocity(float velocity_hor_abs)
-{
-	_velocity_hor_abs = velocity_hor_abs;
-}
-
-void GeofenceBreachAvoidance::setClimbRate(float climb_rate)
-{
-	_climbrate = climb_rate;
-}
-
 void GeofenceBreachAvoidance::setCurrentPosition(double lat, double lon, float alt)
 {
 	_current_pos_lat_lon = Vector2d(lat, lon);
 	_current_alt_amsl = alt;
+}
+
+void GeofenceBreachAvoidance::setHomePosition(double lat, double lon, float alt)
+{
+	_home_lat_lon(0) = lat;
+	_home_lat_lon(1) = lon;
+	_home_alt_amsl = alt;
 }
 
 matrix::Vector2<double> GeofenceBreachAvoidance::waypointFromBearingAndDistance(matrix::Vector2<double>
@@ -160,6 +142,10 @@ GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type
 
 		return Vector2d(loiter_center_lat, loiter_center_lon);
 
+	} else if (violation_type.flags.dist_to_home_exceeded) {
+
+		return waypointFromHomeToTestPointAtDist(math::max(_max_hor_dist_home - 2 * _test_point_distance, 0.0f));
+
 	} else {
 		return _current_pos_lat_lon;
 	}
@@ -197,6 +183,10 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 		} else {
 			return waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, _multirotor_braking_distance);
 		}
+
+	} else if (violation_type.flags.dist_to_home_exceeded) {
+
+		return waypointFromHomeToTestPointAtDist(math::max(_max_hor_dist_home - _min_hor_dist_to_fence_mc, 0.0f));
 
 	} else {
 		if (_velocity_hor_abs > 0.5f) {
@@ -290,4 +280,17 @@ void GeofenceBreachAvoidance::updateMinVertDistToFenceMultirotor()
 	predictor.updateTraj(predictor.getTotalTime());
 
 	_min_vert_dist_to_fence_mc =  2.0f * predictor.getCurrentPosition();
+}
+
+Vector2d GeofenceBreachAvoidance::waypointFromHomeToTestPointAtDist(float distance)
+{
+	Vector2d test_point = getFenceViolationTestPoint();
+	float bearing_home_current_pos = get_bearing_to_next_waypoint(_home_lat_lon(0), _home_lat_lon(1), test_point(0),
+					 test_point(1));
+	double loiter_center_lat, loiter_center_lon;
+
+	waypoint_from_heading_and_distance(_home_lat_lon(0), _home_lat_lon(1), bearing_home_current_pos, distance,
+					   &loiter_center_lat, &loiter_center_lon);
+
+	return Vector2d(loiter_center_lat, loiter_center_lon);
 }

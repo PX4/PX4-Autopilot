@@ -55,10 +55,10 @@ public:
 
 	~GeofenceBreachAvoidance();
 
+	matrix::Vector2<double> getFenceViolationTestPoint();
+
 	matrix::Vector2<double> waypointFromBearingAndDistance(matrix::Vector2<double> current_pos_lat_lon,
 			float test_point_bearing, float test_point_distance);
-
-	matrix::Vector2<double> getFenceViolationTestPoint();
 
 	matrix::Vector2<double>
 	generateLoiterPointForFixedWing(geofence_violation_type_u violation_type, Geofence *geofence);
@@ -73,24 +73,29 @@ public:
 
 	float generateLoiterAltitudeForMulticopter(geofence_violation_type_u violation_type);
 
-	float getMinDistToFenceMulticopter() {return _min_hor_dist_to_fence_mc;}
+	float getMinHorDistToFenceMulticopter() {return _min_hor_dist_to_fence_mc;}
 
 	float getMinVertDistToFenceMultirotor() {return _min_vert_dist_to_fence_mc;}
 
-	void setTestPointBearing(float test_point_bearing);
+	void setTestPointBearing(float test_point_bearing) { _test_point_bearing = test_point_bearing; }
 
-	void setTestPointDistance(float test_point_distance);
+	void setHorizontalTestPointDistance(float test_point_distance) { _test_point_distance = test_point_distance; }
 
-	void setVerticalTestPointDistance(float distance);
+	void setVerticalTestPointDistance(float distance) { _vertical_test_point_distance = distance; }
 
-	void setHorizontalVelocity(float velocity_hor_abs);
+	void setHorizontalVelocity(float velocity_hor_abs) { _velocity_hor_abs = velocity_hor_abs; }
 
-	void setClimbRate(float climbrate);
+	void setClimbRate(float climbrate) { _climbrate = climbrate; }
 
 	void setCurrentPosition(double lat, double lon, float alt);
 
-	void updateParameters();
+	void setHomePosition(double lat, double lon, float alt);
 
+	void setMaxHorDistHome(float dist) { _max_hor_dist_home = dist; }
+
+	void setMaxVerDistHome(float dist) { _max_ver_dist_home = dist; }
+
+	void updateParameters();
 
 private:
 	struct {
@@ -126,9 +131,16 @@ private:
 	float _multirotor_vertical_braking_distance{0.0f};
 
 	matrix::Vector2<double> _current_pos_lat_lon{};
+	matrix::Vector2<double> _home_lat_lon {};
+	float _home_alt_amsl{0.0f};
+
+	float _max_hor_dist_home{0.0f};
+	float _max_ver_dist_home{0.0f};
 
 	void updateMinHorDistToFenceMultirotor();
 
 	void updateMinVertDistToFenceMultirotor();
+
+	matrix::Vector2<double> waypointFromHomeToTestPointAtDist(float distance);
 
 };

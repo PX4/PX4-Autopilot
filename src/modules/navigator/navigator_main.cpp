@@ -512,10 +512,16 @@ Navigator::run()
 				}
 			}
 
-			_gf_breach_avoidance.setTestPointDistance(test_point_distance);
+			_gf_breach_avoidance.setHorizontalTestPointDistance(test_point_distance);
 			_gf_breach_avoidance.setVerticalTestPointDistance(vertical_test_point_distance);
 			_gf_breach_avoidance.setTestPointBearing(test_point_bearing);
 			_gf_breach_avoidance.setCurrentPosition(_global_pos.lat, _global_pos.lon, _global_pos.alt);
+			_gf_breach_avoidance.setMaxHorDistHome(_geofence.getMaxHorDistanceHome());
+			_gf_breach_avoidance.setMaxVerDistHome(_geofence.getMaxVerDistanceHome());
+
+			if (home_position_valid()) {
+				_gf_breach_avoidance.setHomePosition(_home_pos.lat, _home_pos.lon, _home_pos.alt);
+			}
 
 			fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
 
