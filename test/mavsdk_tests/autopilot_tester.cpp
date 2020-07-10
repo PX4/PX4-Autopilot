@@ -49,28 +49,43 @@ std::array<float, 3> get_local_mission_item(const Mission::MissionItem &item, co
 	return {static_cast<float>(local.north_m), static_cast<float>(local.east_m), -item.relative_altitude_m};
 }
 
+float norm(const std::array<float, 3> &vec)
+{
+	return std::sqrt(sq(vec[0]) + sq(vec[1]) + sq(vec[2]));
+}
+
+float dot(const std::array<float, 3> &vec1, const std::array<float, 3> &vec2)
+{
+	return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
+}
+
+std::array<float, 3> diff(const std::array<float, 3> &vec1, const std::array<float, 3> &vec2)
+{
+	return {vec1[0] - vec2[0], vec1[1] - vec2[1], vec1[2] - vec2[2]};
+}
+
+std::array<float, 3> normalized(const std::array<float, 3> &vec)
+{
+	float n = norm(vec);
+
+	if (n > 1e-6f) {
+		return {vec[0] / n, vec[1] / n, vec[2] / n};
+
+	} else {
+		return {0, 0, 0};
+	}
+}
+
 float point_to_line_distance(const std::array<float, 3> &point, const std::array<float, 3> &line_start,
 			     const std::array<float, 3> &line_end)
 {
-	// norm_dir = (line_end - line_start).normalize();
-	std::array<float, 3> dir { line_end[0] - line_start[0], line_end[1] - line_start[1], line_end[2] - line_start[2]};
-	float norm = std::sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
-	std::array<float, 3> norm_dir {dir[0] / norm, dir[1] / norm, dir[2] / norm};
-
-	// dir_component = point - line_start
-	std::array<float, 3> dir_component {point[0] - line_start[0], point[1] - line_start[1], point[2] - line_start[2]};
-
-	// t = norm_dir.dot(dir_component);
-	float t = norm_dir[0] * dir_component[0] + norm_dir[1] * dir_component[1] + norm_dir[2] * dir_component[2];
+	std::array<float, 3> norm_dir = normalized(diff(line_end, line_start));
+	float t = dot(norm_dir, diff(point, line_start));
 
 	// closest_on_line = line_start + t * norm_dir;
 	std::array<float, 3> closest_on_line { line_start[0] + t *norm_dir[0], line_start[1] + t *norm_dir[1], line_start[2] + t *norm_dir[2]};
 
-	// distance = (closest_on_line - point).norm();
-	std::array<float, 3> vec_to_line {closest_on_line[0] - point[0], closest_on_line[1] - point[1], closest_on_line[2] - point[2]};
-	float distance_to_trajectory = std::sqrt(vec_to_line[0] * vec_to_line[0] + vec_to_line[1] * vec_to_line[1] +
-				       vec_to_line[2] * vec_to_line[2]);
-	return distance_to_trajectory;
+	return norm(diff(closest_on_line, point));
 }
 
 }
