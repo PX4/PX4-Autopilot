@@ -84,10 +84,6 @@ void Ekf::fuseMag()
 		_mag_innov(2) = 0.0f;
 	}
 
-	// Observation jacobian and Kalman gain vectors
-	float H_MAG[24];
-	Vector24f Kfusion;
-
 	// X axis innovation variance
 	_mag_innov_var(0) = (P(19,19) + R_MAG + P(1,19)*SH_MAG[0] - P(2,19)*SH_MAG[1] + P(3,19)*SH_MAG[2] - P(16,19)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + (2.0f*q0*q3 + 2.0f*q1*q2)*(P(19,17) + P(1,17)*SH_MAG[0] - P(2,17)*SH_MAG[1] + P(3,17)*SH_MAG[2] - P(16,17)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,17)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,17)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,17)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) - (2.0f*q0*q2 - 2.0f*q1*q3)*(P(19,18) + P(1,18)*SH_MAG[0] - P(2,18)*SH_MAG[1] + P(3,18)*SH_MAG[2] - P(16,18)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,18)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,18)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,18)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) + (SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)*(P(19,0) + P(1,0)*SH_MAG[0] - P(2,0)*SH_MAG[1] + P(3,0)*SH_MAG[2] - P(16,0)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,0)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,0)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,0)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) + P(17,19)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,19)*(2.0f*q0*q2 - 2.0f*q1*q3) + SH_MAG[0]*(P(19,1) + P(1,1)*SH_MAG[0] - P(2,1)*SH_MAG[1] + P(3,1)*SH_MAG[2] - P(16,1)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,1)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,1)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,1)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) - SH_MAG[1]*(P(19,2) + P(1,2)*SH_MAG[0] - P(2,2)*SH_MAG[1] + P(3,2)*SH_MAG[2] - P(16,2)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,2)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,2)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,2)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) + SH_MAG[2]*(P(19,3) + P(1,3)*SH_MAG[0] - P(2,3)*SH_MAG[1] + P(3,3)*SH_MAG[2] - P(16,3)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,3)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,3)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,3)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) - (SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6])*(P(19,16) + P(1,16)*SH_MAG[0] - P(2,16)*SH_MAG[1] + P(3,16)*SH_MAG[2] - P(16,16)*(SH_MAG[3] + SH_MAG[4] - SH_MAG[5] - SH_MAG[6]) + P(17,16)*(2.0f*q0*q3 + 2.0f*q1*q2) - P(18,16)*(2.0f*q0*q2 - 2.0f*q1*q3) + P(0,16)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2)) + P(0,19)*(SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2));
 	// check for a badly conditioned covariance matrix
@@ -177,21 +173,25 @@ void Ekf::fuseMag()
 	_fault_status.flags.bad_mag_y = false;
 	_fault_status.flags.bad_mag_z = false;
 
+	// Observation jacobian and Kalman gain vectors
+	Vector24f H_MAG;
+	Vector24f Kfusion;
+
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
 
 		// Calculate Kalman gains and observation jacobians
 		if (index == 0) {
 			// Calculate X axis observation jacobians
-			memset(H_MAG, 0, sizeof(H_MAG));
-			H_MAG[0] = SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2;
-			H_MAG[1] = SH_MAG[0];
-			H_MAG[2] = -SH_MAG[1];
-			H_MAG[3] = SH_MAG[2];
-			H_MAG[16] = SH_MAG[5] - SH_MAG[4] - SH_MAG[3] + SH_MAG[6];
-			H_MAG[17] = 2.0f*q0*q3 + 2.0f*q1*q2;
-			H_MAG[18] = 2.0f*q1*q3 - 2.0f*q0*q2;
-			H_MAG[19] = 1.0f;
+			H_MAG.setZero();
+			H_MAG(0) = SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2;
+			H_MAG(1) = SH_MAG[0];
+			H_MAG(2) = -SH_MAG[1];
+			H_MAG(3) = SH_MAG[2];
+			H_MAG(16) = SH_MAG[5] - SH_MAG[4] - SH_MAG[3] + SH_MAG[6];
+			H_MAG(17) = 2.0f*q0*q3 + 2.0f*q1*q2;
+			H_MAG(18) = 2.0f*q1*q3 - 2.0f*q0*q2;
+			H_MAG(19) = 1.0f;
 
 			// Calculate X axis Kalman gains
 			float SK_MX[5];
@@ -231,15 +231,15 @@ void Ekf::fuseMag()
 
 		} else if (index == 1) {
 			// Calculate Y axis observation jacobians
-			memset(H_MAG, 0, sizeof(H_MAG));
-			H_MAG[0] = SH_MAG[2];
-			H_MAG[1] = SH_MAG[1];
-			H_MAG[2] = SH_MAG[0];
-			H_MAG[3] = 2.0f*magD*q2 - SH_MAG[8] - SH_MAG[7];
-			H_MAG[16] = 2.0f*q1*q2 - 2.0f*q0*q3;
-			H_MAG[17] = SH_MAG[4] - SH_MAG[3] - SH_MAG[5] + SH_MAG[6];
-			H_MAG[18] = 2.0f*q0*q1 + 2.0f*q2*q3;
-			H_MAG[20] = 1.0f;
+			H_MAG.setZero();
+			H_MAG(0) = SH_MAG[2];
+			H_MAG(1) = SH_MAG[1];
+			H_MAG(2) = SH_MAG[0];
+			H_MAG(3) = 2.0f*magD*q2 - SH_MAG[8] - SH_MAG[7];
+			H_MAG(16) = 2.0f*q1*q2 - 2.0f*q0*q3;
+			H_MAG(17) = SH_MAG[4] - SH_MAG[3] - SH_MAG[5] + SH_MAG[6];
+			H_MAG(18) = 2.0f*q0*q1 + 2.0f*q2*q3;
+			H_MAG(20) = 1.0f;
 
 			// Calculate Y axis Kalman gains
 			float SK_MY[5];
@@ -285,15 +285,15 @@ void Ekf::fuseMag()
 			}
 
 			// calculate Z axis observation jacobians
-			memset(H_MAG, 0, sizeof(H_MAG));
-			H_MAG[0] = SH_MAG[1];
-			H_MAG[1] = -SH_MAG[2];
-			H_MAG[2] = SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2;
-			H_MAG[3] = SH_MAG[0];
-			H_MAG[16] = 2.0f*q0*q2 + 2.0f*q1*q3;
-			H_MAG[17] = 2.0f*q2*q3 - 2.0f*q0*q1;
-			H_MAG[18] = SH_MAG[3] - SH_MAG[4] - SH_MAG[5] + SH_MAG[6];
-			H_MAG[21] = 1.0f;
+			H_MAG.setZero();
+			H_MAG(0) = SH_MAG[1];
+			H_MAG(1) = -SH_MAG[2];
+			H_MAG(2) = SH_MAG[7] + SH_MAG[8] - 2.0f*magD*q2;
+			H_MAG(3) = SH_MAG[0];
+			H_MAG(16) = 2.0f*q0*q2 + 2.0f*q1*q3;
+			H_MAG(17) = 2.0f*q2*q3 - 2.0f*q0*q1;
+			H_MAG(18) = SH_MAG[3] - SH_MAG[4] - SH_MAG[5] + SH_MAG[6];
+			H_MAG(21) = 1.0f;
 
 			// Calculate Z axis Kalman gains
 			float SK_MZ[5];
@@ -341,16 +341,16 @@ void Ekf::fuseMag()
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
 
-			KH[0] = Kfusion(row) * H_MAG[0];
-			KH[1] = Kfusion(row) * H_MAG[1];
-			KH[2] = Kfusion(row) * H_MAG[2];
-			KH[3] = Kfusion(row) * H_MAG[3];
-			KH[4] = Kfusion(row) * H_MAG[16];
-			KH[5] = Kfusion(row) * H_MAG[17];
-			KH[6] = Kfusion(row) * H_MAG[18];
-			KH[7] = Kfusion(row) * H_MAG[19];
-			KH[8] = Kfusion(row) * H_MAG[20];
-			KH[9] = Kfusion(row) * H_MAG[21];
+			KH[0] = Kfusion(row) * H_MAG(0);
+			KH[1] = Kfusion(row) * H_MAG(1);
+			KH[2] = Kfusion(row) * H_MAG(2);
+			KH[3] = Kfusion(row) * H_MAG(3);
+			KH[4] = Kfusion(row) * H_MAG(16);
+			KH[5] = Kfusion(row) * H_MAG(17);
+			KH[6] = Kfusion(row) * H_MAG(18);
+			KH[7] = Kfusion(row) * H_MAG(19);
+			KH[8] = Kfusion(row) * H_MAG(20);
+			KH[9] = Kfusion(row) * H_MAG(21);
 
 			for (unsigned column = 0; column < _k_num_states; column++) {
 				float tmp = KH[0] * P(0,column);
@@ -932,9 +932,9 @@ void Ekf::fuseDeclination(float decl_sigma)
 
 	// Calculate the observation Jacobian
 	// Note only 2 terms are non-zero which can be used in matrix operations for calculation of Kalman gains and covariance update to significantly reduce cost
-	float H_DECL[24] = {};
-	H_DECL[16] = -magE*t21;
-	H_DECL[17] = magN*t21;
+	Vector24f H_DECL;
+	H_DECL(16) = -magE*t21;
+	H_DECL(17) = magN*t21;
 
 	// Calculate the Kalman gains
 	Vector24f Kfusion;
@@ -973,8 +973,8 @@ void Ekf::fuseDeclination(float decl_sigma)
 	float KH[2];
 	for (unsigned row = 0; row < _k_num_states; row++) {
 
-		KH[0] = Kfusion(row) * H_DECL[16];
-		KH[1] = Kfusion(row) * H_DECL[17];
+		KH[0] = Kfusion(row) * H_DECL(16);
+		KH[1] = Kfusion(row) * H_DECL(17);
 
 		for (unsigned column = 0; column < _k_num_states; column++) {
 			float tmp = KH[0] * P(16,column);

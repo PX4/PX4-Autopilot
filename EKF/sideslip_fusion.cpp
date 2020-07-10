@@ -93,17 +93,17 @@ void Ekf::fuseSideslip()
 		SH_BETA[11] = 2.0f*q1*SH_BETA[2] + 2.0f*q2*SH_BETA[3] + 2.0f*q3*vd;
 		SH_BETA[12] = 2.0f*q0*q3;
 
-		float H_BETA[24] = {}; // Observation Jacobian
+		Vector24f H_BETA; // Observation Jacobian
 
-		H_BETA[0] = SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9];
-		H_BETA[1] = SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11];
-		H_BETA[2] = SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10];
-		H_BETA[3] = - SH_BETA[5]*SH_BETA[9] - SH_BETA[1]*SH_BETA[4]*SH_BETA[8];
-		H_BETA[4] = - SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) - SH_BETA[1]*SH_BETA[4]*SH_BETA[7];
-		H_BETA[5] = SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2);
-		H_BETA[6] = SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3);
-		H_BETA[22] = SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7];
-		H_BETA[23] = SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2) - SH_BETA[6];
+		H_BETA(0) = SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9];
+		H_BETA(1) = SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11];
+		H_BETA(2) = SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10];
+		H_BETA(3) = - SH_BETA[5]*SH_BETA[9] - SH_BETA[1]*SH_BETA[4]*SH_BETA[8];
+		H_BETA(4) = - SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) - SH_BETA[1]*SH_BETA[4]*SH_BETA[7];
+		H_BETA(5) = SH_BETA[6] - SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2);
+		H_BETA(6) = SH_BETA[5]*(2.0f*q0*q1 + 2.0f*q2*q3) + SH_BETA[1]*SH_BETA[4]*(2.0f*q0*q2 - 2.0f*q1*q3);
+		H_BETA(22) = SH_BETA[5]*(SH_BETA[12] - 2.0f*q1*q2) + SH_BETA[1]*SH_BETA[4]*SH_BETA[7];
+		H_BETA(23) = SH_BETA[1]*SH_BETA[4]*(SH_BETA[12] + 2.0f*q1*q2) - SH_BETA[6];
 
 		// determine if we need the sideslip fusion to correct states other than wind
 		bool update_wind_only = !_is_wind_dead_reckoning;
@@ -200,15 +200,15 @@ void Ekf::fuseSideslip()
 		float KH[9];
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
-			KH[0] = Kfusion(row) * H_BETA[0];
-			KH[1] = Kfusion(row) * H_BETA[1];
-			KH[2] = Kfusion(row) * H_BETA[2];
-			KH[3] = Kfusion(row) * H_BETA[3];
-			KH[4] = Kfusion(row) * H_BETA[4];
-			KH[5] = Kfusion(row) * H_BETA[5];
-			KH[6] = Kfusion(row) * H_BETA[6];
-			KH[7] = Kfusion(row) * H_BETA[22];
-			KH[8] = Kfusion(row) * H_BETA[23];
+			KH[0] = Kfusion(row) * H_BETA(0);
+			KH[1] = Kfusion(row) * H_BETA(1);
+			KH[2] = Kfusion(row) * H_BETA(2);
+			KH[3] = Kfusion(row) * H_BETA(3);
+			KH[4] = Kfusion(row) * H_BETA(4);
+			KH[5] = Kfusion(row) * H_BETA(5);
+			KH[6] = Kfusion(row) * H_BETA(6);
+			KH[7] = Kfusion(row) * H_BETA(22);
+			KH[8] = Kfusion(row) * H_BETA(23);
 
 			for (unsigned column = 0; column < _k_num_states; column++) {
 				float tmp = KH[0] * P(0,column);
