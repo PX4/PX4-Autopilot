@@ -312,93 +312,93 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
 		// Wait for the yaw setpoint to be aligned
 		_velocity_setpoint.setAll(0.f);
-
-	} else {
-		const bool xy_pos_setpoint_valid = PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1));
-		const bool z_pos_setpoint_valid = PX4_ISFINITE(_position_setpoint(2));
-
-		if (xy_pos_setpoint_valid && z_pos_setpoint_valid) {
-			// Use 3D position setpoint to generate a 3D velocity setpoint
-			Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
-					  _trajectory[1].getCurrentPosition(),
-					  _trajectory[2].getCurrentPosition());
-
-			const Vector3f u_pos_traj_to_dest((getCrossingPoint() - pos_traj).unit_or_zero());
-
-			float xy_speed = _getMaxXYSpeed();
-			const float z_speed = _getMaxZSpeed();
-
-			if (_is_turning) {
-				// Lock speed during turn
-				xy_speed = math::min(_max_speed_prev, xy_speed);
-
-			} else {
-				_max_speed_prev = xy_speed;
-			}
-
-			Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
-			math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
-			math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
-
-			for (int i = 0; i < 3; i++) {
-				// If available, use the existing velocity as a feedforward, otherwise replace it
-				if (PX4_ISFINITE(_velocity_setpoint(i))) {
-					_velocity_setpoint(i) += vel_sp_constrained(i);
-
-				} else {
-					_velocity_setpoint(i) = vel_sp_constrained(i);
-				}
-			}
-		}
-
-		else if (xy_pos_setpoint_valid) {
-			// Use 2D position setpoint to generate a 2D velocity setpoint
-
-			// Get various path specific vectors
-			Vector2f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
-			Vector2f pos_traj_to_dest_xy = Vector2f(getCrossingPoint()) - pos_traj;
-			Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
-
-			float xy_speed = _getMaxXYSpeed();
-
-			if (_is_turning) {
-				// Lock speed during turn
-				xy_speed = math::min(_max_speed_prev, xy_speed);
-
-			} else {
-				_max_speed_prev = xy_speed;
-			}
-
-			Vector2f vel_sp_constrained_xy = u_pos_traj_to_dest_xy * xy_speed;
-
-			for (int i = 0; i < 2; i++) {
-				// If available, use the existing velocity as a feedforward, otherwise replace it
-				if (PX4_ISFINITE(_velocity_setpoint(i))) {
-					_velocity_setpoint(i) += vel_sp_constrained_xy(i);
-
-				} else {
-					_velocity_setpoint(i) = vel_sp_constrained_xy(i);
-				}
-			}
-		}
-
-		else if (z_pos_setpoint_valid) {
-			// Use Z position setpoint to generate a Z velocity setpoint
-
-			const float z_dir = sign(_position_setpoint(2) - _trajectory[2].getCurrentPosition());
-			const float vel_sp_z = z_dir * _getMaxZSpeed();
-
-			// If available, use the existing velocity as a feedforward, otherwise replace it
-			if (PX4_ISFINITE(_velocity_setpoint(2))) {
-				_velocity_setpoint(2) += vel_sp_z;
-
-			} else {
-				_velocity_setpoint(2) = vel_sp_z;
-			}
-		}
-
-		_want_takeoff = _velocity_setpoint(2) < -0.3f;
+		return;
 	}
+
+	const bool xy_pos_setpoint_valid = PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1));
+	const bool z_pos_setpoint_valid = PX4_ISFINITE(_position_setpoint(2));
+
+	if (xy_pos_setpoint_valid && z_pos_setpoint_valid) {
+		// Use 3D position setpoint to generate a 3D velocity setpoint
+		Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
+				  _trajectory[1].getCurrentPosition(),
+				  _trajectory[2].getCurrentPosition());
+
+		const Vector3f u_pos_traj_to_dest((getCrossingPoint() - pos_traj).unit_or_zero());
+
+		float xy_speed = _getMaxXYSpeed();
+		const float z_speed = _getMaxZSpeed();
+
+		if (_is_turning) {
+			// Lock speed during turn
+			xy_speed = math::min(_max_speed_prev, xy_speed);
+
+		} else {
+			_max_speed_prev = xy_speed;
+		}
+
+		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
+		math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
+		math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
+
+		for (int i = 0; i < 3; i++) {
+			// If available, use the existing velocity as a feedforward, otherwise replace it
+			if (PX4_ISFINITE(_velocity_setpoint(i))) {
+				_velocity_setpoint(i) += vel_sp_constrained(i);
+
+			} else {
+				_velocity_setpoint(i) = vel_sp_constrained(i);
+			}
+		}
+	}
+
+	else if (xy_pos_setpoint_valid) {
+		// Use 2D position setpoint to generate a 2D velocity setpoint
+
+		// Get various path specific vectors
+		Vector2f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
+		Vector2f pos_traj_to_dest_xy = Vector2f(getCrossingPoint()) - pos_traj;
+		Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
+
+		float xy_speed = _getMaxXYSpeed();
+
+		if (_is_turning) {
+			// Lock speed during turn
+			xy_speed = math::min(_max_speed_prev, xy_speed);
+
+		} else {
+			_max_speed_prev = xy_speed;
+		}
+
+		Vector2f vel_sp_constrained_xy = u_pos_traj_to_dest_xy * xy_speed;
+
+		for (int i = 0; i < 2; i++) {
+			// If available, use the existing velocity as a feedforward, otherwise replace it
+			if (PX4_ISFINITE(_velocity_setpoint(i))) {
+				_velocity_setpoint(i) += vel_sp_constrained_xy(i);
+
+			} else {
+				_velocity_setpoint(i) = vel_sp_constrained_xy(i);
+			}
+		}
+	}
+
+	else if (z_pos_setpoint_valid) {
+		// Use Z position setpoint to generate a Z velocity setpoint
+
+		const float z_dir = sign(_position_setpoint(2) - _trajectory[2].getCurrentPosition());
+		const float vel_sp_z = z_dir * _getMaxZSpeed();
+
+		// If available, use the existing velocity as a feedforward, otherwise replace it
+		if (PX4_ISFINITE(_velocity_setpoint(2))) {
+			_velocity_setpoint(2) += vel_sp_z;
+
+		} else {
+			_velocity_setpoint(2) = vel_sp_z;
+		}
+	}
+
+	_want_takeoff = _velocity_setpoint(2) < -0.3f;
 }
 
 void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
