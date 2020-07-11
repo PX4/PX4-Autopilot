@@ -47,54 +47,54 @@ using namespace matrix;
 TEST(ActuatorEffectivenessMultirotorTest, AllZeroCase)
 {
 	// Quad wide geometry
-	MultirotorGeometry geometry_quad_wide = {};
-	geometry_quad_wide.rotors[0].position_x = 0.1515f;
-	geometry_quad_wide.rotors[0].position_y = 0.245f;
-	geometry_quad_wide.rotors[0].position_z = 0.0f;
-	geometry_quad_wide.rotors[0].axis_x = 0.0f;
-	geometry_quad_wide.rotors[0].axis_y = 0.0f;
-	geometry_quad_wide.rotors[0].axis_z = -1.0f;
-	geometry_quad_wide.rotors[0].thrust_coef = 1.0f;
-	geometry_quad_wide.rotors[0].moment_ratio = 0.05f;
+	ActuatorEffectivenessMultirotor::MultirotorGeometry geometry = {};
+	geometry.rotors[0].position_x = 1.0f;
+	geometry.rotors[0].position_y = 1.0f;
+	geometry.rotors[0].position_z = 0.0f;
+	geometry.rotors[0].axis_x = 0.0f;
+	geometry.rotors[0].axis_y = 0.0f;
+	geometry.rotors[0].axis_z = -1.0f;
+	geometry.rotors[0].thrust_coef = 1.0f;
+	geometry.rotors[0].moment_ratio = 0.05f;
 
-	geometry_quad_wide.rotors[1].position_x = -0.1515f;
-	geometry_quad_wide.rotors[1].position_y = -0.1875f;
-	geometry_quad_wide.rotors[1].position_z = 0.0f;
-	geometry_quad_wide.rotors[1].axis_x = 0.0f;
-	geometry_quad_wide.rotors[1].axis_y = 0.0f;
-	geometry_quad_wide.rotors[1].axis_z = -1.0f;
-	geometry_quad_wide.rotors[1].thrust_coef = 1.0f;
-	geometry_quad_wide.rotors[1].moment_ratio = 0.05f;
+	geometry.rotors[1].position_x = -1.0f;
+	geometry.rotors[1].position_y = -1.0f;
+	geometry.rotors[1].position_z = 0.0f;
+	geometry.rotors[1].axis_x = 0.0f;
+	geometry.rotors[1].axis_y = 0.0f;
+	geometry.rotors[1].axis_z = -1.0f;
+	geometry.rotors[1].thrust_coef = 1.0f;
+	geometry.rotors[1].moment_ratio = 0.05f;
 
-	geometry_quad_wide.rotors[2].position_x = 0.1515f;
-	geometry_quad_wide.rotors[2].position_y = -0.245f;
-	geometry_quad_wide.rotors[2].position_z = 0.0f;
-	geometry_quad_wide.rotors[2].axis_x = 0.0f;
-	geometry_quad_wide.rotors[2].axis_y = 0.0f;
-	geometry_quad_wide.rotors[2].axis_z = -1.0f;
-	geometry_quad_wide.rotors[2].thrust_coef = 1.0f;
-	geometry_quad_wide.rotors[2].moment_ratio = -0.05f;
+	geometry.rotors[2].position_x = 1.0f;
+	geometry.rotors[2].position_y = -1.0f;
+	geometry.rotors[2].position_z = 0.0f;
+	geometry.rotors[2].axis_x = 0.0f;
+	geometry.rotors[2].axis_y = 0.0f;
+	geometry.rotors[2].axis_z = -1.0f;
+	geometry.rotors[2].thrust_coef = 1.0f;
+	geometry.rotors[2].moment_ratio = -0.05f;
 
-	geometry_quad_wide.rotors[3].position_x = -0.1515f;
-	geometry_quad_wide.rotors[3].position_y = 0.1875f;
-	geometry_quad_wide.rotors[3].position_z = 0.0f;
-	geometry_quad_wide.rotors[3].axis_x = 0.0f;
-	geometry_quad_wide.rotors[3].axis_y = 0.0f;
-	geometry_quad_wide.rotors[3].axis_z = -1.0f;
-	geometry_quad_wide.rotors[3].thrust_coef = 1.0f;
-	geometry_quad_wide.rotors[3].moment_ratio = -0.05f;
+	geometry.rotors[3].position_x = -1.0f;
+	geometry.rotors[3].position_y = 1.0f;
+	geometry.rotors[3].position_z = 0.0f;
+	geometry.rotors[3].axis_x = 0.0f;
+	geometry.rotors[3].axis_y = 0.0f;
+	geometry.rotors[3].axis_z = -1.0f;
+	geometry.rotors[3].thrust_coef = 1.0f;
+	geometry.rotors[3].moment_ratio = -0.05f;
 
-	effectiveness_quad_wide = ActuatorEffectivenessMultirotor::computeEffectivenessMatrix(geometry_quad_wide);
+	matrix::Matrix<float, ActuatorEffectiveness::NUM_AXES, ActuatorEffectiveness::NUM_ACTUATORS> effectiveness = ActuatorEffectivenessMultirotor::computeEffectivenessMatrix(geometry);
 
-	const float quad_wide[NUM_AXES][NUM_ACTUATORS] = {
-		{-0.245f,  0.1875f,  0.245f, -0.1875f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{ 0.1515f, -0.1515f,  0.1515f, -0.1515f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+	const float expected[ActuatorEffectiveness::NUM_AXES][ActuatorEffectiveness::NUM_ACTUATORS] = {
+		{-1.0f,   1.0f,   1.0f,  -1.0f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{ 1.0f,  -1.0f,   1.0f,  -1.0f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 		{ 0.05f,  0.05f, -0.05f, -0.05f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{-1.0f, -1.0f, -1.0f, -1.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+		{ 0.f,    0.f,    0.f,    0.f,   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{ 0.f,    0.f,    0.f,    0.f,   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{-1.0f,  -1.0f,  -1.0f,  -1.0f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
 	};
-	effectiveness_quad_wide_expected = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(quad_wide);
+	matrix::Matrix<float, ActuatorEffectiveness::NUM_AXES, ActuatorEffectiveness::NUM_ACTUATORS> effectiveness_expected(expected);
 
-	EXPECT_EQ(effectiveness_quad_wide, effectiveness_quad_wide_expected);
+	EXPECT_EQ(effectiveness, effectiveness_expected);
 }
