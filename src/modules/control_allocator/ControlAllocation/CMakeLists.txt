@@ -39,12 +39,8 @@ px4_add_library(ControlAllocation
 	ControlAllocationSequentialDesaturation.cpp
 	ControlAllocationSequentialDesaturation.hpp
 )
-
-target_include_directories(ControlAllocation
-	PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-)
-
+target_compile_options(ControlAllocation PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(ControlAllocation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ControlAllocation PRIVATE mathlib)
 
 px4_add_unit_gtest(SRC ControlAllocationPseudoInverseTest.cpp LINKLIBS ControlAllocation)

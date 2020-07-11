@@ -39,6 +39,7 @@ px4_add_module(
 	MODULE modules__control_allocator
 	MAIN control_allocator
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		ControlAllocator.cpp
 		ControlAllocator.hpp
