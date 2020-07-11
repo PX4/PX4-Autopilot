@@ -425,9 +425,6 @@ void Ekf::fuseOptFlow()
 
 	}
 
-	_fault_status.flags.bad_optflow_X = false;
-	_fault_status.flags.bad_optflow_Y = false;
-
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
 
 		// copy the Kalman gain vector for the axis we are fusing
@@ -465,23 +462,13 @@ void Ekf::fuseOptFlow()
 			}
 		}
 
-		// if the covariance correction will result in a negative variance, then
-		// the covariance matrix is unhealthy and must be corrected
-		bool healthy = true;
+		const bool healthy = checkAndFixCovarianceUpdate(KHP);
 
-		for (int i = 0; i < _k_num_states; i++) {
-			if (P(i,i) < KHP(i,i)) {
-				P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
+		if (obs_index == 0) {
+			_fault_status.flags.bad_optflow_X = !healthy;
 
-				healthy = false;
-
-				if (obs_index == 0) {
-					_fault_status.flags.bad_optflow_X = true;
-
-				} else if (obs_index == 1) {
-					_fault_status.flags.bad_optflow_Y = true;
-				}
-			}
+		} else if (obs_index == 1) {
+			_fault_status.flags.bad_optflow_Y = !healthy;
 		}
 
 		if (healthy) {

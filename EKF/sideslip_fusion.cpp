@@ -224,20 +224,9 @@ void Ekf::fuseSideslip()
 			}
 		}
 
-		// if the covariance correction will result in a negative variance, then
-		// the covariance matrix is unhealthy and must be corrected
-		bool healthy = true;
-		_fault_status.flags.bad_sideslip = false;
+		const bool healthy = checkAndFixCovarianceUpdate(KHP);
 
-		for (int i = 0; i < _k_num_states; i++) {
-			if (P(i,i) < KHP(i,i)) {
-				P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
-
-				healthy = false;
-
-				_fault_status.flags.bad_sideslip = true;
-			}
-		}
+		_fault_status.flags.bad_sideslip = !healthy;
 
 		if (healthy) {
 			// apply the covariance corrections

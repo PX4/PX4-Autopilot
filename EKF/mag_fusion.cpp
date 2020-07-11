@@ -143,13 +143,13 @@ void Ekf::fuseMag()
 	}
 
 	// Perform an innovation consistency check and report the result
-	bool healthy = true;
+	bool all_innovation_checks_passed = true;
 
 	for (uint8_t index = 0; index <= 2; index++) {
 		_mag_test_ratio(index) = sq(_mag_innov(index)) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var(index));
 
 		if (_mag_test_ratio(index) > 1.0f) {
-			healthy = false;
+			all_innovation_checks_passed = false;
 			_innov_check_fail_status.value |= (1 << (index + 3));
 
 		} else {
@@ -161,17 +161,13 @@ void Ekf::fuseMag()
 	_yaw_test_ratio = 0.0f;
 
 	// if any axis fails, abort the mag fusion
-	if (!healthy) {
+	if (!all_innovation_checks_passed) {
 		return;
 	}
 
 	// For the first few seconds after in-flight alignment we allow the magnetic field state estimates to stabilise
 	// before they are used to constrain heading drift
 	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6);
-
-	_fault_status.flags.bad_mag_x = false;
-	_fault_status.flags.bad_mag_y = false;
-	_fault_status.flags.bad_mag_z = false;
 
 	// Observation jacobian and Kalman gain vectors
 	Vector24f H_MAG;
@@ -367,28 +363,16 @@ void Ekf::fuseMag()
 			}
 		}
 
-		// if the covariance correction will result in a negative variance, then
-		// the covariance matrix is unhealthy and must be corrected
+		const bool healthy = checkAndFixCovarianceUpdate(KHP);
 
-		for (int i = 0; i < _k_num_states; i++) {
-			if (P(i,i) < KHP(i,i)) {
-				// zero rows and columns
-				P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
+		if (index == 0) {
+			_fault_status.flags.bad_mag_x = !healthy;
 
-				//flag as unhealthy
-				healthy = false;
+		} else if (index == 1) {
+			_fault_status.flags.bad_mag_y = !healthy;
 
-				// update individual measurement health status
-				if (index == 0) {
-					_fault_status.flags.bad_mag_x = true;
-
-				} else if (index == 1) {
-					_fault_status.flags.bad_mag_y = true;
-
-				} else if (index == 2) {
-					_fault_status.flags.bad_mag_z = true;
-				}
-			}
+		} else if (index == 2) {
+			_fault_status.flags.bad_mag_z = !healthy;
 		}
 
 		if (healthy) {
@@ -698,21 +682,9 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 		}
 	}
 
-	// if the covariance correction will result in a negative variance, then
-	// the covariance matrix is unhealthy and must be corrected
-	bool healthy = true;
-	_fault_status.flags.bad_hdg = false;
+	const bool healthy = checkAndFixCovarianceUpdate(KHP);
 
-	for (int i = 0; i < _k_num_states; i++) {
-		if (P(i,i) < KHP(i,i)) {
-			P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
-
-			healthy = false;
-
-			_fault_status.flags.bad_hdg = true;
-
-		}
-	}
+	_fault_status.flags.bad_hdg = !healthy;
 
 	if (healthy) {
 		// apply the covariance corrections
@@ -983,20 +955,9 @@ void Ekf::fuseDeclination(float decl_sigma)
 		}
 	}
 
-	// if the covariance correction will result in a negative variance, then
-	// the covariance matrix is unhealthy and must be corrected
-	bool healthy = true;
-	_fault_status.flags.bad_mag_decl = false;
-	for (int i = 0; i < _k_num_states; i++) {
-		if (P(i,i) < KHP(i,i)) {
-			P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
+	const bool healthy = checkAndFixCovarianceUpdate(KHP);
 
-			healthy = false;
-
-			_fault_status.flags.bad_mag_decl = true;
-
-		}
-	}
+	_fault_status.flags.bad_mag_decl = !healthy;
 
 	if (healthy) {
 		// apply the covariance corrections

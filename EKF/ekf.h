@@ -662,6 +662,10 @@ private:
 
 	Vector3f getVisionVelocityVarianceInEkfFrame() const;
 
+	// if the covariance correction will result in a negative variance, then
+	// the covariance matrix is unhealthy and must be corrected
+	bool checkAndFixCovarianceUpdate(const SquareMatrix24f& KHP);
+
 	// limit the diagonal of the covariance matrix
 	// force symmetry when the argument is true
 	void fixCovarianceErrors(bool force_symmetry);

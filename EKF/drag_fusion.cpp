@@ -239,17 +239,7 @@ void Ekf::fuseDrag()
 				}
 			}
 
-			// if the covariance correction will result in a negative variance, then
-			// the covariance matrix is unhealthy and must be corrected
-			bool healthy = true;
-
-			for (int i = 0; i < _k_num_states; i++) {
-				if (P(i,i) < KHP(i,i)) {
-					P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
-
-					healthy = false;
-				}
-			}
+			bool healthy = checkAndFixCovarianceUpdate(KHP);
 
 			if (healthy) {
 				// apply the covariance corrections
