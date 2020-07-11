@@ -604,7 +604,8 @@ protected:
 			int lowest_battery_index = 0;
 
 			for (int i = 0; i < _battery_status_subs.size(); i++) {
-				if (battery_status[i].connected && (battery_status[i].remaining < battery_status[lowest_battery_index].remaining)) {
+				if (battery_status[i].connected && ((!battery_status[lowest_battery_index].connected)
+								    || (battery_status[i].remaining < battery_status[lowest_battery_index].remaining))) {
 					lowest_battery_index = i;
 				}
 			}
