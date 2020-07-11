@@ -34,11 +34,8 @@
 px4_add_library(AngularVelocityControl
 	AngularVelocityControl.cpp
 )
-target_include_directories(AngularVelocityControl
-	PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-)
-
+target_compile_options(AngularVelocityControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(AngularVelocityControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(AngularVelocityControl PRIVATE mathlib)
 
 px4_add_unit_gtest(SRC AngularVelocityControlTest.cpp LINKLIBS AngularVelocityControl)

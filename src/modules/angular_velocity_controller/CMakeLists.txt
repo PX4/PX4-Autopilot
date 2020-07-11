@@ -37,6 +37,7 @@ px4_add_module(
 	MODULE modules__angular_velocity_control
 	MAIN angular_velocity_controller
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		AngularVelocityController.cpp
 		AngularVelocityController.hpp
