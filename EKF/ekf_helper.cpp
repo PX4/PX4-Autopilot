@@ -219,7 +219,7 @@ void Ekf::resetHeight()
 	const gpsSample &gps_newest = _gps_buffer.get_newest();
 
 	// store the current vertical position and velocity for reference so we can calculate and publish the reset amount
-	float old_vert_pos = _state.pos(2);
+	const float old_vert_pos = _state.pos(2);
 	bool vert_pos_reset = false;
 
 	// reset the vertical position
@@ -277,8 +277,8 @@ void Ekf::resetHeight()
 		const extVisionSample &ev_newest = _ext_vision_buffer.get_newest();
 
 		// use the most recent data if it's time offset from the fusion time horizon is smaller
-		int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
-		int32_t dt_delayed = _ev_sample_delayed.time_us - _imu_sample_delayed.time_us;
+		const int32_t dt_newest = ev_newest.time_us - _imu_sample_delayed.time_us;
+		const int32_t dt_delayed = _ev_sample_delayed.time_us - _imu_sample_delayed.time_us;
 
 		vert_pos_reset = true;
 
@@ -1090,9 +1090,9 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	soln_status.flags.const_pos_mode = !soln_status.flags.velocity_horiz;
 	soln_status.flags.pred_pos_horiz_rel = soln_status.flags.pos_horiz_rel;
 	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_horiz_abs;
-	bool gps_vel_innov_bad = (_gps_vel_test_ratio(0) > 1.0f) || (_gps_vel_test_ratio(1) > 1.0f);
-	bool gps_pos_innov_bad = (_gps_pos_test_ratio(0) > 1.0f);
-	bool mag_innov_good = (_mag_test_ratio.max() < 1.0f) && (_yaw_test_ratio < 1.0f);
+	const bool gps_vel_innov_bad = (_gps_vel_test_ratio(0) > 1.0f) || (_gps_vel_test_ratio(1) > 1.0f);
+	const bool gps_pos_innov_bad = (_gps_pos_test_ratio(0) > 1.0f);
+	const bool mag_innov_good = (_mag_test_ratio.max() < 1.0f) && (_yaw_test_ratio < 1.0f);
 	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad) && mag_innov_good;
 	soln_status.flags.accel_error = _bad_vert_accel_detected;
 	*status = soln_status.value;
@@ -1127,14 +1127,14 @@ bool Ekf::global_position_is_valid()
 // return true if we are totally reliant on inertial dead-reckoning for position
 void Ekf::update_deadreckoning_status()
 {
-	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel)
-			    && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
+	const bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel)
+				&& (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 				|| isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max)
 				|| isRecent(_time_last_delpos_fuse, _params.no_aid_timeout_max));
-	bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_time_last_of_fuse, _params.no_aid_timeout_max);
-	bool airDataAiding = _control_status.flags.wind &&
-			     isRecent(_time_last_arsp_fuse, _params.no_aid_timeout_max) &&
-			     isRecent(_time_last_beta_fuse, _params.no_aid_timeout_max);
+	const bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_time_last_of_fuse, _params.no_aid_timeout_max);
+	const bool airDataAiding = _control_status.flags.wind &&
+				   isRecent(_time_last_arsp_fuse, _params.no_aid_timeout_max) &&
+				   isRecent(_time_last_beta_fuse, _params.no_aid_timeout_max);
 
 	_is_wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
 	_is_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
@@ -1398,17 +1398,16 @@ void Ekf::updateBaroHgtOffset()
 	// calculate a filtered offset between the baro origin and local NED origin if we are not
 	// using the baro as a height reference
 	if (!_control_status.flags.baro_hgt && _baro_data_ready) {
-		float local_time_step = 1e-6f * _delta_time_baro_us;
-		local_time_step = math::constrain(local_time_step, 0.0f, 1.0f);
+		const float local_time_step = math::constrain(1e-6f * _delta_time_baro_us, 0.0f, 1.0f);
 
 		// apply a 10 second first order low pass filter to baro offset
-		float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt + _state.pos(
-				2) - _baro_hgt_offset);
+		const float offset_rate_correction =  0.1f * (_baro_sample_delayed.hgt + _state.pos(2) -
+								_baro_hgt_offset);
 		_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
 	}
 }
 
-Vector3f Ekf::getVisionVelocityInEkfFrame()
+Vector3f Ekf::getVisionVelocityInEkfFrame() const
 {
 	Vector3f vel;
 	// correct velocity for offset relative to IMU
@@ -1433,7 +1432,7 @@ Vector3f Ekf::getVisionVelocityInEkfFrame()
 	return vel;
 }
 
-Vector3f Ekf::getVisionVelocityVarianceInEkfFrame()
+Vector3f Ekf::getVisionVelocityVarianceInEkfFrame() const
 {
 	Matrix3f ev_vel_cov = _ev_sample_delayed.velCov;
 

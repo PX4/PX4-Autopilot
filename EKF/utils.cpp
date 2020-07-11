@@ -26,24 +26,24 @@ matrix::Dcmf taitBryan312ToRotMat(const matrix::Vector3f &rot312)
 
 float kahanSummation(float sum_previous, float input, float &accumulator)
 {
-	float y = input - accumulator;
-	float t = sum_previous + y;
+	const float y = input - accumulator;
+	const float t = sum_previous + y;
 	accumulator = (t - sum_previous) - y;
 	return t;
 }
 
 matrix::Dcmf quatToInverseRotMat(const  matrix::Quatf &quat)
 {
-	float q00 = quat(0) * quat(0);
-	float q11 = quat(1) * quat(1);
-	float q22 = quat(2) * quat(2);
-	float q33 = quat(3) * quat(3);
-	float q01 = quat(0) * quat(1);
-	float q02 = quat(0) * quat(2);
-	float q03 = quat(0) * quat(3);
-	float q12 = quat(1) * quat(2);
-	float q13 = quat(1) * quat(3);
-	float q23 = quat(2) * quat(3);
+	const float q00 = quat(0) * quat(0);
+	const float q11 = quat(1) * quat(1);
+	const float q22 = quat(2) * quat(2);
+	const float q33 = quat(3) * quat(3);
+	const float q01 = quat(0) * quat(1);
+	const float q02 = quat(0) * quat(2);
+	const float q03 = quat(0) * quat(3);
+	const float q12 = quat(1) * quat(2);
+	const float q13 = quat(1) * quat(3);
+	const float q23 = quat(2) * quat(3);
 
 	matrix::Dcmf dcm;
 	dcm(0, 0) = q00 + q11 - q22 - q33;

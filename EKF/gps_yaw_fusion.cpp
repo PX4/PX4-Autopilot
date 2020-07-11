@@ -202,7 +202,7 @@ void Ekf::fuseGpsYaw()
 
 		} else {
 			// constrain the innovation to the maximum set by the gate
-			float gate_limit = sqrtf((sq(innov_gate) * _heading_innov_var));
+			const float gate_limit = sqrtf((sq(innov_gate) * _heading_innov_var));
 			_heading_innov = math::constrain(_heading_innov, -gate_limit, gate_limit);
 		}
 

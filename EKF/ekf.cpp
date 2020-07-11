@@ -268,7 +268,7 @@ void Ekf::predictState()
 
 	// calculate a filtered horizontal acceleration with a 1 sec time constant
 	// this are used for manoeuvre detection elsewhere
-	float alpha = 1.0f - _imu_sample_delayed.delta_vel_dt;
+	const float alpha = 1.0f - _imu_sample_delayed.delta_vel_dt;
 	_accel_lpf_NE = _accel_lpf_NE * alpha + corrected_delta_vel_ef.xy();
 
 	// save the previous value of velocity so we can use trapzoidal integration

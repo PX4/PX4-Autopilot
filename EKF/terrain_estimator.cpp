@@ -165,7 +165,7 @@ void Ekf::fuseHagl()
 
 	if (_hagl_test_ratio <= 1.0f) {
 		// calculate the Kalman gain
-		float gain = _terrain_var / _hagl_innov_var;
+		const float gain = _terrain_var / _hagl_innov_var;
 		// correct the state
 		_terrain_vpos -= gain * _hagl_innov;
 		// correct the variance

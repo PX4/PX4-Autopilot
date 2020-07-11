@@ -658,9 +658,9 @@ private:
 	// update the rotation matrix which transforms EV navigation frame measurements into NED
 	void calcExtVisRotMat();
 
-	Vector3f getVisionVelocityInEkfFrame();
+	Vector3f getVisionVelocityInEkfFrame() const;
 
-	Vector3f getVisionVelocityVarianceInEkfFrame();
+	Vector3f getVisionVelocityVarianceInEkfFrame() const;
 
 	// limit the diagonal of the covariance matrix
 	// force symmetry when the argument is true
