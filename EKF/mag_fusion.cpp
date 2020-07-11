@@ -414,8 +414,8 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 	const float q2 = _state.quat_nominal(2);
 	const float q3 = _state.quat_nominal(3);
 
-	float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
-	float measurement = wrap_pi(yaw);
+	const float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
+	const float measurement = wrap_pi(yaw);
 	float H_YAW[4];
 
 	// calculate observation jacobian when we are observing the first rotation in a 321 sequence
@@ -509,8 +509,8 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 	const float q2 = _state.quat_nominal(2);
 	const float q3 = _state.quat_nominal(3);
 
-	float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
-	float measurement = wrap_pi(yaw);
+	const float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
+	const float measurement = wrap_pi(yaw);
 	float H_YAW[4];
 
 	// calculate observation jacobian when we are observing a rotation in a 312 sequence

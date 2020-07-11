@@ -46,7 +46,7 @@
 
 void Ekf::fuseSideslip()
 {
-	float R_BETA = _params.beta_noise;
+	const float R_BETA = _params.beta_noise;
 
 	// get latest estimated orientation
 	const float q0 = _state.quat_nominal(0);

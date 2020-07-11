@@ -771,10 +771,10 @@ void Ekf::controlHeightSensorTimeouts()
 	checkVerticalAccelerationHealth();
 
 	// check if height is continuously failing because of accel errors
-	bool continuous_bad_accel_hgt = isTimedOut(_time_good_vert_accel, (uint64_t)_params.bad_acc_reset_delay_us);
+	const bool continuous_bad_accel_hgt = isTimedOut(_time_good_vert_accel, (uint64_t)_params.bad_acc_reset_delay_us);
 
 	// check if height has been inertial deadreckoning for too long
-	bool hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)5e6);
+	const bool hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)5e6);
 
 	if (hgt_fusion_timeout || continuous_bad_accel_hgt) {
 
@@ -1079,8 +1079,8 @@ void Ekf::controlHeightFusion()
 
 			// Compensate for positive static pressure transients (negative vertical position innovations)
 			// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
-			float deadzone_start = 0.0f;
-			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
+			const float deadzone_start = 0.0f;
+			const float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
 
 			if (_control_status.flags.gnd_effect) {
 				if (_baro_hgt_innov(2) < -deadzone_start) {
@@ -1225,7 +1225,7 @@ void Ekf::controlBetaFusion()
 	// Perform synthetic sideslip fusion when in-air and sideslip fuson had been enabled externally in addition to the following criteria:
 
 	// Sufficient time has lapsed sice the last fusion
-	bool beta_fusion_time_triggered = isTimedOut(_time_last_beta_fuse, _params.beta_avg_ft_us);
+	const bool beta_fusion_time_triggered = isTimedOut(_time_last_beta_fuse, _params.beta_avg_ft_us);
 
 	if (beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air) {
 		// If starting wind state estimation, reset the wind states and covariances before fusing any data

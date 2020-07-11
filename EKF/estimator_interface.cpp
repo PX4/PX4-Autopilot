@@ -186,7 +186,7 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 	}
 
 	// limit data rate to prevent data being lost
-	bool need_gps = (_params.fusion_mode & MASK_USE_GPS) || (_params.vdist_sensor_type == VDIST_SENSOR_GPS);
+	const bool need_gps = (_params.fusion_mode & MASK_USE_GPS) || (_params.vdist_sensor_type == VDIST_SENSOR_GPS);
 
 	// TODO: remove checks that are not timing related
 	if (((gps.time_usec - _time_last_gps) > _min_obs_interval_us) && need_gps && gps.fix_type > 2) {
@@ -357,7 +357,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample& flow)
 		// of min arrival interval because too much data is being lost
 		float delta_time = flow.dt; // in seconds
 		const float delta_time_min = 0.5e-6f * (float)_min_obs_interval_us;
-		bool delta_time_good = delta_time >= delta_time_min;
+		const bool delta_time_good = delta_time >= delta_time_min;
 
 		bool flow_magnitude_good = true;
 
@@ -510,14 +510,15 @@ void EstimatorInterface::setDragData()
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
 	// find the maximum time delay the buffers are required to handle
-	uint16_t max_time_delay_ms = math::max(_params.mag_delay_ms,
-					 math::max(_params.range_delay_ms,
-					     math::max(_params.gps_delay_ms,
+	const uint16_t max_time_delay_ms = math::max(_params.mag_delay_ms,
+					     math::max(_params.range_delay_ms,
+					       math::max(_params.gps_delay_ms,
 						 math::max(_params.flow_delay_ms,
-						     math::max(_params.ev_delay_ms,
-							 math::max(_params.auxvel_delay_ms,
-							     math::max(_params.min_delay_ms,
-								 math::max(_params.airspeed_delay_ms, _params.baro_delay_ms))))))));
+						   math::max(_params.ev_delay_ms,
+						     math::max(_params.auxvel_delay_ms,
+						       math::max(_params.min_delay_ms,
+							 math::max(_params.airspeed_delay_ms,
+							 	     _params.baro_delay_ms))))))));
 
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
 	_imu_buffer_length = (max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
