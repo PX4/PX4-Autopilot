@@ -49,4 +49,4 @@ target_link_libraries(ActuatorEffectiveness
 		ControlAllocation
 )
 
-px4_add_unit_gtest(SRC ActuatorEffectivenessMultirotorTest.cpp LINKLIBS ActuatorEffectiveness)
+# px4_add_unit_gtest(SRC ActuatorEffectivenessMultirotorTest.cpp LINKLIBS ActuatorEffectiveness)
