@@ -75,7 +75,7 @@ TEST(ActuatorEffectivenessMultirotorTest, AllZeroCase)
 	geometry_quad_wide.rotors[2].thrust_coef = 1.0f;
 	geometry_quad_wide.rotors[2].moment_ratio = -0.05f;
 
-	geometry_quad_wide.rotors[3].position_x = -0.1515f;`
+	geometry_quad_wide.rotors[3].position_x = -0.1515f;
 	geometry_quad_wide.rotors[3].position_y = 0.1875f;
 	geometry_quad_wide.rotors[3].position_z = 0.0f;
 	geometry_quad_wide.rotors[3].axis_x = 0.0f;

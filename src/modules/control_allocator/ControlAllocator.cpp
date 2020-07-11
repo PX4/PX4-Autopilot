@@ -59,8 +59,14 @@ ControlAllocator::ControlAllocator() :
 
 ControlAllocator::~ControlAllocator()
 {
-	free(_control_allocation);
-	free(_actuator_effectiveness);
+	if (_control_allocation != nullptr) {
+		free(_control_allocation);
+	}
+
+	if (_actuator_effectiveness != nullptr) {
+		free(_actuator_effectiveness);
+	}
+
 	perf_free(_loop_perf);
 }
 
@@ -229,13 +235,18 @@ ControlAllocator::update_effectiveness_source()
 		case EffectivenessSource::TILTROTOR_VTOL:
 			tmp = new ActuatorEffectivenessTiltrotorVTOL();
 			break;
+
+		default:
+			PX4_ERR("Unknown airframe");
+			tmp = nullptr;
+			break;
 		}
 
 		// Replace previous source with new one
 		if (tmp == nullptr) {
 			// It did not work, forget about it
 			PX4_ERR("Actuator effectiveness init failed");
-			_param_ca_method.set((int)_effectiveness_source_id);
+			_param_ca_airframe.set((int)_effectiveness_source_id);
 
 		} else if (_actuator_effectiveness == tmp) {
 			// Nothing has changed, this should not happen
