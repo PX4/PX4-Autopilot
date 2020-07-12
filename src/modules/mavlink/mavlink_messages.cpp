@@ -2424,52 +2424,71 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		vehicle_global_position_s gpos;
 		vehicle_local_position_s lpos;
 
-		if (_gpos_sub.update(&gpos) && _lpos_sub.update(&lpos)) {
-
+		if (_lpos_sub.update(&lpos)) {
 			mavlink_global_position_int_t msg{};
 
+			// time_boot_ms: Timestamp (time since system boot) in ms.
+			msg.time_boot_ms = lpos.timestamp / 1000;
+
+			// alt: Altitude (MSL) in mm.
 			if (lpos.z_valid && lpos.z_global) {
-				msg.alt = (-lpos.z + lpos.ref_alt) * 1000.0f;
+				msg.alt = (-lpos.z + lpos.ref_alt) * 1000.f;
 
 			} else {
 				// fall back to baro altitude
 				vehicle_air_data_s air_data{};
-				_air_data_sub.copy(&air_data);
 
-				if (air_data.timestamp > 0) {
-					msg.alt = air_data.baro_alt_meter * 1000.0f;
+				if (_air_data_sub.copy(&air_data) && (hrt_elapsed_time(&air_data.timestamp) < 10_s)) {
+					msg.alt = air_data.baro_alt_meter * 1000.f;
 				}
 			}
 
+			// relative_alt: Altitude above ground in mm
 			home_position_s home{};
 			_home_sub.copy(&home);
 
 			if ((home.timestamp > 0) && home.valid_alt) {
 				if (lpos.z_valid) {
-					msg.relative_alt = -(lpos.z - home.z) * 1000.0f;
+					msg.relative_alt = -(lpos.z - home.z) * 1000.f;
 
 				} else {
-					msg.relative_alt = msg.alt - (home.alt * 1000.0f);
+					msg.relative_alt = msg.alt - (home.alt * 1000.f);
 				}
 
 			} else {
 				if (lpos.z_valid) {
-					msg.relative_alt = -lpos.z * 1000.0f;
+					msg.relative_alt = -lpos.z * 1000.f;
 				}
 			}
 
-			msg.time_boot_ms = gpos.timestamp / 1000;
-			msg.lat = gpos.lat * 1e7;
-			msg.lon = gpos.lon * 1e7;
+			// lat, lon: Latitude, Longitude in degE7
+			vehicle_global_position_s gpos{};
 
-			msg.vx = lpos.vx * 100.0f;
-			msg.vy = lpos.vy * 100.0f;
-			msg.vz = lpos.vz * 100.0f;
+			if (_gpos_sub.copy(&gpos) && (hrt_elapsed_time(&gpos.timestamp) < 10_s)) {
+				msg.lat = gpos.lat * 1e7;
+				msg.lon = gpos.lon * 1e7;
+			}
 
-			msg.hdg = math::degrees(wrap_2pi(lpos.yaw)) * 100.0f;
+			// vx, vy: Ground X, Y Speed (Latitude, positive north) in cm/s
+			if (lpos.v_xy_valid) {
+				msg.vx = lpos.vx * 100.f;
+				msg.vy = lpos.vy * 100.f;
+			}
+
+			// vz: Ground Z Speed (Altitude, positive down) in cm/s
+			if (lpos.v_z_valid) {
+				msg.vz = lpos.vz * 100.f;
+			}
+
+			// hdg: Vehicle heading (yaw angle) in cdeg, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
+			if (PX4_ISFINITE(lpos.yaw)) {
+				msg.hdg = math::degrees(wrap_2pi(lpos.yaw)) * 100.f;
+
+			} else {
+				msg.hdg = UINT16_MAX;
+			}
 
 			mavlink_msg_global_position_int_send_struct(_mavlink->get_channel(), &msg);
 
