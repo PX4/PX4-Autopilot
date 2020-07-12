@@ -86,11 +86,16 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
+	hrt_abstime _last_publication_timestamp{0};
 	hrt_abstime _last_error_message{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	DataValidatorGroup _voter{1};
 	unsigned _last_failover_count{0};
+
+	uint64_t _baro_timestamp_sum{0};
+	float _baro_sum{0.f};
+	int _baro_sum_count{0};
 
 	sensor_baro_s _last_data[MAX_SENSOR_COUNT] {};
 	bool _advertised[MAX_SENSOR_COUNT] {};
@@ -102,7 +107,8 @@ private:
 	int8_t _selected_sensor_sub_index{-1};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh
+		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
+		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate
 	)
 };
 }; // namespace sensors
