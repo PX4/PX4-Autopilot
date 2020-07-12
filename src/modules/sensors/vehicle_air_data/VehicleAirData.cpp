@@ -200,46 +200,64 @@ void VehicleAirData::Run()
 
 		const sensor_baro_s &baro = _last_data[_selected_sensor_sub_index];
 
-		// populate vehicle_air_data with primary baro and publish
-		vehicle_air_data_s out{};
-		out.timestamp_sample = baro.timestamp; // TODO: baro.timestamp_sample;
-		out.baro_device_id = baro.device_id;
-		out.baro_temp_celcius = baro.temperature;
+		_baro_timestamp_sum += baro.timestamp;
+		_baro_sum += baro.pressure;
+		_baro_sum_count++;
 
-		// Convert from millibar to Pa and apply temperature compensation
-		out.baro_pressure_pa = 100.0f * baro.pressure - _thermal_offset[_selected_sensor_sub_index];
+		if ((_param_sens_baro_rate.get() > 0)
+		    && hrt_elapsed_time(&_last_publication_timestamp) >= (1e6f / _param_sens_baro_rate.get())) {
 
-		// calculate altitude using the hypsometric equation
-		static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-		static constexpr float a = -6.5f / 1000.0f; // temperature gradient in degrees per metre
+			const float pressure = _baro_sum / _baro_sum_count;
+			const hrt_abstime timestamp_sample = _baro_timestamp_sum / _baro_sum_count;
 
-		// current pressure at MSL in kPa (QNH in hPa)
-		const float p1 = _param_sens_baro_qnh.get() * 0.1f;
+			// reset
+			_baro_timestamp_sum = 0;
+			_baro_sum = 0.f;
+			_baro_sum_count = 0;
 
-		// measured pressure in kPa
-		const float p = out.baro_pressure_pa * 0.001f;
+			// populate vehicle_air_data with primary baro and publish
+			vehicle_air_data_s out{};
+			out.timestamp_sample = timestamp_sample; // TODO: baro.timestamp_sample;
+			out.baro_device_id = baro.device_id;
+			out.baro_temp_celcius = baro.temperature;
 
-		/*
-		 * Solve:
-		 *
-		 *     /        -(aR / g)     \
-		 *    | (p / p1)          . T1 | - T1
-		 *     \                      /
-		 * h = -------------------------------  + h1
-		 *                   a
-		 */
-		out.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
+			// Convert from millibar to Pa and apply temperature compensation
+			out.baro_pressure_pa = 100.0f * pressure - _thermal_offset[_selected_sensor_sub_index];
 
-		// calculate air density
-		// estimate air density assuming typical 20degC ambient temperature
-		// TODO: use air temperature if available (differential pressure sensors)
-		static constexpr float pressure_to_density = 1.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f -
-				CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+			// calculate altitude using the hypsometric equation
+			static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
+			static constexpr float a = -6.5f / 1000.0f; // temperature gradient in degrees per metre
 
-		out.rho = pressure_to_density * out.baro_pressure_pa;
+			// current pressure at MSL in kPa (QNH in hPa)
+			const float p1 = _param_sens_baro_qnh.get() * 0.1f;
 
-		out.timestamp = hrt_absolute_time();
-		_vehicle_air_data_pub.publish(out);
+			// measured pressure in kPa
+			const float p = out.baro_pressure_pa * 0.001f;
+
+			/*
+			 * Solve:
+			 *
+			 *     /        -(aR / g)     \
+			 *    | (p / p1)          . T1 | - T1
+			 *     \                      /
+			 * h = -------------------------------  + h1
+			 *                   a
+			 */
+			out.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
+
+			// calculate air density
+			// estimate air density assuming typical 20degC ambient temperature
+			// TODO: use air temperature if available (differential pressure sensors)
+			static constexpr float pressure_to_density = 1.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f -
+					CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+
+			out.rho = pressure_to_density * out.baro_pressure_pa;
+
+			out.timestamp = hrt_absolute_time();
+			_vehicle_air_data_pub.publish(out);
+
+			_last_publication_timestamp = out.timestamp;
+		}
 	}
 
 	// check failover and report
