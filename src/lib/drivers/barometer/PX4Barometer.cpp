@@ -55,8 +55,7 @@ PX4Barometer::~PX4Barometer()
 	_sensor_baro_pub.unadvertise();
 }
 
-void
-PX4Barometer::set_device_type(uint8_t devtype)
+void PX4Barometer::set_device_type(uint8_t devtype)
 {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
@@ -69,13 +68,12 @@ PX4Barometer::set_device_type(uint8_t devtype)
 	_sensor_baro_pub.get().device_id = device_id.devid;
 }
 
-void
-PX4Barometer::update(hrt_abstime timestamp, float pressure)
+void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)
 {
 	sensor_baro_s &report = _sensor_baro_pub.get();
 
-	report.timestamp = timestamp;
+	report.timestamp_sample = timestamp_sample;
 	report.pressure = pressure;
-
+	report.timestamp = hrt_absolute_time();
 	_sensor_baro_pub.update();
 }
