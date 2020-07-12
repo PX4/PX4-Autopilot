@@ -200,7 +200,7 @@ void VehicleAirData::Run()
 
 		const sensor_baro_s &baro = _last_data[_selected_sensor_sub_index];
 
-		_baro_timestamp_sum += baro.timestamp;
+		_baro_timestamp_sum += baro.timestamp_sample;
 		_baro_sum += baro.pressure;
 		_baro_sum_count++;
 
@@ -217,7 +217,7 @@ void VehicleAirData::Run()
 
 			// populate vehicle_air_data with primary baro and publish
 			vehicle_air_data_s out{};
-			out.timestamp_sample = timestamp_sample; // TODO: baro.timestamp_sample;
+			out.timestamp_sample = timestamp_sample;
 			out.baro_device_id = baro.device_id;
 			out.baro_temp_celcius = baro.temperature;
 
