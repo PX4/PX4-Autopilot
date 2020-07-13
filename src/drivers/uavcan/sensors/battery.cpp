@@ -35,6 +35,7 @@
 
 #include <lib/ecl/geo/geo.h>
 #include <px4_defines.h>
+#include <mathlib/mathlib.h>
 
 const char *const UavcanBatteryBridge::NAME = "battery";
 
@@ -99,6 +100,11 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	// battery.max_cell_voltage_delta = msg.;
 
 	// battery.is_powering_off = msg.;
+
+	if (strstr((char *)&msg.model_name, "cuav_can_pmu")) {
+		float cell_voltage = (battery.voltage_v) / __param_bat_n_cells.get();
+		battery.remaining = math::gradual(cell_voltage, __param_bat_v_empty.get(), __param_bat_v_charged.get(), 0.f, 1.f);
+	}
 
 	determineWarning(battery.remaining);
 	battery.warning = _warning;
