@@ -60,7 +60,7 @@ namespace ControlMath
  */
 void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
 		      const int omni_att_mode, const float omni_dfc_max_thrust, float &omni_att_tilt_angle, float &omni_att_tilt_dir,
-		      float &omni_att_roll, float &omni_att_pitch, vehicle_attitude_setpoint_s &att_sp);
+		      float &omni_att_roll, float &omni_att_pitch, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp);
 /**
  * Converts a body z vector and yaw set-point to a desired attitude.
  * @param body_z a world frame 3D vector in direction of the desired body z axis
@@ -73,42 +73,49 @@ void bodyzToAttitude(matrix::Vector3f body_z, const float yaw_sp, vehicle_attitu
  * Converts thrust vector and yaw set-point to a zero-tilt attitude for an omni-directional multirotor.
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
+ * @param att current attitude of the robot
+ * @param omni_proj_axes the axes used for thrust projection (0=calculated, 1=current)
  * @param att_sp attitude setpoint to fill
  */
-void thrustToZeroTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp);
+void thrustToZeroTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
+			      int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Converts thrust vector and yaw set-point to a minimum-tilt attitude for an omni-directional multirotor.
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
  * @param omni_dfc_max_thrust maximum direct-force (horizontal) scaled thrust for omnidirectional vehicles
+ * @param att current attitude of the robot
+ * @param omni_proj_axes the axes used for thrust projection (0=calculated, 1=current)
  * @param att_sp attitude setpoint to fill
  */
 void thrustToMinTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const float omni_dfc_max_thrust,
-			     vehicle_attitude_setpoint_s &att_sp);
+			     const matrix::Quatf &att, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp);
 /**
  * Converts thrust vector and yaw set-point to a desired-tilt attitude for an omni-directional multirotor.
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
+ * @param att current attitude of the robot
  * @param tilt_angle the desired tilt angle
  * @param tilt_dir the desired tilt direction
+ * @param omni_proj_axes the axes used for thrust projection (0=calculated, 1=current)
  * @param att_sp attitude setpoint to fill
  */
 void thrustToFixedTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
-			       const float tilt_angle,
-			       const float tilt_dir, vehicle_attitude_setpoint_s &att_sp);
+			       const float tilt_angle, const float tilt_dir, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Converts thrust vector and yaw set-point to a desired given attitude for an omni-directional multirotor.
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
+ * @param att current attitude of the robot
  * @param roll_angle the desired roll angle
  * @param pitch_angle the desired pitch angle
+ * @param omni_proj_axes the axes used for thrust projection (0=calculated, 1=current)
  * @param att_sp attitude setpoint to fill
  */
 void thrustToFixedRollPitch(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
-			    const float roll_angle,
-			    const float pitch_angle, vehicle_attitude_setpoint_s &att_sp);
+			    const float roll_angle, const float pitch_angle, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Outputs the sum of two vectors but respecting the limits and priority.

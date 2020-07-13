@@ -366,6 +366,6 @@ void PositionControl::getAttitudeSetpoint(const matrix::Quatf &att, const int om
 		float &omni_att_pitch, vehicle_attitude_setpoint_s &attitude_setpoint) const
 {
 	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, att, omni_att_mode, omni_dfc_max_thrust, omni_att_tilt_angle,
-				      omni_att_tilt_dir, omni_att_roll, omni_att_pitch, attitude_setpoint);
+				      omni_att_tilt_dir, omni_att_roll, omni_att_pitch, 1, attitude_setpoint);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }
