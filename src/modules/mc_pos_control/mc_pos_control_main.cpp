@@ -662,9 +662,24 @@ MulticopterPositionControl::Run()
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
-			float omnni_att_tilt_angle, omnni_att_tilt_dir, omnni_att_roll, omnni_att_pitch;
+			float omni_att_tilt_angle = _param_omni_att_tilt_angle.get();
+			float omni_att_tilt_dir = _param_omni_att_tilt_dir.get();
+			float omni_att_roll = _param_omni_att_roll.get();
+			float omni_att_pitch = _param_omni_att_pitch.get();
 			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(),
-						     omnni_att_tilt_angle, omnni_att_tilt_dir, omnni_att_roll, omnni_att_pitch, attitude_setpoint);
+						     omni_att_tilt_angle, omni_att_tilt_dir, omni_att_roll, omni_att_pitch, attitude_setpoint);
+
+			// Update the tilt angle and direciton parameters if we are in tilt estimation mode
+			if (_param_omni_att_mode.get() == 5) {
+				_param_omni_att_tilt_angle.set(omni_att_tilt_angle);
+				_param_omni_att_tilt_dir.set(omni_att_tilt_dir);
+			}
+
+			// Update the roll and pitch angle parameters if we are in roll/pitch estimation mode
+			if (_param_omni_att_mode.get() == 6) {
+				_param_omni_att_roll.set(omni_att_roll);
+				_param_omni_att_pitch.set(omni_att_pitch);
+			}
 
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.

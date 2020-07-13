@@ -200,7 +200,7 @@ PARAM_DEFINE_INT32(OMNI_ATT_MODE, 0);
  * @decimal 2
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(OMNI_ATT_TLT_ANG, 15.0f);
+PARAM_DEFINE_FLOAT(OMNI_ATT_TLT_ANG, 0.0f);
 
 /**
  * Omni-directional attitude setpoint tilt direction angle

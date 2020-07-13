@@ -45,7 +45,8 @@ using namespace matrix;
 namespace ControlMath
 {
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att, const int omni_att_mode,
-		      const float omni_dfc_max_thrust, vehicle_attitude_setpoint_s &att_sp)
+		      const float omni_dfc_max_thrust, float &omni_att_tilt_angle, float &omni_att_tilt_dir,
+		      float &omni_att_roll, float &omni_att_pitch, vehicle_attitude_setpoint_s &att_sp)
 {
 	// Print an error if the omni_att_mode parameter is out of range
 	if (omni_att_mode > 6 || omni_att_mode < 0) {
@@ -62,15 +63,15 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 		break;
 
 	case 3: { // Attitude is set to a fixed tilt at a fixed global direction (used for omnidirectional vehicles)
-			float tilt_angle = math::radians(10.F);
-			float tilt_dir = math::radians(270.F);
+			float tilt_angle = math::radians(omni_att_tilt_angle);
+			float tilt_dir = math::radians(omni_att_tilt_dir);
 			thrustToFixedTiltAttitude(thr_sp, yaw_sp, att, tilt_angle, tilt_dir, att_sp);
 			break;
 		}
 
 	case 4: { // Attitude is set to a fixed roll and pitch (used for omnidirectional vehicles)
-			float roll_angle = math::radians(5.F);
-			float pitch_angle = math::radians(5.F);
+			float roll_angle = math::radians(omni_att_roll);
+			float pitch_angle = math::radians(omni_att_pitch);
 			thrustToFixedRollPitch(thr_sp, yaw_sp, att, roll_angle, pitch_angle, att_sp);
 			break;
 		}
@@ -182,7 +183,7 @@ void thrustToMinTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const f
 		Vector2f thr_sp_h(thr_sp(0), thr_sp(1));
 
 		if (thr_sp_h.norm() <= omni_dfc_max_thrust) {
-			thrustToAttitude(thr_sp, yaw_sp, matrix::Quatf(), 2, omni_dfc_max_thrust, att_sp);
+			thrustToZeroTiltAttitude(thr_sp, yaw_sp, att_sp);
 			return;
 		}
 
