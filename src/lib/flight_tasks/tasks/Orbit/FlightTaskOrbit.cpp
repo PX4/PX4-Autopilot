@@ -256,8 +256,7 @@ void FlightTaskOrbit::generate_circle_yaw_setpoints(Vector2f center_to_position)
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED:
-		_yaw_setpoint = NAN;
-		_yawspeed_setpoint = _sticks.getPositionExpo()(3);
+		// inherit setpoint from altitude flight task
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
