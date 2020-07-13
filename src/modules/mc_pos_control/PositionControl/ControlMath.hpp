@@ -83,7 +83,7 @@ void thrustToZeroTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp
 void thrustToMinTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const float omni_dfc_max_thrust,
 			     vehicle_attitude_setpoint_s &att_sp);
 /**
- * Converts thrust vector and yaw set-point to a zero-tilt attitude for an omni-directional multirotor.
+ * Converts thrust vector and yaw set-point to a desired-tilt attitude for an omni-directional multirotor.
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
  * @param tilt_angle the desired tilt angle
@@ -93,6 +93,18 @@ void thrustToMinTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp,
 void thrustToFixedTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
 			       const float tilt_angle,
 			       const float tilt_dir, vehicle_attitude_setpoint_s &att_sp);
+
+/**
+ * Converts thrust vector and yaw set-point to a desired given attitude for an omni-directional multirotor.
+ * @param thr_sp a 3D vector
+ * @param yaw_sp the desired yaw
+ * @param roll_angle the desired roll angle
+ * @param pitch_angle the desired pitch angle
+ * @param att_sp attitude setpoint to fill
+ */
+void thrustToFixedRollPitch(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
+			    const float roll_angle,
+			    const float pitch_angle, vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Outputs the sum of two vectors but respecting the limits and priority.

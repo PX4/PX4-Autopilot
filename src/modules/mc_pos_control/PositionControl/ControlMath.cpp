@@ -48,7 +48,7 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 		      const float omni_dfc_max_thrust, vehicle_attitude_setpoint_s &att_sp)
 {
 	// Print an error if the omni_att_mode parameter is out of range
-	if (omni_att_mode > 3 || omni_att_mode < 0) {
+	if (omni_att_mode > 6 || omni_att_mode < 0) {
 		PX4_ERR("OMNI_ATT_MODE parameter set to unknown value!");
 	}
 
@@ -65,6 +65,13 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 			float tilt_angle = math::radians(10.F);
 			float tilt_dir = math::radians(270.F);
 			thrustToFixedTiltAttitude(thr_sp, yaw_sp, att, tilt_angle, tilt_dir, att_sp);
+			break;
+		}
+
+	case 4: { // Attitude is set to a fixed roll and pitch (used for omnidirectional vehicles)
+			float roll_angle = math::radians(5.F);
+			float pitch_angle = math::radians(5.F);
+			thrustToFixedRollPitch(thr_sp, yaw_sp, att, roll_angle, pitch_angle, att_sp);
 			break;
 		}
 
@@ -332,9 +339,47 @@ void thrustToFixedTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const
 		curr_z(i) = R_curr(i, 2);
 	}
 
-	att_sp.thrust_body[0] = thr_sp.dot(body_x);
-	att_sp.thrust_body[1] = thr_sp.dot(body_y);
-	att_sp.thrust_body[2] = thr_sp.dot(body_z);
+	att_sp.thrust_body[0] = thr_sp.dot(curr_x);
+	att_sp.thrust_body[1] = thr_sp.dot(curr_y);
+	att_sp.thrust_body[2] = thr_sp.dot(curr_z);
+}
+
+void thrustToFixedRollPitch(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
+			    const float roll_angle,
+			    const float pitch_angle, vehicle_attitude_setpoint_s &att_sp)
+{
+	Eulerf euler_cmd(roll_angle, pitch_angle, yaw_sp);
+
+	Quatf q_sp = euler_cmd;
+	q_sp.copyTo(att_sp.q_d);
+
+	matrix::Dcmf R_body = q_sp;
+	Vector3f body_x, body_y, body_z;
+
+	for (int i = 0; i < 3; i++) {
+		body_x(i) = R_body(i, 0);
+		body_y(i) = R_body(i, 1);
+		body_z(i) = R_body(i, 2);
+	}
+
+	// calculate euler angles, for logging only, must not be used for control
+	att_sp.roll_body = roll_angle;
+	att_sp.pitch_body = pitch_angle;
+	att_sp.yaw_body = yaw_sp;
+
+	matrix::Dcmf R_curr = att;
+
+	Vector3f curr_x, curr_y, curr_z;
+
+	for (int i = 0; i < 3; i++) {
+		curr_x(i) = R_curr(i, 0);
+		curr_y(i) = R_curr(i, 1);
+		curr_z(i) = R_curr(i, 2);
+	}
+
+	att_sp.thrust_body[0] = thr_sp.dot(curr_x);
+	att_sp.thrust_body[1] = thr_sp.dot(curr_y);
+	att_sp.thrust_body[2] = thr_sp.dot(curr_z);
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)

@@ -174,6 +174,7 @@ public:
 	 * @param attitude_setpoint reference to struct to fill up
 	 */
 	void getAttitudeSetpoint(const matrix::Quatf &att, const int omni_att_mode, const float omni_dfc_max_thrust,
+				 float &omnni_att_tilt_angle, float &omnni_att_tilt_dir, float &omnni_att_roll, float &omnni_att_pitch,
 				 vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 private:

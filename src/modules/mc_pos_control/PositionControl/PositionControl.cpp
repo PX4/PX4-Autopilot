@@ -362,7 +362,8 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 }
 
 void PositionControl::getAttitudeSetpoint(const matrix::Quatf &att, const int omni_att_mode,
-		const float omni_dfc_max_thrust,
+		const float omni_dfc_max_thrust, float &omnni_att_tilt_angle, float &omnni_att_tilt_dir, float &omnni_att_roll,
+		float &omnni_att_pitch,
 		vehicle_attitude_setpoint_s &attitude_setpoint) const
 {
 	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, att, omni_att_mode, omni_dfc_max_thrust, attitude_setpoint);

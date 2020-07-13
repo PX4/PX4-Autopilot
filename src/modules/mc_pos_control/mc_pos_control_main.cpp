@@ -662,8 +662,9 @@ MulticopterPositionControl::Run()
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
+			float omnni_att_tilt_angle, omnni_att_tilt_dir, omnni_att_roll, omnni_att_pitch;
 			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(),
-						     attitude_setpoint);
+						     omnni_att_tilt_angle, omnni_att_tilt_dir, omnni_att_roll, omnni_att_pitch, attitude_setpoint);
 
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
