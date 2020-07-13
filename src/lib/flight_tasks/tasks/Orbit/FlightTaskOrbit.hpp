@@ -89,11 +89,11 @@ protected:
 
 private:
 	/** generates setpoints to smoothly reach the closest point on the circle when starting from far away */
-	void generate_circle_approach_setpoints(matrix::Vector2f &center_to_position);
+	void generate_circle_approach_setpoints(const matrix::Vector2f &center_to_position);
 	/** generates xy setpoints to make the vehicle orbit */
-	void generate_circle_setpoints(matrix::Vector2f &center_to_position);
+	void generate_circle_setpoints(const matrix::Vector2f &center_to_position);
 	/** generates yaw setpoints to control the vehicle's heading */
-	void generate_circle_yaw_setpoints(matrix::Vector2f &center_to_position);
+	void generate_circle_yaw_setpoints(const matrix::Vector2f &center_to_position);
 
 	float _r = 0.f; /**< radius with which to orbit the target */
 	float _v = 0.f; /**< clockwise tangential velocity for orbiting in m/s */
