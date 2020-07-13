@@ -174,8 +174,13 @@ private:
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd, /**< maximum tilt for landing and smooth takeoff */
 		(ParamFloat<px4::params::MPC_THR_MIN>) _param_mpc_thr_min,
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
+
 		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode,
-		(ParamFloat<px4::params::OMNI_DFC_MAX_THR>) _param_omni_dfc_max_thr
+		(ParamFloat<px4::params::OMNI_DFC_MAX_THR>) _param_omni_dfc_max_thr,
+		(ParamFloat<px4::params::OMNI_ATT_TLT_ANG>) _param_omni_att_tilt_angle,
+		(ParamFloat<px4::params::OMNI_ATT_TLT_DIR>) _param_omni_att_tilt_dir,
+		(ParamFloat<px4::params::OMNI_ATT_ROLL>) _param_omni_att_roll,
+		(ParamFloat<px4::params::OMNI_ATT_PITCH>) _param_omni_att_pitch
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */

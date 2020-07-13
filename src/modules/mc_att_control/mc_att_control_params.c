@@ -172,14 +172,72 @@ PARAM_DEFINE_FLOAT(OMNI_DFC_MAX_THR, 0.15f);
  * used for omnidirectional vehicles. The min-tilt mode enforces zero tilt
  * up to a maximum set acceleration (thrust) and tilts the vehicle as small
  * as possible if the thrust vector is larger than the maximum. The "constant
- * tilt" mode enforces a given tilt angle and tilt direction for the vehicle.
+ * tilt" and "constant roll/pitch" modes enforce a given tilt or roll/pitch
+ * for the vehicle. The estimation modes estimate the optimal tilt or roll/pitch
+ * to counteract with the external force (e.g., wind).
  *
  * @min 0
- * @max 3
+ * @max 6
  * @value 0 tilted attitude
  * @value 1 min-tilt attitude
  * @value 2 constant zero tilt
  * @value 3 constant tilt
+ * @value 4 constant roll/pitch
+ * @value 5 estimate tilt
+ * @value 6 estimate roll/pitch
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_INT32(OMNI_ATT_MODE, 0);
+
+/**
+ * Omni-directional attitude setpoint tilt angle
+ *
+ * Specifies the tilt angle in degrees for the constant-tilt attitude
+ * setpoint generation mode (OMNI_ATT_MODE=3).
+ *
+ * @min 0
+ * @max 90
+ * @decimal 2
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(OMNI_ATT_TLT_ANG, 15.0f);
+
+/**
+ * Omni-directional attitude setpoint tilt direction angle
+ *
+ * Specifies the direction of the tilt in degrees for the constant-tilt
+ * attitude setpoint generation mode (OMNI_ATT_MODE=3). The direction is
+ * measured from North.
+ *
+ * @min -360
+ * @max 360
+ * @decimal 2
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(OMNI_ATT_TLT_DIR, 0.0f);
+
+/**
+ * Omni-directional attitude setpoint roll angle
+ *
+ * Specifies the roll angle in degrees for the constant-roll/pitch attitude
+ * setpoint generation mode (OMNI_ATT_MODE=4).
+ *
+ * @min -90
+ * @max 90
+ * @decimal 2
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(OMNI_ATT_ROLL, 0.0f);
+
+/**
+ * Omni-directional attitude setpoint pitch angle
+ *
+ * Specifies the pitch angle in degrees for the constant-roll/pitch attitude
+ * setpoint generation mode (OMNI_ATT_MODE=4).
+ *
+ * @min -90
+ * @max 90
+ * @decimal 2
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(OMNI_ATT_PITCH, 0.0f);
