@@ -179,11 +179,10 @@ bool FlightTaskOrbit::update()
 	setRadius(r);
 	setVelocity(v);
 
-	Vector2f center_to_position = Vector2f(_position) - _center;
-	Vector2f start_to_circle = (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
+	const Vector2f center_to_position = Vector2f(_position) - _center;
 
 	if (_in_circle_approach) {
-		generate_circle_approach_setpoints(start_to_circle);
+		generate_circle_approach_setpoints(center_to_position);
 
 	} else {
 		generate_circle_setpoints(center_to_position);
@@ -196,13 +195,13 @@ bool FlightTaskOrbit::update()
 	return ret;
 }
 
-void FlightTaskOrbit::generate_circle_approach_setpoints(Vector2f start_to_circle)
+void FlightTaskOrbit::generate_circle_approach_setpoints(const Vector2f &center_to_position)
 {
-
 	if (_circle_approach_line.isEndReached()) {
 		// calculate target point on circle and plan a line trajectory
-		Vector2f closest_circle_point = Vector2f(_position) + start_to_circle;
-		Vector3f target = Vector3f(closest_circle_point(0), closest_circle_point(1), _position(2));
+		const Vector2f start_to_circle = (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
+		const Vector2f closest_circle_point = Vector2f(_position) + start_to_circle;
+		const Vector3f target = Vector3f(closest_circle_point(0), closest_circle_point(1), _position(2));
 		_circle_approach_line.setLineFromTo(_position, target);
 		_circle_approach_line.setSpeed(_param_mpc_xy_cruise.get());
 		_yaw_setpoint = atan2f(start_to_circle(1), start_to_circle(0));
@@ -213,7 +212,7 @@ void FlightTaskOrbit::generate_circle_approach_setpoints(Vector2f start_to_circl
 	_in_circle_approach = !_circle_approach_line.isEndReached();
 }
 
-void FlightTaskOrbit::generate_circle_setpoints(Vector2f center_to_position)
+void FlightTaskOrbit::generate_circle_setpoints(const Vector2f &center_to_position)
 {
 	// xy velocity to go around in a circle
 	Vector2f velocity_xy(-center_to_position(1), center_to_position(0));
@@ -228,7 +227,7 @@ void FlightTaskOrbit::generate_circle_setpoints(Vector2f center_to_position)
 	_acceleration_setpoint.xy() = -center_to_position.unit_or_zero() * _v * _v / _r;
 }
 
-void FlightTaskOrbit::generate_circle_yaw_setpoints(Vector2f center_to_position)
+void FlightTaskOrbit::generate_circle_yaw_setpoints(const Vector2f &center_to_position)
 {
 	switch (_yaw_behaviour) {
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
