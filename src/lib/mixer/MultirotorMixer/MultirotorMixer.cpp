@@ -439,8 +439,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	// clean out class variable used to capture saturation
 	_saturation_status.value = 0;
 
-	if (!_is_6dof)
-
+	if (!_is_6dof) {
 		// Do the mixing using the strategy given by the current Airmode configuration
 		switch (_airmode) {
 		case Airmode::roll_pitch:
@@ -456,7 +455,9 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 			mix_airmode_disabled(roll, pitch, yaw, math::constrain(get_control(0, 3), 0.0f, 1.0f), outputs);
 			break;
 
-		} else { // if is 6-DoF vehicle
+		}
+
+	} else { // if is 6-DoF vehicle
 		float x_thrust  = math::constrain(get_control(0, 8), -1.0f, 1.0f);
 		float y_thrust  = math::constrain(get_control(0, 9), -1.0f, 1.0f);
 		float z_thrust  = math::constrain(get_control(0, 10), -1.0f, 1.0f);
