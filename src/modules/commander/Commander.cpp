@@ -2545,7 +2545,8 @@ Commander::run()
 						       (link_loss_actions_t)_param_nav_rcl_act.get(),
 						       (offboard_loss_actions_t)_param_com_obl_act.get(),
 						       (offboard_loss_rc_actions_t)_param_com_obl_rc_act.get(),
-						       (position_nav_loss_actions_t)_param_com_posctl_navl.get());
+						       (position_nav_loss_actions_t)_param_com_posctl_navl.get(),
+						       _param_com_ll_delay.get());
 
 		if (nav_state_changed) {
 			_status.nav_state_timestamp = hrt_absolute_time();

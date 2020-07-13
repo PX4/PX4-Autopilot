@@ -45,9 +45,12 @@
 #include <uORB/topics/vehicle_status.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
+#include <float.h>
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"
+
+using namespace time_literals;
 
 static constexpr const char reason_no_rc[] = "No manual control stick input";
 static constexpr const char reason_no_offboard[] = "no offboard";
@@ -385,6 +388,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason)
 {
 	if (!old_failsafe && status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		status->failsafe_timestamp = hrt_absolute_time();
 		mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s", reason);
 	}
 
@@ -399,7 +403,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
 		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
-		   const position_nav_loss_actions_t posctl_nav_loss_act)
+		   const position_nav_loss_actions_t posctl_nav_loss_act,
+		   const float param_com_ll_delay)
 {
 	const navigation_state_t nav_state_old = status->nav_state;
 
@@ -465,7 +470,14 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			if (rc_lost && is_armed) {
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
-				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+				if (hrt_elapsed_time(&status->failsafe_timestamp) > (param_com_ll_delay * 1_s)) {
+					/* only start reaction after configured delay */
+					set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+
+				} else {
+					/* wait in hold mode if delay is configured */
+					set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_actions_t::AUTO_LOITER);
+				}
 
 				/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
 				/* A local position estimate is enough for POSCTL for multirotors,
@@ -508,7 +520,14 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			 * check for datalink lost: this should always trigger RTL */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+			if (hrt_elapsed_time(&status->failsafe_timestamp) > (param_com_ll_delay * 1_s)) {
+				/* only start reaction after configured delay */
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+
+			} else {
+				/* wait in hold mode if delay is configured */
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, link_loss_actions_t::AUTO_LOITER);
+			}
 
 		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
 			   && mission_finished && is_armed) {

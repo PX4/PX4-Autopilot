@@ -131,7 +131,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
 		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
-		   const position_nav_loss_actions_t posctl_nav_loss_act);
+		   const position_nav_loss_actions_t posctl_nav_loss_act,
+		   const float param_com_ll_delay);
 
 /*
  * Checks the validty of position data against the requirements of the current navigation
