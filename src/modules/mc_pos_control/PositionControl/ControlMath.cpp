@@ -48,7 +48,7 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni
 		      const float omni_dfc_max_thrust, vehicle_attitude_setpoint_s &att_sp)
 {
 	// Print an error if the omni_att_mode parameter is out of range
-	if (omni_att_mode > 2 || omni_att_mode < 0) {
+	if (omni_att_mode > 3 || omni_att_mode < 0) {
 		PX4_ERR("OMNI_ATT_MODE parameter set to unknown value!");
 	}
 
@@ -60,6 +60,13 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni
 	case 2: // Attitude is set to the fixed zero roll and pitch (used for omnidirectional vehicles)
 		thrustToZeroTiltAttitude(thr_sp, yaw_sp, att_sp);
 		break;
+
+	case 3: { // Attitude is set to a fixed tilt at a fixed global direction (used for omnidirectional vehicles)
+			float tilt_angle = math::radians(10.F);
+			float tilt_dir = math::radians(270.F);
+			thrustToFixedTiltAttitude(thr_sp, yaw_sp, tilt_angle, tilt_dir, att_sp);
+			break;
+		}
 
 	default: // Attitude is calculated from the desired thrust direction
 		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
@@ -125,9 +132,6 @@ void thrustToZeroTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicl
 	// set Z axis to upward direction
 	Vector3f body_z = Vector3f(0.f, 0.f, 1.f);
 
-	// vector of desired yaw direction in XY plane, rotated by PI/2
-	Vector3f y_C(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);
-
 	// desired body_x and body_y axis
 	Vector3f body_x = Vector3f(cos(yaw_sp), sin(yaw_sp), 0.0f);
 	Vector3f body_y = Vector3f(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);
@@ -151,7 +155,6 @@ void thrustToZeroTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicl
 	att_sp.pitch_body = 0;
 	att_sp.yaw_body = yaw_sp;
 
-
 	att_sp.thrust_body[0] = thr_sp.dot(body_x);
 	att_sp.thrust_body[1] = thr_sp.dot(body_y);
 	att_sp.thrust_body[2] = thr_sp(2);
@@ -161,7 +164,7 @@ void thrustToMinTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const f
 			     vehicle_attitude_setpoint_s &att_sp)
 {
 	Vector3f body_z;
-	float lambda = 0.f;
+	float lambda = 0.f; // the minimum tilt angle
 
 	// zero vector, no direction, set safe level value
 	if (thr_sp.norm_squared() < FLT_EPSILON) {
@@ -252,6 +255,75 @@ void thrustToMinTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const f
 	att_sp.thrust_body[0] = f_eff_h(0);
 	att_sp.thrust_body[1] = f_eff_h(1);
 	att_sp.thrust_body[2] = -f_eff_z;
+}
+
+void thrustToFixedTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const float tilt_angle, const float tilt_dir,
+			       vehicle_attitude_setpoint_s &att_sp)
+{
+	Vector3f body_z;
+
+	// zero vector, no direction, set safe level value
+	if (thr_sp.norm_squared() < FLT_EPSILON) {
+		body_z(2) = 1.f;
+
+	} else {
+		// Calculate the direction of the body Z axis
+		Vector3f v_hat(0.f, 0.f, -1.f); // upward direction
+		// vector of desired yaw direction in XY plane, rotated by PI/2
+		Vector3f kappa_C(cosf(tilt_dir), sinf(tilt_dir), 0.0f);
+		Vector3f p_hat = v_hat % kappa_C; // the axis of rotation for tilt_angle
+		p_hat.normalize();
+		body_z = -(1 - cosf(tilt_angle)) * p_hat * (p_hat.dot(v_hat)) + cosf(tilt_angle) * v_hat - sinf(tilt_angle) *
+			 (v_hat % p_hat); // Rodrigues' rotation formula
+		body_z = -body_z;
+	}
+
+	// vector of desired yaw direction in XY plane, rotated by PI/2
+	Vector3f y_C(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);
+
+	// desired body_x axis, orthogonal to body_z
+	Vector3f body_x = y_C % body_z;
+
+	// keep nose to front while inverted upside down
+	if (body_z(2) < 0.0f) {
+		body_x = -body_x;
+	}
+
+	if (fabsf(body_z(2)) < 0.000001f) {
+		// desired thrust is in XY plane, set X downside to construct correct matrix,
+		// but yaw component will not be used actually
+		body_x.zero();
+		body_x(2) = 1.0f;
+	}
+
+	body_x.normalize();
+
+	// desired body_y axis
+	Vector3f body_y = body_z % body_x;
+
+	Dcmf R_sp;
+
+	// fill rotation matrix
+	for (int i = 0; i < 3; i++) {
+		R_sp(i, 0) = body_x(i);
+		R_sp(i, 1) = body_y(i);
+		R_sp(i, 2) = body_z(i);
+	}
+
+	// copy quaternion setpoint to attitude setpoint topic
+	Quatf q_sp = R_sp;
+	q_sp.copyTo(att_sp.q_d);
+	att_sp.q_d_valid = true;
+
+	// calculate euler angles, for logging only, must not be used for control
+	Eulerf euler = R_sp;
+	att_sp.roll_body = euler(0);
+	att_sp.pitch_body = euler(1);
+	att_sp.yaw_body = euler(2);
+
+	att_sp.thrust_body[0] = thr_sp.dot(body_x);
+	att_sp.thrust_body[1] = thr_sp.dot(body_y);
+	att_sp.thrust_body[2] = thr_sp.dot(body_z);
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)

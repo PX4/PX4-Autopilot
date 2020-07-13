@@ -81,6 +81,16 @@ void thrustToZeroTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp
  */
 void thrustToMinTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const float omni_dfc_max_thrust,
 			     vehicle_attitude_setpoint_s &att_sp);
+/**
+ * Converts thrust vector and yaw set-point to a zero-tilt attitude for an omni-directional multirotor.
+ * @param thr_sp a 3D vector
+ * @param yaw_sp the desired yaw
+ * @param tilt_angle the desired tilt angle
+ * @param tilt_dir the desired tilt direction
+ * @param att_sp attitude setpoint to fill
+ */
+void thrustToFixedTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const float tilt_angle,
+			       const float tilt_dir, vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Outputs the sum of two vectors but respecting the limits and priority.

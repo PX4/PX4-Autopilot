@@ -171,13 +171,15 @@ PARAM_DEFINE_FLOAT(OMNI_DFC_MAX_THR, 0.15f);
  * The "constant zero tilt" mode enforces zero roll and pitch and can only be
  * used for omnidirectional vehicles. The min-tilt mode enforces zero tilt
  * up to a maximum set acceleration (thrust) and tilts the vehicle as small
- * as possible if the thrust vector is larger than the maximum.
+ * as possible if the thrust vector is larger than the maximum. The "constant
+ * tilt" mode enforces a given tilt angle and tilt direction for the vehicle.
  *
  * @min 0
- * @max 2
+ * @max 3
  * @value 0 tilted attitude
  * @value 1 min-tilt attitude
  * @value 2 constant zero tilt
+ * @value 3 constant tilt
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_INT32(OMNI_ATT_MODE, 0);
