@@ -73,6 +73,9 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 		_yaw_behaviour = command.param3;
 	}
 
+	// save current yaw estimate for ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING
+	_initial_heading = _yaw;
+
 	// TODO: apply x,y / z independently in geo library
 	// commanded center coordinates
 	// if(PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6)) {
@@ -153,7 +156,6 @@ bool FlightTaskOrbit::activate(vehicle_local_position_setpoint_s last_setpoint)
 	_v =  1.f;
 	_center = Vector2f(_position);
 	_center(0) -= _r;
-
 	_initial_heading = _yaw;
 
 	// need a valid position and velocity
