@@ -160,7 +160,7 @@ private:
 
 AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers)
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vel_prev.zero();
 	_pos_acc.zero();

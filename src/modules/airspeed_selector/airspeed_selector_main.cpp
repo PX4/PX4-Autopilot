@@ -176,7 +176,7 @@ private:
 
 AirspeedModule::AirspeedModule():
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	// initialise parameters
 	update_params();
