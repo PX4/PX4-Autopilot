@@ -47,7 +47,7 @@ namespace sensors
 
 VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_sensor_accel_sub(this, ORB_ID(sensor_accel), accel_index),
 	_sensor_gyro_sub(this, ORB_ID(sensor_gyro), gyro_index)
 {
