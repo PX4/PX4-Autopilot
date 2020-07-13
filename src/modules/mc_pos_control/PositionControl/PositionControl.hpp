@@ -180,7 +180,7 @@ public:
 	 */
 	void getAttitudeSetpoint(const matrix::Quatf &att, const int omni_att_mode, const float omni_dfc_max_thrust,
 				 float &omni_att_tilt_angle, float &omni_att_tilt_dir, float &omni_att_roll, float &omni_att_pitch,
-				 vehicle_attitude_setpoint_s &attitude_setpoint) const;
+				 int omni_proj_axes, vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 private:
 	/**

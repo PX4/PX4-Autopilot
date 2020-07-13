@@ -180,7 +180,8 @@ private:
 		(ParamFloat<px4::params::OMNI_ATT_TLT_ANG>) _param_omni_att_tilt_angle,
 		(ParamFloat<px4::params::OMNI_ATT_TLT_DIR>) _param_omni_att_tilt_dir,
 		(ParamFloat<px4::params::OMNI_ATT_ROLL>) _param_omni_att_roll,
-		(ParamFloat<px4::params::OMNI_ATT_PITCH>) _param_omni_att_pitch
+		(ParamFloat<px4::params::OMNI_ATT_PITCH>) _param_omni_att_pitch,
+		(ParamInt<px4::params::OMNI_PROJ_AXES>) _param_omni_proj_axes
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -667,7 +668,7 @@ MulticopterPositionControl::Run()
 			float omni_att_roll = _param_omni_att_roll.get();
 			float omni_att_pitch = _param_omni_att_pitch.get();
 			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(),
-						     omni_att_tilt_angle, omni_att_tilt_dir, omni_att_roll, omni_att_pitch, attitude_setpoint);
+						     omni_att_tilt_angle, omni_att_tilt_dir, omni_att_roll, omni_att_pitch, _param_omni_proj_axes.get(), attitude_setpoint);
 
 			// Update the tilt angle and direciton parameters if we are in tilt estimation mode
 			if (_param_omni_att_mode.get() == 5) {

@@ -241,3 +241,17 @@ PARAM_DEFINE_FLOAT(OMNI_ATT_ROLL, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(OMNI_ATT_PITCH, 0.0f);
+
+/**
+ * Axes for thrust projection in omni-directional attitude modes
+ *
+ * Specifies the axis used for projecting inertial thrust setpoint
+ * to the body-fixed frame in omni-directional modes (OMNI_ATT_MODE > 0).
+ *
+ * @min 0
+ * @max 1
+ * @value 0 commanded attitude
+ * @value 1 current attitude
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_INT32(OMNI_PROJ_AXES, 1);
