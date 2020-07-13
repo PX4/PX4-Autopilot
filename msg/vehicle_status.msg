@@ -63,6 +63,7 @@ uint64 nav_state_timestamp              # time when current nav_state activated
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
 bool failsafe				# true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
+uint64 failsafe_timestamp               # time when failsafe was activated
 
 uint8 system_type			# system type, contains mavlink MAV_TYPE
 uint8 system_id			# system id, contains MAVLink's system ID field
