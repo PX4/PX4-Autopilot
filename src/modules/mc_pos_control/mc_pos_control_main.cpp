@@ -83,6 +83,7 @@ class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>
 	public ModuleParams, public px4::WorkItem
 {
 public:
+	vehicle_attitude_s att;
 	MulticopterPositionControl(bool vtol = false);
 	~MulticopterPositionControl() override;
 
@@ -400,7 +401,6 @@ MulticopterPositionControl::poll_subscriptions()
 	_home_pos_sub.update(&_home_pos);
 
 	if (_att_sub.updated()) {
-		vehicle_attitude_s att;
 
 		if (_att_sub.copy(&att) && PX4_ISFINITE(att.q[0])) {
 			_states.yaw = Eulerf(Quatf(att.q)).psi();
@@ -657,7 +657,8 @@ MulticopterPositionControl::Run()
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
-			_control.getAttitudeSetpoint(_param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(), attitude_setpoint);
+			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(),
+						     attitude_setpoint);
 
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.

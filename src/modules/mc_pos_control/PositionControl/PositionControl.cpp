@@ -361,9 +361,10 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	_thr_sp.copyTo(local_position_setpoint.thrust);
 }
 
-void PositionControl::getAttitudeSetpoint(const int omni_att_mode, const float omni_dfc_max_thrust,
+void PositionControl::getAttitudeSetpoint(const matrix::Quatf &att, const int omni_att_mode,
+		const float omni_dfc_max_thrust,
 		vehicle_attitude_setpoint_s &attitude_setpoint) const
 {
-	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, omni_att_mode, omni_dfc_max_thrust, attitude_setpoint);
+	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, att, omni_att_mode, omni_dfc_max_thrust, attitude_setpoint);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }

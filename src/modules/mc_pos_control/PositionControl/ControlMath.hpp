@@ -53,7 +53,8 @@ namespace ControlMath
  * @param omni_att_mode attitude mode for omnidirectional vehicles: 0-tilted 1-min-tilt 2-zero-tilt
  * @param omni_dfc_max_thrust maximum direct-force (horizontal) scaled thrust for omnidirectional vehicles
  */
-void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const int omni_att_mode,
+void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
+		      const int omni_att_mode,
 		      const float omni_dfc_max_thrust,
 		      vehicle_attitude_setpoint_s &att_sp);
 /**
@@ -89,7 +90,8 @@ void thrustToMinTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp,
  * @param tilt_dir the desired tilt direction
  * @param att_sp attitude setpoint to fill
  */
-void thrustToFixedTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const float tilt_angle,
+void thrustToFixedTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
+			       const float tilt_angle,
 			       const float tilt_dir, vehicle_attitude_setpoint_s &att_sp);
 
 /**

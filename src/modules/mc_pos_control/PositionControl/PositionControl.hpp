@@ -173,7 +173,7 @@ public:
 	 * @param omni_dfc_max_thrust maximum direct-force (horizontal) scaled thrust for omnidirectional vehicles
 	 * @param attitude_setpoint reference to struct to fill up
 	 */
-	void getAttitudeSetpoint(const int omni_att_mode, const float omni_dfc_max_thrust,
+	void getAttitudeSetpoint(const matrix::Quatf &att, const int omni_att_mode, const float omni_dfc_max_thrust,
 				 vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 private:

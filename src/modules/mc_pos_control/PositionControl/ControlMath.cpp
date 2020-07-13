@@ -44,7 +44,7 @@ using namespace matrix;
 
 namespace ControlMath
 {
-void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni_att_mode,
+void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att, const int omni_att_mode,
 		      const float omni_dfc_max_thrust, vehicle_attitude_setpoint_s &att_sp)
 {
 	// Print an error if the omni_att_mode parameter is out of range
@@ -64,7 +64,7 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni
 	case 3: { // Attitude is set to a fixed tilt at a fixed global direction (used for omnidirectional vehicles)
 			float tilt_angle = math::radians(10.F);
 			float tilt_dir = math::radians(270.F);
-			thrustToFixedTiltAttitude(thr_sp, yaw_sp, tilt_angle, tilt_dir, att_sp);
+			thrustToFixedTiltAttitude(thr_sp, yaw_sp, att, tilt_angle, tilt_dir, att_sp);
 			break;
 		}
 
@@ -175,7 +175,7 @@ void thrustToMinTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const f
 		Vector2f thr_sp_h(thr_sp(0), thr_sp(1));
 
 		if (thr_sp_h.norm() <= omni_dfc_max_thrust) {
-			thrustToAttitude(thr_sp, yaw_sp, 2, omni_dfc_max_thrust, att_sp);
+			thrustToAttitude(thr_sp, yaw_sp, matrix::Quatf(), 2, omni_dfc_max_thrust, att_sp);
 			return;
 		}
 
@@ -257,7 +257,8 @@ void thrustToMinTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const f
 	att_sp.thrust_body[2] = -f_eff_z;
 }
 
-void thrustToFixedTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const float tilt_angle, const float tilt_dir,
+void thrustToFixedTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
+			       const float tilt_angle, const float tilt_dir,
 			       vehicle_attitude_setpoint_s &att_sp)
 {
 	Vector3f body_z;
@@ -320,6 +321,16 @@ void thrustToFixedTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
 	att_sp.yaw_body = euler(2);
+
+	matrix::Dcmf R_curr = att;
+
+	Vector3f curr_x, curr_y, curr_z;
+
+	for (int i = 0; i < 3; i++) {
+		curr_x(i) = R_curr(i, 0);
+		curr_y(i) = R_curr(i, 1);
+		curr_z(i) = R_curr(i, 2);
+	}
 
 	att_sp.thrust_body[0] = thr_sp.dot(body_x);
 	att_sp.thrust_body[1] = thr_sp.dot(body_y);
