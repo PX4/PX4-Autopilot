@@ -273,7 +273,7 @@ MavlinkMissionManager::send_mission_current(int32_t seq)
 		/* don't broadcast if no WPs */
 
 	} else {
-		PX4_DEBUG("WPM: Send MISSION_CURRENT ERROR: seq %u out of bounds", seq);
+		PX4_DEBUG("WPM: Send MISSION_CURRENT ERROR: seq %d out of bounds", seq);
 
 		_mavlink->send_statustext_critical("ERROR: wp index out of bounds");
 	}
