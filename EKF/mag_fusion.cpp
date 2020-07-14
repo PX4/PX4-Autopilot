@@ -784,7 +784,7 @@ void Ekf::fuseHeading()
 
 		// handle special case where yaw measurement is unavailable
 		bool fuse_zero_innov = false;
-		if (_yaw_use_inhibit) {
+		if (_is_yaw_fusion_inhibited) {
 			// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
 			// conditioned covariance matrix developing over time.
 			if (!_control_status.flags.vehicle_at_rest) {
@@ -851,7 +851,7 @@ void Ekf::fuseHeading()
 
 		// handle special case where yaw measurement is unavailable
 		bool fuse_zero_innov = false;
-		if (_yaw_use_inhibit) {
+		if (_is_yaw_fusion_inhibited) {
 			// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
 			// conditioned covariance matrix developing over time.
 			if (!_control_status.flags.vehicle_at_rest) {
