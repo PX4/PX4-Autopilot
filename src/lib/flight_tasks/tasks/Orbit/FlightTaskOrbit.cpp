@@ -173,8 +173,8 @@ bool FlightTaskOrbit::update()
 	bool ret = FlightTaskManualAltitudeSmooth::update();
 
 	// stick input adjusts parameters within a fixed time frame
-	const float r = _r - _sticks_expo(0) * _deltatime * (_radius_max / 8.f);
-	const float v = _v - _sticks_expo(1) * _deltatime * (_velocity_max / 4.f);
+	const float r = _r - _sticks.getPositionExpo()(0) * _deltatime * (_radius_max / 8.f);
+	const float v = _v - _sticks.getPositionExpo()(1) * _deltatime * (_velocity_max / 4.f);
 
 	setRadius(r);
 	setVelocity(v);
@@ -257,7 +257,7 @@ void FlightTaskOrbit::generate_circle_yaw_setpoints(Vector2f center_to_position)
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED:
 		_yaw_setpoint = NAN;
-		_yawspeed_setpoint = _sticks_expo(3);
+		_yawspeed_setpoint = _sticks.getPositionExpo()(3);
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:

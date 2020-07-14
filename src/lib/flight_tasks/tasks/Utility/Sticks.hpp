@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,25 +32,43 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskManual.hpp
+ * @file Sticks.hpp
  *
- * Linear and exponential map from stick inputs to range -1 and 1.
+ * Library abstracting stick input from manual_control_setpoint
  *
+ * @author Matthias Grob <maetugr@gmail.com>
  */
 
 #pragma once
 
-#include "FlightTask.hpp"
-#include "Sticks.hpp"
+#include <px4_platform_common/module_params.h>
+#include <matrix/matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/landing_gear.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
-class FlightTaskManual : public FlightTask
+class Sticks : public ModuleParams
 {
 public:
-	FlightTaskManual();
-	virtual ~FlightTaskManual() = default;
-	bool updateInitialize() override;
+	Sticks(ModuleParams *parent);
+	~Sticks() = default;
 
-protected:
-	Sticks _sticks;
-	bool _sticks_data_required = true; /**< let inherited task-class define if it depends on stick data */
+	bool evaluateSticks(hrt_abstime now, landing_gear_s &gear); ///< checks and sets stick inputs
+	void applyGearSwitch(uint8_t gear_switch, landing_gear_s &gear); ///< Sets gears according to switch
+	const matrix::Vector<float, 4> &getPosition() { return _positions; };
+	const matrix::Vector<float, 4> &getPositionExpo() { return _positions_expo; };
+private:
+	matrix::Vector<float, 4> _positions; ///< unmodified manual stick inputs
+	matrix::Vector<float, 4> _positions_expo; ///< modified manual sticks using expo function
+	int _gear_switch_old = manual_control_setpoint_s::SWITCH_POS_NONE; ///< old switch state
+
+	uORB::SubscriptionData<manual_control_setpoint_s> _sub_manual_control_setpoint{ORB_ID(manual_control_setpoint)};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_HOLD_DZ>) _param_mpc_hold_dz,
+		(ParamFloat<px4::params::MPC_XY_MAN_EXPO>) _param_mpc_xy_man_expo,
+		(ParamFloat<px4::params::MPC_Z_MAN_EXPO>) _param_mpc_z_man_expo,
+		(ParamFloat<px4::params::MPC_YAW_EXPO>) _param_mpc_yaw_expo,
+		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t
+	)
 };
