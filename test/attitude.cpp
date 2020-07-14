@@ -341,29 +341,29 @@ int main()
 
     // get rotation axis from quaternion (nonzero rotation)
     q = Quatf(cos(1.0f / 2), 0.0f, sin(1.0f / 2), 0.0f);
-    rot = q.to_axis_angle();
+    rot = AxisAnglef(q);
     TEST(fabs(rot(0)) < eps);
     TEST(fabs(rot(1) - 1.0f) < eps);
     TEST(fabs(rot(2)) < eps);
 
     // get rotation axis from quaternion (zero rotation)
     q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
-    rot = q.to_axis_angle();
+    rot = AxisAnglef(q);
     TEST(fabs(rot(0)) < eps);
     TEST(fabs(rot(1)) < eps);
     TEST(fabs(rot(2)) < eps);
 
     // from axis angle (zero rotation)
     rot(0) = rot(1) = rot(2) = 0.0f;
-    q.from_axis_angle(rot, 0.0f);
+    q = Quatf(AxisAnglef(rot));
     q_true = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
     TEST(isEqual(q, q_true));
 
     // from axis angle, with length of vector the rotation
     float n = float(sqrt(4*M_PI*M_PI/3));
-    q.from_axis_angle(Vector3f(n, n, n));
+    q = AxisAnglef(n, n, n);
     TEST(isEqual(q, Quatf(-1, 0, 0, 0)));
-    q.from_axis_angle(Vector3f(0, 0, 0));
+    q = AxisAnglef(0, 0, 0);
     TEST(isEqual(q, Quatf(1, 0, 0, 0)));
 
     // Quaternion initialisation per array
@@ -388,13 +388,17 @@ int main()
     TEST(isEqualF(aa_norm_check.angle(), 0.0f));
 
     q = Quatf(-0.29555112749297824f, 0.25532186f,  0.51064372f,  0.76596558f);
+    float r_array[9] = {-0.6949206f, 0.713521f, 0.089292854f, -0.19200698f, -0.30378509f, 0.93319237f, 0.69297814f, 0.63134968f, 0.34810752f};
+    R = Dcmf(r_array);
     TEST(isEqual(q.imag(), Vector3f(0.25532186f,  0.51064372f,  0.76596558f)));
 
     // from dcm
-    TEST(isEqual(Eulerf(q.from_dcm(Dcmf(q))), Eulerf(q)));
+    TEST(isEqual(Quatf(R), q));
+    TEST(isEqual(Quatf(Dcmf(q)), q));
 
     // to dcm
-    TEST(isEqual(Dcmf(q), q.to_dcm()));
+    TEST(isEqual(Dcmf(q), R));
+    TEST(isEqual(Dcmf(Quatf(R)), R));
 
     // conjugate
     v = Vector3f(1.5f, 2.2f, 3.2f);

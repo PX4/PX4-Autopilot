@@ -224,7 +224,6 @@ public:
         q.normalize();
     }
 
-
     /**
      * Constructor from quaternion values
      *
@@ -358,7 +357,6 @@ public:
         *this = this->canonical();
     }
 
-
     /**
      * Return canonical form of the quaternion
      *
@@ -421,82 +419,6 @@ public:
     }
 
     /**
-     * Rotation quaternion from vector
-     *
-     * The axis of rotation is given by vector direction and
-     * the angle is given by the norm.
-     *
-     * @param vec rotation vector
-     * @return quaternion representing the rotation
-     */
-    void from_axis_angle(Vector<Type, 3> vec)
-    {
-        Quaternion &q = *this;
-        Type theta = vec.norm();
-
-        if (theta < Type(1e-10)) {
-            q(0) = Type(1);
-            q(1) = q(2) = q(3) = Type(0);
-            return;
-        }
-
-        vec /= theta;
-        from_axis_angle(vec, theta);
-    }
-
-    /**
-     * Rotation quaternion from axis and angle
-     * XXX DEPRECATED, use AxisAngle class
-     *
-     * @param axis axis of rotation
-     * @param theta scalar describing angle of rotation
-     * @return quaternion representing the rotation
-     */
-    void from_axis_angle(const Vector<Type, 3> &axis, Type theta)
-    {
-        Quaternion &q = *this;
-
-        if (theta < Type(1e-10)) {
-            q(0) = Type(1);
-            q(1) = q(2) = q(3) = Type(0);
-        }
-
-        Type magnitude = sin(theta / 2.0f);
-
-        q(0) = cos(theta / 2.0f);
-        q(1) = axis(0) * magnitude;
-        q(2) = axis(1) * magnitude;
-        q(3) = axis(2) * magnitude;
-    }
-
-
-    /**
-     * Rotation vector from quaternion
-     * XXX DEPRECATED, use AxisAngle class
-     *
-     * The axis of rotation is given by vector direction and
-     * the angle is given by the norm.
-     *
-     * @return vector, direction representing rotation axis and norm representing angle
-     */
-    Vector<Type, 3> to_axis_angle() const
-    {
-        const Quaternion &q = *this;
-        Type axis_magnitude = Type(sqrt(q(1) * q(1) + q(2) * q(2) + q(3) * q(3)));
-        Vector<Type, 3> vec;
-        vec(0) = q(1);
-        vec(1) = q(2);
-        vec(2) = q(3);
-
-        if (axis_magnitude >= Type(1e-10)) {
-            vec = vec / axis_magnitude;
-            vec = vec * wrap_pi(Type(2) * atan2(axis_magnitude, q(0)));
-        }
-
-        return vec;
-    }
-
-    /**
      * Imaginary components of quaternion
      */
     Vector3<Type> imag() const
@@ -525,21 +447,6 @@ public:
         R_z(2) = a * a - b * b - c * c + d * d;
         return R_z;
     }
-
-    /**
-     * XXX DEPRECATED, can use assignment or ctor
-     */
-    Quaternion from_dcm(const Matrix<Type, 3, 3>& dcm) {
-        return Quaternion(Dcm<Type>(dcm));
-    }
-
-    /**
-     * XXX DEPRECATED, can use assignment or ctor
-     */
-    Dcm<Type> to_dcm() {
-        return Dcm<Type>(*this);
-    }
-
 };
 
 typedef Quaternion<float> Quatf;
