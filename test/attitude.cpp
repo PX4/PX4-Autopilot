@@ -307,30 +307,26 @@ int main()
 
     // quaternion setIdentity
     Quatf q_nonIdentity(-0.7f, 0.4f, 0.5f, -0.3f);
-    Quatf q_identity(1.0f, 0.0f, 0.0f, 0.0f);
     q_nonIdentity.setIdentity();
-    TEST(isEqual(q_nonIdentity, q_identity));
+    TEST(isEqual(q_nonIdentity, Quatf()));
 
     // non-unit quaternion invese
-    Quatf qI(1.0f, 0.0f, 0.0f, 0.0f);
     Quatf q_nonunit(0.1f, 0.2f, 0.3f, 0.4f);
-    TEST(isEqual(qI, q_nonunit*q_nonunit.inversed()));
+    TEST(isEqual(q_nonunit*q_nonunit.inversed(), Quatf()));
 
     // rotate quaternion (nonzero rotation)
-    Vector<float, 3> rot;
-    rot(0) = 1.0f;
-    rot(1) = rot(2) = 0.0f;
-    qI.rotate(rot);
+    Vector3f rot(1.f, 0.f, 0.f);
+    Quatf q_test;
+    q_test.rotate(rot);
     Quatf q_true(cos(1.0f / 2), sin(1.0f / 2), 0.0f, 0.0f);
-    TEST(isEqual(qI, q_true));
+    TEST(isEqual(q_test, q_true));
 
     // rotate quaternion (zero rotation)
-    qI = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
-    rot(0) = 0.0f;
-    rot(1) = rot(2) = 0.0f;
-    qI.rotate(rot);
+    rot(0) = rot(1) = rot(2) = 0.0f;
+    q_test = Quatf();
+    q_test.rotate(rot);
     q_true = Quatf(cos(0.0f), sin(0.0f), 0.0f, 0.0f);
-    TEST(isEqual(qI, q_true));
+    TEST(isEqual(q_test, q_true));
 
     // rotate quaternion (random non-commutating rotation)
     q = Quatf(AxisAnglef(5.1f, 3.2f, 8.4f));
