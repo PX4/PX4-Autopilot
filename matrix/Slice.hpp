@@ -34,7 +34,7 @@ public:
         assert(y0 + Q <= N);
     }
 
-    Type operator()(size_t i, size_t j) const
+    const Type &operator()(size_t i, size_t j) const
     {
         assert(i >= 0);
         assert(i < P);

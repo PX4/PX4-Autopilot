@@ -94,7 +94,7 @@ public:
      */
 
 
-    inline Type operator()(size_t i, size_t j) const
+    inline const Type &operator()(size_t i, size_t j) const
     {
         assert(i >= 0);
         assert(i < M);
