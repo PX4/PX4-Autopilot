@@ -174,7 +174,7 @@ public:
             q(1) = q(2) = q(3) = 0;
         } else {
             Type magnitude = sin(angle / Type(2));
-            q(0) = cos(angle / 2.0f);
+            q(0) = cos(angle / Type(2));
             q(1) = axis(0) * magnitude;
             q(2) = axis(1) * magnitude;
             q(3) = axis(2) * magnitude;
