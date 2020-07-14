@@ -64,7 +64,6 @@ bool FlightTaskAuto::updateInitialize()
 	bool ret = FlightTask::updateInitialize();
 
 	_sub_home_position.update();
-	_sub_manual_control_setpoint.update();
 	_sub_vehicle_status.update();
 	_sub_triplet_setpoint.update();
 
