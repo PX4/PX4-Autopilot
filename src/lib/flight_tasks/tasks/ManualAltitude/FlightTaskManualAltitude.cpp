@@ -42,9 +42,19 @@
 
 using namespace matrix;
 
+FlightTaskManualAltitude::FlightTaskManualAltitude() :
+	_sticks(this)
+{};
+
 bool FlightTaskManualAltitude::updateInitialize()
 {
-	bool ret = FlightTaskManual::updateInitialize();
+	bool ret = FlightTask::updateInitialize();
+
+	const bool sticks_available = _sticks.evaluateSticks(_time_stamp_current, _gear);
+
+	if (_sticks_data_required) {
+		ret = ret && sticks_available;
+	}
 
 	// in addition to manual require valid position and velocity in D-direction and valid yaw
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
@@ -52,7 +62,7 @@ bool FlightTaskManualAltitude::updateInitialize()
 
 bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskManual::activate(last_setpoint);
+	bool ret = FlightTask::activate(last_setpoint);
 	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.f;
 	_acceleration_setpoint = Vector3f(0.f, 0.f, NAN); // altitude is controlled from position/velocity
@@ -365,7 +375,7 @@ bool FlightTaskManualAltitude::_checkTakeoff()
 
 bool FlightTaskManualAltitude::update()
 {
-	bool ret = FlightTaskManual::update();
+	bool ret = FlightTask::update();
 	_updateConstraintsFromEstimator();
 	_scaleSticks();
 	_updateSetpoints();
