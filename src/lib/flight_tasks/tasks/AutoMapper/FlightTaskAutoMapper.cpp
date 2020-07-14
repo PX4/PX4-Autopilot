@@ -40,6 +40,10 @@
 
 using namespace matrix;
 
+FlightTaskAutoMapper::FlightTaskAutoMapper() :
+	_sticks(this)
+{};
+
 bool FlightTaskAutoMapper::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	bool ret = FlightTaskAuto::activate(last_setpoint);
@@ -176,15 +180,6 @@ bool FlightTaskAutoMapper::_highEnoughForLandingGear()
 
 float FlightTaskAutoMapper::_getLandSpeed()
 {
-	bool rc_assist_enabled = _param_mpc_land_rc_help.get();
-	bool rc_is_valid = !_sub_vehicle_status.get().rc_signal_lost;
-
-	float throttle = 0.5f;
-
-	if (rc_is_valid && rc_assist_enabled) {
-		throttle = _sub_manual_control_setpoint.get().z;
-	}
-
 	float speed = 0;
 
 	if (_dist_to_ground > _param_mpc_land_alt1.get()) {
@@ -194,13 +189,18 @@ float FlightTaskAutoMapper::_getLandSpeed()
 		const float land_speed = math::gradual(_dist_to_ground,
 						       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
 						       _param_mpc_land_speed.get(), _constraints.speed_down);
-		const float head_room = _constraints.speed_down - land_speed;
 
-		speed = land_speed + 2 * (0.5f - throttle) * head_room;
+		// user input assisted land speed
+		if (_param_mpc_land_rc_help.get()) {
+			_sticks.evaluateSticks(_time_stamp_current);
+			const float head_room = _constraints.speed_down - land_speed;
 
-		// Allow minimum assisted land speed to be half of parameter
-		if (speed < land_speed * 0.5f) {
-			speed = land_speed * 0.5f;
+			speed = land_speed + _sticks.getPositionExpo()(2) * head_room;
+
+			// Allow minimum assisted land speed to be half of parameter
+			if (speed < land_speed * 0.5f) {
+				speed = land_speed * 0.5f;
+			}
 		}
 	}
 
