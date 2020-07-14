@@ -50,10 +50,11 @@ bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
 
-	const bool sticks_available = _sticks.evaluateSticks(_time_stamp_current, _gear);
+	_sticks.evaluateSticks(_time_stamp_current);
+	_sticks.applyGearSwitch(_gear);
 
 	if (_sticks_data_required) {
-		ret = ret && sticks_available;
+		ret = ret && _sticks.isAvailable();
 	}
 
 	// in addition to manual require valid position and velocity in D-direction and valid yaw
