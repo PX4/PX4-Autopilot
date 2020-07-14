@@ -38,7 +38,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-#include <systemlib/cpuload.h>
+#include <px4_platform/cpuload.h>
 
 #include <fcntl.h>
 

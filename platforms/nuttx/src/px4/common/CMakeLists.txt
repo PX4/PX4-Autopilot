@@ -39,7 +39,9 @@ if(NOT PX4_BOARD MATCHES "px4_io")
 		board_dma_alloc.c
 		board_fat_dma_alloc.c
 		console_buffer.cpp
+		cpuload.cpp
 		gpio.c
+		print_load.cpp
 		tasks.cpp
 		px4_nuttx_impl.cpp
 		px4_init.cpp
