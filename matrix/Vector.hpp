@@ -40,7 +40,7 @@ public:
     {
     }
 
-    inline Type operator()(size_t i) const
+    inline const Type &operator()(size_t i) const
     {
         assert(i >= 0);
         assert(i < M);
