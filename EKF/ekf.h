@@ -380,7 +380,7 @@ private:
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements
 
-	bool _yaw_use_inhibit{false};		///< true when yaw sensor use is being inhibited
+	bool _is_yaw_fusion_inhibited{false};		///< true when yaw sensor use is being inhibited
 
 	SquareMatrix24f P;	///< state covariance matrix
 

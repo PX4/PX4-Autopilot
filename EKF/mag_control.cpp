@@ -52,7 +52,7 @@ void Ekf::controlMagFusion()
 	if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
 		if (noOtherYawAidingThanMag())
 		{
-			_yaw_use_inhibit = true;
+			_is_yaw_fusion_inhibited = true;
 			fuseHeading();
 		}
 		return;
@@ -156,7 +156,7 @@ void Ekf::runOnGroundYawReset()
 
 bool Ekf::isYawResetAuthorized() const
 {
-	return !_yaw_use_inhibit;
+	return !_is_yaw_fusion_inhibited;
 }
 
 bool Ekf::canResetMagHeading() const
@@ -268,8 +268,8 @@ void Ekf::checkMagDeclRequired()
 
 void Ekf::checkMagInhibition()
 {
-	_yaw_use_inhibit = shouldInhibitMag();
-	if (!_yaw_use_inhibit) {
+	_is_yaw_fusion_inhibited = shouldInhibitMag();
+	if (!_is_yaw_fusion_inhibited) {
 		_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
 	}
 

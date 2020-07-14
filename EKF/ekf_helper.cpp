@@ -518,7 +518,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 			yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 		}
 
-	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _yaw_use_inhibit) {
+	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _is_yaw_fusion_inhibited) {
 		// we are operating temporarily without knowing the earth frame yaw angle
 		return true;
 
