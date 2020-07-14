@@ -136,7 +136,6 @@ public:
     void uncorrelateCovariance(size_t first)
     {
         static_assert(Width <= M, "Width bigger than matrix");
-        assert(first >= 0);
         assert(first + Width <= M);
 
         SquareMatrix<Type, M> &self = *this;
@@ -148,7 +147,6 @@ public:
     void uncorrelateCovarianceSetVariance(size_t first, const Vector<Type, Width> &vec)
     {
         static_assert(Width <= M, "Width bigger than matrix");
-        assert(first >= 0);
         assert(first + Width <= M);
 
         SquareMatrix<Type, M> &self = *this;
@@ -168,7 +166,6 @@ public:
     void uncorrelateCovarianceSetVariance(size_t first, Type val)
     {
         static_assert(Width <= M, "Width bigger than matrix");
-        assert(first >= 0);
         assert(first + Width <= M);
 
         SquareMatrix<Type, M> &self = *this;
@@ -187,7 +184,6 @@ public:
     void makeBlockSymmetric(size_t first)
     {
         static_assert(Width <= M, "Width bigger than matrix");
-        assert(first >= 0);
         assert(first + Width <= M);
 
         SquareMatrix<Type, M> &self = *this;
@@ -207,7 +203,6 @@ public:
     void makeRowColSymmetric(size_t first)
     {
         static_assert(Width <= M, "Width bigger than matrix");
-        assert(first >= 0);
         assert(first + Width <= M);
 
         SquareMatrix<Type, M> &self = *this;
@@ -231,7 +226,6 @@ public:
     bool isBlockSymmetric(size_t first, const Type eps = 1e-8f)
     {
         static_assert(Width <= M, "Width bigger than matrix");
-        assert(first >= 0);
         assert(first + Width <= M);
 
         SquareMatrix<Type, M> &self = *this;
@@ -252,7 +246,6 @@ public:
     bool isRowColSymmetric(size_t first, const Type eps = 1e-8f)
     {
         static_assert(Width <= M, "Width bigger than matrix");
-        assert(first >= 0);
         assert(first + Width <= M);
 
         SquareMatrix<Type, M> &self = *this;
