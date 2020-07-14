@@ -39,7 +39,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -181,7 +181,8 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_MOTOR_SLEW_MAX] = 0,
 	[PX4IO_P_SETUP_AIRMODE] = 0,
 	[PX4IO_P_SETUP_THR_MDL_FAC] = 0,
-	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE
+	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE,
+	[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION] = 0
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | \
@@ -190,6 +191,7 @@ volatile uint16_t	r_page_setup[] = {
 		PX4IO_P_SETUP_FEATURES_PWM_RSSI)
 
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
+		PX4IO_P_SETUP_ARMING_FMU_PREARMED | \
 		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 		PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
 		PX4IO_P_SETUP_ARMING_IO_ARM_OK | \
@@ -288,6 +290,8 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			num_values--;
 			values++;
 		}
+
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
 		system_state.fmu_data_received_time = hrt_absolute_time();
 
@@ -712,6 +716,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
 		case PX4IO_P_SETUP_AIRMODE:
 		case PX4IO_P_SETUP_THERMAL:
+		case PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION:
 			r_page_setup[offset] = value;
 			break;
 

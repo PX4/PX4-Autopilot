@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * OCPOC internal definitions
+ * Aerotenna Ocpoc internal definitions
  */
 
 #pragma once
@@ -43,18 +43,19 @@
 #define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_OCPOC
 
 #define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
 
-#define BOARD_NUMBER_I2C_BUSES 4
 #define BOARD_MAX_LEDS 1 // Number of external LED's this board has
-#define PX4_I2C_BUS_LED 1
-#define PX4_I2C_BUS_EXPANSION 1
 
-// Battery ADC channels
-#define ADC_BATTERY_VOLTAGE_CHANNEL     10
-#define ADC_BATTERY_CURRENT_CHANNEL     ((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL    11
+#define PX4_NUMBER_I2C_BUSES   4
+
+#define PX4_I2C_BUS_LED 1
+
+// ADC channels:
+#define ADC_CHANNELS (1 << 8)
+
+#define ADC_BATTERY_VOLTAGE_CHANNEL  8
+#define ADC_BATTERY_CURRENT_CHANNEL  ((uint8_t)(-1))
+
 
 #include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>

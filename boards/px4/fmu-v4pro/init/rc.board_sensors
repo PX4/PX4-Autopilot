@@ -3,20 +3,21 @@
 # PX4 FMUv4pro specific board sensors init
 #------------------------------------------------------------------------------
 
-# Internal SPI bus ICM-20608-G
-mpu6000 -R 2 -T 20608 start
+rgbled start -I
 
-# Internal SPI bus ICM-20602
-mpu6000 -R 2 -T 20602 start
+adc start
+
+# Internal SPI bus ICM-20602 or ICM-20608-G
+if ! icm20602 -s -R 8 start
+then
+	icm20608g -s -R 8 start
+fi
 
 # Internal SPI bus mpu9250
-mpu9250 -R 2 start
+mpu9250 -s -R 8 start
 
 # Internal SPI bus
-lis3mdl -R 0 start
+lis3mdl -s -R 0 start
 
-# Possible external compasses
-hmc5883 -C -T -X start
-
-# RM3100
-rm3100 start
+# Internal SPI
+ms5611 -s start

@@ -39,7 +39,7 @@
 #include "uORB/uORBCommunicator.hpp"
 #include <semaphore.h>
 #include <set>
-#include <px4_sem.h>
+#include <px4_platform_common/sem.h>
 
 namespace uORB
 {

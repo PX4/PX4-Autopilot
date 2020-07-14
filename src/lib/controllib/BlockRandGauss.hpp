@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -69,7 +69,7 @@ public:
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	}
-	virtual ~BlockRandGauss() {}
+	virtual ~BlockRandGauss() = default;
 	float update()
 	{
 		static float V1, V2, S;
@@ -78,8 +78,8 @@ public:
 
 		if (phase == 0) {
 			do {
-				float U1 = (float)rand() / RAND_MAX;
-				float U2 = (float)rand() / RAND_MAX;
+				float U1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+				float U2 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 				V1 = 2 * U1 - 1;
 				V2 = 2 * U2 - 1;
 				S = V1 * V1 + V2 * V2;

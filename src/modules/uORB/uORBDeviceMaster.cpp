@@ -40,8 +40,14 @@
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
-#include <px4_sem.hpp>
+#include <px4_platform_common/sem.hpp>
 #include <systemlib/px4_macros.h>
+
+#include <math.h>
+
+#ifndef __PX4_QURT // QuRT has no poll()
+#include <poll.h>
+#endif // PX4_QURT
 
 uORB::DeviceMaster::DeviceMaster()
 {
@@ -54,8 +60,7 @@ uORB::DeviceMaster::~DeviceMaster()
 	px4_sem_destroy(&_lock);
 }
 
-int
-uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, int priority)
+int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, ORB_PRIO priority)
 {
 	int ret = PX4_ERROR;
 
@@ -102,10 +107,10 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 			return -ENOMEM;
 		}
 
-		/* construct the new node */
+		/* construct the new node, passing the ownership of path to it */
 		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath, priority);
 
-		/* if we didn't get a device, that's bad */
+		/* if we didn't get a device, that's bad, free the path too */
 		if (node == nullptr) {
 			free((void *)devpath);
 			return -ENOMEM;
@@ -119,26 +124,47 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 			delete node;
 
 			if (ret == -EEXIST) {
-				/* if the node exists already, get the existing one and check if
-				 * something has been published yet. */
+				/* if the node exists already, get the existing one and check if it's advertised. */
 				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
 
-				if ((existing_node != nullptr) && !(existing_node->is_published())) {
-					/* nothing has been published yet, lets claim it */
-					existing_node->set_priority(priority);
+				/*
+				 * We can claim an existing node in these cases:
+				 * - The node is not advertised (yet). It means there is already one or more subscribers or it was
+				 *   unadvertised.
+				 * - We are a single-instance advertiser requesting the first instance.
+				 *   (Usually we don't end up here, but we might in case of a race condition between 2
+				 *   advertisers).
+				 * - We are a subscriber requesting a certain instance.
+				 *   (Also we usually don't end up in that case, but we might in case of a race condtion
+				 *   between an advertiser and subscriber).
+				 */
+				bool is_single_instance_advertiser = is_advertiser && !instance;
+
+				if (existing_node != nullptr &&
+				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
+					if (is_advertiser) {
+						existing_node->set_priority((ORB_PRIO)priority);
+						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
+						 * could get the same instance).
+						 */
+						existing_node->mark_as_advertised();
+					}
+
 					ret = PX4_OK;
 
 				} else {
-					/* otherwise: data has already been published, keep looking */
+					/* otherwise: already advertised, keep looking */
 				}
 			}
 
-			/* also discard the name now */
-			free((void *)devpath);
-
 		} else {
-			// add to the node map;.
+			if (is_advertiser) {
+				node->mark_as_advertised();
+			}
+
+			// add to the node map.
 			_node_list.add(node);
+			_node_exists[node->get_instance()].set((uint8_t)node->id(), true);
 		}
 
 		group_tries++;
@@ -161,22 +187,38 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 	PX4_INFO("TOPIC, NR LOST MSGS");
 	bool had_print = false;
 
+	/* Add all nodes to a list while locked, and then print them in unlocked state, to avoid potential
+	 * dead-locks (where printing blocks) */
 	lock();
+	DeviceNodeStatisticsData *first_node = nullptr;
+	DeviceNodeStatisticsData *cur_node = nullptr;
+	size_t max_topic_name_length = 0;
+	int num_topics = 0;
+	int ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, nullptr, 0);
+	unlock();
 
-	for (const auto &node : _node_list) {
-		if (node->print_statistics(reset)) {
-			had_print = true;
-		}
+	if (ret != 0) {
+		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
 	}
 
-	unlock();
+	cur_node = first_node;
+
+	while (cur_node) {
+		if (cur_node->node->print_statistics(reset)) {
+			had_print = true;
+		}
+
+		DeviceNodeStatisticsData *prev = cur_node;
+		cur_node = cur_node->next;
+		delete prev;
+	}
 
 	if (!had_print) {
 		PX4_INFO("No lost messages");
 	}
 }
 
-void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
+int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
 		size_t &max_topic_name_length, char **topic_filter, int num_filters)
 {
 	DeviceNodeStatisticsData *cur_node = nullptr;
@@ -227,8 +269,7 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		}
 
 		if (!last_node) {
-			PX4_ERR("mem alloc failed");
-			break;
+			return -ENOMEM;
 		}
 
 		last_node->node = node;
@@ -242,6 +283,8 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		last_node->last_lost_msg_count = last_node->node->lost_message_count();
 		last_node->last_pub_msg_count = last_node->node->published_message_count();
 	}
+
+	return 0;
 }
 
 #define CLEAR_LINE "\033[K"
@@ -249,13 +292,25 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 {
 	bool print_active_only = true;
+	bool only_once = false; // if true, run only once, then exit
 
 	if (topic_filter && num_filters > 0) {
-		if (!strcmp("-a", topic_filter[0])) {
-			num_filters = 0;
+		bool show_all = false;
+
+		for (int i = 0; i < num_filters; ++i) {
+			if (!strcmp("-a", topic_filter[i])) {
+				show_all = true;
+
+			} else if (!strcmp("-1", topic_filter[i])) {
+				only_once = true;
+			}
 		}
 
-		print_active_only = false; // print non-active if -a or some filter given
+		print_active_only = only_once ? (num_filters == 1) : false; // print non-active if -a or some filter given
+
+		if (show_all || print_active_only) {
+			num_filters = 0;
+		}
 	}
 
 	PX4_INFO_RAW("\033[2J\n"); //clear screen
@@ -272,13 +327,17 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 	DeviceNodeStatisticsData *cur_node = nullptr;
 	size_t max_topic_name_length = 0;
 	int num_topics = 0;
-	addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+	int ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
 
 	/* a DeviceNode is never deleted, so it's save to unlock here and still access the DeviceNodes */
 	unlock();
 
-#ifdef __PX4_QURT //QuRT has no poll()
-	int num_runs = 0;
+	if (ret != 0) {
+		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
+	}
+
+#ifdef __PX4_QURT // QuRT has no poll()
+	only_once = true;
 #else
 	const int stdin_fileno = 0;
 
@@ -292,31 +351,30 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 	while (!quit) {
 
-#ifdef __PX4_QURT
+#ifndef __PX4_QURT
 
-		if (++num_runs > 1) {
-			quit = true; //just exit after one output
-		}
+		if (!only_once) {
+			/* Sleep 200 ms waiting for user input five times ~ 1.4s */
+			for (int k = 0; k < 7; k++) {
+				char c;
 
-#else
+				ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
 
-		/* Sleep 200 ms waiting for user input five times ~ 1s */
-		for (int k = 0; k < 5; k++) {
-			char c;
+				if (ret > 0) {
 
-			int ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
+					ret = ::read(stdin_fileno, &c, 1);
 
-			if (ret > 0) {
-
-				ret = ::read(stdin_fileno, &c, 1);
-
-				if (ret) {
-					quit = true;
-					break;
+					if (ret) {
+						quit = true;
+						break;
+					}
 				}
+
+				px4_usleep(200000);
 			}
 
-			px4_usleep(200000);
+		} else {
+			px4_usleep(2000000); // 2 seconds
 		}
 
 #endif
@@ -331,8 +389,8 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			while (cur_node) {
 				uint32_t num_lost = cur_node->node->lost_message_count();
 				unsigned int num_msgs = cur_node->node->published_message_count();
-				cur_node->pub_msg_delta = (num_msgs - cur_node->last_pub_msg_count) / dt;
-				cur_node->lost_msg_delta = (num_lost - cur_node->last_lost_msg_count) / dt;
+				cur_node->pub_msg_delta = roundf((num_msgs - cur_node->last_pub_msg_count) / dt);
+				cur_node->lost_msg_delta = roundf((num_lost - cur_node->last_lost_msg_count) / dt);
 				cur_node->last_lost_msg_count = num_lost;
 				cur_node->last_pub_msg_count = num_msgs;
 				cur_node = cur_node->next;
@@ -341,26 +399,42 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			start_time = current_time;
 
 
-			PX4_INFO_RAW("\033[H"); // move cursor home and clear screen
+			if (!only_once) {
+				PX4_INFO_RAW("\033[H"); // move cursor to top left corner
+			}
+
 			PX4_INFO_RAW(CLEAR_LINE "update: 1s, num topics: %i\n", num_topics);
-			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB #MSG #LOST #QSIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #LOST #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 			cur_node = first_node;
 
 			while (cur_node) {
 
-				if (!print_active_only || cur_node->pub_msg_delta > 0) {
-					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %5i %i\n", (int)max_topic_name_length,
+				if (!print_active_only || (cur_node->pub_msg_delta > 0 && cur_node->node->subscriber_count() > 0)) {
+					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %5i %2i %4i \n", (int)max_topic_name_length,
 						     cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
 						     (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
-						     (int)cur_node->lost_msg_delta, cur_node->node->get_queue_size());
+						     (int)cur_node->lost_msg_delta, cur_node->node->get_queue_size(), cur_node->node->get_meta()->o_size);
 				}
 
 				cur_node = cur_node->next;
 			}
 
+			if (!only_once) {
+				PX4_INFO_RAW("\033[0J"); // clear the rest of the screen
+			}
+
 			lock();
-			addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+			ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
 			unlock();
+
+			if (ret != 0) {
+				PX4_ERR("addNewDeviceNodes failed (%i)", ret);
+			}
+
+		}
+
+		if (only_once) {
+			quit = true;
 		}
 	}
 
@@ -392,8 +466,25 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 	return nullptr;
 }
 
+bool uORB::DeviceMaster::deviceNodeExists(ORB_ID id, const uint8_t instance)
+{
+	if ((id == ORB_ID::INVALID) || (instance > ORB_MULTI_MAX_INSTANCES - 1)) {
+		return false;
+	}
+
+	return _node_exists[instance][(uint8_t)id];
+}
+
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
 {
+	if (meta == nullptr) {
+		return nullptr;
+	}
+
+	if (!deviceNodeExists(static_cast<ORB_ID>(meta->o_id), instance)) {
+		return nullptr;
+	}
+
 	lock();
 	uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
 	unlock();

@@ -37,282 +37,28 @@
  */
 
 #include "bmm150.hpp"
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-/** driver 'main' command */
-extern "C" { __EXPORT int bmm150_main(int argc, char *argv[]); }
-
-
-namespace bmm150
+BMM150::BMM150(I2CSPIBusOption bus_option, const int bus, int bus_frequency, enum Rotation rotation) :
+	I2C(DRV_MAG_DEVTYPE_BMM150, MODULE_NAME, bus, BMM150_SLAVE_ADDRESS, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
+	_good_transfers(perf_alloc(PC_COUNT, MODULE_NAME": good transfers")),
+	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors")),
+	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicates"))
 {
+	_px4_mag.set_external(external());
 
-BMM150 *g_dev_ext;
-BMM150 *g_dev_int;
-
-void start(bool, enum Rotation);
-void test(bool);
-void reset(bool);
-void info(bool);
-void regdump(bool external_bus);
-void usage();
-
-
-/**
- * Start the driver.
- *
- * This function only returns if the driver is up and running
- * or failed to detect the sensor.
- */
-void start(bool external_bus, enum Rotation rotation)
-{
-	int fd;
-	BMM150 **g_dev_ptr = (external_bus ? &g_dev_ext : &g_dev_int);
-	const char *path = (external_bus ? BMM150_DEVICE_PATH_MAG_EXT : BMM150_DEVICE_PATH_MAG);
-
-	if (*g_dev_ptr != nullptr)
-		/* if already started, the still command succeeded */
-	{
-		PX4_ERR("already started");
-		exit(0);
-	}
-
-	/* create the driver */
-	if (external_bus) {
-#if defined(PX4_I2C_BUS_EXPANSION)
-		*g_dev_ptr = new BMM150(PX4_I2C_BUS_EXPANSION, path, rotation);
-#else
-		PX4_ERR("External I2C not available");
-		exit(0);
-#endif
-
-	} else {
-		PX4_ERR("Internal I2C not available");
-		exit(0);
-	}
-
-	if (*g_dev_ptr == nullptr) {
-		goto fail;
-	}
-
-
-	if (OK != (*g_dev_ptr)->init()) {
-		goto fail;
-	}
-
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(path, O_RDONLY);
-
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	close(fd);
-
-	exit(0);
-fail:
-
-	if (*g_dev_ptr != nullptr) {
-		delete (*g_dev_ptr);
-		*g_dev_ptr = nullptr;
-	}
-
-	PX4_ERR("driver start failed");
-	exit(1);
-
+	// default range scale from uT to gauss
+	_px4_mag.set_scale(0.01f);
 }
 
-
-void test(bool external_bus)
+BMM150::~BMM150()
 {
-	int fd = -1;
-	const char *path = (external_bus ? BMM150_DEVICE_PATH_MAG_EXT : BMM150_DEVICE_PATH_MAG);
-	struct mag_report m_report;
-	ssize_t sz;
-
-
-	/* get the driver */
-	fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("%s open failed (try 'bmm150 start' if the driver is not running)", path);
-		exit(1);
-	}
-
-	/* reset to default polling rate*/
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		PX4_ERR("reset to Max polling rate");
-		exit(1);
-	}
-
-	/* do a simple demand read */
-	sz = read(fd, &m_report, sizeof(m_report));
-
-	if (sz != sizeof(m_report)) {
-		PX4_ERR("immediate mag read failed");
-		exit(1);
-	}
-
-	PX4_WARN("single read");
-	PX4_WARN("time:     %lld", m_report.timestamp);
-	PX4_WARN("mag  x:  \t%8.4f\t", (double)m_report.x);
-	PX4_WARN("mag  y:  \t%8.4f\t", (double)m_report.y);
-	PX4_WARN("mag  z:  \t%8.4f\t", (double)m_report.z);
-	PX4_WARN("mag  x:  \t%d\traw 0x%0x", (short)m_report.x_raw, (unsigned short)m_report.x_raw);
-	PX4_WARN("mag  y:  \t%d\traw 0x%0x", (short)m_report.y_raw, (unsigned short)m_report.y_raw);
-	PX4_WARN("mag  z:  \t%d\traw 0x%0x", (short)m_report.z_raw, (unsigned short)m_report.z_raw);
-
-	PX4_ERR("PASS");
-	exit(0);
-
-}
-
-
-void
-reset(bool external_bus)
-{
-	const char *path = external_bus ? BMM150_DEVICE_PATH_MAG_EXT : BMM150_DEVICE_PATH_MAG;
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("failed");
-		exit(1);
-	}
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		PX4_ERR("driver reset failed");
-		exit(1);
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		PX4_ERR("driver poll restart failed");
-		exit(1);
-	}
-
-	exit(0);
-
-}
-
-void
-info(bool external_bus)
-{
-	BMM150 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
-
-	if (*g_dev_ptr == nullptr) {
-		PX4_ERR("driver not running");
-		exit(1);
-	}
-
-	printf("state @ %p\n", *g_dev_ptr);
-	(*g_dev_ptr)->print_info();
-
-	exit(0);
-
-}
-
-/**
- * Dump the register information
- */
-void
-regdump(bool external_bus)
-{
-	BMM150 **g_dev_ptr = external_bus ? &g_dev_ext : &g_dev_int;
-
-	if (*g_dev_ptr == nullptr) {
-		PX4_ERR("driver not running");
-		exit(1);
-	}
-
-	printf("regdump @ %p\n", *g_dev_ptr);
-	(*g_dev_ptr)->print_registers();
-
-	exit(0);
-}
-
-void
-usage()
-{
-	PX4_WARN("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump'");
-	PX4_WARN("options:");
-	PX4_WARN("    -X    (external bus)");
-
-}
-
-} // namespace bmm150
-
-
-BMM150 :: BMM150(int bus, const char *path, enum Rotation rotation) :
-	I2C("BMM150", path, bus, BMM150_SLAVE_ADDRESS, BMM150_BUS_SPEED),
-	_running(false),
-	_call_interval(0),
-	_reports(nullptr),
-	_collect_phase(false),
-	_scale{},
-	_range_scale(0.01), /* default range scale from from uT to gauss */
-	_topic(nullptr),
-	_orb_class_instance(-1),
-	_class_instance(-1),
-	_power(BMM150_DEFAULT_POWER_MODE),
-	_output_data_rate(BMM150_DATA_RATE_30HZ),
-	_calibrated(false),
-	dig_x1(0),
-	dig_y1(0),
-	dig_x2(0),
-	dig_y2(0),
-	dig_z1(0),
-	dig_z2(0),
-	dig_z3(0),
-	dig_z4(0),
-	dig_xy1(0),
-	dig_xy2(0),
-	dig_xyz1(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "bmm150_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "bmm150_bad_transfers")),
-	_good_transfers(perf_alloc(PC_COUNT, "bmm150_good_transfers")),
-	_measure_perf(perf_alloc(PC_ELAPSED, "bmp280_measure")),
-	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors")),
-	_duplicates(perf_alloc(PC_COUNT, "bmm150_duplicates")),
-	_rotation(rotation),
-	_got_duplicate(false)
-{
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_BMM150;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
-
-	// default scaling
-	_scale.x_offset = 0;
-	_scale.x_scale = 1.0f;
-	_scale.y_offset = 0;
-	_scale.y_scale = 1.0f;
-	_scale.z_offset = 0;
-	_scale.z_scale = 1.0f;
-}
-
-BMM150 :: ~BMM150()
-{
-	/* make sure we are truly inactive */
-	stop();
-
-	/* free any existing reports */
-	if (_reports != nullptr) {
-		delete _reports;
-	}
-
-
-	if (_class_instance != -1) {
-		unregister_class_devname(MAG_BASE_DEVICE_PATH, _class_instance);
-	}
-
-	if (_topic != nullptr) {
-		orb_unadvertise(_topic);
-	}
-
-
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
@@ -320,15 +66,11 @@ BMM150 :: ~BMM150()
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
 	perf_free(_duplicates);
-
 }
 
 int BMM150::init()
 {
-	int ret = OK;
-
-	/* do I2C init (and probe) first */
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
@@ -336,21 +78,14 @@ int BMM150::init()
 		return ret;
 	}
 
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
-
-	if (_reports == nullptr) {
-		goto out;
-	}
-
 	/* Bring the device to sleep mode */
 	modify_reg(BMM150_POWER_CTRL_REG, 1, 1);
-	up_udelay(10000);
 
+	px4_usleep(10000);
 
-	/* check  id*/
+	/* check id*/
 	if (read_reg(BMM150_CHIP_ID_REG) != BMM150_CHIP_ID) {
-		PX4_WARN("id of magnetometer is not: 0x%02x", BMM150_CHIP_ID);
+		DEVICE_DEBUG("id of magnetometer is not: 0x%02x", BMM150_CHIP_ID);
 		return -EIO;
 	}
 
@@ -360,36 +95,24 @@ int BMM150::init()
 
 	init_trim_registers();
 
-	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
-
 	if (measure()) {
 		return -EIO;
 	}
 
-	up_udelay(10000);
+	px4_usleep(10000);
 
 	if (collect()) {
 		return -EIO;
 	}
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	struct mag_report mrb;
-	_reports->get(&mrb);
-
-	/* measurement will have generated a report, publish */
-	_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrb,
-				     &_orb_class_instance, (external()) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
-
-	if (_topic == nullptr) {
-		PX4_WARN("ADVERT FAIL");
-	}
+	_call_interval = 1000000 / BMM150_MAX_DATA_RATE;
+	start();
 
 out:
 	return ret;
 }
 
-int
-BMM150::probe()
+int BMM150::probe()
 {
 	/* During I2C Initialization, sensor is in suspend mode
 	 * and chip Id will return 0x00, hence returning OK. After
@@ -401,130 +124,36 @@ BMM150::probe()
 	return OK;
 }
 
-
-void
-BMM150::start()
+void BMM150::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
-	_running = true;
-	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&BMM150::cycle_trampoline, this, 1);
-
+	ScheduleNow();
 }
 
-void
-BMM150::stop()
-{
-	_running = false;
-	work_cancel(HPWORK, &_work);
-
-}
-
-ssize_t
-BMM150::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(mag_report);
-	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
-	int ret = 0;
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is enabled */
-	if (_call_interval > 0) {
-		/*
-		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the workq thread while we are doing this;
-		 * we are careful to avoid racing with them.
-		 */
-		while (count--) {
-			if (_reports->get(mag_buf)) {
-				ret += sizeof(struct mag_report);
-				mag_buf++;
-			}
-		}
-
-		/* if there was no data, warn the caller */
-		return ret ? ret : -EAGAIN;
-	}
-
-	/* manual measurement - run one conversion */
-	/* XXX really it'd be nice to lock against other readers here */
-	do {
-		_reports->flush();
-
-		/* trigger a measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* wait for it to complete */
-		usleep(BMM150_CONVERSION_INTERVAL);
-
-		/* run the collection phase */
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
-
-
-		if (_reports->get(mag_buf)) {
-			ret = sizeof(struct mag_report);
-		}
-	} while (0);
-
-	/* return the number of bytes transferred */
-	return ret;
-
-}
-
-
-void
-BMM150::cycle_trampoline(void *arg)
-{
-	BMM150 *dev = reinterpret_cast<BMM150 *>(arg);
-
-	/* make measurement */
-	dev->cycle();
-}
-
-void
-BMM150::cycle()
+void BMM150::RunImpl()
 {
 	if (_collect_phase) {
 		collect();
-		unsigned wait_gap = _call_interval - USEC2TICK(BMM150_CONVERSION_INTERVAL);
+		unsigned wait_gap = _call_interval - BMM150_CONVERSION_INTERVAL;
 
-		if ((wait_gap != 0) && (_running)) {
-			work_queue(HPWORK, &_work, (worker_t)&BMM150::cycle_trampoline, this,
-				   wait_gap); //need to wait some time before new measurement
+		if (wait_gap != 0) {
+			// need to wait some time before new measurement
+			ScheduleDelayed(wait_gap);
+
 			return;
 		}
-
 	}
 
 	measure();
 
-	if ((_running)) {
-		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK,
-			   &_work,
-			   (worker_t)&BMM150::cycle_trampoline,
-			   this,
-			   USEC2TICK(BMM150_CONVERSION_INTERVAL));
-	}
-
-
+	/* schedule a fresh cycle call when the measurement is done */
+	ScheduleDelayed(BMM150_CONVERSION_INTERVAL);
 }
 
-int
-BMM150::measure()
+int BMM150::measure()
 {
 	_collect_phase = true;
 
@@ -544,25 +173,27 @@ BMM150::measure()
 	return OK;
 }
 
-
-
-int
-BMM150::collect()
+int BMM150::collect()
 {
 	_collect_phase = false;
 
-	bool mag_notify = true;
-	uint8_t mag_data[8], status;
+	uint8_t mag_data[8];
 	uint16_t resistance, lsb, msb, msblsb;
-	mag_report  mrb;
 
+	int16_t x_raw{0};
+	int16_t y_raw{0};
+	int16_t z_raw{0};
+
+	float x{0.f};
+	float y{0.f};
+	float z{0.f};
 
 	/* start collecting data */
 	perf_begin(_sample_perf);
 
-	status = read_reg(BMM150_R_LSB);
-
 	/* Read Magnetometer data*/
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
 	if (OK != get_data(BMM150_DATA_X_LSB_REG, mag_data, sizeof(mag_data))) {
 		return -EIO;
 	}
@@ -579,44 +210,42 @@ BMM150::collect()
 	*/
 
 	/* Extract X axis data */
-	lsb = ((mag_data[0] & 0xF8) >> 3);
-	msb = (((int8_t)mag_data[1]) << 5);
+	lsb = ((mag_data[0] & 0xF8));
+	msb = ((uint16_t)(mag_data[1]) << 8);
 	msblsb = (msb | lsb);
-	mrb.x_raw = (int16_t)msblsb;
+	x_raw = (int16_t)msblsb / 8;
 
 
 	/* Extract Y axis data */
-	lsb = ((mag_data[2] & 0xF8) >> 3);
-	msb = (((int8_t)mag_data[3]) << 5);
+	lsb = ((mag_data[2] & 0xF8));
+	msb = (((uint16_t)(mag_data[3])) << 8);
 	msblsb = (msb | lsb);
-	mrb.y_raw = (int16_t)msblsb;
+	y_raw = (int16_t)msblsb / 8;
 
 	/* Extract Z axis data */
-	lsb = ((mag_data[4] & 0xFE) >> 1);
-	msb = (((int8_t)mag_data[5]) << 7);
+	lsb = ((mag_data[4] & 0xFE));
+	msb = (((uint16_t)(mag_data[5])) << 8);
 	msblsb = (msb | lsb);
-	mrb.z_raw = (int16_t)msblsb;
+	z_raw = (int16_t)msblsb / 2;
 
 	/* Extract Resistance data */
-	lsb = ((mag_data[6] & 0xFC) >> 2);
-	msb = (mag_data[7] << 6);
+	lsb = ((mag_data[6] & 0xFC));
+	msb = (((uint16_t)mag_data[7]) << 8);
 	msblsb = (msb | lsb);
-	resistance = (uint16_t)msblsb;
+	resistance = (uint16_t)msblsb / 4;
 
 	/* Check whether data is new or old */
-	if (!(status & 0x01)) {
+	if (!(mag_data[6] & 0x01)) {
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
-		_got_duplicate = true;
 		return -EIO;
 	}
 
-	_got_duplicate = false;
-
-	if (mrb.x_raw == 0 &&
-	    mrb.y_raw == 0 &&
-	    mrb.z_raw == 0 &&
+	if (x_raw == 0 &&
+	    y_raw == 0 &&
+	    z_raw == 0 &&
 	    resistance == 0) {
+
 		// all zero data - probably a I2C bus error
 		perf_count(_comms_errors);
 		perf_count(_bad_transfers);
@@ -627,159 +256,70 @@ BMM150::collect()
 	perf_count(_good_transfers);
 
 	/* Compensation for X axis */
-	if (mrb.x_raw != BMM150_FLIP_OVERFLOW_ADCVAL) {
+	if (x_raw != BMM150_FLIP_OVERFLOW_ADCVAL) {
 		/* no overflow */
-		if ((resistance != 0) && (dig_xyz1 != 0)) {
-			mrb.x = ((dig_xyz1 * 16384.0 / resistance) - 16384.0);
-			mrb.x = (((mrb.x_raw * ((((dig_xy2 * ((float)(mrb.x * mrb.x / (float)268435456.0)) + mrb.x * dig_xy1 /
-						   (float)16384.0)) + (float)256.0) * (dig_x2 + (float)160.0))) / (float)8192.0) + (dig_x1 * (float)8.0)) / (float)16.0;
+		if ((resistance != 0) && (_dig_xyz1 != 0)) {
+			/* this is not documented, but derived from https://github.com/BoschSensortec/BMM150-Sensor-API/blob/master/bmm150.c */
+			x = ((_dig_xyz1 * 16384.0f / resistance) - 16384.0f);
+			x = (((x_raw * ((((_dig_xy2 * ((float)(x * x / 268435456.0f)) + x * _dig_xy1 /
+					   16384.0f)) + 256.0f) * (_dig_x2 + 160.0f))) / 8192.0f) + (_dig_x1 * 8.0f)) / 16.0f;
 
 		} else {
-			mrb.x = BMM150_OVERFLOW_OUTPUT_FLOAT;
+			x = BMM150_OVERFLOW_OUTPUT_FLOAT;
 		}
 
 	} else {
-		mrb.x = BMM150_OVERFLOW_OUTPUT_FLOAT;
+		x = BMM150_OVERFLOW_OUTPUT_FLOAT;
 	}
 
 	/* Compensation for Y axis */
-	if (mrb.y_raw != BMM150_FLIP_OVERFLOW_ADCVAL) {
+	if (y_raw != BMM150_FLIP_OVERFLOW_ADCVAL) {
 		/* no overflow */
-		if ((resistance != 0) && (dig_xyz1 != 0)) {
+		if ((resistance != 0) && (_dig_xyz1 != 0)) {
 
-			mrb.y = ((((float)dig_xyz1) * (float)16384.0 / resistance) - (float)16384.0);
-			mrb.y = (((mrb.y_raw * ((((dig_xy2 * (mrb.y * mrb.y / (float)268435456.0) + mrb.y * dig_xy1 / (float)16384.0)) +
-						 (float)256.0) * (dig_y2 + (float)160.0))) / (float)8192.0) + (dig_y1 * (float)8.0)) / (float)16.0;
+			y = ((((float)_dig_xyz1) * 16384.0f / resistance) - 16384.0f);
+			y = (((y_raw * ((((_dig_xy2 * (y * y / 268435456.0f) + y * _dig_xy1 / 16384.0f)) +
+					 256.0f) * (_dig_y2 + 160.0f))) / 8192.0f) + (_dig_y1 * 8.0f)) / 16.0f;
 
 
 		} else {
-			mrb.y = BMM150_OVERFLOW_OUTPUT_FLOAT;
+			y = BMM150_OVERFLOW_OUTPUT_FLOAT;
 		}
 
 	} else {
 		/* overflow, set output to 0.0f */
-		mrb.y = BMM150_OVERFLOW_OUTPUT_FLOAT;
+		y = BMM150_OVERFLOW_OUTPUT_FLOAT;
 	}
 
 
 	/* Compensation for Z axis */
-	if (mrb.z_raw != BMM150_HALL_OVERFLOW_ADCVAL) {
+	if (z_raw != BMM150_HALL_OVERFLOW_ADCVAL) {
 		/* no overflow */
-		if ((dig_z2 != 0) && (dig_z1 != 0) && (dig_xyz1 != 0) && (resistance != 0)) {
-			mrb.z = ((((mrb.z_raw - dig_z4) * (float)131072.0) - (dig_z3 * (resistance - dig_xyz1))) / ((
-						dig_z2 + dig_z1 * resistance / (float)32768.0) * (float)4.0)) / (float)16.0;
+		if ((_dig_z2 != 0) && (_dig_z1 != 0) && (_dig_xyz1 != 0) && (resistance != 0)) {
+			z = ((((z_raw - _dig_z4) * 131072.0f) - (_dig_z3 * (resistance - _dig_xyz1))) / ((
+						_dig_z2 + _dig_z1 * resistance / 32768.0f) * 4.0f)) / 16.0f;
 		}
 
 	} else {
 		/* overflow, set output to 0.0f */
-		mrb.z = BMM150_OVERFLOW_OUTPUT_FLOAT;
+		z = BMM150_OVERFLOW_OUTPUT_FLOAT;
 	}
-
-
-	mrb.timestamp = hrt_absolute_time();
-	mrb.is_external = external();
 
 	// report the error count as the number of bad transfers.
 	// This allows the higher level code to decide if it
 	// should use this sensor based on whether it has had failures
-	mrb.error_count = perf_event_count(_bad_transfers);
+	_px4_mag.set_error_count(perf_event_count(_bad_transfers));
 
-	// apply user specified rotation
-	rotate_3f(_rotation, mrb.x, mrb.y, mrb.z);
+	_px4_mag.update(timestamp_sample, x, y, z);
 
-
-	/* Scaling the data */
-	mrb.x = ((mrb.x * _range_scale) - _scale.x_offset) * _scale.x_scale;
-	mrb.y = ((mrb.y * _range_scale) - _scale.y_offset) * _scale.y_scale;
-	mrb.z = ((mrb.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
-
-	mrb.scaling = _range_scale;
-	mrb.device_id = _device_id.devid;
-
-	_last_report.x = mrb.x;
-	_last_report.y = mrb.y;
-	_last_report.z = mrb.z;
-
-	_reports->force(&mrb);
-
-	/* notify anyone waiting for data */
-	if (mag_notify) {
-		poll_notify(POLLIN);
-	}
-
-	if (mag_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _topic, &mrb);
-	}
+	_last_raw_x = x_raw;
+	_last_raw_y = y_raw;
+	_last_raw_z = z_raw;
+	_last_resistance = resistance;
 
 	perf_end(_sample_perf);
 	return OK;
-
 }
-
-int
-BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-
-	switch (cmd) {
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, BMM150_MAX_DATA_RATE);
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
-					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
-
-					/* check against maximum rate */
-					if (ticks < USEC2TICK(BMM150_CONVERSION_INTERVAL)) {
-						return -EINVAL;
-					}
-
-					/* update interval for next measurement */
-					_call_interval = ticks;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	case SENSORIOCRESET:
-		return reset();
-
-	case MAGIOCSSCALE:
-		return OK;
-
-	case MAGIOCGSCALE:
-		return OK;
-
-	case MAGIOCCALIBRATE:
-		return OK;
-
-	case MAGIOCEXSTRAP:
-		return OK;
-
-	default:
-		/* give it to the superclass */
-		return I2C::ioctl(filp, cmd, arg);
-	}
-}
-
 
 int BMM150::reset()
 {
@@ -787,11 +327,13 @@ int BMM150::reset()
 
 	/* Soft-reset */
 	modify_reg(BMM150_POWER_CTRL_REG, BMM150_SOFT_RESET_MASK, BMM150_SOFT_RESET_VALUE);
-	up_udelay(5000);
+
+	px4_usleep(5000);
 
 	/* Enable Magnetometer in normal mode */
 	ret += set_power_mode(BMM150_DEFAULT_POWER_MODE);
-	up_udelay(1000);
+
+	px4_usleep(1000);
 
 	/* Set the data rate to default */
 	ret += set_data_rate(BMM150_DEFAULT_ODR);
@@ -802,60 +344,35 @@ int BMM150::reset()
 	return OK;
 }
 
-
-int
-BMM150::self_test()
-{
-	if (perf_event_count(_sample_perf) == 0) {
-		collect();
-	}
-
-	/* return 0 on success, 1 else */
-	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
-}
-
-uint8_t
-BMM150::read_reg(uint8_t reg)
+uint8_t BMM150::read_reg(uint8_t reg)
 {
 	const uint8_t cmd = reg;
-	uint8_t ret;
-
+	uint8_t ret{0};
 	transfer(&cmd, 1, &ret, 1);
-
 	return ret;
 }
 
-int
-BMM150::write_reg(uint8_t reg, uint8_t value)
+int BMM150::write_reg(uint8_t reg, uint8_t value)
 {
 	const uint8_t cmd[2] = { reg, value};
-
 	return transfer(cmd, 2, nullptr, 0);
 }
 
-int
-BMM150::get_data(uint8_t reg, uint8_t *data, unsigned len)
+int BMM150::get_data(uint8_t reg, uint8_t *data, unsigned len)
 {
 	const uint8_t cmd = reg;
-
 	return transfer(&cmd, 1, data, len);
-
 }
 
-void
-BMM150::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
+void BMM150::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t val;
-
-	val = read_reg(reg);
+	uint8_t val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_reg(reg, val);
 }
 
-
-
-int BMM150 :: set_power_mode(uint8_t power_mode)
+int BMM150::set_power_mode(uint8_t power_mode)
 {
 	uint8_t setbits = 0;
 	uint8_t clearbits = BMM150_POWER_MASK;
@@ -881,10 +398,9 @@ int BMM150 :: set_power_mode(uint8_t power_mode)
 	modify_reg(BMM150_CTRL_REG, clearbits, setbits);
 
 	return OK;
-
 }
 
-int BMM150 :: set_data_rate(uint8_t data_rate)
+int BMM150::set_data_rate(uint8_t data_rate)
 {
 	uint8_t setbits = 0;
 	uint8_t clearbits = BMM150_OUTPUT_DATA_RATE_MASK;
@@ -930,73 +446,65 @@ int BMM150 :: set_data_rate(uint8_t data_rate)
 	modify_reg(BMM150_CTRL_REG, clearbits, setbits);
 
 	return OK;
-
 }
 
-
-int BMM150 :: init_trim_registers(void)
+int BMM150::init_trim_registers()
 {
 	int ret = OK;
 	uint8_t data[2] = {0};
 	uint16_t msb, lsb, msblsb;
 
-	dig_x1 = read_reg(BMM150_DIG_X1);
-	dig_y1 = read_reg(BMM150_DIG_Y1);
-	dig_x2 = read_reg(BMM150_DIG_X2);
-	dig_y2 = read_reg(BMM150_DIG_Y2);
-	dig_xy1 = read_reg(BMM150_DIG_XY1);
-	dig_xy2 = read_reg(BMM150_DIG_XY2);
+	_dig_x1 = read_reg(BMM150_DIG_X1);
+	_dig_y1 = read_reg(BMM150_DIG_Y1);
+	_dig_x2 = read_reg(BMM150_DIG_X2);
+	_dig_y2 = read_reg(BMM150_DIG_Y2);
+	_dig_xy1 = read_reg(BMM150_DIG_XY1);
+	_dig_xy2 = read_reg(BMM150_DIG_XY2);
 
 	ret += get_data(BMM150_DIG_Z1_LSB, data, 2);
 	lsb = data[0];
-	msb = (data[1] << 8);
+	msb = ((uint16_t)data[1]) << 8;
 	msblsb = (msb | lsb);
-	dig_z1 = (uint16_t)msblsb;
+	_dig_z1 = (uint16_t)msblsb;
 
 	ret += get_data(BMM150_DIG_Z2_LSB, data, 2);
 	lsb = data[0];
-	msb = ((int8_t)data[1] << 8);
+	msb = ((uint16_t)data[1]) << 8;
 	msblsb = (msb | lsb);
-	dig_z2 = (int16_t)msblsb;
+	_dig_z2 = (int16_t)msblsb;
 
 	ret += get_data(BMM150_DIG_Z3_LSB, data, 2);
 	lsb = data[0];
-	msb = ((int8_t)data[1] << 8);
+	msb = ((uint16_t)data[1]) << 8;
 	msblsb = (msb | lsb);
-	dig_z3 = (int16_t)msblsb;
+	_dig_z3 = (int16_t)msblsb;
 
 	ret += get_data(BMM150_DIG_Z4_LSB, data, 2);
 	lsb = data[0];
-	msb = ((int8_t)data[1] << 8);
+	msb = ((uint16_t)data[1]) << 8;
 	msblsb = (msb | lsb);
-	dig_z4 = (int16_t)msblsb;
+	_dig_z4 = (int16_t)msblsb;
 
 	ret += get_data(BMM150_DIG_XYZ1_LSB, data, 2);
 	lsb = data[0];
-	msb = ((data[1] & 0x7F) << 8);
+	msb = ((uint16_t)(data[1] & 0x7F) << 8);
 	msblsb = (msb | lsb);
-	dig_xyz1 = (uint16_t)msblsb;
+	_dig_xyz1 = (uint16_t)msblsb;
 
 	return ret;
-
 }
 
 int BMM150::set_rep_xy(uint8_t rep_xy)
 {
 	uint8_t cmd[2] = {BMM150_XY_REP_CTRL_REG, rep_xy};
-
 	return transfer((const uint8_t *)cmd, sizeof(cmd), nullptr, 0);
-
 }
 
 int BMM150::set_rep_z(uint8_t rep_z)
 {
 	uint8_t cmd[2] = {BMM150_Z_REP_CTRL_REG, rep_z};
-
 	return transfer((const uint8_t *)cmd, sizeof(cmd), nullptr, 0);
-
 }
-
 
 int BMM150::set_presetmode(uint8_t presetmode)
 {
@@ -1033,117 +541,180 @@ int BMM150::set_presetmode(uint8_t presetmode)
 	ret += set_rep_z(rep_z);
 
 	return ret;
-
 }
 
-void
-BMM150::print_info()
+void BMM150::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_good_transfers);
-	_reports->print_info("mag queue");
-
-	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
-	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
-	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f ",
-	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
-	       (double)(1.0f / _range_scale));
-	printf("\n");
-
+	_px4_mag.print_status();
 }
 
-void
-BMM150::print_registers()
+int BMM150::self_test()
+{
+	/* normal self-test */
+	set_power_mode(BMM150_SLEEP_MODE);
+
+	modify_reg(BMM150_CTRL_REG, 0, 1);
+	int i;
+
+	for (i = 0; i < 100; ++i) {
+		px4_usleep(1000);
+		uint8_t ctrl_reg = read_reg(BMM150_CTRL_REG);
+
+		if ((ctrl_reg & 1) == 0) {
+			break;
+		}
+	}
+
+	if (i == 100) {
+		PX4_ERR("timeout");
+		return -1;
+	}
+
+	uint8_t results[3];
+	results[0] = read_reg(BMM150_DATA_X_LSB_REG);
+	results[1] = read_reg(BMM150_DATA_Y_LSB_REG);
+	results[2] = read_reg(BMM150_DATA_Z_LSB_REG);
+	bool failed = false;
+
+	for (i = 0; i < 3; ++i) {
+		if ((results[i] & 1) == 0) {
+			PX4_ERR("Self-test failed for axis %i", i);
+			failed = true;
+		}
+	}
+
+	if (failed) {
+		return -1;
+	}
+
+	PX4_INFO("Success");
+	return reset();
+}
+
+void BMM150::print_registers()
 {
 	printf("BMM150 registers\n");
 
 	uint8_t reg = BMM150_CHIP_ID_REG;
 	uint8_t v = read_reg(reg);
-	printf("Chip Id: %02x:%02x ", (unsigned)reg, (unsigned)v);
-	printf("\n");
+	printf("Chip Id: %02x:%02x\n", (unsigned)reg, (unsigned)v);
 
 	reg = BMM150_INT_SETT_CTRL_REG;
 	v = read_reg(reg);
-	printf("Int sett Ctrl reg: %02x:%02x ", (unsigned)reg, (unsigned)v);
-	printf("\n");
+	printf("Int sett Ctrl reg: %02x:%02x\n", (unsigned)reg, (unsigned)v);
 
 	reg = BMM150_AXES_EN_CTRL_REG;
 	v = read_reg(reg);
-	printf("Axes En Ctrl reg: %02x:%02x ", (unsigned)reg, (unsigned)v);
-	printf("\n");
+	printf("Axes En Ctrl reg: %02x:%02x\n", (unsigned)reg, (unsigned)v);
 
+	printf("Trim data: %i %i, %i %i, %i %i %i %i, %i %i, %i\n",
+	       _dig_x1, _dig_y1, _dig_x2, _dig_y2, _dig_z1, _dig_z2, _dig_z3, _dig_z4, _dig_xy1, _dig_xy2, _dig_xyz1);
+
+	printf("Latest raw data: x=%i y=%i z=%i resistance=%i\n",
+	       _last_raw_x, _last_raw_y, _last_raw_z, _last_resistance);
 }
 
-int
-bmm150_main(int argc, char *argv[])
+void BMM150::print_usage()
 {
-	int myoptind = 1;
+	PRINT_MODULE_USAGE_NAME("bmm150", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_COMMAND("reset");
+	PRINT_MODULE_USAGE_COMMAND("regdump");
+	PRINT_MODULE_USAGE_COMMAND("selftest");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+void BMM150::custom_method(const BusCLIArguments &cli)
+{
+	switch (cli.custom1) {
+	case 0: reset();
+		break;
+
+	case 1: print_registers();
+		break;
+
+	case 2: self_test();
+		break;
+	}
+}
+
+I2CSPIDriverBase *BMM150::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
+{
+	BMM150 *interface = new BMM150(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
+
+	if (interface == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
+	if (interface->init() != OK) {
+		delete interface;
+		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		return nullptr;
+	}
+
+	return interface;
+}
+
+extern "C" __EXPORT int bmm150_main(int argc, char *argv[])
+{
 	int ch;
-	const char *myoptarg = nullptr;
-	bool external_bus = false;
-	enum Rotation rotation = ROTATION_NONE;
+	using ThisDriver = BMM150;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = BMM150_BUS_SPEED;
 
-	while ((ch = px4_getopt(argc, argv, "XR:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'X':
-			external_bus = true;
-			break;
-
 		case 'R':
-			rotation = (enum Rotation)atoi(myoptarg);
+			cli.rotation = (enum Rotation)atoi(cli.optarg());
 			break;
-
-		default:
-			bmm150::usage();
-			return 0;
 		}
 	}
 
-	if (myoptind >= argc) {
-		bmm150::usage();
+	const char *verb = cli.optarg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
 		return -1;
 	}
 
-	const char *verb = argv[myoptind];
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_BMM150);
 
-	/*
-	 * Start/load the driver.
-	 */
 	if (!strcmp(verb, "start")) {
-		bmm150::start(external_bus, rotation);
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(verb, "test")) {
-		bmm150::test(external_bus);
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
 	}
 
-	/*
-	 * Reset the driver.
-	 */
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
 	if (!strcmp(verb, "reset")) {
-		bmm150::reset(external_bus);
+		cli.custom1 = 0;
+		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(verb, "info")) {
-		bmm150::info(external_bus);
-	}
-
-	/*
-	 * Print register information.
-	 */
 	if (!strcmp(verb, "regdump")) {
-		bmm150::regdump(external_bus);
+		cli.custom1 = 1;
+		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
+	if (!strcmp(verb, "selftest")) {
+		cli.custom1 = 2;
+		return ThisDriver::module_custom_method(cli, iterator);
+	}
 
-	bmm150::usage();
+	ThisDriver::print_usage();
 	return -1;
 }

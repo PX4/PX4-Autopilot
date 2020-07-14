@@ -35,4 +35,6 @@ px4_add_module(
 	MAIN atxxxx
 	SRCS
 		atxxxx.cpp
+	DEPENDS
+		px4_work_queue
 	)

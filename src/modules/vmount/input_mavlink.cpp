@@ -39,14 +39,14 @@
  */
 
 #include "input_mavlink.h"
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
-
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 #include <errno.h>
 #include <math.h>
 
@@ -281,9 +281,9 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
 						_control_data.type = ControlData::Type::Angle;
-						_control_data.type_data.angle.is_speed[0] = false;
-						_control_data.type_data.angle.is_speed[1] = false;
-						_control_data.type_data.angle.is_speed[2] = false;
+						_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+						_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+						_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 						// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
 						_control_data.type_data.angle.angles[0] = vehicle_command.param2 * M_DEG_TO_RAD_F;
 						// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
@@ -303,7 +303,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 						break;
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
-						control_data_set_lon_lat((double)vehicle_command.param2, (double)vehicle_command.param1, vehicle_command.param3);
+						control_data_set_lon_lat((double)vehicle_command.param6, (double)vehicle_command.param5, vehicle_command.param4);
 
 						*control_data = &_control_data;
 						break;
@@ -312,9 +312,37 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					_ack_vehicle_command(&vehicle_command);
 
 				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
-					_stabilize[0] = (uint8_t) vehicle_command.param2 == 1;
-					_stabilize[1] = (uint8_t) vehicle_command.param3 == 1;
-					_stabilize[2] = (uint8_t) vehicle_command.param4 == 1;
+					_stabilize[0] = (int)(vehicle_command.param2 + 0.5f) == 1;
+					_stabilize[1] = (int)(vehicle_command.param3 + 0.5f) == 1;
+					_stabilize[2] = (int)(vehicle_command.param4 + 0.5f) == 1;
+
+					const int params[] = {
+						(int)((float)vehicle_command.param5 + 0.5f),
+						(int)((float)vehicle_command.param6 + 0.5f),
+						(int)(vehicle_command.param7 + 0.5f)
+					};
+
+					for (int i = 0; i < 3; ++i) {
+
+						if (params[i] == 0) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+
+						} else if (params[i] == 1) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngularRate;
+
+						} else if (params[i] == 2) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+
+						} else {
+							// Not supported, fallback to body angle.
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+						}
+					}
+
 					_control_data.type = ControlData::Type::Neutral; //always switch to neutral position
 
 					*control_data = &_control_data;
@@ -333,7 +361,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 
 void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 {
-	vehicle_command_ack_s vehicle_command_ack = {};
+	vehicle_command_ack_s vehicle_command_ack{};
 
 	vehicle_command_ack.timestamp = hrt_absolute_time();
 	vehicle_command_ack.command = cmd->command;
@@ -341,13 +369,8 @@ void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 	vehicle_command_ack.target_system = cmd->source_system;
 	vehicle_command_ack.target_component = cmd->source_component;
 
-	if (_vehicle_command_ack_pub == nullptr) {
-		_vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
-					   vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command_ack), _vehicle_command_ack_pub, &vehicle_command_ack);
-	}
+	uORB::PublicationQueued<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	cmd_ack_pub.publish(vehicle_command_ack);
 }
 
 void InputMavlinkCmdMount::print_status()

@@ -33,10 +33,13 @@
 
 #pragma once
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include "uavcan_driver.hpp"
-#include <drivers/device/device.h>
-#include <perf/perf_counter.h>
+#include <drivers/device/Device.hpp>
+#include <lib/perf/perf_counter.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/uavcan_parameter_value.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
@@ -108,9 +111,9 @@ public:
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
 private:
-	pthread_t         _subnode_thread;
-	pthread_mutex_t   _subnode_mutex;
-	volatile bool     _subnode_thread_should_exit = false;
+	pthread_t         _subnode_thread{-1};
+	pthread_mutex_t   _subnode_mutex{};
+	volatile bool     _subnode_thread_should_exit{false};
 
 	int		init();
 
@@ -159,8 +162,8 @@ private:
 	bool _cmd_in_progress = false;
 
 	// uORB topic handle for MAVLink parameter responses
-	orb_advert_t _param_response_pub = nullptr;
-	orb_advert_t _command_ack_pub = nullptr;
+	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
+	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
@@ -169,6 +172,7 @@ private:
 		ExecuteOpcodeCallback;
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &)> RestartNodeCallback;
+
 	void cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
 	void cb_count(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
 	void cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);

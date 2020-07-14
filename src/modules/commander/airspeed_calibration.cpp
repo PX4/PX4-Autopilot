@@ -41,14 +41,13 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_time.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <poll.h>
-#include <cmath>
+#include <math.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_airspeed.h>
 #include <uORB/topics/differential_pressure.h>
@@ -89,7 +88,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	bool paramreset_successful = false;
 	int  fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 
-	if (fd > 0) {
+	if (fd >= 0) {
 		if (PX4_OK == px4_ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 			paramreset_successful = true;
 
@@ -115,7 +114,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 		/* set scaling offset parameter */
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			goto error_return;
 		}
 	}
@@ -146,7 +145,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			if (diff_pres.error_count != 0) {
 				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu64 ")",
 							 diff_pres.error_count);
-				calibration_log_critical(mavlink_log_pub, "[cal] Check your wiring before trying again");
+				calibration_log_critical(mavlink_log_pub, "[cal] Check wiring, reboot vehicle, and try again");
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
 			}
@@ -169,7 +168,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		int fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;
 
-		if (fd_scale > 0) {
+		if (fd_scale >= 0) {
 			if (PX4_OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 				calibration_log_critical(mavlink_log_pub, "[cal] airspeed offset update failed");
 			}
@@ -186,7 +185,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			goto error_return;
 		}
 
@@ -237,7 +236,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 					diff_pres_offset = 0.0f;
 
 					if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
+						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 						goto error_return;
 					}
 

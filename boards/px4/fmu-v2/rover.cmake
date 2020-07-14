@@ -8,6 +8,7 @@ px4_add_board(
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
+	CONSTRAINED_FLASH
 
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
@@ -16,6 +17,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		barometer/ms5611
 		batt_smbus
 		camera_capture
@@ -24,16 +26,14 @@ px4_add_board(
 		gps
 		imu/l3gd20
 		imu/lsm303d
-		imu/mpu6000
-		imu/mpu9250
+		imu/invensense/mpu6000
+		#imu/invensense/mpu9250
 		lights/rgbled
 		magnetometer/hmc5883
-		px4flow
-		px4fmu
+		optical_flow/px4flow
+		pwm_out
 		px4io
-		stm32
-		stm32/adc
-		stm32/tone_alarm
+		tone_alarm
 
 	MODULES
 		camera_feedback
@@ -41,22 +41,24 @@ px4_add_board(
 		dataman
 		ekf2
 		events
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		load_mon
 		logger
 		mavlink
 		navigator
+		battery_status
+		rc_update
 		sensors
+		temperature_compensation
 		vmount
 
 	SYSTEMCMDS
 		bl_update
-		#config
 		#dumpfile
 		#esc_calib
 		hardfault_log
+		i2cdetect
 		#led_control
 		mixer
 		#motor_ramp
@@ -73,4 +75,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
+
 	)

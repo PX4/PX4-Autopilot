@@ -6,17 +6,14 @@
 uorb start
 
 param load
+param set CBRK_SUPPLY_CHK 894281
 param set SYS_RESTART_TYPE 0
 
 dataman start
 
-simulator start -t
+battery_simulator start
+simulator start
 tone_alarm start
-gyrosim start
-accelsim start
-barosim start
-gpssim start
-measairspeedsim start
 pwm_out_sim start
 
 ver all

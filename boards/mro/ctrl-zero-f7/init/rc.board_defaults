@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# mRo Control Zero specific board defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+
+fi
+
+set LOGGER_BUF 64
+set MIXER_AUX none
+
+safety_button start

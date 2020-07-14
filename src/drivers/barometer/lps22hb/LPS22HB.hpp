@@ -33,22 +33,13 @@
 
 #pragma once
 
-#include <lib/cdev/CDev.hpp>
+#include <cstring>
+
 #include <drivers/device/Device.hpp>
-#include <px4_config.h>
-#include <px4_workqueue.h>
-
-#include <perf/perf_counter.h>
-
-#include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/drv_device.h>
-#include <systemlib/err.h>
-
-#include <uORB/uORB.h>
-
-#include <float.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 
 static constexpr uint8_t WHO_AM_I = 0x0F;
 static constexpr uint8_t LPS22HB_ID_WHO_AM_I = 0xB1;
@@ -80,43 +71,33 @@ static constexpr uint8_t TEMP_OUT_L = 0x2B;
 static constexpr uint8_t TEMP_OUT_H = 0x2C;
 
 /* interface factories */
-extern device::Device *LPS22HB_SPI_interface(int bus);
-extern device::Device *LPS22HB_I2C_interface(int bus);
-typedef device::Device *(*LPS22HB_constructor)(int);
+extern device::Device *LPS22HB_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
+extern device::Device *LPS22HB_I2C_interface(int bus, int bus_frequency);
 
-class LPS22HB : public cdev::CDev
+class LPS22HB : public I2CSPIDriver<LPS22HB>
 {
 public:
-	LPS22HB(device::Device *interface, const char *path);
+	LPS22HB(I2CSPIBusOption bus_option, int bus, device::Device *interface);
 	virtual ~LPS22HB();
 
-	virtual int		init();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	int			init();
 
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void			print_info();
+	void			print_status();
 
-protected:
-	device::Device			*_interface;
+	void			RunImpl();
 
 private:
-	work_s			_work{};
-	unsigned		_measure_ticks{0};
+	PX4Barometer		_px4_baro;
+	device::Device		*_interface;
 
 	bool			_collect_phase{false};
 
-	orb_advert_t		_baro_topic{nullptr};
-
-	int			_orb_class_instance{-1};
-	int			_class_instance{-1};
-
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-
-	sensor_baro_s	_last_report{};           /**< used for info() */
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -127,37 +108,9 @@ private:
 	void			start();
 
 	/**
-	 * Stop the automatic measurement state machine.
-	 */
-	void			stop();
-
-	/**
 	 * Reset the device
 	 */
 	int			reset();
-
-	/**
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-	 * previous measurement.
-	 *
-	 * When the interval between measurements is greater than the minimum
-	 * measurement interval, a gap is inserted between collection
-	 * and measurement to provide the most recent measurement possible
-	 * at the next interval.
-	 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
 
 	/**
 	 * Write a register.
@@ -188,8 +141,4 @@ private:
 	 * Collect the result of the most recent measurement.
 	 */
 	int			collect();
-
-	/* this class has pointer data members, do not allow copying it */
-	LPS22HB(const LPS22HB &);
-	LPS22HB operator=(const LPS22HB &);
 };

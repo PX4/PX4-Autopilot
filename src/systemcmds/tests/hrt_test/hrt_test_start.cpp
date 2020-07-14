@@ -42,9 +42,9 @@
 #include <string.h>
 #include <sched.h>
 
-#include <px4_log.h>
-#include <px4_app.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/tasks.h>
 
 static int daemon_task;             /* Handle of deamon task / thread */
 
@@ -66,7 +66,7 @@ int hrt_test_main(int argc, char *argv[])
 
 		daemon_task = px4_task_spawn_cmd("hrttest",
 						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
+						 SCHED_PRIORITY_DEFAULT,
 						 2000,
 						 PX4_MAIN,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);

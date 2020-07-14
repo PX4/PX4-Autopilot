@@ -39,15 +39,21 @@
  * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <parameters/param.h>
 
 /**
  * FailureDetector Max Roll
  *
- * Maximum roll angle before FailureDetector triggers the attitude_failure flag
- * Does not affect the behavior of the vehicle for now; only for logging
- * @min 0
+ * Maximum roll angle before FailureDetector triggers the attitude_failure flag.
+ * The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
+ * which sets outputs to their failsafe values.
+ * On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
+ * which disarms motors but does not set outputs to failsafe values.
+ *
+ * Setting this parameter to 0 disables the check
+ *
+ * @min 60
  * @max 180
  * @unit degrees
  * @group Failure Detector
@@ -57,11 +63,81 @@ PARAM_DEFINE_INT32(FD_FAIL_R, 60);
 /**
  * FailureDetector Max Pitch
  *
- * Maximum pitch angle before FailureDetector triggers the attitude_failure flag
- * Does not affect the behavior of the vehicle for now; only for logging
- * @min 0
+ * Maximum pitch angle before FailureDetector triggers the attitude_failure flag.
+ * The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
+ * which sets outputs to their failsafe values.
+ * On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
+ * which disarms motors but does not set outputs to failsafe values.
+ *
+ * Setting this parameter to 0 disables the check
+ *
+ * @min 60
  * @max 180
  * @unit degrees
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_FAIL_P, 60);
+
+/**
+ * Roll failure trigger time
+ *
+ * Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered as a failure.
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FAIL_R_TTRI, 0.3);
+
+/**
+ * Pitch failure trigger time
+ *
+ * Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered as a failure.
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FAIL_P_TTRI, 0.3);
+
+/**
+ * Enable PWM input on AUX5 or MAIN5 (depending on board) for engaging failsafe from an external
+ * automatic trigger system (ATS).
+ *
+ * External ATS is required by ASTM F3322-18.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_EXT_ATS_EN, 0);
+
+/**
+ * The PWM threshold from external automatic trigger system for engaging failsafe.
+ *
+ * External ATS is required by ASTM F3322-18.
+ *
+ * @unit microseconds
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
+
+/**
+ * Enable checks on ESCs that report their arming state.
+ * If enabled, failure detector will verify that all the ESCs have successfully armed when the vehicle has transitioned to the armed state.
+ * Timeout for receiving an acknowledgement from the ESCs is 0.3s, if no feedback is received the failure detector will auto disarm the vehicle.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_ESCS_EN, 1);

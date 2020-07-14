@@ -40,15 +40,12 @@
 
 #include "tests_main.h"
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
-
-// Not using Eigen at the moment
-#define TESTS_EIGEN_DISABLE
 
 
 static int test_help(int argc, char *argv[]);
@@ -70,10 +67,9 @@ const struct {
 	{"jig",			test_jig,		OPT_NOJIGTEST | OPT_NOALLTEST},
 
 #ifdef __PX4_NUTTX
-	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"file",		test_file,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"led",			test_led,		0},
-	{"sensors",		test_sensors,		0},
+	{"mount",		test_mount,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"time",		test_time,		OPT_NOJIGTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
 	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -82,30 +78,31 @@ const struct {
 	{"rc",			rc_tests_main,		0},
 #endif /* __PX4_NUTTX */
 
-
-	{"autodeclination",	test_autodeclination,	0},
+	{"adc",			test_adc,		OPT_NOJIGTEST},
+	{"atomic_bitset",	test_atomic_bitset,	0},
 	{"bezier",		test_bezierQuad,	0},
+	{"bitset",		test_bitset,		0},
 	{"bson",		test_bson,		0},
 	{"conv",		test_conv,		0},
-	{"ctlmath",		test_controlmath,	0},
 	{"dataman",		test_dataman,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"file2",		test_file2,		OPT_NOJIGTEST},
 	{"float",		test_float,		0},
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hrt",			test_hrt,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"hysteresis",		test_hysteresis,	0},
 	{"int",			test_int,		0},
+	{"i2c_spi_cli",		test_i2c_spi_cli,		0},
+	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"List",		test_List,		0},
 	{"mathlib",		test_mathlib,		0},
 	{"matrix",		test_matrix,		0},
+	{"microbench_atomic",	test_microbench_atomic,	0},
 	{"microbench_hrt",	test_microbench_hrt,	0},
 	{"microbench_math",	test_microbench_math,	0},
 	{"microbench_matrix",	test_microbench_matrix,	0},
 	{"microbench_uorb",	test_microbench_uorb,	0},
 	{"mixer",		test_mixer,		OPT_NOJIGTEST},
 	{"mixer",		test_mixer,		OPT_NOJIGTEST},
-	{"mount",		test_mount,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"param",		test_param,		0},
 	{"parameters",		test_parameters,	0},
 	{"perf",		test_perf,		OPT_NOJIGTEST},
@@ -125,10 +122,10 @@ const struct {
 	/* external tests */
 	{"commander",		commander_tests_main,	0},
 	{"controllib",		controllib_test_main,	0},
-#ifndef __PX4_NUTTX
 	{"mavlink",		mavlink_tests_main,	0},
-#endif
+#ifdef __PX4_NUTTX
 	{"sf0x",		sf0x_tests_main,	0},
+#endif
 	{"uorb",		uorb_tests_main,	0},
 
 	{NULL,			NULL, 		0}

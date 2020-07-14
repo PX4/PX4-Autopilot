@@ -1,0 +1,5 @@
+#! /bin/sh
+
+set -o xtrace
+
+@Ozone_PATH@ -device @DEBUG_DEVICE@ -if SWD -speed auto -select usb -programfile @PX4_BINARY_DIR@/@PX4_CONFIG@.elf

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,16 +44,18 @@
 
 #pragma once
 
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/vehicle_gps_position.h>
 
 #include <uavcan/uavcan.hpp>
+#include <uavcan/equipment/gnss/Auxiliary.hpp>
 #include <uavcan/equipment/gnss/Fix.hpp>
 #include <uavcan/equipment/gnss/Fix2.hpp>
 
 #include "sensor_bridge.hpp"
 
-class UavcanGnssBridge : public IUavcanSensorBridge
+class UavcanGnssBridge : public UavcanCDevSensorBridgeBase
 {
 	static constexpr unsigned ORB_TO_UAVCAN_FREQUENCY_HZ = 10;
 
@@ -67,25 +69,24 @@ public:
 
 	int init() override;
 
-	unsigned get_num_redundant_channels() const override;
-
-	void print_status() const override;
-
 private:
 	/**
 	 * GNSS fix message will be reported via this callback.
 	 */
+	void gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg);
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 	void gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg);
 
 	template <typename FixType>
 	void process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
-			  const float (&pos_cov)[9],
-			  const float (&vel_cov)[9],
-			  const bool valid_pos_cov,
-			  const bool valid_vel_cov);
+			  const float (&pos_cov)[9], const float (&vel_cov)[9],
+			  const bool valid_pos_cov, const bool valid_vel_cov);
 
 	void broadcast_from_orb(const uavcan::TimerEvent &);
+
+	typedef uavcan::MethodBinder < UavcanGnssBridge *,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &) >
+		AuxiliaryCbBinder;
 
 	typedef uavcan::MethodBinder < UavcanGnssBridge *,
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &) >
@@ -100,17 +101,28 @@ private:
 		TimerCbBinder;
 
 	uavcan::INode &_node;
+
+	uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxiliaryCbBinder> _sub_auxiliary;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
-	uavcan::Publisher<uavcan::equipment::gnss::Fix2> _pub_fix2;
-	uavcan::TimerEventForwarder<TimerCbBinder> _orb_to_uavcan_pub_timer;
-	int _receiver_node_id = -1;
 
-	bool _old_fix_subscriber_active = true;
+	uavcan::Publisher<uavcan::equipment::gnss::Fix2> _pub_fix2;
+
+	uavcan::TimerEventForwarder<TimerCbBinder> _orb_to_uavcan_pub_timer;
+
+	uint64_t	_last_gnss_auxiliary_timestamp{0};
+	float		_last_gnss_auxiliary_hdop{0.0f};
+	float		_last_gnss_auxiliary_vdop{0.0f};
+
+	uORB::PublicationMulti<vehicle_gps_position_s>	_gps_pub{ORB_ID(vehicle_gps_position), ORB_PRIO_DEFAULT};
+	uORB::Subscription				_orb_sub_gnss{ORB_ID(vehicle_gps_position)};
+
+	int	_receiver_node_id{-1};
+	bool	_old_fix_subscriber_active{true};
 
 	orb_advert_t _report_pub;                ///< uORB pub for gnss position
 
-	int _orb_sub_gnss = -1;                  ///< uORB sub for gnss position, used for bridging uORB --> UAVCAN
+	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
-	bool _system_clock_set = false; ///< Have we set the system clock at least once from GNSS data?
+	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg
 };

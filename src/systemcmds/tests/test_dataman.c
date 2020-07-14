@@ -36,8 +36,8 @@
  * Tests for the data manager.
  */
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/posix.h>
 
 #include <sys/types.h>
 
@@ -46,8 +46,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-
-#include <arch/board/board.h>
 
 #include <drivers/drv_board_led.h>
 #include <drivers/drv_hrt.h>
@@ -183,7 +181,7 @@ int test_dataman(int argc, char *argv[])
 		px4_sem_setprotocol(sems, SEM_PRIO_NONE);
 
 		/* start the task */
-		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, av)) <= 0) {
+		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 2048, task_main, av)) <= 0) {
 			PX4_ERR("task start failed");
 		}
 	}

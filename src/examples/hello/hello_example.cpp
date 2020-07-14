@@ -40,7 +40,7 @@
  */
 
 #include "hello_example.h"
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include <unistd.h>
 #include <stdio.h>
 

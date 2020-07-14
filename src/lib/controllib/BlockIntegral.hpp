@@ -64,7 +64,7 @@ public:
 		SuperBlock(parent, name),
 		_y(0),
 		_limit(this, "") {}
-	virtual ~BlockIntegral() {}
+	virtual ~BlockIntegral() = default;
 	float update(float input);
 // accessors
 	float getY() {return _y;}

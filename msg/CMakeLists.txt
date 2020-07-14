@@ -31,18 +31,22 @@
 #
 ############################################################################
 
+# Support IN_LIST if() operator
+cmake_policy(SET CMP0057 NEW)
+
 set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
-	actuator_direct.msg
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
+	airspeed_validated.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
-	collision_report.msg
+	cellular_status.msg
 	collision_constraints.msg
+	collision_report.msg
 	commander_state.msg
 	cpuload.msg
 	debug_array.msg
@@ -51,18 +55,20 @@ set(msg_files
 	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
-	ekf2_innovations.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
 	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
+	estimator_innovations.msg
+	estimator_sensor_bias.msg
 	estimator_status.msg
 	follow_target.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
 	home_position.msg
+	hover_thrust_estimate.msg
 	input_rc.msg
 	iridiumsbd_status.msg
 	irlock_report.msg
@@ -71,6 +77,7 @@ set(msg_files
 	landing_target_pose.msg
 	led_control.msg
 	log_message.msg
+	logger_status.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
 	mission.msg
@@ -79,7 +86,11 @@ set(msg_files
 	multirotor_motor_limits.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
+	onboard_computer_status.msg
 	optical_flow.msg
+	orb_test.msg
+	orb_test_large.msg
+	orb_test_medium.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
@@ -88,6 +99,7 @@ set(msg_files
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
+	power_monitor.msg
 	pwm_input.msg
 	qshell_req.msg
 	qshell_retval.msg
@@ -95,14 +107,16 @@ set(msg_files
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
+	rpm.msg
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
+	sensor_accel_fifo.msg
 	sensor_baro.msg
-	sensor_bias.msg
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
+	sensor_gyro_fifo.msg
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg
@@ -113,7 +127,9 @@ set(msg_files
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
+	timesync.msg
 	timesync_status.msg
+	trajectory_bezier.msg
 	trajectory_waypoint.msg
 	transponder_report.msg
 	tune_control.msg
@@ -121,7 +137,10 @@ set(msg_files
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	vehicle_acceleration.msg
 	vehicle_air_data.msg
+	vehicle_angular_acceleration.msg
+	vehicle_angular_velocity.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
@@ -130,6 +149,8 @@ set(msg_files
 	vehicle_control_mode.msg
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
+	vehicle_imu.msg
+	vehicle_imu_status.msg
 	vehicle_land_detected.msg
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
@@ -139,10 +160,36 @@ set(msg_files
 	vehicle_roi.msg
 	vehicle_status.msg
 	vehicle_status_flags.msg
+	vehicle_trajectory_bezier.msg
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
+	wheel_encoders.msg
 	wind_estimate.msg
+	yaw_estimator_status.msg
+)
+
+set(deprecated_msgs
+	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
 	)
+
+foreach(msg IN LISTS deprecated_msgs)
+	if(msg IN_LIST msg_files)
+		get_filename_component(msg_we ${msg} NAME_WE)
+		list(APPEND invalid_msgs ${msg_we})
+	endif()
+endforeach()
+if(invalid_msgs)
+	list(LENGTH invalid_msgs invalid_msgs_size)
+	if(${invalid_msgs_size} GREATER 1)
+		foreach(msg IN LISTS invalid_msgs)
+			string(CONCAT invalid_msgs_cs ${invalid_msgs_cs} "'${msg}', ")
+		endforeach()
+		STRING(REGEX REPLACE ", +$" "" invalid_msgs_cs ${invalid_msgs_cs})
+		message(FATAL_ERROR "${invalid_msgs_cs} are listed as deprecated. Please use different names for the messages.")
+	else()
+		message(FATAL_ERROR "'${invalid_msgs}' is listed as deprecated. Please use a different name for the message.")
+	endif()
+endif()
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	# Check that the msg directory and the CMakeLists.txt file exists
@@ -156,20 +203,21 @@ if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	endif()
 endif()
 
-px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
-px4_add_git_submodule(TARGET git_genmsg PATH tools/genmsg)
-
 # headers
 set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)
 set(msg_source_out_path	${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
 
-set(uorb_headers)
+set(uorb_headers ${msg_out_path}/uORBTopics.hpp)
 set(uorb_sources ${msg_source_out_path}/uORBTopics.cpp)
 foreach(msg_file ${msg_files})
 	get_filename_component(msg ${msg_file} NAME_WE)
 	list(APPEND uorb_headers ${msg_out_path}/${msg}.h)
 	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
 endforeach()
+
+if (px4_constrained_flash_build)
+	set(added_arguments --constrained-flash)
+endif()
 
 # Generate uORB headers
 add_custom_command(OUTPUT ${uorb_headers}
@@ -181,9 +229,11 @@ add_custom_command(OUTPUT ${uorb_headers}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
 		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
-		templates/uorb/msg.h.template
+		templates/uorb/msg.h.em
+		templates/uorb/uORBTopics.hpp.em
 		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -201,9 +251,11 @@ add_custom_command(OUTPUT ${uorb_sources}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
 		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
-		templates/uorb/msg.cpp.template
+		templates/uorb/msg.cpp.em
+		templates/uorb/uORBTopics.cpp.em
 		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

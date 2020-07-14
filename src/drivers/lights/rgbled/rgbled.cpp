@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,35 +40,16 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <string.h>
 
 #include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-
-#include <px4_workqueue.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
-
-#include <drivers/drv_led.h>
 #include <lib/led/led.h>
-
-#include "uORB/topics/parameter_update.h"
-
-#define RGBLED_ONTIME 120
-#define RGBLED_OFFTIME 120
+#include <lib/parameters/param.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 #define ADDR			0x55	/**< I2C adress of TCA62724FMG */
 #define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
@@ -80,87 +61,54 @@
 #define SETTING_NOT_POWERSAVE	0x01	/**< power-save mode not off */
 #define SETTING_ENABLE   	0x02	/**< on */
 
-
-class RGBLED : public device::I2C
+class RGBLED : public device::I2C, public I2CSPIDriver<RGBLED>
 {
 public:
-	RGBLED(int bus, int rgbled);
-	virtual ~RGBLED();
+	RGBLED(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
+	virtual ~RGBLED() = default;
 
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	virtual int		init();
-	virtual int		probe();
-	int		status();
+	int		init() override;
+	int		probe() override;
 
+	void			RunImpl();
+
+protected:
+	void			print_status() override;
 private:
-	work_s			_work;
 
-	float			_brightness;
-	float			_max_brightness;
+	float			_brightness{1.0f};
+	float			_max_brightness{1.0f};
 
-	uint8_t			_r;
-	uint8_t			_g;
-	uint8_t			_b;
-	volatile bool		_running;
-	volatile bool		_should_run;
-	bool			_leds_enabled;
-	int			_param_sub;
+	uint8_t			_r{0};
+	uint8_t			_g{0};
+	uint8_t			_b{0};
+	bool			_leds_enabled{true};
+
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	LedController		_led_controller;
 
-	static void		led_trampoline(void *arg);
-	void			led();
 
 	int			send_led_enable(bool enable);
 	int			send_led_rgb();
 	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
-	void		update_params();
+	void			update_params();
 };
 
-/* for now, we only support one RGBLED */
-namespace
+RGBLED::RGBLED(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
+	I2C(DRV_LED_DEVTYPE_RGBLED, MODULE_NAME, bus, address, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
-RGBLED *g_rgbled = nullptr;
-}
-
-void rgbled_usage();
-
-extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
-
-RGBLED::RGBLED(int bus, int rgbled) :
-	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled
-#ifdef __PX4_NUTTX
-	    , 100000 /* maximum speed supported */
-#endif
-	   ),
-	_work{},
-	_brightness(1.0f),
-	_max_brightness(1.0f),
-	_r(0),
-	_g(0),
-	_b(0),
-	_running(false),
-	_should_run(true),
-	_leds_enabled(true),
-	_param_sub(-1)
-{
-}
-
-RGBLED::~RGBLED()
-{
-	_should_run = false;
-	int counter = 0;
-
-	while (_running && ++counter < 10) {
-		px4_usleep(100000);
-	}
 }
 
 int
 RGBLED::init()
 {
-	int ret;
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	if (ret != OK) {
 		return ret;
@@ -172,9 +120,8 @@ RGBLED::init()
 
 	update_params();
 
-	_running = true;
 	// kick off work queue
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 0);
+	ScheduleNow();
 
 	return OK;
 }
@@ -209,76 +156,38 @@ RGBLED::probe()
 	return ret;
 }
 
-int
-RGBLED::status()
+void
+RGBLED::print_status()
 {
-	int ret;
 	bool on, powersave;
 	uint8_t r, g, b;
 
-	ret = get(on, powersave, r, g, b);
+	int ret = get(on, powersave, r, g, b);
 
 	if (ret == OK) {
 		/* we don't care about power-save mode */
-		DEVICE_LOG("state: %s", on ? "ON" : "OFF");
-		DEVICE_LOG("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
+		PX4_INFO("state: %s", on ? "ON" : "OFF");
+		PX4_INFO("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
 
 	} else {
 		PX4_WARN("failed to read led");
 	}
-
-	return ret;
 }
 
 void
-RGBLED::led_trampoline(void *arg)
+RGBLED::RunImpl()
 {
-	RGBLED *rgbl = reinterpret_cast<RGBLED *>(arg);
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	rgbl->led();
-}
+		// update parameters from storage
+		update_params();
 
-/**
- * Main loop function
- */
-void
-RGBLED::led()
-{
-	if (!_should_run) {
-		if (_param_sub >= 0) {
-			orb_unsubscribe(_param_sub);
-		}
-
-		int led_control_sub = _led_controller.led_control_subscription();
-
-		if (led_control_sub >= 0) {
-			orb_unsubscribe(led_control_sub);
-		}
-
-		_running = false;
-		return;
-	}
-
-	if (_param_sub < 0) {
-		_param_sub = orb_subscribe(ORB_ID(parameter_update));
-	}
-
-	if (!_led_controller.is_init()) {
-		int led_control_sub = orb_subscribe(ORB_ID(led_control));
-		_led_controller.init(led_control_sub);
-	}
-
-	if (_param_sub >= 0) {
-		bool updated = false;
-		orb_check(_param_sub, &updated);
-
-		if (updated) {
-			parameter_update_s pupdate;
-			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-			update_params();
-			// Immediately update to change brightness
-			send_led_rgb();
-		}
+		// Immediately update to change brightness
+		send_led_rgb();
 	}
 
 	LedControlData led_control_data;
@@ -332,10 +241,8 @@ RGBLED::led()
 		send_led_rgb();
 	}
 
-
 	/* re-queue ourselves to run again later */
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this,
-		   USEC2TICK(_led_controller.maximum_update_interval()));
+	ScheduleDelayed(_led_controller.maximum_update_interval());
 }
 
 /**
@@ -415,113 +322,61 @@ RGBLED::update_params()
 }
 
 void
-rgbled_usage()
+RGBLED::print_usage()
 {
-	PX4_INFO("missing command: try 'start', 'status', 'stop'");
-	PX4_INFO("options:");
-	PX4_INFO("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
-	PX4_INFO("    -a addr (0x%x)", ADDR);
+	PRINT_MODULE_USAGE_NAME("rgbled", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x55);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int
-rgbled_main(int argc, char *argv[])
+I2CSPIDriverBase *RGBLED::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				      int runtime_instance)
 {
-	int i2cdevice = -1;
-	int rgbledadr = ADDR; /* 7bit */
+	RGBLED *instance = new RGBLED(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
 
-	int ch;
-
-	/* jump over start/off/etc and look at options first */
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-
-	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'a':
-			rgbledadr = strtol(myoptarg, nullptr, 0);
-			break;
-
-		case 'b':
-			i2cdevice = strtol(myoptarg, nullptr, 0);
-			break;
-
-		default:
-			rgbled_usage();
-			return 1;
-		}
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	if (myoptind >= argc) {
-		rgbled_usage();
-		return 1;
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		return nullptr;
 	}
 
-	const char *verb = argv[myoptind];
+	return instance;
+}
+
+extern "C" __EXPORT int rgbled_main(int argc, char *argv[])
+{
+	using ThisDriver = RGBLED;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = ADDR;
+
+	const char *verb = cli.parseDefaultArguments(argc, argv);
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_LED_DEVTYPE_RGBLED);
 
 	if (!strcmp(verb, "start")) {
-		if (g_rgbled != nullptr) {
-			PX4_WARN("already started");
-			return 1;
-		}
-
-		if (i2cdevice == -1) {
-			// try the external bus first
-			i2cdevice = PX4_I2C_BUS_EXPANSION;
-			g_rgbled = new RGBLED(PX4_I2C_BUS_EXPANSION, rgbledadr);
-
-			if (g_rgbled != nullptr && OK != g_rgbled->init()) {
-				delete g_rgbled;
-				g_rgbled = nullptr;
-			}
-
-			if (g_rgbled == nullptr) {
-				// fall back to default bus
-				if (PX4_I2C_BUS_LED == PX4_I2C_BUS_EXPANSION) {
-					PX4_WARN("no RGB led on bus #%d", i2cdevice);
-					return 1;
-				}
-
-				i2cdevice = PX4_I2C_BUS_LED;
-			}
-		}
-
-		if (g_rgbled == nullptr) {
-			g_rgbled = new RGBLED(i2cdevice, rgbledadr);
-
-			if (g_rgbled == nullptr) {
-				PX4_WARN("alloc failed");
-				return 1;
-			}
-
-			if (OK != g_rgbled->init()) {
-				delete g_rgbled;
-				g_rgbled = nullptr;
-				PX4_WARN("no RGB led on bus #%d", i2cdevice);
-				return 1;
-			}
-		}
-
-		return 0;
-	}
-
-	/* need the driver past this point */
-	if (g_rgbled == nullptr) {
-		PX4_WARN("not started");
-		rgbled_usage();
-		return 1;
-	}
-
-	if (!strcmp(verb, "status")) {
-		g_rgbled->status();
-		return 0;
+		return ThisDriver::module_start(cli, iterator);
 	}
 
 	if (!strcmp(verb, "stop")) {
-		delete g_rgbled;
-		g_rgbled = nullptr;
-		return 0;
+		return ThisDriver::module_stop(iterator);
 	}
 
-	rgbled_usage();
-	return 1;
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }

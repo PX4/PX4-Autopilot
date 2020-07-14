@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,58 +31,55 @@
  *
  ****************************************************************************/
 
+#pragma once
 
-#include <drivers/device/integrator.h>
-#include <drivers/drv_gyro.h>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
-#include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
-#include <px4_module_params.h>
-#include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
+#include <px4_platform_common/module_params.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
 
-class PX4Gyroscope : public cdev::CDev, public ModuleParams
+class PX4Gyroscope : public ModuleParams
 {
-
 public:
-	PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation);
+	PX4Gyroscope(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Gyroscope() override;
 
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	uint32_t get_device_id() const { return _device_id; }
 
+	float get_max_rate_hz() const { return _param_imu_gyro_rate_max.get(); }
+
+	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_gyro_pub.get().error_count = error_count; }
-	void set_scale(float scale) { _sensor_gyro_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_gyro_pub.get().temperature = temperature; }
+	void set_error_count(uint64_t error_count) { _error_count = error_count; }
+	void increase_error_count() { _error_count++; }
+	void set_range(float range) { _range = range; }
+	void set_scale(float scale) { _scale = scale; }
+	void set_temperature(float temperature) { _temperature = temperature; }
 
-	void set_sample_rate(unsigned rate) { _sample_rate = rate; }
+	void update(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
-	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
-
-	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
-
-	void print_status();
+	void updateFIFO(sensor_gyro_fifo_s &sample);
 
 private:
+	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
-	uORB::Publication<sensor_gyro_s>	_sensor_gyro_pub;
+	uORB::PublicationQueuedMulti<sensor_gyro_s> _sensor_pub;
+	uORB::PublicationMulti<sensor_gyro_fifo_s>  _sensor_fifo_pub;
 
-	math::LowPassFilter2pVector3f _filter{1000, 100};
-	Integrator _integrator{4000, true};
+	uint32_t		_device_id{0};
+	const enum Rotation	_rotation;
 
-	const matrix::Dcmf	_rotation;
+	float			_range{math::radians(2000.f)};
+	float			_scale{1.f};
+	float			_temperature{NAN};
 
-	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
-	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+	uint32_t		_error_count{0};
 
-	int			_class_device_instance{-1};
-
-	unsigned	_sample_rate{1000};
+	int16_t			_last_sample[3] {};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _filter_cutoff
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
 	)
-
 };

@@ -18,22 +18,43 @@ do
   fi
 done
 
+# install Homebrew
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+
 # Install px4-dev formula
-brew tap PX4/px4
-if [ brew ls --versions px4-dev > /dev/null ]; then
-  brew install px4-dev
-elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
-  brew reinstall px4-dev
+if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
+  echo "Re-installing PX4 general dependencies (homebrew px4-dev)"
+
+  # confirm Homebrew installed correctly
+  brew doctor
+
+  brew tap PX4/px4
+  brew reinstall px4-dev ccache
+
+  # python dependencies
+  brew install python3
+  sudo -H python3 -m pip install --upgrade pip
+else
+  if brew ls --versions px4-dev > /dev/null; then
+    echo "px4-dev already installed"
+  else
+    echo "Installing PX4 general dependencies (homebrew px4-dev)"
+    brew tap PX4/px4
+    brew install px4-dev ccache
+
+    # python dependencies
+    brew install python3
+    sudo -H python3 -m pip install --upgrade pip
+  fi
 fi
 
-# Python dependencies
-sudo easy_install pip
-sudo -H pip install --upgrade --force-reinstall pip
-sudo -H pip install -I -r ${DIR}/requirements.txt
+# Python3 dependencies
+echo "Installing PX4 Python3 dependencies"
+sudo -H python3 -m pip install -r ${DIR}/requirements.txt
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
-  if [ brew ls --versions px4-sim > /dev/null ]; then
+  if brew ls --versions px4-sim > /dev/null; then
     brew install px4-sim
   elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
     brew reinstall px4-sim

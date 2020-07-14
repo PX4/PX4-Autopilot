@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# mRo x21 specific board sensors init
+#------------------------------------------------------------------------------
+
+adc start
+
+# Internal SPI bus ICM-20608-G
+icm20608g -s -R 8 start
+
+# Internal SPI bus ICM-20602
+icm20602 -s -R 8 start
+
+# Internal SPI bus mpu9250
+mpu9250 -s -R 8 start
+
+# Internal SPI
+ms5611 -s start

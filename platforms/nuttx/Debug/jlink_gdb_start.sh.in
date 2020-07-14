@@ -1,0 +1,7 @@
+#! /bin/sh
+
+set -o xtrace
+
+killall JLinkGDBServerCLExe
+
+JLinkGDBServerCLExe -silent -device @DEBUG_DEVICE@ -select usb -if SWD -speed auto -LocalhostOnly 1 -strict -vd -singlerun &

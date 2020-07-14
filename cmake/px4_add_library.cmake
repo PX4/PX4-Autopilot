@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_library
@@ -40,7 +38,7 @@ include(px4_base)
 #	Like add_library but with PX4 platform dependencies
 #
 function(px4_add_library target)
-	add_library(${target} ${ARGN})
+	add_library(${target} EXCLUDE_FROM_ALL ${ARGN})
 
 	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
 
@@ -53,9 +51,5 @@ function(px4_add_library target)
 		target_link_libraries(${target} PRIVATE m nuttx_c)
 	endif()
 
-	# Pass variable to the parent px4_add_module.
-	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
-
-	set_property(GLOBAL APPEND PROPERTY PX4_LIBRARIES ${target})
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()

@@ -4,4 +4,3 @@ serial_config:
       port_config_param:
         name: SENS_LEDDAR1_CFG
         group: Sensors
-

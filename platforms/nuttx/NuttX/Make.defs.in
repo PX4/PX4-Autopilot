@@ -40,6 +40,7 @@ CC = ${CMAKE_C_COMPILER}
 CXX = ${CMAKE_CXX_COMPILER}
 CPP = ${CMAKE_C_COMPILER} -E
 LD = ${CMAKE_LD}
+STRIP = ${CMAKE_STRIP} --strip-unneeded
 AR = ${CMAKE_AR} rcs
 NM = ${CMAKE_NM}
 OBJCOPY = ${CMAKE_OBJCOPY}
@@ -51,6 +52,7 @@ ifneq (, $(findstring CYGWIN, $(shell uname)))
   ARCHINCLUDES = -I. -isystem "$(shell cygpath -w $(TOPDIR)/include)"
   ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem "$(shell cygpath -w $(TOPDIR)/include/cxx)"
 else
+  MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem $(TOPDIR)/include/cxx
 endif
@@ -62,7 +64,18 @@ ifeq ($(WINTOOL),y)
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
 endif
 
-FLAGS = -Os -g2 \
+ifeq ($(CONFIG_BOARD_USE_PROBES),y)
+   ARCHINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP)
+   ARCHXXINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP)
+endif
+
+ifeq ($(CONFIG_DEBUG_CUSTOMOPT),y)
+   MAXOPTIMIZATION = $(CONFIG_DEBUG_OPTLEVEL)
+else
+   MAXOPTIMIZATION = -Os
+endif
+
+FLAGS = $(MAXOPTIMIZATION) -g2 \
 	-fdata-sections \
 	-ffunction-sections \
 	-fno-builtin-printf \
@@ -89,7 +102,7 @@ ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 endif
 
 CFLAGS = $(ARCHINCLUDES) \
-	-std=gnu99 \
+	-std=gnu11 \
 	${CMAKE_C_FLAGS} \
 	$(FLAGS) \
 	-Wno-bad-function-cast \
@@ -107,7 +120,7 @@ CFLAGS = $(ARCHINCLUDES) \
 	-Wno-type-limits
 
 CXXFLAGS = $(ARCHXXINCLUDES) \
-	-std=gnu++11 \
+	-std=c++14 \
 	-nostdinc++ \
 	${CMAKE_CXX_FLAGS} \
 	$(FLAGS) \
@@ -115,8 +128,31 @@ CXXFLAGS = $(ARCHXXINCLUDES) \
 	-fno-builtin \
 	-fno-exceptions \
 	-fno-rtti \
+	-fno-sized-deallocation \
 	-nostdinc++ \
 	-Wno-double-promotion \
 	-Wno-missing-declarations
 
+CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 AFLAGS = $(CFLAGS) -D__ASSEMBLY__
+
+ASMEXT = .S
+OBJEXT = .o
+LIBEXT = .a
+EXEEXT =
+
+define COMPILE
+	$(Q) ${CCACHE_PROGRAM} $(CC) -c $(CFLAGS) $($(strip $1)_CFLAGS) $1 -o $2
+endef
+
+define COMPILEXX
+	$(Q) ${CCACHE_PROGRAM} $(CXX) -c $(CXXFLAGS) $($(strip $1)_CXXFLAGS) $1 -o $2
+endef
+
+define ASSEMBLE
+	$(Q) ${CCACHE_PROGRAM} $(CC) -c $(AFLAGS) $1 $($(strip $1)_AFLAGS) -o $2
+endef
+
+define ARCHIVE
+	$(Q) $(AR) $1 $(2)
+endef

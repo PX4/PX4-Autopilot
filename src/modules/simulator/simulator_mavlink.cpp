@@ -2,7 +2,7 @@
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *   Copyright (c) 2016 Anton Matosov. All rights reserved.
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,21 +33,24 @@
  *
  ****************************************************************************/
 
-#include <termios.h>
-#include <px4_log.h>
-#include <px4_time.h>
-#include <px4_tasks.h>
 #include "simulator.h"
 #include <simulator_config.h>
-#include "errno.h"
+
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/tasks.h>
 #include <lib/ecl/geo/geo.h>
 #include <drivers/drv_pwm_output.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <pthread.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
+
+#include <errno.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <poll.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <termios.h>
 
 #include <limits>
 
@@ -67,15 +70,13 @@ static int _fd;
 static unsigned char _buf[2048];
 static sockaddr_in _srcaddr;
 static unsigned _addrlen = sizeof(_srcaddr);
-static hrt_abstime batt_sim_start = 0;
 
 const unsigned mode_flag_armed = 128;
 const unsigned mode_flag_custom = 1;
 
-using namespace simulator;
 using namespace time_literals;
 
-mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const actuator_outputs_s &actuators)
+mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 {
 	mavlink_hil_actuator_controls_t msg{};
 
@@ -85,7 +86,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
-	int _system_type = _param_system_type.get();
+	int _system_type = _param_mav_type.get();
 
 	/* scale outputs depending on system type */
 	if (_system_type == MAV_TYPE_QUADROTOR ||
@@ -126,14 +127,14 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 		}
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (actuators.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (armed) {
 				if (i < n) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
-					msg.controls[i] = (actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 
 				} else {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
-					msg.controls[i] = (actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 				}
 
 			} else {
@@ -146,14 +147,14 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (actuators.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (armed) {
 				if (i != 4) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
-					msg.controls[i] = (actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 				} else {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for throttle */
-					msg.controls[i] = (actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 				}
 
 			} else {
@@ -167,193 +168,82 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 	msg.mode |= (armed) ? mode_flag_armed : 0;
 	msg.flags = 0;
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	msg.flags |= 1;
+#endif
+
 	return msg;
 }
 
 void Simulator::send_controls()
 {
-	// copy new actuator data if available
-	bool updated = false;
-	orb_check(_actuator_outputs_sub, &updated);
+	orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuator_outputs);
 
-	if (updated) {
-		actuator_outputs_s actuators{};
-		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &actuators);
+	if (_actuator_outputs.timestamp > 0) {
+		mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs();
 
-		if (actuators.timestamp > 0) {
-			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
+		mavlink_message_t message{};
+		mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
 
-			mavlink_message_t message{};
-			mavlink_msg_hil_actuator_controls_encode(_param_system_id.get(), _param_component_id.get(), &message, &hil_act_control);
+		PX4_DEBUG("sending controls t=%ld (%ld)", _actuator_outputs.timestamp, hil_act_control.time_usec);
 
-			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
-
-			send_mavlink_message(message);
-		}
+		send_mavlink_message(message);
 	}
 }
 
-static void fill_rc_input_msg(input_rc_s *rc, mavlink_rc_channels_t *rc_channels)
+void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
-	rc->timestamp = hrt_absolute_time();
-	rc->timestamp_last_signal = rc->timestamp;
-	rc->channel_count = rc_channels->chancount;
-	rc->rssi = rc_channels->rssi;
+	float temperature = NAN;
 
-	rc->values[0] = rc_channels->chan1_raw;
-	rc->values[1] = rc_channels->chan2_raw;
-	rc->values[2] = rc_channels->chan3_raw;
-	rc->values[3] = rc_channels->chan4_raw;
-	rc->values[4] = rc_channels->chan5_raw;
-	rc->values[5] = rc_channels->chan6_raw;
-	rc->values[6] = rc_channels->chan7_raw;
-	rc->values[7] = rc_channels->chan8_raw;
-	rc->values[8] = rc_channels->chan9_raw;
-	rc->values[9] = rc_channels->chan10_raw;
-	rc->values[10] = rc_channels->chan11_raw;
-	rc->values[11] = rc_channels->chan12_raw;
-	rc->values[12] = rc_channels->chan13_raw;
-	rc->values[13] = rc_channels->chan14_raw;
-	rc->values[14] = rc_channels->chan15_raw;
-	rc->values[15] = rc_channels->chan16_raw;
-	rc->values[16] = rc_channels->chan17_raw;
-	rc->values[17] = rc_channels->chan18_raw;
+	// temperature only updated with baro
+	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
+		if (PX4_ISFINITE(sensors.temperature)) {
+			temperature = sensors.temperature;
+
+			_px4_accel.set_temperature(temperature);
+			_px4_baro.set_temperature(temperature);
+			_px4_gyro.set_temperature(temperature);
+			_px4_mag.set_temperature(temperature);
+		}
+	}
+
+	// accel
+	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_param_sim_accel_block.get()) {
+		_px4_accel.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+	}
+
+	// gyro
+	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO && !_param_sim_gyro_block.get()) {
+		_px4_gyro.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+	}
+
+	// magnetometer
+	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG && !_param_sim_mag_block.get()) {
+		_px4_mag.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+	}
+
+	// baro
+	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_param_sim_baro_block.get()) {
+		_px4_baro.update(time, sensors.abs_pressure);
+	}
+
+	// differential pressure
+	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_param_sim_dpres_block.get()) {
+		differential_pressure_s report{};
+		report.timestamp = time;
+		report.temperature = temperature;
+		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
+		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
+
+		_differential_pressure_pub.publish(report);
+	}
 }
 
-void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
-{
-	// write sensor data to memory so that drivers can copy data from there
-	RawMPUData mpu = {};
-	mpu.accel_x = imu->xacc;
-	mpu.accel_y = imu->yacc;
-	mpu.accel_z = imu->zacc;
-	mpu.temp = imu->temperature;
-	mpu.gyro_x = imu->xgyro;
-	mpu.gyro_y = imu->ygyro;
-	mpu.gyro_z = imu->zgyro;
-
-	write_MPU_data(&mpu);
-	perf_begin(_perf_mpu);
-
-	RawAccelData accel = {};
-	accel.x = imu->xacc;
-	accel.y = imu->yacc;
-	accel.z = imu->zacc;
-
-	write_accel_data(&accel);
-	perf_begin(_perf_accel);
-
-	RawMagData mag = {};
-	mag.x = imu->xmag;
-	mag.y = imu->ymag;
-	mag.z = imu->zmag;
-
-	write_mag_data(&mag);
-	perf_begin(_perf_mag);
-
-	RawBaroData baro = {};
-
-	// Get air pressure and pressure altitude
-	// valid for troposphere (below 11km AMSL)
-	baro.pressure = imu->abs_pressure;
-	baro.temperature = imu->temperature;
-
-	write_baro_data(&baro);
-
-	RawAirspeedData airspeed = {};
-	airspeed.temperature = imu->temperature;
-	// FIXME: diff_pressure needs some noise to pass preflight checks, so we just take the
-	//        noise from the gyro.
-	airspeed.diff_pressure = imu->diff_pressure + ((imu->ygyro > 0) ? 0.001f : 0.0f);
-
-	write_airspeed_data(&airspeed);
-}
-
-void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
-{
-	RawGPSData gps = {};
-	gps.timestamp = hrt_absolute_time();
-	gps.lat = gps_sim->lat;
-	gps.lon = gps_sim->lon;
-	gps.alt = gps_sim->alt;
-	gps.eph = gps_sim->eph;
-	gps.epv = gps_sim->epv;
-	gps.vel = gps_sim->vel;
-	gps.vn = gps_sim->vn;
-	gps.ve = gps_sim->ve;
-	gps.vd = gps_sim->vd;
-	gps.cog = gps_sim->cog;
-	gps.fix_type = gps_sim->fix_type;
-	gps.satellites_visible = gps_sim->satellites_visible;
-
-	write_gps_data((void *)&gps);
-}
-
-void Simulator::handle_message(mavlink_message_t *msg, bool publish)
+void Simulator::handle_message(const mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
-	case MAVLINK_MSG_ID_HIL_SENSOR: {
-			mavlink_hil_sensor_t imu;
-			mavlink_msg_hil_sensor_decode(msg, &imu);
-
-			// set temperature to a decent value
-			imu.temperature = 32.0f;
-
-			struct timespec ts;
-			abstime_to_ts(&ts, imu.time_usec);
-			px4_clock_settime(CLOCK_MONOTONIC, &ts);
-
-			hrt_abstime now_us = hrt_absolute_time();
-
-#if 0
-			// This is just for to debug missing HIL_SENSOR messages.
-			static hrt_abstime last_time = 0;
-			hrt_abstime diff = now_us - last_time;
-			float step = diff / 4000.0f;
-
-			if (step > 1.1f || step < 0.9f) {
-				PX4_INFO("HIL_SENSOR: imu time_usec: %lu, time_usec: %lu, diff: %lu, step: %.2f", imu.time_usec, now_us, diff, step);
-			}
-
-			last_time = now_us;
-#endif
-
-			if (publish) {
-				publish_sensor_topics(&imu);
-			}
-
-			update_sensors(&imu);
-
-			// battery simulation (limit update to 100Hz)
-			if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
-
-				const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
-
-				bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-
-				if (!armed || batt_sim_start == 0 || batt_sim_start > now_us) {
-					batt_sim_start = now_us;
-				}
-
-				float ibatt = -1.0f; // no current sensor in simulation
-				const float minimum_percentage = 0.499f; // change this value if you want to simulate low battery reaction
-
-				/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
-				float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
-
-				battery_percentage = math::max(battery_percentage, minimum_percentage);
-				float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
-				vbatt *= _battery.cell_count();
-
-				const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-				_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
-
-
-				// publish the battery voltage
-				int batt_multi;
-				orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &batt_multi, ORB_PRIO_HIGH);
-			}
-		}
+	case MAVLINK_MSG_ID_HIL_SENSOR:
+		handle_message_hil_sensor(msg);
 		break;
 
 	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
@@ -361,8 +251,11 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		break;
 
 	case MAVLINK_MSG_ID_ODOMETRY:
+		handle_message_odometry(msg);
+		break;
+
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
-		publish_odometry_topic(msg);
+		handle_message_vision_position_estimate(msg);
 		break;
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
@@ -370,39 +263,21 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		break;
 
 	case MAVLINK_MSG_ID_HIL_GPS:
-		mavlink_hil_gps_t gps_sim;
-		mavlink_msg_hil_gps_decode(msg, &gps_sim);
-
-		if (publish) {
-			//PX4_WARN("FIXME:  Need to publish GPS topic.  Not done yet.");
-		}
-
-		update_gps(&gps_sim);
+		handle_message_hil_gps(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RC_CHANNELS:
-		mavlink_rc_channels_t rc_channels;
-		mavlink_msg_rc_channels_decode(msg, &rc_channels);
-		fill_rc_input_msg(&_rc_input, &rc_channels);
-
-		// publish message
-		if (publish) {
-			int rc_multi;
-			orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
-		}
-
+		handle_message_rc_channels(msg);
 		break;
 
-	case MAVLINK_MSG_ID_LANDING_TARGET: {
-			handle_message_landing_target(msg);
-			break;
-		}
+	case MAVLINK_MSG_ID_LANDING_TARGET:
+		handle_message_landing_target(msg);
+		break;
 
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		handle_message_hil_state_quaternion(msg);
 		break;
 	}
-
 }
 
 void Simulator::handle_message_distance_sensor(const mavlink_message_t *msg)
@@ -412,6 +287,83 @@ void Simulator::handle_message_distance_sensor(const mavlink_message_t *msg)
 	publish_distance_topic(&dist);
 }
 
+void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
+{
+	mavlink_hil_gps_t hil_gps;
+	mavlink_msg_hil_gps_decode(msg, &hil_gps);
+
+	if (!_param_sim_gps_block.get()) {
+		vehicle_gps_position_s gps{};
+
+		gps.timestamp = hrt_absolute_time();
+		gps.time_utc_usec = hil_gps.time_usec;
+		gps.fix_type = hil_gps.fix_type;
+		gps.lat = hil_gps.lat;
+		gps.lon = hil_gps.lon;
+		gps.alt = hil_gps.alt;
+		gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+		gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
+		gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+		gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+		gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+		gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+		gps.cog_rad = math::radians((float)(hil_gps.cog) / 100.0f); // cdeg -> rad
+		gps.satellites_used = hil_gps.satellites_visible;
+		gps.s_variance_m_s = 0.25f;
+
+		// New publishers will be created based on the HIL_GPS ID's being different or not
+		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
+			if (_vehicle_gps_position_pubs[i] && _gps_ids[i] == hil_gps.id) {
+				_vehicle_gps_position_pubs[i]->publish(gps);
+				break;
+
+			}
+
+			if (_vehicle_gps_position_pubs[i] == nullptr) {
+				_vehicle_gps_position_pubs[i] = new uORB::PublicationMulti<vehicle_gps_position_s> {ORB_ID(vehicle_gps_position)};
+				_gps_ids[i] = hil_gps.id;
+				_vehicle_gps_position_pubs[i]->publish(gps);
+				break;
+			}
+		}
+	}
+}
+
+void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
+{
+	mavlink_hil_sensor_t imu;
+	mavlink_msg_hil_sensor_decode(msg, &imu);
+
+	struct timespec ts;
+	abstime_to_ts(&ts, imu.time_usec);
+	px4_clock_settime(CLOCK_MONOTONIC, &ts);
+
+	hrt_abstime now_us = hrt_absolute_time();
+
+#if 0
+	// This is just for to debug missing HIL_SENSOR messages.
+	static hrt_abstime last_time = 0;
+	hrt_abstime diff = now_us - last_time;
+	float step = diff / 4000.0f;
+
+	if (step > 1.1f || step < 0.9f) {
+		PX4_INFO("HIL_SENSOR: imu time_usec: %lu, time_usec: %lu, diff: %lu, step: %.2f", imu.time_usec, now_us, diff, step);
+	}
+
+	last_time = now_us;
+#endif
+
+	update_sensors(now_us, imu);
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+	if (!_has_initialized.load()) {
+		_has_initialized.store(true);
+	}
+
+#endif
+}
+
 void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg)
 {
 	mavlink_hil_state_quaternion_t hil_state;
@@ -419,25 +371,33 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 
 	uint64_t timestamp = hrt_absolute_time();
 
+	/* angular velocity */
+	vehicle_angular_velocity_s hil_angular_velocity{};
+	{
+		hil_angular_velocity.timestamp = timestamp;
+
+		hil_angular_velocity.xyz[0] = hil_state.rollspeed;
+		hil_angular_velocity.xyz[1] = hil_state.pitchspeed;
+		hil_angular_velocity.xyz[2] = hil_state.yawspeed;
+
+		// always publish ground truth attitude message
+		_vehicle_angular_velocity_ground_truth_pub.publish(hil_angular_velocity);
+	}
+
 	/* attitude */
-	struct vehicle_attitude_s hil_attitude = {};
+	vehicle_attitude_s hil_attitude{};
 	{
 		hil_attitude.timestamp = timestamp;
 
 		matrix::Quatf q(hil_state.attitude_quaternion);
 		q.copyTo(hil_attitude.q);
 
-		hil_attitude.rollspeed = hil_state.rollspeed;
-		hil_attitude.pitchspeed = hil_state.pitchspeed;
-		hil_attitude.yawspeed = hil_state.yawspeed;
-
 		// always publish ground truth attitude message
-		int hilstate_multi;
-		orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
+		_attitude_ground_truth_pub.publish(hil_attitude);
 	}
 
 	/* global position */
-	struct vehicle_global_position_s hil_gpos = {};
+	vehicle_global_position_s hil_gpos{};
 	{
 		hil_gpos.timestamp = timestamp;
 
@@ -445,14 +405,8 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_gpos.lon = hil_state.lon / 1E7;//1E7
 		hil_gpos.alt = hil_state.alt / 1E3;//1E3
 
-		hil_gpos.vel_n = hil_state.vx / 100.0f;
-		hil_gpos.vel_e = hil_state.vy / 100.0f;
-		hil_gpos.vel_d = hil_state.vz / 100.0f;
-
 		// always publish ground truth attitude message
-		int hil_gpos_multi;
-		orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi,
-				 ORB_PRIO_HIGH);
+		_gpos_ground_truth_pub.publish(hil_gpos);
 	}
 
 	/* local position */
@@ -500,9 +454,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.hagl_max = std::numeric_limits<float>::infinity();
 
 		// always publish ground truth attitude message
-		int hil_lpos_multi;
-		orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
-				 ORB_PRIO_HIGH);
+		_lpos_ground_truth_pub.publish(hil_lpos);
 	}
 }
 
@@ -511,8 +463,7 @@ void Simulator::handle_message_landing_target(const mavlink_message_t *msg)
 	mavlink_landing_target_t landing_target_mavlink;
 	mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
 
-	struct irlock_report_s report = {};
-
+	irlock_report_s report{};
 	report.timestamp = hrt_absolute_time();
 	report.signature = landing_target_mavlink.target_num;
 	report.pos_x = landing_target_mavlink.angle_x;
@@ -520,8 +471,12 @@ void Simulator::handle_message_landing_target(const mavlink_message_t *msg)
 	report.size_x = landing_target_mavlink.size_x;
 	report.size_y = landing_target_mavlink.size_y;
 
-	int irlock_multi;
-	orb_publish_auto(ORB_ID(irlock_report), &_irlock_report_pub, &report, &irlock_multi, ORB_PRIO_HIGH);
+	_irlock_report_pub.publish(report);
+}
+
+void Simulator::handle_message_odometry(const mavlink_message_t *msg)
+{
+	publish_odometry_topic(msg);
 }
 
 void Simulator::handle_message_optical_flow(const mavlink_message_t *msg)
@@ -529,6 +484,45 @@ void Simulator::handle_message_optical_flow(const mavlink_message_t *msg)
 	mavlink_hil_optical_flow_t flow;
 	mavlink_msg_hil_optical_flow_decode(msg, &flow);
 	publish_flow_topic(&flow);
+}
+
+void Simulator::handle_message_rc_channels(const mavlink_message_t *msg)
+{
+	mavlink_rc_channels_t rc_channels;
+	mavlink_msg_rc_channels_decode(msg, &rc_channels);
+
+	input_rc_s rc_input{};
+	rc_input.timestamp_last_signal = hrt_absolute_time();
+	rc_input.channel_count = rc_channels.chancount;
+	rc_input.rssi = rc_channels.rssi;
+	rc_input.values[0] = rc_channels.chan1_raw;
+	rc_input.values[1] = rc_channels.chan2_raw;
+	rc_input.values[2] = rc_channels.chan3_raw;
+	rc_input.values[3] = rc_channels.chan4_raw;
+	rc_input.values[4] = rc_channels.chan5_raw;
+	rc_input.values[5] = rc_channels.chan6_raw;
+	rc_input.values[6] = rc_channels.chan7_raw;
+	rc_input.values[7] = rc_channels.chan8_raw;
+	rc_input.values[8] = rc_channels.chan9_raw;
+	rc_input.values[9] = rc_channels.chan10_raw;
+	rc_input.values[10] = rc_channels.chan11_raw;
+	rc_input.values[11] = rc_channels.chan12_raw;
+	rc_input.values[12] = rc_channels.chan13_raw;
+	rc_input.values[13] = rc_channels.chan14_raw;
+	rc_input.values[14] = rc_channels.chan15_raw;
+	rc_input.values[15] = rc_channels.chan16_raw;
+	rc_input.values[16] = rc_channels.chan17_raw;
+	rc_input.values[17] = rc_channels.chan18_raw;
+
+	rc_input.timestamp = hrt_absolute_time();
+
+	// publish message
+	_input_rc_pub.publish(rc_input);
+}
+
+void Simulator::handle_message_vision_position_estimate(const mavlink_message_t *msg)
+{
+	publish_odometry_topic(msg);
 }
 
 void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
@@ -552,18 +546,6 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 	}
 }
 
-void Simulator::poll_topics()
-{
-	// copy new actuator data if available
-	bool updated = false;
-
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-	}
-}
-
 void *Simulator::sending_trampoline(void * /*unused*/)
 {
 	_instance->send();
@@ -584,13 +566,14 @@ void Simulator::send()
 	// Without this, we get stuck at px4_poll which waits for a time update.
 	send_heartbeat();
 
-	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _actuator_outputs_sub;
-	fds[0].events = POLLIN;
+	px4_pollfd_struct_t fds_actuator_outputs[1] = {};
+	fds_actuator_outputs[0].fd = _actuator_outputs_sub;
+	fds_actuator_outputs[0].events = POLLIN;
 
 	while (true) {
+
 		// Wait for up to 100ms for data.
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
 
 		if (pret == 0) {
 			// Timed out, try again.
@@ -602,11 +585,13 @@ void Simulator::send()
 			continue;
 		}
 
-		if (fds[0].revents & POLLIN) {
+		if (fds_actuator_outputs[0].revents & POLLIN) {
 			// Got new data to read, update all topics.
 			parameters_update(false);
-			poll_topics();
+			_vehicle_status_sub.update(&_vehicle_status);
 			send_controls();
+			// Wait for other modules, such as logger or ekf2
+			px4_lockstep_wait_for_components();
 		}
 	}
 }
@@ -618,7 +603,7 @@ void Simulator::request_hil_state_quaternion()
 	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
 	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
 	cmd_long.param2 = 5e3;
-	mavlink_msg_command_long_encode(_param_system_id.get(), _param_component_id.get(), &message, &cmd_long);
+	mavlink_msg_command_long_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &cmd_long);
 	send_mavlink_message(message);
 }
 
@@ -628,43 +613,11 @@ void Simulator::send_heartbeat()
 	mavlink_message_t message = {};
 	hb.autopilot = 12;
 	hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
-	mavlink_msg_heartbeat_encode(_param_system_id.get(), _param_component_id.get(), &message, &hb);
+	mavlink_msg_heartbeat_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hb);
 	send_mavlink_message(message);
 }
 
-void Simulator::initialize_sensor_data()
-{
-	// Write sensor data to memory so that drivers can copy data from there.
-	RawMPUData mpu = {};
-	mpu.accel_z = CONSTANTS_ONE_G;
-
-	write_MPU_data(&mpu);
-
-	RawAccelData accel = {};
-	accel.z = CONSTANTS_ONE_G;
-
-	write_accel_data(&accel);
-
-	RawMagData mag = {};
-	mag.x = 0.4f;
-	mag.y = 0.0f;
-	mag.z = 0.6f;
-
-	write_mag_data((void *)&mag);
-
-	RawBaroData baro = {};
-	// calculate air pressure from altitude (valid for low altitude)
-	baro.pressure = 120000.0f;
-	baro.temperature = 25.0f;
-
-	write_baro_data(&baro);
-
-	RawAirspeedData airspeed {};
-
-	write_airspeed_data(&airspeed);
-}
-
-void Simulator::poll_for_MAVLink_messages(bool publish)
+void Simulator::run()
 {
 #ifdef __PX4_DARWIN
 	pthread_setname_np("sim_rcv");
@@ -686,6 +639,7 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 		if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 			PX4_ERR("bind for UDP port %i failed (%i)", _port, errno);
+			::close(_fd);
 			return;
 		}
 
@@ -700,7 +654,7 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 				break;
 
 			} else {
-				system_sleep(1);
+				system_usleep(100);
 			}
 		}
 
@@ -708,7 +662,7 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 	} else {
 
-		PX4_INFO("Waiting for simulator to connect on TCP port %u", _port);
+		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
 			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -731,7 +685,7 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 			} else {
 				::close(_fd);
-				system_sleep(1);
+				system_usleep(100);
 			}
 		}
 
@@ -778,10 +732,9 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 #endif
 
-	// subscribe to topics
-	// only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS
+	// Subscribe to topics.
+	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
@@ -791,8 +744,6 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 	// Request HIL_STATE_QUATERNION for ground truth.
 	request_hil_state_quaternion();
-
-	_initialized = true;
 
 	while (true) {
 
@@ -818,7 +769,7 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 				for (int i = 0; i < len; i++) {
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &mavlink_status)) {
-						handle_message(&msg, publish);
+						handle_message(&msg);
 					}
 				}
 			}
@@ -828,7 +779,7 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 		// got data from PIXHAWK
 		if (fd_count > 1 && fds[1].revents & POLLIN) {
-			len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
+			int len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
 
 			if (len > 0) {
 				mavlink_message_t msg;
@@ -837,8 +788,7 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 				for (int i = 0; i < len; ++i) {
 					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
-						// have a message, handle it
-						handle_message(&msg, true);
+						handle_message(&msg);
 					}
 				}
 			}
@@ -846,8 +796,9 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 #endif
 	}
-}
 
+	orb_unsubscribe(_actuator_outputs_sub);
+}
 
 #ifdef ENABLE_UART_RC_INPUT
 int openUart(const char *uart_name, int baud)
@@ -943,109 +894,11 @@ int openUart(const char *uart_name, int baud)
 }
 #endif
 
-int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
+int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink)
 {
-	uint64_t timestamp = hrt_absolute_time();
-
-	if ((imu->fields_updated & 0x1FFF) != 0x1FFF) {
-		PX4_DEBUG("All sensor fields in mavlink HIL_SENSOR packet not updated.  Got %08x", imu->fields_updated);
-	}
-
-	/*
-	  static int count=0;
-	  static uint64_t last_timestamp=0;
-	  count++;
-	  if (!(count % 200)) {
-		PX4_WARN("TIME : %lu,   dt: %lu",
-			 (unsigned long) timestamp,(unsigned long) timestamp - (unsigned long) last_timestamp);
-		PX4_WARN("IMU  : %f %f %f",imu->xgyro,imu->ygyro,imu->zgyro);
-		PX4_WARN("ACCEL: %f %f %f",imu->xacc,imu->yacc,imu->zacc);
-		PX4_WARN("MAG  : %f %f %f",imu->xmag,imu->ymag,imu->zmag);
-		PX4_WARN("BARO : %f %f %f",imu->abs_pressure,imu->pressure_alt,imu->temperature);
-	}
-	last_timestamp = timestamp;
-	*/
-	/* gyro */
-	{
-		sensor_gyro_s gyro = {};
-
-		gyro.timestamp = timestamp;
-		gyro.device_id = 2293768;
-		gyro.x_raw = imu->xgyro * 1000.0f;
-		gyro.y_raw = imu->ygyro * 1000.0f;
-		gyro.z_raw = imu->zgyro * 1000.0f;
-		gyro.x = imu->xgyro;
-		gyro.y = imu->ygyro;
-		gyro.z = imu->zgyro;
-
-		gyro.temperature = imu->temperature;
-
-		int gyro_multi;
-		orb_publish_auto(ORB_ID(sensor_gyro), &_gyro_pub, &gyro, &gyro_multi, ORB_PRIO_HIGH);
-	}
-
-	/* accelerometer */
-	{
-		sensor_accel_s accel = {};
-
-		accel.timestamp = timestamp;
-		accel.device_id = 1376264;
-		accel.x_raw = imu->xacc / (CONSTANTS_ONE_G / 1000.0f);
-		accel.y_raw = imu->yacc / (CONSTANTS_ONE_G / 1000.0f);
-		accel.z_raw = imu->zacc / (CONSTANTS_ONE_G / 1000.0f);
-		accel.x = imu->xacc;
-		accel.y = imu->yacc;
-		accel.z = imu->zacc;
-
-		accel.temperature = imu->temperature;
-
-		int accel_multi;
-		orb_publish_auto(ORB_ID(sensor_accel), &_accel_pub, &accel, &accel_multi, ORB_PRIO_HIGH);
-	}
-
-	/* magnetometer */
-	{
-		struct mag_report mag = {};
-
-		mag.timestamp = timestamp;
-		mag.device_id = 196616;
-		mag.x_raw = imu->xmag * 1000.0f;
-		mag.y_raw = imu->ymag * 1000.0f;
-		mag.z_raw = imu->zmag * 1000.0f;
-		mag.x = imu->xmag;
-		mag.y = imu->ymag;
-		mag.z = imu->zmag;
-
-		mag.temperature = imu->temperature;
-
-		int mag_multi;
-		orb_publish_auto(ORB_ID(sensor_mag), &_mag_pub, &mag, &mag_multi, ORB_PRIO_HIGH);
-	}
-
-	/* baro */
-	{
-		sensor_baro_s baro = {};
-
-		baro.timestamp = timestamp;
-		baro.device_id = 478459;
-		baro.pressure = imu->abs_pressure;
-		baro.temperature = imu->temperature;
-
-		int baro_multi;
-		orb_publish_auto(ORB_ID(sensor_baro), &_baro_pub, &baro, &baro_multi, ORB_PRIO_HIGH);
-	}
-
-	return OK;
-}
-
-int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
-{
-	uint64_t timestamp = hrt_absolute_time();
-
-	struct optical_flow_s flow = {};
-
+	optical_flow_s flow = {};
 	flow.sensor_id = flow_mavlink->sensor_id;
-	flow.timestamp = timestamp;
+	flow.timestamp = hrt_absolute_time();
 	flow.time_since_last_sonar_update = 0;
 	flow.frame_count_since_last_readout = 0; // ?
 	flow.integration_timespan = flow_mavlink->integration_time_us;
@@ -1080,19 +933,19 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	rotate_3f(flow_rot, flow.pixel_flow_x_integral, flow.pixel_flow_y_integral, zeroval);
 	rotate_3f(flow_rot, flow.gyro_x_rate_integral, flow.gyro_y_rate_integral, flow.gyro_z_rate_integral);
 
-	int flow_multi;
-	orb_publish_auto(ORB_ID(optical_flow), &_flow_pub, &flow, &flow_multi, ORB_PRIO_HIGH);
+	_flow_pub.publish(flow);
 
-	return OK;
+	return PX4_OK;
 }
 
-int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
+int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
 	struct vehicle_odometry_s odom;
 
 	odom.timestamp = timestamp;
+	odom.timestamp_sample = timestamp;
 
 	const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
 
@@ -1100,27 +953,22 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		mavlink_odometry_t odom_msg;
 		mavlink_msg_odometry_decode(odom_mavlink, &odom_msg);
 
-		/* Dcm rotation matrix from body frame to local NED frame */
-		matrix::Dcm<float> Rbl;
-
-		/* since odom.child_frame_id == MAV_FRAME_BODY_FRD, WRT to estimated vehicle body-fixed frame */
-		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
-		/* No need to transform the covariance matrices since the non-diagonal values are all zero */
-		Rbl = matrix::Dcm<float>(matrix::Quatf(odom_msg.q)).I();
-
-		/* the linear velocities needs to be transformed to the local NED frame */
-		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
-
 		/* The position in the local NED frame */
 		odom.x = odom_msg.x;
 		odom.y = odom_msg.y;
 		odom.z = odom_msg.z;
+
 		/* The quaternion of the ODOMETRY msg represents a rotation from
 		 * NED earth/local frame to XYZ body frame */
 		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
 		q.copyTo(odom.q);
 
-		odom.local_frame = odom.LOCAL_FRAME_NED;
+		if (odom_msg.frame_id == MAV_FRAME_LOCAL_NED) {
+			odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+
+		} else {
+			odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+		}
 
 		static_assert(POS_URT_SIZE == (sizeof(odom_msg.pose_covariance) / sizeof(odom_msg.pose_covariance[0])),
 			      "Odometry Pose Covariance matrix URT array size mismatch");
@@ -1130,10 +978,12 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 			odom.pose_covariance[i] = odom_msg.pose_covariance[i];
 		}
 
-		/* The velocity in the local NED frame */
-		odom.vx = linvel_local(0);
-		odom.vy = linvel_local(1);
-		odom.vz = linvel_local(2);
+		/* The velocity in the body-fixed frame */
+		odom.velocity_frame = vehicle_odometry_s::BODY_FRAME_FRD;
+		odom.vx = odom_msg.vx;
+		odom.vy = odom_msg.vy;
+		odom.vz = odom_msg.vz;
+
 		/* The angular velocity in the body-fixed frame */
 		odom.rollspeed = odom_msg.rollspeed;
 		odom.pitchspeed = odom_msg.pitchspeed;
@@ -1149,6 +999,17 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 			odom.velocity_covariance[i] = odom_msg.velocity_covariance[i];
 		}
 
+		/* Publish the odometry based on the source */
+		if (odom_msg.estimator_type == MAV_ESTIMATOR_TYPE_VISION || odom_msg.estimator_type == MAV_ESTIMATOR_TYPE_VIO) {
+			_visual_odometry_pub.publish(odom);
+
+		} else if (odom_msg.estimator_type == MAV_ESTIMATOR_TYPE_MOCAP) {
+			_mocap_odometry_pub.publish(odom);
+
+		} else {
+			PX4_ERR("Estimator source %u not supported. Unable to publish pose and velocity", odom_msg.estimator_type);
+		}
+
 	} else if (odom_mavlink->msgid == MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE) {
 		mavlink_vision_position_estimate_t ev;
 		mavlink_msg_vision_position_estimate_decode(odom_mavlink, &ev);
@@ -1161,7 +1022,7 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 		q.copyTo(odom.q);
 
-		odom.local_frame = odom.LOCAL_FRAME_NED;
+		odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 		static_assert(POS_URT_SIZE == (sizeof(ev.covariance) / sizeof(ev.covariance[0])),
 			      "Vision Position Estimate Pose Covariance matrix URT array size mismatch");
@@ -1183,34 +1044,80 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		/* The velocity covariance URT - unknown */
 		odom.velocity_covariance[0] = NAN;
 
+		/* Publish the odometry */
+		_visual_odometry_pub.publish(odom);
 	}
 
-	int instance_id = 0;
-
-	/** @note: frame_id == MAV_FRAME_VISION_NED) */
-	orb_publish_auto(ORB_ID(vehicle_visual_odometry), &_visual_odometry_pub, &odom, &instance_id, ORB_PRIO_HIGH);
-
-	return OK;
+	return PX4_OK;
 }
 
-int Simulator::publish_distance_topic(mavlink_distance_sensor_t *dist_mavlink)
+int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavlink)
 {
-	uint64_t timestamp = hrt_absolute_time();
-
-	struct distance_sensor_s dist = {};
-
-	dist.timestamp = timestamp;
+	distance_sensor_s dist{};
+	dist.timestamp = hrt_absolute_time();
 	dist.min_distance = dist_mavlink->min_distance / 100.0f;
 	dist.max_distance = dist_mavlink->max_distance / 100.0f;
 	dist.current_distance = dist_mavlink->current_distance / 100.0f;
 	dist.type = dist_mavlink->type;
 	dist.id = dist_mavlink->id;
-	dist.orientation = dist_mavlink->orientation;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
-	dist.signal_quality = -1;
 
-	int dist_multi;
-	orb_publish_auto(ORB_ID(distance_sensor), &_dist_pub, &dist, &dist_multi, ORB_PRIO_HIGH);
+	// MAVLink DISTANCE_SENSOR signal_quality value of 0 means unset/unknown
+	// quality value. Also it comes normalised between 1 and 100 while the uORB
+	// signal quality is normalised between 0 and 100.
+	dist.signal_quality = dist_mavlink->signal_quality == 0 ? -1 : 100 * (dist_mavlink->signal_quality - 1) / 99;
 
-	return OK;
+	switch (dist_mavlink->orientation) {
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_270:
+		dist.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_90:
+		dist.orientation = distance_sensor_s::ROTATION_UPWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_180:
+		dist.orientation = distance_sensor_s::ROTATION_BACKWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_NONE:
+		dist.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_270:
+		dist.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+		break;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_90:
+		dist.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
+		break;
+
+	default:
+		dist.orientation = distance_sensor_s::ROTATION_CUSTOM;
+	}
+
+	dist.h_fov = dist_mavlink->horizontal_fov;
+	dist.v_fov = dist_mavlink->vertical_fov;
+	dist.q[0] = dist_mavlink->quaternion[0];
+	dist.q[1] = dist_mavlink->quaternion[1];
+	dist.q[2] = dist_mavlink->quaternion[2];
+	dist.q[3] = dist_mavlink->quaternion[3];
+
+	// New publishers will be created based on the sensor ID's being different or not
+	for (size_t i = 0; i < sizeof(_dist_sensor_ids) / sizeof(_dist_sensor_ids[0]); i++) {
+		if (_dist_pubs[i] && _dist_sensor_ids[i] == dist.id) {
+			_dist_pubs[i]->publish(dist);
+			break;
+
+		}
+
+		if (_dist_pubs[i] == nullptr) {
+			_dist_pubs[i] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
+			_dist_sensor_ids[i] = dist.id;
+			_dist_pubs[i]->publish(dist);
+			break;
+		}
+	}
+
+	return PX4_OK;
 }

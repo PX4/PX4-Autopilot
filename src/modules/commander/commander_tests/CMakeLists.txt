@@ -37,6 +37,5 @@ px4_add_module(
 		commander_tests.cpp
 		state_machine_helper_test.cpp
 		../state_machine_helper.cpp
-		../PreflightCheck.cpp
 	DEPENDS
 	)

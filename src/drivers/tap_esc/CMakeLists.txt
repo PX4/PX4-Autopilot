@@ -40,6 +40,5 @@ px4_add_module(
 		tap_esc_common.cpp
 	DEPENDS
 		mixer
-		pwm_limit
 	)
 

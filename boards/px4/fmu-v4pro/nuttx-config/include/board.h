@@ -36,23 +36,20 @@
  *
  ************************************************************************************/
 
-#ifndef __NUTTX_CONFIG_PX4FMUV4_PRO_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_PX4FMUV4_PRO_INCLUDE_BOARD_H
+#ifndef __ARCH_BOARD_BOARD_H
+#define __ARCH_BOARD_BOARD_H
 
 /************************************************************************************
  * Included Files
  ************************************************************************************/
+#include "board_dma_map.h"
 
 #include <nuttx/config.h>
-
 #ifndef __ASSEMBLY__
 # include <stdint.h>
 #endif
 
-
 #include <stm32.h>
-
-
 
 /************************************************************************************
  * Definitions
@@ -201,7 +198,7 @@
  * to service FIFOs in interrupt driven mode.  These values have not been
  * tuned!!!
  *
- * SDIOCLK =48MHz, SDMMC_CK=SDIOCLK/(118+2)=400 KHz
+ * SDIOCLK=48MHz, SDMMC_CK=SDIOCLK/(118+2)=400 KHz
  */
 
 /* Use the Falling edge of the SDIO_CLK clock to change the edge the
@@ -210,16 +207,16 @@
 
 #define SDIO_CLKCR_EDGE SDIO_CLKCR_NEGEDGE
 
-#define SDIO_INIT_CLKDIV         (118 << SDIO_CLKCR_CLKDIV_SHIFT)
+#define SDIO_INIT_CLKDIV        (118 << SDIO_CLKCR_CLKDIV_SHIFT)
 
 /* DMA ON:  SDIOCLK=48MHz, SDMMC_CK=SDIOCLK/(1+2)=16 MHz
  * DMA OFF: SDIOCLK=48MHz, SDMMC_CK=SDIOCLK/(2+2)=12 MHz
  */
 
 #ifdef CONFIG_STM32_SDIO_DMA
-#  define SDIO_MMCXFR_CLKDIV     (1 << SDIO_CLKCR_CLKDIV_SHIFT)
+#  define SDIO_MMCXFR_CLKDIV    (1 << SDIO_CLKCR_CLKDIV_SHIFT)
 #else
-#  define SDIO_MMCXFR_CLKDIV     (2 << SDIO_CLKCR_CLKDIV_SHIFT)
+#  define SDIO_MMCXFR_CLKDIV    (2 << SDIO_CLKCR_CLKDIV_SHIFT)
 #endif
 
 /* DMA ON:  SDIOCLK=48MHz, SDMMC_CK=SDIOCLK/(1+2)=16 MHz
@@ -228,22 +225,10 @@
 //TODO #warning "Check Freq for 24mHz"
 
 #ifdef CONFIG_STM32_SDIO_DMA
-#  define SDIO_SDXFR_CLKDIV      (1 << SDIO_CLKCR_CLKDIV_SHIFT)
+#  define SDIO_SDXFR_CLKDIV     (1 << SDIO_CLKCR_CLKDIV_SHIFT)
 #else
-#  define SDIO_SDXFR_CLKDIV      (2 << SDIO_CLKCR_CLKDIV_SHIFT)
+#  define SDIO_SDXFR_CLKDIV     (2 << SDIO_CLKCR_CLKDIV_SHIFT)
 #endif
-
-/* DMA Channel/Stream Selections *****************************************************/
-/* Stream selections are arbitrary for now but might become important in the future
- * is we set aside more DMA channels/streams.
- *
- * SDIO DMA
- *   DMAMAP_SDIO_1 = Channel 4, Stream 3 <- may later be used by SPI DMA
- *   DMAMAP_SDIO_2 = Channel 4, Stream 6
- */
-
-#define DMAMAP_SDIO DMAMAP_SDIO_1
-
 
 /* FLASH wait states
  *
@@ -259,58 +244,6 @@
  */
 
 #define BOARD_FLASH_WAITSTATES 5
-
-/* LED definitions ******************************************************************/
-/* The px4_fmu-v4pro board has numerous LEDs.
- *  FMU_LED_RED, FMU_LED_GREEN & FMU_LED_BLUE are directly connected and
- * can be controlled by software.
- *
- * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
- * The following definitions are used to access individual LEDs.
- */
-
-/* LED index values for use with board_userled() */
-
-#define BOARD_LED1        0
-#define BOARD_LED2        1
-#define BOARD_LED3        2
-#define BOARD_NLEDS       3
-
-#define BOARD_LED_RED     BOARD_LED1
-#define BOARD_LED_GREEN   BOARD_LED2
-#define BOARD_LED_BLUE    BOARD_LED3
-
-/* LED bits for use with board_userled_all() */
-
-#define BOARD_LED1_BIT    (1 << BOARD_LED1)
-#define BOARD_LED2_BIT    (1 << BOARD_LED2)
-#define BOARD_LED3_BIT    (1 << BOARD_LED3)
-
-/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
- * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
- * events as follows:
- *
- *
- *   SYMBOL                     Meaning                      LED state
- *                                                        Red   Green Blue
- *   ----------------------  --------------------------  ------ ------ ----*/
-
-#define LED_STARTED        0 /* NuttX has been started   OFF    OFF   OFF  */
-#define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    OFF   ON   */
-#define LED_IRQSENABLED    2 /* Interrupts enabled       OFF    ON    OFF  */
-#define LED_STACKCREATED   3 /* Idle stack created       OFF    ON    ON   */
-#define LED_INIRQ          4 /* In an interrupt          N/C    N/C   GLOW */
-#define LED_SIGNAL         5 /* In a signal handler      N/C    GLOW  N/C  */
-#define LED_ASSERTION      6 /* An assertion failed      GLOW   N/C   GLOW */
-#define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
-#define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
-
-/* Thus if the Green LED is statically on, NuttX has successfully booted and
- * is, apparently, running normally.  If the Red LED is flashing at
- * approximately 2Hz, then a fatal error has been detected and the system
- * has halted.
- */
-
 
 /* Alternate function pin selections ************************************************/
 
@@ -341,9 +274,6 @@
 
 /* UART8 has no alternate pin config */
 
-/* UART RX DMA configurations */
-#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
-#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
 
 /*
  * CAN
@@ -382,7 +312,6 @@
 #define GPIO_SPI1_MISO  GPIO_SPI1_MISO_1
 #define GPIO_SPI1_MOSI  GPIO_SPI1_MOSI_1
 #define GPIO_SPI1_SCK   GPIO_SPI1_SCK_1
-
 
 #define GPIO_SPI2_MISO  GPIO_SPI2_MISO_1
 #define GPIO_SPI2_MOSI  GPIO_SPI2_MOSI_1
@@ -423,39 +352,4 @@
 #endif
 
 
-/************************************************************************************
- * Public Data
- ************************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-/************************************************************************************
- * Public Function Prototypes
- ************************************************************************************/
-/************************************************************************************
- * Name: stm32_boardinitialize
- *
- * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the initialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-EXTERN void stm32_boardinitialize(void);
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __ASSEMBLY__ */
-#endif  /* __NUTTX_CONFIG_PX4FMUV4_PRO_INCLUDE_BOARD_H */
+#endif  /* __ARCH_BOARD_BOARD_H */

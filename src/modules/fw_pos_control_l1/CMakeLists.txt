@@ -37,14 +37,13 @@ add_subdirectory(runway_takeoff)
 px4_add_module(
 	MODULE modules__fw_pos_control_l1
 	MAIN fw_pos_control_l1
-	STACK_MAIN 1200
 	SRCS
 		FixedwingPositionControl.cpp
+		FixedwingPositionControl.hpp
 	DEPENDS
-		git_ecl
-		ecl_l1
-		ecl_tecs
+		l1
 		launchdetection
 		landing_slope
 		runway_takeoff
+		tecs
 	)

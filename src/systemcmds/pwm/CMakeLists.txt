@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE systemcmds__pwm
 	MAIN pwm
-	STACK_MAIN 2500
 	COMPILE_FLAGS
 		-Wno-array-bounds
 	SRCS

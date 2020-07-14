@@ -11,4 +11,5 @@ then
 
 fi
 
-set MIXER_AUX none
+safety_button start
+

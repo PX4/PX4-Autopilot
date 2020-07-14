@@ -36,11 +36,11 @@
  * @file esc_calib.c
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_defines.h>
-#include <px4_log.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +53,7 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include <arch/board/board.h>
+
 
 #include "drivers/drv_pwm_output.h"
 
@@ -73,7 +73,7 @@ usage(const char *reason)
 				 "\n"
 				 "Calibration procedure (running the command will guide you through it):\n"
 				 "- Remove props, power off the ESC's\n"
-				 "- Stop attitude controllers: mc_att_control stop, fw_att_control stop\n"
+				 "- Stop attitude and rate controllers: mc_rate_control stop, fw_att_control stop\n"
 				 "- Make sure safety is off\n"
 				 "- Run this command\n"
 				);
@@ -218,7 +218,7 @@ esc_calib_main(int argc, char *argv[])
 
 	if (orb_updated) {
 		PX4_ERR("ABORTING! Attitude control still active. Please ensure to shut down all controllers:\n"
-			"\tmc_att_control stop\n"
+			"\tmc_rate_control stop\n"
 			"\tfw_att_control stop\n");
 		return 1;
 	}

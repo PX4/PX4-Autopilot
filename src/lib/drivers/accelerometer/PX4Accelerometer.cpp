@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,115 +36,145 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
-	CDev(nullptr),
-	ModuleParams(nullptr),
-	_sensor_accel_pub{ORB_ID(sensor_accel), priority},
-	_rotation{get_rot_matrix(rotation)}
+using namespace time_literals;
+using matrix::Vector3f;
+
+static constexpr int32_t sum(const int16_t samples[16], uint8_t len)
 {
-	_class_device_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
+	int32_t sum = 0;
 
-	_sensor_accel_pub.get().device_id = device_id;
-	_sensor_accel_pub.get().scaling = 1.0f;
+	for (int n = 0; n < len; n++) {
+		sum += samples[n];
+	}
 
-	// set software low pass filter for controllers
+	return sum;
+}
+
+static constexpr uint8_t clipping(const int16_t samples[16], int16_t clip_limit, uint8_t len)
+{
+	unsigned clip_count = 0;
+
+	for (int n = 0; n < len; n++) {
+		if (abs(samples[n]) >= clip_limit) {
+			clip_count++;
+		}
+	}
+
+	return clip_count;
+}
+
+PX4Accelerometer::PX4Accelerometer(uint32_t device_id, ORB_PRIO priority, enum Rotation rotation) :
+	ModuleParams(nullptr),
+	_sensor_pub{ORB_ID(sensor_accel), priority},
+	_sensor_fifo_pub{ORB_ID(sensor_accel_fifo), priority},
+	_device_id{device_id},
+	_rotation{rotation}
+{
+	// advertise immediately to keep instance numbering in sync
+	_sensor_pub.advertise();
+
 	updateParams();
-	configure_filter(_filter_cutoff.get());
-
-	// force initial publish to allocate uORB buffer
-	// TODO: can be removed once all drivers are in threads
-	_sensor_accel_pub.update();
 }
 
 PX4Accelerometer::~PX4Accelerometer()
 {
-	if (_class_device_instance != -1) {
-		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _class_device_instance);
-	}
-}
-
-int PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case ACCELIOCSSCALE: {
-			// Copy offsets and scale factors in
-			accel_calibration_s cal{};
-			memcpy(&cal, (accel_calibration_s *) arg, sizeof(cal));
-
-			_calibration_offset = matrix::Vector3f{cal.x_offset, cal.y_offset, cal.z_offset};
-			_calibration_scale = matrix::Vector3f{cal.x_scale, cal.y_scale, cal.z_scale};
-		}
-
-		return PX4_OK;
-
-	case DEVIOCGDEVICEID:
-		return _sensor_accel_pub.get().device_id;
-
-	default:
-		return -ENOTTY;
-	}
+	_sensor_pub.unadvertise();
+	_sensor_fifo_pub.unadvertise();
 }
 
 void PX4Accelerometer::set_device_type(uint8_t devtype)
 {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
-	device_id.devid = _sensor_accel_pub.get().device_id;
+	device_id.devid = _device_id;
 
 	// update to new device type
 	device_id.devid_s.devtype = devtype;
 
-	// copy back to report
-	_sensor_accel_pub.get().device_id = device_id.devid;
+	// copy back
+	_device_id = device_id.devid;
 }
 
-void PX4Accelerometer::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z)
+void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
 {
-	sensor_accel_s &report = _sensor_accel_pub.get();
-	report.timestamp = timestamp;
+	// clipping
+	uint8_t clip_count[3];
+	clip_count[0] = (fabsf(x) >= _clip_limit);
+	clip_count[1] = (fabsf(y) >= _clip_limit);
+	clip_count[2] = (fabsf(z) >= _clip_limit);
 
-	// Apply rotation, range scale, and the calibrating offset/scale
-	const matrix::Vector3f val_raw{(float)x, (float)y, (float)z};
-	const matrix::Vector3f val_calibrated{ _rotation *(((val_raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
+	// publish
+	Publish(timestamp_sample, x, y, z, clip_count);
+}
 
-	// Filtered values
-	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
+void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
+{
+	// publish fifo
+	sample.device_id = _device_id;
+	sample.scale = _scale;
+	sample.rotation = _rotation;
 
-	// Integrated values
-	matrix::Vector3f integrated_value;
-	uint32_t integral_dt = 0;
+	sample.timestamp = hrt_absolute_time();
+	_sensor_fifo_pub.publish(sample);
 
-	if (_integrator.put(timestamp, val_calibrated, integrated_value, integral_dt)) {
+	{
+		// trapezoidal integration (equally spaced, scaled by dt later)
+		const uint8_t N = sample.samples;
+		const Vector3f integral{
+			(0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)),
+			(0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)),
+			(0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)),
+		};
 
-		// Raw values (ADC units 0 - 65535)
-		report.x_raw = x;
-		report.y_raw = y;
-		report.z_raw = z;
+		_last_sample[0] = sample.x[N - 1];
+		_last_sample[1] = sample.y[N - 1];
+		_last_sample[2] = sample.z[N - 1];
 
-		report.x = val_filtered(0);
-		report.y = val_filtered(1);
-		report.z = val_filtered(2);
+		// clipping
+		uint8_t clip_count[3] {
+			clipping(sample.x, _clip_limit, N),
+			clipping(sample.y, _clip_limit, N),
+			clipping(sample.z, _clip_limit, N),
+		};
 
-		report.integral_dt = integral_dt;
-		report.x_integral = integrated_value(0);
-		report.y_integral = integrated_value(1);
-		report.z_integral = integrated_value(2);
+		const float x = integral(0) / (float)N;
+		const float y = integral(1) / (float)N;
+		const float z = integral(2) / (float)N;
 
-		poll_notify(POLLIN);
-		_sensor_accel_pub.update();
+		// publish
+		Publish(sample.timestamp_sample, x, y, z, clip_count);
 	}
 }
 
-void PX4Accelerometer::print_status()
+void PX4Accelerometer::Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t clip_count[3])
 {
-	PX4_INFO(ACCEL_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
-	PX4_INFO("sample rate: %d Hz", _sample_rate);
-	PX4_INFO("filter cutoff: %.3f Hz", (double)_filter.get_cutoff_freq());
+	// Apply rotation (before scaling)
+	rotate_3f(_rotation, x, y, z);
 
-	PX4_INFO("calibration scale: %.5f %.5f %.5f", (double)_calibration_scale(0), (double)_calibration_scale(1),
-		 (double)_calibration_scale(2));
-	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
-		 (double)_calibration_offset(2));
+	float clipping_x = clip_count[0];
+	float clipping_y = clip_count[1];
+	float clipping_z = clip_count[2];
+	rotate_3f(_rotation, clipping_x, clipping_y, clipping_z);
 
-	print_message(_sensor_accel_pub.get());
+	sensor_accel_s report;
+
+	report.timestamp_sample = timestamp_sample;
+	report.device_id = _device_id;
+	report.temperature = _temperature;
+	report.error_count = _error_count;
+	report.x = x * _scale;
+	report.y = y * _scale;
+	report.z = z * _scale;
+	report.clip_counter[0] = fabsf(roundf(clipping_x));
+	report.clip_counter[1] = fabsf(roundf(clipping_y));
+	report.clip_counter[2] = fabsf(roundf(clipping_z));
+	report.timestamp = hrt_absolute_time();
+
+	_sensor_pub.publish(report);
+}
+
+void PX4Accelerometer::UpdateClipLimit()
+{
+	// 99.9% of potential max
+	_clip_limit = fmaxf((_range / _scale) * 0.999f, INT16_MAX);
 }

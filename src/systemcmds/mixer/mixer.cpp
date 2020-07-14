@@ -37,9 +37,9 @@
  * Mixer utility.
  */
 
-#include <px4_config.h>
-#include <px4_module.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/posix.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,7 +49,7 @@
 #include <ctype.h>
 
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_load.h>
 #include <uORB/topics/actuator_controls.h>
 

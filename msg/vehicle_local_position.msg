@@ -45,11 +45,10 @@ bool z_global				# true if z has a valid global reference (ref_alt)
 uint64 ref_timestamp			# Time when reference position was set since system start, (microseconds)
 float64 ref_lat				# Reference point latitude, (degrees)
 float64 ref_lon				# Reference point longitude, (degrees)
-float32 ref_alt				# Reference altitude AMSL, MUST be set to current (not at reference point!) ground level, (metres)
+float32 ref_alt				# Reference altitude AMSL, (metres)
 
 # Distance to surface
 float32 dist_bottom			# Distance from from bottom surface to ground, (metres)
-float32 dist_bottom_rate		# Rate of change of distance from bottom surface to ground, (metres/sec)
 bool dist_bottom_valid			# true if distance to bottom surface is valid
 
 float32 eph				# Standard deviation of horizontal position error, (metres)

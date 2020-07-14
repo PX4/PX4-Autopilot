@@ -37,7 +37,7 @@ def get_max_arg_time_value(
     return max_arg, max_value, max_time
 
 
-class DataPlot():
+class DataPlot(object):
     """
     A plotting class interface. Provides functions such as saving the figure.
     """

@@ -5,14 +5,16 @@
 # @type Quadrotor x
 # @class Copter
 #
+# @maintainer Thomas Gubler <thomas@px4.io>
+#
 # @board px4_fmu-v2 exclude
 # @board px4_fmu-v3 exclude
 # @board px4_fmu-v4 exclude
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
-# @board aerofc-v1 exclude
-#
-# @maintainer Thomas Gubler <thomas@px4.io>
+# @board px4_fmu-v5x exclude
+# @board intel_aerofc-v1 exclude
+# @board bitcraze_crazyflie exclude
 #
 
 sh /etc/init.d/rc.mc_defaults

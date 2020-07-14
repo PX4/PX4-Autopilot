@@ -42,21 +42,19 @@
  *
  */
 
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <lib/mixer/mixer.h>
 #include <version/version.h>
-#include <arch/board/board.h>
+
 #include <arch/chip/chip.h>
 
 #include <uORB/topics/esc_status.h>
-#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
@@ -76,32 +74,21 @@
  * UavcanNode
  */
 UavcanNode *UavcanNode::_instance;
+
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev(UAVCAN_DEVICE_PATH),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
+	ModuleParams(nullptr),
 	_node(can_driver, system_clock, _pool_allocator),
-	_node_mutex(),
 	_esc_controller(_node),
 	_hardpoint_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
-	_perf_control_latency(perf_alloc(PC_ELAPSED, "uavcan control latency")),
-	_master_timer(_node),
-	_setget_response(0)
+	_cycle_perf(perf_alloc(PC_ELAPSED, "uavcan: cycle time")),
+	_interval_perf(perf_alloc(PC_INTERVAL, "uavcan: cycle interval")),
+	_master_timer(_node)
 {
-	_task_should_exit = false;
-	_fw_server_action = None;
-	_fw_server_status = -1;
-	_tx_injector = nullptr;
-	_control_topics[0] = ORB_ID(actuator_controls_0);
-	_control_topics[1] = ORB_ID(actuator_controls_1);
-	_control_topics[2] = ORB_ID(actuator_controls_2);
-	_control_topics[3] = ORB_ID(actuator_controls_3);
-
-	for (int i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN; ++i) {
-		_control_subs[i] = -1;
-	}
-
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
 
 	if (res < 0) {
@@ -120,13 +107,13 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 
 UavcanNode::~UavcanNode()
 {
-
 	fw_server(Stop);
 
-	if (_task != -1) {
+	if (_instance) {
 
 		/* tell the task we want it to go away */
-		_task_should_exit = true;
+		_task_should_exit.store(true);
+		ScheduleNow();
 
 		unsigned i = 10;
 
@@ -134,36 +121,25 @@ UavcanNode::~UavcanNode()
 			/* wait 5ms - it should wake every 10ms or so worst-case */
 			usleep(5000);
 
-			/* if we have given up, kill it */
 			if (--i == 0) {
-				task_delete(_task);
 				break;
 			}
 
-		} while (_task != -1);
+		} while (_instance);
 	}
-
-	(void)orb_unsubscribe(_armed_sub);
-	(void)orb_unsubscribe(_test_motor_sub);
-	(void)orb_unsubscribe(_actuator_direct_sub);
 
 	// Removing the sensor bridges
 	_sensor_bridges.clear();
 
-	_instance = nullptr;
-
 	pthread_mutex_destroy(&_node_mutex);
 	px4_sem_destroy(&_server_command_sem);
 
-	// Is it allowed to delete it like that?
-	if (_mixers != nullptr) {
-		delete _mixers;
-	}
-
-	perf_free(_perf_control_latency);
+	perf_free(_cycle_perf);
+	perf_free(_interval_perf);
 }
 
-int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
+int
+UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 {
 	int rv = -1;
 
@@ -184,7 +160,8 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 	return rv;
 }
 
-int UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
+int
+UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
 {
 	if (resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
 		return std::printf("name: %s %lld\n", resp.name.c_str(),
@@ -206,7 +183,8 @@ int UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
 	return -1;
 }
 
-void UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
+void
+UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
 {
 	uavcan::protocol::param::ExecuteOpcode::Response resp;
 	_callback_success = result.isSuccessful();
@@ -214,7 +192,8 @@ void UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::par
 	_callback_success &= resp.ok;
 }
 
-int  UavcanNode::save_params(int remote_node_id)
+int
+UavcanNode::save_params(int remote_node_id)
 {
 	uavcan::protocol::param::ExecuteOpcode::Request opcode_req;
 	opcode_req.opcode = opcode_req.OPCODE_SAVE;
@@ -237,7 +216,8 @@ int  UavcanNode::save_params(int remote_node_id)
 	return 0;
 }
 
-void UavcanNode::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
+void
+UavcanNode::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
 {
 	uavcan::protocol::RestartNode::Response resp;
 	_callback_success = result.isSuccessful();
@@ -245,7 +225,8 @@ void UavcanNode::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::Re
 	_callback_success &= resp.ok;
 }
 
-int  UavcanNode::reset_node(int remote_node_id)
+int
+UavcanNode::reset_node(int remote_node_id)
 {
 	uavcan::protocol::RestartNode::Request restart_req;
 	restart_req.magic_number = restart_req.MAGIC_NUMBER;
@@ -268,7 +249,8 @@ int  UavcanNode::reset_node(int remote_node_id)
 	return 0;
 }
 
-int  UavcanNode::list_params(int remote_node_id)
+int
+UavcanNode::list_params(int remote_node_id)
 {
 	int rv = 0;
 	int index = 0;
@@ -298,14 +280,15 @@ int  UavcanNode::list_params(int remote_node_id)
 	return rv;
 }
 
-
-void UavcanNode::cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result)
+void
+UavcanNode::cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result)
 {
 	_callback_success = result.isSuccessful();
 	*_setget_response = result.getResponse();
 }
 
-int  UavcanNode::get_set_param(int remote_node_id, const char *name, uavcan::protocol::param::GetSet::Request &req)
+int
+UavcanNode::get_set_param(int remote_node_id, const char *name, uavcan::protocol::param::GetSet::Request &req)
 {
 	if (name != nullptr) {
 		req.name = name;
@@ -330,7 +313,8 @@ int  UavcanNode::get_set_param(int remote_node_id, const char *name, uavcan::pro
 	return call_res;
 }
 
-int  UavcanNode::set_param(int remote_node_id, const char *name, char *value)
+int
+UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 {
 	uavcan::protocol::param::GetSet::Request req;
 	uavcan::protocol::param::GetSet::Response resp;
@@ -397,7 +381,8 @@ int  UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 	return rv;
 }
 
-int  UavcanNode::get_param(int remote_node_id, const char *name)
+int
+UavcanNode::get_param(int remote_node_id, const char *name)
 {
 	uavcan::protocol::param::GetSet::Request req;
 	uavcan::protocol::param::GetSet::Response resp;
@@ -417,20 +402,17 @@ int  UavcanNode::get_param(int remote_node_id, const char *name)
 	return rv;
 }
 
-void UavcanNode::update_params()
+void
+UavcanNode::update_params()
 {
-	// multicopter air-mode
-	param_t param_handle = param_find("MC_AIRMODE");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &_airmode);
-	}
+	_mixing_interface.updateParams();
 }
 
-int UavcanNode::start_fw_server()
+int
+UavcanNode::start_fw_server()
 {
 	int rv = -1;
-	_fw_server_action = Busy;
+	_fw_server_action.store((int)Busy);
 	UavcanServers   *_servers = UavcanServers::instance();
 
 	if (_servers == nullptr) {
@@ -448,33 +430,34 @@ int UavcanNode::start_fw_server()
 		}
 	}
 
-	_fw_server_action = None;
+	_fw_server_action.store((int)None);
 	px4_sem_post(&_server_command_sem);
 	return rv;
 }
 
-int UavcanNode::request_fw_check()
+int
+UavcanNode::request_fw_check()
 {
 	int rv = -1;
-	_fw_server_action = Busy;
-	UavcanServers   *_servers  = UavcanServers::instance();
+	_fw_server_action.store((int)Busy);
+	UavcanServers *_servers  = UavcanServers::instance();
 
 	if (_servers != nullptr) {
 		_servers->requestCheckAllNodesFirmwareAndUpdate();
 		rv = 0;
 	}
 
-	_fw_server_action = None;
+	_fw_server_action.store((int)None);
 	px4_sem_post(&_server_command_sem);
 	return rv;
-
 }
 
-int UavcanNode::stop_fw_server()
+int
+UavcanNode::stop_fw_server()
 {
 	int rv = -1;
-	_fw_server_action = Busy;
-	UavcanServers   *_servers  = UavcanServers::instance();
+	_fw_server_action.store((int)Busy);
+	UavcanServers *_servers = UavcanServers::instance();
 
 	if (_servers != nullptr) {
 		/*
@@ -488,13 +471,13 @@ int UavcanNode::stop_fw_server()
 		rv = _servers->stop();
 	}
 
-	_fw_server_action = None;
+	_fw_server_action.store((int)None);
 	px4_sem_post(&_server_command_sem);
 	return rv;
 }
 
-
-int UavcanNode::fw_server(eServerAction action)
+int
+UavcanNode::fw_server(eServerAction action)
 {
 	int rv = -EAGAIN;
 
@@ -502,8 +485,8 @@ int UavcanNode::fw_server(eServerAction action)
 	case Start:
 	case Stop:
 	case CheckFW:
-		if (_fw_server_action == None) {
-			_fw_server_action = action;
+		if (_fw_server_action.load() == (int)None) {
+			_fw_server_action.store((int)action);
 			px4_sem_wait(&_server_command_sem);
 			rv = _fw_server_status;
 		}
@@ -518,8 +501,8 @@ int UavcanNode::fw_server(eServerAction action)
 	return rv;
 }
 
-
-int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
+int
+UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 {
 	if (_instance != nullptr) {
 		PX4_WARN("Already started");
@@ -535,7 +518,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	if (can == nullptr) {
 
-		can = new CanInitHelper();
+		can = new CanInitHelper(board_get_can_interfaces());
 
 		if (can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
 			PX4_ERR("Out of memory");
@@ -560,7 +543,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
-	const int node_init_res = _instance->init(node_id);
+	const int node_init_res = _instance->init(node_id, can->driver.updateEvent());
 
 	if (node_init_res < 0) {
 		delete _instance;
@@ -569,22 +552,13 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return node_init_res;
 	}
 
-	/*
-	 * Start the task. Normally it should never exit.
-	 */
-	static auto run_trampoline = [](int, char *[]) {return UavcanNode::_instance->run();};
-	_instance->_task = px4_task_spawn_cmd("uavcan", SCHED_DEFAULT, SCHED_PRIORITY_ACTUATOR_OUTPUTS, StackSize,
-					      static_cast<main_t>(run_trampoline), nullptr);
-
-	if (_instance->_task < 0) {
-		PX4_ERR("start failed: %d", errno);
-		return -errno;
-	}
+	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
 
 	return OK;
 }
 
-void UavcanNode::fill_node_info()
+void
+UavcanNode::fill_node_info()
 {
 	/* software version */
 	uavcan::protocol::SoftwareVersion swver;
@@ -607,17 +581,26 @@ void UavcanNode::fill_node_info()
 	_node.setHardwareVersion(hwver);
 }
 
-
-int UavcanNode::init(uavcan::NodeID node_id)
+void
+UavcanNode::busevent_signal_trampoline()
 {
-	int ret = -1;
+	if (_instance) {
+		// trigger the work queue (Note, this is called from IRQ context)
+		_instance->ScheduleNow();
+	}
+}
 
+int
+UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
+{
 	// Do regular cdev init
-	ret = CDev::init();
+	int ret = CDev::init();
 
 	if (ret != OK) {
 		return ret;
 	}
+
+	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
 	_node.setName("org.pixhawk.pixhawk");
 
@@ -630,11 +613,6 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	if (ret < 0) {
 		return ret;
-	}
-
-	{
-		(void) param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed);
-		_esc_controller.enable_idle_throttle_when_armed(_idle_throttle_when_armed > 0);
 	}
 
 	ret = _hardpoint_controller.init();
@@ -657,11 +635,28 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		PX4_INFO("sensor bridge '%s' init ok", br->get_name());
 	}
 
+	_mixing_interface.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
+	_mixing_interface.mixingOutput().setAllMinValues(0); // Can be changed to 1 later, according to UAVCAN_ESC_IDLT
+
+	// Ensure we don't exceed maximum limits and assumptions. FIXME: these should be static assertions
+	if (UavcanEscController::max_output_value() >= UavcanEscController::DISARMED_OUTPUT_VALUE
+	    || UavcanEscController::max_output_value() > (int)UINT16_MAX) {
+		PX4_ERR("ESC max output value assertion failed");
+		return -EINVAL;
+	}
+
+	_mixing_interface.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
+	_mixing_interface.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
+
+	param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
+	enable_idle_throttle_when_armed(true);
+
 	/*  Start the Node   */
 	return _node.start();
 }
 
-void UavcanNode::node_spin_once()
+void
+UavcanNode::node_spin_once()
 {
 	const int spin_res = _node.spinOnce();
 
@@ -675,29 +670,9 @@ void UavcanNode::node_spin_once()
 	}
 }
 
-/*
-  add a fd to the list of polled events. This assumes you want
-  POLLIN for now.
- */
-int UavcanNode::add_poll_fd(int fd)
+void
+UavcanNode::handle_time_sync(const uavcan::TimerEvent &)
 {
-	int ret = _poll_fds_num;
-
-	if (_poll_fds_num >= UAVCAN_NUM_POLL_FDS) {
-		errx(1, "uavcan: too many poll fds, exiting");
-	}
-
-	_poll_fds[_poll_fds_num]	= ::pollfd();
-	_poll_fds[_poll_fds_num].fd	= fd;
-	_poll_fds[_poll_fds_num].events	= POLLIN;
-	_poll_fds_num += 1;
-	return ret;
-}
-
-
-void UavcanNode::handle_time_sync(const uavcan::TimerEvent &)
-{
-
 	/*
 	 * Check whether there are higher priority masters in the network.
 	 * If there are, we need to activate the local slave in order to sync with them.
@@ -737,322 +712,106 @@ void UavcanNode::handle_time_sync(const uavcan::TimerEvent &)
 
 
 
-int UavcanNode::run()
+void
+UavcanNode::Run()
 {
-	(void)pthread_mutex_lock(&_node_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
-	// XXX figure out the output count
-	_output_count = 2;
+	if (_output_count == 0) {
+		// Set up the time synchronization
+		const int slave_init_res = _time_sync_slave.start();
 
-	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
-	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
+		if (slave_init_res < 0) {
+			PX4_ERR("Failed to start time_sync_slave");
+			ScheduleClear();
+			return;
+		}
 
-	memset(&_outputs, 0, sizeof(_outputs));
+		/* When we have a system wide notion of time update (i.e the transition from the initial
+		 * System RTC setting to the GPS) we would call UAVCAN_DRIVER::clock::setUtc() when that
+		 * happens, but for now we use adjustUtc with a correction of the hrt so that the
+		 * time bases are the same
+		 */
+		UAVCAN_DRIVER::clock::adjustUtc(uavcan::UtcDuration::fromUSec(hrt_absolute_time()));
+		_master_timer.setCallback(TimerCallback(this, &UavcanNode::handle_time_sync));
+		_master_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000));
 
-	/*
-	 * Set up the time synchronization
-	 */
+		_node_status_monitor.start();
+		_node.setModeOperational();
 
-	const int slave_init_res = _time_sync_slave.start();
+		update_params();
 
-	if (slave_init_res < 0) {
-		PX4_ERR("Failed to start time_sync_slave");
-		_task_should_exit = true;
+		// XXX figure out the output count
+		_output_count = 2;
 	}
 
-	/* When we have a system wide notion of time update (i.e the transition from the initial
-	 * System RTC setting to the GPS) we would call UAVCAN_DRIVER::clock::setUtc() when that
-	 * happens, but for now we use adjustUtc with a correction of the hrt so that the
-	 * time bases are the same
-	 */
-	UAVCAN_DRIVER::clock::adjustUtc(uavcan::UtcDuration::fromUSec(hrt_absolute_time()));
-	_master_timer.setCallback(TimerCallback(this, &UavcanNode::handle_time_sync));
-	_master_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000));
 
-	_node_status_monitor.start();
+	perf_begin(_cycle_perf);
+	perf_count(_interval_perf);
 
-	const int busevent_fd = ::open(UAVCAN_DRIVER::BusEvent::DevName, 0);
+	node_spin_once(); // expected to be non-blocking
 
-	if (busevent_fd < 0) {
-		PX4_ERR("Failed to open %s", UAVCAN_DRIVER::BusEvent::DevName);
-		_task_should_exit = true;
+	// Check arming state
+	const actuator_armed_s &armed = _mixing_interface.mixingOutput().armed();
+	enable_idle_throttle_when_armed(!armed.soft_stop);
+
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		update_params();
 	}
 
-	/*
-	 * XXX Mixing logic/subscriptions shall be moved into UavcanEscController::update();
-	 *	 IO multiplexing shall be done here.
-	 */
+	switch ((eServerAction)_fw_server_action.load()) {
+	case Start:
+		_fw_server_status = start_fw_server();
+		break;
 
-	_node.setModeOperational();
+	case Stop:
+		_fw_server_status = stop_fw_server();
+		break;
 
-	/*
-	 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
-	 * Please note that with such multiplexing it is no longer possible to rely only on
-	 * the value returned from poll() to detect whether actuator control has timed out or not.
-	 * Instead, all ORB events need to be checked individually (see below).
-	 */
-	add_poll_fd(busevent_fd);
+	case CheckFW:
+		_fw_server_status = request_fw_check();
+		break;
 
-	/*
-	 * setup poll to look for actuator direct input if we are
-	 * subscribed to the topic
-	 */
-	if (_actuator_direct_sub != -1) {
-		_actuator_direct_poll_fd_num = add_poll_fd(_actuator_direct_sub);
+	case None:
+	default:
+		break;
 	}
 
-	update_params();
+	perf_end(_cycle_perf);
 
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	pthread_mutex_unlock(&_node_mutex);
 
-	while (!_task_should_exit) {
-
-		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
-
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
-			update_params();
-		}
-
-		switch (_fw_server_action) {
-		case Start:
-			_fw_server_status = start_fw_server();
-			break;
-
-		case Stop:
-			_fw_server_status = stop_fw_server();
-			break;
-
-		case CheckFW:
-			_fw_server_status = request_fw_check();
-			break;
-
-		case None:
-		default:
-			break;
-		}
-
-		// update actuator controls subscriptions if needed
-		if (_groups_subscribed != _groups_required) {
-			subscribe();
-			_groups_subscribed = _groups_required;
-		}
-
-		// Mutex is unlocked while the thread is blocked on IO multiplexing
-		(void)pthread_mutex_unlock(&_node_mutex);
-
-		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
-
-		(void)pthread_mutex_lock(&_node_mutex);
-
-		node_spin_once();  // Non-blocking
-
-		bool new_output = false;
-
-		// this would be bad...
-		if (poll_ret < 0) {
-			PX4_ERR("poll error %d", errno);
-			continue;
-
-		} else {
-			// get controls for required topics
-			bool controls_updated = false;
-
-			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				if (_control_subs[i] >= 0) {
-					if (_poll_fds[_poll_ids[i]].revents & POLLIN) {
-						controls_updated = true;
-						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
-					}
-				}
-			}
-
-			/*
-			  see if we have any direct actuator updates
-			 */
-			if (_actuator_direct_sub != -1 &&
-			    (_poll_fds[_actuator_direct_poll_fd_num].revents & POLLIN) &&
-			    orb_copy(ORB_ID(actuator_direct), _actuator_direct_sub, &_actuator_direct) == OK &&
-			    !_test_in_progress) {
-				if (_actuator_direct.nvalues > actuator_outputs_s::NUM_ACTUATOR_OUTPUTS) {
-					_actuator_direct.nvalues = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS;
-				}
-
-				memcpy(&_outputs.output[0], &_actuator_direct.values[0],
-				       _actuator_direct.nvalues * sizeof(float));
-				_outputs.noutputs = _actuator_direct.nvalues;
-				new_output = true;
-			}
-
-			// can we mix?
-			if (_test_in_progress) {
-				memset(&_outputs, 0, sizeof(_outputs));
-
-				if (_test_motor.motor_number < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS) {
-					_outputs.output[_test_motor.motor_number] = _test_motor.value * 2.0f - 1.0f;
-					_outputs.noutputs = _test_motor.motor_number + 1;
-				}
-
-				new_output = true;
-
-			} else if (controls_updated && (_mixers != nullptr)) {
-
-				// XXX one output group has 8 outputs max,
-				// but this driver could well serve multiple groups.
-				unsigned num_outputs_max = 8;
-
-				_mixers->set_airmode(_airmode);
-
-				// Do mixing
-				_outputs.noutputs = _mixers->mix(&_outputs.output[0], num_outputs_max);
-
-				new_output = true;
-			}
-		}
-
-		if (new_output) {
-			// iterate actuators, checking for valid values
-			for (uint8_t i = 0; i < _outputs.noutputs; i++) {
-				// last resort: catch NaN, INF and out-of-band errors
-				if (!isfinite(_outputs.output[i])) {
-					/*
-					 * Value is NaN, INF or out of band - set to the minimum value.
-					 * This will be clearly visible on the servo status and will limit the risk of accidentally
-					 * spinning motors. It would be deadly in flight.
-					 */
-					_outputs.output[i] = -1.0f;
-				}
-
-				// never go below min
-				if (_outputs.output[i] < -1.0f) {
-					_outputs.output[i] = -1.0f;
-				}
-
-				// never go above max
-				if (_outputs.output[i] > 1.0f) {
-					_outputs.output[i] = 1.0f;
-				}
-			}
-
-			// Output to the bus
-			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
-			_outputs.timestamp = hrt_absolute_time();
-
-			// use first valid timestamp_sample for latency tracking
-			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				const bool required = _groups_required & (1 << i);
-				const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
-
-				if (required && (timestamp_sample > 0)) {
-					perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
-					break;
-				}
-			}
-		}
-
-
-		// Check motor test state
-		bool updated = false;
-		orb_check(_test_motor_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(test_motor), _test_motor_sub, &_test_motor);
-
-			// Update the test status and check that we're not locked down
-			_test_in_progress = (_test_motor.value > 0);
-			_esc_controller.arm_single_esc(_test_motor.motor_number, _test_in_progress);
-		}
-
-		// Check arming state
-		orb_check(_armed_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-
-			// Update the armed status and check that we're not locked down and motor
-			// test is not running
-			bool set_armed = _armed.armed && !_armed.lockdown && !_armed.manual_lockdown && !_test_in_progress;
-
-			arm_actuators(set_armed);
-
-			if (_armed.soft_stop) {
-				_esc_controller.enable_idle_throttle_when_armed(false);
-
-			} else {
-				_esc_controller.enable_idle_throttle_when_armed(_idle_throttle_when_armed > 0);
-			}
-		}
+	if (_task_should_exit.load()) {
+		_mixing_interface.mixingOutput().unregister();
+		_mixing_interface.ScheduleClear();
+		ScheduleClear();
+		teardown();
+		_instance = nullptr;
 	}
-
-	orb_unsubscribe(params_sub);
-
-	(void)::close(busevent_fd);
-
-	teardown();
-
-	exit(0);
 }
 
-int
-UavcanNode::control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
+void
+UavcanNode::enable_idle_throttle_when_armed(bool value)
 {
-	const actuator_controls_s *controls = (actuator_controls_s *)handle;
+	value &= _idle_throttle_when_armed_param > 0;
 
-	input = controls[control_group].control[control_index];
-	return 0;
+	if (value != _idle_throttle_when_armed) {
+		_mixing_interface.mixingOutput().setAllMinValues(value ? 1 : 0);
+		_idle_throttle_when_armed = value;
+	}
 }
 
 int
 UavcanNode::teardown()
 {
 	px4_sem_post(&_server_command_sem);
-
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] >= 0) {
-			orb_unsubscribe(_control_subs[i]);
-			_control_subs[i] = -1;
-		}
-	}
-
-	return (_armed_sub >= 0) ? orb_unsubscribe(_armed_sub) : 0;
-}
-
-int
-UavcanNode::arm_actuators(bool arm)
-{
-	_is_armed = arm;
-	_esc_controller.arm_all_escs(arm);
-	return OK;
-}
-
-void
-UavcanNode::subscribe()
-{
-	// Subscribe/unsubscribe to required actuator control groups
-	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
-	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
-
-	// the first fd used by CAN
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (sub_groups & (1 << i)) {
-			PX4_DEBUG("subscribe to actuator_controls_%d", i);
-			_control_subs[i] = orb_subscribe(_control_topics[i]);
-		}
-
-		if (unsub_groups & (1 << i)) {
-			PX4_DEBUG("unsubscribe from actuator_controls_%d", i);
-			orb_unsubscribe(_control_subs[i]);
-			_control_subs[i] = -1;
-		}
-
-		if (_control_subs[i] >= 0) {
-			_poll_ids[i] = add_poll_fd(_control_subs[i]);
-		}
-	}
+	return 0;
 }
 
 int
@@ -1063,61 +822,21 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
-	case PWM_SERVO_ARM:
-		arm_actuators(true);
-		break;
-
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		// these are no-ops, as no safety switch
 		break;
 
-	case PWM_SERVO_DISARM:
-		arm_actuators(false);
-		break;
-
-	case MIXERIOCGETOUTPUTCOUNT:
-		*(unsigned *)arg = _output_count;
-		break;
-
 	case MIXERIOCRESET:
-		if (_mixers != nullptr) {
-			delete _mixers;
-			_mixers = nullptr;
-			_groups_required = 0;
-		}
+		_mixing_interface.mixingOutput().resetMixerThreadSafe();
 
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
-
-			if (_mixers == nullptr) {
-				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
-			}
-
-			if (_mixers == nullptr) {
-				_groups_required = 0;
-				ret = -ENOMEM;
-
-			} else {
-
-				ret = _mixers->load_from_buf(buf, buflen);
-
-				if (ret != 0) {
-					PX4_ERR("mixer load failed with %d", ret);
-					delete _mixers;
-					_mixers = nullptr;
-					_groups_required = 0;
-					ret = -EINVAL;
-
-				} else {
-
-					_mixers->groups_required(_groups_required);
-				}
-			}
+			unsigned buflen = strlen(buf);
+			ret = _mixing_interface.mixingOutput().loadMixerThreadSafe(buf, buflen);
 		}
 		break;
 
@@ -1162,6 +881,33 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
+
+bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+		unsigned num_control_groups_updated)
+{
+	_esc_controller.update_outputs(stop_motors, outputs, num_outputs);
+	return true;
+}
+
+void UavcanMixingInterface::Run()
+{
+	pthread_mutex_lock(&_node_mutex);
+	_mixing_output.update();
+	_mixing_output.updateSubscriptions(false);
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void UavcanMixingInterface::mixerChanged()
+{
+	int rotor_count = 0;
+
+	if (_mixing_output.mixers()) {
+		rotor_count = _mixing_output.mixers()->get_multirotor_count();
+	}
+
+	_esc_controller.set_rotor_count(rotor_count);
+}
+
 void
 UavcanNode::print_info()
 {
@@ -1174,6 +920,8 @@ UavcanNode::print_info()
 	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
+	printf("\n");
+
 	// UAVCAN node perfcounters
 	printf("UAVCAN node status:\n");
 	printf("\tInternal failures: %llu\n", _node.getInternalFailureCount());
@@ -1181,41 +929,30 @@ UavcanNode::print_info()
 	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
 	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
 
+	printf("\n");
+
 	// CAN driver status
 	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
 		printf("CAN%u status:\n", unsigned(i + 1));
 
 		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
-		printf("\tHW errors: %llu\n", iface->getErrorCount());
 
-		auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
-		printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
-		printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
-		printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+		if (iface) {
+			printf("\tHW errors: %llu\n", iface->getErrorCount());
+
+			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+			printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
+			printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
+			printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+		}
 	}
+
+	printf("\n");
 
 	// ESC mixer status
-	printf("ESC actuators control groups: sub: %u / req: %u / fds: %u\n",
-	       (unsigned)_groups_subscribed, (unsigned)_groups_required, _poll_fds_num);
-	printf("ESC mixer: %s\n", (_mixers == nullptr) ? "NONE" : "OK");
+	_mixing_interface.mixingOutput().printStatus();
 
-	if (_outputs.noutputs != 0) {
-		PX4_INFO("ESC output: ");
-
-		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
-			printf("%d ", (int)(_outputs.output[i] * 1000));
-		}
-
-		printf("\n");
-
-		// ESC status
-		int esc_sub = orb_subscribe(ORB_ID(esc_status));
-		esc_status_s esc = {};
-		orb_copy(ORB_ID(esc_status), esc_sub, &esc);
-		orb_unsubscribe(esc_sub);
-
-		print_message(esc);
-	}
+	printf("\n");
 
 	// Sensor bridges
 	for (const auto &br : _sensor_bridges) {
@@ -1225,33 +962,37 @@ UavcanNode::print_info()
 	}
 
 	// Printing all nodes that are online
-	std::printf("Online nodes (Node ID, Health, Mode):\n");
+	printf("Online nodes (Node ID, Health, Mode):\n");
 	_node_status_monitor.forEachNode([](uavcan::NodeID nid, uavcan::NodeStatusMonitor::NodeStatus ns) {
-		static constexpr const char *HEALTH[] = {
-			"OK", "WARN", "ERR", "CRIT"
-		};
-		static constexpr const char *MODES[] = {
-			"OPERAT", "INIT", "MAINT", "SW_UPD", "?", "?", "?", "OFFLN"
-		};
-		std::printf("\t% 3d %-10s %-10s\n", int(nid.get()), HEALTH[ns.health], MODES[ns.mode]);
+		static constexpr const char *HEALTH[] = {"OK", "WARN", "ERR", "CRIT"};
+		static constexpr const char *MODES[] = {"OPERAT", "INIT", "MAINT", "SW_UPD", "?", "?", "?", "OFFLN"};
+		printf("\t% 3d %-10s %-10s\n", int(nid.get()), HEALTH[ns.health], MODES[ns.mode]);
 	});
+
+	printf("\n");
+
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_interval_perf);
 
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
-void UavcanNode::shrink()
+void
+UavcanNode::shrink()
 {
 	(void)pthread_mutex_lock(&_node_mutex);
 	_pool_allocator.shrink();
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
-void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command)
+void
+UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command)
 {
 	(void)pthread_mutex_lock(&_node_mutex);
 	_hardpoint_controller.set_command(hardpoint_id, command);
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
+
 /*
  * App entry point
  */
@@ -1338,16 +1079,6 @@ int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "shrink")) {
 		inst->shrink();
-		::exit(0);
-	}
-
-	if (!std::strcmp(argv[1], "arm")) {
-		inst->arm_actuators(true);
-		::exit(0);
-	}
-
-	if (!std::strcmp(argv[1], "disarm")) {
-		inst->arm_actuators(false);
 		::exit(0);
 	}
 

@@ -38,9 +38,11 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
+
 #include <drivers/drv_mag.h>
 
 #include <uavcan/equipment/ahrs/MagneticFieldStrength.hpp>
+#include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
 
 class UavcanMagnetometerBridge : public UavcanCDevSensorBridgeBase
 {
@@ -54,17 +56,24 @@ public:
 	int init() override;
 
 private:
-	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+
 	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
+	int init_driver(uavcan_bridge::Channel *channel) override;
+
 	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &msg);
+	void mag2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &msg);
 
 	typedef uavcan::MethodBinder < UavcanMagnetometerBridge *,
 		void (UavcanMagnetometerBridge::*)
 		(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &) >
 		MagCbBinder;
 
+	typedef uavcan::MethodBinder < UavcanMagnetometerBridge *,
+		void (UavcanMagnetometerBridge::*)
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &) >
+		Mag2CbBinder;
+
 	uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength, MagCbBinder> _sub_mag;
-	struct mag_calibration_s _scale = {};
-	mag_report _report =  {};
+	uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength2, Mag2CbBinder> _sub_mag2;
 };

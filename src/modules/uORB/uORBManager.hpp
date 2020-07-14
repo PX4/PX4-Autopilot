@@ -76,6 +76,12 @@ public:
 	static bool initialize();
 
 	/**
+	 * Terminate the singleton. Call this after everything else.
+	 * @return true on success
+	 */
+	static bool terminate();
+
+	/**
 	 * Method to get the singleton instance for the uORB::Manager.
 	 * Make sure initialize() is called first.
 	 * @return uORB::Manager*
@@ -155,8 +161,8 @@ public:
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
-	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					 int priority, unsigned int queue_size = 1);
+	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance, ORB_PRIO priority,
+					 unsigned int queue_size = 1);
 
 	/**
 	 * Unadvertise a topic.
@@ -171,7 +177,7 @@ public:
 	 *
 	 * The data is atomically published to the topic and any waiting subscribers
 	 * will be notified.  Subscribers that are not waiting can check the topic
-	 * for updates using orb_check and/or orb_stat.
+	 * for updates using orb_check.
 	 *
 	 * @param meta    The uORB metadata (usually from the ORB_ID() macro)
 	 *      for the topic.
@@ -186,7 +192,7 @@ public:
 	 *
 	 * The returned value is a file descriptor that can be passed to poll()
 	 * in order to wait for updates to a topic, as well as topic_read,
-	 * orb_check and orb_stat.
+	 * orb_check.
 	 *
 	 * If there were any publications of the topic prior to the subscription,
 	 * an orb_check right after orb_subscribe will return true.
@@ -216,7 +222,7 @@ public:
 	 *
 	 * The returned value is a file descriptor that can be passed to poll()
 	 * in order to wait for updates to a topic, as well as topic_read,
-	 * orb_check and orb_stat.
+	 * orb_check.
 	 *
 	 * If there were any publications of the topic prior to the subscription,
 	 * an orb_check right after orb_subscribe_multi will return true.
@@ -283,9 +289,7 @@ public:
 	 * topic is likely to have updated.
 	 *
 	 * Updates are tracked on a per-handle basis; this call will continue to
-	 * return true until orb_copy is called using the same handle. This interface
-	 * should be preferred over calling orb_stat due to the race window between
-	 * stat and copy that can lead to missed updates.
+	 * return true until orb_copy is called using the same handle.
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param updated Set to true if the topic has been updated since the
@@ -294,17 +298,6 @@ public:
 	 *      errno set accordingly.
 	 */
 	int  orb_check(int handle, bool *updated);
-
-	/**
-	 * Return the last time that the topic was updated. If a queue is used, it returns
-	 * the timestamp of the latest element in the queue.
-	 *
-	 * @param handle  A handle returned from orb_subscribe.
-	 * @param time    Returns the absolute time that the topic was updated, or zero if it has
-	 *      never been updated. Time is measured in microseconds.
-	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
-	 */
-	int  orb_stat(int handle, uint64_t *time);
 
 	/**
 	 * Check if a topic has already been created and published (advertised)
@@ -325,7 +318,7 @@ public:
 	 *      independent of the startup order of the associated publishers.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_priority(int handle, int32_t *priority);
+	int  orb_priority(int handle, enum ORB_PRIO *priority);
 
 	/**
 	 * Set the minimum interval between which updates are seen for a subscription.
@@ -383,14 +376,6 @@ public:
 #endif /* ORB_COMMUNICATOR */
 
 private: // class methods
-	/**
-	 * Advertise a node; don't consider it an error if the node has
-	 * already been advertised.
-	 *
-	 * @todo verify that the existing node is the same as the one
-	 *       we tried to advertise.
-	 */
-	int node_advertise(const struct orb_metadata *meta, int *instance = nullptr, int priority = ORB_PRIO_DEFAULT);
 
 	/**
 	 * Common implementation for orb_advertise and orb_subscribe.
@@ -399,7 +384,7 @@ private: // class methods
 	 * advertisers.
 	 */
 	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr,
-		      int priority = ORB_PRIO_DEFAULT);
+		      ORB_PRIO priority = ORB_PRIO_DEFAULT);
 
 private: // data members
 	static Manager *_Instance;
@@ -416,7 +401,7 @@ private: // data members
 
 private: //class methods
 	Manager();
-	~Manager();
+	virtual ~Manager();
 
 #ifdef ORB_COMMUNICATOR
 	/**

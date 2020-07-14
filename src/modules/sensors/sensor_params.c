@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,14 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * Primary baro ID
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
 
 /**
  * Airspeed sensor compensation model for the SDP3x
@@ -109,16 +101,6 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
 
 /**
- * QNH for barometer
- *
- * @min 500
- * @max 1500
- * @group Sensors
- * @unit hPa
- */
-PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
-
-/**
  * Board rotation
  *
  * This parameter defines the rotation of the FMU board relative to the platform.
@@ -158,6 +140,7 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * @value 32 Pitch 9°, Yaw 180°
  * @value 33 Pitch 45°
  * @value 34 Pitch 315°
+ * @value 35 Roll 90°, Yaw 270°
  *
  * @reboot_required true
  *
@@ -203,36 +186,19 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
  *
  * @value -1 Thermal control unavailable
  * @value 0 Thermal control off
+ * @value 1 Thermal control enabled
+ * @category system
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 
 /**
-* Driver level cutoff frequency for gyro
-*
-* The cutoff frequency for the 2nd order butterworth filter on the gyro driver. This features
-* is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
-* controllers, not the estimators. 0 disables the filter.
-*
-* @min 0
-* @max 1000
-* @unit Hz
-* @reboot_required true
-* @group Sensors
-*/
-PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 80.0f);
-
-/**
-* Driver level cutoff frequency for accel
-*
-* The cutoff frequency for the 2nd order butterworth filter on the accel driver. This features
-* is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
-* controllers, not the estimators. 0 disables the filter.
-*
-* @min 0
-* @max 1000
-* @unit Hz
-* @reboot_required true
-* @group Sensors
-*/
-PARAM_DEFINE_FLOAT(IMU_ACCEL_CUTOFF, 30.0f);
+ * External I2C probe.
+ *
+ * Probe for optional external I2C devices.
+ *
+ * @boolean
+ * @category system
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_EXT_I2C_PRB, 1);

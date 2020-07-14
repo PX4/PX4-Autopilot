@@ -1,0 +1,12 @@
+#! /bin/bash
+
+#echo "DEBUG: kconfiglib kconfig-tweak wrapper, arguments: ${@}"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+export APPSDIR="`pwd`/../apps"
+
+# Example:
+#  kconfig-tweak --set-str CONFIG_APPS_DIR ../apps
+#     becomes
+#  python setconfig.py CONFIG_APPS_DIR=../apps
+PYTHONPATH=${DIR} python ${DIR}/setconfig.py --kconfig=Kconfig ${2}=${3} > /dev/null

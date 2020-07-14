@@ -40,3 +40,255 @@
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 0 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_0_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 1 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_1_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 2 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_2_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 3 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_3_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 4 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_4_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 5 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_5_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 6 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_6_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 7 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_7_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 8 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_8_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 9 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_9_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 10 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_10_ROT, 0);
+
+/**
+ * MaxBotix MB12XX Sensor 12 Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 7
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ */
+PARAM_DEFINE_INT32(SENS_MB12_11_ROT, 0);

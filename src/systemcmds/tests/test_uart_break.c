@@ -37,8 +37,8 @@
  * @author David Sidrane <david_s5@nscdg.com>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -50,8 +50,6 @@
 #include <errno.h>
 #include <termios.h>
 #include <string.h>
-
-#include <arch/board/board.h>
 
 #include "tests_main.h"
 

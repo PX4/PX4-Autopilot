@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -72,7 +72,7 @@ public:
 		_u(0),
 		_y(0),
 		_limit(this, "") {}
-	virtual ~BlockIntegralTrap() {}
+	virtual ~BlockIntegralTrap() = default;
 	float update(float input);
 // accessors
 	float getU() {return _u;}

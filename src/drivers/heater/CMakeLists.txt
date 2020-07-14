@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__heater
 	MAIN heater
-	STACK_MAIN 1024
 	COMPILE_FLAGS
 	SRCS
 		heater.cpp

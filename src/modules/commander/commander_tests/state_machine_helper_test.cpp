@@ -42,19 +42,19 @@
 
 #include "../state_machine_helper.h"
 #include <unit_test.h>
+#include "../Arming/PreFlightCheck/PreFlightCheck.hpp"
 
 class StateMachineHelperTest : public UnitTest
 {
 public:
 	StateMachineHelperTest() = default;
-	virtual ~StateMachineHelperTest() = default;
+	~StateMachineHelperTest() override = default;
 
-	virtual bool run_tests();
+	bool run_tests() override;
 
 private:
 	bool armingStateTransitionTest();
 	bool mainStateTransitionTest();
-	bool isSafeTest();
 };
 
 bool StateMachineHelperTest::armingStateTransitionTest()
@@ -128,8 +128,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"transition: init to reboot",
 			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		{
@@ -149,8 +149,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"transition: standby to reboot",
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		{
@@ -163,8 +163,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"transition: standby error to reboot",
 			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		{
@@ -177,8 +177,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"transition: in air restore to reboot",
 			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		// hil on tests, standby error to standby not normally allowed
@@ -194,14 +194,14 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 
 		{
 			"transition: standby to armed, no safety switch",
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_NOT_AVAILABLE, ATT_SAFETY_OFF,
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_NOT_AVAILABLE, ATT_SAFETY_OFF,
 			vehicle_status_s::ARMING_STATE_ARMED,
 			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: standby to armed, safety switch off",
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_OFF,
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_OFF,
 			vehicle_status_s::ARMING_STATE_ARMED,
 			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
@@ -227,7 +227,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"no transition: armed to reboot",
 			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_DENIED
 		},
 
@@ -247,9 +247,9 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 
 		{
 			"no transition: reboot to armed",
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
 		},
 
 		{
@@ -269,7 +269,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		// Safety switch arming tests
 
 		{
-			"no transition: init to standby, safety switch on",
+			"no transition: init to armed, safety switch on",
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, TRANSITION_DENIED
@@ -286,7 +286,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 	for (size_t i = 0; i < cArmingTransitionTests; i++) {
 		const ArmingTransitionTest_t *test = &rgArmingTransitionTests[i];
 
-		const bool check_gps = false;
+		PreFlightCheck::arm_requirements_t arm_req{};
 
 		// Setup initial machine state
 		status.arming_state = test->current_state.arming_state;
@@ -301,10 +301,10 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 
 		// Attempt transition
 		transition_result_t result = arming_state_transition(&status, safety, test->requested_state, &armed,
-					     false /* no pre-arm checks */,
+					     true /* enable pre-arm checks */,
 					     nullptr /* no mavlink_log_pub */,
 					     &status_flags,
-					     (check_gps ? ARM_REQ_GPS_BIT : 0),
+					     arm_req,
 					     2e6 /* 2 seconds after boot, everything should be checked */
 								    );
 
@@ -507,7 +507,8 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		struct vehicle_status_flags_s current_status_flags = {};
 
 		current_commander_state.main_state = test->from_state;
-		current_vehicle_status.is_rotary_wing = test->condition_bits & MTT_ROTARY_WING;
+		current_vehicle_status.vehicle_type = (test->condition_bits & MTT_ROTARY_WING) ?
+						      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING : vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 		current_status_flags.condition_local_altitude_valid = test->condition_bits & MTT_LOC_ALT_VALID;
 		current_status_flags.condition_local_position_valid = test->condition_bits & MTT_LOC_POS_VALID;
 		current_status_flags.condition_home_position_valid = test->condition_bits & MTT_HOME_POS_VALID;
@@ -534,49 +535,10 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 	return true;
 }
 
-bool StateMachineHelperTest::isSafeTest()
-{
-	struct safety_s safety = {};
-	struct actuator_armed_s armed = {};
-
-	armed.armed = false;
-	armed.lockdown = false;
-	safety.safety_switch_available = true;
-	safety.safety_off = false;
-	ut_compare("is safe: not armed", is_safe(safety, armed), true);
-
-	armed.armed = false;
-	armed.lockdown = true;
-	safety.safety_switch_available = true;
-	safety.safety_off = true;
-	ut_compare("is safe: software lockdown", is_safe(safety, armed), true);
-
-	armed.armed = true;
-	armed.lockdown = false;
-	safety.safety_switch_available = true;
-	safety.safety_off = true;
-	ut_compare("not safe: safety off", is_safe(safety, armed), false);
-
-	armed.armed = true;
-	armed.lockdown = false;
-	safety.safety_switch_available = true;
-	safety.safety_off = false;
-	ut_compare("is safe: safety off", is_safe(safety, armed), true);
-
-	armed.armed = true;
-	armed.lockdown = false;
-	safety.safety_switch_available = false;
-	safety.safety_off = false;
-	ut_compare("not safe: no safety switch", is_safe(safety, armed), false);
-
-	return true;
-}
-
 bool StateMachineHelperTest::run_tests()
 {
 	ut_run_test(armingStateTransitionTest);
 	ut_run_test(mainStateTransitionTest);
-	ut_run_test(isSafeTest);
 
 	return (_tests_failed == 0);
 }

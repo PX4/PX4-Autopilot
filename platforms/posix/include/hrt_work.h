@@ -31,10 +31,10 @@
  *
  ****************************************************************************/
 
-#include <px4_log.h>
-#include <px4_posix.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
 #include <semaphore.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/workqueue.h>
 
 #pragma once
 

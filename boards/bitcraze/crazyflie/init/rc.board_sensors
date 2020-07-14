@@ -3,13 +3,13 @@
 # Bitcraze Crazyflie specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
 
 # Onboard I2C
-mpu9250 -R 12 start
+mpu9250 -I -R 12 start
 
 # I2C bypass of mpu
-lps25h start
+lps25h -I start
 
 # Optical flow deck
-vl53lxx start
-pmw3901 start
+vl53l0x start -X

@@ -39,8 +39,8 @@
 
 #include <dlfcn.h>
 
-#include <px4_module.h>
-#include <px4_log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/log.h>
 
 static void usage();
 

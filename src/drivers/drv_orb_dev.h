@@ -40,7 +40,7 @@
  * uORB published object driver.
  */
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <stdint.h>
@@ -51,9 +51,6 @@
 /*
  * IOCTLs for individual topics.
  */
-
-/** Fetch the time at which the topic was last updated into *(uint64_t *)arg */
-#define ORBIOCLASTUPDATE	_ORBIOC(10)
 
 /** Check whether the topic has been updated since it was last read, sets *(bool *)arg */
 #define ORBIOCUPDATED		_ORBIOC(11)
@@ -73,7 +70,7 @@
 /** Get the minimum interval at which the topic can be seen to be updated for this subscription */
 #define ORBIOCGETINTERVAL	_ORBIOC(16)
 
-/** Check whether the topic is published, sets *(unsigned long *)arg to 1 if published, 0 otherwise */
-#define ORBIOCISPUBLISHED	_ORBIOC(17)
+/** Check whether the topic is advertised, sets *(unsigned long *)arg to 1 if advertised, 0 otherwise */
+#define ORBIOCISADVERTISED	_ORBIOC(17)
 
 #endif /* _DRV_UORB_H */

@@ -46,7 +46,6 @@ add_custom_target(generate_topic_listener
 px4_add_module(
 	MODULE systemcmds__topic_listener
 	MAIN listener
-	STACK_MAIN 1800
 	COMPILE_FLAGS
 	INCLUDES
 		${CMAKE_CURRENT_SOURCE_DIR}

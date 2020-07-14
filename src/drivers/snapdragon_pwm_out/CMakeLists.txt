@@ -38,5 +38,5 @@ px4_add_module(
 		snapdragon_pwm_out.cpp
 	DEPENDS
 		mixer
-		pwm_limit
+		output_limit
 	)

@@ -42,17 +42,16 @@
 #define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
 #define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-
 /*
  * I2C busses
  */
-#define PX4_I2C_BUS_EXPANSION	1
-#define PX4_NUMBER_I2C_BUSES 1
+#define PX4_NUMBER_I2C_BUSES    2
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL 0
-#define ADC_BATTERY_CURRENT_CHANNEL 1
+#define ADC_BATTERY_VOLTAGE_CHANNEL	0
+#define ADC_BATTERY_CURRENT_CHANNEL	-1
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL 2
+
+#define ADC_DP_V_DIV 1.0f
 
 #include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>

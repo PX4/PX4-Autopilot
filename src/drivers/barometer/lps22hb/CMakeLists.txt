@@ -33,10 +33,12 @@
 px4_add_module(
 	MODULE drivers__barometer__lps22hb
 	MAIN lps22hb
-	COMPILE_FLAGS
 	SRCS
 		lps22hb_main.cpp
 		LPS22HB.cpp
 		LPS22HB_I2C.cpp
 		LPS22HB_SPI.cpp
+	DEPENDS
+		drivers_barometer
+		px4_work_queue
 	)

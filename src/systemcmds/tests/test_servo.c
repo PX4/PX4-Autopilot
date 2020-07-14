@@ -36,8 +36,8 @@
  * Tests the servo outputs
  */
 
-#include <px4_time.h>
-#include <px4_config.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <sys/types.h>
 
@@ -48,7 +48,6 @@
 #include <errno.h>
 #include <time.h>
 
-#include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 #include <systemlib/err.h>
 

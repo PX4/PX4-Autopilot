@@ -92,13 +92,19 @@ bool VersioningTest::run_tests()
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3-rc3-7-g7e282f57",	0x0B2D6300, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3rc4", 				0x0B2D63C0, 0x010203C0));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3alpha3-7-g7e282f57", 0x0B2D6300, 0x01020300));
+	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3-alpha3-7-g7e282f57", 0x0B2D6300, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3alpha4", 			0x0B2D6340, 0x01020340));
+	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3-alpha4", 			0x0B2D6340, 0x01020340));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3beta3-7-g7e282f57", 	0x0B2D6300, 0x01020300));
+	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3-beta3-7-g7e282f57", 	0x0B2D6300, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3beta4", 				0x0B2D6380, 0x01020380));
+	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3-beta4", 				0x0B2D6380, 0x01020380));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3dev4", 				0x0B2D6300, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3dev3-7-g7e282f57", 	0x0B2D6300, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("0.45.99-1.2.3beta4", 				0x002D6380, 0x01020380));
+	ut_assert_true(_test_tag_to_version_number("0.45.99-1.2.3-beta4", 				0x002D6380, 0x01020380));
 	ut_assert_true(_test_tag_to_version_number("0.0.0-1.2.3beta4", 					0x00000080, 0x01020380));
+	ut_assert_true(_test_tag_to_version_number("0.0.0-1.2.3-beta4", 					0x00000080, 0x01020380));
 	ut_assert_true(_test_tag_to_version_number("0.0.0-1.2.3dev4", 					0x00000000, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v1.6.2-1.0.0", 						0x010602FF, 0x010000FF));
 	ut_assert_true(_test_tag_to_version_number("v1.6.2-1.0.0rc2", 					0x010602C0, 0x010000C0));
@@ -124,9 +130,13 @@ bool VersioningTest::run_tests()
 	ut_assert_true(_test_tag_to_version_number("v1.4.9-1.2.3rc3-7-g7e282f57-dirty", 0x01040900, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v1.4.9-1.2.3-rc3-7-g7e282f57-dirty", 0x01040900, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v1.4.9-1.2.3alpha-7-g7e282f5-dirty", 0x01040900, 0x01020300));
+	ut_assert_true(_test_tag_to_version_number("v1.4.9-1.2.3-alpha-7-g7e282f5-dirty", 0x01040900, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3alpha4-dirty", 		0x0B2D6300, 0x01020300));
+	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3-alpha4-dirty", 		0x0B2D6300, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v1.4.9-1.2.3beta-7-g7e282f57-dirty", 0x01040900, 0x01020300));
+	ut_assert_true(_test_tag_to_version_number("v1.4.9-1.2.3-beta-7-g7e282f57-dirty", 0x01040900, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3beta4-dirty", 		0x0B2D6300, 0x01020300));
+	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3-beta4-dirty", 		0x0B2D6300, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-1.2.3dev4-dirty", 		0x0B2D6300, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v1.4.9-1.2.3dev3-7-g7e282f57-dirty", 0x01040900, 0x01020300));
 	ut_assert_true(_test_tag_to_version_number("v1.6.2-1.0.0rc2-dirty", 			0x01060200, 0x01000000));
@@ -139,9 +149,13 @@ bool VersioningTest::run_tests()
 	ut_assert_true(_test_tag_to_version_number("v1.6.2-rc1-67-g1d5e979-dirty", 		0x01060200, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("v1.6.2-0.8.7-67-g1d5e979-dirty", 	0x01060200, 0x00080700));
 	ut_assert_true(_test_tag_to_version_number("v1.8.2alpha4-dirty", 				0x01080200, 0x00000000));
+	ut_assert_true(_test_tag_to_version_number("v1.8.2-alpha4-dirty", 				0x01080200, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("v1.8.2alpha4-67-g1d5e979-dirty", 	0x01080200, 0x00000000));
+	ut_assert_true(_test_tag_to_version_number("v1.8.2-alpha4-67-g1d5e979-dirty", 	0x01080200, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("v1.8.2beta4-dirty", 				0x01080200, 0x00000000));
+	ut_assert_true(_test_tag_to_version_number("v1.8.2-beta4-dirty", 				0x01080200, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("v1.8.2beta4-67-g1d5e979-dirty", 	0x01080200, 0x00000000));
+	ut_assert_true(_test_tag_to_version_number("v1.8.2-beta4-67-g1d5e979-dirty", 	0x01080200, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("v1.8.2dev4-dirty", 					0x01080200, 0x00000000));
 	ut_assert_true(_test_tag_to_version_number("v1.8.2dev4-67-g1d5e979-dirty", 		0x01080200, 0x00000000));
 

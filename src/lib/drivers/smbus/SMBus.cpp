@@ -46,31 +46,27 @@
 #include "SMBus.hpp"
 
 SMBus::SMBus(int bus_num, uint16_t address) :
-	I2C("BATT_SMBUS_I2C", nullptr, bus_num, address, 100000)
+	I2C(DRV_BAT_DEVTYPE_SMBUS, MODULE_NAME, bus_num, address, 100000)
 {
 }
 
-SMBus::~SMBus()
+int SMBus::read_word(const uint8_t cmd_code, uint16_t &data)
 {
-}
-
-int SMBus::read_word(const uint8_t cmd_code, void *data)
-{
+	uint8_t buf[6];
 	// 2 data bytes + pec byte
-	int result = transfer(&cmd_code, 1, (uint8_t *)data, 3);
+	int result = transfer(&cmd_code, 1, buf + 3, 3);
 
 	if (result == PX4_OK) {
+		data = buf[3] | ((uint16_t)buf[4] << 8);
 		// Check PEC.
 		uint8_t addr = get_device_address() << 1;
-		uint8_t full_data_packet[5];
-		full_data_packet[0] = addr | 0x00;
-		full_data_packet[1] = cmd_code;
-		full_data_packet[2] = addr | 0x01;
-		memcpy(&full_data_packet[3], data, 2);
+		buf[0] = addr | 0x00;
+		buf[1] = cmd_code;
+		buf[2] = addr | 0x01;
 
-		uint8_t pec = get_pec(full_data_packet, sizeof(full_data_packet) / sizeof(full_data_packet[0]));
+		uint8_t pec = get_pec(buf, sizeof(buf) - 1);
 
-		if (pec != ((uint8_t *)data)[2]) {
+		if (pec != buf[sizeof(buf) - 1]) {
 			result = -EINVAL;
 		}
 	}
@@ -78,14 +74,14 @@ int SMBus::read_word(const uint8_t cmd_code, void *data)
 	return result;
 }
 
-int SMBus::write_word(const uint8_t cmd_code, void *data)
+int SMBus::write_word(const uint8_t cmd_code, uint16_t data)
 {
 	// 2 data bytes + pec byte
-	uint8_t buf[5] = {};
+	uint8_t buf[5];
 	buf[0] = (get_device_address() << 1) | 0x10;
 	buf[1] = cmd_code;
-	buf[2] = ((uint8_t *)data)[0];
-	buf[3] = ((uint8_t *)data)[1];
+	buf[2] = data & 0xff;
+	buf[3] = (data >> 8) & 0xff;
 
 	buf[4] = get_pec(buf, 4);
 
@@ -101,6 +97,10 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, 
 	uint8_t rx_data[32 + 5];
 
 	int result = transfer(&cmd_code, 1, (uint8_t *)&rx_data[3], length + 2);
+
+	if (result != PX4_OK) {
+		return result;
+	}
 
 	uint8_t device_address = get_device_address();
 	rx_data[0] = (device_address << 1) | 0x00;

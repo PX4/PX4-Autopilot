@@ -42,6 +42,17 @@ def get_control_mode_flags(estimator_status: dict) -> dict:
     # 12 - true when local position data from external vision is being fused
     # 13 - true when yaw data from external vision measurements is being fused
     # 14 - true when height data from external vision measurements is being fused
+    # 15 - true when synthetic sideslip measurements are being fused
+    # 16 - true true when the mag field does not match the expected strength
+    # 17 - true true when the vehicle is operating as a fixed wing vehicle
+    # 18 - true when the magnetometer has been declared faulty and is no longer being used
+    # 19 - true true when airspeed measurements are being fused
+    # 20 - true true when protection from ground effect induced static pressure rise is active
+    # 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
+    # 22 - true when yaw (not ground course) data from a GPS receiver is being fused
+    # 23 - true when the in-flight mag field alignment has been completed
+    # 24 - true when local earth frame velocity data from external vision measurements are being fused
+    # 25 - true when we are using a synthesized measurement for the magnetometer Z component
     control_mode['tilt_aligned'] = ((2 ** 0 & estimator_status['control_mode_flags']) > 0) * 1
     control_mode['yaw_aligned'] = ((2 ** 1 & estimator_status['control_mode_flags']) > 0) * 1
     control_mode['using_gps'] = ((2 ** 2 & estimator_status['control_mode_flags']) > 0) * 1
@@ -57,8 +68,18 @@ def get_control_mode_flags(estimator_status: dict) -> dict:
     control_mode['using_evpos'] = ((2 ** 12 & estimator_status['control_mode_flags']) > 0) * 1
     control_mode['using_evyaw'] = ((2 ** 13 & estimator_status['control_mode_flags']) > 0) * 1
     control_mode['using_evhgt'] = ((2 ** 14 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['fuse_beta'] = ((2 ** 15 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['mag_field_disturbed'] = ((2 ** 16 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['fixed_wing'] = ((2 ** 17 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['mag_fault'] = ((2 ** 18 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['fuse_aspd'] = ((2 ** 19 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['gnd_effect'] = ((2 ** 20 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['rng_stuck'] = ((2 ** 21 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['gps_yaw'] = ((2 ** 22 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['mag_aligned_in_flight'] = ((2 ** 23 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['ev_vel'] = ((2 ** 24 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['synthetic_mag_z'] = ((2 ** 25 & estimator_status['control_mode_flags']) > 0) * 1
     return control_mode
-
 
 def get_innovation_check_flags(estimator_status: dict) -> dict:
     """
@@ -104,7 +125,7 @@ def get_gps_check_fail_flags(estimator_status: dict) -> dict:
 
     # 0 : insufficient fix type (no 3D solution)
     # 1 : minimum required sat count fail
-    # 2 : minimum required GDoP fail
+    # 2 : minimum required PDOP fail
     # 3 : maximum allowed horizontal position error fail
     # 4 : maximum allowed vertical position error fail
     # 5 : maximum allowed speed error fail
@@ -114,7 +135,7 @@ def get_gps_check_fail_flags(estimator_status: dict) -> dict:
     # 9 : maximum allowed vertical velocity discrepancy fail
     gps_fail_flags['gfix_fail'] = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
     gps_fail_flags['nsat_fail'] = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['gdop_fail'] = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['pdop_fail'] = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
     gps_fail_flags['herr_fail'] = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
     gps_fail_flags['verr_fail'] = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
     gps_fail_flags['serr_fail'] = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1

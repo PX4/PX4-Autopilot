@@ -42,7 +42,7 @@
 
 #include "mavlink_bridge_header.h"
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/timesync_status.h>
 
 #include <drivers/drv_hrt.h>
@@ -98,7 +98,7 @@ class MavlinkTimesync
 {
 public:
 	explicit MavlinkTimesync(Mavlink *mavlink);
-	~MavlinkTimesync();
+	~MavlinkTimesync() = default;
 
 	void handle_message(const mavlink_message_t *msg);
 
@@ -132,7 +132,7 @@ protected:
 	 */
 	void reset_filter();
 
-	orb_advert_t _timesync_status_pub{nullptr};
+	uORB::PublicationMulti<timesync_status_s>  _timesync_status_pub{ORB_ID(timesync_status)};
 
 	uint32_t _sequence{0};
 

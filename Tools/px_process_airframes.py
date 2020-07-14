@@ -118,10 +118,18 @@ def main():
         out = markdownout.MarkdownTablesOutput(param_groups, args.board, args.image_path)
         out.Save(args.markdown)
 
+    # Output to start scripts
     if args.start_script:
+        # Airframe start script
         if args.verbose: print("Creating start script " + args.start_script)
         out = rcout.RCOutput(param_groups, args.board)
         out.Save(args.start_script)
+
+        # Airframe post-start script
+        post_start_script = args.start_script + '.post'
+        if args.verbose: print("Creating post-start script " + post_start_script)
+        out_post = rcout.RCOutput(param_groups, args.board, post_start=True)
+        out_post.Save(post_start_script)
 
     if (args.verbose): print("All done!")
 

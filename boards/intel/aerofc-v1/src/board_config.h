@@ -46,7 +46,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -71,25 +71,7 @@
 
 #define GPIO_FORCE_BOOTLOADER	(GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_50MHz|GPIO_PORTA|GPIO_PIN11|GPIO_EXTI)
 
-/*
- * I2C busses
- *
- * Peripheral   Port
- * I2C1_SDA     PB9
- * I2C1_SCL     PB8
- *
- * I2C3_SDA     PC9
- * I2C3_SCL     PA8
- *
- */
-
-#define PX4_I2C_BUS_EXPANSION   1
-#define PX4_I2C_BUS_EXPANSION1  2
-#define PX4_I2C_BUS_ONBOARD	3
-
-#define GPIO_SPI_CS_MPU6500	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
-#define PX4_SPI_BUS_SENSORS	1
-#define PX4_SPIDEV_MPU		PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+#define PX4_I2C_BUS_MTD 3
 
 /*
  * STM32 ADC channels
@@ -167,7 +149,6 @@ __BEGIN_DECLS
 
 extern void stm32_spiinitialize(void);
 
-#define board_spi_reset(ms)
 #define board_peripheral_reset(ms)
 
 /************************************************************************************
@@ -180,7 +161,7 @@ extern void stm32_spiinitialize(void);
 
 extern int board_sdio_initialize(void);
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

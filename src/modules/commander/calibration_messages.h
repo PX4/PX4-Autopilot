@@ -61,7 +61,8 @@
 
 #define CAL_ERROR_SENSOR_MSG		"[cal] calibration failed: reading sensor"
 #define CAL_ERROR_RESET_CAL_MSG		"[cal] calibration failed: to reset, sensor %u"
-#define CAL_ERROR_APPLY_CAL_MSG		"[cal] calibration failed: to apply calibration, sensor %u"
-#define CAL_ERROR_SET_PARAMS_MSG	"[cal] calibration failed: to set parameters, sensor %u"
+#define CAL_ERROR_READ_CAL_MSG		"[cal] calibration failed: to read calibration"
+#define CAL_ERROR_APPLY_CAL_MSG		"[cal] calibration failed: to apply calibration"
+#define CAL_ERROR_SET_PARAMS_MSG	"[cal] calibration failed: to set parameters"
 
 #endif /* CALIBRATION_MESSAGES_H_ */

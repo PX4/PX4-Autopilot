@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.
@@ -45,9 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <px4_log.h>
+#include "board_config.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -55,6 +53,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -62,70 +61,20 @@
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
-
 #include <chip.h>
-#include "board_config.h"
-
 #include <stm32_uart.h>
-
 #include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
-#include <systemlib/px4_macros.h>
-
-#include <px4_init.h>
-#include <px4_i2c.h>
-
 #include "up_internal.h"
 
+#include <px4_arch/io_timer.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_board_led.h>
+#include <systemlib/px4_macros.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform/board_dma_alloc.h>
+
 static int configure_switch(void);
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
-{
-
-	irqstate_t irqstate = px4_enter_critical_section();
-
-	uint32_t cr1 =	getreg32(STM32_USART_CR1_OFFSET + uxart_base);
-	uint32_t cr2 =	getreg32(STM32_USART_CR2_OFFSET + uxart_base);
-	uint32_t regval = cr1;
-
-	/* {R|T}XINV bit fields can only be written when the USART is disabled (UE=0). */
-
-	regval &= ~USART_CR1_UE;
-
-	putreg32(regval, STM32_USART_CR1_OFFSET + uxart_base);
-
-	if (invert_on) {
-#if defined(BOARD_HAS_RX_TX_SWAP) &&	RC_SERIAL_PORT_IS_SWAPED == 1
-
-		/* This is only ever turned on */
-
-		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV | USART_CR2_SWAP);
-#else
-		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV);
-#endif
-
-	} else {
-		cr2 &= ~(USART_CR2_RXINV | USART_CR2_TXINV);
-	}
-
-	putreg32(cr2, STM32_USART_CR2_OFFSET + uxart_base);
-	putreg32(cr1, STM32_USART_CR1_OFFSET + uxart_base);
-
-	leave_critical_section(irqstate);
-}
 
 /************************************************************************************
  * Name: board_on_reset
@@ -140,16 +89,14 @@ __EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
  ************************************************************************************/
 __EXPORT void board_on_reset(int status)
 {
-	/* configure the GPIO pins to outputs and keep them low */
-
-	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
+	}
 
 	if (status >= 0) {
 		up_mdelay(6);
 	}
 }
-
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -171,7 +118,7 @@ stm32_boardinitialize(void)
 
 	/* configure pins */
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
@@ -210,7 +157,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		PX4_ERR("DMA alloc FAILED");
+		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
 	/* set up the serial DMA polling */
@@ -232,27 +179,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	(void) board_hardfault_init(2, true);
 
-
-#ifdef CONFIG_SPI
-	int ret = stm32_spi_bus_initialize();
-
-	if (ret != OK) {
-		PX4_ERR("SPI init failed");
-		return ret;
-	}
-
-#endif
-
 #ifdef CONFIG_MMCSD
 
-	ret = stm32_sdio_initialize();
+	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
-		PX4_ERR("SDIO init failed");
+		syslog(LOG_ERR, "[boot] SDIO init failed\n");
 		return ret;
 	}
 
-#endif
+#endif /* CONFIG_MMCSD */
 
 	configure_switch();
 
@@ -270,17 +206,17 @@ static int configure_switch(void)
 {
 	int ret = PX4_ERROR;
 
-	// attach to the i2c bus
-	struct i2c_master_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
+	// attach to the i2c bus (internal)
+	struct i2c_master_s *i2c = px4_i2cbus_initialize(3);
 
 	if (i2c == NULL) {
-		PX4_ERR("I2C device not opened");
+		syslog(LOG_ERR, "[boot] I2C device not opened\n");
 	}
 
 	// ethernet switch enable
 	uint8_t txdata[] = {0x51, 0x00, 0x21, 0x00}; //0x5100, 0x2100 MSB to LSB here.
 
-	struct px4_i2c_msg_t msgv;
+	struct i2c_msg_s msgv;
 
 	msgv.frequency = 100000;
 	msgv.addr = 0x5F;
@@ -299,7 +235,7 @@ static int configure_switch(void)
 			break;
 
 		} else {
-			PX4_ERR("ETH switch I2C fail: %d, retrying", ret);
+			syslog(LOG_ERR, "[boot] ETH switch I2C fail: %d, retrying\n", ret);
 		}
 
 		/* if we have already retried once, or we are going to give up, then reset the bus */

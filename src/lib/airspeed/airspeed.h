@@ -58,7 +58,7 @@ enum AIRSPEED_COMPENSATION_MODEL {
 };
 
 /**
- * Calculate indicated airspeed.
+ * Calculate indicated airspeed (IAS).
  *
  * Note that the indicated airspeed is not the true airspeed because it
  * lacks the air density compensation. Use the calc_true_airspeed functions to get
@@ -68,12 +68,12 @@ enum AIRSPEED_COMPENSATION_MODEL {
  * @param static_pressure pressure at the side of the tube/airplane
  * @return indicated airspeed in m/s
  */
-__EXPORT float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
-		enum AIRSPEED_SENSOR_MODEL smodel,
-		float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius);
+__EXPORT float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
+				  enum AIRSPEED_SENSOR_MODEL smodel,
+				  float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius);
 
 /**
- * Calculate indicated airspeed.
+ * Calculate indicated airspeed (IAS).
  *
  * Note that the indicated airspeed is not the true airspeed because it
  * lacks the air density compensation. Use the calc_true_airspeed functions to get
@@ -83,32 +83,45 @@ __EXPORT float calc_indicated_airspeed_corrected(enum AIRSPEED_COMPENSATION_MODE
  * @param static_pressure pressure at the side of the tube/airplane
  * @return indicated airspeed in m/s
  */
-__EXPORT float calc_indicated_airspeed(float differential_pressure);
+__EXPORT float calc_IAS(float differential_pressure);
 
 /**
- * Calculate true airspeed from indicated airspeed.
+ * Calculate true airspeed (TAS) from equivalent airspeed (EAS).
  *
  * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
  *
- * @param speed_indicated current indicated airspeed
+ * @param speed_equivalent current equivalent airspeed
  * @param pressure_ambient pressure at the side of the tube/airplane
  * @param temperature_celsius air temperature in degrees celcius
- * @return true airspeed in m/s
+ * @return TAS in m/s
  */
-__EXPORT float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_ambient,
-		float temperature_celsius);
+__EXPORT float calc_TAS_from_EAS(float speed_indicated, float pressure_ambient,
+				 float temperature_celsius);
 
 /**
- * Directly calculate true airspeed
+ * Calculate equivalent airspeed (EAS) from indicated airspeed (IAS).
+ * Note that we neglect the conversion from CAS (calibrated airspeed) to EAS.
  *
- * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
+ * @param speed_indicated current indicated airspeed
+ * @param scale scale from IAS to CAS (accounting for instrument and pitot position erros)
+ * @return EAS in m/s
+ */
+__EXPORT float calc_EAS_from_IAS(float speed_indicated, float scale);
+
+
+/**
+ * Directly calculate true airspeed (TAS)
+ *
+ * Here we assume to have no instrument or pitot position error (IAS = CAS),
+ * and neglect the CAS to EAS conversion (CAS = EAS).
+ * Note that the true airspeed is NOT the groundspeed, because of the effects of wind.
  *
  * @param total_pressure pressure inside the pitot/prandtl tube
  * @param static_pressure pressure at the side of the tube/airplane
  * @param temperature_celsius air temperature in degrees celcius
  * @return true airspeed in m/s
  */
-__EXPORT float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius);
+__EXPORT float calc_TAS(float total_pressure, float static_pressure, float temperature_celsius);
 
 /**
 * Calculates air density.
@@ -117,6 +130,19 @@ __EXPORT float calc_true_airspeed(float total_pressure, float static_pressure, f
 * @param temperature_celcius air / ambient temperature in celcius
 */
 __EXPORT float get_air_density(float static_pressure, float temperature_celsius);
+
+/**
+ * Calculate equivalent airspeed (EAS) from true airspeed (TAS).
+ * It is the inverse function to calc_TAS_from_EAS()
+ *
+ *
+ * @param speed_true current true airspeed
+ * @param pressure_ambient pressure at the side of the tube/airplane
+ * @param temperature_celsius air temperature in degrees celcius
+ * @return EAS in m/s
+ */
+__EXPORT float calc_EAS_from_TAS(float speed_true, float pressure_ambient,
+				 float temperature_celsius);
 
 __END_DECLS
 

@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #############################################################################
 #
-#   Copyright (C) 2013-2018 PX4 Pro Development Team. All rights reserved.
+#   Copyright (C) 2013-2019 PX4 Pro Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 #############################################################################
 
 '''
-Helper methods & common code for the uorb message templates msg.{cpp,h}.template
+Helper methods & common code for the uorb message templates msg.{cpp,h}.em
 
 Another positive effect of having the code here, is that this file will get
 precompiled and thus message generation will be much faster
@@ -43,7 +43,7 @@ import os
 import errno
 
 import genmsg.msgs
-import gencpp
+
 
 type_map = {
     'int8': 'int8_t',
@@ -254,10 +254,10 @@ def print_field(field):
 
         else:
             for i in range(array_length):
-                print("PX4_INFO_RAW(\"\\t" + field.type +
-                      " " + field.name + "[" + str(i) + "]\");")
-                print(" print_message(message." +
-                      field.name + "[" + str(i) + "]);")
+                print(("PX4_INFO_RAW(\"\\t" + field.type +
+                      " " + field.name + "[" + str(i) + "]\");"))
+                print((" print_message(message." +
+                      field.name + "[" + str(i) + "]);"))
             return
 
         for i in range(array_length):
@@ -291,21 +291,37 @@ def print_field(field):
                 field_name = "(" + field_name + " ? \"True\" : \"False\")"
 
         else:
-            print("PX4_INFO_RAW(\"\\n\\t" + field.name + "\");")
-            print("\tprint_message(message." + field.name + ");")
+            print(("PX4_INFO_RAW(\"\\n\\t" + field.name + "\");"))
+            print(("\tprint_message(message." + field.name + ");"))
             return
 
     if field.name == 'timestamp':
-        print("if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" + field.name +
+        print(("if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" + field.name +
               ": " + c_type + "  (%.6f seconds ago)\\n\", " + field_name +
-              ", hrt_elapsed_time(&message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}")
+              ", (now - message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}"))
+    elif field.name == 'timestamp_sample':
+        print(("\n\tPX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "  (" + c_type + " us before timestamp)\\n\", " + field_name + ", message.timestamp - message.timestamp_sample);\n\t"))
     elif field.name == 'device_id':
         print("char device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), message.device_id);")
         print("PX4_INFO_RAW(\"\\tdevice_id: %d (%s) \\n\", message.device_id, device_id_buffer);")
+    elif field.name == 'accel_device_id':
+        print("char accel_device_id_buffer[80];")
+        print("device::Device::device_id_print_buffer(accel_device_id_buffer, sizeof(accel_device_id_buffer), message.accel_device_id);")
+        print("PX4_INFO_RAW(\"\\taccel_device_id: %d (%s) \\n\", message.accel_device_id, accel_device_id_buffer);")
+    elif field.name == 'gyro_device_id':
+        print("char gyro_device_id_buffer[80];")
+        print("device::Device::device_id_print_buffer(gyro_device_id_buffer, sizeof(gyro_device_id_buffer), message.gyro_device_id);")
+        print("PX4_INFO_RAW(\"\\tgyro_device_id: %d (%s) \\n\", message.gyro_device_id, gyro_device_id_buffer);")
+    elif field.name == 'baro_device_id':
+        print("char baro_device_id_buffer[80];")
+        print("device::Device::device_id_print_buffer(baro_device_id_buffer, sizeof(baro_device_id_buffer), message.baro_device_id);")
+        print("PX4_INFO_RAW(\"\\tbaro_device_id: %d (%s) \\n\", message.baro_device_id, baro_device_id_buffer);")
+    elif is_array and 'char' in field.type:
+        print(("PX4_INFO_RAW(\"\\t" + field.name + ": \\\"%." + str(array_length) + "s\\\" \\n\", message." + field.name + ");"))
     else:
-        print("PX4_INFO_RAW(\"\\t" + field.name + ": " +
-              c_type + "\\n\", " + field_name + ");")
+        print(("PX4_INFO_RAW(\"\\t" + field.name + ": " +
+              c_type + "\\n\", " + field_name + ");"))
 
 
 def print_field_def(field):
@@ -345,8 +361,8 @@ def print_field_def(field):
     if field.name.startswith('_padding'):
         comment = ' // required for logger'
 
-    print('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
-                                array_size, comment))
+    print(('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
+                                array_size, comment)))
 
 
 def check_available_ids(used_msg_ids_list):

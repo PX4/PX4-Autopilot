@@ -103,7 +103,7 @@ struct dataman_compat_s {
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \
-		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_save_point_s) << 4) + \
+		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_safe_point_s) << 4) + \
 		       sizeof(struct dataman_compat_s))
 
 /** Retrieve from the data manager store */

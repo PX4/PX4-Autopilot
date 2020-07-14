@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Posix SITL MAVROS integration tests -->
+    <!-- Test a mission -->
+    <arg name="est" default="ekf2"/>
+    <arg name="gui" default="false"/>
+    <arg name="interactive" default="false"/>
+    <arg name="mission" default="MC_safe_landing"/>
+    <arg name="sdf" default="$(find avoidance)/sim/models/iris_downwards_camera/iris_downwards_camera.sdf"/>
+    <arg name="vehicle" default="iris_obs_avoid"/>
+    <arg name="world" default="$(find avoidance)/sim/worlds/boxes1.world"/>
+    <!-- PX4 SITL and Gazebo -->
+    <include file="$(find px4)/launch/posix_sitl.launch">
+        <arg name="est" value="$(arg est)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="interactive" value="$(arg interactive)"/>
+        <arg name="respawn_gazebo" value="true"/>
+        <arg name="sdf" value="$(arg sdf)"/>
+        <arg name="vehicle" value="$(arg vehicle)"/>
+        <arg name="verbose" value="true"/>
+        <arg name="world" value="$(arg world)"/>
+    </include>
+    <!-- MAVROS -->
+    <include file="$(find mavros)/launch/node.launch">
+        <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml"/>
+        <arg name="config_yaml" value="$(find local_planner)/resource/px4_config.yaml"/>
+        <arg name="gcs_url" value=""/>
+        <arg name="fcu_url" value="udp://:14540@localhost:14557"/>
+        <arg name="tgt_system" value="1"/>
+        <arg name="tgt_component" value="1"/>
+        <arg name="respawn_mavros" value="true"/>
+    </include>
+    <!-- Transformation Publishers -->
+    <node pkg="tf" type="static_transform_publisher" name="tf_depth_camera"
+          args="0 0 0 1.57 3.14 0 fcu camera_link 10"/>
+    <!-- Suppress console outputs -->
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find local_planner)/resource/custom_rosconsole.conf"/>
+    <!-- Launch Local Planner -->
+    <arg name="pointcloud_topics" default="/camera/depth/points"/>
+    <node name="safe_landing_planner_node" pkg="safe_landing_planner" type="safe_landing_planner_node" output="screen">
+    <param name="pointcloud_topics" value="$(arg pointcloud_topics)" />
+  </node>
+
+  <node name="waypoint_generator_node" pkg="safe_landing_planner" type="waypoint_generator_node" output="screen" >
+  </node>
+
+  <node name="dynparam_slpn" pkg="dynamic_reconfigure" type="dynparam" args="load safe_landing_planner_node $(find safe_landing_planner)/cfg/slpn.yaml" />
+  <node name="dynparam_wpgn" pkg="dynamic_reconfigure" type="dynparam" args="load waypoint_generator_node $(find safe_landing_planner)/cfg/wpgn.yaml" />
+    <!-- ROStest -->
+    <test test-name="$(arg mission)" pkg="px4" type="mission_test.py" time-limit="300.0" args="$(arg mission).plan"/>
+</launch>

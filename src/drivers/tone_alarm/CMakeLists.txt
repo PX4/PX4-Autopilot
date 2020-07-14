@@ -38,6 +38,6 @@ px4_add_module(
 		ToneAlarm.cpp
 	DEPENDS
 		circuit_breaker
-		tone_alarm_interface
+		arch_tone_alarm
 		tunes
 	)

@@ -3,7 +3,6 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-if ARCH_BOARD_NXP_FMUK66_V3
 config FMUK66_SDHC_AUTOMOUNT
 	bool "SDHC automounter"
 	default n
@@ -21,7 +20,7 @@ config FMUK66_SDHC_AUTOMOUNT_BLKDEV
 
 config FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT
 	string "SDHC mount point"
-	default "/mnt/sdcard"
+	default "/fs/microsd"
 
 config FMUK66_SDHC_AUTOMOUNT_DDELAY
 	int "SDHC debounce delay (milliseconds)"
@@ -46,5 +45,3 @@ config BOARD_USE_PROBES
 
 	---help---
 		Select to use GPIO FMU-CH1-6 to provide timing signals from selected drivers.
-
-endif

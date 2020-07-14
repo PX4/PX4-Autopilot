@@ -40,3 +40,12 @@
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_EN_BATT, 0);
+
+/**
+ * Capacity/current multiplier for high-current capable SMBUS battery
+ *
+ * @reboot_required true
+ * @decimal 1
+ * @group Sensors
+ */
+PARAM_DEFINE_FLOAT(BAT_C_MULT, 1.0f);

@@ -36,8 +36,8 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_log.h>
+#include <nuttx/config.h>
+#include <board_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -137,7 +137,7 @@ int stm32_sdio_initialize(void)
 	sdio_dev = sdio_initialize(SDIO_SLOTNO);
 
 	if (!sdio_dev) {
-		PX4_ERR("[boot] Failed to initialize SDIO slot %d\n", SDIO_SLOTNO);
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", SDIO_SLOTNO);
 		return -ENODEV;
 	}
 
@@ -148,7 +148,7 @@ int stm32_sdio_initialize(void)
 	ret = mmcsd_slotinitialize(SDIO_MINOR, sdio_dev);
 
 	if (ret != OK) {
-		PX4_ERR("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 

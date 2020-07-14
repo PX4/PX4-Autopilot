@@ -37,7 +37,7 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <sys/time.h>
 
 #include "tests_main.h"
@@ -61,7 +61,6 @@ int test_hrt(int argc, char *argv[])
 		       (unsigned long)prev, (unsigned long)tv1.tv_sec, (unsigned long)tv1.tv_usec,
 		       (unsigned long)now, (unsigned long)tv2.tv_sec, (unsigned long)tv2.tv_usec,
 		       (unsigned long)(hrt_absolute_time() - prev));
-		fflush(stdout);
 	}
 
 	px4_usleep(1000000);
@@ -76,7 +75,6 @@ int test_hrt(int argc, char *argv[])
 		}
 
 		printf("tick\n");
-		fflush(stdout);
 	}
 
 	return 0;

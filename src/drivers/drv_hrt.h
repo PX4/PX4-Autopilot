@@ -44,7 +44,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include <queue.h>
 
 __BEGIN_DECLS
@@ -77,6 +77,12 @@ typedef struct hrt_call {
 	hrt_callout		callout;
 	void			*arg;
 } *hrt_call_t;
+
+
+#define LATENCY_BUCKET_COUNT 8
+extern const uint16_t latency_bucket_count;
+extern const uint16_t latency_buckets[LATENCY_BUCKET_COUNT];
+extern uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 /**
  * Get absolute time in [us] (does not wrap).
@@ -185,11 +191,22 @@ __EXPORT extern void	hrt_init(void);
 
 #ifdef __PX4_POSIX
 
-__EXPORT extern hrt_abstime hrt_reset(void);
-
 __EXPORT extern hrt_abstime hrt_absolute_time_offset(void);
 
 #endif
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+__EXPORT extern int px4_lockstep_register_component(void);
+__EXPORT extern void px4_lockstep_unregister_component(int component);
+__EXPORT extern void px4_lockstep_progress(int component);
+__EXPORT extern void px4_lockstep_wait_for_components(void);
+
+#else
+static inline int px4_lockstep_register_component(void) { return 0; }
+static inline void px4_lockstep_unregister_component(int component) { }
+static inline void px4_lockstep_progress(int component) { }
+static inline void px4_lockstep_wait_for_components(void) { }
+#endif /* defined(ENABLE_LOCKSTEP_SCHEDULER) */
 
 __END_DECLS
 

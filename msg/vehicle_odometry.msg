@@ -1,6 +1,8 @@
 # Vehicle odometry data. Fits ROS REP 147 for aerial vehicles
 uint64 timestamp		# time since system start (microseconds)
 
+uint64 timestamp_sample
+
 # Covariance matrix index constants
 uint8 COVARIANCE_MATRIX_X_VARIANCE=0
 uint8 COVARIANCE_MATRIX_Y_VARIANCE=6
@@ -17,8 +19,9 @@ uint8 COVARIANCE_MATRIX_YAWRATE_VARIANCE=20
 
 # Position and linear velocity frame of reference constants
 uint8 LOCAL_FRAME_NED=0         # NED earth-fixed frame
-uint8 LOCAL_FRAME_ENU=1         # ENU earth-fixed frame
+uint8 LOCAL_FRAME_FRD=1         # FRD earth-fixed frame, arbitrary heading reference
 uint8 LOCAL_FRAME_OTHER=2       # Not aligned with the std frames of reference
+uint8 BODY_FRAME_FRD=3          # FRD body-fixed frame
 
 # Position and linear velocity local frame of reference
 uint8 local_frame
@@ -29,7 +32,8 @@ float32 y			# East position
 float32 z			# Down position
 
 # Orientation quaternion. First value NaN if invalid/unknown
-float32[4] q			# Quaternion rotation from NED earth-fixed frame to XYZ body frame
+float32[4] q			# Quaternion rotation from FRD body frame to refernce frame
+float32[4] q_offset		# Quaternion rotation from odometry reference frame to navigation frame
 
 # Row-major representation of 6x6 pose cross-covariance matrix URT.
 # NED earth-fixed frame.
@@ -38,7 +42,10 @@ float32[4] q			# Quaternion rotation from NED earth-fixed frame to XYZ body fram
 # If orientation covariance invalid/unknown, 16th cell is NaN
 float32[21] pose_covariance
 
-# Velocity in meters/sec. Frame of reference defined by local_frame. NaN if invalid/unknown
+# Reference frame of the velocity data
+uint8 velocity_frame
+
+# Velocity in meters/sec. Frame of reference defined by velocity_frame variable. NaN if invalid/unknown
 float32 vx 			# North velocity
 float32 vy			# East velocity
 float32 vz			# Down velocity
@@ -55,4 +62,4 @@ float32 yawspeed		# Angular velocity about Z body axis
 # If angular velocity covariance invalid/unknown, 16th cell is NaN
 float32[21] velocity_covariance
 
-# TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry
+# TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry vehicle_visual_odometry_aligned

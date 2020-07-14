@@ -49,11 +49,12 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <matrix/math.hpp>
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -101,13 +102,6 @@ int fixedwing_control_thread_main(int argc, char *argv[]);
  */
 static void usage(const char *reason);
 
-int parameters_init(struct param_handles *h);
-
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct param_handles *h, struct params *p);
 
 /**
  * Control roll and pitch angle.
@@ -214,13 +208,7 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct p
 	}
 
 	matrix::Eulerf att_spe(roll_body, 0, bearing);
-
-	matrix::Quatf qd(att_spe);
-
-	att_sp->q_d[0] = qd(0);
-	att_sp->q_d[1] = qd(1);
-	att_sp->q_d[2] = qd(2);
-	att_sp->q_d[3] = qd(3);
+	matrix::Quatf(att_spe).copyTo(att_sp->q_d);
 }
 
 int parameters_init(struct param_handles *handles)
@@ -296,8 +284,8 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	memset(&rates_sp, 0, sizeof(rates_sp));
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
-	struct manual_control_setpoint_s manual_sp;
-	memset(&manual_sp, 0, sizeof(manual_sp));
+	struct manual_control_setpoint_s manual_control_setpoint;
+	memset(&manual_control_setpoint, 0, sizeof(manual_control_setpoint));
 	struct vehicle_status_s vstatus;
 	memset(&vstatus, 0, sizeof(vstatus));
 	struct position_setpoint_s global_sp;
@@ -323,18 +311,17 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	/* subscribe to topics. */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	int manual_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int global_sp_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	int param_sub = orb_subscribe(ORB_ID(parameter_update));
+
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	/* Setup of loop */
 
-	struct pollfd fds[2] = {};
-	fds[0].fd = param_sub;
+	struct pollfd fds[1] {};
+	fds[0].fd = att_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = att_sub;
-	fds[1].events = POLLIN;
 
 	while (!thread_should_exit) {
 
@@ -348,7 +335,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 		 * This design pattern makes the controller also agnostic of the attitude
 		 * update speed - it runs as fast as the attitude updates with minimal latency.
 		 */
-		int ret = poll(fds, 2, 500);
+		int ret = poll(fds, 1, 500);
 
 		if (ret < 0) {
 			/*
@@ -361,18 +348,18 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 			/* no return value = nothing changed for 500 ms, ignore */
 		} else {
 
-			/* only update parameters if they changed */
-			if (fds[0].revents & POLLIN) {
-				/* read from param to clear updated flag (uORB API requirement) */
-				struct parameter_update_s update;
-				orb_copy(ORB_ID(parameter_update), param_sub, &update);
+			// check for parameter updates
+			if (parameter_update_sub.updated()) {
+				// clear update
+				parameter_update_s pupdate;
+				parameter_update_sub.copy(&pupdate);
 
-				/* if a param update occured, re-read our parameters */
+				// if a param update occured, re-read our parameters
 				parameters_update(&ph, &p);
 			}
 
 			/* only run controller if attitude changed */
-			if (fds[1].revents & POLLIN) {
+			if (fds[0].revents & POLLIN) {
 
 
 				/* Check if there is a new position measurement or position setpoint */
@@ -380,8 +367,8 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				orb_check(global_pos_sub, &pos_updated);
 				bool global_sp_updated;
 				orb_check(global_sp_sub, &global_sp_updated);
-				bool manual_sp_updated;
-				orb_check(manual_sp_sub, &manual_sp_updated);
+				bool manual_control_setpoint_updated;
+				orb_check(manual_control_setpoint_sub, &manual_control_setpoint_updated);
 
 				/* get a local copy of attitude */
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
@@ -392,16 +379,16 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					memcpy(&global_sp, &triplet.current, sizeof(global_sp));
 				}
 
-				if (manual_sp_updated)
+				if (manual_control_setpoint_updated)
 					/* get the RC (or otherwise user based) input */
 				{
-					orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
+					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual_control_setpoint);
 				}
 
 				/* check if the throttle was ever more than 50% - go later only to failsafe if yes */
-				if (PX4_ISFINITE(manual_sp.z) &&
-				    (manual_sp.z >= 0.6f) &&
-				    (manual_sp.z <= 1.0f)) {
+				if (PX4_ISFINITE(manual_control_setpoint.z) &&
+				    (manual_control_setpoint.z >= 0.6f) &&
+				    (manual_control_setpoint.z <= 1.0f)) {
 				}
 
 				/* get the system status and the flight mode we're in */

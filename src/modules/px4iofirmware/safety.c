@@ -38,7 +38,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdbool.h>
 
@@ -119,7 +119,7 @@ safety_check_button(void *arg)
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* switch to armed state */
-			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+			atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 			counter++;
 		}
 
@@ -130,7 +130,7 @@ safety_check_button(void *arg)
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* change to disarmed state and notify the FMU */
-			PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
+			atomic_modify_clear(&r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_OFF);
 			counter++;
 		}
 

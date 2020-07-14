@@ -39,9 +39,13 @@
 
 #pragma once
 
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
+#define BOARD_OVERRIDE_UUID "EAGLEID000000000" // must be of length 16
+#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_EAGLE
 
-#define BOARD_HAS_NO_RESET
+/*
+ * I2C busses
+ */
+#define PX4_NUMBER_I2C_BUSES    3
 
-#define BOARD_HAS_NO_BOOTLOADER
+#include <system_config.h>
+#include <px4_platform_common/board_common.h>

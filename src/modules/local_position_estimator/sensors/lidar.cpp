@@ -21,10 +21,10 @@ void BlockLocalPositionEstimator::lidarInit()
 
 	// if finished
 	if (_lidarStats.getCount() > REQ_LIDAR_INIT_COUNT) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar init: "
-					     "mean %d cm stddev %d cm",
-					     int(100 * _lidarStats.getMean()(0)),
-					     int(100 * _lidarStats.getStdDev()(0)));
+		mavlink_log_info(&mavlink_log_pub, "[lpe] lidar init: "
+				 "mean %d cm stddev %d cm",
+				 int(100 * _lidarStats.getMean()(0)),
+				 int(100 * _lidarStats.getStdDev()(0)));
 		_sensorTimeout &= ~SENSOR_LIDAR;
 		_sensorFault &= ~SENSOR_LIDAR;
 	}
@@ -53,7 +53,7 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 	_time_last_lidar = _timeStamp;
 	y.setZero();
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
-	y(0) = (d + _lidar_z_offset.get()) *
+	y(0) = (d + _param_lpe_ldr_off_z.get()) *
 	       cosf(euler.phi()) *
 	       cosf(euler.theta());
 	return OK;
@@ -80,7 +80,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	float cov = _sub_lidar->get().variance;
 
 	if (cov < 1.0e-3f) {
-		R(0, 0) = _lidar_z_stddev.get() * _lidar_z_stddev.get();
+		R(0, 0) = _param_lpe_ldr_z.get() * _param_lpe_ldr_z.get();
 
 	} else {
 		R(0, 0) = cov;
@@ -89,11 +89,11 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	// residual
 	Vector<float, n_y_lidar> r = y - C * _x;
 	// residual covariance
-	Matrix<float, n_y_lidar, n_y_lidar> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_lidar, n_y_lidar> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
-	_pub_innov.get().hagl_innov = r(0);
-	_pub_innov.get().hagl_innov_var = S(0, 0);
+	_pub_innov.get().hagl = r(0);
+	_pub_innov_var.get().hagl = S(0, 0);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_lidar, n_y_lidar> S_I = inv<float, n_y_lidar>(S);
@@ -103,7 +103,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 
 	if (beta > BETA_TABLE[n_y_lidar]) {
 		if (!(_sensorFault & SENSOR_LIDAR)) {
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar fault,  beta %5.2f", double(beta));
+			mavlink_log_info(&mavlink_log_pub, "[lpe] lidar fault,  beta %5.2f", double(beta));
 			_sensorFault |= SENSOR_LIDAR;
 		}
 
@@ -112,14 +112,14 @@ void BlockLocalPositionEstimator::lidarCorrect()
 
 	} else if (_sensorFault & SENSOR_LIDAR) {
 		_sensorFault &= ~SENSOR_LIDAR;
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar OK");
+		mavlink_log_info(&mavlink_log_pub, "[lpe] lidar OK");
 	}
 
 	// kalman filter correction always
-	Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_lidar> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 }
 
 void BlockLocalPositionEstimator::lidarCheckTimeout()
@@ -128,7 +128,7 @@ void BlockLocalPositionEstimator::lidarCheckTimeout()
 		if (!(_sensorTimeout & SENSOR_LIDAR)) {
 			_sensorTimeout |= SENSOR_LIDAR;
 			_lidarStats.reset();
-			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar timeout ");
+			mavlink_log_info(&mavlink_log_pub, "[lpe] lidar timeout ");
 		}
 	}
 }

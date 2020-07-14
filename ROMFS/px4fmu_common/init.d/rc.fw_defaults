@@ -13,8 +13,8 @@ then
 	# Default parameters for fixed wing UAVs.
 	#
 	param set COM_POS_FS_DELAY 5
-	param set COM_POS_FS_EPH 25
-	param set COM_POS_FS_EPV 50
+	param set COM_POS_FS_EPH 15
+	param set COM_POS_FS_EPV 30
 	param set COM_POS_FS_GAIN 0
 	param set COM_POS_FS_PROB 1
 	param set COM_VEL_FS_EVH 5
@@ -30,6 +30,7 @@ then
 	param set EKF2_REQ_SACC 1
 	param set EKF2_REQ_VDRIFT 1.0
 
+	param set RTL_TYPE 1
 	param set RTL_RETURN_ALT 100
 	param set RTL_DESCEND_ALT 100
 	param set RTL_LAND_DELAY -1

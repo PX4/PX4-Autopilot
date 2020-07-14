@@ -37,28 +37,12 @@
  * SPI interface for HMC5983
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <debug.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_device.h>
 
 #include "hmc5883.h"
-#include <board_config.h>
-
-#ifdef PX4_SPIDEV_HMC
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
@@ -68,36 +52,31 @@
 #define HMC_MAX_SEND_LEN		4
 #define HMC_MAX_RCV_LEN			8
 
-device::Device *HMC5883_SPI_interface(int bus);
+device::Device *HMC5883_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
 class HMC5883_SPI : public device::SPI
 {
 public:
-	HMC5883_SPI(int bus, uint32_t device);
+	HMC5883_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~HMC5883_SPI() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
 };
 
 device::Device *
-HMC5883_SPI_interface(int bus)
+HMC5883_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
 {
-	return new HMC5883_SPI(bus, PX4_SPIDEV_HMC);
+	return new HMC5883_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-HMC5883_SPI::HMC5883_SPI(int bus, uint32_t device) :
-	SPI("HMC5883_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000 /* will be rounded to 10.4 MHz */)
+HMC5883_SPI::HMC5883_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
+	SPI(DRV_MAG_DEVTYPE_HMC5883, MODULE_NAME, bus, device, spi_mode, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
 }
 
-int
-HMC5883_SPI::init()
+int HMC5883_SPI::init()
 {
 	int ret;
 
@@ -127,34 +106,7 @@ HMC5883_SPI::init()
 	return OK;
 }
 
-int
-HMC5883_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case MAGIOCGEXTERNAL:
-		/*
-		 * Even if this sensor is on the external SPI
-		 * bus it is still internal to the autopilot
-		 * assembly, so always return 0 for internal.
-		 */
-		return 0;
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
-}
-
-int
-HMC5883_SPI::write(unsigned address, void *data, unsigned count)
+int HMC5883_SPI::write(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -168,8 +120,7 @@ HMC5883_SPI::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], &buf[0], count + 1);
 }
 
-int
-HMC5883_SPI::read(unsigned address, void *data, unsigned count)
+int HMC5883_SPI::read(unsigned address, void *data, unsigned count)
 {
 	uint8_t buf[32];
 
@@ -183,5 +134,3 @@ HMC5883_SPI::read(unsigned address, void *data, unsigned count)
 	memcpy(data, &buf[1], count);
 	return ret;
 }
-
-#endif /* PX4_SPIDEV_HMC */

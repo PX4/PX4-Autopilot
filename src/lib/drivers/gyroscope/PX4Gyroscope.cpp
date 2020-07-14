@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,115 +36,105 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
-	CDev(nullptr),
-	ModuleParams(nullptr),
-	_sensor_gyro_pub{ORB_ID(sensor_gyro), priority},
-	_rotation{get_rot_matrix(rotation)}
+using namespace time_literals;
+using matrix::Vector3f;
+
+static constexpr int32_t sum(const int16_t samples[16], uint8_t len)
 {
-	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+	int32_t sum = 0;
 
-	_sensor_gyro_pub.get().device_id = device_id;
-	_sensor_gyro_pub.get().scaling = 1.0f;
+	for (int n = 0; n < len; n++) {
+		sum += samples[n];
+	}
 
-	// set software low pass filter for controllers
+	return sum;
+}
+
+PX4Gyroscope::PX4Gyroscope(uint32_t device_id, ORB_PRIO priority, enum Rotation rotation) :
+	ModuleParams(nullptr),
+	_sensor_pub{ORB_ID(sensor_gyro), priority},
+	_sensor_fifo_pub{ORB_ID(sensor_gyro_fifo), priority},
+	_device_id{device_id},
+	_rotation{rotation}
+{
+	// advertise immediately to keep instance numbering in sync
+	_sensor_pub.advertise();
+
 	updateParams();
-	configure_filter(_filter_cutoff.get());
-
-	// force initial publish to allocate uORB buffer
-	// TODO: can be removed once all drivers are in threads
-	_sensor_gyro_pub.update();
 }
 
 PX4Gyroscope::~PX4Gyroscope()
 {
-	if (_class_device_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_device_instance);
-	}
-}
-
-int PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case GYROIOCSSCALE: {
-			// Copy offsets and scale factors in
-			gyro_calibration_s cal{};
-			memcpy(&cal, (gyro_calibration_s *) arg, sizeof(cal));
-
-			_calibration_offset = matrix::Vector3f{cal.x_offset, cal.y_offset, cal.z_offset};
-			_calibration_scale = matrix::Vector3f{cal.x_scale, cal.y_scale, cal.z_scale};
-		}
-
-		return PX4_OK;
-
-	case DEVIOCGDEVICEID:
-		return _sensor_gyro_pub.get().device_id;
-
-	default:
-		return -ENOTTY;
-	}
+	_sensor_pub.unadvertise();
+	_sensor_fifo_pub.unadvertise();
 }
 
 void PX4Gyroscope::set_device_type(uint8_t devtype)
 {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
-	device_id.devid = _sensor_gyro_pub.get().device_id;
+	device_id.devid = _device_id;
 
 	// update to new device type
 	device_id.devid_s.devtype = devtype;
 
-	// copy back to report
-	_sensor_gyro_pub.get().device_id = device_id.devid;
+	// copy back
+	_device_id = device_id.devid;
 }
 
-void PX4Gyroscope::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z)
+void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
 {
-	sensor_gyro_s &report = _sensor_gyro_pub.get();
-	report.timestamp = timestamp;
+	// publish
+	Publish(timestamp_sample, x, y, z);
+}
 
-	// Apply rotation, range scale, and the calibrating offset/scale
-	const matrix::Vector3f val_raw{(float)x, (float)y, (float)z};
-	const matrix::Vector3f val_calibrated{ _rotation *(((val_raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
+void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
+{
+	// publish fifo
+	sample.device_id = _device_id;
+	sample.scale = _scale;
+	sample.rotation = _rotation;
 
-	// Filtered values
-	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
+	sample.timestamp = hrt_absolute_time();
+	_sensor_fifo_pub.publish(sample);
 
-	// Integrated values
-	matrix::Vector3f integrated_value;
-	uint32_t integral_dt = 0;
+	{
+		// trapezoidal integration (equally spaced, scaled by dt later)
+		const uint8_t N = sample.samples;
+		const Vector3f integral{
+			(0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)),
+			(0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)),
+			(0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)),
+		};
 
-	if (_integrator.put(timestamp, val_calibrated, integrated_value, integral_dt)) {
+		_last_sample[0] = sample.x[N - 1];
+		_last_sample[1] = sample.y[N - 1];
+		_last_sample[2] = sample.z[N - 1];
 
-		// Raw values (ADC units 0 - 65535)
-		report.x_raw = x;
-		report.y_raw = y;
-		report.z_raw = z;
+		const float x = integral(0) / (float)N;
+		const float y = integral(1) / (float)N;
+		const float z = integral(2) / (float)N;
 
-		report.x = val_filtered(0);
-		report.y = val_filtered(1);
-		report.z = val_filtered(2);
-
-		report.integral_dt = integral_dt;
-		report.x_integral = integrated_value(0);
-		report.y_integral = integrated_value(1);
-		report.z_integral = integrated_value(2);
-
-		poll_notify(POLLIN);
-		_sensor_gyro_pub.update();
+		// publish
+		Publish(sample.timestamp_sample, x, y, z);
 	}
 }
 
-void PX4Gyroscope::print_status()
+void PX4Gyroscope::Publish(const hrt_abstime &timestamp_sample, float x, float y, float z)
 {
-	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
-	PX4_INFO("sample rate: %d Hz", _sample_rate);
-	PX4_INFO("filter cutoff: %.3f Hz", (double)_filter.get_cutoff_freq());
+	// Apply rotation (before scaling)
+	rotate_3f(_rotation, x, y, z);
 
-	PX4_INFO("calibration scale: %.5f %.5f %.5f", (double)_calibration_scale(0), (double)_calibration_scale(1),
-		 (double)_calibration_scale(2));
-	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
-		 (double)_calibration_offset(2));
+	sensor_gyro_s report;
 
-	print_message(_sensor_gyro_pub.get());
+	report.timestamp_sample = timestamp_sample;
+	report.device_id = _device_id;
+	report.temperature = _temperature;
+	report.error_count = _error_count;
+	report.x = x * _scale;
+	report.y = y * _scale;
+	report.z = z * _scale;
+	report.timestamp = hrt_absolute_time();
+
+	_sensor_pub.publish(report);
 }

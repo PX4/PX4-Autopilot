@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# @name Generic Tailsitter
+#
+# @type VTOL Duo Tailsitter
+# @class VTOL
+#
+# @output MAIN1 motor right
+# @output MAIN2 motor left
+# @output MAIN5 elevon right
+# @output MAIN6 elevon left
+#
+# @maintainer Roman Bapst <roman@px4.io>
+#
+# @board intel_aerofc-v1 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set VT_ELEV_MC_LOCK 0
+	param set VT_MOT_COUNT 2
+	param set VT_TYPE 0
+
+	param set MAV_TYPE 19
+fi
+
+set MAV_TYPE 19
+set MIXER vtol_tailsitter_duo
+
+set PWM_OUT 1234

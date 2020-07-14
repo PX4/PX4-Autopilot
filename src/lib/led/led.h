@@ -44,6 +44,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/led_control.h>
 
 struct LedControlDataSingle {
 	uint8_t color; ///< one of led_control_s::COLOR_*
@@ -65,18 +67,6 @@ public:
 	~LedController() = default;
 
 	/**
-	 * initialize. Call this once before using the object
-	 * @param led_control_sub uorb subscription for led_control
-	 * @return 0 on success, <0 on error otherwise
-	 */
-	int init(int led_control_sub);
-
-	/**
-	 * check if already initialized
-	 */
-	bool is_init() const { return _led_control_sub >= 0; }
-
-	/**
 	 * get maxium time between two consecutive calls to update() in us.
 	 */
 	int maximum_update_interval() const
@@ -92,17 +82,15 @@ public:
 	 */
 	int update(LedControlData &control_data);
 
-	static const int BREATHE_INTERVAL = 25 * 1000; /**< single step when in breathe mode */
-	static const int BREATHE_STEPS = 64; /**< number of steps in breathe mode for a full on-off cycle */
+	static constexpr int BREATHE_INTERVAL = 25 * 1000; /**< single step when in breathe mode */
+	static constexpr int BREATHE_STEPS = 64; /**< number of steps in breathe mode for a full on-off cycle */
 
-	static const int BLINK_FAST_DURATION = 100 * 1000; /**< duration of half a blinking cycle
+	static constexpr int BLINK_FAST_DURATION = 100 * 1000; /**< duration of half a blinking cycle
 									(on-to-off and off-to-on) in us */
-	static const int BLINK_NORMAL_DURATION = 500 * 1000; /**< duration of half a blinking cycle
+	static constexpr int BLINK_NORMAL_DURATION = 500 * 1000; /**< duration of half a blinking cycle
 									(on-to-off and off-to-on) in us */
-	static const int BLINK_SLOW_DURATION = 2000 * 1000; /**< duration of half a blinking cycle
+	static constexpr int BLINK_SLOW_DURATION = 2000 * 1000; /**< duration of half a blinking cycle
 									(on-to-off and off-to-on) in us */
-
-	int led_control_subscription() const { return _led_control_sub; }
 
 private:
 
@@ -186,8 +174,8 @@ private:
 
 	PerLedData _states[BOARD_MAX_LEDS]; ///< keep current LED states
 
-	int _led_control_sub = -1; ///< uorb subscription
-	hrt_abstime _last_update_call;
-	bool _force_update = true; ///< force an orb_copy in the beginning
-	bool _breathe_enabled = false; ///< true if at least one of the led's is currently in breathe mode
+	uORB::Subscription _led_control_sub{ORB_ID(led_control)}; ///< uorb subscription
+	hrt_abstime _last_update_call{0};
+	bool _force_update{true}; ///< force an orb_copy in the beginning
+	bool _breathe_enabled{false}; ///< true if at least one of the led's is currently in breathe mode
 };

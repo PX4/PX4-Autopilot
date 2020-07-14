@@ -128,6 +128,7 @@ Takeoff::set_takeoff_position()
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
@@ -139,16 +140,21 @@ Takeoff::set_takeoff_position()
 			pos_sp_triplet->current.yaw = rep->current.yaw;
 		}
 
-		if (PX4_ISFINITE(rep->current.lat) && PX4_ISFINITE(rep->current.lon)) {
-			pos_sp_triplet->current.lat = rep->current.lat;
-			pos_sp_triplet->current.lon = rep->current.lon;
-		}
+		// Set the current latitude and longitude even if they are NAN
+		// NANs are handled in FlightTaskAuto.cpp
+		pos_sp_triplet->current.lat = rep->current.lat;
+		pos_sp_triplet->current.lon = rep->current.lon;
 
 		// mark this as done
 		memset(rep, 0, sizeof(*rep));
 	}
 
-	_navigator->set_can_loiter_at_sp(true);
+	if (PX4_ISFINITE(pos_sp_triplet->current.lat) && PX4_ISFINITE(pos_sp_triplet->current.lon)) {
+		_navigator->set_can_loiter_at_sp(true);
+
+	} else {
+		_navigator->set_can_loiter_at_sp(false);
+	}
 
 	_navigator->set_position_setpoint_triplet_updated();
 }

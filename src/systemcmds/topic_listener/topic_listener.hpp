@@ -38,12 +38,11 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
-#include <px4_middleware.h>
-#include <px4_app.h>
-#include <px4_config.h>
-#include <px4_log.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
 #include <uORB/uORB.h>
 #include <string.h>
 #include <stdint.h>
@@ -67,5 +66,5 @@ int listener_print_topic(const orb_id_t &orb_id, int subscription)
 	return ret;
 }
 
-void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs, unsigned topic_instance,
+void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs, int topic_instance,
 	      unsigned topic_interval);

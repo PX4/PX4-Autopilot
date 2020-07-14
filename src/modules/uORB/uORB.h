@@ -52,6 +52,7 @@ struct orb_metadata {
 	const uint16_t o_size;		/**< object size */
 	const uint16_t o_size_no_padding;	/**< object size w/o padding at the end (for logger) */
 	const char *o_fields;		/**< semicolon separated list of fields (with type) */
+	uint8_t o_id;			/**< ORB_ID enum */
 };
 
 typedef const struct orb_metadata *orb_id_t;
@@ -66,7 +67,8 @@ typedef const struct orb_metadata *orb_id_t;
  * Relevant for multi-topics / topic groups
  */
 enum ORB_PRIO {
-	ORB_PRIO_MIN = 1, // leave 0 free for other purposes, eg. marking an uninitialized value
+	ORB_PRIO_UNINITIALIZED = 0,
+	ORB_PRIO_MIN = 1,
 	ORB_PRIO_VERY_LOW = 25,
 	ORB_PRIO_LOW = 50,
 	ORB_PRIO_DEFAULT = 75,
@@ -110,13 +112,15 @@ enum ORB_PRIO {
  * @param _struct	The structure the topic provides.
  * @param _size_no_padding	Struct size w/o padding at the end
  * @param _fields	All fields in a semicolon separated list e.g: "float[3] position;bool armed"
+ * @param _orb_id_enum	ORB ID enum e.g.: ORB_ID::vehicle_status
  */
-#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields)		\
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields, _orb_id_enum)		\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
 		sizeof(_struct),		\
 		_size_no_padding,			\
-		_fields					\
+		_fields,				\
+		_orb_id_enum				\
 	}; struct hack
 
 __BEGIN_DECLS
@@ -148,13 +152,13 @@ extern orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const v
  * @see uORB::Manager::orb_advertise_multi()
  */
 extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					int priority) __EXPORT;
+					enum ORB_PRIO priority) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_advertise_multi()
  */
 extern orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
-		int priority, unsigned int queue_size) __EXPORT;
+		enum ORB_PRIO priority, unsigned int queue_size) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_unadvertise()
@@ -175,8 +179,7 @@ extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, con
  * @see uORB::Manager::orb_advertise_multi() for meaning of the individual parameters
  */
 static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data,
-				   int *instance,
-				   int priority)
+				   int *instance, enum ORB_PRIO priority)
 {
 	if (!*handle) {
 		*handle = orb_advertise_multi(meta, data, instance, priority);
@@ -218,11 +221,6 @@ extern int	orb_copy(const struct orb_metadata *meta, int handle, void *buffer) _
 extern int	orb_check(int handle, bool *updated) __EXPORT;
 
 /**
- * @see uORB::Manager::orb_stat()
- */
-extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
-
-/**
  * @see uORB::Manager::orb_exists()
  */
 extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
@@ -238,7 +236,7 @@ extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
 /**
  * @see uORB::Manager::orb_priority()
  */
-extern int	orb_priority(int handle, int32_t *priority) __EXPORT;
+extern int	orb_priority(int handle, enum ORB_PRIO *priority) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_set_interval()

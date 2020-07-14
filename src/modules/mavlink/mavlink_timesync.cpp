@@ -48,13 +48,6 @@ MavlinkTimesync::MavlinkTimesync(Mavlink *mavlink) :
 {
 }
 
-MavlinkTimesync::~MavlinkTimesync()
-{
-	if (_timesync_status_pub) {
-		orb_unadvertise(_timesync_status_pub);
-	}
-}
-
 void
 MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 {
@@ -145,7 +138,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				}
 
 				// Publish status message
-				struct timesync_status_s tsync_status = {};
+				timesync_status_s tsync_status{};
 
 				tsync_status.timestamp = hrt_absolute_time();
 				tsync_status.remote_timestamp = tsync.tc1 / 1000ULL;
@@ -153,14 +146,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				tsync_status.estimated_offset = (int64_t)_time_offset;
 				tsync_status.round_trip_time = rtt_us;
 
-				if (_timesync_status_pub == nullptr) {
-					int instance;
-					_timesync_status_pub = orb_advertise_multi(ORB_ID(timesync_status), &tsync_status, &instance, ORB_PRIO_DEFAULT);
-
-				} else {
-					orb_publish(ORB_ID(timesync_status), _timesync_status_pub, &tsync_status);
-				}
-
+				_timesync_status_pub.publish(tsync_status);
 			}
 
 			break;

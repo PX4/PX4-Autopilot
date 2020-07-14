@@ -40,10 +40,15 @@
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/input_rc.h>
 
 #include "syslink.h"
 #include "crtp.h"
+
+using namespace time_literals;
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
@@ -132,13 +137,11 @@ private:
 	hrt_abstime _params_update[3]; // Time at which the parameters were updated
 	hrt_abstime _params_ack[3]; // Time at which the parameters were acknowledged by the nrf module
 
-	orb_advert_t _battery_pub;
-	orb_advert_t _rc_pub;
-	orb_advert_t _cmd_pub;
+	uORB::PublicationMulti<input_rc_s>		_rc_pub{ORB_ID(input_rc)};
 
-	struct battery_status_s _battery_status;
-
-	Battery _battery;
+	// nrf chip schedules battery updates with SYSLINK_SEND_PERIOD_MS
+	static constexpr uint32_t SYSLINK_BATTERY_STATUS_INTERVAL_US = 10_ms;
+	Battery _battery{1, nullptr, SYSLINK_BATTERY_STATUS_INTERVAL_US};
 
 	int32_t _rssi;
 	battery_state _bstate;

@@ -43,11 +43,11 @@
  * Included Files
  ******************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 /******************************************************************************
  * Definitions
@@ -76,6 +76,27 @@
 #define GPIO_LED2 (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN15)
 #define GPIO_LED3 (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN13)
 #define GPIO_LED4 (GPIO_OUTPUT|GPIO_CNF_OUTOD|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN11)
+
+#define GPIO_HEATER_OFF (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN14)
+
+#define GPIO_PC14 (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|GPIO_PORTC|GPIO_PIN14)
+#define GPIO_PC15 (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|GPIO_PORTC|GPIO_PIN15)
+
+/*  PixHawk 1:
+ *      PC14 Floating
+ *      PC15 Floating
+ *
+ *  PixHawk 2:
+ *      PC14 3.3v
+ *      PC15 GND
+ */
+
+#define GPIO_SENSE_PC14_DN (GPIO_INPUT|GPIO_CNF_INPULLDWN|GPIO_MODE_INPUT|GPIO_PORTC|GPIO_PIN14)
+#define GPIO_SENSE_PC15_UP (GPIO_INPUT|GPIO_CNF_INPULLUP|GPIO_MODE_INPUT|GPIO_PORTC|GPIO_PIN15)
+# define SENSE_PH1 0b10 /* Floating pulled as set */
+# define SENSE_PH2 0b01 /* Driven as tied */
+
+#define GPIO_HEATER_OFF (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN14)
 
 #define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN10)
 
@@ -115,6 +136,8 @@
 #define GPIO_PWM7 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN0)
 #define GPIO_PWM8 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
 
+#define DIRECT_PWM_OUTPUT_CHANNELS 8
+
 /* SBUS pins  *************************************************************/
 
 /* XXX these should be UART pins */
@@ -141,3 +164,7 @@
 #define LED_SIGNAL        5  /* LED? + LED? */
 #define LED_ASSERTION     6  /* LED? + LED? + LED? */
 #define LED_PANIC         7  /* N/C  + N/C  + N/C + LED? */
+
+#define BOARD_NUM_IO_TIMERS 3
+
+#define BOARD_DISABLE_I2C_SPI

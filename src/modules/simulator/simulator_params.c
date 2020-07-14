@@ -38,16 +38,63 @@
  *
  * @author Mohamed Abdelkader <mohamedashraf123@gmail.com>
  */
-#include <parameters/param.h>
 
 /**
- * Simulator Battery drain interval
+ * Simulator block GPS data.
  *
- * @min 1
- * @max 86400
- * @increment 1
- * @unit s
+ * Enable to block the publication of any incoming simulation GPS data.
  *
+ * @boolean
  * @group SITL
  */
-PARAM_DEFINE_FLOAT(SIM_BAT_DRAIN, 60);
+PARAM_DEFINE_INT32(SIM_GPS_BLOCK, 0);
+
+/**
+ * Simulator block accelerometer data.
+ *
+ * Enable to block the publication of any incoming simulation accelerometer data.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_ACCEL_BLOCK, 0);
+
+/**
+ * Simulator block gyroscope data.
+ *
+ * Enable to block the publication of any incoming simulation gyroscope data.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_GYRO_BLOCK, 0);
+
+/**
+ * Simulator block magnetometer data.
+ *
+ * Enable to block the publication of any incoming simulation magnetometer data.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_MAG_BLOCK, 0);
+
+/**
+ * Simulator block barometer data.
+ *
+ * Enable to block the publication of any incoming simulation barometer data.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_BARO_BLOCK, 0);
+
+/**
+ * Simulator block differential pressure data.
+ *
+ * Enable to block the publication of any incoming simulation differential pressure data.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_DPRES_BLOCK, 0);

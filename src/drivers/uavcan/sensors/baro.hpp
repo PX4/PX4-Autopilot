@@ -39,12 +39,9 @@
 
 #include "sensor_bridge.hpp"
 #include <drivers/drv_baro.h>
-#include <drivers/device/ringbuffer.h>
 
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
 #include <uavcan/equipment/air_data/StaticTemperature.hpp>
-
-class RingBuffer;
 
 class UavcanBarometerBridge : public UavcanCDevSensorBridgeBase
 {
@@ -58,11 +55,11 @@ public:
 	int init() override;
 
 private:
-	ssize_t read(struct file *filp, char *buffer, size_t buflen);
-	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
 	void air_pressure_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg);
 	void air_temperature_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg);
+
+	int init_driver(uavcan_bridge::Channel *channel) override;
 
 	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
 		void (UavcanBarometerBridge::*)
@@ -77,8 +74,6 @@ private:
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirPressureCbBinder> _sub_air_pressure_data;
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, AirTemperatureCbBinder> _sub_air_temperature_data;
 
-	ringbuffer::RingBuffer _reports;
-
-	float last_temperature_kelvin = 0.0f;
+	float last_temperature_kelvin{0.0f};
 
 };

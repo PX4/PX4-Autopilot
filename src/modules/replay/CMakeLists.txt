@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,9 +34,11 @@ px4_add_module(
 	MODULE modules__replay
 	MAIN replay
 	COMPILE_FLAGS
-	STACK_MAIN 1000
-	STACK_MAX 4000
 	SRCS
+		definitions.hpp
 		replay_main.cpp
-	DEPENDS
+		Replay.cpp
+		Replay.hpp
+		ReplayEkf2.cpp
+		ReplayEkf2.hpp
 	)

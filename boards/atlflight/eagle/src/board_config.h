@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * SITL internal definitions
+ * EAGLE internal definitions
  */
 
 #pragma once
@@ -42,19 +42,12 @@
 #define BOARD_OVERRIDE_UUID "EAGLEID000000000" // must be of length 16
 #define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_EAGLE
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-
-#define BOARD_NUMBER_BRICKS     0
-
 /*
  * I2C busses
  */
-#define PX4_I2C_BUS_ESC		1
-#define PX4_SIM_BUS_TEST	2
-#define PX4_I2C_BUS_EXPANSION	3
-#define PX4_I2C_BUS_LED		3
-#define PX4_NUMBER_I2C_BUSES 3
+#define PX4_NUMBER_I2C_BUSES    3
+
+// Battery ADC channels
 
 #include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>

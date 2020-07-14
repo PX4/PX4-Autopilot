@@ -39,26 +39,23 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <drivers/device/i2c.h>
 #include <systemlib/err.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <matrix/math.hpp>
 
 using namespace matrix;
-
-#define BST_DEVICE_PATH "/dev/bst0"
-
-static const char commandline_usage[] = "usage: bst start|status|stop";
-
-extern "C" __EXPORT int bst_main(int argc, char *argv[]);
+using namespace time_literals;
 
 #define BST_ADDR		0x76
 
@@ -111,40 +108,29 @@ struct BSTBattery {
 
 #pragma pack(pop)
 
-class BST : public device::I2C
+class BST : public device::I2C, public I2CSPIDriver<BST>
 {
 public:
-	BST(int bus);
+	BST(I2CSPIBusOption bus_option, const int bus, int address, int bus_frequency);
+	~BST() override = default;
 
-	virtual ~BST();
+	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+					     int runtime_instance);
+	static void print_usage();
 
-	virtual int		init();
+	int		init() override;
 
-	virtual int		probe();
+	int		probe() override;
 
-	virtual int		info() { return 0; }
-
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg) { return 0; }
-
-	work_s *work_ptr() { return &_work; }
-
-	void stop();
-
-	static void		start_trampoline(void *arg);
-
+	void			RunImpl();
 private:
-	work_s			_work = {};
-	bool			_should_run = false;
-	unsigned		_interval = 100;
-	int				_gps_sub;
-	int				_attitude_sub;
-	int				_battery_sub;
 
-	void			start();
+	static constexpr unsigned		_interval{100_ms};
 
-	static void		cycle_trampoline(void *arg);
+	uORB::Subscription	_gps_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription	_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription	_battery_sub{ORB_ID(battery_status)};
 
-	void			cycle();
 
 	template <typename T>
 	void			send_packet(BSTPacket<T> &packet)
@@ -193,22 +179,10 @@ private:
 	}
 };
 
-static BST *g_bst = nullptr;
-
-BST::BST(int bus) :
-	I2C("bst", BST_DEVICE_PATH, bus, BST_ADDR
-#ifdef __PX4_NUTTX
-	    , 100000 /* maximum speed supported */
-#endif
-	   )
+BST::BST(I2CSPIBusOption bus_option, const int bus, int address, int bus_frequency) :
+	I2C(DRV_TEL_DEVTYPE_BST, MODULE_NAME, bus, address, bus_frequency),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
 {
-}
-
-BST::~BST()
-{
-	_should_run = false;
-
-	work_cancel(LPWORK, &_work);
 }
 
 int BST::probe()
@@ -223,7 +197,7 @@ int BST::probe()
 	send_packet(dev_info_req, dev_info_reply);
 
 	if (dev_info_reply.type != 0x05) {
-		warnx("no devices found");
+		PX4_ERR("no devices found");
 		return -EIO;
 	}
 
@@ -232,14 +206,14 @@ int BST::probe()
 	uint8_t crc_recv = reply_raw[dev_info_reply.length];
 
 	if (crc_recv != crc_calc) {
-		warnx("CRC error: got %02x, should be %02x", (int)crc_recv, (int)crc_calc);
+		PX4_ERR("CRC error: got %02x, should be %02x", (int)crc_recv, (int)crc_calc);
 		return -EIO;
 	}
 
 	dev_info_reply.payload.dev_name[dev_info_reply.payload.dev_name_len] = '\0';
-	warnx("device info: hardware ID: 0x%08X, firmware ID: 0x%04X, device name: %s",
-	      (int)swap_uint32(dev_info_reply.payload.hw_id), (int)swap_uint16(dev_info_reply.payload.fw_id),
-	      dev_info_reply.payload.dev_name);
+	PX4_DEBUG("device info: hardware ID: 0x%08X, firmware ID: 0x%04X, device name: %s",
+		  (int)swap_uint32(dev_info_reply.payload.hw_id), (int)swap_uint16(dev_info_reply.payload.fw_id),
+		  dev_info_reply.payload.dev_name);
 
 	_retries = retries_prev;
 
@@ -248,100 +222,69 @@ int BST::probe()
 
 int BST::init()
 {
-	int ret;
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	if (ret != OK) {
 		return ret;
 	}
 
-	work_queue(LPWORK, &_work, BST::start_trampoline, g_bst, 0);
+	ScheduleNow();
 
 	return OK;
 }
 
-void BST::start_trampoline(void *arg)
+void BST::RunImpl()
 {
-	reinterpret_cast<BST *>(arg)->start();
-}
+	if (_attitude_sub.updated()) {
+		vehicle_attitude_s att;
+		_attitude_sub.copy(&att);
+		Quatf q(att.q);
+		Eulerf euler(q);
 
-void BST::start()
-{
-	_should_run = true;
+		BSTPacket<BSTAttitude> bst_att = {};
+		bst_att.type = 0x1E;
+		bst_att.payload.roll = swap_int32(euler.phi() * 10000);
+		bst_att.payload.pitch = swap_int32(euler.theta() * 10000);
+		bst_att.payload.yaw = swap_int32(euler.psi() * 10000);
 
-	_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_battery_sub = orb_subscribe(ORB_ID(battery_status));
-
-	set_device_address(0x00);	// General call address
-
-	work_queue(LPWORK, &_work, BST::cycle_trampoline, this, 0);
-}
-
-void BST::cycle_trampoline(void *arg)
-{
-	reinterpret_cast<BST *>(arg)->cycle();
-}
-
-void BST::cycle()
-{
-	if (_should_run) {
-		bool updated = false;
-
-		orb_check(_attitude_sub, &updated);
-
-		if (updated) {
-			vehicle_attitude_s att;
-			orb_copy(ORB_ID(vehicle_attitude), _attitude_sub, &att);
-			Quatf q(att.q);
-			Eulerf euler(q);
-			BSTPacket<BSTAttitude> bst_att = {};
-			bst_att.type = 0x1E;
-			bst_att.payload.roll = swap_int32(euler.phi() * 10000);
-			bst_att.payload.pitch = swap_int32(euler.theta() * 10000);
-			bst_att.payload.yaw = swap_int32(euler.psi() * 10000);
-			send_packet(bst_att);
-		}
-
-		updated = false;
-		orb_check(_battery_sub, &updated);
-
-		if (updated) {
-			battery_status_s batt;
-			orb_copy(ORB_ID(battery_status), _battery_sub, &batt);
-			BSTPacket<BSTBattery> bst_batt = {};
-			bst_batt.type = 0x08;
-			bst_batt.payload.voltage = swap_uint16(batt.voltage_v * 10.0f);
-			bst_batt.payload.current = swap_uint16(batt.current_a * 10.0f);
-			uint32_t discharged = batt.discharged_mah;
-			bst_batt.payload.capacity[0] = static_cast<uint8_t>(discharged >> 16);
-			bst_batt.payload.capacity[1] = static_cast<uint8_t>(discharged >> 8);
-			bst_batt.payload.capacity[2] = static_cast<uint8_t>(discharged);
-			send_packet(bst_batt);
-		}
-
-		updated = false;
-		orb_check(_gps_sub, &updated);
-
-		if (updated) {
-			vehicle_gps_position_s gps;
-			orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
-
-			if (gps.fix_type >= 3 && gps.eph < 50.0f) {
-				BSTPacket<BSTGPSPosition> bst_gps = {};
-				bst_gps.type = 0x02;
-				bst_gps.payload.lat = swap_int32(gps.lat);
-				bst_gps.payload.lon = swap_int32(gps.lon);
-				bst_gps.payload.alt = swap_int16(gps.alt / 1000 + 1000);
-				bst_gps.payload.gs = swap_int16(gps.vel_m_s * 360.0f);
-				bst_gps.payload.heading = swap_int16(gps.cog_rad * 18000.0f / M_PI_F);
-				bst_gps.payload.sats = gps.satellites_used;
-				send_packet(bst_gps);
-			}
-		}
-
-		work_queue(LPWORK, &_work, BST::cycle_trampoline, this, _interval);
+		send_packet(bst_att);
 	}
+
+	if (_battery_sub.updated()) {
+		battery_status_s batt;
+		_battery_sub.copy(&batt);
+
+		BSTPacket<BSTBattery> bst_batt = {};
+		bst_batt.type = 0x08;
+		bst_batt.payload.voltage = swap_uint16(batt.voltage_v * 10.0f);
+		bst_batt.payload.current = swap_uint16(batt.current_a * 10.0f);
+		uint32_t discharged = batt.discharged_mah;
+		bst_batt.payload.capacity[0] = static_cast<uint8_t>(discharged >> 16);
+		bst_batt.payload.capacity[1] = static_cast<uint8_t>(discharged >> 8);
+		bst_batt.payload.capacity[2] = static_cast<uint8_t>(discharged);
+
+		send_packet(bst_batt);
+	}
+
+	if (_gps_sub.updated()) {
+		vehicle_gps_position_s gps;
+		_gps_sub.copy(&gps);
+
+		if (gps.fix_type >= 3 && gps.eph < 50.0f) {
+			BSTPacket<BSTGPSPosition> bst_gps = {};
+			bst_gps.type = 0x02;
+			bst_gps.payload.lat = swap_int32(gps.lat);
+			bst_gps.payload.lon = swap_int32(gps.lon);
+			bst_gps.payload.alt = swap_int16(gps.alt / 1000 + 1000);
+			bst_gps.payload.gs = swap_int16(gps.vel_m_s * 360.0f);
+			bst_gps.payload.heading = swap_int16(gps.cog_rad * 18000.0f / M_PI_F);
+			bst_gps.payload.sats = gps.satellites_used;
+
+			send_packet(bst_gps);
+		}
+	}
+
+	ScheduleDelayed(_interval);
 }
 
 uint8_t BST::crc8(uint8_t *data, size_t len)
@@ -364,53 +307,62 @@ uint8_t BST::crc8(uint8_t *data, size_t len)
 
 using namespace px4::bst;
 
-int bst_main(int argc, char *argv[])
+void
+BST::print_usage()
 {
-	if (argc < 2) {
-		errx(1, "missing command\n%s", commandline_usage);
+	PRINT_MODULE_USAGE_NAME("bst", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x76);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+I2CSPIDriverBase *BST::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+				   int runtime_instance)
+{
+	BST *instance = new BST(iterator.configuredBusOption(), iterator.bus(), cli.i2c_address, cli.bus_frequency);
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	if (!strcmp(argv[1], "start")) {
-
-		if (g_bst) {
-			warnx("already running");
-			exit(0);
-		}
-
-		g_bst = new BST(PX4_I2C_BUS_EXPANSION);
-
-		if (g_bst != nullptr && OK != g_bst->init()) {
-			delete g_bst;
-			g_bst = nullptr;
-		}
-
-		exit(0);
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		return nullptr;
 	}
 
-	if (!strcmp(argv[1], "stop")) {
-		if (!g_bst) {
-			warnx("not running");
-			exit(0);
-		}
+	return instance;
+}
 
-		delete g_bst;
-		g_bst = nullptr;
-		warnx("stopped");
+extern "C" __EXPORT int bst_main(int argc, char *argv[])
+{
+	using ThisDriver = BST;
+	BusCLIArguments cli{true, false};
+	cli.i2c_address = BST_ADDR;
+	cli.default_i2c_frequency = 100000;
 
-		exit(0);
+	const char *verb = cli.parseDefaultArguments(argc, argv);
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
 	}
 
-	if (!strcmp(argv[1], "status")) {
-		if (g_bst) {
-			warnx("is running");
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_TEL_DEVTYPE_BST);
 
-		} else {
-			warnx("is not running");
-		}
-
-		exit(0);
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
 	}
 
-	PX4_WARN("unrecognized command\n%s", commandline_usage);
-	return 1;
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }

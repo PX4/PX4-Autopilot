@@ -9,4 +9,6 @@ then
 
 fi
 
-set MIXER_AUX none
+rgbled_pwm start
+safety_button start
+

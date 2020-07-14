@@ -35,7 +35,7 @@
 #ifndef UNIT_TEST_H_
 #define UNIT_TEST_H_
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #define ut_declare_test_c(test_function, test_class)	\
 	extern "C" {										\

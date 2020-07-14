@@ -4,7 +4,7 @@
 
 # The simulator is expected to send to TCP port 4560+i for i in [0, N-1]
 # For example jmavsim can be run like this:
-#./Tools/jmavsim_run.sh -p 4561
+#./Tools/jmavsim_run.sh -p 4561 -l
 
 sitl_num=2
 [ -n "$1" ] && sitl_num="$1"

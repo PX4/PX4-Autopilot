@@ -43,12 +43,15 @@
 #include "vtol_att_control_main.h"
 
 #include <float.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <matrix/math.hpp>
+
+using namespace matrix;
+
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_attc(att_controller),
-	_vtol_mode(ROTARY_WING)
+	_vtol_mode(mode::ROTARY_WING)
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -62,7 +65,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_actuators_fw_in = _attc->get_actuators_fw_in();
 	_local_pos = _attc->get_local_pos();
 	_local_pos_sp = _attc->get_local_pos_sp();
-	_airspeed = _attc->get_airspeed();
+	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
 	_params = _attc->get_params();
@@ -95,6 +98,13 @@ bool VtolType::init()
 		return false;
 	}
 
+	ret = px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_min_mc_pwm_values);
+
+	if (ret != PX4_OK) {
+		PX4_ERR("failed getting min values");
+		px4_close(fd);
+		return false;
+	}
 
 	ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&_disarmed_pwm_values);
 
@@ -103,6 +113,8 @@ bool VtolType::init()
 		px4_close(fd);
 		return false;
 	}
+
+	px4_close(fd);
 
 	return true;
 
@@ -114,8 +126,8 @@ void VtolType::update_mc_state()
 		flag_idle_mc = set_idle_mc();
 	}
 
-	if (_motor_state != ENABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, ENABLED);
+	if (_motor_state != motor_state::ENABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, motor_state::ENABLED);
 	}
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -133,8 +145,8 @@ void VtolType::update_fw_state()
 		flag_idle_mc = !set_idle_fw();
 	}
 
-	if (_motor_state != DISABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, DISABLED);
+	if (_motor_state != motor_state::DISABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, motor_state::DISABLED);
 	}
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -165,7 +177,41 @@ void VtolType::update_fw_state()
 
 void VtolType::update_transition_state()
 {
+	hrt_abstime t_now = hrt_absolute_time();
+	_transition_dt = (float)(t_now - _last_loop_ts) / 1e6f;
+	_transition_dt = math::constrain(_transition_dt, 0.0001f, 0.02f);
+	_last_loop_ts = t_now;
+
+
+
 	check_quadchute_condition();
+}
+
+float VtolType::update_and_get_backtransition_pitch_sp()
+{
+	// maximum up or down pitch the controller is allowed to demand
+	const float pitch_lim = 0.3f;
+	const Eulerf euler(Quatf(_v_att->q));
+
+	const float track = atan2f(_local_pos->vy, _local_pos->vx);
+	const float accel_body_forward = cosf(track) * _local_pos->ax + sinf(track) * _local_pos->ay;
+
+	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
+	const float accel_error_forward = _params->back_trans_dec_sp + accel_body_forward;
+
+	const float pitch_sp_new = _params->dec_to_pitch_ff * _params->back_trans_dec_sp + _accel_to_pitch_integ;
+
+	float integrator_input = _params->dec_to_pitch_i * accel_error_forward;
+
+	if ((pitch_sp_new >= pitch_lim && accel_error_forward > 0.0f) ||
+	    (pitch_sp_new <= -pitch_lim && accel_error_forward < 0.0f)) {
+		integrator_input = 0.0f;
+	}
+
+	_accel_to_pitch_integ += integrator_input * _transition_dt;
+
+
+	return math::constrain(pitch_sp_new, -pitch_lim, pitch_lim);
 }
 
 bool VtolType::can_transition_on_ground()
@@ -177,7 +223,7 @@ void VtolType::check_quadchute_condition()
 {
 
 	if (_v_control_mode->flag_armed && !_land_detected->landed) {
-		matrix::Eulerf euler = matrix::Quatf(_v_att->q);
+		Eulerf euler = Quatf(_v_att->q);
 
 		// fixed-wing minimum altitude
 		if (_params->fw_min_alt > FLT_EPSILON) {
@@ -234,13 +280,17 @@ void VtolType::check_quadchute_condition()
 
 bool VtolType::set_idle_mc()
 {
-
 	unsigned pwm_value = _params->idle_pwm_mc;
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_values {};
 
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = pwm_value;
+	for (int i = 0; i < num_outputs_max; i++) {
+		if (is_channel_set(i, _params->vtol_motor_id)) {
+			pwm_values.values[i] = pwm_value;
+
+		} else {
+			pwm_values.values[i] = _min_mc_pwm_values.values[i];
+		}
+
 		pwm_values.channel_count++;
 	}
 
@@ -249,12 +299,16 @@ bool VtolType::set_idle_mc()
 
 bool VtolType::set_idle_fw()
 {
-	struct pwm_output_values pwm_values;
+	struct pwm_output_values pwm_values {};
 
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	for (int i = 0; i < num_outputs_max; i++) {
+		if (is_channel_set(i, _params->vtol_motor_id)) {
+			pwm_values.values[i] = PWM_MOTOR_OFF;
 
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = PWM_MOTOR_OFF;
+		} else {
+			pwm_values.values[i] = _min_mc_pwm_values.values[i];
+		}
+
 		pwm_values.channel_count++;
 	}
 
@@ -263,7 +317,8 @@ bool VtolType::set_idle_fw()
 
 bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_type type)
 {
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	const char *dev = _params->vt_mc_on_fmu ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
+
 	int fd = px4_open(dev, 0);
 
 	if (fd < 0) {
@@ -284,7 +339,7 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 
 
 	if (ret != OK) {
-		PX4_ERR("failed setting max values");
+		PX4_DEBUG("failed setting max values");
 		return false;
 	}
 
@@ -294,39 +349,39 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 motor_state VtolType::set_motor_state(const motor_state current_state, const motor_state next_state, const int value)
 {
 	struct pwm_output_values pwm_values = {};
-	pwm_values.channel_count = _params->vtol_motor_count;
+	pwm_values.channel_count = num_outputs_max;
 
 	// per default all motors are running
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
+	for (int i = 0; i < num_outputs_max; i++) {
 		pwm_values.values[i] = _max_mc_pwm_values.values[i];
 	}
 
 	switch (next_state) {
-	case ENABLED:
+	case motor_state::ENABLED:
 		break;
 
-	case DISABLED:
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
-			if (is_motor_off_channel(i)) {
+	case motor_state::DISABLED:
+		for (int i = 0; i < num_outputs_max; i++) {
+			if (is_channel_set(i, _params->fw_motors_off)) {
 				pwm_values.values[i] = _disarmed_pwm_values.values[i];
 			}
 		}
 
 		break;
 
-	case IDLE:
+	case motor_state::IDLE:
 
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
-			if (is_motor_off_channel(i)) {
+		for (int i = 0; i < num_outputs_max; i++) {
+			if (is_channel_set(i, _params->vtol_motor_id)) {
 				pwm_values.values[i] = _params->idle_pwm_mc;
 			}
 		}
 
 		break;
 
-	case VALUE:
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
-			if (is_motor_off_channel(i)) {
+	case motor_state::VALUE:
+		for (int i = 0; i < num_outputs_max; i++) {
+			if (is_channel_set(i, _params->fw_motors_off)) {
 				pwm_values.values[i] = value;
 			}
 		}
@@ -342,14 +397,15 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 	}
 }
 
-bool VtolType::is_motor_off_channel(const int channel)
+bool VtolType::is_channel_set(const int channel, const int target)
 {
 	int channel_bitmap = 0;
 
 	int tmp;
-	int channels = _params->fw_motors_off;
+	int channels = target;
 
-	for (int i = 0; i < _params->vtol_motor_count; ++i) {
+
+	for (int i = 0; i < num_outputs_max; ++i) {
 		tmp = channels % 10;
 
 		if (tmp == 0) {
@@ -361,4 +417,112 @@ bool VtolType::is_motor_off_channel(const int channel)
 	}
 
 	return (channel_bitmap >> channel) & 1;
+}
+
+
+float VtolType::pusher_assist()
+{
+	// Altitude above ground is distance sensor altitude if available, otherwise local z-position
+	float dist_to_ground = -_local_pos->z;
+
+	if (_local_pos->dist_bottom_valid) {
+		dist_to_ground = _local_pos->dist_bottom;
+	}
+
+	// disable pusher assist depending on setting of forward_thrust_enable_mode:
+	switch (_params->vt_forward_thrust_enable_mode) {
+	case DISABLE: // disable in all modes
+		return 0.0f;
+		break;
+
+	case ENABLE_WITHOUT_LAND: // disable in land mode
+		if (_attc->get_pos_sp_triplet()->current.valid
+		    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
+		    && _v_control_mode->flag_control_auto_enabled) {
+			return 0.0f;
+		}
+
+		break;
+
+	case ENABLE_ABOVE_MPC_LAND_ALT1: // disable if below MPC_LAND_ALT1
+		if (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt1)) {
+			return 0.0f;
+		}
+
+		break;
+
+	case ENABLE_ABOVE_MPC_LAND_ALT2: // disable if below MPC_LAND_ALT2
+		if (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _params->mpc_land_alt2)) {
+			return 0.0f;
+		}
+
+		break;
+	}
+
+	// if the thrust scale param is zero or the drone is not in some position or altitude control mode,
+	// then the pusher-for-pitch strategy is disabled and we can return
+	if (_params->forward_thrust_scale < FLT_EPSILON || !(_v_control_mode->flag_control_position_enabled
+			|| _v_control_mode->flag_control_altitude_enabled)) {
+		return 0.0f;
+	}
+
+	// Do not engage pusher assist during a failsafe event (could be a problem with the fixed wing drive)
+	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
+		return 0.0f;
+	}
+
+	const Dcmf R(Quatf(_v_att->q));
+	const Dcmf R_sp(Quatf(_v_att_sp->q_d));
+	const Eulerf euler(R);
+	const Eulerf euler_sp(R_sp);
+
+	// direction of desired body z axis represented in earth frame
+	Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+
+	// rotate desired body z axis into new frame which is rotated in z by the current
+	// heading of the vehicle. we refer to this as the heading frame.
+	Dcmf R_yaw = Eulerf(0.0f, 0.0f, -euler(2));
+	body_z_sp = R_yaw * body_z_sp;
+	body_z_sp.normalize();
+
+	// calculate the desired pitch seen in the heading frame
+	// this value corresponds to the amount the vehicle would try to pitch down
+	float pitch_down = atan2f(body_z_sp(0), body_z_sp(2));
+
+	// normalized pusher support throttle (standard VTOL) or tilt (tiltrotor), initialize to 0
+	float forward_thrust = 0.0f;
+
+	// only allow pitching down up to threshold, the rest of the desired
+	// forward acceleration will be compensated by the pusher/tilt
+	if (pitch_down < -_params->down_pitch_max) {
+		// desired roll angle in heading frame stays the same
+		float roll_new = -asinf(body_z_sp(1));
+
+		forward_thrust = (sinf(-pitch_down) - sinf(_params->down_pitch_max)) * _params->forward_thrust_scale;
+		// limit forward actuation to [0, 0.9]
+		forward_thrust = math::constrain(forward_thrust, 0.0f, 0.9f);
+
+		// return the vehicle to level position
+		float pitch_new = 0.0f;
+
+		// create corrected desired body z axis in heading frame
+		const Dcmf R_tmp = Eulerf(roll_new, pitch_new, 0.0f);
+		Vector3f tilt_new(R_tmp(0, 2), R_tmp(1, 2), R_tmp(2, 2));
+
+		// rotate the vector into a new frame which is rotated in z by the desired heading
+		// with respect to the earh frame.
+		const float yaw_error = wrap_pi(euler_sp(2) - euler(2));
+		const Dcmf R_yaw_correction = Eulerf(0.0f, 0.0f, -yaw_error);
+		tilt_new = R_yaw_correction * tilt_new;
+
+		// now extract roll and pitch setpoints
+		_v_att_sp->pitch_body = atan2f(tilt_new(0), tilt_new(2));
+		_v_att_sp->roll_body = -asinf(tilt_new(1));
+
+		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, euler_sp(2)));
+		q_sp.copyTo(_v_att_sp->q_d);
+	}
+
+	return forward_thrust;
+
 }

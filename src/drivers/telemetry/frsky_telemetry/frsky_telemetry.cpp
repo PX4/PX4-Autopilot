@@ -57,9 +57,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <px4_tasks.h>
-#include <px4_module.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
 #include <systemlib/err.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
@@ -205,23 +205,6 @@ static void set_uart_single_wire(int uart, bool single_wire)
 	if (ioctl(uart, TIOCSSINGLEWIRE, single_wire ? SER_SINGLEWIRE_ENABLED : 0) < 0) {
 		PX4_WARN("setting TIOCSSINGLEWIRE failed");
 	}
-}
-
-/**
- * Print command usage information
- */
-static void usage()
-{
-	PRINT_MODULE_DESCRIPTION("FrSky Telemetry support. Auto-detects D or S.PORT protocol.");
-
-	PRINT_MODULE_USAGE_NAME("frsky_telemetry", "communication");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
-	PRINT_MODULE_USAGE_PARAM_INT('t', 0, 0, 60, "Scanning timeout [s] (default: no timeout)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "auto", "sport|sport_single|dtype", "Select protocol (default: auto-detect)",
-					true);
-	PRINT_MODULE_USAGE_COMMAND("stop");
-	PRINT_MODULE_USAGE_COMMAND("status");
 }
 
 /**
@@ -736,7 +719,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 		frsky_task = px4_task_spawn_cmd("frsky_telemetry",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_DEFAULT + 4,
-						1320,
+						1400,
 						frsky_telemetry_thread_main,
 						(char *const *)argv);
 
@@ -805,4 +788,21 @@ int frsky_telemetry_main(int argc, char *argv[])
 	PX4_ERR("unrecognized command");
 	usage();
 	return 0;
+}
+
+/**
+ * Print command usage information
+ */
+static void usage()
+{
+	PRINT_MODULE_DESCRIPTION("FrSky Telemetry support. Auto-detects D or S.PORT protocol.");
+
+	PRINT_MODULE_USAGE_NAME("frsky_telemetry", "communication");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 0, 0, 60, "Scanning timeout [s] (default: no timeout)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "auto", "sport|sport_single|dtype", "Select protocol (default: auto-detect)",
+					true);
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
 }

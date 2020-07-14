@@ -32,8 +32,6 @@
 ############################################################################
 
 add_subdirectory(blinkm)
-add_subdirectory(oreoled
-add_subdirectory(pca8574)
 add_subdirectory(rgbled)
 add_subdirectory(rgbled_ncp5623c)
-add_subdirectory(rgbled_pwm)
+#add_subdirectory(rgbled_pwm) # requires board support (BOARD_HAS_LED_PWM/BOARD_HAS_UI_LED_PWM)

@@ -36,7 +36,9 @@
 #include <stdint.h>
 
 #include "uORBCommon.hpp"
-#include <px4_posix.h>
+#include <uORB/topics/uORBTopics.hpp>
+
+#include <px4_platform_common/posix.h>
 
 namespace uORB
 {
@@ -49,6 +51,9 @@ class Manager;
 #include <stdlib.h>
 
 #include <containers/List.hpp>
+#include <px4_platform_common/atomic_bitset.h>
+
+using px4::AtomicBitset;
 
 /**
  * Master control device for ObjDev.
@@ -60,7 +65,7 @@ class uORB::DeviceMaster
 {
 public:
 
-	int advertise(const struct orb_metadata *meta, int *instance, int priority);
+	int advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, ORB_PRIO priority);
 
 	/**
 	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.
@@ -68,6 +73,8 @@ public:
 	 */
 	uORB::DeviceNode *getDeviceNode(const char *node_name);
 	uORB::DeviceNode *getDeviceNode(const struct orb_metadata *meta, const uint8_t instance);
+
+	bool deviceNodeExists(ORB_ID id, const uint8_t instance);
 
 	/**
 	 * Print statistics for each existing topic.
@@ -98,8 +105,8 @@ private:
 		DeviceNodeStatisticsData *next = nullptr;
 	};
 
-	void addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics, size_t &max_topic_name_length,
-			       char **topic_filter, int num_filters);
+	int addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics, size_t &max_topic_name_length,
+			      char **topic_filter, int num_filters);
 
 	friend class uORB::Manager;
 
@@ -111,6 +118,7 @@ private:
 	uORB::DeviceNode *getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance);
 
 	List<uORB::DeviceNode *> _node_list;
+	AtomicBitset<ORB_TOPICS_COUNT> _node_exists[ORB_MULTI_MAX_INSTANCES];
 
 	hrt_abstime       _last_statistics_output;
 

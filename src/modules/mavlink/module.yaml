@@ -8,6 +8,10 @@ serial_config:
         then
             set MAV_ARGS "${MAV_ARGS} -f"
         fi
+        if param compare MAV_${i}_RADIO_CTL 1
+        then
+            set MAV_ARGS "${MAV_ARGS} -s"
+        fi
         mavlink start -d ${SERIAL_DEV} ${MAV_ARGS} -x
       port_config_param:
         name: MAV_${i}_CONFIG
@@ -52,8 +56,9 @@ parameters:
                     If the configured streams exceed the maximum rate, the sending rate of
                     each stream is automatically decreased.
 
-                    If this is set to 0, a value of <baudrate>/20 is used, which corresponds to
-                    half of the theoretical maximum bandwidth.
+                    If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
+                    This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on 
+                    8N1-configured links).
 
             type: int32
             min: 0
@@ -77,3 +82,16 @@ parameters:
             num_instances: *max_num_config_instances
             default: [true, false, false]
 
+        MAV_${i}_RADIO_CTL:
+            description:
+                short: Enable software throttling of mavlink on instance ${i}
+                long: |
+                    If enabled, MAVLink messages will be throttled according to
+                    `txbuf` field reported by radio_status.
+
+                    Requires a radio to send the mavlink message RADIO_STATUS.
+
+            type: boolean
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [true, true, true]

@@ -50,7 +50,7 @@ class VFile : public CDev
 public:
 
 	static VFile *createFile(const char *fname, mode_t mode);
-	~VFile() {}
+	~VFile() = default;
 
 	ssize_t write(file_t *handlep, const char *buffer, size_t buflen) override;
 
