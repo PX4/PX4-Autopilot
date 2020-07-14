@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,15 +62,12 @@ static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 100;
 static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 300;
 #endif
 
-#define FDS_LOW_WARNING_THRESHOLD 3 ///< if free file descriptors fall below this, print a warning
+static constexpr unsigned FDS_LOW_WARNING_THRESHOLD = 2; ///< if free file descriptors fall below this, print a warning
+
+using namespace time_literals;
 
 namespace load_mon
 {
-
-extern "C" __EXPORT int load_mon_main(int argc, char *argv[]);
-
-// Run it at 1 Hz.
-const unsigned LOAD_MON_INTERVAL_US = 1000000;
 
 class LoadMon : public ModuleBase<LoadMon>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -96,18 +93,13 @@ private:
 	void Run() override;
 
 	/** Do a calculation of the CPU load and publish it. */
-	void _cpuload();
+	void cpuload();
 
-	/** Calculate the memory usage */
-	float _ram_used();
-
-#ifdef __PX4_NUTTX
 	/* Calculate stack usage */
-	void _stack_usage();
+	void stack_usage();
 
 	int _stack_task_index{0};
 	uORB::PublicationQueued<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
-#endif
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SYS_STCK_EN>) _param_sys_stck_en
@@ -118,13 +110,12 @@ private:
 	hrt_abstime _last_idle_time{0};
 	hrt_abstime _last_idle_time_sample{0};
 
-	perf_counter_t _stack_perf;
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 };
 
 LoadMon::LoadMon() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check"))
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 }
 
@@ -132,7 +123,7 @@ LoadMon::~LoadMon()
 {
 	ScheduleClear();
 
-	perf_free(_stack_perf);
+	perf_free(_cycle_perf);
 }
 
 int LoadMon::task_spawn(int argc, char *argv[])
@@ -153,161 +144,125 @@ int LoadMon::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-void
-LoadMon::start()
+void LoadMon::start()
 {
-	ScheduleOnInterval(LOAD_MON_INTERVAL_US);
+	ScheduleOnInterval(300_ms);
 }
 
 void LoadMon::Run()
 {
-	_cpuload();
+	perf_begin(_cycle_perf);
 
-#ifdef __PX4_NUTTX
+	cpuload();
 
 	if (_param_sys_stck_en.get()) {
-		_stack_usage();
+		stack_usage();
 	}
-
-#endif
 
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
 	}
+
+	perf_end(_cycle_perf);
 }
 
-void LoadMon::_cpuload()
+void LoadMon::cpuload()
 {
 	if (_last_idle_time == 0) {
-		/* Just get the time in the first iteration */
+		// Just get the time in the first iteration */
 		_last_idle_time = system_load.tasks[0].total_runtime;
+		_last_idle_time_sample = hrt_absolute_time();
 		return;
 	}
 
-	/* compute system load */
+	irqstate_t irqstate = enter_critical_section();
+	const hrt_abstime now = hrt_absolute_time();
 	const hrt_abstime total_runtime = system_load.tasks[0].total_runtime;
-	const hrt_abstime interval = hrt_elapsed_time(&_last_idle_time_sample);
-	const hrt_abstime interval_idletime = total_runtime - _last_idle_time;
+	leave_critical_section(irqstate);
 
-	_last_idle_time = total_runtime;
-	_last_idle_time_sample = hrt_absolute_time();
+	// compute system load
+	const float interval = now - _last_idle_time_sample;
+	const float interval_idletime = total_runtime - _last_idle_time;
+
+	// get ram usage
+	struct mallinfo mem = mallinfo();
+	float ram_usage = (float)mem.uordblks / mem.arena;
 
 	cpuload_s cpuload{};
-	cpuload.load = 1.0f - (float)interval_idletime / (float)interval;
-	cpuload.ram_usage = _ram_used();
+	cpuload.load = 1.f - interval_idletime / interval;
+	cpuload.ram_usage = ram_usage;
 	cpuload.timestamp = hrt_absolute_time();
 
 	_cpuload_pub.publish(cpuload);
+
+	// store for next iteration
+	_last_idle_time = total_runtime;
+	_last_idle_time_sample = now;
 }
 
-float LoadMon::_ram_used()
+void LoadMon::stack_usage()
 {
-#ifdef __PX4_NUTTX
-	struct mallinfo mem;
+	unsigned stack_free = 0;
+	unsigned fds_free = FDS_LOW_WARNING_THRESHOLD + 1;
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-	mem = mallinfo();
-#else
-	(void)mallinfo(&mem);
-#endif /* CONFIG_CAN_PASS_STRUCTS */
+	bool checked_task = false;
 
-	// mem.arena: total ram (bytes)
-	// mem.uordblks: used (bytes)
-	// mem.fordblks: free (bytes)
-	// mem.mxordblk: largest remaining block (bytes)
+	task_stack_info_s task_stack_info{};
+	static_assert(sizeof(task_stack_info.task_name) == CONFIG_TASK_NAME_SIZE,
+		      "task_stack_info.task_name must match NuttX CONFIG_TASK_NAME_SIZE");
 
-	return (float)mem.uordblks / mem.arena;
+	sched_lock();
 
-#else
-	return 0.0f;
-#endif
-}
+	if (system_load.tasks[_stack_task_index].valid && (system_load.tasks[_stack_task_index].tcb->pid > 0)) {
 
-#ifdef __PX4_NUTTX
-void LoadMon::_stack_usage()
-{
-	int task_index = 0;
+		stack_free = up_check_tcbstack_remain(system_load.tasks[_stack_task_index].tcb);
 
-	/* Scan maximum num_tasks_per_cycle tasks to reduce load. */
-	const int num_tasks_per_cycle = 2;
+		strncpy((char *)task_stack_info.task_name, system_load.tasks[_stack_task_index].tcb->name, CONFIG_TASK_NAME_SIZE - 1);
+		task_stack_info.task_name[CONFIG_TASK_NAME_SIZE - 1] = '\0';
 
-	for (int i = _stack_task_index; i < _stack_task_index + num_tasks_per_cycle; i++) {
-		task_index = i % CONFIG_MAX_TASKS;
-		unsigned stack_free = 0;
-		unsigned fds_free = FDS_LOW_WARNING_THRESHOLD + 1;
-		bool checked_task = false;
-
-		perf_begin(_stack_perf);
-		sched_lock();
-
-		task_stack_info_s task_stack_info = {};
-
-		if (system_load.tasks[task_index].valid && (system_load.tasks[task_index].tcb->pid > 0)) {
-
-			stack_free = up_check_tcbstack_remain(system_load.tasks[task_index].tcb);
-
-			static_assert(sizeof(task_stack_info.task_name) == CONFIG_TASK_NAME_SIZE,
-				      "task_stack_info.task_name must match NuttX CONFIG_TASK_NAME_SIZE");
-			strncpy((char *)task_stack_info.task_name, system_load.tasks[task_index].tcb->name, CONFIG_TASK_NAME_SIZE - 1);
-			task_stack_info.task_name[CONFIG_TASK_NAME_SIZE - 1] = '\0';
+		checked_task = true;
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-			FAR struct task_group_s *group = system_load.tasks[task_index].tcb->group;
+		FAR struct task_group_s *group = system_load.tasks[_stack_task_index].tcb->group;
 
-			unsigned tcb_num_used_fds = 0;
+		unsigned tcb_num_used_fds = 0;
 
-			if (group) {
-				for (int fd_index = 0; fd_index < CONFIG_NFILE_DESCRIPTORS; ++fd_index) {
-					if (group->tg_filelist.fl_files[fd_index].f_inode) {
-						++tcb_num_used_fds;
-					}
+		if (group) {
+			for (int fd_index = 0; fd_index < CONFIG_NFILE_DESCRIPTORS; ++fd_index) {
+				if (group->tg_filelist.fl_files[fd_index].f_inode) {
+					++tcb_num_used_fds;
 				}
-
-				fds_free = CONFIG_NFILE_DESCRIPTORS - tcb_num_used_fds;
 			}
 
-#endif // CONFIG_NFILE_DESCRIPTORS
-
-			checked_task = true;
+			fds_free = CONFIG_NFILE_DESCRIPTORS - tcb_num_used_fds;
 		}
 
-		sched_unlock();
-		perf_end(_stack_perf);
+#endif // CONFIG_NFILE_DESCRIPTORS
+	}
 
-		if (checked_task) {
+	sched_unlock();
 
-			task_stack_info.stack_free = stack_free;
-			task_stack_info.timestamp = hrt_absolute_time();
+	if (checked_task) {
+		task_stack_info.stack_free = stack_free;
+		task_stack_info.timestamp = hrt_absolute_time();
 
-			_task_stack_info_pub.publish(task_stack_info);
+		_task_stack_info_pub.publish(task_stack_info);
 
-			/*
-			 * Found task low on stack, report and exit. Continue here in next cycle.
-			 */
-			if (stack_free < STACK_LOW_WARNING_THRESHOLD) {
-				PX4_WARN("%s low on stack! (%i bytes left)", task_stack_info.task_name, stack_free);
-				break;
-			}
+		// Found task low on stack, report and exit. Continue here in next cycle.
+		if (stack_free < STACK_LOW_WARNING_THRESHOLD) {
+			PX4_WARN("%s low on stack! (%i bytes left)", task_stack_info.task_name, stack_free);
+		}
 
-			/*
-			 * Found task low on file descriptors, report and exit. Continue here in next cycle.
-			 */
-			if (fds_free < FDS_LOW_WARNING_THRESHOLD) {
-				PX4_WARN("%s low on FDs! (%i FDs left)", task_stack_info.task_name, fds_free);
-				break;
-			}
-
-		} else {
-			/* No task here, check one more task in same cycle. */
-			_stack_task_index++;
+		// Found task low on file descriptors, report and exit. Continue here in next cycle.
+		if (fds_free < FDS_LOW_WARNING_THRESHOLD) {
+			PX4_WARN("%s low on FDs! (%i FDs left)", task_stack_info.task_name, fds_free);
 		}
 	}
 
-	/* Continue after last checked task next cycle. */
-	_stack_task_index = task_index + 1;
+	// Continue after last checked task next cycle
+	_stack_task_index = (_stack_task_index + 1) % CONFIG_MAX_TASKS;
 }
-#endif
 
 int LoadMon::print_usage(const char *reason)
 {
@@ -318,7 +273,7 @@ int LoadMon::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Background process running periodically with 1 Hz on the LP work queue to calculate the CPU load and RAM
+Background process running periodically with 1 Hz on the low priority work queue to calculate the CPU load and RAM
 usage and publish the `cpuload` topic.
 
 On NuttX it also checks the stack usage of each process and if it falls below 300 bytes, a warning is output,
@@ -331,8 +286,7 @@ which will also appear in the log file.
 	return 0;
 }
 
-
-int load_mon_main(int argc, char *argv[])
+extern "C" __EXPORT int load_mon_main(int argc, char *argv[])
 {
 	return LoadMon::main(argc, argv);
 }
