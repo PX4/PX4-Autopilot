@@ -193,14 +193,7 @@ float FlightTaskAutoMapper::_getLandSpeed()
 		// user input assisted land speed
 		if (_param_mpc_land_rc_help.get()) {
 			_sticks.evaluateSticks(_time_stamp_current);
-			const float head_room = _constraints.speed_down - land_speed;
-
-			speed = land_speed + _sticks.getPositionExpo()(2) * head_room;
-
-			// Allow minimum assisted land speed to be half of parameter
-			if (speed < land_speed * 0.5f) {
-				speed = land_speed * 0.5f;
-			}
+			speed = land_speed + _sticks.getPositionExpo()(2) * land_speed;
 		}
 	}
 
