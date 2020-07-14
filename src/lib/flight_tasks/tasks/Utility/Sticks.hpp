@@ -53,11 +53,14 @@ public:
 	Sticks(ModuleParams *parent);
 	~Sticks() = default;
 
-	bool evaluateSticks(hrt_abstime now, landing_gear_s &gear); ///< checks and sets stick inputs
-	void applyGearSwitch(uint8_t gear_switch, landing_gear_s &gear); ///< Sets gears according to switch
+	void evaluateSticks(hrt_abstime now); ///< checks and sets stick inputs
+	void applyGearSwitch(landing_gear_s &gear); ///< Sets gears according to switch
+	bool isAvailable() { return _input_available; };
 	const matrix::Vector<float, 4> &getPosition() { return _positions; };
 	const matrix::Vector<float, 4> &getPositionExpo() { return _positions_expo; };
+
 private:
+	bool _input_available = false;
 	matrix::Vector<float, 4> _positions; ///< unmodified manual stick inputs
 	matrix::Vector<float, 4> _positions_expo; ///< modified manual sticks using expo function
 	int _gear_switch_old = manual_control_setpoint_s::SWITCH_POS_NONE; ///< old switch state

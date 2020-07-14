@@ -43,7 +43,7 @@ Sticks::Sticks(ModuleParams *parent) :
 	ModuleParams(parent)
 {};
 
-bool Sticks::evaluateSticks(hrt_abstime now, landing_gear_s &gear)
+void Sticks::evaluateSticks(hrt_abstime now)
 {
 	_sub_manual_control_setpoint.update();
 
@@ -51,7 +51,6 @@ bool Sticks::evaluateSticks(hrt_abstime now, landing_gear_s &gear)
 
 	// Sticks are rescaled linearly and exponentially to [-1,1]
 	if ((now - _sub_manual_control_setpoint.get().timestamp) < rc_timeout) {
-
 		// Linear scale
 		_positions(0) = _sub_manual_control_setpoint.get().x; // NED x, pitch [-1,1]
 		_positions(1) = _sub_manual_control_setpoint.get().y; // NED y, roll [-1,1]
@@ -64,41 +63,46 @@ bool Sticks::evaluateSticks(hrt_abstime now, landing_gear_s &gear)
 		_positions_expo(2) = math::expo_deadzone(_positions(2), _param_mpc_z_man_expo.get(), _param_mpc_hold_dz.get());
 		_positions_expo(3) = math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(), _param_mpc_hold_dz.get());
 
-		// Only switch the landing gear up if the user switched from gear down to gear up.
-		// If the user had the switch in the gear up position and took off ignore it
-		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-		int8_t gear_switch = _sub_manual_control_setpoint.get().gear_switch;
-
-		if (_gear_switch_old != gear_switch) {
-			applyGearSwitch(gear_switch, gear);
-		}
-
-		_gear_switch_old = gear_switch;
-
 		// valid stick inputs are required
 		const bool valid_sticks =  PX4_ISFINITE(_positions(0))
 					   && PX4_ISFINITE(_positions(1))
 					   && PX4_ISFINITE(_positions(2))
 					   && PX4_ISFINITE(_positions(3));
 
-		return valid_sticks;
+		_input_available = valid_sticks;
 
 	} else {
+		_input_available = false;
+	}
+
+	if (!_input_available) {
 		// Timeout: set all sticks to zero
 		_positions.zero();
 		_positions_expo.zero();
-		gear.landing_gear = landing_gear_s::GEAR_KEEP;
-		return false;
 	}
 }
 
-void Sticks::applyGearSwitch(uint8_t gear_switch, landing_gear_s &gear)
+void Sticks::applyGearSwitch(landing_gear_s &gear)
 {
-	if (gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		gear.landing_gear = landing_gear_s::GEAR_DOWN;
-	}
+	// Only switch the landing gear up if the user switched from gear down to gear up.
+	// If the user had the switch in the gear up position and took off ignore it
+	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+	if (!isAvailable()) {
+		gear.landing_gear = landing_gear_s::GEAR_KEEP;
 
-	if (gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		gear.landing_gear = landing_gear_s::GEAR_UP;
+	} else {
+		const int8_t gear_switch = _sub_manual_control_setpoint.get().gear_switch;
+
+		if (_gear_switch_old != gear_switch) {
+			if (gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+				gear.landing_gear = landing_gear_s::GEAR_DOWN;
+			}
+
+			if (gear_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				gear.landing_gear = landing_gear_s::GEAR_UP;
+			}
+		}
+
+		_gear_switch_old = gear_switch;
 	}
 }
