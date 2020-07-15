@@ -121,7 +121,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	# java (jmavsim or fastrtps)
 	sudo pacman -S --noconfirm --needed \
 		ant \
-		jdk8-openjdk \
+		jdk-openjdk \
 		;
 
 	# Gazebo setup
