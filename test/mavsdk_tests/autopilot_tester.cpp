@@ -112,6 +112,11 @@ void AutopilotTester::wait_until_ready()
 	std::cout << "Waiting for system to be ready" << std::endl;
 	CHECK(poll_condition_with_timeout(
 	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(20)));
+
+	// FIXME: workaround to prevent race between PX4 switching to Hold mode
+	// and us trying to arm and take off. If PX4 is not in Hold mode yet,
+	// our arming presumably triggers a failsafe in manual mode.
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void AutopilotTester::wait_until_ready_local_position_only()
