@@ -11,11 +11,11 @@ INSTALL_SIM=""
 # Parse arguments
 for arg in "$@"
 do
-  if [[ $arg == "--reinstall" ]]; then
-    REINSTALL_FORMULAS=$arg
-  elif [[ $arg == "--sim-tools" ]]; then
-    INSTALL_SIM=$arg
-  fi
+	if [[ $arg == "--reinstall" ]]; then
+		REINSTALL_FORMULAS=$arg
+	elif [[ $arg == "--sim-tools" ]]; then
+		INSTALL_SIM=$arg
+	fi
 done
 
 # install Homebrew
@@ -23,42 +23,34 @@ done
 
 # Install px4-dev formula
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
-  echo "Re-installing PX4 general dependencies (homebrew px4-dev)"
+	echo "Re-installing PX4 general dependencies (homebrew px4-dev)"
 
-  # confirm Homebrew installed correctly
-  brew doctor
+	# confirm Homebrew installed correctly
+	brew doctor
 
-  brew tap PX4/px4
-  brew reinstall px4-dev ccache
-
-  # python dependencies
-  brew install python3
-  sudo -H python3 -m pip install --upgrade pip
+	brew tap PX4/px4
+	brew reinstall px4-dev
 else
-  if brew ls --versions px4-dev > /dev/null; then
-    echo "px4-dev already installed"
-  else
-    echo "Installing PX4 general dependencies (homebrew px4-dev)"
-    brew tap PX4/px4
-    brew install px4-dev ccache
-
-    # python dependencies
-    brew install python3
-    sudo -H python3 -m pip install --upgrade pip
-  fi
+	if brew ls --versions px4-dev > /dev/null; then
+		echo "px4-dev already installed"
+	else
+		echo "Installing PX4 general dependencies (homebrew px4-dev)"
+		brew tap PX4/px4
+		brew install px4-dev
+	fi
 fi
 
-# Python3 dependencies
+# Python dependencies
 echo "Installing PX4 Python3 dependencies"
-sudo -H python3 -m pip install -r ${DIR}/requirements.txt
+pip3 install --user -r ${DIR}/requirements.txt
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
-  if brew ls --versions px4-sim > /dev/null; then
-    brew install px4-sim
-  elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
-    brew reinstall px4-sim
-  fi
+	if brew ls --versions px4-sim > /dev/null; then
+		brew install px4-sim
+	elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
+		brew reinstall px4-sim
+	fi
 fi
 
 echo "All set! PX4 toolchain installed!"
