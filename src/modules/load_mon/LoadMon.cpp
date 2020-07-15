@@ -31,29 +31,7 @@
  *
  ****************************************************************************/
 
-/**
- * @file load_mon.cpp
- *
- * @author Jonathan Challinger <jonathan@3drobotics.com>
- * @author Julian Oes <julian@oes.ch
- * @author Andreas Antener <andreas@uaventure.com>
- */
-
-#include <drivers/drv_hrt.h>
-#include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/cpuload.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/cpuload.h>
-#include <uORB/topics/task_stack_info.h>
-
-#if defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_INSTRUMENTATION)
-#  error load_mon support requires CONFIG_SCHED_INSTRUMENTATION
-#endif
+#include "LoadMon.hpp"
 
 // if free stack space falls below this, print a warning
 #if defined(CONFIG_ARMV7M_STACKCHECK)
@@ -69,50 +47,6 @@ using namespace time_literals;
 namespace load_mon
 {
 
-class LoadMon : public ModuleBase<LoadMon>, public ModuleParams, public px4::ScheduledWorkItem
-{
-public:
-	LoadMon();
-	~LoadMon() override;
-
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[])
-	{
-		return print_usage("unknown command");
-	}
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	void start();
-
-private:
-	/** Do a compute and schedule the next cycle. */
-	void Run() override;
-
-	/** Do a calculation of the CPU load and publish it. */
-	void cpuload();
-
-	/* Calculate stack usage */
-	void stack_usage();
-
-	int _stack_task_index{0};
-	uORB::PublicationQueued<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
-
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SYS_STCK_EN>) _param_sys_stck_en
-	)
-
-	uORB::Publication<cpuload_s>  _cpuload_pub{ORB_ID(cpuload)};
-
-	hrt_abstime _last_idle_time{0};
-	hrt_abstime _last_idle_time_sample{0};
-
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-};
-
 LoadMon::LoadMon() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
@@ -122,7 +56,6 @@ LoadMon::LoadMon() :
 LoadMon::~LoadMon()
 {
 	ScheduleClear();
-
 	perf_free(_cycle_perf);
 }
 

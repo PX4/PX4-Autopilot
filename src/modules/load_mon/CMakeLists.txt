@@ -35,8 +35,8 @@ px4_add_module(
 	MAIN load_mon
 	COMPILE_FLAGS
 	SRCS
-		load_mon.cpp
+		LoadMon.cpp
+		LoadMon.hpp
 	DEPENDS
 		px4_work_queue
-	)
-
+)
