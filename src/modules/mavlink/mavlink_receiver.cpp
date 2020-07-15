@@ -1496,7 +1496,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						att_sp.yaw_sp_move_rate = 0.0f;
 					}
 
-					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+					if (!offboard_control_mode.ignore_thrust) { // don't overwrite thrust if it's invalid
 						fill_thrust(att_sp.thrust_body, vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
@@ -1534,7 +1534,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						rates_sp.yaw = set_attitude_target.body_yaw_rate;
 					}
 
-					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+					if (!offboard_control_mode.ignore_thrust) { // don't overwrite thrust if it's invalid
 						fill_thrust(rates_sp.thrust_body, vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
