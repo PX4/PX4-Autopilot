@@ -43,7 +43,7 @@ Sticks::Sticks(ModuleParams *parent) :
 	ModuleParams(parent)
 {};
 
-void Sticks::evaluateSticks(hrt_abstime now)
+bool Sticks::evaluateSticks(hrt_abstime now)
 {
 	_sub_manual_control_setpoint.update();
 
@@ -80,6 +80,8 @@ void Sticks::evaluateSticks(hrt_abstime now)
 		_positions.zero();
 		_positions_expo.zero();
 	}
+
+	return _input_available;
 }
 
 void Sticks::applyGearSwitch(landing_gear_s &gear)
