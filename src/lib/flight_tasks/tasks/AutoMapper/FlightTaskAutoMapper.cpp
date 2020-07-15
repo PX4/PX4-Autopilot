@@ -180,22 +180,17 @@ bool FlightTaskAutoMapper::_highEnoughForLandingGear()
 
 float FlightTaskAutoMapper::_getLandSpeed()
 {
-	float speed = 0;
+	float land_speed = math::gradual(_dist_to_ground,
+					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+					 _param_mpc_land_speed.get(), _constraints.speed_down);
 
-	if (_dist_to_ground > _param_mpc_land_alt1.get()) {
-		speed = _constraints.speed_down;
-
-	} else {
-		const float land_speed = math::gradual(_dist_to_ground,
-						       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-						       _param_mpc_land_speed.get(), _constraints.speed_down);
-
-		// user input assisted land speed
-		if (_param_mpc_land_rc_help.get()) {
-			_sticks.evaluateSticks(_time_stamp_current);
-			speed = land_speed + _sticks.getPositionExpo()(2) * land_speed;
-		}
+	// user input assisted land speed
+	if (_param_mpc_land_rc_help.get()
+	    && (_dist_to_ground < _param_mpc_land_alt1.get())
+	    && _sticks.evaluateSticks(_time_stamp_current)) {
+		// stick full up -1 -> stop, stick full down 1 -> double the speed
+		land_speed *= (1 + _sticks.getPositionExpo()(2));
 	}
 
-	return speed;
+	return land_speed;
 }

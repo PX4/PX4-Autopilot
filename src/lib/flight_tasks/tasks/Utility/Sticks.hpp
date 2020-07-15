@@ -53,7 +53,7 @@ public:
 	Sticks(ModuleParams *parent);
 	~Sticks() = default;
 
-	void evaluateSticks(hrt_abstime now); ///< checks and sets stick inputs
+	bool evaluateSticks(hrt_abstime now); ///< checks and sets stick inputs
 	void applyGearSwitch(landing_gear_s &gear); ///< Sets gears according to switch
 	bool isAvailable() { return _input_available; };
 	const matrix::Vector<float, 4> &getPosition() { return _positions; };

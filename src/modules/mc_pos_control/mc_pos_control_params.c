@@ -359,8 +359,11 @@ PARAM_DEFINE_FLOAT(MPC_LAND_VEL_XY, 10.0f);
 
 /**
  * Enable user assisted descent speed for autonomous land routine.
- * When enabled, descent speed will be equal to MPC_LAND_SPEED at half throttle,
- * MPC_Z_VEL_MAX_DN at zero throttle, and 0.5 * MPC_LAND_SPEED at full throttle.
+ *
+ * When enabled, descent speed will be:
+ * stick full up - 0
+ * stick centered - MPC_LAND_SPEED
+ * stick full down - 2 * MPC_LAND_SPEED
  *
  * @min 0
  * @max 1
