@@ -18,8 +18,11 @@ do
 	fi
 done
 
-# install Homebrew
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+if ! command -v brew &> /dev/null
+then
+	# install Homebrew if not installed yet
+	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+fi
 
 # Install px4-dev formula
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
