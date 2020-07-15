@@ -175,15 +175,22 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		bc \
 		;
 
-	# Java 8 (jmavsim or fastrtps)
+	if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
+		java_version=11
+	elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+		java_version=14
+	else
+		java_version=14
+	fi
+	# Java (jmavsim or fastrtps)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		ant \
-		openjdk-8-jre \
-		openjdk-8-jdk \
+		openjdk-$java_version-jre \
+		openjdk-$java_version-jdk \
 		;
 
-	# Set Java 8 as default
-	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-8")
+	# Set Java 11 as default
+	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-$java_version")
 
 	# Gazebo
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
