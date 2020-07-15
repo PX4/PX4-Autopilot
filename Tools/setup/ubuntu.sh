@@ -53,15 +53,15 @@ fi
 
 
 # check ubuntu version
-# instructions for 16.04, 18.04, 20.04
 # otherwise warn and point to docker?
 UBUNTU_RELEASE="`lsb_release -rs`"
 
 if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
-	echo "Ubuntu 14.04 unsupported, see docker px4io/px4-dev-base"
+	echo "Ubuntu 14.04 is no longer supported"
 	exit 1
 elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
-	echo "Ubuntu 16.04"
+	echo "Ubuntu 16.04 is no longer supported"
+	exit 1
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 	echo "Ubuntu 18.04"
 elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
