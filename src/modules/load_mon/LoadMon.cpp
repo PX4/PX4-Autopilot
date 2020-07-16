@@ -206,7 +206,7 @@ int LoadMon::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Background process running periodically with 1 Hz on the low priority work queue to calculate the CPU load and RAM
+Background process running periodically on the low priority work queue to calculate the CPU load and RAM
 usage and publish the `cpuload` topic.
 
 On NuttX it also checks the stack usage of each process and if it falls below 300 bytes, a warning is output,
