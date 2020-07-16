@@ -277,7 +277,11 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_yaw_setpoint = NAN;
 
 	} else {
-		if (_sub_triplet_setpoint.get().current.yaw_valid) {
+		if (_type != WaypointType::takeoff
+		    && _sub_triplet_setpoint.get().current.yaw_valid) {
+			// Use the yaw computed in Navigator except during takeoff because
+			// Navigator is not handling the yaw reset properly
+			// TODO: fix in navigator
 			_yaw_setpoint = _sub_triplet_setpoint.get().current.yaw;
 
 		} else {
