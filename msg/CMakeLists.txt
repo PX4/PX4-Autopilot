@@ -101,6 +101,7 @@ set(msg_files
 	power_button_state.msg
 	power_monitor.msg
 	pwm_input.msg
+	px4io_status.msg
 	qshell_req.msg
 	qshell_retval.msg
 	radio_status.msg
@@ -120,7 +121,6 @@ set(msg_files
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg
-	servorail_status.msg
 	subsystem_info.msg
 	system_power.msg
 	task_stack_info.msg
