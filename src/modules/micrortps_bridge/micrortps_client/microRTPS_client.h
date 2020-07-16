@@ -49,7 +49,6 @@
 #include <px4_platform_common/time.h>
 #include <uORB/uORB.h>
 
-#define BUFFER_SIZE 1024
 #define LOOPS -1
 #define SLEEP_MS 1
 #define BAUDRATE 460800

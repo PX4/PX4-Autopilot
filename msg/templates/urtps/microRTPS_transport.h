@@ -38,6 +38,9 @@
 #include <poll.h>
 #include <termios.h>
 
+#define BUFFER_SIZE 1024
+#define DEFAULT_UART "/dev/ttyACM0"
+
 class Transport_node
 {
 public:
@@ -74,7 +77,7 @@ protected:
 
 protected:
 	uint32_t rx_buff_pos;
-	char rx_buffer[1024] = {};
+	char rx_buffer[BUFFER_SIZE] = {};
 
 private:
 	struct __attribute__((packed)) Header {

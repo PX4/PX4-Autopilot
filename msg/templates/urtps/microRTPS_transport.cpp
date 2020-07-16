@@ -43,8 +43,6 @@
 
 #include "microRTPS_transport.h"
 
-#define DEFAULT_UART "/dev/ttyACM0"
-
 /** CRC table for the CRC-16. The poly is 0x8005 (x^16 + x^15 + x^2 + 1) */
 uint16_t const crc16_table[256] = {
 	0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
