@@ -275,6 +275,8 @@ private:
 	uORB::Publication<servorail_status_s>			_to_servorail{ORB_ID(servorail_status)};
 	uORB::Publication<safety_s>				_to_safety{ORB_ID(safety)};
 
+	safety_s _safety{};
+
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 	bool			_lockdown_override;	///< allow to override the safety lockdown
 	bool			_armed;			///< wether the system is armed
@@ -1691,14 +1693,23 @@ PX4IO::io_handle_status(uint16_t status)
 	/**
 	 * Get and handle the safety status
 	 */
-	safety_s safety{};
-	safety.timestamp = hrt_absolute_time();
-	safety.safety_switch_available = true;
-	safety.safety_off = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? true : false;
-	safety.override_available = _override_available;
-	safety.override_enabled = (status & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? true : false;
+	const bool safety_off = status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+	const bool override_enabled = status & PX4IO_P_STATUS_FLAGS_OVERRIDE;
 
-	_to_safety.publish(safety);
+	// publish immediately on change, otherwise at 1 Hz
+	if ((hrt_elapsed_time(&_safety.timestamp) >= 1_s)
+	    || (_safety.safety_off != safety_off)
+	    || (_safety.override_available != _override_available)
+	    || (_safety.override_enabled != override_enabled)) {
+
+		_safety.safety_switch_available = true;
+		_safety.safety_off = safety_off;
+		_safety.override_available = _override_available;
+		_safety.override_enabled = override_enabled;
+		_safety.timestamp = hrt_absolute_time();
+
+		_to_safety.publish(_safety);
+	}
 
 	return ret;
 }
