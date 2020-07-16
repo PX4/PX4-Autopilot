@@ -44,6 +44,7 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	add_topic("actuator_armed");
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
 	add_topic("airspeed", 1000);
@@ -52,6 +53,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
 	add_topic("cellular_status", 200);
+	add_topic("commander_state");
 	add_topic("cpuload");
 	add_topic("ekf_gps_drift");
 	add_topic("esc_status", 250);
@@ -72,19 +74,21 @@ void LoggedTopics::add_default_topics()
 	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 200);
 	add_topic("rpm", 500);
-	add_topic("safety", 1000);
+	add_topic("safety");
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_correction", 1000);
 	add_topic("sensor_preflight", 200);
 	add_topic("sensor_selection");
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
+	add_topic("test_motor", 500);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);
 	add_topic("vehicle_attitude", 50);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");
+	add_topic("vehicle_control_mode");
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
@@ -92,7 +96,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_magnetometer", 200);
 	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_roi", 1000);
-	add_topic("vehicle_status", 200);
+	add_topic("vehicle_status");
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("yaw_estimator_status", 200);
@@ -104,8 +108,8 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("telemetry_status", 1000);
 	add_topic_multi("wind_estimate", 1000);
 
-	// log all raw sensors at minimal rate (1 Hz)
-	add_topic_multi("battery_status", 1000);
+	// log all raw sensors at minimal rate (at least 1 Hz)
+	add_topic_multi("battery_status", 300);
 	add_topic_multi("differential_pressure", 1000);
 	add_topic_multi("distance_sensor", 1000);
 	add_topic_multi("optical_flow", 1000);
