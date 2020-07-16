@@ -532,8 +532,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-		} else if (rc_lost && !data_link_loss_act_configured && is_armed) {
-			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
+		} else if (rc_lost && !data_link_loss_act_configured && status->data_link_lost && is_armed) {
+			/* go into failsafe if RC is lost and datalink is lost and datalink loss is not set up */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
