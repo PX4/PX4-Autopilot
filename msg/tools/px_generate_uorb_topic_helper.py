@@ -317,11 +317,15 @@ def print_field(field):
         print("char baro_device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(baro_device_id_buffer, sizeof(baro_device_id_buffer), message.baro_device_id);")
         print("PX4_INFO_RAW(\"\\tbaro_device_id: %d (%s) \\n\", message.baro_device_id, baro_device_id_buffer);")
+    elif ("flags" in field.name or "bits" in field.name) and "uint" in field.type:
+        # print bits of fixed width unsigned integers (uint8, uint16, uint32) if name contains flags or bits
+        print("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + " (0b\", " + field_name + ");")
+        print("\tfor (int i = (sizeof(" + field_name + ") * 8) - 1; i >= 0; i--) { PX4_INFO_RAW(\"%u%s\", " + field_name + " >> i & 1, ((unsigned)i < (sizeof(" + field_name + ") * 8) - 1 && i % 4 == 0 && i > 0) ? \"'\" : \"\"); }")
+        print("\tPX4_INFO_RAW(\")\\n\");")
     elif is_array and 'char' in field.type:
         print(("PX4_INFO_RAW(\"\\t" + field.name + ": \\\"%." + str(array_length) + "s\\\" \\n\", message." + field.name + ");"))
     else:
-        print(("PX4_INFO_RAW(\"\\t" + field.name + ": " +
-              c_type + "\\n\", " + field_name + ");"))
+        print(("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");"))
 
 
 def print_field_def(field):
