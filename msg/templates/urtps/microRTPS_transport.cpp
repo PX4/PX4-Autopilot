@@ -167,6 +167,10 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	// The message won't fit the buffer.
 	if (buffer_len < header_size + payload_len) {
+		// drop the message an continue the readings
+		// @note: this is just a work around to avoid the link to be closed
+		memmove(rx_buffer, rx_buffer + msg_start_pos + 1, rx_buff_pos - (msg_start_pos + 1));
+		rx_buff_pos = rx_buff_pos - (msg_start_pos + 1);
 		return -EMSGSIZE;
 	}
 
