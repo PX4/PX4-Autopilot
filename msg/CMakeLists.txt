@@ -235,6 +235,7 @@ add_custom_command(OUTPUT ${uorb_headers}
 		templates/uorb/msg.h.em
 		templates/uorb/uORBTopics.hpp.em
 		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
@@ -257,6 +258,7 @@ add_custom_command(OUTPUT ${uorb_sources}
 		templates/uorb/msg.cpp.em
 		templates/uorb/uORBTopics.cpp.em
 		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
