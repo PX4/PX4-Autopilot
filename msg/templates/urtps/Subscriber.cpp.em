@@ -95,7 +95,7 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
 @[else]@
     PParam.domainId = 0;
 @[end if]@
-@[if version.parse(fastrtps_version) <= version.parse('1.8')]@
+@[if version.parse(fastrtps_version) <= version.parse('1.8.4')]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
