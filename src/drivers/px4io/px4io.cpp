@@ -89,7 +89,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
-#include <uORB/topics/servorail_status.h>
+#include <uORB/topics/px4io_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/test_motor.h>
@@ -250,10 +250,11 @@ private:
 	perf_counter_t		_perf_sample_latency;	///< total system latency (based on passed-through timestamp)
 
 	/* cached IO state */
-	uint16_t		_status;		///< Various IO status flags
-	uint16_t		_alarms;		///< Various IO alarms
-	uint16_t		_last_written_arming_s;	///< the last written arming state reg
-	uint16_t		_last_written_arming_c;	///< the last written arming state reg
+	uint16_t		_status{0};		///< Various IO status flags
+	uint16_t		_alarms{0};		///< Various IO alarms
+	uint16_t		_setup_arming{0};	///< last arming setup state
+	uint16_t		_last_written_arming_s{0};	///< the last written arming state reg
+	uint16_t		_last_written_arming_c{0};	///< the last written arming state reg
 
 	/* subscribed topics */
 	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
@@ -266,13 +267,15 @@ private:
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};	///< parameter update topic
 	uORB::Subscription	_t_vehicle_command{ORB_ID(vehicle_command)};		///< vehicle command topic
 
+	hrt_abstime             _last_status_publish{0};
+
 	bool			_param_update_force;	///< force a parameter update
 
 	/* advertised topics */
 	uORB::PublicationMulti<input_rc_s>			_to_input_rc{ORB_ID(input_rc)};
 	uORB::PublicationMulti<actuator_outputs_s>		_to_outputs{ORB_ID(actuator_outputs)};
 	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits)};
-	uORB::Publication<servorail_status_s>			_to_servorail{ORB_ID(servorail_status)};
+	uORB::Publication<px4io_status_s>			_px4io_status_pub{ORB_ID(px4io_status)};
 	uORB::Publication<safety_s>				_to_safety{ORB_ID(safety)};
 
 	safety_s _safety{};
@@ -429,30 +432,11 @@ private:
 	int			io_handle_status(uint16_t status);
 
 	/**
-	 * Handle an alarm update from IO.
-	 *
-	 * Publish IO alarm information if necessary.
-	 *
-	 * @param alarm		The status register
-	 */
-	int			io_handle_alarms(uint16_t alarms);
-
-	/**
 	 * Handle issuing dsm bind ioctl to px4io.
 	 *
 	 * @param dsmMode	0:dsm2, 1:dsmx
 	 */
 	void			dsm_bind_ioctl(int dsmMode);
-
-	/**
-	 * Handle a servorail update from IO.
-	 *
-	 * Publish servo rail information if necessary.
-	 *
-	 * @param vservo	vservo register
-	 * @param vrssi 	vrssi register
-	 */
-	void			io_handle_vservo(uint16_t vservo, uint16_t vrssi);
 
 	/**
 	 * check and handle test_motor topic updates
@@ -490,10 +474,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
 	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
 	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io control latency")),
-	_status(0),
-	_alarms(0),
-	_last_written_arming_s(0),
-	_last_written_arming_c(0),
 	_t_actuator_controls_0(-1),
 	_param_update_force(false),
 	_primary_pwm_device(false),
@@ -1731,65 +1711,116 @@ PX4IO::dsm_bind_ioctl(int dsmMode)
 	}
 }
 
-
-int
-PX4IO::io_handle_alarms(uint16_t alarms)
-{
-
-	/* XXX handle alarms */
-
-
-	/* set new alarms state */
-	_alarms = alarms;
-
-	return 0;
-}
-
-void
-PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
-{
-	servorail_status_s servorail_status{};
-
-	servorail_status.timestamp = hrt_absolute_time();
-
-	/* voltage is scaled to mV */
-	servorail_status.voltage_v = vservo * 0.001f;
-	servorail_status.rssi_v    = vrssi * 0.001f;
-
-	if (_analog_rc_rssi_volt < 0.0f) {
-		_analog_rc_rssi_volt = servorail_status.rssi_v;
-	}
-
-	_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.99f + servorail_status.rssi_v * 0.01f;
-
-	if (_analog_rc_rssi_volt > 2.5f) {
-		_analog_rc_rssi_stable = true;
-	}
-
-	/* lazily publish the servorail voltages */
-	_to_servorail.publish(servorail_status);
-}
-
 int
 PX4IO::io_get_status()
 {
-	uint16_t	regs[6];
-	int		ret;
-
 	/* get
 	 * STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT,
-	 * STATUS_VSERVO, STATUS_VRSSI, STATUS_PRSSI
+	 * STATUS_VSERVO, STATUS_VRSSI
 	 * in that order */
-	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &regs[0], sizeof(regs) / sizeof(regs[0]));
+	uint16_t regs[6] {};
+	int ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &regs[0], sizeof(regs) / sizeof(regs[0]));
 
 	if (ret != OK) {
 		return ret;
 	}
 
-	io_handle_status(regs[0]);
-	io_handle_alarms(regs[1]);
+	const uint16_t STATUS_FLAGS  = regs[0];
+	const uint16_t STATUS_ALARMS = regs[1];
+	const uint16_t STATUS_VSERVO = regs[4];
+	const uint16_t STATUS_VRSSI  = regs[5];
 
-	io_handle_vservo(regs[4], regs[5]);
+	io_handle_status(STATUS_FLAGS);
+
+	const float rssi_v = STATUS_VRSSI * 0.001f; // voltage is scaled to mV
+
+	if (_analog_rc_rssi_volt < 0.f) {
+		_analog_rc_rssi_volt = rssi_v;
+	}
+
+	_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.99f + rssi_v * 0.01f;
+
+	if (_analog_rc_rssi_volt > 2.5f) {
+		_analog_rc_rssi_stable = true;
+	}
+
+	const uint16_t SETUP_ARMING = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
+
+	if ((hrt_elapsed_time(&_last_status_publish) >= 1_s)
+	    || (_status != STATUS_FLAGS)
+	    || (_alarms != STATUS_ALARMS)
+	    || (_setup_arming != SETUP_ARMING)
+	   ) {
+
+		px4io_status_s status{};
+
+		status.voltage_v = STATUS_VSERVO * 0.001f; // voltage is scaled to mV
+		status.rssi_v = rssi_v;
+
+		status.free_memory_bytes = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM);
+
+		// PX4IO_P_STATUS_FLAGS
+		status.status_outputs_armed   = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED;
+		status.status_override        = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_OVERRIDE;
+		status.status_rc_ok           = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_OK;
+		status.status_rc_ppm          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_PPM;
+		status.status_rc_dsm          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_DSM;
+		status.status_rc_sbus         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_SBUS;
+		status.status_fmu_ok          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_FMU_OK;
+		status.status_raw_pwm         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RAW_PWM;
+		status.status_mixer_ok        = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_MIXER_OK;
+		status.status_arm_sync        = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_ARM_SYNC;
+		status.status_init_ok         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_INIT_OK;
+		status.status_failsafe        = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_FAILSAFE;
+		status.status_safety_off      = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+		status.status_fmu_initialized = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
+		status.status_rc_st24         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_ST24;
+		status.status_rc_sumd         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_SUMD;
+
+		// PX4IO_P_STATUS_ALARMS
+		status.alarm_vbatt_low     = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_VBATT_LOW;
+		status.alarm_temperature   = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_TEMPERATURE;
+		status.alarm_servo_current = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_SERVO_CURRENT;
+		status.alarm_acc_current   = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_ACC_CURRENT;
+		status.alarm_fmu_lost      = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_FMU_LOST;
+		status.alarm_rc_lost       = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_RC_LOST;
+		status.alarm_pwm_error     = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+		status.alarm_vservo_fault  = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_VSERVO_FAULT;
+
+		// PX4IO_P_SETUP_ARMING
+		status.arming_io_arm_ok            = SETUP_ARMING & PX4IO_P_SETUP_ARMING_IO_ARM_OK;
+		status.arming_fmu_armed            = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_ARMED;
+		status.arming_fmu_prearmed         = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_PREARMED;
+		status.arming_manual_override_ok   = SETUP_ARMING & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
+		status.arming_failsafe_custom      = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
+		status.arming_inair_restart_ok     = SETUP_ARMING & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK;
+		status.arming_always_pwm_enable    = SETUP_ARMING & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE;
+		status.arming_rc_handling_disabled = SETUP_ARMING & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED;
+		status.arming_lockdown             = SETUP_ARMING & PX4IO_P_SETUP_ARMING_LOCKDOWN;
+		status.arming_force_failsafe       = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		status.arming_termination_failsafe = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
+		status.arming_override_immediate   = SETUP_ARMING & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE;
+
+
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			status.actuators[i] = static_cast<int16_t>(io_reg_get(PX4IO_PAGE_ACTUATORS, i));
+			status.servos[i] = io_reg_get(PX4IO_PAGE_SERVOS, i);
+		}
+
+		uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
+
+		for (unsigned i = 0; i < raw_inputs; i++) {
+			status.raw_inputs[i] = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i);
+		}
+
+		status.timestamp = hrt_absolute_time();
+		_px4io_status_pub.publish(status);
+
+		_last_status_publish = status.timestamp;
+	}
+
+	_alarms = STATUS_ALARMS;
+	_setup_arming = SETUP_ARMING;
 
 	return ret;
 }
@@ -2240,59 +2271,13 @@ PX4IO::print_status(bool extended_status)
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT));
 
 	/* status */
-	printf("%u bytes free\n",
-	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
-	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
-	uint16_t io_status_flags = flags;
-	printf("status 0x%04hx%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
-	       flags,
-	       ((flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED) ? " OUTPUTS_ARMED" : ""),
-	       ((flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? " SAFETY_OFF" : " SAFETY_SAFE"),
-	       ((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
-	       ((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
-	       ((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
-	       ((flags & PX4IO_P_STATUS_FLAGS_RC_DSM)   ? " DSM" : ""),
-	       ((flags & PX4IO_P_STATUS_FLAGS_RC_ST24)   ? " ST24" : ""),
-	       ((flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)  ? " SBUS" : ""),
-	       ((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
-	       ((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PWM_PASSTHROUGH" : ""),
-	       ((flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) ? " MIXER_OK" : " MIXER_FAIL"),
-	       ((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"),
-	       ((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"),
-	       ((flags & PX4IO_P_STATUS_FLAGS_FAILSAFE)  ? " FAILSAFE" : ""));
-	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
-	printf("alarms 0x%04hx%s%s%s%s%s%s%s%s\n",
-	       alarms,
-	       ((alarms & PX4IO_P_STATUS_ALARMS_VBATT_LOW)     ? " VBATT_LOW" : ""),
-	       ((alarms & PX4IO_P_STATUS_ALARMS_TEMPERATURE)   ? " TEMPERATURE" : ""),
-	       ((alarms & PX4IO_P_STATUS_ALARMS_SERVO_CURRENT) ? " SERVO_CURRENT" : ""),
-	       ((alarms & PX4IO_P_STATUS_ALARMS_ACC_CURRENT)   ? " ACC_CURRENT" : ""),
-	       ((alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST)      ? " FMU_LOST" : ""),
-	       ((alarms & PX4IO_P_STATUS_ALARMS_RC_LOST)       ? " RC_LOST" : ""),
-	       ((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""),
-	       ((alarms & PX4IO_P_STATUS_ALARMS_VSERVO_FAULT)  ? " VSERVO_FAULT" : ""));
+	uORB::SubscriptionData<px4io_status_s> status_sub{ORB_ID(px4io_status)};
+	status_sub.update();
+
+	print_message(status_sub.get());
+
 	/* now clear alarms */
 	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0x0000);
-
-	if (_hardware == 2) {
-		printf("vservo %u mV vservo scale %u\n",
-		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VSERVO),
-		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VSERVO_SCALE));
-		printf("vrssi %u\n", io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VRSSI));
-	}
-
-	printf("actuators");
-
-	for (unsigned i = 0; i < _max_actuators; i++) {
-		printf(" %hi", int16_t(io_reg_get(PX4IO_PAGE_ACTUATORS, i)));
-	}
-
-	printf("\n");
-	printf("servos");
-
-	for (unsigned i = 0; i < _max_actuators; i++) {
-		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
-	}
 
 	uint16_t pwm_invert_mask = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_REVERSE);
 
@@ -2321,7 +2306,8 @@ PX4IO::print_status(bool extended_status)
 
 	printf("\n");
 
-	flags = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_FLAGS);
+	uint16_t io_status_flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
+	uint16_t flags = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_FLAGS);
 	printf("R/C flags: 0x%04hx%s%s%s%s%s\n", flags,
 	       (((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11))) ? " DSM10" : ""),
 	       (((io_status_flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_RAW_RC_FLAGS_RC_DSM11)) ? " DSM11" : ""),
@@ -2366,21 +2352,7 @@ PX4IO::print_status(bool extended_status)
 	       ((features & PX4IO_P_SETUP_FEATURES_PWM_RSSI) ? " RSSI_PWM" : ""),
 	       ((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 	      );
-	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04hx%s%s%s%s%s%s%s%s%s%s\n",
-	       arming,
-	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		? " FMU_ARMED" : " FMU_DISARMED"),
-	       ((arming & PX4IO_P_SETUP_ARMING_FMU_PREARMED)		? " FMU_PREARMED" : " FMU_NOT_PREARMED"),
-	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)		? " IO_ARM_OK" : " IO_ARM_DENIED"),
-	       ((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)	? " MANUAL_OVERRIDE_OK" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)		? " FAILSAFE_CUSTOM" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)	? " INAIR_RESTART_OK" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)	? " ALWAYS_PWM_ENABLE" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)		? " LOCKDOWN" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE)		? " FORCE_FAILSAFE" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) ? " TERM_FAILSAFE" : ""),
-	       ((arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) ? " OVERRIDE_IMMEDIATE" : "")
-	      );
+
 	printf("rates 0x%04x default %u alt %u sbus %u\n",
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
