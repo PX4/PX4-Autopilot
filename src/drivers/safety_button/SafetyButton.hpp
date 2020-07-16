@@ -84,6 +84,7 @@ private:
 	uORB::PublicationQueued<led_control_s> _to_led_control{ORB_ID(led_control)};
 	uORB::Publication<tune_control_s> _to_tune_control{ORB_ID(tune_control)};
 
+	safety_s _safety{};
 
 	uint8_t				_button_counter{0};
 	uint8_t				_blink_counter{0};
