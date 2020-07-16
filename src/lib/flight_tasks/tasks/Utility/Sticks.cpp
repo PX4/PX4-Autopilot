@@ -43,7 +43,7 @@ Sticks::Sticks(ModuleParams *parent) :
 	ModuleParams(parent)
 {};
 
-bool Sticks::evaluateSticks(hrt_abstime now)
+bool Sticks::checkAndSetStickInputs(hrt_abstime now)
 {
 	_sub_manual_control_setpoint.update();
 
@@ -84,7 +84,7 @@ bool Sticks::evaluateSticks(hrt_abstime now)
 	return _input_available;
 }
 
-void Sticks::applyGearSwitch(landing_gear_s &gear)
+void Sticks::setGearAccordingToSwitch(landing_gear_s &gear)
 {
 	// Only switch the landing gear up if the user switched from gear down to gear up.
 	// If the user had the switch in the gear up position and took off ignore it

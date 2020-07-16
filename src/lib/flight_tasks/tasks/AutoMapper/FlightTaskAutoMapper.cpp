@@ -187,7 +187,7 @@ float FlightTaskAutoMapper::_getLandSpeed()
 	// user input assisted land speed
 	if (_param_mpc_land_rc_help.get()
 	    && (_dist_to_ground < _param_mpc_land_alt1.get())
-	    && _sticks.evaluateSticks(_time_stamp_current)) {
+	    && _sticks.checkAndSetStickInputs(_time_stamp_current)) {
 		// stick full up -1 -> stop, stick full down 1 -> double the speed
 		land_speed *= (1 + _sticks.getPositionExpo()(2));
 	}

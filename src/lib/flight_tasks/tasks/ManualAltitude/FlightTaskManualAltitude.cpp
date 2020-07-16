@@ -50,8 +50,8 @@ bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
 
-	_sticks.evaluateSticks(_time_stamp_current);
-	_sticks.applyGearSwitch(_gear);
+	_sticks.checkAndSetStickInputs(_time_stamp_current);
+	_sticks.setGearAccordingToSwitch(_gear);
 
 	if (_sticks_data_required) {
 		ret = ret && _sticks.isAvailable();
