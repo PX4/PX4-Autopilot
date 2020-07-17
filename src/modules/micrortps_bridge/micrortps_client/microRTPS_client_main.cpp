@@ -70,6 +70,8 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_PARAM_INT('r', 2019, 0, 65536, "Select UDP Network Port for receiving (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('s', 2020, 0, 65536, "Select UDP Network Port for sending (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "127.0.0.1", "<x.x.x.x>", "Select IP address (remote)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Activate UART link SW flow control", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Activate UART link HW flow control", true);
 
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
@@ -81,7 +83,7 @@ static int parse_options(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:p:r:s:i:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:p:r:s:i:fh", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0 ?
 							    options::eTransports::UDP
@@ -89,17 +91,21 @@ static int parse_options(int argc, char *argv[])
 
 		case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg);   break;
 
-		case 'l': _options.loops          =  strtol(myoptarg, nullptr, 10);     break;
+		case 'l': _options.loops           =  strtol(myoptarg, nullptr, 10);    break;
 
-		case 'w': _options.sleep_ms       = strtoul(myoptarg, nullptr, 10);     break;
+		case 'w': _options.sleep_ms        = strtoul(myoptarg, nullptr, 10);    break;
 
-		case 'b': _options.baudrate       = strtoul(myoptarg, nullptr, 10);     break;
+		case 'b': _options.baudrate        = strtoul(myoptarg, nullptr, 10);    break;
 
-		case 'r': _options.recv_port      = strtoul(myoptarg, nullptr, 10);     break;
+		case 'r': _options.recv_port       = strtoul(myoptarg, nullptr, 10);    break;
 
-		case 's': _options.send_port      = strtoul(myoptarg, nullptr, 10);     break;
+		case 's': _options.send_port       = strtoul(myoptarg, nullptr, 10);    break;
 
 		case 'i': if (nullptr != myoptarg) strcpy(_options.ip, myoptarg);       break;
+
+		case 'f': _options.sw_flow_control = true;     				break;
+
+		case 'h': _options.hw_flow_control = true;     				break;
 
 		default:
 			usage(argv[1]);
@@ -110,6 +116,11 @@ static int parse_options(int argc, char *argv[])
 	if (_options.poll_ms < 1) {
 		_options.poll_ms = 1;
 		PX4_ERR("poll timeout too low, using 1 ms");
+	}
+
+	if (_options.hw_flow_control && _options.sw_flow_control) {
+		PX4_ERR("HW and SW flow control set. Please set only one or another");
+		return -1;
 	}
 
 	return 0;
@@ -125,9 +136,11 @@ static int micrortps_start(int argc, char *argv[])
 
 	switch (_options.transport) {
 	case options::eTransports::UART: {
-			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms);
-			PX4_INFO("UART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms",
-				 _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms);
+			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
+						       _options.sw_flow_control, _options.hw_flow_control);
+			PX4_INFO("UART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms; flow_control: %s",
+				 _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms,
+				 _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
 		}
 		break;
 

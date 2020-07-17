@@ -80,6 +80,8 @@ struct options {
 	uint32_t baudrate = BAUDRATE;
 	uint32_t poll_ms = POLL_MS;
 	int loops = LOOPS;
+	bool sw_flow_control = false;
+	bool hw_flow_control = false;
 };
 
 extern struct options _options;
