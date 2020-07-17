@@ -30,6 +30,7 @@ jobs:
           mro_x21-777_default,
           mro_x21_default,
           nxp_fmuk66-v3_default,
+          nxp_fmuk66-e_default,
           nxp_fmuk66-v3_socketcan,
           nxp_fmurt1062-v1_default,
           nxp_rddrone-uavcan146_default,
