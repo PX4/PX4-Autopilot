@@ -53,26 +53,11 @@ public:
 
 	void update_armed_flag(bool armed) { _armed = armed; }
 
-	void update_throttle(float throttle) { _throttle = throttle; }
-
-	void update_current(float battery_current) { _battery_current = battery_current; }
+	void update_power(float power) { _power = power; }
 
 	void calculate_mag_corrected(matrix::Vector3f &mag, const matrix::Vector3f &param_vect);
 
 private:
-
-	enum CompensationType {
-		DISABLED = 0,
-		THROTTLE,
-		CURRENT
-	};
-
-	float _throttle{0};
-	float _battery_current{0};
+	float _power{0};
 	bool _armed{false};
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_compensation_type
-	)
-
 };

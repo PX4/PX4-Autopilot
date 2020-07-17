@@ -90,7 +90,6 @@ void MulticopterLandDetector::_update_topics()
 	LandDetector::_update_topics();
 
 	_actuator_controls_sub.update(&_actuator_controls);
-	_battery_sub.update(&_battery_status);
 	_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
 	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
@@ -118,8 +117,15 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.useHoverThrustEstimate, &use_hover_thrust_estimate);
 	_params.useHoverThrustEstimate = (use_hover_thrust_estimate == 1);
 
-	if (!_params.useHoverThrustEstimate) {
+	if (!_params.useHoverThrustEstimate || !_hover_thrust_initialized) {
 		param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
+
+		// HTE runs based on the position controller so, even if we wish to use
+		// the estimate, it is only available in altitude and position modes.
+		// Therefore, we need to always initialize the hoverThrottle using the hover
+		// thrust parameter in case we fly in stabilized
+		// TODO: this can be removed once HTE runs in all modes
+		_hover_thrust_initialized = true;
 	}
 }
 
@@ -249,26 +255,12 @@ bool MulticopterLandDetector::_get_landed_state()
 
 float MulticopterLandDetector::_get_max_altitude()
 {
-	/* TODO: add a meaningful altitude */
-	float valid_altitude_max = _param_lndmc_alt_max.get();
-
-	if (valid_altitude_max < 0.0f) {
+	if (_param_lndmc_alt_max.get() < 0.0f) {
 		return INFINITY;
-	}
 
-	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_LOW) {
-		valid_altitude_max = _param_lndmc_alt_max.get() * 0.75f;
+	} else {
+		return _param_lndmc_alt_max.get();
 	}
-
-	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
-		valid_altitude_max = _param_lndmc_alt_max.get() * 0.5f;
-	}
-
-	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
-		valid_altitude_max = _param_lndmc_alt_max.get() * 0.25f;
-	}
-
-	return valid_altitude_max;
 }
 
 bool MulticopterLandDetector::_has_altitude_lock()

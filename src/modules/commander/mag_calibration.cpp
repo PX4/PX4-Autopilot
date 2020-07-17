@@ -52,14 +52,12 @@
 #include <math.h>
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_tone_alarm.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_gyro.h>
 
 static const char *sensor_name = "mag";
 static constexpr unsigned max_mags = 4;
@@ -639,7 +637,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 			if (device_ids[cur_mag] != 0) {
 				// Get priority
-				int32_t prio;
+				ORB_PRIO prio = ORB_PRIO_UNINITIALIZED;
 				orb_priority(worker_data.sub_mag[cur_mag], &prio);
 
 				if (prio > device_prio_max) {

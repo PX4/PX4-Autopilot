@@ -342,3 +342,15 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.12f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
+
+/**
+ * Enable the usage of AUX outputs for hover motors.
+ *
+ * Set this parameter to true if the vehicle's hover motors are connected to the FMU (AUX) port.
+ * Not required for boards that only have a FMU, and no IO.
+ * Only applies for standard VTOL and tiltrotor.
+ *
+ * @boolean
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_MC_ON_FMU, 0);

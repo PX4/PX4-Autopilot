@@ -36,7 +36,8 @@
 PWMOut::PWMOut() :
 	CDev(PX4FMU_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
 {
 	_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
 	_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
@@ -52,6 +53,7 @@ PWMOut::~PWMOut()
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 	perf_free(_cycle_perf);
+	perf_free(_interval_perf);
 }
 
 int PWMOut::init()
@@ -397,6 +399,11 @@ void PWMOut::update_current_rate()
 	// oneshot
 	if ((_pwm_default_rate == 0) || (_pwm_alt_rate == 0)) {
 		max_rate = 2000;
+
+	} else {
+		// run up to twice PWM rate to reduce end-to-end latency
+		//  actual pulse width only updated for next period regardless of output module
+		max_rate *= 2;
 	}
 
 	// max interval 0.5 - 100 ms (10 - 2000Hz)
@@ -564,6 +571,7 @@ void PWMOut::Run()
 	}
 
 	perf_begin(_cycle_perf);
+	perf_count(_interval_perf);
 
 	_mixing_output.update();
 
@@ -1522,6 +1530,9 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 		/* select 6-pin PWM mode */
 		servo_mode = PWMOut::MODE_6PWM;
 		break;
+#endif
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
 
 	case PORT_PWM5:
 		/* select 5-pin PWM mode */
@@ -1537,6 +1548,9 @@ int PWMOut::fmu_new_mode(PortMode new_mode)
 		break;
 
 #  endif
+#endif
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 4
 
 	case PORT_PWM4:
 		/* select 4-pin PWM mode */
@@ -1992,6 +2006,7 @@ int PWMOut::print_status()
 	}
 
 	perf_print_counter(_cycle_perf);
+	perf_print_counter(_interval_perf);
 	_mixing_output.printStatus();
 
 	return 0;

@@ -60,8 +60,6 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 	_velocity_setpoint(2) = 0.f;
 	_setDefaultConstraints();
 
-	_constraints.tilt = math::radians(_param_mpc_man_tilt_max.get());
-
 	_updateConstraintsFromEstimator();
 
 	_max_speed_up = _constraints.speed_up;
@@ -343,6 +341,10 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	// setpoint along z-direction, which is computed in PositionControl.cpp.
 
 	Vector2f sp(&_sticks(0));
+
+	_man_input_filter.setParameters(_deltatime, _param_mc_man_tilt_tau.get());
+	_man_input_filter.update(sp);
+	sp = _man_input_filter.getState();
 	_rotateIntoHeadingFrame(sp);
 
 	if (sp.length() > 1.0f) {
@@ -363,10 +365,11 @@ bool FlightTaskManualAltitude::_checkTakeoff()
 
 bool FlightTaskManualAltitude::update()
 {
+	bool ret = FlightTaskManual::update();
 	_updateConstraintsFromEstimator();
 	_scaleSticks();
 	_updateSetpoints();
 	_constraints.want_takeoff = _checkTakeoff();
 
-	return true;
+	return ret;
 }

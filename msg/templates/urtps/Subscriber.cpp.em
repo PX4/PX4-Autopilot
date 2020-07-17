@@ -90,7 +90,11 @@ bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send
 
     // Create RTPSParticipant
     ParticipantAttributes PParam;
-    PParam.rtps.builtin.domainId = 0; // MUST BE THE SAME AS IN THE PUBLISHER
+@[if version.parse(fastrtps_version[:3]) < version.parse('2.0')]@
+    PParam.rtps.builtin.domainId = 0;
+@[else]@
+    PParam.domainId = 0;
+@[end if]@
 @[if version.parse(fastrtps_version[:3]) <= version.parse('1.8')]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@

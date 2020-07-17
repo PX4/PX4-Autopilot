@@ -184,5 +184,4 @@ void LPS22HB::print_status()
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	_px4_baro.print_status();
 }

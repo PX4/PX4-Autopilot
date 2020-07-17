@@ -69,12 +69,12 @@ public:
 	void land();
 	void transition_to_fixedwing();
 	void transition_to_multicopter();
-	void wait_until_disarmed();
+	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(90));
 	void wait_until_hovering();
 	void prepare_square_mission(MissionOptions mission_options);
 	void execute_mission();
 	void execute_rtl();
-	void offboard_goto(const Offboard::PositionNEDYaw &target, float acceptance_radius_m = 0.3f,
+	void offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m = 0.3f,
 			   std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void offboard_land();
 	void request_ground_truth();
@@ -82,15 +82,14 @@ public:
 
 private:
 	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
-	std::shared_ptr<mavsdk::MissionItem> create_mission_item(
+	mavsdk::Mission::MissionItem create_mission_item(
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
 		const MissionOptions &mission_options,
 		const mavsdk::geometry::CoordinateTransformation &ct);
-	Telemetry::GroundTruth get_ground_truth_position();
 
 	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
-	bool estimated_position_close_to(const Offboard::PositionNEDYaw &target_position, float acceptance_radius_m);
-	bool estimated_horizontal_position_close_to(const Offboard::PositionNEDYaw &target_pos, float acceptance_radius_m);
+	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
+	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 
 	mavsdk::Mavsdk _mavsdk{};
 	std::unique_ptr<mavsdk::Telemetry> _telemetry{};

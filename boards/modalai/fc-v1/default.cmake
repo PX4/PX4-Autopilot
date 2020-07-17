@@ -24,7 +24,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		dshot
 		gps
-		imu/bmi088
+		imu/bosch/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm42688p
 		irlock
@@ -97,7 +97,6 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
 		tests # tests and test runner
 		top
 		topic_listener

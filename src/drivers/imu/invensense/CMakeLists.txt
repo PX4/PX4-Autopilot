@@ -33,6 +33,7 @@
 
 add_subdirectory(icm20602)
 add_subdirectory(icm20608g)
+add_subdirectory(icm20649)
 add_subdirectory(icm20689)
 add_subdirectory(icm40609d)
 add_subdirectory(icm42688p)

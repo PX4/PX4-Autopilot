@@ -55,8 +55,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
-#include <lib/ecl/l1/ecl_l1_pos_controller.h>
-#include <lib/ecl/tecs/tecs.h>
+#include <lib/l1/ECL_L1_Pos_Controller.hpp>
+#include <lib/tecs/TECS.hpp>
 #include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -152,7 +152,7 @@ private:
 
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
-	uORB::Subscription _manual_control_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		///< notification of parameter updates
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro)};
@@ -167,7 +167,7 @@ private:
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication
 	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication
 
-	manual_control_setpoint_s	_manual {};			///< r/c channel data
+	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
 	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items
 	vehicle_attitude_s		_att {};			///< vehicle attitude setpoint
 	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint
@@ -252,6 +252,8 @@ private:
 	bool _was_in_transition{false};
 
 	bool _vtol_tailsitter{false};
+
+	Vector2f _transition_waypoint{NAN, NAN};
 
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position

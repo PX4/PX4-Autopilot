@@ -103,7 +103,7 @@ Serial bus driver for the LeddarOne LiDAR.
 
 Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
 
-Setup/usage information: https://docs.px4.io/en/sensor/leddar_one.html
+Setup/usage information: https://docs.px4.io/master/en/sensor/leddar_one.html
 
 ### Examples
 

@@ -70,7 +70,6 @@ px4_add_board(
 		param
 		perf
 		pwm
-		reboot
 		sd_bench
 		shutdown
 		tests # tests and test runner

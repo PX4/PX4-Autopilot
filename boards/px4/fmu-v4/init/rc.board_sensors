@@ -13,14 +13,6 @@ adc start
 # open hardware design do not require this.
 pwm_out sensor_reset 50
 
-
-# External I2C bus
-hmc5883 -T -X start
-lis3mdl -X start
-ist8310 -X start
-qmc5883 -X start
-rm3100 -X start
-
 # Internal SPI
 ms5611 -s start
 

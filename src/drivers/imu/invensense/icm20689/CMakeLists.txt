@@ -35,11 +35,11 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm20689
 	MAIN icm20689
 	COMPILE_FLAGS
-		-Wno-error
 	SRCS
 		ICM20689.cpp
 		ICM20689.hpp
 		icm20689_main.cpp
+		InvenSense_ICM20689_registers.hpp
 	DEPENDS
 		drivers_accelerometer
 		drivers_gyroscope

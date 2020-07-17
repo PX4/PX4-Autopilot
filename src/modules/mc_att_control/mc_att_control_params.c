@@ -163,3 +163,15 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_RATT_TH, 0.8f);
+
+/**
+ * Manual tilt input filter time constant
+ * Setting this parameter to 0 disables the filter
+ *
+ * @unit s
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MC_MAN_TILT_TAU, 0.0f);

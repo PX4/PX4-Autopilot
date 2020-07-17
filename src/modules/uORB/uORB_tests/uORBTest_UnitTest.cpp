@@ -386,7 +386,7 @@ int uORBTest::UnitTest::test_multi()
 	}
 
 	/* test priorities */
-	int prio;
+	ORB_PRIO prio;
 
 	if (PX4_OK != orb_priority(sfd0, &prio)) {
 		return test_fail("prio #0");

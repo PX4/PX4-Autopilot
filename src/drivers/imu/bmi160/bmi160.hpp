@@ -314,8 +314,9 @@ private:
 	 *
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
+	 * @return	   	OK on success, negative errno otherwise.
 	 */
-	void			write_reg(uint8_t reg, uint8_t value);
+	int			write_reg(uint8_t reg, uint8_t value);
 
 	/**
 	 * Modify a register in the BMI160

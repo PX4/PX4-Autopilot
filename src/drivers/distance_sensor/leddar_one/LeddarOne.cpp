@@ -33,6 +33,7 @@
 
 #include "LeddarOne.hpp"
 
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -266,8 +267,6 @@ LeddarOne::print_info()
 {
 	perf_print_counter(_comms_error);
 	perf_print_counter(_sample_perf);
-
-	_px4_rangefinder.print_status();
 }
 
 void

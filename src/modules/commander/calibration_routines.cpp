@@ -41,25 +41,24 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <math.h>
-#include <float.h>
+
 #include <drivers/drv_hrt.h>
-#include <systemlib/mavlink_log.h>
+#include <drivers/drv_tone_alarm.h>
+
 #include <lib/ecl/geo/geo.h>
-#include <string.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <matrix/math.hpp>
 
-#include <uORB/topics/vehicle_command.h>
+#include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/sensor_combined.h>
-
-#include <drivers/drv_tone_alarm.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include "calibration_routines.h"
 #include "calibration_messages.h"
 #include "commander_helper.h"
+
+using namespace time_literals;
 
 int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,
@@ -523,28 +522,22 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 	}
 }
 
-enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, int cancel_sub, int accel_sub,
-		bool lenient_still_position)
+enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, bool lenient_still_position)
 {
 	static constexpr unsigned ndim = 3;
 
-	float		accel_ema[ndim] = { 0.0f };		// exponential moving average of accel
-	float		accel_disp[3] = { 0.0f, 0.0f, 0.0f };	// max-hold dispersion of accel
-	static constexpr float		ema_len = 0.5f;				// EMA time constant in seconds
-	static constexpr float	normal_still_thr = 0.25;		// normal still threshold
-	float		still_thr2 = powf(lenient_still_position ? (normal_still_thr * 3) : normal_still_thr, 2);
-	static constexpr float		accel_err_thr = 5.0f;			// set accel error threshold to 5m/s^2
-	const hrt_abstime	still_time = lenient_still_position ? 500000 : 1300000;	// still time required in us
+	float accel_ema[ndim] {};                       // exponential moving average of accel
+	float accel_disp[3] {};                         // max-hold dispersion of accel
+	static constexpr float ema_len = 0.5f;          // EMA time constant in seconds
+	static constexpr float normal_still_thr = 0.25; // normal still threshold
+	float still_thr2 = powf(lenient_still_position ? (normal_still_thr * 3) : normal_still_thr, 2);
+	static constexpr float accel_err_thr = 5.0f;    // set accel error threshold to 5m/s^2
+	const hrt_abstime still_time = lenient_still_position ? 500000 : 1300000; // still time required in us
 
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd = accel_sub;
-	fds[0].events = POLLIN;
+	/* set timeout to 90s */
+	static constexpr hrt_abstime timeout = 90_s;
 
 	const hrt_abstime t_start = hrt_absolute_time();
-
-	/* set timeout to 30s */
-	static constexpr hrt_abstime timeout = 90000000;
-
 	hrt_abstime t_timeout = t_start + timeout;
 	hrt_abstime t = t_start;
 	hrt_abstime t_prev = t_start;
@@ -552,13 +545,13 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 
 	unsigned poll_errcount = 0;
 
-	while (true) {
-		/* wait blocking for new data */
-		int poll_ret = px4_poll(fds, 1, 1000);
+	// Setup subscriptions to onboard accel sensor
+	uORB::SubscriptionBlocking<sensor_combined_s> sensor_sub{ORB_ID(sensor_combined)};
 
-		if (poll_ret) {
-			struct sensor_combined_s sensor;
-			orb_copy(ORB_ID(sensor_combined), accel_sub, &sensor);
+	while (true) {
+		sensor_combined_s sensor;
+
+		if (sensor_sub.updateBlocking(sensor, 100000)) {
 			t = hrt_absolute_time();
 			float dt = (t - t_prev) / 1000000.0f;
 			t_prev = t;
@@ -586,6 +579,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 			if (accel_disp[0] < still_thr2 &&
 			    accel_disp[1] < still_thr2 &&
 			    accel_disp[2] < still_thr2) {
+
 				/* is still now */
 				if (t_still == 0) {
 					/* first time */
@@ -612,7 +606,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 				}
 			}
 
-		} else if (poll_ret == 0) {
+		} else {
 			poll_errcount++;
 		}
 
@@ -691,15 +685,6 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 {
 	calibrate_return result = calibrate_return_ok;
 
-	// Setup subscriptions to onboard accel sensor
-
-	int sub_accel = orb_subscribe(ORB_ID(sensor_combined));
-
-	if (sub_accel < 0) {
-		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "No onboard accel");
-		return calibrate_return_error;
-	}
-
 	unsigned orientation_failures = 0;
 
 	// Rotate through all requested orientation
@@ -744,8 +729,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
 		px4_usleep(20000);
-		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel,
-							lenient_still_position);
+		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, lenient_still_position);
 
 		if (orient == DETECT_ORIENTATION_ERROR) {
 			orientation_failures++;
@@ -790,10 +774,6 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		// temporary priority boost for the white blinking led to come trough
 		rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST, 3, 1);
 		px4_usleep(200000);
-	}
-
-	if (sub_accel >= 0) {
-		px4_close(sub_accel);
 	}
 
 	return result;

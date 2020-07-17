@@ -337,7 +337,7 @@ PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
  * @unit m/s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.5f);
+PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.3f);
 
 /**
  * Measurement noise for gps position.
@@ -370,7 +370,7 @@ PARAM_DEFINE_FLOAT(EKF2_NOAID_NOISE, 10.0f);
  * @unit m
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 2.0f);
+PARAM_DEFINE_FLOAT(EKF2_BARO_NOISE, 3.5f);
 
 /**
  * Measurement noise for magnetic heading fusion.
@@ -750,7 +750,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
  * Measurement noise for vision angle observations used to lower bound or replace the uncertainty included in the message
  *
  * @group EKF2
- * @min 0.01
+ * @min 0.05
  * @unit rad
  * @decimal 2
  */

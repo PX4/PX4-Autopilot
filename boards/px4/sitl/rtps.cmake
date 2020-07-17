@@ -52,7 +52,6 @@ px4_add_board(
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		#config
 		#dumpfile
 		dyn
 		esc_calib
@@ -65,7 +64,6 @@ px4_add_board(
 		param
 		perf
 		pwm
-		reboot
 		sd_bench
 		shutdown
 		tests # tests and test runner

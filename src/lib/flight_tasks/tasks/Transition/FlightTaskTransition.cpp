@@ -60,6 +60,7 @@ void FlightTaskTransition::checkSetpoints(vehicle_local_position_setpoint_s &set
 
 bool FlightTaskTransition::update()
 {
+	bool ret = FlightTask::update();
 	_acceleration_setpoint.xy() = matrix::Vector2f(0.f, 0.f);
 	// demand zero vertical velocity and level attitude
 	// tailsitters will override attitude and thrust setpoint
@@ -68,5 +69,5 @@ bool FlightTaskTransition::update()
 	_velocity_setpoint(2) = 0.0f;
 
 	_yaw_setpoint = NAN;
-	return true;
+	return ret;
 }

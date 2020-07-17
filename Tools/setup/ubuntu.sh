@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-## Bash script to setup PX4 development environment on Ubuntu LTS (18.04, 16.04).
+## Bash script to setup PX4 development environment on Ubuntu LTS (20.04, 18.04, 16.04).
 ## Can also be used in docker.
 ##
 ## Installs:
@@ -53,9 +53,9 @@ fi
 
 
 # check ubuntu version
-# instructions for 16.04, 18.04
+# instructions for 16.04, 18.04, 20.04
 # otherwise warn and point to docker?
-UBUNTU_RELEASE=`lsb_release -rs`
+UBUNTU_RELEASE="`lsb_release -rs`"
 
 if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
 	echo "Ubuntu 14.04 unsupported, see docker px4io/px4-dev-base"
@@ -64,6 +64,8 @@ elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 	echo "Ubuntu 16.04"
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 	echo "Ubuntu 18.04"
+elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+	echo "Ubuntu 20.04"
 fi
 
 
@@ -75,11 +77,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	astyle \
 	build-essential \
 	ccache \
-	clang \
-	clang-tidy \
 	cmake \
 	cppcheck \
-	doxygen \
 	file \
 	g++ \
 	gcc \
@@ -96,7 +95,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	rsync \
 	shellcheck \
 	unzip \
-	xsltproc \
 	zip \
 	;
 
@@ -109,7 +107,7 @@ fi
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-pip3 install --user -r ${DIR}/requirements.txt
+python3 -m pip install --user -r ${DIR}/requirements.txt
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -122,32 +120,32 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		automake \
 		bison \
 		bzip2 \
+		file \
 		flex \
 		gdb-multiarch \
 		gperf \
 		libncurses-dev \
 		libtool \
 		pkg-config \
+		screen \
 		vim-common \
 		;
 
-	if [ ! -z "$USER" ]; then
+	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
 		sudo usermod -a -G dialout $USER
 	fi
 
-	# Remove modem manager (interferes with PX4 serial port/USB serial usage).
-	sudo apt-get remove modemmanager -y
-
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"
 
-if [ $(which arm-none-eabi-gcc) ]; then
-	GCC_VER_STR=$(arm-none-eabi-gcc --version)
-	GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
-fi
+	source $HOME/.profile # load changed path for the case the script is reran before relogin
+	if [ $(which arm-none-eabi-gcc) ]; then
+		GCC_VER_STR=$(arm-none-eabi-gcc --version)
+		GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
+	fi
 
-	if [ ! ${GCC_FOUND_VER+x} && $GCC_FOUND_VER -eq "1" ]; then
+	if [[ "$GCC_FOUND_VER" == "1" ]]; then
 		echo "arm-none-eabi-gcc-${NUTTX_GCC_VERSION} found, skipping installation"
 
 	else
@@ -158,14 +156,12 @@ fi
 		# add arm-none-eabi-gcc to user's PATH
 		exportline="export PATH=/opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}/bin:\$PATH"
 
-		if grep -Fxq "$exportline" $HOME/.profile;
-		then
+		if grep -Fxq "$exportline" $HOME/.profile; then
 			echo "${NUTTX_GCC_VERSION} path already set.";
 		else
 			echo $exportline >> $HOME/.profile;
 		fi
 	fi
-
 fi
 
 # Simulation tools
@@ -174,6 +170,11 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	echo
 	echo "Installing PX4 simulation dependencies"
 
+	# General simulation dependencies
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		bc \
+		;
+
 	# Java 8 (jmavsim or fastrtps)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		ant \
@@ -181,8 +182,8 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		openjdk-8-jdk \
 		;
 
-    # Set Java 8 as default
-    sudo update-alternatives --set java $(update-alternatives --list java | grep "java-8")
+	# Set Java 8 as default
+	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-8")
 
 	# Gazebo
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
@@ -193,6 +194,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		gstreamer1.0-plugins-base \
 		gstreamer1.0-plugins-good \
 		gstreamer1.0-plugins-ugly \
+		gstreamer1.0-libav \
 		libeigen3-dev \
 		libgazebo9-dev \
 		libgstreamer-plugins-base1.0-dev \
@@ -203,9 +205,13 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		protobuf-compiler \
 		;
 
+	if sudo dmidecode -t system | grep -q "Manufacturer: VMware, Inc." ; then
+		# fix VMWare 3D graphics acceleration for gazebo
+		echo "export SVGA_VGPU10=0" >> ~/.profile
+	fi
 fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
-	echo "Reboot or logout, login computer before attempting to build NuttX targets"
+	echo "Relogin or reboot computer before attempting to build NuttX targets"
 fi

@@ -2,7 +2,7 @@
 #
 # @name HolyBro QAV250
 #
-# @url https://docs.px4.io/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html
+# @url https://docs.px4.io/master/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html
 #
 # @type Quadrotor x
 # @class Copter
@@ -48,7 +48,7 @@ then
 	param set MPC_THR_CURVE 1
 	param set MPC_THR_HOVER 0.25
 	param set MPC_THR_MIN 0.05
-	param set MPC_Z_VEL_I 0.085
+	param set MPC_Z_VEL_I_ACC 1.7
 
 	param set PWM_MAX 1950
 	param set PWM_MIN 1050

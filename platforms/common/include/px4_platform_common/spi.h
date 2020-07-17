@@ -154,6 +154,8 @@ public:
 
 	uint32_t devid() const { return px4_spi_buses[_index].devices[_bus_device_index].devid; }
 
+	int externalBusIndex() const { return _external_bus_counter; }
+
 	bool external() const { return px4_spi_bus_external(bus()); }
 
 private:

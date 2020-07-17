@@ -34,7 +34,6 @@
 set(srcs
 	test_adc.cpp
 	test_atomic_bitset.cpp
-	test_autodeclination.cpp
 	test_bezierQuad.cpp
 	test_bitset.cpp
 	test_bson.cpp
@@ -58,7 +57,6 @@ set(srcs
 	test_microbench_matrix.cpp
 	test_microbench_uorb.cpp
 	test_mixer.cpp
-	test_mount.c
 	test_param.c
 	test_parameters.cpp
 	test_perf.c
@@ -80,6 +78,7 @@ set(srcs
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
 	list(APPEND srcs
+		test_mount.cpp
 		test_time.c
 		test_uart_break.c
 		)

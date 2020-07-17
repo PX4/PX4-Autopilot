@@ -82,9 +82,29 @@ PARAM_DEFINE_INT32(CAL_MAG3_EN, 1);
  * @value 23 Roll 270°, Yaw 135°
  * @value 24 Pitch 90°
  * @value 25 Pitch 270°
+ * @value 26 Pitch 180°, Yaw 90°
+ * @value 27 Pitch 180°, Yaw 270°
+ * @value 28 Roll 90°, Pitch 90°
+ * @value 29 Roll 180°, Pitch 90°
+ * @value 30 Roll 270°, Pitch 90°
+ * @value 31 Roll 90°, Pitch 180°
+ * @value 32 Roll 270°, Pitch 180°
+ * @value 33 Roll 90°, Pitch 270°
+ * @value 34 Roll 180°, Pitch 270°
+ * @value 35 Roll 270°, Pitch 270°
+ * @value 36 Roll 90°, Pitch 180°, Yaw 90°
+ * @value 37 Roll 90°, Yaw 270°
+ * @value 38 Roll 90°, Pitch 68°, Yaw 293°
+ * @value 39 Pitch 315°
+ * @value 40 Roll 90°, Pitch 315°
+ * @value 41 Roll 270°, Yaw 180°
+ * @value 42 Roll 270°, Yaw 270°
+ * @value 43 Pitch 90°, Yaw 180°
+ * @value 44 Pitch 9°, Yaw 180°
+ * @value 45 Pitch 45°
  *
  * @min -1
- * @max 30
+ * @max 45
  * @reboot_required true
  * @category system
  * @group Sensor Calibration

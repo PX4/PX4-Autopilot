@@ -104,7 +104,7 @@ Serial bus driver for the LightWare SF02/F, SF10/a, SF10/b, SF10/c, SF11/c Laser
 
 Most boards are configured to enable/start the driver on a specified UART using the SENS_SF0X_CFG parameter.
 
-Setup/usage information: https://docs.px4.io/en/sensor/sfxx_lidar.html
+Setup/usage information: https://docs.px4.io/master/en/sensor/sfxx_lidar.html
 
 ### Examples
 

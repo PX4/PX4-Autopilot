@@ -67,7 +67,7 @@ void PositionControl::setThrustLimits(const float min, const float max)
 
 void PositionControl::updateHoverThrust(const float hover_thrust_new)
 {
-	_vel_int(2) += hover_thrust_new - _hover_thrust;
+	_vel_int(2) += (hover_thrust_new - _hover_thrust) * (CONSTANTS_ONE_G / hover_thrust_new);
 	setHoverThrust(hover_thrust_new);
 }
 
@@ -147,8 +147,6 @@ void PositionControl::_velocityControl(const float dt)
 	Vector3f vel_error = _vel_sp - _vel;
 	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int - _vel_dot.emult(_gain_vel_d);
 
-	// For backwards compatibility of the gains to non-acceleration based control, needs to be overcome with configuration conversion
-	acc_sp_velocity *= CONSTANTS_ONE_G / _hover_thrust;
 	// No control input from setpoints or corresponding states which are NAN
 	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
 
@@ -179,7 +177,7 @@ void PositionControl::_velocityControl(const float dt)
 	// Use tracking Anti-Windup for horizontal direction: during saturation, the integrator is used to unsaturate the output
 	// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
 	const Vector2f acc_sp_xy_limited = Vector2f(_thr_sp) * (CONSTANTS_ONE_G / _hover_thrust);
-	const float arw_gain = 2.f / (_gain_vel_p(0) * (CONSTANTS_ONE_G / _hover_thrust));
+	const float arw_gain = 2.f / _gain_vel_p(0);
 	vel_error.xy() = Vector2f(vel_error) - (arw_gain * (Vector2f(_acc_sp) - acc_sp_xy_limited));
 
 	// Make sure integral doesn't get NAN
@@ -188,7 +186,7 @@ void PositionControl::_velocityControl(const float dt)
 	_vel_int += vel_error.emult(_gain_vel_i) * dt;
 
 	// limit thrust integral
-	_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * sign(_vel_int(2));
+	_vel_int(2) = math::min(fabsf(_vel_int(2)), CONSTANTS_ONE_G) * sign(_vel_int(2));
 }
 
 void PositionControl::_accelerationControl()

@@ -48,7 +48,6 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/cpuload.h>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
 
@@ -56,7 +55,13 @@
 #  error load_mon support requires CONFIG_SCHED_INSTRUMENTATION
 #endif
 
-#define STACK_LOW_WARNING_THRESHOLD 300 ///< if free stack space falls below this, print a warning
+// if free stack space falls below this, print a warning
+#if defined(CONFIG_ARMV7M_STACKCHECK)
+static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 100;
+#else
+static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 300;
+#endif
+
 #define FDS_LOW_WARNING_THRESHOLD 3 ///< if free file descriptors fall below this, print a warning
 
 namespace load_mon

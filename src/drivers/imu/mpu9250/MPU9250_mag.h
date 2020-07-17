@@ -147,6 +147,8 @@ private:
 
 	MPU9250 *_parent;
 
+	float _ak8963_ASA[3] {1.f, 1.f, 1.f};
+
 	bool _mag_reading_data{false};
 
 	perf_counter_t _mag_overruns;

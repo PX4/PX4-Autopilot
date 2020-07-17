@@ -35,6 +35,9 @@ px4_add_module(
 	MODULE drivers__imu__invensense__mpu9250
 	MAIN mpu9250
 	COMPILE_FLAGS
+		-O0
+		-DDEBUG_BUILD
+		-Wno-error
 	SRCS
 		AKM_AK8963_registers.hpp
 		InvenSense_MPU9250_registers.hpp

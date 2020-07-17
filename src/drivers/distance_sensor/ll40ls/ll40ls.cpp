@@ -57,7 +57,7 @@ I2C bus driver for LidarLite rangefinders.
 
 The sensor/driver must be enabled using the parameter SENS_EN_LL40LS.
 
-Setup/usage information: https://docs.px4.io/en/sensor/lidar_lite.html
+Setup/usage information: https://docs.px4.io/master/en/sensor/lidar_lite.html
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("ll40ls", "driver");

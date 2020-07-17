@@ -148,34 +148,40 @@ PARAM_DEFINE_FLOAT(MPC_Z_P, 1.0f);
 /**
  * Proportional gain for vertical velocity error
  *
- * @min 0.1
- * @max 0.4
+ * defined as correction acceleration in m/s^2 per m/s velocity error
+ *
+ * @min 2.0
+ * @max 8.0
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.2f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_P_ACC, 4.0f);
 
 /**
  * Integral gain for vertical velocity error
  *
+ * defined as correction acceleration in m/s^2 per m velocity integral
+ *
  * Non zero value allows hovering thrust estimation on stabilized or autonomous takeoff.
  *
- * @min 0.01
- * @max 0.1
+ * @min 0.2
+ * @max 2.0
  * @decimal 3
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.1f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_I_ACC, 2.0f);
 
 /**
  * Differential gain for vertical velocity error
  *
+ * defined as correction acceleration in m/s^2 per m/s^2 velocity derivative
+ *
  * @min 0.0
- * @max 0.1
+ * @max 2.0
  * @decimal 3
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_D_ACC, 0.0f);
 
 /**
  * Maximum vertical ascent velocity
@@ -215,34 +221,39 @@ PARAM_DEFINE_FLOAT(MPC_XY_P, 0.95f);
 /**
  * Proportional gain for horizontal velocity error
  *
- * @min 0.06
- * @max 0.15
+ * defined as correction acceleration in m/s^2 per m/s velocity error
+ *
+ * @min 1.2
+ * @max 3.0
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.09f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_P_ACC, 1.8f);
 
 /**
  * Integral gain for horizontal velocity error
  *
+ * defined as correction acceleration in m/s^2 per m velocity integral
  * Non-zero value allows to eliminate steady state errors in the presence of disturbances like wind.
  *
  * @min 0.0
- * @max 3.0
+ * @max 60.0
  * @decimal 3
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_I_ACC, 0.4f);
 
 /**
  * Differential gain for horizontal velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
- * @min 0.005
- * @max 0.1
+ * defined as correction acceleration in m/s^2 per m/s^2 velocity derivative
+ *
+ * @min 0.1
+ * @max 2.0
  * @decimal 3
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_D_ACC, 0.2f);
 
 /**
  * Maximum horizontal velocity in mission
@@ -336,7 +347,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
- * Maximum horizontal velocity during landing
+ * Maximum horizontal position mode velocity when close to ground/home altitude
  * Set the value higher than the otherwise expected maximum to disable any slowdown.
  *
  * @unit m/s
@@ -344,7 +355,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_VEL_XY, 2.f);
+PARAM_DEFINE_FLOAT(MPC_LAND_VEL_XY, 10.0f);
 
 /**
  * Enable user assisted descent speed for autonomous land routine.

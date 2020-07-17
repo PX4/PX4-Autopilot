@@ -53,7 +53,7 @@ using namespace matrix;
 
 MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::attitude_ctrl),
 	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
@@ -69,7 +69,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 
 	/* initialize quaternions in messages to be valid */
 	_v_att.q[0] = 1.f;
-	_v_att_sp.q_d[0] = 1.f;
 
 	parameters_updated();
 }
@@ -137,10 +136,10 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	if (reset_yaw_sp) {
 		_man_yaw_sp = yaw;
 
-	} else if (_manual_control_sp.z > 0.05f || _param_mc_airmode.get() == (int32_t)Mixer::Airmode::roll_pitch_yaw) {
+	} else if (_manual_control_setpoint.z > 0.05f || _param_mc_airmode.get() == (int32_t)Mixer::Airmode::roll_pitch_yaw) {
 
 		const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
-		attitude_setpoint.yaw_sp_move_rate = _manual_control_sp.r * yaw_rate;
+		attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.r * yaw_rate;
 		_man_yaw_sp = wrap_pi(_man_yaw_sp + attitude_setpoint.yaw_sp_move_rate * dt);
 	}
 
@@ -154,8 +153,12 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
 	 * points to, and changes of the stick input are linear.
 	 */
-	const float x = _manual_control_sp.x * _man_tilt_max;
-	const float y = _manual_control_sp.y * _man_tilt_max;
+	_man_x_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+	_man_y_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+	_man_x_input_filter.update(_manual_control_setpoint.x * _man_tilt_max);
+	_man_y_input_filter.update(_manual_control_setpoint.y * _man_tilt_max);
+	const float x = _man_x_input_filter.getState();
+	const float y = _man_y_input_filter.getState();
 
 	// we want to fly towards the direction of (x, y), so we use a perpendicular axis angle vector in the XY-plane
 	Vector2f v = Vector2f(y, -x);
@@ -216,7 +219,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
+	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.z);
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
@@ -230,8 +233,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 void
 MulticopterAttitudeControl::control_attitude()
 {
-	_v_att_sp_sub.update(&_v_att_sp);
-	_rates_sp = _attitude_control.update(Quatf(_v_att.q), Quatf(_v_att_sp.q_d), _v_att_sp.yaw_sp_move_rate);
+	_rates_sp = _attitude_control.update(Quatf(_v_att.q));
 }
 
 void
@@ -242,9 +244,7 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 	v_rates_sp.roll = _rates_sp(0);
 	v_rates_sp.pitch = _rates_sp(1);
 	v_rates_sp.yaw = _rates_sp(2);
-	v_rates_sp.thrust_body[0] = _v_att_sp.thrust_body[0];
-	v_rates_sp.thrust_body[1] = _v_att_sp.thrust_body[1];
-	v_rates_sp.thrust_body[2] = _v_att_sp.thrust_body[2];
+	_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
 	v_rates_sp.timestamp = hrt_absolute_time();
 
 	_v_rates_sp_pub.publish(v_rates_sp);
@@ -276,10 +276,20 @@ MulticopterAttitudeControl::Run()
 
 	if (_vehicle_attitude_sub.update(&_v_att)) {
 
+		// Check for new attitude setpoint
+		if (_vehicle_attitude_setpoint_sub.updated()) {
+			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+			_vehicle_attitude_setpoint_sub.update(&vehicle_attitude_setpoint);
+			_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+			_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+		}
+
 		// Check for a heading reset
 		if (prev_quat_reset_counter != _v_att.quat_reset_counter) {
-			// we only extract the heading change from the delta quaternion
-			_man_yaw_sp += Eulerf(Quatf(_v_att.delta_q_reset)).psi();
+			const Quatf delta_q_reset(_v_att.delta_q_reset);
+			// for stabilized attitude generation only extract the heading change from the delta quaternion
+			_man_yaw_sp += Eulerf(delta_q_reset).psi();
+			_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
 		}
 
 		const hrt_abstime now = hrt_absolute_time();
@@ -289,7 +299,7 @@ MulticopterAttitudeControl::Run()
 		_last_run = now;
 
 		/* check for updates in other topics */
-		_manual_control_sp_sub.update(&_manual_control_sp);
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_v_control_mode_sub.update(&_v_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 		_vehicle_status_sub.update(&_vehicle_status);
@@ -299,8 +309,8 @@ MulticopterAttitudeControl::Run()
 		* even bother running the attitude controllers */
 		if (_v_control_mode.flag_control_rattitude_enabled) {
 			_v_control_mode.flag_control_attitude_enabled =
-				fabsf(_manual_control_sp.y) <= _param_mc_ratt_th.get() &&
-				fabsf(_manual_control_sp.x) <= _param_mc_ratt_th.get();
+				fabsf(_manual_control_setpoint.y) <= _param_mc_ratt_th.get() &&
+				fabsf(_manual_control_setpoint.x) <= _param_mc_ratt_th.get();
 		}
 
 		bool attitude_setpoint_generated = false;
@@ -322,6 +332,10 @@ MulticopterAttitudeControl::Run()
 
 				generate_attitude_setpoint(dt, _reset_yaw_sp);
 				attitude_setpoint_generated = true;
+
+			} else {
+				_man_x_input_filter.reset(0.f);
+				_man_y_input_filter.reset(0.f);
 			}
 
 			control_attitude();
