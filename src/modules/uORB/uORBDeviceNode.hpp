@@ -269,8 +269,6 @@ private:
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
 
-	inline static SubscriberData    *filp_to_sd(cdev::file_t *filp);
-
 	/**
 	 * Check whether a topic appears updated to a subscriber.
 	 *
@@ -279,6 +277,6 @@ private:
 	 * @param sd    The subscriber for whom to check.
 	 * @return    True if the topic should appear updated to the subscriber
 	 */
-	bool      appears_updated(SubscriberData *sd);
+	bool      appears_updated(cdev::file_t *filp);
 
 };
