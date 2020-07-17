@@ -47,10 +47,9 @@
  *
  * @min 0
  * @max 2
- * @value 0 multirotor
- * @value 1 quad w
- * @value 2 standard vtol
- * @value 3 tiltrotor vtol
+ * @value 0 Multirotor
+ * @value 1 Standard VTOL (WIP)
+ * @value 2 Tiltrotor VTOL (WIP)
  * @group Control Allocation
  */
 PARAM_DEFINE_INT32(CA_AIRFRAME, 0);
