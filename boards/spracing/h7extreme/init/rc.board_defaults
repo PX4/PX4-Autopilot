@@ -2,6 +2,8 @@
 #
 # SP Racing H7 EXTREME specific board defaults
 #------------------------------------------------------------------------------
+# system_power unavailable
+param set CBRK_SUPPLY_CHK 894281
 
 if param compare SYS_AUTOSTART 0
 then
