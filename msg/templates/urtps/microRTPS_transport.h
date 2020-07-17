@@ -94,7 +94,7 @@ private:
 class UART_node: public Transport_node
 {
 public:
-	UART_node(const char *uart_name, uint32_t baudrate, uint32_t poll_ms);
+	UART_node(const char *_uart_name, const uint32_t _baudrate, const uint32_t _poll_ms, const bool _hw_flow_control, const bool _sw_flow_control);
 	virtual ~UART_node();
 
 	int init();
@@ -110,6 +110,8 @@ protected:
 	char uart_name[64] = {};
 	uint32_t baudrate;
 	uint32_t poll_ms;
+	bool hw_flow_control = false;
+	bool sw_flow_control = false;
 	struct pollfd poll_fd[1] = {};
 };
 
