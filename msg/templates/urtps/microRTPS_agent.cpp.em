@@ -77,7 +77,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #define DEVICE "/dev/ttyACM0"
 #define SLEEP_US 1
 #define BAUDRATE 460800
-#define POLL_MS 0
+#define POLL_MS 1
 #define WAIT_CNST 2
 #define DEFAULT_RECV_PORT 2020
 #define DEFAULT_SEND_PORT 2019
@@ -108,6 +108,8 @@ struct options {
     uint16_t recv_port = DEFAULT_RECV_PORT;
     uint16_t send_port = DEFAULT_SEND_PORT;
     char ip[16] = DEFAULT_IP;
+    bool sw_flow_control = false;
+    bool hw_flow_control = false;
 } _options;
 
 static void usage(const char *name)
@@ -120,7 +122,9 @@ static void usage(const char *name)
              "  -p <poll_ms>            Time in ms to poll over UART. Default 1ms\n"
              "  -r <reception port>     UDP port for receiving. Default 2019\n"
              "  -s <sending port>       UDP port for sending. Default 2020\n"
-             "  -i <ip_address>         Target IP for UDP. Default 127.0.0.1\n",
+             "  -i <ip_address>         Target IP for UDP. Default 127.0.0.1\n"
+             "  -f <sw flow control>    Activates UART link SW flow control\n"
+             "  -h <hw flow control>    Activates UART link HW flow control\n",
              name);
 }
 
@@ -128,30 +132,36 @@ static int parse_options(int argc, char **argv)
 {
     int ch;
 
-    while ((ch = getopt(argc, argv, "t:d:w:b:p:r:s:i:")) != EOF)
+    while ((ch = getopt(argc, argv, "t:d:w:b:p:r:s:i:fh")) != EOF)
     {
         switch (ch)
         {
             case 't': _options.transport      = strcmp(optarg, "UDP") == 0?
                                                  options::eTransports::UDP
-                                                :options::eTransports::UART;  break;
-            case 'd': if (nullptr != optarg) strcpy(_options.device, optarg); break;
-            case 'w': _options.sleep_us       = strtol(optarg, nullptr, 10);  break;
-            case 'b': _options.baudrate       = strtoul(optarg, nullptr, 10); break;
-            case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10);  break;
-            case 'r': _options.recv_port      = strtoul(optarg, nullptr, 10); break;
-            case 's': _options.send_port      = strtoul(optarg, nullptr, 10); break;
-            case 'i': if (nullptr != optarg) strcpy(_options.ip, optarg); break;
+                                                :options::eTransports::UART;    break;
+            case 'd': if (nullptr != optarg) strcpy(_options.device, optarg);   break;
+            case 'w': _options.sleep_us        = strtol(optarg, nullptr, 10);   break;
+            case 'b': _options.baudrate        = strtoul(optarg, nullptr, 10);  break;
+            case 'p': _options.poll_ms         = strtol(optarg, nullptr, 10);   break;
+            case 'r': _options.recv_port       = strtoul(optarg, nullptr, 10);  break;
+            case 's': _options.send_port       = strtoul(optarg, nullptr, 10);  break;
+            case 'i': if (nullptr != optarg) strcpy(_options.ip, optarg);       break;
+            case 'f': _options.sw_flow_control = true;                          break;
+            case 'h': _options.hw_flow_control = true;                          break;
             default:
                 usage(argv[0]);
-            return -1;
+                return -1;
         }
     }
 
-    if (optind < argc)
-    {
-        usage(argv[0]);
-        return -1;
+    if (_options.poll_ms < 1) {
+            _options.poll_ms = 1;
+            printf("\033[1;33m[   micrortps_agent   ]\tPoll timeout too low, using 1 ms\033[0m");
+    }
+
+    if (_options.hw_flow_control && _options.sw_flow_control) {
+            printf("\033[0;31m[   micrortps_agent   ]\tHW and SW flow control set. Please set only one or another\033[0m");
+            return -1;
     }
 
     return 0;
@@ -159,7 +169,7 @@ static int parse_options(int argc, char **argv)
 
 void signal_handler(int signum)
 {
-   printf("Interrupt signal (%d) received.\n", signum);
+   printf("\033[1;33m[   micrortps_agent   ]\tInterrupt signal (%d) received.\033[0m\n", signum);
    running = 0;
    transport_node->close();
    timeSync->stop();
@@ -209,40 +219,42 @@ int main(int argc, char** argv)
 {
     if (-1 == parse_options(argc, argv))
     {
-        printf("EXITING...\n");
+        printf("\033[1;33m[   micrortps_agent   ]\tEXITING...\033[0m\n");
         return -1;
     }
 
     // register signal SIGINT and signal handler
     signal(SIGINT, signal_handler);
 
-    printf("--- MicroRTPS Agent ---\n");
-    printf("- Starting link...\n");
+    printf("\033[0;37m--- MicroRTPS Agent ---\033[0m\n");
+    printf("[   micrortps_agent   ]\tStarting link...\n");
 
     switch (_options.transport)
     {
         case options::eTransports::UART:
         {
-            transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms);
-            printf("- UART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms\n",
-                   _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms);
+            transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
+                   _options.sw_flow_control, _options.hw_flow_control);
+            printf("[   micrortps_agent   ]\tUART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms; flow_control: %s\n",
+                   _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms,
+                   _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
         }
         break;
         case options::eTransports::UDP:
         {
             transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port);
-            printf("- UDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n",
+            printf("[   micrortps_agent   ]\tUDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n",
                     _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
         }
         break;
         default:
-            printf("EXITING...\n");
+            printf("\033[0;37m[   micrortps_agent   ]\tEXITING...\033[0m\n");
         return -1;
     }
 
     if (0 > transport_node->init())
     {
-        printf("EXITING...\n");
+        printf("\033[0;37m[   micrortps_agent   ]\tEXITING...\033[0m\n");
         return -1;
     }
 
@@ -287,9 +299,8 @@ int main(int argc, char** argv)
             (!running  && loop > 1))
         {
             std::chrono::duration<double>  elapsed_secs = end - start;
-            printf("\nSENT:     %lu messages - %lu bytes\n",
-                    (unsigned long)sent, (unsigned long)total_sent);
-            printf("RECEIVED: %d messages - %d bytes; %d LOOPS - %.03f seconds - %.02fKB/s\n\n",
+            printf("[   micrortps_agent   ]\tSENT:     %lumessages \t- %lubytes\n", (unsigned long)sent, (unsigned long)total_sent);
+            printf("[   micrortps_agent   ]\tRECEIVED: %dmessages \t- %dbytes; %d LOOPS - %.03f seconds - %.02fKB/s\n",
                     received, total_read, loop, elapsed_secs.count(), (double)total_read/(1000*elapsed_secs.count()));
             received = sent = total_read = total_sent = 0;
             receiving = false;
