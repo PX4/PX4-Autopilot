@@ -139,6 +139,8 @@
 
 #define BOARD_NUM_IO_TIMERS 2
 
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {1, 0, 3, 2};
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
