@@ -1756,7 +1756,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	if (_param_fw_thr_alt_scl.get() > FLT_EPSILON) {
 		vehicle_air_data_s air_data;
 
-		if (_vehicle_air_data_sub.update(&air_data)) {
+		if (_vehicle_air_data_sub.copy(&air_data)) {
 			if (PX4_ISFINITE(air_data.baro_pressure_pa) && PX4_ISFINITE(_param_fw_thr_alt_scl.get())) {
 				// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
 				const float eas2tas = sqrtf(CONSTANTS_STD_PRESSURE_PA / air_data.baro_pressure_pa);
