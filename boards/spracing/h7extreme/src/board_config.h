@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *   Authors: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@
  ****************************************************************************************************/
 
 #define FLASH_BASED_PARAMS
-#define FLASH_BASED_PARAMS_EXT
+#define BOARD_USE_EXTERNAL_FLASH //Configuration and firmware are in external flash
 
 #define BOARD_HAS_USB_VALID            1 // LTC Has No USB valid
 
