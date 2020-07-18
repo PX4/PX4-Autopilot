@@ -17,7 +17,8 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 	DRIVERS
 		adc
-		barometer # all available barometer drivers
+		#barometer # all available barometer drivers
+		barometer/ms5611
 		#batt_smbus
 		camera_capture
 		camera_trigger
@@ -34,34 +35,34 @@ px4_add_board(
 		#imu/invensense/icm20602
 		imu/invensense/icm20689
 		#imu/mpu6000 # legacy icm20602/icm20689 driver
-		irlock
-		lights/blinkm
+		#irlock
+		#lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
-		mkblctrl
+		#mkblctrl
 		optical_flow # all available optical flow drivers
 		#osd
-		pca9685
-		power_monitor/ina226
+		#pca9685
+		#power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
 		pwm_out
 		px4io
 		rc_input
-		roboclaw
+		#roboclaw
 		rpm
 		safety_button
-		tap_esc
+		#tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
 		#uavcan
 	MODULES
 		airspeed_selector
-		attitude_estimator_q
+		#attitude_estimator_q
 		battery_status
 		#camera_feedback
 		commander
