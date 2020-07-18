@@ -40,6 +40,7 @@
 #include "sensor_bridge.hpp"
 #include <drivers/drv_range_finder.h>
 #include <uORB/topics/distance_sensor.h>
+#include <drivers/rangefinder/PX4Rangefinder.hpp>
 
 #include <uavcan/equipment/range_sensor/Measurement.hpp>
 
@@ -56,6 +57,8 @@ public:
 
 private:
 
+	int init_driver(uavcan_bridge::Channel *channel) override;
+
 	void range_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg);
 
 	typedef uavcan::MethodBinder < UavcanRangefinderBridge *,
@@ -68,5 +71,6 @@ private:
 	float _range_min_m{0.0f};
 	float _range_max_m{0.0f};
 
+	bool _inited{false};
 
 };

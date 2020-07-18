@@ -74,7 +74,28 @@ void
 UavcanRangefinderBridge::range_sub_cb(const
 				      uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg)
 {
-	distance_sensor_s report{};
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+
+	if (channel == nullptr || channel->class_instance < 0) {
+		// Something went wrong - no channel to publish on; return
+		return;
+	}
+
+	// Cast our generic CDev pointer to the sensor-specific driver class
+	PX4Rangefinder *rangefinder = (PX4Rangefinder *)channel->h_driver;
+
+	if (rangefinder == nullptr) {
+		return;
+	}
+
+	if (!_inited) {
+
+		rangefinder->set_fov(msg.field_of_view);
+		rangefinder->set_min_distance(_range_min_m);
+		rangefinder->set_max_distance(_range_max_m);
+
+		_inited = true;
+	}
 
 	/*
 	 * FIXME HACK
@@ -83,35 +104,33 @@ UavcanRangefinderBridge::range_sub_cb(const
 	 * to use an independent time source (based on hardware TIM5) instead of HRT.
 	 * The proper solution is to be developed.
 	 */
-	report.timestamp   		= hrt_absolute_time();
-	report.current_distance   	= msg.range;
-	report.orientation		= distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	report.h_fov			= msg.field_of_view;
-	report.v_fov			= msg.field_of_view;
+	rangefinder->update(hrt_absolute_time(), msg.range);
+}
 
-	report.min_distance 		= _range_min_m;
-	report.max_distance 		= _range_max_m;
+int UavcanRangefinderBridge::init_driver(uavcan_bridge::Channel *channel)
+{
+	// update device id as we now know our device node_id
+	DeviceId device_id{_device_id};
 
-	report.variance   		= 0.0f;	// Unknown
-	report.signal_quality		= -1;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_UAVCAN;
+	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
-	switch (msg.sensor_type) {
-	case 0:	// Undefined - Assume laser
-		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-		break;
+	channel->h_driver = new PX4Rangefinder(device_id.devid, ORB_PRIO_DEFAULT, distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
-	case 1:	// Sonar
-		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-		break;
-
-	case 2:	// Lidar
-		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-		break;
-
-	case 3:	// Radar
-		report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
-		break;
+	if (channel->h_driver == nullptr) {
+		return PX4_ERROR;
 	}
 
-	publish(msg.getSrcNodeID().get(), &report);
+	PX4Rangefinder *rangefinder = (PX4Rangefinder *)channel->h_driver;
+
+	channel->class_instance = rangefinder->get_class_instance();
+
+	if (channel->class_instance < 0) {
+		PX4_ERR("UavcanRangefinder: Unable to get a class instance");
+		delete rangefinder;
+		channel->h_driver = nullptr;
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
