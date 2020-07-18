@@ -86,7 +86,6 @@ private:
 	void updateParams() override;
 
 	void reset();
-	void publishStatus(ZeroOrderHoverThrustEkf::status &status);
 
 	ZeroOrderHoverThrustEkf _hover_thrust_ekf{};
 
@@ -104,6 +103,8 @@ private:
 	bool _armed{false};
 	bool _landed{false};
 	bool _in_air{false};
+
+	bool _was_valid{false};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 

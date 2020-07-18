@@ -157,7 +157,22 @@ void MulticopterHoverThrustEstimator::Run()
 					ZeroOrderHoverThrustEkf::status status;
 					_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2], status);
 
-					publishStatus(status);
+					hover_thrust_estimate_s status_msg;
+
+					status_msg.hover_thrust = status.hover_thrust;
+					status_msg.hover_thrust_var = status.hover_thrust_var;
+
+					status_msg.accel_innov = status.innov;
+					status_msg.accel_innov_var = status.innov_var;
+					status_msg.accel_innov_test_ratio = status.innov_test_ratio;
+					status_msg.accel_noise_var = status.accel_noise_var;
+
+					status_msg.valid = (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
+
+					status_msg.timestamp = hrt_absolute_time();
+					_hover_thrust_ekf_pub.publish(status_msg);
+
+					_was_valid = status_msg.valid;
 				}
 			}
 		}
@@ -167,32 +182,24 @@ void MulticopterHoverThrustEstimator::Run()
 			reset();
 		}
 
-		ZeroOrderHoverThrustEkf::status status;
-		status.hover_thrust = _hover_thrust_ekf.getHoverThrustEstimate();
-		status.hover_thrust_var = _hover_thrust_ekf.getHoverThrustEstimateVar();
-		status.accel_noise_var = _hover_thrust_ekf.getAccelNoiseVar();
-		status.innov = NAN;
-		status.innov_var = NAN;
-		status.innov_test_ratio = NAN;
+		if (_was_valid) {
+			// only publish a single message to invalidate
+			hover_thrust_estimate_s status_msg;
+			status_msg.hover_thrust = NAN;
+			status_msg.hover_thrust_var = NAN;
+			status_msg.accel_innov = NAN;
+			status_msg.accel_innov_var = NAN;
+			status_msg.accel_innov_test_ratio = NAN;
+			status_msg.accel_noise_var = NAN;
+			status_msg.valid = false;
+			status_msg.timestamp = hrt_absolute_time();
+			_hover_thrust_ekf_pub.publish(status_msg);
 
-		publishStatus(status);
+			_was_valid = false;
+		}
 	}
 
 	perf_end(_cycle_perf);
-}
-
-void MulticopterHoverThrustEstimator::publishStatus(ZeroOrderHoverThrustEkf::status &status)
-{
-	hover_thrust_estimate_s status_msg;
-	status_msg.hover_thrust = status.hover_thrust;
-	status_msg.hover_thrust_var = status.hover_thrust_var;
-	status_msg.accel_innov = status.innov;
-	status_msg.accel_innov_var = status.innov_var;
-	status_msg.accel_innov_test_ratio = status.innov_test_ratio;
-	status_msg.accel_noise_var = status.accel_noise_var;
-	status_msg.valid = (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
-	status_msg.timestamp = hrt_absolute_time();
-	_hover_thrust_ekf_pub.publish(status_msg);
 }
 
 int MulticopterHoverThrustEstimator::task_spawn(int argc, char *argv[])
