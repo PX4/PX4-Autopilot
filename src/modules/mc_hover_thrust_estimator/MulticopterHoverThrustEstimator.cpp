@@ -43,7 +43,7 @@
 
 MulticopterHoverThrustEstimator::MulticopterHoverThrustEstimator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	updateParams();
 	reset();
