@@ -139,7 +139,7 @@ void MulticopterHoverThrustEstimator::Run()
 		}
 	}
 
-	if (_armed && !_landed && _in_air && (local_pos.timestamp > _timestamp_last)) {
+	if (_armed && !_landed && (local_pos.timestamp > _timestamp_last)) {
 		vehicle_local_position_setpoint_s local_pos_sp;
 
 		if (_vehicle_local_position_setpoint_sub.update(&local_pos_sp)) {
@@ -167,7 +167,7 @@ void MulticopterHoverThrustEstimator::Run()
 					status_msg.accel_innov_test_ratio = status.innov_test_ratio;
 					status_msg.accel_noise_var = status.accel_noise_var;
 
-					status_msg.valid = (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
+					status_msg.valid = _in_air && (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
 
 					status_msg.timestamp = hrt_absolute_time();
 					_hover_thrust_ekf_pub.publish(status_msg);
