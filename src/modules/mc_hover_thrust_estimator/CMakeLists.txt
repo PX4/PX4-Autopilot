@@ -45,6 +45,7 @@ px4_add_module(
 		MulticopterHoverThrustEstimator.cpp
 		MulticopterHoverThrustEstimator.hpp
 	DEPENDS
+		hysteresis
 		mathlib
 		px4_work_queue
 		zero_order_hover_thrust_ekf

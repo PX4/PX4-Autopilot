@@ -41,10 +41,13 @@
 
 #include <mathlib/mathlib.h>
 
+using namespace time_literals;
+
 MulticopterHoverThrustEstimator::MulticopterHoverThrustEstimator() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_valid_hysteresis.set_hysteresis_time_from(false, 2_s);
 	updateParams();
 	reset();
 }
@@ -157,6 +160,10 @@ void MulticopterHoverThrustEstimator::Run()
 					ZeroOrderHoverThrustEkf::status status;
 					_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2], status);
 
+					bool valid = _in_air && (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
+					_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
+
+					// publish
 					hover_thrust_estimate_s status_msg;
 
 					status_msg.hover_thrust = status.hover_thrust;
@@ -167,7 +174,7 @@ void MulticopterHoverThrustEstimator::Run()
 					status_msg.accel_innov_test_ratio = status.innov_test_ratio;
 					status_msg.accel_noise_var = status.accel_noise_var;
 
-					status_msg.valid = _in_air && (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
+					status_msg.valid = _valid_hysteresis.get_state();
 
 					status_msg.timestamp = hrt_absolute_time();
 					_hover_thrust_ekf_pub.publish(status_msg);
@@ -178,6 +185,8 @@ void MulticopterHoverThrustEstimator::Run()
 		}
 
 	} else {
+		_valid_hysteresis.set_state_and_update(false, hrt_absolute_time());
+
 		if (!_armed) {
 			reset();
 		}
