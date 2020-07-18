@@ -72,6 +72,7 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "127.0.0.1", "<x.x.x.x>", "Select IP address (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Activate UART link SW flow control", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Activate UART link HW flow control", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Add more verbosity", true);
 
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
@@ -83,7 +84,7 @@ static int parse_options(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:p:r:s:i:fh", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:p:r:s:i:fhv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0 ?
 							    options::eTransports::UDP
@@ -106,6 +107,8 @@ static int parse_options(int argc, char *argv[])
 		case 'f': _options.sw_flow_control = true;     				break;
 
 		case 'h': _options.hw_flow_control = true;     				break;
+
+		case 'v': _options.verbose_debug   = true;     				break;
 
 		default:
 			usage(argv[1]);
@@ -137,7 +140,7 @@ static int micrortps_start(int argc, char *argv[])
 	switch (_options.transport) {
 	case options::eTransports::UART: {
 			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
-						       _options.sw_flow_control, _options.hw_flow_control);
+						       _options.sw_flow_control, _options.hw_flow_control, _options.verbose_debug);
 			PX4_INFO("UART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms; flow_control: %s",
 				 _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms,
 				 _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
@@ -145,9 +148,11 @@ static int micrortps_start(int argc, char *argv[])
 		break;
 
 	case options::eTransports::UDP: {
-			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port);
+			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port,
+						      _options.verbose_debug);
 			PX4_INFO("UDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dms",
 				 _options.ip, _options.recv_port, _options.send_port, _options.sleep_ms);
+
 		}
 		break;
 
