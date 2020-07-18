@@ -133,6 +133,11 @@ __ramfunc__ void stm32_board_clockconfig(void)
   volatile uint32_t regval = 0;
   volatile int32_t timeout;
 
+  /* This is not the  best place for copying code to ITCM and RAM.
+   * Since our code work to slow in External Flash, we need to copy it to ITCM and RAM.
+   * This currently way to do it inside board specific code.
+   */
+
   const uint32_t *src;
   uint32_t *dest;
 
