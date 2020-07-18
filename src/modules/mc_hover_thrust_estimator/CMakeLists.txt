@@ -39,6 +39,8 @@ px4_add_library(zero_order_hover_thrust_ekf
 px4_add_module(
 	MODULE modules__mc_hover_thrust_estimator
 	MAIN mc_hover_thrust_estimator
+	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		MulticopterHoverThrustEstimator.cpp
 		MulticopterHoverThrustEstimator.hpp

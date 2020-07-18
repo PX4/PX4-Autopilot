@@ -8,3 +8,5 @@ float32 accel_innov_var		# innovation variance of the last acceleration fusion
 float32 accel_innov_test_ratio	# normalized innovation squared test ratio
 
 float32 accel_noise_var		# vertical acceleration noise variance estimated form innovation residual
+
+bool valid
