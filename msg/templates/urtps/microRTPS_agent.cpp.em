@@ -110,6 +110,7 @@ struct options {
     char ip[16] = DEFAULT_IP;
     bool sw_flow_control = false;
     bool hw_flow_control = false;
+    bool verbose_debug = false;
 } _options;
 
 static void usage(const char *name)
@@ -124,7 +125,8 @@ static void usage(const char *name)
              "  -s <sending port>       UDP port for sending. Default 2020\n"
              "  -i <ip_address>         Target IP for UDP. Default 127.0.0.1\n"
              "  -f <sw flow control>    Activates UART link SW flow control\n"
-             "  -h <hw flow control>    Activates UART link HW flow control\n",
+             "  -h <hw flow control>    Activates UART link HW flow control\n"
+             "  -v <debug verbosity>    Add more verbosity\n",
              name);
 }
 
@@ -132,7 +134,7 @@ static int parse_options(int argc, char **argv)
 {
     int ch;
 
-    while ((ch = getopt(argc, argv, "t:d:w:b:p:r:s:i:fh")) != EOF)
+    while ((ch = getopt(argc, argv, "t:d:w:b:p:r:s:i:fhv")) != EOF)
     {
         switch (ch)
         {
@@ -148,6 +150,7 @@ static int parse_options(int argc, char **argv)
             case 'i': if (nullptr != optarg) strcpy(_options.ip, optarg);       break;
             case 'f': _options.sw_flow_control = true;                          break;
             case 'h': _options.hw_flow_control = true;                          break;
+            case 'v': _options.verbose_debug = true;                            break;
             default:
                 usage(argv[0]);
                 return -1;
@@ -234,7 +237,7 @@ int main(int argc, char** argv)
         case options::eTransports::UART:
         {
             transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
-                   _options.sw_flow_control, _options.hw_flow_control);
+                   _options.sw_flow_control, _options.hw_flow_control, _options.verbose_debug);
             printf("[   micrortps_agent   ]\tUART transport: device: %s; baudrate: %d; sleep: %dus; poll: %dms; flow_control: %s\n",
                    _options.device, _options.baudrate, _options.sleep_us, _options.poll_ms,
                    _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
@@ -242,7 +245,7 @@ int main(int argc, char** argv)
         break;
         case options::eTransports::UDP:
         {
-            transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port);
+            transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port, _options.verbose_debug);
             printf("[   micrortps_agent   ]\tUDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n",
                     _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
         }

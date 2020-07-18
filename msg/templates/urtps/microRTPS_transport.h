@@ -44,7 +44,7 @@
 class Transport_node
 {
 public:
-	Transport_node();
+	Transport_node(const bool _debug);
 	virtual ~Transport_node();
 
 	virtual int init() {return 0;}
@@ -94,7 +94,9 @@ private:
 class UART_node: public Transport_node
 {
 public:
-	UART_node(const char *_uart_name, const uint32_t _baudrate, const uint32_t _poll_ms, const bool _hw_flow_control, const bool _sw_flow_control);
+	UART_node(const char *_uart_name, const uint32_t _baudrate,
+			  const uint32_t _poll_ms, const bool _hw_flow_control,
+			  const bool _sw_flow_control, const bool _debug);
 	virtual ~UART_node();
 
 	int init();
@@ -118,7 +120,8 @@ protected:
 class UDP_node: public Transport_node
 {
 public:
-	UDP_node(const char* _udp_ip, uint16_t udp_port_recv, uint16_t udp_port_send);
+	UDP_node(const char* _udp_ip, uint16_t udp_port_recv, uint16_t udp_port_send,
+			 const bool _debug);
 	virtual ~UDP_node();
 
 	int init();
