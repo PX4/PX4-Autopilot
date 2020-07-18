@@ -98,7 +98,9 @@ void MulticopterLandDetector::_update_topics()
 		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
-			_params.hoverThrottle = hte.hover_thrust;
+			if (hte.valid) {
+				_params.hoverThrottle = hte.hover_thrust;
+			}
 		}
 	}
 }
