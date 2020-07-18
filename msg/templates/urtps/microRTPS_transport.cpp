@@ -79,7 +79,9 @@ uint16_t const crc16_table[256] = {
 	0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-Transport_node::Transport_node(): rx_buff_pos(0)
+Transport_node::Transport_node(const bool _debug):
+    rx_buff_pos(0),
+    debug(_debug)
 {
 }
 
@@ -111,106 +113,96 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	*topic_ID = 255;
 
-	ssize_t len = node_read((void *)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos);
+	ssize_t len = 0;
 
-	if (len <= 0) {
-		int errsv = errno;
+	while (0 < (len = node_read((void *)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos))) {
+		rx_buff_pos += len;
 
-		if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv) {
-#ifndef PX4_ERR
-			printf("\033[0;31m[ micrortps_transport ]\tRead fail %d\033[0m\n", errsv);
-#else
-			PX4_ERR("Read fail %d", errsv);
-#endif /* PX4_ERR */
+		// We read some
+		size_t header_size = sizeof(struct Header);
+
+		// but not enough
+		if (rx_buff_pos < header_size) {
+			return 0;
 		}
+
+		uint32_t msg_start_pos = 0;
+
+		for (msg_start_pos = 0; msg_start_pos <= rx_buff_pos - header_size; ++msg_start_pos) {
+			if ('>' == rx_buffer[msg_start_pos] && memcmp(rx_buffer + msg_start_pos, ">>>", 3) == 0) {
+				break;
+			}
+		}
+
+		// Start not found
+		if (msg_start_pos > (rx_buff_pos - header_size)) {
+#ifndef PX4_DEBUG
+			if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %u)\033[0m\n", msg_start_pos);
+#else
+			if (debug) PX4_DEBUG("                               (↓↓ %u)", msg_start_pos);
+#endif /* PX4_DEBUG */
+
+			// All we've checked so far is garbage, drop it - but save unchecked bytes
+			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
+			rx_buff_pos = rx_buff_pos - msg_start_pos;
+			return -1;
+		}
+
+		// [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
+		struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
+		uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
+
+		// The message won't fit the buffer.
+		if (buffer_len < header_size + payload_len) {
+			// drop the message and continue the readings
+			// @note: this is just a work around to avoid the link to be closed
+			memmove(rx_buffer, rx_buffer + msg_start_pos + 1, rx_buff_pos - (msg_start_pos + 1));
+			rx_buff_pos = rx_buff_pos - (msg_start_pos + 1);
+			return -EMSGSIZE;
+		}
+
+		// We do not have a complete message yet
+		if (msg_start_pos + header_size + payload_len > rx_buff_pos) {
+			// If there's garbage at the beginning, drop it
+			if (msg_start_pos > 0) {
+#ifndef PX4_DEBUG
+				if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %u)\033[0m\n", msg_start_pos);
+#else
+				if (debug) PX4_DEBUG("                             (↓ %u)", msg_start_pos);
+#endif /* PX4_DEBUG */
+				memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
+				rx_buff_pos -= msg_start_pos;
+			}
+
+			return 0;
+		}
+
+		uint16_t read_crc = ((uint16_t)header->crc_h << 8) | header->crc_l;
+		uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
+
+		if (read_crc != calc_crc) {
+#ifndef PX4_DEBUG
+			if (debug) printf("\033[0;31m[ micrortps_transport ]\tBad CRC %u != %u\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
+#else
+			if (debug) PX4_DEBUG("Bad CRC %u != %u\t\t(↓ %lu)", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
+#endif /* PX4_DEBUG */
+			len = -1;
+
+		} else {
+			// copy message to outbuffer and set other return values
+			memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
+			*topic_ID = header->topic_ID;
+			len = payload_len + header_size;
+		}
+
+		// discard message from rx_buffer
+		rx_buff_pos -= header_size + payload_len;
+		memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
 
 		return len;
 	}
 
-	rx_buff_pos += len;
-
-	// We read some
-	size_t header_size = sizeof(struct Header);
-
-	// but not enough
-	if (rx_buff_pos < header_size) {
-		return 0;
-	}
-
-	uint32_t msg_start_pos = 0;
-
-	for (msg_start_pos = 0; msg_start_pos <= rx_buff_pos - header_size; ++msg_start_pos) {
-		if ('>' == rx_buffer[msg_start_pos] && memcmp(rx_buffer + msg_start_pos, ">>>", 3) == 0) {
-			break;
-		}
-	}
-
-	// Start not found
-	if (msg_start_pos > rx_buff_pos - header_size) {
-#ifndef PX4_WARN
-		printf("\033[1;33m[ micrortps_transport ]\t                              (↓↓ %u)\033[0m\n", msg_start_pos);
-#else
-		PX4_WARN("                               (↓↓ %u)", msg_start_pos);
-#endif /* PX4_WARN */
-
-		// All we've checked so far is garbage, drop it - but save unchecked bytes
-		memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-		rx_buff_pos = rx_buff_pos - msg_start_pos;
-		return -1;
-	}
-
-	// [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
-	struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
-	uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
-
-	// The message won't fit the buffer.
-	if (buffer_len < header_size + payload_len) {
-		// drop the message an continue the readings
-		// @note: this is just a work around to avoid the link to be closed
-		memmove(rx_buffer, rx_buffer + msg_start_pos + 1, rx_buff_pos - (msg_start_pos + 1));
-		rx_buff_pos = rx_buff_pos - (msg_start_pos + 1);
-		return -EMSGSIZE;
-	}
-
-	// We do not have a complete message yet
-	if (msg_start_pos + header_size + payload_len > rx_buff_pos) {
-		// If there's garbage at the beginning, drop it
-		if (msg_start_pos > 0) {
-#ifndef PX4_WARN
-			printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %u)\033[0m\n", msg_start_pos);
-#else
-			PX4_WARN("                             (↓ %u)", msg_start_pos);
-#endif /* PX4_WARN */
-			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-			rx_buff_pos -= msg_start_pos;
-		}
-
-		return 0;
-	}
-
-	uint16_t read_crc = ((uint16_t)header->crc_h << 8) | header->crc_l;
-	uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
-
-	if (read_crc != calc_crc) {
-#ifndef PX4_ERR
-		printf("\033[0;31m[ micrortps_transport ]\tBad CRC %u != %u\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
-#else
-		PX4_ERR("Bad CRC %u != %u\t\t(↓ %lu)", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
-#endif /* PX4_ERR */
-		len = -1;
-
-	} else {
-		// copy message to outbuffer and set other return values
-		memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
-		*topic_ID = header->topic_ID;
-		len = payload_len + header_size;
-	}
-
-	// discard message from rx_buffer
-	rx_buff_pos -= header_size + payload_len;
-	memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
-
-	return len;
+	return 0;
 }
 
 size_t Transport_node::get_header_length()
@@ -247,14 +239,17 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	return len + sizeof(header);
 }
 
-UART_node::UART_node(const char *_uart_name, const uint32_t _baudrate, const uint32_t _poll_ms, const bool _hw_flow_control, const bool _sw_flow_control):
+UART_node::UART_node(const char *_uart_name, const uint32_t _baudrate,
+					 const uint32_t _poll_ms, const bool _hw_flow_control,
+					 const bool _sw_flow_control, const bool _debug):
+	Transport_node(_debug),
 	uart_fd(-1),
 	baudrate(_baudrate),
 	poll_ms(_poll_ms),
 	hw_flow_control(_hw_flow_control),
 	sw_flow_control(_sw_flow_control)
-
 {
+
 	if (nullptr != _uart_name) {
 		strcpy(uart_name, _uart_name);
 	}
@@ -375,16 +370,16 @@ int UART_node::init()
 	}
 
 	if (flush) {
-#ifndef PX4_INFO
-		printf("[ micrortps_transport ]\tUART transport: Flush\n");
+#ifndef PX4_DEBUG
+		if (debug) printf("[ micrortps_transport ]\tUART transport: Flush\n");
 #else
-		PX4_INFO("UART transport: Flush");
-#endif /* PX4_INFO */
+		if (debug) PX4_DEBUG("UART transport: Flush");
+#endif /* PX4_DEBUG */
 	} else {
-#ifndef PX4_INFO
-		printf("[ micrortps_transport ]\tUART transport: No flush\n");
+#ifndef PX4_DEBUG
+		if (debug) printf("[ micrortps_transport ]\tUART transport: No flush\n");
 #else
-		PX4_INFO("UART transport: No flush");
+		if (debug) PX4_DEBUG("UART transport: No flush");
 #endif /* PX4_INFO */
 	}
 
@@ -522,7 +517,9 @@ bool UART_node::baudrate_to_speed(uint32_t bauds, speed_t *speed)
 	return true;
 }
 
-UDP_node::UDP_node(const char* _udp_ip, uint16_t _udp_port_recv, uint16_t _udp_port_send):
+UDP_node::UDP_node(const char* _udp_ip, uint16_t _udp_port_recv,
+				   uint16_t _udp_port_send, const bool _debug):
+	Transport_node(_debug),
 	sender_fd(-1),
 	receiver_fd(-1),
 	udp_port_recv(_udp_port_recv),
