@@ -80,9 +80,9 @@ bool Ekf::collect_gps(const gps_message &gps)
 		_last_gps_origin_time_us = _time_last_imu;
 
 		// set the magnetic field data returned by the geo library using the current GPS position
-		_mag_declination_gps = math::radians(get_mag_declination(lat, lon));
-		_mag_inclination_gps = math::radians(get_mag_inclination(lat, lon));
-		_mag_strength_gps = 0.01f * get_mag_strength(lat, lon);
+		_mag_declination_gps = get_mag_declination_radians(lat, lon);
+		_mag_inclination_gps = get_mag_inclination_radians(lat, lon);
+		_mag_strength_gps = get_mag_strength_tesla(lat, lon);
 
 		// request a reset of the yaw using the new declination
 		if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
