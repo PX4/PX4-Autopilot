@@ -151,12 +151,12 @@ bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate
 	innov_var(2) = P(9, 9) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
 	_vert_pos_innov_ratio = innov(2) / sqrtf(innov_var(2));
-	_vert_pos_fuse_time_us = _time_last_imu;
+	_vert_pos_fuse_attempt_time_us = _time_last_imu;
 	bool innov_check_pass = test_ratio(1) <= 1.0f;
 
 	// if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
-	float innovation = innov(2);
+	float innovation;
 	if (_bad_vert_accel_detected && !innov_check_pass) {
 		const float innov_limit = innov_gate(1) * sqrtf(innov_var(2));
 		innovation = math::constrain(innov(2), -innov_limit, innov_limit);

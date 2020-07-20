@@ -898,7 +898,7 @@ void Ekf::checkVerticalAccelerationHealth()
 	// Don't use stale innovation data.
 	bool is_inertial_nav_falling = false;
 	bool are_vertical_pos_and_vel_independant = false;
-	if (isRecent(_vert_pos_fuse_time_us, 1000000)) {
+	if (isRecent(_vert_pos_fuse_attempt_time_us, 1000000)) {
 		if (isRecent(_vert_vel_fuse_time_us, 1000000)) {
 			// If vertical position and velocity come from independent sensors then we can
 			// trust them more if they disagree with the IMU, but need to check that they agree
@@ -919,7 +919,7 @@ void Ekf::checkVerticalAccelerationHealth()
 				 _imu_sample_delayed.delta_vel_clipping[1] ||
 				 _imu_sample_delayed.delta_vel_clipping[2];
 	if (is_clipping &&_clip_counter < clip_count_limit) {
-			_clip_counter++;
+		_clip_counter++;
 	} else if (_clip_counter > 0) {
 		_clip_counter--;
 	}
