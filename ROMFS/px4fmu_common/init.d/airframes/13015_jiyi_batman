@@ -5,7 +5,8 @@
 # @type VTOL Tiltrotor
 # @class VTOL
 #
-# @maintainer Liuyu <lydoraemon@gmail.com>
+# @maintainer Stone White <stone@thone.io>
+# @Creator Yu Liu <lydoraemon@gmail.com>
 #
 # @output MAIN1 Motor right
 # @output MAIN2 Motor left
@@ -69,6 +70,8 @@ then
 	param set BAT_V_DIV  18.18
 
 	param set VT_B_TRANS_DUR  2
+	param set VT_DWN_PITCH_MAX 3
+	param set VT_FWD_THRUST_SC 1.2
 	param set VT_F_TRANS_DUR  2
 	param set VT_F_TR_OL_TM   3
 	param set VT_FW_DIFTHR_EN 1
