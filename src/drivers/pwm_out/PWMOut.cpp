@@ -376,6 +376,19 @@ int PWMOut::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_
 	_pwm_default_rate = default_rate;
 	_pwm_alt_rate = alt_rate;
 
+	// minimum rate for backup schedule
+	unsigned backup_schedule_rate_hz = math::min(_pwm_default_rate, _pwm_alt_rate);
+
+	if (backup_schedule_rate_hz == 0) {
+		// OneShot rate is 0
+		backup_schedule_rate_hz = 50;
+	}
+
+	// constrain reasonably (1 to 50 Hz)
+	backup_schedule_rate_hz = math::constrain(backup_schedule_rate_hz, 1u, 50u);
+
+	_backup_schedule_interval_us = roundf(1e6f / backup_schedule_rate_hz);
+
 	_current_update_rate = 0; // force update
 
 	return OK;
@@ -573,6 +586,9 @@ void PWMOut::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
+	// push backup schedule
+	ScheduleDelayed(_backup_schedule_interval_us);
+
 	_mixing_output.update();
 
 	/* update PWM status if armed or if disarmed PWM values are set */
@@ -598,7 +614,7 @@ void PWMOut::Run()
 	}
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
+	_mixing_output.updateSubscriptions(true, true);
 
 	perf_end(_cycle_perf);
 }
