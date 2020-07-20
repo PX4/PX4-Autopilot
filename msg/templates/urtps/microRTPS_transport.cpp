@@ -113,96 +113,111 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	*topic_ID = 255;
 
-	ssize_t len = 0;
+	ssize_t len = node_read((void *)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos);
 
-	while (0 < (len = node_read((void *)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos))) {
-		rx_buff_pos += len;
+	if (len <= 0) {
+		int errsv = errno;
 
-		// We read some
-		size_t header_size = sizeof(struct Header);
-
-		// but not enough
-		if (rx_buff_pos < header_size) {
-			return 0;
-		}
-
-		uint32_t msg_start_pos = 0;
-
-		for (msg_start_pos = 0; msg_start_pos <= rx_buff_pos - header_size; ++msg_start_pos) {
-			if ('>' == rx_buffer[msg_start_pos] && memcmp(rx_buffer + msg_start_pos, ">>>", 3) == 0) {
-				break;
-			}
-		}
-
-		// Start not found
-		if (msg_start_pos > (rx_buff_pos - header_size)) {
+		if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv) {
 #ifndef PX4_DEBUG
-			if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %u)\033[0m\n", msg_start_pos);
+			if (debug) printf("\033[0;31m[ micrortps_transport ]\tRead fail %d\033[0m\n", errsv);
 #else
-			if (debug) PX4_DEBUG("                               (↓↓ %u)", msg_start_pos);
+			if (debug) PX4_DEBUG("Read fail %d", errsv);
 #endif /* PX4_DEBUG */
-
-			// All we've checked so far is garbage, drop it - but save unchecked bytes
-			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-			rx_buff_pos = rx_buff_pos - msg_start_pos;
-			return -1;
 		}
-
-		// [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
-		struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
-		uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
-
-		// The message won't fit the buffer.
-		if (buffer_len < header_size + payload_len) {
-			// drop the message and continue the readings
-			// @note: this is just a work around to avoid the link to be closed
-			memmove(rx_buffer, rx_buffer + msg_start_pos + 1, rx_buff_pos - (msg_start_pos + 1));
-			rx_buff_pos = rx_buff_pos - (msg_start_pos + 1);
-			return -EMSGSIZE;
-		}
-
-		// We do not have a complete message yet
-		if (msg_start_pos + header_size + payload_len > rx_buff_pos) {
-			// If there's garbage at the beginning, drop it
-			if (msg_start_pos > 0) {
-#ifndef PX4_DEBUG
-				if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %u)\033[0m\n", msg_start_pos);
-#else
-				if (debug) PX4_DEBUG("                             (↓ %u)", msg_start_pos);
-#endif /* PX4_DEBUG */
-				memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-				rx_buff_pos -= msg_start_pos;
-			}
-
-			return 0;
-		}
-
-		uint16_t read_crc = ((uint16_t)header->crc_h << 8) | header->crc_l;
-		uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
-
-		if (read_crc != calc_crc) {
-#ifndef PX4_DEBUG
-			if (debug) printf("\033[0;31m[ micrortps_transport ]\tBad CRC %u != %u\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
-#else
-			if (debug) PX4_DEBUG("Bad CRC %u != %u\t\t(↓ %lu)", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
-#endif /* PX4_DEBUG */
-			len = -1;
-
-		} else {
-			// copy message to outbuffer and set other return values
-			memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
-			*topic_ID = header->topic_ID;
-			len = payload_len + header_size;
-		}
-
-		// discard message from rx_buffer
-		rx_buff_pos -= header_size + payload_len;
-		memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
 
 		return len;
 	}
 
-	return 0;
+	rx_buff_pos += len;
+
+	// We read some
+	size_t header_size = sizeof(struct Header);
+
+	// but not enough
+	if (rx_buff_pos < header_size) {
+		return 0;
+	}
+
+	uint32_t msg_start_pos = 0;
+
+	for (msg_start_pos = 0; msg_start_pos <= rx_buff_pos - header_size; ++msg_start_pos) {
+		if ('>' == rx_buffer[msg_start_pos] && memcmp(rx_buffer + msg_start_pos, ">>>", 3) == 0) {
+			break;
+		}
+	}
+
+	// Start not found
+	if (msg_start_pos > (rx_buff_pos - header_size)) {
+#ifndef PX4_DEBUG
+		if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓↓ %u)\033[0m\n", msg_start_pos);
+#else
+		if (debug) PX4_DEBUG("                               (↓↓ %u)", msg_start_pos);
+#endif /* PX4_DEBUG */
+
+		// All we've checked so far is garbage, drop it - but save unchecked bytes
+		memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
+		rx_buff_pos = rx_buff_pos - msg_start_pos;
+		return -1;
+	}
+
+	// [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
+	struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
+	uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
+
+	// The message won't fit the buffer.
+	if (buffer_len < header_size + payload_len) {
+		// Drop the message and continue with the read buffer
+		memmove(rx_buffer, rx_buffer + msg_start_pos + 1, rx_buff_pos - (msg_start_pos + 1));
+		rx_buff_pos = rx_buff_pos - (msg_start_pos + 1);
+		return -EMSGSIZE;
+	}
+
+	// We do not have a complete message yet
+	if (msg_start_pos + header_size + payload_len > rx_buff_pos) {
+		// If there's garbage at the beginning, drop it
+		if (msg_start_pos > 0) {
+#ifndef PX4_DEBUG
+			if (debug) printf("\033[1;33m[ micrortps_transport ]\t                                (↓ %u)\033[0m\n", msg_start_pos);
+#else
+			if (debug) PX4_DEBUG("                             (↓ %u)", msg_start_pos);
+#endif /* PX4_DEBUG */
+			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
+			rx_buff_pos -= msg_start_pos;
+		}
+
+		return 0;
+	}
+
+	uint16_t read_crc = ((uint16_t)header->crc_h << 8) | header->crc_l;
+	uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
+
+	if (read_crc != calc_crc) {
+#ifndef PX4_DEBUG
+		if (debug) printf("\033[0;31m[ micrortps_transport ]\tBad CRC %u != %u\t\t(↓ %lu)\033[0m\n", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
+#else
+		if (debug) PX4_DEBUG("Bad CRC %u != %u\t\t(↓ %lu)", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
+#endif /* PX4_DEBUG */
+
+		// If there is a CRC error, the payload len cannot be trusted
+		rx_buff_pos -= (msg_start_pos + 1);
+
+		// Drop garbage up just beyond the start of the message
+		memmove(rx_buffer, rx_buffer + (msg_start_pos + 1 ), rx_buff_pos );
+		len = -1;
+
+	} else {
+		// copy message to outbuffer and set other return values
+		memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
+		*topic_ID = header->topic_ID;
+		len = payload_len + header_size;
+	}
+
+	// discard message from rx_buffer
+	rx_buff_pos -= msg_start_pos + header_size + payload_len;
+	memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
+
+	return len;
 }
 
 size_t Transport_node::get_header_length()
@@ -321,7 +336,7 @@ int UART_node::init()
 
 	if (!baudrate_to_speed(baudrate, &speed)) {
 #ifndef PX4_ERR
-		printf("\033[0;31mUART transport: ERR SET BAUD %s: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\033[0m\n",
+		printf("\033[0;31m[ micrortps_transport ]\tUART transport: ERR SET BAUD %s: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\033[0m\n",
 			uart_name, baudrate);
 #else
 		PX4_ERR("UART transport: ERR SET BAUD %s: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\n",
@@ -453,61 +468,78 @@ bool UART_node::baudrate_to_speed(uint32_t bauds, speed_t *speed)
 #define B1000000 1000000
 #endif
 
-	switch (bauds) {
-	case 0:      *speed = B0;      break;
-
-	case 50:     *speed = B50;     break;
-
-	case 75:     *speed = B75;     break;
-
-	case 110:    *speed = B110;    break;
-
-	case 134:    *speed = B134;    break;
-
-	case 150:    *speed = B150;    break;
-
-	case 200:    *speed = B200;    break;
-
-	case 300:    *speed = B300;    break;
-
-	case 600:    *speed = B600;    break;
-
-	case 1200:   *speed = B1200;   break;
-
-	case 1800:   *speed = B1800;   break;
-
-	case 2400:   *speed = B2400;   break;
-
-	case 4800:   *speed = B4800;   break;
-
-	case 9600:   *speed = B9600;   break;
-
-	case 19200:  *speed = B19200;  break;
-
-	case 38400:  *speed = B38400;  break;
-
-	case 57600:  *speed = B57600;  break;
-
-	case 115200: *speed = B115200; break;
-
-	case 230400: *speed = B230400; break;
-
-	case 460800: *speed = B460800; break;
-
-	case 500000: *speed = B500000; break;
-
-	case 921600: *speed = B921600; break;
-
-	case 1000000: *speed = B1000000; break;
-
-#ifdef B1500000
-
-	case 1500000: *speed = B1500000; break;
+#ifndef B1500000
+#define B1500000 1500000
 #endif
+
+#ifndef B2000000
+#define B2000000 2000000
+#endif
+
+	switch (bauds) {
+	case 0:      *speed = B0;		break;
+
+	case 50:     *speed = B50;		break;
+
+	case 75:     *speed = B75;		break;
+
+	case 110:    *speed = B110;		break;
+
+	case 134:    *speed = B134;		break;
+
+	case 150:    *speed = B150;		break;
+
+	case 200:    *speed = B200;		break;
+
+	case 300:    *speed = B300;		break;
+
+	case 600:    *speed = B600;		break;
+
+	case 1200:   *speed = B1200;		break;
+
+	case 1800:   *speed = B1800;		break;
+
+	case 2400:   *speed = B2400;		break;
+
+	case 4800:   *speed = B4800;		break;
+
+	case 9600:   *speed = B9600;		break;
+
+	case 19200:  *speed = B19200;		break;
+
+	case 38400:  *speed = B38400;		break;
+
+	case 57600:  *speed = B57600;		break;
+
+	case 115200: *speed = B115200;		break;
+
+	case 230400: *speed = B230400;		break;
+
+	case 460800: *speed = B460800;		break;
+
+	case 500000: *speed = B500000;		break;
+
+	case 921600: *speed = B921600;		break;
+
+	case 1000000: *speed = B1000000;	break;
+
+	case 1500000: *speed = B1500000;	break;
+
+	case 2000000: *speed = B2000000;	break;
 
 #ifdef B3000000
 
-	case 3000000: *speed = B3000000; break;
+	case 3000000: *speed = B3000000;    break;
+#endif
+
+#ifdef B3500000
+
+	case 3500000: *speed = B3500000;    break;
+#endif
+
+#ifdef B4000000
+
+	case 4000000: *speed = B4000000;    break;
 #endif
 
 	default:
