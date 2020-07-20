@@ -6,7 +6,7 @@
 # @class VTOL
 #
 # @maintainer Stone White <stone@thone.io>
-# @Creator Yu Liu <lydoraemon@gmail.com>
+# @creator Yu Liu <lydoraemon@gmail.com>
 #
 # @output MAIN1 Motor right
 # @output MAIN2 Motor left
