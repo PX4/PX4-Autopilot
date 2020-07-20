@@ -55,11 +55,19 @@ VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
 
 	_accel_integrator.set_reset_interval(configured_interval_us);
 	_accel_integrator.set_reset_samples(sensor_accel_s::ORB_QUEUE_LENGTH);
-	_sensor_accel_sub.set_required_updates(1);
 
 	_gyro_integrator.set_reset_interval(configured_interval_us);
 	_gyro_integrator.set_reset_samples(sensor_gyro_s::ORB_QUEUE_LENGTH);
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	// currently with lockstep every raw sample needs a corresponding vehicle_imu publication
+	_sensor_accel_sub.set_required_updates(1);
 	_sensor_gyro_sub.set_required_updates(1);
+#else
+	// schedule conservatively until the actual accel & gyro rates are known
+	_sensor_accel_sub.set_required_updates(sensor_accel_s::ORB_QUEUE_LENGTH / 2);
+	_sensor_gyro_sub.set_required_updates(sensor_gyro_s::ORB_QUEUE_LENGTH / 2);
+#endif
 
 	// advertise immediately to ensure consistent ordering
 	_vehicle_imu_pub.advertise();
