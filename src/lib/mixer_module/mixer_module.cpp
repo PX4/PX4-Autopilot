@@ -499,7 +499,7 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 	input = output->_controls[control_group].control[control_index];
 
 	/* limit control input */
-	math::constrain(input, -1.f, 1.f);
+	input = math::constrain(input, -1.f, 1.f);
 
 	/* motor spinup phase - lock throttle to zero */
 	if (output->_output_limit.state == OUTPUT_LIMIT_STATE_RAMP) {
