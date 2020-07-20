@@ -93,13 +93,13 @@ extern "C"
 
 QUADSPI_RAMFUNC int qspi_lock(struct qspi_dev_s *dev, bool lock);
 QUADSPI_RAMFUNC uint32_t qspi_setfrequency(struct qspi_dev_s *dev,
-                                  uint32_t frequency);
+		uint32_t frequency);
 QUADSPI_RAMFUNC void     qspi_setmode(struct qspi_dev_s *dev, enum qspi_mode_e mode);
 QUADSPI_RAMFUNC void     qspi_setbits(struct qspi_dev_s *dev, int nbits);
 QUADSPI_RAMFUNC int      qspi_command(struct qspi_dev_s *dev,
-                                  struct qspi_cmdinfo_s *cmdinfo);
+				      struct qspi_cmdinfo_s *cmdinfo);
 QUADSPI_RAMFUNC int      qspi_memory(struct qspi_dev_s *dev,
-                                  struct qspi_meminfo_s *meminfo);
+				     struct qspi_meminfo_s *meminfo);
 QUADSPI_RAMFUNC FAR void *qspi_alloc(FAR struct qspi_dev_s *dev, size_t buflen);
 QUADSPI_RAMFUNC void     qspi_free(FAR struct qspi_dev_s *dev, FAR void *buffer);
 
@@ -137,8 +137,8 @@ FAR struct qspi_dev_s *stm32h7_qspi_initialize(int intf);
  ****************************************************************************/
 
 QUADSPI_RAMFUNC void stm32h7_qspi_enter_memorymapped(struct qspi_dev_s *dev,
-                                     const struct qspi_meminfo_s *meminfo,
-                                     uint32_t lpto);
+		const struct qspi_meminfo_s *meminfo,
+		uint32_t lpto);
 
 /****************************************************************************
  * Name: stm32l4_qspi_exit_memorymapped

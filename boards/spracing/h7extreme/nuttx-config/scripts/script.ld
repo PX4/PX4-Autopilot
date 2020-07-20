@@ -63,7 +63,6 @@
  * The SP Racing H7 Extreme has a Swtich on board, the BOOT0 pin is at ground so by default,
  * the STM32 will boot to address 0x0800:0000 in FLASH unless the swiutch is
  * drepresed, then the boot will be from 0x1FF0:0000
- TODO igor.misic figure out how this work for SPH7Extreme
  *
  * The STM32H743ZI also has 1024Kb of data SRAM.
  * SRAM is split up into several blocks and into three power domains:

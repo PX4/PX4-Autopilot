@@ -102,27 +102,26 @@
  * pointers to struct mtd_dev_s and struct n25qxxx_dev_s.
  */
 
-struct n25qxxx_dev_s
-{
-  //struct mtd_dev_s       mtd;         /* MTD interface */
-  FAR struct qspi_dev_s *qspi;        /* Saved QuadSPI interface instance */
-  uint16_t               nsectors;    /* Number of erase sectors */
-  uint8_t                sectorshift; /* Log2 of sector size */
-  uint8_t                pageshift;   /* Log2 of page size */
-  FAR uint8_t           *cmdbuf;      /* Allocated command buffer */
-  FAR uint8_t           *readbuf;     /* Allocated status read buffer */
+struct n25qxxx_dev_s {
+	//struct mtd_dev_s       mtd;         /* MTD interface */
+	FAR struct qspi_dev_s *qspi;        /* Saved QuadSPI interface instance */
+	uint16_t               nsectors;    /* Number of erase sectors */
+	uint8_t                sectorshift; /* Log2 of sector size */
+	uint8_t                pageshift;   /* Log2 of page size */
+	FAR uint8_t           *cmdbuf;      /* Allocated command buffer */
+	FAR uint8_t           *readbuf;     /* Allocated status read buffer */
 };
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-struct qspi_dev_s* ptr_qspi_dev;
+struct qspi_dev_s *ptr_qspi_dev;
 struct qspi_meminfo_s qspi_meminfo = {
-		.flags   = QSPIMEM_QUADIO,
-		.addrlen = W25Q_ADDRESS_SIZE,
-		.dummies = W25Q_DUMMY_CYCLES_FAST_READ_QUAD,
-		.cmd     = W25Q_INSTR_FAST_READ_QUAD
+	.flags   = QSPIMEM_QUADIO,
+	.addrlen = W25Q_ADDRESS_SIZE,
+	.dummies = W25Q_DUMMY_CYCLES_FAST_READ_QUAD,
+	.cmd     = W25Q_INSTR_FAST_READ_QUAD
 };
 
 struct n25qxxx_dev_s n25qxxx_dev;
@@ -135,22 +134,22 @@ uint8_t readbuf[1] = {0u};
 __ramfunc__ int n25qxxx_command(FAR struct qspi_dev_s *qspi, uint8_t cmd);
 __ramfunc__ uint8_t n25qxxx_read_status(FAR struct n25qxxx_dev_s *priv);
 __ramfunc__ int n25qxxx_command_read(FAR struct qspi_dev_s *qspi, uint8_t cmd,
-                                FAR void *buffer, size_t buflen);
+				     FAR void *buffer, size_t buflen);
 __ramfunc__ void n25qxxx_write_enable(FAR struct n25qxxx_dev_s *priv);
 __ramfunc__ void n25qxxx_write_disable(FAR struct n25qxxx_dev_s *priv);
 
 __ramfunc__ int n25qxxx_write_page(struct n25qxxx_dev_s *priv, FAR const uint8_t *buffer,
-                             off_t address, size_t buflen);
+				   off_t address, size_t buflen);
 
-__ramfunc__ int n25qxxx_write_one_page(struct n25qxxx_dev_s *priv,struct qspi_meminfo_s *meminfo);
+__ramfunc__ int n25qxxx_write_one_page(struct n25qxxx_dev_s *priv, struct qspi_meminfo_s *meminfo);
 
 __ramfunc__ int n25qxxx_erase_sector(struct n25qxxx_dev_s *priv, off_t sector);
 
 __ramfunc__ bool n25qxxx_isprotected(FAR struct n25qxxx_dev_s *priv, uint8_t status,
-                               off_t address);
+				     off_t address);
 
 __ramfunc__  int n25qxxx_command_address(FAR struct qspi_dev_s *qspi, uint8_t cmd,
-                                  off_t addr, uint8_t addrlen);
+		off_t addr, uint8_t addrlen);
 
 /************************************************************************************
  * Public Functions
@@ -211,20 +210,20 @@ __ramfunc__ ssize_t up_progmem_ext_write(size_t addr, FAR const void *buf, size_
 
 __ramfunc__ int n25qxxx_command(FAR struct qspi_dev_s *qspi, uint8_t cmd)
 {
-  struct qspi_cmdinfo_s cmdinfo;
+	struct qspi_cmdinfo_s cmdinfo;
 
-  finfo("CMD: %02x\n", cmd);
+	finfo("CMD: %02x\n", cmd);
 
-  cmdinfo.flags   = 0;
-  cmdinfo.addrlen = 0;
-  cmdinfo.cmd     = cmd;
-  cmdinfo.buflen  = 0;
-  cmdinfo.addr    = 0;
-  cmdinfo.buffer  = NULL;
+	cmdinfo.flags   = 0;
+	cmdinfo.addrlen = 0;
+	cmdinfo.cmd     = cmd;
+	cmdinfo.buflen  = 0;
+	cmdinfo.addr    = 0;
+	cmdinfo.buffer  = NULL;
 
-  int rv;
-  rv = qspi_command(qspi, &cmdinfo);
-  return rv;
+	int rv;
+	rv = qspi_command(qspi, &cmdinfo);
+	return rv;
 }
 
 /************************************************************************************
@@ -233,9 +232,9 @@ __ramfunc__ int n25qxxx_command(FAR struct qspi_dev_s *qspi, uint8_t cmd)
 
 __ramfunc__ uint8_t n25qxxx_read_status(FAR struct n25qxxx_dev_s *priv)
 {
-  DEBUGVERIFY(n25qxxx_command_read(priv->qspi, N25QXXX_READ_STATUS,
-                                  (FAR void *)&priv->readbuf[0], 1));
-  return priv->readbuf[0];
+	DEBUGVERIFY(n25qxxx_command_read(priv->qspi, N25QXXX_READ_STATUS,
+					 (FAR void *)&priv->readbuf[0], 1));
+	return priv->readbuf[0];
 }
 
 /************************************************************************************
@@ -243,22 +242,22 @@ __ramfunc__ uint8_t n25qxxx_read_status(FAR struct n25qxxx_dev_s *priv)
  ************************************************************************************/
 
 __ramfunc__ int n25qxxx_command_read(FAR struct qspi_dev_s *qspi, uint8_t cmd,
-                                FAR void *buffer, size_t buflen)
+				     FAR void *buffer, size_t buflen)
 {
-  struct qspi_cmdinfo_s cmdinfo;
+	struct qspi_cmdinfo_s cmdinfo;
 
-  finfo("CMD: %02x buflen: %lu\n", cmd, (unsigned long)buflen);
+	finfo("CMD: %02x buflen: %lu\n", cmd, (unsigned long)buflen);
 
-  cmdinfo.flags   = QSPICMD_READDATA;
-  cmdinfo.addrlen = 0;
-  cmdinfo.cmd     = cmd;
-  cmdinfo.buflen  = buflen;
-  cmdinfo.addr    = 0;
-  cmdinfo.buffer  = buffer;
+	cmdinfo.flags   = QSPICMD_READDATA;
+	cmdinfo.addrlen = 0;
+	cmdinfo.cmd     = cmd;
+	cmdinfo.buflen  = buflen;
+	cmdinfo.addr    = 0;
+	cmdinfo.buffer  = buffer;
 
-  int rv;
-  rv = qspi_command(qspi, &cmdinfo);
-  return rv;
+	int rv;
+	rv = qspi_command(qspi, &cmdinfo);
+	return rv;
 }
 
 
@@ -268,14 +267,12 @@ __ramfunc__ int n25qxxx_command_read(FAR struct qspi_dev_s *qspi, uint8_t cmd,
 
 __ramfunc__ void n25qxxx_write_enable(FAR struct n25qxxx_dev_s *priv)
 {
-  uint8_t status;
+	uint8_t status;
 
-  do
-    {
-      n25qxxx_command(priv->qspi, N25QXXX_WRITE_ENABLE);
-      status = n25qxxx_read_status(priv);
-    }
-  while ((status & STATUS_WEL_MASK) != STATUS_WEL_ENABLED);
+	do {
+		n25qxxx_command(priv->qspi, N25QXXX_WRITE_ENABLE);
+		status = n25qxxx_read_status(priv);
+	} while ((status & STATUS_WEL_MASK) != STATUS_WEL_ENABLED);
 }
 
 /************************************************************************************
@@ -284,14 +281,12 @@ __ramfunc__ void n25qxxx_write_enable(FAR struct n25qxxx_dev_s *priv)
 
 __ramfunc__ void n25qxxx_write_disable(FAR struct n25qxxx_dev_s *priv)
 {
-  uint8_t status;
+	uint8_t status;
 
-  do
-    {
-      n25qxxx_command(priv->qspi, N25QXXX_WRITE_DISABLE);
-      status = n25qxxx_read_status(priv);
-    }
-  while ((status & STATUS_WEL_MASK) != STATUS_WEL_DISABLED);
+	do {
+		n25qxxx_command(priv->qspi, N25QXXX_WRITE_DISABLE);
+		status = n25qxxx_read_status(priv);
+	} while ((status & STATUS_WEL_MASK) != STATUS_WEL_DISABLED);
 }
 
 /************************************************************************************
@@ -299,99 +294,95 @@ __ramfunc__ void n25qxxx_write_disable(FAR struct n25qxxx_dev_s *priv)
  ************************************************************************************/
 
 __ramfunc__ int n25qxxx_write_page(struct n25qxxx_dev_s *priv, FAR const uint8_t *buffer,
-                             off_t address, size_t buflen)
+				   off_t address, size_t buflen)
 {
-  struct qspi_meminfo_s meminfo;
-  unsigned int pagesize;
-  unsigned int npages;
-  unsigned int firstpagesize = 0;
-  int ret = OK;
-  unsigned int i;
+	struct qspi_meminfo_s meminfo;
+	unsigned int pagesize;
+	unsigned int npages;
+	unsigned int firstpagesize = 0;
+	int ret = OK;
+	unsigned int i;
 
-  finfo("address: %08lx buflen: %u\n", (unsigned long)address, (unsigned)buflen);
+	finfo("address: %08lx buflen: %u\n", (unsigned long)address, (unsigned)buflen);
 
-  pagesize = (1 << priv->pageshift);
+	pagesize = (1 << priv->pageshift);
 
-  /* Set up non-varying parts of transfer description */
+	/* Set up non-varying parts of transfer description */
 
-  meminfo.flags   = QSPIMEM_WRITE;
-  meminfo.cmd     = N25QXXX_PAGE_PROGRAM;
-  meminfo.addrlen = 3;
-  meminfo.dummies = 0;
-  meminfo.buffer = (void *)buffer;
+	meminfo.flags   = QSPIMEM_WRITE;
+	meminfo.cmd     = N25QXXX_PAGE_PROGRAM;
+	meminfo.addrlen = 3;
+	meminfo.dummies = 0;
+	meminfo.buffer = (void *)buffer;
 
-  if(0 != (address % pagesize)) {
-      firstpagesize = pagesize - (address % pagesize);
-  }
+	if (0 != (address % pagesize)) {
+		firstpagesize = pagesize - (address % pagesize);
+	}
 
-  if(buflen <= firstpagesize) {
-      meminfo.addr   = address;
-      meminfo.buflen  = buflen;
-      ret = n25qxxx_write_one_page(priv, &meminfo);
+	if (buflen <= firstpagesize) {
+		meminfo.addr   = address;
+		meminfo.buflen  = buflen;
+		ret = n25qxxx_write_one_page(priv, &meminfo);
 
-  } else {
+	} else {
 
-    if(firstpagesize > 0)
-    {
-      meminfo.addr   = address;
-      meminfo.buflen  = firstpagesize;
-      ret = n25qxxx_write_one_page(priv, &meminfo);
+		if (firstpagesize > 0) {
+			meminfo.addr   = address;
+			meminfo.buflen  = firstpagesize;
+			ret = n25qxxx_write_one_page(priv, &meminfo);
 
-      buffer  += firstpagesize;
-      address += firstpagesize;
-      buflen -= firstpagesize;
-    }
+			buffer  += firstpagesize;
+			address += firstpagesize;
+			buflen -= firstpagesize;
+		}
 
-    npages   = (buflen >> priv->pageshift);
+		npages   = (buflen >> priv->pageshift);
 
-    meminfo.buflen  = pagesize;
+		meminfo.buflen  = pagesize;
 
-    /* Then write each page */
+		/* Then write each page */
 
-    for (i = 0; (i < npages) && (ret == OK); i++)
-    {
-      /* Set up varying parts of the transfer description */
+		for (i = 0; (i < npages) && (ret == OK); i++) {
+			/* Set up varying parts of the transfer description */
 
-      meminfo.addr   = address;
-      meminfo.buffer = (void *)buffer;
+			meminfo.addr   = address;
+			meminfo.buffer = (void *)buffer;
 
-      ret = n25qxxx_write_one_page(priv, &meminfo);
+			ret = n25qxxx_write_one_page(priv, &meminfo);
 
-      /* Update for the next time through the loop */
+			/* Update for the next time through the loop */
 
-      buffer  += pagesize;
-      address += pagesize;
-      buflen  -= pagesize;
-    }
+			buffer  += pagesize;
+			address += pagesize;
+			buflen  -= pagesize;
+		}
 
-    if ((ret == OK) && (buflen > 0))
-    {
-      meminfo.addr   = address;
-      meminfo.buffer = (void *)buffer;
-      meminfo.buflen = buflen;
+		if ((ret == OK) && (buflen > 0)) {
+			meminfo.addr   = address;
+			meminfo.buffer = (void *)buffer;
+			meminfo.buflen = buflen;
 
-      ret = n25qxxx_write_one_page(priv, &meminfo);
-    }
-  }
+			ret = n25qxxx_write_one_page(priv, &meminfo);
+		}
+	}
 
-  return ret;
+	return ret;
 }
 
-__ramfunc__ int n25qxxx_write_one_page(struct n25qxxx_dev_s *priv,struct qspi_meminfo_s *meminfo)
+__ramfunc__ int n25qxxx_write_one_page(struct n25qxxx_dev_s *priv, struct qspi_meminfo_s *meminfo)
 {
-    int ret;
+	int ret;
 
-    n25qxxx_write_enable(priv);
-    ret = qspi_memory(priv->qspi, meminfo);
-    n25qxxx_write_disable(priv);
+	n25qxxx_write_enable(priv);
+	ret = qspi_memory(priv->qspi, meminfo);
+	n25qxxx_write_disable(priv);
 
-    if (ret < 0)
-    {
-        ferr("ERROR: QSPI_MEMORY failed writing address=%06x\n",
-        meminfo->addr);
-    }
+	if (ret < 0) {
+		ferr("ERROR: QSPI_MEMORY failed writing address=%06x\n",
+		     meminfo->addr);
+	}
 
-    return ret;
+	return ret;
 }
 
 /************************************************************************************
@@ -400,41 +391,40 @@ __ramfunc__ int n25qxxx_write_one_page(struct n25qxxx_dev_s *priv,struct qspi_me
 
 __ramfunc__ int n25qxxx_erase_sector(struct n25qxxx_dev_s *priv, off_t sector)
 {
-  off_t address;
-  uint8_t status;
+	off_t address;
+	uint8_t status;
 
-  finfo("sector: %08lx\n", (unsigned long)sector);
+	finfo("sector: %08lx\n", (unsigned long)sector);
 
-  /* Check that the flash is ready and unprotected */
+	/* Check that the flash is ready and unprotected */
 
-  status = n25qxxx_read_status(priv);
-  if ((status & STATUS_BUSY_MASK) != STATUS_READY)
-    {
-      ferr("ERROR: Flash busy: %02x", status);
-      return -EBUSY;
-    }
+	status = n25qxxx_read_status(priv);
 
-  /* Get the address associated with the sector */
+	if ((status & STATUS_BUSY_MASK) != STATUS_READY) {
+		ferr("ERROR: Flash busy: %02x", status);
+		return -EBUSY;
+	}
 
-  address = (off_t)sector << priv->sectorshift;
+	/* Get the address associated with the sector */
 
-  if ((status & (STATUS_BP3_MASK|STATUS_BP_MASK)) != 0 &&
-      n25qxxx_isprotected(priv, status, address))
-    {
-      ferr("ERROR: Flash protected: %02x", status);
-      return -EACCES;
-    }
+	address = (off_t)sector << priv->sectorshift;
 
-  /* Send the sector erase command */
+	if ((status & (STATUS_BP3_MASK | STATUS_BP_MASK)) != 0 &&
+	    n25qxxx_isprotected(priv, status, address)) {
+		ferr("ERROR: Flash protected: %02x", status);
+		return -EACCES;
+	}
 
-  n25qxxx_write_enable(priv);
-  n25qxxx_command_address(priv->qspi, N25QXXX_SUBSECTOR_ERASE, address, 3);
+	/* Send the sector erase command */
 
-  /* Wait for erasure to finish */
+	n25qxxx_write_enable(priv);
+	n25qxxx_command_address(priv->qspi, N25QXXX_SUBSECTOR_ERASE, address, 3);
 
-  while ((n25qxxx_read_status(priv) & STATUS_BUSY_MASK) != 0);
+	/* Wait for erasure to finish */
 
-  return OK;
+	while ((n25qxxx_read_status(priv) & STATUS_BUSY_MASK) != 0);
+
+	return OK;
 }
 
 /************************************************************************************
@@ -442,54 +432,51 @@ __ramfunc__ int n25qxxx_erase_sector(struct n25qxxx_dev_s *priv, off_t sector)
  ************************************************************************************/
 
 __ramfunc__ bool n25qxxx_isprotected(FAR struct n25qxxx_dev_s *priv, uint8_t status,
-                               off_t address)
+				     off_t address)
 {
-  off_t protstart;
-  off_t protend;
-  off_t protsize;
-  unsigned int bp;
+	off_t protstart;
+	off_t protend;
+	off_t protsize;
+	unsigned int bp;
 
-  /* The BP field is spread across non-contiguous bits */
+	/* The BP field is spread across non-contiguous bits */
 
-  bp = (status & STATUS_BP_MASK) >> STATUS_BP_SHIFT;
-  if (status & STATUS_BP3_MASK)
-    {
-      bp |= 8;
-    }
+	bp = (status & STATUS_BP_MASK) >> STATUS_BP_SHIFT;
 
-  /* the BP field is essentially the power-of-two of the number of 64k sectors,
-   * saturated to the device size.
-   */
+	if (status & STATUS_BP3_MASK) {
+		bp |= 8;
+	}
 
-  if ( 0 == bp )
-    {
-      return false;
-    }
+	/* the BP field is essentially the power-of-two of the number of 64k sectors,
+	* saturated to the device size.
+	*/
 
-  protsize = 0x00010000;
-  protsize <<= (protsize << (bp - 1));
-  protend = (1 << priv->sectorshift) * priv->nsectors;
-  if ( protsize > protend )
-    {
-      protsize = protend;
-    }
+	if (0 == bp) {
+		return false;
+	}
 
-  /* The final protection range then depends on if the protection region is
-   * configured top-down or bottom up  (assuming CMP=0).
-   */
+	protsize = 0x00010000;
+	protsize <<= (protsize << (bp - 1));
+	protend = (1 << priv->sectorshift) * priv->nsectors;
 
-  if ((status & STATUS_TB_MASK) != 0)
-    {
-      protstart = 0x00000000;
-      protend   = protstart + protsize;
-    }
-  else
-    {
-      protstart = protend - protsize;
-      /* protend already computed above */
-    }
+	if (protsize > protend) {
+		protsize = protend;
+	}
 
-  return (address >= protstart && address < protend);
+	/* The final protection range then depends on if the protection region is
+	* configured top-down or bottom up  (assuming CMP=0).
+	*/
+
+	if ((status & STATUS_TB_MASK) != 0) {
+		protstart = 0x00000000;
+		protend   = protstart + protsize;
+
+	} else {
+		protstart = protend - protsize;
+		/* protend already computed above */
+	}
+
+	return (address >= protstart && address < protend);
 }
 
 /************************************************************************************
@@ -497,20 +484,20 @@ __ramfunc__ bool n25qxxx_isprotected(FAR struct n25qxxx_dev_s *priv, uint8_t sta
  ************************************************************************************/
 
 __ramfunc__  int n25qxxx_command_address(FAR struct qspi_dev_s *qspi, uint8_t cmd,
-                                  off_t addr, uint8_t addrlen)
+		off_t addr, uint8_t addrlen)
 {
-  struct qspi_cmdinfo_s cmdinfo;
+	struct qspi_cmdinfo_s cmdinfo;
 
-  finfo("CMD: %02x Address: %04lx addrlen=%d\n", cmd, (unsigned long)addr, addrlen);
+	finfo("CMD: %02x Address: %04lx addrlen=%d\n", cmd, (unsigned long)addr, addrlen);
 
-  cmdinfo.flags   = QSPICMD_ADDRESS;
-  cmdinfo.addrlen = addrlen;
-  cmdinfo.cmd     = cmd;
-  cmdinfo.buflen  = 0;
-  cmdinfo.addr    = addr;
-  cmdinfo.buffer  = NULL;
+	cmdinfo.flags   = QSPICMD_ADDRESS;
+	cmdinfo.addrlen = addrlen;
+	cmdinfo.cmd     = cmd;
+	cmdinfo.buflen  = 0;
+	cmdinfo.addr    = addr;
+	cmdinfo.buffer  = NULL;
 
-  int rv;
-  rv = qspi_command(qspi, &cmdinfo);
-  return rv;
+	int rv;
+	rv = qspi_command(qspi, &cmdinfo);
+	return rv;
 }

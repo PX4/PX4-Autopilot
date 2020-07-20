@@ -240,6 +240,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 		return ret;
 	}
+
 #endif
 
 	up_udelay(20);
