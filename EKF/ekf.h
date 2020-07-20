@@ -392,8 +392,8 @@ private:
 
 	Vector3f _last_vel_obs;			///< last velocity observation (m/s)
 	Vector2f _last_fail_hvel_innov;		///< last failed horizontal velocity innovation (m/s)**2
-	float _vert_pos_innov_ratio;		///< standard deviation of vertical position innovation
-	uint64_t _vert_pos_fuse_time_us;	///< last system time in usec vertical position measurement fuson was attempted
+	float _vert_pos_innov_ratio;		///< vertical position innovation divided by estimated standard deviation of innovation
+	uint64_t _vert_pos_fuse_attempt_time_us;	///< last system time in usec vertical position measurement fuson was attempted
 	float _vert_vel_innov_ratio;		///< standard deviation of vertical velocity innovation
 	uint64_t _vert_vel_fuse_time_us;	///< last system time in usec time vertical velocity measurement fuson was attempted
 
