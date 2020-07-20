@@ -639,12 +639,7 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 	input = _controls[control_group].control[control_index];
 
 	/* limit control input */
-	if (input > 1.0f) {
-		input = 1.0f;
-
-	} else if (input < -1.0f) {
-		input = -1.0f;
-	}
+	input = math::constrain(input, -1.f, 1.f);
 
 	/* throttle not arming - mark throttle input as invalid */
 	if (_armed.prearmed && !_armed.armed) {
