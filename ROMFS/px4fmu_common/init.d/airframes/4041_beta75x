@@ -53,8 +53,6 @@ then
 	param set MOT_ORDERING 1
 	param set DSHOT_CONFIG 600
 
-	param set RC_FLT_CUTOFF 0
-
 	param set SYS_HAS_BARO 0
 	param set SYS_HAS_MAG 0
 

@@ -57,9 +57,6 @@ then
 	#param set MPC_MAN_TILT_MAX 35
 	#param set MPC_TILTMAX_AIR 20
 
-	# Disable RC filtering
-	param set RC_FLT_CUTOFF 0
-
 	# Filter settings
 	param set IMU_DGYRO_CUTOFF 90
 	param set IMU_GYRO_CUTOFF 100
