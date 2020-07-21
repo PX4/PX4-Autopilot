@@ -304,6 +304,30 @@ MultirotorMixer::mix_airmode_rp(float roll, float pitch, float yaw, float thrust
 }
 
 void
+MultirotorMixer::mix_airmode_rp(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust,
+				float *outputs)
+{
+	// Airmode for roll and pitch, but not yaw in 6-DoF vehicles
+
+	// Mix without yaw
+	for (unsigned i = 0; i < _rotor_count; i++) {
+		outputs[i] = roll * _rotors_6dof[i].roll_scale +
+			     pitch * _rotors_6dof[i].pitch_scale +
+			     x_thrust * _rotors_6dof[i].x_scale +
+			     y_thrust * _rotors_6dof[i].y_scale +
+			     z_thrust * _rotors_6dof[i].z_scale;
+
+		// Z thrust will be used to unsaturate if needed
+		_tmp_array[i] = math::abs_t<float>(_rotors_6dof[i].z_scale);
+	}
+
+	minimize_saturation(_tmp_array, outputs, _saturation_status);
+
+	// Mix yaw independently
+	mix_yaw(yaw, outputs);
+}
+
+void
 MultirotorMixer::mix_airmode_rpy(float roll, float pitch, float yaw, float thrust, float *outputs)
 {
 	// Airmode for roll, pitch and yaw
@@ -458,11 +482,21 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		}
 
 	} else { // if is 6-DoF vehicle
+		// Do the mixing using the strategy given by the current Airmode configuration
 		float x_thrust  = math::constrain(get_control(0, 8), -1.0f, 1.0f);
 		float y_thrust  = math::constrain(get_control(0, 9), -1.0f, 1.0f);
 		float z_thrust  = math::constrain(get_control(0, 10), -1.0f, 1.0f);
 
-		mix_airmode_disabled(roll, pitch, yaw, x_thrust, y_thrust, z_thrust, outputs);
+		switch (_airmode) {
+		case Airmode::roll_pitch:
+			mix_airmode_rp(roll, pitch, yaw, x_thrust, y_thrust, z_thrust, outputs);
+			break;
+
+		case Airmode::disabled:
+		default: // just in case: default to disabled
+			mix_airmode_disabled(roll, pitch, yaw, x_thrust, y_thrust, z_thrust, outputs);
+			break;
+		}
 	}
 
 	// Apply thrust model and scale outputs to range [idle_speed, 1].

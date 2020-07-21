@@ -258,6 +258,16 @@ private:
 	inline void mix_airmode_rp(float roll, float pitch, float yaw, float thrust, float *outputs);
 
 	/**
+	 * Mix roll, pitch, yaw, x_thrust, y_thrust, z_thrust and set the outputs vector for 6-DoF vehicles.
+	 *
+	 * Desaturation behavior: airmode for roll/pitch:
+	 * thrust is increased/decreased as much as required to meet the demanded roll/pitch.
+	 * Yaw is not allowed to increase the thrust, @see mix_yaw() for the exact behavior.
+	 */
+	inline void mix_airmode_rp(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust,
+				   float *outputs);
+
+	/**
 	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
 	 *
 	 * Desaturation behavior: full airmode for roll/pitch/yaw:
@@ -282,7 +292,6 @@ private:
 	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
 	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
 	 * Thrust can be reduced to unsaturate the upper side.
-	 * This is the only airmode available for 6-DoF vehicles.
 	 * @see mix_yaw() for the exact yaw behavior.
 	 */
 	inline void mix_airmode_disabled(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust,
