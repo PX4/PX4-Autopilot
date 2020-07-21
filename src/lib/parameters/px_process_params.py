@@ -84,6 +84,12 @@ def main():
                         metavar="FILENAME",
                         help="Create Markdown file"
                              " (default FILENAME: parameters.md)")
+    parser.add_argument("-j", "--json",
+                        nargs='?',
+                        const="parameters.json",
+                        metavar="FILENAME",
+                        help="Create Json file"
+                             " (default FILENAME: parameters.json)")
     parser.add_argument('-v', '--verbose',
                         action='store_true',
                         help="verbose output")
@@ -95,7 +101,7 @@ def main():
     args = parser.parse_args()
 
     # Check for valid command
-    if not (args.xml or args.markdown):
+    if not (args.xml or args.markdown or args.json):
         print("Error: You need to specify at least one output method!\n")
         parser.print_usage()
         sys.exit(1)
@@ -148,6 +154,12 @@ def main():
             print("Creating markdown file " + args.markdown)
             out.Save(args.markdown)
 
+    # Output to JSON file
+    if args.json:
+        out = markdownout.MarkdownTablesOutput(param_groups)
+        if args.json:
+            print("Creating json file " + args.json)
+            out.Save(args.json)
     #print("All done!")
 
 
