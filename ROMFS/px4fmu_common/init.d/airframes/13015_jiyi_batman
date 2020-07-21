@@ -6,7 +6,6 @@
 # @class VTOL
 #
 # @maintainer Stone White <stone@thone.io>
-# @creator Yu Liu <lydoraemon@gmail.com>
 #
 # @output MAIN1 Motor right
 # @output MAIN2 Motor left
@@ -27,8 +26,11 @@ if [ $AUTOCNF = yes ]
 then
 	param set CBRK_AIRSPD_CHK 162128
 
-	param set FW_ARSP_MODE 2
+	param set BAT_N_CELLS 4
+	param set BAT_A_PER_V 36.36
+	param set BAT_V_DIV  18.18
 
+	param set FW_ARSP_MODE 2
 	param set FW_L1_PERIOD 17
 	param set FW_MAN_R_MAX 50
 	param set FW_ACRO_X_MAX   270
@@ -36,7 +38,6 @@ then
 	param set FW_ACRO_Z_MAX   180
 	param set FW_PR_FF    0.5
 	param set FW_PR_P 0.08
-	param set FW_PSP_OFF  5
 	param set FW_P_LIM_MAX    30
 	param set FW_P_LIM_MIN    -30
 	param set FW_P_RMAX_NEG   60
@@ -56,18 +57,13 @@ then
 	param set MC_ROLL_P 6
 	param set MC_YAWRATE_D 0.03
 	param set MC_YAWRATE_FF 0.15
-	param set MC_YAWRATE_MAX 120.0
+	param set MC_YAWRATE_MAX 120
 	param set MC_YAWRATE_P 0.4
-	param set MC_YAW_P 2.0
-
+	param set MC_YAW_P 2
 
 	param set MPC_LAND_SPEED 1.2
 	param set MPC_TKO_SPEED 2.5
 	param set MPC_Z_VEL_MAX_UP 3
-
-	param set BAT_N_CELLS 4
-	param set BAT_A_PER_V 36.36
-	param set BAT_V_DIV  18.18
 
 	param set VT_B_TRANS_DUR  2
 	param set VT_DWN_PITCH_MAX 3
