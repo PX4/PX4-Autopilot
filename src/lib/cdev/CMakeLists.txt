@@ -39,7 +39,6 @@ if (${PX4_PLATFORM} STREQUAL "nuttx")
 else()
 	list(APPEND SRCS_PLATFORM
 		posix/cdev_platform.cpp
-		posix/vfile.cpp
 	)
 endif()
 
