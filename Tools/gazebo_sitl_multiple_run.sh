@@ -91,7 +91,7 @@ if [ -z ${SCRIPT} ]; then
 	fi
 
 	while [ $n -lt $num_vehicles ]; do
-		spawn_model ${PX4_SIM_MODEL} $n
+		spawn_model ${VEHICLE_MODEL:=iris} $n
 		n=$(($n + 1))
 	done
 else
