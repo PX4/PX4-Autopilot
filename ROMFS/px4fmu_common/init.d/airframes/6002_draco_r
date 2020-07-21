@@ -75,9 +75,6 @@ then
 	param set MPC_TKO_SPEED 1.5
 	param set MPC_VEL_MANUAL 5
 
-	# Disable RC filtering
-	param set RC_FLT_CUTOFF 0
-
 	# Filter settings
 	param set IMU_DGYRO_CUTOFF 90
 	param set IMU_GYRO_CUTOFF 100
