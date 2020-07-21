@@ -109,7 +109,6 @@ then
 
 	# use oneshot motor output protocol
 	param set PWM_RATE 0
-	param set RC_FLT_CUTOFF 0
 
 	# RTL Parameters
 	param set RTL_DESCEND_ALT 5

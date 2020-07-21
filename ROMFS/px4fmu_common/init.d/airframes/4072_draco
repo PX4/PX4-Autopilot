@@ -63,9 +63,6 @@ then
 	param set MPC_THR_CURVE 1
 	param set MPC_THR_HOVER 0.25
 
-	# Disable RC filtering
-	param set RC_FLT_CUTOFF 0
-
 	# Thrust curve (avoids the need for TPA)
 	param set THR_MDL_FAC 0.3
 
