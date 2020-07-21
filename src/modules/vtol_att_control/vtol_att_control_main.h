@@ -213,6 +213,8 @@ private:
 		param_t mpc_land_alt2;
 	} _params_handles{};
 
+	hrt_abstime _last_run_timestamp{0};
+
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
