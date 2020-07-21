@@ -47,7 +47,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4params import srcscanner, srcparser, injectxmlparams, xmlout, markdownout
+from px4params import srcscanner, srcparser, injectxmlparams, xmlout, markdownout, jsonout
 
 import re
 import json
@@ -156,7 +156,7 @@ def main():
 
     # Output to JSON file
     if args.json:
-        out = markdownout.MarkdownTablesOutput(param_groups)
+        out = jsonout.JsonOutput(param_groups)
         if args.json:
             print("Creating json file " + args.json)
             out.Save(args.json)
