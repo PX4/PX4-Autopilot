@@ -131,6 +131,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 
 		# PX4 gazebo simulation dependencies
 		sudo pacman -S --noconfirm --needed \
+			dmidecode \
 			eigen3 \
 			hdf5 \
 			opencv \
