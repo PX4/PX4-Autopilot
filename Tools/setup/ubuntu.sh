@@ -196,6 +196,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
 	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		dmidecode \
 		gazebo9 \
 		gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-base \
