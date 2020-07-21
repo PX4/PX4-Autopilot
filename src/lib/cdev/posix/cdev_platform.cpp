@@ -102,7 +102,7 @@ static cdev::CDev *getFile(int fd)
 	pthread_mutex_lock(&filemutex);
 	cdev::CDev *dev = nullptr;
 
-	if (fd < PX4_MAX_FD && fd >= 0 && filemap[fd].cdev) {
+	if (fd < PX4_MAX_FD && fd >= 0) {
 		dev = filemap[fd].cdev;
 	}
 
