@@ -105,8 +105,11 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 			fi
 		fi
 		SIM_PID=$!
-		gz model --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83
 
+		if gz model --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep "An instance of Gazebo is not running."; then
+			echo "Start of gzserver failed"
+			exit 1
+        fi
 
 		if [[ -n "$HEADLESS" ]]; then
 			echo "not running gazebo gui"
