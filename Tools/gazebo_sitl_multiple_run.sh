@@ -53,7 +53,7 @@ do
 	case "${option}"
 	in
 		n) NUM_VEHICLES=${OPTARG};;
-		m) VEHICLE_MODEL=${OPTARG};;
+		m) VEHICLE_MODEL=${OPTARG:=iris};;
 		w) WORLD=${OPTARG};;
 		s) SCRIPT=${OPTARG};;
 	esac
@@ -91,7 +91,7 @@ if [ -z ${SCRIPT} ]; then
 	fi
 
 	while [ $n -lt $num_vehicles ]; do
-		spawn_model ${VEHICLE_MODEL:=iris} $n
+		spawn_model ${VEHICLE_MODEL} $n
 		n=$(($n + 1))
 	done
 else
