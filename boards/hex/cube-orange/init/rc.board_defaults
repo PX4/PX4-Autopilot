@@ -36,3 +36,4 @@ then
 fi
 
 set LOGGER_BUF 64
+set IOFW "/etc/extras/hex_io-v2_default.bin"
