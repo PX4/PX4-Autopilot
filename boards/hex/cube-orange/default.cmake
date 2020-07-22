@@ -8,7 +8,7 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	BUILD_BOOTLOADER
-	IO px4_io-v2_default
+	IO hex_io-v2_default
 	TESTING
 	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
