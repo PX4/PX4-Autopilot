@@ -9,7 +9,7 @@ sh /etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF = yes ]
 then
-	param set FW_ARSP_MODE 2
+	param set FW_ARSP_MODE 1
 	param set FW_AIRSPD_MAX 25
 	param set FW_AIRSPD_MIN 14
 	param set FW_AIRSPD_TRIM 16
