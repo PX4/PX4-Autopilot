@@ -1,6 +1,7 @@
 from xml.sax.saxutils import escape
 import codecs
 import json
+import gzip #to create .gz file of json
 
 
 class JsonOutput():
@@ -60,4 +61,9 @@ class JsonOutput():
 
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:
+            f.write(self.output)
+
+        #create gz version
+        gz_filename=filename+'.gz'
+        with gzip.open(gz_filename, 'wt') as f:
             f.write(self.output)
