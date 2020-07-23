@@ -138,6 +138,16 @@ PARAM_DEFINE_INT32(RTL_TYPE, 0);
 PARAM_DEFINE_INT32(RTL_CONE_ANG, 45);
 
 /**
+ * Maximum allowed RTL flight in minutes
+ *
+ * This is used to determine when the vehicle should be switched to RTL due to low battery.
+ * Note, particularly for multirotors this should reflect flight time at cruise speed, not while stationary
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(RTL_FLT_TIME, 15);
+
+/**
  * RTL precision land mode
  *
  * Use precision landing when doing an RTL landing phase.

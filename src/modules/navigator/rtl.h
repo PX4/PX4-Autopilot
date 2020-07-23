@@ -46,7 +46,11 @@
 #include "navigator_mode.h"
 #include "mission_block.h"
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/rtl_flight_time.h>
+#include <uORB/topics/wind_estimate.h>
+#include <matrix/math.hpp>
 
 class Navigator;
 
@@ -100,6 +104,8 @@ private:
 	 */
 	void advance_rtl();
 
+	void get_rtl_xy_z_speed(uint8_t vehicle_type, float &xy, float &z);
+	matrix::Vector2f get_wind();
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
 
@@ -150,6 +156,21 @@ private:
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
 		(ParamInt<px4::params::RTL_CONE_ANG>) _param_rtl_cone_half_angle_deg,
+		(ParamFloat<px4::params::RTL_FLT_TIME>) _param_rtl_flt_time,
 		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
 	)
+
+	// These need to point at different parameters depending on vehicle type.
+	// Can't hard-code them because we have non-MC/FW/Rover builds
+	uint8_t _rtl_vehicle_type{255};
+	param_t _rtl_xy_speed;
+	param_t _rtl_descent_speed;
+
+	uORB::SubscriptionData<wind_estimate_s>		_wind_estimate_sub{ORB_ID(wind_estimate)};
+	uORB::PublicationData<rtl_flight_time_s>	_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
 };
+
+float time_to_home(const matrix::Vector3f &vehicle_local_pos,
+		   const matrix::Vector3f &rtl_point_local_pos,
+		   const matrix::Vector2f &wind_velocity, float vehicle_speed_m_s,
+		   float vehicle_descent_speed_m_s);
