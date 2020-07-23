@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2013-2020 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,6 @@
  */
 
 #include "ecl_pitch_controller.h"
-#include <math.h>
 #include <float.h>
 #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
@@ -53,7 +52,6 @@ float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_da
 	      PX4_ISFINITE(ctl_data.pitch) &&
 	      PX4_ISFINITE(ctl_data.airspeed))) {
 
-		PX4_WARN("not controlling pitch");
 		return _rate_setpoint;
 	}
 
@@ -93,11 +91,13 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 		lock_integrator = true;
 	}
 
+	/* Calculate body angular rate error */
 	_rate_error = _bodyrate_setpoint - ctl_data.body_y_rate;
 
 	if (!lock_integrator && _k_i > 0.0f) {
 
-		float id = _rate_error * dt * ctl_data.scaler;
+		/* Integral term scales with 1/IAS^2 */
+		float id = _rate_error * dt * ctl_data.scaler * ctl_data.scaler;
 
 		/*
 		 * anti-windup: do not allow integrator to increase if actuator is at limit
@@ -116,9 +116,10 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 	}
 
 	/* Apply PI rate controller and store non-limited output */
+	/* FF terms scales with 1/TAS and P,I with 1/IAS^2 */
 	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler +
 		       _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler
-		       + _integrator;  //scaler is proportional to 1/airspeed
+		       + _integrator;
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }

@@ -51,6 +51,7 @@
 #include <uORB/Publication.hpp>
 
 using namespace matrix;
+using namespace time_literals;
 
 VtolAttitudeControl::VtolAttitudeControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -197,9 +198,9 @@ VtolAttitudeControl::is_fixed_wing_requested()
 {
 	bool to_fw = false;
 
-	if (_manual_control_sp.transition_switch != manual_control_setpoint_s::SWITCH_POS_NONE &&
+	if (_manual_control_setpoint.transition_switch != manual_control_setpoint_s::SWITCH_POS_NONE &&
 	    _v_control_mode.flag_control_manual_enabled) {
-		to_fw = (_manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+		to_fw = (_manual_control_setpoint.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON);
 
 	} else {
 		// listen to transition commands if not in manual or mode switch is not mapped
@@ -274,12 +275,14 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.front_trans_time_min, &_params.front_trans_time_min);
 
 	/*
-	 * Minimum transition time can be maximum 90 percent of the open loop transition time,
+	 * Open loop transition time needs to be larger than minimum transition time,
 	 * anything else makes no sense and can potentially lead to numerical problems.
 	 */
-	_params.front_trans_time_min = math::min(_params.front_trans_time_openloop * 0.9f,
-				       _params.front_trans_time_min);
-
+	if (_params.front_trans_time_openloop < _params.front_trans_time_min * 1.1f) {
+		_params.front_trans_time_openloop = _params.front_trans_time_min * 1.1f;
+		param_set_no_notification(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
+		mavlink_log_critical(&_mavlink_log_pub, "OL transition time set larger than min transition time");
+	}
 
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
 	param_get(_params_handles.back_trans_duration, &_params.back_trans_duration);
@@ -340,6 +343,19 @@ VtolAttitudeControl::Run()
 		return;
 	}
 
+	const hrt_abstime now = hrt_absolute_time();
+
+#if !defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+	// prevent excessive scheduling (> 500 Hz)
+	if (now - _last_run_timestamp < 2_ms) {
+		return;
+	}
+
+#endif // !ENABLE_LOCKSTEP_SCHEDULER
+
+	_last_run_timestamp = now;
+
 	if (!_initialized) {
 		parameters_update();  // initialize parameter cache
 
@@ -387,7 +403,7 @@ VtolAttitudeControl::Run()
 		}
 
 		_v_control_mode_sub.update(&_v_control_mode);
-		_manual_control_sp_sub.update(&_manual_control_sp);
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_v_att_sub.update(&_v_att);
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);

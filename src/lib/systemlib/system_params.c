@@ -70,6 +70,11 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
  * or Simulation-In-Hardware (SIH) mode and not enable all sensors and checks.
  * When disabled the same vehicle can be flown normally.
  *
+ * Set to 'external HITL', if the system should perform as if it were a real
+ * vehicle (the only difference to a real system is then only the parameter
+ * value, which can be used for log analysis).
+ *
+ * @value -1 external HITL
  * @value 0 HITL and SIH disabled
  * @value 1 HITL enabled
  * @value 2 SIH enabled

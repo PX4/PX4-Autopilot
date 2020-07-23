@@ -34,7 +34,6 @@
 set(srcs
 	test_adc.cpp
 	test_atomic_bitset.cpp
-	test_autodeclination.cpp
 	test_bezierQuad.cpp
 	test_bitset.cpp
 	test_bson.cpp
@@ -53,6 +52,7 @@ set(srcs
 	test_List.cpp
 	test_mathlib.cpp
 	test_matrix.cpp
+	test_microbench_atomic.cpp
 	test_microbench_hrt.cpp
 	test_microbench_math.cpp
 	test_microbench_matrix.cpp
@@ -99,6 +99,7 @@ px4_add_module(
 		-Wno-unused-result
 		-Wno-unused-variable
 		-Wno-vla-larger-than
+		-Wno-unused-but-set-parameter
 	SRCS
 		${srcs}
 	DEPENDS

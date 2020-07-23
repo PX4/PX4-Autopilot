@@ -80,7 +80,6 @@ const struct {
 
 	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"atomic_bitset",	test_atomic_bitset,	0},
-	{"autodeclination",	test_autodeclination,	0},
 	{"bezier",		test_bezierQuad,	0},
 	{"bitset",		test_bitset,		0},
 	{"bson",		test_bson,		0},
@@ -97,6 +96,7 @@ const struct {
 	{"List",		test_List,		0},
 	{"mathlib",		test_mathlib,		0},
 	{"matrix",		test_matrix,		0},
+	{"microbench_atomic",	test_microbench_atomic,	0},
 	{"microbench_hrt",	test_microbench_hrt,	0},
 	{"microbench_math",	test_microbench_math,	0},
 	{"microbench_matrix",	test_microbench_matrix,	0},

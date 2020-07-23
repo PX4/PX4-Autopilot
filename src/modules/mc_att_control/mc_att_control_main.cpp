@@ -136,10 +136,10 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	if (reset_yaw_sp) {
 		_man_yaw_sp = yaw;
 
-	} else if (_manual_control_sp.z > 0.05f || _param_mc_airmode.get() == (int32_t)Mixer::Airmode::roll_pitch_yaw) {
+	} else if (_manual_control_setpoint.z > 0.05f || _param_mc_airmode.get() == (int32_t)Mixer::Airmode::roll_pitch_yaw) {
 
 		const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
-		attitude_setpoint.yaw_sp_move_rate = _manual_control_sp.r * yaw_rate;
+		attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.r * yaw_rate;
 		_man_yaw_sp = wrap_pi(_man_yaw_sp + attitude_setpoint.yaw_sp_move_rate * dt);
 	}
 
@@ -155,8 +155,8 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	 */
 	_man_x_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
 	_man_y_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
-	_man_x_input_filter.update(_manual_control_sp.x * _man_tilt_max);
-	_man_y_input_filter.update(_manual_control_sp.y * _man_tilt_max);
+	_man_x_input_filter.update(_manual_control_setpoint.x * _man_tilt_max);
+	_man_y_input_filter.update(_manual_control_setpoint.y * _man_tilt_max);
 	const float x = _man_x_input_filter.getState();
 	const float y = _man_y_input_filter.getState();
 
@@ -219,7 +219,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
+	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.z);
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
@@ -299,7 +299,7 @@ MulticopterAttitudeControl::Run()
 		_last_run = now;
 
 		/* check for updates in other topics */
-		_manual_control_sp_sub.update(&_manual_control_sp);
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_v_control_mode_sub.update(&_v_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 		_vehicle_status_sub.update(&_vehicle_status);
@@ -309,8 +309,8 @@ MulticopterAttitudeControl::Run()
 		* even bother running the attitude controllers */
 		if (_v_control_mode.flag_control_rattitude_enabled) {
 			_v_control_mode.flag_control_attitude_enabled =
-				fabsf(_manual_control_sp.y) <= _param_mc_ratt_th.get() &&
-				fabsf(_manual_control_sp.x) <= _param_mc_ratt_th.get();
+				fabsf(_manual_control_setpoint.y) <= _param_mc_ratt_th.get() &&
+				fabsf(_manual_control_setpoint.x) <= _param_mc_ratt_th.get();
 		}
 
 		bool attitude_setpoint_generated = false;

@@ -8,9 +8,9 @@ px4_add_board(
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	BUILD_BOOTLOADER
-	IO px4_io-v2_default
+	IO hex_io-v2_default
 	TESTING
-	UAVCAN_INTERFACES 2 # - No H7 or FD can support in UAVCAN
+	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
 		# IO DEBUG:/dev/ttyS0
 		TEL1:/dev/ttyS1
@@ -33,7 +33,6 @@ px4_add_board(
 		imu/adis16448
 		imu/adis16477
 		imu/adis16497
-		imu/bmi088
 		imu/invensense/icm20602
 		imu/invensense/icm20649
 		imu/invensense/icm20948
@@ -56,7 +55,7 @@ px4_add_board(
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
-#		uavcan - No H7 or FD can support in UAVCAN yet
+		uavcan
 	MODULES
 		airspeed_selector
 		attitude_estimator_q

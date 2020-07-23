@@ -41,16 +41,15 @@
 
 #include "parameters.h"
 
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
+#include "data_validator/DataValidator.hpp"
+#include "data_validator/DataValidatorGroup.hpp"
+
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
-#include <lib/ecl/validation/data_validator.h>
-#include <lib/ecl/validation/data_validator_group.h>
 #include <lib/mag_compensation/MagCompensation.hpp>
 
 #include <uORB/Publication.hpp>
@@ -185,6 +184,7 @@ private:
 	SensorData _gyro{ORB_ID::sensor_gyro};
 	SensorData _mag{ORB_ID::sensor_mag};
 
+	hrt_abstime _last_error_message{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */

@@ -49,7 +49,7 @@
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 
-static constexpr const char reason_no_rc[] = "no RC";
+static constexpr const char reason_no_rc[] = "No manual control stick input";
 static constexpr const char reason_no_offboard[] = "no offboard";
 static constexpr const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
 static constexpr const char reason_no_local_position[] = "no local position";
@@ -532,8 +532,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
-		} else if (rc_lost && !data_link_loss_act_configured && is_armed) {
-			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
+		} else if (rc_lost && !data_link_loss_act_configured && status->data_link_lost && is_armed) {
+			/* go into failsafe if RC is lost and datalink is lost and datalink loss is not set up */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
@@ -1042,12 +1042,12 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
 				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
 				internal_state->timestamp = hrt_absolute_time();
-				mavlink_log_critical(mavlink_log_pub, "%s, executing RTL", battery_critical);
+				mavlink_log_critical(mavlink_log_pub, "%s, executing RTL", battery_dangerous);
 
 			} else {
 				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 				internal_state->timestamp = hrt_absolute_time();
-				mavlink_log_emergency(mavlink_log_pub, "%s, can't execute RTL, landing instead", battery_critical);
+				mavlink_log_emergency(mavlink_log_pub, "%s, can't execute RTL, landing instead", battery_dangerous);
 			}
 
 			break;
@@ -1058,7 +1058,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		case LOW_BAT_ACTION::LAND:
 			internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 			internal_state->timestamp = hrt_absolute_time();
-			mavlink_log_emergency(mavlink_log_pub, "%s, landing", battery_critical);
+			mavlink_log_emergency(mavlink_log_pub, "%s, landing", battery_dangerous);
 
 			break;
 		}

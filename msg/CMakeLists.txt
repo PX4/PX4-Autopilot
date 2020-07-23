@@ -101,6 +101,7 @@ set(msg_files
 	power_button_state.msg
 	power_monitor.msg
 	pwm_input.msg
+	px4io_status.msg
 	qshell_req.msg
 	qshell_retval.msg
 	radio_status.msg
@@ -120,7 +121,6 @@ set(msg_files
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg
-	servorail_status.msg
 	subsystem_info.msg
 	system_power.msg
 	task_stack_info.msg
@@ -235,6 +235,7 @@ add_custom_command(OUTPUT ${uorb_headers}
 		templates/uorb/msg.h.em
 		templates/uorb/uORBTopics.hpp.em
 		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
@@ -257,6 +258,7 @@ add_custom_command(OUTPUT ${uorb_sources}
 		templates/uorb/msg.cpp.em
 		templates/uorb/uORBTopics.cpp.em
 		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM

@@ -284,12 +284,12 @@ void ISM330DLC::RunImpl()
 
 	perf_end(_transfer_perf);
 
-	PX4Accelerometer::FIFOSample accel;
+	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = samples;
 	accel.dt = 1000000 / ST_ISM330DLC::LA_ODR;
 
-	PX4Gyroscope::FIFOSample gyro;
+	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = 1000000 / ST_ISM330DLC::G_ODR;
@@ -339,6 +339,4 @@ void ISM330DLC::print_status()
 	perf_print_counter(_drdy_count_perf);
 	perf_print_counter(_drdy_interval_perf);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }

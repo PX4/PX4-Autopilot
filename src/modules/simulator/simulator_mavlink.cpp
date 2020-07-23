@@ -193,11 +193,13 @@ void Simulator::send_controls()
 
 void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
+	float temperature = NAN;
+
 	// temperature only updated with baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
-		float temperature = sensors.temperature;
+		if (PX4_ISFINITE(sensors.temperature)) {
+			temperature = sensors.temperature;
 
-		if (PX4_ISFINITE(temperature)) {
 			_px4_accel.set_temperature(temperature);
 			_px4_baro.set_temperature(temperature);
 			_px4_gyro.set_temperature(temperature);
@@ -229,7 +231,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_param_sim_dpres_block.get()) {
 		differential_pressure_s report{};
 		report.timestamp = time;
-		report.temperature = sensors.temperature;
+		report.temperature = temperature;
 		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 
@@ -309,14 +311,21 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 		gps.satellites_used = hil_gps.satellites_visible;
 		gps.s_variance_m_s = 0.25f;
 
-		// use normal distribution for noise
-		if (_param_sim_gps_noise_x.get() > 0.0f) {
-			std::normal_distribution<float> normal_distribution(0.0f, 1.0f);
-			gps.lat += (int32_t)(_param_sim_gps_noise_x.get() * normal_distribution(_gen));
-			gps.lon += (int32_t)(_param_sim_gps_noise_x.get() * normal_distribution(_gen));
-		}
+		// New publishers will be created based on the HIL_GPS ID's being different or not
+		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
+			if (_vehicle_gps_position_pubs[i] && _gps_ids[i] == hil_gps.id) {
+				_vehicle_gps_position_pubs[i]->publish(gps);
+				break;
 
-		_vehicle_gps_position_pub.publish(gps);
+			}
+
+			if (_vehicle_gps_position_pubs[i] == nullptr) {
+				_vehicle_gps_position_pubs[i] = new uORB::PublicationMulti<vehicle_gps_position_s> {ORB_ID(vehicle_gps_position)};
+				_gps_ids[i] = hil_gps.id;
+				_vehicle_gps_position_pubs[i]->publish(gps);
+				break;
+			}
+		}
 	}
 }
 
@@ -345,40 +354,6 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 #endif
 
 	update_sensors(now_us, imu);
-
-	static float battery_percentage = 1.0f;
-	static uint64_t last_integration_us = 0;
-
-	// battery simulation (limit update to 100Hz)
-	if (hrt_elapsed_time(&_last_battery_timestamp) >= SimulatorBattery::SIMLATOR_BATTERY_SAMPLE_INTERVAL_US) {
-
-		const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
-
-		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-
-		if (armed) {
-			if (last_integration_us != 0) {
-				battery_percentage -= (now_us - last_integration_us) / discharge_interval_us;
-			}
-
-			last_integration_us = now_us;
-
-		} else {
-			last_integration_us = 0;
-		}
-
-		float ibatt = -1.0f; // no current sensor in simulation
-
-		battery_percentage = math::max(battery_percentage, _param_bat_min_pct.get() / 100.f);
-		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
-		vbatt *= _battery.cell_count();
-
-		const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-					     0, throttle);
-
-		_last_battery_timestamp = now_us;
-	}
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
@@ -595,71 +570,29 @@ void Simulator::send()
 	fds_actuator_outputs[0].fd = _actuator_outputs_sub;
 	fds_actuator_outputs[0].events = POLLIN;
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	px4_pollfd_struct_t fds_ekf2_timestamps[1] = {};
-	fds_ekf2_timestamps[0].fd = _ekf2_timestamps_sub;
-	fds_ekf2_timestamps[0].events = POLLIN;
-
-	State state = State::WaitingForFirstEkf2Timestamp;
-#endif
-
 	while (true) {
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		// Wait for up to 100ms for data.
+		int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
 
-		if (state == State::WaitingForActuatorControls) {
-#endif
-			// Wait for up to 100ms for data.
-			int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
-
-			if (pret == 0) {
-				// Timed out, try again.
-				continue;
-			}
-
-			if (pret < 0) {
-				PX4_ERR("poll error %s", strerror(errno));
-				continue;
-			}
-
-			if (fds_actuator_outputs[0].revents & POLLIN) {
-				// Got new data to read, update all topics.
-				parameters_update(false);
-				_vehicle_status_sub.update(&_vehicle_status);
-				send_controls();
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-				state = State::WaitingForEkf2Timestamp;
-#endif
-			}
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		if (pret == 0) {
+			// Timed out, try again.
+			continue;
 		}
 
-#endif
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-
-		if (state == State::WaitingForFirstEkf2Timestamp || state == State::WaitingForEkf2Timestamp) {
-			int pret = px4_poll(&fds_ekf2_timestamps[0], 1, 100);
-
-			if (pret == 0) {
-				// Timed out, try again.
-				continue;
-			}
-
-			if (pret < 0) {
-				PX4_ERR("poll error %s", strerror(errno));
-				continue;
-			}
-
-			if (fds_ekf2_timestamps[0].revents & POLLIN) {
-				ekf2_timestamps_s timestamps;
-				orb_copy(ORB_ID(ekf2_timestamps), _ekf2_timestamps_sub, &timestamps);
-				state = State::WaitingForActuatorControls;
-			}
+		if (pret < 0) {
+			PX4_ERR("poll error %s", strerror(errno));
+			continue;
 		}
 
-#endif
+		if (fds_actuator_outputs[0].revents & POLLIN) {
+			// Got new data to read, update all topics.
+			parameters_update(false);
+			_vehicle_status_sub.update(&_vehicle_status);
+			send_controls();
+			// Wait for other modules, such as logger or ekf2
+			px4_lockstep_wait_for_components();
+		}
 	}
 }
 
@@ -803,10 +736,6 @@ void Simulator::run()
 	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	_ekf2_timestamps_sub = orb_subscribe(ORB_ID(ekf2_timestamps));
-#endif
-
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
@@ -869,9 +798,6 @@ void Simulator::run()
 	}
 
 	orb_unsubscribe(_actuator_outputs_sub);
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	orb_unsubscribe(_ekf2_timestamps_sub);
-#endif
 }
 
 #ifdef ENABLE_UART_RC_INPUT
@@ -1135,7 +1061,11 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.type = dist_mavlink->type;
 	dist.id = dist_mavlink->id;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
-	dist.signal_quality = -1;
+
+	// MAVLink DISTANCE_SENSOR signal_quality value of 0 means unset/unknown
+	// quality value. Also it comes normalised between 1 and 100 while the uORB
+	// signal quality is normalised between 0 and 100.
+	dist.signal_quality = dist_mavlink->signal_quality == 0 ? -1 : 100 * (dist_mavlink->signal_quality - 1) / 99;
 
 	switch (dist_mavlink->orientation) {
 	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_270:

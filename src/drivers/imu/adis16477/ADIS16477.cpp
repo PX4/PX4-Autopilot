@@ -385,6 +385,4 @@ ADIS16477::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }

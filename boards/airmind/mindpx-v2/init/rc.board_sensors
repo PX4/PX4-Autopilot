@@ -5,10 +5,6 @@
 
 adc start
 
-# External I2C bus
-hmc5883 -T -X start
-qmc5883 -X start
-
 # Internal I2C bus
 hmc5883 -T -I -R 12 start
 qmc5883 -I -R 12 start

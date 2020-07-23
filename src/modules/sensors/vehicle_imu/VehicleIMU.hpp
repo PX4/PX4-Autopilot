@@ -35,10 +35,11 @@
 
 #include "Integrator.hpp"
 
-#include <sensor_corrections/SensorCorrections.hpp>
+#include <sensor_calibration/SensorCalibration.hpp>
 
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -90,8 +91,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
 
-	SensorCorrections _accel_corrections;
-	SensorCorrections _gyro_corrections;
+	SensorCalibration _accel_calibration{SensorCalibration::SensorType::Accelerometer};
+	SensorCalibration _gyro_calibration{SensorCalibration::SensorType::Gyroscope};
 
 	Integrator _accel_integrator{}; // 200 Hz default
 	Integrator _gyro_integrator{true};   // 200 Hz default, coning compensation enabled
@@ -102,20 +103,27 @@ private:
 	IntervalAverage _accel_interval{};
 	IntervalAverage _gyro_interval{};
 
-	uint32_t _accel_error_count{0};
-	uint32_t _gyro_error_count{0};
+	unsigned _accel_last_generation{0};
+	unsigned _gyro_last_generation{0};
+	unsigned _consecutive_data_gap{0};
 
 	matrix::Vector3f _delta_angle_prev{0.f, 0.f, 0.f};	// delta angle from the previous IMU measurement
 	matrix::Vector3f _delta_velocity_prev{0.f, 0.f, 0.f};	// delta velocity from the previous IMU measurement
-	float _accel_vibration_metric{0.f};	// high frequency vibration level in the IMU delta velocity data (m/s)
-	float _gyro_vibration_metric{0.f};	// high frequency vibration level in the IMU delta angle data (rad)
-	float _gyro_coning_vibration{0.f};	// Level of coning vibration in the IMU delta angles (rad^2)
+
+	vehicle_imu_status_s _status{};
 
 	uint8_t _delta_velocity_clipping{0};
-	uint32_t _delta_velocity_clipping_total[3] {};
+
+	bool _intervals_configured{false};
+
+	perf_counter_t _accel_update_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": accel update interval")};
+	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
+	perf_counter_t _gyro_update_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": gyro update interval")};
+	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate
+		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax
 	)
 };
 
