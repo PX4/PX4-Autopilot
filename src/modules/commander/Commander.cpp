@@ -3858,6 +3858,8 @@ void Commander::battery_status_check()
 	hrt_abstime oldest_update = hrt_absolute_time();
 
 	_battery_current = 0.0f;
+	float battery_level = 0.0f;
+
 
 	// Only iterate over connected batteries. We don't care if a disconnected battery is not regularly publishing.
 	for (size_t i = 0; i < num_connected_batteries; i++) {
@@ -3871,6 +3873,36 @@ void Commander::battery_status_check()
 
 		// Sum up current from all batteries.
 		_battery_current += batteries[i].current_filtered_a;
+
+		// average levels from all batteries
+		battery_level += batteries[i].remaining;
+	}
+
+	battery_level /= num_connected_batteries;
+
+	_rtl_flight_time_sub.update();
+	float battery_usage_to_home = _rtl_flight_time_sub.valid() ?
+				      _rtl_flight_time_sub.get().rtl_limit_fraction : 0;
+
+
+	auto warning_level = [this](float battery_level_fraction, float battery_to_home) {
+		float battery_at_home = battery_level_fraction - battery_to_home;
+
+		if (battery_at_home < _param_bat_crit_thr.get()) {
+			return battery_status_s::BATTERY_WARNING_CRITICAL;
+		}
+
+		if (battery_at_home < _param_bat_low_thr.get()) {
+			return battery_status_s::BATTERY_WARNING_LOW;
+		}
+
+		return battery_status_s::BATTERY_WARNING_NONE;
+	};
+
+	uint8_t battery_range_warning = warning_level(battery_level, battery_usage_to_home);
+
+	if (battery_range_warning > worst_warning) {
+		worst_warning = battery_range_warning;
 	}
 
 	bool battery_warning_level_increased_while_armed = false;
@@ -3891,6 +3923,7 @@ void Commander::battery_status_check()
 	if (update_internal_battery_state) {
 		_battery_warning = worst_warning;
 	}
+
 
 	_status_flags.condition_battery_healthy =
 		// All connected batteries are regularly being published

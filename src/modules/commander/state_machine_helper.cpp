@@ -985,9 +985,6 @@ void reset_offboard_loss_globals(actuator_armed_s *armed, const bool old_failsaf
 	}
 }
 
-
-
-
 void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
 		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const uint8_t battery_warning,
 		      const low_battery_action_t low_battery_action)

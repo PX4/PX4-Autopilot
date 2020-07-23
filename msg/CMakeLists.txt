@@ -108,6 +108,7 @@ set(msg_files
 	rc_channels.msg
 	rc_parameter_map.msg
 	rpm.msg
+	rtl_flight_time.msg
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
