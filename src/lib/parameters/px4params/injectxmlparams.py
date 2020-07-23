@@ -25,6 +25,9 @@ class XMLInject():
         for igroup in injectgroups:
             group_name=igroup.get('name')
             imported_group = ParameterGroup(group_name)
+            no_code_generation=igroup.get('no_code_generation')
+            if no_code_generation:
+                imported_group.no_code_generation=no_code_generation
             for iparam in igroup:
                 param_name=iparam.get('name')
                 param_type=iparam.get('type')

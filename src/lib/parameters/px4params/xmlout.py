@@ -31,6 +31,8 @@ class XMLOutput():
         for group in groups:
             xml_group = ET.SubElement(xml_parameters, "group")
             xml_group.attrib["name"] = group.GetName()
+            if group.no_code_generation:
+                xml_group.attrib["no_code_generation"] = group.no_code_generation
             for param in group.GetParams():
                 if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
                     xml_param = ET.SubElement(xml_group, "parameter")
