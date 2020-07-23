@@ -33,7 +33,7 @@
 ############################################################################
 
 #
-# PX4 paramers processor (main executable file)
+# PX4 paramaters processor (main executable file)
 #
 # This tool scans the PX4 source code for declarations of tunable parameters
 # and outputs the list in various formats.
@@ -156,11 +156,12 @@ def main():
 
     # Output to JSON file
     if args.json:
-        out = jsonout.JsonOutput(param_groups)
-        if args.json:
-            print("Creating json file " + args.json)
-            out.Save(args.json)
-    #print("All done!")
+        if args.verbose:
+            print("Creating Json/Json.gz file " + args.json)
+        cur_dir = os.path.dirname(os.path.realpath(__file__))
+        out = jsonout.JsonOutput(param_groups, args.board,
+                               os.path.join(cur_dir, args.inject_xml))
+        out.Save(args.json)
 
 
 if __name__ == "__main__":
