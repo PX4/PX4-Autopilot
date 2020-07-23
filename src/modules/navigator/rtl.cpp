@@ -43,6 +43,8 @@
 #include "navigator.h"
 #include <dataman/dataman.h>
 
+#include <climits>
+
 
 static constexpr float DELAY_SIGMA = 0.01f;
 
@@ -212,6 +214,23 @@ void RTL::find_RTL_destination()
 		}
 	}
 
+	// figure out how long the RTL will take
+	const vehicle_local_position_s &local_pos_s = *_navigator->get_local_position();
+
+	matrix::Vector3f local_pos(local_pos_s.x, local_pos_s.y, local_pos_s.z);
+	matrix::Vector3f local_destination; // TODO
+
+	uint8_t vehicle_type = _navigator->get_vstatus()->vehicle_type;
+	float xy_speed, z_speed;
+	get_rtl_xy_z_speed(vehicle_type, xy_speed, z_speed);
+	float time_to_home_s = time_to_home(local_pos, local_destination, get_wind(), xy_speed, z_speed);
+
+	float rtl_flight_time_ratio = time_to_home_s / (60 * _param_rtl_flt_time.get());
+	rtl_flight_time_s rtl_flight_time;
+	rtl_flight_time.rtl_limit_fraction = rtl_flight_time_ratio;
+	rtl_flight_time.rtl_time_s = time_to_home_s;
+	rtl_flight_time.rtl_vehicle_type = vehicle_type;
+	_rtl_flight_time_pub.publish(rtl_flight_time);
 }
 
 void RTL::on_activation()
@@ -610,4 +629,68 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	}
 
 	return max(return_altitude_amsl, gpos.alt);
+}
+
+void RTL::get_rtl_xy_z_speed(uint8_t vehicle_type, float &xy, float &z)
+{
+	// Caution: here be dragons!
+	// Use C API to allow this code to be compiled with builds that don't have FW/MC/Rover
+
+	if (vehicle_type != _rtl_vehicle_type) {
+		_rtl_vehicle_type = vehicle_type;
+
+		switch (vehicle_type) {
+		case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
+			_rtl_xy_speed = param_find("MPC_XY_CRUISE");
+			_rtl_descent_speed = param_find("MPC_Z_VEL_MAX_DN");
+			break;
+
+		case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
+			_rtl_xy_speed = param_find("FW_AIRSPD_TRIM");
+			_rtl_descent_speed = param_find("FW_T_SINK_MAX");
+			break;
+
+		case vehicle_status_s::VEHICLE_TYPE_ROVER:
+			_rtl_xy_speed = param_find("GND_SPEED_THR_SC");
+			_rtl_descent_speed = 65535;
+			break;
+		}
+	}
+
+	if (param_get(_rtl_xy_speed, &xy) != 0) {
+		xy = 1e6f;
+	}
+
+	if (param_get(_rtl_descent_speed, &z) != 0) {
+		z = 1e6f;
+	}
+
+}
+
+matrix::Vector2f RTL::get_wind()
+{
+	_wind_estimate_sub.update();
+	matrix::Vector2f wind(_wind_estimate_sub.get().windspeed_north, _wind_estimate_sub.get().windspeed_east);
+	return wind;
+}
+
+float time_to_home(const matrix::Vector3f &vehicle_local_pos,
+		   const matrix::Vector3f &rtl_point_local_pos,
+		   const matrix::Vector2f &wind_velocity, float vehicle_speed_m_s, float vehicle_descent_speed_m_s)
+{
+	const matrix::Vector2f to_home = (rtl_point_local_pos - vehicle_local_pos).xy();
+	const float alt_change = rtl_point_local_pos(2) - vehicle_local_pos(2);
+	const matrix::Vector2f to_home_dir = to_home.unit_or_zero();
+	const float dist_to_home = to_home.norm();
+
+	const float wind_towards_home = wind_velocity.dot(to_home_dir);
+	const float wind_across_home = matrix::Vector2f(wind_velocity - to_home_dir * fabsf(wind_towards_home)).norm();
+
+	// Note: use fminf so that we don't _rely_ on wind towards home to make RTL more efficient
+	const float cruise_speed = sqrtf(vehicle_speed_m_s * vehicle_speed_m_s - wind_across_home * wind_across_home) + fminf(0,
+				   wind_towards_home);
+
+	// assume horizontal and vertical motions happen serially, so their time adds
+	const float time_to_home = dist_to_home / cruise_speed + fabsf(alt_change) / vehicle_descent_speed_m_s;
+	return time_to_home;
 }
