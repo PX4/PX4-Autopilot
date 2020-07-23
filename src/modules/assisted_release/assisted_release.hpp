@@ -43,6 +43,8 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/input_rc.h>
+
 
 extern "C" __EXPORT int assisted_release_main(int argc, char *argv[]);
 
@@ -83,25 +85,35 @@ private:
 
 	int _rpm_value = 0;
 	int _airspeed_value = 0;
-	//int _rc_channel = 0;
+	float32 _rc_channel = 0;
+	float32 _throttle = 0;
 
 	int _rpm_sub{-1};
 	int _airspeed_sub{-1};
 	int _vehicle_status_sub{-1};
+    int _actuator_controls_0_sub{-1};
+    int _input_rc_sub{-1};
 
 	rpm_s _rpm{};
 	vehicle_status_s _vehicle_status{};
 	airspeed_s _airspeed{};
+    actuator_controls_s _actuator_controls{};
+    input_rc_s _input_rc{};
 
 	void rpm_poll();
 	void airspeed_poll();
 	void vehicle_status_poll();
+	void actuator_controls_poll();
+	void input_rc_poll();
 
 
-	//DEFINE_PARAMETERS(
-		//(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		//(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
-	//)
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::ASREL_LATCH_TIME>) _param_latch_time,
+		(ParamInt<px4::params::ASREL_MIN_ASPD>) _param_min_aspd,
+		(ParamInt<px4::params::ASREL_MIN_RPM>) _param_min_rpm,
+		(ParamInt<px4::params::ASREL_RC_CHAN>) _param_rc_chan,
+		(ParamInt<px4::params::ASREL_OUT_CHAN>) _param_out_chan
+	)
 
 	// Subscriptions
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};

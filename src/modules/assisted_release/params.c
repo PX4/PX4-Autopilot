@@ -30,3 +30,70 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+ /**
+  * @file param.c
+  *
+  * Parameters defined by the assisted_release module.
+  */
+
+/**
+* Latch time
+*
+* How long let output disconected. Value is in miliseconds
+* -
+*
+* @group AssistedRelease
+* @reboot_required false
+* @unit ms
+*/
+PARAM_DEFINE_INT32(ASREL_LATCH_TIME, 1000);
+
+
+
+/**
+* Trigger airspeed
+*
+* Minimal airspeed to release UAV.
+* -
+*
+* @group AssistedRelease
+* @reboot_required false
+*/
+PARAM_DEFINE_INT32(ASREL_MIN_ASPD, 10);
+
+
+/**
+* Trigger rotor_frequency
+*
+* Minimal RPM to release UAV.
+* -
+*
+* @group AssistedRelease
+* @reboot_required false
+*/
+PARAM_DEFINE_INT32(ASREL_MIN_RPM, 1000);
+
+
+/**
+* Trigger release switch channel
+*
+* Port for enabling release
+* -
+*
+* @group AssistedRelease
+* @reboot_required false
+*/
+PARAM_DEFINE_INT32(ASREL_RC_CHAN, 7);
+
+
+/**
+* Output port in actuator_controls_1 group
+*
+* Port for enabling release
+* -
+*
+* @group AssistedRelease
+* @reboot_required true
+*/
+PARAM_DEFINE_INT32(ASREL_OUT_CHAN, 4);

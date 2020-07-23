@@ -52,7 +52,7 @@
 int AssistedRelease::print_status()
 {
 	PX4_INFO("Running");
-	//PX4_INFO("Current state %d", _current_state);
+    PX4_INFO("State: frequency=%d, airspeed=%d, throttle=%d, switch=%d", _rpm.indicated_frequency_rpm > (float)_param_min_rpm.get(), _airspeed.indicated_airspeed_m_s > (float)_param_min_aspd.get(), _throttle >= 0.5f, _rc_channel >= 0.5f);
 
 	return 0;
 }
@@ -151,14 +151,20 @@ void AssistedRelease::run()
 	_rpm_sub = orb_subscribe(ORB_ID(rpm));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	_actuator_controls_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+	_input_rc_sub = orb_subscribe(ORB_ID(input_rc));
 
 	orb_set_interval(_rpm_sub, 100);
 	orb_set_interval(_vehicle_status_sub, 100);
 	orb_set_interval(_airspeed_sub, 100);
+	orb_set_interval(_actuator_controls_0_sub, 100);
+	orb_set_interval(_input_rc_sub, 100);
 
 	rpm_poll();
 	airspeed_poll();
 	vehicle_status_poll();
+	actuator_controls_poll();
+	input_rc_poll();
 
 	actuator_controls_s control{};
 	uORB::Publication<actuator_controls_s> control_pub{ORB_ID(actuator_controls_1)};
@@ -175,6 +181,11 @@ void AssistedRelease::run()
 	parameters_update();
 
 
+    uint64_t set_time = 0;
+    uint64_t timestamp_us = hrt_absolute_time();
+    int input_port = _param_rc_chan.get();
+    int output_port = _param_out_chan.get();
+
 	control.control[4] = -1.0f;
 
 	while (!should_exit()) {
@@ -188,16 +199,26 @@ void AssistedRelease::run()
 		rpm_poll();
 		airspeed_poll();
 		vehicle_status_poll();
+    	actuator_controls_poll();
+    	input_rc_poll();
 
-		if (_rpm.indicated_frequency_rpm > 100 && _airspeed.indicated_airspeed_m_s > 10 && 1){
-			control.control[4] = 1.0f;
+        _rc_channel = (1500-_input_rc.values[input_port])/500.0f;
+        _throttle = _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+
+		timestamp_us = hrt_absolute_time();
+
+		if (_rpm.indicated_frequency_rpm > _param_min_rpm.get() && _airspeed.indicated_airspeed_m_s > _param_min_aspd.get() && _throttle >= 0.5f && _rc_channel >= 0.5f){
+            if(control.control[output_port] < 0.0f){
+                set_time = timestamp_us;
+    			control.control[output_port] = 1.0f;
+            }
 		} else {
-			control.control[4] = -1.0f;
+            if ( (set_time + _param_latch_time.get()*1000) <  timestamp_us){
+                control.control[output_port] = -1.0f;
+                set_time = timestamp_us;
+            }
 		}
 
-		PX4_INFO("Data: %.1f, stav: %d, rpm: %.3f", (double)control.control[4], true, (double)_rpm.indicated_frequency_rpm);
-
-		uint64_t timestamp_us = hrt_absolute_time();
 		control.timestamp = timestamp_us;
 		control.timestamp_sample = timestamp_us;
 
@@ -210,6 +231,8 @@ void AssistedRelease::run()
 	orb_unsubscribe(_rpm_sub);
 	orb_unsubscribe(_airspeed_sub);
 	orb_unsubscribe(_vehicle_status_sub);
+	orb_unsubscribe(_actuator_controls_0_sub);
+	orb_unsubscribe(_input_rc_sub);
 }
 
 
@@ -249,6 +272,16 @@ AssistedRelease::airspeed_poll()
 // 	}
 // }
 
+void
+AssistedRelease::actuator_controls_poll()
+{
+	bool updated;
+	orb_check(_actuator_controls_0_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(actuator_controls_0), _actuator_controls_0_sub, &_actuator_controls);
+	}
+}
 
 void
 AssistedRelease::vehicle_status_poll()
@@ -258,6 +291,18 @@ AssistedRelease::vehicle_status_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	}
+}
+
+
+void
+AssistedRelease::input_rc_poll()
+{
+	bool updated;
+	orb_check(_input_rc_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(input_rc), _input_rc_sub, &_input_rc);
 	}
 }
 
