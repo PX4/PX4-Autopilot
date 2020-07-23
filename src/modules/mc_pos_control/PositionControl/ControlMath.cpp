@@ -259,6 +259,17 @@ void thrustToMinTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, const f
 	att_sp.pitch_body = euler(1);
 	att_sp.yaw_body = euler(2);
 
+
+	if (omni_proj_axes == 1) { // if thrust is projected on the current attitude
+		matrix::Dcmf R_body = att;
+
+		for (int i = 0; i < 3; i++) {
+			body_x(i) = R_body(i, 0);
+			body_y(i) = R_body(i, 1);
+			body_z(i) = R_body(i, 2);
+		}
+	}
+
 	// Calculate the direct force vector
 	float f_eff_z = -(omni_dfc_max_thrust * tanf(lambda) + thr_sp(2) / cosf(lambda));
 	Vector2f f_eff_h(thr_sp.dot(body_x), thr_sp.dot(body_y));
