@@ -96,8 +96,6 @@
 # define SENSE_PH1 0b10 /* Floating pulled as set */
 # define SENSE_PH2 0b01 /* Driven as tied */
 
-#define GPIO_HEATER_OFF (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN14)
-
 #define GPIO_USART1_RX_SPEKTRUM		(GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN10)
 
 /* Safety switch button *******************************************************/
