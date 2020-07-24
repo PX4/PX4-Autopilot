@@ -47,7 +47,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4params import srcscanner, srcparser, xmlout, markdownout
+from px4params import srcscanner, srcparser, injectxmlparams, xmlout, markdownout
 
 import re
 import json
@@ -118,6 +118,12 @@ def main():
     if len(param_groups) == 0:
         print("Warning: no parameters found")
 
+
+    #inject parameters at front of set
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    groups_to_inject = injectxmlparams.XMLInject(os.path.join(cur_dir, args.inject_xml)).injected()
+    param_groups=groups_to_inject+param_groups
+
     override_dict = json.loads(args.overrides)
     if len(override_dict.keys()) > 0:
         for group in param_groups:
@@ -132,9 +138,7 @@ def main():
     if args.xml:
         if args.verbose:
             print("Creating XML file " + args.xml)
-        cur_dir = os.path.dirname(os.path.realpath(__file__))
-        out = xmlout.XMLOutput(param_groups, args.board,
-                               os.path.join(cur_dir, args.inject_xml))
+        out = xmlout.XMLOutput(param_groups, args.board)
         out.Save(args.xml)
 
     # Output to Markdown/HTML tables
