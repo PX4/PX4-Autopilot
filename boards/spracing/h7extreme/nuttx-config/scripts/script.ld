@@ -116,9 +116,9 @@ MEMORY
 	sram3 (xrw) : ORIGIN = 0x38000000,  LENGTH = 64K
 	itcm  (xrw) : ORIGIN = 0x00000000,  LENGTH = 64K
 	flash (xrw) : ORIGIN = 0x08000000,  LENGTH = 128K
-	qspi  (xrw) : ORIGIN = 0x90000000,  LENGTH = 1024K
-	qspi2 (xrw) : ORIGIN = 0x90140000,  LENGTH = 512K
-	conf  (xrw) : ORIGIN = 0x90200000,  LENGTH = 32K
+	conf  (xrw) : ORIGIN = 0x90030000,  LENGTH = 64K		/* PX4 Config on an single 64kb erasable block. */
+	qspi  (xrw) : ORIGIN = 0x90100000,  LENGTH = 1536K		/* FW that run in memory-mapped mode */
+	qspi2 (xrw) : ORIGIN = 0x90280000,  LENGTH = 512K		/* FW segment that will be copied to ram and itcm */
 }
 
 OUTPUT_ARCH(arm)
