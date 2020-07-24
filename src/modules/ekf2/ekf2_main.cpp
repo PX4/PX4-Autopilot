@@ -878,7 +878,7 @@ void Ekf2::Run()
 		publish_attitude(now);
 
 		// read mag data
-		if (_magnetometer_sub.updated()) {
+		if ((_param_ekf2_mag_type.get() != MAG_FUSE_TYPE_NONE) && _magnetometer_sub.updated()) {
 			vehicle_magnetometer_s magnetometer;
 
 			if (_magnetometer_sub.copy(&magnetometer)) {
