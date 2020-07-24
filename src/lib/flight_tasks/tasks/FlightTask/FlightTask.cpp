@@ -107,6 +107,7 @@ void FlightTask::_resetSetpoints()
 	_velocity_setpoint.setNaN();
 	_acceleration_setpoint.setNaN();
 	_jerk_setpoint.setNaN();
+     _thrust_setpoint.setNaN();
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
 }
 

@@ -86,6 +86,10 @@ void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &
 	_acc_sp = Vector3f(setpoint.acceleration);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
+
+    _thr_sp = Vector3f(setpoint.thrust);
+    _skip_controller = PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))
+               && PX4_ISFINITE(_thr_sp(2));
 }
 
 void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
@@ -111,6 +115,28 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 
 bool PositionControl::update(const float dt)
 {
+
+    if (_skip_controller) {
+        // Already received a valid thrust set-point.
+        // Limit the thrust vector.
+        float thr_mag = _thr_sp.length();
+
+        if (thr_mag > _lim_thr_max) {
+            _thr_sp = _thr_sp.normalized() * _lim_thr_max;
+
+        } else if (thr_mag < _lim_thr_min && thr_mag > FLT_EPSILON) {
+            _thr_sp = _thr_sp.normalized() * _lim_thr_min;
+        }
+
+        // Just set the set-points equal to the current vehicle state.
+        _pos_sp = _pos;
+        _vel_sp = _vel;
+        _acc_sp = _vel_dot;
+        return (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(_thr_sp(2)));
+    }
+
+
+
 	// x and y input setpoints always have to come in pairs
 	const bool valid = (PX4_ISFINITE(_pos_sp(0)) == PX4_ISFINITE(_pos_sp(1)))
 			   && (PX4_ISFINITE(_vel_sp(0)) == PX4_ISFINITE(_vel_sp(1)))

@@ -218,4 +218,6 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+    bool _skip_controller{false}; /**< Keep Skip Controller to allow use thrusy setpints in OFFBOARD mode*/
 };
