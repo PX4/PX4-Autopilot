@@ -1,8 +1,9 @@
 /****************************************************************************
  * scripts/script.ld
  *
- *   Copyright (C) 2016, 2019 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2016, 2019, 2020 Gregory Nutt. All rights reserved.
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
+ *            Igor Misic   <igy1000mb@gmail.com>
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -150,6 +151,7 @@ SECTIONS
 		*vehicle_angular_velocity.a:*(.text* .rodata*)
 		*modules__attitude_estimator_q.a:*(.text* .rodata*)
 		*stm32_spi.o(.text* .rodata*)
+		*stm32_dma.o(.text* .rodata*)
 		
 		_end_itcm = ABSOLUTE(.);
 	} > itcm AT > qspi2
@@ -171,6 +173,8 @@ SECTIONS
 		*modules__logger.a:*(.text* .rodata*)
 		*battery_status.a:*(.text* .rodata*)
 		*land_detector.a:*(.text* .rodata*)
+		*uorb_msgs.a:*(.text* .rodata*)
+		*arch_spi.a:*(.text* .rodata*)
 
 		_end_sram = ABSOLUTE(.);
 	} > sram AT > qspi2

@@ -1,7 +1,7 @@
 /************************************************************************************
  * nuttx-configs/spracing/h7extreme/include/board.h
  *
- *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2020 Gregory Nutt. All rights reserved.
  *   Authors: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
