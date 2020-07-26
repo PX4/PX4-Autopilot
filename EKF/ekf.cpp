@@ -426,8 +426,32 @@ void Ekf::calculateOutputStates()
 		const float vel_gain = _dt_ekf_avg / math::constrain(_params.vel_Tau, _dt_ekf_avg, 10.0f);
 		const float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
 
-		applyCorrectionToVerticalOutputBuffer(vel_gain, pos_gain);
-		applyCorrectionToOutputBuffer(vel_gain, pos_gain);
+		// calculate down velocity and position tracking errors
+		const float vert_vel_err = (_state.vel(2) - _output_vert_delayed.vert_vel);
+		const float vert_vel_integ_err = (_state.pos(2) - _output_vert_delayed.vert_vel_integ);
+
+		// calculate a velocity correction that will be applied to the output state history
+		// using a PD feedback tuned to a 5% overshoot
+		const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * vel_gain * 1.1f;
+
+		applyCorrectionToVerticalOutputBuffer(vert_vel_correction);
+
+		// calculate velocity and position tracking errors
+		const Vector3f vel_err(_state.vel - _output_sample_delayed.vel);
+		const Vector3f pos_err(_state.pos - _output_sample_delayed.pos);
+
+		_output_tracking_error(1) = vel_err.norm();
+		_output_tracking_error(2) = pos_err.norm();
+
+		// calculate a velocity correction that will be applied to the output state history
+		_vel_err_integ += vel_err;
+		const Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(vel_gain) * 0.1f;
+
+		// calculate a position correction that will be applied to the output state history
+		_pos_err_integ += pos_err;
+		const Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
+
+		applyCorrectionToOutputBuffer(vel_correction, pos_correction);
 	}
 }
 
@@ -439,15 +463,8 @@ void Ekf::calculateOutputStates()
 * This provides an alternative vertical velocity output that is closer to the first derivative
 * of the position but does degrade tracking relative to the EKF state.
 */
-void Ekf::applyCorrectionToVerticalOutputBuffer(float vel_gain, float pos_gain){
-	// calculate down velocity and position tracking errors
-	const float vert_vel_err = (_state.vel(2) - _output_vert_delayed.vert_vel);
-	const float vert_vel_integ_err = (_state.pos(2) - _output_vert_delayed.vert_vel_integ);
-
-	// calculate a velocity correction that will be applied to the output state history
-	// using a PD feedback tuned to a 5% overshoot
-	const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * vel_gain * 1.1f;
-
+void Ekf::applyCorrectionToVerticalOutputBuffer(float vert_vel_correction)
+{
 	// loop through the vertical output filter state history starting at the oldest and apply the corrections to the
 	// vert_vel states and propagate vert_vel_integ forward using the corrected vert_vel
 	uint8_t index = _output_vert_buffer.get_oldest_index();
@@ -485,22 +502,8 @@ void Ekf::applyCorrectionToVerticalOutputBuffer(float vel_gain, float pos_gain){
 * The vel and pos state history are corrected individually so they track the EKF states at
 * the fusion time horizon. This option provides the most accurate tracking of EKF states.
 */
-void Ekf::applyCorrectionToOutputBuffer(float vel_gain, float pos_gain){
-	// calculate velocity and position tracking errors
-	const Vector3f vel_err(_state.vel - _output_sample_delayed.vel);
-	const Vector3f pos_err(_state.pos - _output_sample_delayed.pos);
-
-	_output_tracking_error(1) = vel_err.norm();
-	_output_tracking_error(2) = pos_err.norm();
-
-	// calculate a velocity correction that will be applied to the output state history
-	_vel_err_integ += vel_err;
-	const Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(vel_gain) * 0.1f;
-
-	// calculate a position correction that will be applied to the output state history
-	_pos_err_integ += pos_err;
-	const Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
-
+void Ekf::applyCorrectionToOutputBuffer(const Vector3f& vel_correction, const Vector3f& pos_correction)
+{
 	// loop through the output filter state history and apply the corrections to the velocity and position states
 	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
 		// a constant velocity correction is applied

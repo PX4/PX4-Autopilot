@@ -518,8 +518,8 @@ private:
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
 	void calculateOutputStates();
-	void applyCorrectionToVerticalOutputBuffer(float vel_gain, float pos_gain);
-	void applyCorrectionToOutputBuffer(float vel_gain, float pos_gain);
+	void applyCorrectionToVerticalOutputBuffer(float vert_vel_correction);
+	void applyCorrectionToOutputBuffer(const Vector3f& vel_correction, const Vector3f& pos_correction);
 
 	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);
