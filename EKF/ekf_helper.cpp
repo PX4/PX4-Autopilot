@@ -141,7 +141,6 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel) {
 		_output_vert_buffer[index].vert_vel += delta_vert_vel;
 	}
 	_output_new.vel(2) += delta_vert_vel;
-	_output_vert_delayed.vert_vel = new_vert_vel;
 	_output_vert_new.vert_vel += delta_vert_vel;
 
 	_state_reset_status.velD_change = delta_vert_vel;
@@ -330,7 +329,6 @@ void Ekf::resetHeight()
 
 	// add the reset amount to the output observer vertical position state
 	if (vert_pos_reset) {
-		_output_vert_delayed.vert_vel_integ = _state.pos(2);
 		_output_vert_new.vert_vel_integ = _state.pos(2);
 	}
 }
@@ -338,13 +336,14 @@ void Ekf::resetHeight()
 // align output filter states to match EKF states at the fusion time horizon
 void Ekf::alignOutputFilter()
 {
+	const outputSample output_delayed = _output_buffer.get_oldest();
 	// calculate the quaternion rotation delta from the EKF to output observer states at the EKF fusion time horizon
-	Quatf q_delta = _state.quat_nominal * _output_sample_delayed.quat_nominal.inversed();
+	Quatf q_delta = _state.quat_nominal * output_delayed.quat_nominal.inversed();
 	q_delta.normalize();
 
 	// calculate the velocity and position deltas between the output and EKF at the EKF fusion time horizon
-	const Vector3f vel_delta = _state.vel - _output_sample_delayed.vel;
-	const Vector3f pos_delta = _state.pos - _output_sample_delayed.pos;
+	const Vector3f vel_delta = _state.vel - output_delayed.vel;
+	const Vector3f pos_delta = _state.pos - output_delayed.pos;
 
 	// loop through the output filter state history and add the deltas
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
@@ -356,9 +355,7 @@ void Ekf::alignOutputFilter()
 
 	_output_new.quat_nominal = q_delta * _output_new.quat_nominal;
 	_output_new.quat_nominal.normalize();
-
-	_output_sample_delayed.quat_nominal = q_delta * _output_sample_delayed.quat_nominal;
-	_output_sample_delayed.quat_nominal.normalize();
+	// TODO: what about vel and pos of _output_new, shouldn't they be aligned too?
 }
 
 // Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
