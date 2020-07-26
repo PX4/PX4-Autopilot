@@ -432,9 +432,6 @@ void Ekf::controlOpticalFlowFusion()
 					// but _flow_compensated_XY_rad is this zero as it gets updated for the first time below here.
 					resetVelocity();
 					resetHorizontalPosition();
-
-					// align the output observer to the EKF states
-					alignOutputFilter();
 				}
 			}
 
