@@ -143,6 +143,8 @@ private:
 	home_position_s	_home_pos{};			/**< home position */
 	landing_gear_s _landing_gear{};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
+	float _param_tilt_angle = 0, _param_tilt_dir = 0; // Keeping the last parameter values in degrees
+	float _tilt_angle = 0, _tilt_dir = 0; // Keeping the currently used values in radians
 
 	DEFINE_PARAMETERS(
 		// Position Control
@@ -175,6 +177,7 @@ private:
 		(ParamFloat<px4::params::MPC_THR_MIN>) _param_mpc_thr_min,
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
 
+		// Omni-directional vehicle parameters
 		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode,
 		(ParamFloat<px4::params::OMNI_DFC_MAX_THR>) _param_omni_dfc_max_thr,
 		(ParamFloat<px4::params::OMNI_ATT_TLT_ANG>) _param_omni_att_tilt_angle,
@@ -392,6 +395,14 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();
+		}
+
+		if (abs(_param_omni_att_tilt_angle.get() - _param_tilt_angle) > FLT_EPSILON
+		    || abs(_param_omni_att_tilt_dir.get() - _param_tilt_dir) > FLT_EPSILON) {
+			_param_tilt_angle = _param_omni_att_tilt_angle.get();
+			_param_tilt_dir = _param_omni_att_tilt_dir.get();
+			_tilt_angle = math::radians(_param_tilt_angle);
+			_tilt_dir = math::radians(_param_tilt_dir);
 		}
 	}
 
@@ -663,24 +674,10 @@ MulticopterPositionControl::Run()
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
-			float omni_att_tilt_angle = _param_omni_att_tilt_angle.get();
-			float omni_att_tilt_dir = _param_omni_att_tilt_dir.get();
 			float omni_att_roll = _param_omni_att_roll.get();
 			float omni_att_pitch = _param_omni_att_pitch.get();
 			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(),
-						     omni_att_tilt_angle, omni_att_tilt_dir, omni_att_roll, omni_att_pitch, _param_omni_proj_axes.get(), attitude_setpoint);
-
-			// Update the tilt angle and direciton parameters if we are in tilt estimation mode
-			if (_param_omni_att_mode.get() == 5) {
-				_param_omni_att_tilt_angle.set(omni_att_tilt_angle);
-				_param_omni_att_tilt_dir.set(omni_att_tilt_dir);
-			}
-
-			// Update the roll and pitch angle parameters if we are in roll/pitch estimation mode
-			if (_param_omni_att_mode.get() == 6) {
-				_param_omni_att_roll.set(omni_att_roll);
-				_param_omni_att_pitch.set(omni_att_pitch);
-			}
+						     _tilt_angle, _tilt_dir, omni_att_roll, omni_att_pitch, _param_omni_proj_axes.get(), attitude_setpoint);
 
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
