@@ -87,6 +87,15 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 		}
 
 	case 6: { // Estimate the optimal roll and pitch to counteract the wind (used for omnidirectional vehicles)
+			bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
+			att_sp.thrust_body[2] = -thr_sp.length();
+
+			// Set the roll angle
+			omni_att_roll = att_sp.roll_body;
+
+			// Set the pitch angle
+			omni_att_pitch = att_sp.pitch_body;
+
 			break;
 		}
 
