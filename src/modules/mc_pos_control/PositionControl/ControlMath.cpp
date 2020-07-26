@@ -73,35 +73,24 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 			break;
 		}
 
-	case 5: { // Estimate the optimal tilt angle and direction to counteract the wind (used for omnidirectional vehicles)
-			bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
-			att_sp.thrust_body[2] = -thr_sp.length();
-
-			// Calculate the tilt angle
-			omni_att_tilt_angle = asinf(Vector2f(thr_sp(0), thr_sp(1)).norm() / thr_sp.norm());
-
-			// Calculate the tilt direction
-			omni_att_tilt_dir = atan2f(thr_sp(1), thr_sp(0));
-
-			break;
-		}
-
-	case 6: { // Estimate the optimal roll and pitch to counteract the wind (used for omnidirectional vehicles)
-			bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
-			att_sp.thrust_body[2] = -thr_sp.length();
-
-			// Set the roll angle
-			omni_att_roll = att_sp.roll_body;
-
-			// Set the pitch angle
-			omni_att_pitch = att_sp.pitch_body;
-
-			break;
-		}
-
 	default: // Attitude is calculated from the desired thrust direction
 		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
 		att_sp.thrust_body[2] = -thr_sp.length();
+	}
+
+	// Estimate the optimal tilt angle and direction to counteract the wind
+	if (omni_att_mode == 5) {
+		// Calculate the tilt angle
+		omni_att_tilt_angle = asinf(Vector2f(thr_sp(0), thr_sp(1)).norm() / thr_sp.norm());
+
+		// Calculate the tilt direction
+		omni_att_tilt_dir = atan2f(thr_sp(1), thr_sp(0));
+
+		// Set the roll angle
+		omni_att_roll = att_sp.roll_body;
+
+		// Set the pitch angle
+		omni_att_pitch = att_sp.pitch_body;
 	}
 }
 
