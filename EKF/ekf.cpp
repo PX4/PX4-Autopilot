@@ -65,6 +65,7 @@ void Ekf::reset()
 	_state.wind_vel.setZero();
 	_state.quat_nominal.setIdentity();
 
+	// TODO: who resets the output buffer content?
 	_output_new.vel.setZero();
 	_output_new.pos.setZero();
 	_output_new.quat_nominal.setIdentity();
@@ -394,11 +395,13 @@ void Ekf::calculateOutputStates()
 
 		// get the oldest INS state data from the ring buffer
 		// this data will be at the EKF fusion time horizon
-		_output_sample_delayed = _output_buffer.get_oldest();
-		_output_vert_delayed = _output_vert_buffer.get_oldest();
+		// TODO: there is no guarantee that data is at delayed fusion horizon
+		//       Shouldnt we use pop_first_older_than?
+		const outputSample output_delayed = _output_buffer.get_oldest();
+		const outputVert output_vert_delayed = _output_vert_buffer.get_oldest();
 
 		// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
-		const Quatf q_error( (_state.quat_nominal.inversed() * _output_sample_delayed.quat_nominal).normalized() );
+		const Quatf q_error( (_state.quat_nominal.inversed() * output_delayed.quat_nominal).normalized() );
 
 		// convert the quaternion delta to a delta angle
 		const float scalar = (q_error(0) >= 0.0f) ? -2.f : 2.f;
@@ -427,8 +430,8 @@ void Ekf::calculateOutputStates()
 		const float pos_gain = _dt_ekf_avg / math::constrain(_params.pos_Tau, _dt_ekf_avg, 10.0f);
 
 		// calculate down velocity and position tracking errors
-		const float vert_vel_err = (_state.vel(2) - _output_vert_delayed.vert_vel);
-		const float vert_vel_integ_err = (_state.pos(2) - _output_vert_delayed.vert_vel_integ);
+		const float vert_vel_err = (_state.vel(2) - output_vert_delayed.vert_vel);
+		const float vert_vel_integ_err = (_state.pos(2) - output_vert_delayed.vert_vel_integ);
 
 		// calculate a velocity correction that will be applied to the output state history
 		// using a PD feedback tuned to a 5% overshoot
@@ -437,8 +440,8 @@ void Ekf::calculateOutputStates()
 		applyCorrectionToVerticalOutputBuffer(vert_vel_correction);
 
 		// calculate velocity and position tracking errors
-		const Vector3f vel_err(_state.vel - _output_sample_delayed.vel);
-		const Vector3f pos_err(_state.pos - _output_sample_delayed.pos);
+		const Vector3f vel_err(_state.vel - output_delayed.vel);
+		const Vector3f pos_err(_state.pos - output_delayed.pos);
 
 		_output_tracking_error(1) = vel_err.norm();
 		_output_tracking_error(2) = pos_err.norm();

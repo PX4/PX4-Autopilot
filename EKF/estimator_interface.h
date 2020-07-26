@@ -456,9 +456,7 @@ protected:
 	float _flow_max_distance{0.0f};	///< maximum distance that the optical flow sensor can operate at (m)
 
 	// Output Predictor
-	outputSample _output_sample_delayed{};	// filter output on the delayed time horizon
 	outputSample _output_new{};		// filter output on the non-delayed time horizon
-	outputVert _output_vert_delayed{};	// vertical filter output on the delayed time horizon
 	outputVert _output_vert_new{};		// vertical filter output on the non-delayed time horizon
 	imuSample _newest_high_rate_imu_sample{};		// imu sample capturing the newest imu data
 	Matrix3f _R_to_earth_now;		// rotation matrix from body to earth frame at current time
