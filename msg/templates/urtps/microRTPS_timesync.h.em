@@ -230,16 +230,16 @@ private:
 
 	/** Timesync msg Setters **/
 @[if version.parse(fastrtps_version) <= version.parse('1.7.2') or not ros2_distro]@
-	inline uint64_t setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
-	inline uint8_t setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id_() = sys_id; }
-	inline uint8_t setMsgSeq(timesync_msg_t* msg, const uint8_t& seq) { msg->seq_() = seq; }
-	inline int64_t setMsgTC1(timesync_msg_t* msg, const int64_t& tc1) { msg->tc1_() = tc1; }
-	inline int64_t setMsgTS1(timesync_msg_t* msg, const int64_t& ts1) { msg->ts1_() = ts1; }
+	inline void setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp_() = timestamp; }
+	inline void setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id_() = sys_id; }
+	inline void setMsgSeq(timesync_msg_t* msg, const uint8_t& seq) { msg->seq_() = seq; }
+	inline void setMsgTC1(timesync_msg_t* msg, const int64_t& tc1) { msg->tc1_() = tc1; }
+	inline void setMsgTS1(timesync_msg_t* msg, const int64_t& ts1) { msg->ts1_() = ts1; }
 @[elif ros2_distro]@
-	inline uint64_t setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp() = timestamp; }
-	inline uint8_t setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id() = sys_id; }
-	inline uint8_t setMsgSeq(timesync_msg_t* msg, const uint8_t& seq) { msg->seq() = seq; }
-	inline int64_t setMsgTC1(timesync_msg_t* msg, const int64_t& tc1) { msg->tc1() = tc1; }
-	inline int64_t setMsgTS1(timesync_msg_t* msg, const int64_t& ts1) { msg->ts1() = ts1; }
+	inline void setMsgTimestamp(timesync_msg_t* msg, const uint64_t& timestamp) { msg->timestamp() = timestamp; }
+	inline void setMsgSysID(timesync_msg_t* msg, const uint8_t& sys_id) { msg->sys_id() = sys_id; }
+	inline void setMsgSeq(timesync_msg_t* msg, const uint8_t& seq) { msg->seq() = seq; }
+	inline void setMsgTC1(timesync_msg_t* msg, const int64_t& tc1) { msg->tc1() = tc1; }
+	inline void setMsgTS1(timesync_msg_t* msg, const int64_t& ts1) { msg->ts1() = ts1; }
 @[end if]@
 };
