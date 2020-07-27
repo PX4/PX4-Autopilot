@@ -154,6 +154,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		return true;
 	}
 
+	const bool lpos_available = (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s);
+
 	// land speed threshold
 	float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
 
@@ -181,12 +183,29 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
-	_in_descend = _is_climb_rate_enabled()
-		      && (_vehicle_local_position_setpoint.vz >= land_speed_threshold);
+	const bool vz_valid = (lpos_available && _vehicle_local_position.v_z_valid);
+
+	if (_vehicle_control_mode.flag_control_climb_rate_enabled && vz_valid) {
+		// setpoints can briefly be NAN to signal resets, TODO: fix in multicopter position controller
+		if (PX4_ISFINITE(_vehicle_local_position_setpoint.vz)) {
+			_in_descend = (_vehicle_local_position_setpoint.vz >= land_speed_threshold);
+		}
+
+	} else {
+		_in_descend = false;
+	}
+
+
+	// low thrust: configured throttle range (LNDMC_LOW_T_THR) between min and hover
+	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) *
+				       _param_lndmc_low_t_thr.get();
+	const bool low_thrust = (_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] <= sys_low_throttle);
+
+
 	bool hit_ground = _in_descend && !vertical_movement;
 
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	return (_has_low_thrust() || hit_ground) && (!_horizontal_movement || !_has_position_lock())
+	return (low_thrust || hit_ground) && (!_horizontal_movement || !_has_position_lock())
 	       && (!vertical_movement || !_has_altitude_lock());
 }
 
@@ -271,24 +290,6 @@ bool MulticopterLandDetector::_has_altitude_lock()
 bool MulticopterLandDetector::_has_position_lock()
 {
 	return _has_altitude_lock() && _vehicle_local_position.xy_valid;
-}
-
-bool MulticopterLandDetector::_is_climb_rate_enabled()
-{
-	bool has_updated = (hrt_elapsed_time(&_vehicle_local_position_setpoint.timestamp) < 1_s);
-
-	return (_vehicle_control_mode.flag_control_climb_rate_enabled && has_updated
-		&& PX4_ISFINITE(_vehicle_local_position_setpoint.vz));
-}
-
-bool MulticopterLandDetector::_has_low_thrust()
-{
-	// 30% of throttle range between min and hover
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) *
-				 _param_lndmc_low_t_thr.get();
-
-	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
 }
 
 bool MulticopterLandDetector::_has_minimal_thrust()

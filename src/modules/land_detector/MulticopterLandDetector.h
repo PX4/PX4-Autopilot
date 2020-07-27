@@ -79,11 +79,9 @@ private:
 	/** Get control mode dependent pilot throttle threshold with which we should quit landed state and take off. */
 	float _get_takeoff_throttle();
 
-	bool _has_low_thrust();
 	bool _has_minimal_thrust();
 	bool _has_altitude_lock();
 	bool _has_position_lock();
-	bool _is_climb_rate_enabled();
 
 	/** Time in us that landing conditions have to hold before triggering a land. */
 	static constexpr hrt_abstime LAND_DETECTOR_TRIGGER_TIME_US = 300_ms;
