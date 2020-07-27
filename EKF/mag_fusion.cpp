@@ -400,7 +400,6 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 
 	const float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
 	const float measurement = wrap_pi(yaw);
-	float H_YAW[4];
 
 	// calculate observation jacobian when we are observing the first rotation in a 321 sequence
 	float t9 = q0*q3;
@@ -430,6 +429,7 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 	float t34 = q1*q2*q3*2.0f;
 	float t35 = t32+t33+t34+q0*t3-q0*t5;
 
+	Vector4f H_YAW;
 	// two computational paths are provided to work around singularities in calculation of the Jacobians
 	float t8 = t7*t7;
 	float t15 = t2*t2;
@@ -441,10 +441,10 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 		float t13 = t12+1.0f;
 		float t14 = 1.0f/t13;
 
-		H_YAW[0] = t8*t14*t19*(-2.0f);
-		H_YAW[1] = t8*t14*t27*(-2.0f);
-		H_YAW[2] = t8*t14*t31*2.0f;
-		H_YAW[3] = t8*t14*t35*2.0f;
+		H_YAW(0) = t8*t14*t19*(-2.0f);
+		H_YAW(1) = t8*t14*t27*(-2.0f);
+		H_YAW(2) = t8*t14*t31*2.0f;
+		H_YAW(3) = t8*t14*t35*2.0f;
 
 	} else if (t15 > 1E-6f) {
 		// this path has singularities at yaw = 0 and +-180 deg
@@ -456,10 +456,10 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 		if (fabsf(t22) > 1E-6f) {
 			float t23 = 1.0f/t22;
 
-			H_YAW[0] = t15*t19*t23*(-0.5f);
-			H_YAW[1] = t15*t23*t27*(-0.5f);
-			H_YAW[2] = t15*t23*t31*0.5f;
-			H_YAW[3] = t15*t23*t35*0.5f;
+			H_YAW(0) = t15*t19*t23*(-0.5f);
+			H_YAW(1) = t15*t23*t27*(-0.5f);
+			H_YAW(2) = t15*t23*t31*0.5f;
+			H_YAW(3) = t15*t23*t35*0.5f;
 
 		} else {
 			return;
@@ -495,7 +495,6 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 
 	const float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
 	const float measurement = wrap_pi(yaw);
-	float H_YAW[4];
 
 	// calculate observation jacobian when we are observing a rotation in a 312 sequence
 	float t9 = q0*q3;
@@ -520,6 +519,7 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 	float t30 = q0*t6;
 	float t31 = t29+t30+q0*t3-q0*t4-q1*q2*q3*2.0f;
 
+	Vector4f H_YAW;
 	// two computational paths are provided to work around singularities in calculation of the Jacobians
 	float t8 = t7*t7;
 	float t15 = t2*t2;
@@ -531,10 +531,10 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 		float t13 = t12+1.0f;
 		float t14 = 1.0f/t13;
 
-		H_YAW[0] = t8*t14*t18*(-2.0f);
-		H_YAW[1] = t8*t14*t25*(-2.0f);
-		H_YAW[2] = t8*t14*t28*2.0f;
-		H_YAW[3] = t8*t14*t31*2.0f;
+		H_YAW(0) = t8*t14*t18*(-2.0f);
+		H_YAW(1) = t8*t14*t25*(-2.0f);
+		H_YAW(2) = t8*t14*t28*2.0f;
+		H_YAW(3) = t8*t14*t31*2.0f;
 
 	} else if (t15 > 1E-6f) {
 		// this path has singularities at yaw = 0 and +-180 deg
@@ -546,10 +546,10 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 		if (fabsf(t21) > 1E-6f) {
 			float t22 = 1.0f/t21;
 
-			H_YAW[0] = t15*t18*t22*(-0.5f);
-			H_YAW[1] = t15*t22*t25*(-0.5f);
-			H_YAW[2] = t15*t22*t28*0.5f;
-			H_YAW[3] = t15*t22*t31*0.5f;
+			H_YAW(0) = t15*t18*t22*(-0.5f);
+			H_YAW(1) = t15*t22*t25*(-0.5f);
+			H_YAW(2) = t15*t22*t28*0.5f;
+			H_YAW(3) = t15*t22*t31*0.5f;
 
 		} else {
 			return;
@@ -577,20 +577,19 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 }
 
 // update quaternion states and covariances using the yaw innovation, yaw observation variance and yaw Jacobian
-void Ekf::updateQuaternion(const float innovation, const float variance, const float gate_sigma, const float (&yaw_jacobian)[4])
+void Ekf::updateQuaternion(const float innovation, const float variance, const float gate_sigma, const Vector4f& yaw_jacobian)
 {
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
 	// calculate the innovation variance
-	float PH[4];
 	_heading_innov_var = variance;
 	for (unsigned row = 0; row <= 3; row++) {
-		PH[row] = 0.0f;
+		float tmp = 0.0f;
 
 		for (uint8_t col = 0; col <= 3; col++) {
-			PH[row] += P(row,col) * yaw_jacobian[col];
+			tmp += P(row,col) * yaw_jacobian(col);
 		}
 
-		_heading_innov_var += yaw_jacobian[row] * PH[row];
+		_heading_innov_var += yaw_jacobian(row) * tmp;
 	}
 
 	float heading_innov_var_inv;
@@ -617,7 +616,7 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 
 	for (uint8_t row = 0; row <= 15; row++) {
 		for (uint8_t col = 0; col <= 3; col++) {
-			Kfusion(row) += P(row,col) * yaw_jacobian[col];
+			Kfusion(row) += P(row,col) * yaw_jacobian(col);
 		}
 
 		Kfusion(row) *= heading_innov_var_inv;
@@ -626,7 +625,7 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 	if (_control_status.flags.wind) {
 		for (uint8_t row = 22; row <= 23; row++) {
 			for (uint8_t col = 0; col <= 3; col++) {
-				Kfusion(row) += P(row,col) * yaw_jacobian[col];
+				Kfusion(row) += P(row,col) * yaw_jacobian(col);
 			}
 
 			Kfusion(row) *= heading_innov_var_inv;
@@ -668,10 +667,10 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 
-		KH[0] = Kfusion(row) * yaw_jacobian[0];
-		KH[1] = Kfusion(row) * yaw_jacobian[1];
-		KH[2] = Kfusion(row) * yaw_jacobian[2];
-		KH[3] = Kfusion(row) * yaw_jacobian[3];
+		KH[0] = Kfusion(row) * yaw_jacobian(0);
+		KH[1] = Kfusion(row) * yaw_jacobian(1);
+		KH[2] = Kfusion(row) * yaw_jacobian(2);
+		KH[3] = Kfusion(row) * yaw_jacobian(3);
 
 		for (unsigned column = 0; column < _k_num_states; column++) {
 			float tmp = KH[0] * P(0,column);
@@ -700,7 +699,6 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 
 void Ekf::fuseHeading()
 {
-
 	Vector3f mag_earth_pred;
 	float measured_hdg;
 	float predicted_hdg;
