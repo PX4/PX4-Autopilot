@@ -854,12 +854,13 @@ private:
 	void startGpsYawFusion();
 	void stopGpsYawFusion();
 
+	void startEvPosFusion();
+	void startEvVelFusion();
+	void startEvYawFusion();
+
 	void stopEvFusion();
-
 	void stopEvPosFusion();
-
 	void stopEvVelFusion();
-
 	void stopEvYawFusion();
 
 	void stopAuxVelFusion();

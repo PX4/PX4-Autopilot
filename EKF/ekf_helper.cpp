@@ -1575,6 +1575,39 @@ void Ekf::stopGpsYawFusion()
 	_control_status.flags.gps_yaw = false;
 }
 
+void Ekf::startEvPosFusion() {
+	_control_status.flags.ev_pos = true;
+	resetHorizontalPosition();
+	ECL_INFO_TIMESTAMPED("starting vision pos fusion");
+}
+
+void Ekf::startEvVelFusion() {
+	_control_status.flags.ev_vel = true;
+	resetVelocity();
+	ECL_INFO_TIMESTAMPED("starting vision vel fusion");
+}
+
+void Ekf::startEvYawFusion() {
+	// reset the yaw angle to the value from the vision quaternion
+	const Eulerf euler_obs(_ev_sample_delayed.quat);
+	const float yaw = euler_obs(2);
+	const float yaw_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
+
+	resetQuatStateYaw(yaw, yaw_variance, true);
+
+	// flag the yaw as aligned
+	_control_status.flags.yaw_align = true;
+
+	// turn on fusion of external vision yaw measurements and disable all magnetometer fusion
+	_control_status.flags.ev_yaw = true;
+	_control_status.flags.mag_dec = false;
+
+	stopMagHdgFusion();
+	stopMag3DFusion();
+
+	ECL_INFO_TIMESTAMPED("starting vision yaw fusion");
+}
+
 void Ekf::stopEvFusion()
 {
 	stopEvPosFusion();
