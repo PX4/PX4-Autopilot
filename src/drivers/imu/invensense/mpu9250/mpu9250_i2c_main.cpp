@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,76 +31,48 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/i2c_spi_buses.h>
+#include "MPU9250_I2C.hpp"
+
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-#include "mpu9250.h"
-
-void
-MPU9250::print_usage()
+void MPU9250_I2C::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("mpu9250", "driver");
+	PRINT_MODULE_USAGE_NAME("mpu9520", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x39);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *MPU9250::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
+I2CSPIDriverBase *MPU9250_I2C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+		int runtime_instance)
 {
-	device::Device *interface = nullptr;
-	device::Device *mag_interface = nullptr;
+	MPU9250_I2C *instance = new MPU9250_I2C(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
+						cli.bus_frequency, cli.i2c_address, iterator.DRDYGPIO());
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-#ifdef USE_I2C
-		interface = MPU9250_I2C_interface(iterator.bus(), PX4_I2C_OBDEV_MPU9250, cli.bus_frequency);
-		// For i2c interfaces, connect to the magnetomer directly
-		mag_interface = AK8963_I2C_interface(iterator.bus(), cli.bus_frequency);
-#endif // USE_I2C
-
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = MPU9250_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
-	}
-
-	if (interface == nullptr) {
+	if (!instance) {
 		PX4_ERR("alloc failed");
-		delete mag_interface;
 		return nullptr;
 	}
 
-	if (interface->init() != OK) {
-		delete interface;
-		delete mag_interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+	if (OK != instance->init()) {
+		delete instance;
 		return nullptr;
 	}
 
-	MPU9250 *dev = new MPU9250(interface, mag_interface, cli.rotation, iterator.configuredBusOption(), iterator.bus());
-
-	if (dev == nullptr) {
-		delete interface;
-		delete mag_interface;
-		return nullptr;
-	}
-
-	if (OK != dev->init()) {
-		delete dev;
-		return nullptr;
-	}
-
-	return dev;
+	return instance;
 }
 
-extern "C" int
-mpu9250_main(int argc, char *argv[])
+extern "C" int mpu9250_i2c_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = MPU9250;
-	BusCLIArguments cli{true, true};
-	cli.default_spi_frequency = 20 * 1000 * 1000;
-	cli.default_i2c_frequency = 400000;
+	using ThisDriver = MPU9250_I2C;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = I2C_SPEED;
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
