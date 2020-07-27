@@ -37,7 +37,7 @@ px4_add_board(
 		sensors
 		#temperature_compensation
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		dmesg
 		dumpfile
 		esc_calib
