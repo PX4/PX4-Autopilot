@@ -415,8 +415,8 @@ private:
 	Vector3f _mag_innov;		///< earth magnetic field innovations (Gauss)
 	Vector3f _mag_innov_var;	///< earth magnetic field innovation variance (Gauss**2)
 
-	float _drag_innov[2] {};	///< multirotor drag measurement innovation (m/sec**2)
-	float _drag_innov_var[2] {};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
+	Vector2f _drag_innov;		///< multirotor drag measurement innovation (m/sec**2)
+	Vector2f _drag_innov_var;	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
 	float _airspeed_innov{0.0f};		///< airspeed measurement innovation (m/sec)
 	float _airspeed_innov_var{0.0f};	///< airspeed measurement innovation variance ((m/sec)**2)

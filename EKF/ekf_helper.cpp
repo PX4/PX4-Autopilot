@@ -767,17 +767,17 @@ void Ekf::getMagInnovRatio(float &mag_innov_ratio) const
 
 void Ekf::getDragInnov(float drag_innov[2]) const
 {
-	memcpy(drag_innov, _drag_innov, sizeof(_drag_innov));
+	_drag_innov.copyTo(drag_innov);
 }
 
 void Ekf::getDragInnovVar(float drag_innov_var[2]) const
 {
-	memcpy(drag_innov_var, _drag_innov_var, sizeof(_drag_innov_var));
+	_drag_innov_var.copyTo(drag_innov_var);
 }
 
 void Ekf::getDragInnovRatio(float drag_innov_ratio[2]) const
 {
-	memcpy(drag_innov_ratio, &_drag_test_ratio, sizeof(_drag_test_ratio));
+	_drag_test_ratio.copyTo(drag_innov_ratio);
 }
 
 void Ekf::getAirspeedInnov(float &airspeed_innov) const
