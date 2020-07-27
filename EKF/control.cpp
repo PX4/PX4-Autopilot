@@ -200,16 +200,12 @@ void Ekf::controlExternalVisionFusion()
 			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
 				// turn on use of external vision measurements for position
 				if (_params.fusion_mode & MASK_USE_EVPOS && !_control_status.flags.ev_pos) {
-					_control_status.flags.ev_pos = true;
-					resetHorizontalPosition();
-					ECL_INFO_TIMESTAMPED("starting vision pos fusion");
+					startEvPosFusion();
 				}
 
 				// turn on use of external vision measurements for velocity
 				if (_params.fusion_mode & MASK_USE_EVVEL && !_control_status.flags.ev_vel) {
-					_control_status.flags.ev_vel = true;
-					resetVelocity();
-					ECL_INFO_TIMESTAMPED("starting vision vel fusion");
+					startEvVelFusion();
 				}
 			}
 		}
@@ -218,24 +214,7 @@ void Ekf::controlExternalVisionFusion()
 		if (!_control_status.flags.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
 			// don't start using EV data unless data is arriving frequently
 			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
-				// reset the yaw angle to the value from the vision quaternion
-				const Eulerf euler_obs(_ev_sample_delayed.quat);
-				const float yaw = euler_obs(2);
-				const float yaw_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
-
-				resetQuatStateYaw(yaw, yaw_variance, true);
-
-				// flag the yaw as aligned
-				_control_status.flags.yaw_align = true;
-
-				// turn on fusion of external vision yaw measurements and disable all magnetometer fusion
-				_control_status.flags.ev_yaw = true;
-				_control_status.flags.mag_dec = false;
-
-				stopMagHdgFusion();
-				stopMag3DFusion();
-
-				ECL_INFO_TIMESTAMPED("starting vision yaw fusion");
+				startEvYawFusion();
 			}
 		}
 
