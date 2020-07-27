@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 - 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -109,12 +109,36 @@ add_custom_command(OUTPUT ${parameters_xml}
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
+set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
+add_custom_command(OUTPUT ${parameters_json}
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
+		--src-path ${module_list} ${generated_params_dir}
+		--json ${parameters_json}
+		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
+		--overrides ${PARAM_DEFAULT_OVERRIDES}
+		--board ${PX4_BOARD}
+		#--verbose
+	DEPENDS
+		${param_src_files}
+		${generated_serial_params_file}
+		parameters_injected.xml
+		px4params/srcparser.py
+		px4params/srcscanner.py
+		px4params/xmlout.py
+		px4params/jsonout.py
+		px_process_params.py
+		parameters_injected.xml
+	COMMENT "Generating parameters.json"
+)
+add_custom_target(parameters_json DEPENDS ${parameters_json})
+
 # generate px4_parameters.c and px4_parameters{,_public}.h
 add_custom_command(OUTPUT px4_parameters.c px4_parameters.h px4_parameters_public.h
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS
 		${PX4_BINARY_DIR}/parameters.xml
+		${PX4_BINARY_DIR}/parameters.json
 		px_generate_params.py
 		templates/px4_parameters.c.jinja
 		templates/px4_parameters.h.jinja
