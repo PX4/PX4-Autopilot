@@ -8,6 +8,7 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	CONSTRAINED_FLASH
 	DRIVERS
+		adc
 		barometer/lps25h
 		distance_sensor/vl53l0x
 		gps
@@ -36,7 +37,7 @@ px4_add_board(
 		sensors
 		#temperature_compensation
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		dmesg
 		dumpfile
 		esc_calib
