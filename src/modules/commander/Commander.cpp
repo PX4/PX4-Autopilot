@@ -1575,7 +1575,6 @@ Commander::run()
 		/* Update land detector */
 		if (_land_detector_sub.updated()) {
 			_was_landed = _land_detector.landed;
-			bool was_falling = _land_detector.freefall;
 			_land_detector_sub.copy(&_land_detector);
 
 			// Only take actions if armed
@@ -1594,12 +1593,6 @@ Commander::run()
 						_gpos_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
 						_lpos_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
 						_lvel_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
-					}
-				}
-
-				if (was_falling != _land_detector.freefall) {
-					if (_land_detector.freefall) {
-						mavlink_log_info(&mavlink_log_pub, "Freefall detected");
 					}
 				}
 			}
