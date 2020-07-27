@@ -1517,11 +1517,7 @@ void Ekf::saveMagCovData()
 	}
 
 	// save the NE axis covariance sub-matrix
-	for (uint8_t row = 0; row <= 1; row ++) {
-		for (uint8_t col = 0; col <= 1; col ++) {
-			_saved_mag_ef_covmat[row][col] = P(row + 16,col + 16);
-		}
-	}
+	_saved_mag_ef_covmat = P.slice<2, 2>(16, 16);
 }
 
 void Ekf::loadMagCovData()
@@ -1531,11 +1527,7 @@ void Ekf::loadMagCovData()
 		P(index + 18,index + 18) = _saved_mag_bf_variance[index];
 	}
 	// re-instate the NE axis covariance sub-matrix
-	for (uint8_t row = 0; row <= 1; row ++) {
-		for (uint8_t col = 0; col <= 1; col ++) {
-			P(row + 16,col + 16) = _saved_mag_ef_covmat[row][col];
-		}
-	}
+	P.slice<2, 2>(16, 16) = _saved_mag_ef_covmat;
 }
 
 void Ekf::stopGpsFusion()

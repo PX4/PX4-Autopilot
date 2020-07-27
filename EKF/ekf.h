@@ -50,6 +50,7 @@ public:
 	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
 	typedef matrix::Vector<float, _k_num_states> Vector24f;
 	typedef matrix::SquareMatrix<float, _k_num_states> SquareMatrix24f;
+	typedef matrix::SquareMatrix<float, 2> Matrix2f;
 
 	Ekf() = default;
 	virtual ~Ekf() = default;
@@ -475,7 +476,7 @@ private:
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	float _saved_mag_bf_variance[4] {};	///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
-	float _saved_mag_ef_covmat[2][2] {};    ///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
+	Matrix2f _saved_mag_ef_covmat;		///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
 	bool _velpos_reset_request{false};	///< true when a large yaw error has been fixed and a velocity and position state reset is required
 
 	gps_check_fail_status_u _gps_check_fail_status{};
