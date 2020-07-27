@@ -9,7 +9,7 @@ class JsonOutput():
     def __init__(self, groups, board, inject_xml_file_name):
         all_json=dict()
         all_json['version']=1
-        all_json['uid']=1
+        all_json['uid']=1  #COMPONENT_INFORMATION.comp_metadata_type
         all_json['scope']="Firmware"
         all_params=[]
         all_json['parameters']=all_params
@@ -22,21 +22,17 @@ class JsonOutput():
         #xml_version = ET.SubElement(xml_parameters, "parameter_version_minor")
         #xml_version.text = "15"
 
-        #importtree = ET.parse(inject_xml_file_name)
-        #injectgroups = importtree.getroot().findall("group")
-        #for igroup in injectgroups:
-        #    xml_parameters.append(igroup)
-
         schema_map = {
                         "short_desc": "shortDescription",
 			"long_desc": "longDescription",
 			"unit": "units",
 			"decimal": "decimalPlaces",
-			"min": "minValue",
-			"max": "maxValue",
+			"min": "min",
+			"max": "max",
 			"increment": "increment",
 			"reboot_required": "rebootRequired"
 			}
+        allowed_types = { "Uint8", "Int8", "Uint16", "Int16", "Uint32", "Int32", "Float"}
 
         last_param_name = ""
         board_specific_param_set = False
@@ -49,6 +45,10 @@ class JsonOutput():
                     curr_param['name'] = param.GetName()
                     curr_param['defaultValue'] = param.GetDefault()
                     curr_param['type'] = param.GetType().capitalize()
+                    if not curr_param['type'] in allowed_types:
+                        print("Error: %s type not supported: curr_param['type']" % (curr_param['name'],curr_param['type']) )
+                        sys.Exit(1)
+
                     curr_param['group'] = group_name
                     if (param.GetCategory()):
                         curr_param['category'] = param.GetCategory()
@@ -102,47 +102,6 @@ class JsonOutput():
 
                 all_params.append(curr_param)
 
- 
-
-
-        '''
-        result = ""
-        all_json=dict()
-        all_json['version']=1
-        all_json['uid']=1
-        all_json['scope']="Firmware"
-        all_params=[]
-        all_json['parameters']=all_params
-        for group in groups:
-            #result += '## %s\n\n' % group.GetName()
-            group_name=group.GetName()
-            for param in group.GetParams():
-                curr_param=dict()
-                curr_param['name'] = param.GetName()
-                curr_param['type'] = param.GetType().capitalize()
-                curr_param['group'] = group_name
-                curr_param['category'] = param.GetCategory()
-                curr_param['shortDescription'] = param.GetFieldValue("short_desc")
-                curr_param['longDescription'] = param.GetFieldValue("long_desc")
-                curr_param['units'] = param.GetFieldValue("unit")
-                curr_param['defaultValue'] = param.GetDefault()
-
-                curr_param['decimalPlaces'] = param.GetFieldValue("decimal")
-                curr_param['minValue'] = param.GetFieldValue("min")
-                curr_param['maxValue'] = param.GetFieldValue("max")
-                curr_param['increment'] = param.GetFieldValue("increment")
-                curr_param['rebootRequired'] = param.GetFieldValue("reboot_required")
-                curr_param['volatile'] = param.GetVolatile()
-
-
-
-
-
-                all_params.append(curr_param)
-        '''
-
-
-        #Note clear if we need additionalProperties, required, and what to do if values not defined.
 
         #Json string output.
         self.output = json.dumps(all_json,indent=2)
