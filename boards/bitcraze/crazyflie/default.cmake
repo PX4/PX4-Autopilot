@@ -6,13 +6,14 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
-	CONSTRAINED_FLASH
+	#CONSTRAINED_FLASH
 	DRIVERS
 		adc
 		barometer/lps25h
 		distance_sensor/vl53l0x
 		gps
-		imu/mpu9250
+		magnetometer/akm/ak8963
+		imu/invensense/mpu9250
 		optical_flow/pmw3901
 		pwm_out
 	MODULES
@@ -23,9 +24,9 @@ px4_add_board(
 		ekf2
 		events
 		land_detector
-		landing_target_estimator
+		#landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
