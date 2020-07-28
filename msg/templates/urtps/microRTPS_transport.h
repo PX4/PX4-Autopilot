@@ -78,6 +78,8 @@ protected:
 protected:
 	uint32_t rx_buff_pos;
 	char rx_buffer[BUFFER_SIZE] = {};
+	bool debug = false;
+	uint8_t _seq_number{0};
 
 private:
 	struct __attribute__((packed)) Header {
