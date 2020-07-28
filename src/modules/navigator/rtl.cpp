@@ -43,8 +43,6 @@
 #include "navigator.h"
 #include <dataman/dataman.h>
 
-#include <climits>
-
 
 static constexpr float DELAY_SIGMA = 0.01f;
 
@@ -684,11 +682,15 @@ float time_to_home(const matrix::Vector3f &vehicle_local_pos,
 	const float dist_to_home = to_home.norm();
 
 	const float wind_towards_home = wind_velocity.dot(to_home_dir);
-	const float wind_across_home = matrix::Vector2f(wind_velocity - to_home_dir * fabsf(wind_towards_home)).norm();
+	const float wind_across_home = matrix::Vector2f(wind_velocity - to_home_dir * wind_towards_home).norm();
 
 	// Note: use fminf so that we don't _rely_ on wind towards home to make RTL more efficient
 	const float cruise_speed = sqrtf(vehicle_speed_m_s * vehicle_speed_m_s - wind_across_home * wind_across_home) + fminf(0,
 				   wind_towards_home);
+
+	if (!PX4_ISFINITE(cruise_speed) || cruise_speed <= 0) {
+		return INFINITY; // we never reach home if the wind is stronger than vehicle speed
+	}
 
 	// assume horizontal and vertical motions happen serially, so their time adds
 	const float time_to_home = dist_to_home / cruise_speed + fabsf(alt_change) / vehicle_descent_speed_m_s;
