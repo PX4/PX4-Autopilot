@@ -57,10 +57,11 @@ void LoggedTopics::add_default_topics()
 	add_topic("cpuload");
 	add_topic("ekf_gps_drift");
 	add_topic("esc_status", 250);
-	add_topic("estimator_innovation_test_ratios", 200);
-	add_topic("estimator_innovation_variances", 200);
-	add_topic("estimator_innovations", 200);
+	add_topic("estimator_innovation_test_ratios", 500);
+	add_topic("estimator_innovation_variances", 500);
+	add_topic("estimator_innovations", 500);
 	add_topic("estimator_sensor_bias", 1000);
+	add_topic("estimator_states", 500);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
