@@ -124,9 +124,10 @@ public:
 	 * Check for subscription updates (e.g. after a mixer is loaded).
 	 * Call this at the very end of Run() if allow_wq_switch
 	 * @param allow_wq_switch if true
+	 * @param limit_callbacks_to_primary set to only register callbacks for primary actuator controls (if used)
 	 * @return true if subscriptions got changed
 	 */
-	bool updateSubscriptions(bool allow_wq_switch);
+	bool updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary = false);
 
 	/**
 	 * unregister uORB subscription callbacks

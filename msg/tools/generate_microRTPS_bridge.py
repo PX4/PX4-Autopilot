@@ -261,7 +261,7 @@ else:
 
 # get FastRTPS version
 fastrtps_version = subprocess.check_output(
-    "ldconfig -v | grep libfastrtps", shell=True).decode("utf-8").strip().split('so.')[-1]
+    "ldconfig -v 2>/dev/null | grep libfastrtps", shell=True).decode("utf-8").strip().split('so.')[-1]
 
 # get ROS 2 version, if exists
 ros2_distro = ''
