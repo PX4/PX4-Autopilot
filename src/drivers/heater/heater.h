@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-20 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
  * @author Mark Sauder <mcsauder@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
  * @author Jake Dahl <dahl.jakejacob@gmail.com>
+ * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
 #pragma once
@@ -165,8 +166,33 @@ private:
 	 */
 	void update_params(const bool force = false);
 
+	/**
+	 * @brief Enables / configures the heater (either by GPIO or PX4IO)
+	 */
+	void heater_enable();
+
+	/**
+	 * @brief Disnables the heater (either by GPIO or PX4IO)
+	 */
+	void heater_disable();
+
+	/**
+	 * @brief Turns the heater on (either by GPIO or PX4IO)
+	 */
+	void heater_on();
+
+	/**
+	 * @brief Turns the heater off (either by GPIO or PX4IO)
+	 */
+	void heater_off();
+
 	/** Work queue struct for the RTOS scheduler. */
 	static struct work_s _work;
+
+	/** File descriptor for PX4IO for heater ioctl's */
+#if defined(HEATER_PX4IO)
+	int _io_fd;
+#endif
 
 	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 

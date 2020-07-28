@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-19 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-20 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
  * @author Alex Klimaj <alexklimaj@gmail.com>
  * @author Jake Dahl <dahl.jakejacob@gmail.com>
  * @author Mohammed Kabir <mhkabir@mit.edu>
+ * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
 #include "heater.h"
@@ -45,23 +46,86 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_io_heater.h>
 
-#ifndef GPIO_HEATER_OUTPUT
-#error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_OUTPUT"
+#if defined(BOARD_USES_PX4IO) and defined(PX4IO_HEATER_ENABLED)
+// Heater on some boards is on IO MCU
+// Use ioctl calls to IO driver to turn heater on/off
+#  define HEATER_PX4IO
+#else
+// Use direct calls to turn GPIO pin on/off
+#  ifndef GPIO_HEATER_OUTPUT
+#  error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_OUTPUT"
+#  endif
+#  define HEATER_GPIO
 #endif
 
 Heater::Heater() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
+#ifdef HEATER_PX4IO
+	_io_fd = px4_open(IO_HEATER_DEVICE_PATH, O_RDWR);
+
+	if (_io_fd < 0) {
+		PX4_ERR("Unable to open heater device path");
+		return;
+	}
+
+#endif
+
 	// Initialize heater to off state
-	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+	heater_enable();
 }
 
 Heater::~Heater()
 {
 	// Reset heater to off state
+	heater_disable();
+
+#ifdef HEATER_PX4IO
+	px4_close(_io_fd);
+#endif
+}
+
+void Heater::heater_enable()
+{
+#ifdef HEATER_PX4IO
+	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_OFF);
+#endif
+#ifdef HEATER_GPIO
 	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+#endif
+}
+
+void Heater::heater_disable()
+{
+#ifdef HEATER_PX4IO
+	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_DISABLED);
+#endif
+#ifdef HEATER_GPIO
+	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+#endif
+}
+
+void Heater::heater_on()
+{
+#ifdef HEATER_PX4IO
+	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_ON);
+#endif
+#ifdef HEATER_GPIO
+	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 1);
+#endif
+}
+
+void Heater::heater_off()
+{
+#ifdef HEATER_PX4IO
+	px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_OFF);
+#endif
+#ifdef HEATER_GPIO
+	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
+#endif
 }
 
 int Heater::custom_command(int argc, char *argv[])
@@ -84,7 +148,7 @@ void Heater::Run()
 
 	if (_heater_on) {
 		// Turn the heater off.
-		px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
+		heater_off();
 		_heater_on = false;
 
 	} else {
@@ -115,7 +179,7 @@ void Heater::Run()
 
 		// Turn the heater on.
 		_heater_on = true;
-		px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 1);
+		heater_on();
 	}
 
 	// Schedule the next cycle.
