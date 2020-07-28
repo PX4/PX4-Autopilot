@@ -97,37 +97,6 @@ AssistedRelease *AssistedRelease::instantiate(int argc, char *argv[])
 {
 	int example_param = 0;
 	bool example_flag = false;
-	// bool error_flag = false;
-
-	// int myoptind = 1;
-	//int ch;
-	// const char *myoptarg = nullptr;
-
-	// // parse CLI arguments
-	// while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
-	// 	switch (ch) {
-	// 	case 'p':
-	// 		example_param = (int)strtol(myoptarg, nullptr, 10);
-	// 		break;
-	//
-	// 	case 'f':
-	// 		example_flag = true;
-	// 		break;
-	//
-	// 	case '?':
-	// 		error_flag = true;
-	// 		break;
-	//
-	// 	default:
-	// 		PX4_WARN("unrecognized flag");
-	// 		error_flag = true;
-	// 		break;
-	// 	}
-	// }
-
-	// if (error_flag) {
-	// 	return nullptr;
-	// }
 
 	AssistedRelease *instance = new AssistedRelease(example_param, example_flag);
 
@@ -259,18 +228,6 @@ AssistedRelease::airspeed_poll()
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 	}
 }
-
-
-// void
-// AssistedRelease::airspeed_poll()
-// {
-// 	bool updated;
-// 	orb_check(_airspeed_sub, &updated);
-//
-// 	if (updated) {
-// 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-// 	}
-// }
 
 void
 AssistedRelease::actuator_controls_poll()
