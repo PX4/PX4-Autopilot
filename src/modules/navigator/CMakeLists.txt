@@ -58,3 +58,5 @@ px4_add_module(
 		geofence_breach_avoidance
 		motion_planning
 	)
+
+px4_add_functional_gtest(SRC RangeRTLTest.cpp LINKLIBS modules__navigator modules__dataman)
