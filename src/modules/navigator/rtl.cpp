@@ -37,6 +37,7 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Kent <julian@auterion.com>
  */
 
 #include "rtl.h"
@@ -685,8 +686,8 @@ float time_to_home(const matrix::Vector3f &vehicle_local_pos,
 	const float wind_across_home = matrix::Vector2f(wind_velocity - to_home_dir * wind_towards_home).norm();
 
 	// Note: use fminf so that we don't _rely_ on wind towards home to make RTL more efficient
-	const float cruise_speed = sqrtf(vehicle_speed_m_s * vehicle_speed_m_s - wind_across_home * wind_across_home) + fminf(0,
-				   wind_towards_home);
+	const float cruise_speed = fminf(vehicle_speed_m_s,
+					 sqrtf(vehicle_speed_m_s * vehicle_speed_m_s - wind_across_home * wind_across_home) + wind_towards_home);
 
 	if (!PX4_ISFINITE(cruise_speed) || cruise_speed <= 0) {
 		return INFINITY; // we never reach home if the wind is stronger than vehicle speed
