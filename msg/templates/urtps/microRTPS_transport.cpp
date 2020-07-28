@@ -232,13 +232,12 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	}
 
 	static struct Header header = {{'>', '>', '>'}, 0u, 0u, 0u, 0u, 0u, 0u};
-	static uint8_t seq = 0;
 
 	// [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 	uint16_t crc = crc16((uint8_t *)&buffer[sizeof(header)], length);
 
 	header.topic_ID = topic_ID;
-	header.seq = seq++;
+	header.seq = _seq_number++;
 	header.payload_len_h = (length >> 8) & 0xff;
 	header.payload_len_l = length & 0xff;
 	header.crc_h = (crc >> 8) & 0xff;
