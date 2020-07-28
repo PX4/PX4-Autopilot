@@ -447,8 +447,8 @@ void thrustToSlowAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, co
 	float err_tilt_dir = wrap_pi(des_tilt_dir - curr_tilt_dir);
 
 	// Calculate the changes to tilt angle and direction
-	float d_tilt_angle = math::min(tilt_angle_rate, err_tilt_angle);
-	float d_tilt_dir = math::sign(err_tilt_dir) * math::min(tilt_dir_rate, std::abs(err_tilt_dir));
+	float d_tilt_angle = fminf(tilt_angle_rate, err_tilt_angle);
+	float d_tilt_dir = math::sign(err_tilt_dir) * fminf(tilt_dir_rate, std::abs(err_tilt_dir));
 
 	// Calculate the commanded tilt angle and direction
 	float cmd_tilt_angle = curr_tilt_angle + d_tilt_angle;
