@@ -65,6 +65,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_sbus.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_io_heater.h>
 #include <drivers/drv_mixer.h>
 
 #include <rc/dsm.h>
@@ -2927,6 +2928,20 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		} else {
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,
 					    (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
+		}
+
+		break;
+
+	case PX4IO_HEATER_CONTROL:
+		if (arg == (unsigned long)HEATER_MODE_DISABLED) {
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, PX4IO_THERMAL_IGNORE);
+
+		} else if (arg == 1) {
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, PX4IO_THERMAL_FULL);
+
+		} else {
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, PX4IO_THERMAL_OFF);
+
 		}
 
 		break;
