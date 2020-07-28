@@ -42,6 +42,8 @@
 
 #pragma once
 
+#include <float.h>
+
 template <typename T>
 class AlphaFilter {
 public:
