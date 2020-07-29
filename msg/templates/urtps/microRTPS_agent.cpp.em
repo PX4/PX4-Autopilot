@@ -66,7 +66,6 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
 #include <fastcdr/exceptions/Exception.h>
-#include <fastrtps/utils/eClock.h>
 #include <fastrtps/Domain.h>
 
 #include "microRTPS_transport.h"
