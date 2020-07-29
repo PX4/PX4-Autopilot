@@ -44,6 +44,8 @@
 #include "navigator.h"
 #include <dataman/dataman.h>
 
+#include <lib/ecl/geo/geo.h>
+
 
 static constexpr float DELAY_SIGMA = 0.01f;
 
@@ -216,20 +218,30 @@ void RTL::find_RTL_destination()
 	// figure out how long the RTL will take
 	const vehicle_local_position_s &local_pos_s = *_navigator->get_local_position();
 
-	matrix::Vector3f local_pos(local_pos_s.x, local_pos_s.y, local_pos_s.z);
-	matrix::Vector3f local_destination; // TODO
+	if (local_pos_s.xy_valid && local_pos_s.z_valid) {
+		matrix::Vector3f local_pos(local_pos_s.x, local_pos_s.y, local_pos_s.z);
 
-	uint8_t vehicle_type = _navigator->get_vstatus()->vehicle_type;
-	float xy_speed, z_speed;
-	get_rtl_xy_z_speed(vehicle_type, xy_speed, z_speed);
-	float time_to_home_s = time_to_home(local_pos, local_destination, get_wind(), xy_speed, z_speed);
+		matrix::Vector3f local_destination(0, 0, global_position.alt); // TODO
 
-	float rtl_flight_time_ratio = time_to_home_s / (60 * _param_rtl_flt_time.get());
-	rtl_flight_time_s rtl_flight_time;
-	rtl_flight_time.rtl_limit_fraction = rtl_flight_time_ratio;
-	rtl_flight_time.rtl_time_s = time_to_home_s;
-	rtl_flight_time.rtl_vehicle_type = vehicle_type;
-	_rtl_flight_time_pub.publish(rtl_flight_time);
+		if (!map_projection_initialized(&_projection_reference)) {
+			map_projection_init(&_projection_reference, global_position.lat, global_position.lon);
+		}
+
+		map_projection_project(&_projection_reference, global_position.lat, global_position.lon, &local_destination(0),
+				       &local_destination(1));
+
+		uint8_t vehicle_type = _navigator->get_vstatus()->vehicle_type;
+		float xy_speed, z_speed;
+		get_rtl_xy_z_speed(vehicle_type, xy_speed, z_speed);
+		float time_to_home_s = time_to_home(local_pos, local_destination, get_wind(), xy_speed, z_speed);
+
+		float rtl_flight_time_ratio = time_to_home_s / (60 * _param_rtl_flt_time.get());
+		rtl_flight_time_s rtl_flight_time;
+		rtl_flight_time.rtl_limit_fraction = rtl_flight_time_ratio;
+		rtl_flight_time.rtl_time_s = time_to_home_s;
+		rtl_flight_time.rtl_vehicle_type = vehicle_type;
+		_rtl_flight_time_pub.publish(rtl_flight_time);
+	}
 }
 
 void RTL::on_activation()
@@ -686,8 +698,8 @@ float time_to_home(const matrix::Vector3f &vehicle_local_pos,
 	const float wind_across_home = matrix::Vector2f(wind_velocity - to_home_dir * wind_towards_home).norm();
 
 	// Note: use fminf so that we don't _rely_ on wind towards home to make RTL more efficient
-	const float cruise_speed = fminf(vehicle_speed_m_s,
-					 sqrtf(vehicle_speed_m_s * vehicle_speed_m_s - wind_across_home * wind_across_home) + wind_towards_home);
+	const float cruise_speed = sqrtf(vehicle_speed_m_s * vehicle_speed_m_s - wind_across_home * wind_across_home) + fminf(
+					   0.f, wind_towards_home);
 
 	if (!PX4_ISFINITE(cruise_speed) || cruise_speed <= 0) {
 		return INFINITY; // we never reach home if the wind is stronger than vehicle speed

@@ -51,6 +51,7 @@
 #include <uORB/topics/rtl_flight_time.h>
 #include <uORB/topics/wind_estimate.h>
 #include <matrix/math.hpp>
+#include <lib/ecl/geo/geo.h>
 
 class Navigator;
 
@@ -168,6 +169,8 @@ private:
 
 	uORB::SubscriptionData<wind_estimate_s>		_wind_estimate_sub{ORB_ID(wind_estimate)};
 	uORB::PublicationData<rtl_flight_time_s>	_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
+
+	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
 };
 
 float time_to_home(const matrix::Vector3f &vehicle_local_pos,
