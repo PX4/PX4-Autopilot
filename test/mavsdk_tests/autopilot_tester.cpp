@@ -238,7 +238,7 @@ void AutopilotTester::execute_mission_and_lose_gps()
 		std::cout << "Progress: " << progress.current << "/" << progress.total;
 
 		if (progress.current == 1) {
-			CHECK(_failure->inject(Failure::FailureUnit::SensorGps, Failure::FailureType::Off)
+			CHECK(_failure->inject(Failure::FailureUnit::SensorGps, Failure::FailureType::Off, 0)
 			      == Failure::Result::Success);
 		}
 	});
@@ -267,7 +267,7 @@ void AutopilotTester::execute_mission_and_lose_mag()
 		std::cout << "Progress: " << progress.current << "/" << progress.total;
 
 		if (progress.current == 1) {
-			CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Off)
+			CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Off, 0)
 			      == Failure::Result::Success);
 		}
 	});
@@ -297,7 +297,7 @@ void AutopilotTester::execute_mission_and_lose_baro()
 		std::cout << "Progress: " << progress.current << "/" << progress.total;
 
 		if (progress.current == 1) {
-			CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Off)
+			CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Off, 0)
 			      == Failure::Result::Success);
 		}
 	});
@@ -326,7 +326,7 @@ void AutopilotTester::execute_mission_and_get_baro_stuck()
 		std::cout << "Progress: " << progress.current << "/" << progress.total;
 
 		if (progress.current == 1) {
-			CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Stuck)
+			CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Stuck, 0)
 			      == Failure::Result::Success);
 		}
 	});
@@ -355,7 +355,7 @@ void AutopilotTester::execute_mission_and_get_mag_stuck()
 		std::cout << "Progress: " << progress.current << "/" << progress.total;
 
 		if (progress.current == 1) {
-			CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Stuck)
+			CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Stuck, 0)
 			      == Failure::Result::Success);
 		}
 	});
