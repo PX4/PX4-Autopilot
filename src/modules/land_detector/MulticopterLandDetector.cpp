@@ -239,7 +239,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		sys_min_throttle = (_params.minManThrottle + 0.01f);
 	}
 
-	// Check if thrust output is less than the minimum auto throttle param.
+	// Check if thrust output is less than the minimum throttle.
 	if (_actuator_controls_throttle <= sys_min_throttle) {
 		if (_min_thrust_start == 0) {
 			_min_thrust_start = hrt_absolute_time();
