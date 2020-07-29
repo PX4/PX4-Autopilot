@@ -211,11 +211,12 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
 		*topic_ID = header->topic_ID;
 		len = payload_len + header_size;
+
+		// discard message from rx_buffer
+		rx_buff_pos -= msg_start_pos + header_size + payload_len;
+		memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
 	}
 
-	// discard message from rx_buffer
-	rx_buff_pos -= msg_start_pos + header_size + payload_len;
-	memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
 
 	return len;
 }
