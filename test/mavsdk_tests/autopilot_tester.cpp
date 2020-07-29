@@ -32,63 +32,11 @@
  ****************************************************************************/
 
 #include "autopilot_tester.h"
+#include "math_helpers.h"
 #include <iostream>
 #include <future>
 
 std::string connection_url {"udp://"};
-
-namespace
-{
-std::array<float, 3> get_local_mission_item(const Mission::MissionItem &item, const CoordinateTransformation &ct)
-{
-	using GlobalCoordinate = mavsdk::geometry::CoordinateTransformation::GlobalCoordinate;
-	GlobalCoordinate global;
-	global.latitude_deg = item.latitude_deg;
-	global.longitude_deg = item.longitude_deg;
-	auto local = ct.local_from_global(global);
-	return {static_cast<float>(local.north_m), static_cast<float>(local.east_m), -item.relative_altitude_m};
-}
-
-float norm(const std::array<float, 3> &vec)
-{
-	return std::sqrt(sq(vec[0]) + sq(vec[1]) + sq(vec[2]));
-}
-
-float dot(const std::array<float, 3> &vec1, const std::array<float, 3> &vec2)
-{
-	return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
-}
-
-std::array<float, 3> diff(const std::array<float, 3> &vec1, const std::array<float, 3> &vec2)
-{
-	return {vec1[0] - vec2[0], vec1[1] - vec2[1], vec1[2] - vec2[2]};
-}
-
-std::array<float, 3> normalized(const std::array<float, 3> &vec)
-{
-	float n = norm(vec);
-
-	if (n > 1e-6f) {
-		return {vec[0] / n, vec[1] / n, vec[2] / n};
-
-	} else {
-		return {0, 0, 0};
-	}
-}
-
-float point_to_line_distance(const std::array<float, 3> &point, const std::array<float, 3> &line_start,
-			     const std::array<float, 3> &line_end)
-{
-	std::array<float, 3> norm_dir = normalized(diff(line_end, line_start));
-	float t = dot(norm_dir, diff(point, line_start));
-
-	// closest_on_line = line_start + t * norm_dir;
-	std::array<float, 3> closest_on_line { line_start[0] + t *norm_dir[0], line_start[1] + t *norm_dir[1], line_start[2] + t *norm_dir[2]};
-
-	return norm(diff(closest_on_line, point));
-}
-
-}
 
 void AutopilotTester::connect(const std::string uri)
 {
@@ -498,8 +446,8 @@ void AutopilotTester::check_tracks_mission(float corridor_radius_m)
 			std::array<float, 3> current { position_velocity_ned.position.north_m,
 						       position_velocity_ned.position.east_m,
 						       position_velocity_ned.position.down_m };
-			std::array<float, 3> wp_prev = get_local_mission_item(mission_items[progress.current - 1], ct);
-			std::array<float, 3> wp_next = get_local_mission_item(mission_items[progress.current], ct);
+			std::array<float, 3> wp_prev = get_local_mission_item<float>(mission_items[progress.current - 1], ct);
+			std::array<float, 3> wp_next = get_local_mission_item<float>(mission_items[progress.current], ct);
 
 			float distance_to_trajectory = point_to_line_distance(current, wp_prev, wp_next);
 
