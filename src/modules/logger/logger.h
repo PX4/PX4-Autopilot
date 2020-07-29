@@ -57,7 +57,9 @@
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
-static constexpr hrt_abstime TRY_SUBSCRIBE_INTERVAL{1000 * 1000};	// interval in microseconds at which we try to subscribe to a topic
+using namespace time_literals;
+
+static constexpr hrt_abstime TRY_SUBSCRIBE_INTERVAL{20_ms};	// interval in microseconds at which we try to subscribe to a topic
 // if we haven't succeeded before
 
 namespace px4
