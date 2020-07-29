@@ -20,7 +20,7 @@ class Runner:
         self.cmd = ""
         self.cwd = ""
         self.args: List[str]
-        self.env: Dict[str, str]
+        self.env: Dict[str, str] = os.environ.copy()
         self.model = model
         self.case = case
         self.log_filename = ""
@@ -131,10 +131,6 @@ class Runner:
     def time_elapsed_s(self) -> float:
         return time.time() - self.start_time
 
-    def add_to_env_if_set(self, var: str) -> None:
-        if var in os.environ:
-            self.env[var] = os.environ[var]
-
 
 class Px4Runner(Runner):
     def __init__(self, workspace_dir: str, log_dir: str,
@@ -152,9 +148,8 @@ class Px4Runner(Runner):
                 workspace_dir + "/test_data",
                 "-d"
             ]
-        self.env = {"PATH": str(os.environ['PATH']),
-                    "PX4_SIM_MODEL": self.model,
-                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
+        self.env["PX4_SIM_MODEL"] = self.model
+        self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.debugger = debugger
 
         if not self.debugger:
@@ -186,17 +181,11 @@ class GzserverRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzserver"
         self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH'],
-                    "HOME": os.environ['HOME'],
-                    "GAZEBO_PLUGIN_PATH":
-                    workspace_dir + "/build/px4_sitl_default/build_gazebo",
-                    "GAZEBO_MODEL_PATH":
-                    workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
-        self.add_to_env_if_set("DISPLAY")
-        self.add_to_env_if_set("PX4_HOME_LAT")
-        self.add_to_env_if_set("PX4_HOME_LON")
-        self.add_to_env_if_set("PX4_HOME_ALT")
+        self.env["GAZEBO_PLUGIN_PATH"] = \
+            workspace_dir + "/build/px4_sitl_default/build_gazebo"
+        self.env["GAZEBO_MODEL_PATH"] = \
+            workspace_dir + "/Tools/sitl_gazebo/models"
+        self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/" +
@@ -213,13 +202,10 @@ class GzmodelspawnRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzmodelspawn"
         self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH'],
-                    "HOME": os.environ['HOME'],
-                    "GAZEBO_PLUGIN_PATH":
-                    workspace_dir + "/build/px4_sitl_default/build_gazebo",
-                    "GAZEBO_MODEL_PATH":
-                    workspace_dir + "/Tools/sitl_gazebo/models"}
-        self.add_to_env_if_set("DISPLAY")
+        self.env["GAZEBO_PLUGIN_PATH"] = \
+            workspace_dir + "/build/px4_sitl_default/build_gazebo"
+        self.env["GAZEBO_MODEL_PATH"] = \
+            workspace_dir + "/Tools/sitl_gazebo/models"
         self.cmd = "gz"
         self.args = ["model", "--spawn-file", workspace_dir +
                      "/Tools/sitl_gazebo/models/" +
@@ -240,7 +226,6 @@ class GzclientRunner(Runner):
         self.cwd = workspace_dir
         self.env = dict(os.environ, **{
             "GAZEBO_MODEL_PATH": workspace_dir + "/Tools/sitl_gazebo/models"})
-        self.add_to_env_if_set("DISPLAY")
         self.cmd = "gzclient"
         self.args = ["--verbose"]
 
@@ -256,7 +241,6 @@ class TestRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         self.cwd = workspace_dir
-        self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
         self.args = ["--url", mavlink_connection, case]
