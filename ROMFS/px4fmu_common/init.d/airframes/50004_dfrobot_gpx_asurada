@@ -37,11 +37,9 @@ then
 	param set GND_THR_CRUISE 0
 	param set GND_THR_MAX 0.5
 
-	# Because this is differential drive, it can make a turn with radius 0.
-	# This corresponds to a turn angle of pi radians.
-	# If a special case is made for differential-drive, this will need to change.
-	param set GND_MAX_ANG 3.142
-	param set GND_WHEEL_BASE 0.3
+	# Differential drive acts like ackermann steering with a maximum turn angle of 60 degrees, or pi/3 radians
+	param set GND_MAX_ANG 1.042
+	param set GND_WHEEL_BASE 0.17
 
 	# TODO: Set to -1.0, to allow reversing. This will require many changes in the codebase
 	# to support negative throttle.
@@ -70,9 +68,6 @@ then
 
 	# Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
 	param set CBRK_AIRSPD_CHK 162128
-
-	# Differential drive acts like ackermann steering with a maximum turn angle of 180 degrees, or pi radians
-	param set GND_MAX_ANG 3.1415
 
 fi
 
