@@ -50,6 +50,38 @@ TEST(Navigator_and_RTL, compiles_woohoooo)
 	ASSERT_TRUE(_rtl_flight_time_sub.update());
 	auto msg = _rtl_flight_time_sub.get();
 	EXPECT_EQ(msg.rtl_time_s, 0);
+
+	// WHEN: we set the vehicle type to multirotor
+	v_status.vehicle_type =
+		n.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	float xy, z;
+	rtl.get_rtl_xy_z_speed(xy, z);
+
+	// THEN: the RTL speed should correspond to multirotor parameters
+	float xy_desired, z_desired;
+	param_get(param_handle(px4::params::MPC_XY_CRUISE), &xy_desired);
+	param_get(param_handle(px4::params::MPC_Z_VEL_MAX_DN), &z_desired);
+	EXPECT_FLOAT_EQ(xy, xy_desired);
+	EXPECT_FLOAT_EQ(z, z_desired);
+
+	// WHEN: it is a fixed wing
+	n.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	rtl.get_rtl_xy_z_speed(xy, z);
+
+	// THEN: it should be fixed wing parameters
+	param_get(param_handle(px4::params::FW_AIRSPD_TRIM), &xy_desired);
+	param_get(param_handle(px4::params::FW_T_SINK_MIN), &z_desired);
+	EXPECT_FLOAT_EQ(xy, xy_desired);
+	EXPECT_FLOAT_EQ(z, z_desired);
+
+	// WHEN: it is rover
+	n.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
+	rtl.get_rtl_xy_z_speed(xy, z);
+
+	// THEN: it should be rover parameters, and z should just be large (no RTL time in Z -> high speed)
+	param_get(param_handle(px4::params::GND_SPEED_THR_SC), &xy_desired);
+	EXPECT_FLOAT_EQ(xy, xy_desired);
+	EXPECT_GT(z, 1000);
 }
 
 class RangeRTL_tth : public ::testing::Test

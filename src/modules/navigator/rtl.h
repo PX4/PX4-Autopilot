@@ -94,6 +94,8 @@ public:
 
 	bool denyMissionLanding() { return _deny_mission_landing; }
 
+	void get_rtl_xy_z_speed(float &xy, float &z);
+	matrix::Vector2f get_wind();
 private:
 	/**
 	 * Set the RTL item
@@ -105,8 +107,6 @@ private:
 	 */
 	void advance_rtl();
 
-	void get_rtl_xy_z_speed(uint8_t vehicle_type, float &xy, float &z);
-	matrix::Vector2f get_wind();
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
 
