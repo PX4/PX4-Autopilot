@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(MAVSDK REQUIRED)
+find_package(Threads REQUIRED)
 
 if(MAVSDK_FOUND)
     add_executable(mavsdk_tests
@@ -27,6 +28,7 @@ if(MAVSDK_FOUND)
         MAVSDK::mavsdk_offboard
         MAVSDK::mavsdk_param
         MAVSDK::mavsdk_telemetry
+        ${CMAKE_THREAD_LIBS_INIT}
     )
 
     target_compile_options(mavsdk_tests
