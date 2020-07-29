@@ -185,7 +185,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// low thrust: 30% of throttle range between min and hover
 	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.3f;
 
-	bool ground_contact = (_actuator_controls_throttle <= sys_low_throttle) && !vertical_movement;
+	bool ground_contact = (_actuator_controls_throttle <= sys_low_throttle);
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
