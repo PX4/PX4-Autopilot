@@ -115,13 +115,15 @@ public:
 
 	enum class InternetProtocol {
 		TCP,
-		UDP
+		UDP,
+		TCP_REMOTE
 	};
 
 	static int start(int argc, char *argv[]);
 
 	void set_ip(InternetProtocol ip) { _ip = ip; }
 	void set_port(unsigned port) { _port = port; }
+	void set_ipaddr(char* ipaddr) { _ipaddr = ipaddr; }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	bool has_initialized() { return _has_initialized.load(); }
@@ -179,6 +181,8 @@ private:
 	unsigned int _port{14560};
 
 	InternetProtocol _ip{InternetProtocol::UDP};
+
+	char* _ipaddr;
 
 	double _realtime_factor{1.0};		///< How fast the simulation runs in comparison to real system time
 

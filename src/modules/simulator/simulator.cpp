@@ -85,6 +85,12 @@ int Simulator::start(int argc, char *argv[])
 			_instance->set_port(atoi(argv[3]));
 		}
 
+		if (argc == 5 && strcmp(argv[2], "-t") == 0) {
+			_instance->set_ip(InternetProtocol::TCP_REMOTE);
+			_instance->set_ipaddr(argv[3]);
+			_instance->set_port(atoi(argv[4]));
+		}
+
 		_instance->run();
 
 		return 0;
