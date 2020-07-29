@@ -122,13 +122,12 @@ void thrustToFixedRollPitch(const matrix::Vector3f &thr_sp, const float yaw_sp, 
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
  * @param att current attitude of the robot
- * @param tilt_angle_rate rate for the tilt angle change
- * @param tilt_dir_rate rate for the tilt direction change
+ * @param tilt_rate rate for the tilt change (0-1)
  * @param omni_proj_axes the axes used for thrust projection (0=calculated, 1=current)
  * @param att_sp attitude setpoint to fill
  */
 void thrustToSlowAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
-			  const float tilt_angle_rate, const float tilt_dir_rate, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp);
+			  const float tilt_angle_rate, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Outputs the sum of two vectors but respecting the limits and priority.

@@ -52,7 +52,7 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 {
 
 	// Print an error if the omni_att_mode parameter is out of range
-	if (omni_att_mode > 5 || omni_att_mode < 0) {
+	if (omni_att_mode > 6 || omni_att_mode < 0) {
 		PX4_ERR("OMNI_ATT_MODE parameter set to unknown value!");
 	}
 
@@ -76,8 +76,8 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 		}
 
 	case 6: { // Attitude is changed very slowly given the rate
-			float tilt_angle_rate = 0.05, tilt_dir_rate = 0.05;
-			thrustToSlowAttitude(thr_sp, yaw_sp, att, tilt_angle_rate, tilt_dir_rate, omni_proj_axes, att_sp);
+			float tilt_rate = 0.01;
+			thrustToSlowAttitude(thr_sp, yaw_sp, att, tilt_rate, omni_proj_axes, att_sp);
 			break;
 		}
 
@@ -424,38 +424,44 @@ void thrustToFixedRollPitch(const matrix::Vector3f &thr_sp, const float yaw_sp, 
 }
 
 void thrustToSlowAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
-			  const float tilt_angle_rate, const float tilt_dir_rate, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp)
+			  const float tilt_rate, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp)
 {
-	// Calculate the desired tilt angle and direction
-	float des_tilt_angle = asinf(Vector2f(thr_sp(0), thr_sp(1)).norm() / thr_sp.norm());
-	float des_tilt_dir = atan2f(thr_sp(1), thr_sp(0));
+	// Calculate the desired z axis
+	Vector3f des_z = -thr_sp;
 
-	// Calculate the current z axis in up direction
+	// Calculate the current z axis
 	Vector3f curr_z;
 	matrix::Dcmf R_body = att;
 
 	for (int i = 0; i < 3; i++) {
-		curr_z(i) = -R_body(i, 2);
+		curr_z(i) = R_body(i, 2);
 	}
 
-	// Calculate current tilt angle and direction
-	float curr_tilt_angle = asinf(Vector2f(curr_z(0), curr_z(1)).norm() / curr_z.norm());
-	float curr_tilt_dir = atan2f(curr_z(1), curr_z(0));
+	// Calculate the commanded z axis
+	Vector3f p_hat = curr_z % des_z; // the axis of rotation between current and desired z
+	p_hat.normalize();
+	Vector3f cmd_z = -(1 - cosf(tilt_rate)) * p_hat * (p_hat.dot(curr_z)) + cosf(tilt_rate) * curr_z - sinf(tilt_rate) *
+			 (curr_z % p_hat); // Rodrigues' rotation formula
 
-	// Calculate the error
-	float err_tilt_angle = des_tilt_angle  - curr_tilt_angle;
-	float err_tilt_dir = wrap_pi(des_tilt_dir - curr_tilt_dir);
+	// Calculate the attitude from the z axis
+	bodyzToAttitude(cmd_z, yaw_sp, att_sp);
 
-	// Calculate the changes to tilt angle and direction
-	float d_tilt_angle = fminf(tilt_angle_rate, err_tilt_angle);
-	float d_tilt_dir = math::sign(err_tilt_dir) * fminf(tilt_dir_rate, std::abs(err_tilt_dir));
+	// Project the thrust on the axes
+	att_sp.thrust_body[2] = -thr_sp.length();
 
-	// Calculate the commanded tilt angle and direction
-	float cmd_tilt_angle = curr_tilt_angle + d_tilt_angle;
-	float cmd_tilt_dir = wrap_2pi(curr_tilt_dir + d_tilt_dir);
+	if (omni_proj_axes == 1) { // if thrust is projected on the current attitude
+		Vector3f body_x, body_y, body_z;
 
-	// Calculate the attitude and thrust
-	thrustToFixedTiltAttitude(thr_sp, yaw_sp, att, cmd_tilt_angle, cmd_tilt_dir, omni_proj_axes, att_sp);
+		for (int i = 0; i < 3; i++) {
+			body_x(i) = R_body(i, 0);
+			body_y(i) = R_body(i, 1);
+			body_z(i) = R_body(i, 2);
+		}
+
+		att_sp.thrust_body[0] = thr_sp.dot(body_x);
+		att_sp.thrust_body[1] = thr_sp.dot(body_y);
+		att_sp.thrust_body[2] = thr_sp.dot(body_z);
+	}
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
