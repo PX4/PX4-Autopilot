@@ -132,8 +132,6 @@ private:
 		return true;
 	}
 
-	static float sq(float x) { return x * x; };
-
 	mavsdk::Mavsdk _mavsdk{};
 	std::unique_ptr<mavsdk::Action> _action{};
 	std::unique_ptr<mavsdk::Failure> _failure{};
