@@ -414,43 +414,6 @@ bool Logger::request_stop_static()
 	return true;
 }
 
-bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
-{
-	LoggerSubscription &sub = _subscriptions[sub_idx];
-
-	bool updated = false;
-
-	if (sub.valid()) {
-		if (sub.get_interval_us() == 0) {
-			// record gaps in full rate (no interval) messages
-			const unsigned last_generation = sub.get_last_generation();
-			updated = sub.update(buffer);
-
-			if (updated && (sub.get_last_generation() != last_generation + 1)) {
-				// error, missed a message
-				_message_gaps++;
-			}
-
-		} else {
-			updated = sub.update(buffer);
-		}
-
-	} else if (try_to_subscribe) {
-		if (sub.subscribe()) {
-			write_add_logged_msg(LogType::Full, sub);
-
-			if (sub_idx < _num_mission_subs) {
-				write_add_logged_msg(LogType::Mission, sub);
-			}
-
-			// copy first data
-			updated = sub.copy(buffer);
-		}
-	}
-
-	return updated;
-}
-
 const char *Logger::configured_backend_mode() const
 {
 	switch (_writer.backend()) {
@@ -708,14 +671,60 @@ void Logger::run()
 			/* wait for lock on log buffer */
 			_writer.lock();
 
+			const ssize_t file_buffer_size = _writer.get_buffer_size_file(LogType::Full);
+			const ssize_t file_buffer_available = file_buffer_size - _writer.get_buffer_fill_count_file(LogType::Full);
+
+			// only check buffer if not using mavlink backend
+			const bool check_file_buffer = (file_buffer_size > 0) && !_writer.is_started(LogType::Full, LogWriter::BackendMavlink);
+
 			for (int sub_idx = 0; sub_idx < _num_subscriptions; ++sub_idx) {
 				LoggerSubscription &sub = _subscriptions[sub_idx];
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
 				 */
-				const bool try_to_subscribe = (sub_idx == next_subscribe_topic_index);
+				bool msg_copied = false;
+				void *buffer = _msg_buffer + sizeof(ulog_message_data_header_s);
 
-				if (copy_if_updated(sub_idx, _msg_buffer + sizeof(ulog_message_data_header_s), try_to_subscribe)) {
+				if (sub.valid()) {
+					if (sub.updated()) {
+						if (check_file_buffer) {
+							// skip copying message until there's space available in the buffer
+							const ssize_t msg_size = sizeof(ulog_message_data_header_s) + sub.get_topic()->o_size_no_padding;
+
+							if (msg_size > file_buffer_available) {
+								break;
+							}
+						}
+
+						if (sub.get_interval_us() == 0) {
+							// record gaps in full rate (no interval) messages
+							const unsigned last_generation = sub.get_last_generation();
+							msg_copied = sub.copy(buffer);
+
+							if (msg_copied && (sub.get_last_generation() != last_generation + 1)) {
+								// error, missed a message
+								_message_gaps++;
+							}
+
+						} else {
+							msg_copied = sub.copy(buffer);
+						}
+					}
+
+				} else if (sub_idx == next_subscribe_topic_index) {
+					if (sub.subscribe()) {
+						write_add_logged_msg(LogType::Full, sub);
+
+						if (sub_idx < _num_mission_subs) {
+							write_add_logged_msg(LogType::Mission, sub);
+						}
+
+						// copy first data
+						msg_copied = sub.copy(buffer);
+					}
+				}
+
+				if (msg_copied) {
 					// each message consists of a header followed by an orb data object
 					const size_t msg_size = sizeof(ulog_message_data_header_s) + sub.get_topic()->o_size_no_padding;
 					const uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);

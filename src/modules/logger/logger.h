@@ -261,8 +261,6 @@ private:
 
 	void write_changed_parameters(LogType type);
 
-	inline bool copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe);
-
 	/**
 	 * Write exactly one ulog message to the logger and handle dropouts.
 	 * Must be called with _writer.lock() held.
