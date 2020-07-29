@@ -230,16 +230,14 @@ void RTL::find_RTL_destination()
 		map_projection_project(&_projection_reference, global_position.lat, global_position.lon, &local_destination(0),
 				       &local_destination(1));
 
-		uint8_t vehicle_type = _navigator->get_vstatus()->vehicle_type;
 		float xy_speed, z_speed;
-		get_rtl_xy_z_speed(vehicle_type, xy_speed, z_speed);
+		get_rtl_xy_z_speed(xy_speed, z_speed);
 		float time_to_home_s = time_to_home(local_pos, local_destination, get_wind(), xy_speed, z_speed);
 
 		float rtl_flight_time_ratio = time_to_home_s / (60 * _param_rtl_flt_time.get());
 		rtl_flight_time_s rtl_flight_time;
 		rtl_flight_time.rtl_limit_fraction = rtl_flight_time_ratio;
 		rtl_flight_time.rtl_time_s = time_to_home_s;
-		rtl_flight_time.rtl_vehicle_type = vehicle_type;
 		_rtl_flight_time_pub.publish(rtl_flight_time);
 	}
 }
@@ -642,8 +640,9 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	return max(return_altitude_amsl, gpos.alt);
 }
 
-void RTL::get_rtl_xy_z_speed(uint8_t vehicle_type, float &xy, float &z)
+void RTL::get_rtl_xy_z_speed(float &xy, float &z)
 {
+	uint8_t vehicle_type = _navigator->get_vstatus()->vehicle_type;
 	// Caution: here be dragons!
 	// Use C API to allow this code to be compiled with builds that don't have FW/MC/Rover
 
@@ -658,7 +657,7 @@ void RTL::get_rtl_xy_z_speed(uint8_t vehicle_type, float &xy, float &z)
 
 		case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
 			_rtl_xy_speed = param_find("FW_AIRSPD_TRIM");
-			_rtl_descent_speed = param_find("FW_T_SINK_MAX");
+			_rtl_descent_speed = param_find("FW_T_SINK_MIN");
 			break;
 
 		case vehicle_status_s::VEHICLE_TYPE_ROVER:
