@@ -110,7 +110,7 @@ void* send(void* /*unused*/)
     int loop = 0, read = 0;
     uint32_t length = 0;
     size_t header_length = 0;
-    struct SendTopicsSubs subs;
+    SendTopicsSubs *subs = new SendTopicsSubs();
 
     // ucdrBuffer to serialize using the user defined buffer
     ucdrBuffer writer;
@@ -125,7 +125,7 @@ void* send(void* /*unused*/)
 @[for idx, topic in enumerate(send_topics)]@
         {
             @(send_base_types[idx])_s @(topic)_data;
-            if (subs.@(topic)_sub.update(&@(topic)_data)) {
+            if (subs->@(topic)_sub.update(&@(topic)_data)) {
 @[if topic == 'Timesync' or topic == 'timesync']@
                 if(@(topic)_data.sys_id == 0 && @(topic)_data.seq != last_remote_msg_seq && @(topic)_data.tc1 == 0) {
                     last_remote_msg_seq = @(topic)_data.seq;
@@ -161,6 +161,8 @@ void* send(void* /*unused*/)
     PX4_INFO("SENT: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - %.02fKB/s",
                 sent, loop, total_sent, elapsed_secs, total_sent / (1e3 * elapsed_secs));
 
+    delete subs;
+
     return nullptr;
 }
 
@@ -183,11 +185,10 @@ static int launch_send_thread(pthread_t &sender_thread)
 void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64_t &received, int &loop)
 {
 @[if recv_topics]@
-
     char data_buffer[BUFFER_SIZE] = {};
     int read = 0;
     uint8_t topic_ID = 255;
-    struct RcvTopicsPubs pubs;
+    RcvTopicsPubs *pubs = new RcvTopicsPubs();
 
     // ucdrBuffer to deserialize using the user defined buffer
     ucdrBuffer reader;
@@ -216,7 +217,7 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
                 {
                     @(receive_base_types[idx])_s @(topic)_data;
                     deserialize_@(receive_base_types[idx])(&reader, &@(topic)_data, data_buffer);
-                    pubs.@(topic)_pub.publish(@(topic)_data);
+                    pubs->@(topic)_pub.publish(@(topic)_data);
                     ++received;
                 }
                 break;
@@ -234,6 +235,9 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
         px4_usleep(_options.sleep_ms * 1000);
         ++loop;
     }
+@[if recv_topics]@
+    delete pubs;
+@[end if]@
 @[if send_topics]@
     _should_exit_task = true;
     pthread_join(sender_thread, nullptr);
