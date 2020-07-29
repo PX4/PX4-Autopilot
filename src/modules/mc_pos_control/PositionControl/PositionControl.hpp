@@ -170,17 +170,19 @@ public:
 	 * This attitude setpoint was generated from the resulting acceleration setpoint after position and velocity control.
 	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
 	 * @param att current attitude of the robot
-	 * @param omni_att_mode attitude mode for omnidirectional vehicles: 0-tilted 1-min-tilt 2-zero-tilt
+	 * @param omni_att_mode attitude mode for omnidirectional vehicles
 	 * @param omni_dfc_max_thrust maximum direct-force (horizontal) scaled thrust for omnidirectional vehicles
-	 * @param omni_att_tilt_angle the desired tilt for the vehicle in mode=3, is output for mode=5 (in degrees)
-	 * @param omni_att_tilt_dir the direction of the desired tilt with respec to North in mode=3, is output for mode=5 (in degrees)
-	 * @param omni_att_roll the desired roll for the vehicle in mode=4, is output for mode=6 (in degrees)
-	 * @param omni_att_pitch the desired pitch for the vehicle in mode=4, is output for mode=6 (in degrees)
+	 * @param omni_att_tilt_angle the desired tilt for the vehicle in mode=3, is output for mode > 5 (in radians)
+	 * @param omni_att_tilt_dir the direction of the desired tilt with respec to North in mode=3, is output for mode > 5 (in radians)
+	 * @param omni_att_roll the desired roll for the vehicle in mode=4, is output for mode > 5 (in radians)
+	 * @param omni_att_pitch the desired pitch for the vehicle in mode=4, is output for mode=6 (in radians)
+	 * @param omni_att_rate the attitude change rate for mode=6
+	 * @param omni_proj_axes the axes used for thrust projection (0=calculated, 1=current)
 	 * @param attitude_setpoint reference to struct to fill up
 	 */
 	void getAttitudeSetpoint(const matrix::Quatf &att, const int omni_att_mode, const float omni_dfc_max_thrust,
 				 float &omni_att_tilt_angle, float &omni_att_tilt_dir, float &omni_att_roll, float &omni_att_pitch,
-				 int omni_proj_axes, vehicle_attitude_setpoint_s &attitude_setpoint) const;
+				 const float omni_att_rate, const int omni_proj_axes, vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 private:
 	/**

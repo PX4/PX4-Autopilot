@@ -856,3 +856,17 @@ PARAM_DEFINE_FLOAT(OMNI_ATT_PITCH, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_INT32(OMNI_PROJ_AXES, 1);
+
+
+/**
+ * Rate for change of attitude
+ *
+ * Specifies the rate in which the attitude can change in slow attitude mode
+ * (OMNI_ATT_MODE = 6), rotating the Z axis from the current attitude to the
+ * optimal attitude. The value is in degrees per position control loop.
+ *
+ * @min 0
+ * @decimal 3
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(OMNI_ATT_RATE, 0.5f);

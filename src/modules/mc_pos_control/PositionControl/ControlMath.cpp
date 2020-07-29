@@ -48,7 +48,8 @@ namespace ControlMath
 {
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att, const int omni_att_mode,
 		      const float omni_dfc_max_thrust, float &omni_att_tilt_angle, float &omni_att_tilt_dir,
-		      float &omni_att_roll, float &omni_att_pitch, int omni_proj_axes, vehicle_attitude_setpoint_s &att_sp)
+		      float &omni_att_roll, float &omni_att_pitch, const float omni_att_rate, int omni_proj_axes,
+		      vehicle_attitude_setpoint_s &att_sp)
 {
 
 	// Print an error if the omni_att_mode parameter is out of range
@@ -76,7 +77,7 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 		}
 
 	case 6: { // Attitude is changed very slowly given the rate
-			float tilt_rate = 0.01;
+			float tilt_rate = math::radians(omni_att_rate);
 			thrustToSlowAttitude(thr_sp, yaw_sp, att, tilt_rate, omni_proj_axes, att_sp);
 			break;
 		}
@@ -88,17 +89,23 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 
 	// Estimate the optimal tilt angle and direction to counteract the wind
 	if (omni_att_mode == 5 || omni_att_mode == 6) {
-		// Calculate the tilt angle
-		omni_att_tilt_angle = asinf(Vector2f(thr_sp(0), thr_sp(1)).norm() / thr_sp.norm());
 
-		// Calculate the tilt direction
-		omni_att_tilt_dir = wrap_2pi(atan2f(thr_sp(1), thr_sp(0)));
+		// Calculate the current z axis
+		Vector3f curr_z;
+		matrix::Dcmf R_body = att;
 
-		// Set the roll angle
-		omni_att_roll = att_sp.roll_body;
+		for (int i = 0; i < 3; i++) {
+			curr_z(i) = R_body(i, 2);
+		}
 
-		// Set the pitch angle
-		omni_att_pitch = att_sp.pitch_body;
+		// Calculate the tilt angle and direction
+		omni_att_tilt_angle = asinf(Vector2f(curr_z(0), curr_z(1)).norm() / curr_z.norm());
+		omni_att_tilt_dir = wrap_2pi(atan2f(-curr_z(1), -curr_z(0)));
+
+		// Calculate the roll and pitch
+		Eulerf euler = R_body;
+		omni_att_roll = euler(0);
+		omni_att_pitch = euler(1);
 	}
 }
 
