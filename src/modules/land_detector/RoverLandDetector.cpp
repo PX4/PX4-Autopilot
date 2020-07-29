@@ -44,10 +44,6 @@
 namespace land_detector
 {
 
-void RoverLandDetector::_update_topics()
-{
-}
-
 bool RoverLandDetector::_get_ground_contact_state()
 {
 	return true;

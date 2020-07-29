@@ -61,7 +61,6 @@ public:
 protected:
 
 	bool _get_landed_state() override;
-	void _update_topics() override {};
 
 private:
 

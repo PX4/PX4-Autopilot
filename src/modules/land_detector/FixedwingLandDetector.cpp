@@ -90,7 +90,7 @@ bool FixedwingLandDetector::_get_landed_state()
 
 		// A leaking lowpass prevents biases from building up, but
 		// gives a mostly correct response for short impulses.
-		const float acc_hor = Vector2f(_acceleration).norm();
+		const float acc_hor = matrix::Vector2f(_acceleration).norm();
 		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
 
 		// Crude land detector for fixedwing.

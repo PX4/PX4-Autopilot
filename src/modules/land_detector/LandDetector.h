@@ -104,7 +104,7 @@ protected:
 	/**
 	 * Updates subscribed uORB topics.
 	 */
-	virtual void _update_topics() = 0;
+	virtual void _update_topics() {};
 
 	/**
 	 * @return true if UAV is in a landed state.
