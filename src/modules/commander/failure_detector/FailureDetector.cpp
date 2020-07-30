@@ -47,50 +47,42 @@ FailureDetector::FailureDetector(ModuleParams *parent) :
 {
 }
 
-bool FailureDetector::resetAttitudeStatus()
+void FailureDetector::resetAttitudeStatus()
 {
-
 	int attitude_fields_bitmask = _status & (FAILURE_ROLL | FAILURE_PITCH | FAILURE_ALT | FAILURE_EXT);
-	bool status_changed(false);
 
 	if (attitude_fields_bitmask > FAILURE_NONE) {
 		_status &= ~attitude_fields_bitmask;
-		status_changed = true;
 	}
-
-	return status_changed;
 }
 
-bool
-FailureDetector::update(const vehicle_status_s &vehicle_status)
+bool FailureDetector::update(const vehicle_status_s &vehicle_status)
 {
-
-	bool updated(false);
+	uint8_t previous_status = _status;
 
 	if (isAttitudeStabilized(vehicle_status)) {
-		updated |= updateAttitudeStatus();
+		updateAttitudeStatus();
 
 		if (_param_fd_ext_ats_en.get()) {
-			updated |= updateExternalAtsStatus();
+			updateExternalAtsStatus();
 		}
 
 	} else {
-		updated |= resetAttitudeStatus();
+		resetAttitudeStatus();
 	}
 
 	if (_esc_status_sub.updated()) {
 
 		if (_param_escs_en.get()) {
-			updated |= updateEscsStatus(vehicle_status);
+			updateEscsStatus(vehicle_status);
 		}
 
 	}
 
-	return updated;
+	return _status != previous_status;
 }
 
-bool
-FailureDetector::isAttitudeStabilized(const vehicle_status_s &vehicle_status)
+bool FailureDetector::isAttitudeStabilized(const vehicle_status_s &vehicle_status)
 {
 	bool attitude_is_stabilized{false};
 	const uint8_t vehicle_type = vehicle_status.vehicle_type;
@@ -109,10 +101,8 @@ FailureDetector::isAttitudeStabilized(const vehicle_status_s &vehicle_status)
 	return attitude_is_stabilized;
 }
 
-bool
-FailureDetector::updateAttitudeStatus()
+void FailureDetector::updateAttitudeStatus()
 {
-	bool updated(false);
 	vehicle_attitude_s attitude;
 
 	if (_vehicule_attitude_sub.update(&attitude)) {
@@ -147,18 +137,12 @@ FailureDetector::updateAttitudeStatus()
 		if (_pitch_failure_hysteresis.get_state()) {
 			_status |= FAILURE_PITCH;
 		}
-
-		updated = true;
 	}
-
-	return updated;
 }
 
-bool
-FailureDetector::updateExternalAtsStatus()
+void FailureDetector::updateExternalAtsStatus()
 {
 	pwm_input_s pwm_input;
-	bool updated(false);
 
 	if (_pwm_input_sub.update(&pwm_input)) {
 
@@ -176,18 +160,12 @@ FailureDetector::updateExternalAtsStatus()
 		if (_ext_ats_failure_hysteresis.get_state()) {
 			_status |= FAILURE_EXT;
 		}
-
-		updated = true;
 	}
-
-	return updated;
 }
 
-bool
-FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
+void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 {
 	hrt_abstime time_now = hrt_absolute_time();
-	bool updated(false);
 
 	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
@@ -201,7 +179,6 @@ FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 
 		if (_esc_failure_hysteresis.get_state() && !(_status & FAILURE_ARM_ESCS)) {
 			_status |= FAILURE_ARM_ESCS;
-			updated = true;
 		}
 
 	} else {
@@ -210,9 +187,6 @@ FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 
 		if (_status & FAILURE_ARM_ESCS) {
 			_status &= ~FAILURE_ARM_ESCS;
-			updated = true;
 		}
 	}
-
-	return updated;
 }
