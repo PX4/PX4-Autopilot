@@ -115,13 +115,13 @@ public:
 
 	/**
 	 * Update the struct
-	 * @param data The uORB message struct we are updating.
+	 * @param dst The uORB message struct we are updating.
 	 */
 	bool update(void *dst) { return updated() ? copy(dst) : false; }
 
 	/**
 	 * Copy the struct
-	 * @param data The uORB message struct we are updating.
+	 * @param dst The uORB message struct we are updating.
 	 */
 	bool copy(void *dst) { return advertised() ? _node->copy(dst, _last_generation) : false; }
 
