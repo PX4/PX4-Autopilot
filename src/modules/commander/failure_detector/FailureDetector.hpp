@@ -79,11 +79,11 @@ public:
 	bool isFailure() const { return _status != FAILURE_NONE; }
 
 private:
-	bool resetAttitudeStatus();
+	void resetAttitudeStatus();
 	bool isAttitudeStabilized(const vehicle_status_s &vehicle_status);
-	bool updateAttitudeStatus();
-	bool updateExternalAtsStatus();
-	bool updateEscsStatus(const vehicle_status_s &vehicle_status);
+	void updateAttitudeStatus();
+	void updateExternalAtsStatus();
+	void updateEscsStatus(const vehicle_status_s &vehicle_status);
 
 	uint8_t _status{FAILURE_NONE};
 
