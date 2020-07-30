@@ -78,7 +78,7 @@ FailureDetector::update(const vehicle_status_s &vehicle_status)
 		updated |= resetAttitudeStatus();
 	}
 
-	if (_sub_esc_status.updated()) {
+	if (_esc_status_sub.updated()) {
 
 		if (_param_escs_en.get()) {
 			updated |= updateEscsStatus(vehicle_status);
@@ -115,7 +115,7 @@ FailureDetector::updateAttitudeStatus()
 	bool updated(false);
 	vehicle_attitude_s attitude;
 
-	if (_sub_vehicule_attitude.update(&attitude)) {
+	if (_vehicule_attitude_sub.update(&attitude)) {
 
 		const matrix::Eulerf euler(matrix::Quatf(attitude.q));
 		const float roll(euler.phi());
@@ -160,7 +160,7 @@ FailureDetector::updateExternalAtsStatus()
 	pwm_input_s pwm_input;
 	bool updated(false);
 
-	if (_sub_pwm_input.update(&pwm_input)) {
+	if (_pwm_input_sub.update(&pwm_input)) {
 
 		uint32_t pulse_width = pwm_input.pulse_width;
 		bool ats_trigger_status = (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) && (pulse_width < 3_ms);
@@ -192,10 +192,9 @@ FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
 		esc_status_s esc_status{};
-		_sub_esc_status.copy(&esc_status);
+		_esc_status_sub.copy(&esc_status);
 
 		int all_escs_armed = (1 << esc_status.esc_count) - 1;
-
 
 		_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
 		_esc_failure_hysteresis.set_state_and_update(all_escs_armed != esc_status.esc_armed_flags, time_now);
