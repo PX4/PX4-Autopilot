@@ -34,7 +34,7 @@
 /**
  * @file paw3902.cpp
  *
- * Driver for the Pixart PAW3902 optical flow sensor connected via SPI.
+ * Driver for the Pixart PAW3902 & PAW3903 optical flow sensors connected via SPI.
  */
 
 #pragma once
