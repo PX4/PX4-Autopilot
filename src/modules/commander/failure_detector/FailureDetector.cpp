@@ -62,12 +62,8 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status)
 		_status &= ~(FAILURE_ROLL | FAILURE_PITCH | FAILURE_ALT | FAILURE_EXT);
 	}
 
-	if (_esc_status_sub.updated()) {
-
-		if (_param_escs_en.get()) {
-			updateEscsStatus(vehicle_status);
-		}
-
+	if (_param_escs_en.get()) {
+		updateEscsStatus(vehicle_status);
 	}
 
 	return _status != previous_status;
@@ -159,17 +155,17 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 	hrt_abstime time_now = hrt_absolute_time();
 
 	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		esc_status_s esc_status;
 
-		esc_status_s esc_status{};
-		_esc_status_sub.copy(&esc_status);
+		if (_esc_status_sub.update(&esc_status)) {
+			int all_escs_armed = (1 << esc_status.esc_count) - 1;
 
-		int all_escs_armed = (1 << esc_status.esc_count) - 1;
+			_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
+			_esc_failure_hysteresis.set_state_and_update(all_escs_armed != esc_status.esc_armed_flags, time_now);
 
-		_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
-		_esc_failure_hysteresis.set_state_and_update(all_escs_armed != esc_status.esc_armed_flags, time_now);
-
-		if (_esc_failure_hysteresis.get_state()) {
-			_status |= FAILURE_ARM_ESCS;
+			if (_esc_failure_hysteresis.get_state()) {
+				_status |= FAILURE_ARM_ESCS;
+			}
 		}
 
 	} else {
