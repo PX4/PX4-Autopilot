@@ -416,17 +416,25 @@ RoverPositionControl::run()
 
 			position_setpoint_triplet_poll();
 
-			//Convert Local setpoints to global setpoints
+			// Convert local setpoints to global
 			if (_control_mode.flag_control_offboard_enabled) {
-				if (!globallocalconverter_initialized()) {
-					globallocalconverter_init(_local_pos.ref_lat, _local_pos.ref_lon,
-								  _local_pos.ref_alt, _local_pos.ref_timestamp);
 
-				} else {
-					globallocalconverter_toglobal(_pos_sp_triplet.current.x, _pos_sp_triplet.current.y, _pos_sp_triplet.current.z,
-								      &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon, &_pos_sp_triplet.current.alt);
+				if (!map_projection_initialized(&_global_local_proj_ref)
+				    || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
 
+					map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
+									_local_pos.ref_timestamp);
+
+					_global_local_alt0 = _local_pos.ref_alt;
 				}
+
+				// local -> global
+				map_projection_reproject(&_global_local_proj_ref,
+							 _pos_sp_triplet.current.x, _pos_sp_triplet.current.y,
+							 &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon);
+
+				_pos_sp_triplet.current.alt = _global_local_alt0 - _pos_sp_triplet.current.z;
+				_pos_sp_triplet.current.valid = true;
 			}
 
 			// update the reset counters in any case

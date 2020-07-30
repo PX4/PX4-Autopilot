@@ -378,6 +378,8 @@ private:
 
 	// local to global coversion related variables
 	bool _is_global_cov_init;
+	map_projection_reference_s _global_local_proj_ref{};
+	float                      _global_local_alt0{0.f};
 	uint64_t _global_ref_timestamp;
 	double _ref_lat;
 	double _ref_lon;

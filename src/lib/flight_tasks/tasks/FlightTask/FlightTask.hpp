@@ -43,6 +43,7 @@
 
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
+#include <lib/ecl/geo/geo.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_gear.h>
@@ -191,6 +192,9 @@ protected:
 	uORB::SubscriptionData<vehicle_local_position_s> _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<vehicle_attitude_s> _sub_attitude{ORB_ID(vehicle_attitude)};
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
+
+	map_projection_reference_s _global_local_proj_ref{};
+	float                      _global_local_alt0{0.f};
 
 	/** Reset all setpoints to NAN */
 	void _resetSetpoints();

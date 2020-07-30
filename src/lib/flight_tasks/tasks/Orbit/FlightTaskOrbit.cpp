@@ -87,9 +87,17 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	// 	_position_setpoint(2) = gl_ref.alt - command.param7;
 	// }
 
-	if (PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6) && PX4_ISFINITE(command.param7)) {
-		if (globallocalconverter_tolocal(command.param5, command.param6, command.param7, &_center(0), &_center(1),
-						 &_position_setpoint(2))) {
+	const double lat = command.param5;
+	const double lon = command.param5;
+	const float alt = command.param7;
+
+	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)) {
+		if (map_projection_initialized(&_global_local_proj_ref)) {
+			// global -> local
+			map_projection_project(&_global_local_proj_ref, lat, lon, &_center(0), &_center(1));
+			_position_setpoint(2) = _global_local_alt0 - alt;
+
+		} else {
 			// global to local conversion failed
 			ret = false;
 		}
@@ -110,8 +118,12 @@ bool FlightTaskOrbit::sendTelemetry()
 	orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 	orbit_status.yaw_behaviour = _yaw_behaviour;
 
-	if (globallocalconverter_toglobal(_center(0), _center(1), _position_setpoint(2), &orbit_status.x, &orbit_status.y,
-					  &orbit_status.z)) {
+	if (map_projection_initialized(&_global_local_proj_ref)) {
+		// local -> global
+		map_projection_reproject(&_global_local_proj_ref, _center(0), _center(1), &orbit_status.x, &orbit_status.y);
+		orbit_status.z = _global_local_alt0 - _position_setpoint(2);
+
+	} else {
 		return false; // don't send the message if the transformation failed
 	}
 

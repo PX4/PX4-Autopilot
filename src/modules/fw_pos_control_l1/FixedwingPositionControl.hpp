@@ -180,6 +180,9 @@ private:
 	SubscriptionData<airspeed_validated_s>			_airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
+	map_projection_reference_s _global_local_proj_ref{};
+	float                      _global_local_alt0{0.f};
+
 	double _current_latitude{0};
 	double _current_longitude{0};
 	float _current_altitude{0.f};

@@ -148,7 +148,7 @@ private:
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
-	void handle_message_gps_global_origin(mavlink_message_t *msg);
+	void handle_message_set_gps_global_origin(mavlink_message_t *msg);
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
@@ -300,11 +300,8 @@ private:
 	uint8_t				_mom_switch_pos[MOM_SWITCH_COUNT] {};
 	uint16_t			_mom_switch_state{0};
 
-	uint64_t			_global_ref_timestamp{0};
-
-	map_projection_reference_s	_hil_local_proj_ref{};
-	float				_hil_local_alt0{0.0f};
-	bool				_hil_local_proj_inited{false};
+	map_projection_reference_s	_global_local_proj_ref{};
+	float				_global_local_alt0{0.0f};
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
