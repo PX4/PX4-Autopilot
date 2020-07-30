@@ -74,9 +74,7 @@ public:
 	FailureDetector(ModuleParams *parent);
 
 	bool update(const vehicle_status_s &vehicle_status);
-
 	uint8_t getStatus() const { return _status; }
-	bool isFailure() const { return _status != FAILURE_NONE; }
 
 private:
 	void resetAttitudeStatus();
