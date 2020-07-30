@@ -31,8 +31,8 @@
 #
 ############################################################################
 
-add_library(Mixer
+add_library(MixerBase
 	Mixer.cpp
 	Mixer.hpp
 )
-add_dependencies(Mixer prebuild_targets)
+add_dependencies(MixerBase prebuild_targets)
