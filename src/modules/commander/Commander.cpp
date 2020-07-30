@@ -2234,23 +2234,15 @@ Commander::run()
 		}
 
 		/* Check for failure detector status */
-		const bool failure_detector_updated = _failure_detector.update(status);
-
-		if (failure_detector_updated) {
-
+		if (_failure_detector.update(status)) {
 			const uint8_t failure_status = _failure_detector.getStatus();
 
 			if (failure_status != status.failure_detector_status) {
 				status.failure_detector_status = failure_status;
 				_status_changed = true;
 			}
-		}
 
-		if (armed.armed &&
-		    failure_detector_updated) {
-
-			if (_failure_detector.isFailure()) {
-
+			if (armed.armed && _failure_detector.isFailure()) {
 				const hrt_abstime time_at_arm = armed.armed_time_ms * 1000;
 
 				if (hrt_elapsed_time(&time_at_arm) < 500_ms) {
