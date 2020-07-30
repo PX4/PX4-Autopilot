@@ -44,7 +44,7 @@
 
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/ecl/map_projection/map_projection.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>

@@ -58,7 +58,7 @@
 // internal libraries
 #include <lib/mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 // Include uORB and the required topics for this app
 #include <uORB/uORB.h>

@@ -45,7 +45,7 @@
 #include <conversion/rotation.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_tone_alarm.h>
-#include <ecl/geo/geo.h>
+#include <lib/ecl/map_projection/map_projection.h>
 #include <systemlib/px4_macros.h>
 
 #include <math.h>

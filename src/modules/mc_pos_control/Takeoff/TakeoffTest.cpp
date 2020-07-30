@@ -34,7 +34,7 @@
 #include <gtest/gtest.h>
 #include <Takeoff.hpp>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 TEST(TakeoffTest, Initialization)
 {

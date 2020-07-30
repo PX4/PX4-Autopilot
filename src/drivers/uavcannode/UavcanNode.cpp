@@ -35,7 +35,7 @@
 
 #include "boot_app_shared.h"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
 using namespace time_literals;

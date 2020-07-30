@@ -41,16 +41,8 @@
 #include "precland.h"
 #include "navigator.h"
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <fcntl.h>
-
-#include <systemlib/err.h>
-#include <systemlib/mavlink_log.h>
-
-#include <uORB/uORB.h>
+#include <lib/geo/geo.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>

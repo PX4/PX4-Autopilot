@@ -64,7 +64,7 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
-#include <ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
 
 class ZeroOrderHoverThrustEkf

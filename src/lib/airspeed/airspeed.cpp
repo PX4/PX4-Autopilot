@@ -43,7 +43,7 @@
 #include "airspeed.h"
 
 #include <px4_platform_common/defines.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 /**
  * Calculate indicated airspeed.

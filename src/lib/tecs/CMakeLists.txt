@@ -37,4 +37,4 @@ px4_add_library(tecs
 )
 
 add_dependencies(tecs git_ecl)
-target_link_libraries(tecs PRIVATE ecl_geo)
+target_link_libraries(tecs PRIVATE geo)

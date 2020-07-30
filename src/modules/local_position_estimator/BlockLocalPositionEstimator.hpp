@@ -5,7 +5,8 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <lib/controllib/blocks.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
+#include <ecl/map_projection/map_projection.h>
 #include <lib/mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
 

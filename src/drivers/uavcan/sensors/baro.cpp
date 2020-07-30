@@ -40,7 +40,7 @@
 #include <math.h>
 
 #include <lib/drivers/barometer/PX4Barometer.hpp>
-#include <lib/ecl/geo/geo.h> // For CONSTANTS_*
+#include <lib/geo/geo.h> // For CONSTANTS_*
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 

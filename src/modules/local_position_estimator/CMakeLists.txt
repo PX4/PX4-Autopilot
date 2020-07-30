@@ -50,6 +50,6 @@ px4_add_module(
 	DEPENDS
 		controllib
 		git_ecl
-		ecl_geo
+		ecl_map_projection
 		px4_work_queue
 	)

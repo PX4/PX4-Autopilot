@@ -43,7 +43,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_main.h"
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>

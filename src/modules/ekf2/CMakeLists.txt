@@ -43,7 +43,7 @@ px4_add_module(
 	DEPENDS
 		git_ecl
 		ecl_EKF
-		ecl_geo
+		ecl_map_projection
 		perf
 		Ekf2Utility
 	)

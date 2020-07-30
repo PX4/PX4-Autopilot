@@ -46,7 +46,7 @@ px4_add_module(
 		controllib
 		FlightTasks
 		git_ecl
-		ecl_geo
+		ecl_map_projection
 		WeatherVane
 		CollisionPrevention
 		Takeoff

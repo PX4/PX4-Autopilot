@@ -48,7 +48,7 @@
 #include <netutils/netlib.h>
 #endif
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/ecl/map_projection/map_projection.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/version/version.h>
 #include <uORB/Publication.hpp>

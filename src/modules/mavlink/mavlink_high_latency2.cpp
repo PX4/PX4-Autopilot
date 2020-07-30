@@ -40,7 +40,7 @@
 #include "mavlink_high_latency2.h"
 
 #include <commander/px4_custom_mode.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 

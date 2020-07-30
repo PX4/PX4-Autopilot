@@ -37,7 +37,7 @@
 
 #include "Takeoff.hpp"
 #include <mathlib/mathlib.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 void Takeoff::generateInitialRampValue(float velocity_p_gain)
 {

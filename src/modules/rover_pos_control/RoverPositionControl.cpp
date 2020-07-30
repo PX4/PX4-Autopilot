@@ -43,7 +43,7 @@
 
 
 #include "RoverPositionControl.hpp"
-#include <lib/ecl/geo/geo.h>
+#include <lib/ecl/map_projection/map_projection.h>
 
 #define ACTUATOR_PUBLISH_PERIOD_MS 4
 

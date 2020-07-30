@@ -38,7 +38,7 @@
 #include <drivers/drv_hrt.h>
 #include "airspeed.hpp"
 #include <math.h>
-#include <lib/ecl/geo/geo.h> // For CONSTANTS_*
+#include <lib/geo/geo.h> // For CONSTANTS_*
 
 const char *const UavcanAirspeedBridge::NAME = "airspeed";
 

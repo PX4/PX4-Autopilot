@@ -43,7 +43,7 @@
  */
 
 #include <drivers/device/spi.h>
-#include <ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>

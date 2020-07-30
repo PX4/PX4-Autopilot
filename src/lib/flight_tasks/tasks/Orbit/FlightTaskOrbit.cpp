@@ -38,7 +38,7 @@
 #include "FlightTaskOrbit.hpp"
 
 #include <mathlib/mathlib.h>
-#include <lib/ecl/geo/geo.h>
+#include <ecl/map_projection/map_projection.h>
 
 using namespace matrix;
 

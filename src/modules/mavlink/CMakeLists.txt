@@ -71,7 +71,8 @@ px4_add_module(
 		git_mavlink_v2
 		conversion
 		git_ecl
-		ecl_geo
+		ecl_map_projection
+		geo
 		version
 	UNITY_BUILD
 	)

@@ -49,7 +49,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>

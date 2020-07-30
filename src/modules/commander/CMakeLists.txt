@@ -53,7 +53,8 @@ px4_add_module(
 		circuit_breaker
 		failure_detector
 		git_ecl
-		ecl_geo
+		ecl_map_projection
+		geo
 		hysteresis
 		PreFlightCheck
 		ArmAuthorization
