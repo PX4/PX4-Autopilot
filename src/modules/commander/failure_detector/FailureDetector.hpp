@@ -77,7 +77,6 @@ public:
 	uint8_t getStatus() const { return _status; }
 
 private:
-	void resetAttitudeStatus();
 	bool isAttitudeStabilized(const vehicle_status_s &vehicle_status);
 	void updateAttitudeStatus();
 	void updateExternalAtsStatus();
