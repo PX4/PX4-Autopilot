@@ -47,15 +47,6 @@ FailureDetector::FailureDetector(ModuleParams *parent) :
 {
 }
 
-void FailureDetector::resetAttitudeStatus()
-{
-	int attitude_fields_bitmask = _status & (FAILURE_ROLL | FAILURE_PITCH | FAILURE_ALT | FAILURE_EXT);
-
-	if (attitude_fields_bitmask > FAILURE_NONE) {
-		_status &= ~attitude_fields_bitmask;
-	}
-}
-
 bool FailureDetector::update(const vehicle_status_s &vehicle_status)
 {
 	uint8_t previous_status = _status;
@@ -68,7 +59,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status)
 		}
 
 	} else {
-		resetAttitudeStatus();
+		_status &= ~(FAILURE_ROLL | FAILURE_PITCH | FAILURE_ALT | FAILURE_EXT);
 	}
 
 	if (_esc_status_sub.updated()) {
