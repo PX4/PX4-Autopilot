@@ -177,16 +177,13 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 		_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
 		_esc_failure_hysteresis.set_state_and_update(all_escs_armed != esc_status.esc_armed_flags, time_now);
 
-		if (_esc_failure_hysteresis.get_state() && !(_status & FAILURE_ARM_ESCS)) {
+		if (_esc_failure_hysteresis.get_state()) {
 			_status |= FAILURE_ARM_ESCS;
 		}
 
 	} else {
 		// reset ESC bitfield
 		_esc_failure_hysteresis.set_state_and_update(false, time_now);
-
-		if (_status & FAILURE_ARM_ESCS) {
-			_status &= ~FAILURE_ARM_ESCS;
-		}
+		_status &= ~FAILURE_ARM_ESCS;
 	}
 }
