@@ -114,6 +114,7 @@ add_custom_command(OUTPUT ${parameters_json}
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
 		--src-path ${module_list} ${generated_params_dir}
 		--json ${parameters_json}
+		--compress
 		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}

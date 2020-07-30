@@ -93,6 +93,9 @@ def main():
     parser.add_argument('-v', '--verbose',
                         action='store_true',
                         help="verbose output")
+    parser.add_argument('-c', '--compress',
+                        action='store_true',
+                        help="compress parameter file (if supported by type)")
     parser.add_argument("-o", "--overrides",
                         default="{}",
                         metavar="OVERRIDES",
@@ -157,12 +160,16 @@ def main():
     # Output to JSON file
     if args.json:
         if args.verbose:
-            print("Creating Json/Json.gz file " + args.json)
+            print("Creating Json file " + args.json)
         cur_dir = os.path.dirname(os.path.realpath(__file__))
         out = jsonout.JsonOutput(param_groups, args.board,
                                os.path.join(cur_dir, args.inject_xml))
         out.Save(args.json)
-
+        if args.compress:
+            if args.verbose:
+                print("Save compressed Json file " + args.json)
+            out.SaveCompressed(args.json)
+            
 
 if __name__ == "__main__":
     main()

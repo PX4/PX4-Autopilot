@@ -107,13 +107,14 @@ class JsonOutput():
         self.output = json.dumps(all_json,indent=2)
 
 
+    def SaveCompressed(self, filename):
+        #create gz compressed version
+        gz_filename=filename+'.gz'
+        with gzip.open(gz_filename, 'wt') as f:
+            f.write(self.output)
 
 
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:
             f.write(self.output)
 
-        #create gz version
-        gz_filename=filename+'.gz'
-        with gzip.open(gz_filename, 'wt') as f:
-            f.write(self.output)
