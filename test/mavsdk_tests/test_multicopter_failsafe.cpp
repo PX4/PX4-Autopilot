@@ -52,7 +52,8 @@ TEST_CASE("Land on GPS lost during mission (baro height mode)", "[multicopter][v
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_lose_gps();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(30);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
 TEST_CASE("Land on GPS lost during mission (GPS height mode)", "[multicopter][vtol]")
@@ -68,7 +69,8 @@ TEST_CASE("Land on GPS lost during mission (GPS height mode)", "[multicopter][vt
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_lose_gps();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(30);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
 TEST_CASE("Continue on mag lost during mission", "[multicopter][vtol]")
@@ -82,7 +84,8 @@ TEST_CASE("Continue on mag lost during mission", "[multicopter][vtol]")
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_lose_mag();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(120);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
 TEST_CASE("Continue on mag stuck during mission", "[multicopter][vtol]")
@@ -96,7 +99,8 @@ TEST_CASE("Continue on mag stuck during mission", "[multicopter][vtol]")
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_get_mag_stuck();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
 TEST_CASE("Continue on baro lost during mission (baro height mode)", "[multicopter][vtol]")
@@ -111,7 +115,8 @@ TEST_CASE("Continue on baro lost during mission (baro height mode)", "[multicopt
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_lose_baro();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
 TEST_CASE("Continue on baro lost during mission (GPS height mode)", "[multicopter][vtol]")
@@ -126,7 +131,8 @@ TEST_CASE("Continue on baro lost during mission (GPS height mode)", "[multicopte
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_lose_baro();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
 TEST_CASE("Continue on baro stuck during mission (baro height mode)", "[multicopter][vtol]")
@@ -141,7 +147,8 @@ TEST_CASE("Continue on baro stuck during mission (baro height mode)", "[multicop
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_get_baro_stuck();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
 TEST_CASE("Continue on baro stuck during mission (GPS height mode)", "[multicopter][vtol]")
@@ -156,5 +163,6 @@ TEST_CASE("Continue on baro stuck during mission (GPS height mode)", "[multicopt
 	tester.prepare_square_mission(mission_options);
 	tester.arm();
 	tester.execute_mission_and_get_baro_stuck();
-	tester.wait_until_disarmed();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
+	tester.wait_until_disarmed(until_disarmed_timeout);
 }
