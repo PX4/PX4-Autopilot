@@ -52,6 +52,7 @@ void AutopilotTester::connect(const std::string uri)
 	_action.reset(new Action(system));
 	_failure.reset(new Failure(system));
 	_info.reset(new Info(system));
+	_manual_control.reset(new ManualControl(system));
 	_mission.reset(new Mission(system));
 	_offboard.reset(new Offboard(system));
 	_param.reset(new Param(system));
@@ -98,6 +99,11 @@ void AutopilotTester::store_home()
 void AutopilotTester::check_home_within(float acceptance_radius_m)
 {
 	CHECK(ground_truth_horizontal_position_close_to(_home, acceptance_radius_m));
+}
+
+void AutopilotTester::check_home_not_within(float min_distance_m)
+{
+	CHECK(ground_truth_horizontal_position_far_from(_home, min_distance_m));
 }
 
 void AutopilotTester::set_takeoff_altitude(const float altitude_m)
@@ -437,6 +443,68 @@ void AutopilotTester::check_mission_item_speed_above(int item_index, float min_s
 	});
 }
 
+void AutopilotTester::fly_forward_in_posctl()
+{
+	// Send something to make sure RC is available.
+	CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.f, 0.f) == ManualControl::Result::Success);
+	CHECK(_manual_control->start_position_control() == ManualControl::Result::Success);
+
+	const unsigned manual_control_rate_hz = 20;
+
+	// Climb up for 5 seconds
+	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
+		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
+		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+	}
+
+	// Fly forward for 15 seconds
+	for (unsigned i = 0; i < 15 * manual_control_rate_hz; ++i) {
+		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
+		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+	}
+
+	// Descend until disarmed
+	for (unsigned i = 0; i < 10 * manual_control_rate_hz; ++i) {
+		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.0f, 0.f) == ManualControl::Result::Success);
+		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+
+		if (!_telemetry->in_air()) {
+			break;
+		}
+	}
+}
+
+void AutopilotTester::fly_forward_in_altctl()
+{
+	// Send something to make sure RC is available.
+	CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.f, 0.f) == ManualControl::Result::Success);
+	CHECK(_manual_control->start_altitude_control() == ManualControl::Result::Success);
+
+	const unsigned manual_control_rate_hz = 20;
+
+	// Climb up for 5 seconds
+	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
+		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
+		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+	}
+
+	// Fly forward for 15 seconds
+	for (unsigned i = 0; i < 15 * manual_control_rate_hz; ++i) {
+		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
+		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+	}
+
+	// Descend until disarmed
+	for (unsigned i = 0; i < 10 * manual_control_rate_hz; ++i) {
+		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 0.0f, 0.f) == ManualControl::Result::Success);
+		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
+
+		if (!_telemetry->in_air()) {
+			break;
+		}
+	}
+}
+
 void AutopilotTester::check_tracks_mission(float corridor_radius_m)
 {
 	auto mission = _mission->download_mission();
@@ -521,16 +589,47 @@ bool AutopilotTester::ground_truth_horizontal_position_close_to(const Telemetry:
 	global_current.latitude_deg = current_pos.latitude_deg;
 	global_current.longitude_deg = current_pos.longitude_deg;
 	LocalCoordinate local_pos = ct.local_from_global(global_current);
-	const double distance = sqrt(sq(local_pos.north_m) + sq(local_pos.east_m));
-	const bool pass = distance < acceptance_radius_m;
+	const double distance_m = sqrt(sq(local_pos.north_m) + sq(local_pos.east_m));
+	const bool pass = distance_m < acceptance_radius_m;
 
 	if (!pass) {
 		std::cout << "target_pos.lat: " << target_pos.latitude_deg << std::endl;
 		std::cout << "target_pos.lon: " << target_pos.longitude_deg << std::endl;
 		std::cout << "current.lat: " << current_pos.latitude_deg << std::endl;
 		std::cout << "current.lon: " << current_pos.longitude_deg << std::endl;
-		std::cout << "Distance: " << distance << std::endl;
+		std::cout << "Distance: " << distance_m << std::endl;
 		std::cout << "Acceptance radius: " << acceptance_radius_m << std::endl;
+	}
+
+	return pass;
+}
+
+bool AutopilotTester::ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos,
+		float min_distance_m)
+{
+	CHECK(std::isfinite(target_pos.latitude_deg));
+	CHECK(std::isfinite(target_pos.longitude_deg));
+	using GlobalCoordinate = CoordinateTransformation::GlobalCoordinate;
+	using LocalCoordinate = CoordinateTransformation::LocalCoordinate;
+	CoordinateTransformation ct(GlobalCoordinate{target_pos.latitude_deg, target_pos.longitude_deg});
+
+	Telemetry::GroundTruth current_pos = _telemetry->ground_truth();
+	CHECK(std::isfinite(current_pos.latitude_deg));
+	CHECK(std::isfinite(current_pos.longitude_deg));
+	GlobalCoordinate global_current;
+	global_current.latitude_deg = current_pos.latitude_deg;
+	global_current.longitude_deg = current_pos.longitude_deg;
+	LocalCoordinate local_pos = ct.local_from_global(global_current);
+	const double distance_m = sqrt(sq(local_pos.north_m) + sq(local_pos.east_m));
+	const bool pass = distance_m > min_distance_m;
+
+	if (!pass) {
+		std::cout << "target_pos.lat: " << target_pos.latitude_deg << std::endl;
+		std::cout << "target_pos.lon: " << target_pos.longitude_deg << std::endl;
+		std::cout << "current.lat: " << current_pos.latitude_deg << std::endl;
+		std::cout << "current.lon: " << current_pos.longitude_deg << std::endl;
+		std::cout << "Distance: " << distance_m << std::endl;
+		std::cout << "Min distance: " << min_distance_m << std::endl;
 	}
 
 	return pass;

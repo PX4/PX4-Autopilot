@@ -13,9 +13,10 @@ if(MAVSDK_FOUND)
     add_executable(mavsdk_tests
         test_main.cpp
         autopilot_tester.cpp
-        test_multicopter_offboard.cpp
-        test_multicopter_mission.cpp
         test_multicopter_failsafe.cpp
+        test_multicopter_mission.cpp
+        test_multicopter_offboard.cpp
+        test_multicopter_manual.cpp
         test_vtol_mission.cpp
     )
 
@@ -24,6 +25,7 @@ if(MAVSDK_FOUND)
         MAVSDK::mavsdk_action
         MAVSDK::mavsdk_failure
         MAVSDK::mavsdk_info
+        MAVSDK::mavsdk_manual_control
         MAVSDK::mavsdk_mission
         MAVSDK::mavsdk_offboard
         MAVSDK::mavsdk_param
