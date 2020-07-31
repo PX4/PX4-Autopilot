@@ -87,32 +87,12 @@ add_custom_command(OUTPUT ${generated_serial_params_file}
 )
 
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
+set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
 file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c)
-add_custom_command(OUTPUT ${parameters_xml}
+add_custom_command(OUTPUT ${parameters_xml} ${parameters_json}
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
 		--src-path ${module_list} ${generated_params_dir}
 		--xml ${parameters_xml}
-		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
-		--overrides ${PARAM_DEFAULT_OVERRIDES}
-		--board ${PX4_BOARD}
-		#--verbose
-	DEPENDS
-		${param_src_files}
-		${generated_serial_params_file}
-		parameters_injected.xml
-		px4params/srcparser.py
-		px4params/srcscanner.py
-		px4params/xmlout.py
-		px_process_params.py
-		parameters_injected.xml
-	COMMENT "Generating parameters.xml"
-)
-add_custom_target(parameters_xml DEPENDS ${parameters_xml})
-
-set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
-add_custom_command(OUTPUT ${parameters_json}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
-		--src-path ${module_list} ${generated_params_dir}
 		--json ${parameters_json}
 		--compress
 		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
@@ -125,13 +105,13 @@ add_custom_command(OUTPUT ${parameters_json}
 		parameters_injected.xml
 		px4params/srcparser.py
 		px4params/srcscanner.py
-		px4params/xmlout.py
 		px4params/jsonout.py
+		px4params/xmlout.py
 		px_process_params.py
 		parameters_injected.xml
-	COMMENT "Generating parameters.json"
+	COMMENT "Generating parameters.xml"
 )
-add_custom_target(parameters_json DEPENDS ${parameters_json})
+add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
 # generate px4_parameters.c and px4_parameters{,_public}.h
 add_custom_command(OUTPUT px4_parameters.c px4_parameters.h px4_parameters_public.h
@@ -139,7 +119,6 @@ add_custom_command(OUTPUT px4_parameters.c px4_parameters.h px4_parameters_publi
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS
 		${PX4_BINARY_DIR}/parameters.xml
-		${PX4_BINARY_DIR}/parameters.json
 		px_generate_params.py
 		templates/px4_parameters.c.jinja
 		templates/px4_parameters.h.jinja

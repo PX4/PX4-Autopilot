@@ -49,9 +49,19 @@ import os
 import argparse
 from px4params import srcscanner, srcparser, injectxmlparams, xmlout, markdownout, jsonout
 
+import gzip #to create .gz file
 import re
 import json
 import codecs
+
+def SaveCompressed(filename):
+    #create gz compressed version
+    gz_filename=filename+'.gz'
+    with gzip.open(gz_filename, 'wt') as f:
+        with open(filename, 'r') as content_file:
+            f.write(content_file.read())
+
+
 
 def main():
     # Parse command line arguments
@@ -95,7 +105,7 @@ def main():
                         help="verbose output")
     parser.add_argument('-c', '--compress',
                         action='store_true',
-                        help="compress parameter file (if supported by type)")
+                        help="compress parameter file")
     parser.add_argument("-o", "--overrides",
                         default="{}",
                         metavar="OVERRIDES",
@@ -143,19 +153,23 @@ def main():
                     param.default = val
                     print("OVERRIDING {:s} to {:s}!!!!!".format(name, val))
 
+    output_files = []
+
     # Output to XML file
     if args.xml:
         if args.verbose:
             print("Creating XML file " + args.xml)
         out = xmlout.XMLOutput(param_groups, args.board)
         out.Save(args.xml)
+        output_files.append(args.xml)
 
     # Output to Markdown/HTML tables
     if args.markdown:
-        out = markdownout.MarkdownTablesOutput(param_groups)
-        if args.markdown:
+        if args.verbose:
             print("Creating markdown file " + args.markdown)
-            out.Save(args.markdown)
+        out = markdownout.MarkdownTablesOutput(param_groups)
+        out.Save(args.markdown)
+        output_files.append(args.markdown)
 
     # Output to JSON file
     if args.json:
@@ -165,10 +179,13 @@ def main():
         out = jsonout.JsonOutput(param_groups, args.board,
                                os.path.join(cur_dir, args.inject_xml))
         out.Save(args.json)
-        if args.compress:
+        output_files.append(args.json)
+
+    if args.compress:
+        for f in output_files:
             if args.verbose:
-                print("Save compressed Json file " + args.json)
-            out.SaveCompressed(args.json)
+                print("Compressing file " + f)
+            SaveCompressed(f)
             
 
 if __name__ == "__main__":

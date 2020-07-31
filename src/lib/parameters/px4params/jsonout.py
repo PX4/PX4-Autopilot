@@ -1,7 +1,6 @@
 from xml.sax.saxutils import escape
 import codecs
 import json
-import gzip #to create .gz file of json
 import sys
 
 
@@ -105,13 +104,6 @@ class JsonOutput():
 
         #Json string output.
         self.output = json.dumps(all_json,indent=2)
-
-
-    def SaveCompressed(self, filename):
-        #create gz compressed version
-        gz_filename=filename+'.gz'
-        with gzip.open(gz_filename, 'wt') as f:
-            f.write(self.output)
 
 
     def Save(self, filename):
