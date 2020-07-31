@@ -79,7 +79,7 @@ public:
 	void land();
 	void transition_to_fixedwing();
 	void transition_to_multicopter();
-	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(90));
+	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void wait_until_hovering();
 	void prepare_square_mission(MissionOptions mission_options);
 	void prepare_straight_mission(MissionOptions mission_options);
@@ -116,13 +116,13 @@ private:
 		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
 	{
 		// We need millisecond resolution for sleeping.
-		std::chrono::milliseconds duration_ms(duration);
-		adjust_to_lockstep_speed(duration_ms);
+		const std::chrono::milliseconds duration_ms(duration);
+		const auto duration_ms_adjusted = adjust_to_lockstep_speed(duration_ms);
 
 		unsigned iteration = 0;
 
 		while (!fun()) {
-			std::this_thread::sleep_for(duration_ms / 100);
+			std::this_thread::sleep_for(duration_ms_adjusted / 100);
 
 			if (iteration++ >= 100) {
 				return false;

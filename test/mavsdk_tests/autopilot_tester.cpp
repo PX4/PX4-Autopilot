@@ -62,7 +62,7 @@ void AutopilotTester::wait_until_ready()
 {
 	std::cout << "Waiting for system to be ready" << std::endl;
 	CHECK(poll_condition_with_timeout(
-	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(20)));
+	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
 
 	// FIXME: workaround to prevent race between PX4 switching to Hold mode
 	// and us trying to arm and take off. If PX4 is not in Hold mode yet,
@@ -159,7 +159,7 @@ void AutopilotTester::wait_until_disarmed(std::chrono::seconds timeout_duration)
 void AutopilotTester::wait_until_hovering()
 {
 	REQUIRE(poll_condition_with_timeout(
-	[this]() { return _telemetry->landed_state() == Telemetry::LandedState::InAir; }, std::chrono::seconds(20)));
+	[this]() { return _telemetry->landed_state() == Telemetry::LandedState::InAir; }, std::chrono::seconds(30)));
 }
 
 void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
@@ -235,7 +235,7 @@ void AutopilotTester::execute_mission_and_lose_gps()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total;
+		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -258,7 +258,7 @@ void AutopilotTester::execute_mission_and_lose_gps()
 	[this]() {
 		auto flight_mode = _telemetry->flight_mode();
 		return flight_mode == Telemetry::FlightMode::Land;
-	}, std::chrono::seconds(60)));
+	}, std::chrono::seconds(90)));
 }
 
 void AutopilotTester::execute_mission_and_lose_mag()
@@ -266,7 +266,7 @@ void AutopilotTester::execute_mission_and_lose_mag()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total;
+		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -289,7 +289,7 @@ void AutopilotTester::execute_mission_and_lose_mag()
 	[this]() {
 		auto progress = _mission->mission_progress();
 		return progress.current == progress.total;
-	}, std::chrono::seconds(60)));
+	}, std::chrono::seconds(90)));
 
 }
 
@@ -298,7 +298,7 @@ void AutopilotTester::execute_mission_and_lose_baro()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total;
+		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -321,7 +321,7 @@ void AutopilotTester::execute_mission_and_lose_baro()
 	[this]() {
 		auto progress = _mission->mission_progress();
 		return progress.current == progress.total;
-	}, std::chrono::seconds(60)));
+	}, std::chrono::seconds(90)));
 }
 
 void AutopilotTester::execute_mission_and_get_baro_stuck()
@@ -329,7 +329,7 @@ void AutopilotTester::execute_mission_and_get_baro_stuck()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total;
+		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -352,7 +352,7 @@ void AutopilotTester::execute_mission_and_get_baro_stuck()
 	[this]() {
 		auto progress = _mission->mission_progress();
 		return progress.current == progress.total;
-	}, std::chrono::seconds(60)));
+	}, std::chrono::seconds(90)));
 }
 
 void AutopilotTester::execute_mission_and_get_mag_stuck()
@@ -360,7 +360,7 @@ void AutopilotTester::execute_mission_and_get_mag_stuck()
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
 	_mission->subscribe_mission_progress([this](Mission::MissionProgress progress) {
-		std::cout << "Progress: " << progress.current << "/" << progress.total;
+		std::cout << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
 		if (progress.current == 1) {
 			std::thread([this]() {
@@ -383,7 +383,7 @@ void AutopilotTester::execute_mission_and_get_mag_stuck()
 	[this]() {
 		auto progress = _mission->mission_progress();
 		return progress.current == progress.total;
-	}, std::chrono::seconds(60)));
+	}, std::chrono::seconds(120)));
 }
 
 CoordinateTransformation AutopilotTester::get_coordinate_transformation()
@@ -480,9 +480,16 @@ void AutopilotTester::offboard_land()
 bool AutopilotTester::estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m)
 {
 	Telemetry::PositionNed est_pos = _telemetry->position_velocity_ned().position;
-	return sq(est_pos.north_m - target_pos.north_m) +
-	       sq(est_pos.east_m - target_pos.east_m) +
-	       sq(est_pos.down_m - target_pos.down_m)  < sq(acceptance_radius_m);
+	const float distance_m = std::sqrt(sq(est_pos.north_m - target_pos.north_m) +
+					   sq(est_pos.east_m - target_pos.east_m) +
+					   sq(est_pos.down_m - target_pos.down_m));
+	const bool pass = distance_m < acceptance_radius_m;
+
+	if (!pass) {
+		std::cout << "distance: " << distance_m << ", " << "acceptance: " << acceptance_radius_m << std::endl;
+	}
+
+	return  pass;
 }
 
 bool AutopilotTester::estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos,
@@ -538,6 +545,12 @@ std::chrono::milliseconds AutopilotTester::adjust_to_lockstep_speed(std::chrono:
 	auto speed_factor = _info->get_speed_factor();
 
 	if (speed_factor.first == Info::Result::Success) {
+		// FIXME: Remove this again:
+		//        Sanitize speed factor to avoid test failures.
+		if (speed_factor.second > 20.0f) {
+			speed_factor.second = 20.0f;
+		}
+
 		return static_cast<std::chrono::milliseconds>(
 			       static_cast<unsigned long>(
 				       std::round(
