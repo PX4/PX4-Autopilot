@@ -38,12 +38,14 @@
 #include <mavsdk/plugins/action/action.h>
 #include <mavsdk/plugins/failure/failure.h>
 #include <mavsdk/plugins/info/info.h>
+#include <mavsdk/plugins/manual_control/manual_control.h>
 #include <mavsdk/plugins/mission/mission.h>
 #include <mavsdk/plugins/offboard/offboard.h>
 #include <mavsdk/plugins/telemetry/telemetry.h>
 #include <mavsdk/plugins/param/param.h>
 #include "catch2/catch.hpp"
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <thread>
 
@@ -72,6 +74,7 @@ public:
 	void wait_until_ready_local_position_only();
 	void store_home();
 	void check_home_within(float acceptance_radius_m);
+	void check_home_not_within(float min_distance_m);
 	void set_takeoff_altitude(const float altitude_m);
 	void set_height_source(HeightSource height_source);
 	void arm();
@@ -93,6 +96,8 @@ public:
 	void offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m = 0.3f,
 			   std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void offboard_land();
+	void fly_forward_in_posctl();
+	void fly_forward_in_altctl();
 	void request_ground_truth();
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.0f);
@@ -106,6 +111,7 @@ private:
 		const mavsdk::geometry::CoordinateTransformation &ct);
 
 	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
+	bool ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos, float min_distance_m);
 	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 
@@ -136,6 +142,7 @@ private:
 	std::unique_ptr<mavsdk::Action> _action{};
 	std::unique_ptr<mavsdk::Failure> _failure{};
 	std::unique_ptr<mavsdk::Info> _info{};
+	std::unique_ptr<mavsdk::ManualControl> _manual_control{};
 	std::unique_ptr<mavsdk::Mission> _mission{};
 	std::unique_ptr<mavsdk::Offboard> _offboard{};
 	std::unique_ptr<mavsdk::Param> _param{};
