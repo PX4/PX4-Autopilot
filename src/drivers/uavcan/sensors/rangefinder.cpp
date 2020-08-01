@@ -90,6 +90,25 @@ UavcanRangefinderBridge::range_sub_cb(const
 
 	if (!_inited) {
 
+		uint8_t device_type = 0;
+
+		switch (msg.sensor_type) {
+			case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR:
+				device_type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+				break;
+
+			case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR:
+				device_type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
+				break;
+
+			case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR:
+			case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED:
+			default:
+				device_type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+				break;
+		}
+
+		rangefinder->set_device_type(device_type);
 		rangefinder->set_fov(msg.field_of_view);
 		rangefinder->set_min_distance(_range_min_m);
 		rangefinder->set_max_distance(_range_max_m);
