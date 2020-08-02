@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/Users/ys/Zeng_Lab/Tailsitter/Firmware/platforms/common/include",
+                "/Users/ys/Zeng_Lab/Tailsitter/Firmware/src",
+                "/Users/ys/Zeng_Lab/Tailsitter/Firmware/platforms/posix/include",
+                "/Users/ys/Zeng_Lab/Tailsitter/Firmware/src/modules"
+
+            ],
+            "defines": [],
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ],
+            "compilerPath": "/Applications/anaconda3/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}
