@@ -124,7 +124,6 @@ target_link_libraries(px4 PRIVATE
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
-	-Wl,--print-memory-usage
 
 	-Wl,--start-group
 		${nuttx_libs}
@@ -133,6 +132,10 @@ target_link_libraries(px4 PRIVATE
 	m
 	gcc
 	)
+
+if(NOT USE_LD_GOLD)
+	target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
+endif()
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
 

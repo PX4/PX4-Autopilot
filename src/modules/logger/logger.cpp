@@ -421,7 +421,19 @@ bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
 	bool updated = false;
 
 	if (sub.valid()) {
-		updated = sub.update(buffer);
+		if (sub.get_interval_us() == 0) {
+			// record gaps in full rate (no interval) messages
+			const unsigned last_generation = sub.get_last_generation();
+			updated = sub.update(buffer);
+
+			if (updated && (sub.get_last_generation() != last_generation + 1)) {
+				// error, missed a message
+				_message_gaps++;
+			}
+
+		} else {
+			updated = sub.update(buffer);
+		}
 
 	} else if (try_to_subscribe) {
 		if (sub.subscribe()) {
@@ -930,6 +942,7 @@ void Logger::publish_logger_status()
 				status.total_written_kb = kb_written;
 				status.write_rate_kb_s = kb_written / seconds;
 				status.dropouts = _statistics[i].write_dropouts;
+				status.message_gaps = _message_gaps;
 				status.buffer_used_bytes = buffer_fill_count_file;
 				status.buffer_size_bytes = _writer.get_buffer_size_file(log_type);
 				status.num_messages = _num_subscriptions;

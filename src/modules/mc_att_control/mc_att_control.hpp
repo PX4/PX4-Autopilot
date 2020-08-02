@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <lib/mixer/Mixer/Mixer.hpp> // Airmode
+#include <lib/mixer/MixerBase/Mixer.hpp> // Airmode
 #include <matrix/matrix/math.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>

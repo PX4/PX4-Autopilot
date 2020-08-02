@@ -57,7 +57,9 @@
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
-static constexpr hrt_abstime TRY_SUBSCRIBE_INTERVAL{1000 * 1000};	// interval in microseconds at which we try to subscribe to a topic
+using namespace time_literals;
+
+static constexpr hrt_abstime TRY_SUBSCRIBE_INTERVAL{20_ms};	// interval in microseconds at which we try to subscribe to a topic
 // if we haven't succeeded before
 
 namespace px4
@@ -68,14 +70,13 @@ namespace logger
 static constexpr uint8_t MSG_ID_INVALID = UINT8_MAX;
 
 struct LoggerSubscription : public uORB::SubscriptionInterval {
-
-	uint8_t msg_id{MSG_ID_INVALID};
-
 	LoggerSubscription() = default;
 
 	LoggerSubscription(ORB_ID id, uint32_t interval_ms = 0, uint8_t instance = 0) :
 		uORB::SubscriptionInterval(id, interval_ms * 1000, instance)
 	{}
+
+	uint8_t msg_id{MSG_ID_INVALID};
 };
 
 class Logger : public ModuleBase<Logger>, public ModuleParams
@@ -346,6 +347,8 @@ private:
 
 	hrt_abstime					_logger_status_last {0};
 	int						_lockstep_component{-1};
+
+	uint32_t					_message_gaps{0};
 
 	uORB::Subscription				_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
