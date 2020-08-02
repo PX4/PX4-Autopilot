@@ -54,8 +54,6 @@
 namespace land_detector
 {
 
-extern "C" __EXPORT int land_detector_main(int argc, char *argv[]);
-
 static char _currentMode[12];
 
 int LandDetector::task_spawn(int argc, char *argv[])
@@ -145,8 +143,7 @@ The module runs periodically on the HP work queue.
 	return 0;
 }
 
-
-int land_detector_main(int argc, char *argv[])
+extern "C" __EXPORT int land_detector_main(int argc, char *argv[])
 {
 	return LandDetector::main(argc, argv);
 }
