@@ -96,8 +96,8 @@ void MulticopterHoverThrustEstimator::Run()
 		return;
 	}
 
-	// new local position estimate needed every iteration
-	if (!_vehicle_local_pos_sub.updated()) {
+	// new local position estimate and setpoint needed every iteration
+	if (!_vehicle_local_pos_sub.updated() || !_vehicle_local_position_setpoint_sub.updated()) {
 		return;
 	}
 
@@ -145,14 +145,14 @@ void MulticopterHoverThrustEstimator::Run()
 	const float dt = (local_pos.timestamp - _timestamp_last) * 1e-6f;
 	_timestamp_last = local_pos.timestamp;
 
-	if (_armed && !_landed && (dt > 0.001f) && (dt < 1.f)) {
+	if (_armed && !_landed && (dt > 0.001f) && (dt < 1.f) && PX4_ISFINITE(local_pos.az)) {
 
 		_hover_thrust_ekf.predict(dt);
 
 		vehicle_local_position_setpoint_s local_pos_sp;
 
 		if (_vehicle_local_position_setpoint_sub.update(&local_pos_sp)) {
-			if (PX4_ISFINITE(local_pos.az) && PX4_ISFINITE(local_pos_sp.thrust[2])) {
+			if (PX4_ISFINITE(local_pos_sp.thrust[2])) {
 				// Inform the hover thrust estimator about the measured vertical
 				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
 				ZeroOrderHoverThrustEkf::status status;
@@ -162,7 +162,7 @@ void MulticopterHoverThrustEstimator::Run()
 				_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
 				_valid = _valid_hysteresis.get_state();
 
-				publishStatus(status);
+				publishStatus(local_pos.timestamp, status);
 			}
 		}
 
@@ -184,9 +184,12 @@ void MulticopterHoverThrustEstimator::Run()
 	perf_end(_cycle_perf);
 }
 
-void MulticopterHoverThrustEstimator::publishStatus(ZeroOrderHoverThrustEkf::status &status)
+void MulticopterHoverThrustEstimator::publishStatus(const hrt_abstime &timestamp_sample,
+		ZeroOrderHoverThrustEkf::status &status)
 {
 	hover_thrust_estimate_s status_msg;
+
+	status_msg.timestamp_sample = timestamp_sample;
 
 	status_msg.hover_thrust = status.hover_thrust;
 	status_msg.hover_thrust_var = status.hover_thrust_var;

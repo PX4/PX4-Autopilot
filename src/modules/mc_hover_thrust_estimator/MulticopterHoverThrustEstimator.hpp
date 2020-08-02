@@ -88,7 +88,7 @@ private:
 
 	void reset();
 
-	void publishStatus(ZeroOrderHoverThrustEkf::status &status);
+	void publishStatus(const hrt_abstime &timestamp_sample, ZeroOrderHoverThrustEkf::status &status);
 	void publishInvalidStatus();
 
 	ZeroOrderHoverThrustEkf _hover_thrust_ekf{};

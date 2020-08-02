@@ -1,4 +1,5 @@
-uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp                # time since system start (microseconds)
+uint64 timestamp_sample
 
 float32 hover_thrust		# estimated hover thrust [0.1, 0.9]
 float32 hover_thrust_var	# estimated hover thrust variance
