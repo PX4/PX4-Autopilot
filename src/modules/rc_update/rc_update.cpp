@@ -320,6 +320,13 @@ RCUpdate::Run()
 
 	if (_input_rc_sub.copy(&rc_input)) {
 
+		// warn if the channel count is changing (possibly indication of error)
+		if (!rc_input.rc_lost && (_channel_count_previous != rc_input.channel_count) && (_channel_count_previous > 0)) {
+			PX4_DEBUG("RC channel count changed %d -> %d", _channel_count_previous, rc_input.channel_count);
+		}
+
+		_channel_count_previous = rc_input.channel_count;
+
 		/* detect RC signal loss */
 		bool signal_lost = true;
 
