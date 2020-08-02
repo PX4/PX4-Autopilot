@@ -142,31 +142,27 @@ void MulticopterHoverThrustEstimator::Run()
 		}
 	}
 
-	if (_armed && !_landed && (local_pos.timestamp > _timestamp_last)) {
+	const float dt = (local_pos.timestamp - _timestamp_last) * 1e-6f;
+	_timestamp_last = local_pos.timestamp;
+
+	if (_armed && !_landed && (dt > 0.001f) && (dt < 1.f)) {
+
+		_hover_thrust_ekf.predict(dt);
+
 		vehicle_local_position_setpoint_s local_pos_sp;
 
 		if (_vehicle_local_position_setpoint_sub.update(&local_pos_sp)) {
+			if (PX4_ISFINITE(local_pos.az) && PX4_ISFINITE(local_pos_sp.thrust[2])) {
+				// Inform the hover thrust estimator about the measured vertical
+				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
+				ZeroOrderHoverThrustEkf::status status;
+				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2], status);
 
-			const float dt = (local_pos.timestamp - _timestamp_last) * 1e-6f;
-			_timestamp_last = local_pos.timestamp;
+				const bool valid = _in_air && (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
+				_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
+				_valid = _valid_hysteresis.get_state();
 
-			if (dt < 0.1f) {
-
-				_hover_thrust_ekf.predict(dt);
-
-				if (PX4_ISFINITE(local_pos.az) && PX4_ISFINITE(local_pos_sp.thrust[2])) {
-					// Inform the hover thrust estimator about the measured vertical
-					// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
-					ZeroOrderHoverThrustEkf::status status;
-					_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2], status);
-
-					const bool valid = _in_air && (status.hover_thrust_var < 0.001f) && (status.innov_test_ratio < 1.f);
-					_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
-
-					publishStatus(status);
-
-					_was_valid = _valid_hysteresis.get_state();
-				}
+				publishStatus(status);
 			}
 		}
 
@@ -177,11 +173,11 @@ void MulticopterHoverThrustEstimator::Run()
 			reset();
 		}
 
-		if (_was_valid) {
+		if (_valid) {
 			// only publish a single message to invalidate
 			publishInvalidStatus();
 
-			_was_valid = false;
+			_valid = false;
 		}
 	}
 
@@ -200,7 +196,7 @@ void MulticopterHoverThrustEstimator::publishStatus(ZeroOrderHoverThrustEkf::sta
 	status_msg.accel_innov_test_ratio = status.innov_test_ratio;
 	status_msg.accel_noise_var = status.accel_noise_var;
 
-	status_msg.valid = _valid_hysteresis.get_state();
+	status_msg.valid = _valid;
 
 	status_msg.timestamp = hrt_absolute_time();
 

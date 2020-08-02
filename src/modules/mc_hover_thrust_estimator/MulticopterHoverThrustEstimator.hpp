@@ -108,7 +108,7 @@ private:
 	bool _landed{false};
 	bool _in_air{false};
 
-	bool _was_valid{false};
+	bool _valid{false};
 
 	systemlib::Hysteresis _valid_hysteresis{false};
 
