@@ -88,6 +88,9 @@ private:
 
 	void reset();
 
+	void publishStatus(ZeroOrderHoverThrustEkf::status &status);
+	void publishInvalidStatus();
+
 	ZeroOrderHoverThrustEkf _hover_thrust_ekf{};
 
 	uORB::Publication<hover_thrust_estimate_s> _hover_thrust_ekf_pub{ORB_ID(hover_thrust_estimate)};
