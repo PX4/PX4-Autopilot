@@ -297,7 +297,8 @@
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  5
 #define INPUT_CAP1_CHANNEL     /* T5C4 */ 4
-#define GPIO_INPUT_CAP1        /*  PI0 */ GPIO_TIM5_CH4_IN
+#define GPIO_INPUT_CAP1        /*  PI0 */ GPIO_TIM5_CH4IN
+#define BOARD_CAPTURE_GPIO /* PI0 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTI|GPIO_PIN0)
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
