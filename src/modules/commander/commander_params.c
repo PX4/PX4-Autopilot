@@ -194,11 +194,11 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * @group Commander
  * @unit %
  * @min 5
- * @max 40
+ * @max 80
  * @decimal 0
  * @increment 0.05
  */
-PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 12.0f);
+PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 50.0f);
 
 /**
  * Home set horizontal threshold
