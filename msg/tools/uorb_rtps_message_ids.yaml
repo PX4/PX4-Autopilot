@@ -8,6 +8,7 @@ rtps:
   - msg: adc_report
     id: 4
     send: true
+    receive: true
   - msg: airspeed
     id: 5
     send: true
@@ -295,6 +296,9 @@ rtps:
     id: 131
   - msg: yaw_estimator_status
     id: 132
+  - msg: pwm_output
+    id: 133
+    send: true
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
