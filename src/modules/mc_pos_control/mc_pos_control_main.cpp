@@ -435,7 +435,9 @@ MulticopterPositionControl::poll_subscriptions()
 		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
-			_control.updateHoverThrust(hte.hover_thrust);
+			if (hte.valid) {
+				_control.updateHoverThrust(hte.hover_thrust);
+			}
 		}
 	}
 }
