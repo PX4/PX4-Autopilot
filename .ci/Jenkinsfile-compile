@@ -71,6 +71,7 @@ pipeline {
                      "px4_fmu-v5x_default",
                      "px4_fmu-v6x_default",
                      "px4_io-v2_default",
+                     "spracing_h7extreme_default",
                      "uvify_core_default"
             ],
             image: docker_images.nuttx,
