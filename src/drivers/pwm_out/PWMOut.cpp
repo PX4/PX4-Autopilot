@@ -558,7 +558,7 @@ bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	/* output to the servos */
 	if (_pwm_initialized) {
-		for (size_t i = 0; i < num_outputs; i++) {
+		for (size_t i = 0; i < math::min(_num_outputs, num_outputs); i++) {
 			up_pwm_servo_set(i, outputs[i]);
 		}
 	}
