@@ -213,7 +213,7 @@ int PWMOut::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 		_pwm_mask = 0x1f;
 		_pwm_initialized = false;
-		_num_outputs = 4;
+		_num_outputs = 5;
 
 		break;
 
