@@ -57,9 +57,6 @@
 
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 
-// For AV-X board
-#define GPIO_TRIG_AVX /* PD14 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN14)
-
 
 class CameraCapture : public px4::ScheduledWorkItem
 {
@@ -141,7 +138,7 @@ private:
 	// Signal capture callback
 	void			capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 
-	// GPIO interrupt routine (for AV_X board)
+	// GPIO interrupt routine
 	static int		gpio_interrupt_routine(int irq, void *context, void *arg);
 
 	// Signal capture publish
