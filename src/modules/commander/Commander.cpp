@@ -2356,8 +2356,8 @@ Commander::run()
 			_failsafe_old = status.failsafe;
 		}
 
-		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags) at 1 Hz or immediately when changed */
-		if (hrt_elapsed_time(&status.timestamp) >= 1_s || _status_changed || nav_state_changed) {
+		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags) at 2 Hz or immediately when changed */
+		if (hrt_elapsed_time(&status.timestamp) >= 500_ms || _status_changed || nav_state_changed) {
 
 			update_control_mode();
 
