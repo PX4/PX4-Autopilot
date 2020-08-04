@@ -93,6 +93,7 @@ const struct {
 	{"i2c_spi_cli",		test_i2c_spi_cli,		0},
 	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
+	{"IntrusiveSortedList",	test_IntrusiveSortedList, 0},
 	{"List",		test_List,		0},
 	{"mathlib",		test_mathlib,		0},
 	{"matrix",		test_matrix,		0},
