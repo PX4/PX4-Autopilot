@@ -113,7 +113,8 @@ public:
 
 private:
 
-	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub, const char *armedBy);
+	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub,
+				       arm_disarm_reason_t calling_reason);
 
 	void battery_status_check();
 
