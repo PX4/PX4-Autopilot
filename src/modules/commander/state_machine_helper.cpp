@@ -105,7 +105,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
 		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags,
 		const PreFlightCheck::arm_requirements_t &arm_requirements,
-		const hrt_abstime &time_since_boot)
+		const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason)
 {
 	// Double check that our static arrays are still valid
 	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
@@ -216,11 +216,19 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 		// Finish up the state transition
 		if (valid_transition) {
+			bool was_armed = armed->armed;
 			armed->armed = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			armed->ready_to_arm = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 					      || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
 			ret = TRANSITION_CHANGED;
 			status->arming_state = new_arming_state;
+
+			if (was_armed && !armed->armed) { // disarm transition
+				status->latest_disarming_reason = (uint8_t)calling_reason;
+
+			} else if (!was_armed && armed->armed) { // arm transition
+				status->latest_arming_reason = (uint8_t)calling_reason;
+			}
 
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				armed->armed_time_ms = hrt_absolute_time() / 1000;
