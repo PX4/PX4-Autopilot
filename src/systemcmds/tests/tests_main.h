@@ -60,6 +60,7 @@ extern int test_i2c_spi_cli(int argc, char *argv[]);
 extern int test_IntrusiveQueue(int argc, char *argv[]);
 extern int test_jig_voltages(int argc, char *argv[]);
 extern int test_led(int argc, char *argv[]);
+extern int test_IntrusiveSortedList(int argc, char *argv[]);
 extern int test_List(int argc, char *argv[]);
 extern int test_mathlib(int argc, char *argv[]);
 extern int test_matrix(int argc, char *argv[]);

@@ -38,6 +38,7 @@
 
 #include <lib/cdev/CDev.hpp>
 
+#include <containers/IntrusiveSortedList.hpp>
 #include <containers/List.hpp>
 #include <px4_platform_common/atomic.h>
 
@@ -52,7 +53,7 @@ class SubscriptionCallback;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public cdev::CDev, public ListNode<uORB::DeviceNode *>
+class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
 {
 public:
 	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path, ORB_PRIO priority,
@@ -64,6 +65,8 @@ public:
 	DeviceNode &operator=(const DeviceNode &) = delete;
 	DeviceNode(DeviceNode &&) = delete;
 	DeviceNode &operator=(DeviceNode &&) = delete;
+
+	bool operator<=(const DeviceNode &rhs) const { return (strcmp(get_devname(), rhs.get_devname()) <= 0); }
 
 	/**
 	 * Method to create a subscriber instance and return the struct
