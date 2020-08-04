@@ -89,7 +89,7 @@ bool PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &
 	return mapping_succeeded;
 }
 
-void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
+void PositionControl::setConstraints(const vehicle_constraints_s &constraints, const float lim_thr_hor_max)
 {
 	_constraints = constraints;
 
@@ -106,6 +106,8 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 	if (!PX4_ISFINITE(constraints.speed_down) || (constraints.speed_down > _lim_vel_down)) {
 		_constraints.speed_down = _lim_vel_down;
 	}
+
+	_lim_thr_hor_max = lim_thr_hor_max;
 
 	// ignore _constraints.speed_xy TODO: remove it completely as soon as no task uses it anymore to avoid confusion
 }
@@ -321,6 +323,7 @@ void PositionControl::_velocityControl(const float dt)
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
 		float thrust_max_NE = sqrtf(_lim_thr_max * _lim_thr_max - _thr_sp(2) * _thr_sp(2));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
+		thrust_max_NE = math::min(_lim_thr_hor_max, thrust_max_NE);
 
 		// Saturate thrust in NE-direction.
 		_thr_sp(0) = thrust_desired_NE(0);

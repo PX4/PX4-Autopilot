@@ -39,6 +39,7 @@ then
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAW_FF 0.5
+	param set MC_YAWRATE_MAX 60.0
 
 	param set MPC_HOLD_MAX_XY 0.25
 	param set MPC_THR_MIN 0.15
@@ -47,7 +48,7 @@ then
 	param set BAT_N_CELLS 4
 
 	param set OMNI_ATT_MODE 2
-	param set OMNI_DFC_MAX_THR 0.15
+	param set OMNI_DFC_MAX_THR 0.20
 fi
 
 # Set mixer

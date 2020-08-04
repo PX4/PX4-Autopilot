@@ -137,8 +137,9 @@ public:
 	 * Pass constraints that are stricter than the global limits
 	 * Note: NAN value means no constraint, take maximum limit of controller.
 	 * @param constraints a PositionControl structure with supported constraints
+	 * @param lim_thr_hor_max maximum horizontal thrust (read from parameter for OMNI_ATT_MODE = 2, otherwise = 1.0F)
 	 */
-	void setConstraints(const vehicle_constraints_s &constraints);
+	void setConstraints(const vehicle_constraints_s &constraints, const float lim_thr_hor_max);
 
 	/**
 	 * Apply P-position and PID-velocity controller that updates the member
@@ -207,6 +208,7 @@ private:
 	float _lim_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
 	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
 	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
+	float _lim_thr_hor_max; ///< Maximum direct-force horizontal thrust allowed as output [0, 1]
 
 	float _hover_thrust{}; ///< Thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation
 

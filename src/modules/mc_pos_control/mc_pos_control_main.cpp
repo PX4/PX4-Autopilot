@@ -647,7 +647,9 @@ MulticopterPositionControl::Run()
 
 			// Run position control
 			_control.setState(_states);
-			_control.setConstraints(constraints);
+
+			float max_hor_thrust = (_param_omni_att_mode.get() == 2) ? _param_omni_dfc_max_thr.get() : 1.0F;
+			_control.setConstraints(constraints, max_hor_thrust);
 
 			if (!_control.setInputSetpoint(setpoint)) {
 				warn_rate_limited("PositionControl: invalid setpoints");
