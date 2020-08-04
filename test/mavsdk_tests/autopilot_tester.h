@@ -121,17 +121,33 @@ private:
 	bool poll_condition_with_timeout(
 		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
 	{
-		// We need millisecond resolution for sleeping.
 		const std::chrono::milliseconds duration_ms(duration);
-		const auto duration_ms_adjusted = adjust_to_lockstep_speed(duration_ms);
 
-		unsigned iteration = 0;
+		if (_info && _info->get_flight_information().first == mavsdk::Info::Result::Success) {
+			// A system is connected. We can base the timeouts on the autopilot time.
+			uint32_t start_time = _info->get_flight_information().second.time_boot_ms;
 
-		while (!fun()) {
-			std::this_thread::sleep_for(duration_ms_adjusted / 100);
+			while (!fun()) {
+				std::this_thread::sleep_for(duration_ms / 1000);
 
-			if (iteration++ >= 100) {
-				return false;
+				// This might potentially loop forever and the test needs to be killed by a watchdog outside.
+				// The reason not to include an absolute timeout here is that it can happen if the host is
+				// busy and PX4 doesn't run fast enough.
+				if (_info->get_flight_information().second.time_boot_ms - start_time > duration_ms.count()) {
+					return false;
+				}
+			}
+
+		} else {
+			// Nothing is connected yet. Use the host time.
+			unsigned iteration = 0;
+
+			while (!fun()) {
+				std::this_thread::sleep_for(duration_ms / 1000);
+
+				if (iteration++ >= 1000) {
+					return false;
+				}
 			}
 		}
 
