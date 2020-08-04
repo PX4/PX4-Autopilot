@@ -424,11 +424,12 @@ bool Commander::shutdown_if_allowed()
 {
 	return TRANSITION_DENIED != arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			&armed, false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags, _arm_requirements,
-			hrt_elapsed_time(&_boot_timestamp));
+			hrt_elapsed_time(&_boot_timestamp), arm_disarm_reason_t::SHUTDOWN);
 }
 
 transition_result_t
-Commander::arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub_local, const char *armedBy)
+Commander::arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub_local,
+		      arm_disarm_reason_t calling_reason)
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
@@ -442,10 +443,42 @@ Commander::arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink
 					     mavlink_log_pub_local,
 					     &status_flags,
 					     _arm_requirements,
-					     hrt_elapsed_time(&_boot_timestamp));
+					     hrt_elapsed_time(&_boot_timestamp), calling_reason);
 
 	if (arming_res == TRANSITION_CHANGED) {
-		mavlink_log_info(mavlink_log_pub_local, "%s by %s", arm ? "ARMED" : "DISARMED", armedBy);
+		const char *reason = "";
+
+		switch (calling_reason) {
+		case arm_disarm_reason_t::TRANSITION_TO_STANDBY: reason = ""; break;
+
+		case arm_disarm_reason_t::RC_STICK: reason = "RC"; break;
+
+		case arm_disarm_reason_t::RC_SWITCH: reason = "RC (switch)"; break;
+
+		case arm_disarm_reason_t::COMMAND_INTERNAL: reason = "internal command"; break;
+
+		case arm_disarm_reason_t::COMMAND_EXTERNAL: reason = "external command"; break;
+
+		case arm_disarm_reason_t::MISSION_START: reason = "mission start"; break;
+
+		case arm_disarm_reason_t::SAFETY_BUTTON: reason = "safety button"; break;
+
+		case arm_disarm_reason_t::AUTO_DISARM_LAND: reason = "landing"; break;
+
+		case arm_disarm_reason_t::AUTO_DISARM_PREFLIGHT: reason = "auto preflight disarming"; break;
+
+		case arm_disarm_reason_t::KILL_SWITCH: reason = "kill-switch"; break;
+
+		case arm_disarm_reason_t::LOCKDOWN: reason = "lockdown"; break;
+
+		case arm_disarm_reason_t::FAILURE_DETECTOR: reason = "failure detector"; break;
+
+		case arm_disarm_reason_t::SHUTDOWN: reason = "shutdown request"; break;
+
+		case arm_disarm_reason_t::UNIT_TEST: reason = "unit tests"; break;
+		}
+
+		mavlink_log_info(mavlink_log_pub_local, "%s by %s", arm ? "Armed" : "Disarmed", reason);
 
 	} else if (arming_res == TRANSITION_DENIED) {
 		tune_negative(true);
@@ -736,7 +769,8 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					}
 				}
 
-				transition_result_t arming_res = arm_disarm(cmd_arms, !enforce, &mavlink_log_pub, "Arm/Disarm component command");
+				transition_result_t arming_res = arm_disarm(cmd_arms, !enforce, &mavlink_log_pub,
+								 (cmd.from_external ? arm_disarm_reason_t::COMMAND_EXTERNAL : arm_disarm_reason_t::COMMAND_INTERNAL));
 
 				if (arming_res == TRANSITION_DENIED) {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
@@ -949,7 +983,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					// switch to AUTO_MISSION and ARM
 					if ((TRANSITION_DENIED != main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags,
 							&_internal_state))
-					    && (TRANSITION_DENIED != arm_disarm(true, true, &mavlink_log_pub, "Mission start command"))) {
+					    && (TRANSITION_DENIED != arm_disarm(true, true, &mavlink_log_pub, arm_disarm_reason_t::MISSION_START))) {
 
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1495,7 +1529,7 @@ Commander::run()
 					}
 
 					if (safety_disarm_allowed) {
-						if (TRANSITION_CHANGED == arm_disarm(false, true, &mavlink_log_pub, "Safety button")) {
+						if (TRANSITION_CHANGED == arm_disarm(false, true, &mavlink_log_pub, arm_disarm_reason_t::SAFETY_BUTTON)) {
 							_status_changed = true;
 						}
 					}
@@ -1615,7 +1649,8 @@ Commander::run()
 				}
 
 				if (_auto_disarm_landed.get_state()) {
-					arm_disarm(false, true, &mavlink_log_pub, "Auto disarm initiated");
+					arm_disarm(false, true, &mavlink_log_pub,
+						   (_have_taken_off_since_arming ? arm_disarm_reason_t::AUTO_DISARM_LAND : arm_disarm_reason_t::AUTO_DISARM_PREFLIGHT));
 				}
 			}
 
@@ -1624,10 +1659,10 @@ Commander::run()
 
 			if (_auto_disarm_killed.get_state()) {
 				if (armed.manual_lockdown) {
-					arm_disarm(false, true, &mavlink_log_pub, "Kill-switch still engaged");
+					arm_disarm(false, true, &mavlink_log_pub, arm_disarm_reason_t::KILL_SWITCH);
 
 				} else {
-					arm_disarm(false, true, &mavlink_log_pub, "System in lockdown");
+					arm_disarm(false, true, &mavlink_log_pub, arm_disarm_reason_t::LOCKDOWN);
 				}
 
 			}
@@ -1663,7 +1698,8 @@ Commander::run()
 
 			arming_ret = arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 							     true /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
-							     _arm_requirements, hrt_elapsed_time(&_boot_timestamp));
+							     _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+							     arm_disarm_reason_t::TRANSITION_TO_STANDBY);
 
 			if (arming_ret == TRANSITION_DENIED) {
 				/* do not complain if not allowed into standby */
@@ -1922,7 +1958,8 @@ Commander::run()
 				if (rc_wants_disarm && (_land_detector.landed || manual_thrust_mode)) {
 					arming_ret = arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 									     true /* fRunPreArmChecks */,
-									     &mavlink_log_pub, &status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp));
+									     &mavlink_log_pub, &status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+									     (arm_switch_to_disarm_transition ? arm_disarm_reason_t::RC_SWITCH : arm_disarm_reason_t::RC_STICK));
 				}
 
 				_stick_off_counter++;
@@ -1976,7 +2013,8 @@ Commander::run()
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
 										     !in_arming_grace_period /* fRunPreArmChecks */,
-										     &mavlink_log_pub, &status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp));
+										     &mavlink_log_pub, &status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+										     (arm_switch_to_arm_transition ? arm_disarm_reason_t::RC_SWITCH : arm_disarm_reason_t::RC_STICK));
 
 						if (arming_ret != TRANSITION_CHANGED) {
 							px4_usleep(100000);
@@ -2182,7 +2220,7 @@ Commander::run()
 					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
 
 					if (status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
-						arm_disarm(false, true, &mavlink_log_pub, "Failure detector");
+						arm_disarm(false, true, &mavlink_log_pub, arm_disarm_reason_t::FAILURE_DETECTOR);
 						_status_changed = true;
 						mavlink_log_critical(&mavlink_log_pub, "ESCs did not respond to arm request");
 					}
@@ -3419,7 +3457,8 @@ void *commander_low_prio_loop(void *arg)
 						if (TRANSITION_DENIED == arming_state_transition(&status, safety_s{}, vehicle_status_s::ARMING_STATE_INIT, &armed,
 								false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
 								PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
-								30_s) // time since boot not relevant for switching to ARMING_STATE_INIT
+								30_s, // time since boot not relevant for switching to ARMING_STATE_INIT
+								(cmd.from_external ? arm_disarm_reason_t::COMMAND_EXTERNAL : arm_disarm_reason_t::COMMAND_INTERNAL))
 						   ) {
 
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
@@ -3514,7 +3553,8 @@ void *commander_low_prio_loop(void *arg)
 										false /* fRunPreArmChecks */,
 										&mavlink_log_pub, &status_flags,
 										PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_STANDBY
-										30_s); // time since boot not relevant for switching to ARMING_STATE_STANDBY
+										30_s, // time since boot not relevant for switching to ARMING_STATE_STANDBY
+										(cmd.from_external ? arm_disarm_reason_t::COMMAND_EXTERNAL : arm_disarm_reason_t::COMMAND_INTERNAL));
 
 						} else {
 							tune_negative(true);
