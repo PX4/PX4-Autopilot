@@ -78,9 +78,8 @@ public:
 
 	/**
 	 * Print statistics for each existing topic.
-	 * @param reset if true, reset statistics afterwards
 	 */
-	void printStatistics(bool reset);
+	void printStatistics();
 
 	/**
 	 * Continuously print statistics, like the unix top command for processes.
@@ -98,9 +97,7 @@ private:
 
 	struct DeviceNodeStatisticsData {
 		DeviceNode *node;
-		uint32_t last_lost_msg_count;
 		unsigned int last_pub_msg_count;
-		uint32_t lost_msg_delta;
 		unsigned int pub_msg_delta;
 		DeviceNodeStatisticsData *next = nullptr;
 	};
@@ -119,8 +116,6 @@ private:
 
 	List<uORB::DeviceNode *> _node_list;
 	AtomicBitset<ORB_TOPICS_COUNT> _node_exists[ORB_MULTI_MAX_INSTANCES];
-
-	hrt_abstime       _last_statistics_output;
 
 	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
 
