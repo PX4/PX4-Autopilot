@@ -286,9 +286,7 @@ void Tiltrotor::update_transition_state()
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P1) {
 		// for the first part of the transition all rotors are enabled
-		if (_motor_state != motor_state::ENABLED) {
-			_motor_state = set_motor_state(_motor_state, motor_state::ENABLED);
-		}
+		set_all_motor_state(motor_state::ENABLED);
 
 		// tilt rotors forward up to certain angle
 		if (_tilt_control <= _params_tiltrotor.tilt_transition) {
@@ -338,16 +336,14 @@ void Tiltrotor::update_transition_state()
 				      (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) + PWM_DEFAULT_MIN;
 
 
-		_motor_state = set_motor_state(_motor_state, motor_state::VALUE, ramp_down_value);
+		set_alternate_motor_state(motor_state::VALUE, ramp_down_value);
 
 
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
 		// turn on all MC motors
-		if (_motor_state != motor_state::ENABLED) {
-			_motor_state = set_motor_state(_motor_state, motor_state::ENABLED);
-		}
+		set_all_motor_state(motor_state::ENABLED);
 
 
 		// set idle speed for rotary wing mode
