@@ -2271,9 +2271,17 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+
+		// vehicle_command
+		const unsigned last_generation = cmd_sub.get_last_generation();
 		vehicle_command_s vehicle_cmd;
 
 		if (cmd_sub.update(&vehicle_cmd)) {
+
+			if (cmd_sub.get_last_generation() != last_generation + 1) {
+				PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, cmd_sub.get_last_generation());
+			}
+
 			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
 			    (_mode == MAVLINK_MODE_IRIDIUM)) {
 				if (vehicle_cmd.param1 > 0.5f) {

@@ -2144,9 +2144,14 @@ Commander::run()
 		/* handle commands last, as the system needs to be updated to handle them */
 		if (_cmd_sub.updated()) {
 			/* got command */
+			const unsigned last_generation = _cmd_sub.get_last_generation();
 			vehicle_command_s cmd;
 
 			if (_cmd_sub.copy(&cmd)) {
+				if (_cmd_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, _cmd_sub.get_last_generation());
+				}
+
 				if (handle_command(&status, cmd, &armed, _command_ack_pub)) {
 					_status_changed = true;
 				}
