@@ -53,6 +53,7 @@ then
 	param set DSHOT_CONFIG 1200
 
 	param set OSD_ATXXXX_CFG 1
+	param set TEL_FRSKY_CONFIG 300
 
 	param set THR_MDL_FAC 0.35
 
