@@ -37,8 +37,6 @@ px4_add_module(
 	SRCS
 		main.cpp
 		PCA9685.cpp
-	MODULE_CONFIG
-		module.yaml
 	DEPENDS
 		mixer
 		mixer_module
