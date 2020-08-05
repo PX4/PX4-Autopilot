@@ -5330,7 +5330,7 @@ public:
 
 	static constexpr uint16_t get_id_static()
 	{
-		return MAVLINK_MSG_ID_ESC_STATUS;
+		return MAVLINK_MSG_ID_ESC_INFO;
 	}
 
 	uint16_t get_id() override
@@ -5345,11 +5345,11 @@ public:
 
 	unsigned get_size() override
 	{
-		return _esc_info_sub.advertised() ? MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _esc_status_sub.advertised() ? MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	uORB::Subscription _esc_info_sub{ORB_ID(esc_status)};
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamESCInfo(MavlinkStreamESCInfo &) = delete;
@@ -5366,7 +5366,7 @@ protected:
 
 		uint8_t batch_size = MAVLINK_MSG_ESC_INFO_FIELD_TEMPERATURE_LEN;
 
-		if (_esc_info_sub.update(&esc_status)) {
+		if (_esc_status_sub.update(&esc_status)) {
 
 			mavlink_esc_info_t msg = {};
 
