@@ -97,6 +97,6 @@ TEST_CASE("Fly straight Multicopter Mission", "[multicopter]")
 	tester.execute_mission();
 	tester.wait_until_hovering();
 	tester.execute_rtl();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(60);
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(120);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
