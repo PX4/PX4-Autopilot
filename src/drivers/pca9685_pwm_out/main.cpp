@@ -192,7 +192,10 @@ void PWMDriverWrapper::updatePWMParams()
 		param_get(param_h, &pval);
 
 		if (pca9685->setFreq((float)pval) != PX4_OK) {
-			PX4_DEBUG("failed to set pwm frequency");
+			PX4_ERR("failed to set pwm frequency, fall back to 50Hz");
+			pca9685->setFreq((float)50);	// this should not fail
+			ScheduleClear();
+			ScheduleOnInterval(1000000 / pca9685->getFrequency(), 1000000 / pca9685->getFrequency());
 
 		} else {
 			ScheduleClear();
