@@ -153,6 +153,12 @@ int main()
     Vector2f v8 = N.slice<3,2>(0,1).diag();
     Vector2f v8_check = {2, 6};
     TEST(isEqual(v8,v8_check));
+    Vector2f v9(N.slice<1,2>(1,1));
+    Vector2f v9_check = {5, 6};
+    TEST(isEqual(v9,v9_check));
+    Vector3f v10(N.slice<1,3>(1,0));
+    Vector3f v10_check = {4, 5, 6};
+    TEST(isEqual(v10,v10_check));
 
     // Different assignment operators
     SquareMatrix3f O(data);

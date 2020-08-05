@@ -56,6 +56,11 @@ public:
     {
     }
 
+    template<size_t P, size_t Q>
+    Vector3(const Slice<Type, 1, 3, P, Q>& slice_in) : Vector<Type, 3>(slice_in)
+    {
+    }
+
     Vector3 cross(const Matrix31 & b) const {
         const Vector3 &a(*this);
         return {a(1)*b(2,0) - a(2)*b(1,0), -a(0)*b(2,0) + a(2)*b(0,0), a(0)*b(1,0) - a(1)*b(0,0)};

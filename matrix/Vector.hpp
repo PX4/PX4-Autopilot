@@ -40,6 +40,15 @@ public:
     {
     }
 
+    template<size_t P, size_t Q, size_t DUMMY = 1>
+    Vector(const Slice<Type, 1, M, P, Q>& slice_in)
+    {
+        Vector &self(*this);
+        for (size_t i = 0; i<M; i++) {
+            self(i) = slice_in(0, i);
+        }
+    }
+
     inline const Type &operator()(size_t i) const
     {
         assert(i < M);

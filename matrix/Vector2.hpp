@@ -48,6 +48,11 @@ public:
     {
     }
 
+    template<size_t P, size_t Q>
+    Vector2(const Slice<Type, 1, 2, P, Q>& slice_in) : Vector<Type, 2>(slice_in)
+    {
+    }
+
     explicit Vector2(const Vector3 & other)
     {
         Vector2 &v(*this);
