@@ -122,6 +122,7 @@ private:
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	int	_vehicle_attitude_sp_sub{-1};	/**< vehicle attitude setpoint */
+	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; /**< vehicle bodyrates setpoint subscriber */
 	int	_battery_status_sub{-1};	/**< battery status subscription */
 	int	_vehicle_attitude_sub{-1};	/**< control state subscription */
 	int	_angular_velocity_sub{-1};	/**< vehicle angular velocity subscription */
@@ -135,19 +136,17 @@ private:
 	vehicle_attitude_s		_vehicle_attitude {};	/**< control state */
 	vehicle_angular_velocity_s	_angular_velocity{};	/**< angular velocity */
 	vehicle_attitude_setpoint_s	_vehicle_attitude_sp {};/**< vehicle attitude setpoint */
+	vehicle_rates_setpoint_s _vehicle_rates_sp {}; /**< vehicle bodyrates setpoint */
 	vehicle_control_mode_s		_vcontrol_mode {};	/**< vehicle control mode */
 	sensor_combined_s		_sensor_combined{};
 	vehicle_local_position_s	_local_pos{};		/**< vehicle local position */
-
 
 	SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};		// captures the number of times the estimator has reset the horizontal position
-
 
 	bool _debug{false};	/**< if set to true, print debug output */
 	int loop_counter = 0;
@@ -171,14 +170,15 @@ private:
 	/**
 	 * Update our local parameter cache.
 	 */
-	void	parameters_update(bool force = false);
+	void parameters_update(bool force = false);
 
-	void	manual_control_setpoint_poll();
-	void	position_setpoint_triplet_poll();
-	void	vehicle_control_mode_poll();
-	void 	vehicle_attitude_poll();
-	void	vehicle_attitude_setpoint_poll();
-	void	vehicle_local_position_poll();
+	void manual_control_setpoint_poll();
+	void position_setpoint_triplet_poll();
+	void vehicle_control_mode_poll();
+	void vehicle_attitude_poll();
+	void vehicle_attitude_setpoint_poll();
+	void vehicle_rates_setpoint_poll();
+	void vehicle_local_position_poll();
 
 	/**
 	 * Control Attitude
