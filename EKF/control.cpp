@@ -514,16 +514,7 @@ void Ekf::controlGpsFusion()
 
 				// If the heading is valid start using gps aiding
 				if (_control_status.flags.yaw_align) {
-					resetHorizontalPositionToGps();
-
-					// when adding with optical flow,
-					// velocity reset is not necessary
-					if (!_control_status.flags.opt_flow) {
-						resetVelocityToGps();
-					}
-
-					ECL_INFO_TIMESTAMPED("starting GPS fusion");
-					_control_status.flags.gps = true;
+					startGpsFusion();
 				}
 			}
 

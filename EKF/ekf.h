@@ -847,10 +847,9 @@ private:
 		return sensor_timestamp + acceptance_interval > _time_last_imu;
 	}
 
+	void startGpsFusion();
 	void stopGpsFusion();
-
 	void stopGpsPosFusion();
-
 	void stopGpsVelFusion();
 
 	void startGpsYawFusion();
