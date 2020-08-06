@@ -112,6 +112,11 @@ void UUVAttitudeControl::vehicle_attitude_setpoint_poll()
 	}
 }
 
+void UUVAttitudeControl::vehicle_rates_setpoint_poll()
+{
+	_vehicle_rates_setpoint_sub.update(&_vehicle_rates_sp);
+}
+
 
 void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u, float thrust_u)
 {
@@ -186,6 +191,10 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &att, con
 	float pitch_body = _vehicle_attitude_sp.pitch_body;
 	float yaw_body = _vehicle_attitude_sp.yaw_body;
 
+	float roll_rate_desired = _vehicle_rates_sp.roll;
+	float pitch_rate_desired = _vehicle_rates_sp.pitch;
+	float yaw_rate_desired = _vehicle_rates_sp.yaw;
+
 	/* get attitude setpoint rotational matrix */
 	Dcmf _rot_des = Eulerf(roll_body, pitch_body, yaw_body);
 
@@ -205,9 +214,9 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &att, con
 	e_R_vec(1) = e_R(0, 2);  /**< Pitch */
 	e_R_vec(2) = e_R(1, 0);  /**< Yaw   */
 
-	omega(0) = _angular_velocity.xyz[0] - 0.0f;
-	omega(1) = _angular_velocity.xyz[1] - 0.0f;
-	omega(2) = _angular_velocity.xyz[2] - 0.0f;
+	omega(0) = _angular_velocity.xyz[0] - roll_rate_desired;
+	omega(1) = _angular_velocity.xyz[1] - pitch_rate_desired;
+	omega(2) = _angular_velocity.xyz[2] - yaw_rate_desired;
 
 	/**< P-Control */
 	torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
@@ -306,6 +315,7 @@ void UUVAttitudeControl::run()
 			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 
 			vehicle_attitude_setpoint_poll();
+			vehicle_rates_setpoint_poll();
 			vehicle_control_mode_poll();
 			manual_control_setpoint_poll();
 
@@ -364,6 +374,8 @@ void UUVAttitudeControl::run()
 	}
 
 	orb_unsubscribe(_vcontrol_mode_sub);
+	orb_unsubscribe(_vehicle_attitude_sp_sub);
+	orb_unsubscribe(_angular_velocity_sub);
 	orb_unsubscribe(_manual_control_setpoint_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
 	orb_unsubscribe(_local_pos_sub);
