@@ -2472,7 +2472,6 @@ Mavlink::task_main(int argc, char *argv[])
 				_tstatus.rate_tx = _bytes_tx / dt;
 				_tstatus.rate_txerr = _bytes_txerr / dt;
 				_tstatus.rate_rx = _bytes_rx / dt;
-				_tstatus_updated = true;
 
 				_bytes_tx = 0;
 				_bytes_txerr = 0;
@@ -2485,7 +2484,6 @@ Mavlink::task_main(int argc, char *argv[])
 		// publish status at 1 Hz, or sooner if HEARTBEAT has updated
 		if ((hrt_elapsed_time(&_tstatus.timestamp) >= 1_s) || _tstatus_updated) {
 			publish_telemetry_status();
-			_tstatus_updated = false;
 		}
 
 		perf_end(_loop_perf);
@@ -2618,6 +2616,7 @@ void Mavlink::publish_telemetry_status()
 	lock_telemetry_status();
 	_tstatus.timestamp = hrt_absolute_time();
 	_telem_status_pub.publish(_tstatus);
+	_tstatus_updated = false;
 	unlock_telemetry_status();
 }
 

@@ -2086,14 +2086,15 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			if (heartbeat_slot_found) {
 				_mavlink->lock_telemetry_status();
+
 				tstatus.heartbeats[heartbeat_slot].timestamp = now;
 				tstatus.heartbeats[heartbeat_slot].system_id = msg->sysid;
 				tstatus.heartbeats[heartbeat_slot].component_id = msg->compid;
 				tstatus.heartbeats[heartbeat_slot].type = hb.type;
 				tstatus.heartbeats[heartbeat_slot].state = hb.system_status;
-				_mavlink->unlock_telemetry_status();
 
 				_mavlink->telemetry_status_updated();
+				_mavlink->unlock_telemetry_status();
 
 			} else {
 				PX4_ERR("no telemetry heartbeat slots available");
