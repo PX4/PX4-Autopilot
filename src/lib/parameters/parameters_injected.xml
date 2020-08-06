@@ -5,7 +5,7 @@
     <parameter default="75" name="ctl_bw" type="INT32">
       <short_desc>Speed controller bandwidth</short_desc>
       <long_desc>Speed controller bandwidth, in Hz. Higher values result in faster speed and current rise times, but may result in overshoot and higher current consumption. For fixed-wing aircraft, this value should be less than 50 Hz; for multirotors, values up to 100 Hz may provide improvements in responsiveness.</long_desc>
-      <unit>Hertz</unit>
+      <unit>Hz</unit>
       <min>10</min>
       <max>250</max>
     </parameter>
@@ -32,7 +32,7 @@
     <parameter default="3.5" name="ctl_hz_idle" type="FLOAT">
       <short_desc>Idle speed (e Hz)</short_desc>
       <long_desc>Idle speed (e Hz)</long_desc>
-      <unit>Hertz</unit>
+      <unit>Hz</unit>
       <decimal>3</decimal>
       <min>0.0</min>
       <max>100.0</max>
@@ -112,13 +112,13 @@
       <long_desc>READ ONLY: Motor resistance in ohms. This is measured on start-up. When
             tuning a new motor, check that this value is approximately equal
             to the value shown in the motor’s specification sheet.</long_desc>
-      <unit>Ohms</unit>
+      <unit>Ohm</unit>
       <decimal>3</decimal>
     </parameter>
     <parameter default="0.5" name="mot_v_accel" type="FLOAT">
       <short_desc>Acceleration limit (V)</short_desc>
       <long_desc>Acceleration limit (V)</long_desc>
-      <unit>Volts</unit>
+      <unit>V</unit>
       <decimal>3</decimal>
       <min>0.01</min>
       <max>1.00</max>
@@ -130,7 +130,7 @@
             safely be above the nominal voltage of the motor; to determine the
             actual motor voltage limit, divide the motor’s rated power by the
             motor current limit.</long_desc>
-      <unit>Volts</unit>
+      <unit>V</unit>
       <decimal>3</decimal>
       <min>0</min>
     </parameter>
