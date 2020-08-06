@@ -122,7 +122,7 @@ private:
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	int	_vehicle_attitude_sp_sub{-1};	/**< vehicle attitude setpoint */
-	int _vehicle_rates_setpoint_sub{-1}; /**< vehicle bodyrates setpoint subscriber */
+	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; /**< vehicle bodyrates setpoint subscriber */
 	int	_battery_status_sub{-1};	/**< battery status subscription */
 	int	_vehicle_attitude_sub{-1};	/**< control state subscription */
 	int	_angular_velocity_sub{-1};	/**< vehicle angular velocity subscription */

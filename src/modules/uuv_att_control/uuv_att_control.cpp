@@ -106,7 +106,6 @@ void UUVAttitudeControl::vehicle_attitude_setpoint_poll()
 {
 	bool updated = false;
 	orb_check(_vehicle_attitude_sp_sub, &updated);
-	warn("Setpoint: %d", updated);
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _vehicle_attitude_sp_sub, &_vehicle_attitude_sp);
@@ -115,12 +114,7 @@ void UUVAttitudeControl::vehicle_attitude_setpoint_poll()
 
 void UUVAttitudeControl::vehicle_rates_setpoint_poll()
 {
-	bool updated = false;
-	orb_check(_vehicle_rates_setpoint_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_rates_setpoint), _vehicle_rates_setpoint_sub, &_vehicle_rates_sp);
-	}
+	_vehicle_rates_setpoint_sub.update(&_vehicle_rates_sp);
 }
 
 
@@ -259,7 +253,6 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &att, con
 
 void UUVAttitudeControl::run()
 {
-	_vehicle_rates_setpoint_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	_vehicle_attitude_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_angular_velocity_sub = orb_subscribe(ORB_ID(vehicle_angular_velocity));
@@ -382,7 +375,6 @@ void UUVAttitudeControl::run()
 
 	orb_unsubscribe(_vcontrol_mode_sub);
 	orb_unsubscribe(_vehicle_attitude_sp_sub);
-	orb_unsubscribe(_vehicle_rates_setpoint_sub);
 	orb_unsubscribe(_angular_velocity_sub);
 	orb_unsubscribe(_manual_control_setpoint_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
