@@ -295,7 +295,7 @@ PARAM_DEFINE_FLOAT(SIH_LOC_H0, 32.34f);
  * LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
  * to represent a physical ground location on Earth.
  *
- * @unit Gauss
+ * @unit gauss
  * @min -1.0
  * @max  1.0
  * @decimal 2
@@ -315,7 +315,7 @@ PARAM_DEFINE_FLOAT(SIH_LOC_MU_X,  0.179f);
  * LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
  * to represent a physical ground location on Earth.
  *
- * @unit Gauss
+ * @unit gauss
  * @min -1.0
  * @max  1.0
  * @decimal 2
@@ -335,7 +335,7 @@ PARAM_DEFINE_FLOAT(SIH_LOC_MU_Y, -0.045f);
  * LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
  * to represent a physical ground location on Earth.
  *
- * @unit Gauss
+ * @unit gauss
  * @min -1.0
  * @max  1.0
  * @decimal 2

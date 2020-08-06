@@ -143,7 +143,7 @@ PARAM_DEFINE_FLOAT(LPE_BAR_Z, 3.0f);
  * GPS delay compensaton
  *
  * @group Local Position Estimator
- * @unit sec
+ * @unit s
  * @min 0
  * @max 0.4
  * @decimal 2
@@ -224,7 +224,7 @@ PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
  * Set to zero to enable automatic compensation from measurement timestamps
  *
  * @group Local Position Estimator
- * @unit sec
+ * @unit s
  * @min 0
  * @max 0.1
  * @decimal 2

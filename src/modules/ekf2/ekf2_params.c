@@ -301,7 +301,7 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_B_NOISE, 3.0e-3f);
  * @group EKF2
  * @min 0.0
  * @max 0.1
- * @unit Gauss/s
+ * @unit gauss/s
  * @decimal 6
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 1.0e-4f);
@@ -312,7 +312,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 1.0e-4f);
  * @group EKF2
  * @min 0.0
  * @max 0.1
- * @unit Gauss/s
+ * @unit gauss/s
  * @decimal 6
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
@@ -389,7 +389,7 @@ PARAM_DEFINE_FLOAT(EKF2_HEAD_NOISE, 0.3f);
  * @group EKF2
  * @min 0.001
  * @max 1.0
- * @unit Gauss
+ * @unit gauss
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_NOISE, 5.0e-2f);
@@ -666,7 +666,7 @@ PARAM_DEFINE_INT32(EKF2_TERR_MASK, 3);
  * @group EKF2
  * @min 500000
  * @max 10000000
- * @unit uSec
+ * @unit us
  */
 PARAM_DEFINE_INT32(EKF2_NOAID_TOUT, 5000000);
 
@@ -1072,7 +1072,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  * @reboot_required true
  * @volatile
  * @category system
- * @unit mGauss
+ * @unit mgauss
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
@@ -1087,7 +1087,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
  * @reboot_required true
  * @volatile
  * @category system
- * @unit mGauss
+ * @unit mgauss
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
@@ -1102,7 +1102,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
  * @reboot_required true
  * @volatile
  * @category system
- * @unit mGauss
+ * @unit mgauss
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
@@ -1122,7 +1122,7 @@ PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
  *
  * @group EKF2
  * @reboot_required true
- * @unit mGauss**2
+ * @unit mgauss^2
  * @decimal 8
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGB_VREF, 2.5E-7f);

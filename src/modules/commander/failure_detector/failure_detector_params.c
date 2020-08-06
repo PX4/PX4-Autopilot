@@ -123,7 +123,7 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_EN, 0);
  *
  * External ATS is required by ASTM F3322-18.
  *
- * @unit microseconds
+ * @unit us
  * @decimal 2
  *
  * @group Failure Detector
