@@ -86,7 +86,7 @@ PARAM_DEFINE_FLOAT(NAV_GPSF_P, 0.0f);
  *
  * Thrust value which is set during the open loop loiter
  *
- * @unit norm
+ * @unit %
  * @min 0.0
  * @max 1.0
  * @decimal 2

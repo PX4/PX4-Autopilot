@@ -134,7 +134,7 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
  * Engine failure triggers only above this throttle value
  *
  * @group Commander
- * @unit norm
+ * @unit %
  * @min 0.0
  * @max 1.0
  * @decimal 2

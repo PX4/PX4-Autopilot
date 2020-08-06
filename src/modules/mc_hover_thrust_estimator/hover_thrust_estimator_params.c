@@ -49,7 +49,7 @@
  * @decimal 4
  * @min 0.0001
  * @max 1.0
- * @unit normalized_thrust/s
+ * @unit %alized_thrust/s
  * @group Hover Thrust Estimator
  */
 PARAM_DEFINE_FLOAT(HTE_HT_NOISE, 0.0005);
@@ -77,7 +77,7 @@ PARAM_DEFINE_FLOAT(HTE_ACC_GATE, 3.0);
  * @decimal 3
  * @min 0.0
  * @max 1.0
- * @unit normalized_thrust
+ * @unit %alized_thrust
  * @group Hover Thrust Estimator
  */
 PARAM_DEFINE_FLOAT(HTE_HT_ERR_INIT, 0.1);

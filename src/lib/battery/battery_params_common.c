@@ -46,7 +46,7 @@
  * This has to be higher than the critical threshold.
  *
  * @group Battery Calibration
- * @unit norm
+ * @unit %
  * @min 0.12
  * @max 0.5
  * @decimal 2
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
  * will trigger RTL.
  *
  * @group Battery Calibration
- * @unit norm
+ * @unit %
  * @min 0.05
  * @max 0.25
  * @decimal 2
@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
  * will trigger landing.
  *
  * @group Battery Calibration
- * @unit norm
+ * @unit %
  * @min 0.03
  * @max 0.1
  * @decimal 2
