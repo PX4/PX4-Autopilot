@@ -1530,6 +1530,20 @@ void Ekf::loadMagCovData()
 	P.slice<2, 2>(16, 16) = _saved_mag_ef_covmat;
 }
 
+void Ekf::startGpsFusion()
+{
+	resetHorizontalPositionToGps();
+
+	// when using optical flow,
+	// velocity reset is not necessary
+	if (!_control_status.flags.opt_flow) {
+		resetVelocityToGps();
+	}
+
+	ECL_INFO_TIMESTAMPED("starting GPS fusion");
+	_control_status.flags.gps = true;
+}
+
 void Ekf::stopGpsFusion()
 {
 	stopGpsPosFusion();
