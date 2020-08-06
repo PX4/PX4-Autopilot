@@ -66,6 +66,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/omni_attitude_status.h>
 
 #include "PositionControl/PositionControl.hpp"
 #include "Takeoff/Takeoff.hpp"
@@ -113,6 +114,8 @@ private:
 	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
 	uORB::Publication<vehicle_local_position_setpoint_s>	_traj_sp_pub{ORB_ID(trajectory_setpoint)};			/**< trajectory setpoints publication */
+
+	uORB::Publication<omni_attitude_status_s>	_omni_attitude_status_pub{ORB_ID(omni_attitude_status)};
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
@@ -688,9 +691,19 @@ MulticopterPositionControl::Run()
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
+			omni_attitude_status_s omni_status{};
+			omni_status.timestamp = time_stamp_now;
 			_control.getAttitudeSetpoint(matrix::Quatf(att.q), _param_omni_att_mode.get(), _param_omni_dfc_max_thr.get(),
 						     _tilt_angle, _tilt_dir, _tilt_roll, _tilt_pitch, _param_omni_att_rate.get(), _param_omni_proj_axes.get(),
-						     attitude_setpoint);
+						     attitude_setpoint, omni_status);
+
+			omni_status.att_mode = _param_omni_att_mode.get();
+			omni_status.tilt_angle_est = _tilt_angle;
+			omni_status.tilt_direction_est = _tilt_dir;
+			omni_status.tilt_roll_est = _tilt_roll;
+			omni_status.tilt_pitch_est = _tilt_pitch;
+
+			_omni_attitude_status_pub.publish(omni_status);
 
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.

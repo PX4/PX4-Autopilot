@@ -42,6 +42,7 @@
 
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/omni_attitude_status.h>
 
 namespace ControlMath
 {
@@ -63,7 +64,7 @@ namespace ControlMath
 void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, const matrix::Quatf &att,
 		      const int omni_att_mode, const float omni_dfc_max_thrust, float &omni_att_tilt_angle, float &omni_att_tilt_dir,
 		      float &omni_att_roll, float &omni_att_pitch, const float omni_att_rate, const int omni_proj_axes,
-		      vehicle_attitude_setpoint_s &att_sp);
+		      vehicle_attitude_setpoint_s &att_sp, omni_attitude_status_s &omni_status);
 
 /**
  * Converts a body z vector and yaw set-point to a desired attitude.
