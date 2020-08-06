@@ -587,7 +587,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_GB, 0.0011f);
  * Maximum accelerometer inconsistency between IMU units that will allow arming
  *
  * @group Commander
- * @unit m/s/s
+ * @unit m/s^2
  * @min 0.1
  * @max 1.0
  * @decimal 2

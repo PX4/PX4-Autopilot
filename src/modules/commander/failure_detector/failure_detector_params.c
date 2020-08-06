@@ -55,7 +55,7 @@
  *
  * @min 60
  * @max 180
- * @unit degrees
+ * @unit deg
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_FAIL_R, 60);
@@ -73,7 +73,7 @@ PARAM_DEFINE_INT32(FD_FAIL_R, 60);
  *
  * @min 60
  * @max 180
- * @unit degrees
+ * @unit deg
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_FAIL_P, 60);

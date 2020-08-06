@@ -6,7 +6,7 @@
  *
  * @min 0
  * @max 1
- * @unit m/s/s
+ * @unit m/s^2
  * @group Airspeed Validator
  */
 PARAM_DEFINE_FLOAT(ASPD_W_P_NOISE, 0.1f);

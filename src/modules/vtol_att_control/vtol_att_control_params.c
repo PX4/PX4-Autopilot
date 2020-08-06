@@ -151,7 +151,7 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
  * Used to calculate back transition distance in mission mode. A lower value will make the VTOL transition further from the destination waypoint.
  * For standard vtol and tiltrotors a controller is used to track this value during the transition.
  *
- * @unit m/s/s
+ * @unit m/s^2
  * @min 0.5
  * @max 10
  * @increment 0.1
@@ -263,7 +263,7 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
  *
  * The duration of the front transition when there is no airspeed feedback available.
  *
- * @unit seconds
+ * @unit s
  * @min 1.0
  * @max 30.0
  * @group VTOL Attitude Control

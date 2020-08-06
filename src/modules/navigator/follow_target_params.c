@@ -48,7 +48,7 @@
  *
  * The minimum height in meters relative to home for following a target
  *
- * @unit meters
+ * @unit m
  * @min 8.0
  * @group Follow target
  */
@@ -59,7 +59,7 @@ PARAM_DEFINE_FLOAT(NAV_MIN_FT_HT, 8.0f);
  *
  * The distance in meters to follow the target at
  *
- * @unit meters
+ * @unit m
  * @min 1.0
  * @group Follow target
  */

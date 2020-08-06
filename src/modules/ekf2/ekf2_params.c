@@ -268,7 +268,7 @@ PARAM_DEFINE_FLOAT(EKF2_GYR_NOISE, 1.5e-2f);
  * @group EKF2
  * @min 0.01
  * @max 1.0
- * @unit m/s/s
+ * @unit m/s^2
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 3.5e-1f);
@@ -323,7 +323,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
  * @group EKF2
  * @min 0.0
  * @max 1.0
- * @unit m/s/s
+ * @unit m/s^2
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
@@ -1033,7 +1033,7 @@ PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
  * @group EKF2
  * @min 0.0
  * @max 0.5
- * @unit m/s/s
+ * @unit m/s^2
  * @reboot_required true
  * @decimal 2
  */
@@ -1331,7 +1331,7 @@ PARAM_DEFINE_FLOAT(EKF2_PCOEF_Z, 0.0f);
  * @group EKF2
  * @min 0.0
  * @max 0.8
- * @unit m/s/s
+ * @unit m/s^2
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ABL_LIM, 0.4f);
@@ -1344,7 +1344,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_LIM, 0.4f);
  * @group EKF2
  * @min 20.0
  * @max 200.0
- * @unit m/s/s
+ * @unit m/s^2
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_ABL_ACCLIM, 25.0f);
