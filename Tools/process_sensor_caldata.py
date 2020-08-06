@@ -31,8 +31,41 @@ Outputs summary plots in a pdf file named <inputfilename>.pdf
 
 """
 
+def resampleWithDeltaX(x,y):
+    xMin = np.amin(x)
+    xMax = np.amax(x)
+    nbInterval = 2000
+    interval = (xMax-xMin)/nbInterval
+
+    resampledY  = np.zeros(nbInterval)
+    resampledX  = np.zeros(nbInterval)
+    resampledCount = np.zeros(nbInterval)
+
+    for idx in range(0,len(x)):
+        if x[idx]<xMin:
+            binIdx = 0
+        elif x[idx]<xMax:
+            binIdx = int((x[idx]-xMin)/(interval))
+        else:
+            binIdx = nbInterval-1
+        resampledY[binIdx] += y[idx]
+        resampledX[binIdx] += x[idx]
+        resampledCount[binIdx] += 1
+
+    idxNotEmpty = np.where(resampledCount != 0)
+    resampledCount = resampledCount[idxNotEmpty]
+    resampledY = resampledY[idxNotEmpty]
+    resampledX = resampledX[idxNotEmpty]
+
+    resampledY /= resampledCount
+    resampledX /= resampledCount
+
+    return resampledX,resampledY
+
 parser = argparse.ArgumentParser(description='Reads in IMU data from a static thermal calibration test and performs a curve fit of gyro, accel and baro bias vs temperature')
 parser.add_argument('filename', metavar='file.ulg', help='ULog input file')
+parser.add_argument('--no_resample', dest='noResample', action='store_const',
+                   const=True, default=False, help='skip resampling and use raw data')
 
 def is_valid_directory(parser, arg):
     if os.path.isdir(arg):
@@ -43,6 +76,7 @@ def is_valid_directory(parser, arg):
 
 args = parser.parse_args()
 ulog_file_name = args.filename
+noResample = args.noResample
 
 ulog = ULog(ulog_file_name, None)
 data = ulog.data_list
@@ -138,7 +172,12 @@ if num_gyros >= 1:
     temp_resample = temp_rel_resample + gyro_0_params['TC_G0_TREF']
 
     # fit X axis
-    coef_gyro_0_x = np.polyfit(temp_rel,sensor_gyro_0['x'],3)
+    if noResample:
+        coef_gyro_0_x = np.polyfit(temp_rel,sensor_gyro_0['x'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_0['x'])
+        coef_gyro_0_x = np.polyfit(temp, sens ,3)
+
     gyro_0_params['TC_G0_X3_0'] = coef_gyro_0_x[0]
     gyro_0_params['TC_G0_X2_0'] = coef_gyro_0_x[1]
     gyro_0_params['TC_G0_X1_0'] = coef_gyro_0_x[2]
@@ -147,7 +186,12 @@ if num_gyros >= 1:
     gyro_0_x_resample = fit_coef_gyro_0_x(temp_rel_resample)
 
     # fit Y axis
-    coef_gyro_0_y = np.polyfit(temp_rel,sensor_gyro_0['y'],3)
+    if noResample:
+        coef_gyro_0_y = np.polyfit(temp_rel,sensor_gyro_0['y'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_0['y'])
+        coef_gyro_0_y = np.polyfit(temp, sens ,3)
+
     gyro_0_params['TC_G0_X3_1'] = coef_gyro_0_y[0]
     gyro_0_params['TC_G0_X2_1'] = coef_gyro_0_y[1]
     gyro_0_params['TC_G0_X1_1'] = coef_gyro_0_y[2]
@@ -156,7 +200,12 @@ if num_gyros >= 1:
     gyro_0_y_resample = fit_coef_gyro_0_y(temp_rel_resample)
 
     # fit Z axis
-    coef_gyro_0_z = np.polyfit(temp_rel,sensor_gyro_0['z'],3)
+    if noResample:
+        coef_gyro_0_z = np.polyfit(temp_rel,sensor_gyro_0['z'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_0['z'])
+        coef_gyro_0_z = np.polyfit(temp, sens ,3)
+
     gyro_0_params['TC_G0_X3_2'] = coef_gyro_0_z[0]
     gyro_0_params['TC_G0_X2_2'] = coef_gyro_0_z[1]
     gyro_0_params['TC_G0_X1_2'] = coef_gyro_0_z[2]
@@ -231,7 +280,12 @@ if num_gyros >= 2:
     temp_resample = temp_rel_resample + gyro_1_params['TC_G1_TREF']
 
     # fit X axis
-    coef_gyro_1_x = np.polyfit(temp_rel,sensor_gyro_1['x'],3)
+    if noResample:
+        coef_gyro_1_x = np.polyfit(temp_rel,sensor_gyro_1['x'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['x'])
+        coef_gyro_1_x = np.polyfit(temp, sens ,3)
+
     gyro_1_params['TC_G1_X3_0'] = coef_gyro_1_x[0]
     gyro_1_params['TC_G1_X2_0'] = coef_gyro_1_x[1]
     gyro_1_params['TC_G1_X1_0'] = coef_gyro_1_x[2]
@@ -240,7 +294,12 @@ if num_gyros >= 2:
     gyro_1_x_resample = fit_coef_gyro_1_x(temp_rel_resample)
 
     # fit Y axis
-    coef_gyro_1_y = np.polyfit(temp_rel,sensor_gyro_1['y'],3)
+    if noResample:
+        coef_gyro_1_y = np.polyfit(temp_rel,sensor_gyro_1['y'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['y'])
+        coef_gyro_1_y = np.polyfit(temp, sens ,3)
+
     gyro_1_params['TC_G1_X3_1'] = coef_gyro_1_y[0]
     gyro_1_params['TC_G1_X2_1'] = coef_gyro_1_y[1]
     gyro_1_params['TC_G1_X1_1'] = coef_gyro_1_y[2]
@@ -249,7 +308,12 @@ if num_gyros >= 2:
     gyro_1_y_resample = fit_coef_gyro_1_y(temp_rel_resample)
 
     # fit Z axis
-    coef_gyro_1_z = np.polyfit(temp_rel,sensor_gyro_1['z'],3)
+    if noResample:
+        coef_gyro_1_z = np.polyfit(temp_rel,sensor_gyro_1['z'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['z'])
+        coef_gyro_1_z = np.polyfit(temp, sens ,3)
+
     gyro_1_params['TC_G1_X3_2'] = coef_gyro_1_z[0]
     gyro_1_params['TC_G1_X2_2'] = coef_gyro_1_z[1]
     gyro_1_params['TC_G1_X1_2'] = coef_gyro_1_z[2]
@@ -324,7 +388,12 @@ if num_gyros >= 3:
     temp_resample = temp_rel_resample + gyro_2_params['TC_G2_TREF']
 
     # fit X axis
-    coef_gyro_2_x = np.polyfit(temp_rel,sensor_gyro_2['x'],3)
+    if noResample:
+        coef_gyro_2_x = np.polyfit(temp_rel,sensor_gyro_2['x'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_2['x'])
+        coef_gyro_2_x = np.polyfit(temp, sens ,3)
+
     gyro_2_params['TC_G2_X3_0'] = coef_gyro_2_x[0]
     gyro_2_params['TC_G2_X2_0'] = coef_gyro_2_x[1]
     gyro_2_params['TC_G2_X1_0'] = coef_gyro_2_x[2]
@@ -333,7 +402,12 @@ if num_gyros >= 3:
     gyro_2_x_resample = fit_coef_gyro_2_x(temp_rel_resample)
 
     # fit Y axis
-    coef_gyro_2_y = np.polyfit(temp_rel,sensor_gyro_2['y'],3)
+    if noResample:
+        coef_gyro_2_y = np.polyfit(temp_rel,sensor_gyro_2['y'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_2['y'])
+        coef_gyro_2_y = np.polyfit(temp, sens ,3)
+
     gyro_2_params['TC_G2_X3_1'] = coef_gyro_2_y[0]
     gyro_2_params['TC_G2_X2_1'] = coef_gyro_2_y[1]
     gyro_2_params['TC_G2_X1_1'] = coef_gyro_2_y[2]
@@ -342,7 +416,12 @@ if num_gyros >= 3:
     gyro_2_y_resample = fit_coef_gyro_2_y(temp_rel_resample)
 
     # fit Z axis
-    coef_gyro_2_z = np.polyfit(temp_rel,sensor_gyro_2['z'],3)
+    if noResample:
+        coef_gyro_2_z = np.polyfit(temp_rel,sensor_gyro_2['z'],3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_2['z'])
+        coef_gyro_2_z = np.polyfit(temp, sens ,3)
+
     gyro_2_params['TC_G2_X3_2'] = coef_gyro_2_z[0]
     gyro_2_params['TC_G2_X2_2'] = coef_gyro_2_z[1]
     gyro_2_params['TC_G2_X1_2'] = coef_gyro_2_z[2]
@@ -418,7 +497,12 @@ if num_accels >= 1:
 
     # fit X axis
     correction_x = sensor_accel_0['x'] - np.median(sensor_accel_0['x'])
-    coef_accel_0_x = np.polyfit(temp_rel,correction_x,3)
+    if noResample:
+        coef_accel_0_x = np.polyfit(temp_rel,correction_x,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_x)
+        coef_accel_0_x = np.polyfit(temp, sens ,3)
+
     accel_0_params['TC_A0_X3_0'] = coef_accel_0_x[0]
     accel_0_params['TC_A0_X2_0'] = coef_accel_0_x[1]
     accel_0_params['TC_A0_X1_0'] = coef_accel_0_x[2]
@@ -428,7 +512,12 @@ if num_accels >= 1:
 
     # fit Y axis
     correction_y = sensor_accel_0['y']-np.median(sensor_accel_0['y'])
-    coef_accel_0_y = np.polyfit(temp_rel,correction_y,3)
+    if noResample:
+        coef_accel_0_y = np.polyfit(temp_rel,correction_y,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_y)
+        coef_accel_0_y = np.polyfit(temp, sens ,3)
+
     accel_0_params['TC_A0_X3_1'] = coef_accel_0_y[0]
     accel_0_params['TC_A0_X2_1'] = coef_accel_0_y[1]
     accel_0_params['TC_A0_X1_1'] = coef_accel_0_y[2]
@@ -438,7 +527,12 @@ if num_accels >= 1:
 
     # fit Z axis
     correction_z = sensor_accel_0['z']-np.median(sensor_accel_0['z'])
-    coef_accel_0_z = np.polyfit(temp_rel,correction_z,3)
+    if noResample:
+        coef_accel_0_z = np.polyfit(temp_rel,correction_z,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_z)
+        coef_accel_0_z = np.polyfit(temp, sens ,3)
+
     accel_0_params['TC_A0_X3_2'] = coef_accel_0_z[0]
     accel_0_params['TC_A0_X2_2'] = coef_accel_0_z[1]
     accel_0_params['TC_A0_X1_2'] = coef_accel_0_z[2]
@@ -514,7 +608,12 @@ if num_accels >= 2:
 
     # fit X axis
     correction_x = sensor_accel_1['x']-np.median(sensor_accel_1['x'])
-    coef_accel_1_x = np.polyfit(temp_rel,correction_x,3)
+    if noResample:
+        coef_accel_1_x = np.polyfit(temp_rel,correction_x,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_x)
+        coef_accel_1_x = np.polyfit(temp, sens ,3)
+
     accel_1_params['TC_A1_X3_0'] = coef_accel_1_x[0]
     accel_1_params['TC_A1_X2_0'] = coef_accel_1_x[1]
     accel_1_params['TC_A1_X1_0'] = coef_accel_1_x[2]
@@ -524,7 +623,12 @@ if num_accels >= 2:
 
     # fit Y axis
     correction_y = sensor_accel_1['y']-np.median(sensor_accel_1['y'])
-    coef_accel_1_y = np.polyfit(temp_rel,correction_y,3)
+    if noResample:
+        coef_accel_1_y = np.polyfit(temp_rel,correction_y,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_y)
+        coef_accel_1_y = np.polyfit(temp, sens ,3)
+
     accel_1_params['TC_A1_X3_1'] = coef_accel_1_y[0]
     accel_1_params['TC_A1_X2_1'] = coef_accel_1_y[1]
     accel_1_params['TC_A1_X1_1'] = coef_accel_1_y[2]
@@ -534,7 +638,12 @@ if num_accels >= 2:
 
     # fit Z axis
     correction_z = (sensor_accel_1['z'])-np.median(sensor_accel_1['z'])
-    coef_accel_1_z = np.polyfit(temp_rel,correction_z,3)
+    if noResample:
+        coef_accel_1_z = np.polyfit(temp_rel,correction_z,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_z)
+        coef_accel_1_z = np.polyfit(temp, sens ,3)
+
     accel_1_params['TC_A1_X3_2'] = coef_accel_1_z[0]
     accel_1_params['TC_A1_X2_2'] = coef_accel_1_z[1]
     accel_1_params['TC_A1_X1_2'] = coef_accel_1_z[2]
@@ -571,6 +680,7 @@ if num_accels >= 2:
     plt.grid()
 
     pp.savefig()
+
 
 #################################################################################
 
@@ -610,7 +720,12 @@ if num_accels >= 3:
 
     # fit X axis
     correction_x = sensor_accel_2['x']-np.median(sensor_accel_2['x'])
-    coef_accel_2_x = np.polyfit(temp_rel,correction_x,3)
+    if noResample:
+        coef_accel_2_x = np.polyfit(temp_rel,correction_x,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_x)
+        coef_accel_2_x = np.polyfit(temp, sens ,3)
+
     accel_2_params['TC_A2_X3_0'] = coef_accel_2_x[0]
     accel_2_params['TC_A2_X2_0'] = coef_accel_2_x[1]
     accel_2_params['TC_A2_X1_0'] = coef_accel_2_x[2]
@@ -620,7 +735,12 @@ if num_accels >= 3:
 
     # fit Y axis
     correction_y = sensor_accel_2['y']-np.median(sensor_accel_2['y'])
-    coef_accel_2_y = np.polyfit(temp_rel,correction_y,3)
+    if noResample:
+        coef_accel_2_y = np.polyfit(temp_rel,correction_y,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_y)
+        coef_accel_2_y = np.polyfit(temp, sens ,3)
+
     accel_2_params['TC_A2_X3_1'] = coef_accel_2_y[0]
     accel_2_params['TC_A2_X2_1'] = coef_accel_2_y[1]
     accel_2_params['TC_A2_X1_1'] = coef_accel_2_y[2]
@@ -630,7 +750,12 @@ if num_accels >= 3:
 
     # fit Z axis
     correction_z = sensor_accel_2['z']-np.median(sensor_accel_2['z'])
-    coef_accel_2_z = np.polyfit(temp_rel,correction_z,3)
+    if noResample:
+        coef_accel_2_z = np.polyfit(temp_rel,correction_z,3)
+    else:
+        temp, sens = resampleWithDeltaX(temp_rel,correction_z)
+        coef_accel_2_z = np.polyfit(temp, sens ,3)
+
     accel_2_params['TC_A2_X3_2'] = coef_accel_2_z[0]
     accel_2_params['TC_A2_X2_2'] = coef_accel_2_z[1]
     accel_2_params['TC_A2_X1_2'] = coef_accel_2_z[2]
@@ -699,7 +824,12 @@ temp_resample = temp_rel_resample + baro_0_params['TC_B0_TREF']
 
 # fit data
 median_pressure = np.median(sensor_baro_0['pressure']);
-coef_baro_0_x = np.polyfit(temp_rel,100*(sensor_baro_0['pressure']-median_pressure),5) # convert from hPa to Pa
+if noResample:
+    coef_baro_0_x = np.polyfit(temp_rel,100*(sensor_baro_0['pressure']-median_pressure),5) # convert from hPa to Pa
+else:
+    temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_0['pressure']-median_pressure)) # convert from hPa to Pa
+    coef_baro_0_x = np.polyfit(temperature,baro,5)
+
 baro_0_params['TC_B0_X5'] = coef_baro_0_x[0]
 baro_0_params['TC_B0_X4'] = coef_baro_0_x[1]
 baro_0_params['TC_B0_X3'] = coef_baro_0_x[2]
@@ -751,7 +881,12 @@ if num_baros >= 2:
 
     # fit data
     median_pressure = np.median(sensor_baro_1['pressure']);
-    coef_baro_1_x = np.polyfit(temp_rel,100*(sensor_baro_1['pressure']-median_pressure),5) # convert from hPa to Pa
+    if noResample:
+        coef_baro_1_x = np.polyfit(temp_rel,100*(sensor_baro_1['pressure']-median_pressure),5) # convert from hPa to Pa
+    else:
+        temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_1['pressure']-median_pressure)) # convert from hPa to Pa
+        coef_baro_1_x = np.polyfit(temperature,baro,5)
+
     baro_1_params['TC_B1_X5'] = coef_baro_1_x[0]
     baro_1_params['TC_B1_X4'] = coef_baro_1_x[1]
     baro_1_params['TC_B1_X3'] = coef_baro_1_x[2]
@@ -804,7 +939,12 @@ if num_baros >= 3:
 
     # fit data
     median_pressure = np.median(sensor_baro_2['pressure']);
-    coef_baro_2_x = np.polyfit(temp_rel,100*(sensor_baro_2['pressure']-median_pressure),5) # convert from hPa to Pa
+    if noResample:
+        coef_baro_2_x = np.polyfit(temp_rel,100*(sensor_baro_2['pressure']-median_pressure),5) # convert from hPa to Pa
+    else:
+        temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_2['pressure']-median_pressure)) # convert from hPa to Pa
+        coef_baro_2_x = np.polyfit(temperature,baro,5)
+
     baro_2_params['TC_B2_X5'] = coef_baro_2_x[0]
     baro_2_params['TC_B2_X4'] = coef_baro_2_x[1]
     baro_2_params['TC_B2_X3'] = coef_baro_2_x[2]
