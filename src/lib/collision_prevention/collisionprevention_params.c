@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(CP_DELAY, 0.4f);
  *
  * @min 0
  * @max 90
- * @unit [deg]
+ * @unit deg
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(CP_GUIDE_ANG, 30.f);

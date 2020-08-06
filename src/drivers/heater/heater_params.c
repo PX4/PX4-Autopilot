@@ -53,7 +53,7 @@ PARAM_DEFINE_INT32(SENS_TEMP_ID, 0);
  *
  * @category system
  * @group Sensors
- * @unit C
+ * @unit celcius
  * @min 0
  * @max 85.0
  * @decimal 3

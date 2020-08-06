@@ -60,14 +60,14 @@
     <parameter default="50000" name="int_ext_status" type="INT32">
       <short_desc>Extended status interval (µs)</short_desc>
       <long_desc>Extended status interval (µs)</long_desc>
-      <unit>µs</unit>
+      <unit>us</unit>
       <min>0</min>
       <max>1000000</max>
     </parameter>
     <parameter default="50000" name="int_status" type="INT32">
       <short_desc>ESC status interval (µs)</short_desc>
       <long_desc>ESC status interval (µs)</long_desc>
-      <unit>µs</unit>
+      <unit>us</unit>
       <max>1000000</max>
     </parameter>
     <parameter default="12" name="mot_i_max" type="FLOAT">
@@ -192,7 +192,7 @@
         used in the GNSS solution is below this threshold. Zero
         disables the feature
       </long_desc>
-      <unit>microseconds</unit>
+      <unit>us</unit>
       <min>0</min>
       <max>1000000</max>
     </parameter>

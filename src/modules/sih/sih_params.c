@@ -240,7 +240,7 @@ PARAM_DEFINE_FLOAT(SIH_KDW, 0.025f);
  * LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
  * to represent a physical ground location on Earth.
  *
- * @unit 1e-7 deg
+ * @unit deg*1e7
  * @min -850000000
  * @max  850000000
  * @group Simulation In Hardware
@@ -256,7 +256,7 @@ PARAM_DEFINE_INT32(SIH_LOC_LAT0, 454671160);
  * LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
  * to represent a physical ground location on Earth.
  *
- * @unit 1e-7 deg
+ * @unit deg*1e7
  * @min -1800000000
  * @max  1800000000
  * @group Simulation In Hardware
