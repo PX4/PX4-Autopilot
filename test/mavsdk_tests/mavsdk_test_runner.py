@@ -369,7 +369,7 @@ class Tester:
                 print("  - {}".format(runner.get_log_filename()))
         return is_success
 
-    def clear_params(self):
+    def clear_params(self) -> None:
         param_files = glob.glob(
             "build/px4_sitl_default/tmp/rootfs/eeprom/parameters_*",
             recursive=False)
