@@ -212,7 +212,7 @@ void frsky_send_frame2(int uart)
 	int sec = 0;
 
 	if (gpos.timestamp != 0 && hrt_absolute_time() < gpos.timestamp + 20000) {
-		course = gpos.yaw / M_PI_F * 180.0f;
+		course = lpos.heading / M_PI_F * 180.0f;
 
 		if (course < 0.f) { // course is in range [0, 360], 0=north, CW
 			course += 360.f;

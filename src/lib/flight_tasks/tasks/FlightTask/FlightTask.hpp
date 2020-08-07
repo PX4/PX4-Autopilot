@@ -60,7 +60,7 @@ struct ekf_reset_counters_s {
 	uint8_t vxy;
 	uint8_t z;
 	uint8_t vz;
-	uint8_t quat;
+	uint8_t heading;
 };
 
 class FlightTask : public ModuleParams
@@ -189,7 +189,6 @@ public:
 
 protected:
 	uORB::SubscriptionData<vehicle_local_position_s> _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
-	uORB::SubscriptionData<vehicle_attitude_s> _sub_attitude{ORB_ID(vehicle_attitude)};
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 
 	/** Reset all setpoints to NAN */

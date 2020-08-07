@@ -262,7 +262,7 @@ Navigator::run()
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
 					// store current position as previous position and goal as next
-					rep->previous.yaw = get_global_position()->yaw;
+					rep->previous.yaw = get_local_position()->heading;
 					rep->previous.lat = get_global_position()->lat;
 					rep->previous.lon = get_global_position()->lon;
 					rep->previous.alt = get_global_position()->alt;
@@ -345,7 +345,7 @@ Navigator::run()
 				position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
 				// store current position as previous position and goal as next
-				rep->previous.yaw = get_local_position()->yaw;
+				rep->previous.yaw = get_local_position()->heading;
 				rep->previous.lat = get_global_position()->lat;
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;
@@ -361,7 +361,7 @@ Navigator::run()
 					rep->previous.timestamp = hrt_absolute_time();
 
 				} else {
-					rep->current.yaw = get_local_position()->yaw;
+					rep->current.yaw = get_local_position()->heading;
 					rep->previous.valid = false;
 				}
 
@@ -505,7 +505,7 @@ Navigator::run()
 					    && get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
 						position_setpoint_triplet_s *rep = get_reposition_triplet();
 
-						rep->current.yaw = get_global_position()->yaw;
+						rep->current.yaw = get_local_position()->heading;
 						rep->current.lat = get_global_position()->lat;
 						rep->current.lon = get_global_position()->lon;
 						rep->current.alt = get_global_position()->alt;

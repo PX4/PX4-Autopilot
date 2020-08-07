@@ -595,7 +595,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 			_pub_lpos.get().z = xLP(X_z);	// down
 		}
 
-		_pub_gpos.get().yaw = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
+		_pub_lpos.get().heading = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
 
 		_pub_lpos.get().vx = xLP(X_vx);		// north
 		_pub_lpos.get().vy = xLP(X_vy);		// east
@@ -793,7 +793,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;
 		_pub_gpos.get().alt = alt;
-		_pub_gpos.get().yaw = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);

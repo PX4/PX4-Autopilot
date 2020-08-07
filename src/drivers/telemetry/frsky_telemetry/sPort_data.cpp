@@ -265,7 +265,7 @@ void sPort_send_GPS_CRS(int uart)
 	/* send course */
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
-	int32_t iYaw = s_port_subscription_data->vehicle_local_position_sub.get().yaw * 18000.0f / M_PI_F;
+	int32_t iYaw = s_port_subscription_data->vehicle_local_position_sub.get().heading * 18000.0f / M_PI_F;
 
 	if (iYaw < 0) { iYaw += 36000; }
 

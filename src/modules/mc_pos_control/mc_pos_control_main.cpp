@@ -121,7 +121,6 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
-	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};				/**< vehicle attitude */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 
@@ -423,14 +422,6 @@ MulticopterPositionControl::poll_subscriptions()
 	_control_mode_sub.update(&_control_mode);
 	_home_pos_sub.update(&_home_pos);
 
-	if (_att_sub.updated()) {
-		vehicle_attitude_s att;
-
-		if (_att_sub.copy(&att) && PX4_ISFINITE(att.q[0])) {
-			_states.yaw = Eulerf(Quatf(att.q)).psi();
-		}
-	}
-
 	if (_param_mpc_use_hte.get()) {
 		hover_thrust_estimate_s hte;
 
@@ -513,6 +504,10 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 		_states.velocity(2) = _states.acceleration(2) = NAN;
 		// reset derivative to prevent acceleration spikes when regaining velocity
 		_vel_z_deriv.reset();
+	}
+
+	if (PX4_ISFINITE(_local_pos.heading)) {
+		_states.yaw = _local_pos.heading;
 	}
 }
 
