@@ -2053,7 +2053,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 		const bool same_system = (msg->sysid == mavlink_system.sysid);
 
-		if (same_system || (!same_system && (hb.type == MAV_TYPE_GCS))) {
+		if (same_system || hb.type == MAV_TYPE_GCS) {
 
 			telemetry_status_s &tstatus = _mavlink->get_telemetry_status();
 
