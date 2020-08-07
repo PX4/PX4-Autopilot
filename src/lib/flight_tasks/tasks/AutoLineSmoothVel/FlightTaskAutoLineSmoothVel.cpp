@@ -326,6 +326,11 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 		if (_type == WaypointType::takeoff &&  _dist_to_ground < _param_mpc_land_alt1.get()) {
 			z_vel_constraint = _param_mpc_tko_speed.get();
 			z_accel_constraint = math::min(z_accel_constraint, _param_mpc_tko_speed.get() / _param_mpc_tko_ramp_t.get());
+
+			// Keep the altitude setpoint at the current altitude
+			// to avoid having it going down into the ground during
+			// the initial ramp as the velocity does not start at 0
+			_trajectory[2].setCurrentPosition(_position(2));
 		}
 
 		_trajectory[2].setMaxVel(z_vel_constraint);
