@@ -19,57 +19,59 @@ template<int N> struct force_constexpr_eval {
 
 // Vector that only store nonzero elements,
 // which indices are specified as parameter pack
-template<typename Type, size_t M, int... Idxs>
+template<typename Type, size_t M, size_t... Idxs>
 class SparseVector {
 private:
     static constexpr size_t N = sizeof...(Idxs);
-    static constexpr int _indices[N] {Idxs...};
+    static constexpr size_t _indices[N] {Idxs...};
 
     static constexpr bool duplicateIndices() {
-        for (int i = 0; i < N; i++)
-            for (int j = 0; j < i; j++)
+        for (size_t i = 0; i < N; i++)
+            for (size_t j = 0; j < i; j++)
                 if (_indices[i] == _indices[j])
                     return true;
         return false;
     }
-    static constexpr int findMaxIndex() {
-        int maxIndex = -1;
-        for (int i = 0; i < N; i++) {
+    static constexpr size_t findMaxIndex() {
+        size_t maxIndex = 0;
+        for (size_t i = 0; i < N; i++) {
             if (maxIndex < _indices[i]) {
                 maxIndex = _indices[i];
             }
         }
         return maxIndex;
     }
+
     static_assert(duplicateIndices() == false, "Duplicate indices");
     static_assert(N < M, "More entries than elements, use a dense vector");
+    static_assert(N > 0, "A sparse vector needs at least one element");
     static_assert(findMaxIndex() < M, "Largest entry doesn't fit in sparse vector");
 
     Type _data[N] {};
 
-    static constexpr int findCompressedIndex(int index) {
+    static constexpr int findCompressedIndex(size_t index) {
         int compressedIndex = -1;
-        for (int i = 0; i < N; i++) {
+        for (size_t i = 0; i < N; i++) {
             if (index == _indices[i]) {
-                compressedIndex = i;
+                compressedIndex = static_cast<int>(i);
             }
         }
         return compressedIndex;
     }
 
 public:
-    static constexpr int non_zeros() {
+    static constexpr size_t non_zeros() {
         return N;
     }
 
-    constexpr int index(int i) const {
+    constexpr size_t index(size_t i) const {
         return SparseVector::_indices[i];
     }
 
     SparseVector() = default;
 
     SparseVector(const matrix::Vector<Type, M>& data) {
-        for (int i = 0; i < N; i++) {
+        for (size_t i = 0; i < N; i++) {
             _data[i] = data(_indices[i]);
         }
     }
@@ -78,14 +80,14 @@ public:
         memcpy(_data, data, sizeof(_data));
     }
 
-    template <int i>
+    template <size_t i>
     inline Type at() const {
         static constexpr int compressed_index = force_constexpr_eval<findCompressedIndex(i)>::value;
         static_assert(compressed_index >= 0, "cannot access unpopulated indices");
         return _data[compressed_index];
     }
 
-    template <int i>
+    template <size_t i>
     inline Type& at() {
         static constexpr int compressed_index = force_constexpr_eval<findCompressedIndex(i)>::value;
         static_assert(compressed_index >= 0, "cannot access unpopulated indices");
@@ -141,7 +143,7 @@ public:
     }
 };
 
-template<typename Type, size_t Q, size_t M, int ... Idxs>
+template<typename Type, size_t Q, size_t M, size_t ... Idxs>
 matrix::Vector<Type, Q> operator*(const matrix::Matrix<Type, Q, M>& mat, const matrix::SparseVector<Type, M, Idxs...>& vec) {
     matrix::Vector<Type, Q> res;
     for (size_t i = 0; i < Q; i++) {
@@ -151,10 +153,10 @@ matrix::Vector<Type, Q> operator*(const matrix::Matrix<Type, Q, M>& mat, const m
     return res;
 }
 
-template<typename Type,size_t M, int... Idxs>
-constexpr int SparseVector<Type, M, Idxs...>::_indices[SparseVector<Type, M, Idxs...>::N];
+template<typename Type,size_t M, size_t... Idxs>
+constexpr size_t SparseVector<Type, M, Idxs...>::_indices[SparseVector<Type, M, Idxs...>::N];
 
-template<size_t M, int ... Idxs>
+template<size_t M, size_t ... Idxs>
 using SparseVectorf = SparseVector<float, M, Idxs...>;
 
 }
