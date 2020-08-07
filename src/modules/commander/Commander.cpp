@@ -848,8 +848,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			} else {
 				/* If the mavlink command is used to enable or disable offboard control:
-				 * switch back to previous mode when disabling */
-				res = main_state_transition(_status, _main_state_pre_offboard, _status_flags, &_internal_state);
+				 * switch back to previous mode when disabling excepted if it was takeoff*/
+				if (_main_state_pre_offboard != commander_state_s::MAIN_STATE_AUTO_TAKEOFF) {
+					res = main_state_transition(_status, _main_state_pre_offboard, _status_flags, &_internal_state);
+
+				} else {
+					res = main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, &_internal_state);
+				}
+
 				_status_flags.offboard_control_set_by_command = false;
 			}
 
