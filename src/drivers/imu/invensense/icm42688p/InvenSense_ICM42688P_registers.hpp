@@ -42,6 +42,8 @@
 
 #include <cstdint>
 
+namespace InvenSense_ICM42688P
+{
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
 static constexpr uint8_t Bit1 = (1 << 1);
@@ -52,8 +54,6 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_ICM42688P
-{
 static constexpr uint32_t SPI_SPEED = 24 * 1000 * 1000; // 24 MHz SPI
 static constexpr uint8_t DIR_READ = 0x80;
 
@@ -81,6 +81,7 @@ enum class BANK_0 : uint8_t {
 	FIFO_DATA         = 0x30,
 
 	SIGNAL_PATH_RESET = 0x4B,
+	INTF_CONFIG0      = 0x4C,
 
 	PWR_MGMT0         = 0x4E,
 	GYRO_CONFIG0      = 0x4F,
@@ -134,6 +135,16 @@ enum SIGNAL_PATH_RESET_BIT : uint8_t {
 	FIFO_FLUSH      = Bit1,
 };
 
+// INTF_CONFIG0
+enum INTF_CONFIG0_BIT : uint8_t {
+
+	FIFO_COUNT_ENDIAN       = Bit5, // 1: FIFO count is reported in Big Endian format (default)
+	SENSOR_DATA_ENDIAN      = Bit4, // 1: Sensor data is reported in Big Endian format (default)
+
+	// 1:0 UI_SIFS_CFG
+	UI_SIFS_CFG_DISABLE_I2C = Bit1 | Bit0,
+};
+
 // PWR_MGMT0
 enum PWR_MGMT0_BIT : uint8_t {
 	GYRO_MODE_LOW_NOISE  = Bit3 | Bit2, // 11: Places gyroscope in Low Noise (LN) Mode
@@ -143,7 +154,7 @@ enum PWR_MGMT0_BIT : uint8_t {
 // GYRO_CONFIG0
 enum GYRO_CONFIG0_BIT : uint8_t {
 	// 7:5 GYRO_FS_SEL
-	GYRO_FS_SEL_2000_DPS = 0,            // 0b000 = ±2000 dps
+	GYRO_FS_SEL_2000_DPS = 0,            // 0b000 = ±2000dps (default)
 	GYRO_FS_SEL_1000_DPS = Bit5,         // 0b001 = ±1000 dps
 	GYRO_FS_SEL_500_DPS  = Bit6,         // 0b010 = ±500 dps
 	GYRO_FS_SEL_250_DPS  = Bit6 | Bit5,  // 0b011 = ±250 dps
@@ -207,6 +218,14 @@ enum INT_SOURCE0_BIT : uint8_t {
 	UI_AGC_RDY_INT1_EN = Bit0,
 };
 
+// REG_BANK_SEL
+enum REG_BANK_SEL_BIT : uint8_t {
+	USER_BANK_0 = 0,           // 0: Select USER BANK 0.
+	USER_BANK_1 = Bit4,        // 1: Select USER BANK 1.
+	USER_BANK_2 = Bit5,        // 2: Select USER BANK 2.
+	USER_BANK_3 = Bit5 | Bit4, // 3: Select USER BANK 3.
+};
+
 namespace FIFO
 {
 static constexpr size_t SIZE = 2048;
@@ -216,22 +235,22 @@ static constexpr size_t SIZE = 2048;
 // Packet 3
 struct DATA {
 	uint8_t FIFO_Header;
-	uint8_t ACCEL_DATA_X1;
-	uint8_t ACCEL_DATA_X0;
-	uint8_t ACCEL_DATA_Y1;
-	uint8_t ACCEL_DATA_Y0;
-	uint8_t ACCEL_DATA_Z1;
-	uint8_t ACCEL_DATA_Z0;
-	uint8_t GYRO_DATA_X1;
-	uint8_t GYRO_DATA_X0;
-	uint8_t GYRO_DATA_Y1;
-	uint8_t GYRO_DATA_Y0;
-	uint8_t GYRO_DATA_Z1;
-	uint8_t GYRO_DATA_Z0;
+
+	int16_t ACCEL_DATA_X;
+	int16_t ACCEL_DATA_Y;
+	int16_t ACCEL_DATA_Z;
+
+	int16_t GYRO_DATA_X;
+	int16_t GYRO_DATA_Y;
+	int16_t GYRO_DATA_Z;
+
 	uint8_t temperature;  // Temperature[7:0]
+
 	uint8_t timestamp_l;
 	uint8_t timestamp_h;
-};
+
+} __attribute__((packed));
+static_assert(sizeof(DATA) == 16);
 
 // With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
 enum FIFO_HEADER_BIT : uint8_t {
