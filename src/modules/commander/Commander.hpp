@@ -155,6 +155,8 @@ private:
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
+	void updateHomePositionYaw(float yaw);
+	void checkEkfResetCounters();
 
 	void update_control_mode();
 
@@ -360,6 +362,7 @@ private:
 	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
 
 	uint32_t	_counter{0};
+	uint8_t		_quat_reset_counter{0};
 
 	bool		_status_changed{true};
 	bool		_arm_tune_played{false};
@@ -420,6 +423,7 @@ private:
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<vehicle_attitude_s>		_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};
