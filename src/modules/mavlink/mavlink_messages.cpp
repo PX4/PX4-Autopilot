@@ -1534,7 +1534,7 @@ protected:
 			mavlink_vfr_hud_t msg{};
 			msg.airspeed = airspeed_validated.equivalent_airspeed_m_s;
 			msg.groundspeed = sqrtf(lpos.vx * lpos.vx + lpos.vy * lpos.vy);
-			msg.heading = math::degrees(wrap_2pi(lpos.yaw));
+			msg.heading = math::degrees(wrap_2pi(lpos.heading));
 
 			if (armed.armed) {
 				actuator_controls_s act0{};
@@ -2469,7 +2469,7 @@ protected:
 			msg.vy = lpos.vy * 100.0f;
 			msg.vz = lpos.vz * 100.0f;
 
-			msg.hdg = math::degrees(wrap_2pi(lpos.yaw)) * 100.0f;
+			msg.hdg = math::degrees(wrap_2pi(lpos.heading)) * 100.0f;
 
 			mavlink_msg_global_position_int_send_struct(_mavlink->get_channel(), &msg);
 
@@ -4870,7 +4870,7 @@ protected:
 
 			vehicle_local_position_s lpos{};
 			_lpos_sub.copy(&lpos);
-			msg.yaw_absolute = math::degrees(matrix::wrap_2pi(lpos.yaw + mount_orientation.attitude_euler_angle[2]));
+			msg.yaw_absolute = math::degrees(matrix::wrap_2pi(lpos.heading + mount_orientation.attitude_euler_angle[2]));
 
 			mavlink_msg_mount_orientation_send_struct(_mavlink->get_channel(), &msg);
 

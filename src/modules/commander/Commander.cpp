@@ -1199,7 +1199,8 @@ Commander::set_home_position()
 			home.y = lpos.y;
 			home.z = lpos.z;
 
-			home.yaw = lpos.yaw;
+			home.yaw = lpos.heading;
+			_heading_reset_counter = lpos.heading_reset_counter;
 
 			home.manual_home = false;
 
@@ -1246,20 +1247,6 @@ Commander::updateHomePositionYaw(float yaw)
 	home.timestamp = hrt_absolute_time();
 
 	_home_pub.update(home);
-}
-
-void
-Commander::checkEkfResetCounters()
-{
-	if (_attitude_sub.get().quat_reset_counter != _quat_reset_counter) {
-		const float delta_psi = matrix::Eulerf(matrix::Quatf(_attitude_sub.get().delta_q_reset)).psi();
-
-		if (!_home_pub.get().manual_home) {
-			updateHomePositionYaw(matrix::wrap_pi(_home_pub.get().yaw + delta_psi));
-		}
-
-		_quat_reset_counter = _attitude_sub.get().quat_reset_counter;
-	}
 }
 
 void
@@ -1629,7 +1616,7 @@ Commander::run()
 			}
 		}
 
-		estimator_check();
+		estimator_check(status_flags);
 
 		/* Update land detector */
 		if (_land_detector_sub.updated()) {
@@ -2278,8 +2265,6 @@ Commander::run()
 
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
-
-		checkEkfResetCounters();
 
 		// automatically set or update home position
 		if (!_home_pub.get().manual_home) {
@@ -4048,17 +4033,24 @@ void Commander::battery_status_check()
 	}
 }
 
-void Commander::estimator_check()
+void Commander::estimator_check(const vehicle_status_flags_s &vstatus_flags)
 {
 	// Check if quality checking of position accuracy and consistency is to be performed
 	const bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
 
 	_local_position_sub.update();
 	_global_position_sub.update();
-	_attitude_sub.update();
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
 	const vehicle_global_position_s &gpos = _global_position_sub.get();
+
+	if (lpos.heading_reset_counter != _heading_reset_counter) {
+		if (vstatus_flags.condition_home_position_valid) {
+			updateHomePositionYaw(_home_pub.get().yaw + lpos.delta_heading);
+		}
+
+		_heading_reset_counter = lpos.heading_reset_counter;
+	}
 
 	const bool mag_fault_prev = (_estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT));
 

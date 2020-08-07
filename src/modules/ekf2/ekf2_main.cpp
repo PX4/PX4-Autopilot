@@ -1305,7 +1305,11 @@ void Ekf2::Run()
 				// The rotation of the tangent plane vs. geographical north
 				const matrix::Quatf q = _ekf.getQuaternion();
 
-				lpos.yaw = matrix::Eulerf(q).psi();
+				matrix::Quatf delta_q_reset;
+				_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
+
+				lpos.heading = matrix::Eulerf(q).psi();
+				lpos.delta_heading = matrix::Eulerf(delta_q_reset).psi();
 
 				// Vehicle odometry quaternion
 				q.copyTo(odom.q);
@@ -1478,8 +1482,6 @@ void Ekf2::Run()
 
 					// global altitude has opposite sign of local down position
 					global_pos.delta_alt = -lpos.delta_z;
-
-					global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
 
 					_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
