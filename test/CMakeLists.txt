@@ -1,3 +1,5 @@
+include(gtest.cmake)
+
 set(tests
     setIdentity
     inverse
@@ -13,6 +15,7 @@ set(tests
     attitude
     filter
     integration
+    sparseVector
     squareMatrix
     helper
     hatvee
@@ -30,6 +33,7 @@ foreach(test_name ${tests})
     add_test(test_${test_name} ${test_name})
     add_dependencies(test_build ${test_name})
 endforeach()
+target_link_libraries(sparseVector gtest_main)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
 

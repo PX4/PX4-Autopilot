@@ -20,3 +20,4 @@
 #include "LeastSquaresSolver.hpp"
 #include "Dual.hpp"
 #include "PseudoInverse.hpp"
+#include "SparseVector.hpp"

@@ -240,9 +240,9 @@ public:
         return res;
     }
 
-    Type norm_squared()
+    Type norm_squared() const
     {
-        Slice<Type, P, Q, M, N>& self = *this;
+        const Slice<Type, P, Q, M, N>& self = *this;
         Type accum(0);
         for (size_t i = 0; i < P; i++) {
             for (size_t j = 0; j < Q; j++) {
@@ -252,12 +252,12 @@ public:
         return accum;
     }
 
-    Type norm()
+    Type norm() const
     {
         return matrix::sqrt(norm_squared());
     }
 
-    bool longerThan(Type testVal)
+    bool longerThan(Type testVal) const
     {
         return norm_squared() > testVal*testVal;
     }
