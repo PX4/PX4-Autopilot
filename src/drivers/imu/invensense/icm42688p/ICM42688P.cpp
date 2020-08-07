@@ -494,22 +494,16 @@ void ICM42688P::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbit
 uint16_t ICM42688P::FIFOReadCount()
 {
 	// read FIFO count
-	struct FIFOCountBuffer {
-		uint8_t cmd{static_cast<uint8_t>(Register::BANK_0::FIFO_COUNTH) | DIR_READ};
-		uint16_t FIFO_COUNT{0};
-	} __attribute__((packed));
-
-	FIFOCountBuffer fifo_count_buf{};
-	static_assert(sizeof(fifo_count_buf) == 3);
-
+	uint8_t fifo_count_buf[3] {};
+	fifo_count_buf[0] = static_cast<uint8_t>(Register::BANK_0::FIFO_COUNTH) | DIR_READ;
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
-	if (transfer((uint8_t *)&fifo_count_buf, (uint8_t *)&fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
+	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
 		return 0;
 	}
 
-	return fifo_count_buf.FIFO_COUNT;
+	return combine(fifo_count_buf[1], fifo_count_buf[2]);
 }
 
 bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
@@ -529,13 +523,15 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		return false;
 	}
 
-	if (buffer.FIFO_COUNT >= FIFO::SIZE) {
+	const uint16_t fifo_count_bytes = combine(buffer.FIFO_COUNTH, buffer.FIFO_COUNTL);
+
+	if (fifo_count_bytes >= FIFO::SIZE) {
 		perf_count(_fifo_overflow_perf);
 		FIFOReset();
 		return false;
 	}
 
-	const uint8_t fifo_count_samples = buffer.FIFO_COUNT / sizeof(FIFO::DATA);
+	const uint8_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
 
 	if (fifo_count_samples == 0) {
 		perf_count(_fifo_empty_perf);
@@ -601,9 +597,9 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	accel.dt = FIFO_SAMPLE_DT;
 
 	for (int i = 0; i < samples; i++) {
-		int16_t accel_x = fifo[i].ACCEL_DATA_X;
-		int16_t accel_y = fifo[i].ACCEL_DATA_Y;
-		int16_t accel_z = fifo[i].ACCEL_DATA_Z;
+		int16_t accel_x = combine(fifo[i].ACCEL_DATA_X1, fifo[i].ACCEL_DATA_X0);
+		int16_t accel_y = combine(fifo[i].ACCEL_DATA_Y1, fifo[i].ACCEL_DATA_Y0);
+		int16_t accel_z = combine(fifo[i].ACCEL_DATA_Z1, fifo[i].ACCEL_DATA_Z0);
 
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
@@ -629,9 +625,9 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	gyro.dt = FIFO_SAMPLE_DT;
 
 	for (int i = 0; i < samples; i++) {
-		const int16_t gyro_x = fifo[i].GYRO_DATA_X;
-		const int16_t gyro_y = fifo[i].GYRO_DATA_Y;
-		const int16_t gyro_z = fifo[i].GYRO_DATA_Z;
+		const int16_t gyro_x = combine(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0);
+		const int16_t gyro_y = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
+		const int16_t gyro_z = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
 
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)

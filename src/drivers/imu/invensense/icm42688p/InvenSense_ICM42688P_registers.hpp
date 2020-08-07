@@ -81,7 +81,6 @@ enum class BANK_0 : uint8_t {
 	FIFO_DATA         = 0x30,
 
 	SIGNAL_PATH_RESET = 0x4B,
-	INTF_CONFIG0      = 0x4C,
 
 	PWR_MGMT0         = 0x4E,
 	GYRO_CONFIG0      = 0x4F,
@@ -133,16 +132,6 @@ enum INT_STATUS_BIT : uint8_t {
 enum SIGNAL_PATH_RESET_BIT : uint8_t {
 	ABORT_AND_RESET = Bit3,
 	FIFO_FLUSH      = Bit1,
-};
-
-// INTF_CONFIG0
-enum INTF_CONFIG0_BIT : uint8_t {
-
-	FIFO_COUNT_ENDIAN       = Bit5, // 1: FIFO count is reported in Big Endian format (default)
-	SENSOR_DATA_ENDIAN      = Bit4, // 1: Sensor data is reported in Big Endian format (default)
-
-	// 1:0 UI_SIFS_CFG
-	UI_SIFS_CFG_DISABLE_I2C = Bit1 | Bit0,
 };
 
 // PWR_MGMT0
@@ -235,22 +224,22 @@ static constexpr size_t SIZE = 2048;
 // Packet 3
 struct DATA {
 	uint8_t FIFO_Header;
-
-	int16_t ACCEL_DATA_X;
-	int16_t ACCEL_DATA_Y;
-	int16_t ACCEL_DATA_Z;
-
-	int16_t GYRO_DATA_X;
-	int16_t GYRO_DATA_Y;
-	int16_t GYRO_DATA_Z;
-
+	uint8_t ACCEL_DATA_X1;
+	uint8_t ACCEL_DATA_X0;
+	uint8_t ACCEL_DATA_Y1;
+	uint8_t ACCEL_DATA_Y0;
+	uint8_t ACCEL_DATA_Z1;
+	uint8_t ACCEL_DATA_Z0;
+	uint8_t GYRO_DATA_X1;
+	uint8_t GYRO_DATA_X0;
+	uint8_t GYRO_DATA_Y1;
+	uint8_t GYRO_DATA_Y0;
+	uint8_t GYRO_DATA_Z1;
+	uint8_t GYRO_DATA_Z0;
 	uint8_t temperature;  // Temperature[7:0]
-
 	uint8_t timestamp_l;
 	uint8_t timestamp_h;
-
-} __attribute__((packed));
-static_assert(sizeof(DATA) == 16);
+};
 
 // With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
 enum FIFO_HEADER_BIT : uint8_t {
