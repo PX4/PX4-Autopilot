@@ -1238,6 +1238,31 @@ Commander::set_home_position_alt_only()
 }
 
 void
+Commander::updateHomePositionYaw(float yaw)
+{
+	home_position_s home = _home_pub.get();
+
+	home.yaw = yaw;
+	home.timestamp = hrt_absolute_time();
+
+	_home_pub.update(home);
+}
+
+void
+Commander::checkEkfResetCounters()
+{
+	if (_attitude_sub.get().quat_reset_counter != _quat_reset_counter) {
+		const float delta_psi = matrix::Eulerf(matrix::Quatf(_attitude_sub.get().delta_q_reset)).psi();
+
+		if (!_home_pub.get().manual_home) {
+			updateHomePositionYaw(matrix::wrap_pi(_home_pub.get().yaw + delta_psi));
+		}
+
+		_quat_reset_counter = _attitude_sub.get().quat_reset_counter;
+	}
+}
+
+void
 Commander::run()
 {
 	bool sensor_fail_tune_played = false;
@@ -2253,6 +2278,8 @@ Commander::run()
 
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
+
+		checkEkfResetCounters();
 
 		// automatically set or update home position
 		if (!_home_pub.get().manual_home) {
@@ -4028,6 +4055,7 @@ void Commander::estimator_check()
 
 	_local_position_sub.update();
 	_global_position_sub.update();
+	_attitude_sub.update();
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
 	const vehicle_global_position_s &gpos = _global_position_sub.get();
