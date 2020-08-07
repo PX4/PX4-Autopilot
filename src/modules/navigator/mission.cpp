@@ -711,7 +711,7 @@ Mission::set_mission_items()
 					_mission_item.lat = _navigator->get_global_position()->lat;
 					_mission_item.lon = _navigator->get_global_position()->lon;
 					/* hold heading for takeoff items */
-					_mission_item.yaw = _navigator->get_global_position()->yaw;
+					_mission_item.yaw = _navigator->get_local_position()->heading;
 					_mission_item.altitude = takeoff_alt;
 					_mission_item.altitude_is_relative = false;
 					_mission_item.autocontinue = true;
@@ -808,7 +808,7 @@ Mission::set_mission_items()
 						mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->current);
 
 					} else {
-						_mission_item.yaw = _navigator->get_global_position()->yaw;
+						_mission_item.yaw = _navigator->get_local_position()->heading;
 
 						/* set position setpoint to target during the transition */
 						generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
@@ -1343,7 +1343,7 @@ Mission::heading_sp_update()
 
 		} else {
 			if (!pos_sp_triplet->current.yaw_valid) {
-				_mission_item.yaw = _navigator->get_local_position()->yaw;
+				_mission_item.yaw = _navigator->get_local_position()->heading;
 				pos_sp_triplet->current.yaw = _mission_item.yaw;
 				pos_sp_triplet->current.yaw_valid = true;
 			}
