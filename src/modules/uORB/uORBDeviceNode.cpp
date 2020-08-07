@@ -127,16 +127,15 @@ uORB::DeviceNode::close(cdev::file_t *filp)
 }
 
 bool
-uORB::DeviceNode::copy_locked(void *dst, unsigned &generation)
+uORB::DeviceNode::copy_locked(void *dst, unsigned &generation) const
 {
 	bool updated = false;
 
 	if ((dst != nullptr) && (_data != nullptr)) {
-		unsigned current_generation = _generation.load();
+		const unsigned current_generation = _generation.load();
 
 		if (current_generation > generation + _queue_size) {
 			// Reader is too far behind: some messages are lost
-			_lost_messages += current_generation - (generation + _queue_size);
 			generation = current_generation - _queue_size;
 		}
 
@@ -489,23 +488,24 @@ uORB::DeviceNode::appears_updated(cdev::file_t *filp)
 }
 
 bool
-uORB::DeviceNode::print_statistics(bool reset)
+uORB::DeviceNode::print_statistics(int max_topic_length)
 {
-	if (!_lost_messages) {
+	if (!_advertised) {
 		return false;
 	}
 
 	lock();
-	//This can be wrong: if a reader never reads, _lost_messages will not be increased either
-	uint32_t lost_messages = _lost_messages;
 
-	if (reset) {
-		_lost_messages = 0;
-	}
+	const uint8_t instance = get_instance();
+	const uint8_t priority = get_priority();
+	const int8_t sub_count = subscriber_count();
+	const uint8_t queue_size = get_queue_size();
 
 	unlock();
 
-	PX4_INFO("%s: %i", _meta->o_name, lost_messages);
+	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %4i %s\n", max_topic_length, get_meta()->o_name, (int)instance, (int)sub_count,
+		     queue_size, get_meta()->o_size, priority, get_devname());
+
 	return true;
 }
 

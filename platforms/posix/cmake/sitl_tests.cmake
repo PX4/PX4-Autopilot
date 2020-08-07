@@ -17,6 +17,7 @@ set(tests
 	hrt
 	int
 	IntrusiveQueue
+	IntrusiveSortedList
 	List
 	mathlib
 	matrix

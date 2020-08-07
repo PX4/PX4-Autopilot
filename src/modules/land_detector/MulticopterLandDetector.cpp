@@ -106,7 +106,11 @@ void MulticopterLandDetector::_update_topics()
 		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
-			_params.hoverThrottle = hte.hover_thrust;
+			if (hte.valid) {
+				_params.hoverThrottle = hte.hover_thrust;
+			}
+
+			_hover_thrust_estimate_valid = hte.valid;
 		}
 	}
 }
@@ -182,9 +186,9 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	}
 
 
-	// low thrust: 30% of throttle range between min and hover
-	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.3f;
-
+	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
+	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
+	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
 	bool ground_contact = (_actuator_controls_throttle <= sys_low_throttle);
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,

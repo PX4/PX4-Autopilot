@@ -22,8 +22,8 @@ class JsonOutput():
         #xml_version.text = "15"
 
         schema_map = {
-                        "short_desc": "shortDescription",
-			"long_desc": "longDescription",
+                        "short_desc": "shortDesc",
+			"long_desc": "longDesc",
 			"unit": "units",
 			"decimal": "decimalPlaces",
 			"min": "min",
@@ -42,7 +42,7 @@ class JsonOutput():
                 if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
                     curr_param=dict()
                     curr_param['name'] = param.GetName()
-                    curr_param['defaultValue'] = param.GetDefault()
+                    curr_param['default'] = param.GetDefault()
                     curr_param['type'] = param.GetType().capitalize()
                     if not curr_param['type'] in allowed_types:
                         print("Error: %s type not supported: curr_param['type']" % (curr_param['name'],curr_param['type']) )
