@@ -43,7 +43,6 @@
 namespace land_detector
 {
 
-
 bool AirshipLandDetector::_get_ground_contact_state()
 {
 	return false;
@@ -52,13 +51,11 @@ bool AirshipLandDetector::_get_ground_contact_state()
 bool AirshipLandDetector::_get_landed_state()
 {
 
-	_vehicle_status_sub.update(&_vehicle_status);
-
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
 		return true; // If Landing has been requested then say we have landed.
 
 	} else {
-		return !_actuator_armed.armed;  // If we are armed we are not landed.
+		return !_armed;  // If we are armed we are not landed.
 	}
 }
 
