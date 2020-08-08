@@ -52,12 +52,11 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
-matrix::Vector3f AttitudeControl::update(matrix::Quatf q) const
+matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 {
 	Quatf qd = _attitude_setpoint_q;
 
 	// ensure input quaternions are exactly normalized because acosf(1.00001) == NaN
-	q.normalize();
 	qd.normalize();
 
 	// calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch
