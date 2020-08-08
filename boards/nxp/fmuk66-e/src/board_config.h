@@ -275,11 +275,6 @@ __END_DECLS
 #define GPIO_ULTRASOUND_TRIGGER  /* PTD0 */  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN0)
 #define GPIO_ULTRASOUND_ECHO     /* PTA10 */ (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTA | PIN10)
 
-/* Power supply control and monitoring GPIOs */
-// None
-
-#define GPIO_PERIPH_3V3_EN  0
-
 
 /* Tone alarm output PTA11 - TMP 2_CH1 is On +P12-4, -P12-5
  * It is driving a NPN
@@ -318,17 +313,7 @@ __END_DECLS
 #define SPEKTRUM_POWER(on_true) VDD_3V3_SPEKTRUM_POWER_EN((on_true))
 
 
-/*
- * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
-
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_USB_VBUS_VALID))
-#define BOARD_ADC_BRICK_VALID   (1)
-#define BOARD_ADC_SERVO_VALID   (1)
-#define BOARD_ADC_PERIPH_5V_OC  (0)
-#define BOARD_ADC_HIPOWER_5V_OC (0)
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 

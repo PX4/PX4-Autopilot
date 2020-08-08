@@ -49,11 +49,6 @@
 
 #include <stm32_gpio.h>
 
-/* Configuration ************************************************************************************/
-
-#define BOARD_HAS_NBAT_V              1 // Only one Vbat to ADC
-#define BOARD_HAS_NBAT_I              0 // No Ibat ADC
-
 /*
  * ADC channels
  *
@@ -88,18 +83,14 @@
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL))
 
-/* Define Battery 1 Voltage Divider and A per V
- */
-
+/* Define Battery 1 Voltage Divider and A per V */
 #define BOARD_BATTERY1_V_DIV         (10.133333333f)
 #define BOARD_BATTERY1_A_PER_V       (36.367515152f)
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
-
 #define BOARD_ADC_OPEN_CIRCUIT_V               (5.6f)
 
-/* PWM
- */
+/* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  9
 #define DIRECT_INPUT_TIMER_CHANNELS  9
 
@@ -110,7 +101,6 @@
 #define HRT_TIMER_CHANNEL    1  /* use capture/compare channel 3 */
 
 /* RC Serial port */
-
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 
 /* Power switch controls ******************************************************/
@@ -118,26 +108,8 @@
 #define SDIO_SLOTNO                    0  /* Only one slot */
 #define SDIO_MINOR                     0
 
-/* SD card bringup does not work if performed on the IDLE thread because it
- * will cause waiting.  Use either:
- *
- *  CONFIG_LIB_BOARDCTL=y, OR
- *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
- */
-
-#if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_LIB_BOARDCTL) && !defined(CONFIG_BOARD_INITTHREAD)
-#  warning SDIO initialization cannot be perfomed on the IDLE thread
-#endif
-
-/* AV-X_V1 never powers off the Servo rail */
-
-#define BOARD_ADC_SERVO_VALID     (1)
-
 #define ADC_BATTERY_VOLTAGE_CHANNEL  0
 #define ADC_BATTERY_CURRENT_CHANNEL  1 // TODO: review
-
-#define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
-#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 

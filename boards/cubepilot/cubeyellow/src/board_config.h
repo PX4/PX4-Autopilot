@@ -97,7 +97,6 @@
 #define GPIO_PWM_VOLT_SEL    /* PB4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN4)
 
 /* Power supply control and monitoring GPIOs */
-#define BOARD_NUMBER_BRICKS             2
 #define GPIO_nVDD_BRICK1_VALID          /* PB5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5) // VDD_BRICK_VALID
 #define GPIO_nVDD_BRICK2_VALID          /* PB7  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN7) // VDD_BACKUP_VALID
 #define GPIO_nVDD_USB_VALID             /* PC0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0) // VBUS_VALID
@@ -124,10 +123,7 @@
 #define HRT_TIMER               8  /* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
+
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 #define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))

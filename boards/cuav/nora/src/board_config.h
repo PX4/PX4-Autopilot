@@ -110,8 +110,6 @@
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
 
 /* Power supply control and monitoring GPIOs */
-#define BOARD_NUMBER_BRICKS             2
-
 #define GPIO_nPOWER_IN_ADC              /* PG1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN1)
 #define GPIO_nPOWER_IN_CAN              /* PG2  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN2)
 #define GPIO_nPOWER_IN_C                /* PG0  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN0)

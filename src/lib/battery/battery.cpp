@@ -51,6 +51,8 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) 
 	ModuleParams(parent),
 	_index(index < 1 || index > 9 ? 1 : index)
 {
+	_battery_status_pub.advertised();
+
 	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
 	_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
 	_current_filter_a.setParameters(expected_filter_dt, .5f);
@@ -164,14 +166,9 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 	}
 
 	if (source == _params.source) {
-		publish();
+		_battery_status.timestamp = hrt_absolute_time();
+		_battery_status_pub.publish(_battery_status);
 	}
-}
-
-void Battery::publish()
-{
-	_battery_status.timestamp = hrt_absolute_time();
-	_battery_status_pub.publish(_battery_status);
 }
 
 void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)

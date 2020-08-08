@@ -58,7 +58,7 @@ int test_jig_voltages(int argc, char *argv[])
 
 		unsigned channels = 0;
 
-		for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+		for (int i = 0; i < adc_report_s::MAX_ADC_CHANNELS; ++i) {
 			PX4_INFO_RAW("%d: %d  ", adc.channel_id[i], adc.raw_data[i]);
 
 			if (adc.channel_id[i] != -1) {

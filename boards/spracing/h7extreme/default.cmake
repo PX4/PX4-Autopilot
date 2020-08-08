@@ -49,6 +49,7 @@ px4_add_board(
 		#roboclaw
 		#tap_esc
 		rc_input
+		system_power
 		telemetry # all available telemetry drivers
 		#test_ppm
 		tone_alarm

@@ -47,12 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/****************************************************************************************************
- * Definitions
- ****************************************************************************************************/
-/* Configuration ************************************************************************************/
-
-/* omnibusf4sd GPIOs ***********************************************************************************/
 /* LEDs */
 // power - green
 // LED1 - PB5 - blue
@@ -63,9 +57,8 @@
 
 #define  FLASH_BASED_PARAMS
 
-/*
- * ADC channels
- *
+/**
+ * ADC channels:
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
  */
 #define ADC_CHANNELS (1 << 0) | (1 << 11) | (1 << 12)
@@ -74,8 +67,7 @@
 #define ADC_BATTERY_CURRENT_CHANNEL  11
 #define ADC_RC_RSSI_CHANNEL          0
 
-/* Define Battery 1 Voltage Divider and A per V
- */
+/* Define Battery 1 Voltage Divider and A per V */
 #define BOARD_BATTERY1_V_DIV         (11.12f)
 #define BOARD_BATTERY1_A_PER_V       (31.f)
 
@@ -108,16 +100,10 @@
 //#define GPIO_GPIO4_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM5_CH2OUT)
 //#define GPIO_GPIO5_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM1_CH1OUT)
 
-/* USB OTG FS
- *
- * PA9  OTG_FS_VBUS VBUS sensing
- */
+/* USB OTG FS PA9 OTG_FS_VBUS VBUS sensing */
 #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTC|GPIO_PIN5)
 
-/* PWM
- *
- * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
- */
+/* PWM Alternatively CH3/CH4 could be assigned to UART6_TX/RX */
 #define DIRECT_PWM_OUTPUT_CHANNELS      4
 #define DIRECT_INPUT_TIMER_CHANNELS  4
 
@@ -160,19 +146,7 @@
 
 __BEGIN_DECLS
 
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Public data
- ****************************************************************************************************/
-
 #ifndef __ASSEMBLY__
-
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize
@@ -183,15 +157,6 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-
-/****************************************************************************************************
- * Name: stm32_usbinitialize
- *
- * Description:
- *   Called to configure USB IO.
- *
- ****************************************************************************************************/
 
 extern void stm32_usbinitialize(void);
 

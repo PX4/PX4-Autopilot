@@ -123,7 +123,7 @@ void AEROFC_ADC::RunImpl()
 		adc_report.raw_data[i] = (buffer[i * 2] | (buffer[i * 2 + 1] << 8));
 	}
 
-	for (; i < PX4_MAX_ADC_CHANNELS; ++i) {	// set unused channel id to -1
+	for (; i < adc_report_s::MAX_ADC_CHANNELS; ++i) {	// set unused channel id to -1
 		adc_report.channel_id[i] = -1;
 	}
 

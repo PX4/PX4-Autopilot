@@ -68,26 +68,8 @@
 #define PX4IO_SERIAL_CLOCK             STM32_PCLK1_FREQUENCY
 #define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
 
-/* Configuration ************************************************************************************/
-
-#define BOARD_HAS_LTC4417
-
-#if defined(BOARD_HAS_LTC4417)
-#  define BOARD_HAS_LTC44XX_VALIDS      2 // No LTC or N Bricks
-#  define BOARD_HAS_USB_VALID           1 // LTC Has No USB valid
-#  define BOARD_HAS_NBAT_V              2 // Only one Vbat to ADC
-#  define BOARD_HAS_NBAT_I              2 // No Ibat ADC
-#else
-#  define BOARD_HAS_LTC44XX_VALIDS      0 // No LTC or N Bricks
-#  define BOARD_HAS_USB_VALID           0 // LTC Has No USB valid
-#  define BOARD_HAS_NBAT_V              1 // Only one Vbat to ADC
-#  define BOARD_HAS_NBAT_I              0 // No Ibat ADC
-#endif
-
-/* PX4FMU GPIOs ***********************************************************************************/
 
 /* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
-
 #define GPIO_nLED_RED        /* PB1 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
 #define GPIO_nLED_GREEN      /* PC6 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN6)
 #define GPIO_nLED_BLUE       /* PC7 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN7)
@@ -137,7 +119,6 @@
 #define ADC_HW_REV_SENSE_CHANNEL            /* PC3 */  ADC1_CH(13)
 #define ADC1_SPARE_1_CHANNEL                /* PC4 */  ADC1_CH(14)
 
-#if BOARD_HAS_NBAT_V == 2 && BOARD_HAS_NBAT_I == 2
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL)       | \
 	 (1 << ADC_BATTERY1_CURRENT_CHANNEL)       | \
@@ -150,41 +131,15 @@
 	 (1 << ADC_HW_VER_SENSE_CHANNEL)           | \
 	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
 	 (1 << ADC1_SPARE_1_CHANNEL))
-#elif BOARD_HAS_NBAT_V == 1 && BOARD_HAS_NBAT_I == 1
-#define ADC_CHANNELS \
-	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL)       | \
-	 (1 << ADC_BATTERY1_CURRENT_CHANNEL)       | \
-	 (1 << ADC1_SPARE_2_CHANNEL)               | \
-	 (1 << ADC_RSSI_IN_CHANNEL)                | \
-	 (1 << ADC_SCALED_V5_CHANNEL)              | \
-	 (1 << ADC_SCALED_VDD_3V3_SENSORS_CHANNEL) | \
-	 (1 << ADC_HW_VER_SENSE_CHANNEL)           | \
-	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
-	 (1 << ADC1_SPARE_1_CHANNEL))
-#elif BOARD_HAS_NBAT_V == 1 && BOARD_HAS_NBAT_I == 0
-#define ADC_CHANNELS \
-	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL)       | \
-	 (1 << ADC1_SPARE_2_CHANNEL)               | \
-	 (1 << ADC_RSSI_IN_CHANNEL)                | \
-	 (1 << ADC_SCALED_V5_CHANNEL)              | \
-	 (1 << ADC_SCALED_VDD_3V3_SENSORS_CHANNEL) | \
-	 (1 << ADC_HW_VER_SENSE_CHANNEL)           | \
-	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
-	 (1 << ADC1_SPARE_1_CHANNEL))
-#endif
 
-/* Define Battery 1 Voltage Divider and A per V
- */
-
+/* Define Battery 1 Voltage Divider and A per V */
 #define BOARD_BATTERY1_V_DIV         (18.1f)     /* measured with the provided PM board */
 #define BOARD_BATTERY1_A_PER_V       (36.367515152f)
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
-
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* HW Version and Revision drive signals Default to 1 to detect */
-
 #define BOARD_HAS_HW_VERSIONING
 
 #define GPIO_HW_REV_DRIVE    /* PH14  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTH|GPIO_PIN14)
@@ -256,7 +211,6 @@
 
 #define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
 #define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_B /* Brick 2 Is Chosen  */
-#define BOARD_NUMBER_BRICKS             2
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
 #define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
@@ -380,43 +334,11 @@
 #  warning SDIO initialization cannot be perfomed on the IDLE thread
 #endif
 
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
+
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-
-#if BOARD_HAS_USB_VALID == 1
-#  define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
-#else
-#  define BOARD_ADC_USB_VALID     BOARD_ADC_USB_CONNECTED
-#endif
-
-/* FMUv5 never powers odd the Servo rail */
-
-#define BOARD_ADC_SERVO_VALID     (1)
-
-#if !defined(BOARD_HAS_LTC44XX_VALIDS) || BOARD_HAS_LTC44XX_VALIDS == 0
-#  define BOARD_ADC_BRICK1_VALID  (1)
-#  define BOARD_ADC_BRICK2_VALID  (0)
-#elif BOARD_HAS_LTC44XX_VALIDS == 1
-#  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (0)
-#elif BOARD_HAS_LTC44XX_VALIDS == 2
-#  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
-#elif BOARD_HAS_LTC44XX_VALIDS == 3
-#  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
-#  define BOARD_ADC_BRICK3_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK3_VALID))
-#elif BOARD_HAS_LTC44XX_VALIDS == 4
-#  define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#  define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
-#  define BOARD_ADC_BRICK3_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK3_VALID))
-#  define BOARD_ADC_BRICK4_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK4_VALID))
-#else
-#  error Unsupported BOARD_HAS_LTC44XX_VALIDS value
-#endif
+#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
+#define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
+#define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
 
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))

@@ -4,6 +4,7 @@
 #------------------------------------------------------------------------------
 
 board_adc start
+system_power start
 
 # We know there are sketchy boards out there
 # as chinese companies produce Pixracers without

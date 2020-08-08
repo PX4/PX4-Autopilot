@@ -39,9 +39,6 @@
 
 #pragma once
 
-/****************************************************************************************************
- * Included Files
- ****************************************************************************************************/
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
@@ -55,7 +52,6 @@ __BEGIN_DECLS
 
 __END_DECLS
 
-/* FMUK66 GPIOs ***********************************************************************************/
 /* LEDs */
 /* An RGB LED is connected through GPIO as shown below:
  * TBD (no makring on schematic)
@@ -96,9 +92,7 @@ __END_DECLS
 #define HRT_TIMER              1  /* TPM1 timer for the HRT */
 #define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
 
-/* PPM IN
- */
-
+/* PPM IN */
 #define HRT_PPM_CHANNEL        1  /* Use TPM1 capture/compare channel 1 */
 #define GPIO_PPM_IN            PIN_TPM1_CH1_1    /* PTC3 USART1 RX and PTA9 and PIN_TPM1_CH1 AKA FrSky_IN_RC_IN */
 
@@ -123,7 +117,6 @@ __END_DECLS
  * as an input Therefore we drive are UARTx_RX (normaly an input) as an
  * output
  */
-
 #define GPIO_PPM_IN_AS_OUT          (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN3)
 
 #define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
@@ -131,7 +124,6 @@ __END_DECLS
 #define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 /* RC input */
-
 #define RC_SERIAL_PORT          "/dev/ttyS2"      /* UART1 */
 #define GPIO_RSSI_IN            PIN_ADC1_SE13
 
@@ -140,7 +132,6 @@ __END_DECLS
  * Uninitialized to Reset Disabled and Inhibited
  * All pins driven low to not back feed when power is off
  */
-
 #define nGPIO_ETHERNET_P_EN     (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN3)
 #define GPIO_ENET_RST           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN28)
 #define GPIO_ENET_EN            (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN29)
@@ -200,7 +191,6 @@ __END_DECLS
 #define GPIO_A_RST                          (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE   | PIN_PORTA | PIN25)
 
 /* Sensor interrupts */
-
 #define GPIO_EXTI_GYRO_INT1                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN7)
 #define GPIO_EXTI_GYRO_INT2                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN6)
 #define GPIO_EXTI_ACCEL_MAG_INT1            (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN9)
@@ -218,12 +208,10 @@ __END_DECLS
  * Only ADC1 is used
  *         Bits 31:0 are ADC1 channels 31:0
  */
-
 #define ADC1_CH(c)    (((c) & 0x1f))	/* Define ADC number Channel number */
 #define ADC1_GPIO(n)  PIN_ADC1_SE##n
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
-
 #define ADC_USB_VBUS_VALID          ADC1_CH(0)      /* USB_VBUS_VALID   29    -    ADC1_DP0  */
 #define ADC_BATTERY_VOLTAGE_CHANNEL ADC1_CH(10)     /* BAT_VSENS        85   PTB4  ADC1_SE10 */
 #define ADC_BATTERY_CURRENT_CHANNEL ADC1_CH(11)     /* BAT_ISENS        86   PTB5  ADC1_SE11 */
@@ -234,7 +222,6 @@ __END_DECLS
 #define ADC_AD3                     ADC1_CH(23)     /* AD3              39    -    ADC1_SE23 */
 
 /* Mask use to initialize the ADC driver */
-
 #define ADC_CHANNELS ((1 << ADC_USB_VBUS_VALID) | \
 		      (1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
 		      (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
@@ -253,15 +240,9 @@ __END_DECLS
 	/* PTB6  ADC1_SE12 */  ADC1_GPIO(12),  \
 	/* PTB7  ADC1_SE13 */  ADC1_GPIO(13)
 
-
-
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
-
-
-/* User GPIOs
- *
- */
+/* Define Battery 1 Voltage Divider and A per V. */
+#define BOARD_BATTERY1_V_DIV         (10.177939394f)
+#define BOARD_BATTERY1_A_PER_V       (15.391030303f)
 
 /* Timer I/O PWM and capture
  *
@@ -278,11 +259,6 @@ __END_DECLS
 
 #define GPIO_ULTRASOUND_TRIGGER  /* PTD0 */  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN0)
 #define GPIO_ULTRASOUND_ECHO     /* PTA10 */ (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTA | PIN10)
-
-/* Power supply control and monitoring GPIOs */
-// None
-
-#define GPIO_PERIPH_3V3_EN  0
 
 
 /* Tone alarm output PTA11 - TMP 2_CH1 is On +P12-4, -P12-5
@@ -322,17 +298,7 @@ __END_DECLS
 #define SPEKTRUM_POWER(on_true) VDD_3V3_SPEKTRUM_POWER_EN((on_true))
 
 
-/*
- * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
-
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_USB_VBUS_VALID))
-#define BOARD_ADC_BRICK_VALID   (1)
-#define BOARD_ADC_SERVO_VALID   (1)
-#define BOARD_ADC_PERIPH_5V_OC  (0)
-#define BOARD_ADC_HIPOWER_5V_OC (0)
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
@@ -421,17 +387,9 @@ __END_DECLS
 
 #define BOARD_NUM_IO_TIMERS 3
 
-/************************************************************************************
- * Public data
- ************************************************************************************/
-
 __BEGIN_DECLS
 
 #ifndef __ASSEMBLY__
-
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
 
 /************************************************************************************
  * Name: fmuk66_spidev_initialize

@@ -56,7 +56,7 @@ int test_adc(int argc, char *argv[])
 		PX4_INFO_RAW("Resolution: %d\n", adc.resolution);
 		PX4_INFO_RAW("Voltage Reference: %f\n", adc.v_ref);
 
-		for (int i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+		for (int i = 0; i < adc_report_s::MAX_ADC_CHANNELS; ++i) {
 			PX4_INFO_RAW("%d: %d  ", adc.channel_id[i], adc.raw_data[i]);
 		}
 

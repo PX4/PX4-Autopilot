@@ -3,6 +3,7 @@
 # CUAV X7Pro specific board sensors init
 #------------------------------------------------------------------------------
 board_adc start
+system_power start
 
 # SPI1 (internal)
 #adis16470 -s start

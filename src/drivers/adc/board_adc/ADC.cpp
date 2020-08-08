@@ -35,15 +35,20 @@
 
 #include "ADC.hpp"
 
-#ifdef CONFIG_DEV_GPIO
-#include <nuttx/ioexpander/gpio.h>
-#endif
-
 ADC::ADC(uint32_t base_address, uint32_t channels) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_base_address(base_address)
 {
+	for (unsigned i = 0; i < adc_report_s::MAX_ADC_CHANNELS; i++) {
+		// set all channels to -1 initially
+		_am_channel[i] = -1;
+	}
+
+	for (unsigned i = 0; i < sizeof(adc_report_s::channel_id) / sizeof(adc_report_s::channel_id[0]); i++) {
+		// set all channels to -1 initially
+		_adc_report.channel_id[i] = -1;
+	}
+
 	/* always enable the temperature sensor */
 	channels |= px4_arch_adc_temp_sensor_mask();
 
@@ -54,22 +59,13 @@ ADC::ADC(uint32_t base_address, uint32_t channels) :
 		}
 	}
 
-	if (_channel_count > PX4_MAX_ADC_CHANNELS) {
-		PX4_ERR("PX4_MAX_ADC_CHANNELS is too small (%d, %d)", (unsigned)PX4_MAX_ADC_CHANNELS, _channel_count);
-	}
-
-	_samples = new px4_adc_msg_t[_channel_count];
-
 	/* prefill the channel numbers in the sample array */
-	if (_samples != nullptr) {
-		unsigned index = 0;
+	unsigned index = 0;
 
-		for (unsigned i = 0; i < ADC_TOTAL_CHANNELS; i++) {
-			if (channels & (1 << i)) {
-				_samples[index].am_channel = i;
-				_samples[index].am_data = 0;
-				index++;
-			}
+	for (unsigned i = 0; i < ADC_TOTAL_CHANNELS; i++) {
+		if (channels & (1 << i)) {
+			_am_channel[index] = i;
+			index++;
 		}
 	}
 }
@@ -78,13 +74,8 @@ ADC::~ADC()
 {
 	ScheduleClear();
 
-	if (_samples != nullptr) {
-		delete _samples;
-	}
-
-	perf_free(_sample_perf);
+	perf_free(_cycle_perf);
 	px4_arch_adc_uninit(_base_address);
-	close_gpio_devices();
 }
 
 int ADC::init()
@@ -104,199 +95,41 @@ int ADC::init()
 
 void ADC::Run()
 {
-	if (_first_run) {
-		open_gpio_devices();
-		_first_run = false;
+	if (should_exit()) {
+		exit_and_cleanup();
+		return;
 	}
 
-	hrt_abstime now = hrt_absolute_time();
+	perf_begin(_cycle_perf);
 
-	/* scan the channel set and sample each */
-	for (unsigned i = 0; i < _channel_count; i++) {
-		_samples[i].am_data = sample(_samples[i].am_channel);
+	bool updated = false;
+
+	if (hrt_elapsed_time(&_adc_report.timestamp) > 1_s) {
+		// force update
+		updated = true;
 	}
 
-	update_adc_report(now);
-	update_system_power(now);
-}
+	for (unsigned i = 0; i < math::min(_channel_count, adc_report_s::MAX_ADC_CHANNELS); i++) {
+		if (_am_channel[i] != -1) {
+			uint32_t result = px4_arch_adc_sample(_base_address, _am_channel[i]);
+			_adc_report.channel_id[i] = _am_channel[i];
 
-void ADC::open_gpio_devices()
-{
-#ifdef BOARD_GPIO_VDD_5V_COMP_VALID
-	_5v_comp_valid_fd = open(BOARD_GPIO_VDD_5V_COMP_VALID, O_RDONLY);
-#endif
-#ifdef BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID
-	_5v_can1_gps1_valid_fd = open(BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID, O_RDONLY);
-#endif
-}
-
-void ADC::close_gpio_devices()
-{
-#ifdef BOARD_GPIO_VDD_5V_COMP_VALID
-	close(_5v_comp_valid_fd);
-#endif
-#ifdef BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID
-	close(_5v_can1_gps1_valid_fd);
-#endif
-}
-
-void ADC::update_adc_report(hrt_abstime now)
-{
-	adc_report_s adc = {};
-	adc.timestamp = now;
-	adc.device_id = BUILTIN_ADC_DEVID;
-
-	unsigned max_num = _channel_count;
-
-	if (max_num > (sizeof(adc.channel_id) / sizeof(adc.channel_id[0]))) {
-		max_num = (sizeof(adc.channel_id) / sizeof(adc.channel_id[0]));
-	}
-
-	unsigned i;
-
-	for (i = 0; i < max_num; i++) {
-		adc.channel_id[i] = _samples[i].am_channel;
-		adc.raw_data[i] = _samples[i].am_data;
-	}
-
-	for (; i < PX4_MAX_ADC_CHANNELS; ++i) {	// set unused channel id to -1
-		adc.channel_id[i] = -1;
-	}
-
-	adc.v_ref = px4_arch_adc_reference_v();
-	adc.resolution = px4_arch_adc_dn_fullcount();
-
-	_to_adc_report.publish(adc);
-}
-
-uint8_t ADC::read_gpio_value(int fd)
-{
-#ifdef CONFIG_DEV_GPIO
-
-	if (fd == -1) {
-		return 0xff;
-	}
-
-	bool value;
-
-	if (ioctl(fd, GPIOC_READ, (long)&value) != 0) {
-		return 0xff;
-	}
-
-	return value;
-#else
-	return 0xff;
-#endif /* CONFIG_DEV_GPIO */
-}
-
-void ADC::update_system_power(hrt_abstime now)
-{
-#if defined (BOARD_ADC_USB_CONNECTED)
-	system_power_s system_power {};
-
-	/* Assume HW provides only ADC_SCALED_V5_SENSE */
-	int cnt = 1;
-	/* HW provides both ADC_SCALED_V5_SENSE and ADC_SCALED_V3V3_SENSORS_SENSE */
-#  if defined(ADC_SCALED_V5_SENSE) && defined(ADC_SCALED_V3V3_SENSORS_SENSE)
-	cnt += ADC_SCALED_V3V3_SENSORS_COUNT;
-#  endif
-
-	for (unsigned i = 0; i < _channel_count; i++) {
-#  if defined(ADC_SCALED_V5_SENSE)
-
-		if (_samples[i].am_channel == ADC_SCALED_V5_SENSE) {
-			// it is 2:1 scaled
-			system_power.voltage5v_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / px4_arch_adc_dn_fullcount());
-			cnt--;
-
-		} else
-#  endif
-#  if defined(ADC_SCALED_V3V3_SENSORS_SENSE)
-		{
-			const int sensors_channels[ADC_SCALED_V3V3_SENSORS_COUNT] = ADC_SCALED_V3V3_SENSORS_SENSE;
-			static_assert(sizeof(system_power.sensors3v3) / sizeof(system_power.sensors3v3[0]) >= ADC_SCALED_V3V3_SENSORS_COUNT,
-				      "array too small");
-
-			for (int j = 0; j < ADC_SCALED_V3V3_SENSORS_COUNT; ++j) {
-				if (_samples[i].am_channel == sensors_channels[j]) {
-					// it is 2:1 scaled
-					system_power.sensors3v3[j] = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / px4_arch_adc_dn_fullcount()));
-					system_power.sensors3v3_valid |= 1 << j;
-					cnt--;
-				}
+			if ((result != UINT32_MAX) && ((int32_t)result != _adc_report.raw_data[i])) {
+				_adc_report.raw_data[i] = result;
+				updated = true;
 			}
 		}
-
-#  endif
-
-		if (cnt == 0) {
-			break;
-		}
 	}
 
-	/* Note once the board_config.h provides BOARD_ADC_USB_CONNECTED,
-	 * It must provide the true logic GPIO BOARD_ADC_xxxx macros.
-	 */
-	// these are not ADC related, but it is convenient to
-	// publish these to the same topic
-
-	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
-	/* If provided used the Valid signal from HW*/
-#if defined(BOARD_ADC_USB_VALID)
-	system_power.usb_valid = BOARD_ADC_USB_VALID;
-#else
-	/* If not provided then use connected */
-	system_power.usb_valid = system_power.usb_connected;
-#endif
-
-#if defined(BOARD_BRICK_VALID_LIST)
-	/* The valid signals (HW dependent) are associated with each brick */
-	bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
-	system_power.brick_valid = 0;
-
-	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-		system_power.brick_valid |=  valid_chan[b] ? 1 << b : 0;
+	if (updated) {
+		_adc_report.device_id = BUILTIN_ADC_DEVID;
+		_adc_report.v_ref = px4_arch_adc_reference_v();
+		_adc_report.resolution = px4_arch_adc_dn_fullcount();
+		_adc_report.timestamp = hrt_absolute_time();
+		_adc_report_pub.publish(_adc_report);
 	}
 
-#endif
-
-#if defined(BOARD_ADC_SERVO_VALID)
-	system_power.servo_valid = BOARD_ADC_SERVO_VALID;
-#endif
-
-#if defined(BOARD_ADC_PERIPH_5V_OC)
-	// OC pins are active low
-	system_power.periph_5v_oc = BOARD_ADC_PERIPH_5V_OC;
-#endif
-
-#if defined(BOARD_ADC_HIPOWER_5V_OC)
-	system_power.hipower_5v_oc = BOARD_ADC_HIPOWER_5V_OC;
-#endif
-
-#ifdef BOARD_GPIO_VDD_5V_COMP_VALID
-	system_power.comp_5v_valid = read_gpio_value(_5v_comp_valid_fd);
-#endif
-#ifdef BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID
-	system_power.can1_gps1_5v_valid = read_gpio_value(_5v_can1_gps1_valid_fd);
-#endif
-
-	system_power.timestamp = hrt_absolute_time();
-	_to_system_power.publish(system_power);
-
-#endif // BOARD_ADC_USB_CONNECTED
-}
-
-uint32_t ADC::sample(unsigned channel)
-{
-	perf_begin(_sample_perf);
-	uint32_t result = px4_arch_adc_sample(_base_address, channel);
-
-	if (result == UINT32_MAX) {
-		PX4_ERR("sample timeout");
-	}
-
-	perf_end(_sample_perf);
-	return result;
+	perf_end(_cycle_perf);
 }
 
 int ADC::test()
@@ -312,7 +145,7 @@ int ADC::test()
 		PX4_INFO_RAW("Voltage Reference: %f\n", (double)adc.v_ref);
 
 		for (unsigned l = 0; l < 20; ++l) {
-			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+			for (unsigned i = 0; i < adc_report_s::MAX_ADC_CHANNELS; ++i) {
 				if (adc.channel_id[i] >= 0) {
 					PX4_INFO_RAW("% 2d:% 6d", adc.channel_id[i], adc.raw_data[i]);
 				}

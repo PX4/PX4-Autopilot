@@ -71,15 +71,6 @@ using namespace time_literals;
 /**
  * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
  */
-
-#ifndef BOARD_NUMBER_BRICKS
-#error "battery_status module requires power bricks"
-#endif
-
-#if BOARD_NUMBER_BRICKS == 0
-#error "battery_status module requires power bricks"
-#endif
-
 class BatteryStatus : public ModuleBase<BatteryStatus>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -187,13 +178,13 @@ BatteryStatus::adc_poll()
 	if (_adc_report_sub.update(&adc_report)) {
 
 		/* Read add channels we got */
-		for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+		for (unsigned i = 0; i < adc_report_s::MAX_ADC_CHANNELS; ++i) {
 			for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
 				/* Once we have subscriptions, Do this once for the lowest (highest priority
 				 * supply on power controller) that is valid.
 				 */
-				if (selected_source < 0 && _analogBatteries[b]->is_valid()) {
+				if (selected_source < 0) {
 					/* Indicate the lowest brick (highest priority supply on power controller)
 					 * that is valid as the one that is the selected source for the
 					 * VDD_5V_IN

@@ -70,11 +70,6 @@
 
 /* Configuration ************************************************************************************/
 
-#  define BOARD_HAS_LTC44XX_VALIDS      2 // No LTC or N Bricks
-#  define BOARD_HAS_USB_VALID           1 // LTC Has No USB valid
-#  define BOARD_HAS_NBAT_V              2 // Only one Vbat to ADC
-#  define BOARD_HAS_NBAT_I              2 // No Ibat ADC
-
 /* Holybro Durandal V1 GPIOs ************************************************************************/
 
 /* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
@@ -95,11 +90,9 @@
  */
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
-
 #define ADC1_CH(n)                  (n)
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below */
-
 #define PX4_ADC_GPIO  \
 	/* PA0 */  GPIO_ADC1_INP16,   \
 	/* PA1 */  GPIO_ADC1_INP17,   \
@@ -213,7 +206,6 @@
 
 #define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
 #define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_B /* Brick 2 Is Chosen  */
-#define BOARD_NUMBER_BRICKS             2
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
 #define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
@@ -314,16 +306,9 @@
 #  warning SDIO initialization cannot be perfomed on the IDLE thread
 #endif
 
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
+
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
-
-/* Board never powers off the Servo rail */
-
-#define BOARD_ADC_SERVO_VALID     (1)
 
 #define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
 #define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))

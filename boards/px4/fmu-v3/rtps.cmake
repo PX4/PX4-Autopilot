@@ -55,6 +55,7 @@ px4_add_board(
 		pwm_out
 		px4io
 		roboclaw
+		system_power
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
