@@ -76,6 +76,7 @@ bool UUVAttitudeControl::init()
 		PX4_ERR("vehicle_attitude callback registration failed!");
 		return false;
 	}
+
 	return true;
 }
 
@@ -127,7 +128,9 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 }
 
-void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint)
+void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude,
+		const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity,
+		const vehicle_rates_setpoint_s &rates_setpoint)
 {
 	/** Geometric Controller
 	 *
@@ -208,20 +211,17 @@ void UUVAttitudeControl::Run()
 	/* update parameters from storage */
 	parameters_update();
 
-	vehicle_attitude_s attitude;
+	vehicle_attitude_s attitude {};
 
 	/* only run controller if attitude changed */
 	if (_vehicle_attitude_sub.update(&attitude)) {
-		vehicle_angular_velocity_s angular_velocity;
+		vehicle_angular_velocity_s angular_velocity {};
 		_angular_velocity_sub.copy(&angular_velocity);
 
-		vehicle_control_mode_s control_mode {};
-		_vcontrol_mode_sub.update(&control_mode);
-
 		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!control_mode.flag_control_manual_enabled
-			&& control_mode.flag_control_attitude_enabled
-			&& control_mode.flag_control_rates_enabled) {
+		if (!_vcontrol_mode.flag_control_manual_enabled
+		    && _vcontrol_mode.flag_control_attitude_enabled
+		    && _vcontrol_mode.flag_control_rates_enabled) {
 
 			int input_mode = _param_input_mode.get();
 
@@ -249,7 +249,7 @@ void UUVAttitudeControl::Run()
 		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
 			/* manual/direct control */
 			constrain_actuator_commands(_manual_control_setpoint.y, -_manual_control_setpoint.x,
-							_manual_control_setpoint.r, _manual_control_setpoint.z);
+						    _manual_control_setpoint.r, _manual_control_setpoint.z);
 		}
 
 	}
@@ -258,11 +258,12 @@ void UUVAttitudeControl::Run()
 
 	/* Only publish if any of the proper modes are enabled */
 	if (_vcontrol_mode.flag_control_manual_enabled ||
-		_vcontrol_mode.flag_control_attitude_enabled) {
+	    _vcontrol_mode.flag_control_attitude_enabled) {
 		/* publish the actuator controls */
 		_actuator_controls_pub.publish(_actuators);
 
 	}
+
 	warnx("exiting.\n");
 }
 
