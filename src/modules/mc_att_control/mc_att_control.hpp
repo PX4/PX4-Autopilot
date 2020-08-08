@@ -113,7 +113,6 @@ private:
 
 	struct manual_control_setpoint_s	_manual_control_setpoint {};	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode {};	/**< vehicle control mode */
-	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
@@ -128,6 +127,10 @@ private:
 
 	bool _landed{true};
 	bool _reset_yaw_sp{true};
+	bool _vehicle_type_rotary_wing{true};
+	bool _vtol{false};
+	bool _vtol_tailsitter{false};
+	bool _vtol_in_transition_mode{false};
 
 	uint8_t _quat_reset_counter{0};
 
@@ -156,7 +159,5 @@ private:
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
 		(ParamFloat<px4::params::MC_MAN_TILT_TAU>) _param_mc_man_tilt_tau
 	)
-
-	bool _is_tailsitter{false};
 };
 
