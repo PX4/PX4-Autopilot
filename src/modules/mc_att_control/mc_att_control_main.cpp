@@ -55,17 +55,16 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::attitude_ctrl),
 	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_vtol(vtol)
 {
-	if (vtol) {
+	if (_vtol) {
 		int32_t vt_type = -1;
 
 		if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-			_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
+			_vtol_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
 		}
 	}
-
-	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	parameters_updated();
 }
@@ -171,7 +170,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	attitude_setpoint.yaw_body = _man_yaw_sp + euler_sp(2);
 
 	/* modify roll/pitch only if we're a VTOL */
-	if (_vehicle_status.is_vtol) {
+	if (_vtol) {
 		// Construct attitude setpoint rotation matrix. Modify the setpoints for roll
 		// and pitch such that they reflect the user's intention even if a large yaw error
 		// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
@@ -277,7 +276,15 @@ MulticopterAttitudeControl::Run()
 			}
 		}
 
-		_vehicle_status_sub.update(&_vehicle_status);
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
+
+			if (_vehicle_status_sub.copy(&vehicle_status)) {
+				_vehicle_type_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+				_vtol = vehicle_status.is_vtol;
+				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
+			}
+		}
 
 		/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 		* or roll (yaw can rotate 360 in normal att control). If both are true don't
@@ -290,11 +297,10 @@ MulticopterAttitudeControl::Run()
 
 		bool attitude_setpoint_generated = false;
 
-		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-					 && !_vehicle_status.in_transition_mode;
+		const bool is_hovering = (_vehicle_type_rotary_wing && !_vtol_in_transition_mode);
 
 		// vehicle is a tailsitter in transition mode
-		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
+		const bool is_tailsitter_transition = (_vtol_tailsitter && _vtol_in_transition_mode);
 
 		bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
 
@@ -342,7 +348,7 @@ MulticopterAttitudeControl::Run()
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
 		// attitude setpoint for the transition
 		_reset_yaw_sp = (!attitude_setpoint_generated && !_v_control_mode.flag_control_rattitude_enabled) ||
-				_landed || (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode);
+				_landed || (_vtol && _vtol_in_transition_mode);
 
 	}
 
