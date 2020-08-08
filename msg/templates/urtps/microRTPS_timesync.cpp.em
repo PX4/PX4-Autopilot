@@ -116,7 +116,7 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 
 	if (_request_reset_counter > REQUEST_RESET_COUNTER_THRESHOLD) {
 		reset();
-		std::cout << std::endl << "Timesync clock changed, resetting" << std::endl;
+		std::cout << "\033[1;33m[ micrortps__timesync ]\tTimesync clock changed, resetting\033[0m" << std::endl;
 	}
 
         if (_num_samples == 0) {
@@ -127,17 +127,16 @@ bool TimeSync::addMeasurement(int64_t local_t1_ns, int64_t remote_t2_ns, int64_t
 	if (_num_samples >= WINDOW_SIZE) {
 		if (std::abs(measurement_offset - _offset_ns.load()) > TRIGGER_RESET_THRESHOLD_NS) {
 			_request_reset_counter++;
-			std::cout << std::endl << "Timesync offset outlier, discarding" << std::endl;
+			std::cout << "\033[1;33m[ micrortps__timesync ]\tTimesync offset outlier, discarding\033[0m" << std::endl;
 			return false;
 		} else {
 			_request_reset_counter = 0;
 		}
 	}
 
-	// ignore if rtti > 10ms
-	if (rtti > 15ll * 1000ll * 1000ll) {
-		std::cout << std::endl
-			  << "RTTI too high for timesync: " << rtti / (1000ll * 1000ll) << "ms" << std::endl;
+	// ignore if rtti > 50ms
+	if (rtti > 50ll * 1000ll * 1000ll) {
+		std::cout << "\033[1;33m[ micrortps__timesync ]\tRTTI too high for timesync: " << rtti / (1000ll * 1000ll) << "ms\033[0m" << std::endl;
 		return false;
 	}
 
@@ -168,7 +167,7 @@ void TimeSync::processTimesyncMsg(timesync_msg_t * msg) {
 
 		if (getMsgTC1(msg) > 0) {
 			if (!addMeasurement(getMsgTS1(msg), getMsgTC1(msg), getMonoRawTimeNSec())) {
-				std::cerr << "Offset not updated" << std::endl;
+				std::cerr << "\033[1;33m[ micrortps__timesync ]\tOffset not updated\033[0m" << std::endl;
 			}
 
 		} else if (getMsgTC1(msg) == 0) {

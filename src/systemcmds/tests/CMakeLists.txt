@@ -50,8 +50,10 @@ set(srcs
 	test_jig_voltages.cpp
 	test_led.c
 	test_List.cpp
+	test_IntrusiveSortedList.cpp
 	test_mathlib.cpp
 	test_matrix.cpp
+	test_microbench_atomic.cpp
 	test_microbench_hrt.cpp
 	test_microbench_math.cpp
 	test_microbench_matrix.cpp
@@ -98,6 +100,7 @@ px4_add_module(
 		-Wno-unused-result
 		-Wno-unused-variable
 		-Wno-vla-larger-than
+		-Wno-unused-but-set-parameter
 	SRCS
 		${srcs}
 	DEPENDS

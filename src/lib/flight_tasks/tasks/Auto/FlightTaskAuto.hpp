@@ -83,7 +83,7 @@ public:
 	FlightTaskAuto();
 
 	virtual ~FlightTaskAuto() = default;
-	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
+	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	bool updateInitialize() override;
 	bool updateFinalize() override;
 
@@ -108,7 +108,6 @@ protected:
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<home_position_s>			_sub_home_position{ORB_ID(home_position)};
-	uORB::SubscriptionData<manual_control_setpoint_s>	_sub_manual_control_setpoint{ORB_ID(manual_control_setpoint)};
 	uORB::SubscriptionData<vehicle_status_s>		_sub_vehicle_status{ORB_ID(vehicle_status)};
 
 	State _current_state{State::none};

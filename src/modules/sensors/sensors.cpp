@@ -168,7 +168,7 @@ private:
 
 	VehicleAcceleration	_vehicle_acceleration;
 	VehicleAngularVelocity	_vehicle_angular_velocity;
-	VehicleAirData          _vehicle_air_data;
+	VehicleAirData          *_vehicle_air_data{nullptr};
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
@@ -200,13 +200,17 @@ private:
 	 */
 	void		adc_poll();
 
+	void		InitializeVehicleAirData();
 	void		InitializeVehicleIMU();
 
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro
+	)
 };
 
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_voted_sensors_update(_parameters, hil_enabled, _vehicle_imu_sub)
@@ -218,9 +222,6 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_vehicle_acceleration.Start();
 	_vehicle_angular_velocity.Start();
-	_vehicle_air_data.Start();
-
-	InitializeVehicleIMU();
 }
 
 Sensors::~Sensors()
@@ -232,11 +233,16 @@ Sensors::~Sensors()
 
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
-	_vehicle_air_data.Stop();
 
-	for (auto &i : _vehicle_imu_list) {
-		if (i != nullptr) {
-			i->Stop();
+	if (_vehicle_air_data) {
+		_vehicle_air_data->Stop();
+		delete _vehicle_air_data;
+	}
+
+	for (auto &vehicle_imu : _vehicle_imu_list) {
+		if (vehicle_imu) {
+			vehicle_imu->Stop();
+			delete vehicle_imu;
 		}
 	}
 
@@ -418,6 +424,21 @@ void Sensors::adc_poll()
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 }
 
+void Sensors::InitializeVehicleAirData()
+{
+	if (_param_sys_has_baro.get()) {
+		if (_vehicle_air_data == nullptr) {
+			if (orb_exists(ORB_ID(sensor_baro), 0) == PX4_OK) {
+				_vehicle_air_data = new VehicleAirData();
+
+				if (_vehicle_air_data) {
+					_vehicle_air_data->Start();
+				}
+			}
+		}
+	}
+}
+
 void Sensors::InitializeVehicleIMU()
 {
 	// create a VehicleIMU instance for each accel/gyro pair
@@ -439,7 +460,6 @@ void Sensors::InitializeVehicleIMU()
 					// Start VehicleIMU instance and store
 					if (imu->Start()) {
 						_vehicle_imu_list[i] = imu;
-						ScheduleNow();
 
 					} else {
 						delete imu;
@@ -468,6 +488,8 @@ void Sensors::Run()
 
 	// run once
 	if (_last_config_update == 0) {
+		InitializeVehicleAirData();
+		InitializeVehicleIMU();
 		_voted_sensors_update.init(_sensor_combined);
 		parameter_update_poll(true);
 	}
@@ -555,6 +577,7 @@ void Sensors::Run()
 	// when not adding sensors poll for param updates
 	if (!_armed && hrt_elapsed_time(&_last_config_update) > 500_ms) {
 		_voted_sensors_update.initializeSensors();
+		InitializeVehicleAirData();
 		InitializeVehicleIMU();
 		_last_config_update = hrt_absolute_time();
 
@@ -621,8 +644,10 @@ int Sensors::print_status()
 {
 	_voted_sensors_update.printStatus();
 
-	PX4_INFO_RAW("\n");
-	_vehicle_air_data.PrintStatus();
+	if (_vehicle_air_data) {
+		PX4_INFO_RAW("\n");
+		_vehicle_air_data->PrintStatus();
+	}
 
 	PX4_INFO_RAW("\n");
 	PX4_INFO("Airspeed status:");

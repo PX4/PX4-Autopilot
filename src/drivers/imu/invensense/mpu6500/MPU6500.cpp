@@ -53,7 +53,6 @@ MPU6500::MPU6500(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rota
 
 MPU6500::~MPU6500()
 {
-	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -94,7 +93,6 @@ void MPU6500::print_status()
 	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us,
 		 static_cast<double>(1000000 / _fifo_empty_interval_us));
 
-	perf_print_counter(_transfer_perf);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
@@ -455,19 +453,16 @@ uint16_t MPU6500::FIFOReadCount()
 
 bool MPU6500::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 {
-	perf_begin(_transfer_perf);
 
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
 	set_frequency(SPI_SPEED_SENSOR);
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
-		perf_end(_transfer_perf);
 		perf_count(_bad_transfer_perf);
 		return false;
 	}
 
-	perf_end(_transfer_perf);
 
 	ProcessGyro(timestamp_sample, buffer, samples);
 	return ProcessAccel(timestamp_sample, buffer, samples);

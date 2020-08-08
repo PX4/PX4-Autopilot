@@ -1496,7 +1496,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						att_sp.yaw_sp_move_rate = 0.0f;
 					}
 
-					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+					if (!offboard_control_mode.ignore_thrust) { // don't overwrite thrust if it's invalid
 						fill_thrust(att_sp.thrust_body, vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
@@ -1534,7 +1534,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						rates_sp.yaw = set_attitude_target.body_yaw_rate;
 					}
 
-					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+					if (!offboard_control_mode.ignore_thrust) { // don't overwrite thrust if it's invalid
 						fill_thrust(rates_sp.thrust_body, vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
@@ -2045,25 +2045,61 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 {
 	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
 	if (_mavlink->get_channel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
+
+		const hrt_abstime now = hrt_absolute_time();
+
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
-		/* Accept only heartbeats from GCS or ONBOARD Controller, skip heartbeats from other vehicles */
-		if ((msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) || (msg->sysid == mavlink_system.sysid
-				&& hb.type == MAV_TYPE_ONBOARD_CONTROLLER)) {
+		const bool same_system = (msg->sysid == mavlink_system.sysid);
+
+		if (same_system || hb.type == MAV_TYPE_GCS) {
 
 			telemetry_status_s &tstatus = _mavlink->get_telemetry_status();
 
-			/* set heartbeat time and topic time and publish -
-			 * the telem status also gets updated on telemetry events
-			 */
-			tstatus.heartbeat_time = hrt_absolute_time();
-			tstatus.remote_system_id = msg->sysid;
-			tstatus.remote_component_id = msg->compid;
-			tstatus.remote_type = hb.type;
-			tstatus.remote_system_status = hb.system_status;
-		}
+			bool heartbeat_slot_found = false;
+			int heartbeat_slot = 0;
 
+			// find existing HEARTBEAT slot
+			for (size_t i = 0; i < (sizeof(tstatus.heartbeats) / sizeof(tstatus.heartbeats[0])); i++) {
+				if ((tstatus.heartbeats[i].system_id == msg->sysid)
+				    && (tstatus.heartbeats[i].component_id == msg->compid)
+				    && (tstatus.heartbeats[i].type == hb.type)) {
+
+					// found matching heartbeat slot
+					heartbeat_slot = i;
+					heartbeat_slot_found = true;
+					break;
+				}
+			}
+
+			// otherwise use first available slot
+			if (!heartbeat_slot_found) {
+				for (size_t i = 0; i < (sizeof(tstatus.heartbeats) / sizeof(tstatus.heartbeats[0])); i++) {
+					if ((tstatus.heartbeats[i].system_id == 0) && (tstatus.heartbeats[i].timestamp == 0)) {
+						heartbeat_slot = i;
+						heartbeat_slot_found = true;
+						break;
+					}
+				}
+			}
+
+			if (heartbeat_slot_found) {
+				_mavlink->lock_telemetry_status();
+
+				tstatus.heartbeats[heartbeat_slot].timestamp = now;
+				tstatus.heartbeats[heartbeat_slot].system_id = msg->sysid;
+				tstatus.heartbeats[heartbeat_slot].component_id = msg->compid;
+				tstatus.heartbeats[heartbeat_slot].type = hb.type;
+				tstatus.heartbeats[heartbeat_slot].state = hb.system_status;
+
+				_mavlink->telemetry_status_updated();
+				_mavlink->unlock_telemetry_status();
+
+			} else {
+				PX4_ERR("no telemetry heartbeat slots available");
+			}
+		}
 	}
 }
 
@@ -2317,12 +2353,12 @@ MavlinkReceiver::handle_message_cellular_status(mavlink_message_t *msg)
 
 	cellular_status.timestamp = hrt_absolute_time();
 	cellular_status.status = status.status;
+	cellular_status.failure_reason = status.failure_reason;
 	cellular_status.type = status.type;
 	cellular_status.quality = status.quality;
 	cellular_status.mcc = status.mcc;
 	cellular_status.mnc = status.mnc;
 	cellular_status.lac = status.lac;
-	cellular_status.cid = status.cid;
 
 	_cellular_status_pub.publish(cellular_status);
 }

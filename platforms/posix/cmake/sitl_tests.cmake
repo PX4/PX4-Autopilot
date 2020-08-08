@@ -17,9 +17,11 @@ set(tests
 	hrt
 	int
 	IntrusiveQueue
+	IntrusiveSortedList
 	List
 	mathlib
 	matrix
+	microbench_atomic
 	microbench_hrt
 	microbench_math
 	microbench_matrix

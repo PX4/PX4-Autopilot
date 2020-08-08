@@ -42,17 +42,28 @@
 
 using namespace matrix;
 
+FlightTaskManualAltitude::FlightTaskManualAltitude() :
+	_sticks(this)
+{};
+
 bool FlightTaskManualAltitude::updateInitialize()
 {
-	bool ret = FlightTaskManual::updateInitialize();
+	bool ret = FlightTask::updateInitialize();
+
+	_sticks.checkAndSetStickInputs(_time_stamp_current);
+	_sticks.setGearAccordingToSwitch(_gear);
+
+	if (_sticks_data_required) {
+		ret = ret && _sticks.isAvailable();
+	}
 
 	// in addition to manual require valid position and velocity in D-direction and valid yaw
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
 }
 
-bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskManualAltitude::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
-	bool ret = FlightTaskManual::activate(last_setpoint);
+	bool ret = FlightTask::activate(last_setpoint);
 	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.f;
 	_acceleration_setpoint = Vector3f(0.f, 0.f, NAN); // altitude is controlled from position/velocity
@@ -88,12 +99,12 @@ void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	// Use stick input with deadzone, exponential curve and first order lpf for yawspeed
-	const float yawspeed_target = _sticks_expo(3) * math::radians(_param_mpc_man_y_max.get());
+	const float yawspeed_target = _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get());
 	_yawspeed_setpoint = _applyYawspeedFilter(yawspeed_target);
 
 	// Use sticks input with deadzone and exponential curve for vertical velocity
-	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
-	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
+	const float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
+	_velocity_setpoint(2) = vel_max_z * _sticks.getPositionExpo()(2);
 }
 
 float FlightTaskManualAltitude::_applyYawspeedFilter(float yawspeed_target)
@@ -110,7 +121,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	// If not locked, altitude setpoint is set to NAN.
 
 	// Check if user wants to break
-	const bool apply_brake = fabsf(_sticks_expo(2)) <= FLT_EPSILON;
+	const bool apply_brake = fabsf(_sticks.getPositionExpo()(2)) <= FLT_EPSILON;
 
 	// Check if vehicle has stopped
 	const bool stopped = (_param_mpc_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _param_mpc_hold_max_z.get());
@@ -122,7 +133,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		float spd_xy = Vector2f(_velocity).length();
 
 		// Use presence of horizontal stick inputs as a transition criteria
-		float stick_xy = Vector2f(&_sticks_expo(0)).length();
+		float stick_xy = Vector2f(_sticks.getPositionExpo().slice<2, 1>(0, 0)).length();
 		bool stick_input = stick_xy > 0.001f;
 
 		if (_terrain_hold) {
@@ -340,7 +351,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	// thrust along xy is demanded. The maximum thrust along xy depends on the thrust
 	// setpoint along z-direction, which is computed in PositionControl.cpp.
 
-	Vector2f sp(&_sticks(0));
+	Vector2f sp(_sticks.getPosition().slice<2, 1>(0, 0));
 
 	_man_input_filter.setParameters(_deltatime, _param_mc_man_tilt_tau.get());
 	_man_input_filter.update(sp);
@@ -359,13 +370,13 @@ void FlightTaskManualAltitude::_updateSetpoints()
 
 bool FlightTaskManualAltitude::_checkTakeoff()
 {
-	// stick is deflected above 65% throttle (_sticks(2) is in the range [-1,1])
-	return _sticks(2) < -0.3f;
+	// stick is deflected above 65% throttle (throttle stick is in the range [-1,1])
+	return _sticks.getPosition()(2) < -0.3f;
 }
 
 bool FlightTaskManualAltitude::update()
 {
-	bool ret = FlightTaskManual::update();
+	bool ret = FlightTask::update();
 	_updateConstraintsFromEstimator();
 	_scaleSticks();
 	_updateSetpoints();

@@ -113,7 +113,8 @@ public:
 
 private:
 
-	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub, const char *armedBy);
+	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub,
+				       arm_disarm_reason_t calling_reason);
 
 	void battery_status_check();
 
@@ -210,6 +211,7 @@ private:
 		(ParamBool<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
 
 		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
+		(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
 
 		// Engine failure
 		(ParamFloat<px4::params::COM_EF_THROT>) _param_ef_throttle_thres,
@@ -303,6 +305,7 @@ private:
 
 	bool		_geofence_loiter_on{false};
 	bool		_geofence_rtl_on{false};
+	bool		_geofence_land_on{false};
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
 
@@ -317,7 +320,7 @@ private:
 	bool		_onboard_controller_lost{false};
 	bool		_avoidance_system_lost{false};
 	bool		_avoidance_system_status_change{false};
-	uint8_t		_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
+	uint8_t		_datalink_last_status_avoidance_system{telemetry_heartbeat_s::STATE_UNINIT};
 
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
@@ -403,7 +406,7 @@ private:
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_subsys_sub{ORB_ID(subsystem_info)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
-	uORB::Subscription					_telemetry_status_sub{ORB_ID(telemetry_status)};
+	uORB::Subscription					_telemetry_status_sub[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(telemetry_status), 0}, {ORB_ID(telemetry_status), 1}, {ORB_ID(telemetry_status), 2}, {ORB_ID(telemetry_status), 3}};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 

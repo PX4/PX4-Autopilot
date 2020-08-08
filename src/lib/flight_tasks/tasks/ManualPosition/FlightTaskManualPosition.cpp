@@ -56,7 +56,7 @@ bool FlightTaskManualPosition::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
-bool FlightTaskManualPosition::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskManualPosition::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
@@ -82,7 +82,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	FlightTaskManualAltitude::_scaleSticks();
 
 	/* Constrain length of stick inputs to 1 for xy*/
-	Vector2f stick_xy = _sticks_expo.slice<2, 1>(0, 0);
+	Vector2f stick_xy = _sticks.getPositionExpo().slice<2, 1>(0, 0);
 
 	const float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
 

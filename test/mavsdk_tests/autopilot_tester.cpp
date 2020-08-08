@@ -37,6 +37,59 @@
 
 std::string connection_url {"udp://"};
 
+namespace
+{
+std::array<float, 3> get_local_mission_item(const Mission::MissionItem &item, const CoordinateTransformation &ct)
+{
+	using GlobalCoordinate = mavsdk::geometry::CoordinateTransformation::GlobalCoordinate;
+	GlobalCoordinate global;
+	global.latitude_deg = item.latitude_deg;
+	global.longitude_deg = item.longitude_deg;
+	auto local = ct.local_from_global(global);
+	return {static_cast<float>(local.north_m), static_cast<float>(local.east_m), -item.relative_altitude_m};
+}
+
+float norm(const std::array<float, 3> &vec)
+{
+	return std::sqrt(sq(vec[0]) + sq(vec[1]) + sq(vec[2]));
+}
+
+float dot(const std::array<float, 3> &vec1, const std::array<float, 3> &vec2)
+{
+	return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
+}
+
+std::array<float, 3> diff(const std::array<float, 3> &vec1, const std::array<float, 3> &vec2)
+{
+	return {vec1[0] - vec2[0], vec1[1] - vec2[1], vec1[2] - vec2[2]};
+}
+
+std::array<float, 3> normalized(const std::array<float, 3> &vec)
+{
+	float n = norm(vec);
+
+	if (n > 1e-6f) {
+		return {vec[0] / n, vec[1] / n, vec[2] / n};
+
+	} else {
+		return {0, 0, 0};
+	}
+}
+
+float point_to_line_distance(const std::array<float, 3> &point, const std::array<float, 3> &line_start,
+			     const std::array<float, 3> &line_end)
+{
+	std::array<float, 3> norm_dir = normalized(diff(line_end, line_start));
+	float t = dot(norm_dir, diff(point, line_start));
+
+	// closest_on_line = line_start + t * norm_dir;
+	std::array<float, 3> closest_on_line { line_start[0] + t *norm_dir[0], line_start[1] + t *norm_dir[1], line_start[2] + t *norm_dir[2]};
+
+	return norm(diff(closest_on_line, point));
+}
+
+}
+
 void AutopilotTester::connect(const std::string uri)
 {
 	ConnectionResult ret = _mavsdk.add_any_connection(uri);
@@ -59,6 +112,11 @@ void AutopilotTester::wait_until_ready()
 	std::cout << "Waiting for system to be ready" << std::endl;
 	CHECK(poll_condition_with_timeout(
 	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(20)));
+
+	// FIXME: workaround to prevent race between PX4 switching to Hold mode
+	// and us trying to arm and take off. If PX4 is not in Hold mode yet,
+	// our arming presumably triggers a failsafe in manual mode.
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void AutopilotTester::wait_until_ready_local_position_only()
@@ -164,6 +222,30 @@ void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
 	REQUIRE(fut.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
 }
 
+void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
+{
+	const auto ct = get_coordinate_transformation();
+
+	Mission::MissionPlan mission_plan {};
+	mission_plan.mission_items.push_back(create_mission_item({0, 0.}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({mission_options.leg_length_m, 0}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({2 * mission_options.leg_length_m, 0}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({3 * mission_options.leg_length_m, 0}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({4 * mission_options.leg_length_m, 0}, mission_options, ct));
+
+	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
+
+	std::promise<void> prom;
+	auto fut = prom.get_future();
+
+	_mission->upload_mission_async(mission_plan, [&prom](Mission::Result result) {
+		REQUIRE(Mission::Result::Success == result);
+		prom.set_value();
+	});
+
+	REQUIRE(fut.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+}
+
 void AutopilotTester::execute_mission()
 {
 	std::promise<void> prom;
@@ -203,6 +285,7 @@ Mission::MissionItem  AutopilotTester::create_mission_item(
 	mission_item.latitude_deg = pos_north.latitude_deg;
 	mission_item.longitude_deg = pos_north.longitude_deg;
 	mission_item.relative_altitude_m = mission_options.relative_altitude_m;
+	mission_item.is_fly_through = mission_options.fly_through;
 	return mission_item;
 }
 
@@ -220,6 +303,50 @@ void AutopilotTester::offboard_goto(const Offboard::PositionNedYaw &target, floa
 	[ = ]() { return estimated_position_close_to(target, acceptance_radius_m); }, timeout_duration));
 	std::cout << "Target position reached" << std::endl;
 }
+
+void AutopilotTester::check_mission_item_speed_above(int item_index, float min_speed_m_s)
+{
+
+	_telemetry->set_rate_velocity_ned(10);
+	_telemetry->subscribe_velocity_ned([item_index, min_speed_m_s, this](Telemetry::VelocityNed velocity) {
+		float horizontal = std::hypot(velocity.north_m_s, velocity.east_m_s);
+		auto progress = _mission->mission_progress();
+
+		if (progress.current == item_index) {
+			CHECK(horizontal > min_speed_m_s);
+		}
+	});
+}
+
+void AutopilotTester::check_tracks_mission(float corridor_radius_m)
+{
+	auto mission = _mission->download_mission();
+	CHECK(mission.first == Mission::Result::Success);
+
+	std::vector<Mission::MissionItem> mission_items = mission.second.mission_items;
+	auto ct = get_coordinate_transformation();
+
+	_telemetry->set_rate_position_velocity_ned(5);
+	_telemetry->subscribe_position_velocity_ned([ct, mission_items, corridor_radius_m,
+	    this](Telemetry::PositionVelocityNed position_velocity_ned) {
+		auto progress = _mission->mission_progress();
+
+		if (progress.current > 0 && progress.current < progress.total) {
+			// Get shortest distance of current position to 3D line between previous and next waypoint
+
+			std::array<float, 3> current { position_velocity_ned.position.north_m,
+						       position_velocity_ned.position.east_m,
+						       position_velocity_ned.position.down_m };
+			std::array<float, 3> wp_prev = get_local_mission_item(mission_items[progress.current - 1], ct);
+			std::array<float, 3> wp_next = get_local_mission_item(mission_items[progress.current], ct);
+
+			float distance_to_trajectory = point_to_line_distance(current, wp_prev, wp_next);
+
+			CHECK(distance_to_trajectory < corridor_radius_m);
+		}
+	});
+}
+
 
 void AutopilotTester::offboard_land()
 {

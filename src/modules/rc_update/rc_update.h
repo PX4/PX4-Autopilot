@@ -166,6 +166,8 @@ private:
 
 	hrt_abstime _last_rc_to_param_map_time = 0;
 
+	uint8_t _channel_count_previous{0};
+
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 
 	DEFINE_PARAMETERS(

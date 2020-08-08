@@ -36,6 +36,9 @@
 #include <px4_platform_common/log.h>
 #include <lib/ecl/geo/geo.h>
 
+namespace sensors
+{
+
 using namespace matrix;
 using namespace time_literals;
 
@@ -43,7 +46,7 @@ static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
 VehicleAirData::VehicleAirData() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_voter.set_timeout(SENSOR_TIMEOUT);
 }
@@ -51,14 +54,12 @@ VehicleAirData::VehicleAirData() :
 VehicleAirData::~VehicleAirData()
 {
 	Stop();
-
 	perf_free(_cycle_perf);
 }
 
 bool VehicleAirData::Start()
 {
 	ScheduleNow();
-
 	return true;
 }
 
@@ -122,6 +123,8 @@ void VehicleAirData::Run()
 {
 	perf_begin(_cycle_perf);
 
+	ParametersUpdate();
+
 	SensorCorrectionsUpdate();
 
 	bool updated[MAX_SENSOR_COUNT] {};
@@ -135,7 +138,7 @@ void VehicleAirData::Run()
 					if (uorb_index > 0) {
 						/* the first always exists, but for each further sensor, add a new validator */
 						if (!_voter.add_new_validator()) {
-							PX4_ERR("failed to add validator for sensor_baro:%i", uorb_index);
+							PX4_ERR("failed to add validator for %s %i", "BARO", uorb_index);
 						}
 					}
 
@@ -182,56 +185,79 @@ void VehicleAirData::Run()
 				sub.unregisterCallback();
 			}
 
+			if (_selected_sensor_sub_index >= 0) {
+				PX4_INFO("%s switch from #%u -> #%d", "BARO", _selected_sensor_sub_index, best_index);
+			}
+
 			_selected_sensor_sub_index = best_index;
 			_sensor_sub[_selected_sensor_sub_index].registerCallback();
 		}
 	}
 
-	if ((_selected_sensor_sub_index >= 0) && updated[_selected_sensor_sub_index]) {
-		ParametersUpdate();
+	if ((_selected_sensor_sub_index >= 0)
+	    && (_voter.get_sensor_state(_selected_sensor_sub_index) == DataValidator::ERROR_FLAG_NO_ERROR)
+	    && updated[_selected_sensor_sub_index]) {
 
 		const sensor_baro_s &baro = _last_data[_selected_sensor_sub_index];
 
-		// populate vehicle_air_data with primary baro and publish
-		vehicle_air_data_s out{};
-		out.timestamp_sample = baro.timestamp; // TODO: baro.timestamp_sample;
-		out.baro_device_id = baro.device_id;
-		out.baro_temp_celcius = baro.temperature;
+		_baro_timestamp_sum += baro.timestamp_sample;
+		_baro_sum += baro.pressure;
+		_baro_sum_count++;
 
-		// Convert from millibar to Pa and apply temperature compensation
-		out.baro_pressure_pa = 100.0f * baro.pressure - _thermal_offset[_selected_sensor_sub_index];
+		if ((_param_sens_baro_rate.get() > 0)
+		    && hrt_elapsed_time(&_last_publication_timestamp) >= (1e6f / _param_sens_baro_rate.get())) {
 
-		// calculate altitude using the hypsometric equation
-		static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-		static constexpr float a = -6.5f / 1000.0f; // temperature gradient in degrees per metre
+			const float pressure = _baro_sum / _baro_sum_count;
+			const hrt_abstime timestamp_sample = _baro_timestamp_sum / _baro_sum_count;
 
-		// current pressure at MSL in kPa (QNH in hPa)
-		const float p1 = _param_sens_baro_qnh.get() * 0.1f;
+			// reset
+			_baro_timestamp_sum = 0;
+			_baro_sum = 0.f;
+			_baro_sum_count = 0;
 
-		// measured pressure in kPa
-		const float p = out.baro_pressure_pa * 0.001f;
+			// populate vehicle_air_data with primary baro and publish
+			vehicle_air_data_s out{};
+			out.timestamp_sample = timestamp_sample;
+			out.baro_device_id = baro.device_id;
+			out.baro_temp_celcius = baro.temperature;
 
-		/*
-		 * Solve:
-		 *
-		 *     /        -(aR / g)     \
-		 *    | (p / p1)          . T1 | - T1
-		 *     \                      /
-		 * h = -------------------------------  + h1
-		 *                   a
-		 */
-		out.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
+			// Convert from millibar to Pa and apply temperature compensation
+			out.baro_pressure_pa = 100.0f * pressure - _thermal_offset[_selected_sensor_sub_index];
 
-		// calculate air density
-		// estimate air density assuming typical 20degC ambient temperature
-		// TODO: use air temperature if available (differential pressure sensors)
-		static constexpr float pressure_to_density = 1.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f -
-				CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+			// calculate altitude using the hypsometric equation
+			static constexpr float T1 = 15.0f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
+			static constexpr float a = -6.5f / 1000.0f; // temperature gradient in degrees per metre
 
-		out.rho = pressure_to_density * out.baro_pressure_pa;
+			// current pressure at MSL in kPa (QNH in hPa)
+			const float p1 = _param_sens_baro_qnh.get() * 0.1f;
 
-		out.timestamp = hrt_absolute_time();
-		_vehicle_air_data_pub.publish(out);
+			// measured pressure in kPa
+			const float p = out.baro_pressure_pa * 0.001f;
+
+			/*
+			 * Solve:
+			 *
+			 *     /        -(aR / g)     \
+			 *    | (p / p1)          . T1 | - T1
+			 *     \                      /
+			 * h = -------------------------------  + h1
+			 *                   a
+			 */
+			out.baro_alt_meter = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
+
+			// calculate air density
+			// estimate air density assuming typical 20degC ambient temperature
+			// TODO: use air temperature if available (differential pressure sensors)
+			static constexpr float pressure_to_density = 1.0f / (CONSTANTS_AIR_GAS_CONST * (20.0f -
+					CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+
+			out.rho = pressure_to_density * out.baro_pressure_pa;
+
+			out.timestamp = hrt_absolute_time();
+			_vehicle_air_data_pub.publish(out);
+
+			_last_publication_timestamp = out.timestamp;
+		}
 	}
 
 	// check failover and report
@@ -239,18 +265,13 @@ void VehicleAirData::Run()
 		uint32_t flags = _voter.failover_state();
 		int failover_index = _voter.failover_index();
 
-		if (flags == DataValidator::ERROR_FLAG_NO_ERROR) {
-			if (failover_index != -1) {
-				// we switched due to a non-critical reason. No need to panic.
-				PX4_INFO("sensor_baro switch from #%i", failover_index);
-			}
-
-		} else {
+		if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
 			if (failover_index != -1) {
 				const hrt_abstime now = hrt_absolute_time();
 
 				if (now - _last_error_message > 3_s) {
-					mavlink_log_emergency(&_mavlink_log_pub, "sensor_baro:#%i failed: %s%s%s%s%s!, reconfiguring priorities",
+					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!",
+							      "BARO",
 							      failover_index,
 							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
 							      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
@@ -264,6 +285,8 @@ void VehicleAirData::Run()
 				_priority[failover_index] = ORB_PRIO_MIN;
 			}
 		}
+
+		_last_failover_count = _voter.failover_count();
 	}
 
 	// reschedule timeout
@@ -285,3 +308,5 @@ void VehicleAirData::PrintStatus()
 
 	_voter.print();
 }
+
+}; // namespace sensors

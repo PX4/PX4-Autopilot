@@ -111,6 +111,9 @@ class TestHadrwareMethods(unittest.TestCase):
     def test_matrix(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "matrix"))
 
+    def test_microbench_atomic(self):
+        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_atomic"))
+
     def test_microbench_hrt(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "microbench_hrt"))
 

@@ -37,7 +37,7 @@
 
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_launchDetector(this),
@@ -1754,13 +1754,13 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	/* scale throttle cruise by baro pressure */
 	if (_param_fw_thr_alt_scl.get() > FLT_EPSILON) {
-		sensor_baro_s baro{};
+		vehicle_air_data_s air_data;
 
-		if (_sensor_baro_sub.update(&baro)) {
-			if (PX4_ISFINITE(baro.pressure) && PX4_ISFINITE(_param_fw_thr_alt_scl.get())) {
+		if (_vehicle_air_data_sub.copy(&air_data)) {
+			if (PX4_ISFINITE(air_data.baro_pressure_pa) && PX4_ISFINITE(_param_fw_thr_alt_scl.get())) {
 				// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
-				const float eas2tas = sqrtf(CONSTANTS_STD_PRESSURE_MBAR / baro.pressure);
-				const float scale = constrain((eas2tas - 1.0f) * _param_fw_thr_alt_scl.get() + 1.0f, 1.0f, 2.0f);
+				const float eas2tas = sqrtf(CONSTANTS_STD_PRESSURE_PA / air_data.baro_pressure_pa);
+				const float scale = constrain((eas2tas - 1.0f) * _param_fw_thr_alt_scl.get() + 1.f, 1.f, 2.f);
 
 				throttle_max = constrain(throttle_max * scale, throttle_min, 1.0f);
 				throttle_cruise = constrain(throttle_cruise * scale, throttle_min + 0.01f, throttle_max - 0.01f);

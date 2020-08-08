@@ -341,6 +341,82 @@ pipeline {
                     // configure
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 13000"' // generic vtol standard
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set IMU_GYRO_RATEMAX 2000"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io forceupdate 14662 /etc/extras/px4_io-v2_default.bin"' // force px4io update
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                        // reboot to apply
+                  }
+                }
+                stage("status") {
+                  steps {
+                    statusFTDI()
+                  }
+                }
+                stage("tests") {
+                  steps {
+                    // run tests
+                    sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+                  }
+                }
+                stage("reset") {
+                  steps {
+                    cleanupFTDI();
+                  }
+                }
+              }
+              options {
+                timeout(time: 60, unit: 'MINUTES')
+              }
+            } // stage test
+          }
+        }
+
+        stage("px4_fmu-v5_debug") {
+          stages {
+            stage("build px4_fmu-v5_debug") {
+              agent {
+                docker {
+                  image 'px4io/px4-dev-nuttx-bionic:2020-04-01'
+                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                }
+              }
+              steps {
+                sh 'export'
+                sh 'make distclean'
+                sh 'ccache -s'
+                sh 'git fetch --tags'
+                sh 'make px4_fmu-v5_debug'
+                sh 'make sizes'
+                sh 'ccache -s'
+                stash includes: 'build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf', name: 'px4_fmu-v5_debug'
+              }
+              post {
+                always {
+                    sh 'make distclean'
+                }
+              }
+            } // stage build
+            stage("test") {
+              agent {
+                label 'px4_fmu-v5'
+              }
+              stages {
+                stage("flash") {
+                  steps {
+                    sh 'export'
+                    sh 'find /dev/serial'
+                    unstash 'px4_fmu-v5_debug'
+                    // flash board and watch bootup
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf'
+                    sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+                  }
+                }
+                stage("configure") {
+                  steps {
+                    // configure
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set IMU_GYRO_RATEMAX 250"' // limit cpu usage
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 4001"' // generic multicopter
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io forceupdate 14662 /etc/extras/px4_io-v2_default.bin"' // force px4io update
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                        // reboot to apply
@@ -635,8 +711,11 @@ pipeline {
                   steps {
                     // configure
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 13000"' // generic vtol standard
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_BL_UPDATE 1"'     // update bootloader
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set DSHOT_CONFIG 600"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set IMU_GYRO_RATEMAX 4000"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 4001"' // generic quadcopter
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_BL_UPDATE 1"'    // update bootloader
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_USE_IO 0"'       // for dshot
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io forceupdate 14662 /etc/extras/px4_io-v2_default.bin"' // force px4io update
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                        // reboot to apply
@@ -644,6 +723,7 @@ pipeline {
                 }
                 stage("status") {
                   steps {
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dshot status"'
                     statusFTDI()
                   }
                 }
@@ -739,79 +819,6 @@ pipeline {
           }
         }
 
-        stage("mro_ctrl-zero-f7_default") {
-          stages {
-            stage("build mro_ctrl-zero-f7_default") {
-              agent {
-                docker {
-                  image 'px4io/px4-dev-nuttx-bionic:2020-04-01'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-                }
-              }
-              steps {
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
-                sh 'make mro_ctrl-zero-f7_default'
-                sh 'make sizes'
-                sh 'ccache -s'
-                stash includes: 'build/mro_ctrl-zero-f7_default/mro_ctrl-zero-f7_default.elf', name: 'mro_ctrl-zero-f7_default'
-              }
-              post {
-                always {
-                    sh 'make distclean'
-                }
-              }
-            } // stage build
-            stage("test") {
-              agent {
-                label 'mro_ctrl-zero-f7'
-              }
-              stages {
-                stage("flash") {
-                  steps {
-                    sh 'export'
-                    sh 'find /dev/serial'
-                    unstash 'mro_ctrl-zero-f7_default'
-                    // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/mro_ctrl-zero-f7_default/mro_ctrl-zero-f7_default.elf'
-                    sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
-                  }
-                }
-                stage("configure") {
-                  steps {
-                    // configure
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set SYS_AUTOSTART 4001"'  // generic multicopter
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param save"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "reboot"'                        // reboot to apply
-                  }
-                }
-                stage("status") {
-                  steps {
-                    statusFTDI()
-                  }
-                }
-                stage("tests") {
-                  steps {
-                    // run tests
-                    sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*` || true' // ignore failures for now (flaky console on test rack)
-                  }
-                }
-                stage("reset") {
-                  steps {
-                    cleanupFTDI();
-                  }
-                }
-              }
-              options {
-                timeout(time: 60, unit: 'MINUTES')
-              }
-            } // stage test
-          }
-        }
-
       } // parallel
     } // stage Hardware Test
   } // stages
@@ -842,6 +849,7 @@ void statusFTDI() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "gps status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener adc_report"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener battery_status"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener cpuload"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener logger_status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener sensor_accel"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener sensor_accel_fifo"'
@@ -850,8 +858,9 @@ void statusFTDI() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener sensor_gyro"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener sensor_gyro_fifo"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener sensor_mag"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener servorail_status"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener px4io_status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener system_power"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener vehicle_air_data"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener vehicle_attitude"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener vehicle_imu"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "listener vehicle_imu_status"'
@@ -905,6 +914,7 @@ void statusSEGGER() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "gps status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener adc_report"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener battery_status"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener cpuload"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener logger_status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener sensor_accel"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener sensor_accel_fifo"'
@@ -913,8 +923,9 @@ void statusSEGGER() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener sensor_gyro"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener sensor_gyro_fifo"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener sensor_mag"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener servorail_status"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener px4io_status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener system_power"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener vehicle_air_data"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener vehicle_attitude"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener vehicle_imu"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "listener vehicle_imu_status"'

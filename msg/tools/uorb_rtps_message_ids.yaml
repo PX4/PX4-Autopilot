@@ -163,7 +163,7 @@ rtps:
   - msg: sensor_selection
     id: 70
     send: true
-  - msg: servorail_status
+  - msg: px4io_status
     id: 71
   - msg: subsystem_info
     id: 72
@@ -295,6 +295,8 @@ rtps:
     id: 131
   - msg: yaw_estimator_status
     id: 132
+  - msg: telemetry_heartbeat
+    id: 133
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150

@@ -69,7 +69,6 @@ enum class Register : uint8_t {
 	INT_MAP_1     = 0x1A,
 
 	INT_OUT_CTRL  = 0x20,
-	INT_RST_LATCH = 0x21,
 
 	FIFO_CONFIG_0 = 0x30,
 
@@ -126,12 +125,6 @@ enum INT_MAP_1_BIT : uint8_t {
 enum INT_OUT_CTRL_BIT : uint8_t {
 	int1_od  = Bit1,
 	int1_lvl = Bit0,
-};
-
-// INT_RST_LATCH
-enum INT_RST_LATCH_BIT : uint8_t {
-	// latch_int<3:0>
-	temporary_250us = Bit3 | Bit0, // 1001b -> temporary, 250 us
 };
 
 // FIFO_CONFIG_1

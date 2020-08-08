@@ -308,7 +308,7 @@ __END_DECLS
 #define VDD_ETH_EN(on_true)                px4_arch_gpiowrite(nGPIO_ETHERNET_P_EN, !(on_true))
 // Do not have #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
 // Do not have #define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
-#define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_SENSOR_P_EN, !(on_true))
+#define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_SENSOR_P_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_SPEKTRUM_P_EN, !(on_true))
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_SPEKTRUM_P_EN)
 // Do not have #define VDD_5V_RC_EN(on_true)              px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))

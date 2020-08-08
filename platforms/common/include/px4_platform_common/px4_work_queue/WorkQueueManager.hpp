@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,8 +65,8 @@ static constexpr wq_config_t I2C3{"wq:I2C3", 1472, -11};
 static constexpr wq_config_t I2C4{"wq:I2C4", 1472, -12};
 
 // PX4 att/pos controllers, highest priority after sensors.
-static constexpr wq_config_t attitude_ctrl{"wq:attitude_ctrl", 1632, -13};
-static constexpr wq_config_t navigation_and_controllers{"wq:navigation_and_controllers", 7200, -14};
+static constexpr wq_config_t attitude_ctrl{"wq:attitude_ctrl", 1640, -13};
+static constexpr wq_config_t nav_and_controllers{"wq:nav_and_controllers", 7200, -14};
 
 static constexpr wq_config_t hp_default{"wq:hp_default", 1900, -15};
 
