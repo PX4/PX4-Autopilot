@@ -114,7 +114,6 @@ private:
 	struct manual_control_setpoint_s	_manual_control_setpoint {};	/**< manual control setpoint */
 	struct vehicle_control_mode_s		_v_control_mode {};	/**< vehicle control mode */
 	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
-	struct vehicle_land_detected_s		_vehicle_land_detected {};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
@@ -127,6 +126,7 @@ private:
 
 	hrt_abstime _last_run{0};
 
+	bool _landed{true};
 	bool _reset_yaw_sp{true};
 
 	uint8_t _quat_reset_counter{0};

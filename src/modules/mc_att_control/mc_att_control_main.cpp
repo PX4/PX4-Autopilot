@@ -104,7 +104,7 @@ MulticopterAttitudeControl::parameters_updated()
 float
 MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 {
-	const float throttle_min = _vehicle_land_detected.landed ? 0.0f : _param_mpc_manthr_min.get();
+	const float throttle_min = _landed ? 0.0f : _param_mpc_manthr_min.get();
 
 	// throttle_stick_input is in range [0, 1]
 	switch (_param_mpc_thr_curve.get()) {
@@ -268,7 +268,15 @@ MulticopterAttitudeControl::Run()
 		/* check for updates in other topics */
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_v_control_mode_sub.update(&_v_control_mode);
-		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+
+		if (_vehicle_land_detected_sub.updated()) {
+			vehicle_land_detected_s vehicle_land_detected;
+
+			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+				_landed = vehicle_land_detected.landed;
+			}
+		}
+
 		_vehicle_status_sub.update(&_vehicle_status);
 
 		/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
@@ -334,8 +342,7 @@ MulticopterAttitudeControl::Run()
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
 		// attitude setpoint for the transition
 		_reset_yaw_sp = (!attitude_setpoint_generated && !_v_control_mode.flag_control_rattitude_enabled) ||
-				_vehicle_land_detected.landed ||
-				(_vehicle_status.is_vtol && _vehicle_status.in_transition_mode);
+				_landed || (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode);
 
 	}
 
