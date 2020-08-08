@@ -220,31 +220,6 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 }
 
-/**
- * Attitude controller.
- * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
- * Output: '_rates_sp' vector
- */
-void
-MulticopterAttitudeControl::control_attitude()
-{
-	_rates_sp = _attitude_control.update(Quatf(_v_att.q));
-}
-
-void
-MulticopterAttitudeControl::publish_rates_setpoint()
-{
-	vehicle_rates_setpoint_s v_rates_sp{};
-
-	v_rates_sp.roll = _rates_sp(0);
-	v_rates_sp.pitch = _rates_sp(1);
-	v_rates_sp.yaw = _rates_sp(2);
-	_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
-	v_rates_sp.timestamp = hrt_absolute_time();
-
-	_v_rates_sp_pub.publish(v_rates_sp);
-}
-
 void
 MulticopterAttitudeControl::Run()
 {
@@ -333,16 +308,27 @@ MulticopterAttitudeControl::Run()
 				_man_y_input_filter.reset(0.f);
 			}
 
-			control_attitude();
+			Vector3f rates_sp = _attitude_control.update(Quatf(_v_att.q));
 
 			if (_v_control_mode.flag_control_yawrate_override_enabled) {
 				/* Yaw rate override enabled, overwrite the yaw setpoint */
-				_v_rates_sp_sub.update(&_v_rates_sp);
-				const auto yawrate_reference = _v_rates_sp.yaw;
-				_rates_sp(2) = yawrate_reference;
+				vehicle_rates_setpoint_s v_rates_sp{};
+
+				if (_v_rates_sp_sub.copy(&v_rates_sp)) {
+					const auto yawrate_reference = v_rates_sp.yaw;
+					rates_sp(2) = yawrate_reference;
+				}
 			}
 
-			publish_rates_setpoint();
+			// publish rate setpoint
+			vehicle_rates_setpoint_s v_rates_sp{};
+			v_rates_sp.roll = rates_sp(0);
+			v_rates_sp.pitch = rates_sp(1);
+			v_rates_sp.yaw = rates_sp(2);
+			_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
+			v_rates_sp.timestamp = hrt_absolute_time();
+
+			_v_rates_sp_pub.publish(v_rates_sp);
 		}
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
