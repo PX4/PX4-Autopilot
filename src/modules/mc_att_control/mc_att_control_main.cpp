@@ -67,9 +67,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
-	/* initialize quaternions in messages to be valid */
-	_v_att.q[0] = 1.f;
-
 	parameters_updated();
 }
 
@@ -122,10 +119,10 @@ MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 }
 
 void
-MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_sp)
+MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt, bool reset_yaw_sp)
 {
 	vehicle_attitude_setpoint_s attitude_setpoint{};
-	const float yaw = Eulerf(Quatf(_v_att.q)).psi();
+	const float yaw = Eulerf(q).psi();
 
 	/* reset yaw setpoint to current position if needed */
 	if (reset_yaw_sp) {
@@ -242,9 +239,9 @@ MulticopterAttitudeControl::Run()
 	}
 
 	// run controller on attitude updates
-	const uint8_t prev_quat_reset_counter = _v_att.quat_reset_counter;
+	vehicle_attitude_s v_att;
 
-	if (_vehicle_attitude_sub.update(&_v_att)) {
+	if (_vehicle_attitude_sub.update(&v_att)) {
 
 		// Check for new attitude setpoint
 		if (_vehicle_attitude_setpoint_sub.updated()) {
@@ -255,18 +252,18 @@ MulticopterAttitudeControl::Run()
 		}
 
 		// Check for a heading reset
-		if (prev_quat_reset_counter != _v_att.quat_reset_counter) {
-			const Quatf delta_q_reset(_v_att.delta_q_reset);
+		if (_quat_reset_counter != v_att.quat_reset_counter) {
+			const Quatf delta_q_reset(v_att.delta_q_reset);
 			// for stabilized attitude generation only extract the heading change from the delta quaternion
 			_man_yaw_sp += Eulerf(delta_q_reset).psi();
 			_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
+
+			_quat_reset_counter = v_att.quat_reset_counter;
 		}
 
-		const hrt_abstime now = _v_att.timestamp;
-
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.0002f, 0.02f);
-		_last_run = now;
+		const float dt = math::constrain(((v_att.timestamp - _last_run) * 1e-6f), 0.0002f, 0.02f);
+		_last_run = v_att.timestamp;
 
 		/* check for updates in other topics */
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
@@ -294,13 +291,16 @@ MulticopterAttitudeControl::Run()
 		bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
 
 		if (run_att_ctrl) {
+
+			const Quatf q{v_att.q};
+
 			// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
 			if (_v_control_mode.flag_control_manual_enabled &&
 			    !_v_control_mode.flag_control_altitude_enabled &&
 			    !_v_control_mode.flag_control_velocity_enabled &&
 			    !_v_control_mode.flag_control_position_enabled) {
 
-				generate_attitude_setpoint(dt, _reset_yaw_sp);
+				generate_attitude_setpoint(q, dt, _reset_yaw_sp);
 				attitude_setpoint_generated = true;
 
 			} else {
@@ -308,7 +308,7 @@ MulticopterAttitudeControl::Run()
 				_man_y_input_filter.reset(0.f);
 			}
 
-			Vector3f rates_sp = _attitude_control.update(Quatf(_v_att.q));
+			Vector3f rates_sp = _attitude_control.update(q);
 
 			if (_v_control_mode.flag_control_yawrate_override_enabled) {
 				/* Yaw rate override enabled, overwrite the yaw setpoint */
