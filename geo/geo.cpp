@@ -304,7 +304,7 @@ void waypoint_from_heading_and_distance(double lat_start, double lon_start, floa
 					double *lat_target, double *lon_target)
 {
 	bearing = wrap_2pi(bearing);
-	double radius_ratio = dist / CONSTANTS_RADIUS_OF_EARTH;
+	double radius_ratio = static_cast<double>(dist) / CONSTANTS_RADIUS_OF_EARTH;
 
 	double lat_start_rad = math::radians(lat_start);
 	double lon_start_rad = math::radians(lon_start);
