@@ -60,7 +60,7 @@ private:
     }
 
 public:
-    static constexpr size_t non_zeros() {
+    constexpr size_t non_zeros() const {
         return N;
     }
 
@@ -92,6 +92,16 @@ public:
         static constexpr int compressed_index = force_constexpr_eval<findCompressedIndex(i)>::value;
         static_assert(compressed_index >= 0, "cannot access unpopulated indices");
         return _data[compressed_index];
+    }
+
+    inline Type atCompressedIndex(size_t i) const {
+        assert(i < N);
+        return _data[i];
+    }
+
+    inline Type& atCompressedIndex(size_t i) {
+        assert(i < N);
+        return _data[i];
     }
 
     void setZero() {
