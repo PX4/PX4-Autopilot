@@ -123,7 +123,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_negative_distance)
 	double lon_start = 18;
 	float bearing = 0;
 	float lat_offset = -0.01f;
-	float dist = CONSTANTS_RADIUS_OF_EARTH * std::sin(M_PI/180) * lat_offset;
+	float dist = CONSTANTS_RADIUS_OF_EARTH * sin(M_PI/180) * lat_offset;
 
 	double lat_target = 0;
 	double lon_target = 0;
