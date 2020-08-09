@@ -41,7 +41,7 @@ bool ImuDownSampler::update(const imuSample &imu_sample_new)
 		_imu_collection_time_adj = math::constrain(_imu_collection_time_adj, -0.5f * _target_dt,
 							   0.5f * _target_dt);
 
-		_imu_down_sampled.delta_ang = _delta_angle_accumulated.to_axis_angle();
+		_imu_down_sampled.delta_ang = AxisAnglef(_delta_angle_accumulated);
 
 		return true;
 
