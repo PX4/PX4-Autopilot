@@ -30,19 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE modules__land_detector
-	MAIN land_detector
+	MODULE modules__airship_att_control
+	MAIN airship_att_control
+	STACK_MAX 3500
 	COMPILE_FLAGS
 	SRCS
-		land_detector_main.cpp
-		LandDetector.cpp
-		MulticopterLandDetector.cpp
-		FixedwingLandDetector.cpp
-		VtolLandDetector.cpp
-		RoverLandDetector.cpp
-		AirshipLandDetector.cpp
+		airship_att_control_main.cpp
 	DEPENDS
-		hysteresis
+		px4_work_queue
 	)
-
