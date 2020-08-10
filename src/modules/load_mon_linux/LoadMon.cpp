@@ -33,8 +33,6 @@
 
 #include "LoadMon.hpp"
 
-static constexpr unsigned FDS_LOW_WARNING_THRESHOLD = 2; ///< if free file descriptors fall below this, print a warning
-
 using namespace time_literals;
 
 namespace load_mon
