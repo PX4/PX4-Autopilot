@@ -118,7 +118,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_zero_distance)
 
 TEST_F(GeoTest, waypoint_from_heading_and_negative_distance)
 {
-	// GIVEN: a starting waypoint, a heading and a distance of 0
+	// GIVEN: a starting waypoint, a heading and negative distance
 	double lat_start = -33;
 	double lon_start = 18;
 	float bearing = 0;
@@ -133,5 +133,88 @@ TEST_F(GeoTest, waypoint_from_heading_and_negative_distance)
 
 	// THEN: it should be the same
 	EXPECT_FLOAT_EQ(lat_start + lat_offset, lat_target);
+	EXPECT_DOUBLE_EQ(lon_start, lon_target);
+}
+
+TEST_F(GeoTest, waypoint_from_heading_and_positive_distance)
+{
+	// GIVEN: a starting waypoint, a heading and positive distance
+	double lat_start = -33;
+	double lon_start = 18;
+	float bearing = 0;
+	float lat_offset = 0.01f;
+	float dist = CONSTANTS_RADIUS_OF_EARTH * sin(M_PI/180) * lat_offset;
+
+	double lat_target = 0;
+	double lon_target = 0;
+
+	// WHEN: we get the next waypoint
+	waypoint_from_heading_and_distance(lat_start, lon_start, bearing, dist, &lat_target, &lon_target);
+
+	// THEN: it should be the same
+	EXPECT_FLOAT_EQ(lat_start + lat_offset, lat_target);
+	EXPECT_DOUBLE_EQ(lon_start, lon_target);
+}
+
+TEST_F(GeoTest, waypoint_from_line_and_zero_distance)
+{
+	// GIVEN: a starting waypoint, a heading and a distance of 0
+	double lat_start = -33;
+	double lon_start = 18;
+	double lat_end = -32;
+	double lon_end = 18;
+	float dist = 0;
+
+	double lat_target = 0;
+	double lon_target = 0;
+
+	// WHEN: we get the next waypoint
+	create_waypoint_from_line_and_dist(lat_start, lon_start, lat_end, lon_end, dist, &lat_target, &lon_target);
+
+	// THEN: it should be the same
+	EXPECT_DOUBLE_EQ(lat_start, lat_target);
+	EXPECT_DOUBLE_EQ(lon_start, lon_target);
+}
+
+TEST_F(GeoTest, waypoint_from_line_and_positive_distance)
+{
+	// GIVEN: a starting waypoint, a heading and a positive distance
+	double lat_start = -33;
+	double lon_start = 18;
+	double lat_offset = 0.01;
+	double lat_end = lat_start + lat_offset;
+	double lon_end = 18;
+	float dist = CONSTANTS_RADIUS_OF_EARTH * sin(M_PI/180) * lat_offset;
+
+	double lat_target = 0;
+	double lon_target = 0;
+
+	// WHEN: we get the next waypoint
+	create_waypoint_from_line_and_dist(lat_start, lon_start, lat_end, lon_end, dist, &lat_target, &lon_target);
+
+	// THEN: it should be the same
+	EXPECT_FLOAT_EQ(lat_start + lat_offset, lat_target);
+	EXPECT_DOUBLE_EQ(lon_start, lon_target);
+}
+
+
+TEST_F(GeoTest, waypoint_from_line_and_negative_distance)
+{
+	// GIVEN: a starting waypoint, a heading and a negative distance
+	double lat_start = -33;
+	double lon_start = 18;
+	double lat_offset = 0.01;
+	double lat_end = lat_start + lat_offset;
+	double lon_end = 18;
+	float dist = -CONSTANTS_RADIUS_OF_EARTH * sin(M_PI/180) * lat_offset;
+
+	double lat_target = 0;
+	double lon_target = 0;
+
+	// WHEN: we get the next waypoint
+	create_waypoint_from_line_and_dist(lat_start, lon_start, lat_end, lon_end, dist, &lat_target, &lon_target);
+
+	// THEN: it should be the same
+	EXPECT_FLOAT_EQ(lat_start - lat_offset, lat_target);
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
