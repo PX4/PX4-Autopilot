@@ -26,10 +26,13 @@ private:
     static constexpr size_t _indices[N] {Idxs...};
 
     static constexpr bool duplicateIndices() {
-        for (size_t i = 0; i < N; i++)
-            for (size_t j = 0; j < i; j++)
-                if (_indices[i] == _indices[j])
+        for (size_t i = 0; i < N; i++) {
+            for (size_t j = 0; j < i; j++) {
+                if (_indices[i] == _indices[j]) {
                     return true;
+                }
+            }
+        }
         return false;
     }
     static constexpr size_t findMaxIndex() {
@@ -42,7 +45,7 @@ private:
         return maxIndex;
     }
 
-    static_assert(duplicateIndices() == false, "Duplicate indices");
+    static_assert(!duplicateIndices(), "Duplicate indices");
     static_assert(N < M, "More entries than elements, use a dense vector");
     static_assert(N > 0, "A sparse vector needs at least one element");
     static_assert(findMaxIndex() < M, "Largest entry doesn't fit in sparse vector");
