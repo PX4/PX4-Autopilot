@@ -166,8 +166,12 @@ CM8JL65::collect()
 			index--;
 		}
 
+	} else if (bytes_read == -1 && errno == EAGAIN) {
+		return -EAGAIN;
+
 	} else {
-		PX4_INFO("read error: %d", bytes_read);
+
+		PX4_ERR("read error: %i, errno: %i", bytes_read, errno);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return PX4_ERROR;
