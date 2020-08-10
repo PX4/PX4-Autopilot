@@ -123,7 +123,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_negative_distance)
 	double lon_start = 18;
 	float bearing = 0;
 	float lat_offset = -0.01f;
-	float dist = CONSTANTS_RADIUS_OF_EARTH * sin(M_PI/180) * lat_offset;
+	float dist = CONSTANTS_RADIUS_OF_EARTH * M_PI / 180.f * lat_offset;
 
 	double lat_target = 0;
 	double lon_target = 0;
@@ -143,7 +143,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_positive_distance)
 	double lon_start = 18;
 	float bearing = 0;
 	float lat_offset = 0.01f;
-	float dist = CONSTANTS_RADIUS_OF_EARTH * sin(M_PI/180) * lat_offset;
+	float dist = CONSTANTS_RADIUS_OF_EARTH * M_PI / 180.f * lat_offset;
 
 	double lat_target = 0;
 	double lon_target = 0;
@@ -184,7 +184,7 @@ TEST_F(GeoTest, waypoint_from_line_and_positive_distance)
 	double lat_offset = 0.01;
 	double lat_end = lat_start + lat_offset;
 	double lon_end = 18;
-	float dist = CONSTANTS_RADIUS_OF_EARTH * sin(M_PI/180) * lat_offset;
+	float dist = CONSTANTS_RADIUS_OF_EARTH * M_PI / 180.f * lat_offset;
 
 	double lat_target = 0;
 	double lon_target = 0;
@@ -206,7 +206,7 @@ TEST_F(GeoTest, waypoint_from_line_and_negative_distance)
 	double lat_offset = 0.01;
 	double lat_end = lat_start + lat_offset;
 	double lon_end = 18;
-	float dist = -CONSTANTS_RADIUS_OF_EARTH * sin(M_PI/180) * lat_offset;
+	float dist = -CONSTANTS_RADIUS_OF_EARTH * M_PI / 180.f * lat_offset;
 
 	double lat_target = 0;
 	double lon_target = 0;
