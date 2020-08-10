@@ -329,8 +329,8 @@ MulticopterAttitudeControl::Run()
 				vehicle_rates_setpoint_s v_rates_sp{};
 
 				if (_v_rates_sp_sub.copy(&v_rates_sp)) {
-					const auto yawrate_reference = v_rates_sp.yaw;
-					rates_sp(2) = yawrate_reference;
+					const float yawrate_sp = v_rates_sp.yaw;
+					rates_sp(2) = yawrate_sp;
 				}
 			}
 
