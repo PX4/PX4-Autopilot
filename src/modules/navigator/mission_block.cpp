@@ -440,7 +440,7 @@ MissionBlock::is_mission_item_reached()
 
 				// Replace current setpoint lat/lon with tangent coordinate
 				waypoint_from_heading_and_distance(curr_sp.lat, curr_sp.lon,
-								   bearing, curr_sp.loiter_radius,
+								   bearing, fabsf(curr_sp.loiter_radius),
 								   &curr_sp.lat, &curr_sp.lon);
 			}
 
