@@ -133,8 +133,4 @@ private:
 
 	// return the probability of the state estimate for the specified EKF assuming a gaussian error distribution
 	float gaussianDensity(const uint8_t model_index) const;
-
-	// update the inverse of the innovation covariance matrix
-	void updateInnovCovMatInv(const uint8_t model_index, const matrix::SquareMatrix<float, 2> &S);
-
 };
