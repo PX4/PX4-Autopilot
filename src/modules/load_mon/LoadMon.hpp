@@ -45,7 +45,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
 
-#ifdef __PX4_LINUX
+#if defined(__PX4_LINUX)
 #include <sys/times.h>
 #include <malloc.h>
 #endif
@@ -79,8 +79,8 @@ private:
 	/** Do a calculation of the CPU load and publish it. */
 	void cpuload();
 
-	/* Don't check stack usage on Linux */
-#ifndef __PX4_LINUX
+	/* Stack check only available on Nuttx */
+#if defined(__PX4_NUTTX)
 	/* Calculate stack usage */
 	void stack_usage();
 
@@ -90,10 +90,11 @@ private:
 #endif
 	uORB::Publication<cpuload_s> _cpuload_pub {ORB_ID(cpuload)};
 
-#ifdef __PX4_LINUX
+#if defined(__PX4_LINUX)
 	/* calculate usage directly from clock ticks on Linux */
-	clock_t _last_total_time_stamp = 0, _last_spent_time_stamp = 0;
-#else
+	clock_t _last_total_time_stamp{};
+	clock_t _last_spent_time_stamp{};
+#elif defined(__PX4_NUTTX)
 	hrt_abstime _last_idle_time {0};
 	hrt_abstime _last_idle_time_sample{0};
 #endif

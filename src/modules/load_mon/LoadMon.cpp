@@ -33,7 +33,7 @@
 
 #include "LoadMon.hpp"
 
-#ifndef __PX4_LINUX
+#if defined(__PX4_NUTTX)
 // if free stack space falls below this, print a warning
 #if defined(CONFIG_ARMV7M_STACKCHECK)
 static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 100;
@@ -42,7 +42,7 @@ static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 300;
 #endif
 
 static constexpr unsigned FDS_LOW_WARNING_THRESHOLD = 2; ///< if free file descriptors fall below this, print a warning
-#endif // __PX4_LINUX, disable stack related issue
+#endif
 
 using namespace time_literals;
 
@@ -90,7 +90,7 @@ void LoadMon::Run()
 
 	cpuload();
 
-#ifndef __PX4_LINUX
+#if defined(__PX4_NUTTX)
 
 	if (_param_sys_stck_en.get()) {
 		stack_usage();
@@ -108,7 +108,7 @@ void LoadMon::Run()
 
 void LoadMon::cpuload()
 {
-#ifdef __PX4_LINUX
+#if defined(__PX4_LINUX)
 	tms spent_time_stamp_struct;
 	clock_t total_time_stamp = times(&spent_time_stamp_struct);
 	clock_t spent_time_stamp = spent_time_stamp_struct.tms_utime + spent_time_stamp_struct.tms_stime;
@@ -123,7 +123,7 @@ void LoadMon::cpuload()
 	// compute system load
 	const float interval = total_time_stamp - _last_total_time_stamp;
 	const float interval_spent_time = spent_time_stamp - _last_spent_time_stamp;
-#else
+#elif defined(__PX4_NUTTX)
 
 	if (_last_idle_time == 0) {
 		// Just get the time in the first iteration */
@@ -147,9 +147,9 @@ void LoadMon::cpuload()
 	float ram_usage = (float)mem.uordblks / mem.arena;
 
 	cpuload_s cpuload{};
-#ifdef __PX4_LINUX
+#if defined(__PX4_LINUX)
 	cpuload.load = interval_spent_time / interval;
-#else
+#elif defined(__PX4_NUTTX)
 	cpuload.load = 1.f - interval_idletime / interval;
 #endif
 	cpuload.ram_usage = ram_usage;
@@ -158,16 +158,16 @@ void LoadMon::cpuload()
 	_cpuload_pub.publish(cpuload);
 
 	// store for next iteration
-#ifdef __PX4_LINUX
+#if defined(__PX4_LINUX)
 	_last_total_time_stamp = total_time_stamp;
 	_last_spent_time_stamp = spent_time_stamp;
-#else
+#elif defined(__PX4_NUTTX)
 	_last_idle_time = total_runtime;
 	_last_idle_time_sample = now;
 #endif
 }
 
-#ifndef __PX4_LINUX
+#if defined(__PX4_NUTTX)
 void LoadMon::stack_usage()
 {
 	unsigned stack_free = 0;
@@ -230,7 +230,7 @@ void LoadMon::stack_usage()
 	// Continue after last checked task next cycle
 	_stack_task_index = (_stack_task_index + 1) % CONFIG_MAX_TASKS;
 }
-#endif // __PX4_LINUX
+#endif
 
 int LoadMon::print_usage(const char *reason)
 {
@@ -246,8 +246,6 @@ usage and publish the `cpuload` topic.
 
 On NuttX it also checks the stack usage of each process and if it falls below 300 bytes, a warning is output,
 which will also appear in the log file.
-
-On Linux stack check is disabled.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("load_mon", "system");
