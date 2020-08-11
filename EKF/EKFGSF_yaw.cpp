@@ -293,6 +293,7 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 	const float dvyVar = dvxVar; // variance of right delta velocity - (m/s)^2
 	const float dazVar = sq(_gyro_noise * _delta_ang_dt); // variance of yaw delta angle - rad^2
 
+	// optimized auto generated code from SymPy script src/lib/ecl/EKF/python/ekf_derivation/main.py
 	const float S0 = cosf(psi);
 	const float S1 = ecl::powf(S0, 2);
 	const float S2 = sinf(psi);
@@ -341,7 +342,7 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index)
 	const float &P12 = _ekf_gsf[model_index].P(1,2);
 	const float &P22 = _ekf_gsf[model_index].P(2,2);
 
-	// optimized auto generated code
+	// optimized auto generated code from SymPy script src/lib/ecl/EKF/python/ekf_derivation/main.py
 	const float t0 = ecl::powf(P01, 2);
 	const float t1 = -t0;
 	const float t2 = P00*P11 + P00*velObsVar + P11*velObsVar + t1 + ecl::powf(velObsVar, 2);
