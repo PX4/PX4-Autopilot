@@ -81,7 +81,8 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 
 bool VtolType::init()
 {
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	const char *dev = _params->vt_mc_on_fmu ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
+
 	int fd = px4_open(dev, 0);
 
 	if (fd < 0) {
