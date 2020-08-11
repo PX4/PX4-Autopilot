@@ -211,7 +211,7 @@ void UUVAttitudeControl::Run()
 	/* update parameters from storage */
 	parameters_update();
 
-	vehicle_attitude_s attitude {};
+	vehicle_attitude_s attitude;
 
 	/* only run controller if attitude changed */
 	if (_vehicle_attitude_sub.update(&attitude)) {
