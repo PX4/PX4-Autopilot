@@ -157,7 +157,7 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	Dcmf rot_des = Eulerf(roll_body, pitch_body, yaw_body);
 
 	/* get current rotation matrix from control state quaternions */
-	Quatf q_att(attitude.q[0], attitude.q[1], attitude.q[2], attitude.q[3]);
+	Quatf q_att(attitude.q);
 	Matrix3f rot_att = q_att.to_dcm();
 
 	Vector3f e_R_vec;
