@@ -24,6 +24,17 @@ def create_cov_matrix(i, j):
     else:
         return 0
 
+def create_yaw_estimator_cov_matrix():
+    # define a symbolic covariance matrix
+    P = Matrix(3,3,create_cov_matrix)
+
+    for index in range(3):
+        for j in range(3):
+            if index > j:
+                P[index,j] = P[j,index]
+
+    return P
+
 def create_Tbs_matrix(i, j):
     return Symbol("Tbs(" + str(i) + "," + str(j) + ")", real=True)
     # legacy array format
@@ -390,6 +401,92 @@ def beta_observation(P,state,R_to_body,vx,vy,vz,wx,wy):
 
     return
 
+# yaw estimator prediction and observation code
+def yaw_estimator():
+    dt = symbols("dt", real=True)  # dt (sec)
+    psi = symbols("psi", real=True)  # yaw angle of body frame wrt earth frame
+    vn, ve = symbols("vn ve", real=True)  # velocity in world frame (north/east) - m/sec
+    daz = symbols("daz", real=True)  # IMU z axis delta angle measurement in body axes - rad
+    dazVar = symbols("dazVar", real=True) # IMU Z axis delta angle measurement variance (rad^2)
+    dvx, dvy = symbols("dvx dvy", real=True)  # IMU x and y axis delta velocity measurement in body axes - m/sec
+    dvxVar, dvyVar = symbols("dvxVar dvyVar", real=True)   # IMU x and y axis delta velocity measurement variance (m/s)^2
+
+    # derive the body to nav direction transformation matrix
+    Tbn = Matrix([[cos(psi) , -sin(psi)],
+                [sin(psi) ,  cos(psi)]])
+
+    # attitude update equation
+    psiNew = psi + daz
+
+    # velocity update equations
+    velNew = Matrix([vn,ve]) + Tbn*Matrix([dvx,dvy])
+
+    # Define the state vectors
+    stateVector = Matrix([vn,ve,psi])
+
+    # Define vector of process equations
+    newStateVector = Matrix([velNew,psiNew])
+
+    # Calculate state transition matrix
+    F = newStateVector.jacobian(stateVector)
+
+    # Derive the covariance prediction equations
+    # Error growth in the inertial solution is assumed to be driven by 'noise' in the delta angles and
+    # velocities, after bias effects have been removed.
+
+    # derive the control(disturbance) influence matrix from IMU noise to state noise
+    G = newStateVector.jacobian(Matrix([dvx,dvy,daz]))
+
+    # derive the state error matrix
+    distMatrix = Matrix([[dvxVar , 0 , 0],
+                        [0 , dvyVar , 0],
+                        [0 , 0 , dazVar]])
+
+    Q = G * distMatrix * G.T
+
+    # propagate covariance matrix
+    P = create_yaw_estimator_cov_matrix()
+
+    P_new = F * P * F.T + Q
+
+    P_new_simple = cse(P_new, symbols("S0:1000"), optimizations='basic')
+
+    yaw_estimator_covariance_generator = CodeGenerator("./generated/yaw_estimator_covariance_prediction_generated.cpp")
+    yaw_estimator_covariance_generator.print_string("Equations for covariance matrix prediction")
+    yaw_estimator_covariance_generator.write_subexpressions(P_new_simple[0])
+    yaw_estimator_covariance_generator.write_matrix(Matrix(P_new_simple[1]), "_ekf_gsf[model_index].P", True)
+    yaw_estimator_covariance_generator.close()
+
+    # derive the covariance update equation for a NE velocity observation
+    velObsVar = symbols("velObsVar", real=True) # velocity observation variance (m/s)^2
+    H = Matrix([[1,0,0],
+                [0,1,0]])
+
+    R = Matrix([[velObsVar , 0],
+                [0 , velObsVar]])
+
+    S = H * P * H.T + R
+    S_det_inv = 1 / S.det()
+    S_inv = S.inv()
+    K = (P * H.T) * S_inv
+    P_new = P - K * S * K.T
+
+    # optimize code
+    t, [S_det_inv_s, S_inv_s, K_s, P_new_s] = cse([S_det_inv, S_inv, K, P_new], symbols("t0:1000"), optimizations='basic')
+
+    yaw_estimator_observation_generator = CodeGenerator("./generated/yaw_estimator_measurement_update_generated.cpp")
+    yaw_estimator_observation_generator.print_string("Intermediate variables")
+    yaw_estimator_observation_generator.write_subexpressions(t)
+    yaw_estimator_observation_generator.print_string("Equations for NE velocity innovation variance's determinante inverse")
+    yaw_estimator_observation_generator.write_matrix(Matrix([[S_det_inv_s]]), "_ekf_gsf[model_index].S_det_inverse", False)
+    yaw_estimator_observation_generator.print_string("Equations for NE velocity innovation variance inverse")
+    yaw_estimator_observation_generator.write_matrix(Matrix(S_inv_s), "_ekf_gsf[model_index].S_inverse", True)
+    yaw_estimator_observation_generator.print_string("Equations for NE velocity Kalman gain")
+    yaw_estimator_observation_generator.write_matrix(Matrix(K_s), "K", False)
+    yaw_estimator_observation_generator.print_string("Equations for covariance matrix update")
+    yaw_estimator_observation_generator.write_matrix(Matrix(P_new_s), "_ekf_gsf[model_index].P", True)
+    yaw_estimator_observation_generator.close()
+
 def generate_code():
     print('Starting code generation:')
     print('Creating symbolic variables ...')
@@ -521,6 +618,8 @@ def generate_code():
     body_frame_velocity_observation(P,state,R_to_body,vx,vy,vz)
     print('Generating body frame acceleration observation code ...')
     body_frame_accel_observation(P,state,R_to_body,vx,vy,vz,wx,wy)
+    print('Generating yaw estimator code ...')
+    yaw_estimator()
     print('Code generation finished!')
 
 
