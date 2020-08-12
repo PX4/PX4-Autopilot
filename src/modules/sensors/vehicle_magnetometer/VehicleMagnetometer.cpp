@@ -42,8 +42,6 @@ namespace sensors
 using namespace matrix;
 using namespace time_literals;
 
-static constexpr int32_t MAG_ROT_VAL_INTERNAL{-1};
-
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
 VehicleMagnetometer::VehicleMagnetometer() :
@@ -270,16 +268,32 @@ void VehicleMagnetometer::Run()
 
 		const sensor_mag_s &mag = _last_data[_selected_sensor_sub_index];
 
-		// populate vehicle_magnetometer with primary mag and publish
-		vehicle_magnetometer_s out{};
-		out.timestamp_sample = mag.timestamp_sample;
-		out.device_id = mag.device_id;
-		out.magnetometer_ga[0] = mag.x;
-		out.magnetometer_ga[1] = mag.y;
-		out.magnetometer_ga[2] = mag.z;
+		_mag_timestamp_sum += mag.timestamp_sample;
+		_mag_sum += Vector3f{mag.x, mag.y, mag.z};
+		_mag_sum_count++;
 
-		out.timestamp = hrt_absolute_time();
-		_vehicle_magnetometer_pub.publish(out);
+		if ((_param_sens_mag_rate.get() > 0)
+		    && hrt_elapsed_time(&_last_publication_timestamp) >= (1e6f / _param_sens_mag_rate.get())) {
+
+			const Vector3f magnetometer_data = _mag_sum / _mag_sum_count;
+			const hrt_abstime timestamp_sample = _mag_timestamp_sum / _mag_sum_count;
+
+			// reset
+			_mag_timestamp_sum = 0;
+			_mag_sum.zero();
+			_mag_sum_count = 0;
+
+			// populate vehicle_magnetometer with primary mag and publish
+			vehicle_magnetometer_s out{};
+			out.timestamp_sample = timestamp_sample;
+			out.device_id = mag.device_id;
+			magnetometer_data.copyTo(out.magnetometer_ga);
+
+			out.timestamp = hrt_absolute_time();
+			_vehicle_magnetometer_pub.publish(out);
+
+			_last_publication_timestamp = out.timestamp;
+		}
 	}
 
 	// check failover and report

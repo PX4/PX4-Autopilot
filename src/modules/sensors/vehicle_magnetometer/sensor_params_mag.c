@@ -77,3 +77,19 @@ PARAM_DEFINE_INT32(CAL_MAG_COMP_TYP, 0);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(CAL_MAG_ROT_AUTO, 1);
+
+/**
+ * Magnetometer max rate.
+ *
+ * Magnetometer data maximum publication rate. This is an upper bound,
+ * actual magnetometer data rate is still dependant on the sensor.
+ *
+ * @min 1
+ * @max 200
+ * @group Sensors
+ * @unit Hz
+ *
+ * @reboot_required true
+ *
+ */
+PARAM_DEFINE_FLOAT(SENS_MAG_RATE, 50.0f);

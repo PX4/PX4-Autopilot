@@ -110,11 +110,16 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
+	hrt_abstime _last_publication_timestamp{0};
 	hrt_abstime _last_error_message{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	DataValidatorGroup _voter{1};
 	unsigned _last_failover_count{0};
+
+	uint64_t _mag_timestamp_sum{0};
+	matrix::Vector3f _mag_sum{};
+	int _mag_sum_count{0};
 
 	sensor_mag_s _last_data[MAX_SENSOR_COUNT] {};
 	bool _advertised[MAX_SENSOR_COUNT] {};
@@ -128,7 +133,8 @@ private:
 	bool _armed{false};				/**< arming status of the vehicle */
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ
+		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,
+		(ParamFloat<px4::params::SENS_MAG_RATE>) _param_sens_mag_rate
 	)
 };
 }; // namespace sensors
