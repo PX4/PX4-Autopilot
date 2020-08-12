@@ -61,6 +61,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: av_x-v1_default
+    cuav_nora_default:
+      short: cuav_nora
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_nora_default
     cuav_x7pro_default:
       short: cuav_x7pro
       buildType: MinSizeRel
