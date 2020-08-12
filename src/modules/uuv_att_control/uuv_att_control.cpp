@@ -158,7 +158,7 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 	/* get current rotation matrix from control state quaternions */
 	Quatf q_att(attitude.q);
-	Matrix3f rot_att = q_att.to_dcm();
+	Matrix3f rot_att =  matrix::Dcm<float>(q_att);
 
 	Vector3f e_R_vec;
 	Vector3f torques;

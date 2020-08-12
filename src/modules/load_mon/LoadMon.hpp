@@ -45,6 +45,11 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
 
+#if defined(__PX4_LINUX)
+#include <sys/times.h>
+#include <malloc.h>
+#endif
+
 namespace load_mon
 {
 
@@ -74,16 +79,25 @@ private:
 	/** Do a calculation of the CPU load and publish it. */
 	void cpuload();
 
+	/* Stack check only available on Nuttx */
+#if defined(__PX4_NUTTX)
 	/* Calculate stack usage */
 	void stack_usage();
 
 	int _stack_task_index{0};
 
 	uORB::PublicationQueued<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
-	uORB::Publication<cpuload_s> _cpuload_pub{ORB_ID(cpuload)};
+#endif
+	uORB::Publication<cpuload_s> _cpuload_pub {ORB_ID(cpuload)};
 
-	hrt_abstime _last_idle_time{0};
+#if defined(__PX4_LINUX)
+	/* calculate usage directly from clock ticks on Linux */
+	clock_t _last_total_time_stamp{};
+	clock_t _last_spent_time_stamp{};
+#elif defined(__PX4_NUTTX)
+	hrt_abstime _last_idle_time {0};
 	hrt_abstime _last_idle_time_sample{0};
+#endif
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
