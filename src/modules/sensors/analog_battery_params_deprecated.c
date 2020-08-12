@@ -32,8 +32,17 @@
  ****************************************************************************/
 
 /**
- * This parameter is deprecated. Please use BAT1_ADC_CHANNEL.
+ * This parameter is deprecated. Please use BAT1_V_DIV.
  *
  * @group Battery Calibration
+ * @decimal 8
  */
-PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
+PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
+
+/**
+ * This parameter is deprecated. Please use BAT1_A_PER_V.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
