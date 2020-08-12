@@ -110,18 +110,4 @@ endif()
 # library
 add_subdirectory(libuavcan)
 
-# drivers
-if (${UAVCAN_PLATFORM} STREQUAL "linux")
-    message(STATUS "Adding UAVCAN Linux platform driver")
-    add_subdirectory(libuavcan_drivers/posix)
-    add_subdirectory(libuavcan_drivers/linux)
-elseif(${UAVCAN_PLATFORM} STREQUAL "stm32")
-    message(STATUS "Adding UAVCAN STM32 platform driver")
-    add_subdirectory(libuavcan_drivers/posix)
-    add_subdirectory(libuavcan_drivers/stm32/driver)
-elseif(${UAVCAN_PLATFORM} STREQUAL "kinetis")
-    message(STATUS "Adding UAVCAN Kinetis platform driver")
-    add_subdirectory(libuavcan_drivers/posix)
-    add_subdirectory(libuavcan_drivers/kinetis/driver)
-endif()
 # vim: set et ft=cmake fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :

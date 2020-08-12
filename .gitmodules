@@ -5,6 +5,3 @@
 [submodule "libuavcan/dsdl_compiler/pyuavcan"]
 	path = libuavcan/dsdl_compiler/pyuavcan
 	url = https://github.com/UAVCAN/pyuavcan
-[submodule "libuavcan_drivers/kinetis"]
-	path = libuavcan_drivers/kinetis
-	url = https://github.com/UAVCAN/libuavcan_kinetis.git
