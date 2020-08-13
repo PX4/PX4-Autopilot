@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,31 +32,35 @@
  ****************************************************************************/
 
 /**
- * UAVCAN Node ID.
- *
- * Read the specs at http://uavcan.org to learn more about Node ID.
- *
- * @min 1
- * @max 125
- * @group UAVCAN
+ * @author RJ Gritter <rjgritter657@gmail.com>
  */
-PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
 
-/**
- * UAVCAN CAN bus bitrate.
- *
- * @min 20000
- * @max 1000000
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
+#pragma once
 
-/**
- * Units associated with ADC measurement.
- * 0 - raw
- * 1 - mV
- * 2 - mA
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(ADC1_UNIT_TYPE, 1);
-PARAM_DEFINE_INT32(ADC2_UNIT_TYPE, 2);
+#include "sensor_bridge.hpp"
+#include <uORB/topics/analog_voltage_current.h>
+
+#include <com/volansi/equipment/adc/Report.hpp>
+
+class UavcanAdcBridge : public UavcanCDevSensorBridgeBase
+{
+public:
+	static const char *const NAME;
+
+	UavcanAdcBridge(uavcan::INode &node);
+
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
+
+private:
+
+	void adc_sub_cb(const uavcan::ReceivedDataStructure<com::volansi::equipment::adc::Report> &msg);
+
+	typedef uavcan::MethodBinder < UavcanAdcBridge *,
+		void (UavcanAdcBridge::*)
+		(const uavcan::ReceivedDataStructure<com::volansi::equipment::adc::Report> &) >
+		AdcCbBinder;
+
+	uavcan::Subscriber<com::volansi::equipment::adc::Report, AdcCbBinder> _sub_adc_data;
+};

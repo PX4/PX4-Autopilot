@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,32 +31,54 @@
  *
  ****************************************************************************/
 
-/**
- * UAVCAN Node ID.
- *
- * Read the specs at http://uavcan.org to learn more about Node ID.
- *
- * @min 1
- * @max 125
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
+#include <drivers/drv_hrt.h>
+#include "adc.hpp"
 
-/**
- * UAVCAN CAN bus bitrate.
- *
- * @min 20000
- * @max 1000000
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
+const char *const UavcanAdcBridge::NAME = "adc";
 
-/**
- * Units associated with ADC measurement.
- * 0 - raw
- * 1 - mV
- * 2 - mA
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(ADC1_UNIT_TYPE, 1);
-PARAM_DEFINE_INT32(ADC2_UNIT_TYPE, 2);
+UavcanAdcBridge::UavcanAdcBridge(uavcan::INode &node) :
+	UavcanCDevSensorBridgeBase("uavcan_airspeed", "/dev/uavcan/adc", "/dev/adc", ORB_ID(analog_voltage_current)),
+	_sub_adc_data(node)
+{ }
+
+int UavcanAdcBridge::init()
+{
+	int res = device::CDev::init();
+
+	if (res < 0) {
+		return res;
+	}
+
+	res = _sub_adc_data.start(AdcCbBinder(this, &UavcanAdcBridge::adc_sub_cb));
+
+	if (res < 0) {
+		DEVICE_LOG("failed to start uavcan sub: %d", res);
+		return res;
+	}
+
+	return 0;
+}
+
+void
+UavcanAdcBridge::adc_sub_cb(const
+				 uavcan::ReceivedDataStructure<com::volansi::equipment::adc::Report> &msg)
+{
+	analog_voltage_current_s report{};
+
+	static constexpr int numIndices = 2;
+	static constexpr uint16_t mV = com::volansi::equipment::adc::Report::UNITS_MV;
+	static constexpr uint16_t mA = com::volansi::equipment::adc::Report::UNITS_MA;
+
+	for (int i = 0; i < numIndices; i++) {
+
+		// TODO: do we want to publish raw ADC values? What about temperature?
+		if (msg.unit_type[i] == mV) {
+			report.voltage[i] = msg.values[i];
+
+		} else if (msg.unit_type[i] == mA) {
+			report.current[i] = msg.values[i];
+		}
+	}
+
+	publish(msg.getSrcNodeID().get(), &report);
+}

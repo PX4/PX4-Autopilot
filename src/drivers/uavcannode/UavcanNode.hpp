@@ -64,6 +64,7 @@
 #include <uavcan/equipment/gnss/Fix2.hpp>
 #include <uavcan/equipment/power/BatteryInfo.hpp>
 #include <uavcan/equipment/range_sensor/Measurement.hpp>
+#include <com/volansi/equipment/adc/Report.hpp>
 
 
 #include <lib/parameters/param.h>
@@ -71,10 +72,11 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/adc_report.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -152,6 +154,7 @@ private:
 	void send_magnetic_field_strength2();
 	void send_gnss_fix2();
 	void send_range_sensor_measurement();
+	void send_adc_measurements();
 
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
@@ -183,6 +186,8 @@ private:
 	uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature> _air_data_static_temperature_publisher;
 	uavcan::Publisher<uavcan::equipment::air_data::RawAirData> _raw_air_data_publisher;
 	uavcan::Publisher<uavcan::equipment::range_sensor::Measurement> _range_sensor_measurement;
+	uavcan::Publisher<com::volansi::equipment::adc::Report> _adc_report_publisher;
+
 
 	hrt_abstime _last_static_temperature_publish{0};
 
@@ -199,6 +204,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_baro_sub{this, ORB_ID(sensor_baro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_mag_sub{this, ORB_ID(sensor_mag)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_gps_position_sub{this, ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionCallbackWorkItem _adc_report_sub{this, ORB_ID(adc_report)};
+
 
 	perf_counter_t _cycle_perf;
 	perf_counter_t _interval_perf;

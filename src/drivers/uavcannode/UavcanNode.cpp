@@ -81,6 +81,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_air_data_static_temperature_publisher(_node),
 	_raw_air_data_publisher(_node),
 	_range_sensor_measurement(_node),
+	_adc_report_publisher(_node),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")),
 	_reset_timer(_node)
@@ -330,6 +331,7 @@ void UavcanNode::Run()
 		PX4_ERR("node spin error %i", spin_res);
 	}
 
+	send_adc_measurements();
 	send_battery_info();
 	send_raw_air_data();
 	send_static_pressure();
@@ -525,6 +527,35 @@ void UavcanNode::send_gnss_fix2()
 			fix2.covariance.push_back(gps.s_variance_m_s);
 
 			_gnss_fix2_publisher.broadcast(fix2);
+		}
+	}
+}
+
+void UavcanNode::send_adc_measurements()
+{
+	// vehicle_gps_position -> uavcan::equipment::gnss::Fix2
+	if (_adc_report_sub.updated()) {
+		adc_report_s adc_report;
+
+		if (_adc_report_sub.copy(&adc_report)) {
+
+			// We could probably convince people an ADC uavcan data type
+			// would be useful to have in tree...
+			com::volansi::equipment::adc::Report report{};
+
+			int32_t adc1_units = 0;
+			int32_t adc2_units = 0;
+			(void)param_get(param_find("ADC1_UNIT_TYPE"), &adc1_units);
+			(void)param_get(param_find("ADC2_UNIT_TYPE"), &adc2_units);
+
+			report.unit_type[0] = (unsigned)adc1_units;
+			report.unit_type[1] = (unsigned)adc2_units;
+
+			// Always indices 0 and 1?
+			report.values[0] = adc_report.raw_data[0];
+			report.values[1] = adc_report.raw_data[1];
+
+			_adc_report_publisher.broadcast(report);
 		}
 	}
 }
