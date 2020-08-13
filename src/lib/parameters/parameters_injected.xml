@@ -40,7 +40,7 @@
     <parameter default="25" name="ctl_start_rate" type="INT32">
       <short_desc>Spin-up rate (e Hz/s)</short_desc>
       <long_desc>Spin-up rate (e Hz/s)</long_desc>
-      <unit>Hz/s</unit>
+      <unit>1/s^2</unit>
       <min>5</min>
       <max>1000</max>
     </parameter>

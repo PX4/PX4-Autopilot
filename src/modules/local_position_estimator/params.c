@@ -39,7 +39,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_R, 7.0f);
  * Optical flow angular velocity noise gain
  *
  * @group Local Position Estimator
- * @unit m/s / (rad/s)
+ * @unit m/rad
  * @min 0.0
  * @max 10.0
  * @decimal 3
