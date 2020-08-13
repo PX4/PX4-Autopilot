@@ -68,7 +68,7 @@ void Ekf::fuseMag()
 	const float HKX3 = magD*q0;
 	const float HKX4 = magN*q2;
 	const float HKX5 = magD*q1 + magE*q0 - magN*q3;
-	const float HKX6 = powf(q0, 2) + powf(q1, 2) - powf(q2, 2) - powf(q3, 2);
+	const float HKX6 = ecl::powf(q0, 2) + ecl::powf(q1, 2) - ecl::powf(q2, 2) - ecl::powf(q3, 2);
 	const float HKX7 = q0*q3 + q1*q2;
 	const float HKX8 = q1*q3;
 	const float HKX9 = q0*q2;
@@ -114,9 +114,9 @@ void Ekf::fuseMag()
 	const float IV5 = 2*magD*q1 + 2*magE*q0 - 2*magN*q3;
 	const float IV6 = 2*magD*q0 - 2*magE*q1 + 2*magN*q2;
 	const float IV7 = -2*magD*q2 + 2*magE*q3 + 2*magN*q0;
-	const float IV8 = powf(q2, 2);
-	const float IV9 = powf(q3, 2);
-	const float IV10 = powf(q0, 2) - powf(q1, 2);
+	const float IV8 = ecl::powf(q2, 2);
+	const float IV9 = ecl::powf(q3, 2);
+	const float IV10 = ecl::powf(q0, 2) - ecl::powf(q1, 2);
 	const float IV11 = IV10 + IV8 - IV9;
 	const float IV12 = IV7*P(2,3);
 	const float IV13 = IV5*P(0,1);
@@ -250,7 +250,7 @@ void Ekf::fuseMag()
 			const float HKY5 = magN*q0;
 			const float HKY6 = q1*q2;
 			const float HKY7 = q0*q3;
-			const float HKY8 = powf(q0, 2) - powf(q1, 2) + powf(q2, 2) - powf(q3, 2);
+			const float HKY8 = ecl::powf(q0, 2) - ecl::powf(q1, 2) + ecl::powf(q2, 2) - ecl::powf(q3, 2);
 			const float HKY9 = q0*q1 + q2*q3;
 			const float HKY10 = 2*HKY9;
 			const float HKY11 = -2*HKY6 + 2*HKY7;
@@ -331,7 +331,7 @@ void Ekf::fuseMag()
 			const float HKZ6 = q0*q2 + q1*q3;
 			const float HKZ7 = q2*q3;
 			const float HKZ8 = q0*q1;
-			const float HKZ9 = powf(q0, 2) - powf(q1, 2) - powf(q2, 2) + powf(q3, 2);
+			const float HKZ9 = ecl::powf(q0, 2) - ecl::powf(q1, 2) - ecl::powf(q2, 2) + ecl::powf(q3, 2);
 			const float HKZ10 = 2*HKZ6;
 			const float HKZ11 = -2*HKZ7 + 2*HKZ8;
 			const float HKZ12 = 2*HKZ5;
@@ -886,16 +886,16 @@ void Ekf::fuseDeclination(float decl_sigma)
 		// calculation is badly conditioned close to +-90 deg declination
 		return;
 	}
-	const float HK0 = powf(magN, -2);
-	const float HK1 = HK0*powf(magE, 2) + 1.0F;
+	const float HK0 = ecl::powf(magN, -2);
+	const float HK1 = HK0*ecl::powf(magE, 2) + 1.0F;
 	const float HK2 = 1.0F/HK1;
 	const float HK3 = 1.0F/magN;
 	const float HK4 = HK2*HK3;
 	const float HK5 = HK3*magE;
 	const float HK6 = HK5*P(16,17) - P(17,17);
-	const float HK7 = powf(HK1, -2);
+	const float HK7 = ecl::powf(HK1, -2);
 	const float HK8 = HK5*P(16,16) - P(16,17);
-	const float innovation_variance = -HK0*HK6*HK7 + HK7*HK8*magE/powf(magN, 3) + R_DECL;
+	const float innovation_variance = -HK0*HK6*HK7 + HK7*HK8*magE/ecl::powf(magN, 3) + R_DECL;
 	float HK9;
 	if (innovation_variance > R_DECL) {
 		HK9 = HK4/innovation_variance;
