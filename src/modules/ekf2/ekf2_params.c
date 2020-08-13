@@ -279,7 +279,7 @@ PARAM_DEFINE_FLOAT(EKF2_ACC_NOISE, 3.5e-1f);
  * @group EKF2
  * @min 0.0
  * @max 0.01
- * @unit rad/s**2
+ * @unit rad/s^2
  * @decimal 6
  */
 PARAM_DEFINE_FLOAT(EKF2_GYR_B_NOISE, 1.0e-3f);
