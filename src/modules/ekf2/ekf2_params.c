@@ -1226,7 +1226,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVP_GATE, 5.0f);
  * @group EKF2
  * @min 0.5
  * @max 10.0
- * @unit (m/sec**2)**2
+ * @unit (m/s^2)^2
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_DRAG_NOISE, 2.5f);
