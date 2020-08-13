@@ -1021,7 +1021,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAU_POS, 0.25f);
  * @group EKF2
  * @min 0.0
  * @max 0.2
- * @unit rad/sec
+ * @unit rad/s
  * @reboot_required true
  * @decimal 2
  */
