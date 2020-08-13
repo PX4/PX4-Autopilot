@@ -295,7 +295,6 @@ ControlAllocator::Run()
 	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
-	_last_run = now;
 
 	bool do_update = false;
 	vehicle_torque_setpoint_s vehicle_torque_setpoint;
@@ -322,6 +321,7 @@ ControlAllocator::Run()
 	}
 
 	if (do_update) {
+		_last_run = now;
 
 		// Update effectiveness matrix if needed
 		if (_actuator_effectiveness->update()) {
