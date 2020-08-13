@@ -330,6 +330,24 @@ void UavcanNode::Run()
 		PX4_ERR("node spin error %i", spin_res);
 	}
 
+	send_battery_info();
+	send_raw_air_data();
+	send_static_pressure();
+	send_magnetic_field_strength2();
+	send_gnss_fix2();
+
+	perf_end(_cycle_perf);
+
+	pthread_mutex_unlock(&_node_mutex);
+
+	if (_task_should_exit.load()) {
+		ScheduleClear();
+		_instance = nullptr;
+	}
+}
+
+void UavcanNode::send_battery_info()
+{
 	// battery_status -> uavcan::equipment::power::BatteryInfo
 	if (_battery_status_sub.updated()) {
 		battery_status_s battery;
@@ -359,7 +377,10 @@ void UavcanNode::Run()
 			_power_battery_info_publisher.broadcast(battery_info);
 		}
 	}
+}
 
+void UavcanNode::send_raw_air_data()
+{
 	// differential_pressure -> uavcan::equipment::air_data::RawAirData
 	if (_diff_pressure_sub.updated()) {
 		differential_pressure_s diff_press;
@@ -378,7 +399,10 @@ void UavcanNode::Run()
 			_raw_air_data_publisher.broadcast(raw_air_data);
 		}
 	}
+}
 
+void UavcanNode::send_range_sensor_measurement()
+{
 	// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		distance_sensor_s dist;
@@ -427,7 +451,10 @@ void UavcanNode::Run()
 			_range_sensor_measurement.broadcast(range_sensor);
 		}
 	}
+}
 
+void UavcanNode::send_static_pressure()
+{
 	// sensor_baro -> uavcan::equipment::air_data::StaticTemperature
 	if (_sensor_baro_sub.updated()) {
 		sensor_baro_s baro;
@@ -445,7 +472,10 @@ void UavcanNode::Run()
 			}
 		}
 	}
+}
 
+void UavcanNode::send_magnetic_field_strength2()
+{
 	// sensor_mag -> uavcan::equipment::ahrs::MagneticFieldStrength2
 	if (_sensor_mag_sub.updated()) {
 		sensor_mag_s mag;
@@ -459,7 +489,10 @@ void UavcanNode::Run()
 			_ahrs_magnetic_field_strength2_publisher.broadcast(magnetic_field);
 		}
 	}
+}
 
+void UavcanNode::send_gnss_fix2()
+{
 	// vehicle_gps_position -> uavcan::equipment::gnss::Fix2
 	if (_vehicle_gps_position_sub.updated()) {
 		vehicle_gps_position_s gps;
@@ -493,15 +526,6 @@ void UavcanNode::Run()
 
 			_gnss_fix2_publisher.broadcast(fix2);
 		}
-	}
-
-	perf_end(_cycle_perf);
-
-	pthread_mutex_unlock(&_node_mutex);
-
-	if (_task_should_exit.load()) {
-		ScheduleClear();
-		_instance = nullptr;
 	}
 }
 

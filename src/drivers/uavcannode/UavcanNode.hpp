@@ -146,6 +146,13 @@ private:
 	void		fill_node_info();
 	int		init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
 
+	void send_battery_info();
+	void send_raw_air_data();
+	void send_static_pressure();
+	void send_magnetic_field_strength2();
+	void send_gnss_fix2();
+	void send_range_sensor_measurement();
+
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
 	bool		_initialized{false};		///< number of actuators currently available
