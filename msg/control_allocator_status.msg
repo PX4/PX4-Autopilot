@@ -1,11 +1,11 @@
 uint64 timestamp                        # time since system start (microseconds)
 
-uint8 torque_setpoint_achieved          # Boolean indicating whether the 3D torque setpoint was correctly allocated to actuators. 0 if not achieved, 1 if achieved.
+bool torque_setpoint_achieved           # Boolean indicating whether the 3D torque setpoint was correctly allocated to actuators. 0 if not achieved, 1 if achieved.
 float32[3] allocated_torque             # Torque allocated to actuators. Equal to `vehicle_torque_setpoint_s::xyz` if the setpoint was achieved.
 float32[3] unallocated_torque           # Unallocated torque. Equal to 0 if the setpoint was achieved.
                                         # Computed as: unallocated_torque = torque_setpoint - allocated_torque
 
-uint8 thrust_setpoint_achieved          # Boolean indicating whether the 3D thrust setpoint was correctly allocated to actuators. 0 if not achieved, 1 if achieved.
+bool thrust_setpoint_achieved           # Boolean indicating whether the 3D thrust setpoint was correctly allocated to actuators. 0 if not achieved, 1 if achieved.
 float32[3] allocated_thrust             # Thrust allocated to actuators. Equal to `vehicle_thrust_setpoint_s::xyz` if the setpoint was achieved.
 float32[3] unallocated_thrust           # Unallocated thrust. Equal to 0 if the setpoint was achieved.
                                         # Computed as: unallocated_thrust = thrust_setpoint - allocated_thrust
