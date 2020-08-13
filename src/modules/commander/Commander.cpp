@@ -54,6 +54,7 @@
 #include "commander_helper.h"
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
+#include "level_calibration.h"
 #include "mag_calibration.h"
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"

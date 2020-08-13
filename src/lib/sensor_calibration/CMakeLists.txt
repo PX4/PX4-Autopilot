@@ -32,8 +32,10 @@
 ############################################################################
 
 px4_add_library(sensor_calibration
-	SensorCalibration.cpp
-	SensorCalibration.hpp
+	Accelerometer.cpp
+	Accelerometer.hpp
+	Gyroscope.cpp
+	Gyroscope.hpp
+	Utilities.cpp
+	Utilities.hpp
 )
-target_compile_options(sensor_calibration PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-target_include_directories(sensor_calibration PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)

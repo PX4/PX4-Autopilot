@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,34 +31,23 @@
  *
  ****************************************************************************/
 
-/**
- * Primary mag ID
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_INT32(CAL_MAG_PRIME, 0);
+#pragma once
 
-/**
- * Bitfield selecting mag sides for calibration
- *
- * If set to two side calibration, only the offsets are estimated, the scale
- * calibration is left unchanged. Thus an initial six side calibration is
- * recommended.
- *
- * Bits:
- * ORIENTATION_TAIL_DOWN = 1
- * ORIENTATION_NOSE_DOWN = 2
- * ORIENTATION_LEFT = 4
- * ORIENTATION_RIGHT = 8
- * ORIENTATION_UPSIDE_DOWN = 16
- * ORIENTATION_RIGHTSIDE_UP = 32
- *
- * @min 34
- * @max 63
- * @value 34 Two side calibration
- * @value 38 Three side calibration
- * @value 63 Six side calibration
- * @group Sensors
- */
-PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
+#include <matrix/math.hpp>
+
+namespace calibration
+{
+
+int8_t FindCalibrationIndex(const char *sensor_type, uint32_t device_id);
+
+int32_t GetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance);
+int SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, int32_t value);
+
+matrix::Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance);
+int SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance,
+				 matrix::Vector3f values);
+
+matrix::Dcmf GetBoardRotation();
+
+
+} // namespace calibration
