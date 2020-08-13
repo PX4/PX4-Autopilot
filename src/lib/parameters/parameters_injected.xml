@@ -47,7 +47,6 @@
     <parameter default="0" name="esc_index" type="INT32">
       <short_desc>Index of this ESC in throttle command messages.</short_desc>
       <long_desc>Index of this ESC in throttle command messages.</long_desc>
-      <unit>Index</unit>
       <min>0</min>
       <max>15</max>
     </parameter>
@@ -103,7 +102,6 @@
       <long_desc>Number of motor poles. Used to convert mechanical speeds to
             electrical speeds. This number should be taken from the motor’s
             specification sheet.</long_desc>
-      <unit>Poles</unit>
       <min>2</min>
       <max>40</max>
     </parameter>

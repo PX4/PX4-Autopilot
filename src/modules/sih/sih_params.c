@@ -58,7 +58,7 @@ PARAM_DEFINE_FLOAT(SIH_MASS, 1.0f);
  * The intertia is a 3 by 3 symmetric matrix.
  * It represents the difficulty of the vehicle to modify its angular rate.
  *
- * @unit kg*m*m
+ * @unit kg m^2
  * @min 0.0
  * @decimal 3
  * @increment 0.005
@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(SIH_IXX, 0.025f);
  * The intertia is a 3 by 3 symmetric matrix.
  * It represents the difficulty of the vehicle to modify its angular rate.
  *
- * @unit kg*m*m
+ * @unit kg m^2
  * @min 0.0
  * @decimal 3
  * @increment 0.005
@@ -86,7 +86,7 @@ PARAM_DEFINE_FLOAT(SIH_IYY, 0.025f);
  * The intertia is a 3 by 3 symmetric matrix.
  * It represents the difficulty of the vehicle to modify its angular rate.
  *
- * @unit kg*m*m
+ * @unit kg m^2
  * @min 0.0
  * @decimal 3
  * @increment 0.005
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(SIH_IZZ, 0.030f);
  * The intertia is a 3 by 3 symmetric matrix.
  * This value can be set to 0 for a quad symmetric about its center of mass.
  *
- * @unit kg*m*m
+ * @unit kg m^2
  * @decimal 3
  * @increment 0.005
  * @group Simulation In Hardware
@@ -113,7 +113,7 @@ PARAM_DEFINE_FLOAT(SIH_IXY, 0.0f);
  * The intertia is a 3 by 3 symmetric matrix.
  * This value can be set to 0 for a quad symmetric about its center of mass.
  *
- * @unit kg*m*m
+ * @unit kg m^2
  * @decimal 3
  * @increment 0.005
  * @group Simulation In Hardware
@@ -126,7 +126,7 @@ PARAM_DEFINE_FLOAT(SIH_IXZ, 0.0f);
  * The intertia is a 3 by 3 symmetric matrix.
  * This value can be set to 0 for a quad symmetric about its center of mass.
  *
- * @unit kg*m*m
+ * @unit kg m^2
  * @decimal 3
  * @increment 0.005
  * @group Simulation In Hardware

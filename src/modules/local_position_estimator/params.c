@@ -285,7 +285,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_P, 0.1f);
  * Decrease to trust model more.
  *
  * @group Local Position Estimator
- * @unit (m/s)/s/sqrt(Hz)
+ * @unit m/s^2/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
@@ -296,7 +296,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_V, 0.1f);
  * Accel bias propagation noise density
  *
  * @group Local Position Estimator
- * @unit (m/s^2)/s/sqrt(Hz)
+ * @unit m/s^3/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
