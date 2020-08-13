@@ -105,6 +105,8 @@ private:
 	void update_allocation_method();
 	void update_effectiveness_source();
 
+	void update_effectiveness_matrix_if_needed();
+
 	void publish_actuator_setpoint();
 	void publish_control_allocator_status();
 

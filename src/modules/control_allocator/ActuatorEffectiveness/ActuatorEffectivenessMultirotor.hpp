@@ -53,13 +53,6 @@ public:
 	ActuatorEffectivenessMultirotor();
 	virtual ~ActuatorEffectivenessMultirotor() = default;
 
-	/**
-	 * Update effectiveness matrix
-	 *
-	 * @return True if the effectiveness matrix has changed
-	 */
-	virtual bool update() override;
-
 	static constexpr int NUM_ROTORS_MAX = 8;
 
 	typedef struct {
@@ -77,15 +70,16 @@ public:
 		RotorGeometry rotors[NUM_ROTORS_MAX];
 	} MultirotorGeometry;
 
-	static matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> computeEffectivenessMatrix(MultirotorGeometry);
+	static void computeEffectivenessMatrix(const MultirotorGeometry &geometry,
+					       matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness);
+
+	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix) override;
 
 private:
-	/**
-	 * initialize some vectors/matrices from parameters
-	 */
-	void parameters_updated();
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
+
+	bool _updated{true};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CA_MC_R0_PX>) _param_ca_mc_r0_px,

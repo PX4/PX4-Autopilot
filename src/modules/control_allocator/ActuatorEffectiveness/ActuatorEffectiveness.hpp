@@ -63,13 +63,6 @@ public:
 	};
 
 	/**
-	 * Update effectiveness matrix
-	 *
-	 * @return True if the effectiveness matrix has changed
-	 */
-	virtual bool update() = 0;
-
-	/**
 	 * Set the current flight phase
 	 *
 	 * @param Flight phase
@@ -77,17 +70,14 @@ public:
 	virtual void setFlightPhase(const FlightPhase &flight_phase)
 	{
 		_flight_phase = flight_phase;
-	};
+	}
 
 	/**
-	 * Get the control effectiveness matrix
+	 * Get the control effectiveness matrix if updated
 	 *
-	 * @return Effectiveness matrix
+	 * @return true if updated and matrix is set
 	 */
-	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrix() const
-	{
-		return _effectiveness;
-	};
+	virtual bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix) = 0;
 
 	/**
 	 * Get the actuator trims
@@ -97,7 +87,7 @@ public:
 	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorTrim() const
 	{
 		return _trim;
-	};
+	}
 
 	/**
 	 * Get the current flight phase
@@ -107,10 +97,9 @@ public:
 	const FlightPhase &getFlightPhase() const
 	{
 		return _flight_phase;
-	};
+	}
 
 protected:
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  //< Effectiveness matrix
-	matrix::Vector<float, NUM_ACTUATORS> _trim;			//< Actuator trim
-	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		//< Current flight phase
+	matrix::Vector<float, NUM_ACTUATORS> _trim;			///< Actuator trim
+	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase
 };
