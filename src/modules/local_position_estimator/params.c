@@ -28,7 +28,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_SCALE, 1.3f);
  * Optical flow rotation (roll/pitch) noise gain
  *
  * @group Local Position Estimator
- * @unit m/s / (rad)
+ * @unit m/s/rad
  * @min 0.1
  * @max 10.0
  * @decimal 3

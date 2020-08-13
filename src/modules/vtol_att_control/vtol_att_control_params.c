@@ -321,7 +321,7 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_SC, 0.1f);
  * Backtransition deceleration setpoint to pitch feedforward gain.
  *
  *
- * @unit rad*s*s/m
+ * @unit rad s^2/m
  * @min 0
  * @max 0.2
  * @decimal 1
@@ -334,7 +334,7 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.12f);
  * Backtransition deceleration setpoint to pitch I gain.
  *
  *
- * @unit rad*s/m
+ * @unit rad s/m
  * @min 0
  * @max 0.3
  * @decimal 1

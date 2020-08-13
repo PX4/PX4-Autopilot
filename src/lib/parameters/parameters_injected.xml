@@ -24,7 +24,7 @@
             decreased. Higher values result in faster response, but may result
             in oscillation and excessive overshoot. Lower values result in a
             slower, smoother response.</long_desc>
-      <unit>amp-seconds per radian</unit>
+      <unit>C/rad</unit>
       <decimal>3</decimal>
       <min>0.00</min>
       <max>1.00</max>
@@ -78,7 +78,7 @@
             the continuous current rating listed in the motor’s specification
             sheet, or set equal to the motor’s specified continuous power
             divided by the motor voltage limit.</long_desc>
-      <unit>Amps</unit>
+      <unit>A</unit>
       <decimal>3</decimal>
       <min>1</min>
       <max>80</max>
@@ -88,14 +88,14 @@
       <long_desc>Motor Kv in RPM per volt. This can be taken from the motor’s
             specification sheet; accuracy will help control performance but
             some deviation from the specified value is acceptable.</long_desc>
-      <unit>RPM/v</unit>
+      <unit>rpm/V</unit>
       <min>0</min>
       <max>4000</max>
     </parameter>
     <parameter default="0.0" name="mot_ls" type="FLOAT">
       <short_desc>READ ONLY: Motor inductance in henries.</short_desc>
       <long_desc>READ ONLY: Motor inductance in henries. This is measured on start-up.</long_desc>
-      <unit>henries</unit>
+      <unit>H</unit>
       <decimal>3</decimal>
     </parameter>
     <parameter default="14" name="mot_num_poles" type="INT32">
