@@ -59,13 +59,8 @@ ControlAllocator::ControlAllocator() :
 
 ControlAllocator::~ControlAllocator()
 {
-	if (_control_allocation != nullptr) {
-		free(_control_allocation);
-	}
-
-	if (_actuator_effectiveness != nullptr) {
-		free(_actuator_effectiveness);
-	}
+	delete _control_allocation;
+	delete _actuator_effectiveness;
 
 	perf_free(_loop_perf);
 }
@@ -93,6 +88,10 @@ ControlAllocator::parameters_updated()
 	// Do this first: in case a new method is loaded, it will be configured below
 	update_effectiveness_source();
 	update_allocation_method();
+
+	if (_control_allocation == nullptr) {
+		return;
+	}
 
 	// Minimum actuator values
 	matrix::Vector<float, NUM_ACTUATORS> actuator_min;
@@ -170,7 +169,6 @@ ControlAllocator::update_allocation_method()
 
 		default:
 			PX4_ERR("Unknown allocation method");
-			tmp = nullptr;
 			break;
 		}
 
@@ -180,20 +178,9 @@ ControlAllocator::update_allocation_method()
 			PX4_ERR("Control allocation init failed");
 			_param_ca_method.set((int)_allocation_method_id);
 
-		} else if (_control_allocation == tmp) {
-			// Nothing has changed, this should not happen
-			PX4_ERR("Control allocation init error");
-			_allocation_method_id = method;
-
 		} else {
-			// Successful update
-			PX4_INFO("Control allocation init success");
-
 			// Swap allocation methods
-			if (_control_allocation != nullptr) {
-				free(_control_allocation);
-			}
-
+			delete _control_allocation;
 			_control_allocation = tmp;
 
 			// Save method id
@@ -202,13 +189,6 @@ ControlAllocator::update_allocation_method()
 			// Configure new allocation method
 			_control_allocation->setActuatorSetpoint(actuator_sp);
 		}
-	}
-
-	// Guard against bad initialization
-	if (_control_allocation == nullptr) {
-		PX4_ERR("Falling back to ControlAllocationPseudoInverse");
-		_control_allocation = new ControlAllocationPseudoInverse();
-		_allocation_method_id = AllocationMethod::PSEUDO_INVERSE;
 	}
 }
 
@@ -238,7 +218,6 @@ ControlAllocator::update_effectiveness_source()
 
 		default:
 			PX4_ERR("Unknown airframe");
-			tmp = nullptr;
 			break;
 		}
 
@@ -248,32 +227,14 @@ ControlAllocator::update_effectiveness_source()
 			PX4_ERR("Actuator effectiveness init failed");
 			_param_ca_airframe.set((int)_effectiveness_source_id);
 
-		} else if (_actuator_effectiveness == tmp) {
-			// Nothing has changed, this should not happen
-			PX4_ERR("Actuator effectiveness init error");
-			_effectiveness_source_id = source;
-
 		} else {
-			// Successful update
-			PX4_INFO("Actuator effectiveness init success");
-
 			// Swap effectiveness sources
-			if (_actuator_effectiveness != nullptr) {
-				free(_actuator_effectiveness);
-			}
-
+			delete _actuator_effectiveness;
 			_actuator_effectiveness = tmp;
 
 			// Save source id
 			_effectiveness_source_id = source;
 		}
-	}
-
-	// Guard against bad initialization
-	if (_actuator_effectiveness == nullptr) {
-		PX4_ERR("Falling back to ActuatorEffectivenessMultirotor");
-		_actuator_effectiveness = new ActuatorEffectivenessMultirotor();
-		_effectiveness_source_id = EffectivenessSource::MULTIROTOR;
 	}
 }
 
@@ -299,9 +260,13 @@ ControlAllocator::Run()
 		parameters_updated();
 	}
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status = {};
-		_vehicle_status_sub.update(&vehicle_status);
+	if (_control_allocation == nullptr || _actuator_effectiveness == nullptr) {
+		return;
+	}
+
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
 
 		ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
