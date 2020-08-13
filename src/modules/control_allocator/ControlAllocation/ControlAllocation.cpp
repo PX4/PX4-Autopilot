@@ -52,6 +52,10 @@ ControlAllocation::setEffectivenessMatrix(
 	_control_trim = _effectiveness * _actuator_trim;
 	_num_actuators = num_actuators;
 
+	// make sure unused actuators are initialized to min
+	for (int i = num_actuators; i < NUM_ACTUATORS; ++i) {
+		_actuator_sp(i) = _actuator_min(i);
+	}
 }
 
 void
