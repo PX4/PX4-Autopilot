@@ -191,6 +191,11 @@ void VehicleIMU::Run()
 
 	ParametersUpdate();
 
+	if (!_accel_calibration.enabled() || !_gyro_calibration.enabled()) {
+		return;
+	}
+
+
 	bool sensor_data_gap = false;
 	bool update_integrator_config = false;
 	bool publish_status = false;
@@ -269,7 +274,7 @@ void VehicleIMU::Run()
 		if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
 
 			// rotate sensor clip counts into vehicle body frame
-			const Vector3f clipping{_accel_calibration.getBoardRotation() *
+			const Vector3f clipping{_accel_calibration.rotation() *
 				Vector3f{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]}};
 
 			// round to get reasonble clip counts per axis (after board rotation)
@@ -332,41 +337,44 @@ void VehicleIMU::Run()
 		if (_accel_integrator.reset(delta_velocity, accel_integral_dt)
 		    && _gyro_integrator.reset(delta_angle, gyro_integral_dt)) {
 
-			// delta angle: apply offsets, scale, and board rotation
-			_gyro_calibration.SensorCorrectionsUpdate();
-			const float gyro_dt_inv = 1.e6f / gyro_integral_dt;
-			const Vector3f delta_angle_corrected{_gyro_calibration.Correct(delta_angle * gyro_dt_inv) / gyro_dt_inv};
+			if (_accel_calibration.enabled() && _gyro_calibration.enabled()) {
 
-			// delta velocity: apply offsets, scale, and board rotation
-			_accel_calibration.SensorCorrectionsUpdate();
-			const float accel_dt_inv = 1.e6f / accel_integral_dt;
-			Vector3f delta_velocity_corrected{_accel_calibration.Correct(delta_velocity * accel_dt_inv) / accel_dt_inv};
+				// delta angle: apply offsets, scale, and board rotation
+				_gyro_calibration.SensorCorrectionsUpdate();
+				const float gyro_dt_inv = 1.e6f / gyro_integral_dt;
+				const Vector3f delta_angle_corrected{_gyro_calibration.Correct(delta_angle * gyro_dt_inv) / gyro_dt_inv};
 
-			UpdateAccelVibrationMetrics(delta_velocity_corrected);
-			UpdateGyroVibrationMetrics(delta_angle_corrected);
+				// delta velocity: apply offsets, scale, and board rotation
+				_accel_calibration.SensorCorrectionsUpdate();
+				const float accel_dt_inv = 1.e6f / accel_integral_dt;
+				Vector3f delta_velocity_corrected{_accel_calibration.Correct(delta_velocity * accel_dt_inv) / accel_dt_inv};
 
-			// vehicle_imu_status
-			//  publish before vehicle_imu so that error counts are available synchronously if needed
-			if (publish_status || (hrt_elapsed_time(&_status.timestamp) >= 100_ms)) {
-				_status.accel_device_id = _accel_calibration.device_id();
-				_status.gyro_device_id = _gyro_calibration.device_id();
-				_status.timestamp = hrt_absolute_time();
-				_vehicle_imu_status_pub.publish(_status);
+				UpdateAccelVibrationMetrics(delta_velocity_corrected);
+				UpdateGyroVibrationMetrics(delta_angle_corrected);
+
+				// vehicle_imu_status
+				//  publish before vehicle_imu so that error counts are available synchronously if needed
+				if (publish_status || (hrt_elapsed_time(&_status.timestamp) >= 100_ms)) {
+					_status.accel_device_id = _accel_calibration.device_id();
+					_status.gyro_device_id = _gyro_calibration.device_id();
+					_status.timestamp = hrt_absolute_time();
+					_vehicle_imu_status_pub.publish(_status);
+				}
+
+
+				// publish vehicle_imu
+				vehicle_imu_s imu;
+				imu.timestamp_sample = _last_timestamp_sample_gyro;
+				imu.accel_device_id = _accel_calibration.device_id();
+				imu.gyro_device_id = _gyro_calibration.device_id();
+				delta_angle_corrected.copyTo(imu.delta_angle);
+				delta_velocity_corrected.copyTo(imu.delta_velocity);
+				imu.delta_angle_dt = gyro_integral_dt;
+				imu.delta_velocity_dt = accel_integral_dt;
+				imu.delta_velocity_clipping = _delta_velocity_clipping;
+				imu.timestamp = hrt_absolute_time();
+				_vehicle_imu_pub.publish(imu);
 			}
-
-
-			// publish vehicle_imu
-			vehicle_imu_s imu;
-			imu.timestamp_sample = _last_timestamp_sample_gyro;
-			imu.accel_device_id = _accel_calibration.device_id();
-			imu.gyro_device_id = _gyro_calibration.device_id();
-			delta_angle_corrected.copyTo(imu.delta_angle);
-			delta_velocity_corrected.copyTo(imu.delta_velocity);
-			imu.delta_angle_dt = gyro_integral_dt;
-			imu.delta_velocity_dt = accel_integral_dt;
-			imu.delta_velocity_clipping = _delta_velocity_clipping;
-			imu.timestamp = hrt_absolute_time();
-			_vehicle_imu_pub.publish(imu);
 
 			// reset clip counts
 			_delta_velocity_clipping = 0;

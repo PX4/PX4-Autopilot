@@ -301,38 +301,3 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	/* Report status */
 	return !failed;
 }
-
-bool PreFlightCheck::check_calibration(const char *param_template, const int32_t device_id)
-{
-	bool calibration_found = false;
-
-	char s[20];
-	int instance = 0;
-
-	/* old style transition: check param values */
-	while (!calibration_found) {
-		sprintf(s, param_template, instance);
-		const param_t parm = param_find_no_notification(s);
-
-		/* if the calibration param is not present, abort */
-		if (parm == PARAM_INVALID) {
-			break;
-		}
-
-		/* if param get succeeds */
-		int32_t calibration_devid = -1;
-
-		if (param_get(parm, &calibration_devid) == PX4_OK) {
-
-			/* if the devid matches, exit early */
-			if (device_id == calibration_devid) {
-				calibration_found = true;
-				break;
-			}
-		}
-
-		instance++;
-	}
-
-	return calibration_found;
-}
