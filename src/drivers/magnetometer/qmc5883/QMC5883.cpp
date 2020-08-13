@@ -57,6 +57,8 @@ QMC5883::~QMC5883()
 	perf_free(_comms_errors);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
+
+	delete _interface;
 }
 
 int QMC5883::init()
