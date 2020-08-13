@@ -48,14 +48,6 @@
 
 void Ekf::fuseOptFlow()
 {
-	// get rotation matrix from earth to body
-	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
-
-	if (earth_to_body(2,2) < _params.range_cos_max_tilt) {
-		// vehicle is excessively tilted so optical flow will not work
-		return;
-	}
-
 	float gndclearance = fmaxf(_params.rng_gnd_clearance, 0.1f);
 
 	// get latest estimated orientation
@@ -74,6 +66,9 @@ void Ekf::fuseOptFlow()
 
 	SparseVector24f<0,1,2,3,4,5,6> Hfusion; // Optical flow observation Jacobians
 	Vector24f Kfusion; // Optical flow Kalman gains
+
+	// get rotation matrix from earth to body
+	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
 
 	// calculate the sensor position relative to the IMU
 	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
@@ -117,9 +112,9 @@ void Ekf::fuseOptFlow()
 		return;
 	}
 
-    // The derivation allows for an arbitrary body to flow sensor frame rotation which is
-    // currently not supported by the EKF, so assume sensor frame is aligned with the
-    // body frame
+	// The derivation allows for an arbitrary body to flow sensor frame rotation which is
+	// currently not supported by the EKF, so assume sensor frame is aligned with the
+	// body frame
 	Dcmf Tbs;
 	Tbs.identity();
 
