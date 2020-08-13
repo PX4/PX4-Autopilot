@@ -41,30 +41,6 @@
 
 #include "ControlAllocation.hpp"
 
-const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &
-ControlAllocation::getActuatorSetpoint() const
-{
-	return _actuator_sp;
-}
-
-void
-ControlAllocation::setControlSetpoint(const matrix::Vector<float, ControlAllocation::NUM_AXES> &control)
-{
-	_control_sp = control;
-}
-
-const matrix::Vector<float, ControlAllocation::NUM_AXES> &
-ControlAllocation::getControlSetpoint() const
-{
-	return _control_sp;
-}
-
-const matrix::Vector<float, ControlAllocation::NUM_AXES> &
-ControlAllocation::getAllocatedControl() const
-{
-	return _control_allocated;
-}
-
 void
 ControlAllocation::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
@@ -75,38 +51,7 @@ ControlAllocation::setEffectivenessMatrix(
 	clipActuatorSetpoint(_actuator_trim);
 	_control_trim = _effectiveness * _actuator_trim;
 	_num_actuators = num_actuators;
-}
 
-const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &
-ControlAllocation::getEffectivenessMatrix() const
-{
-	return _effectiveness;
-}
-
-void
-ControlAllocation::setActuatorMin(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
-				  &actuator_min)
-{
-	_actuator_min = actuator_min;
-}
-
-const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &
-ControlAllocation::getActuatorMin() const
-{
-	return _actuator_min;
-}
-
-void
-ControlAllocation::setActuatorMax(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
-				  &actuator_max)
-{
-	_actuator_max = actuator_max;
-}
-
-const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &
-ControlAllocation::getActuatorMax() const
-{
-	return _actuator_max;
 }
 
 void
