@@ -547,7 +547,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
  * @group EKF2
  * @min 0.0
  * @max 10.0
- * @unit M
+ * @unit m
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 0.0f);
@@ -560,7 +560,7 @@ PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 0.0f);
  * @group EKF2
  * @min 0.0
  * @max 5.0
- * @unit M
+ * @unit m
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GND_MAX_HGT, 0.5f);
