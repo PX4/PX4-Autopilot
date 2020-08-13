@@ -112,63 +112,63 @@ public:
 	 *
 	 * @return Actuator vector
 	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorSetpoint() const;
+	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorSetpoint() const { return _actuator_sp; }
 
 	/**
 	 * Set the desired control vector
 	 *
 	 * @param Control vector
 	 */
-	void setControlSetpoint(const matrix::Vector<float, NUM_AXES> &control);
+	void setControlSetpoint(const matrix::Vector<float, NUM_AXES> &control) { _control_sp = control; }
 
 	/**
 	 * Set the desired control vector
 	 *
 	 * @param Control vector
 	 */
-	const matrix::Vector<float, NUM_AXES> &getControlSetpoint() const;
+	const matrix::Vector<float, NUM_AXES> &getControlSetpoint() const { return _control_sp; }
 
 	/**
 	 * Get the allocated control vector
 	 *
 	 * @return Control vector
 	 */
-	const matrix::Vector<float, NUM_AXES> &getAllocatedControl() const;
+	const matrix::Vector<float, NUM_AXES> &getAllocatedControl() const { return _control_allocated; }
 
 	/**
 	 * Get the control effectiveness matrix
 	 *
 	 * @return Effectiveness matrix
 	 */
-	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrix() const;
+	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrix() const { return _effectiveness; }
 
 	/**
 	 * Set the minimum actuator values
 	 *
 	 * @param actuator_min Minimum actuator values
 	 */
-	void setActuatorMin(const matrix::Vector<float, NUM_ACTUATORS> &actuator_min);
+	void setActuatorMin(const matrix::Vector<float, NUM_ACTUATORS> &actuator_min) { _actuator_min = actuator_min; }
 
 	/**
 	 * Get the minimum actuator values
 	 *
 	 * @return Minimum actuator values
 	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorMin() const;
+	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorMin() const { return _actuator_min; }
 
 	/**
 	 * Set the maximum actuator values
 	 *
 	 * @param actuator_max Maximum actuator values
 	 */
-	void setActuatorMax(const matrix::Vector<float, NUM_ACTUATORS> &actuator_max);
+	void setActuatorMax(const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) { _actuator_max = actuator_max; }
 
 	/**
 	 * Get the maximum actuator values
 	 *
 	 * @return Maximum actuator values
 	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorMax() const;
+	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorMax() const { return _actuator_max; }
 
 	/**
 	 * Set the current actuator setpoint.
