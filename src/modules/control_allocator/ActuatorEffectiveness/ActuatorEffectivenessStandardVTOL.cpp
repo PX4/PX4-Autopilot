@@ -47,22 +47,11 @@ ActuatorEffectivenessStandardVTOL::ActuatorEffectivenessStandardVTOL()
 }
 
 bool
-ActuatorEffectivenessStandardVTOL::update()
+ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix)
 {
-	if (_updated) {
-		_updated = false;
-		return true;
+	if (!_updated) {
+		return false;
 	}
-
-	return false;
-}
-
-void
-ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase)
-{
-	ActuatorEffectiveness::setFlightPhase(flight_phase);
-
-	_updated = true;
 
 	switch (_flight_phase) {
 	case FlightPhase::HOVER_FLIGHT:  {
@@ -74,7 +63,7 @@ ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phas
 				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 				{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
 			};
-			_effectiveness = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
+			matrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
 			break;
 		}
 
@@ -87,7 +76,7 @@ ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phas
 				{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 				{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
 			};
-			_effectiveness = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
+			matrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
 			break;
 		}
 
@@ -101,8 +90,19 @@ ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phas
 				{  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 				{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
 			};
-			_effectiveness = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
+			matrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
 			break;
 		}
 	}
+
+	_updated = false;
+	return true;
+}
+
+void
+ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase)
+{
+	ActuatorEffectiveness::setFlightPhase(flight_phase);
+	_updated = true;
+
 }

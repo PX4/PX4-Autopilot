@@ -49,12 +49,7 @@ public:
 	ActuatorEffectivenessTiltrotorVTOL();
 	virtual ~ActuatorEffectivenessTiltrotorVTOL() = default;
 
-	/**
-	 * Update effectiveness matrix
-	 *
-	 * @return True if the effectiveness matrix has changed
-	 */
-	virtual bool update() override;
+	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix) override;
 
 	/**
 	 * Set the current flight phase
@@ -64,5 +59,5 @@ public:
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 protected:
-	bool _updated{false};
+	bool _updated{true};
 };

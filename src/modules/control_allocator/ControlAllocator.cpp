@@ -132,13 +132,6 @@ ControlAllocator::parameters_updated()
 	actuator_max(14) = _param_ca_act14_max.get();
 	actuator_max(15) = _param_ca_act15_max.get();
 	_control_allocation->setActuatorMax(actuator_max);
-
-	// Get actuator effectiveness and trim
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness = _actuator_effectiveness->getEffectivenessMatrix();
-	matrix::Vector<float, NUM_ACTUATORS> trim = _actuator_effectiveness->getActuatorTrim();
-
-	// Assign control effectiveness matrix
-	_control_allocation->setEffectivenessMatrix(effectiveness, trim);
 }
 
 void
@@ -323,30 +316,7 @@ ControlAllocator::Run()
 	if (do_update) {
 		_last_run = now;
 
-		// Update effectiveness matrix if needed
-		if (_actuator_effectiveness->update()) {
-			matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness = _actuator_effectiveness->getEffectivenessMatrix();
-			matrix::Vector<float, NUM_ACTUATORS> trim = _actuator_effectiveness->getActuatorTrim();
-
-			// Set 0 effectiveness for actuators that are disabled (act_min >= act_max)
-			matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
-			matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
-
-			for (size_t j = 0; j < NUM_ACTUATORS; j++) {
-				if (actuator_min(j) >= actuator_max(j)) {
-					for (size_t i = 0; i < NUM_AXES; i++) {
-						effectiveness(i, j) = 0.0f;
-					}
-
-				}
-			}
-
-			// Assign control effectiveness matrix
-			if ((effectiveness - _control_allocation->getEffectivenessMatrix()).abs().max() > 1e-5f) {
-				_control_allocation->setEffectivenessMatrix(effectiveness, trim);
-			}
-
-		}
+		update_effectiveness_matrix_if_needed();
 
 		// Set control setpoint vector
 		matrix::Vector<float, NUM_AXES> c;
@@ -372,6 +342,31 @@ ControlAllocator::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void
+ControlAllocator::update_effectiveness_matrix_if_needed()
+{
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness;
+
+	if (_actuator_effectiveness->getEffectivenessMatrix(effectiveness)) {
+		const matrix::Vector<float, NUM_ACTUATORS> &trim = _actuator_effectiveness->getActuatorTrim();
+
+		// Set 0 effectiveness for actuators that are disabled (act_min >= act_max)
+		matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
+		matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
+
+		for (size_t j = 0; j < NUM_ACTUATORS; j++) {
+			if (actuator_min(j) >= actuator_max(j)) {
+				for (size_t i = 0; i < NUM_AXES; i++) {
+					effectiveness(i, j) = 0.0f;
+				}
+			}
+		}
+
+		// Assign control effectiveness matrix
+		_control_allocation->setEffectivenessMatrix(effectiveness, trim, _actuator_effectiveness->numActuators());
+	}
 }
 
 void
