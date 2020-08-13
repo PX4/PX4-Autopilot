@@ -307,7 +307,7 @@ PARAM_DEFINE_FLOAT(LPE_PN_B, 1e-3f);
  * Terrain random walk noise density, hilly/outdoor (0.1), flat/Indoor (0.001)
  *
  * @group Local Position Estimator
- * @unit (m/s)/(sqrt(Hz))
+ * @unit m/s/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 3
