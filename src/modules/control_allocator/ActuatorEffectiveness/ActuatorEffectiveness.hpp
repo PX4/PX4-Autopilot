@@ -99,6 +99,11 @@ public:
 		return _flight_phase;
 	}
 
+	/**
+	 * Get the number of actuators
+	 */
+	virtual int numActuators() const = 0;
+
 protected:
 	matrix::Vector<float, NUM_ACTUATORS> _trim;			///< Actuator trim
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase

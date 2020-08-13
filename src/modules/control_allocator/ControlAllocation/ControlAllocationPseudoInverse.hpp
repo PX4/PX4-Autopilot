@@ -55,7 +55,7 @@ public:
 
 	virtual void allocate() override;
 	virtual void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
-					    const matrix::Vector<float, NUM_ACTUATORS> &actuator_trim) override;
+					    const matrix::Vector<float, NUM_ACTUATORS> &actuator_trim, int num_actuators) override;
 
 protected:
 	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;

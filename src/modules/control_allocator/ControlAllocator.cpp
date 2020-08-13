@@ -249,6 +249,10 @@ ControlAllocator::Run()
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 
+		if (_control_allocation) {
+			_control_allocation->updateParameters();
+		}
+
 		updateParams();
 		parameters_updated();
 	}
@@ -520,6 +524,7 @@ int ControlAllocator::print_status()
 		const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness = _control_allocation->getEffectivenessMatrix();
 		PX4_INFO("Effectiveness.T =");
 		effectiveness.T().print();
+		PX4_INFO("Configured actuators: %i", _control_allocation->numConfiguredActuators());
 	}
 
 	// Print perf

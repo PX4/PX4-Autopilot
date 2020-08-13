@@ -105,7 +105,7 @@ public:
 	 * @param B Effectiveness matrix
 	 */
 	virtual void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
-					    const matrix::Vector<float, NUM_ACTUATORS> &actuator_trim);
+					    const matrix::Vector<float, NUM_ACTUATORS> &actuator_trim, int num_actuators);
 
 	/**
 	 * Get the allocated actuator vector
@@ -187,10 +187,8 @@ public:
 	 * The output is in the range [min; max]
 	 *
 	 * @param actuator Actuator vector to clip
-	 *
-	 * @return Clipped actuator setpoint
 	 */
-	matrix::Vector<float, NUM_ACTUATORS> clipActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator) const;
+	void clipActuatorSetpoint(matrix::Vector<float, NUM_ACTUATORS> &actuator) const;
 
 	/**
 	 * Normalize the actuator setpoint between minimum and maximum values.
@@ -204,6 +202,10 @@ public:
 	matrix::Vector<float, NUM_ACTUATORS> normalizeActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator)
 	const;
 
+	virtual void updateParameters() {}
+
+	int numConfiguredActuators() const { return _num_actuators; }
+
 protected:
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  //< Effectiveness matrix
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 	//< Neutral actuator values
@@ -213,4 +215,5 @@ protected:
 	matrix::Vector<float, NUM_AXES> _control_sp;   		//< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_allocated;  	//< Allocated control
 	matrix::Vector<float, NUM_AXES> _control_trim;  	//< Control at trim actuator values
+	int _num_actuators{0};
 };

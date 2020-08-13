@@ -70,16 +70,18 @@ public:
 		RotorGeometry rotors[NUM_ROTORS_MAX];
 	} MultirotorGeometry;
 
-	static void computeEffectivenessMatrix(const MultirotorGeometry &geometry,
-					       matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness);
+	static int computeEffectivenessMatrix(const MultirotorGeometry &geometry,
+					      matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness);
 
 	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix) override;
 
+	int numActuators() const override { return _num_actuators; }
 private:
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
 
 	bool _updated{true};
+	int _num_actuators{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CA_MC_R0_PX>) _param_ca_mc_r0_px,
