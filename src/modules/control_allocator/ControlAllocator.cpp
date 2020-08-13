@@ -393,7 +393,7 @@ ControlAllocator::publish_control_allocator_status()
 	control_allocator_status.timestamp = hrt_absolute_time();
 
 	// Allocated control
-	matrix::Vector<float, NUM_AXES> allocated_control = _control_allocation->getAllocatedControl();
+	const matrix::Vector<float, NUM_AXES> &allocated_control = _control_allocation->getAllocatedControl();
 	control_allocator_status.allocated_torque[0] = allocated_control(0);
 	control_allocator_status.allocated_torque[1] = allocated_control(1);
 	control_allocator_status.allocated_torque[2] = allocated_control(2);
@@ -412,14 +412,14 @@ ControlAllocator::publish_control_allocator_status()
 
 	// Allocation success flags
 	control_allocator_status.torque_setpoint_achieved = (Vector3f(unallocated_control(0), unallocated_control(1),
-			unallocated_control(2)).norm() < FLT_EPSILON);
+			unallocated_control(2)).norm_squared() < 1e-6f);
 	control_allocator_status.thrust_setpoint_achieved = (Vector3f(unallocated_control(3), unallocated_control(4),
-			unallocated_control(5)).norm() < FLT_EPSILON);
+			unallocated_control(5)).norm_squared() < 1e-6f);
 
 	// Actuator saturation
-	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
-	matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
-	matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
+	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation->getActuatorSetpoint();
+	const matrix::Vector<float, NUM_ACTUATORS> &actuator_min = _control_allocation->getActuatorMin();
+	const matrix::Vector<float, NUM_ACTUATORS> &actuator_max = _control_allocation->getActuatorMax();
 
 	for (size_t i = 0; i < NUM_ACTUATORS; i++) {
 		if (actuator_sp(i) > (actuator_max(i) - FLT_EPSILON)) {
