@@ -35,11 +35,11 @@
 
 #include "Integrator.hpp"
 
-#include <sensor_calibration/SensorCalibration.hpp>
-
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/sensor_calibration/Accelerometer.hpp>
+#include <lib/sensor_calibration/Gyroscope.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -91,8 +91,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
 
-	SensorCalibration _accel_calibration{SensorCalibration::SensorType::Accelerometer};
-	SensorCalibration _gyro_calibration{SensorCalibration::SensorType::Gyroscope};
+	calibration::Accelerometer _accel_calibration{};
+	calibration::Gyroscope _gyro_calibration{};
 
 	Integrator _accel_integrator{}; // 200 Hz default
 	Integrator _gyro_integrator{true};   // 200 Hz default, coning compensation enabled
