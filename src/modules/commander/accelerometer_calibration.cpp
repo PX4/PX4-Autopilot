@@ -139,9 +139,10 @@
 #include <lib/parameters/param.h>
 #include <lib/systemlib/err.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <uORB/topics/sensor_accel.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -375,5 +376,141 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+	return PX4_ERROR;
+}
+
+int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
+{
+#if !defined(CONSTRAINED_FLASH)
+	PX4_INFO("Accelerometer quick calibration");
+
+	int32_t device_id_primary = 0;
+
+	// sensor thermal corrections (optional)
+	uORB::Subscription sensor_correction_sub{ORB_ID(sensor_correction)};
+	sensor_correction_s sensor_correction{};
+	sensor_correction_sub.copy(&sensor_correction);
+
+	uORB::Subscription accel_sub[MAX_ACCEL_SENS] {
+		{ORB_ID(sensor_accel), 0},
+		{ORB_ID(sensor_accel), 1},
+		{ORB_ID(sensor_accel), 2},
+	};
+
+	/* use the first sensor to pace the readout, but do per-sensor counts */
+	for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
+		sensor_accel_s arp{};
+		Vector3f accel_sum{};
+		unsigned count = 0;
+
+		while (accel_sub[accel_index].update(&arp)) {
+			// fetch optional thermal offset corrections in sensor/board frame
+			if ((arp.timestamp > 0) && (arp.device_id != 0)) {
+				Vector3f offset{0, 0, 0};
+
+				if (sensor_correction.timestamp > 0) {
+					for (uint8_t correction_index = 0; correction_index < MAX_ACCEL_SENS; correction_index++) {
+						if (sensor_correction.accel_device_ids[correction_index] == arp.device_id) {
+							switch (correction_index) {
+							case 0:
+								offset = Vector3f{sensor_correction.accel_offset_0};
+								break;
+							case 1:
+								offset = Vector3f{sensor_correction.accel_offset_1};
+								break;
+							case 2:
+								offset = Vector3f{sensor_correction.accel_offset_2};
+								break;
+							}
+						}
+					}
+				}
+
+				const Vector3f accel{Vector3f{arp.x, arp.y, arp.z} - offset};
+
+				if (count > 0) {
+					const Vector3f diff{accel - (accel_sum / count)};
+
+					if (diff.norm() < 1.f) {
+						accel_sum += Vector3f{arp.x, arp.y, arp.z} - offset;
+						count++;
+					}
+
+				} else {
+					accel_sum = accel;
+					count = 1;
+				}
+			}
+		}
+
+		if ((count > 0) && (arp.device_id != 0)) {
+
+			bool calibrated = false;
+			const Vector3f accel_avg = accel_sum / count;
+
+			Vector3f offset{0.f, 0.f, 0.f};
+
+			uORB::SubscriptionData<vehicle_attitude_s> attitude_sub{ORB_ID(vehicle_attitude)};
+			attitude_sub.update();
+
+			if (attitude_sub.advertised() && attitude_sub.get().timestamp != 0) {
+				// use vehicle_attitude if available
+				const vehicle_attitude_s &att = attitude_sub.get();
+				const matrix::Quatf q{att.q};
+				const Vector3f accel_ref = q.conjugate_inversed(Vector3f{0.f, 0.f, -CONSTANTS_ONE_G});
+
+				// sanity check angle between acceleration vectors
+				const float angle = AxisAnglef(Quatf(accel_avg, accel_ref)).angle();
+
+				if (angle <= math::radians(10.f)) {
+					offset = accel_avg - accel_ref;
+					calibrated = true;
+				}
+			}
+
+			if (!calibrated) {
+				// otherwise simply normalize to gravity and remove offset
+				Vector3f accel{accel_avg};
+				accel.normalize();
+				accel = accel * CONSTANTS_ONE_G;
+
+				offset = accel_avg - accel;
+				calibrated = true;
+			}
+
+			calibration::Accelerometer calibration{arp.device_id};
+
+			// reset cal index to uORB
+			calibration.set_calibration_index(accel_index);
+
+			if (!calibrated || (offset.norm() > CONSTANTS_ONE_G)
+			    || !PX4_ISFINITE(offset(0))
+			    || !PX4_ISFINITE(offset(1))
+			    || !PX4_ISFINITE(offset(2))) {
+
+				PX4_ERR("accel %d quick calibrate failed", accel_index);
+
+			} else {
+				calibration.set_offset(offset);
+			}
+
+			calibration.ParametersSave();
+
+			if (device_id_primary == 0) {
+				device_id_primary = arp.device_id;
+			}
+
+			calibration.PrintStatus();
+		}
+	}
+
+	if (device_id_primary != 0) {
+		param_set_no_notification(param_find("CAL_ACC_PRIME"), &device_id_primary);
+		param_notify_changes();
+		return PX4_OK;
+	}
+
+#endif // !CONSTRAINED_FLASH
+
 	return PX4_ERROR;
 }
