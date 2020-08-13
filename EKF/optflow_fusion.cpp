@@ -45,6 +45,7 @@
 #include <ecl.h>
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include "utils.hpp"
 
 void Ekf::fuseOptFlow()
 {
@@ -137,11 +138,11 @@ void Ekf::fuseOptFlow()
 	const float HK15 = q1*q2;
 	const float HK16 = HK14 - HK15;
 	const float HK17 = 2*Tbs(1,1);
-	const float HK18 = powf(q1, 2);
-	const float HK19 = powf(q2, 2);
+	const float HK18 = ecl::powf(q1, 2);
+	const float HK19 = ecl::powf(q2, 2);
 	const float HK20 = -HK19;
-	const float HK21 = powf(q0, 2);
-	const float HK22 = powf(q3, 2);
+	const float HK21 = ecl::powf(q0, 2);
+	const float HK22 = ecl::powf(q3, 2);
 	const float HK23 = HK21 - HK22;
 	const float HK24 = HK18 + HK20 + HK23;
 	const float HK25 = HK12*HK13 - HK16*HK17 + HK24*Tbs(1,0);
@@ -162,7 +163,7 @@ void Ekf::fuseOptFlow()
 	const float HK40 = 2*HK8;
 	const float HK41 = 2*HK9;
 	const float HK42 = HK25*P(0,4) + HK33*P(0,5) + HK37*P(0,6) + HK38*P(0,0) + HK39*P(0,1) + HK40*P(0,2) + HK41*P(0,3);
-	const float HK43 = powf(range, -2);
+	const float HK43 = ecl::powf(range, -2);
 	const float HK44 = HK25*P(4,6) + HK33*P(5,6) + HK37*P(6,6) + HK38*P(0,6) + HK39*P(1,6) + HK40*P(2,6) + HK41*P(3,6);
 	const float HK45 = HK25*P(4,5) + HK33*P(5,5) + HK37*P(5,6) + HK38*P(0,5) + HK39*P(1,5) + HK40*P(2,5) + HK41*P(3,5);
 	const float HK46 = HK25*P(4,4) + HK33*P(4,5) + HK37*P(4,6) + HK38*P(0,4) + HK39*P(1,4) + HK40*P(2,4) + HK41*P(3,4);
