@@ -58,6 +58,8 @@ HMC5883::~HMC5883()
 	perf_free(_comms_errors);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
+
+	delete _interface;
 }
 
 int HMC5883::init()
