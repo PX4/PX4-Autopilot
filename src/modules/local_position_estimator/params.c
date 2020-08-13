@@ -271,7 +271,7 @@ PARAM_DEFINE_FLOAT(LPE_VIC_P, 0.001f);
  * Decrease to trust model more.
  *
  * @group Local Position Estimator
- * @unit m/s^2qrt(Hz)
+ * @unit m/s/sqrt(Hz)
  * @min 0
  * @max 1
  * @decimal 8
