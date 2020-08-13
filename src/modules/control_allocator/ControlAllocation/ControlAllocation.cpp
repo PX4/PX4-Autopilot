@@ -68,11 +68,13 @@ ControlAllocation::getAllocatedControl() const
 void
 ControlAllocation::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
-	const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator_trim)
+	const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator_trim, int num_actuators)
 {
 	_effectiveness = effectiveness;
-	_actuator_trim = clipActuatorSetpoint(actuator_trim);
+	_actuator_trim = actuator_trim;
+	clipActuatorSetpoint(_actuator_trim);
 	_control_trim = _effectiveness * _actuator_trim;
+	_num_actuators = num_actuators;
 }
 
 const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &
@@ -115,34 +117,27 @@ ControlAllocation::setActuatorSetpoint(
 	_actuator_sp = actuator_sp;
 
 	// Clip
-	_actuator_sp = clipActuatorSetpoint(_actuator_sp);
+	clipActuatorSetpoint(_actuator_sp);
 
 	// Compute achieved control
 	_control_allocated = _effectiveness * _actuator_sp;
 
 }
 
-matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
-ControlAllocation::clipActuatorSetpoint(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator) const
+void
+ControlAllocation::clipActuatorSetpoint(matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator) const
 {
-	matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> actuator_clipped;
-
-	for (size_t i = 0; i < ControlAllocation::NUM_ACTUATORS; i++) {
+	for (int i = 0; i < _num_actuators; i++) {
 		if (_actuator_max(i) < _actuator_min(i)) {
-			actuator_clipped(i) = _actuator_trim(i);
+			actuator(i) = _actuator_trim(i);
 
-		} else if (actuator_clipped(i) < _actuator_min(i)) {
-			actuator_clipped(i) = _actuator_min(i);
+		} else if (actuator(i) < _actuator_min(i)) {
+			actuator(i) = _actuator_min(i);
 
-		} else if (actuator_clipped(i) > _actuator_max(i)) {
-			actuator_clipped(i) = _actuator_max(i);
-
-		} else {
-			actuator_clipped(i) = actuator(i);
+		} else if (actuator(i) > _actuator_max(i)) {
+			actuator(i) = _actuator_max(i);
 		}
 	}
-
-	return actuator_clipped;
 }
 
 matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
