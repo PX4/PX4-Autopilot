@@ -155,7 +155,6 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
-	hrt_abstime _task_start{hrt_absolute_time()};
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 
