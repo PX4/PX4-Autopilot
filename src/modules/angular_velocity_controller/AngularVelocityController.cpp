@@ -185,26 +185,24 @@ AngularVelocityController::Run()
 			}
 
 			// update saturation status from mixer feedback
-			if (_control_allocator_status_sub.updated()) {
-				control_allocator_status_s control_allocator_status;
+			control_allocator_status_s control_allocator_status;
 
-				if (_control_allocator_status_sub.copy(&control_allocator_status)) {
-					Vector<bool, 3> saturation_positive;
-					Vector<bool, 3> saturation_negative;
+			if (_control_allocator_status_sub.update(&control_allocator_status)) {
+				Vector<bool, 3> saturation_positive;
+				Vector<bool, 3> saturation_negative;
 
-					if (not control_allocator_status.torque_setpoint_achieved) {
-						for (size_t i = 0; i < 3; i++) {
-							if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
-								saturation_positive(i) = true;
+				if (!control_allocator_status.torque_setpoint_achieved) {
+					for (size_t i = 0; i < 3; i++) {
+						if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
+							saturation_positive(i) = true;
 
-							} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
-								saturation_negative(i) = true;
-							}
+						} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
+							saturation_negative(i) = true;
 						}
 					}
-
-					_control.setSaturationStatus(saturation_positive, saturation_negative);
 				}
+
+				_control.setSaturationStatus(saturation_positive, saturation_negative);
 			}
 
 			// run rate controller
