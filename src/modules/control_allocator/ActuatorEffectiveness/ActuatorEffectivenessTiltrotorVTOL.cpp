@@ -45,24 +45,12 @@ ActuatorEffectivenessTiltrotorVTOL::ActuatorEffectivenessTiltrotorVTOL()
 {
 	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
-
 bool
-ActuatorEffectivenessTiltrotorVTOL::update()
+ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix)
 {
-	if (_updated) {
-		_updated = false;
-		return true;
+	if (!_updated) {
+		return false;
 	}
-
-	return false;
-}
-
-void
-ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &flight_phase)
-{
-	ActuatorEffectiveness::setFlightPhase(flight_phase);
-
-	_updated = true;
 
 	// Trim
 	float tilt = 0.0f;
@@ -104,13 +92,24 @@ ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &flight_pha
 		{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 		{-0.25f * cosf(_trim(4)), -0.25f * cosf(_trim(5)), -0.25f * cosf(_trim(6)), -0.25f * cosf(_trim(7)), 0.25f * _trim(0) *sinf(_trim(4)), 0.25f * _trim(1) *sinf(_trim(5)), 0.25f * _trim(2) *sinf(_trim(6)), 0.25f * _trim(3) *sinf(_trim(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
 	};
-	_effectiveness = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(tiltrotor_vtol);
+	matrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(tiltrotor_vtol);
 
 	// Temporarily disable a few controls (WIP)
 	for (size_t j = 4; j < 8; j++) {
-		_effectiveness(3, j) = 0.0f;
-		_effectiveness(4, j) = 0.0f;
-		_effectiveness(5, j) = 0.0f;
+		matrix(3, j) = 0.0f;
+		matrix(4, j) = 0.0f;
+		matrix(5, j) = 0.0f;
 	}
 
+
+	_updated = false;
+	return true;
+}
+
+void
+ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &flight_phase)
+{
+	ActuatorEffectiveness::setFlightPhase(flight_phase);
+
+	_updated = true;
 }
