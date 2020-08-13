@@ -342,8 +342,9 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 	return calibrate_return_ok;
 }
 
-static calibrate_return mag_calibration_worker(detect_orientation_return orientation, int cancel_sub, void *data)
+static calibrate_return mag_calibration_worker(detect_orientation_return orientation, void *data)
 {
+	const hrt_abstime calibration_started = hrt_absolute_time();
 	calibrate_return result = calibrate_return_ok;
 
 	unsigned int calibration_counter_side;
@@ -380,7 +381,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	       fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
 
 		/* abort on request */
-		if (calibrate_cancel_check(worker_data->mavlink_log_pub, cancel_sub)) {
+		if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
 			result = calibrate_return_cancelled;
 			px4_close(sub_gyro);
 			return result;
@@ -430,7 +431,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	while (hrt_absolute_time() < calibration_deadline &&
 	       calibration_counter_side < worker_data->calibration_points_perside) {
 
-		if (calibrate_cancel_check(worker_data->mavlink_log_pub, cancel_sub)) {
+		if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
 			result = calibrate_return_cancelled;
 			break;
 		}
@@ -669,15 +670,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	}
 
 	if (result == calibrate_return_ok) {
-		int cancel_sub  = calibrate_cancel_subscribe();
-
 		result = calibrate_from_orientation(mavlink_log_pub,                    // uORB handle to write output
-						    cancel_sub,                         // Subscription to vehicle_command for cancel support
 						    worker_data.side_data_collected,    // Sides to calibrate
 						    mag_calibration_worker,             // Calibration worker
 						    &worker_data,			// Opaque data for calibration worked
 						    true);				// true: lenient still detection
-		calibrate_cancel_unsubscribe(cancel_sub);
 	}
 
 	// Close subscriptions

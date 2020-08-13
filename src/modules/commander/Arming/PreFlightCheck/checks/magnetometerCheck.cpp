@@ -36,7 +36,8 @@
 #include <drivers/drv_hrt.h>
 #include <HealthFlags.h>
 #include <px4_defines.h>
-#include <systemlib/mavlink_log.h>
+#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/subsystem_info.h>
@@ -64,7 +65,7 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 
 		device_id = magnetometer.get().device_id;
 
-		calibration_valid = check_calibration("CAL_MAG%u_ID", device_id);
+		calibration_valid = (calibration::FindCalibrationIndex("MAG", device_id) >= 0);
 
 		if (!calibration_valid) {
 			if (report_fail) {
