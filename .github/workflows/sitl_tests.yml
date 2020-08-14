@@ -20,7 +20,7 @@ jobs:
           - {latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo"} # Florida
           - {latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage"} # Zurich
     container:
-      image: px4io/px4-dev-simulation-focal:2020-04-01
+      image: px4io/px4-dev-simulation-focal:2020-08-14
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
