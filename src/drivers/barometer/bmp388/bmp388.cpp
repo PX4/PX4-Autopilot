@@ -112,7 +112,8 @@ BMP388::start()
 {
 	_collect_phase = false;
 
-	ScheduleOnInterval(_measure_interval, _measure_interval);
+	// wait a bit longer for the first measurement, as otherwise the first readout might fail
+	ScheduleOnInterval(_measure_interval, _measure_interval * 3);
 }
 
 void
