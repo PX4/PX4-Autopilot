@@ -116,8 +116,7 @@ void Ekf::fuseOptFlow()
 	// The derivation allows for an arbitrary body to flow sensor frame rotation which is
 	// currently not supported by the EKF, so assume sensor frame is aligned with the
 	// body frame
-	Dcmf Tbs;
-	Tbs.identity();
+	const Dcmf Tbs = matrix::eye<float, 3>();
 
 	// Sub Expressions
 	const float HK0 = -Tbs(1,0)*q2 + Tbs(1,1)*q1 + Tbs(1,2)*q0;
