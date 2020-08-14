@@ -13,10 +13,9 @@ int main()
 {
     // Compare calculation of observation Jacobians and Kalman gains for sympy and matlab generated equations
 
-	SparseVector24f<4,5,6,22,23> Hfusion;
-    Vector24f H_TAS;
-    Vector24f Kfusion;
     float airspeed_innov_var;
+
+    Vector24f Kfusion; // Kalman gain vector
 
     Vector24f Hfusion_sympy;
     Vector24f Kfusion_sympy;
@@ -56,12 +55,12 @@ int main()
         const float HK0 = vn - vwn;
         const float HK1 = ve - vwe;
         const float HK2 = ecl::powf(HK0, 2) + ecl::powf(HK1, 2) + ecl::powf(vd, 2);
-        if (HK2 < 1.0f) {
+        const float v_tas_pred = sqrtf(HK2); // predicted airspeed
+        //const float HK3 = powf(HK2, -1.0F/2.0F);
+        if (v_tas_pred < 1.0f) {
             // calculation can be badly conditioned for very low airspeed values so don't fuse this time
             return 0;
         }
-        const float v_tas_pred = sqrtf(HK2); // predicted airspeed
-        //const float HK3 = powf(HK2, -1.0F/2.0F);
         const float HK3 = 1.0f / v_tas_pred;
         const float HK4 = HK0*HK3;
         const float HK5 = HK1*HK3;
@@ -78,7 +77,7 @@ int main()
         const float HK16 = HK3/(-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*vd + R_TAS);
 
         // Observation Jacobians
-        memset(&Hfusion, 0, sizeof(Hfusion));
+    	SparseVector24f<4,5,6,22,23> Hfusion;
         Hfusion.at<4>() = HK4;
         Hfusion.at<5>() = HK5;
         Hfusion.at<6>() = HK3*vd;
@@ -122,7 +121,7 @@ int main()
         SH_TAS[2] = (SH_TAS[0]*(2.0f*vn - 2.0f*vwn))*0.5f;
 
         // Observation Jacobian
-        memset(&H_TAS, 0, sizeof(H_TAS));
+        Vector24f H_TAS = {};
         H_TAS(4) = SH_TAS[2];
         H_TAS(5) = SH_TAS[1];
         H_TAS(6) = vd*SH_TAS[0];
@@ -179,13 +178,13 @@ int main()
         } else {
             diff_fraction = 0.0f;
         }
-        if (Hfusion_sympy(row) - H_TAS(row) != 0.0f) {
-            printf("new,old Hfusion(%i) = %e,%e\n",row,Hfusion_sympy(row),H_TAS(row));
+        if (Hfusion_sympy(row) - Hfusion_matlab(row) != 0.0f) {
+            printf("new,old Hfusion(%i) = %e,%e\n",row,Hfusion_sympy(row),Hfusion_matlab(row));
         }
         if (diff_fraction > max_diff_fraction) {
             max_diff_fraction = diff_fraction;
             max_row = row;
-            max_old = H_TAS(row);
+            max_old = Hfusion_matlab(row);
             max_new = Hfusion_sympy(row);
         }
     }
