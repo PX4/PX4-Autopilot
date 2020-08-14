@@ -66,7 +66,7 @@ int
 BMP388::init()
 {
 	if (!soft_reset()) {
-		PX4_WARN("failed to reset baro during init");
+		PX4_DEBUG("failed to reset baro during init");
 		return -EIO;
 	}
 
