@@ -51,6 +51,7 @@
 #define ADC_BATTERY_CURRENT_CHANNEL	-1
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL 2
 
+#define BOARD_BATTERY1_V_DIV 5.7f	// 1K + 4.7K
 #define ADC_DP_V_DIV 1.0f
 
 #include <system_config.h>
