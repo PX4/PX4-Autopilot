@@ -1,4 +1,6 @@
 uint64 timestamp				# time since system start (microseconds)
 
-uint16[2] voltage
-uint16[2] current
+uint16[4] voltage 				# mV
+uint16[4] current 				# mA
+uint16[4] temperature 			# Kelvin * 100
+

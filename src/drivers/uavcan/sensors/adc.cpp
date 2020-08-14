@@ -65,18 +65,21 @@ UavcanAdcBridge::adc_sub_cb(const
 {
 	analog_voltage_current_s report{};
 
-	static constexpr int numIndices = 2;
+	static constexpr int numIndices = 4;
 	static constexpr uint16_t mV = com::volansi::equipment::adc::Report::UNITS_MV;
 	static constexpr uint16_t mA = com::volansi::equipment::adc::Report::UNITS_MA;
+	static constexpr uint16_t cK = com::volansi::equipment::adc::Report::UNITS_CK;
 
 	for (int i = 0; i < numIndices; i++) {
 
-		// TODO: do we want to publish raw ADC values? What about temperature?
 		if (msg.unit_type[i] == mV) {
 			report.voltage[i] = msg.values[i];
 
 		} else if (msg.unit_type[i] == mA) {
 			report.current[i] = msg.values[i];
+
+		} else if (msg.unit_type[i] == cK) {
+			report.temperature[i] = msg.values[i];
 		}
 	}
 

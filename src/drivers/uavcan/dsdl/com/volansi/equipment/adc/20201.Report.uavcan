@@ -1,6 +1,7 @@
-uint2 UNITS_RAW 	= 0
-uint2 UNITS_MV 	= 1
-uint2 UNITS_MA 	= 2
-uint2[2] unit_type
+uint3 UNITS_NONE = 0
+uint3 UNITS_MV 	 = 1
+uint3 UNITS_MA 	 = 2
+uint3 UNITS_CK 	 = 3
+uint3[4] unit_type
 
-int16[2] values # TODO: do we want to include all of the ADC measurements or just two for voltage/current on power port?
+int16[4] values

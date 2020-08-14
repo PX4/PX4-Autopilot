@@ -545,15 +545,34 @@ void UavcanNode::send_adc_measurements()
 
 			int32_t adc1_units = 0;
 			int32_t adc2_units = 0;
+			int32_t adc3_units = 0;
+			int32_t adc4_units = 0;
+
 			(void)param_get(param_find("ADC1_UNIT_TYPE"), &adc1_units);
 			(void)param_get(param_find("ADC2_UNIT_TYPE"), &adc2_units);
+			(void)param_get(param_find("ADC3_UNIT_TYPE"), &adc3_units);
+			(void)param_get(param_find("ADC4_UNIT_TYPE"), &adc4_units);
 
 			report.unit_type[0] = (unsigned)adc1_units;
 			report.unit_type[1] = (unsigned)adc2_units;
+			report.unit_type[2] = (unsigned)adc3_units;
+			report.unit_type[3] = (unsigned)adc4_units;
 
-			// Always indices 0 and 1?
-			report.values[0] = adc_report.raw_data[0];
-			report.values[1] = adc_report.raw_data[1];
+			if (adc1_units != 0) {
+				report.values[0] = adc_report.raw_data[0];
+			}
+
+			if (adc2_units != 0) {
+				report.values[1] = adc_report.raw_data[1];
+			}
+
+			if (adc3_units != 0) {
+				report.values[2] = adc_report.raw_data[2];
+			}
+
+			if (adc4_units != 0) {
+				report.values[3] = adc_report.raw_data[3];
+			}
 
 			_adc_report_publisher.broadcast(report);
 		}

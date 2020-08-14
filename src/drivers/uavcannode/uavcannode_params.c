@@ -53,10 +53,14 @@ PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
 
 /**
  * Units associated with ADC measurement.
- * 0 - raw
+ * 0 - unused
  * 1 - mV
  * 2 - mA
+ * 3 - cK
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(ADC1_UNIT_TYPE, 1);
 PARAM_DEFINE_INT32(ADC2_UNIT_TYPE, 2);
+PARAM_DEFINE_INT32(ADC3_UNIT_TYPE, 0);
+PARAM_DEFINE_INT32(ADC4_UNIT_TYPE, 0);
+
