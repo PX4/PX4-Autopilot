@@ -142,7 +142,7 @@ function(px4_add_board)
 			IO
 			BOOTLOADER
 			UAVCAN_INTERFACES
-			UAVCAN_TIMER
+			UAVCAN_TIMER_OVERRIDE
 			LINKER_PREFIX
 		MULTI_VALUE
 			DRIVERS
@@ -222,8 +222,8 @@ function(px4_add_board)
 		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)
 	endif()
 
-	if(UAVCAN_TIMER)
-		set(config_uavcan_timer_num_ifaces ${UAVCAN_TIMER} CACHE INTERNAL "UAVCAN TIMER" FORCE)
+	if(UAVCAN_TIMER_OVERRIDE)
+		set(config_uavcan_timer_override ${UAVCAN_TIMER_OVERRIDE} CACHE INTERNAL "UAVCAN TIMER OVERRIDE" FORCE)
 	endif()
 
 	# OPTIONS
