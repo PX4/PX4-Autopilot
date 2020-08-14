@@ -145,6 +145,8 @@ ActuatorEffectivenessMultirotor::computeEffectivenessMatrix(const MultirotorGeom
 {
 	int num_actuators = 0;
 
+	effectiveness.setZero();
+
 	for (size_t i = 0; i < NUM_ROTORS_MAX; i++) {
 		// Get rotor axis
 		matrix::Vector3f axis(
