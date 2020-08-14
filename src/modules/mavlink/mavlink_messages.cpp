@@ -772,6 +772,100 @@ protected:
 	}
 };
 
+
+class MavlinkStreamSmartBatteryInfo : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return MavlinkStreamSmartBatteryInfo::get_name_static();
+	}
+
+	static constexpr const char *get_name_static()
+	{
+		return "SMART_BATTERY_INFO";
+	}
+
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_SMART_BATTERY_INFO;
+	}
+
+	uint16_t get_id() override
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamSmartBatteryInfo(mavlink);
+	}
+
+	unsigned get_size() override
+	{
+		unsigned total_size = 0;
+
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if (_battery_status_sub[i].advertised()) {
+				total_size += MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+			}
+		}
+
+		return total_size;
+	}
+
+private:
+	uORB::Subscription _battery_status_sub[ORB_MULTI_MAX_INSTANCES] {
+		{ORB_ID(battery_status), 0}, {ORB_ID(battery_status), 1}, {ORB_ID(battery_status), 2}, {ORB_ID(battery_status), 3}
+	};
+
+	/* do not allow top copying this class */
+	MavlinkStreamSmartBatteryInfo(MavlinkStreamSysStatus &) = delete;
+	MavlinkStreamSmartBatteryInfo &operator = (const MavlinkStreamSysStatus &) = delete;
+
+protected:
+	explicit MavlinkStreamSmartBatteryInfo(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+	}
+
+	bool send(const hrt_abstime t) override
+	{
+		bool updated = false;
+
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			battery_status_s battery_status;
+
+			if (_battery_status_sub[i].update(&battery_status)) {
+				if (battery_status.serial_number == 0) {
+					//This is not smart battery
+					continue;
+				}
+
+				mavlink_smart_battery_info_t msg = {};
+
+				msg.id = battery_status.id - 1;
+				msg.capacity_full_specification = battery_status.capacity;
+				msg.capacity_full = (int32_t)((float)(battery_status.state_of_health * battery_status.capacity) / 100.f);
+				msg.cycle_count = battery_status.cycle_count;
+				msg.serial_number = battery_status.serial_number + (battery_status.manufacture_date << 16);
+				//msg.device_name = ??
+				msg.weight = -1;
+				msg.discharge_minimum_voltage = -1;
+				msg.charging_minimum_voltage = -1;
+				msg.resting_minimum_voltage = -1;
+
+
+				mavlink_msg_smart_battery_info_send_struct(_mavlink->get_channel(), &msg);
+
+				updated = true;
+			}
+
+		}
+
+		return updated;
+	}
+};
+
 class MavlinkStreamHighresIMU : public MavlinkStream
 {
 public:
@@ -5249,6 +5343,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamCommandLong>(),
 	create_stream_list_item<MavlinkStreamSysStatus>(),
 	create_stream_list_item<MavlinkStreamBatteryStatus>(),
+	create_stream_list_item<MavlinkStreamSmartBatteryInfo>(),
 	create_stream_list_item<MavlinkStreamHighresIMU>(),
 	create_stream_list_item<MavlinkStreamScaledIMU>(),
 	create_stream_list_item<MavlinkStreamScaledIMU2>(),
