@@ -65,9 +65,6 @@ void Ekf::fuseOptFlow()
 	// calculate the optical flow observation variance
 	const float R_LOS = calcOptFlowMeasVar();
 
-	SparseVector24f<0,1,2,3,4,5,6> Hfusion; // Optical flow observation Jacobians
-	Vector24f Kfusion; // Optical flow Kalman gains
-
 	// get rotation matrix from earth to body
 	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
 
@@ -262,6 +259,8 @@ void Ekf::fuseOptFlow()
 	}
 
 	// fuse observation axes sequentially
+	SparseVector24f<0,1,2,3,4,5,6> Hfusion; // Optical flow observation Jacobians
+	Vector24f Kfusion; // Optical flow Kalman gains
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
 
 		// calculate observation Jocobians and Kalman gains
