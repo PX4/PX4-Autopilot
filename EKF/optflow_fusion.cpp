@@ -175,14 +175,12 @@ void Ekf::fuseOptFlow()
 	// calculate innovation variance for X axis observation and protect against a badly conditioned calculation
 	_flow_innov_var(0) = (HK25*HK43*HK46 + HK33*HK43*HK45 + HK37*HK43*HK44 + HK38*HK42*HK43 + HK39*HK43*HK49 + HK40*HK43*HK47 + HK41*HK43*HK48 + R_LOS);
 
-	float HK50;
-	if (_flow_innov_var(0) > R_LOS) {
-		HK50 = HK4/_flow_innov_var(0);
-	} else {
+	if (_flow_innov_var(0) < R_LOS) {
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		return;
 	}
+	const float HK50 = HK4/_flow_innov_var(0);
 
 	const float HK51 = Tbs(0,1)*q1;
 	const float HK52 = Tbs(0,2)*q0;
