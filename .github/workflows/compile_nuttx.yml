@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-bionic:2020-04-01
+    container: px4io/px4-dev-nuttx-bionic:2020-08-14
     strategy:
       matrix:
         config: [

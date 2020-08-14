@@ -30,7 +30,7 @@ jobs:
           #bionic,
           focal
           ]
-    container: px4io/px4-dev-nuttx-${{ matrix.ubuntu_release }}:2020-04-01
+    container: px4io/px4-dev-nuttx-${{ matrix.ubuntu_release }}:2020-08-14
     steps:
     - uses: actions/checkout@v1
       with:
