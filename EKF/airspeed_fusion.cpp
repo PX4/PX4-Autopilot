@@ -47,9 +47,6 @@
 
 void Ekf::fuseAirspeed()
 {
-	SparseVector24f<4,5,6,22,23> Hfusion; // Observation Jacobians
-	Vector24f Kfusion; // Kalman gain vector
-
 	const float &vn = _state.vel(0); // Velocity in north direction
 	const float &ve = _state.vel(1); // Velocity in east direction
 	const float &vd = _state.vel(2); // Velocity in downwards direction
@@ -67,12 +64,12 @@ void Ekf::fuseAirspeed()
 	const float HK0 = vn - vwn;
 	const float HK1 = ve - vwe;
 	const float HK2 = ecl::powf(HK0, 2) + ecl::powf(HK1, 2) + ecl::powf(vd, 2);
-	if (HK2 < 1.0f) {
+	const float v_tas_pred = sqrtf(HK2); // predicted airspeed
+	//const float HK3 = powf(HK2, -1.0F/2.0F);
+	if (v_tas_pred < 1.0f) {
 		// calculation can be badly conditioned for very low airspeed values so don't fuse this time
 		return;
 	}
-	const float v_tas_pred = sqrtf(HK2); // predicted airspeed
-	//const float HK3 = powf(HK2, -1.0F/2.0F);
 	const float HK3 = 1.0f / v_tas_pred;
 	const float HK4 = HK0*HK3;
 	const float HK5 = HK1*HK3;
@@ -87,17 +84,11 @@ void Ekf::fuseAirspeed()
 	const float HK14 = -HK0*P(22,23) + HK0*P(4,23) - HK1*P(23,23) + HK8 + P(6,23)*vd;
 	const float HK15 = -HK0*P(22,22) - HK1*P(22,23) + HK1*P(5,22) + HK11 + P(6,22)*vd;
 	//const float HK16 = HK3/(-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*vd + R_TAS);
-	float HK16;
 
-	// innovation variance
+	// innovation variance - check for badly conditioned calculation
 	_airspeed_innov_var = (-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*vd + R_TAS);
-	if (_airspeed_innov_var >= R_TAS) { // Check for badly conditioned calculation
-		HK16 = HK3 / _airspeed_innov_var;
-		_fault_status.flags.bad_airspeed = false;
-
-	} else { // Reset the estimator covariance matrix
-		_fault_status.flags.bad_airspeed = true;
-
+	if (_airspeed_innov_var < R_TAS) { //
+		// Reset the estimator covariance matrix
 		// if we are getting aiding from other sources, warn and reset the wind states and covariances only
 		const char* action_string = nullptr;
 		if (update_wind_only) {
@@ -112,16 +103,22 @@ void Ekf::fuseAirspeed()
 		}
 		ECL_ERR("airspeed badly conditioned - %s covariance reset", action_string);
 
+		_fault_status.flags.bad_airspeed = true;
+
 		return;
 	}
+	const float HK16 = HK3 / _airspeed_innov_var;
+	_fault_status.flags.bad_airspeed = false;
 
 	// Observation Jacobians
+	SparseVector24f<4,5,6,22,23> Hfusion;
 	Hfusion.at<4>() = HK4;
 	Hfusion.at<5>() = HK5;
 	Hfusion.at<6>() = HK3*vd;
 	Hfusion.at<22>() = -HK4;
 	Hfusion.at<23>() = -HK5;
 
+	Vector24f Kfusion; // Kalman gain vector
 	if (!update_wind_only) {
 		// we have no other source of aiding, so use airspeed measurements to correct states
 		for (unsigned row = 0; row <= 3; row++) {
