@@ -152,9 +152,6 @@ void Ekf::fuseAirspeed()
 		_innov_check_fail_status.flags.reject_airspeed = false;
 	}
 
-	// Airspeed measurement sample has passed check so record it
-	_time_last_arsp_fuse = _time_last_imu;
-
 	// apply covariance correction via P_new = (I -K*H)*P
 	// first calculate expression for KHP
 	// then calculate P - KHP
