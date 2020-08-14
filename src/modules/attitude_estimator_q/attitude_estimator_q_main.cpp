@@ -198,6 +198,21 @@ AttitudeEstimatorQ::init()
 }
 
 void
+AttitudeEstimatorQ::update_mag_declination(float new_declination)
+{
+	// Apply initial declination or trivial rotations without changing estimation
+	if (!_inited || fabsf(new_declination - _mag_decl) < 0.0001f) {
+		_mag_decl = new_declination;
+
+	} else {
+		// Immediately rotate current estimation to avoid gyro bias growth
+		Quatf decl_rotation = Eulerf(0.0f, 0.0f, new_declination - _mag_decl);
+		_q = _q * decl_rotation;
+		_mag_decl = new_declination;
+	}
+}
+
+void
 AttitudeEstimatorQ::Run()
 {
 	if (should_exit()) {
@@ -551,21 +566,6 @@ AttitudeEstimatorQ::update(float dt)
 	}
 
 	return true;
-}
-
-void
-AttitudeEstimatorQ::update_mag_declination(float new_declination)
-{
-	// Apply initial declination or trivial rotations without changing estimation
-	if (!_inited || fabsf(new_declination - _mag_decl) < 0.0001f) {
-		_mag_decl = new_declination;
-
-	} else {
-		// Immediately rotate current estimation to avoid gyro bias growth
-		Quatf decl_rotation = Eulerf(0.0f, 0.0f, new_declination - _mag_decl);
-		_q = _q * decl_rotation;
-		_mag_decl = new_declination;
-	}
 }
 
 int
