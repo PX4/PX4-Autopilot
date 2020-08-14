@@ -168,7 +168,7 @@ static void shutdown_worker(void *arg)
 		if (shutdown_args & SHUTDOWN_ARG_REBOOT) {
 #if defined(CONFIG_BOARDCTL_RESET)
 			PX4_INFO_RAW("Reboot NOW.");
-			board_reset(shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER);
+			board_reset((shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER) ? 1 : 0);
 #else
 			PX4_PANIC("board reset not available");
 #endif
