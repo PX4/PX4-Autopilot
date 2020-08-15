@@ -953,11 +953,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		// Run additional checks to see if the delta velocity bias has hit limits in a direction that is clearly wrong
 		// calculate accel bias term aligned with the gravity vector
 		const float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
-		float down_dvel_bias = 0.0f;
-
-		for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
-			down_dvel_bias += _state.delta_vel_bias(axis_index) * _R_to_earth(2, axis_index);
-		}
+		const float down_dvel_bias = _state.delta_vel_bias.dot(Vector3f(_R_to_earth.row(2)));
 
 		// check that the vertical component of accel bias is consistent with both the vertical position and velocity innovation
 		bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
