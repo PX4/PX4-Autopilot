@@ -54,5 +54,7 @@
 #define BOARD_BATTERY1_V_DIV 5.7f	// 1K + 4.7K
 #define ADC_DP_V_DIV 1.0f
 
+#define BOARD_ADC_OPEN_CIRCUIT_V 5.3f	// Powered from USB
+
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
