@@ -351,7 +351,7 @@ void PWMDriverWrapper::updatePWMParamTrim()
 bool PWMDriverWrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
 				     unsigned num_control_groups_updated)
 {
-	return pca9685->updatePWM(outputs, num_outputs);
+	return pca9685->updatePWM(outputs, num_outputs) == 0 ? true : false;
 }
 
 void PWMDriverWrapper::Run()
