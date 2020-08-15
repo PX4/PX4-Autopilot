@@ -20,6 +20,7 @@ float kahanSummation(float sum_previous, float input, float &accumulator);
 // this produces the inverse rotation to that produced by the math library quaternion to Dcmf operator
 matrix::Dcmf quatToInverseRotMat(const matrix::Quatf &quat);
 
+bool shouldUse321RotationSequence(const matrix::Dcmf& R);
 namespace ecl{
 	inline float powf(float x, int exp)
 	{

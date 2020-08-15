@@ -224,7 +224,7 @@ void EKFGSF_yaw::ahrsAlignYaw()
 {
 	// Align yaw angle for each model
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-		if (fabsf(_ahrs_ekf_gsf[model_index].R(2, 0)) < fabsf(_ahrs_ekf_gsf[model_index].R(2, 1))) {
+		if (shouldUse321RotationSequence(_ahrs_ekf_gsf[model_index].R)) {
 			// get the roll, pitch, yaw estimates from the rotation matrix using a  321 Tait-Bryan rotation sequence
 			Eulerf euler_init(_ahrs_ekf_gsf[model_index].R);
 
@@ -260,7 +260,7 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 	}
 
 	// Calculate the yaw state using a projection onto the horizontal that avoids gimbal lock
-	if (fabsf(_ahrs_ekf_gsf[model_index].R(2, 0)) < fabsf(_ahrs_ekf_gsf[model_index].R(2, 1))) {
+	if (shouldUse321RotationSequence(_ahrs_ekf_gsf[model_index].R)) {
 		// use 321 Tait-Bryan rotation to define yaw state
 		_ekf_gsf[model_index].X(2) = atan2f(_ahrs_ekf_gsf[model_index].R(1, 0), _ahrs_ekf_gsf[model_index].R(0, 0));
 	} else {

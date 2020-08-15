@@ -723,7 +723,7 @@ void Ekf::fuseHeading()
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// determine if a 321 or 312 Euler sequence is best
-	if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
+	if (shouldUse321RotationSequence(_R_to_earth)) {
 		// rolled more than pitched so use 321 rotation order to calculate the observed yaw angle
 		Eulerf euler321(_state.quat_nominal);
 		predicted_hdg = euler321(2);
