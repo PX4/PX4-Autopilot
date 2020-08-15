@@ -324,9 +324,7 @@ void Ekf::calculateOutputStates()
 	const Vector3f delta_angle(imu.delta_ang - _state.delta_ang_bias * dt_scale_correction + _delta_angle_corr);
 
 	// calculate a yaw change about the earth frame vertical
-	const float spin_del_ang_D = _R_to_earth_now(2, 0) * delta_angle(0) +
-				     _R_to_earth_now(2, 1) * delta_angle(1) +
-				     _R_to_earth_now(2, 2) * delta_angle(2);
+	const float spin_del_ang_D = delta_angle.dot(Vector3f(_R_to_earth_now.row(2)));
 	_yaw_delta_ef += spin_del_ang_D;
 
 	// Calculate filtered yaw rate to be used by the magnetometer fusion type selection logic
