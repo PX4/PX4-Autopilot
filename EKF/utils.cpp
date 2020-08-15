@@ -62,3 +62,27 @@ matrix::Dcmf quatToInverseRotMat(const  matrix::Quatf &quat)
 bool shouldUse321RotationSequence(const matrix::Dcmf& R) {
 	return fabsf(R(2, 0)) < fabsf(R(2, 1));
 }
+
+float getEuler321Yaw(const matrix::Quatf& q) {
+	// Values from yaw_input_321.c file produced by
+	// https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw321.m
+	const float a = 2.f * (q(0) * q(3) + q(1) * q(2));
+	const float b = sq(q(0)) + sq(q(1)) - sq(q(2)) - sq(q(3));
+	return atan2f(a, b);
+}
+
+float getEuler321Yaw(const matrix::Dcmf& R) {
+	return atan2f(R(1, 0), R(0, 0));
+}
+
+float getEuler312Yaw(const matrix::Quatf& q) {
+	// Values from yaw_input_312.c file produced by
+	// https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
+	const float a = 2.f * (q(0) * q(3) - q(1) * q(2));
+	const float b = sq(q(0)) - sq(q(1)) + sq(q(2)) - sq(q(3));
+	return atan2f(a, b);
+}
+
+float getEuler312Yaw(const matrix::Dcmf& R) {
+	return atan2f(-R(0, 1), R(1, 1));
+}

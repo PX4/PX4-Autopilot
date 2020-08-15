@@ -816,9 +816,6 @@ private:
 	void checkRangeAidSuitability();
 	bool isRangeAidSuitable() { return _is_range_aid_suitable; }
 
-	// return the square of two floating point numbers - used in auto coded sections
-	static constexpr float sq(float var) { return var * var; }
-
 	// set control flags to use baro height
 	void setControlBaroHeight();
 

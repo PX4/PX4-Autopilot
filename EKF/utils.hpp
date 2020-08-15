@@ -2,6 +2,9 @@
 
 #pragma once
 
+// return the square of two floating point numbers - used in auto coded sections
+static constexpr float sq(float var) { return var * var; }
+
 // converts Tait-Bryan 312 sequence of rotations from frame 1 to frame 2
 // to the corresponding rotation matrix that rotates from frame 2 to frame 1
 // rot312(0) - First rotation is a RH rotation about the Z axis (rad)
@@ -21,6 +24,13 @@ float kahanSummation(float sum_previous, float input, float &accumulator);
 matrix::Dcmf quatToInverseRotMat(const matrix::Quatf &quat);
 
 bool shouldUse321RotationSequence(const matrix::Dcmf& R);
+
+float getEuler321Yaw(const matrix::Quatf& q);
+float getEuler321Yaw(const matrix::Dcmf& R);
+
+float getEuler312Yaw(const matrix::Quatf& q);
+float getEuler312Yaw(const matrix::Dcmf& R);
+
 namespace ecl{
 	inline float powf(float x, int exp)
 	{

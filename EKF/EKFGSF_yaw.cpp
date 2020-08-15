@@ -261,11 +261,9 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 
 	// Calculate the yaw state using a projection onto the horizontal that avoids gimbal lock
 	if (shouldUse321RotationSequence(_ahrs_ekf_gsf[model_index].R)) {
-		// use 321 Tait-Bryan rotation to define yaw state
-		_ekf_gsf[model_index].X(2) = atan2f(_ahrs_ekf_gsf[model_index].R(1, 0), _ahrs_ekf_gsf[model_index].R(0, 0));
+		_ekf_gsf[model_index].X(2) = getEuler321Yaw(_ahrs_ekf_gsf[model_index].R);
 	} else {
-		// use 312 Tait-Bryan rotation to define yaw state
-		_ekf_gsf[model_index].X(2) = atan2f(-_ahrs_ekf_gsf[model_index].R(0, 1), _ahrs_ekf_gsf[model_index].R(1, 1)); // first rotation (yaw)
+		_ekf_gsf[model_index].X(2) = getEuler312Yaw(_ahrs_ekf_gsf[model_index].R);
 	}
 
 	// calculate delta velocity in a horizontal front-right frame
