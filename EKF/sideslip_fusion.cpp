@@ -83,11 +83,11 @@ void Ekf::fuseSideslip()
 		const float HK5 = q0*q3;
 		const float HK6 = q1*q2;
 		const float HK7 = 2*HK5 + 2*HK6;
-		const float HK8 = powf(q0, 2);
-		const float HK9 = powf(q3, 2);
+		const float HK8 = ecl::powf(q0, 2);
+		const float HK9 = ecl::powf(q3, 2);
 		const float HK10 = HK8 - HK9;
-		const float HK11 = powf(q1, 2);
-		const float HK12 = powf(q2, 2);
+		const float HK11 = ecl::powf(q1, 2);
+		const float HK12 = ecl::powf(q2, 2);
 		const float HK13 = HK11 - HK12;
 		const float HK14 = HK10 + HK13;
 		const float HK15 = HK0*HK14 + HK1*HK7 - HK3*HK4;
@@ -114,7 +114,7 @@ void Ekf::fuseSideslip()
 		const float HK36 = 2*HK27;
 		const float HK37 = 2*HK21;
 		const float HK38 = HK28*P(0,22) - HK28*P(0,4) + HK32*P(0,23) - HK32*P(0,5) + HK33*P(0,6) + HK34*P(0,2) + HK35*P(0,1) - HK36*P(0,3) + HK37*P(0,0);
-		const float HK39 = powf(HK15, -2);
+		const float HK39 = ecl::powf(HK15, -2);
 		const float HK40 = -HK28*P(4,6) + HK28*P(6,22) - HK32*P(5,6) + HK32*P(6,23) + HK33*P(6,6) + HK34*P(2,6) + HK35*P(1,6) - HK36*P(3,6) + HK37*P(0,6);
 		const float HK41 = HK32*P(5,23);
 		const float HK42 = HK28*P(22,23) - HK28*P(4,23) + HK32*P(23,23) + HK33*P(6,23) + HK34*P(2,23) + HK35*P(1,23) - HK36*P(3,23) + HK37*P(0,23) - HK41;
