@@ -182,8 +182,7 @@ void Ekf::get_true_airspeed(float *tas)
 */
 void Ekf::resetWindStates()
 {
-	const Eulerf euler321(_state.quat_nominal);
-	const float euler_yaw = euler321(2);
+	const float euler_yaw = getEuler321Yaw(_state.quat_nominal);
 
 	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < (uint64_t)5e5)) {
 		// estimate wind using zero sideslip assumption and airspeed measurement if airspeed available

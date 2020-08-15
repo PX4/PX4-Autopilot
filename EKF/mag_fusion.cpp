@@ -744,10 +744,7 @@ void Ekf::fuseHeading()
 
 		} else if (_control_status.flags.ev_yaw) {
 			// calculate the yaw angle for a 321 sequence
-			// Expressions obtained from yaw_input_321.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw321.m
-			const float Tbn_1_0 = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)+_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
-			const float Tbn_0_0 = sq(_ev_sample_delayed.quat(0))+sq(_ev_sample_delayed.quat(1))-sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
-			measured_hdg = atan2f(Tbn_1_0,Tbn_0_0);
+			measured_hdg = getEuler321Yaw(_ev_sample_delayed.quat);
 
 		} else {
 			measured_hdg = predicted_hdg;
@@ -786,9 +783,9 @@ void Ekf::fuseHeading()
 		fuseYaw321(measured_hdg, R_YAW, fuse_zero_innov);
 
 	} else {
-
 		// pitched more than rolled so use 312 rotation order to calculate the observed yaw angle
-		predicted_hdg = atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1));
+		const float predicted_hdg = getEuler312Yaw(_R_to_earth);
+
 		if (_control_status.flags.mag_hdg) {
 
 			// Calculate the body to earth frame rotation matrix from the euler angles using a 312 rotation sequence
@@ -810,11 +807,7 @@ void Ekf::fuseHeading()
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
 		} else if (_control_status.flags.ev_yaw) {
-			// calculate the yaw angle for a 312 sequence
-			// Values from yaw_input_312.c file produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
-			const float Tbn_0_1_neg = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)-_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
-			const float Tbn_1_1 = sq(_ev_sample_delayed.quat(0))-sq(_ev_sample_delayed.quat(1))+sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
-			measured_hdg = atan2f(Tbn_0_1_neg,Tbn_1_1);
+			measured_hdg = getEuler312Yaw(_ev_sample_delayed.quat);
 
 		} else {
 			measured_hdg = predicted_hdg;

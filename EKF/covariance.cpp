@@ -1096,8 +1096,7 @@ void Ekf::resetWindCovariance()
 	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < (uint64_t)5e5)) {
 		// Derived using EKF/matlab/scripts/Inertial Nav EKF/wind_cov.py
 		// TODO: explicitly include the sideslip angle in the derivation
-		Eulerf euler321(_state.quat_nominal);
-		const float euler_yaw = euler321(2);
+		const float euler_yaw = getEuler321Yaw(_state.quat_nominal);
 		const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
 		constexpr float initial_sideslip_uncertainty = math::radians(15.0f);
 		const float initial_wind_var_body_y = sq(_airspeed_sample_delayed.true_airspeed * sinf(initial_sideslip_uncertainty));

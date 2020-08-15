@@ -402,8 +402,8 @@ bool Ekf::realignYawGPS()
 		if (!_control_status.flags.mag_aligned_in_flight) {
 			// This is our first flight alignment so we can assume that the recent change in velocity has occurred due to a
 			// forward direction takeoff or launch and therefore the inertial and GPS ground course discrepancy is due to yaw error
-			const Eulerf euler321(_state.quat_nominal);
-			yaw_new = euler321(2) + courseYawError;
+			const float current_yaw = getEuler321Yaw(_state.quat_nominal);
+			yaw_new = current_yaw + courseYawError;
 			_control_status.flags.mag_aligned_in_flight = true;
 
 		} else if (_control_status.flags.wind) {
@@ -473,11 +473,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	float yaw_new;
 	float yaw_new_variance = 0.0f;
 	if (_control_status.flags.ev_yaw) {
-		// convert the observed quaternion to a rotation matrix
-		const Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
-
-		// calculate the yaw angle for a 312 sequence
-		yaw_new = atan2f(R_to_earth_ev(1, 0), R_to_earth_ev(0, 0));
+		yaw_new = getEuler312Yaw(_ev_sample_delayed.quat);
 
 		if (increase_yaw_var) {
 			yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
@@ -1586,8 +1582,7 @@ void Ekf::startEvVelFusion() {
 
 void Ekf::startEvYawFusion() {
 	// reset the yaw angle to the value from the vision quaternion
-	const Eulerf euler_obs(_ev_sample_delayed.quat);
-	const float yaw = euler_obs(2);
+	const float yaw = getEuler321Yaw(_ev_sample_delayed.quat);
 	const float yaw_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
 
 	resetQuatStateYaw(yaw, yaw_variance, true);
