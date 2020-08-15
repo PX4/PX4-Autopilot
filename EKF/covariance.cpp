@@ -1103,17 +1103,20 @@ void Ekf::resetWindCovariance()
 		const float initial_wind_var_body_y = sq(_airspeed_sample_delayed.true_airspeed * sinf(initial_sideslip_uncertainty));
 		constexpr float R_yaw = sq(math::radians(10.0f));
 
+		const float cos_yaw = cosf(euler_yaw);
+		const float sin_yaw = sinf(euler_yaw);
+
 		// rotate wind velocity into earth frame aligned with vehicle yaw
-		const float Wx = _state.wind_vel(0) * cosf(euler_yaw) + _state.wind_vel(1) * sinf(euler_yaw);
-		const float Wy = -_state.wind_vel(0) * sinf(euler_yaw) + _state.wind_vel(1) * cosf(euler_yaw);
+		const float Wx = _state.wind_vel(0) * cos_yaw + _state.wind_vel(1) * sin_yaw;
+		const float Wy = -_state.wind_vel(0) * sin_yaw + _state.wind_vel(1) * cos_yaw;
 
 		// it is safer to remove all existing correlations to other states at this time
 		P.uncorrelateCovarianceSetVariance<2>(22, 0.0f);
 
-		P(22,22) = R_TAS*sq(cosf(euler_yaw)) + R_yaw*sq(-Wx*sinf(euler_yaw) - Wy*cosf(euler_yaw)) + initial_wind_var_body_y*sq(sinf(euler_yaw));
-		P(22,23) = R_TAS*sinf(euler_yaw)*cosf(euler_yaw) + R_yaw*(-Wx*sinf(euler_yaw) - Wy*cosf(euler_yaw))*(Wx*cosf(euler_yaw) - Wy*sinf(euler_yaw)) - initial_wind_var_body_y*sinf(euler_yaw)*cosf(euler_yaw);
+		P(22,22) = R_TAS*sq(cos_yaw) + R_yaw*sq(-Wx*sin_yaw - Wy*cos_yaw) + initial_wind_var_body_y*sq(sin_yaw);
+		P(22,23) = R_TAS*sin_yaw*cos_yaw + R_yaw*(-Wx*sin_yaw - Wy*cos_yaw)*(Wx*cos_yaw - Wy*sin_yaw) - initial_wind_var_body_y*sin_yaw*cos_yaw;
 		P(23,22) = P(22,23);
-		P(23,23) = R_TAS*sq(sinf(euler_yaw)) + R_yaw*sq(Wx*cosf(euler_yaw) - Wy*sinf(euler_yaw)) + initial_wind_var_body_y*sq(cosf(euler_yaw));
+		P(23,23) = R_TAS*sq(sin_yaw) + R_yaw*sq(Wx*cos_yaw - Wy*sin_yaw) + initial_wind_var_body_y*sq(cos_yaw);
 
 		// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
 		P(22,22) += P(4,4);

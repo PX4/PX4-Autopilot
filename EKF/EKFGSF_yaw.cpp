@@ -270,8 +270,10 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 
 	// calculate delta velocity in a horizontal front-right frame
 	const Vector3f del_vel_NED = _ahrs_ekf_gsf[model_index].R * _delta_vel;
-	const float dvx =   del_vel_NED(0) * cosf(_ekf_gsf[model_index].X(2)) + del_vel_NED(1) * sinf(_ekf_gsf[model_index].X(2));
-	const float dvy = - del_vel_NED(0) * sinf(_ekf_gsf[model_index].X(2)) + del_vel_NED(1) * cosf(_ekf_gsf[model_index].X(2));
+	const float cos_yaw = cosf(_ekf_gsf[model_index].X(2));
+	const float sin_yaw = sinf(_ekf_gsf[model_index].X(2));
+	const float dvx =   del_vel_NED(0) * cos_yaw + del_vel_NED(1) * sin_yaw;
+	const float dvy = - del_vel_NED(0) * sin_yaw + del_vel_NED(1) * cos_yaw;
 
 	// sum delta velocities in earth frame:
 	_ekf_gsf[model_index].X(0) += del_vel_NED(0);
