@@ -225,24 +225,14 @@ void EKFGSF_yaw::ahrsAlignYaw()
 	// Align yaw angle for each model
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
 		if (shouldUse321RotationSequence(_ahrs_ekf_gsf[model_index].R)) {
-			// get the roll, pitch, yaw estimates from the rotation matrix using a  321 Tait-Bryan rotation sequence
-			Eulerf euler_init(_ahrs_ekf_gsf[model_index].R);
-
-			// set the yaw angle
-			euler_init(2) = wrap_pi(_ekf_gsf[model_index].X(2));
-
-			// update the rotation matrix
-			_ahrs_ekf_gsf[model_index].R = Dcmf(euler_init);
+			// update the rotation matrix with 321 rotation sequence
+			_ahrs_ekf_gsf[model_index].R = updateEuler321YawInRotMat(wrap_pi(_ekf_gsf[model_index].X(2)),
+										_ahrs_ekf_gsf[model_index].R);
 
 		} else {
-			// Calculate the 312 Tait-Bryan rotation sequence that rotates from earth to body frame
-			const Vector3f rot312(wrap_pi(_ekf_gsf[model_index].X(2)),  // yaw
-					      asinf(_ahrs_ekf_gsf[model_index].R(2, 1)),  // roll
-					      atan2f(-_ahrs_ekf_gsf[model_index].R(2, 0),
-						      _ahrs_ekf_gsf[model_index].R(2, 2)));  // pitch
-
-			// Calculate the body to earth frame rotation matrix
-			_ahrs_ekf_gsf[model_index].R = taitBryan312ToRotMat(rot312);
+			// update the rotation matrix with 312 rotation sequence
+			_ahrs_ekf_gsf[model_index].R = updateEuler312YawInRotMat(wrap_pi(_ekf_gsf[model_index].X(2)),
+										_ahrs_ekf_gsf[model_index].R);
 
 		}
 		_ahrs_ekf_gsf[model_index].aligned = true;

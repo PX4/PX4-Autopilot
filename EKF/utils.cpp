@@ -86,3 +86,16 @@ float getEuler312Yaw(const matrix::Quatf& q) {
 float getEuler312Yaw(const matrix::Dcmf& R) {
 	return atan2f(-R(0, 1), R(1, 1));
 }
+
+matrix::Dcmf updateEuler321YawInRotMat(float yaw, const matrix::Dcmf& rot_in) {
+	matrix::Eulerf euler321(rot_in);
+	euler321(2) = yaw;
+	return matrix::Dcmf(euler321);
+}
+
+matrix::Dcmf updateEuler312YawInRotMat(float yaw, const matrix::Dcmf& rot_in) {
+	const matrix::Vector3f rotVec312(yaw,  // yaw
+				asinf(rot_in(2, 1)),  // roll
+				atan2f(-rot_in(2, 0), rot_in(2, 2)));  // pitch
+	return taitBryan312ToRotMat(rotVec312);
+}
