@@ -484,16 +484,11 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		Dcmf R_to_earth;
 		if (shouldUse321RotationSequence(_R_to_earth)) {
 			// rolled more than pitched so use 321 rotation order
-			Eulerf euler321(_state.quat_nominal);
-			euler321(2) = 0.0f;
-			R_to_earth = Dcmf(euler321);
+			R_to_earth = updateEuler321YawInRotMat(0.f, _R_to_earth);
 
 		} else {
 			// pitched more than rolled so use 312 rotation order
-			const Vector3f rotVec312(0.0f,  // yaw
-						 asinf(_R_to_earth(2, 1)),  // roll
-						 atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)));  // pitch
-			R_to_earth = taitBryan312ToRotMat(rotVec312);
+			R_to_earth = updateEuler312YawInRotMat(0.f, _R_to_earth);
 
 		}
 
@@ -1654,19 +1649,12 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 	// update the rotation matrix using the new yaw value
 	// determine if a 321 or 312 Euler sequence is best
 	if (shouldUse321RotationSequence(_R_to_earth)) {
-		// use a 321 sequence
-		Eulerf euler321(_R_to_earth);
-		euler321(2) = yaw;
-		_R_to_earth = Dcmf(euler321);
+		_R_to_earth = updateEuler321YawInRotMat(yaw, _R_to_earth);
 
 	} else {
-		// Calculate the 312 Tait-Bryan rotation sequence that rotates from earth to body frame
 		// We use a 312 sequence as an alternate when there is more pitch tilt than roll tilt
 		// to avoid gimbal lock
-		const Vector3f rot312(yaw,
-				      asinf(_R_to_earth(2, 1)),
-				      atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)));
-		_R_to_earth = taitBryan312ToRotMat(rot312);
+		_R_to_earth = updateEuler312YawInRotMat(yaw, _R_to_earth);
 
 	}
 
