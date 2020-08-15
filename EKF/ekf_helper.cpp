@@ -486,7 +486,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
 		Dcmf R_to_earth;
-		if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
+		if (shouldUse321RotationSequence(_R_to_earth)) {
 			// rolled more than pitched so use 321 rotation order
 			Eulerf euler321(_state.quat_nominal);
 			euler321(2) = 0.0f;
@@ -1658,7 +1658,7 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 
 	// update the rotation matrix using the new yaw value
 	// determine if a 321 or 312 Euler sequence is best
-	if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
+	if (shouldUse321RotationSequence(_R_to_earth)) {
 		// use a 321 sequence
 		Eulerf euler321(_R_to_earth);
 		euler321(2) = yaw;

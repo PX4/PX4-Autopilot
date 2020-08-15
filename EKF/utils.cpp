@@ -58,3 +58,7 @@ matrix::Dcmf quatToInverseRotMat(const  matrix::Quatf &quat)
 
 	return dcm;
 }
+
+bool shouldUse321RotationSequence(const matrix::Dcmf& R) {
+	return fabsf(R(2, 0)) < fabsf(R(2, 1));
+}
