@@ -1103,9 +1103,9 @@ void Ekf::resetWindCovariance()
 		Eulerf euler321(_state.quat_nominal);
 		const float euler_yaw = euler321(2);
 		const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
-		const float initial_sideslip_uncertainty = math::radians(15.0f);
+		constexpr float initial_sideslip_uncertainty = math::radians(15.0f);
 		const float initial_wind_var_body_y = sq(_airspeed_sample_delayed.true_airspeed * sinf(initial_sideslip_uncertainty));
-		const float R_yaw = sq(math::radians(10.0f));
+		constexpr float R_yaw = sq(math::radians(10.0f));
 
 		// rotate wind velocity into earth frame aligned with vehicle yaw
 		const float Wx = _state.wind_vel(0) * cosf(euler_yaw) + _state.wind_vel(1) * sinf(euler_yaw);

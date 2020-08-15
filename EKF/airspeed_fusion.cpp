@@ -173,7 +173,7 @@ Vector2f Ekf::getWindVelocityVariance() const
 
 void Ekf::get_true_airspeed(float *tas)
 {
-	float tempvar = sqrtf(sq(_state.vel(0) - _state.wind_vel(0)) + sq(_state.vel(1) - _state.wind_vel(1)) + sq(_state.vel(2)));
+	const float tempvar = sqrtf(sq(_state.vel(0) - _state.wind_vel(0)) + sq(_state.vel(1) - _state.wind_vel(1)) + sq(_state.vel(2)));
 	memcpy(tas, &tempvar, sizeof(float));
 }
 
