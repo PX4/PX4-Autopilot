@@ -353,9 +353,7 @@ void Ekf::alignOutputFilter()
 		_output_buffer[i].pos += pos_delta;
 	}
 
-	_output_new.quat_nominal = q_delta * _output_new.quat_nominal;
-	_output_new.quat_nominal.normalize();
-	// TODO: what about vel and pos of _output_new, shouldn't they be aligned too?
+	_output_new = _output_buffer.get_newest();
 }
 
 // Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
