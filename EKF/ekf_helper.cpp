@@ -99,10 +99,6 @@ void Ekf::resetHorizontalVelocityToOpticalFlow() {
 
 void Ekf::resetVelocityToVision() {
 	ECL_INFO_TIMESTAMPED("reset to vision velocity");
-	Vector3f _ev_vel = _ev_sample_delayed.vel;
-	if(_params.fusion_mode & MASK_ROTATE_EV){
-		_ev_vel = _R_ev_to_ekf *_ev_sample_delayed.vel;
-	}
 	resetVelocityTo(getVisionVelocityInEkfFrame());
 	P.uncorrelateCovarianceSetVariance<3>(4, getVisionVelocityVarianceInEkfFrame());
 }
