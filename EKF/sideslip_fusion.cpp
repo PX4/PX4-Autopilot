@@ -69,7 +69,7 @@ void Ekf::fuseSideslip()
 
 	// perform fusion of assumed sideslip  = 0
 	if (rel_wind_body.norm() > 7.0f) {
-		float R_BETA = sq(_params.beta_noise); // observation noise variance
+		const float R_BETA = sq(_params.beta_noise); // observation noise variance
 
 		// determine if we need the sideslip fusion to correct states other than wind
 		bool update_wind_only = !_is_wind_dead_reckoning;
@@ -202,9 +202,6 @@ void Ekf::fuseSideslip()
 
 		Kfusion(22) = HK45*HK52;
 		Kfusion(23) = HK42*HK52;
-
-		// synthetic sideslip measurement sample has passed check so record it
-		_time_last_beta_fuse = _time_last_imu;
 
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
