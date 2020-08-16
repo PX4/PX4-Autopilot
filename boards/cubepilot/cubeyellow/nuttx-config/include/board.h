@@ -60,7 +60,7 @@
 #define STM32_HSI_FREQUENCY     16000000ul
 #define STM32_LSI_FREQUENCY     32000
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
-#define STM32_LSE_FREQUENCY     0
+#define STM32_LSE_FREQUENCY     32768
 
 /* Main PLL Configuration.
  *
@@ -90,17 +90,17 @@
 
 /* Highest SYSCLK with USB OTG FS clock = 48 MHz
  *
- * PLL_VCO = (24,000,000 / 12) * 216 = 432 MHz
+ * PLL_VCO = (24,000,000 / 24) * 432 = 432 MHz
  * SYSCLK  = 432 MHz / 2 = 216 MHz
  * USB OTG FS, SDMMC and RNG Clock = 432 MHz / 9 = 48 MHz
  */
 
-#define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(12)
-#define STM32_PLLCFG_PLLN       RCC_PLLCFG_PLLN(216)
+#define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(24)
+#define STM32_PLLCFG_PLLN       RCC_PLLCFG_PLLN(432)
 #define STM32_PLLCFG_PLLP       RCC_PLLCFG_PLLP_2
 #define STM32_PLLCFG_PLLQ       RCC_PLLCFG_PLLQ(9)
 
-#define STM32_VCO_FREQUENCY     ((STM32_HSE_FREQUENCY / 12) * 216)
+#define STM32_VCO_FREQUENCY     ((STM32_HSE_FREQUENCY / 24) * 432)
 #define STM32_SYSCLK_FREQUENCY  (STM32_VCO_FREQUENCY / 2)
 #define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 9)
 
@@ -239,27 +239,24 @@
 
 
 /* UART/USART */
-#define GPIO_USART1_RX   GPIO_USART1_RX_2   /* PB7 */
-#define GPIO_USART1_TX   GPIO_USART1_TX_2   /* PB6 */
+#define GPIO_USART2_TX   GPIO_USART2_TX_2      /* PD5 */
+#define GPIO_USART2_RX   GPIO_USART2_RX_2      /* PD6 */
+#define GPIO_USART2_CTS  GPIO_USART2_CTS_2     /* PD3 */
+#define GPIO_USART2_RTS  GPIO_USART2_RTS_2     /* PD4 */
 
-#define GPIO_USART2_RX   GPIO_USART2_RX_2   /* PD6 */
-#define GPIO_USART2_TX   GPIO_USART2_TX_2   /* PD5 */
-#define GPIO_USART2_RTS  GPIO_USART2_RTS_2  /* PD4 */
-#define GPIO_USART2_CTS  GPIO_USART2_CTS_2  /* PD3 */
+#define GPIO_USART3_TX   GPIO_USART3_TX_3      /* PD8  */
+#define GPIO_USART3_RX   GPIO_USART3_RX_3      /* PD9  */
+#define GPIO_USART3_CTS  GPIO_USART3_CTS_2     /* PD11 */
+#define GPIO_USART3_RTS  GPIO_USART3_RTS_2     /* PD12 */
 
-#define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9  */
-#define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8  */
-#define GPIO_USART3_RTS  GPIO_USART3_RTS_2  /* PD12 */
-#define GPIO_USART3_CTS  GPIO_USART3_CTS_2  /* PD11 */
+#define GPIO_UART4_TX    GPIO_UART4_TX_1       /* PA0 */
+#define GPIO_UART4_RX    GPIO_UART4_RX_1       /* PA1 */
 
-#define GPIO_UART4_RX    GPIO_UART4_RX_1    /* PA1 */
-#define GPIO_UART4_TX    GPIO_UART4_TX_1    /* PA0 */
+#define GPIO_USART6_TX   GPIO_USART6_TX_1      /* PC6 */
+#define GPIO_USART6_RX   GPIO_USART6_RX_1      /* PC7 */
 
-#define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7  */
-#define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
-
-#define GPIO_UART7_RX    GPIO_UART7_RX_1    /* PE7 */
-#define GPIO_UART7_TX    GPIO_UART7_TX_1    /* PE8 */
+#define GPIO_UART7_TX    GPIO_UART7_TX_1       /* PE8 */
+#define GPIO_UART7_RX    GPIO_UART7_RX_1       /* PE7 */
 
 /* USART8: has no remap
  *
@@ -269,11 +266,11 @@
 
 
 /* CAN */
-#define GPIO_CAN1_RX     GPIO_CAN1_RX_3     /* PD0  */
-#define GPIO_CAN1_TX     GPIO_CAN1_TX_3     /* PD1  */
+#define GPIO_CAN1_RX     GPIO_CAN1_RX_3        /* PD0  */
+#define GPIO_CAN1_TX     GPIO_CAN1_TX_3        /* PD1  */
 
-#define GPIO_CAN2_RX     GPIO_CAN2_RX_1     /* PB12 */
-#define GPIO_CAN2_TX     GPIO_CAN2_TX_2     /* PB6  */
+#define GPIO_CAN2_RX     GPIO_CAN2_RX_1        /* PB12 */
+#define GPIO_CAN2_TX     GPIO_CAN2_TX_2        /* PB6  */
 
 
 /* SPI */

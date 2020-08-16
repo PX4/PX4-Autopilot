@@ -46,7 +46,7 @@
 
 /* PX4IO connection configuration */
 #define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS4"
+#define PX4IO_SERIAL_DEVICE            "/dev/ttyS3"
 #define PX4IO_SERIAL_TX_GPIO           GPIO_USART6_TX
 #define PX4IO_SERIAL_RX_GPIO           GPIO_USART6_RX
 #define PX4IO_SERIAL_BASE              STM32_USART6_BASE
@@ -60,6 +60,9 @@
 
 /* LEDs */
 #define GPIO_nLED_AMBER        /* PE12 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
+
+#define BOARD_HAS_CONTROL_STATUS_LEDS      1
+#define BOARD_ARMED_STATE_LED  LED_AMBER
 
 /* ADC channels */
 #define PX4_ADC_GPIO  \
@@ -85,6 +88,9 @@
 	 (1 << ADC_BATTERY2_VOLTAGE_CHANNEL)       | \
 	 (1 << ADC_BATTERY2_CURRENT_CHANNEL)       | \
 	 (1 << ADC_AIRSPEED_VOLTAGE_CHANNEL))
+
+/* HW has to large of R termination on ADC todo:change when HW value is chosen */
+#define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  6
@@ -163,17 +169,6 @@
 
 __BEGIN_DECLS
 #ifndef __ASSEMBLY__
-
-
-/****************************************************************************
- * Name: stm32_sdio_initialize
- *
- * Description:
- *   Initialize SDIO-based MMC/SD card support
- *
- ****************************************************************************/
-
-int stm32_sdio_initialize(void);
 
 extern void stm32_spiinitialize(void);
 extern void board_peripheral_reset(int ms);
