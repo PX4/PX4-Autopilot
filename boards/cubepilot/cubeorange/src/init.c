@@ -151,6 +151,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Power on Interfaces */
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, true);
 	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, false);
+	board_control_spi_sensors_power(true, 0xffff);
 
 	px4_platform_init();
 
