@@ -60,19 +60,19 @@ void Ekf::fuseDrag()
 	const Vector2f ballistic_coef_inv_xy(1.f / _params.bcoef_x, 1.f / _params.bcoef_y);
 
 	// get latest estimated orientation
-	const float q0 = _state.quat_nominal(0);
-	const float q1 = _state.quat_nominal(1);
-	const float q2 = _state.quat_nominal(2);
-	const float q3 = _state.quat_nominal(3);
+	const float &q0 = _state.quat_nominal(0);
+	const float &q1 = _state.quat_nominal(1);
+	const float &q2 = _state.quat_nominal(2);
+	const float &q3 = _state.quat_nominal(3);
 
 	// get latest velocity in earth frame
-	const float vn = _state.vel(0);
-	const float ve = _state.vel(1);
-	const float vd = _state.vel(2);
+	const float &vn = _state.vel(0);
+	const float &ve = _state.vel(1);
+	const float &vd = _state.vel(2);
 
 	// get latest wind velocity in earth frame
-	const float vwn = _state.wind_vel(0);
-	const float vwe = _state.wind_vel(1);
+	const float &vwn = _state.wind_vel(0);
+	const float &vwe = _state.wind_vel(1);
 
 	// predicted specific forces
 	// calculate relative wind velocity in earth frame and rotate into body frame
