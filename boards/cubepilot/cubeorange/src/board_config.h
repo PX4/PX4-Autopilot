@@ -46,7 +46,7 @@
 
 /* PX4IO connection configuration */
 #define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS4"
+#define PX4IO_SERIAL_DEVICE            "/dev/ttyS3"
 #define PX4IO_SERIAL_TX_GPIO           GPIO_USART6_TX
 #define PX4IO_SERIAL_RX_GPIO           GPIO_USART6_RX
 #define PX4IO_SERIAL_BASE              STM32_USART6_BASE
@@ -60,6 +60,9 @@
 
 /* LEDs */
 #define GPIO_nLED_AMBER        /* PE12 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
+
+#define BOARD_HAS_CONTROL_STATUS_LEDS      1
+#define BOARD_ARMED_STATE_LED  LED_AMBER
 
 /* ADC channels */
 #define PX4_ADC_GPIO  \
