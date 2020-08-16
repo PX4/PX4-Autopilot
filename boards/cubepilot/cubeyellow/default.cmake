@@ -11,13 +11,12 @@ px4_add_board(
 	TESTING
 	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
-		# IO DEBUG:/dev/ttyS0
-		TEL1:/dev/ttyS1
-		TEL2:/dev/ttyS2
-		GPS1:/dev/ttyS3
-		GPS2:/dev/ttyS4
-		# CONSOLE:/dev/tty5
-		# PX4IO:/dev/ttyS6
+		TEL1:/dev/ttyS0
+		TEL2:/dev/ttyS1
+		GPS1:/dev/ttyS2
+		# PX4IO:/dev/ttyS3
+		# CONSOLE:/dev/ttyS4
+		GPS2:/dev/ttyS5
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
