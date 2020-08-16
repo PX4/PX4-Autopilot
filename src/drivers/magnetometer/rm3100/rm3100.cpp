@@ -151,7 +151,6 @@ int RM3100::collect()
 	if (ret != OK) {
 		perf_end(_sample_perf);
 		perf_count(_comms_errors);
-		PX4_WARN("Register read error.");
 		return ret;
 	}
 
