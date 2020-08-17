@@ -48,7 +48,6 @@
  * @param z point coordinates on the Z axis
  * @param size number of points
  * @param max_iterations abort if maximum number of iterations have been reached. If unsure, set to 100.
- * @param delta abort if error is below delta. If unsure, set to 0 to run max_iterations times.
  * @param sphere_x coordinate of the sphere center on the X axis
  * @param sphere_y coordinate of the sphere center on the Y axis
  * @param sphere_z coordinate of the sphere center on the Z axis
@@ -56,23 +55,19 @@
  *
  * @return 0 on success, 1 on failure
  */
-int sphere_fit_least_squares(const float x[], const float y[], const float z[],
-			     unsigned int size, unsigned int max_iterations, float delta, float *sphere_x, float *sphere_y, float *sphere_z,
-			     float *sphere_radius);
-int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
-				unsigned int size, int max_iterations, float *offset_x, float *offset_y, float *offset_z,
-				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y,
-				float *offdiag_z, bool sphere_fit_only);
-int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
-		      unsigned int size, float *offset_x, float *offset_y, float *offset_z,
-		      float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y,
-		      float *offdiag_z);
-int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], float &_fitness, float &_sphere_lambda,
-			 unsigned int size, float *offset_x, float *offset_y, float *offset_z,
-			 float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y,
-			 float *offdiag_z);
-bool inverse4x4(float m[], float invOut[]);
-bool mat_inverse(float *A, float *inv, uint8_t n);
+int run_lm_sphere_fit(const float x[], const float y[], const float z[],
+		      float &fitness, float &sphere_lambda, unsigned int size,
+		      float *offset_x, float *offset_y, float *offset_z,
+		      float *sphere_radius,
+		      float *diag_x, float *diag_y, float *diag_z,
+		      float *offdiag_x, float *offdiag_y, float *offdiag_z);
+
+int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[],
+			 float &fitness, float &sphere_lambda, unsigned int size,
+			 float *offset_x, float *offset_y, float *offset_z,
+			 float *sphere_radius,
+			 float *diag_x, float *diag_y, float *diag_z,
+			 float *offdiag_x, float *offdiag_y, float *offdiag_z);
 
 // The order of these cannot change since the calibration calculations depend on them in this order
 enum detect_orientation_return {
