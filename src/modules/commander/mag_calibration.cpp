@@ -626,6 +626,138 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 #endif // DO NOT REMOVE! Critical validation data!
 	}
 
+
+	// Attempt to automatically determine external mag rotations
+	if (result == calibrate_return_ok) {
+		int32_t param_cal_mag_rot_auto = 0;
+		param_get(param_find("CAL_MAG_ROT_AUTO"), &param_cal_mag_rot_auto);
+
+		if ((worker_data.calibration_sides >= 3) && (param_cal_mag_rot_auto == 1)) {
+
+			// find first internal mag to use as reference
+			int internal_index = -1;
+
+			for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+				if (!worker_data.calibration[cur_mag].external() && (worker_data.calibration[cur_mag].device_id() != 0)) {
+					internal_index = cur_mag;
+					break;
+				}
+			}
+
+			// only proceed if there's a valid internal
+			if (internal_index >= 0) {
+
+				// apply new calibrations to all raw sensor data before comparison
+				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+					if (worker_data.calibration[cur_mag].device_id() != 0) {
+						for (unsigned i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
+
+							const Vector3f sample{worker_data.x[cur_mag][i], worker_data.y[cur_mag][i], worker_data.z[cur_mag][i]};
+
+							float scale_data[9] {
+								diag[cur_mag](0),    offdiag[cur_mag](0), offdiag[cur_mag](1),
+								offdiag[cur_mag](0),    diag[cur_mag](1), offdiag[cur_mag](2),
+								offdiag[cur_mag](1), offdiag[cur_mag](2),    diag[cur_mag](2)
+							};
+
+							// apply calibration
+							const Vector3f m{Matrix3f{scale_data} *(sample - sphere[cur_mag])};
+
+							// store back in worker_data
+							worker_data.x[cur_mag][i] = m(0);
+							worker_data.y[cur_mag][i] = m(1);
+							worker_data.z[cur_mag][i] = m(2);
+						}
+					}
+				}
+
+				// rotate internal mag data to board
+				const Dcmf board_rotation = calibration::GetBoardRotation();
+
+				for (unsigned i = 0; i < worker_data.calibration_counter_total[internal_index]; i++) {
+
+					const Vector3f m = board_rotation * Vector3f{worker_data.x[internal_index][i],
+							worker_data.y[internal_index][i], worker_data.z[internal_index][i]};
+
+					worker_data.x[internal_index][i] = m(0);
+					worker_data.y[internal_index][i] = m(1);
+					worker_data.z[internal_index][i] = m(2);
+				}
+
+				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+					if (worker_data.calibration[cur_mag].external() && (worker_data.calibration[cur_mag].device_id() != 0)) {
+
+						const int last_sample_index = math::min(worker_data.calibration_counter_total[internal_index],
+											worker_data.calibration_counter_total[cur_mag]);
+
+						float diff_sum[ROTATION_MAX] {};
+
+						float min_diff = FLT_MAX;
+						Rotation best_rotation = ROTATION_NONE;
+
+						for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
+							for (int i = 0; i < last_sample_index; i++) {
+
+								float x = worker_data.x[cur_mag][i];
+								float y = worker_data.y[cur_mag][i];
+								float z = worker_data.z[cur_mag][i];
+								rotate_3f((enum Rotation)r, x, y, z);
+
+								Vector3f diff = Vector3f{x, y, z} - Vector3f{worker_data.x[internal_index][i], worker_data.y[internal_index][i], worker_data.z[internal_index][i]};
+
+								diff_sum[r] += diff.norm();
+							}
+
+							if (diff_sum[r] < min_diff) {
+								min_diff = diff_sum[r];
+								best_rotation = (Rotation)r;
+							}
+						}
+
+
+						// Check that the best rotation is at least twice as good as the next best
+						bool smallest_check_passed = true;
+
+						for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
+							if (r != best_rotation) {
+								if (diff_sum[r] < (min_diff * 2.f)) {
+									smallest_check_passed = false;
+								}
+							}
+						}
+
+
+						// Check that the average error across all samples (relative to internal mag) is less than the minimum earth field (~ 0.25 Gauss)
+						const float mag_error_ga = (min_diff / last_sample_index);
+						bool total_error_check_passed = (mag_error_ga < 0.25f);
+
+						if (smallest_check_passed && total_error_check_passed) {
+							if (best_rotation != worker_data.calibration[cur_mag].rotation_enum()) {
+								calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%d), determined rotation: %d", cur_mag,
+										     worker_data.calibration[cur_mag].device_id(), best_rotation);
+
+								worker_data.calibration[cur_mag].set_rotation(best_rotation);
+
+							} else {
+								PX4_INFO("[cal] External Mag: %d (%d), no rotation change: %d", cur_mag,
+									 worker_data.calibration[cur_mag].device_id(), best_rotation);
+							}
+
+						} else {
+							PX4_ERR("External Mag: %d (%d), determining rotation failed", cur_mag, worker_data.calibration[cur_mag].device_id());
+
+							for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
+								PX4_ERR("Mag: %d (%d), rotation: %d, error: %.3f", cur_mag, worker_data.calibration[cur_mag].device_id(), r,
+									(double)diff_sum[r]);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+
 	// Data points are no longer needed
 	for (size_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 		free(worker_data.x[cur_mag]);

@@ -69,6 +69,16 @@ PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
 PARAM_DEFINE_INT32(CAL_MAG_COMP_TYP, 0);
 
 /**
+ * Automatically set external rotations.
+ *
+ * During calibration attempt to automatically determine the rotation of external magnetometers.
+ *
+ * @boolean
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(CAL_MAG_ROT_AUTO, 1);
+
+/**
  * Magnetometer max rate.
  *
  * Magnetometer data maximum publication rate. This is an upper bound,
