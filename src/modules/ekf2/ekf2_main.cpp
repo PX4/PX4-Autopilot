@@ -886,8 +886,8 @@ void Ekf2::Run()
 				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
 				// and notification events
 				// Check if there has been a persistant change in magnetometer ID
-				if (_sensor_selection.mag_device_id != 0
-				    && (_sensor_selection.mag_device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
+				if (magnetometer.device_id != 0
+				    && (magnetometer.device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
 
 					if (_invalid_mag_id_count < 200) {
 						_invalid_mag_id_count++;
@@ -908,7 +908,7 @@ void Ekf2::Run()
 					_param_ekf2_magbias_y.commit_no_notification();
 					_param_ekf2_magbias_z.set(0.f);
 					_param_ekf2_magbias_z.commit_no_notification();
-					_param_ekf2_magbias_id.set(_sensor_selection.mag_device_id);
+					_param_ekf2_magbias_id.set(magnetometer.device_id);
 					_param_ekf2_magbias_id.commit();
 
 					_invalid_mag_id_count = 0;
@@ -1510,7 +1510,7 @@ void Ekf2::Run()
 					bias.accel_device_id = _sensor_selection.accel_device_id;
 				}
 
-				bias.mag_device_id = _sensor_selection.mag_device_id;
+				bias.mag_device_id = _param_ekf2_magbias_id.get();
 
 				// In-run bias estimates
 				_ekf.getGyroBias().copyTo(bias.gyro_bias);
@@ -1632,8 +1632,7 @@ void Ekf2::Run()
 
 				// Check and save the last valid calibration when we are disarmed
 				if ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-				    && (status.filter_fault_flags == 0)
-				    && (_sensor_selection.mag_device_id == (uint32_t)_param_ekf2_magbias_id.get())) {
+				    && (status.filter_fault_flags == 0)) {
 
 					update_mag_bias(_param_ekf2_magbias_x, 0);
 					update_mag_bias(_param_ekf2_magbias_y, 1);
@@ -1642,7 +1641,6 @@ void Ekf2::Run()
 					// reset to prevent data being saved too frequently
 					_total_cal_time_us = 0;
 				}
-
 			}
 
 			publish_wind_estimate(now);

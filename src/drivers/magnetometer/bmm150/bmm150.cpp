@@ -549,7 +549,6 @@ void BMM150::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_good_transfers);
-	_px4_mag.print_status();
 }
 
 int BMM150::self_test()

@@ -127,8 +127,6 @@ public:
 	bool has_initialized() { return _has_initialized.load(); }
 #endif
 
-	void print_status();
-
 private:
 	Simulator() : ModuleParams(nullptr)
 	{
