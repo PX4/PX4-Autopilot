@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -126,6 +126,8 @@ private:
 	static constexpr uint8_t GYRO_COUNT_MAX = 3;
 	static constexpr uint8_t SENSOR_COUNT_MAX = math::max(ACCEL_COUNT_MAX, GYRO_COUNT_MAX);
 
+	static constexpr uint8_t DEFAULT_PRIORITY = 50;
+
 	struct SensorData {
 		SensorData() = delete;
 		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}} {}
@@ -133,10 +135,10 @@ private:
 		uORB::Subscription subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		DataValidatorGroup voter{1};
 		unsigned int last_failover_count{0};
-		ORB_PRIO priority[SENSOR_COUNT_MAX] {}; /**< sensor priority */
+		int32_t priority[SENSOR_COUNT_MAX] {};
+		int32_t priority_configured[SENSOR_COUNT_MAX] {};
 		uint8_t last_best_vote{0}; /**< index of the latest best vote */
 		uint8_t subscription_count{0};
-		bool enabled[SENSOR_COUNT_MAX] {true, true, true};
 		bool advertised[SENSOR_COUNT_MAX] {false, false, false};
 	};
 

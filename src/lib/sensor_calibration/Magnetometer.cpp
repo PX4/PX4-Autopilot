@@ -64,6 +64,21 @@ void Magnetometer::set_device_id(uint32_t device_id)
 
 void Magnetometer::set_external(bool external)
 {
+	// update priority default appropriately if not set
+	if (_calibration_index < 0) {
+		if ((_priority < 0) || (_priority > 100)) {
+			_priority = external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
+
+		} else if (!_external && external && (_priority == DEFAULT_PRIORITY)) {
+			// internal -> external
+			_priority = DEFAULT_EXTERNAL_PRIORITY;
+
+		} else if (_external && !external && (_priority == DEFAULT_EXTERNAL_PRIORITY)) {
+			// external -> internal
+			_priority = DEFAULT_PRIORITY;
+		}
+	}
+
 	_external = external;
 }
 
@@ -113,9 +128,16 @@ void Magnetometer::ParametersUpdate()
 			_rotation = get_rot_matrix((enum Rotation)rotation);
 		}
 
-		// CAL_MAGx_EN
-		int32_t enabled = GetCalibrationParam(SensorString(), "EN", _calibration_index);
-		_enabled = (enabled == 1);
+		// CAL_MAGx_PRIO
+		_priority = GetCalibrationParam(SensorString(), "PRIO", _calibration_index);
+
+		if ((_priority < 0) || (_priority > 100)) {
+			// reset to default
+			int32_t new_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
+			PX4_ERR("%s %d invalid priority %d, resetting to %d", SensorString(), _calibration_index, _priority, new_priority);
+			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
+			_priority = new_priority;
+		}
 
 		// CAL_MAGx_OFF{X,Y,Z}
 		_offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
@@ -151,7 +173,7 @@ void Magnetometer::Reset()
 	_power_compensation.zero();
 	_power = 0.f;
 
-	_enabled = true;
+	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 	_calibration_index = -1;
 }
@@ -161,7 +183,7 @@ bool Magnetometer::ParametersSave()
 	if (_calibration_index >= 0) {
 		// save calibration
 		SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
-		SetCalibrationParam(SensorString(), "EN", _calibration_index, _enabled ? 1 : 0);
+		SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
 		SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
 
 		Vector3f scale{_scale.diag()};

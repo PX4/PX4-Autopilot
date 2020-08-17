@@ -212,9 +212,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	gyro_worker_data_t worker_data{};
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 
-	ORB_PRIO device_prio_max = ORB_PRIO_UNINITIALIZED;
-	int32_t device_id_primary = 0;
-
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
 	const unsigned orb_gyro_count = orb_group_count(ORB_ID(sensor_gyro));
 
@@ -232,14 +229,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (gyro_sub.advertised() && (gyro_sub.get().device_id != 0) && (gyro_sub.get().timestamp > 0)) {
 			worker_data.calibrations[cur_gyro].set_device_id(gyro_sub.get().device_id);
-
-			// Get priority
-			const ORB_PRIO prio = gyro_sub.get_priority();
-
-			if (prio > device_prio_max) {
-				device_prio_max = prio;
-				device_id_primary = gyro_sub.get().device_id;
-			}
 		}
 
 		// reset calibration index to match uORB numbering
@@ -316,8 +305,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			calibration.set_calibration_index(uorb_index);
 			calibration.ParametersSave();
 		}
-
-		param_set_no_notification(param_find("CAL_GYRO_PRIME"), &device_id_primary);
 
 		if (failed) {
 			calibration_log_critical(mavlink_log_pub, "ERROR: failed to set offset params");

@@ -56,8 +56,7 @@ class SubscriptionCallback;
 class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
 {
 public:
-	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path, ORB_PRIO priority,
-		   uint8_t queue_size = 1);
+	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path, uint8_t queue_size = 1);
 	virtual ~DeviceNode();
 
 	// no copy, assignment, move, move assignment
@@ -119,8 +118,8 @@ public:
 	static int        unadvertise(orb_advert_t handle);
 
 #ifdef ORB_COMMUNICATOR
-	static int16_t topic_advertised(const orb_metadata *meta, ORB_PRIO priority);
-	//static int16_t topic_unadvertised(const orb_metadata *meta, ORB_PRIO priority);
+	static int16_t topic_advertised(const orb_metadata *meta);
+	//static int16_t topic_unadvertised(const orb_metadata *meta);
 
 	/**
 	 * processes a request for add subscription from remote
@@ -199,9 +198,6 @@ public:
 
 	uint8_t get_instance() const { return _instance; }
 
-	ORB_PRIO get_priority() const { return (ORB_PRIO)_priority; }
-	void set_priority(ORB_PRIO priority) { _priority = priority; }
-
 	/**
 	 * Copies data and the corresponding generation
 	 * from a node to the buffer provided.
@@ -235,7 +231,6 @@ private:
 	px4::atomic<unsigned>  _generation{0};  /**< object generation count */
 	List<uORB::SubscriptionCallback *>	_callbacks;
 
-	ORB_PRIO _priority;  /**< priority of the topic */
 	const uint8_t _instance; /**< orb multi instance identifier */
 	bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
