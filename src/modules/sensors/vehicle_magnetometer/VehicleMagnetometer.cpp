@@ -219,9 +219,10 @@ void VehicleMagnetometer::Run()
 
 		} else {
 			sensor_mag_s report;
-			updated[uorb_index] = _sensor_sub[uorb_index].update(&report);
 
-			if (updated[uorb_index]) {
+			while (_sensor_sub[uorb_index].update(&report)) {
+				updated[uorb_index] = true;
+
 				if (_calibration[uorb_index].device_id() != report.device_id) {
 					_calibration[uorb_index].set_external(report.is_external);
 					_calibration[uorb_index].set_device_id(report.device_id);
