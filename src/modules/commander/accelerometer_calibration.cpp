@@ -183,7 +183,7 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 			for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
 				sensor_accel_s arp;
 
-				if (accel_sub[accel_index].update(&arp)) {
+				while (accel_sub[accel_index].update(&arp)) {
 					// fetch optional thermal offset corrections in sensor/board frame
 					Vector3f offset{0, 0, 0};
 					sensor_correction_sub.update(&sensor_correction);
@@ -229,8 +229,8 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 	}
 
 	for (unsigned s = 0; s < MAX_ACCEL_SENS; s++) {
-		const auto sum = accel_sum[s] / counts[s];
-		sum.copyTo(accel_avg[s][orient]);
+		const Vector3f avg{accel_sum[s] / counts[s]};
+		avg.copyTo(accel_avg[s][orient]);
 	}
 
 	return calibrate_return_ok;
@@ -349,6 +349,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				PX4_INFO("accel %d: bT * accel_T * b", i);
 				accel_T_rotated.print();
 #endif // DEBUD_BUILD
+				calibrations[i].PrintStatus();
 			}
 
 			// save all calibrations including empty slots
