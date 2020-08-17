@@ -119,7 +119,8 @@ set(msg_files
 	sensor_gyro.msg
 	sensor_gyro_fifo.msg
 	sensor_mag.msg
-	sensor_preflight.msg
+	sensor_preflight_imu.msg
+	sensor_preflight_mag.msg
 	sensor_selection.msg
 	subsystem_info.msg
 	system_power.msg

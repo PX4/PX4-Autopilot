@@ -84,8 +84,6 @@ void AK09916::print_status()
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_magnetic_sensor_overflow_perf);
-
-	_px4_mag.print_status();
 }
 
 int AK09916::probe()

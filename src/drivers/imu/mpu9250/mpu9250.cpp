@@ -669,6 +669,4 @@ MPU9250::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);
-
-	_mag.print_status();
 }

@@ -75,8 +75,6 @@ void MPU9250_AK8963::PrintInfo()
 {
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_magnetic_sensor_overflow_perf);
-
-	_px4_mag.print_status();
 }
 
 void MPU9250_AK8963::Run()
