@@ -53,7 +53,7 @@ class EkfReplayTest : public ::testing::Test {
 	EkfLogger _ekf_logger;
 };
 
-TEST_F(EkfReplayTest, replaySensorData)
+TEST_F(EkfReplayTest, irisGps)
 {
 	_sensor_simulator.loadSensorDataFromFile("../../../test/replay_data/iris_gps.csv");
 	_ekf_logger.setFilePath("../../../test/change_indication/iris_gps.csv");
@@ -65,6 +65,28 @@ TEST_F(EkfReplayTest, replaySensorData)
 
 	uint8_t logging_rate_hz = 10;
 	for(int i = 0; i < 35 * logging_rate_hz; ++i)
+	{
+		_sensor_simulator.runReplaySeconds(1.0f / logging_rate_hz);
+		_ekf_logger.writeStateToFile();
+	}
+}
+
+TEST_F(EkfReplayTest, ekfGsfReset)
+{
+	_sensor_simulator.loadSensorDataFromFile("../../../test/replay_data/ekf_gsf_reset.csv");
+	_ekf_logger.setFilePath("../../../test/change_indication/ekf_gsf_reset.csv");
+
+	// Start simulation and enable fusion of additional sensor types here
+	// By default the IMU, Baro and Mag sensor simulators are already running
+	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGpsFusion();
+	auto params = _ekf->getParamHandle();
+	params->gps_vel_innov_gate = 1.f;
+	params->gps_pos_innov_gate = 1.f;
+	params->EKFGSF_reset_delay = 500000;
+
+	uint8_t logging_rate_hz = 10;
+	for(int i = 0; i < 39 * logging_rate_hz; ++i)
 	{
 		_sensor_simulator.runReplaySeconds(1.0f / logging_rate_hz);
 		_ekf_logger.writeStateToFile();
