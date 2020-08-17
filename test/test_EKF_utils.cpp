@@ -40,6 +40,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
+#include <mathlib/mathlib.h>
 
 #include "EKF/utils.hpp"
 
@@ -67,4 +68,32 @@ TEST(euler312YawTest, fromQuaternion)
 	q2.normalize();
 	const matrix::Eulerf euler2(q2);
 	EXPECT_FLOAT_EQ(euler2(2), getEuler321Yaw(q2));
+}
+
+TEST(shouldUse321RotationSequenceTest, pitch90)
+{
+	matrix::Eulerf euler(0.f, math::radians(90), 0.f);
+	matrix::Dcmf R(euler);
+	EXPECT_FALSE(shouldUse321RotationSequence(R));
+}
+
+TEST(shouldUse321RotationSequenceTest, roll90)
+{
+	matrix::Eulerf euler(math::radians(90.f), 0.f, 0.f);
+	matrix::Dcmf R(euler);
+	EXPECT_TRUE(shouldUse321RotationSequence(R));
+}
+
+TEST(shouldUse321RotationSequenceTest, moreRollThanPitch)
+{
+	matrix::Eulerf euler(math::radians(45.f), math::radians(30.f), 0.f);
+	matrix::Dcmf R(euler);
+	EXPECT_TRUE(shouldUse321RotationSequence(R));
+}
+
+TEST(shouldUse321RotationSequenceTest, morePitchThanRoll)
+{
+	matrix::Eulerf euler(math::radians(30.f), math::radians(45.f), 0.f);
+	matrix::Dcmf R(euler);
+	EXPECT_FALSE(shouldUse321RotationSequence(R));
 }
