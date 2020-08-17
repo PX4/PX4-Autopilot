@@ -603,6 +603,10 @@ protected:
 
 			int lowest_battery_index = 0;
 
+			// No battery is connected, select the first group
+			// Low battery judgment is performed only when the current battery is connected
+			// When the last cached battery is not connected or the current battery level is lower than the cached battery level,
+			// the current battery status is replaced with the cached value
 			for (int i = 0; i < _battery_status_subs.size(); i++) {
 				if (battery_status[i].connected && ((!battery_status[lowest_battery_index].connected)
 								    || (battery_status[i].remaining < battery_status[lowest_battery_index].remaining))) {
