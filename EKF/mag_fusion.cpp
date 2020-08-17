@@ -721,9 +721,7 @@ void Ekf::fuseHeading()
 	// update transformation matrix from body to world frame using the current state estimate
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
-	// determine if a 321 or 312 Euler sequence is best
 	if (shouldUse321RotationSequence(_R_to_earth)) {
-		// rolled more than pitched so use 321 rotation order to calculate the observed yaw angle
 		const float predicted_hdg = getEuler321Yaw(_R_to_earth);
 
 		if (_control_status.flags.mag_hdg) {
@@ -741,7 +739,6 @@ void Ekf::fuseHeading()
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
 		} else if (_control_status.flags.ev_yaw) {
-			// calculate the yaw angle for a 321 sequence
 			measured_hdg = getEuler321Yaw(_ev_sample_delayed.quat);
 
 		} else {
@@ -781,16 +778,13 @@ void Ekf::fuseHeading()
 		fuseYaw321(measured_hdg, R_YAW, fuse_zero_innov);
 
 	} else {
-		// pitched more than rolled so use 312 rotation order to calculate the observed yaw angle
 		const float predicted_hdg = getEuler312Yaw(_R_to_earth);
 
 		if (_control_status.flags.mag_hdg) {
 
-			// Calculate the body to earth frame rotation matrix from the euler angles
-			// using a 312 rotation sequence with yaw angle set to to zero
+			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			const Dcmf R_to_earth = updateEuler312YawInRotMat(0.f, _R_to_earth);
 
-			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			if (_control_status.flags.mag_3D) {
 				// don't apply bias corrections if we are learning them
 				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;

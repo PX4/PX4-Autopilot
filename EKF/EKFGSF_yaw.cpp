@@ -224,17 +224,12 @@ void EKFGSF_yaw::ahrsAlignYaw()
 {
 	// Align yaw angle for each model
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-		if (shouldUse321RotationSequence(_ahrs_ekf_gsf[model_index].R)) {
-			// update the rotation matrix with 321 rotation sequence
-			_ahrs_ekf_gsf[model_index].R = updateEuler321YawInRotMat(wrap_pi(_ekf_gsf[model_index].X(2)),
-										_ahrs_ekf_gsf[model_index].R);
+		Dcmf& R = _ahrs_ekf_gsf[model_index].R;
+		const float yaw = wrap_pi(_ekf_gsf[model_index].X(2));
+		R = shouldUse321RotationSequence(R) ?
+		    updateEuler321YawInRotMat(yaw, R) :
+		    updateEuler312YawInRotMat(yaw, R);
 
-		} else {
-			// update the rotation matrix with 312 rotation sequence
-			_ahrs_ekf_gsf[model_index].R = updateEuler312YawInRotMat(wrap_pi(_ekf_gsf[model_index].X(2)),
-										_ahrs_ekf_gsf[model_index].R);
-
-		}
 		_ahrs_ekf_gsf[model_index].aligned = true;
 	}
 }
@@ -250,11 +245,10 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 	}
 
 	// Calculate the yaw state using a projection onto the horizontal that avoids gimbal lock
-	if (shouldUse321RotationSequence(_ahrs_ekf_gsf[model_index].R)) {
-		_ekf_gsf[model_index].X(2) = getEuler321Yaw(_ahrs_ekf_gsf[model_index].R);
-	} else {
-		_ekf_gsf[model_index].X(2) = getEuler312Yaw(_ahrs_ekf_gsf[model_index].R);
-	}
+	const Dcmf& R = _ahrs_ekf_gsf[model_index].R;
+	_ekf_gsf[model_index].X(2) = shouldUse321RotationSequence(R) ?
+					getEuler321Yaw(R) :
+					getEuler312Yaw(R);
 
 	// calculate delta velocity in a horizontal front-right frame
 	const Vector3f del_vel_NED = _ahrs_ekf_gsf[model_index].R * _delta_vel;

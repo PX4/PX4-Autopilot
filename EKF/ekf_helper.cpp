@@ -481,16 +481,9 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 
 	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
-		Dcmf R_to_earth;
-		if (shouldUse321RotationSequence(_R_to_earth)) {
-			// rolled more than pitched so use 321 rotation order
-			R_to_earth = updateEuler321YawInRotMat(0.f, _R_to_earth);
-
-		} else {
-			// pitched more than rolled so use 312 rotation order
-			R_to_earth = updateEuler312YawInRotMat(0.f, _R_to_earth);
-
-		}
+		const Dcmf R_to_earth = shouldUse321RotationSequence(_R_to_earth) ?
+						updateEuler321YawInRotMat(0.f, _R_to_earth) :
+						updateEuler312YawInRotMat(0.f, _R_to_earth);
 
 		// the angle of the projection onto the horizontal gives the yaw angle
 		const Vector3f mag_earth_pred = R_to_earth * mag_init;
@@ -1647,16 +1640,9 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// update the rotation matrix using the new yaw value
-	// determine if a 321 or 312 Euler sequence is best
-	if (shouldUse321RotationSequence(_R_to_earth)) {
-		_R_to_earth = updateEuler321YawInRotMat(yaw, _R_to_earth);
-
-	} else {
-		// We use a 312 sequence as an alternate when there is more pitch tilt than roll tilt
-		// to avoid gimbal lock
-		_R_to_earth = updateEuler312YawInRotMat(yaw, _R_to_earth);
-
-	}
+	_R_to_earth = shouldUse321RotationSequence(_R_to_earth) ?
+			updateEuler321YawInRotMat(yaw, _R_to_earth) :
+			updateEuler312YawInRotMat(yaw, _R_to_earth);
 
 	// calculate the amount that the quaternion has changed by
 	const Quatf quat_after_reset(_R_to_earth);
