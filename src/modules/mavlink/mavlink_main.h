@@ -344,7 +344,7 @@ public:
 	 *
 	 * @param enabled	True if hardware flow control should be enabled
 	 */
-	int			enable_flow_control(enum FLOW_CONTROL_MODE enabled);
+	int			setup_flow_control(enum FLOW_CONTROL_MODE enabled);
 
 	mavlink_channel_t	get_channel() const { return _channel; }
 

@@ -679,7 +679,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CON
 	*/
 
 	/* setup output flow control */
-	if (enable_flow_control(flow_control)) {
+	if (setup_flow_control(flow_control) && (flow_control != FLOW_CONTROL_AUTO)) {
 		PX4_WARN("hardware flow control not supported");
 	}
 
@@ -687,7 +687,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CON
 }
 
 int
-Mavlink::enable_flow_control(enum FLOW_CONTROL_MODE mode)
+Mavlink::setup_flow_control(enum FLOW_CONTROL_MODE mode)
 {
 	// We can't do this on USB - skip
 	if (_is_usb_uart) {
@@ -781,7 +781,7 @@ Mavlink::get_free_tx_buf()
 			    hrt_elapsed_time(&_last_write_success_time) > 500_ms &&
 			    _last_write_success_time != _last_write_try_time) {
 
-				enable_flow_control(FLOW_CONTROL_OFF);
+				setup_flow_control(FLOW_CONTROL_OFF);
 			}
 		}
 	}
