@@ -12,3 +12,5 @@ float32 temperature       # temperature in degrees celsius
 uint32 error_count
 
 bool is_external	# if true the mag is external (i.e. not built into the board)
+
+uint8 ORB_QUEUE_LENGTH = 3
