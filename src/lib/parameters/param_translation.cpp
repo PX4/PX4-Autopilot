@@ -60,6 +60,44 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2020-06-29 (v1.11 beta): translate CAL_ACCx_EN/CAL_GYROx_EN/CAL_MAGx_EN -> CAL_ACCx_PRIO/CAL_GYROx_PRIO/CAL_MAGx_PRIO
+	if (node->type == BSON_INT32) {
+
+		const char *cal_sensor_en_params[] = {
+			"CAL_ACC0_EN",
+			"CAL_ACC1_EN",
+			"CAL_ACC2_EN",
+			"CAL_GYRO0_EN",
+			"CAL_GYRO1_EN",
+			"CAL_GYRO2_EN",
+			"CAL_MAG0_EN",
+			"CAL_MAG1_EN",
+			"CAL_MAG2_EN",
+			"CAL_MAG3_EN",
+		};
+
+		for (int i = 0; i < sizeof(cal_sensor_en_params) / sizeof(cal_sensor_en_params[0]); ++i) {
+			if (strcmp(cal_sensor_en_params[i], node->name) == 0) {
+
+				char new_parameter_name[17] {};
+				strcpy(new_parameter_name, cal_sensor_en_params[i]);
+
+				char *str_replace = strstr(new_parameter_name, "_EN");
+
+				if (str_replace != nullptr) {
+					strcpy(str_replace, "_PRIO");
+					PX4_INFO("%s -> %s", cal_sensor_en_params[i], new_parameter_name);
+					strcpy(node->name, new_parameter_name);
+				}
+
+				// if sensor wasn't disabled, reset to -1 so that it can be set to an appropriate default
+				if (node->i != 0) {
+					node->i = -1; // special value to process later
+				}
+			}
+		}
+	}
+
 
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
@@ -87,10 +125,7 @@ bool param_modify_on_import(bson_node_t node)
 		"CAL_MAG2_ID",
 		"TC_A2_ID",
 		"TC_B2_ID",
-		"TC_G2_ID",
-		"CAL_ACC_PRIME",
-		"CAL_GYRO_PRIME",
-		"CAL_MAG_PRIME",
+		"TC_G2_ID"
 	};
 	bool found = false;
 

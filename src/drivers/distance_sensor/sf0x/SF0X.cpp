@@ -41,7 +41,7 @@
 
 SF0X::SF0X(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation),
+	_px4_rangefinder(0 /* device id not yet used */, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {

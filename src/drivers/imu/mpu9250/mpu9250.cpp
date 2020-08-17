@@ -74,8 +74,8 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, enum 
 		 I2CSPIBusOption bus_option, int bus) :
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_interface(interface),
-	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
-	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
+	_px4_accel(_interface->get_device_id(), rotation),
+	_px4_gyro(_interface->get_device_id(), rotation),
 	_mag(this, mag_interface, rotation),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
