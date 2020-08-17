@@ -99,7 +99,7 @@ PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
  * This is the throttle setting required to achieve the desired cruise speed.
  * 10% is ok for a traxxas stampede vxl with ESC set to training mode
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -114,7 +114,7 @@ PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
  * This is the maximum throttle % that can be used by the controller.
  * For a Traxxas stampede vxl with the ESC set to training, 30 % is enough
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -129,7 +129,7 @@ PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
  * This is the minimum throttle % that can be used by the controller.
  * Set to 0 for rover
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -144,7 +144,7 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
  * This is the minimum throttle while on the ground, it should be 0 for a rover
  *
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 0.4
  * @decimal 2
