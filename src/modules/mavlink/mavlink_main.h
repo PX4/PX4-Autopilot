@@ -679,7 +679,7 @@ private:
 
 	int mavlink_open_uart(const int baudrate = DEFAULT_BAUD_RATE,
 			      const char *uart_name = DEFAULT_DEVICE_NAME,
-			      const bool force_flow_control = false);
+			      const FLOW_CONTROL_MODE flow_control = FLOW_CONTROL_AUTO);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;

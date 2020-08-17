@@ -496,7 +496,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 }
 
 int
-Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool force_flow_control)
+Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CONTROL_MODE flow_control)
 {
 #ifndef B460800
 #define B460800 460800
@@ -679,7 +679,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 	*/
 
 	/* setup output flow control */
-	if (enable_flow_control(force_flow_control ? FLOW_CONTROL_ON : FLOW_CONTROL_AUTO)) {
+	if (enable_flow_control(flow_control)) {
 		PX4_WARN("hardware flow control not supported");
 	}
 
@@ -699,7 +699,7 @@ Mavlink::enable_flow_control(enum FLOW_CONTROL_MODE mode)
 
 	int ret = tcgetattr(_uart_fd, &uart_config);
 
-	if (mode) {
+	if (mode != FLOW_CONTROL_OFF) {
 		uart_config.c_cflag |= CRTSCTS;
 
 	} else {
@@ -1826,7 +1826,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_baudrate = 57600;
 	_datarate = 0;
 	_mode = MAVLINK_MODE_COUNT;
-	bool _force_flow_control = false;
+	FLOW_CONTROL_MODE _flow_control = FLOW_CONTROL_AUTO;
 
 	_interface_name = nullptr;
 
@@ -1851,7 +1851,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxz", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxzZ", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -2045,7 +2045,11 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 'z':
-			_force_flow_control = true;
+			_flow_control = FLOW_CONTROL_ON;
+			break;
+
+		case 'Z':
+			_flow_control = FLOW_CONTROL_OFF;
 			break;
 
 		default:
@@ -2194,7 +2198,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* open the UART device after setting the instance, as it might block */
 	if (get_protocol() == Protocol::SERIAL) {
-		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _force_flow_control);
+		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
 
 		if (_uart_fd < 0 && !_is_usb_uart) {
 			PX4_ERR("could not open %s", _device_name);
@@ -3070,7 +3074,8 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force flow control always on", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force hardware flow control always on", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('Z', "Force hardware flow control always off", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 
