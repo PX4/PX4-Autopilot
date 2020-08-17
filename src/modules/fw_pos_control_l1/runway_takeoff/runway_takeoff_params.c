@@ -79,7 +79,7 @@ PARAM_DEFINE_FLOAT(RWTO_NAV_ALT, 5.0);
  * Max throttle during runway takeoff.
  * (Can be used to test taxi on runway)
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -136,7 +136,7 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_ROLL, 25.0);
  * Pitch up will be commanded when the following airspeed is reached:
  * FW_AIRSPD_MIN * RWTO_AIRSPD_SCL
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 2.0
  * @decimal 2
