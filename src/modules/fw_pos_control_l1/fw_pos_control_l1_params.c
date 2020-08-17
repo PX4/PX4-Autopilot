@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -177,7 +177,7 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
  * For overpowered aircraft, this should be reduced to a value that
  * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -198,7 +198,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * For aircraft with internal combustion engine this parameter should be set
  * for desired idle rpm.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -215,7 +215,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * For aircraft with internal combustion engine this parameter should be set
  * above desired idle rpm.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 0.4
  * @decimal 2
@@ -230,7 +230,7 @@ PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
  * During the flare of the autonomous landing process, this value will be set
  * as throttle limit when the aircraft altitude is below FW_LND_TLALT.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -384,7 +384,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
  * gives the target airspeed the landing approach.
  * FW_AIRSPD_MIN * FW_LND_AIRSPD_SC
  *
- * @unit %
+ * @unit norm
  * @min 1.0
  * @max 1.5
  * @decimal 2
