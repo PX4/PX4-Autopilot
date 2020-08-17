@@ -200,5 +200,4 @@ void LSM9DS1_MAG::print_status()
 	perf_print_counter(_interval_perf);
 	perf_print_counter(_transfer_perf);
 	perf_print_counter(_data_overrun_perf);
-	_px4_mag.print_status();
 }

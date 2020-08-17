@@ -37,7 +37,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
-#include <uORB/uORB.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_mag.h>
 
@@ -47,10 +46,9 @@ public:
 	PX4Magnetometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Magnetometer() override;
 
-	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
-
 	bool external() { return _external; }
 
+	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint32_t error_count) { _error_count = error_count; }
 	void increase_error_count() { _error_count++; }
@@ -58,24 +56,19 @@ public:
 	void set_temperature(float temperature) { _temperature = temperature; }
 	void set_external(bool external) { _external = external; }
 
-	void update(hrt_abstime timestamp_sample, float x, float y, float z);
+	void update(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
 	int get_class_instance() { return _class_device_instance; };
 
-	void print_status();
-
 private:
-	uORB::PublicationMulti<sensor_mag_s> _sensor_mag_pub;
+	uORB::PublicationMulti<sensor_mag_s> _sensor_pub;
 
-	matrix::Vector3f _calibration_scale{1.f, 1.f, 1.f};
-	matrix::Vector3f _calibration_offset{0.f, 0.f, 0.f};
+	uint32_t		_device_id{0};
+	const enum Rotation	_rotation;
 
-	const enum Rotation _rotation;
-	uint32_t _device_id{0};
-	float _temperature{NAN};
-	float _scale{1.f};
-
-	uint32_t _error_count{0};
+	float			_scale{1.f};
+	float			_temperature{NAN};
+	uint32_t		_error_count{0};
 
 	bool _external{false};
 

@@ -40,7 +40,7 @@
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/subsystem_info.h>
-#include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/sensor_preflight_mag.h>
 
 // return false if the magnetomer measurements are inconsistent
 bool PreFlightCheck::magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
@@ -49,9 +49,9 @@ bool PreFlightCheck::magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_
 	bool pass = false; // flag for result of checks
 
 	// get the sensor preflight data
-	uORB::SubscriptionData<sensor_preflight_s> sensors_sub{ORB_ID(sensor_preflight)};
+	uORB::SubscriptionData<sensor_preflight_mag_s> sensors_sub{ORB_ID(sensor_preflight_mag)};
 	sensors_sub.update();
-	const sensor_preflight_s &sensors = sensors_sub.get();
+	const sensor_preflight_mag_s &sensors = sensors_sub.get();
 
 	if (sensors.timestamp == 0) {
 		// can happen if not advertised (yet)
