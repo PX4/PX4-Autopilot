@@ -40,8 +40,8 @@ void insert_values_around_mean(DataValidator *validator, const float mean, uint3
 {
 	uint64_t timestamp = *timestamp_io;
 	uint64_t timestamp_incr = 5;
-	const uint64_t error_count = 0;
-	const int priority = 50;
+	const uint32_t error_count = 0;
+	const uint8_t priority = 50;
 	const float swing = 1E-2f;
 	double sum_dev_squares = 0.0f;
 
@@ -84,8 +84,8 @@ void fill_validator_with_samples(DataValidator *validator,
 	const uint32_t timeout_usec = 2000;//derived from class-private value
 
 	float val = *value_io;
-	const uint64_t error_count = 0;
-	const int priority = 50; //"medium" priority
+	const uint32_t error_count = 0;
+	const uint8_t priority = 50; //"medium" priority
 	const int equal_value_count = 100; //default is private VALUE_EQUAL_COUNT_DEFAULT
 
 	validator->set_equal_value_threshold(equal_value_count);
