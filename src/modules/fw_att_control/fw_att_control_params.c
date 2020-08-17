@@ -476,7 +476,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
 /**
  * Scale factor for flaps
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -490,7 +490,7 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
  *
  * Sets a fraction of full flaps (FW_FLAPS_SCL) during take-off
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -504,7 +504,7 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
  *
  * Sets a fraction of full flaps (FW_FLAPS_SCL) during landing
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -516,7 +516,7 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
 /**
  * Scale factor for flaperons
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -558,7 +558,7 @@ PARAM_DEFINE_INT32(FW_ARSP_SCALE_EN, 1);
  * Scale factor applied to the desired roll actuator command in full manual mode. This parameter allows
  * to adjust the throws of the control surfaces.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -573,7 +573,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_SC, 1.0f);
  * Scale factor applied to the desired pitch actuator command in full manual mode. This parameter allows
  * to adjust the throws of the control surfaces.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @decimal 2
  * @increment 0.01
@@ -587,7 +587,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_P_SC, 1.0f);
  * Scale factor applied to the desired yaw actuator command in full manual mode. This parameter allows
  * to adjust the throws of the control surfaces.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @decimal 2
  * @increment 0.01
