@@ -14,7 +14,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER zmr250
+set MIXER quad_x
 set PWM_OUT 1234
 
 if [ $AUTOCNF = yes ]
