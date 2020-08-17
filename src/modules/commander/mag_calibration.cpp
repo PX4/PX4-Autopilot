@@ -339,9 +339,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 							rejected = true;
 
 						} else {
-							new_samples[cur_mag](0) = mag.x;
-							new_samples[cur_mag](1) = mag.y;
-							new_samples[cur_mag](2) = mag.z;
+							new_samples[cur_mag] = Vector3f{mag.x, mag.y, mag.z};
 						}
 
 					} else {
@@ -537,11 +535,12 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 									    &diag[cur_mag](0), &diag[cur_mag](1), &diag[cur_mag](2),
 									    &offdiag[cur_mag](0), &offdiag[cur_mag](1), &offdiag[cur_mag](2));
 
-						PX4_DEBUG("Mag: %d (%d/%d) sphere fit ret=%d, fitness: %.4f, lambda: %.4f", cur_mag, i, max_iterations, ret,
-							  (double)fitness, (double)sphere_lambda);
+						PX4_DEBUG("Mag: %d (%d/%d) sphere fit ret=%d, fitness: %.5f, lambda: %.5f, radius: %.3f, offset: [%.3f, %.3f %.3f]",
+							  cur_mag, i, max_iterations, ret, (double)fitness, (double)sphere_lambda, (double)sphere_radius[cur_mag],
+							  (double)sphere[cur_mag](0), (double)sphere[cur_mag](1), (double)sphere[cur_mag](2));
 					}
 
-					PX4_INFO("Mag: %d sphere fitness: %.4f radius: %.4f", cur_mag, (double)fitness, (double)sphere_radius[cur_mag]);
+					PX4_INFO("Mag: %d sphere fitness: %.5f radius: %.4f", cur_mag, (double)fitness, (double)sphere_radius[cur_mag]);
 				}
 
 				if (!sphere_fit_only) {
@@ -557,11 +556,12 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 									       &diag[cur_mag](0), &diag[cur_mag](1), &diag[cur_mag](2),
 									       &offdiag[cur_mag](0), &offdiag[cur_mag](1), &offdiag[cur_mag](2));
 
-						PX4_DEBUG("Mag: %d (%d/%d) ellipsoid fit ret=%d, fitness: %.4f, lambda: %.4f", cur_mag, i, max_iterations, ret,
-							  (double)fitness, (double)ellipsoid_lambda);
+						PX4_DEBUG("Mag: %d (%d/%d) ellipsoid fit ret=%d, fitness: %.5f, lambda: %.5f, radius: %.3f, offset: [%.3f, %.3f %.3f]",
+							  cur_mag, i, max_iterations, ret, (double)fitness, (double)ellipsoid_lambda, (double)sphere_radius[cur_mag],
+							  (double)sphere[cur_mag](0), (double)sphere[cur_mag](1), (double)sphere[cur_mag](2));
 					}
 
-					PX4_INFO("Mag: %d ellipsoid fitness: %.4f", cur_mag, (double)fitness);
+					PX4_INFO("Mag: %d ellipsoid fitness: %.5f", cur_mag, (double)fitness);
 				}
 
 				result = check_calibration_result(sphere[cur_mag](0), sphere[cur_mag](1), sphere[cur_mag](2),
@@ -783,6 +783,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					current_cal.set_scale(diag[cur_mag]);
 					current_cal.set_offdiagonal(offdiag[cur_mag]);
 				}
+
+				current_cal.PrintStatus();
 
 			} else {
 				current_cal.Reset();
