@@ -47,6 +47,9 @@ class Accelerometer
 public:
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
+	static constexpr uint8_t DEFAULT_PRIORITY = 50;
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
+
 	static constexpr const char *SensorString() { return "ACC"; }
 
 	Accelerometer();
@@ -63,8 +66,9 @@ public:
 	void set_scale(const matrix::Vector3f &scale) { _scale = scale; }
 
 	uint32_t device_id() const { return _device_id; }
-	bool enabled() const { return _enabled; }
+	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
+	const int32_t &priority() const { return _priority; }
 	const matrix::Dcmf &rotation() const { return _rotation; }
 
 	// apply offsets and scale
@@ -91,8 +95,8 @@ private:
 
 	int8_t _calibration_index{-1};
 	uint32_t _device_id{0};
+	int32_t _priority{DEFAULT_PRIORITY};
 
-	bool _enabled{true};
 	bool _external{false};
 };
 } // namespace calibration

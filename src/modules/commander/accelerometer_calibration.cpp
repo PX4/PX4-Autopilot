@@ -263,8 +263,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
 
 	calibration::Accelerometer calibrations[MAX_ACCEL_SENS] {};
-	ORB_PRIO device_prio_max = ORB_PRIO_UNINITIALIZED;
-	int32_t device_id_primary = 0;
 	unsigned active_sensors = 0;
 
 	for (uint8_t cur_accel = 0; cur_accel < MAX_ACCEL_SENS; cur_accel++) {
@@ -273,14 +271,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		if (accel_sub.advertised() && (accel_sub.get().device_id != 0) && (accel_sub.get().timestamp > 0)) {
 			calibrations[cur_accel].set_device_id(accel_sub.get().device_id);
 			active_sensors++;
-
-			// Get priority
-			const ORB_PRIO prio = accel_sub.get_priority();
-
-			if (prio > device_prio_max) {
-				device_prio_max = prio;
-				device_id_primary = accel_sub.get().device_id;
-			}
 
 		} else {
 			calibrations[cur_accel].Reset();
@@ -365,7 +355,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			calibrations[i].ParametersSave();
 		}
 
-		param_set_no_notification(param_find("CAL_ACC_PRIME"), &device_id_primary);
 		param_notify_changes();
 
 		/* if there is a any preflight-check system response, let the barrage of messages through */
@@ -384,7 +373,7 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 #if !defined(CONSTRAINED_FLASH)
 	PX4_INFO("Accelerometer quick calibration");
 
-	int32_t device_id_primary = 0;
+	bool success = false;
 
 	// sensor thermal corrections (optional)
 	uORB::Subscription sensor_correction_sub{ORB_ID(sensor_correction)};
@@ -492,20 +481,16 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 			} else {
 				calibration.set_offset(offset);
+
+				success = true;
 			}
 
 			calibration.ParametersSave();
-
-			if (device_id_primary == 0) {
-				device_id_primary = arp.device_id;
-			}
-
 			calibration.PrintStatus();
 		}
 	}
 
-	if (device_id_primary != 0) {
-		param_set_no_notification(param_find("CAL_ACC_PRIME"), &device_id_primary);
+	if (success) {
 		param_notify_changes();
 		return PX4_OK;
 	}

@@ -43,7 +43,7 @@
 class PX4Magnetometer : public cdev::CDev
 {
 public:
-	PX4Magnetometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
+	PX4Magnetometer(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
 	~PX4Magnetometer() override;
 
 	bool external() { return _external; }

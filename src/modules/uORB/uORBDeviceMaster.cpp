@@ -59,7 +59,7 @@ uORB::DeviceMaster::~DeviceMaster()
 	px4_sem_destroy(&_lock);
 }
 
-int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, ORB_PRIO priority)
+int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance)
 {
 	int ret = PX4_ERROR;
 
@@ -107,7 +107,7 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 		}
 
 		/* construct the new node, passing the ownership of path to it */
-		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath, priority);
+		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath);
 
 		/* if we didn't get a device, that's bad, free the path too */
 		if (node == nullptr) {
@@ -142,7 +142,6 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 				if (existing_node != nullptr &&
 				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
 					if (is_advertiser) {
-						existing_node->set_priority((ORB_PRIO)priority);
 						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
 						 * could get the same instance).
 						 */
@@ -194,7 +193,7 @@ void uORB::DeviceMaster::printStatistics()
 		return;
 	}
 
-	PX4_INFO_RAW("%-*s INST #SUB #Q SIZE PRIO PATH\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+	PX4_INFO_RAW("%-*s INST #SUB #Q SIZE PATH\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 
 	cur_node = first_node;
 

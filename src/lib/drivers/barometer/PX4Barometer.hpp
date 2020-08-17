@@ -45,7 +45,7 @@ class PX4Barometer : public cdev::CDev
 {
 
 public:
-	PX4Barometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT);
+	PX4Barometer(uint32_t device_id);
 	~PX4Barometer() override;
 
 	const sensor_baro_s &get() { return _sensor_baro_pub.get(); }

@@ -48,6 +48,9 @@ class Magnetometer
 public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
+	static constexpr uint8_t DEFAULT_PRIORITY = 50;
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
+
 	static constexpr const char *SensorString() { return "MAG"; }
 
 	Magnetometer();
@@ -66,9 +69,10 @@ public:
 	void set_rotation(Rotation rotation);
 
 	uint32_t device_id() const { return _device_id; }
-	bool enabled() const { return _enabled; }
+	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
 	const matrix::Vector3f &offset() const { return _offset; }
+	const int32_t &priority() const { return _priority; }
 	const matrix::Dcmf &rotation() const { return _rotation; }
 	const Rotation &rotation_enum() const { return _rotation_enum; }
 	const matrix::Matrix3f &scale() const { return _scale; }
@@ -98,8 +102,8 @@ private:
 
 	int8_t _calibration_index{-1};
 	uint32_t _device_id{0};
+	int32_t _priority{-1};
 
-	bool _enabled{true};
 	bool _external{false};
 };
 } // namespace calibration

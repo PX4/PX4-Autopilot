@@ -122,6 +122,24 @@ void VehicleMagnetometer::ParametersUpdate(bool force)
 		}
 
 		_mag_comp_type = mag_comp_typ;
+
+		// update mag priority (CAL_MAGx_PRIO)
+		for (int mag = 0; mag < MAX_SENSOR_COUNT; mag++) {
+			const int32_t priority_old = _calibration[mag].priority();
+			_calibration[mag].ParametersUpdate();
+			const int32_t priority_new = _calibration[mag].priority();
+
+			if (priority_old != priority_new) {
+				if (_priority[mag] == priority_old) {
+					_priority[mag] = priority_new;
+
+				} else {
+					// change relative priority to incorporate any sensor faults
+					int priority_change = priority_new - priority_old;
+					_priority[mag] = math::constrain(_priority[mag] + priority_change, 1, 100);
+				}
+			}
+		}
 	}
 }
 
@@ -207,7 +225,7 @@ void VehicleMagnetometer::Run()
 				if (_calibration[uorb_index].device_id() != report.device_id) {
 					_calibration[uorb_index].set_external(report.is_external);
 					_calibration[uorb_index].set_device_id(report.device_id);
-					_priority[uorb_index] = _sensor_sub[uorb_index].get_priority();
+					_priority[uorb_index] = _calibration[uorb_index].priority();
 				}
 
 				if (_calibration[uorb_index].enabled()) {

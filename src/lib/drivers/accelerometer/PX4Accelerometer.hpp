@@ -44,7 +44,7 @@
 class PX4Accelerometer : public ModuleParams
 {
 public:
-	PX4Accelerometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
+	PX4Accelerometer(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
 	~PX4Accelerometer() override;
 
 	uint32_t get_device_id() const { return _device_id; }
