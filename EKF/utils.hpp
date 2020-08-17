@@ -23,6 +23,9 @@ float kahanSummation(float sum_previous, float input, float &accumulator);
 // this produces the inverse rotation to that produced by the math library quaternion to Dcmf operator
 matrix::Dcmf quatToInverseRotMat(const matrix::Quatf &quat);
 
+// We should use a 3-2-1 Tait-Bryan (yaw-pitch-roll) rotation sequence
+// when there is more roll than pitch tilt and a 3-1-2 rotation sequence
+// when there is more pitch than roll tilt to avoid gimbal lock.
 bool shouldUse321RotationSequence(const matrix::Dcmf& R);
 
 float getEuler321Yaw(const matrix::Quatf& q);
