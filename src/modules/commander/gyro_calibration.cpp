@@ -130,7 +130,7 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 
 					sensor_gyro_s gyro_report;
 
-					if (gyro_sub[gyro_index].update(&gyro_report)) {
+					while (gyro_sub[gyro_index].update(&gyro_report)) {
 
 						// fetch optional thermal offset corrections in sensor/board frame
 						Vector3f offset{0, 0, 0};
@@ -297,6 +297,8 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 			if (calibration.device_id() != 0) {
 				calibration.set_offset(worker_data.offset[uorb_index]);
+
+				calibration.PrintStatus();
 
 			} else {
 				calibration.Reset();
