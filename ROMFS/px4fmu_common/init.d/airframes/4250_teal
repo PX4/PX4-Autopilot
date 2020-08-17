@@ -49,7 +49,6 @@ then
 	# sensor calibration
 	param set CAL_MAG_SIDES 63
 	param set SENS_BOARD_ROT 0
-	param set COM_ARM_MAG_ANG -1
 	param set COM_ARM_EKF_AB 0.0032
 
 	# circuit breakers

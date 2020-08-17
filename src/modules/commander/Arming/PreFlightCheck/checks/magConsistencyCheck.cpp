@@ -60,7 +60,7 @@ bool PreFlightCheck::magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_
 
 	// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
 	// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
-	int32_t angle_difference_limit_deg;
+	int32_t angle_difference_limit_deg = 90;
 	param_get(param_find("COM_ARM_MAG_ANG"), &angle_difference_limit_deg);
 
 	pass = pass || angle_difference_limit_deg < 0; // disabled, pass check
