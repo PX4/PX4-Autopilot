@@ -43,7 +43,7 @@
  *
  * It's recommended to set it > 0 to avoid free fall with zero thrust.
  *
- * @unit %
+ * @unit norm
  * @min 0.05
  * @max 1.0
  * @decimal 2
@@ -64,7 +64,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  *
  * This parameter is also important for the landing detection to work correctly.
  *
- * @unit %
+ * @unit norm
  * @min 0.1
  * @max 0.8
  * @decimal 2
@@ -111,7 +111,7 @@ PARAM_DEFINE_INT32(MPC_THR_CURVE, 0);
  *
  * Limit max allowed thrust
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
@@ -126,7 +126,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);
  * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
  * With MC_AIRMODE set to 1, this can safely be set to 0.
  *
- * @unit %
+ * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
