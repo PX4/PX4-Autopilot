@@ -1,4 +1,5 @@
 uint64 timestamp				# time since system start (microseconds)
+int32 id						# Source node ID
 
 uint8[4] unit_type				# Units: mV, mA, Kelvin*10
 uint16[4] values 				# mV, mA, Kelvin*10

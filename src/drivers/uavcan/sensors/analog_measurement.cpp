@@ -64,12 +64,15 @@ UavcanAnalogMeasurementBridge::analog_measurement_sub_cb(const
 				 uavcan::ReceivedDataStructure<com::volansi::equipment::adc::AnalogMeasurement> &msg)
 {
 	analog_measurement_s report{};
-	int numIndices = msg.values.size();
 
+	int node_id = msg.getSrcNodeID().get();
+	report.id = node_id;
+
+	int numIndices = msg.values.size();
 	for (int i = 0; i < numIndices; i++) {
 		report.values[i] = msg.values[i];
 		report.unit_type[i] = msg.unit_type[i];
 	}
 
-	publish(msg.getSrcNodeID().get(), &report);
+	publish(node_id, &report);
 }
