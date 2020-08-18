@@ -81,7 +81,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			--urtps-templates-dir templates/urtps
 			--agent-outdir ${micrortps_bridge_path}/micrortps_agent/src
 			--client-outdir ${micrortps_bridge_path}/micrortps_client
-			--idl-dir ../micrortps_agent/idl
+			--idl-dir ${micrortps_bridge_path}/micrortps_agent/idl
 			>micrortps_bridge.log >/dev/null
 		DEPENDS ${send_topic_files} ${receive_topic_files}
 		COMMENT "Generating RTPS topic bridge"
