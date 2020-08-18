@@ -267,6 +267,7 @@ pipeline {
           steps {
             sh('export')
             sh('make distclean')
+            sh('make px4_sitl_rtps')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/micrortps_agent.git")
               sh('cp -R build/px4_sitl_rtps/src/modules/micrortps_bridge/micrortps_agent/* micrortps_agent')
