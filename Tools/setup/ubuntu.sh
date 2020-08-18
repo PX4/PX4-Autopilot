@@ -186,6 +186,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		ant \
 		openjdk-$java_version-jre \
 		openjdk-$java_version-jdk \
+		libvecmath-java \
 		;
 
 	# Set Java 11 as default
