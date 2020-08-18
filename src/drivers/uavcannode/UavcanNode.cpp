@@ -541,7 +541,7 @@ void UavcanNode::send_analog_measurements()
 
 			com::volansi::equipment::adc::AnalogMeasurement report{};
 
-			for (size_t i = 0; i < sizeof(measurement.values)/sizeof(values[0])) {
+			for (size_t i = 0; i < sizeof(measurement.values)/sizeof(measurement.values[0]); i++) {
 				if (measurement.unit_type[i]) {
 					report.unit_type[i] = measurement.unit_type[i];
 					report.values[i] = measurement.values[i];

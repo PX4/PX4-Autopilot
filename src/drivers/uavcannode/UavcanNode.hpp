@@ -64,7 +64,7 @@
 #include <uavcan/equipment/gnss/Fix2.hpp>
 #include <uavcan/equipment/power/BatteryInfo.hpp>
 #include <uavcan/equipment/range_sensor/Measurement.hpp>
-#include <com/volansi/equipment/adc/Report.hpp>
+#include <com/volansi/equipment/adc/AnalogMeasurement.hpp>
 
 
 #include <lib/parameters/param.h>
