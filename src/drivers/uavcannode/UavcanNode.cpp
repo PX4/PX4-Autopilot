@@ -81,7 +81,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_air_data_static_temperature_publisher(_node),
 	_raw_air_data_publisher(_node),
 	_range_sensor_measurement(_node),
-	_adc_report_publisher(_node),
+	_analog_measurement_publisher(_node),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")),
 	_reset_timer(_node)
@@ -331,7 +331,7 @@ void UavcanNode::Run()
 		PX4_ERR("node spin error %i", spin_res);
 	}
 
-	send_adc_measurements();
+	send_analog_measurements();
 	send_battery_info();
 	send_raw_air_data();
 	send_static_pressure();
@@ -352,7 +352,7 @@ void UavcanNode::send_battery_info()
 {
 	// battery_status -> uavcan::equipment::power::BatteryInfo
 	if (_battery_status_sub.updated()) {
-		battery_status_s battery;
+		battery_status_s battery{};
 
 		if (_battery_status_sub.copy(&battery)) {
 			uavcan::equipment::power::BatteryInfo battery_info{};
@@ -385,7 +385,7 @@ void UavcanNode::send_raw_air_data()
 {
 	// differential_pressure -> uavcan::equipment::air_data::RawAirData
 	if (_diff_pressure_sub.updated()) {
-		differential_pressure_s diff_press;
+		differential_pressure_s diff_press{};
 
 		if (_diff_pressure_sub.copy(&diff_press)) {
 
@@ -407,7 +407,7 @@ void UavcanNode::send_range_sensor_measurement()
 {
 	// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement
 	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		distance_sensor_s dist;
+		distance_sensor_s dist{};
 
 		if (_distance_sensor_sub[i].update(&dist)) {
 			uavcan::equipment::range_sensor::Measurement range_sensor{};
@@ -459,7 +459,7 @@ void UavcanNode::send_static_pressure()
 {
 	// sensor_baro -> uavcan::equipment::air_data::StaticTemperature
 	if (_sensor_baro_sub.updated()) {
-		sensor_baro_s baro;
+		sensor_baro_s baro{};
 
 		if (_sensor_baro_sub.copy(&baro)) {
 			uavcan::equipment::air_data::StaticPressure static_pressure{};
@@ -480,7 +480,7 @@ void UavcanNode::send_magnetic_field_strength2()
 {
 	// sensor_mag -> uavcan::equipment::ahrs::MagneticFieldStrength2
 	if (_sensor_mag_sub.updated()) {
-		sensor_mag_s mag;
+		sensor_mag_s mag{};
 
 		if (_sensor_mag_sub.copy(&mag)) {
 			uavcan::equipment::ahrs::MagneticFieldStrength2 magnetic_field{};
@@ -497,7 +497,7 @@ void UavcanNode::send_gnss_fix2()
 {
 	// vehicle_gps_position -> uavcan::equipment::gnss::Fix2
 	if (_vehicle_gps_position_sub.updated()) {
-		vehicle_gps_position_s gps;
+		vehicle_gps_position_s gps{};
 
 		if (_vehicle_gps_position_sub.copy(&gps)) {
 			uavcan::equipment::gnss::Fix2 fix2{};
@@ -531,50 +531,24 @@ void UavcanNode::send_gnss_fix2()
 	}
 }
 
-void UavcanNode::send_adc_measurements()
+void UavcanNode::send_analog_measurements()
 {
 	// vehicle_gps_position -> uavcan::equipment::gnss::Fix2
-	if (_adc_report_sub.updated()) {
-		adc_report_s adc_report;
+	if (_analog_report_sub.updated()) {
+		analog_measurement_s measurement{};
 
-		if (_adc_report_sub.copy(&adc_report)) {
+		if (_analog_report_sub.copy(&measurement)) {
 
-			// We could probably convince people an ADC uavcan data type
-			// would be useful to have in tree...
-			com::volansi::equipment::adc::Report report{};
+			com::volansi::equipment::adc::AnalogMeasurement report{};
 
-			int32_t adc1_units = 0;
-			int32_t adc2_units = 0;
-			int32_t adc3_units = 0;
-			int32_t adc4_units = 0;
-
-			(void)param_get(param_find("ADC1_UNIT_TYPE"), &adc1_units);
-			(void)param_get(param_find("ADC2_UNIT_TYPE"), &adc2_units);
-			(void)param_get(param_find("ADC3_UNIT_TYPE"), &adc3_units);
-			(void)param_get(param_find("ADC4_UNIT_TYPE"), &adc4_units);
-
-			report.unit_type[0] = (unsigned)adc1_units;
-			report.unit_type[1] = (unsigned)adc2_units;
-			report.unit_type[2] = (unsigned)adc3_units;
-			report.unit_type[3] = (unsigned)adc4_units;
-
-			if (adc1_units != 0) {
-				report.values[0] = adc_report.raw_data[0];
+			for (size_t i = 0; i < sizeof(measurement.values)/sizeof(values[0])) {
+				if (measurement.unit_type[i]) {
+					report.unit_type[i] = measurement.unit_type[i];
+					report.values[i] = measurement.values[i];
+				}
 			}
 
-			if (adc2_units != 0) {
-				report.values[1] = adc_report.raw_data[1];
-			}
-
-			if (adc3_units != 0) {
-				report.values[2] = adc_report.raw_data[2];
-			}
-
-			if (adc4_units != 0) {
-				report.values[3] = adc_report.raw_data[3];
-			}
-
-			_adc_report_publisher.broadcast(report);
+			_analog_measurement_publisher.broadcast(report);
 		}
 	}
 }

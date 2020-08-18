@@ -126,7 +126,7 @@ px4_add_module(
 		actuators/hardpoint.cpp
 
 		# Sensors
-		sensors/adc.cpp
+		sensors/analog_measurement.cpp
 		sensors/airspeed.cpp
 		sensors/baro.cpp
 		sensors/battery.cpp

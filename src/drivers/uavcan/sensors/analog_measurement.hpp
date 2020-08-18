@@ -38,16 +38,16 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-#include <uORB/topics/analog_voltage_current.h>
+#include <uORB/topics/analog_measurement.h>
 
-#include <com/volansi/equipment/adc/Report.hpp>
+#include <com/volansi/equipment/adc/AnalogMeasurement.hpp>
 
-class UavcanAdcBridge : public UavcanCDevSensorBridgeBase
+class UavcanAnalogMeasurementBridge : public UavcanCDevSensorBridgeBase
 {
 public:
 	static const char *const NAME;
 
-	UavcanAdcBridge(uavcan::INode &node);
+	UavcanAnalogMeasurementBridge(uavcan::INode &node);
 
 	const char *get_name() const override { return NAME; }
 
@@ -55,12 +55,12 @@ public:
 
 private:
 
-	void adc_sub_cb(const uavcan::ReceivedDataStructure<com::volansi::equipment::adc::Report> &msg);
+	void analog_measurement_sub_cb(const uavcan::ReceivedDataStructure<com::volansi::equipment::adc::AnalogMeasurement> &msg);
 
-	typedef uavcan::MethodBinder < UavcanAdcBridge *,
-		void (UavcanAdcBridge::*)
-		(const uavcan::ReceivedDataStructure<com::volansi::equipment::adc::Report> &) >
-		AdcCbBinder;
+	typedef uavcan::MethodBinder < UavcanAnalogMeasurementBridge *,
+		void (UavcanAnalogMeasurementBridge::*)
+		(const uavcan::ReceivedDataStructure<com::volansi::equipment::adc::AnalogMeasurement> &) >
+		AnalogCbBinder;
 
-	uavcan::Subscriber<com::volansi::equipment::adc::Report, AdcCbBinder> _sub_adc_data;
+	uavcan::Subscriber<com::volansi::equipment::adc::AnalogMeasurement, AnalogCbBinder> _sub_analog_data;
 };

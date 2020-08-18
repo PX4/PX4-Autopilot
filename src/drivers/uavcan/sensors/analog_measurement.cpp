@@ -32,16 +32,16 @@
  ****************************************************************************/
 
 #include <drivers/drv_hrt.h>
-#include "adc.hpp"
+#include "analog_measurement.hpp"
 
-const char *const UavcanAdcBridge::NAME = "adc";
+const char *const UavcanAnalogMeasurementBridge::NAME = "analog_measurement";
 
-UavcanAdcBridge::UavcanAdcBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_airspeed", "/dev/uavcan/adc", "/dev/adc", ORB_ID(analog_voltage_current)),
-	_sub_adc_data(node)
+UavcanAnalogMeasurementBridge::UavcanAnalogMeasurementBridge(uavcan::INode &node) :
+	UavcanCDevSensorBridgeBase("uavcan_airspeed", "/dev/uavcan/analog_measurement", "/dev/analog_measurement", ORB_ID(analog_measurement)),
+	_sub_analog_data(node)
 { }
 
-int UavcanAdcBridge::init()
+int UavcanAnalogMeasurementBridge::init()
 {
 	int res = device::CDev::init();
 
@@ -49,7 +49,7 @@ int UavcanAdcBridge::init()
 		return res;
 	}
 
-	res = _sub_adc_data.start(AdcCbBinder(this, &UavcanAdcBridge::adc_sub_cb));
+	res = _sub_analog_data.start(AnalogCbBinder(this, &UavcanAnalogMeasurementBridge::analog_measurement_sub_cb));
 
 	if (res < 0) {
 		DEVICE_LOG("failed to start uavcan sub: %d", res);
@@ -60,27 +60,15 @@ int UavcanAdcBridge::init()
 }
 
 void
-UavcanAdcBridge::adc_sub_cb(const
-				 uavcan::ReceivedDataStructure<com::volansi::equipment::adc::Report> &msg)
+UavcanAnalogMeasurementBridge::analog_measurement_sub_cb(const
+				 uavcan::ReceivedDataStructure<com::volansi::equipment::adc::AnalogMeasurement> &msg)
 {
-	analog_voltage_current_s report{};
-
-	static constexpr int numIndices = 4;
-	static constexpr uint16_t mV = com::volansi::equipment::adc::Report::UNITS_MV;
-	static constexpr uint16_t mA = com::volansi::equipment::adc::Report::UNITS_MA;
-	static constexpr uint16_t cK = com::volansi::equipment::adc::Report::UNITS_CK;
+	analog_measurement_s report{};
+	int numIndices = msg.values.size();
 
 	for (int i = 0; i < numIndices; i++) {
-
-		if (msg.unit_type[i] == mV) {
-			report.voltage[i] = msg.values[i];
-
-		} else if (msg.unit_type[i] == mA) {
-			report.current[i] = msg.values[i];
-
-		} else if (msg.unit_type[i] == cK) {
-			report.temperature[i] = msg.values[i];
-		}
+		report.values[i] = msg.values[i];
+		report.unit_type[i] = msg.unit_type[i];
 	}
 
 	publish(msg.getSrcNodeID().get(), &report);
