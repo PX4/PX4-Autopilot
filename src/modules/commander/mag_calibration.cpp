@@ -780,6 +780,20 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 #endif // DEBUG_BUILD
 
 						if (worker_data.calibration[cur_mag].external()) {
+
+							switch (worker_data.calibration[cur_mag].rotation_enum()) {
+							case ROTATION_ROLL_90_PITCH_68_YAW_293:
+
+							// FALLTHROUGH
+							case ROTATION_PITCH_9_YAW_180:
+								PX4_INFO("[cal] External Mag: %d (%d), keeping manually configured rotation %d", cur_mag,
+									 worker_data.calibration[cur_mag].device_id(), worker_data.calibration[cur_mag].rotation_enum());
+								continue;
+
+							default:
+								break;
+							}
+
 							if (smallest_check_passed && total_error_check_passed) {
 								if (best_rotation != worker_data.calibration[cur_mag].rotation_enum()) {
 									calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%d), determined rotation: %d", cur_mag,
