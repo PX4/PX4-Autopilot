@@ -109,8 +109,10 @@ void FlightTaskAuto::_limitYawRate()
 		_yaw_setpoint = yaw_setpoint_sat;
 
 		if (!PX4_ISFINITE(_yawspeed_setpoint) && (_deltatime > FLT_EPSILON)) {
-			// Create a feedforward
-			_yawspeed_setpoint = dyaw / _deltatime;
+			// Create a feedforward using the filtered derivative
+			_yawspeed_filter.setParameters(_deltatime, .2f);
+			_yawspeed_filter.update(dyaw);
+			_yawspeed_setpoint = _yawspeed_filter.getState() / _deltatime;
 		}
 	}
 
