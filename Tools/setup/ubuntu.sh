@@ -176,6 +176,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		ant \
 		openjdk-8-jre \
 		openjdk-8-jdk \
+		libvecmath-java \
 		;
 
     # Set Java 8 as default
