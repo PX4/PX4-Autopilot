@@ -91,6 +91,8 @@ then
 fi
 unset BOARD_RC_SENSORS
 
+analog_measurement start
+
 #
 # Start UART/Serial device drivers.
 # Note: rc.serial is auto-generated from Tools/serial/generate_config.py
