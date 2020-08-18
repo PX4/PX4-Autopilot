@@ -260,6 +260,28 @@ pipeline {
           }
         }
 
+        stage('microRTPS agent') {
+          agent {
+            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+          }
+          steps {
+            sh('export')
+            sh('make distclean')
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/micrortps_agent.git")
+              sh('cp -R build/px4_sitl_rtps/src/modules/micrortps_bridge/micrortps_agent/* micrortps_agent')
+              sh('cd micrortps_agent; git status; git add .; git commit -a -m "Update microRTPS agent source code `date`" || true')
+              sh('cd micrortps_agent; git push origin master || true')
+            }
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'pr-jenkins' // for testing
+            }
+          }
+        }
+
         stage('PX4 ROS msgs') {
           agent {
             docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
