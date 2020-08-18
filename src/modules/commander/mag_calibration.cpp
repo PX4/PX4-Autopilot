@@ -670,21 +670,32 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			// only proceed if there's a valid internal
 			if (internal_index >= 0) {
 
+				const Dcmf board_rotation = calibration::GetBoardRotation();
+
 				// apply new calibrations to all raw sensor data before comparison
 				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 					if (worker_data.calibration[cur_mag].device_id() != 0) {
+
+						float scale_data[9] {
+							diag[cur_mag](0),    offdiag[cur_mag](0), offdiag[cur_mag](1),
+							offdiag[cur_mag](0),    diag[cur_mag](1), offdiag[cur_mag](2),
+							offdiag[cur_mag](1), offdiag[cur_mag](2),    diag[cur_mag](2)
+						};
+						const Matrix3f scale{scale_data};
+
+						const Vector3f &offset{sphere[cur_mag]};
+
 						for (unsigned i = 0; i < worker_data.calibration_counter_total[cur_mag]; i++) {
 
 							const Vector3f sample{worker_data.x[cur_mag][i], worker_data.y[cur_mag][i], worker_data.z[cur_mag][i]};
 
-							float scale_data[9] {
-								diag[cur_mag](0),    offdiag[cur_mag](0), offdiag[cur_mag](1),
-								offdiag[cur_mag](0),    diag[cur_mag](1), offdiag[cur_mag](2),
-								offdiag[cur_mag](1), offdiag[cur_mag](2),    diag[cur_mag](2)
-							};
-
 							// apply calibration
-							const Vector3f m{Matrix3f{scale_data} *(sample - sphere[cur_mag])};
+							Vector3f m{scale *(sample - offset)};
+
+							if (!worker_data.calibration[cur_mag].external()) {
+								// rotate internal mag data to board
+								m = board_rotation * m;
+							}
 
 							// store back in worker_data
 							worker_data.x[cur_mag][i] = m(0);
@@ -694,19 +705,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					}
 				}
 
-				// rotate internal mag data to board
-				const Dcmf board_rotation = calibration::GetBoardRotation();
-
-				for (unsigned i = 0; i < worker_data.calibration_counter_total[internal_index]; i++) {
-
-					const Vector3f m = board_rotation * Vector3f{worker_data.x[internal_index][i],
-							worker_data.y[internal_index][i], worker_data.z[internal_index][i]};
-
-					worker_data.x[internal_index][i] = m(0);
-					worker_data.y[internal_index][i] = m(1);
-					worker_data.z[internal_index][i] = m(2);
-				}
-
+				// external mags try all rotations and compute mean square error (MSE) compared with first internal mag
 				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 					if (worker_data.calibration[cur_mag].external() && (worker_data.calibration[cur_mag].device_id() != 0)) {
 
@@ -735,7 +734,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 								float diff_sum = 0.f;
 
 								for (int i = 0; i < last_sample_index; i++) {
-
 									float x = worker_data.x[cur_mag][i];
 									float y = worker_data.y[cur_mag][i];
 									float z = worker_data.z[cur_mag][i];
