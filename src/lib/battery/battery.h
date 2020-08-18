@@ -53,6 +53,7 @@
 #include <px4_platform_common/board_common.h>
 #include <math.h>
 #include <float.h>
+#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
 
 /**
  * BatteryBase is a base class for any type of battery.
@@ -63,7 +64,7 @@
 class Battery : public ModuleParams
 {
 public:
-	Battery(int index, ModuleParams *parent);
+	Battery(int index, ModuleParams *parent, const int sample_interval_us);
 
 	~Battery();
 
@@ -212,18 +213,15 @@ protected:
 	}
 
 private:
-	void filterVoltage(float voltage_v);
-	void filterThrottle(float throttle);
-	void filterCurrent(float current_a);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void estimateRemaining(float voltage_v, float current_a, float throttle);
+	void estimateRemaining(const float voltage_v, const float current_a, const float throttle);
 	void determineWarning(bool connected);
 	void computeScale();
 
 	bool _battery_initialized = false;
-	float _voltage_filtered_v = -1.f;
-	float _throttle_filtered = -1.f;
-	float _current_filtered_a = -1.f;
+	AlphaFilter<float> _voltage_filter_v;
+	AlphaFilter<float> _current_filter_a;
+	AlphaFilter<float> _throttle_filter;
 	float _discharged_mah = 0.f;
 	float _discharged_mah_loop = 0.f;
 	float _remaining_voltage = -1.f;		///< normalized battery charge level remaining based on voltage

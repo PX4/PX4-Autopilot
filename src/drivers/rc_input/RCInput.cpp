@@ -38,7 +38,7 @@
 using namespace time_literals;
 
 #if defined(SPEKTRUM_POWER)
-static bool bind_spektrum(int arg);
+static bool bind_spektrum(int arg = DSMX8_BIND_PULSES);
 #endif /* SPEKTRUM_POWER */
 
 constexpr char const *RCInput::RC_SCAN_STRING[];
@@ -337,7 +337,7 @@ void RCInput::Run()
 		constexpr hrt_abstime rc_scan_max = 300_ms;
 
 		bool sbus_failsafe, sbus_frame_drop;
-		unsigned frame_drops;
+		unsigned frame_drops = 0;
 		bool dsm_11_bit;
 
 		if (_report_lock && _rc_scan_locked) {
@@ -652,7 +652,8 @@ int RCInput::custom_command(int argc, char *argv[])
 	const char *verb = argv[0];
 
 	if (!strcmp(verb, "bind")) {
-		bind_spektrum(DSMX8_BIND_PULSES);
+		// TODO: publish vehicle_command
+		bind_spektrum();
 		return 0;
 	}
 

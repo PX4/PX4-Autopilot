@@ -42,7 +42,8 @@ FXAS21002C::print_usage()
 	PRINT_MODULE_USAGE_NAME("fxas21002c", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x20);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_COMMAND("regdump");
 	PRINT_MODULE_USAGE_COMMAND("testerror");
@@ -52,20 +53,34 @@ FXAS21002C::print_usage()
 I2CSPIDriverBase *FXAS21002C::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 		int runtime_instance)
 {
-	FXAS21002C *instance = new FXAS21002C(iterator.configuredBusOption(), iterator.bus(), iterator.devid(), cli.rotation,
-					      cli.bus_frequency, cli.spi_mode);
+	device::Device *interface = nullptr;
 
-	if (!instance) {
+	if (iterator.busType() == BOARD_I2C_BUS) {
+		interface = FXAS21002C_I2C_interface(iterator.bus(), cli.bus_frequency, cli.i2c_address);
+
+	} else if (iterator.busType() == BOARD_SPI_BUS) {
+		interface = FXAS21002C_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	}
+
+	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (OK != instance->init()) {
-		delete instance;
+	FXAS21002C *dev = new FXAS21002C(interface, iterator.configuredBusOption(), iterator.bus(), cli.rotation,
+					 cli.i2c_address);
+
+	if (dev == nullptr) {
+		delete interface;
 		return nullptr;
 	}
 
-	return instance;
+	if (OK != dev->init()) {
+		delete dev;
+		return nullptr;
+	}
+
+	return dev;
 }
 
 void FXAS21002C::custom_method(const BusCLIArguments &cli)
@@ -82,9 +97,11 @@ extern "C" int fxas21002c_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = FXAS21002C;
-	BusCLIArguments cli{false, true};
+	BusCLIArguments cli{true, true};
+	cli.default_i2c_frequency = 400 * 1000;
 	cli.default_spi_frequency = 2 * 1000 * 1000;
 	cli.spi_mode = SPIDEV_MODE0;
+	cli.i2c_address = 0x20;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -126,5 +143,5 @@ extern "C" int fxas21002c_main(int argc, char *argv[])
 	}
 
 	ThisDriver::print_usage();
-	return -1;
+	return PX4_ERROR;
 }

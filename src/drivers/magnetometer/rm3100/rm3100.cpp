@@ -66,6 +66,8 @@ RM3100::~RM3100()
 	perf_free(_comms_errors);
 	perf_free(_range_errors);
 	perf_free(_conf_errors);
+
+	delete _interface;
 }
 
 int RM3100::self_test()
@@ -149,7 +151,6 @@ int RM3100::collect()
 	if (ret != OK) {
 		perf_end(_sample_perf);
 		perf_count(_comms_errors);
-		PX4_WARN("Register read error.");
 		return ret;
 	}
 

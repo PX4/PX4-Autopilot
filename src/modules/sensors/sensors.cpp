@@ -68,6 +68,7 @@
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/battery_status.h>
 
@@ -120,26 +121,32 @@ private:
 	sensor_combined_s _sensor_combined{};
 	sensor_preflight_s _sensor_preflight{};
 
+	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[3] {
+		{this, ORB_ID(vehicle_imu), 0},
+		{this, ORB_ID(vehicle_imu), 1},
+		{this, ORB_ID(vehicle_imu), 2}
+	};
+
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::Subscription	_diff_pres_sub{ORB_ID(differential_pressure)};			/**< raw differential pressure subscription */
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
 	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription	_vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
-	uORB::Subscription	_battery_status_sub{ORB_ID(battery_status)};		/**< vehicle control mode subscription */
+	uORB::Subscription	_battery_status_sub{ORB_ID(battery_status), 0};		/**< battery_status instance 0 subscription */
 
 	uORB::Publication<airspeed_s>			_airspeed_pub{ORB_ID(airspeed)};			/**< airspeed */
 	uORB::Publication<sensor_combined_s>		_sensor_pub{ORB_ID(sensor_combined)};			/**< combined sensor data topic */
 	uORB::Publication<sensor_preflight_s>		_sensor_preflight_pub{ORB_ID(sensor_preflight)};		/**< sensor preflight topic */
 	uORB::Publication<vehicle_magnetometer_s>	_magnetometer_pub{ORB_ID(vehicle_magnetometer)};	/**< combined sensor data topic */
 
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_integrated_sub[GYRO_COUNT_MAX] {
-		{this, ORB_ID(sensor_gyro_integrated), 0},
-		{this, ORB_ID(sensor_gyro_integrated), 1},
-		{this, ORB_ID(sensor_gyro_integrated), 2}
+	enum class MagCompensationType {
+		Disabled = 0,
+		Throttle,
+		Current_inst0,
+		Current_inst1
 	};
 
-	uint32_t _selected_sensor_device_id{0};
-	uint8_t _selected_sensor_sub_index{0};
+	MagCompensationType _mag_comp_type{MagCompensationType::Disabled};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -161,7 +168,7 @@ private:
 
 	VehicleAcceleration	_vehicle_acceleration;
 	VehicleAngularVelocity	_vehicle_angular_velocity;
-	VehicleAirData          _vehicle_air_data;
+	VehicleAirData          *_vehicle_air_data{nullptr};
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
@@ -193,16 +200,20 @@ private:
 	 */
 	void		adc_poll();
 
+	void		InitializeVehicleAirData();
 	void		InitializeVehicleIMU();
 
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro
+	)
 };
 
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
-	_voted_sensors_update(_parameters, hil_enabled)
+	_voted_sensors_update(_parameters, hil_enabled, _vehicle_imu_sub)
 {
 	initialize_parameter_handles(_parameter_handles);
 
@@ -211,28 +222,39 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_vehicle_acceleration.Start();
 	_vehicle_angular_velocity.Start();
-	_vehicle_air_data.Start();
-
-	InitializeVehicleIMU();
 }
 
 Sensors::~Sensors()
 {
+	// clear all registered callbacks
+	for (auto &sub : _vehicle_imu_sub) {
+		sub.unregisterCallback();
+	}
+
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
-	_vehicle_air_data.Stop();
 
-	for (auto &i : _vehicle_imu_list) {
-		if (i != nullptr) {
-			i->Stop();
+	if (_vehicle_air_data) {
+		_vehicle_air_data->Stop();
+		delete _vehicle_air_data;
+	}
+
+	for (auto &vehicle_imu : _vehicle_imu_list) {
+		if (vehicle_imu) {
+			vehicle_imu->Stop();
+			delete vehicle_imu;
 		}
 	}
+
+	perf_free(_loop_perf);
 }
 
 bool Sensors::init()
 {
 	// initially run manually
 	ScheduleDelayed(10_ms);
+
+	_vehicle_imu_sub[0].registerCallback();
 
 	return true;
 }
@@ -402,18 +424,33 @@ void Sensors::adc_poll()
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 }
 
+void Sensors::InitializeVehicleAirData()
+{
+	if (_param_sys_has_baro.get()) {
+		if (_vehicle_air_data == nullptr) {
+			if (orb_exists(ORB_ID(sensor_baro), 0) == PX4_OK) {
+				_vehicle_air_data = new VehicleAirData();
+
+				if (_vehicle_air_data) {
+					_vehicle_air_data->Start();
+				}
+			}
+		}
+	}
+}
+
 void Sensors::InitializeVehicleIMU()
 {
 	// create a VehicleIMU instance for each accel/gyro pair
 	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 		if (_vehicle_imu_list[i] == nullptr) {
 
-			uORB::Subscription accel_sub{ORB_ID(sensor_accel_integrated), i};
-			sensor_accel_integrated_s accel{};
+			uORB::Subscription accel_sub{ORB_ID(sensor_accel), i};
+			sensor_accel_s accel{};
 			accel_sub.copy(&accel);
 
-			uORB::Subscription gyro_sub{ORB_ID(sensor_gyro_integrated), i};
-			sensor_gyro_integrated_s gyro{};
+			uORB::Subscription gyro_sub{ORB_ID(sensor_gyro), i};
+			sensor_gyro_s gyro{};
 			gyro_sub.copy(&gyro);
 
 			if (accel.device_id > 0 && gyro.device_id > 0) {
@@ -428,6 +465,10 @@ void Sensors::InitializeVehicleIMU()
 						delete imu;
 					}
 				}
+
+			} else {
+				// abort on first failure, try again later
+				return;
 			}
 		}
 	}
@@ -437,7 +478,7 @@ void Sensors::Run()
 {
 	if (should_exit()) {
 		// clear all registered callbacks
-		for (auto &sub : _sensor_gyro_integrated_sub) {
+		for (auto &sub : _vehicle_imu_sub) {
 			sub.unregisterCallback();
 		}
 
@@ -447,6 +488,8 @@ void Sensors::Run()
 
 	// run once
 	if (_last_config_update == 0) {
+		InitializeVehicleAirData();
+		InitializeVehicleIMU();
 		_voted_sensors_update.init(_sensor_combined);
 		parameter_update_poll(true);
 	}
@@ -455,9 +498,6 @@ void Sensors::Run()
 
 	// backup schedule as a watchdog timeout
 	ScheduleDelayed(10_ms);
-
-	sensor_gyro_integrated_s gyro_integrated;
-	_sensor_gyro_integrated_sub[_selected_sensor_sub_index].copy(&gyro_integrated);
 
 	// check vehicle status for changes to publication state
 	if (_vcontrol_mode_sub.updated()) {
@@ -468,16 +508,34 @@ void Sensors::Run()
 			_voted_sensors_update.update_mag_comp_armed(_armed);
 		}
 
-		if (_actuator_ctrl_0_sub.updated()) {
-			actuator_controls_s controls {};
-			_actuator_ctrl_0_sub.copy(&controls);
-			_voted_sensors_update.update_mag_comp_throttle(controls.control[actuator_controls_s::INDEX_THROTTLE]);
+		//check mag power compensation type (change battery current subscription instance if necessary)
+		if ((MagCompensationType)_parameters.mag_comp_type == MagCompensationType::Current_inst0
+		    && _mag_comp_type != MagCompensationType::Current_inst0) {
+			_battery_status_sub = uORB::Subscription{ORB_ID(battery_status), 0};
 		}
 
-		if (_battery_status_sub.updated()) {
+		if ((MagCompensationType)_parameters.mag_comp_type == MagCompensationType::Current_inst1
+		    && _mag_comp_type != MagCompensationType::Current_inst1) {
+			_battery_status_sub = uORB::Subscription{ORB_ID(battery_status), 1};
+		}
+
+		_mag_comp_type = (MagCompensationType)_parameters.mag_comp_type;
+
+		//update power signal for mag compensation
+		if (_mag_comp_type == MagCompensationType::Throttle) {
+			actuator_controls_s controls {};
+
+			if (_actuator_ctrl_0_sub.update(&controls)) {
+				_voted_sensors_update.update_mag_comp_power(controls.control[actuator_controls_s::INDEX_THROTTLE]);
+			}
+
+		} else if (_mag_comp_type == MagCompensationType::Current_inst0
+			   || _mag_comp_type == MagCompensationType::Current_inst1) {
 			battery_status_s bat_stat {};
-			_battery_status_sub.copy(&bat_stat);
-			_voted_sensors_update.update_mag_comp_current(bat_stat.current_a);
+
+			if (_battery_status_sub.update(&bat_stat)) {
+				_voted_sensors_update.update_mag_comp_power(bat_stat.current_a * 0.001f); //current in [kA]
+			}
 		}
 	}
 
@@ -488,32 +546,6 @@ void Sensors::Run()
 	adc_poll();
 
 	diff_pres_poll();
-
-
-	// check failover and update subscribed sensor (if necessary)
-	_voted_sensors_update.checkFailover();
-	const uint32_t current_device_id = _voted_sensors_update.bestGyroID();
-
-	if (_selected_sensor_device_id != current_device_id) {
-		// clear all registered callbacks
-		for (auto &sub : _sensor_gyro_integrated_sub) {
-			sub.unregisterCallback();
-		}
-
-		for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-			sensor_gyro_integrated_s report{};
-
-			if (_sensor_gyro_integrated_sub[i].copy(&report)) {
-				if ((report.device_id != 0) && (report.device_id == current_device_id)) {
-					if (_sensor_gyro_integrated_sub[i].registerCallback()) {
-						// record selected sensor (array index)
-						_selected_sensor_sub_index = i;
-						_selected_sensor_device_id = current_device_id;
-					}
-				}
-			}
-		}
-	}
 
 	if ((magnetometer.timestamp != 0) && (magnetometer.timestamp != _magnetometer_prev_timestamp)) {
 		_magnetometer_pub.publish(magnetometer);
@@ -545,6 +577,7 @@ void Sensors::Run()
 	// when not adding sensors poll for param updates
 	if (!_armed && hrt_elapsed_time(&_last_config_update) > 500_ms) {
 		_voted_sensors_update.initializeSensors();
+		InitializeVehicleAirData();
 		InitializeVehicleIMU();
 		_last_config_update = hrt_absolute_time();
 
@@ -611,8 +644,12 @@ int Sensors::print_status()
 {
 	_voted_sensors_update.printStatus();
 
-	PX4_INFO_RAW("\n");
+	if (_vehicle_air_data) {
+		PX4_INFO_RAW("\n");
+		_vehicle_air_data->PrintStatus();
+	}
 
+	PX4_INFO_RAW("\n");
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
 
@@ -621,9 +658,6 @@ int Sensors::print_status()
 
 	PX4_INFO_RAW("\n");
 	_vehicle_angular_velocity.PrintStatus();
-
-	PX4_INFO_RAW("\n");
-	_vehicle_air_data.PrintStatus();
 
 	PX4_INFO_RAW("\n");
 

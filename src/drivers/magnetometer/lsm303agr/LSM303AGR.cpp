@@ -233,13 +233,13 @@ uint8_t LSM303AGR::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-void LSM303AGR::write_reg(unsigned reg, uint8_t value)
+int LSM303AGR::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t	cmd[2];
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-	transfer(cmd, nullptr, sizeof(cmd));
+	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
 void LSM303AGR::start()

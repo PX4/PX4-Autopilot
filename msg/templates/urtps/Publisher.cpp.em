@@ -70,10 +70,6 @@ except AttributeError:
 
 #include <fastrtps/Domain.h>
 
-@[if version.parse(fastrtps_version) <= version.parse('1.7.2')]@
-#include <fastrtps/utils/eClock.h>
-@[end if]@
-
 #include "@(topic)_Publisher.h"
 
 @(topic)_Publisher::@(topic)_Publisher()
@@ -90,8 +86,12 @@ bool @(topic)_Publisher::init()
 {
     // Create RTPSParticipant
     ParticipantAttributes PParam;
+@[if version.parse(fastrtps_version) < version.parse('2.0')]@
     PParam.rtps.builtin.domainId = 0;
-@[if version.parse(fastrtps_version[:3]) <= version.parse('1.8')]@
+@[else]@
+    PParam.domainId = 0;
+@[end if]@
+@[if version.parse(fastrtps_version) <= version.parse('1.8.4')]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -140,10 +140,10 @@ void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, Match
     if (is_different_endpoint) {
         if (info.status == MATCHED_MATCHING) {
             n_matched++;
-            std::cout << " - @(topic) publisher matched" << std::endl;
+            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) publisher matched\033[0m" << std::endl;
         } else {
             n_matched--;
-            std::cout << " - @(topic) publisher unmatched" << std::endl;
+            std::cout << "\033[0;37m[   micrortps_agent   ]\t@(topic) publisher unmatched\033[0m" << std::endl;
         }
     }
 }

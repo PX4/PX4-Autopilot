@@ -60,7 +60,6 @@ px4_add_board(
 		vmount
 	SYSTEMCMDS
 		#bl_update
-		#config
 		#dumpfile
 		#esc_calib
 		hardfault_log

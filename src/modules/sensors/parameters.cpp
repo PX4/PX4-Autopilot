@@ -59,6 +59,8 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
 
 	/* mag compensation */
+	parameter_handles.mag_comp_type = param_find("CAL_MAG_COMP_TYP");
+
 	parameter_handles.mag_comp_paramX[0] = param_find("CAL_MAG0_XCOMP");
 	parameter_handles.mag_comp_paramX[1] = param_find("CAL_MAG1_XCOMP");
 	parameter_handles.mag_comp_paramX[2] = param_find("CAL_MAG2_XCOMP");
@@ -119,6 +121,8 @@ void update_parameters(const ParameterHandles &parameter_handles, Parameters &pa
 	param_get(parameter_handles.board_offset[0], &(parameters.board_offset[0]));
 	param_get(parameter_handles.board_offset[1], &(parameters.board_offset[1]));
 	param_get(parameter_handles.board_offset[2], &(parameters.board_offset[2]));
+
+	param_get(parameter_handles.mag_comp_type, &(parameters.mag_comp_type));
 
 	param_get(parameter_handles.mag_comp_paramX[0], &(parameters.mag_comp_paramX[0]));
 	param_get(parameter_handles.mag_comp_paramX[1], &(parameters.mag_comp_paramX[1]));

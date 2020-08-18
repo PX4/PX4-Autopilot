@@ -117,7 +117,7 @@ private:
 SF1XX::SF1XX(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
 	I2C(DRV_DIST_DEVTYPE_SF1XX, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(DRV_DIST_DEVTYPE_SF1XX, rotation)
+	_px4_rangefinder(DRV_DIST_DEVTYPE_SF1XX, ORB_PRIO_DEFAULT, rotation)
 {
 }
 
@@ -278,7 +278,6 @@ void SF1XX::print_status()
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	_px4_rangefinder.print_status();
 }
 
 void SF1XX::print_usage()

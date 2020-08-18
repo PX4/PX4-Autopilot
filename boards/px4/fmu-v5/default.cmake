@@ -30,7 +30,7 @@ px4_add_board(
 		imu/adis16448
 		imu/adis16477
 		imu/adis16497
-		imu/bmi055
+		imu/bosch/bmi055
 		imu/invensense/icm20602
 		imu/invensense/icm20689
 		#imu/mpu6000 # legacy icm20602/icm20689 driver
@@ -95,6 +95,7 @@ px4_add_board(
 		dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -109,7 +110,6 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
 		tests # tests and test runner
 		top
 		topic_listener
@@ -118,6 +118,7 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		hwtest # Hardware test

@@ -117,7 +117,7 @@ L3GD20::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-void
+int
 L3GD20::write_reg(unsigned reg, uint8_t value)
 {
 	uint8_t	cmd[2] {};
@@ -125,7 +125,7 @@ L3GD20::write_reg(unsigned reg, uint8_t value)
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
-	transfer(cmd, nullptr, sizeof(cmd));
+	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
 void
@@ -414,7 +414,6 @@ L3GD20::print_status()
 		}
 	}
 
-	_px4_gyro.print_status();
 }
 
 void

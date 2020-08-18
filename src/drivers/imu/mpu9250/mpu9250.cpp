@@ -495,7 +495,7 @@ MPU9250::check_registers()
 
 	if ((v = read_reg(_checked_registers[_checked_next], MPU9250_HIGH_BUS_SPEED)) != _checked_values[_checked_next]) {
 
-		PX4_DEBUG("reg: %d = %d (should be %d) _reset_wait: %llu", _checked_registers[_checked_next], v,
+		PX4_DEBUG("reg: %d = %d (should be %d) _reset_wait: %lu", _checked_registers[_checked_next], v,
 			  _checked_values[_checked_next], _reset_wait);
 
 		/*
@@ -670,7 +670,5 @@ MPU9250::print_status()
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 	_mag.print_status();
 }

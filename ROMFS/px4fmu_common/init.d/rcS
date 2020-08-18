@@ -101,6 +101,33 @@ then
 			hardfault_log reset
 		fi
 	fi
+
+	# Prevent MacOS and Ubuntu from creating unnecessary temporary files on the microSD card
+
+	# block MacOS Spotlight indexing (.Spotlight-V100 folder)
+	if [ ! -f "/fs/microsd/.metadata_never_index" ]; then
+		cat > /fs/microsd/.metadata_never_index
+	fi
+
+	# block MacOS trashes
+	if [ ! -f "/fs/microsd/.Trashes" ]; then
+		cat > /fs/microsd/.Trashes
+	fi
+
+	# block MacOS logging of filesystem events
+	if [ ! -d "/fs/microsd/.fseventsd" ]; then
+		mkdir /fs/microsd/.fseventsd
+	fi
+
+	if [ ! -f "/fs/microsd/.fseventsd/no_log" ]; then
+		cat > /fs/microsd/.fseventsd/no_log
+	fi
+
+	# block Ubuntu trash
+	if [ ! -f "/fs/microsd/.Trash-1000" ]; then
+		cat > /fs/microsd/.Trash-1000
+	fi
+
 else
 	# tune SD_INIT
 	set STARTUP_TUNE 16
@@ -200,7 +227,6 @@ else
 	#
 	rgbled start -X
 	rgbled_ncp5623c start -X
-	rgbled_pwm start
 
 	if param greater LIGHT_EN_BLINKM 0
 	then
@@ -380,15 +406,22 @@ else
 
 	if param greater TRIG_MODE 0
 	then
-		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output.
+		# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
 		if param compare TRIG_PINS 56
 		then
 			# clear pins 5 and 6
 			set FMU_MODE pwm4
 			set AUX_MODE pwm4
 		else
-			set FMU_MODE none
-			set AUX_MODE none
+			if param compare TRIG_PINS 78
+			then
+				# clear pins 7 and 8
+				set FMU_MODE pwm6
+				set AUX_MODE pwm6
+			else
+				set FMU_MODE none
+				set AUX_MODE none
+			fi
 		fi
 
 		camera_trigger start

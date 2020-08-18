@@ -569,7 +569,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
  * @decimal 4
  * @increment 0.0001
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 1.73e-3f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 0.0022f);
 
 /**
  * Maximum value of EKF gyro delta angle bias estimate that will allow arming
@@ -578,10 +578,10 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 1.73e-3f);
  * @unit rad
  * @min 0.0001
  * @max 0.0017
- * @decimal 5
+ * @decimal 4
  * @increment 0.0001
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_GB, 8.7e-4f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_GB, 0.0011f);
 
 /**
  * Maximum accelerometer inconsistency between IMU units that will allow arming
@@ -912,3 +912,31 @@ PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
  * @increment 1
  */
 PARAM_DEFINE_FLOAT(COM_CPU_MAX, 90.0f);
+
+/**
+ * Required number of redundant power modules
+ *
+ * This configures a check to verify the expected number of 5V rail power supplies are present. By default only one is expected.
+ * Note: CBRK_SUPPLY_CHK disables all power checks including this one.
+ *
+ * @group Commander
+ * @min 0
+ * @max 4
+ */
+PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
+
+/**
+ * Timeout for detecting a failure after takeoff
+ *
+ * A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to put the vehicle into
+ * a lockdown state if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R.
+ * The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW), Rattitude and Manual (FW).
+ * A zero or negative value means that the check is disabled.
+ *
+ * @group Commander
+ * @unit s
+ * @min -1.0
+ * @max 5.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);

@@ -214,7 +214,7 @@ struct MPUReport {
  */
 #define MPU9250_LOW_BUS_SPEED				0
 #define MPU9250_HIGH_BUS_SPEED				0x8000
-#define MPU9250_REG_MASK					0x00FF
+#define MPU9250_REG_MASK				0x00FF
 #  define MPU9250_IS_HIGH_SPEED(r) 			((r) & MPU9250_HIGH_BUS_SPEED)
 #  define MPU9250_REG(r) 					((r) & MPU9250_REG_MASK)
 #  define MPU9250_SET_SPEED(r, s) 			((r)|(s))

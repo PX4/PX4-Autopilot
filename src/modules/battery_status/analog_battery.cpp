@@ -15,8 +15,8 @@ static constexpr int DEFAULT_V_CHANNEL[1] = {0};
 static constexpr int DEFAULT_I_CHANNEL[1] = {0};
 #endif
 
-AnalogBattery::AnalogBattery(int index, ModuleParams *parent) :
-	Battery(index, parent)
+AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_interval_us) :
+	Battery(index, parent, sample_interval_us)
 {
 	char param_name[17];
 
