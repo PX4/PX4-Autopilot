@@ -49,7 +49,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_controls_1", 100);
 	add_topic("airspeed", 1000);
 	add_topic("airspeed_validated", 1000);
-	add_topic("analog_voltage_current", 100);
+	add_topic("analog_measurement", 100);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
