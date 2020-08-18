@@ -65,7 +65,7 @@ using namespace matrix;
 using namespace time_literals;
 
 static constexpr char sensor_name[] {"mag"};
-static constexpr unsigned MAX_MAGS = 4;
+static constexpr int MAX_MAGS = 4;
 static constexpr float MAG_SPHERE_RADIUS_DEFAULT = 0.2f;
 static constexpr unsigned int calibration_total_points = 240;	///< The total points per magnetometer
 static constexpr unsigned int calibraton_duration_s = 42; 	///< The total duration the routine is allowed to take
@@ -706,8 +706,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				}
 
 				// external mags try all rotations and compute mean square error (MSE) compared with first internal mag
-				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-					if (worker_data.calibration[cur_mag].external() && (worker_data.calibration[cur_mag].device_id() != 0)) {
+				for (int cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+					if ((worker_data.calibration[cur_mag].device_id() != 0) && (cur_mag != internal_index)) {
 
 						const int last_sample_index = math::min(worker_data.calibration_counter_total[internal_index],
 											worker_data.calibration_counter_total[cur_mag]);
@@ -773,24 +773,46 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						const float mag_error_gs = sqrt(min_mse / last_sample_index);
 						bool total_error_check_passed = (mag_error_gs < 0.25f);
 
-						if (smallest_check_passed && total_error_check_passed) {
-							if (best_rotation != worker_data.calibration[cur_mag].rotation_enum()) {
-								calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%d), determined rotation: %d", cur_mag,
-										     worker_data.calibration[cur_mag].device_id(), best_rotation);
+#if defined(DEBUG_BUILD)
+						bool print_all_mse = true;
+#else
+						bool print_all_mse = false;
+#endif // DEBUG_BUILD
 
-								worker_data.calibration[cur_mag].set_rotation(best_rotation);
+						if (worker_data.calibration[cur_mag].external()) {
+							if (smallest_check_passed && total_error_check_passed) {
+								if (best_rotation != worker_data.calibration[cur_mag].rotation_enum()) {
+									calibration_log_info(mavlink_log_pub, "[cal] External Mag: %d (%d), determined rotation: %d", cur_mag,
+											     worker_data.calibration[cur_mag].device_id(), best_rotation);
+
+									worker_data.calibration[cur_mag].set_rotation(best_rotation);
+
+								} else {
+									PX4_INFO("[cal] External Mag: %d (%d), no rotation change: %d", cur_mag,
+										 worker_data.calibration[cur_mag].device_id(), best_rotation);
+								}
 
 							} else {
-								PX4_INFO("[cal] External Mag: %d (%d), no rotation change: %d", cur_mag,
-									 worker_data.calibration[cur_mag].device_id(), best_rotation);
+								PX4_ERR("External Mag: %d (%d), determining rotation failed", cur_mag, worker_data.calibration[cur_mag].device_id());
+								print_all_mse = true;
 							}
 
 						} else {
-							PX4_ERR("External Mag: %d (%d), determining rotation failed", cur_mag, worker_data.calibration[cur_mag].device_id());
+							// non-primary internal mags, warn if there seems to be a rotation relative to the first primary (internal_index)
+							if (best_rotation != ROTATION_NONE) {
+								calibration_log_critical(mavlink_log_pub, "[cal] Internal Mag: %d (%d) rotation %d relative to primary %d (%d)",
+											 cur_mag, worker_data.calibration[cur_mag].device_id(), best_rotation,
+											 internal_index, worker_data.calibration[internal_index].device_id());
 
+								print_all_mse = true;
+							}
+						}
+
+						if (print_all_mse) {
 							for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
-								PX4_ERR("Mag: %d (%d), rotation: %d, MSE: %.3f", cur_mag, worker_data.calibration[cur_mag].device_id(), r,
-									(double)MSE[r]);
+								PX4_ERR("%s Mag: %d (%d), rotation: %d, MSE: %.3f",
+									worker_data.calibration[cur_mag].external() ? "External" : "Internal",
+									cur_mag, worker_data.calibration[cur_mag].device_id(), r, (double)MSE[r]);
 							}
 						}
 					}
