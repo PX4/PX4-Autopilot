@@ -76,6 +76,7 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/mc_ctl_chain.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/onboard_computer_status.h>
@@ -171,6 +172,7 @@ private:
 	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
 	void handle_message_set_attitude_target(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
+	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
 	void handle_message_set_position_target_global_int(mavlink_message_t *msg);
 	void handle_message_statustext(mavlink_message_t *msg);
@@ -258,7 +260,7 @@ private:
 	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_trajectory_bezier_s>	_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
+	uORB::Publication<vehicle_trajectory_bezier_s>		_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
 	// ORB publications (multi)
@@ -268,6 +270,7 @@ private:
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_setpoint_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_LOW};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping), ORB_PRIO_LOW};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status), ORB_PRIO_LOW};
+	uORB::PublicationMulti<mc_ctl_chain_s>			_mc_ctl_chain_pub{ORB_ID(mc_ctl_chain), ORB_PRIO_LOW};
 
 	// ORB publications (queue length > 1)
 	uORB::PublicationQueued<gps_inject_data_s>	_gps_inject_data_pub{ORB_ID(gps_inject_data)};

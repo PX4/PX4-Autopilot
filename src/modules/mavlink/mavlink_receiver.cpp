@@ -135,6 +135,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_set_mode(msg);
 		break;
 
+	case MAVLINK_MSG_ID_SET_MC_CONTROL_CHAIN: // TODO : create mavlink msg type
+		handle_message_set_mc_control_chain(msg):
+		break;
+
 	case MAVLINK_MSG_ID_ATT_POS_MOCAP:
 		handle_message_att_pos_mocap(msg);
 		break;
@@ -697,6 +701,21 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	_cmd_pub.publish(vcmd);
 }
 
+void
+MavlinkReceiver::handle_message_set_mc_control_chain(mavlink_message_t *msg)
+{
+	mavlink_mc_ctl_chain_t ctl_chain;
+	mavlink_msg_mc_ctl_chain_decode(msg, &ctl_chain);
+
+	mc_ctl_chain_s mcc{}; // TODO create structure
+
+	mcc.timestamp	= hrt_absolute_time();
+	mcc.pos_ctl	= ctl_chain.pos_ctl;
+	mcc.att_ctl	= ctl_chain.att_ctl;
+	mcc.rate_ctl	= ctl_chain.rate_ctl;
+
+	_mc_ctl_chain_pub.publish(mcc);
+}
 void
 MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 {

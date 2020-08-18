@@ -178,5 +178,6 @@
         "workbench.statusBar.feedback.visible": false,
         "yaml.schemas": {
                 "${workspaceRoot}/validation/module_schema.yaml": "${workspaceRoot}/src/modules/*/module.yaml"
-        }
+        },
+        "C_Cpp.errorSquiggles": "Disabled"
 }
