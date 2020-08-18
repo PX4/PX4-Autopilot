@@ -713,27 +713,48 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						const int last_sample_index = math::min(worker_data.calibration_counter_total[internal_index],
 											worker_data.calibration_counter_total[cur_mag]);
 
-						float diff_sum[ROTATION_MAX] {};
+						float MSE[ROTATION_MAX] {}; // mean square error for each rotation
 
-						float min_diff = FLT_MAX;
+						float min_mse = FLT_MAX;
 						Rotation best_rotation = ROTATION_NONE;
 
 						for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
-							for (int i = 0; i < last_sample_index; i++) {
 
-								float x = worker_data.x[cur_mag][i];
-								float y = worker_data.y[cur_mag][i];
-								float z = worker_data.z[cur_mag][i];
-								rotate_3f((enum Rotation)r, x, y, z);
+							switch (r) {
+							case ROTATION_ROLL_90_PITCH_68_YAW_293: // skip
 
-								Vector3f diff = Vector3f{x, y, z} - Vector3f{worker_data.x[internal_index][i], worker_data.y[internal_index][i], worker_data.z[internal_index][i]};
+							// FALLTHROUGH
+							case ROTATION_ROLL_270_YAW_270: // skip, same as ROTATION_ROLL_90_PITCH_180_YAW_90 (36)
 
-								diff_sum[r] += diff.norm();
-							}
+							// FALLTHROUGH
+							case ROTATION_PITCH_9_YAW_180: // skip, too close to ROTATION_YAW_180
+								MSE[r] = FLT_MAX;
+								break;
 
-							if (diff_sum[r] < min_diff) {
-								min_diff = diff_sum[r];
-								best_rotation = (Rotation)r;
+							default:
+								float diff_sum = 0.f;
+
+								for (int i = 0; i < last_sample_index; i++) {
+
+									float x = worker_data.x[cur_mag][i];
+									float y = worker_data.y[cur_mag][i];
+									float z = worker_data.z[cur_mag][i];
+									rotate_3f((enum Rotation)r, x, y, z);
+
+									Vector3f diff = Vector3f{x, y, z} - Vector3f{worker_data.x[internal_index][i], worker_data.y[internal_index][i], worker_data.z[internal_index][i]};
+
+									diff_sum += diff.norm_squared();
+								}
+
+								// compute mean squared error
+								MSE[r] = diff_sum / last_sample_index;
+
+								if (MSE[r] < min_mse) {
+									min_mse = MSE[r];
+									best_rotation = (Rotation)r;
+								}
+
+								break;
 							}
 						}
 
@@ -743,16 +764,16 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 						for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
 							if (r != best_rotation) {
-								if (diff_sum[r] < (min_diff * 2.f)) {
+								if (MSE[r] < (min_mse * 2.f)) {
 									smallest_check_passed = false;
 								}
 							}
 						}
 
 
-						// Check that the average error across all samples (relative to internal mag) is less than the minimum earth field (~ 0.25 Gauss)
-						const float mag_error_ga = (min_diff / last_sample_index);
-						bool total_error_check_passed = (mag_error_ga < 0.25f);
+						// Check that the average error across all samples (relative to internal mag) is less than the minimum earth field (~0.25 Gauss)
+						const float mag_error_gs = sqrt(min_mse / last_sample_index);
+						bool total_error_check_passed = (mag_error_gs < 0.25f);
 
 						if (smallest_check_passed && total_error_check_passed) {
 							if (best_rotation != worker_data.calibration[cur_mag].rotation_enum()) {
@@ -770,8 +791,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 							PX4_ERR("External Mag: %d (%d), determining rotation failed", cur_mag, worker_data.calibration[cur_mag].device_id());
 
 							for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
-								PX4_ERR("Mag: %d (%d), rotation: %d, error: %.3f", cur_mag, worker_data.calibration[cur_mag].device_id(), r,
-									(double)diff_sum[r]);
+								PX4_ERR("Mag: %d (%d), rotation: %d, MSE: %.3f", cur_mag, worker_data.calibration[cur_mag].device_id(), r,
+									(double)MSE[r]);
 							}
 						}
 					}
