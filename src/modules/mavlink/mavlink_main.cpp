@@ -673,12 +673,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CON
 		return -1;
 	}
 
-	/*
-	 * Setup hardware flow control. If the port has no RTS pin this call will fail,
-	 * which is not an issue, but requires a separate call so we can fail silently.
-	*/
-
-	/* setup output flow control */
+	/* setup hardware flow control */
 	if (setup_flow_control(flow_control) && (flow_control != FLOW_CONTROL_AUTO)) {
 		PX4_WARN("hardware flow control not supported");
 	}
