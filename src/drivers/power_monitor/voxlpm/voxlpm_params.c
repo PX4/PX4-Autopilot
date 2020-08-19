@@ -40,6 +40,7 @@
  * @max 0.1
  * @decimal 10
  * @increment .000000001
+ * @group Sensors
  */
 PARAM_DEFINE_FLOAT(VOXLPM_SHUNT_BAT, 0.00063f);
 
@@ -52,5 +53,6 @@ PARAM_DEFINE_FLOAT(VOXLPM_SHUNT_BAT, 0.00063f);
  * @max 0.1
  * @decimal 10
  * @increment .000000001
+ * @group Sensors
  */
 PARAM_DEFINE_FLOAT(VOXLPM_SHUNT_REG, 0.0056f);
