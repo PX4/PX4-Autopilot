@@ -1482,8 +1482,6 @@ Commander::run()
 
 #endif // BOARD_HAS_POWER_CONTROL
 
-		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
-
 		offboard_control_update();
 
 		if (_system_power_sub.updated()) {
@@ -1769,6 +1767,10 @@ Commander::run()
 				}
 			}
 		}
+
+		// update manual_control_setpoint before geofence (which might check sticks or switches)
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+
 
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
@@ -2107,12 +2109,16 @@ Commander::run()
 			/* no else case: do not change lockdown flag in unconfigured case */
 
 		} else {
-			if (!status_flags.rc_input_blocked && !status.rc_signal_lost && status_flags.rc_signal_found_once) {
-				mavlink_log_critical(&mavlink_log_pub, "Manual control lost");
-				status.rc_signal_lost = true;
-				_rc_signal_lost_timestamp = _manual_control_setpoint.timestamp;
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
-				_status_changed = true;
+			// set RC lost
+			if (status_flags.rc_signal_found_once && !status.rc_signal_lost) {
+				// ignore RC lost during calibration
+				if (!status_flags.condition_calibration_enabled && !status_flags.rc_input_blocked) {
+					mavlink_log_critical(&mavlink_log_pub, "Manual control lost");
+					status.rc_signal_lost = true;
+					_rc_signal_lost_timestamp = _manual_control_setpoint.timestamp;
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
+					_status_changed = true;
+				}
 			}
 		}
 
