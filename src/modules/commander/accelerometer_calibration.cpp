@@ -246,7 +246,7 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 
 	read_accelerometer_avg(worker_data->accel_ref, orientation, samples_num);
 
-	calibration_log_info(worker_data->mavlink_log_pub, "[cal] %s side result: [%8.4f %8.4f %8.4f]",
+	calibration_log_info(worker_data->mavlink_log_pub, "[cal] %s side result: [%.3f %.3f %.3f]",
 			     detect_orientation_str(orientation),
 			     (double)worker_data->accel_ref[0][orientation][0],
 			     (double)worker_data->accel_ref[0][orientation][1],
