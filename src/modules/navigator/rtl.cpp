@@ -90,7 +90,15 @@ void RTL::find_RTL_destination()
 	// get distance to home position
 	double dlat = home_landing_position.lat - global_position.lat;
 	double dlon = home_landing_position.lon - global_position.lon;
-	double min_dist_squared = dlat * dlat + dlon * dlon;
+
+	double lon_scale = cos(math::radians(global_position.lat));
+
+	auto coord_dist_sq = [lon_scale](double lat_diff, double lon_diff) -> double {
+		double lon_diff_scaled =  lon_scale * matrix::wrap(lon_diff, -180., 180.);
+		return lat_diff * lat_diff + lon_diff_scaled * lon_diff_scaled;
+	};
+
+	double min_dist_squared = coord_dist_sq(dlat, dlon);
 
 	_destination.type = RTL_DESTINATION_HOME;
 
@@ -102,7 +110,7 @@ void RTL::find_RTL_destination()
 		// compare home position to landing position to decide which is closer
 		dlat = mission_landing_lat - global_position.lat;
 		dlon = mission_landing_lon - global_position.lon;
-		double dist_squared = dlat * dlat + dlon * dlon;
+		double dist_squared = coord_dist_sq(dlat, dlon);
 
 		// set destination to mission landing if closest or in RTL_LAND or RTL_MISSION (so not in RTL_CLOSEST)
 		if (dist_squared < min_dist_squared || rtl_type() != RTL_CLOSEST) {
@@ -145,7 +153,7 @@ void RTL::find_RTL_destination()
 		// TODO: take altitude into account for distance measurement
 		dlat = mission_safe_point.lat - global_position.lat;
 		dlon = mission_safe_point.lon - global_position.lon;
-		double dist_squared = dlat * dlat + dlon * dlon;
+		double dist_squared = coord_dist_sq(dlat, dlon);
 
 		if (dist_squared < min_dist_squared) {
 			closest_index = current_seq;
