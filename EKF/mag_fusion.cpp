@@ -727,13 +727,7 @@ void Ekf::fuseHeading()
 		if (_control_status.flags.mag_hdg) {
 			// Rotate the measurements into earth frame using the zero yaw angle
 			const Dcmf R_to_earth = updateEuler321YawInRotMat(0.f, _R_to_earth);
-			if (_control_status.flags.mag_3D) {
-				// don't apply bias corrections if we are learning them
-				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
-
-			} else {
-				mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
-			}
+			mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
 
 			// the angle of the projection onto the horizontal gives the yaw angle
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
@@ -784,13 +778,7 @@ void Ekf::fuseHeading()
 
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			const Dcmf R_to_earth = updateEuler312YawInRotMat(0.f, _R_to_earth);
-
-			if (_control_status.flags.mag_3D) {
-				// don't apply bias corrections if we are learning them
-				mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
-			} else {
-				mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
-			}
+			mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
 
 			// the angle of the projection onto the horizontal gives the yaw angle
 			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
