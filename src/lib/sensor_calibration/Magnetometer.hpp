@@ -54,7 +54,7 @@ public:
 	static constexpr const char *SensorString() { return "MAG"; }
 
 	Magnetometer();
-	explicit Magnetometer(uint32_t device_id);
+	explicit Magnetometer(uint32_t device_id, bool external = false);
 
 	~Magnetometer() = default;
 
@@ -92,7 +92,7 @@ public:
 	void UpdatePower(float power) { _power = power; }
 
 private:
-	Rotation _rotation_enum;
+	Rotation _rotation_enum{ROTATION_NONE};
 
 	matrix::Dcmf _rotation;
 	matrix::Vector3f _offset;
