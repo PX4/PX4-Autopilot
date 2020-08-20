@@ -91,7 +91,7 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 		pitch_mean = 0.0f;
 		counter = 0;
 		int last_progress_report = -100;
-		const hrt_abstime calibration_duration = 500_ms;
+		static constexpr hrt_abstime calibration_duration = 500_ms;
 		const hrt_abstime start = hrt_absolute_time();
 
 		while (hrt_elapsed_time(&start) < calibration_duration) {
@@ -153,8 +153,18 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 		calibration_log_critical(mavlink_log_pub, "excess pitch angle");
 
 	} else {
+
 		float roll_mean_degrees = math::degrees(roll_mean);
 		float pitch_mean_degrees = math::degrees(pitch_mean);
+
+		if (fabsf(roll_offset_current - roll_mean_degrees) > 0.1f) {
+			PX4_INFO("Updating SENS_BOARD_X_OFF %.1f -> %.1f degrees", (double)roll_offset_current, (double)roll_mean_degrees);
+		}
+
+		if (fabsf(pitch_offset_current - pitch_mean_degrees) > 0.1f) {
+			PX4_INFO("Updating SENS_BOARD_Y_OFF %.1f -> %.1f degrees", (double)pitch_offset_current, (double)pitch_mean_degrees);
+		}
+
 		param_set_no_notification(roll_offset_handle, &roll_mean_degrees);
 		param_set_no_notification(pitch_offset_handle, &pitch_mean_degrees);
 		param_notify_changes();
