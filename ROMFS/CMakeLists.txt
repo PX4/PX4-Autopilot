@@ -301,11 +301,15 @@ if(SHELLCHECK_PATH)
 	# TODO: fix SC2086, SC2166
 	add_custom_target(shellcheck
 		COMMAND ${SHELLCHECK_PATH} --shell=sh
+			--exclude=SC1090 # SC1090: use of source (.) - Can't follow non-constant source. Use a directive to specify location.
+			--exclude=SC1091 # SC1091: use of source (.) - Not following: xxxx openBinaryFile: does not exist (No such file or directory)
 			--exclude=SC2121 # SC2121: To assign a variable, use just 'var=value'
 			--exclude=SC2086 # SC2086: Double quote to prevent globbing and word splitting.
 			--exclude=SC2166 # SC2166: Prefer [ p ] || [ q ] as [ p -o q ] is not well defined.
 			--exclude=SC2154 # SC2154: <var> is referenced but not assigned (NuttX uses different asssignment)
 			--exclude=SC2164 # SC2164: Use 'cd ... || exit' or 'cd ... || return' in case cd fails.
+			--exclude=SC2169 # SC2169: In dash, 'source' in place of '.' is not supported. (we alias it)
+			--exclude=SC2039 # SC2039: In POSIX sh, 'source' in place of '.' is undefined. (we alias it)
 			--exclude=SC2181 # SC2181: Check exit code directly with e.g. 'if mycmd;', not indirectly with $?.
 			`find ${romfs_gen_root_dir}/init.d -type f`
 		DEPENDS ${romfs_gen_root_dir}/init.d/rc.autostart
