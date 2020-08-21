@@ -121,7 +121,7 @@ void BATT_SMBUS::RunImpl()
 	if (_smart_battery_type == SMART_BATTERY_BQ40Zx50)
 	{
 		// Read average current.
-		ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, &result);
+		ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
 
 		float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
 
@@ -131,13 +131,13 @@ void BATT_SMBUS::RunImpl()
 		set_undervoltage_protection(average_current);
 
 		// Read run time to empty.
-		ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, &result);
+		ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result);
 		new_report.run_time_to_empty = result;
 
 		// Read average time to empty.
 
 		//HACKED:
-		ret |= _interface->read_word(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, &result);
+		ret |= _interface->read_word(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, result);
 		new_report.average_time_to_empty = result;
 
 		// Check if max lifetime voltage delta is greater than allowed.
@@ -166,17 +166,17 @@ void BATT_SMBUS::RunImpl()
 	{
 		new_report.is_smart = true;
 		// Read remaining capacity.
-		ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, &result);
+		ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
 		new_report.remaining = (float)result/100;
 
 		// Read remaining capacity.
-		ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, &result);
+		ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
 		new_report.discharged_mah = _batt_startup_capacity - result;
 	}
 	else
 	{
 		// Read remaining capacity.
-		ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, &result);
+		ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
 
 		//Calculate remaining capacity percent with complementary filter.
 		//TODO: do we want to trust this?
@@ -229,7 +229,7 @@ int BATT_SMBUS::get_cell_voltages()
     // Making the assumption that the register value of BATT_SMBUS_CELL_1_VOLTAGE and BATT_SMBUS_CELL_10_VOLTAGE are sequential and decreasing order.
     for (int i = 0 ; i< _cell_count;i++)
     {
-        ret |= _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE - i, &result);
+        ret |= _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE - i, result);
         // Convert millivolts to volts.
         _cell_voltages[i] = ((float)result) / 1000.0f;
     }
@@ -368,6 +368,9 @@ int BATT_SMBUS::get_startup_info()
 	uint16_t full_cap;
 	result |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, full_cap);
 
+	uint16_t cell_count;
+	result |= _interface->read_word(BATT_SMBUS_CELL_COUNT, cell_count);
+
 	if (!result) {
 		_serial_number = serial_num;
 		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
@@ -389,8 +392,9 @@ int BATT_SMBUS::get_startup_info()
 			}
 		}
 
-	} else {
-		PX4_WARN("Failed to flush lifetime data");
+		} else {
+			PX4_WARN("Failed to flush lifetime data");
+		}
 	}
 
 	return result;

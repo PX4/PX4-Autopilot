@@ -745,8 +745,8 @@ protected:
 				}
 
 				static constexpr int mavlink_cells_max = (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0]));
-				static constexpr int uorb_cells_max =
-					(sizeof(battery_status.voltage_cell_v) / sizeof(battery_status.voltage_cell_v[0]));
+				/*static constexpr int uorb_cells_max =
+					(sizeof(battery_status.voltage_cell_v) / sizeof(battery_status.voltage_cell_v[0]));*/
 
 				for (int cell = 0; cell < mavlink_cells_max; cell++) {
 					if ((battery_status.cell_count > 0) && (cell < battery_status.cell_count) && battery_status.connected) {
