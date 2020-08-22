@@ -86,6 +86,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("tecs_status", 200);
 	add_topic("test_motor", 500);
 	add_topic("trajectory_setpoint", 200);
+	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);
 	add_topic("vehicle_attitude", 50);
