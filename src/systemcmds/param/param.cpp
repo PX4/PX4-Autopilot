@@ -638,10 +638,6 @@ do_show_print(void *arg, param_t param)
 
 		break;
 
-	case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-		PARAM_PRINT("<struct type %d size %zu>\n", 0 + param_type(param), param_size(param));
-		return;
-
 	default:
 		PARAM_PRINT("<unknown type %d>\n", 0 + param_type(param));
 		return;
