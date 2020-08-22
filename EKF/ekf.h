@@ -689,6 +689,29 @@ private:
 		return KHP;
 	}
 
+	// measurement update with a single measurement
+	// returns true if fusion is performed
+	template <size_t ...Idxs>
+	bool measurementUpdate(const Vector24f& K, const SparseVector24f<Idxs...>& H, float innovation) {
+		// apply covariance correction via P_new = (I -K*H)*P
+		// first calculate expression for KHP
+		// then calculate P - KHP
+		const SquareMatrix24f KHP = computeKHP(K, H);
+
+		const bool is_healthy = checkAndFixCovarianceUpdate(KHP);
+
+		if (is_healthy) {
+			// apply the covariance corrections
+			P -= KHP;
+
+			fixCovarianceErrors(true);
+
+			// apply the state corrections
+			fuse(K, innovation);
+		}
+		return is_healthy;
+	}
+
 	// if the covariance correction will result in a negative variance, then
 	// the covariance matrix is unhealthy and must be corrected
 	bool checkAndFixCovarianceUpdate(const SquareMatrix24f& KHP);
