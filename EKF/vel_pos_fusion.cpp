@@ -172,7 +172,6 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 	// if the covariance correction will result in a negative variance, then
 	// the covariance matrix is unhealthy and must be corrected
 	bool healthy = true;
-	setVelPosFaultStatus(obs_index, false);
 
 	for (int i = 0; i < _k_num_states; i++) {
 		if (P(i, i) < KHP(i, i)) {
@@ -180,10 +179,10 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 			P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
 
 			healthy = false;
-
-			setVelPosFaultStatus(obs_index, true);
 		}
 	}
+
+	setVelPosFaultStatus(obs_index, !healthy);
 
 	if (healthy) {
 		// apply the covariance corrections
