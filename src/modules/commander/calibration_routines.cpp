@@ -52,7 +52,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -345,12 +345,12 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 	unsigned poll_errcount = 0;
 
 	// Setup subscriptions to onboard accel sensor
-	uORB::SubscriptionBlocking<sensor_combined_s> sensor_sub{ORB_ID(sensor_combined)};
+	uORB::SubscriptionBlocking<vehicle_acceleration_s> vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	while (true) {
-		sensor_combined_s sensor;
+		vehicle_acceleration_s accel;
 
-		if (sensor_sub.updateBlocking(sensor, 100000)) {
+		if (vehicle_acceleration_sub.updateBlocking(accel, 100000)) {
 			t = hrt_absolute_time();
 			float dt = (t - t_prev) / 1000000.0f;
 			t_prev = t;
@@ -358,7 +358,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 
 			for (unsigned i = 0; i < ndim; i++) {
 
-				float di = sensor.accelerometer_m_s2[i];
+				float di = accel.xyz[i];
 
 				float d = di - accel_ema[i];
 				accel_ema[i] += d * w;
