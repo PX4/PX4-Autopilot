@@ -264,23 +264,7 @@ void Ekf::fuseDrag()
 
 		// if the innovation consistency check fails then don't fuse the sample
 		if (_drag_test_ratio(axis_index) <= 1.0f) {
-			// apply covariance correction via P_new = (I -K*H)*P
-			// first calculate expression for KHP
-			// then calculate P - KHP
-			const SquareMatrix24f KHP = computeKHP(Kfusion, Hfusion);
-
-			const bool healthy = checkAndFixCovarianceUpdate(KHP);
-
-			if (healthy) {
-				// apply the covariance corrections
-				P -= KHP;
-
-				fixCovarianceErrors(true);
-
-				// apply the state corrections
-				fuse(Kfusion, _drag_innov(axis_index));
-
-			}
+			measurementUpdate(Kfusion, Hfusion, _drag_innov(axis_index));
 		}
 	}
 }

@@ -312,29 +312,16 @@ void Ekf::fuseOptFlow()
 
 		}
 
-		// apply covariance correction via P_new = (I -K*H)*P
-		// first calculate expression for KHP
-		// then calculate P - KHP
-		const SquareMatrix24f KHP = computeKHP(Kfusion, Hfusion);
-
-		const bool healthy = checkAndFixCovarianceUpdate(KHP);
+		const bool is_fused = measurementUpdate(Kfusion, Hfusion, _flow_innov(obs_index));
 
 		if (obs_index == 0) {
-			_fault_status.flags.bad_optflow_X = !healthy;
+			_fault_status.flags.bad_optflow_X = !is_fused;
 
 		} else if (obs_index == 1) {
-			_fault_status.flags.bad_optflow_Y = !healthy;
+			_fault_status.flags.bad_optflow_Y = !is_fused;
 		}
 
-		if (healthy) {
-			// apply the covariance corrections
-			P -= KHP;
-
-			fixCovarianceErrors(true);
-
-			// apply the state corrections
-			fuse(Kfusion, _flow_innov(obs_index));
-
+		if (is_fused) {
 			_time_last_of_fuse = _time_last_imu;
 		}
 	}
