@@ -91,7 +91,6 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rpm.h>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/tecs_status.h>
@@ -900,7 +899,8 @@ public:
 	}
 
 private:
-	uORB::Subscription _sensor_sub{ORB_ID(sensor_combined)};
+	uORB::Subscription _vehicle_imu_sub[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(vehicle_imu), 0}, {ORB_ID(vehicle_imu), 1}, {ORB_ID(vehicle_imu), 2}, {ORB_ID(vehicle_imu), 3}};
+	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
@@ -916,9 +916,23 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		sensor_combined_s sensor;
+		bool updated = false;
 
-		if (_sensor_sub.update(&sensor)) {
+		sensor_selection_s sensor_selection{};
+		_sensor_selection_sub.copy(&sensor_selection);
+
+		vehicle_imu_s imu;
+
+		for (auto &imu_sub : _vehicle_imu_sub) {
+			if (imu_sub.update(&imu)) {
+				if (imu.accel_device_id == sensor_selection.accel_device_id) {
+					updated = true;
+					break;
+				}
+			}
+		}
+
+		if (updated) {
 			uint16_t fields_updated = 0;
 
 			fields_updated |= (1 << 0) | (1 << 1) | (1 << 2); // accel
@@ -957,15 +971,21 @@ protected:
 			estimator_sensor_bias_s bias{};
 			_bias_sub.copy(&bias);
 
+			const float accel_dt_inv = 1.e6f / (float)imu.delta_velocity_dt;
+			Vector3f accel = (Vector3f{imu.delta_velocity} * accel_dt_inv) - Vector3f{bias.accel_bias};
+
+			const float gyro_dt_inv = 1.e6f / (float)imu.delta_angle_dt;
+			Vector3f gyro = (Vector3f{imu.delta_angle} * gyro_dt_inv) - Vector3f{bias.gyro_bias};
+
 			mavlink_highres_imu_t msg{};
 
-			msg.time_usec = sensor.timestamp;
-			msg.xacc = sensor.accelerometer_m_s2[0] - bias.accel_bias[0];
-			msg.yacc = sensor.accelerometer_m_s2[1] - bias.accel_bias[1];
-			msg.zacc = sensor.accelerometer_m_s2[2] - bias.accel_bias[2];
-			msg.xgyro = sensor.gyro_rad[0] - bias.gyro_bias[0];
-			msg.ygyro = sensor.gyro_rad[1] - bias.gyro_bias[1];
-			msg.zgyro = sensor.gyro_rad[2] - bias.gyro_bias[2];
+			msg.time_usec = imu.timestamp_sample;
+			msg.xacc = accel(0);
+			msg.yacc = accel(1);
+			msg.zacc = accel(2);
+			msg.xgyro = gyro(0);
+			msg.ygyro = gyro(1);
+			msg.zgyro = gyro(2);
 			msg.xmag = magnetometer.magnetometer_ga[0] - bias.mag_bias[0];
 			msg.ymag = magnetometer.magnetometer_ga[1] - bias.mag_bias[1];
 			msg.zmag = magnetometer.magnetometer_ga[2] - bias.mag_bias[2];
@@ -2915,10 +2935,11 @@ public:
 private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 
-	uORB::Subscription _vehicle_imu_status_sub[3] {
+	uORB::Subscription _vehicle_imu_status_sub[ORB_MULTI_MAX_INSTANCES] {
 		{ORB_ID(vehicle_imu_status), 0},
 		{ORB_ID(vehicle_imu_status), 1},
 		{ORB_ID(vehicle_imu_status), 2},
+		{ORB_ID(vehicle_imu_status), 3},
 	};
 
 	/* do not allow top copying this class */
@@ -2935,8 +2956,8 @@ protected:
 
 		// check for vehicle_imu_status update
 		if (!updated) {
-			for (int i = 0; i < 3; i++) {
-				if (_vehicle_imu_status_sub[i].updated()) {
+			for (auto &sub : _vehicle_imu_status_sub) {
+				if (sub.updated()) {
 					updated = true;
 					break;
 				}
@@ -2973,7 +2994,7 @@ protected:
 			}
 
 			// accel 0, 1, 2 cumulative clipping
-			for (int i = 0; i < 3; i++) {
+			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 				vehicle_imu_status_s status;
 
 				if (_vehicle_imu_status_sub[i].copy(&status)) {
