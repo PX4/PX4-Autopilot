@@ -53,7 +53,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -66,7 +66,7 @@
 
 struct s_port_subscription_data_s {
 	uORB::SubscriptionData<battery_status_s> battery_status_sub{ORB_ID(battery_status)};
-	uORB::SubscriptionData<sensor_combined_s> sensor_combined_sub{ORB_ID(sensor_combined)};
+	uORB::SubscriptionData<vehicle_acceleration_s> vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::SubscriptionData<vehicle_air_data_s> vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::SubscriptionData<vehicle_global_position_s> vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_gps_position_s> vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
@@ -102,7 +102,7 @@ void sPort_deinit()
 void sPort_update_topics()
 {
 	s_port_subscription_data->battery_status_sub.update();
-	s_port_subscription_data->sensor_combined_sub.update();
+	s_port_subscription_data->vehicle_acceleration_sub.update();
 	s_port_subscription_data->vehicle_air_data_sub.update();
 	s_port_subscription_data->vehicle_global_position_sub.update();
 	s_port_subscription_data->vehicle_gps_position_sub.update();
