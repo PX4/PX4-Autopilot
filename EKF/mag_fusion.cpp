@@ -399,33 +399,19 @@ void Ekf::fuseMag()
 			Kfusion(21) = HKZ23*HKZ24;
 		}
 
-		// apply covariance correction via P_new = (I -K*H)*P
-		// first calculate expression for KHP
-		// then calculate P - KHP
-		const SquareMatrix24f KHP = computeKHP(Kfusion, Hfusion);
-
-		const bool healthy = checkAndFixCovarianceUpdate(KHP);
+		const bool is_fused = measurementUpdate(Kfusion, Hfusion, _mag_innov(index));
 
 		if (index == 0) {
-			_fault_status.flags.bad_mag_x = !healthy;
+			_fault_status.flags.bad_mag_x = !is_fused;
 
 		} else if (index == 1) {
-			_fault_status.flags.bad_mag_y = !healthy;
+			_fault_status.flags.bad_mag_y = !is_fused;
 
 		} else if (index == 2) {
-			_fault_status.flags.bad_mag_z = !healthy;
+			_fault_status.flags.bad_mag_z = !is_fused;
 		}
 
-		if (healthy) {
-			// apply the covariance corrections
-			P -= KHP;
-
-			fixCovarianceErrors(true);
-
-			// apply the state corrections
-			fuse(Kfusion, _mag_innov(index));
-
-			// constrain the declination of the earth field states
+		if (is_fused) {
 			limitDeclination();
 		}
 	}
@@ -926,26 +912,11 @@ void Ekf::fuseDeclination(float decl_sigma)
 
 	const float innovation = math::constrain(atan2f(magE, magN) - getMagDeclination(), -0.5f, 0.5f);
 
-	// apply covariance correction via P_new = (I -K*H)*P
-	// first calculate expression for KHP
-	// then calculate P - KHP
-	// take advantage of the empty columns in KH to reduce the number of operations
-	const SquareMatrix24f KHP = computeKHP(Kfusion, Hfusion);
+	const bool is_fused = measurementUpdate(Kfusion, Hfusion, innovation);
 
-	const bool healthy = checkAndFixCovarianceUpdate(KHP);
+	_fault_status.flags.bad_mag_decl = !is_fused;
 
-	_fault_status.flags.bad_mag_decl = !healthy;
-
-	if (healthy) {
-		// apply the covariance corrections
-		P -= KHP;
-
-		fixCovarianceErrors(true);
-
-		// apply the state corrections
-		fuse(Kfusion, innovation);
-
-		// constrain the declination of the earth field states
+	if (is_fused) {
 		limitDeclination();
 	}
 }

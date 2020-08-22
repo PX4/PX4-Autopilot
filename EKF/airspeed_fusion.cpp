@@ -152,26 +152,12 @@ void Ekf::fuseAirspeed()
 		_innov_check_fail_status.flags.reject_airspeed = false;
 	}
 
-	// apply covariance correction via P_new = (I -K*H)*P
-	// first calculate expression for KHP
-	// then calculate P - KHP
-	const SquareMatrix24f KHP = computeKHP(Kfusion, Hfusion);
+	const bool is_fused = measurementUpdate(Kfusion, Hfusion, _airspeed_innov);
 
-	const bool healthy = checkAndFixCovarianceUpdate(KHP);
+	_fault_status.flags.bad_airspeed = !is_fused;
 
-	_fault_status.flags.bad_airspeed = !healthy;
-
-	if (healthy) {
-		// apply the covariance corrections
-		P -= KHP;
-
-		fixCovarianceErrors(true);
-
-		// apply the state corrections
-		fuse(Kfusion, _airspeed_innov);
-
+	if (is_fused) {
 		_time_last_arsp_fuse = _time_last_imu;
-
 	}
 }
 

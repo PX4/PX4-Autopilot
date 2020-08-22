@@ -203,24 +203,11 @@ void Ekf::fuseSideslip()
 		Kfusion(22) = HK45*HK52;
 		Kfusion(23) = HK42*HK52;
 
-		// apply covariance correction via P_new = (I -K*H)*P
-		// first calculate expression for KHP
-		// then calculate P - KHP
-		const SquareMatrix24f KHP = computeKHP(Kfusion, Hfusion);
+		const bool is_fused = measurementUpdate(Kfusion, Hfusion, _beta_innov);
 
-		const bool healthy = checkAndFixCovarianceUpdate(KHP);
+		_fault_status.flags.bad_sideslip = !is_fused;
 
-		_fault_status.flags.bad_sideslip = !healthy;
-
-		if (healthy) {
-			// apply the covariance corrections
-			P -= KHP;
-
-			fixCovarianceErrors(true);
-
-			// apply the state corrections
-			fuse(Kfusion, _beta_innov);
-
+		if (is_fused) {
 			_time_last_beta_fuse = _time_last_imu;
 		}
 	}
