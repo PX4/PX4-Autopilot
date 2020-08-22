@@ -246,6 +246,62 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 
 	read_accelerometer_avg(worker_data->accel_ref, orientation, samples_num);
 
+	// check accel
+	for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
+		switch (orientation) {
+		case ORIENTATION_TAIL_DOWN:    // [ g, 0, 0 ]
+			if (worker_data->accel_ref[accel_index][ORIENTATION_TAIL_DOWN][0] < 0.f) {
+				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid X-axis, check rotation", accel_index);
+				return calibrate_return_error;
+			}
+
+			break;
+
+		case ORIENTATION_NOSE_DOWN:    // [ -g, 0, 0 ]
+			if (worker_data->accel_ref[accel_index][ORIENTATION_NOSE_DOWN][0] > 0.f) {
+				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid X-axis, check rotation", accel_index);
+				return calibrate_return_error;
+			}
+
+			break;
+
+		case ORIENTATION_LEFT:         // [ 0, g, 0 ]
+			if (worker_data->accel_ref[accel_index][ORIENTATION_LEFT][1] < 0.f) {
+				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid Y-axis, check rotation", accel_index);
+				return calibrate_return_error;
+			}
+
+			break;
+
+		case ORIENTATION_RIGHT:        // [ 0, -g, 0 ]
+			if (worker_data->accel_ref[accel_index][ORIENTATION_RIGHT][1] > 0.f) {
+				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid Y-axis, check rotation", accel_index);
+				return calibrate_return_error;
+			}
+
+			break;
+
+		case ORIENTATION_UPSIDE_DOWN:  // [ 0, 0, g ]
+			if (worker_data->accel_ref[accel_index][ORIENTATION_UPSIDE_DOWN][2] < 0.f) {
+				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid Z-axis, check rotation", accel_index);
+				return calibrate_return_error;
+			}
+
+			break;
+
+		case ORIENTATION_RIGHTSIDE_UP: // [ 0, 0, -g ]
+			if (worker_data->accel_ref[accel_index][ORIENTATION_RIGHTSIDE_UP][2] > 0.f) {
+				calibration_log_emergency(worker_data->mavlink_log_pub, "[cal] accel %d invalid Z-axis, check rotation", accel_index);
+				return calibrate_return_error;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+	}
+
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] %s side result: [%.3f %.3f %.3f]",
 			     detect_orientation_str(orientation),
 			     (double)worker_data->accel_ref[0][orientation][0],
