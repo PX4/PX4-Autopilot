@@ -481,9 +481,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 
 	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
-		const Dcmf R_to_earth = shouldUse321RotationSequence(_R_to_earth) ?
-						updateEuler321YawInRotMat(0.f, _R_to_earth) :
-						updateEuler312YawInRotMat(0.f, _R_to_earth);
+		const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 
 		// the angle of the projection onto the horizontal gives the yaw angle
 		const Vector3f mag_earth_pred = R_to_earth * mag_init;
@@ -1640,9 +1638,7 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// update the rotation matrix using the new yaw value
-	_R_to_earth = shouldUse321RotationSequence(_R_to_earth) ?
-			updateEuler321YawInRotMat(yaw, _R_to_earth) :
-			updateEuler312YawInRotMat(yaw, _R_to_earth);
+	_R_to_earth = updateYawInRotMat(yaw, _R_to_earth);
 
 	// calculate the amount that the quaternion has changed by
 	const Quatf quat_after_reset(_R_to_earth);

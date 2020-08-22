@@ -37,6 +37,9 @@ float getEuler312Yaw(const matrix::Dcmf& R);
 matrix::Dcmf updateEuler321YawInRotMat(float yaw, const matrix::Dcmf& rot_in);
 matrix::Dcmf updateEuler312YawInRotMat(float yaw, const matrix::Dcmf& rot_in);
 
+// Checks which euler rotation sequence to use and update yaw in rotation matrix
+matrix::Dcmf updateYawInRotMat(float yaw, const matrix::Dcmf& rot_in);
+
 namespace ecl{
 	inline float powf(float x, int exp)
 	{
