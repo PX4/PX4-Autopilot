@@ -975,12 +975,12 @@ void Ekf::limitDeclination()
 	float h_field = sqrtf(_state.mag_I(0)*_state.mag_I(0) + _state.mag_I(1)*_state.mag_I(1));
 	if (h_field < h_field_min) {
 		if (h_field > 0.001f * h_field_min) {
-			float h_scaler = h_field_min / h_field;
+			const float h_scaler = h_field_min / h_field;
 			_state.mag_I(0) *= h_scaler;
 			_state.mag_I(1) *= h_scaler;
 		} else {
 			// too small to scale radially so set to expected value
-			float mag_declination = getMagDeclination();
+			const float mag_declination = getMagDeclination();
 			_state.mag_I(0) = 2.0f * h_field_min * cosf(mag_declination);
 			_state.mag_I(1) = 2.0f * h_field_min * sinf(mag_declination);
 		}
@@ -1008,7 +1008,7 @@ float Ekf::calculate_synthetic_mag_z_measurement(const Vector3f& mag_meas, const
 	const float mag_z_abs = sqrtf(math::max(sq(mag_earth_predicted.length()) - sq(mag_meas(0)) - sq(mag_meas(1)), 0.0f));
 
 	// calculate sign of synthetic magnetomter Z component based on the sign of the predicted magnetomer Z component
-	const float mag_z_body_pred = mag_earth_predicted.dot(_R_to_earth.slice<3,1>(0,2));
+	const float mag_z_body_pred = mag_earth_predicted.dot(_R_to_earth.col(2));
 
-	return mag_z_body_pred < 0 ? -mag_z_abs : mag_z_abs;
+	return (mag_z_body_pred < 0) ? -mag_z_abs : mag_z_abs;
 }
