@@ -99,3 +99,9 @@ matrix::Dcmf updateEuler312YawInRotMat(float yaw, const matrix::Dcmf& rot_in) {
 				atan2f(-rot_in(2, 0), rot_in(2, 2)));  // pitch
 	return taitBryan312ToRotMat(rotVec312);
 }
+
+matrix::Dcmf updateYawInRotMat(float yaw, const matrix::Dcmf& rot_in) {
+	return shouldUse321RotationSequence(rot_in) ?
+		updateEuler321YawInRotMat(yaw, rot_in) :
+		updateEuler312YawInRotMat(yaw, rot_in);
+}

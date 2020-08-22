@@ -226,9 +226,7 @@ void EKFGSF_yaw::ahrsAlignYaw()
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
 		Dcmf& R = _ahrs_ekf_gsf[model_index].R;
 		const float yaw = wrap_pi(_ekf_gsf[model_index].X(2));
-		R = shouldUse321RotationSequence(R) ?
-		    updateEuler321YawInRotMat(yaw, R) :
-		    updateEuler312YawInRotMat(yaw, R);
+		R = updateYawInRotMat(yaw, R);
 
 		_ahrs_ekf_gsf[model_index].aligned = true;
 	}
