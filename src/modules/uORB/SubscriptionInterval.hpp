@@ -135,8 +135,8 @@ public:
 	bool		valid() const { return _subscription.valid(); }
 
 	uint8_t		get_instance() const { return _subscription.get_instance(); }
+	uint32_t        get_interval_us() const { return _interval_us; }
 	unsigned	get_last_generation() const { return _subscription.get_last_generation(); }
-	ORB_PRIO	get_priority() { return _subscription.get_priority(); }
 	orb_id_t	get_topic() const { return _subscription.get_topic(); }
 
 	/**

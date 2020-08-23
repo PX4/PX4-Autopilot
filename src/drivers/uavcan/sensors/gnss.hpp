@@ -114,7 +114,7 @@ private:
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
 
-	uORB::PublicationMulti<vehicle_gps_position_s>	_gps_pub{ORB_ID(vehicle_gps_position), ORB_PRIO_DEFAULT};
+	uORB::PublicationMulti<vehicle_gps_position_s>	_gps_pub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription				_orb_sub_gnss{ORB_ID(vehicle_gps_position)};
 
 	int	_receiver_node_id{-1};

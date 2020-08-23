@@ -403,7 +403,7 @@ DShotOutput::set_mode(Mode mode)
 		/* default output rates */
 		_output_mask = 0x1f;
 		_outputs_initialized = false;
-		_num_outputs = 4;
+		_num_outputs = 5;
 
 		break;
 

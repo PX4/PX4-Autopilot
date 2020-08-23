@@ -55,20 +55,16 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::attitude_ctrl),
 	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_vtol(vtol)
 {
-	if (vtol) {
+	if (_vtol) {
 		int32_t vt_type = -1;
 
 		if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-			_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
+			_vtol_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
 		}
 	}
-
-	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-
-	/* initialize quaternions in messages to be valid */
-	_v_att.q[0] = 1.f;
 
 	parameters_updated();
 }
@@ -107,7 +103,7 @@ MulticopterAttitudeControl::parameters_updated()
 float
 MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 {
-	float throttle_min = _vehicle_land_detected.landed ? 0.0f : _param_mpc_manthr_min.get();
+	const float throttle_min = _landed ? 0.0f : _param_mpc_manthr_min.get();
 
 	// throttle_stick_input is in range [0, 1]
 	switch (_param_mpc_thr_curve.get()) {
@@ -115,22 +111,17 @@ MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 		return throttle_min + throttle_stick_input * (_param_mpc_thr_max.get() - throttle_min);
 
 	default: // 0 or other: rescale to hover throttle at 0.5 stick
-		if (throttle_stick_input < 0.5f) {
-			return (_param_mpc_thr_hover.get() - throttle_min) / 0.5f * throttle_stick_input +
-			       throttle_min;
-
-		} else {
-			return (_param_mpc_thr_max.get() - _param_mpc_thr_hover.get()) / 0.5f * (throttle_stick_input - 1.0f) +
-			       _param_mpc_thr_max.get();
-		}
+		return math::gradual3(throttle_stick_input,
+				      0.f, .5f, 1.f,
+				      throttle_min, _param_mpc_thr_hover.get(), _param_mpc_thr_max.get());
 	}
 }
 
 void
-MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_sp)
+MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt, bool reset_yaw_sp)
 {
 	vehicle_attitude_setpoint_s attitude_setpoint{};
-	const float yaw = Eulerf(Quatf(_v_att.q)).psi();
+	const float yaw = Eulerf(q).psi();
 
 	/* reset yaw setpoint to current position if needed */
 	if (reset_yaw_sp) {
@@ -179,7 +170,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	attitude_setpoint.yaw_body = _man_yaw_sp + euler_sp(2);
 
 	/* modify roll/pitch only if we're a VTOL */
-	if (_vehicle_status.is_vtol) {
+	if (_vtol) {
 		// Construct attitude setpoint rotation matrix. Modify the setpoints for roll
 		// and pitch such that they reflect the user's intention even if a large yaw error
 		// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
@@ -225,31 +216,6 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 }
 
-/**
- * Attitude controller.
- * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
- * Output: '_rates_sp' vector
- */
-void
-MulticopterAttitudeControl::control_attitude()
-{
-	_rates_sp = _attitude_control.update(Quatf(_v_att.q));
-}
-
-void
-MulticopterAttitudeControl::publish_rates_setpoint()
-{
-	vehicle_rates_setpoint_s v_rates_sp{};
-
-	v_rates_sp.roll = _rates_sp(0);
-	v_rates_sp.pitch = _rates_sp(1);
-	v_rates_sp.yaw = _rates_sp(2);
-	_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
-	v_rates_sp.timestamp = hrt_absolute_time();
-
-	_v_rates_sp_pub.publish(v_rates_sp);
-}
-
 void
 MulticopterAttitudeControl::Run()
 {
@@ -272,9 +238,9 @@ MulticopterAttitudeControl::Run()
 	}
 
 	// run controller on attitude updates
-	const uint8_t prev_quat_reset_counter = _v_att.quat_reset_counter;
+	vehicle_attitude_s v_att;
 
-	if (_vehicle_attitude_sub.update(&_v_att)) {
+	if (_vehicle_attitude_sub.update(&v_att)) {
 
 		// Check for new attitude setpoint
 		if (_vehicle_attitude_setpoint_sub.updated()) {
@@ -285,24 +251,40 @@ MulticopterAttitudeControl::Run()
 		}
 
 		// Check for a heading reset
-		if (prev_quat_reset_counter != _v_att.quat_reset_counter) {
-			const Quatf delta_q_reset(_v_att.delta_q_reset);
+		if (_quat_reset_counter != v_att.quat_reset_counter) {
+			const Quatf delta_q_reset(v_att.delta_q_reset);
 			// for stabilized attitude generation only extract the heading change from the delta quaternion
 			_man_yaw_sp += Eulerf(delta_q_reset).psi();
 			_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
+
+			_quat_reset_counter = v_att.quat_reset_counter;
 		}
 
-		const hrt_abstime now = hrt_absolute_time();
-
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
-		_last_run = now;
+		const float dt = math::constrain(((v_att.timestamp - _last_run) * 1e-6f), 0.0002f, 0.02f);
+		_last_run = v_att.timestamp;
 
 		/* check for updates in other topics */
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_v_control_mode_sub.update(&_v_control_mode);
-		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
-		_vehicle_status_sub.update(&_vehicle_status);
+
+		if (_vehicle_land_detected_sub.updated()) {
+			vehicle_land_detected_s vehicle_land_detected;
+
+			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+				_landed = vehicle_land_detected.landed;
+			}
+		}
+
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
+
+			if (_vehicle_status_sub.copy(&vehicle_status)) {
+				_vehicle_type_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+				_vtol = vehicle_status.is_vtol;
+				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
+			}
+		}
 
 		/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 		* or roll (yaw can rotate 360 in normal att control). If both are true don't
@@ -315,22 +297,24 @@ MulticopterAttitudeControl::Run()
 
 		bool attitude_setpoint_generated = false;
 
-		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-					 && !_vehicle_status.in_transition_mode;
+		const bool is_hovering = (_vehicle_type_rotary_wing && !_vtol_in_transition_mode);
 
 		// vehicle is a tailsitter in transition mode
-		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
+		const bool is_tailsitter_transition = (_vtol_tailsitter && _vtol_in_transition_mode);
 
 		bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
 
 		if (run_att_ctrl) {
+
+			const Quatf q{v_att.q};
+
 			// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
 			if (_v_control_mode.flag_control_manual_enabled &&
 			    !_v_control_mode.flag_control_altitude_enabled &&
 			    !_v_control_mode.flag_control_velocity_enabled &&
 			    !_v_control_mode.flag_control_position_enabled) {
 
-				generate_attitude_setpoint(dt, _reset_yaw_sp);
+				generate_attitude_setpoint(q, dt, _reset_yaw_sp);
 				attitude_setpoint_generated = true;
 
 			} else {
@@ -338,23 +322,33 @@ MulticopterAttitudeControl::Run()
 				_man_y_input_filter.reset(0.f);
 			}
 
-			control_attitude();
+			Vector3f rates_sp = _attitude_control.update(q);
 
 			if (_v_control_mode.flag_control_yawrate_override_enabled) {
 				/* Yaw rate override enabled, overwrite the yaw setpoint */
-				_v_rates_sp_sub.update(&_v_rates_sp);
-				const auto yawrate_reference = _v_rates_sp.yaw;
-				_rates_sp(2) = yawrate_reference;
+				vehicle_rates_setpoint_s v_rates_sp{};
+
+				if (_v_rates_sp_sub.copy(&v_rates_sp)) {
+					const float yawrate_sp = v_rates_sp.yaw;
+					rates_sp(2) = yawrate_sp;
+				}
 			}
 
-			publish_rates_setpoint();
+			// publish rate setpoint
+			vehicle_rates_setpoint_s v_rates_sp{};
+			v_rates_sp.roll = rates_sp(0);
+			v_rates_sp.pitch = rates_sp(1);
+			v_rates_sp.yaw = rates_sp(2);
+			_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
+			v_rates_sp.timestamp = hrt_absolute_time();
+
+			_v_rates_sp_pub.publish(v_rates_sp);
 		}
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
 		// attitude setpoint for the transition
 		_reset_yaw_sp = (!attitude_setpoint_generated && !_v_control_mode.flag_control_rattitude_enabled) ||
-				_vehicle_land_detected.landed ||
-				(_vehicle_status.is_vtol && _vehicle_status.in_transition_mode);
+				_landed || (_vtol && _vtol_in_transition_mode);
 
 	}
 

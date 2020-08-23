@@ -53,8 +53,7 @@
 // Otherwise, it will passthrough the parent MPU9250
 MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotation rotation) :
 	_interface(interface),
-	_px4_mag(parent->_interface->get_device_id(), (parent->_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH),
-		 rotation),
+	_px4_mag(parent->_interface->get_device_id(), rotation),
 	_parent(parent),
 	_mag_overruns(perf_alloc(PC_COUNT, MODULE_NAME": mag overruns")),
 	_mag_overflows(perf_alloc(PC_COUNT, MODULE_NAME": mag overflows")),

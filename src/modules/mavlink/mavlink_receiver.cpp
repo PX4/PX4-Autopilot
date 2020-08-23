@@ -2045,25 +2045,61 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 {
 	/* telemetry status supported only on first TELEMETRY_STATUS_ORB_ID_NUM mavlink channels */
 	if (_mavlink->get_channel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
+
+		const hrt_abstime now = hrt_absolute_time();
+
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
-		/* Accept only heartbeats from GCS or ONBOARD Controller, skip heartbeats from other vehicles */
-		if ((msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) || (msg->sysid == mavlink_system.sysid
-				&& hb.type == MAV_TYPE_ONBOARD_CONTROLLER)) {
+		const bool same_system = (msg->sysid == mavlink_system.sysid);
+
+		if (same_system || hb.type == MAV_TYPE_GCS) {
 
 			telemetry_status_s &tstatus = _mavlink->get_telemetry_status();
 
-			/* set heartbeat time and topic time and publish -
-			 * the telem status also gets updated on telemetry events
-			 */
-			tstatus.heartbeat_time = hrt_absolute_time();
-			tstatus.remote_system_id = msg->sysid;
-			tstatus.remote_component_id = msg->compid;
-			tstatus.remote_type = hb.type;
-			tstatus.remote_system_status = hb.system_status;
-		}
+			bool heartbeat_slot_found = false;
+			int heartbeat_slot = 0;
 
+			// find existing HEARTBEAT slot
+			for (size_t i = 0; i < (sizeof(tstatus.heartbeats) / sizeof(tstatus.heartbeats[0])); i++) {
+				if ((tstatus.heartbeats[i].system_id == msg->sysid)
+				    && (tstatus.heartbeats[i].component_id == msg->compid)
+				    && (tstatus.heartbeats[i].type == hb.type)) {
+
+					// found matching heartbeat slot
+					heartbeat_slot = i;
+					heartbeat_slot_found = true;
+					break;
+				}
+			}
+
+			// otherwise use first available slot
+			if (!heartbeat_slot_found) {
+				for (size_t i = 0; i < (sizeof(tstatus.heartbeats) / sizeof(tstatus.heartbeats[0])); i++) {
+					if ((tstatus.heartbeats[i].system_id == 0) && (tstatus.heartbeats[i].timestamp == 0)) {
+						heartbeat_slot = i;
+						heartbeat_slot_found = true;
+						break;
+					}
+				}
+			}
+
+			if (heartbeat_slot_found) {
+				_mavlink->lock_telemetry_status();
+
+				tstatus.heartbeats[heartbeat_slot].timestamp = now;
+				tstatus.heartbeats[heartbeat_slot].system_id = msg->sysid;
+				tstatus.heartbeats[heartbeat_slot].component_id = msg->compid;
+				tstatus.heartbeats[heartbeat_slot].type = hb.type;
+				tstatus.heartbeats[heartbeat_slot].state = hb.system_status;
+
+				_mavlink->telemetry_status_updated();
+				_mavlink->unlock_telemetry_status();
+
+			} else {
+				PX4_ERR("no telemetry heartbeat slots available");
+			}
+		}
 	}
 }
 
@@ -2564,7 +2600,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.vz = hil_state.vz / 100.0f;
 
 		matrix::Eulerf euler{matrix::Quatf(hil_state.attitude_quaternion)};
-		hil_local_pos.yaw = euler.psi();
+		hil_local_pos.heading = euler.psi();
 		hil_local_pos.xy_global = true;
 		hil_local_pos.z_global = true;
 		hil_local_pos.vxy_max = INFINITY;

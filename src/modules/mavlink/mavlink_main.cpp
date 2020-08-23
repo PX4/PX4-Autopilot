@@ -355,6 +355,18 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 }
 #endif // MAVLINK_UDP
 
+bool
+Mavlink::is_connected()
+{
+	for (auto &hb : _tstatus.heartbeats) {
+		if ((hb.type == telemetry_heartbeat_s::TYPE_GCS) && (hrt_elapsed_time(&hb.timestamp) < 3_s)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 int
 Mavlink::destroy_all_instances()
 {
@@ -826,7 +838,7 @@ void Mavlink::send_finish()
 # endif // CONFIG_NET
 
 		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
-		    (!get_client_source_initialized() || (hrt_elapsed_time(&_tstatus.heartbeat_time) > 3_s))) {
+		    (!get_client_source_initialized() || !is_connected())) {
 
 			if (!_broadcast_address_found) {
 				find_broadcast_address();
@@ -2103,6 +2115,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
+	pthread_mutex_init(&_telemetry_status_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on) {
@@ -2271,9 +2284,17 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+
+		// vehicle_command
+		const unsigned last_generation = cmd_sub.get_last_generation();
 		vehicle_command_s vehicle_cmd;
 
 		if (cmd_sub.update(&vehicle_cmd)) {
+
+			if (cmd_sub.get_last_generation() != last_generation + 1) {
+				PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, cmd_sub.get_last_generation());
+			}
+
 			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
 			    (_mode == MAVLINK_MODE_IRIDIUM)) {
 				if (vehicle_cmd.param1 > 0.5f) {
@@ -2461,7 +2482,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		// publish status at 1 Hz, or sooner if HEARTBEAT has updated
-		if ((hrt_elapsed_time(&_tstatus.timestamp) >= 1_s) || (_tstatus.timestamp < _tstatus.heartbeat_time)) {
+		if ((hrt_elapsed_time(&_tstatus.timestamp) >= 1_s) || _tstatus_updated) {
 			publish_telemetry_status();
 		}
 
@@ -2496,6 +2517,9 @@ Mavlink::task_main(int argc, char *argv[])
 		_mavlink_ulog->stop();
 		_mavlink_ulog = nullptr;
 	}
+
+	pthread_mutex_destroy(&_send_mutex);
+	pthread_mutex_destroy(&_telemetry_status_mutex);
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
@@ -2588,9 +2612,12 @@ void Mavlink::publish_telemetry_status()
 
 	_tstatus.streams = _streams.size();
 
+	// telemetry_status is also updated from the receiver thread, but never the same fields
+	lock_telemetry_status();
 	_tstatus.timestamp = hrt_absolute_time();
-
 	_telem_status_pub.publish(_tstatus);
+	_tstatus_updated = false;
+	unlock_telemetry_status();
 }
 
 void Mavlink::configure_sik_radio()
@@ -2729,8 +2756,10 @@ Mavlink::start(int argc, char *argv[])
 void
 Mavlink::display_status()
 {
-	if (_tstatus.heartbeat_time > 0) {
-		printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&_tstatus.heartbeat_time));
+	for (const auto &hb : _tstatus.heartbeats) {
+		if ((hb.timestamp > 0) && (hb.type == telemetry_heartbeat_s::TYPE_GCS)) {
+			printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&hb.timestamp));
+		}
 	}
 
 	printf("\tmavlink chan: #%u\n", _channel);

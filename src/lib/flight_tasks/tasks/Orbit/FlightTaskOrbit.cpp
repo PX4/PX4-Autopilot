@@ -154,7 +154,7 @@ bool FlightTaskOrbit::checkAcceleration(float r, float v, float a)
 	return v * v < a * r;
 }
 
-bool FlightTaskOrbit::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTaskManualAltitudeSmooth::activate(last_setpoint);
 	_r = _radius_min;

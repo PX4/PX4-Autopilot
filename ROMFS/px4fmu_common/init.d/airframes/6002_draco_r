@@ -91,8 +91,6 @@ then
 	# DSHOT
 	param set DSHOT_CONFIG 600
 
-	param set COM_ARM_MAG 0.2
-
 	param set MIS_TAKEOFF_ALT 1.1
 
 	#####################################

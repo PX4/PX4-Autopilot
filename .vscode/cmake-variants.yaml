@@ -61,21 +61,26 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: av_x-v1_default
+    cuav_nora_default:
+      short: cuav_nora
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_nora_default
     cuav_x7pro_default:
       short: cuav_x7pro
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x7pro_default
-    hex_cube-orange_default:
-      short: hex_cube-orange
+    cubepilot_cubeorange_default:
+      short: cubepilot_cubeorange
       buildType: MinSizeRel
       settings:
-        CONFIG: hex_cube-orange_default
-    hex_cube-yellow_default:
-      short: hex_cube-yellow
+        CONFIG: cubepilot_orange_default
+    cubepilot_cubeyellow_default:
+      short: cubepilot_cubeyellow
       buildType: MinSizeRel
       settings:
-        CONFIG: hex_cube-yellow_default
+        CONFIG: cubepilot_cubeyellow_default
     holybro_durandal-v1_default:
       short: holybro_durandal-v1
       buildType: MinSizeRel
@@ -96,6 +101,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: mro_ctrl-zero-f7_default
+    mro_x21-777_default:
+      short: mro_x2.1-777
+      buildType: MinSizeRel
+      settings:
+        CONFIG: mro_x21-777_default
     nxp_fmuk66-v3_default:
       short: nxp_fmuk66-v3
       buildType: MinSizeRel

@@ -886,8 +886,8 @@ void Ekf2::Run()
 				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
 				// and notification events
 				// Check if there has been a persistant change in magnetometer ID
-				if (_sensor_selection.mag_device_id != 0
-				    && (_sensor_selection.mag_device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
+				if (magnetometer.device_id != 0
+				    && (magnetometer.device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
 
 					if (_invalid_mag_id_count < 200) {
 						_invalid_mag_id_count++;
@@ -908,7 +908,7 @@ void Ekf2::Run()
 					_param_ekf2_magbias_y.commit_no_notification();
 					_param_ekf2_magbias_z.set(0.f);
 					_param_ekf2_magbias_z.commit_no_notification();
-					_param_ekf2_magbias_id.set(_sensor_selection.mag_device_id);
+					_param_ekf2_magbias_id.set(magnetometer.device_id);
 					_param_ekf2_magbias_id.commit();
 
 					_invalid_mag_id_count = 0;
@@ -1305,7 +1305,11 @@ void Ekf2::Run()
 				// The rotation of the tangent plane vs. geographical north
 				const matrix::Quatf q = _ekf.getQuaternion();
 
-				lpos.yaw = matrix::Eulerf(q).psi();
+				matrix::Quatf delta_q_reset;
+				_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
+
+				lpos.heading = matrix::Eulerf(q).psi();
+				lpos.delta_heading = matrix::Eulerf(delta_q_reset).psi();
 
 				// Vehicle odometry quaternion
 				q.copyTo(odom.q);
@@ -1479,8 +1483,6 @@ void Ekf2::Run()
 					// global altitude has opposite sign of local down position
 					global_pos.delta_alt = -lpos.delta_z;
 
-					global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
-
 					_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
 					global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
@@ -1508,7 +1510,7 @@ void Ekf2::Run()
 					bias.accel_device_id = _sensor_selection.accel_device_id;
 				}
 
-				bias.mag_device_id = _sensor_selection.mag_device_id;
+				bias.mag_device_id = _param_ekf2_magbias_id.get();
 
 				// In-run bias estimates
 				_ekf.getGyroBias().copyTo(bias.gyro_bias);
@@ -1630,8 +1632,7 @@ void Ekf2::Run()
 
 				// Check and save the last valid calibration when we are disarmed
 				if ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-				    && (status.filter_fault_flags == 0)
-				    && (_sensor_selection.mag_device_id == (uint32_t)_param_ekf2_magbias_id.get())) {
+				    && (status.filter_fault_flags == 0)) {
 
 					update_mag_bias(_param_ekf2_magbias_x, 0);
 					update_mag_bias(_param_ekf2_magbias_y, 1);
@@ -1640,7 +1641,6 @@ void Ekf2::Run()
 					// reset to prevent data being saved too frequently
 					_total_cal_time_us = 0;
 				}
-
 			}
 
 			publish_wind_estimate(now);

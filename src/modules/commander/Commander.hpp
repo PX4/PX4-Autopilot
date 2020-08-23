@@ -113,7 +113,8 @@ public:
 
 private:
 
-	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub, const char *armedBy);
+	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub,
+				       arm_disarm_reason_t calling_reason);
 
 	void battery_status_check();
 
@@ -136,7 +137,7 @@ private:
 
 	void esc_status_check(const esc_status_s &esc_status);
 
-	void estimator_check();
+	void estimator_check(const vehicle_status_flags_s &status_flags);
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
@@ -154,6 +155,7 @@ private:
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
+	void updateHomePositionYaw(float yaw);
 
 	void update_control_mode();
 
@@ -319,7 +321,7 @@ private:
 	bool		_onboard_controller_lost{false};
 	bool		_avoidance_system_lost{false};
 	bool		_avoidance_system_status_change{false};
-	uint8_t		_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
+	uint8_t		_datalink_last_status_avoidance_system{telemetry_heartbeat_s::STATE_UNINIT};
 
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
@@ -359,6 +361,7 @@ private:
 	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
 
 	uint32_t	_counter{0};
+	uint8_t		_heading_reset_counter{0};
 
 	bool		_status_changed{true};
 	bool		_arm_tune_played{false};
@@ -405,7 +408,7 @@ private:
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_subsys_sub{ORB_ID(subsystem_info)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
-	uORB::Subscription					_telemetry_status_sub{ORB_ID(telemetry_status)};
+	uORB::Subscription					_telemetry_status_sub[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(telemetry_status), 0}, {ORB_ID(telemetry_status), 1}, {ORB_ID(telemetry_status), 2}, {ORB_ID(telemetry_status), 3}};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 

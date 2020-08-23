@@ -11,6 +11,7 @@ class ParameterGroup(object):
     """
     def __init__(self, name):
         self.name = name
+        self.no_code_generation = False #for injected parameters
         self.params = []
 
     def AddParameter(self, param):

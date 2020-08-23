@@ -115,7 +115,7 @@ void MixingOutput::updateParams()
 	}
 }
 
-bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
+bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary)
 {
 	if (_groups_subscribed == _groups_required) {
 		return false;
@@ -143,12 +143,33 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 			}
 		}
 
+		bool sub_group_0_callback_registered = false;
+		bool sub_group_1_callback_registered = false;
+
 		// register callback to all required actuator control groups
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_groups_required & (1 << i)) {
-				PX4_DEBUG("subscribe to actuator_controls_%d", i);
 
-				if (!_control_subs[i].registerCallback()) {
+			if (limit_callbacks_to_primary) {
+				// don't register additional callbacks if actuator_controls_0 or actuator_controls_1 are already registered
+				if ((i > 1) && (sub_group_0_callback_registered || sub_group_1_callback_registered)) {
+					break;
+				}
+			}
+
+			if (_groups_required & (1 << i)) {
+				if (_control_subs[i].registerCallback()) {
+					PX4_DEBUG("subscribed to actuator_controls_%d", i);
+
+					if (limit_callbacks_to_primary) {
+						if (i == 0) {
+							sub_group_0_callback_registered = true;
+
+						} else if (i == 1) {
+							sub_group_1_callback_registered = true;
+						}
+					}
+
+				} else {
 					PX4_ERR("actuator_controls_%d register callback failed!", i);
 				}
 			}
