@@ -587,7 +587,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_GB, 0.0011f);
  * Maximum accelerometer inconsistency between IMU units that will allow arming
  *
  * @group Commander
- * @unit m/s/s
+ * @unit m/s^2
  * @min 0.1
  * @max 1.0
  * @decimal 2
@@ -703,7 +703,7 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH_REQ, 0);
  * This sets number of seconds that the position checks need to be failed before the failsafe will activate.
  * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5 and 10 should be used.
  *
- * @unit sec
+ * @unit s
  * @reboot_required true
  * @group Commander
  * @min 1
@@ -720,7 +720,7 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
  * If position checks are failing, the probation delay will increase by COM_POS_FS_GAIN seconds for every lapsed second up to a maximum of 100 seconds.
  * The default value has been optimised for rotary wing applications. For fixed wing applications, a value of 1 should be used.
  *
- * @unit sec
+ * @unit s
  * @reboot_required true
  * @group Commander
  * @min 1
