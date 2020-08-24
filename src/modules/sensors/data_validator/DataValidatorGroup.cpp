@@ -119,8 +119,8 @@ void DataValidatorGroup::set_equal_value_threshold(uint32_t threshold)
 	}
 }
 
-void DataValidatorGroup::put(unsigned index, uint64_t timestamp, const float val[3], uint64_t error_count,
-			     int priority)
+void DataValidatorGroup::put(unsigned index, uint64_t timestamp, const float val[3], uint32_t error_count,
+			     uint8_t priority)
 {
 
 	DataValidator *next = _first;

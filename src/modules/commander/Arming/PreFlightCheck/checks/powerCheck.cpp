@@ -90,19 +90,22 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power high: %6.2f Volt", (double)avionics_power_rail_voltage);
 				}
 			}
-		}
 
-		int power_module_count = countSetBits(system_power.brick_valid);
-		int required_power_module_count;
-		param_get(param_find("COM_POWER_COUNT"), &required_power_module_count);
 
-		if (power_module_count < required_power_module_count) {
-			success = false;
+			const int power_module_count = countSetBits(system_power.brick_valid);
 
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Power redundancy not met: %d instead of %d",
-						     power_module_count, required_power_module_count);
+			int32_t required_power_module_count = 0;
+			param_get(param_find("COM_POWER_COUNT"), &required_power_module_count);
+
+			if (power_module_count < required_power_module_count) {
+				success = false;
+
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "Power redundancy not met: %d instead of %d",
+							     power_module_count, required_power_module_count);
+				}
 			}
+
 		}
 
 	} else {

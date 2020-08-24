@@ -81,7 +81,8 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 
 bool VtolType::init()
 {
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
+	const char *dev = _params->vt_mc_on_fmu ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
+
 	int fd = px4_open(dev, 0);
 
 	if (fd < 0) {
@@ -221,6 +222,12 @@ bool VtolType::can_transition_on_ground()
 
 void VtolType::check_quadchute_condition()
 {
+
+	if (!_tecs_running) {
+		// reset the filtered height rate and heigh rate setpoint if TECS is not running
+		_ra_hrate = 0.0f;
+		_ra_hrate_sp = 0.0f;
+	}
 
 	if (_v_control_mode->flag_armed && !_land_detected->landed) {
 		Eulerf euler = Quatf(_v_att->q);

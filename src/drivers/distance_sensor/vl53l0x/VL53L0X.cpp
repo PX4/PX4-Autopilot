@@ -62,7 +62,7 @@
 VL53L0X::VL53L0X(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
 	I2C(DRV_DIST_DEVTYPE_VL53L0X, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
+	_px4_rangefinder(0 /* device id not yet used */, rotation)
 {
 	// VL53L0X typical range 0-2 meters with 25 degree field of view
 	_px4_rangefinder.set_min_distance(0.f);

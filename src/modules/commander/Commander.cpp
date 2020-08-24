@@ -54,6 +54,7 @@
 #include "commander_helper.h"
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
+#include "level_calibration.h"
 #include "mag_calibration.h"
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"
@@ -256,15 +257,28 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
 
 			} else if (!strcmp(argv[2], "mag")) {
-				// magnetometer calibration: param2 = 1
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+				if (argc > 3 && (strcmp(argv[3], "quick") == 0)) {
+					// magnetometer quick calibration: param2 = 2
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+
+				} else {
+					// magnetometer calibration: param2 = 1
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+				}
 
 			} else if (!strcmp(argv[2], "accel")) {
-				// accelerometer calibration: param5 = 1
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f);
+				if (argc > 3 && (strcmp(argv[3], "quick") == 0)) {
+					// accelerometer quick calibration: param5 = 3
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 4.f, 0.f, 0.f);
+
+				} else {
+					// accelerometer calibration: param5 = 1
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f);
+				}
+
 
 			} else if (!strcmp(argv[2], "level")) {
-				// board level calibration: param5 = 1
+				// board level calibration: param5 = 2
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f);
 
 			} else if (!strcmp(argv[2], "airspeed")) {
@@ -1199,7 +1213,8 @@ Commander::set_home_position()
 			home.y = lpos.y;
 			home.z = lpos.z;
 
-			home.yaw = lpos.yaw;
+			home.yaw = lpos.heading;
+			_heading_reset_counter = lpos.heading_reset_counter;
 
 			home.manual_home = false;
 
@@ -1235,6 +1250,17 @@ Commander::set_home_position_alt_only()
 	}
 
 	return false;
+}
+
+void
+Commander::updateHomePositionYaw(float yaw)
+{
+	home_position_s home = _home_pub.get();
+
+	home.yaw = yaw;
+	home.timestamp = hrt_absolute_time();
+
+	_home_pub.update(home);
 }
 
 void
@@ -1313,7 +1339,7 @@ Commander::run()
 	/* initialize low priority thread */
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, PX4_STACK_ADJUSTED(3000));
+	pthread_attr_setstacksize(&commander_low_prio_attr, PX4_STACK_ADJUSTED(3304));
 
 #ifndef __PX4_QURT
 	// This is not supported by QURT (yet).
@@ -1462,8 +1488,6 @@ Commander::run()
 
 #endif // BOARD_HAS_POWER_CONTROL
 
-		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
-
 		offboard_control_update();
 
 		if (_system_power_sub.updated()) {
@@ -1604,7 +1628,7 @@ Commander::run()
 			}
 		}
 
-		estimator_check();
+		estimator_check(status_flags);
 
 		/* Update land detector */
 		if (_land_detector_sub.updated()) {
@@ -1750,6 +1774,10 @@ Commander::run()
 			}
 		}
 
+		// update manual_control_setpoint before geofence (which might check sticks or switches)
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+
+
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
 
@@ -1872,12 +1900,9 @@ Commander::run()
 		if ((override_auto_mode || override_offboard_mode) && is_rotary_wing
 		    && !in_low_battery_failsafe && !_geofence_warning_action_on) {
 			// transition to previous state if sticks are touched
-			if ((_last_manual_control_setpoint.timestamp != _manual_control_setpoint.timestamp) &&
-			    ((fabsf(_manual_control_setpoint.x - _last_manual_control_setpoint.x) > _min_stick_change) ||
-			     (fabsf(_manual_control_setpoint.y - _last_manual_control_setpoint.y) > _min_stick_change) ||
-			     (fabsf(_manual_control_setpoint.z - _last_manual_control_setpoint.z) > _min_stick_change) ||
-			     (fabsf(_manual_control_setpoint.r - _last_manual_control_setpoint.r) > _min_stick_change))) {
-
+			if (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < 1_s && // don't use uninitialized or old messages
+			    ((fabsf(_manual_control_setpoint.x) > _min_stick_change) ||
+			     (fabsf(_manual_control_setpoint.y) > _min_stick_change))) {
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &_internal_state);
 				mavlink_log_info(&mavlink_log_pub, "Pilot took over control using sticks");
@@ -2090,12 +2115,16 @@ Commander::run()
 			/* no else case: do not change lockdown flag in unconfigured case */
 
 		} else {
-			if (!status_flags.rc_input_blocked && !status.rc_signal_lost && status_flags.rc_signal_found_once) {
-				mavlink_log_critical(&mavlink_log_pub, "Manual control lost");
-				status.rc_signal_lost = true;
-				_rc_signal_lost_timestamp = _manual_control_setpoint.timestamp;
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
-				_status_changed = true;
+			// set RC lost
+			if (status_flags.rc_signal_found_once && !status.rc_signal_lost) {
+				// ignore RC lost during calibration
+				if (!status_flags.condition_calibration_enabled && !status_flags.rc_input_blocked) {
+					mavlink_log_critical(&mavlink_log_pub, "Manual control lost");
+					status.rc_signal_lost = true;
+					_rc_signal_lost_timestamp = _manual_control_setpoint.timestamp;
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
+					_status_changed = true;
+				}
 			}
 		}
 
@@ -3484,6 +3513,11 @@ void *commander_low_prio_loop(void *arg)
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 							calib_ret = do_mag_calibration(&mavlink_log_pub);
 
+						} else if ((int)(cmd.param2) == 2) {
+							/* magnetometer calibration quick (requires GPS & attitude) */
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_mag_calibration_quick(&mavlink_log_pub);
+
 						} else if ((int)(cmd.param3) == 1) {
 							/* zero-altitude pressure calibration */
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
@@ -3510,6 +3544,11 @@ void *commander_low_prio_loop(void *arg)
 							// board offset calibration
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 							calib_ret = do_level_calibration(&mavlink_log_pub);
+
+						} else if ((int)(cmd.param5) == 4) {
+							// accelerometer quick calibration
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							calib_ret = do_accel_calibration_quick(&mavlink_log_pub);
 
 						} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
 							// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
@@ -4021,7 +4060,7 @@ void Commander::battery_status_check()
 	}
 }
 
-void Commander::estimator_check()
+void Commander::estimator_check(const vehicle_status_flags_s &vstatus_flags)
 {
 	// Check if quality checking of position accuracy and consistency is to be performed
 	const bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
@@ -4031,6 +4070,14 @@ void Commander::estimator_check()
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
 	const vehicle_global_position_s &gpos = _global_position_sub.get();
+
+	if (lpos.heading_reset_counter != _heading_reset_counter) {
+		if (vstatus_flags.condition_home_position_valid) {
+			updateHomePositionYaw(_home_pub.get().yaw + lpos.delta_heading);
+		}
+
+		_heading_reset_counter = lpos.heading_reset_counter;
+	}
 
 	const bool mag_fault_prev = (_estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT));
 
@@ -4225,6 +4272,7 @@ The commander module contains the state machine for mode switching and failsafe 
 #ifndef CONSTRAINED_FLASH
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run sensor calibration");
 	PRINT_MODULE_USAGE_ARG("mag|accel|gyro|level|esc|airspeed", "Calibration type", false);
+	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration (accel only, not recommended)", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);

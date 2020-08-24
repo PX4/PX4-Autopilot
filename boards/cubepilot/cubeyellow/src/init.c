@@ -190,13 +190,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #ifdef CONFIG_MMCSD
-	int ret = stm32_sdio_initialize();
+	/* Mount the SDIO-based MMC/SD block driver */
+	/* First, get an instance of the SDIO interface */
+	struct sdio_dev_s *sdio_dev = sdio_initialize(0); // SDIO_SLOTNO 0 Only one slot
 
-	if (ret != OK) {
-		led_on(LED_AMBER);
-		return ret;
+	if (!sdio_dev) {
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", 0);
+		return ERROR;
 	}
 
+	if (mmcsd_slotinitialize(0, sdio_dev) != OK) {
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver\n");
+		return ERROR;
+	}
+
+	/* Assume that the SD card is inserted.  What choice do we have? */
+	sdio_mediachange(sdio_dev, true);
 #endif /* CONFIG_MMCSD */
 
 	return OK;

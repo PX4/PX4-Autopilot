@@ -94,7 +94,7 @@ DataValidatorGroup  *setup_base_group(unsigned *sibling_count)
 void fill_one_with_valid_data(DataValidatorGroup *group, int val1_idx,  uint32_t num_samples)
 {
 	uint64_t timestamp = base_timestamp;
-	uint64_t error_count = 0;
+	uint32_t error_count = 0;
 	float last_best_val = 0.0f;
 
 	for (uint32_t i = 0; i < num_samples; i++) {
@@ -125,7 +125,7 @@ void fill_one_with_valid_data(DataValidatorGroup *group, int val1_idx,  uint32_t
 void fill_two_with_valid_data(DataValidatorGroup *group, int val1_idx, int val2_idx, uint32_t num_samples)
 {
 	uint64_t timestamp = base_timestamp;
-	uint64_t error_count = 0;
+	uint32_t error_count = 0;
 	float last_best_val = 0.0f;
 
 	for (uint32_t i = 0; i < num_samples; i++) {
@@ -250,7 +250,7 @@ void test_priority_switch()
 	//printf("num_siblings: %d \n",num_siblings);
 	int val1_idx = (int)num_siblings - 2;
 	int val2_idx = (int)num_siblings - 1;
-	uint64_t error_count = 0;
+	uint32_t error_count = 0;
 
 	fill_two_with_valid_data(group, val1_idx, val2_idx, 100);
 

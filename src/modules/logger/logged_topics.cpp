@@ -70,6 +70,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("offboard_control_mode", 100);
+	add_topic("onboard_computer_status", 10);
 	add_topic("position_controller_status", 500);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("px4io_status");
@@ -79,12 +80,14 @@ void LoggedTopics::add_default_topics()
 	add_topic("safety");
 	add_topic("sensor_combined");
 	add_topic("sensor_correction");
-	add_topic("sensor_preflight", 200);
+	add_topic("sensor_preflight_imu", 200);
+	add_topic("sensor_preflight_mag", 500);
 	add_topic("sensor_selection");
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
 	add_topic("test_motor", 500);
 	add_topic("trajectory_setpoint", 200);
+	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);
 	add_topic("vehicle_attitude", 50);
@@ -200,7 +203,6 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 {
 	add_topic("collision_constraints");
 	add_topic("obstacle_distance_fused");
-	add_topic("onboard_computer_status", 200);
 	add_topic("vehicle_mocap_odometry", 30);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);

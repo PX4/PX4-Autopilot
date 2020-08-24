@@ -44,7 +44,6 @@
 #include "commander_helper.h"
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>

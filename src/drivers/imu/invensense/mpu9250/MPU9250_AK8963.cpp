@@ -48,7 +48,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 MPU9250_AK8963::MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation) :
 	ScheduledWorkItem("mpu9250_ak8963", px4::device_bus_to_wq(mpu9250.get_device_id())),
 	_mpu9250(mpu9250),
-	_px4_mag(mpu9250.get_device_id(), ORB_PRIO_DEFAULT, rotation)
+	_px4_mag(mpu9250.get_device_id(), rotation)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK8963);
 	_px4_mag.set_external(mpu9250.external());
@@ -75,8 +75,6 @@ void MPU9250_AK8963::PrintInfo()
 {
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_magnetic_sensor_overflow_perf);
-
-	_px4_mag.print_status();
 }
 
 void MPU9250_AK8963::Run()
@@ -86,7 +84,7 @@ void MPU9250_AK8963::Run()
 		// CNTL2 SRST: Soft reset
 		_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL2, CNTL2_BIT::SRST);
 		_reset_timestamp = hrt_absolute_time();
-		_consecutive_failures = 0;
+		_failure_count = 0;
 		_state = STATE::READ_WHO_AM_I;
 		ScheduleDelayed(100_ms);
 		break;
@@ -120,7 +118,7 @@ void MPU9250_AK8963::Run()
 								       CNTL1_BIT::BIT_16 | CNTL1_BIT::CONTINUOUS_MODE_2);
 
 					_state = STATE::READ;
-					ScheduleOnInterval(10_ms, 100_ms); // 100 Hz
+					ScheduleDelayed(100_ms);
 				}
 
 			} else {
@@ -175,8 +173,7 @@ void MPU9250_AK8963::Run()
 				if (buffer.ST2 & ST2_BIT::HOFL) {
 					perf_count(_magnetic_sensor_overflow_perf);
 
-				} else if ((buffer.ST1 & ST1_BIT::DRDY) && (buffer.ST2 & ST2_BIT::BITM)) {
-
+				} else if (buffer.ST2 & ST2_BIT::BITM) {
 					const int16_t x = combine(buffer.HXH, buffer.HXL);
 					const int16_t y = combine(buffer.HYH, buffer.HYL);
 					const int16_t z = combine(buffer.HZH, buffer.HZL);
@@ -191,15 +188,20 @@ void MPU9250_AK8963::Run()
 
 					success = true;
 
-					_consecutive_failures = 0;
+					if (_failure_count > 0) {
+						_failure_count--;
+					}
+
+					ScheduleDelayed(20_ms); // ~50 Hz
+					return;
 				}
 			}
 
 			if (!success) {
 				perf_count(_bad_transfer_perf);
-				_consecutive_failures++;
+				_failure_count++;
 
-				if (_consecutive_failures > 10) {
+				if (_failure_count > 10) {
 					Reset();
 					return;
 				}
@@ -207,6 +209,7 @@ void MPU9250_AK8963::Run()
 
 			// ensure mpu9250 slave sensor reading is configured
 			_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ST1, sizeof(TransferBuffer));
+			ScheduleDelayed(100_ms);
 		}
 
 		break;

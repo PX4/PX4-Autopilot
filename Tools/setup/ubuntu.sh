@@ -11,8 +11,6 @@
 ## Not Installs:
 ## - FastRTPS and FastCDR
 
-set -e
-
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
 
@@ -137,7 +135,8 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	fi
 
 	# arm-none-eabi-gcc
-	NUTTX_GCC_VERSION="7-2017-q4-major"
+	NUTTX_GCC_VERSION="9-2020-q2-update"
+	NUTTX_GCC_VERSION_SHORT="9-2020q2"
 
 	source $HOME/.profile # load changed path for the case the script is reran before relogin
 	if [ $(which arm-none-eabi-gcc) ]; then
@@ -150,7 +149,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	else
 		echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 && \
+		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-x86_64-linux.tar.bz2 && \
 			sudo tar -jxf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 -C /opt/;
 
 		# add arm-none-eabi-gcc to user's PATH
@@ -187,6 +186,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		ant \
 		openjdk-$java_version-jre \
 		openjdk-$java_version-jdk \
+		libvecmath-java \
 		;
 
 	# Set Java 11 as default
