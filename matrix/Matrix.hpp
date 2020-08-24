@@ -478,7 +478,8 @@ public:
         setZero();
         Matrix<Type, M, N> &self = *this;
 
-        for (size_t i = 0; i < M && i < N; i++) {
+        const size_t min_i = M > N ? N : M;
+        for (size_t i = 0; i < min_i; i++) {
             self(i, i) = 1;
         }
     }
