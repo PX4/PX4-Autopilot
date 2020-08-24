@@ -179,7 +179,7 @@ PARAM_DEFINE_INT32(SYS_CAL_BARO, 0);
  * Calibration will complete for each sensor when the temperature increase above the starting temeprature exceeds the value set by SYS_CAL_TDEL.
  * If the temperature rise is insufficient, the calibration will continue indefinitely and the board will need to be repowered to exit.
  *
- * @unit deg C
+ * @unit celcius
  * @min 10
  * @group System
  */
@@ -190,7 +190,7 @@ PARAM_DEFINE_INT32(SYS_CAL_TDEL, 24);
  *
  * Temperature calibration for each sensor will ignore data if the temperature is lower than the value set by SYS_CAL_TMIN.
  *
- * @unit deg C
+ * @unit celcius
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
@@ -200,7 +200,7 @@ PARAM_DEFINE_INT32(SYS_CAL_TMIN, 5);
  *
  * Temperature calibration will not start if the temperature of any sensor is higher than the value set by SYS_CAL_TMAX.
  *
- * @unit deg C
+ * @unit celcius
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_CAL_TMAX, 10);
