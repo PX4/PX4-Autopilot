@@ -21,6 +21,13 @@ int main()
     TEST(fabs(wrap(360. - FLT_EPSILON, 0., 360.) - (360. - FLT_EPSILON)) < FLT_EPSILON);
     TEST(fabs(wrap(360. + FLT_EPSILON, 0., 360.) - FLT_EPSILON) < FLT_EPSILON);
 
+    // integer wraps
+    TEST(wrap(-10, 0, 10) == 0);
+    TEST(wrap(-4, 0, 10) == 6);
+    TEST(wrap(0, 0, 10) == 0)
+    TEST(wrap(4, 0, 10) == 4);
+    TEST(wrap(10, 0, 10) == 0);
+
     // wrap pi
     TEST(fabs(wrap_pi(0.)) < FLT_EPSILON);
     TEST(fabs(wrap_pi(4.) - (4. - M_TWOPI)) < FLT_EPSILON);
