@@ -114,27 +114,27 @@ fi
 
 if param greater -s SENS_EN_TFMINI_D 0
 then
-	tfmini_s_down start -a
+	tfmini_s_down start -X
 fi
 
 if param greater -s SENS_EN_TFMINI_F 0
 then
-	tfmini_s_forward start -a
+	tfmini_s_forward start -X
 fi
 
 if param greater -s SENS_EN_TFMINI_L 0
 then
-	tfmini_s_left start -a
+	tfmini_s_left start -X
 fi
 
 if param greater -s SENS_EN_TFMINI_R 0
 then
-	tfmini_s_right start -a
+	tfmini_s_right start -X
 fi
 
 if param greater -s SENS_EN_TFMINI_U 0
 then
-	tfmini_s_upward start -a
+	tfmini_s_upward start -X
 fi
 
 

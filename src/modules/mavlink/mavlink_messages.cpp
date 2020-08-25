@@ -538,11 +538,11 @@ public:
 private:
 	MavlinkOrbSubscription *_status_sub;
 	MavlinkOrbSubscription *_cpuload_sub;
-	MavlinkOrbSubscription *_battery_status_sub[ORB_MULTI_MAX_INSTANCES];
+    MavlinkOrbSubscription *_battery_status_sub[4];
 
 	uint64_t _status_timestamp{0};
 	uint64_t _cpuload_timestamp{0};
-	uint64_t _battery_status_timestamp[ORB_MULTI_MAX_INSTANCES] {};
+    uint64_t _battery_status_timestamp[4] {};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &) = delete;
@@ -553,7 +553,7 @@ protected:
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_cpuload_sub(_mavlink->add_orb_subscription(ORB_ID(cpuload)))
 	{
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+        for (int i = 0; i < 4; i++) {
 			_battery_status_sub[i] = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
 			_battery_status_timestamp[i] = 0;
 		}
@@ -563,14 +563,14 @@ protected:
 	{
 		vehicle_status_s status{};
 		cpuload_s cpuload{};
-		battery_status_s battery_status[ORB_MULTI_MAX_INSTANCES] {};
+        battery_status_s battery_status[4] {};
 
 		const bool updated_status = _status_sub->update(&_status_timestamp, &status);
 		const bool updated_cpuload = _cpuload_sub->update(&_cpuload_timestamp, &cpuload);
 
 		bool updated_battery = false;
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+        for (int i = 0; i < 4; i++) {
 			if (_battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status[i])) {
 				updated_battery = true;
 			}
@@ -579,7 +579,7 @@ protected:
 		if (updated_status || updated_cpuload || updated_battery) {
 			int lowest_battery_index = 0;
 
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+            for (int i = 0; i < 4; i++) {
 				if (battery_status[i].connected && (battery_status[i].remaining < battery_status[lowest_battery_index].remaining)) {
 					lowest_battery_index = i;
 				}
@@ -654,9 +654,9 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_battery_status_sub[ORB_MULTI_MAX_INSTANCES] {};
+    MavlinkOrbSubscription *_battery_status_sub[4] {};
 
-	uint64_t _battery_status_timestamp[ORB_MULTI_MAX_INSTANCES] {};
+    uint64_t _battery_status_timestamp[4] {};
 
 	/* do not allow top copying this class */
 	MavlinkStreamBatteryStatus(MavlinkStreamSysStatus &) = delete;
@@ -665,7 +665,7 @@ private:
 protected:
 	explicit MavlinkStreamBatteryStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+        for (int i = 0; i < 4; i++) {
 			_battery_status_sub[i] = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
 		}
 	}
@@ -674,7 +674,7 @@ protected:
 	{
 		bool updated = false;
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+        for (int i = 0; i < 4; i++) {
 
 			if (!_battery_status_sub[i]) {
 				continue;

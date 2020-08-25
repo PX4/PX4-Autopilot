@@ -104,7 +104,7 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_windspeed(SimpleAnalyzer::AVERAGE)
 {
 
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+    for (int i = 0; i < 4; i++) {
 		_batteries[i].subscription = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
 	}
 
@@ -122,7 +122,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 		bool updated = _airspeed.valid();
 		updated |= _airspeed_sp.valid();
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+        for (int i = 0; i < 4; i++) {
 			updated |= _batteries[i].analyzer.valid();
 		}
 
@@ -162,7 +162,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 
 			int lowest = 0;
 
-			for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
+            for (int i = 1; i < 4; i++) {
 				const bool battery_connected = _batteries[i].connected && _batteries[i].analyzer.valid();
 				const bool battery_is_lowest = _batteries[i].analyzer.get_scaled(100.0f) <= _batteries[lowest].analyzer.get_scaled(
 								       100.0f);
@@ -233,7 +233,7 @@ void MavlinkStreamHighLatency2::reset_analysers(const hrt_abstime t)
 	_airspeed.reset();
 	_airspeed_sp.reset();
 
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+    for (int i = 0; i < 4; i++) {
 		_batteries[i].analyzer.reset();
 	}
 
@@ -281,7 +281,7 @@ bool MavlinkStreamHighLatency2::write_battery_status(mavlink_high_latency2_t *ms
 	struct battery_status_s battery;
 	bool updated = false;
 
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+    for (int i = 0; i < 4; i++) {
 		if (_batteries[i].subscription->update(&_batteries[i].timestamp, &battery)) {
 			updated = true;
 			_batteries[i].connected = battery.connected;
@@ -538,7 +538,7 @@ void MavlinkStreamHighLatency2::update_battery_status()
 {
 	battery_status_s battery;
 
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+    for (int i = 0; i < 4; i++) {
 		if (_batteries[i].subscription->update(&battery)) {
 			_batteries[i].connected = battery.connected;
 			_batteries[i].analyzer.add_value(battery.remaining, _update_rate_filtered);

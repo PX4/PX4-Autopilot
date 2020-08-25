@@ -62,15 +62,15 @@ static constexpr uint8_t crc_table[] = {
 
 static uint8_t crc8(uint8_t *p, uint8_t len)
 {
-	uint16_t i;
-	uint16_t crc = 0x0;
+        uint16_t i;
+        uint16_t crc = 0x0;
 
-	while (len--) {
-		i = (crc ^ *p++) & 0xFF;
-		crc = (crc_table[i] ^ (crc << 8)) & 0xFF;
-	}
+        while (len--) {
+                i = (crc ^ *p++) & 0xFF;
+                crc = (crc_table[i] ^ (crc << 8)) & 0xFF;
+        }
 
-	return crc & 0xFF;
+        return crc & 0xFF;
 }
 
 TERARANGER::TERARANGER(const int bus, const int address, const uint8_t rotation) :
@@ -92,39 +92,39 @@ TERARANGER::~TERARANGER()
 
 int TERARANGER::collect()
 {
-	if (!_collect_phase) {
-		return measure();
-	}
+        if (!_collect_phase) {
+                return measure();
+        }
 
-	perf_begin(_sample_perf);
+        perf_begin(_sample_perf);
 
-	// Transfer data from the bus.
-	uint8_t val[3] {};
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	int ret_val = transfer(nullptr, 0, &val[0], 3);
+        // Transfer data from the bus.
+        uint8_t val[3] {};
+        const hrt_abstime timestamp_sample = hrt_absolute_time();
+        int ret_val = transfer(nullptr, 0, &val[0], 3);
 
-	if (ret_val < 0) {
-		PX4_ERR("error reading from sensor: %d", ret_val);
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-		return ret_val;
-	}
+        if (ret_val < 0) {
+                PX4_ERR("error reading from sensor: %d", ret_val);
+                perf_count(_comms_errors);
+                perf_end(_sample_perf);
+                return ret_val;
+        }
 
-	uint16_t distance_mm = (val[0] << 8) | val[1];
-	float distance_m = static_cast<float>(distance_mm) * 1e-3f;
+        uint16_t distance_mm = (val[0] << 8) | val[1];
+        float distance_m = static_cast<float>(distance_mm) * 1e-3f;
 
-	if (crc8(val, 2) == val[2]) {
-		_px4_rangefinder.update(timestamp_sample, distance_m);
+        if (crc8(val, 2) == val[2]) {
+                _px4_rangefinder.update(timestamp_sample, distance_m);
 
-	}
+        }
 
-	// Next phase is measurement.
-	_collect_phase = false;
+        // Next phase is measurement.
+        _collect_phase = false;
 
-	perf_count(_sample_perf);
-	perf_end(_sample_perf);
+        perf_count(_sample_perf);
+        perf_end(_sample_perf);
 
-	return PX4_OK;
+        return PX4_OK;
 }
 
 int TERARANGER::init()
@@ -132,16 +132,16 @@ int TERARANGER::init()
 	int32_t hw_model = 0;
 	param_get(param_find("SENS_EN_TRANGER"), &hw_model);
 
-	switch (hw_model) {
+        switch (hw_model) {
 	case 0: // Disabled
 		PX4_WARN("Disabled");
 		return PX4_ERROR;
 
 	case 1: // Autodetect - assume default Teraranger One
-		set_device_address(TERARANGER_ONE_BASEADDR);
+                set_device_address(TERARANGER_ONE_BASEADDR);
 
 		if (I2C::init() != OK) {
-			set_device_address(TERARANGER_EVO_BASEADDR);
+                        set_device_address(TERARANGER_EVO_BASEADDR);
 
 			if (I2C::init() != OK) {
 				return PX4_ERROR;
@@ -219,8 +219,8 @@ int TERARANGER::init()
 int TERARANGER::measure()
 {
 	// Send the command to begin a measurement.
-	const uint8_t cmd = TERARANGER_MEASURE_REG;
-	int ret_val = transfer(&cmd, sizeof(cmd), nullptr, 0);
+        const uint8_t cmd = TERARANGER_MEASURE_REG;
+        int ret_val = transfer(&cmd, sizeof(cmd), nullptr, 0);
 
 	if (ret_val != PX4_OK) {
 		perf_count(_comms_errors);
