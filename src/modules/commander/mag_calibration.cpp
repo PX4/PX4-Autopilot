@@ -724,7 +724,19 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 							case ROTATION_ROLL_90_PITCH_68_YAW_293: // skip
 
 							// FALLTHROUGH
-							case ROTATION_ROLL_270_YAW_270: // skip, same as ROTATION_ROLL_90_PITCH_180_YAW_90 (36)
+							case ROTATION_PITCH_180_YAW_90:  // skip 26, same as 14 ROTATION_ROLL_180_YAW_270
+
+							// FALLTHROUGH
+							case ROTATION_PITCH_180_YAW_270: // skip 27, same as 10 ROTATION_ROLL_180_YAW_90
+
+							// FALLTHROUGH
+							case ROTATION_ROLL_270_YAW_180:  // skip 41, same as 31 ROTATION_ROLL_90_PITCH_180
+
+							// FALLTHROUGH
+							case ROTATION_ROLL_270_YAW_270:  // skip 42, same as 36 ROTATION_ROLL_90_PITCH_180_YAW_90
+
+							// FALLTHROUGH
+							case ROTATION_PITCH_90_YAW_180:  // skip 43, same as 29 ROTATION_ROLL_180_PITCH_90
 
 							// FALLTHROUGH
 							case ROTATION_PITCH_9_YAW_180: // skip, too close to ROTATION_YAW_180
