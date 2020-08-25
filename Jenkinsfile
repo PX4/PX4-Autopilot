@@ -266,6 +266,7 @@ pipeline {
           }
           steps {
             sh('export')
+            sh('git fetch --all --tags')
             sh('make distclean')
             sh('make px4_sitl_rtps')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
