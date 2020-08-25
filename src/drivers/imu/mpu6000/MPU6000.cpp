@@ -44,8 +44,8 @@ MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_t
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, 0, device_type),
 	_interface(interface),
 	_device_type(device_type),
-	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
-	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
+	_px4_accel(_interface->get_device_id(), rotation),
+	_px4_gyro(_interface->get_device_id(), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6k_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6k_bad_trans")),
 	_bad_registers(perf_alloc(PC_COUNT, "mpu6k_bad_reg")),
@@ -160,8 +160,6 @@ int MPU6000::reset()
 
 	// SAMPLE RATE
 	_set_sample_rate(1000);
-	_px4_accel.set_update_rate(1000);
-	_px4_gyro.set_update_rate(1000);
 	px4_usleep(1000);
 
 	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
@@ -885,8 +883,6 @@ MPU6000::print_status()
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }
 
 void

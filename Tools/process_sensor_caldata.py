@@ -122,10 +122,7 @@ gyro_0_params = {
 'TC_G0_X0_2':0.0,
 'TC_G0_X1_2':0.0,
 'TC_G0_X2_2':0.0,
-'TC_G0_X3_2':0.0,
-'TC_G0_SCL_0':1.0,
-'TC_G0_SCL_1':1.0,
-'TC_G0_SCL_2':1.0
+'TC_G0_X3_2':0.0
 }
 
 # curve fit the data for gyro 0 corrections
@@ -174,7 +171,7 @@ if num_gyros >= 1:
     plt.subplot(3,1,1)
     plt.plot(sensor_gyro_0['temperature'],sensor_gyro_0['x'],'b')
     plt.plot(temp_resample,gyro_0_x_resample,'r')
-    plt.title('Gyro 0 Bias vs Temperature')
+    plt.title('Gyro 0 ({}) Bias vs Temperature'.format(gyro_0_params['TC_G0_ID']))
     plt.ylabel('X bias (rad/s)')
     plt.xlabel('temperature (degC)')
     plt.grid()
@@ -218,10 +215,7 @@ gyro_1_params = {
 'TC_G1_X0_2':0.0,
 'TC_G1_X1_2':0.0,
 'TC_G1_X2_2':0.0,
-'TC_G1_X3_2':0.0,
-'TC_G1_SCL_0':1.0,
-'TC_G1_SCL_1':1.0,
-'TC_G1_SCL_2':1.0
+'TC_G1_X3_2':0.0
 }
 
 # curve fit the data for gyro 1 corrections
@@ -270,7 +264,7 @@ if num_gyros >= 2:
     plt.subplot(3,1,1)
     plt.plot(sensor_gyro_1['temperature'],sensor_gyro_1['x'],'b')
     plt.plot(temp_resample,gyro_1_x_resample,'r')
-    plt.title('Gyro 1 Bias vs Temperature')
+    plt.title('Gyro 1 ({}) Bias vs Temperature'.format(gyro_1_params['TC_G1_ID']))
     plt.ylabel('X bias (rad/s)')
     plt.xlabel('temperature (degC)')
     plt.grid()
@@ -314,10 +308,7 @@ gyro_2_params = {
 'TC_G2_X0_2':0.0,
 'TC_G2_X1_2':0.0,
 'TC_G2_X2_2':0.0,
-'TC_G2_X3_2':0.0,
-'TC_G2_SCL_0':1.0,
-'TC_G2_SCL_1':1.0,
-'TC_G2_SCL_2':1.0
+'TC_G2_X3_2':0.0
 }
 
 # curve fit the data for gyro 2 corrections
@@ -366,7 +357,7 @@ if num_gyros >= 3:
     plt.subplot(3,1,1)
     plt.plot(sensor_gyro_2['temperature'],sensor_gyro_2['x'],'b')
     plt.plot(temp_resample,gyro_2_x_resample,'r')
-    plt.title('Gyro 2 Bias vs Temperature')
+    plt.title('Gyro 2 ({}) Bias vs Temperature'.format(gyro_2_params['TC_G2_ID']))
     plt.ylabel('X bias (rad/s)')
     plt.xlabel('temperature (degC)')
     plt.grid()
@@ -410,10 +401,7 @@ accel_0_params = {
 'TC_A0_X0_2':0.0,
 'TC_A0_X1_2':0.0,
 'TC_A0_X2_2':0.0,
-'TC_A0_X3_2':0.0,
-'TC_A0_SCL_0':1.0,
-'TC_A0_SCL_1':1.0,
-'TC_A0_SCL_2':1.0
+'TC_A0_X3_2':0.0
 }
 
 # curve fit the data for accel 0 corrections
@@ -465,7 +453,7 @@ if num_accels >= 1:
     plt.subplot(3,1,1)
     plt.plot(sensor_accel_0['temperature'],correction_x,'b')
     plt.plot(temp_resample,correction_x_resample,'r')
-    plt.title('Accel 0 Bias vs Temperature')
+    plt.title('Accel 0 ({}) Bias vs Temperature'.format(accel_0_params['TC_A0_ID']))
     plt.ylabel('X bias (m/s/s)')
     plt.xlabel('temperature (degC)')
     plt.grid()
@@ -509,10 +497,7 @@ accel_1_params = {
 'TC_A1_X0_2':0.0,
 'TC_A1_X1_2':0.0,
 'TC_A1_X2_2':0.0,
-'TC_A1_X3_2':0.0,
-'TC_A1_SCL_0':1.0,
-'TC_A1_SCL_1':1.0,
-'TC_A1_SCL_2':1.0
+'TC_A1_X3_2':0.0
 }
 
 # curve fit the data for accel 1 corrections
@@ -564,7 +549,7 @@ if num_accels >= 2:
     plt.subplot(3,1,1)
     plt.plot(sensor_accel_1['temperature'],correction_x,'b')
     plt.plot(temp_resample,correction_x_resample,'r')
-    plt.title('Accel 1 Bias vs Temperature')
+    plt.title('Accel 1 ({}) Bias vs Temperature'.format(accel_1_params['TC_A1_ID']))
     plt.ylabel('X bias (m/s/s)')
     plt.xlabel('temperature (degC)')
     plt.grid()
@@ -608,10 +593,7 @@ accel_2_params = {
 'TC_A2_X0_2':0.0,
 'TC_A2_X1_2':0.0,
 'TC_A2_X2_2':0.0,
-'TC_A2_X3_2':0.0,
-'TC_A2_SCL_0':1.0,
-'TC_A2_SCL_1':1.0,
-'TC_A2_SCL_2':1.0
+'TC_A2_X3_2':0.0
 }
 
 # curve fit the data for accel 2 corrections
@@ -663,7 +645,7 @@ if num_accels >= 3:
     plt.subplot(3,1,1)
     plt.plot(sensor_accel_2['temperature'],correction_x,'b')
     plt.plot(temp_resample,correction_x_resample,'r')
-    plt.title('Accel 2 Bias vs Temperature')
+    plt.title('Accel 2 ({}) Bias vs Temperature'.format(accel_2_params['TC_A2_ID']))
     plt.ylabel('X bias (m/s/s)')
     plt.xlabel('temperature (degC)')
     plt.grid()
@@ -701,8 +683,7 @@ baro_0_params = {
 'TC_B0_X2':0.0,
 'TC_B0_X3':0.0,
 'TC_B0_X4':0.0,
-'TC_B0_X5':0.0,
-'TC_B0_SCL':1.0,
+'TC_B0_X5':0.0
 }
 
 # curve fit the data for baro 0 corrections
@@ -734,7 +715,7 @@ plt.figure(7,figsize=(20,13))
 # draw plots
 plt.plot(sensor_baro_0['temperature'],100*sensor_baro_0['pressure']-100*median_pressure,'b')
 plt.plot(temp_resample,baro_0_x_resample,'r')
-plt.title('Baro 0 Bias vs Temperature')
+plt.title('Baro 0 ({}) Bias vs Temperature'.format(baro_0_params['TC_B0_ID']))
 plt.ylabel('Z bias (Pa)')
 plt.xlabel('temperature (degC)')
 plt.grid()
@@ -753,7 +734,6 @@ baro_1_params = {
 'TC_B1_X3':0.0,
 'TC_B1_X4':0.0,
 'TC_B1_X5':0.0,
-'TC_B1_SCL':1.0,
 }
 
 if num_baros >= 2:
@@ -787,7 +767,7 @@ if num_baros >= 2:
     # draw plots
     plt.plot(sensor_baro_1['temperature'],100*sensor_baro_1['pressure']-100*median_pressure,'b')
     plt.plot(temp_resample,baro_1_x_resample,'r')
-    plt.title('Baro 1 Bias vs Temperature')
+    plt.title('Baro 1 ({}) Bias vs Temperature'.format(baro_1_params['TC_B1_ID']))
     plt.ylabel('Z bias (Pa)')
     plt.xlabel('temperature (degC)')
     plt.grid()
@@ -840,7 +820,7 @@ if num_baros >= 3:
     # draw plots
     plt.plot(sensor_baro_2['temperature'],100*sensor_baro_2['pressure']-100*median_pressure,'b')
     plt.plot(temp_resample,baro_2_x_resample,'r')
-    plt.title('Baro 2 Bias vs Temperature')
+    plt.title('Baro 2 ({}) Bias vs Temperature'.format(baro_2_params['TC_B2_ID']))
     plt.ylabel('Z bias (Pa)')
     plt.xlabel('temperature (degC)')
     plt.grid()

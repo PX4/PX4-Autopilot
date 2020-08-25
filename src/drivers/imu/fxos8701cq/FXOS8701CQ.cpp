@@ -57,17 +57,15 @@ FXOS8701CQ::FXOS8701CQ(device::Device *interface, I2CSPIBusOption bus_option, in
 		       int i2c_address) :
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, i2c_address),
 	_interface(interface),
-	_px4_accel(interface->get_device_id(), ORB_PRIO_LOW, rotation),
+	_px4_accel(interface->get_device_id(), rotation),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	_px4_mag(interface->get_device_id(), ORB_PRIO_LOW, rotation),
+	_px4_mag(interface->get_device_id(), rotation),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag read")),
 #endif
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": acc read")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad reg")),
 	_accel_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": acc dupe"))
 {
-	_px4_accel.set_update_rate(FXOS8701C_ACCEL_DEFAULT_RATE);
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_px4_mag.set_scale(0.001f);
 #endif

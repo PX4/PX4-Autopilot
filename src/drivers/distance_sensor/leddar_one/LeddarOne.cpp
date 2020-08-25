@@ -39,7 +39,7 @@
 
 LeddarOne::LeddarOne(const char *serial_port, uint8_t device_orientation):
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
-	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, device_orientation)
+	_px4_rangefinder(0 /* device id not yet used */, device_orientation)
 {
 	_serial_port = strdup(serial_port);
 
@@ -267,8 +267,6 @@ LeddarOne::print_info()
 {
 	perf_print_counter(_comms_error);
 	perf_print_counter(_sample_perf);
-
-	_px4_rangefinder.print_status();
 }
 
 void

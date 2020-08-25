@@ -41,6 +41,15 @@
 
 bool param_modify_on_import(bson_node_t node)
 {
+	// migrate MPC_*_VEL_* -> MPC_*_VEL_*_ACC (2020-04-27). This can be removed after the next release (current release=1.10)
+	if (node->type == BSON_DOUBLE) {
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_P");
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_I");
+		param_migrate_velocity_gain(node, "MPC_XY_VEL_D");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_P");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_I");
+		param_migrate_velocity_gain(node, "MPC_Z_VEL_D");
+	}
 
 	// migrate MC_DTERM_CUTOFF -> IMU_DGYRO_CUTOFF (2020-03-12). This can be removed after the next release (current release=1.10)
 	if (node->type == BSON_DOUBLE) {
@@ -48,6 +57,44 @@ bool param_modify_on_import(bson_node_t node)
 			strcpy(node->name, "IMU_DGYRO_CUTOFF");
 			PX4_INFO("param migrating MC_DTERM_CUTOFF (removed) -> IMU_DGYRO_CUTOFF: value=%.3f", node->d);
 			return true;
+		}
+	}
+
+	// 2020-06-29 (v1.11 beta): translate CAL_ACCx_EN/CAL_GYROx_EN/CAL_MAGx_EN -> CAL_ACCx_PRIO/CAL_GYROx_PRIO/CAL_MAGx_PRIO
+	if (node->type == BSON_INT32) {
+
+		const char *cal_sensor_en_params[] = {
+			"CAL_ACC0_EN",
+			"CAL_ACC1_EN",
+			"CAL_ACC2_EN",
+			"CAL_GYRO0_EN",
+			"CAL_GYRO1_EN",
+			"CAL_GYRO2_EN",
+			"CAL_MAG0_EN",
+			"CAL_MAG1_EN",
+			"CAL_MAG2_EN",
+			"CAL_MAG3_EN",
+		};
+
+		for (int i = 0; i < sizeof(cal_sensor_en_params) / sizeof(cal_sensor_en_params[0]); ++i) {
+			if (strcmp(cal_sensor_en_params[i], node->name) == 0) {
+
+				char new_parameter_name[17] {};
+				strcpy(new_parameter_name, cal_sensor_en_params[i]);
+
+				char *str_replace = strstr(new_parameter_name, "_EN");
+
+				if (str_replace != nullptr) {
+					strcpy(str_replace, "_PRIO");
+					PX4_INFO("%s -> %s", cal_sensor_en_params[i], new_parameter_name);
+					strcpy(node->name, new_parameter_name);
+				}
+
+				// if sensor wasn't disabled, reset to -1 so that it can be set to an appropriate default
+				if (node->i != 0) {
+					node->i = -1; // special value to process later
+				}
+			}
 		}
 	}
 
@@ -78,10 +125,7 @@ bool param_modify_on_import(bson_node_t node)
 		"CAL_MAG2_ID",
 		"TC_A2_ID",
 		"TC_B2_ID",
-		"TC_G2_ID",
-		"CAL_ACC_PRIME",
-		"CAL_GYRO_PRIME",
-		"CAL_MAG_PRIME",
+		"TC_G2_ID"
 	};
 	bool found = false;
 
@@ -147,4 +191,13 @@ bool param_modify_on_import(bson_node_t node)
 	}
 
 	return false;
+}
+
+void param_migrate_velocity_gain(bson_node_t node, const char *parameter_name)
+{
+	if (strcmp(parameter_name, node->name) == 0) {
+		strcat(node->name, "_ACC");
+		node->d *= 20.0;
+		PX4_INFO("migrating %s (removed) -> %s: new value=%.3f", parameter_name, node->name, node->d);
+	}
 }

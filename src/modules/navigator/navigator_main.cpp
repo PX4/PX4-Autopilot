@@ -217,8 +217,13 @@ Navigator::run()
 		_home_pos_sub.update(&_home_pos);
 
 		if (_vehicle_command_sub.updated()) {
+			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 			vehicle_command_s cmd{};
 			_vehicle_command_sub.copy(&cmd);
+
+			if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+				PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, _vehicle_command_sub.get_last_generation());
+			}
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
 
@@ -257,7 +262,7 @@ Navigator::run()
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
 					// store current position as previous position and goal as next
-					rep->previous.yaw = get_global_position()->yaw;
+					rep->previous.yaw = get_local_position()->heading;
 					rep->previous.lat = get_global_position()->lat;
 					rep->previous.lon = get_global_position()->lon;
 					rep->previous.alt = get_global_position()->alt;
@@ -340,7 +345,7 @@ Navigator::run()
 				position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
 				// store current position as previous position and goal as next
-				rep->previous.yaw = get_local_position()->yaw;
+				rep->previous.yaw = get_local_position()->heading;
 				rep->previous.lat = get_global_position()->lat;
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;
@@ -356,7 +361,7 @@ Navigator::run()
 					rep->previous.timestamp = hrt_absolute_time();
 
 				} else {
-					rep->current.yaw = get_local_position()->yaw;
+					rep->current.yaw = get_local_position()->heading;
 					rep->previous.valid = false;
 				}
 
@@ -365,9 +370,9 @@ Navigator::run()
 					rep->current.lon = cmd.param6;
 
 				} else {
-					// If one of them is non-finite, reset both
-					rep->current.lat = (double)NAN;
-					rep->current.lon = (double)NAN;
+					// If one of them is non-finite set the current global position as target
+					rep->current.lat = get_global_position()->lat;
+					rep->current.lon = get_global_position()->lon;
 				}
 
 				rep->current.alt = cmd.param7;
@@ -500,7 +505,7 @@ Navigator::run()
 					    && get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
 						position_setpoint_triplet_s *rep = get_reposition_triplet();
 
-						rep->current.yaw = get_global_position()->yaw;
+						rep->current.yaw = get_local_position()->heading;
 						rep->current.lat = get_global_position()->lat;
 						rep->current.lon = get_global_position()->lon;
 						rep->current.alt = get_global_position()->alt;
@@ -891,7 +896,7 @@ Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.cruising_throttle = get_cruising_throttle();
 	sp.valid = false;
 	sp.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
-	sp.disable_weather_vane = true;
+	sp.disable_weather_vane = false;
 }
 
 float

@@ -95,8 +95,6 @@ Sih::Sih() :
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": execution")),
 	_sampling_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sampling"))
 {
-	_px4_accel.set_update_rate(LOOP_INTERVAL);
-	_px4_gyro.set_update_rate(LOOP_INTERVAL);
 }
 
 void Sih::run()
@@ -270,7 +268,7 @@ void Sih::generate_force_and_torques()
 // apply the equations of motion of a rigid body and integrate one step
 void Sih::equations_of_motion()
 {
-	_C_IB = _q.to_dcm(); // body to inertial transformation
+	_C_IB = matrix::Dcm<float>(_q); // body to inertial transformation
 
 	// Equations of motion of a rigid body
 	_p_I_dot = _v_I;                        // position differential

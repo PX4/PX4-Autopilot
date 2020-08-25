@@ -44,11 +44,9 @@ ISM330DLC::ISM330DLC(I2CSPIBusOption bus_option, int bus, uint32_t device, enum 
 	SPI(DRV_IMU_DEVTYPE_ST_ISM330DLC, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_drdy_gpio(drdy_gpio),
-	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
-	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation)
+	_px4_accel(get_device_id(), rotation),
+	_px4_gyro(get_device_id(), rotation)
 {
-	_px4_accel.set_update_rate(1000000 / FIFO_INTERVAL);
-	_px4_gyro.set_update_rate(1000000 / FIFO_INTERVAL);
 }
 
 ISM330DLC::~ISM330DLC()
@@ -286,12 +284,12 @@ void ISM330DLC::RunImpl()
 
 	perf_end(_transfer_perf);
 
-	PX4Accelerometer::FIFOSample accel;
+	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = samples;
 	accel.dt = 1000000 / ST_ISM330DLC::LA_ODR;
 
-	PX4Gyroscope::FIFOSample gyro;
+	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = 1000000 / ST_ISM330DLC::G_ODR;
@@ -341,6 +339,4 @@ void ISM330DLC::print_status()
 	perf_print_counter(_drdy_count_perf);
 	perf_print_counter(_drdy_interval_perf);
 
-	_px4_accel.print_status();
-	_px4_gyro.print_status();
 }

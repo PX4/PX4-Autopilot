@@ -224,7 +224,7 @@ int px4_arch_adc_init(uint32_t base_address)
 	}
 
 
-	/* arbitrarily configure all channels for 810.5 cycle sample time */
+	/* arbitrarily configure all channels for 64.5 cycle sample time */
 
 	rSMPR1(base_address) = ADC_SMPR1_DEFAULT;
 	rSMPR2(base_address) = ADC_SMPR2_DEFAULT;
@@ -260,6 +260,10 @@ int px4_arch_adc_init(uint32_t base_address)
 		}
 	}
 
+	/* Read out result, clear EOC */
+
+	(void) rDR(base_address);
+
 	return OK;
 }
 
@@ -278,7 +282,7 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 		rISR(base_address) &= ~ADC_INT_EOC;
 	}
 
-	/* run a single conversion right now - should take about 810.5 cycles (34 microseconds) max */
+	/* run a single conversion right now - should take about 64.5 cycles (34 microseconds) max */
 
 	rPCSEL(base_address) |= 1 << channel;
 	rSQR1(base_address) = channel << ADC_SQR1_SQ_OFFSET;

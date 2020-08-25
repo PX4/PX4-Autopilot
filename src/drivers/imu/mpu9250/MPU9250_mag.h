@@ -124,8 +124,6 @@ public:
 	bool ak8963_check_id(uint8_t &id);
 	bool ak8963_read_adjustments();
 
-	void print_status() { _px4_mag.print_status(); }
-
 protected:
 	device::Device			*_interface;
 
@@ -146,6 +144,8 @@ private:
 	PX4Magnetometer		_px4_mag;
 
 	MPU9250 *_parent;
+
+	float _ak8963_ASA[3] {1.f, 1.f, 1.f};
 
 	bool _mag_reading_data{false};
 

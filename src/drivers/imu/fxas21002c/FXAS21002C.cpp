@@ -69,13 +69,12 @@ FXAS21002C::FXAS21002C(device::Device *interface, I2CSPIBusOption bus_option, in
 		       int i2c_address) :
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus, i2c_address),
 	_interface(interface),
-	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
+	_px4_gyro(_interface->get_device_id(), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicate reading"))
 {
-	_px4_gyro.set_update_rate(FXAS21002C_DEFAULT_RATE);
 }
 
 FXAS21002C::~FXAS21002C()
@@ -419,7 +418,6 @@ void FXAS21002C::print_status()
 		}
 	}
 
-	_px4_gyro.print_status();
 }
 
 void

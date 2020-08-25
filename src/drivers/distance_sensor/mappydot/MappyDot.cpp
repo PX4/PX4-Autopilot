@@ -275,8 +275,7 @@ MappyDot::collect()
 		report.variance         = 0;
 
 		int instance_id;
-		orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id, ORB_PRIO_DEFAULT);
-
+		orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id);
 	}
 
 	perf_end(_sample_perf);

@@ -45,11 +45,6 @@ bool FlightTaskOffboard::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
 
-	_sub_triplet_setpoint.update();
-
-	// require a valid triplet
-	ret = ret && _sub_triplet_setpoint.get().current.valid;
-
 	// require valid position / velocity in xy
 	return ret && PX4_ISFINITE(_position(0))
 	       && PX4_ISFINITE(_position(1))
@@ -57,7 +52,7 @@ bool FlightTaskOffboard::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
-bool FlightTaskOffboard::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskOffboard::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 	_position_setpoint = _position;
@@ -72,6 +67,8 @@ bool FlightTaskOffboard::update()
 
 	// reset setpoint for every loop
 	_resetSetpoints();
+
+	_sub_triplet_setpoint.update();
 
 	if (!_sub_triplet_setpoint.get().current.valid) {
 		_setDefaultConstraints();

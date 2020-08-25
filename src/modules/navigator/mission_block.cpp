@@ -375,7 +375,7 @@ MissionBlock::is_mission_item_reached()
 
 			/* check course if defined only for rotary wing except takeoff */
 			float cog = (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) ?
-				    _navigator->get_local_position()->yaw :
+				    _navigator->get_local_position()->heading :
 				    atan2f(
 					    _navigator->get_local_position()->vy,
 					    _navigator->get_local_position()->vx
@@ -440,7 +440,7 @@ MissionBlock::is_mission_item_reached()
 
 				// Replace current setpoint lat/lon with tangent coordinate
 				waypoint_from_heading_and_distance(curr_sp.lat, curr_sp.lon,
-								   bearing, curr_sp.loiter_radius,
+								   bearing, fabsf(curr_sp.loiter_radius),
 								   &curr_sp.lat, &curr_sp.lon);
 			}
 
@@ -690,7 +690,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, 
 	/* use current position */
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
-	item->yaw = _navigator->get_local_position()->yaw;
+	item->yaw = _navigator->get_local_position()->heading;
 
 	item->altitude = abs_altitude;
 	item->altitude_is_relative = false;
@@ -720,7 +720,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	if (at_current_location) {
 		item->lat = (double)NAN; //descend at current position
 		item->lon = (double)NAN; //descend at current position
-		item->yaw = _navigator->get_local_position()->yaw;
+		item->yaw = _navigator->get_local_position()->heading;
 
 	} else {
 		/* use home position */
@@ -759,7 +759,7 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 {
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 	item->params[0] = (float) new_mode;
-	item->yaw = _navigator->get_local_position()->yaw;
+	item->yaw = _navigator->get_local_position()->heading;
 	item->autocontinue = true;
 }
 

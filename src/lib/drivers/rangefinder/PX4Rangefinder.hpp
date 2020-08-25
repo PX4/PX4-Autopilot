@@ -44,11 +44,8 @@ class PX4Rangefinder
 
 public:
 	PX4Rangefinder(const uint32_t device_id,
-		       const ORB_PRIO priority = ORB_PRIO_DEFAULT,
 		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~PX4Rangefinder();
-
-	void print_status();
 
 	void set_device_type(uint8_t device_type);
 	//void set_error_count(uint64_t error_count) { _distance_sensor_pub.get().error_count = error_count; }

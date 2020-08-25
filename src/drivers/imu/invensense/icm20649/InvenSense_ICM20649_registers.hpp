@@ -42,6 +42,8 @@
 
 #include <cstdint>
 
+namespace InvenSense_ICM20649
+{
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
 static constexpr uint8_t Bit1 = (1 << 1);
@@ -52,8 +54,6 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_ICM20649
-{
 static constexpr uint32_t SPI_SPEED = 7 * 1000 * 1000; // 7 MHz SPI
 static constexpr uint8_t DIR_READ = 0x80;
 
@@ -105,9 +105,12 @@ enum class BANK_2 : uint8_t {
 //---------------- BANK0 Register bits
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
+	DMP_EN      = Bit7,
 	FIFO_EN     = Bit6,
-	I2C_MST_EN  = Bit5,
+	I2C_MST_EN  = Bit5, // Enable the I2C Master I/F module
 	I2C_IF_DIS  = Bit4, // Reset I2C Slave module and put the serial interface in SPI mode only
+
+	SRAM_RST    = Bit2, // Reset SRAM module. Reset is asynchronous. This bit auto clears after one clock cycle of the internal 20 MHz clock.
 };
 
 // PWR_MGMT_1

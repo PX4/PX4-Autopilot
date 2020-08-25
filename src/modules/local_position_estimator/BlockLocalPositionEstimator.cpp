@@ -19,7 +19,7 @@ static const char *msg_label = "[lpe] ";	// rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 
 	// this block has no parent, and has name LPE
 	SuperBlock(nullptr, "LPE"),
@@ -112,11 +112,9 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_ref_alt(0.0)
 {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	// For lockstep 250 Hz are needed because ekf2_timestamps need to be
-	// published at 250 Hz.
-	_sensors_sub.set_interval_ms(4);
+	_lockstep_component = px4_lockstep_register_component();
 #else
-	_sensors_sub.set_interval_ms(10); // main prediction loop, 100 hz
+	_sensors_sub.set_interval_ms(10); // main prediction loop, 100 hz (lockstep requires to run at full rate)
 #endif
 
 	// assign distance subs to array
@@ -145,6 +143,11 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 		 (_param_lpe_fusion.get() & FUSE_PUB_AGL_Z) != 0,
 		 (_param_lpe_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
 		 (_param_lpe_fusion.get() & FUSE_BARO) != 0);
+}
+
+BlockLocalPositionEstimator::~BlockLocalPositionEstimator()
+{
+	px4_lockstep_unregister_component(_lockstep_component);
 }
 
 bool
@@ -504,7 +507,6 @@ void BlockLocalPositionEstimator::Run()
 
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _param_lpe_fake_origin.get())) {
 			publishGlobalPos();
-			publishEk2fTimestamps();
 		}
 	}
 
@@ -519,6 +521,8 @@ void BlockLocalPositionEstimator::Run()
 		_xDelay.update(_x);
 		_time_last_hist = _timeStamp;
 	}
+
+	px4_lockstep_progress(_lockstep_component);
 }
 
 void BlockLocalPositionEstimator::checkTimeouts()
@@ -591,7 +595,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 			_pub_lpos.get().z = xLP(X_z);	// down
 		}
 
-		_pub_gpos.get().yaw = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
+		_pub_lpos.get().heading = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
 
 		_pub_lpos.get().vx = xLP(X_vx);		// north
 		_pub_lpos.get().vy = xLP(X_vy);		// east
@@ -755,22 +759,6 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	_pub_est_status.update();
 }
 
-void BlockLocalPositionEstimator::publishEk2fTimestamps()
-{
-	_pub_ekf2_timestamps.get().timestamp = _timeStamp;
-
-	// We only really publish this as a dummy because lockstep simulation
-	// requires it to be published.
-	_pub_ekf2_timestamps.get().airspeed_timestamp_rel = 0;
-	_pub_ekf2_timestamps.get().distance_sensor_timestamp_rel = 0;
-	_pub_ekf2_timestamps.get().optical_flow_timestamp_rel = 0;
-	_pub_ekf2_timestamps.get().vehicle_air_data_timestamp_rel = 0;
-	_pub_ekf2_timestamps.get().vehicle_magnetometer_timestamp_rel = 0;
-	_pub_ekf2_timestamps.get().visual_odometry_timestamp_rel = 0;
-
-	_pub_ekf2_timestamps.update();
-}
-
 void BlockLocalPositionEstimator::publishGlobalPos()
 {
 	// publish global position
@@ -805,7 +793,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;
 		_pub_gpos.get().alt = alt;
-		_pub_gpos.get().yaw = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);

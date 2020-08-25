@@ -49,7 +49,6 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_device.h>
 
@@ -271,7 +270,7 @@ private:
 IST8310::IST8310(I2CSPIBusOption bus_option, int bus_number, int address, enum Rotation rotation, int bus_frequency) :
 	I2C(DRV_MAG_DEVTYPE_IST8310, MODULE_NAME, bus_number, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus_number, address),
-	_px4_mag(get_device_id(), external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT, rotation),
+	_px4_mag(get_device_id(), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
 	_range_errors(perf_alloc(PC_COUNT, MODULE_NAME": rng_err")),
@@ -581,7 +580,6 @@ void IST8310::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u interval\n", _measure_interval);
-	_px4_mag.print_status();
 }
 
 I2CSPIDriverBase *

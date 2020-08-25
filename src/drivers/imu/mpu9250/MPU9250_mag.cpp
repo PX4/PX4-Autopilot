@@ -53,8 +53,7 @@
 // Otherwise, it will passthrough the parent MPU9250
 MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotation rotation) :
 	_interface(interface),
-	_px4_mag(parent->_interface->get_device_id(), (parent->_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH),
-		 rotation),
+	_px4_mag(parent->_interface->get_device_id(), rotation),
 	_parent(parent),
 	_mag_overruns(perf_alloc(PC_COUNT, MODULE_NAME": mag overruns")),
 	_mag_overflows(perf_alloc(PC_COUNT, MODULE_NAME": mag overflows")),
@@ -148,7 +147,7 @@ bool MPU9250_mag::_measure(const hrt_abstime &timestamp_sample, const ak8963_reg
 	int16_t x = combine(data.HXH, data.HXL);
 	int16_t y = -combine(data.HYH, data.HYL);
 	int16_t z = -combine(data.HZH, data.HZL);
-	_px4_mag.update(timestamp_sample, x, y, z);
+	_px4_mag.update(timestamp_sample, x * _ak8963_ASA[0], y * _ak8963_ASA[1], z * _ak8963_ASA[2]);
 
 	return true;
 }
@@ -244,18 +243,16 @@ MPU9250_mag::ak8963_read_adjustments()
 
 	write_reg_through_mpu9250(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
 
-	float ak8963_ASA[3] {};
+
 
 	for (int i = 0; i < 3; i++) {
 		if (0 != response[i] && 0xff != response[i]) {
-			ak8963_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
+			_ak8963_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
 
 		} else {
 			return false;
 		}
 	}
-
-	_px4_mag.set_sensitivity(ak8963_ASA[0], ak8963_ASA[1], ak8963_ASA[2]);
 
 	return true;
 }

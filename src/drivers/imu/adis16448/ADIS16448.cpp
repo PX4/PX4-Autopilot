@@ -41,10 +41,10 @@ ADIS16448::ADIS16448(I2CSPIBusOption bus_option, int bus, int32_t device, enum R
 		     spi_mode_e spi_mode) :
 	SPI(DRV_IMU_DEVTYPE_ADIS16448, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_accel(get_device_id(), ORB_PRIO_MAX, rotation),
-	_px4_baro(get_device_id(), ORB_PRIO_MAX),
-	_px4_gyro(get_device_id(), ORB_PRIO_MAX, rotation),
-	_px4_mag(get_device_id(), ORB_PRIO_MAX, rotation)
+	_px4_accel(get_device_id(), rotation),
+	_px4_baro(get_device_id()),
+	_px4_gyro(get_device_id(), rotation),
+	_px4_mag(get_device_id(), rotation)
 {
 	_px4_accel.set_scale(ADIS16448_ACCEL_SENSITIVITY);
 	_px4_gyro.set_scale(ADIS16448_GYRO_INITIAL_SENSITIVITY);
@@ -114,9 +114,6 @@ bool ADIS16448::reset()
 	if (!set_sample_rate(_sample_rate)) {
 		return false;
 	}
-
-	_px4_accel.set_update_rate(_sample_rate);
-	_px4_gyro.set_update_rate(_sample_rate);
 
 	// Set gyroscope scale to default value.
 	//if (!set_gyro_dyn_range(GYRO_INITIAL_SENSITIVITY)) {
@@ -310,11 +307,6 @@ ADIS16448::print_status()
 	perf_print_counter(_perf_transfer);
 	perf_print_counter(_perf_bad_transfer);
 	perf_print_counter(_perf_crc_bad);
-
-	_px4_accel.print_status();
-	_px4_baro.print_status();
-	_px4_gyro.print_status();
-	_px4_mag.print_status();
 }
 
 void

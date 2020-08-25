@@ -49,6 +49,7 @@ public:
 	void SetUp() override
 
 	{
+		param_control_autosave(false);
 		param_reset_all();
 		pos_sp = Vector3f(1.f, 1.2f, 0.1f);
 		vel_sp = Vector3f(0.3f, 0.4f, 0.1f);

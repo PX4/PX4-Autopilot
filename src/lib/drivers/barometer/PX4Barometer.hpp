@@ -45,7 +45,7 @@ class PX4Barometer : public cdev::CDev
 {
 
 public:
-	PX4Barometer(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT);
+	PX4Barometer(uint32_t device_id);
 	~PX4Barometer() override;
 
 	const sensor_baro_s &get() { return _sensor_baro_pub.get(); }
@@ -55,11 +55,9 @@ public:
 
 	void set_temperature(float temperature) { _sensor_baro_pub.get().temperature = temperature; }
 
-	void update(hrt_abstime timestamp, float pressure);
+	void update(const hrt_abstime &timestamp_sample, float pressure);
 
 	int get_class_instance() { return _class_device_instance; };
-
-	void print_status();
 
 private:
 

@@ -253,6 +253,7 @@ private:
 	};
 	int _imu_sub_index{-1};
 	bool _callback_registered{false};
+	int _lockstep_component{-1};
 
 	// because we can have several distance sensor instances with different orientations
 	static constexpr int MAX_RNG_SENSOR_COUNT = 4;
@@ -542,7 +543,7 @@ private:
 
 Ekf2::Ekf2(bool replay_mode):
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::navigation_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_replay_mode(replay_mode),
 	_ekf_update_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": update")),
 	_params(_ekf.getParamHandle()),
@@ -658,6 +659,7 @@ Ekf2::Ekf2(bool replay_mode):
 
 Ekf2::~Ekf2()
 {
+	px4_lockstep_unregister_component(_lockstep_component);
 	perf_free(_ekf_update_perf);
 }
 
@@ -772,9 +774,9 @@ void Ekf2::Run()
 		updated = _vehicle_imu_subs[_imu_sub_index].update(&imu);
 
 		imu_sample_new.time_us = imu.timestamp_sample;
-		imu_sample_new.delta_ang_dt = imu.dt * 1.e-6f;
+		imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
 		imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
-		imu_sample_new.delta_vel_dt = imu.dt * 1.e-6f;
+		imu_sample_new.delta_vel_dt = imu.delta_velocity_dt * 1.e-6f;
 		imu_sample_new.delta_vel = Vector3f{imu.delta_velocity};
 
 		if (imu.delta_velocity_clipping > 0) {
@@ -783,7 +785,7 @@ void Ekf2::Run()
 			imu_sample_new.delta_vel_clipping[2] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Z;
 		}
 
-		imu_dt = imu.dt;
+		imu_dt = imu.delta_angle_dt;
 
 		bias.accel_device_id = imu.accel_device_id;
 		bias.gyro_device_id = imu.gyro_device_id;
@@ -853,12 +855,10 @@ void Ekf2::Run()
 
 					if (_imu_sub_index < 0) {
 						if (_sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
-							PX4_WARN("accel id changed, resetting IMU bias");
 							_imu_bias_reset_request = true;
 						}
 
 						if (_sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
-							PX4_WARN("gyro id changed, resetting IMU bias");
 							_imu_bias_reset_request = true;
 						}
 					}
@@ -886,8 +886,8 @@ void Ekf2::Run()
 				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
 				// and notification events
 				// Check if there has been a persistant change in magnetometer ID
-				if (_sensor_selection.mag_device_id != 0
-				    && (_sensor_selection.mag_device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
+				if (magnetometer.device_id != 0
+				    && (magnetometer.device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
 
 					if (_invalid_mag_id_count < 200) {
 						_invalid_mag_id_count++;
@@ -908,7 +908,7 @@ void Ekf2::Run()
 					_param_ekf2_magbias_y.commit_no_notification();
 					_param_ekf2_magbias_z.set(0.f);
 					_param_ekf2_magbias_z.commit_no_notification();
-					_param_ekf2_magbias_id.set(_sensor_selection.mag_device_id);
+					_param_ekf2_magbias_id.set(magnetometer.device_id);
 					_param_ekf2_magbias_id.commit();
 
 					_invalid_mag_id_count = 0;
@@ -1061,7 +1061,8 @@ void Ekf2::Run()
 				flow.time_us = optical_flow.timestamp;
 
 				if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
-				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral)) {
+				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral) &&
+				    flow.dt < 1) {
 
 					_ekf.setOpticalFlowData(flow);
 				}
@@ -1304,7 +1305,11 @@ void Ekf2::Run()
 				// The rotation of the tangent plane vs. geographical north
 				const matrix::Quatf q = _ekf.getQuaternion();
 
-				lpos.yaw = matrix::Eulerf(q).psi();
+				matrix::Quatf delta_q_reset;
+				_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
+
+				lpos.heading = matrix::Eulerf(q).psi();
+				lpos.delta_heading = matrix::Eulerf(delta_q_reset).psi();
 
 				// Vehicle odometry quaternion
 				q.copyTo(odom.q);
@@ -1478,8 +1483,6 @@ void Ekf2::Run()
 					// global altitude has opposite sign of local down position
 					global_pos.delta_alt = -lpos.delta_z;
 
-					global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
-
 					_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
 					global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
@@ -1507,7 +1510,7 @@ void Ekf2::Run()
 					bias.accel_device_id = _sensor_selection.accel_device_id;
 				}
 
-				bias.mag_device_id = _sensor_selection.mag_device_id;
+				bias.mag_device_id = _param_ekf2_magbias_id.get();
 
 				// In-run bias estimates
 				_ekf.getGyroBias().copyTo(bias.gyro_bias);
@@ -1629,8 +1632,7 @@ void Ekf2::Run()
 
 				// Check and save the last valid calibration when we are disarmed
 				if ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-				    && (status.filter_fault_flags == 0)
-				    && (_sensor_selection.mag_device_id == (uint32_t)_param_ekf2_magbias_id.get())) {
+				    && (status.filter_fault_flags == 0)) {
 
 					update_mag_bias(_param_ekf2_magbias_x, 0);
 					update_mag_bias(_param_ekf2_magbias_y, 1);
@@ -1639,7 +1641,6 @@ void Ekf2::Run()
 					// reset to prevent data being saved too frequently
 					_total_cal_time_us = 0;
 				}
-
 			}
 
 			publish_wind_estimate(now);
@@ -1735,6 +1736,12 @@ void Ekf2::Run()
 
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
+
+		if (_lockstep_component == -1) {
+			_lockstep_component = px4_lockstep_register_component();
+		}
+
+		px4_lockstep_progress(_lockstep_component);
 	}
 }
 

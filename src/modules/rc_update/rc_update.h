@@ -157,7 +157,7 @@ private:
 	uORB::Publication<rc_channels_s>	_rc_pub{ORB_ID(rc_channels)};				/**< raw r/c control topic */
 	uORB::Publication<actuator_controls_s>	_actuator_group_3_pub{ORB_ID(actuator_controls_3)};	/**< manual control as actuator topic */
 
-	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_HIGH};	/**< manual control signal topic */
+	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};	/**< manual control signal topic */
 
 	rc_channels_s _rc {};			/**< r/c channel data */
 
@@ -165,6 +165,8 @@ private:
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN] {};	/**< parameter values for RC control */
 
 	hrt_abstime _last_rc_to_param_map_time = 0;
+
+	uint8_t _channel_count_previous{0};
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 

@@ -35,4 +35,4 @@ fi
 
 set MAV_TYPE 10
 
-set MIXER_FILE etc/mixers/generic_diff_rover.main.mix
+set MIXER_FILE etc/mixers-sitl/rover_diff_sitl.main.mix

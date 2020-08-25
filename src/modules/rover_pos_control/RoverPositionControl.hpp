@@ -45,7 +45,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
-#include <lib/ecl/l1/ecl_l1_pos_controller.h>
+#include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/pid/pid.h>
@@ -61,7 +61,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -106,15 +105,14 @@ private:
 	int		_control_mode_sub{-1};		/**< control mode subscription */
 	int		_global_pos_sub{-1};
 	int		_local_pos_sub{-1};
-	int		_manual_control_sub{-1};		/**< notification of manual control updates */
+	int		_manual_control_setpoint_sub{-1};		/**< notification of manual control updates */
 	int		_pos_sp_triplet_sub{-1};
 	int		_att_sp_sub{-1};
 	int		_vehicle_attitude_sub{-1};
-	int		_sensor_combined_sub{-1};
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
-	manual_control_setpoint_s		_manual{};			    /**< r/c channel data */
+	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< attitude setpoint > */
 	vehicle_control_mode_s			_control_mode{};		/**< control mode */
@@ -122,7 +120,6 @@ private:
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
 	actuator_controls_s				_act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s				_vehicle_att{};
-	sensor_combined_s				_sensor_combined{};
 
 	SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 

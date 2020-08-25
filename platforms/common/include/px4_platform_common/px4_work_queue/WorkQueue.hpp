@@ -48,7 +48,7 @@ namespace px4
 
 class WorkItem;
 
-class WorkQueue : public ListNode<WorkQueue *>
+class WorkQueue : public IntrusiveSortedListNode<WorkQueue *>
 {
 public:
 	explicit WorkQueue(const wq_config_t &wq_config);
@@ -56,7 +56,8 @@ public:
 
 	~WorkQueue();
 
-	const char *get_name() { return _config.name; }
+	const wq_config_t &get_config() const { return _config; }
+	const char *get_name() const { return _config.name; }
 
 	bool Attach(WorkItem *item);
 	void Detach(WorkItem *item);
@@ -71,6 +72,9 @@ public:
 	void request_stop() { _should_exit.store(true); }
 
 	void print_status(bool last = false);
+
+	// WorkQueues sorted numerically by relative priority (-1 to -255)
+	bool operator<=(const WorkQueue &rhs) const { return _config.relative_priority >= rhs.get_config().relative_priority; }
 
 private:
 
