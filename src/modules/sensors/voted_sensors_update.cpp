@@ -48,7 +48,8 @@ using namespace sensors;
 using namespace matrix;
 using namespace time_literals;
 
-VotedSensorsUpdate::VotedSensorsUpdate(bool hil_enabled, uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[3]) :
+VotedSensorsUpdate::VotedSensorsUpdate(bool hil_enabled,
+				       uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[MAX_SENSOR_COUNT]) :
 	ModuleParams(nullptr),
 	_vehicle_imu_sub(vehicle_imu_sub),
 	_hil_enabled(hil_enabled)
@@ -73,8 +74,8 @@ int VotedSensorsUpdate::init(sensor_combined_s &raw)
 
 void VotedSensorsUpdate::initializeSensors()
 {
-	initSensorClass(_gyro, GYRO_COUNT_MAX);
-	initSensorClass(_accel, ACCEL_COUNT_MAX);
+	initSensorClass(_gyro, MAX_SENSOR_COUNT);
+	initSensorClass(_accel, MAX_SENSOR_COUNT);
 }
 
 void VotedSensorsUpdate::parametersUpdate()
@@ -82,7 +83,7 @@ void VotedSensorsUpdate::parametersUpdate()
 	updateParams();
 
 	// run through all IMUs
-	for (uint8_t uorb_index = 0; uorb_index < math::max(ACCEL_COUNT_MAX, GYRO_COUNT_MAX); uorb_index++) {
+	for (uint8_t uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
 		uORB::SubscriptionData<vehicle_imu_s> imu{ORB_ID(vehicle_imu), uorb_index};
 		imu.update();
 
@@ -137,7 +138,7 @@ void VotedSensorsUpdate::parametersUpdate()
 
 void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 {
-	for (int uorb_index = 0; uorb_index < SENSOR_COUNT_MAX; uorb_index++) {
+	for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
 		vehicle_imu_s imu_report;
 
 		if ((_accel.priority[uorb_index] > 0) && (_gyro.priority[uorb_index] > 0)
@@ -197,16 +198,16 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 		// use sensor_selection to find best
 		if (_sensor_selection_sub.update(&_selection)) {
 			// reset inconsistency checks against primary
-			for (int sensor_index = 0; sensor_index < ACCEL_COUNT_MAX; sensor_index++) {
+			for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
 				_accel_diff[sensor_index].zero();
 			}
 
-			for (int sensor_index = 0; sensor_index < GYRO_COUNT_MAX; sensor_index++) {
+			for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
 				_gyro_diff[sensor_index].zero();
 			}
 		}
 
-		for (int i = 0; i < SENSOR_COUNT_MAX; i++) {
+		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 			if ((_accel_device_id[i] != 0) && (_accel_device_id[i] == _selection.accel_device_id)) {
 				accel_best_index = i;
 			}
@@ -243,7 +244,7 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 				sub.unregisterCallback();
 			}
 
-			for (int i = 0; i < GYRO_COUNT_MAX; i++) {
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 				vehicle_imu_s report{};
 
 				if (_vehicle_imu_sub[i].copy(&report)) {
@@ -359,11 +360,8 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 				_selection_changed = false;
 			}
 
-			for (int sensor_index = 0; sensor_index < ACCEL_COUNT_MAX; sensor_index++) {
+			for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
 				_accel_diff[sensor_index].zero();
-			}
-
-			for (int sensor_index = 0; sensor_index < GYRO_COUNT_MAX; sensor_index++) {
 				_gyro_diff[sensor_index].zero();
 			}
 		}
@@ -376,7 +374,7 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 	status.accel_device_id_primary = _selection.accel_device_id;
 	status.gyro_device_id_primary = _selection.gyro_device_id;
 
-	for (int i = 0; i < SENSOR_COUNT_MAX; i++) {
+	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 		if (_accel_device_id[i] != 0) {
 			status.accel_device_ids[i] = _accel_device_id[i];
 			status.accel_inconsistency_m_s_s[i] = _accel_diff[i].norm();
@@ -408,7 +406,7 @@ void VotedSensorsUpdate::calcAccelInconsistency()
 	const Vector3f primary_accel{_last_sensor_data[_accel.last_best_vote].accelerometer_m_s2};
 
 	// Check each sensor against the primary
-	for (int sensor_index = 0; sensor_index < ACCEL_COUNT_MAX; sensor_index++) {
+	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
 		// check that the sensor we are checking against is not the same as the primary
 		if (_accel.advertised[sensor_index] && (_accel.priority[sensor_index] > 0)
 		    && (_accel_device_id[sensor_index] != _selection.accel_device_id)) {
@@ -424,7 +422,7 @@ void VotedSensorsUpdate::calcGyroInconsistency()
 	const Vector3f primary_gyro{_last_sensor_data[_gyro.last_best_vote].gyro_rad};
 
 	// Check each sensor against the primary
-	for (int sensor_index = 0; sensor_index < GYRO_COUNT_MAX; sensor_index++) {
+	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
 		// check that the sensor we are checking against is not the same as the primary
 		if (_gyro.advertised[sensor_index] && (_gyro.priority[sensor_index] > 0)
 		    && (_gyro_device_id[sensor_index] != _selection.gyro_device_id)) {

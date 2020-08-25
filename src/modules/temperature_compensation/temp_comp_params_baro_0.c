@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,11 +31,84 @@
  *
  ****************************************************************************/
 
+/* Barometer 0 */
+
 /**
- * Thermal compensation for barometric pressure sensors.
+ * ID of Barometer that the calibration is for.
  *
  * @group Thermal Compensation
- * @reboot_required true
- * @boolean
+ * @category system
  */
-PARAM_DEFINE_INT32(TC_B_ENABLE, 0);
+PARAM_DEFINE_INT32(TC_B0_ID, 0);
+
+/**
+ * Barometer offset temperature ^5 polynomial coefficient.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_X5, 0.0f);
+
+/**
+ * Barometer offset temperature ^4 polynomial coefficient.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_X4, 0.0f);
+
+/**
+ * Barometer offset temperature ^3 polynomial coefficient.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_X3, 0.0f);
+
+/**
+ * Barometer offset temperature ^2 polynomial coefficient.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_X2, 0.0f);
+
+/**
+ * Barometer offset temperature ^1 polynomial coefficients.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_X1, 0.0f);
+
+/**
+ * Barometer offset temperature ^0 polynomial coefficient.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_X0, 0.0f);
+
+/**
+ * Barometer calibration reference temperature.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_TREF, 40.0f);
+
+/**
+ * Barometer calibration minimum temperature.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_TMIN, 5.0f);
+
+/**
+ * Barometer calibration maximum temperature.
+ *
+ * @group Thermal Compensation
+ * @category system
+ */
+PARAM_DEFINE_FLOAT(TC_B0_TMAX, 75.0f);

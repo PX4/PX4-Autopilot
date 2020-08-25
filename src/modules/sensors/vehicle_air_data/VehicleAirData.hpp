@@ -71,7 +71,7 @@ private:
 	void ParametersUpdate();
 	void SensorCorrectionsUpdate(bool force = false);
 
-	static constexpr int MAX_SENSOR_COUNT = 3;
+	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	uORB::Publication<vehicle_air_data_s> _vehicle_air_data_pub{ORB_ID(vehicle_air_data)};
 
@@ -81,7 +81,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_baro), 0},
 		{this, ORB_ID(sensor_baro), 1},
-		{this, ORB_ID(sensor_baro), 2}
+		{this, ORB_ID(sensor_baro), 2},
+		{this, ORB_ID(sensor_baro), 3},
 	};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
