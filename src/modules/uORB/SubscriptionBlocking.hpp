@@ -53,7 +53,7 @@ public:
 	 * @param interval_us The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionBlocking(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
+	SubscriptionBlocking(const orb_metadata *meta = &T::get_metadata(), uint32_t interval_us = 0, uint8_t instance = 0) :
 		SubscriptionCallback(meta, interval_us, instance)
 	{
 		// pthread_mutexattr_init

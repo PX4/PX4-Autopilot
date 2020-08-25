@@ -169,7 +169,7 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionData(const orb_metadata *meta, uint8_t instance = 0) :
+	SubscriptionData(const orb_metadata *meta = &T::get_metadata(), uint8_t instance = 0) :
 		Subscription(meta, instance)
 	{
 		copy(&_data);

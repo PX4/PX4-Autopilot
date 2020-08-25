@@ -90,7 +90,7 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
 	Publication(ORB_ID id) : PublicationBase(id) {}
-	Publication(const orb_metadata *meta) : PublicationBase(static_cast<ORB_ID>(meta->o_id)) {}
+	Publication(const orb_metadata *meta = &T::get_metadata()) : PublicationBase(static_cast<ORB_ID>(meta->o_id)) {}
 
 	bool advertise()
 	{
@@ -128,7 +128,7 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
 	PublicationData(ORB_ID id) : Publication<T>(id) {}
-	PublicationData(const orb_metadata *meta) : Publication<T>(meta) {}
+	PublicationData(const orb_metadata *meta = &T::get_metadata()) : Publication<T>(meta) {}
 
 	T	&get() { return _data; }
 	void	set(const T &data) { _data = data; }

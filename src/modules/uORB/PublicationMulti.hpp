@@ -64,7 +64,7 @@ public:
 		PublicationBase(id)
 	{}
 
-	PublicationMulti(const orb_metadata *meta) :
+	PublicationMulti(const orb_metadata *meta = &T::get_metadata()) :
 		PublicationBase(static_cast<ORB_ID>(meta->o_id))
 	{}
 
@@ -105,7 +105,7 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
 	PublicationMultiData(ORB_ID id) : PublicationMulti<T>(id) {}
-	PublicationMultiData(const orb_metadata *meta) : PublicationMulti<T>(meta) {}
+	PublicationMultiData(const orb_metadata *meta = &T::get_metadata()) : PublicationMulti<T>(meta) {}
 
 	T	&get() { return _data; }
 	void	set(const T &data) { _data = data; }
