@@ -116,7 +116,7 @@ AnalogBattery::updateParams()
 		}
 	}
 
-	if (_analog_params.a_per_v <= 0.0f) {
+	if (_analog_params.a_per_v < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 
 		_analog_params.a_per_v = BOARD_BATTERY1_A_PER_V;
