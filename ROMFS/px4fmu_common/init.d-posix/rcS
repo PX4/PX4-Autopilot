@@ -119,7 +119,7 @@ if [ $AUTOCNF = yes ]
 then
 	param set SYS_AUTOSTART $REQUESTED_AUTOSTART
 
-	param set BAT_N_CELLS 3
+	param set BAT_N_CELLS 4
 
 	param set CAL_ACC0_ID 1311244
 	param set CAL_GYRO0_ID 1311244
