@@ -283,7 +283,7 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT,  10.0f);
+PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 
 /**
@@ -641,8 +641,8 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
  *
  * @min 0
  * @max 3
- * @bit 0  Enable override in auto modes
- * @bit 1  Enable override in offboard mode
+ * @bit 0 Enable override in auto modes
+ * @bit 1 Enable override in offboard mode
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
@@ -664,7 +664,7 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection for all flight modes.
  *
  * @value 0 Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
- * @value 1 Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+ * @value 1 Land/Terminate. Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
  *
  * @group Commander
  */
