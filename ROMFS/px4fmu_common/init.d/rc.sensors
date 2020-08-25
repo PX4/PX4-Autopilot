@@ -48,9 +48,9 @@ fi
 
 if param compare -s SENS_EN_BATT 1
 then
-	# External bus 1 @ 0x0b
-	batt_smbus start -X -b 1 -a 11
-	batt_smbus start -X -b 2 -a 11
+	# batt_smbus start -X -b 1 -a 11
+	# batt_smbus start -X -b 2 -a 11
+	# batt_smbus start -X -b 1 -a 12
 
 fi
 
