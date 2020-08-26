@@ -103,11 +103,6 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) 
 	updateParams();
 }
 
-Battery::~Battery()
-{
-	orb_unadvertise(_battery_status_pub);
-}
-
 void
 Battery::reset()
 {
@@ -170,15 +165,19 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		}
 	}
 
-	if (source == _params.source) {
+	_battery_status.timestamp = timestamp;
+
+	const bool should_publish = (source == _params.source);
+
+	if (should_publish) {
+		_battery_status_pub.publish(_battery_status);
 		publish();
 	}
 }
 
 void Battery::publish()
 {
-	int dummy; // We're not interested in the instance ID we get
-	orb_publish_auto(ORB_ID(battery_status), &_battery_status_pub, &_battery_status, &dummy, ORB_PRIO_DEFAULT);
+	_battery_status_pub.publish(_battery_status);
 }
 
 void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)

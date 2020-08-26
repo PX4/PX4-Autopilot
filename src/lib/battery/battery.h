@@ -43,6 +43,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
@@ -206,7 +207,7 @@ private:
 
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
-	bool _battery_initialized{false};
+	bool _battery_initialized = false;
 	AlphaFilter<float> _voltage_filter_v;
 	AlphaFilter<float> _current_filter_a;
 	AlphaFilter<float> _throttle_filter;
@@ -217,6 +218,4 @@ private:
 	float _scale = 1.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
-
-	orb_advert_t _battery_status_pub{nullptr};
 };
