@@ -43,6 +43,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
@@ -63,8 +64,7 @@ class Battery : public ModuleParams
 {
 public:
 	Battery(int index, ModuleParams *parent, const int sample_interval_us);
-
-	~Battery();
+	~Battery() = default;
 
 	/**
 	 * Reset all battery stats and report invalid/nothing.
@@ -200,6 +200,8 @@ private:
 	void determineWarning(bool connected);
 	void computeScale();
 
+	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
+
 	bool _battery_initialized = false;
 	AlphaFilter<float> _voltage_filter_v;
 	AlphaFilter<float> _current_filter_a;
@@ -211,6 +213,4 @@ private:
 	float _scale = 1.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
-
-	orb_advert_t _battery_status_pub{nullptr};
 };
