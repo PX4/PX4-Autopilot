@@ -494,7 +494,7 @@ thoneflow_main(int argc, char *argv[])
     int myoptind = 1;
     const char *myoptarg = nullptr;
 
-    while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
+    while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
         switch (ch) {
         case 'd':
             device_path = myoptarg;
