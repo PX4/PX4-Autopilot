@@ -99,22 +99,22 @@ fi
 if param compare SENS_EXT_I2C_PRB 1
 then
 	# compasses
-	ak09916 -X -R 6 start # external AK09916 (Here2) is rotated 270 degrees yaw
-	hmc5883 -T -X start
-	ist8308 -X start
-	ist8310 -X start
-	lis2mdl -X start
-	lis3mdl -X start
-	qmc5883 -X start
-	rm3100 -X start
+	ak09916 -X -R 6 -q start # external AK09916 (Here2) is rotated 270 degrees yaw
+	hmc5883 -T -X -q start
+	ist8308 -X -q start
+	ist8310 -X -q start
+	lis2mdl -X -q start
+	lis3mdl -X -q start
+	qmc5883 -X -q start
+	rm3100 -X -q start
 
 	# differential pressure sensors
 	if [ ${VEHICLE_TYPE} = fw -o ${VEHICLE_TYPE} = vtol ]
 	then
 		if param compare CBRK_AIRSPD_CHK 0
 		then
-			sdp3x_airspeed start -X
-			sdp3x_airspeed start -X -a 0x22
+			sdp3x_airspeed start -X -q
+			sdp3x_airspeed start -X -a 0x22 -q
 
 			# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
 			# detected as MS5525 because the chip manufacturer was so
@@ -122,14 +122,14 @@ then
 			# register.
 			if [ $BOARD_FMUV3 = 21 ]
 			then
-				ms5525_airspeed start -X -b 2
+				ms5525_airspeed start -X -b 2 -q
 			else
-				ms5525_airspeed start -X
+				ms5525_airspeed start -X -q
 			fi
 
-			ms4525_airspeed start -X
+			ms4525_airspeed start -X -q
 
-			ets_airspeed start -X
+			ets_airspeed start -X -q
 		fi
 	fi
 fi

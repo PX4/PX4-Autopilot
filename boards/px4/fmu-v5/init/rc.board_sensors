@@ -6,7 +6,7 @@
 adc start
 
 # Internal SPI bus ICM-20602
-icm20602 -s -R 2 start
+icm20602 -s -R 2 -q start
 
 # Internal SPI bus ICM-20689
 icm20689 -s -R 2 start

@@ -109,6 +109,7 @@ public:
 	int bus_frequency{0};
 	spi_mode_e spi_mode{SPIDEV_MODE3};
 	uint8_t i2c_address{0}; ///< optional I2C address: a driver can set this to allow configuring the I2C address
+	bool quiet_start{false}; ///< do not print a message when startup fails
 
 	uint8_t orientation{0}; ///< distance_sensor_s::ROTATION_*
 
