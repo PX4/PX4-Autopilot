@@ -22,6 +22,7 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/invensense/icm42688p
+		imu/invensense/icm42605
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		magnetometer/ist8310
