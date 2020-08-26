@@ -93,7 +93,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle
 	_tmp_array(new float[_rotor_count])
 {
 	for (unsigned i = 0; i < _rotor_count; ++i) {
-		_outputs_prev[i] = 0.f;
+		_outputs_prev[i] = -1.f;
 	}
 }
 
@@ -356,7 +356,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 							_thrust_factor));
 		}
 
-		outputs[i] = math::constrain(outputs[i], 0.f, 1.f);
+		outputs[i] = math::constrain((2.f * outputs[i] - 1.f), -1.f, 1.f);
 	}
 
 	// Slew rate limiting and saturation checking
@@ -370,7 +370,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		// clipping if airmode==roll/pitch), since in all other cases thrust will
 		// be reduced or boosted and we can keep the integrators enabled, which
 		// leads to better tracking performance.
-		if (outputs[i] < 0.01f) {
+		if (outputs[i] < -0.99f) {
 			if (_airmode == Airmode::disabled) {
 				clipping_low_roll_pitch = true;
 				clipping_low_yaw = true;
