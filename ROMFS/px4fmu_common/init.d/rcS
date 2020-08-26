@@ -180,7 +180,7 @@ else
 		if param compare SYS_AUTOCONFIG 1
 		then
 			# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
-			param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
+			param reset_all SYS_AUTOSTART SYS_AUTOCONFIG RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
 		fi
 
 		set AUTOCNF yes
