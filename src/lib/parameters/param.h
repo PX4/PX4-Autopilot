@@ -279,6 +279,16 @@ __EXPORT void		param_reset_all(void);
 __EXPORT void		param_reset_excludes(const char *excludes[], int num_excludes);
 
 /**
+ * Reset only specific parameters to their default values.
+ *
+ * This function also releases the storage used by struct parameters.
+ *
+ * @param resets Array of param names to reset. Use a wildcard at the end to reset parameters with a certain prefix.
+ * @param num_resets The number of passed reset conditions in the resets array.
+ */
+__EXPORT void		param_reset_specific(const char *resets[], int num_resets);
+
+/**
  * Export changed parameters to a file.
  * Note: this method requires a large amount of stack size!
  *

@@ -881,8 +881,33 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 			param_reset(param);
 		}
 	}
+}
 
-	_param_notify_changes();
+void
+param_reset_specific(const char *resets[], int num_resets)
+{
+	param_t	param;
+
+	for (param = 0; handle_in_range(param); param++) {
+		const char *name = param_name(param);
+		bool reset = false;
+
+		for (int index = 0; index < num_resets; index++) {
+			int len = strlen(resets[index]);
+
+			if ((resets[index][len - 1] == '*'
+			     && strncmp(name, resets[index], len - 1) == 0)
+			    || strcmp(name, resets[index]) == 0) {
+
+				reset = true;
+				break;
+			}
+		}
+
+		if (reset) {
+			param_reset(param);
+		}
+	}
 }
 
 int
