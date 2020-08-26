@@ -453,6 +453,8 @@ void AutopilotTester::fly_forward_in_posctl()
 		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
 	}
 
+	CHECK(_manual_control->start_position_control() == ManualControl::Result::Success);
+
 	// Climb up for 5 seconds
 	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
