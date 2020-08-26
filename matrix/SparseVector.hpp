@@ -166,6 +166,20 @@ matrix::Vector<Type, Q> operator*(const matrix::Matrix<Type, Q, M>& mat, const m
     return res;
 }
 
+// returns x.T * A * x
+template<typename Type, size_t M, size_t ... Idxs>
+Type quadraticForm(const matrix::SquareMatrix<Type, M>& A, const matrix::SparseVector<Type, M, Idxs...>& x) {
+    Type res = Type(0);
+    for (size_t i = 0; i < x.non_zeros(); i++) {
+        Type tmp = Type(0);
+        for (size_t j = 0; j < x.non_zeros(); j++) {
+            tmp += A(x.index(i), x.index(j)) * x.atCompressedIndex(j);
+        }
+        res += x.atCompressedIndex(i) * tmp;
+    }
+    return res;
+}
+
 template<typename Type,size_t M, size_t... Idxs>
 constexpr size_t SparseVector<Type, M, Idxs...>::_indices[SparseVector<Type, M, Idxs...>::N];
 

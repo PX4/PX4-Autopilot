@@ -91,6 +91,17 @@ TEST(sparseVectorTest, multiplicationWithDenseMatrix) {
     EXPECT_TRUE(isEqual(res_dense, res_sparse));
 }
 
+TEST(sparseVectorTest, quadraticForm) {
+    float matrix_data[9] = {1, 2, 3,
+                            2, 4, 5,
+                            3, 5, 6
+                           };
+    const SquareMatrix<float, 3> dense_matrix(matrix_data);
+    const Vector3f dense_vec(0.f, 1.f, 5.f);
+    const SparseVectorf<3, 1, 2> sparse_vec(dense_vec);
+    EXPECT_FLOAT_EQ(quadraticForm(dense_matrix, sparse_vec), 204.f);
+}
+
 TEST(sparseVectorTest, norms) {
     const float data[2] = {3.f, 4.f};
     const SparseVectorf<4, 1, 3> sparse_vec(data);
