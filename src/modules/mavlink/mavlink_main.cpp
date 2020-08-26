@@ -331,7 +331,7 @@ Mavlink::get_instance_for_device(const char *device_name)
 	Mavlink *inst;
 
 	LL_FOREACH(::_mavlink_instances, inst) {
-		if (strcmp(inst->_device_name, device_name) == 0) {
+		if ((inst->_protocol == Protocol::SERIAL) && (strcmp(inst->_device_name, device_name) == 0)) {
 			return inst;
 		}
 	}
@@ -346,7 +346,7 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 	Mavlink *inst;
 
 	LL_FOREACH(::_mavlink_instances, inst) {
-		if (inst->_network_port == port) {
+		if ((inst->_protocol == Protocol::UDP) && (inst->_network_port == port)) {
 			return inst;
 		}
 	}
