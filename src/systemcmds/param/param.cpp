@@ -92,7 +92,8 @@ static void	do_show_print(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
 static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op,
 			   enum COMPARE_ERROR_LEVEL err_level);
-static int 	do_reset(const char *excludes[], int num_excludes);
+static int 	do_reset_all(const char *excludes[], int num_excludes);
+static int 	do_reset_specific(const char *resets[], int num_resets);
 static int 	do_touch(const char *params[], int num_params);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
 static int	do_find(const char *name);
@@ -161,7 +162,9 @@ $ reboot
 	PRINT_MODULE_USAGE_COMMAND_DESCR("touch", "Mark a parameter as used");
 	PRINT_MODULE_USAGE_ARG("<param_name1> [<param_name2>]", "Parameter name (one or more)", true);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset params to default");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset only specified params to default");
+	PRINT_MODULE_USAGE_ARG("<param1> [<param2>]", "Parameter names to reset (wildcard at end allowed)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset_all", "Reset all params to default");
 	PRINT_MODULE_USAGE_ARG("<exclude1> [<exclude2>]", "Do not reset matching params (wildcard at end allowed)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset_nostart",
 					 "Reset params to default, but keep SYS_AUTOSTART and SYS_AUTOCONFIG");
@@ -302,10 +305,20 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "reset")) {
 			if (argc >= 3) {
-				return do_reset((const char **) &argv[2], argc - 2);
+				return do_reset_specific((const char **) &argv[2], argc - 2);
 
 			} else {
-				return do_reset(nullptr, 0);
+				PX4_ERR("not enough arguments (use 'param reset_all' to reset all).");
+				return 1;
+			}
+		}
+
+		if (!strcmp(argv[1], "reset_all")) {
+			if (argc >= 3) {
+				return do_reset_all((const char **) &argv[2], argc - 2);
+
+			} else {
+				return do_reset_all(nullptr, 0);
 			}
 		}
 
@@ -794,7 +807,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 }
 
 static int
-do_reset(const char *excludes[], int num_excludes)
+do_reset_all(const char *excludes[], int num_excludes)
 {
 	if (num_excludes > 0) {
 		param_reset_excludes(excludes, num_excludes);
@@ -803,6 +816,13 @@ do_reset(const char *excludes[], int num_excludes)
 		param_reset_all();
 	}
 
+	return 0;
+}
+
+static int
+do_reset_specific(const char *resets[], int num_resets)
+{
+	param_reset_specific(resets, num_resets);
 	return 0;
 }
 

@@ -169,7 +169,7 @@ else
 	param select $PARAM_FILE
 	if ! param load
 	then
-		param reset
+		param reset_all
 	fi
 
 	#
