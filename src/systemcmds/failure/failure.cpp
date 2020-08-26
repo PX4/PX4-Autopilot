@@ -99,6 +99,7 @@ Test the GPS failsafe by stopping GPS:
 failure gps off
 )DESCR_STR");
 
+	PRINT_MODULE_USAGE_NAME_SIMPLE("failure", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("help", "Show this help text");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("gps|...", "Specify component");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("ok|off|...", "Specify failure type");
