@@ -3,7 +3,7 @@ add_definitions(
 )
 
 px4_add_board(
-	VENDOR px4
+	VENDOR scumaker
 	MODEL airpi2
 	LABEL default
 	PLATFORM posix
