@@ -294,18 +294,10 @@ GPS::~GPS()
 		} while (_secondary_instance && i < 100);
 	}
 
-	if (_sat_info) {
-		delete (_sat_info);
-	}
-
-	if (_dump_to_device) {
-		delete (_dump_to_device);
-	}
-
-	if (_dump_from_device) {
-		delete (_dump_from_device);
-	}
-
+	delete _sat_info;
+	delete _dump_to_device;
+	delete _dump_from_device;
+	delete _helper;
 }
 
 int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
