@@ -461,8 +461,8 @@ void AutopilotTester::fly_forward_in_posctl()
 		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
 	}
 
-	// Fly forward for 20 seconds
-	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
+	// Fly forward for 30 seconds
+	for (unsigned i = 0; i < 30 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
 		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
 	}
@@ -496,8 +496,8 @@ void AutopilotTester::fly_forward_in_altctl()
 		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
 	}
 
-	// Fly forward for 20 seconds
-	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
+	// Fly forward for 30 seconds
+	for (unsigned i = 0; i < 30 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
 		std::this_thread::sleep_for(adjust_to_lockstep_speed(std::chrono::milliseconds(1000 / manual_control_rate_hz)));
 	}
