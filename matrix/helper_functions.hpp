@@ -93,8 +93,9 @@ template<typename Integer>
 Integer wrap(Integer x, Integer low, Integer high) {
     const auto range = high - low;
 
-    if (x < low)
+    if (x < low) {
         x += range * ((low - x) / range + 1);
+    }
 
     return low + (x - low) % range;
 }
