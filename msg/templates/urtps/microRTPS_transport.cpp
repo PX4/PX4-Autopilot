@@ -115,7 +115,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	ssize_t len = node_read((void *)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos);
 
-	if (len <= 0) {
+	if (len < 0) {
 		int errsv = errno;
 
 		if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv) {
@@ -157,7 +157,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 		// All we've checked so far is garbage, drop it - but save unchecked bytes
 		memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-		rx_buff_pos = rx_buff_pos - msg_start_pos;
+		rx_buff_pos -= msg_start_pos;
 		return -1;
 	}
 
@@ -169,7 +169,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	if (buffer_len < header_size + payload_len) {
 		// Drop the message and continue with the read buffer
 		memmove(rx_buffer, rx_buffer + msg_start_pos + 1, rx_buff_pos - (msg_start_pos + 1));
-		rx_buff_pos = rx_buff_pos - (msg_start_pos + 1);
+		rx_buff_pos -= (msg_start_pos + 1);
 		return -EMSGSIZE;
 	}
 
@@ -199,11 +199,12 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		if (debug) PX4_DEBUG("Bad CRC %u != %u\t\t(↓ %lu)", read_crc, calc_crc, (unsigned long)(header_size + payload_len));
 #endif /* PX4_DEBUG */
 
+		// Drop garbage up just beyond the start of the message
+		memmove(rx_buffer, rx_buffer + (msg_start_pos + 1), rx_buff_pos);
+
 		// If there is a CRC error, the payload len cannot be trusted
 		rx_buff_pos -= (msg_start_pos + 1);
 
-		// Drop garbage up just beyond the start of the message
-		memmove(rx_buffer, rx_buffer + (msg_start_pos + 1 ), rx_buff_pos );
 		len = -1;
 
 	} else {
@@ -216,7 +217,6 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		rx_buff_pos -= msg_start_pos + header_size + payload_len;
 		memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
 	}
-
 
 	return len;
 }
