@@ -105,7 +105,7 @@ class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CD
 	bool _out_of_channels = false;
 
 protected:
-	static constexpr unsigned DEFAULT_MAX_CHANNELS = ORB_MULTI_MAX_INSTANCES;
+	static constexpr unsigned DEFAULT_MAX_CHANNELS = 4;
 	const unsigned _max_channels;
 
 	UavcanCDevSensorBridgeBase(const char *name, const char *devname, const char *class_devname,

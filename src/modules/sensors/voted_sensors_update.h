@@ -48,6 +48,7 @@
 #include <matrix/math.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
@@ -168,11 +169,7 @@ private:
 	uORB::PublicationQueued<subsystem_info_s> _info_pub{ORB_ID(subsystem_info)};	/* subsystem info publication */
 
 	uORB::SubscriptionCallbackWorkItem(&_vehicle_imu_sub)[3];
-	uORB::Subscription _vehicle_imu_status_sub[ACCEL_COUNT_MAX] {
-		{ORB_ID(vehicle_imu_status), 0},
-		{ORB_ID(vehicle_imu_status), 1},
-		{ORB_ID(vehicle_imu_status), 2},
-	};
+	uORB::SubscriptionMultiArray<vehicle_imu_status_s, ACCEL_COUNT_MAX> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
 

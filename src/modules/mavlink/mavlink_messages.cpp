@@ -61,6 +61,7 @@
 #include <math.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -559,9 +560,7 @@ public:
 private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
-	uORB::Subscription _battery_status_sub[ORB_MULTI_MAX_INSTANCES] {
-		{ORB_ID(battery_status), 0}, {ORB_ID(battery_status), 1}, {ORB_ID(battery_status), 2}, {ORB_ID(battery_status), 3}
-	};
+	uORB::SubscriptionMultiArray<battery_status_s> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &) = delete;
@@ -574,15 +573,7 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		bool updated_battery = false;
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if (_battery_status_sub[i].updated()) {
-				updated_battery = true;
-			}
-		}
-
-		if (_status_sub.updated() || _cpuload_sub.updated() || updated_battery) {
+		if (_status_sub.updated() || _cpuload_sub.updated() || _battery_status_subs.updated()) {
 			vehicle_status_s status{};
 			_status_sub.copy(&status);
 
@@ -591,13 +582,13 @@ protected:
 
 			battery_status_s battery_status[ORB_MULTI_MAX_INSTANCES] {};
 
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-				_battery_status_sub[i].copy(&battery_status[i]);
+			for (int i = 0; i < _battery_status_subs.size(); i++) {
+				_battery_status_subs[i].copy(&battery_status[i]);
 			}
 
 			int lowest_battery_index = 0;
 
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			for (int i = 0; i < _battery_status_subs.size(); i++) {
 				if (battery_status[i].connected && (battery_status[i].remaining < battery_status[lowest_battery_index].remaining)) {
 					lowest_battery_index = i;
 				}
@@ -668,21 +659,12 @@ public:
 
 	unsigned get_size() override
 	{
-		unsigned total_size = 0;
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if (_battery_status_sub[i].advertised()) {
-				total_size += MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-			}
-		}
-
-		return total_size;
+		static constexpr unsigned size_per_battery = MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return size_per_battery * _battery_status_subs.advertised_count();
 	}
 
 private:
-	uORB::Subscription _battery_status_sub[ORB_MULTI_MAX_INSTANCES] {
-		{ORB_ID(battery_status), 0}, {ORB_ID(battery_status), 1}, {ORB_ID(battery_status), 2}, {ORB_ID(battery_status), 3}
-	};
+	uORB::SubscriptionMultiArray<battery_status_s> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamBatteryStatus(MavlinkStreamSysStatus &) = delete;
@@ -697,10 +679,10 @@ protected:
 	{
 		bool updated = false;
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (auto &battery_sub : _battery_status_subs) {
 			battery_status_s battery_status;
 
-			if (_battery_status_sub[i].update(&battery_status)) {
+			if (battery_sub.update(&battery_status)) {
 				/* battery status message with higher resolution */
 				mavlink_battery_status_t bat_msg{};
 				// TODO: Determine how to better map between battery ID within the firmware and in MAVLink
@@ -764,7 +746,6 @@ protected:
 
 				updated = true;
 			}
-
 		}
 
 		return updated;
@@ -802,21 +783,12 @@ public:
 
 	unsigned get_size() override
 	{
-		unsigned total_size = 0;
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if (_battery_status_sub[i].advertised()) {
-				total_size += MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-			}
-		}
-
-		return total_size;
+		static constexpr unsigned size_per_battery = MAVLINK_MSG_ID_SMART_BATTERY_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return size_per_battery * _battery_status_subs.advertised_count();
 	}
 
 private:
-	uORB::Subscription _battery_status_sub[ORB_MULTI_MAX_INSTANCES] {
-		{ORB_ID(battery_status), 0}, {ORB_ID(battery_status), 1}, {ORB_ID(battery_status), 2}, {ORB_ID(battery_status), 3}
-	};
+	uORB::SubscriptionMultiArray<battery_status_s> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSmartBatteryInfo(MavlinkStreamSysStatus &) = delete;
@@ -831,10 +803,10 @@ protected:
 	{
 		bool updated = false;
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (auto &battery_sub : _battery_status_subs) {
 			battery_status_s battery_status;
 
-			if (_battery_status_sub[i].update(&battery_status)) {
+			if (battery_sub.update(&battery_status)) {
 				if (battery_status.serial_number == 0) {
 					//This is not smart battery
 					continue;
@@ -899,7 +871,7 @@ public:
 	}
 
 private:
-	uORB::Subscription _vehicle_imu_sub[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(vehicle_imu), 0}, {ORB_ID(vehicle_imu), 1}, {ORB_ID(vehicle_imu), 2}, {ORB_ID(vehicle_imu), 3}};
+	uORB::SubscriptionMultiArray<vehicle_imu_s> _vehicle_imu_subs{ORB_ID::vehicle_imu};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
@@ -923,7 +895,7 @@ protected:
 
 		vehicle_imu_s imu;
 
-		for (auto &imu_sub : _vehicle_imu_sub) {
+		for (auto &imu_sub : _vehicle_imu_subs) {
 			if (imu_sub.update(&imu)) {
 				if (imu.accel_device_id == sensor_selection.accel_device_id) {
 					updated = true;
@@ -2923,10 +2895,8 @@ public:
 			return size;
 		}
 
-		for (auto &x : _vehicle_imu_status_sub) {
-			if (x.advertised()) {
-				return size;
-			}
+		if (_vehicle_imu_status_subs.advertised()) {
+			return size;
 		}
 
 		return 0;
@@ -2934,13 +2904,7 @@ public:
 
 private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
-
-	uORB::Subscription _vehicle_imu_status_sub[ORB_MULTI_MAX_INSTANCES] {
-		{ORB_ID(vehicle_imu_status), 0},
-		{ORB_ID(vehicle_imu_status), 1},
-		{ORB_ID(vehicle_imu_status), 2},
-		{ORB_ID(vehicle_imu_status), 3},
-	};
+	uORB::SubscriptionMultiArray<vehicle_imu_status_s> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamVibration(MavlinkStreamVibration &) = delete;
@@ -2952,19 +2916,7 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		bool updated = _sensor_selection_sub.updated();
-
-		// check for vehicle_imu_status update
-		if (!updated) {
-			for (auto &sub : _vehicle_imu_status_sub) {
-				if (sub.updated()) {
-					updated = true;
-					break;
-				}
-			}
-		}
-
-		if (updated) {
+		if (_sensor_selection_sub.updated() || _vehicle_imu_status_subs.updated()) {
 
 			mavlink_vibration_t msg{};
 			msg.time_usec = hrt_absolute_time();
@@ -2979,7 +2931,7 @@ protected:
 
 			// primary accel high frequency vibration metric
 			if (sensor_selection.accel_device_id != 0) {
-				for (auto &x : _vehicle_imu_status_sub) {
+				for (auto &x : _vehicle_imu_status_subs) {
 					vehicle_imu_status_s status;
 
 					if (x.copy(&status)) {
@@ -2994,10 +2946,10 @@ protected:
 			}
 
 			// accel 0, 1, 2 cumulative clipping
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			for (int i = 0; i < 3; i++) {
 				vehicle_imu_status_s status;
 
-				if (_vehicle_imu_status_sub[i].copy(&status)) {
+				if (_vehicle_imu_status_subs[i].copy(&status)) {
 
 					const uint32_t clipping = status.accel_clipping[0] + status.accel_clipping[1] + status.accel_clipping[2];
 

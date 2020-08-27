@@ -218,8 +218,9 @@ private:
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 
 	// HIL GPS
-	uORB::PublicationMulti<vehicle_gps_position_s>	*_vehicle_gps_position_pubs[ORB_MULTI_MAX_INSTANCES] {};
-	uint8_t _gps_ids[ORB_MULTI_MAX_INSTANCES] {};
+	static constexpr int MAX_GPS = 3;
+	uORB::PublicationMulti<vehicle_gps_position_s>	*_vehicle_gps_position_pubs[MAX_GPS] {};
+	uint8_t _gps_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
