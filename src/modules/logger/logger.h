@@ -67,16 +67,12 @@ namespace px4
 namespace logger
 {
 
-static constexpr uint8_t MSG_ID_INVALID = UINT8_MAX;
-
 struct LoggerSubscription : public uORB::SubscriptionInterval {
 	LoggerSubscription() = default;
 
 	LoggerSubscription(ORB_ID id, uint32_t interval_ms = 0, uint8_t instance = 0) :
 		uORB::SubscriptionInterval(id, interval_ms * 1000, instance)
 	{}
-
-	uint8_t msg_id{MSG_ID_INVALID};
 };
 
 class Logger : public ModuleBase<Logger>, public ModuleParams
@@ -178,7 +174,7 @@ private:
 	 * Write an ADD_LOGGED_MSG to the log for a given subscription and instance.
 	 * _writer.lock() must be held when calling this.
 	 */
-	void write_add_logged_msg(LogType type, LoggerSubscription &subscription);
+	void write_add_logged_msg(LogType type, LoggerSubscription &subscription, uint8_t msg_id);
 
 	/**
 	 * Create logging directory
@@ -335,7 +331,6 @@ private:
 	uint32_t					_log_interval{0};
 	const orb_metadata				*_polling_topic_meta{nullptr}; ///< if non-null, poll on this topic instead of sleeping
 	orb_advert_t					_mavlink_log_pub{nullptr};
-	uint8_t						_next_topic_id{0}; ///< id of next subscribed ulog topic
 	char						*_replay_file_name{nullptr};
 	bool						_should_stop_file_log{false}; /**< if true _next_load_print is set and file logging
 											will be stopped after load printing (for the full log) */

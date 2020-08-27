@@ -437,10 +437,10 @@ bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
 
 	} else if (try_to_subscribe) {
 		if (sub.subscribe()) {
-			write_add_logged_msg(LogType::Full, sub);
+			write_add_logged_msg(LogType::Full, sub, sub_idx);
 
 			if (sub_idx < _num_mission_subs) {
-				write_add_logged_msg(LogType::Mission, sub);
+				write_add_logged_msg(LogType::Mission, sub, sub_idx);
 			}
 
 			// copy first data
@@ -719,7 +719,7 @@ void Logger::run()
 					// each message consists of a header followed by an orb data object
 					const size_t msg_size = sizeof(ulog_message_data_header_s) + sub.get_topic()->o_size_no_padding;
 					const uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
-					const uint16_t write_msg_id = sub.msg_id;
+					const uint16_t write_msg_id = sub_idx;
 
 					//write one byte after another (necessary because of alignment)
 					_msg_buffer[0] = (uint8_t)write_msg_size;
@@ -1593,7 +1593,7 @@ void Logger::write_all_add_logged_msg(LogType type)
 		LoggerSubscription &sub = _subscriptions[i];
 
 		if (sub.valid()) {
-			write_add_logged_msg(type, sub);
+			write_add_logged_msg(type, sub, i);
 			added_subscriptions = true;
 		}
 	}
@@ -1605,21 +1605,11 @@ void Logger::write_all_add_logged_msg(LogType type)
 	}
 }
 
-void Logger::write_add_logged_msg(LogType type, LoggerSubscription &subscription)
+void Logger::write_add_logged_msg(LogType type, LoggerSubscription &subscription, uint8_t msg_id)
 {
 	ulog_message_add_logged_s msg;
 
-	if (subscription.msg_id == MSG_ID_INVALID) {
-		if (_next_topic_id == MSG_ID_INVALID) {
-			// if we land here an uint8 is too small -> switch to uint16
-			PX4_ERR("limit for _next_topic_id reached");
-			return;
-		}
-
-		subscription.msg_id = _next_topic_id++;
-	}
-
-	msg.msg_id = subscription.msg_id;
+	msg.msg_id = msg_id;
 	msg.multi_id = subscription.get_instance();
 
 	int message_name_len = strlen(subscription.get_topic()->o_name);
