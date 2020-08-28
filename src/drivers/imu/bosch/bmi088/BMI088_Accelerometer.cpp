@@ -46,7 +46,7 @@ BMI088_Accelerometer::BMI088_Accelerometer(I2CSPIBusOption bus_option, int bus, 
 	_px4_accel(get_device_id(), rotation)
 {
 	if (drdy_gpio != 0) {
-		_drdy_interval_perf = perf_alloc(PC_INTERVAL, MODULE_NAME"_accel: DRDY interval");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");
 	}
 
 	ConfigureSampleRate(_px4_accel.get_max_rate_hz());
@@ -59,7 +59,7 @@ BMI088_Accelerometer::~BMI088_Accelerometer()
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
-	perf_free(_drdy_interval_perf);
+	perf_free(_drdy_missed_perf);
 }
 
 void BMI088_Accelerometer::exit_and_cleanup()
@@ -72,14 +72,14 @@ void BMI088_Accelerometer::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
-	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
+	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
 
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
-	perf_print_counter(_drdy_interval_perf);
+	perf_print_counter(_drdy_missed_perf);
 }
 
 int BMI088_Accelerometer::probe()
@@ -116,8 +116,7 @@ void BMI088_Accelerometer::RunImpl()
 		// ACC_SOFTRESET: Writing a value of 0xB6 to this register resets the sensor
 		RegisterWrite(Register::ACC_SOFTRESET, 0xB6);
 		_reset_timestamp = now;
-		_consecutive_failures = 0;
-		_total_failures = 0;
+		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
 		ScheduleDelayed(1_ms); // Following a delay of 1 ms, all configuration settings are overwritten with their reset value.
 		break;
@@ -133,7 +132,7 @@ void BMI088_Accelerometer::RunImpl()
 
 		} else {
 			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 100_ms) {
+			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
 				PX4_DEBUG("Reset failed, retrying");
 				_state = STATE::RESET;
 				ScheduleDelayed(100_ms);
@@ -155,7 +154,7 @@ void BMI088_Accelerometer::RunImpl()
 				_data_ready_interrupt_enabled = true;
 
 				// backup schedule as a watchdog timeout
-				ScheduleDelayed(10_ms);
+				ScheduleDelayed(100_ms);
 
 			} else {
 				_data_ready_interrupt_enabled = false;
@@ -174,60 +173,74 @@ void BMI088_Accelerometer::RunImpl()
 				PX4_DEBUG("Configure failed, retrying");
 			}
 
-			ScheduleDelayed(10_ms);
+			ScheduleDelayed(100_ms);
 		}
 
 		break;
 
 	case STATE::FIFO_READ: {
-			uint8_t samples = 0;
+			uint32_t samples = 0;
 
 			if (_data_ready_interrupt_enabled) {
-				// scheduled from interrupt if _drdy_fifo_read_samples was set
-				if (_drdy_fifo_read_samples.fetch_and(0) == _fifo_accel_samples) {
-					samples = _fifo_accel_samples;
-					perf_count_interval(_drdy_interval_perf, now);
+				// scheduled from interrupt if _drdy_fifo_read_samples was set as expected
+				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_samples) {
+					perf_count(_drdy_missed_perf);
+
+				} else {
+					samples = _fifo_samples;
 				}
 
 				// push backup schedule back
 				ScheduleDelayed(_fifo_empty_interval_us * 2);
 			}
 
-			bool success = false;
-
-			if (!_data_ready_interrupt_enabled || (samples == 0)) {
-				// manually check FIFO count if no samples from DRDY
+			if (samples == 0) {
+				// check current FIFO count
 				const uint16_t fifo_byte_counter = FIFOReadCount();
-				samples = fifo_byte_counter / sizeof(FIFO::DATA);
+
+				if (fifo_byte_counter >= FIFO::SIZE) {
+					FIFOReset();
+					perf_count(_fifo_overflow_perf);
+
+				} else if ((fifo_byte_counter == 0) || (fifo_byte_counter == 0x8000)) {
+					// An empty FIFO corresponds to 0x8000
+					perf_count(_fifo_empty_perf);
+
+				} else {
+					samples = fifo_byte_counter / sizeof(FIFO::DATA);
+
+					if (samples > FIFO_MAX_SAMPLES) {
+						// not technically an overflow, but more samples than we expected or can publish
+						FIFOReset();
+						perf_count(_fifo_overflow_perf);
+						samples = 0;
+					}
+				}
 			}
 
-			if (samples > FIFO_MAX_SAMPLES) {
-				// not necessarily an actual FIFO overflow, but more samples than we expected or can publish
-				FIFOReset();
-				perf_count(_fifo_overflow_perf);
+			bool success = false;
 
-			} else if (samples == 0) {
-				perf_count(_fifo_empty_perf);
-
-			} else if (samples >= 1) {
+			if (samples >= 1) {
 				if (FIFORead(now, samples)) {
 					success = true;
-					_consecutive_failures = 0;
+
+					if (_failure_count > 0) {
+						_failure_count--;
+					}
 				}
 			}
 
 			if (!success) {
-				_consecutive_failures++;
-				_total_failures++;
+				_failure_count++;
 
 				// full reset if things are failing consistently
-				if (_consecutive_failures > 100 || _total_failures > 1000) {
+				if (_failure_count > 10) {
 					Reset();
 					return;
 				}
 			}
 
-			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 10_ms) {
+			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
 				// check configuration registers periodically or immediately following any failure
 				if (RegisterCheck(_register_cfg[_checked_register])) {
 					_last_config_check_timestamp = now;
@@ -289,12 +302,12 @@ void BMI088_Accelerometer::ConfigureSampleRate(int sample_rate)
 	const float min_interval = FIFO_SAMPLE_DT;
 	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
-	_fifo_accel_samples = math::min((float)_fifo_empty_interval_us / (1e6f / ACCEL_RATE), (float)FIFO_MAX_SAMPLES);
+	_fifo_samples = math::min((float)_fifo_empty_interval_us / (1e6f / RATE), (float)FIFO_MAX_SAMPLES);
 
-	// recompute FIFO empty interval (us) with actual accel sample limit
-	_fifo_empty_interval_us = _fifo_accel_samples * (1e6f / ACCEL_RATE);
+	// recompute FIFO empty interval (us) with actual sample limit
+	_fifo_empty_interval_us = _fifo_samples * (1e6f / RATE);
 
-	ConfigureFIFOWatermark(_fifo_accel_samples);
+	ConfigureFIFOWatermark(_fifo_samples);
 }
 
 void BMI088_Accelerometer::ConfigureFIFOWatermark(uint8_t samples)
@@ -346,9 +359,9 @@ int BMI088_Accelerometer::DataReadyInterruptCallback(int irq, void *context, voi
 
 void BMI088_Accelerometer::DataReady()
 {
-	uint8_t expected = 0;
+	uint32_t expected = 0;
 
-	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_accel_samples)) {
+	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_samples)) {
 		ScheduleNow();
 	}
 }
@@ -407,7 +420,7 @@ uint8_t BMI088_Accelerometer::RegisterRead(Register reg)
 
 void BMI088_Accelerometer::RegisterWrite(Register reg, uint8_t value)
 {
-	uint8_t cmd[2] {(uint8_t)reg, value};
+	uint8_t cmd[2] { (uint8_t)reg, value };
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
@@ -437,14 +450,7 @@ uint16_t BMI088_Accelerometer::FIFOReadCount()
 	const uint8_t FIFO_LENGTH_0 = fifo_len_buf[2];        // fifo_byte_counter[7:0]
 	const uint8_t FIFO_LENGTH_1 = fifo_len_buf[3] & 0x3F; // fifo_byte_counter[13:8]
 
-	const uint16_t fifo_byte_counter = combine(FIFO_LENGTH_1, FIFO_LENGTH_0);
-
-	// An empty FIFO corresponds to 0x8000
-	if (fifo_byte_counter == 0x8000) {
-		return 0;
-	}
-
-	return fifo_byte_counter / sizeof(FIFO::DATA);
+	return combine(FIFO_LENGTH_1, FIFO_LENGTH_0);
 }
 
 bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
@@ -457,12 +463,6 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 		return false;
 	}
 
-
-	sensor_accel_fifo_s accel{};
-	accel.timestamp_sample = timestamp_sample;
-	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT;
-
 	const size_t fifo_byte_counter = combine(buffer.FIFO_LENGTH_1 & 0x3F, buffer.FIFO_LENGTH_0);
 
 	// An empty FIFO corresponds to 0x8000
@@ -474,6 +474,11 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 		perf_count(_fifo_overflow_perf);
 		return false;
 	}
+
+	sensor_accel_fifo_s accel{};
+	accel.timestamp_sample = timestamp_sample;
+	accel.samples = 0;
+	accel.dt = FIFO_SAMPLE_DT;
 
 	// first find all sensor data frames in the buffer
 	uint8_t *data_buffer = (uint8_t *)&buffer.f[0];
@@ -566,6 +571,7 @@ void BMI088_Accelerometer::UpdateTemperature()
 	// temperature_buf[1] dummy byte
 
 	if (transfer(&temperature_buf[0], &temperature_buf[0], sizeof(temperature_buf)) != PX4_OK) {
+		perf_count(_bad_transfer_perf);
 		return;
 	}
 
@@ -587,6 +593,9 @@ void BMI088_Accelerometer::UpdateTemperature()
 
 	if (PX4_ISFINITE(temperature)) {
 		_px4_accel.set_temperature(temperature);
+
+	} else {
+		perf_count(_bad_transfer_perf);
 	}
 }
 
