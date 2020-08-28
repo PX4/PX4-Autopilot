@@ -71,23 +71,25 @@ AnalogMeasurement::Run()
 		int adc4_unit = _adc4_unit.get();
 
 		// TODO: determine size. Only read first 4 ADCs for now.
+		const float adc_raw_scale = report.v_ref / (float)report.resolution;
+
 		if (adc1_unit) {
-			measurement.values[0] = report.raw_data[0] *_adc1_scale.get();
+			measurement.values[0] = report.raw_data[0] * adc_raw_scale * _adc1_scale.get();
 			measurement.unit_type[0] = adc1_unit;
 		}
 
 		if (adc2_unit) {
-			measurement.values[1] = report.raw_data[1] *_adc2_scale.get();
+			measurement.values[1] = report.raw_data[1] * adc_raw_scale * _adc2_scale.get();
 			measurement.unit_type[1] = adc2_unit;
 		}
 
 		if (adc3_unit) {
-			measurement.values[2] = report.raw_data[2] *_adc3_scale.get();
+			measurement.values[2] = report.raw_data[2] * adc_raw_scale * _adc3_scale.get();
 			measurement.unit_type[2] = adc3_unit;
 		}
 
 		if (adc4_unit) {
-			measurement.values[3] = report.raw_data[3] *_adc4_scale.get();
+			measurement.values[3] = report.raw_data[3] * adc_raw_scale * _adc4_scale.get();
 			measurement.unit_type[3] = adc4_unit;
 		}
 
