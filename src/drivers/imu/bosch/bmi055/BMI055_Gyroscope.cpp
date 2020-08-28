@@ -223,7 +223,15 @@ void BMI055_Gyroscope::RunImpl()
 					perf_count(_bad_register_perf);
 					Reset();
 				}
+
+			} else {
+				// periodically update temperature (~1 Hz)
+				if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
+					UpdateTemperature();
+					_temperature_update_timestamp = now;
+				}
 			}
+
 		}
 
 		break;
@@ -446,6 +454,16 @@ void BMI055_Gyroscope::FIFOReset()
 		if ((r.reg == Register::FIFO_CONFIG_0) || (r.reg == Register::FIFO_CONFIG_1)) {
 			RegisterSetAndClearBits(r.reg, r.set_bits, r.clear_bits);
 		}
+	}
+}
+
+void BMI055_Gyroscope::UpdateTemperature()
+{
+	// The slope of the temperature sensor is 0.5K/LSB, its center temperature is 23°C [(ACC 0x08) temp = 0x00].
+	float temperature = RegisterRead(Register::GYRO_TEMP) * 0.5f + 23.f;
+
+	if (PX4_ISFINITE(temperature)) {
+		_px4_gyro.set_temperature(temperature);
 	}
 }
 

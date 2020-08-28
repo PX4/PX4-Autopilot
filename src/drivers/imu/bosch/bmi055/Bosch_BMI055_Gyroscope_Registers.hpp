@@ -54,6 +54,8 @@ static constexpr uint8_t chip_id = 0x0F;
 enum class Register : uint8_t {
 	CHIP_ID        = 0x00,
 
+	GYRO_TEMP     = 0x08,
+
 	FIFO_STATUS    = 0x0E,
 	RANGE          = 0x0F,
 
