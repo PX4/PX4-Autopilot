@@ -7,27 +7,20 @@ rtps:
     id: 3
   - msg: adc_report
     id: 4
-    send: true
   - msg: airspeed
     id: 5
-    send: true
   - msg: battery_status
     id: 6
-    send: true
   - msg: camera_capture
     id: 7
-    receive: true
   - msg: camera_trigger
     id: 8
-    receive: true
   - msg: collision_report
     id: 9
-    receive: true
   - msg: commander_state
     id: 10
   - msg: cpuload
     id: 11
-    send: true
   - msg: debug_array
     id: 12
     receive: true
@@ -44,7 +37,6 @@ rtps:
     id: 16
   - msg: distance_sensor
     id: 17
-    send: true
   - msg: estimator_innovations
     id: 18
   - msg: ekf2_timestamps
@@ -59,7 +51,6 @@ rtps:
     id: 23
   - msg: estimator_status
     id: 24
-    send: true
   - msg: follow_target
     id: 25
   - msg: geofence_result
@@ -70,12 +61,10 @@ rtps:
     id: 28
   - msg: home_position
     id: 29
-    send: true
   - msg: input_rc
     id: 30
   - msg: iridiumsbd_status
     id: 31
-    send: true
   - msg: irlock_report
     id: 32
   - msg: landing_target_innovations
@@ -100,7 +89,6 @@ rtps:
     id: 42
   - msg: obstacle_distance
     id: 43
-    receive: true
   - msg: offboard_control_mode
     id: 44
   - msg: optical_flow
@@ -130,7 +118,6 @@ rtps:
     id: 55
   - msg: radio_status
     id: 56
-    send: true
   - msg: rate_ctrl_status
     id: 57
   - msg: rc_channels
@@ -146,7 +133,6 @@ rtps:
     id: 62
   - msg: sensor_baro
     id: 63
-    send: true
   - msg: estimator_sensor_bias
     id: 64
   - msg: sensor_combined
@@ -162,7 +148,6 @@ rtps:
     id: 69
   - msg: sensor_selection
     id: 70
-    send: true
   - msg: px4io_status
     id: 71
   - msg: subsystem_info
@@ -200,7 +185,6 @@ rtps:
     id: 86
   - msg: vehicle_attitude
     id: 87
-    send: true
   - msg: vehicle_attitude_setpoint
     id: 88
   - msg: vehicle_command
@@ -239,10 +223,8 @@ rtps:
     receive: true
   - msg: vtol_vehicle_status
     id: 105
-    send: true
   - msg: wind_estimate
     id: 106
-    send: true
   - msg: collision_constraints
     id: 107
     send: true

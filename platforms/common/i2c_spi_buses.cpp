@@ -86,6 +86,7 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 
 		*(p++) = 'b'; *(p++) = ':'; // bus
 		*(p++) = 'f'; *(p++) = ':'; // frequency
+		*(p++) = 'q'; // quiet flag
 
 		// copy all options
 		const char *option = options;
@@ -156,6 +157,10 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 
 		case 'm':
 			spi_mode = (spi_mode_e)atoi(_optarg);
+			break;
+
+		case 'q':
+			quiet_start = true;
 			break;
 
 		default:
@@ -526,6 +531,10 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 		case BOARD_INVALID_BUS:
 			break;
 		}
+	}
+
+	if (!started && !cli.quiet_start) {
+		PX4_WARN("%s: no instance started (no device on bus?)", px4_get_taskname());
 	}
 
 	return started ? 0 : -1;

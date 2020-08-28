@@ -30,40 +30,36 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #pragma once
 
+#include <uORB/topics/optical_flow.h>
 
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
+// Data Format for ThoneFlow 3901U
+// ===============================
+// 9 bytes total per message:
+// 1) Header (0xFE)
+// 2) Number of data bytes (0x04)
+// 3) X motion low byte
+// 4) X motion high byte
+// 5) Y motion low byte
+// 6) Y motion high byte
+// 7) Checksum (byte3+...+byte6)
+// 8) Quality
+// 9) Footer (0xAA)
 
-__BEGIN_DECLS
+enum THONEFLOW_PARSE_STATE {
+	THONEFLOW_PARSE_STATE0_UNSYNC = 0,
+	THONEFLOW_PARSE_STATE1_HEADER,
+	THONEFLOW_PARSE_STATE2_NBYTES,
+	THONEFLOW_PARSE_STATE3_XM_L,
+	THONEFLOW_PARSE_STATE4_XM_H,
+	THONEFLOW_PARSE_STATE5_YM_L,
+	THONEFLOW_PARSE_STATE6_YM_H,
+	THONEFLOW_PARSE_STATE7_CHECKSUM,
+	THONEFLOW_PARSE_STATE8_QUALITY,
+	THONEFLOW_PARSE_STATE9_FOOTER
+};
 
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32H7
-
-
-#define STM32_RCC_APB1ENR     STM32_RCC_APB1LENR
-#define STM32_RCC_APB1RSTR    STM32_RCC_APB1LRSTR
-#define RCC_APB1ENR_TIM2EN    RCC_APB1LENR_TIM2EN
-#define RCC_APB1ENR_TIM3EN    RCC_APB1LENR_TIM3EN
-#define RCC_APB1ENR_TIM5EN    RCC_APB1LENR_TIM5EN
-#define RCC_APB1ENR_TIM14EN   RCC_APB1LENR_TIM14EN
-#define RCC_APB1RSTR_TIM2RST  RCC_APB1LRSTR_TIM2RST
-#define RCC_APB1RSTR_TIM5RST  RCC_APB1LRSTR_TIM5RST
-
-
-
-#include <chip.h>
-#include <hardware/stm32_flash.h>
-#include <up_internal.h> //include up_systemreset() which is included on stm32.h
-#include <stm32_bbsram.h>
-#define PX4_BBSRAM_SIZE STM32H7_BBSRAM_SIZE
-#define PX4_BBSRAM_GETDESC_IOCTL STM32H7_BBSRAM_GETDESC_IOCTL
-#define PX4_FLASH_BASE  0x08000000
-#define PX4_NUMBER_I2C_BUSES STM32H7_NI2C
-#define PX4_ARCH_DCACHE_LINESIZE ARMV7M_DCACHE_LINESIZE //Fix me! REMOVE this The DSHOT added this and needs to be fixed
-
-int stm32h7_flash_lock(size_t addr);
-int stm32h7_flash_unlock(size_t addr);
-int stm32h7_flash_writeprotect(size_t block, bool enabled);
-#define  stm32_flash_lock() stm32h7_flash_lock(PX4_FLASH_BASE)
-
-__END_DECLS
+bool thoneflow_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum THONEFLOW_PARSE_STATE *state,
+		     optical_flow_s *report);

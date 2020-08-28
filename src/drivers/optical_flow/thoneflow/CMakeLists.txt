@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(paw3902)
-add_subdirectory(pmw3901)
-add_subdirectory(px4flow)
-add_subdirectory(thoneflow)
+px4_add_module(
+	MODULE drivers__thoneflow
+	MAIN thoneflow
+	SRCS
+		thoneflow.cpp
+		thoneflow_parser.cpp
+	MODULE_CONFIG
+		module.yaml
+	)

@@ -111,8 +111,7 @@
 /* High-resolution timer */
 #define HRT_TIMER               2  /* use timer2 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
-#define STM32_RCC_APB1ENR       STM32_RCC_APB1LENR
-#define RCC_APB1ENR_TIM2EN      RCC_APB1LENR_TIM2EN /* This is stupid and only applies for H7 */
+
 
 /* RC Serial port */
 

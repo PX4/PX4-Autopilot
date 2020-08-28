@@ -153,8 +153,7 @@
 /* High-resolution timer */
 #define HRT_TIMER               3  /* use timer3 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
-#define STM32_RCC_APB1ENR  STM32_RCC_APB1LENR
-#define RCC_APB1ENR_TIM3EN RCC_APB1LENR_TIM3EN
+
 
 #define HRT_PPM_CHANNEL         /* T3C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PB4 T3C1 */ GPIO_TIM3_CH1IN_2
