@@ -56,8 +56,8 @@ private:
 	void exit_and_cleanup() override;
 
 	// Sensor Configuration
-	static constexpr uint32_t ACCEL_RATE{1600}; // 1600 Hz accel
-	static constexpr float FIFO_SAMPLE_DT{1e6f / ACCEL_RATE};
+	static constexpr uint32_t RATE{1600}; // 1600 Hz
+	static constexpr float FIFO_SAMPLE_DT{1e6f / RATE};
 
 	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
 
@@ -109,9 +109,9 @@ private:
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: FIFO empty")};
 	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: FIFO overflow")};
 	perf_counter_t _fifo_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: FIFO reset")};
-	perf_counter_t _drdy_interval_perf{nullptr};
+	perf_counter_t _drdy_missed_perf{nullptr};
 
-	uint8_t _fifo_accel_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / ACCEL_RATE))};
+	uint8_t _fifo_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / RATE))};
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{10};
