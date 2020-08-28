@@ -55,7 +55,8 @@ public:
 
 private:
 
-	void analog_measurement_sub_cb(const uavcan::ReceivedDataStructure<com::volansi::equipment::adc::AnalogMeasurement> &msg);
+	void analog_measurement_sub_cb(const uavcan::ReceivedDataStructure<com::volansi::equipment::adc::AnalogMeasurement>
+				       &msg);
 
 	typedef uavcan::MethodBinder < UavcanAnalogMeasurementBridge *,
 		void (UavcanAnalogMeasurementBridge::*)

@@ -37,7 +37,8 @@
 const char *const UavcanAnalogMeasurementBridge::NAME = "analog_measurement";
 
 UavcanAnalogMeasurementBridge::UavcanAnalogMeasurementBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_airspeed", "/dev/uavcan/analog_measurement", "/dev/analog_measurement", ORB_ID(analog_measurement)),
+	UavcanCDevSensorBridgeBase("uavcan_airspeed", "/dev/uavcan/analog_measurement", "/dev/analog_measurement",
+				   ORB_ID(analog_measurement)),
 	_sub_analog_data(node)
 { }
 
@@ -61,7 +62,7 @@ int UavcanAnalogMeasurementBridge::init()
 
 void
 UavcanAnalogMeasurementBridge::analog_measurement_sub_cb(const
-				 uavcan::ReceivedDataStructure<com::volansi::equipment::adc::AnalogMeasurement> &msg)
+		uavcan::ReceivedDataStructure<com::volansi::equipment::adc::AnalogMeasurement> &msg)
 {
 	analog_measurement_s report{};
 
@@ -69,6 +70,7 @@ UavcanAnalogMeasurementBridge::analog_measurement_sub_cb(const
 	report.id = node_id;
 
 	int numIndices = msg.values.size();
+
 	for (int i = 0; i < numIndices; i++) {
 		report.values[i] = msg.values[i];
 		report.unit_type[i] = msg.unit_type[i];
