@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import argparse
 import os
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -160,7 +161,7 @@ gyro_0_params = {
 }
 
 # curve fit the data for gyro 0 corrections
-if num_gyros >= 1:
+if num_gyros >= 1 and not math.isnan(sensor_gyro_0['temperature'][0]):
     gyro_0_params['TC_G0_ID'] = int(np.median(sensor_gyro_0['device_id']))
 
     # find the min, max and reference temperature
@@ -268,7 +269,7 @@ gyro_1_params = {
 }
 
 # curve fit the data for gyro 1 corrections
-if num_gyros >= 2:
+if num_gyros >= 2 and not math.isnan(sensor_gyro_1['temperature'][0]):
     gyro_1_params['TC_G1_ID'] = int(np.median(sensor_gyro_1['device_id']))
 
     # find the min, max and reference temperature
@@ -376,7 +377,7 @@ gyro_2_params = {
 }
 
 # curve fit the data for gyro 2 corrections
-if num_gyros >= 3:
+if num_gyros >= 3 and not math.isnan(sensor_gyro_2['temperature'][0]):
     gyro_2_params['TC_G2_ID'] = int(np.median(sensor_gyro_2['device_id']))
 
     # find the min, max and reference temperature
@@ -484,7 +485,7 @@ accel_0_params = {
 }
 
 # curve fit the data for accel 0 corrections
-if num_accels >= 1:
+if num_accels >= 1 and not math.isnan(sensor_accel_0['temperature'][0]):
     accel_0_params['TC_A0_ID'] = int(np.median(sensor_accel_0['device_id']))
 
     # find the min, max and reference temperature
@@ -595,7 +596,7 @@ accel_1_params = {
 }
 
 # curve fit the data for accel 1 corrections
-if num_accels >= 2:
+if num_accels >= 2 and not math.isnan(sensor_accel_1['temperature'][0]):
     accel_1_params['TC_A1_ID'] = int(np.median(sensor_accel_1['device_id']))
 
     # find the min, max and reference temperature
@@ -707,7 +708,7 @@ accel_2_params = {
 }
 
 # curve fit the data for accel 2 corrections
-if num_accels >= 3:
+if num_accels >= 3 and not math.isnan(sensor_accel_2['temperature'][0]):
     accel_2_params['TC_A2_ID'] = int(np.median(sensor_accel_2['device_id']))
 
     # find the min, max and reference temperature
