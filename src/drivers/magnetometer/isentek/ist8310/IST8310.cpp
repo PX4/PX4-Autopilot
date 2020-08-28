@@ -179,7 +179,7 @@ void IST8310::RunImpl()
 
 			if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
 
-				if (buffer.STAT1 && STAT1_BIT::DRDY) {
+				if (buffer.STAT1 & STAT1_BIT::DRDY) {
 					int16_t x = combine(buffer.DATAXH, buffer.DATAXL);
 					int16_t y = combine(buffer.DATAYH, buffer.DATAYL);
 					int16_t z = combine(buffer.DATAZH, buffer.DATAZL);
