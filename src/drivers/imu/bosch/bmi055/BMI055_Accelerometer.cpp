@@ -455,7 +455,8 @@ void BMI055_Accelerometer::FIFOReset()
 void BMI055_Accelerometer::UpdateTemperature()
 {
 	// The slope of the temperature sensor is 0.5K/LSB, its center temperature is 23°C [(ACC 0x08) temp = 0x00].
-	float temperature = RegisterRead(Register::ACCD_TEMP) * 0.5f + 23.f;
+	// The register contains the current chip temperature represented in two’s complement format.
+	float temperature = static_cast<int8_t>(RegisterRead(Register::ACCD_TEMP)) * 0.5f + 23.f;
 
 	if (PX4_ISFINITE(temperature)) {
 		_px4_accel.set_temperature(temperature);
