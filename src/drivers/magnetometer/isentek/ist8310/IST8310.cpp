@@ -187,6 +187,7 @@ void IST8310::RunImpl()
 					// sensor's frame is +x forward, +y right, +z up
 					z = (z == INT16_MIN) ? INT16_MAX : -z; // flip z
 
+					_px4_mag.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf));
 					_px4_mag.update(now, x, y, z);
 
 					success = true;
@@ -225,8 +226,8 @@ void IST8310::RunImpl()
 			}
 
 			// initiate next measurement
-			_state = STATE::MEASURE;
-			ScheduleNow();
+			RegisterWrite(Register::CNTL1, CNTL1_BIT::MODE_SINGLE_MEASUREMENT);
+			ScheduleDelayed(20_ms); // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
 		}
 
 		break;
