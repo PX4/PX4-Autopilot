@@ -46,7 +46,7 @@ BMI055_Gyroscope::BMI055_Gyroscope(I2CSPIBusOption bus_option, int bus, uint32_t
 	_px4_gyro(get_device_id(), rotation)
 {
 	if (drdy_gpio != 0) {
-		_drdy_interval_perf = perf_alloc(PC_INTERVAL, MODULE_NAME"_gyro: DRDY interval");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_gyro: DRDY missed");
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
@@ -59,7 +59,7 @@ BMI055_Gyroscope::~BMI055_Gyroscope()
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
-	perf_free(_drdy_interval_perf);
+	perf_free(_drdy_missed_perf);
 }
 
 void BMI055_Gyroscope::exit_and_cleanup()
@@ -72,14 +72,14 @@ void BMI055_Gyroscope::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
-	PX4_INFO("FIFO empty interval: %d us (%.3f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
+	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
 
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
-	perf_print_counter(_drdy_interval_perf);
+	perf_print_counter(_drdy_missed_perf);
 }
 
 int BMI055_Gyroscope::probe()
@@ -103,8 +103,7 @@ void BMI055_Gyroscope::RunImpl()
 		// BGW_SOFTRESET: Writing a value of 0xB6 to this register resets the sensor.
 		RegisterWrite(Register::BGW_SOFTRESET, 0xB6);
 		_reset_timestamp = now;
-		_consecutive_failures = 0;
-		_total_failures = 0;
+		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
 		ScheduleDelayed(25_ms);
 		break;
@@ -117,7 +116,7 @@ void BMI055_Gyroscope::RunImpl()
 
 		} else {
 			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 100_ms) {
+			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
 				PX4_DEBUG("Reset failed, retrying");
 				_state = STATE::RESET;
 				ScheduleDelayed(100_ms);
@@ -139,7 +138,7 @@ void BMI055_Gyroscope::RunImpl()
 				_data_ready_interrupt_enabled = true;
 
 				// backup schedule as a watchdog timeout
-				ScheduleDelayed(10_ms);
+				ScheduleDelayed(100_ms);
 
 			} else {
 				_data_ready_interrupt_enabled = false;
@@ -158,7 +157,7 @@ void BMI055_Gyroscope::RunImpl()
 				PX4_DEBUG("Configure failed, retrying");
 			}
 
-			ScheduleDelayed(10_ms);
+			ScheduleDelayed(100_ms);
 		}
 
 		break;
@@ -166,8 +165,8 @@ void BMI055_Gyroscope::RunImpl()
 	case STATE::FIFO_READ: {
 			if (_data_ready_interrupt_enabled) {
 				// scheduled from interrupt if _drdy_fifo_read_samples was set
-				if (_drdy_fifo_read_samples.fetch_and(0) == _fifo_gyro_samples) {
-					perf_count_interval(_drdy_interval_perf, now);
+				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_samples) {
+					perf_count(_drdy_missed_perf);
 				}
 
 				// push backup schedule back
@@ -186,7 +185,7 @@ void BMI055_Gyroscope::RunImpl()
 				const uint8_t fifo_frame_counter = FIFO_STATUS & FIFO_STATUS_BIT::fifo_frame_counter;
 
 				if (fifo_frame_counter > FIFO_MAX_SAMPLES) {
-					// not necessarily an actual FIFO overflow, but more samples than we expected or can publish
+					// not technically an overflow, but more samples than we expected or can publish
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
 
@@ -196,23 +195,25 @@ void BMI055_Gyroscope::RunImpl()
 				} else if (fifo_frame_counter >= 1) {
 					if (FIFORead(now, fifo_frame_counter)) {
 						success = true;
-						_consecutive_failures = 0;
+
+						if (_failure_count > 0) {
+							_failure_count--;
+						}
 					}
 				}
 			}
 
 			if (!success) {
-				_consecutive_failures++;
-				_total_failures++;
+				_failure_count++;
 
 				// full reset if things are failing consistently
-				if (_consecutive_failures > 100 || _total_failures > 1000) {
+				if (_failure_count > 10) {
 					Reset();
 					return;
 				}
 			}
 
-			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 10_ms) {
+			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
 				// check configuration registers periodically or immediately following any failure
 				if (RegisterCheck(_register_cfg[_checked_register])) {
 					_last_config_check_timestamp = now;
@@ -272,12 +273,12 @@ void BMI055_Gyroscope::ConfigureSampleRate(int sample_rate)
 	const float min_interval = FIFO_SAMPLE_DT;
 	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
-	_fifo_gyro_samples = math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES);
+	_fifo_samples = math::min((float)_fifo_empty_interval_us / (1e6f / RATE), (float)FIFO_MAX_SAMPLES);
 
-	// recompute FIFO empty interval (us) with actual gyro sample limit
-	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
+	// recompute FIFO empty interval (us) with actual sample limit
+	_fifo_empty_interval_us = _fifo_samples * (1e6f / RATE);
 
-	ConfigureFIFOWatermark(_fifo_gyro_samples);
+	ConfigureFIFOWatermark(_fifo_samples);
 }
 
 void BMI055_Gyroscope::ConfigureFIFOWatermark(uint8_t samples)
@@ -320,9 +321,9 @@ int BMI055_Gyroscope::DataReadyInterruptCallback(int irq, void *context, void *a
 
 void BMI055_Gyroscope::DataReady()
 {
-	uint8_t expected = 0;
+	uint32_t expected = 0;
 
-	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
+	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_samples)) {
 		ScheduleNow();
 	}
 }
@@ -375,7 +376,7 @@ uint8_t BMI055_Gyroscope::RegisterRead(Register reg)
 
 void BMI055_Gyroscope::RegisterWrite(Register reg, uint8_t value)
 {
-	uint8_t cmd[2] {(uint8_t)reg, value};
+	uint8_t cmd[2] { (uint8_t)reg, value };
 	transfer(cmd, cmd, sizeof(cmd));
 }
 

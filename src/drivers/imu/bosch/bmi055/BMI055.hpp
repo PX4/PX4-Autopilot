@@ -66,10 +66,9 @@ protected:
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
 	hrt_abstime _temperature_update_timestamp{0};
-	unsigned _consecutive_failures{0};
-	unsigned _total_failures{0};
+	int _failure_count{0};
 
-	px4::atomic<uint8_t> _drdy_fifo_read_samples{0};
+	px4::atomic<uint32_t> _drdy_fifo_read_samples{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	enum class STATE : uint8_t {
