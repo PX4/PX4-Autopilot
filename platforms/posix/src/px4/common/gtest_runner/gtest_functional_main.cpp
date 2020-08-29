@@ -36,6 +36,7 @@
 #include <uORB/Subscription.hpp>
 
 #include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 
 int main(int argc, char **argv)
 {
@@ -43,5 +44,6 @@ int main(int argc, char **argv)
 
 	uORB::Manager::initialize();
 	param_init();
+	perf_init();
 	return RUN_ALL_TESTS();
 }

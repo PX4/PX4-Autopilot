@@ -38,6 +38,7 @@
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <px4_platform/cpuload.h>
 
@@ -110,6 +111,7 @@ int px4_platform_init(void)
 	hrt_init();
 
 	param_init();
+	perf_init();
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
