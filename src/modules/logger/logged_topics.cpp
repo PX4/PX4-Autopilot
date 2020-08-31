@@ -358,10 +358,10 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 	return success;
 }
 
-bool LoggedTopics::add_topic_multi(const char *name, uint16_t interval_ms, uint8_t max_instance)
+bool LoggedTopics::add_topic_multi(const char *name, uint16_t interval_ms, uint8_t max_num_instances)
 {
 	// add all possible instances
-	for (uint8_t instance = 0; instance < max_instance; instance++) {
+	for (uint8_t instance = 0; instance < max_num_instances; instance++) {
 		add_topic(name, interval_ms, instance);
 	}
 
