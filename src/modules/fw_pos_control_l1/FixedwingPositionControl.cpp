@@ -2085,7 +2085,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		float pitch_min_rad, float pitch_max_rad,
 		float throttle_min, float throttle_max, float throttle_cruise,
 		bool climbout_mode, float climbout_pitch_min_rad,
-		uint8_t mode)
+		uint8_t mode, float hgt_rate_sp)
 {
 	const float dt = math::constrain((now - _last_tecs_update) * 1e-6f, 0.01f, 0.05f);
 	_last_tecs_update = now;
@@ -2186,7 +2186,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad - radians(_param_fw_psp_off.get()),
 				    pitch_max_rad - radians(_param_fw_psp_off.get()),
-				    _param_climbrate_target.get(), _param_sinkrate_target.get());
+				    _param_climbrate_target.get(), _param_sinkrate_target.get(), hgt_rate_sp);
 
 	tecs_status_publish();
 }

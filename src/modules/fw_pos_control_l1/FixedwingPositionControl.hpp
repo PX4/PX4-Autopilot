@@ -359,7 +359,7 @@ private:
 					float pitch_min_rad, float pitch_max_rad,
 					float throttle_min, float throttle_max, float throttle_cruise,
 					bool climbout_mode, float climbout_pitch_min_rad,
-					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL);
+					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL, float hgt_rate_sp = NAN);
 
 	DEFINE_PARAMETERS(
 
