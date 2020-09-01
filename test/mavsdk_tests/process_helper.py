@@ -5,6 +5,7 @@ import time
 import os
 import atexit
 import subprocess
+import shutil
 import threading
 import errno
 from typing import Any, Dict, List, TextIO, Optional
@@ -139,7 +140,8 @@ class Px4Runner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "px4"
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
-        self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
+        self.cwd = workspace_dir + \
+            "/build/px4_sitl_default/tmp_mavsdk_tests/rootfs"
         self.args = [
                 workspace_dir + "/build/px4_sitl_default/etc",
                 "-s",
@@ -151,6 +153,8 @@ class Px4Runner(Runner):
         self.env["PX4_SIM_MODEL"] = self.model
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.debugger = debugger
+        self.clear_rootfs()
+        self.create_rootfs()
 
         if not self.debugger:
             pass
@@ -168,6 +172,19 @@ class Px4Runner(Runner):
             print("Using custom debugger " + self.debugger)
             self.args = [self.cmd] + self.args
             self.cmd = self.debugger
+
+    def clear_rootfs(self) -> None:
+        rootfs_path = self.cwd
+        if self.verbose:
+            print("Deleting rootfs: {}".format(rootfs_path))
+        if os.path.isdir(rootfs_path):
+            shutil.rmtree(rootfs_path)
+
+    def create_rootfs(self) -> None:
+        rootfs_path = self.cwd
+        if self.verbose:
+            print("Creating rootfs: {}".format(rootfs_path))
+        os.makedirs(rootfs_path)
 
 
 class GzserverRunner(Runner):
