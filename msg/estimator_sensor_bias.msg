@@ -10,9 +10,12 @@ uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
 
 uint32 gyro_device_id		# unique device ID for the sensor that does not change between power cycles
 float32[3] gyro_bias		# gyroscope in-run bias in body frame (rad/s)
+float32[3] gyro_bias_variance
 
 uint32 accel_device_id		# unique device ID for the sensor that does not change between power cycles
 float32[3] accel_bias		# accelerometer in-run bias in body frame (m/s^2)
+float32[3] accel_bias_variance
 
 uint32 mag_device_id		# unique device ID for the sensor that does not change between power cycles
 float32[3] mag_bias		# magnetometer in-run bias in body frame (Gauss)
+float32[3] mag_bias_variance
