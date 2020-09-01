@@ -247,11 +247,7 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	static constexpr int MAX_SENSOR_COUNT = 3;
-	uORB::SubscriptionCallbackWorkItem _vehicle_imu_subs[MAX_SENSOR_COUNT] {
-		{this, ORB_ID(vehicle_imu), 0},
-		{this, ORB_ID(vehicle_imu), 1},
-		{this, ORB_ID(vehicle_imu), 2}
-	};
+	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 	int _imu_sub_index{-1};
 	bool _callback_registered{false};
 	int _lockstep_component{-1};
@@ -670,11 +666,11 @@ bool Ekf2::init()
 	// if EKF2_IMU_ID is non-zero we use the corresponding IMU, otherwise the voted primary (sensor_combined)
 	if (device_id != 0) {
 		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-			vehicle_imu_s imu{};
+			vehicle_imu_s imu;
 
-			if (_vehicle_imu_subs[i].copy(&imu)) {
+			if (_vehicle_imu_sub.ChangeInstance(i) && _vehicle_imu_sub.copy(&imu)) {
 				if ((imu.accel_device_id > 0) && (imu.accel_device_id == device_id)) {
-					if (_vehicle_imu_subs[i].registerCallback()) {
+					if (_vehicle_imu_sub.registerCallback()) {
 						PX4_INFO("subscribed to vehicle_imu:%d (%d)", i, device_id);
 						_imu_sub_index = i;
 						_callback_registered = true;
@@ -749,10 +745,7 @@ void Ekf2::Run()
 {
 	if (should_exit()) {
 		_sensor_combined_sub.unregisterCallback();
-
-		for (auto &i : _vehicle_imu_subs) {
-			i.unregisterCallback();
-		}
+		_vehicle_imu_sub.unregisterCallback();
 
 		exit_and_cleanup();
 		return;
@@ -771,7 +764,7 @@ void Ekf2::Run()
 
 	if (_imu_sub_index >= 0) {
 		vehicle_imu_s imu;
-		updated = _vehicle_imu_subs[_imu_sub_index].update(&imu);
+		updated = _vehicle_imu_sub.update(&imu);
 
 		imu_sample_new.time_us = imu.timestamp_sample;
 		imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
