@@ -500,9 +500,13 @@ void BlockLocalPositionEstimator::Run()
 		publishLocalPos();
 		publishOdom();
 		publishEstimatorStatus();
-		_pub_innov.get().timestamp = _timeStamp;
+
+		_pub_innov.get().timestamp_sample = _timeStamp;
+		_pub_innov.get().timestamp = hrt_absolute_time();
 		_pub_innov.update();
-		_pub_innov_var.get().timestamp = _timeStamp;
+
+		_pub_innov_var.get().timestamp_sample = _timeStamp;
+		_pub_innov_var.get().timestamp = hrt_absolute_time();
 		_pub_innov_var.update();
 
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _param_lpe_fake_origin.get())) {
@@ -578,7 +582,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
 	    && PX4_ISFINITE(_x(X_vz))) {
-		_pub_lpos.get().timestamp = _timeStamp;
+		_pub_lpos.get().timestamp_sample = _timeStamp;
 
 		_pub_lpos.get().xy_valid = _estimatorInitialized & EST_XY;
 		_pub_lpos.get().z_valid = _estimatorInitialized & EST_Z;
@@ -628,6 +632,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vz_max = INFINITY;
 		_pub_lpos.get().hagl_min = INFINITY;
 		_pub_lpos.get().hagl_max = INFINITY;
+		_pub_lpos.get().timestamp = hrt_absolute_time();;
 		_pub_lpos.update();
 	}
 }
@@ -640,7 +645,7 @@ void BlockLocalPositionEstimator::publishOdom()
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
 	    && PX4_ISFINITE(_x(X_vz))) {
-		_pub_odom.get().timestamp = hrt_absolute_time();
+
 		_pub_odom.get().timestamp_sample = _timeStamp;
 		_pub_odom.get().local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
@@ -706,14 +711,14 @@ void BlockLocalPositionEstimator::publishOdom()
 		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_PITCHRATE_VARIANCE] = NAN;
 		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_YAWRATE_VARIANCE] = NAN;
 
+		_pub_odom.get().timestamp = hrt_absolute_time();
 		_pub_odom.update();
 	}
 }
 
 void BlockLocalPositionEstimator::publishEstimatorStatus()
 {
-	_pub_est_states.get().timestamp = _timeStamp;
-	_pub_est_status.get().timestamp = _timeStamp;
+	_pub_est_states.get().timestamp_sample = _timeStamp;
 
 	for (size_t i = 0; i < n_x; i++) {
 		_pub_est_states.get().states[i] = _x(i);
@@ -752,11 +757,17 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	_pub_est_states.get().covariances[23] = NAN;
 
 	_pub_est_states.get().n_states = n_x;
+	_pub_est_states.get().timestamp = hrt_absolute_time();
+	_pub_est_states.update();
+
+	// estimator_status
+	_pub_est_status.get().timestamp_sample = _timeStamp;
 	_pub_est_status.get().health_flags = _sensorFault;
 	_pub_est_status.get().timeout_flags = _sensorTimeout;
 	_pub_est_status.get().pos_horiz_accuracy = _pub_gpos.get().eph;
 	_pub_est_status.get().pos_vert_accuracy = _pub_gpos.get().epv;
 
+	_pub_est_status.get().timestamp = hrt_absolute_time();
 	_pub_est_status.update();
 }
 
@@ -790,7 +801,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
 	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
 	    PX4_ISFINITE(xLP(X_vz))) {
-		_pub_gpos.get().timestamp = _timeStamp;
+		_pub_gpos.get().timestamp_sample = _timeStamp;
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;
 		_pub_gpos.get().alt = alt;
@@ -799,6 +810,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _estimatorInitialized & EST_TZ;
 		_pub_gpos.get().dead_reckoning = !(_estimatorInitialized & EST_XY);
+		_pub_gpos.get().timestamp = hrt_absolute_time();
 		_pub_gpos.update();
 	}
 }
