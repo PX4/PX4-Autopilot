@@ -67,7 +67,7 @@ HypersenTOF::crc16_calc(const unsigned char *data_frame, const uint8_t crc16_len
 
 		for (uint8_t j = 0; j < 8; j++) {
 			if (crc & 1) {
-				crc = (crc >> 1) ^ 0xA001;
+				crc = (crc >> 1) ^ 0x1021;
 
 			} else {
 				crc >>= 1;
@@ -122,7 +122,7 @@ HypersenTOF::collect()
 	}
 
 	// NOTE: little-endian support only.
-	uint16_t distance_mm = (msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
+	uint16_t distance_mm = (msg->distance_high_byte << 8 | msg->distance_low_byte);
 	float distance_m = static_cast<float>(distance_mm) / 1000.0f;
 
 	// @TODO - implement a meaningful signal quality value.
@@ -215,7 +215,7 @@ HypersenTOF::open_serial_port(const speed_t speed)
 		return PX4_ERROR;
 	}
 
-	// Clear: data bit size, two stop bits, parity, hardware flow control.
+	// Clear: data bit size, stop bits, parity, hardware flow control.
 	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
 
 	// Set: 8 data bits, enable receiver, ignore modem status lines.

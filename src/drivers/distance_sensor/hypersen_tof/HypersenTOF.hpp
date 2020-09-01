@@ -44,53 +44,43 @@
 
 using namespace time_literals;
 
-#define HYPERSEN_TOF_FIELD_OF_VIEW        (0.063f) // 6 deg cone angle.
+#define HYPERSEN_TOF_FIELD_OF_VIEW        (0.063f) // 3.6 deg cone angle.
 
 #define HYPERSEN_TOF_MAX_DISTANCE         35.0f
 #define HYPERSEN_TOF_MIN_DISTANCE         0.08f
 
 #define HYPERSEN_TOF_MEASURE_INTERVAL     100_ms // 10Hz
 
-#define MODBUS_SLAVE_ADDRESS            0x01
-#define MODBUS_READING_FUNCTION         0x04
-#define READING_START_ADDR              0x14
-#define READING_LEN                     0xA
+#define READING_START_ADDR              0x0A
+#define READING_SINGLE_RANGE            0x22
 
 static const uint8_t request_reading_msg[] = {
-	MODBUS_SLAVE_ADDRESS,
-	MODBUS_READING_FUNCTION,
-	0, /* starting addr high byte */
 	READING_START_ADDR,
-	0, /* number of bytes to read high byte */
-	READING_LEN,
-	0x30, /* CRC low */
-	0x09 /* CRC high */
+	READING_SINGLE_RANGE,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0xAE, /* CRC high */
+	0x57  /* CRC low */
 };
 
 struct __attribute__((__packed__)) reading_msg {
-	uint8_t slave_addr;
-	uint8_t function;
-	uint8_t len;
-	uint8_t low_timestamp_high_byte;
-	uint8_t low_timestamp_low_byte;
-	uint8_t high_timestamp_high_byte;
-	uint8_t high_timestamp_low_byte;
-	uint8_t temp_high;
-	uint8_t temp_low;
-	uint8_t num_detections_high_byte;
-	uint8_t num_detections_low_byte;
-	uint8_t first_dist_high_byte;
-	uint8_t first_dist_low_byte;
-	uint8_t first_amplitude_high_byte;
-	uint8_t first_amplitude_low_byte;
-	uint8_t second_dist_high_byte;
-	uint8_t second_dist_low_byte;
-	uint8_t second_amplitude_high_byte;
-	uint8_t second_amplitude_low_byte;
-	uint8_t third_dist_high_byte;
-	uint8_t third_dist_low_byte;
-	uint8_t third_amplitude_high_byte;
-	uint8_t third_amplitude_low_byte;
+	uint8_t start_byte;
+	uint8_t data_length;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t distance_high_byte;
+	uint8_t distance_low_byte;
+	uint8_t magnitude_high_byte;
+	uint8_t magnitude_low_byte;
+	uint8_t magnitude_exponent;
+	uint8_t ambient_adc;
+	uint8_t precision_high_byte;
+	uint8_t precision_low_byte;
 	uint16_t crc; /* little-endian */
 };
 
