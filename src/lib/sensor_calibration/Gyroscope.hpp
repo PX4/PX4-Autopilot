@@ -64,6 +64,7 @@ public:
 	void set_external(bool external = true);
 	void set_offset(const matrix::Vector3f &offset) { _offset = offset; }
 
+	uint8_t calibration_count() const { return _calibration_count; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
@@ -96,5 +97,7 @@ private:
 	int32_t _priority{-1};
 
 	bool _external{false};
+
+	uint8_t _calibration_count{0};
 };
 } // namespace calibration

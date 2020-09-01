@@ -157,21 +157,43 @@ void Magnetometer::ParametersUpdate()
 			_priority = new_priority;
 		}
 
+		bool calibration_changed = false;
+
+
 		// CAL_MAGx_OFF{X,Y,Z}
-		_offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+		const Vector3f offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+
+		if (Vector3f(_offset - offset).norm() > 0.001f) {
+			calibration_changed = true;
+			_offset = offset;
+		}
 
 		// CAL_MAGx_SCALE{X,Y,Z}
 		const Vector3f diag = GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index);
 
+		if (Vector3f(_scale.diag() - diag).norm() > 0.001f) {
+			calibration_changed = true;
+		}
+
 		// CAL_MAGx_ODIAG{X,Y,Z}
 		const Vector3f offdiag = GetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index);
 
-		float scale[9] {
-			diag(0),    offdiag(0), offdiag(1),
-			offdiag(0),    diag(1), offdiag(2),
-			offdiag(1), offdiag(2),    diag(2)
-		};
-		_scale = Matrix3f{scale};
+		if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiag).norm() > 0.001f) {
+			calibration_changed = true;
+		}
+
+		if (calibration_changed) {
+
+			float scale[9] {
+				diag(0),    offdiag(0), offdiag(1),
+				offdiag(0),    diag(1), offdiag(2),
+				offdiag(1), offdiag(2),    diag(2)
+			};
+			_scale = Matrix3f{scale};
+
+			_calibration_count++;
+		}
+
 
 		// CAL_MAGx_COMP{X,Y,Z}
 		_power_compensation = GetCalibrationParamsVector3f(SensorString(), "COMP", _calibration_index);
@@ -194,6 +216,8 @@ void Magnetometer::Reset()
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 	_calibration_index = -1;
+
+	_calibration_count = 0;
 }
 
 bool Magnetometer::ParametersSave()

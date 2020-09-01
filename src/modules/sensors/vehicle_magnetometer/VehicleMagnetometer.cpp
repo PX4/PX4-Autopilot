@@ -290,6 +290,7 @@ void VehicleMagnetometer::Run()
 			out.timestamp_sample = timestamp_sample;
 			out.device_id = mag.device_id;
 			magnetometer_data.copyTo(out.magnetometer_ga);
+			out.calibration_count = _calibration[_selected_sensor_sub_index].calibration_count();
 
 			out.timestamp = hrt_absolute_time();
 			_vehicle_magnetometer_pub.publish(out);
