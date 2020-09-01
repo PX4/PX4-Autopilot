@@ -273,7 +273,7 @@ private:
 	uORB::Publication<estimator_innovations_s>		_estimator_innovations_pub{ORB_ID(estimator_innovations)};
 	uORB::Publication<estimator_sensor_bias_s>		_estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
 	uORB::Publication<estimator_states_s>			_estimator_states_pub{ORB_ID(estimator_states)};
-	uORB::Publication<estimator_status_s>			_estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::PublicationData<estimator_status_s>		_estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
 	uORB::Publication<yaw_estimator_status_s>		_yaw_est_pub{ORB_ID(yaw_estimator_status)};
