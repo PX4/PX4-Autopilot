@@ -69,7 +69,7 @@ protected:
 	ScheduledWorkItem(const char *name, const wq_config_t &config) : WorkItem(name, config) {}
 	virtual ~ScheduledWorkItem() override;
 
-	virtual void print_run_status() const override;
+	virtual void print_run_status() override;
 
 private:
 
