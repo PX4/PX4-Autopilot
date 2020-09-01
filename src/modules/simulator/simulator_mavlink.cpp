@@ -1041,6 +1041,7 @@ void Simulator::check_failure_injections()
 
 		if (handled) {
 			vehicle_command_ack_s ack;
+			ack.timestamp = hrt_absolute_time();
 			ack.command = vehicle_command.command;
 			ack.from_external = false;
 			ack.result = supported ?
