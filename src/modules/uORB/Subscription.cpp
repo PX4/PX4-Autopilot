@@ -88,4 +88,29 @@ void Subscription::unsubscribe()
 	_last_generation = 0;
 }
 
+bool Subscription::ChangeInstance(uint8_t instance)
+{
+	if (instance != _instance) {
+		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
+
+		if (device_master != nullptr) {
+			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
+				return false;
+			}
+
+			// if desired new instance exists, unsubscribe from current
+			unsubscribe();
+			_instance = instance;
+			subscribe();
+			return true;
+		}
+
+	} else {
+		// already on desired index
+		return true;
+	}
+
+	return false;
+}
+
 } // namespace uORB

@@ -127,6 +127,12 @@ public:
 	 */
 	bool copy(void *dst) { return advertised() && _node->copy(dst, _last_generation); }
 
+	/**
+	 * Change subscription instance
+	 * @param instance The new multi-Subscription instance
+	 */
+	bool ChangeInstance(uint8_t instance);
+
 	uint8_t  get_instance() const { return _instance; }
 	unsigned get_last_generation() const { return _last_generation; }
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
