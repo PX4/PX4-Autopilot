@@ -81,11 +81,7 @@ private:
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
-	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
-		{this, ORB_ID(sensor_accel), 0},
-		{this, ORB_ID(sensor_accel), 1},
-		{this, ORB_ID(sensor_accel), 2}
-	};
+	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_accel)};
 
 	calibration::Accelerometer _calibration{};
 
