@@ -3,7 +3,6 @@
 import argparse
 import datetime
 import fnmatch
-import glob
 import json
 import math
 import os
@@ -326,8 +325,6 @@ class Tester:
     def run_test_case(self, test: Dict[str, Any],
                       case: str, log_dir: str) -> bool:
 
-        self.clear_params()
-
         self.start_runners(log_dir, test, case)
 
         logfile_path = self.determine_logfile_path(log_dir, 'combined')
@@ -368,15 +365,6 @@ class Tester:
             for runner in self.active_runners:
                 print("  - {}".format(runner.get_log_filename()))
         return is_success
-
-    def clear_params(self) -> None:
-        param_files = glob.glob(
-            "build/px4_sitl_default/tmp/rootfs/eeprom/parameters_*",
-            recursive=False)
-        for param_file in param_files:
-            if self.verbose:
-                print("Deleting param file: {}".format(param_file))
-            os.unlink(param_file)
 
     def start_runners(self,
                       log_dir: str,
