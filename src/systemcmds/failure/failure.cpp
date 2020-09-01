@@ -42,6 +42,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <string.h>
 
+using namespace time_literals;
 
 struct FailureUnit {
 	char key[16];
@@ -131,8 +132,8 @@ int inject_failure(uint8_t unit, uint8_t type)
 	command_pub.publish(command);
 
 	vehicle_command_ack_s ack;
-	while (hrt_elapsed_time(&now) < 1000000) {
-		if (!command_ack_sub.update(&ack)) {
+	while (hrt_elapsed_time(&now) < 1_s) {
+		if (command_ack_sub.update(&ack)) {
 			if (ack.command == command.command) {
 				if (ack.result != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
 					PX4_ERR("Result: %d", ack.result);
