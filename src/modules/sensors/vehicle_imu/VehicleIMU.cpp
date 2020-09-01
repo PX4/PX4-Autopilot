@@ -45,11 +45,12 @@ using math::constrain;
 namespace sensors
 {
 
-VehicleIMU::VehicleIMU(uint8_t accel_index, uint8_t gyro_index) :
+VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, config),
 	_sensor_accel_sub(this, ORB_ID(sensor_accel), accel_index),
-	_sensor_gyro_sub(this, ORB_ID(sensor_gyro), gyro_index)
+	_sensor_gyro_sub(this, ORB_ID(sensor_gyro), gyro_index),
+	_instance(instance)
 {
 	const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
 
@@ -82,6 +83,9 @@ VehicleIMU::~VehicleIMU()
 	perf_free(_accel_update_perf);
 	perf_free(_gyro_generation_gap_perf);
 	perf_free(_gyro_update_perf);
+
+	_vehicle_imu_pub.unadvertise();
+	_vehicle_imu_status_pub.unadvertise();
 }
 
 bool VehicleIMU::Start()
@@ -89,7 +93,10 @@ bool VehicleIMU::Start()
 	// force initial updates
 	ParametersUpdate(true);
 
-	return _sensor_gyro_sub.registerCallback() && _sensor_accel_sub.registerCallback();
+	_sensor_gyro_sub.registerCallback();
+	_sensor_accel_sub.registerCallback();
+	ScheduleNow();
+	return true;
 }
 
 void VehicleIMU::Stop()
@@ -448,11 +455,12 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &delta_angle)
 void VehicleIMU::PrintStatus()
 {
 	if (_accel_calibration.device_id() == _gyro_calibration.device_id()) {
-		PX4_INFO("IMU ID: %d, accel interval: %.1f us, gyro interval: %.1f us", _accel_calibration.device_id(),
+		PX4_INFO("%d - IMU ID: %d, accel interval: %.1f us, gyro interval: %.1f us", _instance, _accel_calibration.device_id(),
 			 (double)_accel_interval.update_interval, (double)_gyro_interval.update_interval);
 
 	} else {
-		PX4_INFO("Accel ID: %d, interval: %.1f us, Gyro ID: %d, interval: %.1f us", _accel_calibration.device_id(),
+		PX4_INFO("%d - Accel ID: %d, interval: %.1f us, Gyro ID: %d, interval: %.1f us", _instance,
+			 _accel_calibration.device_id(),
 			 (double)_accel_interval.update_interval, _gyro_calibration.device_id(), (double)_gyro_interval.update_interval);
 	}
 
