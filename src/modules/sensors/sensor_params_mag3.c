@@ -42,6 +42,7 @@ PARAM_DEFINE_INT32(CAL_MAG3_ID, 0);
 /**
  * Mag 3 priority.
  *
+ * @value -1  Uninitialized
  * @value 0   Disabled
  * @value 1   Min
  * @value 25  Low
@@ -52,7 +53,7 @@ PARAM_DEFINE_INT32(CAL_MAG3_ID, 0);
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG3_PRIO, 50);
+PARAM_DEFINE_INT32(CAL_MAG3_PRIO, -1);
 
 /**
  * Rotation of magnetometer 3 relative to airframe.

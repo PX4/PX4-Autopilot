@@ -48,19 +48,40 @@ Accelerometer::Accelerometer()
 	Reset();
 }
 
-Accelerometer::Accelerometer(uint32_t device_id)
+Accelerometer::Accelerometer(uint32_t device_id, bool external)
 {
 	Reset();
-	set_device_id(device_id);
+	set_device_id(device_id, external);
 }
 
-void Accelerometer::set_device_id(uint32_t device_id)
+void Accelerometer::set_device_id(uint32_t device_id, bool external)
 {
-	if (_device_id != device_id) {
+	if (_device_id != device_id || _external != external) {
+		set_external(external);
 		_device_id = device_id;
 		ParametersUpdate();
 		SensorCorrectionsUpdate(true);
 	}
+}
+
+void Accelerometer::set_external(bool external)
+{
+	// update priority default appropriately if not set
+	if (_calibration_index < 0 || _priority < 0) {
+		if ((_priority < 0) || (_priority > 100)) {
+			_priority = external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
+
+		} else if (!_external && external && (_priority == DEFAULT_PRIORITY)) {
+			// internal -> external
+			_priority = DEFAULT_EXTERNAL_PRIORITY;
+
+		} else if (_external && !external && (_priority == DEFAULT_EXTERNAL_PRIORITY)) {
+			// external -> internal
+			_priority = DEFAULT_PRIORITY;
+		}
+	}
+
+	_external = external;
 }
 
 void Accelerometer::SensorCorrectionsUpdate(bool force)
