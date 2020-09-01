@@ -110,6 +110,9 @@ private:
 			       const bool prearm);
 	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
 			      const bool report_fail, const bool enforce_gps_required);
+
+	static bool ekf2CheckStates(orb_advert_t *mavlink_log_pub, const bool report_fail);
+
 	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
 					 const bool prearm);
 

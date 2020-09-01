@@ -281,6 +281,8 @@ rtps:
     id: 133
   - msg: sensor_preflight_mag
     id: 134
+  - msg: estimator_states
+    id: 135
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150

@@ -61,6 +61,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_innovation_variances", 200);
 	add_topic("estimator_innovations", 200);
 	add_topic("estimator_sensor_bias", 1000);
+	add_topic("estimator_states", 1000);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
