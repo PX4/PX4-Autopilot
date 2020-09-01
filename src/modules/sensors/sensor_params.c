@@ -202,3 +202,15 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_EXT_I2C_PRB, 1);
+
+/**
+ * Sensors hub IMU mode
+ *
+ * @value 0 Disabled
+ * @value 1 Publish primary IMU selection
+ *
+ * @category system
+ * @reboot_required true
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_IMU_MODE, 1);
