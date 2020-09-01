@@ -122,8 +122,11 @@ then
 	param set BAT_N_CELLS 4
 
 	param set CAL_ACC0_ID 1311244
+	param set CAL_ACC1_ID 1311500
 	param set CAL_GYRO0_ID 1311244
+	param set CAL_GYRO1_ID 1311500
 	param set CAL_MAG0_ID 197388
+	param set CAL_MAG1_ID 197644
 
 	param set CBRK_AIRSPD_CHK 0
 	param set CBRK_SUPPLY_CHK 894281
