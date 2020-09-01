@@ -147,6 +147,24 @@ EKF2::EKF2(bool replay_mode):
 	updateParams();
 
 	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+
+	// advertise immediately to ensure consistent uORB instance numbering
+	_att_pub.advertise();
+	_blended_gps_pub.advertise();
+	_ekf2_timestamps_pub.advertise();
+	_ekf_gps_drift_pub.advertise();
+	_estimator_innovation_test_ratios_pub.advertise();
+	_estimator_innovation_variances_pub.advertise();
+	_estimator_innovations_pub.advertise();
+	_estimator_sensor_bias_pub.advertise();
+	_estimator_states_pub.advertise();
+	_estimator_status_pub.advertise();
+	_vehicle_global_position_pub.advertise();
+	_vehicle_local_position_pub.advertise();
+	_vehicle_odometry_pub.advertise();
+	_vehicle_visual_odometry_aligned_pub.advertise();
+	_wind_pub.advertise();
+	_yaw_est_pub.advertise();
 }
 
 EKF2::~EKF2()
