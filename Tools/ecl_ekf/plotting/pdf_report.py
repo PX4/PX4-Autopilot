@@ -275,7 +275,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
 
         # Plot the delta angle bias estimates
         data_plot = CheckFlagsPlot(
-            1e-6 * estimator_status['timestamp'], estimator_status,
+            1e-6 * estimator_states['timestamp'], estimator_states,
             [['states[10]'], ['states[11]'], ['states[12]']],
             x_label='time (sec)', y_labels=['X (rad)', 'Y (rad)', 'Z (rad)'],
             plot_title='Delta Angle Bias Estimates', annotate=False, pdf_handle=pdf_pages)
@@ -284,7 +284,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
 
         # Plot the delta velocity bias estimates
         data_plot = CheckFlagsPlot(
-            1e-6 * estimator_status['timestamp'], estimator_status,
+            1e-6 * estimator_states['timestamp'], estimator_states,
             [['states[13]'], ['states[14]'], ['states[15]']],
             x_label='time (sec)', y_labels=['X (m/s)', 'Y (m/s)', 'Z (m/s)'],
             plot_title='Delta Velocity Bias Estimates', annotate=False, pdf_handle=pdf_pages)
