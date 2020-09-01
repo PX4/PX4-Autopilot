@@ -212,6 +212,13 @@ void VehicleMagnetometer::Run()
 
 					_advertised[uorb_index] = true;
 
+					// advertise outputs in order if publishing all
+					if (!_param_sens_mag_mode.get()) {
+						for (int instance = 0; instance < uorb_index; instance++) {
+							_vehicle_magnetometer_multi_pub[instance].advertise();
+						}
+					}
+
 				} else {
 					_last_data[uorb_index].timestamp = hrt_absolute_time();
 				}
@@ -229,16 +236,20 @@ void VehicleMagnetometer::Run()
 				}
 
 				if (_calibration[uorb_index].enabled()) {
-					Vector3f vect = _calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z});
+					const Vector3f vect = _calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z});
+
+					float mag_array[3] {vect(0), vect(1), vect(2)};
+					_voter.put(uorb_index, report.timestamp, mag_array, report.error_count, _priority[uorb_index]);
+
+					_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
+					_mag_sum[uorb_index] += vect;
+					_mag_sum_count[uorb_index]++;
 
 					_last_data[uorb_index].timestamp_sample = report.timestamp_sample;
 					_last_data[uorb_index].device_id = report.device_id;
 					_last_data[uorb_index].x = vect(0);
 					_last_data[uorb_index].y = vect(1);
 					_last_data[uorb_index].z = vect(2);
-
-					float mag_array[3] {vect(0), vect(1), vect(2)};
-					_voter.put(uorb_index, report.timestamp, mag_array, report.error_count, _priority[uorb_index]);
 				}
 			}
 		}
@@ -255,8 +266,10 @@ void VehicleMagnetometer::Run()
 				sub.unregisterCallback();
 			}
 
-			if (_selected_sensor_sub_index >= 0) {
-				PX4_INFO("%s switch from #%u -> #%d", "MAG", _selected_sensor_sub_index, best_index);
+			if (_param_sens_mag_mode.get()) {
+				if (_selected_sensor_sub_index >= 0) {
+					PX4_INFO("%s switch from #%u -> #%d", "MAG", _selected_sensor_sub_index, best_index);
+				}
 			}
 
 			_selected_sensor_sub_index = best_index;
@@ -264,67 +277,56 @@ void VehicleMagnetometer::Run()
 		}
 	}
 
-	if ((_selected_sensor_sub_index >= 0)
-	    && (_voter.get_sensor_state(_selected_sensor_sub_index) == DataValidator::ERROR_FLAG_NO_ERROR)
-	    && updated[_selected_sensor_sub_index]) {
+	// Publish
+	if (_param_sens_mag_mode.get()) {
+		// publish only best mag
+		if ((_selected_sensor_sub_index >= 0)
+		    && (_voter.get_sensor_state(_selected_sensor_sub_index) == DataValidator::ERROR_FLAG_NO_ERROR)
+		    && updated[_selected_sensor_sub_index]) {
 
-		const sensor_mag_s &mag = _last_data[_selected_sensor_sub_index];
+			Publish(_selected_sensor_sub_index);
+		}
 
-		_mag_timestamp_sum += mag.timestamp_sample;
-		_mag_sum += Vector3f{mag.x, mag.y, mag.z};
-		_mag_sum_count++;
-
-		if ((_param_sens_mag_rate.get() > 0)
-		    && hrt_elapsed_time(&_last_publication_timestamp) >= (1e6f / _param_sens_mag_rate.get())) {
-
-			const Vector3f magnetometer_data = _mag_sum / _mag_sum_count;
-			const hrt_abstime timestamp_sample = _mag_timestamp_sum / _mag_sum_count;
-
-			// reset
-			_mag_timestamp_sum = 0;
-			_mag_sum.zero();
-			_mag_sum_count = 0;
-
-			// populate vehicle_magnetometer with primary mag and publish
-			vehicle_magnetometer_s out{};
-			out.timestamp_sample = timestamp_sample;
-			out.device_id = mag.device_id;
-			magnetometer_data.copyTo(out.magnetometer_ga);
-
-			out.timestamp = hrt_absolute_time();
-			_vehicle_magnetometer_pub.publish(out);
-
-			_last_publication_timestamp = out.timestamp;
+	} else {
+		// publish all
+		for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
+			// publish all magnetometers as separate instances
+			if (updated[uorb_index] && (_calibration[uorb_index].device_id() != 0)) {
+				Publish(uorb_index, true);
+			}
 		}
 	}
 
+
 	// check failover and report
-	if (_last_failover_count != _voter.failover_count()) {
-		uint32_t flags = _voter.failover_state();
-		int failover_index = _voter.failover_index();
+	if (_param_sens_mag_mode.get()) {
+		if (_last_failover_count != _voter.failover_count()) {
+			uint32_t flags = _voter.failover_state();
+			int failover_index = _voter.failover_index();
 
-		if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
-			if (failover_index != -1) {
-				const hrt_abstime now = hrt_absolute_time();
+			if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
+				if (failover_index != -1) {
+					const hrt_abstime now = hrt_absolute_time();
 
-				if (now - _last_error_message > 3_s) {
-					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!",
-							      "MAG",
-							      failover_index,
-							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
-					_last_error_message = now;
+					if (now - _last_error_message > 3_s) {
+						mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!",
+								      "MAG",
+								      failover_index,
+								      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
+								      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
+								      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
+								      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
+								      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
+						_last_error_message = now;
+					}
+
+					// reduce priority of failed sensor to the minimum
+					_priority[failover_index] = 1;
 				}
-
-				// reduce priority of failed sensor to the minimum
-				_priority[failover_index] = 1;
 			}
-		}
 
-		_last_failover_count = _voter.failover_count();
+			_last_failover_count = _voter.failover_count();
+		}
 	}
 
 	if (!_armed) {
@@ -332,9 +334,42 @@ void VehicleMagnetometer::Run()
 	}
 
 	// reschedule timeout
-	ScheduleDelayed(100_ms);
+	ScheduleDelayed(20_ms);
 
 	perf_end(_cycle_perf);
+}
+
+void VehicleMagnetometer::Publish(uint8_t instance, bool multi)
+{
+	if ((_param_sens_mag_rate.get() > 0)
+	    && hrt_elapsed_time(&_last_publication_timestamp[instance]) >= (1e6f / _param_sens_mag_rate.get())) {
+
+		const Vector3f magnetometer_data = _mag_sum[instance] / _mag_sum_count[instance];
+		const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _mag_sum_count[instance];
+
+		// reset
+		_timestamp_sample_sum[instance] = 0;
+		_mag_sum[instance].zero();
+		_mag_sum_count[instance] = 0;
+
+		// populate vehicle_magnetometer with primary mag and publish
+		vehicle_magnetometer_s out{};
+		out.timestamp_sample = timestamp_sample;
+		out.device_id = _calibration[instance].device_id();
+		magnetometer_data.copyTo(out.magnetometer_ga);
+
+		out.timestamp = hrt_absolute_time();
+
+		if (multi) {
+			_vehicle_magnetometer_multi_pub[instance].publish(out);
+
+		} else {
+			// otherwise only ever publish the first instance
+			_vehicle_magnetometer_pub.publish(out);
+		}
+
+		_last_publication_timestamp[instance] = out.timestamp;
+	}
 }
 
 void VehicleMagnetometer::calcMagInconsistency()
