@@ -30,6 +30,12 @@ def analyse_ekf(
     """
 
     try:
+        estimator_states = ulog.get_dataset('estimator_states').data
+        print('found estimator_states data')
+    except:
+        raise PreconditionError('could not find estimator_states data')
+
+    try:
         estimator_status = ulog.get_dataset('estimator_status').data
         print('found estimator_status data')
     except:

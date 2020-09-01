@@ -989,6 +989,41 @@ void EKF2::Run()
 				}
 			}
 
+			// publish estimator states
+			estimator_states_s states;
+			states.n_states = 24;
+			_ekf.getStateAtFusionHorizonAsVector().copyTo(states.states);
+			_ekf.covariances_diagonal().copyTo(states.covariances);
+			states.timestamp = _replay_mode ? now : hrt_absolute_time();
+			_estimator_states_pub.publish(states);
+
+			// publish estimator status
+			estimator_status_s status{};
+			_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
+			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
+			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
+			// the GPS Fix bit, which is always checked)
+			status.gps_check_fail_flags &= ((uint16_t)_params->gps_check_mask << 1) | 1;
+			status.control_mode_flags = control_status.value;
+			_ekf.get_filter_fault_status(&status.filter_fault_flags);
+			_ekf.get_innovation_test_status(status.innovation_check_flags, status.mag_test_ratio,
+							status.vel_test_ratio, status.pos_test_ratio,
+							status.hgt_test_ratio, status.tas_test_ratio,
+							status.hagl_test_ratio, status.beta_test_ratio);
+
+			status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
+			status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
+			_ekf.get_ekf_soln_status(&status.solution_status_flags);
+			_ekf.getImuVibrationMetrics().copyTo(status.vibe);
+			status.time_slip = _last_time_slip_us * 1e-6f;
+			status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
+			status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
+			status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
+			status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
+			status.pre_flt_fail_mag_field_disturbed = control_status.flags.mag_field_disturbed;
+
+			_estimator_status_pub.publish(status);
+
 			{
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
 				bias.timestamp = now;
@@ -1011,39 +1046,6 @@ void EKF2::Run()
 
 				_estimator_sensor_bias_pub.publish(bias);
 			}
-
-			// publish estimator status
-			estimator_status_s status;
-			status.timestamp = now;
-			_ekf.getStateAtFusionHorizonAsVector().copyTo(status.states);
-			status.n_states = 24;
-			_ekf.covariances_diagonal().copyTo(status.covariances);
-			_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
-			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
-			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
-			// the GPS Fix bit, which is always checked)
-			status.gps_check_fail_flags &= ((uint16_t)_params->gps_check_mask << 1) | 1;
-			status.control_mode_flags = control_status.value;
-			_ekf.get_filter_fault_status(&status.filter_fault_flags);
-			_ekf.get_innovation_test_status(status.innovation_check_flags, status.mag_test_ratio,
-							status.vel_test_ratio, status.pos_test_ratio,
-							status.hgt_test_ratio, status.tas_test_ratio,
-							status.hagl_test_ratio, status.beta_test_ratio);
-
-			status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
-			status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
-			_ekf.get_ekf_soln_status(&status.solution_status_flags);
-			_ekf.getImuVibrationMetrics().copyTo(status.vibe);
-			status.time_slip = _last_time_slip_us * 1e-6f;
-			status.health_flags = 0.0f; // unused
-			status.timeout_flags = 0.0f; // unused
-			status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
-			status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
-			status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
-			status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
-			status.pre_flt_fail_mag_field_disturbed = control_status.flags.mag_field_disturbed;
-
-			_estimator_status_pub.publish(status);
 
 			// publish GPS drift data only when updated to minimise overhead
 			float gps_drift[3];
@@ -1103,8 +1105,8 @@ void EKF2::Run()
 					bool all_estimates_invalid = false;
 
 					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-						if (status.covariances[axis_index + 19] < min_var_allowed
-						    || status.covariances[axis_index + 19] > max_var_allowed) {
+						if (states.covariances[axis_index + 19] < min_var_allowed
+						    || states.covariances[axis_index + 19] > max_var_allowed) {
 							all_estimates_invalid = true;
 						}
 					}
@@ -1112,9 +1114,9 @@ void EKF2::Run()
 					// Store valid estimates and their associated variances
 					if (!all_estimates_invalid) {
 						for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-							_last_valid_mag_cal[axis_index] = status.states[axis_index + 19];
+							_last_valid_mag_cal[axis_index] = states.states[axis_index + 19];
 							_valid_cal_available[axis_index] = true;
-							_last_valid_variance[axis_index] = status.covariances[axis_index + 19];
+							_last_valid_variance[axis_index] = states.covariances[axis_index + 19];
 						}
 					}
 				}

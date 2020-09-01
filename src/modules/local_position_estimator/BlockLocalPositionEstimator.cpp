@@ -712,45 +712,46 @@ void BlockLocalPositionEstimator::publishOdom()
 
 void BlockLocalPositionEstimator::publishEstimatorStatus()
 {
+	_pub_est_states.get().timestamp = _timeStamp;
 	_pub_est_status.get().timestamp = _timeStamp;
 
 	for (size_t i = 0; i < n_x; i++) {
-		_pub_est_status.get().states[i] = _x(i);
+		_pub_est_states.get().states[i] = _x(i);
 	}
 
 	// matching EKF2 covariances indexing
 	// quaternion - not determined, as it is a position estimator
-	_pub_est_status.get().covariances[0] = NAN;
-	_pub_est_status.get().covariances[1] = NAN;
-	_pub_est_status.get().covariances[2] = NAN;
-	_pub_est_status.get().covariances[3] = NAN;
+	_pub_est_states.get().covariances[0] = NAN;
+	_pub_est_states.get().covariances[1] = NAN;
+	_pub_est_states.get().covariances[2] = NAN;
+	_pub_est_states.get().covariances[3] = NAN;
 	// linear velocity
-	_pub_est_status.get().covariances[4] = m_P(X_vx, X_vx);
-	_pub_est_status.get().covariances[5] = m_P(X_vy, X_vy);
-	_pub_est_status.get().covariances[6] = m_P(X_vz, X_vz);
+	_pub_est_states.get().covariances[4] = m_P(X_vx, X_vx);
+	_pub_est_states.get().covariances[5] = m_P(X_vy, X_vy);
+	_pub_est_states.get().covariances[6] = m_P(X_vz, X_vz);
 	// position
-	_pub_est_status.get().covariances[7] = m_P(X_x, X_x);
-	_pub_est_status.get().covariances[8] = m_P(X_y, X_y);
-	_pub_est_status.get().covariances[9] = m_P(X_z, X_z);
+	_pub_est_states.get().covariances[7] = m_P(X_x, X_x);
+	_pub_est_states.get().covariances[8] = m_P(X_y, X_y);
+	_pub_est_states.get().covariances[9] = m_P(X_z, X_z);
 	// gyro bias - not determined
-	_pub_est_status.get().covariances[10] = NAN;
-	_pub_est_status.get().covariances[11] = NAN;
-	_pub_est_status.get().covariances[12] = NAN;
+	_pub_est_states.get().covariances[10] = NAN;
+	_pub_est_states.get().covariances[11] = NAN;
+	_pub_est_states.get().covariances[12] = NAN;
 	// accel bias
-	_pub_est_status.get().covariances[13] = m_P(X_bx, X_bx);
-	_pub_est_status.get().covariances[14] = m_P(X_by, X_by);
-	_pub_est_status.get().covariances[15] = m_P(X_bz, X_bz);
+	_pub_est_states.get().covariances[13] = m_P(X_bx, X_bx);
+	_pub_est_states.get().covariances[14] = m_P(X_by, X_by);
+	_pub_est_states.get().covariances[15] = m_P(X_bz, X_bz);
 
 	// mag - not determined
 	for (size_t i = 16; i <= 21; i++) {
-		_pub_est_status.get().covariances[i] = NAN;
+		_pub_est_states.get().covariances[i] = NAN;
 	}
 
 	// replacing the hor wind cov with terrain altitude covariance
-	_pub_est_status.get().covariances[22] = m_P(X_tz, X_tz);
-	_pub_est_status.get().covariances[23] = NAN;
+	_pub_est_states.get().covariances[22] = m_P(X_tz, X_tz);
+	_pub_est_states.get().covariances[23] = NAN;
 
-	_pub_est_status.get().n_states = n_x;
+	_pub_est_states.get().n_states = n_x;
 	_pub_est_status.get().health_flags = _sensorFault;
 	_pub_est_status.get().timeout_flags = _sensorTimeout;
 	_pub_est_status.get().pos_horiz_accuracy = _pub_gpos.get().eph;

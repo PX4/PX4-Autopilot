@@ -232,6 +232,10 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		if (!ekf2Check(mavlink_log_pub, status, false, reportFailures && report_ekf_fail, checkGNSS)) {
 			failed = true;
 		}
+
+		if (!ekf2CheckStates(mavlink_log_pub, reportFailures && report_ekf_fail)) {
+			failed = true;
+		}
 	}
 
 	/* ---- Failure Detector ---- */
