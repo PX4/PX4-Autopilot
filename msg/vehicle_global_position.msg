@@ -6,6 +6,7 @@
 #
 
 uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
 
 float64 lat			# Latitude, (degrees)
 float64 lon			# Longitude, (degrees)

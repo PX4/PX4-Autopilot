@@ -358,10 +358,11 @@ AttitudeEstimatorQ::Run()
 
 		if (update(dt)) {
 			vehicle_attitude_s att = {};
-			att.timestamp = sensors.timestamp;
+			att.timestamp_sample = sensors.timestamp;
 			_q.copyTo(att.q);
 
 			/* the instance count is not used here */
+			att.timestamp = hrt_absolute_time();
 			_att_pub.publish(att);
 
 		}
