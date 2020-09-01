@@ -274,7 +274,6 @@ void EKF2::Run()
 	imuSample imu_sample_new {};
 
 	hrt_abstime imu_dt = 0; // for tracking time slip later
-	estimator_sensor_bias_s bias{};
 
 	if (_imu_sub_index >= 0) {
 		vehicle_imu_s imu;
@@ -294,8 +293,8 @@ void EKF2::Run()
 
 		imu_dt = imu.delta_angle_dt;
 
-		bias.accel_device_id = imu.accel_device_id;
-		bias.gyro_device_id = imu.gyro_device_id;
+		_estimator_status_pub.get().accel_device_id = imu.accel_device_id;
+		_estimator_status_pub.get().gyro_device_id = imu.gyro_device_id;
 
 	} else {
 		sensor_combined_s sensor_combined;
@@ -370,6 +369,9 @@ void EKF2::Run()
 						}
 					}
 				}
+
+				_estimator_status_pub.get().accel_device_id = _sensor_selection.accel_device_id;
+				_estimator_status_pub.get().gyro_device_id = _sensor_selection.gyro_device_id;
 			}
 		}
 
@@ -405,6 +407,8 @@ void EKF2::Run()
 						_invalid_mag_id_count--;
 					}
 				}
+
+				_estimator_status_pub.get().mag_device_id = magnetometer.device_id;
 
 				if ((_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
@@ -445,6 +449,8 @@ void EKF2::Run()
 				_ekf.setBaroData(baro_sample);
 				ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
 						(int64_t)ekf2_timestamps.timestamp / 100);
+
+				_estimator_status_pub.get().baro_device_id = airdata.baro_device_id;
 			}
 		}
 
@@ -1015,7 +1021,7 @@ void EKF2::Run()
 			_estimator_states_pub.publish(states);
 
 			// publish estimator status
-			estimator_status_s status{};
+			estimator_status_s &status = _estimator_status_pub.get();
 			status.timestamp_sample = imu_sample_new.time_us;
 			_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
@@ -1040,19 +1046,17 @@ void EKF2::Run()
 			status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
 			status.pre_flt_fail_mag_field_disturbed = control_status.flags.mag_field_disturbed;
 			status.timestamp = _replay_mode ? now : hrt_absolute_time();
-			_estimator_status_pub.publish(status);
+			_estimator_status_pub.update();
 
 			{
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
+				estimator_sensor_bias_s bias;
 				bias.timestamp_sample = imu_sample_new.time_us;
 
 				// take device ids from sensor_selection_s if not using specific vehicle_imu_s
-				if (_imu_sub_index < 0) {
-					bias.gyro_device_id = _sensor_selection.gyro_device_id;
-					bias.accel_device_id = _sensor_selection.accel_device_id;
-				}
-
-				bias.mag_device_id = _param_ekf2_magbias_id.get();
+				bias.gyro_device_id = _estimator_status_pub.get().gyro_device_id;
+				bias.accel_device_id = _estimator_status_pub.get().accel_device_id;
+				bias.mag_device_id = _estimator_status_pub.get().mag_device_id;
 
 				// In-run bias estimates
 				_ekf.getGyroBias().copyTo(bias.gyro_bias);
@@ -1840,7 +1844,6 @@ void EKF2::update_gps_offsets()
 
 }
 
-
 /*
  * Apply the steady state physical receiver offsets calculated by update_gps_offsets().
 */
@@ -1936,7 +1939,6 @@ void EKF2::calc_gps_blend_output()
 
 float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 {
-
 	float height_diff = static_cast<float>(_gps_alttitude_ellipsoid[0]) * 1e-3f - amsl_hgt;
 
 	if (_gps_alttitude_ellipsoid_previous_timestamp[0] == 0) {
