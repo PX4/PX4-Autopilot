@@ -1058,13 +1058,22 @@ void EKF2::Run()
 				bias.accel_device_id = _estimator_status_pub.get().accel_device_id;
 				bias.mag_device_id = _estimator_status_pub.get().mag_device_id;
 
-				// In-run bias estimates
 				_ekf.getGyroBias().copyTo(bias.gyro_bias);
 				_ekf.getAccelBias().copyTo(bias.accel_bias);
 
 				bias.mag_bias[0] = _last_valid_mag_cal[0];
 				bias.mag_bias[1] = _last_valid_mag_cal[1];
 				bias.mag_bias[2] = _last_valid_mag_cal[2];
+
+				bias.gyro_bias_variance[0] = states.covariances[10];
+				bias.gyro_bias_variance[1] = states.covariances[11];
+				bias.gyro_bias_variance[2] = states.covariances[12];
+				bias.accel_bias_variance[0] = states.covariances[13];
+				bias.accel_bias_variance[1] = states.covariances[14];
+				bias.accel_bias_variance[2] = states.covariances[15];
+				bias.mag_bias_variance[0] = states.covariances[19];
+				bias.mag_bias_variance[1] = states.covariances[20];
+				bias.mag_bias_variance[2] = states.covariances[21];
 
 				bias.timestamp = _replay_mode ? now : hrt_absolute_time();
 				_estimator_sensor_bias_pub.publish(bias);
