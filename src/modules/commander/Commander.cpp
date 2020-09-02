@@ -3755,7 +3755,7 @@ void Commander::mission_init()
 
 void Commander::data_link_check()
 {
-	for (auto &telemetry_status :  _telemetry_status_sub) {
+	for (auto &telemetry_status :  _telemetry_status_subs) {
 		telemetry_status_s telemetry;
 
 		if (telemetry_status.update(&telemetry)) {
@@ -3924,14 +3924,13 @@ void Commander::data_link_check()
 
 void Commander::avoidance_check()
 {
+	for (auto &dist_sens_sub : _distance_sensor_subs) {
+		distance_sensor_s distance_sensor;
 
-	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		if (_sub_distance_sensor[i].updated()) {
-			distance_sensor_s distance_sensor {};
-			_sub_distance_sensor[i].copy(&distance_sensor);
-
+		if (dist_sens_sub.update(&distance_sensor)) {
 			if ((distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
 			    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
+
 				_valid_distance_sensor_time_us = distance_sensor.timestamp;
 			}
 		}
@@ -3961,26 +3960,22 @@ void Commander::avoidance_check()
 
 void Commander::battery_status_check()
 {
-	bool battery_sub_updated = false;
+	// We need to update the status flag if ANY battery is updated, because the system source might have
+	// changed, or might be nothing (if there is no battery connected)
+	if (!_battery_status_subs.updated()) {
+		// Nothing has changed since the last time this function was called, so nothing needs to be done now.
+		return;
+	}
 
-	battery_status_s batteries[ORB_MULTI_MAX_INSTANCES];
+	battery_status_s batteries[_battery_status_subs.size()];
 	size_t num_connected_batteries = 0;
 
-	for (size_t i = 0; i < sizeof(_battery_subs) / sizeof(_battery_subs[0]); i++) {
-		// We need to update the status flag if ANY battery is updated, because the system source might have
-		// changed, or might be nothing (if there is no battery connected)
-		battery_sub_updated |= _battery_subs[i].updated();
-
-		if (_battery_subs[i].copy(&batteries[num_connected_batteries])) {
+	for (auto &battery_sub : _battery_status_subs) {
+		if (battery_sub.copy(&batteries[num_connected_batteries])) {
 			if (batteries[num_connected_batteries].connected) {
 				num_connected_batteries++;
 			}
 		}
-	}
-
-	if (!battery_sub_updated) {
-		// Nothing has changed since the last time this function was called, so nothing needs to be done now.
-		return;
 	}
 
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest

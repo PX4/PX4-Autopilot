@@ -54,6 +54,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
@@ -256,8 +257,7 @@ private:
 	int _lockstep_component{-1};
 
 	// because we can have several distance sensor instances with different orientations
-	static constexpr int MAX_RNG_SENSOR_COUNT = 4;
-	uORB::Subscription _range_finder_subs[MAX_RNG_SENSOR_COUNT] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}};
+	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
 	// because we can have multiple GPS instances
@@ -1078,10 +1078,10 @@ void Ekf2::Run()
 
 		if (_range_finder_sub_index >= 0) {
 
-			if (_range_finder_subs[_range_finder_sub_index].updated()) {
+			if (_distance_sensor_subs[_range_finder_sub_index].updated()) {
 				distance_sensor_s range_finder;
 
-				if (_range_finder_subs[_range_finder_sub_index].copy(&range_finder)) {
+				if (_distance_sensor_subs[_range_finder_sub_index].copy(&range_finder)) {
 					rangeSample range_sample {};
 					range_sample.rng = range_finder.current_distance;
 					range_sample.quality = range_finder.signal_quality;
@@ -1789,10 +1789,10 @@ void Ekf2::resetPreFlightChecks()
 
 int Ekf2::getRangeSubIndex()
 {
-	for (unsigned i = 0; i < MAX_RNG_SENSOR_COUNT; i++) {
-		distance_sensor_s report{};
+	for (unsigned i = 0; i < _distance_sensor_subs.size(); i++) {
+		distance_sensor_s report;
 
-		if (_range_finder_subs[i].update(&report)) {
+		if (_distance_sensor_subs[i].update(&report)) {
 			// only use the first instace which has the correct orientation
 			if (report.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 				PX4_INFO("Found range finder with instance %d", i);

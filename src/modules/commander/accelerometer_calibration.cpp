@@ -141,6 +141,7 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/vehicle_attitude.h>
 
@@ -437,11 +438,7 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 	sensor_correction_s sensor_correction{};
 	sensor_correction_sub.copy(&sensor_correction);
 
-	uORB::Subscription accel_sub[MAX_ACCEL_SENS] {
-		{ORB_ID(sensor_accel), 0},
-		{ORB_ID(sensor_accel), 1},
-		{ORB_ID(sensor_accel), 2},
-	};
+	uORB::SubscriptionMultiArray<sensor_accel_s, MAX_ACCEL_SENS> accel_subs{ORB_ID::sensor_accel};
 
 	/* use the first sensor to pace the readout, but do per-sensor counts */
 	for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
@@ -449,7 +446,7 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 		Vector3f accel_sum{};
 		unsigned count = 0;
 
-		while (accel_sub[accel_index].update(&arp)) {
+		while (accel_subs[accel_index].update(&arp)) {
 			// fetch optional thermal offset corrections in sensor/board frame
 			if ((arp.timestamp > 0) && (arp.device_id != 0)) {
 				Vector3f offset{0, 0, 0};
