@@ -69,7 +69,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             }
           }
@@ -143,7 +143,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -216,7 +216,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -290,7 +290,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -365,7 +365,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -440,7 +440,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -513,7 +513,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -588,7 +588,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -661,7 +661,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -740,7 +740,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -813,7 +813,7 @@ pipeline {
                 }
               }
               options {
-                timeout(time: 60, unit: 'MINUTES')
+                timeout(time: 90, unit: 'MINUTES')
               }
             } // stage test
           }
@@ -828,7 +828,7 @@ pipeline {
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '20', artifactDaysToKeepStr: '40'))
-    timeout(time: 60, unit: 'MINUTES')
+    timeout(time: 90, unit: 'MINUTES')
   }
 }
 
