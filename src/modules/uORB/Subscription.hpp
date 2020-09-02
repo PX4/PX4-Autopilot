@@ -112,7 +112,7 @@ public:
 
 	/**
 	 * Check if there is a new update.
-	 * */
+	 */
 	bool updated() { return advertised() && (_node->published_message_count() != _last_generation); }
 
 	/**

@@ -145,7 +145,7 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 			// copy corresponding vehicle_imu_status for accel & gyro error counts
 			vehicle_imu_status_s imu_status{};
-			_vehicle_imu_status_sub[uorb_index].copy(&imu_status);
+			_vehicle_imu_status_subs[uorb_index].copy(&imu_status);
 
 			_accel_device_id[uorb_index] = imu_report.accel_device_id;
 			_gyro_device_id[uorb_index] = imu_report.gyro_device_id;
