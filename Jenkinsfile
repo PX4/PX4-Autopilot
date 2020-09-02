@@ -17,7 +17,7 @@ pipeline {
         // stage('Catkin build on ROS workspace') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-ros-melodic:2020-04-01'
+        //       image 'px4io/px4-dev-ros-melodic:2020-08-20'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
         //     }
         //   }
@@ -58,7 +58,7 @@ pipeline {
         // stage('Colcon build on ROS2 workspace') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-ros2-dashing:2020-04-01'
+        //       image 'px4io/px4-dev-ros2-dashing:2020-08-20'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
         //     }
         //   }
@@ -89,7 +89,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh 'make distclean'
@@ -108,7 +108,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh 'make distclean'
@@ -127,7 +127,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh 'make distclean'
@@ -147,7 +147,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx-bionic:2020-04-01'
+              image 'px4io/px4-dev-nuttx-focal:2020-08-20'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -176,7 +176,7 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -206,7 +206,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -234,7 +234,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -262,7 +262,7 @@ pipeline {
 
         stage('microRTPS agent') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -286,7 +286,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -315,7 +315,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -358,7 +358,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
