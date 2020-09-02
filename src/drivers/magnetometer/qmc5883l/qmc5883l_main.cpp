@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,73 +31,46 @@
  *
  ****************************************************************************/
 
-/**
- * @file qmc5883.cpp
- *
- * Driver for the QMC5883 magnetometer connected via I2C.
- */
+#include "QMC5883L.hpp"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-#include "QMC5883.hpp"
-#include "qmc5883.h"
-
-extern "C" __EXPORT int qmc5883_main(int argc, char *argv[]);
-
-I2CSPIDriverBase *QMC5883::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
+I2CSPIDriverBase *
+QMC5883L::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator, int runtime_instance)
 {
-	device::Device *interface = nullptr;
+	QMC5883L *instance = new QMC5883L(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = QMC5883_I2C_interface(iterator.bus(), cli.bus_frequency, cli.i2c_address);
-	}
-
-	if (interface == nullptr) {
+	if (!instance) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (interface->init() != OK) {
-		delete interface;
+	if (instance->init() != PX4_OK) {
+		delete instance;
 		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
 		return nullptr;
 	}
 
-	QMC5883 *dev = new QMC5883(interface, cli.rotation, iterator.configuredBusOption(), iterator.bus(), cli.i2c_address);
-
-	if (dev == nullptr) {
-		delete interface;
-		return nullptr;
-	}
-
-	if (OK != dev->init()) {
-		delete dev;
-		return nullptr;
-	}
-
-	return dev;
+	return instance;
 }
 
-void QMC5883::print_usage()
+void QMC5883L::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("qmc5883", "driver");
+	PRINT_MODULE_USAGE_NAME("qmc5883l", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x0D);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int qmc5883_main(int argc, char *argv[])
+extern "C" int qmc5883l_main(int argc, char *argv[])
 {
-	using ThisDriver = QMC5883;
 	int ch;
+	using ThisDriver = QMC5883L;
 	BusCLIArguments cli{true, false};
-	cli.i2c_address = ADDR_ID_B;
-	cli.default_i2c_frequency = 400000;
+	cli.default_i2c_frequency = I2C_SPEED;
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -114,7 +87,7 @@ extern "C" int qmc5883_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_QMC5883);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_QMC5883L);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
