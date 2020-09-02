@@ -29,7 +29,7 @@ px4_add_board(
 		lights/rgbled_ncp5623c
 		magnetometer/bmm150
 		magnetometer/lis3mdl
-		magnetometer/ist8310
+		magnetometer/isentek/ist8310
 		optical_flow # all available optical flow drivers
 		pca9685
 		pwm_input
