@@ -2946,7 +2946,7 @@ protected:
 			}
 
 			// accel 0, 1, 2 cumulative clipping
-			for (int i = 0; i < 3; i++) {
+			for (int i = 0; i < math::min(3, _vehicle_imu_status_subs.size()); i++) {
 				vehicle_imu_status_s status;
 
 				if (_vehicle_imu_status_subs[i].copy(&status)) {
