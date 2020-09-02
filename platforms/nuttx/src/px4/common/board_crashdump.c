@@ -53,6 +53,7 @@
 
 #include "up_internal.h"
 #include <systemlib/hardfault_log.h>
+#include "nvic.h"
 
 #if defined(CONFIG_STM32F7_BBSRAM) && defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
 #  define HAS_BBSRAM CONFIG_STM32F7_BBSRAM
@@ -287,6 +288,16 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 
 	pdump->info.pid = rtcb->pid;
 
+	pdump->info.fault_regs.cfsr  = getreg32(NVIC_CFAULTS);
+	pdump->info.fault_regs.hfsr  = getreg32(NVIC_HFAULTS);
+	pdump->info.fault_regs.dfsr  = getreg32(NVIC_DFAULTS);
+	pdump->info.fault_regs.mmfsr = getreg32(NVIC_MEMMANAGE_ADDR);
+	pdump->info.fault_regs.bfsr  = getreg32(NVIC_BFAULT_ADDR);
+	pdump->info.fault_regs.afsr  = getreg32(NVIC_AFAULTS);
+#if defined(CONFIG_ARCH_CORTEXM7)
+	pdump->info.fault_regs.abfsr = getreg32(NVIC_ABFSR);
+#endif
+	pdump->info.flags |= eFaultRegPresent;
 
 	/* If  current_regs is not NULL then we are in an interrupt context
 	 * and the user context is in current_regs else we are running in
