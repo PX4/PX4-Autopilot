@@ -250,6 +250,46 @@
             ]
         },
         {
+            "label": "gazebo tiltrotor",
+            "type": "shell",
+            "dependsOn": "gazebo build",
+            "options": {
+                "cwd": "${workspaceRoot}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceRoot}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "command": "gzserver --verbose ${workspaceRoot}/Tools/sitl_gazebo/worlds/tiltrotor.world",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
             "label": "gazebo client",
             "type": "shell",
             "dependsOn": "gazebo build",

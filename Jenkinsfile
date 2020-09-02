@@ -12,84 +12,82 @@ pipeline {
         }
       }
       parallel {
+        stage('Catkin build on ROS workspace') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros-melodic:2020-08-20'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              mkdir -p catkin_ws/src;
+              cd catkin_ws;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
+              source /opt/ros/melodic/setup.bash;
+              export PYTHONPATH=/opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages;
+              catkin init;
+              catkin build -j$(nproc) -l$(nproc);
+            '''
+            // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
+            sh '''#!/bin/bash -l
+              echo $0;
+              source catkin_ws/devel/setup.bash;
+              rostest px4 pub_test.launch;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf catkin_ws'
+            }
+            failure {
+              archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
+            }
+          }
+          options {
+            checkoutToSubdirectory('catkin_ws/src/Firmware')
+          }
+        }
 
-        // TODO: temporarily disabled 2020-06-03 waiting on mavlink update
-        // stage('Catkin build on ROS workspace') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros-melodic:2020-04-01'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'ls -l'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       mkdir -p catkin_ws/src;
-        //       cd catkin_ws;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
-        //       source /opt/ros/melodic/setup.bash;
-        //       export PYTHONPATH=/opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages;
-        //       catkin init;
-        //       catkin build -j$(nproc) -l$(nproc);
-        //     '''
-        //     // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       source catkin_ws/devel/setup.bash;
-        //       rostest px4 pub_test.launch;
-        //     '''
-        //   }
-        //   post {
-        //     always {
-        //       sh 'rm -rf catkin_ws'
-        //     }
-        //     failure {
-        //       archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
-        //     }
-        //   }
-        //   options {
-        //     checkoutToSubdirectory('catkin_ws/src/Firmware')
-        //   }
-        // }
-        //
-        // stage('Colcon build on ROS2 workspace') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros2-dashing:2020-04-01'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'ls -l'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       unset ROS_DISTRO;
-        //       mkdir -p colcon_ws/src;
-        //       cd colcon_ws;
-        //       git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
-        //       git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
-        //       source /opt/ros/bouncy/setup.sh;
-        //       source /opt/ros/melodic/setup.sh;
-        //       colcon build --event-handlers console_direct+ --symlink-install;
-        //     '''
-        //   }
-        //   post {
-        //     always {
-        //       sh 'rm -rf colcon_ws'
-        //     }
-        //   }
-        //   options {
-        //     checkoutToSubdirectory('colcon_ws/src/Firmware')
-        //   }
-        // }
+        stage('Colcon build on ROS2 workspace') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros2-foxy:2020-08-20'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              unset ROS_DISTRO;
+              mkdir -p colcon_ws/src;
+              cd colcon_ws;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
+              source /opt/ros/bouncy/setup.sh;
+              source /opt/ros/melodic/setup.sh;
+              colcon build --event-handlers console_direct+ --symlink-install;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf colcon_ws'
+            }
+          }
+          options {
+            checkoutToSubdirectory('colcon_ws/src/Firmware')
+          }
+        }
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh 'make distclean'
@@ -108,7 +106,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh 'make distclean'
@@ -127,7 +125,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh 'make distclean'
@@ -147,7 +145,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx-bionic:2020-04-01'
+              image 'px4io/px4-dev-nuttx-focal:2020-08-20'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -176,7 +174,7 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -206,7 +204,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -234,7 +232,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -262,7 +260,7 @@ pipeline {
 
         stage('microRTPS agent') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -270,10 +268,16 @@ pipeline {
             sh('make distclean')
             sh('make px4_sitl_rtps')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/micrortps_agent.git")
+              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/micrortps_agent.git -b ${BRANCH_NAME}")
+              sh("rm -rf micrortps_agent/src micrortps_agent/idl")
               sh('cp -R build/px4_sitl_rtps/src/modules/micrortps_bridge/micrortps_agent/* micrortps_agent')
-              sh('cd micrortps_agent; git status; git add .; git commit -a -m "Update microRTPS agent source code `date`" || true')
-              sh('cd micrortps_agent; git push origin master || true')
+              sh('cd micrortps_agent; git status; git add src; git commit -a -m "Update microRTPS agent source code `date`" || true')
+              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
+              sh('cd micrortps_agent; git status; git add idl; git commit -a -m "Update IDL definitions `date`" || true')
+              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
+              sh('cd micrortps_agent; git status; git add CMakeLists.txt; git commit -a -m "Update CMakeLists.txt `date`" || true')
+              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
+              sh('rm -rf micrortps_agent')
             }
           }
           when {
@@ -286,7 +290,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -294,12 +298,12 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git")
               // 'master' branch
-              sh('python msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
+              sh('./msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
               sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
               sh('cd px4_msgs; git push origin master || true')
               // 'ros1' branch
               sh('cd px4_msgs; git checkout ros1')
-              sh('python msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
+              sh('./msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
               sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
               sh('cd px4_msgs; git push origin ros1 || true')
               sh('rm -rf px4_msgs')
@@ -315,7 +319,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
@@ -358,7 +362,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2020-04-01' }
+            docker { image 'px4io/px4-dev-base-focal:2020-08-20' }
           }
           steps {
             sh('export')
