@@ -12,80 +12,78 @@ pipeline {
         }
       }
       parallel {
+        stage('Catkin build on ROS workspace') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros-melodic:2020-08-20'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              mkdir -p catkin_ws/src;
+              cd catkin_ws;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
+              source /opt/ros/melodic/setup.bash;
+              export PYTHONPATH=/opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages;
+              catkin init;
+              catkin build -j$(nproc) -l$(nproc);
+            '''
+            // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
+            sh '''#!/bin/bash -l
+              echo $0;
+              source catkin_ws/devel/setup.bash;
+              rostest px4 pub_test.launch;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf catkin_ws'
+            }
+            failure {
+              archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
+            }
+          }
+          options {
+            checkoutToSubdirectory('catkin_ws/src/Firmware')
+          }
+        }
 
-        // TODO: temporarily disabled 2020-06-03 waiting on mavlink update
-        // stage('Catkin build on ROS workspace') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros-melodic:2020-08-20'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'ls -l'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       mkdir -p catkin_ws/src;
-        //       cd catkin_ws;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
-        //       source /opt/ros/melodic/setup.bash;
-        //       export PYTHONPATH=/opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages;
-        //       catkin init;
-        //       catkin build -j$(nproc) -l$(nproc);
-        //     '''
-        //     // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       source catkin_ws/devel/setup.bash;
-        //       rostest px4 pub_test.launch;
-        //     '''
-        //   }
-        //   post {
-        //     always {
-        //       sh 'rm -rf catkin_ws'
-        //     }
-        //     failure {
-        //       archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
-        //     }
-        //   }
-        //   options {
-        //     checkoutToSubdirectory('catkin_ws/src/Firmware')
-        //   }
-        // }
-        //
-        // stage('Colcon build on ROS2 workspace') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros2-dashing:2020-08-20'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'ls -l'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       unset ROS_DISTRO;
-        //       mkdir -p colcon_ws/src;
-        //       cd colcon_ws;
-        //       git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
-        //       git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
-        //       source /opt/ros/bouncy/setup.sh;
-        //       source /opt/ros/melodic/setup.sh;
-        //       colcon build --event-handlers console_direct+ --symlink-install;
-        //     '''
-        //   }
-        //   post {
-        //     always {
-        //       sh 'rm -rf colcon_ws'
-        //     }
-        //   }
-        //   options {
-        //     checkoutToSubdirectory('colcon_ws/src/Firmware')
-        //   }
-        // }
+        stage('Colcon build on ROS2 workspace') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros2-foxy:2020-08-20'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              unset ROS_DISTRO;
+              mkdir -p colcon_ws/src;
+              cd colcon_ws;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
+              source /opt/ros/bouncy/setup.sh;
+              source /opt/ros/melodic/setup.sh;
+              colcon build --event-handlers console_direct+ --symlink-install;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf colcon_ws'
+            }
+          }
+          options {
+            checkoutToSubdirectory('colcon_ws/src/Firmware')
+          }
+        }
 
         stage('Airframe') {
           agent {
