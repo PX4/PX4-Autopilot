@@ -268,10 +268,16 @@ pipeline {
             sh('make distclean')
             sh('make px4_sitl_rtps')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/micrortps_agent.git")
+              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/micrortps_agent.git -b ${BRANCH_NAME}")
+              sh("rm -rf micrortps_agent/src micrortps_agent/idl")
               sh('cp -R build/px4_sitl_rtps/src/modules/micrortps_bridge/micrortps_agent/* micrortps_agent')
-              sh('cd micrortps_agent; git status; git add .; git commit -a -m "Update microRTPS agent source code `date`" || true')
-              sh('cd micrortps_agent; git push origin master || true')
+              sh('cd micrortps_agent; git status; git add src; git commit -a -m "Update microRTPS agent source code `date`" || true')
+              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
+              sh('cd micrortps_agent; git status; git add idl; git commit -a -m "Update IDL definitions `date`" || true')
+              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
+              sh('cd micrortps_agent; git status; git add CMakeLists.txt; git commit -a -m "Update CMakeLists.txt `date`" || true')
+              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
+              sh('rm -rf micrortps_agent')
             }
           }
           when {
