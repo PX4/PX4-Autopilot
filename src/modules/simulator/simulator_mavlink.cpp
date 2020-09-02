@@ -219,31 +219,42 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 		if (PX4_ISFINITE(sensors.temperature)) {
 			temperature = sensors.temperature;
 
-			_px4_accel.set_temperature(temperature);
-			_px4_baro.set_temperature(temperature);
-			_px4_gyro.set_temperature(temperature);
-			_px4_mag.set_temperature(temperature);
+			_px4_accel_0.set_temperature(temperature);
+			_px4_accel_1.set_temperature(temperature);
+
+			_px4_baro_0.set_temperature(temperature);
+			_px4_baro_1.set_temperature(temperature);
+
+			_px4_gyro_0.set_temperature(temperature);
+			_px4_gyro_1.set_temperature(temperature);
+
+			_px4_mag_0.set_temperature(temperature);
+			_px4_mag_1.set_temperature(temperature);
 		}
 	}
 
 	// accel
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_param_sim_accel_block.get()) {
-		_px4_accel.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+		_px4_accel_0.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+		_px4_accel_1.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 	}
 
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO && !_param_sim_gyro_block.get()) {
-		_px4_gyro.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+		_px4_gyro_0.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+		_px4_gyro_1.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 	}
 
 	// magnetometer
 	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG && !_param_sim_mag_block.get()) {
-		_px4_mag.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+		_px4_mag_0.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+		_px4_mag_1.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
 	}
 
 	// baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_param_sim_baro_block.get()) {
-		_px4_baro.update(time, sensors.abs_pressure);
+		_px4_baro_0.update(time, sensors.abs_pressure);
+		_px4_baro_1.update(time, sensors.abs_pressure);
 	}
 
 	// differential pressure
