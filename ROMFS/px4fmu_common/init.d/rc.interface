@@ -54,7 +54,13 @@ then
 			set OUTPUT_MODE dshot
 			set OUTPUT_CMD dshot
 		else
-			set OUTPUT_MODE pwm_out
+			if param greater UART_ESC_CONFIG 0
+			then
+				set OUTPUT_MODE uart_esc
+				set OUTPUT_CMD uart_esc
+			else
+				set OUTPUT_MODE pwm_out
+			fi
 		fi
 	fi
 fi
@@ -168,6 +174,11 @@ then
 	if [ $OUTPUT_MODE = tap_esc ]
 	then
 		set OUTPUT_DEV /dev/tap_esc
+	fi
+
+	if [ $OUTPUT_MODE = uart_esc ]
+	then
+		set OUTPUT_DEV /dev/uart_esc
 	fi
 
 	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}

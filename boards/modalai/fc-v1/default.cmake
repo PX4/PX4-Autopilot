@@ -50,6 +50,7 @@ px4_add_board(
 		test_ppm
 		#tone_alarm
 		uavcan
+		uart_esc/modalai_esc
 	MODULES
 		airspeed_selector
 		attitude_estimator_q

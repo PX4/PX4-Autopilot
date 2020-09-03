@@ -123,6 +123,28 @@ then
 	fi
 fi
 
+# VOXL UART ESC
+if param compare UART_ESC_CONFIG 1
+then
+	# UART ESC is configured to use /dev/ttyS1, same as TELEM3,
+	# so ensure that this MAVLink instance is disabled
+	if param compare MAV_0_CONFIG 103
+	then
+		echo "Disabling MAV_0_CONFIG on TELEM3 (/dev/ttyS1) in favor of UART ESC"
+		param set MAV_0_CONFIG 0
+	fi
+	if param compare MAV_1_CONFIG 103
+	then
+		echo "Disabling MAV_1_CONFIG on TELEM3 (/dev/ttyS1) in favor of UART ESC"
+		param set MAV_1_CONFIG 0
+	fi
+	if param compare MAV_2_CONFIG 103
+	then
+		echo "Disabling MAV_2_CONFIG on TELEM3 (/dev/ttyS1) in favor of UART ESC"
+		param set MAV_2_CONFIG 0
+	fi
+fi
+
 set LOGGER_BUF 64
 
 safety_button start
