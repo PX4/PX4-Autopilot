@@ -102,7 +102,7 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support
 		PRINT_MODULE_USAGE_PARAM_FLAG('S', "External SPI bus", true);
 	}
 
-	PRINT_MODULE_USAGE_PARAM_INT('b', -1, 0, 16, "bus (board-specific internal (default=all) or n-th external (default=1))",
+	PRINT_MODULE_USAGE_PARAM_INT('b', -1, 0, 16, "board-specific bus (default=all) (external SPI: n-th bus (default=1))",
 				     true);
 
 	if (spi_support) {
