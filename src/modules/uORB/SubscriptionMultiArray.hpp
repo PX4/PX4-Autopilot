@@ -67,7 +67,7 @@ public:
 	explicit SubscriptionMultiArray(ORB_ID id)
 	{
 		for (uint8_t i = 0; i < SIZE; i++) {
-			_subscriptions[i] = SubscriptionInterval{id, i};
+			_subscriptions[i] = SubscriptionInterval{id, 0, i};
 			_subscriptions[i].subscribe();
 		}
 	}
