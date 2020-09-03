@@ -22,4 +22,4 @@ ist8310 -I -R 10 start
 ms5611 -s start
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro GPS/compass puck (with lights, safety button, and buzzer)
-ist8310 -X -b 3 -R 10 start
+ist8310 -X -b 1 -R 10 start
