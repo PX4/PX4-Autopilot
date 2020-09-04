@@ -1300,13 +1300,13 @@ param_import_internal(int fd, bool mark_saved)
 }
 
 int
-param_import(int fd)
+param_import(int fd, bool mark_saved)
 {
 	if (fd < 0) {
 		return flash_param_import();
 	}
 
-	return param_import_internal(fd, false);
+	return param_import_internal(fd, mark_saved);
 }
 
 int

@@ -1073,7 +1073,7 @@ param_load_default_no_notify()
 		return 1;
 	}
 
-	int result = param_import(fd_load);
+	int result = param_import(fd_load, true);
 
 	close(fd_load);
 
@@ -1351,10 +1351,10 @@ param_import_internal(int fd, bool mark_saved)
 }
 
 int
-param_import(int fd)
+param_import(int fd, bool mark_saved)
 {
 #if !defined(FLASH_BASED_PARAMS)
-	return param_import_internal(fd, false);
+	return param_import_internal(fd, mark_saved);
 #else
 	(void)fd; // unused
 	// no need for locking here
