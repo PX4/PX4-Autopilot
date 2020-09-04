@@ -286,9 +286,9 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	if (res == PX4_OK) {
-
-		/* set offset parameters to new values */
-		bool failed = false;
+		// set offset parameters to new values
+		bool param_save = false;
+		bool failed = true;
 
 		for (unsigned uorb_index = 0; uorb_index < MAX_GYROS; uorb_index++) {
 
@@ -304,29 +304,28 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			}
 
 			calibration.set_calibration_index(uorb_index);
-			calibration.ParametersSave();
+
+			if (calibration.ParametersSave()) {
+				param_save = true;
+				failed = false;
+
+			} else {
+				failed = true;
+				calibration_log_critical(mavlink_log_pub, "calibration save failed");
+				break;
+			}
 		}
 
-		if (failed) {
-			calibration_log_critical(mavlink_log_pub, "ERROR: failed to set offset params");
-			res = PX4_ERROR;
+		if (param_save) {
+			param_notify_changes();
+		}
+
+		if (!failed) {
+			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+			return PX4_OK;
 		}
 	}
 
-	param_notify_changes();
-
-	/* if there is a any preflight-check system response, let the barrage of messages through */
-	px4_usleep(200000);
-
-	if (res == PX4_OK) {
-		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
-
-	} else {
-		calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
-	}
-
-	/* give this message enough time to propagate */
-	px4_usleep(600000);
-
-	return res;
+	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+	return PX4_ERROR;
 }
