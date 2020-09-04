@@ -200,26 +200,27 @@ bool Magnetometer::ParametersSave()
 {
 	if (_calibration_index >= 0) {
 		// save calibration
-		SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
-		SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
-		SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
+		bool success = true;
+		success &= SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
+		success &= SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
+		success &= SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
 
-		Vector3f scale{_scale.diag()};
-		SetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index, scale);
+		const Vector3f scale{_scale.diag()};
+		success &= SetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index, scale);
 
-		Vector3f off_diag{_scale(0, 1), _scale(0, 2), _scale(1, 2)};
-		SetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index, off_diag);
+		const Vector3f off_diag{_scale(0, 1), _scale(0, 2), _scale(1, 2)};
+		success &= SetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index, off_diag);
 
-		SetCalibrationParamsVector3f(SensorString(), "COMP", _calibration_index, _power_compensation);
+		success &= SetCalibrationParamsVector3f(SensorString(), "COMP", _calibration_index, _power_compensation);
 
 		if (_external) {
-			SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
+			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
 
 		} else {
-			SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
+			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
 		}
 
-		return true;
+		return success;
 	}
 
 	return false;

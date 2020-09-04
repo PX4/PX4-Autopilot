@@ -155,10 +155,11 @@ bool Accelerometer::ParametersSave()
 {
 	if (_calibration_index >= 0) {
 		// save calibration
-		SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
-		SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
-		SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
-		SetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index, _scale);
+		bool success = true;
+		success &= SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
+		success &= SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
+		success &= SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
+		success &= SetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index, _scale);
 
 		// if (_external) {
 		// 	SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
@@ -167,7 +168,7 @@ bool Accelerometer::ParametersSave()
 		// 	SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
 		// }
 
-		return true;
+		return success;
 	}
 
 	return false;
