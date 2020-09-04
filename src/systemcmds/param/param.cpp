@@ -381,7 +381,7 @@ do_save(const char *param_file_name)
 		return 1;
 	}
 
-	int result = param_export(fd, false);
+	int result = param_export(fd, false, nullptr);
 	close(fd);
 
 	if (result < 0) {
