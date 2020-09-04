@@ -48,6 +48,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/position_controller_status.h>
@@ -112,6 +113,7 @@ private:
 	uORB::Subscription _actuator_1_sub{ORB_ID(actuator_controls_1)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription _pos_ctrl_status_sub{ORB_ID(position_controller_status)};
 	uORB::Subscription _geofence_sub{ORB_ID(geofence_result)};

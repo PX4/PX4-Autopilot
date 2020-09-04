@@ -37,11 +37,23 @@ using namespace time_literals;
 
 using math::constrain;
 
-EKF2::EKF2(bool replay_mode):
+pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
+static px4::atomic<EKF2 *> _objects[ORB_MULTI_MAX_INSTANCES] {};
+static px4::atomic<EKF2Selector *> _ekf2_selector{nullptr};
+
+EKF2::EKF2(bool replay_mode, int instance):
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_replay_mode(replay_mode),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::INS0),
+	_replay_mode(replay_mode && instance < 0),
+	_multi_mode(instance >= 0),
+	_instance(instance),
 	_ekf_update_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": update")),
+	_att_pub(_multi_mode ? ORB_ID(estimator_attitude) : ORB_ID(vehicle_attitude)),
+	_vehicle_odometry_pub(_multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
+	_vehicle_global_position_pub(_multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
+	_vehicle_local_position_pub(_multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
+	_vehicle_visual_odometry_aligned_pub(_multi_mode ? ORB_ID(estimator_visual_odometry_aligned) : ORB_ID(
+			vehicle_visual_odometry_aligned)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -179,46 +191,77 @@ EKF2::~EKF2()
 
 bool EKF2::init()
 {
-	const uint32_t device_id = _param_ekf2_imu_id.get();
+	if (_multi_mode) {
+		char str[16] {};
 
-	// if EKF2_IMU_ID is non-zero we use the corresponding IMU, otherwise the voted primary (sensor_combined)
-	if (device_id != 0) {
-		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+		// if MAG_ID is set find corresponding instance
+		sprintf(str, "EKF2_%u_MAG_ID", _instance);
+		param_t param_mag_id_handle = param_find(str);
+
+		int32_t mag_device_id = 0;
+		param_get(param_mag_id_handle, &mag_device_id);
+
+		if (mag_device_id != 0) {
+			for (uint8_t mag_instance = 0; mag_instance < ORB_MULTI_MAX_INSTANCES; mag_instance++) {
+				uORB::Subscription mag_sub{ORB_ID(vehicle_magnetometer), mag_instance};
+				vehicle_magnetometer_s mag;
+
+				if (mag_sub.copy(&mag)) {
+					if ((mag.device_id != 0) && (mag.device_id == (uint32_t)mag_device_id)) {
+						if (_magnetometer_sub.ChangeInstance(mag_instance)) {
+							PX4_INFO("%d subscribed to vehicle_magnetometer:%d (%d)", _instance, mag_instance, mag_device_id);
+						}
+
+						break;
+					}
+				}
+			}
+		}
+
+		// find IMU_ID vehicle_imu instance
+		sprintf(str, "EKF2_%u_IMU_ID", _instance);
+		param_t param_imu_id_handle = param_find(str);
+
+		int32_t imu_device_id = 0;
+		param_get(param_imu_id_handle, &imu_device_id);
+
+		// if EKF2_x_IMU_ID isn't set then find corresponding vehicle_imu instance
+		for (uint8_t imu_instance = 0; imu_instance < ORB_MULTI_MAX_INSTANCES; imu_instance++) {
+			uORB::Subscription vehicle_imu_sub{ORB_ID(vehicle_imu), imu_instance};
 			vehicle_imu_s imu;
 
-			if (_vehicle_imu_sub.ChangeInstance(i) && _vehicle_imu_sub.copy(&imu)) {
-				if ((imu.accel_device_id > 0) && (imu.accel_device_id == device_id)) {
-					if (_vehicle_imu_sub.registerCallback()) {
-						PX4_INFO("subscribed to vehicle_imu:%d (%d)", i, device_id);
-						_imu_sub_index = i;
-						_callback_registered = true;
-						return true;
+			if (vehicle_imu_sub.copy(&imu)) {
+				if ((imu.accel_device_id != 0) && (imu.accel_device_id == (uint32_t)imu_device_id)) {
+					if (_vehicle_imu_sub.ChangeInstance(imu_instance)) {
+						if (ChangeWorkQeue(px4::ins_instance_to_wq(imu_instance))) {
+							return true;
+						}
 					}
 				}
 			}
 		}
 
 	} else {
-		_imu_sub_index = -1;
-
-		if (_sensor_combined_sub.registerCallback()) {
-			_callback_registered = true;
+		if (orb_exists(ORB_ID(sensor_combined), 0) == PX4_OK) {
 			return true;
 		}
 	}
 
-	PX4_WARN("failed to register callback, retrying in 1 second");
-	ScheduleDelayed(1_s); // retry in 1 second
+	PX4_DEBUG("failed to register callback, retrying in 100 ms");
+	ScheduleDelayed(100_ms);
 
-	return true;
+	return false;
 }
 
 int EKF2::print_status()
 {
-	PX4_INFO("local position: %s", (_ekf.local_position_is_valid()) ? "valid" : "invalid");
-	PX4_INFO("global position: %s", (_ekf.global_position_is_valid()) ? "valid" : "invalid");
+	if (_multi_mode) {
+		PX4_INFO_RAW("\nEKF2 Instance: %d\n", _instance);
+	}
 
-	PX4_INFO("time slip: %" PRId64 " us", _last_time_slip_us);
+	PX4_INFO("attitude:        %s", (_ekf.attitude_valid()) ? "valid" : "invalid");
+	PX4_INFO("local position:  %s", (_ekf.local_position_is_valid()) ? "valid" : "invalid");
+	PX4_INFO("global position: %s", (_ekf.global_position_is_valid()) ? "valid" : "invalid");
 
 	perf_print_counter(_ekf_update_perf);
 
@@ -238,7 +281,11 @@ void EKF2::update_mag_bias(Param &mag_bias_param, int axis_index)
 		_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
 
 		mag_bias_param.set(_last_valid_mag_cal[axis_index]);
-		mag_bias_param.commit_no_notification();
+
+		// save new parameters unless in multi-instance mode
+		if (!_multi_mode) {
+			mag_bias_param.commit_no_notification();
+		}
 
 		_valid_cal_available[axis_index] = false;
 	}
@@ -252,7 +299,11 @@ bool EKF2::update_mag_decl(Param &mag_decl_param)
 
 	if (_ekf.get_mag_decl_deg(&declination_deg)) {
 		mag_decl_param.set(declination_deg);
-		mag_decl_param.commit_no_notification();
+
+		if (!_multi_mode) {
+			mag_decl_param.commit_no_notification();
+		}
+
 		return true;
 	}
 
@@ -265,21 +316,32 @@ void EKF2::Run()
 		_sensor_combined_sub.unregisterCallback();
 		_vehicle_imu_sub.unregisterCallback();
 
-		exit_and_cleanup();
 		return;
 	}
 
 	if (!_callback_registered) {
-		init();
-		return;
+		LockGuard lg{ekf2_module_mutex};
+
+		if (init()) {
+			if (_multi_mode) {
+				_callback_registered = _vehicle_imu_sub.registerCallback();
+
+			} else {
+				_callback_registered = _sensor_combined_sub.registerCallback();
+			}
+
+			ScheduleNow(); // don't want to miss a possible update
+			return;
+		}
 	}
+
 
 	bool updated = false;
 	imuSample imu_sample_new {};
 
 	hrt_abstime imu_dt = 0; // for tracking time slip later
 
-	if (_imu_sub_index >= 0) {
+	if (_multi_mode) {
 		vehicle_imu_s imu;
 		updated = _vehicle_imu_sub.update(&imu);
 
@@ -357,13 +419,13 @@ void EKF2::Run()
 		}
 
 		// Always update sensor selction first time through if time stamp is non zero
-		if (_sensor_selection_sub.updated() || (_sensor_selection.timestamp == 0)) {
+		if (!_multi_mode && (_sensor_selection_sub.updated() || (_sensor_selection.timestamp == 0))) {
 			const sensor_selection_s sensor_selection_prev = _sensor_selection;
 
 			if (_sensor_selection_sub.copy(&_sensor_selection)) {
 				if ((sensor_selection_prev.timestamp > 0) && (_sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
 
-					if (_imu_sub_index < 0) {
+					if (!_multi_mode) {
 						if (_sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
 							_imu_bias_reset_request = true;
 						}
@@ -418,17 +480,19 @@ void EKF2::Run()
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
 					// this means we need to reset the learned bias values to zero
 					_param_ekf2_magbias_x.set(0.f);
-					_param_ekf2_magbias_x.commit_no_notification();
 					_param_ekf2_magbias_y.set(0.f);
-					_param_ekf2_magbias_y.commit_no_notification();
 					_param_ekf2_magbias_z.set(0.f);
-					_param_ekf2_magbias_z.commit_no_notification();
 					_param_ekf2_magbias_id.set(magnetometer.device_id);
-					_param_ekf2_magbias_id.commit();
+
+					if (!_multi_mode) {
+						_param_ekf2_magbias_x.commit_no_notification();
+						_param_ekf2_magbias_y.commit_no_notification();
+						_param_ekf2_magbias_z.commit_no_notification();
+						_param_ekf2_magbias_id.commit();
+						PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
+					}
 
 					_invalid_mag_id_count = 0;
-
-					PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
 				}
 
 				magSample mag_sample {};
@@ -1395,7 +1459,8 @@ void EKF2::publish_wind_estimate(const hrt_abstime &timestamp)
 		wind_estimate.variance_east = wind_vel_var(1);
 		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 		wind_estimate.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-
+		wind_estimate.timestamp_sample = timestamp;
+		wind_estimate.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_wind_pub.publish(wind_estimate);
 	}
 }
@@ -1978,6 +2043,7 @@ int EKF2::custom_command(int argc, char *argv[])
 
 int EKF2::task_spawn(int argc, char *argv[])
 {
+	bool success = false;
 	bool replay_mode = false;
 
 	if (argc > 1 && !strcmp(argv[1], "-r")) {
@@ -1985,25 +2051,97 @@ int EKF2::task_spawn(int argc, char *argv[])
 		replay_mode = true;
 	}
 
-	EKF2 *instance = new EKF2(replay_mode);
+	int32_t multi_instances = 0;
+	param_get(param_find("EKF2_MULTI_INST"), &multi_instances);
 
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+	int32_t sens_imu_mode = 0;
+	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
 
-		if (instance->init()) {
-			return PX4_OK;
+	// SENS_IMU_MODE must be 0 for multi-EKF
+	const bool multi = (multi_instances > 0) && (sens_imu_mode == 0);
+
+	if (multi) {
+
+		// Start EKF2Selector if it's not already running
+		if (_ekf2_selector.load() == nullptr) {
+			EKF2Selector *inst = new EKF2Selector();
+
+			if (inst) {
+				_ekf2_selector.store(inst);
+				inst->Start();
+
+			} else {
+				PX4_ERR("Failed to start EKF2 selector");
+				return PX4_ERROR;
+			}
+		}
+
+		// up to 5 attempts at initially finding the desired IMU and starting the corresponding EKF2 instance
+		int started_instances = 0;
+
+		for (int attempt = 0; attempt < 5; attempt++) {
+			for (uint8_t i = 0; i < math::min(multi_instances, ORB_MULTI_MAX_INSTANCES); i++) {
+				if (_objects[i].load() == nullptr) {
+
+					char str[16] {};
+					sprintf(str, "EKF2_%u_IMU_ID", i);
+					param_t param_imu_id_handle = param_find(str);
+
+					int32_t imu_device_id = 0;
+					param_get(param_imu_id_handle, &imu_device_id);
+
+					// if EKF2_x_IMU_ID isn't set then find corresponding vehicle_imu instance
+					if (imu_device_id == 0) {
+						uORB::Subscription vehicle_imu_sub{ORB_ID(vehicle_imu), i};
+						vehicle_imu_s imu;
+
+						if (vehicle_imu_sub.copy(&imu)) {
+							if (imu.accel_device_id > 0) {
+								imu_device_id = imu.accel_device_id;
+								param_set_no_notification(param_imu_id_handle, &imu_device_id);
+								PX4_INFO("setting %s = %d", str, imu_device_id);
+							}
+						}
+					}
+
+					if (imu_device_id != 0) {
+						EKF2 *ekf2_inst = new EKF2(false, i);
+
+						if (ekf2_inst) {
+							PX4_INFO("starting instance %d (IMU %d)", i, imu_device_id);
+							_objects[i].store(ekf2_inst);
+							ekf2_inst->ScheduleNow();
+							success = true;
+							started_instances++;
+
+						} else {
+							PX4_ERR("instance %d alloc failed", i);
+						}
+					}
+				}
+			}
+
+			if (started_instances == multi_instances) {
+				success = true;
+				break;
+
+			} else {
+				px4_usleep(50000); // give the vehicle_imu extra time to start
+			}
 		}
 
 	} else {
-		PX4_ERR("alloc failed");
+		// otherwise launch regular
+		EKF2 *ekf2_inst = new EKF2(replay_mode);
+
+		if (ekf2_inst) {
+			_objects[0].store(ekf2_inst);
+			ekf2_inst->ScheduleNow();
+			success = true;
+		}
 	}
 
-	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
-
-	return PX4_ERROR;
+	return success ? PX4_OK : PX4_ERROR;
 }
 
 int EKF2::print_usage(const char *reason)
@@ -2034,5 +2172,91 @@ timestamps from the sensor topics.
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 {
-	return EKF2::main(argc, argv);
+	if (argc <= 1 || strcmp(argv[1], "-h") == 0) {
+		return EKF2::print_usage();
+	}
+
+	if (strcmp(argv[1], "start") == 0) {
+		int ret = 0;
+		EKF2::lock_module();
+
+		ret = EKF2::task_spawn(argc - 1, argv + 1);
+
+		if (ret < 0) {
+			PX4_ERR("start failed (%i)", ret);
+		}
+
+		EKF2::unlock_module();
+		return ret;
+
+	} else if (strcmp(argv[1], "status") == 0) {
+		EKF2::lock_module();
+
+		if (_ekf2_selector.load()) {
+			_ekf2_selector.load()->PrintStatus();
+		}
+
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if (_objects[i].load()) {
+				_objects[i].load()->print_status();
+			}
+		}
+
+		EKF2::unlock_module();
+		return 0;
+
+	} else if (strcmp(argv[1], "stop") == 0) {
+		EKF2::lock_module();
+
+		if (argc > 2) {
+			int instance = atoi(argv[2]);
+
+			PX4_INFO("stopping %d", instance);
+
+			if (instance > 0 && instance < ORB_MULTI_MAX_INSTANCES) {
+				EKF2 *inst = _objects[instance].load();
+				if (inst) {
+					inst->request_stop();
+					px4_usleep(20000); // 20 ms
+					delete inst;
+					_objects[instance].store(nullptr);
+				}
+			}
+		} else {
+			// otherwise stop everything
+			bool was_running = false;
+			if (_ekf2_selector.load()) {
+				PX4_INFO("stopping ekf2 selector");
+				_ekf2_selector.load()->Stop();
+				delete _ekf2_selector.load();
+				_ekf2_selector.store(nullptr);
+				was_running = true;
+			}
+
+			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				EKF2 *inst = _objects[i].load();
+				if (inst) {
+					PX4_INFO("stopping ekf2 instance %d", i);
+					was_running = true;
+					inst->request_stop();
+					px4_usleep(20000); // 20 ms
+					delete inst;
+					_objects[i].store(nullptr);
+				}
+			}
+
+			if (!was_running) {
+				PX4_WARN("not running");
+			}
+		}
+
+		EKF2::unlock_module();
+		return PX4_OK;
+	}
+
+	EKF2::lock_module(); // Lock here, as the method could access _object.
+	int ret = EKF2::custom_command(argc - 1, argv + 1);
+	EKF2::unlock_module();
+
+	return ret;
 }

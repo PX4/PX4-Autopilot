@@ -246,6 +246,17 @@ bool MavlinkStreamHighLatency2::write_battery_status(mavlink_high_latency2_t *ms
 
 bool MavlinkStreamHighLatency2::write_estimator_status(mavlink_high_latency2_t *msg)
 {
+	// use primary estimator_status
+	if (_estimator_selector_status_sub.updated()) {
+		estimator_selector_status_s estimator_selector_status;
+
+		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+			if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
+				_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
+			}
+		}
+	}
+
 	estimator_status_s estimator_status;
 
 	if (_estimator_status_sub.update(&estimator_status)) {

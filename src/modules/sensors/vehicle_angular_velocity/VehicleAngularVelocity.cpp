@@ -68,7 +68,8 @@ bool VehicleAngularVelocity::Start()
 	}
 
 	if (!SensorSelectionUpdate(true)) {
-		ScheduleDelayed(10_ms);
+		_selected_sensor_sub_index = 0;
+		_sensor_sub.registerCallback();
 	}
 
 	return true;
@@ -157,15 +158,15 @@ void VehicleAngularVelocity::CheckFilters()
 
 void VehicleAngularVelocity::SensorBiasUpdate(bool force)
 {
-	if (_estimator_sensor_bias_sub.updated() || force) {
-		estimator_sensor_bias_s bias;
+	for (auto &bias_sub : _estimator_sensor_bias_subs) {
+		if (bias_sub.updated() || force) {
+			estimator_sensor_bias_s bias;
 
-		if (_estimator_sensor_bias_sub.copy(&bias)) {
-			if (bias.gyro_device_id == _selected_sensor_device_id) {
-				_bias = Vector3f{bias.gyro_bias};
-
-			} else {
-				_bias.zero();
+			if (bias_sub.copy(&bias)) {
+				if (bias.gyro_device_id == _selected_sensor_device_id) {
+					_bias = Vector3f{bias.gyro_bias};
+					return;
+				}
 			}
 		}
 	}
