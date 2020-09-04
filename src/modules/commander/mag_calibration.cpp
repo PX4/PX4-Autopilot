@@ -857,6 +857,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	}
 
 	if (result == calibrate_return_ok) {
+		bool param_save = false;
+		bool failed = true;
+
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
 			auto &current_cal = worker_data.calibration[cur_mag];
@@ -882,20 +885,35 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			}
 
 			current_cal.set_calibration_index(cur_mag);
-			current_cal.ParametersSave();
+
+			if (current_cal.ParametersSave()) {
+				param_save = true;
+				failed = false;
+
+			} else {
+				failed = true;
+				calibration_log_critical(mavlink_log_pub, "calibration save failed");
+				break;
+			}
 		}
 
-		// reset the learned EKF mag in-flight bias offsets which have been learned for the previous
-		//  sensor calibration and will be invalidated by a new sensor calibration
-		for (int axis = 0; axis < 3; axis++) {
-			char axis_char = 'X' + axis;
-			char str[20] {};
-			sprintf(str, "EKF2_MAGBIAS_%c", axis_char);
-			float offset = 0.f;
-			param_set_no_notification(param_find(str), &offset);
+		if (param_save) {
+			// reset the learned EKF mag in-flight bias offsets which have been learned for the previous
+			//  sensor calibration and will be invalidated by a new sensor calibration
+			for (int axis = 0; axis < 3; axis++) {
+				char axis_char = 'X' + axis;
+				char str[20] {};
+				sprintf(str, "EKF2_MAGBIAS_%c", axis_char);
+				float offset = 0.f;
+				param_set_no_notification(param_find(str), &offset);
+			}
+
+			param_notify_changes();
 		}
 
-		param_notify_changes();
+		if (failed) {
+			result = calibrate_return_error;
+		}
 	}
 
 	return result;
@@ -925,7 +943,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 	if (!mag_earth_available) {
 		calibration_log_critical(mavlink_log_pub, "GPS required for mag quick cal");
-		return calibrate_return_error;
+		return PX4_ERROR;
 
 	} else {
 
@@ -943,7 +961,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 		if (hrt_elapsed_time(&attitude.timestamp) > 1_s) {
 			calibration_log_critical(mavlink_log_pub, "attitude required for mag quick cal");
-			return calibrate_return_error;
+			return PX4_ERROR;
 		}
 
 		calibration_log_critical(mavlink_log_pub, "Assuming vehicle is facing heading %.1f degrees",
@@ -953,6 +971,9 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 		euler(2) = heading_radians;
 
 		const Vector3f expected_field = Dcmf(euler).transpose() * mag_earth_pred;
+
+		bool param_save = false;
+		bool failed = true;
 
 		for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 			uORB::Subscription mag_sub{ORB_ID(sensor_mag), cur_mag};
@@ -970,18 +991,30 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 				const Vector3f offset = Vector3f{mag.x, mag.y, mag.z} - (cal.scale().I() * cal.rotation().transpose() * expected_field);
 				cal.set_offset(offset);
 
-				cal.PrintStatus();
-
 				// save new calibration
-				cal.ParametersSave();
+				if (cal.ParametersSave()) {
+					cal.PrintStatus();
+					param_save = true;
+					failed = false;
+
+				} else {
+					failed = true;
+					calibration_log_critical(mavlink_log_pub, "calibration save failed");
+					break;
+				}
 			}
 		}
 
-		param_notify_changes();
+		if (param_save) {
+			param_notify_changes();
+		}
 
-		calibration_log_info(mavlink_log_pub, "Mag quick calibration finished");
-		return calibrate_return_ok;
+		if (!failed) {
+			calibration_log_info(mavlink_log_pub, "Mag quick calibration finished");
+			return PX4_OK;
+		}
 	}
 
-	return calibrate_return_error;
+	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+	return PX4_ERROR;
 }

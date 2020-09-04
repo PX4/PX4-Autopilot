@@ -340,10 +340,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	if (active_sensors == 0) {
 		calibration_log_critical(mavlink_log_pub, CAL_ERROR_SENSOR_MSG);
 		return PX4_ERROR;
-
-	} else if (active_sensors > MAX_ACCEL_SENS) {
-		calibration_log_critical(mavlink_log_pub, "Detected %u accels, but will calibrate only %u", active_sensors,
-					 MAX_ACCEL_SENS);
 	}
 
 	/* measure and calculate offsets & scales */
@@ -356,6 +352,9 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		const Dcmf board_rotation = calibration::GetBoardRotation();
 		const Dcmf board_rotation_t = board_rotation.transpose();
+
+		bool param_save = false;
+		bool failed = true;
 
 		for (unsigned i = 0; i < MAX_ACCEL_SENS; i++) {
 			if (i < active_sensors) {
@@ -410,16 +409,25 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			}
 
 			// save all calibrations including empty slots
-			calibrations[i].ParametersSave();
+			if (calibrations[i].ParametersSave()) {
+				param_save = true;
+				failed = false;
+
+			} else {
+				failed = true;
+				calibration_log_critical(mavlink_log_pub, "calibration save failed");
+				break;
+			}
 		}
 
-		param_notify_changes();
+		if (param_save) {
+			param_notify_changes();
+		}
 
-		/* if there is a any preflight-check system response, let the barrage of messages through */
-		px4_usleep(200000);
-		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
-		px4_usleep(600000); /* give this message enough time to propagate */
-		return PX4_OK;
+		if (!failed) {
+			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+			return PX4_OK;
+		}
 	}
 
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
@@ -431,7 +439,8 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 #if !defined(CONSTRAINED_FLASH)
 	PX4_INFO("Accelerometer quick calibration");
 
-	bool success = false;
+	bool param_save = false;
+	bool failed = true;
 
 	// sensor thermal corrections (optional)
 	uORB::Subscription sensor_correction_sub{ORB_ID(sensor_correction)};
@@ -536,16 +545,25 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 			} else {
 				calibration.set_offset(offset);
 
-				success = true;
-			}
+				if (calibration.ParametersSave()) {
+					calibration.PrintStatus();
+					param_save = true;
+					failed = false;
 
-			calibration.ParametersSave();
-			calibration.PrintStatus();
+				} else {
+					failed = true;
+					calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "calibration save failed");
+					break;
+				}
+			}
 		}
 	}
 
-	if (success) {
+	if (param_save) {
 		param_notify_changes();
+	}
+
+	if (!failed) {
 		return PX4_OK;
 	}
 
