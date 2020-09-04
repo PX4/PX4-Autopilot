@@ -144,7 +144,7 @@ rtps:
     id: 67
   - msg: sensor_mag
     id: 68
-  - msg: sensor_preflight_imu
+  - msg: sensors_status_imu
     id: 69
   - msg: sensor_selection
     id: 70

@@ -64,7 +64,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_preflight_imu.h>
+#include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
@@ -115,7 +115,6 @@ private:
 	hrt_abstime     _sensor_combined_prev_timestamp{0};
 
 	sensor_combined_s _sensor_combined{};
-	sensor_preflight_imu_s _sensor_preflight_imu{};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[3] {
 		{this, ORB_ID(vehicle_imu), 0},
@@ -130,7 +129,6 @@ private:
 
 	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
-	uORB::Publication<sensor_preflight_imu_s> _sensor_preflight_imu_pub{ORB_ID(sensor_preflight_imu)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -584,16 +582,6 @@ void Sensors::Run()
 		_voted_sensors_update.setRelativeTimestamps(_sensor_combined);
 		_sensor_pub.publish(_sensor_combined);
 		_sensor_combined_prev_timestamp = _sensor_combined.timestamp;
-
-		// If the the vehicle is disarmed calculate the length of the maximum difference between
-		// IMU units as a consistency metric and publish to the sensor preflight topic
-		if (!_armed) {
-			_voted_sensors_update.calcAccelInconsistency(_sensor_preflight_imu);
-			_voted_sensors_update.calcGyroInconsistency(_sensor_preflight_imu);
-
-			_sensor_preflight_imu.timestamp = hrt_absolute_time();
-			_sensor_preflight_imu_pub.publish(_sensor_preflight_imu);
-		}
 	}
 
 	// keep adding sensors as long as we are not armed,
@@ -725,7 +713,7 @@ The provided functionality includes:
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
   on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
   sensor drivers must already be running when `sensors` is started.
-- Do preflight sensor consistency checks and publish the `sensor_preflight_imu` topic.
+- Do sensor consistency checks and publish the `sensors_status_imu` topic.
 
 ### Implementation
 It runs in its own thread and polls on the currently selected gyro topic.
