@@ -362,5 +362,5 @@ int flash_param_load()
 
 int flash_param_import()
 {
-	return param_import_internal(false);
+	return param_import_internal(true);
 }
