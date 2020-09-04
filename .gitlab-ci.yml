@@ -16,4 +16,4 @@ build:
     - cp build/modalai_fc-v1_default/modalai_fc-v1_default.elf $DEST_DIR/test/modalai-1.11-uart-esc/$BUILD_DIR/
     - cp build/modalai_fc-v1_default/modalai_fc-v1_default.px4 $DEST_DIR/test/modalai-1.11-uart-esc/$BUILD_DIR/
   only:
-    - modalai-1.1
+    - modalai-1.11
