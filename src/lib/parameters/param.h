@@ -278,6 +278,8 @@ __EXPORT void		param_reset_all(void);
  */
 __EXPORT void		param_reset_excludes(const char *excludes[], int num_excludes);
 
+typedef bool(*param_filter_func)(param_t handle);
+
 /**
  * Reset only specific parameters to their default values.
  *
@@ -294,9 +296,11 @@ __EXPORT void		param_reset_specific(const char *resets[], int num_resets);
  *
  * @param fd		File descriptor to export to (-1 selects the FLASH storage).
  * @param only_unsaved	Only export changed parameters that have not yet been exported.
+ * @param filter	Filter parameters to be exported. The method should return true if
+ * 			the parameter should be exported. No filtering if nullptr is passed.
  * @return		Zero on success, nonzero on failure.
  */
-__EXPORT int		param_export(int fd, bool only_unsaved);
+__EXPORT int		param_export(int fd, bool only_unsaved, param_filter_func filter);
 
 /**
  * Import parameters from a file, discarding any unrecognized parameters.
