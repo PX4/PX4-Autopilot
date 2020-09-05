@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file print_load_posix.c
+ * @file print_load.cpp
  *
  * Print the current system load.
  *
@@ -46,8 +46,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include <systemlib/cpuload.h>
-#include <systemlib/printload.h>
+#include <px4_platform_common/printload.h>
 #include <drivers/drv_hrt.h>
 
 #ifdef __PX4_DARWIN
@@ -63,32 +62,33 @@ extern struct system_load_s system_load;
 
 #define CL "\033[K" // clear line
 
-void init_print_load_s(uint64_t t, struct print_load_s *s)
+void init_print_load(struct print_load_s *s)
 {
-
 	s->total_user_time = 0;
 
 	s->running_count = 0;
 	s->blocked_count = 0;
 
-	s->new_time = t;
-	s->interval_start_time = t;
+	s->new_time = hrt_absolute_time();
+	s->interval_start_time = s->new_time;
 
 	for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 		s->last_times[i] = 0;
 	}
 
-	s->interval_time_ms_inv = 0.f;
+	s->interval_time_us = 0.f;
 }
 
-void print_load(uint64_t t, int fd, struct print_load_s *print_state)
+void print_load(int fd, struct print_load_s *print_state)
 {
-	char *clear_line = "";
+	char clear_line[] = CL;
 
 	/* print system information */
 	if (fd == 1) {
 		dprintf(fd, "\033[H"); /* move cursor home and clear screen */
-		clear_line = CL;
+
+	} else {
+		memset(clear_line, 0, sizeof(clear_line));
 	}
 
 #if defined(__PX4_LINUX) || defined(__PX4_CYGWIN) || defined(__PX4_QURT)
@@ -175,9 +175,8 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 #endif
 }
 
-void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_callback_f cb, void *user,
+void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb, void *user,
 		       struct print_load_s *print_state)
 {
 
 }
-
