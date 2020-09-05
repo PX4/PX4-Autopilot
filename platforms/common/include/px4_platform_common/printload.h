@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +31,49 @@
  *
  ****************************************************************************/
 
+/**
+ * @file printload.h
+ *
+ * Print the current system load.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
+ */
+
 #pragma once
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/px4_config.h>
 
-#ifdef __PX4_NUTTX
-#include <sched.h>
-#include <px4_platform/cpuload.h>
-#endif /* __PX4_NUTTX */
+#include <stdint.h>
 
-namespace px4
-{
-namespace logger
-{
+#ifndef CONFIG_MAX_TASKS
+#define CONFIG_MAX_TASKS 64
+#endif
 
-struct watchdog_data_t {
-#ifdef __PX4_NUTTX
-	int logger_main_task_index = -1;
-	int logger_writer_task_index = -1;
-	hrt_abstime ready_to_run_timestamp = hrt_absolute_time();
-	uint8_t last_state = TSTATE_TASK_INVALID;
-#endif /* __PX4_NUTTX */
+struct print_load_s {
+	uint64_t total_user_time{0};
+
+	int running_count{0};
+	int blocked_count{0};
+
+	uint64_t new_time{0};
+	uint64_t interval_start_time{0};
+	uint64_t last_times[CONFIG_MAX_TASKS] {};
+	float interval_time_us{0.f};
 };
 
+__BEGIN_DECLS
+
+__EXPORT void init_print_load(struct print_load_s *s);
+
+__EXPORT void print_load(int fd, struct print_load_s *print_state);
+
+
+typedef void (*print_load_callback_f)(void *user);
 
 /**
- * Initialize the watchdog, fill in watchdog_data.
+ * Print load to a buffer, and call cb after each written line (buffer will not include '\n')
  */
-void watchdog_initialize(const pid_t pid_logger_main, const pthread_t writer_thread, watchdog_data_t &watchdog_data);
+void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb, void *user,
+		       struct print_load_s *print_state);
 
-/**
- * Update the watchdog and trigger it if necessary. It is triggered when the log writer task is in
- * ready state for a certain period of time, but did not get scheduled. It means that most likely
- * some other higher-prio task runs busy.
- * When the watchdog triggers, it boosts the priority of the logger's main & writer tasks to maximum, so
- * that they get scheduled again.
- *
- * Expected to be called from IRQ context.
- *
- * @param watchdog_data
- * @return true if watchdog is triggered, false otherwise
- */
-bool watchdog_update(watchdog_data_t &watchdog_data);
-
-} //namespace logger
-} //namespace px4
+__END_DECLS

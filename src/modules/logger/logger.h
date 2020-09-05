@@ -41,7 +41,7 @@
 #include <drivers/drv_hrt.h>
 #include <version/version.h>
 #include <parameters/param.h>
-#include <systemlib/printload.h>
+#include <px4_platform_common/printload.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 

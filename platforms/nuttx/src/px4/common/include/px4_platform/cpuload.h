@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,38 @@
  *
  ****************************************************************************/
 
-/**
- * @file printload.h
- *
- * Print the current system load.
- *
- * @author Lorenz Meier <lorenz@px4.io>
- */
-
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
+#ifdef CONFIG_SCHED_INSTRUMENTATION
 
+#include <sched.h>
 #include <stdint.h>
+#include <stdbool.h>
 
-#ifndef CONFIG_MAX_TASKS
-#define CONFIG_MAX_TASKS 64
-#endif
+struct system_load_taskinfo_s {
+	uint64_t total_runtime{0};		///< Runtime since start (start_time - total_runtime)/(start_time - current_time) = load
+	uint64_t curr_start_time{0};		///< Start time of the current scheduling slot
+	struct tcb_s *tcb {nullptr};
+	bool valid{false};			///< Task is currently active / valid
+};
 
-struct print_load_s {
-	uint64_t total_user_time;
-
-	int running_count;
-	int blocked_count;
-
-	uint64_t new_time;
-	uint64_t interval_start_time;
-	uint32_t last_times[CONFIG_MAX_TASKS]; // in [ms]. This wraps if a process needs more than 49 days of CPU
-	float interval_time_ms_inv;
+struct system_load_s {
+	uint64_t start_time{0};
+	system_load_taskinfo_s tasks[CONFIG_MAX_TASKS] {};
+	int total_count{0};
+	int running_count{0};
+	bool initialized{false};
 };
 
 __BEGIN_DECLS
 
-__EXPORT void init_print_load_s(uint64_t t, struct print_load_s *s);
+__EXPORT extern struct system_load_s system_load;
 
-__EXPORT void print_load(uint64_t t, int fd, struct print_load_s *print_state);
+__EXPORT void cpuload_initialize_once(void);
 
-
-typedef void (*print_load_callback_f)(void *user);
-
-/**
- * Print load to a buffer, and call cb after each written line (buffer will not include '\n')
- */
-void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_callback_f cb, void *user,
-		       struct print_load_s *print_state);
+__EXPORT void cpuload_monitor_start(void);
+__EXPORT void cpuload_monitor_stop(void);
 
 __END_DECLS
+
+#endif
