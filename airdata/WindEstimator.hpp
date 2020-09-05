@@ -62,8 +62,8 @@ public:
 
 	void get_wind(float wind[2])
 	{
-		wind[0] = _state(w_n);
-		wind[1] = _state(w_e);
+		wind[0] = _state(INDEX_W_N);
+		wind[1] = _state(INDEX_W_E);
 	}
 
 	bool is_estimate_valid() { return _initialised; }
@@ -71,7 +71,7 @@ public:
 	bool check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint8_t gate_size,
 				       uint64_t &time_meas_rejected, bool &reinit_filter);
 
-	float get_tas_scale() { return _state(tas); }
+	float get_tas_scale() { return _state(INDEX_TAS_SCALE); }
 	float get_tas_innov() { return _tas_innov; }
 	float get_tas_innov_var() { return _tas_innov_var; }
 	float get_beta_innov() { return _beta_innov; }
@@ -96,9 +96,9 @@ public:
 
 private:
 	enum {
-		w_n = 0,
-		w_e,
-		tas
+		INDEX_W_N = 0,
+		INDEX_W_E,
+		INDEX_TAS_SCALE
 	};	///< enum which can be used to access state.
 
 	matrix::Vector3f _state;		///< state vector
