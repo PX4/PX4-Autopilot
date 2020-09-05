@@ -54,9 +54,9 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &
 	const float heading_est = atan2f(v_e, v_n);
 
 	// initilaise wind states assuming zero side slip and horizontal flight
-	_state(w_n) = velI(w_n) - tas_meas * cosf(heading_est);
-	_state(w_e) = velI(w_e) - tas_meas * sinf(heading_est);
-	_state(tas) = 1.0f;
+	_state(INDEX_W_N) = velI(INDEX_W_N) - tas_meas * cosf(heading_est);
+	_state(INDEX_W_E) = velI(INDEX_W_E) - tas_meas * sinf(heading_est);
+	_state(INDEX_TAS_SCALE) = 1.0f;
 
 	// compute jacobian of states wrt north/each earth velocity states and true airspeed measurement
 	float L0 = v_e * v_e;
@@ -78,9 +78,9 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &
 	// get an estimate of the state covariance matrix given the estimated variance of ground velocity
 	// and measured airspeed
 	_P.setZero();
-	_P(w_n, w_n) = velIvar(0);
-	_P(w_e, w_e) = velIvar(1);
-	_P(tas, tas) = 0.0001f;
+	_P(INDEX_W_N, INDEX_W_N) = velIvar(0);
+	_P(INDEX_W_E, INDEX_W_E) = velIvar(1);
+	_P(INDEX_TAS_SCALE, INDEX_TAS_SCALE) = 0.0001f;
 
 	_P = L * _P * L.transpose();
 
@@ -160,15 +160,15 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	const float v_e = velI(1);
 	const float v_d = velI(2);
 
-	const float k_tas = _state(tas);
+	const float k_tas = _state(INDEX_TAS_SCALE);
 
 	// compute kalman gain K
-	const float HH0 = sqrtf(v_d * v_d + (v_e - w_e) * (v_e - w_e) + (v_n - w_n) * (v_n - w_n));
+	const float HH0 = sqrtf(v_d * v_d + (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + (v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)));
 	const float HH1 = k_tas / HH0;
 
 	matrix::Matrix<float, 1, 3> H_tas;
-	H_tas(0, 0) = HH1 * (-v_n + w_n);
-	H_tas(0, 1) = HH1 * (-v_e + w_e);
+	H_tas(0, 0) = HH1 * (-v_n + _state(INDEX_W_N));
+	H_tas(0, 1) = HH1 * (-v_e + _state(INDEX_W_E));
 	H_tas(0, 2) = HH0;
 
 	matrix::Matrix<float, 3, 1> K = _P * H_tas.transpose();
@@ -177,8 +177,8 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 
 	K /= S(0,0);
 	// compute innovation
-	const float airspeed_pred = _state(tas) * sqrtf((v_n - _state(w_n)) * (v_n - _state(w_n)) + (v_e - _state(w_e)) *
-				    (v_e - _state(w_e)) + v_d * v_d);
+	const float airspeed_pred = k_tas * sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) + (v_e - _state(INDEX_W_E)) *
+				    (v_e - _state(INDEX_W_E)) + v_d * v_d);
 
 	_tas_innov = true_airspeed - airspeed_pred;
 
@@ -202,9 +202,9 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	}
 
 	// apply correction to state
-	_state(w_n) += _tas_innov * K(0, 0);
-	_state(w_e) += _tas_innov * K(1, 0);
-	_state(tas) += _tas_innov * K(2, 0);
+	_state(INDEX_W_N) += _tas_innov * K(0, 0);
+	_state(INDEX_W_E) += _tas_innov * K(1, 0);
+	_state(INDEX_TAS_SCALE) += _tas_innov * K(2, 0);
 
 	// update covariance matrix
 	_P = _P - K * H_tas * _P;
@@ -236,9 +236,9 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	float HB1 = HB0 * q_att(3);
 	float HB2 = 2.0f * q_att(1);
 	float HB3 = HB2 * q_att(2);
-	float HB4 = v_e - w_e;
+	float HB4 = v_e - _state(INDEX_W_E);
 	float HB5 = HB1 + HB3;
-	float HB6 = v_n - w_n;
+	float HB6 = v_n - _state(INDEX_W_N);
 	float HB7 = q_att(0) * q_att(0);
 	float HB8 = q_att(3) * q_att(3);
 	float HB9 = HB7 - HB8;
@@ -264,7 +264,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	K /= S(0,0);
 
 	// compute predicted side slip angle
-	matrix::Vector3f rel_wind(velI(0) - _state(w_n), velI(1) - _state(w_e), velI(2));
+	matrix::Vector3f rel_wind(velI(0) - _state(INDEX_W_N), velI(1) - _state(INDEX_W_E), velI(2));
 	matrix::Dcmf R_body_to_earth(q_att);
 	rel_wind = R_body_to_earth.transpose() * rel_wind;
 
@@ -296,9 +296,9 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	}
 
 	// apply correction to state
-	_state(w_n) += _beta_innov * K(0, 0);
-	_state(w_e) += _beta_innov * K(1, 0);
-	_state(tas) += _beta_innov * K(2, 0);
+	_state(INDEX_W_N) += _beta_innov * K(0, 0);
+	_state(INDEX_W_E) += _beta_innov * K(1, 0);
+	_state(INDEX_TAS_SCALE) += _beta_innov * K(2, 0);
 
 	// update covariance matrix
 	_P = _P - K * H_beta * _P;
@@ -325,7 +325,7 @@ WindEstimator::run_sanity_checks()
 		}
 	}
 
-	if (!ISFINITE(_state(w_n)) || !ISFINITE(_state(w_e)) || !ISFINITE(_state(tas))) {
+	if (!ISFINITE(_state(INDEX_W_N)) || !ISFINITE(_state(INDEX_W_E)) || !ISFINITE(_state(INDEX_TAS_SCALE))) {
 		_initialised = false;
 		return;
 	}
@@ -334,9 +334,9 @@ WindEstimator::run_sanity_checks()
 	// airspeed scale factor errors arise from sensor installation which does not change and only needs
 	// to be computed once for a perticular installation.
 	if (_enforced_airspeed_scale < 0) {
-		_state(tas) = math::max(0.0f, _state(tas));
+		_state(INDEX_TAS_SCALE) = math::max(0.0f, _state(INDEX_TAS_SCALE));
 	} else {
-		_state(tas) = _enforced_airspeed_scale;
+		_state(INDEX_TAS_SCALE) = _enforced_airspeed_scale;
 	}
 
 	// attain symmetry
