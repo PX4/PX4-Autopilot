@@ -258,8 +258,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 			} else if (!strcmp(argv[2], "mag")) {
 				if (argc > 3 && (strcmp(argv[3], "quick") == 0)) {
-					// magnetometer quick calibration: param2 = 2
-					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+					// magnetometer quick calibration: VEHICLE_CMD_FIXED_MAG_CAL_YAW
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW);
 
 				} else {
 					// magnetometer calibration: param2 = 1
@@ -275,7 +275,6 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 					// accelerometer calibration: param5 = 1
 					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f);
 				}
-
 
 			} else if (!strcmp(argv[2], "level")) {
 				// board level calibration: param5 = 2
@@ -1115,6 +1114,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
+	case vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -3521,11 +3521,6 @@ void *commander_low_prio_loop(void *arg)
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 							calib_ret = do_mag_calibration(&mavlink_log_pub);
 
-						} else if ((int)(cmd.param2) == 2) {
-							/* magnetometer calibration quick (requires GPS & attitude) */
-							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-							calib_ret = do_mag_calibration_quick(&mavlink_log_pub);
-
 						} else if ((int)(cmd.param3) == 1) {
 							/* zero-altitude pressure calibration */
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
@@ -3604,6 +3599,47 @@ void *commander_low_prio_loop(void *arg)
 										(cmd.from_external ? arm_disarm_reason_t::COMMAND_EXTERNAL : arm_disarm_reason_t::COMMAND_INTERNAL));
 
 						} else {
+							tune_negative(true);
+						}
+					}
+
+					break;
+				}
+
+			case vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW: {
+					// Magnetometer quick calibration using world magnetic model and known heading
+					if ((status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+					    || (status.arming_state == vehicle_status_s::ARMING_STATE_SHUTDOWN)
+					    || status_flags.condition_calibration_enabled) {
+
+						// reject if armed or shutting down
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED, command_ack_pub);
+
+					} else {
+						// parameter 1: Yaw in degrees
+						// parameter 3: Latitude
+						// parameter 4: Longitude
+
+						// assume vehicle pointing north (0 degrees) if heading isn't specified
+						const float heading_radians = PX4_ISFINITE(cmd.param1) ? math::radians(roundf(cmd.param1)) : 0.f;
+
+						float latitude = NAN;
+						float longitude = NAN;
+
+						if (PX4_ISFINITE(cmd.param3) && PX4_ISFINITE(cmd.param4)) {
+							// invalid if both lat & lon are 0 (current mavlink spec)
+							if ((fabsf(cmd.param3) > 0) && (fabsf(cmd.param4) > 0)) {
+								latitude = cmd.param3;
+								longitude = cmd.param4;
+							}
+						}
+
+						if (do_mag_calibration_quick(&mavlink_log_pub, heading_radians, latitude, longitude) == PX4_OK) {
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+							tune_positive(true);
+
+						} else {
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub);
 							tune_negative(true);
 						}
 					}
