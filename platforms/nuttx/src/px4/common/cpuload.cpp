@@ -45,20 +45,11 @@
 
 #include <drivers/drv_hrt.h>
 
-#include <sys/time.h>
-
 #if defined(__PX4_NUTTX) && defined(CONFIG_SCHED_INSTRUMENTATION)
-
+__BEGIN_DECLS
 # include <nuttx/sched_note.h>
 
-void sched_note_suspend(FAR struct tcb_s *tcb);
-void sched_note_resume(FAR struct tcb_s *tcb);
-
-__EXPORT void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb);
-
 __EXPORT struct system_load_s system_load;
-
-extern FAR struct tcb_s *sched_gettcb(pid_t pid);
 
 static px4::atomic_int cpuload_monitor_all_count{0};
 
@@ -200,5 +191,5 @@ void sched_note_resume(FAR struct tcb_s *tcb)
 		}
 	}
 }
-
+__END_DECLS
 #endif // PX4_NUTTX && CONFIG_SCHED_INSTRUMENTATION
