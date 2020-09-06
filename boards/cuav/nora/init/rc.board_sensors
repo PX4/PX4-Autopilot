@@ -2,7 +2,7 @@
 #
 # board specific sensors init
 #------------------------------------------------------------------------------
-adc start
+arch_adc start
 
 # SPI1 (internal)
 rm3100 -s start
