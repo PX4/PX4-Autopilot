@@ -2245,7 +2245,6 @@ Commander::run()
 					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
 					if (hrt_elapsed_time(&time_at_arm) < 500_ms) {
 						arm_disarm(false, true, &mavlink_log_pub, arm_disarm_reason_t::FAILURE_DETECTOR);
-						_status_changed = true;
 						mavlink_log_critical(&mavlink_log_pub, "ESCs did not respond to arm request");
 					}
 				}
@@ -2258,7 +2257,6 @@ Commander::run()
 						// This handles the case where something fails during the early takeoff phase
 						armed.lockdown = true;
 						_lockdown_triggered = true;
-						_status_changed = true;
 						mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: lockdown");
 
 					} else if (!status_flags.circuit_breaker_flight_termination_disabled &&
@@ -2266,7 +2264,6 @@ Commander::run()
 
 						armed.force_failsafe = true;
 						_flight_termination_triggered = true;
-						_status_changed = true;
 						mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: terminate flight");
 						set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
 					}
