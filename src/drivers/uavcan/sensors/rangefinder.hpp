@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,45 +31,46 @@
  *
  ****************************************************************************/
 
+/**
+ * @author RJ Gritter <rjgritter657@gmail.com>
+ */
+
 #pragma once
 
-#include <drivers/drv_hrt.h>
+#include "sensor_bridge.hpp"
 #include <drivers/drv_range_finder.h>
-#include <lib/cdev/CDev.hpp>
-#include <lib/conversion/rotation.h>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
+#include <drivers/rangefinder/PX4Rangefinder.hpp>
 
-class PX4Rangefinder : public cdev::CDev
+#include <uavcan/equipment/range_sensor/Measurement.hpp>
+
+class UavcanRangefinderBridge : public UavcanCDevSensorBridgeBase
 {
-
 public:
-	PX4Rangefinder(const uint32_t device_id,
-		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	~PX4Rangefinder();
+	static const char *const NAME;
 
-	void set_device_type(uint8_t device_type);
-	//void set_error_count(uint64_t error_count) { _distance_sensor_pub.get().error_count = error_count; }
+	UavcanRangefinderBridge(uavcan::INode &node);
 
-	void set_device_id(const uint8_t device_id) { _distance_sensor_pub.get().id = device_id; };
+	const char *get_name() const override { return NAME; }
 
-	void set_fov(const float fov) { set_hfov(fov); set_vfov(fov); }
-	void set_hfov(const float fov) { _distance_sensor_pub.get().h_fov = fov; }
-	void set_vfov(const float fov) { _distance_sensor_pub.get().v_fov = fov; }
-
-	void set_max_distance(const float distance) { _distance_sensor_pub.get().max_distance = distance; }
-	void set_min_distance(const float distance) { _distance_sensor_pub.get().min_distance = distance; }
-
-	void set_orientation(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-
-	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);
-
-	int get_class_instance() { return _class_device_instance; };
+	int init() override;
 
 private:
 
-	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub;
+	int init_driver(uavcan_bridge::Channel *channel) override;
 
-	int			_class_device_instance{-1};
+	void range_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg);
+
+	typedef uavcan::MethodBinder < UavcanRangefinderBridge *,
+		void (UavcanRangefinderBridge::*)
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &) >
+		RangeCbBinder;
+
+	uavcan::Subscriber<uavcan::equipment::range_sensor::Measurement, RangeCbBinder> _sub_range_data;
+
+	float _range_min_m{0.0f};
+	float _range_max_m{0.0f};
+
+	bool _inited{false};
 
 };
