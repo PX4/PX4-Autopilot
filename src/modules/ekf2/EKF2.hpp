@@ -94,9 +94,6 @@
 #define GPS_MAX_RECEIVERS 2
 #define GPS_BLENDED_INSTANCE 2
 
-using math::constrain;
-using namespace time_literals;
-
 class EKF2 final : public ModuleBase<EKF2>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
