@@ -668,8 +668,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 		float mission_throttle = _param_fw_thr_cruise.get();
 
 		if (PX4_ISFINITE(pos_sp_curr.cruising_throttle) &&
-		    pos_sp_curr.cruising_throttle > 0.01f) {
-
+		    pos_sp_curr.cruising_throttle >= 0.0f) {
 			mission_throttle = pos_sp_curr.cruising_throttle;
 		}
 
@@ -684,15 +683,33 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
+			float tecs_fw_thr_min;
+			float tecs_fw_thr_max;
+			float tecs_fw_mission_throttle;
+
+			if (mission_throttle < _param_fw_thr_min.get()) {
+				/* enable gliding with this waypoint */
+				_tecs.set_speed_weight(2.0f);
+				tecs_fw_thr_min = 0.0;
+				tecs_fw_thr_max = 0.0;
+				tecs_fw_mission_throttle = 0.0;
+
+			} else {
+				tecs_fw_thr_min = _param_fw_thr_min.get();
+				tecs_fw_thr_max = _param_fw_thr_max.get();
+				tecs_fw_mission_throttle = mission_throttle;
+			}
+
 			tecs_update_pitch_throttle(now, pos_sp_curr.alt,
 						   calculate_target_airspeed(mission_airspeed, ground_speed),
 						   radians(_param_fw_p_lim_min.get()) - radians(_param_fw_psp_off.get()),
 						   radians(_param_fw_p_lim_max.get()) - radians(_param_fw_psp_off.get()),
-						   _param_fw_thr_min.get(),
-						   _param_fw_thr_max.get(),
-						   mission_throttle,
+						   tecs_fw_thr_min,
+						   tecs_fw_thr_max,
+						   tecs_fw_mission_throttle,
 						   false,
 						   radians(_param_fw_p_lim_min.get()));
+
 
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -741,13 +758,31 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 				_tecs.set_time_const_throt(_param_fw_thrtc_sc.get() * _param_fw_t_thro_const.get());
 			}
 
+
+			float tecs_fw_thr_min;
+			float tecs_fw_thr_max;
+			float tecs_fw_mission_throttle;
+
+			if (mission_throttle < _param_fw_thr_min.get()) {
+				/* enable gliding with this waypoint */
+				_tecs.set_speed_weight(2.0f);
+				tecs_fw_thr_min = 0.0;
+				tecs_fw_thr_max = 0.0;
+				tecs_fw_mission_throttle = 0.0;
+
+			} else {
+				tecs_fw_thr_min = _param_fw_thr_min.get();
+				tecs_fw_thr_max = _param_fw_thr_max.get();
+				tecs_fw_mission_throttle = _param_fw_thr_cruise.get();
+			}
+
 			tecs_update_pitch_throttle(now, alt_sp,
 						   calculate_target_airspeed(mission_airspeed, ground_speed),
 						   radians(_param_fw_p_lim_min.get()) - radians(_param_fw_psp_off.get()),
 						   radians(_param_fw_p_lim_max.get()) - radians(_param_fw_psp_off.get()),
-						   _param_fw_thr_min.get(),
-						   _param_fw_thr_max.get(),
-						   _param_fw_thr_cruise.get(),
+						   tecs_fw_thr_min,
+						   tecs_fw_thr_max,
+						   tecs_fw_mission_throttle,
 						   false,
 						   radians(_param_fw_p_lim_min.get()));
 
