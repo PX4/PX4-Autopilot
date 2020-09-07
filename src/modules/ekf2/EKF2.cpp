@@ -33,6 +33,10 @@
 
 #include "EKF2.hpp"
 
+using namespace time_literals;
+
+using math::constrain;
+
 EKF2::EKF2(bool replay_mode):
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -1961,7 +1965,7 @@ float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 		float dt = 1e-6f * static_cast<float>(_gps_state[0].time_usec - _gps_alttitude_ellipsoid_previous_timestamp[0]);
 		_gps_alttitude_ellipsoid_previous_timestamp[0] = _gps_state[0].time_usec;
 		float offset_rate_correction = 0.1f * (height_diff - _wgs84_hgt_offset);
-		_wgs84_hgt_offset += dt * math::constrain(offset_rate_correction, -0.1f, 0.1f);
+		_wgs84_hgt_offset += dt * constrain(offset_rate_correction, -0.1f, 0.1f);
 	}
 
 	return amsl_hgt + _wgs84_hgt_offset;
