@@ -5345,7 +5345,8 @@ public:
 
 	unsigned get_size() override
 	{
-		return _esc_status_sub.advertised() ? MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		static constexpr unsigned size_per_batch = MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
 	}
 
 private:
@@ -5356,6 +5357,8 @@ private:
 	MavlinkStreamESCInfo &operator = (const MavlinkStreamESCInfo &) = delete;
 
 protected:
+	uint8_t _number_of_batches{0};
+
 	explicit MavlinkStreamESCInfo(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
@@ -5376,9 +5379,10 @@ protected:
 			msg.connection_type = esc_status.esc_connectiontype;
 			msg.info = esc_status.esc_online_flags;
 
-			uint8_t number_batches = (esc_status.esc_count + (batch_size - 1)) / batch_size;
+			// Ceil value of integer division. For 1-4 esc => 1 batch, 5-8 esc => 2 batches etc
+			_number_of_batches = ceilf((float)esc_status.esc_count / batch_size);
 
-			for (int batch_number = 0; batch_number < number_batches; batch_number++) {
+			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
 
 				msg.index = batch_number * batch_size;
 
@@ -5430,7 +5434,8 @@ public:
 
 	unsigned get_size() override
 	{
-		return _esc_status_sub.advertised() ? MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		static constexpr unsigned size_per_batch = MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
 	}
 
 private:
@@ -5441,6 +5446,9 @@ private:
 	MavlinkStreamESCStatus &operator = (const MavlinkStreamESCStatus &) = delete;
 
 protected:
+
+	uint8_t _number_of_batches{0};
+
 	explicit MavlinkStreamESCStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
@@ -5456,9 +5464,10 @@ protected:
 
 			msg.time_usec = esc_status.timestamp;
 
-			uint8_t number_batches = (esc_status.esc_count + (batch_size - 1)) / batch_size;
+			// Ceil value of integer division. For 1-4 esc => 1 batch, 5-8 esc => 2 batches etc
+			_number_of_batches = ceilf((float)esc_status.esc_count / batch_size);
 
-			for (int batch_number = 0; batch_number < number_batches; batch_number++) {
+			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
 
 				msg.index = batch_number * batch_size;
 
