@@ -38,6 +38,7 @@ using matrix::Quatf;
 using matrix::Vector2f;
 
 EKF2Selector::EKF2Selector() :
+	ModuleParams(nullptr),
 	ScheduledWorkItem("ekf2_selector", px4::wq_configurations::nav_and_controllers)
 {
 }
@@ -214,8 +215,8 @@ void EKF2Selector::updateErrorScores()
 
 				const float error_delta = _instance[i].combined_test_ratio - _instance[_selected_instance].combined_test_ratio;
 
-				// reduce error only if its better than the primary instance by at least _err_reduce_thresh to prevent unnecessary selection changes
-				if (error_delta > 0 || error_delta < -fmaxf(_err_reduce_thresh, 0.05f)) {
+				// reduce error only if its better than the primary instance by at least EKF2_SEL_ERR_RED to prevent unnecessary selection changes
+				if (error_delta > 0 || error_delta < -fmaxf(_param_ekf2_sel_err_red.get(), 0.05f)) {
 					_instance[i].relative_test_ratio += error_delta;
 					_instance[i].relative_test_ratio = math::constrain(_instance[i].relative_test_ratio, -_rel_err_score_lim,
 									   _rel_err_score_lim);
@@ -229,6 +230,16 @@ void EKF2Selector::Run()
 {
 	// re-schedule as backup timeout
 	ScheduleDelayed(10_ms);
+
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+	}
 
 	// update combined test ratio for all estimators
 	updateErrorScores();

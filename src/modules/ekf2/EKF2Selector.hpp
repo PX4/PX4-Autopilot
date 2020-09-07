@@ -34,8 +34,10 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/time.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/time.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
@@ -44,13 +46,14 @@
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-class EKF2Selector : public px4::ScheduledWorkItem
+class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	EKF2Selector();
@@ -97,7 +100,6 @@ private:
 
 	static constexpr uint8_t MAX_INSTANCES{4};
 
-	static constexpr float _err_reduce_thresh{0.2f}; // instances have to be better than the selected by at least this amount before their relative score can be reduced
 	static constexpr float _rel_err_score_lim{1.0f}; // +- limit applied to the relative error score
 	static constexpr float _rel_err_thresh{0.5f};    // the relative score difference needs to be greater than this to switch from an otherwise healthy instance
 
@@ -115,6 +117,7 @@ private:
 	hrt_abstime _last_instance_change{0};
 
 	uORB::SubscriptionData<sensors_status_imu_s> _sensors_status_imu{ORB_ID(sensors_status_imu)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	// vehicle_attitude: reset counters
 	vehicle_attitude_s _attitude_last{};
@@ -157,4 +160,8 @@ private:
 	uORB::Publication<vehicle_attitude_s>          _vehicle_attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_global_position_s>   _vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_local_position_s>    _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red
+	)
 };
