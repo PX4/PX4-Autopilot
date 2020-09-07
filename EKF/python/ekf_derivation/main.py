@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from sympy import *
 from code_gen import *
 
