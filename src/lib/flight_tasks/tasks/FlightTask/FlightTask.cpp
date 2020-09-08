@@ -203,5 +203,12 @@ bool FlightTask::_checkTakeoff()
 		velocity_triggered_takeoff = _velocity_setpoint(2) < -0.3f;
 	}
 
-	return position_triggered_takeoff || velocity_triggered_takeoff;
+	// upwards acceleration setpoint
+	bool acceleration_triggered_takeoff = false;
+
+	if (PX4_ISFINITE(_acceleration_setpoint(2))) {
+		acceleration_triggered_takeoff = _acceleration_setpoint(2) < -0.3f;
+	}
+
+	return position_triggered_takeoff || velocity_triggered_takeoff || acceleration_triggered_takeoff;
 }
