@@ -32,8 +32,8 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__adc
-	MAIN adc
+	MODULE drivers__board_adc
+	MAIN board_adc
 	SRCS
 		ADC.cpp
 		ADC.hpp

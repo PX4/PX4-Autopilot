@@ -28,7 +28,7 @@ px4_add_board(
 	ROMFSROOT cannode
 	UAVCAN_INTERFACES 2
 	DRIVERS
-		#adc
+		#adc/board_adc
 		#barometer # all available barometer drivers
 		#bootloaders
 		#differential_pressure # all available differential pressure drivers

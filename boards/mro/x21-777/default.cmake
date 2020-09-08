@@ -19,7 +19,7 @@ px4_add_board(
 		# CONSOLE:/dev/tty5
 		# OSD:/dev/tty6
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture

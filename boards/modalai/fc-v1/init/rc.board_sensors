@@ -3,7 +3,7 @@
 # ModalAI FC-v1 specific board sensors init
 #------------------------------------------------------------------------------
 
-adc start
+board_adc start
 
 # Start Digital power monitors
 voxlpm -X -b 3 -K -T VBATT start

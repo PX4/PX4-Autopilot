@@ -331,7 +331,7 @@ ADC driver.
 	return 0;
 }
 
-extern "C" __EXPORT int adc_main(int argc, char *argv[])
+extern "C" __EXPORT int board_adc_main(int argc, char *argv[])
 {
 	return ADC::main(argc, argv);
 }
