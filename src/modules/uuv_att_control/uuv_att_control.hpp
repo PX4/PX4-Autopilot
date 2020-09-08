@@ -88,10 +88,6 @@ public:
 	UUVAttitudeControl();
 	~UUVAttitudeControl();
 
-	UUVAttitudeControl(const UUVAttitudeControl &) = delete;
-	UUVAttitudeControl operator=(const UUVAttitudeControl &other) = delete;
-
-
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
@@ -132,6 +128,7 @@ private:
 		(ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
 		// control/input modes
 		(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
+		(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl,
 		// direct access to inputs
 		(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
 		(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
