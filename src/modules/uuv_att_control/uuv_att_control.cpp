@@ -241,7 +241,9 @@ void UUVAttitudeControl::Run()
 			int skip_controller = _param_skip_ctrl.get();
 
 			if (skip_controller) {
-				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw, _rates_setpoint.thrust_body[0]);
+				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
+							    _rates_setpoint.thrust_body[0]);
+
 			} else {
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
 			}
