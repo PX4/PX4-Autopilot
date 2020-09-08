@@ -17,7 +17,7 @@ px4_add_board(
 		TEL3:/dev/ttyS0
 		TEL4:/dev/ttyS6
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture

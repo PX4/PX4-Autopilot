@@ -11,7 +11,7 @@ px4_add_board(
 		TEL2:/dev/ttyS1
 		URT6:/dev/ttyS2
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/bmp280
 		#batt_smbus

@@ -15,7 +15,7 @@ px4_add_board(
 		TEL2:/dev/ttyS4 # UART5  / J1
 		TEL3:/dev/ttyS1 # USART2 / J4
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture

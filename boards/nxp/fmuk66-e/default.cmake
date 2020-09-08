@@ -14,7 +14,7 @@ px4_add_board(
 		TEL1:/dev/ttyS4
 		TEL2:/dev/ttyS1
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		barometer/mpl3115a2
 		batt_smbus
