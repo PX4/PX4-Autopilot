@@ -62,8 +62,8 @@ ARCHCCVERSION = $(shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gc
 ARCHCCMAJOR = $(shell echo $(ARCHCCVERSION) | cut -d'.' -f1)
 
 ifeq ($(CONFIG_BOARD_USE_PROBES),y)
-   ARCHINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP)
-   ARCHXXINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP)
+   ARCHINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP) -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/common
+   ARCHXXINCLUDES += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/$(CONFIG_ARCH_CHIP)  -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/common
 endif
 
 ifeq ($(CONFIG_DEBUG_CUSTOMOPT),y)
