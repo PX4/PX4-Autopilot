@@ -110,6 +110,10 @@ private:
 		{this, 3},
 	};
 
+	float _accumulated_gyro_error[MAX_INSTANCES]{};
+	hrt_abstime _last_update_us{0};
+	bool _gyro_fault_detected{false};
+
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{UINT8_MAX};
 
@@ -162,6 +166,8 @@ private:
 	uORB::Publication<vehicle_local_position_s>    _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red
+		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,
+		(ParamFloat<px4::params::EKF2_SEL_GYR_RAT>) _param_ekf2_sel_gyr_rate,
+		(ParamFloat<px4::params::EKF2_SEL_GYR_ANG>) _param_ekf2_sel_gyr_angle
 	)
 };

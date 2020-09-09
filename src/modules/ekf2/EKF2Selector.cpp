@@ -216,7 +216,8 @@ void EKF2Selector::updateErrorScores()
 				const float error_delta = _instance[i].combined_test_ratio - _instance[_selected_instance].combined_test_ratio;
 
 				// reduce error only if its better than the primary instance by at least EKF2_SEL_ERR_RED to prevent unnecessary selection changes
-				if (error_delta > 0 || error_delta < -fmaxf(_param_ekf2_sel_err_red.get(), 0.05f)) {
+				const float threshold = _gyro_fault_detected ? fmaxf(_param_ekf2_sel_err_red.get(), 0.05f) : 0.0f;
+				if (error_delta > 0 || error_delta < -threshold) {
 					_instance[i].relative_test_ratio += error_delta;
 					_instance[i].relative_test_ratio = math::constrain(_instance[i].relative_test_ratio, -_rel_err_score_lim,
 									   _rel_err_score_lim);
@@ -241,29 +242,58 @@ void EKF2Selector::Run()
 		updateParams();
 	}
 
-	// update combined test ratio for all estimators
-	updateErrorScores();
-
 	_sensors_status_imu.update();
 	const sensors_status_imu_s &sensors_status_imu = _sensors_status_imu.get();
 
+	_gyro_fault_detected = false;
+	uint32_t faulty_gyro_id = 0;
 	if (_selected_instance != UINT8_MAX) {
 		static constexpr uint8_t IMU_STATUS_SIZE = (sizeof(sensors_status_imu.gyro_inconsistency_rad_s) / sizeof(
 					sensors_status_imu.gyro_inconsistency_rad_s[0]));
-
+		static constexpr uint8_t IMU_INDEX_LIMIT = math::min(IMU_STATUS_SIZE, MAX_INSTANCES);
+		const float angle_rate_threshold = math::radians(_param_ekf2_sel_gyr_rate.get());
+		const float angle_threshold = math::radians(_param_ekf2_sel_gyr_angle.get());
+		const float time_step_s = fminf(1E-6f * (float)hrt_elapsed_time(&_last_update_us), 1.0f);
 		if (sensors_status_imu.gyro_device_id_primary == _instance[_selected_instance].estimator_status.gyro_device_id) {
-			for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
+			// accumulate excess gyro error
+			uint8_t n_gyros = 0;
+			uint8_t n_exceedances = 0;
+			for (unsigned i = 0; i < IMU_INDEX_LIMIT; i++) {
 				if (sensors_status_imu.gyro_device_ids[i] != 0) {
-					// TODO: compare gyro inconsistency
-
-
-
-
+					n_gyros++;
+					if (sensors_status_imu.gyro_device_ids[i] == sensors_status_imu.gyro_device_id_primary) {
+						_accumulated_gyro_error[i] = 0.0f;
+					} else {
+						_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
+						_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.0f);
+					}
+				} else {
+					// no sensor
+					_accumulated_gyro_error[i] = 0.0f;
+				}
+				if (_accumulated_gyro_error[i] > angle_threshold) {
+					n_exceedances++;
+				}
+			}
+			if (n_exceedances > 0) {
+				if (n_gyros >= 3) {
+					// If there are 3 or more gyros, see if we can work out which one is faulty
+					_gyro_fault_detected = true;
+					// if all sensors other than the primary have an elevated difference, then the primary is faulty
+					// because all differences are measured relative to the primary
+					if (n_exceedances == n_gyros - 1) {
+						faulty_gyro_id = sensors_status_imu.gyro_device_id_primary;
+					}
+				} else if (n_gyros == 2) {
+					_gyro_fault_detected = true;
 				}
 			}
 		}
 	}
 
+
+	// update combined test ratio for all estimators
+	updateErrorScores();
 
 	bool lower_error_available = false;
 	float alternative_error = 0.f; // looking for instances that have error lower than the current primary
@@ -271,13 +301,18 @@ void EKF2Selector::Run()
 
 	// loop through all available instances to find if an alternative is available
 	for (int i = 0; i < _available_instances; i++) {
+		// if the gyro used by the EKF is faulty, declare the EKF unhealthy without delay
+		if (_gyro_fault_detected && _instance[i].estimator_status.gyro_device_id == faulty_gyro_id) {
+			_instance[i].healthy = false;
+		}
+
+		// Use an alternative instance if  -
+		// (healthy and has updated recently)
+		// AND
+		// (has relative error less than selected instance and has not been the selected instance for at least 10 seconds
+		// OR
+		// selected instance has stopped updating
 		if (_instance[i].healthy && (i != _selected_instance)) {
-			// Use an alternative instance if  -
-			// (healthy and has updated recently)
-			// AND
-			// (has relative error less than selected instance and has not been the selected instance for at least 10 seconds
-			// OR
-			// selected instance has stopped updating
 			const float relative_error = _instance[i].relative_test_ratio;
 
 			if (relative_error < alternative_error) {
@@ -436,6 +471,9 @@ void EKF2Selector::Run()
 		selector_status.timestamp = hrt_absolute_time();
 		_estimator_selector_status_pub.publish(selector_status);
 	}
+
+	_last_update_us = hrt_absolute_time();
+
 }
 
 void EKF2Selector::PrintStatus()
