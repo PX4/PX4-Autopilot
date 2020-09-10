@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "module.h"
+#include "template_module.h"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -41,7 +41,7 @@
 #include <uORB/topics/sensor_combined.h>
 
 
-int Module::print_status()
+int TemplateModule::print_status()
 {
 	PX4_INFO("Running");
 	// TODO: print additional runtime information about the state of the module
@@ -49,7 +49,7 @@ int Module::print_status()
 	return 0;
 }
 
-int Module::custom_command(int argc, char *argv[])
+int TemplateModule::custom_command(int argc, char *argv[])
 {
 	/*
 	if (!is_running()) {
@@ -68,7 +68,7 @@ int Module::custom_command(int argc, char *argv[])
 }
 
 
-int Module::task_spawn(int argc, char *argv[])
+int TemplateModule::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("module",
 				      SCHED_DEFAULT,
@@ -85,7 +85,7 @@ int Module::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-Module *Module::instantiate(int argc, char *argv[])
+TemplateModule *TemplateModule::instantiate(int argc, char *argv[])
 {
 	int example_param = 0;
 	bool example_flag = false;
@@ -121,7 +121,7 @@ Module *Module::instantiate(int argc, char *argv[])
 		return nullptr;
 	}
 
-	Module *instance = new Module(example_param, example_flag);
+	TemplateModule *instance = new TemplateModule(example_param, example_flag);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -130,12 +130,12 @@ Module *Module::instantiate(int argc, char *argv[])
 	return instance;
 }
 
-Module::Module(int example_param, bool example_flag)
+TemplateModule::TemplateModule(int example_param, bool example_flag)
 	: ModuleParams(nullptr)
 {
 }
 
-void Module::run()
+void TemplateModule::run()
 {
 	// Example: run the loop synchronized to the sensor_combined topic publication
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -175,7 +175,7 @@ void Module::run()
 	orb_unsubscribe(sensor_combined_sub);
 }
 
-void Module::parameters_update(bool force)
+void TemplateModule::parameters_update(bool force)
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
@@ -188,7 +188,7 @@ void Module::parameters_update(bool force)
 	}
 }
 
-int Module::print_usage(const char *reason)
+int TemplateModule::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -219,7 +219,7 @@ $ module start -f -p 42
 	return 0;
 }
 
-int module_main(int argc, char *argv[])
+int template_module_main(int argc, char *argv[])
 {
-	return Module::main(argc, argv);
+	return TemplateModule::main(argc, argv);
 }
