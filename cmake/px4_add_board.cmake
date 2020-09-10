@@ -67,7 +67,7 @@
 #		LABEL			: optional label, set to default if not specified
 #		TOOLCHAIN		: cmake toolchain
 #		ARCHITECTURE		: name of the CPU CMake is building for (used by the toolchain)
-#		ROMFSROOT		: relative path to the ROMFS root directory (currently NuttX only)
+#		ROMFSROOT		: relative path to the ROMFS root directory
 #		BUILD_BOOTLOADER	: flag to enable building and including the bootloader config
 #		IO			: name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
 #		BOOTLOADER		: bootloader file to include for flashing via bl_update (currently NuttX only)

@@ -34,7 +34,7 @@
 message(STATUS "ROMFS: ${config_romfs_root}")
 
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
-set(romfs_gen_root_dir ${PX4_BINARY_DIR}/genromfs)
+set(romfs_gen_root_dir ${PX4_BINARY_DIR}/etc)
 
 set_property(GLOBAL PROPERTY PX4_ROMFS_FILES)
 set_property(GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
@@ -81,21 +81,35 @@ file(GLOB jinja_templates ${PX4_SOURCE_DIR}/Tools/serial/*.jinja)
 if (px4_constrained_flash_build)
 	set(added_arguments --constrained-flash)
 endif()
+# create list of relative romfs file names
+set(romfs_copy_files_relative)
+foreach(romfs_file IN LISTS romfs_copy_files)
+	string(REPLACE "${romfs_src_dir}/" "" romfs_file_rel ${romfs_file})
+	list(APPEND romfs_copy_files_relative ${romfs_file_rel})
+endforeach()
+# copy the ROMFS files by creating a tar and extracting it to the build
+# directory (which preserves the directory structure)
+file(MAKE_DIRECTORY ${romfs_gen_root_dir})
+set(romfs_tar_file ${PX4_BINARY_DIR}/romfs_files.tar)
+add_custom_command(
+	OUTPUT ${romfs_tar_file}
+	COMMAND ${CMAKE_COMMAND} -E tar cf ${romfs_tar_file} ${romfs_copy_files_relative}
+	WORKING_DIRECTORY ${romfs_src_dir}
+	DEPENDS ${romfs_copy_files}
+	)
+add_custom_command(
+	OUTPUT ${romfs_gen_root_dir}/init.d/rcS
+	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
+	WORKING_DIRECTORY ${romfs_gen_root_dir}
+	DEPENDS ${romfs_tar_file}
+	)
+
 add_custom_command(
 	OUTPUT
-		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.serial
 		${romfs_gen_root_dir}/init.d/rc.autostart
 		${romfs_gen_root_dir}/init.d/rc.autostart.post
 		romfs_copy.stamp
-	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
-	# TODO: we should only copy the files in ${romfs_copy_files}
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${romfs_src_dir} ${romfs_gen_root_dir}
-	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/init.d-posix
-	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/mixers-sitl
-	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/mixers/CMakeLists.txt
-	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/CMakeLists.txt
-	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/airframes/CMakeLists.txt
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
@@ -106,10 +120,10 @@ add_custom_command(
 		--config-files ${module_config_files} #--verbose
 	COMMAND ${CMAKE_COMMAND} -E touch romfs_copy.stamp
 	DEPENDS
+		${romfs_gen_root_dir}/init.d/rcS
 		${jinja_templates}
 		${module_config_files}
 		${romfs_cmake_files}
-		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
 		${PX4_SOURCE_DIR}/Tools/px4airframes/rcout.py
@@ -190,6 +204,13 @@ add_custom_command(OUTPUT romfs_extras.stamp
 	COMMENT "ROMFS: copying extras"
 	)
 
+add_custom_target(romfs_gen_files_target
+	DEPENDS
+		${romfs_gen_root_dir}/init.d/rcS
+		${romfs_gen_root_dir}/init.d/rc.serial
+		romfs_extras.stamp
+	)
+
 add_custom_command(
 	OUTPUT romfs_pruned.stamp
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py --folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
@@ -220,7 +241,11 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 		COMMENT "ROMFS: generating image"
 	)
 
-else()
+	add_library(romfs STATIC nsh_romfsimg.c)
+	add_dependencies(romfs prebuild_targets)
+	set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)
+
+elseif("${CONFIG_FS_ROMFS}" STREQUAL "y")
 	# create romfs.img
 	find_program(GENROMFS genromfs)
 	if(NOT GENROMFS)
@@ -255,12 +280,12 @@ else()
 		COMMAND ${SED} 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && ${CMAKE_COMMAND} -E rename nsh_romfsimg.c.tmp nsh_romfsimg.c
 		DEPENDS romfs.img
 	)
+
+	add_library(romfs STATIC nsh_romfsimg.c)
+	add_dependencies(romfs prebuild_targets)
+	set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)
 endif()
 
-
-add_library(romfs STATIC nsh_romfsimg.c)
-add_dependencies(romfs prebuild_targets)
-set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)
 
 
 # shellcheck
