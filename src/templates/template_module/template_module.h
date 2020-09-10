@@ -38,21 +38,21 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 
-extern "C" __EXPORT int module_main(int argc, char *argv[]);
+extern "C" __EXPORT int template_module_main(int argc, char *argv[]);
 
 
-class Module : public ModuleBase<Module>, public ModuleParams
+class TemplateModule : public ModuleBase<TemplateModule>, public ModuleParams
 {
 public:
-	Module(int example_param, bool example_flag);
+	TemplateModule(int example_param, bool example_flag);
 
-	virtual ~Module() = default;
+	virtual ~TemplateModule() = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static Module *instantiate(int argc, char *argv[]);
+	static TemplateModule *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);

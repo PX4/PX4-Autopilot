@@ -32,10 +32,10 @@
 ############################################################################
 
 px4_add_module(
-	MODULE templates__module
-	MAIN module
+	MODULE templates__template_module
+	MAIN template_module
 	SRCS
-		module.cpp
+		template_module.cpp
 	DEPENDS
 		modules__uORB
 	)
