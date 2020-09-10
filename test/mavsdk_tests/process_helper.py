@@ -145,7 +145,7 @@ class Px4Runner(Runner):
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
         self.args = [
-                workspace_dir + "/ROMFS/px4fmu_common",
+                workspace_dir + "/build/px4_sitl_default/etc",
                 "-s",
                 "etc/init.d-posix/rcS",
                 "-t",
