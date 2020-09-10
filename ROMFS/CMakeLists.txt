@@ -137,15 +137,6 @@ add_custom_command(
 # copy extras into ROMFS
 set(extras_dependencies)
 
-if(config_bl_file)
-	file(MAKE_DIRECTORY ${PX4_BINARY_DIR}/romfs_extras)
-	configure_file(${config_bl_file} ${PX4_BINARY_DIR}/romfs_extras COPYONLY)
-
-	list(APPEND extras_dependencies
-		${config_bl_file}
-		)
-endif()
-
 # copy px4io binary if configured
 if(config_io_board)
 	list(APPEND extras_dependencies
@@ -193,13 +184,24 @@ foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 
 endforeach()
 
+list(APPEND extras_dependencies
+	${config_romfs_extra_dependencies}
+	)
+
+if (config_romfs_extra_files)
+	set(extras_copy_cmd COMMAND ${CMAKE_COMMAND} -E copy_if_different ${config_romfs_extra_files} ${romfs_gen_root_dir}/extras/)
+else()
+	set(extras_copy_cmd "")
+endif()
 add_custom_command(OUTPUT romfs_extras.stamp
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/extras/
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras/
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PX4_BINARY_DIR}/romfs_extras/ ${romfs_gen_root_dir}/extras/
+	${extras_copy_cmd}
 	COMMAND ${CMAKE_COMMAND} -E touch romfs_extras.stamp
 	DEPENDS
 		romfs_copy.stamp
+		${config_romfs_extra_files}
 		${extras_dependencies}
 	COMMENT "ROMFS: copying extras"
 	)
