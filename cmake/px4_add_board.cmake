@@ -58,6 +58,7 @@
 #			[ CONSTRAINED_FLASH ]
 #			[ TESTING ]
 #			[ LINKER_PREFIX <string> ]
+#			[ EMBEDDED_METADATA <string> ]
 #			)
 #
 #	Input:
@@ -77,6 +78,7 @@
 #		SYSTEMCMDS		: list of system commands to build for this board (relative to src/systemcmds)
 #		EXAMPLES		: list of example modules to build for this board (relative to src/examples)
 #		SERIAL_PORTS		: mapping of user configurable serial ports and param facing name
+#		EMBEDDED_METADATA	: list of metadata to embed to ROMFS
 #		CONSTRAINED_FLASH	: flag to enable constrained flash options (eg limit init script status text)
 #		TESTING			: flag to enable automatic inclusion of PX4 testing modules
 #		LINKER_PREFIX	: optional to prefix on the Linker script.
@@ -150,6 +152,7 @@ function(px4_add_board)
 			SYSTEMCMDS
 			EXAMPLES
 			SERIAL_PORTS
+			EMBEDDED_METADATA
 		OPTIONS
 			BUILD_BOOTLOADER
 			CONSTRAINED_FLASH
@@ -196,9 +199,21 @@ function(px4_add_board)
 		set(CMAKE_TOOLCHAIN_FILE Toolchain-${TOOLCHAIN} CACHE INTERNAL "toolchain file" FORCE)
 	endif()
 
+	set(romfs_extra_files)
+	set(config_romfs_extra_dependencies)
 	if(BOOTLOADER)
-		set(config_bl_file ${BOOTLOADER} CACHE INTERNAL "bootloader" FORCE)
+		list(APPEND romfs_extra_files ${BOOTLOADER})
 	endif()
+	foreach(metadata ${EMBEDDED_METADATA})
+		if(${metadata} STREQUAL "parameters")
+			list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/parameters.json.gz)
+			list(APPEND romfs_extra_dependencies parameters_xml)
+		else()
+			message(FATAL_ERROR "invalid value for EMBEDDED_METADATA: ${metadata}")
+		endif()
+	endforeach()
+	set(config_romfs_extra_files ${romfs_extra_files} CACHE INTERNAL "extra ROMFS files" FORCE)
+	set(config_romfs_extra_dependencies ${romfs_extra_dependencies} CACHE INTERNAL "extra ROMFS deps" FORCE)
 
 	if(SERIAL_PORTS)
 		set(board_serial_ports ${SERIAL_PORTS} PARENT_SCOPE)
