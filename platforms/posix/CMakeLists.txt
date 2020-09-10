@@ -80,8 +80,8 @@ else()
 	install(
 		DIRECTORY
 			${PROJECT_SOURCE_DIR}/posix-configs
-			${PROJECT_SOURCE_DIR}/ROMFS
 			${PROJECT_SOURCE_DIR}/test
+			${CMAKE_BINARY_DIR}/etc
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 		DESTINATION
 			${PROJECT_NAME}
@@ -96,6 +96,11 @@ px4_posix_generate_symlinks(
 	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 	TARGET px4
 )
+
+if (config_romfs_root)
+	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
+	add_dependencies(px4 romfs_gen_files_target)
+endif()
 
 
 # board defined upload helper
@@ -155,6 +160,14 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_SOURCE_DIR}/Tools/upload_log.py
 		DESTINATION
 			${PROJECT_NAME}/Tools
+		)
+
+	# ROMFS files
+	install(
+		DIRECTORY
+			${PROJECT_SOURCE_DIR}/build/px4_sitl_default/etc
+		DESTINATION
+			${PROJECT_NAME}/build/px4_sitl_default
 		)
 
 	# sitl_gazebo built plugins
