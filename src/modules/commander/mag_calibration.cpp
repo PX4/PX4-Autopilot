@@ -976,7 +976,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 			sensor_mag_s mag{};
 			mag_sub.copy(&mag);
 
-			if (mag_sub.advertised() && (hrt_elapsed_time(&mag.timestamp) < 1_s)) {
+			if (mag_sub.advertised() && (mag.timestamp != 0)) {
 
 				calibration::Magnetometer cal{mag.device_id, mag.is_external};
 
