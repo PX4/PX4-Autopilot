@@ -99,12 +99,5 @@ bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_s
 
 	const bool success = calibration_valid && valid;
 
-	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC, exists, !optional, success, status);
-
-	} else if (instance == 1) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, exists, !optional, success, status);
-	}
-
 	return success;
 }
