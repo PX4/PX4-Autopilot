@@ -46,7 +46,7 @@
 
 /* PX4IO connection configuration */
 #define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS4"
+#define PX4IO_SERIAL_DEVICE            "/dev/ttyS3"
 #define PX4IO_SERIAL_TX_GPIO           GPIO_USART6_TX
 #define PX4IO_SERIAL_RX_GPIO           GPIO_USART6_RX
 #define PX4IO_SERIAL_BASE              STM32_USART6_BASE
@@ -60,6 +60,9 @@
 
 /* LEDs */
 #define GPIO_nLED_AMBER        /* PE12 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
+
+#define BOARD_HAS_CONTROL_STATUS_LEDS      1
+#define BOARD_ARMED_STATE_LED  LED_AMBER
 
 /* ADC channels */
 #define PX4_ADC_GPIO  \
@@ -104,11 +107,6 @@
 #define GPIO_nVDD_5V_HIPOWER_OC         /* PE10 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10) // VDD_5V_HIPOWER_OC
 
 /* Tone alarm output */
-#define STM32_RCC_APB1ENR 		STM32_RCC_APB1LENR  /* This is stupid and only applies for H7 */
-#define STM32_RCC_APB1RSTR 		STM32_RCC_APB1LRSTR /* This is stupid and only applies for H7 */
-#define RCC_APB1ENR_TIM2EN		RCC_APB1LENR_TIM2EN /* This is stupid and only applies for H7 */
-#define RCC_APB1ENR_TIM5EN		RCC_APB1LENR_TIM5EN /* This is stupid and only applies for H7 */
-#define RCC_APB1RSTR_TIM5RST		RCC_APB1LRSTR_TIM5RST /* This is stupid and only applies for H7 */
 #define TONE_ALARM_TIMER        2  /* timer 2 */
 #define TONE_ALARM_CHANNEL      1  /* PA15 TIM2_CH1 */
 

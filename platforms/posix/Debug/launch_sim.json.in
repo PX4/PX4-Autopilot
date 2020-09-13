@@ -198,6 +198,55 @@
             }
         },
         {
+            "name": "SITL (gazebo tiltrotor)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [
+                "${workspaceFolder}/ROMFS/px4fmu_common",
+                "-s",
+                "etc/init.d-posix/rcS",
+                "-t",
+                "${workspaceFolder}/test_data"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${command:cmake.buildDirectory}/tmp",
+            "environment": [
+                {
+                    "name": "PX4_SIM_MODEL",
+                    "value": "tiltrotor"
+                }
+            ],
+            "externalConsole": false,
+            "preLaunchTask": "gazebo tiltrotor",
+            "postDebugTask": "gazebo kill",
+            "linux": {
+                "MIMode": "gdb",
+                "externalConsole": false,
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description": "PX4 ignore wq signals",
+                        "text": "handle SIGCONT nostop noprint nopass",
+                        "ignoreFailures": true
+                    }
+                ]
+            },
+            "osx": {
+                "MIMode": "lldb",
+                "externalConsole": true,
+                "setupCommands": [
+                    {
+                        "text": "pro hand -p true -s false -n false SIGCONT",
+                    }
+                ]
+            }
+        },
+        {
             "name": "SITL (jmavsim iris)",
             "type": "cppdbg",
             "request": "launch",

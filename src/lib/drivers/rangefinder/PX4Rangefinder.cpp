@@ -35,9 +35,12 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const ORB_PRIO priority, const uint8_t device_orientation) :
-	_distance_sensor_pub{ORB_ID(distance_sensor), priority}
+PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const uint8_t device_orientation) :
+	CDev(nullptr),
+	_distance_sensor_pub{ORB_ID(distance_sensor)}
 {
+	_class_device_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+
 	_distance_sensor_pub.advertise();
 
 	set_device_id(device_id);
@@ -46,6 +49,10 @@ PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const ORB_PRIO priority
 
 PX4Rangefinder::~PX4Rangefinder()
 {
+	if (_class_device_instance != -1) {
+		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_device_instance);
+	}
+
 	_distance_sensor_pub.unadvertise();
 }
 

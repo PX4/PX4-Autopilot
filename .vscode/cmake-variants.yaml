@@ -61,6 +61,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: av_x-v1_default
+    cuav_nora_default:
+      short: cuav_nora
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_nora_default
     cuav_x7pro_default:
       short: cuav_x7pro
       buildType: MinSizeRel
@@ -96,6 +101,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: mro_ctrl-zero-f7_default
+    mro_x21-777_default:
+      short: mro_x2.1-777
+      buildType: MinSizeRel
+      settings:
+        CONFIG: mro_x21-777_default
     nxp_fmuk66-v3_default:
       short: nxp_fmuk66-v3
       buildType: MinSizeRel

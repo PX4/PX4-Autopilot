@@ -62,6 +62,7 @@ set(msg_files
 	esc_status.msg
 	estimator_innovations.msg
 	estimator_sensor_bias.msg
+	estimator_states.msg
 	estimator_status.msg
 	follow_target.msg
 	geofence_result.msg
@@ -119,12 +120,14 @@ set(msg_files
 	sensor_gyro.msg
 	sensor_gyro_fifo.msg
 	sensor_mag.msg
-	sensor_preflight.msg
+	sensor_preflight_mag.msg
 	sensor_selection.msg
+	sensors_status_imu.msg
 	subsystem_info.msg
 	system_power.msg
 	task_stack_info.msg
 	tecs_status.msg
+	telemetry_heartbeat.msg
 	telemetry_status.msg
 	test_motor.msg
 	timesync.msg

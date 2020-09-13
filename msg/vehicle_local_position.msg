@@ -1,6 +1,7 @@
 # Fused local position in NED.
 
 uint64 timestamp			# time since system start (microseconds)
+uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
 
 bool xy_valid				# true if x and y are valid
 bool z_valid				# true if z is valid
@@ -36,8 +37,9 @@ float32 ax        # North velocity derivative in NED earth-fixed frame, (metres/
 float32 ay        # East velocity derivative in NED earth-fixed frame, (metres/sec^2)
 float32 az        # Down velocity derivative in NED earth-fixed frame, (metres/sec^2)
 
-# Heading
-float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians)
+float32 heading				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians)
+float32 delta_heading
+uint8 heading_reset_counter
 
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
 bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)

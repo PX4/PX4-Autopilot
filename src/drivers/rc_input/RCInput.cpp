@@ -38,7 +38,7 @@
 using namespace time_literals;
 
 #if defined(SPEKTRUM_POWER)
-static bool bind_spektrum(int arg);
+static bool bind_spektrum(int arg = DSMX8_BIND_PULSES);
 #endif /* SPEKTRUM_POWER */
 
 constexpr char const *RCInput::RC_SCAN_STRING[];
@@ -652,7 +652,8 @@ int RCInput::custom_command(int argc, char *argv[])
 	const char *verb = argv[0];
 
 	if (!strcmp(verb, "bind")) {
-		bind_spektrum(DSMX8_BIND_PULSES);
+		// TODO: publish vehicle_command
+		bind_spektrum();
 		return 0;
 	}
 

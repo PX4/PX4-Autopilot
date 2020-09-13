@@ -101,7 +101,7 @@
 #				gps
 #				imu/bmi055
 #				imu/mpu6000
-#				magnetometer/ist8310
+#				magnetometer/isentek/ist8310
 #				pwm_out
 #				px4io
 #				rgbled
@@ -142,6 +142,7 @@ function(px4_add_board)
 			IO
 			BOOTLOADER
 			UAVCAN_INTERFACES
+			UAVCAN_TIMER_OVERRIDE
 			LINKER_PREFIX
 		MULTI_VALUE
 			DRIVERS
@@ -219,6 +220,10 @@ function(px4_add_board)
 
 	if(UAVCAN_INTERFACES)
 		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)
+	endif()
+
+	if(UAVCAN_TIMER_OVERRIDE)
+		set(config_uavcan_timer_override ${UAVCAN_TIMER_OVERRIDE} CACHE INTERNAL "UAVCAN TIMER OVERRIDE" FORCE)
 	endif()
 
 	# OPTIONS

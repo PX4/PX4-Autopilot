@@ -331,7 +331,7 @@ Mavlink::get_instance_for_device(const char *device_name)
 	Mavlink *inst;
 
 	LL_FOREACH(::_mavlink_instances, inst) {
-		if (strcmp(inst->_device_name, device_name) == 0) {
+		if ((inst->_protocol == Protocol::SERIAL) && (strcmp(inst->_device_name, device_name) == 0)) {
 			return inst;
 		}
 	}
@@ -346,7 +346,7 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 	Mavlink *inst;
 
 	LL_FOREACH(::_mavlink_instances, inst) {
-		if (inst->_network_port == port) {
+		if ((inst->_protocol == Protocol::UDP) && (inst->_network_port == port)) {
 			return inst;
 		}
 	}
@@ -354,6 +354,18 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 	return nullptr;
 }
 #endif // MAVLINK_UDP
+
+bool
+Mavlink::is_connected()
+{
+	for (auto &hb : _tstatus.heartbeats) {
+		if ((hb.type == telemetry_heartbeat_s::TYPE_GCS) && (hrt_elapsed_time(&hb.timestamp) < 3_s)) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 int
 Mavlink::destroy_all_instances()
@@ -484,7 +496,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 }
 
 int
-Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool force_flow_control)
+Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CONTROL_MODE flow_control)
 {
 #ifndef B460800
 #define B460800 460800
@@ -661,13 +673,8 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 		return -1;
 	}
 
-	/*
-	 * Setup hardware flow control. If the port has no RTS pin this call will fail,
-	 * which is not an issue, but requires a separate call so we can fail silently.
-	*/
-
-	/* setup output flow control */
-	if (enable_flow_control(force_flow_control ? FLOW_CONTROL_ON : FLOW_CONTROL_AUTO)) {
+	/* setup hardware flow control */
+	if (setup_flow_control(flow_control) && (flow_control != FLOW_CONTROL_AUTO)) {
 		PX4_WARN("hardware flow control not supported");
 	}
 
@@ -675,7 +682,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 }
 
 int
-Mavlink::enable_flow_control(enum FLOW_CONTROL_MODE mode)
+Mavlink::setup_flow_control(enum FLOW_CONTROL_MODE mode)
 {
 	// We can't do this on USB - skip
 	if (_is_usb_uart) {
@@ -687,7 +694,7 @@ Mavlink::enable_flow_control(enum FLOW_CONTROL_MODE mode)
 
 	int ret = tcgetattr(_uart_fd, &uart_config);
 
-	if (mode) {
+	if (mode != FLOW_CONTROL_OFF) {
 		uart_config.c_cflag |= CRTSCTS;
 
 	} else {
@@ -769,7 +776,7 @@ Mavlink::get_free_tx_buf()
 			    hrt_elapsed_time(&_last_write_success_time) > 500_ms &&
 			    _last_write_success_time != _last_write_try_time) {
 
-				enable_flow_control(FLOW_CONTROL_OFF);
+				setup_flow_control(FLOW_CONTROL_OFF);
 			}
 		}
 	}
@@ -826,7 +833,7 @@ void Mavlink::send_finish()
 # endif // CONFIG_NET
 
 		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
-		    (!get_client_source_initialized() || (hrt_elapsed_time(&_tstatus.heartbeat_time) > 3_s))) {
+		    (!get_client_source_initialized() || !is_connected())) {
 
 			if (!_broadcast_address_found) {
 				find_broadcast_address();
@@ -1814,7 +1821,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_baudrate = 57600;
 	_datarate = 0;
 	_mode = MAVLINK_MODE_COUNT;
-	bool _force_flow_control = false;
+	FLOW_CONTROL_MODE _flow_control = FLOW_CONTROL_AUTO;
 
 	_interface_name = nullptr;
 
@@ -1839,7 +1846,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxz", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxzZ", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -2033,7 +2040,11 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 'z':
-			_force_flow_control = true;
+			_flow_control = FLOW_CONTROL_ON;
+			break;
+
+		case 'Z':
+			_flow_control = FLOW_CONTROL_OFF;
 			break;
 
 		default:
@@ -2103,6 +2114,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
+	pthread_mutex_init(&_telemetry_status_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on) {
@@ -2181,7 +2193,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* open the UART device after setting the instance, as it might block */
 	if (get_protocol() == Protocol::SERIAL) {
-		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _force_flow_control);
+		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
 
 		if (_uart_fd < 0 && !_is_usb_uart) {
 			PX4_ERR("could not open %s", _device_name);
@@ -2271,9 +2283,17 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+
+		// vehicle_command
+		const unsigned last_generation = cmd_sub.get_last_generation();
 		vehicle_command_s vehicle_cmd;
 
 		if (cmd_sub.update(&vehicle_cmd)) {
+
+			if (cmd_sub.get_last_generation() != last_generation + 1) {
+				PX4_ERR("vehicle_command lost, generation %d -> %d", last_generation, cmd_sub.get_last_generation());
+			}
+
 			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
 			    (_mode == MAVLINK_MODE_IRIDIUM)) {
 				if (vehicle_cmd.param1 > 0.5f) {
@@ -2461,7 +2481,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		// publish status at 1 Hz, or sooner if HEARTBEAT has updated
-		if ((hrt_elapsed_time(&_tstatus.timestamp) >= 1_s) || (_tstatus.timestamp < _tstatus.heartbeat_time)) {
+		if ((hrt_elapsed_time(&_tstatus.timestamp) >= 1_s) || _tstatus_updated) {
 			publish_telemetry_status();
 		}
 
@@ -2496,6 +2516,9 @@ Mavlink::task_main(int argc, char *argv[])
 		_mavlink_ulog->stop();
 		_mavlink_ulog = nullptr;
 	}
+
+	pthread_mutex_destroy(&_send_mutex);
+	pthread_mutex_destroy(&_telemetry_status_mutex);
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
@@ -2588,9 +2611,12 @@ void Mavlink::publish_telemetry_status()
 
 	_tstatus.streams = _streams.size();
 
+	// telemetry_status is also updated from the receiver thread, but never the same fields
+	lock_telemetry_status();
 	_tstatus.timestamp = hrt_absolute_time();
-
 	_telem_status_pub.publish(_tstatus);
+	_tstatus_updated = false;
+	unlock_telemetry_status();
 }
 
 void Mavlink::configure_sik_radio()
@@ -2729,8 +2755,10 @@ Mavlink::start(int argc, char *argv[])
 void
 Mavlink::display_status()
 {
-	if (_tstatus.heartbeat_time > 0) {
-		printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&_tstatus.heartbeat_time));
+	for (const auto &hb : _tstatus.heartbeats) {
+		if ((hb.timestamp > 0) && (hb.type == telemetry_heartbeat_s::TYPE_GCS)) {
+			printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&hb.timestamp));
+		}
 	}
 
 	printf("\tmavlink chan: #%u\n", _channel);
@@ -3041,7 +3069,8 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force flow control always on", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force hardware flow control always on", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('Z', "Force hardware flow control always off", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 

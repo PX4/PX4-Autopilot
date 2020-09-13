@@ -143,6 +143,25 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 			}
 		}
 
+	} else if (_system_type == MAV_TYPE_AIRSHIP) {
+		/* airship: scale starboard and port throttle to 0..1 and other channels (tilt, tail thruster) to -1..1 */
+		for (unsigned i = 0; i < 16; i++) {
+			if (armed) {
+				if (i < 2) {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
+					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+
+				} else {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
+					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+				}
+
+			} else {
+				/* set 0 for disabled channels */
+				msg.controls[i] = 0.0f;
+			}
+		}
+
 	} else {
 		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
@@ -200,31 +219,42 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 		if (PX4_ISFINITE(sensors.temperature)) {
 			temperature = sensors.temperature;
 
-			_px4_accel.set_temperature(temperature);
-			_px4_baro.set_temperature(temperature);
-			_px4_gyro.set_temperature(temperature);
-			_px4_mag.set_temperature(temperature);
+			_px4_accel_0.set_temperature(temperature);
+			_px4_accel_1.set_temperature(temperature);
+
+			_px4_baro_0.set_temperature(temperature);
+			_px4_baro_1.set_temperature(temperature);
+
+			_px4_gyro_0.set_temperature(temperature);
+			_px4_gyro_1.set_temperature(temperature);
+
+			_px4_mag_0.set_temperature(temperature);
+			_px4_mag_1.set_temperature(temperature);
 		}
 	}
 
 	// accel
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_param_sim_accel_block.get()) {
-		_px4_accel.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+		_px4_accel_0.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+		_px4_accel_1.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 	}
 
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO && !_param_sim_gyro_block.get()) {
-		_px4_gyro.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+		_px4_gyro_0.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+		_px4_gyro_1.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 	}
 
 	// magnetometer
 	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG && !_param_sim_mag_block.get()) {
-		_px4_mag.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+		_px4_mag_0.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+		_px4_mag_1.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
 	}
 
 	// baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_param_sim_baro_block.get()) {
-		_px4_baro.update(time, sensors.abs_pressure);
+		_px4_baro_0.update(time, sensors.abs_pressure);
+		_px4_baro_1.update(time, sensors.abs_pressure);
 	}
 
 	// differential pressure
@@ -441,7 +471,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.vy = hil_state.vy / 100.0f;
 		hil_lpos.vz = hil_state.vz / 100.0f;
 		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
-		hil_lpos.yaw = euler.psi();
+		hil_lpos.heading = euler.psi();
 		hil_lpos.xy_global = true;
 		hil_lpos.z_global = true;
 		hil_lpos.ref_lat = _hil_ref_lat;

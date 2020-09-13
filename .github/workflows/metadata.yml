@@ -70,6 +70,20 @@ jobs:
         ls -ls *
       # TODO: deploy graph_px4_sitl.json to S3 px4-travis:Firmware/master/
 
+  micrortps_agent:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-bionic:2020-04-01
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+
+    - name: microRTPS agent
+      run: |
+        make px4_sitl_rtps
+        git clone https://github.com/PX4/micrortps_agent.git
+        cp -R build/px4_sitl_rtps/src/modules/micrortps_bridge/micrortps_agent/* micrortps_agent
+
   ROS_msgs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-base-bionic:2020-04-01

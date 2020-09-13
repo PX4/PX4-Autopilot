@@ -46,6 +46,9 @@ if(CONFIG_ARCH_CHIP)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32h7")
 		set(UAVCAN_DRIVER "stm32h7")
 		set(UAVCAN_TIMER 5) # The default timer is TIM5
+		if (DEFINED config_uavcan_timer_override)
+			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
+		endif()
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32")
 		set(UAVCAN_DRIVER "stm32")
 		set(UAVCAN_TIMER 5) # The default timer is TIM5
@@ -134,6 +137,7 @@ px4_add_module(
 		sensors/flow.cpp
 		sensors/gnss.cpp
 		sensors/mag.cpp
+		sensors/rangefinder.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc

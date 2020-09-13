@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,16 +40,22 @@
 PARAM_DEFINE_INT32(CAL_MAG3_ID, 0);
 
 /**
- * Mag 3 enabled
+ * Mag 3 priority.
  *
- * @boolean
+ * @value 0   Disabled
+ * @value 1   Min
+ * @value 25  Low
+ * @value 50  Medium (Default)
+ * @value 75  High
+ * @value 100 Max
+ *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG3_EN, 1);
+PARAM_DEFINE_INT32(CAL_MAG3_PRIO, 50);
 
 /**
- * Rotation of magnetometer 2 relative to airframe.
+ * Rotation of magnetometer 3 relative to airframe.
  *
  * An internal magnetometer will force a value of -1, so a GCS
  * should only attempt to configure the rotation if the value is
@@ -158,6 +164,30 @@ PARAM_DEFINE_FLOAT(CAL_MAG3_YSCALE, 1.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG3_ZSCALE, 1.0f);
+
+/**
+ * Magnetometer X-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG3_XODIAG, 0.0f);
+
+/**
+ * Magnetometer Y-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG3_YODIAG, 0.0f);
+
+/**
+ * Magnetometer Z-axis off diagonal factor
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(CAL_MAG3_ZODIAG, 0.0f);
 
 /**
 * Coefficient describing linear relationship between

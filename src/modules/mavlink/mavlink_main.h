@@ -71,7 +71,7 @@
 #include <px4_platform_common/posix.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/uthash/utlist.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/radio_status.h>
@@ -258,7 +258,7 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	bool			is_connected() { return (hrt_elapsed_time(&_tstatus.heartbeat_time) < 3_s); }
+	bool			is_connected();
 
 #if defined(MAVLINK_UDP)
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
@@ -344,7 +344,7 @@ public:
 	 *
 	 * @param enabled	True if hardware flow control should be enabled
 	 */
-	int			enable_flow_control(enum FLOW_CONTROL_MODE enabled);
+	int			setup_flow_control(enum FLOW_CONTROL_MODE enabled);
 
 	mavlink_channel_t	get_channel() const { return _channel; }
 
@@ -431,6 +431,9 @@ public:
 	 * Get the receive status of this MAVLink link
 	 */
 	telemetry_status_s	&get_telemetry_status() { return _tstatus; }
+	void                    lock_telemetry_status() { pthread_mutex_lock(&_telemetry_status_mutex); }
+	void                    unlock_telemetry_status() { pthread_mutex_unlock(&_telemetry_status_mutex); }
+	void                    telemetry_status_updated() { _tstatus_updated = true; }
 
 	void			set_telemetry_status_type(uint8_t type) { _tstatus.type = type; }
 
@@ -530,7 +533,7 @@ private:
 
 	orb_advert_t		_mavlink_log_pub{nullptr};
 
-	uORB::PublicationQueued<telemetry_status_s>	_telem_status_pub{ORB_ID(telemetry_status)};
+	uORB::PublicationMulti<telemetry_status_s> _telem_status_pub{ORB_ID(telemetry_status)};
 
 	bool			_task_running{true};
 	static bool		_boot_complete;
@@ -632,6 +635,7 @@ private:
 
 	radio_status_s		_rstatus {};
 	telemetry_status_s	_tstatus {};
+	bool                    _tstatus_updated{false};
 
 	ping_statistics_s	_ping_stats {};
 
@@ -646,6 +650,7 @@ private:
 
 	pthread_mutex_t		_message_buffer_mutex {};
 	pthread_mutex_t		_send_mutex {};
+	pthread_mutex_t		_telemetry_status_mutex {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
@@ -674,7 +679,7 @@ private:
 
 	int mavlink_open_uart(const int baudrate = DEFAULT_BAUD_RATE,
 			      const char *uart_name = DEFAULT_DEVICE_NAME,
-			      const bool force_flow_control = false);
+			      const FLOW_CONTROL_MODE flow_control = FLOW_CONTROL_AUTO);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;

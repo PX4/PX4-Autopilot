@@ -42,6 +42,13 @@ else
 	no_pxh=""
 fi
 
+# To disable user input
+if [[ -n "$VERBOSE" ]]; then
+	verbose="--verbose"
+else
+	verbose=""
+fi
+
 if [ "$model" != none ]; then
 	jmavsim_pid=`ps aux | grep java | grep "\-jar jmavsim_run.jar" | awk '{ print $2 }'`
 	if [ -n "$jmavsim_pid" ]; then
@@ -80,6 +87,13 @@ if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
 	SIM_PID=`echo $!`
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 	if [ -x "$(command -v gazebo)" ]; then
+		# Get the model name
+		model_name="${model}"
+		# Check if a 'modelname-gen.sdf' file exist for the models using jinja and generating the SDF files
+		if [ -f "${src_path}/Tools/sitl_gazebo/models/${model}/${model}-gen.sdf" ]; then
+			model_name="${model}-gen"
+		fi
+
 		# Set the plugin path so Gazebo finds our model and sim
 		source "$src_path/Tools/setup_gazebo.bash" "${src_path}" "${build_path}"
 		if [ -z $PX4_SITL_WORLD ]; then
@@ -87,27 +101,28 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 			if [ "$world" == "none" ]; then
 				if [ -f ${src_path}/Tools/sitl_gazebo/worlds/${model}.world ]; then
 					echo "empty world, default world ${model}.world for model found"
-					gzserver "${src_path}/Tools/sitl_gazebo/worlds/${model}.world" &
+					world_path="${src_path}/Tools/sitl_gazebo/worlds/${model}.world"
 				else
 					echo "empty world, setting empty.world as default"
-					gzserver "${src_path}/Tools/sitl_gazebo/worlds/empty.world" &
+					world_path="${src_path}/Tools/sitl_gazebo/worlds/empty.world"
 				fi
 			else
 				#Spawn empty world if world with model name doesn't exist
-				gzserver "${src_path}/Tools/sitl_gazebo/worlds/${world}.world" &
+				world_path= $verbose "${src_path}/Tools/sitl_gazebo/worlds/${world}.world"
 			fi
 		else
 			if [ -f ${src_path}/Tools/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world ]; then
 				# Spawn world by name if exists in the worlds directory from environment variable
-				gzserver "${src_path}/Tools/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world" &
+				world_path="${src_path}/Tools/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world"
 			else
 				# Spawn world from environment variable with absolute path
-				gzserver "$PX4_SITL_WORLD" &
+				world_path="$PX4_SITL_WORLD"
 			fi
 		fi
+		gzserver $verbose $world_path &
 		SIM_PID=$!
 
-		while gz model --verbose --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep -q "An instance of Gazebo is not running."; do
+		while gz model --verbose --spawn-file="${src_path}/Tools/sitl_gazebo/models/${model}/${model_name}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep -q "An instance of Gazebo is not running."; do
 			echo "gzserver not ready yet, trying again!"
 			sleep 1
 		done

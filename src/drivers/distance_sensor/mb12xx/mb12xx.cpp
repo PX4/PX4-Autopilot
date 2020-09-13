@@ -233,7 +233,7 @@ MB12XX::collect()
 	report.variance         = 0.0f;
 
 	int instance_id;
-	orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id);
 
 	// Begin the next measurement.
 	if (measure() != PX4_OK) {

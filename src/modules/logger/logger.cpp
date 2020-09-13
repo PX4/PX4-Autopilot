@@ -53,6 +53,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
+#include <px4_platform/cpuload.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
@@ -421,7 +422,19 @@ bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
 	bool updated = false;
 
 	if (sub.valid()) {
-		updated = sub.update(buffer);
+		if (sub.get_interval_us() == 0) {
+			// record gaps in full rate (no interval) messages
+			const unsigned last_generation = sub.get_last_generation();
+			updated = sub.update(buffer);
+
+			if (updated && (sub.get_last_generation() != last_generation + 1)) {
+				// error, missed a message
+				_message_gaps++;
+			}
+
+		} else {
+			updated = sub.update(buffer);
+		}
 
 	} else if (try_to_subscribe) {
 		if (sub.subscribe()) {
@@ -930,6 +943,7 @@ void Logger::publish_logger_status()
 				status.total_written_kb = kb_written;
 				status.write_rate_kb_s = kb_written / seconds;
 				status.dropouts = _statistics[i].write_dropouts;
+				status.message_gaps = _message_gaps;
 				status.buffer_used_bytes = buffer_fill_count_file;
 				status.buffer_size_bytes = _writer.get_buffer_size_file(log_type);
 				status.num_messages = _num_subscriptions;
@@ -1212,6 +1226,11 @@ void Logger::start_log_file(LogType type)
 		return;
 	}
 
+	if (type == LogType::Full) {
+		// initialize cpu load as early as possible to get more data
+		initialize_load_output(PrintLoadReason::Preflight);
+	}
+
 	PX4_INFO("Start file log (type: %s)", log_type_str(type));
 
 	char file_name[LOG_DIR_LEN] = "";
@@ -1247,8 +1266,6 @@ void Logger::start_log_file(LogType type)
 	if (type == LogType::Full) {
 		/* reset performance counters to get in-flight min and max values in post flight log */
 		perf_reset_all();
-
-		initialize_load_output(PrintLoadReason::Preflight);
 	}
 
 	_statistics[(int)type].start_time_file = hrt_absolute_time();
@@ -1276,6 +1293,9 @@ void Logger::start_log_mavlink()
 		return;
 	}
 
+	// initialize cpu load as early as possible to get more data
+	initialize_load_output(PrintLoadReason::Preflight);
+
 	PX4_INFO("Start mavlink log");
 
 	_writer.start_log_mavlink();
@@ -1291,8 +1311,6 @@ void Logger::start_log_mavlink()
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
-
-	initialize_load_output(PrintLoadReason::Preflight);
 }
 
 void Logger::stop_log_mavlink()
@@ -1375,16 +1393,8 @@ void Logger::print_load_callback(void *user)
 
 void Logger::initialize_load_output(PrintLoadReason reason)
 {
-	perf_callback_data_t callback_data;
-	callback_data.logger = this;
-	callback_data.counter = 0;
-	callback_data.buffer = nullptr;
-	char buffer[140];
-	hrt_abstime curr_time = hrt_absolute_time();
-	init_print_load_s(curr_time, &_load);
-	// this will not yet print anything
-	print_load_buffer(curr_time, buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
-	_next_load_print = curr_time + 1000000;
+	init_print_load(&_load);
+	_next_load_print = hrt_absolute_time() + 1_s;
 	_print_load_reason = reason;
 }
 
@@ -1399,11 +1409,11 @@ void Logger::write_load_output()
 	callback_data.logger = this;
 	callback_data.counter = 0;
 	callback_data.buffer = buffer;
-	hrt_abstime curr_time = hrt_absolute_time();
 	_writer.set_need_reliable_transfer(true);
 	// TODO: maybe we should restrict the output to a selected backend (eg. when file logging is running
 	// and mavlink log is started, this will be added to the file as well)
-	print_load_buffer(curr_time, buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
+	print_load_buffer(buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
+	cpuload_monitor_stop();
 	_writer.set_need_reliable_transfer(false);
 }
 

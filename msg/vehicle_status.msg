@@ -53,6 +53,7 @@ uint8 VEHICLE_TYPE_UNKNOWN = 0
 uint8 VEHICLE_TYPE_ROTARY_WING = 1
 uint8 VEHICLE_TYPE_FIXED_WING = 2
 uint8 VEHICLE_TYPE_ROVER = 3
+uint8 VEHICLE_TYPE_AIRSHIP = 4
 
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
@@ -94,3 +95,22 @@ uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 
 uint32 onboard_control_sensors_present
 uint32 onboard_control_sensors_enabled
 uint32 onboard_control_sensors_health
+
+
+uint8 ARM_DISARM_REASON_TRANSITION_TO_STANDBY = 0
+uint8 ARM_DISARM_REASON_RC_STICK = 1
+uint8 ARM_DISARM_REASON_RC_SWITCH = 2
+uint8 ARM_DISARM_REASON_COMMAND_INTERNAL = 3
+uint8 ARM_DISARM_REASON_COMMAND_EXTERNAL = 4
+uint8 ARM_DISARM_REASON_MISSION_START = 5
+uint8 ARM_DISARM_REASON_SAFETY_BUTTON = 6
+uint8 ARM_DISARM_REASON_AUTO_DISARM_LAND = 7
+uint8 ARM_DISARM_REASON_AUTO_DISARM_PREFLIGHT = 8
+uint8 ARM_DISARM_REASON_KILL_SWITCH = 9
+uint8 ARM_DISARM_REASON_LOCKDOWN = 10
+uint8 ARM_DISARM_REASON_FAILURE_DETECTOR = 11
+uint8 ARM_DISARM_REASON_SHUTDOWN = 12
+uint8 ARM_DISARM_REASON_UNIT_TEST = 13
+
+uint8 latest_arming_reason
+uint8 latest_disarming_reason

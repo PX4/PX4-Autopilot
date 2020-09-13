@@ -48,7 +48,7 @@ FlightTaskAuto::FlightTaskAuto() :
 
 }
 
-bool FlightTaskAuto::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 	_position_setpoint = _position;
@@ -277,10 +277,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_yaw_setpoint = NAN;
 
 	} else {
-		if (_type != WaypointType::takeoff
+		if ((_type != WaypointType::takeoff || _sub_triplet_setpoint.get().current.disable_weather_vane)
 		    && _sub_triplet_setpoint.get().current.yaw_valid) {
 			// Use the yaw computed in Navigator except during takeoff because
-			// Navigator is not handling the yaw reset properly
+			// Navigator is not handling the yaw reset properly.
+			// But: use if from Navigator during takeoff if disable_weather_vane is true,
+			// because we're then aligning to the transition waypoint.
 			// TODO: fix in navigator
 			_yaw_setpoint = _sub_triplet_setpoint.get().current.yaw;
 
@@ -295,7 +297,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	State previous_state = _current_state;
 	_current_state = _getCurrentState();
 
-	if (triplet_update || (_current_state != previous_state)) {
+	if (triplet_update || (_current_state != previous_state) || _current_state == State::offtrack) {
 		_updateInternalWaypoints();
 		_mission_gear = _sub_triplet_setpoint.get().current.landing_gear;
 	}

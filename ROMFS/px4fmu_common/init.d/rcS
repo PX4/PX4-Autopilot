@@ -169,7 +169,7 @@ else
 	param select $PARAM_FILE
 	if ! param load
 	then
-		param reset
+		param reset_all
 	fi
 
 	#
@@ -180,7 +180,7 @@ else
 		if param compare SYS_AUTOCONFIG 1
 		then
 			# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
-			param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
+			param reset_all SYS_AUTOSTART SYS_AUTOCONFIG RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT_UUID
 		fi
 
 		set AUTOCNF yes
@@ -225,8 +225,8 @@ else
 	#
 	# Start system state indicator.
 	#
-	rgbled start -X
-	rgbled_ncp5623c start -X
+	rgbled start -X -q
+	rgbled_ncp5623c start -X -q
 
 	if param greater LIGHT_EN_BLINKM 0
 	then
@@ -406,15 +406,22 @@ else
 
 	if param greater TRIG_MODE 0
 	then
-		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output.
+		# We ONLY support trigger on pins 5+6 or 7+8 when simultanously using AUX for actuator output.
 		if param compare TRIG_PINS 56
 		then
 			# clear pins 5 and 6
 			set FMU_MODE pwm4
 			set AUX_MODE pwm4
 		else
-			set FMU_MODE none
-			set AUX_MODE none
+			if param compare TRIG_PINS 78
+			then
+				# clear pins 7 and 8
+				set FMU_MODE pwm6
+				set AUX_MODE pwm6
+			else
+				set FMU_MODE none
+				set AUX_MODE none
+			fi
 		fi
 
 		camera_trigger start

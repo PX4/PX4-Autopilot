@@ -43,13 +43,13 @@
 
 #include <px4_platform_common/log.h>
 
-void DataValidator::put(uint64_t timestamp, float val, uint64_t error_count_in, int priority_in)
+void DataValidator::put(uint64_t timestamp, float val, uint32_t error_count_in, uint8_t priority_in)
 {
 	float data[dimensions] = {val};  // sets the first value and all others to 0
 	put(timestamp, data, error_count_in, priority_in);
 }
 
-void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint64_t error_count_in, int priority_in)
+void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_t error_count_in, uint8_t priority_in)
 {
 
 	_event_count++;

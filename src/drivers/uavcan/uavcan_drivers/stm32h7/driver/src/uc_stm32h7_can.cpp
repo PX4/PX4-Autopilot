@@ -470,6 +470,7 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	txi.loopback       = (flags & uavcan::CanIOFlagLoopback) != 0;
 	txi.abort_on_error = (flags & uavcan::CanIOFlagAbortOnError) != 0;
 	txi.index          = index;
+	txi.pending        = true;
 
 	return 1;
 }
@@ -705,9 +706,13 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
 	for (uint8_t i = 0; i < NumTxMailboxes; i++) {
 		if ((can_->TXBTO & (1 << i)) > 0) {
 			// Transmission Occurred in buffer i
-			if (pending_tx_[i].loopback && had_activity_) {
-				rx_queue_.push(pending_tx_[i].frame, utc_usec, uavcan::CanIOFlagLoopback);
+			TxItem &txi = pending_tx_[i];
+
+			if (txi.loopback && txi.pending) {
+				rx_queue_.push(txi.frame, utc_usec, uavcan::CanIOFlagLoopback);
 			}
+
+			txi.pending = false;
 		}
 	}
 
@@ -818,6 +823,7 @@ void CanIface::pollErrorFlagsFromISR()
 			if (txi.abort_on_error && ((1 << txi.index) & can_->TXBRP)) {
 				// Request to Cancel Tx item
 				can_->TXBCR = (1 << txi.index);
+				txi.pending = false;
 				error_cnt_++;
 				served_aborts_cnt_++;
 			}
@@ -835,6 +841,7 @@ void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
 		if (((1 << txi.index) & can_->TXBRP) && txi.deadline < current_time) {
 			// Request to Cancel Tx item
 			can_->TXBCR = (1 << txi.index);
+			txi.pending = false;
 			error_cnt_++;
 		}
 	}
