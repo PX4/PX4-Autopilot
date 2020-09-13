@@ -67,7 +67,7 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 	system_power_sub.update();
 	const system_power_s &system_power = system_power_sub.get();
 
-	if (hrt_elapsed_time(&system_power.timestamp) < 1_s) {
+	if (system_power.timestamp != 0) {
 		// Check avionics rail voltages (if USB isn't connected)
 		if (!system_power.usb_connected) {
 			float avionics_power_rail_voltage = system_power.voltage5v_v;
