@@ -50,14 +50,14 @@ Magnetometer::Magnetometer()
 
 Magnetometer::Magnetometer(uint32_t device_id, bool external)
 {
-	set_external(external);
 	Reset();
-	set_device_id(device_id);
+	set_device_id(device_id, external);
 }
 
-void Magnetometer::set_device_id(uint32_t device_id)
+void Magnetometer::set_device_id(uint32_t device_id, bool external)
 {
-	if (_device_id != device_id) {
+	if (_device_id != device_id || _external != external) {
+		set_external(external);
 		_device_id = device_id;
 		ParametersUpdate();
 	}
@@ -66,7 +66,7 @@ void Magnetometer::set_device_id(uint32_t device_id)
 void Magnetometer::set_external(bool external)
 {
 	// update priority default appropriately if not set
-	if (_calibration_index < 0) {
+	if (_calibration_index < 0 || _priority < 0) {
 		if ((_priority < 0) || (_priority > 100)) {
 			_priority = external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
