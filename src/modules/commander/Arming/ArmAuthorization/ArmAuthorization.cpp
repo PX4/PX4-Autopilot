@@ -230,7 +230,7 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 					 "Arm auth: Authorized for the next %u seconds",
 					 command_ack.result_param2);
 			state = ARM_AUTH_MISSION_APPROVED;
-			auth_timeout = now + (command_ack.result_param2 * 1000000);
+			auth_timeout = command_ack.timestamp + (command_ack.result_param2 * 1000000);
 			return;
 
 		case vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED:
