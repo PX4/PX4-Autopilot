@@ -11,6 +11,7 @@ px4_add_board(
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 	DRIVERS
+		adc/ads1115
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		batt_smbus
