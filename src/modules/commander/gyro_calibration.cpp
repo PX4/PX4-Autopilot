@@ -38,6 +38,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include "factory_calibration_storage.h"
 #include "gyro_calibration.h"
 #include "calibration_messages.h"
 #include "calibration_routines.h"
@@ -289,6 +290,13 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		res = PX4_ERROR;
 	}
 
+	FactoryCalibrationStorage factory_storage;
+
+	if (factory_storage.open() != PX4_OK) {
+		calibration_log_critical(mavlink_log_pub, "ERROR: cannot open calibration storage");
+		res = PX4_ERROR;
+	}
+
 	if (res == PX4_OK) {
 		// set offset parameters to new values
 		bool param_save = false;
@@ -318,6 +326,10 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				calibration_log_critical(mavlink_log_pub, "calibration save failed");
 				break;
 			}
+		}
+
+		if (!failed && factory_storage.store() != PX4_OK) {
+			failed = true;
 		}
 
 		if (param_save) {
