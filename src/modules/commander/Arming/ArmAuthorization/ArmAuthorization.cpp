@@ -49,6 +49,7 @@ static int command_ack_sub = -1;
 static param_t param_arm_parameters;
 
 static hrt_abstime auth_timeout;
+static hrt_abstime auth_req_time;
 
 static enum {
 	ARM_AUTH_IDLE = 0,
@@ -108,6 +109,7 @@ static uint8_t _auth_method_arm_req_check()
 	arm_auth_request_msg_send();
 
 	hrt_abstime now = hrt_absolute_time();
+	auth_req_time = now;
 	auth_timeout = now + (arm_parameters.struct_value.auth_method_param.auth_method_arm_timeout_msec * 1000);
 	state = ARM_AUTH_WAITING_AUTH;
 
@@ -160,6 +162,7 @@ static uint8_t _auth_method_two_arm_check()
 	arm_auth_request_msg_send();
 
 	hrt_abstime now = hrt_absolute_time();
+	auth_req_time = now;
 	auth_timeout = now + (arm_parameters.struct_value.auth_method_param.auth_method_arm_timeout_msec * 1000);
 	state = ARM_AUTH_WAITING_AUTH;
 
@@ -215,7 +218,8 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 
 	if (updated
 	    && command_ack.command == vehicle_command_s::VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST
-	    && command_ack.target_system == *system_id) {
+	    && command_ack.target_system == *system_id
+	    && command_ack.timestamp > auth_req_time) {
 		switch (command_ack.result) {
 		case vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS:
 			state = ARM_AUTH_WAITING_AUTH_WITH_ACK;
