@@ -681,7 +681,7 @@ PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
  *
  * Default value: (10 << 0 | 1000 << 8 | 0 << 24) = 256010
  * - authorizer system id = 10
- * - authentication method parameter = 10000msec of timeout
+ * - authentication method parameter = 1000 msec of timeout
  * - authentication method = during arm
  * @group Commander
  */
