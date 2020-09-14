@@ -18,6 +18,7 @@ px4_add_board(
 		GPS2:/dev/ttyS7
 	DRIVERS
 		adc/board_adc
+		adc/ads1115
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
