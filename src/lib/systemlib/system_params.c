@@ -235,6 +235,19 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
 PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
 
 /**
+ * Enable factory calibration mode
+ *
+ * If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.
+ *
+ * Note: this is only supported on boards with a separate calibration storage
+ * /fs/mtd_caldata.
+ *
+ * @boolean
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_FAC_CAL_MODE, 0);
+
+/**
  * Bootloader update
  *
  * If enabled, update the bootloader on the next boot.
