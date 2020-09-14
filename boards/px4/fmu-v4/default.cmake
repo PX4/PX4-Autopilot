@@ -15,7 +15,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 	DRIVERS
 		adc/board_adc
-		adc/ADS1115
+		adc/ads1115
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
