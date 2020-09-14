@@ -72,7 +72,7 @@ private:
 
 			mavlink_flight_information_t flight_info{};
 			flight_info.flight_uuid = static_cast<uint64_t>(flight_uuid);
-			flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time_ms;
+			flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time / 1000;
 			flight_info.time_boot_ms = hrt_absolute_time() / 1000;
 			mavlink_msg_flight_information_send_struct(_mavlink->get_channel(), &flight_info);
 		}

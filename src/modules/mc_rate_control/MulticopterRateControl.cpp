@@ -243,8 +243,13 @@ MulticopterRateControl::Run()
 			const Vector3f att_control = _rate_control.update(rates, _rates_sp, angular_accel, dt, _maybe_landed || _landed);
 
 			// publish rate controller status
-			rate_ctrl_status_s rate_ctrl_status{};
-			_rate_control.getRateControlStatus(rate_ctrl_status);
+			rate_ctrl_status_s &rate_ctrl_status = _rate_control.getRateControlStatus();
+
+			if (!_v_control_mode.flag_armed || _landed) {
+				Vector3f().copyTo(rate_ctrl_status.error);
+				Vector3f().copyTo(rate_ctrl_status.error_integrated);
+			}
+
 			rate_ctrl_status.timestamp = hrt_absolute_time();
 			_controller_status_pub.publish(rate_ctrl_status);
 

@@ -45,6 +45,9 @@ using namespace time_literals;
 FailureDetector::FailureDetector(ModuleParams *parent) :
 	ModuleParams(parent)
 {
+	_ext_ats_failure_hysteresis.set_hysteresis_time_from(false, 100_ms); // 5 consecutive pulses at 50hz
+	_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
+	_rate_ctrl_failure_hysteresis.set_hysteresis_time_from(false, 100_ms);
 }
 
 bool FailureDetector::update(const vehicle_status_s &vehicle_status)
@@ -54,16 +57,20 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status)
 	if (isAttitudeStabilized(vehicle_status)) {
 		updateAttitudeStatus();
 
-		if (_param_fd_ext_ats_en.get()) {
-			updateExternalAtsStatus();
-		}
-
 	} else {
 		_status &= ~(FAILURE_ROLL | FAILURE_PITCH | FAILURE_ALT | FAILURE_EXT);
 	}
 
+	if (_param_fd_ext_ats_en.get()) {
+		updateExternalAtsStatus();
+	}
+
 	if (_param_escs_en.get()) {
 		updateEscsStatus(vehicle_status);
+	}
+
+	if (_param_fd_rate_ctrl_en.get()) {
+		updateRateControlStatus(vehicle_status);
 	}
 
 	return _status != previous_status;
@@ -136,10 +143,9 @@ void FailureDetector::updateExternalAtsStatus()
 		uint32_t pulse_width = pwm_input.pulse_width;
 		bool ats_trigger_status = (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) && (pulse_width < 3_ms);
 
-		hrt_abstime time_now = hrt_absolute_time();
+		const hrt_abstime time_now = hrt_absolute_time();
 
 		// Update hysteresis
-		_ext_ats_failure_hysteresis.set_hysteresis_time_from(false, 100_ms); // 5 consecutive pulses at 50hz
 		_ext_ats_failure_hysteresis.set_state_and_update(ats_trigger_status, time_now);
 
 		_status &= ~FAILURE_EXT;
@@ -160,7 +166,6 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 		if (_esc_status_sub.update(&esc_status)) {
 			int all_escs_armed = (1 << esc_status.esc_count) - 1;
 
-			_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
 			_esc_failure_hysteresis.set_state_and_update(all_escs_armed != esc_status.esc_armed_flags, time_now);
 
 			if (_esc_failure_hysteresis.get_state()) {
@@ -172,5 +177,38 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 		// reset ESC bitfield
 		_esc_failure_hysteresis.set_state_and_update(false, time_now);
 		_status &= ~FAILURE_ARM_ESCS;
+	}
+}
+
+void FailureDetector::updateRateControlStatus(const vehicle_status_s &vehicle_status)
+{
+	rate_ctrl_status_s rcs;
+
+	if (_rate_ctrl_status_sub.update(&rcs) && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+		static constexpr float rate_error_lim = math::radians(30.f);  // 30 degrees/second
+		static constexpr float angle_error_lim = math::radians(60.f); // 60 degrees
+
+		// roll rate error
+		const bool rr_pos_err = (rcs.error[0] > rate_error_lim) && (rcs.error_integrated[0] > angle_error_lim);
+		const bool rr_neg_err = (rcs.error[0] < -rate_error_lim) && (rcs.error_integrated[0] < -angle_error_lim);
+
+		// pitch rate error
+		const bool pr_pos_err = (rcs.error[1] > rate_error_lim) && (rcs.error_integrated[1] > angle_error_lim);
+		const bool pr_neg_err = (rcs.error[1] < -rate_error_lim) && (rcs.error_integrated[1] < -angle_error_lim);
+
+		const bool fail = rr_pos_err || rr_neg_err || pr_pos_err || pr_neg_err;
+
+		_rate_ctrl_failure_hysteresis.set_state_and_update(fail, rcs.timestamp);
+
+		if (_rate_ctrl_failure_hysteresis.get_state()) {
+			_status |= FAILURE_RATE_CTRL;
+
+		} else {
+			_status &= ~FAILURE_RATE_CTRL;
+		}
+
+	} else {
+		_rate_ctrl_failure_hysteresis.set_state_and_update(false, hrt_absolute_time());
+		_status &= ~FAILURE_RATE_CTRL;
 	}
 }
