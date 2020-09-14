@@ -245,6 +245,7 @@ Sensors::Sensors(bool hil_enabled) :
 	param_find("SENS_BOARD_Y_OFF");
 	param_find("SENS_BOARD_Z_OFF");
 
+	param_find("SYS_FAC_CAL_MODE");
 	param_find("SYS_PARAM_VER");
 	param_find("SYS_AUTOSTART");
 	param_find("SYS_AUTOCONFIG");
