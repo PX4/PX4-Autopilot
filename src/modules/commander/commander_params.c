@@ -698,6 +698,17 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
 PARAM_DEFINE_INT32(COM_ARM_AUTH_REQ, 0);
 
 /**
+ * Arming grace duration.
+ *
+ * Duration after disarm during which arming is authorized without prearm checks
+ *
+ * @group Commander
+ * @unit s
+ * @min 0
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_GRACE_T, 5);
+
+/**
  * Loss of position failsafe activation delay.
  *
  * This sets number of seconds that the position checks need to be failed before the failsafe will activate.

@@ -2012,7 +2012,8 @@ Commander::run()
 			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
 			 * for example for accidential in-air disarming */
 			const bool in_arming_grace_period = (_last_disarmed_timestamp != 0)
-							    && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s);
+							    && (hrt_elapsed_time(&_last_disarmed_timestamp)
+								< _param_com_arm_grace_t.get() * 1_s);
 
 			const bool arm_switch_to_arm_transition = !_param_arm_switch_is_button.get() &&
 					(_last_manual_control_setpoint_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF) &&
