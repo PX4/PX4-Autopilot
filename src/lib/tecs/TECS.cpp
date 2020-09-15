@@ -250,7 +250,7 @@ void TECS::_update_energy_estimates()
 
 	// Calculate specific energy rate demands in units of (m**2/sec**3)
 	_SPE_rate_setpoint = _hgt_rate_setpoint * CONSTANTS_ONE_G; // potential energy rate of change
-	_SKE_rate_setpoint = _tas_state * _TAS_rate_setpoint; // kinetic energy rate of change
+	_SKE_rate_setpoint = _TAS_setpoint_adj * _TAS_rate_setpoint; // kinetic energy rate of change
 
 	// Calculate specific energies in units of (m**2/sec**2)
 	_SPE_estimate = _vert_pos_state * CONSTANTS_ONE_G; // potential energy
