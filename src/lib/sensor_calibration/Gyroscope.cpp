@@ -149,8 +149,19 @@ void Gyroscope::ParametersUpdate()
 			_priority = DEFAULT_PRIORITY;
 		}
 
+		bool calibration_changed = false;
+
 		// CAL_GYROx_OFF{X,Y,Z}
-		_offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+		const Vector3f offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+
+		if (Vector3f(_offset - offset).norm_squared() > 0.001f * 0.001f) {
+			calibration_changed = true;
+			_offset = offset;
+		}
+
+		if (calibration_changed) {
+			_calibration_count++;
+		}
 
 	} else {
 		Reset();
@@ -166,6 +177,8 @@ void Gyroscope::Reset()
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 	_calibration_index = -1;
+
+	_calibration_count = 0;
 }
 
 bool Gyroscope::ParametersSave()
