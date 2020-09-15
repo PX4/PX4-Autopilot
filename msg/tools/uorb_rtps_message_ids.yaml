@@ -283,6 +283,8 @@ rtps:
     id: 134
   - msg: estimator_states
     id: 135
+  - msg: generator_status
+    id: 136
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
