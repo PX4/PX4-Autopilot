@@ -17,6 +17,7 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
+		#protocol_splitter
 		pwm_out_sim
 		rpm/rpm_simulator
 		#telemetry # all available telemetry drivers
@@ -43,6 +44,7 @@ px4_add_board(
 		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		replay
@@ -51,10 +53,9 @@ px4_add_board(
 		#sih
 		simulator
 		temperature_compensation
+		uuv_att_control
 		vmount
 		vtol_att_control
-		uuv_att_control
-
 	SYSTEMCMDS
 		#dumpfile
 		dyn
@@ -102,5 +103,9 @@ set(REPLAY_FILE "$ENV{replay}")
 if(REPLAY_FILE)
 	message(STATUS "Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
+
+	message(STATUS "Building without lockstep for replay")
+	set(ENABLE_LOCKSTEP_SCHEDULER no)
+else()
+	set(ENABLE_LOCKSTEP_SCHEDULER yes)
 endif()
-set(ENABLE_LOCKSTEP_SCHEDULER yes)

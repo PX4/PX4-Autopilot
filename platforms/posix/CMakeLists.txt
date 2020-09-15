@@ -165,7 +165,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	# ROMFS files
 	install(
 		DIRECTORY
-			${PROJECT_SOURCE_DIR}/build/px4_sitl_default/etc
+			${PX4_BINARY_DIR}/etc
 		DESTINATION
 			${PROJECT_NAME}/build/px4_sitl_default
 		)
@@ -173,7 +173,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	# sitl_gazebo built plugins
 	install(
 		DIRECTORY
-			${PROJECT_SOURCE_DIR}/build/px4_sitl_default/build_gazebo
+			${PX4_BINARY_DIR}/build_gazebo
 		DESTINATION
 			${PROJECT_NAME}/build/px4_sitl_default
 		FILES_MATCHING
