@@ -110,7 +110,7 @@ private:
 		{this, 3},
 	};
 
-	float _accumulated_gyro_error[MAX_INSTANCES]{};
+	float _accumulated_gyro_error[MAX_INSTANCES] {};
 	hrt_abstime _last_update_us{0};
 	bool _gyro_fault_detected{false};
 

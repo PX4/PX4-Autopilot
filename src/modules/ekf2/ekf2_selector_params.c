@@ -37,10 +37,25 @@
  * EKF2 instances have to be better than the selected by at least this amount before their relative score can be reduced.
  *
  * @group EKF2
- * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(EKF2_SEL_ERR_RED, 0.2f);
 
+/**
+ * Selector angular rate threshold
+ *
+ * EKF2 selector angular rate error threshold for comparing gyros.
+ *
+ * @group EKF2
+ * @unit deg/s
+ */
 PARAM_DEFINE_FLOAT(EKF2_SEL_GYR_RAT, 7.0f);
 
+/**
+ * Selector angular threshold.
+ *
+ * EKF2 selector maximum accumulate angular error threshold for comparing gyros.
+ *
+ * @group EKF2
+ * @unit deg
+ */
 PARAM_DEFINE_FLOAT(EKF2_SEL_GYR_ANG, 15.0f);
