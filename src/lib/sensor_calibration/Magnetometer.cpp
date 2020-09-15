@@ -170,14 +170,14 @@ void Magnetometer::ParametersUpdate()
 		// CAL_MAGx_SCALE{X,Y,Z}
 		const Vector3f diag = GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index);
 
-		if (Vector3f(_scale.diag() - diag).norm() > 0.001f) {
+		if (Vector3f(_scale.diag() - diag).norm_squared() > 0.001f * 0.001f) {
 			calibration_changed = true;
 		}
 
 		// CAL_MAGx_ODIAG{X,Y,Z}
 		const Vector3f offdiag = GetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index);
 
-		if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiag).norm() > 0.001f) {
+		if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiag).norm_squared() > 0.001f * 0.001f) {
 			calibration_changed = true;
 		}
 
