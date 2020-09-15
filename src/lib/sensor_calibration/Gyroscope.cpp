@@ -154,7 +154,7 @@ void Gyroscope::ParametersUpdate()
 		// CAL_GYROx_OFF{X,Y,Z}
 		const Vector3f offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
 
-		if (Vector3f(_offset - offset).norm() > 0.001f) {
+		if (Vector3f(_offset - offset).norm_squared() > 0.001f * 0.001f) {
 			calibration_changed = true;
 			_offset = offset;
 		}

@@ -162,7 +162,7 @@ void Accelerometer::ParametersUpdate()
 		// CAL_ACCx_SCALE{X,Y,Z}
 		const Vector3f scale = GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index);
 
-		if (Vector3f(_scale - scale).norm() > 0.001f) {
+		if (Vector3f(_scale - scale).norm_squared() > 0.001f * 0.001f) {
 			calibration_changed = true;
 			_scale = scale;
 		}
