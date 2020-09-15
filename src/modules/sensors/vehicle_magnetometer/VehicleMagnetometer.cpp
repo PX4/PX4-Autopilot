@@ -357,6 +357,7 @@ void VehicleMagnetometer::Publish(uint8_t instance, bool multi)
 		out.timestamp_sample = timestamp_sample;
 		out.device_id = _calibration[instance].device_id();
 		magnetometer_data.copyTo(out.magnetometer_ga);
+		out.calibration_count = _calibration[instance].calibration_count();
 
 		out.timestamp = hrt_absolute_time();
 

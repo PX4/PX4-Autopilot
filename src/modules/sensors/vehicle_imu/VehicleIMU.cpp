@@ -379,6 +379,7 @@ void VehicleIMU::Run()
 				imu.delta_angle_dt = gyro_integral_dt;
 				imu.delta_velocity_dt = accel_integral_dt;
 				imu.delta_velocity_clipping = _delta_velocity_clipping;
+				imu.calibration_count = _accel_calibration.calibration_count() + _gyro_calibration.calibration_count();
 				imu.timestamp = hrt_absolute_time();
 				_vehicle_imu_pub.publish(imu);
 			}

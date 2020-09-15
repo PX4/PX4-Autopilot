@@ -149,11 +149,27 @@ void Accelerometer::ParametersUpdate()
 			_priority = DEFAULT_PRIORITY;
 		}
 
+		bool calibration_changed = false;
+
 		// CAL_ACCx_OFF{X,Y,Z}
-		_offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+		const Vector3f offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+
+		if (Vector3f(_offset - offset).norm_squared() > 0.001f * 0.001f) {
+			calibration_changed = true;
+			_offset = offset;
+		}
 
 		// CAL_ACCx_SCALE{X,Y,Z}
-		_scale = GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index);
+		const Vector3f scale = GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index);
+
+		if (Vector3f(_scale - scale).norm_squared() > 0.001f * 0.001f) {
+			calibration_changed = true;
+			_scale = scale;
+		}
+
+		if (calibration_changed) {
+			_calibration_count++;
+		}
 
 	} else {
 		Reset();
@@ -170,6 +186,8 @@ void Accelerometer::Reset()
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 	_calibration_index = -1;
+
+	_calibration_count = 0;
 }
 
 bool Accelerometer::ParametersSave()
