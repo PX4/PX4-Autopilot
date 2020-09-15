@@ -3,7 +3,9 @@ px4_add_board(
 	PLATFORM posix
 	VENDOR px4
 	MODEL sitl
+	ROMFSROOT px4fmu_common
 	LABEL default
+	EMBEDDED_METADATA parameters
 	TESTING
 	DRIVERS
 		#barometer # all available barometer drivers

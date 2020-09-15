@@ -209,7 +209,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
-		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
+		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
+		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 
@@ -291,11 +292,8 @@ Sensors::~Sensors()
 
 bool Sensors::init()
 {
-	// initially run manually
-	ScheduleDelayed(10_ms);
-
 	_vehicle_imu_sub[0].registerCallback();
-
+	ScheduleNow();
 	return true;
 }
 
@@ -500,7 +498,11 @@ void Sensors::InitializeVehicleIMU()
 			gyro_sub.copy(&gyro);
 
 			if (accel.device_id > 0 && gyro.device_id > 0) {
-				VehicleIMU *imu = new VehicleIMU(i, i);
+				// if the sensors module is responsible for voting (SENS_IMU_MODE 1) then run every VehicleIMU in the same WQ
+				//   otherwise each VehicleIMU runs in a corresponding INSx WQ
+				const px4::wq_config_t &wq_config = px4::wq_configurations::nav_and_controllers;
+
+				VehicleIMU *imu = new VehicleIMU(i, i, i, wq_config);
 
 				if (imu != nullptr) {
 					// Start VehicleIMU instance and store

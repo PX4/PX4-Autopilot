@@ -72,7 +72,7 @@ static bool _is_running = false;
 static char _device[64] = "/sys/class/pwm/pwmchip0";
 static char _protocol[64] = "navio";
 static int _max_num_outputs = 8; ///< maximum number of outputs the driver should use
-static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/quad_x.main.mix";
+static char _mixer_filename[64] = "etc/mixers/quad_x.main.mix";
 
 // subscriptions
 int     _controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -495,7 +495,7 @@ void usage()
 	PX4_INFO("       -d pwmdevice : sysfs device for pwm generation (only for Navio)");
 	PX4_INFO("                       (default /sys/class/pwm/pwmchip0)");
 	PX4_INFO("       -m mixerfile : path to mixerfile");
-	PX4_INFO("                       (default ROMFS/px4fmu_common/mixers/quad_x.main.mix)");
+	PX4_INFO("                       (default etc/mixers/quad_x.main.mix)");
 	PX4_INFO("       -p protocol : driver output protocol (navio|pca9685|ocpoc_mmap|bbblue_rc)");
 	PX4_INFO("                       (default is navio)");
 	PX4_INFO("       -n num_outputs : maximum number of outputs the driver should use");

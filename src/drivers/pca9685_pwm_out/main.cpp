@@ -516,7 +516,7 @@ It is typically started with:
 $ pca9685_pwm_out start -a 64 -b 1
 
 Use the `mixer` command to load mixer files.
-`mixer load /dev/pca9685 ROMFS/px4fmu_common/mixers/quad_x.main.mix`
+`mixer load /dev/pca9685 etc/mixers/quad_x.main.mix`
 )DESCR_STR");
 
     PRINT_MODULE_USAGE_NAME("pca9685_pwm_out", "driver");
