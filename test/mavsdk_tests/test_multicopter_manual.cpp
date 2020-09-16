@@ -32,71 +32,30 @@
  ****************************************************************************/
 
 #include "autopilot_tester.h"
-#include <chrono>
 
 
-TEST_CASE("Takeoff and Land", "[multicopter][vtol]")
+TEST_CASE("Fly forward in position control", "[multicopter][vtol]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
+	tester.store_home();
 	tester.arm();
-	tester.takeoff();
-	tester.wait_until_hovering();
-	tester.land();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(30);
+	tester.fly_forward_in_posctl();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
 	tester.wait_until_disarmed(until_disarmed_timeout);
+	tester.check_home_not_within(5.f);
 }
 
-TEST_CASE("Fly square Multicopter Missions including RTL", "[multicopter][vtol]")
+TEST_CASE("Fly forward in altitude control", "[multicopter][vtol]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
-
-	AutopilotTester::MissionOptions mission_options;
-	mission_options.rtl_at_end = true;
-	tester.prepare_square_mission(mission_options);
+	tester.store_home();
 	tester.arm();
-	tester.execute_mission();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
+	tester.fly_forward_in_altctl();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(90);
 	tester.wait_until_disarmed(until_disarmed_timeout);
-}
-
-TEST_CASE("Fly square Multicopter Missions with manual RTL", "[multicopter][vtol]")
-{
-	AutopilotTester tester;
-	tester.connect(connection_url);
-	tester.wait_until_ready();
-
-	AutopilotTester::MissionOptions mission_options;
-	mission_options.rtl_at_end = false;
-	tester.prepare_square_mission(mission_options);
-	tester.check_tracks_mission();
-	tester.arm();
-	tester.execute_mission();
-	tester.wait_until_hovering();
-	tester.execute_rtl();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
-	tester.wait_until_disarmed(until_disarmed_timeout);
-}
-
-TEST_CASE("Fly straight Multicopter Mission", "[multicopter]")
-{
-	AutopilotTester tester;
-	tester.connect(connection_url);
-	tester.wait_until_ready();
-
-	AutopilotTester::MissionOptions mission_options;
-	mission_options.rtl_at_end = false;
-	mission_options.fly_through = true;
-	tester.prepare_straight_mission(mission_options);
-	tester.check_mission_item_speed_above(2, 4.5);
-	tester.check_tracks_mission();
-	tester.arm();
-	tester.execute_mission();
-	tester.wait_until_hovering();
-	tester.execute_rtl();
-	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(120);
-	tester.wait_until_disarmed(until_disarmed_timeout);
+	tester.check_home_not_within(5.f);
 }

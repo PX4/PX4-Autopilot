@@ -1115,6 +1115,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
 	case vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW:
+	case vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 

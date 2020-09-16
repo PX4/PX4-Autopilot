@@ -149,10 +149,14 @@ void Magnetometer::ParametersUpdate()
 		_priority = GetCalibrationParam(SensorString(), "PRIO", _calibration_index);
 
 		if ((_priority < 0) || (_priority > 100)) {
-			// reset to default
+			// reset to default, -1 is the uninitialized parameter value
 			int32_t new_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
-			PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d",
-				SensorString(), _device_id, _calibration_index, _priority, new_priority);
+
+			if (_priority != -1) {
+				PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d", SensorString(), _device_id, _calibration_index, _priority,
+					new_priority);
+			}
+
 			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
 			_priority = new_priority;
 		}

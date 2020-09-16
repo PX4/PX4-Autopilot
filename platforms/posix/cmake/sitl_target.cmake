@@ -104,18 +104,18 @@ foreach(viewer ${viewers})
 					endif()
 
 					add_custom_target(${_targ_name}
-					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-						$<TARGET_FILE:px4>
-						${debugger}
-						${viewer}
-						${model}
-						${world}
-						${PX4_SOURCE_DIR}
-						${PX4_BINARY_DIR}
-					WORKING_DIRECTORY ${SITL_WORKING_DIR}
-					USES_TERMINAL
-					DEPENDS
-						logs_symlink
+						COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+							$<TARGET_FILE:px4>
+							${debugger}
+							${viewer}
+							${model}
+							${world}
+							${PX4_SOURCE_DIR}
+							${PX4_BINARY_DIR}
+						WORKING_DIRECTORY ${SITL_WORKING_DIR}
+						USES_TERMINAL
+						DEPENDS
+							logs_symlink
 					)
 					list(APPEND all_posix_vmd_make_targets ${_targ_name})
 					if (viewer STREQUAL "gazebo")
@@ -140,18 +140,17 @@ foreach(viewer ${viewers})
 						endif()
 
 						add_custom_target(${_targ_name}
-						COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-							$<TARGET_FILE:px4>
-							${debugger}
-							${viewer}
-							${model}
-							${world}
-							${PX4_SOURCE_DIR}
-							${PX4_BINARY_DIR}
-						WORKING_DIRECTORY ${SITL_WORKING_DIR}
-						USES_TERMINAL
-						DEPENDS
-							logs_symlink
+							COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+								$<TARGET_FILE:px4>
+								${debugger}
+								${viewer}
+								${model}
+								${world}
+								${PX4_SOURCE_DIR}
+								${PX4_BINARY_DIR}
+							WORKING_DIRECTORY ${SITL_WORKING_DIR}
+							USES_TERMINAL
+							DEPENDS logs_symlink
 						)
 						list(APPEND all_posix_vmd_make_targets ${_targ_name})
 						add_dependencies(${_targ_name} px4 sitl_gazebo)
