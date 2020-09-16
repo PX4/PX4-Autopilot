@@ -120,7 +120,7 @@ private:
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
 
-	uORB::SubscriptionData<sensors_status_imu_s> _sensors_status_imu{ORB_ID(sensors_status_imu)};
+	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	// vehicle_attitude: reset counters

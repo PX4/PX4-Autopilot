@@ -243,62 +243,64 @@ void EKF2Selector::Run()
 		updateParams();
 	}
 
-	_sensors_status_imu.update();
-	const sensors_status_imu_s &sensors_status_imu = _sensors_status_imu.get();
 
 	_gyro_fault_detected = false;
 	uint32_t faulty_gyro_id = 0;
 
-	if (_selected_instance != UINT8_MAX) {
+	if (_selected_instance != UINT8_MAX && _sensors_status_imu.updated()) {
+		sensors_status_imu_s sensors_status_imu;
 
-		static constexpr uint8_t IMU_STATUS_SIZE = (sizeof(sensors_status_imu.gyro_inconsistency_rad_s) / sizeof(
-					sensors_status_imu.gyro_inconsistency_rad_s[0]));
-		static constexpr uint8_t IMU_INDEX_LIMIT = math::min(IMU_STATUS_SIZE, MAX_INSTANCES);
+		if (_sensors_status_imu.copy(&sensors_status_imu)) {
 
-		const float angle_rate_threshold = math::radians(_param_ekf2_sel_gyr_rate.get());
-		const float angle_threshold = math::radians(_param_ekf2_sel_gyr_angle.get());
-		const float time_step_s = fminf(1e-6f * hrt_elapsed_time(&_last_update_us), 1.f);
+			static constexpr uint8_t IMU_STATUS_SIZE = (sizeof(sensors_status_imu.gyro_inconsistency_rad_s) / sizeof(
+						sensors_status_imu.gyro_inconsistency_rad_s[0]));
+			static constexpr uint8_t IMU_INDEX_LIMIT = math::min(IMU_STATUS_SIZE, MAX_INSTANCES);
 
-		if (sensors_status_imu.gyro_device_id_primary == _instance[_selected_instance].estimator_status.gyro_device_id) {
-			// accumulate excess gyro error
-			uint8_t n_gyros = 0;
-			uint8_t n_exceedances = 0;
+			const float angle_rate_threshold = math::radians(_param_ekf2_sel_gyr_rate.get());
+			const float angle_threshold = math::radians(_param_ekf2_sel_gyr_angle.get());
+			const float time_step_s = fminf(1e-6f * hrt_elapsed_time(&_last_update_us), 1.f);
 
-			for (unsigned i = 0; i < IMU_INDEX_LIMIT; i++) {
-				if (sensors_status_imu.gyro_device_ids[i] != 0) {
-					n_gyros++;
+			if (sensors_status_imu.gyro_device_id_primary == _instance[_selected_instance].estimator_status.gyro_device_id) {
+				// accumulate excess gyro error
+				uint8_t n_gyros = 0;
+				uint8_t n_exceedances = 0;
 
-					if (sensors_status_imu.gyro_device_ids[i] == sensors_status_imu.gyro_device_id_primary) {
-						_accumulated_gyro_error[i] = 0.f;
+				for (unsigned i = 0; i < IMU_INDEX_LIMIT; i++) {
+					if (sensors_status_imu.gyro_device_ids[i] != 0) {
+						n_gyros++;
+
+						if (sensors_status_imu.gyro_device_ids[i] == sensors_status_imu.gyro_device_id_primary) {
+							_accumulated_gyro_error[i] = 0.f;
+
+						} else {
+							_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
+							_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.f);
+						}
 
 					} else {
-						_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
-						_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.f);
+						// no sensor
+						_accumulated_gyro_error[i] = 0.f;
 					}
 
-				} else {
-					// no sensor
-					_accumulated_gyro_error[i] = 0.f;
-				}
-
-				if (_accumulated_gyro_error[i] > angle_threshold) {
-					n_exceedances++;
-				}
-			}
-
-			if (n_exceedances > 0) {
-				if (n_gyros >= 3) {
-					// If there are 3 or more gyros, see if we can work out which one is faulty
-					_gyro_fault_detected = true;
-
-					// if all sensors other than the primary have an elevated difference, then the primary is faulty
-					// because all differences are measured relative to the primary
-					if (n_exceedances == n_gyros - 1) {
-						faulty_gyro_id = sensors_status_imu.gyro_device_id_primary;
+					if (_accumulated_gyro_error[i] > angle_threshold) {
+						n_exceedances++;
 					}
+				}
 
-				} else if (n_gyros == 2) {
-					_gyro_fault_detected = true;
+				if (n_exceedances > 0) {
+					if (n_gyros >= 3) {
+						// If there are 3 or more gyros, see if we can work out which one is faulty
+						_gyro_fault_detected = true;
+
+						// if all sensors other than the primary have an elevated difference, then the primary is faulty
+						// because all differences are measured relative to the primary
+						if (n_exceedances == n_gyros - 1) {
+							faulty_gyro_id = sensors_status_imu.gyro_device_id_primary;
+						}
+
+					} else if (n_gyros == 2) {
+						_gyro_fault_detected = true;
+					}
 				}
 			}
 		}
