@@ -2,7 +2,6 @@
 
 
 set -e
-set -o xtrace
 
 if [ "$#" -lt 7 ]; then
 	echo usage: sitl_run.sh sitl_bin debugger program model world src_path build_path
