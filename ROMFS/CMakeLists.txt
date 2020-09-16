@@ -95,11 +95,24 @@ add_custom_command(
 	OUTPUT ${romfs_tar_file}
 	COMMAND ${CMAKE_COMMAND} -E tar cf ${romfs_tar_file} ${romfs_copy_files_relative}
 	WORKING_DIRECTORY ${romfs_src_dir}
-	DEPENDS ${romfs_copy_files}
+	DEPENDS
+		${romfs_copy_files}
+		${jinja_templates}
+		${module_config_files}
+		${romfs_cmake_files}
+		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/rcout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcparser.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
+		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	)
+set(romfs_extract_stamp ${CMAKE_CURRENT_BINARY_DIR}/romfs_extract.stamp)
 add_custom_command(
-	OUTPUT ${romfs_gen_root_dir}/init.d/rcS
+	OUTPUT ${romfs_extract_stamp}
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
+	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_extract_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
 	DEPENDS ${romfs_tar_file}
 	)
@@ -120,17 +133,7 @@ add_custom_command(
 		--config-files ${module_config_files} #--verbose
 	COMMAND ${CMAKE_COMMAND} -E touch romfs_copy.stamp
 	DEPENDS
-		${romfs_gen_root_dir}/init.d/rcS
-		${jinja_templates}
-		${module_config_files}
-		${romfs_cmake_files}
-		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
-		${PX4_SOURCE_DIR}/Tools/px4airframes/rcout.py
-		${PX4_SOURCE_DIR}/Tools/px4airframes/srcparser.py
-		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
-		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
-		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		${romfs_extract_stamp}
 	COMMENT "ROMFS: copying, generating airframes"
 	)
 
@@ -208,7 +211,7 @@ add_custom_command(OUTPUT romfs_extras.stamp
 
 add_custom_target(romfs_gen_files_target
 	DEPENDS
-		${romfs_gen_root_dir}/init.d/rcS
+		${romfs_extract_stamp}
 		${romfs_gen_root_dir}/init.d/rc.serial
 		romfs_extras.stamp
 	)
