@@ -149,7 +149,7 @@ elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	cd "${src_path}/Tools/flightgear_bridge/"
 	"${src_path}/Tools/flightgear_bridge/FG_run.py" "models/"${model}".json" 0
 	"${build_path}/build_flightgear_bridge/flightgear_bridge" 0 `./get_FGbridge_params.py "models/"${model}".json"` &
-	FG_BRIDGE_PID=`echo $!`
+	FG_BRIDGE_PID=$!
 elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
 	source "$src_path/Tools/setup_jsbsim.bash" "${src_path}" "${build_path}" ${model}
 	if [[ -n "$HEADLESS" ]]; then
