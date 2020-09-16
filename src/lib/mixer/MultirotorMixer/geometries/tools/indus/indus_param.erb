@@ -1,0 +1,161 @@
+<%
+author="Devillard"
+model_name="indus"
+model_key="4ind"
+model_type="Tilt-Quad"		
+
+
+# Geometry
+rect_w = 0.95
+rect_h = 0.70
+
+#### NUMBER OF ROTOR ####
+nb_rotor=4
+mvtype=["none","none","none","15","2","none","13","none","14"]
+mav_type=mvtype[nb_rotor]
+
+## ROTOR ANGULAR POS ####
+# IF CONSTANT ANGLE BEETWEEN ROTOR #
+#const_ang=true
+rotor_ang_offset=Math::PI/6 # angular position of the first rotor if constant angle
+
+# ELSE NON CONSTANT #
+const_ang=false
+f_angle=Math::atan(rect_w/rect_h)
+rotor_angles=[f_angle, Math::PI + f_angle, 2*Math::PI - f_angle, Math::PI-f_angle]
+
+
+alt_dir=true
+rotor_dir=["CCW","CCW","CW","CW","CCW","CCW","CCW","CCW"]
+
+#### GLOBAL INERTIA ####
+     # [C] Masse
+     base_m=8.5
+     MC_MASS=base_m
+     # [C] The inertia of the whole multicopter (the inertia matrix is supposed diagonal)
+     MC_INERTIA_XX=1.38
+     MC_INERTIA_YY=0.84
+     MC_INERTIA_ZZ=2.17
+
+
+#### CONTROLLER #########
+     ## [C] ROLL
+     MC_ROLL_P = 5.0
+     MC_ROLLRATE_P = 10.0
+     MC_ROLLRATE_D = 0
+     MC_ROLLRATE_I = 4
+     MC_RR_INT_LIM = 0.3
+     ACC_ANG_MAX_ROLL = 100.0
+     # [A] Multiply all the rate gains: enable to get ang acceleration in [-1,1]
+     MC_ROLLRATE_K = 1/ACC_ANG_MAX_ROLL 
+
+     ## [C] PITCH
+     MC_PITCH_P = 5.0
+     MC_PITCHRATE_P = 10.0
+     MC_PITCHRATE_D = 0
+     MC_PITCHRATE_I = 4
+     MC_PR_INT_LIM = 0.3
+     ACC_ANG_MAX_PITCH = 100.0
+     # [A] Multiply all the rate gains: enable to get ang acceleration in [-1,1]
+     MC_PITCHRATE_K = 1/ACC_ANG_MAX_PITCH
+     MC_TEST_P = 0.42
+
+     ## [C] YAW
+     MC_YAW_P = 2.0
+     MC_YAWRATE_P = 4.0
+     MC_YAWRATE_D = 0
+     MC_YAWRATE_I = 0
+     MC_YR_INT_LIM = 0.3
+     ACC_ANG_MAX_YAW = 10.0
+     # [A] Multiply all the rate gains: enable to get ang acceleration in [-1,1]
+     MC_YAWRATE_K = 1/ACC_ANG_MAX_YAW
+
+
+     PWM_TILT_MAX1 = 1930
+     PWM_TILT_MAX2 = 1070
+     PWM_TILT_MIN1 = 1870
+     PWM_TILT_MIN2 = 1010
+
+     ANG_TILT_MAX = 90*Math::PI/180.0
+     ANG_TILT_MIN = -2*Math::PI/180.0
+##########################
+
+
+########## BASE ##########
+# Masse
+base_m=8.5
+
+# Inertia
+base_xxi=1.38
+base_xyi=0
+base_xzi=0
+base_yyi=0.83
+base_yzi=0
+base_zzi=2.16
+
+# Dimension
+base_radius=0.1
+base_length=0.05
+##########################
+
+########## IMU ###########
+# Masse
+imu_m=0.015
+
+# Inertia 
+imu_xxi=1e-05
+imu_xyi=0
+imu_xzi=0
+imu_yyi=1e-05
+imu_yzi=0
+imu_zzi=1e-05
+##########################
+
+########## Tilt Motor #########
+# Masse
+tilt_motor_m=0.005
+
+tilt_motor_input_scaling = 1#Math::PI/2
+
+# Inertia
+tilt_motor_xxi=1.66704e-04
+tilt_motor_xyi=0
+tilt_motor_xzi=0
+tilt_motor_yyi=1.66704e-04
+tilt_motor_yzi=0
+tilt_motor_zzi=1.66704e-04
+tilt_motor_radius=0.02
+tilt_motor_length=0.035
+
+##########################
+
+########## Rotor #########
+# Masse
+rotor_m=0.005
+
+ESC_gain_in_rad_per_sec=1379.5
+ESC_offset_in_rad_per_sec=-89.0
+maxRotVelocity=1100
+
+motorConstant=0.00011 #4.64099e-05
+Cm=2.5e-06
+
+momentConstant=0.045 #5e-04
+rotorDragCoefficient=0.000175
+rollingMomentCoefficient=1e-06
+
+# Inertia
+rotor_xxi=9.75e-07
+rotor_xyi=0
+rotor_xzi=0
+rotor_yyi=1.66704e-4
+rotor_yzi=0
+rotor_zzi=1.66704e-4
+rotor_radius=0.128
+rotor_length=0.005
+
+# Dimension
+arm_width=0.02
+arm_length=Math::sqrt(rect_w*rect_w + rect_h*rect_h)/2
+##########################
+%>

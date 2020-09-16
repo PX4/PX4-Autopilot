@@ -111,6 +111,7 @@ px4_add_romfs_files(
 	10016_3dr_iris
 	10017_steadidrone_qu4d
 	10018_tbs_endurance
+	10040_hexa_isir
 
 	# [11000, 11999] Hexa Cox
 	11001_hexa_cox

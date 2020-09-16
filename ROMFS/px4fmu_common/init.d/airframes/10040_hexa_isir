@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# @name hexa_isir SITL
+#
+# @type Hexarotor x
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 motor 5
+# @output MAIN6 motor 6
+
+sh /etc/init.d/rc.mc_defaults
+set MAV_TYPE 13
+set MIXER hexa_isir
+
+param set MC_ROLL_P 5.0
+param set MC_ROLLRATE_P 10.0
+param set MC_ROLLRATE_D 0
+param set MC_ROLLRATE_I 4
+param set MC_ROLLRATE_K 0.01
+param set MC_RR_INT_LIM 0.3
+
+param set MC_PITCH_P 5.0
+param set MC_PITCHRATE_P 10.0
+param set MC_PITCHRATE_D 0
+param set MC_PITCHRATE_I 4
+param set MC_PITCHRATE_K 0.01
+param set MC_PR_INT_LIM 0.3
+
+param set MC_YAW_P 2.0
+param set MC_YAWRATE_P 4.0
+param set MC_YAWRATE_D 0
+param set MC_YAWRATE_I 0
+param set MC_YAWRATE_K 0.1
+param set MC_YR_INT_LIM 0.3
+
+param set MC_MASS 1.8
+
+param set MC_INERTIA_XX 0.029
+param set MC_INERTIA_YY 0.029
+param set MC_INERTIA_ZZ 0.05
+
+param set MC_CT_LIFT 7.426e-06
+param set MC_CM_DRAG 2.0e-07
+# Need to set all 8 channels
+set PWM_OUT 12345678

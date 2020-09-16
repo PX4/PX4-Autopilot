@@ -35,6 +35,17 @@
 
 #include <mixer/MixerBase/Mixer.hpp>
 
+//#include <parameters/param.h>
+
+#include <lib/parameters/param.h>
+//#include "../../parameters/flashparams/flashparams.h"
+//#include <px4_module_params.h>
+
+//#include <px4_platform_common/module_params.h>
+//#include <px4_platform_common/module_params.h>
+
+
+
 /**
  * Supported multirotor geometries.
  *
@@ -56,12 +67,21 @@ public:
 
 	 * Precalculated rotor mix.
 	 */
-	struct Rotor {
-		float	roll_scale;		/**< scales roll for this rotor */
-		float	pitch_scale;	/**< scales pitch for this rotor */
-		float	yaw_scale;		/**< scales yaw for this rotor */
-		float	thrust_scale;	/**< scales thrust for this rotor */
-	};
+    struct Rotor {
+            float	rotor_roll_allocation_coeff;		/**< scales roll for this rotor */
+            float	rotor_pitch_allocation_coeff;            /**< scales pitch for this rotor */
+            float	rotor_yaw_allocation_coeff;		/**< scales yaw for this rotor */
+            float	thrust_allocation_coeff;           /**< scales thrust for this rotor */
+        };
+
+    /**
+     * geometric position of rotors
+     */
+    struct Geometry {
+        float	i;	/**< position along i axis */
+        float	j;  /**< position along j axis */
+        float dir; /**< p 1 if counter clock wise else -1*/
+    };
 
 	/**
 	 * Constructor.
@@ -89,7 +109,7 @@ public:
 	 * @param rotors		control allocation matrix
 	 * @param rotor_count		length of rotors array (= number of motors)
 	 */
-	MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, const Rotor *rotors, unsigned rotor_count);
+    MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, const Rotor *rotors, const Geometry *geo, unsigned rotor_count);
 	virtual ~MultirotorMixer();
 
 	// no copy, assignment, move, move assignment
@@ -123,29 +143,8 @@ public:
 
 	void			groups_required(uint32_t &groups) override { groups |= (1 << 0); }
 
-	/**
-	 * @brief      Update slew rate parameter. This tells the multicopter mixer
-	 *             the maximum allowed change of the output values per cycle.
-	 *             The value is only valid for one cycle, in order to have continuous
-	 *             slew rate limiting this function needs to be called before every call
-	 *             to mix().
-	 *
-	 * @param[in]  delta_out_max  Maximum delta output.
-	 *
-	 */
-	void 			set_max_delta_out_once(float delta_out_max) override { _delta_out_max = delta_out_max; }
-
 	unsigned		set_trim(float trim) override { return _rotor_count; }
 	unsigned		get_trim(float *trim) override { return _rotor_count; }
-
-	/**
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
-	 *
-	 * @param[in]  val   The value
-	 */
-	void			set_thrust_factor(float val) override { _thrust_factor = math::constrain(val, 0.0f, 1.0f); }
-
-	void 			set_airmode(Airmode airmode) override { _airmode = airmode; }
 
 	unsigned		get_multirotor_count() override { return _rotor_count; }
 
@@ -167,64 +166,47 @@ public:
 	};
 
 private:
-	/**
-	 * Computes the gain k by which desaturation_vector has to be multiplied
-	 * in order to unsaturate the output that has the greatest saturation.
-	 * @see also minimize_saturation().
-	 *
-	 * @return desaturation gain
-	 */
-	float compute_desaturation_gain(const float *desaturation_vector, const float *outputs, saturation_status &sat_status,
-					float min_output, float max_output) const;
+    /**
+     * Computes the gain k by which desaturation_vector has to be multiplied
+     * in order to unsaturate the output that has the greatest saturation.
+     * @see also minimize_saturation().
+     *
+     * @return desaturation gain
+     */
+    inline float compute_desaturation_gain(const float *desaturation_vector, const float *outputs, saturation_status &sat_status,
+                    float min_output, float max_output) const;
 
-	/**
-	 * Minimize the saturation of the actuators by adding or substracting a fraction of desaturation_vector.
-	 * desaturation_vector is the vector that added to the output outputs, modifies the thrust or angular
-	 * acceleration on a specific axis.
-	 * For example, if desaturation_vector is given to slide along the vertical thrust axis (thrust_scale), the
-	 * saturation will be minimized by shifting the vertical thrust setpoint, without changing the
-	 * roll/pitch/yaw accelerations.
-	 *
-	 * Note that as we only slide along the given axis, in extreme cases outputs can still contain values
-	 * outside of [min_output, max_output].
-	 *
-	 * @param desaturation_vector vector that is added to the outputs, e.g. thrust_scale
-	 * @param outputs output vector that is modified
-	 * @param sat_status saturation status output
-	 * @param min_output minimum desired value in outputs
-	 * @param max_output maximum desired value in outputs
-	 * @param reduce_only if true, only allow to reduce (substract) a fraction of desaturation_vector
-	 */
-	void minimize_saturation(const float *desaturation_vector, float *outputs, saturation_status &sat_status,
-				 float min_output = 0.f, float max_output = 1.f, bool reduce_only = false) const;
+    /**
+     * Minimize the saturation of the actuators by adding or substracting a fraction of desaturation_vector.
+     * desaturation_vector is the vector that added to the output outputs, modifies the thrust or angular
+     * acceleration on a specific axis.
+     * For example, if desaturation_vector is given to slide along the vertical thrust axis (thrust_scale), the
+     * saturation will be minimized by shifting the vertical thrust setpoint, without changing the
+     * roll/pitch/yaw accelerations.
+     *
+     * Note that as we only slide along the given axis, in extreme cases outputs can still contain values
+     * outside of [min_output, max_output].
+     *
+     * @param desaturation_vector vector that is added to the outputs, e.g. thrust_scale
+     * @param outputs output vector that is modified
+     * @param sat_status saturation status output
+     * @param min_output minimum desired value in outputs
+     * @param max_output maximum desired value in outputs
+     * @param reduce_only if true, only allow to reduce (substract) a fraction of desaturation_vector
+     */
+    void minimize_saturation(const float *desaturation_vector, float *outputs, saturation_status &sat_status,
+                 float min_output = 0.f, float max_output = 1.f, bool reduce_only = false) const;
 
-	/**
-	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
-	 *
-	 * Desaturation behavior: airmode for roll/pitch:
-	 * thrust is increased/decreased as much as required to meet the demanded roll/pitch.
-	 * Yaw is not allowed to increase the thrust, @see mix_yaw() for the exact behavior.
-	 */
-	inline void mix_airmode_rp(float roll, float pitch, float yaw, float thrust, float *outputs);
 
-	/**
-	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
-	 *
-	 * Desaturation behavior: full airmode for roll/pitch/yaw:
-	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw,
-	 * while giving priority to roll and pitch over yaw.
-	 */
-	inline void mix_airmode_rpy(float roll, float pitch, float yaw, float thrust, float *outputs);
-
-	/**
-	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
-	 *
-	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
-	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
-	 * Thrust can be reduced to unsaturate the upper side.
-	 * @see mix_yaw() for the exact yaw behavior.
-	 */
-	inline void mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float *outputs);
+    /**
+     * Mix roll, pitch, yaw, thrust and set the outputs vector.
+     *
+     * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
+     * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
+     * Thrust can be reduced to unsaturate the upper side.
+     * @see mix_yaw() for the exact yaw behavior.
+     */
+    inline void mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float *outputs);
 
 	/**
 	 * Mix yaw by updating an existing output vector (that already contains roll/pitch/thrust).
@@ -238,18 +220,40 @@ private:
 	 */
 	inline void mix_yaw(float yaw, float *outputs);
 
-	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low_roll_pitch, bool clipping_low_yaw);
+    inline void mix_yaw_tilt_controlled(float moment_roll, float moment_pitch, float moment_yaw, float thrust, float mean_tilt, float *delta_tilt, float *squared_rotor_spd);
 
-	float 				_delta_out_max{0.0f};
-	float 				_thrust_factor{0.0f};
-
-	Airmode				_airmode{Airmode::disabled};
-
-	saturation_status		_saturation_status{};
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
+    const Geometry		*_geometry;
+
+    float _param_mc_Ixx;// Inertia XX of the drone.
+    float _param_mc_Iyy;// Inertia YY of the drone.
+    float _param_mc_Izz;// Inertia ZZ of the drone.
+    float _param_mc_max_angular_acceleration_roll;
+    float _param_mc_max_angular_acceleration_pitch;
+    float _param_mc_max_angular_acceleration_yaw;
+    float _param_mc_mass;//drone mass;
+    float _param_mc_Ct; //Thrust coef
+    float _param_mc_Cm; //Drag coef
+    float _param_mc_max_speed2;//Maximum squred rotation speed of the in (rad/s)^1
+    float _param_mc_min_speed2;//Minimum squred rotation speed of the in (rad/s)^1
+    float _param_mc_tilt_motor_scaling = 1;//1.5708f; // the scaling coef for the output of the tilt motor
+
+
+    float *_allocation_matrix;
+
+    float m_alpha_min[2];
+    float m_alpha_max[2];
+    float m_alpha_a[2];
+    float m_alpha_b[2];
+
 
 	float 				*_outputs_prev{nullptr};
 	float 				*_tmp_array{nullptr};
+    saturation_status		_saturation_status{};
+
+
+
+    inline float g(float x);
 };

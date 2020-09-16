@@ -1,0 +1,74 @@
+#!/bin/sh
+#
+# @name <%= model_name %> SITL
+#
+# @type <%= model_type %>
+
+# @class Copter
+#
+<% (0..nb_rotor-1).each do |index| %>
+# @output MAIN<%= index+1 %> motor <%= index+1 %>
+
+<% end %>
+
+sh /etc/init.d/rc.mc_defaults
+set MAV_TYPE <%= mav_type %>
+
+set MIXER <%= model_name %>
+
+
+param set MC_ROLL_P <%= MC_ROLL_P  %>
+
+param set MC_ROLLRATE_P <%= MC_ROLLRATE_P %>
+
+param set MC_ROLLRATE_D <%= MC_ROLLRATE_D  %>
+
+param set MC_ROLLRATE_I <%= MC_ROLLRATE_I  %>
+
+param set MC_ROLLRATE_K <%= MC_ROLLRATE_K  %>
+
+param set MC_RR_INT_LIM <%= MC_RR_INT_LIM  %>
+
+
+param set MC_PITCH_P <%= MC_PITCH_P  %>
+
+param set MC_PITCHRATE_P <%= MC_PITCHRATE_P  %>
+
+param set MC_PITCHRATE_D <%= MC_PITCHRATE_D  %>
+
+param set MC_PITCHRATE_I <%= MC_PITCHRATE_I  %>
+
+param set MC_PITCHRATE_K <%= MC_PITCHRATE_K  %>
+
+param set MC_PR_INT_LIM <%= MC_PR_INT_LIM  %>
+
+
+param set MC_YAW_P <%= MC_YAW_P  %>
+
+param set MC_YAWRATE_P <%= MC_YAWRATE_P  %>
+
+param set MC_YAWRATE_D <%= MC_YAWRATE_D  %>
+
+param set MC_YAWRATE_I <%= MC_YAWRATE_I  %>
+
+param set MC_YAWRATE_K <%= MC_YAWRATE_K  %>
+
+param set MC_YR_INT_LIM <%= MC_YR_INT_LIM  %>
+
+
+param set MC_MASS <%= MC_MASS %>
+
+
+param set MC_INERTIA_XX <%= MC_INERTIA_XX %>
+
+param set MC_INERTIA_YY <%= MC_INERTIA_YY %>
+
+param set MC_INERTIA_ZZ <%= MC_INERTIA_ZZ %>
+
+
+param set MC_CT_LIFT <%= motorConstant %>
+
+param set MC_CM_DRAG <%= rotorDragCoefficient %>
+
+# Need to set all 8 channels
+set PWM_OUT 12345678

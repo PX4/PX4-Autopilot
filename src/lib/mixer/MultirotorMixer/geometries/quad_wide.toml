@@ -6,7 +6,7 @@ description = "Quadcopter in wide configuration. Same geometry as SK450 Deadcat 
 
 [rotor_default]
 axis      = [0.0, 0.0, -1.0]
-Ct        = 1.0
+Ct        = 8.54858e-06
 Cm        = 0.05
 
 [[rotors]]

@@ -1,0 +1,24 @@
+__max_num_config_instances: &max_num_config_instances 1
+
+module_name: MultirotorMixer
+
+parameters:
+    - group: Multicopter Dynamic
+      definitions:
+        MC_MASS:
+            description:
+                short: Empty cell voltage (5C load)
+                long: |
+                    Defines the voltage where a single cell of battery 1 is considered empty.
+                    The voltage should be chosen before the steep dropoff to 2.8V. A typical
+                    lithium battery can only be discharged down to 10% before it drops off
+                    to a voltage level damaging the cells.
+
+            type: float
+            unit: kg
+            decimal: 2
+            increment: 0.01
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 8.5

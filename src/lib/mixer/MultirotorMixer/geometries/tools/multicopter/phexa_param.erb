@@ -1,0 +1,101 @@
+<%
+author="Devillard"
+model_name="phexa"
+model_key="6xp"
+model_type="Hexarotor +"
+
+
+# Geometry
+
+#### NUMBER OF ROTOR ####
+nb_rotor=6
+mvtype=["none","none","none","15","2","none","13","none","14"]
+mav_type=mvtype[nb_rotor]
+
+## ROTOR ANGULAR POS ####
+# IF CONSTANT ANGLE BEETWEEN ROTOR #
+const_ang=true
+rotor_ang_offset=Math::PI/4 # angular position of the first rotor if constant angle
+
+# ELSE NON CONSTANT #
+#const_ang=false
+rotor_angles=[Math::PI/2, 3*Math::PI/2, 11*Math::PI/6, 5*Math::PI/6, Math::PI/6, 7*Math::PI/6 ] # example of wide config
+
+
+alt_dir=true
+rotor_dir=["CW","CCW","CW","CCW","CCW","CW","CCW","CCW"]
+
+
+########## BASE ##########
+# Masse
+base_m=1.8
+
+# Inertia
+base_xxi=0.029125
+base_xyi=0
+base_xzi=0
+base_yyi=0.029125
+base_yzi=0
+base_zzi=0.055225
+
+# Dimension
+base_radius=0.1
+base_length=0.05
+##########################
+
+########## IMU ###########
+# Masse
+imu_m=0.015
+
+# Inertia 
+imu_xxi=1e-05
+imu_xyi=0
+imu_xzi=0
+imu_yyi=1e-05
+imu_yzi=0
+imu_zzi=1e-05
+##########################
+
+########## Rotor #########
+# Masse
+rotor_m=0.005
+
+ESC_gain_in_rad_per_sec=1689
+maxRotVelocity=1100
+motorConstant=8.54858e-06
+momentConstant=0.06
+rotorDragCoefficient=0.000175
+rollingMomentCoefficient=1e-06
+
+# Inertia
+rotor_xxi=9.75e-07
+rotor_xyi=0
+rotor_xzi=0
+rotor_yyi=0.000273104
+rotor_yzi=0
+rotor_zzi=0.000274004
+rotor_radius=0.128
+rotor_length=0.005
+
+# Dimension
+arm_width=0.02
+arm_length=0.25
+##########################
+
+########## Controller #########
+MC_ROLL_P = 5.0
+MC_ROLLRATE_P = 10.0
+MC_ROLLRATE_D = 0.2
+MC_ROLLRATE_I = 4
+
+MC_PITCH_P = 5.0
+MC_PITCHRATE_P = 10.0
+MC_PITCHRATE_D = 0.2
+MC_PITCHRATE_I = 4
+
+MC_YAW_P = 2.0
+MC_YAWRATE_P = 4.0
+MC_YAWRATE_D = 0
+MC_YAWRATE_I = 0
+##########################
+%>

@@ -44,6 +44,7 @@ else
 	# Find the matching Autostart ID (file name has the form: [0-9]+_${PX4_SIM_MODEL})
 	# TODO: unify with rc.autostart generation
 	# shellcheck disable=SC2012
+	echo "$SCRIPT_DIR"
 	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
 		echo "Error: Unknown model '$PX4_SIM_MODEL'"

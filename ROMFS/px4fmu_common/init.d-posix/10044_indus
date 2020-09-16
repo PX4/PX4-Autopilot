@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# @name indus SITL
+#
+# @type Tilt-Quad
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+
+sh /etc/init.d/rc.mc_defaults
+set MAV_TYPE 2
+set MIXER indus
+
+param set MC_ROLL_P 5.0
+param set MC_ROLLRATE_P 10.0
+param set MC_ROLLRATE_D 0
+param set MC_ROLLRATE_I 4
+param set MC_ROLLRATE_K 0.01
+param set MC_RR_INT_LIM 0.3
+
+param set MC_PITCH_P 5.0
+param set MC_PITCHRATE_P 10.0
+param set MC_PITCHRATE_D 0
+param set MC_PITCHRATE_I 4
+param set MC_PITCHRATE_K 0.01
+param set MC_PR_INT_LIM 0.3
+
+param set MC_YAW_P 2.0
+param set MC_YAWRATE_P 4.0
+param set MC_YAWRATE_D 0
+param set MC_YAWRATE_I 0
+param set MC_YAWRATE_K 0.1
+param set MC_YR_INT_LIM 0.3
+
+param set MC_MASS 8.5
+
+param set MC_INERTIA_XX 1.38
+param set MC_INERTIA_YY 0.84
+param set MC_INERTIA_ZZ 2.17
+
+param set MC_CT_LIFT 0.00011
+param set MC_CM_DRAG 2.5e-06
+
+param set PWM_TILT_MAX1 1930
+param set PWM_TILT_MAX2 1070
+param set PWM_TILT_MIN1 1870
+param set PWM_TILT_MIN2 1010
+
+
+param set ANG_TILT_MIN -0.03490658503988659
+param set ANG_TILT_MAX 1.5707963267948966
+param set PWM_MAIN_DIS5 1900
+param set PWM_MAIN_DIS6 1040
+
+
+# Need to set all 8 channels
+set PWM_OUT 12345678

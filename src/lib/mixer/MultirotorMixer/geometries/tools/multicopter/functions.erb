@@ -1,0 +1,184 @@
+<%
+#<!--
+############# MACRO BOX  ##############
+def box(dx, dy, dz)
+'<collision name="collision">
+        <geometry>
+         <box>
+	     <size> ' + dx.to_s + ' ' + dy.to_s + ' ' + dz.to_s + ' </size>
+	 </box>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <box>
+	     <size> ' + dx.to_s + ' ' + dy.to_s + ' ' + dz.to_s + ' </size>
+	 </box>
+        </geometry>
+      </visual>'
+    end
+##########################################
+#-->
+
+#<!--
+############# MACRO CYLINDER Collision ##############
+def collision_cylinder(name, radius, length)
+'<collision name="' + name + '_colision">
+			<pose frame=''>0 0 0 0 -0 0</pose>
+			<geometry>
+				<cylinder>
+					<radius> ' + radius.to_s + ' </radius>
+					<length> ' + length.to_s + ' </length>
+				</cylinder>
+			</geometry>
+			<surface>
+				<contact>
+					<ode>
+						<min_depth>0.001</min_depth>
+						<max_vel>0</max_vel>
+					</ode>
+				</contact>
+				<friction>
+					<ode/>
+				</friction>
+			</surface>
+		</collision>'
+    end
+##########################################
+#-->
+
+#<!--
+############# MACRO CYLINDER Visual ##############
+def visual_cylinder(name, radius, length, color)
+'<visual name="' + name + '_visual">
+			<pose frame=''>0 0 0 0 -0 0</pose>
+			<geometry>
+				<cylinder>
+					<radius> ' + radius.to_s + ' </radius>
+					<length> ' + length.to_s + ' </length>
+				</cylinder>
+			</geometry>
+			<material>
+				<script>
+					<name>Gazebo/' + color + '</name>
+					<uri>file://media/materials/scripts/gazebo.material</uri>
+				</script>
+			</material>
+			</visual>'
+    end
+##########################################
+#-->
+
+#<!--
+############# MACRO VISUAL EXT ##############
+def visual_ext(name, uri, color)
+'<visual name="' + name + '_visual">
+			<pose frame=''>0 0 0 0 -0 0</pose>
+			<geometry>
+				<mesh>
+					<scale>1 1 1</scale>
+					<uri>'+uri+'</uri>
+				</mesh>
+			</geometry>
+			<material>
+				<script>
+					<name>Gazebo/' + color + '</name>
+					<uri>file://media/materials/scripts/gazebo.material</uri>
+				</script>
+			</material>
+			</visual>'
+    end
+##########################################
+#-->
+
+
+#<!--
+############# MACRO SPHERE  ##############
+def sphere(radius)
+'<collision name="collision">
+        <geometry>
+          <sphere>
+	    <radius> ' + radius.to_s + ' </radius>
+	 </sphere>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <sphere>
+	    <radius> ' + radius.to_s + ' </radius>
+	 </sphere>
+        </geometry>
+      </visual>'
+end
+##########################################
+#-->
+
+#<!--
+############# MACRO BOX  ##############
+def inertia(m, xx, xy, xz, yy, yz, zz)
+'<inertial>
+			<pose frame=''>0 0 0 0 -0 0</pose>
+			<mass> ' + m.to_s + '</mass>
+			<inertia>
+				<ixx>' + xx.to_s + '</ixx>
+				<ixy>' + xy.to_s + '</ixy>
+				<ixz>' + xz.to_s + '</ixz>
+				<iyy>' + yy.to_s + '</iyy>
+				<iyz>' + yz.to_s + '</iyz>
+				<izz>' + zz.to_s + '</izz>
+			</inertia>
+		</inertial>'
+    end
+##########################################
+#-->
+
+#<!--
+############# MACRO Joint  ##############
+def joint(name, type, child, parent, dx, dy, dz, lmin, lmax)
+'<joint name="' + name + '_joint" type="'+type+'">
+		<child>' + child + '</child>
+		<parent>' + parent + '</parent>
+		<axis>
+			<xyz>'+dx.to_s+' '+dy.to_s+' '+dz.to_s+'</xyz>
+			<limit>
+				<lower>'+lmin.to_s+'</lower>
+				<upper>'+lmax.to_s+'</upper>
+			</limit>
+			<dynamics>
+				<spring_reference>0</spring_reference>
+				<spring_stiffness>0</spring_stiffness>
+			</dynamics>
+			<use_parent_model_frame>1</use_parent_model_frame>
+		</axis>
+	</joint>'
+    end
+##########################################
+#-->
+   
+
+#<!--
+############# MACRO ANGLE  ##############
+def a_to_s(arr)
+' ' + arr[0].to_s + ' ' + arr[1].to_s + ' ' + arr[2].to_s + ' ' + arr[3].to_s + ' ' + arr[4].to_s + ' ' + arr[5].to_s
+end
+##########################################
+#-->
+
+#<!--
+############# MACRO disp  ##############
+def a_to_str_py(arr)
+arr[0].round(4).to_s + ', ' + arr[1].round(4).to_s + ', ' + arr[2].round(4).to_s 
+end
+##########################################
+#-->
+
+#<!--
+############# MACRO NORM  ##############
+def norm(arr,arr2)
+	Math.sqrt((arr[0]-arr2[0])**2+(arr[1]-arr2[1])**2+(arr[2]-arr2[2])**2)
+end
+##########################################
+#-->
+
+
+%>

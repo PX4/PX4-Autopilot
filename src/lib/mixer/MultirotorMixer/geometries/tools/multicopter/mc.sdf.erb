@@ -1,0 +1,244 @@
+<sdf version="1.6">
+<model name="multicopter">
+
+	<!-- ** Links Definitions ** -->
+	<!-- * Base Definitions * -->
+	<link name="base_link">
+		<!-- Position -->
+		<pose>0 0 0 0 -0 0</pose>
+		<!-- Inertia -->
+		<%= inertia(base_m, base_xxi, base_xyi, base_xzi, base_yyi, base_yzi, base_zzi) %>
+		
+		<!-- collision -->
+		<%= collision_cylinder('base_link', base_radius, base_length) %>
+		
+		<!-- Visual -->
+		<%= visual_cylinder('base_link', base_radius, base_length, 'DarkGrey') %>
+		
+		<gravity>1</gravity>
+      		<velocity_decay/>
+	</link>
+	
+	<link name="/imu_link">
+		<!-- Position -->
+		<pose>0 0 0 0 -0 0</pose>
+		<!-- Inertia -->
+		<%= inertia(imu_m, imu_xxi, imu_xyi, imu_xzi, imu_yyi, imu_yzi, imu_zzi) %>
+		
+	</link>
+	
+	<%= joint('imu', 'revolute', '/imu_link', 'base_link', 1, 0, 0, 0, 0)%>
+	
+	
+	
+	<% (0..nb_rotor-1).each do |index| %>
+		<% 	
+			theta = -(rotor_ang_offset+ Math::PI*2/nb_rotor*index)
+			if const_ang == false
+				theta=-rotor_angles[index]
+			end
+
+			pos_rotor = [
+				arm_length*Math.cos(theta),
+				arm_length*Math.sin(theta),
+				0,
+				0,
+				0,
+				0]
+			rotor_name = "rotor_" + index.to_s
+			color = 'Blue'
+			if (index-(index/2)*2)*2-1 == -1
+				color = 'DarkGrey'
+			end
+			if alt_dir == false
+			        if rotor_dir[index] == 'CCW'
+			                color = 'Blue'
+			        else
+			                color = 'DarkGrey'
+				end
+			end
+			
+		%>
+		
+	<link name="<%= rotor_name %>">
+		<!-- Position -->
+		<pose> <%= a_to_s(pos_rotor)%> </pose>
+		<!-- Inertia -->
+		<%= inertia(rotor_m, rotor_xxi, rotor_xyi, rotor_xzi, rotor_yyi, rotor_yzi, rotor_zzi) %>
+		
+		<!-- collision -->
+		<%= collision_cylinder(rotor_name, rotor_radius, rotor_length) %>
+		
+		<!-- Visual -->
+		<%= visual_ext(rotor_name, 'model://rotors_description/meshes/iris_prop_ccw.dae', color) %>
+		
+		<gravity>1</gravity>
+		<velocity_decay/>
+	</link>
+	<%= joint(rotor_name, 'revolute', rotor_name, 'base_link', 0, 0, 1, -1e+16, 1e+16)%>
+		
+	<% end %>
+	
+	<plugin name='rosbag' filename='libgazebo_multirotor_base_plugin.so'>
+		<robotNamespace/>
+		<linkName>base_link</linkName>
+		<rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+	</plugin>
+	
+	<% (0..nb_rotor-1).each do |index| %>
+		<% 	
+			dir = "ccw"
+			if (index-(index/2)*2)*2-1 == -1
+				dir = "cw"
+			end
+				
+			if alt_dir == false
+			        dir = rotor_dir[index].downcase
+			end
+			
+		%>
+		
+	<plugin name='motor_<%= index.to_s%>_model' filename='libgazebo_motor_model.so'>
+		<robotNamespace/>
+		<jointName>			rotor_<%= index.to_s%>_joint			</jointName>
+		<linkName>			rotor_<%= index.to_s%>			</linkName>
+		<turningDirection>		<%= dir %>				</turningDirection>
+		<timeConstantUp>		0.0125				</timeConstantUp>
+		<timeConstantDown>		0.025				</timeConstantDown>
+		<maxRotVelocity>		<%= maxRotVelocity.to_s%>				</maxRotVelocity>
+		<motorConstant>		<%= motorConstant.to_s%>			</motorConstant>
+		<momentConstant>		<%= momentConstant.to_s%>				</momentConstant>
+		<commandSubTopic>		/gazebo/command/motor_speed	</commandSubTopic>
+		<motorNumber>			<%= index.to_s%>				</motorNumber>
+		<rotorDragCoefficient>		<%= rotorDragCoefficient.to_s%>			</rotorDragCoefficient>
+		<rollingMomentCoefficient>	<%= rollingMomentCoefficient.to_s%>			</rollingMomentCoefficient>
+		<motorSpeedPubTopic>		/motor_speed/<%= index.to_s%>			</motorSpeedPubTopic>
+		<rotorVelocitySlowdownSim>	10				</rotorVelocitySlowdownSim>
+	</plugin>
+		
+	<% end %>
+
+	<model name='gps0'>
+	<link name='link'>
+	<pose frame=''>0 0 0 0 -0 0</pose>
+	<inertial>
+	  <pose frame=''>0 0 0 0 -0 0</pose>
+	  <mass>0.01</mass>
+	  <inertia>
+	    <ixx>2.1733e-06</ixx>
+	    <ixy>0</ixy>
+	    <ixz>0</ixz>
+	    <iyy>2.1733e-06</iyy>
+	    <iyz>0</iyz>
+	    <izz>1.8e-07</izz>
+	  </inertia>
+	</inertial>
+	<visual name='visual'>
+	  <geometry>
+	    <cylinder>
+	      <radius>0.01</radius>
+	      <length>0.002</length>
+	    </cylinder>
+	  </geometry>
+	  <material>
+	    <script>
+	      <name>Gazebo/Black</name>
+	      <uri>__default__</uri>
+	    </script>
+	  </material>
+	</visual>
+	<sensor name='gps' type='gps'>
+	  <pose frame=''>0 0 0 0 -0 0</pose>
+	  <plugin name='gps_plugin' filename='libgazebo_gps_plugin.so'>
+	    <robotNamespace/>
+	    <gpsNoise>1</gpsNoise>
+	    <gpsXYRandomWalk>2.0</gpsXYRandomWalk>
+	    <gpsZRandomWalk>4.0</gpsZRandomWalk>
+	    <gpsXYNoiseDensity>0.0002</gpsXYNoiseDensity>
+	    <gpsZNoiseDensity>0.0004</gpsZNoiseDensity>
+	    <gpsVXYNoiseDensity>0.2</gpsVXYNoiseDensity>
+	    <gpsVZNoiseDensity>0.4</gpsVZNoiseDensity>
+	  </plugin>
+	</sensor>
+	</link>
+	</model>
+	<joint name='gps0_joint' type='fixed'>
+	<parent>base_link</parent>
+	<child>gps0::link</child>
+	</joint>
+	<plugin name='groundtruth_plugin' filename='libgazebo_groundtruth_plugin.so'>
+	<robotNamespace/>
+	</plugin>
+	<plugin name='magnetometer_plugin' filename='libgazebo_magnetometer_plugin.so'>
+		<robotNamespace/>
+		<pubRate>100</pubRate>
+		<noiseDensity>0.0004</noiseDensity>
+		<randomWalk>6.4e-06</randomWalk>
+		<biasCorrelationTime>600</biasCorrelationTime>
+		<magTopic>/mag</magTopic>
+	</plugin>
+	<plugin name='barometer_plugin' filename='libgazebo_barometer_plugin.so'>
+		<robotNamespace/>
+		<pubRate>50</pubRate>
+		<baroTopic>/baro</baroTopic>
+	</plugin>
+	
+	<plugin name='mavlink_interface' filename='libgazebo_mavlink_interface.so'>
+		<robotNamespace/>
+		<imuSubTopic>/imu</imuSubTopic>
+		<gpsSubTopic>/gps</gpsSubTopic>
+		<magSubTopic>/mag</magSubTopic>
+		<baroSubTopic>/baro</baroSubTopic>
+		<mavlink_addr>INADDR_ANY</mavlink_addr>
+		<mavlink_udp_port>14560</mavlink_udp_port>
+		<mavlink_tcp_port>4560</mavlink_tcp_port>
+		<serialEnabled>0</serialEnabled>
+		<serialDevice>/dev/ttyACM0</serialDevice>
+		<baudRate>921600</baudRate>
+		<qgc_addr>INADDR_ANY</qgc_addr>
+		<qgc_udp_port>14550</qgc_udp_port>
+		<sdk_addr>INADDR_ANY</sdk_addr>
+		<sdk_udp_port>14540</sdk_udp_port>
+		<hil_mode>0</hil_mode>
+		<hil_state_level>0</hil_state_level>
+		<vehicle_is_tailsitter>0</vehicle_is_tailsitter>
+		<send_vision_estimation>0</send_vision_estimation>
+		<send_odometry>1</send_odometry>
+		<enable_lockstep>1</enable_lockstep>
+		<use_tcp>1</use_tcp>
+		<motorSpeedCommandPubTopic>/gazebo/command/motor_speed</motorSpeedCommandPubTopic>
+		<control_channels>
+		<% (0..nb_rotor-1).each do |index| %>
+	<channel name='rotor<%= (index+1).to_s%>'>
+				<input_index><%= index.to_s%></input_index>
+				<input_offset>0</input_offset>
+				<input_scaling><%= ESC_gain_in_rad_per_sec %></input_scaling>
+				<zero_position_disarmed>0</zero_position_disarmed>
+				<zero_position_armed><%= ESC_offset_in_rad_per_sec %></zero_position_armed>
+				<joint_control_type>velocity</joint_control_type>
+			</channel>
+	
+		<% end %>
+			
+		</control_channels>
+	</plugin>
+	
+	<static>0</static>
+	<plugin name='rotors_gazebo_imu_plugin' filename='libgazebo_imu_plugin.so'>
+		<robotNamespace/>
+		<linkName>/imu_link</linkName>
+		<imuTopic>/imu</imuTopic>
+		<gyroscopeNoiseDensity>0.00018665</gyroscopeNoiseDensity>
+		<gyroscopeRandomWalk>3.8785e-05</gyroscopeRandomWalk>
+		<gyroscopeBiasCorrelationTime>1000.0</gyroscopeBiasCorrelationTime>
+		<gyroscopeTurnOnBiasSigma>0.0087</gyroscopeTurnOnBiasSigma>
+		<accelerometerNoiseDensity>0.00186</accelerometerNoiseDensity>
+		<accelerometerRandomWalk>0.006</accelerometerRandomWalk>
+		<accelerometerBiasCorrelationTime>300.0</accelerometerBiasCorrelationTime>
+		<accelerometerTurnOnBiasSigma>0.196</accelerometerTurnOnBiasSigma>
+	</plugin>
+
+	
+</model>
+</sdf>
+

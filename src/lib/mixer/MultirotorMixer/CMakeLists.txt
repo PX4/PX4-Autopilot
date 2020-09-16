@@ -10,11 +10,11 @@
 #    notice, this list of conditions and the following disclaimer.
 # 2. Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in
-#    the documentation and/or other materials provided with the
-#    distribution.
-# 3. Neither the name PX4 nor the names of its contributors may be
-#    used to endorse or promote products derived from this software
-#    without specific prior written permission.
+#    THE DOCUMENTATION AND/OR OTHER MATERIALS PROVIDED WITH THE
+#    DISTRIBUTION.
+# 3. NEITHER THE NAME PX4 NOR THE NAMES OF ITS CONTRIBUTORS MAY BE
+#    USED TO ENDORSE OR PROMOTE PRODUCTS DERIVED FROM THIS SOFTWARE
+#    WITHOUT SPECIFIC PRIOR WRITTEN PERMISSION.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -31,7 +31,10 @@
 #
 ############################################################################
 
+
 set(geometry_files
+	hexa_isir.toml
+	indus.toml
 	dodeca_bottom_cox.toml
 	dodeca_top_cox.toml
 	hex_cox.toml
@@ -54,7 +57,9 @@ set(geometry_files
 	quad_y.toml
 	tri_y.toml
 	twin_engine.toml
-)
+	)
+
+
 
 set(geometries_list)
 foreach(geom_file ${geometry_files})
@@ -82,33 +87,46 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${MIXER_TOOLS}/px_generate_mixers.py --sixdof -f ${geometries_list} -o mixer_multirotor_6dof.generated.h
 	DEPENDS ${MIXER_TOOLS}/px_generate_mixers.py ${geometries_list}
 	)
-add_custom_target(mixer_gen_6dof DEPENDS mixer_multirotor_6dof.generated.h)
+      add_custom_target(mixer_gen_6dof DEPENDS mixer_multirotor_6dof.generated.h)
 
-add_library(MultirotorMixer
+
+# Yaw tilt controlled  mixers
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_tilt.generated.h
+	COMMAND ${PYTHON_EXECUTABLE} ${MIXER_TOOLS}/px_generate_mixers.py --tilt -f ${geometries_list} -o mixer_multirotor_tilt.generated.h
+	DEPENDS ${MIXER_TOOLS}/px_generate_mixers.py ${geometries_list}
+	)
+add_custom_target(mixer_gen_tilt DEPENDS mixer_multirotor_tilt.generated.h)
+
+
+#important to ensure the parameters are taken into account
+px4_add_library(MultirotorMixer
 	MultirotorMixer.cpp
-	MultirotorMixer.hpp
-
+        MultirotorMixer.hpp
 	${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
 	${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
 	${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
-)
-target_link_libraries(MultirotorMixer PRIVATE MixerBase)
-target_include_directories(MultirotorMixer PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_dependencies(MultirotorMixer mixer_gen mixer_gen_6dof prebuild_targets)
-
-if(BUILD_TESTING)
-
-	add_executable(test_mixer_multirotor
-		test_mixer_multirotor.cpp
-		MultirotorMixer.cpp
-	)
-	target_compile_definitions(test_mixer_multirotor PRIVATE MIXER_MULTIROTOR_USE_MOCK_GEOMETRY)
-	target_compile_options(test_mixer_multirotor PRIVATE -Wno-unused-result)
-	target_link_libraries(test_mixer_multirotor PRIVATE MixerBase)
-
-	add_test(NAME mixer_multirotor
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mixer_multirotor.py --test --mixer-multirotor-binary $<TARGET_FILE:test_mixer_multirotor>
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_tilt.generated.h
 	)
 
-endif()
+target_link_libraries(MultirotorMixer PRIVATE MixerBase parameters)
+target_include_directories(MultirotorMixer PRIVATE ${CMAKE_CURRENT_BINARY_DIR} parameters)
+#add_dependencies(MultirotorMixer mixer_gen mixer_gen_6dof mixer_gen_tilt prebuild_targets parameters_interface parameters)
+#set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/module.yaml)
+
+# if(BUILD_TESTING)
+
+# 	add_executable(test_mixer_multirotor
+# 		test_mixer_multirotor.cpp
+# 		MultirotorMixer.cpp
+# 	)
+# 	target_compile_definitions(test_mixer_multirotor PRIVATE MIXER_MULTIROTOR_USE_MOCK_GEOMETRY)
+# 	target_compile_options(test_mixer_multirotor PRIVATE -Wno-unused-result)
+# 	target_link_libraries(test_mixer_multirotor PRIVATE MixerBase)
+
+# 	add_test(NAME mixer_multirotor
+# 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mixer_multirotor.py --test --mixer-multirotor-binary $<TARGET_FILE:test_mixer_multirotor>
+# 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+# 	)
+
+# endif()

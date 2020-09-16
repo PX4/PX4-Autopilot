@@ -1,0 +1,40 @@
+# Generic multicopter configuration
+
+[info]
+key = "<%= model_key %>"
+description = "mc"
+mass = <%= base_m %>
+
+[rotor_default]
+axis      = [0.0, 0.0, -1.0]
+Ct        = <%= motorConstant.to_s%>
+
+Cm        = <%= rotorDragCoefficient.to_s%>
+
+
+<% (0..nb_rotor-1).each do |index| %>
+<% 	
+	theta = rotor_ang_offset+ Math::PI*2/nb_rotor*index
+	if const_ang == false
+		theta=rotor_angles[index]
+	end
+	pos_rotor = [
+		arm_length*Math.cos(theta),
+		arm_length*Math.sin(theta),
+		0.0]
+	rotor_name = "rotor_" + (index+1).to_s
+	dir = "CCW"
+	if (index-(index/2)*2)*2-1 == -1
+		dir = "CW"
+	end	
+
+	if alt_dir == false
+		dir = rotor_dir[index]
+	end
+%>
+[[rotors]]
+name      = "<%= rotor_name %>"
+position  = [<%= a_to_str_py(pos_rotor) %>]
+direction = "<%= dir %>"
+
+<% end %>

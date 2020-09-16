@@ -1,0 +1,32 @@
+# Generic multicopter configuration
+
+[info]
+key = "4ind"
+description = "indus"
+mass = 8.5
+
+[rotor_default]
+axis      = [0.0, 0.0, -1.0]
+Ct        = 0.00011
+Cm        = 2.5e-06
+
+[[rotors]]
+name      = "rotor_0"
+position  = [0.35, 0.475, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rotor_1"
+position  = [-0.35, -0.475, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rotor_2"
+position  = [0.35, -0.475, 0.0]
+direction = "CW"
+
+[[rotors]]
+name      = "rotor_3"
+position  = [-0.35, 0.475, 0.0]
+direction = "CW"
+

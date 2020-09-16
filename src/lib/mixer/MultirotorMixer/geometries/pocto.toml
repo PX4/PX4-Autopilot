@@ -1,0 +1,51 @@
+# Generic multicopter configuration
+
+[info]
+key = "8xp"
+description = "mc"
+
+[rotor_default]
+axis      = [0.0, 0.0, -1.0]
+Ct        = 7.426e-06
+Cm        = 0.06
+
+[[rotors]]
+name      = "rotor_0"
+position  = [0.2165, 0.125, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rotor_1"
+position  = [0.0647, 0.2415, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rotor_2"
+position  = [-0.125, 0.2165, 0.0]
+direction = "CW"
+
+[[rotors]]
+name      = "rotor_3"
+position  = [-0.2415, 0.0647, 0.0]
+direction = "CW"
+
+[[rotors]]
+name      = "rotor_4"
+position  = [-0.2165, -0.125, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rotor_5"
+position  = [-0.0647, -0.2415, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rotor_6"
+position  = [0.125, -0.2165, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rotor_7"
+position  = [0.2415, -0.0647, 0.0]
+direction = "CCW"
+
