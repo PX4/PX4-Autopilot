@@ -2419,7 +2419,10 @@ Commander::run()
 			// Evaluate current prearm status
 			if (!armed.armed && !status_flags.condition_calibration_enabled) {
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, status, status_flags, true, false, true, 30_s);
-				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, _safety, _arm_requirements, status, false);
+				PreFlightCheck::arm_requirements_t _arm_requirements_no_arm_auth = _arm_requirements;
+				_arm_requirements_no_arm_auth.arm_authorization = false;
+				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, _safety, _arm_requirements_no_arm_auth,
+							status, false);
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, (preflight_check_res
 						 && prearm_check_res), status);
 			}
