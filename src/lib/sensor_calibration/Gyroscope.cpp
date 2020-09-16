@@ -142,11 +142,17 @@ void Gyroscope::ParametersUpdate()
 		// CAL_GYROx_PRIO
 		_priority = GetCalibrationParam(SensorString(), "PRIO", _calibration_index);
 
-		if (_priority < 0 || _priority > 100) {
-			// reset to default
-			PX4_ERR("%s %d invalid priority %d, resetting to %d", SensorString(), _calibration_index, _priority, DEFAULT_PRIORITY);
-			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, DEFAULT_PRIORITY);
-			_priority = DEFAULT_PRIORITY;
+		if ((_priority < 0) || (_priority > 100)) {
+			// reset to default, -1 is the uninitialized parameter value
+			int32_t new_priority = DEFAULT_PRIORITY;
+
+			if (_priority != -1) {
+				PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d", SensorString(), _device_id, _calibration_index, _priority,
+					new_priority);
+			}
+
+			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
+			_priority = new_priority;
 		}
 
 		bool calibration_changed = false;
