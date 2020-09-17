@@ -51,8 +51,8 @@ param set MC_CT_LIFT 0.00011
 param set MC_CM_DRAG 2.5e-06
 
 param set PWM_TILT_MAX1 1930
-param set PWM_TILT_MAX2 1070
-param set PWM_TILT_MIN1 1870
+param set PWM_TILT_MAX2 1930
+param set PWM_TILT_MIN1 1010
 param set PWM_TILT_MIN2 1010
 
 
