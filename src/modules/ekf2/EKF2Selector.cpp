@@ -124,19 +124,17 @@ bool EKF2Selector::UpdateErrorScores()
 				// accumulate excess gyro error
 				uint8_t n_gyros = 0;
 				uint8_t n_exceedances = 0;
-
+				float largest_accumulated_error = 0.0f;
+				uint8_t largest_error_index = 0;
 				for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
 					if (sensors_status_imu.gyro_device_ids[i] != 0) {
 						n_gyros++;
-
-						if (sensors_status_imu.gyro_device_ids[i] == sensors_status_imu.gyro_device_id_primary) {
-							_accumulated_gyro_error[i] = 0.f;
-
-						} else {
-							_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
-							_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.f);
+						_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
+						_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.f);
+						if (_accumulated_gyro_error[i] > largest_accumulated_error) {
+							largest_accumulated_error = _accumulated_gyro_error[i];
+							largest_error_index = i;
 						}
-
 					} else {
 						// no sensor
 						_accumulated_gyro_error[i] = 0.f;
@@ -149,16 +147,11 @@ bool EKF2Selector::UpdateErrorScores()
 
 				if (n_exceedances > 0) {
 					if (n_gyros >= 3) {
-						// If there are 3 or more gyros, see if we can work out which one is faulty
+						// If there are 3 or more gyros, the one with the largest accumulated error is faulty
 						_gyro_fault_detected = true;
-
-						// if all sensors other than the primary have an elevated difference, then the primary is faulty
-						// because all differences are measured relative to the primary
-						if (n_exceedances == n_gyros - 1) {
-							faulty_gyro_id = sensors_status_imu.gyro_device_id_primary;
-						}
-
+						faulty_gyro_id = _instance[largest_error_index].estimator_status.gyro_device_id;
 					} else if (n_gyros == 2) {
+						// A fault is present, but the faulty gyro identity cannot be determined
 						_gyro_fault_detected = true;
 					}
 
