@@ -9,7 +9,7 @@ uint64 last_instance_change
 
 float32[4] combined_test_ratio
 float32[4] relative_test_ratio
-
 bool[4] healthy
 
+float32[4] accumulated_gyro_error
 bool gyro_fault_detected

@@ -492,6 +492,7 @@ void EKF2Selector::Run()
 			selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
 			selector_status.relative_test_ratio[i] = _instance[i].relative_test_ratio;
 			selector_status.healthy[i] = _instance[i].healthy;
+			selector_status.accumulated_gyro_error[i] = _accumulated_gyro_error[i];
 		}
 
 		selector_status.timestamp = hrt_absolute_time();
