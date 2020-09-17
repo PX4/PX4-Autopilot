@@ -681,23 +681,6 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
 PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
 
 /**
- * Arm authorization parameters, this uint32_t will be split between starting from the LSB:
- * - 8bits to authorizer system id
- * - 16bits to authentication method parameter, this will be used to store a timeout for the first 2 methods but can be used to another parameter for other new authentication methods.
- * - 7bits to authentication method
- * 		- one arm = 0
- * 		- two step arm = 1
- * * the MSB bit is not used to avoid problems in the conversion between int and uint
- *
- * Default value: (10 << 0 | 1000 << 8 | 0 << 24) = 256010
- * - authorizer system id = 10
- * - authentication method parameter = 1000 msec of timeout
- * - authentication method = during arm
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
-
-/**
  * Require arm authorization to arm
  *
  * The default allows to arm the vehicle without a arm authorization.
@@ -706,6 +689,44 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
  * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_AUTH_REQ, 0);
+
+/**
+ * Arm authorizer system id
+ *
+ * Used if arm authorization is requested by COM_ARM_AUTH_REQ.
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ARM_AUTH_ID, 10);
+
+/**
+ * Arm authorization method
+ *
+ * Methods:
+ * - one arm: request authorization and arm when authorization is received
+ * - two step arm: 1st arm command request an authorization and
+ *                 2nd arm command arm the drone if authorized
+ *
+ * Used if arm authorization is requested by COM_ARM_AUTH_REQ.
+ *
+ * @group Commander
+ * @value 0 one arm
+ * @value 1 two step arm
+ */
+PARAM_DEFINE_INT32(COM_ARM_AUTH_MET, 0);
+
+/**
+ * Arm authorization timeout
+ *
+ * Timeout for authorizer answer.
+ * Used if arm authorization is requested by COM_ARM_AUTH_REQ.
+ *
+ * @group Commander
+ * @unit s
+ * @decimal 1
+ * @increment 0.1
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
 
 /**
  * Loss of position failsafe activation delay.
