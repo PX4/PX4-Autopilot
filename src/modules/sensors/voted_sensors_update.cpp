@@ -405,32 +405,48 @@ void VotedSensorsUpdate::setRelativeTimestamps(sensor_combined_s &raw)
 
 void VotedSensorsUpdate::calcAccelInconsistency()
 {
-	const Vector3f primary_accel{_last_sensor_data[_accel.last_best_vote].accelerometer_m_s2};
-
-	// Check each sensor against the primary
+	Vector3f accel_mean = {};
+	Vector3f accel_all[GYRO_COUNT_MAX];
+	uint8_t accel_count = 0;
 	for (int sensor_index = 0; sensor_index < ACCEL_COUNT_MAX; sensor_index++) {
-		// check that the sensor we are checking against is not the same as the primary
-		if (_accel.advertised[sensor_index] && (_accel.priority[sensor_index] > 0)
-		    && (_accel_device_id[sensor_index] != _selection.accel_device_id)) {
-
-			const Vector3f current_accel{_last_sensor_data[sensor_index].accelerometer_m_s2};
-			_accel_diff[sensor_index] = 0.95f * _accel_diff[sensor_index] + 0.05f * (primary_accel - current_accel);
+		if (_accel_device_id[sensor_index] != 0) {
+			accel_count++;
+			accel_all[sensor_index](0) = _last_sensor_data[sensor_index].accelerometer_m_s2[0];
+			accel_all[sensor_index](1) = _last_sensor_data[sensor_index].accelerometer_m_s2[1];
+			accel_all[sensor_index](2) = _last_sensor_data[sensor_index].accelerometer_m_s2[2];
+			accel_mean += accel_all[sensor_index];
+		}
+	}
+	if (accel_count > 0) {
+		accel_mean = accel_mean * (1.0f / (float(accel_count)));
+		for (int sensor_index = 0; sensor_index < ACCEL_COUNT_MAX; sensor_index++) {
+			if (_accel_device_id[sensor_index] != 0) {
+				_accel_diff[sensor_index] = 0.95f * _accel_diff[sensor_index] + 0.05f * (accel_all[sensor_index] - accel_mean);
+			}
 		}
 	}
 }
 
 void VotedSensorsUpdate::calcGyroInconsistency()
 {
-	const Vector3f primary_gyro{_last_sensor_data[_gyro.last_best_vote].gyro_rad};
-
-	// Check each sensor against the primary
+	Vector3f gyro_mean = {};
+	Vector3f gyro_all[GYRO_COUNT_MAX];
+	uint8_t gyro_count = 0;
 	for (int sensor_index = 0; sensor_index < GYRO_COUNT_MAX; sensor_index++) {
-		// check that the sensor we are checking against is not the same as the primary
-		if (_gyro.advertised[sensor_index] && (_gyro.priority[sensor_index] > 0)
-		    && (_gyro_device_id[sensor_index] != _selection.gyro_device_id)) {
-
-			const Vector3f current_gyro{_last_sensor_data[sensor_index].gyro_rad};
-			_gyro_diff[sensor_index] = 0.95f * _gyro_diff[sensor_index] + 0.05f * (primary_gyro - current_gyro);
+		if (_gyro_device_id[sensor_index] != 0) {
+			gyro_count++;
+			gyro_all[sensor_index](0) = _last_sensor_data[sensor_index].gyro_rad[0];
+			gyro_all[sensor_index](1) = _last_sensor_data[sensor_index].gyro_rad[1];
+			gyro_all[sensor_index](2) = _last_sensor_data[sensor_index].gyro_rad[2];
+			gyro_mean += gyro_all[sensor_index];
+		}
+	}
+	if (gyro_count > 0) {
+		gyro_mean = gyro_mean * (1.0f / (float(gyro_count)));
+		for (int sensor_index = 0; sensor_index < GYRO_COUNT_MAX; sensor_index++) {
+			if (_gyro_device_id[sensor_index] != 0) {
+				_gyro_diff[sensor_index] = 0.95f * _gyro_diff[sensor_index] + 0.05f * (gyro_all[sensor_index] - gyro_mean);
+			}
 		}
 	}
 }
