@@ -48,3 +48,6 @@
 [submodule "Tools/flightgear_bridge"]
 	path = Tools/flightgear_bridge
 	url = https://github.com/PX4/PX4-FlightGear-Bridge.git
+[submodule "src/lib/mixer/MultirotorMixer"]
+	path = src/lib/mixer/MultirotorMixer
+	url = https://github.com/Aightech/MultirotorMixer.git

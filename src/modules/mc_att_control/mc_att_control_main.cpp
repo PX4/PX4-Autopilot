@@ -162,7 +162,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	Quatf q_sp_rpy = AxisAnglef(v(0), v(1), 0.f);
 	Eulerf euler_sp = q_sp_rpy;
 	attitude_setpoint.roll_body = euler_sp(0);
-	attitude_setpoint.pitch_body = euler_sp(1);
+    attitude_setpoint.pitch_body = math::constrain(euler_sp(1),0.0f,1000.0f);
 	// The axis angle can change the yaw as well (noticeable at higher tilt angles).
 	// This is the formula by how much the yaw changes:
 	//   let a := tilt angle, b := atan(y/x) (direction of maximum tilt)

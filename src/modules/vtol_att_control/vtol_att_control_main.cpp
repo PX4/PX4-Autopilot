@@ -91,6 +91,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.back_trans_dec_sp = param_find("VT_B_DEC_MSS");
 
 
+
 	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
 	_params_handles.vt_mc_on_fmu = param_find("VT_MC_ON_FMU");
@@ -105,15 +106,15 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	parameters_update();
 
 	if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::TAILSITTER) {
-		_vtol_type = new Tailsitter(this);
+        _vtol_type = new Tailsitter(this);
 
 	} else if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::TILTROTOR) {
-		_vtol_type = new Tiltrotor(this);
+        _vtol_type = new Tiltrotor(this);
 
 	} else if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::STANDARD) {
-		_vtol_type = new Standard(this);
+        _vtol_type = new Standard(this);
 
-	} else {
+    } else {
 		exit_and_cleanup();
 	}
 }

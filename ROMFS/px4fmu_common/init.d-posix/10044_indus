@@ -10,9 +10,15 @@
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
 
-sh /etc/init.d/rc.mc_defaults
-set MAV_TYPE 2
+sh /etc/init.d/rc.vtol_defaults
+set MAV_TYPE 21
 set MIXER indus
+param set VT_TYPE 1
+param set FW_ARSP_MODE 1
+param set FW_AIRSPD_MAX 25
+param set FW_AIRSPD_MIN 14
+param set FW_AIRSPD_TRIM 16
+param set FW_L1_PERIOD 12
 
 param set MC_ROLL_P 5.0
 param set MC_ROLLRATE_P 10.0
@@ -50,8 +56,11 @@ param set PWM_TILT_MIN1 1870
 param set PWM_TILT_MIN2 1010
 
 
-param set ANG_TILT_MIN -0.03490658503988659
-param set ANG_TILT_MAX 1.5707963267948966
+param set ANG_TILT_MIN1 -0.03490658503988659
+param set ANG_TILT_MAX1 1.5707963267948966
+param set ANG_TILT_MIN2 -1.5707963267948966
+param set ANG_TILT_MAX2 0.03490658503988659
+
 param set PWM_MAIN_DIS5 1900
 param set PWM_MAIN_DIS6 1040
 

@@ -32,6 +32,7 @@
 ############################################################################
 
 px4_add_romfs_files(
+        indus.main.mix
 	AAERTWF.main.mix
 	AAVVTWFF.main.mix
 	AAVVTWFF_vtail.main.mix

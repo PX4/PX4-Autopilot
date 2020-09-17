@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  *
  *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
  *
@@ -41,6 +41,8 @@
 
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
+
+
 
 using namespace matrix;
 using namespace time_literals;
@@ -430,8 +432,12 @@ void Tiltrotor::fill_actuator_outputs()
 	_actuators_out_1->timestamp = hrt_absolute_time();
 	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
-	_actuators_out_1->control[4] = _tilt_control;
+	//AIGHTECH
 
+	orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub_fd, &manual_control_sp);
+	_tilt_control=manual_control_sp.x;
+    _actuators_out_0->control[4] = _tilt_control;
+    //PX4_INFO("%d %d %d", actuator_controls_s::INDEX_ROLL, actuator_controls_s::INDEX_PITCH, actuator_controls_s::INDEX_YAW);
 	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0.0f;
