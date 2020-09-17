@@ -65,15 +65,21 @@ public:
 	void PrintStatus();
 
 private:
+	static constexpr uint8_t INVALID_INSTANCE = UINT8_MAX;
 	void Run() override;
+	void PublishVehicleAttitude(bool reset = false);
+	void PublishVehicleLocalPosition(bool reset = false);
+	void PublishVehicleGlobalPosition(bool reset = false);
+	void SelectInstance(uint8_t instance);
 
-	bool SelectInstance(uint8_t instance, bool force_reselect = false);
+	// Update the error scores for all available instances
+	bool UpdateErrorScores();
 
 	// Subscriptions (per estimator instance)
 	struct EstimatorInstance {
 		EstimatorInstance(EKF2Selector *selector, uint8_t i) :
 			estimator_attitude_sub{selector, ORB_ID(estimator_attitude), i},
-			estimator_status_sub{ORB_ID(estimator_status), i},
+			estimator_status_sub{selector, ORB_ID(estimator_status), i},
 			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
 			estimator_local_position_sub{ORB_ID(estimator_local_position), i},
 			estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias), i},
@@ -81,7 +87,7 @@ private:
 		{}
 
 		uORB::SubscriptionCallbackWorkItem estimator_attitude_sub;
-		uORB::Subscription estimator_status_sub;
+		uORB::SubscriptionCallbackWorkItem estimator_status_sub;
 		uORB::Subscription estimator_global_position_sub;
 		uORB::Subscription estimator_local_position_sub;
 		uORB::Subscription estimator_sensor_bias_sub;
@@ -115,48 +121,39 @@ private:
 	bool _gyro_fault_detected{false};
 
 	uint8_t _available_instances{0};
-	uint8_t _selected_instance{UINT8_MAX};
+	uint8_t _selected_instance{INVALID_INSTANCE};
 
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
 
-	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-
 	// vehicle_attitude: reset counters
 	vehicle_attitude_s _attitude_last{};
-	matrix::Quatf _delta_q_reset;
+	matrix::Quatf _delta_q_reset{};
 	uint8_t _quat_reset_counter{0};
 
 	// vehicle_local_position: reset counters
 	vehicle_local_position_s _local_position_last{};
-
-	matrix::Vector2f _delta_xy;
+	matrix::Vector2f _delta_xy_reset{};
+	float _delta_z_reset{0.f};
+	matrix::Vector2f _delta_vxy_reset{};
+	float _delta_vz_reset{0.f};
+	float _delta_heading_reset{0};
 	uint8_t _xy_reset_counter{0};
-
-	float _delta_z{0.f};
 	uint8_t _z_reset_counter{0};
-
-	matrix::Vector2f _delta_vxy;
 	uint8_t _vxy_reset_counter{0};
-
-	float _delta_vz{0.f};
 	uint8_t _vz_reset_counter{0};
-
-	float _delta_heading{0};
 	uint8_t _heading_reset_counter{0};
 
 	// vehicle_global_position: reset counters
 	vehicle_global_position_s _global_position_last{};
-	float _delta_alt{0.f};
+	double _delta_lat_reset{0};
+	double _delta_lon_reset{0};
+	float _delta_alt_reset{0.f};
+	uint8_t _lat_lon_reset_counter{0};
 	uint8_t _alt_reset_counter{0};
 
-	double _delta_lat{0};
-	double _delta_lon{0};
-	uint8_t _lat_lon_reset_counter{0};
-
-	// Update the error scores for all available instances
-	void updateErrorScores();
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
 
 	// Publications
 	uORB::Publication<estimator_selector_status_s> _estimator_selector_status_pub{ORB_ID(estimator_selector_status)};
