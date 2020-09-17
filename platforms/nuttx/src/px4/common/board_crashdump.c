@@ -51,7 +51,7 @@
 
 #include <nuttx/board.h>
 
-#include "up_internal.h"
+#include "arm_internal.h"
 #include <systemlib/hardfault_log.h>
 #include "nvic.h"
 
@@ -235,7 +235,7 @@ static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 }
 
 
-__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
+__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char *filename, int lineno)
 {
 #ifndef BOARD_CRASHDUMP_RESET_ONLY
 	/* We need a chunk of ram to save the complete context in.
@@ -377,14 +377,14 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 		char *dead = "Memory wiped - dump not saved!";
 
 		while (*dead) {
-			up_lowputc(*dead++);
+			arm_lowputc(*dead++);
 		}
 
 	} else if (rv == -ENOSPC) {
 
 		/* hard fault again */
 
-		up_lowputc('!');
+		arm_lowputc('!');
 	}
 
 #endif /* BOARD_CRASHDUMP_RESET_ONLY */

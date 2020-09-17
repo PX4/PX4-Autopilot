@@ -152,7 +152,7 @@ fi
 #
 if [ -f $FRC ]
 then
-	sh $FRC
+	. $FRC
 else
 
 	#
@@ -202,7 +202,7 @@ else
 	if [ -f $BOARD_RC_DEFAULTS ]
 	then
 		echo "Board defaults: ${BOARD_RC_DEFAULTS}"
-		sh $BOARD_RC_DEFAULTS
+		. $BOARD_RC_DEFAULTS
 	fi
 	unset BOARD_RC_DEFAULTS
 
@@ -248,7 +248,7 @@ else
 	#
 	if ! param compare SYS_AUTOSTART 0
 	then
-		sh /etc/init.d/rc.autostart
+		. /etc/init.d/rc.autostart
 	fi
 
 	#
@@ -257,7 +257,7 @@ else
 	if [ -f $FCONFIG ]
 	then
 		echo "Custom: ${FCONFIG}"
-		sh $FCONFIG
+		. $FCONFIG
 	fi
 
 	#
@@ -368,11 +368,11 @@ else
 		if [ -f $BOARD_RC_SENSORS ]
 		then
 			echo "Board sensors: ${BOARD_RC_SENSORS}"
-			sh $BOARD_RC_SENSORS
+			. $BOARD_RC_SENSORS
 		fi
 		unset BOARD_RC_SENSORS
 
-		sh /etc/init.d/rc.sensors
+		. /etc/init.d/rc.sensors
 
 		if param compare -s BAT1_SOURCE 2
 		then
@@ -459,7 +459,7 @@ else
 	if [ -f $BOARD_RC_MAVLINK ]
 	then
 		echo "Board extras: ${BOARD_RC_MAVLINK}"
-		sh $BOARD_RC_MAVLINK
+		. $BOARD_RC_MAVLINK
 	fi
 	unset BOARD_RC_MAVLINK
 
@@ -467,7 +467,7 @@ else
 	# Start UART/Serial device drivers.
 	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 	#
-	sh /etc/init.d/rc.serial
+	. /etc/init.d/rc.serial
 
 	if [ $IO_PRESENT = no ]
 	then
@@ -480,7 +480,7 @@ else
 	# Note: rc.vehicle_setup is the entry point for rc.interface,
 	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 	#
-	sh /etc/init.d/rc.vehicle_setup
+	. /etc/init.d/rc.vehicle_setup
 
 	# Camera capture driver
 	if param greater -s CAM_CAP_FBACK 0
@@ -499,7 +499,7 @@ else
 	#
 	# Start a thermal calibration if required.
 	#
-	sh /etc/init.d/rc.thermal_cal
+	. /etc/init.d/rc.thermal_cal
 
 	#
 	# Start vmount to control mounts such as gimbals, disabled by default.
@@ -528,7 +528,7 @@ else
 	if [ -f $BOARD_RC_EXTRAS ]
 	then
 		echo "Board extras: ${BOARD_RC_EXTRAS}"
-		sh $BOARD_RC_EXTRAS
+		. $BOARD_RC_EXTRAS
 	fi
 	unset BOARD_RC_EXTRAS
 
@@ -538,20 +538,20 @@ else
 	if [ -f $FEXTRAS ]
 	then
 		echo "Addons script: ${FEXTRAS}"
-		sh $FEXTRAS
+		. $FEXTRAS
 	fi
 
 	#
 	# Start the logger.
 	#
-	sh /etc/init.d/rc.logging
+	. /etc/init.d/rc.logging
 
 	#
 	# Set additional parameters and env variables for selected AUTOSTART.
 	#
 	if ! param compare SYS_AUTOSTART 0
 	then
-		sh /etc/init.d/rc.autostart.post
+		. /etc/init.d/rc.autostart.post
 	fi
 
 	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}

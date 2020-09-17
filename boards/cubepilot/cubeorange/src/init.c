@@ -48,7 +48,7 @@
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <arch/board/board.h>
-#include "up_internal.h"
+#include "arm_internal.h"
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>

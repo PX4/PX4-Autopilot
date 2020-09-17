@@ -45,7 +45,7 @@
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
-#include "up_internal.h"
+#include "arm_internal.h"
 
 extern int sercon_main(int c, char **argv);
 
