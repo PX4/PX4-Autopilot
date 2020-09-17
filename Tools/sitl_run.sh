@@ -58,7 +58,11 @@ fi
 
 if [ "$model" == "" ] || [ "$model" == "none" ]; then
 	echo "empty model, setting iris as default"
-	model="iris"
+	if [ "$program" == "jsbsim" ]; then
+		model="rascal"
+	else
+		model="iris"
+	fi
 fi
 
 # kill process names that might stil
@@ -146,6 +150,21 @@ elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	"${src_path}/Tools/flightgear_bridge/FG_run.py" "models/"${model}".json" 0
 	"${build_path}/build_flightgear_bridge/flightgear_bridge" 0 `./get_FGbridge_params.py "models/"${model}".json"` &
 	FG_BRIDGE_PID=$!
+elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
+	source "$src_path/Tools/setup_jsbsim.bash" "${src_path}" "${build_path}" ${model}
+	if [[ -n "$HEADLESS" ]]; then
+		echo "not running flightgear gui"
+	else
+		fgfs --fdm=null \
+			--native-fdm=socket,in,60,,5550,udp \
+			--aircraft=$JSBSIM_AIRCRAFT_MODEL \
+			--airport=${world} \
+			--disable-hud \
+			--disable-ai-models &> /dev/null &
+		FGFS_PID=$!
+	fi
+	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" "models/${JSBSIM_AIRCRAFT_DIR}" $JSBSIM_AIRCRAFT_MODEL ${model} "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" $HEADLESS 2> /dev/null &
+	JSBSIM_PID=$!
 fi
 
 pushd "$rootfs" >/dev/null
@@ -199,4 +218,7 @@ elif [ "$program" == "gazebo" ]; then
 elif [ "$program" == "flightgear" ]; then
 	kill $FG_BRIDGE_PID
 	kill -9 `cat /tmp/px4fgfspid_0`
+elif [ "$program" == "jsbsim" ]; then
+	kill $JSBSIM_PID
+	kill $FGFS_PID
 fi
