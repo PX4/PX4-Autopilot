@@ -11,3 +11,5 @@ float32[4] combined_test_ratio
 float32[4] relative_test_ratio
 
 bool[4] healthy
+
+bool gyro_fault_detected

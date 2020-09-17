@@ -175,75 +175,7 @@ bool EKF2Selector::SelectInstance(uint8_t ekf_instance, bool force_reselect)
 
 void EKF2Selector::updateErrorScores()
 {
-	bool primary_updated = false;
-
-	// calculate individual error scores
-	for (uint8_t i = 0; i < MAX_INSTANCES; i++) {
-		if (_instance[i].estimator_status_sub.update(&_instance[i].estimator_status)) {
-			if ((i + 1) > _available_instances) {
-				_available_instances = i + 1;
-			}
-
-			if (i == _selected_instance) {
-				primary_updated = true;
-			}
-
-			const estimator_status_s &status = _instance[i].estimator_status;
-
-			const bool tilt_align = status.control_mode_flags & (1 << estimator_status_s::CS_TILT_ALIGN);
-			const bool yaw_align = status.control_mode_flags & (1 << estimator_status_s::CS_YAW_ALIGN);
-
-			_instance[i].combined_test_ratio = 0.0f;
-
-			if (tilt_align && yaw_align) {
-				_instance[i].combined_test_ratio = fmaxf(_instance[i].combined_test_ratio,
-								   0.5f * (status.vel_test_ratio + status.pos_test_ratio));
-				_instance[i].combined_test_ratio = fmaxf(_instance[i].combined_test_ratio, status.hgt_test_ratio);
-			}
-
-			_instance[i].healthy = tilt_align && yaw_align && (status.filter_fault_flags == 0);
-
-		} else if (hrt_elapsed_time(&_instance[i].estimator_status.timestamp) > 20_ms) {
-			_instance[i].healthy = false;
-		}
-	}
-
-	// update relative test ratios if primary has updated
-	if (primary_updated) {
-		for (uint8_t i = 0; i < _available_instances; i++) {
-			if (i != _selected_instance) {
-
-				const float error_delta = _instance[i].combined_test_ratio - _instance[_selected_instance].combined_test_ratio;
-
-				// reduce error only if its better than the primary instance by at least EKF2_SEL_ERR_RED to prevent unnecessary selection changes
-				const float threshold = _gyro_fault_detected ? fmaxf(_param_ekf2_sel_err_red.get(), 0.05f) : 0.0f;
-
-				if (error_delta > 0 || error_delta < -threshold) {
-					_instance[i].relative_test_ratio += error_delta;
-					_instance[i].relative_test_ratio = math::constrain(_instance[i].relative_test_ratio, -_rel_err_score_lim,
-									   _rel_err_score_lim);
-				}
-			}
-		}
-	}
-}
-
-void EKF2Selector::Run()
-{
-	// re-schedule as backup timeout
-	ScheduleDelayed(10_ms);
-
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		updateParams();
-	}
-
-
+	// first check gyro inconsistencies
 	_gyro_fault_detected = false;
 	uint32_t faulty_gyro_id = 0;
 
@@ -258,7 +190,8 @@ void EKF2Selector::Run()
 
 			const float angle_rate_threshold = math::radians(_param_ekf2_sel_gyr_rate.get());
 			const float angle_threshold = math::radians(_param_ekf2_sel_gyr_angle.get());
-			const float time_step_s = fminf(1e-6f * hrt_elapsed_time(&_last_update_us), 1.f);
+			const float time_step_s = math::constrain((sensors_status_imu.timestamp - _last_update_us) * 1e-6f, 0.f, 0.02f);
+			_last_update_us = sensors_status_imu.timestamp;
 
 			if (sensors_status_imu.gyro_device_id_primary == _instance[_selected_instance].estimator_status.gyro_device_id) {
 				// accumulate excess gyro error
@@ -307,6 +240,79 @@ void EKF2Selector::Run()
 	}
 
 
+	bool primary_updated = false;
+
+	// calculate individual error scores
+	for (uint8_t i = 0; i < MAX_INSTANCES; i++) {
+		if (_instance[i].estimator_status_sub.update(&_instance[i].estimator_status)) {
+			if ((i + 1) > _available_instances) {
+				_available_instances = i + 1;
+			}
+
+			if (i == _selected_instance) {
+				primary_updated = true;
+			}
+
+			const estimator_status_s &status = _instance[i].estimator_status;
+
+			const bool tilt_align = status.control_mode_flags & (1 << estimator_status_s::CS_TILT_ALIGN);
+			const bool yaw_align = status.control_mode_flags & (1 << estimator_status_s::CS_YAW_ALIGN);
+
+			_instance[i].combined_test_ratio = 0.0f;
+
+			if (tilt_align && yaw_align) {
+				_instance[i].combined_test_ratio = fmaxf(_instance[i].combined_test_ratio,
+								   0.5f * (status.vel_test_ratio + status.pos_test_ratio));
+				_instance[i].combined_test_ratio = fmaxf(_instance[i].combined_test_ratio, status.hgt_test_ratio);
+			}
+
+			_instance[i].healthy = tilt_align && yaw_align && (status.filter_fault_flags == 0);
+
+		} else if (hrt_elapsed_time(&_instance[i].estimator_status.timestamp) > 20_ms) {
+			_instance[i].healthy = false;
+		}
+
+		// if the gyro used by the EKF is faulty, declare the EKF unhealthy without delay
+		if (_gyro_fault_detected && _instance[i].estimator_status.gyro_device_id == faulty_gyro_id) {
+			_instance[i].healthy = false;
+		}
+	}
+
+	// update relative test ratios if primary has updated
+	if (primary_updated) {
+		for (uint8_t i = 0; i < _available_instances; i++) {
+			if (i != _selected_instance) {
+
+				const float error_delta = _instance[i].combined_test_ratio - _instance[_selected_instance].combined_test_ratio;
+
+				// reduce error only if its better than the primary instance by at least EKF2_SEL_ERR_RED to prevent unnecessary selection changes
+				const float threshold = _gyro_fault_detected ? fmaxf(_param_ekf2_sel_err_red.get(), 0.05f) : 0.0f;
+
+				if (error_delta > 0 || error_delta < -threshold) {
+					_instance[i].relative_test_ratio += error_delta;
+					_instance[i].relative_test_ratio = math::constrain(_instance[i].relative_test_ratio, -_rel_err_score_lim,
+									   _rel_err_score_lim);
+				}
+			}
+		}
+	}
+}
+
+void EKF2Selector::Run()
+{
+	// re-schedule as backup timeout
+	ScheduleDelayed(10_ms);
+
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+	}
+
 	// update combined test ratio for all estimators
 	updateErrorScores();
 
@@ -316,11 +322,6 @@ void EKF2Selector::Run()
 
 	// loop through all available instances to find if an alternative is available
 	for (int i = 0; i < _available_instances; i++) {
-		// if the gyro used by the EKF is faulty, declare the EKF unhealthy without delay
-		if (_gyro_fault_detected && _instance[i].estimator_status.gyro_device_id == faulty_gyro_id) {
-			_instance[i].healthy = false;
-		}
-
 		// Use an alternative instance if  -
 		// (healthy and has updated recently)
 		// AND
@@ -476,6 +477,7 @@ void EKF2Selector::Run()
 		selector_status.instances_available = _available_instances;
 		selector_status.instance_changed_count = _instance_changed_count;
 		selector_status.last_instance_change = _last_instance_change;
+		selector_status.gyro_fault_detected = _gyro_fault_detected;
 
 		for (int i = 0; i < _available_instances; i++) {
 			selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
@@ -486,9 +488,6 @@ void EKF2Selector::Run()
 		selector_status.timestamp = hrt_absolute_time();
 		_estimator_selector_status_pub.publish(selector_status);
 	}
-
-	_last_update_us = hrt_absolute_time();
-
 }
 
 void EKF2Selector::PrintStatus()
