@@ -38,7 +38,7 @@ using namespace time_literals;
 using math::constrain;
 
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
-static px4::atomic<EKF2 *> _objects[ORB_MULTI_MAX_INSTANCES] {};
+static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
 static px4::atomic<EKF2Selector *> _ekf2_selector{nullptr};
 
 EKF2::EKF2(bool replay_mode, int instance):
@@ -2080,7 +2080,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		int started_instances = 0;
 
 		for (int attempt = 0; attempt < 5; attempt++) {
-			for (uint8_t i = 0; i < math::min(multi_instances, ORB_MULTI_MAX_INSTANCES); i++) {
+			for (uint8_t i = 0; i < math::min(multi_instances, (int32_t)EKF2_MAX_INSTANCES); i++) {
 				if (_objects[i].load() == nullptr) {
 
 					char str[16] {};
@@ -2196,7 +2196,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 			_ekf2_selector.load()->PrintStatus();
 		}
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 			if (_objects[i].load()) {
 				_objects[i].load()->print_status();
 			}
@@ -2213,7 +2213,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 
 			PX4_INFO("stopping %d", instance);
 
-			if (instance > 0 && instance < ORB_MULTI_MAX_INSTANCES) {
+			if (instance > 0 && instance < EKF2_MAX_INSTANCES) {
 				EKF2 *inst = _objects[instance].load();
 				if (inst) {
 					inst->request_stop();
@@ -2233,7 +2233,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 				was_running = true;
 			}
 
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 				EKF2 *inst = _objects[i].load();
 				if (inst) {
 					PX4_INFO("stopping ekf2 instance %d", i);

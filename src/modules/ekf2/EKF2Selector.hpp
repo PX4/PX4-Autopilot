@@ -53,6 +53,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
+static constexpr uint8_t EKF2_MAX_INSTANCES{6}; // keep in sync with EKF2_MULTI_INST max, EKF2_x_IMU_ID, EKF2_x_MAG_ID, and selector MAX_INSTANCES
+
 class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -104,19 +106,25 @@ private:
 		const uint8_t instance;
 	};
 
-	static constexpr uint8_t MAX_INSTANCES{4};
-
 	static constexpr float _rel_err_score_lim{1.0f}; // +- limit applied to the relative error score
 	static constexpr float _rel_err_thresh{0.5f};    // the relative score difference needs to be greater than this to switch from an otherwise healthy instance
 
-	EstimatorInstance _instance[MAX_INSTANCES] {
+	EstimatorInstance _instance[EKF2_MAX_INSTANCES] {
 		{this, 0},
 		{this, 1},
 		{this, 2},
 		{this, 3},
+		{this, 4},
+		{this, 5},
 	};
 
-	float _accumulated_gyro_error[MAX_INSTANCES] {};
+	static constexpr uint8_t IMU_STATUS_SIZE = (sizeof(sensors_status_imu_s::gyro_inconsistency_rad_s) / sizeof(
+				sensors_status_imu_s::gyro_inconsistency_rad_s[0]));
+	static_assert(IMU_STATUS_SIZE <= sizeof(estimator_selector_status_s::accumulated_gyro_error) / sizeof(
+			      estimator_selector_status_s::accumulated_gyro_error[0]),
+		      "increase estimator_selector_status_s::accumulated_gyro_error size");
+
+	float _accumulated_gyro_error[IMU_STATUS_SIZE] {};
 	hrt_abstime _last_update_us{0};
 	bool _gyro_fault_detected{false};
 

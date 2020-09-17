@@ -56,7 +56,7 @@ bool EKF2Selector::Start()
 
 void EKF2Selector::Stop()
 {
-	for (int i = 0; i < MAX_INSTANCES; i++) {
+	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 		_instance[i].estimator_attitude_sub.unregisterCallback();
 		_instance[i].estimator_status_sub.unregisterCallback();
 	}
@@ -115,11 +115,6 @@ bool EKF2Selector::UpdateErrorScores()
 		sensors_status_imu_s sensors_status_imu;
 
 		if (_sensors_status_imu.copy(&sensors_status_imu)) {
-
-			static constexpr uint8_t IMU_STATUS_SIZE = (sizeof(sensors_status_imu.gyro_inconsistency_rad_s) / sizeof(
-						sensors_status_imu.gyro_inconsistency_rad_s[0]));
-			static constexpr uint8_t IMU_INDEX_LIMIT = math::min(IMU_STATUS_SIZE, MAX_INSTANCES);
-
 			const float angle_rate_threshold = math::radians(_param_ekf2_sel_gyr_rate.get());
 			const float angle_threshold = math::radians(_param_ekf2_sel_gyr_angle.get());
 			const float time_step_s = math::constrain((sensors_status_imu.timestamp - _last_update_us) * 1e-6f, 0.f, 0.02f);
@@ -130,7 +125,7 @@ bool EKF2Selector::UpdateErrorScores()
 				uint8_t n_gyros = 0;
 				uint8_t n_exceedances = 0;
 
-				for (unsigned i = 0; i < IMU_INDEX_LIMIT; i++) {
+				for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
 					if (sensors_status_imu.gyro_device_ids[i] != 0) {
 						n_gyros++;
 
@@ -177,7 +172,7 @@ bool EKF2Selector::UpdateErrorScores()
 	bool primary_updated = false;
 
 	// calculate individual error scores
-	for (uint8_t i = 0; i < MAX_INSTANCES; i++) {
+	for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
 		const bool prev_healthy = _instance[i].healthy;
 
 		if (_instance[i].estimator_status_sub.update(&_instance[i].estimator_status)) {
@@ -526,7 +521,7 @@ void EKF2Selector::PrintStatus()
 		PX4_WARN("selected instance: None");
 	}
 
-	for (int i = 0; i < MAX_INSTANCES; i++) {
+	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 		const EstimatorInstance &inst = _instance[i];
 
 		if (inst.estimator_status.timestamp > 0) {

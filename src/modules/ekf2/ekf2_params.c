@@ -828,7 +828,7 @@ PARAM_DEFINE_FLOAT(EKF2_TERR_GRAD, 0.5f);
  * @group EKF2
  * @reboot_required true
  * @min 0
- * @max 4
+ * @max 6
  */
 PARAM_DEFINE_INT32(EKF2_MULTI_INST, 0);
 
