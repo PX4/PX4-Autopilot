@@ -3,7 +3,9 @@ px4_add_board(
 	PLATFORM posix
 	VENDOR px4
 	MODEL sitl
+	ROMFSROOT px4fmu_common
 	LABEL test
+	EMBEDDED_METADATA parameters
 	TESTING
 	DRIVERS
 		#barometer # all available barometer drivers
@@ -16,10 +18,12 @@ px4_add_board(
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
+		rpm/rpm_simulator
 		#telemetry # all available telemetry drivers
 		tone_alarm
 		#uavcan
 	MODULES
+		airship_att_control
 		airspeed_selector
 		attitude_estimator_q
 		camera_feedback
@@ -47,6 +51,7 @@ px4_add_board(
 		#sih
 		simulator
 		temperature_compensation
+		uuv_att_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
@@ -72,6 +77,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		dyn_hello # dynamically loading modules example
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test

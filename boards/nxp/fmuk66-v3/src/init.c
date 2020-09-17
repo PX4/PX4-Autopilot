@@ -67,7 +67,7 @@
 #include <hardware/kinetis_sim.h>
 #include "board_config.h"
 
-#include "up_arch.h"
+#include "arm_arch.h"
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
@@ -84,7 +84,7 @@
  ****************************************************************************/
 
 /*
- * Ideally we'd be able to get these from up_internal.h,
+ * Ideally we'd be able to get these from arm_internal.h,
  * but since we want to be able to disable the NuttX use
  * of leds for system indication at will and there is no
  * separate switch, we need to build independent of the
@@ -291,14 +291,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 # ifdef CONFIG_KINETIS_ENET
 	kinetis_netinitialize(0);
-# endif
-
-# ifdef CONFIG_KINETIS_FLEXCAN0
-	kinetis_caninitialize(0);
-# endif
-
-# ifdef CONFIG_KINETIS_FLEXCAN1
-	kinetis_caninitialize(1);
 # endif
 
 #endif
