@@ -380,7 +380,7 @@ void UavcanNode::Run()
 	}
 
 	// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (int i = 0; i < MAX_INSTANCES; i++) {
 		distance_sensor_s dist;
 
 		if (_distance_sensor_sub[i].update(&dist)) {

@@ -94,13 +94,13 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 		uavcan::MonotonicTime deadline;
 		uavcan::CanFrame frame;
 		uavcan::uint8_t index;
-		//bool pending;
+		bool pending;
 		bool loopback;
 		bool abort_on_error;
 
 		TxItem()
-			: /*pending(false)
-			,*/ loopback(false)
+			: pending(false)
+			, loopback(false)
 			, abort_on_error(false)
 		{ }
 	};

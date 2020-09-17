@@ -9,15 +9,19 @@
 function cleanup() {
 	pkill -x px4
 	pkill gzclient
+	pkill gzserver
 }
 
 function spawn_model() {
 	MODEL=$1
 	N=$2 #Instance Number
 
-	if [ "$MODEL" != "iris" ] && [ "$MODEL" != "plane" ] && [ "$MODEL" != "standard_vtol" ]
+	SUPPORTED_MODELS=("iris" "iris_rtps" "plane" "standard_vtol")
+	if [[ " ${SUPPORTED_MODELS[*]} " != *"$MODEL "* ]];
 	then
-		echo "Currently only the following vehicle models are supported! [iris, plane, standard_vtol]"
+		echo "ERROR: Currently only vehicle model $MODEL is not supported!"
+		echo "       Supported Models: [${SUPPORTED_MODELS[@]}]"
+		trap "cleanup" SIGINT SIGTERM EXIT
 		exit 1
 	fi
 
@@ -26,7 +30,7 @@ function spawn_model() {
 
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $n in $(pwd)"
-	../bin/px4 -i $n -d "$src_path/ROMFS/px4fmu_common" -w sitl_${MODEL}_${n} -s etc/init.d-posix/rcS >out.log 2>err.log &
+	../bin/px4 -i $n -d "$build_path/etc" -w sitl_${MODEL}_${n} -s etc/init.d-posix/rcS >out.log 2>err.log &
 	python3 ${src_path}/Tools/sitl_gazebo/scripts/xacro.py ${src_path}/Tools/sitl_gazebo/models/rotors_description/urdf/${MODEL}_base.xacro \
 		rotors_description_dir:=${src_path}/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(($mavlink_udp_port+$N)) \
 		mavlink_tcp_port:=$(($mavlink_tcp_port+$N))  -o /tmp/${MODEL}_${N}.urdf
@@ -47,7 +51,7 @@ then
 	exit 1
 fi
 
-while getopts n:m:w:s: option
+while getopts n:m:w:s:t: option
 do
 	case "${option}"
 	in
@@ -55,19 +59,20 @@ do
 		m) VEHICLE_MODEL=${OPTARG};;
 		w) WORLD=${OPTARG};;
 		s) SCRIPT=${OPTARG};;
+		t) TARGET=${OPTARG};;
 	esac
 done
 
 num_vehicles=${NUM_VEHICLES:=3}
-export PX4_SIM_MODEL=${VEHICLE_MODEL:=iris}
 world=${WORLD:=empty}
+target=${TARGET:=px4_sitl_default}
+export PX4_SIM_MODEL=${VEHICLE_MODEL:=iris}
+
 echo ${SCRIPT}
-
-
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 src_path="$SCRIPT_DIR/.."
 
-build_path=${src_path}/build/px4_sitl_default
+build_path=${src_path}/build/${target}
 mavlink_udp_port=14560
 mavlink_tcp_port=4560
 
@@ -76,7 +81,7 @@ pkill -x px4 || true
 
 sleep 1
 
-source ${src_path}/Tools/setup_gazebo.bash ${src_path} ${src_path}/build/px4_sitl_default
+source ${src_path}/Tools/setup_gazebo.bash ${src_path} ${src_path}/build/${target}
 
 echo "Starting gazebo"
 gzserver ${src_path}/Tools/sitl_gazebo/worlds/${world}.world --verbose &

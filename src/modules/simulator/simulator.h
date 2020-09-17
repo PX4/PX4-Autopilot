@@ -72,6 +72,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include <random>
 
@@ -127,8 +129,6 @@ public:
 	bool has_initialized() { return _has_initialized.load(); }
 #endif
 
-	void print_status();
-
 private:
 	Simulator() : ModuleParams(nullptr)
 	{
@@ -147,7 +147,8 @@ private:
 		_instance = nullptr;
 	}
 
-	// class methods
+
+	void check_failure_injections();
 
 	int publish_flow_topic(const mavlink_hil_optical_flow_t *flow);
 	int publish_odometry_topic(const mavlink_message_t *odom_mavlink);
@@ -156,10 +157,17 @@ private:
 	static Simulator *_instance;
 
 	// simulated sensor instances
-	PX4Accelerometer	_px4_accel{1311244, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope		_px4_gyro{1311244, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Magnetometer		_px4_mag{197388, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
-	PX4Barometer		_px4_baro{6620172, ORB_PRIO_DEFAULT}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+	PX4Accelerometer	_px4_accel_0{1311244, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Accelerometer	_px4_accel_1{1311500, ROTATION_NONE}; // 1311500: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+
+	PX4Gyroscope		_px4_gyro_0{1311244, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Gyroscope		_px4_gyro_1{1311500, ROTATION_NONE}; // 1311500: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+
+	PX4Magnetometer		_px4_mag_0{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Magnetometer		_px4_mag_1{197644, ROTATION_NONE}; // 197644: DRV_MAG_DEVTYPE_MAGSIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+
+	PX4Barometer		_px4_baro_0{6620172}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+	PX4Barometer		_px4_baro_1{6620428}; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
 
 	perf_counter_t _perf_sim_delay{perf_alloc(PC_ELAPSED, MODULE_NAME": network delay")};
 	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
@@ -170,6 +178,8 @@ private:
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
+
+	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS] {};
 	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS] {};
@@ -220,8 +230,9 @@ private:
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 
 	// HIL GPS
-	uORB::PublicationMulti<vehicle_gps_position_s>	*_vehicle_gps_position_pubs[ORB_MULTI_MAX_INSTANCES] {};
-	uint8_t _gps_ids[ORB_MULTI_MAX_INSTANCES] {};
+	static constexpr int MAX_GPS = 3;
+	uORB::PublicationMulti<vehicle_gps_position_s>	*_vehicle_gps_position_pubs[MAX_GPS] {};
+	uint8_t _gps_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
@@ -229,6 +240,7 @@ private:
 	actuator_outputs_s _actuator_outputs{};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	// hil map_ref data
 	struct map_projection_reference_s _hil_local_proj_ref {};
@@ -240,20 +252,26 @@ private:
 	float _hil_ref_alt{0.0f};
 	uint64_t _hil_ref_timestamp{0};
 
-	// uORB data containers
 	vehicle_status_s _vehicle_status{};
+
+	bool _accel_blocked{false};
+	bool _gyro_blocked{false};
+	bool _baro_blocked{false};
+	bool _baro_stuck{false};
+	bool _mag_blocked{false};
+	bool _mag_stuck{false};
+	bool _gps_blocked{false};
+	bool _airspeed_blocked{false};
+
+	float _last_magx{0.0f};
+	float _last_magy{0.0f};
+	float _last_magz{0.0f};
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
 #endif
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SIM_GPS_BLOCK>) _param_sim_gps_block,
-		(ParamBool<px4::params::SIM_ACCEL_BLOCK>) _param_sim_accel_block,
-		(ParamBool<px4::params::SIM_GYRO_BLOCK>) _param_sim_gyro_block,
-		(ParamBool<px4::params::SIM_BARO_BLOCK>) _param_sim_baro_block,
-		(ParamBool<px4::params::SIM_MAG_BLOCK>) _param_sim_mag_block,
-		(ParamBool<px4::params::SIM_DPRES_BLOCK>) _param_sim_dpres_block,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id

@@ -69,7 +69,7 @@ fi
 if [ -f $BOARD_RC ]
 then
 	echo "Board init: ${BOARD_RC}"
-	sh $BOARD_RC
+	. $BOARD_RC
 fi
 
 if [ -f /etc/extras/px4_io-v2_default.bin ]
@@ -119,7 +119,7 @@ then
 	tests mount
 fi
 
-sh /etc/init.d/rc.sensors
+. /etc/init.d/rc.sensors
 
 ver all
 

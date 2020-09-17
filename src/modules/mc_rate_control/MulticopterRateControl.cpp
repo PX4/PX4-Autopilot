@@ -150,10 +150,10 @@ MulticopterRateControl::Run()
 		vehicle_angular_acceleration_s v_angular_acceleration{};
 		_vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
 
-		const hrt_abstime now = hrt_absolute_time();
+		const hrt_abstime now = angular_velocity.timestamp_sample;
 
-		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
+		// Guard against too small (< 0.125ms) and too large (> 20ms) dt's.
+		const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.000125f, 0.02f);
 		_last_run = now;
 
 		const Vector3f angular_accel{v_angular_acceleration.xyz};
@@ -184,8 +184,8 @@ MulticopterRateControl::Run()
 		    !_v_control_mode.flag_control_position_enabled) {
 
 			// landing gear controlled from stick inputs if we are in Manual/Stabilized mode
-			//  limit landing gear update rate to 50 Hz
-			if (hrt_elapsed_time(&_landing_gear.timestamp) > 20_ms) {
+			//  limit landing gear update rate to 10 Hz
+			if ((now - _landing_gear.timestamp) > 100_ms) {
 				_landing_gear.landing_gear = get_landing_gear_state();
 				_landing_gear.timestamp = hrt_absolute_time();
 				_landing_gear_pub.publish(_landing_gear);

@@ -33,8 +33,7 @@
 
 #pragma once
 
-#include <sensor_calibration/SensorCalibration.hpp>
-
+#include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
@@ -85,13 +84,9 @@ private:
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
-	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
-		{this, ORB_ID(sensor_gyro), 0},
-		{this, ORB_ID(sensor_gyro), 1},
-		{this, ORB_ID(sensor_gyro), 2}
-	};
+	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_gyro)};
 
-	SensorCalibration _calibration{SensorCalibration::SensorType::Gyroscope};
+	calibration::Gyroscope _calibration{};
 
 	matrix::Vector3f _bias{0.f, 0.f, 0.f};
 

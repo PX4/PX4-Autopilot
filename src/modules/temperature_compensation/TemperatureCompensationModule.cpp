@@ -67,7 +67,7 @@ void TemperatureCompensationModule::parameters_update()
 			int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, uorb_index);
 
 			if (temp < 0) {
-				PX4_ERR("%s init: failed to find device ID %u for instance %i", "gyro", report.device_id, uorb_index);
+				PX4_INFO("No temperature calibration available for gyro %i (device id %u)", uorb_index, report.device_id);
 				_corrections.gyro_device_ids[uorb_index] = 0;
 
 			} else {
@@ -84,8 +84,7 @@ void TemperatureCompensationModule::parameters_update()
 			int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, uorb_index);
 
 			if (temp < 0) {
-				PX4_ERR("%s init: failed to find device ID %u for instance %i", "accel", report.device_id, uorb_index);
-
+				PX4_INFO("No temperature calibration available for accel %i (device id %u)", uorb_index, report.device_id);
 				_corrections.accel_device_ids[uorb_index] = 0;
 
 			} else {
@@ -102,7 +101,7 @@ void TemperatureCompensationModule::parameters_update()
 			int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, uorb_index);
 
 			if (temp < 0) {
-				PX4_ERR("%s init: failed to find device ID %u for instance %i", "baro", report.device_id, uorb_index);
+				PX4_INFO("No temperature calibration available for baro %i (device id %u)", uorb_index, report.device_id);
 				_corrections.baro_device_ids[uorb_index] = 0;
 
 			} else {

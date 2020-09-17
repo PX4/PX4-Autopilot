@@ -41,7 +41,7 @@ using namespace time_literals;
 FakeMagnetometer::FakeMagnetometer() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_px4_mag(0, ORB_PRIO_MIN, ROTATION_NONE)
+	_px4_mag(0, ROTATION_NONE)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MAGSIM);
 	_px4_mag.set_external(false);
@@ -71,9 +71,9 @@ void FakeMagnetometer::Run()
 				const double lon = gps.lon / 1.e7;
 
 				// magnetic field data returned by the geo library using the current GPS position
-				const float mag_declination_gps = math::radians(get_mag_declination(lat, lon));
-				const float mag_inclination_gps = math::radians(get_mag_inclination(lat, lon));
-				const float mag_strength_gps = 0.01f * get_mag_strength(lat, lon); // centi-Gauss (micro-Tesla) -> Gauss
+				const float mag_declination_gps = get_mag_declination_radians(lat, lon);
+				const float mag_inclination_gps = get_mag_inclination_radians(lat, lon);
+				const float mag_strength_gps = get_mag_strength_gauss(lat, lon);
 
 				_mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) * Vector3f(mag_strength_gps, 0, 0);
 

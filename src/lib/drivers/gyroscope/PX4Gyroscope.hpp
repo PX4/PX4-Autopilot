@@ -43,7 +43,7 @@
 class PX4Gyroscope : public ModuleParams
 {
 public:
-	PX4Gyroscope(uint32_t device_id, ORB_PRIO priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
+	PX4Gyroscope(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
 	~PX4Gyroscope() override;
 
 	uint32_t get_device_id() const { return _device_id; }
@@ -52,7 +52,7 @@ public:
 
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _error_count = error_count; }
+	void set_error_count(uint32_t error_count) { _error_count = error_count; }
 	void increase_error_count() { _error_count++; }
 	void set_range(float range) { _range = range; }
 	void set_scale(float scale) { _scale = scale; }

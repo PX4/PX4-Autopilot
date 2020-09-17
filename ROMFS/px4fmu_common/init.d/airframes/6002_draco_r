@@ -26,7 +26,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-sh /etc/init.d/rc.mc_defaults
+. /etc/init.d/rc.mc_defaults
 set MIXER hexa_x
 set PWM_OUT 12345678
 
@@ -90,8 +90,6 @@ then
 
 	# DSHOT
 	param set DSHOT_CONFIG 600
-
-	param set COM_ARM_MAG 0.2
 
 	param set MIS_TAKEOFF_ALT 1.1
 

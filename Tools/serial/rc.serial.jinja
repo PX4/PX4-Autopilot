@@ -11,7 +11,7 @@ set PRT {{ command.port_param_name }}
 set i {{ command.instance }}
 {% endif -%}
 # get the device & baudrate
-sh $PRT_F
+. $PRT_F
 if [ $SERIAL_DEV != none ]; then
 {% if not constrained_flash -%}
 	echo "Starting {{ command.label }} on $SERIAL_DEV"

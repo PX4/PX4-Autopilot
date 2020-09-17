@@ -35,11 +35,11 @@
 
 #include "Integrator.hpp"
 
-#include <sensor_calibration/SensorCalibration.hpp>
-
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/sensor_calibration/Accelerometer.hpp>
+#include <lib/sensor_calibration/Gyroscope.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -60,7 +60,7 @@ class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	VehicleIMU() = delete;
-	VehicleIMU(uint8_t accel_index = 0, uint8_t gyro_index = 0);
+	VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config);
 
 	~VehicleIMU() override;
 
@@ -91,8 +91,8 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
 
-	SensorCalibration _accel_calibration{SensorCalibration::SensorType::Accelerometer};
-	SensorCalibration _gyro_calibration{SensorCalibration::SensorType::Gyroscope};
+	calibration::Accelerometer _accel_calibration{};
+	calibration::Gyroscope _gyro_calibration{};
 
 	Integrator _accel_integrator{}; // 200 Hz default
 	Integrator _gyro_integrator{true};   // 200 Hz default, coning compensation enabled
@@ -115,6 +115,8 @@ private:
 	uint8_t _delta_velocity_clipping{0};
 
 	bool _intervals_configured{false};
+
+	const uint8_t _instance;
 
 	perf_counter_t _accel_update_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": accel update interval")};
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};

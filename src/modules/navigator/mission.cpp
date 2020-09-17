@@ -711,7 +711,7 @@ Mission::set_mission_items()
 					_mission_item.lat = _navigator->get_global_position()->lat;
 					_mission_item.lon = _navigator->get_global_position()->lon;
 					/* hold heading for takeoff items */
-					_mission_item.yaw = _navigator->get_global_position()->yaw;
+					_mission_item.yaw = _navigator->get_local_position()->heading;
 					_mission_item.altitude = takeoff_alt;
 					_mission_item.altitude_is_relative = false;
 					_mission_item.autocontinue = true;
@@ -808,7 +808,7 @@ Mission::set_mission_items()
 						mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->current);
 
 					} else {
-						_mission_item.yaw = _navigator->get_global_position()->yaw;
+						_mission_item.yaw = _navigator->get_local_position()->heading;
 
 						/* set position setpoint to target during the transition */
 						generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
@@ -1343,7 +1343,7 @@ Mission::heading_sp_update()
 
 		} else {
 			if (!pos_sp_triplet->current.yaw_valid) {
-				_mission_item.yaw = _navigator->get_local_position()->yaw;
+				_mission_item.yaw = _navigator->get_local_position()->heading;
 				pos_sp_triplet->current.yaw = _mission_item.yaw;
 				pos_sp_triplet->current.yaw_valid = true;
 			}
@@ -1912,6 +1912,7 @@ bool Mission::position_setpoint_equal(const position_setpoint_s *p1, const posit
 		(p1->acceleration_is_force == p2->acceleration_is_force) &&
 		(fabsf(p1->acceptance_radius - p2->acceptance_radius) < FLT_EPSILON) &&
 		(fabsf(p1->cruising_speed - p2->cruising_speed) < FLT_EPSILON) &&
-		(fabsf(p1->cruising_throttle - p2->cruising_throttle) < FLT_EPSILON));
+		((fabsf(p1->cruising_throttle - p2->cruising_throttle) < FLT_EPSILON) || (!PX4_ISFINITE(p1->cruising_throttle)
+				&& !PX4_ISFINITE(p2->cruising_throttle))));
 
 }

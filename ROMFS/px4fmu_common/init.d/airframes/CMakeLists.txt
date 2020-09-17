@@ -46,6 +46,8 @@ px4_add_romfs_files(
 	2106_albatross
 	2200_mini_talon
 
+	2507_cloudship
+
 	# [3000, 3999] Flying wing"
 	3000_generic_wing
 	3030_io_camflyer
@@ -131,6 +133,8 @@ px4_add_romfs_files(
 	13010_claire
 	13012_convergence
 	13013_deltaquad
+	13014_vtol_babyshark
+	13050_generic_vtol_octo
 	13200_generic_vtol_tailsitter
 
 	# [14000, 14999] Tri Y
@@ -141,13 +145,15 @@ px4_add_romfs_files(
 
 	16001_helicopter
 
+	17002_TF-AutoG2
+
 	24001_dodeca_cox
 
 	50000_generic_ground_vehicle
 	50001_axialracing_ax10
 	50002_traxxas_stampede_2wd
 	50003_aion_robotics_r1_rover
-	50004_dfrobot_gpx_asurada
+	50004_nxpcup_car_dfrobot_gpx
 
 	# [60000, 61000] (Unmanned) Underwater Robots
 	60000_uuv_generic

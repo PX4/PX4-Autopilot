@@ -17,7 +17,7 @@ px4_add_board(
 		#CONSOLE:/dev/ttyS4
 		#FRSKY:/dev/ttyS5
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/dps310
 		batt_smbus

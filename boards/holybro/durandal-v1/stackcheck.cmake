@@ -17,7 +17,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS3
 	DRIVERS
-		adc
+		adc/board_adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		batt_smbus
@@ -39,7 +39,7 @@ px4_add_board(
 		#lights/rgbled
 		lights/rgbled_ncp5623c
 		#magnetometer # all available magnetometer drivers
-		magnetometer/ist8310
+		magnetometer/isentek/ist8310
 		#mkblctrl
 		#optical_flow # all available optical flow drivers
 		#osd

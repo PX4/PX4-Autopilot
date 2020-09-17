@@ -67,7 +67,7 @@ public:
 	 * @param error_count	The current error count of the sensor
 	 * @param priority	The priority of the sensor
 	 */
-	void put(unsigned index, uint64_t timestamp, const float val[3], uint64_t error_count, int priority);
+	void put(unsigned index, uint64_t timestamp, const float val[3], uint32_t error_count, uint8_t priority);
 
 	/**
 	 * Get the best data triplet of the group

@@ -64,12 +64,6 @@ void Simulator::parameters_update(bool force)
 	}
 }
 
-void Simulator::print_status()
-{
-	PX4_INFO("magnetometer");
-	_px4_mag.print_status();
-}
-
 int Simulator::start(int argc, char *argv[])
 {
 	_instance = new Simulator();
@@ -154,7 +148,7 @@ int simulator_main(int argc, char *argv[])
 			return 1;
 
 		} else {
-			Simulator::getInstance()->print_status();
+			PX4_INFO("running");
 		}
 
 	} else {

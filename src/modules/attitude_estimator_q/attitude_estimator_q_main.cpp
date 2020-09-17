@@ -316,7 +316,7 @@ AttitudeEstimatorQ::Run()
 			if (_gps_sub.copy(&gps)) {
 				if (_param_att_mag_decl_a.get() && (gps.eph < 20.0f)) {
 					/* set magnetic declination automatically */
-					update_mag_declination(math::radians(get_mag_declination(gps.lat, gps.lon)));
+					update_mag_declination(get_mag_declination_radians(gps.lat, gps.lon));
 				}
 			}
 		}
@@ -358,10 +358,11 @@ AttitudeEstimatorQ::Run()
 
 		if (update(dt)) {
 			vehicle_attitude_s att = {};
-			att.timestamp = sensors.timestamp;
+			att.timestamp_sample = sensors.timestamp;
 			_q.copyTo(att.q);
 
 			/* the instance count is not used here */
+			att.timestamp = hrt_absolute_time();
 			_att_pub.publish(att);
 
 		}

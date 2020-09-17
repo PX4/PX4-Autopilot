@@ -121,7 +121,6 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
-	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};				/**< vehicle attitude */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 
@@ -236,12 +235,6 @@ private:
 	void limit_altitude(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
-	 * Prints a warning message at a lowered rate.
-	 * @param str the message that has to be printed.
-	 */
-	void warn_rate_limited(const char *str);
-
-	/**
 	 * Adjust the setpoint during landing.
 	 * Thrust is adjusted to support the land-detector during detection.
 	 * @param setpoint gets adjusted based on land-detector state
@@ -261,8 +254,8 @@ private:
 	 * setpoints. The failsafe will occur after LOITER_TIME_BEFORE_DESCEND. If force is set
 	 * to true, the failsafe will be initiated immediately.
 	 */
-	void failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states, const bool force,
-		      bool warn);
+	void failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states,
+		      const bool force, bool warn);
 
 	/**
 	 * Reset setpoints to NAN
@@ -323,17 +316,6 @@ MulticopterPositionControl::init()
 	_time_stamp_last_loop = hrt_absolute_time();
 
 	return true;
-}
-
-void
-MulticopterPositionControl::warn_rate_limited(const char *string)
-{
-	hrt_abstime now = hrt_absolute_time();
-
-	if (now - _last_warn > 200_ms) {
-		PX4_WARN("%s", string);
-		_last_warn = now;
-	}
 }
 
 int
@@ -423,19 +405,13 @@ MulticopterPositionControl::poll_subscriptions()
 	_control_mode_sub.update(&_control_mode);
 	_home_pos_sub.update(&_home_pos);
 
-	if (_att_sub.updated()) {
-		vehicle_attitude_s att;
-
-		if (_att_sub.copy(&att) && PX4_ISFINITE(att.q[0])) {
-			_states.yaw = Eulerf(Quatf(att.q)).psi();
-		}
-	}
-
 	if (_param_mpc_use_hte.get()) {
 		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
-			_control.updateHoverThrust(hte.hover_thrust);
+			if (hte.valid) {
+				_control.updateHoverThrust(hte.hover_thrust);
+			}
 		}
 	}
 }
@@ -512,6 +488,10 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 		// reset derivative to prevent acceleration spikes when regaining velocity
 		_vel_z_deriv.reset();
 	}
+
+	if (PX4_ISFINITE(_local_pos.heading)) {
+		_states.yaw = _local_pos.heading;
+	}
 }
 
 int
@@ -545,10 +525,12 @@ MulticopterPositionControl::Run()
 		poll_subscriptions();
 		parameters_update(false);
 
-		// set _dt in controllib Block - the time difference since the last loop iteration in seconds
-		const hrt_abstime time_stamp_now = hrt_absolute_time();
-		setDt((time_stamp_now - _time_stamp_last_loop) / 1e6f);
+		const hrt_abstime time_stamp_now = _local_pos.timestamp;
+		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
 		_time_stamp_last_loop = time_stamp_now;
+
+		// set _dt in controllib Block - the time difference since the last loop iteration in seconds
+		setDt(dt);
 
 		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;
@@ -590,7 +572,7 @@ MulticopterPositionControl::Run()
 			if (!_flight_tasks.update()) {
 				// FAILSAFE
 				// Task was not able to update correctly. Do Failsafe.
-				failsafe(setpoint, _states, false, !was_in_failsafe);
+				failsafe(time_stamp_now, setpoint, _states, false, !was_in_failsafe);
 
 			} else {
 				setpoint = _flight_tasks.getPositionSetpoint();
@@ -627,7 +609,7 @@ MulticopterPositionControl::Run()
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff,
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
-			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
+			constraints.speed_up = _takeoff.updateRamp(dt, constraints.speed_up);
 
 			const bool not_taken_off = _takeoff.getTakeoffState() < TakeoffState::rampup;
 			const bool flying = _takeoff.getTakeoffState() >= TakeoffState::flight;
@@ -663,12 +645,16 @@ MulticopterPositionControl::Run()
 			_control.setConstraints(constraints);
 			_control.setInputSetpoint(setpoint);
 
-			if (!_control.update(_dt)) {
-				warn_rate_limited("PositionControl: invalid setpoints");
-				failsafe(setpoint, _states, true, !was_in_failsafe);
+			if (!_control.update(dt)) {
+				if ((time_stamp_now - _last_warn) > 1_s) {
+					PX4_WARN("invalid setpoints");
+					_last_warn = time_stamp_now;
+				}
+
+				failsafe(time_stamp_now, setpoint, _states, true, !was_in_failsafe);
 				_control.setInputSetpoint(setpoint);
 				constraints = FlightTask::empty_constraints;
-				_control.update(_dt);
+				_control.update(dt);
 			}
 
 			// Fill local position, velocity and thrust setpoint.
@@ -934,15 +920,15 @@ MulticopterPositionControl::start_flight_task()
 }
 
 void
-MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states,
-				     const bool force, bool warn)
+MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint,
+				     const PositionControlStates &states, const bool force, bool warn)
 {
 	// do not warn while we are disarmed, as we might not have valid setpoints yet
 	if (!_control_mode.flag_armed) {
 		warn = false;
 	}
 
-	_failsafe_land_hysteresis.set_state_and_update(true, hrt_absolute_time());
+	_failsafe_land_hysteresis.set_state_and_update(true, now);
 
 	if (!_failsafe_land_hysteresis.get_state() && !force) {
 		// just keep current setpoint and don't do anything.

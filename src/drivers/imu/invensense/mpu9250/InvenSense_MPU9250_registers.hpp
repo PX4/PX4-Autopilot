@@ -213,11 +213,9 @@ enum PWR_MGMT_1_BIT : uint8_t {
 	H_RESET    = Bit7,
 	SLEEP      = Bit6,
 
-	CLKSEL_2   = Bit2,
-	CLKSEL_1   = Bit1,
-	CLKSEL_0   = Bit0,
+	// CLKSEL[2:0]
+	CLKSEL_0     = Bit0, // It is required that CLKSEL[2:0] be set to 001 to achieve full gyroscope performance.
 };
-
 
 namespace FIFO
 {

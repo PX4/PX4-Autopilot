@@ -47,11 +47,11 @@ ICM20948::ICM20948(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Ro
 	SPI(DRV_IMU_DEVTYPE_ICM20948, MODULE_NAME, bus, device, spi_mode, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
 	_drdy_gpio(drdy_gpio),
-	_px4_accel(get_device_id(), ORB_PRIO_DEFAULT, rotation),
-	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation)
+	_px4_accel(get_device_id(), rotation),
+	_px4_gyro(get_device_id(), rotation)
 {
 	if (drdy_gpio != 0) {
-		_drdy_interval_perf = perf_alloc(PC_INTERVAL, MODULE_NAME": DRDY interval");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
@@ -82,7 +82,7 @@ ICM20948::~ICM20948()
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
-	perf_free(_drdy_interval_perf);
+	perf_free(_drdy_missed_perf);
 
 	delete _slave_ak09916_magnetometer;
 }
@@ -125,7 +125,7 @@ void ICM20948::print_status()
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
-	perf_print_counter(_drdy_interval_perf);
+	perf_print_counter(_drdy_missed_perf);
 
 
 	if (_slave_ak09916_magnetometer) {
@@ -154,7 +154,7 @@ void ICM20948::RunImpl()
 		// PWR_MGMT_1: Device Reset
 		RegisterWrite(Register::BANK_0::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
 		_reset_timestamp = now;
-		_consecutive_failures = 0;
+		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
 		ScheduleDelayed(100_ms);
 		break;
@@ -231,8 +231,8 @@ void ICM20948::RunImpl()
 	case STATE::FIFO_READ: {
 			if (_data_ready_interrupt_enabled) {
 				// scheduled from interrupt if _drdy_fifo_read_samples was set
-				if (_drdy_fifo_read_samples.fetch_and(0) == _fifo_gyro_samples) {
-					perf_count_interval(_drdy_interval_perf, now);
+				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_gyro_samples) {
+					perf_count(_drdy_missed_perf);
 				}
 
 				// push backup schedule back
@@ -263,22 +263,25 @@ void ICM20948::RunImpl()
 				} else if (samples >= 1) {
 					if (FIFORead(now, samples)) {
 						success = true;
-						_consecutive_failures = 0;
+
+						if (_failure_count > 0) {
+							_failure_count--;
+						}
 					}
 				}
 			}
 
 			if (!success) {
-				_consecutive_failures++;
+				_failure_count++;
 
 				// full reset if things are failing consistently
-				if (_consecutive_failures > 10) {
+				if (_failure_count > 10) {
 					Reset();
 					return;
 				}
 			}
 
-			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 10_ms) {
+			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
 				// check configuration registers periodically or immediately following any failure
 				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
 				    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2])
@@ -442,12 +445,12 @@ int ICM20948::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ICM20948::DataReady()
 {
-	const uint8_t count = _drdy_count.fetch_add(1) + 1;
-
-	uint8_t expected = 0;
+	uint32_t expected = 0;
 
 	// at least the required number of samples in the FIFO
-	if ((count >= _fifo_gyro_samples) && _drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
+	if (((_drdy_count.fetch_add(1) + 1) >= _fifo_gyro_samples)
+	    && _drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
+
 		_drdy_count.store(0);
 		ScheduleNow();
 	}

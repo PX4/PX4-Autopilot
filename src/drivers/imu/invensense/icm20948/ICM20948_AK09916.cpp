@@ -48,7 +48,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 ICM20948_AK09916::ICM20948_AK09916(ICM20948 &icm20948, enum Rotation rotation) :
 	ScheduledWorkItem("icm20948_ak09916", px4::device_bus_to_wq(icm20948.get_device_id())),
 	_icm20948(icm20948),
-	_px4_mag(icm20948.get_device_id(), ORB_PRIO_DEFAULT, rotation)
+	_px4_mag(icm20948.get_device_id(), rotation)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK09916);
 	_px4_mag.set_external(icm20948.external());
@@ -75,8 +75,6 @@ void ICM20948_AK09916::PrintInfo()
 {
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_magnetic_sensor_overflow_perf);
-
-	_px4_mag.print_status();
 }
 
 void ICM20948_AK09916::Run()
@@ -86,7 +84,7 @@ void ICM20948_AK09916::Run()
 		// CNTL3 SRST: Soft reset
 		_icm20948.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL3, CNTL3_BIT::SRST);
 		_reset_timestamp = hrt_absolute_time();
-		_consecutive_failures = 0;
+		_failure_count = 0;
 		_state = STATE::READ_WHO_AM_I;
 		ScheduleDelayed(100_ms);
 		break;
@@ -146,15 +144,17 @@ void ICM20948_AK09916::Run()
 
 					success = true;
 
-					_consecutive_failures = 0;
+					if (_failure_count > 0) {
+						_failure_count--;
+					}
 				}
 			}
 
 			if (!success) {
 				perf_count(_bad_transfer_perf);
-				_consecutive_failures++;
+				_failure_count++;
 
-				if (_consecutive_failures > 10) {
+				if (_failure_count > 10) {
 					Reset();
 					return;
 				}

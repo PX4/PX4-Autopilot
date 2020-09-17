@@ -72,7 +72,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 		bool updated = _airspeed.valid();
 		updated |= _airspeed_sp.valid();
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (int i = 0; i < MAX_BATTERIES; i++) {
 			updated |= _batteries[i].analyzer.valid();
 		}
 
@@ -112,7 +112,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 
 			int lowest = 0;
 
-			for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			for (int i = 1; i < MAX_BATTERIES; i++) {
 				const bool battery_connected = _batteries[i].connected && _batteries[i].analyzer.valid();
 				const bool battery_is_lowest = _batteries[i].analyzer.get_scaled(100.0f) <= _batteries[lowest].analyzer.get_scaled(
 								       100.0f);
@@ -183,7 +183,7 @@ void MavlinkStreamHighLatency2::reset_analysers(const hrt_abstime t)
 	_airspeed.reset();
 	_airspeed_sp.reset();
 
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (int i = 0; i < MAX_BATTERIES; i++) {
 		_batteries[i].analyzer.reset();
 	}
 
@@ -230,7 +230,7 @@ bool MavlinkStreamHighLatency2::write_battery_status(mavlink_high_latency2_t *ms
 	struct battery_status_s battery;
 	bool updated = false;
 
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (int i = 0; i < MAX_BATTERIES; i++) {
 		if (_batteries[i].subscription.update(&battery)) {
 			updated = true;
 			_batteries[i].connected = battery.connected;
@@ -294,8 +294,9 @@ bool MavlinkStreamHighLatency2::write_geofence_result(mavlink_high_latency2_t *m
 bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *msg)
 {
 	vehicle_global_position_s global_pos;
+	vehicle_local_position_s local_pos;
 
-	if (_global_pos_sub.update(&global_pos)) {
+	if (_global_pos_sub.update(&global_pos) && _local_pos_sub.update(&local_pos)) {
 		msg->latitude = global_pos.lat * 1e7;
 		msg->longitude = global_pos.lon * 1e7;
 
@@ -310,7 +311,7 @@ bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *m
 
 		msg->altitude = altitude;
 
-		msg->heading = static_cast<uint8_t>(math::degrees(wrap_2pi(global_pos.yaw)) * 0.5f);
+		msg->heading = static_cast<uint8_t>(math::degrees(wrap_2pi(local_pos.heading)) * 0.5f);
 
 		return true;
 	}
@@ -485,7 +486,7 @@ void MavlinkStreamHighLatency2::update_battery_status()
 {
 	battery_status_s battery;
 
-	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (int i = 0; i < MAX_BATTERIES; i++) {
 		if (_batteries[i].subscription.update(&battery)) {
 			_batteries[i].connected = battery.connected;
 			_batteries[i].analyzer.add_value(battery.remaining, _update_rate_filtered);

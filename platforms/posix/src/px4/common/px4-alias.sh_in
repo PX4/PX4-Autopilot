@@ -28,6 +28,19 @@ sh() {
 	. "$(pwd)$script"
 }
 
+source() {
+	script="$1"
+	case "$script" in
+	"/"*)
+		script="$script"
+		;;
+	*)
+		script="/$script"
+		;;
+	esac
+	. "$(pwd)$script"
+}
+
 # Don't stop on errors.
 #set -e
 

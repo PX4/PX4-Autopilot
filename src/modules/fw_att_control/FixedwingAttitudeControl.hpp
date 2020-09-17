@@ -115,7 +115,6 @@ private:
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	manual_control_setpoint_s		_manual_control_setpoint {};		/**< r/c channel data */
-	vehicle_attitude_s			_att {};		/**< vehicle attitude setpoint */
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
 	vehicle_control_mode_s			_vcontrol_mode {};	/**< vehicle control mode */
 	vehicle_local_position_s		_local_pos {};		/**< local position */
@@ -123,6 +122,8 @@ private:
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+
+	hrt_abstime _last_run{0};
 
 	float _flaps_applied{0.0f};
 	float _flaperons_applied{0.0f};

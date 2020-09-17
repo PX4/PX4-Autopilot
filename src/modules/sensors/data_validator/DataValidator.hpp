@@ -57,14 +57,14 @@ public:
 	 *
 	 * @param val		Item to put
 	 */
-	void put(uint64_t timestamp, float val, uint64_t error_count, int priority);
+	void put(uint64_t timestamp, float val, uint32_t error_count, uint8_t priority);
 
 	/**
 	 * Put a 3D item into the validator.
 	 *
 	 * @param val		Item to put
 	 */
-	void put(uint64_t timestamp, const float val[dimensions], uint64_t error_count, int priority);
+	void put(uint64_t timestamp, const float val[dimensions], uint32_t error_count, uint8_t priority);
 
 	/**
 	 * Get the next sibling in the group
@@ -89,7 +89,7 @@ public:
 	 * Get the error count of this validator
 	 * @return		the error count
 	 */
-	uint64_t error_count() const { return _error_count; }
+	uint32_t error_count() const { return _error_count; }
 
 	/**
 	 * Get the values of this validator
@@ -107,7 +107,7 @@ public:
 	 * Get the priority of this validator
 	 * @return		the stored priority
 	 */
-	int priority() const { return _priority; }
+	uint8_t priority() const { return _priority; }
 
 	/**
 	 * Get the error state of this validator
@@ -170,11 +170,11 @@ private:
 
 	uint64_t _time_last{0};   /**< last timestamp */
 	uint64_t _event_count{0}; /**< total data counter */
-	uint64_t _error_count{0}; /**< error count */
+	uint32_t _error_count{0}; /**< error count */
 
 	int _error_density{0}; /**< ratio between successful reads and errors */
 
-	int _priority{0}; /**< sensor nominal priority */
+	uint8_t _priority{0}; /**< sensor nominal priority */
 
 	float _mean[dimensions] {}; /**< mean of value */
 	float _lp[dimensions] {};   /**< low pass value */

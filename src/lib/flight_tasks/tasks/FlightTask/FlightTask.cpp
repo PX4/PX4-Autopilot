@@ -10,7 +10,7 @@ const ekf_reset_counters_s FlightTask::zero_reset_counters = {};
 const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, false, {}};
 const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
 
-bool FlightTask::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTask::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();
@@ -32,7 +32,6 @@ bool FlightTask::updateInitialize()
 	_time_stamp_last = _time_stamp_current;
 
 	_sub_vehicle_local_position.update();
-	_sub_attitude.update();
 	_sub_home_position.update();
 
 	_evaluateVehicleLocalPosition();
@@ -69,10 +68,9 @@ void FlightTask::_checkEkfResetCounters()
 		_reset_counters.vz = _sub_vehicle_local_position.get().vz_reset_counter;
 	}
 
-	if (_sub_attitude.get().quat_reset_counter != _reset_counters.quat) {
-		float delta_psi = matrix::Eulerf(matrix::Quatf(_sub_attitude.get().delta_q_reset)).psi();
-		_ekfResetHandlerHeading(delta_psi);
-		_reset_counters.quat = _sub_attitude.get().quat_reset_counter;
+	if (_sub_vehicle_local_position.get().heading_reset_counter != _reset_counters.heading) {
+		_ekfResetHandlerHeading(_sub_vehicle_local_position.get().delta_heading);
+		_reset_counters.heading = _sub_vehicle_local_position.get().heading_reset_counter;
 	}
 }
 
@@ -117,13 +115,11 @@ void FlightTask::_evaluateVehicleLocalPosition()
 	_yaw = NAN;
 	_dist_to_bottom = NAN;
 
-	if ((_time_stamp_current - _sub_attitude.get().timestamp) < _timeout) {
-		// yaw
-		_yaw = matrix::Eulerf(matrix::Quatf(_sub_attitude.get().q)).psi();
-	}
-
 	// Only use vehicle-local-position topic fields if the topic is received within a certain timestamp
 	if ((_time_stamp_current - _sub_vehicle_local_position.get().timestamp) < _timeout) {
+
+		// yaw
+		_yaw = _sub_vehicle_local_position.get().heading;
 
 		// position
 		if (_sub_vehicle_local_position.get().xy_valid) {

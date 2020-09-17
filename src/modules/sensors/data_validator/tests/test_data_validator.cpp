@@ -195,9 +195,9 @@ void test_error_tracking()
 	uint64_t timestamp_incr = 5;
 	const uint32_t timeout_usec = 2000;//from original private value
 	float val = 3.14159f;
-	uint64_t error_count = 0;
+	uint32_t error_count = 0;
 	int expected_error_density = 0;
-	int priority = 50;
+	uint8_t priority = 50;
 	//from private value: this is min change needed to avoid stale detection
 	const float sufficient_incr_value = (1.1f * 1E-6f);
 	//default is private VALUE_EQUAL_COUNT_DEFAULT

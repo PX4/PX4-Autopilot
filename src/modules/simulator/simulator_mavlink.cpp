@@ -143,6 +143,25 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 			}
 		}
 
+	} else if (_system_type == MAV_TYPE_AIRSHIP) {
+		/* airship: scale starboard and port throttle to 0..1 and other channels (tilt, tail thruster) to -1..1 */
+		for (unsigned i = 0; i < 16; i++) {
+			if (armed) {
+				if (i < 2) {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
+					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+
+				} else {
+					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
+					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+				}
+
+			} else {
+				/* set 0 for disabled channels */
+				msg.controls[i] = 0.0f;
+			}
+		}
+
 	} else {
 		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
@@ -193,45 +212,69 @@ void Simulator::send_controls()
 
 void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
-	float temperature = NAN;
-
 	// temperature only updated with baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
 		if (PX4_ISFINITE(sensors.temperature)) {
-			temperature = sensors.temperature;
 
-			_px4_accel.set_temperature(temperature);
-			_px4_baro.set_temperature(temperature);
-			_px4_gyro.set_temperature(temperature);
-			_px4_mag.set_temperature(temperature);
+			_px4_accel_0.set_temperature(sensors.temperature);
+			_px4_accel_1.set_temperature(sensors.temperature);
+
+			_px4_gyro_0.set_temperature(sensors.temperature);
+			_px4_gyro_1.set_temperature(sensors.temperature);
+
+			_px4_mag_0.set_temperature(sensors.temperature);
+			_px4_mag_1.set_temperature(sensors.temperature);
 		}
 	}
 
 	// accel
-	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_param_sim_accel_block.get()) {
-		_px4_accel.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_accel_blocked) {
+		_px4_accel_0.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+		_px4_accel_1.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 	}
 
 	// gyro
-	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO && !_param_sim_gyro_block.get()) {
-		_px4_gyro.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO && !_gyro_blocked) {
+		_px4_gyro_0.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+		_px4_gyro_1.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 	}
 
 	// magnetometer
-	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG && !_param_sim_mag_block.get()) {
-		_px4_mag.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG && !_mag_blocked) {
+		if (_mag_stuck) {
+			_px4_mag_0.update(time, _last_magx, _last_magy, _last_magz);
+			_px4_mag_1.update(time, _last_magx, _last_magy, _last_magz);
+
+		} else {
+			_px4_mag_0.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+			_px4_mag_1.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+			_last_magx = sensors.xmag;
+			_last_magy = sensors.ymag;
+			_last_magz = sensors.zmag;
+		}
 	}
 
 	// baro
-	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_param_sim_baro_block.get()) {
-		_px4_baro.update(time, sensors.abs_pressure);
+	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
+		if (_baro_stuck) {
+			_px4_baro_0.update(time, _px4_baro_0.get().pressure);
+			_px4_baro_0.set_temperature(_px4_baro_0.get().temperature);
+			_px4_baro_1.update(time, _px4_baro_1.get().pressure);
+			_px4_baro_1.set_temperature(_px4_baro_1.get().temperature);
+
+		} else {
+			_px4_baro_0.update(time, sensors.abs_pressure);
+			_px4_baro_0.set_temperature(sensors.temperature);
+			_px4_baro_1.update(time, sensors.abs_pressure);
+			_px4_baro_1.set_temperature(sensors.temperature);
+		}
 	}
 
 	// differential pressure
-	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_param_sim_dpres_block.get()) {
+	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_blocked) {
 		differential_pressure_s report{};
 		report.timestamp = time;
-		report.temperature = temperature;
+		report.temperature = sensors.temperature;
 		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 
@@ -292,7 +335,7 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 	mavlink_hil_gps_t hil_gps;
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	if (!_param_sim_gps_block.get()) {
+	if (!_gps_blocked) {
 		vehicle_gps_position_s gps{};
 
 		gps.timestamp = hrt_absolute_time();
@@ -441,7 +484,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.vy = hil_state.vy / 100.0f;
 		hil_lpos.vz = hil_state.vz / 100.0f;
 		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
-		hil_lpos.yaw = euler.psi();
+		hil_lpos.heading = euler.psi();
 		hil_lpos.xy_global = true;
 		hil_lpos.z_global = true;
 		hil_lpos.ref_lat = _hil_ref_lat;
@@ -588,6 +631,7 @@ void Simulator::send()
 		if (fds_actuator_outputs[0].revents & POLLIN) {
 			// Got new data to read, update all topics.
 			parameters_update(false);
+			check_failure_injections();
 			_vehicle_status_sub.update(&_vehicle_status);
 			send_controls();
 			// Wait for other modules, such as logger or ekf2
@@ -893,6 +937,117 @@ int openUart(const char *uart_name, int baud)
 	return uart_fd;
 }
 #endif
+
+void Simulator::check_failure_injections()
+{
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GPS) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				supported = true;
+				_gps_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				supported = true;
+				_gps_blocked = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_ACCEL) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				supported = true;
+				_accel_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				supported = true;
+				_accel_blocked = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GYRO) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				supported = true;
+				_gyro_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				supported = true;
+				_gyro_blocked = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_MAG) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				supported = true;
+				_mag_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				supported = true;
+				_mag_stuck = true;
+				_mag_blocked = false;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				supported = true;
+				_mag_blocked = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_BARO) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				supported = true;
+				_baro_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				supported = true;
+				_baro_stuck = true;
+				_baro_blocked = false;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				supported = true;
+				_baro_blocked = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				supported = true;
+				_airspeed_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				supported = true;
+				_airspeed_blocked = false;
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack;
+			ack.timestamp = hrt_absolute_time();
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+			_command_ack_pub.publish(ack);
+		}
+	}
+}
 
 int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink)
 {

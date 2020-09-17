@@ -98,6 +98,37 @@ public:
 		_registered = false;
 	}
 
+	/**
+	 * Change subscription instance
+	 * @param instance The new multi-Subscription instance
+	 */
+	bool ChangeInstance(uint8_t instance)
+	{
+		bool ret = false;
+
+		if (instance != get_instance()) {
+			const bool registered = _registered;
+
+			if (registered) {
+				unregisterCallback();
+			}
+
+			if (_subscription.ChangeInstance(instance)) {
+				ret = true;
+			}
+
+			if (registered) {
+				registerCallback();
+			}
+
+		} else {
+			// already on desired index
+			return true;
+		}
+
+		return ret;
+	}
+
 	virtual void call() = 0;
 
 protected:

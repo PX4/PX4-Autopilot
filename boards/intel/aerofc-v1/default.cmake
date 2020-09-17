@@ -21,7 +21,7 @@ px4_add_board(
 		#irlock
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		magnetometer/ist8310
+		magnetometer/isentek/ist8310
 		#optical_flow/px4flow
 		#protocol_splitter
 		pwm_out_sim

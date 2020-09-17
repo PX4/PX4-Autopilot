@@ -109,7 +109,7 @@ using TimesyncPublisher = timesync_Publisher;
 
 class TimeSync {
 public:
-	TimeSync();
+	TimeSync(bool debug);
 	virtual ~TimeSync();
 
 	/**
@@ -195,6 +195,8 @@ private:
 	int32_t _request_reset_counter;
 	uint8_t _last_msg_seq;
 	uint8_t _last_remote_msg_seq;
+
+	bool _debug;
 
 @[if ros2_distro]@
 	Timesync_Publisher _timesync_pub;

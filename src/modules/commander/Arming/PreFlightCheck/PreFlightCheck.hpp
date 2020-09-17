@@ -110,9 +110,12 @@ private:
 			       const bool prearm);
 	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
 			      const bool report_fail, const bool enforce_gps_required);
+
+	static bool ekf2CheckStates(orb_advert_t *mavlink_log_pub, const bool report_fail);
+
 	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
 					 const bool prearm);
-	static bool check_calibration(const char *param_template, const int32_t device_id);
+
 	static bool manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
 	static bool airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status);
 	static bool cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
