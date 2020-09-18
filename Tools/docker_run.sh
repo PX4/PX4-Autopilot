@@ -4,7 +4,7 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	echo "guessing PX4_DOCKER_REPO based on input";
 	if [[ $@ =~ .*px4_fmu.* ]]; then
 		# nuttx-px4fmu-v{1,2,3,4,5}
-		PX4_DOCKER_REPO="px4io/px4-dev-nuttx-bionic:2020-04-01"
+		PX4_DOCKER_REPO="px4io/px4-dev-nuttx-focal:2020-09-14"
 	elif [[ $@ =~ .*ocpoc.* ]] || [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*beaglebone.* ]]; then
 		# aerotenna_ocpoc_default, beaglebone_blue_default, emlid_navio2_default, px4_raspberrypi_default
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2020-04-01"
@@ -27,7 +27,7 @@ fi
 
 # otherwise default to nuttx
 if [ -z ${PX4_DOCKER_REPO+x} ]; then
-	PX4_DOCKER_REPO="px4io/px4-dev-nuttx-bionic:2020-04-01"
+	PX4_DOCKER_REPO="px4io/px4-dev-nuttx-focal:2020-09-14"
 fi
 
 # docker hygiene
