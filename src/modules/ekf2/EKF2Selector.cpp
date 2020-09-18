@@ -520,6 +520,7 @@ void EKF2Selector::Run()
 		selector_status.instance_changed_count = _instance_changed_count;
 		selector_status.last_instance_change = _last_instance_change;
 		selector_status.gyro_fault_detected = _gyro_fault_detected;
+		selector_status.accel_fault_detected = _accel_fault_detected;
 
 		for (int i = 0; i < _available_instances; i++) {
 			selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
