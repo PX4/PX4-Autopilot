@@ -123,10 +123,15 @@ private:
 	static_assert(IMU_STATUS_SIZE <= sizeof(estimator_selector_status_s::accumulated_gyro_error) / sizeof(
 			      estimator_selector_status_s::accumulated_gyro_error[0]),
 		      "increase estimator_selector_status_s::accumulated_gyro_error size");
+	static_assert(IMU_STATUS_SIZE <= sizeof(estimator_selector_status_s::accumulated_accel_error) / sizeof(
+			      estimator_selector_status_s::accumulated_accel_error[0]),
+		      "increase estimator_selector_status_s::accumulated_accel_error size");
 
 	float _accumulated_gyro_error[IMU_STATUS_SIZE] {};
+	float _accumulated_accel_error[IMU_STATUS_SIZE] {};
 	hrt_abstime _last_update_us{0};
 	bool _gyro_fault_detected{false};
+	bool _accel_fault_detected{false};
 
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{INVALID_INSTANCE};
@@ -172,7 +177,9 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,
-		(ParamFloat<px4::params::EKF2_SEL_GYR_RAT>) _param_ekf2_sel_gyr_rate,
-		(ParamFloat<px4::params::EKF2_SEL_GYR_ANG>) _param_ekf2_sel_gyr_angle
+		(ParamFloat<px4::params::EKF2_SEL_IMU_RAT>) _param_ekf2_sel_imu_angle_rate,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_ANG>) _param_ekf2_sel_imu_angle,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_ACC>) _param_ekf2_sel_imu_accel,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity
 	)
 };

@@ -107,55 +107,86 @@ bool EKF2Selector::UpdateErrorScores()
 {
 	bool updated = false;
 
-	// first check gyro inconsistencies
+	// first check imu inconsistencies
 	_gyro_fault_detected = false;
 	uint32_t faulty_gyro_id = 0;
+	_accel_fault_detected = false;
+	uint32_t faulty_accel_id = 0;
 
-	if (_selected_instance != INVALID_INSTANCE && _sensors_status_imu.updated()) {
+	if (_sensors_status_imu.updated()) {
 		sensors_status_imu_s sensors_status_imu;
 
 		if (_sensors_status_imu.copy(&sensors_status_imu)) {
-			const float angle_rate_threshold = math::radians(_param_ekf2_sel_gyr_rate.get());
-			const float angle_threshold = math::radians(_param_ekf2_sel_gyr_angle.get());
+			const float angle_rate_threshold = math::radians(_param_ekf2_sel_imu_angle_rate.get());
+			const float angle_threshold = math::radians(_param_ekf2_sel_imu_angle.get());
+			const float accel_threshold = _param_ekf2_sel_imu_accel.get();
+			const float velocity_threshold = _param_ekf2_sel_imu_velocity.get();
 			const float time_step_s = math::constrain((sensors_status_imu.timestamp - _last_update_us) * 1e-6f, 0.f, 0.02f);
 			_last_update_us = sensors_status_imu.timestamp;
 
-			if (sensors_status_imu.gyro_device_id_primary == _instance[_selected_instance].estimator_status.gyro_device_id) {
-				// accumulate excess gyro error
-				uint8_t n_gyros = 0;
-				uint8_t n_exceedances = 0;
-				float largest_accumulated_error = 0.0f;
-				uint8_t largest_error_index = 0;
-				for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
-					if (sensors_status_imu.gyro_device_ids[i] != 0) {
-						n_gyros++;
-						_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
-						_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.f);
-						if (_accumulated_gyro_error[i] > largest_accumulated_error) {
-							largest_accumulated_error = _accumulated_gyro_error[i];
-							largest_error_index = i;
-						}
-					} else {
-						// no sensor
-						_accumulated_gyro_error[i] = 0.f;
-					}
-
+			uint8_t n_gyros = 0;
+			uint8_t n_accels = 0;
+			uint8_t n_gyro_exceedances = 0;
+			uint8_t n_accel_exceedances = 0;
+			float largest_accumulated_gyro_error = 0.0f;
+			float largest_accumulated_accel_error = 0.0f;
+			uint8_t largest_gyro_error_index = 0;
+			uint8_t largest_accel_error_index = 0;
+			for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
+				// check for gyros with excessive difference to mean using accumulated error
+				if (sensors_status_imu.gyro_device_ids[i] != 0) {
+					n_gyros++;
+					_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
+					_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.f);
 					if (_accumulated_gyro_error[i] > angle_threshold) {
-						n_exceedances++;
+						n_gyro_exceedances++;
 					}
+					if (_accumulated_gyro_error[i] > largest_accumulated_gyro_error) {
+						largest_accumulated_gyro_error = _accumulated_gyro_error[i];
+						largest_gyro_error_index = i;
+					}
+				} else {
+					// no sensor
+					_accumulated_gyro_error[i] = 0.f;
 				}
 
-				if (n_exceedances > 0) {
-					if (n_gyros >= 3) {
-						// If there are 3 or more gyros, the one with the largest accumulated error is faulty
-						_gyro_fault_detected = true;
-						faulty_gyro_id = _instance[largest_error_index].estimator_status.gyro_device_id;
-					} else if (n_gyros == 2) {
-						// A fault is present, but the faulty gyro identity cannot be determined
-						_gyro_fault_detected = true;
+				// check for accelerometers with excessive difference to mean using accumulated error
+				if (sensors_status_imu.accel_device_ids[i] != 0) {
+					n_accels++;
+					_accumulated_accel_error[i] += (sensors_status_imu.accel_inconsistency_m_s_s[i] - accel_threshold) * time_step_s;
+					_accumulated_accel_error[i] = fmaxf(_accumulated_accel_error[i], 0.f);
+					if (_accumulated_accel_error[i] > velocity_threshold) {
+						n_accel_exceedances++;
 					}
+					if (_accumulated_accel_error[i] > largest_accumulated_accel_error) {
+						largest_accumulated_accel_error = _accumulated_accel_error[i];
+						largest_accel_error_index = i;
+					}
+				} else {
+					// no sensor
+					_accumulated_accel_error[i] = 0.f;
+				}
+			}
 
-					updated = true;
+			if (n_gyro_exceedances > 0) {
+				if (n_gyros >= 3) {
+					// If there are 3 or more sensors, the one with the largest accumulated error is faulty
+					_gyro_fault_detected = true;
+					faulty_gyro_id = _instance[largest_gyro_error_index].estimator_status.gyro_device_id;
+				} else if (n_gyros == 2) {
+					// A fault is present, but the faulty sensor identity cannot be determined
+					_gyro_fault_detected = true;
+				}
+			}
+
+			if (n_accel_exceedances > 0) {
+				if (n_accels >= 3) {
+					// If there are 3 or more sensors, the one with the largest accumulated error is faulty
+					_accel_fault_detected = true;
+					faulty_accel_id = _instance[largest_accel_error_index].estimator_status.accel_device_id;
+				} else if (n_accels == 2) {
+					// A fault is present, but the faulty sensor identity cannot be determined
+					_accel_fault_detected = true;
 				}
 			}
 		}
@@ -200,6 +231,11 @@ bool EKF2Selector::UpdateErrorScores()
 
 		// if the gyro used by the EKF is faulty, declare the EKF unhealthy without delay
 		if (_gyro_fault_detected && _instance[i].estimator_status.gyro_device_id == faulty_gyro_id) {
+			_instance[i].healthy = false;
+		}
+
+		// if the accelerometer used by the EKF is faulty, declare the EKF unhealthy without delay
+		if (_accel_fault_detected && _instance[i].estimator_status.accel_device_id == faulty_accel_id) {
 			_instance[i].healthy = false;
 		}
 
@@ -481,6 +517,7 @@ void EKF2Selector::Run()
 			selector_status.relative_test_ratio[i] = _instance[i].relative_test_ratio;
 			selector_status.healthy[i] = _instance[i].healthy;
 			selector_status.accumulated_gyro_error[i] = _accumulated_gyro_error[i];
+			selector_status.accumulated_accel_error[i] = _accumulated_accel_error[i];
 		}
 
 		selector_status.timestamp = hrt_absolute_time();
