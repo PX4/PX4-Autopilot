@@ -368,21 +368,24 @@ void EKF2Selector::PublishVehicleLocalPosition(bool reset)
 		// save last primary estimator_local_position
 		_local_position_last = local_position;
 
-		// republish with total reset count and current timestamp
-		local_position.xy_reset_counter = _xy_reset_counter;
-		local_position.z_reset_counter = _z_reset_counter;
-		local_position.vxy_reset_counter = _vxy_reset_counter;
-		local_position.vz_reset_counter = _vz_reset_counter;
-		local_position.heading_reset_counter = _heading_reset_counter;
+		// publish estimator's local position for system (vehicle_local_position) unless it's stale
+		if (local_position.timestamp >= _instance[_selected_instance].estimator_status.timestamp_sample) {
+			// republish with total reset count and current timestamp
+			local_position.xy_reset_counter = _xy_reset_counter;
+			local_position.z_reset_counter = _z_reset_counter;
+			local_position.vxy_reset_counter = _vxy_reset_counter;
+			local_position.vz_reset_counter = _vz_reset_counter;
+			local_position.heading_reset_counter = _heading_reset_counter;
 
-		_delta_xy_reset.copyTo(local_position.delta_xy);
-		local_position.delta_z = _delta_z_reset;
-		_delta_vxy_reset.copyTo(local_position.delta_vxy);
-		local_position.delta_vz = _delta_vz_reset;
-		local_position.delta_heading = _delta_heading_reset;
+			_delta_xy_reset.copyTo(local_position.delta_xy);
+			local_position.delta_z = _delta_z_reset;
+			_delta_vxy_reset.copyTo(local_position.delta_vxy);
+			local_position.delta_vz = _delta_vz_reset;
+			local_position.delta_heading = _delta_heading_reset;
 
-		local_position.timestamp = hrt_absolute_time();
-		_vehicle_local_position_pub.publish(local_position);
+			local_position.timestamp = hrt_absolute_time();
+			_vehicle_local_position_pub.publish(local_position);
+		}
 	}
 }
 
@@ -425,13 +428,16 @@ void EKF2Selector::PublishVehicleGlobalPosition(bool reset)
 		// save last primary estimator_global_position
 		_global_position_last = global_position;
 
-		// republish with total reset count and current timestamp
-		global_position.lat_lon_reset_counter = _lat_lon_reset_counter;
-		global_position.alt_reset_counter = _alt_reset_counter;
-		global_position.delta_alt = _delta_alt_reset;
+		// publish estimator's global position for system (vehicle_global_position) unless it's stale
+		if (global_position.timestamp >= _instance[_selected_instance].estimator_status.timestamp_sample) {
+			// republish with total reset count and current timestamp
+			global_position.lat_lon_reset_counter = _lat_lon_reset_counter;
+			global_position.alt_reset_counter = _alt_reset_counter;
+			global_position.delta_alt = _delta_alt_reset;
 
-		global_position.timestamp = hrt_absolute_time();
-		_vehicle_global_position_pub.publish(global_position);
+			global_position.timestamp = hrt_absolute_time();
+			_vehicle_global_position_pub.publish(global_position);
+		}
 	}
 }
 
