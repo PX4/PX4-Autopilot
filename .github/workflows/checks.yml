@@ -26,11 +26,7 @@ jobs:
           "module_documentation",
           "parameters_metadata",
         ]
-        ubuntu_release: [
-          #bionic,
-          focal
-          ]
-    container: px4io/px4-dev-nuttx-${{ matrix.ubuntu_release }}:2020-08-14
+    container: px4io/px4-dev-nuttx-focal:2020-09-14
     steps:
     - uses: actions/checkout@v1
       with:
