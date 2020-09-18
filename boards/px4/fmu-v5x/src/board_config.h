@@ -432,6 +432,9 @@
 
 #define BOARD_NUM_IO_TIMERS 5
 
+
+#define BOARD_HAS_MTD_PARTITION_OVERRIDE {"/fs/mtd_params", "/fs/mtd_waypoints","/fs/mtd_net" }
+#define BOARD_MTD_PARTITION_TABLE_SIZES {50.0f, 49.0f, 1.0f}
 __BEGIN_DECLS
 
 /****************************************************************************************************
