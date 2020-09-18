@@ -84,6 +84,10 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 			*(p++) = 'm'; *(p++) = ':'; // spi mode
 		}
 
+		if (support_keep_running) {
+			*(p++) = 'k';
+		}
+
 		*(p++) = 'b'; *(p++) = ':'; // bus
 		*(p++) = 'f'; *(p++) = ':'; // frequency
 		*(p++) = 'q'; // quiet flag
@@ -161,6 +165,14 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 
 		case 'q':
 			quiet_start = true;
+			break;
+
+		case 'k':
+			if (!support_keep_running) {
+				return ch;
+			}
+
+			keep_running = true;
 			break;
 
 		default:

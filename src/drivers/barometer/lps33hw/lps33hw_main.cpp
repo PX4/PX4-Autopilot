@@ -52,7 +52,7 @@ LPS33HW::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x5D);
-	PRINT_MODULE_USAGE_PARAM_FLAG('k', "if initialization (probing) fails, keep retrying periodically", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -79,7 +79,7 @@ I2CSPIDriverBase *LPS33HW::instantiate(const BusCLIArguments &cli, const BusInst
 		return nullptr;
 	}
 
-	LPS33HW *dev = new LPS33HW(iterator.configuredBusOption(), iterator.bus(), interface, cli.custom1 == 1);
+	LPS33HW *dev = new LPS33HW(iterator.configuredBusOption(), iterator.bus(), interface, cli.keep_running);
 
 	if (dev == nullptr) {
 		delete interface;
@@ -96,22 +96,14 @@ I2CSPIDriverBase *LPS33HW::instantiate(const BusCLIArguments &cli, const BusInst
 
 extern "C" int lps33hw_main(int argc, char *argv[])
 {
-	int ch;
 	using ThisDriver = LPS33HW;
 	BusCLIArguments cli{true, true};
 	cli.i2c_address = 0x5D;
 	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 10 * 1000 * 1000;
+	cli.support_keep_running = true;
 
-	while ((ch = cli.getopt(argc, argv, "k")) != EOF) {
-		switch (ch) {
-		case 'k': // keep retrying
-			cli.custom1 = 1;
-			break;
-		}
-	}
-
-	const char *verb = cli.optarg();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();
