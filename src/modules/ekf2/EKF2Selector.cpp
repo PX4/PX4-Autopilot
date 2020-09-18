@@ -132,19 +132,23 @@ bool EKF2Selector::UpdateErrorScores()
 			float largest_accumulated_accel_error = 0.0f;
 			uint8_t largest_gyro_error_index = 0;
 			uint8_t largest_accel_error_index = 0;
+
 			for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
 				// check for gyros with excessive difference to mean using accumulated error
 				if (sensors_status_imu.gyro_device_ids[i] != 0) {
 					n_gyros++;
 					_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
 					_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.f);
+
 					if (_accumulated_gyro_error[i] > angle_threshold) {
 						n_gyro_exceedances++;
 					}
+
 					if (_accumulated_gyro_error[i] > largest_accumulated_gyro_error) {
 						largest_accumulated_gyro_error = _accumulated_gyro_error[i];
 						largest_gyro_error_index = i;
 					}
+
 				} else {
 					// no sensor
 					_accumulated_gyro_error[i] = 0.f;
@@ -155,13 +159,16 @@ bool EKF2Selector::UpdateErrorScores()
 					n_accels++;
 					_accumulated_accel_error[i] += (sensors_status_imu.accel_inconsistency_m_s_s[i] - accel_threshold) * time_step_s;
 					_accumulated_accel_error[i] = fmaxf(_accumulated_accel_error[i], 0.f);
+
 					if (_accumulated_accel_error[i] > velocity_threshold) {
 						n_accel_exceedances++;
 					}
+
 					if (_accumulated_accel_error[i] > largest_accumulated_accel_error) {
 						largest_accumulated_accel_error = _accumulated_accel_error[i];
 						largest_accel_error_index = i;
 					}
+
 				} else {
 					// no sensor
 					_accumulated_accel_error[i] = 0.f;
@@ -173,6 +180,7 @@ bool EKF2Selector::UpdateErrorScores()
 					// If there are 3 or more sensors, the one with the largest accumulated error is faulty
 					_gyro_fault_detected = true;
 					faulty_gyro_id = _instance[largest_gyro_error_index].estimator_status.gyro_device_id;
+
 				} else if (n_gyros == 2) {
 					// A fault is present, but the faulty sensor identity cannot be determined
 					_gyro_fault_detected = true;
@@ -184,6 +192,7 @@ bool EKF2Selector::UpdateErrorScores()
 					// If there are 3 or more sensors, the one with the largest accumulated error is faulty
 					_accel_fault_detected = true;
 					faulty_accel_id = _instance[largest_accel_error_index].estimator_status.accel_device_id;
+
 				} else if (n_accels == 2) {
 					// A fault is present, but the faulty sensor identity cannot be determined
 					_accel_fault_detected = true;

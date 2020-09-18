@@ -60,13 +60,13 @@ PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_RAT, 7.0f);
  */
 PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_ANG, 15.0f);
 
-**
+/**
  * Selector acceleration threshold
  *
  * EKF2 selector acceleration error threshold for comparing accelerometers. Acceleration vector differences larger than this will result in accumulated velocity error.
  *
  * @group EKF2
- * @unit m/s/s
+ * @unit m/s^2
  */
 PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_ACC, 1.0f);
 

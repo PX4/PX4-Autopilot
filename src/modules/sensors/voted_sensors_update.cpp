@@ -408,6 +408,7 @@ void VotedSensorsUpdate::calcAccelInconsistency()
 	Vector3f accel_mean = {};
 	Vector3f accel_all[GYRO_COUNT_MAX];
 	uint8_t accel_count = 0;
+
 	for (int sensor_index = 0; sensor_index < ACCEL_COUNT_MAX; sensor_index++) {
 		if (_accel_device_id[sensor_index] != 0) {
 			accel_count++;
@@ -417,8 +418,10 @@ void VotedSensorsUpdate::calcAccelInconsistency()
 			accel_mean += accel_all[sensor_index];
 		}
 	}
+
 	if (accel_count > 0) {
 		accel_mean = accel_mean * (1.0f / (float(accel_count)));
+
 		for (int sensor_index = 0; sensor_index < ACCEL_COUNT_MAX; sensor_index++) {
 			if (_accel_device_id[sensor_index] != 0) {
 				_accel_diff[sensor_index] = 0.95f * _accel_diff[sensor_index] + 0.05f * (accel_all[sensor_index] - accel_mean);
@@ -432,6 +435,7 @@ void VotedSensorsUpdate::calcGyroInconsistency()
 	Vector3f gyro_mean = {};
 	Vector3f gyro_all[GYRO_COUNT_MAX];
 	uint8_t gyro_count = 0;
+
 	for (int sensor_index = 0; sensor_index < GYRO_COUNT_MAX; sensor_index++) {
 		if (_gyro_device_id[sensor_index] != 0) {
 			gyro_count++;
@@ -441,8 +445,10 @@ void VotedSensorsUpdate::calcGyroInconsistency()
 			gyro_mean += gyro_all[sensor_index];
 		}
 	}
+
 	if (gyro_count > 0) {
 		gyro_mean = gyro_mean * (1.0f / (float(gyro_count)));
+
 		for (int sensor_index = 0; sensor_index < GYRO_COUNT_MAX; sensor_index++) {
 			if (_gyro_device_id[sensor_index] != 0) {
 				_gyro_diff[sensor_index] = 0.95f * _gyro_diff[sensor_index] + 0.05f * (gyro_all[sensor_index] - gyro_mean);
