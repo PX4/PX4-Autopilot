@@ -68,7 +68,7 @@ list(REMOVE_ITEM copy_nuttx_files ${NUTTX_SRC_DIR}/nuttx/.git)
 add_custom_command(
 	OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST}
-	COMMAND echo "gitdir: ${nuttx_git_dir}" > ${CP_DST}/nuttx/.git
+	COMMAND echo "gitdir: ${nuttx_git_dir}" > ${PX4_BINARY_DIR}/NuttX/nuttx/.git
 	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	DEPENDS
 		git_nuttx
