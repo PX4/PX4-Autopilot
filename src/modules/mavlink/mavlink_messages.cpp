@@ -874,7 +874,8 @@ public:
 
 private:
 	uORB::SubscriptionMultiArray<vehicle_imu_s> _vehicle_imu_subs{ORB_ID::vehicle_imu};
-	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
+	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
@@ -915,39 +916,54 @@ protected:
 			vehicle_magnetometer_s magnetometer{};
 
 			if (_magnetometer_sub.update(&magnetometer)) {
-				/* mark third group dimensions as changed */
+				// mark third group dimensions as changed
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
 
 			} else {
 				_magnetometer_sub.copy(&magnetometer);
 			}
 
-
 			// find corresponding estimated sensor bias
-			bool accel_bias_set = false;
-			bool gyro_bias_set = false;
-			bool mag_bias_set = false;
+			if (_estimator_selector_status_sub.updated()) {
+				estimator_selector_status_s estimator_selector_status;
+
+				if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+					_estimator_sensor_bias_sub.ChangeInstance(estimator_selector_status.primary_instance);
+				}
+			}
+
 			Vector3f accel_bias{0.f, 0.f, 0.f};
 			Vector3f gyro_bias{0.f, 0.f, 0.f};
 			Vector3f mag_bias{0.f, 0.f, 0.f};
 
-			for (auto &bias_sub : _estimator_sensor_bias_subs) {
+			{
 				estimator_sensor_bias_s bias;
 
-				if ((!accel_bias_set || !gyro_bias_set || !mag_bias_set) && bias_sub.copy(&bias)) {
-					if (!accel_bias_set && (bias.accel_device_id != 0) && (bias.accel_device_id == imu.accel_device_id)) {
+				if (_estimator_sensor_bias_sub.copy(&bias)) {
+					if ((bias.accel_device_id != 0) && (bias.accel_device_id == imu.accel_device_id)) {
 						accel_bias = Vector3f{bias.accel_bias};
-						accel_bias_set = true;
 					}
 
-					if (!gyro_bias_set && (bias.gyro_device_id != 0) && (bias.gyro_device_id == imu.gyro_device_id)) {
+					if ((bias.gyro_device_id != 0) && (bias.gyro_device_id == imu.gyro_device_id)) {
 						gyro_bias = Vector3f{bias.gyro_bias};
-						gyro_bias_set = true;
 					}
 
-					if (!mag_bias_set && (bias.mag_device_id != 0) && (bias.mag_device_id == magnetometer.device_id)) {
+					if ((bias.mag_device_id != 0) && (bias.mag_device_id == magnetometer.device_id)) {
 						mag_bias = Vector3f{bias.mag_bias};
-						mag_bias_set = true;
+
+					} else {
+						// find primary mag
+						uORB::SubscriptionMultiArray<vehicle_magnetometer_s> mag_subs{ORB_ID::vehicle_magnetometer};
+
+						for (int i = 0; i < mag_subs.size(); i++) {
+							if (mag_subs[i].advertised() && mag_subs[i].copy(&magnetometer)) {
+								if (magnetometer.device_id == bias.mag_device_id) {
+									_magnetometer_sub.ChangeInstance(i);
+									break;
+								}
+							}
+
+						}
 					}
 				}
 			}

@@ -191,13 +191,11 @@ then
 
 fi
 
-
-
 #
 # Generic setup (autostart ID not found).
 #
 if [ $VEHICLE_TYPE = none ]
 then
 	echo "No autostart ID found"
-	ekf2 start
+	ekf2 start &
 fi

@@ -80,7 +80,12 @@ void EKF2Selector::SelectInstance(uint8_t ekf_instance)
 			_instance[_selected_instance].estimator_attitude_sub.unregisterCallback();
 			_instance[_selected_instance].estimator_status_sub.unregisterCallback();
 
-			PX4_WARN("primary EKF changed %d -> %d", _selected_instance, ekf_instance);
+			if (_instance[_selected_instance].healthy) {
+				PX4_INFO("primary EKF changed %d -> %d", _selected_instance, ekf_instance);
+
+			} else {
+				PX4_WARN("primary EKF changed %d (unhealthy) -> %d", _selected_instance, ekf_instance);
+			}
 		}
 
 		_instance[ekf_instance].estimator_attitude_sub.registerCallback();
@@ -525,13 +530,20 @@ void EKF2Selector::Run()
 		selector_status.instances_available = _available_instances;
 		selector_status.instance_changed_count = _instance_changed_count;
 		selector_status.last_instance_change = _last_instance_change;
+		selector_status.accel_device_id = _instance[_selected_instance].estimator_status.accel_device_id;
+		selector_status.baro_device_id = _instance[_selected_instance].estimator_status.baro_device_id;
+		selector_status.gyro_device_id = _instance[_selected_instance].estimator_status.gyro_device_id;
+		selector_status.mag_device_id = _instance[_selected_instance].estimator_status.mag_device_id;
 		selector_status.gyro_fault_detected = _gyro_fault_detected;
 		selector_status.accel_fault_detected = _accel_fault_detected;
 
-		for (int i = 0; i < _available_instances; i++) {
+		for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 			selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
 			selector_status.relative_test_ratio[i] = _instance[i].relative_test_ratio;
 			selector_status.healthy[i] = _instance[i].healthy;
+		}
+
+		for (int i = 0; i < IMU_STATUS_SIZE; i++) {
 			selector_status.accumulated_gyro_error[i] = _accumulated_gyro_error[i];
 			selector_status.accumulated_accel_error[i] = _accumulated_accel_error[i];
 		}
@@ -567,16 +579,14 @@ void EKF2Selector::PrintStatus()
 		PX4_WARN("selected instance: None");
 	}
 
-	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
+	for (int i = 0; i < _available_instances; i++) {
 		const EstimatorInstance &inst = _instance[i];
 
-		if (inst.estimator_status.timestamp > 0) {
-			PX4_INFO("%d: ACC: %d, GYRO: %d, MAG: %d, %s, test ratio: %.5f (%.5f) %s",
-				 inst.instance, inst.estimator_status.accel_device_id, inst.estimator_status.gyro_device_id,
-				 inst.estimator_status.mag_device_id,
-				 inst.healthy ? "healthy" : "unhealthy",
-				 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
-				 (_selected_instance == i) ? "*" : "");
-		}
+		PX4_INFO("%d: ACC: %d, GYRO: %d, MAG: %d, %s, test ratio: %.7f (%.5f) %s",
+			 inst.instance, inst.estimator_status.accel_device_id, inst.estimator_status.gyro_device_id,
+			 inst.estimator_status.mag_device_id,
+			 inst.healthy ? "healthy" : "unhealthy",
+			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
+			 (_selected_instance == i) ? "*" : "");
 	}
 }

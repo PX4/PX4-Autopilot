@@ -104,7 +104,7 @@ class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	EKF2() = delete;
-	EKF2(bool replay_mode = false, int instance = -1);
+	EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool replay_mode);
 	~EKF2() override;
 
 	/** @see ModuleBase */
@@ -115,8 +115,6 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-
-	bool init();
 
 	int print_status();
 

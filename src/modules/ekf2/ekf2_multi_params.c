@@ -32,15 +32,27 @@
  ****************************************************************************/
 
 /**
- * EKF2/1 device ID of IMU
+ * Multi-EKF IMUs
+ *
+ * Maximum number of IMUs to use for Multi-EKF. Set 0 to disable.
+ * Requires SENS_IMU_MODE 0.
+ *
  * @group EKF2
  * @reboot_required true
+ * @min 0
+ * @max 3
  */
-PARAM_DEFINE_INT32(EKF2_1_IMU_ID, 0);
+PARAM_DEFINE_INT32(EKF2_MULTI_IMU, 3);
 
 /**
- * EKF2/1 device ID of magnetometer
+ * Multi-EKF Magnetometers.
+ *
+ * Maximum number of magnetometers to use for Multi-EKF. Set 0 to disable.
+ * Requires SENS_MAG_MODE 0.
+ *
  * @group EKF2
  * @reboot_required true
+ * @min 0
+ * @max 4
  */
-PARAM_DEFINE_INT32(EKF2_1_MAG_ID, 0);
+PARAM_DEFINE_INT32(EKF2_MULTI_MAG, 0);

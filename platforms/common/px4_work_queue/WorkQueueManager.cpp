@@ -213,6 +213,8 @@ const wq_config_t &ins_instance_to_wq(uint8_t instance)
 	case 3: return wq_configurations::INS3;
 	}
 
+	PX4_WARN("no INS%d wq configuration, using INS0", instance);
+
 	return wq_configurations::INS0;
 }
 

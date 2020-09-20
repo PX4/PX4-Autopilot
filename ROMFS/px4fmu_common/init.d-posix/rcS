@@ -147,6 +147,9 @@ then
 	# Speedup SITL startup
 	param set EKF2_REQ_GPS_H 0.5
 
+	param set EKF2_MULTI_IMU 2
+	param set EKF2_MULTI_MAG 2
+
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
 

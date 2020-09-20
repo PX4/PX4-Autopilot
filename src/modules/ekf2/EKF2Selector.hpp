@@ -82,17 +82,16 @@ private:
 		EstimatorInstance(EKF2Selector *selector, uint8_t i) :
 			estimator_attitude_sub{selector, ORB_ID(estimator_attitude), i},
 			estimator_status_sub{selector, ORB_ID(estimator_status), i},
-			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
 			estimator_local_position_sub{ORB_ID(estimator_local_position), i},
-			estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias), i},
+			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
 			instance(i)
 		{}
 
 		uORB::SubscriptionCallbackWorkItem estimator_attitude_sub;
 		uORB::SubscriptionCallbackWorkItem estimator_status_sub;
-		uORB::Subscription estimator_global_position_sub;
+
 		uORB::Subscription estimator_local_position_sub;
-		uORB::Subscription estimator_sensor_bias_sub;
+		uORB::Subscription estimator_global_position_sub;
 
 		estimator_status_s estimator_status{};
 
@@ -120,10 +119,10 @@ private:
 
 	static constexpr uint8_t IMU_STATUS_SIZE = (sizeof(sensors_status_imu_s::gyro_inconsistency_rad_s) / sizeof(
 				sensors_status_imu_s::gyro_inconsistency_rad_s[0]));
-	static_assert(IMU_STATUS_SIZE <= sizeof(estimator_selector_status_s::accumulated_gyro_error) / sizeof(
+	static_assert(IMU_STATUS_SIZE == sizeof(estimator_selector_status_s::accumulated_gyro_error) / sizeof(
 			      estimator_selector_status_s::accumulated_gyro_error[0]),
 		      "increase estimator_selector_status_s::accumulated_gyro_error size");
-	static_assert(IMU_STATUS_SIZE <= sizeof(estimator_selector_status_s::accumulated_accel_error) / sizeof(
+	static_assert(IMU_STATUS_SIZE == sizeof(estimator_selector_status_s::accumulated_accel_error) / sizeof(
 			      estimator_selector_status_s::accumulated_accel_error[0]),
 		      "increase estimator_selector_status_s::accumulated_accel_error size");
 

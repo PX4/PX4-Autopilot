@@ -158,15 +158,22 @@ void VehicleAngularVelocity::CheckFilters()
 
 void VehicleAngularVelocity::SensorBiasUpdate(bool force)
 {
-	for (auto &bias_sub : _estimator_sensor_bias_subs) {
-		if (bias_sub.updated() || force) {
-			estimator_sensor_bias_s bias;
+	// find corresponding estimated sensor bias
+	if (_estimator_selector_status_sub.updated()) {
+		estimator_selector_status_s estimator_selector_status;
 
-			if (bias_sub.copy(&bias)) {
-				if (bias.gyro_device_id == _selected_sensor_device_id) {
-					_bias = Vector3f{bias.gyro_bias};
-					return;
-				}
+		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+			_estimator_sensor_bias_sub.ChangeInstance(estimator_selector_status.primary_instance);
+		}
+	}
+
+	if (_estimator_sensor_bias_sub.updated() || force) {
+		estimator_sensor_bias_s bias;
+
+		if (_estimator_sensor_bias_sub.copy(&bias)) {
+			if (bias.gyro_device_id == _selected_sensor_device_id) {
+				_bias = Vector3f{bias.gyro_bias};
+				return;
 			}
 		}
 	}
