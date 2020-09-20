@@ -125,8 +125,10 @@ then
 
 	param set CAL_ACC0_ID 1311244
 	param set CAL_ACC1_ID 1311500
+	param set CAL_ACC2_ID 1311600
 	param set CAL_GYRO0_ID 1311244
 	param set CAL_GYRO1_ID 1311500
+	param set CAL_GYRO2_ID 1311600
 	param set CAL_MAG0_ID 197388
 	param set CAL_MAG1_ID 197644
 
