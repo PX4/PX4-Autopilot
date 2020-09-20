@@ -218,9 +218,11 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 			_px4_accel_0.set_temperature(sensors.temperature);
 			_px4_accel_1.set_temperature(sensors.temperature);
+			_px4_accel_2.set_temperature(sensors.temperature);
 
 			_px4_gyro_0.set_temperature(sensors.temperature);
 			_px4_gyro_1.set_temperature(sensors.temperature);
+			_px4_gyro_2.set_temperature(sensors.temperature);
 
 			_px4_mag_0.set_temperature(sensors.temperature);
 			_px4_mag_1.set_temperature(sensors.temperature);
@@ -231,12 +233,14 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL && !_accel_blocked) {
 		_px4_accel_0.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 		_px4_accel_1.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+		_px4_accel_2.update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 	}
 
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO && !_gyro_blocked) {
 		_px4_gyro_0.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 		_px4_gyro_1.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+		_px4_gyro_2.update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 	}
 
 	// magnetometer
