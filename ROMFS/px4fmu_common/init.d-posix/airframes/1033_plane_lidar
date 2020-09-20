@@ -3,7 +3,7 @@
 # @name Plane SITL with downward facing LIDAR.
 #
 
-sh /etc/init.d-posix/1030_plane
+sh /etc/init.d-posix/airframes/1030_plane
 
 if [ $AUTOCNF = yes ]
 then

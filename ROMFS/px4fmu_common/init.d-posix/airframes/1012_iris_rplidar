@@ -5,7 +5,7 @@
 # @type Quadrotor Wide
 #
 
-sh /etc/init.d-posix/10016_iris
+sh /etc/init.d-posix/airframes/10016_iris
 
 if [ $AUTOCNF = yes ]
 then
