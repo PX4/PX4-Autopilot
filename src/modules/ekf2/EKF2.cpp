@@ -225,20 +225,24 @@ int EKF2::print_status()
 	return 0;
 }
 
-template<typename Param>
-void EKF2::update_mag_bias(Param &mag_bias_param, int axis_index)
+template<typename Param1, typename Param2>
+void EKF2::update_mag_bias(Param1 &mag_bias_param, Param2 &mag_bias_var_param, int axis_index)
 {
 	if (_valid_cal_available[axis_index]) {
 
 		// calculate weighting using ratio of variances and update stored bias values
-		const float weighting = constrain(_param_ekf2_magb_vref.get() / (_param_ekf2_magb_vref.get() +
+		const float weighting = constrain(mag_bias_var_param.get() / (mag_bias_var_param.get() +
 						  _last_valid_variance[axis_index]), 0.0f, _param_ekf2_magb_k.get());
 		const float mag_bias_saved = mag_bias_param.get();
 
-		_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
+		const float new_ref = weighting * _last_valid_mag_cal[axis_index] + mag_bias_param.get();
+		const float new_ref_var = (1.f - weighting) * mag_bias_var_param.get();
+		_last_valid_mag_cal[axis_index] = new_ref;
 
-		mag_bias_param.set(_last_valid_mag_cal[axis_index]);
+		mag_bias_param.set(new_ref);
 		mag_bias_param.commit_no_notification();
+		mag_bias_var_param.set(new_ref_var);
+		mag_bias_var_param.commit_no_notification();
 
 		_valid_cal_available[axis_index] = false;
 	}
@@ -416,13 +420,20 @@ void EKF2::Run()
 
 				if ((_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
-					// this means we need to reset the learned bias values to zero
+					// this means we need to reset the learned bias values to zero and
+					// the learned bias variance to a default value
 					_param_ekf2_magbias_x.set(0.f);
 					_param_ekf2_magbias_x.commit_no_notification();
 					_param_ekf2_magbias_y.set(0.f);
 					_param_ekf2_magbias_y.commit_no_notification();
 					_param_ekf2_magbias_z.set(0.f);
 					_param_ekf2_magbias_z.commit_no_notification();
+					_param_ekf2_magb_var_x.set(2.5e-7f);
+					_param_ekf2_magb_var_x.commit_no_notification();
+					_param_ekf2_magb_var_y.set(2.5e-7f);
+					_param_ekf2_magb_var_y.commit_no_notification();
+					_param_ekf2_magb_var_z.set(2.5e-7f);
+					_param_ekf2_magb_var_z.commit_no_notification();
 					_param_ekf2_magbias_id.set(magnetometer.device_id);
 					_param_ekf2_magbias_id.commit();
 
@@ -1134,8 +1145,12 @@ void EKF2::Run()
 				if (_total_cal_time_us > 120_s) {
 					// we have sufficient accumulated valid flight time to form a reliable bias estimate
 					// check that the state variance for each axis is within a range indicating filter convergence
-					const float max_var_allowed = 100.0f * _param_ekf2_magb_vref.get();
-					const float min_var_allowed = 0.01f * _param_ekf2_magb_vref.get();
+					const float mean_variance = (_param_ekf2_magb_var_x.get()
+								     + _param_ekf2_magb_var_y.get()
+								     + _param_ekf2_magb_var_z.get())
+								    / 3.f;
+					const float max_var_allowed = 100.0f * mean_variance;
+					const float min_var_allowed = 0.01f * mean_variance;
 
 					// Declare all bias estimates invalid if any variances are out of range
 					bool all_estimates_invalid = false;
@@ -1161,9 +1176,9 @@ void EKF2::Run()
 				if ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				    && (status.filter_fault_flags == 0)) {
 
-					update_mag_bias(_param_ekf2_magbias_x, 0);
-					update_mag_bias(_param_ekf2_magbias_y, 1);
-					update_mag_bias(_param_ekf2_magbias_z, 2);
+					update_mag_bias(_param_ekf2_magbias_x, _param_ekf2_magb_var_x, 0);
+					update_mag_bias(_param_ekf2_magbias_y, _param_ekf2_magb_var_y, 1);
+					update_mag_bias(_param_ekf2_magbias_z, _param_ekf2_magb_var_z, 2);
 
 					// reset to prevent data being saved too frequently
 					_total_cal_time_us = 0;

@@ -1117,15 +1117,34 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
 PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
 
 /**
- * State variance assumed for magnetometer bias storage.
- * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value. Smaller values will make the stored bias data adjust more slowly from flight to flight. Larger values will make it adjust faster.
+ * State variance for magnetometer x-axis bias storage
+ * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
  *
  * @group EKF2
- * @reboot_required true
  * @unit mgauss^2
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(EKF2_MAGB_VREF, 2.5E-7f);
+PARAM_DEFINE_FLOAT(EKF2_MAGB_VAR_X, 2.5E-7f);
+
+/**
+ * State variance for magnetometer y-axis bias storage
+ * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
+ *
+ * @group EKF2
+ * @unit mgauss^2
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAGB_VAR_Y, 2.5E-7f);
+
+/**
+ * State variance for magnetometer z-axis bias storage
+ * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
+ *
+ * @group EKF2
+ * @unit mgauss^2
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAGB_VAR_Z, 2.5E-7f);
 
 /**
  * Maximum fraction of learned mag bias saved at each disarm.

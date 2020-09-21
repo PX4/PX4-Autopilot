@@ -125,8 +125,8 @@ private:
 				const estimator_innovations_s &innov);
 	void resetPreFlightChecks();
 
-	template<typename Param>
-	void update_mag_bias(Param &mag_bias_param, int axis_index);
+	template<typename Param1, typename Param2>
+	void update_mag_bias(Param1 &mag_bias_param, Param2 &mag_bias_var_param, int axis_index);
 
 	template<typename Param>
 	bool update_mag_decl(Param &mag_decl_param);
@@ -481,8 +481,12 @@ private:
 		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z,		///< Z magnetometer bias (mGauss)
 		(ParamInt<px4::params::EKF2_MAGBIAS_ID>)
 		_param_ekf2_magbias_id,		///< ID of the magnetometer sensor used to learn the bias values
-		(ParamFloat<px4::params::EKF2_MAGB_VREF>)
-		_param_ekf2_magb_vref, ///< Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
+		(ParamFloat<px4::params::EKF2_MAGB_VAR_X>)
+		_param_ekf2_magb_var_x, ///< Error variance of previously saved magnetometer x bias estimate (mGauss**2)
+		(ParamFloat<px4::params::EKF2_MAGB_VAR_Y>)
+		_param_ekf2_magb_var_y, ///< Error variance of previously saved magnetometer y bias estimate (mGauss**2)
+		(ParamFloat<px4::params::EKF2_MAGB_VAR_Z>)
+		_param_ekf2_magb_var_z, ///< Error variance of previously saved magnetometer z bias estimate (mGauss**2)
 		(ParamFloat<px4::params::EKF2_MAGB_K>)
 		_param_ekf2_magb_k,	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
