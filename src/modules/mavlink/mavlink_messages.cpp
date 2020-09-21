@@ -123,6 +123,53 @@
 using matrix::Vector3f;
 using matrix::wrap_2pi;
 
+// ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
+static_assert(MAV_SENSOR_ROTATION_NONE == ROTATION_NONE, "Roll: 0, Pitch: 0, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_YAW_45 == ROTATION_YAW_45, "Roll: 0, Pitch: 0, Yaw: 45");
+static_assert(MAV_SENSOR_ROTATION_YAW_90 == ROTATION_YAW_90, "Roll: 0, Pitch: 0, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_YAW_135 == ROTATION_YAW_135, "Roll: 0, Pitch: 0, Yaw: 135");
+static_assert(MAV_SENSOR_ROTATION_YAW_180 == ROTATION_YAW_180, "Roll: 0, Pitch: 0, Yaw: 180");
+static_assert(MAV_SENSOR_ROTATION_YAW_225 == ROTATION_YAW_225, "Roll: 0, Pitch: 0, Yaw: 225");
+static_assert(MAV_SENSOR_ROTATION_YAW_270 == ROTATION_YAW_270, "Roll: 0, Pitch: 0, Yaw: 270");
+static_assert(MAV_SENSOR_ROTATION_YAW_315 == ROTATION_YAW_315, "Roll: 0, Pitch: 0, Yaw: 315");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180 == ROTATION_ROLL_180, "Roll: 180, Pitch: 0, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_45 == ROTATION_ROLL_180_YAW_45, "Roll: 180, Pitch: 0, Yaw: 45");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_90 == ROTATION_ROLL_180_YAW_90, "Roll: 180, Pitch: 0, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_135 == ROTATION_ROLL_180_YAW_135, "Roll: 180, Pitch: 0, Yaw: 135");
+static_assert(MAV_SENSOR_ROTATION_PITCH_180 == ROTATION_PITCH_180, "Roll: 0, Pitch: 180, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_225 == ROTATION_ROLL_180_YAW_225, "Roll: 180, Pitch: 0, Yaw: 225");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_270 == ROTATION_ROLL_180_YAW_270, "Roll: 180, Pitch: 0, Yaw: 270");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_315 == ROTATION_ROLL_180_YAW_315, "Roll: 180, Pitch: 0, Yaw: 315");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90 == ROTATION_ROLL_90, "Roll: 90, Pitch: 0, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_YAW_45 == ROTATION_ROLL_90_YAW_45, "Roll: 90, Pitch: 0, Yaw: 45");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_YAW_90 == ROTATION_ROLL_90_YAW_90, "Roll: 90, Pitch: 0, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_YAW_135 == ROTATION_ROLL_90_YAW_135, "Roll: 90, Pitch: 0, Yaw: 135");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270 == ROTATION_ROLL_270, "Roll: 270, Pitch: 0, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_45 == ROTATION_ROLL_270_YAW_45, "Roll: 270, Pitch: 0, Yaw: 45");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_90 == ROTATION_ROLL_270_YAW_90, "Roll: 270, Pitch: 0, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_135 == ROTATION_ROLL_270_YAW_135, "Roll: 270, Pitch: 0, Yaw: 135");
+static_assert(MAV_SENSOR_ROTATION_PITCH_90 == ROTATION_PITCH_90, "Roll: 0, Pitch: 90, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_PITCH_270 == ROTATION_PITCH_270, "Roll: 0, Pitch: 270, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_PITCH_180_YAW_90 == ROTATION_PITCH_180_YAW_90, "Roll: 0, Pitch: 180, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_PITCH_180_YAW_270 == ROTATION_PITCH_180_YAW_270, "Roll: 0, Pitch: 180, Yaw: 270");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_90 == ROTATION_ROLL_90_PITCH_90, "Roll: 90, Pitch: 90, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_PITCH_90 == ROTATION_ROLL_180_PITCH_90, "Roll: 180, Pitch: 90, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_PITCH_90 == ROTATION_ROLL_270_PITCH_90, "Roll: 270, Pitch: 90, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_180 == ROTATION_ROLL_90_PITCH_180, "Roll: 90, Pitch: 180, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_PITCH_180 == ROTATION_ROLL_270_PITCH_180, "Roll: 270, Pitch: 180, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_270 == ROTATION_ROLL_90_PITCH_270, "Roll: 90, Pitch: 270, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_PITCH_270 == ROTATION_ROLL_180_PITCH_270, "Roll: 180, Pitch: 270, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_PITCH_270 == ROTATION_ROLL_270_PITCH_270, "Roll: 270, Pitch: 270, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_180_YAW_90 == ROTATION_ROLL_90_PITCH_180_YAW_90,
+	      "Roll: 90, Pitch: 180, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_YAW_270 == ROTATION_ROLL_90_YAW_270, "Roll: 90, Pitch: 0, Yaw: 270");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_68_YAW_293 == ROTATION_ROLL_90_PITCH_68_YAW_293,
+	      "Roll: 90, Pitch: 68, Yaw: 293");
+static_assert(MAV_SENSOR_ROTATION_PITCH_315 == ROTATION_PITCH_315, "Pitch: 315");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_315 == ROTATION_ROLL_90_PITCH_315, "Roll: 90, Pitch: 315");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_180 == ROTATION_ROLL_270_YAW_180, "Roll: 270, Yaw: 180");
+static_assert(42 == ROTATION_MAX, "Keep MAV_SENSOR_ROTATION and PX4 Rotation in sync");
+
 static uint16_t cm_uint16_from_m_float(float m)
 {
 	if (m < 0.0f) {
