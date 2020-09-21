@@ -1131,7 +1131,7 @@ void EKF2::Run()
 				}
 
 				// Start checking mag bias estimates when we have accumulated sufficient calibration time
-				if (_total_cal_time_us > 120_s) {
+				if (_total_cal_time_us > 30_s) {
 					// we have sufficient accumulated valid flight time to form a reliable bias estimate
 					// check that the state variance for each axis is within a range indicating filter convergence
 					const float max_var_allowed = 100.0f * _param_ekf2_magb_vref.get();
