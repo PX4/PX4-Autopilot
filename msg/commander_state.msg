@@ -17,6 +17,6 @@ uint8 MAIN_STATE_AUTO_FOLLOW_TARGET = 12
 uint8 MAIN_STATE_AUTO_PRECLAND = 13
 uint8 MAIN_STATE_ORBIT = 14
 uint8 MAIN_STATE_MAX = 15
-uint8 MAIN_STATE_TILT = 16 //Tilt des rotors
+uint8 MAIN_STATE_TILT = 16 
 
 uint8 main_state		    	# main state machine
