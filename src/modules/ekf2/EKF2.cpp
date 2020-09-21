@@ -2065,7 +2065,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
 
-					if ((vehicle_mag_sub.get().device_id != 0) && (vehicle_imu_sub.get().accel_device_id != 0)
+					// Mag & IMU data must be valid, first mag can be ignored initially
+					if ((vehicle_mag_sub.get().device_id != 0 || mag == 0) && (vehicle_imu_sub.get().accel_device_id != 0)
 					    && (vehicle_imu_sub.get().gyro_device_id != 0)) {
 
 						const int instance = imu + mag * imu_instances;

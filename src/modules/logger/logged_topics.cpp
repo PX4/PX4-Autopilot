@@ -104,8 +104,8 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("multirotor_motor_limits", 1000, 2);
 	add_topic_multi("telemetry_status", 1000);
 
-	// EKF multi topics (max 6 estimators)
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6;
+	// EKF multi topics (currently max 9 estimators)
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 9;
 	add_topic("estimator_selector_status", 200);
 	add_topic_multi("ekf_gps_drift", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);

@@ -53,7 +53,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-static constexpr uint8_t EKF2_MAX_INSTANCES{6}; // keep in sync with EKF2_MULTI_INST max, EKF2_x_IMU_ID, EKF2_x_MAG_ID, and selector MAX_INSTANCES
+static constexpr uint8_t EKF2_MAX_INSTANCES{9}; // keep in sync with EKF2_MULTI_INST max, EKF2_x_IMU_ID, EKF2_x_MAG_ID, and selector MAX_INSTANCES
 
 class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -115,6 +115,9 @@ private:
 		{this, 3},
 		{this, 4},
 		{this, 5},
+		{this, 6},
+		{this, 7},
+		{this, 8},
 	};
 
 	static constexpr uint8_t IMU_STATUS_SIZE = (sizeof(sensors_status_imu_s::gyro_inconsistency_rad_s) / sizeof(
@@ -125,6 +128,9 @@ private:
 	static_assert(IMU_STATUS_SIZE == sizeof(estimator_selector_status_s::accumulated_accel_error) / sizeof(
 			      estimator_selector_status_s::accumulated_accel_error[0]),
 		      "increase estimator_selector_status_s::accumulated_accel_error size");
+	static_assert(EKF2_MAX_INSTANCES == sizeof(estimator_selector_status_s::combined_test_ratio) / sizeof(
+			      estimator_selector_status_s::combined_test_ratio[0]),
+		      "increase estimator_selector_status_s::combined_test_ratio size");
 
 	float _accumulated_gyro_error[IMU_STATUS_SIZE] {};
 	float _accumulated_accel_error[IMU_STATUS_SIZE] {};
