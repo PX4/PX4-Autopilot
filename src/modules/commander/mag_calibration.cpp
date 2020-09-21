@@ -226,7 +226,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 static float get_sphere_radius()
 {
 	// if GPS is available use real field intensity from world magnetic model
-	uORB::SubscriptionMultiArray<vehicle_gps_position_s> gps_subs{ORB_ID::vehicle_gps_position};
+	uORB::SubscriptionMultiArray<vehicle_gps_position_s, 3> gps_subs{ORB_ID::vehicle_gps_position};
 
 	for (auto &gps_sub : gps_subs) {
 		vehicle_gps_position_s gps;
