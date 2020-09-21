@@ -45,6 +45,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
 class Tiltrotor : public VtolType
 {
 
@@ -106,6 +107,8 @@ private:
 	bool _tilt_motors_for_startup{false};
 	//AIGHTECH
 	int manual_sp_sub_fd = orb_subscribe(ORB_ID(manual_control_setpoint));
+    int vehicle_control_mode_sp_sub_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
+    struct vehicle_control_mode_s vehicle_control_mode_sp {};
 	struct manual_control_setpoint_s manual_control_sp {};
 
 };

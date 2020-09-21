@@ -44,6 +44,7 @@ uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19	# Auto Follow
 uint8 NAVIGATION_STATE_AUTO_PRECLAND = 20	# Precision land with landing target
 uint8 NAVIGATION_STATE_ORBIT = 21       # Orbit in a circle
 uint8 NAVIGATION_STATE_MAX = 22
+uint8 NAVIGATION_STATE_TILT= 23			# Tilt rotor mode	
 
 uint8 RC_IN_MODE_DEFAULT = 0
 uint8 RC_IN_MODE_OFF = 1

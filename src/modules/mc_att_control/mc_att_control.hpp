@@ -55,6 +55,8 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <vtol_att_control/vtol_type.h>
 #include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
+#include <uORB/uORB.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 #include <AttitudeControl.hpp>
 
@@ -133,6 +135,9 @@ private:
 	bool _vtol_in_transition_mode{false};
 
 	uint8_t _quat_reset_counter{0};
+
+    int vehicle_control_mode_sp_sub_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
+    struct vehicle_control_mode_s vehicle_control_mode_sp {};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLL_P>) _param_mc_roll_p,

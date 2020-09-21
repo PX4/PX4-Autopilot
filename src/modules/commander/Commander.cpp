@@ -403,6 +403,9 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
 
+			} else if (!strcmp(argv[2], "tilt")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_TILT);
+
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[2]);
 			}
@@ -673,6 +676,10 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 					/* OFFBOARD */
 					main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_OFFBOARD, status_flags, &_internal_state);
+
+			} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_TILT) {
+					/* MANUAL */
+					main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_TILT, status_flags, &_internal_state);
 				}
 
 			} else {
@@ -3196,7 +3203,24 @@ Commander::update_control_mode()
 			&& !status.is_vtol);
 
 	switch (status.nav_state) {
+
+	case vehicle_status_s::NAVIGATION_STATE_TILT:
+		control_mode.flag_control_tilt_enabled = true;
+		control_mode.flag_control_manual_enabled = true;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = true;
+		control_mode.flag_control_attitude_enabled = false;
+		control_mode.flag_control_rattitude_enabled = false;
+		control_mode.flag_control_altitude_enabled = false;
+		control_mode.flag_control_climb_rate_enabled = false;
+		control_mode.flag_control_position_enabled = false;
+		control_mode.flag_control_velocity_enabled = false;
+		control_mode.flag_control_acceleration_enabled = false;
+		control_mode.flag_control_termination_enabled = false;
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+		control_mode.flag_control_tilt_enabled = false;
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_rates_enabled = stabilization_required();
 		control_mode.flag_control_attitude_enabled = stabilization_required();

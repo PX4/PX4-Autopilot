@@ -434,9 +434,15 @@ void Tiltrotor::fill_actuator_outputs()
 
 	//AIGHTECH
 
-	orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub_fd, &manual_control_sp);
+    orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub_fd, &manual_control_sp);
+    orb_copy(ORB_ID(vehicle_control_mode), vehicle_control_mode_sp_sub_fd, &vehicle_control_mode_sp);
 	_tilt_control=manual_control_sp.x;
-    _actuators_out_0->control[4] = _tilt_control;
+    bool _tilt_enabled=vehicle_control_mode_sp.flag_control_tilt_enabled;
+    if(_tilt_enabled==true){
+        _actuators_out_0->control[4] = _tilt_control;
+    } else {
+        _actuators_out_0->control[4] = 0;
+    }
     //PX4_INFO("%d %d %d", actuator_controls_s::INDEX_ROLL, actuator_controls_s::INDEX_PITCH, actuator_controls_s::INDEX_YAW);
 	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;

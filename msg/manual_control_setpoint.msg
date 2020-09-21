@@ -65,3 +65,4 @@ uint8 mode_slot			 # the slot a specific model selector is in
 uint8 data_source		 # where this input is coming from
 uint8 stab_switch 		 # stabilize switch (only relevant for fixed wings, optional): _MANUAL, STABILIZED
 uint8 man_switch		 # manual switch (only relevant for fixed wings, optional): _STABILIZED_, MANUAL
+bool tilt_switch		 # tilt enabled 2 position switch (optional): _MANUAL, TILT
