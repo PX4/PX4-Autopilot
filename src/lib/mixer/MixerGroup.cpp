@@ -39,7 +39,6 @@
 
 #include "MixerGroup.hpp"
 
-#include "HelicopterMixer/HelicopterMixer.hpp"
 #include "MultirotorMixer/MultirotorMixer.hpp"
 #include "NullMixer/NullMixer.hpp"
 #include "SimpleMixer/SimpleMixer.hpp"
@@ -200,9 +199,6 @@ MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle
 			m = MultirotorMixer::from_text(control_cb, cb_handle, p, resid);
 			break;
 
-		case 'H':
-			m = HelicopterMixer::from_text(control_cb, cb_handle, p, resid);
-			break;
 
 		default:
 			/* it's probably junk or whitespace, skip a byte and retry */

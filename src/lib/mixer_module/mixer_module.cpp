@@ -517,7 +517,7 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 {
 	const MixingOutput *output = (const MixingOutput *)handle;
 
-	input = output->_controls[control_group].control[control_index];
+    input = output->_controls[control_group].control[control_index];
 
 	/* limit control input */
 	input = math::constrain(input, -1.f, 1.f);
