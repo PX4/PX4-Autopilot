@@ -1122,6 +1122,7 @@ PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
  *
  * @group EKF2
  * @unit mgauss^2
+ * @volatile
  * @decimal 8
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGB_VAR_X, 2.5E-7f);
@@ -1132,6 +1133,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGB_VAR_X, 2.5E-7f);
  *
  * @group EKF2
  * @unit mgauss^2
+ * @volatile
  * @decimal 8
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGB_VAR_Y, 2.5E-7f);
@@ -1142,6 +1144,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGB_VAR_Y, 2.5E-7f);
  *
  * @group EKF2
  * @unit mgauss^2
+ * @volatile
  * @decimal 8
  */
 PARAM_DEFINE_FLOAT(EKF2_MAGB_VAR_Z, 2.5E-7f);
