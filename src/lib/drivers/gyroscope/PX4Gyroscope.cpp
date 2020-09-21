@@ -52,8 +52,6 @@ static constexpr int32_t sum(const int16_t samples[16], uint8_t len)
 }
 
 PX4Gyroscope::PX4Gyroscope(uint32_t device_id, enum Rotation rotation) :
-	_sensor_pub{ORB_ID(sensor_gyro)},
-	_sensor_fifo_pub{ORB_ID(sensor_gyro_fifo)},
 	_device_id{device_id},
 	_rotation{rotation}
 {

@@ -44,8 +44,6 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#include "drv_device.h"
-
 /**
  * Sensor type definitions.
  *

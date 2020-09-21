@@ -65,8 +65,6 @@ static constexpr uint8_t clipping(const int16_t samples[16], int16_t clip_limit,
 }
 
 PX4Accelerometer::PX4Accelerometer(uint32_t device_id, enum Rotation rotation) :
-	_sensor_pub{ORB_ID(sensor_accel)},
-	_sensor_fifo_pub{ORB_ID(sensor_accel_fifo)},
 	_device_id{device_id},
 	_rotation{rotation}
 {

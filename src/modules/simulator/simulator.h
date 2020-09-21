@@ -44,7 +44,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
-#include <drivers/drv_range_finder.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -198,8 +197,8 @@ private:
 
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[RANGE_FINDER_MAX_SENSORS] {};
-	uint8_t _dist_sensor_ids[RANGE_FINDER_MAX_SENSORS] {};
+	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[ORB_MULTI_MAX_INSTANCES] {};
+	uint8_t _dist_sensor_ids[ORB_MULTI_MAX_INSTANCES] {};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

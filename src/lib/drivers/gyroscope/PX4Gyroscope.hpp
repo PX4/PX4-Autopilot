@@ -64,8 +64,8 @@ public:
 private:
 	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
-	uORB::PublicationMulti<sensor_gyro_s> _sensor_pub;
-	uORB::PublicationMulti<sensor_gyro_fifo_s>  _sensor_fifo_pub;
+	uORB::PublicationMulti<sensor_gyro_s> _sensor_pub{ORB_ID(sensor_gyro)};
+	uORB::PublicationMulti<sensor_gyro_fifo_s>  _sensor_fifo_pub{ORB_ID(sensor_gyro_fifo)};
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
