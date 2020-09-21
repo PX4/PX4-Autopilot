@@ -43,7 +43,6 @@
 
 #include <containers/Array.hpp>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module_params.h>
@@ -191,6 +190,8 @@ private:
 	 * Gets the current sensor rotation value.
 	 */
 	int get_sensor_rotation(const size_t index);
+
+	static constexpr int RANGE_FINDER_MAX_SENSORS = 12;
 
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses {};
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};

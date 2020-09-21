@@ -52,7 +52,7 @@ using namespace time_literals;
 const char *const UavcanGnssBridge::NAME = "gnss";
 
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_gnss", "/dev/uavcan/gnss", "/dev/gnss", ORB_ID(sensor_gps)),
+	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps)),
 	_node(node),
 	_sub_auxiliary(node),
 	_sub_fix(node),
@@ -76,13 +76,7 @@ UavcanGnssBridge::~UavcanGnssBridge()
 int
 UavcanGnssBridge::init()
 {
-	int res = device::CDev::init();
-
-	if (res < 0) {
-		return res;
-	}
-
-	res = _sub_auxiliary.start(AuxiliaryCbBinder(this, &UavcanGnssBridge::gnss_auxiliary_sub_cb));
+	int res = _sub_auxiliary.start(AuxiliaryCbBinder(this, &UavcanGnssBridge::gnss_auxiliary_sub_cb));
 
 	if (res < 0) {
 		PX4_WARN("GNSS auxiliary sub failed %i", res);
@@ -502,6 +496,6 @@ bool UavcanGnssBridge::injectData(const uint8_t *const data, const size_t data_l
 
 void UavcanGnssBridge::print_status() const
 {
-	UavcanCDevSensorBridgeBase::print_status();
+	UavcanSensorBridgeBase::print_status();
 	perf_print_counter(_rtcm_perf);
 }

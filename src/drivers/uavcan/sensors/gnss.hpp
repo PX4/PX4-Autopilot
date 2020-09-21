@@ -59,7 +59,7 @@
 
 #include "sensor_bridge.hpp"
 
-class UavcanGnssBridge : public UavcanCDevSensorBridgeBase
+class UavcanGnssBridge : public UavcanSensorBridgeBase
 {
 	static constexpr unsigned ORB_TO_UAVCAN_FREQUENCY_HZ = 10;
 
