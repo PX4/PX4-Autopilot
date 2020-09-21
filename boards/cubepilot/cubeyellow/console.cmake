@@ -2,12 +2,11 @@
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR cubepilot
-	MODEL cubeorange
-	LABEL default
+	MODEL cubeyellow
+	LABEL console
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	BUILD_BOOTLOADER
 	IO cubepilot_io-v2_default
 	TESTING
 	UAVCAN_INTERFACES 2
@@ -16,7 +15,7 @@ px4_add_board(
 		TEL2:/dev/ttyS1
 		GPS1:/dev/ttyS2
 		# PX4IO:/dev/ttyS3
-		TEL3:/dev/ttyS4
+		# CONSOLE:/dev/ttyS4
 		GPS2:/dev/ttyS5
 	DRIVERS
 		adc/board_adc
