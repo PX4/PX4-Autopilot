@@ -128,12 +128,6 @@ private:
 				const estimator_innovations_s &innov, const bool can_observe_heading_in_flight);
 	void resetPreFlightChecks();
 
-	template<typename Param>
-	void update_mag_bias(Param &mag_bias_param, int axis_index);
-
-	template<typename Param>
-	bool update_mag_decl(Param &mag_decl_param);
-
 	void publish_attitude(const hrt_abstime &timestamp);
 	void publish_estimator_optical_flow_vel(const hrt_abstime &timestamp);
 	void publish_odometry(const hrt_abstime &timestamp, const imuSample &imu, const vehicle_local_position_s &lpos);
@@ -160,19 +154,16 @@ private:
 
 	perf_counter_t _ekf_update_perf;
 
-	// Initialise time stamps used to send sensor data to the EKF and for logging
-	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
-
 	// Used to check, save and use learned magnetometer biases
-	hrt_abstime _last_magcal_us = 0;	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
-	hrt_abstime _total_cal_time_us = 0;	///< accumulated calibration time since the last save
+	hrt_abstime _last_magcal_us{0};	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
+	hrt_abstime _total_cal_time_us{0};	///< accumulated calibration time since the last save
 
-	float _last_valid_mag_cal[3] = {};	///< last valid XYZ magnetometer bias estimates (Gauss)
-	bool _valid_cal_available[3] = {};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
-	float _last_valid_variance[3] = {};	///< variances for the last valid magnetometer XYZ bias estimates (Gauss**2)
+	Vector3f _mag_bias_initial{};
+	Vector3f _mag_bias_saved{};
 
-	// Used to control saving of mag declination to be used on next startup
-	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
+	Vector3f _mag_bias_best{};
+	Vector3f _mag_bias_variance_best{INFINITY, INFINITY, INFINITY};
+	bool _valid_cal_available{false};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
 
 	bool _had_valid_terrain{false};			///< true if at any time there was a valid terrain estimate
 
@@ -181,7 +172,8 @@ private:
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
-	bool _imu_bias_reset_request{false};
+	uint8_t _imu_calibration_count{0};
+	uint8_t _mag_calibration_count{0};
 
 	uint32_t _device_id_accel{0};
 	uint32_t _device_id_baro{0};
@@ -432,15 +424,15 @@ private:
 		_param_ekf2_angerr_init,	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 		// EKF saved XYZ magnetometer bias values
-		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _param_ekf2_magbias_x,		///< X magnetometer bias (Gauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _param_ekf2_magbias_y,		///< Y magnetometer bias (Gauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z,		///< Z magnetometer bias (Gauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _param_ekf2_magbias_x, ///< X magnetometer bias (Gauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _param_ekf2_magbias_y, ///< Y magnetometer bias (Gauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z, ///< Z magnetometer bias (Gauss)
 		(ParamInt<px4::params::EKF2_MAGBIAS_ID>)
-		_param_ekf2_magbias_id,		///< ID of the magnetometer sensor used to learn the bias values
+		_param_ekf2_magbias_id, ///< ID of the magnetometer sensor used to learn the bias values
 		(ParamFloat<px4::params::EKF2_MAGB_VREF>)
 		_param_ekf2_magb_vref, ///< Assumed error variance of previously saved magnetometer bias estimates (Gauss**2)
 		(ParamFloat<px4::params::EKF2_MAGB_K>)
-		_param_ekf2_magb_k,	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
+		_param_ekf2_magb_k, ///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
 		// EKF accel bias learning control
 		(ParamExtFloat<px4::params::EKF2_ABL_LIM>) _param_ekf2_abl_lim,	///< Accelerometer bias learning limit (m/s**2)
