@@ -41,6 +41,7 @@
 
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+#include <lib/ecl/AlphaFilter/AlphaFilter.hpp>
 
 class TECS
 {
@@ -127,6 +128,10 @@ public:
 
 	void set_roll_throttle_compensation(float compensation) { _load_factor_correction = compensation; }
 
+	void set_ste_rate_time_const(float time_const) { _STE_rate_time_const = time_const; }
+	void set_speed_derivative_time_constant(float time_const) { _speed_derivative_time_const = time_const; }
+
+
 	// TECS status
 	uint64_t timestamp() { return _pitch_update_timestamp; }
 	ECL_TECS_MODE tecs_mode() { return _tecs_mode; }
@@ -199,6 +204,8 @@ private:
 	float _indicated_airspeed_min{3.0f};				///< equivalent airspeed demand lower limit (m/sec)
 	float _indicated_airspeed_max{30.0f};				///< equivalent airspeed demand upper limit (m/sec)
 	float _throttle_slewrate{0.0f};					///< throttle demand slew rate limit (1/sec)
+	float _STE_rate_time_const{0.1f};				///< filter time constant for specific total energy rate (damping path) (s)
+	float _speed_derivative_time_const{0.01f};		///< speed derivative filter time constant (s)
 
 	// controller outputs
 	float _throttle_setpoint{0.0f};					///< normalized throttle demand (0..1)
@@ -323,5 +330,11 @@ private:
 	 * Calculate specific total energy rate limits
 	 */
 	void _update_STE_rate_lim();
+
+	float _param_filt_speed_deriv{0.95f};
+
+	AlphaFilter<float> _STE_rate_error_filter;
+
+	AlphaFilter<float> _TAS_rate_filter;
 
 };
