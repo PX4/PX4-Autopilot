@@ -123,7 +123,11 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, 
 	rx_data[2] = (device_address << 1) | 0x01;
 	byte_count = rx_data[3];
 
-	memcpy(data, &rx_data[4], byte_count);
+	// ensure data is not longer than given buffer
+	uint8_t cpy_len=byte_count;
+	if(byte_count > length) cpy_len=length;
+
+	memcpy(data, &rx_data[4], cpy_len);
 
 	if (use_pec) {
 		uint8_t pec = get_pec(rx_data, byte_count + 4);
