@@ -157,6 +157,22 @@ public:
 	float throttle_integ_state() { return _throttle_integ_state; }
 	float pitch_integ_state() { return _pitch_integ_state; }
 
+	float STE() { return _SPE_estimate + _SKE_estimate; }
+
+	float STE_setpoint() { return _SPE_setpoint + _SKE_setpoint; }
+
+	float STE_rate() { return _SPE_rate + _SKE_rate; }
+
+	float STE_rate_setpoint() { return _SPE_rate_setpoint + _SKE_rate_setpoint; }
+
+	float SEB();
+
+	float SEB_setpoint();
+
+	float SEB_rate();
+
+	float SEB_rate_setpoint();
+
 	/**
 	 * Handle the altitude reset
 	 *

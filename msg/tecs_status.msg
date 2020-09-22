@@ -22,7 +22,19 @@ float32 energy_distribution_error
 float32 total_energy_rate_error
 float32 energy_distribution_rate_error
 
+float32 total_energy
+float32 total_energy_rate
+float32 total_energy_balance
+float32 total_energy_balance_rate
+
+float32 total_energy_sp
+float32 total_energy_rate_sp
+float32 total_energy_balance_sp
+float32 total_energy_balance_rate_sp
+
 float32 throttle_integ
 float32 pitch_integ
+
+float32 throttle_sp
 
 uint8 mode
