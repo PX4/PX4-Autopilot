@@ -331,6 +331,8 @@ private:
 	 */
 	void _update_STE_rate_lim();
 
+	float get_SKE_weighting();
+
 	float _param_filt_speed_deriv{0.95f};
 
 	AlphaFilter<float> _STE_rate_error_filter;

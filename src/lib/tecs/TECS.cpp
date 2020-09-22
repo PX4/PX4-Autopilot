@@ -398,18 +398,10 @@ void TECS::_update_pitch_setpoint()
 	 * The weighting can be adjusted between 0 and 2 depending on speed and height accuracy requirements.
 	*/
 
-	// Calculate the weighting applied to control of specific kinetic energy error
-	float SKE_weighting = constrain(_pitch_speed_weight, 0.0f, 2.0f);
-
-	if ((_underspeed_detected || _climbout_mode_active) && airspeed_sensor_enabled()) {
-		SKE_weighting = 2.0f;
-
-	} else if (!airspeed_sensor_enabled()) {
-		SKE_weighting = 0.0f;
-	}
+	const float SKE_weighting = get_SKE_weighting();
 
 	// Calculate the weighting applied to control of specific potential energy error
-	float SPE_weighting = 2.0f - SKE_weighting;
+	const float SPE_weighting = 2.0f - SKE_weighting;
 
 	// Calculate the specific energy balance demand which specifies how the available total
 	// energy should be allocated to speed (kinetic energy) and height (potential energy)
@@ -616,4 +608,19 @@ void TECS::update_pitch_throttle(const matrix::Dcmf &rotMat, float pitch, float 
 		_tecs_mode = ECL_TECS_MODE_NORMAL;
 	}
 
+}
+
+float TECS::get_SKE_weighting()
+{
+	// Calculate the weighting applied to control of specific kinetic energy error
+	float SKE_weighting = constrain(_pitch_speed_weight, 0.0f, 2.0f);
+
+	if ((_underspeed_detected || _climbout_mode_active) && airspeed_sensor_enabled()) {
+		SKE_weighting = 2.0f;
+
+	} else if (!airspeed_sensor_enabled()) {
+		SKE_weighting = 0.0f;
+	}
+
+	return SKE_weighting;
 }
