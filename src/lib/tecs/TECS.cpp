@@ -624,3 +624,43 @@ float TECS::get_SKE_weighting()
 
 	return SKE_weighting;
 }
+
+float TECS::SEB()
+{
+	const float SKE_weighting = get_SKE_weighting();
+
+	// Calculate the weighting applied to control of specific potential energy error
+	const float SPE_weighting = 2.0f - SKE_weighting;
+
+	return _SPE_estimate * SPE_weighting - _SKE_estimate * SKE_weighting;
+}
+
+float TECS::SEB_setpoint()
+{
+	const float SKE_weighting = get_SKE_weighting();
+
+	// Calculate the weighting applied to control of specific potential energy error
+	const float SPE_weighting = 2.0f - SKE_weighting;
+
+	return _SPE_setpoint * SPE_weighting - _SKE_setpoint * SKE_weighting;
+}
+
+float TECS::SEB_rate()
+{
+	const float SKE_weighting = get_SKE_weighting();
+
+	// Calculate the weighting applied to control of specific potential energy error
+	const float SPE_weighting = 2.0f - SKE_weighting;
+
+	return _SPE_rate * SPE_weighting - _SKE_rate * SKE_weighting;
+}
+
+float TECS::SEB_rate_setpoint()
+{
+	const float SKE_weighting = get_SKE_weighting();
+
+	// Calculate the weighting applied to control of specific potential energy error
+	const float SPE_weighting = 2.0f - SKE_weighting;
+
+	return _SPE_rate_setpoint * SPE_weighting - _SKE_rate_setpoint * SKE_weighting;
+}
