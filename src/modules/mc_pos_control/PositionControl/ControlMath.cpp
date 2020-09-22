@@ -89,6 +89,19 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const matrix::
 
 	// Estimate the optimal tilt angle and direction to counteract the wind
 
+	// Calculate the setpoint z axis
+	Vector3f cmd_z;
+	matrix::Dcmf R_cmd = matrix::Quatf(att_sp.q_d);
+
+	for (int i = 0; i < 3; i++) {
+		cmd_z(i) = R_cmd(i, 2);
+	}
+
+	omni_status.tilt_angle_est = asinf(Vector2f(cmd_z(0), cmd_z(1)).norm() / cmd_z.norm());;
+	omni_status.tilt_direction_est = wrap_2pi(atan2f(-cmd_z(1), -cmd_z(0)));
+	omni_status.tilt_roll_est = att_sp.roll_body;
+	omni_status.tilt_pitch_est = att_sp.pitch_body;
+
 	// Calculate the current z axis
 	Vector3f curr_z;
 	matrix::Dcmf R_body = att;

@@ -698,10 +698,6 @@ MulticopterPositionControl::Run()
 						     attitude_setpoint, omni_status);
 
 			omni_status.att_mode = _param_omni_att_mode.get();
-			omni_status.tilt_angle_est = _tilt_angle;
-			omni_status.tilt_direction_est = _tilt_dir;
-			omni_status.tilt_roll_est = _tilt_roll;
-			omni_status.tilt_pitch_est = _tilt_pitch;
 
 			_omni_attitude_status_pub.publish(omni_status);
 
