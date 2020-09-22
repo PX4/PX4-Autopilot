@@ -86,6 +86,10 @@ function(px4_os_add_flags)
 		)
 	endif()
 
+	# explicitly clear -rdynamic flag
+	set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
+	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+
 endfunction()
 
 #=============================================================================
