@@ -124,9 +124,6 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, 
 	byte_count = rx_data[3];
 
 	// ensure data is not longer than given buffer
-	uint8_t cpy_len=byte_count;
-	if(byte_count > length) cpy_len=length;
-
 	memcpy(data, &rx_data[4], math::min(byte_count, length));
 
 	if (use_pec) {
