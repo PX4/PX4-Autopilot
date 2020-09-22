@@ -106,7 +106,7 @@ int SMBus::write_word(const uint8_t cmd_code, uint16_t data)
 
 int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, const bool use_pec)
 {
-	unsigned byte_count = 0;
+	uint8_t byte_count = 0;
 	// addr(wr), cmd_code, addr(r), byte_count, data (32 bytes max), pec
 	uint8_t rx_data[32 + 5];
 
