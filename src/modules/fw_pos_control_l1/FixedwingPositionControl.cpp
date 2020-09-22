@@ -111,6 +111,9 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_heightrate_p(_param_fw_t_hrate_p.get());
 	_tecs.set_heightrate_ff(_param_fw_t_hrate_ff.get());
 	_tecs.set_speedrate_p(_param_fw_t_srate_p.get());
+	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
+	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
+
 
 	// Landing slope
 	/* check if negative value for 2/3 of flare altitude is set for throttle cut */

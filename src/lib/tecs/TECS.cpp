@@ -91,10 +91,11 @@ void TECS::update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &ro
 	if (PX4_ISFINITE(airspeed) && airspeed_sensor_enabled()) {
 		// Assuming the vehicle is flying X axis forward, use the X axis measured acceleration
 		// compensated for gravity to estimate the rate of change of speed
-		float speed_deriv_raw = rotMat(2, 0) * CONSTANTS_ONE_G + accel_body(0);
+		const float speed_deriv_raw = rotMat(2, 0) * CONSTANTS_ONE_G + accel_body(0);
 
 		// Apply some noise filtering
-		_speed_derivative = 0.95f * _speed_derivative + 0.05f * speed_deriv_raw;
+		_TAS_rate_filter.update(speed_deriv_raw);
+		_speed_derivative = _TAS_rate_filter.getState();
 
 	} else {
 		_speed_derivative = 0.0f;
@@ -271,7 +272,8 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const matrix::
 
 	// Calculate the total energy rate error, applying a first order IIR filter
 	// to reduce the effect of accelerometer noise
-	_STE_rate_error = 0.2f * (STE_rate_setpoint - _SPE_rate - _SKE_rate) + 0.8f * _STE_rate_error;
+	_STE_rate_error_filter.update(-_SPE_rate - _SKE_rate);
+	_STE_rate_error = _STE_rate_error_filter.getState();
 
 	// Calculate the throttle demand
 	if (_underspeed_detected) {
@@ -525,6 +527,14 @@ void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_alt
 		_underspeed_detected = false;
 		_uncommanded_descent_recovery = false;
 	}
+
+	// filter specific energy rate error using first order filter with 0.5 second time constant
+	_STE_rate_error_filter.setParameters(DT_DEFAULT, _STE_rate_time_const);
+	_STE_rate_error_filter.reset(0.0f);
+
+	// filter true airspeed rate using first order filter with 0.5 second time constant
+	_TAS_rate_filter.setParameters(DT_DEFAULT, _speed_derivative_time_const);
+	_TAS_rate_filter.reset(0.0f);
 
 	_states_initialized = true;
 }

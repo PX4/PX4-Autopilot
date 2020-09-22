@@ -737,3 +737,30 @@ PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
  * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_POSCTL_INV_ST, 0);
+ 
+/**
+ * Specific total energy rate first order filter time constant.
+ *
+ * This filter is applied to the specific total energy rate used for throttle damping.
+ *
+ * @min 0.0
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
+
+
+/**
+ * True airspeed rate first order filter time constant.
+ *
+ * This filter is applied to the true airspeed rate.
+ *
+ * @min 0.0
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_TAS_R_TC, 0.4f);
