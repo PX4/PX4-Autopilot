@@ -84,6 +84,30 @@ public:
 		subscribe();
 	}
 
+	// Copy constructor
+	Subscription(const Subscription &other) : _orb_id(other._orb_id), _instance(other._instance) {}
+
+	// Move constructor
+	Subscription(const Subscription &&other) noexcept : _orb_id(other._orb_id), _instance(other._instance) {}
+
+	// copy assignment
+	Subscription &operator=(const Subscription &other)
+	{
+		unsubscribe();
+		_orb_id = other._orb_id;
+		_instance = other._instance;
+		return *this;
+	}
+
+	// move assignment
+	Subscription &operator=(Subscription &&other) noexcept
+	{
+		unsubscribe();
+		_orb_id = other._orb_id;
+		_instance = other._instance;
+		return *this;
+	}
+
 	~Subscription()
 	{
 		unsubscribe();
