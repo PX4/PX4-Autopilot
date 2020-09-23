@@ -85,18 +85,10 @@ public:
 	}
 
 	// Copy constructor
-	Subscription(const Subscription &other)
-	{
-		_orb_id = other._orb_id;
-		_instance = other._instance;
-	}
+	Subscription(const Subscription &other) : _orb_id(other._orb_id), _instance(other._instance) {}
 
 	// Move constructor
-	Subscription(const Subscription &&other) noexcept
-	{
-		_orb_id = other._orb_id;
-		_instance = other._instance;
-	};
+	Subscription(const Subscription &&other) noexcept : _orb_id(other._orb_id), _instance(other._instance) {}
 
 	// copy assignment
 	Subscription &operator=(const Subscription &other)
@@ -114,7 +106,7 @@ public:
 		_orb_id = other._orb_id;
 		_instance = other._instance;
 		return *this;
-	};
+	}
 
 	~Subscription()
 	{
