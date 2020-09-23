@@ -40,12 +40,13 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-IST8310::IST8310(I2CSPIBusOption bus_option, int bus, uint8_t addr, int bus_frequency, enum Rotation rotation) :
+IST8310::IST8310(I2CSPIBusOption bus_option, int bus, uint8_t addr, int bus_frequency, enum Rotation rotation,
+		 bool force_internal) :
 	I2C(DRV_MAG_DEVTYPE_IST8310, MODULE_NAME, bus, addr, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, addr),
 	_px4_mag(get_device_id(), rotation)
 {
-	_px4_mag.set_external(external());
+	_px4_mag.set_external(force_internal ? false : external());
 }
 
 IST8310::~IST8310()
