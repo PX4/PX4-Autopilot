@@ -32,6 +32,8 @@ pipeline {
                      "airmind_mindpx-v2_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie_default",
+                     "cuav_can-gps-v1_canbootloader",
+                     "cuav_can-gps-v1_default",
                      "cuav_nora_default",
                      "cuav_x7pro_default",
                      "cubepilot_cubeorange_console",

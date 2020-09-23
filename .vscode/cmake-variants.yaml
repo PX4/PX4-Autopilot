@@ -61,6 +61,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: av_x-v1_default
+    cuav_can-gps-v1_default:
+      short: cuav_can-gps-v1_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_can-gps-v1_default
     cuav_nora_default:
       short: cuav_nora
       buildType: MinSizeRel
