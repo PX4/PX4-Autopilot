@@ -739,15 +739,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 							// FALLTHROUGH
 							case ROTATION_ROLL_270_YAW_180:  // skip 41, same as 31 ROTATION_ROLL_90_PITCH_180
-
-							// FALLTHROUGH
-							case ROTATION_ROLL_270_YAW_270:  // skip 42, same as 36 ROTATION_ROLL_90_PITCH_180_YAW_90
-
-							// FALLTHROUGH
-							case ROTATION_PITCH_90_YAW_180:  // skip 43, same as 29 ROTATION_ROLL_180_PITCH_90
-
-							// FALLTHROUGH
-							case ROTATION_PITCH_9_YAW_180: // skip, too close to ROTATION_YAW_180
 								MSE[r] = FLT_MAX;
 								break;
 
@@ -804,9 +795,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 							switch (worker_data.calibration[cur_mag].rotation_enum()) {
 							case ROTATION_ROLL_90_PITCH_68_YAW_293:
-
-							// FALLTHROUGH
-							case ROTATION_PITCH_9_YAW_180:
 								PX4_INFO("[cal] External Mag: %d (%d), keeping manually configured rotation %d", cur_mag,
 									 worker_data.calibration[cur_mag].device_id(), worker_data.calibration[cur_mag].rotation_enum());
 								continue;
