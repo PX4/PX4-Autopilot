@@ -81,9 +81,9 @@ jobs:
         name: coredump
         path: px4.core
 
-    # - name: ecl EKF analysis
-    #   if: always()
-    #   run: ./Tools/ecl_ekf/process_logdata_ekf.py ~/.ros/log/*/*.ulg
+    - name: ecl EKF analysis
+      if: always()
+      run: ./Tools/ecl_ekf/process_logdata_ekf.py ~/.ros/log/*/*.ulg
 
     - name: Upload logs to flight review
       if: always()
