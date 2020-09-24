@@ -232,7 +232,7 @@ private:
 		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_rc_in_off,
 		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
-		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_min_stick_change,
+		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
 
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
 		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
@@ -353,7 +353,6 @@ private:
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
 	int32_t		_flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM] {};
 	uint8_t		_last_manual_control_setpoint_arm_switch{0};
-	float		_min_stick_change{};
 	uint32_t	_stick_off_counter{0};
 	uint32_t	_stick_on_counter{0};
 
