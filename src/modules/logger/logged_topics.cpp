@@ -68,7 +68,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("px4io_status");
 	add_topic("radio_status");
-	add_topic("rate_ctrl_status", 200);
 	add_topic("rpm", 500);
 	add_topic("safety");
 	add_topic("sensor_combined");
@@ -102,6 +101,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("actuator_outputs", 100, 2);
 	add_topic_multi("logger_status", 0, 2);
 	add_topic_multi("multirotor_motor_limits", 1000, 2);
+	add_topic_multi("rate_ctrl_status", 200, 2);
 	add_topic_multi("telemetry_status", 1000);
 
 	// EKF multi topics (currently max 9 estimators)
@@ -125,7 +125,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("battery_status", 300, 4);
 	add_topic_multi("differential_pressure", 1000, 3);
 	add_topic_multi("distance_sensor", 1000);
-	add_topic_multi("optical_flow", 1000, 3);
+	add_topic_multi("optical_flow", 1000, 2);
 	add_topic_multi("sensor_accel", 1000, 3);
 	add_topic_multi("sensor_baro", 1000, 3);
 	add_topic_multi("sensor_gyro", 1000, 3);

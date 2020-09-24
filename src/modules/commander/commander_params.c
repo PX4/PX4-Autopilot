@@ -186,21 +186,6 @@ PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 
 /**
- * RC stick override threshold
- *
- * If an RC stick is moved more than by this amount the system will interpret this as
- * override request by the pilot.
- *
- * @group Commander
- * @unit %
- * @min 5
- * @max 80
- * @decimal 0
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 50.0f);
-
-/**
  * Home set horizontal threshold
  *
  * The home position will be set if the estimated positioning accuracy is below the threshold.
@@ -632,8 +617,8 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
 /**
  * Enable RC stick override of auto and/or offboard modes
  *
- * When RC stick override is enabled, moving the RC sticks immediately gives control back
- * to the pilot (switches to manual position mode):
+ * When RC stick override is enabled, moving the RC sticks according to COM_RC_STICK_OV
+ * immediately gives control back to the pilot (switches to manual position mode):
  * bit 0: Enable for auto modes (except for in critical battery reaction),
  * bit 1: Enable for offboard mode.
  *
@@ -646,6 +631,21 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
+
+/**
+ * RC stick override threshold
+ *
+ * If COM_RC_OVERRIDE is enabled and the joystick input controlling the horizontally axis (right stick for RC in mode 2)
+ * is moved more than this threshold from the center the autopilot switches to position mode and the pilot takes over control.
+ *
+ * @group Commander
+ * @unit %
+ * @min 5
+ * @max 80
+ * @decimal 0
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 30.0f);
 
 /**
  * Require valid mission to arm

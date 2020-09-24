@@ -1428,9 +1428,6 @@ Commander::run()
 
 			status.rc_input_mode = _param_rc_in_off.get();
 
-			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
-			_min_stick_change = _param_min_stick_change.get() * 0.02f;
-
 			rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
 
 			_arm_requirements.arm_authorization = _param_arm_auth_required.get();
@@ -1908,10 +1905,12 @@ Commander::run()
 
 		if ((override_auto_mode || override_offboard_mode) && is_rotary_wing
 		    && !in_low_battery_failsafe && !_geofence_warning_action_on) {
+			const float minimum_stick_deflection = 0.01f * _param_com_rc_stick_ov.get();
+
 			// transition to previous state if sticks are touched
 			if (hrt_elapsed_time(&_manual_control_setpoint.timestamp) < 1_s && // don't use uninitialized or old messages
-			    ((fabsf(_manual_control_setpoint.x) > _min_stick_change) ||
-			     (fabsf(_manual_control_setpoint.y) > _min_stick_change))) {
+			    ((fabsf(_manual_control_setpoint.x) > minimum_stick_deflection) ||
+			     (fabsf(_manual_control_setpoint.y) > minimum_stick_deflection))) {
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &_internal_state);
 				mavlink_log_info(&mavlink_log_pub, "Pilot took over control using sticks");
