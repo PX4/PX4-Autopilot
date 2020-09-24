@@ -17,8 +17,8 @@ pipeline {
         sh 'make distclean'
         sh 'ccache -s'
         sh 'git fetch --tags'
-        sh 'make px4_sitl_default'
-        sh 'make px4_sitl_default sitl_gazebo'
+        sh 'NO_NINJA_BUILD=1 make px4_sitl_default'
+        sh 'NO_NINJA_BUILD=1 make px4_sitl_default sitl_gazebo'
         sh 'make px4_sitl_default package'
         sh 'ccache -s'
         stash(name: "px4_sitl_package", includes: "build/px4_sitl_default/*.bz2")
