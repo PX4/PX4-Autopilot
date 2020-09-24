@@ -365,7 +365,6 @@ private:
 
 	bool		_status_changed{true};
 	bool		_arm_tune_played{false};
-	bool		_was_landed{true};
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
