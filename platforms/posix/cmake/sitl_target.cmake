@@ -45,7 +45,7 @@ ExternalProject_Add(sitl_gazebo
 	USES_TERMINAL_BUILD true
 	EXCLUDE_FROM_ALL true
 	BUILD_ALWAYS 1
-	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> -- -j2
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
 )
 
 ExternalProject_Add(mavsdk_tests
