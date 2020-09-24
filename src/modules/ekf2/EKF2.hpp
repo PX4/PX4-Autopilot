@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_velocity.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/yaw_estimator_status.h>
 
@@ -273,6 +274,7 @@ private:
 	uORB::PublicationData<estimator_status_s>		_estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
+	uORB::Publication<vehicle_velocity_s>			_vehicle_velocity_pub{ORB_ID(vehicle_velocity)};
 	uORB::Publication<yaw_estimator_status_s>		_yaw_est_pub{ORB_ID(yaw_estimator_status)};
 	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};

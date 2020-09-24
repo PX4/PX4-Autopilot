@@ -497,6 +497,7 @@ void BlockLocalPositionEstimator::Run()
 
 	if (_altOriginInitialized) {
 		// update all publications if possible
+		publishVelocity();
 		publishLocalPos();
 		publishOdom();
 		publishEstimatorStatus();
@@ -553,6 +554,30 @@ bool BlockLocalPositionEstimator::landed()
 	bool disarmed_not_falling = (!_sub_armed.get().armed) && (!_sub_land.get().freefall);
 
 	return _sub_land.get().landed || disarmed_not_falling;
+}
+void BlockLocalPositionEstimator::publishVelocity()
+{
+	if (_estimatorInitialized & EST_XY) {
+		vehicle_velocity_s vehicle_velocity{};
+		vehicle_velocity.timestamp_sample = _timeStamp;
+
+		const auto &xLP = _xLowPass.getState();
+
+		const Vector3f velocity{xLP(X_vx), xLP(X_vy), xLP(X_vz)};
+		const Vector3f acceleration{_u(U_ax), _u(U_ay), _u(U_az)};
+
+		const Quatf q{_sub_att.get().q};
+		const Dcmf R_to_body(q.inversed());
+
+		const Vector3f vel_body = R_to_body * velocity;
+		vel_body.copyTo(vehicle_velocity.velocity);
+
+		const Vector3f accel_body = R_to_body * acceleration;
+		accel_body.copyTo(vehicle_velocity.acceleration);
+
+		vehicle_velocity.timestamp = hrt_absolute_time();
+		_vehicle_velocity_pub.publish(vehicle_velocity);
+	}
 }
 
 void BlockLocalPositionEstimator::publishLocalPos()
@@ -632,7 +657,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vz_max = INFINITY;
 		_pub_lpos.get().hagl_min = INFINITY;
 		_pub_lpos.get().hagl_max = INFINITY;
-		_pub_lpos.get().timestamp = hrt_absolute_time();;
+		_pub_lpos.get().timestamp = hrt_absolute_time();
 		_pub_lpos.update();
 	}
 }

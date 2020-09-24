@@ -443,12 +443,12 @@ void FixedwingAttitudeControl::Run()
 			control_input.lock_integrator = lock_integrator;
 
 			if (wheel_control) {
-				_local_pos_sub.update(&_local_pos);
+				vehicle_velocity_s vehicle_velocity{};
+				_vehicle_velocity_sub.copy(&vehicle_velocity);
 
-				/* Use min airspeed to calculate ground speed scaling region.
-				* Don't scale below gspd_scaling_trim
-				*/
-				float groundspeed = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+				// Use min airspeed to calculate ground speed scaling region.
+				// Don't scale below gspd_scaling_trim
+				float groundspeed = matrix::Vector2f(vehicle_velocity.velocity).norm();
 				float gspd_scaling_trim = (_param_fw_airspd_min.get() * 0.6f);
 				float groundspeed_scaler = gspd_scaling_trim / ((groundspeed < gspd_scaling_trim) ? gspd_scaling_trim : groundspeed);
 

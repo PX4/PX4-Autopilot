@@ -198,11 +198,8 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 			}
 
 			// Velocity in body frame
-			const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
-			const Vector3f vel = R_to_body * Vector3f(ground_speed(0), ground_speed(1), ground_speed(2));
-
-			const float x_vel = vel(0);
-			const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
+			const float x_vel = _vehicle_velocity_sub.get().velocity[0];
+			const float x_acc = _vehicle_velocity_sub.get().acceleration[0];
 
 			// Compute airspeed control out and just scale it as a constant
 			mission_throttle = _param_throttle_speed_scaler.get()
@@ -279,11 +276,8 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 	return setpoint;
 }
 
-void
-RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
-				       const position_setpoint_triplet_s &pos_sp_triplet)
+void RoverPositionControl::control_velocity(const position_setpoint_triplet_s &pos_sp_triplet)
 {
-
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
 	const float mission_throttle = _param_throttle_cruise.get();
@@ -293,10 +287,9 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 	if (desired_speed > 0.01f) {
 
 		const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
-		const Vector3f vel = R_to_body * Vector3f(current_velocity(0), current_velocity(1), current_velocity(2));
 
-		const float x_vel = vel(0);
-		const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
+		const float x_vel = _vehicle_velocity_sub.get().velocity[0];
+		const float x_acc = _vehicle_velocity_sub.get().acceleration[0];
 
 		const float control_throttle = pid_calculate(&_speed_ctrl, desired_speed, x_vel, x_acc, dt);
 
@@ -399,7 +392,7 @@ RoverPositionControl::run()
 		attitude_setpoint_poll();
 		//manual_control_setpoint_poll();
 
-		_vehicle_acceleration_sub.update();
+		_vehicle_velocity_sub.update();
 
 		/* update parameters from storage */
 		parameters_update();
@@ -434,7 +427,6 @@ RoverPositionControl::run()
 
 			matrix::Vector3f ground_speed(_local_pos.vx, _local_pos.vy,  _local_pos.vz);
 			matrix::Vector2f current_position((float)_global_pos.lat, (float)_global_pos.lon);
-			matrix::Vector3f current_velocity(_local_pos.vx, _local_pos.vy, _local_pos.vz);
 
 			if (!manual_mode && _control_mode.flag_control_position_enabled) {
 
@@ -467,11 +459,8 @@ RoverPositionControl::run()
 				}
 
 			} else if (!manual_mode && _control_mode.flag_control_velocity_enabled) {
-
-				control_velocity(current_velocity, _pos_sp_triplet);
-
+				control_velocity(_pos_sp_triplet);
 			}
-
 
 			perf_end(_loop_perf);
 		}

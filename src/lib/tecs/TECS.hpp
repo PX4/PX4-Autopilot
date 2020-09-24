@@ -73,9 +73,7 @@ public:
 	 * Must be called prior to udating tecs control loops
 	 * Must be called at 50Hz or greater
 	 */
-	void update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &rotMat,
-					    const matrix::Vector3f &accel_body, bool altitude_lock, bool in_air,
-					    float altitude, float vz);
+	void update_vehicle_state_estimates(float airspeed, float accel_body_x, bool in_air, float altitude, float vz);
 
 	/**
 	 * Update the control loop calculations

@@ -749,6 +749,32 @@ void EKF2::Run()
 			filter_control_status_u control_status;
 			_ekf.get_control_mode(&control_status.value);
 
+			// The rotation of the tangent plane vs. geographical north
+			const matrix::Quatf q = _ekf.getQuaternion();
+
+			// Velocity of body origin in local NED frame (m/s)
+			const Vector3f velocity = _ekf.getVelocity();
+			const Vector3f velocity_deriv = _ekf.getVelocityDerivative();
+
+			const bool vxy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+
+			if (vxy_valid) {
+				vehicle_velocity_s vehicle_velocity{};
+				vehicle_velocity.timestamp_sample = imu_sample_new.time_us;
+
+				const matrix::Dcmf R_to_body(q.inversed());
+
+				const Vector3f vel_body = R_to_body * velocity;
+				vel_body.copyTo(vehicle_velocity.velocity);
+
+				const Vector3f accel_body = R_to_body * velocity_deriv;
+				accel_body.copyTo(vehicle_velocity.acceleration);
+
+				vehicle_velocity.timestamp = _replay_mode ? now : hrt_absolute_time();
+
+				_vehicle_velocity_pub.publish(vehicle_velocity);
+			}
+
 			// only publish position after successful alignment
 			if (control_status.flags.tilt_align) {
 				// generate vehicle local position data
@@ -762,7 +788,7 @@ void EKF2::Run()
 				odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 				// Position of body origin in local NED frame
-				Vector3f position = _ekf.getPosition();
+				const Vector3f position = _ekf.getPosition();
 				const float lpos_x_prev = lpos.x;
 				const float lpos_y_prev = lpos.y;
 				lpos.x = (_ekf.local_position_is_valid()) ? position(0) : 0.0f;
@@ -775,7 +801,6 @@ void EKF2::Run()
 				odom.z = lpos.z;
 
 				// Velocity of body origin in local NED frame (m/s)
-				const Vector3f velocity = _ekf.getVelocity();
 				lpos.vx = velocity(0);
 				lpos.vy = velocity(1);
 				lpos.vz = velocity(2);
@@ -790,15 +815,14 @@ void EKF2::Run()
 				lpos.z_deriv = _ekf.getVerticalPositionDerivative();
 
 				// Acceleration of body origin in local frame
-				Vector3f vel_deriv = _ekf.getVelocityDerivative();
-				lpos.ax = vel_deriv(0);
-				lpos.ay = vel_deriv(1);
-				lpos.az = vel_deriv(2);
+				lpos.ax = velocity_deriv(0);
+				lpos.ay = velocity_deriv(1);
+				lpos.az = velocity_deriv(2);
 
 				// TODO: better status reporting
 				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
 				lpos.z_valid = !_preflt_checker.hasVertFailed();
-				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+				lpos.v_xy_valid = vxy_valid;
 				lpos.v_z_valid = !_preflt_checker.hasVertFailed();
 
 				// Position of local NED origin in GPS / WGS84 frame
@@ -815,9 +839,6 @@ void EKF2::Run()
 					lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
 					lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 				}
-
-				// The rotation of the tangent plane vs. geographical north
-				const matrix::Quatf q = _ekf.getQuaternion();
 
 				matrix::Quatf delta_q_reset;
 				_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);

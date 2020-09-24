@@ -62,14 +62,13 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/ekf2_timestamps.h>
+#include <uORB/topics/vehicle_velocity.h>
 #include <uORB/uORB.h>
 
 using matrix::Dcmf;
@@ -124,7 +123,7 @@ private:
 	vehicle_attitude_s				_vehicle_att{};
 	sensor_combined_s				_sensor_combined{};
 
-	SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::SubscriptionData<vehicle_velocity_s> _vehicle_velocity_sub{ORB_ID(vehicle_velocity)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -193,7 +192,7 @@ private:
 	 */
 	bool		control_position(const matrix::Vector2f &global_pos, const matrix::Vector3f &ground_speed,
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
-	void		control_velocity(const matrix::Vector3f &current_velocity, const position_setpoint_triplet_s &pos_sp_triplet);
+	void		control_velocity(const position_setpoint_triplet_s &pos_sp_triplet);
 	void		control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
 
 };

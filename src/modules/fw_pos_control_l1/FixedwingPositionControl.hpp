@@ -76,7 +76,7 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/tecs_status.h>
-#include <uORB/topics/vehicle_acceleration.h>
+
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -87,6 +87,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_velocity.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
@@ -160,7 +161,9 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};		///< vehicle command subscription
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	///< vehicle land detected subscription
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			///< vehicle status subscription
-	uORB::SubscriptionData<vehicle_angular_velocity_s>	_vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::SubscriptionData<airspeed_validated_s>       _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::SubscriptionData<vehicle_angular_velocity_s> _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::SubscriptionData<vehicle_velocity_s>         _vehicle_velocity_sub{ORB_ID(vehicle_velocity)};
 
 	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
 	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
@@ -176,9 +179,6 @@ private:
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected
 	vehicle_status_s		_vehicle_status {};		///< vehicle status
-
-	SubscriptionData<airspeed_validated_s>			_airspeed_validated_sub{ORB_ID(airspeed_validated)};
-	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	double _current_latitude{0};
 	double _current_longitude{0};

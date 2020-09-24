@@ -28,6 +28,7 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/vehicle_velocity.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -252,6 +253,7 @@ private:
 
 	// publications
 	void publishLocalPos();
+	void publishVelocity();
 	void publishGlobalPos();
 	void publishOdom();
 	void publishEstimatorStatus();
@@ -283,6 +285,7 @@ private:
 	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata{ORB_ID(vehicle_air_data)};
 
 	// publications
+	uORB::Publication<vehicle_velocity_s> _vehicle_velocity_pub{ORB_ID(vehicle_velocity)};
 	uORB::PublicationData<vehicle_local_position_s> _pub_lpos{ORB_ID(vehicle_local_position)};
 	uORB::PublicationData<vehicle_global_position_s> _pub_gpos{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_odometry_s> _pub_odom{ORB_ID(vehicle_odometry)};

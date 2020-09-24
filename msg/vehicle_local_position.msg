@@ -56,7 +56,7 @@ bool dist_bottom_valid			# true if distance to bottom surface is valid
 float32 eph				# Standard deviation of horizontal position error, (metres)
 float32 epv				# Standard deviation of vertical position error, (metres)
 float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
-float32 evv				# Standard deviation of horizontal velocity error, (metres/sec)
+float32 evv				# Standard deviation of vertical velocity error, (metres/sec)
 
 # estimator specified vehicle limits
 float32 vxy_max				# maximum horizontal speed - set to 0 when limiting not required (meters/sec)

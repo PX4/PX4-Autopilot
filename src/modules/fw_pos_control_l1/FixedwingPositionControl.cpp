@@ -1138,7 +1138,7 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2f
 				}
 
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(now, _vehicle_acceleration_sub.get().xyz[0]);
+				_launchDetector.update(now, _vehicle_velocity_sub.get().acceleration[0]);
 
 				/* update our copy of the launch detection state */
 				_launch_detection_state = _launchDetector.getLaunchDetected();
@@ -1582,7 +1582,7 @@ FixedwingPositionControl::Run()
 		vehicle_control_mode_poll();
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 		_vehicle_status_sub.update(&_vehicle_status);
-		_vehicle_acceleration_sub.update();
+		_vehicle_velocity_sub.update();
 		_vehicle_rates_sub.update();
 
 		Vector2f curr_pos((float)_current_latitude, (float)_current_longitude);
@@ -1758,7 +1758,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 	float pitch_for_tecs = _pitch - radians(_param_fw_psp_off.get());
 
 	/* filter speed and altitude for controller */
-	Vector3f accel_body(_vehicle_acceleration_sub.get().xyz);
+	Vector3f accel_body(_vehicle_velocity_sub.get().acceleration);
 
 	// tailsitters use the multicopter frame as reference, in fixed wing
 	// we need to use the fixed wing frame
@@ -1776,9 +1776,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    _control_mode.flag_control_altitude_enabled));
 
 	/* update TECS vehicle state estimates */
-	_tecs.update_vehicle_state_estimates(_airspeed, _R_nb,
-					     accel_body, (_local_pos.timestamp > 0), in_air_alt_control,
-					     _current_altitude, _local_pos.vz);
+	_tecs.update_vehicle_state_estimates(_airspeed, accel_body(0), in_air_alt_control, _current_altitude, _local_pos.vz);
 
 	/* scale throttle cruise by baro pressure */
 	if (_param_fw_thr_alt_scl.get() > FLT_EPSILON) {
