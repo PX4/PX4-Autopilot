@@ -2166,19 +2166,23 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 		return ret;
 
 	} else if (strcmp(argv[1], "status") == 0) {
-		EKF2::lock_module();
-
-		if (_ekf2_selector.load()) {
-			_ekf2_selector.load()->PrintStatus();
-		}
-
-		for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
-			if (_objects[i].load()) {
-				_objects[i].load()->print_status();
+		if (EKF2::trylock_module()) {
+			if (_ekf2_selector.load()) {
+				_ekf2_selector.load()->PrintStatus();
 			}
+
+			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
+				if (_objects[i].load()) {
+					_objects[i].load()->print_status();
+				}
+			}
+
+			EKF2::unlock_module();
+
+		} else {
+			PX4_WARN("module locked, try again later");
 		}
 
-		EKF2::unlock_module();
 		return 0;
 
 	} else if (strcmp(argv[1], "stop") == 0) {
@@ -2191,6 +2195,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 
 			if (instance > 0 && instance < EKF2_MAX_INSTANCES) {
 				EKF2 *inst = _objects[instance].load();
+
 				if (inst) {
 					inst->request_stop();
 					px4_usleep(20000); // 20 ms
@@ -2198,9 +2203,11 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 					_objects[instance].store(nullptr);
 				}
 			}
+
 		} else {
 			// otherwise stop everything
 			bool was_running = false;
+
 			if (_ekf2_selector.load()) {
 				PX4_INFO("stopping ekf2 selector");
 				_ekf2_selector.load()->Stop();
@@ -2211,6 +2218,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 
 			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 				EKF2 *inst = _objects[i].load();
+
 				if (inst) {
 					PX4_INFO("stopping ekf2 instance %d", i);
 					was_running = true;

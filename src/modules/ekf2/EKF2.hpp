@@ -123,6 +123,7 @@ public:
 	void request_stop() { _task_should_exit.store(true); }
 
 	static void lock_module() { pthread_mutex_lock(&ekf2_module_mutex); }
+	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
 private:
