@@ -74,7 +74,7 @@ inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
 class LoggedTopics
 {
 public:
-	static constexpr int 		MAX_TOPICS_NUM = 200; /**< Maximum number of logged topics */
+	static constexpr int MAX_TOPICS_NUM = 255; /**< Maximum number of logged topics */
 
 	struct RequestedSubscription {
 		uint16_t interval_ms;

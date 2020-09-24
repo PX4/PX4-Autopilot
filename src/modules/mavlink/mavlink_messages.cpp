@@ -649,7 +649,7 @@ public:
 private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
-	uORB::SubscriptionMultiArray<battery_status_s> _battery_status_subs{ORB_ID::battery_status};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &) = delete;
@@ -669,7 +669,7 @@ protected:
 			cpuload_s cpuload{};
 			_cpuload_sub.copy(&cpuload);
 
-			battery_status_s battery_status[ORB_MULTI_MAX_INSTANCES] {};
+			battery_status_s battery_status[battery_status_s::MAX_INSTANCES] {};
 
 			for (int i = 0; i < _battery_status_subs.size(); i++) {
 				_battery_status_subs[i].copy(&battery_status[i]);
@@ -753,7 +753,7 @@ public:
 	}
 
 private:
-	uORB::SubscriptionMultiArray<battery_status_s> _battery_status_subs{ORB_ID::battery_status};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamBatteryStatus(MavlinkStreamSysStatus &) = delete;
@@ -877,7 +877,7 @@ public:
 	}
 
 private:
-	uORB::SubscriptionMultiArray<battery_status_s> _battery_status_subs{ORB_ID::battery_status};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSmartBatteryInfo(MavlinkStreamSysStatus &) = delete;
@@ -960,7 +960,7 @@ public:
 	}
 
 private:
-	uORB::SubscriptionMultiArray<vehicle_imu_s> _vehicle_imu_subs{ORB_ID::vehicle_imu};
+	uORB::SubscriptionMultiArray<vehicle_imu_s, 3> _vehicle_imu_subs{ORB_ID::vehicle_imu};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
@@ -2993,7 +2993,7 @@ public:
 
 private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
-	uORB::SubscriptionMultiArray<vehicle_imu_status_s> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
+	uORB::SubscriptionMultiArray<vehicle_imu_status_s, 3> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamVibration(MavlinkStreamVibration &) = delete;
@@ -4622,7 +4622,7 @@ protected:
 	{
 		bool updated = false;
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (int i = 0; i < _distance_sensor_subs.size(); i++) {
 			distance_sensor_s dist_sensor;
 
 			if (_distance_sensor_subs[i].update(&dist_sensor)) {
