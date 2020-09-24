@@ -17,7 +17,7 @@ from plotting.data_plots import TimeSeriesPlot, InnovationPlot, ControlModeSumma
 from analysis.detectors import PreconditionError
 import analysis.data_version_handler as dvh
 
-def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
+def create_pdf_report(ulog: ULog, output_plot_filename: str, multi_instance: int) -> None:
     """
     creates a pdf report of the ekf analysis.
     :param ulog:
@@ -29,20 +29,20 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
     # save the plots to PDF
 
     try:
-        estimator_status = ulog.get_dataset('estimator_status').data
+        estimator_status = ulog.get_dataset('estimator_status', multi_instance).data
         print('found estimator_status data')
     except:
         raise PreconditionError('could not find estimator_status data')
 
     try:
-        estimator_states = ulog.get_dataset('estimator_states').data
+        estimator_states = ulog.get_dataset('estimator_states', multi_instance).data
         print('found estimator_states data')
     except:
         raise PreconditionError('could not find estimator_states data')
 
     try:
-        estimator_innovations = ulog.get_dataset('estimator_innovations').data
-        estimator_innovation_variances = ulog.get_dataset('estimator_innovation_variances').data
+        estimator_innovations = ulog.get_dataset('estimator_innovations', multi_instance).data
+        estimator_innovation_variances = ulog.get_dataset('estimator_innovation_variances', multi_instance).data
         innovation_data = estimator_innovations
         for key in estimator_innovation_variances:
             # append 'var' to the field name such that we can distingush between innov and innov_var

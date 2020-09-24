@@ -14,13 +14,14 @@ from analysis.checks import perform_ecl_ekf_checks
 from analysis.post_processing import get_estimator_check_flags
 
 def analyse_ekf(
-        ulog: ULog, check_levels: Dict[str, float], red_thresh: float = 1.0,
-        amb_thresh: float = 0.5, min_flight_duration_seconds: float = 5.0,
+        ulog: ULog, check_levels: Dict[str, float], multi_instance: int = 0,
+        red_thresh: float = 1.0, amb_thresh: float = 0.5, min_flight_duration_seconds: float = 5.0,
         in_air_margin_seconds: float = 5.0, pos_checks_when_sensors_not_fused: bool = False) -> \
         Tuple[str, Dict[str, str], Dict[str, float], Dict[str, float]]:
     """
     :param ulog:
     :param check_levels:
+    :param multi_instance:
     :param red_thresh:
     :param amb_thresh:
     :param min_flight_duration_seconds:
@@ -30,19 +31,19 @@ def analyse_ekf(
     """
 
     try:
-        estimator_states = ulog.get_dataset('estimator_states').data
+        estimator_states = ulog.get_dataset('estimator_states', multi_instance).data
         print('found estimator_states data')
     except:
         raise PreconditionError('could not find estimator_states data')
 
     try:
-        estimator_status = ulog.get_dataset('estimator_status').data
+        estimator_status = ulog.get_dataset('estimator_status', multi_instance).data
         print('found estimator_status data')
     except:
         raise PreconditionError('could not find estimator_status data')
 
     try:
-        _ = ulog.get_dataset('estimator_innovations').data
+        _ = ulog.get_dataset('estimator_innovations', multi_instance).data
         print('found estimator_innovations data')
     except:
         raise PreconditionError('could not find estimator_innovations data')
