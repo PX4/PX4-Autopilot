@@ -87,12 +87,13 @@ using ecl_abstime = uint64_t;
 
 using ecl_abstime = uint64_t;
 
-#define ECL_INFO printf
-#define ECL_WARN printf
-#define ECL_ERR printf
-#define ECL_INFO_TIMESTAMPED printf
-#define ECL_WARN_TIMESTAMPED printf
-#define ECL_ERR_TIMESTAMPED printf
+#define ECL_INFO(X, ...) printf(X "\n", ##__VA_ARGS__)
+#define ECL_WARN(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
+#define ECL_ERR(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
+
+#define ECL_INFO_TIMESTAMPED(X) ECL_INFO("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
+#define ECL_WARN_TIMESTAMPED(X) ECL_WARN("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
+#define ECL_ERR_TIMESTAMPED(X) ECL_ERR("%llu: " X, (unsigned long long)_imu_sample_delayed.time_us)
 
 #endif /* PX4_POSIX || PX4_NUTTX */
 
