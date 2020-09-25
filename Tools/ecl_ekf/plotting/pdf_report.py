@@ -63,7 +63,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             print("estimator_innovations and estimator_innovation_variances are different sizes, adjusting")
             innovation_data_min_length = min(innovations_min_length, variances_min_length)
             for key in innovation_data:
-                innovation_data[key] = innovation_data[key][0:innovation_data_min_length-1]
+                innovation_data[key] = innovation_data[key][0:innovation_data_min_length]
 
         print('found innovation data (merged estimator_innovations + estimator_innovation_variances)')
 
