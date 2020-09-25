@@ -54,12 +54,14 @@ system_time_main(int argc, char *argv[])
 
 			//convert to date time
 			char buf[80];
-			strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", localtime(&utc_time_sec));
+			struct tm date_time;
+			localtime_r(&utc_time_sec, &date_time);
+			strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &date_time);
 
 			//get time since boot
 			hrt_abstime since_boot_sec = hrt_absolute_time() / 1_s;
 
-			PX4_INFO("Unix epoch time: %d", utc_time_sec);
+			PX4_INFO("Unix epoch time: %ld", (long)utc_time_sec);
 			PX4_INFO("System time: %s", buf);
 			PX4_INFO("Uptime (since boot): %" PRIu64 " s", since_boot_sec);
 			return 0;
@@ -69,7 +71,7 @@ system_time_main(int argc, char *argv[])
 			if (argc == 3) {
 				//set system time
 				struct timespec ts = {};
-				ts.tv_sec = (time_t)strtoul(argv[2], NULL, 0);
+				ts.tv_sec = (time_t)strtoul(argv[2], nullptr, 0);
 				ts.tv_nsec = 0.0;
 
 				int res = px4_clock_settime(CLOCK_REALTIME, &ts);
