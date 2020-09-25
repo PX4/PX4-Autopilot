@@ -160,7 +160,7 @@ public:
 	{
 		// schedule immediately if updated (queue depth or subscription interval)
 		if ((_required_updates == 0)
-		    || (_subscription.get_node()->published_message_count() >= (_subscription.get_last_generation() + _required_updates))) {
+		    || (_subscription.get_node()->updates_available(_subscription.get_last_generation()) >= _required_updates)) {
 			if (updated()) {
 				_work_item->ScheduleNow();
 			}

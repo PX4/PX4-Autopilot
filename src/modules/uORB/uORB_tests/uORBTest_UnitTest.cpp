@@ -202,6 +202,12 @@ int uORBTest::UnitTest::test()
 		return ret;
 	}
 
+	ret = test_wrap_around();
+
+	if (ret != OK) {
+		return ret;
+	}
+
 	ret = test_queue();
 
 	if (ret != OK) {
@@ -582,6 +588,162 @@ int uORBTest::UnitTest::test_multi_reversed()
 	return test_note("PASS multi-topic reversed");
 }
 
+int uORBTest::UnitTest::test_wrap_around()
+{
+	test_note("Testing orb wrap-around");
+
+	orb_test_medium_s t{};
+	orb_test_medium_s u{};
+	orb_advert_t ptopic{nullptr};
+	bool updated{false};
+
+	// Advertise but not publish topics, only generate device_node, which is convenient for modifying DeviceNode::_generation
+	const int queue_size = 16;
+	ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_wrap_around), nullptr, queue_size);
+
+	if (ptopic == nullptr) {
+		return test_fail("advertise failed: %d", errno);
+	}
+
+	auto node = uORB::Manager::get_instance()->get_device_master()->getDeviceNode(ORB_ID(orb_test_medium_wrap_around), 0);
+
+	if (node == nullptr) {
+		return test_fail("get device node failed.");
+	}
+
+	// Set generation
+	{
+		// Set generation to the location where wrap-around is about to be: (0 - queue_size / 2) => (UINT_MAX - queue_size / 2 + 1)
+		set_generation(*node, unsigned(-(queue_size / 2)));
+
+		if (node->updates_available(0) != unsigned(-(queue_size / 2))) {
+			return test_fail("set generation failed.");
+		}
+	}
+
+	t.val = 0;
+	orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+
+	int sfd = orb_subscribe(ORB_ID(orb_test_medium_wrap_around));
+
+	if (sfd < 0) {
+		return test_fail("subscribe failed: %d", errno);
+	}
+
+	orb_check(sfd, &updated);
+
+	if (!updated) {
+		return test_fail("update flag not set");
+	}
+
+	if (PX4_OK != orb_copy(ORB_ID(orb_test_medium_wrap_around), sfd, &u)) {
+		return test_fail("copy(1) failed: %d", errno);
+	}
+
+	if (u.val != t.val) {
+		return test_fail("copy(1) mismatch: %d expected %d", u.val, t.val);
+	}
+
+	orb_check(sfd, &updated);
+
+	if (updated) {
+		return test_fail("spurious updated flag");
+	}
+
+#define CHECK_UPDATED(element) \
+	orb_check(sfd, &updated); \
+	if (!updated) { \
+		return test_fail("update flag not set, element %i", element); \
+	}
+#define CHECK_NOT_UPDATED(element) \
+	orb_check(sfd, &updated); \
+	if (updated) { \
+		return test_fail("update flag set, element %i", element); \
+	}
+#define CHECK_COPY(i_got, i_correct) \
+	orb_copy(ORB_ID(orb_test_medium_wrap_around), sfd, &u); \
+	if (i_got != i_correct) { \
+		return test_fail("got wrong element from the queue (got %i, should be %i)", i_got, i_correct); \
+	}
+
+	//no messages in the queue anymore
+
+	test_note("  Testing to write some elements...");
+
+	for (int i = 0; i < queue_size - 2; ++i) {
+		t.val = i;
+		orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+	}
+
+	for (int i = 0; i < queue_size - 2; ++i) {
+		CHECK_UPDATED(i);
+		CHECK_COPY(u.val, i);
+	}
+
+	CHECK_NOT_UPDATED(queue_size);
+
+#define SET_GENERTATION() \
+	set_generation(*node, unsigned(-(queue_size / 2))); \
+	if (node->updates_available(0) != unsigned(-(queue_size / 2))) { \
+		return test_fail("set generation failed."); \
+	} \
+	for (int i = 0; i < queue_size; i++) { \
+		if (PX4_OK != orb_copy(ORB_ID(orb_test_medium_wrap_around), sfd, &u)) { \
+			break; \
+		} \
+	}
+
+	test_note("  Testing overflow...");
+	int overflow_by = 3;
+
+	SET_GENERTATION();
+
+	for (int i = 0; i < queue_size + overflow_by; ++i) {
+		t.val = i;
+		orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+	}
+
+	for (int i = 0; i < queue_size; ++i) {
+		CHECK_UPDATED(i);
+		CHECK_COPY(u.val, i + overflow_by);
+	}
+
+	CHECK_NOT_UPDATED(queue_size);
+
+	test_note("  Testing underflow...");
+
+	SET_GENERTATION();
+
+	t.val = queue_size;
+	orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+
+	CHECK_UPDATED(-1);
+	CHECK_COPY(u.val, t.val);
+
+	for (int i = 0; i < queue_size; ++i) {
+		CHECK_NOT_UPDATED(i);
+		CHECK_COPY(u.val, t.val);
+	}
+
+#undef SET_GENERTATION
+
+	t.val = 943;
+	orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+	CHECK_UPDATED(-1);
+	test_note("before copy");
+	CHECK_COPY(u.val, t.val);
+
+#undef CHECK_COPY
+#undef CHECK_UPDATED
+#undef CHECK_NOT_UPDATED
+
+	test_note("before unadvertise");
+	orb_unadvertise(ptopic);
+	orb_unsubscribe(sfd);
+
+	return test_note("PASS orb queuing");
+}
+
 int uORBTest::UnitTest::test_queue()
 {
 	test_note("Testing orb queuing");
@@ -597,7 +759,7 @@ int uORBTest::UnitTest::test_queue()
 		return test_fail("subscribe failed: %d", errno);
 	}
 
-	const int queue_size = 11;
+	const int queue_size = 16;
 	t.val = 0;
 	ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue), &t, queue_size);
 
