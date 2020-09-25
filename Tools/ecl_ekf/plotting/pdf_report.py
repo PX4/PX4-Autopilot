@@ -47,7 +47,26 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
         for key in estimator_innovation_variances:
             # append 'var' to the field name such that we can distingush between innov and innov_var
             innovation_data.update({str('var_'+key): estimator_innovation_variances[key]})
-        print('found innovation data')
+
+        innovations_min_length = float('inf')
+        for key in estimator_innovations:
+            if len(estimator_innovations[key]) < innovations_min_length:
+                innovations_min_length = len(estimator_innovations[key])
+
+        variances_min_length = float('inf')
+        for key in estimator_innovation_variances:
+            if len(estimator_innovation_variances[key]) < variances_min_length:
+                variances_min_length = len(estimator_innovation_variances[key])
+
+        # ensure consistent sizing for plots
+        if (innovations_min_length != variances_min_length):
+            print("estimator_innovations and estimator_innovation_variances are different sizes, adjusting")
+            innovation_data_min_length = min(innovations_min_length, variances_min_length)
+            for key in innovation_data:
+                innovation_data[key] = innovation_data[key][0:innovation_data_min_length]
+
+        print('found innovation data (merged estimator_innovations + estimator_innovation_variances)')
+
     except:
         raise PreconditionError('could not find innovation data')
 
