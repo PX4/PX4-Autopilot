@@ -133,7 +133,7 @@ uint8 FAILURE_TYPE_SLOW = 5
 uint8 FAILURE_TYPE_DELAYED = 6
 uint8 FAILURE_TYPE_INTERMITTENT = 7
 
-uint8 ORB_QUEUE_LENGTH = 3
+uint8 ORB_QUEUE_LENGTH = 4
 
 float32 param1			# Parameter 1, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param2			# Parameter 2, as defined by MAVLink uint16 VEHICLE_CMD enum.
