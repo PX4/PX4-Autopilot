@@ -122,7 +122,7 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, 
 	rx_data[0] = (device_address << 1) | 0x00;
 	rx_data[1] = cmd_code;
 	rx_data[2] = (device_address << 1) | 0x01;
-	byte_count = math::min(rx_data[3], 32);
+	byte_count = math::min(rx_data[3], (uint8_t)32);
 
 	// ensure data is not longer than given buffer
 	memcpy(data, &rx_data[4], math::min(byte_count, length));
