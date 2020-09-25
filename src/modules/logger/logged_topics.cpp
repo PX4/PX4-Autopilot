@@ -56,6 +56,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("commander_state");
 	add_topic("cpuload");
 	add_topic("esc_status", 250);
+	add_topic("generator_status");
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
@@ -72,9 +73,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("safety");
 	add_topic("sensor_combined");
 	add_topic("sensor_correction");
-	add_topic("sensors_status_imu", 200);
 	add_topic("sensor_preflight_mag", 500);
 	add_topic("sensor_selection");
+	add_topic("sensors_status_imu", 200);
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
 	add_topic("test_motor", 500);
@@ -118,8 +119,8 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("estimator_sensor_bias", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_status", 500, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("wind_estimate", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("yaw_estimator_status", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("wind_estimate", 1000); // published by both ekf2 and airspeed_selector
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 300, 4);
