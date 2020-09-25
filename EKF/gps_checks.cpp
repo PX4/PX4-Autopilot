@@ -60,6 +60,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 {
 	// Run GPS checks always
 	_gps_checks_passed = gps_is_good(gps);
+
 	if (!_NED_origin_initialised && _gps_checks_passed) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 		const double lat = gps.lat * 1.0e-7;
@@ -79,6 +80,8 @@ bool Ekf::collect_gps(const gps_message &gps)
 		_earth_rate_NED = calcEarthRateNED((float)_pos_ref.lat_rad);
 		_last_gps_origin_time_us = _time_last_imu;
 
+		const bool declination_was_valid = ISFINITE(_mag_declination_gps);
+
 		// set the magnetic field data returned by the geo library using the current GPS position
 		_mag_declination_gps = get_mag_declination_radians(lat, lon);
 		_mag_inclination_gps = get_mag_inclination_radians(lat, lon);
@@ -89,9 +92,13 @@ bool Ekf::collect_gps(const gps_message &gps)
 			// try to reset the yaw using the EKF-GSF yaw esitimator
 			_do_ekfgsf_yaw_reset = true;
 			_ekfgsf_yaw_reset_time = 0;
+
 		} else {
-			_mag_yaw_reset_req = true;
+			if (!declination_was_valid) {
+				_mag_yaw_reset_req = true;
+			}
 		}
+
 		// save the horizontal and vertical position uncertainty of the origin
 		_gps_origin_eph = gps.eph;
 		_gps_origin_epv = gps.epv;
@@ -101,7 +108,33 @@ bool Ekf::collect_gps(const gps_message &gps)
 		if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
 			startGpsHgtFusion();
 		}
+
 		ECL_INFO_TIMESTAMPED("GPS checks passed");
+
+	} else if (!_NED_origin_initialised) {
+		// a rough 2D fix is still sufficient to lookup declination
+		if ((gps.fix_type >= 2) && (gps.eph < 1000)) {
+
+			const bool declination_was_valid = ISFINITE(_mag_declination_gps);
+
+			// If we have good GPS data set the origin's WGS-84 position to the last gps fix
+			const double lat = gps.lat * 1.0e-7;
+			const double lon = gps.lon * 1.0e-7;
+
+			// set the magnetic field data returned by the geo library using the current GPS position
+			_mag_declination_gps = get_mag_declination_radians(lat, lon);
+			_mag_inclination_gps = get_mag_inclination_radians(lat, lon);
+			_mag_strength_gps = get_mag_strength_tesla(lat, lon);
+
+			// request mag yaw reset if there's a mag declination for the first time
+			if (_params.mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+				if (!declination_was_valid && ISFINITE(_mag_declination_gps)) {
+					_mag_yaw_reset_req = true;
+				}
+			}
+
+			_earth_rate_NED = calcEarthRateNED((float)math::radians(lat));
+		}
 	}
 
 	// start collecting GPS if there is a 3D fix and the NED origin has been set
@@ -135,7 +168,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 	// check if GPS quality is degraded
 	_gps_error_norm = fmaxf((gps.eph / _params.req_hacc), (gps.epv / _params.req_vacc));
-	_gps_error_norm = fmaxf(_gps_error_norm , (gps.sacc / _params.req_sacc));
+	_gps_error_norm = fmaxf(_gps_error_norm, (gps.sacc / _params.req_sacc));
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	constexpr float filt_time_const = 10.0f;
@@ -145,6 +178,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	// The following checks are only valid when the vehicle is at rest
 	const double lat = gps.lat * 1.0e-7;
 	const double lon = gps.lon * 1.0e-7;
+
 	if (!_control_status.flags.in_air && _control_status.flags.vehicle_at_rest) {
 		// Calculate position movement since last measurement
 		float delta_pos_n = 0.0f;
@@ -232,6 +266,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 		(_gps_check_fail_status.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD))
 	) {
 		_last_gps_fail_us = _time_last_imu;
+
 	} else {
 		_last_gps_pass_us = _time_last_imu;
 	}
