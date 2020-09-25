@@ -671,7 +671,8 @@ private:
 	template <size_t ...Idxs>
 	SquareMatrix24f computeKHP(const Vector24f& K, const SparseVector24f<Idxs...>& H) const {
 		SquareMatrix24f KHP;
-		float KH[H.non_zeros()];
+		constexpr size_t non_zeros = sizeof...(Idxs);
+		float KH[non_zeros];
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for(unsigned i = 0; i < H.non_zeros(); i++) {
 				KH[i] = K(row) * H.atCompressedIndex(i);
