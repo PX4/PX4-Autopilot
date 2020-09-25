@@ -43,7 +43,7 @@ else
 fi
 
 # To disable user input
-if [[ -n "$VERBOSE" ]]; then
+if [[ -n "$VERBOSE_SIM" ]]; then
 	verbose="--verbose"
 else
 	verbose=""
