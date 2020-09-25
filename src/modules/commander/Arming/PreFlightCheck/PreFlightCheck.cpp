@@ -180,7 +180,17 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		param_get(param_find("FW_ARSP_MODE"), &airspeed_mode);
 		const bool optional = (airspeed_mode == 1);
 
-		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, prearm) && !optional) {
+		int32_t max_airspeed_check_en = 0;
+		param_get(param_find("COM_ARM_ARSP_EN"), &max_airspeed_check_en);
+
+		float airspeed_stall = 10.0f;
+		param_get(param_find("ASPD_STALL"), &airspeed_stall);
+
+		const float arming_max_airspeed_allowed = airspeed_stall / 2.0f; // set to half of stall speed
+
+		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, prearm, (bool)max_airspeed_check_en,
+				   arming_max_airspeed_allowed)
+		    && !(bool)optional) {
 			failed = true;
 		}
 	}
