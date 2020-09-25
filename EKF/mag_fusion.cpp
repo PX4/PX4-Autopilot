@@ -899,9 +899,10 @@ void Ekf::limitDeclination()
 	float h_field_min = 0.001f;
 	if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
-		if (_NED_origin_initialised) {
+		if (_NED_origin_initialised || ISFINITE(_mag_declination_gps)) {
 			decl_reference = _mag_declination_gps;
 			h_field_min = fmaxf(h_field_min , 0.5f * _mag_strength_gps * cosf(_mag_inclination_gps));
+
 		} else {
 			decl_reference = math::radians(_params.mag_declination_deg);
 		}
