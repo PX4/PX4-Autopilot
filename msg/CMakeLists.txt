@@ -65,6 +65,7 @@ set(msg_files
 	estimator_states.msg
 	estimator_status.msg
 	follow_target.msg
+	generator_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
