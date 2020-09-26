@@ -65,10 +65,10 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
@@ -231,7 +231,7 @@ private:
 
 	// HIL GPS
 	static constexpr int MAX_GPS = 3;
-	uORB::PublicationMulti<vehicle_gps_position_s>	*_vehicle_gps_position_pubs[MAX_GPS] {};
+	uORB::PublicationMulti<sensor_gps_s>	*_sensor_gps_pubs[MAX_GPS] {};
 	uint8_t _gps_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 

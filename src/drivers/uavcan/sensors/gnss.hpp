@@ -46,7 +46,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
@@ -82,8 +82,6 @@ private:
 			  const float (&pos_cov)[9], const float (&vel_cov)[9],
 			  const bool valid_pos_cov, const bool valid_vel_cov);
 
-	void broadcast_from_orb(const uavcan::TimerEvent &);
-
 	typedef uavcan::MethodBinder < UavcanGnssBridge *,
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &) >
 		AuxiliaryCbBinder;
@@ -106,16 +104,11 @@ private:
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
 
-	uavcan::Publisher<uavcan::equipment::gnss::Fix2> _pub_fix2;
-
-	uavcan::TimerEventForwarder<TimerCbBinder> _orb_to_uavcan_pub_timer;
-
 	uint64_t	_last_gnss_auxiliary_timestamp{0};
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
 
-	uORB::PublicationMulti<vehicle_gps_position_s>	_gps_pub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription				_orb_sub_gnss{ORB_ID(vehicle_gps_position)};
+	uORB::PublicationMulti<sensor_gps_s>	_gps_pub{ORB_ID(sensor_gps)};
 
 	int	_receiver_node_id{-1};
 	bool	_old_fix_subscriber_active{true};

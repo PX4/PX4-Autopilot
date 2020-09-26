@@ -336,7 +336,7 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
 	if (!_gps_blocked) {
-		vehicle_gps_position_s gps{};
+		sensor_gps_s gps{};
 
 		gps.timestamp = hrt_absolute_time();
 		gps.time_utc_usec = hil_gps.time_usec;
@@ -356,16 +356,16 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 
 		// New publishers will be created based on the HIL_GPS ID's being different or not
 		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
-			if (_vehicle_gps_position_pubs[i] && _gps_ids[i] == hil_gps.id) {
-				_vehicle_gps_position_pubs[i]->publish(gps);
+			if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
+				_sensor_gps_pubs[i]->publish(gps);
 				break;
 
 			}
 
-			if (_vehicle_gps_position_pubs[i] == nullptr) {
-				_vehicle_gps_position_pubs[i] = new uORB::PublicationMulti<vehicle_gps_position_s> {ORB_ID(vehicle_gps_position)};
+			if (_sensor_gps_pubs[i] == nullptr) {
+				_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
 				_gps_ids[i] = hil_gps.id;
-				_vehicle_gps_position_pubs[i]->publish(gps);
+				_sensor_gps_pubs[i]->publish(gps);
 				break;
 			}
 		}

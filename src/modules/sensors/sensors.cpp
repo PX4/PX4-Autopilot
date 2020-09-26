@@ -73,6 +73,7 @@
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 #include "vehicle_air_data/VehicleAirData.hpp"
+#include "vehicle_gps_position/VehicleGPSPosition.hpp"
 #include "vehicle_imu/VehicleIMU.hpp"
 #include "vehicle_magnetometer/VehicleMagnetometer.hpp"
 
@@ -172,6 +173,7 @@ private:
 	VehicleAngularVelocity	_vehicle_angular_velocity;
 	VehicleAirData          *_vehicle_air_data{nullptr};
 	VehicleMagnetometer     *_vehicle_magnetometer{nullptr};
+	VehicleGPSPosition	*_vehicle_gps_position{nullptr};
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
@@ -204,6 +206,7 @@ private:
 	void		adc_poll();
 
 	void		InitializeVehicleAirData();
+	void		InitializeVehicleGPSPosition();
 	void		InitializeVehicleIMU();
 	void		InitializeVehicleMagnetometer();
 
@@ -273,6 +276,11 @@ Sensors::~Sensors()
 	if (_vehicle_air_data) {
 		_vehicle_air_data->Stop();
 		delete _vehicle_air_data;
+	}
+
+	if (_vehicle_gps_position) {
+		_vehicle_gps_position->Stop();
+		delete _vehicle_gps_position;
 	}
 
 	if (_vehicle_magnetometer) {
@@ -483,6 +491,19 @@ void Sensors::InitializeVehicleAirData()
 	}
 }
 
+void Sensors::InitializeVehicleGPSPosition()
+{
+	if (_vehicle_gps_position == nullptr) {
+		if (orb_exists(ORB_ID(sensor_gps), 0) == PX4_OK) {
+			_vehicle_gps_position = new VehicleGPSPosition();
+
+			if (_vehicle_gps_position) {
+				_vehicle_gps_position->Start();
+			}
+		}
+	}
+}
+
 void Sensors::InitializeVehicleIMU()
 {
 	// create a VehicleIMU instance for each accel/gyro pair
@@ -553,6 +574,7 @@ void Sensors::Run()
 	if (_last_config_update == 0) {
 		InitializeVehicleAirData();
 		InitializeVehicleIMU();
+		InitializeVehicleGPSPosition();
 		InitializeVehicleMagnetometer();
 		_voted_sensors_update.init(_sensor_combined);
 		parameter_update_poll(true);
@@ -592,6 +614,7 @@ void Sensors::Run()
 		_voted_sensors_update.initializeSensors();
 		InitializeVehicleAirData();
 		InitializeVehicleIMU();
+		InitializeVehicleGPSPosition();
 		InitializeVehicleMagnetometer();
 		_last_config_update = hrt_absolute_time();
 
@@ -677,6 +700,11 @@ int Sensors::print_status()
 
 	PX4_INFO_RAW("\n");
 	_vehicle_angular_velocity.PrintStatus();
+
+	if (_vehicle_gps_position) {
+		PX4_INFO_RAW("\n");
+		_vehicle_gps_position->PrintStatus();
+	}
 
 	PX4_INFO_RAW("\n");
 
