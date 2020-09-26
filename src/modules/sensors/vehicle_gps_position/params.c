@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,33 +32,32 @@
  ****************************************************************************/
 
 /**
- * @file definitions.h
- * common platform-specific definitions & abstractions for gps
- * @author Beat Küng <beat-kueng@gmx.net>
+ * Multi GPS Blending Control Mask.
+ *
+ * Set bits in the following positions to set which GPS accuracy metrics will be used to calculate the blending weight. Set to zero to disable and always used first GPS instance.
+ * 0 : Set to true to use speed accuracy
+ * 1 : Set to true to use horizontal position accuracy
+ * 2 : Set to true to use vertical position accuracy
+ *
+ * @group Sensors
+ * @min 0
+ * @max 7
+ * @bit 0 use speed accuracy
+ * @bit 1 use hpos accuracy
+ * @bit 2 use vpos accuracy
  */
-
-#pragma once
-
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/defines.h>
-#include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/satellite_info.h>
-
-#define GPS_INFO(...) PX4_INFO(__VA_ARGS__)
-#define GPS_WARN(...) PX4_WARN(__VA_ARGS__)
-#define GPS_ERR(...) PX4_ERR(__VA_ARGS__)
-
-#define gps_usleep px4_usleep
+PARAM_DEFINE_INT32(SENS_GPS_MASK, 0);
 
 /**
- * Get the current time in us. Function signature:
- * uint64_t hrt_absolute_time()
+ * Multi GPS Blending Time Constant
+ *
+ * Sets the longest time constant that will be applied to the calculation of GPS position and height offsets used to correct data from multiple GPS data for steady state position differences.
+ *
+ *
+ * @group Sensors
+ * @min 1.0
+ * @max 100.0
+ * @unit s
+ * @decimal 1
  */
-#define gps_absolute_time hrt_absolute_time
-typedef hrt_abstime gps_abstime;
-
-
-// TODO: this functionality is not available on the Snapdragon yet
-#ifdef __PX4_QURT
-#define NO_MKTIME
-#endif
+PARAM_DEFINE_FLOAT(SENS_GPS_TAU, 10.0f);

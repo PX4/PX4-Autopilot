@@ -2287,7 +2287,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	const uint64_t timestamp = hrt_absolute_time();
 
-	struct vehicle_gps_position_s hil_gps = {};
+	sensor_gps_s hil_gps{};
 
 	hil_gps.timestamp_time_relative = 0;
 	hil_gps.time_utc_usec = gps.time_usec;
