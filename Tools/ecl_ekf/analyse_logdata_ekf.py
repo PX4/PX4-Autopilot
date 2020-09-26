@@ -32,21 +32,18 @@ def analyse_ekf(
 
     try:
         estimator_states = ulog.get_dataset('estimator_states', multi_instance).data
-        print('found estimator_states data')
     except:
-        raise PreconditionError('could not find estimator_states data')
+        raise PreconditionError('could not find estimator_states instance', multi_instance)
 
     try:
         estimator_status = ulog.get_dataset('estimator_status', multi_instance).data
-        print('found estimator_status data')
     except:
-        raise PreconditionError('could not find estimator_status data')
+        raise PreconditionError('could not find estimator_status instance', multi_instance)
 
     try:
         _ = ulog.get_dataset('estimator_innovations', multi_instance).data
-        print('found estimator_innovations data')
     except:
-        raise PreconditionError('could not find estimator_innovations data')
+        raise PreconditionError('could not find estimator_innovations instance', multi_instance)
 
     try:
         in_air = InAirDetector(
@@ -72,7 +69,7 @@ def analyse_ekf(
 
     metrics = calculate_ecl_ekf_metrics(
         ulog, innov_flags, innov_fail_checks, sensor_checks, in_air, in_air_no_ground_effects,
-        red_thresh=red_thresh, amb_thresh=amb_thresh)
+        multi_instance, red_thresh=red_thresh, amb_thresh=amb_thresh)
 
     check_status, master_status = perform_ecl_ekf_checks(
         metrics, sensor_checks, innov_fail_checks, check_levels)

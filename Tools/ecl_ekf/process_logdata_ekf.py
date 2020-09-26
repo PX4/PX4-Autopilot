@@ -96,11 +96,11 @@ def process_logdata_ekf(
         estimator_selector_status = ulog.get_dataset('estimator_selector_status',).data
         print('found estimator_selector_status (multi-ekf) data')
 
-        for instances_available in estimator_selec:tor_status['instances_available']:
+        for instances_available in estimator_selector_status['instances_available']:
             if instances_available > ekf_instances:
                 ekf_instances = instances_available
 
-        print(ekf_instances, ' ekf instances')
+        print(ekf_instances, 'ekf instances')
 
     except:
         print('could not find estimator_selector_status data')
@@ -117,6 +117,8 @@ def process_logdata_ekf(
     in_air_margin = 5.0 if sensor_safety_margins else 0.0
 
     for multi_instance in range(ekf_instances):
+
+        print('\nestimator instance:', multi_instance)
 
         # perform the ekf analysis
         master_status, check_status, metrics, airtime_info = analyse_ekf(
@@ -137,10 +139,10 @@ def process_logdata_ekf(
             key_list.sort()
             for key in key_list:
                 file.write(key + "," + str(test_results[key][0]) + "," + test_results[key][1] + "\n")
-        print('Test results written to {:s}--{:d}.mdat.csv'.format(filename, multi_instance))
+        print('Test results written to {:s}-{:d}.mdat.csv'.format(filename, multi_instance))
 
         if plot:
-            create_pdf_report(ulog, '{:s}-{:d}.pdf'.format(filename, multi_instance))
+            create_pdf_report(ulog, multi_instance, '{:s}-{:d}.pdf'.format(filename, multi_instance))
             print('Plots saved to {:s}-{:d}.pdf'.format(filename, multi_instance))
 
     return test_results

@@ -17,5 +17,5 @@ safety_button start
 # for multi-EKF testing
 param set SENS_IMU_MODE 0
 param set SENS_MAG_MODE 0
-param set EKF2_MULTI_IMU 2
+param set EKF2_MULTI_IMU 3
 param set EKF2_MULTI_MAG 2

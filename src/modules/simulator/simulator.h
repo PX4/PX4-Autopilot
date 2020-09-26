@@ -60,7 +60,6 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>

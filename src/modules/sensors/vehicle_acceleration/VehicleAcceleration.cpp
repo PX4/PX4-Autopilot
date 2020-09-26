@@ -65,7 +65,8 @@ bool VehicleAcceleration::Start()
 	}
 
 	if (!SensorSelectionUpdate(true)) {
-		ScheduleDelayed(10_ms);
+		_selected_sensor_sub_index = 0;
+		_sensor_sub.registerCallback();
 	}
 
 	return true;
@@ -152,7 +153,9 @@ void VehicleAcceleration::SensorBiasUpdate(bool force)
 		if (_estimator_sensor_bias_sub.copy(&bias)) {
 			if (bias.accel_device_id == _selected_sensor_device_id) {
 				_bias = Vector3f{bias.accel_bias};
-				return;
+
+			} else {
+				_bias.zero();
 			}
 		}
 	}

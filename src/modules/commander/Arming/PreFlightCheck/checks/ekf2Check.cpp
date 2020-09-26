@@ -232,7 +232,9 @@ out:
 bool PreFlightCheck::ekf2CheckStates(orb_advert_t *mavlink_log_pub, const bool report_fail)
 {
 	// Get estimator states data if available and exit with a fail recorded if not
-	uORB::Subscription states_sub{ORB_ID(estimator_states)};
+	uORB::SubscriptionData<estimator_selector_status_s> estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription states_sub{ORB_ID(estimator_states), estimator_selector_status_sub.get().primary_instance};
+
 	estimator_states_s states;
 
 	if (states_sub.copy(&states)) {

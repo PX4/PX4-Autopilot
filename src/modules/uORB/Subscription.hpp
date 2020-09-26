@@ -187,9 +187,9 @@ public:
 	 * @param id The uORB metadata ORB_ID enum for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionData(ORB_ID id, uint8_t instance = 0) :
-		Subscription(id, instance)
+	SubscriptionData(ORB_ID id, uint8_t instance = 0) : Subscription(id, instance)
 	{
+		assert(get_orb_meta(_orb_id)->o_size == sizeof(T));
 		copy(&_data);
 	}
 
@@ -199,9 +199,9 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionData(const orb_metadata *meta, uint8_t instance = 0) :
-		Subscription(meta, instance)
+	SubscriptionData(const orb_metadata *meta, uint8_t instance = 0) : Subscription(meta, instance)
 	{
+		assert(meta->o_size == sizeof(T));
 		copy(&_data);
 	}
 

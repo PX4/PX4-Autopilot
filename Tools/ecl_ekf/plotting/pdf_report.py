@@ -17,7 +17,7 @@ from plotting.data_plots import TimeSeriesPlot, InnovationPlot, ControlModeSumma
 from analysis.detectors import PreconditionError
 import analysis.data_version_handler as dvh
 
-def create_pdf_report(ulog: ULog, output_plot_filename: str, multi_instance: int) -> None:
+def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str) -> None:
     """
     creates a pdf report of the ekf analysis.
     :param ulog:
@@ -30,15 +30,13 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str, multi_instance: int
 
     try:
         estimator_status = ulog.get_dataset('estimator_status', multi_instance).data
-        print('found estimator_status data')
     except:
-        raise PreconditionError('could not find estimator_status data')
+        raise PreconditionError('could not find estimator_status instance', multi_instance)
 
     try:
         estimator_states = ulog.get_dataset('estimator_states', multi_instance).data
-        print('found estimator_states data')
     except:
-        raise PreconditionError('could not find estimator_states data')
+        raise PreconditionError('could not find estimator_states instance', multi_instance)
 
     try:
         estimator_innovations = ulog.get_dataset('estimator_innovations', multi_instance).data
@@ -65,7 +63,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str, multi_instance: int
             for key in innovation_data:
                 innovation_data[key] = innovation_data[key][0:innovation_data_min_length]
 
-        print('found innovation data (merged estimator_innovations + estimator_innovation_variances)')
+        print('found innovation data (merged estimator_innovations + estimator_innovation_variances) instance', multi_instance)
 
     except:
         raise PreconditionError('could not find innovation data')

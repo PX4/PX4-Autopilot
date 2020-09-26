@@ -173,7 +173,9 @@ void VehicleAngularVelocity::SensorBiasUpdate(bool force)
 		if (_estimator_sensor_bias_sub.copy(&bias)) {
 			if (bias.gyro_device_id == _selected_sensor_device_id) {
 				_bias = Vector3f{bias.gyro_bias};
-				return;
+
+			} else {
+				_bias.zero();
 			}
 		}
 	}
@@ -329,6 +331,7 @@ void VehicleAngularVelocity::PrintStatus()
 	PX4_INFO("selected sensor: %d (%d), rate: %.1f Hz",
 		 _selected_sensor_device_id, _selected_sensor_sub_index, (double)_update_rate_hz);
 	PX4_INFO("estimated bias: [%.4f %.4f %.4f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
+
 	_calibration.PrintStatus();
 }
 

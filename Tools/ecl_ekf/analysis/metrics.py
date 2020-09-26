@@ -22,7 +22,7 @@ def calculate_ecl_ekf_metrics(
     innov_fail_metrics = calculate_innov_fail_metrics(
         innov_flags, innov_fail_checks, in_air, in_air_no_ground_effects)
 
-    imu_metrics = calculate_imu_metrics(ulog, in_air_no_ground_effects)
+    imu_metrics = calculate_imu_metrics(ulog, multi_instance, in_air_no_ground_effects)
 
     estimator_status_data = ulog.get_dataset('estimator_status', multi_instance).data
 
@@ -44,8 +44,8 @@ def calculate_ecl_ekf_metrics(
 
 def calculate_sensor_metrics(
         ulog: ULog, sensor_checks: List[str], in_air: InAirDetector,
-        in_air_no_ground_effects: InAirDetector, red_thresh: float = 1.0,
-        amb_thresh: float = 0.5) -> Dict[str, float]:
+        in_air_no_ground_effects: InAirDetector, multi_instance: int = 0,
+        red_thresh: float = 1.0, amb_thresh: float = 0.5) -> Dict[str, float]:
 
     estimator_status_data = ulog.get_dataset('estimator_status', multi_instance).data
 
@@ -131,8 +131,7 @@ def calculate_innov_fail_metrics(
     return innov_fail_metrics
 
 
-def calculate_imu_metrics(
-        ulog: ULog, in_air_no_ground_effects: InAirDetector) -> dict:
+def calculate_imu_metrics(ulog: ULog, multi_instance, in_air_no_ground_effects: InAirDetector) -> dict:
 
     estimator_status_data = ulog.get_dataset('estimator_status', multi_instance).data
 

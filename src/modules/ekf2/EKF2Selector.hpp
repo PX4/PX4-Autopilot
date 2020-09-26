@@ -44,7 +44,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/estimator_selector_status.h>
-#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_selection.h>
@@ -174,6 +173,8 @@ private:
 	float _delta_alt_reset{0.f};
 	uint8_t _lat_lon_reset_counter{0};
 	uint8_t _alt_reset_counter{0};
+
+	int _lockstep_component{-1};
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
