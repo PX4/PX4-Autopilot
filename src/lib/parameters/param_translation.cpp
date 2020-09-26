@@ -98,6 +98,18 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2020-08-23 (v1.12 alpha): translate GPS blending parameters from EKF2 -> SENS
+	{
+		if (strcmp("EKF2_GPS_MASK", node->name) == 0) {
+			strcpy(node->name, "SENS_GPS_MASK");
+			PX4_INFO("copying %s -> %s", "EKF2_GPS_MASK", "SENS_GPS_MASK");
+		}
+
+		if (strcmp("EKF2_GPS_TAU", node->name) == 0) {
+			strcpy(node->name, "SENS_GPS_TAU");
+			PX4_INFO("copying %s -> %s", "EKF2_GPS_TAU", "SENS_GPS_TAU");
+		}
+	}
 
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 

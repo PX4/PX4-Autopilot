@@ -95,6 +95,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_command");
 	add_topic("vehicle_control_mode");
 	add_topic("vehicle_global_position", 200);
+	add_topic("vehicle_gps_position", 500);
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
@@ -121,9 +122,9 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("optical_flow", 1000, 2);
 	add_topic_multi("sensor_accel", 1000, 3);
 	add_topic_multi("sensor_baro", 1000, 3);
+	add_topic_multi("sensor_gps", 1000, 3);
 	add_topic_multi("sensor_gyro", 1000, 3);
 	add_topic_multi("sensor_mag", 1000, 4);
-	add_topic_multi("vehicle_gps_position", 1000, 2);
 	add_topic_multi("vehicle_imu", 500, 3);
 	add_topic_multi("vehicle_imu_status", 1000, 3);
 
@@ -168,7 +169,6 @@ void LoggedTopics::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
 	add_topic("ekf2_timestamps");
-	add_topic("ekf_gps_position");
 
 	// current EKF2 subscriptions
 	add_topic("airspeed");
@@ -176,13 +176,13 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
+	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
 	add_topic("vehicle_visual_odometry_aligned");
 	add_topic_multi("distance_sensor");
-	add_topic_multi("vehicle_gps_position", 0, 2);
 }
 
 void LoggedTopics::add_thermal_calibration_topics()

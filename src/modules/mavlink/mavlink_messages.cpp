@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,6 +93,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rpm.h>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/tecs_status.h>
@@ -105,7 +106,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -1792,7 +1792,7 @@ public:
 	}
 
 private:
-	uORB::Subscription _gps_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _gps_sub{ORB_ID(sensor_gps), 0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamGPSRawInt(MavlinkStreamGPSRawInt &) = delete;
@@ -1804,7 +1804,7 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (_gps_sub.update(&gps)) {
 			mavlink_gps_raw_int_t msg{};
@@ -1868,7 +1868,7 @@ public:
 	}
 
 private:
-	uORB::Subscription _gps2_sub{ORB_ID(vehicle_gps_position), 1};
+	uORB::Subscription _gps2_sub{ORB_ID(sensor_gps), 1};
 
 	/* do not allow top copying this class */
 	MavlinkStreamGPS2Raw(MavlinkStreamGPS2Raw &) = delete;
@@ -1880,7 +1880,7 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (_gps2_sub.update(&gps)) {
 			mavlink_gps2_raw_t msg = {};
