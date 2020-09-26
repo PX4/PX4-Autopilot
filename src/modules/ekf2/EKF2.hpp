@@ -223,11 +223,11 @@ private:
 	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
 
 	// publications with topic dependent on multi-mode
-	uORB::PublicationMulti<vehicle_attitude_s>		_att_pub;
-	uORB::PublicationMulti<vehicle_odometry_s>		_vehicle_odometry_pub;
-	uORB::PublicationMultiData<vehicle_global_position_s>	_vehicle_global_position_pub;
-	uORB::PublicationMultiData<vehicle_local_position_s>	_vehicle_local_position_pub;
-	uORB::PublicationMultiData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub;
+	uORB::PublicationMulti<vehicle_attitude_s>            _attitude_pub;
+	uORB::PublicationMultiData<vehicle_local_position_s>  _local_position_pub;
+	uORB::PublicationMultiData<vehicle_global_position_s> _global_position_pub;
+	uORB::PublicationMulti<vehicle_odometry_s>            _odometry_pub;
+	uORB::PublicationMultiData<vehicle_odometry_s>        _visual_odometry_aligned_pub;
 
 	Ekf _ekf;
 

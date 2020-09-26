@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 static constexpr uint8_t EKF2_MAX_INSTANCES{9}; // keep in sync with EKF2_MULTI_INST max, EKF2_x_IMU_ID, EKF2_x_MAG_ID, and selector MAX_INSTANCES
 
@@ -84,6 +85,8 @@ private:
 			estimator_status_sub{selector, ORB_ID(estimator_status), i},
 			estimator_local_position_sub{ORB_ID(estimator_local_position), i},
 			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
+			estimator_odometry_sub{ORB_ID(estimator_odometry), i},
+			estimator_visual_odometry_aligned_sub{ORB_ID(estimator_visual_odometry_aligned), i},
 			instance(i)
 		{}
 
@@ -92,6 +95,8 @@ private:
 
 		uORB::Subscription estimator_local_position_sub;
 		uORB::Subscription estimator_global_position_sub;
+		uORB::Subscription estimator_odometry_sub;
+		uORB::Subscription estimator_visual_odometry_aligned_sub;
 
 		estimator_status_s estimator_status{};
 
@@ -179,6 +184,8 @@ private:
 	uORB::Publication<vehicle_attitude_s>          _vehicle_attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_global_position_s>   _vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_local_position_s>    _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<vehicle_odometry_s>          _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
+	uORB::Publication<vehicle_odometry_s>          _vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,

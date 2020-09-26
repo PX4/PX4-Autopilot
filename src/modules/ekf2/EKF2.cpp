@@ -39,7 +39,9 @@ using math::constrain;
 
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
-static px4::atomic<EKF2Selector *> _ekf2_selector{nullptr};
+#if !defined(CONSTRAINED_FLASH)
+static px4::atomic<EKF2Selector *> _ekf2_selector {nullptr};
+#endif // !CONSTRAINED_FLASH
 
 EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool replay_mode):
 	ModuleParams(nullptr),
@@ -48,12 +50,12 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_multi_mode(instance >= 0),
 	_instance(math::constrain(instance, 0, EKF2_MAX_INSTANCES - 1)),
 	_ekf_update_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": update")),
-	_att_pub(_multi_mode ? ORB_ID(estimator_attitude) : ORB_ID(vehicle_attitude)),
-	_vehicle_odometry_pub(_multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
-	_vehicle_global_position_pub(_multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
-	_vehicle_local_position_pub(_multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
-	_vehicle_visual_odometry_aligned_pub(_multi_mode ? ORB_ID(estimator_visual_odometry_aligned) : ORB_ID(
-			vehicle_visual_odometry_aligned)),
+	_attitude_pub(_multi_mode ? ORB_ID(estimator_attitude) : ORB_ID(vehicle_attitude)),
+	_local_position_pub(_multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
+	_global_position_pub(_multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
+	_odometry_pub(_multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
+	_visual_odometry_aligned_pub(_multi_mode ? ORB_ID(estimator_visual_odometry_aligned) :
+				     ORB_ID(vehicle_visual_odometry_aligned)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -165,8 +167,12 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 
 	// advertise immediately to ensure consistent uORB instance numbering
-	_att_pub.advertise();
-	_ekf2_timestamps_pub.advertise();
+	_attitude_pub.advertise();
+	_local_position_pub.advertise();
+	_global_position_pub.advertise();
+	_odometry_pub.advertise();
+	_visual_odometry_aligned_pub.advertise();
+
 	_ekf_gps_drift_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
@@ -174,16 +180,15 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
 	_estimator_status_pub.advertise();
-	_vehicle_global_position_pub.advertise();
-	_vehicle_local_position_pub.advertise();
-	_vehicle_odometry_pub.advertise();
-	_vehicle_visual_odometry_aligned_pub.advertise();
 	_wind_pub.advertise();
 	_yaw_est_pub.advertise();
 
 	if (_multi_mode) {
 		_vehicle_imu_sub.ChangeInstance(imu);
 		_magnetometer_sub.ChangeInstance(mag);
+
+	} else {
+		_ekf2_timestamps_pub.advertise();
 	}
 }
 
@@ -685,7 +690,7 @@ void EKF2::Run()
 			// only publish position after successful alignment
 			if (control_status.flags.tilt_align) {
 				// generate vehicle local position data
-				vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
+				vehicle_local_position_s &lpos = _local_position_pub.get();
 				lpos.timestamp_sample = imu_sample_new.time_us;
 
 				// generate vehicle odometry data
@@ -863,11 +868,11 @@ void EKF2::Run()
 
 				// publish vehicle local position data
 				lpos.timestamp = _replay_mode ? now : hrt_absolute_time();
-				_vehicle_local_position_pub.update();
+				_local_position_pub.update();
 
 				// publish vehicle odometry data
 				odom.timestamp = _replay_mode ? now : hrt_absolute_time();
-				_vehicle_odometry_pub.publish(odom);
+				_odometry_pub.publish(odom);
 
 				// publish external visual odometry after fixed frame alignment if new odometry is received
 				if (new_ev_data_received) {
@@ -911,12 +916,12 @@ void EKF2::Run()
 					ev_quat_aligned.copyTo(aligned_ev_odom.q);
 					quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
 
-					_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
+					_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 				}
 
 				if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
 					// generate and publish global position data
-					vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
+					vehicle_global_position_s &global_pos = _global_position_pub.get();
 					global_pos.timestamp_sample = imu_sample_new.time_us;
 
 					if (fabsf(lpos_x_prev - lpos.x) > FLT_EPSILON || fabsf(lpos_y_prev - lpos.y) > FLT_EPSILON) {
@@ -944,7 +949,7 @@ void EKF2::Run()
 
 					global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
 					global_pos.timestamp = _replay_mode ? now : hrt_absolute_time();
-					_vehicle_global_position_pub.update();
+					_global_position_pub.update();
 				}
 			}
 
@@ -972,8 +977,8 @@ void EKF2::Run()
 							status.hgt_test_ratio, status.tas_test_ratio,
 							status.hagl_test_ratio, status.beta_test_ratio);
 
-			status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
-			status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
+			status.pos_horiz_accuracy = _local_position_pub.get().eph;
+			status.pos_vert_accuracy = _local_position_pub.get().epv;
 			_ekf.get_ekf_soln_status(&status.solution_status_flags);
 			_ekf.getImuVibrationMetrics().copyTo(status.vibe);
 			status.time_slip = _last_time_slip_us * 1e-6f;
@@ -1198,8 +1203,10 @@ void EKF2::Run()
 			}
 		}
 
-		// publish ekf2_timestamps
-		_ekf2_timestamps_pub.publish(ekf2_timestamps);
+		if (!_multi_mode) {
+			// publish ekf2_timestamps
+			_ekf2_timestamps_pub.publish(ekf2_timestamps);
+		}
 
 		if (_lockstep_component == -1) {
 			_lockstep_component = px4_lockstep_register_component();
@@ -1279,13 +1286,13 @@ void EKF2::publish_attitude(const hrt_abstime &timestamp)
 
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 		att.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		_att_pub.publish(att);
+		_attitude_pub.publish(att);
 
 	}  else if (_replay_mode) {
 		// in replay mode we have to tell the replay module not to wait for an update
 		// we do this by publishing an attitude with zero timestamp
 		vehicle_attitude_s att{};
-		_att_pub.publish(att);
+		_attitude_pub.publish(att);
 	}
 }
 
@@ -1370,6 +1377,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		replay_mode = true;
 	}
 
+#if !defined(CONSTRAINED_FLASH)
 	bool multi_mode = false;
 	int32_t imu_instances = 0;
 	int32_t mag_instances = 0;
@@ -1483,7 +1491,11 @@ int EKF2::task_spawn(int argc, char *argv[])
 			}
 		}
 
-	} else {
+	}
+
+#endif // !CONSTRAINED_FLASH
+
+	else {
 		// otherwise launch regular
 		int instance = -1;
 		int imu = 0;
@@ -1547,9 +1559,11 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 
 	} else if (strcmp(argv[1], "status") == 0) {
 		if (EKF2::trylock_module()) {
+#if !defined(CONSTRAINED_FLASH)
 			if (_ekf2_selector.load()) {
 				_ekf2_selector.load()->PrintStatus();
 			}
+#endif // !CONSTRAINED_FLASH
 
 			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 				if (_objects[i].load()) {
@@ -1588,6 +1602,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 			// otherwise stop everything
 			bool was_running = false;
 
+#if !defined(CONSTRAINED_FLASH)
 			if (_ekf2_selector.load()) {
 				PX4_INFO("stopping ekf2 selector");
 				_ekf2_selector.load()->Stop();
@@ -1595,6 +1610,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 				_ekf2_selector.store(nullptr);
 				was_running = true;
 			}
+#endif // !CONSTRAINED_FLASH
 
 			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 				EKF2 *inst = _objects[i].load();

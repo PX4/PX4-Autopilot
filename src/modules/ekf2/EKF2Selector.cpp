@@ -36,6 +36,9 @@
 using namespace time_literals;
 using matrix::Quatf;
 using matrix::Vector2f;
+using math::constrain;
+using math::max;
+using math::radians;
 
 EKF2Selector::EKF2Selector() :
 	ModuleParams(nullptr),
@@ -122,11 +125,11 @@ bool EKF2Selector::UpdateErrorScores()
 		sensors_status_imu_s sensors_status_imu;
 
 		if (_sensors_status_imu.copy(&sensors_status_imu)) {
-			const float angle_rate_threshold = math::radians(_param_ekf2_sel_imu_angle_rate.get());
-			const float angle_threshold = math::radians(_param_ekf2_sel_imu_angle.get());
+			const float angle_rate_threshold = radians(_param_ekf2_sel_imu_angle_rate.get());
+			const float angle_threshold = radians(_param_ekf2_sel_imu_angle.get());
 			const float accel_threshold = _param_ekf2_sel_imu_accel.get();
 			const float velocity_threshold = _param_ekf2_sel_imu_velocity.get();
-			const float time_step_s = math::constrain((sensors_status_imu.timestamp - _last_update_us) * 1e-6f, 0.f, 0.02f);
+			const float time_step_s = constrain((sensors_status_imu.timestamp - _last_update_us) * 1e-6f, 0.f, 0.02f);
 			_last_update_us = sensors_status_imu.timestamp;
 
 			uint8_t n_gyros = 0;
@@ -270,8 +273,7 @@ bool EKF2Selector::UpdateErrorScores()
 
 				if (error_delta > 0 || error_delta < -threshold) {
 					_instance[i].relative_test_ratio += error_delta;
-					_instance[i].relative_test_ratio = math::constrain(_instance[i].relative_test_ratio, -_rel_err_score_lim,
-									   _rel_err_score_lim);
+					_instance[i].relative_test_ratio = constrain(_instance[i].relative_test_ratio, -_rel_err_score_lim, _rel_err_score_lim);
 				}
 			}
 		}
@@ -291,7 +293,7 @@ void EKF2Selector::PublishVehicleAttitude(bool reset)
 			_delta_q_reset = Quatf{attitude.q} - Quatf{_attitude_last.q};
 
 			// ensure monotonically increasing timestamp_sample through reset
-			attitude.timestamp_sample = math::max(attitude.timestamp_sample, _attitude_last.timestamp_sample);
+			attitude.timestamp_sample = max(attitude.timestamp_sample, _attitude_last.timestamp_sample);
 
 		} else {
 			// otherwise propogate deltas from estimator data while maintaining the overall reset counts
@@ -334,7 +336,7 @@ void EKF2Selector::PublishVehicleLocalPosition(bool reset)
 			_delta_heading_reset = matrix::wrap_2pi(local_position.heading - _local_position_last.heading);
 
 			// ensure monotonically increasing timestamp_sample through reset
-			local_position.timestamp_sample = math::max(local_position.timestamp_sample, _local_position_last.timestamp_sample);
+			local_position.timestamp_sample = max(local_position.timestamp_sample, _local_position_last.timestamp_sample);
 
 		} else {
 			// otherwise propogate deltas from estimator data while maintaining the overall reset counts
@@ -409,7 +411,7 @@ void EKF2Selector::PublishVehicleGlobalPosition(bool reset)
 			_delta_alt_reset = global_position.delta_alt - _global_position_last.delta_alt;
 
 			// ensure monotonically increasing timestamp_sample through reset
-			global_position.timestamp_sample = math::max(global_position.timestamp_sample, _global_position_last.timestamp_sample);
+			global_position.timestamp_sample = max(global_position.timestamp_sample, _global_position_last.timestamp_sample);
 
 		} else {
 			// otherwise propogate deltas from estimator data while maintaining the overall reset counts
@@ -552,21 +554,45 @@ void EKF2Selector::Run()
 		_estimator_selector_status_pub.publish(selector_status);
 	}
 
-	// publish vehicle estimates
+	// republish selected estimator data for system
 	if (_selected_instance != INVALID_INSTANCE) {
-		// vehicle_attitude
+		// selected estimator_attitude -> vehicle_attitude
 		if (_instance[_selected_instance].estimator_attitude_sub.updated()) {
 			PublishVehicleAttitude();
 		}
 
-		// vehicle_local_position
+		// selected estimator_local_position -> vehicle_local_position
 		if (_instance[_selected_instance].estimator_local_position_sub.updated()) {
 			PublishVehicleLocalPosition();
 		}
 
-		// vehicle_global_position
+		// selected estimator_global_position -> vehicle_global_position
 		if (_instance[_selected_instance].estimator_global_position_sub.updated()) {
 			PublishVehicleGlobalPosition();
+		}
+
+		// selected estimator_odometry -> vehicle_odometry
+		if (_instance[_selected_instance].estimator_odometry_sub.updated()) {
+			vehicle_odometry_s vehicle_odometry;
+
+			if (_instance[_selected_instance].estimator_odometry_sub.update(&vehicle_odometry)) {
+				if (vehicle_odometry.timestamp >= _instance[_selected_instance].estimator_status.timestamp_sample) {
+					vehicle_odometry.timestamp = hrt_absolute_time();
+					_vehicle_odometry_pub.publish(vehicle_odometry);
+				}
+			}
+		}
+
+		// selected estimator_visual_odometry_aligned -> vehicle_visual_odometry_aligned
+		if (_instance[_selected_instance].estimator_visual_odometry_aligned_sub.updated()) {
+			vehicle_odometry_s vehicle_visual_odometry_aligned;
+
+			if (_instance[_selected_instance].estimator_visual_odometry_aligned_sub.update(&vehicle_visual_odometry_aligned)) {
+				if (vehicle_visual_odometry_aligned.timestamp >= _instance[_selected_instance].estimator_status.timestamp_sample) {
+					vehicle_visual_odometry_aligned.timestamp = hrt_absolute_time();
+					_vehicle_visual_odometry_aligned_pub.publish(vehicle_visual_odometry_aligned);
+				}
+			}
 		}
 	}
 }
