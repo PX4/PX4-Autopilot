@@ -79,6 +79,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		system_time
 		#tests # tests and test runner
 		top
 		#topic_listener
