@@ -93,6 +93,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		system_time
 		top
 		topic_listener
 		tune_control
