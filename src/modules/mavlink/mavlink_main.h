@@ -344,7 +344,7 @@ public:
 	 *
 	 * @param enabled	True if hardware flow control should be enabled
 	 */
-	int			enable_flow_control(enum FLOW_CONTROL_MODE enabled);
+	int			setup_flow_control(enum FLOW_CONTROL_MODE enabled);
 
 	mavlink_channel_t	get_channel() const { return _channel; }
 
@@ -503,6 +503,8 @@ public:
 	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
 	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
 	bool odometry_loopback_enabled() const { return _param_mav_odom_lp.get(); }
+
+	bool failure_injection_enabled() const { return _param_sys_failure_injection_enabled.get(); }
 
 	struct ping_statistics_s {
 		uint64_t last_ping_time;
@@ -667,7 +669,8 @@ private:
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
 		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
-		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
+		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
+		(ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled
 	)
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": tx run elapsed")};                      /**< loop performance counter */
@@ -679,7 +682,7 @@ private:
 
 	int mavlink_open_uart(const int baudrate = DEFAULT_BAUD_RATE,
 			      const char *uart_name = DEFAULT_DEVICE_NAME,
-			      const bool force_flow_control = false);
+			      const FLOW_CONTROL_MODE flow_control = FLOW_CONTROL_AUTO);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;

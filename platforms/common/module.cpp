@@ -102,7 +102,7 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support
 		PRINT_MODULE_USAGE_PARAM_FLAG('S', "External SPI bus", true);
 	}
 
-	PRINT_MODULE_USAGE_PARAM_INT('b', -1, 0, 16, "bus (board-specific internal (default=all) or n-th external (default=1))",
+	PRINT_MODULE_USAGE_PARAM_INT('b', -1, 0, 16, "board-specific bus (default=all) (external SPI: n-th bus (default=1))",
 				     true);
 
 	if (spi_support) {
@@ -111,11 +111,17 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support
 	}
 
 	PRINT_MODULE_USAGE_PARAM_INT('f', -1, 0, 100000, "bus frequency in kHz", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet startup (no message if no device found)", true);
 }
 
 void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address)
 {
 	PRINT_MODULE_USAGE_PARAM_INT('a', default_address, 0, 0xff, "I2C address", true);
+}
+
+void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG()
+{
+	PRINT_MODULE_USAGE_PARAM_FLAG('k', "if initialization (probing) fails, keep retrying periodically", true);
 }
 
 void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,

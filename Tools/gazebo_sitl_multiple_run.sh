@@ -30,7 +30,7 @@ function spawn_model() {
 
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $n in $(pwd)"
-	../bin/px4 -i $n -d "$src_path/ROMFS/px4fmu_common" -w sitl_${MODEL}_${n} -s etc/init.d-posix/rcS >out.log 2>err.log &
+	../bin/px4 -i $n -d "$build_path/etc" -w sitl_${MODEL}_${n} -s etc/init.d-posix/rcS >out.log 2>err.log &
 	python3 ${src_path}/Tools/sitl_gazebo/scripts/xacro.py ${src_path}/Tools/sitl_gazebo/models/rotors_description/urdf/${MODEL}_base.xacro \
 		rotors_description_dir:=${src_path}/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(($mavlink_udp_port+$N)) \
 		mavlink_tcp_port:=$(($mavlink_tcp_port+$N))  -o /tmp/${MODEL}_${N}.urdf

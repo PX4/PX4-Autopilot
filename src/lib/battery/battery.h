@@ -43,12 +43,11 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <parameters/param.h>
-#include <drivers/drv_adc.h>
 #include <board_config.h>
 #include <px4_platform_common/board_common.h>
 #include <math.h>
@@ -65,8 +64,7 @@ class Battery : public ModuleParams
 {
 public:
 	Battery(int index, ModuleParams *parent, const int sample_interval_us);
-
-	~Battery();
+	~Battery() = default;
 
 	/**
 	 * Reset all battery stats and report invalid/nothing.
@@ -157,66 +155,52 @@ protected:
 
 	const int _index;
 
-	bool _first_parameter_update{false};
-	virtual void updateParams() override;
+	bool _first_parameter_update{true};
+	void updateParams() override;
 
 	/**
-	 * This function helps with migrating to new parameters. It performs several tasks:
-	 *  - Update both the old and new parameter values using `param_get(...)`
-	 *  - Check if either parameter changed just now
-	 *    - If so, display a warning if the deprecated parameter was used
-	 *    - Copy the new value over to the other parameter
-	 *  - If this is the first time the parameters are fetched, check if they are equal
-	 *    - If not, display a warning and copy the value of the deprecated parameter over to the new one
+	 * This function helps migrating and syncing from/to deprecated parameters. BAT_* BAT1_*
 	 * @tparam T Type of the parameter (int or float)
-	 * @param old_param Handle to the old deprecated parameter (for example, param_find("BAT_N_CELLS")
-	 * @param new_param Handle to the new replacement parameter (for example, param_find("BAT1_N_CELLS")
+	 * @param old_param Handle to the old deprecated parameter (for example, param_find("BAT_N_CELLS"))
+	 * @param new_param Handle to the new replacement parameter (for example, param_find("BAT1_N_CELLS"))
 	 * @param old_val Pointer to the value of the old deprecated parameter
 	 * @param new_val Pointer to the value of the new replacement parameter
-	 * @param firstcall If true, then this function will not check to see if the values have changed
-	 * 					  (Since the old values are uninitialized)
-	 * @return True iff either of these parameters changed just now and the migration was done.
+	 * @param firstcall If true, this function prefers migrating old to new
 	 */
 	template<typename T>
-	bool migrateParam(param_t old_param, param_t new_param, T *old_val, T *new_val, bool firstcall)
+	void migrateParam(param_t old_param, param_t new_param, T *old_val, T *new_val, bool firstcall)
 	{
-
 		T previous_old_val = *old_val;
 		T previous_new_val = *new_val;
 
+		// Update both the old and new parameter values
 		param_get(old_param, old_val);
 		param_get(new_param, new_val);
 
-		if (!firstcall) {
-			if ((float) fabs((float) *old_val - (float) previous_old_val) > FLT_EPSILON
-			    && (float) fabs((float) *old_val - (float) *new_val) > FLT_EPSILON) {
+		// Check if the parameter values are different
+		if (!isFloatEqual(*old_val, *new_val)) {
+			// If so, copy the new value over to the unchanged parameter
+			// Note: If they differ from the beginning we migrate old to new
+			if (firstcall || !isFloatEqual(*old_val, previous_old_val)) {
 				param_set_no_notification(new_param, old_val);
 				param_get(new_param, new_val);
-				return true;
 
-			} else if ((float) fabs((float) *new_val - (float) previous_new_val) > FLT_EPSILON
-				   && (float) fabs((float) *old_val - (float) *new_val) > FLT_EPSILON) {
+			} else if (!isFloatEqual(*new_val, previous_new_val)) {
 				param_set_no_notification(old_param, new_val);
 				param_get(old_param, old_val);
-				return true;
-			}
-
-		} else {
-			if ((float) fabs((float) *old_val - (float) *new_val) > FLT_EPSILON) {
-				param_set_no_notification(new_param, old_val);
-				param_get(new_param, new_val);
-				return true;
 			}
 		}
-
-		return false;
 	}
+
+	bool isFloatEqual(float a, float b) { return fabsf(a - b) > FLT_EPSILON; }
 
 private:
 	void sumDischarged(hrt_abstime timestamp, float current_a);
 	void estimateRemaining(const float voltage_v, const float current_a, const float throttle);
 	void determineWarning(bool connected);
 	void computeScale();
+
+	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	bool _battery_initialized = false;
 	AlphaFilter<float> _voltage_filter_v;
@@ -229,7 +213,4 @@ private:
 	float _scale = 1.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
-
-	orb_advert_t _orb_advert{nullptr};
-	int _orb_instance;
 };

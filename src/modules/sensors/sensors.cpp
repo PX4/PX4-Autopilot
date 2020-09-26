@@ -64,7 +64,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_preflight_imu.h>
+#include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
@@ -116,7 +116,6 @@ private:
 	hrt_abstime     _sensor_combined_prev_timestamp{0};
 
 	sensor_combined_s _sensor_combined{};
-	sensor_preflight_imu_s _sensor_preflight_imu{};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[3] {
 		{this, ORB_ID(vehicle_imu), 0},
@@ -131,7 +130,6 @@ private:
 
 	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
-	uORB::Publication<sensor_preflight_imu_s> _sensor_preflight_imu_pub{ORB_ID(sensor_preflight_imu)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -214,7 +212,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
-		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
+		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
+		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 
@@ -301,11 +300,8 @@ Sensors::~Sensors()
 
 bool Sensors::init()
 {
-	// initially run manually
-	ScheduleDelayed(10_ms);
-
 	_vehicle_imu_sub[0].registerCallback();
-
+	ScheduleNow();
 	return true;
 }
 
@@ -523,7 +519,11 @@ void Sensors::InitializeVehicleIMU()
 			gyro_sub.copy(&gyro);
 
 			if (accel.device_id > 0 && gyro.device_id > 0) {
-				VehicleIMU *imu = new VehicleIMU(i, i);
+				// if the sensors module is responsible for voting (SENS_IMU_MODE 1) then run every VehicleIMU in the same WQ
+				//   otherwise each VehicleIMU runs in a corresponding INSx WQ
+				const px4::wq_config_t &wq_config = px4::wq_configurations::nav_and_controllers;
+
+				VehicleIMU *imu = new VehicleIMU(i, i, i, wq_config);
 
 				if (imu != nullptr) {
 					// Start VehicleIMU instance and store
@@ -606,16 +606,6 @@ void Sensors::Run()
 		_voted_sensors_update.setRelativeTimestamps(_sensor_combined);
 		_sensor_pub.publish(_sensor_combined);
 		_sensor_combined_prev_timestamp = _sensor_combined.timestamp;
-
-		// If the the vehicle is disarmed calculate the length of the maximum difference between
-		// IMU units as a consistency metric and publish to the sensor preflight topic
-		if (!_armed) {
-			_voted_sensors_update.calcAccelInconsistency(_sensor_preflight_imu);
-			_voted_sensors_update.calcGyroInconsistency(_sensor_preflight_imu);
-
-			_sensor_preflight_imu.timestamp = hrt_absolute_time();
-			_sensor_preflight_imu_pub.publish(_sensor_preflight_imu);
-		}
 	}
 
 	// keep adding sensors as long as we are not armed,
@@ -753,7 +743,7 @@ The provided functionality includes:
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
   on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
   sensor drivers must already be running when `sensors` is started.
-- Do preflight sensor consistency checks and publish the `sensor_preflight_imu` topic.
+- Do sensor consistency checks and publish the `sensors_status_imu` topic.
 
 ### Implementation
 It runs in its own thread and polls on the currently selected gyro topic.

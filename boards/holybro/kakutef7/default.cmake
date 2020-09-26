@@ -16,7 +16,7 @@ px4_add_board(
 		RC:/dev/ttyS4 # UART6
 		# /dev/ttyS5: UART7 (ESC telemetry)
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer/bmp280
 		dshot
 		gps

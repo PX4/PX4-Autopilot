@@ -1,4 +1,6 @@
 uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
+
 float32 windspeed_north		# Wind component in north / X direction (m/sec)
 float32 windspeed_east		# Wind component in east / Y direction (m/sec)
 

@@ -61,6 +61,7 @@
 #include <math.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -76,6 +77,7 @@
 #include <uORB/topics/debug_vect.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
@@ -120,6 +122,94 @@
 
 using matrix::Vector3f;
 using matrix::wrap_2pi;
+
+// ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
+static_assert(MAV_SENSOR_ROTATION_NONE == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_NONE),
+	      "Roll: 0, Pitch: 0, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_YAW_45 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_YAW_45),
+	      "Roll: 0, Pitch: 0, Yaw: 45");
+static_assert(MAV_SENSOR_ROTATION_YAW_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_YAW_90),
+	      "Roll: 0, Pitch: 0, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_YAW_135 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_YAW_135),
+	      "Roll: 0, Pitch: 0, Yaw: 135");
+static_assert(MAV_SENSOR_ROTATION_YAW_180 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_YAW_180),
+	      "Roll: 0, Pitch: 0, Yaw: 180");
+static_assert(MAV_SENSOR_ROTATION_YAW_225 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_YAW_225),
+	      "Roll: 0, Pitch: 0, Yaw: 225");
+static_assert(MAV_SENSOR_ROTATION_YAW_270 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_YAW_270),
+	      "Roll: 0, Pitch: 0, Yaw: 270");
+static_assert(MAV_SENSOR_ROTATION_YAW_315 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_YAW_315),
+	      "Roll: 0, Pitch: 0, Yaw: 315");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_180),
+	      "Roll: 180, Pitch: 0, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_45 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_180_YAW_45),
+	      "Roll: 180, Pitch: 0, Yaw: 45");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_180_YAW_90),
+	      "Roll: 180, Pitch: 0, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_135 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_180_YAW_135),
+	      "Roll: 180, Pitch: 0, Yaw: 135");
+static_assert(MAV_SENSOR_ROTATION_PITCH_180 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_PITCH_180),
+	      "Roll: 0, Pitch: 180, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_225 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_180_YAW_225),
+	      "Roll: 180, Pitch: 0, Yaw: 225");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_270 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_180_YAW_270),
+	      "Roll: 180, Pitch: 0, Yaw: 270");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_YAW_315 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_180_YAW_315),
+	      "Roll: 180, Pitch: 0, Yaw: 315");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90),
+	      "Roll: 90, Pitch: 0, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_YAW_45 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_YAW_45),
+	      "Roll: 90, Pitch: 0, Yaw: 45");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_YAW_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_YAW_90),
+	      "Roll: 90, Pitch: 0, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_YAW_135 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_YAW_135),
+	      "Roll: 90, Pitch: 0, Yaw: 135");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_270),
+	      "Roll: 270, Pitch: 0, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_45 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_270_YAW_45),
+	      "Roll: 270, Pitch: 0, Yaw: 45");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_270_YAW_90),
+	      "Roll: 270, Pitch: 0, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_135 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_270_YAW_135),
+	      "Roll: 270, Pitch: 0, Yaw: 135");
+static_assert(MAV_SENSOR_ROTATION_PITCH_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_PITCH_90),
+	      "Roll: 0, Pitch: 90, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_PITCH_270 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_PITCH_270),
+	      "Roll: 0, Pitch: 270, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_PITCH_180_YAW_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_PITCH_180_YAW_90),
+	      "Roll: 0, Pitch: 180, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_PITCH_180_YAW_270 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_PITCH_180_YAW_270),
+	      "Roll: 0, Pitch: 180, Yaw: 270");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_PITCH_90),
+	      "Roll: 90, Pitch: 90, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_PITCH_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_180_PITCH_90),
+	      "Roll: 180, Pitch: 90, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_PITCH_90 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_270_PITCH_90),
+	      "Roll: 270, Pitch: 90, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_180 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_PITCH_180),
+	      "Roll: 90, Pitch: 180, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_PITCH_180 == static_cast<MAV_SENSOR_ORIENTATION>
+	      (ROTATION_ROLL_270_PITCH_180), "Roll: 270, Pitch: 180, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_270 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_PITCH_270),
+	      "Roll: 90, Pitch: 270, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_180_PITCH_270 == static_cast<MAV_SENSOR_ORIENTATION>
+	      (ROTATION_ROLL_180_PITCH_270), "Roll: 180, Pitch: 270, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_PITCH_270 == static_cast<MAV_SENSOR_ORIENTATION>
+	      (ROTATION_ROLL_270_PITCH_270), "Roll: 270, Pitch: 270, Yaw: 0");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_180_YAW_90 == static_cast<MAV_SENSOR_ORIENTATION>
+	      (ROTATION_ROLL_90_PITCH_180_YAW_90),
+	      "Roll: 90, Pitch: 180, Yaw: 90");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_YAW_270 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_YAW_270),
+	      "Roll: 90, Pitch: 0, Yaw: 270");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_68_YAW_293 == static_cast<MAV_SENSOR_ORIENTATION>
+	      (ROTATION_ROLL_90_PITCH_68_YAW_293),
+	      "Roll: 90, Pitch: 68, Yaw: 293");
+static_assert(MAV_SENSOR_ROTATION_PITCH_315 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_PITCH_315), "Pitch: 315");
+static_assert(MAV_SENSOR_ROTATION_ROLL_90_PITCH_315 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_90_PITCH_315),
+	      "Roll: 90, Pitch: 315");
+static_assert(MAV_SENSOR_ROTATION_ROLL_270_YAW_180 == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_ROLL_270_YAW_180),
+	      "Roll: 270, Yaw: 180");
+static_assert(42 == ROTATION_MAX, "Keep MAV_SENSOR_ROTATION and PX4 Rotation in sync");
 
 static uint16_t cm_uint16_from_m_float(float m)
 {
@@ -559,9 +649,7 @@ public:
 private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
-	uORB::Subscription _battery_status_sub[ORB_MULTI_MAX_INSTANCES] {
-		{ORB_ID(battery_status), 0}, {ORB_ID(battery_status), 1}, {ORB_ID(battery_status), 2}, {ORB_ID(battery_status), 3}
-	};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &) = delete;
@@ -574,30 +662,22 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		bool updated_battery = false;
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if (_battery_status_sub[i].updated()) {
-				updated_battery = true;
-			}
-		}
-
-		if (_status_sub.updated() || _cpuload_sub.updated() || updated_battery) {
+		if (_status_sub.updated() || _cpuload_sub.updated() || _battery_status_subs.updated()) {
 			vehicle_status_s status{};
 			_status_sub.copy(&status);
 
 			cpuload_s cpuload{};
 			_cpuload_sub.copy(&cpuload);
 
-			battery_status_s battery_status[ORB_MULTI_MAX_INSTANCES] {};
+			battery_status_s battery_status[battery_status_s::MAX_INSTANCES] {};
 
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-				_battery_status_sub[i].copy(&battery_status[i]);
+			for (int i = 0; i < _battery_status_subs.size(); i++) {
+				_battery_status_subs[i].copy(&battery_status[i]);
 			}
 
 			int lowest_battery_index = 0;
 
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			for (int i = 0; i < _battery_status_subs.size(); i++) {
 				if (battery_status[i].connected && (battery_status[i].remaining < battery_status[lowest_battery_index].remaining)) {
 					lowest_battery_index = i;
 				}
@@ -668,21 +748,12 @@ public:
 
 	unsigned get_size() override
 	{
-		unsigned total_size = 0;
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if (_battery_status_sub[i].advertised()) {
-				total_size += MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-			}
-		}
-
-		return total_size;
+		static constexpr unsigned size_per_battery = MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return size_per_battery * _battery_status_subs.advertised_count();
 	}
 
 private:
-	uORB::Subscription _battery_status_sub[ORB_MULTI_MAX_INSTANCES] {
-		{ORB_ID(battery_status), 0}, {ORB_ID(battery_status), 1}, {ORB_ID(battery_status), 2}, {ORB_ID(battery_status), 3}
-	};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamBatteryStatus(MavlinkStreamSysStatus &) = delete;
@@ -697,10 +768,10 @@ protected:
 	{
 		bool updated = false;
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (auto &battery_sub : _battery_status_subs) {
 			battery_status_s battery_status;
 
-			if (_battery_status_sub[i].update(&battery_status)) {
+			if (battery_sub.update(&battery_status)) {
 				/* battery status message with higher resolution */
 				mavlink_battery_status_t bat_msg{};
 				// TODO: Determine how to better map between battery ID within the firmware and in MAVLink
@@ -764,7 +835,6 @@ protected:
 
 				updated = true;
 			}
-
 		}
 
 		return updated;
@@ -802,21 +872,12 @@ public:
 
 	unsigned get_size() override
 	{
-		unsigned total_size = 0;
-
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			if (_battery_status_sub[i].advertised()) {
-				total_size += MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-			}
-		}
-
-		return total_size;
+		static constexpr unsigned size_per_battery = MAVLINK_MSG_ID_SMART_BATTERY_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return size_per_battery * _battery_status_subs.advertised_count();
 	}
 
 private:
-	uORB::Subscription _battery_status_sub[ORB_MULTI_MAX_INSTANCES] {
-		{ORB_ID(battery_status), 0}, {ORB_ID(battery_status), 1}, {ORB_ID(battery_status), 2}, {ORB_ID(battery_status), 3}
-	};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSmartBatteryInfo(MavlinkStreamSysStatus &) = delete;
@@ -831,10 +892,10 @@ protected:
 	{
 		bool updated = false;
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (auto &battery_sub : _battery_status_subs) {
 			battery_status_s battery_status;
 
-			if (_battery_status_sub[i].update(&battery_status)) {
+			if (battery_sub.update(&battery_status)) {
 				if (battery_status.serial_number == 0) {
 					//This is not smart battery
 					continue;
@@ -899,7 +960,7 @@ public:
 	}
 
 private:
-	uORB::Subscription _vehicle_imu_sub[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(vehicle_imu), 0}, {ORB_ID(vehicle_imu), 1}, {ORB_ID(vehicle_imu), 2}, {ORB_ID(vehicle_imu), 3}};
+	uORB::SubscriptionMultiArray<vehicle_imu_s, 3> _vehicle_imu_subs{ORB_ID::vehicle_imu};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
@@ -923,7 +984,7 @@ protected:
 
 		vehicle_imu_s imu;
 
-		for (auto &imu_sub : _vehicle_imu_sub) {
+		for (auto &imu_sub : _vehicle_imu_subs) {
 			if (imu_sub.update(&imu)) {
 				if (imu.accel_device_id == sensor_selection.accel_device_id) {
 					updated = true;
@@ -2923,10 +2984,8 @@ public:
 			return size;
 		}
 
-		for (auto &x : _vehicle_imu_status_sub) {
-			if (x.advertised()) {
-				return size;
-			}
+		if (_vehicle_imu_status_subs.advertised()) {
+			return size;
 		}
 
 		return 0;
@@ -2934,13 +2993,7 @@ public:
 
 private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
-
-	uORB::Subscription _vehicle_imu_status_sub[ORB_MULTI_MAX_INSTANCES] {
-		{ORB_ID(vehicle_imu_status), 0},
-		{ORB_ID(vehicle_imu_status), 1},
-		{ORB_ID(vehicle_imu_status), 2},
-		{ORB_ID(vehicle_imu_status), 3},
-	};
+	uORB::SubscriptionMultiArray<vehicle_imu_status_s, 3> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
 
 	/* do not allow top copying this class */
 	MavlinkStreamVibration(MavlinkStreamVibration &) = delete;
@@ -2952,19 +3005,7 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		bool updated = _sensor_selection_sub.updated();
-
-		// check for vehicle_imu_status update
-		if (!updated) {
-			for (auto &sub : _vehicle_imu_status_sub) {
-				if (sub.updated()) {
-					updated = true;
-					break;
-				}
-			}
-		}
-
-		if (updated) {
+		if (_sensor_selection_sub.updated() || _vehicle_imu_status_subs.updated()) {
 
 			mavlink_vibration_t msg{};
 			msg.time_usec = hrt_absolute_time();
@@ -2979,7 +3020,7 @@ protected:
 
 			// primary accel high frequency vibration metric
 			if (sensor_selection.accel_device_id != 0) {
-				for (auto &x : _vehicle_imu_status_sub) {
+				for (auto &x : _vehicle_imu_status_subs) {
 					vehicle_imu_status_s status;
 
 					if (x.copy(&status)) {
@@ -2994,10 +3035,10 @@ protected:
 			}
 
 			// accel 0, 1, 2 cumulative clipping
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			for (int i = 0; i < math::min(static_cast<uint8_t>(3), _vehicle_imu_status_subs.size()); i++) {
 				vehicle_imu_status_s status;
 
-				if (_vehicle_imu_status_sub[i].copy(&status)) {
+				if (_vehicle_imu_status_subs[i].copy(&status)) {
 
 					const uint32_t clipping = status.accel_clipping[0] + status.accel_clipping[1] + status.accel_clipping[2];
 
@@ -4563,11 +4604,11 @@ public:
 
 	unsigned get_size() override
 	{
-		return _distance_sensor_sub.advertised() ? (MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _distance_sensor_subs.advertised_count() * (MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
 private:
-	uORB::Subscription _distance_sensor_sub{ORB_ID(distance_sensor)};
+	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 
 	/* do not allow top copying this class */
 	MavlinkStreamDistanceSensor(MavlinkStreamDistanceSensor &) = delete;
@@ -4579,44 +4620,48 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		distance_sensor_s dist_sensor;
+		bool updated = false;
 
-		if (_distance_sensor_sub.update(&dist_sensor)) {
-			mavlink_distance_sensor_t msg{};
+		for (int i = 0; i < _distance_sensor_subs.size(); i++) {
+			distance_sensor_s dist_sensor;
 
-			msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
+			if (_distance_sensor_subs[i].update(&dist_sensor)) {
+				mavlink_distance_sensor_t msg{};
 
-			switch (dist_sensor.type) {
-			case MAV_DISTANCE_SENSOR_ULTRASOUND:
-				msg.type = MAV_DISTANCE_SENSOR_ULTRASOUND;
-				break;
+				msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
 
-			case MAV_DISTANCE_SENSOR_LASER:
-				msg.type = MAV_DISTANCE_SENSOR_LASER;
-				break;
+				switch (dist_sensor.type) {
+				case MAV_DISTANCE_SENSOR_ULTRASOUND:
+					msg.type = MAV_DISTANCE_SENSOR_ULTRASOUND;
+					break;
 
-			case MAV_DISTANCE_SENSOR_INFRARED:
-				msg.type = MAV_DISTANCE_SENSOR_INFRARED;
-				break;
+				case MAV_DISTANCE_SENSOR_LASER:
+					msg.type = MAV_DISTANCE_SENSOR_LASER;
+					break;
 
-			default:
-				msg.type = MAV_DISTANCE_SENSOR_LASER;
-				break;
+				case MAV_DISTANCE_SENSOR_INFRARED:
+					msg.type = MAV_DISTANCE_SENSOR_INFRARED;
+					break;
+
+				default:
+					msg.type = MAV_DISTANCE_SENSOR_LASER;
+					break;
+				}
+
+				msg.current_distance = dist_sensor.current_distance * 1e2f; // m to cm
+				msg.id               = i;
+				msg.max_distance     = dist_sensor.max_distance * 1e2f;     // m to cm
+				msg.min_distance     = dist_sensor.min_distance * 1e2f;     // m to cm
+				msg.orientation      = dist_sensor.orientation;
+				msg.covariance       = dist_sensor.variance * 1e4f;         // m^2 to cm^2
+
+				mavlink_msg_distance_sensor_send_struct(_mavlink->get_channel(), &msg);
+
+				updated = true;
 			}
-
-			msg.current_distance = dist_sensor.current_distance * 1e2f; // m to cm
-			msg.id               = dist_sensor.id;
-			msg.max_distance     = dist_sensor.max_distance * 1e2f;     // m to cm
-			msg.min_distance     = dist_sensor.min_distance * 1e2f;     // m to cm
-			msg.orientation      = dist_sensor.orientation;
-			msg.covariance       = dist_sensor.variance * 1e4f;         // m^2 to cm^2
-
-			mavlink_msg_distance_sensor_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
 		}
 
-		return false;
+		return updated;
 	}
 };
 
@@ -5358,6 +5403,181 @@ protected:
 	}
 };
 
+class MavlinkStreamESCInfo : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return MavlinkStreamESCInfo::get_name_static();
+	}
+
+	static constexpr const char *get_name_static()
+	{
+		return "ESC_INFO";
+	}
+
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ESC_INFO;
+	}
+
+	uint16_t get_id() override
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamESCInfo(mavlink);
+	}
+
+	unsigned get_size() override
+	{
+		static constexpr unsigned size_per_batch = MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
+	}
+
+private:
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+
+	/* do not allow top copying this class */
+	MavlinkStreamESCInfo(MavlinkStreamESCInfo &) = delete;
+	MavlinkStreamESCInfo &operator = (const MavlinkStreamESCInfo &) = delete;
+
+protected:
+	uint8_t _number_of_batches{0};
+
+	explicit MavlinkStreamESCInfo(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	bool send(const hrt_abstime t) override
+	{
+
+		esc_status_s esc_status;
+
+		uint8_t batch_size = MAVLINK_MSG_ESC_INFO_FIELD_TEMPERATURE_LEN;
+
+		if (_esc_status_sub.update(&esc_status)) {
+
+			mavlink_esc_info_t msg = {};
+
+			msg.time_usec = esc_status.timestamp;
+			msg.counter = esc_status.counter;
+			msg.count = esc_status.esc_count;
+			msg.connection_type = esc_status.esc_connectiontype;
+			msg.info = esc_status.esc_online_flags;
+
+			// Ceil value of integer division. For 1-4 esc => 1 batch, 5-8 esc => 2 batches etc
+			_number_of_batches = ceilf((float)esc_status.esc_count / batch_size);
+
+			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
+
+				msg.index = batch_number * batch_size;
+
+				for (int esc_index = 0; esc_index < batch_size ; esc_index++) {
+
+					msg.failure_flags[esc_index] = esc_status.esc[esc_index].failures;
+					msg.error_count[esc_index] = esc_status.esc[esc_index].esc_errorcount;
+					msg.temperature[esc_index] = esc_status.esc[esc_index].esc_temperature;
+				}
+
+				mavlink_msg_esc_info_send_struct(_mavlink->get_channel(), &msg);
+
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+class MavlinkStreamESCStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return MavlinkStreamESCStatus::get_name_static();
+	}
+
+	static constexpr const char *get_name_static()
+	{
+		return "ESC_STATUS";
+	}
+
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ESC_STATUS;
+	}
+
+	uint16_t get_id() override
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamESCStatus(mavlink);
+	}
+
+	unsigned get_size() override
+	{
+		static constexpr unsigned size_per_batch = MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
+	}
+
+private:
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+
+	/* do not allow top copying this class */
+	MavlinkStreamESCStatus(MavlinkStreamESCStatus &) = delete;
+	MavlinkStreamESCStatus &operator = (const MavlinkStreamESCStatus &) = delete;
+
+protected:
+
+	uint8_t _number_of_batches{0};
+
+	explicit MavlinkStreamESCStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	bool send(const hrt_abstime t) override
+	{
+
+		esc_status_s esc_status;
+		uint8_t batch_size = MAVLINK_MSG_ESC_STATUS_FIELD_RPM_LEN;
+
+		if (_esc_status_sub.update(&esc_status)) {
+
+			mavlink_esc_status_t msg = {};
+
+			msg.time_usec = esc_status.timestamp;
+
+			// Ceil value of integer division. For 1-4 esc => 1 batch, 5-8 esc => 2 batches etc
+			_number_of_batches = ceilf((float)esc_status.esc_count / batch_size);
+
+			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
+
+				msg.index = batch_number * batch_size;
+
+				for (int esc_index = 0; esc_index < batch_size ; esc_index++) {
+
+					msg.rpm[esc_index] = esc_status.esc[esc_index].esc_rpm;
+					msg.voltage[esc_index] = esc_status.esc[esc_index].esc_voltage;
+					msg.current[esc_index] = esc_status.esc[esc_index].esc_current;
+				}
+
+				mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);
+
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+
 static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 	create_stream_list_item<MavlinkStreamStatustext>(),
@@ -5419,6 +5639,8 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamPing>(),
 	create_stream_list_item<MavlinkStreamOrbitStatus>(),
 	create_stream_list_item<MavlinkStreamObstacleDistance>(),
+	create_stream_list_item<MavlinkStreamESCInfo>(),
+	create_stream_list_item<MavlinkStreamESCStatus>(),
 	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
 	create_stream_list_item<MavlinkStreamProtocolVersion>(),
 	create_stream_list_item<MavlinkStreamFlightInformation>(),

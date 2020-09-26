@@ -317,6 +317,10 @@ def print_field(field):
         print("char baro_device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(baro_device_id_buffer, sizeof(baro_device_id_buffer), message.baro_device_id);")
         print("PX4_INFO_RAW(\"\\tbaro_device_id: %d (%s) \\n\", message.baro_device_id, baro_device_id_buffer);")
+    elif field.name == 'mag_device_id':
+        print("char mag_device_id_buffer[80];")
+        print("device::Device::device_id_print_buffer(mag_device_id_buffer, sizeof(mag_device_id_buffer), message.mag_device_id);")
+        print("PX4_INFO_RAW(\"\\tmag_device_id: %d (%s) \\n\", message.mag_device_id, mag_device_id_buffer);")
     elif ("flags" in field.name or "bits" in field.name) and "uint" in field.type:
         # print bits of fixed width unsigned integers (uint8, uint16, uint32) if name contains flags or bits
         print("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + " (0b\", " + field_name + ");")

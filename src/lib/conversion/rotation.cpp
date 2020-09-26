@@ -123,8 +123,14 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			return;
 		}
 
-	case ROTATION_ROLL_180_YAW_90: {
-			tmp = x; x = y; y = tmp; z = -z;
+	case ROTATION_ROLL_180_YAW_90:
+
+	// FALLTHROUGH
+	case ROTATION_PITCH_180_YAW_270: {
+			tmp = x;
+			x = y;
+			y = tmp;
+			z = -z;
 			return;
 		}
 
@@ -147,8 +153,14 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			return;
 		}
 
-	case ROTATION_ROLL_180_YAW_270: {
-			tmp = x; x = -y; y = -tmp; z = -z;
+	case ROTATION_ROLL_180_YAW_270:
+
+	// FALLTHROUGH
+	case ROTATION_PITCH_180_YAW_90: {
+			tmp = x;
+			x = -y;
+			y = -tmp;
+			z = -z;
 			return;
 		}
 
@@ -217,14 +229,6 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			return;
 		}
 
-	case ROTATION_ROLL_270_YAW_270: {
-			tmp = x;
-			x = z;
-			z = -y;
-			y = -tmp;
-			return;
-		}
-
 	case ROTATION_PITCH_90: {
 			tmp = z; z = -x; x = tmp;
 			return;
@@ -241,31 +245,6 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			return;
 		}
 
-	case ROTATION_PITCH_90_YAW_180: {
-			tmp = x;
-			x = -z;
-			y = -y;
-			z = -tmp;
-			return;
-		}
-
-	case ROTATION_PITCH_9_YAW_180: {
-			const float tmpx = x;
-			const float tmpy = y;
-			const float tmpz = z;
-			x = -0.987688f * tmpx +  0.000000f * tmpy + -0.156434f * tmpz;
-			y =  0.000000f * tmpx + -1.000000f * tmpy +  0.000000f * tmpz;
-			z = -0.156434f * tmpx +  0.000000f * tmpy +  0.987688f * tmpz;
-			return;
-		}
-
-	case ROTATION_PITCH_45: {
-			tmp = M_SQRT1_2_F * x + M_SQRT1_2_F * z;
-			z = M_SQRT1_2_F * z - M_SQRT1_2_F * x;
-			x = tmp;
-			return;
-		}
-
 	case ROTATION_PITCH_315: {
 			tmp = M_SQRT1_2_F * x - M_SQRT1_2_F * z;
 			z = M_SQRT1_2_F * z + M_SQRT1_2_F * x;
@@ -278,30 +257,6 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			x = -z;
 			z = y;
 			y = -tmp;
-			return;
-		}
-
-	case ROTATION_ROLL_270_YAW_180: {
-			x = -x;
-			tmp = y;
-			y = -z;
-			z = -tmp;
-			return;
-		}
-
-	case ROTATION_PITCH_180_YAW_90: {
-			tmp = x;
-			x = -y;
-			y = -tmp;
-			z = -z;
-			return;
-		}
-
-	case ROTATION_PITCH_180_YAW_270: {
-			tmp = x;
-			x = y;
-			y = tmp;
-			z = -z;
 			return;
 		}
 
@@ -329,7 +284,10 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			return;
 		}
 
-	case ROTATION_ROLL_90_PITCH_180: {
+	case ROTATION_ROLL_90_PITCH_180:
+
+	// FALLTHROUGH
+	case ROTATION_ROLL_270_YAW_180: {
 			tmp = y;
 			x = -x;
 			y = -z;
@@ -362,10 +320,10 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 		}
 
 	case ROTATION_ROLL_90_PITCH_180_YAW_90: {
-			tmp = y;
-			y = -x;
+			tmp = x;
 			x = z;
-			z = -tmp;
+			z = -y;
+			y = -tmp;
 			return;
 		}
 

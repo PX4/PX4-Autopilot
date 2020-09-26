@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <malloc.h>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
@@ -40,7 +41,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/cpuload.h>
+#include <px4_platform/cpuload.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>

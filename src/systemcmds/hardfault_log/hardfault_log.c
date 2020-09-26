@@ -393,6 +393,31 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 }
 
 /****************************************************************************
+ * write_registers
+ ****************************************************************************/
+static int write_fault_registers(fault_regs_s *fault_regs, char *buffer, int max, int fd)
+{
+#if defined(CONFIG_ARCH_CORTEXM7)
+	const char fmt[] =  " cfsr:0x%08x hfsr:0x%08x  dfsr:0x%08x  mmfsr:0x%08x  bfsr:0x%08x afsr:0x%08x abfsr:0x%08x \n";
+#else
+	const char fmt[] =  " cfsr:0x%08x hfsr:0x%08x  dfsr:0x%08x  mmfsr:0x%08x  bfsr:0x%08x afsr:0x%08x\n";
+#endif
+	int n = snprintf(buffer, max, fmt,
+			 fault_regs->cfsr, fault_regs->hfsr, fault_regs->dfsr,
+#if defined(CONFIG_ARCH_CORTEXM7)
+			 fault_regs->mmfsr, fault_regs->bfsr, fault_regs->afsr, fault_regs->abfsr);
+#else
+			 fault_regs->mmfsr, fault_regs->bfsr, fault_regs->afsr);
+#endif
+
+	if (n != write(fd, buffer, n)) {
+		return -EIO;
+	}
+
+	return OK;
+}
+
+/****************************************************************************
  * write_registers_info
  ****************************************************************************/
 static int write_registers_info(int fdout, info_s *pi, char *buffer, int sz)
@@ -405,6 +430,15 @@ static int write_registers_info(int fdout, info_s *pi, char *buffer, int sz)
 
 		if (n == write(fdout, buffer, n)) {
 			ret = write_registers(pi->regs, buffer, sz, fdout);
+		}
+	}
+
+	if (pi->flags & eFaultRegPresent) {
+		ret = -EIO;
+		int n = snprintf(buffer, sz, " Fault status registers: from NVIC\n");
+
+		if (n == write(fdout, buffer, n)) {
+			ret = write_fault_registers(&pi->fault_regs, buffer, sz, fdout);
 		}
 	}
 

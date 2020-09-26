@@ -48,19 +48,40 @@ Gyroscope::Gyroscope()
 	Reset();
 }
 
-Gyroscope::Gyroscope(uint32_t device_id)
+Gyroscope::Gyroscope(uint32_t device_id, bool external)
 {
 	Reset();
-	set_device_id(device_id);
+	set_device_id(device_id, external);
 }
 
-void Gyroscope::set_device_id(uint32_t device_id)
+void Gyroscope::set_device_id(uint32_t device_id, bool external)
 {
-	if (_device_id != device_id) {
+	if (_device_id != device_id || _external != external) {
+		set_external(external);
 		_device_id = device_id;
 		ParametersUpdate();
 		SensorCorrectionsUpdate(true);
 	}
+}
+
+void Gyroscope::set_external(bool external)
+{
+	// update priority default appropriately if not set
+	if (_calibration_index < 0 || _priority < 0) {
+		if ((_priority < 0) || (_priority > 100)) {
+			_priority = external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
+
+		} else if (!_external && external && (_priority == DEFAULT_PRIORITY)) {
+			// internal -> external
+			_priority = DEFAULT_EXTERNAL_PRIORITY;
+
+		} else if (_external && !external && (_priority == DEFAULT_EXTERNAL_PRIORITY)) {
+			// external -> internal
+			_priority = DEFAULT_PRIORITY;
+		}
+	}
+
+	_external = external;
 }
 
 void Gyroscope::SensorCorrectionsUpdate(bool force)
@@ -121,15 +142,32 @@ void Gyroscope::ParametersUpdate()
 		// CAL_GYROx_PRIO
 		_priority = GetCalibrationParam(SensorString(), "PRIO", _calibration_index);
 
-		if (_priority < 0 || _priority > 100) {
-			// reset to default
-			PX4_ERR("%s %d invalid priority %d, resetting to %d", SensorString(), _calibration_index, _priority, DEFAULT_PRIORITY);
-			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, DEFAULT_PRIORITY);
-			_priority = DEFAULT_PRIORITY;
+		if ((_priority < 0) || (_priority > 100)) {
+			// reset to default, -1 is the uninitialized parameter value
+			int32_t new_priority = DEFAULT_PRIORITY;
+
+			if (_priority != -1) {
+				PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d", SensorString(), _device_id, _calibration_index, _priority,
+					new_priority);
+			}
+
+			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
+			_priority = new_priority;
 		}
 
+		bool calibration_changed = false;
+
 		// CAL_GYROx_OFF{X,Y,Z}
-		_offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+		const Vector3f offset = GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index);
+
+		if (Vector3f(_offset - offset).norm_squared() > 0.001f * 0.001f) {
+			calibration_changed = true;
+			_offset = offset;
+		}
+
+		if (calibration_changed) {
+			_calibration_count++;
+		}
 
 	} else {
 		Reset();
@@ -145,15 +183,18 @@ void Gyroscope::Reset()
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 	_calibration_index = -1;
+
+	_calibration_count = 0;
 }
 
 bool Gyroscope::ParametersSave()
 {
 	if (_calibration_index >= 0) {
 		// save calibration
-		SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
-		SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
-		SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
+		bool success = true;
+		success &= SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
+		success &= SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
+		success &= SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
 
 		// if (_external) {
 		// 	SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
@@ -162,7 +203,7 @@ bool Gyroscope::ParametersSave()
 		// 	SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
 		// }
 
-		return true;
+		return success;
 	}
 
 	return false;

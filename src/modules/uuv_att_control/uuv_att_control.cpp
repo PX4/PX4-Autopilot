@@ -205,6 +205,8 @@ void UUVAttitudeControl::Run()
 		return;
 	}
 
+	perf_begin(_loop_perf);
+
 	/* check vehicle control mode for changes to publication state */
 	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
@@ -240,8 +242,6 @@ void UUVAttitudeControl::Run()
 		}
 	}
 
-	perf_end(_loop_perf);
-
 	/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
 	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
 		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
@@ -264,42 +264,30 @@ void UUVAttitudeControl::Run()
 
 	}
 
-	warnx("exiting.\n");
+	perf_end(_loop_perf);
 }
 
 int UUVAttitudeControl::task_spawn(int argc, char *argv[])
 {
-	/* start the task */
-	_task_id = px4_task_spawn_cmd("uuv_att_ctrl",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_ATTITUDE_CONTROL,
-				      1700,  // maybe switch to 1500
-				      (px4_main_t)&UUVAttitudeControl::run_trampoline,
-				      nullptr);
-
-	if (_task_id < 0) {
-		warn("task start failed");
-		return -errno;
-	}
-
-	return OK;
-}
-
-UUVAttitudeControl *UUVAttitudeControl::instantiate(int argc, char *argv[])
-{
-
-	if (argc > 0) {
-		PX4_WARN("Command 'start' takes no arguments.");
-		return nullptr;
-	}
-
 	UUVAttitudeControl *instance = new UUVAttitudeControl();
 
-	if (instance == nullptr) {
-		PX4_ERR("Failed to instantiate UUVAttitudeControl object");
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	return instance;
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
 int UUVAttitudeControl::custom_command(int argc, char *argv[])

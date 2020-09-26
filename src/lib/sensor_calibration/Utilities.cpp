@@ -90,7 +90,7 @@ int32_t GetCalibrationParam(const char *sensor_type, const char *cal_type, uint8
 	return value;
 }
 
-int SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, int32_t value)
+bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, int32_t value)
 {
 	char str[20] {};
 
@@ -103,7 +103,7 @@ int SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t i
 		PX4_ERR("failed to set %s = %d", str, value);
 	}
 
-	return ret;
+	return ret == PX4_OK;
 }
 
 Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance)
@@ -126,7 +126,7 @@ Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_t
 	return values;
 }
 
-int SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance, Vector3f values)
+bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance, Vector3f values)
 {
 	int ret = PX4_OK;
 	char str[20] {};
@@ -143,7 +143,7 @@ int SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, 
 		}
 	}
 
-	return ret;
+	return ret == PX4_OK;
 }
 
 Dcmf GetBoardRotation()

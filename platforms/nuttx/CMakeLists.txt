@@ -69,7 +69,7 @@ elseif("${PX4_BOARD_LABEL}" STREQUAL "canbootloader")
 	)
 
 	target_link_libraries(px4 PRIVATE
-		-Wl,-wrap,sched_process_timer -Wl,-wrap,sem_post -Wl,-wrap,sem_wait
+		-Wl,-wrap,sched_process_timer -Wl,-wrap,nx_sem_post -Wl,-wrap,nx_sem_wait
 	)
 else()
 	if(NOT "${PX4_BOARD_LINKER_PREFIX}" STREQUAL "")
