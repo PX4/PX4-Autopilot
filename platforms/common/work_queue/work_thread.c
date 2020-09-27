@@ -191,9 +191,6 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
 void work_queues_init(void)
 {
 	px4_sem_init(&_work_lock[HPWORK], 0, 1);
-#ifdef CONFIG_SCHED_USRWORK
-	px4_sem_init(&_work_lock[USRWORK], 0, 1);
-#endif
 
 	// Create high priority worker thread
 	g_work[HPWORK].pid = px4_task_spawn_cmd("hpwork",
@@ -205,24 +202,18 @@ void work_queues_init(void)
 }
 
 /****************************************************************************
- * Name: work_hpthread, work_lpthread, and work_usrthread
+ * Name: work_hpthread
  *
  * Description:
  *   These are the worker threads that performs actions placed on the work
  *   lists.
  *
- *   work_hpthread and work_lpthread:  These are the kernel mode work queues
+ *   work_hpthread:  These are the kernel mode work queues
  *     (also build in the flat build).  One of these threads also performs
  *     periodic garbage collection (that is otherwise performed by the idle
  *     thread if CONFIG_SCHED_WORKQUEUE is not defined).
  *
  *     These worker threads are started by the OS during normal bringup.
- *
- *   work_usrthread:  This is a user mode work queue.  It must be built into
- *     the applicatino blob during the user phase of a kernel build.  The
- *     user work thread will then automatically be started when the system
- *     boots by calling through the pointer found in the header on the user
- *     space blob.
  *
  *   All of these entrypoints are referenced by OS internally and should not
  *   not be accessed by application logic.
@@ -252,33 +243,6 @@ int work_hpthread(int argc, char *argv[])
 }
 
 #endif /* CONFIG_SCHED_HPWORK */
-
-#ifdef CONFIG_SCHED_USRWORK
-
-int work_usrthread(int argc, char *argv[])
-{
-	/* Loop forever */
-
-	int rv;
-	// set the threads name
-#ifdef __PX4_DARWIN
-	rv = pthread_setname_np("USR");
-#else
-	rv = pthread_setname_np(pthread_self(), "USR");
-#endif
-
-	for (;;) {
-		/* Then process queued work.  We need to keep interrupts disabled while
-		 * we process items in the work list.
-		 */
-
-		work_process(&g_work[USRWORK], USRWORK);
-	}
-
-	return PX4_OK; /* To keep some compilers happy */
-}
-
-#endif /* CONFIG_SCHED_USRWORK */
 
 uint32_t clock_systimer()
 {
