@@ -31,15 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(sensor_calibration
-	Accelerometer.cpp
-	Accelerometer.hpp
-	Gyroscope.cpp
-	Gyroscope.hpp
-	Magnetometer.cpp
-	Magnetometer.hpp
-	Utilities.cpp
-	Utilities.hpp
+px4_add_library(vehicle_gps_position
+	VehicleGPSPosition.cpp
+	VehicleGPSPosition.hpp
 )
-
-target_link_libraries(sensor_calibration PRIVATE conversion parameters)
+target_link_libraries(vehicle_gps_position PRIVATE ecl_geo px4_work_queue)

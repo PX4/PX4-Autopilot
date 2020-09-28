@@ -30,16 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-px4_add_library(sensor_calibration
-	Accelerometer.cpp
-	Accelerometer.hpp
-	Gyroscope.cpp
-	Gyroscope.hpp
-	Magnetometer.cpp
-	Magnetometer.hpp
-	Utilities.cpp
-	Utilities.hpp
-)
-
-target_link_libraries(sensor_calibration PRIVATE conversion parameters)
+px4_add_module(
+	MODULE systemcmds__system_time
+	MAIN system_time
+	SRCS
+		system_time.cpp
+	DEPENDS
+	)

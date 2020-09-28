@@ -224,6 +224,8 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 			_px4_mag_0.set_temperature(sensors.temperature);
 			_px4_mag_1.set_temperature(sensors.temperature);
+
+			_sensors_temperature = sensors.temperature;
 		}
 	}
 
@@ -274,7 +276,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_blocked) {
 		differential_pressure_s report{};
 		report.timestamp = time;
-		report.temperature = sensors.temperature;
+		report.temperature = _sensors_temperature;
 		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
 
@@ -336,7 +338,7 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
 	if (!_gps_blocked) {
-		vehicle_gps_position_s gps{};
+		sensor_gps_s gps{};
 
 		gps.timestamp = hrt_absolute_time();
 		gps.time_utc_usec = hil_gps.time_usec;
@@ -356,16 +358,16 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 
 		// New publishers will be created based on the HIL_GPS ID's being different or not
 		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
-			if (_vehicle_gps_position_pubs[i] && _gps_ids[i] == hil_gps.id) {
-				_vehicle_gps_position_pubs[i]->publish(gps);
+			if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
+				_sensor_gps_pubs[i]->publish(gps);
 				break;
 
 			}
 
-			if (_vehicle_gps_position_pubs[i] == nullptr) {
-				_vehicle_gps_position_pubs[i] = new uORB::PublicationMulti<vehicle_gps_position_s> {ORB_ID(vehicle_gps_position)};
+			if (_sensor_gps_pubs[i] == nullptr) {
+				_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
 				_gps_ids[i] = hil_gps.id;
-				_vehicle_gps_position_pubs[i]->publish(gps);
+				_sensor_gps_pubs[i]->publish(gps);
 				break;
 			}
 		}

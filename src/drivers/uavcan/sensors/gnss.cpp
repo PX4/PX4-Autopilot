@@ -52,13 +52,11 @@ using namespace time_literals;
 const char *const UavcanGnssBridge::NAME = "gnss";
 
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_gnss", "/dev/uavcan/gnss", "/dev/gnss", ORB_ID(vehicle_gps_position)),
+	UavcanCDevSensorBridgeBase("uavcan_gnss", "/dev/uavcan/gnss", "/dev/gnss", ORB_ID(sensor_gps)),
 	_node(node),
 	_sub_auxiliary(node),
 	_sub_fix(node),
 	_sub_fix2(node),
-	_pub_fix2(node),
-	_orb_to_uavcan_pub_timer(node, TimerCbBinder(this, &UavcanGnssBridge::broadcast_from_orb)),
 	_report_pub(nullptr),
 	_channel_using_fix2(new bool[_max_channels])
 {
@@ -78,13 +76,6 @@ UavcanGnssBridge::init()
 	int res = device::CDev::init();
 
 	if (res < 0) {
-		return res;
-	}
-
-	res = _pub_fix2.init(uavcan::TransferPriority::MiddleLower);
-
-	if (res < 0) {
-		PX4_WARN("GNSS fix2 pub failed %i", res);
 		return res;
 	}
 
@@ -108,8 +99,6 @@ UavcanGnssBridge::init()
 		PX4_WARN("GNSS fix2 sub failed %i", res);
 		return res;
 	}
-
-	_orb_to_uavcan_pub_timer.startPeriodic(uavcan::MonotonicDuration::fromUSec(1000000U / ORB_TO_UAVCAN_FREQUENCY_HZ));
 
 	return res;
 }
@@ -268,7 +257,18 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const float (&pos_cov)[9], const float (&vel_cov)[9],
 				    const bool valid_pos_cov, const bool valid_vel_cov)
 {
-	auto report = ::vehicle_gps_position_s();
+	// This bridge does not support redundant GNSS receivers yet.
+	if (_receiver_node_id < 0) {
+		_receiver_node_id = msg.getSrcNodeID().get();
+		PX4_INFO("GNSS receiver node ID: %d", _receiver_node_id);
+
+	} else {
+		if (_receiver_node_id != msg.getSrcNodeID().get()) {
+			return;  // This GNSS receiver is the redundant one, ignore it.
+		}
+	}
+
+	sensor_gps_s report{};
 
 	/*
 	 * FIXME HACK
@@ -395,45 +395,4 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.heading_offset = NAN;
 
 	publish(msg.getSrcNodeID().get(), &report);
-}
-
-void
-UavcanGnssBridge::broadcast_from_orb(const uavcan::TimerEvent &)
-{
-	vehicle_gps_position_s orb_msg{};
-
-	if (!_orb_sub_gnss.update(&orb_msg)) {
-		return;
-	}
-
-	// Convert to UAVCAN
-	using uavcan::equipment::gnss::Fix2;
-	Fix2 msg;
-
-	msg.gnss_timestamp = uavcan::UtcTime::fromUSec(orb_msg.time_utc_usec);
-	msg.gnss_time_standard = Fix2::GNSS_TIME_STANDARD_UTC;
-
-	msg.longitude_deg_1e8   = std::int64_t(orb_msg.lon) * 10LL;
-	msg.latitude_deg_1e8    = std::int64_t(orb_msg.lat) * 10LL;
-	msg.height_ellipsoid_mm = orb_msg.alt_ellipsoid;
-	msg.height_msl_mm       = orb_msg.alt;
-
-	msg.ned_velocity[0] = orb_msg.vel_n_m_s;
-	msg.ned_velocity[1] = orb_msg.vel_e_m_s;
-	msg.ned_velocity[2] = orb_msg.vel_d_m_s;
-
-	msg.sats_used = orb_msg.satellites_used;
-	msg.status    = orb_msg.fix_type;
-	// mode skipped
-	// sub mode skipped
-
-	// diagonal covariance matrix
-	msg.covariance.resize(2, orb_msg.eph * orb_msg.eph);
-	msg.covariance.resize(3, orb_msg.epv * orb_msg.epv);
-	msg.covariance.resize(6, orb_msg.s_variance_m_s * orb_msg.s_variance_m_s);
-
-	msg.pdop = (orb_msg.hdop > orb_msg.vdop) ? orb_msg.hdop : orb_msg.vdop;  // this is a hack :(
-
-	// Publishing now
-	_pub_fix2.broadcast(msg);
 }
