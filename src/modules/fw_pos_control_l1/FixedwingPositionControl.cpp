@@ -711,18 +711,18 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 				    && (dist_z > 2.f * _param_fw_clmbout_diff.get())
 				    && (dist_xy > 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
 					// SETPOINT_TYPE_LOITER -> SETPOINT_TYPE_POSITION
-					position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 				}
 			}
 		}
 
 
-		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.thrust_body[0] = 0.0f;
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 
-		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+		} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 			// waypoint is a plain navigation waypoint
 			float position_sp_alt = pos_sp_curr.alt;
 
@@ -774,7 +774,6 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 						   radians(_param_fw_p_lim_min.get()));
 
 		} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-
 			/* waypoint is a loiter waypoint */
 			float loiter_radius = pos_sp_curr.loiter_radius;
 			uint8_t loiter_direction = pos_sp_curr.loiter_direction;
