@@ -164,6 +164,25 @@ int s32k1xx_bringup(void);
 void s32k1xx_spidev_initialize(void);
 #endif
 
+/****************************************************************************************************
+ * Name: board_spi_reset board_peripheral_reset
+ *
+ * Description:
+ *   Called to reset SPI and the perferal bus
+ *
+ ****************************************************************************************************/
+void board_peripheral_reset(int ms);
+
+/************************************************************************************
+ * Name: ucans32k_timer_initialize
+ *
+ * Description:
+ *   Called to configure the FTM to provide 1 Mhz
+ *
+ ************************************************************************************/
+
+void ucans32k_timer_initialize(void);
+
 #include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
