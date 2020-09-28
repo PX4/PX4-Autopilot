@@ -12,7 +12,7 @@ def do_nsh_cmd(port, baudrate, cmd):
     parity = serial.PARITY_NONE
     ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=10)
 
-    ser.write('\n\n')
+    ser.write('\n')
 
     finished = 0
     success = False
@@ -20,47 +20,47 @@ def do_nsh_cmd(port, baudrate, cmd):
     timeout = 10  # 10 seconds
     timeout_start = time.time()
 
-    while finished == 0:
+    while True:
         serial_line = ser.readline()
         print(serial_line.replace('\n',''))
 
         if "nsh>" in serial_line:
-            finished = 1
+            break
+        elif "NuttShell (NSH)" in serial_line:
+            break
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
-            finished = 1
             break
+
+        ser.write('\n')
+        time.sleep(0.01)
+
 
     # run command
     ser.write(cmd + '\n')
-    time.sleep(0.05)
-    ser.write('\n')
 
-    finished = 0
     timeout = 30  # 30 seconds
     timeout_start = time.time()
-    timeout_newline = time.time()
+    timeout_newline = timeout_start
 
-    while finished == 0:
+    while True:
         serial_line = ser.readline()
         print(serial_line.replace('\n',''))
 
         if cmd in serial_line:
             continue
         elif "nsh>" in serial_line:
-            finished = 1
+            break
+        elif "NuttShell (NSH)" in serial_line:
             break
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
-            finished = 1
             break
 
-        # newline every 10 seconds if still running
-        if time.time() - timeout_newline > 10:
-            ser.write('\n')
-            timeout_newline = time.time()
+        ser.write('\n')
+        time.sleep(0.01)
 
     ser.close()
 
