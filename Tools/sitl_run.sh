@@ -112,7 +112,7 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 				fi
 			else
 				#Spawn empty world if world with model name doesn't exist
-				world_path= $verbose "${src_path}/Tools/sitl_gazebo/worlds/${world}.world"
+				world_path="${src_path}/Tools/sitl_gazebo/worlds/${world}.world"
 			fi
 		else
 			if [ -f ${src_path}/Tools/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world ]; then
