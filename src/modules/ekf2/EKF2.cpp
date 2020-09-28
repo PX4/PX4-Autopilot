@@ -805,9 +805,7 @@ void EKF2::Run()
 				_vehicle_local_position_pub.update();
 
 				// publish vehicle_odometry
-				if (_param_ekf2_aid_mask.get() & (MASK_USE_EVPOS | MASK_USE_EVYAW | MASK_USE_EVVEL)) {
-					publish_odometry(now, imu_sample_new, lpos);
-				}
+				publish_odometry(now, imu_sample_new, lpos);
 
 				// publish external visual odometry after fixed frame alignment if new odometry is received
 				if (new_ev_data_received) {
