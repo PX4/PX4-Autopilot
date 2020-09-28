@@ -173,6 +173,7 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_odometry_pub.advertise();
 	_visual_odometry_aligned_pub.advertise();
 
+	_ekf2_timestamps_pub.advertise();
 	_ekf_gps_drift_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
@@ -186,9 +187,6 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	if (_multi_mode) {
 		_vehicle_imu_sub.ChangeInstance(imu);
 		_magnetometer_sub.ChangeInstance(mag);
-
-	} else {
-		_ekf2_timestamps_pub.advertise();
 	}
 }
 
@@ -269,8 +267,8 @@ void EKF2::Run()
 		}
 
 		if (!_callback_registered) {
-			PX4_WARN("%d failed to register callback, retrying in 100 ms", _instance);
-			ScheduleDelayed(100_ms);
+			PX4_WARN("%d failed to register callback, retrying", _instance);
+			ScheduleDelayed(1_s);
 			return;
 		}
 	}
@@ -926,7 +924,7 @@ void EKF2::Run()
 			_estimator_status_pub.update();
 
 			// estimator_sensor_bias
-			if (!status.filter_fault_flags) {
+			if (status.filter_fault_flags == 0) {
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
 				estimator_sensor_bias_s bias;
 				bias.timestamp_sample = imu_sample_new.time_us;
@@ -1336,8 +1334,7 @@ void EKF2::publish_wind_estimate(const hrt_abstime &timestamp)
 		wind_estimate.variance_east = wind_vel_var(1);
 		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 		wind_estimate.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		wind_estimate.timestamp_sample = timestamp;
-		wind_estimate.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+
 		_wind_pub.publish(wind_estimate);
 	}
 }

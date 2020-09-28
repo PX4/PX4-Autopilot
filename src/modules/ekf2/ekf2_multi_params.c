@@ -42,7 +42,7 @@
  * @min 0
  * @max 3
  */
-PARAM_DEFINE_INT32(EKF2_MULTI_IMU, 3);
+PARAM_DEFINE_INT32(EKF2_MULTI_IMU, 0);
 
 /**
  * Multi-EKF Magnetometers.
