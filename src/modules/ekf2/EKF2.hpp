@@ -60,7 +60,6 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
-#include <uORB/topics/ekf_gps_position.h>
 #include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_states.h>
@@ -84,15 +83,6 @@
 #include <uORB/topics/yaw_estimator_status.h>
 
 #include "Utility/PreFlightChecker.hpp"
-
-// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
-#define BLEND_MASK_USE_SPD_ACC      1
-#define BLEND_MASK_USE_HPOS_ACC     2
-#define BLEND_MASK_USE_VPOS_ACC     4
-
-// define max number of GPS receivers supported and 0 base instance used to access virtual 'blended' GPS solution
-#define GPS_MAX_RECEIVERS 2
-#define GPS_BLENDED_INSTANCE 2
 
 class EKF2 final : public ModuleBase<EKF2>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -136,38 +126,6 @@ private:
 	void publish_yaw_estimator_status(const hrt_abstime &timestamp);
 
 	/*
-	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical
-	 * receiver solutions. This internal state cannot be used directly by estimators because if physical receivers
-	 * have significant position differences, variation in receiver estimated accuracy will cause undesirable
-	 * variation in the position solution.
-	*/
-	bool blend_gps_data();
-
-	/*
-	 * Calculate internal states used to blend GPS data from multiple receivers using weightings calculated
-	 * by calc_blend_weights()
-	 * States are written to _gps_state and _gps_blended_state class variables
-	 */
-	void update_gps_blend_states();
-
-	/*
-	 * The location in _gps_blended_state will move around as the relative accuracy changes.
-	 * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
-	 * calculated.
-	*/
-	void update_gps_offsets();
-
-	/*
-	 * Apply the steady state physical receiver offsets calculated by update_gps_offsets().
-	*/
-	void apply_gps_offsets();
-
-	/*
-	 Calculate GPS output that is a blend of the offset corrected physical receiver data
-	*/
-	void calc_gps_blend_output();
-
-	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
 	 */
 	float filter_altitude_ellipsoid(float amsl_hgt);
@@ -197,34 +155,11 @@ private:
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
-	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
-	// TODO: the user should be allowed to set these values by a parameter
-	static constexpr float ep_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated position
-	static constexpr float eo_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated orientation
-	//static constexpr float ev_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated velocity
+	bool _had_valid_terrain{false};			///< true if at any time there was a valid terrain estimate
 
-	// GPS blending and switching
-	gps_message _gps_state[GPS_MAX_RECEIVERS] {}; ///< internal state data for the physical GPS
-	gps_message _gps_blended_state{};		///< internal state data for the blended GPS
-	gps_message _gps_output[GPS_MAX_RECEIVERS + 1] {}; ///< output state data for the physical and blended GPS
-	Vector2f _NE_pos_offset_m[GPS_MAX_RECEIVERS] = {}; ///< Filtered North,East position offset from GPS instance to blended solution in _output_state.location (m)
-	float _hgt_offset_mm[GPS_MAX_RECEIVERS] = {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (mm)
-	Vector3f _blended_antenna_offset = {};		///< blended antenna offset
-	float _blend_weights[GPS_MAX_RECEIVERS] = {};	///< blend weight for each GPS. The blend weights must sum to 1.0 across all instances.
-	uint64_t _time_prev_us[GPS_MAX_RECEIVERS] = {};	///< the previous value of time_us for that GPS instance - used to detect new data.
-	uint8_t _gps_best_index = 0;			///< index of the physical receiver with the lowest reported error
-	uint8_t _gps_select_index = 0;			///< 0 = GPS1, 1 = GPS2, 2 = blended
-	uint8_t _gps_time_ref_index =
-		0;		///< index of the receiver that is used as the timing reference for the blending update
-	uint8_t _gps_oldest_index = 0;			///< index of the physical receiver with the oldest data
-	uint8_t _gps_newest_index = 0;			///< index of the physical receiver with the newest data
-	uint8_t _gps_slowest_index = 0;			///< index of the physical receiver with the slowest update rate
-	float _gps_dt[GPS_MAX_RECEIVERS] = {};		///< average time step in seconds.
-	bool  _gps_new_output_data = false;		///< true if there is new output data for the EKF
-	bool _had_valid_terrain = false;		///< true if at any time there was a valid terrain estimate
-
-	int32_t _gps_alttitude_ellipsoid[GPS_MAX_RECEIVERS] {};	///< altitude in 1E-3 meters (millimeters) above ellipsoid
-	uint64_t _gps_alttitude_ellipsoid_previous_timestamp[GPS_MAX_RECEIVERS] {}; ///< storage for previous timestamp to compute dt
+	uint64_t _gps_time_usec{0};
+	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
+	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
 	bool _imu_bias_reset_request{false};
@@ -242,6 +177,7 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
@@ -255,16 +191,12 @@ private:
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
-	// because we can have multiple GPS instances
-	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}};
-
 	sensor_selection_s		_sensor_selection{};
 	vehicle_land_detected_s		_vehicle_land_detected{};
 	vehicle_status_s		_vehicle_status{};
 
 	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
-	uORB::Publication<ekf_gps_position_s>			_blended_gps_pub{ORB_ID(ekf_gps_position)};
 	uORB::Publication<estimator_innovations_s>		_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::Publication<estimator_innovations_s>		_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
 	uORB::Publication<estimator_innovations_s>		_estimator_innovations_pub{ORB_ID(estimator_innovations)};
@@ -515,12 +447,6 @@ private:
 		_param_ekf2_pcoef_yn,	///< static pressure position error coefficient along the negative Y body axis
 		(ParamExtFloat<px4::params::EKF2_PCOEF_Z>)
 		_param_ekf2_pcoef_z,	///< static pressure position error coefficient along the Z body axis
-
-		// GPS blending
-		(ParamInt<px4::params::EKF2_GPS_MASK>)
-		_param_ekf2_gps_mask,	///< mask defining when GPS accuracy metrics are used to calculate the blend ratio
-		(ParamFloat<px4::params::EKF2_GPS_TAU>)
-		_param_ekf2_gps_tau,		///< time constant controlling how rapidly the offset used to bring GPS solutions together is allowed to change (sec)
 
 		// Test used to determine if the vehicle is static or moving
 		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)

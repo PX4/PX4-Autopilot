@@ -57,7 +57,6 @@ set(msg_files
 	distance_sensor.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
-	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_innovations.msg
@@ -65,6 +64,7 @@ set(msg_files
 	estimator_states.msg
 	estimator_status.msg
 	follow_target.msg
+	generator_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
@@ -117,6 +117,7 @@ set(msg_files
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
+	sensor_gps.msg
 	sensor_gyro.msg
 	sensor_gyro_fifo.msg
 	sensor_mag.msg

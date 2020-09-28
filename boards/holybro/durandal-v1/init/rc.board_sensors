@@ -2,7 +2,7 @@
 #
 # Holybro Durandal V1 specific board sensors init
 #------------------------------------------------------------------------------
-adc start
+board_adc start
 
 # Internal SPI bus ICM-20689
 icm20689 -R 2 -s start

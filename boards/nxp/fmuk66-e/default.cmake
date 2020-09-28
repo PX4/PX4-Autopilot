@@ -14,7 +14,7 @@ px4_add_board(
 		TEL1:/dev/ttyS4
 		TEL2:/dev/ttyS1
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		barometer/mpl3115a2
 		batt_smbus
@@ -98,6 +98,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		system_time
 		tests # tests and test runner
 		top
 		topic_listener

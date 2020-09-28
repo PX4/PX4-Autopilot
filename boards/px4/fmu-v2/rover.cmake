@@ -17,7 +17,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer/ms5611
 		batt_smbus
 		camera_capture

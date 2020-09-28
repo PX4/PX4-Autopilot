@@ -64,7 +64,7 @@
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
-#include "up_internal.h"
+#include "arm_internal.h"
 
 #include <px4_arch/io_timer.h>
 #include <drivers/drv_hrt.h>

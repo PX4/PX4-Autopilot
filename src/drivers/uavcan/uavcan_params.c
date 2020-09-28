@@ -85,3 +85,23 @@ PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ESC_IDLT, 1);
+
+/**
+ * UAVCAN rangefinder minimum range
+ *
+ * This parameter defines the minimum valid range for a rangefinder connected via UAVCAN.
+ *
+ * @unit m
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.3f);
+
+/**
+ * UAVCAN rangefinder maximum range
+ *
+ * This parameter defines the maximum valid range for a rangefinder connected via UAVCAN.
+ *
+ * @unit m
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 200.0f);

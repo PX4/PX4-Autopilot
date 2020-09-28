@@ -12,7 +12,7 @@ if bst start -X
 then
 fi
 
-if adc start
+if board_adc start
 then
 fi
 

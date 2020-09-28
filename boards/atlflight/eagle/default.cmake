@@ -41,6 +41,7 @@ px4_add_board(
 	LABEL default
 	#TESTING
 	TOOLCHAIN arm-linux-gnueabihf
+	ROMFSROOT px4fmu_common
 	DRIVERS
 		#barometer # all available barometer drivers
 		batt_smbus
@@ -103,6 +104,7 @@ px4_add_board(
 		pwm
 		sd_bench
 		shutdown
+		system_time
 		#tests # tests and test runner
 		#top
 		topic_listener

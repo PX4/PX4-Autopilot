@@ -16,10 +16,10 @@ px4_add_board(
 		TEL2:/dev/ttyS1
 		GPS1:/dev/ttyS2
 		# PX4IO:/dev/ttyS3
-		# CONSOLE:/dev/ttyS4
+		TEL3:/dev/ttyS4
 		GPS2:/dev/ttyS5
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture

@@ -95,9 +95,6 @@ public:
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
-	/** @see ModuleBase */
-	static UUVAttitudeControl *instantiate(int argc, char *argv[]);
-
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */

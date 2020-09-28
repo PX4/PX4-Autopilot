@@ -239,10 +239,12 @@ public:
 
 				do {
 					unlock_module();
-					px4_usleep(20000); // 20 ms
+					px4_usleep(10000); // 10 ms
 					lock_module();
 
-					if (++i > 100 && _task_id != -1) { // wait at most 2 sec
+					if (++i > 500 && _task_id != -1) { // wait at most 5 sec
+						PX4_ERR("timeout, forcing stop");
+
 						if (_task_id != task_id_is_work_queue) {
 							px4_task_delete(_task_id);
 						}
@@ -510,6 +512,11 @@ __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool sp
  * Configurable I2C address (via -a <address>)
  */
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address);
+
+/**
+ * -k flag
+ */
+__EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG(void);
 
 /** @note Each of the PRINT_MODULE_USAGE_PARAM_* methods apply to the previous PRINT_MODULE_USAGE_COMMAND_DESCR(). */
 
