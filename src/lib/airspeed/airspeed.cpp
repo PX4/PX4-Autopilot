@@ -183,7 +183,6 @@ float calc_IAS(float differential_pressure)
 	} else {
 		return -sqrtf((2.0f * fabsf(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 	}
-
 }
 
 float calc_TAS_from_CAS(float speed_calibrated, float pressure_ambient, float temperature_celsius)
