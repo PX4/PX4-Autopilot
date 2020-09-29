@@ -217,42 +217,6 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	attitude_setpoint.q_d_valid = true;
 
 	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
-
-	/* modify roll/pitch if we're in omni-directional mode */
-	if (_param_omni_att_mode.get() == 2) {
-		// set the euler angles, for logging only, must not be used for control
-		attitude_setpoint.roll_body = 0;
-		attitude_setpoint.pitch_body = 0;
-		attitude_setpoint.yaw_body = _man_yaw_sp;
-
-		Quatf q_sp_omni = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
-		q_sp_omni.copyTo(attitude_setpoint.q_d);
-		attitude_setpoint.q_d_valid = true;
-
-		float x_thrust = _manual_control_sp.x;
-		float y_thrust = _manual_control_sp.y;
-		float z_thrust = _manual_control_sp.z;
-
-		// Check if the total horizontal thrust has exceeded the maximum
-		Vector2f h_thrust = Vector2f(x_thrust, y_thrust);
-		float h_thrust_norm = h_thrust.norm();
-
-		if (h_thrust_norm > 1.0F) {
-			h_thrust /= h_thrust_norm;
-		}
-
-		h_thrust *= _param_omni_dfc_max_thr.get();
-
-		// Check if the total thrust has exceeded the maximum
-		Vector3f total_thrust = Vector3f(h_thrust(0), h_thrust(1), z_thrust);
-
-		total_thrust = total_thrust / total_thrust.norm() * z_thrust;
-
-		attitude_setpoint.thrust_body[0] = throttle_curve(math::abs_t(total_thrust(0))) * math::sign(total_thrust(0));
-		attitude_setpoint.thrust_body[1] = throttle_curve(math::abs_t(total_thrust(1))) * math::sign(total_thrust(1));
-		attitude_setpoint.thrust_body[2] = -throttle_curve(total_thrust(2));
-	}
-
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);

@@ -157,11 +157,7 @@ private:
 		_param_mpc_thr_hover,			/**< throttle at which vehicle is at hover equilibrium */
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,				/**< throttle curve behavior */
 
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
-
-		/* Omnidirectional vehicle params */
-		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode,
-		(ParamFloat<px4::params::OMNI_DFC_MAX_THR>) _param_omni_dfc_max_thr
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode
 	)
 
 	bool _is_tailsitter{false};
