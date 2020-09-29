@@ -2641,11 +2641,10 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	/* airspeed */
 	{
 		airspeed_s airspeed{};
-
-		airspeed.timestamp = timestamp;
+		airspeed.timestamp_sample = timestamp;
 		airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
 		airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
-
+		airspeed.timestamp = hrt_absolute_time();
 		_airspeed_pub.publish(airspeed);
 	}
 
