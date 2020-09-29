@@ -798,17 +798,10 @@ Mission::set_mission_items()
 					}
 
 					set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+					_mission_item.yaw = _navigator->get_local_position()->heading;
 
-					if (has_next_position_item) {
-						/* got next mission item, update setpoint triplet */
-						mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->current);
-
-					} else {
-						_mission_item.yaw = _navigator->get_local_position()->heading;
-
-						/* set position setpoint to target during the transition */
-						generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
-					}
+					/* set position setpoint to target during the transition */
+					generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
 				}
 
 				/* takeoff completed and transitioned, move to takeoff wp as fixed wing */
