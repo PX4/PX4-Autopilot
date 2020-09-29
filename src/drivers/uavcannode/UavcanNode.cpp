@@ -626,7 +626,10 @@ extern "C" __EXPORT int uavcannode_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
-		inst->print_info();
+		if (inst) {
+			inst->print_info();
+		}
+
 		return 0;
 	}
 

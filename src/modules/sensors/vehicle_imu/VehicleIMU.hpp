@@ -60,7 +60,7 @@ class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	VehicleIMU() = delete;
-	VehicleIMU(uint8_t accel_index = 0, uint8_t gyro_index = 0);
+	VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config);
 
 	~VehicleIMU() override;
 
@@ -115,6 +115,8 @@ private:
 	uint8_t _delta_velocity_clipping{0};
 
 	bool _intervals_configured{false};
+
+	const uint8_t _instance;
 
 	perf_counter_t _accel_update_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": accel update interval")};
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};

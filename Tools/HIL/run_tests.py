@@ -14,7 +14,7 @@ def do_test(port, baudrate, test_name):
     parity = serial.PARITY_NONE
     ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=10)
 
-    ser.write('\n\n')
+    ser.write('\n')
 
     finished = 0
     success = False
@@ -22,43 +22,53 @@ def do_test(port, baudrate, test_name):
     timeout = 10  # 10 seconds
     timeout_start = time.time()
 
-    while finished == 0:
+    while True:
         serial_line = ser.readline()
         print(serial_line.replace('\n',''))
 
         if "nsh>" in serial_line:
-            finished = 1
+            break
+        elif "NuttShell (NSH)" in serial_line:
+            break
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
-            finished = 1
             break
 
+        ser.write('\n')
+        time.sleep(0.01)
 
-    # run test
-    ser.write('tests ' + test_name + '\n')
-    time.sleep(0.05)
 
-    finished = 0
-    timeout = 300  # 5 minutes
+    # run test cmd
+    cmd = 'tests ' + test_name
+    ser.write(cmd + '\n')
+
+    timeout = 180  # 3 minutes
     timeout_start = time.time()
-    timeout_newline = time.time()
+    timeout_newline = timeout_start
 
-    while finished == 0:
+    while True:
         serial_line = ser.readline()
         print(serial_line.replace('\n',''))
 
-        if test_name + " PASSED" in serial_line:
-            finished = 1
+        if cmd in serial_line:
+            continue
+        elif test_name + " PASSED" in serial_line:
             success = True
+            break
         elif test_name + " FAILED" in serial_line:
-            finished = 1
             success = False
+            break
+        elif "nsh>" in serial_line:
+            success = False
+            break
+        elif "NuttShell (NSH)" in serial_line:
+            success = False
+            break
 
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
             print(test_name + " FAILED")
-            finished = 1
             success = False
             break
 
@@ -92,9 +102,6 @@ class TestHadrwareMethods(unittest.TestCase):
 
     def floattest_float(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "float"))
-
-    def hrttest_hrt(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "hrt"))
 
     def test_hrt(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "hrt"))

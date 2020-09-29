@@ -138,8 +138,7 @@ private:
 	hrt_abstime _last_update_time = 0;
 	float _update_rate_filtered = 0.0f;
 
-	static constexpr int MAX_BATTERIES = 4;
-	PerBatteryData _batteries[MAX_BATTERIES] {0, 1, 2, 3};
+	PerBatteryData _batteries[battery_status_s::MAX_INSTANCES] {0, 1, 2, 3};
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighLatency2(MavlinkStreamHighLatency2 &);

@@ -41,7 +41,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 
-#include "up_arch.h"
+#include "arm_arch.h"
 #include "hardware/s32k1xx_sim.h"
 
 #define CHIP_TAG     "S32K1XX"

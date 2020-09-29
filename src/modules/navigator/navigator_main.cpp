@@ -907,7 +907,7 @@ Navigator::get_cruising_throttle()
 		return _mission_throttle;
 
 	} else {
-		return -1.0f;
+		return NAN;
 	}
 }
 

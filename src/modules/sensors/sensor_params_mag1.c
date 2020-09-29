@@ -42,6 +42,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
 /**
  * Mag 1 priority.
  *
+ * @value -1  Uninitialized
  * @value 0   Disabled
  * @value 1   Min
  * @value 25  Low
@@ -52,7 +53,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG1_PRIO, 50);
+PARAM_DEFINE_INT32(CAL_MAG1_PRIO, -1);
 
 /**
  * Rotation of magnetometer 1 relative to airframe.
@@ -104,13 +105,9 @@ PARAM_DEFINE_INT32(CAL_MAG1_PRIO, 50);
  * @value 39 Pitch 315°
  * @value 40 Roll 90°, Pitch 315°
  * @value 41 Roll 270°, Yaw 180°
- * @value 42 Roll 270°, Yaw 270°
- * @value 43 Pitch 90°, Yaw 180°
- * @value 44 Pitch 9°, Yaw 180°
- * @value 45 Pitch 45°
  *
  * @min -1
- * @max 45
+ * @max 41
  * @reboot_required true
  * @category system
  * @group Sensor Calibration

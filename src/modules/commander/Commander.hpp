@@ -232,7 +232,7 @@ private:
 		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_rc_in_off,
 		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
-		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_min_stick_change,
+		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
 
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
 		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
@@ -353,7 +353,6 @@ private:
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
 	int32_t		_flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM] {};
 	uint8_t		_last_manual_control_setpoint_arm_switch{0};
-	float		_min_stick_change{};
 	uint32_t	_stick_off_counter{0};
 	uint32_t	_stick_on_counter{0};
 
@@ -366,7 +365,6 @@ private:
 
 	bool		_status_changed{true};
 	bool		_arm_tune_played{false};
-	bool		_was_landed{true};
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
@@ -398,7 +396,8 @@ private:
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
-	uORB::SubscriptionMultiArray<battery_status_s>          _battery_status_subs{ORB_ID::battery_status};
+
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 	uORB::SubscriptionMultiArray<distance_sensor_s>         _distance_sensor_subs{ORB_ID::distance_sensor};
 	uORB::SubscriptionMultiArray<telemetry_status_s>        _telemetry_status_subs{ORB_ID::telemetry_status};
 

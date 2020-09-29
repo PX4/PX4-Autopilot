@@ -17,7 +17,7 @@ px4_add_board(
 		GPS2:/dev/ttyS4
 
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -30,7 +30,9 @@ px4_add_board(
 		#imu/adis16497
 		#imu # all available imu drivers
 		imu/bosch/bmi055
-		imu/mpu6000
+		imu/invensense/icm20602
+		imu/invensense/icm20689
+		#imu/mpu6000 # legacy icm20602/icm20689 driver
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -91,6 +93,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
+		system_time
 		top
 		topic_listener
 		tune_control
