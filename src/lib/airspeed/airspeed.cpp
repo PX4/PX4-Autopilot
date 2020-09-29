@@ -58,6 +58,9 @@
 float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
 			 float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius)
 {
+	if (!PX4_ISFINITE(temperature_celsius)) {
+		temperature_celsius = 15.f; // ICAO Standard Atmosphere 15 degrees celcius
+	}
 
 	// air density in kg/m3
 	const float rho_air = get_air_density(pressure_ambient, temperature_celsius);
@@ -182,7 +185,6 @@ float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_
 	return (differential_pressure > 0.0f) ? airspeed_corrected : -airspeed_corrected;
 }
 
-
 /**
  * Calculate indicated airspeed (IAS).
  *
@@ -194,8 +196,6 @@ float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_
  */
 float calc_IAS(float differential_pressure)
 {
-
-
 	if (differential_pressure > 0.0f) {
 		return sqrtf((2.0f * differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 
@@ -217,6 +217,10 @@ float calc_IAS(float differential_pressure)
  */
 float calc_TAS_from_EAS(float speed_equivalent, float pressure_ambient, float temperature_celsius)
 {
+	if (!PX4_ISFINITE(temperature_celsius)) {
+		temperature_celsius = 15.f; // ICAO Standard Atmosphere 15 degrees celcius
+	}
+
 	return speed_equivalent * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient,
 					temperature_celsius));
 }
@@ -266,6 +270,10 @@ float calc_TAS(float total_pressure, float static_pressure, float temperature_ce
 
 float get_air_density(float static_pressure, float temperature_celsius)
 {
+	if (!PX4_ISFINITE(temperature_celsius)) {
+		temperature_celsius = 15.f; // ICAO Standard Atmosphere 15 degrees celcius
+	}
+
 	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
 }
 
@@ -281,6 +289,5 @@ float get_air_density(float static_pressure, float temperature_celsius)
  */
 float calc_EAS_from_TAS(float speed_true, float pressure_ambient, float temperature_celsius)
 {
-	return speed_true * sqrtf(get_air_density(pressure_ambient,
-				  temperature_celsius) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+	return speed_true * sqrtf(get_air_density(pressure_ambient, temperature_celsius) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 }
