@@ -1186,7 +1186,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
 			airspeedSample airspeed_sample {
-				.time_us = airspeed.timestamp,
+				.time_us = airspeed.timestamp_sample,
 				.true_airspeed = true_airspeed_m_s,
 				.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
 			};
