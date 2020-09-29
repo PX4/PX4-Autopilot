@@ -789,6 +789,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	struct action_cache_t {
 		uint32_t base;
 		uint32_t index;
+		uint32_t mask;
 		action_cache_rp_t cnsc[MAX_CHANNELS_PER_TIMER];
 	} action_cache[MAX_IO_TIMERS];
 
@@ -845,6 +846,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 				action_cache[timer].base  = io_timers[timer].base;
 				action_cache[timer].cnsc[action_cache[timer].index].cnsc_offset = io_timers[timer].base + S32K1XX_FTM_CNSC_OFFSET(chan);
 				action_cache[timer].cnsc[action_cache[timer].index].cnsc_value = bits;
+				action_cache[timer].mask |= 1 << chan;
 
 				if ((state &&
 				     (mode == IOTimerChanMode_PWMOut ||
@@ -888,6 +890,10 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 				/* arm requires the timer be enabled */
 				regval |= (FTM_SC_CLKS_EXTCLK);
+
+				regval &= ~FTM_SC_PWMEN_MASK;
+				regval |= action_cache[actions].mask << FTM_SC_PWMEN_SHIFT;
+
 			}
 
 			_REG32(action_cache[actions].base, S32K1XX_FTM_SC_OFFSET) = regval;
