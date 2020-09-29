@@ -122,6 +122,7 @@ private:
 	bool update_mag_decl(Param &mag_decl_param);
 
 	void publish_attitude(const hrt_abstime &timestamp);
+	void publish_odometry(const hrt_abstime &timestamp, const imuSample &imu, const vehicle_local_position_s &lpos);
 	void publish_wind_estimate(const hrt_abstime &timestamp);
 	void publish_yaw_estimator_status(const hrt_abstime &timestamp);
 

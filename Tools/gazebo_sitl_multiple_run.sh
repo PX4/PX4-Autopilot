@@ -29,13 +29,10 @@ function spawn_model() {
 	[ ! -d "$working_dir" ] && mkdir -p "$working_dir"
 
 	pushd "$working_dir" &>/dev/null
-	echo "starting instance $n in $(pwd)"
-	../bin/px4 -i $n -d "$build_path/etc" -w sitl_${MODEL}_${n} -s etc/init.d-posix/rcS >out.log 2>err.log &
-	python3 ${src_path}/Tools/sitl_gazebo/scripts/xacro.py ${src_path}/Tools/sitl_gazebo/models/rotors_description/urdf/${MODEL}_base.xacro \
-		rotors_description_dir:=${src_path}/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(($mavlink_udp_port+$N)) \
-		mavlink_tcp_port:=$(($mavlink_tcp_port+$N))  -o /tmp/${MODEL}_${N}.urdf
+	echo "starting instance $N in $(pwd)"
+	../bin/px4 -i $N -d "$build_path/etc" -w sitl_${MODEL}_${N} -s etc/init.d-posix/rcS >out.log 2>err.log &
+	python3 ${src_path}/Tools/sitl_gazebo/scripts/jinja_gen.py ${src_path}/Tools/sitl_gazebo/models/${MODEL}/${MODEL}.sdf.jinja ${src_path}/Tools/sitl_gazebo --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --output-file /tmp/${MODEL}_${N}.sdf
 
-	gz sdf -p  /tmp/${MODEL}_${N}.urdf > /tmp/${MODEL}_${n}.sdf
 	echo "Spawning ${MODEL}_${N}"
 
 	gz model --spawn-file=/tmp/${MODEL}_${N}.sdf --model-name=${MODEL}_${N} -x 0.0 -y $((3*${N})) -z 0.0
