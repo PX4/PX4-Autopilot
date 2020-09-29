@@ -568,11 +568,11 @@ static constexpr int32_t reassemble_20bit(const uint32_t a, const uint32_t b, co
 	uint32_t low    = ((b << 4)  & 0x00000FF0);
 	uint32_t lowest = (c         & 0x0000000F);
 
-	uint32_t x = high + low + lowest;
+	uint32_t x = high | low | lowest;
 
 	if (a & Bit7) {
 		// sign extend
-		x = 0xFFF00000u + x;
+		x |= 0xFFF00000u;
 	}
 
 	return static_cast<int32_t>(x);
