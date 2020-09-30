@@ -49,6 +49,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <math.h>
 #include <fcntl.h>
 #include <sys/mount.h>
 #include <sys/ioctl.h>
@@ -88,6 +89,14 @@ struct mtd_instance_s;
 #   define MTD_PARTITION_TABLE  {"/fs/mtd_params", "/fs/mtd_waypoints"}
 #  endif
 
+/* note, these will be equally sized */
+static const char *partition_names_default[] = MTD_PARTITION_TABLE;
+#if defined(BOARD_MTD_PARTITION_TABLE_SIZES)
+static const float partition_sizes_default[] = BOARD_MTD_PARTITION_TABLE_SIZES;
+#else
+#  define partition_sizes_default nullptr
+#endif
+
 
 #ifdef CONFIG_MTD_RAMTRON
 static int	ramtron_attach(mtd_instance_s &instance);
@@ -118,20 +127,20 @@ struct mtd_instance_s {
 	bool started;
 	struct mtd_dev_s *mtd_dev;
 	unsigned n_partitions_current;
+	int *partition_block_counts;
+	const float *partition_percentages;
+	const char **partition_names;
 };
 
 static mtd_instance_s instances[] = {
 #ifdef CONFIG_MTD_RAMTRON
-	{&ramtron_attach, false, false, nullptr, 0},
+	{&ramtron_attach, false, false, nullptr, 0, nullptr, partition_sizes_default, partition_names_default},
 #endif
 #ifdef PX4_I2C_BUS_MTD
-	{&at24xxx_attach, false, false, nullptr, 0},
+	{&at24xxx_attach, false, false, nullptr, 0, nullptr, nullptr, nullptr},
 #endif
 };
 static constexpr int num_instances = arraySize(instances);
-
-/* note, these will be equally sized */
-static const char *partition_names_default[] = MTD_PARTITION_TABLE;
 static const int n_partitions_default = arraySize(partition_names_default);
 
 static int
@@ -380,17 +389,42 @@ mtd_start(mtd_instance_s &instance, const char *partition_names[], unsigned n_pa
 	unsigned offset;
 	unsigned i;
 
-	for (offset = 0, i = 0; i < n_partitions; offset += nblocks, i++) {
+
+	instance.partition_block_counts = new int[n_partitions];
+
+	if (instance.partition_block_counts == nullptr) {
+		PX4_ERR("mtd_partition failed allocation counts");
+		return 1;
+	}
+
+	instance.partition_names = new const char *[n_partitions];
+
+	if (instance.partition_names == nullptr) {
+		PX4_ERR("mtd_partition failed allocation for names");
+		return 1;
+	}
+
+	for (unsigned int n = 0; n < n_partitions; n++) {
+		float percentage = instance.partition_percentages == nullptr  ?
+				   100.0f / n_partitions : instance.partition_percentages[n];
+		volatile int nb = neraseblocks * (percentage / 100.0f);
+		instance.partition_block_counts[n] = (nb == 0 ? 1 : nb);
+		instance.partition_names[n] = nullptr;
+	}
+
+	for (offset = 0, i = 0; i < n_partitions; offset += instance.partition_block_counts[i], i++) {
 
 		/* Create the partition */
 
-		part[i] = mtd_partition(instance.mtd_dev, offset, nblocks);
+		part[i] = mtd_partition(instance.mtd_dev, offset, instance.partition_block_counts[i]);
 
 		if (!part[i]) {
 			PX4_ERR("mtd_partition failed. offset=%lu nblocks=%lu",
 				(unsigned long)offset, (unsigned long)nblocks);
 			return 1;
 		}
+
+		instance.partition_names[i] = strdup(partition_names[i]);
 
 		/* Initialize to provide an FTL block driver on the MTD FLASH interface */
 
@@ -459,7 +493,7 @@ int mtd_get_geometry(const mtd_instance_s &instance, unsigned long *blocksize, u
 /*
   get partition size in bytes
  */
-static ssize_t mtd_get_partition_size(const mtd_instance_s &instance)
+static ssize_t mtd_get_partition_size(const mtd_instance_s &instance, const char *partname)
 {
 	unsigned long blocksize, erasesize, neraseblocks;
 	unsigned blkpererase, nblocks, partsize = 0;
@@ -471,7 +505,18 @@ static ssize_t mtd_get_partition_size(const mtd_instance_s &instance)
 		return 0;
 	}
 
-	return partsize;
+	unsigned partn = 0;
+
+	for (unsigned n = 0; n < instance.n_partitions_current; n++) {
+		if (instance.partition_names[n] != nullptr &&
+		    partname != nullptr &&
+		    strcmp(instance.partition_names[n], partname) == 0) {
+			partn = n;
+			break;
+		}
+	}
+
+	return instance.partition_block_counts[partn] * erasesize;
 }
 
 int mtd_print_info(int instance)
@@ -533,16 +578,20 @@ mtd_erase(const char *partition_names[], unsigned n_partitions)
 int
 mtd_readtest(const mtd_instance_s &instance, const char *partition_names[], unsigned n_partitions)
 {
-	ssize_t expected_size = mtd_get_partition_size(instance);
 
-	if (expected_size == 0) {
-		return 1;
-	}
 
 	uint8_t v[128];
 
 	for (uint8_t i = 0; i < n_partitions; i++) {
 		ssize_t count = 0;
+
+		ssize_t expected_size = mtd_get_partition_size(instance, partition_names[i]);
+
+		if (expected_size == 0) {
+			PX4_ERR("Failed partition size is 0");
+			return 1;
+		}
+
 		printf("reading %s expecting %u bytes\n", partition_names[i], expected_size);
 		int fd = open(partition_names[i], O_RDONLY);
 
@@ -576,17 +625,19 @@ mtd_readtest(const mtd_instance_s &instance, const char *partition_names[], unsi
 int
 mtd_rwtest(const mtd_instance_s &instance, const char *partition_names[], unsigned n_partitions)
 {
-	ssize_t expected_size = mtd_get_partition_size(instance);
-
-	if (expected_size == 0) {
-		return 1;
-	}
-
 	uint8_t v[128], v2[128];
 
 	for (uint8_t i = 0; i < n_partitions; i++) {
 		ssize_t count = 0;
 		off_t offset = 0;
+
+		ssize_t expected_size = mtd_get_partition_size(instance, partition_names[i]);
+
+		if (expected_size == 0) {
+			PX4_ERR("Failed partition size is 0");
+			return 1;
+		}
+
 		printf("rwtest %s testing %u bytes\n", partition_names[i], expected_size);
 		int fd = open(partition_names[i], O_RDWR);
 
