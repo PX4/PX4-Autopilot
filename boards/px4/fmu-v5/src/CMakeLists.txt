@@ -52,5 +52,18 @@ target_link_libraries(drivers_board
 		drivers__led # drv_led_start
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
-		px4_layer
 )
+
+if (NOT DEFINED CONFIG_BUILD_FLAT)
+	target_link_libraries(drivers_board PRIVATE px4_kernel_layer)
+else()
+	target_link_libraries(drivers_board PRIVATE px4_layer)
+endif()
+
+add_library(drivers_userspace
+	stm32_userspace.c
+)
+
+target_link_libraries(drivers_userspace PRIVATE px4_userspace_init)
+
+add_dependencies(drivers_userspace arch_board_hw_info)
