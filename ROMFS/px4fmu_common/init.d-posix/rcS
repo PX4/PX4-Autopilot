@@ -214,6 +214,7 @@ battery_simulator start
 tone_alarm start
 rc_update start
 sensors start
+mag_calibrator start
 commander start
 navigator start
 

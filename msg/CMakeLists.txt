@@ -55,6 +55,7 @@ set(msg_files
 	ekf_gps_drift.msg
 	esc_report.msg
 	esc_status.msg
+	estimator_mag_cal.msg
 	estimator_innovations.msg
 	estimator_sensor_bias.msg
 	estimator_states.msg

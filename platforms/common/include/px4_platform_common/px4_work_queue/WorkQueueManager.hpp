@@ -83,7 +83,7 @@ static constexpr wq_config_t UART7{"wq:UART7", 1400, -24};
 static constexpr wq_config_t UART8{"wq:UART8", 1400, -25};
 static constexpr wq_config_t UART_UNKNOWN{"wq:UART_UNKNOWN", 1400, -26};
 
-static constexpr wq_config_t lp_default{"wq:lp_default", 1700, -50};
+static constexpr wq_config_t lp_default{"wq:lp_default", 10700, -50};
 
 static constexpr wq_config_t test1{"wq:test1", 2000, 0};
 static constexpr wq_config_t test2{"wq:test2", 2000, 0};

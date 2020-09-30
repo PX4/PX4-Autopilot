@@ -15,7 +15,7 @@ px4_add_board(
 		optical_flow/pmw3901
 		pwm_out
 	MODULES
-		attitude_estimator_q
+		#attitude_estimator_q
 		#camera_feedback
 		commander
 		dataman
@@ -24,7 +24,7 @@ px4_add_board(
 		land_detector
 		landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
@@ -41,7 +41,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
-		i2cdetect
+		#i2cdetect
 		led_control
 		mixer
 		motor_ramp
