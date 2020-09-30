@@ -49,6 +49,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <math.h>
 #include <fcntl.h>
 #include <sys/mount.h>
 #include <sys/ioctl.h>
@@ -98,7 +99,7 @@ static int	ramtron_attach(void);
 
 static int	at24xxx_attach(void);
 #endif
-static int	mtd_start(const char *partition_names[], unsigned n_partitions);
+static int	mtd_start(const char *partition_names[], unsigned n_partitions, const float partition_sizes[] = nullptr);
 static int	mtd_erase(const char *partition_names[], unsigned n_partitions);
 static int	mtd_readtest(const char *partition_names[], unsigned n_partitions);
 static int	mtd_rwtest(const char *partition_names[], unsigned n_partitions);
@@ -113,6 +114,11 @@ static unsigned n_partitions_current = 0;
 
 /* note, these will be equally sized */
 static const char *partition_names_default[] = MTD_PARTITION_TABLE;
+#if defined(BOARD_MTD_PARTITION_TABLE_SIZES)
+static const float partition_sizes_default[] = BOARD_MTD_PARTITION_TABLE_SIZES;
+#else
+#  define partition_sizes_default nullptr
+#endif
 static const int n_partitions_default = arraySize(partition_names_default);
 
 static int
@@ -153,7 +159,7 @@ int mtd_main(int argc, char *argv[])
 				return mtd_start((const char **)(argv + 2), argc - 2);
 
 			} else {
-				return mtd_start(partition_names_default, n_partitions_default);
+				return mtd_start(partition_names_default, n_partitions_default, partition_sizes_default);
 			}
 		}
 
@@ -287,7 +293,7 @@ at24xxx_attach(void)
 #endif
 
 static int
-mtd_start(const char *partition_names[], unsigned n_partitions)
+mtd_start(const char *partition_names[], unsigned n_partitions, const float partition_sizes[])
 {
 	int ret;
 
@@ -330,11 +336,19 @@ mtd_start(const char *partition_names[], unsigned n_partitions)
 	unsigned offset;
 	unsigned i;
 
-	for (offset = 0, i = 0; i < n_partitions; offset += nblocks, i++) {
+	int frac_blocks[n_partitions];
+	int frac_sizes = neraseblocks / n_partitions;
+
+	for (unsigned int n = 0; n < arraySize(frac_blocks); n++) {
+		volatile int nb = partition_sizes ? neraseblocks * (partition_sizes[n] / 100.0f) : 0;
+		frac_blocks[n] = partition_sizes ? (nb == 0 ? 1 : nb) : frac_sizes;
+	}
+
+	for (offset = 0, i = 0; i < n_partitions; offset += frac_blocks[i], i++) {
 
 		/* Create the partition */
 
-		part[i] = mtd_partition(mtd_dev, offset, nblocks);
+		part[i] = mtd_partition(mtd_dev, offset, frac_blocks[i]);
 
 		if (!part[i]) {
 			PX4_ERR("mtd_partition failed. offset=%lu nblocks=%lu",
