@@ -15,14 +15,14 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {vehicle: "iris",          mission: "MC_mission_box",  build_type: "RelWithDebInfo"}
-          - {vehicle: "rover",         mission: "rover_mission_1", build_type: "RelWithDebInfo"}
-          - {vehicle: "plane",         mission: "FW_mission_1",    build_type: "RelWithDebInfo"}
-          - {vehicle: "plane_catapult",mission: "FW_mission_1",    build_type: "RelWithDebInfo"}
-          - {vehicle: "standard_vtol", mission: "VTOL_mission_1",  build_type: "Coverage"}
-          - {vehicle: "standard_vtol", mission: "VTOL_mission_1",  build_type: "AddressSanitizer"}
+          - {vehicle: "iris",          sdf: "Tools/sitl_gazebo/models/iris/iris-gen.sdf", mission: "MC_mission_box",  build_type: "RelWithDebInfo"}
+          - {vehicle: "rover",         sdf: "Tools/sitl_gazebo/models/iris/rover.sdf", mission: "rover_mission_1", build_type: "RelWithDebInfo"}
+          - {vehicle: "plane",         sdf: "Tools/sitl_gazebo/models/iris/plane-gen.sdf", mission: "FW_mission_1",    build_type: "RelWithDebInfo"}
+          - {vehicle: "plane_catapult", sdf: "Tools/sitl_gazebo/models/iris/plane-catapult.sdf", mission: "FW_mission_1",    build_type: "RelWithDebInfo"}
+          - {vehicle: "standard_vtol", sdf: "Tools/sitl_gazebo/models/iris/standard_vtol-gen.sdf", mission: "VTOL_mission_1",  build_type: "Coverage"}
+          - {vehicle: "standard_vtol", sdf: "Tools/sitl_gazebo/models/iris/standard_vtol-gen.sdf", mission: "VTOL_mission_1",  build_type: "AddressSanitizer"}
           #- {vehicle: "tailsitter",    mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
-          - {vehicle: "tiltrotor",     mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
+          - {vehicle: "tiltrotor", sdf: "Tools/sitl_gazebo/models/iris/tiltrotor.sdf", mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
 
     container:
       image: px4io/px4-dev-ros-melodic:2020-08-14
@@ -75,7 +75,7 @@ jobs:
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
       run: |
         export
-        ./test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=${{matrix.config.mission}} vehicle:=${{matrix.config.vehicle}}
+        ./test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=${{matrix.config.mission}} vehicle:=${{matrix.config.vehicle}} sdf:=${{matrix.config.sdf}}
 
     - name: Look at core files
       if: failure()
