@@ -615,6 +615,16 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 45);
 PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
 
 /**
+ * Rearming grace period
+ *
+ * Re-arming grace allows to rearm the drone with manual command without running prearmcheck during 5 s after disarming.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
+
+/**
  * Enable RC stick override of auto and/or offboard modes
  *
  * When RC stick override is enabled, moving the RC sticks according to COM_RC_STICK_OV
