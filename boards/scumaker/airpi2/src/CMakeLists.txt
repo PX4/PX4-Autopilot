@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__pca9685_pwm_out
-	MAIN pca9685_pwm_out
-	COMPILE_FLAGS
-	SRCS
-		main.cpp
-		PCA9685.cpp
-	DEPENDS
-		mixer
-		mixer_module
-		output_limit
-	)
+
+add_library(drivers_board
+	i2c.cpp
+	spi.cpp
+)

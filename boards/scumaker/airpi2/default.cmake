@@ -1,66 +1,36 @@
+add_definitions(
+	-D__PX4_LINUX
+)
 
 px4_add_board(
-	PLATFORM nuttx
-	VENDOR px4
-	MODEL fmu-v5
+	VENDOR scumaker
+	MODEL airpi2
 	LABEL default
-	TOOLCHAIN arm-none-eabi
-	ARCHITECTURE cortex-m7
+	PLATFORM posix
+	ARCHITECTURE cortex-a53
 	ROMFSROOT px4fmu_common
-	IO px4_io-v2_default
+	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
-	UAVCAN_INTERFACES 2
-	SERIAL_PORTS
-		GPS1:/dev/ttyS0
-		TEL1:/dev/ttyS1
-		TEL2:/dev/ttyS2
-		TEL4:/dev/ttyS3
 	DRIVERS
-		adc/board_adc
 		adc/ads1115
-		barometer # all available barometer drivers
+		#barometer # all available barometer drivers
+		barometer/ms5611
 		batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		dshot
 		gps
-		#heater
 		#imu # all available imu drivers
-		imu/adis16448
-		imu/adis16477
-		imu/adis16497
-		imu/bosch/bmi055
-		imu/invensense/icm20602
-		imu/invensense/icm20689
-		#imu/mpu6000 # legacy icm20602/icm20689 driver
-		irlock
-		lights/blinkm
-		lights/rgbled
-		lights/rgbled_ncp5623c
-		lights/rgbled_pwm
-		magnetometer # all available magnetometer drivers
-		mkblctrl
-		optical_flow # all available optical flow drivers
-		#osd
-		pca9685
+		imu/invensense/icm42688p
+		imu/invensense/icm42605
+		#magnetometer # all available magnetometer drivers
+		magnetometer/hmc5883
+		magnetometer/isentek/ist8310
 		pca9685_pwm_out
-		power_monitor/ina226
-		#protocol_splitter
-		pwm_input
 		pwm_out_sim
-		pwm_out
-		px4io
 		rc_input
-		roboclaw
-		rpm
-		safety_button
-		tap_esc
-		telemetry # all available telemetry drivers
-		test_ppm
-		tone_alarm
-		uavcan
+		#telemetry # all available telemetry drivers
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
@@ -69,7 +39,6 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
-		esc_battery
 		events
 		fw_att_control
 		fw_pos_control_l1
@@ -88,43 +57,33 @@ px4_add_board(
 		rc_update
 		rover_pos_control
 		sensors
-		sih
 		temperature_compensation
+		sih
+		#simulator
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
-		dmesg
-		dumpfile
+		dyn
 		esc_calib
-		gpio
-		hardfault_log
-		i2cdetect
 		led_control
 		mixer
 		motor_ramp
-		motor_test
-		mtd
-		nshterm
 		param
 		perf
 		pwm
-		reboot
-		reflect
 		sd_bench
-		system_time
+		shutdown
 		tests # tests and test runner
-		top
+		#top
 		topic_listener
 		tune_control
-		usb_connected
 		ver
 		work_queue
 	EXAMPLES
-		fake_magnetometer
+		dyn_hello # dynamically loading modules example
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
-		hwtest # Hardware test
+		#hwtest # Hardware test
 		#matlab_csv_serial
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
