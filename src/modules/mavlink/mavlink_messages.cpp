@@ -118,6 +118,7 @@ using matrix::wrap_2pi;
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
+#include "streams/GPS_STATUS.hpp"
 #include "streams/HIGH_LATENCY2.hpp"
 #include "streams/HIL_STATE_QUATERNION.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
@@ -1760,7 +1761,6 @@ protected:
 		return false;
 	}
 };
-
 
 class MavlinkStreamGPSRawInt : public MavlinkStream
 {
@@ -5021,6 +5021,9 @@ static const StreamListItem streams_list[] = {
 #if defined(FLIGHT_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamFlightInformation>(),
 #endif // FLIGHT_INFORMATION_HPP
+#if defined(GPS_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamGPSStatus>(),
+#endif // GPS_STATUS_HPP
 #if defined(STORAGE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamStorageInformation>(),
 #endif // STORAGE_INFORMATION_HPP
