@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,30 +31,14 @@
 #
 ############################################################################
 
-add_custom_command(OUTPUT listener_generated.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${PX4_SOURCE_DIR} ${EXTERNAL_MODULES_LOCATION} > listener_generated.cpp
-                DEPENDS generate_listener.py uorb_msgs
-                )
-
-add_custom_target(generate_topic_listener
-	DEPENDS
-		listener_generated.cpp
-		generate_listener.py
-		uorb_msgs
-	)
-
 px4_add_module(
-	MODULE systemcmds__topic_listener
-	MAIN listener
+	MODULE modules__fake_gyro
+	MAIN fake_gyro
 	COMPILE_FLAGS
-	STACK_MAIN 4096
-	INCLUDES
-		${CMAKE_CURRENT_SOURCE_DIR}
-		${CMAKE_CURRENT_BINARY_DIR}
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
-		listener_main.cpp
-		listener_generated.cpp
+		FakeGyro.cpp
+		FakeGyro.hpp
 	DEPENDS
-		generate_topic_listener
-	)
-
+		px4_work_queue
+)
