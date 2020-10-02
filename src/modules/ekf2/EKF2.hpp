@@ -149,9 +149,9 @@ private:
 	hrt_abstime _last_magcal_us = 0;	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
 	hrt_abstime _total_cal_time_us = 0;	///< accumulated calibration time since the last save
 
-	float _last_valid_mag_cal[3] = {};	///< last valid XYZ magnetometer bias estimates (mGauss)
+	float _last_valid_mag_cal[3] = {};	///< last valid XYZ magnetometer bias estimates (Gauss)
 	bool _valid_cal_available[3] = {};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
-	float _last_valid_variance[3] = {};	///< variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
+	float _last_valid_variance[3] = {};	///< variances for the last valid magnetometer XYZ bias estimates (Gauss**2)
 
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
@@ -409,13 +409,13 @@ private:
 		_param_ekf2_angerr_init,	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 		// EKF saved XYZ magnetometer bias values
-		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _param_ekf2_magbias_x,		///< X magnetometer bias (mGauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _param_ekf2_magbias_y,		///< Y magnetometer bias (mGauss)
-		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z,		///< Z magnetometer bias (mGauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_X>) _param_ekf2_magbias_x,		///< X magnetometer bias (Gauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_Y>) _param_ekf2_magbias_y,		///< Y magnetometer bias (Gauss)
+		(ParamFloat<px4::params::EKF2_MAGBIAS_Z>) _param_ekf2_magbias_z,		///< Z magnetometer bias (Gauss)
 		(ParamInt<px4::params::EKF2_MAGBIAS_ID>)
 		_param_ekf2_magbias_id,		///< ID of the magnetometer sensor used to learn the bias values
 		(ParamFloat<px4::params::EKF2_MAGB_VREF>)
-		_param_ekf2_magb_vref, ///< Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
+		_param_ekf2_magb_vref, ///< Assumed error variance of previously saved magnetometer bias estimates (Gauss**2)
 		(ParamFloat<px4::params::EKF2_MAGB_K>)
 		_param_ekf2_magb_k,	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
