@@ -142,17 +142,75 @@ void LoadMon::cpuload()
 	const float interval_idletime = total_runtime - _last_idle_time;
 #endif
 
-	// get ram usage
-	struct mallinfo mem = mallinfo();
-	float ram_usage = (float)mem.uordblks / mem.arena;
-
 	cpuload_s cpuload{};
 #if defined(__PX4_LINUX)
+	/* following calculation is based on free(1)
+	 * https://gitlab.com/procps-ng/procps/-/blob/master/proc/sysinfo.c */
+	char line[256];
+	int32_t kb_main_total = -1, kb_main_free = -1, kb_page_cache = -1, kb_slab_reclaimable = -1, kb_main_buffers = -1;
+	int parsedCount = 0;
+	FILE *meminfo = fopen("/proc/meminfo", "r");
+
+	if (meminfo == NULL) {
+		PX4_ERR("Could not open /proc/meminfo");
+	}
+
+	while (fgets(line, sizeof(line), meminfo)) {
+		if (parsedCount == 5) {
+			break;
+		}
+
+		if (sscanf(line, "MemTotal: %d kB", &kb_main_total) == 1) {
+			++parsedCount;
+			continue;
+		}
+
+		if (sscanf(line, "MemFree: %d kB", &kb_main_free) == 1) {
+			++parsedCount;
+			continue;
+		}
+
+		if (sscanf(line, "Cached: %d kB", &kb_page_cache) == 1) {
+			++parsedCount;
+			continue;
+		}
+
+		if (sscanf(line, "SReclaimable: %d kB", &kb_slab_reclaimable) == 1) {
+			++parsedCount;
+			continue;
+		}
+
+		if (sscanf(line, "Buffers: %d kB", &kb_main_buffers) == 1) {
+			++parsedCount;
+			continue;
+		}
+	}
+
+	fclose(meminfo);
+
+	if (parsedCount == 5) {
+		int32_t kb_main_cached = kb_page_cache + kb_slab_reclaimable;
+		int32_t mem_used = kb_main_total - kb_main_free - kb_main_cached - kb_main_buffers;
+
+		if (mem_used < 0) {
+			mem_used = kb_main_total - kb_main_free;
+		}
+
+		cpuload.ram_usage = (float)mem_used / kb_main_total;
+
+	} else {
+		PX4_ERR("Could not parse /proc/meminfo");
+		cpuload.ram_usage = -1;
+	}
+
 	cpuload.load = interval_spent_time / interval;
 #elif defined(__PX4_NUTTX)
+	// get ram usage
+	struct mallinfo mem = mallinfo();
+	cpuload.ram_usage = (float)mem.uordblks / mem.arena;
+	PX4_WARN("used: %d total: %d", mem.uordblks, mem.arena);
 	cpuload.load = 1.f - interval_idletime / interval;
 #endif
-	cpuload.ram_usage = ram_usage;
 	cpuload.timestamp = hrt_absolute_time();
 
 	_cpuload_pub.publish(cpuload);

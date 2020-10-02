@@ -48,7 +48,6 @@
 
 #if defined(__PX4_LINUX)
 #include <sys/times.h>
-#include <malloc.h>
 #endif
 
 namespace load_mon
