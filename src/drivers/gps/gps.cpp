@@ -83,7 +83,7 @@ typedef enum {
 
 /* struct for dynamic allocation of satellite info data */
 struct GPS_Sat_Info {
-	struct satellite_info_s 	_data;
+	satellite_info_s _data;
 };
 
 static constexpr int TASK_STACK_SIZE = 1760;
@@ -152,7 +152,7 @@ private:
 	char				_port[20] {};					///< device / serial port path
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
-	bool        			_mode_auto;				///< if true, auto-detect which GPS is attached
+	bool				_mode_auto;					///< if true, auto-detect which GPS is attached
 
 	gps_driver_mode_t		_mode;						///< current mode
 
@@ -169,7 +169,7 @@ private:
 
 	float				_rate{0.0f};					///< position update rate
 	float				_rate_rtcm_injection{0.0f};			///< RTCM message injection rate
-	unsigned			_last_rate_rtcm_injection_count{0}; 		///< counter for number of RTCM messages
+	unsigned			_last_rate_rtcm_injection_count{0};		///< counter for number of RTCM messages
 
 	const bool			_fake_gps;					///< fake gps output
 
