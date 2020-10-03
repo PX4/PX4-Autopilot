@@ -80,13 +80,16 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 				float total_weight = 0.0f;
 				// calculate weighting for each model assuming a normal distribution
 				for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-					_model_weights(model_index) = fmaxf(gaussianDensity(model_index) * _model_weights(model_index), 0.0f);
+					_model_weights(model_index) = fmaxf(gaussianDensity(model_index) * _model_weights(model_index), 1E-5f);
 					total_weight += _model_weights(model_index);
 				}
 
 				// normalise the weighting function
-				if (total_weight > 1e-15f) {
+				if (total_weight > 1e-10f) {
 					_model_weights /= total_weight;
+				} else {
+					// calculation has collapsed so reset
+					initialiseEKFGSF();
 				}
 
 				// Enforce a minimum weighting value. This was added during initial development but has not been needed
