@@ -391,6 +391,8 @@ private:
 	Vector3f _delta_vel_bias_var_accum;		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum;	///< kahan summation algorithm accumulator for delta angle bias variance
 
+	Vector3f _last_vel_obs;			///< last velocity observation (m/s)
+	Vector2f _last_fail_hvel_innov;	///< last failed horizontal velocity innovation (m/s)**2
 
 	Vector3f _gps_vel_innov;	///< GPS velocity innovations (m/sec)
 	Vector3f _gps_vel_innov_var;	///< GPS velocity innovation variances ((m/sec)**2)
