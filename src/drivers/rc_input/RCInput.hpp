@@ -85,8 +85,6 @@ public:
 
 private:
 
-	void Run() override;
-
 	enum RC_SCAN {
 		RC_SCAN_PPM = 0,
 		RC_SCAN_SBUS,
@@ -104,6 +102,21 @@ private:
 		"ST24",
 		"CRSF"
 	};
+
+	void Run() override;
+
+#if defined(SPEKTRUM_POWER)
+	bool bind_spektrum(int arg = DSMX8_BIND_PULSES) const;
+#endif // SPEKTRUM_POWER
+
+	void fill_rc_in(uint16_t raw_rc_count_local,
+			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
+			hrt_abstime now, bool frame_drop, bool failsafe,
+			unsigned frame_drops, int rssi);
+
+	void set_rc_scan_state(RC_SCAN _rc_scan_state);
+
+	void rc_io_invert(bool invert);
 
 	hrt_abstime _rc_scan_begin{0};
 
@@ -135,14 +148,4 @@ private:
 
 	perf_counter_t      _cycle_perf;
 	perf_counter_t      _publish_interval_perf;
-
-	void fill_rc_in(uint16_t raw_rc_count_local,
-			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
-			hrt_abstime now, bool frame_drop, bool failsafe,
-			unsigned frame_drops, int rssi);
-
-	void set_rc_scan_state(RC_SCAN _rc_scan_state);
-
-	void rc_io_invert(bool invert);
-
 };
