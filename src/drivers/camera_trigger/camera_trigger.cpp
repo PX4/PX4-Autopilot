@@ -151,6 +151,11 @@ public:
 	 */
 	void		test();
 
+	/**
+	 * adjusts pose between triggers in CAMPOS mode
+	 */
+	void		adjust_roll();
+
 private:
 
 	struct hrt_call		_engagecall;
@@ -173,6 +178,15 @@ private:
 	bool 			_turning_on;
 	matrix::Vector2f	_last_shoot_position;
 	bool			_valid_position;
+	uint32_t		_pseudo_oblique_num_poses;
+	uint32_t		_pseudo_oblique_pose_counter;
+	float			_pseudo_oblique_roll_angle;
+	float			_pseudo_oblique_angle_interval;
+	float			_pseudo_oblique_pitch_angle;
+	float			_move_distance;
+	bool			_updated_pose;
+	uint32_t		_target_system;
+	uint32_t		_target_component;
 
 	uORB::Subscription	_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_lpos_sub{ORB_ID(vehicle_local_position)};
@@ -257,6 +271,15 @@ CameraTrigger::CameraTrigger() :
 	_turning_on(false),
 	_last_shoot_position(0.0f, 0.0f),
 	_valid_position(false),
+	_pseudo_oblique_num_poses(0),
+	_pseudo_oblique_pose_counter(0),
+	_pseudo_oblique_roll_angle(0.0f),
+	_pseudo_oblique_angle_interval(0.0f),
+	_pseudo_oblique_pitch_angle(-90),
+	_move_distance(0.0f),
+	_updated_pose(false),
+	_target_system(0),
+	_target_component(0),
 	_trigger_pub(nullptr),
 	_trigger_mode(TRIGGER_MODE_NONE),
 	_cam_cap_fback(0),
@@ -387,9 +410,17 @@ CameraTrigger::update_distance()
 			}
 		}
 
+		float current_distance = matrix::Vector2f(_last_shoot_position - current_position).length();
+
+		if (_pseudo_oblique_num_poses > 0 && current_distance > _move_distance && _updated_pose == false) {
+			adjust_roll();
+			_updated_pose = true;
+		}
+
 		// Check that distance threshold is exceeded
-		if (matrix::Vector2f(_last_shoot_position - current_position).length() >= _distance) {
+		if (current_distance >= _distance) {
 			shoot_once();
+			_updated_pose = false;
 			_last_shoot_position = current_position;
 		}
 	}
@@ -503,6 +534,8 @@ CameraTrigger::test()
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.param5 = 1.0;
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+	vcmd.target_system = 1;
+	vcmd.target_component = 1;
 
 	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 	vcmd_pub.publish(vcmd);
@@ -617,6 +650,21 @@ CameraTrigger::Run()
 				_one_shot = true;
 			}
 
+			// Camera Auto Mount Pseudo Oblique Solution (CAMPOS)
+			if (cmd.param4 > 0.0f) {
+				_pseudo_oblique_num_poses = commandParamToInt(cmd.param4);
+				if (cmd.param5 > 0.0) {
+					_pseudo_oblique_roll_angle = cmd.param5;
+				} else {
+					_pseudo_oblique_roll_angle = 30.0f;
+				}
+				_pseudo_oblique_pitch_angle = cmd.param6;
+				_pseudo_oblique_angle_interval = _pseudo_oblique_roll_angle * 2 / (_pseudo_oblique_num_poses - 1);
+				_pseudo_oblique_pose_counter = 0;
+				_move_distance = _distance / 2;
+				_updated_pose = false;
+			}
+
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL) {
@@ -637,8 +685,13 @@ CameraTrigger::Run()
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		} else {
+			goto unknown_cmd;
 		}
+		_target_system = cmd.target_system;
+		_target_component = cmd.target_component;
 	}
+	unknown_cmd:
 
 	// State change handling
 	if ((main_state != _trigger_enabled) ||
@@ -898,4 +951,26 @@ int camera_trigger_main(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+void
+CameraTrigger::adjust_roll() {
+	vehicle_command_s vcmd{};
+	vcmd.timestamp = hrt_absolute_time();
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
+	vcmd.target_system = _target_system;
+	vcmd.target_component = _target_component;
+
+	//param1 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is roll
+	vcmd.param1 = _pseudo_oblique_pitch_angle;
+
+	//param2 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is roll
+	if (++_pseudo_oblique_pose_counter == _pseudo_oblique_num_poses)
+		_pseudo_oblique_pose_counter = 0;
+	vcmd.param2 = _pseudo_oblique_angle_interval * _pseudo_oblique_pose_counter - _pseudo_oblique_roll_angle;
+
+	vcmd.param7 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+
+	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	vcmd_pub.publish(vcmd);
 }
