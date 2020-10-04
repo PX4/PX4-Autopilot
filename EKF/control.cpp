@@ -304,7 +304,8 @@ void Ekf::controlExternalVisionFusion()
 			Vector3f ev_vel_obs_var;
 			Vector2f ev_vel_innov_gates;
 
-			_ev_vel_innov = _state.vel - getVisionVelocityInEkfFrame();
+			_last_vel_obs = getVisionVelocityInEkfFrame();
+			_ev_vel_innov = _state.vel - _last_vel_obs;
 
 			// check if we have been deadreckoning too long
 			if (isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)) {
@@ -580,15 +581,27 @@ void Ekf::controlGpsFusion()
 				_time_last_on_ground_us = _time_last_imu;
 			}
 
-			const bool recent_takeoff_nav_failure = _control_status.flags.in_air &&
+			bool recent_takeoff_nav_failure = _control_status.flags.in_air &&
 								!isTimedOut(_time_last_on_ground_us, 30000000) &&
 								isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay) &&
 								(_time_last_hor_vel_fuse > _time_last_on_ground_us);
 
-			const bool inflight_nav_failure = _control_status.flags.in_air &&
+			bool inflight_nav_failure = _control_status.flags.in_air &&
 							  do_vel_pos_reset &&
 							  (_time_last_hor_vel_fuse > _time_last_on_ground_us) &&
 							  (_time_last_hor_pos_fuse > _time_last_on_ground_us);
+
+			if ((recent_takeoff_nav_failure || inflight_nav_failure) && _time_last_hor_vel_fuse > 0) {
+				// Do sanity check to see if the innovation failures is likely caused by a yaw angle error
+				// A 180 deg yaw error would (in the absence of other errors) generate a velocity innovation
+				// magnitude of twice the measured speed so allow up to 3 times to allow for additional errors.
+				const float hvel_obs_sq = sq(_last_vel_obs(0)) + sq(_last_vel_obs(1));
+				const float hvel_innov_sq = sq(_last_fail_hvel_innov(0)) + sq(_last_fail_hvel_innov(1));
+				if (hvel_innov_sq > 9.0f * hvel_obs_sq) {
+					recent_takeoff_nav_failure = false;
+					inflight_nav_failure = false;
+				}
+			}
 
 			// Detect if coming back after significant time without GPS data
 			const bool gps_signal_was_lost = isTimedOut(_time_prev_gps_us, 1000000);
@@ -665,7 +678,8 @@ void Ekf::controlGpsFusion()
 			gps_vel_obs_var(2) = sq(1.5f) * gps_vel_obs_var(2);
 
 			// calculate innovations
-			_gps_vel_innov = _state.vel - _gps_sample_delayed.vel;
+			_last_vel_obs = _gps_sample_delayed.vel;
+			_gps_vel_innov = _state.vel - _last_vel_obs;
 			_gps_pos_innov.xy() = Vector2f(_state.pos) - _gps_sample_delayed.pos;
 
 			// set innovation gate size
@@ -1291,7 +1305,8 @@ void Ekf::controlAuxVelFusion()
 
 		const Vector2f aux_vel_innov_gate(_params.auxvel_gate, _params.auxvel_gate);
 
-		_aux_vel_innov = _state.vel - _auxvel_sample_delayed.vel;
+		_last_vel_obs = _auxvel_sample_delayed.vel;
+		_aux_vel_innov = _state.vel - _last_vel_obs;
 
 		fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
 				_aux_vel_innov_var, _aux_vel_test_ratio);
