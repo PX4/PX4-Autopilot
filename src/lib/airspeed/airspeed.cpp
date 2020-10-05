@@ -186,17 +186,17 @@ float calc_IAS(float differential_pressure)
 
 }
 
-float calc_TAS_from_EAS(float speed_equivalent, float pressure_ambient, float temperature_celsius)
+float calc_TAS_from_CAS(float speed_calibrated, float pressure_ambient, float temperature_celsius)
 {
 	if (!PX4_ISFINITE(temperature_celsius)) {
 		temperature_celsius = 15.f; // ICAO Standard Atmosphere 15 degrees celcius
 	}
 
-	return speed_equivalent * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient,
+	return speed_calibrated * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient,
 					temperature_celsius));
 }
 
-float calc_EAS_from_IAS(float speed_indicated, float scale)
+float calc_CAS_from_IAS(float speed_indicated, float scale)
 {
 	return speed_indicated * scale;
 }
@@ -228,7 +228,7 @@ float get_air_density(float static_pressure, float temperature_celsius)
 	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
 }
 
-float calc_EAS_from_TAS(float speed_true, float pressure_ambient, float temperature_celsius)
+float calc_CAS_from_TAS(float speed_true, float pressure_ambient, float temperature_celsius)
 {
 	return speed_true * sqrtf(get_air_density(pressure_ambient, temperature_celsius) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 }

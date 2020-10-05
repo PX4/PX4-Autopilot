@@ -1707,7 +1707,7 @@ protected:
 			_airspeed_validated_sub.copy(&airspeed_validated);
 
 			mavlink_vfr_hud_t msg{};
-			msg.airspeed = airspeed_validated.equivalent_airspeed_m_s;
+			msg.airspeed = airspeed_validated.calibrated_airspeed_m_s;
 			msg.groundspeed = sqrtf(lpos.vx * lpos.vx + lpos.vy * lpos.vy);
 			msg.heading = math::degrees(wrap_2pi(lpos.heading));
 
