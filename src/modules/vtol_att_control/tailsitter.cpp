@@ -122,14 +122,14 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_FRONT_P1: {
 
 
-				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)
+				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
 						&& !_params->airspeed_disabled;
 
 				bool transition_to_fw = false;
 
 				if (pitch <= PITCH_TRANSITION_FRONT_P1) {
 					if (airspeed_triggers_transition) {
-						transition_to_fw = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
+						transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _params->transition_airspeed;
 
 					} else {
 						transition_to_fw = true;

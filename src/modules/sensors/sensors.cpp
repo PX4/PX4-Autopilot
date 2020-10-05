@@ -388,8 +388,8 @@ void Sensors::diff_pres_poll()
 						  diff_pres.differential_pressure_filtered_pa, air_data.baro_pressure_pa,
 						  air_temperature_celsius);
 
-		airspeed.true_airspeed_m_s = calc_TAS_from_EAS(airspeed.indicated_airspeed_m_s, air_data.baro_pressure_pa,
-					     air_temperature_celsius); // assume that EAS = IAS as we don't have an EAS-scale here
+		airspeed.true_airspeed_m_s = calc_TAS_from_CAS(airspeed.indicated_airspeed_m_s, air_data.baro_pressure_pa,
+					     air_temperature_celsius); // assume that CAS = IAS as we don't have an CAS-scale here
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 

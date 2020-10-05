@@ -240,7 +240,7 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 {
 	_airspeed_validated_sub.update();
-	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().equivalent_airspeed_m_s)
+	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
 				    && (hrt_elapsed_time(&_airspeed_validated_sub.get().timestamp) < 1_s);
 
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
@@ -248,7 +248,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 
 	if ((_param_fw_arsp_mode.get() == 0) && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-		airspeed = math::max(0.5f, _airspeed_validated_sub.get().equivalent_airspeed_m_s);
+		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
 
 	} else {
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
