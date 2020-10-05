@@ -184,7 +184,7 @@ private:
 	float			_pseudo_oblique_angle_interval;
 	float			_pseudo_oblique_pitch_angle;
 	float			_move_distance;
-	bool			_updated_pose;
+	bool			_updated_roll_angle;
 	uint32_t		_target_system;
 	uint32_t		_target_component;
 
@@ -277,7 +277,7 @@ CameraTrigger::CameraTrigger() :
 	_pseudo_oblique_angle_interval(0.0f),
 	_pseudo_oblique_pitch_angle(-90),
 	_move_distance(0.0f),
-	_updated_pose(false),
+	_updated_roll_angle(false),
 	_target_system(0),
 	_target_component(0),
 	_trigger_pub(nullptr),
@@ -412,15 +412,15 @@ CameraTrigger::update_distance()
 
 		float current_distance = matrix::Vector2f(_last_shoot_position - current_position).length();
 
-		if (_pseudo_oblique_num_poses > 0 && current_distance > _move_distance && _updated_pose == false) {
+		if (_pseudo_oblique_num_poses > 0 && current_distance > _move_distance && !_updated_roll_angle) {
 			adjust_roll();
-			_updated_pose = true;
+			_updated_roll_angle = true;
 		}
 
 		// Check that distance threshold is exceeded
 		if (current_distance >= _distance) {
 			shoot_once();
-			_updated_pose = false;
+			_updated_roll_angle = false;
 			_last_shoot_position = current_position;
 		}
 	}
@@ -665,7 +665,7 @@ CameraTrigger::Run()
 				_pseudo_oblique_angle_interval = _pseudo_oblique_roll_angle * 2 / (_pseudo_oblique_num_poses - 1);
 				_pseudo_oblique_pose_counter = 0;
 				_move_distance = _distance / 2;
-				_updated_pose = false;
+				_updated_roll_angle = false;
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
