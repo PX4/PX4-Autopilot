@@ -58,7 +58,7 @@ enum AIRSPEED_COMPENSATION_MODEL {
 };
 
 /**
- * Calculate indicated airspeed (IAS).
+ * Calculate indicated airspeed (IAS) and correct for friction inside pitot and tube.
  *
  * Note that the indicated airspeed is not the true airspeed because it
  * lacks the air density compensation. Use the calc_true_airspeed functions to get
@@ -88,7 +88,7 @@ __EXPORT float calc_IAS(float differential_pressure);
 /**
  * Calculate true airspeed (TAS) from calibrated airspeed (CAS).
  *
- * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
+ * Note that the true airspeed is NOT the groundspeed, because of the effects of wind.
  *
  * @param speed_equivalent current calibrated airspeed
  * @param pressure_ambient pressure at the side of the tube/airplane
@@ -109,7 +109,7 @@ __EXPORT float calc_CAS_from_IAS(float speed_indicated, float scale);
 
 
 /**
- * Directly calculate true airspeed (TAS)
+ * Directly calculate true airspeed (TAS).
  *
  * Here we assume to have no instrument or pitot position error (IAS = CAS).
  * Note that the true airspeed is NOT the groundspeed, because of the effects of wind.
@@ -132,7 +132,6 @@ __EXPORT float get_air_density(float static_pressure, float temperature_celsius)
 /**
  * Calculate calibrated airspeed (CAS) from true airspeed (TAS).
  * It is the inverse function to calc_TAS_from_CAS()
- *
  *
  * @param speed_true current true airspeed
  * @param pressure_ambient pressure at the side of the tube/airplane
