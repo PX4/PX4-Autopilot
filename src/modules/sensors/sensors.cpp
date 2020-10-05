@@ -335,8 +335,22 @@ void Sensors::diff_pres_poll()
 		vehicle_air_data_s air_data{};
 		_vehicle_air_data_sub.copy(&air_data);
 
-		float air_temperature_celsius = (diff_pres.temperature > -300.0f) ? diff_pres.temperature :
-						(air_data.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+		float air_temperature_celsius = NAN;
+
+		// assume anything outside of a (generous) operating range of -40C to 125C is invalid
+		if (PX4_ISFINITE(diff_pres.temperature) && (diff_pres.temperature >= -40.f) && (diff_pres.temperature <= 125.f)) {
+
+			air_temperature_celsius = diff_pres.temperature;
+
+		} else {
+			// differential pressure temperature invalid, check barometer
+			if ((air_data.timestamp != 0) && PX4_ISFINITE(air_data.baro_temp_celcius)
+			    && (air_data.baro_temp_celcius >= -40.f) && (air_data.baro_temp_celcius <= 125.f)) {
+
+				// TODO: review PCB_TEMP_ESTIMATE_DEG, ignore for external baro
+				air_temperature_celsius = air_data.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG;
+			}
+		}
 
 		airspeed_s airspeed{};
 		airspeed.timestamp = diff_pres.timestamp;

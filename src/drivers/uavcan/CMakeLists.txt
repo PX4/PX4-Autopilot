@@ -113,6 +113,7 @@ add_custom_target(px4_uavcan_dsdlc DEPENDS px4_uavcan_dsdlc_run.stamp)
 px4_add_module(
 	MODULE drivers__uavcan
 	MAIN uavcan
+	STACK_MAIN 4096
 	INCLUDES
 		${DSDLC_OUTPUT}
 		${LIBUAVCAN_DIR}/libuavcan/include

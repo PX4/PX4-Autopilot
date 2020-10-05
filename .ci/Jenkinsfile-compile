@@ -16,7 +16,7 @@ pipeline {
           ]
 
           def armhf_builds = [
-            target: ["aerotenna_ocpoc_default", "beaglebone_blue_default", "emlid_navio2_default", "px4_raspberrypi_default"],
+            target: ["aerotenna_ocpoc_default", "beaglebone_blue_default", "emlid_navio2_default", "px4_raspberrypi_default", "scumaker_airpi2_default"],
             image: docker_images.armhf,
             archive: false
           ]
