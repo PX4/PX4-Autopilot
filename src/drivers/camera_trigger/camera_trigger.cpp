@@ -653,11 +653,14 @@ CameraTrigger::Run()
 			// Camera Auto Mount Pseudo Oblique Solution (CAMPOS)
 			if (cmd.param4 > 0.0f) {
 				_pseudo_oblique_num_poses = commandParamToInt(cmd.param4);
+
 				if (cmd.param5 > 0.0) {
 					_pseudo_oblique_roll_angle = cmd.param5;
+
 				} else {
 					_pseudo_oblique_roll_angle = 30.0f;
 				}
+
 				_pseudo_oblique_pitch_angle = cmd.param6;
 				_pseudo_oblique_angle_interval = _pseudo_oblique_roll_angle * 2 / (_pseudo_oblique_num_poses - 1);
 				_pseudo_oblique_pose_counter = 0;
@@ -685,13 +688,16 @@ CameraTrigger::Run()
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
 		} else {
 			goto unknown_cmd;
 		}
+
 		_target_system = cmd.target_system;
 		_target_component = cmd.target_component;
 	}
-	unknown_cmd:
+
+unknown_cmd:
 
 	// State change handling
 	if ((main_state != _trigger_enabled) ||
@@ -954,7 +960,8 @@ int camera_trigger_main(int argc, char *argv[])
 }
 
 void
-CameraTrigger::adjust_roll() {
+CameraTrigger::adjust_roll()
+{
 	vehicle_command_s vcmd{};
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
@@ -965,8 +972,10 @@ CameraTrigger::adjust_roll() {
 	vcmd.param1 = _pseudo_oblique_pitch_angle;
 
 	//param2 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is roll
-	if (++_pseudo_oblique_pose_counter == _pseudo_oblique_num_poses)
+	if (++_pseudo_oblique_pose_counter == _pseudo_oblique_num_poses) {
 		_pseudo_oblique_pose_counter = 0;
+	}
+
 	vcmd.param2 = _pseudo_oblique_angle_interval * _pseudo_oblique_pose_counter - _pseudo_oblique_roll_angle;
 
 	vcmd.param7 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
