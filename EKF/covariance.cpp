@@ -890,12 +890,12 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 	for (int i = 4; i <= 6; i++) {
 		// NED velocity states
-		P(i,i) = math::constrain(P(i,i), 1E-6f, P_lim[1]);
+		P(i,i) = math::constrain(P(i,i), 1e-6f, P_lim[1]);
 	}
 
 	for (int i = 7; i <= 9; i++) {
 		// NED position states
-		P(i,i) = math::constrain(P(i,i), 1E-6f, P_lim[2]);
+		P(i,i) = math::constrain(P(i,i), 1e-6f, P_lim[2]);
 	}
 
 	for (int i = 10; i <= 12; i++) {

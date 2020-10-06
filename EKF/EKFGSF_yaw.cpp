@@ -79,7 +79,7 @@ void EKFGSF_yaw::update(const imuSample& imu_sample,
 			if (!bad_update) {
 				float total_weight = 0.0f;
 				// calculate weighting for each model assuming a normal distribution
-				const float min_weight = 1E-5f;
+				const float min_weight = 1e-5f;
 				uint8_t n_weight_clips = 0;
 				for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 					_model_weights(model_index) = gaussianDensity(model_index) * _model_weights(model_index);

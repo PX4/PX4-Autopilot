@@ -364,7 +364,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Optical Flow X axis Hfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Optical Flow X axis Hfusion max diff fraction = %e\n",max_diff_fraction);
@@ -389,7 +389,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Optical Flow X axis Kfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Optical Flow X axis Kfusion max diff fraction = %e\n",max_diff_fraction);
@@ -603,7 +603,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Optical Flow Y axis Hfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Optical Flow Y axis Hfusion max diff fraction = %e\n",max_diff_fraction);
@@ -628,7 +628,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Optical Flow Y axis Kfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Optical Flow Y axis Kfusion max diff fraction = %e\n",max_diff_fraction);

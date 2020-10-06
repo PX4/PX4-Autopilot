@@ -231,7 +231,7 @@ int main()
 		}
 	}
 
-	if (max_diff_fraction > 1E-5f) {
+	if (max_diff_fraction > 1e-5f) {
 		printf("Fail: GPS yaw Hfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
 	} else {
 		printf("Pass: GPS yaw Hfusion max diff fraction = %e\n",max_diff_fraction);
@@ -256,7 +256,7 @@ int main()
 		}
 	}
 
-	if (max_diff_fraction > 1E-5f) {
+	if (max_diff_fraction > 1e-5f) {
 		printf("Fail: GPS yaw Kfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
 	} else {
 		printf("Pass: GPS yaw Kfusion max diff fraction = %e\n",max_diff_fraction);
