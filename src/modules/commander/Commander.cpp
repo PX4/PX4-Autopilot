@@ -1593,7 +1593,7 @@ Commander::run()
 				if (_safety.safety_switch_available && previous_safety_off != _safety.safety_off) {
 
 					if (_safety.safety_off) {
-						set_tune(TONE_NOTIFY_POSITIVE_TUNE);
+						set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
 
 					} else {
 						tune_neutral(true);
@@ -2017,13 +2017,13 @@ Commander::run()
 							  && !arm_switch_or_button_mapped;
 			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
 			 * for example for accidential in-air disarming */
-			const bool in_arming_grace_period = (_last_disarmed_timestamp != 0)
-							    && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s);
+			const bool in_rearming_grace_period = _param_com_rearm_grace.get() && (_last_disarmed_timestamp != 0)
+							      && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s);
 
 			const bool arm_switch_to_arm_transition = !_param_arm_switch_is_button.get() &&
 					(_last_manual_control_setpoint_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF) &&
 					(_manual_control_setpoint.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) &&
-					(_manual_control_setpoint.z < 0.1f || in_arming_grace_period);
+					(_manual_control_setpoint.z < 0.1f || in_rearming_grace_period);
 
 			if (!in_armed_state &&
 			    (status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF) &&
@@ -2051,7 +2051,7 @@ Commander::run()
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
-										     !in_arming_grace_period /* fRunPreArmChecks */,
+										     !in_rearming_grace_period /* fRunPreArmChecks */,
 										     &mavlink_log_pub, &status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
 										     (arm_switch_to_arm_transition ? arm_disarm_reason_t::RC_SWITCH : arm_disarm_reason_t::RC_STICK));
 
@@ -2195,7 +2195,7 @@ Commander::run()
 		 * as finished even though we only just started with the takeoff. Therefore, we also
 		 * check the timestamp of the mission_result topic. */
 		if (_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-		    && (_mission_result_sub.get().timestamp > _internal_state.timestamp)
+		    && (_mission_result_sub.get().timestamp >= _internal_state.timestamp)
 		    && _mission_result_sub.get().finished) {
 
 			const bool mission_available = (_mission_result_sub.get().timestamp > _boot_timestamp)
@@ -2271,7 +2271,7 @@ Commander::run()
 						armed.force_failsafe = true;
 						_flight_termination_triggered = true;
 						mavlink_log_emergency(&mavlink_log_pub, "Critical failure detected: terminate flight");
-						set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
+						set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
 					}
 				}
 			}
@@ -2439,25 +2439,25 @@ Commander::run()
 		    (_safety.safety_switch_available || (_safety.safety_switch_available && _safety.safety_off))) {
 
 			/* play tune when armed */
-			set_tune(TONE_ARMING_WARNING_TUNE);
+			set_tune(tune_control_s::TUNE_ID_ARMING_WARNING);
 			_arm_tune_played = true;
 
 		} else if (!status_flags.usb_connected &&
 			   (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			/* play tune on battery critical */
-			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
+			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			/* play tune on battery warning */
-			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
+			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
 
 		} else if (status.failsafe) {
 			tune_failsafe(true);
 
 		} else {
-			set_tune(TONE_STOP_TUNE);
+			set_tune(tune_control_s::TUNE_ID_STOP);
 		}
 
 		/* reset arm_tune_played when disarmed */
@@ -2477,7 +2477,7 @@ Commander::run()
 		if (!sensor_fail_tune_played && (!status_flags.condition_system_sensors_initialized
 						 && status_flags.condition_system_hotplug_timeout)) {
 
-			set_tune_override(TONE_GPS_WARNING_TUNE);
+			set_tune_override(tune_control_s::TUNE_ID_GPS_WARNING);
 			sensor_fail_tune_played = true;
 			_status_changed = true;
 		}

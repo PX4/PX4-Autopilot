@@ -1251,7 +1251,7 @@ void EKF2::publish_odometry(const hrt_abstime &timestamp, const imuSample &imu, 
 
 	// Vehicle odometry angular rates
 	const Vector3f gyro_bias = _ekf.getGyroBias();
-	const Vector3f rates(imu.delta_ang * imu.delta_ang_dt);
+	const Vector3f rates(imu.delta_ang / imu.delta_ang_dt);
 	odom.rollspeed = rates(0) - gyro_bias(0);
 	odom.pitchspeed = rates(1) - gyro_bias(1);
 	odom.yawspeed = rates(2) - gyro_bias(2);

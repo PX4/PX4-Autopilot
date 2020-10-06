@@ -47,7 +47,7 @@ bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const boo
 	manual_control_setpoint_sub.update();
 	const manual_control_setpoint_s &manual_control_setpoint = manual_control_setpoint_sub.get();
 
-	if (hrt_elapsed_time(&manual_control_setpoint.timestamp) < 1_s) {
+	if (manual_control_setpoint.timestamp != 0) {
 
 		//check action switches
 		if (manual_control_setpoint.return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {

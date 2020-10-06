@@ -255,7 +255,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	float mag_sphere_radius = get_sphere_radius();
 
 	// notify user to start rotating
-	set_tune(TONE_SINGLE_BEEP_TUNE);
+	set_tune(tune_control_s::TUNE_ID_SINGLE_BEEP);
 
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Rotate vehicle");
 
@@ -976,7 +976,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 			sensor_mag_s mag{};
 			mag_sub.copy(&mag);
 
-			if (mag_sub.advertised() && (hrt_elapsed_time(&mag.timestamp) < 1_s)) {
+			if (mag_sub.advertised() && (mag.timestamp != 0)) {
 
 				calibration::Magnetometer cal{mag.device_id, mag.is_external};
 

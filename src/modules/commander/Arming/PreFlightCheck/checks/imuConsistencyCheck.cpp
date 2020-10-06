@@ -44,15 +44,18 @@
 bool PreFlightCheck::imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		const bool report_status)
 {
+	float accel_test_limit = 1.f;
+	param_get(param_find("COM_ARM_IMU_ACC"), &accel_test_limit);
+
+	float gyro_test_limit = 1.f;
+	param_get(param_find("COM_ARM_IMU_GYR"), &gyro_test_limit);
+
 	// Get sensor_preflight data if available and exit with a fail recorded if not
 	uORB::SubscriptionData<sensors_status_imu_s> sensors_status_imu_sub{ORB_ID(sensors_status_imu)};
 	const sensors_status_imu_s &imu = sensors_status_imu_sub.get();
 
 	// Use the difference between IMU's to detect a bad calibration.
 	// If a single IMU is fitted, the value being checked will be zero so this check will always pass.
-	float accel_test_limit = 1.f;
-	param_get(param_find("COM_ARM_IMU_ACC"), &accel_test_limit);
-
 	for (unsigned i = 0; i < (sizeof(imu.accel_inconsistency_m_s_s) / sizeof(imu.accel_inconsistency_m_s_s[0])); i++) {
 		if (imu.accel_device_ids[i] != 0) {
 			if (imu.accel_device_ids[i] == imu.accel_device_id_primary) {
@@ -87,9 +90,6 @@ bool PreFlightCheck::imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_
 	}
 
 	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
-	float gyro_test_limit = 1.f;
-	param_get(param_find("COM_ARM_IMU_GYR"), &gyro_test_limit);
-
 	for (unsigned i = 0; i < (sizeof(imu.gyro_inconsistency_rad_s) / sizeof(imu.gyro_inconsistency_rad_s[0])); i++) {
 		if (imu.gyro_device_ids[i] != 0) {
 			if (imu.gyro_device_ids[i] == imu.gyro_device_id_primary) {
