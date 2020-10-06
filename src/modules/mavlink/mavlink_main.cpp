@@ -355,18 +355,6 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 }
 #endif // MAVLINK_UDP
 
-bool
-Mavlink::is_connected()
-{
-	for (auto &hb : _tstatus.heartbeats) {
-		if ((hb.type == telemetry_heartbeat_s::TYPE_GCS) && (hrt_elapsed_time(&hb.timestamp) < 3_s)) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 int
 Mavlink::destroy_all_instances()
 {
@@ -2618,11 +2606,9 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.streams = _streams.size();
 
 	// telemetry_status is also updated from the receiver thread, but never the same fields
-	lock_telemetry_status();
 	_tstatus.timestamp = hrt_absolute_time();
 	_telem_status_pub.publish(_tstatus);
 	_tstatus_updated = false;
-	unlock_telemetry_status();
 }
 
 void Mavlink::configure_sik_radio()
@@ -2761,10 +2747,8 @@ Mavlink::start(int argc, char *argv[])
 void
 Mavlink::display_status()
 {
-	for (const auto &hb : _tstatus.heartbeats) {
-		if ((hb.timestamp > 0) && (hb.type == telemetry_heartbeat_s::TYPE_GCS)) {
-			printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&hb.timestamp));
-		}
+	if (_tstatus.heartbeat_type_gcs) {
+		printf("\tGCS heartbeat valid\n");
 	}
 
 	printf("\tmavlink chan: #%u\n", _channel);
