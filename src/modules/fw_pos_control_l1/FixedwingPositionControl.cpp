@@ -699,8 +699,11 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 				// close to waypoint, but altitude error greater than twice acceptance
 				if ((dist >= 0.f)
 				    && (dist_z > 2.f * _param_fw_clmbout_diff.get())
-				    && (dist_xy < 2.f * acc_rad)) {
+				    && (dist_xy < 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
 					// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
+					position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+
+				} else if ((dist_xy < 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) && !pos_sp_next.valid) {
 					position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 				}
 
@@ -735,7 +738,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 							  pos_sp_prev.lat, pos_sp_prev.lon);
 
 				// Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one
-				if (d_curr_prev > acc_rad) {
+				if (d_curr_prev > math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) {
 					// Calculate distance to current waypoint
 					const float d_curr = get_distance_to_next_waypoint((double)curr_wp(0), (double)curr_wp(1),
 							     _current_latitude, _current_longitude);
@@ -746,12 +749,12 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 					// if the minimal distance is smaller than the acceptance radius, we should be at waypoint alt
 					// navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude
-					if (_min_current_sp_distance_xy > acc_rad) {
+					if (_min_current_sp_distance_xy > math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) {
 						// The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
 						// radius around the current waypoint
 						const float delta_alt = (pos_sp_curr.alt - pos_sp_prev.alt);
-						const float grad = -delta_alt / (d_curr_prev - acc_rad);
-						const float a = pos_sp_prev.alt - grad * _min_current_sp_distance_xy;
+						const float grad = -delta_alt / (d_curr_prev - math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)));
+						const float a = pos_sp_prev.alt - grad * d_curr_prev;
 
 						position_sp_alt = a + grad * _min_current_sp_distance_xy;
 					}
