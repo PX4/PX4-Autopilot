@@ -249,6 +249,7 @@ $ tune_control play -t 2
 
 	PRINT_MODULE_USAGE_NAME("tune_control", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("play", "Play system tune or single note.");
+	PRINT_MODULE_USAGE_ARG("error", "Play error tune", false);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 21, "Play predefined system tune", true);
 	PRINT_MODULE_USAGE_PARAM_INT('f', -1, 0, 22, "Frequency of note in Hz (0-22kHz)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('d', -1, 1, 21, "Duration of note in us", true);
