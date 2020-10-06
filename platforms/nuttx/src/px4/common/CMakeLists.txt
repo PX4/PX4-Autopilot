@@ -31,10 +31,12 @@
 #
 ############################################################################
 
+set(PX4_KERNEL_LAYER px4_layer)
+
 # skip for px4_layer support on an IO board
 if(NOT PX4_BOARD MATCHES "io-v2")
-
-	add_library(px4_layer
+	# Kernel side & nuttx flat build common sources
+	set(KERNEL_SRCS
 		board_crashdump.c
 		board_dma_alloc.c
 		board_fat_dma_alloc.c
@@ -50,20 +52,76 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 		px4_24xxxx_mtd.c
 		px4_crypto.cpp
 	)
-	target_link_libraries(px4_layer
-		PRIVATE
-			arch_board_reset
-			arch_board_critmon
-			arch_version
-			nuttx_apps
-			nuttx_sched
-			px4_work_queue
-			uORB
+
+	# Kernel side & nuttx flat build common libraries
+	set(KERNEL_LIBS
+		arch_board_reset
+		arch_board_critmon
+		arch_hrt
+		arch_version
+		nuttx_xx
+		nuttx_sched
 	)
+
+if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
+	# Build two layers, one for user side (px4_layer) and one for kernel (px4_kernel_layer)
+	set(PX4_USER_LAYER px4_layer)
+	set(PX4_KERNEL_LAYER px4_kernel_layer)
+
+	list(APPEND KERNEL_LIBS
+		nuttx_kc
+		nuttx_karch
+		nuttx_kmm
+	)
+
+	add_library(${PX4_USER_LAYER}
+		tasks.cpp
+		console_buffer_usr.cpp
+		usr_mcu_version.cpp
+		cdc_acm_check.cpp
+		${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/print_load.cpp
+		${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp
+	)
+
+	target_link_libraries(${PX4_USER_LAYER}
+		PRIVATE
+			m
+			nuttx_c
+			nuttx_xx
+			nuttx_mm
+	)
+
+	add_dependencies(${PX4_USER_LAYER} prebuild_targets)
 else()
-	add_library(px4_layer ${PX4_SOURCE_DIR}/platforms/common/empty.c)
+	# Build the px4 layer for nuttx flat build
+	list(APPEND KERNEL_LIBS
+		nuttx_c
+		nuttx_arch
+		nuttx_mm
+		)
+
+	list(APPEND KERNEL_SRCS
+		cdc_acm_check.cpp
+	)
 endif()
-add_dependencies(px4_layer prebuild_targets)
+
+add_library(${PX4_KERNEL_LAYER}
+	${KERNEL_SRCS}
+)
+
+target_link_libraries(${PX4_KERNEL_LAYER}
+	PRIVATE
+		${KERNEL_LIBS}
+)
+
+target_compile_options(${PX4_KERNEL_LAYER} PRIVATE -D__KERNEL__)
+
+else()
+	# Build the px4 layer for posix
+        add_library(${PX4_KERNEL_LAYER} ${PX4_SOURCE_DIR}/platforms/common/empty.c)
+endif()
+
+add_dependencies(${PX4_KERNEL_LAYER} prebuild_targets)
 
 add_subdirectory(gpio)
 add_subdirectory(srgbled)
@@ -73,7 +131,7 @@ if (DEFINED PX4_CRYPTO)
 	add_dependencies(px4_random nuttx_context)
 	target_link_libraries(px4_random PRIVATE nuttx_crypto)
 
-	target_link_libraries(px4_layer
+	target_link_libraries(${PX4_KERNEL_LAYER}
 		PUBLIC
 			crypto_backend
 	)
