@@ -176,16 +176,16 @@ FixedwingPositionControl::airspeed_poll()
 		const airspeed_validated_s &airspeed_validated = _airspeed_validated_sub.get();
 		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
-		if (PX4_ISFINITE(airspeed_validated.equivalent_airspeed_m_s)
+		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
 		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-		    && (airspeed_validated.equivalent_airspeed_m_s > 0.0f)) {
+		    && (airspeed_validated.calibrated_airspeed_m_s > 0.0f)) {
 
 			airspeed_valid = true;
 
 			_airspeed_last_valid = airspeed_validated.timestamp;
-			_airspeed = airspeed_validated.equivalent_airspeed_m_s;
+			_airspeed = airspeed_validated.calibrated_airspeed_m_s;
 
-			_eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.equivalent_airspeed_m_s, 0.9f, 2.0f);
+			_eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s, 0.9f, 2.0f);
 		}
 
 	} else {
