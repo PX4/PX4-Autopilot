@@ -581,16 +581,17 @@ void Ekf::controlGpsFusion()
 				_time_last_on_ground_us = _time_last_imu;
 			}
 
-			bool recent_takeoff_nav_failure = _control_status.flags.in_air &&
+			const bool recent_takeoff_nav_failure = _control_status.flags.in_air &&
 								!isTimedOut(_time_last_on_ground_us, 30000000) &&
 								isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay) &&
 								(_time_last_hor_vel_fuse > _time_last_on_ground_us);
 
-			bool inflight_nav_failure = _control_status.flags.in_air &&
+			const bool inflight_nav_failure = _control_status.flags.in_air &&
 							  do_vel_pos_reset &&
 							  (_time_last_hor_vel_fuse > _time_last_on_ground_us) &&
 							  (_time_last_hor_pos_fuse > _time_last_on_ground_us);
 
+			bool is_yaw_failure = false;
 			if ((recent_takeoff_nav_failure || inflight_nav_failure) && _time_last_hor_vel_fuse > 0) {
 				// Do sanity check to see if the innovation failures is likely caused by a yaw angle error
 				// A 180 deg yaw error would (in the absence of other errors) generate a velocity innovation
@@ -598,14 +599,13 @@ void Ekf::controlGpsFusion()
 				const float hvel_obs_sq = sq(_last_vel_obs(0)) + sq(_last_vel_obs(1));
 				const float hvel_innov_sq = sq(_last_fail_hvel_innov(0)) + sq(_last_fail_hvel_innov(1));
 				if (hvel_innov_sq > 9.0f * hvel_obs_sq) {
-					recent_takeoff_nav_failure = false;
-					inflight_nav_failure = false;
+					is_yaw_failure = true;
 				}
 			}
 
 			// Detect if coming back after significant time without GPS data
 			const bool gps_signal_was_lost = isTimedOut(_time_prev_gps_us, 1000000);
-			const bool do_yaw_vel_pos_reset = (_do_ekfgsf_yaw_reset || recent_takeoff_nav_failure || inflight_nav_failure) &&
+			const bool do_yaw_vel_pos_reset = (_do_ekfgsf_yaw_reset || is_yaw_failure) &&
 							  _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit &&
 							  isTimedOut(_ekfgsf_yaw_reset_time, 5000000) &&
 							  !gps_signal_was_lost;
