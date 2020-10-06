@@ -210,7 +210,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Magnetomer X axis Hfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Magnetomer X axis Hfusion max diff fraction = %e\n",max_diff_fraction);
@@ -235,7 +235,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Magnetomer X axis Kfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Magnetomer X axis Kfusion max diff fraction = %e\n",max_diff_fraction);
@@ -387,7 +387,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Magnetomer Y axis Hfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Magnetomer Y axis Hfusion max diff fraction = %e\n",max_diff_fraction);
@@ -412,7 +412,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Magnetomer Y axis Kfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Magnetomer Y axis Kfusion max diff fraction = %e\n",max_diff_fraction);
@@ -567,7 +567,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Magnetomer Z axis Hfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Magnetomer Z axis Hfusion max diff fraction = %e\n",max_diff_fraction);
@@ -592,7 +592,7 @@ int main()
             }
         }
 
-        if (max_diff_fraction > 1E-5f) {
+        if (max_diff_fraction > 1e-5f) {
             printf("Fail: Magnetomer Z axis Kfusion max diff fraction = %e , old = %e , new = %e , location index = %i\n",max_diff_fraction, max_old, max_new, max_row);
         } else {
             printf("Pass: Magnetomer Z axis Kfusion max diff fraction = %e\n",max_diff_fraction);

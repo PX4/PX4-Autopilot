@@ -436,10 +436,10 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 	const float SA2 = SA0*q0 + SA1*q1;
 	const float SA3 = sq(q0) + sq(q1) - sq(q2) - sq(q3);
 	float SA4, SA5_inv;
-	if (sq(SA3) > 1E-6f) {
+	if (sq(SA3) > 1e-6f) {
 		SA4 = 1.0F/sq(SA3);
 		SA5_inv = sq(SA2)*SA4 + 1;
-		canUseA = fabsf(SA5_inv) > 1E-6f;
+		canUseA = fabsf(SA5_inv) > 1e-6f;
 	}
 
 	bool canUseB = false;
@@ -448,10 +448,10 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 	const float SB2 = SB0*q3 + SB1*q2;
 	const float SB4 = sq(q0) + sq(q1) - sq(q2) - sq(q3);
 	float SB3, SB5_inv;
-	if (sq(SB2) > 1E-6f) {
+	if (sq(SB2) > 1e-6f) {
 		SB3 = 1.0F/sq(SB2);
 		SB5_inv = SB3*sq(SB4) + 1;
-		canUseB = fabsf(SB5_inv) > 1E-6f;
+		canUseB = fabsf(SB5_inv) > 1e-6f;
 	}
 
 	Vector4f H_YAW;
@@ -516,10 +516,10 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 	const float SA2 = SA0*q0 - SA1*q1;
 	const float SA3 = sq(q0) - sq(q1) + sq(q2) - sq(q3);
 	float SA4, SA5_inv;
-	if (sq(SA3) > 1E-6f) {
+	if (sq(SA3) > 1e-6f) {
 		SA4 = 1.0F/sq(SA3);
 		SA5_inv = sq(SA2)*SA4 + 1;
-		canUseA = fabsf(SA5_inv) > 1E-6f;
+		canUseA = fabsf(SA5_inv) > 1e-6f;
 	}
 
 	bool canUseB = false;
@@ -528,10 +528,10 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 	const float SB2 = -SB0*q3 + SB1*q2;
 	const float SB4 = -sq(q0) + sq(q1) - sq(q2) + sq(q3);
 	float SB3, SB5_inv;
-	if (sq(SB2) > 1E-6f) {
+	if (sq(SB2) > 1e-6f) {
 		SB3 = 1.0F/sq(SB2);
 		SB5_inv = SB3*sq(SB4) + 1;
-		canUseB = fabsf(SB5_inv) > 1E-6f;
+		canUseB = fabsf(SB5_inv) > 1e-6f;
 	}
 
 	Vector4f H_YAW;
