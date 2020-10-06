@@ -77,7 +77,6 @@ private:
 	void FlashButton();
 	void CheckPairingRequest(bool button_pressed);
 
-
 	uORB::Subscription		_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Publication<safety_s>	_to_safety{ORB_ID(safety)};
 	uORB::PublicationQueued<vehicle_command_s>	_to_command{ORB_ID(vehicle_command)};

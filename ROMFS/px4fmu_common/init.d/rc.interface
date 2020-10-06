@@ -77,8 +77,7 @@ then
 
 		if ! mkblctrl $MKBLCTRL_ARG
 		then
-			# Error tune.
-			tune_control play -t 2
+			tune_control play error
 		fi
 	fi
 
@@ -86,8 +85,7 @@ then
 	then
 		if ! pwm_out_sim start -m $OUTPUT_MODE
 		then
-			# Error tune.
-			tune_control play -t 2
+			tune_control play error
 		fi
 	fi
 
@@ -96,8 +94,7 @@ then
 		if ! $OUTPUT_CMD mode_$FMU_MODE
 		then
 			echo "$OUTPUT_CMD start failed" >> $LOG_FILE
-			# Error tune.
-			tune_control play -t 2
+			tune_control play error
 		fi
 	fi
 
@@ -176,7 +173,7 @@ then
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tune_control play -t 20
+		tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 	fi
 
 else
@@ -184,7 +181,7 @@ else
 	then
 		echo "ERROR  [init] Mixer undefined"
 		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
-		tune_control play -t 20
+		tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 	fi
 fi
 
@@ -234,7 +231,7 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: pwm_out mode_pwm" >> $LOG_FILE
-			tune_control play -t 20
+			tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi

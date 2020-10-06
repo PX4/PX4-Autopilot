@@ -18,6 +18,6 @@ then
 		px4io recovery
 	else
 		echo "PX4IO start failed" >> $LOG_FILE
-		tune_control play -t 20
+		tune_control play -t 18 # PROG_PX4IO_ERR
 	fi
 fi

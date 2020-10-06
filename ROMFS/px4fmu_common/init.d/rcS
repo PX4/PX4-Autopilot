@@ -130,14 +130,14 @@ then
 
 else
 	# tune SD_INIT
-	set STARTUP_TUNE 16
+	set STARTUP_TUNE 14 # tune 14 = SD_INIT
 	if mkfatfs /dev/mmcsd0
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
 			echo "INFO [init] card formatted"
 		else
-			set STARTUP_TUNE 17
+			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
 			echo "ERROR [init] format failed"
 			set LOG_FILE /dev/null
 		fi
@@ -187,15 +187,6 @@ else
 	fi
 
 	#
-	# Play the startup tune (if not disabled or there is an error)
-	#
-	param compare CBRK_BUZZER 782090
-	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
-	then
-		tune_control play -t $STARTUP_TUNE
-	fi
-
-	#
 	# Optional board defaults: rc.board_defaults
 	#
 	set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
@@ -205,6 +196,21 @@ else
 		. $BOARD_RC_DEFAULTS
 	fi
 	unset BOARD_RC_DEFAULTS
+
+	#
+	# Start the tone_alarm driver.
+	# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
+	#
+	tone_alarm start
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
+	then
+		tune_control play -t $STARTUP_TUNE
+	fi
 
 	#
 	# Waypoint storage.
@@ -235,13 +241,6 @@ else
 			blinkm systemstate
 		fi
 	fi
-
-	#
-	# Start the tone_alarm driver.
-	# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
-	# Note that this will still play the already published startup tone.
-	#
-	tone_alarm start
 
 	#
 	# Set parameters and env variables for selected AUTOSTART.
@@ -286,7 +285,7 @@ else
 				set IO_PRESENT yes
 			else
 				# tune Program PX4IO
-				tune_control play -t 18
+				tune_control play -t 16 # tune 16 = PROG_PX4IO
 
 				if px4io start
 				then
@@ -305,8 +304,7 @@ else
 					if px4io checkcrc ${IOFW}
 					then
 						echo "PX4IO CRC OK after updating" >> $LOG_FILE
-						#tune MLL8CDE Program PX4IO success
-						tune_control play -t 19
+						tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
 						set IO_PRESENT yes
 					fi
 				fi
@@ -314,8 +312,7 @@ else
 				if [ $IO_PRESENT = no ]
 				then
 					echo "PX4IO update failed" >> $LOG_FILE
-					# Error tune.
-					tune_control play -t 20
+					tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 				fi
 			fi
 		fi
@@ -332,8 +329,7 @@ else
 	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
 		echo "PX4IO not found" >> $LOG_FILE
-		# Error tune.
-		tune_control play -t 2
+		tune_control play error
 	fi
 
 	#
@@ -447,8 +443,7 @@ else
 				fi
 			fi
 		else
-			# Error tune.
-			tune_control play -t 2
+			tune_control play error
 		fi
 	fi
 
