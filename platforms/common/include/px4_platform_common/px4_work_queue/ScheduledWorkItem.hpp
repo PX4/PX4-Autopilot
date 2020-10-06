@@ -44,6 +44,8 @@ class ScheduledWorkItem : public WorkItem
 {
 public:
 
+	bool Scheduled() { return !hrt_called(&_call); }
+
 	/**
 	 * Schedule next run with a delay in microseconds.
 	 *
@@ -58,6 +60,13 @@ public:
 	 * @param delay_us		The delay (optional) in microseconds.
 	 */
 	void ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us = 0);
+
+	/**
+	 * Schedule next run at a specific time.
+	 *
+	 * @param time_us		The time in microseconds.
+	 */
+	void ScheduleAt(hrt_abstime time_us);
 
 	/**
 	 * Clear any scheduled work.

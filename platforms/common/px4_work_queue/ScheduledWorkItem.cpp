@@ -57,6 +57,11 @@ void ScheduledWorkItem::ScheduleOnInterval(uint32_t interval_us, uint32_t delay_
 	hrt_call_every(&_call, delay_us, interval_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
 }
 
+void ScheduledWorkItem::ScheduleAt(hrt_abstime time_us)
+{
+	hrt_call_at(&_call, time_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
+}
+
 void ScheduledWorkItem::ScheduleClear()
 {
 	// first clear any scheduled hrt call, then remove the item from the runnable queue

@@ -255,7 +255,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	float mag_sphere_radius = get_sphere_radius();
 
 	// notify user to start rotating
-	set_tune(TONE_SINGLE_BEEP_TUNE);
+	set_tune(tune_control_s::TUNE_ID_SINGLE_BEEP);
 
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Rotate vehicle");
 
