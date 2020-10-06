@@ -264,6 +264,7 @@ private:
 	ECL_L1_Pos_Controller	_l1_control;
 	TECS			_tecs;
 
+	uint8_t _type{0};
 	enum FW_POSCTRL_MODE {
 		FW_POSCTRL_MODE_AUTO,
 		FW_POSCTRL_MODE_POSITION,

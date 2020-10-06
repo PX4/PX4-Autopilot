@@ -365,6 +365,8 @@ FixedwingPositionControl::status_publish()
 
 	pos_ctrl_status.timestamp = hrt_absolute_time();
 
+	pos_ctrl_status.type = _type;
+
 	_pos_ctrl_status_pub.publish(pos_ctrl_status);
 }
 
@@ -717,6 +719,8 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 				}
 			}
 		}
+
+		_type = position_sp_type;
 
 
 		if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
