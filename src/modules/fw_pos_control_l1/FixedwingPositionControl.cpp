@@ -815,7 +815,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 			float alt_sp = pos_sp_curr.alt;
 
-			if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid
+			if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid
 			    && _l1_control.circle_mode() && _param_fw_lnd_earlycfg.get()) {
 				// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
 				// landing airspeed and potentially tighter throttle control) already such that we don't
