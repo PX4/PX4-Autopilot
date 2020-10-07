@@ -74,6 +74,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("radio_status");
 	add_topic("rpm", 500);
 	add_topic("safety");
+	add_topic("rtl_flight_time", 1000);
 	add_topic("sensor_combined");
 	add_topic("sensor_correction");
 	add_topic("sensor_gyro_fft");
