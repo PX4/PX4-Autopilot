@@ -85,7 +85,6 @@
 #include <uORB/topics/orbit_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/rpm.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_mag.h>
@@ -123,6 +122,7 @@ using matrix::wrap_2pi;
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
 #include "streams/PROTOCOL_VERSION.hpp"
+#include "streams/RAW_RPM.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
@@ -5229,70 +5229,6 @@ protected:
 	}
 };
 
-
-
-class MavlinkStreamRawRpm : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamRawRpm::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "RAW_RPM";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_RAW_RPM;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamRawRpm(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _rpm_sub.advertised() ? MAVLINK_MSG_ID_RAW_RPM + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamRawRpm(MavlinkStreamRawRpm &) = delete;
-	MavlinkStreamRawRpm &operator = (const MavlinkStreamRawRpm &) = delete;
-
-protected:
-	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send(const hrt_abstime t) override
-	{
-		rpm_s rpm;
-
-		if (_rpm_sub.update(&rpm)) {
-			mavlink_raw_rpm_t msg{};
-
-			msg.frequency = rpm.indicated_frequency_rpm;
-
-			mavlink_msg_raw_rpm_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 	create_stream_list_item<MavlinkStreamStatustext>(),
@@ -5374,7 +5310,9 @@ static const StreamListItem streams_list[] = {
 #if defined(STORAGE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamStorageInformation>(),
 #endif // STORAGE_INFORMATION_HPP
+#if defined(RAW_RPM_HPP)
 	create_stream_list_item<MavlinkStreamRawRpm>()
+#endif // RAW_RPM_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
