@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,20 +36,19 @@
 #include <drivers/drv_hrt.h>
 #include <lib/conversion/rotation.h>
 #include <lib/ecl/geo/geo.h>
-#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_fifo.h>
 
-class PX4Accelerometer : public ModuleParams
+class PX4Accelerometer
 {
 public:
 	PX4Accelerometer(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
-	~PX4Accelerometer() override;
+	~PX4Accelerometer();
 
 	uint32_t get_device_id() const { return _device_id; }
 
-	float get_max_rate_hz() const { return _param_imu_gyro_rate_max.get(); }
+	int32_t get_max_rate_hz() const { return _imu_gyro_rate_max; }
 
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
@@ -73,6 +72,8 @@ private:
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
 
+	int32_t			_imu_gyro_rate_max{0}; // match gyro max rate
+
 	float			_range{16 * CONSTANTS_ONE_G};
 	float			_scale{1.f};
 	float			_temperature{NAN};
@@ -82,8 +83,4 @@ private:
 	uint32_t		_error_count{0};
 
 	int16_t			_last_sample[3] {};
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_rate_max
-	)
 };
