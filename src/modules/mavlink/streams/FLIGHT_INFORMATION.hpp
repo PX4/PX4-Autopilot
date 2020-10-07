@@ -31,57 +31,35 @@
  *
  ****************************************************************************/
 
-#pragma once
-
-#include "../mavlink_messages.h"
+#ifndef FLIGHT_INFORMATION_HPP
+#define FLIGHT_INFORMATION_HPP
 
 #include <uORB/topics/actuator_armed.h>
 
 class MavlinkStreamFlightInformation : public MavlinkStream
 {
 public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamFlightInformation::get_name_static();
-	}
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamFlightInformation(mavlink); }
 
-	static constexpr const char *get_name_static()
-	{
-		return "FLIGHT_INFORMATION";
-	}
+	static constexpr const char *get_name_static() { return "FLIGHT_INFORMATION"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_FLIGHT_INFORMATION; }
 
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_FLIGHT_INFORMATION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamFlightInformation(mavlink);
-	}
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
 		return MAVLINK_MSG_ID_FLIGHT_INFORMATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
-private:
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-	param_t _param_com_flight_uuid;
 
-	/* do not allow top copying this class */
-	MavlinkStreamFlightInformation(MavlinkStreamFlightInformation &) = delete;
-	MavlinkStreamFlightInformation &operator = (const MavlinkStreamFlightInformation &) = delete;
-protected:
+private:
 	explicit MavlinkStreamFlightInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{
-
 		_param_com_flight_uuid = param_find("COM_FLIGHT_UUID");
 	}
+
+	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+	param_t _param_com_flight_uuid;
 
 	bool send(const hrt_abstime t) override
 	{
@@ -102,3 +80,5 @@ protected:
 		return ret;
 	}
 };
+
+#endif // FLIGHT_INFORMATION_HPP

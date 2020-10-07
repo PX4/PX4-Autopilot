@@ -118,11 +118,11 @@
 using matrix::Vector3f;
 using matrix::wrap_2pi;
 
-#include "streams/autopilot_version.h"
-#include "streams/flight_information.h"
-#include "streams/protocol_version.h"
-#include "streams/storage_information.h"
+#include "streams/AUTOPILOT_VERSION.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
+#include "streams/FLIGHT_INFORMATION.hpp"
+#include "streams/PROTOCOL_VERSION.hpp"
+#include "streams/STORAGE_INFORMATION.hpp"
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
 static_assert(MAV_SENSOR_ROTATION_NONE == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_NONE),
@@ -5516,7 +5516,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamCameraTrigger>(),
 	create_stream_list_item<MavlinkStreamCameraImageCaptured>(),
 	create_stream_list_item<MavlinkStreamDistanceSensor>(),
-#ifdef EXTENDED_SYS_STATE_HPP
+#if defined(EXTENDED_SYS_STATE_HPP)
 	create_stream_list_item<MavlinkStreamExtendedSysState>(),
 #endif // EXTENDED_SYS_STATE_HPP
 	create_stream_list_item<MavlinkStreamAltitude>(),
@@ -5532,10 +5532,18 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamObstacleDistance>(),
 	create_stream_list_item<MavlinkStreamESCInfo>(),
 	create_stream_list_item<MavlinkStreamESCStatus>(),
+#if defined(AUTOPILOT_VERSION_HPP)
 	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
+#endif // AUTOPILOT_VERSION_HPP
+#if defined(PROTOCOL_VERSION_HPP)
 	create_stream_list_item<MavlinkStreamProtocolVersion>(),
+#endif // PROTOCOL_VERSION_HPP
+#if defined(FLIGHT_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamFlightInformation>(),
+#endif // FLIGHT_INFORMATION_HPP
+#if defined(STORAGE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamStorageInformation>(),
+#endif // STORAGE_INFORMATION_HPP
 	create_stream_list_item<MavlinkStreamRawRpm>()
 };
 
