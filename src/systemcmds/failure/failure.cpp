@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 #include <parameters/param.h>
+#include <px4_platform_common/cli.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
@@ -83,7 +85,6 @@ static constexpr FailureType failure_types[] = {
 	{ "intermittent", vehicle_command_s::FAILURE_TYPE_INTERMITTENT},
 };
 
-
 static void print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
@@ -104,6 +105,7 @@ failure gps off
 	PRINT_MODULE_USAGE_COMMAND_DESCR("help", "Show this help text");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("gps|...", "Specify component");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("ok|off|...", "Specify failure type");
+	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 4, "sensor instance (0=all)", true);
 
 	PX4_INFO_RAW("\nComponents:\n");
 	for (const auto &failure_unit : failure_units) {
@@ -116,41 +118,58 @@ failure gps off
 	}
 }
 
-
-int inject_failure(uint8_t unit, uint8_t type)
+int inject_failure(uint8_t unit, uint8_t type, uint8_t instance)
 {
-	const hrt_abstime now = hrt_absolute_time();
+	PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", failure_units[unit].key, unit, failure_types[type].key, type, instance);
 
 	uORB::Subscription command_ack_sub{ORB_ID(vehicle_command_ack)};
 
 	uORB::PublicationQueued<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	vehicle_command_s command{};
-	command.timestamp = now;
+
 	command.command = vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE;
 	command.param1 = static_cast<float>(unit);
 	command.param2 = static_cast<float>(type);
+	command.param3 = static_cast<float>(instance);
+	command.timestamp = hrt_absolute_time();
 	command_pub.publish(command);
 
 	vehicle_command_ack_s ack;
-	while (hrt_elapsed_time(&now) < 1_s) {
+
+	while (hrt_elapsed_time(&command.timestamp) < 1_s) {
 		if (command_ack_sub.update(&ack)) {
 			if (ack.command == command.command) {
 				if (ack.result != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
 					PX4_ERR("Result: %d", ack.result);
 					return 1;
+
 				} else {
 					return 0;
 				}
 			}
 		}
+
 		px4_usleep(10000);
 	}
+
 	PX4_ERR("Timeout waiting for ack");
 	return 1;
 }
 
 extern "C" __EXPORT int failure_main(int argc, char *argv[])
 {
+	int32_t param = 0;
+
+	if (PX4_OK != param_get(param_find("SYS_FAILURE_EN"), &param)) {
+		PX4_ERR("Could not get param SYS_FAILURE_EN");
+		return 1;
+	}
+
+	if (param != 1) {
+		PX4_ERR("Failure injection disabled by SYS_FAILURE_EN param.");
+		return 1;
+	}
+
 	if (argc == 2 && strcmp(argv[1], "help") == 0) {
 		print_usage();
 		return 0;
@@ -162,37 +181,46 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 		return 1;
 	}
 
-	int32_t param = 0;
-	if (PX4_OK != param_get(param_find("SYS_FAILURE_EN"), &param)) {
-		PX4_ERR("Could not get param SYS_FAILURE_EN");
-		return 1;
+	const char *myoptarg = nullptr;
+	int ch = 0;
+	int myoptind = 1;
+
+	uint8_t instance = 0;
+
+	while ((ch = px4_getopt(argc, argv, "i:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'i':
+			instance = (uint8_t)atoi(myoptarg);
+			break;
+
+		default:
+			PX4_WARN("Unknown option");
+			print_usage();
+			return 1;
+		}
 	}
 
-	if (param != 1) {
-		PX4_ERR("Failure injection disabled by SYS_FAILURE_EN param.");
-		return 1;
-	}
-
-	const char *requested_failure_unit = argv[1];
-	const char *requested_failure_type = argv[2];
-
+	const char *requested_failure_unit = argv[myoptind];
 
 	for (const auto &failure_unit : failure_units) {
 		if (strncmp(failure_unit.key, requested_failure_unit, sizeof(failure_unit.key)) != 0) {
 			continue;
 		}
 
+		const char *requested_failure_type = argv[myoptind + 1];
+
 		for (const auto &failure_type : failure_types) {
 			if (strncmp(failure_type.key, requested_failure_type, sizeof(failure_type.key)) != 0) {
 				continue;
 			}
 
-			return inject_failure(failure_unit.value, failure_type.value);
+			return inject_failure(failure_unit.value, failure_type.value, instance);
 		}
 
 		PX4_ERR("Failure type '%s' not found", requested_failure_type);
 		return 1;
 	}
+
 	PX4_ERR("Component '%s' not found", requested_failure_unit);
 	return 1;
 }
