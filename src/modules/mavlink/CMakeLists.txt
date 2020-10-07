@@ -47,7 +47,6 @@ px4_add_module(
 		mavlink.c
 		mavlink_command_sender.cpp
 		mavlink_ftp.cpp
-		mavlink_high_latency2.cpp
 		mavlink_log_handler.cpp
 		mavlink_main.cpp
 		mavlink_messages.cpp
