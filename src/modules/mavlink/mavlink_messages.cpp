@@ -43,7 +43,6 @@
 #include "mavlink_messages.h"
 #include "mavlink_command_sender.h"
 #include "mavlink_simple_analyzer.h"
-#include "mavlink_high_latency2.h"
 
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
@@ -121,6 +120,7 @@ using matrix::wrap_2pi;
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
+#include "streams/HIGH_LATENCY2.hpp"
 #include "streams/PROTOCOL_VERSION.hpp"
 #include "streams/RAW_RPM.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
@@ -5287,7 +5287,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamCollision>(),
 	create_stream_list_item<MavlinkStreamWind>(),
 	create_stream_list_item<MavlinkStreamMountOrientation>(),
+#if defined(HIGH_LATENCY2_HPP)
 	create_stream_list_item<MavlinkStreamHighLatency2>(),
+#endif // HIGH_LATENCY2_HPP
 	create_stream_list_item<MavlinkStreamGroundTruth>(),
 	create_stream_list_item<MavlinkStreamPing>(),
 	create_stream_list_item<MavlinkStreamOrbitStatus>(),
