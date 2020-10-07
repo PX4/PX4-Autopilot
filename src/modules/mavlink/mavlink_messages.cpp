@@ -72,7 +72,6 @@
 #include <uORB/topics/debug_vect.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
@@ -119,6 +118,7 @@ using matrix::Vector3f;
 using matrix::wrap_2pi;
 
 #include "streams/AUTOPILOT_VERSION.hpp"
+#include "streams/ESC_INFO.hpp"
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
@@ -5293,95 +5293,6 @@ protected:
 	}
 };
 
-class MavlinkStreamESCInfo : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamESCInfo::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "ESC_INFO";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_ESC_INFO;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamESCInfo(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		static constexpr unsigned size_per_batch = MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
-	}
-
-private:
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamESCInfo(MavlinkStreamESCInfo &) = delete;
-	MavlinkStreamESCInfo &operator = (const MavlinkStreamESCInfo &) = delete;
-
-protected:
-	uint8_t _number_of_batches{0};
-
-	explicit MavlinkStreamESCInfo(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send(const hrt_abstime t) override
-	{
-
-		esc_status_s esc_status;
-
-		uint8_t batch_size = MAVLINK_MSG_ESC_INFO_FIELD_TEMPERATURE_LEN;
-
-		if (_esc_status_sub.update(&esc_status)) {
-
-			mavlink_esc_info_t msg = {};
-
-			msg.time_usec = esc_status.timestamp;
-			msg.counter = esc_status.counter;
-			msg.count = esc_status.esc_count;
-			msg.connection_type = esc_status.esc_connectiontype;
-			msg.info = esc_status.esc_online_flags;
-
-			// Ceil value of integer division. For 1-4 esc => 1 batch, 5-8 esc => 2 batches etc
-			_number_of_batches = ceilf((float)esc_status.esc_count / batch_size);
-
-			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
-
-				msg.index = batch_number * batch_size;
-
-				for (int esc_index = 0; esc_index < batch_size ; esc_index++) {
-
-					msg.failure_flags[esc_index] = esc_status.esc[esc_index].failures;
-					msg.error_count[esc_index] = esc_status.esc[esc_index].esc_errorcount;
-					msg.temperature[esc_index] = esc_status.esc[esc_index].esc_temperature;
-				}
-
-				mavlink_msg_esc_info_send_struct(_mavlink->get_channel(), &msg);
-
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 	create_stream_list_item<MavlinkStreamStatustext>(),
@@ -5445,7 +5356,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamPing>(),
 	create_stream_list_item<MavlinkStreamOrbitStatus>(),
 	create_stream_list_item<MavlinkStreamObstacleDistance>(),
+#if defined(ESC_INFO_HPP)
 	create_stream_list_item<MavlinkStreamESCInfo>(),
+#endif // ESC_INFO_HPP
 #if defined(ESC_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamESCStatus>(),
 #endif // ESC_STATUS_HPP
