@@ -31,9 +31,8 @@
  *
  ****************************************************************************/
 
-#pragma once
-
-#include "../mavlink_messages.h"
+#ifndef STORAGE_INFORMATION_HPP
+#define STORAGE_INFORMATION_HPP
 
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
@@ -47,30 +46,13 @@
 class MavlinkStreamStorageInformation : public MavlinkStream
 {
 public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamStorageInformation::get_name_static();
-	}
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamStorageInformation(mavlink); }
 
-	static constexpr const char *get_name_static()
-	{
-		return "STORAGE_INFORMATION";
-	}
+	static constexpr const char *get_name_static() { return "STORAGE_INFORMATION"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_STORAGE_INFORMATION; }
 
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_STORAGE_INFORMATION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamStorageInformation(mavlink);
-	}
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
@@ -84,16 +66,9 @@ public:
 		return send(hrt_absolute_time());
 	}
 private:
-	int _storage_id = 0;
+	explicit MavlinkStreamStorageInformation(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	/* do not allow top copying this class */
-	MavlinkStreamStorageInformation(MavlinkStreamStorageInformation &) = delete;
-	MavlinkStreamStorageInformation &operator = (const MavlinkStreamStorageInformation &) = delete;
-
-
-protected:
-	explicit MavlinkStreamStorageInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
+	int _storage_id{0};
 
 	bool send(const hrt_abstime t) override
 	{
@@ -133,3 +108,5 @@ protected:
 		return true;
 	}
 };
+
+#endif // STORAGE_INFORMATION_HPP

@@ -37,30 +37,13 @@
 class MavlinkStreamExtendedSysState : public MavlinkStream
 {
 public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamExtendedSysState::get_name_static();
-	}
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamExtendedSysState(mavlink); }
 
-	static constexpr const char *get_name_static()
-	{
-		return "EXTENDED_SYS_STATE";
-	}
+	static constexpr const char *get_name_static() { return "EXTENDED_SYS_STATE"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_EXTENDED_SYS_STATE; }
 
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_EXTENDED_SYS_STATE;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamExtendedSysState(mavlink);
-	}
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
@@ -68,23 +51,17 @@ public:
 	}
 
 private:
-	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _landed_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
-	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
-	mavlink_extended_sys_state_t _msg;
-
-	/* do not allow top copying this class */
-	MavlinkStreamExtendedSysState(MavlinkStreamExtendedSysState &) = delete;
-	MavlinkStreamExtendedSysState &operator = (const MavlinkStreamExtendedSysState &) = delete;
-
-protected:
-	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_msg()
+	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{
 		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
 		_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
 	}
+
+	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _landed_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
+	mavlink_extended_sys_state_t _msg{};
 
 	bool send(const hrt_abstime t) override
 	{
