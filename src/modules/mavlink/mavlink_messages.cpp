@@ -45,11 +45,6 @@
 #include "mavlink_simple_analyzer.h"
 #include "mavlink_high_latency2.h"
 
-#include "streams/autopilot_version.h"
-#include "streams/flight_information.h"
-#include "streams/protocol_version.h"
-#include "streams/storage_information.h"
-
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/conversion/rotation.h>
@@ -122,6 +117,12 @@
 
 using matrix::Vector3f;
 using matrix::wrap_2pi;
+
+#include "streams/autopilot_version.h"
+#include "streams/flight_information.h"
+#include "streams/protocol_version.h"
+#include "streams/storage_information.h"
+#include "streams/EXTENDED_SYS_STATE.hpp"
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
 static_assert(MAV_SENSOR_ROTATION_NONE == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_NONE),
@@ -4665,118 +4666,6 @@ protected:
 	}
 };
 
-class MavlinkStreamExtendedSysState : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamExtendedSysState::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "EXTENDED_SYS_STATE";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_EXTENDED_SYS_STATE;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamExtendedSysState(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
-
-private:
-	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _landed_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
-	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
-	mavlink_extended_sys_state_t _msg;
-
-	/* do not allow top copying this class */
-	MavlinkStreamExtendedSysState(MavlinkStreamExtendedSysState &) = delete;
-	MavlinkStreamExtendedSysState &operator = (const MavlinkStreamExtendedSysState &) = delete;
-
-protected:
-	explicit MavlinkStreamExtendedSysState(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_msg()
-	{
-		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
-		_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
-	}
-
-	bool send(const hrt_abstime t) override
-	{
-		bool updated = false;
-
-		vehicle_status_s status;
-
-		if (_status_sub.copy(&status)) {
-			updated = true;
-
-			if (status.is_vtol) {
-				if (!status.in_transition_mode && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					_msg.vtol_state = MAV_VTOL_STATE_MC;
-
-				} else if (!status.in_transition_mode) {
-					_msg.vtol_state = MAV_VTOL_STATE_FW;
-
-				} else if (status.in_transition_mode && status.in_transition_to_fw) {
-					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
-
-				} else if (status.in_transition_mode) {
-					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_MC;
-				}
-			}
-		}
-
-		vehicle_land_detected_s land_detected;
-
-		if (_landed_sub.copy(&land_detected)) {
-			updated = true;
-
-			if (land_detected.landed) {
-				_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
-
-			} else if (!land_detected.landed) {
-				_msg.landed_state = MAV_LANDED_STATE_IN_AIR;
-
-				vehicle_control_mode_s control_mode;
-				position_setpoint_triplet_s pos_sp_triplet;
-
-				if (_control_mode_sub.copy(&control_mode) && _pos_sp_triplet_sub.copy(&pos_sp_triplet)) {
-					if (control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
-						if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-							_msg.landed_state = MAV_LANDED_STATE_TAKEOFF;
-
-						} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-							_msg.landed_state = MAV_LANDED_STATE_LANDING;
-						}
-					}
-				}
-			}
-		}
-
-		if (updated) {
-			mavlink_msg_extended_sys_state_send_struct(_mavlink->get_channel(), &_msg);
-		}
-
-		return updated;
-	}
-};
-
 class MavlinkStreamAltitude : public MavlinkStream
 {
 public:
@@ -5627,7 +5516,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamCameraTrigger>(),
 	create_stream_list_item<MavlinkStreamCameraImageCaptured>(),
 	create_stream_list_item<MavlinkStreamDistanceSensor>(),
+#ifdef EXTENDED_SYS_STATE_HPP
 	create_stream_list_item<MavlinkStreamExtendedSysState>(),
+#endif // EXTENDED_SYS_STATE_HPP
 	create_stream_list_item<MavlinkStreamAltitude>(),
 	create_stream_list_item<MavlinkStreamADSBVehicle>(),
 	create_stream_list_item<MavlinkStreamUTMGlobalPosition>(),
