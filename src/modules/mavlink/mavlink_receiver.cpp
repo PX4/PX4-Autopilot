@@ -2997,15 +2997,15 @@ MavlinkReceiver::Run()
 
 		if (t - last_send_update > timeout * 1000) {
 			_mission_manager.check_active_mission();
-			_mission_manager.send(t);
+			_mission_manager.send();
 
-			_parameters_manager.send(t);
+			_parameters_manager.send();
 
 			if (_mavlink->ftp_enabled()) {
-				_mavlink_ftp.send(t);
+				_mavlink_ftp.send();
 			}
 
-			_mavlink_log_handler.send(t);
+			_mavlink_log_handler.send();
 			last_send_update = t;
 		}
 

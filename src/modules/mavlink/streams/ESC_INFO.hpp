@@ -59,7 +59,7 @@ private:
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uint8_t _number_of_batches{0};
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		static constexpr uint8_t batch_size = MAVLINK_MSG_ESC_INFO_FIELD_TEMPERATURE_LEN;
 		esc_status_s esc_status;

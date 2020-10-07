@@ -61,7 +61,7 @@ private:
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	param_t _param_com_flight_uuid;
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		actuator_armed_s actuator_armed{};
 		bool ret = _armed_sub.copy(&actuator_armed);
