@@ -437,7 +437,7 @@ protected:
 	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		// always send the heartbeat, independent of the update status of the topics
 		vehicle_status_s status{};
@@ -499,7 +499,7 @@ protected:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (!_mavlink->get_logbuffer()->empty() && _mavlink->is_connected()) {
 
@@ -591,7 +591,7 @@ protected:
 	explicit MavlinkStreamCommandLong(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		struct vehicle_command_s cmd;
 		bool sent = false;
@@ -662,7 +662,7 @@ protected:
 	{
 	}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_status_sub.updated() || _cpuload_sub.updated() || _battery_status_subs.updated()) {
 			vehicle_status_s status{};
@@ -766,7 +766,7 @@ protected:
 	{
 	}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		bool updated = false;
 
@@ -890,7 +890,7 @@ protected:
 	{
 	}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		bool updated = false;
 
@@ -977,7 +977,7 @@ protected:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		bool updated = false;
 
@@ -1098,7 +1098,7 @@ protected:
 	explicit MavlinkStreamScaledPressureBase(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_sensor_baro_sub.updated() || _differential_pressure_sub.updated()) {
 			sensor_baro_s sensor_baro{};
@@ -1258,7 +1258,7 @@ protected:
 	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_raw_imu_sub.updated() || _raw_mag_sub.updated()) {
 
@@ -1344,7 +1344,7 @@ protected:
 	explicit MavlinkStreamScaledIMU2(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_raw_imu_sub.updated() || _raw_mag_sub.updated()) {
 
@@ -1429,7 +1429,7 @@ protected:
 	explicit MavlinkStreamScaledIMU3(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_raw_imu_sub.updated() || _raw_mag_sub.updated()) {
 
@@ -1517,7 +1517,7 @@ protected:
 	explicit MavlinkStreamAttitude(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_attitude_s att;
 
@@ -1593,7 +1593,7 @@ protected:
 	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_attitude_s att;
 
@@ -1695,7 +1695,7 @@ protected:
 	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_lpos_sub.updated() || _airspeed_validated_sub.updated()) {
 
@@ -1804,7 +1804,7 @@ protected:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		sensor_gps_s gps;
 
@@ -1880,7 +1880,7 @@ protected:
 	explicit MavlinkStreamGPS2Raw(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		sensor_gps_s gps;
 
@@ -1951,7 +1951,7 @@ protected:
 	explicit MavlinkStreamSystemTime(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		timespec tv;
 		px4_clock_gettime(CLOCK_REALTIME, &tv);
@@ -2013,7 +2013,7 @@ protected:
 	explicit MavlinkStreamTimesync(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		mavlink_timesync_t msg{};
 
@@ -2075,7 +2075,7 @@ protected:
 	explicit MavlinkStreamADSBVehicle(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		transponder_report_s pos;
 		bool sent = false;
@@ -2175,7 +2175,7 @@ protected:
 	explicit MavlinkStreamUTMGlobalPosition(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_global_position_s global_pos;
 
@@ -2342,7 +2342,7 @@ protected:
 	explicit MavlinkStreamCollision(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		collision_report_s report;
 		bool sent = false;
@@ -2415,7 +2415,7 @@ protected:
 	explicit MavlinkStreamCameraTrigger(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		camera_trigger_s trigger;
 
@@ -2520,7 +2520,7 @@ protected:
 	explicit MavlinkStreamCameraImageCaptured(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		camera_capture_s capture;
 
@@ -2599,7 +2599,7 @@ protected:
 	explicit MavlinkStreamGlobalPositionInt(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_global_position_s gpos;
 		vehicle_local_position_s lpos;
@@ -2707,7 +2707,7 @@ protected:
 	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_odometry_s odom;
 		// check if it is to send visual odometry loopback or not
@@ -2857,7 +2857,7 @@ protected:
 	explicit MavlinkStreamLocalPositionNED(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_local_position_s lpos;
 
@@ -2925,7 +2925,7 @@ protected:
 	explicit MavlinkStreamEstimatorStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		estimator_status_s est;
 
@@ -3005,7 +3005,7 @@ protected:
 	explicit MavlinkStreamVibration(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_sensor_selection_sub.updated() || _vehicle_imu_status_subs.updated()) {
 
@@ -3113,7 +3113,7 @@ protected:
 	explicit MavlinkStreamAttPosMocap(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_odometry_s mocap;
 
@@ -3183,7 +3183,7 @@ protected:
 	explicit MavlinkStreamHomePosition(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		/* we're sending the GPS home periodically to ensure the
 		 * the GCS does pick it up at one point */
@@ -3275,7 +3275,7 @@ protected:
 	explicit MavlinkStreamServoOutputRaw(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		actuator_outputs_s act;
 
@@ -3394,7 +3394,7 @@ protected:
 		delete _act_ctrl_sub;
 	}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		actuator_controls_s act_ctrl;
 
@@ -3462,7 +3462,7 @@ protected:
 	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		actuator_outputs_s act;
 
@@ -3620,7 +3620,7 @@ protected:
 	explicit MavlinkStreamPositionTargetGlobalInt(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_control_mode_s control_mode{};
 		_control_mode_sub.copy(&control_mode);
@@ -3714,7 +3714,7 @@ protected:
 	explicit MavlinkStreamLocalPositionSetpoint(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_local_position_setpoint_s pos_sp;
 
@@ -3790,7 +3790,7 @@ protected:
 	explicit MavlinkStreamAttitudeTarget(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_attitude_setpoint_s att_sp;
 
@@ -3864,7 +3864,7 @@ protected:
 	explicit MavlinkStreamRCChannels(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		input_rc_s rc;
 
@@ -3950,7 +3950,7 @@ protected:
 	explicit MavlinkStreamManualControl(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		manual_control_setpoint_s manual_control_setpoint;
 
@@ -4028,7 +4028,7 @@ protected:
 	explicit MavlinkStreamTrajectoryRepresentationWaypoints(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_trajectory_waypoint_s traj_wp_avoidance_desired;
 
@@ -4132,7 +4132,7 @@ protected:
 	explicit MavlinkStreamOpticalFlowRad(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		optical_flow_s flow;
 
@@ -4206,7 +4206,7 @@ protected:
 	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		debug_key_value_s debug;
 
@@ -4272,7 +4272,7 @@ protected:
 	explicit MavlinkStreamDebug(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		debug_value_s debug;
 
@@ -4335,7 +4335,7 @@ protected:
 	explicit MavlinkStreamDebugVect(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		debug_vect_s debug;
 
@@ -4403,7 +4403,7 @@ protected:
 	explicit MavlinkStreamDebugFloatArray(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		debug_array_s debug;
 
@@ -4475,7 +4475,7 @@ protected:
 	explicit MavlinkStreamNavControllerOutput(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_pos_ctrl_status_sub.updated()) {
 
@@ -4549,7 +4549,7 @@ protected:
 	explicit MavlinkStreamCameraCapture(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		vehicle_status_s status;
 
@@ -4620,7 +4620,7 @@ protected:
 	explicit MavlinkStreamDistanceSensor(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		bool updated = false;
 
@@ -4713,7 +4713,7 @@ protected:
 	explicit MavlinkStreamAltitude(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		mavlink_altitude_t msg{};
 
@@ -4830,7 +4830,7 @@ protected:
 	explicit MavlinkStreamWind(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		wind_estimate_s wind_estimate;
 
@@ -4907,7 +4907,7 @@ protected:
 	explicit MavlinkStreamMountOrientation(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		mount_orientation_s mount_orientation;
 
@@ -4979,7 +4979,7 @@ protected:
 	explicit MavlinkStreamGroundTruth(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		if (_angular_velocity_sub.updated() || _att_sub.updated() || _gpos_sub.updated() || _lpos_sub.updated()) {
 			vehicle_attitude_s att{};
@@ -5078,7 +5078,7 @@ protected:
 		_sequence(0)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		mavlink_ping_t msg = {};
 
@@ -5137,7 +5137,7 @@ protected:
 	explicit MavlinkStreamOrbitStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		orbit_status_s _orbit_status;
 
@@ -5203,7 +5203,7 @@ protected:
 	explicit MavlinkStreamObstacleDistance(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		obstacle_distance_s obstacle_distance;
 

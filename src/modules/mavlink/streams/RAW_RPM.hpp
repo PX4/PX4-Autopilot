@@ -57,7 +57,7 @@ private:
 
 	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		rpm_s rpm;
 

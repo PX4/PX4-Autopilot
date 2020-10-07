@@ -63,7 +63,7 @@ private:
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	mavlink_extended_sys_state_t _msg{};
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		bool updated = false;
 

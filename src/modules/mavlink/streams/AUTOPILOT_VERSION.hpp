@@ -53,7 +53,7 @@ public:
 private:
 	explicit MavlinkStreamAutopilotVersion(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		return _mavlink->send_autopilot_capabilities();
 	}
