@@ -60,7 +60,6 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -157,11 +156,19 @@ private:
 	static Simulator *_instance;
 
 	// simulated sensor instances
-	PX4Accelerometer	_px4_accel_0{1311244, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Accelerometer	_px4_accel_1{1311500, ROTATION_NONE}; // 1311500: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	static constexpr uint8_t ACCEL_COUNT_MAX = 3;
+	PX4Accelerometer _px4_accel[ACCEL_COUNT_MAX] {
+		{1310988, ROTATION_NONE}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		{1310996, ROTATION_NONE}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
 
-	PX4Gyroscope		_px4_gyro_0{1311244, ROTATION_NONE}; // 1311244: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope		_px4_gyro_1{1311500, ROTATION_NONE}; // 1311500: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	static constexpr uint8_t GYRO_COUNT_MAX = 3;
+	PX4Gyroscope _px4_gyro[GYRO_COUNT_MAX] {
+		{1310988, ROTATION_NONE}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		{1310996, ROTATION_NONE}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
 
 	PX4Magnetometer		_px4_mag_0{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Magnetometer		_px4_mag_1{197644, ROTATION_NONE}; // 197644: DRV_MAG_DEVTYPE_MAGSIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
@@ -256,12 +263,20 @@ private:
 
 	vehicle_status_s _vehicle_status{};
 
-	bool _accel_blocked{false};
-	bool _gyro_blocked{false};
+	bool _accel_blocked[ACCEL_COUNT_MAX] {};
+	bool _accel_stuck[ACCEL_COUNT_MAX] {};
+	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
+
+	bool _gyro_blocked[GYRO_COUNT_MAX] {};
+	bool _gyro_stuck[GYRO_COUNT_MAX] {};
+	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
+
 	bool _baro_blocked{false};
 	bool _baro_stuck{false};
+
 	bool _mag_blocked{false};
 	bool _mag_stuck{false};
+
 	bool _gps_blocked{false};
 	bool _airspeed_blocked{false};
 
