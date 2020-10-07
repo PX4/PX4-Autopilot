@@ -36,7 +36,6 @@ bool heartbeat_type_onboard_controller      # MAV_TYPE_ONBOARD_CONTROLLER
 bool heartbeat_type_gimbal                  # MAV_TYPE_GIMBAL
 bool heartbeat_type_adsb                    # MAV_TYPE_ADSB
 bool heartbeat_type_camera                  # MAV_TYPE_CAMERA
-bool heartbeat_type_charging_station        # MAV_TYPE_CHARGING_STATION
 
 # Heartbeats per component
 bool heartbeat_component_telemetry_radio    # MAV_COMP_ID_TELEMETRY_RADIO
@@ -47,7 +46,6 @@ bool heartbeat_component_vio                # MAV_COMP_ID_VISUAL_INERTIAL_ODOMET
 bool heartbeat_component_pairing_manager    # MAV_COMP_ID_PAIRING_MANAGER
 bool heartbeat_component_udp_bridge         # MAV_COMP_ID_UDP_BRIDGE
 bool heartbeat_component_uart_bridge        # MAV_COMP_ID_UART_BRIDGE
-bool heartbeat_component_tunnel_node        # MAV_COMP_ID_TUNNEL_NODE
 
 # Misc component health
 bool avoidance_system_healthy

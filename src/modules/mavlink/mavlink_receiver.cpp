@@ -2100,10 +2100,6 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 				_heartbeat_type_camera = now;
 				break;
 
-			case MAV_TYPE_CHARGING_STATION:
-				_heartbeat_type_charging_station = now;
-				break;
-
 			default:
 				PX4_DEBUG("unimplemented MAV_TYPE: %d", hb.type);
 			}
@@ -2141,10 +2137,6 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			case MAV_COMP_ID_UART_BRIDGE:
 				_heartbeat_component_uart_bridge = now;
-				break;
-
-			case MAV_COMP_ID_TUNNEL_NODE:
-				_heartbeat_component_tunnel_node = now;
 				break;
 
 			default:
@@ -2876,7 +2868,6 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
 		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
-		tstatus.heartbeat_type_charging_station        = (t <= TIMEOUT + _heartbeat_type_charging_station);
 
 		tstatus.heartbeat_component_telemetry_radio    = (t <= TIMEOUT + _heartbeat_component_telemetry_radio);
 		tstatus.heartbeat_component_log                = (t <= TIMEOUT + _heartbeat_component_log);
@@ -2886,7 +2877,6 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_component_pairing_manager    = (t <= TIMEOUT + _heartbeat_component_pairing_manager);
 		tstatus.heartbeat_component_udp_bridge         = (t <= TIMEOUT + _heartbeat_component_udp_bridge);
 		tstatus.heartbeat_component_uart_bridge        = (t <= TIMEOUT + _heartbeat_component_uart_bridge);
-		tstatus.heartbeat_component_tunnel_node        = (t <= TIMEOUT + _heartbeat_component_tunnel_node);
 
 		_mavlink->telemetry_status_updated();
 		_last_heartbeat_check = t;
