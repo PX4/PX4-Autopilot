@@ -53,7 +53,7 @@ public:
 private:
 	explicit MavlinkStreamProtocolVersion(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		_mavlink->send_protocol_version();
 		return true;

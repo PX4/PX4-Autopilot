@@ -97,8 +97,10 @@ private:
 		bool connected{false};
 	};
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
+		const hrt_abstime t = hrt_absolute_time();
+
 		// only send the struct if transmitting is allowed
 		// this assures that the stream timer is only reset when actually a message is transmitted
 		if (_mavlink->should_transmit()) {

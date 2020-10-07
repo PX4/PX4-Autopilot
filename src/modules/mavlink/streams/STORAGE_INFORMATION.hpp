@@ -63,14 +63,14 @@ public:
 			     float param5, float param6, float param7) override
 	{
 		_storage_id = (int)roundf(param2);
-		return send(hrt_absolute_time());
+		return send();
 	}
 private:
 	explicit MavlinkStreamStorageInformation(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	int _storage_id{0};
 
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		mavlink_storage_information_t storage_info{};
 		const char *microsd_dir = PX4_STORAGEDIR;
@@ -103,7 +103,7 @@ private:
 			return false; // results in MAV_RESULT_DENIED
 		}
 
-		storage_info.time_boot_ms = t / 1000;
+		storage_info.time_boot_ms = hrt_absolute_time() / 1000;
 		mavlink_msg_storage_information_send_struct(_mavlink->get_channel(), &storage_info);
 		return true;
 	}
