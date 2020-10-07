@@ -2108,7 +2108,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
-	pthread_mutex_init(&_telemetry_status_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (_forwarding_on) {
@@ -2512,7 +2511,6 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	pthread_mutex_destroy(&_send_mutex);
-	pthread_mutex_destroy(&_telemetry_status_mutex);
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
