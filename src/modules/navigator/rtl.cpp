@@ -236,6 +236,7 @@ void RTL::find_RTL_destination()
 
 		float rtl_flight_time_ratio = time_to_home_s / (60 * _param_rtl_flt_time.get());
 		rtl_flight_time_s rtl_flight_time;
+		rtl_flight_time.timestamp = hrt_absolute_time();
 		rtl_flight_time.rtl_limit_fraction = rtl_flight_time_ratio;
 		rtl_flight_time.rtl_time_s = time_to_home_s;
 		_rtl_flight_time_pub.publish(rtl_flight_time);
