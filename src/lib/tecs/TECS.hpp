@@ -102,7 +102,8 @@ public:
 	void set_detect_underspeed_enabled(bool enabled) { _detect_underspeed_enabled = enabled; }
 
 	// setters for controller parameters
-	void set_integrator_gain(float gain) { _integrator_gain = gain; }
+	void set_integrator_gain_throttle(float gain) { _integrator_gain_throttle = gain; }
+	void set_integrator_gain_pitch(float gain) { _integrator_gain_pitch = gain; }
 
 	void set_min_sink_rate(float rate) { _min_sink_rate = rate; }
 	void set_max_sink_rate(float sink_rate) { _max_sink_rate = sink_rate; }
@@ -206,7 +207,8 @@ private:
 	float _max_sink_rate{2.0f};					///< maximum safe sink rate (m/sec)
 	float _pitch_damping_gain{0.0f};				///< damping gain of the pitch demand calculation (sec)
 	float _throttle_damping_gain{0.0f};				///< damping gain of the throttle demand calculation (sec)
-	float _integrator_gain{0.0f};					///< integrator gain used by the throttle and pitch demand calculation
+	float _integrator_gain_throttle{0.0f};				///< integrator gain used by the throttle demand calculation
+	float _integrator_gain_pitch{0.0f};				///< integrator gain used by the pitch demand calculation
 	float _vert_accel_limit{0.0f};					///< magnitude of the maximum vertical acceleration allowed (m/sec**2)
 	float _load_factor_correction{0.0f};				///< gain from normal load factor increase to total energy rate demand (m**2/sec**3)
 	float _pitch_speed_weight{1.0f};				///< speed control weighting used by pitch demand calculation

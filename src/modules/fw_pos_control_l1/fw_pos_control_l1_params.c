@@ -535,9 +535,9 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
 PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.1f);
 
 /**
- * Integrator gain
+ * Integrator gain throttle
  *
- * This is the integrator gain on the control loop.
+ * This is the integrator gain on the throttle part of the control loop.
  * Increasing this gain increases the speed at which speed
  * and height offsets are trimmed out, but reduces damping and
  * increases overshoot. Set this value to zero to completely
@@ -549,7 +549,24 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.1f);
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
+PARAM_DEFINE_FLOAT(FW_T_I_GAIN_THR, 0.1f);
+
+/**
+ * Integrator gain pitch
+ *
+ * This is the integrator gain on the pitch part of the control loop.
+ * Increasing this gain increases the speed at which speed
+ * and height offsets are trimmed out, but reduces damping and
+ * increases overshoot. Set this value to zero to completely
+ * disable all integrator action.
+ *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_I_GAIN_PIT, 0.1f);
 
 /**
  * Maximum vertical acceleration
