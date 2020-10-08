@@ -117,8 +117,6 @@ private:
 
 	uORB::Publication<vehicle_attitude_s>	_att_pub{ORB_ID(vehicle_attitude)};
 
-	int		_lockstep_component{-1};
-
 	float		_mag_decl{0.0f};
 	float		_bias_max{0.0f};
 

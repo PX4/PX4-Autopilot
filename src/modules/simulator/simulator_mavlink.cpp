@@ -385,6 +385,10 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 
 void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 {
+	if (_lockstep_component == -1) {
+		_lockstep_component = px4_lockstep_register_component();
+	}
+
 	mavlink_hil_sensor_t imu;
 	mavlink_msg_hil_sensor_decode(msg, &imu);
 
@@ -413,10 +417,11 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	if (!_has_initialized.load()) {
 		_has_initialized.store(true);
-		PX4_INFO("lockstep initialized, imu time_usec: %lu, time_usec: %lu", imu.time_usec, now_us);
 	}
 
 #endif
+
+	px4_lockstep_progress(_lockstep_component);
 }
 
 void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg)
@@ -645,9 +650,11 @@ void Simulator::send()
 			parameters_update(false);
 			check_failure_injections();
 			_vehicle_status_sub.update(&_vehicle_status);
-			send_controls();
+
 			// Wait for other modules, such as logger or ekf2
 			px4_lockstep_wait_for_components();
+
+			send_controls();
 		}
 	}
 }

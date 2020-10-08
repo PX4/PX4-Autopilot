@@ -66,9 +66,13 @@ public:
 	inline void ScheduleNow()
 	{
 		if (_wq != nullptr) {
-			if (_lockstep_component == -1) {
-				_lockstep_component = px4_lockstep_register_component();
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+			if (_lockstep_component_schedule == -1) {
+				_lockstep_component_schedule = px4_lockstep_register_component();
 			}
+
+#endif // ENABLE_LOCKSTEP_SCHEDULER
 
 			_wq->Add(this);
 		}
@@ -110,13 +114,30 @@ protected:
 		} else {
 			_run_count++;
 		}
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+		if (_lockstep_component_run == -1) {
+			_lockstep_component_run = px4_lockstep_register_component();
+
+		} else {
+			PX4_WARN("lockstep component run already set: %d", _lockstep_component_run);
+		}
+
+		// progress and unregister schedule lockstep
+		px4_lockstep_progress(_lockstep_component_schedule);
+		px4_lockstep_unregister_component(_lockstep_component_schedule);
+		_lockstep_component_schedule = -1;
+#endif // ENABLE_LOCKSTEP_SCHEDULER
 	}
 
 	void RunPostamble()
 	{
-		px4_lockstep_progress(_lockstep_component);
-		px4_lockstep_unregister_component(_lockstep_component);
-		_lockstep_component = -1;
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		px4_lockstep_progress(_lockstep_component_run);
+		px4_lockstep_unregister_component(_lockstep_component_run);
+		_lockstep_component_run = -1;
+#endif // ENABLE_LOCKSTEP_SCHEDULER
 	}
 
 	friend void WorkQueue::Run();
@@ -144,8 +165,10 @@ protected:
 private:
 	WorkQueue	*_wq{nullptr};
 
-	int _lockstep_component{-1};
-
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	int _lockstep_component_schedule {-1};
+	int _lockstep_component_run{-1};
+#endif // ENABLE_LOCKSTEP_SCHEDULER
 };
 
 } // namespace px4
