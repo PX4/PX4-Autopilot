@@ -141,6 +141,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_local_position_groundtruth", 100);
 
 	// log all for debugging
+	add_topic("actuator_outputs");
 	add_topic_multi("sensor_accel");
 	add_topic_multi("sensor_gyro");
 	add_topic("sensors_status_imu");
