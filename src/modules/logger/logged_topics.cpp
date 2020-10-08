@@ -139,6 +139,13 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
+
+	// log all for debugging
+	add_topic_multi("sensor_accel");
+	add_topic_multi("sensor_gyro");
+	add_topic("sensors_status_imu");
+	add_topic("sensor_combined");
+	add_topic_multi("vehicle_imu");
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
 
