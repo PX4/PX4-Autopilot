@@ -154,7 +154,7 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			const float accel_dt_inv = 1.e6f / (float)imu_report.delta_velocity_dt;
 			Vector3f accel_data = Vector3f{imu_report.delta_velocity} * accel_dt_inv;
 
-			if (imu_report.timestamp_sample != hrt_absolute_time()) {
+			if (imu_report.timestamp != imu_report.timestamp_sample) {
 				PX4_INFO("%lu IMU %d, imu timestamp: %lu, imu timestamp_sample: %lu, accel dt: %d, gyro dt: %d", hrt_absolute_time(), uorb_index, imu_report.timestamp, imu_report.timestamp_sample, imu_report.delta_velocity_dt, imu_report.delta_angle_dt);
 			}
 
