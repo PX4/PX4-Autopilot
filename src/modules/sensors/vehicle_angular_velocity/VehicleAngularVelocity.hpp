@@ -75,7 +75,7 @@ private:
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(bool force = false);
 
-	static constexpr int MAX_SENSOR_COUNT = 3;
+	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	uORB::Publication<vehicle_angular_acceleration_s> _vehicle_angular_acceleration_pub{ORB_ID(vehicle_angular_acceleration)};
 	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};

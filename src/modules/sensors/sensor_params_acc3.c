@@ -32,15 +32,15 @@
  ****************************************************************************/
 
 /**
- * ID of Magnetometer the calibration is for.
+ * ID of the Accelerometer that the calibration is for.
  *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
+PARAM_DEFINE_INT32(CAL_ACC3_ID, 0);
 
 /**
- * Mag 2 priority.
+ * Accelerometer 3 priority.
  *
  * @value -1  Uninitialized
  * @value 0   Disabled
@@ -53,10 +53,10 @@ PARAM_DEFINE_INT32(CAL_MAG2_ID, 0);
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG2_PRIO, -1);
+PARAM_DEFINE_INT32(CAL_ACC3_PRIO, -1);
 
 /**
- * Rotation of magnetometer 2 relative to airframe.
+ * Rotation of accelerometer 3 relative to airframe.
  *
  * An internal sensor will force a value of -1, so a GCS
  * should only attempt to configure the rotation if the value is
@@ -112,112 +112,52 @@ PARAM_DEFINE_INT32(CAL_MAG2_PRIO, -1);
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_INT32(CAL_MAG2_ROT, -1);
+PARAM_DEFINE_INT32(CAL_ACC3_ROT, -1);
 
 /**
- * Magnetometer X-axis offset
+ * Accelerometer X-axis offset
  *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(CAL_MAG2_XOFF, 0.0f);
+PARAM_DEFINE_FLOAT(CAL_ACC3_XOFF, 0.0f);
 
 /**
- * Magnetometer Y-axis offset
+ * Accelerometer Y-axis offset
  *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(CAL_MAG2_YOFF, 0.0f);
+PARAM_DEFINE_FLOAT(CAL_ACC3_YOFF, 0.0f);
 
 /**
- * Magnetometer Z-axis offset
+ * Accelerometer Z-axis offset
  *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(CAL_MAG2_ZOFF, 0.0f);
+PARAM_DEFINE_FLOAT(CAL_ACC3_ZOFF, 0.0f);
 
 /**
- * Magnetometer X-axis scaling factor
+ * Accelerometer X-axis scaling factor
  *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(CAL_MAG2_XSCALE, 1.0f);
+PARAM_DEFINE_FLOAT(CAL_ACC3_XSCALE, 1.0f);
 
 /**
- * Magnetometer Y-axis scaling factor
+ * Accelerometer Y-axis scaling factor
  *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(CAL_MAG2_YSCALE, 1.0f);
+PARAM_DEFINE_FLOAT(CAL_ACC3_YSCALE, 1.0f);
 
 /**
- * Magnetometer Z-axis scaling factor
+ * Accelerometer Z-axis scaling factor
  *
  * @category system
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(CAL_MAG2_ZSCALE, 1.0f);
-
-/**
- * Magnetometer X-axis off diagonal factor
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(CAL_MAG2_XODIAG, 0.0f);
-
-/**
- * Magnetometer Y-axis off diagonal factor
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(CAL_MAG2_YODIAG, 0.0f);
-
-/**
- * Magnetometer Z-axis off diagonal factor
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(CAL_MAG2_ZODIAG, 0.0f);
-
-/**
-* Coefficient describing linear relationship between
-* X component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
-* Unit for throttle-based compensation is [G] and
-* for current-based compensation [G/kA]
-*
-* @category system
-* @group Sensor Calibration
-*/
-PARAM_DEFINE_FLOAT(CAL_MAG2_XCOMP, 0.0f);
-
-/**
-* Coefficient describing linear relationship between
-* Y component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
-* Unit for throttle-based compensation is [G] and
-* for current-based compensation [G/kA]
-*
-* @category system
-* @group Sensor Calibration
-*/
-PARAM_DEFINE_FLOAT(CAL_MAG2_YCOMP, 0.0f);
-
-/**
-* Coefficient describing linear relationship between
-* Z component of magnetometer in body frame axis
-* and either current or throttle depending on value of CAL_MAG_COMP_TYP
-* Unit for throttle-based compensation is [G] and
-* for current-based compensation [G/kA]
-*
-* @category system
-* @group Sensor Calibration
-*/
-PARAM_DEFINE_FLOAT(CAL_MAG2_ZCOMP, 0.0f);
+PARAM_DEFINE_FLOAT(CAL_ACC3_ZSCALE, 1.0f);

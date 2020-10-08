@@ -59,7 +59,7 @@
 #include <uORB/topics/sensor_gyro.h>
 
 static constexpr char sensor_name[] {"gyro"};
-static constexpr unsigned MAX_GYROS = 3;
+static constexpr unsigned MAX_GYROS = 4;
 
 using matrix::Vector3f;
 
@@ -101,6 +101,7 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 		{ORB_ID(sensor_gyro), 0, 0},
 		{ORB_ID(sensor_gyro), 0, 1},
 		{ORB_ID(sensor_gyro), 0, 2},
+		{ORB_ID(sensor_gyro), 0, 3},
 	};
 
 	memset(&worker_data.last_sample_0_x, 0, sizeof(worker_data.last_sample_0_x));
@@ -147,6 +148,9 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 										break;
 									case 2:
 										offset = Vector3f{sensor_correction.gyro_offset_2};
+										break;
+									case 3:
+										offset = Vector3f{sensor_correction.gyro_offset_3};
 										break;
 									}
 								}
