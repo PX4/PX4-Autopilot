@@ -413,6 +413,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	if (!_has_initialized.load()) {
 		_has_initialized.store(true);
+		PX4_INFO("lockstep initialized, imu time_usec: %lu, time_usec: %lu", imu.time_usec, now_us);
 	}
 
 #endif
