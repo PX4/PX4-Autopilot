@@ -44,6 +44,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 
 extern "C" __EXPORT int assisted_release_main(int argc, char *argv[]);
@@ -85,26 +86,30 @@ private:
 
 	int _rpm_value = 0;
 	int _airspeed_value = 0;
-	float32 _rc_channel = 0;
-	float32 _throttle = 0;
+	float_t _rc_channel = 0;
+	float_t _throttle = 0;
+    float_t _pitch_setpoint = 0;
 
 	int _rpm_sub{-1};
 	int _airspeed_sub{-1};
 	int _vehicle_status_sub{-1};
     int _actuator_controls_0_sub{-1};
     int _input_rc_sub{-1};
+    int _manual_control_setpoint_sub{-1};
 
 	rpm_s _rpm{};
 	vehicle_status_s _vehicle_status{};
 	airspeed_s _airspeed{};
     actuator_controls_s _actuator_controls{};
     input_rc_s _input_rc{};
+    manual_control_setpoint_s _manual_control_setpoint{};
 
 	void rpm_poll();
 	void airspeed_poll();
 	void vehicle_status_poll();
 	void actuator_controls_poll();
 	void input_rc_poll();
+    void manual_control_setpoint_poll();
 
 
 	DEFINE_PARAMETERS(

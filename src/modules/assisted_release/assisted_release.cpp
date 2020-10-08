@@ -52,7 +52,7 @@
 int AssistedRelease::print_status()
 {
 	PX4_INFO("Running");
-    PX4_INFO("State: frequency=%d, airspeed=%d, throttle=%d, switch=%d", _rpm.indicated_frequency_rpm > (float)_param_min_rpm.get(), _airspeed.indicated_airspeed_m_s > (float)_param_min_aspd.get(), _throttle >= 0.5f, _rc_channel >= 0.5f);
+    PX4_INFO("State: frequency=%d, airspeed=%d, throttle=%d, switch=%d, pitch_sp=%d", _rpm.indicated_frequency_rpm > (float)_param_min_rpm.get(), _airspeed.indicated_airspeed_m_s > (float)_param_min_aspd.get(), _throttle >= 0.5f, _rc_channel >= 0.5f, _pitch_setpoint > 0);
 
 	return 0;
 }
@@ -122,18 +122,21 @@ void AssistedRelease::run()
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_actuator_controls_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 	_input_rc_sub = orb_subscribe(ORB_ID(input_rc));
+	_manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	orb_set_interval(_rpm_sub, 100);
 	orb_set_interval(_vehicle_status_sub, 100);
 	orb_set_interval(_airspeed_sub, 100);
 	orb_set_interval(_actuator_controls_0_sub, 100);
 	orb_set_interval(_input_rc_sub, 100);
+    orb_set_interval(_manual_control_setpoint_sub, 100);
 
 	rpm_poll();
 	airspeed_poll();
 	vehicle_status_poll();
 	actuator_controls_poll();
 	input_rc_poll();
+    manual_control_setpoint_poll();
 
 	actuator_controls_s control{};
 	uORB::Publication<actuator_controls_s> control_pub{ORB_ID(actuator_controls_1)};
@@ -170,23 +173,30 @@ void AssistedRelease::run()
 		vehicle_status_poll();
     	actuator_controls_poll();
     	input_rc_poll();
+        manual_control_setpoint_poll();
 
         _rc_channel = (1500-_input_rc.values[input_port])/500.0f;
         _throttle = _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+        _pitch_setpoint = _manual_control_setpoint.x;
 
 		timestamp_us = hrt_absolute_time();
 
-		if (_rpm.indicated_frequency_rpm > _param_min_rpm.get() && _airspeed.indicated_airspeed_m_s > _param_min_aspd.get() && _throttle >= 0.5f && _rc_channel >= 0.5f){
-            if(control.control[output_port] < 0.0f){
-                set_time = timestamp_us;
-    			control.control[output_port] = 1.0f;
-            }
-		} else {
-            if ( (set_time + _param_latch_time.get()*1000) <  timestamp_us){
-                control.control[output_port] = -1.0f;
-                set_time = timestamp_us;
-            }
-		}
+        if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED){
+    		if (_rpm.indicated_frequency_rpm > _param_min_rpm.get() && _airspeed.indicated_airspeed_m_s > _param_min_aspd.get() && _throttle >= 0.5f && _rc_channel >= 0.5f && _pitch_setpoint > 0){
+                if(control.control[output_port] < 0.0f){
+                    set_time = timestamp_us;
+        			control.control[output_port] = 1.0f;
+                }
+    		} else {
+                if ( (set_time + _param_latch_time.get()*1000) <  timestamp_us){
+                    control.control[output_port] = -1.0f;
+                    set_time = timestamp_us;
+                }
+    		}
+        } else { // Pokud neni naarmovano
+            set_time = timestamp_us;
+            control.control[output_port] = _rc_channel;
+        }
 
 		control.timestamp = timestamp_us;
 		control.timestamp_sample = timestamp_us;
@@ -260,6 +270,18 @@ AssistedRelease::input_rc_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(input_rc), _input_rc_sub, &_input_rc);
+	}
+}
+
+
+void
+AssistedRelease::manual_control_setpoint_poll()
+{
+	bool updated;
+	orb_check(_manual_control_setpoint_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &_manual_control_setpoint);
 	}
 }
 
