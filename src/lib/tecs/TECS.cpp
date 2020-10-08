@@ -328,7 +328,7 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const matrix::
 		throttle_setpoint = (_STE_rate_error * _throttle_damping_gain) * STE_rate_to_throttle + throttle_predicted;
 		throttle_setpoint = constrain(throttle_setpoint, _throttle_setpoint_min, _throttle_setpoint_max);
 
-		if (_integrator_gain > 0.0f) {
+		if (_integrator_gain_throttle > 0.0f) {
 			// Calculate throttle integrator state upper and lower limits with allowance for
 			// 10% throttle saturation to accommodate noise on the demand.
 			float integ_state_max = _throttle_setpoint_max - throttle_setpoint + 0.1f;
@@ -336,7 +336,8 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const matrix::
 
 			// Calculate a throttle demand from the integrated total energy error
 			// This will be added to the total throttle demand to compensate for steady state errors
-			_throttle_integ_state = _throttle_integ_state + (_STE_rate_error * _integrator_gain) * _dt * STE_rate_to_throttle;
+			_throttle_integ_state = _throttle_integ_state + (_STE_rate_error * _integrator_gain_throttle) * _dt *
+						STE_rate_to_throttle;
 
 			if (_climbout_mode_active) {
 				// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
@@ -427,9 +428,9 @@ void TECS::_update_pitch_setpoint()
 	// Calculate derivative from change in climb angle to rate of change of specific energy balance
 	const float climb_angle_to_SEB_rate = _tas_state * CONSTANTS_ONE_G;
 
-	if (_integrator_gain > 0.0f) {
+	if (_integrator_gain_pitch > 0.0f) {
 		// Calculate pitch integrator input term
-		float pitch_integ_input = _SEB_rate_error * _integrator_gain;
+		float pitch_integ_input = _SEB_rate_error * _integrator_gain_pitch;
 
 		// Prevent the integrator changing in a direction that will increase pitch demand saturation
 		// Decay the integrator using a 1 second time constant if the pitch demand from the previous time step is saturated
