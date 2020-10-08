@@ -108,6 +108,15 @@ MavlinkStream::update(const hrt_abstime &t)
 	if (unlimited_rate || (dt > (interval - (_mavlink->get_main_loop_delay() / 10) * 3))) {
 		// interval expired, send message
 
+		// check if there is space in the buffer before trying to send
+		const unsigned size = get_size_avg();
+
+		if (size > _mavlink->get_free_tx_buf()) {
+			// not enough space in buffer to send
+			_mavlink->count_txerrbytes(size);
+			return -1;
+		}
+
 		// If the interval is non-zero and dt is smaller than 1.5 times the interval
 		// do not use the actual time but increment at a fixed rate, so that processing delays do not
 		// distort the average rate. The check of the maximum interval is done to ensure that after a
