@@ -52,6 +52,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/rangefinder/PX4Rangefinder.hpp>
 
+using namespace time_literals;
+
 /* Configuration Constants */
 #define SF1XX_BASEADDR		0x66
 
@@ -69,49 +71,65 @@ public:
 
 	int init() override;
 
-	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
 	void print_status() override;
 
-	/**
-	* Perform a poll cycle; collect from the previous measurement
-	* and start a new one.
-	*/
 	void RunImpl();
 
 private:
+	// I2C (legacy) binary protocol command
+	static constexpr uint8_t I2C_LEGACY_CMD_READ_ALTITUDE = 0;
+
+	enum class Register : uint8_t {
+		// see http://support.lightware.co.za/sf20/#/commands
+		ProductName = 0,
+		DistanceOutput = 27,
+		DistanceData = 44,
+		MeasurementMode = 93,
+		ZeroOffset = 94,
+		LostSignalCounter = 95,
+		Protocol = 120,
+		ServoConnected = 121,
+	};
+
+	static constexpr uint16_t output_data_config = 0b11010110100;
+	struct OutputData {
+		int16_t first_return_median;
+		int16_t first_return_strength;
+		int16_t last_return_raw;
+		int16_t last_return_median;
+		int16_t last_return_strength;
+		int16_t background_noise;
+	};
+
+	enum class Type {
+		Generic = 0,
+		LW20c
+	};
+	enum class State {
+		Configuring,
+		Running
+	};
+
 	int probe() override;
 
-	/**
-	* Test whether the device supported by the driver is present at a
-	* specific address.
-	*
-	* @param address The I2C bus address to probe.
-	* @return True if the device is present.
-	*/
-	int probe_address(uint8_t address);
-
-	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
 	void start();
 
-	int measure();
+	int readRegister(Register reg, uint8_t *data, int len);
+
+	int configure();
+	int enableI2CBinaryProtocol();
 	int collect();
 
 	PX4Rangefinder _px4_rangefinder;
 
-	bool _sensor_ok{false};
-
 	int _conversion_interval{-1};
-	int _measure_interval{0};
 
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
+
+	Type _type{Type::Generic};
+	State _state{State::Configuring};
+	int _consecutive_errors{0};
 };
 
 SF1XX::SF1XX(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
@@ -176,6 +194,7 @@ int SF1XX::init()
 		_px4_rangefinder.set_min_distance(0.001f);
 		_px4_rangefinder.set_max_distance(100.0f);
 		_conversion_interval = 20834;
+		_type = Type::LW20c;
 		break;
 
 	default:
@@ -184,93 +203,199 @@ int SF1XX::init()
 	}
 
 	/* do I2C init (and probe) first */
-	if (I2C::init() != OK) {
-		return ret;
-	}
+	return I2C::init();
+}
 
-	// Select altitude register
-	int ret2 = measure();
-
-	if (ret2 == 0) {
-		ret = OK;
-		_sensor_ok = true;
-	}
-
-	return ret;
+int SF1XX::readRegister(Register reg, uint8_t *data, int len)
+{
+	const uint8_t cmd = (uint8_t)reg;
+	return transfer(&cmd, 1, data, len);
 }
 
 int SF1XX::probe()
 {
-	return measure();
+	switch (_type) {
+
+	case Type::Generic: {
+			uint8_t cmd = I2C_LEGACY_CMD_READ_ALTITUDE;
+			return transfer(&cmd, 1, nullptr, 0);
+		}
+
+	case Type::LW20c:
+		// try to enable I2C binary protocol
+		int ret = enableI2CBinaryProtocol();
+
+		if (ret != 0) {
+			return ret;
+		}
+
+		// read the product name
+		uint8_t product_name[16];
+		ret = readRegister(Register::ProductName, product_name, sizeof(product_name));
+		product_name[sizeof(product_name) - 1] = '\0';
+		PX4_DEBUG("product: %s", product_name);
+
+		if (ret == 0 && (strncmp((const char *)product_name, "SF20", sizeof(product_name)) == 0 ||
+				 strncmp((const char *)product_name, "LW20", sizeof(product_name)) == 0)) {
+			return 0;
+		}
+
+		return -1;
+	}
+
+	return -1;
 }
 
-int SF1XX::measure()
+int SF1XX::enableI2CBinaryProtocol()
 {
-	/*
-	 * Send the command '0' -- read altitude
-	 */
-	uint8_t cmd = 0;
-	int ret = transfer(&cmd, 1, nullptr, 0);
+	const uint8_t cmd[] = {(uint8_t)Register::Protocol, 0xaa, 0xaa};
+	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
 
-	if (OK != ret) {
-		perf_count(_comms_errors);
-		PX4_DEBUG("i2c::transfer returned %d", ret);
+	if (ret != 0) {
 		return ret;
 	}
 
-	ret = OK;
+	// now read and check against the expected values
+	uint8_t value[2];
+	ret = transfer(cmd, 1, value, sizeof(value));
 
-	return ret;
+	if (ret != 0) {
+		return ret;
+	}
+
+	PX4_DEBUG("protocol values: 0x%x 0x%x", value[0], value[1]);
+
+	return (value[0] == 0xcc && value[1] == 0x00) ? 0 : -1;
+}
+
+int SF1XX::configure()
+{
+	switch (_type) {
+	case Type::Generic: {
+			uint8_t cmd = I2C_LEGACY_CMD_READ_ALTITUDE;
+			int ret = transfer(&cmd, 1, nullptr, 0);
+
+			if (PX4_OK != ret) {
+				perf_count(_comms_errors);
+				PX4_DEBUG("i2c::transfer returned %d", ret);
+				return ret;
+			}
+
+			return ret;
+		}
+		break;
+
+	case Type::LW20c:
+
+		int ret = enableI2CBinaryProtocol();
+		const uint8_t cmd1[] = {(uint8_t)Register::ServoConnected, 0};
+		ret |= transfer(cmd1, sizeof(cmd1), nullptr, 0);
+		const uint8_t cmd2[] = {(uint8_t)Register::ZeroOffset, 0, 0, 0, 0};
+		ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
+		const uint8_t cmd3[] = {(uint8_t)Register::MeasurementMode, 1}; // 48Hz
+		ret |= transfer(cmd3, sizeof(cmd3), nullptr, 0);
+		const uint8_t cmd4[] = {(uint8_t)Register::DistanceOutput, output_data_config & 0xff, (output_data_config >> 8) & 0xff, 0, 0};
+		ret |= transfer(cmd4, sizeof(cmd4), nullptr, 0);
+		const uint8_t cmd5[] = {(uint8_t)Register::LostSignalCounter, 0, 0, 0, 0}; // immediately report lost signal
+		ret |= transfer(cmd5, sizeof(cmd5), nullptr, 0);
+
+		return ret;
+		break;
+	}
+
+	return -1;
 }
 
 int SF1XX::collect()
 {
-	/* read from the sensor */
-	perf_begin(_sample_perf);
-	uint8_t val[2] {};
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	switch (_type) {
+	case Type::Generic: {
+			/* read from the sensor */
+			perf_begin(_sample_perf);
+			uint8_t val[2] {};
+			const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (transfer(nullptr, 0, &val[0], 2) < 0) {
-		perf_count(_comms_errors);
+			if (transfer(nullptr, 0, &val[0], 2) < 0) {
+				perf_count(_comms_errors);
+				perf_end(_sample_perf);
+				return PX4_ERROR;
+			}
+
+			perf_end(_sample_perf);
+
+			uint16_t distance_cm = val[0] << 8 | val[1];
+			float distance_m = float(distance_cm) * 1e-2f;
+
+			_px4_rangefinder.update(timestamp_sample, distance_m);
+			break;
+		}
+
+	case Type::LW20c:
+
+		/* read from the sensor */
+		perf_begin(_sample_perf);
+		OutputData data;
+		const hrt_abstime timestamp_sample = hrt_absolute_time();
+
+		if (readRegister(Register::DistanceData, (uint8_t *)&data, sizeof(data)) < 0) {
+			perf_count(_comms_errors);
+			perf_end(_sample_perf);
+			return PX4_ERROR;
+		}
+
 		perf_end(_sample_perf);
-		return PX4_ERROR;
+
+		// compare different outputs (median filter adds about 25ms delay)
+		PX4_DEBUG("fm: %4i, fs: %2i%%, lm: %4i, lr: %4i, fs: %2i%%, n: %i",
+			  data.first_return_median, data.first_return_strength, data.last_return_median, data.last_return_raw,
+			  data.last_return_strength, data.background_noise);
+
+		float distance_m = float(data.last_return_raw) * 1e-2f;
+		int8_t quality = data.last_return_strength;
+
+		_px4_rangefinder.update(timestamp_sample, distance_m, quality);
+		break;
 	}
-
-	perf_end(_sample_perf);
-
-	uint16_t distance_cm = val[0] << 8 | val[1];
-	float distance_m = float(distance_cm) * 1e-2f;
-
-	_px4_rangefinder.update(timestamp_sample, distance_m);
 
 	return PX4_OK;
 }
 
 void SF1XX::start()
 {
-	if (_measure_interval == 0) {
-		_measure_interval = _conversion_interval;
-	}
-
-	/* set register to '0' */
-	measure();
-
 	/* schedule a cycle to start things */
 	ScheduleDelayed(_conversion_interval);
 }
 
 void SF1XX::RunImpl()
 {
-	/* Collect results */
-	if (OK != collect()) {
-		PX4_DEBUG("collection error");
-		/* if error restart the measurement state machine */
-		start();
-		return;
-	}
+	switch (_state) {
+	case State::Configuring: {
+			if (configure() == 0) {
+				_state = State::Running;
+				ScheduleDelayed(_conversion_interval);
 
-	/* schedule a fresh cycle call when the measurement is done */
-	ScheduleDelayed(_conversion_interval);
+			} else {
+				// retry after a while
+				PX4_DEBUG("Retrying...");
+				ScheduleDelayed(300_ms);
+			}
+
+			break;
+		}
+
+	case State::Running:
+		if (PX4_OK != collect()) {
+			PX4_DEBUG("collection error");
+
+			if (++_consecutive_errors > 3) {
+				_state = State::Configuring;
+				_consecutive_errors = 0;
+			}
+		}
+
+		ScheduleDelayed(_conversion_interval);
+		break;
+	}
 }
 
 void SF1XX::print_status()
