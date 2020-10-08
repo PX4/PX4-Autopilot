@@ -154,6 +154,7 @@ void WorkQueue::Run()
 			work_unlock(); // unlock work queue to run (item may requeue itself)
 			work->RunPreamble();
 			work->Run();
+			work->RunPostamble();
 			// Note: after Run() we cannot access work anymore, as it might have been deleted
 			work_lock(); // re-lock
 		}

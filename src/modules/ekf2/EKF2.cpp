@@ -172,7 +172,6 @@ EKF2::EKF2(bool replay_mode):
 
 EKF2::~EKF2()
 {
-	px4_lockstep_unregister_component(_lockstep_component);
 	perf_free(_ekf_update_perf);
 }
 
@@ -1138,12 +1137,6 @@ void EKF2::Run()
 
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
-
-		if (_lockstep_component == -1) {
-			_lockstep_component = px4_lockstep_register_component();
-		}
-
-		px4_lockstep_progress(_lockstep_component);
 	}
 }
 

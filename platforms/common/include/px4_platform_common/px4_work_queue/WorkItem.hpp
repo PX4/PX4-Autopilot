@@ -66,6 +66,10 @@ public:
 	inline void ScheduleNow()
 	{
 		if (_wq != nullptr) {
+			if (_lockstep_component == -1) {
+				_lockstep_component = px4_lockstep_register_component();
+			}
+
 			_wq->Add(this);
 		}
 	}
@@ -108,6 +112,13 @@ protected:
 		}
 	}
 
+	void RunPostamble()
+	{
+		px4_lockstep_progress(_lockstep_component);
+		px4_lockstep_unregister_component(_lockstep_component);
+		_lockstep_component = -1;
+	}
+
 	friend void WorkQueue::Run();
 	virtual void Run() = 0;
 
@@ -131,8 +142,9 @@ protected:
 	uint32_t	_run_count{0};
 
 private:
-
 	WorkQueue	*_wq{nullptr};
+
+	int _lockstep_component{-1};
 
 };
 

@@ -131,8 +131,6 @@ private:
 	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
 
-	int _lockstep_component{-1};
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
@@ -296,8 +294,6 @@ Sensors::~Sensors()
 			delete vehicle_imu;
 		}
 	}
-
-	px4_lockstep_unregister_component(_lockstep_component);
 
 	perf_free(_loop_perf);
 }
@@ -640,12 +636,6 @@ void Sensors::Run()
 		// check parameters for updates
 		parameter_update_poll();
 	}
-
-	if (_lockstep_component == -1) {
-		_lockstep_component = px4_lockstep_register_component();
-	}
-
-	px4_lockstep_progress(_lockstep_component);
 
 	perf_end(_loop_perf);
 }

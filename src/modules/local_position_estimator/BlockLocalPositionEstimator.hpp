@@ -338,8 +338,6 @@ private:
 	uint64_t _time_last_land;
 	uint64_t _time_last_target;
 
-	int _lockstep_component{-1};
-
 	// reference altitudes
 	float _altOrigin;
 	bool _altOriginInitialized;

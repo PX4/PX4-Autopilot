@@ -177,13 +177,10 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	_gyro_bias.zero();
 
 	update_parameters(true);
-
-	_lockstep_component = px4_lockstep_register_component();
 }
 
 AttitudeEstimatorQ::~AttitudeEstimatorQ()
 {
-	px4_lockstep_unregister_component(_lockstep_component);
 }
 
 bool
@@ -366,8 +363,6 @@ AttitudeEstimatorQ::Run()
 			_att_pub.publish(att);
 
 		}
-
-		px4_lockstep_progress(_lockstep_component);
 	}
 }
 

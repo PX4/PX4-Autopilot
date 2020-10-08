@@ -186,7 +186,6 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 	int _imu_sub_index{-1};
 	bool _callback_registered{false};
-	int _lockstep_component{-1};
 
 	// because we can have several distance sensor instances with different orientations
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
