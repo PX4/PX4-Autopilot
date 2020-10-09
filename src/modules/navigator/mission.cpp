@@ -406,7 +406,8 @@ Mission::find_mission_land_start()
 			// the DO_LAND_START marker contains no position sp, so take them from the previous mission item
 			_landing_lat = missionitem_prev.lat;
 			_landing_lon = missionitem_prev.lon;
-			_landing_alt = missionitem_prev.altitude;
+			_landing_alt = missionitem_prev.altitude_is_relative ?	missionitem_prev.altitude +
+				       _navigator->get_home_position()->alt : missionitem_prev.altitude;
 			return true;
 
 			// if no DO_LAND_START marker available, also check for VTOL_LAND or normal LAND
@@ -418,7 +419,8 @@ Mission::find_mission_land_start()
 			_land_start_index = i;
 			_landing_lat = missionitem.lat;
 			_landing_lon = missionitem.lon;
-			_landing_alt = missionitem.altitude;
+			_landing_alt = missionitem.altitude_is_relative ?	missionitem.altitude + _navigator->get_home_position()->alt :
+				       missionitem.altitude;
 			return true;
 		}
 	}
