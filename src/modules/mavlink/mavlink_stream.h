@@ -75,6 +75,9 @@ public:
 	 */
 	int get_interval() { return _interval; }
 
+	// Returns true if required data is updated
+	virtual bool updated() { return true; }
+
 	/**
 	 * @return 0 if updated / sent, -1 if unchanged
 	 */

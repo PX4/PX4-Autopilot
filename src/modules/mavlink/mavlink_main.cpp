@@ -2380,7 +2380,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* update streams */
 		for (const auto &stream : _streams) {
-			stream->update(t);
+			if (stream->updated()) {
+				stream->update(t);
+			}
 
 			if (!_first_heartbeat_sent) {
 				if (_mode == MAVLINK_MODE_IRIDIUM) {

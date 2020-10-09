@@ -53,6 +53,8 @@ public:
 		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
 	}
 
+	bool updated() override { return _esc_status_sub.updated(); }
+
 private:
 	explicit MavlinkStreamESCStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 

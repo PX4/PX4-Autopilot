@@ -648,6 +648,8 @@ public:
 		return MAVLINK_MSG_ID_SYS_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
+	bool updated() override { return _status_sub.updated() || _cpuload_sub.updated() || _battery_status_subs.updated(); }
+
 private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
@@ -664,7 +666,7 @@ protected:
 
 	bool send() override
 	{
-		if (_status_sub.updated() || _cpuload_sub.updated() || _battery_status_subs.updated()) {
+		if (updated()) {
 			vehicle_status_s status{};
 			_status_sub.copy(&status);
 
@@ -753,6 +755,8 @@ public:
 		static constexpr unsigned size_per_battery = MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		return size_per_battery * _battery_status_subs.advertised_count();
 	}
+
+	bool updated() override { return _battery_status_subs.updated(); }
 
 private:
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
@@ -877,6 +881,8 @@ public:
 		static constexpr unsigned size_per_battery = MAVLINK_MSG_ID_SMART_BATTERY_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		return size_per_battery * _battery_status_subs.advertised_count();
 	}
+
+	bool updated() override { return _battery_status_subs.updated(); }
 
 private:
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
@@ -1086,6 +1092,8 @@ public:
 		return new Derived(mavlink);
 	}
 
+	bool updated() override { return _sensor_baro_sub.updated() || _differential_pressure_sub.updated(); }
+
 private:
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
 	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro), N};
@@ -1100,7 +1108,7 @@ protected:
 
 	bool send() override
 	{
-		if (_sensor_baro_sub.updated() || _differential_pressure_sub.updated()) {
+		if (updated()) {
 			sensor_baro_s sensor_baro{};
 			differential_pressure_s differential_pressure{};
 			_sensor_baro_sub.copy(&sensor_baro);
@@ -1246,6 +1254,8 @@ public:
 		return _raw_imu_sub.advertised() ? (MAVLINK_MSG_ID_SCALED_IMU_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
+	bool updated() override { return _raw_imu_sub.updated() || _raw_mag_sub.updated(); }
+
 private:
 	uORB::Subscription _raw_imu_sub{ORB_ID(vehicle_imu), 0};
 	uORB::Subscription _raw_mag_sub{ORB_ID(sensor_mag), 0};
@@ -1260,7 +1270,7 @@ protected:
 
 	bool send() override
 	{
-		if (_raw_imu_sub.updated() || _raw_mag_sub.updated()) {
+		if (updated()) {
 
 			vehicle_imu_s imu{};
 			_raw_imu_sub.copy(&imu);
@@ -1332,6 +1342,8 @@ public:
 		return _raw_imu_sub.advertised() ? (MAVLINK_MSG_ID_SCALED_IMU2_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
+	bool updated() override { return _raw_imu_sub.updated() || _raw_mag_sub.updated(); }
+
 private:
 	uORB::Subscription _raw_imu_sub{ORB_ID(vehicle_imu), 1};
 	uORB::Subscription _raw_mag_sub{ORB_ID(sensor_mag), 1};
@@ -1346,7 +1358,7 @@ protected:
 
 	bool send() override
 	{
-		if (_raw_imu_sub.updated() || _raw_mag_sub.updated()) {
+		if (updated()) {
 
 			vehicle_imu_s imu{};
 			_raw_imu_sub.copy(&imu);
@@ -1417,6 +1429,8 @@ public:
 		return _raw_imu_sub.advertised() ? (MAVLINK_MSG_ID_SCALED_IMU3_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
+	bool updated() override { return _raw_imu_sub.updated() || _raw_mag_sub.updated(); }
+
 private:
 	uORB::Subscription _raw_imu_sub{ORB_ID(vehicle_imu), 2};
 	uORB::Subscription _raw_mag_sub{ORB_ID(sensor_mag), 2};
@@ -1431,7 +1445,7 @@ protected:
 
 	bool send() override
 	{
-		if (_raw_imu_sub.updated() || _raw_mag_sub.updated()) {
+		if (updated()) {
 
 			vehicle_imu_s imu{};
 			_raw_imu_sub.copy(&imu);
@@ -1503,6 +1517,8 @@ public:
 	{
 		return _att_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _att_sub.updated(); }
 
 private:
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
@@ -1579,6 +1595,8 @@ public:
 	{
 		return _att_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _att_sub.updated(); }
 
 private:
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
@@ -1679,6 +1697,8 @@ public:
 		return 0;
 	}
 
+	bool updated() override { return _lpos_sub.updated() || _airspeed_validated_sub.updated(); }
+
 private:
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
@@ -1697,7 +1717,7 @@ protected:
 
 	bool send() override
 	{
-		if (_lpos_sub.updated() || _airspeed_validated_sub.updated()) {
+		if (updated()) {
 
 			vehicle_local_position_s lpos{};
 			_lpos_sub.copy(&lpos);
@@ -1793,6 +1813,8 @@ public:
 		return _gps_sub.advertised() ? MAVLINK_MSG_ID_GPS_RAW_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _gps_sub.updated(); }
+
 private:
 	uORB::Subscription _gps_sub{ORB_ID(sensor_gps), 0};
 
@@ -1868,6 +1890,8 @@ public:
 	{
 		return _gps2_sub.advertised() ? (MAVLINK_MSG_ID_GPS2_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
+
+	bool updated() override { return _gps2_sub.updated(); }
 
 private:
 	uORB::Subscription _gps2_sub{ORB_ID(sensor_gps), 1};
@@ -2064,6 +2088,8 @@ public:
 		return _pos_sub.advertised() ? MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _pos_sub.updated(); }
+
 private:
 	uORB::Subscription _pos_sub{ORB_ID(transponder_report)};
 
@@ -2159,6 +2185,8 @@ public:
 	{
 		return _global_pos_sub.advertised() ? MAVLINK_MSG_ID_UTM_GLOBAL_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _global_pos_sub.updated(); }
 
 private:
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
@@ -2331,6 +2359,8 @@ public:
 		return _collision_sub.advertised() ? MAVLINK_MSG_ID_COLLISION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _collision_sub.updated(); }
+
 private:
 	uORB::Subscription _collision_sub{ORB_ID(collision_report)};
 
@@ -2403,6 +2433,8 @@ public:
 	{
 		return _trigger_sub.advertised() ? MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _trigger_sub.updated(); }
 
 private:
 	uORB::Subscription _trigger_sub{ORB_ID(camera_trigger)};
@@ -2509,6 +2541,8 @@ public:
 		return _capture_sub.advertised() ? MAVLINK_MSG_ID_CAMERA_IMAGE_CAPTURED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _capture_sub.updated(); }
+
 private:
 	uORB::Subscription _capture_sub{ORB_ID(camera_capture)};
 
@@ -2584,6 +2618,8 @@ public:
 	{
 		return _gpos_sub.advertised() ? MAVLINK_MSG_ID_GLOBAL_POSITION_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _gpos_sub.updated() && _lpos_sub.updated(); }
 
 private:
 	uORB::Subscription _gpos_sub{ORB_ID(vehicle_global_position)};
@@ -2692,6 +2728,16 @@ public:
 
 		} else {
 			return _odom_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		}
+	}
+
+	bool updated() override
+	{
+		if (_mavlink->odometry_loopback_enabled()) {
+			return _vodom_sub.updated();
+
+		} else {
+			return _odom_sub.updated();
 		}
 	}
 
@@ -2809,7 +2855,6 @@ protected:
 		}
 
 		return false;
-
 	}
 };
 
@@ -2845,6 +2890,8 @@ public:
 	{
 		return _lpos_sub.advertised() ? MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _lpos_sub.updated(); }
 
 private:
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
@@ -2913,6 +2960,8 @@ public:
 	{
 		return _est_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _est_sub.updated(); }
 
 private:
 	uORB::Subscription _est_sub{ORB_ID(estimator_status)};
@@ -2993,6 +3042,8 @@ public:
 		return 0;
 	}
 
+	bool updated() override { return _vehicle_imu_status_subs.updated() || _sensor_selection_sub.updated(); }
+
 private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::SubscriptionMultiArray<vehicle_imu_status_s, 3> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
@@ -3007,8 +3058,7 @@ protected:
 
 	bool send() override
 	{
-		if (_sensor_selection_sub.updated() || _vehicle_imu_status_subs.updated()) {
-
+		if (updated()) {
 			mavlink_vibration_t msg{};
 			msg.time_usec = hrt_absolute_time();
 
@@ -3101,6 +3151,8 @@ public:
 	{
 		return _mocap_sub.advertised() ? MAVLINK_MSG_ID_ATT_POS_MOCAP_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _mocap_sub.updated(); }
 
 private:
 	uORB::Subscription _mocap_sub{ORB_ID(vehicle_mocap_odometry)};
@@ -3264,6 +3316,8 @@ public:
 		return _act_sub.advertised() ? MAVLINK_MSG_ID_SERVO_OUTPUT_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _act_sub.updated(); }
+
 private:
 	uORB::Subscription _act_sub{ORB_ID(actuator_outputs), N};
 
@@ -3359,6 +3413,8 @@ public:
 			&& _act_ctrl_sub->advertised()) ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
+	bool updated() override { return _act_ctrl_sub && _act_ctrl_sub->updated(); }
+
 private:
 	uORB::Subscription *_act_ctrl_sub{nullptr};
 
@@ -3449,6 +3505,8 @@ public:
 	{
 		return _act_sub.advertised() ? MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _act_sub.updated(); }
 
 private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
@@ -3703,6 +3761,8 @@ public:
 		return _pos_sp_sub.advertised() ? MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _pos_sp_sub.updated(); }
+
 private:
 	uORB::Subscription _pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};
 
@@ -3778,6 +3838,8 @@ public:
 		return _att_sp_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _att_sp_sub.updated(); }
+
 private:
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _att_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
@@ -3852,6 +3914,8 @@ public:
 	{
 		return _rc_sub.advertised() ? (MAVLINK_MSG_ID_RC_CHANNELS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
+
+	bool updated() override { return _rc_sub.updated(); }
 
 private:
 	uORB::Subscription _rc_sub{ORB_ID(input_rc)};
@@ -3939,6 +4003,8 @@ public:
 		       (MAVLINK_MSG_ID_MANUAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
+	bool updated() override { return _manual_control_setpoint_sub.updated(); }
+
 private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
@@ -4016,6 +4082,8 @@ public:
 
 		return 0;
 	}
+
+	bool updated() override { return _traj_wp_avoidance_sub.updated(); }
 
 private:
 	uORB::Subscription _traj_wp_avoidance_sub{ORB_ID(vehicle_trajectory_waypoint_desired)};
@@ -4121,6 +4189,8 @@ public:
 		return _flow_sub.advertised() ? (MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
+	bool updated() override { return _flow_sub.updated(); }
+
 private:
 	uORB::Subscription _flow_sub{ORB_ID(optical_flow)};
 
@@ -4195,6 +4265,8 @@ public:
 		return _debug_sub.advertised() ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _debug_sub.updated(); }
+
 private:
 	uORB::Subscription _debug_sub{ORB_ID(debug_key_value)};
 
@@ -4261,6 +4333,8 @@ public:
 		return _debug_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _debug_sub.updated(); }
+
 private:
 	uORB::Subscription _debug_sub{ORB_ID(debug_value)};
 
@@ -4323,6 +4397,8 @@ public:
 	{
 		return _debug_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_VECT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _debug_sub.updated(); }
 
 private:
 	uORB::Subscription _debug_sub{ORB_ID(debug_vect)};
@@ -4391,6 +4467,8 @@ public:
 	{
 		return _debug_array_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _debug_array_sub.updated(); }
 
 private:
 	uORB::Subscription _debug_array_sub{ORB_ID(debug_array)};
@@ -4462,6 +4540,8 @@ public:
 		return (_pos_ctrl_status_sub.advertised()) ?
 		       MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
+
+	bool updated() override { return _pos_ctrl_status_sub.updated(); }
 
 private:
 	uORB::Subscription _pos_ctrl_status_sub{ORB_ID(position_controller_status)};
@@ -4538,6 +4618,8 @@ public:
 		return MAVLINK_MSG_ID_COMMAND_LONG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
+	bool updated() override { return _status_sub.updated(); }
+
 private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 
@@ -4608,6 +4690,8 @@ public:
 	{
 		return _distance_sensor_subs.advertised_count() * (MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
+
+	bool updated() override { return _distance_sensor_subs.updated(); }
 
 private:
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
@@ -4697,8 +4781,14 @@ public:
 
 	unsigned get_size() override
 	{
-		return _local_pos_sub.advertised() ? MAVLINK_MSG_ID_ALTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		if (_local_pos_sub.advertised() || _air_data_sub.advertised()) {
+			return MAVLINK_MSG_ID_ALTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		}
+
+		return 0;
 	}
+
+	bool updated() override { return _local_pos_sub.updated() || _air_data_sub.updated(); }
 
 private:
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
@@ -4818,6 +4908,8 @@ public:
 		return _wind_estimate_sub.advertised() ? MAVLINK_MSG_ID_WIND_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _wind_estimate_sub.updated(); }
+
 private:
 	uORB::Subscription _wind_estimate_sub{ORB_ID(wind_estimate)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
@@ -4895,6 +4987,8 @@ public:
 		return _mount_orientation_sub.advertised() ? MAVLINK_MSG_ID_MOUNT_ORIENTATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _mount_orientation_sub.updated(); }
+
 private:
 	uORB::Subscription _mount_orientation_sub{ORB_ID(mount_orientation)};
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
@@ -4965,6 +5059,8 @@ public:
 			|| _gpos_sub.advertised()) ? MAVLINK_MSG_ID_HIL_STATE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return (_angular_velocity_sub.updated() || _att_sub.updated() || _gpos_sub.updated() || _lpos_sub.updated()); }
+
 private:
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude_groundtruth)};
@@ -4981,7 +5077,7 @@ protected:
 
 	bool send() override
 	{
-		if (_angular_velocity_sub.updated() || _att_sub.updated() || _gpos_sub.updated() || _lpos_sub.updated()) {
+		if (updated()) {
 			vehicle_attitude_s att{};
 			_att_sub.copy(&att);
 
@@ -5126,6 +5222,8 @@ public:
 		return _orb_status_sub.advertised() ? MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _orb_status_sub.updated(); }
+
 private:
 	uORB::Subscription _orb_status_sub{ORB_ID(orbit_status)};
 
@@ -5191,6 +5289,8 @@ public:
 		return _obstacle_distance_fused_sub.advertised() ? (MAVLINK_MSG_ID_OBSTACLE_DISTANCE_LEN +
 				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
+
+	bool updated() override { return _obstacle_distance_fused_sub.updated(); }
 
 private:
 	uORB::Subscription _obstacle_distance_fused_sub{ORB_ID(obstacle_distance_fused)};
