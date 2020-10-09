@@ -58,6 +58,9 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <drivers/drv_hrt.h>
+
+using namespace time_literals;
 
 Mission::Mission(Navigator *navigator) :
 	MissionBlock(navigator),
@@ -72,6 +75,12 @@ Mission::on_inactive()
 	 * mission velocity which might have been set using mission items
 	 * is used for missions such as RTL. */
 	_navigator->set_cruising_speed();
+
+	// if we were executing an landing but have been inactive for 2 seconds, then make the landing invalid
+	// this prevents RTL to just continue at the current mission index
+	if (_navigator->getMissionLandingInProgress() && (hrt_absolute_time() - _time_mission_deactivated) > 2_s) {
+		_navigator->setMissionLandingInProgress(false);
+	}
 
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_position_valid()) {
@@ -147,6 +156,8 @@ Mission::on_inactivation()
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
 	}
+
+	_time_mission_deactivated = hrt_absolute_time();
 }
 
 void
@@ -421,12 +432,15 @@ Mission::land_start()
 {
 	// if not currently landing, jump to do_land_start
 	if (_land_start_available) {
-		if (landing()) {
+		if (_navigator->getMissionLandingInProgress()) {
 			return true;
 
 		} else {
 			set_current_mission_index(get_land_start_index());
-			return landing();
+
+			const bool can_land_now = landing();
+			_navigator->setMissionLandingInProgress(can_land_now);
+			return can_land_now;
 		}
 	}
 
@@ -1625,6 +1639,11 @@ Mission::set_mission_item_reached()
 {
 	_navigator->get_mission_result()->seq_reached = _current_mission_index;
 	_navigator->set_mission_result_updated();
+
+	// let the navigator know that we are currently executing the mission landing.
+	// Using the method landing() itself is not accurate as it only give information about the mission index
+	// but the vehicle could still be very far from the actual landing items
+	_navigator->setMissionLandingInProgress(landing());
 
 	reset_mission_item_reached();
 }
