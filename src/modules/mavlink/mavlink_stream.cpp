@@ -56,6 +56,10 @@ MavlinkStream::MavlinkStream(Mavlink *mavlink) :
 int
 MavlinkStream::update(const hrt_abstime &t)
 {
+	if (!updated()) {
+		return -1;
+	}
+
 	update_data();
 
 	// If the message has never been sent before we want

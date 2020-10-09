@@ -52,6 +52,8 @@ public:
 		return _rpm_sub.advertised() ? MAVLINK_MSG_ID_RAW_RPM + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
+	bool updated() override { return _rpm_sub.updated(); }
+
 private:
 	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
