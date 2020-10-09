@@ -143,6 +143,8 @@ private:
 			delete _dist_pubs[i];
 		}
 
+		px4_lockstep_unregister_component(_lockstep_component);
+
 		_instance = nullptr;
 	}
 
@@ -287,6 +289,8 @@ private:
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
 #endif
+
+	int _lockstep_component{-1};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
