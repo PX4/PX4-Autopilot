@@ -475,10 +475,11 @@ bool UavcanGnssBridge::injectData(const uint8_t *data, size_t len)
 	RTCMStream msg;
 	msg.protocol_id = RTCMStream::PROTOCOL_ID_RTCM3;
 
-	if (len > msg.data.capacity()) {
-		// TODO: this should probably split up the messages
-		PX4_WARN("injected RTCM data too long");
-		return false;
+	size_t capacity = msg.data.capacity();
+
+	if (len > capacity) {
+		return injectData(data, capacity) &&
+		       injectData(data + capacity, len - capacity);
 	}
 
 	const uint8_t *data_end = data + len;
