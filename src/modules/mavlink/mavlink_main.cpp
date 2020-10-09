@@ -48,6 +48,7 @@
 #include <netutils/netlib.h>
 #endif
 
+#include <containers/LockGuard.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
@@ -76,84 +77,15 @@
 #define MAX_DATA_RATE                  10000000        ///< max data rate in bytes/s
 #define MAIN_LOOP_DELAY                10000           ///< 100 Hz @ 1000 bytes/s data rate
 
-static Mavlink *_mavlink_instances = nullptr;
+static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/**
- * Mavlink app start / stop handling function.
- *
- * @ingroup apps
- */
-extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
+Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
 
-void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
-{
-	Mavlink *m = Mavlink::get_instance(chan);
-
-	if (m != nullptr) {
-		m->send_bytes(ch, length);
-#ifdef MAVLINK_PRINT_PACKETS
-
-		for (unsigned i = 0; i < length; i++) {
-			printf("%02x", (unsigned char)ch[i]);
-		}
-
-#endif
-	}
-}
-
-void mavlink_start_uart_send(mavlink_channel_t chan, int length)
-{
-	Mavlink *m = Mavlink::get_instance(chan);
-
-	if (m != nullptr) {
-		m->send_start(length);
-#ifdef MAVLINK_PRINT_PACKETS
-		printf("START PACKET (%u): ", (unsigned)chan);
-#endif
-	}
-}
-
-void mavlink_end_uart_send(mavlink_channel_t chan, int length)
-{
-	Mavlink *m = Mavlink::get_instance(chan);
-
-	if (m != nullptr) {
-		m->send_finish();
-#ifdef MAVLINK_PRINT_PACKETS
-		printf("\n");
-#endif
-	}
-}
-
-/*
- * Internal function to give access to the channel status for each channel
- */
-mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
-{
-	Mavlink *m = Mavlink::get_instance(channel);
-
-	if (m != nullptr) {
-		return m->get_status();
-
-	} else {
-		return nullptr;
-	}
-}
-
-/*
- * Internal function to give access to the channel buffer for each channel
- */
-mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
-{
-	Mavlink *m = Mavlink::get_instance(channel);
-
-	if (m != nullptr) {
-		return m->get_buffer();
-
-	} else {
-		return nullptr;
-	}
-}
+void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length) { mavlink_module_instances[chan]->send_bytes(ch, length); }
+void mavlink_start_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_start(length); }
+void mavlink_end_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_finish(); }
+mavlink_status_t *mavlink_get_channel_status(uint8_t channel) { return mavlink_module_instances[channel]->get_status(); }
+mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return mavlink_module_instances[channel]->get_buffer(); }
 
 static void usage();
 
@@ -284,10 +216,20 @@ Mavlink::set_channel()
 	}
 }
 
-void
+bool
 Mavlink::set_instance_id()
 {
-	_instance_id = Mavlink::instance_count();
+	LockGuard lg{mavlink_module_mutex};
+
+	for (int instance_id = 0; instance_id < MAVLINK_COMM_NUM_BUFFERS; instance_id++) {
+		if (mavlink_module_instances[instance_id] == nullptr) {
+			mavlink_module_instances[instance_id] = this;
+			_instance_id = instance_id;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void
@@ -308,36 +250,25 @@ Mavlink::set_proto_version(unsigned version)
 int
 Mavlink::instance_count()
 {
+	LockGuard lg{mavlink_module_mutex};
 	size_t inst_index = 0;
-	Mavlink *inst;
 
-	LL_FOREACH(::_mavlink_instances, inst) {
-		inst_index++;
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst != nullptr) {
+			inst_index++;
+		}
 	}
 
 	return inst_index;
 }
 
 Mavlink *
-Mavlink::get_instance(int instance)
-{
-	Mavlink *inst;
-	LL_FOREACH(::_mavlink_instances, inst) {
-		if (instance == inst->get_instance_id()) {
-			return inst;
-		}
-	}
-
-	return nullptr;
-}
-
-Mavlink *
 Mavlink::get_instance_for_device(const char *device_name)
 {
-	Mavlink *inst;
+	LockGuard lg{mavlink_module_mutex};
 
-	LL_FOREACH(::_mavlink_instances, inst) {
-		if ((inst->_protocol == Protocol::SERIAL) && (strcmp(inst->_device_name, device_name) == 0)) {
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst && (inst->_protocol == Protocol::SERIAL) && (strcmp(inst->_device_name, device_name) == 0)) {
 			return inst;
 		}
 	}
@@ -349,10 +280,10 @@ Mavlink::get_instance_for_device(const char *device_name)
 Mavlink *
 Mavlink::get_instance_for_network_port(unsigned long port)
 {
-	Mavlink *inst;
+	LockGuard lg{mavlink_module_mutex};
 
-	LL_FOREACH(::_mavlink_instances, inst) {
-		if ((inst->_protocol == Protocol::UDP) && (inst->_network_port == port)) {
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst && (inst->_protocol == Protocol::UDP) && (inst->_network_port == port)) {
 			return inst;
 		}
 	}
@@ -364,40 +295,36 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 int
 Mavlink::destroy_all_instances()
 {
-	/* start deleting from the end */
-	Mavlink *inst_to_del = nullptr;
-	Mavlink *next_inst = ::_mavlink_instances;
-
+	LockGuard lg{mavlink_module_mutex};
 	unsigned iterations = 0;
 
 	PX4_INFO("waiting for instances to stop");
 
-	while (next_inst != nullptr) {
-		inst_to_del = next_inst;
-		next_inst = inst_to_del->next;
+	for (Mavlink *inst_to_del : mavlink_module_instances) {
+		if (inst_to_del != nullptr) {
+			/* set flag to stop thread and wait for all threads to finish */
+			inst_to_del->_task_should_exit = true;
 
-		/* set flag to stop thread and wait for all threads to finish */
-		inst_to_del->_task_should_exit = true;
+			while (inst_to_del->_task_running) {
+				printf(".");
+				fflush(stdout);
+				px4_usleep(10000);
+				iterations++;
 
-		while (inst_to_del->_task_running) {
-			printf(".");
-			fflush(stdout);
-			px4_usleep(10000);
-			iterations++;
-
-			if (iterations > 1000) {
-				PX4_ERR("Couldn't stop all mavlink instances.");
-				return PX4_ERROR;
+				if (iterations > 1000) {
+					PX4_ERR("Couldn't stop all mavlink instances.");
+					return PX4_ERROR;
+				}
 			}
 		}
-
 	}
 
 	//we know all threads have exited, so it's safe to manipulate the linked list and delete objects.
-	while (_mavlink_instances) {
-		inst_to_del = _mavlink_instances;
-		LL_DELETE(_mavlink_instances, inst_to_del);
-		delete inst_to_del;
+	for (Mavlink *inst_to_del : mavlink_module_instances) {
+		if (inst_to_del != nullptr) {
+			delete inst_to_del;
+			inst_to_del = nullptr;
+		}
 	}
 
 	printf("\n");
@@ -408,24 +335,22 @@ Mavlink::destroy_all_instances()
 int
 Mavlink::get_status_all_instances(bool show_streams_status)
 {
-	Mavlink *inst = ::_mavlink_instances;
-
+	LockGuard lg{mavlink_module_mutex};
 	unsigned iterations = 0;
 
-	while (inst != nullptr) {
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst != nullptr) {
+			printf("\ninstance #%u:\n", iterations);
 
-		printf("\ninstance #%u:\n", iterations);
+			if (show_streams_status) {
+				inst->display_status_streams();
 
-		if (show_streams_status) {
-			inst->display_status_streams();
+			} else {
+				inst->display_status();
+			}
 
-		} else {
-			inst->display_status();
+			iterations++;
 		}
-
-		/* move on */
-		inst = inst->next;
-		iterations++;
 	}
 
 	/* return an error if there are no instances */
@@ -435,16 +360,13 @@ Mavlink::get_status_all_instances(bool show_streams_status)
 bool
 Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 {
-	Mavlink *inst = ::_mavlink_instances;
+	LockGuard lg{mavlink_module_mutex};
 
-	while (inst != nullptr) {
-
+	for (Mavlink *inst : mavlink_module_instances) {
 		/* don't compare with itself and with non serial instances*/
-		if ((inst != self) && (inst->get_protocol() == Protocol::SERIAL) && !strcmp(device_name, inst->_device_name)) {
+		if (inst && (inst != self) && (inst->get_protocol() == Protocol::SERIAL) && !strcmp(device_name, inst->_device_name)) {
 			return true;
 		}
-
-		inst = inst->next;
 	}
 
 	return false;
@@ -453,9 +375,10 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 void
 Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
-	Mavlink *inst;
-	LL_FOREACH(_mavlink_instances, inst) {
-		if (inst != self) {
+	LockGuard lg{mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst && (inst != self)) {
 			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
 			int target_system_id = 0;
@@ -2156,6 +2079,13 @@ Mavlink::task_main(int argc, char *argv[])
 
 #endif // MAVLINK_UDP
 
+	if (!set_instance_id()) {
+		PX4_ERR("no instances available");
+		return PX4_ERROR;
+	}
+
+	set_channel();
+
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
 
@@ -2212,13 +2142,6 @@ Mavlink::task_main(int argc, char *argv[])
 	if (_main_loop_delay > MAVLINK_MAX_INTERVAL) {
 		_main_loop_delay = MAVLINK_MAX_INTERVAL;
 	}
-
-	set_instance_id();
-
-	set_channel();
-
-	/* now the instance is fully initialized and we can bump the instance count */
-	LL_APPEND(_mavlink_instances, this);
 
 	/* open the UART device after setting the instance, as it might block */
 	if (get_protocol() == Protocol::SERIAL) {
@@ -2732,9 +2655,8 @@ Mavlink::start(int argc, char *argv[])
 	// before returning to the shell
 	int ic = Mavlink::instance_count();
 
-	if (ic == Mavlink::MAVLINK_MAX_INSTANCES) {
-		PX4_ERR("Maximum MAVLink instance count of %d reached.",
-			(int)Mavlink::MAVLINK_MAX_INSTANCES);
+	if (ic == MAVLINK_COMM_NUM_BUFFERS) {
+		PX4_ERR("Maximum MAVLink instance count of %d reached.", MAVLINK_COMM_NUM_BUFFERS);
 		return 1;
 	}
 
@@ -3032,14 +2954,16 @@ Mavlink::set_boot_complete()
 	_boot_complete = true;
 
 #if defined(MAVLINK_UDP)
-	Mavlink *inst;
-	LL_FOREACH(::_mavlink_instances, inst) {
-		if ((inst->get_mode() != MAVLINK_MODE_ONBOARD) &&
+	LockGuard lg {mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst && (inst->get_mode() != MAVLINK_MODE_ONBOARD) &&
 		    !inst->broadcast_enabled() && inst->get_protocol() == Protocol::UDP) {
 
 			PX4_INFO("MAVLink only on localhost (set param MAV_BROADCAST = 1 to enable network)");
 		}
 	}
+
 #endif // MAVLINK_UDP
 
 }
@@ -3118,7 +3042,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 
 }
 
-int mavlink_main(int argc, char *argv[])
+extern "C" __EXPORT int mavlink_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage();
