@@ -41,8 +41,9 @@
 #include <time.h>
 #include <stdio.h>
 #include <cstdbool>
-#include "mavlink_bridge_header.h"
 #include <drivers/drv_hrt.h>
+
+#include "mavlink_bridge_header.h"
 
 class Mavlink;
 
