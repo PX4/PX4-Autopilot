@@ -103,7 +103,7 @@ enum class Protocol {
 
 using namespace time_literals;
 
-class Mavlink : public ModuleParams
+class Mavlink final : public ModuleParams
 {
 
 public:
@@ -139,8 +139,6 @@ public:
 	static int		instance_count();
 
 	static Mavlink		*new_instance();
-
-	static Mavlink		*get_instance(int instance);
 
 	static Mavlink 		*get_instance_for_device(const char *device_name);
 
@@ -521,9 +519,6 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-protected:
-	Mavlink			*next{nullptr};
-
 private:
 	int			_instance_id{0};
 
@@ -543,7 +538,7 @@ private:
 
 	bool			_task_running{true};
 	static bool		_boot_complete;
-	static constexpr int	MAVLINK_MAX_INSTANCES{MAVLINK_COMM_NUM_BUFFERS};
+
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
 	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
@@ -746,7 +741,7 @@ private:
 
 	void set_channel();
 
-	void set_instance_id();
+	bool set_instance_id();
 
 	/**
 	 * Main mavlink task.
