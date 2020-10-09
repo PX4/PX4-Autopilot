@@ -17,7 +17,7 @@ bool ftp
 
 uint8 streams
 
-float32 data_rate                       # configured maximum data rate (Bytes/s)
+uint32 data_rate                        # configured maximum data rate (Bytes/s)
 
 float32 rate_multiplier
 
