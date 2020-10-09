@@ -52,7 +52,8 @@ namespace vmount
 class InputBase
 {
 public:
-	virtual ~InputBase() {}
+	InputBase() = default;
+	virtual ~InputBase() = default;
 
 	/**
 	 * Wait for an input update, with a timeout.

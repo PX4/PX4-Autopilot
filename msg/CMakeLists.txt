@@ -68,6 +68,7 @@ set(msg_files
 	geofence_result.msg
 	gimbal_device_set_attitude.msg
 	gimbal_manager_set_attitude.msg
+	gimbal_manager_set_manual_control.msg
 	gimbal_device_attitude_status.msg
 	gimbal_device_information.msg
 	gimbal_manager_information.msg

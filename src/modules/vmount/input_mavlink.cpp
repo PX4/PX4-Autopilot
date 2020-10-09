@@ -44,6 +44,8 @@
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
+#include <uORB/topics/gimbal_manager_set_manual_control.h>
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/defines.h>
@@ -176,17 +178,6 @@ void InputMavlinkROI::print_status()
 
 InputMavlinkCmdMount::InputMavlinkCmdMount()
 {
-	param_t handle = param_find("MAV_SYS_ID");
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &_mav_sys_id);
-	}
-
-	handle = param_find("MAV_COMP_ID");
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &_mav_comp_id);
-	}
 }
 
 InputMavlinkCmdMount::~InputMavlinkCmdMount()
@@ -273,24 +264,30 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 						*control_data = &_control_data;
 						break;
 
-					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-						_control_data.type = ControlData::Type::Angle;
-						_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-						_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-						_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-						// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
-						_control_data.type_data.angle.angles[0] = vehicle_command.param2 * M_DEG_TO_RAD_F;
-						// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
-						_control_data.type_data.angle.angles[1] = vehicle_command.param1 * M_DEG_TO_RAD_F;
-						// both specs have yaw on channel 2
-						_control_data.type_data.angle.angles[2] = vehicle_command.param3 * M_DEG_TO_RAD_F;
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING: {
+							_control_data.type = ControlData::Type::Angle;
+							_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+							_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+							_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-						// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
-						if (_control_data.type_data.angle.angles[2] > M_PI_F) {
-							_control_data.type_data.angle.angles[2] -= 2 * M_PI_F;
+							// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
+							const float roll = vehicle_command.param2 * M_DEG_TO_RAD_F;
+							// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
+							const float pitch = vehicle_command.param1 * M_DEG_TO_RAD_F;
+							// both specs have yaw on channel 2
+							float yaw = vehicle_command.param3 * M_DEG_TO_RAD_F;
+
+							matrix::Eulerf euler(roll, pitch, yaw);
+
+							matrix::Quatf q(euler);
+							q.copyTo(_control_data.type_data.angle.q);
+
+							_control_data.type_data.angle.angular_velocity[0] = NAN;
+							_control_data.type_data.angle.angular_velocity[1] = NAN;
+							_control_data.type_data.angle.angular_velocity[2] = NAN;
+
+							*control_data = &_control_data;
 						}
-
-						*control_data = &_control_data;
 						break;
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
@@ -374,25 +371,14 @@ void InputMavlinkCmdMount::print_status()
 	PX4_INFO("Input: Mavlink (CMD_MOUNT)");
 }
 
-InputMavlinkGimbalV2::InputMavlinkGimbalV2(bool has_v2_gimbal_device)
+InputMavlinkGimbalV2::InputMavlinkGimbalV2(bool has_v2_gimbal_device, uint8_t mav_sys_id, uint8_t mav_comp_id,
+		float &mnt_rate_pitch, float &mnt_rate_yaw) :
+	_mav_sys_id(mav_sys_id),
+	_mav_comp_id(mav_comp_id),
+	_mnt_rate_pitch(mnt_rate_pitch),
+	_mnt_rate_yaw(mnt_rate_yaw)
 {
-	param_t handle = param_find("MAV_SYS_ID");
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &_mav_sys_id);
-	}
-
-	handle = param_find("MAV_COMP_ID");
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &_mav_comp_id);
-	}
-
-	if (has_v2_gimbal_device) {
-		/* smart gimbal: ask GIMBAL_DEVICE_INFORMATION to it */
-		_request_gimbal_device_information();
-
-	} else {
+	if (!has_v2_gimbal_device) {
 		/* dumb gimbal or MAVLink v1 protocol gimbal: fake GIMBAL_DEVICE_INFORMATION */
 		_stream_gimbal_manager_information();
 	}
@@ -414,6 +400,10 @@ InputMavlinkGimbalV2::~InputMavlinkGimbalV2()
 
 	if (_vehicle_command_sub >= 0) {
 		orb_unsubscribe(_vehicle_command_sub);
+	}
+
+	if (_gimbal_manager_set_manual_control_sub >= 0) {
+		orb_unsubscribe(_gimbal_manager_set_manual_control_sub);
 	}
 }
 
@@ -447,6 +437,10 @@ int InputMavlinkGimbalV2::initialize()
 		return -errno;
 	}
 
+	if ((_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control))) < 0) {
+		return -errno;
+	}
+
 	// rate-limit inputs to 100Hz. If we don't do this and the output is configured to mavlink mode,
 	// it will publish vehicle_command's as well, causing the input poll() in here to return
 	// immediately, which in turn will cause an output update and thus a busy loop.
@@ -457,17 +451,21 @@ int InputMavlinkGimbalV2::initialize()
 
 void InputMavlinkGimbalV2::_stream_gimbal_manager_status()
 {
+	gimbal_device_attitude_status_s gimbal_device_attitude_status{};
 
 	if (_gimbal_device_attitude_status_sub.updated()) {
-		_gimbal_device_attitude_status_sub.copy(&_gimbal_device_attitude_status);
+		_gimbal_device_attitude_status_sub.copy(&gimbal_device_attitude_status);
 	}
 
 	gimbal_manager_status_s gimbal_manager_status{};
 	gimbal_manager_status.timestamp = hrt_absolute_time();
-	gimbal_manager_status.flags = _gimbal_device_attitude_status.device_flags;
+	gimbal_manager_status.flags = gimbal_device_attitude_status.device_flags;
 	gimbal_manager_status.gimbal_device_id = 0;
+	gimbal_manager_status.primary_control_sysid = _sys_id_primary_control;
+	gimbal_manager_status.primary_control_compid = _comp_id_primary_control;
+	gimbal_manager_status.secondary_control_sysid = 0; // TODO: support secondary control
+	gimbal_manager_status.secondary_control_compid = 0; // TODO: support secondary control
 	_gimbal_manager_status_pub.publish(gimbal_manager_status);
-
 }
 
 void InputMavlinkGimbalV2::_stream_gimbal_manager_information()
@@ -489,31 +487,12 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information()
 					      gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS |
 					      gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK;
 
-	gimbal_device_info.tilt_max = M_PI_F / 2;
-	gimbal_device_info.tilt_min = -M_PI_F / 2;
-	gimbal_device_info.tilt_rate_max = 1;
-	gimbal_device_info.pan_max = M_PI_F;
-	gimbal_device_info.pan_min = -M_PI_F;
-	gimbal_device_info.pan_rate_max = 1;
+	gimbal_device_info.pitch_max = M_PI_F / 2;
+	gimbal_device_info.pitch_min = -M_PI_F / 2;
+	gimbal_device_info.yaw_max = M_PI_F;
+	gimbal_device_info.yaw_min = -M_PI_F;
 
 	_gimbal_device_info_pub.publish(gimbal_device_info);
-}
-
-void InputMavlinkGimbalV2::_request_gimbal_device_information()
-{
-	vehicle_command_s vehicle_cmd{};
-	vehicle_cmd.timestamp = hrt_absolute_time();
-	vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE;
-	vehicle_cmd.param1 = vehicle_command_s::VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION;
-	vehicle_cmd.target_system = 0;
-	vehicle_cmd.target_component = 0;
-	vehicle_cmd.source_system = _mav_sys_id;
-	vehicle_cmd.source_component = _mav_comp_id;
-	vehicle_cmd.confirmation = 0;
-	vehicle_cmd.from_external = false;
-
-	uORB::PublicationQueued<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
-	vehicle_command_pub.publish(vehicle_cmd);
 }
 
 int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active)
@@ -523,7 +502,7 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 	// Default to no change, set if we receive anything.
 	*control_data = nullptr;
 
-	const int num_poll = 4;
+	const int num_poll = 5;
 	px4_pollfd_struct_t polls[num_poll];
 	polls[0].fd = 		_gimbal_manager_set_attitude_sub;
 	polls[0].events = 	POLLIN;
@@ -533,6 +512,8 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 	polls[2].events = 	POLLIN;
 	polls[3].fd = 		_vehicle_command_sub;
 	polls[3].events = 	POLLIN;
+	polls[4].fd = 		_gimbal_manager_set_manual_control_sub;
+	polls[4].events = 	POLLIN;
 
 	int poll_timeout = (int)timeout_ms;
 
@@ -560,13 +541,20 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 				gimbal_manager_set_attitude_s set_attitude;
 				orb_copy(ORB_ID(gimbal_manager_set_attitude), _gimbal_manager_set_attitude_sub, &set_attitude);
 
-				const float pitch = matrix::Eulerf(matrix::Quatf(set_attitude.q)).phi(); // rad
-				const float roll = matrix::Eulerf(matrix::Quatf(set_attitude.q)).theta();
-				const float yaw = matrix::Eulerf(matrix::Quatf(set_attitude.q)).psi();
+				if (set_attitude.origin_sysid == _sys_id_primary_control &&
+				    set_attitude.origin_compid == _comp_id_primary_control) {
+					const matrix::Quatf q(set_attitude.q);
+					const matrix::Vector3f angular_velocity(set_attitude.angular_velocity_x,
+										set_attitude.angular_velocity_y,
+										set_attitude.angular_velocity_z);
 
-				_set_control_data_from_set_attitude(set_attitude.flags, pitch, set_attitude.angular_velocity_y, yaw,
-								    set_attitude.angular_velocity_z, roll, set_attitude.angular_velocity_x);
-				*control_data = &_control_data;
+					_set_control_data_from_set_attitude(set_attitude.flags, q, angular_velocity);
+					*control_data = &_control_data;
+
+				} else {
+					PX4_WARN("Ignoring gimbal_manager_set_attitude from %d/%d",
+						 set_attitude.origin_sysid, set_attitude.origin_compid);
+				}
 			}
 
 			if (polls[1].revents & POLLIN) {
@@ -642,14 +630,231 @@ int InputMavlinkGimbalV2::update_impl(unsigned int timeout_ms, ControlData **con
 					continue;
 				}
 
-				if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_ATTITUDE) {
-					_set_control_data_from_set_attitude((uint32_t)vehicle_command.param5, vehicle_command.param3, vehicle_command.param1,
-									    vehicle_command.param3, vehicle_command.param2);
+				if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL) {
+					// FIXME: Remove me later. For now, we support this for legacy missions
+					//        using gimbal v1 protocol.
+
+					switch ((int)vehicle_command.param7) {
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
+						_control_data.gimbal_shutter_retract = true;
+
+					/* FALLTHROUGH */
+
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+						_control_data.type = ControlData::Type::Neutral;
+
+						*control_data = &_control_data;
+						break;
+
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING: {
+							_control_data.type = ControlData::Type::Angle;
+							_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+							_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+							_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+
+							// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
+							const float roll = vehicle_command.param2 * M_DEG_TO_RAD_F;
+							// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
+							const float pitch = vehicle_command.param1 * M_DEG_TO_RAD_F;
+							// both specs have yaw on channel 2
+							float yaw = vehicle_command.param3 * M_DEG_TO_RAD_F;
+
+							// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
+							if (yaw > M_PI_F) {
+								yaw -= 2 * M_PI_F;
+							}
+
+							matrix::Eulerf euler(roll, pitch, yaw);
+
+							matrix::Quatf q(euler);
+							q.copyTo(_control_data.type_data.angle.q);
+
+							_control_data.type_data.angle.angular_velocity[0] = NAN;
+							_control_data.type_data.angle.angular_velocity[1] = NAN;
+							_control_data.type_data.angle.angular_velocity[2] = NAN;
+
+							*control_data = &_control_data;
+						}
+						break;
+
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
+						break;
+
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
+						control_data_set_lon_lat((double)vehicle_command.param6, (double)vehicle_command.param5, vehicle_command.param4);
+
+						*control_data = &_control_data;
+						break;
+					}
+
+					_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
+
+					_control_data.stabilize_axis[0] = (int)(vehicle_command.param2 + 0.5f) == 1;
+					_control_data.stabilize_axis[1] = (int)(vehicle_command.param3 + 0.5f) == 1;
+					_control_data.stabilize_axis[2] = (int)(vehicle_command.param4 + 0.5f) == 1;
+
+
+					const int params[] = {
+						(int)((float)vehicle_command.param5 + 0.5f),
+						(int)((float)vehicle_command.param6 + 0.5f),
+						(int)(vehicle_command.param7 + 0.5f)
+					};
+
+					for (int i = 0; i < 3; ++i) {
+
+						if (params[i] == 0) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+
+						} else if (params[i] == 1) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngularRate;
+
+						} else if (params[i] == 2) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+
+						} else {
+							// Not supported, fallback to body angle.
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+						}
+					}
+
+					_control_data.type = ControlData::Type::Neutral; //always switch to neutral position
+
 					*control_data = &_control_data;
-					_ack_vehicle_command(&vehicle_command);
+					_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE) {
+
+					const int param_sys_id = roundf(vehicle_command.param1);
+					const int param_comp_id = roundf(vehicle_command.param2);
+
+					uint8_t new_sys_id_primary_control = [&]() {
+						if (param_sys_id >= 0 && param_sys_id < 256) {
+							// Valid new sysid.
+							return (uint8_t)param_sys_id;
+
+						} else if (param_sys_id == -1) {
+							// leave unchanged
+							return _sys_id_primary_control;
+
+						} else if (param_sys_id == -2) {
+							// set itself
+							return _mav_sys_id;
+
+						} else if (param_sys_id == -3) {
+							// release control if in control
+							if (_sys_id_primary_control == vehicle_command.source_system) {
+								return (uint8_t)0;
+
+							} else {
+								return _sys_id_primary_control;
+							}
+
+						} else {
+							PX4_WARN("Unknown param1 value for DO_GIMBAL_MANAGER_CONFIGURE");
+							return _sys_id_primary_control;
+						}
+					}();
+
+					uint8_t new_comp_id_primary_control = [&]() {
+						if (param_comp_id >= 0 && param_comp_id < 256) {
+							// Valid new compid.
+							return (uint8_t)param_comp_id;
+
+						} else if (param_comp_id == -1) {
+							// leave unchanged
+							return _comp_id_primary_control;
+
+						} else if (param_comp_id == -2) {
+							// set itself
+							return _mav_comp_id;
+
+						} else if (param_comp_id == -3) {
+							// release control if in control
+							if (_comp_id_primary_control == vehicle_command.source_component) {
+								return (uint8_t)0;
+
+							} else {
+								return _comp_id_primary_control;
+							}
+
+						} else {
+							PX4_WARN("Unknown param2 value for DO_GIMBAL_MANAGER_CONFIGURE");
+							return _comp_id_primary_control;
+						}
+					}();
+
+
+					if (new_sys_id_primary_control != _sys_id_primary_control ||
+					    new_comp_id_primary_control != _comp_id_primary_control) {
+						PX4_INFO("Configured primary gimbal control sysid/compid from %d/%d to %d/%d",
+							 _sys_id_primary_control, _comp_id_primary_control,
+							 new_sys_id_primary_control, new_comp_id_primary_control);
+						_sys_id_primary_control = new_sys_id_primary_control;
+						_comp_id_primary_control = new_comp_id_primary_control;
+					}
+
+					// TODO: support secondary control
+					// TODO: support gimbal device id for multiple gimbals
+
+					_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW) {
+
+					if (vehicle_command.source_system == _sys_id_primary_control &&
+					    vehicle_command.source_component == _comp_id_primary_control) {
+
+						const matrix::Eulerf euler(0.0f, vehicle_command.param1 * M_DEG_TO_RAD_F, vehicle_command.param2 * M_DEG_TO_RAD_F);
+						const matrix::Quatf q(euler);
+						const matrix::Vector3f angular_velocity(0.0f, vehicle_command.param3, vehicle_command.param4);
+						const uint32_t flags = vehicle_command.param5;
+
+						// TODO: support gimbal device id for multiple gimbals
+
+						_set_control_data_from_set_attitude(flags, q, angular_velocity);
+						*control_data = &_control_data;
+						_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+					} else {
+						PX4_ERR("GIMBAL_MANAGER_PITCHYAW denied, not in control");
+						_ack_vehicle_command(&vehicle_command, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
+					}
 
 				} else {
 					exit_loop = false;
+				}
+			}
+
+			if (polls[4].revents & POLLIN) {
+				gimbal_manager_set_manual_control_s set_manual_control;
+				orb_copy(ORB_ID(gimbal_manager_set_manual_control), _gimbal_manager_set_manual_control_sub, &set_manual_control);
+
+				if (set_manual_control.origin_sysid == _sys_id_primary_control &&
+				    set_manual_control.origin_compid == _comp_id_primary_control) {
+
+					const matrix::Quatf q =
+						(PX4_ISFINITE(set_manual_control.pitch) && PX4_ISFINITE(set_manual_control.yaw)) ?
+						matrix::Quatf(matrix::Eulerf(0.0f, set_manual_control.pitch, set_manual_control.yaw)) :
+						matrix::Quatf(NAN, NAN, NAN, NAN);
+
+					const matrix::Vector3f angular_velocity =
+						(PX4_ISFINITE(set_manual_control.pitch_rate) && PX4_ISFINITE(set_manual_control.yaw_rate)) ?
+						matrix::Vector3f(0.0f,
+								 _mnt_rate_pitch * M_DEG_TO_RAD_F * set_manual_control.pitch_rate,
+								 _mnt_rate_yaw * M_DEG_TO_RAD_F * set_manual_control.yaw_rate) :
+						matrix::Vector3f(NAN, NAN, NAN);
+
+					_set_control_data_from_set_attitude(set_manual_control.flags, q, angular_velocity);
+					*control_data = &_control_data;
+
+				} else {
+					PX4_WARN("Ignoring gimbal_manager_set_manual_control from %d/%d",
+						 set_manual_control.origin_sysid, set_manual_control.origin_compid);
 				}
 			}
 		}
@@ -671,25 +876,30 @@ void InputMavlinkGimbalV2::_transform_lon_lat_to_angle(const double roi_lon, con
 	_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 	_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-	_control_data.type_data.angle.angles[0] = 0.f;
+	const float roll = 0.0f;
+	float pitch = 0.0f;
+	float yaw = 0.0f;
 
 	// interface: use fixed pitch value > -pi otherwise consider ROI altitude
 	if (_control_data.type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
-		_control_data.type_data.angle.angles[1] = _control_data.type_data.lonlat.pitch_fixed_angle;
+		pitch = _control_data.type_data.lonlat.pitch_fixed_angle;
 
 	} else {
-		_control_data.type_data.angle.angles[1] = _calculate_pitch(roi_lon, roi_lat, roi_alt, vehicle_global_position);
+		pitch = _calculate_pitch(roi_lon, roi_lat, roi_alt, vehicle_global_position);
 	}
 
-	_control_data.type_data.angle.angles[2] = get_bearing_to_next_waypoint(vlat, vlon, roi_lat,
-			roi_lon) - vehicle_global_position.yaw;
+	yaw = get_bearing_to_next_waypoint(vlat, vlon, roi_lat, roi_lon) - vehicle_local_position.yaw;
 
 	// add offsets from VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET
-	_control_data.type_data.angle.angles[1] += _control_data.type_data.lonlat.pitch_angle_offset;
-	_control_data.type_data.angle.angles[2] += _control_data.type_data.lonlat.yaw_angle_offset;
+	pitch += _control_data.type_data.lonlat.pitch_angle_offset;
+	yaw += _control_data.type_data.lonlat.yaw_angle_offset;
 
 	// make sure yaw is wrapped correctly for the output
-	_control_data.type_data.angle.angles[2] = wrap_pi(_control_data.type_data.angle.angles[2]);
+	yaw = wrap_pi(yaw);
+
+	matrix::Eulerf euler(roll, pitch, yaw);
+	matrix::Quatf q(euler);
+	q.copyTo(_control_data.type_data.angle.q);
 }
 
 float InputMavlinkGimbalV2::_calculate_pitch(double lon, double lat, float altitude,
@@ -718,81 +928,48 @@ void InputMavlinkGimbalV2::_read_lat_lon_alt_from_position_setpoint_sub(double &
 	alt_sp = (double)position_setpoint_triplet.current.alt;
 }
 
-void InputMavlinkGimbalV2::_set_control_data_from_set_attitude(const uint32_t flags, const float pitch_angle,
-		const float pitch_rate, const float yaw_angle, const float yaw_rate, float roll_angle, float roll_rate)
+void InputMavlinkGimbalV2::_set_control_data_from_set_attitude(const uint32_t flags, const matrix::Quatf &q,
+		const matrix::Vector3f &angular_velocity)
 {
-
 	if ((flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_RETRACT) != 0) {
 		// not implemented in ControlData
 	} else if ((flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL) != 0) {
 		_control_data.type = ControlData::Type::Neutral;
 
-	} else if ((flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NONE) != 0) {
-		// don't do anything
 	} else {
 		_control_data.type = ControlData::Type::Angle;
-		_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-		_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
-		_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-		if (_is_roi_set && (flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NUDGE) != 0) {
-			// add set_attitude.q to existing tracking angle or ROI
-			// track message not yet implemented
-			_control_data.type_data.angle.angles[0] += pitch_angle;
-			_control_data.type_data.angle.angles[1] += roll_angle;
-			_control_data.type_data.angle.angles[2] += yaw_angle;
+		_control_data.type_data.angle.q[0] = q(0);
+		_control_data.type_data.angle.q[1] = q(1);
+		_control_data.type_data.angle.q[2] = q(2);
+		_control_data.type_data.angle.q[3] = q(3);
 
-		} else {
-			_control_data.type_data.angle.angles[0] = pitch_angle;
-			_control_data.type_data.angle.angles[1] = roll_angle;
-			_control_data.type_data.angle.angles[2] = yaw_angle;
-		}
+		_control_data.type_data.angle.angular_velocity[0] = angular_velocity(0);
+		_control_data.type_data.angle.angular_velocity[1] = angular_velocity(1);
+		_control_data.type_data.angle.angular_velocity[2] = angular_velocity(2);
 
-		if (_is_roi_set && (flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_OVERRIDE) != 0) {
-			// overides tracking or ROI angle with set_attitude.q, respects flag GIMBAL_MANAGER_FLAGS_YAW_LOCK
-			_control_data.type_data.angle.angles[0] = pitch_angle;
-			_control_data.type_data.angle.angles[1] = roll_angle;
-			_control_data.type_data.angle.angles[2] = yaw_angle;
-		}
+		_control_data.type_data.angle.frames[0] = (flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_ROLL_LOCK)
+				? ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame
+				: ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-		if (PX4_ISFINITE(roll_rate)) { //roll
-			_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
-			_control_data.type_data.angle.angles[0] = roll_rate; //rad/s
-		}
+		_control_data.type_data.angle.frames[1] = (flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_PITCH_LOCK)
+				? ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame
+				: ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-		if (PX4_ISFINITE(pitch_rate)) { //pitch
-			_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
-			_control_data.type_data.angle.angles[1] = pitch_rate; //rad/s
-		}
-
-		if (PX4_ISFINITE(yaw_rate)) { //yaw
-			_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
-			_control_data.type_data.angle.angles[2] = yaw_rate; //rad/s
-		}
-
-		if (flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_ROLL_LOCK) {
-			// stay horizontal with the horizon
-			_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-		}
-
-		if (flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_PITCH_LOCK) {
-			_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-		}
-
-		if (flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_YAW_LOCK) {
-			_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-		}
+		_control_data.type_data.angle.frames[2] = (flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_YAW_LOCK)
+				? ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame
+				: ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 	}
 }
 
 //TODO move this one to input.cpp such that it can be shared across functions
-void InputMavlinkGimbalV2::_ack_vehicle_command(vehicle_command_s *cmd)
+void InputMavlinkGimbalV2::_ack_vehicle_command(vehicle_command_s *cmd, uint8_t result)
 {
 	vehicle_command_ack_s vehicle_command_ack{};
 
 	vehicle_command_ack.timestamp = hrt_absolute_time();
 	vehicle_command_ack.command = cmd->command;
-	vehicle_command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+	vehicle_command_ack.result = result;
 	vehicle_command_ack.target_system = cmd->source_system;
 	vehicle_command_ack.target_component = cmd->source_component;
 

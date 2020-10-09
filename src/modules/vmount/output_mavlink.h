@@ -44,6 +44,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/gimbal_device_set_attitude.h>
+#include <uORB/topics/gimbal_device_information.h>
 
 
 namespace vmount
@@ -69,7 +70,7 @@ private:
 class OutputMavlinkV2 : public OutputBase
 {
 public:
-	OutputMavlinkV2(const OutputConfig &output_config);
+	OutputMavlinkV2(int32_t mav_sys_id, int32_t mav_comp_id, const OutputConfig &output_config);
 	virtual ~OutputMavlinkV2() = default;
 
 	virtual int update(const ControlData *control_data);
@@ -78,7 +79,17 @@ public:
 
 private:
 	void _publish_gimbal_device_set_attitude(const ControlData *control_data);
+	void _request_gimbal_device_information();
+	void _check_for_gimbal_device_information();
+
 	uORB::Publication<gimbal_device_set_attitude_s> _gimbal_device_set_attitude_pub{ORB_ID(gimbal_device_set_attitude)};
+	uORB::Subscription _gimbal_device_information_sub{ORB_ID(gimbal_device_information)};
+
+	int32_t _mav_sys_id{1}; ///< our mavlink system id
+	int32_t _mav_comp_id{1}; ///< our mavlink component id
+	uint8_t _gimbal_device_compid{0};
+	hrt_abstime _last_gimbal_device_checked{0};
+	bool _gimbal_device_found {false};
 };
 
 } /* namespace vmount */
