@@ -81,7 +81,7 @@ typedef pollevent_t px4_pollevent_t;
 
 #elif defined(__PX4_POSIX)
 
-#define	 PX4_STACK_OVERHEAD	(1024 * 11)
+#define	 PX4_STACK_OVERHEAD	(1024 * 24)
 
 __BEGIN_DECLS
 

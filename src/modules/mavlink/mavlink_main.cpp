@@ -217,7 +217,6 @@ Mavlink::~Mavlink()
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 	perf_free(_send_byte_error_perf);
-	perf_free(_send_start_tx_buf_low);
 }
 
 void
@@ -789,10 +788,10 @@ void Mavlink::send_start(int length)
 		// not enough space in buffer to send
 		count_txerrbytes(length);
 
+		_tstatus.tx_buffer_overruns++;
+
 		// prevent writes
 		_tx_buffer_low = true;
-
-		perf_count(_send_start_tx_buf_low);
 
 	} else {
 		_tx_buffer_low = false;
@@ -854,6 +853,7 @@ void Mavlink::send_finish()
 #endif // MAVLINK_UDP
 
 	if (ret == (int)_buf_fill) {
+		_tstatus.tx_message_count++;
 		count_txbytes(_buf_fill);
 		_last_write_success_time = _last_write_try_time;
 
@@ -1494,15 +1494,14 @@ Mavlink::update_rate_mult()
 
 	float hardware_mult = 1.0f;
 
-	/* scale down if we have a TX err rate suggesting link congestion */
-	if (_tstatus.rate_txerr > 0.0f && !_radio_status_critical) {
-		hardware_mult = (_tstatus.rate_tx) / (_tstatus.rate_tx + _tstatus.rate_txerr);
+	// scale down if we have a TX err rate suggesting link congestion
+	if ((_tstatus.tx_error_rate_avg > 0.f) && !_radio_status_critical) {
+		hardware_mult = _tstatus.tx_rate_avg / (_tstatus.tx_rate_avg + _tstatus.tx_error_rate_avg);
 
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() *
-				1_s)) {
+		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
 			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
 			_radio_status_available = false;
 
@@ -2233,7 +2232,7 @@ Mavlink::task_main(int argc, char *argv[])
 		perf_count(_loop_interval_perf);
 		perf_begin(_loop_perf);
 
-		hrt_abstime t = hrt_absolute_time();
+		const hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
 
@@ -2464,13 +2463,13 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* update TX/RX rates*/
-		if (t > _bytes_timestamp + 1000000) {
+		if (t > _bytes_timestamp + 1_s) {
 			if (_bytes_timestamp != 0) {
-				const float dt = (t - _bytes_timestamp) / 1000.0f;
+				const float dt = (t - _bytes_timestamp) * 1e-6f;
 
-				_tstatus.rate_tx = _bytes_tx / dt;
-				_tstatus.rate_txerr = _bytes_txerr / dt;
-				_tstatus.rate_rx = _bytes_rx / dt;
+				_tstatus.tx_rate_avg = _bytes_tx / dt;
+				_tstatus.tx_error_rate_avg = _bytes_txerr / dt;
+				_tstatus.rx_rate_avg = _bytes_rx / dt;
 
 				_bytes_tx = 0;
 				_bytes_txerr = 0;
@@ -2785,11 +2784,12 @@ Mavlink::display_status()
 
 	printf("\tflow control: %s\n", _flow_control_mode ? "ON" : "OFF");
 	printf("\trates:\n");
-	printf("\t  tx: %.3f kB/s\n", (double)_tstatus.rate_tx);
-	printf("\t  txerr: %.3f kB/s\n", (double)_tstatus.rate_txerr);
+	printf("\t  tx: %.1f B/s\n", (double)_tstatus.tx_rate_avg);
+	printf("\t  txerr: %.1f B/s\n", (double)_tstatus.tx_error_rate_avg);
 	printf("\t  tx rate mult: %.3f\n", (double)_rate_mult);
 	printf("\t  tx rate max: %i B/s\n", _datarate);
-	printf("\t  rx: %.3f kB/s\n", (double)_tstatus.rate_rx);
+	printf("\t  rx: %.1f B/s\n", (double)_tstatus.rx_rate_avg);
+	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate);
 
 	if (_mavlink_ulog) {
 		printf("\tULog rate: %.1f%% of max %.1f%%\n", (double)_mavlink_ulog->current_data_rate() * 100.,
