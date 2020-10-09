@@ -109,6 +109,7 @@ udp_offboard_port_remote=$((14540+px4_instance))
 [ $px4_instance -gt 9 ] && udp_offboard_port_remote=14549 # use the same ports for more than 10 instances to avoid port overlaps
 udp_onboard_payload_port_local=$((14280+px4_instance))
 udp_onboard_payload_port_remote=$((14030+px4_instance))
+udp_onboard_gimbal_port_local=$((13030+px4_instance))
 udp_gcs_port_local=$((18570+px4_instance))
 
 if [ $AUTOCNF = yes ]
@@ -259,7 +260,10 @@ else
 	# Onboard link to camera
 	mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
 
+	# Onboard link to gimbal
+	mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -f -m onboard
 fi
+
 # execute autostart post script if any
 [ -e "$autostart_file".post ] && . "$autostart_file".post
 
