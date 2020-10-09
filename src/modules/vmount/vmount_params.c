@@ -235,3 +235,23 @@ PARAM_DEFINE_FLOAT(MNT_OFF_ROLL, 0.0f);
 * @group Mount
 */
 PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);
+
+/**
+ * Angular pitch rate for manual input in degrees/second.
+ * Full stick input [-1..1] translats to [-pitch rate..pitch rate].
+ *
+ * @min 1.0
+ * @max 90.0
+ * @group Mount
+ */
+PARAM_DEFINE_FLOAT(MNT_RATE_PITCH, 30.0f);
+
+/**
+ * Angular yaw rate for manual input in degrees/second.
+ * Full stick input [-1..1] translats to [-yaw rate..yaw rate].
+ *
+ * @min 1.0
+ * @max 90.0
+ * @group Mount
+ */
+PARAM_DEFINE_FLOAT(MNT_RATE_YAW, 30.0f);

@@ -42,6 +42,7 @@
 #include <math.h>
 
 #include <px4_platform_common/posix.h>
+#include <lib/matrix/matrix/math.hpp>
 
 
 namespace vmount
@@ -69,9 +70,16 @@ int InputTest::update(unsigned int timeout_ms, ControlData **control_data, bool 
 	_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 	_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-	for (int i = 0; i < 3; ++i) {
-		_control_data.type_data.angle.angles[i] = _angles[i] * M_DEG_TO_RAD_F;
-	}
+	matrix::Eulerf euler(
+		_angles[0] * M_DEG_TO_RAD_F,
+		_angles[1] * M_DEG_TO_RAD_F,
+		_angles[2] * M_DEG_TO_RAD_F);
+	matrix::Quatf q(euler);
+
+	_control_data.type_data.angle.q[0] = q(0);
+	_control_data.type_data.angle.q[1] = q(1);
+	_control_data.type_data.angle.q[2] = q(2);
+	_control_data.type_data.angle.q[3] = q(3);
 
 	_control_data.gimbal_shutter_retract = false;
 	*control_data = &_control_data;

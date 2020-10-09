@@ -45,7 +45,6 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
 #include <uORB/topics/gimbal_device_information.h>
 #include <uORB/topics/gimbal_manager_status.h>
@@ -110,7 +109,8 @@ private:
 class InputMavlinkGimbalV2 : public InputBase
 {
 public:
-	InputMavlinkGimbalV2(bool has_v2_gimbal_device);
+	InputMavlinkGimbalV2(bool has_v2_gimbal_device, uint8_t mav_sys_id, uint8_t mav_comp_id, float &mnt_rate_pitch,
+			     float &mnt_rate_yaw);
 	virtual ~InputMavlinkGimbalV2();
 
 	virtual void print_status();
@@ -125,20 +125,26 @@ private:
 	float _calculate_pitch(double lon, double lat, float altitude,
 			       const vehicle_global_position_s &global_position);
 	void _read_lat_lon_alt_from_position_setpoint_sub(double &lon_sp, double &lat_sp, double &alt_sp);
-	void _set_control_data_from_set_attitude(const uint32_t flags, const float pitch_angle, const float pitch_rate,
-			const float yaw_angle, const float yaw_rate, float roll_angle = 0, float roll_rate = 0);
-	void _ack_vehicle_command(vehicle_command_s *cmd);
+	void _set_control_data_from_set_attitude(const uint32_t flags, const matrix::Quatf &q,
+			const matrix::Vector3f &angular_velocity);
+	void _ack_vehicle_command(vehicle_command_s *cmd, uint8_t result);
 	void _stream_gimbal_manager_information();
-	void _request_gimbal_device_information();
 	void _stream_gimbal_manager_status();
 
 	int _vehicle_roi_sub = -1;
 	int _gimbal_manager_set_attitude_sub = -1;
+	int _gimbal_manager_set_manual_control_sub = -1;
 	int _position_setpoint_triplet_sub = -1;
 	int _vehicle_command_sub = -1;
 
-	int32_t _mav_sys_id{1}; ///< our mavlink system id
-	int32_t _mav_comp_id{1}; ///< our mavlink component id
+	uint8_t _mav_sys_id{1}; ///< our mavlink system id
+	uint8_t _mav_comp_id{1}; ///< our mavlink component id
+
+	uint8_t _sys_id_primary_control{0};
+	uint8_t _comp_id_primary_control{0};
+
+	float &_mnt_rate_pitch;
+	float &_mnt_rate_yaw;
 
 	bool _is_roi_set{false};
 
@@ -148,9 +154,6 @@ private:
 	uORB::Publication<gimbal_manager_status_s> _gimbal_manager_status_pub{ORB_ID(gimbal_manager_status)};
 	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
 	uint8_t _cur_roi_mode = vehicle_roi_s::ROI_NONE;
-
-	gimbal_device_attitude_status_s _gimbal_device_attitude_status{};
-
 };
 
 } /* namespace vmount */

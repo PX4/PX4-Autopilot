@@ -100,10 +100,7 @@ void OutputRC::_stream_device_attitude_status()
 
 	matrix::Eulerf euler(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]);
 	matrix::Quatf q(euler);
-	attitude_status.q[0] = q(0);
-	attitude_status.q[1] = q(1);
-	attitude_status.q[2] = q(2);
-	attitude_status.q[3] = q(3);
+	q.copyTo(attitude_status.q);
 
 	attitude_status.failure_flags = 0;
 	_attitude_status_pub.publish(attitude_status);

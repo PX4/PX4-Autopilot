@@ -18,10 +18,10 @@ uint32 GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS = 256
 uint32 GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW = 512
 uint32 GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK = 1024
 
-float32 tilt_max # [rad]
-float32 tilt_min # [rad]
-float32 tilt_rate_max # [rad / s]
+float32 pitch_max # [rad]
+float32 pitch_min # [rad]
 
-float32 pan_max # [rad]
-float32 pan_min # [rad]
-float32 pan_rate_max # [rad / s]
+float32 yaw_max # [rad]
+float32 yaw_min # [rad]
+
+uint8 gimbal_device_compid
