@@ -468,28 +468,36 @@ void UavcanGnssBridge::handleInjectDataTopic()
 	} while (updated && num_injections < max_num_injections);
 }
 
-bool UavcanGnssBridge::injectData(const uint8_t *data, size_t len)
+bool UavcanGnssBridge::injectData(const uint8_t *const data, const size_t data_len)
 {
 	using uavcan::equipment::gnss::RTCMStream;
+
+	perf_count(_rtcm_perf);
 
 	RTCMStream msg;
 	msg.protocol_id = RTCMStream::PROTOCOL_ID_RTCM3;
 
-	size_t capacity = msg.data.capacity();
+	const size_t capacity = msg.data.capacity();
+	size_t written = 0;
+	bool result = true;
 
-	if (len > capacity) {
-		return injectData(data, capacity) &&
-		       injectData(data + capacity, len - capacity);
+	while (result && written < data_len) {
+		size_t chunk_size = data_len - written;
+
+		if (chunk_size > capacity) {
+			chunk_size = capacity;
+		}
+
+		for (size_t i = 0; i < chunk_size; ++i) {
+			msg.data.push_back(data[written]);
+			written += 1;
+		}
+
+		result = result && (_pub_rtcm.broadcast(msg) >= 0);
+		msg.data = {};
 	}
 
-	const uint8_t *data_end = data + len;
-
-	for (; data != data_end; ++data) {
-		msg.data.push_back(*data);
-	}
-
-	perf_count(_rtcm_perf);
-	return _pub_rtcm.broadcast(msg) >= 0;
+	return result;
 }
 
 void UavcanGnssBridge::print_status() const

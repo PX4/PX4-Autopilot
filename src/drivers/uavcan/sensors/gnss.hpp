@@ -90,7 +90,7 @@ private:
 			  const bool valid_pos_cov, const bool valid_vel_cov);
 
 	void handleInjectDataTopic();
-	bool injectData(const uint8_t *data, size_t len);
+	bool injectData(const uint8_t *data, size_t data_len);
 
 	typedef uavcan::MethodBinder < UavcanGnssBridge *,
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &) >
