@@ -73,6 +73,7 @@ public:
 
 	int init() override;
 	void update() override;
+	void print_status() const override;
 
 private:
 	/**

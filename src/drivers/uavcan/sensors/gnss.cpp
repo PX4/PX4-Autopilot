@@ -491,3 +491,9 @@ bool UavcanGnssBridge::injectData(const uint8_t *data, size_t len)
 	perf_count(_rtcm_perf);
 	return _pub_rtcm.broadcast(msg) >= 0;
 }
+
+void UavcanGnssBridge::print_status() const
+{
+	UavcanCDevSensorBridgeBase::print_status();
+	perf_print_counter(_rtcm_perf);
+}
