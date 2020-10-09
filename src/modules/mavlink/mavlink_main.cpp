@@ -278,7 +278,7 @@ Mavlink::set_channel()
 #endif
 
 	default:
-		PX4_WARN("instance ID is out of range");
+		PX4_WARN("instance ID %d is out of range", _instance_id);
 		px4_task_exit(1);
 		break;
 	}

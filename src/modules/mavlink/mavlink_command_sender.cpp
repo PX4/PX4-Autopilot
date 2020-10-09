@@ -151,7 +151,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 		// as some channels might be lagging behind and will end up putting the same command into the buffer.
 		bool dropped_command = false;
 
-		for (unsigned i = 0; i < MAX_MAVLINK_CHANNEL; ++i) {
+		for (unsigned i = 0; i < MAVLINK_COMM_NUM_BUFFERS; ++i) {
 			if (item->num_sent_per_channel[i] == -2) {
 				_commands.drop_current();
 				dropped_command = true;
@@ -176,7 +176,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 		int8_t max_sent = 0;
 		int8_t min_sent = INT8_MAX;
 
-		for (unsigned i = 0; i < MAX_MAVLINK_CHANNEL; ++i) {
+		for (unsigned i = 0; i < MAVLINK_COMM_NUM_BUFFERS; ++i) {
 			if (item->num_sent_per_channel[i] > max_sent) {
 				max_sent = item->num_sent_per_channel[i];
 			}
