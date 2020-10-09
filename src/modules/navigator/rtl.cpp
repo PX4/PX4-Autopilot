@@ -225,8 +225,10 @@ void RTL::on_activation()
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->on_mission_landing()) {
+	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->getMissionLandingInProgress()) {
 		// RTL straight to RETURN state, but mission will takeover for landing.
+		_rtl_state = RTL_STATE_RETURN;
+
 
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
 
@@ -239,7 +241,10 @@ void RTL::on_activation()
 		_rtl_state = RTL_STATE_RETURN;
 	}
 
+	setInitialClimbDone(_rtl_state != RTL_STATE_CLIMB);
+
 	set_rtl_item();
+
 }
 
 void RTL::on_active()
@@ -476,6 +481,7 @@ void RTL::advance_rtl()
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB:
+		setInitialClimbDone(true);
 		_rtl_state = RTL_STATE_RETURN;
 		break;
 
