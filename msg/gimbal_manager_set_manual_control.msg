@@ -15,8 +15,7 @@ uint32 GIMBAL_MANAGER_FLAGS_YAW_LOCK = 16
 uint32 flags
 uint8 gimbal_device_id
 
-float32[4] q
-
-float32 angular_velocity_x
-float32 angular_velocity_y
-float32 angular_velocity_z
+float32 pitch      # unitless -1..1, can be NAN
+float32 yaw        # unitless -1..1, can be NAN
+float32 pitch_rate # unitless -1..1, can be NAN
+float32 yaw_rate   # unitless -1..1, can be NAN

@@ -67,8 +67,8 @@ struct OutputConfig {
 	float roll_offset;	/**< Offset for roll channel in radians */
 	float yaw_offset;	/**< Offset for yaw channel in radians */
 
-	uint32_t mavlink_sys_id;	/**< Mavlink target system id for mavlink output */
-	uint32_t mavlink_comp_id;
+	uint32_t mavlink_sys_id_v1;	/**< Mavlink target system id for mavlink output only for v1 */
+	uint32_t mavlink_comp_id_v1;
 };
 
 

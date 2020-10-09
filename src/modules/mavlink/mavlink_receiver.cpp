@@ -283,6 +283,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_manager_set_attitude(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_MANUAL_CONTROL:
+		handle_message_gimbal_manager_set_manual_control(msg);
+		break;
+
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_INFORMATION:
 		handle_message_gimbal_device_information(msg);
 		break;
@@ -2946,16 +2950,39 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 	}
 }
 
+void
+MavlinkReceiver::handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg)
+{
+	mavlink_gimbal_manager_set_manual_control_t set_manual_control_msg;
+	mavlink_msg_gimbal_manager_set_manual_control_decode(msg, &set_manual_control_msg);
+
+	gimbal_manager_set_manual_control_s set_manual_control{};
+	set_manual_control.timestamp = hrt_absolute_time();
+	set_manual_control.origin_sysid = msg->sysid;
+	set_manual_control.origin_compid = msg->compid;
+	set_manual_control.target_system = set_manual_control_msg.target_system;
+	set_manual_control.target_component = set_manual_control_msg.target_component;
+	set_manual_control.flags = set_manual_control_msg.flags;
+	set_manual_control.gimbal_device_id = set_manual_control_msg.gimbal_device_id;
+
+	set_manual_control.pitch = set_manual_control_msg.pitch;
+	set_manual_control.yaw = set_manual_control_msg.yaw;
+	set_manual_control.pitch_rate = set_manual_control_msg.pitch_rate;
+	set_manual_control.yaw_rate = set_manual_control_msg.yaw_rate;
+
+	_gimbal_manager_set_manual_control_pub.publish(set_manual_control);
+}
 
 void
 MavlinkReceiver::handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg)
 {
-
 	mavlink_gimbal_manager_set_attitude_t set_attitude_msg;
 	mavlink_msg_gimbal_manager_set_attitude_decode(msg, &set_attitude_msg);
 
 	gimbal_manager_set_attitude_s gimbal_attitude{};
 	gimbal_attitude.timestamp = hrt_absolute_time();
+	gimbal_attitude.origin_sysid = msg->sysid;
+	gimbal_attitude.origin_compid = msg->compid;
 	gimbal_attitude.target_system = set_attitude_msg.target_system;
 	gimbal_attitude.target_component = set_attitude_msg.target_component;
 	gimbal_attitude.flags = set_attitude_msg.flags;
@@ -2969,7 +2996,6 @@ MavlinkReceiver::handle_message_gimbal_manager_set_attitude(mavlink_message_t *m
 	gimbal_attitude.angular_velocity_z = set_attitude_msg.angular_velocity_z;
 
 	_gimbal_manager_set_attitude_pub.publish(gimbal_attitude);
-
 }
 
 void
@@ -2994,13 +3020,13 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	gimbal_information.firmware_version = gimbal_device_info_msg.firmware_version;
 	gimbal_information.capability_flags = gimbal_device_info_msg.cap_flags;
 
-	gimbal_information.tilt_max = gimbal_device_info_msg.tilt_max;
-	gimbal_information.tilt_min = gimbal_device_info_msg.tilt_min;
-	gimbal_information.tilt_rate_max = gimbal_device_info_msg.tilt_rate_max;
+	gimbal_information.pitch_max = gimbal_device_info_msg.pitch_max;
+	gimbal_information.pitch_min = gimbal_device_info_msg.pitch_min;
 
-	gimbal_information.pan_max = gimbal_device_info_msg.pan_max;
-	gimbal_information.pan_min = gimbal_device_info_msg.pan_min;
-	gimbal_information.pan_rate_max = gimbal_device_info_msg.pan_rate_max;
+	gimbal_information.yaw_max = gimbal_device_info_msg.yaw_max;
+	gimbal_information.yaw_min = gimbal_device_info_msg.yaw_min;
+
+	gimbal_information.gimbal_device_compid = msg->compid;
 
 	_gimbal_device_information_pub.publish(gimbal_information);
 

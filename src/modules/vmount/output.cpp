@@ -108,21 +108,27 @@ void OutputBase::_set_angle_setpoints(const ControlData *control_data)
 
 	switch (control_data->type) {
 	case ControlData::Type::Angle:
-		for (int i = 0; i < 3; ++i) {
-			switch (control_data->type_data.angle.frames[i]) {
-			case ControlData::TypeData::TypeAngle::Frame::AngularRate:
-				_angle_speeds[i] = control_data->type_data.angle.angles[i];
-				break;
 
-			case ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame:
-				_absolute_angle[i] = false;
-				_angle_setpoints[i] = control_data->type_data.angle.angles[i];
-				break;
+		{
+			matrix::Quatf q(control_data->type_data.angle.q);
+			matrix::Eulerf euler(q);
 
-			case ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame:
-				_absolute_angle[i] = true;
-				_angle_setpoints[i] = control_data->type_data.angle.angles[i];
-				break;
+			for (int i = 0; i < 3; ++i) {
+				switch (control_data->type_data.angle.frames[i]) {
+				case ControlData::TypeData::TypeAngle::Frame::AngularRate:
+					break;
+
+				case ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame:
+					_absolute_angle[i] = false;
+					break;
+
+				case ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame:
+					_absolute_angle[i] = true;
+					break;
+				}
+
+				_angle_speeds[i] = control_data->type_data.angle.angular_velocity[i];
+				_angle_setpoints[i] = euler(i);
 			}
 		}
 
