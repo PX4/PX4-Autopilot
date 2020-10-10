@@ -118,6 +118,7 @@ using matrix::wrap_2pi;
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
+#include "streams/GROUND_TRUTH.hpp"
 #include "streams/HIGH_LATENCY2.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
 #include "streams/ORBIT_EXECUTION_STATUS.hpp"
@@ -4932,103 +4933,6 @@ protected:
 	}
 };
 
-class MavlinkStreamGroundTruth : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamGroundTruth::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "GROUND_TRUTH";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamGroundTruth(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return (_att_sub.advertised()
-			|| _gpos_sub.advertised()) ? MAVLINK_MSG_ID_HIL_STATE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity_groundtruth)};
-	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude_groundtruth)};
-	uORB::Subscription _gpos_sub{ORB_ID(vehicle_global_position_groundtruth)};
-	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position_groundtruth)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamGroundTruth(MavlinkStreamGroundTruth &) = delete;
-	MavlinkStreamGroundTruth &operator = (const MavlinkStreamGroundTruth &) = delete;
-
-protected:
-	explicit MavlinkStreamGroundTruth(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		if (_angular_velocity_sub.updated() || _att_sub.updated() || _gpos_sub.updated() || _lpos_sub.updated()) {
-			vehicle_attitude_s att{};
-			_att_sub.copy(&att);
-
-			vehicle_global_position_s gpos{};
-			_gpos_sub.copy(&gpos);
-
-			vehicle_local_position_s lpos{};
-			_lpos_sub.copy(&lpos);
-
-			vehicle_angular_velocity_s angular_velocity{};
-			_angular_velocity_sub.copy(&angular_velocity);
-
-			mavlink_hil_state_quaternion_t msg{};
-
-			// vehicle_attitude -> hil_state_quaternion
-			msg.attitude_quaternion[0] = att.q[0];
-			msg.attitude_quaternion[1] = att.q[1];
-			msg.attitude_quaternion[2] = att.q[2];
-			msg.attitude_quaternion[3] = att.q[3];
-			msg.rollspeed = angular_velocity.xyz[0];
-			msg.pitchspeed = angular_velocity.xyz[1];
-			msg.yawspeed = angular_velocity.xyz[2];
-
-			// vehicle_global_position -> hil_state_quaternion
-			// same units as defined in mavlink/common.xml
-			msg.lat = gpos.lat * 1e7;
-			msg.lon = gpos.lon * 1e7;
-			msg.alt = gpos.alt * 1e3f;
-			msg.vx = lpos.vx * 1e2f;
-			msg.vy = lpos.vy * 1e2f;
-			msg.vz = lpos.vz * 1e2f;
-			msg.ind_airspeed = 0;
-			msg.true_airspeed = 0;
-			msg.xacc = lpos.ax;
-			msg.yacc = lpos.ay;
-			msg.zacc = lpos.az;
-
-			mavlink_msg_hil_state_quaternion_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 	create_stream_list_item<MavlinkStreamStatustext>(),
@@ -5090,7 +4994,9 @@ static const StreamListItem streams_list[] = {
 #if defined(HIGH_LATENCY2_HPP)
 	create_stream_list_item<MavlinkStreamHighLatency2>(),
 #endif // HIGH_LATENCY2_HPP
+#if defined(GROUND_TRUTH_HPP)
 	create_stream_list_item<MavlinkStreamGroundTruth>(),
+#endif // GROUND_TRUTH_HPP
 #if defined(PING_HPP)
 	create_stream_list_item<MavlinkStreamPing>(),
 #endif // PING_HPP
