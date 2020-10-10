@@ -31,15 +31,15 @@
  *
  ****************************************************************************/
 
-#ifndef GROUND_TRUTH_HPP
-#define GROUND_TRUTH_HPP
+#ifndef HIL_STATE_QUATERNION_HPP
+#define HIL_STATE_QUATERNION_HPP
 
-class MavlinkStreamGroundTruth : public MavlinkStream
+class MavlinkStreamHILStateQuaternion : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGroundTruth(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamHILStateQuaternion(mavlink); }
 
-	static constexpr const char *get_name_static() { return "GROUND_TRUTH"; }
+	static constexpr const char *get_name_static() { return "HIL_STATE_QUATERNION"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_HIL_STATE_QUATERNION; }
 
 	const char *get_name() const override { return get_name_static(); }
@@ -55,7 +55,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamGroundTruth(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamHILStateQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude_groundtruth)};
@@ -111,4 +111,4 @@ private:
 	}
 };
 
-#endif // GROUND_TRUTH_HPP
+#endif // HIL_STATE_QUATERNION_HPP

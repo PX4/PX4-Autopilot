@@ -118,8 +118,8 @@ using matrix::wrap_2pi;
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
-#include "streams/GROUND_TRUTH.hpp"
 #include "streams/HIGH_LATENCY2.hpp"
+#include "streams/HIL_STATE_QUATERNION.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
 #include "streams/ORBIT_EXECUTION_STATUS.hpp"
 #include "streams/PING.hpp"
@@ -4994,9 +4994,9 @@ static const StreamListItem streams_list[] = {
 #if defined(HIGH_LATENCY2_HPP)
 	create_stream_list_item<MavlinkStreamHighLatency2>(),
 #endif // HIGH_LATENCY2_HPP
-#if defined(GROUND_TRUTH_HPP)
-	create_stream_list_item<MavlinkStreamGroundTruth>(),
-#endif // GROUND_TRUTH_HPP
+#if defined(HIL_STATE_QUATERNION_HPP)
+	create_stream_list_item<MavlinkStreamHILStateQuaternion>(),
+#endif // HIL_STATE_QUATERNION_HPP
 #if defined(PING_HPP)
 	create_stream_list_item<MavlinkStreamPing>(),
 #endif // PING_HPP
