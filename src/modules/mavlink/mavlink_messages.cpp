@@ -121,6 +121,7 @@ using matrix::wrap_2pi;
 #include "streams/HIGH_LATENCY2.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
 #include "streams/ORBIT_EXECUTION_STATUS.hpp"
+#include "streams/PING.hpp"
 #include "streams/PROTOCOL_VERSION.hpp"
 #include "streams/RAW_RPM.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
@@ -5028,71 +5029,6 @@ protected:
 	}
 };
 
-class MavlinkStreamPing : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamPing::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "PING";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_PING;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamPing(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_PING_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
-
-	bool const_rate() override
-	{
-		return true;
-	}
-
-private:
-	uint32_t _sequence;
-
-	/* do not allow top copying this class */
-	MavlinkStreamPing(MavlinkStreamPing &) = delete;
-	MavlinkStreamPing &operator = (const MavlinkStreamPing &) = delete;
-
-protected:
-	explicit MavlinkStreamPing(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_sequence(0)
-	{}
-
-	bool send() override
-	{
-		mavlink_ping_t msg = {};
-
-		msg.time_usec = hrt_absolute_time();
-		msg.seq = _sequence++;
-		msg.target_system = 0; // All systems
-		msg.target_component = 0; // All components
-
-		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &msg);
-
-		return true;
-	}
-};
-
 static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 	create_stream_list_item<MavlinkStreamStatustext>(),
@@ -5155,7 +5091,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHighLatency2>(),
 #endif // HIGH_LATENCY2_HPP
 	create_stream_list_item<MavlinkStreamGroundTruth>(),
+#if defined(PING_HPP)
 	create_stream_list_item<MavlinkStreamPing>(),
+#endif // PING_HPP
 #if defined(ORBIT_EXECUTION_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamOrbitStatus>(),
 #endif // ORBIT_EXECUTION_STATUS_HPP
