@@ -182,7 +182,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		gazebo_version=11
 	else
 		java_version=14
-		gazebo_version=9
+		gazebo_version=11
 	fi
 	# Java (jmavsim or fastrtps)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
