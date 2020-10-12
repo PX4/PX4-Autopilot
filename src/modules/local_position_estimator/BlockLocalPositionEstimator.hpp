@@ -24,7 +24,6 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/vehicle_air_data.h>

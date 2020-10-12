@@ -32,11 +32,11 @@ float32 y			 # stick position in y direction -1..1
 				 # in general a positive value means right or positive roll and
 				 # a negative value means left or negative roll
 
-float32 z			 # throttle stick position 0..1
+float32 z			 # throttle stick position -1..1
 				 # in general corresponds to up/down motion or thrust of vehicle,
 				 # in general the value corresponds to the demanded throttle by the user,
 				 # if the input is used for setting the setpoint of a vertical position
-				 # controller any value > 0.5 means up and any value < 0.5 means down
+				 # controller any value > 0 means up and any value < 0 means down
 
 float32 r			 # yaw stick/twist position, -1..1
 				 # in general corresponds to the righthand rotation around the vertical
