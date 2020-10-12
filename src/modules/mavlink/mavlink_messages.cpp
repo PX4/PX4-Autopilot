@@ -3972,6 +3972,7 @@ protected:
 			msg.buttons |= (manual_control_setpoint.loiter_switch << (shift * 3));
 			msg.buttons |= (manual_control_setpoint.acro_switch << (shift * 4));
 			msg.buttons |= (manual_control_setpoint.offboard_switch << (shift * 5));
+			msg.buttons |= (manual_control_setpoint.kill_switch << (shift * 6));
 
 			mavlink_msg_manual_control_send_struct(_mavlink->get_channel(), &msg);
 
