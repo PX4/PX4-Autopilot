@@ -37,6 +37,7 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		#lights
+		lights/rgbled_pwm
 		#magnetometer # all available magnetometer drivers
 		#optical_flow # all available optical flow drivers
 		pwm_out
@@ -55,7 +56,7 @@ px4_add_board(
 		#esc_calib
 		#hardfault_log
 		i2cdetect
-		#led_control
+		led_control
 		mixer
 		#motor_ramp
 		#motor_test
