@@ -59,7 +59,7 @@ public:
 		if (_topic.update(&manual_control_setpoint)) {
 			_data[0] = manual_control_setpoint.y; // roll
 			_data[1] = manual_control_setpoint.x; // pitch
-			_data[2] = manual_control_setpoint.z * 2.f - 1.f; // throttle
+			_data[2] = manual_control_setpoint.z; // throttle
 			_data[3] = manual_control_setpoint.r; // yaw
 			_data[4] = manual_control_setpoint.flaps;
 			_data[5] = manual_control_setpoint.aux1;

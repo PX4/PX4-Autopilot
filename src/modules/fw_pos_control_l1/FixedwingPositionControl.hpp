@@ -127,7 +127,7 @@ static constexpr hrt_abstime TERRAIN_ALT_TIMEOUT = 1_s;
 static constexpr hrt_abstime TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT = 10_s;
 
 // [.] max throttle from user which will not lead to motors spinning up in altitude controlled modes
-static constexpr float THROTTLE_THRESH = 0.05f;
+static constexpr float THROTTLE_THRESH = -.9f;
 
 // [m/s/s] slew rate limit for airspeed setpoint changes
 static constexpr float ASPD_SP_SLEW_RATE = 1.f;
@@ -293,7 +293,7 @@ private:
 	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
 	float _manual_control_setpoint_for_height_rate{0.0f};
 
-	// [.] normalized setpoint for manual airspeed control [0,1]; 0,0.5,1 maps to min,cruise,max airspeed commands
+	// [.] normalized setpoint for manual airspeed control [-1,1]; -1,0,1 maps to min,cruise,max airspeed commands
 	float _manual_control_setpoint_for_airspeed{0.0f};
 
 	// [m/s] airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED

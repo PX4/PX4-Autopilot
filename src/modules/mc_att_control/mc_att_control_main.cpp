@@ -116,8 +116,8 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	if (reset_yaw_sp) {
 		_man_yaw_sp = yaw;
 
-	} else if (math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) > 0.05f
-		   || _param_mc_airmode.get() == 2) {
+	} else if ((_manual_control_setpoint.z > -.9f)
+		   || (_param_mc_airmode.get() == 2)) {
 
 		const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
 		attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.r * yaw_rate;
@@ -200,7 +200,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve(math::constrain(_manual_control_setpoint.z, 0.f, 1.f));
+	attitude_setpoint.thrust_body[2] = -throttle_curve((_manual_control_setpoint.z + 1.f) * .5f);
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
