@@ -105,17 +105,18 @@ __BEGIN_DECLS
  * Pins:
  *      Defined in board.h
  */
-// todo:Design this!
 
 #define DIRECT_PWM_OUTPUT_CHANNELS  1
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
 #define BOARD_HAS_LED_PWM              1
+#define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
+#define BOARD_HAS_SHARED_PWM_TIMERS    1
 
-#define LED_TIM3_CH1OUT   /* PTD1  RGB_R */ PIN_FTM3_CH1_1
-#define LED_TIM3_CH5OUT   /* PTC9  RGB_G */ PIN_FTM3_CH5_1
-#define LED_TIM3_CH4OUT   /* PTC8  RGB_B */ PIN_FTM3_CH4_1
+#define LED_TIM0_CH0OUT   /* PTD15  RGB_R */ PIN_FTM0_CH0_3
+#define LED_TIM0_CH1OUT   /* PTD16  RGB_G */ PIN_FTM0_CH1_3
+#define LED_TIM0_CH2OUT   /* PTD0   RGB_B */ PIN_FTM0_CH2_3
 
 /****************************************************************************
  * Public Types

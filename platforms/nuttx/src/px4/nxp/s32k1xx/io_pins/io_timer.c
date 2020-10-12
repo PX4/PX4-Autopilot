@@ -846,13 +846,13 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 				action_cache[timer].base  = io_timers[timer].base;
 				action_cache[timer].cnsc[action_cache[timer].index].cnsc_offset = io_timers[timer].base + S32K1XX_FTM_CNSC_OFFSET(chan);
 				action_cache[timer].cnsc[action_cache[timer].index].cnsc_value = bits;
-				action_cache[timer].mask |= 1 << chan;
 
 				if ((state &&
 				     (mode == IOTimerChanMode_PWMOut ||
 				      mode == IOTimerChanMode_OneShot ||
 				      mode == IOTimerChanMode_Trigger))) {
 					action_cache[timer].cnsc[action_cache[timer].index].gpio = timer_io_channels[chan_index].gpio_out;
+					action_cache[timer].mask |= 1 << chan;
 				}
 
 				action_cache[timer].index++;
@@ -891,7 +891,6 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 				/* arm requires the timer be enabled */
 				regval |= (FTM_SC_CLKS_EXTCLK);
 
-				regval &= ~FTM_SC_PWMEN_MASK;
 				regval |= action_cache[actions].mask << FTM_SC_PWMEN_SHIFT;
 
 			}
