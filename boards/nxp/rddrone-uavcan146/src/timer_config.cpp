@@ -118,39 +118,33 @@ constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
 	initIOTimerChannelMapping(io_timers, timer_io_channels);
 
 const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
-	// To Do: Remove or add the right definitions.
-	/*
 	{
 		.base = S32K1XX_FTM0_BASE,
 		.clock_register = S32K1XX_PCC_FTM0,
 		.clock_bit = PCC_CGC,
 		//.vectorno =  0,
 	},
-	*/
 };
 
 const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
-	// To Do: Remove or add the right definitions.
-	/*
 	{
-		.gpio_out = LED_TIM3_CH1OUT, // RGB_R
+		.gpio_out = LED_TIM0_CH0OUT, // RGB_R
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 1,
+	},
+	{
+		.gpio_out = LED_TIM0_CH1OUT, // RGB_G
 		.gpio_in  = 0,
 		.timer_index = 0,
 		.timer_channel = 2,
 	},
 	{
-		.gpio_out = LED_TIM3_CH5OUT, // RGB_G
+		.gpio_out = LED_TIM0_CH2OUT, // RGB_B
 		.gpio_in  = 0,
 		.timer_index = 0,
-		.timer_channel = 6,
+		.timer_channel = 3,
 	},
-	{
-		.gpio_out = LED_TIM3_CH4OUT, // RGB_B
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 5,
-	},
-	*/
 };
 
 void ucans32k_timer_initialize(void)
