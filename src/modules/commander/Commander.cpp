@@ -2714,8 +2714,8 @@ void Commander::manualControlCheck()
 
 	if (manual_control_updated && manual_control_setpoint.valid) {
 
-		_is_throttle_above_center = (manual_control_setpoint.z > 0.6f);
-		_is_throttle_low = (manual_control_setpoint.z < 0.1f);
+		_is_throttle_above_center = (manual_control_setpoint.z > 0.2f);
+		_is_throttle_low = (manual_control_setpoint.z < -0.8f);
 
 		if (_arm_state_machine.isArmed()) {
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly

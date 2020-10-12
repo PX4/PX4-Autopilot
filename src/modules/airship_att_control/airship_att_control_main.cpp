@@ -93,7 +93,7 @@ AirshipAttitudeControl::publish_actuator_controls()
 		_actuator_controls.control[0] = 0.0f;
 		_actuator_controls.control[1] = _manual_control_setpoint.x;
 		_actuator_controls.control[2] = _manual_control_setpoint.r;
-		_actuator_controls.control[3] = _manual_control_setpoint.z;
+		_actuator_controls.control[3] = (_manual_control_setpoint.z + 1.f) * .5f;
 	}
 
 	// note: _actuator_controls.timestamp_sample is set in AirshipAttitudeControl::Run()

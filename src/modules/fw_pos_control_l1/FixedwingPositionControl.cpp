@@ -317,20 +317,20 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 	_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 	_manual_control_setpoint_for_height_rate = _manual_control_setpoint.x;
-	_manual_control_setpoint_for_airspeed = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+	_manual_control_setpoint_for_airspeed = _manual_control_setpoint.z;
 
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_SWAP_STICKS_BIT) {
 		/* Alternate stick allocation (similar concept as for multirotor systems:
 		 * demanding up/down with the throttle stick, and move faster/break with the pitch one.
 		 */
-		_manual_control_setpoint_for_height_rate = -(math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) * 2.f - 1.f);
-		_manual_control_setpoint_for_airspeed = math::constrain(_manual_control_setpoint.x, -1.0f, 1.0f) / 2.f + 0.5f;
+		_manual_control_setpoint_for_height_rate = -_manual_control_setpoint.z;
+		_manual_control_setpoint_for_airspeed = _manual_control_setpoint.x;
 	}
 
 	// send neutral setpoints if no update for 1 s
 	if (hrt_elapsed_time(&_manual_control_setpoint.timestamp) > 1_s) {
 		_manual_control_setpoint_for_height_rate = 0.f;
-		_manual_control_setpoint_for_airspeed = 0.5f;
+		_manual_control_setpoint_for_airspeed = 0.f;
 	}
 }
 
@@ -379,18 +379,9 @@ FixedwingPositionControl::get_manual_airspeed_setpoint()
 
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT) {
 		// neutral throttle corresponds to trim airspeed
-		if (_manual_control_setpoint_for_airspeed < 0.5f) {
-			// lower half of throttle is min to trim airspeed
-			altctrl_airspeed = _param_fw_airspd_min.get() +
-					   (_param_fw_airspd_trim.get() - _param_fw_airspd_min.get()) *
-					   _manual_control_setpoint_for_airspeed * 2;
-
-		} else {
-			// upper half of throttle is trim to max airspeed
-			altctrl_airspeed = _param_fw_airspd_trim.get() +
-					   (_param_fw_airspd_max.get() - _param_fw_airspd_trim.get()) *
-					   (_manual_control_setpoint_for_airspeed * 2 - 1);
-		}
+		return math::interpolateNXY(_manual_control_setpoint_for_airspeed,
+		{-1.f, 0.f, 1.f},
+		{_param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_airspd_max.get()});
 
 	} else if (PX4_ISFINITE(_commanded_manual_airspeed_setpoint)) {
 		altctrl_airspeed = _commanded_manual_airspeed_setpoint;
@@ -1910,7 +1901,7 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 	float throttle_max = _param_fw_thr_max.get();
 
 	// enable the operator to kill the throttle on ground
-	if (_landed && (fabsf(_manual_control_setpoint_for_airspeed) < THROTTLE_THRESH)) {
+	if (_landed && (_manual_control_setpoint_for_airspeed < THROTTLE_THRESH)) {
 		throttle_max = 0.0f;
 	}
 
@@ -1958,7 +1949,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	float throttle_max = _param_fw_thr_max.get();
 
 	// enable the operator to kill the throttle on ground
-	if (_landed && (fabsf(_manual_control_setpoint_for_airspeed) < THROTTLE_THRESH)) {
+	if (_landed && (_manual_control_setpoint_for_airspeed < THROTTLE_THRESH)) {
 		throttle_max = 0.0f;
 	}
 
