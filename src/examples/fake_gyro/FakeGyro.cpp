@@ -37,8 +37,10 @@ using namespace time_literals;
 
 FakeGyro::FakeGyro() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_px4_gyro(1310988) // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 {
+	_px4_gyro.set_scale(math::radians(2000.f) / static_cast<float>(INT16_MAX - 1)); // 2000 degrees/second max
 }
 
 bool FakeGyro::init()
@@ -55,29 +57,26 @@ void FakeGyro::Run()
 		return;
 	}
 
-	sensor_gyro_fifo_s sensor_gyro_fifo{};
-	sensor_gyro_fifo.timestamp_sample = hrt_absolute_time();
-	sensor_gyro_fifo.device_id = 1;
-	sensor_gyro_fifo.samples = GYRO_RATE / (1e6f / SENSOR_RATE);
-	sensor_gyro_fifo.dt = 1e6f / GYRO_RATE; // 8 kHz fake gyro
-	sensor_gyro_fifo.scale = math::radians(2000.f) / static_cast<float>(INT16_MAX - 1); // 2000 degrees/second max
+	sensor_gyro_fifo_s gyro{};
+	gyro.timestamp_sample = hrt_absolute_time();
+	gyro.samples = GYRO_RATE / (1e6f / SENSOR_RATE);
+	gyro.dt = 1e6f / GYRO_RATE; // 8 kHz fake gyro;
 
-	const float dt_s = sensor_gyro_fifo.dt / 1e6f;
-	const float x_freq = 15.f;  // 15 Hz x frequency
-	const float y_freq = 63.5f; // 63.5 Hz y frequency
-	const float z_freq = 99.f;  // 99 Hz z frequency
+	const float dt_s = gyro.dt * 1e-6f;
+	const float x_freq = 15.f;  //  15,0 Hz X frequency
+	const float y_freq = 63.5f; //  63.5 Hz Y frequency
+	const float z_freq = 135.f; // 135.0 Hz Z frequency
 
-	for (int n = 0; n < sensor_gyro_fifo.samples; n++) {
+	for (int n = 0; n < gyro.samples; n++) {
 		_time += dt_s;
 		const float k = 2.f * M_PI_F * _time;
 
-		sensor_gyro_fifo.x[n] = (INT16_MAX - 1) * sinf(k * x_freq);
-		sensor_gyro_fifo.y[n] = (INT16_MAX - 1) / 2 * sinf(k * y_freq);
-		sensor_gyro_fifo.z[n] = (INT16_MAX - 1) * cosf(k * z_freq);
+		gyro.x[n] = (INT16_MAX - 1) * sinf(k * x_freq);
+		gyro.y[n] = (INT16_MAX - 1) / 2 * sinf(k * y_freq);
+		gyro.z[n] = (INT16_MAX - 1) * cosf(k * z_freq);
 	}
 
-	sensor_gyro_fifo.timestamp = hrt_absolute_time();
-	_sensor_gyro_fifo_pub.publish(sensor_gyro_fifo);
+	_px4_gyro.updateFIFO(gyro);
 }
 
 int FakeGyro::task_spawn(int argc, char *argv[])

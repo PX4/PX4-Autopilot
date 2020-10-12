@@ -46,9 +46,9 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro_fft.h>
-#include <uORB/topics/sensor_gyro_fft_axis.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/vehicle_imu_status.h>
 
 #include "arm_math.h"
 #include "arm_const_structs.h"
@@ -76,18 +76,15 @@ public:
 private:
 	void Run() override;
 	bool SensorSelectionUpdate(bool force = false);
+	void VehicleIMUStatusUpdate();
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
 	uORB::Publication<sensor_gyro_fft_s> _sensor_gyro_fft_pub{ORB_ID(sensor_gyro_fft)};
-	uORB::Publication<sensor_gyro_fft_axis_s> _sensor_gyro_fft_axis_pub[3] {
-		ORB_ID(sensor_gyro_fft_axis),
-		ORB_ID(sensor_gyro_fft_axis),
-		ORB_ID(sensor_gyro_fft_axis),
-	};
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
+	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
 
@@ -106,9 +103,16 @@ private:
 	q15_t _fft_input_buffer[FFT_LENGTH] {};
 	q15_t _fft_outupt_buffer[FFT_LENGTH * 2] {};
 
-	float _gyro_sample_rate{8000}; // 8 kHz default
+	float _gyro_sample_rate_hz{8000}; // 8 kHz default
 
 	int _fft_buffer_index[3] {};
 
 	unsigned _gyro_last_generation{0};
+
+	sensor_gyro_fft_s _sensor_gyro_fft{};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::IMU_GYRO_FFT_MIN>) _param_imu_gyro_fft_min,
+		(ParamFloat<px4::params::IMU_GYRO_FFT_MAX>) _param_imu_gyro_fft_max
+	)
 };
