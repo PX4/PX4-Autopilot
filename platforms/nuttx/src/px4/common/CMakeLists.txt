@@ -81,6 +81,7 @@ if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 		cdc_acm_check.cpp
 		${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/print_load.cpp
 		${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp
+		usr_reset.cpp
 	)
 
 	target_link_libraries(${PX4_USER_LAYER}
