@@ -182,6 +182,7 @@ private:
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 
+	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
 
 	void Run();
 
@@ -313,6 +314,24 @@ private:
 
 	// Allocated if needed.
 	TunePublisher *_tune_publisher{nullptr};
+
+	hrt_abstime _last_heartbeat_check{0};
+
+	hrt_abstime _heartbeat_type_antenna_tracker{0};
+	hrt_abstime _heartbeat_type_gcs{0};
+	hrt_abstime _heartbeat_type_onboard_controller{0};
+	hrt_abstime _heartbeat_type_gimbal{0};
+	hrt_abstime _heartbeat_type_adsb{0};
+	hrt_abstime _heartbeat_type_camera{0};
+
+	hrt_abstime _heartbeat_component_telemetry_radio{0};
+	hrt_abstime _heartbeat_component_log{0};
+	hrt_abstime _heartbeat_component_osd{0};
+	hrt_abstime _heartbeat_component_obstacle_avoidance{0};
+	hrt_abstime _heartbeat_component_visual_inertial_odometry{0};
+	hrt_abstime _heartbeat_component_pairing_manager{0};
+	hrt_abstime _heartbeat_component_udp_bridge{0};
+	hrt_abstime _heartbeat_component_uart_bridge{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

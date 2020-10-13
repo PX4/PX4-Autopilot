@@ -130,7 +130,6 @@ set(msg_files
 	system_power.msg
 	task_stack_info.msg
 	tecs_status.msg
-	telemetry_heartbeat.msg
 	telemetry_status.msg
 	test_motor.msg
 	timesync.msg
