@@ -279,7 +279,25 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
 	}
 
-	_mode_auto = mode == GPS_DRIVER_MODE_NONE;
+	if (_mode == GPS_DRIVER_MODE_NONE) {
+		// use parameter to select mode if not provided via CLI
+		char protocol_param_name[16];
+		snprintf(protocol_param_name, sizeof(protocol_param_name), "GPS_%i_PROTOCOL", (int)_instance + 1);
+		int32_t protocol = 0;
+		param_get(param_find(protocol_param_name), &protocol);
+
+		switch (protocol) {
+		case 1: _mode = GPS_DRIVER_MODE_UBX; break;
+
+		case 2: _mode = GPS_DRIVER_MODE_MTK; break;
+
+		case 3: _mode = GPS_DRIVER_MODE_ASHTECH; break;
+
+		case 4: _mode = GPS_DRIVER_MODE_EMLIDREACH; break;
+		}
+	}
+
+	_mode_auto = _mode == GPS_DRIVER_MODE_NONE;
 }
 
 GPS::~GPS()
