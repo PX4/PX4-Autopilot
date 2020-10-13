@@ -265,6 +265,7 @@ public:
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
+	int		mission_instance_count() const { return _mission_result.instance_count; }
 
 	void 		set_mission_failure(const char *reason);
 

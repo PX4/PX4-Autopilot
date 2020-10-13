@@ -323,6 +323,7 @@ Mission::set_execution_mode(const uint8_t mode)
 					position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 					pos_sp_triplet->previous = pos_sp_triplet->current;
 					generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
+					publish_navigator_mission_item(); // for logging
 					_navigator->set_position_setpoint_triplet_updated();
 					issue_command(_mission_item);
 				}
@@ -661,7 +662,9 @@ Mission::set_mission_items()
 			user_feedback_done = true;
 		}
 
+		publish_navigator_mission_item(); // for logging
 		_navigator->set_position_setpoint_triplet_updated();
+
 		return;
 	}
 
@@ -1145,6 +1148,7 @@ Mission::set_mission_items()
 		}
 	}
 
+	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -1335,6 +1339,7 @@ Mission::heading_sp_update()
 		}
 
 		// we set yaw directly so we can run this in parallel to the FOH update
+		publish_navigator_mission_item();
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
@@ -1354,6 +1359,7 @@ Mission::cruising_speed_sp_update()
 
 	pos_sp_triplet->current.cruising_speed = cruising_speed;
 
+	publish_navigator_mission_item();
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -1384,6 +1390,7 @@ Mission::do_abort_landing()
 
 	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing.",
@@ -1825,4 +1832,34 @@ bool Mission::position_setpoint_equal(const position_setpoint_s *p1, const posit
 		((fabsf(p1->cruising_throttle - p2->cruising_throttle) < FLT_EPSILON) || (!PX4_ISFINITE(p1->cruising_throttle)
 				&& !PX4_ISFINITE(p2->cruising_throttle))));
 
+}
+
+void Mission::publish_navigator_mission_item()
+{
+	navigator_mission_item_s navigator_mission_item{};
+
+	navigator_mission_item.instance_count = _navigator->mission_instance_count();
+	navigator_mission_item.sequence_current = _current_mission_index;
+	navigator_mission_item.nav_cmd = _mission_item.nav_cmd;
+	navigator_mission_item.latitude = _mission_item.lat;
+	navigator_mission_item.longitude = _mission_item.lon;
+	navigator_mission_item.altitude = _mission_item.altitude;
+
+	navigator_mission_item.time_inside = get_time_inside(_mission_item);
+	navigator_mission_item.acceptance_radius = _mission_item.acceptance_radius;
+	navigator_mission_item.loiter_radius = _mission_item.loiter_radius;
+	navigator_mission_item.yaw = _mission_item.yaw;
+
+	navigator_mission_item.frame = _mission_item.frame;
+	navigator_mission_item.frame = _mission_item.origin;
+
+	navigator_mission_item.loiter_exit_xtrack = _mission_item.loiter_exit_xtrack;
+	navigator_mission_item.force_heading = _mission_item.force_heading;
+	navigator_mission_item.altitude_is_relative = _mission_item.altitude_is_relative;
+	navigator_mission_item.autocontinue = _mission_item.autocontinue;
+	navigator_mission_item.vtol_back_transition = _mission_item.vtol_back_transition;
+
+	navigator_mission_item.timestamp = hrt_absolute_time();
+
+	_navigator_mission_item_pub.publish(navigator_mission_item);
 }
