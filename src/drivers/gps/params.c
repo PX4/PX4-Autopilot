@@ -107,3 +107,42 @@ PARAM_DEFINE_INT32(GPS_UBX_MODE, 0);
  */
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
 
+/**
+ * Protocol for Main GPS
+ *
+ * Select the GPS protocol over serial.
+ *
+ * Auto-detection will probe all protocols, and thus is a bit slower.
+ *
+ * @min 0
+ * @max 4
+ * @value 0 Auto detect
+ * @value 1 u-blox
+ * @value 2 MTK
+ * @value 3 Ashtech / Trimble
+ * @value 4 Emlid Reach
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_1_PROTOCOL, 1);
+
+/**
+ * Protocol for Secondary GPS
+ *
+ * Select the GPS protocol over serial.
+ *
+ * Auto-detection will probe all protocols, and thus is a bit slower.
+ *
+ * @min 0
+ * @max 4
+ * @value 0 Auto detect
+ * @value 1 u-blox
+ * @value 2 MTK
+ * @value 3 Ashtech / Trimble
+ * @value 4 Emlid Reach
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_2_PROTOCOL, 1);
