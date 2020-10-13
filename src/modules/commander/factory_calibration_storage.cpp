@@ -31,55 +31,77 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
 
-#include "../mavlink_messages.h"
+#include <lib/parameters/param.h>
+#include <px4_platform_common/log.h>
 
-class MavlinkStreamAutopilotVersion : public MavlinkStream
+#include "factory_calibration_storage.h"
+
+
+static const char *CALIBRATION_STORAGE = "/fs/mtd_caldata";
+
+static bool filter_calibration_params(param_t handle)
 {
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamAutopilotVersion::get_name_static();
+	const char *name = param_name(handle);
+	// filter all non-calibration params
+	return strncmp(name, "CAL_", 4) == 0 || strncmp(name, "TC_", 3) == 0;
+}
+
+FactoryCalibrationStorage::FactoryCalibrationStorage()
+{
+	int32_t param = 0;
+	param_get(param_find("SYS_FAC_CAL_MODE"), &param);
+	_enabled = param == 1;
+}
+
+int FactoryCalibrationStorage::open()
+{
+	if (_fd >= 0) {
+		cleanup();
 	}
 
-	static constexpr const char *get_name_static()
-	{
-		return "AUTOPILOT_VERSION";
+	if (!_enabled) {
+		return 0;
 	}
 
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_AUTOPILOT_VERSION;
+	_fd = ::open(CALIBRATION_STORAGE, O_RDWR);
+
+	if (_fd == -1) {
+		return -errno;
 	}
 
-	uint16_t get_id() override
-	{
-		return get_id_static();
+	PX4_INFO("Storing parameters to factory storage %s", CALIBRATION_STORAGE);
+	param_control_autosave(false);
+	return 0;
+}
+
+int FactoryCalibrationStorage::store()
+{
+	if (!_enabled) {
+		return 0;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamAutopilotVersion(mavlink);
+	int ret = param_export(_fd, false, filter_calibration_params);
+
+	if (ret != 0) {
+		PX4_ERR("param export failed (%i)", ret);
 	}
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_AUTOPILOT_VERSION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	return ret;
+}
+
+void FactoryCalibrationStorage::cleanup()
+{
+	if (_enabled) {
+		param_control_autosave(true);
 	}
 
-private:
-	/* do not allow top copying this class */
-	MavlinkStreamAutopilotVersion(MavlinkStreamAutopilotVersion &) = delete;
-	MavlinkStreamAutopilotVersion &operator = (const MavlinkStreamAutopilotVersion &) = delete;
-
-
-protected:
-	explicit MavlinkStreamAutopilotVersion(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send(const hrt_abstime t) override
-	{
-		return _mavlink->send_autopilot_capabilities();
+	if (_fd >= 0) {
+		close(_fd);
+		_fd = -1;
 	}
-};
+}
+

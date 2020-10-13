@@ -45,10 +45,10 @@ namespace calibration
 class Accelerometer
 {
 public:
-	static constexpr int MAX_SENSOR_COUNT = 3;
+	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
-	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 25;
 
 	static constexpr const char *SensorString() { return "ACC"; }
 
@@ -64,6 +64,7 @@ public:
 	void set_external(bool external = true);
 	void set_offset(const matrix::Vector3f &offset) { _offset = offset; }
 	void set_scale(const matrix::Vector3f &scale) { _scale = scale; }
+	void set_rotation(Rotation rotation);
 
 	uint8_t calibration_count() const { return _calibration_count; }
 	uint32_t device_id() const { return _device_id; }
@@ -71,6 +72,7 @@ public:
 	bool external() const { return _external; }
 	const int32_t &priority() const { return _priority; }
 	const matrix::Dcmf &rotation() const { return _rotation; }
+	const Rotation &rotation_enum() const { return _rotation_enum; }
 
 	// apply offsets and scale
 	// rotate corrected measurements from sensor to body frame
@@ -88,6 +90,8 @@ public:
 
 private:
 	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
+
+	Rotation _rotation_enum{ROTATION_NONE};
 
 	matrix::Dcmf _rotation;
 	matrix::Vector3f _offset;

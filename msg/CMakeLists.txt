@@ -85,6 +85,7 @@ set(msg_files
 	mission_result.msg
 	mount_orientation.msg
 	multirotor_motor_limits.msg
+	navigator_mission_item.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
@@ -120,7 +121,6 @@ set(msg_files
 	sensor_gps.msg
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
-	sensor_gyro_fft_axis.msg
 	sensor_gyro_fifo.msg
 	sensor_mag.msg
 	sensor_preflight_mag.msg

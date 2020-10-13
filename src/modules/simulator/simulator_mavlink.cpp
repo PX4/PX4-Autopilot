@@ -969,10 +969,12 @@ void Simulator::check_failure_injections()
 			handled = true;
 
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, GPS off");
 				supported = true;
 				_gps_blocked = true;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, GPS ok");
 				supported = true;
 				_gps_blocked = false;
 			}
@@ -986,11 +988,13 @@ void Simulator::check_failure_injections()
 				// 0 to signal all
 				if (instance == 0) {
 					for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, accel %d off", i);
 						_accel_blocked[i] = true;
 						_accel_stuck[i] = false;
 					}
 
 				} else if (instance >= 1 && instance <= ACCEL_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, accel %d off", instance - 1);
 					_accel_blocked[instance - 1] = true;
 					_accel_stuck[instance - 1] = false;
 				}
@@ -1001,11 +1005,13 @@ void Simulator::check_failure_injections()
 				// 0 to signal all
 				if (instance == 0) {
 					for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, accel %d stuck", i);
 						_accel_blocked[i] = false;
 						_accel_stuck[i] = true;
 					}
 
 				} else if (instance >= 1 && instance <= ACCEL_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, accel %d stuck", instance - 1);
 					_accel_blocked[instance - 1] = false;
 					_accel_stuck[instance - 1] = true;
 				}
@@ -1016,11 +1022,13 @@ void Simulator::check_failure_injections()
 				// 0 to signal all
 				if (instance == 0) {
 					for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
+						PX4_INFO("CMD_INJECT_FAILURE, accel %d ok", i);
 						_accel_blocked[i] = false;
 						_accel_stuck[i] = false;
 					}
 
 				} else if (instance >= 1 && instance <= ACCEL_COUNT_MAX) {
+					PX4_INFO("CMD_INJECT_FAILURE, accel %d ok", instance - 1);
 					_accel_blocked[instance - 1] = false;
 					_accel_stuck[instance - 1] = false;
 				}
@@ -1035,11 +1043,13 @@ void Simulator::check_failure_injections()
 				// 0 to signal all
 				if (instance == 0) {
 					for (int i = 0; i < GYRO_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, gyro %d off", i);
 						_gyro_blocked[i] = true;
 						_gyro_stuck[i] = false;
 					}
 
 				} else if (instance >= 1 && instance <= GYRO_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, gyro %d off", instance - 1);
 					_gyro_blocked[instance - 1] = true;
 					_gyro_stuck[instance - 1] = false;
 				}
@@ -1050,11 +1060,13 @@ void Simulator::check_failure_injections()
 				// 0 to signal all
 				if (instance == 0) {
 					for (int i = 0; i < GYRO_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, gyro %d stuck", i);
 						_gyro_blocked[i] = false;
 						_gyro_stuck[i] = true;
 					}
 
 				} else if (instance >= 1 && instance <= GYRO_COUNT_MAX) {
+					PX4_INFO("CMD_INJECT_FAILURE, gyro %d stuck", instance - 1);
 					_gyro_blocked[instance - 1] = false;
 					_gyro_stuck[instance - 1] = true;
 				}
@@ -1065,11 +1077,13 @@ void Simulator::check_failure_injections()
 				// 0 to signal all
 				if (instance == 0) {
 					for (int i = 0; i < GYRO_COUNT_MAX; i++) {
+						PX4_INFO("CMD_INJECT_FAILURE, gyro %d ok", i);
 						_gyro_blocked[i] = false;
 						_gyro_stuck[i] = false;
 					}
 
 				} else if (instance >= 1 && instance <= GYRO_COUNT_MAX) {
+					PX4_INFO("CMD_INJECT_FAILURE, gyro %d ok", instance - 1);
 					_gyro_blocked[instance - 1] = false;
 					_gyro_stuck[instance - 1] = false;
 				}
@@ -1079,15 +1093,18 @@ void Simulator::check_failure_injections()
 			handled = true;
 
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, mag off");
 				supported = true;
 				_mag_blocked = true;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				PX4_WARN("CMD_INJECT_FAILURE, mag stuck");
 				supported = true;
 				_mag_stuck = true;
 				_mag_blocked = false;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, mag ok");
 				supported = true;
 				_mag_blocked = false;
 			}
@@ -1096,15 +1113,18 @@ void Simulator::check_failure_injections()
 			handled = true;
 
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, baro off");
 				supported = true;
 				_baro_blocked = true;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				PX4_WARN("CMD_INJECT_FAILURE, baro stuck");
 				supported = true;
 				_baro_stuck = true;
 				_baro_blocked = false;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, baro ok");
 				supported = true;
 				_baro_blocked = false;
 			}
@@ -1113,23 +1133,25 @@ void Simulator::check_failure_injections()
 			handled = true;
 
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, airspeed off");
 				supported = true;
 				_airspeed_blocked = true;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, airspeed ok");
 				supported = true;
 				_airspeed_blocked = false;
 			}
 		}
 
 		if (handled) {
-			vehicle_command_ack_s ack;
-			ack.timestamp = hrt_absolute_time();
+			vehicle_command_ack_s ack{};
 			ack.command = vehicle_command.command;
 			ack.from_external = false;
 			ack.result = supported ?
 				     vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED :
 				     vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
 			_command_ack_pub.publish(ack);
 		}
 	}

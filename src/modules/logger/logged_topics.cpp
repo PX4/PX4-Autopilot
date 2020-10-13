@@ -70,6 +70,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
 	add_topic("mission_result");
+	add_topic("navigator_mission_item");
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
 	add_topic("position_controller_status", 500);
@@ -80,6 +81,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("safety");
 	add_topic("sensor_combined");
 	add_topic("sensor_correction");
+	add_topic("sensor_gyro_fft");
 	add_topic("sensor_preflight_mag", 500);
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);

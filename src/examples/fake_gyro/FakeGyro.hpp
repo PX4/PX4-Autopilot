@@ -38,6 +38,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_gyro_fifo.h>
@@ -65,7 +66,7 @@ private:
 
 	void Run() override;
 
-	uORB::PublicationMulti<sensor_gyro_fifo_s> _sensor_gyro_fifo_pub{ORB_ID(sensor_gyro_fifo)};
+	PX4Gyroscope _px4_gyro;
 
 	float _time{0.f};
 };

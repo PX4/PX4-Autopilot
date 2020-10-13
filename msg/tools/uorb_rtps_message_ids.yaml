@@ -285,7 +285,7 @@ rtps:
     id: 135
   - msg: sensor_gyro_fft
     id: 136
-  - msg: sensor_gyro_fft_axis
+  - msg: navigator_mission_item
     id: 137
   ########## multi topics: begin ##########
   - msg: actuator_controls_0

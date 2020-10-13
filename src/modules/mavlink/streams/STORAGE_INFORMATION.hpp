@@ -31,9 +31,8 @@
  *
  ****************************************************************************/
 
-#pragma once
-
-#include "../mavlink_messages.h"
+#ifndef STORAGE_INFORMATION_HPP
+#define STORAGE_INFORMATION_HPP
 
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
@@ -47,30 +46,13 @@
 class MavlinkStreamStorageInformation : public MavlinkStream
 {
 public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamStorageInformation::get_name_static();
-	}
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamStorageInformation(mavlink); }
 
-	static constexpr const char *get_name_static()
-	{
-		return "STORAGE_INFORMATION";
-	}
+	static constexpr const char *get_name_static() { return "STORAGE_INFORMATION"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_STORAGE_INFORMATION; }
 
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_STORAGE_INFORMATION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamStorageInformation(mavlink);
-	}
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
@@ -81,21 +63,14 @@ public:
 			     float param5, float param6, float param7) override
 	{
 		_storage_id = (int)roundf(param2);
-		return send(hrt_absolute_time());
+		return send();
 	}
 private:
-	int _storage_id = 0;
+	explicit MavlinkStreamStorageInformation(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	/* do not allow top copying this class */
-	MavlinkStreamStorageInformation(MavlinkStreamStorageInformation &) = delete;
-	MavlinkStreamStorageInformation &operator = (const MavlinkStreamStorageInformation &) = delete;
+	int _storage_id{0};
 
-
-protected:
-	explicit MavlinkStreamStorageInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send(const hrt_abstime t) override
+	bool send() override
 	{
 		mavlink_storage_information_t storage_info{};
 		const char *microsd_dir = PX4_STORAGEDIR;
@@ -128,8 +103,10 @@ protected:
 			return false; // results in MAV_RESULT_DENIED
 		}
 
-		storage_info.time_boot_ms = t / 1000;
+		storage_info.time_boot_ms = hrt_absolute_time() / 1000;
 		mavlink_msg_storage_information_send_struct(_mavlink->get_channel(), &storage_info);
 		return true;
 	}
 };
+
+#endif // STORAGE_INFORMATION_HPP
