@@ -31,56 +31,24 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+* IMU gyro FFT minimum frequency.
+*
+* @min 1
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_MIN, 30.0f);
 
-#include "../mavlink_messages.h"
-
-class MavlinkStreamProtocolVersion : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamProtocolVersion::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "PROTOCOL_VERSION";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_PROTOCOL_VERSION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamProtocolVersion(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_PROTOCOL_VERSION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
-
-private:
-	/* do not allow top copying this class */
-	MavlinkStreamProtocolVersion(MavlinkStreamProtocolVersion &) = delete;
-	MavlinkStreamProtocolVersion &operator = (const MavlinkStreamProtocolVersion &) = delete;
-
-
-protected:
-	explicit MavlinkStreamProtocolVersion(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send(const hrt_abstime t) override
-	{
-		_mavlink->send_protocol_version();
-		return true;
-	}
-};
+/**
+* IMU gyro FFT maximum frequency.
+*
+* @min 1
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_MAX, 200.0f);

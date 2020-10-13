@@ -53,7 +53,7 @@ GyroFFT::GyroFFT() :
 	float hanning_window[FFT_LENGTH];
 
 	for (int n = 0; n < FFT_LENGTH; n++) {
-		hanning_window[n] = 0.5f - 0.5f * cosf(2.f * M_PI_F * n / (FFT_LENGTH - 1));
+		hanning_window[n] = 0.5f * (1.f - cosf(2.f * M_PI_F * n / (FFT_LENGTH - 1)));
 	}
 
 	arm_float_to_q15(hanning_window, _hanning_window, FFT_LENGTH);
@@ -91,6 +91,21 @@ bool GyroFFT::SensorSelectionUpdate(bool force)
 				    && (sensor_gyro_fifo_sub.get().device_id == sensor_selection.gyro_device_id)) {
 
 					if (_sensor_gyro_fifo_sub.ChangeInstance(i) && _sensor_gyro_fifo_sub.registerCallback()) {
+						// find corresponding vehicle_imu_status instance
+						for (uint8_t imu_status = 0; imu_status < MAX_SENSOR_COUNT; imu_status++) {
+							uORB::Subscription imu_status_sub{ORB_ID(vehicle_imu_status), imu_status};
+
+							vehicle_imu_status_s vehicle_imu_status;
+
+							if (imu_status_sub.copy(&vehicle_imu_status)) {
+								if (vehicle_imu_status.gyro_device_id == sensor_selection.gyro_device_id) {
+									_vehicle_imu_status_sub.ChangeInstance(imu_status);
+									return true;
+								}
+							}
+						}
+
+						PX4_WARN("unable to find IMU status for gyro %d", sensor_selection.gyro_device_id);
 						return true;
 					}
 				}
@@ -101,6 +116,17 @@ bool GyroFFT::SensorSelectionUpdate(bool force)
 	}
 
 	return false;
+}
+
+void GyroFFT::VehicleIMUStatusUpdate()
+{
+	vehicle_imu_status_s vehicle_imu_status;
+
+	if (_vehicle_imu_status_sub.update(&vehicle_imu_status)) {
+		if ((vehicle_imu_status.gyro_rate_hz > 0) && (fabsf(vehicle_imu_status.gyro_rate_hz - _gyro_sample_rate_hz) > 1.f)) {
+			_gyro_sample_rate_hz = vehicle_imu_status.gyro_rate_hz;
+		}
+	}
 }
 
 // helper function used for frequency estimation
@@ -137,6 +163,10 @@ void GyroFFT::Run()
 	}
 
 	SensorSelectionUpdate();
+
+	const float resolution_hz = _gyro_sample_rate_hz / (FFT_LENGTH * 2);
+
+	bool publish = false;
 
 	// run on sensor gyro fifo updates
 	sensor_gyro_fifo_s sensor_gyro_fifo;
@@ -189,59 +219,121 @@ void GyroFFT::Run()
 					arm_rfft_q15(&_rfft_q15[axis], _fft_input_buffer, _fft_outupt_buffer);
 					perf_end(_fft_perf);
 
+					static constexpr uint16_t MIN_SNR = 100; // TODO:
+					uint32_t max_peak_0 = 0;
+					uint8_t max_peak_index_0 = 0;
+					bool peak_0_found = false;
 
-					// find peak location using Quinn's Second Estimator (2020-06-14: http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak/)
-					int16_t max_peak = 0;
-					uint16_t max_peak_index = 0;
+					// start at 2 to skip DC
+					// output is ordered [real[0], imag[0], real[1], imag[1], real[2], imag[2] ... real[(N/2)-1], imag[(N/2)-1]
+					for (uint16_t bucket_index = 2; bucket_index < FFT_LENGTH; bucket_index = bucket_index + 2) {
+						const float freq_hz = bucket_index * resolution_hz;
 
-					// start at 1 to skip DC
-					for (uint16_t bucket_index = 1; bucket_index < FFT_LENGTH; bucket_index++) {
-						if (abs(_fft_outupt_buffer[bucket_index]) >= max_peak) {
-							max_peak_index = bucket_index;
-							max_peak = abs(_fft_outupt_buffer[bucket_index]);
+						if (freq_hz > _param_imu_gyro_fft_max.get()) {
+							break;
+						}
+
+						if (freq_hz >= _param_imu_gyro_fft_min.get()) {
+							const int16_t real = _fft_outupt_buffer[bucket_index];
+							const int16_t complex = _fft_outupt_buffer[bucket_index + 1];
+							const uint32_t fft_value_squared = real * real + complex * complex;
+
+							if ((fft_value_squared > MIN_SNR) && (fft_value_squared >= max_peak_0)) {
+								max_peak_index_0 = bucket_index;
+								max_peak_0 = fft_value_squared;
+								peak_0_found = true;
+							}
 						}
 					}
 
+					if (peak_0_found) {
+						{
+							// find peak location using Quinn's Second Estimator (2020-06-14: http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak/)
+							int16_t real[3] {_fft_outupt_buffer[max_peak_index_0 - 2], _fft_outupt_buffer[max_peak_index_0], _fft_outupt_buffer[max_peak_index_0 + 2]};
+							int16_t imag[3] {_fft_outupt_buffer[max_peak_index_0 - 2 + 1], _fft_outupt_buffer[max_peak_index_0 + 1], _fft_outupt_buffer[max_peak_index_0 + 2 + 1]};
 
-					int k = max_peak_index;
-					float divider = powf(_fft_outupt_buffer[k], 2.f);
-					float ap = (_fft_outupt_buffer[k + 1] * _fft_outupt_buffer[k]) / divider;
-					float dp = -ap  / (1.f - ap);
-					float am = (_fft_outupt_buffer[k - 1] * _fft_outupt_buffer[k]) / divider;
+							const int k = 1;
 
-					float dm = am / (1.f - am);
-					float d = (dp + dm) / 2 + tau(dp * dp) - tau(dm * dm);
+							float divider = (real[k] * real[k] + imag[k] * imag[k]);
 
-					float adjustedBinLocation = k + d;
-					float peakFreqAdjusted = (_gyro_sample_rate * adjustedBinLocation / (FFT_LENGTH * 2));
+							// ap = (X[k + 1].r * X[k].r + X[k+1].i * X[k].i) / (X[k].r * X[k].r + X[k].i * X[k].i)
+							float ap = (real[k + 1] * real[k] + imag[k + 1] * imag[k]) / divider;
+
+							// am = (X[k – 1].r * X[k].r + X[k – 1].i * X[k].i) / (X[k].r * X[k].r + X[k].i * X[k].i)
+							float am = (real[k - 1] * real[k] + imag[k - 1] * imag[k]) / divider;
+
+							float dp = -ap  / (1.f - ap);
+							float dm = am / (1.f - am);
+							float d = (dp + dm) / 2 + tau(dp * dp) - tau(dm * dm);
+
+							uint8_t adjustedBinLocation = roundf(max_peak_index_0 + d);
+							float peakFreqAdjusted = (_gyro_sample_rate_hz * adjustedBinLocation / (FFT_LENGTH * 2));
+
+							_sensor_gyro_fft.peak_index_quinns[axis] = adjustedBinLocation;
+							_sensor_gyro_fft.peak_frequency_quinns[axis] = peakFreqAdjusted;
+						}
 
 
-					// publish sensor_gyro_fft_axis (one instance per axis)
-					sensor_gyro_fft_axis_s sensor_gyro_fft_axis{};
-					const int N_publish = math::min((unsigned)FFT_LENGTH,
-									sizeof(sensor_gyro_fft_axis_s::fft) / sizeof(sensor_gyro_fft_axis_s::fft[0]));
-					memcpy(sensor_gyro_fft_axis.fft, _fft_outupt_buffer, N_publish);
+						// find next peak
+						uint32_t max_peak_1 = 0;
+						uint8_t max_peak_index_1 = 0;
+						bool peak_1_found = false;
 
-					sensor_gyro_fft_axis.resolution_hz = _gyro_sample_rate / (FFT_LENGTH * 2);
+						for (uint16_t bucket_index = 2; bucket_index < FFT_LENGTH; bucket_index = bucket_index + 2) {
+							if (bucket_index != max_peak_index_0) {
+								const float freq_hz = bucket_index * resolution_hz;
 
-					sensor_gyro_fft_axis.peak_index = max_peak_index;
-					sensor_gyro_fft_axis.peak_frequency = max_peak_index * sensor_gyro_fft_axis.resolution_hz;
+								if (freq_hz > _param_imu_gyro_fft_max.get()) {
+									break;
+								}
 
-					sensor_gyro_fft_axis.peak_index_quinns = adjustedBinLocation;
-					sensor_gyro_fft_axis.peak_frequency_quinns = peakFreqAdjusted;
+								if (freq_hz >= _param_imu_gyro_fft_min.get()) {
+									const int16_t real = _fft_outupt_buffer[bucket_index];
+									const int16_t complex = _fft_outupt_buffer[bucket_index + 1];
+									const uint32_t fft_value_squared = real * real + complex * complex;
 
-					sensor_gyro_fft_axis.samples = FFT_LENGTH;
-					sensor_gyro_fft_axis.dt = 1e6f / _gyro_sample_rate;
-					sensor_gyro_fft_axis.device_id = sensor_gyro_fifo.device_id;
-					sensor_gyro_fft_axis.axis = axis;
-					sensor_gyro_fft_axis.timestamp_sample = sensor_gyro_fifo.timestamp_sample;
-					sensor_gyro_fft_axis.timestamp = hrt_absolute_time();
-					_sensor_gyro_fft_axis_pub[axis].publish(sensor_gyro_fft_axis);
+									if ((fft_value_squared > MIN_SNR) && (fft_value_squared >= max_peak_1)) {
+										max_peak_index_1 = bucket_index;
+										max_peak_1 = fft_value_squared;
+										peak_1_found = true;
+									}
+								}
+							}
+						}
+
+						if (peak_1_found) {
+							// if 2 peaks found then log them in order
+							_sensor_gyro_fft.peak_index_0[axis] = math::min(max_peak_index_0, max_peak_index_1);
+							_sensor_gyro_fft.peak_index_1[axis] = math::max(max_peak_index_0, max_peak_index_1);
+							_sensor_gyro_fft.peak_frequency_0[axis] = _sensor_gyro_fft.peak_index_0[axis] * resolution_hz;
+							_sensor_gyro_fft.peak_frequency_1[axis] = _sensor_gyro_fft.peak_index_1[axis] * resolution_hz;
+
+						} else {
+							// only 1 peak found
+							_sensor_gyro_fft.peak_index_0[axis] = max_peak_index_0;
+							_sensor_gyro_fft.peak_index_1[axis] = 0;
+							_sensor_gyro_fft.peak_frequency_0[axis] = max_peak_index_0 * resolution_hz;
+							_sensor_gyro_fft.peak_frequency_1[axis] = 0;
+						}
+
+						publish = true;
+					}
 
 					// reset
 					buffer_index = 0;
 				}
 			}
+		}
+
+		if (publish) {
+			_sensor_gyro_fft.dt = 1e6f / _gyro_sample_rate_hz;
+			_sensor_gyro_fft.device_id = sensor_gyro_fifo.device_id;
+			_sensor_gyro_fft.resolution_hz = resolution_hz;
+			_sensor_gyro_fft.timestamp_sample = sensor_gyro_fifo.timestamp_sample;
+			_sensor_gyro_fft.timestamp = hrt_absolute_time();
+			_sensor_gyro_fft_pub.publish(_sensor_gyro_fft);
+
+			publish = false;
 		}
 	}
 

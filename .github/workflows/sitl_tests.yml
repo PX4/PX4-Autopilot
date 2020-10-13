@@ -106,7 +106,7 @@ jobs:
 
     - name: Upload logs to flight review
       if: failure()
-      run: ./Tools/upload_log.py -q --description "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}" --feedback "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID} ${GITHUB_REPOSITORY} ${GITHUB_REF}" --source CI ./build/px4_sitl_default/tmp/rootfs/log/*/*.ulg
+      run: ./Tools/upload_log.py -q --description "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}" --feedback "${GITHUB_WORKFLOW} ${GITHUB_RUN_ID} ${GITHUB_REPOSITORY} ${GITHUB_REF}" --source CI ${GITHUB_WORKSPACE}/build/px4_sitl_default/tmp_mavsdk_tests/rootfs/log/*/*.ulg
 
     - name: Upload px4 binary
       if: failure()

@@ -31,74 +31,57 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef OBSTACLE_DISTANCE_HPP
+#define OBSTACLE_DISTANCE_HPP
 
-#include "../mavlink_messages.h"
+#include <uORB/topics/obstacle_distance.h>
 
-#include <uORB/topics/actuator_armed.h>
-
-class MavlinkStreamFlightInformation : public MavlinkStream
+class MavlinkStreamObstacleDistance : public MavlinkStream
 {
 public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamFlightInformation::get_name_static();
-	}
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamObstacleDistance(mavlink); }
 
-	static constexpr const char *get_name_static()
-	{
-		return "FLIGHT_INFORMATION";
-	}
+	static constexpr const char *get_name_static() { return "OBSTACLE_DISTANCE"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_OBSTACLE_DISTANCE; }
 
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_FLIGHT_INFORMATION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamFlightInformation(mavlink);
-	}
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
-		return MAVLINK_MSG_ID_FLIGHT_INFORMATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _obstacle_distance_fused_sub.advertised() ? (MAVLINK_MSG_ID_OBSTACLE_DISTANCE_LEN +
+				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
+
 private:
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-	param_t _param_com_flight_uuid;
+	explicit MavlinkStreamObstacleDistance(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	/* do not allow top copying this class */
-	MavlinkStreamFlightInformation(MavlinkStreamFlightInformation &) = delete;
-	MavlinkStreamFlightInformation &operator = (const MavlinkStreamFlightInformation &) = delete;
-protected:
-	explicit MavlinkStreamFlightInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
+	uORB::Subscription _obstacle_distance_fused_sub{ORB_ID(obstacle_distance_fused)};
+
+	bool send() override
 	{
+		obstacle_distance_s obstacle_distance;
 
-		_param_com_flight_uuid = param_find("COM_FLIGHT_UUID");
-	}
+		if (_obstacle_distance_fused_sub.update(&obstacle_distance)) {
+			mavlink_obstacle_distance_t msg{};
 
-	bool send(const hrt_abstime t) override
-	{
-		actuator_armed_s actuator_armed{};
-		bool ret = _armed_sub.copy(&actuator_armed);
+			msg.time_usec = obstacle_distance.timestamp;
+			msg.sensor_type = obstacle_distance.sensor_type;
+			memcpy(msg.distances, obstacle_distance.distances, sizeof(msg.distances));
+			msg.increment = 0;
+			msg.min_distance = obstacle_distance.min_distance;
+			msg.max_distance = obstacle_distance.max_distance;
+			msg.angle_offset = obstacle_distance.angle_offset;
+			msg.increment_f = obstacle_distance.increment;
+			msg.frame = obstacle_distance.frame;
 
-		if (ret && actuator_armed.timestamp != 0) {
-			int32_t flight_uuid;
-			param_get(_param_com_flight_uuid, &flight_uuid);
+			mavlink_msg_obstacle_distance_send_struct(_mavlink->get_channel(), &msg);
 
-			mavlink_flight_information_t flight_info{};
-			flight_info.flight_uuid = static_cast<uint64_t>(flight_uuid);
-			flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time_ms;
-			flight_info.time_boot_ms = hrt_absolute_time() / 1000;
-			mavlink_msg_flight_information_send_struct(_mavlink->get_channel(), &flight_info);
+			return true;
 		}
 
-		return ret;
+		return false;
 	}
 };
+
+#endif // OBSTACLE_DISTANCE_HPP

@@ -38,6 +38,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include "factory_calibration_storage.h"
 #include "gyro_calibration.h"
 #include "calibration_messages.h"
 #include "calibration_routines.h"
@@ -59,7 +60,7 @@
 #include <uORB/topics/sensor_gyro.h>
 
 static constexpr char sensor_name[] {"gyro"};
-static constexpr unsigned MAX_GYROS = 3;
+static constexpr unsigned MAX_GYROS = 4;
 
 using matrix::Vector3f;
 
@@ -101,6 +102,7 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 		{ORB_ID(sensor_gyro), 0, 0},
 		{ORB_ID(sensor_gyro), 0, 1},
 		{ORB_ID(sensor_gyro), 0, 2},
+		{ORB_ID(sensor_gyro), 0, 3},
 	};
 
 	memset(&worker_data.last_sample_0_x, 0, sizeof(worker_data.last_sample_0_x));
@@ -147,6 +149,9 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 										break;
 									case 2:
 										offset = Vector3f{sensor_correction.gyro_offset_2};
+										break;
+									case 3:
+										offset = Vector3f{sensor_correction.gyro_offset_3};
 										break;
 									}
 								}
@@ -285,6 +290,13 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		res = PX4_ERROR;
 	}
 
+	FactoryCalibrationStorage factory_storage;
+
+	if (factory_storage.open() != PX4_OK) {
+		calibration_log_critical(mavlink_log_pub, "ERROR: cannot open calibration storage");
+		res = PX4_ERROR;
+	}
+
 	if (res == PX4_OK) {
 		// set offset parameters to new values
 		bool param_save = false;
@@ -314,6 +326,10 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				calibration_log_critical(mavlink_log_pub, "calibration save failed");
 				break;
 			}
+		}
+
+		if (!failed && factory_storage.store() != PX4_OK) {
+			failed = true;
 		}
 
 		if (param_save) {

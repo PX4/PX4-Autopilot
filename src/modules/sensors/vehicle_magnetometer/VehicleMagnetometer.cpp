@@ -42,8 +42,6 @@ namespace sensors
 using namespace matrix;
 using namespace time_literals;
 
-static constexpr int32_t MAG_ROT_VAL_INTERNAL{-1};
-
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
 VehicleMagnetometer::VehicleMagnetometer() :
@@ -52,7 +50,7 @@ VehicleMagnetometer::VehicleMagnetometer() :
 {
 	char str[20] {};
 
-	for (int mag_index = 0; mag_index < 4; mag_index++) {
+	for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
 		// CAL_MAGx_ID
 		sprintf(str, "CAL_%s%u_ID", "MAG", mag_index);
 		param_find(str);

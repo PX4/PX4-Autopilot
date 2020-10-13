@@ -98,6 +98,10 @@ void VehicleAirData::SensorCorrectionsUpdate(bool force)
 							case 2:
 								_thermal_offset[baro_index] = corrections.baro_offset_2;
 								break;
+
+							case 3:
+								_thermal_offset[baro_index] = corrections.baro_offset_3;
+								break;
 							}
 						}
 					}

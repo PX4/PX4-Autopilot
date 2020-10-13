@@ -69,6 +69,7 @@
 #include <navigator/navigation.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/external_reset_lockout.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
@@ -2502,6 +2503,8 @@ Commander::run()
 
 		arm_auth_update(now, params_updated || param_init_forced);
 
+		px4_indicate_external_reset_lockout(LockoutComponent::Commander, armed.armed);
+
 		px4_usleep(COMMANDER_MONITORING_INTERVAL);
 	}
 
@@ -2635,10 +2638,6 @@ Commander::control_status_leds(vehicle_status_s *status_local, const actuator_ar
 	}
 
 	_last_overload = overload;
-
-	/* board supports HW armed indicator */
-
-	BOARD_INDICATE_ARMED_STATE(actuator_armed->armed);
 
 #if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
