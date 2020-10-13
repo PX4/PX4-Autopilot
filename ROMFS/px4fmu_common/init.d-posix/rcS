@@ -138,31 +138,8 @@ then
 	# Don't require RC calibration and configuration
 	param set COM_RC_IN_MODE 1
 
-	param set EKF2_ANGERR_INIT 0.01
-	param set EKF2_GBIAS_INIT 0.01
-
-	# Prevent high accel bias
-	param set COM_ARM_EKF_AB 0.005
-
 	# Speedup SITL startup
 	param set EKF2_REQ_GPS_H 0.5
-
-	# LPE: GPS only mode
-	param set LPE_FUSION 145
-
-	param set MC_PITCH_P 6
-	param set MC_PITCHRATE_P 0.2
-	param set MC_ROLL_P 6
-	param set MC_ROLLRATE_P 0.2
-
-	param set MPC_Z_VEL_P_ACC 12.0
-	param set MPC_Z_VEL_I_ACC 3.0
-	param set MPC_XY_P 0.8
-	param set MPC_XY_VEL_P_ACC 4.0
-	param set MPC_XY_VEL_I_ACC 0.4
-	param set MPC_XY_VEL_D_ACC 0.32
-
-	param set RTL_RETURN_ALT 30
 
 	# By default log from boot until first disarm.
 	param set SDLOG_MODE 1

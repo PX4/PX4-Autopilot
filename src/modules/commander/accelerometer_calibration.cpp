@@ -124,6 +124,7 @@
 #include "calibration_messages.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
+#include "factory_calibration_storage.h"
 
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -346,6 +347,13 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		return PX4_ERROR;
 	}
 
+	FactoryCalibrationStorage factory_storage;
+
+	if (factory_storage.open() != PX4_OK) {
+		calibration_log_critical(mavlink_log_pub, "ERROR: cannot open calibration storage");
+		return PX4_ERROR;
+	}
+
 	/* measure and calculate offsets & scales */
 	accel_worker_data_t worker_data{};
 	worker_data.mavlink_log_pub = mavlink_log_pub;
@@ -424,6 +432,10 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			}
 		}
 
+		if (!failed && factory_storage.store() != PX4_OK) {
+			failed = true;
+		}
+
 		if (param_save) {
 			param_notify_changes();
 		}
@@ -445,6 +457,13 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 	bool param_save = false;
 	bool failed = true;
+
+	FactoryCalibrationStorage factory_storage;
+
+	if (factory_storage.open() != PX4_OK) {
+		calibration_log_critical(mavlink_log_pub, "ERROR: cannot open calibration storage");
+		return PX4_ERROR;
+	}
 
 	// sensor thermal corrections (optional)
 	uORB::Subscription sensor_correction_sub{ORB_ID(sensor_correction)};
@@ -564,6 +583,10 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 				}
 			}
 		}
+	}
+
+	if (!failed && factory_storage.store() != PX4_OK) {
+		failed = true;
 	}
 
 	if (param_save) {

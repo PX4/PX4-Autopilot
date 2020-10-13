@@ -166,8 +166,17 @@ else
 	#
 	# Load parameters.
 	#
+	# if MTD has a secondary storage it is used for (factory) calibration data
+	if mtd has-secondary
+	then
+		if mtd start -i 1 /fs/mtd_caldata
+		then
+			param load /fs/mtd_caldata
+		fi
+	fi
+
 	param select $PARAM_FILE
-	if ! param load
+	if ! param import
 	then
 		param reset_all
 	fi

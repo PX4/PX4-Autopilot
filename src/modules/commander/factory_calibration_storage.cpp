@@ -31,42 +31,77 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gyro_fifo.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/log.h>
 
-class FakeGyro : public ModuleBase<FakeGyro>, public ModuleParams, public px4::ScheduledWorkItem
+#include "factory_calibration_storage.h"
+
+
+static const char *CALIBRATION_STORAGE = "/fs/mtd_caldata";
+
+static bool filter_calibration_params(param_t handle)
 {
-public:
-	FakeGyro();
-	~FakeGyro() override = default;
+	const char *name = param_name(handle);
+	// filter all non-calibration params
+	return strncmp(name, "CAL_", 4) == 0 || strncmp(name, "TC_", 3) == 0;
+}
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+FactoryCalibrationStorage::FactoryCalibrationStorage()
+{
+	int32_t param = 0;
+	param_get(param_find("SYS_FAC_CAL_MODE"), &param);
+	_enabled = param == 1;
+}
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+int FactoryCalibrationStorage::open()
+{
+	if (_fd >= 0) {
+		cleanup();
+	}
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+	if (!_enabled) {
+		return 0;
+	}
 
-	bool init();
+	_fd = ::open(CALIBRATION_STORAGE, O_RDWR);
 
-private:
-	static constexpr uint32_t SENSOR_RATE = 1250;
-	static constexpr float GYRO_RATE = 8000;
+	if (_fd == -1) {
+		return -errno;
+	}
 
-	void Run() override;
+	PX4_INFO("Storing parameters to factory storage %s", CALIBRATION_STORAGE);
+	param_control_autosave(false);
+	return 0;
+}
 
-	PX4Gyroscope _px4_gyro;
+int FactoryCalibrationStorage::store()
+{
+	if (!_enabled) {
+		return 0;
+	}
 
-	float _time{0.f};
-};
+	int ret = param_export(_fd, false, filter_calibration_params);
+
+	if (ret != 0) {
+		PX4_ERR("param export failed (%i)", ret);
+	}
+
+	return ret;
+}
+
+void FactoryCalibrationStorage::cleanup()
+{
+	if (_enabled) {
+		param_control_autosave(true);
+	}
+
+	if (_fd >= 0) {
+		close(_fd);
+		_fd = -1;
+	}
+}
+

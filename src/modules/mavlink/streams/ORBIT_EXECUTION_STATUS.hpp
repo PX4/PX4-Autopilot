@@ -31,42 +31,53 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef ORBIT_EXECUTION_STATUS_HPP
+#define ORBIT_EXECUTION_STATUS_HPP
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/topics/orbit_status.h>
 
-class FakeGyro : public ModuleBase<FakeGyro>, public ModuleParams, public px4::ScheduledWorkItem
+class MavlinkStreamOrbitStatus : public MavlinkStream
 {
 public:
-	FakeGyro();
-	~FakeGyro() override = default;
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamOrbitStatus(mavlink); }
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	static constexpr const char *get_name_static() { return "ORBIT_EXECUTION_STATUS"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS; }
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	bool init();
+	unsigned get_size() override
+	{
+		return _orbit_status_sub.advertised() ? MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
 
 private:
-	static constexpr uint32_t SENSOR_RATE = 1250;
-	static constexpr float GYRO_RATE = 8000;
+	explicit MavlinkStreamOrbitStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	void Run() override;
+	uORB::Subscription _orbit_status_sub{ORB_ID(orbit_status)};
 
-	PX4Gyroscope _px4_gyro;
+	bool send() override
+	{
+		orbit_status_s orbit_status;
 
-	float _time{0.f};
+		if (_orbit_status_sub.update(&orbit_status)) {
+			mavlink_orbit_execution_status_t msg{};
+
+			msg.time_usec = orbit_status.timestamp;
+			msg.radius = orbit_status.radius;
+			msg.frame = orbit_status.frame;
+			msg.x = orbit_status.x * 1e7;
+			msg.y = orbit_status.y * 1e7;
+			msg.z = orbit_status.z;
+
+			mavlink_msg_orbit_execution_status_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
 };
+
+#endif // ORBIT_EXECUTION_STATUS_HPP

@@ -133,6 +133,8 @@ void VehicleIMU::ParametersUpdate(bool force)
 			_param_imu_integ_rate.commit_no_notification();
 		}
 
+		_imu_integration_interval_us = 1000000 / imu_integration_rate_hz;
+
 		if (_param_imu_integ_rate.get() != imu_integ_rate_prev) {
 			// force update
 			UpdateIntegratorConfiguration();
@@ -245,7 +247,10 @@ void VehicleIMU::Run()
 		_gyro_integrator.put(gyro.timestamp_sample, gyro_raw);
 		_last_timestamp_sample_gyro = gyro.timestamp_sample;
 
-		if (!sensor_data_gap && _intervals_configured && _gyro_integrator.integral_ready()) {
+		// break if interval is configured and we haven't fallen behind
+		if (_intervals_configured && _gyro_integrator.integral_ready()
+		    && (hrt_elapsed_time(&gyro.timestamp) < _imu_integration_interval_us) && !sensor_data_gap) {
+
 			break;
 		}
 	}

@@ -31,42 +31,57 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef OBSTACLE_DISTANCE_HPP
+#define OBSTACLE_DISTANCE_HPP
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/topics/obstacle_distance.h>
 
-class FakeGyro : public ModuleBase<FakeGyro>, public ModuleParams, public px4::ScheduledWorkItem
+class MavlinkStreamObstacleDistance : public MavlinkStream
 {
 public:
-	FakeGyro();
-	~FakeGyro() override = default;
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamObstacleDistance(mavlink); }
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	static constexpr const char *get_name_static() { return "OBSTACLE_DISTANCE"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_OBSTACLE_DISTANCE; }
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	bool init();
+	unsigned get_size() override
+	{
+		return _obstacle_distance_fused_sub.advertised() ? (MAVLINK_MSG_ID_OBSTACLE_DISTANCE_LEN +
+				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
 
 private:
-	static constexpr uint32_t SENSOR_RATE = 1250;
-	static constexpr float GYRO_RATE = 8000;
+	explicit MavlinkStreamObstacleDistance(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	void Run() override;
+	uORB::Subscription _obstacle_distance_fused_sub{ORB_ID(obstacle_distance_fused)};
 
-	PX4Gyroscope _px4_gyro;
+	bool send() override
+	{
+		obstacle_distance_s obstacle_distance;
 
-	float _time{0.f};
+		if (_obstacle_distance_fused_sub.update(&obstacle_distance)) {
+			mavlink_obstacle_distance_t msg{};
+
+			msg.time_usec = obstacle_distance.timestamp;
+			msg.sensor_type = obstacle_distance.sensor_type;
+			memcpy(msg.distances, obstacle_distance.distances, sizeof(msg.distances));
+			msg.increment = 0;
+			msg.min_distance = obstacle_distance.min_distance;
+			msg.max_distance = obstacle_distance.max_distance;
+			msg.angle_offset = obstacle_distance.angle_offset;
+			msg.increment_f = obstacle_distance.increment;
+			msg.frame = obstacle_distance.frame;
+
+			mavlink_msg_obstacle_distance_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
 };
+
+#endif // OBSTACLE_DISTANCE_HPP

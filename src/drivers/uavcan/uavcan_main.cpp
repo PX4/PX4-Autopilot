@@ -749,6 +749,10 @@ UavcanNode::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
+	for (auto &br : _sensor_bridges) {
+		br->update();
+	}
+
 	node_spin_once(); // expected to be non-blocking
 
 	// Check arming state

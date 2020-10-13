@@ -31,42 +31,45 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef PING_HPP
+#define PING_HPP
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gyro_fifo.h>
-
-class FakeGyro : public ModuleBase<FakeGyro>, public ModuleParams, public px4::ScheduledWorkItem
+class MavlinkStreamPing : public MavlinkStream
 {
 public:
-	FakeGyro();
-	~FakeGyro() override = default;
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamPing(mavlink); }
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	static constexpr const char *get_name_static() { return "PING"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_PING; }
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_PING_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
 
-	bool init();
+	bool const_rate() override { return true; }
 
 private:
-	static constexpr uint32_t SENSOR_RATE = 1250;
-	static constexpr float GYRO_RATE = 8000;
+	explicit MavlinkStreamPing(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	void Run() override;
+	uint32_t _sequence{0};
 
-	PX4Gyroscope _px4_gyro;
+	bool send() override
+	{
+		mavlink_ping_t msg{};
 
-	float _time{0.f};
+		msg.time_usec = hrt_absolute_time();
+		msg.seq = _sequence++;
+		msg.target_system = 0; // All systems
+		msg.target_component = 0; // All components
+
+		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &msg);
+
+		return true;
+	}
 };
+
+#endif // PING_HPP
