@@ -67,6 +67,7 @@ Sih::Sih() :
 	_last_run = task_start;
 	_gps_time = task_start;
 	_serial_time = task_start;
+	_dist_snsr_time = task_start;
 }
 
 Sih::~Sih()
@@ -148,6 +149,12 @@ void Sih::Run()
 		send_gps();
 	}
 
+	// distance sensor published at 50 Hz
+	if (_now - _dist_snsr_time >= 20_ms) {
+		_dist_snsr_time = _now;
+		send_dist_snsr();
+	}
+
 	// send uart message every 40 ms
 	if (_now - _serial_time >= 40_ms) {
 		_serial_time = _now;
@@ -191,6 +198,9 @@ void Sih::parameters_updated()
 	_mag_offset_x = _sih_mag_offset_x.get();
 	_mag_offset_y = _sih_mag_offset_y.get();
 	_mag_offset_z = _sih_mag_offset_z.get();
+
+	_distance_snsr_min = _sih_distance_snsr_min.get();
+	_distance_snsr_max = _sih_distance_snsr_max.get();
 }
 
 // initialization of the variables for the simulator
@@ -351,6 +361,27 @@ void Sih::send_gps()
 	}
 
 	_sensor_gps_pub.publish(_sensor_gps);
+}
+
+void Sih::send_dist_snsr()
+{
+	_distance_snsr.timestamp = _now;
+	_distance_snsr.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	_distance_snsr.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	_distance_snsr.min_distance = _distance_snsr_min;
+	_distance_snsr.max_distance = _distance_snsr_max;
+	_distance_snsr.signal_quality = -1;
+	_distance_snsr.device_id = 0;
+
+	_distance_snsr.current_distance = -_p_I(2) / _C_IB(2, 2);
+
+	if (_distance_snsr.current_distance > _distance_snsr_max) {
+		// this is based on lightware lw20 behavior
+		_distance_snsr.current_distance = UINT16_MAX / 100.f;
+
+	}
+
+	_distance_snsr_pub.publish(_distance_snsr);
 }
 
 void Sih::publish_sih()

@@ -391,3 +391,27 @@ PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Y,  0.0f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Z,  0.0f);
+
+/**
+ * distance sensor minimun range
+ *
+ * @unit m
+ * @min 0.0
+ * @max 10.0
+ * @decimal 4
+ * @increment 0.01
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MIN, 0.0f);
+
+/**
+ * distance sensor maximun range
+ *
+ * @unit m
+ * @min 0.0
+ * @max 1000.0
+ * @decimal 4
+ * @increment 0.01
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MAX, 100.0f);
