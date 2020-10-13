@@ -168,12 +168,9 @@ private:
 	param_t _rtl_descent_speed;
 
 	uORB::SubscriptionData<wind_estimate_s>		_wind_estimate_sub{ORB_ID(wind_estimate)};
-	uORB::PublicationData<rtl_flight_time_s>	_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
-
-	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
+	uORB::Publication<rtl_flight_time_s>		_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
 };
 
-float time_to_home(const matrix::Vector3f &vehicle_local_pos,
-		   const matrix::Vector3f &rtl_point_local_pos,
+float time_to_home(const matrix::Vector3f &to_home_vec,
 		   const matrix::Vector2f &wind_velocity, float vehicle_speed_m_s,
 		   float vehicle_descent_speed_m_s);
