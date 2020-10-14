@@ -261,7 +261,7 @@ else
 	mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
 
 	# Onboard link to gimbal
-	mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -f -m onboard
+	mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -f -m gimbal
 fi
 
 # execute autostart post script if any
