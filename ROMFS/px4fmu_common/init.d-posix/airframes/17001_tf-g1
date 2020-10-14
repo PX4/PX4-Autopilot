@@ -10,7 +10,7 @@
 #
 #
 
-sh /etc/init.d/rc.fw_defaults
+. ${R}etc/init.d/rc.fw_defaults
 
 if [ $AUTOCNF = yes ]
 then

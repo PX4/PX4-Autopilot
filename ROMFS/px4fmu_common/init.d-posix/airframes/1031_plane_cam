@@ -3,7 +3,7 @@
 # @name Plane SITL with camera
 #
 
-sh /etc/init.d-posix/airframes/1030_plane
+. ${R}etc/init.d-posix/airframes/1030_plane
 
 if [ $AUTOCNF = yes ]
 then

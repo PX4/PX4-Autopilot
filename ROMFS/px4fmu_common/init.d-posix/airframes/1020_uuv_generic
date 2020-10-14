@@ -3,7 +3,7 @@
 # @name UUV
 #
 
-sh /etc/init.d/rc.uuv_defaults
+. ${R}etc/init.d/rc.uuv_defaults
 
 if [ $AUTOCNF = yes ]
 then
