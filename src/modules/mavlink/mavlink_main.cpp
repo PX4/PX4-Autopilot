@@ -1680,6 +1680,12 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 		break;
 
+	case MAVLINK_MODE_GIMBAL:
+		// Note: streams requiring low latency come first
+		configure_stream_local("AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f);
+		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 20.0f);
+		break;
+
 	case MAVLINK_MODE_EXTVISION:
 		configure_stream_local("HIGHRES_IMU", unlimited_rate);		// for VIO
 
@@ -2043,6 +2049,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "extvisionmin") == 0) {
 						_mode = MAVLINK_MODE_EXTVISIONMIN;
+
+					} else if (strcmp(myoptarg, "gimbal") == 0) {
+						_mode = MAVLINK_MODE_GIMBAL;
 
 					} else {
 						PX4_ERR("invalid mode");
@@ -3074,7 +3083,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr,
 					"Partner IP (broadcasting can be enabled via MAV_BROADCAST param)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvsision",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)

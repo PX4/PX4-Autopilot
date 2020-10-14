@@ -194,7 +194,7 @@ public:
 		MAVLINK_MODE_MINIMAL,
 		MAVLINK_MODE_EXTVISION,
 		MAVLINK_MODE_EXTVISIONMIN,
-
+		MAVLINK_MODE_GIMBAL,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -242,6 +242,9 @@ public:
 
 		case MAVLINK_MODE_EXTVISIONMIN:
 			return "ExtVisionMin";
+
+		case MAVLINK_MODE_GIMBAL:
+			return "Gimbal";
 
 		default:
 			return "Unknown";
