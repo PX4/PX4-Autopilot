@@ -15,7 +15,7 @@ SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck disable=SC2154
 if [ "$replay_mode" = "ekf2" ]
 then
-	sh etc/init.d-posix/rc.replay
+	. ${R}etc/init.d-posix/rc.replay
 	exit 0
 fi
 
@@ -176,7 +176,8 @@ fi
 
 # Autostart ID
 autostart_file=''
-for f in etc/init.d-posix/airframes/"$(param show -q SYS_AUTOSTART)"_*
+# shellcheck disable=SC2231
+for f in ${R}etc/init.d-posix/airframes/"$(param show -q SYS_AUTOSTART)"_*
 do
 	filename=$(basename "$f")
 	case "$filename" in
@@ -193,7 +194,7 @@ if [ ! -e "$autostart_file" ]; then
 	exit 1
 fi
 
-sh "$autostart_file"
+. "$autostart_file"
 
 #
 # If autoconfig parameter was set, reset it and save parameters.
@@ -232,7 +233,7 @@ fi
 # Note: rc.vehicle_setup is the entry point for rc.interface,
 #       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 #
-sh etc/init.d/rc.vehicle_setup
+. ${R}etc/init.d/rc.vehicle_setup
 
 # GCS link
 mavlink start -x -u $udp_gcs_port_local -r 4000000
@@ -253,7 +254,7 @@ mavlink start -x -u $udp_offboard_port_local -r 4000000 -m onboard -o $udp_offbo
 mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
 
 # execute autostart post script if any
-[ -e "$autostart_file".post ] && sh "$autostart_file".post
+[ -e "$autostart_file".post ] && . "$autostart_file".post
 
 # Run script to start logging
 if param compare SYS_MC_EST_GROUP 2
@@ -262,7 +263,7 @@ then
 else
 	set LOGGER_ARGS "-p vehicle_attitude"
 fi
-sh etc/init.d/rc.logging
+. ${R}etc/init.d/rc.logging
 
 mavlink boot_complete
 replay trystart
