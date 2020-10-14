@@ -19,15 +19,12 @@ export FG_AIRCRAFT="${SRC_DIR}/Tools/jsbsim_bridge/models"
 # Need more architectural discussions to make this more scalable
 case "$MODEL" in
         rascal)
-            AIRCRAFT_DIR="Rascal"
             MODEL_NAME="Rascal110-JSBSim"
             ;;
         quadrotor_x)
-            AIRCRAFT_DIR="quadrotor_x"
             MODEL_NAME="quadrotor_x"
             ;;
         hexarotor_x)
-            AIRCRAFT_DIR="hexarotor_x"
             MODEL_NAME="hexarotor_x"
             ;;
         *)
@@ -36,5 +33,4 @@ case "$MODEL" in
 
 esac
 
-export JSBSIM_AIRCRAFT_DIR="$AIRCRAFT_DIR"
 export JSBSIM_AIRCRAFT_MODEL="$MODEL_NAME"
