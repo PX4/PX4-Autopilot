@@ -57,10 +57,11 @@ if [ "$program" == "jmavsim" ]; then
 fi
 
 if [ "$model" == "" ] || [ "$model" == "none" ]; then
-	echo "empty model, setting iris as default"
 	if [ "$program" == "jsbsim" ]; then
+		echo "empty model, setting rascal as default for jsbsim"
 		model="rascal"
 	else
+		echo "empty model, setting iris as default"
 		model="iris"
 	fi
 fi
@@ -163,7 +164,7 @@ elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
 			--disable-ai-models &> /dev/null &
 		FGFS_PID=$!
 	fi
-	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" "models/${JSBSIM_AIRCRAFT_DIR}" $JSBSIM_AIRCRAFT_MODEL ${model} "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" $HEADLESS 2> /dev/null &
+	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" ${model} -s "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" 2> /dev/null &
 	JSBSIM_PID=$!
 fi
 
