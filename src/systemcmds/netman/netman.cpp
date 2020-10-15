@@ -56,7 +56,7 @@ constexpr char DEFAULT_NETMAN_CONFIG[] = "/fs/microsd/net.cfg";
 #  define DEFAULT_PROTO    IPv4PROTO_FALLBACK
 #  define DEFAULT_IP      0XC0A80003  // 192.168.0.3
 #else
-#  define DEFAULT_PROTO    IPv4PROTO_STATIC
+#  define DEFAULT_PROTO   IPv4PROTO_STATIC
 #  define DEFAULT_IP      CONFIG_NETINIT_IPADDR
 #endif
 #define DEFAULT_NETMASK   CONFIG_NETINIT_NETMASK
@@ -206,23 +206,21 @@ public:
 		if (rv == -EINVAL ||
 		    (rv == OK  && (ipcfg.proto > IPv4PROTO_FALLBACK || ipcfg.ipaddr == 0xffffffff))) {
 			// Build a default
-			ipcfg.ipaddr  = DEFAULT_IP;
-			ipcfg.netmask = DEFAULT_NETMASK;
-			ipcfg.router  = DEFAULT_ROUTER;
-			ipcfg.dnsaddr = DEFAULT_DNS;
+			ipcfg.ipaddr  = HTONL(DEFAULT_IP);
+			ipcfg.netmask = HTONL(DEFAULT_NETMASK);
+			ipcfg.router  = HTONL(DEFAULT_ROUTER);
+			ipcfg.dnsaddr = HTONL(DEFAULT_DNS);
 			ipcfg.proto   = DEFAULT_PROTO;
 			rv = ENOENT;
 		}
 
 		device.set_name(netdev);
 		*this = ipcfg;
-		hton();
 		return rv;
 	}
 
 	int write()
 	{
-		ntoh();
 		struct ipv4cfg_s ipcfg;
 		ipcfg.proto   = proto.e;
 		ipcfg.ipaddr  = ipaddr.u;
@@ -230,28 +228,6 @@ public:
 		ipcfg.router  = router.u;
 		ipcfg.dnsaddr = dnsaddr.u;
 		return ipcfg_write(device.name(), (FAR struct ipcfg_s *) &ipcfg, AF_INET);
-	}
-
-
-	void hton()
-	{
-		/* Store them in network order */
-
-		netmask.l = htonl(netmask.l);
-		ipaddr.l = htonl(ipaddr.l);
-		router.l = htonl(router.l);
-		dnsaddr.l = htonl(dnsaddr.l);
-	}
-
-	void ntoh()
-	{
-		/* Store them in host order */
-
-		netmask.l = ntohl(netmask.l);
-		ipaddr.l = ntohl(ipaddr.l);
-		router.l = ntohl(router.l);
-		dnsaddr.l = ntohl(dnsaddr.l);
-
 	}
 };
 
