@@ -521,38 +521,6 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
 PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
 
 /**
- * TECS time constant
- *
- * This is the time constant of the TECS control algorithm (in seconds).
- * Smaller values make it faster to respond, larger values make it slower
- * to respond.
- *
- * @unit s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
-
-/**
- * TECS Throttle time constant
- *
- * This is the time constant of the TECS throttle control algorithm (in seconds).
- * Smaller values make it faster to respond, larger values make it slower
- * to respond.
- *
- * @unit s
- * @min 1.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_THRO_CONST, 8.0f);
-
-/**
  * Throttle damping factor
  *
  * This is the damping gain for the throttle demand loop.
@@ -678,15 +646,14 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
 PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 
 /**
- * Height rate proportional factor
+ * Altitude error time constant.
  *
- * @min 0.0
- * @max 1.0
+ * @min 2.0
  * @decimal 2
- * @increment 0.05
+ * @increment 0.5
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_ALT_TC, 5.0f);
 
 /**
  * Height rate feed forward
@@ -700,15 +667,14 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
 PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.8f);
 
 /**
- * Speed rate P factor
+ * True airspeed error time constant.
  *
- * @min 0.0
- * @max 2.0
+ * @min 2.0
  * @decimal 2
- * @increment 0.01
+ * @increment 0.5
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
+PARAM_DEFINE_FLOAT(FW_T_TAS_TC, 10.0f);
 
 /**
  * Minimum groundspeed
@@ -737,7 +703,7 @@ PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
  * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_POSCTL_INV_ST, 0);
- 
+
 /**
  * Specific total energy rate first order filter time constant.
  *
