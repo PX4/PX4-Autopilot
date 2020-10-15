@@ -416,12 +416,9 @@ void EKF2::Run()
 				if ((_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
 					// this means we need to reset the learned bias values to zero
-					_param_ekf2_magbias_x.set(0.f);
-					_param_ekf2_magbias_x.commit_no_notification();
-					_param_ekf2_magbias_y.set(0.f);
-					_param_ekf2_magbias_y.commit_no_notification();
-					_param_ekf2_magbias_z.set(0.f);
-					_param_ekf2_magbias_z.commit_no_notification();
+					_param_ekf2_magbias_x.reset();
+					_param_ekf2_magbias_y.reset();
+					_param_ekf2_magbias_z.reset();
 					_param_ekf2_magbias_id.set(magnetometer.device_id);
 					_param_ekf2_magbias_id.commit();
 
