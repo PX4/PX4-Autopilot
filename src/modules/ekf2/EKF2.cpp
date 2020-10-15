@@ -1028,6 +1028,7 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 		wind_estimate.variance_east = wind_vel_var(1);
 		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 		wind_estimate.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		wind_estimate.source = wind_estimate_s::SOURCE_EKF;
 
 		_wind_pub.publish(wind_estimate);
 	}
