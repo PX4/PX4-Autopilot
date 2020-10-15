@@ -261,6 +261,17 @@ __EXPORT void		param_notify_changes(void);
 __EXPORT int		param_reset(param_t param);
 
 /**
+ * Reset a parameter to its default value, but do not notify the system about the change.
+ *
+ * This function frees any storage used by struct parameters, and returns the parameter
+ * to its default value.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @return		Zero on success, nonzero on failure
+ */
+__EXPORT int		param_reset_no_notification(param_t param);
+
+/**
  * Reset all parameters to their default values.
  *
  * This function also releases the storage used by struct parameters.
