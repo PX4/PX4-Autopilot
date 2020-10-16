@@ -58,50 +58,50 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 		// Monocolor lights should interpret this as brightness setpoint: from zero (0, 0, 0) to full brightness (31, 63, 31).
 		uavcan::equipment::indication::SingleLightCommand cmd;
 
-		float brightness = (float)led_control_data.leds[0].brightness / 255.f;
+		uint8_t brightness = led_control_data.leds[0].brightness;
 
 		switch (led_control_data.leds[0].color) {
 		case led_control_s::COLOR_RED:
-			cmd.color.red = 31 * brightness;
-			cmd.color.green = 63 * brightness;
+			cmd.color.red = brightness >> 3;
+			cmd.color.green = brightness >> 2;
 			cmd.color.blue = 0;
 			break;
 
 		case led_control_s::COLOR_GREEN:
 			cmd.color.red = 0;
-			cmd.color.green = 63 * brightness;
+			cmd.color.green = brightness >> 2;
 			cmd.color.blue = 0;
 			break;
 
 		case led_control_s::COLOR_BLUE:
 			cmd.color.red = 0;
 			cmd.color.green = 0;
-			cmd.color.blue = 31 * brightness;
+			cmd.color.blue = brightness >> 3;
 			break;
 
 		case led_control_s::COLOR_AMBER: //make it the same as yellow
 		case led_control_s::COLOR_YELLOW:
-			cmd.color.red = 31 * brightness;
-			cmd.color.green = 63 * brightness;
+			cmd.color.red = brightness >> 3;
+			cmd.color.green = brightness >> 2;
 			cmd.color.blue = 0;
 			break;
 
 		case led_control_s::COLOR_PURPLE:
-			cmd.color.red = 31 * brightness;
+			cmd.color.red = brightness >> 3;
 			cmd.color.green = 0;
-			cmd.color.blue = 31 * brightness;
+			cmd.color.blue = brightness >> 3;
 			break;
 
 		case led_control_s::COLOR_CYAN:
 			cmd.color.red = 0;
-			cmd.color.green = 63 * brightness;
-			cmd.color.blue = 31 * brightness;
+			cmd.color.green = brightness >> 2;
+			cmd.color.blue = brightness >> 3;
 			break;
 
 		case led_control_s::COLOR_WHITE:
-			cmd.color.red = 31 * brightness;
-			cmd.color.green = 63 * brightness;
-			cmd.color.blue = 31 * brightness;
+			cmd.color.red = brightness >> 3;
+			cmd.color.green = brightness >> 2;
+			cmd.color.blue = brightness >> 3;
 			break;
 
 		default: // led_control_s::COLOR_OFF
