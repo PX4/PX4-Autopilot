@@ -33,7 +33,9 @@
 
 #pragma once
 
+#if defined(__PX4_NUTTX)
 #include <malloc.h>
+#endif
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>

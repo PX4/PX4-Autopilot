@@ -151,7 +151,7 @@ void LoadMon::cpuload()
 	int parsedCount = 0;
 	FILE *meminfo = fopen("/proc/meminfo", "r");
 
-	if (meminfo == NULL) {
+	if (meminfo == nullptr) {
 		PX4_ERR("Could not open /proc/meminfo");
 	}
 
