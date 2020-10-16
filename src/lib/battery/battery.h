@@ -100,11 +100,6 @@ public:
 	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
 				 int source, int priority, float throttle_normalized);
 
-	/**
-	 * Publishes the uORB battery_status message with the most recently-updated data.
-	 */
-	void publish();
-
 protected:
 	struct {
 		param_t v_empty;
@@ -158,6 +153,11 @@ protected:
 
 	bool _first_parameter_update{true};
 	void updateParams() override;
+
+	/**
+	 * Publishes the uORB battery_status message with the most recently-updated data.
+	 */
+	void publish();
 
 	/**
 	 * This function helps migrating and syncing from/to deprecated parameters. BAT_* BAT1_*
