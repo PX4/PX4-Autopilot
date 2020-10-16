@@ -48,6 +48,7 @@
 #include <board_config.h>
 #include <px4_platform_common/board_common.h>
 #include <px4_platform_common/module_params.h>
+#include <matrix/math.hpp>
 
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
@@ -179,21 +180,19 @@ protected:
 		param_get(new_param, new_val);
 
 		// Check if the parameter values are different
-		if (!isFloatEqual(*old_val, *new_val)) {
+		if (!matrix::isEqualF((float)*old_val, (float)*new_val)) {
 			// If so, copy the new value over to the unchanged parameter
 			// Note: If they differ from the beginning we migrate old to new
-			if (firstcall || !isFloatEqual(*old_val, previous_old_val)) {
+			if (firstcall || !matrix::isEqualF((float)*old_val, (float)previous_old_val)) {
 				param_set_no_notification(new_param, old_val);
 				param_get(new_param, new_val);
 
-			} else if (!isFloatEqual(*new_val, previous_new_val)) {
+			} else if (!matrix::isEqualF((float)*new_val, (float)previous_new_val)) {
 				param_set_no_notification(old_param, new_val);
 				param_get(old_param, old_val);
 			}
 		}
 	}
-
-	bool isFloatEqual(float a, float b) const { return fabsf(a - b) > FLT_EPSILON; }
 
 private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
