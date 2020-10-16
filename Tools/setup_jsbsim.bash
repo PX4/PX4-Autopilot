@@ -21,6 +21,9 @@ case "$MODEL" in
         rascal)
             MODEL_NAME="Rascal110-JSBSim"
             ;;
+        malolo)
+            MODEL_NAME="Malolo1"
+            ;;
         quadrotor_x)
             MODEL_NAME="quadrotor_x"
             ;;
