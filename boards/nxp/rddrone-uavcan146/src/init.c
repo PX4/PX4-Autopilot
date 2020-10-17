@@ -97,3 +97,22 @@ int board_app_initialize(uintptr_t arg)
 	return s32k1xx_bringup();
 #endif
 }
+
+/************************************************************************************
+ * Name: board_peripheral_reset
+ *
+ * Description:
+ *
+ ************************************************************************************/
+__EXPORT void board_peripheral_reset(int ms)
+{
+	/* set the peripheral rails off */
+
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
+
+	/* re-enable power */
+
+	/* switch the peripheral rail back on */
+}

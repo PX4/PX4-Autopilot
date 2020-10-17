@@ -17,7 +17,7 @@
 # @output MAIN8 Pusher reverse channel
 #
 
-. /etc/init.d/rc.vtol_defaults
+. ${R}etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF = yes ]
 then

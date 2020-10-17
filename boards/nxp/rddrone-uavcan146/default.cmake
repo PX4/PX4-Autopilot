@@ -37,9 +37,10 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		#lights
+		lights/rgbled_pwm
 		#magnetometer # all available magnetometer drivers
 		#optical_flow # all available optical flow drivers
-		#pwm_out
+		pwm_out
 		#safety_button
 		#tone_alarm
 		#uavcannode # TODO: CAN driver needed
@@ -55,14 +56,14 @@ px4_add_board(
 		#esc_calib
 		#hardfault_log
 		i2cdetect
-		#led_control
-		#mixer
+		led_control
+		mixer
 		#motor_ramp
 		#motor_test
 		#nshterm
 		#param
 		#perf
-		#pwm
+		pwm
 		reboot
 		#reflect
 		#sd_bench
@@ -71,5 +72,5 @@ px4_add_board(
 		#topic_listener
 		#tune_control
 		ver
-		#work_queue
+		work_queue
 )

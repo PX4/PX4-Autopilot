@@ -144,12 +144,32 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 	{
 		.clkname    = FTM0_CLK,
 		.clkgate    = true,
-		.clksrc     = CLK_SRC_SIRC,
+		.clksrc     = CLK_SRC_SOSC_DIV1,
 	},
 	{
 		.clkname    = FTM1_CLK,
 		.clkgate    = true,
-		.clksrc     = CLK_SRC_SIRC,
+		.clksrc     = CLK_SRC_SOSC_DIV1,
+	},
+	{
+		.clkname    = FTM2_CLK,
+		.clkgate    = true,
+		.clksrc     = CLK_SRC_SOSC_DIV1,
+	},
+	{
+		.clkname    = FTM3_CLK,
+		.clkgate    = true,
+		.clksrc     = CLK_SRC_SOSC_DIV1,
+	},
+	{
+		.clkname    = FTM4_CLK,
+		.clkgate    = true,
+		.clksrc     = CLK_SRC_SOSC_DIV1,
+	},
+	{
+		.clkname    = FTM5_CLK,
+		.clkgate    = true,
+		.clksrc     = CLK_SRC_SOSC_DIV1,
 	},
 	{
 		.clkname = PORTA_CLK,

@@ -20,6 +20,7 @@ set +e
 # Do not add intra word spaces
 # it wastes flash
 #
+set R /
 set AUTOCNF no
 set AUX_MODE pwm
 set DATAMAN_OPT ""
@@ -198,7 +199,7 @@ else
 	#
 	# Optional board defaults: rc.board_defaults
 	#
-	set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
+	set BOARD_RC_DEFAULTS ${R}etc/init.d/rc.board_defaults
 	if [ -f $BOARD_RC_DEFAULTS ]
 	then
 		echo "Board defaults: ${BOARD_RC_DEFAULTS}"
@@ -256,7 +257,7 @@ else
 	#
 	if ! param compare SYS_AUTOSTART 0
 	then
-		. /etc/init.d/rc.autostart
+		. ${R}etc/init.d/rc.autostart
 	fi
 
 	#
@@ -369,7 +370,7 @@ else
 		#
 		# board sensors: rc.sensors
 		#
-		set BOARD_RC_SENSORS /etc/init.d/rc.board_sensors
+		set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
 		if [ -f $BOARD_RC_SENSORS ]
 		then
 			echo "Board sensors: ${BOARD_RC_SENSORS}"
@@ -377,7 +378,7 @@ else
 		fi
 		unset BOARD_RC_SENSORS
 
-		. /etc/init.d/rc.sensors
+		. ${R}etc/init.d/rc.sensors
 
 		if param compare -s BAT1_SOURCE 2
 		then
@@ -459,7 +460,7 @@ else
 	#
 	# Optional board mavlink streams: rc.board_mavlink
 	#
-	set BOARD_RC_MAVLINK /etc/init.d/rc.board_mavlink
+	set BOARD_RC_MAVLINK ${R}etc/init.d/rc.board_mavlink
 	if [ -f $BOARD_RC_MAVLINK ]
 	then
 		echo "Board extras: ${BOARD_RC_MAVLINK}"
@@ -471,7 +472,7 @@ else
 	# Start UART/Serial device drivers.
 	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 	#
-	. /etc/init.d/rc.serial
+	. ${R}etc/init.d/rc.serial
 
 	if [ $IO_PRESENT = no ]
 	then
@@ -484,7 +485,7 @@ else
 	# Note: rc.vehicle_setup is the entry point for rc.interface,
 	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 	#
-	. /etc/init.d/rc.vehicle_setup
+	. ${R}etc/init.d/rc.vehicle_setup
 
 	# Camera capture driver
 	if param greater -s CAM_CAP_FBACK 0
@@ -503,7 +504,7 @@ else
 	#
 	# Start a thermal calibration if required.
 	#
-	. /etc/init.d/rc.thermal_cal
+	. ${R}etc/init.d/rc.thermal_cal
 
 	#
 	# Start vmount to control mounts such as gimbals, disabled by default.
@@ -528,7 +529,7 @@ else
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
-	set BOARD_RC_EXTRAS /etc/init.d/rc.board_extras
+	set BOARD_RC_EXTRAS ${R}etc/init.d/rc.board_extras
 	if [ -f $BOARD_RC_EXTRAS ]
 	then
 		echo "Board extras: ${BOARD_RC_EXTRAS}"
@@ -548,14 +549,14 @@ else
 	#
 	# Start the logger.
 	#
-	. /etc/init.d/rc.logging
+	. ${R}etc/init.d/rc.logging
 
 	#
 	# Set additional parameters and env variables for selected AUTOSTART.
 	#
 	if ! param compare SYS_AUTOSTART 0
 	then
-		. /etc/init.d/rc.autostart.post
+		. ${R}etc/init.d/rc.autostart.post
 	fi
 
 	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
@@ -575,6 +576,7 @@ fi
 #
 # Unset all script parameters to free RAM.
 #
+unset R
 unset AUTOCNF
 unset AUX_MODE
 unset DATAMAN_OPT

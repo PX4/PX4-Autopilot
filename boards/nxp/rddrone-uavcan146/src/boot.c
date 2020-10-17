@@ -68,6 +68,8 @@ void s32k1xx_board_initialize(void)
 
 	board_autoled_initialize();
 #endif
+	ucans32k_timer_initialize();
+
 }
 
 /****************************************************************************

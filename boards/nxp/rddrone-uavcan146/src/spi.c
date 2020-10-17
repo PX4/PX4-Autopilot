@@ -193,4 +193,8 @@ uint8_t s32k1xx_lpspi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 }
 #endif
 
+__EXPORT void board_spi_reset(int ms, int bus_mask)
+{
+
+}
 #endif /* CONFIG_S32K1XX_LPSPI0 || CONFIG_S32K1XX_LPSPI01 || CONFIG_S32K1XX_LPSPI2 */
