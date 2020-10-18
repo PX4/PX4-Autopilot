@@ -208,7 +208,6 @@ void LoadMon::cpuload()
 	// get ram usage
 	struct mallinfo mem = mallinfo();
 	cpuload.ram_usage = (float)mem.uordblks / mem.arena;
-	PX4_WARN("used: %d total: %d", mem.uordblks, mem.arena);
 	cpuload.load = 1.f - interval_idletime / interval;
 #endif
 	cpuload.timestamp = hrt_absolute_time();
