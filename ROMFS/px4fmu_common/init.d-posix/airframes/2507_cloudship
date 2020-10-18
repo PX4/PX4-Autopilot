@@ -9,7 +9,7 @@
 # @output MAIN3 port thruster
 # @output MAIN4 tail thruster
 
-sh /etc/init.d/rc.airship_defaults
+. ${R}etc/init.d/rc.airship_defaults
 
 set MIXER cloudship
 set PWM_OUT 1234

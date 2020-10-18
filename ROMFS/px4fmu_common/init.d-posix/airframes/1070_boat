@@ -3,7 +3,7 @@
 # @name Boat
 #
 
-sh /etc/init.d/rc.boat_defaults
+. ${R}etc/init.d/rc.boat_defaults
 
 if [ $AUTOCNF = yes ]
 then

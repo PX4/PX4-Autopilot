@@ -41,6 +41,7 @@ add_library(drivers_board
 	init.c
 	periphclocks.c
 	spi.c
+	timer_config.cpp
 	userleds.c
 )
 
@@ -50,4 +51,5 @@ target_link_libraries(drivers_board
 		nuttx_drivers # sdio
 		drivers__led # drv_led_start
 		px4_layer
+		arch_io_pins
 	)

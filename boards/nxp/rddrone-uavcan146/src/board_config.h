@@ -90,13 +90,33 @@ __BEGIN_DECLS
 
 /* Count of peripheral clock user configurations */
 
-#define NUM_OF_PERIPHERAL_CLOCKS_0 14
+#define NUM_OF_PERIPHERAL_CLOCKS_0 18
 
 
 /* High-resolution timer */
-#define HRT_TIMER              1  /* FTM timer for the HRT */
+#define HRT_TIMER              5  /* FTM timer for the HRT */
 #define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
-#define HRT_PPM_CHANNEL        1  /* Use TPM1 capture/compare channel 1 */
+
+/* Timer I/O PWM and capture
+ *
+ * ?? PWM outputs are configured.
+ * ?? Timer inputs are configured.
+ *
+ * Pins:
+ *      Defined in board.h
+ */
+
+#define DIRECT_PWM_OUTPUT_CHANNELS  1
+
+#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_HAS_LED_PWM              1
+#define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
+#define BOARD_HAS_SHARED_PWM_TIMERS    1
+
+#define LED_TIM0_CH0OUT   /* PTD15  RGB_R */ PIN_FTM0_CH0_3
+#define LED_TIM0_CH1OUT   /* PTD16  RGB_G */ PIN_FTM0_CH1_3
+#define LED_TIM0_CH2OUT   /* PTD0   RGB_B */ PIN_FTM0_CH2_3
 
 /****************************************************************************
  * Public Types
@@ -144,6 +164,25 @@ int s32k1xx_bringup(void);
 #ifdef CONFIG_S32K1XX_LPSPI
 void s32k1xx_spidev_initialize(void);
 #endif
+
+/****************************************************************************************************
+ * Name: board_spi_reset board_peripheral_reset
+ *
+ * Description:
+ *   Called to reset SPI and the perferal bus
+ *
+ ****************************************************************************************************/
+void board_peripheral_reset(int ms);
+
+/************************************************************************************
+ * Name: ucans32k_timer_initialize
+ *
+ * Description:
+ *   Called to configure the FTM to provide 1 Mhz
+ *
+ ************************************************************************************/
+
+void ucans32k_timer_initialize(void);
 
 #include <px4_platform_common/board_common.h>
 

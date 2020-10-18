@@ -108,7 +108,7 @@ then
 
 	if [ $OUTPUT_MODE = io ]
 	then
-		. /etc/init.d/rc.io
+		. ${R}etc/init.d/rc.io
 	fi
 
 	#
@@ -118,7 +118,7 @@ then
 	then
 		if [ $OUTPUT_MODE != io ]
 		then
-			. /etc/init.d/rc.io
+			. ${R}etc/init.d/rc.io
 		fi
 	fi
 fi

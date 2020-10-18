@@ -420,9 +420,9 @@ void EKF2::Run()
 					_param_ekf2_magbias_id.set(magnetometer.device_id);
 
 					if (!_multi_mode) {
-						_param_ekf2_magbias_x.commit_no_notification();
-						_param_ekf2_magbias_y.commit_no_notification();
-						_param_ekf2_magbias_z.commit_no_notification();
+						_param_ekf2_magbias_x.reset();
+						_param_ekf2_magbias_y.reset();
+						_param_ekf2_magbias_z.reset();
 						_param_ekf2_magbias_id.commit();
 						PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
 					}
