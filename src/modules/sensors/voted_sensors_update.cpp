@@ -374,6 +374,11 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 	status.accel_device_id_primary = _selection.accel_device_id;
 	status.gyro_device_id_primary = _selection.gyro_device_id;
 
+	static_assert(MAX_SENSOR_COUNT == (sizeof(sensors_status_imu_s::accel_inconsistency_m_s_s) / sizeof(
+			sensors_status_imu_s::accel_inconsistency_m_s_s[0])), "check sensors_status_imu accel_inconsistency_m_s_s size");
+	static_assert(MAX_SENSOR_COUNT == (sizeof(sensors_status_imu_s::gyro_inconsistency_rad_s) / sizeof(
+			sensors_status_imu_s::gyro_inconsistency_rad_s[0])), "check sensors_status_imu accel_inconsistency_m_s_s size");
+
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 		if ((_accel_device_id[i] != 0) && (_accel.priority[i] > 0)) {
 			status.accel_device_ids[i] = _accel_device_id[i];
