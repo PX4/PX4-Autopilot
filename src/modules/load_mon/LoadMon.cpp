@@ -147,7 +147,11 @@ void LoadMon::cpuload()
 	/* following calculation is based on free(1)
 	 * https://gitlab.com/procps-ng/procps/-/blob/master/proc/sysinfo.c */
 	char line[256];
-	int32_t kb_main_total = -1, kb_main_free = -1, kb_page_cache = -1, kb_slab_reclaimable = -1, kb_main_buffers = -1;
+	int32_t kb_main_total = -1;
+	int32_t kb_main_free = -1;
+	int32_t kb_page_cache = -1;
+	int32_t kb_slab_reclaimable = -1;
+	int32_t kb_main_buffers = -1;
 	int parsedCount = 0;
 	FILE *meminfo = fopen("/proc/meminfo", "r");
 
