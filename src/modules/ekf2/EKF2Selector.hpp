@@ -53,7 +53,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 
-static constexpr uint8_t EKF2_MAX_INSTANCES{9}; // keep in sync with EKF2_MULTI_INST max, EKF2_x_IMU_ID, EKF2_x_MAG_ID, and selector MAX_INSTANCES
+static constexpr uint8_t EKF2_MAX_INSTANCES{9};
+static_assert(EKF2_MAX_INSTANCES <= ORB_MULTI_MAX_INSTANCES, "EKF2_MAX_INSTANCES must be <= ORB_MULTI_MAX_INSTANCES");
 
 class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem
 {
