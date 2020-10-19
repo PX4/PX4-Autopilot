@@ -231,6 +231,9 @@ if (px4_constrained_flash_build)
 	set(added_arguments --constrained-flash)
 endif()
 
+# set parent scope msg_files for other modules to consume (eg topic_listener)
+set(msg_files ${msg_files} PARENT_SCOPE)
+
 # Generate uORB headers
 add_custom_command(OUTPUT ${uorb_headers}
 	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
