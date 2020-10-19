@@ -49,10 +49,6 @@ set(msg_files
 	collision_report.msg
 	commander_state.msg
 	cpuload.msg
-	debug_array.msg
-	debug_key_value.msg
-	debug_value.msg
-	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_timestamps.msg
@@ -172,6 +168,17 @@ set(msg_files
 	wind_estimate.msg
 	yaw_estimator_status.msg
 )
+
+if(NOT px4_constrained_flash_build)
+	list(APPEND msg_files
+		debug_array.msg
+		debug_key_value.msg
+		debug_value.msg
+		debug_vect.msg
+	)
+endif()
+
+list(SORT msg_files)
 
 set(deprecated_msgs
 	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.

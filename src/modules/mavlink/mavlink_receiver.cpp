@@ -246,6 +246,20 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_trajectory_representation_waypoints(msg);
 		break;
 
+	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
+		handle_message_onboard_computer_status(msg);
+		break;
+
+	case MAVLINK_MSG_ID_GENERATOR_STATUS:
+		handle_message_generator_status(msg);
+		break;
+
+	case MAVLINK_MSG_ID_STATUSTEXT:
+		handle_message_statustext(msg);
+		break;
+
+#if !defined(CONSTRAINED_FLASH)
+
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
 		handle_message_named_value_float(msg);
 		break;
@@ -261,18 +275,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY:
 		handle_message_debug_float_array(msg);
 		break;
-
-	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
-		handle_message_onboard_computer_status(msg);
-		break;
-
-	case MAVLINK_MSG_ID_GENERATOR_STATUS:
-		handle_message_generator_status(msg);
-		break;
-
-	case MAVLINK_MSG_ID_STATUSTEXT:
-		handle_message_statustext(msg);
-		break;
+#endif // !CONSTRAINED_FLASH
 
 	default:
 		break;
@@ -2704,6 +2707,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	}
 }
 
+#if !defined(CONSTRAINED_FLASH)
 void
 MavlinkReceiver::handle_message_named_value_float(mavlink_message_t *msg)
 {
@@ -2772,6 +2776,7 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 
 	_debug_array_pub.publish(debug_topic);
 }
+#endif // !CONSTRAINED_FLASH
 
 void
 MavlinkReceiver::handle_message_onboard_computer_status(mavlink_message_t *msg)
