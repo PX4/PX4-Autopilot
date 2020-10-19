@@ -131,6 +131,7 @@ private:
 	bool _vtol{false};
 	bool _vtol_tailsitter{false};
 	bool _vtol_in_transition_mode{false};
+	bool _yaw_sp_valid{false};
 
 	uint8_t _quat_reset_counter{0};
 

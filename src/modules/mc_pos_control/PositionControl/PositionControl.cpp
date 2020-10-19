@@ -119,9 +119,6 @@ bool PositionControl::update(const float dt)
 	_positionControl();
 	_velocityControl(dt);
 
-	_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
-	_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
-
 	return valid && _updateSuccessful();
 }
 
@@ -240,6 +237,17 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 
 void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
 {
-	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
+	float yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw;
+	ControlMath::thrustToAttitude(_thr_sp, yaw_sp, attitude_setpoint);
+
+	// TODO: review hackery
+	if (fabsf(_yaw_sp - _yaw) < math::radians(2.f)) {
+		// disable yaw control
+		attitude_setpoint.yaw_body = NAN;
+
+	} else {
+		attitude_setpoint.yaw_body = _yaw_sp;
+	}
+
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }

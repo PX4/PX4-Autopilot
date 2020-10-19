@@ -131,16 +131,23 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu_status", 1000, 3);
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
+	add_topic("actuator_controls_0");
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
+	add_topic("actuator_outputs");
 	add_topic("fw_virtual_attitude_setpoint");
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("time_offset");
-	add_topic("vehicle_angular_acceleration", 10);
-	add_topic("vehicle_angular_velocity", 10);
-	add_topic("vehicle_attitude_groundtruth", 10);
+	add_topic("vehicle_angular_acceleration");
+	add_topic("vehicle_angular_velocity");
+	add_topic("vehicle_attitude");
+	add_topic("vehicle_attitude_groundtruth");
+	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_global_position_groundtruth", 100);
-	add_topic("vehicle_local_position_groundtruth", 100);
+	add_topic("vehicle_local_position");
+	add_topic("vehicle_local_position_setpoint");
+	add_topic("vehicle_local_position_groundtruth");
+	add_topic("vehicle_rates_setpoint");
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
 

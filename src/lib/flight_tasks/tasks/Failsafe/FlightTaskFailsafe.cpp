@@ -42,7 +42,7 @@ bool FlightTaskFailsafe::activate(const vehicle_local_position_setpoint_s &last_
 	_position_setpoint = _position;
 	_velocity_setpoint.zero();
 	_acceleration_setpoint = matrix::Vector3f(0.f, 0.f, .3f);
-	_yaw_setpoint = _yaw;
+	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.f;
 	return ret;
 }

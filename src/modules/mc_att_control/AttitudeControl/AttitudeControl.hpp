@@ -94,8 +94,8 @@ public:
 private:
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
-	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize caompared to roll and pitch
+	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize compared to roll and pitch
 
 	matrix::Quatf _attitude_setpoint_q; ///< latest known attitude setpoint e.g. from position control
-	float _yawspeed_setpoint{0.f}; ///< latest known yawspeed feed-forward setpoint
+	float _yawspeed_setpoint{NAN}; ///< latest known yawspeed feed-forward setpoint
 };

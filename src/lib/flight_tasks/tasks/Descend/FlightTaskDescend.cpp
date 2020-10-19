@@ -42,7 +42,7 @@ bool FlightTaskDescend::activate(const vehicle_local_position_setpoint_s &last_s
 	// stay level to minimize horizontal drift
 	_acceleration_setpoint = matrix::Vector3f(0.f, 0.f, NAN);
 	// keep heading
-	_yaw_setpoint = _yaw;
+	_yaw_setpoint = NAN;
 	return ret;
 }
 

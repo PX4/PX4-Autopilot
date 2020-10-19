@@ -53,7 +53,8 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	bool ret = FlightTask::activate(last_setpoint);
 	_position_setpoint = _position;
 	_velocity_setpoint = _velocity;
-	_yaw_setpoint = _yaw_sp_prev = _yaw;
+	_yaw_setpoint = NAN;
+	_yaw_sp_prev = NAN;
 	_yawspeed_setpoint = 0.0f;
 	_setDefaultConstraints();
 	return ret;
@@ -143,7 +144,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		// Best we can do is to just set all waypoints to current state
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
 		_type = WaypointType::loiter;
-		_yaw_setpoint = _yaw;
+		_yaw_setpoint = NAN;
 		_yawspeed_setpoint = NAN;
 		_target_acceptance_radius = _sub_triplet_setpoint.get().current.acceptance_radius;
 		_updateInternalWaypoints();
@@ -258,7 +259,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// set heading
 	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
-		_yaw_setpoint = _yaw;
+		_yaw_setpoint = NAN;
 		// use the yawrate setpoint from WV only if not moving lateral (velocity setpoint below half of _param_mpc_xy_cruise)
 		// otherwise, keep heading constant (as output from WV is not according to wind in this case)
 		bool vehicle_is_moving_lateral = _velocity_setpoint.xy().longerThan(_param_mpc_xy_cruise.get() / 2.0f);
@@ -269,8 +270,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 		} else {
 			_yawspeed_setpoint = _ext_yaw_handler->get_weathervane_yawrate();
 		}
-
-
 
 	} else if (_type == WaypointType::follow_target && _sub_triplet_setpoint.get().current.yawspeed_valid) {
 		_yawspeed_setpoint = _sub_triplet_setpoint.get().current.yawspeed;
@@ -510,7 +509,7 @@ bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
 		// and multiply by the sign given of cross product of x and v.
 		// Dot product: (x(0)*v(0)+(x(1)*v(1)) = v(0)
 		// Cross product: x(0)*v(1) - v(0)*x(1) = v(1)
-		heading =  sign(v(1)) * wrap_pi(acosf(v(0)));
+		heading = sign(v(1)) * wrap_pi(acosf(v(0)));
 		return true;
 	}
 

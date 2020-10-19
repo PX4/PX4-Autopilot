@@ -59,7 +59,7 @@ TEST(PositionControlTest, EmptySetpoint)
 	position_control.getAttitudeSetpoint(attitude);
 	EXPECT_FLOAT_EQ(attitude.roll_body, 0.f);
 	EXPECT_FLOAT_EQ(attitude.pitch_body, 0.f);
-	EXPECT_FLOAT_EQ(attitude.yaw_body, 0.f);
+	EXPECT_TRUE(!PX4_ISFINITE(attitude.yaw_body));
 	EXPECT_FLOAT_EQ(attitude.yaw_sp_move_rate, 0.f);
 	EXPECT_EQ(Quatf(attitude.q_d), Quatf(1.f, 0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(attitude.thrust_body), Vector3f(0.f, 0.f, 0.f));

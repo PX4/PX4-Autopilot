@@ -245,9 +245,26 @@ MulticopterAttitudeControl::Run()
 		// Check for new attitude setpoint
 		if (_vehicle_attitude_setpoint_sub.updated()) {
 			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
-			_vehicle_attitude_setpoint_sub.update(&vehicle_attitude_setpoint);
-			_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
-			_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+
+			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)) {
+				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+				_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+
+				const bool yaw_sp_valid = PX4_ISFINITE(vehicle_attitude_setpoint.yaw_body);
+
+				if (!_yaw_sp_valid && yaw_sp_valid) {
+					// yaw setpoint now valid, restore yaw weight
+					_attitude_control.setProportionalGain(Vector3f{_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get()},
+									      _param_mc_yaw_weight.get());
+
+				} else if (_yaw_sp_valid && !yaw_sp_valid) {
+					// yaw setpoint now invalid, set yaw weight to 0
+					_attitude_control.setProportionalGain(Vector3f{_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get()},
+									      0.f);
+				}
+
+				_yaw_sp_valid = yaw_sp_valid;
+			}
 		}
 
 		// Check for a heading reset

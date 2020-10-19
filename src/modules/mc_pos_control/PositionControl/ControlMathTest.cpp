@@ -125,7 +125,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	 * order is: 1. roll, 2. pitch, 3. yaw */
 	thr = Vector3f(0.f, 0.f, 1.f);
 	thrustToAttitude(thr, yaw, att);
-	EXPECT_FLOAT_EQ(att.roll_body, -M_PI_F);
+	EXPECT_FLOAT_EQ(att.roll_body, M_PI_F);
 	EXPECT_FLOAT_EQ(att.pitch_body, 0.f);
 	EXPECT_FLOAT_EQ(att.yaw_body, M_PI_2_F);
 	EXPECT_FLOAT_EQ(att.thrust_body[2], -1.f);
