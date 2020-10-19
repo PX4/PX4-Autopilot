@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 
-TEST(Navigator_and_RTL, compiles_woohoooo)
+TEST(Navigator_and_RTL, interact_correctly)
 {
 	Navigator n;
 	RTL rtl(&n);
@@ -17,17 +17,14 @@ TEST(Navigator_and_RTL, compiles_woohoooo)
 	home_position_s home_pos{};
 	home_pos.valid_hpos = true;
 	home_pos.valid_alt = true;
+	home_pos.timestamp = 1000;
 
 	vehicle_global_position_s glob_pos{};
-
-	vehicle_local_position_s local_pos{};
-	local_pos.xy_valid = true;
-	local_pos.z_valid = true;
 
 	vehicle_status_s v_status{};
 	v_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
-	// TODO: can't do this, it hangs forever in the while loop
+	// TODO: can't do this, it hangs forever in Navigator's while loop
 	// uORB::Publication<home_position_s> home_pos_pub{ORB_ID(home_position)};
 	// uORB::Publication<vehicle_global_position_s> global_pos_pub{ORB_ID(vehicle_global_position)};
 	// uORB::Publication<vehicle_local_position_s> local_pos_pub{ORB_ID(vehicle_local_position)};
@@ -42,18 +39,17 @@ TEST(Navigator_and_RTL, compiles_woohoooo)
 	// be set via pub-sub otherwise this will be a constant drag on development
 	*n.get_home_position() = home_pos;
 	*n.get_global_position() = glob_pos;
-	*n.get_local_position() = local_pos;
 	*n.get_vstatus() = v_status;
 
 	uORB::SubscriptionData<rtl_flight_time_s> _rtl_flight_time_sub{ORB_ID(rtl_flight_time)};
+	ASSERT_FALSE(_rtl_flight_time_sub.update());
 	rtl.find_RTL_destination();
 	ASSERT_TRUE(_rtl_flight_time_sub.update());
 	auto msg = _rtl_flight_time_sub.get();
 	EXPECT_EQ(msg.rtl_time_s, 0);
 
 	// WHEN: we set the vehicle type to multirotor
-	v_status.vehicle_type =
-		n.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	v_status.vehicle_type = n.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 	float xy, z;
 	rtl.get_rtl_xy_z_speed(xy, z);
 
