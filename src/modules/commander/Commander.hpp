@@ -157,6 +157,12 @@ private:
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
+	bool set_in_air_home_position();
+	bool isGPosGoodForInitializingHomePos(const vehicle_global_position_s &gpos) const;
+	void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos) const;
+	void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos) const;
+	void fillGlobalHomePos(home_position_s &home, double lat, double lon, float alt) const;
+	void setHomePosValid();
 	void updateHomePositionYaw(float yaw);
 
 	void update_control_mode();
@@ -187,6 +193,7 @@ private:
 
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
+		(ParamBool<px4::params::COM_HOME_IN_AIR>) _param_com_home_in_air,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
 		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv, 	/*Not realy used for now*/
