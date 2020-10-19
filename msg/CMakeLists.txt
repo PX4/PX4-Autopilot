@@ -86,9 +86,6 @@ set(msg_files
 	offboard_control_mode.msg
 	onboard_computer_status.msg
 	optical_flow.msg
-	orb_test.msg
-	orb_test_large.msg
-	orb_test_medium.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
@@ -175,6 +172,14 @@ if(NOT px4_constrained_flash_build)
 		debug_key_value.msg
 		debug_value.msg
 		debug_vect.msg
+	)
+endif()
+
+if(PX4_TESTING)
+	list(APPEND msg_files
+		orb_test.msg
+		orb_test_large.msg
+		orb_test_medium.msg
 	)
 endif()
 
