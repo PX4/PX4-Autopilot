@@ -65,10 +65,6 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/cpuload.h>
-#include <uORB/topics/debug_array.h>
-#include <uORB/topics/debug_key_value.h>
-#include <uORB/topics/debug_value.h>
-#include <uORB/topics/debug_vect.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -127,6 +123,13 @@ using matrix::wrap_2pi;
 #include "streams/PROTOCOL_VERSION.hpp"
 #include "streams/RAW_RPM.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
+
+#if !defined(CONSTRAINED_FLASH)
+# include "streams/DEBUG.hpp"
+# include "streams/DEBUG_FLOAT_ARRAY.hpp"
+# include "streams/DEBUG_VECT.hpp"
+# include "streams/NAMED_VALUE_FLOAT.hpp"
+#endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
 static_assert(MAV_SENSOR_ROTATION_NONE == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_NONE),
@@ -4165,273 +4168,6 @@ protected:
 	}
 };
 
-class MavlinkStreamNamedValueFloat : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamNamedValueFloat::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "NAMED_VALUE_FLOAT";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamNamedValueFloat(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _debug_sub.advertised() ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _debug_sub{ORB_ID(debug_key_value)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamNamedValueFloat(MavlinkStreamNamedValueFloat &) = delete;
-	MavlinkStreamNamedValueFloat &operator = (const MavlinkStreamNamedValueFloat &) = delete;
-
-protected:
-	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		debug_key_value_s debug;
-
-		if (_debug_sub.update(&debug)) {
-			mavlink_named_value_float_t msg{};
-
-			msg.time_boot_ms = debug.timestamp / 1000ULL;
-			memcpy(msg.name, debug.key, sizeof(msg.name));
-			/* enforce null termination */
-			msg.name[sizeof(msg.name) - 1] = '\0';
-			msg.value = debug.value;
-
-			mavlink_msg_named_value_float_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
-class MavlinkStreamDebug : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamDebug::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "DEBUG";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_DEBUG;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamDebug(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _debug_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _debug_sub{ORB_ID(debug_value)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamDebug(MavlinkStreamDebug &) = delete;
-	MavlinkStreamDebug &operator = (const MavlinkStreamDebug &) = delete;
-
-protected:
-	explicit MavlinkStreamDebug(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		debug_value_s debug;
-
-		if (_debug_sub.update(&debug)) {
-			mavlink_debug_t msg{};
-			msg.time_boot_ms = debug.timestamp / 1000ULL;
-			msg.ind = debug.ind;
-			msg.value = debug.value;
-
-			mavlink_msg_debug_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
-class MavlinkStreamDebugVect : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamDebugVect::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "DEBUG_VECT";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_DEBUG_VECT;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamDebugVect(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _debug_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_VECT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _debug_sub{ORB_ID(debug_vect)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamDebugVect(MavlinkStreamDebugVect &) = delete;
-	MavlinkStreamDebugVect &operator = (const MavlinkStreamDebugVect &) = delete;
-
-protected:
-	explicit MavlinkStreamDebugVect(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		debug_vect_s debug;
-
-		if (_debug_sub.update(&debug)) {
-			mavlink_debug_vect_t msg{};
-
-			msg.time_usec = debug.timestamp;
-			memcpy(msg.name, debug.name, sizeof(msg.name));
-			/* enforce null termination */
-			msg.name[sizeof(msg.name) - 1] = '\0';
-			msg.x = debug.x;
-			msg.y = debug.y;
-			msg.z = debug.z;
-
-			mavlink_msg_debug_vect_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
-class MavlinkStreamDebugFloatArray : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamDebugFloatArray::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "DEBUG_FLOAT_ARRAY";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamDebugFloatArray(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _debug_array_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _debug_array_sub{ORB_ID(debug_array)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamDebugFloatArray(MavlinkStreamDebugFloatArray &);
-	MavlinkStreamDebugFloatArray &operator = (const MavlinkStreamDebugFloatArray &);
-
-protected:
-	explicit MavlinkStreamDebugFloatArray(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		debug_array_s debug;
-
-		if (_debug_array_sub.update(&debug)) {
-			mavlink_debug_float_array_t msg{};
-
-			msg.time_usec = debug.timestamp;
-			msg.array_id = debug.id;
-			memcpy(msg.name, debug.name, sizeof(msg.name));
-			/* enforce null termination */
-			msg.name[sizeof(msg.name) - 1] = '\0';
-
-			for (size_t i = 0; i < debug_array_s::ARRAY_SIZE; i++) {
-				msg.data[i] = debug.data[i];
-			}
-
-			mavlink_msg_debug_float_array_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 class MavlinkStreamNavControllerOutput : public MavlinkStream
 {
 public:
@@ -4974,10 +4710,18 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 	create_stream_list_item<MavlinkStreamActuatorControlTarget<0> >(),
 	create_stream_list_item<MavlinkStreamActuatorControlTarget<1> >(),
+#if defined(NAMED_VALUE_FLOAT_HPP)
 	create_stream_list_item<MavlinkStreamNamedValueFloat>(),
+#endif // NAMED_VALUE_FLOAT_HPP
+#if defined(DEBUG_HPP)
 	create_stream_list_item<MavlinkStreamDebug>(),
+#endif // DEBUG_HPP
+#if defined(DEBUG_VECT_HPP)
 	create_stream_list_item<MavlinkStreamDebugVect>(),
+#endif // DEBUG_VECT_HPP
+#if defined(DEBUG_FLOAT_ARRAY_HPP)
 	create_stream_list_item<MavlinkStreamDebugFloatArray>(),
+#endif // DEBUG_FLOAT_ARRAY_HPP
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),
 	create_stream_list_item<MavlinkStreamCameraCapture>(),
 	create_stream_list_item<MavlinkStreamCameraTrigger>(),
