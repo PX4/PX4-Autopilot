@@ -160,6 +160,7 @@ private:
 	bool set_in_air_home_position();
 	bool isGPosGoodForInitializingHomePos(const vehicle_global_position_s &gpos) const;
 	void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos) const;
+	void fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading) const;
 	void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos) const;
 	void fillGlobalHomePos(home_position_s &home, double lat, double lon, float alt) const;
 	void setHomePosValid();
