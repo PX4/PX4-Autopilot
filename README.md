@@ -40,8 +40,12 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/master/en/co
 
 ## Maintenance Team
 
-  * Project: Founder - [Lorenz Meier](https://github.com/LorenzMeier), Architecture: [Daniel Agar](https://github.com/dagar)
-    * [Dev Call](https://github.com/PX4/Firmware/labels/devcall) - [Ramon Roche](https://github.com/mrpollo)
+  * Project: Founder
+    * [Lorenz Meier](https://github.com/LorenzMeier)
+  * Architecture
+    * [Daniel Agar](https://github.com/dagar)
+  * [Dev Call](https://github.com/PX4/Firmware/labels/devcall)
+    * [Ramon Roche](https://github.com/mrpollo)
   * Communication Architecture
     * [Beat Kueng](https://github.com/bkueng)
     * [Julian Oes](https://github.com/JulianOes)
@@ -55,15 +59,22 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/master/en/co
     * [Roman Bapst](https://github.com/RomanBapst)
   * [Fixed Wing Flight Control](https://github.com/PX4/Firmware/labels/fixedwing)
     * [Roman Bapst](https://github.com/RomanBapst)
-  * OS / NuttX [David Sidrane](https://github.com/davids5)
-  * Driver Architecture [Daniel Agar](https://github.com/dagar)
-  * Commander Architecture [Julian Oes](https://github.com/julianoes)
-  * [UAVCAN](https://github.com/PX4/Firmware/labels/uavcan) [Daniel Agar](https://github.com/dagar)
-  * [State Estimation](https://github.com/PX4/Firmware/issues?q=is%3Aopen+is%3Aissue+label%3A%22state+estimation%22) - [Paul Riseborough](https://github.com/priseborough)
+  * OS / NuttX
+    * [David Sidrane](https://github.com/davids5)
+  * Driver Architecture
+    * [Daniel Agar](https://github.com/dagar)
+  * Commander Architecture
+    * [Julian Oes](https://github.com/julianoes)
+  * [UAVCAN](https://github.com/PX4/Firmware/labels/uavcan)
+    * [Daniel Agar](https://github.com/dagar)
+  * [State Estimation](https://github.com/PX4/Firmware/issues?q=is%3Aopen+is%3Aissue+label%3A%22state+estimation%22)
+    * [Paul Riseborough](https://github.com/priseborough)
   * Vision based navigation
     * [Julian Kent](https://github.com/jkflying)
-  * Obstacle Avoidance - [Martina Rivizzigno](https://github.com/mrivi)
-  * RTPS/ROS2 Interface - [Nuno Marques](https://github.com/TSC21)
+  * Obstacle Avoidance
+    * [Martina Rivizzigno](https://github.com/mrivi)
+  * RTPS/ROS2 Interface
+    * [Nuno Marques](https://github.com/TSC21)
 
 See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
 
