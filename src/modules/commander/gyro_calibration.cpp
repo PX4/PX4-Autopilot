@@ -338,10 +338,13 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (!failed) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+			px4_usleep(600000); // give this message enough time to propagate
 			return PX4_OK;
 		}
 	}
 
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+	px4_usleep(600000); // give this message enough time to propagate
+
 	return PX4_ERROR;
 }
