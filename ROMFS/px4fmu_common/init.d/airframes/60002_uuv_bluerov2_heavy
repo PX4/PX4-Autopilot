@@ -2,7 +2,7 @@
 #
 # @name BlueROV2 (Heavy Configuration)
 #
-# @type Vectored 6 DOF
+# @type Vectored 6 DOF UUV
 # @class Underwater Robot
 #
 # @maintainer Thies Lennart Alff <thies.lennart.alff@tuhh.de>
@@ -12,7 +12,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. /etc/init.d/rc.uuv_defaults
+. ${R}etc/init.d/rc.uuv_defaults
 
 if [ $AUTOCNF = yes ]
 then
