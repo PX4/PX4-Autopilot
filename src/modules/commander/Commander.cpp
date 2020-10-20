@@ -808,20 +808,18 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						home_position_s home{};
 						home.timestamp = hrt_absolute_time();
 
-						home.lat = lat;
-						home.lon = lon;
-						home.alt = alt;
+						fillGlobalHomePos(home, lat, lon, alt);
 
 						home.manual_home = true;
-						home.valid_alt = true;
-						home.valid_hpos = true;
 
 						// update local projection reference including altitude
 						struct map_projection_reference_s ref_pos;
 						map_projection_init(&ref_pos, local_pos.ref_lat, local_pos.ref_lon);
-						map_projection_project(&ref_pos, lat, lon, &home.x, &home.y);
-						home.z = -(alt - local_pos.ref_alt);
-						home.valid_lpos = true;
+						float home_x;
+						float home_y;
+						map_projection_project(&ref_pos, lat, lon, &home_x, &home_y);
+						const float home_z = -(alt - local_pos.ref_alt);
+						fillLocalHomePos(home, home_x, home_y, home_z, 0.f);
 
 						/* mark home position as set */
 						_status_flags.condition_home_position_valid = _home_pub.update(home);
@@ -1398,12 +1396,18 @@ Commander::isGPosGoodForInitializingHomePos(const vehicle_global_position_s &gpo
 void
 Commander::fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos) const
 {
-	home.x = lpos.x;
-	home.y = lpos.y;
-	home.z = lpos.z;
+	fillLocalHomePos(home, lpos.x, lpos.y, lpos.z, lpos.heading);
+}
+
+void
+Commander::fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading) const
+{
+	home.x = x;
+	home.y = y;
+	home.z = z;
 	home.valid_lpos = true;
 
-	home.yaw = lpos.heading;
+	home.yaw = heading;
 }
 
 void Commander::fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos) const
