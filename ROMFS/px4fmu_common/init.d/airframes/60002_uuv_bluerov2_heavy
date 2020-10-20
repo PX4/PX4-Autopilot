@@ -5,6 +5,15 @@
 # @type Vectored 6 DOF UUV
 # @class Underwater Robot
 #
+# @output MAIN1 motor 1 CCW, bow starboard horizontal, , propeller CCW
+# @output MAIN2 motor 2 CCW, bow port horizontal, propeller CCW
+# @output MAIN3 motor 3 CCW, stern starboard horizontal, propeller CW
+# @output MAIN4 motor 4 CCW, stern port horizontal, propeller CW
+# @output MAIN5 motor 5 CCW, bow starboard vertical, propeller CCW
+# @output MAIN6 motor 6 CCW, bow port vertical, propeller CW
+# @output MAIN7 motor 7 CCW, stern starboard vertical, propeller CW
+# @output MAIN8 motor 8 CCW, stern port vertical, propeller CCW
+#
 # @maintainer Thies Lennart Alff <thies.lennart.alff@tuhh.de>
 #
 # @board px4_fmu-v2 exclude
