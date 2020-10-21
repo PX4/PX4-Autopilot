@@ -2,7 +2,6 @@
 
 import nacl.encoding
 import nacl.signing
-import nacl.encoding
 import nacl.hash
 import struct
 import binascii
@@ -12,81 +11,54 @@ import argparse
 from pathlib import Path
 import sys
 
-
-# Definitins for the meta data heder of the signed application
-meta_data ={'appp_size':0,
-            'app_hash':0,
-            }
-
-META_DATA_STRUCT = "<I64s60x" # [4 length][64 sha512][60 padding]
-META_DATA_LEN = 128
-
-
-def pack_meta_data(meta_data):
-    """
-    Packs the given meta data into a binary struct, to be written
-    on top of the binary application file.
-    """
-    return struct.pack(META_DATA_STRUCT, meta_data['appp_size'],
-                                         meta_data['app_hash'])
-
-def make_public_key_h_file(signing_key):
+def make_public_key_h_file(signing_key,key_name):
     """
     This file generate the public key header file
     to be included into the bootloader build.
     """
-    public_key_c=''
-    public_key_c="const uint8_t public_key={\n"
+    public_key_c='\n'
     for i,c in enumerate(signing_key.verify_key.encode(encoder=nacl.encoding.RawEncoder)):
         public_key_c+= hex(c)
         public_key_c+= ', '
         if((i+1)%8==0):
             public_key_c+= '\n'
-    public_key_c+= "};"
-    with open("public_key.h" ,mode='w') as f:
+    with open(key_name+'.pub' ,mode='w') as f:
         f.write("//Public key to verify signed binaries")
         f.write(public_key_c)
 
-def make_key_file(signing_key):
+def make_key_file(signing_key, key_name):
     """
     Writes the key.json file.
     Attention do not override your existing key files.
     Do not publish your private key!!
     """
 
-    key_file = Path("keys.json")
+    key_file = Path(key_name+'.json')
     if key_file.is_file():
-        print("ATTENTION: key.json already exists, are you sure you wnat to overwrite it?")
+        print("ATTENTION: key.json already exists, are you sure you want to overwrite it?")
         print("Remove file and run script again.")
         print("Script aborted!")
-        sys.exit(-1)
+        sys.exit(1)
 
     keys={}
     keys["date"] = time.asctime()
     keys["public"] = (signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder)).decode()
     keys["private"] = binascii.hexlify(signing_key._seed).decode()
-    print (keys)
-    with open("keys.json", "w") as write_file:
+    #print (keys)
+    with open(key_name+'.json', "w") as write_file:
         json.dump(keys, write_file)
+    return keys
 
 def ed25519_sign(private_key, signee_bin):
     """
-    This functino does the magic. It tkaes the pricate key and the binary file
-    and generates the signed binary. it adds the meta data to the beginning of the file
-    Ouput: "SignedBin.bin"
+    This function creates the signature. It takes the private key and the binary file
+    and returns the tuple (signature, public key)
     """
-
-    # metadata is already included into the source bin,
-    # but filled with dummy data
-
-    meta_data['appp_size'] =  len(signee_bin) - META_DATA_LEN
 
     signing_key = nacl.signing.SigningKey(private_key, encoder=nacl.encoding.HexEncoder)
 
     # Sign a message with the signing key
-    signed = signing_key.sign(signee_bin[META_DATA_LEN:],encoder=nacl.encoding.RawEncoder)
-
-    meta_data['app_hash'] = signed.signature
+    signed = signing_key.sign(signee_bin,encoder=nacl.encoding.RawEncoder)
 
     # Obtain the verify key for a given signing key
     verify_key = signing_key.verify_key
@@ -94,17 +66,10 @@ def ed25519_sign(private_key, signee_bin):
     # Serialize the verify key to send it to a third party
     verify_key_hex = verify_key.encode(encoder=nacl.encoding.HexEncoder)
 
-    print(len(signed.signature), "signature:" ,binascii.hexlify(signed.signature))
-    print('Public key: ', verify_key_hex)
+    return signed.signature, verify_key_hex
 
-    with open("SignedBin.bin" ,mode='wb') as f:
-        data = pack_meta_data(meta_data)
-        print("meta data header: ", binascii.hexlify(data),len(data))
 
-        f.write(data)
-        f.write(signee_bin[META_DATA_LEN:])
-
-def sign(bin_file_path, key_file_path=None):
+def sign(bin_file_path, key_file_path=None, generated_key_file=None):
     """
     reads the binary file and the key file.
     If the key file does not exist, it generates a
@@ -113,28 +78,38 @@ def sign(bin_file_path, key_file_path=None):
 
     with open(bin_file_path,mode='rb') as f:
         signee_bin = f.read()
-    if key_file_path == None:
-        print('generating new key')
-        generate_key()
-        key_file_path = 'keys.json'
+        # Align to 4 bytes. Signature always starts at
+        # 4 byte aligned address, but the signee size
+        # might not be aligned
+        signee_bin += bytearray(b'\xff')*(4-len(signee_bin)%4)
 
-    with open(key_file_path,mode='r') as f:
-        keys = json.load(f)
-        print(keys)
+    try:
+        with open(key_file_path,mode='r') as f:
+            keys = json.load(f)
+        #print(keys)
+    except:
+        print('ERROR: Key file',key_file_path,'not  found')
+        sys.exit(1)
 
-    ed25519_sign(keys["private"], signee_bin)
+    signature, public_key = ed25519_sign(keys["private"], signee_bin)
 
+    # Do a sanity check. This type of signature is always 64 bytes long
+    assert len(signature) == 64
 
+    # Print out the signing information
+    print("Binary \"%s\" signed."%bin_file_path)
+    print("Signature:",binascii.hexlify(signature))
+    print("Public key:",binascii.hexlify(public_key))
 
-def generate_key():
+    return signee_bin + signature, public_key
+
+def generate_key(key_file):
     """
-    Call it and it generate two files,
-    one file is made to be include in the bootloader build
-    so its the "public_key.h" containg the verfication key.
-    The other file key.json, containt both private and public key.
+    Generate two files:
+      "key_file.pub" containing the public key in C-format to be included in the bootloader build
+      "key_file.json, containt both private and public key.
     Do not leak or loose the key file. This is mandatory for signing
     all future binaries you want to deploy!
-
     """
 
     # Generate a new random signing key
@@ -146,18 +121,52 @@ def generate_key():
     private_key_hex=binascii.hexlify(signing_key._seed)
     print("private key :",private_key_hex)
 
-    make_key_file(signing_key)
-    make_public_key_h_file(signing_key)
-
-
+    keys = make_key_file(signing_key,key_file)
+    make_public_key_h_file(signing_key,key_file)
+    return keys
 
 if(__name__ == "__main__"):
 
     parser = argparse.ArgumentParser(description="""CLI tool to calculate and add signature to px4. bin files\n
                                                   if given it takes an existing key file, else it generate new keys""",
                                     epilog="Output: SignedBin.bin and a key.json file")
-    parser.add_argument("signee", help=".bin file to add signature")
-    parser.add_argument("--key", help="key.json file", default=None)
+    parser.add_argument("signee", help=".bin file to add signature", nargs='?', default=None)
+    parser.add_argument("signed", help="signed output .bin", nargs='?', default=None)
+
+    parser.add_argument("--key", help="key.json file", default="Tools/test_keys.json")
+    parser.add_argument("--rdct", help="binary R&D certificate file", default=None)
+    parser.add_argument("--genkey", help="new generated key", default=None)
     args = parser.parse_args()
 
-    sign(args.signee, args.key)
+    # Only generate a key pair, don't sign
+    if args.genkey:
+        # Only create a key file, don't sign
+        generate_key(args.genkey)
+        print('New key file generated:',args.genkey)
+        sys.exit(0);
+
+    # Check that both signee and signed exist
+    if not args.signee or not args.signed:
+        print("ERROR: Must either provide file names for both signee and signed")
+        print("       or --genkey [key] to generate a new key pair")
+        sys.exit(1)
+
+    # Issue a warning when signing with testing key
+    if args.key=='Tools/test_keys.json':
+        print("WARNING: Signing with PX4 test key")
+
+    # Sign the binary
+    signed, public_key = sign(args.signee, args.key, args.genkey)
+
+    with open(args.signed, mode='wb') as fs:
+        # Write signed binary
+        fs.write(signed)
+
+    # Append rdcert if given
+    try:
+        with open(args.rdct ,mode='rb') as f:
+            with open(args.signed, mode='ab') as fs:
+                fs.write(f.read())
+    except:
+        pass
+
