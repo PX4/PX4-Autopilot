@@ -64,6 +64,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 void board_late_initialize(void)
 {
+	px4_platform_console_init();
 	sercon_main(0, NULL);
 }
 
