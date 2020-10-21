@@ -7,11 +7,11 @@
 #
 # @maintainer Bart Slinger <bartslinger@gmail.com>
 #
-# @output MAIN1 main motor
-# @output MAIN2 front swashplate servo
-# @output MAIN3 right swashplate servo
-# @output MAIN4 left swashplate servo
-# @output MAIN5 tail-rotor servo
+# @output AUX1 main motor
+# @output AUX2 front swashplate servo
+# @output AUX3 right swashplate servo
+# @output AUX4 left swashplate servo
+# @output AUX5 tail-rotor servo
 #
 # @board px4_fmu-v2 exclude
 # @board intel_aerofc-v1 exclude
@@ -23,7 +23,8 @@
 # Configure as helicopter (number 4 defined in commander_helper.cpp)
 set MAV_TYPE 4
 
-set MIXER blade130
+set MIXER pass
+set MIXER_AUX blade130
 
 #set PWM_OUT 1234
 
