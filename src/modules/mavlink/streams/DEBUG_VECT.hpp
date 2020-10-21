@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,83 +31,52 @@
  *
  ****************************************************************************/
 
-/**
- * @file Subscription.cpp
- *
- */
+#ifndef DEBUG_VECT_HPP
+#define DEBUG_VECT_HPP
 
-#include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
+#include <uORB/topics/debug_vect.h>
 
-namespace uORB
+class MavlinkStreamDebugVect : public MavlinkStream
 {
+public:
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamDebugVect(mavlink); }
 
-bool Subscription::subscribe()
-{
-	// check if already subscribed
-	if (_node != nullptr) {
-		return true;
+	static constexpr const char *get_name_static() { return "DEBUG_VECT"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_DEBUG_VECT; }
+
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
+
+	unsigned get_size() override
+	{
+		return _debug_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_VECT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
-	if (_orb_id != ORB_ID::INVALID) {
+private:
+	explicit MavlinkStreamDebugVect(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
+	uORB::Subscription _debug_sub{ORB_ID(debug_vect)};
 
-		if (device_master != nullptr) {
+	bool send() override
+	{
+		debug_vect_s debug;
 
-			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
-				return false;
-			}
+		if (_debug_sub.update(&debug)) {
+			mavlink_debug_vect_t msg{};
+			msg.time_usec = debug.timestamp;
+			memcpy(msg.name, debug.name, sizeof(msg.name));
+			msg.name[sizeof(msg.name) - 1] = '\0'; // enforce null termination
+			msg.x = debug.x;
+			msg.y = debug.y;
+			msg.z = debug.z;
 
-			uORB::DeviceNode *node = device_master->getDeviceNode(get_topic(), _instance);
+			mavlink_msg_debug_vect_send_struct(_mavlink->get_channel(), &msg);
 
-			if (node != nullptr) {
-				_node = node;
-				_node->add_internal_subscriber();
-
-				_last_generation = _node->get_initial_generation();
-
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-void Subscription::unsubscribe()
-{
-	if (_node != nullptr) {
-		_node->remove_internal_subscriber();
-	}
-
-	_node = nullptr;
-	_last_generation = 0;
-}
-
-bool Subscription::ChangeInstance(uint8_t instance)
-{
-	if (instance != _instance) {
-		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
-
-		if (device_master != nullptr) {
-			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
-				return false;
-			}
-
-			// if desired new instance exists, unsubscribe from current
-			unsubscribe();
-			_instance = instance;
-			subscribe();
 			return true;
 		}
 
-	} else {
-		// already on desired index
-		return true;
+		return false;
 	}
+};
 
-	return false;
-}
-
-} // namespace uORB
+#endif // DEBUG_VECT_HPP

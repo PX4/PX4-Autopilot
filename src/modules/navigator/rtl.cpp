@@ -76,6 +76,10 @@ void RTL::find_RTL_destination()
 		return;
 	}
 
+	if (!_navigator->home_position_valid()) {
+		return;
+	}
+
 	_destination_check_time = hrt_absolute_time();
 
 	// get home position:

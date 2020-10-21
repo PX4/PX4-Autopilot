@@ -49,10 +49,6 @@ set(msg_files
 	collision_report.msg
 	commander_state.msg
 	cpuload.msg
-	debug_array.msg
-	debug_key_value.msg
-	debug_value.msg
-	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_timestamps.msg
@@ -91,9 +87,6 @@ set(msg_files
 	offboard_control_mode.msg
 	onboard_computer_status.msg
 	optical_flow.msg
-	orb_test.msg
-	orb_test_large.msg
-	orb_test_medium.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
@@ -174,6 +167,25 @@ set(msg_files
 	yaw_estimator_status.msg
 )
 
+if(NOT px4_constrained_flash_build)
+	list(APPEND msg_files
+		debug_array.msg
+		debug_key_value.msg
+		debug_value.msg
+		debug_vect.msg
+	)
+endif()
+
+if(PX4_TESTING)
+	list(APPEND msg_files
+		orb_test.msg
+		orb_test_large.msg
+		orb_test_medium.msg
+	)
+endif()
+
+list(SORT msg_files)
+
 set(deprecated_msgs
 	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
 	)
@@ -224,6 +236,9 @@ endforeach()
 if (px4_constrained_flash_build)
 	set(added_arguments --constrained-flash)
 endif()
+
+# set parent scope msg_files for other modules to consume (eg topic_listener)
+set(msg_files ${msg_files} PARENT_SCOPE)
 
 # Generate uORB headers
 add_custom_command(OUTPUT ${uorb_headers}
