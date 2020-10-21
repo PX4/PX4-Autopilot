@@ -105,6 +105,24 @@ Loiter::set_loiter_position()
 
 	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// if the vehicle has a significant 2D or 3D velocity we want to
+	// only generate a demand that can be fulfilled
+
+	// horizontal velocity
+	if (sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
+		  _navigator->get_local_position()->vy * _navigator->get_local_position()->vy) > 1.0f) {
+		// we are going faster than 1 m/s horizontally, so let's add the current velocity to the setpoint
+
+	}
+
+	// vertical velocity
+	if (_navigator->get_local_position()->vz > 1.0f) {
+		// we are going faster than 1 m/s vertically, so let's add the current velocity to the setpoint
+		// attempt to brake within one second
+		pos_sp_triplet->current.alt += 1.0f * _navigator->get_local_position()->vz;
+	}
+
 	pos_sp_triplet->current.velocity_valid = false;
 	pos_sp_triplet->previous.valid = false;
 	mission_apply_limitation(_mission_item);
