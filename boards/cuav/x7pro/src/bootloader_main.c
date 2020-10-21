@@ -46,6 +46,7 @@
 #include <stm32_uart.h>
 #include <arch/board/board.h>
 #include "arm_internal.h"
+#include <px4_platform_common/init.h>
 
 extern int sercon_main(int c, char **argv);
 
