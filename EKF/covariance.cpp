@@ -255,17 +255,22 @@ void Ekf::predictCovariance()
 	dvxVar = dvyVar = dvzVar = sq(dt * accel_noise);
 
 	// Accelerometer Clipping
+	_fault_status.flags.bad_acc_clipping = false; // reset flag
+
 	// delta velocity X: increase process noise if sample contained any X axis clipping
 	if (_imu_sample_delayed.delta_vel_clipping[0]) {
 		dvxVar = sq(dt * BADACC_BIAS_PNOISE);
+		_fault_status.flags.bad_acc_clipping = true;
 	}
 	// delta velocity Y: increase process noise if sample contained any Y axis clipping
 	if (_imu_sample_delayed.delta_vel_clipping[1]) {
 		dvyVar = sq(dt * BADACC_BIAS_PNOISE);
+		_fault_status.flags.bad_acc_clipping = true;
 	}
 	// delta velocity Z: increase process noise if sample contained any Z axis clipping
 	if (_imu_sample_delayed.delta_vel_clipping[2]) {
 		dvzVar = sq(dt * BADACC_BIAS_PNOISE);
+		_fault_status.flags.bad_acc_clipping = true;
 	}
 
 	// predict the covariance
