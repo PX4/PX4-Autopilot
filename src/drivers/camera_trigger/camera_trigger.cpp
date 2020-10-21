@@ -651,7 +651,7 @@ CameraTrigger::Run()
 			}
 
 			// Camera Auto Mount Pseudo Oblique Solution (CAMPOS)
-			if (cmd.param4 > 0.0f) {
+			if (cmd.param4 >= 2.0f) {
 				_pseudo_oblique_num_poses = commandParamToInt(cmd.param4);
 
 				if (cmd.param5 > 0.0) {
