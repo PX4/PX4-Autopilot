@@ -45,7 +45,7 @@ void ZeroOrderHoverThrustEkf::predict(const float dt)
 {
 	// State is constant
 	// Predict state covariance only
-	_state_var += _process_var * dt;
+	_state_var += _process_var * dt * dt;
 	_dt = dt;
 }
 
