@@ -296,7 +296,8 @@ void EKF2Selector::PublishVehicleAttitude(bool reset)
 		if (reset) {
 			// on reset compute deltas from last published data
 			++_quat_reset_counter;
-			_delta_q_reset = Quatf{attitude.q} - Quatf{_attitude_last.q};
+
+			_delta_q_reset = (Quatf(attitude.q) * Quatf(_attitude_last.q).inversed()).normalized();
 
 			// ensure monotonically increasing timestamp_sample through reset
 			attitude.timestamp_sample = max(attitude.timestamp_sample, _attitude_last.timestamp_sample);
