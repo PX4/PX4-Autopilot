@@ -56,6 +56,7 @@ set(msg_files
 	esc_report.msg
 	esc_status.msg
 	estimator_innovations.msg
+	estimator_optical_flow_vel.msg
 	estimator_sensor_bias.msg
 	estimator_states.msg
 	estimator_status.msg
