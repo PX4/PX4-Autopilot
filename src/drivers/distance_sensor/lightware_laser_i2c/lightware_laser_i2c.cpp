@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file sf1xx.cpp
+ * @file lightware_laser_i2c.cpp
  *
  * @author ecmnet <ecm@gmx.de>
  * @author Vasily Evseenko <svpcom@gmail.com>
  *
- * Driver for the Lightware SF1xx lidar range finder series.
+ * Driver for the Lightware lidar range finder series.
  * Default I2C address 0x66 is used.
  */
 
@@ -55,15 +55,15 @@
 using namespace time_literals;
 
 /* Configuration Constants */
-#define SF1XX_BASEADDR		0x66
+#define LIGHTWARE_LASER_BASEADDR		0x66
 
-class SF1XX : public device::I2C, public I2CSPIDriver<SF1XX>
+class LightwareLaser : public device::I2C, public I2CSPIDriver<LightwareLaser>
 {
 public:
-	SF1XX(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
-	      int address = SF1XX_BASEADDR);
+	LightwareLaser(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
+		       int address = LIGHTWARE_LASER_BASEADDR);
 
-	~SF1XX() override;
+	~LightwareLaser() override;
 
 	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 					     int runtime_instance);
@@ -132,21 +132,22 @@ private:
 	int _consecutive_errors{0};
 };
 
-SF1XX::SF1XX(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency, int address) :
-	I2C(DRV_DIST_DEVTYPE_SF1XX, MODULE_NAME, bus, address, bus_frequency),
+LightwareLaser::LightwareLaser(I2CSPIBusOption bus_option, const int bus, const uint8_t rotation, int bus_frequency,
+			       int address) :
+	I2C(DRV_DIST_DEVTYPE_LIGHTWARE_LASER, MODULE_NAME, bus, address, bus_frequency),
 	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_px4_rangefinder(DRV_DIST_DEVTYPE_SF1XX, rotation)
+	_px4_rangefinder(DRV_DIST_DEVTYPE_LIGHTWARE_LASER, rotation)
 {
 }
 
-SF1XX::~SF1XX()
+LightwareLaser::~LightwareLaser()
 {
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int SF1XX::init()
+int LightwareLaser::init()
 {
 	int ret = PX4_ERROR;
 	int32_t hw_model = 0;
@@ -206,13 +207,13 @@ int SF1XX::init()
 	return I2C::init();
 }
 
-int SF1XX::readRegister(Register reg, uint8_t *data, int len)
+int LightwareLaser::readRegister(Register reg, uint8_t *data, int len)
 {
 	const uint8_t cmd = (uint8_t)reg;
 	return transfer(&cmd, 1, data, len);
 }
 
-int SF1XX::probe()
+int LightwareLaser::probe()
 {
 	switch (_type) {
 
@@ -246,7 +247,7 @@ int SF1XX::probe()
 	return -1;
 }
 
-int SF1XX::enableI2CBinaryProtocol()
+int LightwareLaser::enableI2CBinaryProtocol()
 {
 	const uint8_t cmd[] = {(uint8_t)Register::Protocol, 0xaa, 0xaa};
 	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
@@ -268,7 +269,7 @@ int SF1XX::enableI2CBinaryProtocol()
 	return (value[0] == 0xcc && value[1] == 0x00) ? 0 : -1;
 }
 
-int SF1XX::configure()
+int LightwareLaser::configure()
 {
 	switch (_type) {
 	case Type::Generic: {
@@ -306,7 +307,7 @@ int SF1XX::configure()
 	return -1;
 }
 
-int SF1XX::collect()
+int LightwareLaser::collect()
 {
 	switch (_type) {
 	case Type::Generic: {
@@ -360,13 +361,13 @@ int SF1XX::collect()
 	return PX4_OK;
 }
 
-void SF1XX::start()
+void LightwareLaser::start()
 {
 	/* schedule a cycle to start things */
 	ScheduleDelayed(_conversion_interval);
 }
 
-void SF1XX::RunImpl()
+void LightwareLaser::RunImpl()
 {
 	switch (_state) {
 	case State::Configuring: {
@@ -398,14 +399,14 @@ void SF1XX::RunImpl()
 	}
 }
 
-void SF1XX::print_status()
+void LightwareLaser::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
 
-void SF1XX::print_usage()
+void LightwareLaser::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
@@ -416,7 +417,7 @@ I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF1
 Setup/usage information: https://docs.px4.io/master/en/sensor/sfxx_lidar.html
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("sf1xx", "driver");
+	PRINT_MODULE_USAGE_NAME("lightware_laser_i2c", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -424,10 +425,10 @@ Setup/usage information: https://docs.px4.io/master/en/sensor/sfxx_lidar.html
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *SF1XX::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+I2CSPIDriverBase *LightwareLaser::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				      int runtime_instance)
 {
-	SF1XX* instance = new SF1XX(iterator.configuredBusOption(), iterator.bus(), cli.orientation, cli.bus_frequency);
+	LightwareLaser* instance = new LightwareLaser(iterator.configuredBusOption(), iterator.bus(), cli.orientation, cli.bus_frequency);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -443,10 +444,10 @@ I2CSPIDriverBase *SF1XX::instantiate(const BusCLIArguments &cli, const BusInstan
 	return instance;
 }
 
-extern "C" __EXPORT int sf1xx_main(int argc, char *argv[])
+extern "C" __EXPORT int lightware_laser_i2c_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = SF1XX;
+	using ThisDriver = LightwareLaser;
 	BusCLIArguments cli{true, false};
 	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.default_i2c_frequency = 400000;
@@ -466,7 +467,7 @@ extern "C" __EXPORT int sf1xx_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_SF1XX);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

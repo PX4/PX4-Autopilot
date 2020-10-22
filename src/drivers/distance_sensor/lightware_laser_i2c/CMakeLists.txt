@@ -31,12 +31,10 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__sf1xx
-	MAIN sf1xx
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
+	MODULE drivers__distance_sensor__lightware_laser_i2c
+	MAIN lightware_laser_i2c
 	SRCS
-		sf1xx.cpp
+		lightware_laser_i2c.cpp
 	DEPENDS
 	)
 
