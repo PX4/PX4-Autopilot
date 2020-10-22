@@ -150,8 +150,6 @@ rtps:
     id: 70
   - msg: px4io_status
     id: 71
-  - msg: subsystem_info
-    id: 72
   - msg: system_power
     id: 73
   - msg: task_stack_info

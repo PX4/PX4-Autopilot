@@ -43,7 +43,40 @@
 
 #include <px4_platform_common/log.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/subsystem_info.h>
+
+struct subsystem_info_s {
+	// keep in sync with mavlink MAV_SYS_STATUS_SENSOR
+	static constexpr uint64_t SUBSYSTEM_TYPE_GYRO = 1;
+	static constexpr uint64_t SUBSYSTEM_TYPE_ACC = 2;
+	static constexpr uint64_t SUBSYSTEM_TYPE_MAG = 4;
+	static constexpr uint64_t SUBSYSTEM_TYPE_ABSPRESSURE = 8;
+	static constexpr uint64_t SUBSYSTEM_TYPE_DIFFPRESSURE = 16;
+	static constexpr uint64_t SUBSYSTEM_TYPE_GPS = 32;
+	static constexpr uint64_t SUBSYSTEM_TYPE_OPTICALFLOW = 64;
+	static constexpr uint64_t SUBSYSTEM_TYPE_CVPOSITION = 128;
+	static constexpr uint64_t SUBSYSTEM_TYPE_LASERPOSITION = 256;
+	static constexpr uint64_t SUBSYSTEM_TYPE_EXTERNALGROUNDTRUTH = 512;
+	static constexpr uint64_t SUBSYSTEM_TYPE_ANGULARRATECONTROL = 1024;
+	static constexpr uint64_t SUBSYSTEM_TYPE_ATTITUDESTABILIZATION = 2048;
+	static constexpr uint64_t SUBSYSTEM_TYPE_YAWPOSITION = 4096;
+	static constexpr uint64_t SUBSYSTEM_TYPE_ALTITUDECONTROL = 8192;
+	static constexpr uint64_t SUBSYSTEM_TYPE_POSITIONCONTROL = 16384;
+	static constexpr uint64_t SUBSYSTEM_TYPE_MOTORCONTROL = 32768;
+	static constexpr uint64_t SUBSYSTEM_TYPE_RCRECEIVER = 65536;
+	static constexpr uint64_t SUBSYSTEM_TYPE_GYRO2 = 131072;
+	static constexpr uint64_t SUBSYSTEM_TYPE_ACC2 = 262144;
+	static constexpr uint64_t SUBSYSTEM_TYPE_MAG2 = 524288;
+	static constexpr uint64_t SUBSYSTEM_TYPE_GEOFENCE = 1048576;
+	static constexpr uint64_t SUBSYSTEM_TYPE_AHRS = 2097152;
+	static constexpr uint64_t SUBSYSTEM_TYPE_TERRAIN = 4194304;
+	static constexpr uint64_t SUBSYSTEM_TYPE_REVERSEMOTOR = 8388608;
+	static constexpr uint64_t SUBSYSTEM_TYPE_LOGGING = 16777216;
+	static constexpr uint64_t SUBSYSTEM_TYPE_SENSORBATTERY = 33554432;
+	static constexpr uint64_t SUBSYSTEM_TYPE_SENSORPROXIMITY = 67108864;
+	static constexpr uint64_t SUBSYSTEM_TYPE_SATCOM = 134217728;
+	static constexpr uint64_t SUBSYSTEM_TYPE_PREARM_CHECK = 268435456;
+	static constexpr uint64_t SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE = 536870912;
+};
 
 void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status);
 void set_health_flags_present_healthy(uint64_t subsystem_type, bool present, bool healthy, vehicle_status_s &status);
