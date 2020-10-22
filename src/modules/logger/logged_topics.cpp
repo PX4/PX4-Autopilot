@@ -45,7 +45,7 @@ using namespace px4::logger;
 void LoggedTopics::add_default_topics()
 {
 	add_topic("actuator_armed");
-	add_topic("actuator_controls_0", 100);
+	add_topic("actuator_controls_0", 50);
 	add_topic("actuator_controls_1", 100);
 	add_topic("airspeed", 1000);
 	add_topic("airspeed_validated", 200);
@@ -93,7 +93,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);
 	add_topic("vehicle_attitude", 50);
-	add_topic("vehicle_attitude_setpoint", 100);
+	add_topic("vehicle_attitude_setpoint", 50);
 	add_topic("vehicle_command");
 	add_topic("vehicle_constraints", 1000);
 	add_topic("vehicle_control_mode");
