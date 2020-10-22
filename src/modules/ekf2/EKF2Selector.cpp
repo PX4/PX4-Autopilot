@@ -89,10 +89,7 @@ void EKF2Selector::SelectInstance(uint8_t ekf_instance)
 			_instance[_selected_instance].estimator_attitude_sub.unregisterCallback();
 			_instance[_selected_instance].estimator_status_sub.unregisterCallback();
 
-			if (_instance[_selected_instance].healthy) {
-				PX4_INFO("primary EKF changed %d -> %d", _selected_instance, ekf_instance);
-
-			} else {
+			if (!_instance[_selected_instance].healthy) {
 				PX4_WARN("primary EKF changed %d (unhealthy) -> %d", _selected_instance, ekf_instance);
 			}
 		}
