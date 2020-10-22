@@ -59,29 +59,15 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 				    vehicle_status_flags_s &status_flags, const bool checkGNSS, bool reportFailures, const bool prearm,
 				    const hrt_abstime &time_since_boot)
 {
-	const bool hil_enabled = (status.hil_state == vehicle_status_s::HIL_STATE_ON);
-
 	reportFailures = (reportFailures && status_flags.condition_system_hotplug_timeout
 			  && !status_flags.condition_calibration_enabled);
-
-	const bool checkSensors = !hil_enabled;
-	const bool checkDynamic = !hil_enabled;
-
-	bool checkAirspeed = false;
-
-	/* Perform airspeed check only if circuit breaker is not
-	 * engaged and it's not a rotary wing */
-	if (!status_flags.circuit_breaker_engaged_airspd_check &&
-	    (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || status.is_vtol)) {
-		checkAirspeed = true;
-	}
 
 	bool failed = false;
 
 	failed = failed || !airframeCheck(mavlink_log_pub, status);
 
 	/* ---- MAG ---- */
-	if (checkSensors) {
+	{
 		int32_t sys_has_mag = 1;
 		param_get(param_find("SYS_HAS_MAG"), &sys_has_mag);
 
@@ -111,7 +97,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	/* ---- ACCEL ---- */
-	if (checkSensors) {
+	{
 		/* check all sensors individually, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_accel_count; i++) {
 			const bool required = (i < max_mandatory_accel_count);
@@ -119,7 +105,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 			int32_t device_id = -1;
 
-			if (!accelerometerCheck(mavlink_log_pub, status, i, !required, checkDynamic, device_id, report_fail)) {
+			if (!accelerometerCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
 				if (required) {
 					failed = true;
 				}
@@ -130,7 +116,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	/* ---- GYRO ---- */
-	if (checkSensors) {
+	{
 		/* check all sensors individually, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
 			const bool required = (i < max_mandatory_gyro_count);
@@ -147,7 +133,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	/* ---- BARO ---- */
-	if (checkSensors) {
+	{
 		int32_t sys_has_baro = 1;
 		param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
 
@@ -170,14 +156,17 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* ---- IMU CONSISTENCY ---- */
 	// To be performed after the individual sensor checks have completed
-	if (checkSensors) {
+	{
 		if (!imuConsistencyCheck(mavlink_log_pub, status, reportFailures)) {
 			failed = true;
 		}
 	}
 
 	/* ---- AIRSPEED ---- */
-	if (checkAirspeed) {
+	/* Perform airspeed check only if circuit breaker is not engaged and it's not a rotary wing */
+	if (!status_flags.circuit_breaker_engaged_airspd_check &&
+	    (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || status.is_vtol)) {
+
 		int32_t optional = 0;
 		param_get(param_find("FW_ARSP_MODE"), &optional);
 

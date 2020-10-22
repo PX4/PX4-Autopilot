@@ -46,7 +46,7 @@
 using namespace time_literals;
 
 bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-					const bool optional, const bool dynamic, int32_t &device_id, const bool report_fail)
+					const bool optional, int32_t &device_id, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_accel), instance) == PX4_OK);
 	bool calibration_valid = false;
@@ -74,20 +74,17 @@ bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_s
 			}
 
 		} else {
+			const float accel_magnitude = sqrtf(accel.get().x * accel.get().x
+							    + accel.get().y * accel.get().y
+							    + accel.get().z * accel.get().z);
 
-			if (dynamic) {
-				const float accel_magnitude = sqrtf(accel.get().x * accel.get().x
-								    + accel.get().y * accel.get().y
-								    + accel.get().z * accel.get().z);
-
-				if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
-					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel Range, hold still on arming");
-					}
-
-					/* this is frickin' fatal */
-					valid = false;
+			if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel Range, hold still on arming");
 				}
+
+				// this is fatal
+				valid = false;
 			}
 		}
 
