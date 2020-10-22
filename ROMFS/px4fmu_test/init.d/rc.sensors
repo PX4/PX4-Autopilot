@@ -32,7 +32,7 @@ if ets_airspeed start -X
 then
 fi
 
-if sf1xx start
+if lightware_laser_i2c start
 then
 fi
 
