@@ -31,15 +31,15 @@
  *
  ****************************************************************************/
 
-#include "SF0X.hpp"
+#include "lightware_laser_serial.hpp"
 
 #include <fcntl.h>
 #include <termios.h>
 
 /* Configuration Constants */
-#define SF0X_TAKE_RANGE_REG		'd'
+#define LW_TAKE_RANGE_REG		'd'
 
-SF0X::SF0X(const char *port, uint8_t rotation) :
+LightwareLaserSerial::LightwareLaserSerial(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_px4_rangefinder(0 /* device id not yet used */, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
@@ -52,7 +52,7 @@ SF0X::SF0X(const char *port, uint8_t rotation) :
 	_port[sizeof(_port) - 1] = '\0';
 }
 
-SF0X::~SF0X()
+LightwareLaserSerial::~LightwareLaserSerial()
 {
 	stop();
 
@@ -61,7 +61,7 @@ SF0X::~SF0X()
 }
 
 int
-SF0X::init()
+LightwareLaserSerial::init()
 {
 	int32_t hw_model = 0;
 	param_get(param_find("SENS_EN_SF0X"), &hw_model);
@@ -108,10 +108,10 @@ SF0X::init()
 	return PX4_OK;
 }
 
-int SF0X::measure()
+int LightwareLaserSerial::measure()
 {
 	// Send the command to begin a measurement.
-	char cmd = SF0X_TAKE_RANGE_REG;
+	char cmd = LW_TAKE_RANGE_REG;
 	int ret = ::write(_fd, &cmd, 1);
 
 	if (ret != sizeof(cmd)) {
@@ -123,7 +123,7 @@ int SF0X::measure()
 	return PX4_OK;
 }
 
-int SF0X::collect()
+int LightwareLaserSerial::collect()
 {
 	perf_begin(_sample_perf);
 
@@ -161,7 +161,7 @@ int SF0X::collect()
 	bool valid = false;
 
 	for (int i = 0; i < ret; i++) {
-		if (OK == sf0x_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
+		if (OK == lightware_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
 			valid = true;
 		}
 	}
@@ -179,7 +179,7 @@ int SF0X::collect()
 	return PX4_OK;
 }
 
-void SF0X::start()
+void LightwareLaserSerial::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
@@ -188,12 +188,12 @@ void SF0X::start()
 	ScheduleNow();
 }
 
-void SF0X::stop()
+void LightwareLaserSerial::stop()
 {
 	ScheduleClear();
 }
 
-void SF0X::Run()
+void LightwareLaserSerial::Run()
 {
 	/* fds initialized? */
 	if (_fd < 0) {
@@ -293,7 +293,7 @@ void SF0X::Run()
 	ScheduleDelayed(_interval);
 }
 
-void SF0X::print_info()
+void LightwareLaserSerial::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

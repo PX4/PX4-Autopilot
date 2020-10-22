@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,22 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__sf0x__sf0x_tests
-	MAIN sf0x_tests
+	MODULE drivers__distance_sensor__lightware_laser_serial
+	MAIN lightware_laser_serial
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		SF0XTest.cpp
-		../sf0x_parser.cpp
+		lightware_laser_serial.cpp
+		lightware_laser_serial.hpp
+		lightware_laser_serial_main.cpp
+		parser.cpp
 	DEPENDS
+		drivers_rangefinder
+		px4_work_queue
+	MODULE_CONFIG
+		module.yaml
 	)
+
+if(PX4_TESTING)
+	add_subdirectory(tests)
+endif()
