@@ -32,22 +32,22 @@
  ****************************************************************************/
 
 /**
- * @file sf0x_parser.cpp
+ * @file parser.cpp
  * @author Lorenz Meier <lm@inf.ethz.ch>
  *
- * Declarations of parser for the Lightware SF0x laser rangefinder series
+ * Declarations of parser for the Lightware laser rangefinder series
  */
 
 #pragma once
 
-enum SF0X_PARSE_STATE {
-	SF0X_PARSE_STATE0_UNSYNC = 0,
-	SF0X_PARSE_STATE1_SYNC,
-	SF0X_PARSE_STATE2_GOT_DIGIT0,
-	SF0X_PARSE_STATE3_GOT_DOT,
-	SF0X_PARSE_STATE4_GOT_DIGIT1,
-	SF0X_PARSE_STATE5_GOT_DIGIT2,
-	SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN
+enum LW_PARSE_STATE {
+	LW_PARSE_STATE0_UNSYNC = 0,
+	LW_PARSE_STATE1_SYNC,
+	LW_PARSE_STATE2_GOT_DIGIT0,
+	LW_PARSE_STATE3_GOT_DOT,
+	LW_PARSE_STATE4_GOT_DIGIT1,
+	LW_PARSE_STATE5_GOT_DIGIT2,
+	LW_PARSE_STATE6_GOT_CARRIAGE_RETURN
 };
 
-int sf0x_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum SF0X_PARSE_STATE *state, float *dist);
+int lightware_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum LW_PARSE_STATE *state, float *dist);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,58 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file SF0X.hpp
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Greg Hulands
+ * Lightware Laser Rangefinder hardware model (serial)
  *
- * Driver for the Lightware SF0x laser rangefinder series
+ * @reboot_required true
+ * @group Sensors
+ * @value 1 SF02
+ * @value 2 SF10/a
+ * @value 3 SF10/b
+ * @value 4 SF10/c
+ * @value 5 SF11/c
  */
-
-#pragma once
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <lib/perf/perf_counter.h>
-
-#include "sf0x_parser.h"
-
-class SF0X : public px4::ScheduledWorkItem
-{
-public:
-	SF0X(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	~SF0X() override;
-
-	int 			init();
-	void				print_info();
-
-private:
-
-	void				start();
-	void				stop();
-	void				Run() override;
-	int				measure();
-	int				collect();
-
-
-	PX4Rangefinder                  _px4_rangefinder;
-
-	char 				_port[20] {};
-	int         		        _interval{100000};
-	bool				_collect_phase{false};
-	int				_fd{-1};
-	char				_linebuf[10] {};
-	unsigned			_linebuf_index{0};
-	enum SF0X_PARSE_STATE		_parse_state {SF0X_PARSE_STATE0_UNSYNC};
-	hrt_abstime			_last_read{0};
-
-	unsigned			_consecutive_fail_count;
-
-	perf_counter_t			_sample_perf;
-	perf_counter_t			_comms_errors;
-
-
-
-};
+PARAM_DEFINE_INT32(SENS_EN_SF0X, 1);
