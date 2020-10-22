@@ -125,7 +125,7 @@ const struct {
 	{"controllib",		controllib_test_main,	0},
 	{"mavlink",		mavlink_tests_main,	0},
 #ifdef __PX4_NUTTX
-	{"sf0x",		sf0x_tests_main,	0},
+	{"lightware_laser",	lightware_laser_test_main,	0},
 #endif
 	{"uorb",		uorb_tests_main,	0},
 

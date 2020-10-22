@@ -31,15 +31,15 @@
  *
  ****************************************************************************/
 
-#include "SF0X.hpp"
+#include "lightware_laser_serial.hpp"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-namespace sf0x
+namespace lightware_laser
 {
 
-SF0X *g_dev{nullptr};
+LightwareLaserSerial *g_dev{nullptr};
 
 static int start(const char *port, uint8_t rotation)
 {
@@ -54,7 +54,7 @@ static int start(const char *port, uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new SF0X(port, rotation);
+	g_dev = new LightwareLaserSerial(port, rotation);
 
 	if (g_dev == nullptr) {
 		return -1;
@@ -109,12 +109,12 @@ Setup/usage information: https://docs.px4.io/master/en/sensor/sfxx_lidar.html
 ### Examples
 
 Attempt to start driver on a specified serial device.
-$ sf0x start -d /dev/ttyS1
+$ lightware_laser_serial start -d /dev/ttyS1
 Stop driver
-$ sf0x stop
+$ lightware_laser_serial stop
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("sf0x", "driver");
+	PRINT_MODULE_USAGE_NAME("lightware_laser_serial", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
@@ -125,7 +125,7 @@ $ sf0x stop
 
 } // namespace
 
-extern "C" __EXPORT int sf0x_main(int argc, char *argv[])
+extern "C" __EXPORT int lightware_laser_serial_main(int argc, char *argv[])
 {
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	const char *device_path = nullptr;
@@ -144,26 +144,26 @@ extern "C" __EXPORT int sf0x_main(int argc, char *argv[])
 			break;
 
 		default:
-			sf0x::usage();
+			lightware_laser::usage();
 			return -1;
 		}
 	}
 
 	if (myoptind >= argc) {
-		sf0x::usage();
+		lightware_laser::usage();
 		return -1;
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
-		return sf0x::start(device_path, rotation);
+		return lightware_laser::start(device_path, rotation);
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
-		return sf0x::stop();
+		return lightware_laser::stop();
 
 	} else if (!strcmp(argv[myoptind], "status")) {
-		return sf0x::status();
+		return lightware_laser::status();
 	}
 
-	sf0x::usage();
+	lightware_laser::usage();
 	return -1;
 }

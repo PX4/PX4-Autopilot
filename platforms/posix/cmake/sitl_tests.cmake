@@ -33,7 +33,7 @@ set(tests
 	rc
 	search_min
 	servo
-	#sf0x
+	#lightware_laser
 	sleep
 	uorb
 	versioning

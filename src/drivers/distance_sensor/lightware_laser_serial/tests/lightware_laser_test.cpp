@@ -1,6 +1,6 @@
 #include <unit_test.h>
 
-#include "../sf0x_parser.h"
+#include "../parser.h"
 
 #include <systemlib/err.h>
 
@@ -8,25 +8,25 @@
 #include <cstring>
 #include <unistd.h>
 
-extern "C" __EXPORT int sf0x_tests_main(int argc, char *argv[]);
+extern "C" __EXPORT int lightware_laser_test_main(int argc, char *argv[]);
 
-class SF0XTest : public UnitTest
+class LightwareLaserTest : public UnitTest
 {
 public:
 	virtual bool run_tests();
 
 private:
-	bool sf0xTest();
+	bool runTest();
 };
 
-bool SF0XTest::run_tests()
+bool LightwareLaserTest::run_tests()
 {
-	ut_run_test(sf0xTest);
+	ut_run_test(runTest);
 
 	return (_tests_failed == 0);
 }
 
-bool SF0XTest::sf0xTest()
+bool LightwareLaserTest::runTest()
 {
 	const char _LINE_MAX = 20;
 	//char _linebuf[_LINE_MAX];
@@ -50,7 +50,7 @@ bool SF0XTest::sf0xTest()
 			       "\r\n"
 			      };
 
-	enum SF0X_PARSE_STATE state = SF0X_PARSE_STATE0_UNSYNC;
+	enum LW_PARSE_STATE state = LW_PARSE_STATE0_UNSYNC;
 	float dist_m;
 	char _parserbuf[_LINE_MAX];
 	unsigned _parsebuf_index = 0;
@@ -61,7 +61,7 @@ bool SF0XTest::sf0xTest()
 		int parse_ret = -1;
 
 		for (int i = 0; i < (ssize_t)strlen(lines[l]); i++) {
-			parse_ret = sf0x_parser(lines[l][i], _parserbuf, &_parsebuf_index, &state, &dist_m);
+			parse_ret = lightware_parser(lines[l][i], _parserbuf, &_parsebuf_index, &state, &dist_m);
 
 			if (parse_ret == 0) {
 				if (l == 0) {
@@ -88,4 +88,4 @@ bool SF0XTest::sf0xTest()
 	return true;
 }
 
-ut_declare_test_c(sf0x_tests_main, SF0XTest)
+ut_declare_test_c(lightware_laser_test_main, LightwareLaserTest)
