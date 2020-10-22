@@ -159,6 +159,7 @@ EKF2::EKF2(bool replay_mode):
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
+	_estimator_optical_flow_vel_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
 	_estimator_status_pub.advertise();
@@ -489,6 +490,7 @@ void EKF2::Run()
 		}
 
 		if (_optical_flow_sub.updated()) {
+			_new_optical_flow_data_received = true;
 			optical_flow_s optical_flow;
 
 			if (_optical_flow_sub.copy(&optical_flow)) {
@@ -1042,6 +1044,11 @@ void EKF2::Run()
 
 			publish_yaw_estimator_status(now);
 
+			if (_new_optical_flow_data_received) {
+				publish_estimator_optical_flow_vel(now);
+				_new_optical_flow_data_received = false;
+			}
+
 			if (!_mag_decl_saved && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
 			}
@@ -1331,6 +1338,21 @@ void EKF2::publish_wind_estimate(const hrt_abstime &timestamp)
 
 		_wind_pub.publish(wind_estimate);
 	}
+}
+
+void EKF2::publish_estimator_optical_flow_vel(const hrt_abstime &timestamp)
+{
+	estimator_optical_flow_vel_s flow_vel{};
+	flow_vel.timestamp_sample = timestamp;
+
+	_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
+	_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
+	_ekf.getFlowUncompensated().copyTo(flow_vel.flow_uncompensated_integral);
+	_ekf.getFlowCompensated().copyTo(flow_vel.flow_compensated_integral);
+	_ekf.getFlowGyro().copyTo(flow_vel.gyro_rate_integral);
+	flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+
+	_estimator_optical_flow_vel_pub.publish(flow_vel);
 }
 
 float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
