@@ -73,15 +73,30 @@ int LoadMon::task_spawn(int argc, char *argv[])
 	_object.store(obj);
 	_task_id = task_id_is_work_queue;
 
-	/* Schedule a cycle to start things. */
-	obj->start();
+	if (obj->start() == PX4_OK) {
+		return PX4_OK;
+	}
 
-	return 0;
+	delete obj;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
-void LoadMon::start()
+int LoadMon::start()
 {
+#if defined(__PX4_LINUX)
+	_proc_fd = fopen("/proc/meminfo", "r");
+
+	if (_proc_fd == nullptr) {
+		PX4_ERR("Could not open /proc/meminfo");
+		return PX4_ERROR;
+	}
+
+#endif
 	ScheduleOnInterval(500_ms); // 2 Hz
+	return PX4_OK;
 }
 
 void LoadMon::Run()
@@ -100,6 +115,15 @@ void LoadMon::Run()
 
 	if (should_exit()) {
 		ScheduleClear();
+
+#if defined(__PX4_LINUX)
+
+		if (_proc_fd != nullptr) {
+			fclose(_proc_fd);
+		}
+
+#endif
+
 		exit_and_cleanup();
 	}
 
@@ -153,16 +177,12 @@ void LoadMon::cpuload()
 	int32_t kb_slab_reclaimable = -1;
 	int32_t kb_main_buffers = -1;
 	int parsedCount = 0;
-	FILE *meminfo = fopen("/proc/meminfo", "r");
 
-	if (meminfo == nullptr) {
-		PX4_ERR("Could not open /proc/meminfo");
-	}
-
-	while (fgets(line, sizeof(line), meminfo)) {
-		if (parsedCount == 5) {
-			break;
-		}
+	while (fgets(line, sizeof(line), _proc_fd) == line) {
+		/* It seems we must dump out all of contents to force fresh /proc/meminfo */
+		//if (parsedCount == 5) {
+		//	break;
+		//}
 
 		if (sscanf(line, "MemTotal: %d kB", &kb_main_total) == 1) {
 			++parsedCount;
@@ -190,7 +210,8 @@ void LoadMon::cpuload()
 		}
 	}
 
-	fclose(meminfo);
+	fseek(_proc_fd, 0, SEEK_SET);
+	//rewind(_proc_fd);
 
 	if (parsedCount == 5) {
 		int32_t kb_main_cached = kb_page_cache + kb_slab_reclaimable;
