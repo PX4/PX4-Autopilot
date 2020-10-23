@@ -329,14 +329,14 @@ void FlightTaskAuto::_set_heading_from_mode()
 		break;
 
 	case 1: // Heading points towards home.
-		if (_sub_home_position.get().valid_hpos) {
+		if (_sub_home_position.get().valid_lpos) {
 			v = Vector2f(&_sub_home_position.get().x) - Vector2f(_position);
 		}
 
 		break;
 
 	case 2: // Heading point away from home.
-		if (_sub_home_position.get().valid_hpos) {
+		if (_sub_home_position.get().valid_lpos) {
 			v = Vector2f(_position) - Vector2f(&_sub_home_position.get().x);
 		}
 
