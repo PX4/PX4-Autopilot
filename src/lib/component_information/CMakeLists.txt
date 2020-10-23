@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,52 +31,40 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v2.0")
-
-px4_add_module(
-	MODULE modules__mavlink
-	MAIN mavlink
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
-		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
-		#-DDEBUG_BUILD
-	INCLUDES
-		${PX4_SOURCE_DIR}/mavlink/include/mavlink
-	SRCS
-		mavlink.c
-		mavlink_command_sender.cpp
-		mavlink_ftp.cpp
-		mavlink_log_handler.cpp
-		mavlink_main.cpp
-		mavlink_messages.cpp
-		mavlink_mission.cpp
-		mavlink_parameters.cpp
-		mavlink_rate_limiter.cpp
-		mavlink_receiver.cpp
-		mavlink_shell.cpp
-		mavlink_simple_analyzer.cpp
-		mavlink_stream.cpp
-		mavlink_timesync.cpp
-		mavlink_ulog.cpp
-		tune_publisher.cpp
-	MODULE_CONFIG
-		module.yaml
-	DEPENDS
-		airspeed
-		component_information_header
-		drivers_accelerometer
-		drivers_barometer
-		drivers_gyroscope
-		drivers_magnetometer
-		git_mavlink_v2
-		conversion
-		git_ecl
-		ecl_geo
-		version
-	UNITY_BUILD
-	)
-
-if(PX4_TESTING)
-	add_subdirectory(mavlink_tests)
+set(component_version_extra_args)
+# We disable parameter support if the metadata is not in the ROMFS. This can be
+# removed once it is stored on a server
+list(FIND config_romfs_extra_dependencies "parameters_xml" index)
+if (${index} EQUAL -1)
+	set(component_version_extra_args "--no-parameters")
 endif()
+
+set(component_version_json ${PX4_BINARY_DIR}/component_version.json)
+add_custom_command(OUTPUT ${component_version_json} ${component_version_json}.gz
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_component_version.py
+		${component_version_json}
+		--compress
+		${component_version_extra_args}
+	DEPENDS
+		generate_component_version.py
+	COMMENT "Generating component_version.json"
+)
+add_custom_target(component_version_json DEPENDS ${component_version_json})
+
+
+set(component_information_header ${CMAKE_CURRENT_BINARY_DIR}/hashes.h)
+add_custom_command(OUTPUT ${component_information_header}
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_hashes.py
+		${PX4_BINARY_DIR}/params.json.gz
+		${component_version_json}
+		--output ${component_information_header}
+	DEPENDS
+		generate_hashes.py
+		parameters_xml
+		${PX4_BINARY_DIR}/params.json.gz
+		${component_version_json}
+	COMMENT "Generating component_information/hashes.h"
+)
+add_custom_target(component_information_header DEPENDS ${component_information_header})
+
+
