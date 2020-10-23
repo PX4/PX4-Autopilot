@@ -968,7 +968,7 @@ CameraTrigger::adjust_roll()
 	vcmd.target_system = _target_system;
 	vcmd.target_component = _target_component;
 
-	//param1 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is roll
+	//param1 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is pitch
 	vcmd.param1 = _pseudo_oblique_pitch_angle;
 
 	//param2 of VEHICLE_CMD_DO_MOUNT_CONTROL in VEHICLE_MOUNT_MODE_MAVLINK_TARGETING mode is roll
