@@ -398,16 +398,18 @@ Mission::find_mission_land_start()
 			break;
 		}
 
-		// first check for DO_LAND_START marker
-		if ((missionitem.nav_cmd == NAV_CMD_DO_LAND_START) && (missionitem_prev.nav_cmd == NAV_CMD_WAYPOINT)) {
-
+		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
 			_land_start_available = true;
 			_land_start_index = i;
-			// the DO_LAND_START marker contains no position sp, so take them from the previous mission item
-			_landing_lat = missionitem_prev.lat;
-			_landing_lon = missionitem_prev.lon;
-			_landing_alt = missionitem_prev.altitude_is_relative ?	missionitem_prev.altitude +
-				       _navigator->get_home_position()->alt : missionitem_prev.altitude;
+		}
+
+		if (_land_start_available && (missionitem.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
+			// use the loiter to altitude item of the mission landing as target landing location
+			_landing_lat = missionitem.lat;
+			_landing_lon = missionitem.lon;
+			_landing_alt = missionitem.altitude_is_relative ?	missionitem.altitude +
+				       _navigator->get_home_position()->alt : missionitem.altitude;
+
 			return true;
 
 			// if no DO_LAND_START marker available, also check for VTOL_LAND or normal LAND
