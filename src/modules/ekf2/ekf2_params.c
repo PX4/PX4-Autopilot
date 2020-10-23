@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 110);
  * @reboot_required true
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
+PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 20);
 
 /**
  * Range finder measurement delay relative to IMU measurements
