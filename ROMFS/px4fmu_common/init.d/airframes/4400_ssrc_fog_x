@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# @name SSRC Quad X on holybro x500 frame
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Jukka Laitinen <jukkax@ssrc.tii.ae>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. /etc/init.d/rc.mc_defaults
+
+set MIXER quad_x
+set PWM_OUT 1234
+
+if [ $AUTOCNF = yes ]
+then
+	param set IMU_GYRO_CUTOFF 60
+	param set IMU_DGYRO_CUTOFF 30
+	param set MC_ROLLRATE_P 0.14
+	param set MC_PITCHRATE_P 0.14
+	param set MC_ROLLRATE_I 0.3
+	param set MC_PITCHRATE_I 0.3
+	param set MC_ROLLRATE_D 0.004
+	param set MC_PITCHRATE_D 0.004
+
+	param set BAT_N_CELLS 4
+
+	param set MAV_0_CONFIG 0
+	param set RTPS_MAV_CONFIG 101
+	param set SER_TEL1_BAUD 460800
+fi
