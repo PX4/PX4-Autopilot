@@ -66,6 +66,8 @@ px4_add_romfs_files(
 	4061_atl_mantis_edu
 	4071_ifo
 	4073_ifo-s
+	4400_ssrc_fog_x
+	4401_ssrc_fog_x_tmotor
 	4500_clover4
 	4900_crazyflie
 	4901_crazyflie21
@@ -119,6 +121,8 @@ px4_add_romfs_files(
 	50000_generic_ground_vehicle
 	50004_nxpcup_car_dfrobot_gpx
 	50003_aion_robotics_r1_rover
+	50005_ssrc_scout_mini_rover
+	50006_ssrc_bunker_rover
 
 	# [60000, 61000] (Unmanned) Underwater Robots
 	60000_uuv_generic
