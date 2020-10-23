@@ -110,6 +110,7 @@ using matrix::Vector3f;
 using matrix::wrap_2pi;
 
 #include "streams/AUTOPILOT_VERSION.hpp"
+#include "streams/COMPONENT_INFORMATION.hpp"
 #include "streams/ESC_INFO.hpp"
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
@@ -4772,6 +4773,9 @@ static const StreamListItem streams_list[] = {
 #if defined(STORAGE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamStorageInformation>(),
 #endif // STORAGE_INFORMATION_HPP
+#if defined(COMPONENT_INFORMATION_HPP)
+	create_stream_list_item<MavlinkStreamComponentInformation>(),
+#endif // COMPONENT_INFORMATION_HPP
 #if defined(RAW_RPM_HPP)
 	create_stream_list_item<MavlinkStreamRawRpm>()
 #endif // RAW_RPM_HPP

@@ -212,6 +212,8 @@ function(px4_add_board)
 			message(FATAL_ERROR "invalid value for EMBEDDED_METADATA: ${metadata}")
 		endif()
 	endforeach()
+	list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/component_version.json.gz)
+	list(APPEND romfs_extra_dependencies component_version_json)
 	set(config_romfs_extra_files ${romfs_extra_files} CACHE INTERNAL "extra ROMFS files" FORCE)
 	set(config_romfs_extra_dependencies ${romfs_extra_dependencies} CACHE INTERNAL "extra ROMFS deps" FORCE)
 
