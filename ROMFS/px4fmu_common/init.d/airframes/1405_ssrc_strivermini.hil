@@ -1,0 +1,153 @@
+#!/bin/sh
+#
+# @name SSRC Striver Mini VTOL
+#
+# @type VTOL
+#
+# @class VTOL
+
+. ${R}etc/init.d/rc.vtol_defaults
+. ${R}etc/init.d/rc.hitl_testing
+
+# Control allocator parameters
+param set-default CA_AIRFRAME 2
+param set-default CA_ROTOR_COUNT 5
+param set-default CA_ROTOR0_PX 0.37
+param set-default CA_ROTOR0_PY 0.42
+param set-default CA_ROTOR1_PX -0.41
+param set-default CA_ROTOR1_PY -0.42
+param set-default CA_ROTOR2_PX 0.37
+param set-default CA_ROTOR2_PY -0.42
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.41
+param set-default CA_ROTOR3_PY 0.42
+param set-default CA_ROTOR3_KM -0.05
+param set-default CA_ROTOR4_AX 1.0
+param set-default CA_ROTOR4_AZ 0.0
+param set-default CA_SV_CS_COUNT 5
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TRIM 0.1
+param set-default CA_SV_CS3_TYPE 3
+param set-default CA_SV_CS3_TRQ_P 1.0
+param set-default CA_SV_CS3_TRIM 0.1
+param set-default CA_SV_CS4_TYPE 4
+param set-default CA_SV_CS4_TRQ_Y 1.0
+
+# PWM AUX functions
+param set-default PWM_AUX_FUNC1 101
+param set-default PWM_AUX_FUNC2 102
+param set-default PWM_AUX_FUNC3 103
+param set-default PWM_AUX_FUNC4 104
+param set-default PWM_AUX_FUNC5 201
+param set-default PWM_AUX_FUNC6 202
+param set-default PWM_AUX_FUNC7 203
+param set-default PWM_AUX_FUNC8 204
+param set-default PWM_AUX_FUNC9 205
+param set-default PWM_AUX_FUNC10 105
+
+param set PWM_AUX_MIN1 10
+param set PWM_AUX_MIN2 10
+param set PWM_AUX_MIN3 10
+param set PWM_AUX_MIN4 10
+param set PWM_AUX_MIN5 0
+param set PWM_AUX_MIN6 0
+param set PWM_AUX_MIN7 0
+param set PWM_AUX_MIN8 0
+param set PWM_AUX_MIN9 0
+param set PWM_AUX_MIN10 0
+
+param set PWM_AUX_MAX1 1500
+param set PWM_AUX_MAX2 1500
+param set PWM_AUX_MAX3 1500
+param set PWM_AUX_MAX4 1500
+param set PWM_AUX_MAX5 1000
+param set PWM_AUX_MAX6 1000
+param set PWM_AUX_MAX7 1000
+param set PWM_AUX_MAX8 1000
+param set PWM_AUX_MAX9 1000
+param set PWM_AUX_MAX10 3500
+
+param set PWM_AUX_DIS1 0
+param set PWM_AUX_DIS2 0
+param set PWM_AUX_DIS3 0
+param set PWM_AUX_DIS4 0
+param set PWM_AUX_DIS5 500
+param set PWM_AUX_DIS6 500
+param set PWM_AUX_DIS7 500
+param set PWM_AUX_DIS8 500
+param set PWM_AUX_DIS9 500
+param set PWM_AUX_DIS10 0
+
+# Airspeed parameters
+param set-default ASPD_PRIMARY 1
+param set-default ASPD_DO_CHECKS 7
+param set-default FW_AIRSPD_MAX 25.0
+param set-default FW_AIRSPD_MIN 15.0
+param set-default FW_AIRSPD_STALL 12.0
+param set-default FW_AIRSPD_TRIM 18.0
+
+# Return mode return altitude
+param set-default RTL_RETURN_ALT 30.0
+
+# Fixed wing specific
+param set-default FW_MAN_R_MAX 60.0
+param set-default FW_RR_IMAX 0.4000
+param set-default FW_YR_IMAX 0.4000
+param set-default FW_YR_P 0.2
+param set-default FW_YR_I 0.01
+
+# Multicopter specific
+param set-default MC_PITCHRATE_D 0
+param set-default MC_PITCHRATE_MAX 120
+param set-default MC_PITCHRATE_P 0.140
+param set-default MC_PITCH_P 4
+param set-default MC_ROLLRATE_D 0
+param set-default MC_ROLLRATE_P 0.140
+param set-default MC_ROLL_P 2.0
+param set-default MPC_MAN_TILT_MAX 30.0
+param set-default MPC_MAN_Y_MAX 80.0
+param set-default MPC_Z_VEL_MAX_UP 2.0
+param set-default MPC_Z_V_AUTO_UP 2.0
+
+# VTOL specific
+# VTOL type
+param set-default VT_TYPE 2
+
+# Airspeed at which we can start blending both fw and mc controls.
+param set-default VT_ARSP_BLEND 8
+
+# Airspeed at which we can switch to fw mode
+param set-default VT_ARSP_TRANS 14
+
+# Back-transition duration
+param set-default VT_B_TRANS_DUR 10
+param set-default VT_B_TRANS_RAMP 3
+
+# Transition duration
+param set-default VT_F_TRANS_DUR 6
+param set-default VT_F_TRANS_THR 1
+
+# VTOL takeoff
+param set-default VTO_LOITER_ALT 40
+
+# QuadChute altitude (transition to quad mode as a failsafe)
+param set-default VT_FW_MIN_ALT 10
+
+# QuadChute angle limits
+param set-default VT_FW_QC_P 35
+param set-default VT_FW_QC_R 60
+
+param set-default VT_TRANS_MIN_TM 5.00
+param set-default VT_FWD_THRUST_EN 3
+
+param set-default WV_YRATE_MAX 45.0
+
+param set-default NAV_RCL_ACT 2
+
+# EKF2
+param set EKF2_MULTI_IMU 1
