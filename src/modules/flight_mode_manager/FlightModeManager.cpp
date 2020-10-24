@@ -34,6 +34,7 @@
 #include "FlightModeManager.hpp"
 
 #include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 
 using namespace time_literals;
 
@@ -106,24 +107,25 @@ void FlightModeManager::Run()
 		_takeoff.updateTakeoffState(_vehicle_control_mode_sub.get().flag_armed, _vehicle_land_detected_sub.get().landed, false,
 					    10.f, !_vehicle_control_mode_sub.get().flag_control_climb_rate_enabled, time_stamp_now);
 
-		// // activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
-		// // that turns the nose of the vehicle into the wind
-		// if (_wv_controller != nullptr) {
+		// activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
+		// that turns the nose of the vehicle into the wind
+		if (_wv_controller != nullptr) {
 
-		// 	// in manual mode we just want to use weathervane if position is controlled as well TODO
-		// 	// in mission, enabling wv is done in flight task
-		// 	if (_control_mode.flag_control_manual_enabled) {
-		// 		if (_control_mode.flag_control_position_enabled && _wv_controller->weathervane_enabled()) {
-		// 			_wv_controller->activate();
+			// in manual mode we just want to use weathervane if position is controlled as well
+			// in mission, enabling wv is done in flight task
+			if (_vehicle_control_mode_sub.get().flag_control_manual_enabled) {
+				if (_vehicle_control_mode_sub.get().flag_control_position_enabled && _wv_controller->weathervane_enabled()) {
+					_wv_controller->activate();
 
-		// 		} else {
-		// 			_wv_controller->deactivate();
-		// 		}
-		// 	}
+				} else {
+					_wv_controller->deactivate();
+				}
+			}
 
-		// 	_wv_dcm_z_sp_prev = Quatf(attitude_setpoint.q_d).dcm_z(); // TODO
-		// 	_wv_controller->update(_wv_dcm_z_sp_prev, _states.yaw);
-		// }
+			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+			_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint);
+			_wv_controller->update(matrix::Quatf(vehicle_attitude_setpoint.q_d).dcm_z(), vehicle_local_position.heading);
+		}
 
 		start_flight_task();
 
