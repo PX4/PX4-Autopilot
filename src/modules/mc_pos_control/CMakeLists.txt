@@ -50,5 +50,5 @@ px4_add_module(
 		ecl_geo
 		WeatherVane
 		CollisionPrevention
-		Takeoff
+		Takeoff2
 	)

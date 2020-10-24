@@ -31,10 +31,10 @@
 #
 ############################################################################
 
-px4_add_library(Takeoff
+px4_add_library(Takeoff2
 	Takeoff.cpp
 )
-target_include_directories(Takeoff PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(Takeoff PUBLIC hysteresis)
+target_include_directories(Takeoff2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(Takeoff2 PUBLIC hysteresis)
 
-px4_add_unit_gtest(SRC TakeoffTest.cpp LINKLIBS Takeoff)
+px4_add_unit_gtest(SRC TakeoffTest.cpp LINKLIBS Takeoff2)
