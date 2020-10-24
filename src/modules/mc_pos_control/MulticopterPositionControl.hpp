@@ -42,11 +42,8 @@
 #include <lib/controllib/blocks.hpp>
 #include <lib/flight_tasks/FlightTasks.hpp>
 #include <lib/hysteresis/hysteresis.h>
-#include <lib/mathlib/mathlib.h>
-#include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <lib/weather_vane/WeatherVane.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -54,25 +51,18 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
-#include <uORB/Publication.hpp>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/landing_gear.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_trajectory_waypoint.h>
-#include <uORB/topics/hover_thrust_estimate.h>
 
 #include "PositionControl/PositionControl.hpp"
-#include "Takeoff/Takeoff.hpp"
-
-#include <float.h>
 
 class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public control::SuperBlock,
 	public ModuleParams, public px4::WorkItem
@@ -95,8 +85,6 @@ public:
 private:
 	void Run() override;
 
-	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
-
 	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub;
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -114,21 +102,8 @@ private:
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
-	/**< vehicle-land-detection: initialze to landed */
-	vehicle_land_detected_s _vehicle_land_detected = {
-		.timestamp = 0,
-		.alt_max = -1.0f,
-		.freefall = false,
-		.ground_contact = true,
-		.maybe_landed = true,
-		.landed = true,
-	};
-
 	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
 	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
-	home_position_s	_home_pos{};			/**< home position */
-
-	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
 	DEFINE_PARAMETERS(
 		// Position Control

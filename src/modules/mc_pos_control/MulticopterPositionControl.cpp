@@ -33,6 +33,10 @@
 
 #include "MulticopterPositionControl.hpp"
 
+#include <float.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
+
 using namespace time_literals;
 using namespace matrix;
 

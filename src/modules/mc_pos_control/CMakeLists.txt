@@ -31,7 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(Takeoff)
 add_subdirectory(PositionControl)
 
 px4_add_module(
@@ -50,5 +49,4 @@ px4_add_module(
 		ecl_geo
 		WeatherVane
 		CollisionPrevention
-		Takeoff2
 	)
