@@ -37,15 +37,22 @@
 
 using namespace time_literals;
 
-FlightModeManager::FlightModeManager() :
+FlightModeManager::FlightModeManager(bool vtol) :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	if (vtol) {
+		// if vehicle is a VTOL we want to enable weathervane capabilities
+		_wv_controller = new WeatherVane();
+	}
+
+	updateParams();
 }
 
 FlightModeManager::~FlightModeManager()
 {
+	delete _wv_controller;
 	perf_free(_loop_perf);
 }
 
@@ -56,8 +63,8 @@ bool FlightModeManager::init()
 		return false;
 	}
 
-	// limit to every other vehicle_local_position update (~62.5 Hz)
-	_vehicle_local_position_sub.set_interval_us(16_ms);
+	// limit to every other vehicle_local_position update (50 Hz)
+	_vehicle_local_position_sub.set_interval_us(20_ms);
 	_time_stamp_last_loop = hrt_absolute_time();
 	return true;
 }
@@ -77,9 +84,7 @@ void FlightModeManager::Run()
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
-
 		updateParams();
-		_flight_tasks.handleParameterUpdate();
 	}
 
 	// generate setpoints on local position changes
@@ -91,6 +96,29 @@ void FlightModeManager::Run()
 		_vehicle_land_detected_sub.update();
 		_vehicle_local_position_setpoint_sub.update();
 		_vehicle_status_sub.update();
+
+		// // an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes TODO
+		// _takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f,
+		// 				!_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
+
+		// // activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
+		// // that turns the nose of the vehicle into the wind
+		// if (_wv_controller != nullptr) {
+
+		// 	// in manual mode we just want to use weathervane if position is controlled as well TODO
+		// 	// in mission, enabling wv is done in flight task
+		// 	if (_control_mode.flag_control_manual_enabled) {
+		// 		if (_control_mode.flag_control_position_enabled && _wv_controller->weathervane_enabled()) {
+		// 			_wv_controller->activate();
+
+		// 		} else {
+		// 			_wv_controller->deactivate();
+		// 		}
+		// 	}
+
+		// 	_wv_dcm_z_sp_prev = Quatf(attitude_setpoint.q_d).dcm_z(); // TODO
+		// 	_wv_controller->update(_wv_dcm_z_sp_prev, _states.yaw);
+		// }
 
 		const hrt_abstime time_stamp_now = hrt_absolute_time();
 		// Guard against too small (< 0.2ms) and too large (> 100ms) dt's.
@@ -106,6 +134,20 @@ void FlightModeManager::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void FlightModeManager::updateParams()
+{
+	ModuleParams::updateParams();
+	_flight_tasks.handleParameterUpdate();
+
+	_takeoff.setSpoolupTime(_param_mpc_spoolup_time.get());
+	_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
+	_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
+
+	if (_wv_controller != nullptr) {
+		_wv_controller->update_parameters();
+	}
 }
 
 void FlightModeManager::start_flight_task()
@@ -494,7 +536,15 @@ void FlightModeManager::reset_setpoint_to_nan(vehicle_local_position_setpoint_s 
 
 int FlightModeManager::task_spawn(int argc, char *argv[])
 {
-	FlightModeManager *instance = new FlightModeManager();
+	bool vtol = false;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "vtol") == 0) {
+			vtol = true;
+		}
+	}
+
+	FlightModeManager *instance = new FlightModeManager(vtol);
 
 	if (instance) {
 		_object.store(instance);
@@ -542,15 +592,14 @@ int FlightModeManager::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This implements the multicopter rate controller. It takes rate setpoints (in acro mode
-via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
-
-The controller has a PID loop for angular rate error.
+This implements the setpoint generation for all modes. It takes the current mode state of the vehicle as input
+and outputs setpoints for controllers.
 
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("flight_mode_manager", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
