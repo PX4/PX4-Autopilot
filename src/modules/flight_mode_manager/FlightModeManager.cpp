@@ -464,13 +464,14 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 
 	_trajectory_setpoint_pub.publish(setpoint);
 
-	// if (flying) { TODO
-	// 	_control.setThrustLimits(_param_mpc_thr_min.get(), _param_mpc_thr_max.get());
+	// Allow ramping from zero thrust on takeoff
+	if (flying) {
+		constraints.minimum_thrust = _param_mpc_thr_min.get();
 
-	// } else {
-	// 	// allow zero thrust when taking off and landing
-	// 	_control.setThrustLimits(0.f, _param_mpc_thr_max.get());
-	// }
+	} else {
+		// allow zero thrust when taking off and landing
+		constraints.minimum_thrust = 0.f;
+	}
 
 	// fix to prevent the takeoff ramp to ramp to a too high value or get stuck because of NAN
 	// TODO: this should get obsolete once the takeoff limiting moves into the flight tasks
