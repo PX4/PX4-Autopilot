@@ -120,6 +120,13 @@ void FlightModeManager::start_flight_task()
 		return;
 	}
 
+	// Switch to clean new task when mode switches e.g. to reset state when switching between auto modes
+	// exclude Orbit mode since the task is initiated in FlightTasks through the vehicle_command and we should not switch out
+	if (_last_vehicle_nav_state != _vehicle_status_sub.get().nav_state
+	    && _vehicle_status_sub.get().nav_state != vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+		_flight_tasks.switchTask(FlightTaskIndex::None);
+	}
+
 	if (_vehicle_status_sub.get().in_transition_mode) {
 
 		should_disable_task = false;
@@ -233,16 +240,17 @@ void FlightModeManager::start_flight_task()
 		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
+		case 0:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;
 
 		case 3:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
+		case 4:
 		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAcceleration);
 			break;
 		}
 
@@ -266,16 +274,13 @@ void FlightModeManager::start_flight_task()
 		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
+		case 0:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 			break;
 
 		case 3:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
-			break;
-
 		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
 			break;
 		}
 
@@ -312,6 +317,8 @@ void FlightModeManager::start_flight_task()
 	} else if (should_disable_task) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 	}
+
+	_last_vehicle_nav_state = _vehicle_status_sub.get().nav_state;
 }
 
 void FlightModeManager::check_failure(bool task_failure, uint8_t nav_state)

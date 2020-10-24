@@ -92,36 +92,30 @@ public:
 
 	bool init();
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 private:
 	void Run() override;
 
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub;
-	uORB::Publication<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	 /**< vehicle command publication */
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
-	uORB::Publication<vehicle_local_position_setpoint_s>	_traj_sp_pub{ORB_ID(trajectory_setpoint)};			/**< trajectory setpoints publication */
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
-	vehicle_status_s 			_vehicle_status{};		/**< vehicle status */
 	/**< vehicle-land-detection: initialze to landed */
 	vehicle_land_detected_s _vehicle_land_detected = {
 		.timestamp = 0,
@@ -175,7 +169,6 @@ private:
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
-	FlightTasks _flight_tasks; /**< class generating position controller setpoints depending on vehicle task */
 	PositionControl _control; /**< class for core PID position control */
 	PositionControlStates _states{}; /**< structure containing vehicle state information for position control */
 
@@ -187,8 +180,6 @@ private:
 
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
-	/** number of tries before switching to a failsafe flight task */
-	static constexpr int NUM_FAILURE_TRIES = 10;
 	/** If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
 	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200_ms;
 	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
@@ -202,8 +193,6 @@ private:
 	Vector3f _wv_dcm_z_sp_prev{0, 0, 1};
 
 	perf_counter_t _cycle_perf;
-
-	uint8_t _last_vehicle_nav_state{0};
 
 	/**
 	 * Update our local parameter cache.
@@ -237,12 +226,6 @@ private:
 	void limit_thrust_during_landing(vehicle_attitude_setpoint_s &setpoint);
 
 	/**
-	 * Start flightasks based on navigation state.
-	 * This methods activates a task based on the navigation state.
-	 */
-	void start_flight_task();
-
-	/**
 	 * Failsafe.
 	 * If flighttask fails for whatever reason, then do failsafe. This could
 	 * occur if the commander fails to switch to a mode in case of invalid states or
@@ -256,14 +239,4 @@ private:
 	 * Reset setpoints to NAN
 	 */
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
-
-	/**
-	 * check if task should be switched because of failsafe
-	 */
-	void check_failure(bool task_failure, uint8_t nav_state);
-
-	/**
-	 * send vehicle command to inform commander about failsafe
-	 */
-	void send_vehicle_cmd_do(uint8_t nav_state);
 };
