@@ -38,9 +38,10 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/flight_tasks/FlightTasks.hpp>
-#include <Takeoff.hpp>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -48,6 +49,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+
+#include "Takeoff/Takeoff.hpp"
 
 class FlightModeManager : public ModuleBase<FlightModeManager>, public ModuleParams, public px4::WorkItem
 {
