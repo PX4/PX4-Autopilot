@@ -454,7 +454,7 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		// set yaw-sp to current yaw
 		setpoint.yawspeed = 0.f;
 		// prevent any integrator windup
-		// _control.resetIntegral(); TODO
+		constraints.reset_integral = true;
 	}
 
 	_trajectory_setpoint_pub.publish(setpoint);
