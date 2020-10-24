@@ -84,6 +84,7 @@ private:
 	WeatherVane *_wv_controller{nullptr};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 	int _task_failure_count{0};
+	uint8_t _last_vehicle_nav_state{0};
 
 	perf_counter_t _loop_perf; ///< loop duration performance counter
 	hrt_abstime _time_stamp_last_loop{0}; ///< time stamp of last loop iteration
@@ -98,7 +99,7 @@ private:
 
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
-	uORB::PublicationQueued<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 
 	DEFINE_PARAMETERS(
