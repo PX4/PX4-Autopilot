@@ -62,6 +62,7 @@ px4_add_board(
 		dataman
 		#ekf2
 		events
+		flight_mode_manager
 		#fw_att_control
 		#fw_pos_control_l1
 		land_detector
