@@ -251,13 +251,17 @@ void MulticopterPositionControl::Run()
 			_control.setThrustLimits(constraints.minimum_thrust, _param_mpc_thr_max.get());
 
 			// Run position control
-			if (!_control.update(dt)) {
-				if ((time_stamp_now - _last_warn) > 1_s) {
+			if (_control.update(dt)) {
+				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_now);
+
+			} else {
+				// Failsafe
+				if ((time_stamp_now - _last_warn) > 2_s) {
 					PX4_WARN("invalid setpoints");
 					_last_warn = time_stamp_now;
 				}
 
-				failsafe(time_stamp_now, setpoint, _states, true, !was_in_failsafe);
+				failsafe(time_stamp_now, setpoint, _states, !was_in_failsafe);
 				_control.setInputSetpoint(setpoint);
 				constraints = FlightTask::empty_constraints;
 				_control.update(dt);
@@ -293,19 +297,17 @@ void MulticopterPositionControl::Run()
 }
 
 void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint,
-		const PositionControlStates &states, const bool force, bool warn)
+		const PositionControlStates &states, bool warn)
 {
 	// do not warn while we are disarmed, as we might not have valid setpoints yet
 	if (!_control_mode.flag_armed) {
 		warn = false;
 	}
 
+	// Only react after a short delay
 	_failsafe_land_hysteresis.set_state_and_update(true, now);
 
-	if (!_failsafe_land_hysteresis.get_state() && !force) {
-		// just keep current setpoint and don't do anything.
-
-	} else {
+	if (_failsafe_land_hysteresis.get_state()) {
 		reset_setpoint_to_nan(setpoint);
 
 		if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
