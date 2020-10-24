@@ -220,7 +220,7 @@ private:
 	 * to true, the failsafe will be initiated immediately.
 	 */
 	void failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states,
-		      const bool force, bool warn);
+		      bool warn);
 
 	/**
 	 * Reset setpoints to NAN
