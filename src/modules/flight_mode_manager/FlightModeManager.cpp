@@ -91,15 +91,20 @@ void FlightModeManager::Run()
 	vehicle_local_position_s vehicle_local_position;
 
 	if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
+		const hrt_abstime time_stamp_now = hrt_absolute_time();
+		// Guard against too small (< 0.2ms) and too large (> 100ms) dt's.
+		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) / 1e6f), 0.0002f, 0.1f);
+		_time_stamp_last_loop = time_stamp_now;
+
 		_home_position_sub.update();
 		_vehicle_control_mode_sub.update();
 		_vehicle_land_detected_sub.update();
 		_vehicle_local_position_setpoint_sub.update();
 		_vehicle_status_sub.update();
 
-		// // an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes TODO
-		// _takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f,
-		// 				!_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
+		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
+		_takeoff.updateTakeoffState(_vehicle_control_mode_sub.get().flag_armed, _vehicle_land_detected_sub.get().landed, false,
+					    10.f, !_vehicle_control_mode_sub.get().flag_control_climb_rate_enabled, time_stamp_now);
 
 		// // activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
 		// // that turns the nose of the vehicle into the wind
@@ -119,11 +124,6 @@ void FlightModeManager::Run()
 		// 	_wv_dcm_z_sp_prev = Quatf(attitude_setpoint.q_d).dcm_z(); // TODO
 		// 	_wv_controller->update(_wv_dcm_z_sp_prev, _states.yaw);
 		// }
-
-		const hrt_abstime time_stamp_now = hrt_absolute_time();
-		// Guard against too small (< 0.2ms) and too large (> 100ms) dt's.
-		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) / 1e6f), 0.0002f, 0.1f);
-		_time_stamp_last_loop = time_stamp_now;
 
 		start_flight_task();
 
