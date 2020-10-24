@@ -254,6 +254,10 @@ void MulticopterPositionControl::Run()
 			_control.setConstraints(constraints);
 			_control.setThrustLimits(constraints.minimum_thrust, _param_mpc_thr_max.get());
 
+			if (constraints.reset_integral) {
+				_control.resetIntegral();
+			}
+
 			// Run position control
 			if (_control.update(dt)) {
 				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_now);
