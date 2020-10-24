@@ -430,17 +430,10 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 
 	_flight_tasks.setYawHandler(_wv_controller);
 
+	// In case flight task was not able to update correctly we send the empty setpoint which makes the position controller failsafe.
 	if (_flight_tasks.update()) {
 		setpoint = _flight_tasks.getPositionSetpoint();
 		constraints = _flight_tasks.getConstraints();
-
-		//_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_now); TODO
-
-	} else {
-		// FAILSAFE
-		// Task was not able to update correctly. Do Failsafe.
-		// by sending out an empty setpoint that is not executable to make the position controller failsafe
-		// TODO test failsafe
 	}
 
 	landing_gear_s landing_gear = _flight_tasks.getGear();
