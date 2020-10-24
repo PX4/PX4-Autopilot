@@ -140,12 +140,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
-	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
 
-	input_rc_s	_rc_in{};
-
+#ifdef ADC_RC_RSSI_CHANNEL
+	uORB::Subscription	_adc_sub {ORB_ID(adc_report)};
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
+#endif
+
+	input_rc_s	_rc_in{};
 
 
 	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};

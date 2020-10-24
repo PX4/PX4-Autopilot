@@ -198,7 +198,10 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 
 	/* fake rssi if no value was provided */
 	if (rssi == -1) {
+#ifdef ADC_RC_RSSI_CHANNEL
+
 		if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() < _rc_in.channel_count)) {
+
 			const int32_t rssi_pwm_chan = _param_rc_rssi_pwm_chan.get();
 			const int32_t rssi_pwm_min = _param_rc_rssi_pwm_min.get();
 			const int32_t rssi_pwm_max = _param_rc_rssi_pwm_max.get();
@@ -224,6 +227,10 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 		} else {
 			_rc_in.rssi = 255;
 		}
+
+#else
+		_rc_in.rssi = 255;
+#endif
 
 	} else {
 		_rc_in.rssi = rssi;
