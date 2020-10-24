@@ -248,6 +248,7 @@ void MulticopterPositionControl::Run()
 			vehicle_constraints_s constraints;
 			_vehicle_constraints_sub.update(&constraints);
 			_control.setConstraints(constraints);
+			_control.setThrustLimits(constraints.minimum_thrust, _param_mpc_thr_max.get());
 
 			// Run position control
 			if (!_control.update(dt)) {
