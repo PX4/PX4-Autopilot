@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@
 class FlightModeManager : public ModuleBase<FlightModeManager>, public ModuleParams, public px4::WorkItem
 {
 public:
-	FlightModeManager();
+	FlightModeManager(bool vtol = false);
 	~FlightModeManager() override;
 
 	/** @see ModuleBase */
@@ -70,6 +70,7 @@ public:
 
 private:
 	void Run() override;
+	void updateParams() override;
 	void start_flight_task();
 	void check_failure(bool task_failure, uint8_t nav_state);
 	void send_vehicle_cmd_do(uint8_t nav_state);
@@ -105,6 +106,9 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MPC_POS_MODE>) _param_mpc_pos_mode,
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd,
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
+		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time,
+		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t,
+		(ParamFloat<px4::params::MPC_Z_VEL_P_ACC>) _param_mpc_z_vel_p_acc
 	);
 };

@@ -104,10 +104,8 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
-	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
@@ -150,8 +148,6 @@ private:
 		(ParamBool<px4::params::MPC_USE_HTE>) _param_mpc_use_hte,
 
 		// Takeoff / Land
-		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
-		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t, /**< time constant for smooth takeoff ramp */
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
 
@@ -189,9 +185,6 @@ private:
 
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
-	WeatherVane *_wv_controller{nullptr};
-	Vector3f _wv_dcm_z_sp_prev{0, 0, 1};
-
 	perf_counter_t _cycle_perf;
 
 	/**
@@ -211,12 +204,6 @@ private:
 	 * @param vel_sp_z velocity setpoint in z-direction
 	 */
 	void set_vehicle_states(const float &vel_sp_z);
-
-	/**
-	 * Limit altitude based on land-detector.
-	 * @param setpoint needed to detect vehicle intention.
-	 */
-	void limit_altitude(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Adjust the setpoint during landing.
