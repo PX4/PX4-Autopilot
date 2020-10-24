@@ -666,6 +666,9 @@ CameraTrigger::Run()
 				_pseudo_oblique_pose_counter = 0;
 				_move_distance = _distance / 2;
 				_updated_roll_angle = false;
+
+			} else {
+				_pseudo_oblique_num_poses = 0;
 			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
