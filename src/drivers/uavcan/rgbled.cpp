@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 #include "rgbled.hpp"
-#include <parameters/param.h>
 
 UavcanRGBController::UavcanRGBController(uavcan::INode &node) :
+	ModuleParams(nullptr),
 	_node(node),
 	_uavcan_pub_lights_cmd(node),
 	_timer(node)
@@ -44,18 +44,6 @@ UavcanRGBController::UavcanRGBController(uavcan::INode &node) :
 
 int UavcanRGBController::init()
 {
-	// Get parameters
-	int32_t i = 0;
-	param_get(param_find("UAVCAN_LGT_ANTCL"), &i);
-	_mode_anti_col = (light_control_mode)i;
-	param_get(param_find("UAVCAN_LGT_STROB"), &i);
-	_mode_strobe = (light_control_mode)i;
-	param_get(param_find("UAVCAN_LGT_NAV"), &i);
-	_mode_nav = (light_control_mode)i;
-	param_get(param_find("UAVCAN_LGT_LAND"), &i);
-	_mode_land = (light_control_mode)i;
-
-
 	// Setup timer and call back function for periodic updates
 	_timer.setCallback(TimerCbBinder(this, &UavcanRGBController::periodic_update));
 	_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
@@ -144,6 +132,7 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 
 			/* Determine the current control mode
 			*  If a light's control mode config >= current control mode, the light will be enabled
+			*  Logic must match UAVCAN_LGT_* param values.
 			* @value 0 Always off
 			* @value 1 When autopilot is armed
 			* @value 2 When autopilot is prearmed
@@ -165,22 +154,22 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 
 			// Beacons
 			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_ANTI_COLLISION;
-			cmd.color = brightness_to_rgb565(_mode_anti_col >= control_mode ? 255 : 0);
+			cmd.color = brightness_to_rgb565(_param_mode_anti_col.get() >= control_mode ? 255 : 0);
 			cmds.commands.push_back(cmd);
 
 			// Strobes
 			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_STROBE;
-			cmd.color = brightness_to_rgb565(_mode_strobe >= control_mode ? 255 : 0);
+			cmd.color = brightness_to_rgb565(_param_mode_strobe.get() >= control_mode ? 255 : 0);
 			cmds.commands.push_back(cmd);
 
 			// Nav lights
 			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_RIGHT_OF_WAY;
-			cmd.color = brightness_to_rgb565(_mode_nav >= control_mode ? 255 : 0);
+			cmd.color = brightness_to_rgb565(_param_mode_nav.get() >= control_mode ? 255 : 0);
 			cmds.commands.push_back(cmd);
 
 			// Landing lights
 			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_LANDING;
-			cmd.color = brightness_to_rgb565(_mode_land >= control_mode ? 255 : 0);
+			cmd.color = brightness_to_rgb565(_param_mode_land.get() >= control_mode ? 255 : 0);
 			cmds.commands.push_back(cmd);
 		}
 	}
