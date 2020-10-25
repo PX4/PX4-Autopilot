@@ -39,8 +39,9 @@
 #include <uavcan/equipment/indication/LightsCommand.hpp>
 
 #include <lib/led/led.h>
+#include <px4_platform_common/module_params.h>
 
-class UavcanRGBController
+class UavcanRGBController : public ModuleParams
 {
 public:
 	UavcanRGBController(uavcan::INode &node);
@@ -68,16 +69,10 @@ private:
 
 	LedController _led_controller;
 
-	// Enum defining light activation condition. Must match UAVCAN_LGT_* param values.
-	enum light_control_mode {
-		ALWAYS_OFF = 0,
-		PREARMED,
-		ARMED,
-		ALWAYS_ON
-	};
-
-	light_control_mode _mode_anti_col{ALWAYS_OFF};
-	light_control_mode _mode_strobe{ALWAYS_OFF};
-	light_control_mode _mode_nav{ALWAYS_OFF};
-	light_control_mode _mode_land{ALWAYS_OFF};
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col,
+		(ParamInt<px4::params::UAVCAN_LGT_STROB>) _param_mode_strobe,
+		(ParamInt<px4::params::UAVCAN_LGT_NAV>) _param_mode_nav,
+		(ParamInt<px4::params::UAVCAN_LGT_LAND>) _param_mode_land
+	)
 };
