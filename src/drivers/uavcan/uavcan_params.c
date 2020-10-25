@@ -105,3 +105,91 @@ PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.3f);
  * @group UAVCAN
  */
 PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 200.0f);
+
+/**
+ * UAVCAN ANTI_COLLISION light operating mode
+ *
+ * This parameter defines the minimum condition under which the system will command
+ * the ANTI_COLLISION lights on
+ *
+ *  0 - Always off
+ *  1 - When autopilot is armed
+ *  2 - When autopilot is prearmed
+ *  3 - Always on
+ *
+ * @min 0
+ * @max 3
+ * @value 0 Always off
+ * @value 1 When autopilot is armed
+ * @value 2 When autopilot is prearmed
+ * @value 3 Always on
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_LGT_ANTCL, 2);
+
+/**
+ * UAVCAN STROBE light operating mode
+ *
+ * This parameter defines the minimum condition under which the system will command
+ * the STROBE lights on
+ *
+ *  0 - Always off
+ *  1 - When autopilot is armed
+ *  2 - When autopilot is prearmed
+ *  3 - Always on
+ *
+ * @min 0
+ * @max 3
+ * @value 0 Always off
+ * @value 1 When autopilot is armed
+ * @value 2 When autopilot is prearmed
+ * @value 3 Always on
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_LGT_STROB, 1);
+
+/**
+ * UAVCAN RIGHT_OF_WAY light operating mode
+ *
+ * This parameter defines the minimum condition under which the system will command
+ * the RIGHT_OF_WAY lights on
+ *
+ *  0 - Always off
+ *  1 - When autopilot is armed
+ *  2 - When autopilot is prearmed
+ *  3 - Always on
+ *
+ * @min 0
+ * @max 3
+ * @value 0 Always off
+ * @value 1 When autopilot is armed
+ * @value 2 When autopilot is prearmed
+ * @value 3 Always on
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 3);
+
+/**
+ * UAVCAN LIGHT_ID_LANDING light operating mode
+ *
+ * This parameter defines the minimum condition under which the system will command
+ * the LIGHT_ID_LANDING lights on
+ *
+ *  0 - Always off
+ *  1 - When autopilot is armed
+ *  2 - When autopilot is prearmed
+ *  3 - Always on
+ *
+ * @min 0
+ * @max 3
+ * @value 0 Always off
+ * @value 1 When autopilot is armed
+ * @value 2 When autopilot is prearmed
+ * @value 3 Always on
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
