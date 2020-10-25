@@ -42,7 +42,6 @@
 #include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/subsystem_info.h>
 
 using namespace time_literals;
 
