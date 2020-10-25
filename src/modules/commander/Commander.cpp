@@ -1722,14 +1722,6 @@ Commander::run()
 
 		battery_status_check();
 
-		/* update subsystem info which arrives from outside of commander*/
-		subsystem_info_s info;
-
-		while (_subsys_sub.update(&info))  {
-			set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
-			_status_changed = true;
-		}
-
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
@@ -3803,6 +3795,12 @@ void Commander::data_link_check()
 								_status_changed = true;
 							}
 						}
+
+						const bool present = true;
+						const bool enabled = true;
+						const bool ok = (iridium_status.last_heartbeat > 0); // maybe at some point here an additional check should be made
+
+						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_SATCOM, present, enabled, ok, status);
 					}
 
 					break;

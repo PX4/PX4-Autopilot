@@ -40,7 +40,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/subsystem_info.h>
 
 bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
 			       const bool report_fail, const bool enforce_gps_required)
