@@ -485,6 +485,7 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 				    _time_stamp_last_loop);
 	constraints.speed_up = _takeoff.updateRamp(dt, constraints.speed_up);
 
+	constraints.flight_task = _flight_tasks.getActiveTask();
 	_vehicle_constraints_pub.publish(constraints);
 
 	if (not_taken_off) {
