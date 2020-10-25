@@ -33,14 +33,11 @@ extern "C" {
 #define TRICAL_ALPHA_2 (1.0f)
 #define TRICAL_BETA (0.0f)
 #define TRICAL_KAPPA (1.0f)
-#define TRICAL_LAMBDA (TRICAL_ALPHA_2 * (TRICAL_STATE_DIM + TRICAL_KAPPA) - \
-		       TRICAL_STATE_DIM)
-#define TRICAL_DIM_PLUS_LAMBDA (TRICAL_ALPHA_2 * \
-				(TRICAL_STATE_DIM + TRICAL_KAPPA))
+#define TRICAL_LAMBDA (TRICAL_ALPHA_2 * (TRICAL_STATE_DIM + TRICAL_KAPPA) - TRICAL_STATE_DIM)
+#define TRICAL_DIM_PLUS_LAMBDA (TRICAL_ALPHA_2 * (TRICAL_STATE_DIM + TRICAL_KAPPA))
 
 #define TRICAL_SIGMA_WM0 (TRICAL_LAMBDA / TRICAL_DIM_PLUS_LAMBDA)
-#define TRICAL_SIGMA_WC0 (TRICAL_SIGMA_WM0 + \
-			  (1.0f - TRICAL_ALPHA_2 + TRICAL_BETA))
+#define TRICAL_SIGMA_WC0 (TRICAL_SIGMA_WM0 + (1.0f - TRICAL_ALPHA_2 + TRICAL_BETA))
 #define TRICAL_SIGMA_WMI (1.0f / (2.0f * TRICAL_DIM_PLUS_LAMBDA))
 #define TRICAL_SIGMA_WCI (TRICAL_SIGMA_WMI)
 
@@ -51,8 +48,7 @@ _trical_measurement_reduce
 Reduces `measurement` to a scalar value based on the calibration estimate in
 `state`.
 */
-float _trical_measurement_reduce(float state[TRICAL_STATE_DIM], float
-				 measurement[3], float field[3]);
+float _trical_measurement_reduce(float state[TRICAL_STATE_DIM], float measurement[3], float field[3]);
 
 /*
 _trical_measurement_calibrate
@@ -60,16 +56,15 @@ Calibrates `measurement` based on the calibration estimate in `state` and
 copies the result to `calibrated_measurement`. The `measurement` and
 `calibrated_measurement` parameters may be pointers to the same vector.
 */
-void _trical_measurement_calibrate(float state[TRICAL_STATE_DIM],
-				   float measurement[3], float calibrated_measurement[3]);
+void _trical_measurement_calibrate(float state[TRICAL_STATE_DIM], float measurement[3],
+				   float calibrated_measurement[3]);
 
 /*
 _trical_filter_iterate
 Generates a new calibration estimate for `instance` incorporating the raw
 sensor readings in `measurement`.
 */
-void _trical_filter_iterate(TRICAL_instance_t *instance,
-			    float measurement[3], float field[3]);
+void _trical_filter_iterate(TRICAL_instance_t *instance, float measurement[3], float field[3]);
 
 #ifdef __cplusplus
 }

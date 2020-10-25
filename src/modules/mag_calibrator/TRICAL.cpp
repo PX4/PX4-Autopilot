@@ -38,8 +38,6 @@ reset that instance to its default state.
 */
 void TRICAL_init(TRICAL_instance_t *instance)
 {
-	assert(instance);
-
 	memset(instance, 0, sizeof(TRICAL_instance_t));
 
 	instance->field_norm = 1.0f;
@@ -49,10 +47,7 @@ void TRICAL_init(TRICAL_instance_t *instance)
 	Set the state covariance diagonal to a small value, so that we can run the
 	Cholesky decomposition without blowing up
 	*/
-	unsigned int i;
-
-	for (i = 0; i < TRICAL_STATE_DIM * TRICAL_STATE_DIM;
-	     i += (TRICAL_STATE_DIM + 1)) {
+	for (unsigned i = 0; i < TRICAL_STATE_DIM * TRICAL_STATE_DIM; i += (TRICAL_STATE_DIM + 1)) {
 		instance->state_covariance[i] = 1e-2f;
 	}
 }
@@ -63,8 +58,6 @@ Resets the state and state covariance of `instance`.
 */
 void TRICAL_reset(TRICAL_instance_t *instance)
 {
-	assert(instance);
-
 	memset(instance->state, 0, sizeof(instance->state));
 	memset(instance->state_covariance, 0, sizeof(instance->state_covariance));
 
@@ -72,10 +65,7 @@ void TRICAL_reset(TRICAL_instance_t *instance)
 	Set the state covariance diagonal to a small value, so that we can run the
 	Cholesky decomposition without blowing up
 	*/
-	unsigned int i;
-
-	for (i = 0; i < TRICAL_STATE_DIM * TRICAL_STATE_DIM;
-	     i += (TRICAL_STATE_DIM + 1)) {
+	for (unsigned i = 0; i < TRICAL_STATE_DIM * TRICAL_STATE_DIM; i += (TRICAL_STATE_DIM + 1)) {
 		instance->state_covariance[i] = 1e-2f;
 	}
 }
@@ -86,9 +76,6 @@ Sets the expected field norm (magnitude) of `instance` to `norm`.
 */
 void TRICAL_norm_set(TRICAL_instance_t *instance, float norm)
 {
-	assert(instance);
-	assert(norm > FLT_EPSILON);
-
 	instance->field_norm = norm;
 }
 
@@ -98,8 +85,6 @@ Returns the expected field norm (magnitude) of `instance`.
 */
 float TRICAL_norm_get(TRICAL_instance_t *instance)
 {
-	assert(instance);
-
 	return instance->field_norm;
 }
 
@@ -109,9 +94,6 @@ Sets the standard deviation in measurement supplied to `instance` to `noise`.
 */
 void TRICAL_noise_set(TRICAL_instance_t *instance, float noise)
 {
-	assert(instance);
-	assert(noise > FLT_EPSILON);
-
 	instance->measurement_noise = noise;
 }
 
@@ -121,8 +103,6 @@ Returns the standard deviation in measurements supplied to `instance`.
 */
 float TRICAL_noise_get(TRICAL_instance_t *instance)
 {
-	assert(instance);
-
 	return instance->measurement_noise;
 }
 
@@ -133,8 +113,6 @@ TRICAL_estimate_update.
 */
 unsigned int TRICAL_measurement_count_get(TRICAL_instance_t *instance)
 {
-	assert(instance);
-
 	return instance->measurement_count;
 }
 
@@ -144,13 +122,8 @@ Updates the calibration estimate of `instance` based on the new data in
 `measurement`, and the current field direction estimate `reference_field`.
 Call this function with each reading you receive from your sensor.
 */
-void TRICAL_estimate_update(TRICAL_instance_t *instance,
-			    float measurement[3], float reference_field[3])
+void TRICAL_estimate_update(TRICAL_instance_t *instance, float measurement[3], float reference_field[3])
 {
-	assert(instance);
-	assert(measurement);
-	assert(reference_field);
-
 	_trical_filter_iterate(instance, measurement, reference_field);
 	instance->measurement_count++;
 }
@@ -161,14 +134,8 @@ Copies the calibration bias and scale esimates of `instance` to
 `bias_estimate` and `scale_estimate` respectively. A new calibration estimate
 will be available after every call to TRICAL_estimate_update.
 */
-void TRICAL_estimate_get(TRICAL_instance_t *restrict instance,
-			 float bias_estimate[3], float scale_estimate[9])
+void TRICAL_estimate_get(TRICAL_instance_t *instance, float bias_estimate[3], float scale_estimate[9])
 {
-	assert(instance);
-	assert(bias_estimate);
-	assert(scale_estimate);
-	assert(bias_estimate != scale_estimate);
-
 	/* Copy bias estimate from state[0:3] to the destination vector */
 	memcpy(bias_estimate, instance->state, 3 * sizeof(float));
 
@@ -181,20 +148,9 @@ TRICAL_estimate_get_ext
 Same as TRICAL_estimate_get, but additionally copies the bias and scale
 estimate variances to `bias_estimate_variance` and `scale_estimate_variance`.
 */
-void TRICAL_estimate_get_ext(TRICAL_instance_t *restrict instance,
-			     float bias_estimate[3], float scale_estimate[9],
-			     float bias_estimate_variance[3], float scale_estimate_variance[9])
+void TRICAL_estimate_get_ext(TRICAL_instance_t *instance, float bias_estimate[3], float scale_estimate[9], float bias_estimate_variance[3], float scale_estimate_variance[9])
 {
 	TRICAL_estimate_get(instance, bias_estimate, scale_estimate);
-
-	/* A bit of paranoia to avoid potential undefined behaviour */
-	assert(bias_estimate_variance);
-	assert(scale_estimate_variance);
-	assert(bias_estimate != bias_estimate_variance);
-	assert(bias_estimate != scale_estimate_variance);
-	assert(scale_estimate != bias_estimate_variance);
-	assert(scale_estimate != scale_estimate_variance);
-	assert(bias_estimate_variance != scale_estimate_variance);
 
 	/* Copy bias estimate covariance from the state covariance diagonal */
 	bias_estimate_variance[0] = instance->state_covariance[0 * 12 + 0];
@@ -224,14 +180,8 @@ copies the result to `calibrated_measurement`. The `measurement` and
 DO NOT pass the calibrated measurement into TRICAL_estimate_update, as it
 needs the raw measurement values to work.
 */
-void TRICAL_measurement_calibrate(TRICAL_instance_t *restrict instance,
-				  float measurement[3], float calibrated_measurement[3])
+void TRICAL_measurement_calibrate(TRICAL_instance_t * instance, float measurement[3], float calibrated_measurement[3])
 {
-	assert(instance);
-	assert(measurement);
-	assert(calibrated_measurement);
-
 	/* Pass off to the internal function */
-	_trical_measurement_calibrate(instance->state, measurement,
-				      calibrated_measurement);
+	_trical_measurement_calibrate(instance->state, measurement, calibrated_measurement);
 }

@@ -269,8 +269,8 @@ void Magnetometer::PrintStatus()
 			 (double)_scale(0, 0), (double)_scale(1, 1), (double)_scale(2, 2));
 	}
 
-#if defined(DEBUG_BUILD)
-	_scale.print()
+#if defined(DEBUG_BUILD) || true
+	_scale.print();
 #endif // DEBUG_BUILD
 }
 

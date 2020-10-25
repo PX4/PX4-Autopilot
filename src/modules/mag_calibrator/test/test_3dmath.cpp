@@ -28,7 +28,6 @@ SOFTWARE.
 #define restrict
 
 #include "TRICAL.h"
-#include "3dmath.h"
 
 /*
 Test LLT decomposition of a square positive definite matrix via the Cholesky

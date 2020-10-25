@@ -43,10 +43,9 @@ px4_add_module(
 		MagCalibrator.hpp
 
 		# TRICAL
-		3dmath.h
-		filter.c
+		filter.cpp
 		filter.h
-		TRICAL.c
+		TRICAL.cpp
 		TRICAL.h
 	DEPENDS
 		ecl_geo_lookup

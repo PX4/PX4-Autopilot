@@ -27,7 +27,11 @@ SOFTWARE.
 
 #include "TRICAL.h"
 #include "filter.h"
-#include "3dmath.h"
+
+#define X 0
+#define Y 1
+#define Z 2
+#define W 3
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -109,8 +113,7 @@ above, when we can just apply the current calibration estimate to the
 measurement and take its magnitude. Look into this further if the below
 approach doesn't work.
 */
-float _trical_measurement_reduce(float state[TRICAL_STATE_DIM], float
-				 measurement[3], float field[3])
+float _trical_measurement_reduce(float state[TRICAL_STATE_DIM], float measurement[3], float field[3])
 {
 	float temp[3];
 	_trical_measurement_calibrate(state, measurement, temp);
@@ -131,23 +134,57 @@ where B' is the calibrated measurement, I_{3x3} is the 3x3 identity matrix,
 D is the scale calibration matrix, B is the raw measurement, and b is the bias
 vector.
 */
-void _trical_measurement_calibrate(float state[TRICAL_STATE_DIM],
-				   float measurement[3], float calibrated_measurement[3])
+void _trical_measurement_calibrate(float state[TRICAL_STATE_DIM], float measurement[3], float calibrated_measurement[3])
 {
-	assert(state && measurement && calibrated_measurement);
-
 	float v[3];
-	float *restrict s = state;
-	float *restrict c = calibrated_measurement;
+	float *s = state;
 
 	v[0] = measurement[0] - s[0];
 	v[1] = measurement[1] - s[1];
 	v[2] = measurement[2] - s[2];
 
 	/* 3x3 matrix multiply */
+	float *c = calibrated_measurement;
 	c[0] = v[0] * (s[3] + 1.0f) + v[1] * s[4] + v[2] * s[5];
 	c[1] = v[0] * s[6] + v[1] * (s[7] + 1.0f) + v[2] * s[8];
 	c[2] = v[0] * s[9] + v[1] * s[10] + v[2] * (s[11] + 1.0f);
+}
+
+static void matrix_cholesky_decomp_scale_f(unsigned int dim, float L[], const float A[], const float mul)
+{
+	/*
+	9x9:
+	900 mult
+	72 div
+	9 sqrt
+	*/
+	unsigned i;
+	unsigned in;
+	for (i = 0, in = 0; i < dim; i++, in += dim) {
+
+		if (i == 0) {
+			L[i + 0] = sqrtf(A[i + in] * mul);
+		} else {
+			L[i + 0] = (1.f / L[0]) * (A[i] * mul);
+		}
+
+		unsigned j;
+		unsigned jn;
+		for (j = 1, jn = dim; j <= i; j++, jn += dim) {
+			float s = 0;
+
+			for (unsigned kn = 0; kn < j * dim; kn += dim) {
+				s += L[i + kn] * L[j + kn];
+			}
+
+			if (i == j) {
+				L[i + jn] = sqrtf(A[i + in] * mul - s);
+
+			} else {
+				L[i + jn] = (1.f / (L[j + jn])) * (A[i + jn] * mul - s);
+			}
+		}
+	}
 }
 
 /*
@@ -155,77 +192,64 @@ _trical_filter_iterate
 Generates a new calibration estimate for `instance` incorporating the raw
 sensor readings in `measurement`.
 */
-void _trical_filter_iterate(TRICAL_instance_t *instance,
-			    float measurement[3], float field[3])
+void _trical_filter_iterate(TRICAL_instance_t *instance, float measurement[3], float field[3])
 {
-	unsigned int i, j, k, l, col;
-
-	float *restrict covariance = instance->state_covariance;
-	float *restrict state = instance->state;
-
 	/*
 	LLT decomposition on state covariance matrix, with result multiplied by
 	TRICAL_DIM_PLUS_LAMBDA
 	*/
-	float covariance_llt[TRICAL_STATE_DIM * TRICAL_STATE_DIM];
-	memset(covariance_llt, 0, sizeof(covariance_llt));
-	matrix_cholesky_decomp_scale_f(
-		TRICAL_STATE_DIM, covariance_llt, covariance, TRICAL_DIM_PLUS_LAMBDA);
+	float *covariance = instance->state_covariance;
+	float covariance_llt[TRICAL_STATE_DIM * TRICAL_STATE_DIM]{};
 
-	_print_matrix("LLT:\n", covariance_llt, TRICAL_STATE_DIM,
-		      TRICAL_STATE_DIM);
+	matrix_cholesky_decomp_scale_f(TRICAL_STATE_DIM, covariance_llt, covariance, TRICAL_DIM_PLUS_LAMBDA);
+
+	_print_matrix("LLT:\n", covariance_llt, TRICAL_STATE_DIM, TRICAL_STATE_DIM);
 
 	/*
 	Generate the sigma points, and use them as the basis of the measurement
 	estimates
 	*/
-	float temp_sigma[TRICAL_STATE_DIM], temp;
-	float measurement_estimates[TRICAL_NUM_SIGMA], measurement_estimate_mean;
-
-	measurement_estimate_mean = 0.0;
+	float temp_sigma[TRICAL_STATE_DIM]{};
+	float temp;
+	float measurement_estimates[TRICAL_NUM_SIGMA]{};
+	float measurement_estimate_mean = 0.0;
 
 	/*
 	Handle central sigma point -- process the measurement based on the current
 	state vector
 	*/
-	measurement_estimates[0] = _trical_measurement_reduce(state, measurement,
-				   field);
+	float *state = instance->state;
+	measurement_estimates[0] = _trical_measurement_reduce(state, measurement, field);
 
-	__asm__ __volatile__("");
-
+	unsigned i;
+	unsigned col;
 	for (i = 0, col = 0; i < TRICAL_STATE_DIM; i++, col += TRICAL_STATE_DIM) {
 		/*
 		Handle the positive sigma point -- perturb the state vector based on
 		the current column of the covariance matrix, and process the
 		measurement based on the resulting state estimate
 		*/
-		__asm__ __volatile__("");
-
+		int k;
+		int l;
 		for (k = col, l = 0; l < TRICAL_STATE_DIM; k++, l++) {
 			temp_sigma[l] = state[l] + covariance_llt[k];
 		}
 
-		measurement_estimates[i + 1] =
-			_trical_measurement_reduce(temp_sigma, measurement, field);
+		measurement_estimates[i + 1] = _trical_measurement_reduce(temp_sigma, measurement, field);
 
 		/* Handle the negative sigma point -- mirror of the above */
-		__asm__ __volatile__("");
-
 		for (k = col, l = 0; l < TRICAL_STATE_DIM; k++, l++) {
 			temp_sigma[l] = state[l] - covariance_llt[k];
 		}
 
-		measurement_estimates[i + 1 + TRICAL_STATE_DIM] =
-			_trical_measurement_reduce(temp_sigma, measurement, field);
+		measurement_estimates[i + 1 + TRICAL_STATE_DIM] = _trical_measurement_reduce(temp_sigma, measurement, field);
 
 		/* Calculate the measurement estimate sum as we go */
-		temp = measurement_estimates[i + 1] +
-		       measurement_estimates[i + 1 + TRICAL_STATE_DIM];
+		temp = measurement_estimates[i + 1] + measurement_estimates[i + 1 + TRICAL_STATE_DIM];
 		measurement_estimate_mean += temp;
 	}
 
-	measurement_estimate_mean = measurement_estimate_mean * TRICAL_SIGMA_WMI +
-				    measurement_estimates[0] * TRICAL_SIGMA_WM0;
+	measurement_estimate_mean = measurement_estimate_mean * TRICAL_SIGMA_WMI + measurement_estimates[0] * TRICAL_SIGMA_WM0;
 
 	/*
 	Convert estimates to deviation from mean (so measurement_estimates
@@ -236,8 +260,6 @@ void _trical_filter_iterate(TRICAL_instance_t *instance,
 	*/
 	float measurement_estimate_covariance = 0.0;
 
-	__asm__ __volatile__("");
-
 	for (i = 0; i < TRICAL_NUM_SIGMA; i++) {
 		measurement_estimates[i] -= measurement_estimate_mean;
 
@@ -245,70 +267,46 @@ void _trical_filter_iterate(TRICAL_instance_t *instance,
 		measurement_estimate_covariance += temp;
 	}
 
-	_print_matrix("Measurement estimates:\n", measurement_estimates, 1,
-		      TRICAL_NUM_SIGMA);
+	_print_matrix("Measurement estimates:\n", measurement_estimates, 1, TRICAL_NUM_SIGMA);
 
 	/* Add the sensor noise to the measurement estimate covariance */
 	temp = instance->measurement_noise * instance->measurement_noise;
 	measurement_estimate_covariance += temp;
 
 	/* Calculate cross-correlation matrix (1 x TRICAL_STATE_DIM) */
-	float cross_correlation[TRICAL_STATE_DIM];
-	memset(cross_correlation, 0, sizeof(cross_correlation));
+	float cross_correlation[TRICAL_STATE_DIM]{};
 
-	/*
-	Calculate the innovation (difference between the expected value, i.e. the
-	field norm, and the measurement estimate mean).
-	*/
-	float innovation;
-	innovation = instance->field_norm - measurement_estimate_mean;
+	// Calculate the innovation (difference between the expected value, i.e. the
+	// field norm, and the measurement estimate mean).
+	float innovation = instance->field_norm - measurement_estimate_mean;
 
 	/* Iterate over sigma points, two at a time */
-	__asm__ __volatile__("");
-
 	for (i = 0; i < TRICAL_STATE_DIM; i++) {
 		/* Iterate over the cross-correlation matrix */
-		__asm__ __volatile__("");
-
-		for (j = 0; j < TRICAL_STATE_DIM; j++) {
-			/*
-			We're regenerating the sigma points as we go, so that we don't
-			need to store W'.
-			*/
-			temp = measurement_estimates[i + 1] *
-			       (state[j] + covariance_llt[i * TRICAL_STATE_DIM + j]);
+		for (int j = 0; j < TRICAL_STATE_DIM; j++) {
+			// We're regenerating the sigma points as we go, so that we don't need to store W'
+			temp = measurement_estimates[i + 1] * (state[j] + covariance_llt[i * TRICAL_STATE_DIM + j]);
 			cross_correlation[j] += temp;
 
-			temp = measurement_estimates[i + 1 + TRICAL_STATE_DIM] *
-			       (state[j] - covariance_llt[i * TRICAL_STATE_DIM + j]);
+			temp = measurement_estimates[i + 1 + TRICAL_STATE_DIM] * (state[j] - covariance_llt[i * TRICAL_STATE_DIM + j]);
 			cross_correlation[j] += temp;
 		}
 	}
 
-	/*
-	Scale the results of the previous step, and add in the scaled central
-	sigma point
-	*/
-	__asm__ __volatile__("");
-
-	for (j = 0; j < TRICAL_STATE_DIM; j++) {
+	// Scale the results of the previous step, and add in the scaled central sigma point
+	for (int j = 0; j < TRICAL_STATE_DIM; j++) {
 		temp = TRICAL_SIGMA_WC0 * measurement_estimates[0] * state[j];
 		cross_correlation[j] = TRICAL_SIGMA_WCI * cross_correlation[j] + temp;
 	}
 
-	_print_matrix("Cross-correlation:\n", cross_correlation, 1,
-		      TRICAL_STATE_DIM);
+	_print_matrix("Cross-correlation:\n", cross_correlation, 1, TRICAL_STATE_DIM);
 
-	/*
-	Update the state -- since the measurement is a scalar, we can calculate
-	the Kalman gain and update in a single pass.
-	*/
-	float kalman_gain;
-	temp = recip(measurement_estimate_covariance);
-	__asm__ __volatile__("");
+	// Update the state -- since the measurement is a scalar, we can calculate
+	// the Kalman gain and update in a single pass.
+	temp = 1.f / measurement_estimate_covariance;
 
 	for (i = 0; i < TRICAL_STATE_DIM; i++) {
-		kalman_gain = cross_correlation[i] * temp;
+		float kalman_gain = cross_correlation[i] * temp;
 		state[i] += kalman_gain * innovation;
 	}
 
@@ -316,8 +314,7 @@ void _trical_filter_iterate(TRICAL_instance_t *instance,
 
 	/*
 	Update the state covariance:
-	covariance = covariance - kalman gain * measurement estimate covariance *
-	             (transpose of kalman gain)
+	covariance = covariance - kalman gain * measurement estimate covariance * (transpose of kalman gain)
 
 	Since kalman gain is a 1 x TRICAL_STATE_DIM matrix, multiplying by its
 	transpose is just a vector outer product accumulating onto state
@@ -328,19 +325,13 @@ void _trical_filter_iterate(TRICAL_instance_t *instance,
 	estimate covariance during the outer product, we can skip that whole step
 	and just use cross correlation instead.
 	*/
-	__asm__ __volatile__("");
-
 	for (i = 0; i < TRICAL_STATE_DIM; i++) {
 		temp = -cross_correlation[i];
 
-		__asm__ __volatile__("");
-
-		for (j = 0; j < TRICAL_STATE_DIM; j++) {
-			covariance[i * TRICAL_STATE_DIM + j] +=
-				temp * cross_correlation[j];
+		for (int j = 0; j < TRICAL_STATE_DIM; j++) {
+			covariance[i * TRICAL_STATE_DIM + j] += temp * cross_correlation[j];
 		}
 	}
 
-	_print_matrix("State covariance:\n", covariance, TRICAL_STATE_DIM,
-		      TRICAL_STATE_DIM);
+	_print_matrix("State covariance:\n", covariance, TRICAL_STATE_DIM, TRICAL_STATE_DIM);
 }

@@ -69,6 +69,7 @@ public:
 	void set_rotation(Rotation rotation);
 
 	uint8_t calibration_count() const { return _calibration_count; }
+	int8_t calibration_index() const { return _calibration_index; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }

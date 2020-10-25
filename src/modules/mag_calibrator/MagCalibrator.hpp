@@ -53,6 +53,7 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_status.h>
 
 class MagCalibrator : public ModuleBase<MagCalibrator>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -100,8 +101,14 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::SubscriptionMultiArray<sensor_mag_s, MAX_SENSOR_COUNT> _sensor_mag_subs{ORB_ID::sensor_mag};
 
-	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
+	hrt_abstime _last_calibration_save[MAX_SENSOR_COUNT] {};
+	float _calibration_error[MAX_SENSOR_COUNT] {INFINITY, INFINITY, INFINITY, INFINITY};
+
+	bool _armed{false};
+
+	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 };

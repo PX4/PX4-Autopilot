@@ -46,14 +46,13 @@ using math::radians;
 
 MagCalibrator::MagCalibrator() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 	for (int mag_instance = 0; mag_instance < MAX_SENSOR_COUNT; mag_instance++) {
 		TRICAL_init(&_trical_instance[mag_instance]);
 
 		TRICAL_norm_set(&_trical_instance[mag_instance], 0.4f);
-		TRICAL_noise_set(&_trical_instance[mag_instance], 1e-4f);
+		TRICAL_noise_set(&_trical_instance[mag_instance], 0.01f);
 	}
 }
 
@@ -87,6 +86,14 @@ void MagCalibrator::Run()
 
 		updateParams();
 		//parameters_updated();
+	}
+
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		}
 	}
 
 	if (_vehicle_gps_position_sub.updated()) {
@@ -201,7 +208,24 @@ void MagCalibrator::Run()
 					_estimator_mag_cal_pub[mag_instance].publish(mag_cal);
 
 					// update calibration
-					//_calibration.set_offsets(offsets);
+					if ((mag_cal.error < 0.20f) && (mag_cal.error < _calibration_error[mag_instance])) {
+						_calibration[mag_instance].set_device_id(mag.device_id, mag.is_external);
+						_calibration[mag_instance].set_offset(offsets);
+						_calibration[mag_instance].set_scale(Vector3f{mag_cal.diagonal_scale});
+						_calibration[mag_instance].set_offdiagonal(Vector3f{mag_cal.offdiagonal_scale});
+
+						if (!_armed && hrt_elapsed_time(&_last_calibration_save[mag_instance]) > 10_s) {
+							if (_calibration[mag_instance].calibration_index() < 0) {
+								_calibration[mag_instance].set_calibration_index(mag_instance);
+							}
+
+							_calibration[mag_instance].ParametersSave();
+							param_notify_changes();
+
+							_last_calibration_save[mag_instance] = hrt_absolute_time();
+							_calibration_error[mag_instance] = mag_cal.error;
+						}
+					}
 				}
 			}
 		}
@@ -215,34 +239,7 @@ int MagCalibrator::print_status()
 	for (int mag_instance = 0; mag_instance < MAX_SENSOR_COUNT; mag_instance++) {
 
 		if (_initialized[mag_instance]) {
-
-			float bias_estimate[3];
-			float scale_estimate[9];
-			float bias_estimate_variance[3];
-			float scale_estimate_variance[9];
-
-			TRICAL_estimate_get_ext(&_trical_instance[mag_instance], bias_estimate, scale_estimate, bias_estimate_variance,
-						scale_estimate_variance);
-
-			printf("bias_estimate: %d\n", mag_instance);
-
-			for (int i = 0; i < 3; i++) {
-				printf("%05.4f ", (double)bias_estimate[i]);
-			}
-
-			printf("\n\n");
-
-			printf("scale_estimate: %d\n", mag_instance);
-
-			for (int c = 0; c < 3; c++) {
-				for (int r = 0; r < 3; r++) {
-					printf("%05.4f ", (double)scale_estimate[r + 3 * c]);
-				}
-
-				printf("\n");
-			}
-
-			printf("\n");
+			_calibration[mag_instance].PrintStatus();
 		}
 	}
 
