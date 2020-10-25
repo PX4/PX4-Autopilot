@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <uORB/topics/actuator_armed.h>
+
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/indication/LightsCommand.hpp>
 
@@ -53,6 +55,8 @@ private:
 
 	void periodic_update(const uavcan::TimerEvent &);
 
+	uavcan::equipment::indication::RGB565 brightness_to_rgb565(uint8_t brightness);
+
 	typedef uavcan::MethodBinder<UavcanRGBController *, void (UavcanRGBController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
@@ -60,5 +64,20 @@ private:
 	uavcan::Publisher<uavcan::equipment::indication::LightsCommand> _uavcan_pub_lights_cmd;
 	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
 
+	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+
 	LedController _led_controller;
+
+	// Enum defining light activation condition. Must match UAVCAN_LGT_* param values.
+	enum light_control_mode {
+		ALWAYS_OFF = 0,
+		PREARMED,
+		ARMED,
+		ALWAYS_ON
+	};
+
+	light_control_mode _mode_anti_col{ALWAYS_OFF};
+	light_control_mode _mode_strobe{ALWAYS_OFF};
+	light_control_mode _mode_nav{ALWAYS_OFF};
+	light_control_mode _mode_land{ALWAYS_OFF};
 };
