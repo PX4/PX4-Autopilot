@@ -83,9 +83,9 @@ public:
 
 	int rtl_destination();
 
-	void setInitialClimbDone(bool done) { _initial_climb_done = done; }
+	void setClimbAndReturnDone(bool done) { _climb_and_return_done = done; }
 
-	bool initialClimbDone() { return _initial_climb_done; }
+	bool getClimbAndReturnDone() { return _climb_and_return_done; }
 
 private:
 	/**
@@ -138,7 +138,7 @@ private:
 
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
-	bool _initial_climb_done{false};	// this flag is set to true if RTL is active and we are past the climb state
+	bool _climb_and_return_done{false};	// this flag is set to true if RTL is active and we are past the climb state and return state
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_rtl_return_alt,
