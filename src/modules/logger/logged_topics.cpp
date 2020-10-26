@@ -60,7 +60,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_innovation_test_ratios", 200);
 	add_topic("estimator_innovation_variances", 200);
 	add_topic("estimator_innovations", 200);
-	add_topic("estimator_optical_flow_vel");
+	add_topic("estimator_optical_flow_vel", 200);
 	add_topic("estimator_sensor_bias", 1000);
 	add_topic("estimator_states", 1000);
 	add_topic("estimator_status", 200);
