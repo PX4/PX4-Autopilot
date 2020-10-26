@@ -597,6 +597,10 @@ void MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
+		case 4:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAcceleration);
+			break;
+
 		default:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;
