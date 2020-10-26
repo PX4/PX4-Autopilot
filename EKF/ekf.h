@@ -44,7 +44,7 @@
 
 #include "estimator_interface.h"
 
-class Ekf : public EstimatorInterface
+class Ekf final : public EstimatorInterface
 {
 public:
 	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
