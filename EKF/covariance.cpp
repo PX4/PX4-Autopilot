@@ -160,7 +160,7 @@ void Ekf::predictCovariance()
 
 	const bool do_inhibit_all_axes = (_params.fusion_mode & MASK_INHIBIT_ACC_BIAS)
 					 || is_manoeuvre_level_high
-					 || _bad_vert_accel_detected;
+					 || _fault_status.flags.bad_acc_vertical;
 
 	for (unsigned stateIndex = 13; stateIndex <= 15; stateIndex++) {
 		const unsigned index = stateIndex - 13;
@@ -245,7 +245,7 @@ void Ekf::predictCovariance()
 
 	float accel_noise = math::constrain(_params.accel_noise, 0.0f, 1.0f);
 
-	if (_bad_vert_accel_detected) {
+	if (_fault_status.flags.bad_acc_vertical) {
 		// Increase accelerometer process noise if bad accel data is detected. Measurement errors due to
 		// vibration induced clipping commonly reach an equivalent 0.5g offset.
 		accel_noise = BADACC_BIAS_PNOISE;
