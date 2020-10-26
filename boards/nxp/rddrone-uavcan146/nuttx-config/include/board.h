@@ -139,7 +139,7 @@
 
 /* SPI selections ***********************************************************/
 
-#define PIN_LPSPI0_SCK   PIN_LPSPI0_SCK_2   /* PTB2 */
+#define PIN_LPSPI0_SCK   PIN_LPSPI0_SCK_3   /* PTB2 */
 #define PIN_LPSPI0_MISO  PIN_LPSPI0_SIN_2   /* PTB3 */
 #define PIN_LPSPI0_MOSI  PIN_LPSPI0_SOUT_3  /* PTB4 */
 #define PIN_LPSPI0_PCS   PIN_LPSPI0_PCS0_2  /* PTB5 */

@@ -56,6 +56,7 @@ set(msg_files
 	esc_report.msg
 	esc_status.msg
 	estimator_innovations.msg
+	estimator_optical_flow_vel.msg
 	estimator_selector_status.msg
 	estimator_sensor_bias.msg
 	estimator_states.msg
@@ -120,7 +121,6 @@ set(msg_files
 	sensor_preflight_mag.msg
 	sensor_selection.msg
 	sensors_status_imu.msg
-	subsystem_info.msg
 	system_power.msg
 	task_stack_info.msg
 	tecs_status.msg

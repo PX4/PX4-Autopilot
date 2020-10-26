@@ -74,7 +74,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
 #include <uORB/topics/safety.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
@@ -142,7 +141,7 @@ private:
 	void estimator_check(const vehicle_status_flags_s &status_flags);
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
-			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
+			    uORB::Publication<vehicle_command_ack_s> &command_ack_pub);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
 
@@ -393,7 +392,6 @@ private:
 	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription					_subsys_sub{ORB_ID(subsystem_info)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
@@ -424,7 +422,7 @@ private:
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
-	uORB::PublicationQueued<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 };
 

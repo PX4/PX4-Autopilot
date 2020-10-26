@@ -32,19 +32,19 @@
  ****************************************************************************/
 
 /**
- * @file sf0x_parser.cpp
+ * @file parser.cpp
  * @author Lorenz Meier <lm@inf.ethz.ch>
  *
- * Driver for the Lightware SF0x laser rangefinder series
+ * Driver for the Lightware laser rangefinder series
  */
 
-#include "sf0x_parser.h"
+#include "parser.h"
 #include <string.h>
 #include <stdlib.h>
 
-//#define SF0X_DEBUG
+//#define LW_DEBUG
 
-#ifdef SF0X_DEBUG
+#ifdef LW_DEBUG
 #include <stdio.h>
 
 const char *parser_state[] = {
@@ -58,97 +58,97 @@ const char *parser_state[] = {
 };
 #endif
 
-int sf0x_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum SF0X_PARSE_STATE *state, float *dist)
+int lightware_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum LW_PARSE_STATE *state, float *dist)
 {
 	int ret = -1;
 	char *end;
 
 	switch (*state) {
-	case SF0X_PARSE_STATE0_UNSYNC:
+	case LW_PARSE_STATE0_UNSYNC:
 		if (c == '\n') {
-			*state = SF0X_PARSE_STATE1_SYNC;
+			*state = LW_PARSE_STATE1_SYNC;
 			(*parserbuf_index) = 0;
 		}
 
 		break;
 
-	case SF0X_PARSE_STATE1_SYNC:
+	case LW_PARSE_STATE1_SYNC:
 		if (c >= '0' && c <= '9') {
-			*state = SF0X_PARSE_STATE2_GOT_DIGIT0;
+			*state = LW_PARSE_STATE2_GOT_DIGIT0;
 			parserbuf[*parserbuf_index] = c;
 			(*parserbuf_index)++;
 		}
 
 		break;
 
-	case SF0X_PARSE_STATE2_GOT_DIGIT0:
+	case LW_PARSE_STATE2_GOT_DIGIT0:
 		if (c >= '0' && c <= '9') {
-			*state = SF0X_PARSE_STATE2_GOT_DIGIT0;
+			*state = LW_PARSE_STATE2_GOT_DIGIT0;
 			parserbuf[*parserbuf_index] = c;
 			(*parserbuf_index)++;
 
 		} else if (c == '.') {
-			*state = SF0X_PARSE_STATE3_GOT_DOT;
+			*state = LW_PARSE_STATE3_GOT_DOT;
 			parserbuf[*parserbuf_index] = c;
 			(*parserbuf_index)++;
 
 		} else {
-			*state = SF0X_PARSE_STATE0_UNSYNC;
+			*state = LW_PARSE_STATE0_UNSYNC;
 		}
 
 		break;
 
-	case SF0X_PARSE_STATE3_GOT_DOT:
+	case LW_PARSE_STATE3_GOT_DOT:
 		if (c >= '0' && c <= '9') {
-			*state = SF0X_PARSE_STATE4_GOT_DIGIT1;
+			*state = LW_PARSE_STATE4_GOT_DIGIT1;
 			parserbuf[*parserbuf_index] = c;
 			(*parserbuf_index)++;
 
 		} else {
-			*state = SF0X_PARSE_STATE0_UNSYNC;
+			*state = LW_PARSE_STATE0_UNSYNC;
 		}
 
 		break;
 
-	case SF0X_PARSE_STATE4_GOT_DIGIT1:
+	case LW_PARSE_STATE4_GOT_DIGIT1:
 		if (c >= '0' && c <= '9') {
-			*state = SF0X_PARSE_STATE5_GOT_DIGIT2;
+			*state = LW_PARSE_STATE5_GOT_DIGIT2;
 			parserbuf[*parserbuf_index] = c;
 			(*parserbuf_index)++;
 
 		} else {
-			*state = SF0X_PARSE_STATE0_UNSYNC;
+			*state = LW_PARSE_STATE0_UNSYNC;
 		}
 
 		break;
 
-	case SF0X_PARSE_STATE5_GOT_DIGIT2:
+	case LW_PARSE_STATE5_GOT_DIGIT2:
 		if (c == '\r') {
-			*state = SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN;
+			*state = LW_PARSE_STATE6_GOT_CARRIAGE_RETURN;
 
 		} else {
-			*state = SF0X_PARSE_STATE0_UNSYNC;
+			*state = LW_PARSE_STATE0_UNSYNC;
 		}
 
 		break;
 
-	case SF0X_PARSE_STATE6_GOT_CARRIAGE_RETURN:
+	case LW_PARSE_STATE6_GOT_CARRIAGE_RETURN:
 		if (c == '\n') {
 			parserbuf[*parserbuf_index] = '\0';
 			*dist = strtod(parserbuf, &end);
-			*state = SF0X_PARSE_STATE1_SYNC;
+			*state = LW_PARSE_STATE1_SYNC;
 			*parserbuf_index = 0;
 			ret = 0;
 
 		} else {
-			*state = SF0X_PARSE_STATE0_UNSYNC;
+			*state = LW_PARSE_STATE0_UNSYNC;
 		}
 
 		break;
 	}
 
-#ifdef SF0X_DEBUG
-	printf("state: SF0X_PARSE_STATE%s\n", parser_state[*state]);
+#ifdef LW_DEBUG
+	printf("state: LW_PARSE_STATE%s\n", parser_state[*state]);
 #endif
 
 	return ret;

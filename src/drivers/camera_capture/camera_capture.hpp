@@ -101,7 +101,7 @@ public:
 private:
 
 	// Publishers
-	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<camera_trigger_s>		_trigger_pub{ORB_ID(camera_trigger)};
 
 	// Subscribers

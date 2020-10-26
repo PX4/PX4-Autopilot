@@ -283,10 +283,10 @@ private:
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 
 	// ORB publications (queue length > 1)
-	uORB::PublicationQueued<gps_inject_data_s>	_gps_inject_data_pub{ORB_ID(gps_inject_data)};
-	uORB::PublicationQueued<transponder_report_s>	_transponder_report_pub{ORB_ID(transponder_report)};
-	uORB::PublicationQueued<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::PublicationQueued<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<gps_inject_data_s>	_gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::Publication<transponder_report_s>	_transponder_report_pub{ORB_ID(transponder_report)};
+	uORB::Publication<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};

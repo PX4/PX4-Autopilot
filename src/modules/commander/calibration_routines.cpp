@@ -614,7 +614,7 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &ca
 				command_ack.target_component = cmd.source_component;
 				command_ack.timestamp = hrt_absolute_time();
 
-				uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+				uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 				command_ack_pub.publish(command_ack);
 
 				return ret;

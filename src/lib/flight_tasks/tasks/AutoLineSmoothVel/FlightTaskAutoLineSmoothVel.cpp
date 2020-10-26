@@ -72,6 +72,8 @@ bool FlightTaskAutoLineSmoothVel::activate(const vehicle_local_position_setpoint
 
 void FlightTaskAutoLineSmoothVel::reActivate()
 {
+	FlightTaskAutoMapper::reActivate();
+
 	// On ground, reset acceleration and velocity to zero
 	for (int i = 0; i < 2; ++i) {
 		_trajectory[i].reset(0.f, 0.f, _position(i));
