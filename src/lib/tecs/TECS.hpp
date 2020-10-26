@@ -346,8 +346,6 @@ private:
 
 	float get_SKE_weighting();
 
-	float _param_filt_speed_deriv{0.95f};
-
 	AlphaFilter<float> _STE_rate_error_filter;
 
 	AlphaFilter<float> _TAS_rate_filter;
