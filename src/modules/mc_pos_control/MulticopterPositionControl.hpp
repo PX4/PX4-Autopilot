@@ -101,7 +101,7 @@ private:
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub;
-	uORB::PublicationQueued<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	 /**< vehicle command publication */
+	uORB::Publication<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	 /**< vehicle command publication */
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
