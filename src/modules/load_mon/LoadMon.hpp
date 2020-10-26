@@ -93,6 +93,7 @@ private:
 	uORB::Publication<cpuload_s> _cpuload_pub {ORB_ID(cpuload)};
 
 #if defined(__PX4_LINUX)
+	FILE *_proc_fd = nullptr;
 	/* calculate usage directly from clock ticks on Linux */
 	clock_t _last_total_time_stamp{};
 	clock_t _last_spent_time_stamp{};
