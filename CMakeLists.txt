@@ -146,6 +146,12 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
 endif()
 
+if(NOT (${CMAKE_BUILD_TYPE} MATCHES "Coverage") AND NOT (${CMAKE_BUILD_TYPE} MATCHES "Debug"))
+	if(MAX_CUSTOM_OPT_LEVEL)
+		add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
+	endif()
+endif()
+
 # santiziers (ASAN)
 if(ECL_ASAN)
 	message(STATUS "ecl address sanitizer enabled ")
