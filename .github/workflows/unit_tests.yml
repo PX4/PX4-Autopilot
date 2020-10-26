@@ -11,14 +11,14 @@ on:
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-bionic:2020-01-13
+    container: px4io/px4-dev-base-focal:2020-09-14
     steps:
     - uses: actions/checkout@v1
     - name: main test
       run: make test
   coverage:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-bionic:2020-01-13
+    container: px4io/px4-dev-base-focal:2020-09-14
     steps:
     - uses: actions/checkout@v1
     - name: coverage
