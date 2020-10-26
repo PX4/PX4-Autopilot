@@ -211,6 +211,7 @@ void LoadMon::cpuload()
 	}
 
 	fseek(_proc_fd, 0, SEEK_SET);
+	//rewind(_proc_fd);
 
 	if (parsedCount == 5) {
 		int32_t kb_main_cached = kb_page_cache + kb_slab_reclaimable;
