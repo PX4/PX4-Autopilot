@@ -45,18 +45,13 @@ GyroFFT::GyroFFT() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
-	for (int axis = 0; axis < 3; axis++) {
-		arm_rfft_init_q15(&_rfft_q15[axis], FFT_LENGTH, 0, 1);
-	}
+	arm_rfft_init_q15(&_rfft_q15, FFT_LENGTH, 0, 1);
 
 	// init Hanning window
-	float hanning_window[FFT_LENGTH];
-
 	for (int n = 0; n < FFT_LENGTH; n++) {
-		hanning_window[n] = 0.5f * (1.f - cosf(2.f * M_PI_F * n / (FFT_LENGTH - 1)));
+		const float hanning_value = 0.5f * (1.f - cosf(2.f * M_PI_F * n / (FFT_LENGTH - 1)));
+		arm_float_to_q15(&hanning_value, &_hanning_window[n], 1);
 	}
-
-	arm_float_to_q15(hanning_window, _hanning_window, FFT_LENGTH);
 }
 
 GyroFFT::~GyroFFT()
@@ -70,8 +65,8 @@ GyroFFT::~GyroFFT()
 bool GyroFFT::init()
 {
 	if (!SensorSelectionUpdate(true)) {
-		PX4_ERR("sensor_gyro_fifo callback registration failed!");
-		return false;
+		PX4_WARN("sensor_gyro_fifo callback registration failed!");
+		ScheduleDelayed(500_ms);
 	}
 
 	return true;
@@ -79,7 +74,7 @@ bool GyroFFT::init()
 
 bool GyroFFT::SensorSelectionUpdate(bool force)
 {
-	if (_sensor_selection_sub.updated() || force) {
+	if (_sensor_selection_sub.updated() || (_selected_sensor_device_id == 0) || force) {
 		sensor_selection_s sensor_selection{};
 		_sensor_selection_sub.copy(&sensor_selection);
 
@@ -139,6 +134,41 @@ static constexpr float tau(float x)
 	return (1.f / 4.f * p1 - sqrtf(6) / 24 * p2);
 }
 
+float GyroFFT::EstimatePeakFrequency(q15_t fft[FFT_LENGTH * 2], uint8_t peak_index)
+{
+	// find peak location using Quinn's Second Estimator (2020-06-14: http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak/)
+	int16_t real[3] {fft[peak_index - 2], fft[peak_index], fft[peak_index + 2]};
+	int16_t imag[3] {fft[peak_index - 2 + 1], fft[peak_index + 1], fft[peak_index + 2 + 1]};
+
+	const int k = 1;
+
+	float divider = (real[k] * real[k] + imag[k] * imag[k]);
+
+	// ap = (X[k + 1].r * X[k].r + X[k+1].i * X[k].i) / (X[k].r * X[k].r + X[k].i * X[k].i)
+	float ap = (real[k + 1] * real[k] + imag[k + 1] * imag[k]) / divider;
+
+	// am = (X[k – 1].r * X[k].r + X[k – 1].i * X[k].i) / (X[k].r * X[k].r + X[k].i * X[k].i)
+	float am = (real[k - 1] * real[k] + imag[k - 1] * imag[k]) / divider;
+
+	float dp = -ap  / (1.f - ap);
+	float dm = am / (1.f - am);
+	float d = (dp + dm) / 2 + tau(dp * dp) - tau(dm * dm);
+
+	float adjusted_bin = peak_index + d;
+	float peak_freq_adjusted = (_gyro_sample_rate_hz * adjusted_bin / (FFT_LENGTH * 2.f));
+
+	return peak_freq_adjusted;
+}
+
+static int float_cmp(const void *elem1, const void *elem2)
+{
+	if (*(const float *)elem1 < * (const float *)elem2) {
+		return -1;
+	}
+
+	return *(const float *)elem1 > *(const float *)elem2;
+}
+
 void GyroFFT::Run()
 {
 	if (should_exit()) {
@@ -164,9 +194,10 @@ void GyroFFT::Run()
 
 	SensorSelectionUpdate();
 
-	const float resolution_hz = _gyro_sample_rate_hz / (FFT_LENGTH * 2);
+	const float resolution_hz = _gyro_sample_rate_hz / FFT_LENGTH;
 
 	bool publish = false;
+	bool fft_updated = false;
 
 	// run on sensor gyro fifo updates
 	sensor_gyro_fifo_s sensor_gyro_fifo;
@@ -203,31 +234,35 @@ void GyroFFT::Run()
 				break;
 			}
 
+			int &buffer_index = _fft_buffer_index[axis];
+
 			for (int n = 0; n < N; n++) {
-				int &buffer_index = _fft_buffer_index[axis];
+				if (buffer_index < FFT_LENGTH) {
+					// convert int16_t -> q15_t (scaling isn't relevant)
+					_gyro_data_buffer[axis][buffer_index] = input[n] / 2;
+					buffer_index++;
+				}
 
-				_data_buffer[axis][buffer_index] = input[n] / 2;
+				// if we have enough samples begin processing, but only one FFT per cycle
+				if ((buffer_index >= FFT_LENGTH) && !fft_updated) {
 
-				buffer_index++;
-
-				// if we have enough samples, begin processing
-				if (buffer_index >= FFT_LENGTH) {
-
-					arm_mult_q15(_data_buffer[axis], _hanning_window, _fft_input_buffer, FFT_LENGTH);
+					arm_mult_q15(_gyro_data_buffer[axis], _hanning_window, _fft_input_buffer, FFT_LENGTH);
 
 					perf_begin(_fft_perf);
-					arm_rfft_q15(&_rfft_q15[axis], _fft_input_buffer, _fft_outupt_buffer);
+					arm_rfft_q15(&_rfft_q15, _fft_input_buffer, _fft_outupt_buffer);
 					perf_end(_fft_perf);
+					fft_updated = true;
 
-					static constexpr uint16_t MIN_SNR = 100; // TODO:
-					uint32_t max_peak_0 = 0;
-					uint8_t max_peak_index_0 = 0;
-					bool peak_0_found = false;
+					static constexpr uint16_t MIN_SNR = 10; // TODO:
+
+					static constexpr int MAX_NUM_PEAKS = 2;
+					uint32_t peaks_magnitude[MAX_NUM_PEAKS] {};
+					uint8_t peak_index[MAX_NUM_PEAKS] {};
 
 					// start at 2 to skip DC
 					// output is ordered [real[0], imag[0], real[1], imag[1], real[2], imag[2] ... real[(N/2)-1], imag[(N/2)-1]
-					for (uint16_t bucket_index = 2; bucket_index < FFT_LENGTH; bucket_index = bucket_index + 2) {
-						const float freq_hz = bucket_index * resolution_hz;
+					for (uint8_t bucket_index = 2; bucket_index < (FFT_LENGTH / 2); bucket_index = bucket_index + 2) {
+						const float freq_hz = (bucket_index / 2) * resolution_hz;
 
 						if (freq_hz > _param_imu_gyro_fft_max.get()) {
 							break;
@@ -236,91 +271,68 @@ void GyroFFT::Run()
 						if (freq_hz >= _param_imu_gyro_fft_min.get()) {
 							const int16_t real = _fft_outupt_buffer[bucket_index];
 							const int16_t complex = _fft_outupt_buffer[bucket_index + 1];
-							const uint32_t fft_value_squared = real * real + complex * complex;
 
-							if ((fft_value_squared > MIN_SNR) && (fft_value_squared >= max_peak_0)) {
-								max_peak_index_0 = bucket_index;
-								max_peak_0 = fft_value_squared;
-								peak_0_found = true;
-							}
-						}
-					}
+							const uint32_t fft_magnitude_squared = real * real + complex * complex;
 
-					if (peak_0_found) {
-						{
-							// find peak location using Quinn's Second Estimator (2020-06-14: http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak/)
-							int16_t real[3] {_fft_outupt_buffer[max_peak_index_0 - 2], _fft_outupt_buffer[max_peak_index_0], _fft_outupt_buffer[max_peak_index_0 + 2]};
-							int16_t imag[3] {_fft_outupt_buffer[max_peak_index_0 - 2 + 1], _fft_outupt_buffer[max_peak_index_0 + 1], _fft_outupt_buffer[max_peak_index_0 + 2 + 1]};
-
-							const int k = 1;
-
-							float divider = (real[k] * real[k] + imag[k] * imag[k]);
-
-							// ap = (X[k + 1].r * X[k].r + X[k+1].i * X[k].i) / (X[k].r * X[k].r + X[k].i * X[k].i)
-							float ap = (real[k + 1] * real[k] + imag[k + 1] * imag[k]) / divider;
-
-							// am = (X[k – 1].r * X[k].r + X[k – 1].i * X[k].i) / (X[k].r * X[k].r + X[k].i * X[k].i)
-							float am = (real[k - 1] * real[k] + imag[k - 1] * imag[k]) / divider;
-
-							float dp = -ap  / (1.f - ap);
-							float dm = am / (1.f - am);
-							float d = (dp + dm) / 2 + tau(dp * dp) - tau(dm * dm);
-
-							uint8_t adjustedBinLocation = roundf(max_peak_index_0 + d);
-							float peakFreqAdjusted = (_gyro_sample_rate_hz * adjustedBinLocation / (FFT_LENGTH * 2));
-
-							_sensor_gyro_fft.peak_index_quinns[axis] = adjustedBinLocation;
-							_sensor_gyro_fft.peak_frequency_quinns[axis] = peakFreqAdjusted;
-						}
-
-
-						// find next peak
-						uint32_t max_peak_1 = 0;
-						uint8_t max_peak_index_1 = 0;
-						bool peak_1_found = false;
-
-						for (uint16_t bucket_index = 2; bucket_index < FFT_LENGTH; bucket_index = bucket_index + 2) {
-							if (bucket_index != max_peak_index_0) {
-								const float freq_hz = bucket_index * resolution_hz;
-
-								if (freq_hz > _param_imu_gyro_fft_max.get()) {
-									break;
-								}
-
-								if (freq_hz >= _param_imu_gyro_fft_min.get()) {
-									const int16_t real = _fft_outupt_buffer[bucket_index];
-									const int16_t complex = _fft_outupt_buffer[bucket_index + 1];
-									const uint32_t fft_value_squared = real * real + complex * complex;
-
-									if ((fft_value_squared > MIN_SNR) && (fft_value_squared >= max_peak_1)) {
-										max_peak_index_1 = bucket_index;
-										max_peak_1 = fft_value_squared;
-										peak_1_found = true;
+							if (fft_magnitude_squared > MIN_SNR) {
+								for (int i = 0; i < MAX_NUM_PEAKS; i++) {
+									if (fft_magnitude_squared > peaks_magnitude[i]) {
+										peaks_magnitude[i] = fft_magnitude_squared;
+										peak_index[i] = bucket_index;
+										publish = true;
+										break;
 									}
 								}
 							}
 						}
+					}
 
-						if (peak_1_found) {
-							// if 2 peaks found then log them in order
-							_sensor_gyro_fft.peak_index_0[axis] = math::min(max_peak_index_0, max_peak_index_1);
-							_sensor_gyro_fft.peak_index_1[axis] = math::max(max_peak_index_0, max_peak_index_1);
-							_sensor_gyro_fft.peak_frequency_0[axis] = _sensor_gyro_fft.peak_index_0[axis] * resolution_hz;
-							_sensor_gyro_fft.peak_frequency_1[axis] = _sensor_gyro_fft.peak_index_1[axis] * resolution_hz;
+					if (publish) {
+						float *peak_frequencies;
 
-						} else {
-							// only 1 peak found
-							_sensor_gyro_fft.peak_index_0[axis] = max_peak_index_0;
-							_sensor_gyro_fft.peak_index_1[axis] = 0;
-							_sensor_gyro_fft.peak_frequency_0[axis] = max_peak_index_0 * resolution_hz;
-							_sensor_gyro_fft.peak_frequency_1[axis] = 0;
+						switch (axis) {
+						case 0:
+							peak_frequencies = _sensor_gyro_fft.peak_frequency_x;
+							break;
+
+						case 1:
+							peak_frequencies = _sensor_gyro_fft.peak_frequency_y;
+							break;
+
+						case 2:
+							peak_frequencies = _sensor_gyro_fft.peak_frequency_z;
+							break;
 						}
 
-						publish = true;
+						int peaks_found = 0;
+
+						for (int i = 0; i < MAX_NUM_PEAKS; i++) {
+							if ((peak_index[i] > 0) && (peak_index[i] < FFT_LENGTH) && (peaks_magnitude[i] > 0)) {
+								const float freq = EstimatePeakFrequency(_fft_outupt_buffer, peak_index[i]);
+
+								if (freq >= _param_imu_gyro_fft_min.get() && freq <= _param_imu_gyro_fft_max.get()) {
+									peak_frequencies[peaks_found] = freq;
+									peaks_found++;
+								}
+							}
+						}
+
+						// mark remaining slots empty
+						for (int i = peaks_found; i < MAX_NUM_PEAKS; i++) {
+							peak_frequencies[i] = NAN;
+						}
+
+						// publish in sorted order for convenience
+						if (peaks_found > 0) {
+							qsort(peak_frequencies, peaks_found, sizeof(float), float_cmp);
+						}
 					}
 
 					// reset
-					buffer_index = 0;
+					// shift buffer (75% overlap)
+					int overlap_start = FFT_LENGTH / 4;
+					memmove(&_gyro_data_buffer[axis][0], &_gyro_data_buffer[axis][overlap_start], sizeof(q15_t) * overlap_start * 3);
+					buffer_index = overlap_start * 3;
 				}
 			}
 		}

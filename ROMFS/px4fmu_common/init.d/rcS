@@ -526,6 +526,11 @@ else
 		bst start -X
 	fi
 
+	if param compare IMU_GYRO_FFT_EN 1
+	then
+		gyro_fft start
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
