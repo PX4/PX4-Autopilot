@@ -898,11 +898,11 @@ void Ekf::checkVerticalAccelerationHealth()
 
 	// declare a bad vertical acceleration measurement and make the declaration persist
 	// for a minimum of BADACC_PROBATION seconds
-	if (_bad_vert_accel_detected) {
-		_bad_vert_accel_detected = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
+	if (_fault_status.flags.bad_acc_vertical) {
+		_fault_status.flags.bad_acc_vertical = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
 
 	} else {
-		_bad_vert_accel_detected = bad_vert_accel;
+		_fault_status.flags.bad_acc_vertical = bad_vert_accel;
 	}
 }
 
