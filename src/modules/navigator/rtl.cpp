@@ -231,8 +231,9 @@ void RTL::on_activation()
 		_rtl_state = RTL_STATE_LANDED;
 
 	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->getMissionLandingInProgress()) {
-		// RTL straight to RETURN state, but mission will takeover for landing.
-		_rtl_state = RTL_STATE_RETURN;
+		// we were just on a mission landing, set _rtl_state past RTL_STATE_RETURN such that navigator will engage mission mode,
+		// which will continue executing the landing
+		_rtl_state = RTL_STATE_DESCEND;
 
 
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
@@ -246,7 +247,7 @@ void RTL::on_activation()
 		_rtl_state = RTL_STATE_RETURN;
 	}
 
-	setInitialClimbDone(_rtl_state != RTL_STATE_CLIMB);
+	setClimbAndReturnDone(_rtl_state > RTL_STATE_RETURN);
 
 	set_rtl_item();
 
@@ -273,7 +274,7 @@ void RTL::set_rtl_item()
 	// Landing using planned mission landing, fly to DO_LAND_START instead of returning _destination.
 	// After reaching DO_LAND_START, do nothing, let navigator takeover with mission landing.
 	if (_destination.type == RTL_DESTINATION_MISSION_LANDING) {
-		if (_rtl_state > RTL_STATE_CLIMB) {
+		if (_rtl_state > RTL_STATE_RETURN) {
 			if (_navigator->start_mission_landing()) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");
 				return;
@@ -486,11 +487,11 @@ void RTL::advance_rtl()
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB:
-		setInitialClimbDone(true);
 		_rtl_state = RTL_STATE_RETURN;
 		break;
 
 	case RTL_STATE_RETURN:
+		setClimbAndReturnDone(true);
 
 		if (vtol_in_fw_mode || descend_and_loiter) {
 			_rtl_state = RTL_STATE_DESCEND;
