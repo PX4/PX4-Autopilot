@@ -646,36 +646,6 @@ void Ekf::getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vp
 	vpos = _ev_pos_test_ratio(1);
 }
 
-void Ekf::getBaroHgtInnov(float &baro_hgt_innov) const
-{
-	baro_hgt_innov = _baro_hgt_innov(2);
-}
-
-void Ekf::getBaroHgtInnovVar(float &baro_hgt_innov_var) const
-{
-	baro_hgt_innov_var = _baro_hgt_innov_var(2);
-}
-
-void Ekf::getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const
-{
-	baro_hgt_innov_ratio = _baro_hgt_test_ratio(1);
-}
-
-void Ekf::getRngHgtInnov(float &rng_hgt_innov) const
-{
-	rng_hgt_innov = _rng_hgt_innov(2);
-}
-
-void Ekf::getRngHgtInnovVar(float &rng_hgt_innov_var) const
-{
-	rng_hgt_innov_var = _rng_hgt_innov_var(2);
-}
-
-void Ekf::getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const
-{
-	rng_hgt_innov_ratio = _rng_hgt_test_ratio(1);
-}
-
 void Ekf::getAuxVelInnov(float aux_vel_innov[2]) const
 {
 	aux_vel_innov[0] = _aux_vel_innov(0);
@@ -686,147 +656,6 @@ void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2]) const
 {
 	aux_vel_innov_var[0] = _aux_vel_innov_var(0);
 	aux_vel_innov_var[1] = _aux_vel_innov_var(1);
-}
-
-void Ekf::getAuxVelInnovRatio(float &aux_vel_innov_ratio) const
-{
-	aux_vel_innov_ratio = _aux_vel_test_ratio(0);
-}
-
-void Ekf::getFlowInnov(float flow_innov[2]) const
-{
-	_flow_innov.copyTo(flow_innov);
-}
-
-void Ekf::getFlowInnovVar(float flow_innov_var[2]) const
-{
-	_flow_innov_var.copyTo(flow_innov_var);
-}
-
-void Ekf::getFlowInnovRatio(float &flow_innov_ratio) const
-{
-	flow_innov_ratio = _optflow_test_ratio;
-}
-
-Vector2f Ekf::getFlowVelBody() const
-{
-	return _flow_vel_body;
-}
-
-Vector2f Ekf::getFlowVelNE() const
-{
-	return _flow_vel_ne;
-}
-
-Vector2f Ekf::getFlowCompensated() const
-{
-	return _flow_compensated_XY_rad;
-}
-
-Vector2f Ekf::getFlowUncompensated() const
-{
-	return _flow_sample_delayed.flow_xy_rad;
-}
-
-Vector3f Ekf::getFlowGyro() const
-{
-	return _flow_sample_delayed.gyro_xyz;
-}
-
-void Ekf::getHeadingInnov(float &heading_innov) const
-{
-	heading_innov = _heading_innov;
-}
-
-void Ekf::getHeadingInnovVar(float &heading_innov_var) const
-{
-	heading_innov_var = _heading_innov_var;
-}
-
-void Ekf::getHeadingInnovRatio(float &heading_innov_ratio) const
-{
-	heading_innov_ratio = _yaw_test_ratio;
-}
-
-void Ekf::getMagInnov(float mag_innov[3]) const
-{
-	_mag_innov.copyTo(mag_innov);
-}
-
-void Ekf::getMagInnovVar(float mag_innov_var[3]) const
-{
-	_mag_innov_var.copyTo(mag_innov_var);
-}
-
-void Ekf::getMagInnovRatio(float &mag_innov_ratio) const
-{
-	mag_innov_ratio = _mag_test_ratio.max();
-}
-
-void Ekf::getDragInnov(float drag_innov[2]) const
-{
-	_drag_innov.copyTo(drag_innov);
-}
-
-void Ekf::getDragInnovVar(float drag_innov_var[2]) const
-{
-	_drag_innov_var.copyTo(drag_innov_var);
-}
-
-void Ekf::getDragInnovRatio(float drag_innov_ratio[2]) const
-{
-	_drag_test_ratio.copyTo(drag_innov_ratio);
-}
-
-void Ekf::getAirspeedInnov(float &airspeed_innov) const
-{
-	airspeed_innov = _airspeed_innov;
-}
-
-void Ekf::getAirspeedInnovVar(float &airspeed_innov_var) const
-{
-	airspeed_innov_var = _airspeed_innov_var;
-}
-
-void Ekf::getAirspeedInnovRatio(float &airspeed_innov_ratio) const
-{
-	airspeed_innov_ratio = _tas_test_ratio;
-}
-
-void Ekf::getBetaInnov(float &beta_innov) const
-{
-	beta_innov = _beta_innov;
-}
-
-void Ekf::getBetaInnovVar(float &beta_innov_var) const
-{
-	beta_innov_var = _beta_innov_var;
-}
-
-void Ekf::getBetaInnovRatio(float &beta_innov_ratio) const
-{
-	beta_innov_ratio = _beta_test_ratio;
-}
-
-void Ekf::getHaglInnov(float &hagl_innov) const
-{
-	hagl_innov = _hagl_innov;
-}
-
-void Ekf::getHaglInnovVar(float &hagl_innov_var) const
-{
-	hagl_innov_var = _hagl_innov_var;
-}
-
-void Ekf::getHaglInnovRatio(float &hagl_innov_ratio) const
-{
-	hagl_innov_ratio = _hagl_test_ratio;
-}
-
-// get GPS check status
-void Ekf::get_gps_check_status(uint16_t *val)
-{
-	*val = _gps_check_fail_status.value;
 }
 
 // get the state vector at the delayed time horizon
@@ -844,16 +673,6 @@ matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 	return state;
 }
 
-Vector3f Ekf::getAccelBias() const
-{
-	return _state.delta_vel_bias / _dt_ekf_avg;
-}
-
-Vector3f Ekf::getGyroBias() const
-{
-	return _state.delta_ang_bias / _dt_ekf_avg;
-}
-
 // get the position and height of the ekf origin in WGS-84 coordinates and time the origin was set
 // return true if the origin is valid
 bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt)
@@ -862,24 +681,6 @@ bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *orig
 	memcpy(origin_pos, &_pos_ref, sizeof(map_projection_reference_s));
 	memcpy(origin_alt, &_gps_alt_ref, sizeof(float));
 	return _NED_origin_initialised;
-}
-
-// return a vector containing the output predictor angular, velocity and position tracking
-// error magnitudes (rad), (m/s), (m)
-Vector3f Ekf::getOutputTrackingError() const
-{
-	return _output_tracking_error;
-}
-
-/*
-Returns  following IMU vibration metrics in the following array locations
-0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
-1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
-2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
-*/
-Vector3f Ekf::getImuVibrationMetrics() const
-{
-	return _vibe_metrics;
 }
 
 /*
@@ -1736,11 +1537,6 @@ bool Ekf::resetYawToEKFGSF()
 	}
 
 	return true;
-}
-
-void Ekf::requestEmergencyNavReset()
-{
-	_do_ekfgsf_yaw_reset = true;
 }
 
 bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF])

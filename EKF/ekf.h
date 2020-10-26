@@ -70,82 +70,57 @@ public:
 	bool update() override;
 
 	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const override;
-
 	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const override;
-
 	void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const override;
 
 	void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const override;
-
 	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const override;
-
 	void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const override;
 
-	void getBaroHgtInnov(float &baro_hgt_innov) const override;
+	void getBaroHgtInnov(float &baro_hgt_innov) const override { baro_hgt_innov = _baro_hgt_innov(2); }
+	void getBaroHgtInnovVar(float &baro_hgt_innov_var) const override { baro_hgt_innov_var = _baro_hgt_innov_var(2); }
+	void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const override { baro_hgt_innov_ratio = _baro_hgt_test_ratio(1); }
 
-	void getBaroHgtInnovVar(float &baro_hgt_innov_var) const override;
-
-	void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const override;
-
-	void getRngHgtInnov(float &rng_hgt_innov) const override;
-
-	void getRngHgtInnovVar(float &rng_hgt_innov_var) const override;
-
-	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const override;
+	void getRngHgtInnov(float &rng_hgt_innov) const override { rng_hgt_innov = _rng_hgt_innov(2); }
+	void getRngHgtInnovVar(float &rng_hgt_innov_var) const override { rng_hgt_innov_var = _rng_hgt_innov_var(2); }
+	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const override { rng_hgt_innov_ratio = _rng_hgt_test_ratio(1); }
 
 	void getAuxVelInnov(float aux_vel_innov[2]) const override;
-
 	void getAuxVelInnovVar(float aux_vel_innov[2]) const override;
+	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const override { aux_vel_innov_ratio = _aux_vel_test_ratio(0); }
 
-	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const override;
+	void getFlowInnov(float flow_innov[2]) const override { _flow_innov.copyTo(flow_innov); }
+	void getFlowInnovVar(float flow_innov_var[2]) const override { _flow_innov_var.copyTo(flow_innov_var); }
+	void getFlowInnovRatio(float &flow_innov_ratio) const override { flow_innov_ratio = _optflow_test_ratio; }
+	const Vector2f &getFlowVelBody() const override { return _flow_vel_body; }
+	const Vector2f &getFlowVelNE() const override { return _flow_vel_ne; }
+	const Vector2f &getFlowCompensated() const override { return _flow_compensated_XY_rad; }
+	const Vector2f &getFlowUncompensated() const override { return _flow_sample_delayed.flow_xy_rad; }
+	const Vector3f &getFlowGyro() const override { return _flow_sample_delayed.gyro_xyz; }
 
-	void getFlowInnov(float flow_innov[2]) const override;
+	void getHeadingInnov(float &heading_innov) const override { heading_innov = _heading_innov; }
+	void getHeadingInnovVar(float &heading_innov_var) const override { heading_innov_var = _heading_innov_var; }
 
-	void getFlowInnovVar(float flow_innov_var[2]) const override;
+	void getHeadingInnovRatio(float &heading_innov_ratio) const override { heading_innov_ratio = _yaw_test_ratio; }
+	void getMagInnov(float mag_innov[3]) const override { _mag_innov.copyTo(mag_innov); }
+	void getMagInnovVar(float mag_innov_var[3]) const override { _mag_innov_var.copyTo(mag_innov_var); }
+	void getMagInnovRatio(float &mag_innov_ratio) const override { mag_innov_ratio = _mag_test_ratio.max(); }
 
-	void getFlowInnovRatio(float &flow_innov_ratio) const override;
+	void getDragInnov(float drag_innov[2]) const override { _drag_innov.copyTo(drag_innov); }
+	void getDragInnovVar(float drag_innov_var[2]) const override { _drag_innov_var.copyTo(drag_innov_var); }
+	void getDragInnovRatio(float drag_innov_ratio[2]) const override { _drag_test_ratio.copyTo(drag_innov_ratio); }
 
-	Vector2f getFlowVelBody() const override;
-	Vector2f getFlowVelNE() const override;
-	Vector2f getFlowCompensated() const override;
-	Vector2f getFlowUncompensated() const override;
-	Vector3f getFlowGyro() const override;
+	void getAirspeedInnov(float &airspeed_innov) const override { airspeed_innov = _airspeed_innov; }
+	void getAirspeedInnovVar(float &airspeed_innov_var) const override { airspeed_innov_var = _airspeed_innov_var; }
+	void getAirspeedInnovRatio(float &airspeed_innov_ratio) const override { airspeed_innov_ratio = _tas_test_ratio; }
 
-	void getHeadingInnov(float &heading_innov) const override;
+	void getBetaInnov(float &beta_innov) const override { beta_innov = _beta_innov; }
+	void getBetaInnovVar(float &beta_innov_var) const override { beta_innov_var = _beta_innov_var; }
+	void getBetaInnovRatio(float &beta_innov_ratio) const override { beta_innov_ratio = _beta_test_ratio; }
 
-	void getHeadingInnovVar(float &heading_innov_var) const override;
-
-	void getHeadingInnovRatio(float &heading_innov_ratio) const override;
-
-	void getMagInnov(float mag_innov[3]) const override;
-
-	void getMagInnovVar(float mag_innov_var[3]) const override;
-
-	void getMagInnovRatio(float &mag_innov_ratio) const override;
-
-	void getDragInnov(float drag_innov[2]) const override;
-
-	void getDragInnovVar(float drag_innov_var[2]) const override;
-
-	void getDragInnovRatio(float drag_innov_ratio[2]) const override;
-
-	void getAirspeedInnov(float &airspeed_innov) const override;
-
-	void getAirspeedInnovVar(float &airspeed_innov_var) const override;
-
-	void getAirspeedInnovRatio(float &airspeed_innov_ratio) const override;
-
-	void getBetaInnov(float &beta_innov) const override;
-
-	void getBetaInnovVar(float &beta_innov_var) const override;
-
-	void getBetaInnovRatio(float &beta_innov_ratio) const override;
-
-	void getHaglInnov(float &hagl_innov) const override;
-
-	void getHaglInnovVar(float &hagl_innov_var) const override;
-
-	void getHaglInnovRatio(float &hagl_innov_ratio) const override;
+	void getHaglInnov(float &hagl_innov) const override { hagl_innov = _hagl_innov; }
+	void getHaglInnovVar(float &hagl_innov_var) const override { hagl_innov_var = _hagl_innov_var; }
+	void getHaglInnovRatio(float &hagl_innov_ratio) const override { hagl_innov_ratio = _hagl_test_ratio; }
 
 	// get the state vector at the delayed time horizon
 	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const override;
@@ -206,7 +181,7 @@ public:
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/sec), (m)
-	Vector3f getOutputTrackingError() const override;
+	Vector3f getOutputTrackingError() const override { return _output_tracking_error; }
 
 	/*
 	Returns  following IMU vibration metrics in the following array locations
@@ -214,7 +189,7 @@ public:
 	1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 	*/
-	Vector3f getImuVibrationMetrics() const override;
+	Vector3f getImuVibrationMetrics() const override { return _vibe_metrics; }
 
 	/*
 	First argument returns GPS drift  metrics in the following array locations
@@ -245,13 +220,13 @@ public:
 	float get_terrain_var() const { return _terrain_var; }
 
 	// get the accelerometer bias in m/s**2
-	Vector3f getAccelBias() const override;
+	Vector3f getAccelBias() const override { return _state.delta_vel_bias / _dt_ekf_avg; }
 
 	// get the gyroscope bias in rad/s
-	Vector3f getGyroBias() const override;
+	Vector3f getGyroBias() const override { return _state.delta_ang_bias / _dt_ekf_avg; }
 
 	// get GPS check status
-	void get_gps_check_status(uint16_t *val) override;
+	void get_gps_check_status(uint16_t *val) override { *val = _gps_check_fail_status.value; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
 	void get_posD_reset(float *delta, uint8_t *counter) override {*delta = _state_reset_status.posD_change; *counter = _state_reset_status.posD_counter;}
@@ -301,13 +276,14 @@ public:
 
 	// get solution data from the EKF-GSF emergency yaw estimator
 	// returns false when data is not available
-	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]) override;
+	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
+			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]) override;
 
 	// Request the EKF reset the yaw to the estimate from the internal EKF-GSF filter
 	// and reset the velocity and position states to the GPS. This will cause the EKF
 	// to ignore the magnetometer for the remainder of flight.
 	// This should only be used as a last resort before activating a loss of navigation failsafe
-	void requestEmergencyNavReset() override;
+	void requestEmergencyNavReset() override { _do_ekfgsf_yaw_reset = true; }
 
 private:
 	struct {
@@ -528,7 +504,7 @@ private:
 	// and the correction step
 	void calculateOutputStates();
 	void applyCorrectionToVerticalOutputBuffer(float vert_vel_correction);
-	void applyCorrectionToOutputBuffer(const Vector3f& vel_correction, const Vector3f& pos_correction);
+	void applyCorrectionToOutputBuffer(const Vector3f &vel_correction, const Vector3f &pos_correction);
 
 	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);
@@ -565,7 +541,7 @@ private:
 	// variance : observaton variance
 	// gate_sigma : innovation consistency check gate size (Sigma)
 	// jacobian : 4x1 vector of partial derivatives of observation wrt each quaternion state
-	void updateQuaternion(const float innovation, const float variance, const float gate_sigma, const Vector4f& yaw_jacobian);
+	void updateQuaternion(const float innovation, const float variance, const float gate_sigma, const Vector4f &yaw_jacobian);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();
@@ -678,31 +654,37 @@ private:
 	// matrix vector multiplication for computing K<24,1> * H<1,24> * P<24,24>
 	// that is optimized by exploring the sparsity in H
 	template <size_t ...Idxs>
-	SquareMatrix24f computeKHP(const Vector24f& K, const SparseVector24f<Idxs...>& H) const {
+	SquareMatrix24f computeKHP(const Vector24f &K, const SparseVector24f<Idxs...> &H) const
+	{
 		SquareMatrix24f KHP;
 		constexpr size_t non_zeros = sizeof...(Idxs);
 		float KH[non_zeros];
+
 		for (unsigned row = 0; row < _k_num_states; row++) {
-			for(unsigned i = 0; i < H.non_zeros(); i++) {
+			for (unsigned i = 0; i < H.non_zeros(); i++) {
 				KH[i] = K(row) * H.atCompressedIndex(i);
 			}
 
 			for (unsigned column = 0; column < _k_num_states; column++) {
 				float tmp = 0.f;
-				for(unsigned i = 0; i < H.non_zeros(); i++) {
+
+				for (unsigned i = 0; i < H.non_zeros(); i++) {
 					const size_t index = H.index(i);
 					tmp += KH[i] * P(index, column);
 				}
-				KHP(row,column) = tmp;
+
+				KHP(row, column) = tmp;
 			}
 		}
+
 		return KHP;
 	}
 
 	// measurement update with a single measurement
 	// returns true if fusion is performed
 	template <size_t ...Idxs>
-	bool measurementUpdate(const Vector24f& K, const SparseVector24f<Idxs...>& H, float innovation) {
+	bool measurementUpdate(const Vector24f &K, const SparseVector24f<Idxs...> &H, float innovation)
+	{
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
@@ -719,12 +701,13 @@ private:
 			// apply the state corrections
 			fuse(K, innovation);
 		}
+
 		return is_healthy;
 	}
 
 	// if the covariance correction will result in a negative variance, then
 	// the covariance matrix is unhealthy and must be corrected
-	bool checkAndFixCovarianceUpdate(const SquareMatrix24f& KHP);
+	bool checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP);
 
 	// limit the diagonal of the covariance matrix
 	// force symmetry when the argument is true
@@ -735,7 +718,7 @@ private:
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
-	void fuse(const Vector24f& K, float innovation);
+	void fuse(const Vector24f &K, float innovation);
 
 	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) override;
 

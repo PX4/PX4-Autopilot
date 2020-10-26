@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2020 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@ class EstimatorInterface
 {
 
 public:
-	EstimatorInterface():_imu_down_sampler(FILTER_UPDATE_PERIOD_S){};
+	EstimatorInterface(): _imu_down_sampler(FILTER_UPDATE_PERIOD_S) {};
 	virtual ~EstimatorInterface() = default;
 
 	virtual bool init(uint64_t timestamp) = 0;
@@ -91,11 +91,11 @@ public:
 	virtual void getFlowInnov(float flow_innov[2]) const = 0;
 	virtual void getFlowInnovVar(float flow_innov_var[2]) const = 0;
 	virtual void getFlowInnovRatio(float &flow_innov_ratio) const = 0;
-	virtual Vector2f getFlowVelBody() const = 0;
-	virtual Vector2f getFlowVelNE() const = 0;
-	virtual Vector2f getFlowCompensated() const = 0;
-	virtual Vector2f getFlowUncompensated() const = 0;
-	virtual Vector3f getFlowGyro() const = 0;
+	virtual const Vector2f &getFlowVelBody() const = 0;
+	virtual const Vector2f &getFlowVelNE() const = 0;
+	virtual const Vector2f &getFlowCompensated() const = 0;
+	virtual const Vector2f &getFlowUncompensated() const = 0;
+	virtual const Vector3f &getFlowGyro() const = 0;
 
 	virtual void getHeadingInnov(float &heading_innov) const = 0;
 	virtual void getHeadingInnovVar(float &heading_innov_var) const = 0;
@@ -181,15 +181,15 @@ public:
 
 	void setAirspeedData(const airspeedSample &airspeed_sample);
 
-	void setRangeData(const rangeSample& range_sample);
+	void setRangeData(const rangeSample &range_sample);
 
 	// if optical flow sensor gyro delta angles are not available, set gyro_xyz vector fields to NaN and the EKF will use its internal delta angle data instead
-	void setOpticalFlowData(const flowSample& flow);
+	void setOpticalFlowData(const flowSample &flow);
 
 	// set external vision position and attitude data
-	void setExtVisionData(const extVisionSample& evdata);
+	void setExtVisionData(const extVisionSample &evdata);
 
-	void setAuxVelData(const auxVelSample& auxvel_sample);
+	void setAuxVelData(const auxVelSample &auxvel_sample);
 
 	// return a address to the parameters struct
 	// in order to give access to the application
@@ -328,6 +328,7 @@ public:
 	bool get_mag_decl_deg(float *val)
 	{
 		*val = 0.0f;
+
 		if (_NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL)) {
 			*val = math::degrees(_mag_declination_gps);
 			return true;
@@ -407,7 +408,8 @@ public:
 	virtual void requestEmergencyNavReset() = 0;
 
 	// get ekf-gsf debug data
-	virtual bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF], float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]) = 0;
+	virtual bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
+				   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]) = 0;
 
 protected:
 
@@ -591,5 +593,5 @@ protected:
 
 	virtual float compensateBaroForDynamicPressure(const float baro_alt_uncompensated) = 0;
 
-	void printBufferAllocationFailed(const char * buffer_name);
+	void printBufferAllocationFailed(const char *buffer_name);
 };
