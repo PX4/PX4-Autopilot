@@ -163,10 +163,4 @@ private:
 	T _data{};
 };
 
-
-template<class T>
-using PublicationQueued = Publication<T, T::ORB_QUEUE_LENGTH>;
-
-
-
 } // namespace uORB

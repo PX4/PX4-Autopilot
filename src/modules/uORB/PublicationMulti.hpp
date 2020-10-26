@@ -122,8 +122,4 @@ private:
 	T _data{};
 };
 
-
-template<class T>
-using PublicationQueuedMulti = PublicationMulti<T, T::ORB_QUEUE_LENGTH>;
-
 } // namespace uORB

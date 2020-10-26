@@ -140,7 +140,7 @@ private:
 	void estimator_check(const vehicle_status_flags_s &status_flags);
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
-			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
+			    uORB::Publication<vehicle_command_ack_s> &command_ack_pub);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
 
@@ -420,7 +420,7 @@ private:
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
-	uORB::PublicationQueued<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 };
 

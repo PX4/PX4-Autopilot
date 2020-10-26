@@ -176,7 +176,7 @@ private:
 	const Instance 			_instance;
 
 	uORB::Subscription		_orb_inject_data_sub{ORB_ID(gps_inject_data)};
-	uORB::PublicationQueued<gps_dump_s>	_dump_communication_pub{ORB_ID(gps_dump)};
+	uORB::Publication<gps_dump_s>	_dump_communication_pub{ORB_ID(gps_dump)};
 	gps_dump_s			*_dump_to_device{nullptr};
 	gps_dump_s			*_dump_from_device{nullptr};
 	bool				_should_dump_communication{false};			///< if true, dump communication

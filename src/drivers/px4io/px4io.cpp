@@ -713,7 +713,7 @@ PX4IO::init()
 			vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
 
 			/* send command once */
-			uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+			uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 			vcmd_pub.publish(vcmd);
 
 			/* spin here until IO's state has propagated into the system */
@@ -746,7 +746,7 @@ PX4IO::init()
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* send command once */
-		uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+		uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 		vcmd_pub.publish(vcmd);
 
 		/* spin here until IO's state has propagated into the system */

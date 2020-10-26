@@ -64,7 +64,7 @@ public:
 private:
 	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
-	uORB::PublicationQueuedMulti<sensor_gyro_s> _sensor_pub;
+	uORB::PublicationMulti<sensor_gyro_s> _sensor_pub;
 	uORB::PublicationMulti<sensor_gyro_fifo_s>  _sensor_fifo_pub;
 
 	uint32_t		_device_id{0};

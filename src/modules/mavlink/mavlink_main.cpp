@@ -2149,7 +2149,7 @@ Mavlink::task_main(int argc, char *argv[])
 	uORB::Subscription ack_sub{ORB_ID(vehicle_command_ack)};
 
 	/* command ack */
-	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::Subscription mavlink_log_sub{ORB_ID(mavlink_log)};
 
