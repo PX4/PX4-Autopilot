@@ -102,6 +102,12 @@ void Ekf::fuseOptFlow()
 	// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
 	const Vector2f opt_flow_rate = _flow_compensated_XY_rad / _flow_sample_delayed.dt + Vector2f(_flow_gyro_bias);
 
+	// compute the velocities in body and local frames from corrected optical flow measurement
+	// for logging only
+	_flow_vel_body(0) = -opt_flow_rate(1) * range;
+	_flow_vel_body(1) = opt_flow_rate(0) * range;
+	_flow_vel_ne = Vector2f(_R_to_earth * Vector3f(_flow_vel_body(0), _flow_vel_body(1), 0.f));
+
 	if (opt_flow_rate.norm() < _flow_max_rate) {
 		_flow_innov(0) =  vel_body(1) / range - opt_flow_rate(0); // flow around the X axis
 		_flow_innov(1) = -vel_body(0) / range - opt_flow_rate(1); // flow around the Y axis
