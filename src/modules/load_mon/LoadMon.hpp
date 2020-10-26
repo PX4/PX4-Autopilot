@@ -87,7 +87,7 @@ private:
 
 	int _stack_task_index{0};
 
-	uORB::PublicationQueued<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
+	uORB::Publication<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
 #endif
 	uORB::Publication<cpuload_s> _cpuload_pub {ORB_ID(cpuload)};
 

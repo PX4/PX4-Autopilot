@@ -115,7 +115,7 @@ static struct vehicle_status_flags_s status_flags = {};
 void *commander_low_prio_loop(void *arg);
 
 static void answer_command(const vehicle_command_s &cmd, unsigned result,
-			   uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
+			   uORB::Publication<vehicle_command_ack_s> &command_ack_pub);
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 static orb_advert_t power_button_state_pub = nullptr;
@@ -184,7 +184,7 @@ static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 
 
 	vcmd.timestamp = hrt_absolute_time();
 
-	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 
 	return vcmd_pub.publish(vcmd);
 }
@@ -532,7 +532,7 @@ Commander::Commander() :
 
 bool
 Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd, actuator_armed_s *armed_local,
-			  uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub)
+			  uORB::Publication<vehicle_command_ack_s> &command_ack_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd.target_system != status_local->system_id || ((cmd.target_component != status_local->component_id)
@@ -3377,7 +3377,7 @@ Commander::print_reject_arm(const char *msg)
 }
 
 void answer_command(const vehicle_command_s &cmd, unsigned result,
-		    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub)
+		    uORB::Publication<vehicle_command_ack_s> &command_ack_pub)
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
@@ -3425,7 +3425,7 @@ void *commander_low_prio_loop(void *arg)
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 	/* command ack */
-	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1];
