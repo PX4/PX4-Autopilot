@@ -403,8 +403,8 @@ Mission::find_mission_land_start()
 			_land_start_index = i;
 		}
 
-		if (_land_start_available && (missionitem.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
-			// use the loiter to altitude item of the mission landing as target landing location
+		if (_land_start_available && i > _land_start_index  && item_contains_position(missionitem)) {
+			// use the position of any waypoint after the land start marker which specifies a position.
 			_landing_lat = missionitem.lat;
 			_landing_lon = missionitem.lon;
 			_landing_alt = missionitem.altitude_is_relative ?	missionitem.altitude +

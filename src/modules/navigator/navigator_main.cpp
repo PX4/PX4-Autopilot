@@ -564,10 +564,11 @@ Navigator::run()
 					}
 
 
-					if (!rtl_activated && _rtl.initialClimbDone() && get_mission_start_land_available()) {
+					if (!rtl_activated && _rtl.getClimbAndReturnDone() && get_mission_start_land_available()) {
 						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
 
-						if (!getMissionLandingInProgress()) {
+						if (!getMissionLandingInProgress() && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+						    && !get_land_detected()->landed) {
 							start_mission_landing();
 						}
 
