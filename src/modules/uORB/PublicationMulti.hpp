@@ -50,7 +50,7 @@ namespace uORB
 /**
  * Base publication multi wrapper class
  */
-template<typename T, uint8_t QSIZE = 1>
+template<typename T, uint8_t QSIZE = DefaultQueueSize<T>::value>
 class PublicationMulti : public PublicationBase
 {
 public:
