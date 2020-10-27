@@ -136,7 +136,7 @@ const uint8_t VL51L1X_DEFAULT_CONFIGURATION[] = {
 static const uint8_t status_rtn[24] = { 255, 255, 255, 5, 2, 4, 1, 7, 3, 0,
 					255, 255, 9, 13, 255, 255, 255, 255, 10, 6,
 					255, 255, 11, 12
-					  };
+				      };
 
 /* end ST */
 
@@ -500,7 +500,7 @@ int8_t VL53L1X::VL53L1X_SetInterMeasurementInMs(uint32_t InterMeasMs)
 	status = VL53L1_RdWord(VL53L1_RESULT__OSC_CALIBRATE_VAL, &ClockPLL);
 	ClockPLL = ClockPLL & 0x3FF;
 	VL53L1_WrDWord(VL53L1_SYSTEM__INTERMEASUREMENT_PERIOD,
-			   (uint32_t)(ClockPLL * InterMeasMs * 1.075));
+		       (uint32_t)(ClockPLL * InterMeasMs * 1.075));
 	return status;
 }
 
@@ -657,7 +657,7 @@ int8_t VL53L1X::VL53L1X_ConfigBig(uint16_t DM, uint16_t TimingBudgetInMs)
 /* end ST */
 
 I2CSPIDriverBase *VL53L1X::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					   int runtime_instance)
+				       int runtime_instance)
 {
 	VL53L1X *instance = new VL53L1X(iterator.configuredBusOption(), iterator.bus(), cli.orientation, cli.bus_frequency);
 
