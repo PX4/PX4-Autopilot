@@ -137,8 +137,8 @@ static constexpr float tau(float x)
 float GyroFFT::EstimatePeakFrequency(q15_t fft[FFT_LENGTH * 2], uint8_t peak_index)
 {
 	// find peak location using Quinn's Second Estimator (2020-06-14: http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak/)
-	int16_t real[3] {fft[peak_index - 2], fft[peak_index], fft[peak_index + 2]};
-	int16_t imag[3] {fft[peak_index - 2 + 1], fft[peak_index + 1], fft[peak_index + 2 + 1]};
+	int16_t real[3] { fft[peak_index - 2],     fft[peak_index],     fft[peak_index + 2]     };
+	int16_t imag[3] { fft[peak_index - 2 + 1], fft[peak_index + 1], fft[peak_index + 2 + 1] };
 
 	const int k = 1;
 
@@ -255,7 +255,10 @@ void GyroFFT::Run()
 
 					static constexpr uint16_t MIN_SNR = 10; // TODO:
 
-					static constexpr int MAX_NUM_PEAKS = 2;
+					uint32_t max_peak_magnitude = 0;
+					uint8_t max_peak_index = 0;
+
+					static constexpr int MAX_NUM_PEAKS = 4;
 					uint32_t peaks_magnitude[MAX_NUM_PEAKS] {};
 					uint8_t peak_index[MAX_NUM_PEAKS] {};
 
@@ -275,6 +278,12 @@ void GyroFFT::Run()
 							const uint32_t fft_magnitude_squared = real * real + complex * complex;
 
 							if (fft_magnitude_squared > MIN_SNR) {
+
+								if (fft_magnitude_squared > max_peak_magnitude) {
+									max_peak_magnitude = fft_magnitude_squared;
+									max_peak_index = bucket_index;
+								}
+
 								for (int i = 0; i < MAX_NUM_PEAKS; i++) {
 									if (fft_magnitude_squared > peaks_magnitude[i]) {
 										peaks_magnitude[i] = fft_magnitude_squared;
@@ -287,20 +296,25 @@ void GyroFFT::Run()
 						}
 					}
 
+					if (max_peak_index > 0) {
+						_sensor_gyro_fft.peak_frequency[axis] = _median_filter[axis].apply(EstimatePeakFrequency(_fft_outupt_buffer,
+											max_peak_index));
+					}
+
 					if (publish) {
 						float *peak_frequencies;
 
 						switch (axis) {
 						case 0:
-							peak_frequencies = _sensor_gyro_fft.peak_frequency_x;
+							peak_frequencies = _sensor_gyro_fft.peak_frequencies_x;
 							break;
 
 						case 1:
-							peak_frequencies = _sensor_gyro_fft.peak_frequency_y;
+							peak_frequencies = _sensor_gyro_fft.peak_frequencies_y;
 							break;
 
 						case 2:
-							peak_frequencies = _sensor_gyro_fft.peak_frequency_z;
+							peak_frequencies = _sensor_gyro_fft.peak_frequencies_z;
 							break;
 						}
 
