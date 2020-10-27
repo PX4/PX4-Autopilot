@@ -213,7 +213,6 @@ private:
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
-	sensor_selection_s		_sensor_selection{};
 	vehicle_land_detected_s		_vehicle_land_detected{};
 	vehicle_status_s		_vehicle_status{};
 
