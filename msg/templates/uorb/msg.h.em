@@ -68,6 +68,10 @@ topic_name = spec.short_name
 
 #include <uORB/uORB.h>
 
+#ifdef __cplusplus
+#include <uORB/topics/uORBTopics.hpp>
+#endif
+
 @##############################
 @# Includes for dependencies
 @##############################
@@ -133,5 +137,11 @@ ORB_DECLARE(@multi_topic);
 @[end for]
 
 #ifdef __cplusplus
+@[for multi_topic in topics]@
+template<> struct ORBTypeMap<ORB_ID::@multi_topic> {
+    using type = @(uorb_struct);
+};
+@[end for]
+
 void print_message(const orb_metadata *meta, const @uorb_struct& message);
 #endif
