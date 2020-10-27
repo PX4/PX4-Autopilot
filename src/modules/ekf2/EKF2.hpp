@@ -225,6 +225,7 @@ private:
 	uORB::PublicationMulti<estimator_sensor_bias_s>		_estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
 	uORB::PublicationMulti<estimator_states_s>		_estimator_states_pub{ORB_ID(estimator_states)};
 	uORB::PublicationMultiData<estimator_status_s>		_estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::PublicationMultiData<vehicle_odometry_s>          _estimator_visual_odometry_aligned_pub{ORB_ID(estimator_visual_odometry_aligned)};
 	uORB::PublicationMulti<yaw_estimator_status_s>		_yaw_est_pub{ORB_ID(yaw_estimator_status)};
 	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
 
@@ -233,7 +234,6 @@ private:
 	uORB::PublicationMultiData<vehicle_local_position_s>  _local_position_pub;
 	uORB::PublicationMultiData<vehicle_global_position_s> _global_position_pub;
 	uORB::PublicationMulti<vehicle_odometry_s>            _odometry_pub;
-	uORB::PublicationMultiData<vehicle_odometry_s>        _visual_odometry_aligned_pub;
 
 	Ekf _ekf;
 

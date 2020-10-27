@@ -123,6 +123,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("estimator_sensor_bias", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_status", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_visual_odometry_aligned", 200, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("yaw_estimator_status", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("wind_estimate", 1000); // published by both ekf2 and airspeed_selector
 
@@ -192,7 +193,6 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
-	add_topic("vehicle_visual_odometry_aligned");
 	add_topic_multi("distance_sensor");
 }
 
