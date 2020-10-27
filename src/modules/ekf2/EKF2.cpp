@@ -355,23 +355,19 @@ void EKF2::Run()
 		}
 
 		// Always update sensor selction first time through if time stamp is non zero
-		if (!_multi_mode && (_sensor_selection_sub.updated() || (_sensor_selection.timestamp == 0))) {
-			const sensor_selection_s sensor_selection_prev = _sensor_selection;
+		if (!_multi_mode && (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0))) {
+			sensor_selection_s sensor_selection;
 
-			if (_sensor_selection_sub.copy(&_sensor_selection)) {
-				if ((sensor_selection_prev.timestamp > 0) && (_sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
-
-					if (_sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
-						_imu_bias_reset_request = true;
-					}
-
-					if (_sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
-						_imu_bias_reset_request = true;
-					}
+			if (_sensor_selection_sub.copy(&sensor_selection)) {
+				if (_device_id_accel != sensor_selection.accel_device_id) {
+					_imu_bias_reset_request = true;
+					_device_id_accel = sensor_selection.accel_device_id;
 				}
 
-				_device_id_accel = _sensor_selection.accel_device_id;
-				_device_id_gyro = _sensor_selection.gyro_device_id;
+				if (_device_id_gyro != sensor_selection.gyro_device_id) {
+					_imu_bias_reset_request = true;
+					_device_id_gyro = sensor_selection.gyro_device_id;
+				}
 			}
 		}
 
