@@ -42,7 +42,7 @@
 
 namespace uORB
 {
-static constexpr unsigned orb_maxpath = 64;
+static constexpr unsigned orb_maxpath = 80;
 
 struct orb_advertdata {
 	const struct orb_metadata *meta;
