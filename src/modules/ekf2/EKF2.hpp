@@ -213,8 +213,10 @@ private:
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
-	vehicle_land_detected_s		_vehicle_land_detected{};
 	vehicle_status_s		_vehicle_status{};
+
+	bool _landed{true};
+	bool _in_ground_effect{false};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
