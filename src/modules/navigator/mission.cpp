@@ -158,6 +158,9 @@ Mission::on_inactivation()
 	}
 
 	_time_mission_deactivated = hrt_absolute_time();
+
+	/* reset so current mission item gets restarted if mission was paused */
+	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 }
 
 void
