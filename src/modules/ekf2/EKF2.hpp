@@ -184,11 +184,12 @@ private:
 
 	bool _imu_bias_reset_request{false};
 
-	// republished aligned external visual odometry
-	bool new_ev_data_received = false;
-	vehicle_odometry_s _ev_odom{};
+	uint32_t _device_id_accel{0};
+	uint32_t _device_id_baro{0};
+	uint32_t _device_id_gyro{0};
+	uint32_t _device_id_mag{0};
 
-	bool _new_optical_flow_data_received{false};
+	Vector3f _last_local_position_for_gpos{};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
@@ -216,24 +217,24 @@ private:
 	vehicle_land_detected_s		_vehicle_land_detected{};
 	vehicle_status_s		_vehicle_status{};
 
-	uORB::PublicationMulti<ekf2_timestamps_s>		_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
-	uORB::PublicationMulti<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
-	uORB::PublicationMulti<estimator_innovations_s>		_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
-	uORB::PublicationMulti<estimator_innovations_s>		_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
-	uORB::PublicationMulti<estimator_innovations_s>		_estimator_innovations_pub{ORB_ID(estimator_innovations)};
-	uORB::PublicationMulti<estimator_optical_flow_vel_s>	_estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
-	uORB::PublicationMulti<estimator_sensor_bias_s>		_estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
-	uORB::PublicationMulti<estimator_states_s>		_estimator_states_pub{ORB_ID(estimator_states)};
-	uORB::PublicationMultiData<estimator_status_s>		_estimator_status_pub{ORB_ID(estimator_status)};
-	uORB::PublicationMultiData<vehicle_odometry_s>          _estimator_visual_odometry_aligned_pub{ORB_ID(estimator_visual_odometry_aligned)};
-	uORB::PublicationMulti<yaw_estimator_status_s>		_yaw_est_pub{ORB_ID(yaw_estimator_status)};
-	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
+	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
+	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
+	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
+	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
+	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovations_pub{ORB_ID(estimator_innovations)};
+	uORB::PublicationMulti<estimator_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
+	uORB::PublicationMulti<estimator_sensor_bias_s>      _estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
+	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
+	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::PublicationMulti<vehicle_odometry_s>           _estimator_visual_odometry_aligned_pub{ORB_ID(estimator_visual_odometry_aligned)};
+	uORB::PublicationMulti<yaw_estimator_status_s>       _yaw_est_pub{ORB_ID(yaw_estimator_status)};
+	uORB::PublicationMulti<wind_estimate_s>              _wind_pub{ORB_ID(wind_estimate)};
 
 	// publications with topic dependent on multi-mode
-	uORB::PublicationMulti<vehicle_attitude_s>            _attitude_pub;
-	uORB::PublicationMultiData<vehicle_local_position_s>  _local_position_pub;
-	uORB::PublicationMultiData<vehicle_global_position_s> _global_position_pub;
-	uORB::PublicationMulti<vehicle_odometry_s>            _odometry_pub;
+	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;
+	uORB::PublicationMulti<vehicle_local_position_s>     _local_position_pub;
+	uORB::PublicationMulti<vehicle_global_position_s>    _global_position_pub;
+	uORB::PublicationMulti<vehicle_odometry_s>           _odometry_pub;
 
 	Ekf _ekf;
 
