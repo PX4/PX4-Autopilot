@@ -57,8 +57,17 @@ bool EKF2Selector::Start()
 {
 	// default to first instance
 	_selected_instance = 0;
-	_instance[0].estimator_status_sub.registerCallback();
-	_instance[0].estimator_attitude_sub.registerCallback();
+
+	if (!_instance[0].estimator_status_sub.registerCallback()) {
+		PX4_ERR("estimator status callback registration failed");
+	}
+
+	if (!_instance[0].estimator_attitude_sub.registerCallback()) {
+		PX4_ERR("estimator attitude callback registration failed");
+	}
+
+	// backup schedule
+	ScheduleDelayed(10_ms);
 
 	return true;
 }
@@ -316,6 +325,11 @@ void EKF2Selector::PublishVehicleAttitude(bool reset)
 
 		attitude.timestamp = hrt_absolute_time();
 		_vehicle_attitude_pub.publish(attitude);
+
+		// register lockstep component on first attitude publish
+		if (_lockstep_component == -1) {
+			_lockstep_component = px4_lockstep_register_component();
+		}
 	}
 }
 
@@ -586,10 +600,6 @@ void EKF2Selector::Run()
 				}
 			}
 		}
-	}
-
-	if (_lockstep_component == -1) {
-		_lockstep_component = px4_lockstep_register_component();
 	}
 
 	px4_lockstep_progress(_lockstep_component);
