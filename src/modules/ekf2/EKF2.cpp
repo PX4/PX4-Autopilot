@@ -54,8 +54,6 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_local_position_pub(_multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
 	_global_position_pub(_multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
 	_odometry_pub(_multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
-	_visual_odometry_aligned_pub(_multi_mode ? ORB_ID(estimator_visual_odometry_aligned) :
-				     ORB_ID(vehicle_visual_odometry_aligned)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -171,7 +169,6 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_local_position_pub.advertise();
 	_global_position_pub.advertise();
 	_odometry_pub.advertise();
-	_visual_odometry_aligned_pub.advertise();
 
 	_ekf2_timestamps_pub.advertise();
 	_ekf_gps_drift_pub.advertise();
@@ -182,6 +179,7 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
 	_estimator_status_pub.advertise();
+	_estimator_visual_odometry_aligned_pub.advertised();
 	_wind_pub.advertise();
 	_yaw_est_pub.advertise();
 
@@ -851,7 +849,7 @@ void EKF2::Run()
 					ev_quat_aligned.copyTo(aligned_ev_odom.q);
 					quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
 
-					_visual_odometry_aligned_pub.publish(aligned_ev_odom);
+					_estimator_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 				}
 
 				if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
