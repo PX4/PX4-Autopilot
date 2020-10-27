@@ -7,6 +7,8 @@ float32 dt                # delta time between samples (microseconds)
 
 float32 resolution_hz
 
-float32[2] peak_frequency_x # x axis peak frequencies
-float32[2] peak_frequency_y # y axis peak frequencies
-float32[2] peak_frequency_z # z axis peak frequencies
+float32[3] peak_frequency # peak frequency per axis
+
+float32[4] peak_frequencies_x # x axis peak frequencies
+float32[4] peak_frequencies_y # y axis peak frequencies
+float32[4] peak_frequencies_z # z axis peak frequencies
