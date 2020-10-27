@@ -44,6 +44,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
@@ -56,7 +57,6 @@ namespace sensors
 class VehicleAcceleration : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-
 	VehicleAcceleration();
 	~VehicleAcceleration() override;
 
@@ -77,6 +77,7 @@ private:
 
 	uORB::Publication<vehicle_acceleration_s> _vehicle_acceleration_pub{ORB_ID(vehicle_acceleration)};
 
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 

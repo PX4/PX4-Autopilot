@@ -68,7 +68,8 @@ bool VehicleAngularVelocity::Start()
 	}
 
 	if (!SensorSelectionUpdate(true)) {
-		ScheduleDelayed(10_ms);
+		_selected_sensor_sub_index = 0;
+		_sensor_sub.registerCallback();
 	}
 
 	return true;
@@ -157,6 +158,15 @@ void VehicleAngularVelocity::CheckFilters()
 
 void VehicleAngularVelocity::SensorBiasUpdate(bool force)
 {
+	// find corresponding estimated sensor bias
+	if (_estimator_selector_status_sub.updated()) {
+		estimator_selector_status_s estimator_selector_status;
+
+		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+			_estimator_sensor_bias_sub.ChangeInstance(estimator_selector_status.primary_instance);
+		}
+	}
+
 	if (_estimator_sensor_bias_sub.updated() || force) {
 		estimator_sensor_bias_s bias;
 
@@ -321,6 +331,7 @@ void VehicleAngularVelocity::PrintStatus()
 	PX4_INFO("selected sensor: %d (%d), rate: %.1f Hz",
 		 _selected_sensor_device_id, _selected_sensor_sub_index, (double)_update_rate_hz);
 	PX4_INFO("estimated bias: [%.4f %.4f %.4f]", (double)_bias(0), (double)_bias(1), (double)_bias(2));
+
 	_calibration.PrintStatus();
 }
 

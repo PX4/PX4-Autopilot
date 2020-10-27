@@ -137,7 +137,7 @@ void VehicleAirData::Run()
 
 		if (!_advertised[uorb_index]) {
 			// use data's timestamp to throttle advertisement checks
-			if (hrt_elapsed_time(&_last_data[uorb_index].timestamp) > 1_s) {
+			if ((_last_data[uorb_index].timestamp == 0) || (hrt_elapsed_time(&_last_data[uorb_index].timestamp) > 1_s)) {
 				if (_sensor_sub[uorb_index].advertised()) {
 					if (uorb_index > 0) {
 						/* the first always exists, but for each further sensor, add a new validator */
@@ -151,12 +151,17 @@ void VehicleAirData::Run()
 					// force temperature correction update
 					SensorCorrectionsUpdate(true);
 
+					if (_selected_sensor_sub_index < 0) {
+						_sensor_sub[uorb_index].registerCallback();
+					}
+
 				} else {
 					_last_data[uorb_index].timestamp = hrt_absolute_time();
 				}
 			}
+		}
 
-		} else {
+		if (_advertised[uorb_index]) {
 			updated[uorb_index] = _sensor_sub[uorb_index].update(&_last_data[uorb_index]);
 
 			if (updated[uorb_index]) {
@@ -204,7 +209,8 @@ void VehicleAirData::Run()
 		_baro_sum_count++;
 
 		if ((_param_sens_baro_rate.get() > 0)
-		    && hrt_elapsed_time(&_last_publication_timestamp) >= (1e6f / _param_sens_baro_rate.get())) {
+		    && ((_last_publication_timestamp == 0)
+			|| (hrt_elapsed_time(&_last_publication_timestamp) >= (1e6f / _param_sens_baro_rate.get())))) {
 
 			const float pressure = _baro_sum / _baro_sum_count;
 			const hrt_abstime timestamp_sample = _baro_timestamp_sum / _baro_sum_count;

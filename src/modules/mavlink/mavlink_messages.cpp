@@ -67,6 +67,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
@@ -969,8 +970,9 @@ public:
 
 private:
 	uORB::SubscriptionMultiArray<vehicle_imu_s, 3> _vehicle_imu_subs{ORB_ID::vehicle_imu};
+	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
-	uORB::Subscription _bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
@@ -1010,12 +1012,59 @@ protected:
 			vehicle_magnetometer_s magnetometer{};
 
 			if (_magnetometer_sub.update(&magnetometer)) {
-				/* mark third group dimensions as changed */
+				// mark third group dimensions as changed
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
 
 			} else {
 				_magnetometer_sub.copy(&magnetometer);
 			}
+
+			// find corresponding estimated sensor bias
+			if (_estimator_selector_status_sub.updated()) {
+				estimator_selector_status_s estimator_selector_status;
+
+				if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+					_estimator_sensor_bias_sub.ChangeInstance(estimator_selector_status.primary_instance);
+				}
+			}
+
+			Vector3f accel_bias{0.f, 0.f, 0.f};
+			Vector3f gyro_bias{0.f, 0.f, 0.f};
+			Vector3f mag_bias{0.f, 0.f, 0.f};
+
+			{
+				estimator_sensor_bias_s bias;
+
+				if (_estimator_sensor_bias_sub.copy(&bias)) {
+					if ((bias.accel_device_id != 0) && (bias.accel_device_id == imu.accel_device_id)) {
+						accel_bias = Vector3f{bias.accel_bias};
+					}
+
+					if ((bias.gyro_device_id != 0) && (bias.gyro_device_id == imu.gyro_device_id)) {
+						gyro_bias = Vector3f{bias.gyro_bias};
+					}
+
+					if ((bias.mag_device_id != 0) && (bias.mag_device_id == magnetometer.device_id)) {
+						mag_bias = Vector3f{bias.mag_bias};
+
+					} else {
+						// find primary mag
+						uORB::SubscriptionMultiArray<vehicle_magnetometer_s> mag_subs{ORB_ID::vehicle_magnetometer};
+
+						for (int i = 0; i < mag_subs.size(); i++) {
+							if (mag_subs[i].advertised() && mag_subs[i].copy(&magnetometer)) {
+								if (magnetometer.device_id == bias.mag_device_id) {
+									_magnetometer_sub.ChangeInstance(i);
+									break;
+								}
+							}
+
+						}
+					}
+				}
+			}
+
+			const Vector3f mag = Vector3f{magnetometer.magnetometer_ga} - mag_bias;
 
 			vehicle_air_data_s air_data{};
 
@@ -1037,14 +1086,11 @@ protected:
 				_differential_pressure_sub.copy(&differential_pressure);
 			}
 
-			estimator_sensor_bias_s bias{};
-			_bias_sub.copy(&bias);
-
 			const float accel_dt_inv = 1.e6f / (float)imu.delta_velocity_dt;
-			Vector3f accel = (Vector3f{imu.delta_velocity} * accel_dt_inv) - Vector3f{bias.accel_bias};
+			const Vector3f accel = (Vector3f{imu.delta_velocity} * accel_dt_inv) - accel_bias;
 
 			const float gyro_dt_inv = 1.e6f / (float)imu.delta_angle_dt;
-			Vector3f gyro = (Vector3f{imu.delta_angle} * gyro_dt_inv) - Vector3f{bias.gyro_bias};
+			const Vector3f gyro = (Vector3f{imu.delta_angle} * gyro_dt_inv) - gyro_bias;
 
 			mavlink_highres_imu_t msg{};
 
@@ -1055,9 +1101,9 @@ protected:
 			msg.xgyro = gyro(0);
 			msg.ygyro = gyro(1);
 			msg.zgyro = gyro(2);
-			msg.xmag = magnetometer.magnetometer_ga[0] - bias.mag_bias[0];
-			msg.ymag = magnetometer.magnetometer_ga[1] - bias.mag_bias[1];
-			msg.zmag = magnetometer.magnetometer_ga[2] - bias.mag_bias[2];
+			msg.xmag = mag(0);
+			msg.ymag = mag(1);
+			msg.zmag = mag(2);
 			msg.abs_pressure = air_data.baro_pressure_pa;
 			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
 			msg.pressure_alt = air_data.baro_alt_meter;
@@ -2916,11 +2962,12 @@ public:
 
 	unsigned get_size() override
 	{
-		return _est_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _estimator_status_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	uORB::Subscription _est_sub{ORB_ID(estimator_status)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamEstimatorStatus(MavlinkStreamEstimatorStatus &) = delete;
@@ -2932,9 +2979,20 @@ protected:
 
 	bool send() override
 	{
+		// use primary estimator_status
+		if (_estimator_selector_status_sub.updated()) {
+			estimator_selector_status_s estimator_selector_status;
+
+			if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+				if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
+					_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
+				}
+			}
+		}
+
 		estimator_status_s est;
 
-		if (_est_sub.update(&est)) {
+		if (_estimator_status_sub.update(&est)) {
 			mavlink_estimator_status_t est_msg{};
 			est_msg.time_usec = est.timestamp;
 			est_msg.vel_ratio = est.vel_test_ratio;

@@ -142,12 +142,12 @@ private:
 	bool checkFailover(SensorData &sensor, const char *sensor_name);
 
 	/**
-	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
+	 * Calculates the magnitude in m/s/s of the largest difference between each accelerometer vector and the mean of all vectors
 	 */
 	void calcAccelInconsistency();
 
 	/**
-	 * Calculates the magnitude in rad/s of the largest difference between the primary and any other gyro sensor
+	 * Calculates the magnitude in rad/s of the largest difference between each gyro vector and the mean of all vectors
 	 */
 	void calcGyroInconsistency();
 

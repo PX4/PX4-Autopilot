@@ -41,10 +41,13 @@ px4_add_module(
 	SRCS
 		EKF2.cpp
 		EKF2.hpp
+		EKF2Selector.cpp
+		EKF2Selector.hpp
 	DEPENDS
 		git_ecl
 		ecl_EKF
 		ecl_geo
 		perf
 		EKF2Utility
+		px4_work_queue
 	)

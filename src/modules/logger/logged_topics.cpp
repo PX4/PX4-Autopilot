@@ -55,15 +55,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
 	add_topic("cpuload");
-	add_topic("ekf_gps_drift");
 	add_topic("esc_status", 250);
-	add_topic("estimator_innovation_test_ratios", 200);
-	add_topic("estimator_innovation_variances", 200);
-	add_topic("estimator_innovations", 200);
-	add_topic("estimator_optical_flow_vel", 200);
-	add_topic("estimator_sensor_bias", 1000);
-	add_topic("estimator_states", 1000);
-	add_topic("estimator_status", 200);
 	add_topic("generator_status");
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
@@ -109,24 +101,39 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status");
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
-	add_topic("yaw_estimator_status", 200);
 
 	// multi topics
 	add_topic_multi("actuator_outputs", 100, 2);
 	add_topic_multi("logger_status", 0, 2);
 	add_topic_multi("multirotor_motor_limits", 1000, 2);
 	add_topic_multi("rate_ctrl_status", 200, 2);
-	add_topic_multi("telemetry_status", 1000);
-	add_topic_multi("wind_estimate", 1000);
+	add_topic_multi("telemetry_status", 1000, 4);
+
+	// EKF multi topics (currently max 9 estimators)
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 4;
+	add_topic("estimator_selector_status", 200);
+	add_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_innovation_test_ratios", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_innovation_variances", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_innovations", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_optical_flow_vel", 200, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_sensor_bias", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_status", 500, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("yaw_estimator_status", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("wind_estimate", 1000); // published by both ekf2 and airspeed_selector
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
-	add_topic_multi("battery_status", 300, 4);
-	add_topic_multi("differential_pressure", 1000, 3);
+	add_topic_multi("battery_status", 300, 2);
+	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000);
-	add_topic_multi("optical_flow", 1000, 2);
+	add_topic_multi("optical_flow", 1000, 1);
 	add_topic_multi("sensor_accel", 1000, 4);
 	add_topic_multi("sensor_baro", 1000, 4);
-	add_topic_multi("sensor_gps", 1000, 3);
+	add_topic_multi("sensor_gps", 1000, 2);
 	add_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("vehicle_imu", 500, 4);
@@ -373,7 +380,6 @@ bool LoggedTopics::add_topic_multi(const char *name, uint16_t interval_ms, uint8
 
 	return true;
 }
-
 
 bool LoggedTopics::initialize_logged_topics(SDLogProfileMask profile)
 {
