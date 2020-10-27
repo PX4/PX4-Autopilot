@@ -8,18 +8,9 @@ class JsonOutput():
     def __init__(self, groups, board, inject_xml_file_name):
         all_json=dict()
         all_json['version']=1
-        all_json['uid']=1  #COMPONENT_INFORMATION.comp_metadata_type
         all_json['scope']="Firmware"
         all_params=[]
         all_json['parameters']=all_params
-
-        #xml_parameters = ET.Element("parameters")
-        #xml_version = ET.SubElement(xml_parameters, "version")
-        #xml_version.text = "3"
-        #xml_version = ET.SubElement(xml_parameters, "parameter_version_major")
-        #xml_version.text = "1"
-        #xml_version = ET.SubElement(xml_parameters, "parameter_version_minor")
-        #xml_version.text = "15"
 
         schema_map = {
                         "short_desc": "shortDesc",
