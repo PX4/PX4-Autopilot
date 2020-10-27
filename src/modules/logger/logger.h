@@ -75,8 +75,6 @@ struct LoggerSubscription : public uORB::SubscriptionInterval {
 	LoggerSubscription(ORB_ID id, uint32_t interval_ms = 0, uint8_t instance = 0) :
 		uORB::SubscriptionInterval(id, interval_ms * 1000, instance)
 	{}
-
-	uint8_t msg_id{MSG_ID_INVALID};
 };
 
 class Logger : public ModuleBase<Logger>, public ModuleParams
@@ -335,7 +333,6 @@ private:
 	uint32_t					_log_interval{0};
 	const orb_metadata				*_polling_topic_meta{nullptr}; ///< if non-null, poll on this topic instead of sleeping
 	orb_advert_t					_mavlink_log_pub{nullptr};
-	uint8_t						_next_topic_id{0}; ///< id of next subscribed ulog topic
 	char						*_replay_file_name{nullptr};
 	bool						_should_stop_file_log{false}; /**< if true _next_load_print is set and file logging
 											will be stopped after load printing (for the full log) */
