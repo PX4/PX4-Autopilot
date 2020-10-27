@@ -4055,6 +4055,17 @@ void Commander::estimator_check(const vehicle_status_flags_s &vstatus_flags)
 
 	const bool mag_fault_prev = (_estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT));
 
+	// use primary estimator_status
+	if (_estimator_selector_status_sub.updated()) {
+		estimator_selector_status_s estimator_selector_status;
+
+		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+			if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
+				_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
+			}
+		}
+	}
+
 	if (_estimator_status_sub.update()) {
 		const estimator_status_s &estimator_status = _estimator_status_sub.get();
 

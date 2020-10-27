@@ -287,6 +287,8 @@ rtps:
     id: 137
   - msg: estimator_optical_flow_vel
     id: 138
+  - msg: estimator_selector_status
+    id: 139
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150

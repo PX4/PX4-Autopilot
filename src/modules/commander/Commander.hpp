@@ -63,6 +63,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
@@ -384,6 +385,7 @@ private:
 	uORB::Subscription					_cmd_sub {ORB_ID(vehicle_command)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
+	uORB::Subscription                                      _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};

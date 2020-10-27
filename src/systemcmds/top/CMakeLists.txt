@@ -35,7 +35,7 @@ px4_add_module(
 	MAIN top
 	STACK_MAIN 4096
 	PRIORITY
-		"SCHED_PRIORITY_MAX - 16" # max priority below high priority WQ threads
+		"SCHED_PRIORITY_MAX - 18" # max priority below high priority WQ threads
 	SRCS
 		top.cpp
 	DEPENDS

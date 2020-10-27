@@ -39,8 +39,12 @@
  */
 
 #pragma once
+
+#include "EKF2Selector.hpp"
+
 #include <float.h>
 
+#include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/EKF/ekf.h>
 #include <lib/mathlib/mathlib.h>
@@ -61,6 +65,7 @@
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_drift.h>
 #include <uORB/topics/estimator_innovations.h>
+#include <uORB/topics/estimator_optical_flow_vel.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
@@ -81,14 +86,16 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/yaw_estimator_status.h>
-#include <uORB/topics/estimator_optical_flow_vel.h>
 
 #include "Utility/PreFlightChecker.hpp"
 
-class EKF2 final : public ModuleBase<EKF2>, public ModuleParams, public px4::ScheduledWorkItem
+extern pthread_mutex_t ekf2_module_mutex;
+
+class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	explicit EKF2(bool replay_mode = false);
+	EKF2() = delete;
+	EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool replay_mode);
 	~EKF2() override;
 
 	/** @see ModuleBase */
@@ -100,9 +107,15 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	bool init();
+	int print_status();
 
-	int print_status() override;
+	bool should_exit() const { return _task_should_exit.load(); }
+
+	void request_stop() { _task_should_exit.store(true); }
+
+	static void lock_module() { pthread_mutex_lock(&ekf2_module_mutex); }
+	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
+	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
 private:
 	void Run() override;
@@ -123,19 +136,23 @@ private:
 	bool update_mag_decl(Param &mag_decl_param);
 
 	void publish_attitude(const hrt_abstime &timestamp);
+	void publish_estimator_optical_flow_vel(const hrt_abstime &timestamp);
 	void publish_odometry(const hrt_abstime &timestamp, const imuSample &imu, const vehicle_local_position_s &lpos);
 	void publish_wind_estimate(const hrt_abstime &timestamp);
 	void publish_yaw_estimator_status(const hrt_abstime &timestamp);
-	void publish_estimator_optical_flow_vel(const hrt_abstime &timestamp);
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
 	 */
 	float filter_altitude_ellipsoid(float amsl_hgt);
 
-	inline float sq(float x) { return x * x; };
+	static constexpr float sq(float x) { return x * x; };
 
-	const bool 	_replay_mode;			///< true when we use replay data from a log
+	const bool _replay_mode{false};			///< true when we use replay data from a log
+	const bool _multi_mode;
+	const int _instance;
+
+	px4::atomic_bool _task_should_exit{false};
 
 	// time slip monitoring
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
@@ -186,9 +203,8 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
-	static constexpr int MAX_SENSOR_COUNT = 3;
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
-	int _imu_sub_index{-1};
+
 	bool _callback_registered{false};
 	int _lockstep_component{-1};
 
@@ -200,22 +216,24 @@ private:
 	vehicle_land_detected_s		_vehicle_land_detected{};
 	vehicle_status_s		_vehicle_status{};
 
-	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
-	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
-	uORB::Publication<estimator_innovations_s>		_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
-	uORB::Publication<estimator_innovations_s>		_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
-	uORB::Publication<estimator_innovations_s>		_estimator_innovations_pub{ORB_ID(estimator_innovations)};
-	uORB::Publication<estimator_optical_flow_vel_s>		_estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
-	uORB::Publication<estimator_sensor_bias_s>		_estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
-	uORB::Publication<estimator_states_s>			_estimator_states_pub{ORB_ID(estimator_states)};
-	uORB::PublicationData<estimator_status_s>		_estimator_status_pub{ORB_ID(estimator_status)};
-	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
-	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::Publication<yaw_estimator_status_s>		_yaw_est_pub{ORB_ID(yaw_estimator_status)};
-	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
-	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
-	uORB::PublicationData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
+	uORB::PublicationMulti<ekf2_timestamps_s>		_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
+	uORB::PublicationMulti<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
+	uORB::PublicationMulti<estimator_innovations_s>		_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
+	uORB::PublicationMulti<estimator_innovations_s>		_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
+	uORB::PublicationMulti<estimator_innovations_s>		_estimator_innovations_pub{ORB_ID(estimator_innovations)};
+	uORB::PublicationMulti<estimator_optical_flow_vel_s>	_estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
+	uORB::PublicationMulti<estimator_sensor_bias_s>		_estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
+	uORB::PublicationMulti<estimator_states_s>		_estimator_states_pub{ORB_ID(estimator_states)};
+	uORB::PublicationMultiData<estimator_status_s>		_estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::PublicationMulti<yaw_estimator_status_s>		_yaw_est_pub{ORB_ID(yaw_estimator_status)};
 	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
+
+	// publications with topic dependent on multi-mode
+	uORB::PublicationMulti<vehicle_attitude_s>            _attitude_pub;
+	uORB::PublicationMultiData<vehicle_local_position_s>  _local_position_pub;
+	uORB::PublicationMultiData<vehicle_global_position_s> _global_position_pub;
+	uORB::PublicationMulti<vehicle_odometry_s>            _odometry_pub;
+	uORB::PublicationMultiData<vehicle_odometry_s>        _visual_odometry_aligned_pub;
 
 	Ekf _ekf;
 
@@ -367,8 +385,6 @@ private:
 		_param_ekf2_of_qmin,	///< minimum acceptable quality integer from  the flow sensor
 		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
 		_param_ekf2_of_gate,	///< optical flow fusion innovation consistency gate size (STD)
-
-		(ParamInt<px4::params::EKF2_IMU_ID>) _param_ekf2_imu_id,
 
 		// sensor positions in body frame
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
