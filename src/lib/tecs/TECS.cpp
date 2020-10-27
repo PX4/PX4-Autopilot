@@ -352,10 +352,6 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const matrix::
 				// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
 				// at end of climbout when we transition to closed loop throttle control
 				_throttle_integ_state = integ_state_max;
-
-			} else {
-				// Respect integrator limits during closed loop operation.
-				_throttle_integ_state = constrain(_throttle_integ_state, integ_state_min, integ_state_max);
 			}
 
 		} else {
