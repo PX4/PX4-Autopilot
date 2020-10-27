@@ -45,7 +45,7 @@ void ZeroOrderHoverThrustEkf::predict(const float dt)
 {
 	// State is constant
 	// Predict state covariance only
-	_state_var += _process_var * dt;
+	_state_var += _process_var * dt * dt;
 	_dt = dt;
 }
 
@@ -133,7 +133,7 @@ inline bool ZeroOrderHoverThrustEkf::isLargeOffsetDetected() const
 
 inline void ZeroOrderHoverThrustEkf::bumpStateVariance()
 {
-	_state_var += 1e3f * _process_var * _dt;
+	_state_var += 1e3f * _process_var * _dt * _dt;
 }
 
 inline void ZeroOrderHoverThrustEkf::updateLpf(const float residual, const float signed_innov_test_ratio)
