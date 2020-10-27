@@ -125,8 +125,7 @@ private:
 
 	PreFlightChecker _preflt_checker;
 	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
-				const vehicle_status_s &vehicle_status,
-				const estimator_innovations_s &innov);
+				const estimator_innovations_s &innov, const bool can_observe_heading_in_flight);
 	void resetPreFlightChecks();
 
 	template<typename Param>
@@ -213,10 +212,11 @@ private:
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
-	vehicle_status_s		_vehicle_status{};
-
+	bool _armed{false};
+	bool _standby{false}; // standby arming state
 	bool _landed{true};
 	bool _in_ground_effect{false};
+	bool _can_observe_heading_in_flight{false};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
