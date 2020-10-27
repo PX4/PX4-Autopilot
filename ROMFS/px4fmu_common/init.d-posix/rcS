@@ -216,6 +216,7 @@ if ! replay tryapplyparams
 then
 	simulator start -c $simulator_tcp_port
 fi
+load_mon start
 battery_simulator start
 tone_alarm start
 rc_update start
