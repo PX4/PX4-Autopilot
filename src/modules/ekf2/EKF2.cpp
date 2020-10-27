@@ -34,8 +34,10 @@
 #include "EKF2.hpp"
 
 using namespace time_literals;
-
 using math::constrain;
+using matrix::Eulerf;
+using matrix::Quatf;
+using matrix::Vector3f;
 
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
@@ -611,7 +613,7 @@ void EKF2::Run()
 
 			// check for valid orientation data
 			if (PX4_ISFINITE(ev_odom.q[0])) {
-				ev_data.quat = matrix::Quatf(ev_odom.q);
+				ev_data.quat = Quatf(ev_odom.q);
 
 				// orientation measurement error from ev_data or parameters
 				float param_eva_noise_var = sq(_param_ekf2_eva_noise.get());
@@ -653,8 +655,8 @@ void EKF2::Run()
 				if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 					// velocity of vehicle relative to target has opposite sign to target relative to vehicle
 					auxVelSample auxvel_sample {};
-					auxvel_sample.vel = matrix::Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, 0.0f};
-					auxvel_sample.velVar = matrix::Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, 0.0f};
+					auxvel_sample.vel = Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, 0.0f};
+					auxvel_sample.velVar = Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, 0.0f};
 					auxvel_sample.time_us = landing_target_pose.timestamp;
 					_ekf.setAuxVelData(auxvel_sample);
 				}
@@ -732,13 +734,13 @@ void EKF2::Run()
 				}
 
 				// The rotation of the tangent plane vs. geographical north
-				const matrix::Quatf q = _ekf.getQuaternion();
+				const Quatf q = _ekf.getQuaternion();
 
-				matrix::Quatf delta_q_reset;
+				Quatf delta_q_reset;
 				_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
 
-				lpos.heading = matrix::Eulerf(q).psi();
-				lpos.delta_heading = matrix::Eulerf(delta_q_reset).psi();
+				lpos.heading = Eulerf(q).psi();
+				lpos.delta_heading = Eulerf(delta_q_reset).psi();
 
 				lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 
@@ -1137,7 +1139,7 @@ void EKF2::Run()
 			aligned_ev_odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 			// Compute orientation in EKF navigation frame
-			Quatf ev_quat_aligned = quat_ev2ekf * matrix::Quatf(ev_odom.q) ;
+			Quatf ev_quat_aligned = quat_ev2ekf * Quatf(ev_odom.q) ;
 			ev_quat_aligned.normalize();
 
 			ev_quat_aligned.copyTo(aligned_ev_odom.q);
