@@ -391,6 +391,10 @@ Mission::find_mission_land_start()
 	struct mission_item_s missionitem = {};
 	struct mission_item_s missionitem_prev = {}; //to store mission item before currently checked on, needed to get pos of wp before NAV_CMD_DO_LAND_START
 
+	_land_start_available = false;
+
+	bool found_land_start_marker = false;
+
 	for (size_t i = 1; i < _mission.count; i++) {
 		const ssize_t len = sizeof(missionitem);
 		missionitem_prev = missionitem; // store the last mission item before reading a new one
@@ -402,36 +406,41 @@ Mission::find_mission_land_start()
 		}
 
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
-			_land_start_available = true;
+			found_land_start_marker = true;
 			_land_start_index = i;
 		}
 
-		if (_land_start_available && i > _land_start_index  && item_contains_position(missionitem)) {
+		if (found_land_start_marker && !_land_start_available && i > _land_start_index
+		    && item_contains_position(missionitem)) {
 			// use the position of any waypoint after the land start marker which specifies a position.
-			_landing_lat = missionitem.lat;
-			_landing_lon = missionitem.lon;
-			_landing_alt = missionitem.altitude_is_relative ?	missionitem.altitude +
-				       _navigator->get_home_position()->alt : missionitem.altitude;
-
-			return true;
-
-			// if no DO_LAND_START marker available, also check for VTOL_LAND or normal LAND
-
-		} else if (((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
-			   (missionitem.nav_cmd == NAV_CMD_LAND)) {
-
+			_landing_start_lat = missionitem.lat;
+			_landing_start_lon = missionitem.lon;
+			_landing_start_alt = missionitem.altitude_is_relative ?	missionitem.altitude +
+					     _navigator->get_home_position()->alt : missionitem.altitude;
 			_land_start_available = true;
-			_land_start_index = i;
+		}
+
+		if (((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
+		    (missionitem.nav_cmd == NAV_CMD_LAND)) {
+
 			_landing_lat = missionitem.lat;
 			_landing_lon = missionitem.lon;
 			_landing_alt = missionitem.altitude_is_relative ?	missionitem.altitude + _navigator->get_home_position()->alt :
 				       missionitem.altitude;
-			return true;
+
+			// don't have a valid land start yet, use the landing item itself then
+			if (!_land_start_available) {
+				_land_start_index = i;
+				_landing_start_lat = _landing_lat;
+				_landing_start_lon = _landing_lon;
+				_landing_start_alt = _landing_alt;
+				_land_start_available = true;
+			}
+
 		}
 	}
 
-	_land_start_available = false;
-	return false;
+	return _land_start_available;
 }
 
 bool
