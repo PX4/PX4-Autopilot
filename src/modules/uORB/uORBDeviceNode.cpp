@@ -468,13 +468,7 @@ void uORB::DeviceNode::add_internal_subscriber()
 void uORB::DeviceNode::remove_internal_subscriber()
 {
 	lock();
-
-	if (_subscriber_count > 0) {
-		_subscriber_count--;
-
-	} else {
-		PX4_ERR("%s:%d subscriber count %d", get_name(), get_instance(), _subscriber_count);
-	}
+	_subscriber_count--;
 
 #ifdef ORB_COMMUNICATOR
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
