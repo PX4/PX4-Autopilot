@@ -110,7 +110,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("telemetry_status", 1000, 4);
 
 	// EKF multi topics (currently max 9 estimators)
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 9;
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 4;
 	add_topic("estimator_selector_status", 200);
 	add_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
@@ -127,13 +127,13 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("wind_estimate", 1000); // published by both ekf2 and airspeed_selector
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
-	add_topic_multi("battery_status", 300, 4);
-	add_topic_multi("differential_pressure", 1000, 3);
+	add_topic_multi("battery_status", 300, 2);
+	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000);
-	add_topic_multi("optical_flow", 1000, 2);
+	add_topic_multi("optical_flow", 1000, 1);
 	add_topic_multi("sensor_accel", 1000, 4);
 	add_topic_multi("sensor_baro", 1000, 4);
-	add_topic_multi("sensor_gps", 1000, 3);
+	add_topic_multi("sensor_gps", 1000, 2);
 	add_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("vehicle_imu", 500, 4);
