@@ -86,7 +86,6 @@ private:
 			estimator_local_position_sub{ORB_ID(estimator_local_position), i},
 			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
 			estimator_odometry_sub{ORB_ID(estimator_odometry), i},
-			estimator_visual_odometry_aligned_sub{ORB_ID(estimator_visual_odometry_aligned), i},
 			instance(i)
 		{}
 
@@ -96,7 +95,6 @@ private:
 		uORB::Subscription estimator_local_position_sub;
 		uORB::Subscription estimator_global_position_sub;
 		uORB::Subscription estimator_odometry_sub;
-		uORB::Subscription estimator_visual_odometry_aligned_sub;
 
 		estimator_status_s estimator_status{};
 
@@ -187,7 +185,6 @@ private:
 	uORB::Publication<vehicle_global_position_s>   _vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_local_position_s>    _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<vehicle_odometry_s>          _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::Publication<vehicle_odometry_s>          _vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,

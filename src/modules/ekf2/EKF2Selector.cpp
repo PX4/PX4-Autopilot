@@ -586,18 +586,6 @@ void EKF2Selector::Run()
 				}
 			}
 		}
-
-		// selected estimator_visual_odometry_aligned -> vehicle_visual_odometry_aligned
-		if (_instance[_selected_instance].estimator_visual_odometry_aligned_sub.updated()) {
-			vehicle_odometry_s vehicle_visual_odometry_aligned;
-
-			if (_instance[_selected_instance].estimator_visual_odometry_aligned_sub.update(&vehicle_visual_odometry_aligned)) {
-				if (vehicle_visual_odometry_aligned.timestamp >= _instance[_selected_instance].estimator_status.timestamp_sample) {
-					vehicle_visual_odometry_aligned.timestamp = hrt_absolute_time();
-					_vehicle_visual_odometry_aligned_pub.publish(vehicle_visual_odometry_aligned);
-				}
-			}
-		}
 	}
 
 	if (_lockstep_component == -1) {
