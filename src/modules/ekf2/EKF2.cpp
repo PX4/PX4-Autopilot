@@ -629,11 +629,13 @@ void EKF2::Run()
 			new_ev_data_received = true;
 		}
 
-		bool vehicle_land_detected_updated = _vehicle_land_detected_sub.updated();
+		if (_vehicle_land_detected_sub.updated()) {
+			vehicle_land_detected_s vehicle_land_detected;
 
-		if (vehicle_land_detected_updated) {
-			if (_vehicle_land_detected_sub.copy(&_vehicle_land_detected)) {
-				_ekf.set_in_air_status(!_vehicle_land_detected.landed);
+			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+				_ekf.set_in_air_status(!vehicle_land_detected.landed);
+				_landed = vehicle_land_detected.landed;
+				_in_ground_effect = vehicle_land_detected.in_ground_effect;
 			}
 		}
 
@@ -757,9 +759,9 @@ void EKF2::Run()
 						// _had_valid_terrain is used to make sure that we don't fall back to using this option
 						// if we temporarily lose terrain data due to the distance sensor getting out of range
 
-					} else if (vehicle_land_detected_updated && !_had_valid_terrain) {
+					} else if (!_had_valid_terrain) {
 						// update ground effect flag based on land detector state
-						_ekf.set_gnd_effect_flag(_vehicle_land_detected.in_ground_effect);
+						_ekf.set_gnd_effect_flag(_in_ground_effect);
 					}
 
 				} else {
@@ -932,7 +934,7 @@ void EKF2::Run()
 				/* Check and save learned magnetometer bias estimates */
 
 				// Check if conditions are OK for learning of magnetometer bias values
-				if (!_vehicle_land_detected.landed && // not on ground
+				if (!_landed && // not on ground
 				    (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
 				    !status.filter_fault_flags && // there are no filter faults
 				    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
