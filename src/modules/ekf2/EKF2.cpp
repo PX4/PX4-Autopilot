@@ -343,15 +343,20 @@ void EKF2::Run()
 		ekf2_timestamps.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
 		// update all other topics if they have new data
-		if (_status_sub.update(&_vehicle_status)) {
+		if (_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
 
-			const bool is_fixed_wing = (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+			if (_status_sub.copy(&vehicle_status)) {
 
-			// only fuse synthetic sideslip measurements if conditions are met
-			_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
+				const bool is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+				_can_observe_heading_in_flight = (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
-			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
-			_ekf.set_is_fixed_wing(is_fixed_wing);
+				// only fuse synthetic sideslip measurements if conditions are met
+				_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
+
+				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
+				_ekf.set_is_fixed_wing(is_fixed_wing);
+			}
 		}
 
 		// Always update sensor selction first time through if time stamp is non zero
@@ -406,7 +411,7 @@ void EKF2::Run()
 
 				_device_id_mag = magnetometer.device_id;
 
-				if ((_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
+				if (!_armed && (_invalid_mag_id_count > 100)) {
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
 					// this means we need to reset the learned bias values to zero
 					_param_ekf2_magbias_x.set(0.f);
@@ -750,7 +755,7 @@ void EKF2::Run()
 				}
 
 				// only consider ground effect if compensation is configured and the vehicle is armed (props spinning)
-				if (_param_ekf2_gnd_eff_dz.get() > 0.0f && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+				if ((_param_ekf2_gnd_eff_dz.get() > 0.0f) && _armed) {
 					// set ground effect flag if vehicle is closer than a specified distance to the ground
 					if (lpos.dist_bottom_valid) {
 						_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
@@ -934,8 +939,7 @@ void EKF2::Run()
 				/* Check and save learned magnetometer bias estimates */
 
 				// Check if conditions are OK for learning of magnetometer bias values
-				if (!_landed && // not on ground
-				    (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
+				if (!_landed && _armed &&
 				    !status.filter_fault_flags && // there are no filter faults
 				    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
 
@@ -990,9 +994,7 @@ void EKF2::Run()
 				}
 
 				// Check and save the last valid calibration when we are disarmed
-				if ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
-				    && (status.filter_fault_flags == 0)) {
-
+				if (!_armed && _standby && (status.filter_fault_flags == 0)) {
 					update_mag_bias(_param_ekf2_magbias_x, 0);
 					update_mag_bias(_param_ekf2_magbias_y, 1);
 					update_mag_bias(_param_ekf2_magbias_z, 2);
@@ -1006,7 +1008,7 @@ void EKF2::Run()
 
 			publish_yaw_estimator_status(now);
 
-			if (!_mag_decl_saved && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
+			if (!_mag_decl_saved && _standby) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
 			}
 
@@ -1078,9 +1080,9 @@ void EKF2::Run()
 				test_ratios.fake_hvel[0] = test_ratios.fake_hvel[1] = test_ratios.fake_vvel = NAN;
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
-				if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+				if (_standby) {
 					float dt_seconds = imu_sample_new.delta_ang_dt;
-					runPreFlightChecks(dt_seconds, control_status, _vehicle_status, innovations);
+					runPreFlightChecks(dt_seconds, control_status, innovations, _can_observe_heading_in_flight);
 
 				} else {
 					resetPreFlightChecks();
@@ -1180,11 +1182,9 @@ void EKF2::fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_p
 
 void EKF2::runPreFlightChecks(const float dt,
 			      const filter_control_status_u &control_status,
-			      const vehicle_status_s &vehicle_status,
-			      const estimator_innovations_s &innov)
+			      const estimator_innovations_s &innov,
+			      const bool can_observe_heading_in_flight)
 {
-	const bool can_observe_heading_in_flight = (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-
 	_preflt_checker.setVehicleCanObserveHeadingInFlight(can_observe_heading_in_flight);
 	_preflt_checker.setUsingGpsAiding(control_status.flags.gps);
 	_preflt_checker.setUsingFlowAiding(control_status.flags.opt_flow);
