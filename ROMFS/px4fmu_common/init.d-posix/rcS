@@ -142,10 +142,10 @@ then
 	param set EKF2_REQ_GPS_H 0.5
 
 	# Multi-EKF
-	#param set EKF2_MULTI_IMU 3
-	#param set SENS_IMU_MODE 0
-	#param set EKF2_MULTI_MAG 2
-	#param set SENS_MAG_MODE 0
+	param set EKF2_MULTI_IMU 3
+	param set SENS_IMU_MODE 0
+	param set EKF2_MULTI_MAG 2
+	param set SENS_MAG_MODE 0
 
 	# By default log from boot until first disarm.
 	param set SDLOG_MODE 1
