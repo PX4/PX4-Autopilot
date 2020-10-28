@@ -394,12 +394,12 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
 PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
 
 /**
- * Throttle time constant factor for landing
+ * Altitude time constant factor for landing
  *
- * Set this parameter to less than 1.0 to make the TECS throttle loop react faster during
+ * Set this parameter to less than 1.0 to make TECS react faster to altitude errors during
  * landing than during normal flight (i.e. giving efficiency and low motor wear at
  * high altitudes but control accuracy during landing). During landing, the TECS
- * throttle time constant (FW_T_THRO_CONST) is multiplied by this value.
+ * altitude time constant (FW_T_ALT_TC) is multiplied by this value.
  *
  * @unit
  * @min 0.2
