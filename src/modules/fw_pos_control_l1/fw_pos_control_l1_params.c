@@ -549,7 +549,7 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.1f);
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_I_GAIN_THR, 0.1f);
+PARAM_DEFINE_FLOAT(FW_T_I_GAIN_THR, 0.3f);
 
 /**
  * Integrator gain pitch
@@ -681,7 +681,7 @@ PARAM_DEFINE_FLOAT(FW_T_ALT_TC, 5.0f);
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.4f);
+PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.3f);
 
 /**
  * True airspeed error time constant.
@@ -746,4 +746,4 @@ PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
  * @increment 0.01
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_TAS_R_TC, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_TAS_R_TC, 0.2f);
