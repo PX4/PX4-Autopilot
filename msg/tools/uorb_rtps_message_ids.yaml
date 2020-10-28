@@ -370,4 +370,7 @@ rtps:
   - msg: orb_test_medium_queue_poll
     id: 175
     alias: orb_test_medium
+  - msg: orb_test_medium_wrap_around
+    id: 176
+    alias: orb_test_medium
   ########## multi topics: end ##########
