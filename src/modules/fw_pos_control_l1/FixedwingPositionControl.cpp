@@ -638,7 +638,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 		/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
 		_tecs.set_speed_weight(_param_fw_t_spdweight.get());
-		//_tecs.set_time_const_throt(_param_fw_t_thro_const.get());
+		_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
 
 		Vector2f curr_wp{0.0f, 0.0f};
 		Vector2f prev_wp{0.0f, 0.0f};
@@ -842,9 +842,9 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid
 			    && _l1_control.circle_mode() && _param_fw_lnd_earlycfg.get()) {
 				// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
-				// landing airspeed and potentially tighter throttle control) already such that we don't
+				// landing airspeed and potentially tighter altitude control) already such that we don't
 				// have to do this switch (which can cause significant altitude errors) close to the ground.
-				//_tecs.set_time_const_throt(_param_fw_thrtc_sc.get() * _param_fw_t_thro_const.get());
+				_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 				mission_airspeed = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
 				_att_sp.apply_flaps = true;
 			}
@@ -864,7 +864,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 					_att_sp.roll_body = 0.0f;
 				}
 
-				//_tecs.set_time_const_throt(_param_fw_thrtc_sc.get() * _param_fw_t_thro_const.get());
+				_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 			}
 
 			tecs_update_pitch_throttle(now, alt_sp,
@@ -1329,8 +1329,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2f
 	// if they have been enabled using the corresponding parameter
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 
-	// Enable tighter throttle control for landings
-	//_tecs.set_time_const_throt(_param_fw_thrtc_sc.get() * _param_fw_t_thro_const.get());
+	// Enable tighter altitude control for landings
+	_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 
 	// save time at which we started landing and reset abort_landing
 	if (_time_started_landing == 0) {
