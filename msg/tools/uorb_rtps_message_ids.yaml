@@ -373,4 +373,16 @@ rtps:
   - msg: orb_test_medium_wrap_around
     id: 176
     alias: orb_test_medium
+  - msg: estimator_local_position
+    id: 177
+    alias: vehicle_local_position
+  - msg: estimator_global_position
+    id: 178
+    alias: vehicle_global_position
+  - msg: estimator_attitude
+    id: 179
+    alias: vehicle_attitude
+  - msg: estimator_odometry
+    id: 180
+    alias: vehicle_odometry
   ########## multi topics: end ##########
