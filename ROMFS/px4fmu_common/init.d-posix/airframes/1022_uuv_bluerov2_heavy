@@ -15,8 +15,6 @@ then
 
 fi
 
-set MAV_TYPE 12
-param set MAV_TYPE ${MAV_TYPE}
 set PWM_OUT 12345678
 set MIXER_FILE etc/mixers-sitl/vectored6dof_sitl.main.mix
 set MIXER custom
