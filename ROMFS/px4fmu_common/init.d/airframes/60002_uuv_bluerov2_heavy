@@ -29,12 +29,10 @@ then
 	param set NAV_DLL_ACT 0
 
 	# disable circuit breaker for airspeed sensor
-	set CBRK_AIRSPD_CHK 162128
-	set CBRK_USB_CHK 197848
-	set CBRK_IO_SAFETY 22027
-	param set CBRK_AIRSPD_CHK ${CBRK_AIRSPD_CHK}
-	param set CBRK_USB_CHK ${CBRK_USB_CHK}
-	param set CBRK_IO_SAFETY ${CBRK_IO_SAFETY}
+	param set CBRK_AIRSPD_CHK 162128
+	# companion computer is connected via USB permanently
+	param set CBRK_USB_CHK 197848
+	param set CBRK_IO_SAFETY 22027
 
 	param set COM_PREARM_MODE 0
 
