@@ -96,14 +96,20 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
 	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
 	    _system_type == MAV_TYPE_VTOL_TILTROTOR ||
-	    _system_type == MAV_TYPE_VTOL_RESERVED2) {
+	    _system_type == MAV_TYPE_VTOL_RESERVED2 ||
+	    _system_type == MAV_TYPE_SUBMARINE) {
 
 		/* multirotors: set number of rotor outputs depending on type */
 
 		unsigned n;
 
 		switch (_system_type) {
+		case MAV_TYPE_SUBMARINE:
+			n = 0;
+			break;
+
 		case MAV_TYPE_AIRSHIP:
+
 		case MAV_TYPE_VTOL_DUOROTOR:
 			n = 2;
 			break;
