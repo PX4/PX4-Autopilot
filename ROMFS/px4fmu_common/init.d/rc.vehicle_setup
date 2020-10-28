@@ -183,6 +183,13 @@ then
 		echo "UUV mixer undefined"
 	fi
 
+	if [ $MAV_TYPE = none ]
+	then
+		# Set default MAV_TYPE to submarine if not defined
+		set MAV_TYPE 12
+	fi
+
+	param set MAV_TYPE ${MAV_TYPE}
 	# Load mixer and configure outputs.
 	. ${R}etc/init.d/rc.interface
 
