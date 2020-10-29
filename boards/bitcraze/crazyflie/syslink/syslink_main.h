@@ -141,7 +141,7 @@ private:
 	static constexpr uint32_t SYSLINK_BATTERY_STATUS_INTERVAL_US = 10_ms;
 	Battery _battery{1, nullptr, SYSLINK_BATTERY_STATUS_INTERVAL_US};
 
-	int32_t _rssi;
+	uint8_t _rssi;
 	battery_state _bstate;
 
 	px4_sem_t memory_sem;

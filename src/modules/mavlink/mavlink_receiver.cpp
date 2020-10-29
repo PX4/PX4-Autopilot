@@ -2003,7 +2003,7 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	// metadata
 	rc.timestamp = hrt_absolute_time();
 	rc.timestamp_last_signal = rc.timestamp;
-	rc.rssi = RC_INPUT_RSSI_MAX;
+	rc.rssi = input_rc_s::RC_RSSI_MAX;
 	rc.rc_failsafe = false;
 	rc.rc_lost = false;
 	rc.rc_lost_frame_count = 0;
@@ -2075,7 +2075,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		rc.rc_total_frame_count = 1;
 		rc.rc_ppm_frame_length = 0;
 		rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
-		rc.rssi = RC_INPUT_RSSI_MAX;
+		rc.rssi = input_rc_s::RC_RSSI_MAX;
 
 		rc.values[0] = man.x / 2 + 1500;	// roll
 		rc.values[1] = man.y / 2 + 1500;	// pitch

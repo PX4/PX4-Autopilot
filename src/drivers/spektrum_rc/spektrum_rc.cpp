@@ -74,7 +74,7 @@ void usage();
 void task_main(int argc, char *argv[]);
 
 void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
-		   hrt_abstime now, bool frame_drop, bool failsafe, unsigned frame_drops, int rssi,
+		   hrt_abstime now, bool frame_drop, bool failsafe, unsigned frame_drops, uint8_t rssi,
 		   input_rc_s &input_rc);
 
 void task_main(int argc, char *argv[])
@@ -129,7 +129,7 @@ void task_main(int argc, char *argv[])
 
 		bool dsm_11_bit;
 		unsigned frame_drops;
-		int8_t dsm_rssi;
+		uint8_t dsm_rssi;
 
 		// parse new data
 		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,
@@ -163,7 +163,7 @@ void task_main(int argc, char *argv[])
 }
 
 void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
-		   hrt_abstime now, bool frame_drop, bool failsafe, unsigned frame_drops, int rssi,
+		   hrt_abstime now, bool frame_drop, bool failsafe, unsigned frame_drops, uint8_t rssi,
 		   input_rc_s &input_rc)
 {
 	input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_QURT;
@@ -188,17 +188,8 @@ void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_
 	input_rc.timestamp_last_signal = input_rc.timestamp;
 	input_rc.rc_ppm_frame_length = 0;
 
-	/* fake rssi if no value was provided */
-	if (rssi == -1) {
-
-		input_rc.rssi = 255;
-
-	} else {
-		input_rc.rssi = rssi;
-	}
-
 	if (valid_chans == 0) {
-		input_rc.rssi = 0;
+		input_rc.rssi = input_rc_s::RC_RSSI_NO_SIGNAL;
 	}
 
 	input_rc.rc_failsafe = failsafe;

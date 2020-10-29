@@ -96,7 +96,7 @@ Syslink::Syslink() :
 	_fd(0),
 	_queue(2, sizeof(syslink_message_t)),
 	_writebuffer(16, sizeof(crtp_message_t)),
-	_rssi(RC_INPUT_RSSI_MAX),
+	_rssi(input_rc_s::RC_RSSI_MAX),
 	_bstate(BAT_DISCHARGING)
 {
 	px4_sem_init(&memory_sem, 0, 0);
