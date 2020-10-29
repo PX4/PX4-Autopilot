@@ -252,17 +252,12 @@ void TECS::_update_energy_estimates()
 	// Calculate total energy error
 	_STE_error = _SPE_setpoint - _SPE_estimate + _SKE_setpoint - _SKE_estimate;
 
-	const float SKE_weighting = get_SKE_weighting();
-
-	// Calculate the weighting applied to control of specific potential energy error
-	const float SPE_weighting = 2.0f - SKE_weighting;
-
 	// Calculate the specific energy balance demand which specifies how the available total
 	// energy should be allocated to speed (kinetic energy) and height (potential energy)
-	float SEB_setpoint = _SPE_setpoint * SPE_weighting - _SKE_setpoint * SKE_weighting;
+	float SEB_setpoint = _SPE_setpoint * _SPE_weight - _SKE_setpoint * _SKE_weight;
 
 	// Calculate the specific energy balance error
-	_SEB_error = SEB_setpoint - (_SPE_estimate * SPE_weighting - _SKE_estimate * SKE_weighting);
+	_SEB_error = SEB_setpoint - (_SPE_estimate * _SPE_weight - _SKE_estimate * _SKE_weight);
 
 	// Calculate specific energy rate demands in units of (m**2/sec**3)
 	_SPE_rate_setpoint = _hgt_rate_setpoint * CONSTANTS_ONE_G; // potential energy rate of change
@@ -419,16 +414,12 @@ void TECS::_update_pitch_setpoint()
 	 * rises above the demanded value, the pitch angle demand is increased by the TECS controller to prevent the vehicle overspeeding.
 	 * The weighting can be adjusted between 0 and 2 depending on speed and height accuracy requirements.
 	*/
-	const float SKE_weighting = get_SKE_weighting();
-
-	// Calculate the weighting applied to control of specific potential energy error
-	const float SPE_weighting = 2.0f - SKE_weighting;
 
 	// Calculate the specific energy balance rate demand
-	const float SEB_rate_setpoint = _SPE_rate_setpoint * SPE_weighting - _SKE_rate_setpoint * SKE_weighting;
+	const float SEB_rate_setpoint = _SPE_rate_setpoint * _SPE_weight - _SKE_rate_setpoint * _SKE_weight;
 
 	// Calculate the specific energy balance rate error
-	_SEB_rate_error = SEB_rate_setpoint - (_SPE_rate * SPE_weighting - _SKE_rate * SKE_weighting);
+	_SEB_rate_error = SEB_rate_setpoint - (_SPE_rate * _SPE_weight - _SKE_rate * _SKE_weight);
 
 	// Calculate derivative from change in climb angle to rate of change of specific energy balance
 	const float climb_angle_to_SEB_rate = _tas_state * CONSTANTS_ONE_G;
@@ -579,6 +570,8 @@ void TECS::update_pitch_throttle(const matrix::Dcmf &rotMat, float pitch, float 
 	// Detect an underspeed condition
 	_detect_underspeed();
 
+	_update_speed_height_weights();
+
 	// Detect an uncommanded descent caused by an unachievable airspeed demand
 	_detect_uncommanded_descent();
 
@@ -617,57 +610,40 @@ void TECS::update_pitch_throttle(const matrix::Dcmf &rotMat, float pitch, float 
 
 }
 
-float TECS::get_SKE_weighting()
+void TECS::_update_speed_height_weights()
 {
-	// Calculate the weighting applied to control of specific kinetic energy error
-	float SKE_weighting = constrain(_pitch_speed_weight, 0.0f, 2.0f);
+	// Calculate the weight applied to control of specific kinetic energy error
+	_SKE_weight = constrain(_pitch_speed_weight, 0.0f, 2.0f);
 
 	if ((_underspeed_detected || _climbout_mode_active) && airspeed_sensor_enabled()) {
-		SKE_weighting = 2.0f;
+		_SKE_weight = 2.0f;
 
 	} else if (!airspeed_sensor_enabled()) {
-		SKE_weighting = 0.0f;
+		_SKE_weight = 0.0f;
 	}
 
-	return SKE_weighting;
+	// don't allow any weight to be larger than one, as it has the same effect as reducing the control
+	// loop time constant and therefore can lead to a destabilization of that control loop
+	_SPE_weight = constrain(2.0f - _SKE_weight, 0.f, 1.f);
+	_SKE_weight = constrain(_SKE_weight, 0.f, 1.f);
 }
 
 float TECS::SEB()
 {
-	const float SKE_weighting = get_SKE_weighting();
-
-	// Calculate the weighting applied to control of specific potential energy error
-	const float SPE_weighting = 2.0f - SKE_weighting;
-
-	return _SPE_estimate * SPE_weighting - _SKE_estimate * SKE_weighting;
+	return _SPE_estimate * _SPE_weight - _SKE_estimate * _SKE_weight;
 }
 
 float TECS::SEB_setpoint()
 {
-	const float SKE_weighting = get_SKE_weighting();
-
-	// Calculate the weighting applied to control of specific potential energy error
-	const float SPE_weighting = 2.0f - SKE_weighting;
-
-	return _SPE_setpoint * SPE_weighting - _SKE_setpoint * SKE_weighting;
+	return _SPE_setpoint * _SPE_weight - _SKE_setpoint * _SKE_weight;
 }
 
 float TECS::SEB_rate()
 {
-	const float SKE_weighting = get_SKE_weighting();
-
-	// Calculate the weighting applied to control of specific potential energy error
-	const float SPE_weighting = 2.0f - SKE_weighting;
-
-	return _SPE_rate * SPE_weighting - _SKE_rate * SKE_weighting;
+	return _SPE_rate * _SPE_weight - _SKE_rate * _SKE_weight;
 }
 
 float TECS::SEB_rate_setpoint()
 {
-	const float SKE_weighting = get_SKE_weighting();
-
-	// Calculate the weighting applied to control of specific potential energy error
-	const float SPE_weighting = 2.0f - SKE_weighting;
-
-	return _SPE_rate_setpoint * SPE_weighting - _SKE_rate_setpoint * SKE_weighting;
+	return _SPE_rate_setpoint * _SPE_weight - _SKE_rate_setpoint * _SKE_weight;
 }

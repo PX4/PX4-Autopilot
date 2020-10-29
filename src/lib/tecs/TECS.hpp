@@ -280,6 +280,10 @@ private:
 	float _SEB_error{0.0f};						///< specific energy balance error (m**2/sec**2)
 	float _SEB_rate_error{0.0f};					///< specific energy balance rate error (m**2/sec**3)
 
+	// speed height weights
+	float _SPE_weight{1.0f};
+	float _SKE_weight{1.0f};
+
 	// time steps (non-fixed)
 	float _dt{DT_DEFAULT};						///< Time since last update of main TECS loop (sec)
 	static constexpr float DT_DEFAULT = 0.02f;			///< default value for _dt (sec)
@@ -344,7 +348,7 @@ private:
 	 */
 	void _update_STE_rate_lim();
 
-	float get_SKE_weighting();
+	void _update_speed_height_weights();
 
 	AlphaFilter<float> _STE_rate_error_filter;
 
