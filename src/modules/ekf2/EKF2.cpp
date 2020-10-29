@@ -1407,11 +1407,11 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// ekf selector requires SENS_IMU_MODE = 0
 		multi_mode = true;
 
-		// IMUs (1 - 3 supported)
+		// IMUs (1 - 4 supported)
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
 
-		if (imu_instances < 1 || imu_instances > 3) {
-			const int32_t imu_instances_limited = math::constrain(imu_instances, 1, 3);
+		if (imu_instances < 1 || imu_instances > 4) {
+			const int32_t imu_instances_limited = math::constrain(imu_instances, 1, 4);
 			PX4_WARN("EKF2_MULTI_IMU limited %d -> %d", imu_instances, imu_instances_limited);
 			param_set_no_notification(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
 			imu_instances = imu_instances_limited;
