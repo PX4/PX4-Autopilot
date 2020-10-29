@@ -40,7 +40,7 @@
  * @group EKF2
  * @reboot_required true
  * @min 0
- * @max 3
+ * @max 4
  */
 PARAM_DEFINE_INT32(EKF2_MULTI_IMU, 0);
 
