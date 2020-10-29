@@ -12,15 +12,15 @@
 	branch = master
 [submodule "Tools/sitl_gazebo"]
 	path = Tools/sitl_gazebo
-	url = https://github.com/PX4/sitl_gazebo.git
+	url = https://github.com/PX4/PX4-SITL_gazebo.git
 	branch = master
 [submodule "src/lib/matrix"]
 	path = src/lib/matrix
-	url = https://github.com/PX4/Matrix.git
+	url = https://github.com/PX4/PX4-Matrix
 	branch = master
 [submodule "src/lib/ecl"]
 	path = src/lib/ecl
-	url = https://github.com/PX4/ecl.git
+	url = https://github.com/PX4/PX4-ECL
 	branch = master
 [submodule "boards/atlflight/cmake_hexagon"]
 	path = boards/atlflight/cmake_hexagon
@@ -28,7 +28,7 @@
 	branch = px4
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
-	url = https://github.com/PX4/GpsDrivers.git
+	url = https://github.com/PX4/PX4-GPSDrivers
 	branch = master
 [submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
