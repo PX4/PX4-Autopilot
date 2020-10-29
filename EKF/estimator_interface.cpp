@@ -65,14 +65,13 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 	_newest_high_rate_imu_sample = imu_sample;
 
 	// Do not change order of computeVibrationMetric and checkIfVehicleAtRest
-	computeVibrationMetric();
-	_control_status.flags.vehicle_at_rest = checkIfVehicleAtRest(dt);
+	computeVibrationMetric(imu_sample);
+	_control_status.flags.vehicle_at_rest = checkIfVehicleAtRest(dt, imu_sample);
 
-	const bool new_downsampled_imu_sample_ready = _imu_down_sampler.update(_newest_high_rate_imu_sample);
-	_imu_updated = new_downsampled_imu_sample_ready;
+	_imu_updated = _imu_down_sampler.update(imu_sample);
 
 	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
-	if (new_downsampled_imu_sample_ready) {
+	if (_imu_updated) {
 
 		_imu_buffer.push(_imu_down_sampler.getDownSampledImuAndTriggerReset());
 
@@ -81,44 +80,44 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 
 		// calculate the minimum interval between observations required to guarantee no loss of data
 		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
-		_min_obs_interval_us = (_newest_high_rate_imu_sample.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
+		_min_obs_interval_us = (imu_sample.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
 
-		setDragData();
+		setDragData(imu_sample);
 	}
 }
 
-void EstimatorInterface::computeVibrationMetric()
+void EstimatorInterface::computeVibrationMetric(const imuSample &imu)
 {
 	// calculate a metric which indicates the amount of coning vibration
-	Vector3f temp = _newest_high_rate_imu_sample.delta_ang % _delta_ang_prev;
+	Vector3f temp = imu.delta_ang % _delta_ang_prev;
 	_vibe_metrics(0) = 0.99f * _vibe_metrics(0) + 0.01f * temp.norm();
 
 	// calculate a metric which indicates the amount of high frequency gyro vibration
-	temp = _newest_high_rate_imu_sample.delta_ang - _delta_ang_prev;
-	_delta_ang_prev = _newest_high_rate_imu_sample.delta_ang;
+	temp = imu.delta_ang - _delta_ang_prev;
+	_delta_ang_prev = imu.delta_ang;
 	_vibe_metrics(1) = 0.99f * _vibe_metrics(1) + 0.01f * temp.norm();
 
 	// calculate a metric which indicates the amount of high frequency accelerometer vibration
-	temp = _newest_high_rate_imu_sample.delta_vel - _delta_vel_prev;
-	_delta_vel_prev = _newest_high_rate_imu_sample.delta_vel;
+	temp = imu.delta_vel - _delta_vel_prev;
+	_delta_vel_prev = imu.delta_vel;
 	_vibe_metrics(2) = 0.99f * _vibe_metrics(2) + 0.01f * temp.norm();
 }
 
-bool EstimatorInterface::checkIfVehicleAtRest(float dt)
+bool EstimatorInterface::checkIfVehicleAtRest(float dt, const imuSample &imu)
 {
 	// detect if the vehicle is not moving when on ground
 	if (!_control_status.flags.in_air) {
 		if ((_vibe_metrics(1) * 4.0E4f > _params.is_moving_scaler)
-				|| (_vibe_metrics(2) * 2.1E2f > _params.is_moving_scaler)
-				|| ((_newest_high_rate_imu_sample.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
+		    || (_vibe_metrics(2) * 2.1E2f > _params.is_moving_scaler)
+		    || ((imu.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
 
-			_time_last_move_detect_us = _newest_high_rate_imu_sample.time_us;
+			_time_last_move_detect_us = imu.time_us;
 		}
 
-		return ((_newest_high_rate_imu_sample.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
+		return ((imu.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
 
 	} else {
-		_time_last_move_detect_us = _newest_high_rate_imu_sample.time_us;
+		_time_last_move_detect_us = imu.time_us;
 		return false;
 	}
 }
@@ -207,8 +206,10 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 		gps_sample_new.hgt = (float)gps.alt * 1e-3f;
 
 		gps_sample_new.yaw = gps.yaw;
+
 		if (ISFINITE(gps.yaw_offset)) {
 			_gps_yaw_offset = gps.yaw_offset;
+
 		} else {
 			_gps_yaw_offset = 0.0f;
 		}
@@ -305,7 +306,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 	}
 }
 
-void EstimatorInterface::setRangeData(const rangeSample& range_sample)
+void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 {
 	if (!_initialised || _range_buffer_fail) {
 		return;
@@ -334,7 +335,7 @@ void EstimatorInterface::setRangeData(const rangeSample& range_sample)
 	}
 }
 
-void EstimatorInterface::setOpticalFlowData(const flowSample& flow)
+void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 {
 	if (!_initialised || _flow_buffer_fail) {
 		return;
@@ -380,6 +381,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample& flow)
 		// Check data validity and write to buffers
 		// Invalid flow data is allowed when on ground and is handled as a special case in controlOpticalFlowFusion()
 		bool use_flow_data_to_navigate = delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow);
+
 		if (use_flow_data_to_navigate || (!_control_status.flags.in_air && relying_on_flow)) {
 
 			_time_last_optflow = flow.time_us;
@@ -397,7 +399,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample& flow)
 }
 
 // set attitude and position data derived from an external vision system
-void EstimatorInterface::setExtVisionData(const extVisionSample& evdata)
+void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 {
 	if (!_initialised || _ev_buffer_fail) {
 		return;
@@ -427,7 +429,7 @@ void EstimatorInterface::setExtVisionData(const extVisionSample& evdata)
 	}
 }
 
-void EstimatorInterface::setAuxVelData(const auxVelSample& auxvel_sample)
+void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 {
 	if (!_initialised || _auxvel_buffer_fail) {
 		return;
@@ -457,7 +459,7 @@ void EstimatorInterface::setAuxVelData(const auxVelSample& auxvel_sample)
 	}
 }
 
-void EstimatorInterface::setDragData()
+void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
 	// sufficient samples have been collected
@@ -476,10 +478,10 @@ void EstimatorInterface::setDragData()
 
 		_drag_sample_count ++;
 		// note acceleration is accumulated as a delta velocity
-		_drag_down_sampled.accelXY(0) += _newest_high_rate_imu_sample.delta_vel(0);
-		_drag_down_sampled.accelXY(1) += _newest_high_rate_imu_sample.delta_vel(1);
-		_drag_down_sampled.time_us += _newest_high_rate_imu_sample.time_us;
-		_drag_sample_time_dt += _newest_high_rate_imu_sample.delta_vel_dt;
+		_drag_down_sampled.accelXY(0) += imu.delta_vel(0);
+		_drag_down_sampled.accelXY(1) += imu.delta_vel(1);
+		_drag_down_sampled.time_us += imu.time_us;
+		_drag_sample_time_dt += imu.delta_vel_dt;
 
 		// calculate the downsample ratio for drag specific force data
 		uint8_t min_sample_ratio = (uint8_t) ceilf((float)_imu_buffer_length / _obs_buffer_length);
@@ -588,9 +590,9 @@ bool EstimatorInterface::isOtherSourceOfHorizontalAidingThan(const bool aiding_f
 int EstimatorInterface::getNumberOfActiveHorizontalAidingSources() const
 {
 	return int(_control_status.flags.gps)
-	+ int(_control_status.flags.opt_flow)
-	+ int(_control_status.flags.ev_pos)
-	+ int(_control_status.flags.ev_vel);
+	       + int(_control_status.flags.opt_flow)
+	       + int(_control_status.flags.ev_pos)
+	       + int(_control_status.flags.ev_vel);
 }
 
 bool EstimatorInterface::isHorizontalAidingActive() const
@@ -598,10 +600,9 @@ bool EstimatorInterface::isHorizontalAidingActive() const
 	return getNumberOfActiveHorizontalAidingSources() > 0;
 }
 
-void EstimatorInterface::printBufferAllocationFailed(const char * buffer_name)
+void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
 {
-	if(buffer_name)
-	{
+	if (buffer_name) {
 		ECL_ERR("%s buffer allocation failed", buffer_name);
 	}
 }
