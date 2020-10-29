@@ -3154,6 +3154,88 @@ protected:
 	}
 };
 
+class MavlinkStreamActuatorOutputStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return MavlinkStreamActuatorOutputStatus::get_name_static();
+	}
+
+	static constexpr const char *get_name_static()
+	{
+	  return "ACTUATOR_OUTPUT_STATUS";
+	}
+
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS;
+	}
+
+	uint16_t get_id() override
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamActuatorOutputStatus(mavlink);
+	}
+
+	unsigned get_size() override
+	{
+		return (_act_output_sub
+			&& _act_output_sub->advertised()) ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	uORB::Subscription *_act_output_sub{nullptr};
+        uint64_t _act_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamActuatorOutputStatus(MavlinkStreamActuatorOutputStatus &) = delete;
+	MavlinkStreamActuatorOutputStatus &operator = (const MavlinkStreamActuatorOutputStatus &) = delete;
+
+protected:
+	explicit MavlinkStreamActuatorOutputStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+	        _act_output_sub = new uORB::Subscription{ORB_ID(actuator_outputs)};
+		_act_time = 0;
+	}
+
+	~MavlinkStreamActuatorOutputStatus() override
+	{
+		delete _act_output_sub;
+	}
+
+	bool send(const hrt_abstime t) override
+	{
+		actuator_outputs_s act;
+
+		if (_act_output_sub && _act_output_sub->update(&act)) {
+			mavlink_actuator_output_status_t msg{};
+
+			msg.time_usec = act.timestamp;
+			msg.active = 1;
+
+			for (unsigned i = 0; i < 32; i++) {
+			        msg.actuator[i]= 0.0;
+			}
+
+			// iteration 16 invokes undefined behavior
+			for (unsigned i = 0; (i < sizeof(msg.actuator) / sizeof(msg.actuator[0])) && (i < 16); i++) {
+				msg.actuator[i] = act.output[i];
+			}
+
+			mavlink_msg_actuator_output_status_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
 class MavlinkStreamHILActuatorControls : public MavlinkStream
 {
 public:
