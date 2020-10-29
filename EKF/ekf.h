@@ -502,7 +502,7 @@ private:
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
-	void calculateOutputStates();
+	void calculateOutputStates(const imuSample &imu);
 	void applyCorrectionToVerticalOutputBuffer(float vert_vel_correction);
 	void applyCorrectionToOutputBuffer(const Vector3f &vel_correction, const Vector3f &pos_correction);
 

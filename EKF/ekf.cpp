@@ -132,7 +132,7 @@ bool Ekf::update()
 
 	// the output observer always runs
 	// Use full rate IMU data at the current time horizon
-	calculateOutputStates();
+	calculateOutputStates(_newest_high_rate_imu_sample);
 
 	return updated;
 }
@@ -312,10 +312,9 @@ void Ekf::predictState()
  * “Recursive Attitude Estimation in the Presence of Multi-rate and Multi-delay Vector Measurements”
  * A Khosravian, J Trumpf, R Mahony, T Hamel, Australian National University
 */
-void Ekf::calculateOutputStates()
+void Ekf::calculateOutputStates(const imuSample &imu)
 {
 	// Use full rate IMU data at the current time horizon
-	const imuSample &imu = _newest_high_rate_imu_sample;
 
 	// correct delta angles for bias offsets
 	const float dt_scale_correction = _dt_imu_avg / _dt_ekf_avg;
