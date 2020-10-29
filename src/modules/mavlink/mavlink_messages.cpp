@@ -4018,6 +4018,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamHomePosition>(),
 	create_stream_list_item<MavlinkStreamServoOutputRaw<0> >(),
 	create_stream_list_item<MavlinkStreamServoOutputRaw<1> >(),
+	create_stream_list_item<MavlinkStreamActuatorOutputStatus>(),
 	create_stream_list_item<MavlinkStreamHILActuatorControls>(),
 	create_stream_list_item<MavlinkStreamPositionTargetGlobalInt>(),
 	create_stream_list_item<MavlinkStreamLocalPositionSetpoint>(),
