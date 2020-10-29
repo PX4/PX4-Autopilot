@@ -198,7 +198,7 @@ void ADC::update_system_power(hrt_abstime now)
 	int cnt = 1;
 	/* HW provides both ADC_SCALED_V5_SENSE and ADC_SCALED_V3V3_SENSORS_SENSE */
 #  if defined(ADC_SCALED_V5_SENSE) && defined(ADC_SCALED_V3V3_SENSORS_SENSE)
-	cnt++;
+	cnt += ADC_SCALED_V3V3_SENSORS_COUNT;
 #  endif
 
 	for (unsigned i = 0; i < _channel_count; i++) {
@@ -213,11 +213,17 @@ void ADC::update_system_power(hrt_abstime now)
 #  endif
 #  if defined(ADC_SCALED_V3V3_SENSORS_SENSE)
 		{
-			if (_samples[i].am_channel == ADC_SCALED_V3V3_SENSORS_SENSE) {
-				// it is 2:1 scaled
-				system_power.voltage3v3_v = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / px4_arch_adc_dn_fullcount()));
-				system_power.v3v3_valid = 1;
-				cnt--;
+			const int sensors_channels[ADC_SCALED_V3V3_SENSORS_COUNT] = ADC_SCALED_V3V3_SENSORS_SENSE;
+			static_assert(sizeof(system_power.sensors3v3) / sizeof(system_power.sensors3v3[0]) >= ADC_SCALED_V3V3_SENSORS_COUNT,
+				      "array too small");
+
+			for (int j = 0; j < ADC_SCALED_V3V3_SENSORS_COUNT; ++j) {
+				if (_samples[i].am_channel == sensors_channels[j]) {
+					// it is 2:1 scaled
+					system_power.sensors3v3[j] = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / px4_arch_adc_dn_fullcount()));
+					system_power.sensors3v3_valid |= 1 << j;
+					cnt--;
+				}
 			}
 		}
 
