@@ -39,6 +39,8 @@
 #include <errno.h>
 #include <math.h>
 #include <lib/cdev/CDev.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 
 uORBTest::UnitTest &uORBTest::UnitTest::instance()
 {
@@ -173,6 +175,12 @@ int uORBTest::UnitTest::pubsublatency_main()
 int uORBTest::UnitTest::test()
 {
 	int ret = test_single();
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	ret = test_SubscriptionMulti();
 
 	if (ret != OK) {
 		return ret;
@@ -741,7 +749,101 @@ int uORBTest::UnitTest::test_wrap_around()
 	orb_unadvertise(ptopic);
 	orb_unsubscribe(sfd);
 
-	return test_note("PASS orb queuing");
+	return test_note("PASS orb wrap around");
+}
+
+int uORBTest::UnitTest::test_SubscriptionMulti()
+{
+
+	uORB::PublicationMulti<orb_test_s> orb_test_pub_multi[ORB_MULTI_MAX_INSTANCES] {
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+		ORB_ID::orb_test,
+	};
+
+	uORB::SubscriptionMultiArray<orb_test_s> orb_test_sub_multi_array{ORB_ID::orb_test};
+
+	// verify not advertised yet
+	for (auto &sub : orb_test_sub_multi_array) {
+		if (sub.advertised()) {
+			return test_fail("sub is advertised");
+		}
+	}
+
+	// advertise one at a time and verify instance
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		orb_test_pub_multi[i].advertise();
+
+		if (!orb_test_sub_multi_array[i].advertised()) {
+			return test_fail("sub %d advertise failed", i);
+		}
+
+		if (orb_test_sub_multi_array.advertised_count() != i + 1) {
+			return test_fail("SubscriptionMultiArray advertised_count() return %d, should be %d",
+					 orb_test_sub_multi_array.advertised_count(), i);
+		}
+
+		// verify instance numbering
+		if (orb_test_sub_multi_array[i].get_instance() != i) {
+			return test_fail("sub %d doesn't match instance %d", i, orb_test_sub_multi_array[i].get_instance());
+		}
+	}
+
+	// publish one at a time and verify
+	for (int t = 0; t < 2; t++) {
+		for (int i = 0; i < 10; i++) {
+			for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+				orb_test_s orb_test_pub{};
+				orb_test_pub.val = i * instance + t;
+				orb_test_pub.timestamp = hrt_absolute_time();
+				orb_test_pub_multi[instance].publish(orb_test_pub);
+			}
+
+			int sub_instance = 0;
+
+			for (auto &sub : orb_test_sub_multi_array) {
+
+				if (!sub.updated()) {
+					return test_fail("sub %d not updated", sub_instance);
+
+				} else {
+					const unsigned last_gen = sub.get_last_generation();
+
+					orb_test_s orb_test_copy{};
+
+					if (!sub.copy(&orb_test_copy)) {
+						return test_fail("sub %d copy failed", sub_instance);
+
+					} else {
+						if (orb_test_copy.val != (i * sub_instance + t)) {
+							return test_fail("sub %d invalid value %d", sub_instance, orb_test_copy.val);
+						}
+
+						if (sub.get_last_generation() != last_gen + 1) {
+							//return test_fail("sub %d generation should be %d + 1, but it's %d", sub_instance, last_gen, sub.get_last_generation());
+							PX4_ERR("sub %d generation should be %d + 1, but it's %d", sub_instance, last_gen, sub.get_last_generation());
+						}
+					}
+				}
+
+				sub_instance++;
+			}
+		}
+
+		// force unsubscribe all, then repeat
+		for (auto &sub : orb_test_sub_multi_array) {
+			sub.unsubscribe();
+		}
+	}
+
+	return test_note("PASS orb SubscriptionMulti");
 }
 
 int uORBTest::UnitTest::test_queue()

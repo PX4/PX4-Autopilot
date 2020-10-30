@@ -105,6 +105,8 @@ private:
 
 	int test_wrap_around();
 
+	int test_SubscriptionMulti();
+
 	/* queuing tests */
 	int test_queue();
 	static int pub_test_queue_entry(int argc, char *argv[]);
