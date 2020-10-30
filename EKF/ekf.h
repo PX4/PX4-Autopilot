@@ -126,7 +126,7 @@ public:
 	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const override;
 
 	// get the wind velocity in m/s
-	Vector2f getWindVelocity() const override;
+	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
 
 	// get the wind velocity var
 	Vector2f getWindVelocityVariance() const override;
@@ -175,13 +175,13 @@ public:
 	*/
 	bool reset_imu_bias() override;
 
-	Vector3f getVelocityVariance() const override;
+	Vector3f getVelocityVariance() const { return P.slice<3, 3>(4, 4).diag(); };
 
-	Vector3f getPositionVariance() const override;
+	Vector3f getPositionVariance() const { return P.slice<3, 3>(7, 7).diag(); }
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/sec), (m)
-	Vector3f getOutputTrackingError() const override { return _output_tracking_error; }
+	const Vector3f &getOutputTrackingError() const { return _output_tracking_error; }
 
 	/*
 	Returns  following IMU vibration metrics in the following array locations
@@ -189,7 +189,7 @@ public:
 	1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 	*/
-	Vector3f getImuVibrationMetrics() const override { return _vibe_metrics; }
+	const Vector3f &getImuVibrationMetrics() const { return _vibe_metrics; }
 
 	/*
 	First argument returns GPS drift  metrics in the following array locations
@@ -220,10 +220,10 @@ public:
 	float get_terrain_var() const { return _terrain_var; }
 
 	// get the accelerometer bias in m/s**2
-	Vector3f getAccelBias() const override { return _state.delta_vel_bias / _dt_ekf_avg; }
+	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; }
 
 	// get the gyroscope bias in rad/s
-	Vector3f getGyroBias() const override { return _state.delta_ang_bias / _dt_ekf_avg; }
+	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; }
 
 	// get GPS check status
 	void get_gps_check_status(uint16_t *val) override { *val = _gps_check_fail_status.value; }
@@ -260,13 +260,14 @@ public:
 	// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 	// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 	// Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
-	void get_innovation_test_status(uint16_t &status, float &mag, float &vel, float &pos, float &hgt, float &tas, float &hagl, float &beta) override;
+	void get_innovation_test_status(uint16_t &status, float &mag, float &vel, float &pos, float &hgt, float &tas,
+					float &hagl, float &beta) override;
 
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) override;
 
 	// return the quaternion defining the rotation from the External Vision to the EKF reference frame
-	matrix::Quatf getVisionAlignmentQuaternion() const override;
+	matrix::Quatf getVisionAlignmentQuaternion() const { return Quatf(_R_ev_to_ekf); };
 
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
@@ -471,7 +472,7 @@ private:
 	gps_check_fail_status_u _gps_check_fail_status{};
 
 	// variables used to inhibit accel bias learning
-	bool _accel_bias_inhibit[3]{};		///< true when the accel bias learning is being inhibited for the specified axis
+	bool _accel_bias_inhibit[3] {};		///< true when the accel bias learning is being inhibited for the specified axis
 	Vector3f _accel_vec_filt;		///< acceleration vector after application of a low pass filter (m/sec**2)
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
@@ -541,7 +542,8 @@ private:
 	// variance : observaton variance
 	// gate_sigma : innovation consistency check gate size (Sigma)
 	// jacobian : 4x1 vector of partial derivatives of observation wrt each quaternion state
-	void updateQuaternion(const float innovation, const float variance, const float gate_sigma, const Vector4f &yaw_jacobian);
+	void updateQuaternion(const float innovation, const float variance, const float gate_sigma,
+			      const Vector4f &yaw_jacobian);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();
