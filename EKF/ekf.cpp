@@ -151,6 +151,7 @@ bool Ekf::initialiseFilter()
 		_accel_lpf.reset(imu_init.delta_vel / imu_init.delta_vel_dt);
 		_gyro_lpf.reset(imu_init.delta_ang / imu_init.delta_ang_dt);
 		_is_first_imu_sample = false;
+
 	} else {
 		_accel_lpf.update(imu_init.delta_vel / imu_init.delta_vel_dt);
 		_gyro_lpf.update(imu_init.delta_ang / imu_init.delta_ang_dt);
@@ -158,12 +159,13 @@ bool Ekf::initialiseFilter()
 
 	// Sum the magnetometer measurements
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		if(_mag_sample_delayed.time_us != 0)
-		{
+		if (_mag_sample_delayed.time_us != 0) {
 			_mag_counter ++;
+
 			// wait for all bad initial data to be flushed
 			if (_mag_counter <= uint8_t(_obs_buffer_length + 1)) {
 				_mag_lpf.reset(_mag_sample_delayed.mag);
+
 			} else {
 				_mag_lpf.update(_mag_sample_delayed.mag);
 			}
@@ -172,12 +174,13 @@ bool Ekf::initialiseFilter()
 
 	// accumulate enough height measurements to be confident in the quality of the data
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-		if (_baro_sample_delayed.time_us != 0)
-		{
+		if (_baro_sample_delayed.time_us != 0) {
 			_baro_counter ++;
+
 			// wait for all bad initial data to be flushed
 			if (_baro_counter <= uint8_t(_obs_buffer_length + 1)) {
 				_baro_hgt_offset = _baro_sample_delayed.hgt;
+
 			} else if (_baro_counter > (uint8_t)(_obs_buffer_length + 1)) {
 				_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
 			}
@@ -190,10 +193,11 @@ bool Ekf::initialiseFilter()
 	if (not_enough_baro_samples_accumulated || not_enough_mag_samples_accumulated) {
 		return false;
 	}
+
 	// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
 	setControlBaroHeight();
 
-	if(!initialiseTilt()){
+	if (!initialiseTilt()) {
 		return false;
 	}
 
@@ -230,6 +234,7 @@ bool Ekf::initialiseTilt()
 {
 	const float accel_norm = _accel_lpf.getState().norm();
 	const float gyro_norm = _gyro_lpf.getState().norm();
+
 	if (accel_norm < 0.9f * CONSTANTS_ONE_G ||
 	    accel_norm > 1.1f * CONSTANTS_ONE_G ||
 	    gyro_norm > math::radians(15.0f)) {
@@ -394,11 +399,11 @@ void Ekf::calculateOutputStates(const imuSample &imu)
 		// this data will be at the EKF fusion time horizon
 		// TODO: there is no guarantee that data is at delayed fusion horizon
 		//       Shouldnt we use pop_first_older_than?
-		const outputSample output_delayed = _output_buffer.get_oldest();
-		const outputVert output_vert_delayed = _output_vert_buffer.get_oldest();
+		const outputSample &output_delayed = _output_buffer.get_oldest();
+		const outputVert &output_vert_delayed = _output_vert_buffer.get_oldest();
 
 		// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
-		const Quatf q_error( (_state.quat_nominal.inversed() * output_delayed.quat_nominal).normalized() );
+		const Quatf q_error((_state.quat_nominal.inversed() * output_delayed.quat_nominal).normalized());
 
 		// convert the quaternion delta to a delta angle
 		const float scalar = (q_error(0) >= 0.0f) ? -2.f : 2.f;

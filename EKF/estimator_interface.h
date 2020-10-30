@@ -123,23 +123,9 @@ public:
 
 	virtual matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const = 0;
 
-	virtual Vector2f getWindVelocity() const = 0;
-
 	virtual Vector2f getWindVelocityVariance() const = 0;
 
 	virtual void get_true_airspeed(float *tas) = 0;
-
-	// return an array containing the output predictor angular, velocity and position tracking
-	// error magnitudes (rad), (m/s), (m)
-	virtual Vector3f getOutputTrackingError() const = 0;
-
-	/*
-	Returns  following IMU vibration metrics in the following array locations
-	0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
-	1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
-	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
-	*/
-	virtual Vector3f getImuVibrationMetrics() const = 0;
 
 	/*
 	First argument returns GPS drift  metrics in the following array locations
@@ -193,7 +179,7 @@ public:
 
 	// return a address to the parameters struct
 	// in order to give access to the application
-	parameters *getParamHandle() {return &_params;}
+	parameters *getParamHandle() { return &_params; }
 
 	// set vehicle landed status data
 	void set_in_air_status(bool in_air) {_control_status.flags.in_air = in_air;}
@@ -285,10 +271,7 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid();
 
-	const matrix::Quatf getQuaternion() const { return _output_new.quat_nominal; }
-
-	// return the quaternion defining the rotation from the EKF to the External Vision reference frame
-	virtual matrix::Quatf getVisionAlignmentQuaternion() const = 0;
+	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
 
 	// get the velocity of the body frame origin in local NED earth frame
 	Vector3f getVelocity() const
@@ -297,19 +280,11 @@ public:
 		return vel_earth;
 	}
 
-	virtual Vector3f getVelocityVariance() const = 0;
-
 	// get the velocity derivative in earth frame
-	Vector3f getVelocityDerivative() const
-	{
-		return _vel_deriv;
-	}
+	const Vector3f &getVelocityDerivative() const { return _vel_deriv; }
 
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
-	float getVerticalPositionDerivative() const
-	{
-		return _output_vert_new.vert_vel - _vel_imu_rel_body_ned(2);
-	}
+	float getVerticalPositionDerivative() const { return _output_vert_new.vert_vel - _vel_imu_rel_body_ned(2); }
 
 	// get the position of the body frame origin in local earth frame
 	Vector3f getPosition() const
@@ -320,15 +295,11 @@ public:
 		return _output_new.pos - pos_offset_earth;
 	}
 
-	virtual Vector3f getPositionVariance() const = 0;
-
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
 	// At the next startup, set param.mag_declination_deg to the value saved
 	bool get_mag_decl_deg(float *val)
 	{
-		*val = 0.0f;
-
 		if (_NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL)) {
 			*val = math::degrees(_mag_declination_gps);
 			return true;
@@ -338,20 +309,11 @@ public:
 		}
 	}
 
-	virtual Vector3f getAccelBias() const = 0;
-	virtual Vector3f getGyroBias() const = 0;
-
 	// get EKF mode status
-	void get_control_mode(uint32_t *val)
-	{
-		*val = _control_status.value;
-	}
+	void get_control_mode(uint32_t *val) { *val = _control_status.value; }
 
 	// get EKF internal fault status
-	void get_filter_fault_status(uint16_t *val)
-	{
-		*val = _fault_status.value;
-	}
+	void get_filter_fault_status(uint16_t *val) { *val = _fault_status.value; }
 
 	bool isVehicleAtRest() const { return _control_status.flags.vehicle_at_rest; }
 
@@ -388,16 +350,10 @@ public:
 	float get_dt_imu_avg() const { return _dt_imu_avg; }
 
 	// Getter for the imu sample on the delayed time horizon
-	imuSample get_imu_sample_delayed()
-	{
-		return _imu_sample_delayed;
-	}
+	const imuSample &get_imu_sample_delayed() { return _imu_sample_delayed; }
 
 	// Getter for the baro sample on the delayed time horizon
-	baroSample get_baro_sample_delayed()
-	{
-		return _baro_sample_delayed;
-	}
+	const baroSample &get_baro_sample_delayed() { return _baro_sample_delayed; }
 
 	void print_status();
 
