@@ -87,7 +87,7 @@ public:
 				   float pitch_limit_min, float pitch_limit_max);
 
 	float get_throttle_setpoint() { return _last_throttle_setpoint; }
-	float get_pitch_setpoint() { return _pitch_setpoint; }
+	float get_pitch_setpoint() { return _last_pitch_setpoint; }
 	float get_speed_weight() { return _pitch_speed_weight; }
 
 	void reset_state() { _states_initialized = false; }
@@ -221,9 +221,6 @@ private:
 	float _STE_rate_time_const{0.1f};				///< filter time constant for specific total energy rate (damping path) (s)
 	float _speed_derivative_time_const{0.01f};		///< speed derivative filter time constant (s)
 
-	// controller outputs
-	float _pitch_setpoint{0.0f};					///< pitch angle demand (radians)
-
 	// complimentary filter states
 	float _vert_vel_state{0.0f};					///< complimentary filter state - height rate (m/sec)
 	float _vert_pos_state{0.0f};					///< complimentary filter state - height (m)
@@ -280,9 +277,9 @@ private:
 	float _SEB_error{0.0f};						///< specific energy balance error (m**2/sec**2)
 	float _SEB_rate_error{0.0f};					///< specific energy balance rate error (m**2/sec**3)
 
-	// speed height weights
-	float _SPE_weight{1.0f};
-	float _SKE_weight{1.0f};
+	// speed height weighting
+	float _SPE_weighting{1.0f};
+	float _SKE_weighting{1.0f};
 
 	// time steps (non-fixed)
 	float _dt{DT_DEFAULT};						///< Time since last update of main TECS loop (sec)
