@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,6 +65,7 @@
 #include "devices/src/emlid_reach.h"
 #include "devices/src/mtk.h"
 #include "devices/src/ubx.h"
+#include "devices/src/nmea.h"
 
 #ifdef __PX4_LINUX
 #include <linux/spi/spidev.h>
@@ -74,11 +75,12 @@
 #define RATE_MEASUREMENT_PERIOD 5000000
 
 typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
+	GPS_DRIVER_MODE_AUTO = 0,
 	GPS_DRIVER_MODE_UBX,
 	GPS_DRIVER_MODE_MTK,
 	GPS_DRIVER_MODE_ASHTECH,
-	GPS_DRIVER_MODE_EMLIDREACH
+	GPS_DRIVER_MODE_EMLIDREACH,
+	GPS_DRIVER_MODE_NMEA
 } gps_driver_mode_t;
 
 /* struct for dynamic allocation of satellite info data */
@@ -277,7 +279,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
 	}
 
-	_mode_auto = mode == GPS_DRIVER_MODE_NONE;
+	_mode_auto = mode == GPS_DRIVER_MODE_AUTO;
 }
 
 GPS::~GPS()
@@ -690,7 +692,7 @@ GPS::run()
 			}
 
 			switch (_mode) {
-			case GPS_DRIVER_MODE_NONE:
+			case GPS_DRIVER_MODE_AUTO:
 				_mode = GPS_DRIVER_MODE_UBX;
 
 			/* FALLTHROUGH */
@@ -711,6 +713,15 @@ GPS::run()
 				_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
 
+			case GPS_DRIVER_MODE_NMEA:
+				int32_t param_nmea_baud = 38400;
+				param_t nmea_baud = param_find("GPS_NMEA_BAUD");
+				if (nmea_baud != PARAM_INVALID) {
+					param_get(nmea_baud, &param_nmea_baud);
+				}
+				_helper = new GPSDriverNMEA(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, param_nmea_baud);
+				break;
+
 			default:
 				break;
 			}
@@ -724,7 +735,8 @@ GPS::run()
 				_report_gps_pos.heading = NAN;
 				_report_gps_pos.heading_offset = heading_offset;
 
-				if (_mode == GPS_DRIVER_MODE_UBX) {
+				if ((_mode == GPS_DRIVER_MODE_UBX)||
+				    (_mode == GPS_DRIVER_MODE_NMEA)) {
 
 					/* GPS is obviously detected successfully, reset statistics */
 					_helper->resetUpdateRates();
@@ -810,6 +822,10 @@ GPS::run()
 					break;
 
 				case GPS_DRIVER_MODE_EMLIDREACH:
+					_mode = GPS_DRIVER_MODE_NMEA;
+					break;
+
+				case GPS_DRIVER_MODE_NMEA:
 					_mode = GPS_DRIVER_MODE_UBX;
 					px4_usleep(500000); // tried all possible drivers. Wait a bit before next round
 					break;
@@ -1039,7 +1055,7 @@ $ gps reset warm
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Enable publication of satellite info", true);
 
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "uart", "spi|uart", "GPS interface", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml", "GPS Protocol (default=auto select)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|nmea", "GPS Protocol (default=auto select)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset GPS device");
@@ -1111,7 +1127,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 	GPSHelper::Interface interface = GPSHelper::Interface::UART;
-	gps_driver_mode_t mode = GPS_DRIVER_MODE_NONE;
+	gps_driver_mode_t mode = GPS_DRIVER_MODE_AUTO;
 
 	bool error_flag = false;
 	int myoptind = 1;
@@ -1175,6 +1191,9 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			} else if (!strcmp(myoptarg, "eml")) {
 				mode = GPS_DRIVER_MODE_EMLIDREACH;
 
+			} else if(!strcmp(myoptarg, "nmea")) {
+				mode = GPS_DRIVER_MODE_NMEA;
+
 			} else {
 				PX4_ERR("unknown interface: %s", myoptarg);
 				error_flag = true;
@@ -1198,6 +1217,35 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 	GPS *gps;
 	if (instance == Instance::Main) {
+		int32_t gps1_protocol_type = 0;
+		param_t gps1_type = param_find("GPS1_PROTOCOL");
+		if (gps1_type != PARAM_INVALID) {
+		param_get(gps1_type, &gps1_protocol_type);
+		}
+		switch (gps1_protocol_type)
+		{
+		case 0:// GPS_DRIVER_MODE_AUTO
+			mode = GPS_DRIVER_MODE_AUTO;
+			break;
+		case 1: //GPS_DRIVER_MODE_UBX
+			mode = GPS_DRIVER_MODE_UBX;
+			break;
+		case 2: //GPS_DRIVER_MODE_MTK
+			mode = GPS_DRIVER_MODE_MTK;
+			break;
+		case 3: //GPS_DRIVER_MODE_ASHTECH
+			mode = GPS_DRIVER_MODE_ASHTECH;
+			break;
+		case 4: //GPS_DRIVER_MODE_EMLIDREACH
+			mode = GPS_DRIVER_MODE_EMLIDREACH;
+			break;
+		case 5: //GPS_DRIVER_MODE_NMEA
+			mode = GPS_DRIVER_MODE_NMEA;
+			break;
+		default:
+			break;
+		}
+
 		gps = new GPS(device_name, mode, interface, fake_gps, enable_sat_info, instance, baudrate_main);
 
 		if (gps && device_name_secondary) {
@@ -1216,6 +1264,35 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			}
 		}
 	} else { // secondary instance
+		int32_t gps2_protocol_type = 0;
+		param_t gps2_type = param_find("GPS2_PROTOCOL");
+		if (gps2_type != PARAM_INVALID) {
+		param_get(gps2_type, &gps2_protocol_type);
+		}
+		switch (gps2_protocol_type)
+		{
+		case 0:// GPS_DRIVER_MODE_AUTO
+			mode = GPS_DRIVER_MODE_AUTO;
+			break;
+		case 1: //GPS_DRIVER_MODE_UBX
+			mode = GPS_DRIVER_MODE_UBX;
+			break;
+		case 2: //GPS_DRIVER_MODE_MTK
+			mode = GPS_DRIVER_MODE_MTK;
+			break;
+		case 3: //GPS_DRIVER_MODE_ASHTECH
+			mode = GPS_DRIVER_MODE_ASHTECH;
+			break;
+		case 4: //GPS_DRIVER_MODE_EMLIDREACH
+			mode = GPS_DRIVER_MODE_EMLIDREACH;
+			break;
+		case 5: //GPS_DRIVER_MODE_NMEA
+			mode = GPS_DRIVER_MODE_NMEA;
+			break;
+		default:
+			break;
+		}
+
 		gps = new GPS(device_name_secondary, mode, interface, fake_gps, enable_sat_info, instance, baudrate_secondary);
 	}
 
