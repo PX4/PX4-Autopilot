@@ -429,12 +429,11 @@ void TECS::_update_pitch_setpoint()
 		float pitch_integ_input = _SEB_rate_error * _integrator_gain_pitch;
 
 		// Prevent the integrator changing in a direction that will increase pitch demand saturation
-		// Decay the integrator using a 1 second time constant if the pitch demand from the previous time step is saturated
 		if (_pitch_setpoint_unc > _pitch_setpoint_max) {
-			pitch_integ_input = min(pitch_integ_input, (_pitch_setpoint_max - _pitch_setpoint_unc) * climb_angle_to_SEB_rate);
+			pitch_integ_input = min(pitch_integ_input, 0.f);
 
 		} else if (_pitch_setpoint_unc < _pitch_setpoint_min) {
-			pitch_integ_input = max(pitch_integ_input, (_pitch_setpoint_min - _pitch_setpoint_unc) * climb_angle_to_SEB_rate);
+			pitch_integ_input = max(pitch_integ_input, 0.f);
 		}
 
 		// Update the pitch integrator state.
