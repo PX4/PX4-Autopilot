@@ -1405,13 +1405,13 @@ int DShotOutput::custom_command(int argc, char *argv[])
 		}
 	}
 
-	struct Command {
+	struct VerbCommand {
 		const char *name;
 		dshot_command_t command;
 		int num_repetitions;
 	};
 
-	constexpr Command commands[] = {
+	constexpr VerbCommand commands[] = {
 		{"reverse", DShot_cmd_spin_direction_reversed, 10},
 		{"normal", DShot_cmd_spin_direction_normal, 10},
 		{"save", DShot_cmd_save_settings, 10},
