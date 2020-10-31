@@ -149,6 +149,7 @@ private:
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
+	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom);
 
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
 
