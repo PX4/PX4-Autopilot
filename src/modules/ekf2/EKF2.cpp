@@ -423,20 +423,7 @@ void EKF2::Run()
 
 		UpdateBaroSample(ekf2_timestamps);
 
-		if (_vehicle_gps_position_sub.updated()) {
-			vehicle_gps_position_s gps;
-
-			if (_vehicle_gps_position_sub.copy(&gps)) {
-				gps_message gps_msg{};
-
-				fillGpsMsgWithVehicleGpsPosData(gps_msg, gps);
-
-				_ekf.setGpsData(gps_msg);
-
-				_gps_time_usec = gps_msg.time_usec;
-				_gps_alttitude_ellipsoid = gps.alt_ellipsoid;
-			}
-		}
+		UpdateGpsSample(ekf2_timestamps);
 
 		UpdateAirspeedSample(ekf2_timestamps);
 
@@ -536,27 +523,6 @@ void EKF2::Run()
 			px4_lockstep_progress(_lockstep_component);
 		}
 	}
-}
-
-void EKF2::fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data)
-{
-	msg.time_usec = data.timestamp;
-	msg.lat = data.lat;
-	msg.lon = data.lon;
-	msg.alt = data.alt;
-	msg.yaw = data.heading;
-	msg.yaw_offset = data.heading_offset;
-	msg.fix_type = data.fix_type;
-	msg.eph = data.eph;
-	msg.epv = data.epv;
-	msg.sacc = data.s_variance_m_s;
-	msg.vel_m_s = data.vel_m_s;
-	msg.vel_ned(0) = data.vel_n_m_s;
-	msg.vel_ned(1) = data.vel_e_m_s;
-	msg.vel_ned(2) = data.vel_d_m_s;
-	msg.vel_ned_valid = data.vel_ned_valid;
-	msg.nsats = data.satellites_used;
-	msg.pdop = sqrtf(data.hdop * data.hdop + data.vdop * data.vdop);
 }
 
 void EKF2::runPreFlightChecks(const float dt,
@@ -1399,6 +1365,43 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &
 	}
 
 	return new_optical_flow;
+}
+
+void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	// EKF GPS message
+	if (_param_ekf2_aid_mask.get() & MASK_USE_GPS) {
+		vehicle_gps_position_s vehicle_gps_position;
+
+		if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+			gps_message gps_msg{
+				.time_usec = vehicle_gps_position.timestamp,
+				.lat = vehicle_gps_position.lat,
+				.lon = vehicle_gps_position.lon,
+				.alt = vehicle_gps_position.alt,
+				.yaw = vehicle_gps_position.heading,
+				.yaw_offset = vehicle_gps_position.heading_offset,
+				.fix_type = vehicle_gps_position.fix_type,
+				.eph = vehicle_gps_position.eph,
+				.epv = vehicle_gps_position.epv,
+				.sacc = vehicle_gps_position.s_variance_m_s,
+				.vel_m_s = vehicle_gps_position.vel_m_s,
+				.vel_ned = Vector3f{
+					vehicle_gps_position.vel_n_m_s,
+					vehicle_gps_position.vel_e_m_s,
+					vehicle_gps_position.vel_d_m_s
+				},
+				.vel_ned_valid = vehicle_gps_position.vel_ned_valid,
+				.nsats = vehicle_gps_position.satellites_used,
+				.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
+					      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
+			};
+			_ekf.setGpsData(gps_msg);
+
+			_gps_time_usec = gps_msg.time_usec;
+			_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
+		}
+	}
 }
 
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
