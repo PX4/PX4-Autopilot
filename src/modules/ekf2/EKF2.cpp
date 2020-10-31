@@ -440,38 +440,8 @@ void EKF2::Run()
 
 		UpdateAirspeedSample(ekf2_timestamps);
 
-		bool new_optical_flow_data_received = false;
 		optical_flow_s optical_flow;
-
-		if (_optical_flow_sub.update(&optical_flow)) {
-			flowSample flow {};
-			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
-			// is produced by a RH rotation of the image about the sensor axis.
-			flow.flow_xy_rad(0) = -optical_flow.pixel_flow_x_integral;
-			flow.flow_xy_rad(1) = -optical_flow.pixel_flow_y_integral;
-			flow.gyro_xyz(0) = -optical_flow.gyro_x_rate_integral;
-			flow.gyro_xyz(1) = -optical_flow.gyro_y_rate_integral;
-			flow.gyro_xyz(2) = -optical_flow.gyro_z_rate_integral;
-			flow.quality = optical_flow.quality;
-			flow.dt = 1e-6f * (float)optical_flow.integration_timespan;
-			flow.time_us = optical_flow.timestamp;
-
-			if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
-			    PX4_ISFINITE(optical_flow.pixel_flow_x_integral) &&
-			    flow.dt < 1) {
-
-				_ekf.setOpticalFlowData(flow);
-
-				new_optical_flow_data_received = true;
-			}
-
-			// Save sensor limits reported by the optical flow sensor
-			_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
-						     optical_flow.max_ground_distance);
-
-			ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
-					(int64_t)ekf2_timestamps.timestamp / 100);
-		}
+		const bool new_optical_flow = UpdateFlowSample(ekf2_timestamps, optical_flow);
 
 		if (_range_finder_sub_index >= 0) {
 
@@ -546,7 +516,7 @@ void EKF2::Run()
 			UpdateMagCalibration(now);
 		}
 
-		if (new_optical_flow_data_received) {
+		if (new_optical_flow) {
 			PublishOpticalFlowVel(now, optical_flow);
 		}
 
@@ -1390,6 +1360,45 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 	}
 
 	return new_ev_odom;
+}
+
+bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow)
+{
+	// EKF flow sample
+	bool new_optical_flow = false;
+
+	if (_optical_flow_sub.update(&optical_flow)) {
+		if (_param_ekf2_aid_mask.get() & MASK_USE_OF) {
+
+			flowSample flow {
+				.quality = optical_flow.quality,
+				// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
+				// is produced by a RH rotation of the image about the sensor axis.
+				.flow_xy_rad = Vector2f{-optical_flow.pixel_flow_x_integral, -optical_flow.pixel_flow_y_integral},
+				.gyro_xyz = Vector3f{-optical_flow.gyro_x_rate_integral, -optical_flow.gyro_y_rate_integral, -optical_flow.gyro_z_rate_integral},
+				.dt = 1e-6f * (float)optical_flow.integration_timespan,
+				.time_us = optical_flow.timestamp,
+			};
+
+			if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
+			    PX4_ISFINITE(optical_flow.pixel_flow_x_integral) &&
+			    flow.dt < 1) {
+
+				// Save sensor limits reported by the optical flow sensor
+				_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
+							     optical_flow.max_ground_distance);
+
+				_ekf.setOpticalFlowData(flow);
+
+				new_optical_flow = true;
+			}
+		}
+
+		ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
+	}
+
+	return new_optical_flow;
 }
 
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
