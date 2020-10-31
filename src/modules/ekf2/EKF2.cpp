@@ -305,10 +305,35 @@ void EKF2::Run()
 		}
 
 		imu_dt = sensor_combined.gyro_integral_dt;
+
+		if (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0)) {
+			sensor_selection_s sensor_selection;
+
+			if (_sensor_selection_sub.copy(&sensor_selection)) {
+				if (_device_id_accel != sensor_selection.accel_device_id) {
+					_imu_bias_reset_request = true;
+					_device_id_accel = sensor_selection.accel_device_id;
+				}
+
+				if (_device_id_gyro != sensor_selection.gyro_device_id) {
+					_imu_bias_reset_request = true;
+					_device_id_gyro = sensor_selection.gyro_device_id;
+				}
+			}
+		}
 	}
 
 	if (imu_updated) {
 		const hrt_abstime now = imu_sample_new.time_us;
+
+		// attempt reset until successful
+		if (_imu_bias_reset_request) {
+			_imu_bias_reset_request = !_ekf.reset_imu_bias();
+		}
+
+		// push imu data into estimator
+		_ekf.setIMUData(imu_sample_new);
+		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
 
 		// integrate time to monitor time slippage
 		if (_start_time_us > 0) {
@@ -319,17 +344,6 @@ void EKF2::Run()
 			_start_time_us = imu_sample_new.time_us;
 			_last_time_slip_us = 0;
 		}
-
-		// ekf2_timestamps (using 0.1 ms relative timestamps)
-		ekf2_timestamps_s ekf2_timestamps{};
-		ekf2_timestamps.timestamp = now;
-
-		ekf2_timestamps.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
 		// update all other topics if they have new data
 		if (_status_sub.updated()) {
@@ -361,31 +375,16 @@ void EKF2::Run()
 			}
 		}
 
-		// Always update sensor selction first time through if time stamp is non zero
-		if (!_multi_mode && (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0))) {
-			sensor_selection_s sensor_selection;
-
-			if (_sensor_selection_sub.copy(&sensor_selection)) {
-				if (_device_id_accel != sensor_selection.accel_device_id) {
-					_imu_bias_reset_request = true;
-					_device_id_accel = sensor_selection.accel_device_id;
-				}
-
-				if (_device_id_gyro != sensor_selection.gyro_device_id) {
-					_imu_bias_reset_request = true;
-					_device_id_gyro = sensor_selection.gyro_device_id;
-				}
-			}
-		}
-
-		// attempt reset until successful
-		if (_imu_bias_reset_request) {
-			_imu_bias_reset_request = !_ekf.reset_imu_bias();
-		}
-
-		// push imu data into estimator
-		_ekf.setIMUData(imu_sample_new);
-		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
+		// ekf2_timestamps (using 0.1 ms relative timestamps)
+		ekf2_timestamps_s ekf2_timestamps {
+			.timestamp = now,
+			.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+		};
 
 		UpdateAirspeedSample(ekf2_timestamps);
 		UpdateAuxVelSample(ekf2_timestamps);
