@@ -366,60 +366,7 @@ void EKF2::Run()
 		// publish attitude immediately (uses quaternion from output predictor)
 		PublishAttitude(now);
 
-		// read mag data
-		if (_magnetometer_sub.updated()) {
-			vehicle_magnetometer_s magnetometer;
-
-			if (_magnetometer_sub.copy(&magnetometer)) {
-				// Reset learned bias parameters if there has been a persistant change in magnetometer ID
-				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
-				// and notification events
-				// Check if there has been a persistant change in magnetometer ID
-				if (magnetometer.device_id != 0
-				    && (magnetometer.device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
-
-					if (_invalid_mag_id_count < 200) {
-						_invalid_mag_id_count++;
-					}
-
-				} else {
-					if (_invalid_mag_id_count > 0) {
-						_invalid_mag_id_count--;
-					}
-				}
-
-				_device_id_mag = magnetometer.device_id;
-
-				if (!_armed && (_invalid_mag_id_count > 100)) {
-					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
-					// this means we need to reset the learned bias values to zero
-					_param_ekf2_magbias_x.set(0.f);
-					_param_ekf2_magbias_y.set(0.f);
-					_param_ekf2_magbias_z.set(0.f);
-					_param_ekf2_magbias_id.set(magnetometer.device_id);
-
-					if (!_multi_mode) {
-						_param_ekf2_magbias_x.reset();
-						_param_ekf2_magbias_y.reset();
-						_param_ekf2_magbias_z.reset();
-						_param_ekf2_magbias_id.commit();
-						PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
-					}
-
-					_invalid_mag_id_count = 0;
-				}
-
-				magSample mag_sample {};
-				mag_sample.mag(0) = magnetometer.magnetometer_ga[0] - _param_ekf2_magbias_x.get();
-				mag_sample.mag(1) = magnetometer.magnetometer_ga[1] - _param_ekf2_magbias_y.get();
-				mag_sample.mag(2) = magnetometer.magnetometer_ga[2] - _param_ekf2_magbias_z.get();
-				mag_sample.time_us = magnetometer.timestamp_sample;
-
-				_ekf.setMagData(mag_sample);
-				ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
-						(int64_t)ekf2_timestamps.timestamp / 100);
-			}
-		}
+		UpdateMagSample(ekf2_timestamps);
 
 		UpdateBaroSample(ekf2_timestamps);
 
@@ -1401,6 +1348,64 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			_gps_time_usec = gps_msg.time_usec;
 			_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
 		}
+	}
+}
+
+void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	vehicle_magnetometer_s magnetometer;
+
+	if (_magnetometer_sub.update(&magnetometer)) {
+		// Reset learned bias parameters if there has been a persistant change in magnetometer ID
+		// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
+		// and notification events
+		// Check if there has been a persistant change in magnetometer ID
+		if (magnetometer.device_id != 0
+		    && (magnetometer.device_id != (uint32_t)_param_ekf2_magbias_id.get())) {
+
+			if (_invalid_mag_id_count < 200) {
+				_invalid_mag_id_count++;
+			}
+
+		} else {
+			if (_invalid_mag_id_count > 0) {
+				_invalid_mag_id_count--;
+			}
+		}
+
+		_device_id_mag = magnetometer.device_id;
+
+		if (!_armed && (_invalid_mag_id_count > 100)) {
+			// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
+			// this means we need to reset the learned bias values to zero
+			_param_ekf2_magbias_x.set(0.f);
+			_param_ekf2_magbias_y.set(0.f);
+			_param_ekf2_magbias_z.set(0.f);
+			_param_ekf2_magbias_id.set(magnetometer.device_id);
+
+			if (!_multi_mode) {
+				_param_ekf2_magbias_x.reset();
+				_param_ekf2_magbias_y.reset();
+				_param_ekf2_magbias_z.reset();
+				_param_ekf2_magbias_id.commit();
+				PX4_INFO("Mag sensor ID changed to %i", _param_ekf2_magbias_id.get());
+			}
+
+			_invalid_mag_id_count = 0;
+		}
+
+		magSample mag_sample {
+			.mag = Vector3f{
+				magnetometer.magnetometer_ga[0] - _param_ekf2_magbias_x.get(),
+				magnetometer.magnetometer_ga[1] - _param_ekf2_magbias_y.get(),
+				magnetometer.magnetometer_ga[2] - _param_ekf2_magbias_z.get()
+			},
+			.time_us = magnetometer.timestamp_sample,
+		};
+		_ekf.setMagData(mag_sample);
+
+		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 }
 
