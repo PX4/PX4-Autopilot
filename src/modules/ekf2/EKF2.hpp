@@ -121,7 +121,6 @@ private:
 	void Run() override;
 
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
-	void fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data);
 
 	PreFlightChecker _preflt_checker;
 	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
@@ -152,6 +151,7 @@ private:
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
 	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom);
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow);
+	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
 
