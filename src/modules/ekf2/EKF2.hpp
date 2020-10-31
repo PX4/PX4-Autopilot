@@ -147,6 +147,7 @@ private:
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
 
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
 
