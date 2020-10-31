@@ -421,20 +421,7 @@ void EKF2::Run()
 			}
 		}
 
-		// read baro data
-		if (_airdata_sub.updated()) {
-			vehicle_air_data_s airdata;
-
-			if (_airdata_sub.copy(&airdata)) {
-				_ekf.set_air_density(airdata.rho);
-				const baroSample baro_sample {airdata.baro_alt_meter, airdata.timestamp_sample};
-				_ekf.setBaroData(baro_sample);
-				ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
-						(int64_t)ekf2_timestamps.timestamp / 100);
-
-				_device_id_baro = airdata.baro_device_id;
-			}
-		}
+		UpdateBaroSample(ekf2_timestamps);
 
 		if (_vehicle_gps_position_sub.updated()) {
 			vehicle_gps_position_s gps;
@@ -1369,6 +1356,24 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 			};
 			_ekf.setAuxVelData(auxvel_sample);
 		}
+	}
+}
+
+void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	// EKF baro sample
+	vehicle_air_data_s airdata;
+
+	if (_airdata_sub.update(&airdata)) {
+		_ekf.set_air_density(airdata.rho);
+
+		const baroSample baro_sample {airdata.baro_alt_meter, airdata.timestamp_sample};
+		_ekf.setBaroData(baro_sample);
+
+		_device_id_baro = airdata.baro_device_id;
+
+		ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 }
 
