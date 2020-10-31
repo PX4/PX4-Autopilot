@@ -388,7 +388,7 @@ void EKF2::Run()
 		_ekf.setIMUData(imu_sample_new);
 
 		// publish attitude immediately (uses quaternion from output predictor)
-		publish_attitude(now);
+		PublishAttitude(now);
 
 		// read mag data
 		if (_magnetometer_sub.updated()) {
@@ -809,7 +809,7 @@ void EKF2::Run()
 				_local_position_pub.publish(lpos);
 
 				// publish vehicle_odometry
-				publish_odometry(now, imu_sample_new, lpos);
+				PublishOdometry(now, imu_sample_new);
 
 				// publish vehicle_global_position if valid
 				if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
@@ -1007,9 +1007,8 @@ void EKF2::Run()
 				}
 			}
 
-			publish_wind_estimate(now);
-
-			publish_yaw_estimator_status(now);
+			PublishWindEstimate(now);
+			PublishYawEstimatorStatus(now);
 
 			if (!_mag_decl_saved && _standby) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
@@ -1103,7 +1102,7 @@ void EKF2::Run()
 		}
 
 		if (new_optical_flow_data_received) {
-			publish_estimator_optical_flow_vel(now);
+			PublishOpticalFlowVel(now, optical_flow);
 		}
 
 		// publish external visual odometry after fixed frame alignment if new odometry is received
@@ -1219,7 +1218,7 @@ int EKF2::getRangeSubIndex()
 	return -1;
 }
 
-void EKF2::publish_attitude(const hrt_abstime &timestamp)
+void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 {
 	if (_ekf.attitude_valid()) {
 		// generate vehicle attitude quaternion data
@@ -1240,24 +1239,26 @@ void EKF2::publish_attitude(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::publish_odometry(const hrt_abstime &timestamp, const imuSample &imu, const vehicle_local_position_s &lpos)
+void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 {
 	// generate vehicle odometry data
-	vehicle_odometry_s odom{};
+	vehicle_odometry_s odom;
 	odom.timestamp_sample = imu.time_us;
 
 	odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 	// Vehicle odometry position
-	odom.x = lpos.x;
-	odom.y = lpos.y;
-	odom.z = lpos.z;
+	const Vector3f position = _ekf.getPosition();
+	odom.x = position(0);
+	odom.y = position(1);
+	odom.z = position(2);
 
 	// Vehicle odometry linear velocity
 	odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
-	odom.vx = lpos.vx;
-	odom.vy = lpos.vy;
-	odom.vz = lpos.vz;
+	const Vector3f velocity = _ekf.getVelocity();
+	odom.vx = velocity(0);
+	odom.vy = velocity(1);
+	odom.vz = velocity(2);
 
 	// Vehicle odometry quaternion
 	_ekf.getQuaternion().copyTo(odom.q);
@@ -1305,17 +1306,17 @@ void EKF2::publish_odometry(const hrt_abstime &timestamp, const imuSample &imu, 
 	_odometry_pub.publish(odom);
 }
 
-void EKF2::publish_yaw_estimator_status(const hrt_abstime &timestamp)
+void EKF2::PublishYawEstimatorStatus(const hrt_abstime &timestamp)
 {
-	yaw_estimator_status_s yaw_est_test_data{};
-
 	static_assert(sizeof(yaw_estimator_status_s::yaw) / sizeof(float) == N_MODELS_EKFGSF,
 		      "yaw_estimator_status_s::yaw wrong size");
 
+	yaw_estimator_status_s yaw_est_test_data;
+
 	if (_ekf.getDataEKFGSF(&yaw_est_test_data.yaw_composite, &yaw_est_test_data.yaw_variance,
-			       &yaw_est_test_data.yaw[0],
-			       &yaw_est_test_data.innov_vn[0], &yaw_est_test_data.innov_ve[0],
-			       &yaw_est_test_data.weight[0])) {
+			       yaw_est_test_data.yaw,
+			       yaw_est_test_data.innov_vn, yaw_est_test_data.innov_ve,
+			       yaw_est_test_data.weight)) {
 
 		yaw_est_test_data.timestamp_sample = timestamp;
 		yaw_est_test_data.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
@@ -1324,7 +1325,7 @@ void EKF2::publish_yaw_estimator_status(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::publish_wind_estimate(const hrt_abstime &timestamp)
+void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
 		// Publish wind estimate only if ekf declares them valid
@@ -1349,10 +1350,10 @@ void EKF2::publish_wind_estimate(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::publish_estimator_optical_flow_vel(const hrt_abstime &timestamp)
+void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &flow_sample)
 {
 	estimator_optical_flow_vel_s flow_vel{};
-	flow_vel.timestamp_sample = timestamp;
+	flow_vel.timestamp_sample = flow_sample.timestamp;
 
 	_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
 	_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
