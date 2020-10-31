@@ -212,43 +212,19 @@ int EKF2::print_status()
 template<typename Param>
 void EKF2::update_mag_bias(Param &mag_bias_param, int axis_index)
 {
-	if (_valid_cal_available[axis_index]) {
+	// calculate weighting using ratio of variances and update stored bias values
+	const float weighting = constrain(_param_ekf2_magb_vref.get() / (_param_ekf2_magb_vref.get() +
+					  _last_valid_variance[axis_index]), 0.0f, _param_ekf2_magb_k.get());
+	const float mag_bias_saved = mag_bias_param.get();
 
-		// calculate weighting using ratio of variances and update stored bias values
-		const float weighting = constrain(_param_ekf2_magb_vref.get() / (_param_ekf2_magb_vref.get() +
-						  _last_valid_variance[axis_index]), 0.0f, _param_ekf2_magb_k.get());
-		const float mag_bias_saved = mag_bias_param.get();
+	_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
 
-		_last_valid_mag_cal[axis_index] = weighting * _last_valid_mag_cal[axis_index] + mag_bias_saved;
+	mag_bias_param.set(_last_valid_mag_cal[axis_index]);
 
-		mag_bias_param.set(_last_valid_mag_cal[axis_index]);
-
-		// save new parameters unless in multi-instance mode
-		if (!_multi_mode) {
-			mag_bias_param.commit_no_notification();
-		}
-
-		_valid_cal_available[axis_index] = false;
+	// save new parameters unless in multi-instance mode
+	if (!_multi_mode) {
+		mag_bias_param.commit_no_notification();
 	}
-}
-
-template<typename Param>
-bool EKF2::update_mag_decl(Param &mag_decl_param)
-{
-	// update stored declination value
-	float declination_deg;
-
-	if (_ekf.get_mag_decl_deg(&declination_deg)) {
-		mag_decl_param.set(declination_deg);
-
-		if (!_multi_mode) {
-			mag_decl_param.commit_no_notification();
-		}
-
-		return true;
-	}
-
-	return false;
 }
 
 void EKF2::Run()
@@ -680,88 +656,6 @@ void EKF2::Run()
 		}
 
 		if (ekf_updated) {
-
-			filter_control_status_u control_status;
-			_ekf.get_control_mode(&control_status.value);
-
-			uint16_t filter_fault_flags;
-			_ekf.get_filter_fault_status(&filter_fault_flags);
-
-			{
-				/* Check and save learned magnetometer bias estimates */
-
-				// Check if conditions are OK for learning of magnetometer bias values
-				if (!_landed && _armed &&
-				    !filter_fault_flags && // there are no filter faults
-				    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
-
-					if (_last_magcal_us == 0) {
-						_last_magcal_us = now;
-
-					} else {
-						_total_cal_time_us += now - _last_magcal_us;
-						_last_magcal_us = now;
-					}
-
-				} else if (filter_fault_flags != 0) {
-					// if a filter fault has occurred, assume previous learning was invalid and do not
-					// count it towards total learning time.
-					_total_cal_time_us = 0;
-
-					for (bool &cal_available : _valid_cal_available) {
-						cal_available = false;
-					}
-
-				} else {
-					// conditions are NOT OK for learning magnetometer bias, reset timestamp
-					// but keep the accumulated calibration time
-					_last_magcal_us = now;
-				}
-
-				// Start checking mag bias estimates when we have accumulated sufficient calibration time
-				if (_total_cal_time_us > 30_s) {
-					// we have sufficient accumulated valid flight time to form a reliable bias estimate
-					// check that the state variance for each axis is within a range indicating filter convergence
-					const float max_var_allowed = 100.0f * _param_ekf2_magb_vref.get();
-					const float min_var_allowed = 0.01f * _param_ekf2_magb_vref.get();
-
-					// Declare all bias estimates invalid if any variances are out of range
-					bool all_estimates_invalid = false;
-
-					float states[24];
-					_ekf.getStateAtFusionHorizonAsVector().copyTo(states);
-
-					float covariances[24];
-					_ekf.covariances_diagonal().copyTo(covariances);
-
-					for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-						if (covariances[axis_index + 19] < min_var_allowed
-						    || covariances[axis_index + 19] > max_var_allowed) {
-							all_estimates_invalid = true;
-						}
-					}
-
-					// Store valid estimates and their associated variances
-					if (!all_estimates_invalid) {
-						for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
-							_last_valid_mag_cal[axis_index] = states[axis_index + 19];
-							_valid_cal_available[axis_index] = true;
-							_last_valid_variance[axis_index] = covariances[axis_index + 19];
-						}
-					}
-				}
-
-				// Check and save the last valid calibration when we are disarmed
-				if (!_armed && _standby && (filter_fault_flags == 0)) {
-					update_mag_bias(_param_ekf2_magbias_x, 0);
-					update_mag_bias(_param_ekf2_magbias_y, 1);
-					update_mag_bias(_param_ekf2_magbias_z, 2);
-
-					// reset to prevent data being saved too frequently
-					_total_cal_time_us = 0;
-				}
-			}
-
 			PublishLocalPosition(now);
 			PublishOdometry(now, imu_sample_new);
 			PublishGlobalPosition(now);
@@ -777,9 +671,7 @@ void EKF2::Run()
 			PublishInnovationVariances(now);
 			PublishYawEstimatorStatus(now);
 
-			if (!_mag_decl_saved && _standby) {
-				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
-			}
+			UpdateMagCalibration(now);
 		}
 
 		if (new_optical_flow_data_received) {
@@ -1468,6 +1360,103 @@ float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 	}
 
 	return amsl_hgt + _wgs84_hgt_offset;
+}
+
+void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
+{
+	/* Check and save learned magnetometer bias estimates */
+	filter_control_status_u control_status;
+	_ekf.get_control_mode(&control_status.value);
+
+	fault_status_u fault_status;
+	_ekf.get_filter_fault_status(&fault_status.value);
+
+	// Check if conditions are OK for learning of magnetometer bias values
+	if (!_landed && _armed &&
+	    !fault_status.value && // there are no filter faults
+	    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
+
+		if (_last_magcal_us == 0) {
+			_last_magcal_us = timestamp;
+
+		} else {
+			_total_cal_time_us += timestamp - _last_magcal_us;
+			_last_magcal_us = timestamp;
+		}
+
+		// Start checking mag bias estimates when we have accumulated sufficient calibration time
+		if (_total_cal_time_us > 30_s) {
+			// we have sufficient accumulated valid flight time to form a reliable bias estimate
+			// check that the state variance for each axis is within a range indicating filter convergence
+			const float max_var_allowed = 100.0f * _param_ekf2_magb_vref.get();
+			const float min_var_allowed = 0.01f * _param_ekf2_magb_vref.get();
+
+			// Declare all bias estimates invalid if any variances are out of range
+			bool all_estimates_invalid = false;
+
+			float covariances[24];
+			_ekf.covariances_diagonal().copyTo(covariances);
+
+			for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
+				if (covariances[axis_index + 19] < min_var_allowed
+				    || covariances[axis_index + 19] > max_var_allowed) {
+					all_estimates_invalid = true;
+				}
+			}
+
+			// Store valid estimates and their associated variances
+			if (!all_estimates_invalid) {
+
+				float states[24];
+				_ekf.getStateAtFusionHorizonAsVector().copyTo(states);
+
+				for (uint8_t axis_index = 0; axis_index <= 2; axis_index++) {
+					_last_valid_mag_cal[axis_index] = states[axis_index + 19];
+					_last_valid_variance[axis_index] = covariances[axis_index + 19];
+				}
+
+				_valid_cal_available = true;
+			}
+		}
+
+	} else if (fault_status.value != 0) {
+		// if a filter fault has occurred, assume previous learning was invalid and do not
+		// count it towards total learning time.
+		_total_cal_time_us = 0;
+		_valid_cal_available = false;
+
+	} else {
+		// conditions are NOT OK for learning magnetometer bias, reset timestamp
+		// but keep the accumulated calibration time
+		_last_magcal_us = timestamp;
+	}
+
+	// Check and save the last valid calibration when we are disarmed
+	if (!_armed) {
+		if (_valid_cal_available) {
+			update_mag_bias(_param_ekf2_magbias_x, 0);
+			update_mag_bias(_param_ekf2_magbias_y, 1);
+			update_mag_bias(_param_ekf2_magbias_z, 2);
+
+			// reset to prevent data being saved too frequently
+			_total_cal_time_us = 0;
+			_valid_cal_available = false;
+		}
+
+		// update stored declination value
+		if (!_mag_decl_saved) {
+			float declination_deg;
+
+			if (_ekf.get_mag_decl_deg(&declination_deg)) {
+				_param_ekf2_mag_decl.set(declination_deg);
+				_mag_decl_saved = true;
+
+				if (!_multi_mode) {
+					_param_ekf2_mag_decl.commit_no_notification();
+				}
+			}
+		}
+	}
 }
 
 int EKF2::custom_command(int argc, char *argv[])
