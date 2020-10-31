@@ -606,22 +606,7 @@ void EKF2::Run()
 			}
 		}
 
-		// use the landing target pose estimate as another source of velocity data
-		if (_landing_target_pose_sub.updated()) {
-			landing_target_pose_s landing_target_pose;
-
-			if (_landing_target_pose_sub.copy(&landing_target_pose)) {
-				// we can only use the landing target if it has a fixed position and  a valid velocity estimate
-				if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
-					// velocity of vehicle relative to target has opposite sign to target relative to vehicle
-					auxVelSample auxvel_sample {};
-					auxvel_sample.vel = Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, 0.0f};
-					auxvel_sample.velVar = Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, 0.0f};
-					auxvel_sample.time_us = landing_target_pose.timestamp;
-					_ekf.setAuxVelData(auxvel_sample);
-				}
-			}
-		}
+		UpdateAuxVelSample(ekf2_timestamps);
 
 		// run the EKF update and output
 		perf_begin(_ekf_update_perf);
@@ -1364,6 +1349,26 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
+	}
+}
+
+void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	// EKF auxillary velocity sample
+	//  - use the landing target pose estimate as another source of velocity data
+	landing_target_pose_s landing_target_pose;
+
+	if (_landing_target_pose_sub.update(&landing_target_pose)) {
+		// we can only use the landing target if it has a fixed position and  a valid velocity estimate
+		if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
+			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
+			auxVelSample auxvel_sample{
+				.vel = Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, 0.0f},
+				.velVar = Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, 0.0f},
+				.time_us = landing_target_pose.timestamp,
+			};
+			_ekf.setAuxVelData(auxvel_sample);
+		}
 	}
 }
 
