@@ -51,7 +51,6 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 	_replay_mode(replay_mode && instance < 0),
 	_multi_mode(instance >= 0),
 	_instance(math::constrain(instance, 0, EKF2_MAX_INSTANCES - 1)),
-	_ekf_update_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": update")),
 	_attitude_pub(_multi_mode ? ORB_ID(estimator_attitude) : ORB_ID(vehicle_attitude)),
 	_local_position_pub(_multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
 	_global_position_pub(_multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
@@ -198,14 +197,16 @@ EKF2::~EKF2()
 		px4_lockstep_unregister_component(_lockstep_component);
 	}
 
-	perf_free(_ekf_update_perf);
+	perf_free(_ecl_ekf_update_perf);
+	perf_free(_ecl_ekf_update_full_perf);
 }
 
 int EKF2::print_status()
 {
 	PX4_INFO_RAW("ekf2:%d attitude: %d, local position: %d, global position: %d\n", _instance, _ekf.attitude_valid(),
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
-	perf_print_counter(_ekf_update_perf);
+	perf_print_counter(_ecl_ekf_update_perf);
+	perf_print_counter(_ecl_ekf_update_full_perf);
 	return 0;
 }
 
@@ -261,14 +262,14 @@ void EKF2::Run()
 		updateParams();
 	}
 
-	bool updated = false;
+	bool imu_updated = false;
 	imuSample imu_sample_new {};
 
 	hrt_abstime imu_dt = 0; // for tracking time slip later
 
 	if (_multi_mode) {
 		vehicle_imu_s imu;
-		updated = _vehicle_imu_sub.update(&imu);
+		imu_updated = _vehicle_imu_sub.update(&imu);
 
 		imu_sample_new.time_us = imu.timestamp_sample;
 		imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
@@ -289,7 +290,7 @@ void EKF2::Run()
 
 	} else {
 		sensor_combined_s sensor_combined;
-		updated = _sensor_combined_sub.update(&sensor_combined);
+		imu_updated = _sensor_combined_sub.update(&sensor_combined);
 
 		imu_sample_new.time_us = sensor_combined.timestamp;
 		imu_sample_new.delta_ang_dt = sensor_combined.gyro_integral_dt * 1.e-6f;
@@ -306,8 +307,18 @@ void EKF2::Run()
 		imu_dt = sensor_combined.gyro_integral_dt;
 	}
 
-	if (updated) {
+	if (imu_updated) {
 		const hrt_abstime now = imu_sample_new.time_us;
+
+		// integrate time to monitor time slippage
+		if (_start_time_us > 0) {
+			_integrated_time_us += imu_dt;
+			_last_time_slip_us = (imu_sample_new.time_us - _start_time_us) - _integrated_time_us;
+
+		} else {
+			_start_time_us = imu_sample_new.time_us;
+			_last_time_slip_us = 0;
+		}
 
 		// ekf2_timestamps (using 0.1 ms relative timestamps)
 		ekf2_timestamps_s ekf2_timestamps{};
@@ -334,6 +345,19 @@ void EKF2::Run()
 
 				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 				_ekf.set_is_fixed_wing(is_fixed_wing);
+
+				_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+				_standby = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
+			}
+		}
+
+		if (_vehicle_land_detected_sub.updated()) {
+			vehicle_land_detected_s vehicle_land_detected;
+
+			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+				_ekf.set_in_air_status(!vehicle_land_detected.landed);
+				_landed = vehicle_land_detected.landed;
+				_in_ground_effect = vehicle_land_detected.in_ground_effect;
 			}
 		}
 
@@ -361,54 +385,28 @@ void EKF2::Run()
 
 		// push imu data into estimator
 		_ekf.setIMUData(imu_sample_new);
-
-		// publish attitude immediately (uses quaternion from output predictor)
-		PublishAttitude(now);
-
-		UpdateMagSample(ekf2_timestamps);
-
-		UpdateBaroSample(ekf2_timestamps);
-
-		UpdateGpsSample(ekf2_timestamps);
+		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
 
 		UpdateAirspeedSample(ekf2_timestamps);
-
-		optical_flow_s optical_flow;
-		const bool new_optical_flow = UpdateFlowSample(ekf2_timestamps, optical_flow);
-
+		UpdateAuxVelSample(ekf2_timestamps);
+		UpdateBaroSample(ekf2_timestamps);
+		UpdateGpsSample(ekf2_timestamps);
+		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
 
 		vehicle_odometry_s ev_odom;
 		const bool new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
 
-		if (_vehicle_land_detected_sub.updated()) {
-			vehicle_land_detected_s vehicle_land_detected;
+		optical_flow_s optical_flow;
+		const bool new_optical_flow = UpdateFlowSample(ekf2_timestamps, optical_flow);
 
-			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
-				_ekf.set_in_air_status(!vehicle_land_detected.landed);
-				_landed = vehicle_land_detected.landed;
-				_in_ground_effect = vehicle_land_detected.in_ground_effect;
-			}
-		}
-
-		UpdateAuxVelSample(ekf2_timestamps);
 
 		// run the EKF update and output
-		perf_begin(_ekf_update_perf);
-		const bool ekf_updated = _ekf.update();
-		perf_end(_ekf_update_perf);
+		const hrt_abstime ekf_update_start = hrt_absolute_time();
 
-		// integrate time to monitor time slippage
-		if (_start_time_us == 0) {
-			_start_time_us = now;
-			_last_time_slip_us = 0;
+		if (_ekf.update()) {
+			perf_set_elapsed(_ecl_ekf_update_full_perf, hrt_elapsed_time(&ekf_update_start));
 
-		} else if (_start_time_us > 0) {
-			_integrated_time_us += imu_dt;
-			_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
-		}
-
-		if (ekf_updated) {
 			PublishLocalPosition(now);
 			PublishOdometry(now, imu_sample_new);
 			PublishGlobalPosition(now);
@@ -425,15 +423,19 @@ void EKF2::Run()
 			PublishYawEstimatorStatus(now);
 
 			UpdateMagCalibration(now);
-		}
 
-		if (new_optical_flow) {
-			PublishOpticalFlowVel(now, optical_flow);
+		} else {
+			// ekf no update
+			perf_set_elapsed(_ecl_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
 		}
 
 		// publish external visual odometry after fixed frame alignment if new odometry is received
 		if (new_ev_odom) {
 			PublishOdometryAligned(now, ev_odom);
+		}
+
+		if (new_optical_flow) {
+			PublishOpticalFlowVel(now, optical_flow);
 		}
 
 		// publish ekf2_timestamps
