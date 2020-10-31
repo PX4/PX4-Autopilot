@@ -120,8 +120,6 @@ public:
 private:
 	void Run() override;
 
-	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
-
 	PreFlightChecker _preflt_checker;
 	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
 				const estimator_innovations_s &innov, const bool can_observe_heading_in_flight);
@@ -153,6 +151,7 @@ private:
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
 
@@ -212,6 +211,7 @@ private:
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _distance_sensor_sub{ORB_ID(distance_sensor)};
 	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
@@ -228,10 +228,7 @@ private:
 	bool _callback_registered{false};
 	int _lockstep_component{-1};
 
-	// because we can have several distance sensor instances with different orientations
-	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
-	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
-
+	bool _distance_sensor_selected{false}; // because we can have several distance sensor instances with different orientations
 	bool _armed{false};
 	bool _standby{false}; // standby arming state
 	bool _landed{true};

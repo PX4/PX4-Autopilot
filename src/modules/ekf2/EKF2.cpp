@@ -377,29 +377,7 @@ void EKF2::Run()
 		optical_flow_s optical_flow;
 		const bool new_optical_flow = UpdateFlowSample(ekf2_timestamps, optical_flow);
 
-		if (_range_finder_sub_index >= 0) {
-
-			if (_distance_sensor_subs[_range_finder_sub_index].updated()) {
-				distance_sensor_s range_finder;
-
-				if (_distance_sensor_subs[_range_finder_sub_index].copy(&range_finder)) {
-					rangeSample range_sample {};
-					range_sample.rng = range_finder.current_distance;
-					range_sample.quality = range_finder.signal_quality;
-					range_sample.time_us = range_finder.timestamp;
-					_ekf.setRangeData(range_sample);
-
-					// Save sensor limits reported by the rangefinder
-					_ekf.set_rangefinder_limits(range_finder.min_distance, range_finder.max_distance);
-
-					ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)range_finder.timestamp / 100 -
-							(int64_t)ekf2_timestamps.timestamp / 100);
-				}
-			}
-
-		} else {
-			_range_finder_sub_index = getRangeSubIndex();
-		}
+		UpdateRangeSample(ekf2_timestamps);
 
 		vehicle_odometry_s ev_odom;
 		const bool new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
@@ -489,23 +467,6 @@ void EKF2::runPreFlightChecks(const float dt,
 void EKF2::resetPreFlightChecks()
 {
 	_preflt_checker.reset();
-}
-
-int EKF2::getRangeSubIndex()
-{
-	for (unsigned i = 0; i < _distance_sensor_subs.size(); i++) {
-		distance_sensor_s report;
-
-		if (_distance_sensor_subs[i].update(&report)) {
-			// only use the first instace which has the correct orientation
-			if (report.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
-				PX4_INFO("Found range finder with instance %d", i);
-				return i;
-			}
-		}
-	}
-
-	return -1;
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -1405,6 +1366,48 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 		_ekf.setMagData(mag_sample);
 
 		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
+	}
+}
+
+void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	if (!_distance_sensor_selected) {
+		// get subscription index of first downward-facing range sensor
+		uORB::SubscriptionMultiArray<distance_sensor_s> distance_sensor_subs{ORB_ID::distance_sensor};
+
+		for (unsigned i = 0; i < distance_sensor_subs.size(); i++) {
+			distance_sensor_s distance_sensor;
+
+			if (distance_sensor_subs[i].copy(&distance_sensor)) {
+				// only use the first instace which has the correct orientation
+				if ((distance_sensor.timestamp != 0) && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
+					if (_distance_sensor_sub.ChangeInstance(i)) {
+						PX4_INFO("Found range finder with instance %d", i);
+						_distance_sensor_selected = true;
+					}
+				}
+			}
+		}
+	}
+
+	// EKF range sample
+	distance_sensor_s distance_sensor;
+
+	if (_distance_sensor_sub.update(&distance_sensor)) {
+		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
+			rangeSample range_sample {
+				.rng = distance_sensor.current_distance,
+				.time_us = distance_sensor.timestamp,
+				.quality = distance_sensor.signal_quality,
+			};
+			_ekf.setRangeData(range_sample);
+
+			// Save sensor limits reported by the rangefinder
+			_ekf.set_rangefinder_limits(distance_sensor.min_distance, distance_sensor.max_distance);
+		}
+
+		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 }
