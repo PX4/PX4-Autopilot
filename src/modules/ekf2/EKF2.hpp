@@ -134,11 +134,11 @@ private:
 	template<typename Param>
 	bool update_mag_decl(Param &mag_decl_param);
 
-	void publish_attitude(const hrt_abstime &timestamp);
-	void publish_estimator_optical_flow_vel(const hrt_abstime &timestamp);
-	void publish_odometry(const hrt_abstime &timestamp, const imuSample &imu, const vehicle_local_position_s &lpos);
-	void publish_wind_estimate(const hrt_abstime &timestamp);
-	void publish_yaw_estimator_status(const hrt_abstime &timestamp);
+	void PublishAttitude(const hrt_abstime &timestamp);
+	void PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &optical_flow);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu);
+	void PublishWindEstimate(const hrt_abstime &timestamp);
+	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
