@@ -251,6 +251,16 @@ void EKF2::Run()
 		}
 	}
 
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+	}
+
 	bool updated = false;
 	imuSample imu_sample_new {};
 
@@ -297,17 +307,6 @@ void EKF2::Run()
 	}
 
 	if (updated) {
-
-		// check for parameter updates
-		if (_parameter_update_sub.updated()) {
-			// clear update
-			parameter_update_s pupdate;
-			_parameter_update_sub.copy(&pupdate);
-
-			// update parameters from storage
-			updateParams();
-		}
-
 		const hrt_abstime now = imu_sample_new.time_us;
 
 		// ekf2_timestamps (using 0.1 ms relative timestamps)
