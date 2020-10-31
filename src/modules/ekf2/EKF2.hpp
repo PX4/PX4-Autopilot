@@ -173,7 +173,8 @@ private:
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
-	perf_counter_t _ekf_update_perf;
+	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
+	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
