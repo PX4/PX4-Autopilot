@@ -582,8 +582,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu
 	_ekf.getHaglInnov(innovations.hagl);
 	// Not yet supported
 	innovations.aux_vvel = NAN;
-	innovations.fake_hpos[0] = innovations.fake_hpos[1] = innovations.fake_vpos = NAN;
-	innovations.fake_hvel[0] = innovations.fake_hvel[1] = innovations.fake_vvel = NAN;
+
 	innovations.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovations_pub.publish(innovations);
 
@@ -622,8 +621,6 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getHaglInnovRatio(test_ratios.hagl);
 	// Not yet supported
 	test_ratios.aux_vvel = NAN;
-	test_ratios.fake_hpos[0] = test_ratios.fake_hpos[1] = test_ratios.fake_vpos = NAN;
-	test_ratios.fake_hvel[0] = test_ratios.fake_hvel[1] = test_ratios.fake_vvel = NAN;
 
 	test_ratios.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovation_test_ratios_pub.publish(test_ratios);
@@ -648,8 +645,6 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_ekf.getHaglInnovVar(variances.hagl);
 	// Not yet supported
 	variances.aux_vvel = NAN;
-	variances.fake_hpos[0] = variances.fake_hpos[1] = variances.fake_vpos = NAN;
-	variances.fake_hvel[0] = variances.fake_hvel[1] = variances.fake_vvel = NAN;
 
 	variances.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovation_variances_pub.publish(variances);
