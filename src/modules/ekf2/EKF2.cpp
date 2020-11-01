@@ -166,26 +166,27 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 
 	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 
-	// advertise immediately to ensure consistent uORB instance numbering
-	_attitude_pub.advertise();
-	_local_position_pub.advertise();
-	_global_position_pub.advertise();
-	_odometry_pub.advertise();
-
-	_ekf2_timestamps_pub.advertise();
-	_ekf_gps_drift_pub.advertise();
-	_estimator_innovation_test_ratios_pub.advertise();
-	_estimator_innovation_variances_pub.advertise();
-	_estimator_innovations_pub.advertise();
-	_estimator_optical_flow_vel_pub.advertise();
-	_estimator_sensor_bias_pub.advertise();
-	_estimator_states_pub.advertise();
-	_estimator_status_pub.advertise();
-	_estimator_visual_odometry_aligned_pub.advertised();
-	_wind_pub.advertise();
-	_yaw_est_pub.advertise();
-
 	if (_multi_mode) {
+		// advertise immediately to ensure consistent uORB instance numbering
+		_attitude_pub.advertise();
+		_local_position_pub.advertise();
+		_global_position_pub.advertise();
+		_odometry_pub.advertise();
+
+		_ekf2_timestamps_pub.advertise();
+		_ekf_gps_drift_pub.advertise();
+		_estimator_innovation_test_ratios_pub.advertise();
+		_estimator_innovation_variances_pub.advertise();
+		_estimator_innovations_pub.advertise();
+		_estimator_optical_flow_vel_pub.advertise();
+		_estimator_sensor_bias_pub.advertise();
+		_estimator_states_pub.advertise();
+		_estimator_status_pub.advertise();
+		_estimator_visual_odometry_aligned_pub.advertised();
+		_wind_pub.advertise();
+		_yaw_est_pub.advertise();
+
+
 		_vehicle_imu_sub.ChangeInstance(imu);
 		_magnetometer_sub.ChangeInstance(mag);
 	}
