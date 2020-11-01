@@ -323,34 +323,36 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const matrix::
 		throttle_setpoint = (_STE_rate_error * _throttle_damping_gain) * STE_rate_to_throttle + throttle_predicted;
 		throttle_setpoint = constrain(throttle_setpoint, _throttle_setpoint_min, _throttle_setpoint_max);
 
-		if (_integrator_gain_throttle > 0.0f) {
+		if (airspeed_sensor_enabled()) {
+			if (_integrator_gain_throttle > 0.0f) {
+				float integ_state_max = _throttle_setpoint_max - throttle_setpoint;
+				float integ_state_min = _throttle_setpoint_min - throttle_setpoint;
 
-			float integ_state_max = _throttle_setpoint_max - throttle_setpoint;
-			float integ_state_min = _throttle_setpoint_min - throttle_setpoint;
+				float throttle_integ_input = (_STE_rate_error * _integrator_gain_throttle) * _dt *
+							     STE_rate_to_throttle;
 
-			float throttle_integ_input = (_STE_rate_error * _integrator_gain_throttle) * _dt *
-						     STE_rate_to_throttle;
+				// only allow integrator propagation into direction which unsaturates throttle
+				if (_throttle_integ_state > integ_state_max) {
+					throttle_integ_input = math::min(0.f, throttle_integ_input);
 
-			// only allow integrator propagation into direction which unsaturates throttle
-			if (_throttle_integ_state > integ_state_max) {
-				throttle_integ_input = math::min(0.f, throttle_integ_input);
+				} else if (_throttle_integ_state < integ_state_min) {
+					throttle_integ_input = math::max(0.f, throttle_integ_input);
+				}
 
-			} else if (_throttle_integ_state < integ_state_min) {
-				throttle_integ_input = math::max(0.f, throttle_integ_input);
+				// Calculate a throttle demand from the integrated total energy rate error
+				// This will be added to the total throttle demand to compensate for steady state errors
+				_throttle_integ_state = _throttle_integ_state + throttle_integ_input;
+
+				if (_climbout_mode_active) {
+					// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
+					// at end of climbout when we transition to closed loop throttle control
+					_throttle_integ_state = integ_state_max;
+				}
+
+			} else {
+				_throttle_integ_state = 0.0f;
 			}
 
-			// Calculate a throttle demand from the integrated total energy rate error
-			// This will be added to the total throttle demand to compensate for steady state errors
-			_throttle_integ_state = _throttle_integ_state + throttle_integ_input;
-
-			if (_climbout_mode_active) {
-				// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
-				// at end of climbout when we transition to closed loop throttle control
-				_throttle_integ_state = integ_state_max;
-			}
-
-		} else {
-			_throttle_integ_state = 0.0f;
 		}
 
 		if (airspeed_sensor_enabled()) {
