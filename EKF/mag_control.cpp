@@ -138,11 +138,6 @@ void Ekf::checkHaglYawResetReq()
 	}
 }
 
-float Ekf::getTerrainVPos() const
-{
-	return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD;
-}
-
 void Ekf::runOnGroundYawReset()
 {
 	if (_mag_yaw_reset_req && isYawResetAuthorized()) {
@@ -152,11 +147,6 @@ void Ekf::runOnGroundYawReset()
 
 		_mag_yaw_reset_req = !has_realigned_yaw;
 	}
-}
-
-bool Ekf::isYawResetAuthorized() const
-{
-	return !_is_yaw_fusion_inhibited;
 }
 
 bool Ekf::canResetMagHeading() const
@@ -175,11 +165,6 @@ void Ekf::runInAirYawReset()
 		_mag_yaw_reset_req = !has_realigned_yaw;
 		_control_status.flags.mag_aligned_in_flight = has_realigned_yaw;
 	}
-}
-
-bool Ekf::canRealignYawUsingGps() const
-{
-	return _control_status.flags.fixed_wing;
 }
 
 void Ekf::runVelPosReset()
@@ -235,16 +220,6 @@ void Ekf::checkMagBiasObservability()
 
 	_yaw_delta_ef = 0.0f;
 	_time_yaw_started = _imu_sample_delayed.time_us;
-}
-
-bool Ekf::isYawAngleObservable() const
-{
-	return _yaw_angle_observable;
-}
-
-bool Ekf::isMagBiasObservable() const
-{
-	return _mag_bias_observable;
 }
 
 bool Ekf::canUse3DMagFusion() const
@@ -306,11 +281,6 @@ void Ekf::checkMagFieldStrength()
 	} else {
 		_control_status.flags.mag_field_disturbed = false;
 	}
-}
-
-bool Ekf::isStrongMagneticDisturbance() const
-{
-	return _control_status.flags.mag_field_disturbed;
 }
 
 bool Ekf::isMeasuredMatchingGpsMagStrength() const

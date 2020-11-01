@@ -153,7 +153,6 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel)
 	_state_reset_status.velD_counter++;
 }
 
-
 void Ekf::resetHorizontalPosition()
 {
 	// let the next odometry update know that the previous value of states cannot be used to calculate the change in position
@@ -300,7 +299,6 @@ void Ekf::resetHeight()
 		} else {
 			_state.pos(2) = _ev_sample_delayed.pos(2);
 		}
-
 	}
 
 	// reset the vertical velocity state
@@ -574,7 +572,7 @@ void Ekf::constrainStates()
 	_state.wind_vel = matrix::constrain(_state.wind_vel, -100.0f, 100.0f);
 }
 
-float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated)
+float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const
 {
 	// calculate static pressure error = Pmeas - Ptruth
 	// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
@@ -696,7 +694,7 @@ matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 
 // get the position and height of the ekf origin in WGS-84 coordinates and time the origin was set
 // return true if the origin is valid
-bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt)
+bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) const
 {
 	memcpy(origin_time, &_last_gps_origin_time_us, sizeof(uint64_t));
 	memcpy(origin_pos, &_pos_ref, sizeof(map_projection_reference_s));
@@ -726,7 +724,7 @@ bool Ekf::get_gps_drift_metrics(float drift[3], bool *blocked)
 }
 
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
-void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv)
+void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 {
 	// report absolute accuracy taking into account the uncertainty in location of the origin
 	// If not aiding, return 0 for horizontal position estimate as no estimate is available
@@ -748,7 +746,7 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv)
 }
 
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf local position
-void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv)
+void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 {
 	// TODO - allow for baro drift in vertical position error
 	float hpos_err = sqrtf(P(7, 7) + P(8, 8));
@@ -765,7 +763,7 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv)
 }
 
 // get the 1-sigma horizontal and vertical velocity uncertainty
-void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv)
+void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 {
 	float hvel_err = sqrtf(P(4, 4) + P(5, 5));
 
@@ -805,7 +803,7 @@ vz_max : Maximum ground relative vertical speed (meters/sec). NaN when limiting 
 hagl_min : Minimum height above ground (meters). NaN when limiting is not needed.
 hagl_max : Maximum height above ground (meters). NaN when limiting is not needed.
 */
-void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max)
+void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const
 {
 	// Calculate range finder limits
 	const float rangefinder_hagl_min = _range_sensor.getValidMinVal();
@@ -845,14 +843,12 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		*hagl_min = fmaxf(rangefinder_hagl_min, flow_hagl_min);
 		*hagl_max = fminf(rangefinder_hagl_max, flow_hagl_max);
 	}
-
 }
 
 bool Ekf::reset_imu_bias()
 {
 	if (_imu_sample_delayed.time_us - _last_imu_bias_cov_reset_us < (uint64_t)10e6) {
 		return false;
-
 	}
 
 	// Zero the delta angle and delta velocity bias states
@@ -877,7 +873,7 @@ bool Ekf::reset_imu_bias()
 // A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 // Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
 void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, float &pos, float &hgt, float &tas,
-				     float &hagl, float &beta)
+				     float &hagl, float &beta) const
 {
 	// return the integer bitmask containing the consistency check pass/fail status
 	status = _innov_check_fail_status.value;
@@ -900,7 +896,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 }
 
 // return a bitmask integer that describes which state estimates are valid
-void Ekf::get_ekf_soln_status(uint16_t *status)
+void Ekf::get_ekf_soln_status(uint16_t *status) const
 {
 	ekf_solution_status soln_status;
 	// TODO: Is this accurate enough?
@@ -939,13 +935,6 @@ void Ekf::uncorrelateQuatFromOtherStates()
 {
 	P.slice<_k_num_states - 4, 4>(4, 0) = 0.f;
 	P.slice<4, _k_num_states - 4>(0, 4) = 0.f;
-}
-
-bool Ekf::global_position_is_valid()
-{
-	// return true if the origin is set we are not doing unconstrained free inertial navigation
-	// and have not started using synthetic position observations to constrain drift
-	return (_NED_origin_initialised && !_deadreckon_time_exceeded && !_using_synthetic_position);
 }
 
 // return true if we are totally reliant on inertial dead-reckoning for position
@@ -1533,7 +1522,7 @@ bool Ekf::resetYawToEKFGSF()
 	// data and the yaw estimate has converged
 	float new_yaw, new_yaw_variance;
 
-	if (!yawEstimator.getYawData(&new_yaw, &new_yaw_variance)) {
+	if (!_yawEstimator.getYawData(&new_yaw, &new_yaw_variance)) {
 		return false;
 	}
 
@@ -1569,7 +1558,7 @@ bool Ekf::resetYawToEKFGSF()
 bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
 			float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF])
 {
-	return yawEstimator.getLogData(yaw_composite, yaw_variance, yaw, innov_VN, innov_VE, weight);
+	return _yawEstimator.getLogData(yaw_composite, yaw_variance, yaw, innov_VN, innov_VE, weight);
 }
 
 void Ekf::runYawEKFGSF()
@@ -1584,12 +1573,12 @@ void Ekf::runYawEKFGSF()
 	}
 
 	const Vector3f imu_gyro_bias = getGyroBias();
-	yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
+	_yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
 
 	// basic sanity check on GPS velocity data
 	if (_gps_data_ready && _gps_sample_delayed.vacc > FLT_EPSILON &&
 	    ISFINITE(_gps_sample_delayed.vel(0)) && ISFINITE(_gps_sample_delayed.vel(1))) {
-		yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.vacc);
+		_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.vacc);
 	}
 }
 

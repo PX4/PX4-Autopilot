@@ -567,13 +567,6 @@ void EstimatorInterface::unallocate_buffers()
 	_output_vert_buffer.unallocate();
 	_drag_buffer.unallocate();
 	_auxvel_buffer.unallocate();
-
-}
-
-bool EstimatorInterface::local_position_is_valid()
-{
-	// return true if we are not doing unconstrained free inertial navigation
-	return !_deadreckon_time_exceeded;
 }
 
 bool EstimatorInterface::isOnlyActiveSourceOfHorizontalAiding(const bool aiding_flag) const
@@ -610,7 +603,6 @@ void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
 void EstimatorInterface::print_status()
 {
 	ECL_INFO("local position valid: %s", local_position_is_valid() ? "yes" : "no");
-	ECL_INFO("global position valid: %s", global_position_is_valid() ? "yes" : "no");
 
 	ECL_INFO("imu buffer: %d (%d Bytes)", _imu_buffer.get_length(), _imu_buffer.get_total_size());
 	ECL_INFO("gps buffer: %d (%d Bytes)", _gps_buffer.get_length(), _gps_buffer.get_total_size());

@@ -83,16 +83,6 @@ bool Ekf::initHagl()
 	return initialized;
 }
 
-bool Ekf::shouldUseRangeFinderForHagl() const
-{
-	return (_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder);
-}
-
-bool Ekf::shouldUseOpticalFlowForHagl() const
-{
-	return (_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow);
-}
-
 void Ekf::runTerrainEstimator()
 {
 	// If we are on ground, store the local position and time to use as a reference
@@ -286,11 +276,6 @@ void Ekf::fuseFlowForTerrain()
 	}
 }
 
-bool Ekf::isTerrainEstimateValid() const
-{
-	return _hagl_valid;
-}
-
 void Ekf::updateTerrainValidity()
 {
 	// we have been fusing range finder measurements in the last 5 seconds
@@ -306,12 +291,6 @@ void Ekf::updateTerrainValidity()
 	_hagl_sensor_status.flags.range_finder = shouldUseRangeFinderForHagl()
 						 && recent_range_fusion
 						 && (_time_last_fake_hagl_fuse != _time_last_hagl_fuse);
-	_hagl_sensor_status.flags.flow = shouldUseOpticalFlowForHagl()
-					 && recent_flow_for_terrain_fusion;
-}
 
-// get the estimated vertical position of the terrain relative to the NED origin
-float Ekf::getTerrainVertPos() const
-{
-	return _terrain_vpos;
+	_hagl_sensor_status.flags.flow = shouldUseOpticalFlowForHagl() && recent_flow_for_terrain_fusion;
 }
