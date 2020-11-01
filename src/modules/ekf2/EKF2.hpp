@@ -120,11 +120,6 @@ public:
 private:
 	void Run() override;
 
-	PreFlightChecker _preflt_checker;
-	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
-				const estimator_innovations_s &innov, const bool can_observe_heading_in_flight);
-	void resetPreFlightChecks();
-
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
 
@@ -234,7 +229,6 @@ private:
 	bool _standby{false}; // standby arming state
 	bool _landed{true};
 	bool _in_ground_effect{false};
-	bool _can_observe_heading_in_flight{false};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
@@ -254,6 +248,8 @@ private:
 	uORB::PublicationMulti<vehicle_local_position_s>     _local_position_pub;
 	uORB::PublicationMulti<vehicle_global_position_s>    _global_position_pub;
 	uORB::PublicationMulti<vehicle_odometry_s>           _odometry_pub;
+
+	PreFlightChecker _preflt_checker;
 
 	Ekf _ekf;
 
