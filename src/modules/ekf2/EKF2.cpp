@@ -380,7 +380,16 @@ void EKF2::Run()
 
 			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
-				_in_ground_effect = vehicle_land_detected.in_ground_effect;
+
+				if (_armed && (_param_ekf2_gnd_eff_dz.get() > 0.f)) {
+					if (!_had_valid_terrain) {
+						// update ground effect flag based on land detector state if we've never had valid terrain data
+						_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
+					}
+
+				} else {
+					_ekf.set_gnd_effect_flag(false);
+				}
 			}
 		}
 
@@ -709,22 +718,13 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	}
 
 	// only consider ground effect if compensation is configured and the vehicle is armed (props spinning)
-	if ((_param_ekf2_gnd_eff_dz.get() > 0.0f) && _armed) {
+	if ((_param_ekf2_gnd_eff_dz.get() > 0.0f) && _armed && lpos.dist_bottom_valid) {
 		// set ground effect flag if vehicle is closer than a specified distance to the ground
-		if (lpos.dist_bottom_valid) {
-			_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
+		_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
 
-			// if we have no valid terrain estimate and never had one then use ground effect flag from land detector
-			// _had_valid_terrain is used to make sure that we don't fall back to using this option
-			// if we temporarily lose terrain data due to the distance sensor getting out of range
-
-		} else if (!_had_valid_terrain) {
-			// update ground effect flag based on land detector state
-			_ekf.set_gnd_effect_flag(_in_ground_effect);
-		}
-
-	} else {
-		_ekf.set_gnd_effect_flag(false);
+		// if we have no valid terrain estimate and never had one then use ground effect flag from land detector
+		// _had_valid_terrain is used to make sure that we don't fall back to using this option
+		// if we temporarily lose terrain data due to the distance sensor getting out of range
 	}
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
