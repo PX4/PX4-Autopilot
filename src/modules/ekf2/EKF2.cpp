@@ -1413,7 +1413,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 	_ekf.get_filter_fault_status(&fault_status.value);
 
 	// Check if conditions are OK for learning of magnetometer bias values
-	if (!_landed && _armed &&
+	if (control_status.flags.in_air && _armed &&
 	    !fault_status.value && // there are no filter faults
 	    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
 
