@@ -227,7 +227,6 @@ private:
 	bool _distance_sensor_selected{false}; // because we can have several distance sensor instances with different orientations
 	bool _armed{false};
 	bool _standby{false}; // standby arming state
-	bool _landed{true};
 	bool _in_ground_effect{false};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
