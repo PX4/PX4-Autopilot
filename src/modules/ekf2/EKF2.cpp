@@ -350,9 +350,7 @@ void EKF2::Run()
 			vehicle_status_s vehicle_status;
 
 			if (_status_sub.copy(&vehicle_status)) {
-
 				const bool is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-				_can_observe_heading_in_flight = (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
 				// only fuse synthetic sideslip measurements if conditions are met
 				_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
@@ -360,8 +358,20 @@ void EKF2::Run()
 				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 				_ekf.set_is_fixed_wing(is_fixed_wing);
 
+				_preflt_checker.setVehicleCanObserveHeadingInFlight(vehicle_status.vehicle_type !=
+						vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+
 				_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-				_standby = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
+
+				// update standby (arming state) flag
+				const bool standby = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
+
+				if (_standby != standby) {
+					_standby = standby;
+
+					// reset preflight checks if transitioning in or out of standby arming state
+					_preflt_checker.reset();
+				}
 			}
 		}
 
@@ -370,7 +380,6 @@ void EKF2::Run()
 
 			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
-				_landed = vehicle_land_detected.landed;
 				_in_ground_effect = vehicle_land_detected.in_ground_effect;
 			}
 		}
@@ -448,25 +457,6 @@ void EKF2::Run()
 			px4_lockstep_progress(_lockstep_component);
 		}
 	}
-}
-
-void EKF2::runPreFlightChecks(const float dt,
-			      const filter_control_status_u &control_status,
-			      const estimator_innovations_s &innov,
-			      const bool can_observe_heading_in_flight)
-{
-	_preflt_checker.setVehicleCanObserveHeadingInFlight(can_observe_heading_in_flight);
-	_preflt_checker.setUsingGpsAiding(control_status.flags.gps);
-	_preflt_checker.setUsingFlowAiding(control_status.flags.opt_flow);
-	_preflt_checker.setUsingEvPosAiding(control_status.flags.ev_pos);
-	_preflt_checker.setUsingEvVelAiding(control_status.flags.ev_vel);
-
-	_preflt_checker.update(dt, innov);
-}
-
-void EKF2::resetPreFlightChecks()
-{
-	_preflt_checker.reset();
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -590,15 +580,16 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu
 
 	// calculate noise filtered velocity innovations which are used for pre-flight checking
 	if (_standby) {
-
+		// TODO: move to run before publications
 		filter_control_status_u control_status;
 		_ekf.get_control_mode(&control_status.value);
 
-		float dt_seconds = imu.delta_ang_dt;
-		runPreFlightChecks(dt_seconds, control_status, innovations, _can_observe_heading_in_flight);
+		_preflt_checker.setUsingGpsAiding(control_status.flags.gps);
+		_preflt_checker.setUsingFlowAiding(control_status.flags.opt_flow);
+		_preflt_checker.setUsingEvPosAiding(control_status.flags.ev_pos);
+		_preflt_checker.setUsingEvVelAiding(control_status.flags.ev_vel);
 
-	} else {
-		resetPreFlightChecks();
+		_preflt_checker.update(imu.delta_ang_dt, innovations);
 	}
 }
 
