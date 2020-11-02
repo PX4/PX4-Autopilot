@@ -21,6 +21,12 @@
             "vehicle": "tailsitter",
             "test_filter": "[multicopter][vtol]",
             "timeout_min": 10
+        },
+        {
+            "model": "tiltrotor",
+            "vehicle": "tiltrotor",
+            "test_filter": "[multicopter][vtol]",
+            "timeout_min": 10
         }
     ]
 }
