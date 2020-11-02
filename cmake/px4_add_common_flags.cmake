@@ -89,6 +89,7 @@ function(px4_add_common_flags)
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
 		-Wno-unused-parameter
+		-Wno-logical-op # to compile 1.11 release on GCC 10 see https://github.com/PX4/PX4-Matrix/pull/146
 		)
 
 	# compiler specific flags
