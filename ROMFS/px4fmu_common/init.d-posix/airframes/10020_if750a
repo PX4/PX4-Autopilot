@@ -17,7 +17,6 @@ then
 	param set MNT_MODE_IN 4
 	param set MNT_MODE_OUT 2
 	param set MNT_DO_STAB 2
-
 fi
 
 set MIXER quad_x
