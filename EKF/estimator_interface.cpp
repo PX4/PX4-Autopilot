@@ -50,8 +50,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 {
 	// TODO: resolve misplaced responsibility
 	if (!_initialised) {
-		init(imu_sample.time_us);
-		_initialised = true;
+		_initialised = init(imu_sample.time_us);
 	}
 
 	const float dt = math::constrain((imu_sample.time_us - _time_last_imu) / 1e6f, 1.0e-4f, 0.02f);

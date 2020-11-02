@@ -94,9 +94,9 @@ class EkfInitializationTest : public ::testing::Test {
 		const Vector3f pos = _ekf->getPosition();
 		const Vector3f vel = _ekf->getVelocity();
 
-		EXPECT_TRUE(matrix::isEqual(pos, Vector3f{}, 0.001f))
+		EXPECT_TRUE(matrix::isEqual(pos, Vector3f{}, 0.002f))
 			<< "pos = " << pos(0) << ", " << pos(1) << ", " << pos(2);
-		EXPECT_TRUE(matrix::isEqual(vel, Vector3f{}, 0.002f))
+		EXPECT_TRUE(matrix::isEqual(vel, Vector3f{}, 0.003f))
 			<< "vel = " << vel(0) << ", " << vel(1) << ", " << vel(2);
 	}
 
@@ -105,7 +105,7 @@ class EkfInitializationTest : public ::testing::Test {
 		const Vector3f pos_var = _ekf->getPositionVariance();
 		const Vector3f vel_var = _ekf->getVelocityVariance();
 
-		const float pos_variance_limit = 0.2f;
+		const float pos_variance_limit = 0.1f;
 		EXPECT_TRUE(pos_var(0) > pos_variance_limit) << "pos_var(0)" << pos_var(0);
 		EXPECT_TRUE(pos_var(1) > pos_variance_limit) << "pos_var(1)" << pos_var(1);
 		EXPECT_TRUE(pos_var(2) > pos_variance_limit) << "pos_var(2)" << pos_var(2);
