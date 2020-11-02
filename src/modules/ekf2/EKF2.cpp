@@ -743,7 +743,7 @@ void EKF2::Run()
 				lpos.heading = Eulerf(q).psi();
 				lpos.delta_heading = Eulerf(delta_q_reset).psi();
 
-				lpos.dist_bottom_valid = _ekf.get_terrain_valid();
+				lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 
 				float terrain_vpos = _ekf.getTerrainVertPos();
 				lpos.dist_bottom = terrain_vpos - lpos.z; // Distance to bottom surface (ground) in meters
