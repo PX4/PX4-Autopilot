@@ -1129,6 +1129,11 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 		/* forward any messages to other mavlink instances */
 		Mavlink::forward_message(msg, this);
 	}
+
+	// Special case for gimbals that need to forward GIMBAL_DEVICE_ATTITUDE_STATUS.
+	else if (msg->msgid == MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS) {
+		Mavlink::forward_message(msg, this);
+	}
 }
 
 void
