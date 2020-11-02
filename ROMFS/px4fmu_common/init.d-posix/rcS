@@ -105,6 +105,7 @@ fi
 param set MAV_SYS_ID $((px4_instance+1))
 
 simulator_tcp_port=$((4560+px4_instance))
+simulator_udp_port=$((14560+px4_instance))
 udp_offboard_port_local=$((14580+px4_instance))
 udp_offboard_port_remote=$((14540+px4_instance))
 [ $px4_instance -gt 9 ] && udp_offboard_port_remote=14549 # use the same ports for more than 10 instances to avoid port overlaps
@@ -226,6 +227,7 @@ dataman start
 if ! replay tryapplyparams
 then
   . px4-rc.simulator
+  simulator start -u $simulator_udp_port
 fi
 load_mon start
 battery_simulator start
