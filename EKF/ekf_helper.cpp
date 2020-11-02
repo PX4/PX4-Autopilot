@@ -347,9 +347,10 @@ void Ekf::resetHeight()
 // align output filter states to match EKF states at the fusion time horizon
 void Ekf::alignOutputFilter()
 {
-	const outputSample output_delayed = _output_buffer.get_oldest();
+	const outputSample &output_delayed = _output_buffer.get_oldest();
+
 	// calculate the quaternion rotation delta from the EKF to output observer states at the EKF fusion time horizon
-	Quatf q_delta = _state.quat_nominal * output_delayed.quat_nominal.inversed();
+	Quatf q_delta{_state.quat_nominal * output_delayed.quat_nominal.inversed()};
 	q_delta.normalize();
 
 	// calculate the velocity and position deltas between the output and EKF at the EKF fusion time horizon
