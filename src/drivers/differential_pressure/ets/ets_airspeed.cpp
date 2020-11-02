@@ -146,7 +146,7 @@ ETSAirspeed::collect()
 	// XXX we may want to smooth out the readings to remove noise.
 	report.differential_pressure_filtered_pa = diff_pres_pa_raw;
 	report.differential_pressure_raw_pa = diff_pres_pa_raw;
-	report.temperature = -1000.0f;
+	report.temperature = NAN;
 	report.device_id = _device_id.devid;
 
 	_airspeed_pub.publish(report);
