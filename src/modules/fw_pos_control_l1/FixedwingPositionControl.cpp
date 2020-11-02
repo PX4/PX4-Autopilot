@@ -1683,7 +1683,6 @@ FixedwingPositionControl::Run()
 		}
 
 		manual_control_setpoint_poll();
-		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
 		vehicle_attitude_poll();
 		vehicle_command_poll();
 		vehicle_control_mode_poll();
