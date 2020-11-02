@@ -104,6 +104,20 @@ fi
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
 
+simulator_tcp_port=$((4560+px4_instance))
+udp_offboard_port_local=$((14580+px4_instance))
+udp_offboard_port_remote=$((14540+px4_instance))
+[ $px4_instance -gt 9 ] && udp_offboard_port_remote=14549 # use the same ports for more than 10 instances to avoid port overlaps
+udp_onboard_payload_port_local=$((14280+px4_instance))
+udp_onboard_payload_port_remote=$((14030+px4_instance))
+udp_onboard_gimbal_port_local=$((13030+px4_instance))
+udp_onboard_gimbal_port_remote=$((13280+px4_instance))
+udp_gcs_port_local=$((18570+px4_instance))
+udp_gcs_port_remote=14550
+
+udp_gcs_addr_remote=127.0.0.1
+[ -n "$PX4_QGC_REMOTE_ADDRESS" ] &&  udp_gcs_addr_remote=$PX4_QGC_REMOTE_ADDRESS
+
 if [ $AUTOCNF = yes ]
 then
 	param set SYS_AUTOSTART $REQUESTED_AUTOSTART
