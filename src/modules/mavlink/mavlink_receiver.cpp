@@ -520,7 +520,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		if (cmd_mavlink.command == MAV_CMD_DO_CHANGE_SPEED) {
 			// Not differentiating between airspeed and groundspeed yet
-			set_cruising_speed(cmd_mavlink.param2);
+			set_offb_cruising_speed(cmd_mavlink.param2);
 		}
 
 		if (!send_ack) {
@@ -1083,7 +1083,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 							globallocalconverter_tolocal(set_position_target_global_int.lat_int / 1e7,
 										     set_position_target_global_int.lon_int / 1e7, set_position_target_global_int.alt,
 										     &pos_sp_triplet.current.x, &pos_sp_triplet.current.y, &pos_sp_triplet.current.z);
-							pos_sp_triplet.current.cruising_speed = get_cruising_speed();
+							pos_sp_triplet.current.cruising_speed = get_offb_cruising_speed();
 							pos_sp_triplet.current.position_valid = true;
 						}
 
@@ -2975,7 +2975,7 @@ MavlinkReceiver::Run()
 		// reset cruising speed on mode changes
 		if (_vehicle_status_sub.update(&_vehicle_status)) {
 			if (_last_nav_state != _vehicle_status.nav_state) {
-				reset_cruising_speed();
+				reset_offb_cruising_speed();
 				_last_nav_state = _vehicle_status.nav_state;
 			}
 		}
@@ -3131,19 +3131,19 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 }
 
 float
-MavlinkReceiver::get_cruising_speed()
+MavlinkReceiver::get_offb_cruising_speed()
 {
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (_cruising_speed_mc > 0.0f) {
-			return _cruising_speed_mc;
+		if (_offb_cruising_speed_mc > 0.0f) {
+			return _offb_cruising_speed_mc;
 
 		} else {
 			return -1.0f;
 		}
 
 	} else {
-		if (_cruising_speed_fw > 0.0f) {
-			return _cruising_speed_fw;
+		if (_offb_cruising_speed_fw > 0.0f) {
+			return _offb_cruising_speed_fw;
 
 		} else {
 			return -1.0f;
@@ -3152,19 +3152,19 @@ MavlinkReceiver::get_cruising_speed()
 }
 
 void
-MavlinkReceiver::set_cruising_speed(float speed)
+MavlinkReceiver::set_offb_cruising_speed(float speed)
 {
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		_cruising_speed_mc = speed;
+		_offb_cruising_speed_mc = speed;
 
 	} else {
-		_cruising_speed_fw = speed;
+		_offb_cruising_speed_fw = speed;
 	}
 }
 
 void
-MavlinkReceiver::reset_cruising_speed()
+MavlinkReceiver::reset_offb_cruising_speed()
 {
-	_cruising_speed_mc = -1.0f;
-	_cruising_speed_fw = -1.0f;
+	_offb_cruising_speed_mc = -1.0f;
+	_offb_cruising_speed_fw = -1.0f;
 }
