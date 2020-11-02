@@ -123,14 +123,14 @@ public:
 	static void *start_helper(void *context);
 
 	/**
-	 * Get the cruising speed
+	 * Get the cruising speed in offboard control
 	 *
 	 * @return the desired cruising speed for the current flight mode
 	 */
-	float get_cruising_speed();
+	float get_offb_cruising_speed();
 
 	/**
-	 * Set the cruising speed
+	 * Set the cruising speed in offboard control
 	 *
 	 * Passing a negative value or leaving the parameter away will reset the cruising speed
 	 * to its default value.
@@ -138,12 +138,12 @@ public:
 	 * Sets cruising speed for current flight mode only (resets on mode changes).
 	 *
 	 */
-	void set_cruising_speed(float speed = -1.0f);
+	void set_offb_cruising_speed(float speed = -1.0f);
 
 	/**
-	 * Reset all cruising speeds to default values
+	 * Reset all offboard cruising speeds to default values
 	 */
-	void reset_cruising_speed();
+	void reset_offb_cruising_speed();
 
 private:
 
@@ -342,8 +342,8 @@ private:
 	vehicle_status_s		_vehicle_status{};
 	uint8_t				_last_nav_state{0};
 
-	float 				_cruising_speed_mc{-1.0f};
-	float 				_cruising_speed_fw{-1.0f};
+	float 				_offb_cruising_speed_mc{-1.0f};
+	float 				_offb_cruising_speed_fw{-1.0f};
 
 	// Allocated if needed.
 	TunePublisher *_tune_publisher{nullptr};
