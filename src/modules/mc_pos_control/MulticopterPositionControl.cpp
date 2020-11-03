@@ -477,7 +477,7 @@ void MulticopterPositionControl::start_flight_task()
 		return;
 	}
 
-	// Do not run transition flight task when not enable altitude control
+	// Do not run transition flight task if altitude control is not enabled (e.g. in Stabilized or Acro flight mode)
 	if (_vehicle_status.in_transition_mode && _control_mode.flag_control_altitude_enabled) {
 		should_disable_task = false;
 		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
