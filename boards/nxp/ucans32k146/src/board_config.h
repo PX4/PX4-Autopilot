@@ -36,7 +36,7 @@
 /**
  * @file board_config.h
  *
- * NXP rddrone-uavcan146 internal definitions
+ * NXP ucans32k146 internal definitions
  */
 
 #pragma once
@@ -64,9 +64,9 @@ __BEGIN_DECLS
 
 /* Configuration ************************************************************/
 
-/* RDDRONE-UAVCAN146 GPIOs **************************************************/
+/* UCANS32K146 GPIOs **************************************************/
 
-/* LEDs.  The RDDRONE-UAVCAN146 has one RGB LED:
+/* LEDs.  The UCANS32K146 has one RGB LED:
  *
  *   RedLED   PTD15 (FTM0 CH0)
  *   GreenLED PTD16 (FTM0 CH1)
@@ -79,7 +79,7 @@ __BEGIN_DECLS
 #define GPIO_LED_G     (PIN_PTD16 | GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO)
 #define GPIO_LED_B     (PIN_PTD0  | GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO)
 
-/* Buttons.  The RDDRONE-UAVCAN146 supports one button:
+/* Buttons.  The UCANS32K146 supports one button:
  *
  *   SW3  PTC14
  */
@@ -156,7 +156,7 @@ int s32k1xx_bringup(void);
  * Name: s32k1xx_spidev_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the RDDRONE-UAVCAN146
+ *   Called to configure SPI chip select GPIO pins for the UCANS32K146
  *   board.
  *
  ****************************************************************************/

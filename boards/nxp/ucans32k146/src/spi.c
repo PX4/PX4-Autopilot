@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/s32k1xx/rddrone-uavcan146/src/s32k1xx_spi.c
+ * boards/arm/s32k1xx/ucans32k146/src/s32k1xx_spi.c
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Author: Ivan Ucherdzhiev <ivanucherdjiev@gmail.com>
@@ -66,7 +66,7 @@
  * Name: s32k1xx_spidev_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the RDDRONE-UAVCAN146
+ *   Called to configure SPI chip select GPIO pins for the UCANS32K146
  *   board.
  *
  ****************************************************************************/

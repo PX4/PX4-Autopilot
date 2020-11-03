@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/s32k1xx/rddrone-uavcan146/src/s32k1xx_userleds.c
+ * boards/arm/s32k1xx/ucans32k146/src/s32k1xx_appinit.c
  *
  *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,74 +39,80 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
 #include <nuttx/board.h>
 
-#include "arm_arch.h"
-#include "arm_internal.h"
-
-#include "s32k1xx_pin.h"
 #include "board_config.h"
 
-#include <arch/board/board.h>
+#include <px4_platform_common/init.h>
 
-#ifndef CONFIG_ARCH_LEDS
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifndef OK
+#  define OK 0
+#endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_userled_initialize
+ * Name: board_app_initialize
+ *
+ * Description:
+ *   Perform application specific initialization.  This function is never
+ *   called directly from application code, but only indirectly via the
+ *   (non-standard) boardctl() interface using the command BOARDIOC_INIT.
+ *
+ * Input Parameters:
+ *   arg - The boardctl() argument is passed to the board_app_initialize()
+ *         implementation without modification.  The argument has no
+ *         meaning to NuttX; the meaning of the argument is a contract
+ *         between the board-specific initialization logic and the
+ *         matching application logic.  The value cold be such things as a
+ *         mode enumeration value, a set of DIP switch switch settings, a
+ *         pointer to configuration data read from a file or serial FLASH,
+ *         or whatever you would like to do with it.  Every implementation
+ *         should accept zero/NULL as a default configuration.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
+ *
  ****************************************************************************/
 
-void board_userled_initialize(void)
+int board_app_initialize(uintptr_t arg)
 {
-	/* Configure LED GPIOs for output */
+#ifdef CONFIG_BOARD_LATE_INITIALIZE
+	/* Board initialization already performed by board_late_initialize() */
 
-	s32k1xx_pinconfig(GPIO_LED_R);
-	s32k1xx_pinconfig(GPIO_LED_G);
-	s32k1xx_pinconfig(GPIO_LED_B);
+	return OK;
+#else
+
+	px4_platform_init();
+
+	/* Perform board-specific initialization */
+
+	return s32k1xx_bringup();
+#endif
 }
 
-/****************************************************************************
- * Name: board_userled
- ****************************************************************************/
-
-void board_userled(int led, bool ledon)
+/************************************************************************************
+ * Name: board_peripheral_reset
+ *
+ * Description:
+ *
+ ************************************************************************************/
+__EXPORT void board_peripheral_reset(int ms)
 {
-	uint32_t ledcfg;
+	/* set the peripheral rails off */
 
-	if (led == BOARD_LED_R) {
-		ledcfg = GPIO_LED_R;
+	/* wait for the peripheral rail to reach GND */
+	usleep(ms * 1000);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
-	} else if (led == BOARD_LED_G) {
-		ledcfg = GPIO_LED_G;
+	/* re-enable power */
 
-	} else if (led == BOARD_LED_B) {
-		ledcfg = GPIO_LED_B;
-
-	} else {
-		return;
-	}
-
-	s32k1xx_gpiowrite(ledcfg, ledon); /* High illuminates */
+	/* switch the peripheral rail back on */
 }
-
-/****************************************************************************
- * Name: board_userled_all
- ****************************************************************************/
-
-void board_userled_all(uint8_t ledset)
-{
-	/* Low illuminates */
-
-	s32k1xx_gpiowrite(GPIO_LED_R, (ledset & BOARD_LED_R_BIT) != 0);
-	s32k1xx_gpiowrite(GPIO_LED_G, (ledset & BOARD_LED_G_BIT) != 0);
-	s32k1xx_gpiowrite(GPIO_LED_B, (ledset & BOARD_LED_B_BIT) != 0);
-}
-
-#endif /* !CONFIG_ARCH_LEDS */

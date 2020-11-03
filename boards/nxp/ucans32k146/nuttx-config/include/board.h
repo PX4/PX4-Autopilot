@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/s32k1xx/rddrone-uavcan146/include/board.h
+ * boards/arm/s32k1xx/ucans32k146/include/board.h
  *
  *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -53,7 +53,7 @@
 
 /* Clocking *****************************************************************/
 
-/* The RDDRONE-UAVCAN146 is fitted with a 8MHz Crystal */
+/* The UCANS32K146 is fitted with a 8MHz Crystal */
 
 #define BOARD_XTAL_FREQUENCY 8000000
 
@@ -63,7 +63,7 @@
 
 /* LED definitions **********************************************************/
 
-/* The RDDRONE-UAVCAN146 has one RGB LED:
+/* The UCANS32K146 has one RGB LED:
  *
  *   RedLED   PTD15 (FTM0 CH0)
  *   GreenLED PTD16 (FTM0 CH1)
@@ -91,7 +91,7 @@
 #define BOARD_LED_B_BIT   (1 << BOARD_LED_B)
 
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the LEDs on board
- * the RDDRONE-UAVCAN146.  The following definitions describe how NuttX
+ * the UCANS32K146.  The following definitions describe how NuttX
  * controls the LEDs:
  *
  *   SYMBOL                Meaning                      LED state
@@ -107,11 +107,11 @@
 #define LED_SIGNAL        0 /* In a signal handler      (no change)       */
 #define LED_ASSERTION     0 /* An assertion failed      (no change)       */
 #define LED_PANIC         4 /* The system has crashed    FLASH OFF    OFF */
-#undef  LED_IDLE            /* RDDRONE-UAVCAN146 in sleep mode (Not used) */
+#undef  LED_IDLE            /* UCANS32K146 in sleep mode (Not used) */
 
 /* Button definitions *******************************************************/
 
-/* The RDDRONE-UAVCAN146 supports two buttons:
+/* The UCANS32K146 supports two buttons:
  *
  *   SW3  PTC14
  */
