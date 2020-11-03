@@ -422,6 +422,8 @@ private:
 	/* do not allow to copy this class due to ptr data members */
 	PX4IO(const PX4IO &);
 	PX4IO operator=(const PX4IO &);
+
+	bool _safety_disabled{false}; ///< circuit breaker to disable the safety button
 };
 
 namespace
@@ -821,8 +823,10 @@ PX4IO::init()
 
 	}
 
+	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+
 	/* set safety to off if circuit breaker enabled */
-	if (circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY)) {
+	if (_safety_disabled) {
 		(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 	}
 
@@ -1002,9 +1006,11 @@ PX4IO::task_main()
 				}
 
 				/* Check if the IO safety circuit breaker has been updated */
-				bool circuit_breaker_io_safety_enabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
-				/* Bypass IO safety switch logic by setting FORCE_SAFETY_OFF */
-				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, circuit_breaker_io_safety_enabled);
+				_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+
+				if (_safety_disabled) {
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
+				}
 
 				/* Check if the flight termination circuit breaker has been updated */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
@@ -1636,7 +1642,7 @@ PX4IO::io_handle_status(uint16_t status)
 	/**
 	 * Get and handle the safety status
 	 */
-	const bool safety_off = status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
+	const bool safety_off = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) || _safety_disabled;
 	const bool override_enabled = status & PX4IO_P_STATUS_FLAGS_OVERRIDE;
 
 	// publish immediately on change, otherwise at 1 Hz
