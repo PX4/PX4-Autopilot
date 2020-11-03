@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/s32k1xx/rddrone-uavcan146/src/s32k1xx_bringup.c
+ * boards/arm/s32k1xx/ucans32k146/src/s32k1xx_userleds.c
  *
  *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,108 +39,74 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <sys/mount.h>
-#include <syslog.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <debug.h>
 
-#ifdef CONFIG_BUTTONS
-#  include <nuttx/input/buttons.h>
-#endif
+#include <nuttx/board.h>
 
-#ifdef CONFIG_USERLED
-#  include <nuttx/leds/userled.h>
-#endif
+#include "arm_arch.h"
+#include "arm_internal.h"
 
-#ifdef CONFIG_I2C_DRIVER
-#  include "s32k1xx_pin.h"
-#  include <nuttx/i2c/i2c_master.h>
-#  include "s32k1xx_lpi2c.h"
-#endif
-
+#include "s32k1xx_pin.h"
 #include "board_config.h"
+
+#include <arch/board/board.h>
+
+#ifndef CONFIG_ARCH_LEDS
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: s32k1xx_bringup
- *
- * Description:
- *   Perform architecture-specific initialization
- *
- *   CONFIG_BOARD_LATE_INITIALIZE=y :
- *     Called from board_late_initialize().
- *
- *   CONFIG_BOARD_LATE_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y :
- *     Called from the NSH library
- *
+ * Name: board_userled_initialize
  ****************************************************************************/
 
-int s32k1xx_bringup(void)
+void board_userled_initialize(void)
 {
-	int ret = OK;
+	/* Configure LED GPIOs for output */
 
-#ifdef CONFIG_BUTTONS
-	/* Register the BUTTON driver */
+	s32k1xx_pinconfig(GPIO_LED_R);
+	s32k1xx_pinconfig(GPIO_LED_G);
+	s32k1xx_pinconfig(GPIO_LED_B);
+}
 
-	ret = btn_lower_initialize("/dev/buttons");
+/****************************************************************************
+ * Name: board_userled
+ ****************************************************************************/
 
-	if (ret < 0) {
-		syslog(LOG_ERR, "ERROR: btn_lower_initialize() failed: %d\n", ret);
-	}
+void board_userled(int led, bool ledon)
+{
+	uint32_t ledcfg;
 
-#endif
+	if (led == BOARD_LED_R) {
+		ledcfg = GPIO_LED_R;
 
-#ifdef CONFIG_USERLED
-	/* Register the LED driver */
+	} else if (led == BOARD_LED_G) {
+		ledcfg = GPIO_LED_G;
 
-	ret = userled_lower_initialize("/dev/userleds");
-
-	if (ret < 0) {
-		syslog(LOG_ERR, "ERROR: userled_lower_initialize() failed: %d\n", ret);
-	}
-
-#endif
-
-#ifdef CONFIG_FS_PROCFS
-	/* Mount the procfs file system */
-
-	ret = mount(NULL, "/proc", "procfs", 0, NULL);
-
-	if (ret < 0) {
-		syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret);
-	}
-
-#endif
-
-#ifdef CONFIG_S32K1XX_LPSPI
-	/* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak
-	 * function s32k1xx_spidev_initialize() has been brought into the link.
-	 */
-
-	s32k1xx_spidev_initialize();
-#endif
-
-#if defined(CONFIG_S32K1XX_LPI2C0)
-#if defined(CONFIG_I2C_DRIVER)
-	FAR struct i2c_master_s *i2c;
-	i2c = s32k1xx_i2cbus_initialize(0);
-
-	if (i2c == NULL) {
-		serr("ERROR: Failed to get I2C%d interface\n", bus);
+	} else if (led == BOARD_LED_B) {
+		ledcfg = GPIO_LED_B;
 
 	} else {
-		ret = i2c_register(i2c, 0);
-
-		if (ret < 0) {
-			serr("ERROR: Failed to register I2C%d driver: %d\n", bus, ret);
-			s32k1xx_i2cbus_uninitialize(i2c);
-		}
+		return;
 	}
 
-#endif
-#endif
-
-	return ret;
+	s32k1xx_gpiowrite(ledcfg, ledon); /* High illuminates */
 }
+
+/****************************************************************************
+ * Name: board_userled_all
+ ****************************************************************************/
+
+void board_userled_all(uint8_t ledset)
+{
+	/* Low illuminates */
+
+	s32k1xx_gpiowrite(GPIO_LED_R, (ledset & BOARD_LED_R_BIT) != 0);
+	s32k1xx_gpiowrite(GPIO_LED_G, (ledset & BOARD_LED_G_BIT) != 0);
+	s32k1xx_gpiowrite(GPIO_LED_B, (ledset & BOARD_LED_B_BIT) != 0);
+}
+
+#endif /* !CONFIG_ARCH_LEDS */

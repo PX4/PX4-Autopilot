@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/s32k1xx/rddrone-uavcan146/src/s32k1xx_boot.c
+ * boards/arm/s32k1xx/ucans32k146/src/s32k1xx_buttons.c
  *
  *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,64 +33,119 @@
  *
  ****************************************************************************/
 
+/* The UCANS32K146 supports one button:
+ *
+ *   SW3  PTC14
+ */
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform/gpio.h>
+#include <nuttx/config.h>
 
-#include <debug.h>
+#include <stdint.h>
+#include <errno.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/board.h>
 
+#include "s32k1xx_pin.h"
 #include "board_config.h"
+
+#include <arch/board/board.h>
+
+#ifdef CONFIG_ARCH_BUTTONS
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: s32k1xx_board_initialize
+ * Name: board_button_initialize
  *
  * Description:
- *   All S32K1XX architectures must provide the following entry point.  This
- *   entry point is called early in the initialization -- after all memory
- *   has been configured and mapped but before any devices have been
- *   initialized.
+ *   board_button_initialize() must be called to initialize button resources.
+ *   After that, board_buttons() may be called to collect the current state
+ *   of all buttons or board_button_irq() may be called to register button
+ *   interrupt handlers.
  *
  ****************************************************************************/
 
-void s32k1xx_board_initialize(void)
+void board_button_initialize(void)
 {
-#ifdef CONFIG_ARCH_LEDS
-	/* Configure on-board LEDs if LED support has been selected. */
+	/* Configure the GPIO pins as interrupting inputs. */
 
-	board_autoled_initialize();
-#endif
-	ucans32k_timer_initialize();
-
+	s32k1xx_pinconfig(GPIO_SW3);
 }
 
 /****************************************************************************
- * Name: board_late_initialize
+ * Name: board_buttons
+ ****************************************************************************/
+
+uint32_t board_buttons(void)
+{
+	uint32_t ret = 0;
+
+	if (s32k1xx_gpioread(GPIO_SW3)) {
+		ret |= BUTTON_SW3_BIT;
+	}
+
+	return ret;
+}
+
+/****************************************************************************
+ * Button support.
  *
  * Description:
- *   If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
- *   initialization call will be performed in the boot-up sequence to a
- *   function called board_late_initialize().  board_late_initialize() will
- *   be called immediately after up_initialize() is called and just before
- *   the initial application is started.  This additional initialization
- *   phase may be used, for example, to initialize board-specific device
- *   drivers.
+ *   board_button_initialize() must be called to initialize button resources.
+ *   After that, board_buttons() may be called to collect the current state
+ *   of all buttons or board_button_irq() may be called to register button
+ *   interrupt handlers.
+ *
+ *   After board_button_initialize() has been called, board_buttons() may be
+ *   called to collect the state of all buttons.  board_buttons() returns a
+ *   32-bit bit set with each bit associated with a button.  See the
+ *   BUTTON_*_BIT definitions in board.h for the meaning of each bit.
+ *
+ *   board_button_irq() may be called to register an interrupt handler that
+ *   will be called when a button is depressed or released.  The ID value is
+ *   a button enumeration value that uniquely identifies a button resource.
+ *   See the BUTTON_* definitions in board.h for the meaning of enumeration
+ *   value.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARD_LATE_INITIALIZE
-void board_late_initialize(void)
+#ifdef CONFIG_ARCH_IRQBUTTONS
+int board_button_irq(int id, xcpt_t irqhandler, FAR void *arg)
 {
-	/* Perform board-specific initialization */
+	uint32_t pinset;
+	int ret;
 
-	s32k1xx_bringup();
+	/* Map the button id to the GPIO bit set. */
+
+	if (id == BUTTON_SW3) {
+		pinset = GPIO_SW3;
+
+	} else {
+		return -EINVAL;
+	}
+
+	/* The button has already been configured as an interrupting input (by
+	 * board_button_initialize() above).
+	 *
+	 * Attach the new button handler.
+	 */
+
+	ret = s32k1xx_pinirqattach(pinset, irqhandler, NULL);
+
+	if (ret >= 0) {
+		/* Then make sure that interrupts are enabled on the pin */
+
+		s32k1xx_pinirqenable(pinset);
+	}
+
+	return ret;
 }
 #endif
+#endif /* CONFIG_ARCH_BUTTONS */

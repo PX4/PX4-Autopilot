@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/s32k1xx/rddrone-uavcan146/src/s32k1xx_appinit.c
+ * boards/arm/s32k1xx/ucans32k146/src/s32k1xx_bringup.c
  *
  *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,80 +39,108 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/board.h>
+#include <sys/types.h>
+#include <sys/mount.h>
+#include <syslog.h>
+
+#ifdef CONFIG_BUTTONS
+#  include <nuttx/input/buttons.h>
+#endif
+
+#ifdef CONFIG_USERLED
+#  include <nuttx/leds/userled.h>
+#endif
+
+#ifdef CONFIG_I2C_DRIVER
+#  include "s32k1xx_pin.h"
+#  include <nuttx/i2c/i2c_master.h>
+#  include "s32k1xx_lpi2c.h"
+#endif
 
 #include "board_config.h"
-
-#include <px4_platform_common/init.h>
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#ifndef OK
-#  define OK 0
-#endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_app_initialize
+ * Name: s32k1xx_bringup
  *
  * Description:
- *   Perform application specific initialization.  This function is never
- *   called directly from application code, but only indirectly via the
- *   (non-standard) boardctl() interface using the command BOARDIOC_INIT.
+ *   Perform architecture-specific initialization
  *
- * Input Parameters:
- *   arg - The boardctl() argument is passed to the board_app_initialize()
- *         implementation without modification.  The argument has no
- *         meaning to NuttX; the meaning of the argument is a contract
- *         between the board-specific initialization logic and the
- *         matching application logic.  The value cold be such things as a
- *         mode enumeration value, a set of DIP switch switch settings, a
- *         pointer to configuration data read from a file or serial FLASH,
- *         or whatever you would like to do with it.  Every implementation
- *         should accept zero/NULL as a default configuration.
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
  *
- * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on
- *   any failure to indicate the nature of the failure.
+ *   CONFIG_BOARD_LATE_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y :
+ *     Called from the NSH library
  *
  ****************************************************************************/
 
-int board_app_initialize(uintptr_t arg)
+int s32k1xx_bringup(void)
 {
-#ifdef CONFIG_BOARD_LATE_INITIALIZE
-	/* Board initialization already performed by board_late_initialize() */
+	int ret = OK;
 
-	return OK;
-#else
+#ifdef CONFIG_BUTTONS
+	/* Register the BUTTON driver */
 
-	px4_platform_init();
+	ret = btn_lower_initialize("/dev/buttons");
 
-	/* Perform board-specific initialization */
+	if (ret < 0) {
+		syslog(LOG_ERR, "ERROR: btn_lower_initialize() failed: %d\n", ret);
+	}
 
-	return s32k1xx_bringup();
 #endif
-}
 
-/************************************************************************************
- * Name: board_peripheral_reset
- *
- * Description:
- *
- ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
-	/* set the peripheral rails off */
+#ifdef CONFIG_USERLED
+	/* Register the LED driver */
 
-	/* wait for the peripheral rail to reach GND */
-	usleep(ms * 1000);
-	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
+	ret = userled_lower_initialize("/dev/userleds");
 
-	/* re-enable power */
+	if (ret < 0) {
+		syslog(LOG_ERR, "ERROR: userled_lower_initialize() failed: %d\n", ret);
+	}
 
-	/* switch the peripheral rail back on */
+#endif
+
+#ifdef CONFIG_FS_PROCFS
+	/* Mount the procfs file system */
+
+	ret = mount(NULL, "/proc", "procfs", 0, NULL);
+
+	if (ret < 0) {
+		syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret);
+	}
+
+#endif
+
+#ifdef CONFIG_S32K1XX_LPSPI
+	/* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak
+	 * function s32k1xx_spidev_initialize() has been brought into the link.
+	 */
+
+	s32k1xx_spidev_initialize();
+#endif
+
+#if defined(CONFIG_S32K1XX_LPI2C0)
+#if defined(CONFIG_I2C_DRIVER)
+	FAR struct i2c_master_s *i2c;
+	i2c = s32k1xx_i2cbus_initialize(0);
+
+	if (i2c == NULL) {
+		serr("ERROR: Failed to get I2C%d interface\n", bus);
+
+	} else {
+		ret = i2c_register(i2c, 0);
+
+		if (ret < 0) {
+			serr("ERROR: Failed to register I2C%d driver: %d\n", bus, ret);
+			s32k1xx_i2cbus_uninitialize(i2c);
+		}
+	}
+
+#endif
+#endif
+
+	return ret;
 }

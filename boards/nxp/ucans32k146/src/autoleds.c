@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/s32k1xx/rddrone-uavcan146/src/s32k1xx_autoleds.c
+ * boards/arm/s32k1xx/ucans32k146/src/s32k1xx_autoleds.c
  *
  *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* The RDDRONE-UAVCAN146 has one RGB LED:
+/* The UCANS32K146 has one RGB LED:
  *
  *   RedLED   PTD15 (FTM0 CH0)
  *   GreenLED PTD16 (FTM0 CH1)

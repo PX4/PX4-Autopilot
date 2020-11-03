@@ -10,7 +10,7 @@ add_definitions(
 
 set(uavcanblid_hw_version_major 1)
 set(uavcanblid_hw_version_minor 0)
-set(uavcanblid_name "\"org.nxp.rddrone-uavcan146\"")
+set(uavcanblid_name "\"org.nxp.ucans32k146\"")
 
 add_definitions(
 	-DHW_UAVCAN_NAME=${uavcanblid_name}
@@ -21,7 +21,7 @@ add_definitions(
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR nxp
-	MODEL rddrone-uavcan146
+	MODEL ucans32k146
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
