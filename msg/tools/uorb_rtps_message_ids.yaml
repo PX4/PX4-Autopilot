@@ -327,6 +327,8 @@ rtps:
     id: 155
   - msg: gimbal_manager_status
     id: 156
+  - msg: gimbal_manager_set_manual_control
+    id: 157
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170
