@@ -14,7 +14,7 @@
 template<typename Type>
 void fullRankCholeskyTolerance(Type &tol)
 {
-    tol /= 1000000000;
+    tol /= 10000000;
 }
 
 template<> inline
