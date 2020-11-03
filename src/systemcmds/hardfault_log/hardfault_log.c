@@ -59,6 +59,8 @@
 #include <systemlib/hardfault_log.h>
 #include <lib/version/version.h>
 
+#include "chip.h"
+
 
 /****************************************************************************
  * Public Function Prototypes
@@ -69,6 +71,7 @@ __EXPORT int hardfault_log_main(int argc, char *argv[]);
  * Pre-processor Definitions
  ****************************************************************************/
 #define OUT_BUFFER_LEN  200
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -130,6 +133,17 @@ static int genfault(int fault)
 	return OK;
 }
 
+/****************************************************************************
+ * verify ram address
+ ****************************************************************************/
+bool verify_ram_address(uint32_t bot, uint32_t size)
+{
+	bool ret = true;
+#if defined STM32_IS_SRAM
+	ret =  STM32_IS_SRAM(bot) && STM32_IS_SRAM(bot +  size);
+#endif
+	return ret;
+}
 
 /****************************************************************************
  * format_fault_time
@@ -259,7 +273,14 @@ static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
 	FAR struct tcb_s tcb;
 	tcb.adj_stack_ptr = (void *) sbot;
 	tcb.adj_stack_size = si->size;
-	n = snprintf(buffer, max,         "  used:   %08x\n", up_check_tcbstack(&tcb));
+
+	if (verify_ram_address(sbot, si->size)) {
+		n = snprintf(buffer, max,         "  used:   %08x\n", up_check_tcbstack(&tcb));
+
+	} else {
+		n = snprintf(buffer, max,         "Invalid Stack! (Corrupted TCB)  Stack base:  %08x Stack size:  %08x\n", sbot,
+			     si->size);
+	}
 
 	if (n != write(fd, buffer, n)) {
 		return -EIO;
