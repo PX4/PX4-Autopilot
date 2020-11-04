@@ -124,11 +124,13 @@ void Ekf::controlFusionModes()
 	// Get range data from buffer and check validity
 	const bool is_rng_data_ready = _range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
 	_range_sensor.setDataReadiness(is_rng_data_ready);
-	_range_sensor.runChecks(_imu_sample_delayed.time_us, _R_to_earth);
 
 	// update range sensor angle parameters in case they have changed
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
+	_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
+
+	_range_sensor.runChecks(_imu_sample_delayed.time_us, _R_to_earth);
 	}
 
 	if (_range_sensor.isDataHealthy()) {

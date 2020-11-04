@@ -80,6 +80,7 @@ void Ekf::reset()
 	_terrain_initialised = false;
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
+	_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
 
 	_control_status.value = 0;
 	_control_status_prev.value = 0;
