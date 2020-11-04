@@ -8,6 +8,9 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	elif [[ $@ =~ .*ocpoc.* ]] || [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*beaglebone.* ]] || [[ $@ =~ .*pilotpi.default ]]; then
 		# aerotenna_ocpoc_default, beaglebone_blue_default, emlid_navio2_default, px4_raspberrypi_default, scumaker_pilotpi_default
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2020-04-01"
+	elif [[ $@ =~ .*pilotpi.arm64 ]]; then
+		# scumaker_pilotpi_arm64
+		PX4_DOCKER_REPO="px4io/px4-dev-aarch64:latest"
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
 		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2020-04-01"
