@@ -33,7 +33,7 @@
 
 
 /**
- * @file HxSRx0x.h
+ * @file SR05.hpp
  * @author David Sidrane <david.sidrane@nscdg.com>
  *
  * Interface for the HY-SRF05 / HC-SR05 and HC-SR04.
@@ -42,6 +42,8 @@
 #pragma once
 
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
 #include <uORB/Subscription.hpp>
 #include <board_config.h>
@@ -65,20 +67,27 @@ static constexpr uint32_t HXSRX0X_CONVERSION_INTERVAL{50_ms};
 // Maximum time to wait for a conversion to complete.
 static constexpr uint32_t HXSRX0X_CONVERSION_TIMEOUT{30_ms};
 
-class HxSRx0x : public px4::ScheduledWorkItem
+class SRF05 : public ModuleBase<SRF05>, public px4::ScheduledWorkItem
 {
 public:
-	HxSRx0x(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	virtual ~HxSRx0x();
+	SRF05(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	virtual ~SRF05() override;
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
 	int init();
-	void start();
-	void stop();
 
-	void print_info();
+	int print_status() override;
 
 protected:
-
+	void stop();
 	int collect();
 	int measure();
 

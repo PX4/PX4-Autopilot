@@ -33,20 +33,20 @@
 
 
 /**
- * @file HxSRx0x.c
+ * @file SRF05.c
  * @author David Sidrane <david.sidrane@nscdg.com>
  *
  * Interface for the HY-SRF05 / HC-SR05 and HC-SR04.
  * Precise Ultrasonic Range Sensor Module
  */
 
-#include "HxSRx0x.h"
+#include "SR05.hpp"
 
 #if defined(HAVE_ULTRASOUND)
 
 #include <px4_arch/micro_hal.h>
 
-HxSRx0x::HxSRx0x(const uint8_t rotation) :
+SRF05::SRF05(const uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_px4_rangefinder(0 /* device id not yet used */, rotation)
 {
@@ -55,7 +55,7 @@ HxSRx0x::HxSRx0x(const uint8_t rotation) :
 	_px4_rangefinder.set_fov(0.261799); // 15 degree FOV
 }
 
-HxSRx0x::~HxSRx0x()
+SRF05::~SRF05()
 {
 	stop();
 	perf_free(_sample_perf);
@@ -63,7 +63,7 @@ HxSRx0x::~HxSRx0x()
 	perf_free(_sensor_resets);
 }
 
-void HxSRx0x::OnEdge(bool state)
+void SRF05::OnEdge(bool state)
 {
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -81,31 +81,25 @@ void HxSRx0x::OnEdge(bool state)
 	}
 }
 
-int HxSRx0x::EchoInterruptCallback(int irq, void *context, void *arg)
+int SRF05::EchoInterruptCallback(int irq, void *context, void *arg)
 {
-	static_cast<HxSRx0x *>(arg)->OnEdge(px4_arch_gpioread(GPIO_ULTRASOUND_ECHO));
+	static_cast<SRF05 *>(arg)->OnEdge(px4_arch_gpioread(GPIO_ULTRASOUND_ECHO));
 	return 0;
 }
 
 int
-HxSRx0x::init()
+SRF05::init()
 {
 	px4_arch_configgpio(GPIO_ULTRASOUND_TRIGGER);
 	px4_arch_configgpio(GPIO_ULTRASOUND_ECHO);
-	return PX4_OK;
-}
-
-void
-HxSRx0x::start()
-{
 	px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER, 1);
 	px4_arch_gpiosetevent(GPIO_ULTRASOUND_ECHO, true, true, false, &EchoInterruptCallback, this);
 	_state = STATE::TRIGGER;
 	ScheduleOnInterval(get_measure_interval());
+	return PX4_OK;
 }
 
-void
-HxSRx0x::stop()
+void SRF05::stop()
 {
 	_state = STATE::EXIT;
 	px4_arch_gpiosetevent(GPIO_ULTRASOUND_ECHO, false, false, false, nullptr, nullptr);
@@ -114,8 +108,14 @@ HxSRx0x::stop()
 }
 
 void
-HxSRx0x::Run()
+SRF05::Run()
 {
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup();
+		return;
+	}
+
 	switch (_state) {
 
 	case STATE::TRIGGER:
@@ -143,7 +143,7 @@ HxSRx0x::Run()
 }
 
 int
-HxSRx0x::measure()
+SRF05::measure()
 {
 	perf_begin(_sample_perf);
 
@@ -163,12 +163,94 @@ HxSRx0x::measure()
 	return PX4_OK;
 }
 
-void
-HxSRx0x::print_info()
+int SRF05::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+
+int SRF05::task_spawn(int argc, char *argv[])
+{
+
+	int ch = 0;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'R':
+			rotation = (uint8_t)atoi(myoptarg);
+			PX4_INFO("Setting sr05 orientation to %d", (int)rotation);
+			break;
+
+		default:
+			return print_usage();
+		}
+	}
+
+	SRF05 *instance = new SRF05(rotation);
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init() == PX4_OK) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+int SRF05::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+  ### Description
+
+  Driver for HY-SRF05 / HC-SR05 and HC-SR04 rangefinders.
+
+  The sensor/driver must be enabled using the parameter SENS_EN_HXSRX0X.
+
+  )DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("srf05", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status information");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	return PX4_OK;
+}
+
+int
+SRF05::print_status()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
 	printf("poll interval:  %u \n", get_measure_interval());
+	return 0;
 }
+
+extern "C" __EXPORT int srf05_main(int argc, char *argv[])
+{
+	return SRF05::main(argc, argv);
+}
+#else
+# error ("GPIO_ULTRASOUND_xxx not defined. Driver not supported.");
 #endif
