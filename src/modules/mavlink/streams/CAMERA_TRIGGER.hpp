@@ -70,6 +70,7 @@ private:
 		0,	//target_sys_id
 		MAV_COMP_ID_CAMERA // active_comp_id
 	};
+	int _sequence {1};
 
 	bool send() override
 	{
@@ -90,7 +91,7 @@ private:
 				vcmd.param1 = 0.0f; // all cameras
 				vcmd.param2 = 0.0f; // duration 0 because only taking one picture
 				vcmd.param3 = 1.0f; // only take one
-				vcmd.param4 = NAN;
+				vcmd.param4 = (float)_sequence++;
 				vcmd.param5 = (double)NAN;
 				vcmd.param6 = (double)NAN;
 				vcmd.param7 = NAN;
