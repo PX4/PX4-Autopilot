@@ -210,10 +210,12 @@ pipeline {
             sh('export')
             unstash 'metadata_airframes'
             unstash 'metadata_parameters'
+            unstash 'metadata_module_documentation'
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_user_guide.git')
               sh('cp airframes.md px4_user_guide/en/airframes/airframe_reference.md')
               sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
+              sh('cp -R modules/*.md px4_user_guide/en/modules/')
               sh('cd px4_user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd px4_user_guide; git push origin master || true')
               sh('rm -rf px4_user_guide')
