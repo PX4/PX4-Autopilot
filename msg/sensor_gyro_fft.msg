@@ -4,12 +4,11 @@ uint64 timestamp_sample
 uint32 device_id          # unique device ID for the sensor that does not change between power cycles
 
 float32 dt                # delta time between samples (microseconds)
-float32 scale
 
-uint8 samples             # number of valid samples
+float32 resolution_hz
 
-uint8 peak_index
+float32[3] peak_frequency # peak frequency per axis
 
-float32 peak_frequency_0
-float32 peak_frequency_1
-float32 peak_frequency_2
+float32[4] peak_frequencies_x # x axis peak frequencies
+float32[4] peak_frequencies_y # y axis peak frequencies
+float32[4] peak_frequencies_z # z axis peak frequencies

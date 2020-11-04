@@ -124,6 +124,7 @@
 #include "calibration_messages.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
+#include "factory_calibration_storage.h"
 
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -149,7 +150,7 @@ using namespace matrix;
 using namespace time_literals;
 
 static constexpr char sensor_name[] {"accel"};
-static constexpr unsigned MAX_ACCEL_SENS = 3;
+static constexpr unsigned MAX_ACCEL_SENS = 4;
 
 /// Data passed to calibration worker routine
 typedef struct  {
@@ -176,6 +177,7 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 		{ORB_ID(sensor_accel), 0, 0},
 		{ORB_ID(sensor_accel), 0, 1},
 		{ORB_ID(sensor_accel), 0, 2},
+		{ORB_ID(sensor_accel), 0, 3},
 	};
 
 	/* use the first sensor to pace the readout, but do per-sensor counts */
@@ -201,6 +203,9 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 									break;
 								case 2:
 									offset = Vector3f{sensor_correction.accel_offset_2};
+									break;
+								case 3:
+									offset = Vector3f{sensor_correction.accel_offset_3};
 									break;
 								}
 							}
@@ -342,6 +347,13 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		return PX4_ERROR;
 	}
 
+	FactoryCalibrationStorage factory_storage;
+
+	if (factory_storage.open() != PX4_OK) {
+		calibration_log_critical(mavlink_log_pub, "ERROR: cannot open calibration storage");
+		return PX4_ERROR;
+	}
+
 	/* measure and calculate offsets & scales */
 	accel_worker_data_t worker_data{};
 	worker_data.mavlink_log_pub = mavlink_log_pub;
@@ -420,17 +432,23 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			}
 		}
 
+		if (!failed && factory_storage.store() != PX4_OK) {
+			failed = true;
+		}
+
 		if (param_save) {
 			param_notify_changes();
 		}
 
 		if (!failed) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+			px4_usleep(600000); // give this message enough time to propagate
 			return PX4_OK;
 		}
 	}
 
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+	px4_usleep(600000); // give this message enough time to propagate
 	return PX4_ERROR;
 }
 
@@ -441,6 +459,13 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 	bool param_save = false;
 	bool failed = true;
+
+	FactoryCalibrationStorage factory_storage;
+
+	if (factory_storage.open() != PX4_OK) {
+		calibration_log_critical(mavlink_log_pub, "ERROR: cannot open calibration storage");
+		return PX4_ERROR;
+	}
 
 	// sensor thermal corrections (optional)
 	uORB::Subscription sensor_correction_sub{ORB_ID(sensor_correction)};
@@ -472,6 +497,9 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 								break;
 							case 2:
 								offset = Vector3f{sensor_correction.accel_offset_2};
+								break;
+							case 3:
+								offset = Vector3f{sensor_correction.accel_offset_3};
 								break;
 							}
 						}
@@ -557,6 +585,10 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 				}
 			}
 		}
+	}
+
+	if (!failed && factory_storage.store() != PX4_OK) {
+		failed = true;
 	}
 
 	if (param_save) {

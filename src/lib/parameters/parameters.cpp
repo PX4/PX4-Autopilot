@@ -71,7 +71,7 @@ using namespace time_literals;
 #include "flashparams/flashparams.h"
 static const char *param_default_file = nullptr; // nullptr means to store to FLASH
 #else
-inline static int flash_param_save(bool only_unsaved) { return -1; }
+inline static int flash_param_save(bool only_unsaved, param_filter_func filter) { return -1; }
 inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
@@ -797,8 +797,7 @@ void param_set_used_internal(param_t param)
 		(1 << param_index % bits_per_allocation_unit);
 }
 
-int
-param_reset(param_t param)
+static int param_reset_internal(param_t param, bool notify = true)
 {
 	param_wbuf_s *s = nullptr;
 	bool param_found = false;
@@ -823,12 +822,16 @@ param_reset(param_t param)
 
 	param_unlock_writer();
 
-	if (s != nullptr) {
+	if (s != nullptr && notify) {
 		_param_notify_changes();
 	}
 
 	return (!param_found);
 }
+
+int param_reset(param_t param) { return param_reset_internal(param, true); }
+int param_reset_no_notification(param_t param) { return param_reset_internal(param, false); }
+
 static void
 param_reset_all_internal(bool auto_save)
 {
@@ -948,7 +951,7 @@ int param_save_default()
 	if (!filename) {
 		perf_begin(param_export_perf);
 		param_lock_writer();
-		res = flash_param_save(false);
+		res = flash_param_save(false, nullptr);
 		param_unlock_writer();
 		perf_end(param_export_perf);
 		return res;
@@ -976,7 +979,7 @@ int param_save_default()
 	int attempts = 5;
 
 	while (res != OK && attempts > 0) {
-		res = param_export(fd, false);
+		res = param_export(fd, false, nullptr);
 		attempts--;
 
 		if (res != PX4_OK) {
@@ -1035,7 +1038,7 @@ param_load_default()
 }
 
 int
-param_export(int fd, bool only_unsaved)
+param_export(int fd, bool only_unsaved, param_filter_func filter)
 {
 	int	result = -1;
 	perf_begin(param_export_perf);
@@ -1043,7 +1046,7 @@ param_export(int fd, bool only_unsaved)
 	if (fd < 0) {
 		param_lock_writer();
 		// flash_param_save() will take the shutdown lock
-		result = flash_param_save(only_unsaved);
+		result = flash_param_save(only_unsaved, filter);
 		param_unlock_writer();
 		perf_end(param_export_perf);
 		return result;
@@ -1078,6 +1081,10 @@ param_export(int fd, bool only_unsaved)
 		 * one hasn't, then skip it
 		 */
 		if (only_unsaved && !s->unsaved) {
+			continue;
+		}
+
+		if (filter && !filter(s->param)) {
 			continue;
 		}
 
@@ -1296,13 +1303,13 @@ param_import_internal(int fd, bool mark_saved)
 }
 
 int
-param_import(int fd)
+param_import(int fd, bool mark_saved)
 {
 	if (fd < 0) {
 		return flash_param_import();
 	}
 
-	return param_import_internal(fd, false);
+	return param_import_internal(fd, mark_saved);
 }
 
 int

@@ -100,6 +100,8 @@ private:
 	hrt_abstime _last_timestamp_sample_accel{0};
 	hrt_abstime _last_timestamp_sample_gyro{0};
 
+	uint32_t _imu_integration_interval_us{4000};
+
 	IntervalAverage _accel_interval{};
 	IntervalAverage _gyro_interval{};
 

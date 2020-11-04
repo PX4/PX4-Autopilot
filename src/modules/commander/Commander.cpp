@@ -69,6 +69,7 @@
 #include <navigator/navigation.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/external_reset_lockout.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
@@ -114,7 +115,7 @@ static struct vehicle_status_flags_s status_flags = {};
 void *commander_low_prio_loop(void *arg);
 
 static void answer_command(const vehicle_command_s &cmd, unsigned result,
-			   uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
+			   uORB::Publication<vehicle_command_ack_s> &command_ack_pub);
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 static orb_advert_t power_button_state_pub = nullptr;
@@ -183,7 +184,7 @@ static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 
 
 	vcmd.timestamp = hrt_absolute_time();
 
-	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 
 	return vcmd_pub.publish(vcmd);
 }
@@ -531,7 +532,7 @@ Commander::Commander() :
 
 bool
 Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd, actuator_armed_s *armed_local,
-			  uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub)
+			  uORB::Publication<vehicle_command_ack_s> &command_ack_pub)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd.target_system != status_local->system_id || ((cmd.target_component != status_local->component_id)
@@ -1721,14 +1722,6 @@ Commander::run()
 
 		battery_status_check();
 
-		/* update subsystem info which arrives from outside of commander*/
-		subsystem_info_s info;
-
-		while (_subsys_sub.update(&info))  {
-			set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
-			_status_changed = true;
-		}
-
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
@@ -2502,6 +2495,8 @@ Commander::run()
 
 		arm_auth_update(now, params_updated || param_init_forced);
 
+		px4_indicate_external_reset_lockout(LockoutComponent::Commander, armed.armed);
+
 		px4_usleep(COMMANDER_MONITORING_INTERVAL);
 	}
 
@@ -2635,10 +2630,6 @@ Commander::control_status_leds(vehicle_status_s *status_local, const actuator_ar
 	}
 
 	_last_overload = overload;
-
-	/* board supports HW armed indicator */
-
-	BOARD_INDICATE_ARMED_STATE(actuator_armed->armed);
 
 #if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
@@ -3386,7 +3377,7 @@ Commander::print_reject_arm(const char *msg)
 }
 
 void answer_command(const vehicle_command_s &cmd, unsigned result,
-		    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub)
+		    uORB::Publication<vehicle_command_ack_s> &command_ack_pub)
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
@@ -3434,7 +3425,7 @@ void *commander_low_prio_loop(void *arg)
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 	/* command ack */
-	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1];
@@ -3804,71 +3795,59 @@ void Commander::data_link_check()
 								_status_changed = true;
 							}
 						}
+
+						const bool present = true;
+						const bool enabled = true;
+						const bool ok = (iridium_status.last_heartbeat > 0); // maybe at some point here an additional check should be made
+
+						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_SATCOM, present, enabled, ok, status);
 					}
 
 					break;
 				}
 			}
 
-			for (const auto &hb : telemetry.heartbeats) {
-				// handle different remote types
-				switch (hb.type) {
-				case telemetry_heartbeat_s::TYPE_GCS:
+			if (telemetry.heartbeat_type_gcs) {
+				// Initial connection or recovery from data link lost
+				if (status.data_link_lost) {
+					status.data_link_lost = false;
+					_status_changed = true;
 
-					// Initial connection or recovery from data link lost
-					if (status.data_link_lost) {
-						if (hb.timestamp > _datalink_last_heartbeat_gcs) {
-							status.data_link_lost = false;
-							_status_changed = true;
-
-							if (!armed.armed && !status_flags.condition_calibration_enabled) {
-								// make sure to report preflight check failures to a connecting GCS
-								PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags,
-											       _arm_requirements.global_position, true, true, hrt_elapsed_time(&_boot_timestamp));
-							}
-
-							if (_datalink_last_heartbeat_gcs != 0) {
-								mavlink_log_info(&mavlink_log_pub, "Data link regained");
-							}
-						}
+					if (_datalink_last_heartbeat_gcs != 0) {
+						mavlink_log_info(&mavlink_log_pub, "Data link regained");
 					}
 
-					// Only keep the very last heartbeat timestamp, so we don't get confused
-					// by multiple mavlink instances publishing different timestamps.
-					if (hb.timestamp > _datalink_last_heartbeat_gcs) {
-						_datalink_last_heartbeat_gcs = hb.timestamp;
+					if (!armed.armed && !status_flags.condition_calibration_enabled) {
+						// make sure to report preflight check failures to a connecting GCS
+						PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags,
+									       _arm_requirements.global_position, true, true, hrt_elapsed_time(&_boot_timestamp));
 					}
-
-					break;
-
-				case telemetry_heartbeat_s::TYPE_ONBOARD_CONTROLLER:
-					if (_onboard_controller_lost) {
-						if (hb.timestamp > _datalink_last_heartbeat_onboard_controller) {
-							mavlink_log_info(&mavlink_log_pub, "Onboard controller regained");
-							_onboard_controller_lost = false;
-							_status_changed = true;
-						}
-					}
-
-					_datalink_last_heartbeat_onboard_controller = hb.timestamp;
-
-					if (hb.component_id == telemetry_heartbeat_s::COMP_ID_OBSTACLE_AVOIDANCE) {
-						if (hb.timestamp > _datalink_last_heartbeat_avoidance_system) {
-							_avoidance_system_status_change = (_datalink_last_status_avoidance_system != hb.state);
-						}
-
-						_datalink_last_heartbeat_avoidance_system = hb.timestamp;
-						_datalink_last_status_avoidance_system = hb.state;
-
-						if (_avoidance_system_lost) {
-							_status_changed = true;
-							_avoidance_system_lost = false;
-							status_flags.avoidance_system_valid = true;
-						}
-					}
-
-					break;
 				}
+
+				_datalink_last_heartbeat_gcs = telemetry.timestamp;
+			}
+
+			if (telemetry.heartbeat_type_onboard_controller) {
+				if (_onboard_controller_lost) {
+					_onboard_controller_lost = false;
+					_status_changed = true;
+
+					if (_datalink_last_heartbeat_onboard_controller != 0) {
+						mavlink_log_info(&mavlink_log_pub, "Onboard controller regained");
+					}
+				}
+
+				_datalink_last_heartbeat_onboard_controller = telemetry.timestamp;
+			}
+
+			if (telemetry.heartbeat_component_obstacle_avoidance) {
+				if (_avoidance_system_lost) {
+					_avoidance_system_lost = false;
+					_status_changed = true;
+				}
+
+				_datalink_last_heartbeat_avoidance_system = telemetry.timestamp;
+				status_flags.avoidance_system_valid = telemetry.avoidance_system_healthy;
 			}
 		}
 	}
@@ -3900,39 +3879,14 @@ void Commander::data_link_check()
 
 	// AVOIDANCE SYSTEM state check (only if it is enabled)
 	if (status_flags.avoidance_system_required && !_onboard_controller_lost) {
-
-		//if heartbeats stop
+		// if heartbeats stop
 		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
 		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
 
 			_avoidance_system_lost = true;
 			status_flags.avoidance_system_valid = false;
 		}
-
-		//if status changed
-		if (_avoidance_system_status_change) {
-			if (_datalink_last_status_avoidance_system == telemetry_heartbeat_s::STATE_BOOT) {
-				status_flags.avoidance_system_valid = false;
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_heartbeat_s::STATE_ACTIVE) {
-				status_flags.avoidance_system_valid = true;
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_heartbeat_s::STATE_CRITICAL) {
-				status_flags.avoidance_system_valid = false;
-				_status_changed = true;
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_heartbeat_s::STATE_FLIGHT_TERMINATION) {
-				status_flags.avoidance_system_valid = false;
-				_status_changed = true;
-			}
-
-			_avoidance_system_status_change = false;
-		}
 	}
-
 
 	// high latency data link loss failsafe
 	if (_high_latency_datalink_heartbeat > 0
@@ -4100,6 +4054,17 @@ void Commander::estimator_check(const vehicle_status_flags_s &vstatus_flags)
 	}
 
 	const bool mag_fault_prev = (_estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT));
+
+	// use primary estimator_status
+	if (_estimator_selector_status_sub.updated()) {
+		estimator_selector_status_s estimator_selector_status;
+
+		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+			if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
+				_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
+			}
+		}
+	}
 
 	if (_estimator_status_sub.update()) {
 		const estimator_status_s &estimator_status = _estimator_status_sub.get();

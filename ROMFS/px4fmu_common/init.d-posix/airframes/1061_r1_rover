@@ -4,7 +4,7 @@
 # @type Rover
 # @class Rover
 
-sh /etc/init.d/rc.rover_defaults
+. ${R}etc/init.d/rc.rover_defaults
 
 if [ $AUTOCNF = yes ]
 then

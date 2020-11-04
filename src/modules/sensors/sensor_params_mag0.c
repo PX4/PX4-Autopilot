@@ -58,11 +58,11 @@ PARAM_DEFINE_INT32(CAL_MAG0_PRIO, -1);
 /**
  * Rotation of magnetometer 0 relative to airframe.
  *
- * An internal magnetometer will force a value of -1, so a GCS
+ * An internal sensor will force a value of -1, so a GCS
  * should only attempt to configure the rotation if the value is
  * greater than or equal to zero.
  *
- * @value -1 Internal mag
+ * @value -1 Internal
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°

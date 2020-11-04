@@ -38,9 +38,9 @@
 #include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/subsystem_info.h>
 
 bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
 			       const bool report_fail, const bool enforce_gps_required)
@@ -67,7 +67,8 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	bool gps_present = true;
 
 	// Get estimator status data if available and exit with a fail recorded if not
-	uORB::SubscriptionData<estimator_status_s> status_sub{ORB_ID(estimator_status)};
+	uORB::SubscriptionData<estimator_selector_status_s> estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::SubscriptionData<estimator_status_s> status_sub{ORB_ID(estimator_status), estimator_selector_status_sub.get().primary_instance};
 	status_sub.update();
 	const estimator_status_s &status = status_sub.get();
 
@@ -239,7 +240,9 @@ bool PreFlightCheck::ekf2CheckStates(orb_advert_t *mavlink_log_pub, const bool r
 	param_get(param_find("COM_ARM_EKF_GB"), &ekf_gb_test_limit);
 
 	// Get estimator states data if available and exit with a fail recorded if not
-	uORB::Subscription states_sub{ORB_ID(estimator_states)};
+	uORB::SubscriptionData<estimator_selector_status_s> estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription states_sub{ORB_ID(estimator_states), estimator_selector_status_sub.get().primary_instance};
+
 	estimator_states_s states;
 
 	if (states_sub.copy(&states)) {

@@ -3,9 +3,10 @@
 # PX4FMU startup script for test hackery.
 #
 set +e
+set R /
 set unit_test_failure 0
 
-set BOARD_RC /etc/init.d/rc.board
+set BOARD_RC ${R}etc/init.d/rc.board
 
 uorb start
 
@@ -118,7 +119,7 @@ then
 	tests mount
 fi
 
-. /etc/init.d/rc.sensors
+. ${R}etc/init.d/rc.sensors
 
 ver all
 

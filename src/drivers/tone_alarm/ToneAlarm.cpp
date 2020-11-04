@@ -166,7 +166,7 @@ void ToneAlarm::Run()
 				} else if (_play_tone && !tune_control.tune_override) {
 					// otherwise re-publish tune to process next
 					PX4_DEBUG("tune already playing, requeing tune: %d", tune_control.tune_id);
-					uORB::PublicationQueued<tune_control_s> tune_control_pub{ORB_ID(tune_control)};
+					uORB::Publication<tune_control_s> tune_control_pub{ORB_ID(tune_control)};
 					tune_control.timestamp = hrt_absolute_time();
 					tune_control_pub.publish(tune_control);
 				}

@@ -65,7 +65,7 @@ private:
 	/** Publish tune control to interrupt any sound */
 	void stop_tune();
 
-	uORB::PublicationQueued<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
+	uORB::Publication<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	bool 		_was_armed = false;

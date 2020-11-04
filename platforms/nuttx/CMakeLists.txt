@@ -259,7 +259,7 @@ if(NOT NUTTX_DIR MATCHES "external")
 		LIST_DIRECTORIES false
 		${CMAKE_SOURCE_DIR}/../cmsis-svd/data/*/${DEBUG_SVD_FILE}
 	)
-	if(NOT DEBUG_SVD_FILE MATCHES "unknown")
+	if(DEBUG_SVD_FILE_PATH)
 		message(STATUS "Found SVD: ${DEBUG_SVD_FILE_PATH}")
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json @ONLY)
 	endif()

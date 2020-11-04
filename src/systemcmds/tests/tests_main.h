@@ -95,7 +95,7 @@ extern int mavlink_tests_main(int argc, char *argv[]);
 extern int controllib_test_main(int argc, char *argv[]);
 extern int uorb_tests_main(int argc, char *argv[]);
 extern int rc_tests_main(int argc, char *argv[]);
-extern int sf0x_tests_main(int argc, char *argv[]);
+extern int lightware_laser_test_main(int argc, char *argv[]);
 
 __END_DECLS
 

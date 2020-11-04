@@ -7,6 +7,6 @@
 # @maintainer Julian Oes <julian@oes.ch>
 #
 
-sh /etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_defaults
 
 set MIXER quad_w

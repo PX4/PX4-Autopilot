@@ -35,6 +35,9 @@
 #define _uORBTest_UnitTest_hpp_
 
 #include <uORB/uORB.h>
+#include <uORB/uORBDeviceMaster.hpp>
+#include <uORB/uORBDeviceNode.hpp>
+#include <uORB/uORBManager.hpp>
 #include <uORB/topics/orb_test.h>
 #include <uORB/topics/orb_test_medium.h>
 #include <uORB/topics/orb_test_large.h>
@@ -68,6 +71,12 @@ public:
 	// Disallow copy
 	UnitTest(const uORBTest::UnitTest & /*unused*/) = delete;
 
+	// Assist in testing the wrap-around situation
+	static void set_generation(uORB::DeviceNode &node, unsigned generation)
+	{
+		node._generation.store(generation);
+	}
+
 private:
 	UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
 
@@ -93,6 +102,10 @@ private:
 	int test_unadvertise();
 
 	int test_multi2();
+
+	int test_wrap_around();
+
+	int test_SubscriptionMulti();
 
 	/* queuing tests */
 	int test_queue();

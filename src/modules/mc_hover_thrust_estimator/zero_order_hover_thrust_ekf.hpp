@@ -84,7 +84,7 @@ public:
 
 	void resetAccelNoise() { _acc_var = 5.f; };
 
-	void predict(float _dt);
+	void predict(float dt);
 	void fuseAccZ(float acc_z, float thrust, status &status_return);
 
 	void setHoverThrust(float hover_thrust) { _hover_thr = math::constrain(hover_thrust, 0.1f, 0.9f); }
@@ -102,7 +102,7 @@ private:
 
 	float _gate_size{3.f};
 	float _state_var{0.01f}; ///< Initial hover thrust uncertainty variance (thrust^2)
-	float _process_var{0.25e-6f}; ///< Hover thrust process noise variance (thrust^2/s^2)
+	float _process_var{12.5e-6f}; ///< Hover thrust process noise variance (thrust^2/s^2)
 	float _acc_var{5.f}; ///< Acceleration variance (m^2/s^3)
 	float _dt{0.02f};
 

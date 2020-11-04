@@ -40,7 +40,6 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_mag.h>
-#include <uORB/topics/subsystem_info.h>
 
 using namespace time_literals;
 
@@ -69,7 +68,7 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 
 		if (!calibration_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass #%u %u uncalibrated", instance, device_id);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass #%u uncalibrated", instance);
 			}
 		}
 

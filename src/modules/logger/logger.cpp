@@ -1971,7 +1971,7 @@ void Logger::ack_vehicle_command(vehicle_command_s *cmd, uint32_t result)
 	vehicle_command_ack.target_system = cmd->source_system;
 	vehicle_command_ack.target_component = cmd->source_component;
 
-	uORB::PublicationQueued<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	cmd_ack_pub.publish(vehicle_command_ack);
 }
 

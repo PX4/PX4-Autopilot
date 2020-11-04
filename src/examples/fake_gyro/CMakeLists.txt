@@ -40,5 +40,6 @@ px4_add_module(
 		FakeGyro.cpp
 		FakeGyro.hpp
 	DEPENDS
+		drivers_gyroscope
 		px4_work_queue
 )

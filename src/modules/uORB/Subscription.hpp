@@ -137,7 +137,7 @@ public:
 	/**
 	 * Check if there is a new update.
 	 */
-	bool updated() { return advertised() && (_node->published_message_count() != _last_generation); }
+	bool updated() { return advertised() && _node->updates_available(_last_generation); }
 
 	/**
 	 * Update the struct

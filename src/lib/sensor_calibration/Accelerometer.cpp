@@ -110,6 +110,9 @@ void Accelerometer::SensorCorrectionsUpdate(bool force)
 					case 2:
 						_thermal_offset = Vector3f{corrections.accel_offset_2};
 						return;
+					case 3:
+						_thermal_offset = Vector3f{corrections.accel_offset_2};
+						return;
 					}
 				}
 			}
@@ -118,6 +121,12 @@ void Accelerometer::SensorCorrectionsUpdate(bool force)
 		// zero thermal offset if not found
 		_thermal_offset.zero();
 	}
+}
+
+void Accelerometer::set_rotation(Rotation rotation)
+{
+	_rotation_enum = rotation;
+	_rotation = get_rot_matrix(rotation);
 }
 
 void Accelerometer::ParametersUpdate()
@@ -131,12 +140,30 @@ void Accelerometer::ParametersUpdate()
 
 	if (_calibration_index >= 0) {
 
-		if (!_external) {
-			_rotation = GetBoardRotation();
+		// CAL_ACCx_ROT
+		int32_t rotation_value = GetCalibrationParam(SensorString(), "ROT", _calibration_index);
+
+		if (_external) {
+			if ((rotation_value >= ROTATION_MAX) || (rotation_value < 0)) {
+				PX4_ERR("External %s %d (%d) invalid rotation %d, resetting to rotation none",
+					SensorString(), _device_id, _calibration_index, rotation_value);
+				rotation_value = ROTATION_NONE;
+				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
+			}
+
+			_rotation_enum = static_cast<Rotation>(rotation_value);
+			_rotation = get_rot_matrix(_rotation_enum);
 
 		} else {
-			// TODO: per sensor external rotation
-			_rotation.setIdentity();
+			// internal, CAL_ACCx_ROT -1
+			if (rotation_value != -1) {
+				PX4_ERR("Internal %s %d (%d) invalid rotation %d, resetting",
+					SensorString(), _device_id, _calibration_index, rotation_value);
+				SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
+			}
+
+			_rotation = GetBoardRotation();
+			_rotation_enum = ROTATION_NONE;
 		}
 
 		// CAL_ACCx_PRIO
@@ -144,7 +171,7 @@ void Accelerometer::ParametersUpdate()
 
 		if ((_priority < 0) || (_priority > 100)) {
 			// reset to default, -1 is the uninitialized parameter value
-			int32_t new_priority = DEFAULT_PRIORITY;
+			int32_t new_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 			if (_priority != -1) {
 				PX4_ERR("%s %d (%d) invalid priority %d, resetting to %d", SensorString(), _device_id, _calibration_index, _priority,
@@ -185,6 +212,7 @@ void Accelerometer::ParametersUpdate()
 void Accelerometer::Reset()
 {
 	_rotation.setIdentity();
+	_rotation_enum = ROTATION_NONE;
 	_offset.zero();
 	_scale = Vector3f{1.f, 1.f, 1.f};
 	_thermal_offset.zero();
@@ -206,12 +234,12 @@ bool Accelerometer::ParametersSave()
 		success &= SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
 		success &= SetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index, _scale);
 
-		// if (_external) {
-		// 	SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
+		if (_external) {
+			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
 
-		// } else {
-		// 	SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
-		// }
+		} else {
+			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
+		}
 
 		return success;
 	}

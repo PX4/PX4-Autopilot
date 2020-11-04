@@ -47,7 +47,6 @@ px4_add_module(
 		mavlink.c
 		mavlink_command_sender.cpp
 		mavlink_ftp.cpp
-		mavlink_high_latency2.cpp
 		mavlink_log_handler.cpp
 		mavlink_main.cpp
 		mavlink_messages.cpp
@@ -58,8 +57,8 @@ px4_add_module(
 		mavlink_shell.cpp
 		mavlink_simple_analyzer.cpp
 		mavlink_stream.cpp
-		mavlink_ulog.cpp
 		mavlink_timesync.cpp
+		mavlink_ulog.cpp
 		tune_publisher.cpp
 	MODULE_CONFIG
 		module.yaml
