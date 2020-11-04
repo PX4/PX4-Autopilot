@@ -83,6 +83,10 @@ public:
 		_rng_valid_max_val = max_distance;
 	}
 
+	void setQualityHysteresis(float valid_quality_threshold_s){
+		_quality_hyst_us = uint64_t(valid_quality_threshold_s * 1e6f);
+	}
+
 	float getCosTilt() const { return _cos_tilt_rng_to_earth; }
 
 	void setRange(float rng) { _sample.rng = rng; }
@@ -146,7 +150,7 @@ private:
 	 * Quality check
 	 */
 	uint64_t _time_bad_quality_us{};	///< timestamp at which range finder signal quality was 0 (used for hysteresis)
-	uint64_t _quality_hyst_us{1000000}; 	///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (us)
+	uint64_t _quality_hyst_us{};		///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (us)
 };
 
 } // namespace sensor
