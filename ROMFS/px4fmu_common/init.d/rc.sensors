@@ -72,9 +72,9 @@ then
 fi
 
 # Sensor HY-SRF05 or HC-SR05 ultrasonic sensor
-if param compare -s SENS_EN_HXSRX0X 1
+if param compare -s SENS_EN_SR05 1
 then
-	hxSRx0x start
+	srf05 start
 fi
 
 

@@ -31,12 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__hxSRx0x
-	MAIN hxSRx0x
+	MODULE drivers__srf05
+	MAIN srf05
 	COMPILE_FLAGS
 	SRCS
-		hxSRx0x_main.cpp
-		HxSRx0x.cpp
+		SRF05.cpp
 	DEPENDS
 		drivers_rangefinder
 	)

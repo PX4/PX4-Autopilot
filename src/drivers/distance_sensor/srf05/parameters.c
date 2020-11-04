@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +32,10 @@
  ****************************************************************************/
 
 /**
- * HY-SRF05 / HC-SR05 (HXSRX0X)
+ * HY-SRF05 / HC-SR05
  *
  * @reboot_required true
- * @min 0
- * @max 2
  * @group Sensors
- * @value 0 Disabled
- * @value 1 Enabled
+ * @boolean
  */
-PARAM_DEFINE_INT32(SENS_EN_HXSRX0X, 0);
+PARAM_DEFINE_INT32(SENS_EN_SR05, 0);
