@@ -181,6 +181,7 @@ EKF2::EKF2(int instance, const px4::wq_config_t &config, int imu, int mag, bool 
 		_estimator_sensor_bias_pub.advertise();
 		_estimator_states_pub.advertise();
 		_estimator_status_pub.advertise();
+		_estimator_status_flags_pub.advertise();
 		_estimator_visual_odometry_aligned_pub.advertised();
 		_wind_pub.advertise();
 		_yaw_est_pub.advertise();
@@ -443,6 +444,7 @@ void EKF2::Run()
 			PublishEkfDriftMetrics(now);
 			PublishStates(now);
 			PublishStatus(now);
+			PublishStatusFlags(now);
 			PublishInnovations(now, imu_sample_new);
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
@@ -971,6 +973,107 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
+}
+
+void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
+{
+	// publish at ~ 1 Hz (or immediately if filter control status or fault status changes)
+	bool update = (hrt_elapsed_time(&_last_status_flag_update) >= 1_s);
+
+	// filter control status
+	if (_ekf.control_status().value != _filter_control_status) {
+		update = true;
+		_filter_control_status = _ekf.control_status().value;
+		_filter_control_status_changes++;
+	}
+
+	// filter fault status
+	if (_ekf.fault_status().value != _filter_fault_status) {
+		update = true;
+		_filter_fault_status = _ekf.fault_status().value;
+		_filter_fault_status_changes++;
+	}
+
+	// innovation check fail status
+	if (_ekf.innov_check_fail_status().value != _innov_check_fail_status) {
+		update = true;
+		_innov_check_fail_status = _ekf.innov_check_fail_status().value;
+		_innov_check_fail_status_changes++;
+	}
+
+	if (update) {
+		estimator_status_flags_s status_flags{};
+		status_flags.timestamp_sample = timestamp;
+
+		status_flags.control_status_changes               = _filter_control_status_changes;
+		status_flags.control_status_tilt_align            = _ekf.control_status_flags().tilt_align;
+		status_flags.control_status_yaw_align             = _ekf.control_status_flags().yaw_align;
+		status_flags.control_status_gps                   = _ekf.control_status_flags().gps;
+		status_flags.control_status_opt_flow              = _ekf.control_status_flags().opt_flow;
+		status_flags.control_status_mag_hdg               = _ekf.control_status_flags().mag_hdg;
+		status_flags.control_status_mag_3d                = _ekf.control_status_flags().mag_3D;
+		status_flags.control_status_mag_dec               = _ekf.control_status_flags().mag_dec;
+		status_flags.control_status_in_air                = _ekf.control_status_flags().in_air;
+		status_flags.control_status_wind                  = _ekf.control_status_flags().wind;
+		status_flags.control_status_baro_hgt              = _ekf.control_status_flags().baro_hgt;
+		status_flags.control_status_rng_hgt               = _ekf.control_status_flags().rng_hgt;
+		status_flags.control_status_gps_hgt               = _ekf.control_status_flags().gps_hgt;
+		status_flags.control_status_ev_pos                = _ekf.control_status_flags().ev_pos;
+		status_flags.control_status_ev_yaw                = _ekf.control_status_flags().ev_yaw;
+		status_flags.control_status_ev_hgt                = _ekf.control_status_flags().ev_hgt;
+		status_flags.control_status_fuse_beta             = _ekf.control_status_flags().fuse_beta;
+		status_flags.control_status_mag_field_disturbed   = _ekf.control_status_flags().mag_field_disturbed;
+		status_flags.control_status_fixed_wing            = _ekf.control_status_flags().fixed_wing;
+		status_flags.control_status_mag_fault             = _ekf.control_status_flags().mag_fault;
+		status_flags.control_status_fuse_aspd             = _ekf.control_status_flags().fuse_aspd;
+		status_flags.control_status_gnd_effect            = _ekf.control_status_flags().gnd_effect;
+		status_flags.control_status_rng_stuck             = _ekf.control_status_flags().rng_stuck;
+		status_flags.control_status_gps_yaw               = _ekf.control_status_flags().gps_yaw;
+		status_flags.control_status_mag_aligned_in_flight = _ekf.control_status_flags().mag_aligned_in_flight;
+		status_flags.control_status_ev_vel                = _ekf.control_status_flags().ev_vel;
+		status_flags.control_status_synthetic_mag_z       = _ekf.control_status_flags().synthetic_mag_z;
+		status_flags.control_status_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
+
+		status_flags.fault_status_changes                 = _filter_fault_status_changes;
+		status_flags.fault_status_bad_mag_x               = _ekf.fault_status_flags().bad_mag_x;
+		status_flags.fault_status_bad_mag_y               = _ekf.fault_status_flags().bad_mag_y;
+		status_flags.fault_status_bad_mag_z               = _ekf.fault_status_flags().bad_mag_z;
+		status_flags.fault_status_bad_hdg                 = _ekf.fault_status_flags().bad_hdg;
+		status_flags.fault_status_bad_mag_decl            = _ekf.fault_status_flags().bad_mag_decl;
+		status_flags.fault_status_bad_airspeed            = _ekf.fault_status_flags().bad_airspeed;
+		status_flags.fault_status_bad_sideslip            = _ekf.fault_status_flags().bad_sideslip;
+		status_flags.fault_status_bad_optflow_x           = _ekf.fault_status_flags().bad_optflow_X;
+		status_flags.fault_status_bad_optflow_y           = _ekf.fault_status_flags().bad_optflow_Y;
+		status_flags.fault_status_bad_vel_n               = _ekf.fault_status_flags().bad_vel_N;
+		status_flags.fault_status_bad_vel_e               = _ekf.fault_status_flags().bad_vel_E;
+		status_flags.fault_status_bad_vel_d               = _ekf.fault_status_flags().bad_vel_D;
+		status_flags.fault_status_bad_pos_n               = _ekf.fault_status_flags().bad_pos_N;
+		status_flags.fault_status_bad_pos_e               = _ekf.fault_status_flags().bad_pos_E;
+		status_flags.fault_status_bad_pos_d               = _ekf.fault_status_flags().bad_pos_D;
+		status_flags.fault_status_bad_acc_bias            = _ekf.fault_status_flags().bad_acc_bias;
+		status_flags.fault_status_bad_acc_vertical        = _ekf.fault_status_flags().bad_acc_vertical;
+		status_flags.fault_status_bad_acc_clipping        = _ekf.fault_status_flags().bad_acc_clipping;
+
+		status_flags.innovation_fault_status_changes      = _innov_check_fail_status_changes;
+		status_flags.reject_hor_vel                       = _ekf.innov_check_fail_status_flags().reject_hor_vel;
+		status_flags.reject_ver_vel                       = _ekf.innov_check_fail_status_flags().reject_ver_vel;
+		status_flags.reject_hor_pos                       = _ekf.innov_check_fail_status_flags().reject_hor_pos;
+		status_flags.reject_ver_pos                       = _ekf.innov_check_fail_status_flags().reject_ver_pos;
+		status_flags.reject_mag_x                         = _ekf.innov_check_fail_status_flags().reject_mag_x;
+		status_flags.reject_mag_y                         = _ekf.innov_check_fail_status_flags().reject_mag_y;
+		status_flags.reject_mag_z                         = _ekf.innov_check_fail_status_flags().reject_mag_z;
+		status_flags.reject_yaw                           = _ekf.innov_check_fail_status_flags().reject_yaw;
+		status_flags.reject_airspeed                      = _ekf.innov_check_fail_status_flags().reject_airspeed;
+		status_flags.reject_sideslip                      = _ekf.innov_check_fail_status_flags().reject_sideslip;
+		status_flags.reject_hagl                          = _ekf.innov_check_fail_status_flags().reject_hagl;
+		status_flags.reject_optflow_x                     = _ekf.innov_check_fail_status_flags().reject_optflow_X;
+		status_flags.reject_optflow_y                     = _ekf.innov_check_fail_status_flags().reject_optflow_Y;
+
+		status_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		_estimator_status_flags_pub.publish(status_flags);
+
+		_last_status_flag_update = status_flags.timestamp;
+	}
 }
 
 void EKF2::PublishYawEstimatorStatus(const hrt_abstime &timestamp)
