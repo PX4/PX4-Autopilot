@@ -12,32 +12,20 @@
  * Full rank Cholesky factorization of A
  */
 template<typename Type>
-void fullRankCholeskyTolerance(Type &tol)
-{
-    tol /= 10000000;
-}
+Type typeEpsilon();
 
 template<> inline
-void fullRankCholeskyTolerance<double>(double &tol)
+float typeEpsilon<float>()
 {
-    tol /= 1000000000000000000.0;
+    return FLT_EPSILON;
 }
 
 template<typename Type, size_t N>
 SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> & A,
                                size_t& rank)
 {
-    // Compute
-    // dA = np.diag(A)
-    // tol = np.min(dA[dA > 0]) * 1e-9
-    Vector<Type, N> d = A.diag();
-    Type tol = d.max();
-    for (size_t k = 0; k < N; k++) {
-        if ((d(k) > 0) && (d(k) < tol)) {
-            tol = d(k);
-        }
-    }
-    fullRankCholeskyTolerance<Type>(tol);
+    // Loses one ulp accuracy per row of diag, relative to largest magnitude
+    const Type tol = N * typeEpsilon<Type>() * A.diag().max();
 
     Matrix<Type, N, N> L;
 
@@ -59,7 +47,6 @@ SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> & A,
                 L(i, r) = A(i, k) - LL;
             }
         }
-
         if (L(k, r) > tol) {
             L(k, r) = sqrt(L(k, r));
 
