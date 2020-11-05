@@ -72,7 +72,7 @@ The generated files will be written to the `modules` directory.
                 result += "%s\n" % doc
             usage_string = module.usage_string()
             if len(usage_string) > 0:
-                result += "### Usage {#%s_usage}\n```\n%s\n```\n" % (module.name(), usage_string)
+                result += '<a id="%s_usage"></a>\n### Usage\n```\n%s\n```\n' % (module.name(), usage_string)
         return result
 
     def Save(self, dirname):
