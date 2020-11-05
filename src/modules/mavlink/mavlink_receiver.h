@@ -194,6 +194,9 @@ private:
 
 	void send_storage_information(int storage_id);
 
+	void fill_thrust(float& thrust_x,float& thrust_y,float& thrust_z, bool is_rotary_wing, float thrust);
+
+
 	Mavlink	*_mavlink;
 
 	MavlinkMissionManager		_mission_manager;
@@ -265,6 +268,10 @@ private:
 	param_t _p_bat_emergen_thr;
 	param_t _p_bat_crit_thr;
 	param_t _p_bat_low_thr;
+
+	orb_advert_t _mc_virtual_att_sp_pub;
+	orb_advert_t _fw_virtual_att_sp_pub;
+	int 		 _vehicle_status_sub;
 
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;

@@ -163,7 +163,10 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mom_switch_state(0),
 	_p_bat_emergen_thr(param_find("BAT_EMERGEN_THR")),
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
-	_p_bat_low_thr(param_find("BAT_LOW_THR"))
+	_p_bat_low_thr(param_find("BAT_LOW_THR")),
+	_mc_virtual_att_sp_pub(nullptr),
+	_fw_virtual_att_sp_pub(nullptr),
+	_vehicle_status_sub(orb_subscribe(ORB_ID(vehicle_status)))
 {
 }
 
@@ -171,6 +174,7 @@ MavlinkReceiver::~MavlinkReceiver()
 {
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_actuator_armed_sub);
+	orb_unsubscribe(_vehicle_status_sub);
 }
 
 void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result)
@@ -1270,6 +1274,47 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &inst, ORB_PRIO_DEFAULT);
 }
 
+void MavlinkReceiver::fill_thrust(float& thrust_x,float& thrust_y,float& thrust_z, bool is_rotary_wing, float thrust)
+{
+	// Fill correct field by checking frametype
+	// TODO: add as needed
+	switch (_mavlink->get_system_type()) {
+	case MAV_TYPE_GENERIC:
+		break;
+
+	case MAV_TYPE_FIXED_WING:
+		thrust_x = thrust;
+		break;
+
+	case MAV_TYPE_QUADROTOR:
+	case MAV_TYPE_HEXAROTOR:
+	case MAV_TYPE_OCTOROTOR:
+	case MAV_TYPE_TRICOPTER:
+	case MAV_TYPE_HELICOPTER:
+		thrust_z = -thrust;
+		break;
+
+	case MAV_TYPE_GROUND_ROVER:
+		thrust_x = thrust;
+		break;
+
+	case MAV_TYPE_VTOL_DUOROTOR:
+	case MAV_TYPE_VTOL_QUADROTOR:
+	case MAV_TYPE_VTOL_TILTROTOR:
+	case MAV_TYPE_VTOL_RESERVED2:
+	case MAV_TYPE_VTOL_RESERVED3:
+	case MAV_TYPE_VTOL_RESERVED4:
+	case MAV_TYPE_VTOL_RESERVED5:
+		if (is_rotary_wing) {
+			thrust_z = -thrust;
+		}
+		else {
+			thrust_x = thrust;
+		}
+		break;
+	}
+}
+
 void
 MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 {
@@ -1346,6 +1391,12 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 			if (_control_mode.flag_control_offboard_enabled) {
 
+				vehicle_status_s vehicle_status{};
+				
+				if (orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &vehicle_status) != 0) {
+					return;
+				}
+
 				/* Publish attitude setpoint if attitude and thrust ignore bits are not set */
 				if (!(_offboard_control_mode.ignore_attitude)) {
 					vehicle_attitude_setpoint_s att_sp = {};
@@ -1364,14 +1415,34 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						att_sp.thrust_x = set_attitude_target.thrust;
+						fill_thrust(att_sp.thrust_x,att_sp.thrust_y,att_sp.thrust_z, vehicle_status.is_rotary_wing, set_attitude_target.thrust);
 					}
 
-					if (_att_sp_pub == nullptr) {
-						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+					if (vehicle_status.is_vtol && vehicle_status.is_rotary_wing) {
+						
+						if (_mc_virtual_att_sp_pub == nullptr) {
+							_mc_virtual_att_sp_pub = orb_advertise(ORB_ID(mc_virtual_attitude_setpoint), &att_sp);
 
-					} else {
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
+						} else {
+							orb_publish(ORB_ID(mc_virtual_attitude_setpoint), _mc_virtual_att_sp_pub, &att_sp);
+						}
+						
+					} else if (vehicle_status.is_vtol && !vehicle_status.is_rotary_wing) {
+						
+						if (_fw_virtual_att_sp_pub == nullptr) {
+							_fw_virtual_att_sp_pub = orb_advertise(ORB_ID(fw_virtual_attitude_setpoint), &att_sp);
+
+						} else {
+							orb_publish(ORB_ID(fw_virtual_attitude_setpoint), _fw_virtual_att_sp_pub, &att_sp);
+						}
+						
+					} else {						
+						if (_att_sp_pub == nullptr) {
+							_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+
+						} else {
+							orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
+						}
 					}
 				}
 
