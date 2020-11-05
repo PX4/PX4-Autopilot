@@ -1098,6 +1098,7 @@ $ gps reset warm
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Enable publication of satellite info", true);
 
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "uart", "spi|uart", "GPS interface", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('j', "uart", "spi|uart", "secondary GPS interface", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml", "GPS Protocol (default=auto select)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -1170,6 +1171,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 	GPSHelper::Interface interface = GPSHelper::Interface::UART;
+	GPSHelper::Interface interface_secondary = GPSHelper::Interface::UART;
 	gps_driver_mode_t mode = GPS_DRIVER_MODE_NONE;
 
 	bool error_flag = false;
@@ -1177,7 +1179,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "b:d:e:fg:si:p:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:d:e:fg:si:j:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, baudrate_main) != 0) {
@@ -1221,6 +1223,19 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			}
 			break;
 
+		case 'j':
+			if (!strcmp(myoptarg, "spi")) {
+				interface_secondary = GPSHelper::Interface::SPI;
+
+			} else if (!strcmp(myoptarg, "uart")) {
+				interface_secondary = GPSHelper::Interface::UART;
+
+			} else {
+				PX4_ERR("unknown interface for secondary: %s", myoptarg);
+				error_flag = true;
+			}
+			break;
+
 		case 'p':
 			if (!strcmp(myoptarg, "ubx")) {
 				mode = GPS_DRIVER_MODE_UBX;
@@ -1235,7 +1250,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 				mode = GPS_DRIVER_MODE_EMLIDREACH;
 
 			} else {
-				PX4_ERR("unknown interface: %s", myoptarg);
+				PX4_ERR("unknown protocol: %s", myoptarg);
 				error_flag = true;
 			}
 			break;
@@ -1275,7 +1290,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			}
 		}
 	} else { // secondary instance
-		gps = new GPS(device_name_secondary, mode, interface, fake_gps, enable_sat_info, instance, baudrate_secondary);
+		gps = new GPS(device_name_secondary, mode, interface_secondary, fake_gps, enable_sat_info, instance, baudrate_secondary);
 	}
 
 	return gps;
