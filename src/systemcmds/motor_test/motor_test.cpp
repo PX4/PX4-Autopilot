@@ -61,7 +61,7 @@ void motor_test(unsigned channel, float value, uint8_t driver_instance, int time
 	test_motor.driver_instance = driver_instance;
 	test_motor.timeout_ms = timeout_ms;
 
-	uORB::PublicationQueued<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
+	uORB::Publication<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
 	test_motor_pub.publish(test_motor);
 
 	if (test_motor.action == test_motor_s::ACTION_STOP) {

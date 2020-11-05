@@ -26,7 +26,7 @@ px4_add_board(
 		differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
 		distance_sensor/ll40ls
-		distance_sensor/sf0x
+		distance_sensor/lightware_laser_serial
 		gps
 		imu/l3gd20
 		imu/lsm303d

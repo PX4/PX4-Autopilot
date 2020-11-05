@@ -65,12 +65,9 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/cpuload.h>
-#include <uORB/topics/debug_array.h>
-#include <uORB/topics/debug_key_value.h>
-#include <uORB/topics/debug_value.h>
-#include <uORB/topics/debug_vect.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
@@ -118,6 +115,7 @@ using matrix::wrap_2pi;
 #include "streams/ESC_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
+#include "streams/GPS_STATUS.hpp"
 #include "streams/HIGH_LATENCY2.hpp"
 #include "streams/HIL_STATE_QUATERNION.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
@@ -126,6 +124,13 @@ using matrix::wrap_2pi;
 #include "streams/PROTOCOL_VERSION.hpp"
 #include "streams/RAW_RPM.hpp"
 #include "streams/STORAGE_INFORMATION.hpp"
+
+#if !defined(CONSTRAINED_FLASH)
+# include "streams/DEBUG.hpp"
+# include "streams/DEBUG_FLOAT_ARRAY.hpp"
+# include "streams/DEBUG_VECT.hpp"
+# include "streams/NAMED_VALUE_FLOAT.hpp"
+#endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
 static_assert(MAV_SENSOR_ROTATION_NONE == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_NONE),
@@ -965,8 +970,9 @@ public:
 
 private:
 	uORB::SubscriptionMultiArray<vehicle_imu_s, 3> _vehicle_imu_subs{ORB_ID::vehicle_imu};
+	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
-	uORB::Subscription _bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
@@ -1006,12 +1012,59 @@ protected:
 			vehicle_magnetometer_s magnetometer{};
 
 			if (_magnetometer_sub.update(&magnetometer)) {
-				/* mark third group dimensions as changed */
+				// mark third group dimensions as changed
 				fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
 
 			} else {
 				_magnetometer_sub.copy(&magnetometer);
 			}
+
+			// find corresponding estimated sensor bias
+			if (_estimator_selector_status_sub.updated()) {
+				estimator_selector_status_s estimator_selector_status;
+
+				if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+					_estimator_sensor_bias_sub.ChangeInstance(estimator_selector_status.primary_instance);
+				}
+			}
+
+			Vector3f accel_bias{0.f, 0.f, 0.f};
+			Vector3f gyro_bias{0.f, 0.f, 0.f};
+			Vector3f mag_bias{0.f, 0.f, 0.f};
+
+			{
+				estimator_sensor_bias_s bias;
+
+				if (_estimator_sensor_bias_sub.copy(&bias)) {
+					if ((bias.accel_device_id != 0) && (bias.accel_device_id == imu.accel_device_id)) {
+						accel_bias = Vector3f{bias.accel_bias};
+					}
+
+					if ((bias.gyro_device_id != 0) && (bias.gyro_device_id == imu.gyro_device_id)) {
+						gyro_bias = Vector3f{bias.gyro_bias};
+					}
+
+					if ((bias.mag_device_id != 0) && (bias.mag_device_id == magnetometer.device_id)) {
+						mag_bias = Vector3f{bias.mag_bias};
+
+					} else {
+						// find primary mag
+						uORB::SubscriptionMultiArray<vehicle_magnetometer_s> mag_subs{ORB_ID::vehicle_magnetometer};
+
+						for (int i = 0; i < mag_subs.size(); i++) {
+							if (mag_subs[i].advertised() && mag_subs[i].copy(&magnetometer)) {
+								if (magnetometer.device_id == bias.mag_device_id) {
+									_magnetometer_sub.ChangeInstance(i);
+									break;
+								}
+							}
+
+						}
+					}
+				}
+			}
+
+			const Vector3f mag = Vector3f{magnetometer.magnetometer_ga} - mag_bias;
 
 			vehicle_air_data_s air_data{};
 
@@ -1033,14 +1086,11 @@ protected:
 				_differential_pressure_sub.copy(&differential_pressure);
 			}
 
-			estimator_sensor_bias_s bias{};
-			_bias_sub.copy(&bias);
-
 			const float accel_dt_inv = 1.e6f / (float)imu.delta_velocity_dt;
-			Vector3f accel = (Vector3f{imu.delta_velocity} * accel_dt_inv) - Vector3f{bias.accel_bias};
+			const Vector3f accel = (Vector3f{imu.delta_velocity} * accel_dt_inv) - accel_bias;
 
 			const float gyro_dt_inv = 1.e6f / (float)imu.delta_angle_dt;
-			Vector3f gyro = (Vector3f{imu.delta_angle} * gyro_dt_inv) - Vector3f{bias.gyro_bias};
+			const Vector3f gyro = (Vector3f{imu.delta_angle} * gyro_dt_inv) - gyro_bias;
 
 			mavlink_highres_imu_t msg{};
 
@@ -1051,9 +1101,9 @@ protected:
 			msg.xgyro = gyro(0);
 			msg.ygyro = gyro(1);
 			msg.zgyro = gyro(2);
-			msg.xmag = magnetometer.magnetometer_ga[0] - bias.mag_bias[0];
-			msg.ymag = magnetometer.magnetometer_ga[1] - bias.mag_bias[1];
-			msg.zmag = magnetometer.magnetometer_ga[2] - bias.mag_bias[2];
+			msg.xmag = mag(0);
+			msg.ymag = mag(1);
+			msg.zmag = mag(2);
 			msg.abs_pressure = air_data.baro_pressure_pa;
 			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
 			msg.pressure_alt = air_data.baro_alt_meter;
@@ -1760,7 +1810,6 @@ protected:
 		return false;
 	}
 };
-
 
 class MavlinkStreamGPSRawInt : public MavlinkStream
 {
@@ -2913,11 +2962,12 @@ public:
 
 	unsigned get_size() override
 	{
-		return _est_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _estimator_status_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	uORB::Subscription _est_sub{ORB_ID(estimator_status)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamEstimatorStatus(MavlinkStreamEstimatorStatus &) = delete;
@@ -2929,9 +2979,20 @@ protected:
 
 	bool send() override
 	{
+		// use primary estimator_status
+		if (_estimator_selector_status_sub.updated()) {
+			estimator_selector_status_s estimator_selector_status;
+
+			if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+				if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
+					_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
+				}
+			}
+		}
+
 		estimator_status_s est;
 
-		if (_est_sub.update(&est)) {
+		if (_estimator_status_sub.update(&est)) {
 			mavlink_estimator_status_t est_msg{};
 			est_msg.time_usec = est.timestamp;
 			est_msg.vel_ratio = est.vel_test_ratio;
@@ -3972,6 +4033,7 @@ protected:
 			msg.buttons |= (manual_control_setpoint.loiter_switch << (shift * 3));
 			msg.buttons |= (manual_control_setpoint.acro_switch << (shift * 4));
 			msg.buttons |= (manual_control_setpoint.offboard_switch << (shift * 5));
+			msg.buttons |= (manual_control_setpoint.kill_switch << (shift * 6));
 
 			mavlink_msg_manual_control_send_struct(_mavlink->get_channel(), &msg);
 
@@ -4156,273 +4218,6 @@ protected:
 			msg.temperature = flow.gyro_temperature;
 
 			mavlink_msg_optical_flow_rad_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
-class MavlinkStreamNamedValueFloat : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamNamedValueFloat::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "NAMED_VALUE_FLOAT";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamNamedValueFloat(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _debug_sub.advertised() ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _debug_sub{ORB_ID(debug_key_value)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamNamedValueFloat(MavlinkStreamNamedValueFloat &) = delete;
-	MavlinkStreamNamedValueFloat &operator = (const MavlinkStreamNamedValueFloat &) = delete;
-
-protected:
-	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		debug_key_value_s debug;
-
-		if (_debug_sub.update(&debug)) {
-			mavlink_named_value_float_t msg{};
-
-			msg.time_boot_ms = debug.timestamp / 1000ULL;
-			memcpy(msg.name, debug.key, sizeof(msg.name));
-			/* enforce null termination */
-			msg.name[sizeof(msg.name) - 1] = '\0';
-			msg.value = debug.value;
-
-			mavlink_msg_named_value_float_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
-class MavlinkStreamDebug : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamDebug::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "DEBUG";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_DEBUG;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamDebug(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _debug_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _debug_sub{ORB_ID(debug_value)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamDebug(MavlinkStreamDebug &) = delete;
-	MavlinkStreamDebug &operator = (const MavlinkStreamDebug &) = delete;
-
-protected:
-	explicit MavlinkStreamDebug(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		debug_value_s debug;
-
-		if (_debug_sub.update(&debug)) {
-			mavlink_debug_t msg{};
-			msg.time_boot_ms = debug.timestamp / 1000ULL;
-			msg.ind = debug.ind;
-			msg.value = debug.value;
-
-			mavlink_msg_debug_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
-class MavlinkStreamDebugVect : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamDebugVect::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "DEBUG_VECT";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_DEBUG_VECT;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamDebugVect(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _debug_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_VECT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _debug_sub{ORB_ID(debug_vect)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamDebugVect(MavlinkStreamDebugVect &) = delete;
-	MavlinkStreamDebugVect &operator = (const MavlinkStreamDebugVect &) = delete;
-
-protected:
-	explicit MavlinkStreamDebugVect(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		debug_vect_s debug;
-
-		if (_debug_sub.update(&debug)) {
-			mavlink_debug_vect_t msg{};
-
-			msg.time_usec = debug.timestamp;
-			memcpy(msg.name, debug.name, sizeof(msg.name));
-			/* enforce null termination */
-			msg.name[sizeof(msg.name) - 1] = '\0';
-			msg.x = debug.x;
-			msg.y = debug.y;
-			msg.z = debug.z;
-
-			mavlink_msg_debug_vect_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
-class MavlinkStreamDebugFloatArray : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamDebugFloatArray::get_name_static();
-	}
-
-	static constexpr const char *get_name_static()
-	{
-		return "DEBUG_FLOAT_ARRAY";
-	}
-
-	static constexpr uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamDebugFloatArray(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return _debug_array_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-
-private:
-	uORB::Subscription _debug_array_sub{ORB_ID(debug_array)};
-
-	/* do not allow top copying this class */
-	MavlinkStreamDebugFloatArray(MavlinkStreamDebugFloatArray &);
-	MavlinkStreamDebugFloatArray &operator = (const MavlinkStreamDebugFloatArray &);
-
-protected:
-	explicit MavlinkStreamDebugFloatArray(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send() override
-	{
-		debug_array_s debug;
-
-		if (_debug_array_sub.update(&debug)) {
-			mavlink_debug_float_array_t msg{};
-
-			msg.time_usec = debug.timestamp;
-			msg.array_id = debug.id;
-			memcpy(msg.name, debug.name, sizeof(msg.name));
-			/* enforce null termination */
-			msg.name[sizeof(msg.name) - 1] = '\0';
-
-			for (size_t i = 0; i < debug_array_s::ARRAY_SIZE; i++) {
-				msg.data[i] = debug.data[i];
-			}
-
-			mavlink_msg_debug_float_array_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
@@ -4973,10 +4768,18 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 	create_stream_list_item<MavlinkStreamActuatorControlTarget<0> >(),
 	create_stream_list_item<MavlinkStreamActuatorControlTarget<1> >(),
+#if defined(NAMED_VALUE_FLOAT_HPP)
 	create_stream_list_item<MavlinkStreamNamedValueFloat>(),
+#endif // NAMED_VALUE_FLOAT_HPP
+#if defined(DEBUG_HPP)
 	create_stream_list_item<MavlinkStreamDebug>(),
+#endif // DEBUG_HPP
+#if defined(DEBUG_VECT_HPP)
 	create_stream_list_item<MavlinkStreamDebugVect>(),
+#endif // DEBUG_VECT_HPP
+#if defined(DEBUG_FLOAT_ARRAY_HPP)
 	create_stream_list_item<MavlinkStreamDebugFloatArray>(),
+#endif // DEBUG_FLOAT_ARRAY_HPP
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),
 	create_stream_list_item<MavlinkStreamCameraCapture>(),
 	create_stream_list_item<MavlinkStreamCameraTrigger>(),
@@ -5021,6 +4824,9 @@ static const StreamListItem streams_list[] = {
 #if defined(FLIGHT_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamFlightInformation>(),
 #endif // FLIGHT_INFORMATION_HPP
+#if defined(GPS_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamGPSStatus>(),
+#endif // GPS_STATUS_HPP
 #if defined(STORAGE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamStorageInformation>(),
 #endif // STORAGE_INFORMATION_HPP

@@ -42,7 +42,7 @@
 
 #include <fcntl.h>
 
-int px4_platform_init(void)
+int px4_platform_console_init(void)
 {
 #if !defined(CONFIG_DEV_CONSOLE) && defined(CONFIG_DEV_NULL)
 
@@ -75,11 +75,23 @@ int px4_platform_init(void)
 		}
 
 		return -ENFILE;
+
 	}
 
 #endif
+	return OK;
+}
 
-	int ret = px4_console_buffer_init();
+int px4_platform_init(void)
+{
+
+	int ret = px4_platform_console_init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = px4_console_buffer_init();
 
 	if (ret < 0) {
 		return ret;

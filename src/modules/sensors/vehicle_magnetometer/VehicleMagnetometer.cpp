@@ -199,7 +199,7 @@ void VehicleMagnetometer::Run()
 
 		if (!_advertised[uorb_index]) {
 			// use data's timestamp to throttle advertisement checks
-			if (hrt_elapsed_time(&_last_data[uorb_index].timestamp) > 1_s) {
+			if ((_last_data[uorb_index].timestamp == 0) || (hrt_elapsed_time(&_last_data[uorb_index].timestamp) > 1_s)) {
 				if (_sensor_sub[uorb_index].advertised()) {
 					if (uorb_index > 0) {
 						/* the first always exists, but for each further sensor, add a new validator */
@@ -217,12 +217,18 @@ void VehicleMagnetometer::Run()
 						}
 					}
 
+					if (_selected_sensor_sub_index < 0) {
+						_sensor_sub[uorb_index].registerCallback();
+					}
+
 				} else {
 					_last_data[uorb_index].timestamp = hrt_absolute_time();
 				}
 			}
 
-		} else {
+		}
+
+		if (_advertised[uorb_index]) {
 			sensor_mag_s report;
 
 			while (_sensor_sub[uorb_index].update(&report)) {
@@ -339,8 +345,8 @@ void VehicleMagnetometer::Run()
 
 void VehicleMagnetometer::Publish(uint8_t instance, bool multi)
 {
-	if ((_param_sens_mag_rate.get() > 0)
-	    && hrt_elapsed_time(&_last_publication_timestamp[instance]) >= (1e6f / _param_sens_mag_rate.get())) {
+	if ((_param_sens_mag_rate.get() > 0) && (_last_publication_timestamp[instance] ||
+			(hrt_elapsed_time(&_last_publication_timestamp[instance]) >= (1e6f / _param_sens_mag_rate.get())))) {
 
 		const Vector3f magnetometer_data = _mag_sum[instance] / _mag_sum_count[instance];
 		const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _mag_sum_count[instance];

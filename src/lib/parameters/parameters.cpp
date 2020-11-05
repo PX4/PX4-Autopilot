@@ -797,8 +797,7 @@ void param_set_used_internal(param_t param)
 		(1 << param_index % bits_per_allocation_unit);
 }
 
-int
-param_reset(param_t param)
+static int param_reset_internal(param_t param, bool notify = true)
 {
 	param_wbuf_s *s = nullptr;
 	bool param_found = false;
@@ -823,12 +822,16 @@ param_reset(param_t param)
 
 	param_unlock_writer();
 
-	if (s != nullptr) {
+	if (s != nullptr && notify) {
 		_param_notify_changes();
 	}
 
 	return (!param_found);
 }
+
+int param_reset(param_t param) { return param_reset_internal(param, true); }
+int param_reset_no_notification(param_t param) { return param_reset_internal(param, false); }
+
 static void
 param_reset_all_internal(bool auto_save)
 {

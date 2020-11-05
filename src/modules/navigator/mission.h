@@ -57,6 +57,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -230,11 +231,15 @@ private:
 
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
+	void publish_navigator_mission_item();
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
 		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
 	)
+
+	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item};
 
 	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
 	mission_s		_mission {};

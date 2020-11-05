@@ -32,6 +32,15 @@
  ****************************************************************************/
 
 /**
+* IMU gyro FFT enable.
+*
+* @boolean
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_INT32(IMU_GYRO_FFT_EN, 0);
+
+/**
 * IMU gyro FFT minimum frequency.
 *
 * @min 1
@@ -40,7 +49,7 @@
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_MIN, 30.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_MIN, 50.0f);
 
 /**
 * IMU gyro FFT maximum frequency.

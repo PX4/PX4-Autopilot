@@ -183,7 +183,7 @@ VtolAttitudeControl::handle_command()
 			command_ack.target_system = _vehicle_cmd.source_system;
 			command_ack.target_component = _vehicle_cmd.source_component;
 
-			uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+			uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 			command_ack_pub.publish(command_ack);
 		}
 	}

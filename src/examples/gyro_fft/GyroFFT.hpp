@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -74,6 +75,9 @@ public:
 	bool init();
 
 private:
+	static constexpr uint16_t FFT_LENGTH = 2048;
+
+	float EstimatePeakFrequency(q15_t fft[FFT_LENGTH * 2], uint8_t peak_index);
 	void Run() override;
 	bool SensorSelectionUpdate(bool force = false);
 	void VehicleIMUStatusUpdate();
@@ -95,10 +99,9 @@ private:
 
 	uint32_t _selected_sensor_device_id{0};
 
-	static constexpr uint16_t FFT_LENGTH = 1024;
-	arm_rfft_instance_q15 _rfft_q15[3];
+	arm_rfft_instance_q15 _rfft_q15;
 
-	q15_t _data_buffer[3][FFT_LENGTH] {};
+	q15_t _gyro_data_buffer[3][FFT_LENGTH] {};
 	q15_t _hanning_window[FFT_LENGTH] {};
 	q15_t _fft_input_buffer[FFT_LENGTH] {};
 	q15_t _fft_outupt_buffer[FFT_LENGTH * 2] {};
@@ -108,6 +111,8 @@ private:
 	int _fft_buffer_index[3] {};
 
 	unsigned _gyro_last_generation{0};
+
+	math::MedianFilter<float, 3> _median_filter[3] {};
 
 	sensor_gyro_fft_s _sensor_gyro_fft{};
 

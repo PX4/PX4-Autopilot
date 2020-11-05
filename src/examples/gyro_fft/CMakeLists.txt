@@ -71,7 +71,7 @@ px4_add_module(
 	MODULE modules__gyro_fft
 	MAIN gyro_fft
 	STACK_MAIN
-		8192
+		4096
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 	INCLUDES

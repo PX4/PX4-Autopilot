@@ -89,19 +89,27 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 	int _system_type = _param_mav_type.get();
 
 	/* scale outputs depending on system type */
-	if (_system_type == MAV_TYPE_QUADROTOR ||
+	if (_system_type == MAV_TYPE_AIRSHIP ||
+	    _system_type == MAV_TYPE_QUADROTOR ||
 	    _system_type == MAV_TYPE_HEXAROTOR ||
 	    _system_type == MAV_TYPE_OCTOROTOR ||
 	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
 	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
 	    _system_type == MAV_TYPE_VTOL_TILTROTOR ||
-	    _system_type == MAV_TYPE_VTOL_RESERVED2) {
+	    _system_type == MAV_TYPE_VTOL_RESERVED2 ||
+	    _system_type == MAV_TYPE_SUBMARINE) {
 
 		/* multirotors: set number of rotor outputs depending on type */
 
 		unsigned n;
 
 		switch (_system_type) {
+		case MAV_TYPE_SUBMARINE:
+			n = 0;
+			break;
+
+		case MAV_TYPE_AIRSHIP:
+
 		case MAV_TYPE_VTOL_DUOROTOR:
 			n = 2;
 			break;
@@ -139,25 +147,6 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 
 			} else {
 				/* send 0 when disarmed and for disabled channels */
-				msg.controls[i] = 0.0f;
-			}
-		}
-
-	} else if (_system_type == MAV_TYPE_AIRSHIP) {
-		/* airship: scale starboard and port throttle to 0..1 and other channels (tilt, tail thruster) to -1..1 */
-		for (unsigned i = 0; i < 16; i++) {
-			if (armed) {
-				if (i < 2) {
-					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
-					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
-
-				} else {
-					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
-					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
-				}
-
-			} else {
-				/* set 0 for disabled channels */
 				msg.controls[i] = 0.0f;
 			}
 		}
@@ -385,6 +374,10 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 
 void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 {
+	if (_lockstep_component == -1) {
+		_lockstep_component = px4_lockstep_register_component();
+	}
+
 	mavlink_hil_sensor_t imu;
 	mavlink_msg_hil_sensor_decode(msg, &imu);
 
@@ -416,6 +409,8 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	}
 
 #endif
+
+	px4_lockstep_progress(_lockstep_component);
 }
 
 void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg)
@@ -644,9 +639,11 @@ void Simulator::send()
 			parameters_update(false);
 			check_failure_injections();
 			_vehicle_status_sub.update(&_vehicle_status);
-			send_controls();
+
 			// Wait for other modules, such as logger or ekf2
 			px4_lockstep_wait_for_components();
+
+			send_controls();
 		}
 	}
 }

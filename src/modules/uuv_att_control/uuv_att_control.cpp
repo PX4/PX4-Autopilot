@@ -59,7 +59,7 @@ extern "C" __EXPORT int uuv_att_control_main(int argc, char *argv[]);
 
 UUVAttitudeControl::UUVAttitudeControl():
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::attitude_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {

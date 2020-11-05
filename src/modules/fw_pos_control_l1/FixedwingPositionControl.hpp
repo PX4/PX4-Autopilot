@@ -261,6 +261,9 @@ private:
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position
 	uint8_t _alt_reset_counter{0};				///< captures the number of times the estimator has reset the altitude state
 
+	float _manual_control_setpoint_altitude{0.0f};
+	float _manual_control_setpoint_airspeed{0.0f};
+
 	ECL_L1_Pos_Controller	_l1_control;
 	TECS			_tecs;
 
@@ -281,6 +284,7 @@ private:
 	// Update subscriptions
 	void		airspeed_poll();
 	void		control_update();
+	void 		manual_control_setpoint_poll();
 	void		vehicle_attitude_poll();
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
@@ -414,6 +418,8 @@ private:
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
+
+		(ParamBool<px4::params::FW_POSCTL_INV_ST>) _param_fw_posctl_inv_st,
 
 		// external parameters
 		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,

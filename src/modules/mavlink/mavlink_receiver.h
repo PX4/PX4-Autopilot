@@ -62,10 +62,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cellular_status.h>
 #include <uORB/topics/collision_report.h>
-#include <uORB/topics/debug_array.h>
-#include <uORB/topics/debug_key_value.h>
-#include <uORB/topics/debug_value.h>
-#include <uORB/topics/debug_vect.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
@@ -103,6 +99,13 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_bezier.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+
+#if !defined(CONSTRAINED_FLASH)
+# include <uORB/topics/debug_array.h>
+# include <uORB/topics/debug_key_value.h>
+# include <uORB/topics/debug_value.h>
+# include <uORB/topics/debug_vect.h>
+#endif // !CONSTRAINED_FLASH
 
 class Mavlink;
 
@@ -144,9 +147,6 @@ private:
 	void handle_message_command_ack(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
-	void handle_message_debug(mavlink_message_t *msg);
-	void handle_message_debug_float_array(mavlink_message_t *msg);
-	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
 	void handle_message_generator_status(mavlink_message_t *msg);
@@ -160,7 +160,6 @@ private:
 	void handle_message_landing_target(mavlink_message_t *msg);
 	void handle_message_logging_ack(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
-	void handle_message_named_value_float(mavlink_message_t *msg);
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
 	void handle_message_odometry(mavlink_message_t *msg);
 	void handle_message_onboard_computer_status(mavlink_message_t *msg);
@@ -182,6 +181,14 @@ private:
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 
+#if !defined(CONSTRAINED_FLASH)
+	void handle_message_debug(mavlink_message_t *msg);
+	void handle_message_debug_float_array(mavlink_message_t *msg);
+	void handle_message_debug_vect(mavlink_message_t *msg);
+	void handle_message_named_value_float(mavlink_message_t *msg);
+#endif // !CONSTRAINED_FLASH
+
+	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
 
 	void Run();
 
@@ -235,10 +242,6 @@ private:
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
 	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
-	uORB::Publication<debug_array_s>			_debug_array_pub{ORB_ID(debug_array)};
-	uORB::Publication<debug_key_value_s>			_debug_key_value_pub{ORB_ID(debug_key_value)};
-	uORB::Publication<debug_value_s>			_debug_value_pub{ORB_ID(debug_value)};
-	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<follow_target_s>			_follow_target_pub{ORB_ID(follow_target)};
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
@@ -264,6 +267,13 @@ private:
 	uORB::Publication<vehicle_trajectory_bezier_s>		_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
+#if !defined(CONSTRAINED_FLASH)
+	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
+	uORB::Publication<debug_key_value_s>			_debug_key_value_pub{ORB_ID(debug_key_value)};
+	uORB::Publication<debug_value_s>			_debug_value_pub{ORB_ID(debug_value)};
+	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
+#endif // !CONSTRAINED_FLASH
+
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor)};
@@ -273,10 +283,10 @@ private:
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 
 	// ORB publications (queue length > 1)
-	uORB::PublicationQueued<gps_inject_data_s>	_gps_inject_data_pub{ORB_ID(gps_inject_data)};
-	uORB::PublicationQueued<transponder_report_s>	_transponder_report_pub{ORB_ID(transponder_report)};
-	uORB::PublicationQueued<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::PublicationQueued<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<gps_inject_data_s>	_gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::Publication<transponder_report_s>	_transponder_report_pub{ORB_ID(transponder_report)};
+	uORB::Publication<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
@@ -313,6 +323,24 @@ private:
 
 	// Allocated if needed.
 	TunePublisher *_tune_publisher{nullptr};
+
+	hrt_abstime _last_heartbeat_check{0};
+
+	hrt_abstime _heartbeat_type_antenna_tracker{0};
+	hrt_abstime _heartbeat_type_gcs{0};
+	hrt_abstime _heartbeat_type_onboard_controller{0};
+	hrt_abstime _heartbeat_type_gimbal{0};
+	hrt_abstime _heartbeat_type_adsb{0};
+	hrt_abstime _heartbeat_type_camera{0};
+
+	hrt_abstime _heartbeat_component_telemetry_radio{0};
+	hrt_abstime _heartbeat_component_log{0};
+	hrt_abstime _heartbeat_component_osd{0};
+	hrt_abstime _heartbeat_component_obstacle_avoidance{0};
+	hrt_abstime _heartbeat_component_visual_inertial_odometry{0};
+	hrt_abstime _heartbeat_component_pairing_manager{0};
+	hrt_abstime _heartbeat_component_udp_bridge{0};
+	hrt_abstime _heartbeat_component_uart_bridge{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

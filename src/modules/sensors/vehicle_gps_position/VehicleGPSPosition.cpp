@@ -59,16 +59,9 @@ bool VehicleGPSPosition::Start()
 	// force initial updates
 	ParametersUpdate(true);
 
-	// needed to change the active sensor if the primary stops updating
-	bool anyGpsRegistered = false;
-	bool registered[GPS_MAX_RECEIVERS];
+	ScheduleNow();
 
-	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		registered[i] = _sensor_gps_sub[i].registerCallback();
-		anyGpsRegistered |= registered[i];
-	}
-
-	return anyGpsRegistered;
+	return true;
 }
 
 void VehicleGPSPosition::Stop()
@@ -98,20 +91,25 @@ void VehicleGPSPosition::Run()
 	perf_begin(_cycle_perf);
 	ParametersUpdate();
 
+	// backup schedule
+	ScheduleDelayed(500_ms);
+
 	// Check all GPS instance
 	bool any_gps_updated = false;
 	bool gps_updated[GPS_MAX_RECEIVERS];
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-
 		gps_updated[i] = _sensor_gps_sub[i].updated();
 
 		if (gps_updated[i]) {
 			any_gps_updated = true;
 			_sensor_gps_sub[i].copy(&_gps_state[i]);
+
+			if (!_sensor_gps_sub[i].registered()) {
+				_sensor_gps_sub[i].registerCallback();
+			}
 		}
 	}
-
 
 	if ((_param_sens_gps_mask.get() == 0) && gps_updated[0]) {
 		// When GPS blending is disabled we always use the first receiver instance

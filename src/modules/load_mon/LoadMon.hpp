@@ -33,7 +33,9 @@
 
 #pragma once
 
+#if defined(__PX4_NUTTX)
 #include <malloc.h>
+#endif
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
@@ -48,7 +50,6 @@
 
 #if defined(__PX4_LINUX)
 #include <sys/times.h>
-#include <malloc.h>
 #endif
 
 namespace load_mon
@@ -87,11 +88,12 @@ private:
 
 	int _stack_task_index{0};
 
-	uORB::PublicationQueued<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
+	uORB::Publication<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
 #endif
 	uORB::Publication<cpuload_s> _cpuload_pub {ORB_ID(cpuload)};
 
 #if defined(__PX4_LINUX)
+	FILE *_proc_fd = nullptr;
 	/* calculate usage directly from clock ticks on Linux */
 	clock_t _last_total_time_stamp{};
 	clock_t _last_spent_time_stamp{};

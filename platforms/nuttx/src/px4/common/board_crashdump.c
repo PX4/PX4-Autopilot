@@ -130,7 +130,7 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 
 		/* Also end the misery for a user that holds for a key down on the console */
 
-		int bytesWaiting;
+		int bytesWaiting = 0;
 		ioctl(fileno(stdin), FIONREAD, (unsigned long)((uintptr_t) &bytesWaiting));
 
 		if (reboots > display_to_console || bytesWaiting != 0) {

@@ -162,7 +162,7 @@ private:
 	char					_device[20];
 	orb_advert_t			_t_outputs;
 	orb_advert_t			_t_esc_status;
-	uORB::PublicationQueued<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
+	uORB::Publication<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 	unsigned int			_num_outputs;
 	bool					_primary_pwm_device;
 	bool     				_motortest;

@@ -72,7 +72,7 @@ _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 
 	// Enforce the existence of the test_motor topic, so we won't miss initial publications
 	test_motor_s test{};
-	uORB::PublicationQueued<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
+	uORB::Publication<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
 	test_motor_pub.publish(test);
 	_motor_test.test_motor_sub.subscribe();
 }

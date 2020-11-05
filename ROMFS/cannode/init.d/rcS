@@ -14,7 +14,7 @@ set +e
 # NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
 #------------------------------------------------------------------------------
-
+set R /
 #
 # Mount the procfs.
 #
@@ -57,7 +57,7 @@ fi
 #
 # Optional board defaults: rc.board_defaults
 #
-set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
+set BOARD_RC_DEFAULTS ${R}etc/init.d/rc.board_defaults
 if [ -f $BOARD_RC_DEFAULTS ]
 then
 	echo "Board defaults: ${BOARD_RC_DEFAULTS}"
@@ -83,7 +83,7 @@ fi
 #
 # board sensors: rc.sensors
 #
-set BOARD_RC_SENSORS /etc/init.d/rc.board_sensors
+set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
 if [ -f $BOARD_RC_SENSORS ]
 then
 	echo "Board sensors: ${BOARD_RC_SENSORS}"
@@ -95,7 +95,7 @@ unset BOARD_RC_SENSORS
 # Start UART/Serial device drivers.
 # Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 #
-. /etc/init.d/rc.serial
+. ${R}etc/init.d/rc.serial
 
 # Check for flow sensor
 if param compare SENS_EN_PX4FLOW 1
@@ -104,3 +104,4 @@ then
 fi
 
 uavcannode start
+unset R

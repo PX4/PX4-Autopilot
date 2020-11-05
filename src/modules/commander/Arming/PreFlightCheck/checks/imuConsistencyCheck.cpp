@@ -39,7 +39,6 @@
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensors_status_imu.h>
-#include <uORB/topics/subsystem_info.h>
 
 bool PreFlightCheck::imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		const bool report_status)

@@ -7,7 +7,7 @@
 # @maintainer Jaeyoung Lim <jaeyoung@auterion.com>
 #
 
-sh /etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF = yes ]
 then

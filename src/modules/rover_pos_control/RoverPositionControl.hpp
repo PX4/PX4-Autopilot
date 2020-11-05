@@ -69,7 +69,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/uORB.h>
 
 using matrix::Dcmf;

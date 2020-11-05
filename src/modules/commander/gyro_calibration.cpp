@@ -49,10 +49,11 @@
 #include <px4_platform_common/time.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/sensor_calibration/Gyroscope.hpp>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
+#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
@@ -72,21 +73,8 @@ struct gyro_worker_data_t {
 
 	Vector3f offset[MAX_GYROS] {};
 
-	static constexpr int last_num_samples = 9; ///< number of samples for the motion detection median filter
-	float last_sample_0_x[last_num_samples];
-	float last_sample_0_y[last_num_samples];
-	float last_sample_0_z[last_num_samples];
-	int last_sample_0_idx;
+	math::MedianFilter<float, 9> filter[3] {};
 };
-
-static int float_cmp(const void *elem1, const void *elem2)
-{
-	if (*(const float *)elem1 < * (const float *)elem2) {
-		return -1;
-	}
-
-	return *(const float *)elem1 > *(const float *)elem2;
-}
 
 static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 {
@@ -104,11 +92,6 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 		{ORB_ID(sensor_gyro), 0, 2},
 		{ORB_ID(sensor_gyro), 0, 3},
 	};
-
-	memset(&worker_data.last_sample_0_x, 0, sizeof(worker_data.last_sample_0_x));
-	memset(&worker_data.last_sample_0_y, 0, sizeof(worker_data.last_sample_0_y));
-	memset(&worker_data.last_sample_0_z, 0, sizeof(worker_data.last_sample_0_z));
-	worker_data.last_sample_0_idx = 0;
 
 	/* use slowest gyro to pace, but count correctly per-gyro for statistics */
 	unsigned slow_count = 0;
@@ -162,10 +145,9 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 						calibration_counter[gyro_index]++;
 
 						if (gyro_index == 0) {
-							worker_data.last_sample_0_x[worker_data.last_sample_0_idx] = gyro_report.x - offset(0);
-							worker_data.last_sample_0_y[worker_data.last_sample_0_idx] = gyro_report.y - offset(1);
-							worker_data.last_sample_0_z[worker_data.last_sample_0_idx] = gyro_report.z - offset(2);
-							worker_data.last_sample_0_idx = (worker_data.last_sample_0_idx + 1) % gyro_worker_data_t::last_num_samples;
+							worker_data.filter[0].insert(gyro_report.x - offset(0));
+							worker_data.filter[1].insert(gyro_report.y - offset(1));
+							worker_data.filter[2].insert(gyro_report.z - offset(2));
 						}
 					}
 
@@ -257,13 +239,9 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		} else {
 			/* check offsets using a median filter */
-			qsort(worker_data.last_sample_0_x, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
-			qsort(worker_data.last_sample_0_y, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
-			qsort(worker_data.last_sample_0_z, gyro_worker_data_t::last_num_samples, sizeof(float), float_cmp);
-
-			float xdiff = worker_data.last_sample_0_x[gyro_worker_data_t::last_num_samples / 2] - worker_data.offset[0](0);
-			float ydiff = worker_data.last_sample_0_y[gyro_worker_data_t::last_num_samples / 2] - worker_data.offset[0](1);
-			float zdiff = worker_data.last_sample_0_z[gyro_worker_data_t::last_num_samples / 2] - worker_data.offset[0](2);
+			float xdiff = worker_data.filter[0].median() - worker_data.offset[0](0);
+			float ydiff = worker_data.filter[1].median() - worker_data.offset[0](1);
+			float zdiff = worker_data.filter[2].median() - worker_data.offset[0](2);
 
 			/* maximum allowable calibration error */
 			static constexpr float maxoff = math::radians(0.6f);
@@ -338,10 +316,13 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (!failed) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
+			px4_usleep(600000); // give this message enough time to propagate
 			return PX4_OK;
 		}
 	}
 
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
+	px4_usleep(600000); // give this message enough time to propagate
+
 	return PX4_ERROR;
 }

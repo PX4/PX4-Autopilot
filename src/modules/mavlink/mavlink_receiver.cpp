@@ -246,6 +246,20 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_trajectory_representation_waypoints(msg);
 		break;
 
+	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
+		handle_message_onboard_computer_status(msg);
+		break;
+
+	case MAVLINK_MSG_ID_GENERATOR_STATUS:
+		handle_message_generator_status(msg);
+		break;
+
+	case MAVLINK_MSG_ID_STATUSTEXT:
+		handle_message_statustext(msg);
+		break;
+
+#if !defined(CONSTRAINED_FLASH)
+
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
 		handle_message_named_value_float(msg);
 		break;
@@ -261,18 +275,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY:
 		handle_message_debug_float_array(msg);
 		break;
-
-	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
-		handle_message_onboard_computer_status(msg);
-		break;
-
-	case MAVLINK_MSG_ID_GENERATOR_STATUS:
-		handle_message_generator_status(msg);
-		break;
-
-	case MAVLINK_MSG_ID_STATUSTEXT:
-		handle_message_statustext(msg);
-		break;
+#endif // !CONSTRAINED_FLASH
 
 	default:
 		break;
@@ -2075,50 +2078,75 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 		if (same_system || hb.type == MAV_TYPE_GCS) {
 
-			telemetry_status_s &tstatus = _mavlink->get_telemetry_status();
+			switch (hb.type) {
+			case MAV_TYPE_ANTENNA_TRACKER:
+				_heartbeat_type_antenna_tracker = now;
+				break;
 
-			bool heartbeat_slot_found = false;
-			int heartbeat_slot = 0;
+			case MAV_TYPE_GCS:
+				_heartbeat_type_gcs = now;
+				break;
 
-			// find existing HEARTBEAT slot
-			for (size_t i = 0; i < (sizeof(tstatus.heartbeats) / sizeof(tstatus.heartbeats[0])); i++) {
-				if ((tstatus.heartbeats[i].system_id == msg->sysid)
-				    && (tstatus.heartbeats[i].component_id == msg->compid)
-				    && (tstatus.heartbeats[i].type == hb.type)) {
+			case MAV_TYPE_ONBOARD_CONTROLLER:
+				_heartbeat_type_onboard_controller = now;
+				break;
 
-					// found matching heartbeat slot
-					heartbeat_slot = i;
-					heartbeat_slot_found = true;
-					break;
-				}
+			case MAV_TYPE_GIMBAL:
+				_heartbeat_type_gimbal = now;
+				break;
+
+			case MAV_TYPE_ADSB:
+				_heartbeat_type_adsb = now;
+				break;
+
+			case MAV_TYPE_CAMERA:
+				_heartbeat_type_camera = now;
+				break;
+
+			default:
+				PX4_DEBUG("unhandled HEARTBEAT MAV_TYPE: %d from SYSID: %d, COMPID: %d", hb.type, msg->sysid, msg->compid);
 			}
 
-			// otherwise use first available slot
-			if (!heartbeat_slot_found) {
-				for (size_t i = 0; i < (sizeof(tstatus.heartbeats) / sizeof(tstatus.heartbeats[0])); i++) {
-					if ((tstatus.heartbeats[i].system_id == 0) && (tstatus.heartbeats[i].timestamp == 0)) {
-						heartbeat_slot = i;
-						heartbeat_slot_found = true;
-						break;
-					}
-				}
+
+			switch (msg->compid) {
+			case MAV_COMP_ID_TELEMETRY_RADIO:
+				_heartbeat_component_telemetry_radio = now;
+				break;
+
+			case MAV_COMP_ID_LOG:
+				_heartbeat_component_log = now;
+				break;
+
+			case MAV_COMP_ID_OSD:
+				_heartbeat_component_osd = now;
+				break;
+
+			case MAV_COMP_ID_OBSTACLE_AVOIDANCE:
+				_heartbeat_component_obstacle_avoidance = now;
+				_mavlink->telemetry_status().avoidance_system_healthy = (hb.system_status == MAV_STATE_ACTIVE);
+				break;
+
+			case MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY:
+				_heartbeat_component_visual_inertial_odometry = now;
+				break;
+
+			case MAV_COMP_ID_PAIRING_MANAGER:
+				_heartbeat_component_pairing_manager = now;
+				break;
+
+			case MAV_COMP_ID_UDP_BRIDGE:
+				_heartbeat_component_udp_bridge = now;
+				break;
+
+			case MAV_COMP_ID_UART_BRIDGE:
+				_heartbeat_component_uart_bridge = now;
+				break;
+
+			default:
+				PX4_DEBUG("unhandled HEARTBEAT MAV_TYPE: %d from SYSID: %d, COMPID: %d", hb.type, msg->sysid, msg->compid);
 			}
 
-			if (heartbeat_slot_found) {
-				_mavlink->lock_telemetry_status();
-
-				tstatus.heartbeats[heartbeat_slot].timestamp = now;
-				tstatus.heartbeats[heartbeat_slot].system_id = msg->sysid;
-				tstatus.heartbeats[heartbeat_slot].component_id = msg->compid;
-				tstatus.heartbeats[heartbeat_slot].type = hb.type;
-				tstatus.heartbeats[heartbeat_slot].state = hb.system_status;
-
-				_mavlink->telemetry_status_updated();
-				_mavlink->unlock_telemetry_status();
-
-			} else {
-				PX4_ERR("no telemetry heartbeat slots available");
-			}
+			CheckHeartbeats(now, true);
 		}
 	}
 }
@@ -2679,6 +2707,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	}
 }
 
+#if !defined(CONSTRAINED_FLASH)
 void
 MavlinkReceiver::handle_message_named_value_float(mavlink_message_t *msg)
 {
@@ -2747,6 +2776,7 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 
 	_debug_array_pub.publish(debug_topic);
 }
+#endif // !CONSTRAINED_FLASH
 
 void
 MavlinkReceiver::handle_message_onboard_computer_status(mavlink_message_t *msg)
@@ -2822,6 +2852,39 @@ void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
 			 "[mavlink: component %d] %." STRINGIFY(MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN) "s", msg->compid, statustext.text);
 
 		_log_message_pub.publish(log_message);
+	}
+}
+
+void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
+{
+	// check HEARTBEATs for timeout
+	static constexpr uint64_t TIMEOUT = telemetry_status_s::HEARTBEAT_TIMEOUT_US;
+
+	if (t <= TIMEOUT) {
+		return;
+	}
+
+	if ((t >= _last_heartbeat_check + (TIMEOUT / 2)) || force) {
+		telemetry_status_s &tstatus = _mavlink->telemetry_status();
+
+		tstatus.heartbeat_type_antenna_tracker         = (t <= TIMEOUT + _heartbeat_type_antenna_tracker);
+		tstatus.heartbeat_type_gcs                     = (t <= TIMEOUT + _heartbeat_type_gcs);
+		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
+		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
+		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
+		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
+
+		tstatus.heartbeat_component_telemetry_radio    = (t <= TIMEOUT + _heartbeat_component_telemetry_radio);
+		tstatus.heartbeat_component_log                = (t <= TIMEOUT + _heartbeat_component_log);
+		tstatus.heartbeat_component_osd                = (t <= TIMEOUT + _heartbeat_component_osd);
+		tstatus.heartbeat_component_obstacle_avoidance = (t <= TIMEOUT + _heartbeat_component_obstacle_avoidance);
+		tstatus.heartbeat_component_vio                = (t <= TIMEOUT + _heartbeat_component_visual_inertial_odometry);
+		tstatus.heartbeat_component_pairing_manager    = (t <= TIMEOUT + _heartbeat_component_pairing_manager);
+		tstatus.heartbeat_component_udp_bridge         = (t <= TIMEOUT + _heartbeat_component_udp_bridge);
+		tstatus.heartbeat_component_uart_bridge        = (t <= TIMEOUT + _heartbeat_component_uart_bridge);
+
+		_mavlink->telemetry_status_updated();
+		_last_heartbeat_check = t;
 	}
 }
 
@@ -2993,7 +3056,9 @@ MavlinkReceiver::Run()
 			usleep(10000);
 		}
 
-		hrt_abstime t = hrt_absolute_time();
+		const hrt_abstime t = hrt_absolute_time();
+
+		CheckHeartbeats(t);
 
 		if (t - last_send_update > timeout * 1000) {
 			_mission_manager.check_active_mission();

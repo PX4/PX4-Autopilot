@@ -66,7 +66,7 @@ private:
 	void Publish(const hrt_abstime &timestamp_sample, float x, float y, float z, uint8_t clip_count[3]);
 	void UpdateClipLimit();
 
-	uORB::PublicationQueuedMulti<sensor_accel_s> _sensor_pub;
+	uORB::PublicationMulti<sensor_accel_s> _sensor_pub;
 	uORB::PublicationMulti<sensor_accel_fifo_s>  _sensor_fifo_pub;
 
 	uint32_t		_device_id{0};

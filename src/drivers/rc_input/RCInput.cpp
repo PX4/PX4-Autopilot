@@ -648,7 +648,7 @@ int RCInput::custom_command(int argc, char *argv[])
 	const char *verb = argv[0];
 
 	if (!strcmp(verb, "bind")) {
-		uORB::PublicationQueued<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
+		uORB::Publication<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
 		vehicle_command_s vcmd{};
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
 		vcmd.timestamp = hrt_absolute_time();

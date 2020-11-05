@@ -51,6 +51,7 @@ px4_add_romfs_files(
 	1019_iris_dual_gps
 	1020_uuv_generic
 	1021_uuv_hippocampus
+	1022_uuv_bluerov2_heavy
 	1030_plane
 	1031_plane_cam
 	1032_plane_catapult
@@ -58,6 +59,7 @@ px4_add_romfs_files(
 	1033_rascal
 	1034_rascal-electric
 	1035_techpod
+	1036_malolo
 	1040_standard_vtol
 	1041_tailsitter
 	1042_tiltrotor

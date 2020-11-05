@@ -7,11 +7,8 @@ float32 dt                # delta time between samples (microseconds)
 
 float32 resolution_hz
 
-uint8[3] peak_index_0
-uint8[3] peak_index_1
+float32[3] peak_frequency # peak frequency per axis
 
-float32[3] peak_frequency_0 # largest frequency peak found per sensor axis (0 if none)
-float32[3] peak_frequency_1 # second largest frequency peak found per sensor axis (0 if none)
-
-uint8[3] peak_index_quinns
-float32[3] peak_frequency_quinns
+float32[4] peak_frequencies_x # x axis peak frequencies
+float32[4] peak_frequencies_y # y axis peak frequencies
+float32[4] peak_frequencies_z # z axis peak frequencies
