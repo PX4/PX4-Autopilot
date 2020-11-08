@@ -8,9 +8,11 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	CONSTRAINED_FLASH
 	DRIVERS
+		barometer/bmp388
 		barometer/lps25h
 		distance_sensor/vl53l0x
 		gps
+		imu/bmi088
 		imu/mpu9250
 		optical_flow/pmw3901
 		pwm_out
