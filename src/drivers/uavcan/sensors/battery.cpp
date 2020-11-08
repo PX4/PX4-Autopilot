@@ -100,7 +100,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	// Set cell count to 1 so the the battery code in mavlink_messages.cpp copies the values correctly (hack?)
 	battery.cell_count = 1;
-	
+
 	// battery.max_cell_voltage_delta = msg.;
 
 	// battery.is_powering_off = msg.;
