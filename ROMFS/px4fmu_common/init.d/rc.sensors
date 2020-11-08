@@ -71,6 +71,13 @@ then
 	lightware_laser_i2c start -X
 fi
 
+# Sensor HY-SRF05 or HC-SR05 ultrasonic sensor
+if param compare -s SENS_EN_SR05 1
+then
+	srf05 start
+fi
+
+
 # Heater driver for temperature regulated IMUs.
 if param compare -s SENS_EN_THERMAL 1
 then
