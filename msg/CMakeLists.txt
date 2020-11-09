@@ -55,6 +55,7 @@ set(msg_files
 	distance_sensor.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
+	event.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_event_flags.msg

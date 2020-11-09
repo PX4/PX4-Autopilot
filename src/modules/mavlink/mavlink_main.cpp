@@ -54,6 +54,7 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 
+#include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
@@ -78,6 +79,7 @@
 #define MAIN_LOOP_DELAY                10000           ///< 100 Hz @ 1000 bytes/s data rate
 
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
+events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
 
@@ -328,6 +330,9 @@ Mavlink::destroy_all_instances()
 	for (Mavlink *inst_to_del : mavlink_module_instances) {
 		delete inst_to_del;
 	}
+
+	delete _event_buffer;
+	_event_buffer = nullptr;
 
 	printf("\n");
 	PX4_INFO("all instances stopped");
@@ -2240,6 +2245,14 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.start();
 
+	/* Events subscription: only the first MAVLink instance should check */
+	uORB::Subscription event_sub{ORB_ID(event)};
+	const bool should_check_events = _instance_id == 0;
+	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
+	// ensure topic exists, otherwise we might lose first queued events
+	orb_advertise_queue(ORB_ID(event), nullptr, event_s::ORB_QUEUE_LENGTH);
+	event_sub.subscribe();
+
 	_mavlink_start_time = hrt_absolute_time();
 
 	while (!_task_should_exit) {
@@ -2447,6 +2460,30 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 			}
 		}
+
+		/* handle new events */
+		if (should_check_events) {
+			event_s orb_event;
+
+			while (event_sub.update(&orb_event)) {
+				if (events::externalLogLevel(orb_event.log_levels) == events::LogLevel::Disabled) {
+					++event_sequence_offset; // skip this event
+
+				} else {
+					events::Event e;
+					e.id = orb_event.id;
+					e.timestamp_ms = orb_event.timestamp / 1000;
+					e.sequence = orb_event.sequence - event_sequence_offset;
+					e.log_levels = orb_event.log_levels;
+					static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
+						      "uorb message event: arguments size mismatch");
+					memcpy(e.arguments, orb_event.arguments, sizeof(orb_event.arguments));
+					_event_buffer->insert_event(e);
+				}
+			}
+		}
+
+		_events.update(t);
 
 		/* pass messages from other UARTs */
 		if (_forwarding_on) {
@@ -2731,6 +2768,22 @@ Mavlink::start(int argc, char *argv[])
 {
 	MavlinkULog::initialize();
 	MavlinkCommandSender::initialize();
+
+	if (!_event_buffer) {
+		_event_buffer = new events::EventBuffer();
+		int ret;
+
+		if (_event_buffer && (ret = _event_buffer->init()) != 0) {
+			PX4_ERR("EventBuffer init failed (%i)", ret);
+			delete _event_buffer;
+			_event_buffer = nullptr;
+		}
+
+		if (!_event_buffer) {
+			PX4_ERR("EventBuffer alloc failed");
+			return 1;
+		}
+	}
 
 	// Wait for the instance count to go up one
 	// before returning to the shell

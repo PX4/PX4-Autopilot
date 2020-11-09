@@ -288,6 +288,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_information(msg);
 		break;
 
+	case MAVLINK_MSG_ID_REQUEST_EVENT:
+		handle_message_request_event(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -2832,6 +2836,11 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		_mavlink->telemetry_status_updated();
 		_last_heartbeat_check = t;
 	}
+}
+
+void MavlinkReceiver::handle_message_request_event(mavlink_message_t *msg)
+{
+	_mavlink->get_events_protocol().handle_request_event(*msg);
 }
 
 void
