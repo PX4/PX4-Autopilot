@@ -288,10 +288,3 @@ add_custom_target(list_vmd_make_targets
 	COMMENT "List of acceptable '${PX4_BOARD}' <viewer_model_debugger> targets:"
 	VERBATIM
 	)
-
-# vscode launch.json
-if(${PX4_BOARD_LABEL} MATCHES "replay")
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_replay.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
-else()
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_sim.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
-endif()
