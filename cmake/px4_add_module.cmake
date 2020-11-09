@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+include(px4_list_make_absolute)
 
 #=============================================================================
 #
@@ -156,6 +157,8 @@ function(px4_add_module)
 		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_layer px4_platform systemlib)
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+		px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
+		set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 	endif()
 
 	# set defaults if not set

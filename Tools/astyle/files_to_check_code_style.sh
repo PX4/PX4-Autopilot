@@ -16,6 +16,7 @@ exec find boards msg src platforms test \
     -path src/drivers/uavcannode_gps_demo/libcanard -prune -o \
     -path src/drivers/uavcan/uavcan_drivers/kinetis/driver/include/uavcan_kinetis -prune -o \
     -path src/lib/ecl -prune -o \
+    -path src/lib/events/libevents -prune -o \
     -path src/lib/matrix -prune -o \
     -path src/lib/parameters/uthash -prune -o \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \

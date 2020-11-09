@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+# Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,30 +31,27 @@
 #
 ############################################################################
 
-add_custom_command(OUTPUT listener_generated.cpp
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${PX4_SOURCE_DIR} ${msg_files} > listener_generated.cpp
-	DEPENDS generate_listener.py uorb_msgs
-)
+# cmake include guard
+if(px4_list_make_absolute_included)
+	return()
+endif(px4_list_make_absolute_included)
+set(px4_list_make_absolute_included true)
 
-add_custom_target(generate_topic_listener
-	DEPENDS
-		listener_generated.cpp
-		generate_listener.py
-		uorb_msgs
-)
-
-px4_add_module(
-	MODULE systemcmds__topic_listener
-	MAIN listener
-	COMPILE_FLAGS
-	STACK_MAIN 4096
-	INCLUDES
-		${CMAKE_CURRENT_SOURCE_DIR}
-		${CMAKE_CURRENT_BINARY_DIR}
-	SRCS
-		listener_main.cpp
-		${CMAKE_CURRENT_BINARY_DIR}/listener_generated.cpp
-	DEPENDS
-		generate_topic_listener
-	)
-
+#=============================================================================
+#
+#	px4_list_make_absolute
+#
+#	prepend a prefix to each element in a list, if the element is not an abolute
+#	path
+#
+function(px4_list_make_absolute var prefix)
+	set(list_var "")
+	foreach(f ${ARGN})
+		if(IS_ABSOLUTE ${f})
+			list(APPEND list_var "${f}")
+		else()
+			list(APPEND list_var "${prefix}/${f}")
+		endif()
+	endforeach(f)
+	set(${var} "${list_var}" PARENT_SCOPE)
+endfunction()

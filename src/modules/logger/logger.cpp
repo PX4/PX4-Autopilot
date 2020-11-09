@@ -55,6 +55,7 @@
 #include <mathlib/math/Limits.hpp>
 #include <px4_platform/cpuload.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/sem.h>
@@ -363,6 +364,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	ModuleParams(nullptr),
 	_log_mode(log_mode),
 	_log_name_timestamp(log_name_timestamp),
+	_event_subscription(ORB_ID::event),
 	_writer(backend, buffer_size),
 	_log_interval(log_interval)
 {
@@ -578,6 +580,10 @@ void Logger::run()
 		}
 	}
 
+	if (_event_subscription.get_topic()->o_size > max_msg_size) {
+		max_msg_size = _event_subscription.get_topic()->o_size;
+	}
+
 	max_msg_size += sizeof(ulog_message_data_header_s);
 
 	if (sizeof(ulog_message_logging_s) > (size_t)max_msg_size) {
@@ -756,6 +762,9 @@ void Logger::run()
 				}
 			}
 
+			// check for new events
+			handle_event_updates(total_bytes);
+
 			// check for new logging message(s)
 			log_message_s log_message;
 
@@ -921,6 +930,66 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 	}
 
 #endif /* DBGPRINT */
+}
+
+bool Logger::handle_event_updates(uint32_t &total_bytes)
+{
+	bool data_written = false;
+
+	while (_event_subscription.updated()) {
+		event_s *orb_event = (event_s *)(_msg_buffer + sizeof(ulog_message_data_header_s));
+		_event_subscription.copy(orb_event);
+
+		// Important: we can only access single-byte values in orb_event (it's not necessarily aligned)
+		if (events::internalLogLevel(orb_event->log_levels) == events::LogLevelInternal::Disabled) {
+			++_event_sequence_offset; // skip this event
+
+		} else {
+			// adjust sequence number
+			uint16_t updated_sequence;
+			memcpy(&updated_sequence, &orb_event->sequence, sizeof(updated_sequence));
+			updated_sequence -= _event_sequence_offset;
+			memcpy(&orb_event->sequence, &updated_sequence, sizeof(updated_sequence));
+
+			size_t msg_size = sizeof(ulog_message_data_header_s) + _event_subscription.get_topic()->o_size_no_padding;
+			uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
+			uint16_t write_msg_id = _event_subscription.msg_id;
+			//write one byte after another (because of alignment)
+			_msg_buffer[0] = (uint8_t)write_msg_size;
+			_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
+			_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::DATA);
+			_msg_buffer[3] = (uint8_t)write_msg_id;
+			_msg_buffer[4] = (uint8_t)(write_msg_id >> 8);
+
+			// full log
+			if (write_message(LogType::Full, _msg_buffer, msg_size)) {
+
+#ifdef DBGPRINT
+				total_bytes += msg_size;
+#endif /* DBGPRINT */
+
+				data_written = true;
+			}
+
+			// mission log: only warnings or higher
+			if (events::internalLogLevel(orb_event->log_levels) <= events::LogLevelInternal::Warning) {
+				if (_writer.is_started(LogType::Mission)) {
+					memcpy(&updated_sequence, &orb_event->sequence, sizeof(updated_sequence));
+					updated_sequence -= _event_sequence_offset_mission;
+					memcpy(&orb_event->sequence, &updated_sequence, sizeof(updated_sequence));
+
+					if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
+						data_written = true;
+					}
+				}
+
+			} else {
+				++_event_sequence_offset_mission; // skip this event
+			}
+		}
+	}
+
+	return data_written;
 }
 
 void Logger::publish_logger_status()
@@ -1573,6 +1642,8 @@ void Logger::write_formats(LogType type)
 		write_format(type, *sub.get_topic(), written_formats, msg, i);
 	}
 
+	write_format(type, *_event_subscription.get_topic(), written_formats, msg, sub_count);
+
 	_writer.unlock();
 }
 
@@ -1596,6 +1667,8 @@ void Logger::write_all_add_logged_msg(LogType type)
 			added_subscriptions = true;
 		}
 	}
+
+	write_add_logged_msg(type, _event_subscription); // always add, even if not valid
 
 	_writer.unlock();
 
