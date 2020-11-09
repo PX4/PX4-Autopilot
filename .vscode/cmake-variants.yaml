@@ -86,6 +86,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cubepilot_cubeyellow_default
+    emlid_navio2_default:
+      short: emlid_navio2
+      buildType: MinSizeRel
+      settings:
+        CONFIG: emlid_navio2_default
     holybro_durandal-v1_default:
       short: holybro_durandal-v1
       buildType: MinSizeRel
