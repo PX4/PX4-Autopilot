@@ -46,6 +46,7 @@ px4_add_module(
 	SRCS
 		mavlink.c
 		mavlink_command_sender.cpp
+		mavlink_events.cpp
 		mavlink_ftp.cpp
 		mavlink_log_handler.cpp
 		mavlink_main.cpp

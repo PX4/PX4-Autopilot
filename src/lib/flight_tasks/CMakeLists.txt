@@ -111,7 +111,7 @@ add_compile_options(
 
 px4_add_library(FlightTasks
 	FlightTasks.cpp
-	FlightTasks_generated.cpp
+	${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
 )
 
 # add directories to target

@@ -277,6 +277,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 #endif // !CONSTRAINED_FLASH
 
+	case MAVLINK_MSG_ID_REQUEST_EVENT:
+		handle_message_request_event(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -2888,6 +2892,10 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 	}
 }
 
+void MavlinkReceiver::handle_message_request_event(mavlink_message_t *msg)
+{
+	_mavlink->get_events_protocol().handle_request_event(*msg);
+}
 /**
  * Receive data from UART/UDP
  */

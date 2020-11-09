@@ -54,3 +54,6 @@
 [submodule "src/examples/gyro_fft/CMSIS_5"]
 	path = src/examples/gyro_fft/CMSIS_5
 	url = https://github.com/ARM-software/CMSIS_5.git
+[submodule "src/lib/events/libevents"]
+	path = src/lib/events/libevents
+	url = https://github.com/bkueng/libevents.git

@@ -78,6 +78,7 @@
 #include <uORB/topics/telemetry_status.h>
 
 #include "mavlink_command_sender.h"
+#include "mavlink_events.h"
 #include "mavlink_messages.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
@@ -493,6 +494,7 @@ public:
 		if (_mavlink_ulog) { _mavlink_ulog_stop_requested = true; }
 	}
 
+	const events::SendProtocol &get_events_protocol() const { return _events; };
 
 	void set_uorb_main_fd(int fd, unsigned int interval);
 
@@ -558,6 +560,8 @@ private:
 
 	MavlinkShell		*_mavlink_shell{nullptr};
 	MavlinkULog		*_mavlink_ulog{nullptr};
+	static events::EventBuffer	*_event_buffer;
+	events::SendProtocol		_events{*_event_buffer, *this};
 
 	volatile bool		_mavlink_ulog_stop_requested{false};
 
