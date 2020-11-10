@@ -773,46 +773,12 @@ void EKF2::Run()
 			PublishEkfDriftMetrics(now);
 			PublishStates(now);
 			PublishStatus(now);
+			PublishInnovations(now, imu_sample_new);
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
 
 			if (!_mag_decl_saved && _standby) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
-			}
-
-			{
-				// publish estimator innovation data
-				estimator_innovations_s innovations;
-				innovations.timestamp_sample = imu_sample_new.time_us;
-				_ekf.getGpsVelPosInnov(&innovations.gps_hvel[0], innovations.gps_vvel, &innovations.gps_hpos[0],
-						       innovations.gps_vpos);
-				_ekf.getEvVelPosInnov(&innovations.ev_hvel[0], innovations.ev_vvel, &innovations.ev_hpos[0], innovations.ev_vpos);
-				_ekf.getBaroHgtInnov(innovations.baro_vpos);
-				_ekf.getRngHgtInnov(innovations.rng_vpos);
-				_ekf.getAuxVelInnov(&innovations.aux_hvel[0]);
-				_ekf.getFlowInnov(&innovations.flow[0]);
-				_ekf.getHeadingInnov(innovations.heading);
-				_ekf.getMagInnov(innovations.mag_field);
-				_ekf.getDragInnov(&innovations.drag[0]);
-				_ekf.getAirspeedInnov(innovations.airspeed);
-				_ekf.getBetaInnov(innovations.beta);
-				_ekf.getHaglInnov(innovations.hagl);
-				// Not yet supported
-				innovations.aux_vvel = NAN;
-				innovations.fake_hpos[0] = innovations.fake_hpos[1] = innovations.fake_vpos = NAN;
-				innovations.fake_hvel[0] = innovations.fake_hvel[1] = innovations.fake_vvel = NAN;
-
-				// calculate noise filtered velocity innovations which are used for pre-flight checking
-				if (_standby) {
-					float dt_seconds = imu_sample_new.delta_ang_dt;
-					runPreFlightChecks(dt_seconds, control_status, innovations, _can_observe_heading_in_flight);
-
-				} else {
-					resetPreFlightChecks();
-				}
-
-				innovations.timestamp = _replay_mode ? now : hrt_absolute_time();
-				_estimator_innovations_pub.publish(innovations);
 			}
 		}
 
@@ -1025,6 +991,44 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 				_last_local_position_for_gpos = position;
 			}
 		}
+	}
+}
+
+void EKF2::PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu)
+{
+	// publish estimator innovation data
+	estimator_innovations_s innovations{};
+	innovations.timestamp_sample = timestamp;
+	_ekf.getGpsVelPosInnov(innovations.gps_hvel, innovations.gps_vvel, innovations.gps_hpos, innovations.gps_vpos);
+	_ekf.getEvVelPosInnov(innovations.ev_hvel, innovations.ev_vvel, innovations.ev_hpos, innovations.ev_vpos);
+	_ekf.getBaroHgtInnov(innovations.baro_vpos);
+	_ekf.getRngHgtInnov(innovations.rng_vpos);
+	_ekf.getAuxVelInnov(innovations.aux_hvel);
+	_ekf.getFlowInnov(innovations.flow);
+	_ekf.getHeadingInnov(innovations.heading);
+	_ekf.getMagInnov(innovations.mag_field);
+	_ekf.getDragInnov(innovations.drag);
+	_ekf.getAirspeedInnov(innovations.airspeed);
+	_ekf.getBetaInnov(innovations.beta);
+	_ekf.getHaglInnov(innovations.hagl);
+	// Not yet supported
+	innovations.aux_vvel = NAN;
+	innovations.fake_hpos[0] = innovations.fake_hpos[1] = innovations.fake_vpos = NAN;
+	innovations.fake_hvel[0] = innovations.fake_hvel[1] = innovations.fake_vvel = NAN;
+	innovations.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+	_estimator_innovations_pub.publish(innovations);
+
+	// calculate noise filtered velocity innovations which are used for pre-flight checking
+	if (_standby) {
+
+		filter_control_status_u control_status;
+		_ekf.get_control_mode(&control_status.value);
+
+		float dt_seconds = imu.delta_ang_dt;
+		runPreFlightChecks(dt_seconds, control_status, innovations, _can_observe_heading_in_flight);
+
+	} else {
+		resetPreFlightChecks();
 	}
 }
 
