@@ -137,6 +137,7 @@ private:
 	void PublishAttitude(const hrt_abstime &timestamp);
 	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
+	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
 	void PublishLocalPosition(const hrt_abstime &timestamp);
 	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu);
