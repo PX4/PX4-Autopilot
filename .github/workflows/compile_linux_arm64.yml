@@ -1,4 +1,4 @@
-name: Linux Targets
+name: Linux ARM64 Targets
 
 on:
   push:
@@ -11,15 +11,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-armhf:2020-08-14
+    container: px4io/px4-dev-aarch64:latest
     strategy:
       matrix:
         config: [
-          aerotenna_ocpoc_default,
-          beaglebone_blue_default,
-          emlid_navio2_default,
-          px4_raspberrypi_default,
-          scumaker_pilotpi_default,
+          scumaker_pilotpi_arm64,
           ]
     steps:
     - uses: actions/checkout@v1
