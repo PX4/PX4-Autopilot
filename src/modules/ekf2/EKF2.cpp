@@ -773,6 +773,7 @@ void EKF2::Run()
 			PublishEkfDriftMetrics(now);
 			PublishStates(now);
 			PublishStatus(now);
+			PublishInnovationVariances(now);
 
 			if (!_mag_decl_saved && _standby) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
@@ -799,29 +800,6 @@ void EKF2::Run()
 				innovations.aux_vvel = NAN;
 				innovations.fake_hpos[0] = innovations.fake_hpos[1] = innovations.fake_vpos = NAN;
 				innovations.fake_hvel[0] = innovations.fake_hvel[1] = innovations.fake_vvel = NAN;
-
-				// publish estimator innovation variance data
-				estimator_innovations_s innovation_var;
-				innovation_var.timestamp_sample = imu_sample_new.time_us;
-				_ekf.getGpsVelPosInnovVar(&innovation_var.gps_hvel[0], innovation_var.gps_vvel, &innovation_var.gps_hpos[0],
-							  innovation_var.gps_vpos);
-				_ekf.getEvVelPosInnovVar(&innovation_var.ev_hvel[0], innovation_var.ev_vvel, &innovation_var.ev_hpos[0],
-							 innovation_var.ev_vpos);
-				_ekf.getBaroHgtInnovVar(innovation_var.baro_vpos);
-				_ekf.getRngHgtInnovVar(innovation_var.rng_vpos);
-				_ekf.getAuxVelInnovVar(&innovation_var.aux_hvel[0]);
-				_ekf.getFlowInnovVar(&innovation_var.flow[0]);
-				_ekf.getHeadingInnovVar(innovation_var.heading);
-				_ekf.getMagInnovVar(&innovation_var.mag_field[0]);
-				_ekf.getDragInnovVar(&innovation_var.drag[0]);
-				_ekf.getAirspeedInnovVar(innovation_var.airspeed);
-				_ekf.getBetaInnovVar(innovation_var.beta);
-				_ekf.getHaglInnovVar(innovation_var.hagl);
-				// Not yet supported
-				innovation_var.aux_vvel = NAN;
-				innovation_var.fake_hpos[0] = innovation_var.fake_hpos[1] = innovation_var.fake_vpos = NAN;
-				innovation_var.fake_hvel[0] = innovation_var.fake_hvel[1] = innovation_var.fake_vvel = NAN;
-
 
 				// publish estimator innovation test ratio data
 				estimator_innovations_s test_ratios;
@@ -856,9 +834,6 @@ void EKF2::Run()
 
 				innovations.timestamp = _replay_mode ? now : hrt_absolute_time();
 				_estimator_innovations_pub.publish(innovations);
-
-				innovation_var.timestamp = _replay_mode ? now : hrt_absolute_time();
-				_estimator_innovation_variances_pub.publish(innovation_var);
 
 				test_ratios.timestamp = _replay_mode ? now : hrt_absolute_time();
 				_estimator_innovation_test_ratios_pub.publish(test_ratios);
@@ -1075,6 +1050,32 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 			}
 		}
 	}
+}
+
+void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
+{
+	// publish estimator innovation variance data
+	estimator_innovations_s variances{};
+	variances.timestamp_sample = timestamp;
+	_ekf.getGpsVelPosInnovVar(variances.gps_hvel, variances.gps_vvel, variances.gps_hpos, variances.gps_vpos);
+	_ekf.getEvVelPosInnovVar(variances.ev_hvel, variances.ev_vvel, variances.ev_hpos, variances.ev_vpos);
+	_ekf.getBaroHgtInnovVar(variances.baro_vpos);
+	_ekf.getRngHgtInnovVar(variances.rng_vpos);
+	_ekf.getAuxVelInnovVar(variances.aux_hvel);
+	_ekf.getFlowInnovVar(variances.flow);
+	_ekf.getHeadingInnovVar(variances.heading);
+	_ekf.getMagInnovVar(variances.mag_field);
+	_ekf.getDragInnovVar(variances.drag);
+	_ekf.getAirspeedInnovVar(variances.airspeed);
+	_ekf.getBetaInnovVar(variances.beta);
+	_ekf.getHaglInnovVar(variances.hagl);
+	// Not yet supported
+	variances.aux_vvel = NAN;
+	variances.fake_hpos[0] = variances.fake_hpos[1] = variances.fake_vpos = NAN;
+	variances.fake_hvel[0] = variances.fake_hvel[1] = variances.fake_vvel = NAN;
+
+	variances.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+	_estimator_innovation_variances_pub.publish(variances);
 }
 
 void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
