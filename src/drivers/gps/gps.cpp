@@ -1131,10 +1131,6 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 		return -errno;
 	}
 
-	if (instance == Instance::Main) {
-		_task_id = task_id;
-	}
-
 	return 0;
 }
 

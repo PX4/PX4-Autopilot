@@ -721,22 +721,20 @@ void TAP_ESC::run()
 int TAP_ESC::task_spawn(int argc, char *argv[])
 {
 	/* start the task */
-	_task_id = px4_task_spawn_cmd("tap_esc",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				      1180,
-				      (px4_main_t)&run_trampoline,
-				      argv);
+	int task_id = px4_task_spawn_cmd("tap_esc",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+					 1180,
+					 (px4_main_t)&run_trampoline,
+					 argv);
 
-	if (_task_id < 0) {
+	if (task_id < 0) {
 		PX4_ERR("task start failed");
-		_task_id = -1;
 		return PX4_ERROR;
 	}
 
 	// wait until task is up & running
 	if (wait_until_running() < 0) {
-		_task_id = -1;
 		return -1;
 	}
 

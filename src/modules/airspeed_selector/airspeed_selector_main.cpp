@@ -205,13 +205,12 @@ AirspeedModule::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(dev);
+	dev->set_task_id(task_id_is_work_queue);
 
 	dev->ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
-	_task_id = task_id_is_work_queue;
 	return PX4_OK;
-
 }
+
 void
 AirspeedModule::init()
 {

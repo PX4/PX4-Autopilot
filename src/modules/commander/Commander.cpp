@@ -3712,15 +3712,14 @@ int Commander::custom_command(int argc, char *argv[])
 
 int Commander::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("commander",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT + 40,
-				      3250,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	int task_id = px4_task_spawn_cmd("commander",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_DEFAULT + 40,
+					 3250,
+					 (px4_main_t)&run_trampoline,
+					 (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (task_id < 0) {
 		return -errno;
 	}
 

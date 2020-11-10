@@ -228,13 +228,12 @@ int ToneAlarm::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
+	instance->set_task_id(task_id_is_work_queue);
+
 	if (!instance->Init()) {
 		delete instance;
 		return PX4_ERROR;
 	}
-
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
 
 	return PX4_OK;
 }

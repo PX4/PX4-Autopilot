@@ -494,8 +494,7 @@ int PWMDriverWrapper::task_spawn(int argc, char **argv) {
     auto *instance = new PWMDriverWrapper();
 
     if (instance) {
-        _object.store(instance);
-        _task_id = task_id_is_work_queue;
+        instance->set_task_id(task_id_is_work_queue);
 
         int ch;
         int address=PCA9685_DEFAULT_ADDRESS;
@@ -541,8 +540,6 @@ int PWMDriverWrapper::task_spawn(int argc, char **argv) {
 
     driverInstanceAllocFailed:
     delete instance;
-    _object.store(nullptr);
-    _task_id = -1;
 
     return PX4_ERROR;
 }

@@ -88,6 +88,8 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
+	void request_stop() override { _task_should_exit.store(true); ScheduleNow(); }
+
 	bool init();
 
 private:

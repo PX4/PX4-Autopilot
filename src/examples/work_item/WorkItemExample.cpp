@@ -96,8 +96,7 @@ int WorkItemExample::task_spawn(int argc, char *argv[])
 	WorkItemExample *instance = new WorkItemExample();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		instance->set_task_id(task_id_is_work_queue);
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -108,8 +107,6 @@ int WorkItemExample::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
 
 	return PX4_ERROR;
 }

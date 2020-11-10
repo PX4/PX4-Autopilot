@@ -740,15 +740,14 @@ Navigator::run()
 
 int Navigator::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("navigator",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_NAVIGATION,
-				      1800,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	int task_id = px4_task_spawn_cmd("navigator",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_NAVIGATION,
+					 1800,
+					 (px4_main_t)&run_trampoline,
+					 (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (task_id < 0) {
 		return -errno;
 	}
 

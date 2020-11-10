@@ -539,14 +539,14 @@ RoverPositionControl::run()
 int RoverPositionControl::task_spawn(int argc, char *argv[])
 {
 	/* start the task */
-	_task_id = px4_task_spawn_cmd("rover_pos_ctrl",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_POSITION_CONTROL,
-				      1700,
-				      (px4_main_t)&RoverPositionControl::run_trampoline,
-				      nullptr);
+	int task_id = px4_task_spawn_cmd("rover_pos_ctrl",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_POSITION_CONTROL,
+					 1700,
+					 (px4_main_t)&RoverPositionControl::run_trampoline,
+					 nullptr);
 
-	if (_task_id < 0) {
+	if (task_id < 0) {
 		warn("task start failed");
 		return -errno;
 	}

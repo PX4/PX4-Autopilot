@@ -234,15 +234,13 @@ SafetyButton::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
+	instance->set_task_id(task_id_is_work_queue);
 	int ret = instance->Start();
 
 	if (ret != PX4_OK) {
 		delete instance;
 		return ret;
 	}
-
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
 
 	return ret;
 }

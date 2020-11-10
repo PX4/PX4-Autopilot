@@ -185,8 +185,7 @@ int Heater::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(heater);
-	_task_id = task_id_is_work_queue;
+	heater->set_task_id(task_id_is_work_queue);
 
 	heater->start();
 

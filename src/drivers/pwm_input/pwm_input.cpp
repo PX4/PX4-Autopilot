@@ -43,8 +43,7 @@ PWMIN::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(pwmin);
-	_task_id = task_id_is_work_queue;
+	pwmin->set_task_id(task_id_is_work_queue);
 
 	pwmin->start();
 
@@ -60,7 +59,6 @@ PWMIN::start()
 	// Initialize the timer isr for measuring pulse widths. Publishing is done inside the isr.
 	timer_init();
 }
-
 
 void
 PWMIN::timer_init(void)

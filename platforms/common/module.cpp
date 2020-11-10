@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2017-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,8 +43,149 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
+#include <containers/LockGuard.hpp>
 
 pthread_mutex_t px4_modules_mutex = PTHREAD_MUTEX_INITIALIZER;
+List<ModuleBaseInterface *> px4_modules_list;
+
+ModuleBaseInterface *moduleInstance(const char *name)
+{
+	// search list
+	for (ModuleBaseInterface *module : px4_modules_list) {
+		if (strcmp(module->get_name(), name) == 0) {
+			return module;
+		}
+	}
+
+	return nullptr;
+}
+
+bool moduleRunning(const char *name)
+{
+	// search list
+	ModuleBaseInterface *module = moduleInstance(name);
+
+	if (module != nullptr) {
+		return module->running();
+	}
+
+	return false;
+}
+
+int moduleStop(const char *name)
+{
+	bool ret = 0;
+	pthread_mutex_lock(&px4_modules_mutex);
+
+	if (moduleRunning(name)) {
+
+		ModuleBaseInterface *object = nullptr;
+		unsigned int i = 0;
+
+		do {
+			// search for module again to request stop
+			object = moduleInstance(name);
+
+			if (object != nullptr) {
+				object->request_stop();
+
+				pthread_mutex_unlock(&px4_modules_mutex);
+				px4_usleep(20000); // 20 ms
+				pthread_mutex_lock(&px4_modules_mutex);
+
+				// search for module again to check status
+				object = moduleInstance(name);
+
+				if (++i > 100 && (object != nullptr)) { // wait at most 2 sec
+					const int task_id = object->task_id();
+
+					if (task_id != task_id_is_work_queue) {
+						px4_task_delete(task_id);
+					}
+
+					delete object;
+					object = nullptr;
+
+					ret = -1;
+					break;
+				}
+			}
+		} while (object != nullptr);
+	}
+
+	pthread_mutex_unlock(&px4_modules_mutex);
+	return ret;
+}
+
+void moduleExitAndCleanup(const char *name)
+{
+	// Take the lock here:
+	// - if startup fails and we're faster than the parent thread, it will set
+	//   _task_id and subsequently it will look like the task is running.
+	// - deleting the object must take place inside the lock.
+	LockGuard lg(px4_modules_mutex);
+	delete moduleInstance(name);
+}
+
+bool moduleWaitUntilRunning(const char *name)
+{
+	int i = 0;
+
+	do {
+		// Wait up to 1s.
+		px4_usleep(2500);
+
+	} while (!moduleInstance(name) && ++i < 400);
+
+	if (i == 400) {
+		PX4_ERR("Timed out while waiting for %s thread to start", name);
+		return false;
+	}
+
+	return true;
+}
+
+int moduleStatus(const char *name)
+{
+	LockGuard lg(px4_modules_mutex);
+	ModuleBaseInterface *object = moduleInstance(name);
+
+	if (object && object->running()) {
+		return object->print_status();
+
+	} else {
+		PX4_INFO("%s not running", name);
+	}
+
+	return -1;
+}
+
+void modulesStatusAll()
+{
+	LockGuard lg(px4_modules_mutex);
+
+	for (ModuleBaseInterface *module : px4_modules_list) {
+		if (module->task_id() == task_id_is_work_queue) {
+			PX4_INFO("Running: %s (WQ)", module->get_name());
+
+		} else if (module->task_id() > 0) {
+			PX4_INFO("Running: %s (PID: %d)", module->get_name(), module->task_id());
+
+		} else {
+			PX4_ERR("Invalid task id: %s (ID: %d)", module->get_name(), module->task_id());
+		}
+	}
+}
+
+void modulesStopAll()
+{
+	LockGuard lg(px4_modules_mutex);
+
+	for (ModuleBaseInterface *module : px4_modules_list) {
+		PX4_INFO("Stopping: %s", module->get_name());
+		module->request_stop();
+	}
+}
 
 #ifndef __PX4_NUTTX
 

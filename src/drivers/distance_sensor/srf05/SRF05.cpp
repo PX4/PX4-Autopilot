@@ -193,8 +193,7 @@ int SRF05::task_spawn(int argc, char *argv[])
 	SRF05 *instance = new SRF05(rotation);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		instance->set_task_id(task_id_is_work_queue);
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -205,8 +204,6 @@ int SRF05::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
 
 	return PX4_ERROR;
 }

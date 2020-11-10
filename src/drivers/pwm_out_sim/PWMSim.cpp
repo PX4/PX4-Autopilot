@@ -259,8 +259,7 @@ PWMSim::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	instance->set_task_id(task_id_is_work_queue);
 	instance->ScheduleNow();
 	return 0;
 }

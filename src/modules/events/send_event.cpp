@@ -49,17 +49,16 @@ static constexpr uint32_t SEND_EVENT_INTERVAL_US{1_s / 30};
 
 int SendEvent::task_spawn(int argc, char *argv[])
 {
-	SendEvent *send_event = new SendEvent();
+	SendEvent *instance = new SendEvent();
 
-	if (!send_event) {
+	if (!instance) {
 		PX4_ERR("alloc failed");
 		return PX4_ERROR;
 	}
 
-	_object.store(send_event);
-	_task_id = task_id_is_work_queue;
+	instance->set_task_id(task_id_is_work_queue);
 
-	send_event->start();
+	instance->start();
 
 	return 0;
 }
