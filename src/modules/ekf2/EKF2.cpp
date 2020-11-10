@@ -891,38 +891,6 @@ void EKF2::Run()
 			status.timestamp = _replay_mode ? now : hrt_absolute_time();
 			_estimator_status_pub.publish(status);
 
-			// estimator_sensor_bias
-			if (status.filter_fault_flags == 0) {
-				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
-				estimator_sensor_bias_s bias;
-				bias.timestamp_sample = imu_sample_new.time_us;
-
-				// take device ids from sensor_selection_s if not using specific vehicle_imu_s
-				bias.gyro_device_id = _device_id_gyro;
-				bias.accel_device_id = _device_id_accel;
-				bias.mag_device_id = _device_id_mag;
-
-				_ekf.getGyroBias().copyTo(bias.gyro_bias);
-				_ekf.getAccelBias().copyTo(bias.accel_bias);
-
-				bias.mag_bias[0] = _last_valid_mag_cal[0];
-				bias.mag_bias[1] = _last_valid_mag_cal[1];
-				bias.mag_bias[2] = _last_valid_mag_cal[2];
-
-				bias.gyro_bias_variance[0] = states.covariances[10];
-				bias.gyro_bias_variance[1] = states.covariances[11];
-				bias.gyro_bias_variance[2] = states.covariances[12];
-				bias.accel_bias_variance[0] = states.covariances[13];
-				bias.accel_bias_variance[1] = states.covariances[14];
-				bias.accel_bias_variance[2] = states.covariances[15];
-				bias.mag_bias_variance[0] = states.covariances[19];
-				bias.mag_bias_variance[1] = states.covariances[20];
-				bias.mag_bias_variance[2] = states.covariances[21];
-
-				bias.timestamp = _replay_mode ? now : hrt_absolute_time();
-				_estimator_sensor_bias_pub.publish(bias);
-			}
-
 			{
 				/* Check and save learned magnetometer bias estimates */
 
@@ -992,6 +960,7 @@ void EKF2::Run()
 				}
 			}
 
+			PublishSensorBias(now);
 			PublishWindEstimate(now);
 			PublishYawEstimatorStatus(now);
 
@@ -1310,6 +1279,73 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 	// publish vehicle odometry data
 	odom.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_odometry_pub.publish(odom);
+}
+
+void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
+{
+	// estimator_sensor_bias
+	estimator_sensor_bias_s bias{};
+	bias.timestamp_sample = timestamp;
+
+	const Vector3f gyro_bias{_ekf.getGyroBias()};
+	const Vector3f accel_bias{_ekf.getAccelBias()};
+
+	float states[24];
+	_ekf.getStateAtFusionHorizonAsVector().copyTo(states);
+	const Vector3f mag_bias {
+		states[19] + _param_ekf2_magbias_x.get(),
+		states[20] + _param_ekf2_magbias_y.get(),
+		states[21] + _param_ekf2_magbias_z.get(),
+	};
+
+	// only publish on change
+	if ((gyro_bias - _last_gyro_bias).longerThan(0.001f)
+	    || (accel_bias - _last_accel_bias).longerThan(0.001f)
+	    || (mag_bias - _last_mag_bias).longerThan(0.001f)) {
+
+		float covariances[24];
+		_ekf.covariances_diagonal().copyTo(covariances);
+
+		// take device ids from sensor_selection_s if not using specific vehicle_imu_s
+		if (_device_id_gyro != 0) {
+			bias.gyro_device_id = _device_id_gyro;
+
+			gyro_bias.copyTo(bias.gyro_bias);
+
+			bias.gyro_bias_variance[0] = covariances[10];
+			bias.gyro_bias_variance[1] = covariances[11];
+			bias.gyro_bias_variance[2] = covariances[12];
+
+			_last_gyro_bias = gyro_bias;
+		}
+
+		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
+			bias.accel_device_id = _device_id_accel;
+
+			accel_bias.copyTo(bias.accel_bias);
+
+			bias.accel_bias_variance[0] = covariances[13];
+			bias.accel_bias_variance[1] = covariances[14];
+			bias.accel_bias_variance[2] = covariances[15];
+
+			_last_accel_bias = accel_bias;
+		}
+
+		if (_device_id_mag != 0) {
+			bias.mag_device_id = _device_id_mag;
+
+			mag_bias.copyTo(bias.mag_bias);
+
+			bias.mag_bias_variance[0] = covariances[19];
+			bias.mag_bias_variance[1] = covariances[20];
+			bias.mag_bias_variance[2] = covariances[21];
+
+			_last_mag_bias = mag_bias;
+		}
+
+		bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		_estimator_sensor_bias_pub.publish(bias);
+	}
 }
 
 void EKF2::PublishYawEstimatorStatus(const hrt_abstime &timestamp)

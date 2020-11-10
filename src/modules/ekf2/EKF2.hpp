@@ -138,6 +138,7 @@ private:
 	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &optical_flow);
 	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu);
+	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
@@ -190,6 +191,10 @@ private:
 	uint32_t _device_id_mag{0};
 
 	Vector3f _last_local_position_for_gpos{};
+
+	Vector3f _last_accel_bias{};
+	Vector3f _last_gyro_bias{};
+	Vector3f _last_mag_bias{};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
