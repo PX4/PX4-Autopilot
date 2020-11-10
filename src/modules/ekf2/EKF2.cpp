@@ -767,7 +767,6 @@ void EKF2::Run()
 			PublishGlobalPosition(now);
 			PublishSensorBias(now);
 			PublishWindEstimate(now);
-			PublishYawEstimatorStatus(now);
 
 			// publish status/logging messages
 			PublishEkfDriftMetrics(now);
@@ -776,6 +775,7 @@ void EKF2::Run()
 			PublishInnovations(now, imu_sample_new);
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
+			PublishYawEstimatorStatus(now);
 
 			if (!_mag_decl_saved && _standby) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
